@@ -87,6 +87,9 @@ static void testLibVersion()
 static void testLibVersions()
   {
   Serial.println("LibVersions");
+#if !(0 == ARDUINO_LIB_OTV0P2BASE_VERSION_MAJOR) && !(1 <= ARDUINO_LIB_OTV0P2BASE_VERSION_MINOR)
+#error Wrong library version!
+#endif  
 #if !(0 == ARDUINO_LIB_OTRFM23BLINK_VERSION_MAJOR) && !(1 <= ARDUINO_LIB_OTRFM23BLINK_VERSION_MINOR)
 #error Wrong library version!
 #endif
@@ -107,14 +110,12 @@ static void testCRC7_5B()
   }
 
 
-#define PIN_SPI_nSS 10 // ATMega328P-PU PDIP pin 16, PB2.  Active low enable.
-
-// Do some basic exercise of the RFM23B.
+// Do some basic exercise of the RFM23B class.
 static void testRFM23B()
   {
   Serial.println("RFM23B");
-  OTRFM23BLink::OTRFM23BLink<PIN_SPI_nSS> l0;
-  l0.preinit(NULL); // Must not break anything or stall!
+  OTRFM23BLink::OTRFM23BLink<OTV0P2BASE::V0p2_PIN_SPI_nSS> l0;
+  l0.preinit(NULL); // Must not break anything nor stall!
   }
 
 
