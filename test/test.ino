@@ -24,7 +24,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 
 // Include the library under test.
 #include <OTRadioLink.h>
-#include "OTRFM23BLink_OTRFM23BLink.h"
+#include <OTRFM23BLink.h>
 
 
 void setup()
@@ -72,15 +72,24 @@ static inline void errorIfNotEqual(int expected, int actual, int delta, int line
 #define AssertIsEqualWithDelta(expected, x, delta) { errorIfNotEqual((expected), (x), (delta), __LINE__); }
 
 
-// Check that correct version of library is under test.
+// Check that correct version of this library is under test.
 static void testLibVersion()
   {
   Serial.println("LibVersion");
-#if (0 != ARDUINO_LIB_OTRADIOLINK_VERSION_MAJOR) || (2 != ARDUINO_LIB_OTRADIOLINK_VERSION_MINOR)
+#if (0 != ARDUINO_LIB_OTRADIOLINK_VERSION_MAJOR) || (3 != ARDUINO_LIB_OTRADIOLINK_VERSION_MINOR)
 #error Wrong library version!
 #endif
-  AssertIsEqual(0, ARDUINO_LIB_OTRADIOLINK_VERSION_MAJOR);
-  AssertIsEqual(2, ARDUINO_LIB_OTRADIOLINK_VERSION_MINOR);
+//  AssertIsEqual(0, ARDUINO_LIB_OTRADIOLINK_VERSION_MAJOR);
+//  AssertIsEqual(2, ARDUINO_LIB_OTRADIOLINK_VERSION_MINOR);
+  }
+
+// Check that correct versions of underlying libraries are in use.
+static void testLibVersions()
+  {
+  Serial.println("LibVersions");
+#if !(0 == ARDUINO_LIB_OTRFM23BLINK_VERSION_MAJOR) && !(1 <= ARDUINO_LIB_OTRFM23BLINK_VERSION_MINOR)
+#error Wrong library version!
+#endif
   }
 
 
@@ -131,6 +140,7 @@ void loop()
 
   // Run the tests, fastest / newest / most-fragile / most-interesting first...
   testLibVersion();
+  testLibVersions();
   testCRC7_5B();
   testRFM23B();
 

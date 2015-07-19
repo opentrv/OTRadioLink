@@ -255,7 +255,7 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // Loosely has the effect of calling poll(),
             // but may respond to and deal with things other than inbound messages.
             // By default does nothing (and returns false).
-            virtual bool handleInterruptSimple() { } // FIXME
+            virtual bool handleInterruptSimple() { return(false); } // FIXME
 
             // End access to this radio link if applicable and not already ended.
             // Returns true if it needed to be ended.
