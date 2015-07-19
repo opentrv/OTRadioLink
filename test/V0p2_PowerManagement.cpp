@@ -21,8 +21,11 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
   including interrupts and sleep.
   */
 
-
-
 #include "V0p2_PowerManagement.h"
 
+namespace OTV0P2BASE
+{
 
+
+
+}

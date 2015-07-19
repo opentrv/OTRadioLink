@@ -24,6 +24,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #ifndef V0P2_FASTDIGITALIO_H
 #define V0P2_FASTDIGITALIO_H
 
+namespace OTV0P2BASE
+{
 
 // Fast read of digital pins where pin number is constant.
 // Avoids lots of logic (many 10s of CPU cycles) in normal digitalRead()/digitalWrite() calls,
@@ -109,4 +111,5 @@ static __inline__ void _delay_x4(uint8_t n) // Takes 4n cycles to run.
 #endif
 
 
+}
 #endif

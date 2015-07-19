@@ -96,8 +96,8 @@ namespace OTRFM23BLink
 
             // Power SPI up and down given this particular SPI/RFM23B select line.
             // Use all other default values.
-            inline bool _upSPI() { return(t_powerUpSPIIfDisabled<SPI_nSS_DigitalPin>()); }
-            inline void _downSPI() { t_powerDownSPI<SPI_nSS_DigitalPin, V0p2_PIN_SPI_SCK, V0p2_PIN_SPI_MOSI, V0p2_PIN_SPI_MISO>(); }
+            inline bool _upSPI() { return(OTV0P2BASE::t_powerUpSPIIfDisabled<SPI_nSS_DigitalPin>()); }
+            inline void _downSPI() { OTV0P2BASE::t_powerDownSPI<SPI_nSS_DigitalPin, OTV0P2BASE::V0p2_PIN_SPI_SCK, OTV0P2BASE::V0p2_PIN_SPI_MOSI, OTV0P2BASE::V0p2_PIN_SPI_MISO>(); }
 
             // Write to 8-bit register on RFM22.
             // SPI must already be configured and running.
@@ -271,7 +271,6 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
 #define OTRFM23BLINK_NO_VIRT_DEST // Beware, no virtual destructor so be careful of use via base pointers.
 #endif
         };
+
     }
-
-
 #endif
