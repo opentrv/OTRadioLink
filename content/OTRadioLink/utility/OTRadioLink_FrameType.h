@@ -75,7 +75,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 
 // Messages to/from the REV9 variant.
 #define OTRADIOLINK_V0P2_FRAME_TYPE_REV9_ALERT          ('!') // 0x21
-#define OTRADIOLINK_V0P2_FRAME_TYPE_REV9_POLL           ('?') // 0x3f
+#define OTRADIOLINK_V0P2_FRAME_TYPE_REV9_POLL_AND_CMD   ('?') // 0x3f
 #define OTRADIOLINK_V0P2_FRAME_TYPE_REV9_POLL_RESPONSE  ('*') // 0x2a
 
 

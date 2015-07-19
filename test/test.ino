@@ -25,6 +25,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 
 // Include the library under test.
 #include <OTRadioLink.h>
+#include "OTRFM23BLink_OTRFM23BLink.h"
 
 
 void setup()
@@ -76,8 +77,11 @@ static inline void errorIfNotEqual(int expected, int actual, int delta, int line
 static void testLibVersion()
   {
   Serial.println("LibVersion");
+#if (0 != ARDUINO_LIB_OTRADIOLINK_VERSION_MAJOR) || (2 != ARDUINO_LIB_OTRADIOLINK_VERSION_MINOR)
+#error Wrong library version!
+#endif
   AssertIsEqual(0, ARDUINO_LIB_OTRADIOLINK_VERSION_MAJOR);
-  AssertIsEqual(1, ARDUINO_LIB_OTRADIOLINK_VERSION_MINOR);
+  AssertIsEqual(2, ARDUINO_LIB_OTRADIOLINK_VERSION_MINOR);
   }
 
 
@@ -92,6 +96,17 @@ static void testCRC7_5B()
   AssertIsTrueWithErr((0x1a == crc1), crc1); 
   const uint8_t crc2 = OTRadioLink::crc7_5B_update(0x50, 40); // Minimal stats payload with low power and 20C temperature.
   AssertIsTrueWithErr((0x7b == crc2), crc2); 
+  }
+
+
+#define PIN_SPI_nSS 10 // ATMega328P-PU PDIP pin 16, PB2.  Active low enable.
+
+// Do some basic exercise of the RFM23B.
+static void testRFM23B()
+  {
+  Serial.println("RFM23B");
+  OTRFM23BLink::OTRFM23BLink<PIN_SPI_nSS> l0;
+  l0.preinit(NULL); // Must not break anything or stall!
   }
 
 
@@ -118,6 +133,7 @@ void loop()
   // Run the tests, fastest / newest / most-fragile / most-interesting first...
   testLibVersion();
   testCRC7_5B();
+  testRFM23B();
 
 
 

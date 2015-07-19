@@ -23,7 +23,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #ifndef ARDUINO_LIB_OTRADIOLINK_CRC_H
 #define ARDUINO_LIB_OTRADIOLINK_CRC_H
 
-#include "stdint.h"
+#include <stdint.h>
 
 // Use namespaces to help avoid collisions.
 namespace OTRadioLink
