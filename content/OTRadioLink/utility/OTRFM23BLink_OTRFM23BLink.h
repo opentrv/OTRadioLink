@@ -233,11 +233,15 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // Send/TX a frame on the specified channel, optionally quietly.
             // Revert afterwards to listen()ing if enabled,
             // else usually power down the radio if not listening.
-            // Can optionally be sent quietly (eg if the receiver is known to be close by)
-            // to make better use of bandwidth; this hint may be ignored.
+            //   * quiet  if true then send can be quiet
+            //     (eg if the receiver is known to be close by)
+            //     to make better use of bandwidth; this hint may be ignored.
+            //   * listenAfter  if true then try to listen after transmit
+            //     for enough time to allow a remote turn-around and TX;
+            //     may be ignored if radio will revert to receive mode anyway.
             // Returns true if the transmission was made, else false.
             // May block to transmit (eg to avoid copying the buffer).
-            virtual bool send(int channel, const uint8_t *buf, uint8_t buflen, bool quiet = false) { return(false); } // FIXME
+            virtual bool send(int channel, const uint8_t *buf, uint8_t buflen, bool quiet = false, bool listenAfter = false) { return(false); } // FIXME
 
             // Poll for incoming messages (eg where interrupts are not available).
             // Will only have any effect when listen(true, ...) is active.
