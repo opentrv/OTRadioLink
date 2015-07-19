@@ -27,7 +27,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #include <stdint.h>
 #include <Arduino.h>
 
-#include "V0p2_FastDigitalIO.h"
+#include "OTV0P2BASE_FastDigitalIO.h"
 
 namespace OTV0P2BASE
 {
