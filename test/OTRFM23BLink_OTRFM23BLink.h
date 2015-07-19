@@ -32,6 +32,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #include <OTRadioLink.h>
 
 #include <Arduino.h>
+#include "V0p2_BasicPinAssignments.h"
 #include "V0p2_FastDigitalIO.h"
 #include "V0p2_PowerManagement.h"
 
@@ -93,6 +94,11 @@ namespace OTRFM23BLink
             inline void _SELECT() { fastDigitalWrite(SPI_nSS_DigitalPin, LOW); } // Select/enable RFM23B.
             inline void _DESELECT() { fastDigitalWrite(SPI_nSS_DigitalPin, HIGH); } // Deselect/disable RFM23B.
 
+            // Power SPI up and down given this particular SPI/RFM23B select line.
+            // Use all other default values.
+            inline bool _upSPI() { return(t_powerUpSPIIfDisabled<SPI_nSS_DigitalPin>()); }
+            inline void _downSPI() { t_powerDownSPI<SPI_nSS_DigitalPin, V0p2_PIN_SPI_SCK, V0p2_PIN_SPI_MOSI, V0p2_PIN_SPI_MISO>(); }
+
             // Write to 8-bit register on RFM22.
             // SPI must already be configured and running.
             inline void _writeReg8Bit(const uint8_t addr, const uint8_t val)
@@ -103,24 +109,68 @@ namespace OTRFM23BLink
                 _DESELECT();
                 }
 
+            // Write 0 to 16-bit register on RFM22 as burst.
+            // SPI must already be configured and running.
+            void _writeReg16Bit0(const uint8_t addr)
+              {
+              _SELECT();
+              _wr(addr | 0x80); // Force to write.
+              _wr(0);
+              _wr(0);
+              _DESELECT();
+              }
+
+            // Enter standby mode.
+            // SPI must already be configured and running.
+            void _modeStandby()
+              {
+              _writeReg8Bit(REG_OP_CTRL1, 0);
+#if 0 && defined(DEBUG)
+DEBUG_SERIAL_PRINT_FLASHSTRING("Sb");
+#endif
+              }
+
+            // Read/discard status (both registers) to clear interrupts.
+            // SPI must already be configured and running.
+            void _clearInterrupts()
+              {
+              //  _RFM22WriteReg8Bit(RFM22REG_INT_STATUS1, 0);
+              //  _RFM22WriteReg8Bit(RFM22REG_INT_STATUS2, 0); // TODO: combine in burst write with previous...
+              _writeReg16Bit0(REG_INT_STATUS1);
+              }
+
             // Enter standby mode (consume least possible power but retain register contents).
             // FIFO state and pending interrupts are cleared.
             // Typical consumption in standby 450nA (cf 15nA when shut down, 8.5mA TUNE, 18--80mA RX/TX).
             void _modeStandbyAndClearState()
                 {
-//                const bool neededEnable = powerUpSPIIfDisabled();
-//                _modeStandby();
-//                // Clear RX and TX FIFOs simultaneously.
-//                _writeReg8Bit(REG_OP_CTRL2, 3); // FFCLRRX | FFCLRTX
-//                _writeReg8Bit(REG_OP_CTRL2, 0); // Needs both writes to clear.
-//                // Disable all interrupts.
-//                //  _RFM22WriteReg8Bit(RFM22REG_INT_ENABLE1, 0);
-//                //  _RFM22WriteReg8Bit(RFM22REG_INT_ENABLE2, 0);
-//                _writeReg16Bit0(RFM22REG_INT_ENABLE1);
-//                // Clear any interrupts already/still pending...
-//                _clearInterrupts();
-//                if(neededEnable) { powerDownSPI(); }
-//                // DEBUG_SERIAL_PRINTLN_FLASHSTRING("SCS");
+                const bool neededEnable = _upSPI();
+                _modeStandby();
+                // Clear RX and TX FIFOs simultaneously.
+                _writeReg8Bit(REG_OP_CTRL2, 3); // FFCLRRX | FFCLRTX
+                _writeReg8Bit(REG_OP_CTRL2, 0); // Needs both writes to clear.
+                // Disable all interrupts.
+                //  _RFM22WriteReg8Bit(RFM22REG_INT_ENABLE1, 0);
+                //  _RFM22WriteReg8Bit(RFM22REG_INT_ENABLE2, 0);
+                _writeReg16Bit0(REG_INT_ENABLE1);
+                // Clear any interrupts already/still pending...
+                _clearInterrupts();
+                if(neededEnable) { _downSPI(); }
+// DEBUG_SERIAL_PRINTLN_FLASHSTRING("SCS");
+                }
+
+            // Minimal set-up of I/O (etc) after system power-up.
+            // Performs a software reset and leaves the radio deselected and in a low-power and safe state.
+            // Will power up SPI if needed.
+            void _powerOnInit()
+                {
+#if 0 && defined(DEBUG)
+DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
+#endif
+                const bool neededEnable = _upSPI();
+                _writeReg8Bit(REG_OP_CTRL1, REG_OP_CTRL1_SWRES);
+                _modeStandby();
+                if(neededEnable) { _downSPI(); }
                 }
 
         protected:
@@ -143,8 +193,9 @@ namespace OTRFM23BLink
             // This pre-configuration data depends entirely on the radio implementation,
             // but could for example be a minimal set of register number/values pairs in ROM.
             // This routine must not lock up if radio is not actually available/fitted.
-            // Argument is ignored for this impl.
-            virtual void preinit(const void *preconfig) { /* _powerOnInit(); */ }
+            // Argument is ignored for this implementation.
+            // NOT INTERRUPT SAFE and should not be called concurrently with any other RFM23B/SPI operation.
+            virtual void preinit(const void *preconfig) { _powerOnInit(); }
 
             // Begin access to (initialise) this radio link if applicable and not already begun.
             // Returns true if it needed to be begun.

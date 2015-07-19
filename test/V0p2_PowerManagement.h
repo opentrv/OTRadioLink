@@ -84,10 +84,10 @@ void t_powerDownSPI()
 // If SPI was disabled, power it up, enable it as master and with a sensible clock speed, etc, and return true.
 // If already powered up then do nothing other than return false.
 // If this returns true then a matching powerDownSPI() may be advisable.
-#if defined(PIN_SPI_nSS) && defined(PIN_SPI_SCK) && defined(PIN_SPI_MOSI) && defined(PIN_SPI_MISO)
-bool powerUpSPIIfDisabled() { return(t_powerUpSPIIfDisabled<PIN_SPI_nSS>()); }
+#if defined(V0p2_PIN_SPI_nSS) && defined(V0p2_PIN_SPI_SCK) && defined(V0p2_PIN_SPI_MOSI) && defined(V0p2_PIN_SPI_MISO)
+inline bool powerUpSPIIfDisabled() { return(t_powerUpSPIIfDisabled<V0p2_PIN_SPI_nSS>()); }
 // Power down SPI.
-void powerDownSPI() { t_powerDownSPI<PIN_SPI_nSS, PIN_SPI_SCK, PIN_SPI_MOSI, PIN_SPI_MISO>(); }
+inline void powerDownSPI() { t_powerDownSPI<V0p2_PIN_SPI_nSS, V0p2_PIN_SPI_SCK, V0p2_PIN_SPI_MOSI, V0p2_PIN_SPI_MISO>(); }
 #endif
 
 
