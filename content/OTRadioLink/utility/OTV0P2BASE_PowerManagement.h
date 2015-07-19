@@ -27,6 +27,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #include <stdint.h>
 #include <Arduino.h>
 
+#include "OTV0P2BASE_BasicPinAssignments.h"
 #include "OTV0P2BASE_FastDigitalIO.h"
 
 namespace OTV0P2BASE
@@ -87,11 +88,9 @@ void t_powerDownSPI()
 // If SPI was disabled, power it up, enable it as master and with a sensible clock speed, etc, and return true.
 // If already powered up then do nothing other than return false.
 // If this returns true then a matching powerDownSPI() may be advisable.
-#if defined(V0p2_PIN_SPI_nSS) && defined(V0p2_PIN_SPI_SCK) && defined(V0p2_PIN_SPI_MOSI) && defined(V0p2_PIN_SPI_MISO)
-inline bool V0p2_powerUpSPIIfDisabled() { return(t_powerUpSPIIfDisabled<V0p2_PIN_SPI_nSS>()); }
+inline bool powerUpSPIIfDisabled() { return(t_powerUpSPIIfDisabled<V0p2_PIN_SPI_nSS>()); }
 // Power down SPI.
-inline void V0p2_powerDownSPI() { t_powerDownSPI<V0p2_PIN_SPI_nSS, V0p2_PIN_SPI_SCK, V0p2_PIN_SPI_MOSI, V0p2_PIN_SPI_MISO>(); }
-#endif
+inline void powerDownSPI() { t_powerDownSPI<V0p2_PIN_SPI_nSS, V0p2_PIN_SPI_SCK, V0p2_PIN_SPI_MOSI, V0p2_PIN_SPI_MISO>(); }
 
 }
 #endif
