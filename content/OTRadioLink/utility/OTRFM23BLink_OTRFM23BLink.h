@@ -72,6 +72,13 @@ namespace OTRFM23BLink
             // At lowest SPI clock prescale (x2) this is likely to spin for ~16 CPU cycles (8 bits each taking 2 cycles).
             inline void _wr(const uint8_t data) { SPDR = data; while (!(SPSR & _BV(SPIF))) { } }
 
+//            // Returns true iff RFM23 appears to be correctly connected.
+//            bool checkConnected();
+
+//            // Power SPI up and down given this particular SPI/RFM23B select line.
+//            virtual bool upSPI() = 0;
+//            virtual void downSPI() = 0;
+
 #if 0 // Defining the virtual destructor uses ~800+ bytes of Flash by forcing use of malloc()/free().
             // Ensure safe instance destruction when derived from.
             // by default attempts to shut down the sensor and otherwise free resources when done.
@@ -96,8 +103,12 @@ namespace OTRFM23BLink
 
             // Power SPI up and down given this particular SPI/RFM23B select line.
             // Use all other default values.
+            // Inlined non-virtual implementations for speed.
             inline bool _upSPI() { return(OTV0P2BASE::t_powerUpSPIIfDisabled<SPI_nSS_DigitalPin>()); }
             inline void _downSPI() { OTV0P2BASE::t_powerDownSPI<SPI_nSS_DigitalPin, OTV0P2BASE::V0p2_PIN_SPI_SCK, OTV0P2BASE::V0p2_PIN_SPI_MOSI, OTV0P2BASE::V0p2_PIN_SPI_MISO>(); }
+//            // Versions accessible to the base class...
+//            virtual bool upSPI() { return(_upSPI()); }
+//            virtual void downSPI() { _downSPI(); }
 
             // Write to 8-bit register on RFM22.
             // SPI must already be configured and running.
@@ -112,13 +123,55 @@ namespace OTRFM23BLink
             // Write 0 to 16-bit register on RFM22 as burst.
             // SPI must already be configured and running.
             void _writeReg16Bit0(const uint8_t addr)
-              {
-              _SELECT();
-              _wr(addr | 0x80); // Force to write.
-              _wr(0);
-              _wr(0);
-              _DESELECT();
-              }
+                {
+                _SELECT();
+                _wr(addr | 0x80); // Force to write.
+                _wr(0);
+                _wr(0);
+                _DESELECT();
+                }
+
+            // Read from 8-bit register on RFM22.
+            // SPI must already be configured and running.
+            inline uint8_t _readReg8Bit(const uint8_t addr)
+                {
+                _SELECT();
+                _io(addr & 0x7f); // Force to read.
+                const uint8_t result = _io(0); // Dummy value...
+                _DESELECT();
+                return(result);
+                }
+
+            // Read from 16-bit big-endian register pair.
+            // The result has the first (lower-numbered) register in the most significant byte.
+            uint16_t _readReg16Bit(const uint8_t addr)
+                {
+                _SELECT();
+                _io(addr & 0x7f); // Force to read.
+                uint16_t result = ((uint16_t)_io(0)) << 8;
+                result |= ((uint16_t)_io(0));
+                _DESELECT();
+                return(result);
+                }
+
+            // Returns true iff RFM23 appears to be correctly connected.
+            bool checkConnected()
+                {
+                const bool neededEnable = _upSPI();
+                bool isOK = false;
+                const uint8_t rType = _readReg8Bit(0); // May read as 0 if not connected at all.
+                if(SUPPORTED_DEVICE_TYPE == rType)
+                    {
+                    const uint8_t rVersion = _readReg8Bit(1);
+                    if(SUPPORTED_DEVICE_VERSION == rVersion)
+                        { isOK = true; }
+                    }
+#if 0 && defined(DEBUG)
+if(!isOK) { DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 bad"); }
+#endif
+                if(neededEnable) { _downSPI(); }
+                return(isOK);
+                }
 
             // Enter standby mode.
             // SPI must already be configured and running.

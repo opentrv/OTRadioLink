@@ -23,4 +23,40 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 namespace OTRFM23BLink
     {
 
+
+//// Returns true iff RFM23 appears to be correctly connected.
+//bool OTRFM23BLinkBase::checkConnected()
+//  {
+//  const bool neededEnable = upSPI();
+//  bool isOK = false;
+////  const uint8_t rType = _readReg8Bit(0); // May read as 0 if not connected at all.
+////  if(RFM22_SUPPORTED_DEVICE_TYPE == rType)
+////    {
+////    const uint8_t rVersion = _readReg8Bit(1);
+////    if(RFM22_SUPPORTED_DEVICE_VERSION == rVersion)
+////      { isOK = true; }
+////#if 0 && defined(DEBUG)
+////    else
+////      {
+////      DEBUG_SERIAL_PRINT_FLASHSTRING("RFM22 bad version: ");
+////      DEBUG_SERIAL_PRINTFMT(rVersion, HEX);
+////      DEBUG_SERIAL_PRINTLN();
+////      }
+////#endif
+////    }
+////#if 0 && defined(DEBUG)
+////  else
+////    {
+////    DEBUG_SERIAL_PRINT_FLASHSTRING("RFM22 bad type: ");
+////    DEBUG_SERIAL_PRINTFMT(rType, HEX);
+////    DEBUG_SERIAL_PRINTLN();
+////    }
+////#endif
+////#if 1 && defined(DEBUG)
+////  if(!isOK) { DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM22 bad"); }
+////#endif
+//  if(neededEnable) { downSPI(); }
+//  return(isOK);
+//  }
+
     }
