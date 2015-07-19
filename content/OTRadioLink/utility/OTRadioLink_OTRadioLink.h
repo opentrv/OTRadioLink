@@ -83,6 +83,10 @@ namespace OTRadioLink
             // Defaults to do nothing.
             virtual void preinit(const void *preconfig) { }
 
+            // Emergency shutdown of radio to save power on system panic.
+            // Defaults to call preinit(NULL).
+            virtual void panicShutdown() { preinit(NULL); }
+
             // Configure the hardware.
             // Must be called before begin().
             // Returns false if hardware not present or config is invalid.
