@@ -22,8 +22,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 
 /**TEMPORARILY IN TEST SKETCH BEFORE BEING MOVED TO OWN LIBRARY. */
 
-#ifndef ARDUINO_LIB_OTRFM23BLINK_OTRFM23BLINK_H
-#define ARDUINO_LIB_OTRFM23BLINK_OTRFM23BLINK_H
+#ifndef OTRFM23BLINK_OTRFM23BLINK_H
+#define OTRFM23BLINK_OTRFM23BLINK_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -32,9 +32,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #include <OTRadioLink.h>
 
 #include <Arduino.h>
-#include "V0p2_BasicPinAssignments.h"
-#include "V0p2_FastDigitalIO.h"
-#include "V0p2_PowerManagement.h"
+#include "OTV0P2BASE_BasicPinAssignments.h"
+#include "OTV0P2BASE_FastDigitalIO.h"
+#include "OTV0P2BASE_PowerManagement.h"
 
 namespace OTRFM23BLink
     {

@@ -21,8 +21,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
   Also accurate micro delays for bit-banging time-sensitive protocols.
   */
 
-#ifndef V0P2_FASTDIGITALIO_H
-#define V0P2_FASTDIGITALIO_H
+#ifndef OTV0P2BASE_FASTDIGITALIO_H
+#define OTV0P2BASE_FASTDIGITALIO_H
 
 namespace OTV0P2BASE
 {

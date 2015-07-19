@@ -20,8 +20,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
   GPIO underlying pin assignments and similar that do not depend on board revision.
   */
 
-#ifndef V0P2_BASICPINASSIGNMENTS_H
-#define V0P2_BASICPINASSIGNMENTS_H
+#ifndef OTV0P2BASE_BASICPINASSIGNMENTS_H
+#define OTV0P2BASE_BASICPINASSIGNMENTS_H
 
 #include <stdint.h>
 

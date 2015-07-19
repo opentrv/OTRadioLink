@@ -21,13 +21,13 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
   including interrupts and sleep.
   */
 
-#ifndef V0P2_POWERMANAGEMENT_H
-#define V0P2_POWERMANAGEMENT_H
+#ifndef OTV0P2BASE_POWERMANAGEMENT_H
+#define OTV0P2BASE_POWERMANAGEMENT_H
 
 #include <stdint.h>
 #include <Arduino.h>
 
-#include "V0p2_FastDigitalIO.h"
+#include "OTV0P2BASE_FastDigitalIO.h"
 
 namespace OTV0P2BASE
 {
