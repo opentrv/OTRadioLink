@@ -17,12 +17,12 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 */
 
 /*
-  Fast GPIO with minimal run-time look-up
-  and accurate micro delays for bit-banging time-sensitive protocols.
+  Fast GPIO with minimal run-time look-up for V0p2 boards.
+  Also accurate micro delays for bit-banging time-sensitive protocols.
   */
 
-#ifndef FASTDIGITALIO_H
-#define FASTDIGITALIO_H
+#ifndef V0P2_FASTDIGITALIO_H
+#define V0P2_FASTDIGITALIO_H
 
 
 // Fast read of digital pins where pin number is constant.

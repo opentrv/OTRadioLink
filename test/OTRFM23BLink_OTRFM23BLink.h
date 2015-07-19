@@ -32,7 +32,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #include <OTRadioLink.h>
 
 #include <Arduino.h>
-#include "FastDigitalIO.h"
+#include "V0p2_FastDigitalIO.h"
+#include "V0p2_PowerManagement.h"
 
 namespace OTRFM23BLink
     {
