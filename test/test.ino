@@ -22,6 +22,11 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 // Arduino libraries imported here (even for use in other .cpp files).
 //#include <SPI.h>
 
+// SPI: SCK (dpin 13, also LED on Arduino boards that the bootloader may 'flash'), MISO (dpin 12), MOSI (dpin 11), nSS (dpin 10).
+#define PIN_SPI_SCK 13 // ATMega328P-PU PDIP pin 19, PB5.
+#define PIN_SPI_MISO 12 // ATMega328P-PU PDIP pin 18, PB4.
+#define PIN_SPI_MOSI 11 // ATMega328P-PU PDIP pin 17, PB3.
+#define PIN_SPI_nSS 10 // ATMega328P-PU PDIP pin 16, PB2.  Active low enable.
 
 // Include the library under test.
 #include <OTRadioLink.h>
