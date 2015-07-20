@@ -164,7 +164,7 @@ namespace OTRadioLink
             virtual bool send(const uint8_t *buf, uint8_t buflen, int channel = 0, bool quiet = false, bool listenAfter = false) = 0;
 
             // Poll for incoming messages (eg where interrupts are not available).
-            // Will only have any effect when listen(true, ...) is active.
+            // Will only have any effect when listen(true, ...) is in effect.
             // Can be used safely in addition to handling inbound interrupts.
             // Where interrupts are not available should be called at least as often
             // and messages are expected to arrive to avoid radio receiver overrun.
