@@ -118,7 +118,7 @@ namespace OTRadioLink
             // For those radios that need starting this will be false before begin().
             virtual bool isAvailable() const { return(true); }
 
-            // If activeRX is true, listen for incoming messages on the specified channel,
+            // If activeRX is true, listen for incoming messages on the specified (default first/0) channel,
             // else (if activeRX is false) make sure that the receiver is shut down.
             // (If not listening and not transmitting then by default shut down and save energy.)
             // Does not block.
@@ -150,7 +150,7 @@ namespace OTRadioLink
             // Higher-numbered error states may be more severe.
             virtual uint8_t getRXRerr() { return(0); }
 
-            // Send/TX a frame on the specified channel, optionally quietly.
+            // Send/TX a frame on the specified (default first/0) channel, optionally quietly.
             // Revert afterwards to listen()ing if enabled,
             // else usually power down the radio if not listening.
             //   * quiet  if true then send can be quiet
