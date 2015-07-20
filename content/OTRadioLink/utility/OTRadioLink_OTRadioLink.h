@@ -122,7 +122,7 @@ namespace OTRadioLink
             // else (if activeRX is false) make sure that the receiver is shut down.
             // (If not listening and not transmitting then by default shut down and save energy.)
             // Does not block.
-            void listen(const bool activeRX, const int channel)
+            void listen(const bool activeRX, const int channel = 0)
                 {
                 if(activeRX) { listenChannel = -1; }
                 else { listenChannel = (channel <= -1) ? -1 : ((channel >= nChannels) ? (nChannels-1) : channel); }
@@ -161,7 +161,7 @@ namespace OTRadioLink
             //     may be ignored if radio will revert to receive mode anyway.
             // Returns true if the transmission was made, else false.
             // May block to transmit (eg to avoid copying the buffer).
-            virtual bool send(int channel, const uint8_t *buf, uint8_t buflen, bool quiet = false, bool listenAfter = false) = 0;
+            virtual bool send(const uint8_t *buf, uint8_t buflen, int channel = 0, bool quiet = false, bool listenAfter = false) = 0;
 
             // Poll for incoming messages (eg where interrupts are not available).
             // Will only have any effect when listen(true, ...) is active.
