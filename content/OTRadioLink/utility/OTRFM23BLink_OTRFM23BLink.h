@@ -337,7 +337,7 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // End access to this radio link if applicable and not already ended.
             // Returns true if it needed to be ended.
             // Shuts down radio in safe low-power state.
-            virtual bool end() { return(false); } // FIXME
+            virtual bool end() { _modeStandbyAndClearState(); return(true); }
 
 #if 0 // Defining the virtual destructor uses ~800+ bytes of Flash by forcing use of malloc()/free().
             // Ensure safe instance destruction when derived from.
