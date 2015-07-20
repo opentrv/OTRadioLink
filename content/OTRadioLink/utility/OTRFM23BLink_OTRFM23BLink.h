@@ -234,11 +234,11 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                 }
 
         protected:
-            // Configure the hardware.
-            // Called from configure() once nChannels and channelConfig is set.
-            // Returns false if hardware not present or config is invalid.
-            // Defaults to do nothing.
-            virtual bool _doconfig() { return(false); } // FIXME
+//            // Configure the hardware.
+//            // Called from configure() once nChannels and channelConfig is set.
+//            // Returns false if hardware not present or config is invalid.
+//            // Does nothing because h/w configuration is postponed until begin().
+//            virtual bool _doconfig() { return(true); }
 
             // Switch listening on or off.
             // listenChannel will have been set when this is called.

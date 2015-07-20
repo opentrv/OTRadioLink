@@ -89,7 +89,7 @@ namespace OTRadioLink
 
             // Configure the hardware.
             // Must be called before begin().
-            // Returns false if hardware not present or config is invalid.
+            // Returns false if hardware problems evident or config is invalid.
             // At least one channel configuration (0) must be provided
             // and it must be a 'full' base configuration;
             // others can be reduced/partial reconfigurations that can be applied to switch channels.
