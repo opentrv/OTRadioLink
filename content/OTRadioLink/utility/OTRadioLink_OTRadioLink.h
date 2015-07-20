@@ -161,7 +161,7 @@ namespace OTRadioLink
             //     may be ignored if radio will revert to receive mode anyway.
             // Returns true if the transmission was made, else false.
             // May block to transmit (eg to avoid copying the buffer).
-            virtual bool send(int channel, const uint8_t *buf, uint8_t buflen, bool quiet = false, bool listenAfter = false) = 0;
+            virtual bool send(const uint8_t *buf, uint8_t buflen, int channel = 0, bool quiet = false, bool listenAfter = false) = 0;
 
             // Poll for incoming messages (eg where interrupts are not available).
             // Will only have any effect when listen(true, ...) is active.
