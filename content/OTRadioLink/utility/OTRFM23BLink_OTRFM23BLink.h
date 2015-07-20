@@ -72,12 +72,28 @@ namespace OTRFM23BLink
             // At lowest SPI clock prescale (x2) this is likely to spin for ~16 CPU cycles (8 bits each taking 2 cycles).
             inline void _wr(const uint8_t data) { SPDR = data; while (!(SPSR & _BV(SPIF))) { } }
 
-//            // Returns true iff RFM23 appears to be correctly connected.
-//            bool checkConnected();
+            // Write to 8-bit register on RFM22.
+            // SPI must already be configured and running.
+            // Version accessible to the base class...
+            virtual void _writeReg8Bit_(const uint8_t addr, const uint8_t val) = 0;
 
-//            // Power SPI up and down given this particular SPI/RFM23B select line.
-//            virtual bool upSPI() = 0;
-//            virtual void downSPI() = 0;
+            // Read from 8-bit register on RFM22.
+            // SPI must already be configured and running.
+            // Version accessible to the base class...
+            virtual uint8_t _readReg8Bit_(const uint8_t addr) = 0;
+
+            // Returns true iff RFM23 appears to be correctly connected.
+            bool _checkConnected();
+
+            // Configure the radio from a list of register/value pairs in readonly PROGMEM/Flash, terminating with an 0xff register value.
+            // NOTE: argument is not a pointer into SRAM, it is into PROGMEM!
+            typedef uint8_t regValPair_t[2];
+            void _registerBlockSetup(const regValPair_t* registerValues);
+
+            // Power SPI up and down given this particular SPI/RFM23B select line.
+            // Slower virtual call but avoids duplicated/header code.
+            virtual bool _upSPI_() = 0;
+            virtual void _downSPI_() = 0;
 
 #if 0 // Defining the virtual destructor uses ~800+ bytes of Flash by forcing use of malloc()/free().
             // Ensure safe instance destruction when derived from.
@@ -91,6 +107,12 @@ namespace OTRFM23BLink
 
     // Concrete impl class for RFM23B radio link hardware driver.
     // Neither re-entrant nor ISR-safe except where stated.
+    // Configuration (the argument to config(), with channels == 1)
+    // should be a list of register/value pairs in readonly PROGMEM/Flash,
+    // terminating with an 0xff register value
+    // ie argument is not a pointer into SRAM, it is into PROGMEM!
+    // const uint8_t registerValues[][2]);
+
     template <uint8_t SPI_nSS_DigitalPin> // Hardwire to I/O pin for RFM23B active-low SPI device select.
     class OTRFM23BLink : public OTRFM23BLinkBase
         {
@@ -106,9 +128,9 @@ namespace OTRFM23BLink
             // Inlined non-virtual implementations for speed.
             inline bool _upSPI() { return(OTV0P2BASE::t_powerUpSPIIfDisabled<SPI_nSS_DigitalPin>()); }
             inline void _downSPI() { OTV0P2BASE::t_powerDownSPI<SPI_nSS_DigitalPin, OTV0P2BASE::V0p2_PIN_SPI_SCK, OTV0P2BASE::V0p2_PIN_SPI_MOSI, OTV0P2BASE::V0p2_PIN_SPI_MISO>(); }
-//            // Versions accessible to the base class...
-//            virtual bool upSPI() { return(_upSPI()); }
-//            virtual void downSPI() { _downSPI(); }
+            // Versions accessible to the base class...
+            virtual bool _upSPI_() { return(_upSPI()); }
+            virtual void _downSPI_() { _downSPI(); }
 
             // Write to 8-bit register on RFM22.
             // SPI must already be configured and running.
@@ -119,6 +141,8 @@ namespace OTRFM23BLink
                 _wr(val);
                 _DESELECT();
                 }
+            // Version accessible to the base class...
+            virtual void _writeReg8Bit_(const uint8_t addr, const uint8_t val) { _writeReg8Bit(addr, val); }
 
             // Write 0 to 16-bit register on RFM22 as burst.
             // SPI must already be configured and running.
@@ -141,6 +165,8 @@ namespace OTRFM23BLink
                 _DESELECT();
                 return(result);
                 }
+            // Version accessible to the base class...
+            virtual uint8_t _readReg8Bit_(const uint8_t addr) { return(_readReg8Bit(addr)); }
 
             // Read from 16-bit big-endian register pair.
             // The result has the first (lower-numbered) register in the most significant byte.
@@ -154,28 +180,9 @@ namespace OTRFM23BLink
                 return(result);
                 }
 
-            // Returns true iff RFM23 appears to be correctly connected.
-            bool _checkConnected()
-                {
-                const bool neededEnable = _upSPI();
-                bool isOK = false;
-                const uint8_t rType = _readReg8Bit(0); // May read as 0 if not connected at all.
-                if(SUPPORTED_DEVICE_TYPE == rType)
-                    {
-                    const uint8_t rVersion = _readReg8Bit(1);
-                    if(SUPPORTED_DEVICE_VERSION == rVersion)
-                        { isOK = true; }
-                    }
-#if 0 && defined(DEBUG)
-if(!isOK) { DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 bad"); }
-#endif
-                if(neededEnable) { _downSPI(); }
-                return(isOK);
-                }
-
             // Enter standby mode.
             // SPI must already be configured and running.
-            void _modeStandby()
+            inline void _modeStandby()
               {
               _writeReg8Bit(REG_OP_CTRL1, 0);
 #if 0 && defined(DEBUG)
@@ -251,7 +258,7 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             virtual void preinit(const void *preconfig) { _powerOnInit(); }
 
             // Begin access to (initialise) this radio link if applicable and not already begun.
-            // Returns true if it successfully begun, false otherwise.
+            // Returns true if it successfully began, false otherwise.
             // Allows logic to end() if required at the end of a block, etc.
             // Defaults to do nothing (and return false).
             virtual bool begin()
@@ -262,10 +269,11 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
 //  RFM22RegisterBlockSetup(FHT8V_RFM22_Reg_Values);
 //  // Put the radio in low-power standby mode.
 //  RFM22ModeStandbyAndClearState();
-                if(1 != nChannels) { return(false); }
+                if(1 != nChannels) { return(false); } // Can only handle a single channel.
                 if(!_checkConnected()) { return(false); }
-                // TODO
-                return(false); // FIXME
+                _registerBlockSetup((const regValPair_t *)(channelConfig->config));
+                _modeStandbyAndClearState();
+                return(true);
                 }
 
             // Returns true if this radio link is currently available.

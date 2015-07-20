@@ -108,7 +108,7 @@ namespace OTRadioLink
                 }
 
             // Begin access to (initialise) this radio link if applicable and not already begun.
-            // Returns true if it successfully begun, false otherwise.
+            // Returns true if it successfully began, false otherwise.
             // Allows logic to end() if required at the end of a block, etc.
             // Defaults to do nothing (and return false).
             virtual bool begin() { return(false); }
