@@ -155,7 +155,7 @@ namespace OTRFM23BLink
                 }
 
             // Returns true iff RFM23 appears to be correctly connected.
-            bool checkConnected()
+            bool _checkConnected()
                 {
                 const bool neededEnable = _upSPI();
                 bool isOK = false;
@@ -251,10 +251,22 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             virtual void preinit(const void *preconfig) { _powerOnInit(); }
 
             // Begin access to (initialise) this radio link if applicable and not already begun.
-            // Returns true if it needed to be begun.
+            // Returns true if it successfully begun, false otherwise.
             // Allows logic to end() if required at the end of a block, etc.
             // Defaults to do nothing (and return false).
-            virtual bool begin() { return(false); } // FIXME
+            virtual bool begin()
+                {
+//  // Check that the radio is correctly connected; panic if not...
+//  if(!RFM22CheckConnected()) { panic(); }
+//  // Configure the radio.
+//  RFM22RegisterBlockSetup(FHT8V_RFM22_Reg_Values);
+//  // Put the radio in low-power standby mode.
+//  RFM22ModeStandbyAndClearState();
+                if(1 != nChannels) { return(false); }
+                if(!_checkConnected()) { return(false); }
+                // TODO
+                return(false); // FIXME
+                }
 
             // Returns true if this radio link is currently available.
             // True by default unless implementation overrides.
