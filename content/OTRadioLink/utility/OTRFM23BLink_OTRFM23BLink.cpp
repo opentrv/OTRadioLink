@@ -24,39 +24,47 @@ namespace OTRFM23BLink
     {
 
 
-//// Returns true iff RFM23 appears to be correctly connected.
-//bool OTRFM23BLinkBase::checkConnected()
-//  {
-//  const bool neededEnable = upSPI();
-//  bool isOK = false;
-////  const uint8_t rType = _readReg8Bit(0); // May read as 0 if not connected at all.
-////  if(RFM22_SUPPORTED_DEVICE_TYPE == rType)
-////    {
-////    const uint8_t rVersion = _readReg8Bit(1);
-////    if(RFM22_SUPPORTED_DEVICE_VERSION == rVersion)
-////      { isOK = true; }
-////#if 0 && defined(DEBUG)
-////    else
-////      {
-////      DEBUG_SERIAL_PRINT_FLASHSTRING("RFM22 bad version: ");
-////      DEBUG_SERIAL_PRINTFMT(rVersion, HEX);
-////      DEBUG_SERIAL_PRINTLN();
-////      }
-////#endif
-////    }
-////#if 0 && defined(DEBUG)
-////  else
-////    {
-////    DEBUG_SERIAL_PRINT_FLASHSTRING("RFM22 bad type: ");
-////    DEBUG_SERIAL_PRINTFMT(rType, HEX);
-////    DEBUG_SERIAL_PRINTLN();
-////    }
-////#endif
-////#if 1 && defined(DEBUG)
-////  if(!isOK) { DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM22 bad"); }
-////#endif
-//  if(neededEnable) { downSPI(); }
-//  return(isOK);
-//  }
+// Returns true iff RFM23 appears to be correctly connected.
+bool OTRFM23BLinkBase::_checkConnected()
+    {
+    const bool neededEnable = _upSPI_();
+    bool isOK = false;
+    const uint8_t rType = _readReg8Bit_(0); // May read as 0 if not connected at all.
+    if(SUPPORTED_DEVICE_TYPE == rType)
+	{
+	const uint8_t rVersion = _readReg8Bit_(1);
+	if(SUPPORTED_DEVICE_VERSION == rVersion)
+	    { isOK = true; }
+	}
+#if 0 && defined(DEBUG)
+if(!isOK) { DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 bad"); }
+#endif
+    if(neededEnable) { _downSPI_(); }
+    return(isOK);
+    }
+
+// Configure the radio from a list of register/value pairs in readonly PROGMEM/Flash, terminating with an 0xff register value.
+// NOTE: argument is not a pointer into SRAM, it is into PROGMEM!
+void OTRFM23BLinkBase::_registerBlockSetup(const uint8_t registerValues[][2])
+    {
+    const bool neededEnable = _upSPI_();
+    for( ; ; )
+	{
+	const uint8_t reg = pgm_read_byte(&(registerValues[0][0]));
+	const uint8_t val = pgm_read_byte(&(registerValues[0][1]));
+	if(0xff == reg) { break; }
+#if 0 && defined(DEBUG)
+	DEBUG_SERIAL_PRINT_FLASHSTRING("RFM23 reg 0x");
+	DEBUG_SERIAL_PRINTFMT(reg, HEX);
+	DEBUG_SERIAL_PRINT_FLASHSTRING(" = 0x");
+	DEBUG_SERIAL_PRINTFMT(val, HEX);
+	DEBUG_SERIAL_PRINTLN();
+#endif
+	_writeReg8Bit_(reg, val);
+	++registerValues;
+	}
+    if(neededEnable) { _downSPI_(); }
+    }
+
 
     }
