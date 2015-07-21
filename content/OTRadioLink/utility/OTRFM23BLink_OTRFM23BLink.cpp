@@ -137,6 +137,7 @@ bool OTRFM23BLinkBase::_TXFIFO()
 // May block to transmit (eg to avoid copying the buffer).
 bool OTRFM23BLinkBase::sendRaw(const uint8_t *const buf, const uint8_t buflen, const int channel, const TXpower power, const bool listenAfter)
     {
+    // FIXME: currently ignores all hints.
     // Load the frame into the TX FIFO.
     _queueFrameInTXFIFO(buf, buflen);
     // Send the frame once.
