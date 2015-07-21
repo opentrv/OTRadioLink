@@ -380,6 +380,17 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // By default does nothing (and returns false).
             virtual bool handleInterruptSimple() { return(false); } // FIXME
 
+            // Get current RSSI.
+            // Only valid when in RX mode.
+            // Units as per RFM23B.
+            uint8_t getRSSI()
+                {
+                const bool neededEnable = _upSPI();
+                const uint8_t rssi = _readReg8Bit(REG_RSSI);
+                if(neededEnable) { _downSPI(); }
+                return(rssi);
+                }
+
 #if 0 // Defining the virtual destructor uses ~800+ bytes of Flash by forcing use of malloc()/free().
             // Ensure safe instance destruction when derived from.
             // by default attempts to shut down the sensor and otherwise free resources when done.
