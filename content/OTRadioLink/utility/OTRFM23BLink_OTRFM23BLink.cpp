@@ -73,11 +73,10 @@ void OTRFM23BLinkBase::_clearTXFIFO()
     _writeReg8Bit_(REG_OP_CTRL2, 0);
     }
 
-// Clears the RFM22 TX FIFO and queues up ready to send via the TXFIFO the 0xff-terminated bytes starting at bptr.
-// This routine does not change the command area.
+// Clears the RFM23B TX FIFO and queues the supplied frame to send via the TX FIFO.
+// This routine does not change the frame area.
 // This uses an efficient burst write.
-// For DEBUG can abort after (over-)filling the 64-byte FIFO at no extra cost with a check before spinning waiting for SPI byte to be sent.
-void OTRFM23BLinkBase::_queueCmdToFF(const uint8_t *bptr)
+void OTRFM23BLinkBase::_queueFrameInTXFIFO(const uint8_t *bptr, uint8_t buflen)
     {
 #if 0 && defined(DEBUG)
     if(0 == *bptr) { DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM22QueueCmdToFF: buffer uninitialised"); panic(); }
@@ -89,18 +88,7 @@ void OTRFM23BLinkBase::_queueCmdToFF(const uint8_t *bptr)
     // Select RFM23B for duration of batch/burst write.
     _SELECT_();
     _wr(REG_FIFO | 0x80); // Start burst write to TX FIFO.
-    uint8_t val;
-#if 0 && defined(DEBUG)
-    for(int8_t i = 64; ((uint8_t)0xff) != (val = *bptr++); )
-        {
-        // DEBUG_SERIAL_PRINTFMT(val, HEX); DEBUG_SERIAL_PRINTLN();
-        SPDR = val;
-        if(--i < 0) { DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM22QueueCmdToFF: buffer unterminated"); panic(); }
-        while (!(SPSR & _BV(SPIF))) { }
-        }
-#else
-    while((uint8_t)0xff != (val = *bptr++)) { _wr(val); }
-#endif
+    while(buflen-- > 0) { _wr(*bptr++); }
     // Burst write finished; deselect RFM23B.
     _DESELECT_();
 
@@ -149,8 +137,8 @@ bool OTRFM23BLinkBase::_TXFIFO()
 // May block to transmit (eg to avoid copying the buffer).
 bool OTRFM23BLinkBase::sendRaw(const uint8_t *const buf, const uint8_t buflen, const int channel, const TXpower power, const bool listenAfter)
     {
-    // Load the frame into the FIFO.
-    _queueCmdToFF(buf); // FIXME: should take explicit length argument.
+    // Load the frame into the TX FIFO.
+    _queueFrameInTXFIFO(buf, buflen);
     // Send the frame once.
     bool result = _TXFIFO();
 //    if(power >= TXmax)

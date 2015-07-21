@@ -19,22 +19,23 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #include "OTRadioLink_OTRadioLink.h"
 
 
-// Note start-up sequence as-was from V0p2_Main 2015/07/18.
-//  // Initialise the radio, if configured, ASAP because it can suck a lot of power until properly initialised.
-//  RFM22PowerOnInit(); // Becomes... RFM23B.preinit(NULL);
-//  // Check that the radio is correctly connected; panic if not...
-//  if(!RFM22CheckConnected()) { panic(); }
-//  // Configure the radio.
-//  RFM22RegisterBlockSetup(FHT8V_RFM22_Reg_Values);
-//  // Put the radio in low-power standby mode.
-//  RFM22ModeStandbyAndClearState();
-
 
 
 // Use namespaces to help avoid collisions.
 namespace OTRadioLink
     {
-
+    // Helper routine to compute the length of an 0xff-terminated frame.
+    uint8_t frameLenFFTerminated(const uint8_t *buf)
+        {
+        if(NULL == buf) { return(0); } // Possibly should panic() instead.
+        uint8_t len = 0;
+        while(0xff != *buf++)
+            {
+            ++len;
+            if(0 == len) { return(0); } // Too long/unterminated: possibly should panic() instead.
+            }
+        return(len);
+        }
     }
 
 

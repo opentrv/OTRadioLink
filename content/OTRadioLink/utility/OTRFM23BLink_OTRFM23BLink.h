@@ -110,11 +110,10 @@ namespace OTRFM23BLink
             // SPI must already be configured and running.
             void _clearTXFIFO();
 
-            // Clears the RFM22 TX FIFO and queues up ready to send via the TXFIFO the 0xff-terminated bytes starting at bptr.
-            // This routine does not change the command area.
+            // Clears the RFM23B TX FIFO and queues the supplied frame to send via the TX FIFO.
+            // This routine does not change the frame area.
             // This uses an efficient burst write.
-            // For DEBUG can abort after (over-)filling the 64-byte FIFO at no extra cost with a check before spinning waiting for SPI byte to be sent.
-            void _queueCmdToFF(const uint8_t *bptr);
+            void _queueFrameInTXFIFO(const uint8_t *bptr, uint8_t buflen);
 
             // Transmit contents of on-chip TX FIFO: caller should revert to low-power standby mode (etc) if required.
             // Returns true if packet apparently sent correctly/fully.
