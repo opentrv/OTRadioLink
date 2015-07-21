@@ -157,7 +157,9 @@ namespace OTRadioLink
             //   * TXmin may for example be used to minimise the chance of being overheard during pairing.
             enum TXpower { TXmin, TXquiet, TXnormal, TXloud, TXmax };
 
-            // Send/TX a frame on the specified (default first/0) channel, optionally quietly.
+            // Send/TX a raw frame on the specified (default first/0) channel.
+            // This does not add any pre- or post- amble (etc)
+            // that particular receivers may require.
             // Revert afterwards to listen()ing if enabled,
             // else usually power down the radio if not listening.
             //   * power  hint to indicate transmission importance
@@ -168,7 +170,7 @@ namespace OTRadioLink
             //     may be ignored if radio will revert to receive mode anyway.
             // Returns true if the transmission was made, else false.
             // May block to transmit (eg to avoid copying the buffer).
-            virtual bool send(const uint8_t *buf, uint8_t buflen, int channel = 0, TXpower power = TXnormal, bool listenAfter = false) = 0;
+            virtual bool sendRaw(const uint8_t *buf, uint8_t buflen, int channel = 0, TXpower power = TXnormal, bool listenAfter = false) = 0;
 
             // Poll for incoming messages (eg where interrupts are not available).
             // Will only have any effect when listen(true, ...) is in effect.

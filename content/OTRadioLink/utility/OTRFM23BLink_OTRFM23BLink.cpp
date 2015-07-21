@@ -134,6 +134,35 @@ bool OTRFM23BLinkBase::_TXFIFO()
     return(result);
     }
 
+// Send/TX a raw frame on the specified (default first/0) channel.
+// This does not add any pre- or post- amble (etc)
+// that particular receivers may require.
+// Revert afterwards to listen()ing if enabled,
+// else usually power down the radio if not listening.
+//   * power  hint to indicate transmission importance
+///    and thus possibly power or other efforts to get it heard;
+//     this hint may be ignored.
+//   * listenAfter  if true then try to listen after transmit
+//     for enough time to allow a remote turn-around and TX;
+//     may be ignored if radio will revert to receive mode anyway.
+// Returns true if the transmission was made, else false.
+// May block to transmit (eg to avoid copying the buffer).
+bool OTRFM23BLinkBase::sendRaw(const uint8_t *const buf, const uint8_t buflen, const int channel, const TXpower power, const bool listenAfter)
+    {
+    // Load the frame into the FIFO.
+    _queueCmdToFF(buf); // FIXME: should take explicit length argument.
+    // Send the frame once.
+    bool result = _TXFIFO();
+//    if(power >= TXmax)
+//        {
+//        nap(WDTO_15MS); // FIXME: no nap() support yet
+//        // Resend the frame.
+//        if(!_TXFIFO()) { result = false; }
+//        }
+    // TODO: listen-after-send if requested.
+    return(result);
+    }
+
 
 // Begin access to (initialise) this radio link if applicable and not already begun.
 // Returns true if it successfully began, false otherwise.

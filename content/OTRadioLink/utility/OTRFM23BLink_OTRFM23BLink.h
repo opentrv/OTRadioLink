@@ -159,7 +159,9 @@ namespace OTRFM23BLink
 //            // Higher-numbered error states may be more severe.
 //            virtual uint8_t getRXRerr() { return(0); }
 
-            // Send/TX a frame on the specified channel, optionally quietly.
+            // Send/TX a raw frame on the specified (default first/0) channel.
+            // This does not add any pre- or post- amble (etc)
+            // that particular receivers may require.
             // Revert afterwards to listen()ing if enabled,
             // else usually power down the radio if not listening.
             //   * power  hint to indicate transmission importance
@@ -170,7 +172,7 @@ namespace OTRFM23BLink
             //     may be ignored if radio will revert to receive mode anyway.
             // Returns true if the transmission was made, else false.
             // May block to transmit (eg to avoid copying the buffer).
-            virtual bool send(const uint8_t *buf, uint8_t buflen, int channel = 0, TXpower power = TXnormal, bool listenAfter = false) { return(false); } // FIXME
+            virtual bool sendRaw(const uint8_t *buf, uint8_t buflen, int channel = 0, TXpower power = TXnormal, bool listenAfter = false);
 
             // End access to this radio link if applicable and not already ended.
             // Returns true if it needed to be ended.
