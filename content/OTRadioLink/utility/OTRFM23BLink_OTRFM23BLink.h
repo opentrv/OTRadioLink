@@ -72,6 +72,11 @@ namespace OTRFM23BLink
             // At lowest SPI clock prescale (x2) this is likely to spin for ~16 CPU cycles (8 bits each taking 2 cycles).
             inline void _wr(const uint8_t data) { SPDR = data; while (!(SPSR & _BV(SPIF))) { } }
 
+            // Internal routines to enable/disable RFM23B on the the SPI bus.
+            // Versions accessible to the base class...
+            virtual void _SELECT_() = 0;
+            virtual void _DESELECT_() = 0;
+
             // Slower virtual calls but avoiding duplicated/header code.
             // Power SPI up and down given this particular SPI/RFM23B select line.
             virtual bool _upSPI_() = 0;
@@ -94,6 +99,16 @@ namespace OTRFM23BLink
             // NOTE: argument is not a pointer into SRAM, it is into PROGMEM!
             typedef uint8_t regValPair_t[2];
             void _registerBlockSetup(const regValPair_t* registerValues);
+
+            // Clear TX FIFO.
+            // SPI must already be configured and running.
+            void _clearTXFIFO();
+
+	    // Clears the RFM22 TX FIFO and queues up ready to send via the TXFIFO the 0xff-terminated bytes starting at bptr.
+	    // This routine does not change the command area.
+	    // This uses an efficient burst write.
+	    // For DEBUG can abort after (over-)filling the 64-byte FIFO at no extra cost with a check before spinning waiting for SPI byte to be sent.
+	    void _queueCmdToFF(const uint8_t *bptr);
 
 #if 0 // Defining the virtual destructor uses ~800+ bytes of Flash by forcing use of malloc()/free().
             // Ensure safe instance destruction when derived from.
@@ -169,6 +184,9 @@ namespace OTRFM23BLink
             // so these should turn into single assembler instructions in principle.
             inline void _SELECT() { fastDigitalWrite(SPI_nSS_DigitalPin, LOW); } // Select/enable RFM23B.
             inline void _DESELECT() { fastDigitalWrite(SPI_nSS_DigitalPin, HIGH); } // Deselect/disable RFM23B.
+            // Versions accessible to the base class...
+            virtual void _SELECT_() { _SELECT(); }
+            virtual void _DESELECT_() { _DESELECT(); }
 
             // Power SPI up and down given this particular SPI/RFM23B select line.
             // Use all other default values.
@@ -230,12 +248,32 @@ namespace OTRFM23BLink
             // Enter standby mode.
             // SPI must already be configured and running.
             inline void _modeStandby()
-              {
-              _writeReg8Bit(REG_OP_CTRL1, 0);
+                {
+                _writeReg8Bit(REG_OP_CTRL1, 0);
 #if 0 && defined(DEBUG)
 DEBUG_SERIAL_PRINT_FLASHSTRING("Sb");
 #endif
-              }
+                }
+
+            // Enter transmit mode (and send any packet queued up in the TX FIFO).
+            // SPI must already be configured and running.
+            inline void _modeTX()
+                {
+                _writeReg8Bit(REG_OP_CTRL1, 9); // TXON | XTON
+#if 0 && defined(DEBUG)
+DEBUG_SERIAL_PRINTLN_FLASHSTRING("Tx");
+#endif
+                }
+
+            // Enter receive mode.
+            // SPI must already be configured and running.
+            inline void _modeRX()
+                {
+                _writeReg8Bit(REG_OP_CTRL1, 5); // RXON | XTON
+#if 0 && defined(DEBUG)
+DEBUG_SERIAL_PRINTLN_FLASHSTRING("Rx");
+#endif
+                }
 
             // Read/discard status (both registers) to clear interrupts.
             // SPI must already be configured and running.
