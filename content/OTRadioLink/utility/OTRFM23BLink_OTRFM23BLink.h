@@ -91,6 +91,12 @@ namespace OTRFM23BLink
             // FIFO state and pending interrupts are cleared.
             // Typical consumption in standby 450nA (cf 15nA when shut down, 8.5mA TUNE, 18--80mA RX/TX).
             virtual void _modeStandbyAndClearState_() = 0;
+            // Enter transmit mode (and send any packet queued up in the TX FIFO).
+            // SPI must already be configured and running.
+            virtual void _modeTX_() = 0;
+            // Read/discard status (both registers) to clear interrupts.
+            // SPI must already be configured and running.
+            virtual void _clearInterrupts_() = 0;
 
             // Returns true iff RFM23 appears to be correctly connected.
             bool _checkConnected();
@@ -104,11 +110,16 @@ namespace OTRFM23BLink
             // SPI must already be configured and running.
             void _clearTXFIFO();
 
-	    // Clears the RFM22 TX FIFO and queues up ready to send via the TXFIFO the 0xff-terminated bytes starting at bptr.
-	    // This routine does not change the command area.
-	    // This uses an efficient burst write.
-	    // For DEBUG can abort after (over-)filling the 64-byte FIFO at no extra cost with a check before spinning waiting for SPI byte to be sent.
-	    void _queueCmdToFF(const uint8_t *bptr);
+            // Clears the RFM22 TX FIFO and queues up ready to send via the TXFIFO the 0xff-terminated bytes starting at bptr.
+            // This routine does not change the command area.
+            // This uses an efficient burst write.
+            // For DEBUG can abort after (over-)filling the 64-byte FIFO at no extra cost with a check before spinning waiting for SPI byte to be sent.
+            void _queueCmdToFF(const uint8_t *bptr);
+
+            // Transmit contents of on-chip TX FIFO: caller should revert to low-power standby mode (etc) if required.
+            // Returns true if packet apparently sent correctly/fully.
+            // Does not clear TX FIFO (so possible to re-send immediately).
+            bool _TXFIFO();
 
 #if 0 // Defining the virtual destructor uses ~800+ bytes of Flash by forcing use of malloc()/free().
             // Ensure safe instance destruction when derived from.
@@ -197,7 +208,7 @@ namespace OTRFM23BLink
             virtual bool _upSPI_() { return(_upSPI()); }
             virtual void _downSPI_() { _downSPI(); }
 
-            // Write to 8-bit register on RFM22.
+            // Write to 8-bit register on RFM23B.
             // SPI must already be configured and running.
             inline void _writeReg8Bit(const uint8_t addr, const uint8_t val)
                 {
@@ -209,7 +220,7 @@ namespace OTRFM23BLink
             // Version accessible to the base class...
             virtual void _writeReg8Bit_(const uint8_t addr, const uint8_t val) { _writeReg8Bit(addr, val); }
 
-            // Write 0 to 16-bit register on RFM22 as burst.
+            // Write 0 to 16-bit register on RFM23B as burst.
             // SPI must already be configured and running.
             void _writeReg16Bit0(const uint8_t addr)
                 {
@@ -220,7 +231,7 @@ namespace OTRFM23BLink
                 _DESELECT();
                 }
 
-            // Read from 8-bit register on RFM22.
+            // Read from 8-bit register on RFM23B.
             // SPI must already be configured and running.
             inline uint8_t _readReg8Bit(const uint8_t addr)
                 {
@@ -264,6 +275,8 @@ DEBUG_SERIAL_PRINT_FLASHSTRING("Sb");
 DEBUG_SERIAL_PRINTLN_FLASHSTRING("Tx");
 #endif
                 }
+            // Version accessible to the base class...
+            virtual void _modeTX_() { _modeTX(); }
 
             // Enter receive mode.
             // SPI must already be configured and running.
@@ -284,6 +297,8 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("Rx");
               //  _RFM22WriteReg8Bit(RFM22REG_INT_STATUS2, 0); // TODO: combine in burst write with previous...
               _writeReg16Bit0(REG_INT_STATUS1);
               }
+            // Version accessible to the base class...
+            virtual void _clearInterrupts_() { _clearInterrupts(); }
 
             // Enter standby mode (consume least possible power but retain register contents).
             // FIFO state and pending interrupts are cleared.

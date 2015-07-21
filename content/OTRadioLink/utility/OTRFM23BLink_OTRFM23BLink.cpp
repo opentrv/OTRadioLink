@@ -107,33 +107,32 @@ void OTRFM23BLinkBase::_queueCmdToFF(const uint8_t *bptr)
     if(neededEnable) { _downSPI_(); }
     }
 
-//// Transmit contents of on-chip TX FIFO: caller should revert to low-power standby mode (etc) if required.
-//// Returns true if packet apparently sent correctly/fully.
-//// Does not clear TX FIFO (so possible to re-send immediately).
-//// Note: Reliability possibly helped by early move to 'tune' mode to work other than with default (4MHz) lowish PICAXE clock speeds.
-//bool RFM22TXFIFO()
-//  {
-//  const bool neededEnable = OTV0P2BASE::powerUpSPIIfDisabled();
-//  //gosub RFM22ModeTune ; Warm up the PLL for quick transition to TX below (and ensure NOT in TX mode).
-//  // Enable interrupt on packet send ONLY.
-//  _RFM22WriteReg8Bit(RFM22REG_INT_ENABLE1, 4);
-//  _RFM22WriteReg8Bit(RFM22REG_INT_ENABLE2, 0);
-//  _RFM22ClearInterrupts();
-//  _RFM22ModeTX(); // Enable TX mode and transmit TX FIFO contents.
-//
-//  // Repeatedly nap until packet sent, with upper bound of ~120ms on TX time in case there is a problem.
-//  // TX time is ~1.6ms per byte at 5000bps.
-//  bool result = false; // Usual case is success.
-//  for(int8_t i = 8; --i >= 0; )
-//    {
-//    nap(WDTO_15MS); // Sleep in low power mode for a short time waiting for bits to be sent...
-//    const uint8_t status = _RFM22ReadReg8Bit(RFM22REG_INT_STATUS1); // TODO: could use nIRQ instead if available.
-//    if(status & 4) { result = true; break; } // Packet sent!
-//    }
-//
-//  if(neededEnable) { OTV0P2BASE::powerDownSPI(); }
-//  return(result);
-//  }
+// Transmit contents of on-chip TX FIFO: caller should revert to low-power standby mode (etc) if required.
+// Returns true if packet apparently sent correctly/fully.
+// Does not clear TX FIFO (so possible to re-send immediately).
+bool OTRFM23BLinkBase::_TXFIFO()
+    {
+    const bool neededEnable = _upSPI_();
+    // Enable interrupt on packet send ONLY.
+    _writeReg8Bit_(REG_INT_ENABLE1, 4);
+    _writeReg8Bit_(REG_INT_ENABLE2, 0);
+    _clearInterrupts_();
+    _modeTX_(); // Enable TX mode and transmit TX FIFO contents.
+
+    // Repeatedly nap until packet sent, with upper bound of ~120ms on TX time in case there is a problem.
+    // TX time is ~1.6ms per byte at 5000bps.
+    bool result = false; // Usual case is success.
+    // for(int8_t i = 8; --i >= 0; )
+    for( ; ; ) // FIXME: no timeout criterion yet
+        {
+        // FIXME: don't have nap() support yet // nap(WDTO_15MS); // Sleep in low power mode for a short time waiting for bits to be sent...
+        const uint8_t status = _readReg8Bit_(REG_INT_STATUS1); // TODO: could use nIRQ instead if available.
+        if(status & 4) { result = true; break; } // Packet sent!
+        }
+
+    if(neededEnable) { _downSPI_(); }
+    return(result);
+    }
 
 
 // Begin access to (initialise) this radio link if applicable and not already begun.
