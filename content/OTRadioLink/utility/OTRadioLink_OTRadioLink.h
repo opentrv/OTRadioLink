@@ -35,8 +35,8 @@ namespace OTRadioLink
     typedef class OTRadioChannelConfig
         {
         public:
-            OTRadioChannelConfig(const void *_config, bool _isFull, bool _isRX, bool _isTX) :
-                config(_config), isFull(_isFull), isRX(_isRX), isTX(_isTX) { }
+            OTRadioChannelConfig(const void *_config, bool _isFull, bool _isRX, bool _isTX, bool _isAuth = false, bool _isEnc = false) :
+                config(_config), isFull(_isFull), isRX(_isRX), isTX(_isTX), isAuth(_isAuth), isEnc(_isEnc) { }
             // Opaque configuration dependent on radio type.
             const void *config;
             // True if this is a full radio configuration, else partial/delta.
@@ -45,6 +45,10 @@ namespace OTRadioLink
             const bool isRX:1;
             // True if this is/supports TX.  For many radios TX/RX may be exclusive.
             const bool isTX:1;
+            // True if this bearer provides an authenticated/hard-to-spoof link.
+            const bool isAuth:1;
+            // True if this bearer provides an encrypted/secure/private link.
+            const bool isEnc:1;
         } OTRadioChannelConfig_t;
 
     // Base class for radio link hardware driver.
