@@ -72,15 +72,20 @@ namespace OTRFM23BLink
             // At lowest SPI clock prescale (x2) this is likely to spin for ~16 CPU cycles (8 bits each taking 2 cycles).
             inline void _wr(const uint8_t data) { SPDR = data; while (!(SPSR & _BV(SPIF))) { } }
 
+            // Slower virtual calls but avoiding duplicated/header code.
+            // Power SPI up and down given this particular SPI/RFM23B select line.
+            virtual bool _upSPI_() = 0;
+            virtual void _downSPI_() = 0;
             // Write to 8-bit register on RFM22.
             // SPI must already be configured and running.
-            // Version accessible to the base class...
             virtual void _writeReg8Bit_(const uint8_t addr, const uint8_t val) = 0;
-
             // Read from 8-bit register on RFM22.
             // SPI must already be configured and running.
-            // Version accessible to the base class...
             virtual uint8_t _readReg8Bit_(const uint8_t addr) = 0;
+            // Enter standby mode (consume least possible power but retain register contents).
+            // FIFO state and pending interrupts are cleared.
+            // Typical consumption in standby 450nA (cf 15nA when shut down, 8.5mA TUNE, 18--80mA RX/TX).
+            virtual void _modeStandbyAndClearState_() = 0;
 
             // Returns true iff RFM23 appears to be correctly connected.
             bool _checkConnected();
@@ -90,11 +95,6 @@ namespace OTRFM23BLink
             typedef uint8_t regValPair_t[2];
             void _registerBlockSetup(const regValPair_t* registerValues);
 
-            // Power SPI up and down given this particular SPI/RFM23B select line.
-            // Slower virtual call but avoids duplicated/header code.
-            virtual bool _upSPI_() = 0;
-            virtual void _downSPI_() = 0;
-
 #if 0 // Defining the virtual destructor uses ~800+ bytes of Flash by forcing use of malloc()/free().
             // Ensure safe instance destruction when derived from.
             // by default attempts to shut down the sensor and otherwise free resources when done.
@@ -103,6 +103,53 @@ namespace OTRFM23BLink
 #else
 #define OTRFM23BLINK_NO_VIRT_DEST // Beware, no virtual destructor so be careful of use via base pointers.
 #endif
+
+        public:
+            // Begin access to (initialise) this radio link if applicable and not already begun.
+            // Returns true if it successfully began, false otherwise.
+            // Allows logic to end() if required at the end of a block, etc.
+            // Defaults to do nothing (and return false).
+            virtual bool begin();
+
+            // Fetches the current inbound RX queue capacity and maximum raw message size.
+            static const int QueueRXMsgsMax = 1;
+            static const int MaxRXMsgLen = 64;
+            static const int MaxTXMsgLen = 64;
+            virtual void getCapacity(uint8_t &queueRXMsgsMax, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen)
+                { queueRXMsgsMax = QueueRXMsgsMax; maxRXMsgLen = MaxRXMsgLen; maxTXMsgLen = MaxTXMsgLen; }
+
+            // Fetches the current count of queued messages for RX.
+            virtual uint8_t getRXMsgsQueued() { return(0); } // FIXME
+
+            // Fetches the first (oldest) queued RX message, returning its length, or 0 if no message waiting.
+            // If the waiting message is too long it is truncated to fit,
+            // so allocating a buffer at least one longer than any valid message
+            // should indicate an oversize inbound message.
+            virtual uint8_t getRXMsg(uint8_t *buf, uint8_t buflen) { return(0); } // FIXME
+
+//            // Returns the current receive error state; 0 indicates no error, +ve is the error value.
+//            // RX errors may be queued with depth greater than one,
+//            // or only the last RX error may be retained.
+//            // Higher-numbered error states may be more severe.
+//            virtual uint8_t getRXRerr() { return(0); }
+
+            // Send/TX a frame on the specified channel, optionally quietly.
+            // Revert afterwards to listen()ing if enabled,
+            // else usually power down the radio if not listening.
+            //   * quiet  if true then send can be quiet
+            //     (eg if the receiver is known to be close by)
+            //     to make better use of bandwidth; this hint may be ignored.
+            //   * listenAfter  if true then try to listen after transmit
+            //     for enough time to allow a remote turn-around and TX;
+            //     may be ignored if radio will revert to receive mode anyway.
+            // Returns true if the transmission was made, else false.
+            // May block to transmit (eg to avoid copying the buffer).
+            virtual bool send(const uint8_t *buf, uint8_t buflen, int channel = 0, bool quiet = false, bool listenAfter = false) { return(false); } // FIXME
+
+            // End access to this radio link if applicable and not already ended.
+            // Returns true if it needed to be ended.
+            // Shuts down radio in safe low-power state.
+            virtual bool end();
         };
 
     // Concrete impl class for RFM23B radio link hardware driver.
@@ -192,7 +239,8 @@ DEBUG_SERIAL_PRINT_FLASHSTRING("Sb");
 
             // Read/discard status (both registers) to clear interrupts.
             // SPI must already be configured and running.
-            void _clearInterrupts()
+            // Inline for maximum speed ie minimum latency and CPU cycles.
+            inline void _clearInterrupts()
               {
               //  _RFM22WriteReg8Bit(RFM22REG_INT_STATUS1, 0);
               //  _RFM22WriteReg8Bit(RFM22REG_INT_STATUS2, 0); // TODO: combine in burst write with previous...
@@ -218,11 +266,14 @@ DEBUG_SERIAL_PRINT_FLASHSTRING("Sb");
                 if(neededEnable) { _downSPI(); }
 // DEBUG_SERIAL_PRINTLN_FLASHSTRING("SCS");
                 }
+            // Version accessible to the base class...
+            virtual void _modeStandbyAndClearState_() { _modeStandbyAndClearState(); }
 
             // Minimal set-up of I/O (etc) after system power-up.
             // Performs a software reset and leaves the radio deselected and in a low-power and safe state.
             // Will power up SPI if needed.
-            void _powerOnInit()
+            // Inline to get to a sensible state in as few instructions as possible.
+            inline void _powerOnInit()
                 {
 #if 0 && defined(DEBUG)
 DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
@@ -257,65 +308,6 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // NOT INTERRUPT SAFE and should not be called concurrently with any other RFM23B/SPI operation.
             virtual void preinit(const void *preconfig) { _powerOnInit(); }
 
-            // Begin access to (initialise) this radio link if applicable and not already begun.
-            // Returns true if it successfully began, false otherwise.
-            // Allows logic to end() if required at the end of a block, etc.
-            // Defaults to do nothing (and return false).
-            virtual bool begin()
-                {
-//  // Check that the radio is correctly connected; panic if not...
-//  if(!RFM22CheckConnected()) { panic(); }
-//  // Configure the radio.
-//  RFM22RegisterBlockSetup(FHT8V_RFM22_Reg_Values);
-//  // Put the radio in low-power standby mode.
-//  RFM22ModeStandbyAndClearState();
-                if(1 != nChannels) { return(false); } // Can only handle a single channel.
-                if(!_checkConnected()) { return(false); }
-                _registerBlockSetup((const regValPair_t *)(channelConfig->config));
-                _modeStandbyAndClearState();
-                return(true);
-                }
-
-            // Returns true if this radio link is currently available.
-            // True by default unless implementation overrides.
-            // For those radios that need starting this will be false before begin().
-            virtual bool isAvailable() { return(false); } // FIXME
-
-            // Fetches the current inbound RX queue capacity and maximum raw message size.
-            static const int QueueRXMsgsMax = 1;
-            static const int MaxRXMsgLen = 64;
-            static const int MaxTXMsgLen = 64;
-            virtual void getCapacity(uint8_t &queueRXMsgsMax, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen)
-                { queueRXMsgsMax = QueueRXMsgsMax; maxRXMsgLen = MaxRXMsgLen; maxTXMsgLen = MaxTXMsgLen; }
-
-            // Fetches the current count of queued messages for RX.
-            virtual uint8_t getRXMsgsQueued() { return(0); } // FIXME
-
-            // Fetches the first (oldest) queued RX message, returning its length, or 0 if no message waiting.
-            // If the waiting message is too long it is truncated to fit,
-            // so allocating a buffer at least one longer than any valid message
-            // should indicate an oversize inbound message.
-            virtual uint8_t getRXMsg(uint8_t *buf, uint8_t buflen) { return(0); } // FIXME
-
-//            // Returns the current receive error state; 0 indicates no error, +ve is the error value.
-//            // RX errors may be queued with depth greater than one,
-//            // or only the last RX error may be retained.
-//            // Higher-numbered error states may be more severe.
-//            virtual uint8_t getRXRerr() { return(0); }
-
-            // Send/TX a frame on the specified channel, optionally quietly.
-            // Revert afterwards to listen()ing if enabled,
-            // else usually power down the radio if not listening.
-            //   * quiet  if true then send can be quiet
-            //     (eg if the receiver is known to be close by)
-            //     to make better use of bandwidth; this hint may be ignored.
-            //   * listenAfter  if true then try to listen after transmit
-            //     for enough time to allow a remote turn-around and TX;
-            //     may be ignored if radio will revert to receive mode anyway.
-            // Returns true if the transmission was made, else false.
-            // May block to transmit (eg to avoid copying the buffer).
-            virtual bool send(const uint8_t *buf, uint8_t buflen, int channel = 0, bool quiet = false, bool listenAfter = false) { return(false); } // FIXME
-
             // Poll for incoming messages (eg where interrupts are not available).
             // Will only have any effect when listen(true, ...) is active.
             // Can be used safely in addition to handling inbound interrupts.
@@ -333,11 +325,6 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // but may respond to and deal with things other than inbound messages.
             // By default does nothing (and returns false).
             virtual bool handleInterruptSimple() { return(false); } // FIXME
-
-            // End access to this radio link if applicable and not already ended.
-            // Returns true if it needed to be ended.
-            // Shuts down radio in safe low-power state.
-            virtual bool end() { _modeStandbyAndClearState(); return(true); }
 
 #if 0 // Defining the virtual destructor uses ~800+ bytes of Flash by forcing use of malloc()/free().
             // Ensure safe instance destruction when derived from.

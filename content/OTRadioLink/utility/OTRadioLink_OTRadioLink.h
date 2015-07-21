@@ -115,7 +115,7 @@ namespace OTRadioLink
 
             // Returns true if this radio link is currently available.
             // True by default unless implementation overrides.
-            // For those radios that need starting this will be false before begin().
+            // Only valid between begin() and end() calls on an instance.
             virtual bool isAvailable() const { return(true); }
 
             // If activeRX is true, listen for incoming messages on the specified (default first/0) channel,
@@ -130,7 +130,8 @@ namespace OTRadioLink
                 }
 
             // Returns channel being listened on, or -1 if none.
-            int getListenChannel() { return(listenChannel); }
+            // Non-virtual, for speed.
+            inline int getListenChannel() { return(listenChannel); }
 
             // Fetches the current inbound RX queue capacity and maximum raw message size.
             virtual void getCapacity(uint8_t &queueRXMsgsMax, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen) = 0;
