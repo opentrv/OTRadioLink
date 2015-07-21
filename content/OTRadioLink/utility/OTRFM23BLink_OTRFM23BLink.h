@@ -187,7 +187,9 @@ namespace OTRFM23BLink
     // ie argument is not a pointer into SRAM, it is into PROGMEM!
     // const uint8_t registerValues[][2]);
 
-    template <uint8_t SPI_nSS_DigitalPin> // Hardwire to I/O pin for RFM23B active-low SPI device select.
+    // Hardwire to I/O pin for RFM23B active-low SPI device select: SPI_nSS_DigitalPin.
+    // Hardwire to I/O pin for RFM23B active-low interrupt RFM_nIRQ_DigitalPin (-1 if none).
+    template <uint8_t SPI_nSS_DigitalPin, int8_t RFM_nIRQ_DigitalPin>
     class OTRFM23BLink : public OTRFM23BLinkBase
         {
         private:
