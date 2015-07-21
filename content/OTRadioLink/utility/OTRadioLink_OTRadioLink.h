@@ -115,7 +115,7 @@ namespace OTRadioLink
 
             // Returns true if this radio link is currently available.
             // True by default unless implementation overrides.
-            // For those radios that need starting this will be false before begin().
+            // Only valid between begin() and end() calls on an instance.
             virtual bool isAvailable() const { return(true); }
 
             // If activeRX is true, listen for incoming messages on the specified (default first/0) channel,
