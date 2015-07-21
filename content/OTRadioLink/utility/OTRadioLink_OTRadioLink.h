@@ -152,8 +152,9 @@ namespace OTRadioLink
             virtual uint8_t getRXRerr() { return(0); }
 
             // Transmission importance/power from minimum to maximum.
-            // As well as possibly dynamically adjusting power within allowed ranges,
-            // TXmax may also, for example, do double transmissions to help frames get heard.
+            // As well as possibly dynamically adjusting power within allowed ranges:
+            //   * TXmax may for example also do double transmissions to help frames get heard.
+            //   * TXmin may for example be used to minimise the chance of being overheard during pairing.
             enum TXpower { TXmin, TXquiet, TXnormal, TXloud, TXmax };
 
             // Send/TX a frame on the specified (default first/0) channel, optionally quietly.
