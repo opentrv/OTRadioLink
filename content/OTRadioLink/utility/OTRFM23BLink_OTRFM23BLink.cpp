@@ -18,7 +18,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 
 #include "OTRFM23BLink_OTRFM23BLink.h"
 
-/**TEMPORARILY IN TEST SKETCH BEFORE BEING MOVED TO OWN LIBRARY. */
+/**TEMPORARILY IN OTRadioLink AREA BEFORE BEING MOVED TO OWN LIBRARY. */
 
 namespace OTRFM23BLink {
 
