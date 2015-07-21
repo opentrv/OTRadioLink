@@ -140,8 +140,8 @@ namespace OTRadioLink
             // Non-virtual, for speed.
             inline int getListenChannel() { return(listenChannel); }
 
-            // Fetches the current inbound RX queue capacity and maximum raw message size.
-            virtual void getCapacity(uint8_t &queueRXMsgsMax, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen) = 0;
+            // Fetches the current inbound RX minimum queue capacity and maximum RX (and TX) raw message size.
+            virtual void getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen) = 0;
 
             // Fetches the current count of queued messages for RX.
             virtual uint8_t getRXMsgsQueued() = 0;

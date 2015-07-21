@@ -136,12 +136,12 @@ namespace OTRFM23BLink
             // Defaults to do nothing (and return false).
             virtual bool begin();
 
-            // Fetches the current inbound RX queue capacity and maximum raw message size.
-            static const int QueueRXMsgsMax = 1;
+            // Fetches the current inbound RX minimum queue capacity and maximum RX (and TX) raw message size.
+            static const int QueueRXMsgsMin = 1;
             static const int MaxRXMsgLen = 64;
             static const int MaxTXMsgLen = 64;
-            virtual void getCapacity(uint8_t &queueRXMsgsMax, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen)
-                { queueRXMsgsMax = QueueRXMsgsMax; maxRXMsgLen = MaxRXMsgLen; maxTXMsgLen = MaxTXMsgLen; }
+            virtual void getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen)
+                { queueRXMsgsMin = QueueRXMsgsMin; maxRXMsgLen = MaxRXMsgLen; maxTXMsgLen = MaxTXMsgLen; }
 
             // Fetches the current count of queued messages for RX.
             virtual uint8_t getRXMsgsQueued() { return(0); } // FIXME
