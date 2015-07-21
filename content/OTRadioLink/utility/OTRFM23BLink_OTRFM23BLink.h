@@ -144,7 +144,7 @@ namespace OTRFM23BLink
             //     may be ignored if radio will revert to receive mode anyway.
             // Returns true if the transmission was made, else false.
             // May block to transmit (eg to avoid copying the buffer).
-            virtual bool send(const uint8_t *buf, uint8_t buflen, int channel = 0, bool quiet = false, bool listenAfter = false) { return(false); } // FIXME
+            virtual bool send(const uint8_t *buf, uint8_t buflen, int channel = 0, TXpower power = TXnormal, bool listenAfter = false) { return(false); } // FIXME
 
             // End access to this radio link if applicable and not already ended.
             // Returns true if it needed to be ended.
