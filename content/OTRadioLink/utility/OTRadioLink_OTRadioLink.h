@@ -151,18 +151,23 @@ namespace OTRadioLink
             // Higher-numbered error states may be more severe.
             virtual uint8_t getRXRerr() { return(0); }
 
+            // Transmission importance/power from minimum to maximum.
+            // As well as possibly dynamically adjusting power within allowed ranges,
+            // TXmax may also, for example, do double transmissions to help frames get heard.
+            enum TXpower { TXmin, TXquiet, TXnormal, TXloud, TXmax };
+
             // Send/TX a frame on the specified (default first/0) channel, optionally quietly.
             // Revert afterwards to listen()ing if enabled,
             // else usually power down the radio if not listening.
-            //   * quiet  if true then send can be quiet
-            //     (eg if the receiver is known to be close by)
-            //     to make better use of bandwidth; this hint may be ignored.
+            //   * power  hint to indicate transmission importance
+            ///    and thus possibly power or other efforts to get it heard;
+            //     this hint may be ignored.
             //   * listenAfter  if true then try to listen after transmit
             //     for enough time to allow a remote turn-around and TX;
             //     may be ignored if radio will revert to receive mode anyway.
             // Returns true if the transmission was made, else false.
             // May block to transmit (eg to avoid copying the buffer).
-            virtual bool send(const uint8_t *buf, uint8_t buflen, int channel = 0, bool quiet = false, bool listenAfter = false) = 0;
+            virtual bool send(const uint8_t *buf, uint8_t buflen, int channel = 0, TXpower power = TXnormal, bool listenAfter = false) = 0;
 
             // Poll for incoming messages (eg where interrupts are not available).
             // Will only have any effect when listen(true, ...) is in effect.

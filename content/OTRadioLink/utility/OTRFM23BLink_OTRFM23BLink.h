@@ -136,15 +136,15 @@ namespace OTRFM23BLink
             // Send/TX a frame on the specified channel, optionally quietly.
             // Revert afterwards to listen()ing if enabled,
             // else usually power down the radio if not listening.
-            //   * quiet  if true then send can be quiet
-            //     (eg if the receiver is known to be close by)
-            //     to make better use of bandwidth; this hint may be ignored.
+            //   * power  hint to indicate transmission importance
+            ///    and thus possibly power or other efforts to get it heard;
+            //     this hint may be ignored.
             //   * listenAfter  if true then try to listen after transmit
             //     for enough time to allow a remote turn-around and TX;
             //     may be ignored if radio will revert to receive mode anyway.
             // Returns true if the transmission was made, else false.
             // May block to transmit (eg to avoid copying the buffer).
-            virtual bool send(const uint8_t *buf, uint8_t buflen, int channel = 0, bool quiet = false, bool listenAfter = false) { return(false); } // FIXME
+            virtual bool send(const uint8_t *buf, uint8_t buflen, int channel = 0, TXpower power = TXnormal, bool listenAfter = false) { return(false); } // FIXME
 
             // End access to this radio link if applicable and not already ended.
             // Returns true if it needed to be ended.
