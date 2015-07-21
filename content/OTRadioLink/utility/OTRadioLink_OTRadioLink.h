@@ -41,9 +41,9 @@ namespace OTRadioLink
             const void *config;
             // True if this is a full radio configuration, else partial/delta.
             const bool isFull:1;
-            // True if this is/supports RX.  For many radios TX/RX may be exclusive.
+            // True if this configuration is/supports RX.  For many radios TX/RX may be exclusive.
             const bool isRX:1;
-            // True if this is/supports TX.  For many radios TX/RX may be exclusive.
+            // True if this configuration is/supports TX.  For many radios TX/RX may be exclusive.
             const bool isTX:1;
             // True if this bearer provides an authenticated/hard-to-spoof link.
             const bool isAuth:1;
