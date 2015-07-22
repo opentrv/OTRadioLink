@@ -59,14 +59,18 @@ namespace OTRadioLink
             // Channel being listened on or -1.
             // Mode should not need to be changed (or even read) in an ISR,
             // so does not need to be volatile or protected by a mutex, etc.
-            int listenChannel;
+            // Marked volatile for ISR-/thread- safe access without a lock.
+            volatile int8_t listenChannel;
 
         protected:
             // Number of channels; strictly positive.
-            int nChannels;
+            int8_t nChannels;
             // Per-channel configuration, read-only.
             const OTRadioChannelConfig * channelConfig;
 
+            // Current count of RXed message queued.
+            // Marked volatile for ISR-/thread- safe access without a lock.
+            volatile uint8_t queuedRXedMessages;
 
             // Configure the hardware.
             // Called from configure() once nChannels and channelConfig is set.
@@ -80,7 +84,7 @@ namespace OTRadioLink
             virtual void _dolisten() = 0;
 
         public:
-            OTRadioLink() : listenChannel(-1), nChannels(0), channelConfig(NULL) { }
+            OTRadioLink() : listenChannel(-1), nChannels(0), channelConfig(NULL), queuedRXedMessages(0) { }
 
             // Do very minimal pre-initialisation, eg at power up, to get radio to safe low-power mode.
             // Argument is read-only pre-configuration data;
@@ -107,7 +111,7 @@ namespace OTRadioLink
             // as the pointer will be retained internally.
             // Some radios will have everything hardwired
             // and can be called with (1, NULL) and will set everything internally.
-            bool configure(int channels, const OTRadioChannelConfig_t * const configs)
+            bool configure(int8_t channels, const OTRadioChannelConfig_t * const configs)
                 {
                 if((channels <= 0) || (NULL == configs)) { return(false); }
                 nChannels = channels;
@@ -126,11 +130,14 @@ namespace OTRadioLink
             // Only valid between begin() and end() calls on an instance.
             virtual bool isAvailable() const { return(true); }
 
+            // Fetches the current inbound RX minimum queue capacity and maximum RX (and TX) raw message size.
+            virtual void getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen) = 0;
+
             // If activeRX is true, listen for incoming messages on the specified (default first/0) channel,
             // else (if activeRX is false) make sure that the receiver is shut down.
             // (If not listening and not transmitting then by default shut down and save energy.)
-            // Does not block.
-            void listen(const bool activeRX, const int channel = 0)
+            // Does not block; may initiate a poll or equivalent.
+            void listen(const bool activeRX, const int8_t channel = 0)
                 {
                 if(activeRX) { listenChannel = -1; }
                 else { listenChannel = (channel <= -1) ? -1 : ((channel >= nChannels) ? (nChannels-1) : channel); }
@@ -139,13 +146,13 @@ namespace OTRadioLink
 
             // Returns channel being listened on, or -1 if none.
             // Non-virtual, for speed.
-            inline int getListenChannel() { return(listenChannel); }
-
-            // Fetches the current inbound RX minimum queue capacity and maximum RX (and TX) raw message size.
-            virtual void getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen) = 0;
+            // ISR-/thread- safe.
+            inline int8_t getListenChannel() { return(listenChannel); }
 
             // Fetches the current count of queued messages for RX.
-            virtual uint8_t getRXMsgsQueued() = 0;
+            // Non-virtual, for speed.
+            // ISR-/thread- safe.
+            inline uint8_t getRXMsgsQueued() { return(queuedRXedMessages); }
 
             // Fetches the first (oldest) queued RX message, returning its length, or 0 if no message waiting.
             // If the waiting message is too long it is truncated to fit,
@@ -178,7 +185,7 @@ namespace OTRadioLink
             //     may be ignored if radio will revert to receive mode anyway.
             // Returns true if the transmission was made, else false.
             // May block to transmit (eg to avoid copying the buffer).
-            virtual bool sendRaw(const uint8_t *buf, uint8_t buflen, int channel = 0, TXpower power = TXnormal, bool listenAfter = false) = 0;
+            virtual bool sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal, bool listenAfter = false) = 0;
 
             // Poll for incoming messages (eg where interrupts are not available).
             // Will only have any effect when listen(true, ...) is in effect.

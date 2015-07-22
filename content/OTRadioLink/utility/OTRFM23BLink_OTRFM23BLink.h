@@ -143,9 +143,6 @@ namespace OTRFM23BLink
             virtual void getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen)
                 { queueRXMsgsMin = QueueRXMsgsMin; maxRXMsgLen = MaxRXMsgLen; maxTXMsgLen = MaxTXMsgLen; }
 
-            // Fetches the current count of queued messages for RX.
-            virtual uint8_t getRXMsgsQueued() { return(0); } // FIXME
-
             // Fetches the first (oldest) queued RX message, returning its length, or 0 if no message waiting.
             // If the waiting message is too long it is truncated to fit,
             // so allocating a buffer at least one longer than any valid message
@@ -171,7 +168,7 @@ namespace OTRFM23BLink
             //     may be ignored if radio will revert to receive mode anyway.
             // Returns true if the transmission was made, else false.
             // May block to transmit (eg to avoid copying the buffer).
-            virtual bool sendRaw(const uint8_t *buf, uint8_t buflen, int channel = 0, TXpower power = TXnormal, bool listenAfter = false);
+            virtual bool sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal, bool listenAfter = false);
 
             // End access to this radio link if applicable and not already ended.
             // Returns true if it needed to be ended.
@@ -211,13 +208,9 @@ namespace OTRFM23BLink
             virtual bool _upSPI_() { return(_upSPI()); }
             virtual void _downSPI_() { _downSPI(); }
 
-            // True if there is hardware interrupt support.
-            // This might be dedicated to the radio, or shared with other devices.
-            inline bool hasInterruptSupport() { return(RFM_nIRQ_DigitalPin >= 0); }
-
             // True if interrupt line is inactive (or doesn't exist).
             // A poll or interrupt service routine can terminate immediately if this is true.
-            inline bool interruptLineIsInactive() { return(hasInterruptSupport() && (LOW != fastDigitalRead(RFM_nIRQ_DigitalPin))); }
+            inline bool interruptLineIsInactive() { return(hasInterruptSupport && (LOW != fastDigitalRead(RFM_nIRQ_DigitalPin))); }
 
             // Write to 8-bit register on RFM23B.
             // SPI must already be configured and running.
@@ -404,6 +397,11 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                 if(neededEnable) { _downSPI(); }
                 return(rssi);
                 }
+
+            // True if there is hardware interrupt support.
+            // This might be dedicated to the radio, or shared with other devices.
+            // Should be a compile-time constant.
+            static const bool hasInterruptSupport = (RFM_nIRQ_DigitalPin >= 0);
 
 #if 0 // Defining the virtual destructor uses ~800+ bytes of Flash by forcing use of malloc()/free().
             // Ensure safe instance destruction when derived from.
