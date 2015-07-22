@@ -195,6 +195,7 @@ namespace OTRadioLink
             // to attempt to clear the interrupt.
             // Loosely has the effect of calling poll(),
             // but may respond to and deal with things other than inbound messages.
+            // Initiating interrupt assumed blocked until this returns.
             // By default does nothing (and returns false).
             virtual bool handleInterruptSimple() { return(false); }
 

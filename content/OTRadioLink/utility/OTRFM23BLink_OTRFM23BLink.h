@@ -385,6 +385,7 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // to attempt to clear the interrupt.
             // Loosely has the effect of calling poll(),
             // but may respond to and deal with things other than inbound messages.
+            // Initiating interrupt assumed blocked until this returns.
             virtual bool handleInterruptSimple()
                 {
                 if(interruptLineIsInactive()) { return(false); }
