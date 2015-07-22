@@ -135,8 +135,9 @@ bool OTRFM23BLinkBase::_TXFIFO()
 //     may be ignored if radio will revert to receive mode anyway.
 // Returns true if the transmission was made, else false.
 // May block to transmit (eg to avoid copying the buffer).
-bool OTRFM23BLinkBase::sendRaw(const uint8_t *const buf, const uint8_t buflen, const int channel, const TXpower power, const bool listenAfter)
+bool OTRFM23BLinkBase::sendRaw(const uint8_t *const buf, const uint8_t buflen, const int8_t channel, const TXpower power, const bool listenAfter)
     {
+    // FIXME: ignores channel entirely.
     // FIXME: currently ignores all hints.
     // Load the frame into the TX FIFO.
     _queueFrameInTXFIFO(buf, buflen);
