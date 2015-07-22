@@ -399,7 +399,7 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             void _poll(const bool inISR)
                 {
                 // Nothing to do if not listening at the moment.
-                if(-1 == getListenChannel()) { return; }
+                if(-1 == getListenChannel()) { _lastPollStatus = 0; return; }
                 // See what has arrived, if anything.
                 const uint16_t status = _readStatusBoth();
                 _lastPollStatus = status;
@@ -409,17 +409,19 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                 if(status & 0x1000) // Received frame.
                     {
                     // Attempt to read the entire frame.
-                    _RXFIFO(readBuffer, sizeof(MaxRXMsgLen));
+                    _RXFIFO(readBuffer, sizeof(readBuffer));
                     // For now, just drop frame immediately.
                     ++droppedRXedMessageCountRecent;
                     // Clear up and force back to listening...
                     _dolisten();
+                    return;
                     }
                 else if(status & 0x80) // Got sync from incoming message.
                     {
 ////    syncSeen = true;
                     ++droppedRXedMessageCountRecent;
                     // Keep waiting for rest of message...
+                    return;
                     }
                 else if(status & 0x8000) // RX FIFO overflow/underflow: give up and reset?
                     {
@@ -427,11 +429,8 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                     ++droppedRXedMessageCountRecent;
                     // Reset and force back to listening...
                     _dolisten();
+                    return;
                     }
-//                else
-//                    {
-//                    // Else something unexpected?
-//                    }
                 }
 
         public:
