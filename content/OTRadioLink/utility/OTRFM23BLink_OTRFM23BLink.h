@@ -39,6 +39,14 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 
 namespace OTRFM23BLink
     {
+    // NOTE: SYSTEM-WIDE IMPLICATIONS FOR SPI USE.
+    //
+    // IF HARDWARE INTERRUPT HANDLING IS ENABLED FOR RFM23B
+    // THEN SPI AND RFM23B OPERATIONS MAY BE PERFORMED IN THE ISR.
+    // WHICH IMPLIES THAT (WHILE RFM23B INTERRUPTS ARE ENABLED)
+    // ALL COMPOUND SPI OPERATIONS MAY NEED TO PERFORMED WITH
+    // INTERRUPTS DISABLED.
+
     // Base class for RFM23B radio link hardware driver.
     // Neither re-entrant nor ISR-safe except where stated.
     // Contains elements that do not depend on template parameters.
@@ -92,9 +100,15 @@ namespace OTRFM23BLink
             // FIFO state and pending interrupts are cleared.
             // Typical consumption in standby 450nA (cf 15nA when shut down, 8.5mA TUNE, 18--80mA RX/TX).
             virtual void _modeStandbyAndClearState_() = 0;
+            // Enter standby mode.
+            // SPI must already be configured and running.
+            virtual void _modeStandby_() = 0;
             // Enter transmit mode (and send any packet queued up in the TX FIFO).
             // SPI must already be configured and running.
             virtual void _modeTX_() = 0;
+            // Enter receive mode.
+            // SPI must already be configured and running.
+            virtual void _modeRX_() = 0;
             // Read/discard status (both registers) to clear interrupts.
             // SPI must already be configured and running.
             virtual void _clearInterrupts_() = 0;
@@ -120,6 +134,15 @@ namespace OTRFM23BLink
             // Returns true if packet apparently sent correctly/fully.
             // Does not clear TX FIFO (so possible to re-send immediately).
             bool _TXFIFO();
+
+            // Put RFM23 into standby, attempt to read bytes from FIFO into supplied buffer.
+            // Leaves RFM23 in low-power standby mode.
+            // Trailing bytes (more than were actually sent) undefined.
+            void _RXFIFO(uint8_t *buf, const uint8_t bufSize);
+
+            // Switch listening off, on on to selected channel.
+            // listenChannel will have been set by time this is called.
+            virtual void _dolisten();
 
 #if 0 // Defining the virtual destructor uses ~800+ bytes of Flash by forcing use of malloc()/free().
             // Ensure safe instance destruction when derived from.
@@ -270,6 +293,8 @@ namespace OTRFM23BLink
 DEBUG_SERIAL_PRINT_FLASHSTRING("Sb");
 #endif
                 }
+            // Version accessible to the base class...
+            virtual void _modeStandby_() { _modeStandby(); }
 
             // Enter transmit mode (and send any packet queued up in the TX FIFO).
             // SPI must already be configured and running.
@@ -292,6 +317,8 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("Tx");
 DEBUG_SERIAL_PRINTLN_FLASHSTRING("Rx");
 #endif
                 }
+            // Version accessible to the base class...
+            virtual void _modeRX_() { _modeRX(); }
 
             // Read/discard status (both registers) to clear interrupts.
             // SPI must already be configured and running.
@@ -353,6 +380,9 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                 if(neededEnable) { _downSPI(); }
                 }
 
+            // Buffer used to accept data during RX.
+            uint8_t readBuffer[MaxRXMsgLen];
+
             // Common handling of polling and ISR code.
             // NOT RENTRANT: interrupts must be blocked when this is called.
             // Keeping everything inline helps allow better ISR code generation
@@ -365,26 +395,28 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                 const uint16_t status = _readStatusBoth();
                 if(status & 0x1000) // Received frame.
                     {
-
+                    // Attempt to read the entire frame.
+                    _RXFIFO(readBuffer, sizeof(MaxRXMsgLen));
+                    // For now, just drop frame immediately.
+                    ++droppedRXedMessageCountRecent;
                     }
                 else if(status & 0x80) // Got sync from incoming message.
                     {
-
+////    syncSeen = true;
                     }
                 else if(status & 0x8000) // RX FIFO overflow/underflow: give up and reset?
                     {
-
+//    setLastRXErr(FHT8VRXErr_GENERIC);
                     }
                 else
                     {
                     // Else something unexpected?
+//    setLastRXErr(FHT8VRXErr_GENERIC);
                     }
-                }
 
-        protected:
-            // Switch listening on or off.
-            // listenChannel will have been set when this is called.
-            virtual void _dolisten() { } // FIXME
+                // Force appropriate listening mode.
+                _dolisten();
+                }
 
         public:
             OTRFM23BLink() { }

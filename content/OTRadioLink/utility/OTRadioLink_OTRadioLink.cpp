@@ -24,7 +24,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 // Use namespaces to help avoid collisions.
 namespace OTRadioLink
     {
-    // Helper routine to compute the length of an 0xff-terminated frame.
+    // Helper routine to compute the length of an 0xff-terminated frame,
+    // excluding the trailing 0xff.
+    // Returns 0 if NULL or unterminated (within 255 bytes).
     uint8_t frameLenFFTerminated(const uint8_t *buf)
         {
         if(NULL == buf) { return(0); } // Possibly should panic() instead.

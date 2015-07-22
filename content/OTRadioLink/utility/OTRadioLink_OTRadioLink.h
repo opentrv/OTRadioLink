@@ -29,7 +29,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 // Use namespaces to help avoid collisions.
 namespace OTRadioLink
     {
-    // Helper routine to compute the length of an 0xff-terminated frame.
+    // Helper routine to compute the length of an 0xff-terminated frame,
+    // excluding the trailing 0xff.
+    // Returns 0 if NULL or unterminated (within 255 bytes).
     uint8_t frameLenFFTerminated(const uint8_t *buf);
 
     typedef class OTRadioChannelConfig
@@ -85,8 +87,8 @@ namespace OTRadioLink
             // Defaults to do nothing.
             virtual bool _doconfig() { return(true); }
 
-            // Switch listening on or off.
-            // listenChannel will have been set when this is called.
+            // Switch listening off, or on and to specified channel.
+            // listenChannel will have been set by time this is called.
             virtual void _dolisten() = 0;
 
         public:
@@ -148,9 +150,12 @@ namespace OTRadioLink
             // Does not block; may initiate a poll or equivalent.
             void listen(const bool activeRX, const int8_t channel = 0)
                 {
-                if(activeRX) { listenChannel = -1; }
-                else { listenChannel = (channel <= -1) ? -1 : ((channel >= nChannels) ? (nChannels-1) : channel); }
-                _dolisten();
+                const int8_t oldListenChannel = listenChannel;
+                const int8_t newListenChannel = (!activeRX) ? -1 :
+                    ((channel <= -1) ? -1 : ((channel >= nChannels) ? (nChannels-1) : channel));
+                // Call always if turning off listening, else when channel changes.
+                listenChannel = newListenChannel;
+                if((-1 == newListenChannel) || (oldListenChannel != newListenChannel)) { _dolisten(); }
                 }
 
             // Returns channel being listened on, or -1 if none.
