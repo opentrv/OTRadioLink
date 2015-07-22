@@ -23,6 +23,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #ifndef ARDUINO_LIB_OTRADIOLINK_OTRADIOLINK_H
 #define ARDUINO_LIB_OTRADIOLINK_OTRADIOLINK_H
 
+//#define DEBUG_RL // TEMPORARY
+
 #include <stddef.h>
 #include <stdint.h>
 

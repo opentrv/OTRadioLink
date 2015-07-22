@@ -234,7 +234,7 @@ namespace OTRFM23BLink
 
             // True if interrupt line is inactive (or doesn't exist).
             // A poll or interrupt service routine can terminate immediately if this is true.
-            inline bool interruptLineIsInactive() { return(hasInterruptSupport && (LOW != fastDigitalRead(RFM_nIRQ_DigitalPin))); }
+            inline bool interruptLineIsEnabledAndInactive() { return(hasInterruptSupport && (LOW != fastDigitalRead(RFM_nIRQ_DigitalPin))); }
 
             // Write to 8-bit register on RFM23B.
             // SPI must already be configured and running.
@@ -392,33 +392,41 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // Ensures radio is in RX mode at exit if listening is enabled.
             void _poll(const bool inISR)
                 {
+                // Nothing to do if not listening at the moment.
+                if(-1 == getListenChannel()) { return; }
+                // See what has arrived, if anything.
                 const uint16_t status = _readStatusBoth();
+                // Typical status during successful receive:
+                //   * 0x2492
+                //   * 0x3412
+//#ifdef DEBUG_RL
+//                Serial.println(status, HEX); // NOT ISR SAFE!
+//#endif
                 if(status & 0x1000) // Received frame.
                     {
                     // Attempt to read the entire frame.
                     _RXFIFO(readBuffer, sizeof(MaxRXMsgLen));
                     // For now, just drop frame immediately.
                     ++droppedRXedMessageCountRecent;
+                    // Clear up and force back to listening...
+                    _dolisten();
                     }
                 else if(status & 0x80) // Got sync from incoming message.
                     {
 ////    syncSeen = true;
+		    ++droppedRXedMessageCountRecent;
+                    // Keep waiting for rest of message...
                     }
                 else if(status & 0x8000) // RX FIFO overflow/underflow: give up and reset?
                     {
 //    setLastRXErr(FHT8VRXErr_GENERIC);
+                    // Reset and force back to listening...
+                    _dolisten();
                     }
-                else
-                    {
-                    // Else something unexpected?
-//    setLastRXErr(FHT8VRXErr_GENERIC);
-                    }
-<<<<<<< HEAD
-
-                // Force appropriate listening mode.
-                _dolisten();
-=======
->>>>>>> branch 'master' of https://git@github.com/DamonHD/OTRadioLink.git
+//                else
+//                    {
+//                    // Else something unexpected?
+//                    }
                 }
 
         public:
@@ -439,7 +447,7 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // Can be used safely in addition to handling inbound interrupts.
             // Where interrupts are not available should be called at least as often
             // as messages are expected to arrive to avoid radio receiver overrun.
-            virtual void poll() { if(!interruptLineIsInactive()) { ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { _poll(false); } } }
+            virtual void poll() { if(!interruptLineIsEnabledAndInactive()) { ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { _poll(false); } } }
 
             // Handle simple interrupt for this radio link.
             // Must be fast and ISR (Interrupt Service Routine) safe.
@@ -451,21 +459,41 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // Initiating interrupt assumed blocked until this returns.
             virtual bool handleInterruptSimple()
                 {
-                if(interruptLineIsInactive()) { return(false); }
+                if(interruptLineIsEnabledAndInactive()) { return(false); }
                 _poll(true);
                 return(true);
                 }
 
             // Get current RSSI.
             // CURRENTLY RFM23B IMPL ONLY.
+            // NOT OFFICIAL API: MAY BE WITHDRAWN AT ANY TIME.
             // Only valid when in RX mode.
             // Units as per RFM23B.
             uint8_t getRSSI()
                 {
-                const bool neededEnable = _upSPI();
-                const uint8_t rssi = _readReg8Bit(REG_RSSI);
-                if(neededEnable) { _downSPI(); }
-                return(rssi);
+                ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
+                    {
+                    const bool neededEnable = _upSPI();
+                    const uint8_t rssi = _readReg8Bit(REG_RSSI);
+                    if(neededEnable) { _downSPI(); }
+                    return(rssi);
+                    }
+                }
+
+            // Get current mode.
+            // CURRENTLY RFM23B IMPL ONLY.
+            // NOT OFFICIAL API: MAY BE WITHDRAWN AT ANY TIME.
+            // Only valid when in RX mode.
+            // Units as per RFM23B.
+            uint8_t getMode()
+                {
+                ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
+                    {
+                    const bool neededEnable = _upSPI();
+                    const uint8_t mode = 0xf & _readReg8Bit(REG_OP_CTRL1);
+                    if(neededEnable) { _downSPI(); }
+                    return(mode);
+                    }
                 }
 
             // True if there is hardware interrupt support.

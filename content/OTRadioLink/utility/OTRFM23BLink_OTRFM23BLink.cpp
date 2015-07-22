@@ -173,7 +173,9 @@ void OTRFM23BLinkBase::_dolisten()
 
     // Nothing further to do if not listening.
     const int8_t lc = getListenChannel();
-    if(lc <= -1) { return; }
+    if(-1 == lc) { return; }
+
+    // TODO: ignores channel.
 
     // Ensure listening.
 //RFM22SetUpRX(MIN_FHT8V_200US_BIT_STREAM_BUF_SIZE, true, true); // Set to RX longest-possible valid FS20 encoded frame.
