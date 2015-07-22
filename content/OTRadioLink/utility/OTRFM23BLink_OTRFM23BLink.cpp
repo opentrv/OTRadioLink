@@ -139,16 +139,20 @@ bool OTRFM23BLinkBase::sendRaw(const uint8_t *const buf, const uint8_t buflen, c
     {
     // FIXME: ignores channel entirely.
     // FIXME: currently ignores all hints.
+
+    // Should not need to lock out interrupts while sending
+    // as no poll()/ISR should start until this completes.
+
     // Load the frame into the TX FIFO.
     _queueFrameInTXFIFO(buf, buflen);
     // Send the frame once.
     bool result = _TXFIFO();
-//    if(power >= TXmax)
-//        {
-//        nap(WDTO_15MS); // FIXME: no nap() support yet
-//        // Resend the frame.
-//        if(!_TXFIFO()) { result = false; }
-//        }
+//	if(power >= TXmax)
+//	    {
+//	    nap(WDTO_15MS); // FIXME: no nap() support yet // Sleeping with interrupts disabled?
+//	    // Resend the frame.
+//	    if(!_TXFIFO()) { result = false; }
+//	    }
     // TODO: listen-after-send if requested.
     return(result);
     }
