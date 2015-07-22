@@ -71,6 +71,7 @@ namespace OTRadioLink
             // Configure the hardware.
             // Called from configure() once nChannels and channelConfig is set.
             // Returns false if hardware not present or config is invalid.
+            // Need not be overridden if hardware configuration is postponed until begin().
             // Defaults to do nothing.
             virtual bool _doconfig() { return(true); }
 
@@ -183,7 +184,7 @@ namespace OTRadioLink
             // Will only have any effect when listen(true, ...) is in effect.
             // Can be used safely in addition to handling inbound interrupts.
             // Where interrupts are not available should be called at least as often
-            // and messages are expected to arrive to avoid radio receiver overrun.
+            // as messages are expected to arrive to avoid radio receiver overrun.
             // Default is to do nothing.
             virtual void poll() { }
 
