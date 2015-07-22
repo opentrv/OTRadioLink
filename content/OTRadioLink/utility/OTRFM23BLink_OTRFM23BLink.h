@@ -95,6 +95,9 @@ namespace OTRFM23BLink
             // Enter transmit mode (and send any packet queued up in the TX FIFO).
             // SPI must already be configured and running.
             virtual void _modeTX_() = 0;
+            // Enter receive mode.
+            // SPI must already be configured and running.
+            virtual void _modeRX_() = 0;
             // Read/discard status (both registers) to clear interrupts.
             // SPI must already be configured and running.
             virtual void _clearInterrupts_() = 0;
@@ -120,6 +123,10 @@ namespace OTRFM23BLink
             // Returns true if packet apparently sent correctly/fully.
             // Does not clear TX FIFO (so possible to re-send immediately).
             bool _TXFIFO();
+
+            // Switch listening off, on on to selected channel.
+            // listenChannel will have been set by time this is called.
+            virtual void _dolisten();
 
 #if 0 // Defining the virtual destructor uses ~800+ bytes of Flash by forcing use of malloc()/free().
             // Ensure safe instance destruction when derived from.
@@ -292,6 +299,8 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("Tx");
 DEBUG_SERIAL_PRINTLN_FLASHSTRING("Rx");
 #endif
                 }
+            // Version accessible to the base class...
+            virtual void _modeRX_() { _modeRX(); }
 
             // Read/discard status (both registers) to clear interrupts.
             // SPI must already be configured and running.
@@ -380,11 +389,6 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                     // Else something unexpected?
                     }
                 }
-
-        protected:
-            // Switch listening on or off.
-            // listenChannel will have been set when this is called.
-            virtual void _dolisten() { } // FIXME
 
         public:
             OTRFM23BLink() { }

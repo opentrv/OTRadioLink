@@ -18,6 +18,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 
 #include "OTRFM23BLink_OTRFM23BLink.h"
 
+#include <util/atomic.h>
+
 /**TEMPORARILY IN OTRadioLink AREA BEFORE BEING MOVED TO OWN LIBRARY. */
 
 namespace OTRFM23BLink {
@@ -147,14 +149,70 @@ bool OTRFM23BLinkBase::sendRaw(const uint8_t *const buf, const uint8_t buflen, c
     _queueFrameInTXFIFO(buf, buflen);
     // Send the frame once.
     bool result = _TXFIFO();
-//	if(power >= TXmax)
-//	    {
-//	    nap(WDTO_15MS); // FIXME: no nap() support yet // Sleeping with interrupts disabled?
-//	    // Resend the frame.
-//	    if(!_TXFIFO()) { result = false; }
-//	    }
+//        if(power >= TXmax)
+//            {
+//            nap(WDTO_15MS); // FIXME: no nap() support yet // Sleeping with interrupts disabled?
+//            // Resend the frame.
+//            if(!_TXFIFO()) { result = false; }
+//            }
     // TODO: listen-after-send if requested.
+
+    // Revert to RX mode if listening, else go to standby to save energy.
+    _dolisten();
+
     return(result);
+    }
+
+// Switch listening off, on on to selected channel.
+// listenChannel will have been set by time this is called.
+// This always switches to standby mode first, then switches on RX as needed.
+void OTRFM23BLinkBase::_dolisten()
+    {
+    // Unconditionally stop listening and go into low-power standby mode.
+    _modeStandbyAndClearState_();
+
+    // Nothing further to do if not listening.
+    const int8_t lc = getListenChannel();
+    if(lc <= -1) { return; }
+
+    // Ensure listening.
+//RFM22SetUpRX(MIN_FHT8V_200US_BIT_STREAM_BUF_SIZE, true, true); // Set to RX longest-possible valid FS20 encoded frame.
+//// Create stream of bytes to be transmitted to FHT80V at 200us per bit, msbit of each byte first.
+//// Byte stream is terminated by 0xff byte which is not a possible valid encoded byte.
+//// On entry the populated FHT8V command struct is passed by pointer.
+//// On exit, the memory block starting at buffer contains the low-byte, msbit-first bit, 0xff terminated TX sequence.
+//// The maximum and minimum possible encoded message sizes are 35 (all zero bytes) and 45 (all 0xff bytes) bytes long.
+//// Note that a buffer space of at least 46 bytes is needed to accommodate the longest-possible encoded message plus terminator.
+//// Returns pointer to the terminating 0xff on exit.
+//uint8_t *FHT8VCreate200usBitStreamBptr(uint8_t *bptr, const fht8v_msg_t *command);
+//#define MIN_FHT8V_200US_BIT_STREAM_BUF_SIZE 46 // For longest-possible encoded command plus terminating 0xff.
+
+    // Disable interrupts while enabling them at RFM23B and entering RX mode.
+    ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
+        {
+        const bool neededEnable = _upSPI_();
+
+        // Clear RX and TX FIFOs.
+        _writeReg8Bit_(REG_OP_CTRL2, 3); // FFCLRTX | FFCLRTX
+        _writeReg8Bit_(REG_OP_CTRL2, 0);
+
+        // Set FIFO RX almost-full threshold as specified.
+    //    _RFM22WriteReg8Bit(RFM22REG_RX_FIFO_CTRL, min(nearlyFullThreshold, 63));
+        _writeReg8Bit_(REG_RX_FIFO_CTRL, 63); // Set maximum 'nearly full' threshold.
+
+        // Enable requested RX-related interrupts.
+        // Do this regardless of hardware interrupt support on the board.
+        _writeReg8Bit_(REG_INT_ENABLE1, 0x10); // enrxffafull: Enable RX FIFO Almost Full.
+        _writeReg8Bit_(REG_INT_ENABLE2, 0x80); // enswdet: Enable Sync Word Detected.
+
+        // Clear any current interrupt/status.
+        _clearInterrupts_();
+
+        // Start listening.
+        _modeRX_();
+
+        if(neededEnable) { _downSPI_(); }
+        }
     }
 
 
