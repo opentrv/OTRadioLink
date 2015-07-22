@@ -413,9 +413,12 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                     // Else something unexpected?
 //    setLastRXErr(FHT8VRXErr_GENERIC);
                     }
+<<<<<<< HEAD
 
                 // Force appropriate listening mode.
                 _dolisten();
+=======
+>>>>>>> branch 'master' of https://git@github.com/DamonHD/OTRadioLink.git
                 }
 
         public:
