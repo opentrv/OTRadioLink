@@ -211,6 +211,14 @@ namespace OTRFM23BLink
             virtual bool _upSPI_() { return(_upSPI()); }
             virtual void _downSPI_() { _downSPI(); }
 
+            // True if there is hardware interrupt support.
+            // This might be dedicated to the radio, or shared with other devices.
+            inline bool hasInterruptSupport() { return(RFM_nIRQ_DigitalPin >= 0); }
+
+            // True if interrupt line is inactive (or doesn't exist).
+            // A poll or interrupt service routine can terminate immediately if this is true.
+            inline bool interruptLineIsInactive() { return(hasInterruptSupport() && (LOW != fastDigitalRead(RFM_nIRQ_DigitalPin))); }
+
             // Write to 8-bit register on RFM23B.
             // SPI must already be configured and running.
             inline void _writeReg8Bit(const uint8_t addr, const uint8_t val)
@@ -340,6 +348,11 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                 if(neededEnable) { _downSPI(); }
                 }
 
+            // Common handling of polling and ISR code.
+            // Keeping everything inline helps allow better ISR code generation
+            // (less register activity since all use can be seen by the compiler).
+            void _poll(const bool inISR) { }
+
         protected:
 //            // Configure the hardware.
 //            // Called from configure() once nChannels and channelConfig is set.
@@ -368,9 +381,8 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // Will only have any effect when listen(true, ...) is active.
             // Can be used safely in addition to handling inbound interrupts.
             // Where interrupts are not available should be called at least as often
-            // and messages are expected to arrive to avoid radio receiver overrun.
-            // Default is to do nothing.
-            virtual void poll() { } // FIXME
+            // as messages are expected to arrive to avoid radio receiver overrun.
+            virtual void poll() { if(!interruptLineIsInactive()) { _poll(false); } }
 
             // Handle simple interrupt for this radio link.
             // Must be fast and ISR (Interrupt Service Routine) safe.
@@ -379,8 +391,12 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // to attempt to clear the interrupt.
             // Loosely has the effect of calling poll(),
             // but may respond to and deal with things other than inbound messages.
-            // By default does nothing (and returns false).
-            virtual bool handleInterruptSimple() { return(false); } // FIXME
+            virtual bool handleInterruptSimple()
+                {
+                if(interruptLineIsInactive()) { return(false); }
+                _poll(true);
+                return(true);
+                }
 
             // Get current RSSI.
             // CURRENTLY RFM23B IMPL ONLY.

@@ -183,7 +183,7 @@ namespace OTRadioLink
             // Will only have any effect when listen(true, ...) is in effect.
             // Can be used safely in addition to handling inbound interrupts.
             // Where interrupts are not available should be called at least as often
-            // and messages are expected to arrive to avoid radio receiver overrun.
+            // as messages are expected to arrive to avoid radio receiver overrun.
             // Default is to do nothing.
             virtual void poll() { }
 
