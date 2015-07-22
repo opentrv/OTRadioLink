@@ -324,11 +324,13 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("Rx");
             // SPI must already be configured and running.
             // Inline for maximum speed ie minimum latency and CPU cycles.
             inline void _clearInterrupts()
-              {
-              //  _RFM22WriteReg8Bit(RFM22REG_INT_STATUS1, 0);
-              //  _RFM22WriteReg8Bit(RFM22REG_INT_STATUS2, 0); // TODO: combine in burst write with previous...
-              _writeReg16Bit0(REG_INT_STATUS1);
-              }
+                {
+                _SELECT();
+                _io(REG_INT_STATUS1 & 0x7f); // Force to read.
+                _io(0);
+                _io(0);
+                _DESELECT();
+                }
             // Version accessible to the base class...
             virtual void _clearInterrupts_() { _clearInterrupts(); }
 
@@ -383,6 +385,10 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // Buffer used to accept data during RX.
             uint8_t readBuffer[MaxRXMsgLen];
 
+            // Status from last _poll() in listen mode; undefined before first.
+            // Access only with interrupts blocked.
+            uint16_t _lastPollStatus;
+
             // Common handling of polling and ISR code.
             // NOT RENTRANT: interrupts must be blocked when this is called.
             // Keeping everything inline helps allow better ISR code generation
@@ -396,12 +402,10 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                 if(-1 == getListenChannel()) { return; }
                 // See what has arrived, if anything.
                 const uint16_t status = _readStatusBoth();
-                // Typical status during successful receive:
+                _lastPollStatus = status;
+                // Typical statuses during successful receive:
                 //   * 0x2492
                 //   * 0x3412
-//#ifdef DEBUG_RL
-//                Serial.println(status, HEX); // NOT ISR SAFE!
-//#endif
                 if(status & 0x1000) // Received frame.
                     {
                     // Attempt to read the entire frame.
@@ -414,12 +418,13 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                 else if(status & 0x80) // Got sync from incoming message.
                     {
 ////    syncSeen = true;
-		    ++droppedRXedMessageCountRecent;
+                    ++droppedRXedMessageCountRecent;
                     // Keep waiting for rest of message...
                     }
                 else if(status & 0x8000) // RX FIFO overflow/underflow: give up and reset?
                     {
 //    setLastRXErr(FHT8VRXErr_GENERIC);
+                    ++droppedRXedMessageCountRecent;
                     // Reset and force back to listening...
                     _dolisten();
                     }
@@ -493,6 +498,19 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                     const uint8_t mode = 0xf & _readReg8Bit(REG_OP_CTRL1);
                     if(neededEnable) { _downSPI(); }
                     return(mode);
+                    }
+                }
+
+            // Get last status in listen mode.
+            // CURRENTLY RFM23B IMPL ONLY.
+            // NOT OFFICIAL API: MAY BE WITHDRAWN AT ANY TIME.
+            // Only valid when in RX/listen mode.
+            // Units as per RFM23B.
+            uint16_t get_lastPollStatus_()
+                {
+                ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
+                    {
+                    return(_lastPollStatus);
                     }
                 }
 

@@ -195,12 +195,12 @@ void OTRFM23BLinkBase::_dolisten()
         const bool neededEnable = _upSPI_();
 
         // Clear RX and TX FIFOs.
-        _writeReg8Bit_(REG_OP_CTRL2, 3); // FFCLRTX | FFCLRTX
+        _writeReg8Bit_(REG_OP_CTRL2, 3); // FFCLRRX | FFCLRTX
         _writeReg8Bit_(REG_OP_CTRL2, 0);
 
         // Set FIFO RX almost-full threshold as specified.
     //    _RFM22WriteReg8Bit(RFM22REG_RX_FIFO_CTRL, min(nearlyFullThreshold, 63));
-        _writeReg8Bit_(REG_RX_FIFO_CTRL, 63); // Set maximum 'nearly full' threshold.
+        _writeReg8Bit_(REG_RX_FIFO_CTRL, 46); // Set maximum 'nearly full' threshold.
 
         // Enable requested RX-related interrupts.
         // Do this regardless of hardware interrupt support on the board.
@@ -250,7 +250,6 @@ void OTRFM23BLinkBase::_RXFIFO(uint8_t *buf, const uint8_t bufSize)
 // Begin access to (initialise) this radio link if applicable and not already begun.
 // Returns true if it successfully began, false otherwise.
 // Allows logic to end() if required at the end of a block, etc.
-// Defaults to do nothing (and return false).
 bool OTRFM23BLinkBase::begin()
     {
 //  // Check that the radio is correctly connected; panic if not...
