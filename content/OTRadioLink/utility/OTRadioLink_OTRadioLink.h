@@ -68,9 +68,15 @@ namespace OTRadioLink
             // Per-channel configuration, read-only.
             const OTRadioChannelConfig * channelConfig;
 
-            // Current count of RXed message queued.
+            // Current count of received messages queued.
             // Marked volatile for ISR-/thread- safe access without a lock.
-            volatile uint8_t queuedRXedMessages;
+            volatile uint8_t queuedRXedMessageCount;
+
+            // Current recent/short count of dropped messages due to RX overrun.
+            // Increments when an inbound frame is not dequeued quickly enough and one has to be dropped.
+            // This value wraps after 255/0xff.
+            // Marked volatile for ISR-/thread- safe access without a lock.
+            volatile uint8_t droppedRXedMessageCountRecent;
 
             // Configure the hardware.
             // Called from configure() once nChannels and channelConfig is set.
@@ -84,7 +90,10 @@ namespace OTRadioLink
             virtual void _dolisten() = 0;
 
         public:
-            OTRadioLink() : listenChannel(-1), nChannels(0), channelConfig(NULL), queuedRXedMessages(0) { }
+            OTRadioLink()
+              : listenChannel(-1), nChannels(0), channelConfig(NULL),
+                queuedRXedMessageCount(0), droppedRXedMessageCountRecent(0)
+                { }
 
             // Do very minimal pre-initialisation, eg at power up, to get radio to safe low-power mode.
             // Argument is read-only pre-configuration data;
@@ -152,7 +161,14 @@ namespace OTRadioLink
             // Fetches the current count of queued messages for RX.
             // Non-virtual, for speed.
             // ISR-/thread- safe.
-            inline uint8_t getRXMsgsQueued() { return(queuedRXedMessages); }
+            inline uint8_t getRXMsgsQueued() { return(queuedRXedMessageCount); }
+
+            // Current recent/short count of dropped messages due to RX overrun.
+            // Increments when an inbound frame is not dequeued quickly enough and one has to be dropped.
+            // This value wraps after 255/0xff.
+            // Non-virtual, for speed.
+            // ISR-/thread- safe.
+            inline uint8_t getRXMsgsDroppedRecent() { return(droppedRXedMessageCountRecent); }
 
             // Fetches the first (oldest) queued RX message, returning its length, or 0 if no message waiting.
             // If the waiting message is too long it is truncated to fit,

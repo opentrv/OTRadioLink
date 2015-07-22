@@ -28,7 +28,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #include <stddef.h>
 #include <stdint.h>
 
-// Arduino library...
+#include <util/atomic.h> // Atomic primitives for AVR.
+
 #include <OTRadioLink.h>
 
 #include <Arduino.h>
@@ -326,6 +327,17 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("Rx");
             // Version accessible to the base class...
             virtual void _modeStandbyAndClearState_() { _modeStandbyAndClearState(); }
 
+            // Read status (both registers) and clear interrupts.
+            // Status register 1 is returned in the top 8 bits, register 2 in the bottom 8 bits.
+            // Zero indicates no pending interrupts or other status flags set.
+            uint16_t _readStatusBoth()
+                {
+                const bool neededEnable = _upSPI();
+                const uint16_t result = _readReg16Bit(REG_INT_STATUS1);
+                if(neededEnable) { _downSPI(); }
+                return(result);
+                }
+
             // Minimal set-up of I/O (etc) after system power-up.
             // Performs a software reset and leaves the radio deselected and in a low-power and safe state.
             // Will power up SPI if needed.
@@ -342,9 +354,32 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                 }
 
             // Common handling of polling and ISR code.
+            // NOT RENTRANT: interrupts must be blocked when this is called.
             // Keeping everything inline helps allow better ISR code generation
-            // (less register activity since all use can be seen by the compiler).
-            void _poll(const bool inISR) { }
+            // (less register pushes/pops since all use can be seen by the compiler).
+            // Keeping this small minimises service time.
+            // This does NOT attempt to interpret or filter inbound messages, just queues them.
+            // Ensures radio is in RX mode at exit if listening is enabled.
+            void _poll(const bool inISR)
+                {
+                const uint16_t status = _readStatusBoth();
+                if(status & 0x1000) // Received frame.
+                    {
+
+                    }
+                else if(status & 0x80) // Got sync from incoming message.
+                    {
+
+                    }
+                else if(status & 0x8000) // RX FIFO overflow/underflow: give up and reset?
+                    {
+
+                    }
+                else
+                    {
+                    // Else something unexpected?
+                    }
+                }
 
         protected:
             // Switch listening on or off.
@@ -369,7 +404,7 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // Can be used safely in addition to handling inbound interrupts.
             // Where interrupts are not available should be called at least as often
             // as messages are expected to arrive to avoid radio receiver overrun.
-            virtual void poll() { if(!interruptLineIsInactive()) { _poll(false); } }
+            virtual void poll() { if(!interruptLineIsInactive()) { ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { _poll(false); } } }
 
             // Handle simple interrupt for this radio link.
             // Must be fast and ISR (Interrupt Service Routine) safe.
