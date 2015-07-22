@@ -153,8 +153,8 @@ namespace OTRadioLink
                 const int8_t oldListenChannel = listenChannel;
                 const int8_t newListenChannel = (!activeRX) ? -1 :
                     ((channel <= -1) ? -1 : ((channel >= nChannels) ? (nChannels-1) : channel));
-                // Call always if turning off listening, else when channel changes.
                 listenChannel = newListenChannel;
+                // Call always if turning off listening, else when channel changes.
                 if((-1 == newListenChannel) || (oldListenChannel != newListenChannel)) { _dolisten(); }
                 }
 
