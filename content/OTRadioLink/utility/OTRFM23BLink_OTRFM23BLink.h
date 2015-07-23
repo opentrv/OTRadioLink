@@ -70,6 +70,13 @@ namespace OTRFM23BLink
             static const uint8_t SUPPORTED_DEVICE_TYPE = 0x08; // Read from register 0.
             static const uint8_t SUPPORTED_DEVICE_VERSION = 0x06; // Read from register 1.
 
+            // Last RX error, as 1-deep queue; 0 if no error.
+            // Marked as volatile for ISR-/thread- safe (sometimes lock-free) access.
+            volatile uint8_t lastRXErr;
+
+            // Constructor only available to deriving class.
+            OTRFM23BLinkBase() : lastRXErr(0) { }
+
             // Write/read one byte over SPI...
             // SPI must already be configured and running.
             // TODO: convert from busy-wait to sleep, at least in a standby mode, if likely longer than 10s of uS.
@@ -173,11 +180,11 @@ namespace OTRFM23BLink
             // should indicate an oversize inbound message.
             virtual uint8_t getRXMsg(uint8_t *buf, uint8_t buflen) { return(0); } // FIXME
 
-//            // Returns the current receive error state; 0 indicates no error, +ve is the error value.
-//            // RX errors may be queued with depth greater than one,
-//            // or only the last RX error may be retained.
-//            // Higher-numbered error states may be more severe.
-//            virtual uint8_t getRXRerr() { return(0); }
+            // Returns the current receive error state; 0 indicates no error, +ve is the error value.
+            // RX errors may be queued with depth greater than one,
+            // or only the last RX error may be retained.
+            // Higher-numbered error states may be more severe or more specific.
+            virtual uint8_t getRXErr() { ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { const uint8_t r = (uint8_t)lastRXErr; lastRXErr = 0; return(r); } }
 
             // Send/TX a raw frame on the specified (default first/0) channel.
             // This does not add any pre- or post- amble (etc)
@@ -385,9 +392,9 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // Buffer used to accept data during RX.
             uint8_t readBuffer[MaxRXMsgLen];
 
-            // Status from last _poll() in listen mode; undefined before first.
-            // Access only with interrupts blocked.
-            uint16_t _lastPollStatus;
+//            // Status from last _poll() in listen mode; undefined before first.
+//            // Access only with interrupts blocked.
+//            uint16_t _lastPollStatus;
 
             // Common handling of polling and ISR code.
             // NOT RENTRANT: interrupts must be blocked when this is called.
@@ -399,10 +406,10 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             void _poll(const bool inISR)
                 {
                 // Nothing to do if not listening at the moment.
-                if(-1 == getListenChannel()) { _lastPollStatus = 0; return; }
+                if(-1 == getListenChannel()) { return; }
                 // See what has arrived, if anything.
                 const uint16_t status = _readStatusBoth();
-                _lastPollStatus = status;
+//                _lastPollStatus = status;
                 // Typical statuses during successful receive:
                 //   * 0x2492
                 //   * 0x3412
@@ -412,6 +419,7 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                     _RXFIFO(readBuffer, sizeof(readBuffer));
                     // For now, just drop frame immediately.
                     ++droppedRXedMessageCountRecent;
+                    lastRXErr = RXErr_DroppedFrame;
                     // Clear up and force back to listening...
                     _dolisten();
                     return;
@@ -419,14 +427,14 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                 else if(status & 0x80) // Got sync from incoming message.
                     {
 ////    syncSeen = true;
-                    ++droppedRXedMessageCountRecent;
                     // Keep waiting for rest of message...
+                    // At this point in theory we could know exactly how long to wait.
                     return;
                     }
                 else if(status & 0x8000) // RX FIFO overflow/underflow: give up and reset?
                     {
-//    setLastRXErr(FHT8VRXErr_GENERIC);
-                    ++droppedRXedMessageCountRecent;
+                    // Note the overrun error.
+                    lastRXErr = RXErr_RXOverrun;
                     // Reset and force back to listening...
                     _dolisten();
                     return;
@@ -500,18 +508,18 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                     }
                 }
 
-            // Get last status in listen mode.
-            // CURRENTLY RFM23B IMPL ONLY.
-            // NOT OFFICIAL API: MAY BE WITHDRAWN AT ANY TIME.
-            // Only valid when in RX/listen mode.
-            // Units as per RFM23B.
-            uint16_t get_lastPollStatus_()
-                {
-                ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
-                    {
-                    return(_lastPollStatus);
-                    }
-                }
+//            // Get last status in listen mode.
+//            // CURRENTLY RFM23B IMPL ONLY.
+//            // NOT OFFICIAL API: MAY BE WITHDRAWN AT ANY TIME.
+//            // Only valid when in RX/listen mode.
+//            // Units as per RFM23B.
+//            uint16_t get_lastPollStatus_()
+//                {
+//                ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
+//                    {
+//                    return(_lastPollStatus);
+//                    }
+//                }
 
             // True if there is hardware interrupt support.
             // This might be dedicated to the radio, or shared with other devices.

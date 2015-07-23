@@ -183,11 +183,24 @@ namespace OTRadioLink
             // should indicate an oversize inbound message.
             virtual uint8_t getRXMsg(uint8_t *buf, uint8_t buflen) = 0;
 
+            // Basic RX error numbers in range 0--127 as returned by getRXRerr() (cast to uint8_t).
+            // Implementations can provide more specific errors in range 128--255.
+            // 0 (zero) means no error.
+            // Higher numbers may mean worse or more specific errors.
+            enum BaseRXErr
+                {
+                RXErr_NONE = 0,         // NO ERROR.
+                RXErr_DupDropped,       // Duplicate RX frame dropped, eg from a double send. Not always reported as an error.
+                RXErr_RXOverrun,        // Receiver FIFO overrun or similar; no full frame RXed.
+                REErr_BadFraming,       // Bad framing, preamble, postable, check/CRC or general structure.
+                RXErr_DroppedFrame      // Frame discarded due to lack of space.
+                };
+
             // Returns the current receive error state; 0 indicates no error, +ve is the error value.
             // RX errors may be queued with depth greater than one,
             // or only the last RX error may be retained.
-            // Higher-numbered error states may be more severe.
-            virtual uint8_t getRXRerr() { return(0); }
+            // Higher-numbered error states may be more severe or more specific.
+            virtual uint8_t getRXErr() { return(0); }
 
             // Transmission importance/power from minimum to maximum.
             // As well as possibly dynamically adjusting power within allowed ranges:

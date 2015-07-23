@@ -200,7 +200,7 @@ void OTRFM23BLinkBase::_dolisten()
 
         // Set FIFO RX almost-full threshold as specified.
     //    _RFM22WriteReg8Bit(RFM22REG_RX_FIFO_CTRL, min(nearlyFullThreshold, 63));
-        _writeReg8Bit_(REG_RX_FIFO_CTRL, 46); // Set maximum 'nearly full' threshold.
+        _writeReg8Bit_(REG_RX_FIFO_CTRL, 55); // 55 is the default.
 
         // Enable requested RX-related interrupts.
         // Do this regardless of hardware interrupt support on the board.
