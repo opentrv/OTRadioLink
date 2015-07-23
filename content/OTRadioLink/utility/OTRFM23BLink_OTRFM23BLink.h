@@ -60,6 +60,9 @@ namespace OTRFM23BLink
             // Maximum rawTX message size in bytes.
             static const int MaxTXMsgLen = 64;
 
+            // Typical maximum size of encoded FHT8V frame for OpenTRV as at 2015/07.
+            static const uint8_t MAX_FHT8V_FRAME = 45;
+
         protected:
             static const uint8_t REG_INT_STATUS1 = 3; // Interrupt status register 1.
             static const uint8_t REG_INT_STATUS2 = 4; // Interrupt status register 2.
@@ -85,13 +88,17 @@ namespace OTRFM23BLink
             // Marked as volatile for ISR-/thread- safe (sometimes lock-free) access.
             volatile uint8_t lastRXErr;
 
+            // Typical maximum frame length in bytes [1--64] to optimise radio behaviour.
+            // Too long may allow overruns, too short may make long-frame reception hard.
+            volatile uint8_t maxTypicalFrameBytes;
+
             // 1-deep RX queue and buffer used to accept data during RX.
             // Marked as volatile for ISR-/thread- safe (sometimes lock-free) access.
             volatile uint8_t lengthRX; // Non-zero when a frame is waiting.
             volatile uint8_t bufferRX[MaxRXMsgLen];
 
             // Constructor only available to deriving class.
-            OTRFM23BLinkBase() : lastRXErr(0) { }
+            OTRFM23BLinkBase() : lastRXErr(0), maxTypicalFrameBytes(MAX_FHT8V_FRAME) { }
 
             // Write/read one byte over SPI...
             // SPI must already be configured and running.
@@ -177,6 +184,10 @@ namespace OTRFM23BLink
 #endif
 
         public:
+            // Set typical maximum frame length in bytes [1--64] to optimise radio behaviour.
+            // Too long may allow overruns, too short may make long-frame reception hard.
+            void setMaxTypicalFrameBytes(uint8_t maxTypicalFrameBytes);
+
             // Begin access to (initialise) this radio link if applicable and not already begun.
             // Returns true if it successfully began, false otherwise.
             // Allows logic to end() if required at the end of a block, etc.
