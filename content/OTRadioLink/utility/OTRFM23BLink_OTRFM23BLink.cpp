@@ -24,6 +24,12 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 
 namespace OTRFM23BLink {
 
+// Set typical maximum frame length in bytes [1--63] to optimise radio behaviour.
+// Too long may allow overruns, too short may make long-frame reception hard.
+void OTRFM23BLinkBase::setMaxTypicalFrameBytes(const uint8_t _maxTypicalFrameBytes)
+    {
+    maxTypicalFrameBytes = max(1, min(X, 63));
+    }
 
 // Returns true iff RFM23 appears to be correctly connected.
 bool OTRFM23BLinkBase::_checkConnected()
