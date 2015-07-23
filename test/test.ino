@@ -96,6 +96,14 @@ static void testLibVersions()
   }
 
 
+// Test the frame-dump routine.
+static void testFrameDump()
+  {
+  Serial.println("FrameDump");
+  const char *s1 = "Hello, world!";
+  OTRadioLink::dumpRXMsg((uint8_t *)s1, strlen(s1));
+  }
+
 // Do some basic testing of CRC 7/5B routine.
 static void testCRC7_5B()
   {
@@ -110,12 +118,15 @@ static void testCRC7_5B()
   }
 
 
-// Do some basic exercise of the RFM23B class.
+// Do some basic exercise of the RFM23B class, eg that it compiles.
 static void testRFM23B()
   {
   Serial.println("RFM23B");
   OTRFM23BLink::OTRFM23BLink<OTV0P2BASE::V0p2_PIN_SPI_nSS> l0;
-  l0.preinit(NULL); // Must not break anything nor stall!
+  OTRFM23BLink::OTRFM23BLink<OTV0P2BASE::V0p2_PIN_SPI_nSS, -1> l1;
+  OTRFM23BLink::OTRFM23BLink<OTV0P2BASE::V0p2_PIN_SPI_nSS, 9> l2;
+  // Cam't do anything with this unless on V0p2 board.
+  //l0.preinit(NULL); // Must not break anything nor stall!
   }
 
 
@@ -142,6 +153,8 @@ void loop()
   // Run the tests, fastest / newest / most-fragile / most-interesting first...
   testLibVersion();
   testLibVersions();
+
+  testFrameDump();
   testCRC7_5B();
   testRFM23B();
 
