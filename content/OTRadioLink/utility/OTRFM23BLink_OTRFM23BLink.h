@@ -63,9 +63,12 @@ namespace OTRFM23BLink
             // Typical maximum size of encoded FHT8V/FS20 frame for OpenTRV as at 2015/07.
             static const uint8_t MAX_FRAME_FHT8V = 45;
             // Default expected maximum size of mixed data (eg including JSON frames).
-            // Too large a value may mean some frames are lost due to overrun/wraparound.
+            // Too large a value may mean some frames are lost due to overrun/wrap-around.
             // To small a value may truncate long inbound frames and waste space.
-            static const uint8_t MAX_FRAME_DEFAULT = 50;
+            // Allowing ~15ms/~bytes (at 1.8ms/byte for FHT8V/FS20) for servicing time
+            // seems prudent given typical V0p2 OpenTRV behaviour as at 2015/07.
+            // The RFM23B default is 55.
+            static const uint8_t MAX_FRAME_DEFAULT = 52;
 
         protected:
             static const uint8_t REG_INT_STATUS1 = 3; // Interrupt status register 1.
