@@ -205,7 +205,7 @@ void OTRFM23BLinkBase::_dolisten()
         // Enable requested RX-related interrupts.
         // Do this regardless of hardware interrupt support on the board.
         _writeReg8Bit_(REG_INT_ENABLE1, 0x10); // enrxffafull: Enable RX FIFO Almost Full.
-        _writeReg8Bit_(REG_INT_ENABLE2, 0x80); // enswdet: Enable Sync Word Detected.
+        _writeReg8Bit_(REG_INT_ENABLE2, WAKE_ON_SYNC_RX ? 0x80 : 0); // enswdet: Enable Sync Word Detected.
 
         // Clear any current interrupt/status.
         _clearInterrupts_();
@@ -244,6 +244,47 @@ void OTRFM23BLinkBase::_RXFIFO(uint8_t *buf, const uint8_t bufSize)
     _clearInterrupts_();
 
     if(neededEnable) { _downSPI_(); }
+    }
+
+// Fetches the first (oldest) queued RX message, returning its length, or 0 if no message waiting.
+// If the waiting message is too long it is truncated to fit,
+// so allocating a buffer at least one longer than any valid message
+// should indicate an oversize inbound message.
+uint8_t OTRFM23BLinkBase::getRXMsg(uint8_t *buf, uint8_t buflen)
+    {
+    // Argument validation.
+    if(NULL == buf) { return(0); }
+    if(0 == buflen) { return(0); }
+
+    // Lock out interrupts to safely access the queue/buffers.
+    ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
+        {
+//      // Data structures that make up the queue...
+//        // Current count of received messages queued.
+//        // Marked volatile for ISR-/thread- safe access without a lock.
+//        volatile uint8_t queuedRXedMessageCount;
+//
+//        // 1-deep RX queue and buffer used to accept data during RX.
+//        // Marked as volatile for ISR-/thread- safe (sometimes lock-free) access.
+//        volatile uint8_t lengthRX; // Non-zero when a frame is waiting.
+//        volatile uint8_t bufferRX[MaxRXMsgLen];
+
+        if(0 == queuedRXedMessageCount) { return(0); }
+        if(0 == lengthRX) { return(0); }
+
+        // Copy into caller's buffer up to its capacity.
+        const uint8_t len = min(buflen, lengthRX);
+        memcpy(buf, (const uint8_t *)bufferRX, len);
+
+        // Update the data structures to mark the queue as now empty.
+        lengthRX = 0;
+        queuedRXedMessageCount = 0;
+        bufferRX[0] = 0; // Help mark frame as empty; could fully zero for security.
+
+        return(len);
+        }
+
+    return(0);
     }
 
 

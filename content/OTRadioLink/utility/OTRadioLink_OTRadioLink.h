@@ -57,7 +57,9 @@ namespace OTRadioLink
     // Helper routine to dump data frame to Serial in human- and machine- readable format.
     // As per printRXMsg() but to Serial,
     // which has to be set up and running for this to work.
-    void dumpRXMsg(uint8_t *buf, const uint8_t len); // { printRXMsg(&Serial, buf, len); }
+    // Implemented as if defined as:
+    //     { printRXMsg(&Serial, buf, len); }
+    void dumpRXMsg(uint8_t *buf, const uint8_t len);
 
     typedef class OTRadioChannelConfig
         {

@@ -52,6 +52,14 @@ namespace OTRFM23BLink
     // Contains elements that do not depend on template parameters.
     class OTRFM23BLinkBase : public OTRadioLink::OTRadioLink
         {
+        public:
+            // RX (minimum) queue capacity in messages.
+            static const int QueueRXMsgsMin = 1;
+            // Maximum raw RX message size in bytes.
+            static const int MaxRXMsgLen = 64;
+            // Maximum rawTX message size in bytes.
+            static const int MaxTXMsgLen = 64;
+
         protected:
             static const uint8_t REG_INT_STATUS1 = 3; // Interrupt status register 1.
             static const uint8_t REG_INT_STATUS2 = 4; // Interrupt status register 2.
@@ -70,9 +78,17 @@ namespace OTRFM23BLink
             static const uint8_t SUPPORTED_DEVICE_TYPE = 0x08; // Read from register 0.
             static const uint8_t SUPPORTED_DEVICE_VERSION = 0x06; // Read from register 1.
 
+            // Iff true then attempt to wake up as the start of a frame arrives, eg on sync.
+            static const bool WAKE_ON_SYNC_RX = false;
+
             // Last RX error, as 1-deep queue; 0 if no error.
             // Marked as volatile for ISR-/thread- safe (sometimes lock-free) access.
             volatile uint8_t lastRXErr;
+
+            // 1-deep RX queue and buffer used to accept data during RX.
+            // Marked as volatile for ISR-/thread- safe (sometimes lock-free) access.
+            volatile uint8_t lengthRX; // Non-zero when a frame is waiting.
+            volatile uint8_t bufferRX[MaxRXMsgLen];
 
             // Constructor only available to deriving class.
             OTRFM23BLinkBase() : lastRXErr(0) { }
@@ -168,9 +184,6 @@ namespace OTRFM23BLink
             virtual bool begin();
 
             // Fetches the current inbound RX minimum queue capacity and maximum RX (and TX) raw message size.
-            static const int QueueRXMsgsMin = 1;
-            static const int MaxRXMsgLen = 64;
-            static const int MaxTXMsgLen = 64;
             virtual void getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen)
                 { queueRXMsgsMin = QueueRXMsgsMin; maxRXMsgLen = MaxRXMsgLen; maxTXMsgLen = MaxTXMsgLen; }
 
@@ -178,7 +191,7 @@ namespace OTRFM23BLink
             // If the waiting message is too long it is truncated to fit,
             // so allocating a buffer at least one longer than any valid message
             // should indicate an oversize inbound message.
-            virtual uint8_t getRXMsg(uint8_t *buf, uint8_t buflen) { return(0); } // FIXME
+            virtual uint8_t getRXMsg(uint8_t *buf, uint8_t buflen);
 
             // Returns the current receive error state; 0 indicates no error, +ve is the error value.
             // RX errors may be queued with depth greater than one,
@@ -389,9 +402,6 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                 if(neededEnable) { _downSPI(); }
                 }
 
-            // Buffer used to accept data during RX.
-            uint8_t readBuffer[MaxRXMsgLen];
-
 //            // Status from last _poll() in listen mode; undefined before first.
 //            // Access only with interrupts blocked.
 //            uint16_t _lastPollStatus;
@@ -415,16 +425,27 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                 //   * 0x3412
                 if(status & 0x1000) // Received frame.
                     {
+                    // If there is space in the queue then read in the frame, else discard it.
+                    if(0 == queuedRXedMessageCount)
+                        {
+                        const size_t maxlen = sizeof(bufferRX);
+                        _RXFIFO((uint8_t *)bufferRX, maxlen);
+                        lengthRX = maxlen; // Not very clever yet!
+                        queuedRXedMessageCount = 1; // Mark message as queued.
+                        }
+                    else
+                        {
+                        uint8_t tmpbuf[1];
+                        _RXFIFO(tmpbuf, sizeof(tmpbuf)); // Discard...
+                        ++droppedRXedMessageCountRecent;
+                        lastRXErr = RXErr_DroppedFrame;
+                        }
                     // Attempt to read the entire frame.
-                    _RXFIFO(readBuffer, sizeof(readBuffer));
-                    // For now, just drop frame immediately.
-                    ++droppedRXedMessageCountRecent;
-                    lastRXErr = RXErr_DroppedFrame;
                     // Clear up and force back to listening...
                     _dolisten();
                     return;
                     }
-                else if(status & 0x80) // Got sync from incoming message.
+                else if(WAKE_ON_SYNC_RX && (status & 0x80)) // Got sync from incoming message.
                     {
 ////    syncSeen = true;
                     // Keep waiting for rest of message...
