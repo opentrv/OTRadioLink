@@ -95,13 +95,46 @@ static void testLibVersions()
 #endif
   }
 
+// Test class for printing stuff.
+class PrintToBuf : public Print
+  {
+  private:
+    int count;
+  public:
+    PrintToBuf(uint8_t *bufp, size_t bufl) : count(0), buf(bufp), buflen(bufl) { }
+    virtual size_t write(const uint8_t b)
+      {
+      if(count < buflen)
+        {
+        buf[count] = b;
+        // If there is space, null terminate.
+        if(count+1 < buflen) { buf[count+1] = '\0'; }
+        }
+      ++count;
+      }
+    int getCount() { return(count); }
+    uint8_t *const buf;
+    const uint8_t buflen;
+  };
 
 // Test the frame-dump routine.
 static void testFrameDump()
   {
   Serial.println("FrameDump");
   const char *s1 = "Hello, world!";
+  // Eyeball output...
   OTRadioLink::dumpRXMsg((uint8_t *)s1, strlen(s1));
+  // Real test...
+  uint8_t buf[64];
+  PrintToBuf ptb1(buf, sizeof(buf));
+  OTRadioLink::printRXMsg(&ptb1, (uint8_t *)s1, strlen(s1));
+  AssertIsEqual(32, ptb1.getCount());
+  AssertIsEqual(0, strncmp("|13  H e l l o ,   w o r l d !\r\n", (const char *)ptb1.buf, sizeof(buf)));
+  PrintToBuf ptb2(buf, sizeof(buf));
+  uint8_t m2[] = { '{', '}'|0x80 };
+  OTRadioLink::dumpRXMsg(m2, sizeof(m2));
+  OTRadioLink::printRXMsg(&ptb2, m2, sizeof(m2));
+  AssertIsEqual(0, strncmp("|2  {FD\r\n", (const char *)ptb1.buf, sizeof(buf)));
   }
 
 // Do some basic testing of CRC 7/5B routine.

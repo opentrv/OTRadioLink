@@ -43,11 +43,11 @@ namespace OTRadioLink
     // Helper routine to dump data frame to a Print output in human- and machine- readable format.
     // Dumps as pipe (|) then length (in decimal) then space then two characters for each byte:
     // printable characters in range 32--126 are rendered as a space then the character,
-    // others are rendered as a two-digit lower-case hex value;
+    // others are rendered as a two-digit upper-case hex value;
     // the line is terminated with CRLF.
     // eg:
-    //     |5 a {  8182
-    // for the 5-byte message 0x61, 0x7b, 0x20, 0x81, 0x82.
+    //     |5 a {  81FD
+    // for the 5-byte message 0x61, 0x7b, 0x20, 0x81, 0xfd.
     //
     // Useful for debugging but also for RAD
     // to relay frames without decoding to more powerful host
