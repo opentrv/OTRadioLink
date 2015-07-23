@@ -217,7 +217,7 @@ namespace OTRFM23BLink
 
     // Hardwire to I/O pin for RFM23B active-low SPI device select: SPI_nSS_DigitalPin.
     // Hardwire to I/O pin for RFM23B active-low interrupt RFM_nIRQ_DigitalPin (-1 if none).
-    template <uint8_t SPI_nSS_DigitalPin, int8_t RFM_nIRQ_DigitalPin>
+    template <uint8_t SPI_nSS_DigitalPin, int8_t RFM_nIRQ_DigitalPin = -1>
     class OTRFM23BLink : public OTRFM23BLinkBase
         {
         private:

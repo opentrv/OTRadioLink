@@ -28,6 +28,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #include <stddef.h>
 #include <stdint.h>
 
+#include <Print.h>
+
 // Use namespaces to help avoid collisions.
 namespace OTRadioLink
     {
@@ -35,6 +37,27 @@ namespace OTRadioLink
     // excluding the trailing 0xff.
     // Returns 0 if NULL or unterminated (within 255 bytes).
     uint8_t frameLenFFTerminated(const uint8_t *buf);
+
+    // Helper routine to dump data frame to a Print output in human- and machine- readable format.
+    // Dumps as pipe (|) then length (in decimal) then space then two characters for each byte:
+    // printable characters in range 32--126 are rendered as a space then the character,
+    // others are rendered as a two-digit lower-case hex value;
+    // the line is terminated with CRLF.
+    // eg:
+    //     |5 a {  8182
+    // for the 5-byte message 0x61, 0x7b, 0x20, 0x81, 0x82.
+    //
+    // Useful for debugging but also for RAD
+    // to relay frames without decoding to more powerful host
+    // on other end of serial cable.
+    //
+    // Serial has to be set up and running for this to work.
+    void printRXMsg(Print *p, uint8_t *buf, const uint8_t len);
+
+    // Helper routine to dump data frame to Serial in human- and machine- readable format.
+    // As per printRXMsg() but to Serial,
+    // which has to be set up and running for this to work.
+    void dumpRXMsg(uint8_t *buf, const uint8_t len); // { printRXMsg(&Serial, buf, len); }
 
     typedef class OTRadioChannelConfig
         {

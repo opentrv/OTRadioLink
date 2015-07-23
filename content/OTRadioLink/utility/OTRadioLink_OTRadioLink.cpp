@@ -18,7 +18,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 
 #include "OTRadioLink_OTRadioLink.h"
 
-
+#include <Arduino.h>
+#include <Print.h>
 
 
 // Use namespaces to help avoid collisions.
@@ -38,6 +39,40 @@ namespace OTRadioLink
             }
         return(len);
         }
+
+    // Helper routine to dump data frame to a Print output in human- and machine- readable format.
+    // Dumps as pipe (|) then length (in decimal) then space then two characters for each byte:
+    // printable characters in range 32--126 are rendered as a space then the character,
+    // others are rendered as a two-digit lower-case hex value;
+    // the line is terminated with CRLF.
+    // eg:
+    //     |5 a {  8182
+    // for the 5-byte message 0x61, 0x7b, 0x20, 0x81, 0x82.
+    //
+    // Useful for debugging but also for RAD
+    // to relay frames without decoding to more powerful host
+    // on other end of serial cable.
+    //
+    // Serial has to be set up and running for this to work.
+    void printRXMsg(Print *p, uint8_t *buf, const uint8_t len)
+        {
+        p->print('|');
+        p->print((int) len);
+        p->print(' ');
+        for(int i = 0; i < len; ++i)
+            {
+            const uint8_t b = *buf++;
+            if(b < 10) { p->print('0'); p->print((char)('0' + b)); }
+            else if((b < 32) || (b >= 126)) { p->print((int)b, HEX); }
+            else { p->print(' '); p->print((char)b); }
+            }
+        p->println();
+        }
+
+    // Helper routine to dump data frame to Serial in human- and machine- readable format.
+    // As per printRXMsg() but to Serial,
+    // which has to be set up and running for this to work.
+    void dumpRXMsg(uint8_t *buf, const uint8_t len) { printRXMsg(&Serial, buf, len); }
     }
 
 
