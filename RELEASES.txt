@@ -9,6 +9,7 @@ or release/freeze points.
 
 
 pending:
+    DHD20150723: Tweaking default RX FIFO threshold.
     DHD20150723: V0.3-alpha: OTRFM23BLink probably manages the basics now at least poll-driven.
 
 
