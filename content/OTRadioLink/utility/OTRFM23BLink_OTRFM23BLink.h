@@ -60,8 +60,12 @@ namespace OTRFM23BLink
             // Maximum rawTX message size in bytes.
             static const int MaxTXMsgLen = 64;
 
-            // Typical maximum size of encoded FHT8V frame for OpenTRV as at 2015/07.
-            static const uint8_t MAX_FHT8V_FRAME = 45;
+            // Typical maximum size of encoded FHT8V/FS20 frame for OpenTRV as at 2015/07.
+            static const uint8_t MAX_FRAME_FHT8V = 45;
+            // Default expected maximum size of mixed data (eg including JSON frames).
+            // Too large a value may mean some frames are lost due to overrun/wraparound.
+            // To small a value may truncate long inbound frames and waste space.
+            static const uint8_t MAX_FRAME_DEFAULT = 50;
 
         protected:
             static const uint8_t REG_INT_STATUS1 = 3; // Interrupt status register 1.
@@ -88,7 +92,7 @@ namespace OTRFM23BLink
             // Marked as volatile for ISR-/thread- safe (sometimes lock-free) access.
             volatile uint8_t lastRXErr;
 
-            // Typical maximum frame length in bytes [1--64] to optimise radio behaviour.
+            // Typical maximum frame length in bytes [1,63] to optimise radio behaviour.
             // Too long may allow overruns, too short may make long-frame reception hard.
             volatile uint8_t maxTypicalFrameBytes;
 
@@ -98,7 +102,7 @@ namespace OTRFM23BLink
             volatile uint8_t bufferRX[MaxRXMsgLen];
 
             // Constructor only available to deriving class.
-            OTRFM23BLinkBase() : lastRXErr(0), maxTypicalFrameBytes(MAX_FHT8V_FRAME) { }
+            OTRFM23BLinkBase() : lastRXErr(0), maxTypicalFrameBytes(MAX_FRAME_DEFAULT) { }
 
             // Write/read one byte over SPI...
             // SPI must already be configured and running.
@@ -184,7 +188,7 @@ namespace OTRFM23BLink
 #endif
 
         public:
-            // Set typical maximum frame length in bytes [1--64] to optimise radio behaviour.
+            // Set typical maximum frame length in bytes [1,63] to optimise radio behaviour.
             // Too long may allow overruns, too short may make long-frame reception hard.
             void setMaxTypicalFrameBytes(uint8_t maxTypicalFrameBytes);
 
