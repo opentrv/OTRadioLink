@@ -62,7 +62,7 @@ namespace OTRadioLink
         for(int i = 0; i < len; ++i)
             {
             const uint8_t b = *buf++;
-            if(b < 10) { p->print('0'); p->print((char)('0' + b)); }
+            if(b < 16) { p->print('0'); p->print((int)b, HEX); }
             else if((b < 32) || (b >= 126)) { p->print((int)b, HEX); }
             else { p->print(' '); p->print((char)b); }
             }

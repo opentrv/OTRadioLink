@@ -134,7 +134,12 @@ static void testFrameDump()
   uint8_t m2[] = { '{', '}'|0x80 };
   OTRadioLink::dumpRXMsg(m2, sizeof(m2));
   OTRadioLink::printRXMsg(&ptb2, m2, sizeof(m2));
-  AssertIsEqual(0, strncmp("|2  {FD\r\n", (const char *)ptb1.buf, sizeof(buf)));
+  AssertIsEqual(0, strncmp("|2  {FD\r\n", (const char *)ptb2.buf, sizeof(buf)));
+  PrintToBuf ptb3(buf, sizeof(buf));
+  uint8_t m3[] = { 0, 1, 10, 15, 16, 31 };
+  OTRadioLink::dumpRXMsg(m3, sizeof(m3));
+  OTRadioLink::printRXMsg(&ptb3, m3, sizeof(m3));
+  AssertIsEqual(0, strncmp("|6 00010A0F101F\r\n", (const char *)ptb3.buf, sizeof(buf)));
   }
 
 // Do some basic testing of CRC 7/5B routine.
