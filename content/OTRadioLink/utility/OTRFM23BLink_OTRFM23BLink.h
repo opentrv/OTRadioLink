@@ -66,7 +66,7 @@ namespace OTRFM23BLink
             // Too large a value may mean some frames are lost due to overrun/wrap-around.
             // To small a value may truncate long inbound frames and waste space.
             // Allowing ~15ms/~bytes (at 1.8ms/byte for FHT8V/FS20) for servicing time
-            // seems prudent given typical V0p2 OpenTRV behaviour as at 2015/07.
+            // seems prudent given typical V0p2 OpenTRV polling behaviour as at 2015/07.
             // The RFM23B default is 55.
             static const uint8_t MAX_FRAME_DEFAULT = 52;
 
