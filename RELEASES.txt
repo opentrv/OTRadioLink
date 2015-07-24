@@ -9,8 +9,9 @@ or release/freeze points.
 
 
 pending:
-    DHD20150723: Tweaking default RX FIFO threshold.
+    DHD20150723: tweaking default RX FIFO threshold.
     DHD20150723: V0.3-alpha: OTRFM23BLink probably manages the basics now at least poll-driven.
+    DHD20150724: COH-8: servicing of RX in interrupt allows handling longer frames without RX overrun.
 
 
 
