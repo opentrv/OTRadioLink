@@ -60,6 +60,10 @@ namespace OTRFM23BLink
             // Maximum rawTX message size in bytes.
             static const int MaxTXMsgLen = 64;
 
+            // Maximum allowed TX time, milliseconds.
+            // Attempting a longer TX will result in a timeout.
+            static const int MAX_TX_ms = 1000;
+
             // Typical maximum size of encoded FHT8V/FS20 frame for OpenTRV as at 2015/07.
             static const uint8_t MAX_RX_FRAME_FHT8V = 45;
             // Default expected maximum size of mixed data (eg including JSON frames).

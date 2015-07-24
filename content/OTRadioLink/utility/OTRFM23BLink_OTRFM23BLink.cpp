@@ -54,23 +54,27 @@ if(!isOK) { DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 bad"); }
 // NOTE: argument is not a pointer into SRAM, it is into PROGMEM!
 void OTRFM23BLinkBase::_registerBlockSetup(const uint8_t registerValues[][2])
     {
-    const bool neededEnable = _upSPI_();
-    for( ; ; )
+    // Lock out interrupts.
+    ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
         {
-        const uint8_t reg = pgm_read_byte(&(registerValues[0][0]));
-        const uint8_t val = pgm_read_byte(&(registerValues[0][1]));
-        if(0xff == reg) { break; }
+        const bool neededEnable = _upSPI_();
+        for( ; ; )
+            {
+            const uint8_t reg = pgm_read_byte(&(registerValues[0][0]));
+            const uint8_t val = pgm_read_byte(&(registerValues[0][1]));
+            if(0xff == reg) { break; }
 #if 0 && defined(DEBUG)
-        DEBUG_SERIAL_PRINT_FLASHSTRING("RFM23 reg 0x");
-        DEBUG_SERIAL_PRINTFMT(reg, HEX);
-        DEBUG_SERIAL_PRINT_FLASHSTRING(" = 0x");
-        DEBUG_SERIAL_PRINTFMT(val, HEX);
-        DEBUG_SERIAL_PRINTLN();
+            DEBUG_SERIAL_PRINT_FLASHSTRING("RFM23 reg 0x");
+            DEBUG_SERIAL_PRINTFMT(reg, HEX);
+            DEBUG_SERIAL_PRINT_FLASHSTRING(" = 0x");
+            DEBUG_SERIAL_PRINTFMT(val, HEX);
+            DEBUG_SERIAL_PRINTLN();
 #endif
-        _writeReg8Bit_(reg, val);
-        ++registerValues;
+            _writeReg8Bit_(reg, val);
+            ++registerValues;
+            }
+        if(neededEnable) { _downSPI_(); }
         }
-    if(neededEnable) { _downSPI_(); }
     }
 
 // Clear TX FIFO.
@@ -89,18 +93,22 @@ void OTRFM23BLinkBase::_queueFrameInTXFIFO(const uint8_t *bptr, uint8_t buflen)
 #if 0 && defined(DEBUG)
     if(0 == *bptr) { DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM22QueueCmdToFF: buffer uninitialised"); panic(); }
 #endif
-    const bool neededEnable = _upSPI_();
-    // Clear the TX FIFO.
-    _clearTXFIFO();
+    // Lock out interrupts.
+    ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
+        {
+        const bool neededEnable = _upSPI_();
+        // Clear the TX FIFO.
+        _clearTXFIFO();
 
-    // Select RFM23B for duration of batch/burst write.
-    _SELECT_();
-    _wr(REG_FIFO | 0x80); // Start burst write to TX FIFO.
-    while(buflen-- > 0) { _wr(*bptr++); }
-    // Burst write finished; deselect RFM23B.
-    _DESELECT_();
+        // Select RFM23B for duration of batch/burst write.
+        _SELECT_();
+        _wr(REG_FIFO | 0x80); // Start burst write to TX FIFO.
+        while(buflen-- > 0) { _wr(*bptr++); }
+        // Burst write finished; deselect RFM23B.
+        _DESELECT_();
 
-    if(neededEnable) { _downSPI_(); }
+        if(neededEnable) { _downSPI_(); }
+        }
     }
 
 // Transmit contents of on-chip TX FIFO: caller should revert to low-power standby mode (etc) if required.
@@ -109,19 +117,30 @@ void OTRFM23BLinkBase::_queueFrameInTXFIFO(const uint8_t *bptr, uint8_t buflen)
 bool OTRFM23BLinkBase::_TXFIFO()
     {
     const bool neededEnable = _upSPI_();
-    // Enable interrupt on packet send ONLY.
-    _writeReg8Bit_(REG_INT_ENABLE1, 4);
-    _writeReg8Bit_(REG_INT_ENABLE2, 0);
-    _clearInterrupts_();
-    _modeTX_(); // Enable TX mode and transmit TX FIFO contents.
+
+    // Lock out interrupts while fiddling with interrupts and starting the TX.
+    ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
+        {
+    //    // Enable interrupt on packet send ONLY.
+    //    _writeReg8Bit_(REG_INT_ENABLE1, 4);
+    //    _writeReg8Bit_(REG_INT_ENABLE2, 0);
+        // Disable all interrupts (eg to avoid invoking the RX handler).
+        _writeReg8Bit_(REG_INT_ENABLE1, 0);
+        _writeReg8Bit_(REG_INT_ENABLE2, 0);
+        _clearInterrupts_();
+        _modeTX_(); // Enable TX mode and transmit TX FIFO contents.
+        }
 
     // Repeatedly nap until packet sent, with upper bound of ~120ms on TX time in case there is a problem.
-    // TX time is ~1.6ms per byte at 5000bps.
-    bool result = false; // Usual case is success.
-    // for(int8_t i = 8; --i >= 0; )
-    for( ; ; ) // FIXME: no timeout criterion yet
+    // (TX time is ~1.6ms per byte at 5000bps.)
+    // DO NOT block interrupts while waiting for TX to complete!
+    // Status is failed until RFM23B gives positive confirmation of frame sent.
+    bool result = false;
+    // Spin until TX complete or timeout.
+    const unsigned long startms = millis();
+    while(millis() - startms < MAX_TX_ms)
         {
-        // FIXME: don't have nap() support yet // nap(WDTO_15MS); // Sleep in low power mode for a short time waiting for bits to be sent...
+        // FIXME: don't have nap() support yet // nap(WDTO_15MS, true); // Sleep in low power mode for a short time waiting for bits to be sent...
         const uint8_t status = _readReg8Bit_(REG_INT_STATUS1); // TODO: could use nIRQ instead if available.
         if(status & 4) { result = true; break; } // Packet sent!
         }
@@ -228,28 +247,32 @@ void OTRFM23BLinkBase::_dolisten()
 // Trailing bytes (more than were actually sent) undefined.
 void OTRFM23BLinkBase::_RXFIFO(uint8_t *buf, const uint8_t bufSize)
     {
-    const bool neededEnable = _upSPI_();
+    // Lock out interrupts.
+    ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
+        {
+        const bool neededEnable = _upSPI_();
 
-    _modeStandby_();
+        _modeStandby_();
 
-    // Do burst read from RX FIFO.
-    _SELECT_();
-    _io(REG_FIFO & 0x7F);
-    for(int i = 0; i < bufSize; ++i)
-        { *buf++ = _io(0);  }
-    _DESELECT_();
+        // Do burst read from RX FIFO.
+        _SELECT_();
+        _io(REG_FIFO & 0x7F);
+        for(int i = 0; i < bufSize; ++i)
+            { *buf++ = _io(0);  }
+        _DESELECT_();
 
-    // Clear RX and TX FIFOs simultaneously.
-    _writeReg8Bit_(REG_OP_CTRL2, 3); // FFCLRRX | FFCLRTX
-    _writeReg8Bit_(REG_OP_CTRL2, 0); // Needs both writes to clear.
-    // Disable all interrupts.
-    _writeReg8Bit_(REG_INT_ENABLE1, 0);
-    _writeReg8Bit_(REG_INT_ENABLE2, 0); // TODO: possibly combine in burst write with previous...
-//    _writeReg16Bit0_(REG_INT_ENABLE1);
-    // Clear any interrupts already/still pending...
-    _clearInterrupts_();
+        // Clear RX and TX FIFOs simultaneously.
+        _writeReg8Bit_(REG_OP_CTRL2, 3); // FFCLRRX | FFCLRTX
+        _writeReg8Bit_(REG_OP_CTRL2, 0); // Needs both writes to clear.
+        // Disable all interrupts.
+        _writeReg8Bit_(REG_INT_ENABLE1, 0);
+        _writeReg8Bit_(REG_INT_ENABLE2, 0); // TODO: possibly combine in burst write with previous...
+    //    _writeReg16Bit0_(REG_INT_ENABLE1);
+        // Clear any interrupts already/still pending...
+        _clearInterrupts_();
 
-    if(neededEnable) { _downSPI_(); }
+        if(neededEnable) { _downSPI_(); }
+        }
     }
 
 // Fetches the first (oldest) queued RX message, returning its length, or 0 if no message waiting.
