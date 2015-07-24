@@ -441,8 +441,19 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                 // Typical statuses during successful receive:
                 //   * 0x2492
                 //   * 0x3412
-                if(status & 0x1000) // Received frame.
+                if(status & 0x8000)
                     {
+                    // RX FIFO overflow/underflow: give up and reset.
+                    // Do this first to avoid trying to read a mangled/overrun frame.
+                    // Note the overrun error.
+                    lastRXErr = RXErr_RXOverrun;
+                    // Reset and force back to listening...
+                    _dolisten();
+                    return;
+                    }
+                else if(status & 0x1000)
+                    {
+                    // Received frame.
                     // If there is space in the queue then read in the frame, else discard it.
                     if(0 == queuedRXedMessageCount)
                         {
@@ -463,19 +474,13 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                     _dolisten();
                     return;
                     }
-                else if(WAKE_ON_SYNC_RX && (status & 0x80)) // Got sync from incoming message.
+                else if(WAKE_ON_SYNC_RX && (status & 0x80))
                     {
+                    // Got sync from incoming message.
+                    // Could in principle time until the RX FIFO should have filled.
 ////    syncSeen = true;
                     // Keep waiting for rest of message...
                     // At this point in theory we could know exactly how long to wait.
-                    return;
-                    }
-                else if(status & 0x8000) // RX FIFO overflow/underflow: give up and reset?
-                    {
-                    // Note the overrun error.
-                    lastRXErr = RXErr_RXOverrun;
-                    // Reset and force back to listening...
-                    _dolisten();
                     return;
                     }
                 }
