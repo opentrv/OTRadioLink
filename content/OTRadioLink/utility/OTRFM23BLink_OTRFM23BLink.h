@@ -534,6 +534,10 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // NOT OFFICIAL API: MAY BE WITHDRAWN AT ANY TIME.
             // Only valid when in RX mode.
             // Units as per RFM23B.
+            //    RSSI [0..255] ~ [-120..20]dB 0.5 dB Steps
+            //    where roughly
+            //    RSSI [16..230] ~ [-120..0]dB 0.5 dB Steps
+            //    RSSI [231] ~ [0.5..20]dB 0.5 dB Steps
             uint8_t getRSSI()
                 {
                 ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
