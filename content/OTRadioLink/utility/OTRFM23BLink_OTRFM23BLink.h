@@ -61,14 +61,23 @@ namespace OTRFM23BLink
             static const int MaxTXMsgLen = 64;
 
             // Typical maximum size of encoded FHT8V/FS20 frame for OpenTRV as at 2015/07.
-            static const uint8_t MAX_FRAME_FHT8V = 45;
+            static const uint8_t MAX_RX_FRAME_FHT8V = 45;
             // Default expected maximum size of mixed data (eg including JSON frames).
             // Too large a value may mean some frames are lost due to overrun/wrap-around.
             // To small a value may truncate long inbound frames and waste space.
             // Allowing ~15ms/~bytes (at 1.8ms/byte for FHT8V/FS20) for servicing time
             // seems prudent given typical V0p2 OpenTRV polling behaviour as at 2015/07.
+            // So set this to 52 or less if not able to service RX with an interrupt
+            // when receiving FTH8V/FS20 and JSON frames by polling at ~15ms intervals.
             // The RFM23B default is 55.
-            static const uint8_t MAX_FRAME_DEFAULT = 52;
+            static const uint8_t MAX_RX_FRAME_FHT8V_POLL_15ms = 52;
+            // If the RX is serviced with an interrupt
+            // then much nearer the whole 64-byte frame / RXFIFO is usable
+            // how much depending on data rate and interrupt response time
+            // especially from low-power sleep.
+            // Previous (before 2015/07/22) max JSON frame length was preamble + 55 + 1-byte CRC,
+            // so attempt to be higher than that.
+            static const uint8_t MAX_RX_FRAME_DEFAULT = 60;
 
         protected:
             static const uint8_t REG_INT_STATUS1 = 3; // Interrupt status register 1.
@@ -105,7 +114,7 @@ namespace OTRFM23BLink
             volatile uint8_t bufferRX[MaxRXMsgLen];
 
             // Constructor only available to deriving class.
-            OTRFM23BLinkBase() : lastRXErr(0), maxTypicalFrameBytes(MAX_FRAME_DEFAULT) { }
+            OTRFM23BLinkBase() : lastRXErr(0), maxTypicalFrameBytes(MAX_RX_FRAME_DEFAULT) { }
 
             // Write/read one byte over SPI...
             // SPI must already be configured and running.
