@@ -32,20 +32,20 @@ namespace OTRadioLink
     enum FrameType_V0p2_FS20
         {
         // An FS20 encoded message is indicated by one or more leading 0xcc bytes.
-        FS20_native             = 0xcc,
+        FTp2_FS20_native             = 0xcc,
 
-        FullStatsIDL            = 'x', // 0x78
-        FullStatsIDH            = 'z', // 0x7a
+        FTp2_FullStatsIDL            = 'x', // 0x78
+        FTp2_FullStatsIDH            = 'z', // 0x7a
 
         // (Trailing '}' must have high bit set and be followed by (7_5B) CRC byte.)
-        JSONRaw                 = '{', // 0x7b
+        FTp2_JSONRaw                 = '{', // 0x7b
 
         // Messages to/from the REV9 variant.
-        REV9Alert               = '!', // 0x21
-        REV9PollAndCmd          = '?', // 0x3f
-        REV9PollResponse        = '*', // 0x2a
+        FTp2_REV9Alert               = '!', // 0x21
+        FTp2_REV9PollAndCmd          = '?', // 0x3f
+        FTp2_REV9PollResponse        = '*', // 0x2a
 
-        BAD_MSG                 = 0 // No message should start with 0x00.
+        FTp2_NONE                    = 0 // No message should start with 0x00.
         };
 
     // For those that are *not* FS20 a high bit set (0x80) indicates a secure message format variant.
