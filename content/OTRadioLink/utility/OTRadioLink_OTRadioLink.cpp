@@ -54,7 +54,7 @@ namespace OTRadioLink
     // on other end of serial cable.
     //
     // Serial has to be set up and running for this to work.
-    void printRXMsg(Print *p, uint8_t *buf, const uint8_t len)
+    void printRXMsg(Print *p, const uint8_t *buf, const uint8_t len)
         {
         p->print('|');
         p->print((int) len);
@@ -72,7 +72,7 @@ namespace OTRadioLink
     // Helper routine to dump data frame to Serial in human- and machine- readable format.
     // As per printRXMsg() but to Serial,
     // which has to be set up and running for this to work.
-    void dumpRXMsg(uint8_t *buf, const uint8_t len) { printRXMsg(&Serial, buf, len); }
+    void dumpRXMsg(const uint8_t *buf, const uint8_t len) { printRXMsg(&Serial, buf, len); }
     }
 
 
