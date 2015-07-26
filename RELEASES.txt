@@ -9,14 +9,21 @@ or release/freeze points.
 
 
 pending:
+
+
+
+
+
+20150726:
+    freezepoint name: V0.3
+    branch name: HEAD
+    Deployed where: 16WW (released copy on GitHub https://github.com/DamonHD/OTRadioLink V0.3).
+    Changes since last freezepoint (developer/mgr initials and brief description): V0.2
+    Previous significant freezepoint:
     DHD20150723: tweaking default RX FIFO threshold.
     DHD20150723: V0.3-alpha: OTRFM23BLink probably manages the basics now at least poll-driven.
     DHD20150724: COH-8: servicing of RX in interrupt allows handling longer frames without RX overrun.
     DHD20150726: V0.3-beta: short of bugs, eg in TX, this should be close! 
-
-
-
-
 
 20150719:
     freezepoint name: V0.2
