@@ -9,8 +9,9 @@ or release/freeze points.
 
 
 pending:
-    DHD20150726: starting V0.4 work
+    DHD20150726: starting V0.4 work.
     DHD20150726: possibly actually able to TX again!
+    DHD20150726: attempting to allow double TX with maximum output power requested.
 
 
 

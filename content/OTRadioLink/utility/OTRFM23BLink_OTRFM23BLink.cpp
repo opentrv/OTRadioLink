@@ -180,12 +180,15 @@ bool OTRFM23BLinkBase::sendRaw(const uint8_t *const buf, const uint8_t buflen, c
     _queueFrameInTXFIFO(buf, buflen);
     // Send the frame once.
     bool result = _TXFIFO();
-//        if(power >= TXmax)
-//            {
-//            nap(WDTO_15MS); // FIXME: no nap() support yet // Sleeping with interrupts disabled?
-//            // Resend the frame.
-//            if(!_TXFIFO()) { result = false; }
-//            }
+    // For maximum 'power' attempt to resend the frame again after a short delay.
+    if(power >= TXmax)
+        {
+        // Wait a little before retransmission.
+        // nap(WDTO_15MS); // FIXME: no nap() support yet // Sleeping with interrupts disabled?
+        delay(15);
+        // Resend the frame.
+        if(!_TXFIFO()) { result = false; }
+        }
     // TODO: listen-after-send if requested.
 
     // Revert to RX mode if listening, else go to standby to save energy.
