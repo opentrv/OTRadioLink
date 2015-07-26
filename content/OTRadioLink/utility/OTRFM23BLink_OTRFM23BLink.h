@@ -390,18 +390,22 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("Rx");
             // Typical consumption in standby 450nA (cf 15nA when shut down, 8.5mA TUNE, 18--80mA RX/TX).
             void _modeStandbyAndClearState()
                 {
-                const bool neededEnable = _upSPI();
-                _modeStandby();
-                // Clear RX and TX FIFOs simultaneously.
-                _writeReg8Bit(REG_OP_CTRL2, 3); // FFCLRRX | FFCLRTX
-                _writeReg8Bit(REG_OP_CTRL2, 0); // Needs both writes to clear.
-                // Disable all interrupts.
-                //  _RFM22WriteReg8Bit(RFM22REG_INT_ENABLE1, 0);
-                //  _RFM22WriteReg8Bit(RFM22REG_INT_ENABLE2, 0);
-                _writeReg16Bit0(REG_INT_ENABLE1);
-                // Clear any interrupts already/still pending...
-                _clearInterrupts();
-                if(neededEnable) { _downSPI(); }
+                // Lock out interrupts while fiddling with interrupts.
+                ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
+                    {
+                    const bool neededEnable = _upSPI();
+                    _modeStandby();
+                    // Clear RX and TX FIFOs simultaneously.
+                    _writeReg8Bit(REG_OP_CTRL2, 3); // FFCLRRX | FFCLRTX
+                    _writeReg8Bit(REG_OP_CTRL2, 0); // Needs both writes to clear.
+                    // Disable all interrupts.
+                    //  _RFM22WriteReg8Bit(RFM22REG_INT_ENABLE1, 0);
+                    //  _RFM22WriteReg8Bit(RFM22REG_INT_ENABLE2, 0);
+                    _writeReg16Bit0(REG_INT_ENABLE1);
+                    // Clear any interrupts already/still pending...
+                    _clearInterrupts();
+                    if(neededEnable) { _downSPI(); }
+                    }
 // DEBUG_SERIAL_PRINTLN_FLASHSTRING("SCS");
                 }
             // Version accessible to the base class...

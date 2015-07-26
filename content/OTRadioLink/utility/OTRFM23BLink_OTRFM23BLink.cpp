@@ -124,11 +124,12 @@ bool OTRFM23BLinkBase::_TXFIFO()
     //    // Enable interrupt on packet send ONLY.
     //    _writeReg8Bit_(REG_INT_ENABLE1, 4);
     //    _writeReg8Bit_(REG_INT_ENABLE2, 0);
-        // Disable all interrupts (eg to avoid invoking the RX handler).
+        // Disable all interrupts (eg to avoid invoking the RX ISR).
         _writeReg8Bit_(REG_INT_ENABLE1, 0);
         _writeReg8Bit_(REG_INT_ENABLE2, 0);
         _clearInterrupts_();
-        _modeTX_(); // Enable TX mode and transmit TX FIFO contents.
+        // Enable TX mode and transmit TX FIFO contents.
+        _modeTX_();
         }
 
     // Repeatedly nap until packet sent, with upper bound of ~120ms on TX time in case there is a problem.
@@ -168,7 +169,12 @@ bool OTRFM23BLinkBase::sendRaw(const uint8_t *const buf, const uint8_t buflen, c
     // FIXME: currently ignores all hints.
 
     // Should not need to lock out interrupts while sending
-    // as no poll()/ISR should start until this completes.
+    // as no poll()/ISR should start until this completes,
+    // but will need to stop any RX in process,
+    // eg to avoid TX buffer being zapped.
+
+    // Disable all interrupts (eg to avoid invoking the RX handler).
+    _modeStandbyAndClearState_();
 
     // Load the frame into the TX FIFO.
     _queueFrameInTXFIFO(buf, buflen);
