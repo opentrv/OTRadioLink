@@ -23,6 +23,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 //#include <SPI.h>
 
 // Include the library under test.
+#include <OTV0p2Base.h>
 #include <OTRadioLink.h>
 #include <OTRFM23BLink.h>
 
@@ -76,7 +77,7 @@ static inline void errorIfNotEqual(int expected, int actual, int delta, int line
 static void testLibVersion()
   {
   Serial.println("LibVersion");
-#if (0 != ARDUINO_LIB_OTRADIOLINK_VERSION_MAJOR) || (4 != ARDUINO_LIB_OTRADIOLINK_VERSION_MINOR)
+#if !(0 == ARDUINO_LIB_OTRADIOLINK_VERSION_MAJOR) || !(4 == ARDUINO_LIB_OTRADIOLINK_VERSION_MINOR)
 #error Wrong library version!
 #endif
 //  AssertIsEqual(0, ARDUINO_LIB_OTRADIOLINK_VERSION_MAJOR);
@@ -87,10 +88,10 @@ static void testLibVersion()
 static void testLibVersions()
   {
   Serial.println("LibVersions");
-#if !(0 == ARDUINO_LIB_OTV0P2BASE_VERSION_MAJOR) && !(2 <= ARDUINO_LIB_OTV0P2BASE_VERSION_MINOR)
+#if !(0 == ARDUINO_LIB_OTV0P2BASE_VERSION_MAJOR) || !(2 == ARDUINO_LIB_OTV0P2BASE_VERSION_MINOR)
 #error Wrong library version!
 #endif  
-#if !(0 == ARDUINO_LIB_OTRFM23BLINK_VERSION_MAJOR) && !(4 <= ARDUINO_LIB_OTRFM23BLINK_VERSION_MINOR)
+#if !(0 == ARDUINO_LIB_OTRFM23BLINK_VERSION_MAJOR) || !(4 == ARDUINO_LIB_OTRFM23BLINK_VERSION_MINOR)
 #error Wrong library version!
 #endif
   }
