@@ -12,6 +12,9 @@ pending:
     DHD20150726: starting V0.4 work.
     DHD20150726: possibly actually able to TX again!
     DHD20150726: attempting to allow double TX with maximum output power requested.
+    DHD20150726: poor workround for double TX with maximum output power requested.
+    DHD20150726: making SPI power up/down code interrupt safe.
+    DHD20150726: COH-36: working on alternate-TX-not-working bug.
 
 
 

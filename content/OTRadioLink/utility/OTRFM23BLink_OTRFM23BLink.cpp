@@ -184,8 +184,13 @@ bool OTRFM23BLinkBase::sendRaw(const uint8_t *const buf, const uint8_t buflen, c
     if(power >= TXmax)
         {
         // Wait a little before retransmission.
-        // nap(WDTO_15MS); // FIXME: no nap() support yet // Sleeping with interrupts disabled?
+        // nap(WDTO_15MS, false); // FIXME: no nap() support yet // Sleeping with interrupts disabled?
         delay(15);
+
+        // FIXME: should just be able to resend FIFO without reloading.
+        _modeStandbyAndClearState_();
+        _queueFrameInTXFIFO(buf, buflen);
+
         // Resend the frame.
         if(!_TXFIFO()) { result = false; }
         }
@@ -209,19 +214,9 @@ void OTRFM23BLinkBase::_dolisten()
     const int8_t lc = getListenChannel();
     if(-1 == lc) { return; }
 
-    // TODO: ignores channel.
+    // FIXME: ignores channel.
 
     // Ensure listening.
-//RFM22SetUpRX(MIN_FHT8V_200US_BIT_STREAM_BUF_SIZE, true, true); // Set to RX longest-possible valid FS20 encoded frame.
-//// Create stream of bytes to be transmitted to FHT80V at 200us per bit, msbit of each byte first.
-//// Byte stream is terminated by 0xff byte which is not a possible valid encoded byte.
-//// On entry the populated FHT8V command struct is passed by pointer.
-//// On exit, the memory block starting at buffer contains the low-byte, msbit-first bit, 0xff terminated TX sequence.
-//// The maximum and minimum possible encoded message sizes are 35 (all zero bytes) and 45 (all 0xff bytes) bytes long.
-//// Note that a buffer space of at least 46 bytes is needed to accommodate the longest-possible encoded message plus terminator.
-//// Returns pointer to the terminating 0xff on exit.
-//uint8_t *FHT8VCreate200usBitStreamBptr(uint8_t *bptr, const fht8v_msg_t *command);
-//#define MIN_FHT8V_200US_BIT_STREAM_BUF_SIZE 46 // For longest-possible encoded command plus terminating 0xff.
 
     // Disable interrupts while enabling them at RFM23B and entering RX mode.
     ATOMIC_BLOCK (ATOMIC_RESTORESTATE)

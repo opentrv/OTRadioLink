@@ -388,6 +388,7 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("Rx");
             // Enter standby mode (consume least possible power but retain register contents).
             // FIFO state and pending interrupts are cleared.
             // Typical consumption in standby 450nA (cf 15nA when shut down, 8.5mA TUNE, 18--80mA RX/TX).
+            // POWERS UP SPI IF NECESSARY.
             void _modeStandbyAndClearState()
                 {
                 // Lock out interrupts while fiddling with interrupts.
@@ -414,6 +415,7 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("Rx");
             // Read status (both registers) and clear interrupts.
             // Status register 1 is returned in the top 8 bits, register 2 in the bottom 8 bits.
             // Zero indicates no pending interrupts or other status flags set.
+            // POWERS UP SPI IF NECESSARY.
             uint16_t _readStatusBoth()
                 {
                 const bool neededEnable = _upSPI();
@@ -437,10 +439,6 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                 if(neededEnable) { _downSPI(); }
                 }
 
-//            // Status from last _poll() in listen mode; undefined before first.
-//            // Access only with interrupts blocked.
-//            uint16_t _lastPollStatus;
-
             // Common handling of polling and ISR code.
             // NOT RENTRANT: interrupts must be blocked when this is called.
             // Keeping everything inline helps allow better ISR code generation
@@ -454,7 +452,6 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                 if(-1 == getListenChannel()) { return; }
                 // See what has arrived, if anything.
                 const uint16_t status = _readStatusBoth();
-//                _lastPollStatus = status;
                 // Typical statuses during successful receive:
                 //   * 0x2492
                 //   * 0x3412
@@ -572,19 +569,6 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                     return(mode);
                     }
                 }
-
-//            // Get last status in listen mode.
-//            // CURRENTLY RFM23B IMPL ONLY.
-//            // NOT OFFICIAL API: MAY BE WITHDRAWN AT ANY TIME.
-//            // Only valid when in RX/listen mode.
-//            // Units as per RFM23B.
-//            uint16_t get_lastPollStatus_()
-//                {
-//                ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
-//                    {
-//                    return(_lastPollStatus);
-//                    }
-//                }
 
             // True if there is hardware interrupt support.
             // This might be dedicated to the radio, or shared with other devices.
