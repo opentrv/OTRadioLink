@@ -9,6 +9,7 @@ or release/freeze points.
 
 
 pending:
+    DHD20150726: starting V0.4-beta
 
 
 
