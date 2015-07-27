@@ -9,7 +9,7 @@ or release/freeze points.
 
 
 pending:
-
+    DHD20150727: migrated in RND8 PRNG code.
 
 
 

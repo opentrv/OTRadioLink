@@ -22,6 +22,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 // Arduino libraries imported here (even for use in other .cpp files).
 //#include <SPI.h>
 
+#define UNIT_TESTS
+
 // Include the library under test.
 #include <OTV0p2Base.h>
 #include <OTRadioLink.h>
@@ -170,6 +172,23 @@ static void testRFM23B()
   }
 
 
+// BASE
+// Test for expected behaviour of RNG8 PRNG starting from a known state.
+static void testRNG8()
+  {
+  Serial.println("RNG8");
+  // Reset to known state; API not normally exposed and only exists for unit tests.
+  OTV0P2BASE::resetRNG8();
+  // Extract and check a few initial values.
+  const uint8_t v1 = OTV0P2BASE::randRNG8();
+  const uint8_t v2 = OTV0P2BASE::randRNG8();
+  const uint8_t v3 = OTV0P2BASE::randRNG8();
+  const uint8_t v4 = OTV0P2BASE::randRNG8();
+  AssertIsTrue(1 == v1);
+  AssertIsTrue(0 == v2);
+  AssertIsTrue(3 == v3);
+  AssertIsTrue(14 == v4);
+  }
 
 
 
@@ -194,11 +213,15 @@ void loop()
   testLibVersion();
   testLibVersions();
 
+  // OTRadioLink
   testFrameDump();
   testCRC7_5B();
+
+  // OTRFM23BLink
   testRFM23B();
 
-
+  // OTV0p2Base
+  testRNG8();
 
 
   // Announce successful loop completion and count.

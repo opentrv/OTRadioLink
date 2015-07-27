@@ -32,4 +32,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 // Power management and other misc support.
 #include "utility/OTV0P2BASE_PowerManagement.h"
 
+// Quick/simple PRNG (Pseudo-Random Number Generator).
+#include "utility/OTV0P2BASE_QuickPRNG.h"
+
 #endif
