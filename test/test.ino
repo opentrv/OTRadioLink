@@ -77,7 +77,7 @@ static inline void errorIfNotEqual(int expected, int actual, int delta, int line
 static void testLibVersion()
   {
   Serial.println("LibVersion");
-#if !(0 == ARDUINO_LIB_OTRADIOLINK_VERSION_MAJOR) || !(4 == ARDUINO_LIB_OTRADIOLINK_VERSION_MINOR)
+#if !(0 == ARDUINO_LIB_OTRADIOLINK_VERSION_MAJOR) || !(5 == ARDUINO_LIB_OTRADIOLINK_VERSION_MINOR)
 #error Wrong library version!
 #endif
 //  AssertIsEqual(0, ARDUINO_LIB_OTRADIOLINK_VERSION_MAJOR);
@@ -88,10 +88,10 @@ static void testLibVersion()
 static void testLibVersions()
   {
   Serial.println("LibVersions");
-#if !(0 == ARDUINO_LIB_OTV0P2BASE_VERSION_MAJOR) || !(2 == ARDUINO_LIB_OTV0P2BASE_VERSION_MINOR)
+#if !(0 == ARDUINO_LIB_OTV0P2BASE_VERSION_MAJOR) || !(5 == ARDUINO_LIB_OTV0P2BASE_VERSION_MINOR)
 #error Wrong library version!
 #endif  
-#if !(0 == ARDUINO_LIB_OTRFM23BLINK_VERSION_MAJOR) || !(4 == ARDUINO_LIB_OTRFM23BLINK_VERSION_MINOR)
+#if !(0 == ARDUINO_LIB_OTRFM23BLINK_VERSION_MAJOR) || !(5 == ARDUINO_LIB_OTRFM23BLINK_VERSION_MINOR)
 #error Wrong library version!
 #endif
   }
@@ -154,6 +154,7 @@ static void testCRC7_5B()
   AssertIsTrueWithErr((0x1a == crc1), crc1); 
   const uint8_t crc2 = OTRadioLink::crc7_5B_update(0x50, 40); // Minimal stats payload with low power and 20C temperature.
   AssertIsTrueWithErr((0x7b == crc2), crc2); 
+  AssertIsEqual(0x7b, OTRadioLink::crc7_5B_update_nz_final(0x50, 40)); 
   }
 
 
