@@ -9,16 +9,21 @@ or release/freeze points.
 
 
 pending:
-    DHD20150726: starting V0.4 work.
-    DHD20150726: possibly actually able to TX again!
+
+
+
+
+
+20150727:
+    freezepoint name: V0.4
+    branch name: HEAD
+    Deployed where:  (released copy on GitHub https://github.com/DamonHD/OTRadioLink V0.4).
+    Changes since last freezepoint (developer/mgr initials and brief description): V0.3
+    Previous significant freezepoint:
     DHD20150726: attempting to allow double TX with maximum output power requested.
     DHD20150726: poor workround for double TX with maximum output power requested.
     DHD20150726: making SPI power up/down code interrupt safe.
     DHD20150726: COH-36: working on alternate-TX-not-working bug.
-
-
-
-
 
 20150726:
     freezepoint name: V0.3
