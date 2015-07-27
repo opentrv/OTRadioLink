@@ -43,6 +43,12 @@ namespace OTRadioLink
      * For 2 or 3 byte payloads this should have a Hamming distance of 4 and be within a factor of 2 of optimal error detection.
      */
     extern uint8_t crc7_5B_update(uint8_t crc, uint8_t datum);
+
+    /**As crc7_5B_update() but if the output would be 0, this returns 0x80 instead.
+     * This allows use where 0x00 (and 0xff) is not allowed or preferred,
+     * but without weakening the CRC protection (eg all result values are distinct)
+     */
+    extern uint8_t crc7_5B_update_nz(uint8_t crc, uint8_t datum);
     }
 
 

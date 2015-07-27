@@ -49,4 +49,15 @@ namespace OTRadioLink
             }
         return(crc & 0x7f);
         }
+
+    /**As crc7_5B_update() but if the output would be 0, this returns 0x80 instead.
+     * This allows use where 0x00 (and 0xff) is not allowed or preferred,
+     * but without weakening the CRC protection (eg all result values are distinct)
+     */
+    uint8_t crc7_5B_update_nz(const uint8_t crc, const uint8_t datum)
+        {
+        const uint8_t result = crc7_5B_update(crc, datum);
+        if(0 != result) { return(result); }
+        return(0x80);
+        }
     }
