@@ -28,7 +28,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 namespace OTRadioLink
     {
     // For V0p2 messages on an FS20 carrier (868.35MHz, OOK, 5kbps raw)
-    // the leading byte received indicates the frame time that follows.
+    // the leading byte received indicates the frame type that follows.
     enum FrameType_V0p2_FS20
         {
         // An FS20 encoded message is indicated by one or more leading 0xcc bytes.
@@ -40,10 +40,10 @@ namespace OTRadioLink
         // (Trailing '}' must have high bit set and be followed by (7_5B) CRC byte.)
         FTp2_JSONRaw                 = '{', // 0x7b
 
-        // Messages to/from the REV9 variant.
-        FTp2_REV9Alert               = '!', // 0x21
-        FTp2_REV9PollAndCmd          = '?', // 0x3f
-        FTp2_REV9PollResponse        = '*', // 0x2a
+        // Messages for minimal central-control V1 (eg REV9 variant).
+        FTp2_CC1Alert                = '!', // 0x21
+        FTp2_CC1PollAndCmd           = '?', // 0x3f
+        FTp2_CC1PollResponse         = '*', // 0x2a
 
         FTp2_NONE                    = 0 // No message should start with 0x00.
         };
