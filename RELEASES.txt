@@ -9,10 +9,18 @@ or release/freeze points.
 
 
 pending:
+
+
+
+
+20150802:
+    freezepoint name: V0.5
+    branch name: HEAD
+    Deployed where:  (released copy on GitHub https://github.com/DamonHD/OTRadioLink V0.5).
+    Changes since last freezepoint (developer/mgr initials and brief description): V0.4
+    Previous significant freezepoint:
     DHD20150727: migrated in RND8 PRNG code.
-
-
-
+    DHD20150802: fixed bug in FTp2_FullStatsIDx values
 
 20150727:
     freezepoint name: V0.4

@@ -34,8 +34,8 @@ namespace OTRadioLink
         // An FS20 encoded message is indicated by one or more leading 0xcc bytes.
         FTp2_FS20_native             = 0xcc,
 
-        FTp2_FullStatsIDL            = 'x', // 0x78
-        FTp2_FullStatsIDH            = 'z', // 0x7a
+        FTp2_FullStatsIDL            = 't', // 0x74
+        FTp2_FullStatsIDH            = 'v', // 0x76
 
         // (Trailing '}' must have high bit set and be followed by (7_5B) CRC byte.)
         FTp2_JSONRaw                 = '{', // 0x7b
