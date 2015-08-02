@@ -132,6 +132,8 @@ bool OTRFM23BLinkBase::_TXFIFO()
         _modeTX_();
         }
 
+    delay(1); // FIXME: does this help?
+
     // Repeatedly nap until packet sent, with upper bound of ~120ms on TX time in case there is a problem.
     // (TX time is ~1.6ms per byte at 5000bps.)
     // DO NOT block interrupts while waiting for TX to complete!
@@ -141,6 +143,7 @@ bool OTRFM23BLinkBase::_TXFIFO()
     const unsigned long startms = millis();
     while(millis() - startms < MAX_TX_ms)
         {
+        delay(1); // FIXME: does this help?
         // FIXME: don't have nap() support yet // nap(WDTO_15MS, true); // Sleep in low power mode for a short time waiting for bits to be sent...
         const uint8_t status = _readReg8Bit_(REG_INT_STATUS1); // TODO: could use nIRQ instead if available.
         if(status & 4) { result = true; break; } // Packet sent!
@@ -178,6 +181,7 @@ bool OTRFM23BLinkBase::sendRaw(const uint8_t *const buf, const uint8_t buflen, c
 
     // Load the frame into the TX FIFO.
     _queueFrameInTXFIFO(buf, buflen);
+
     // Send the frame once.
     bool result = _TXFIFO();
     // For maximum 'power' attempt to resend the frame again after a short delay.
