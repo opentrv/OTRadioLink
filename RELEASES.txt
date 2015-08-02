@@ -10,7 +10,7 @@ or release/freeze points.
 
 pending:
     DHD20150802: started on V0.6...
-    DHD20150802: testing if small delays in TX help reliability...
+    DHD20150802: small delays in TX code path seem to help reliability.
 
 
 
