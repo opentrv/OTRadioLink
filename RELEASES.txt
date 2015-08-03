@@ -9,18 +9,24 @@ or release/freeze points.
 
 
 pending:
-    DHD20150802: started on V0.6...
+
+
+
+
+20150804:
+    freezepoint name: V0.6
+    branch name: HEAD
+    Deployed where:  (released copy on GitHub https://github.com/DamonHD/OTRadioLink V0.6).
+    Changes since last freezepoint (developer/mgr initials and brief description):
+    Previous significant freezepoint: V0.5
     DHD20150802: small delays in TX code path seem to help reliability.
-
-
-
 
 20150802:
     freezepoint name: V0.5
     branch name: HEAD
     Deployed where:  (released copy on GitHub https://github.com/DamonHD/OTRadioLink V0.5).
-    Changes since last freezepoint (developer/mgr initials and brief description): V0.4
-    Previous significant freezepoint:
+    Changes since last freezepoint (developer/mgr initials and brief description):
+    Previous significant freezepoint: V0.4
     DHD20150727: migrated in RND8 PRNG code.
     DHD20150802: fixed bug in FTp2_FullStatsIDx values
 
@@ -28,8 +34,8 @@ pending:
     freezepoint name: V0.4
     branch name: HEAD
     Deployed where:  (released copy on GitHub https://github.com/DamonHD/OTRadioLink V0.4).
-    Changes since last freezepoint (developer/mgr initials and brief description): V0.3
-    Previous significant freezepoint:
+    Changes since last freezepoint (developer/mgr initials and brief description):
+    Previous significant freezepoint: V0.3
     DHD20150726: attempting to allow double TX with maximum output power requested.
     DHD20150726: poor workround for double TX with maximum output power requested.
     DHD20150726: making SPI power up/down code interrupt safe.
@@ -39,8 +45,8 @@ pending:
     freezepoint name: V0.3
     branch name: HEAD
     Deployed where: 16WW (released copy on GitHub https://github.com/DamonHD/OTRadioLink V0.3).
-    Changes since last freezepoint (developer/mgr initials and brief description): V0.2
-    Previous significant freezepoint:
+    Changes since last freezepoint (developer/mgr initials and brief description):
+    Previous significant freezepoint: V0.2
     DHD20150723: tweaking default RX FIFO threshold.
     DHD20150723: V0.3-alpha: OTRFM23BLink probably manages the basics now at least poll-driven.
     DHD20150724: COH-8: servicing of RX in interrupt allows handling longer frames without RX overrun.
@@ -50,8 +56,8 @@ pending:
     freezepoint name: V0.2
     branch name: HEAD
     Deployed where:  (released copy on GitHub https://github.com/DamonHD/OTRadioLink V0.2).
-    Changes since last freezepoint (developer/mgr initials and brief description): V0.1
-    Previous significant freezepoint:
+    Changes since last freezepoint (developer/mgr initials and brief description):
+    Previous significant freezepoint: V0.1
     DHD20150719: Copied to GitHub https://github.com/DamonHD/OTRadioLink and freeze point taken.
 
 20150712:
