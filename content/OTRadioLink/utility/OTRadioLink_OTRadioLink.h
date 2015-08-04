@@ -92,9 +92,10 @@ namespace OTRadioLink
             // The received frame is in the leading portion of the supplied buffer
             // (there may be trailing undefined data).
             // The buffer content may not be altered.
+            // The message length is passed by reference and may be *reduced* by the filter if appropriate.
             // This routine must complete quickly and must not do things unsafe in an ISR context,
             // such as access to non-volatile state or operations such as EEPROM access on the ATmega.
-            typedef bool quickFrameFilter_t(const uint8_t *buf, const uint8_t buflen);
+            typedef bool quickFrameFilter_t(const volatile uint8_t *buf, volatile uint8_t &buflen);
 
         private:
             // Channel being listened on or -1.
