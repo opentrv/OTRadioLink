@@ -474,7 +474,12 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                         const size_t maxlen = sizeof(bufferRX);
                         _RXFIFO((uint8_t *)bufferRX, maxlen);
                         lengthRX = maxlen; // Not very clever yet!
-                        queuedRXedMessageCount = 1; // Mark message as queued.
+                        // If an RX filter is present, apply it.
+                        quickFrameFilter_t *const f = filterRXISR;
+                        if((NULL != f) && !f((uint8_t *)bufferRX, lengthRX))
+                            { ++filteredRXedMessageCountRecent; } // Drop the frame.
+                        else
+                            { queuedRXedMessageCount = 1; } // Mark message as queued.
                         }
                     else
                         {
@@ -492,6 +497,7 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                     {
                     // Got sync from incoming message.
                     // Could in principle time until the RX FIFO should have filled.
+                    // Could also be used to "listen-before-TX" to reduce collisions.
 ////    syncSeen = true;
                     // Keep waiting for rest of message...
                     // At this point in theory we could know exactly how long to wait.

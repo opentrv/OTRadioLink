@@ -18,6 +18,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 
 #include "OTRadioLink_OTRadioLink.h"
 
+#include <util/atomic.h>
+
 #include <Arduino.h>
 #include <Print.h>
 
@@ -73,6 +75,17 @@ namespace OTRadioLink
     // As per printRXMsg() but to Serial,
     // which has to be set up and running for this to work.
     void dumpRXMsg(const uint8_t *buf, const uint8_t len) { printRXMsg(&Serial, buf, len); }
+
+
+    // Set (or clear) the optional fast filter for RX ISR/poll; NULL to clear.
+    // The routine should return false to drop an inbound frame early in processing,
+    // to save queue space and CPU, and cope better with a busy channel.
+    void OTRadioLink::setFilterRXISR(quickFrameFilter_t *const filterRX)
+        {
+        // Lock out interrupts while fiddling with interrupts and starting the TX.
+        ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
+            { filterRXISR = filterRX; }
+        }
     }
 
 

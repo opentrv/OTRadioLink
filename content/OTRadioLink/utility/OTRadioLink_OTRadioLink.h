@@ -84,6 +84,18 @@ namespace OTRadioLink
     // Neither re-entrant nor ISR-safe except where stated.
     class OTRadioLink
         {
+        public:
+            // Type of a fast ISR-safe filter routine to quickly reject uninteresting RX frames.
+            // The aim of this is to drop such uninteresting frames quickly and reduce queueing pressure.
+            // This should reduce CPU load and dropped frames in a busy channel.
+            // The routine should return false if the frame is uninteresting and should be dropped.
+            // The received frame is in the leading portion of the supplied buffer
+            // (there may be trailing undefined data).
+            // The buffer content may not be altered.
+            // This routine must complete quickly and must not do things unsafe in an ISR context,
+            // such as access to non-volatile state or operations such as EEPROM access on the ATmega.
+            typedef bool quickFrameFilter_t(const uint8_t *buf, const uint8_t buflen);
+
         private:
             // Channel being listened on or -1.
             // Mode should not need to be changed (or even read) in an ISR,
@@ -107,6 +119,19 @@ namespace OTRadioLink
             // Marked volatile for ISR-/thread- safe access without a lock.
             volatile uint8_t droppedRXedMessageCountRecent;
 
+            // Current recent/short count of dropped messages due to RX filter.
+            // Increments when an inbound frame is not dequeued quickly enough and one has to be dropped.
+            // This value wraps after 255/0xff.
+            // Marked volatile for ISR-/thread- safe access without a lock.
+            volatile uint8_t filteredRXedMessageCountRecent;
+
+            // Optional fast filter for RX ISR/poll; NULL if not present.
+            // The routine should return false to drop an inbound frame early in processing,
+            // to save queue space and CPU, and cope better with a busy channel.
+            // This pointer must by updated only with interrupts locked out.
+            // Marked volatile for ISR-/thread- access.
+            volatile quickFrameFilter_t *filterRXISR;
+
             // Configure the hardware.
             // Called from configure() once nChannels and channelConfig is set.
             // Returns false if hardware not present or config is invalid.
@@ -121,8 +146,15 @@ namespace OTRadioLink
         public:
             OTRadioLink()
               : listenChannel(-1), nChannels(0), channelConfig(NULL),
-                queuedRXedMessageCount(0), droppedRXedMessageCountRecent(0)
+                queuedRXedMessageCount(0), droppedRXedMessageCountRecent(0), filteredRXedMessageCountRecent(0),
+                filterRXISR(NULL)
                 { }
+
+            // Set (or clear) the optional fast filter for RX ISR/poll; NULL to clear.
+            // The routine should return false to drop an inbound frame early in processing,
+            // to save queue space and CPU, and cope better with a busy channel.
+            // At most one filter can be set; setting a new one clears any previous.
+            void setFilterRXISR(quickFrameFilter_t *const filterRX);
 
             // Do very minimal pre-initialisation, eg at power up, to get radio to safe low-power mode.
             // Argument is read-only pre-configuration data;
@@ -201,6 +233,13 @@ namespace OTRadioLink
             // Non-virtual, for speed.
             // ISR-/thread- safe.
             inline uint8_t getRXMsgsDroppedRecent() { return(droppedRXedMessageCountRecent); }
+
+            // Current recent/short count of filtered (dropped as uninteresting) messages due to RX overrun.
+            // Increments when an inbound frame is not dequeued quickly enough and one has to be dropped.
+            // This value wraps after 255/0xff.
+            // Non-virtual, for speed.
+            // ISR-/thread- safe.
+            inline uint8_t getRXMsgsFilteredRecent() { return(filteredRXedMessageCountRecent); }
 
             // Fetches the first (oldest) queued RX message, returning its length, or 0 if no message waiting.
             // If the waiting message is too long it is truncated to fit,
