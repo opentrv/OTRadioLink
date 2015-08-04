@@ -492,6 +492,7 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                     {
                     // Got sync from incoming message.
                     // Could in principle time until the RX FIFO should have filled.
+                    // Could also be used to "listen-before-TX" to reduce collisions.
 ////    syncSeen = true;
                     // Keep waiting for rest of message...
                     // At this point in theory we could know exactly how long to wait.

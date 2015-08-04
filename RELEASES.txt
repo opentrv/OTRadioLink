@@ -9,7 +9,7 @@ or release/freeze points.
 
 
 pending:
-
+    DHD20150804: starting V0.7... (aim to work better in busy channel w/ filtering, queueing, TX level ctl)
 
 
 

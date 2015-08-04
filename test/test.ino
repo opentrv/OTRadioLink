@@ -79,7 +79,7 @@ static inline void errorIfNotEqual(int expected, int actual, int delta, int line
 static void testLibVersion()
   {
   Serial.println("LibVersion");
-#if !(0 == ARDUINO_LIB_OTRADIOLINK_VERSION_MAJOR) || !(6 == ARDUINO_LIB_OTRADIOLINK_VERSION_MINOR)
+#if !(0 == ARDUINO_LIB_OTRADIOLINK_VERSION_MAJOR) || !(7 == ARDUINO_LIB_OTRADIOLINK_VERSION_MINOR)
 #error Wrong library version!
 #endif
 //  AssertIsEqual(0, ARDUINO_LIB_OTRADIOLINK_VERSION_MAJOR);
@@ -90,10 +90,10 @@ static void testLibVersion()
 static void testLibVersions()
   {
   Serial.println("LibVersions");
-#if !(0 == ARDUINO_LIB_OTV0P2BASE_VERSION_MAJOR) || !(6 == ARDUINO_LIB_OTV0P2BASE_VERSION_MINOR)
+#if !(0 == ARDUINO_LIB_OTV0P2BASE_VERSION_MAJOR) || !(7 == ARDUINO_LIB_OTV0P2BASE_VERSION_MINOR)
 #error Wrong library version!
 #endif  
-#if !(0 == ARDUINO_LIB_OTRFM23BLINK_VERSION_MAJOR) || !(6 == ARDUINO_LIB_OTRFM23BLINK_VERSION_MINOR)
+#if !(0 == ARDUINO_LIB_OTRFM23BLINK_VERSION_MAJOR) || !(7 == ARDUINO_LIB_OTRFM23BLINK_VERSION_MINOR)
 #error Wrong library version!
 #endif
   }
