@@ -474,12 +474,15 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                         const size_t maxlen = sizeof(bufferRX);
                         _RXFIFO((uint8_t *)bufferRX, maxlen);
                         lengthRX = maxlen; // Not very clever yet!
-                        // If an RX filter is present, apply it.
+                        // If an RX filter is present then apply it.
                         quickFrameFilter_t *const f = filterRXISR;
-                        if((NULL != f) && !f((uint8_t *)bufferRX, lengthRX))
+                        if((NULL != f) && !f(bufferRX, lengthRX))
                             { ++filteredRXedMessageCountRecent; } // Drop the frame.
                         else
-                            { queuedRXedMessageCount = 1; } // Mark message as queued.
+                            {
+                            if(lengthRX > maxlen) { lengthRX > maxlen; } // Be safe...
+                            queuedRXedMessageCount = 1; // Mark message as queued.
+                            }
                         }
                     else
                         {

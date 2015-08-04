@@ -330,12 +330,6 @@ uint8_t OTRFM23BLinkBase::getRXMsg(uint8_t *buf, uint8_t buflen)
 // Allows logic to end() if required at the end of a block, etc.
 bool OTRFM23BLinkBase::begin()
     {
-//  // Check that the radio is correctly connected; panic if not...
-//  if(!RFM22CheckConnected()) { panic(); }
-//  // Configure the radio.
-//  RFM22RegisterBlockSetup(FHT8V_RFM22_Reg_Values);
-//  // Put the radio in low-power standby mode.
-//  RFM22ModeStandbyAndClearState();
     if(1 != nChannels) { return(false); } // Can only handle a single channel.
     if(!_checkConnected()) { return(false); }
     _registerBlockSetup((const regValPair_t *)(channelConfig->config));
