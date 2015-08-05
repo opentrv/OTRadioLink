@@ -9,13 +9,21 @@ or release/freeze points.
 
 
 pending:
+
+
+
+
+
+20150805:
+    freezepoint name: V0.7
+    branch name: HEAD
+    Deployed where:  (released copy on GitHub https://github.com/DamonHD/OTRadioLink V0.7).
+    Changes since last freezepoint (developer/mgr initials and brief description):
+    Previous significant freezepoint: V0.6
     DHD20150804: starting V0.7... (aim to work better in busy channel w/ filtering, queueing, TX level ctl)
     DHD20150804: added in-ISR RX filtering.
     DHD20150805: fixing some scope issues around delay_us().
-
-
-
-
+    DHD20150805: issues still pending: n-deep RX queue, TX level control.
 
 20150804:
     freezepoint name: V0.6
