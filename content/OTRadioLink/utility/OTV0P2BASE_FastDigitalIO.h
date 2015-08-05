@@ -99,15 +99,15 @@ static __inline__ void _delay_x4(uint8_t n) // Takes 4n cycles to run.
 // Delay (busy wait) the specified number of microseconds in the range [4,1023] (<4 will work if a constant).
 // Nominally equivalent to delayMicroseconds() except that 1.0.x version of that is broken for slow CPU clocks.
 // Granularity is 1us if parameter is a compile-time constant, else 4us.
-#define delay_us(us) do { \
+#define OTV0P2BASE_delay_us(us) do { \
     if(__builtin_constant_p((us)) && ((us) == 0)) { /* Nothing to do. */ } \
     else { \
-      if(__builtin_constant_p((us)) && (us & 1)) { _delay_NOP(); } \
-      if(__builtin_constant_p((us)) && (us & 2)) { _delay_NOP(); _delay_NOP(); } \
-      if((us) >= 4) { _delay_x4((us) >> 2); } \
+      if(__builtin_constant_p((us)) && (us & 1)) { ::OTV0P2BASE::_delay_NOP(); } \
+      if(__builtin_constant_p((us)) && (us & 2)) { ::OTV0P2BASE::_delay_NOP(); ::OTV0P2BASE::_delay_NOP(); } \
+      if((us) >= 4) { ::OTV0P2BASE::_delay_x4((us) >> 2); } \
       } } while(false)
 #else
-#define delay_us(us) delayMicroseconds(us) // Assume that the built-in routine will behave itself for faster CPU clocks.
+#define OTV0P2BASE_delay_us(us) delayMicroseconds(us) // Assume that the built-in routine will behave itself for faster CPU clocks.
 #endif
 
 
