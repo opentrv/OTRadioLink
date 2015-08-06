@@ -23,7 +23,7 @@ pending:
     DHD20150804: starting V0.7... (aim to work better in busy channel w/ filtering, queueing, TX level ctl)
     DHD20150804: added in-ISR RX filtering.
     DHD20150805: fixing some scope issues around delay_us().
-    DHD20150805: issues still pending: n-deep RX queue, TX level control.
+    DHD20150805: issues still pending: n-deep RX queue, TX level control, double-TX kludge, TX delay times.
 
 20150804:
     freezepoint name: V0.6
