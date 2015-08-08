@@ -177,8 +177,10 @@ static void testRFM23B()
   OTRFM23BLink::OTRFM23BLink<OTV0P2BASE::V0p2_PIN_SPI_nSS> l0;
   OTRFM23BLink::OTRFM23BLink<OTV0P2BASE::V0p2_PIN_SPI_nSS, -1> l1;
   OTRFM23BLink::OTRFM23BLink<OTV0P2BASE::V0p2_PIN_SPI_nSS, 9> l2;
-  // Cam't do anything with this unless on V0p2 board.
-  //l0.preinit(NULL); // Must not break anything nor stall!
+//#ifdef ON_V0P2_BOARD
+//  // Can't do anything with this unless on V0p2 board.
+//  l0.preinit(NULL); // Must not break anything nor stall!
+//#endif
   }
 
 // Some tests for all ISRRXQueue implementations.
