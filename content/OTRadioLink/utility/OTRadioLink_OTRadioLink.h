@@ -135,7 +135,7 @@ namespace OTRadioLink
 
             // Configure the hardware.
             // Called from configure() once nChannels and channelConfig is set.
-            // Returns false if hardware not present or config is invalid.
+            // Returns false if hardware not present or configuration is invalid.
             // Need not be overridden if hardware configuration is postponed until begin().
             // Defaults to do nothing.
             virtual bool _doconfig() { return(true); }
@@ -257,7 +257,7 @@ namespace OTRadioLink
                 RXErr_NONE = 0,         // NO ERROR.
                 RXErr_DupDropped,       // Duplicate RX frame dropped, eg from a double send. Not always reported as an error.
                 RXErr_RXOverrun,        // Receiver FIFO overrun or similar; no full frame RXed.
-                REErr_BadFraming,       // Bad framing, preamble, postable, check/CRC or general structure.
+                REErr_BadFraming,       // Bad framing, preamble, postamble, check/CRC or general structure.
                 RXErr_DroppedFrame      // Frame discarded due to lack of space.
                 };
 
