@@ -38,8 +38,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #include "OTV0P2BASE_PowerManagement.h"
 #include "OTRadioLink_ISRRXQueue.h"
 
-//#define _USE_BUILT_IN_RX_QUEUE // Temporary until switched to new queue...
-
 namespace OTRFM23BLink
     {
     // NOTE: SYSTEM-WIDE IMPLICATIONS FOR SPI USE.
@@ -115,15 +113,8 @@ namespace OTRFM23BLink
             // Too long may allow overruns, too short may make long-frame reception hard.
             volatile uint8_t maxTypicalFrameBytes;
 
-#ifdef _USE_BUILT_IN_RX_QUEUE
-            // 1-deep RX queue and buffer used to accept data during RX.
-            // Marked as volatile for ISR-/thread- safe (sometimes lock-free) access.
-            volatile uint8_t lengthRX; // Non-zero when a frame is waiting.
-            volatile uint8_t bufferRX[MaxRXMsgLen];
-#else
             // RX queue.
             ::OTRadioLink::ISRRXQueue1Deep<MaxRXMsgLen> queueRX;
-#endif
 
             // Constructor only available to deriving class.
             OTRFM23BLinkBase() : lastRXErr(0), maxTypicalFrameBytes(MAX_RX_FRAME_DEFAULT) { }
@@ -227,15 +218,11 @@ namespace OTRFM23BLink
             virtual void getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen)
                 { queueRXMsgsMin = QueueRXMsgsMin; maxRXMsgLen = MaxRXMsgLen; maxTXMsgLen = MaxTXMsgLen; }
 
-#ifdef _USE_BUILT_IN_RX_QUEUE
-            // Fetches the first (oldest) queued RX message, returning its length, or 0 if no message waiting.
-            // If the waiting message is too long it is truncated to fit,
-            // so allocating a buffer at least one longer than any valid message
-            // should indicate an oversize inbound message.
-            virtual uint8_t getRXMsg(uint8_t *buf, uint8_t buflen);
-#else
+            // Fetches the current count of queued messages for RX.
+            // ISR-/thread- safe.
+            virtual uint8_t getRXMsgsQueued() { return(queueRX.getRXMsgsQueued()); }
+
             virtual uint8_t getRXMsg(uint8_t *buf, uint8_t buflen) { return(queueRX.getRXMsg(buf, buflen)); }
-#endif
 
             // Returns the current receive error state; 0 indicates no error, +ve is the error value.
             // RX errors may be queued with depth greater than one,
@@ -482,7 +469,6 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                     {
                     // Received frame.
                     // If there is space in the queue then read in the frame, else discard it.
-#ifndef _USE_BUILT_IN_RX_QUEUE
                     volatile uint8_t *const bufferRX = queueRX._getRXBufForInbound();
                     if(NULL != bufferRX)
                         {
@@ -501,24 +487,6 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                             queueRX._loadedBuf(lengthRX); // Queue message.
                             }
                         }
-#else
-                    if(0 == queuedRXedMessageCount)
-                        {
-                        // Attempt to read the entire frame.
-                        const size_t maxlen = sizeof(bufferRX);
-                        _RXFIFO((uint8_t *)bufferRX, maxlen);
-                        lengthRX = maxlen; // Not very clever yet!
-                        // If an RX filter is present then apply it.
-                        quickFrameFilter_t *const f = filterRXISR;
-                        if((NULL != f) && !f(bufferRX, lengthRX))
-                            { ++filteredRXedMessageCountRecent; } // Drop the frame.
-                        else
-                            {
-                            if(lengthRX > maxlen) { lengthRX = maxlen; } // Be safe...
-                            queuedRXedMessageCount = 1; // Mark message as queued.
-                            }
-                        }
-#endif
                     else
                         {
                         // DISCARD/drop frame that there is no room to RX.
