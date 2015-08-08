@@ -230,8 +230,15 @@ static void testISRRXQueue1Deep()
   q._loadedBuf(1);
   // Check that the message was queued.
   AssertIsEqual(1, q.getRXMsgsQueued());
-  // Verify that the queue is now full.
-  AssertIsTrue(NULL == q._getRXBufForInbound()); 
+  // Verify that the queue is now full (no space for new RX).
+  AssertIsTrue(NULL == q._getRXBufForInbound());
+  // Try to retrieve the queued message.
+  AssertIsEqual(1, q.getRXMsgsQueued());
+  AssertIsEqual(1, q.getRXMsg(buf1, 1));
+  AssertIsEqual(r1, buf1[0]);
+  // Check that the queue is empty again.
+  AssertIsEqual(0, q.getRXMsgsQueued());
+  AssertIsEqual(0, q.getRXMsg(buf1, 1));
   }
 
 
