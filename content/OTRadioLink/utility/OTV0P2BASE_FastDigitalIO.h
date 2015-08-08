@@ -102,8 +102,8 @@ static __inline__ void _delay_x4(uint8_t n) // Takes 4n cycles to run.
 #define OTV0P2BASE_delay_us(us) do { \
     if(__builtin_constant_p((us)) && ((us) == 0)) { /* Nothing to do. */ } \
     else { \
-      if(__builtin_constant_p((us)) && (us & 1)) { ::OTV0P2BASE::_delay_NOP(); } \
-      if(__builtin_constant_p((us)) && (us & 2)) { ::OTV0P2BASE::_delay_NOP(); ::OTV0P2BASE::_delay_NOP(); } \
+      if(__builtin_constant_p((us)) && ((us) & 1)) { ::OTV0P2BASE::_delay_NOP(); } \
+      if(__builtin_constant_p((us)) && ((us) & 2)) { ::OTV0P2BASE::_delay_NOP(); ::OTV0P2BASE::_delay_NOP(); } \
       if((us) >= 4) { ::OTV0P2BASE::_delay_x4((us) >> 2); } \
       } } while(false)
 #else

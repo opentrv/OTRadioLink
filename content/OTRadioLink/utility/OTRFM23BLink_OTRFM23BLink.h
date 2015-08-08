@@ -38,7 +38,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #include "OTV0P2BASE_PowerManagement.h"
 #include "OTRadioLink_ISRRXQueue.h"
 
-#define _USE_BUILT_IN_RX_QUEUE // Temporary until switched to new queue...
+//#define _USE_BUILT_IN_RX_QUEUE // Temporary until switched to new queue...
 
 namespace OTRFM23BLink
     {
