@@ -499,7 +499,7 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                         else
                             {
                             if(lengthRX > MaxRXMsgLen) { lengthRX = MaxRXMsgLen; } // Be safe...
-                            queueRX._loadedBuf(lengthRX); // Mark message as queued.
+                            queueRX._loadedBuf(lengthRX); // Queue message.
                             }
                         }
 #else

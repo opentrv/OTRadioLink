@@ -30,10 +30,20 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #include <OTRFM23BLink.h>
 
 
+#if F_CPU == 1000000 // 1MHz CPU indicates V0p2 board.
+#define ON_V0P2_BOARD
+#endif
+
+
 void setup()
   {
+#ifdef ON_V0P2_BOARD
+  // initialize serial communications at 4800 bps for typical use with V0p2 board.
+  Serial.begin(4800);
+#else
   // initialize serial communications at 9600 bps for typical use with (eg) Arduino UNO.
-  Serial.begin(9600); 
+  Serial.begin(9600);
+#endif
   }
 
 
@@ -171,6 +181,22 @@ static void testRFM23B()
   //l0.preinit(NULL); // Must not break anything nor stall!
   }
 
+// Some tests for all ISRRXQueue implementations.
+// Assumes being passed a freshly-created instance.
+static void allISRRXQueue(OTRadioLink::ISRRXQueue &q)
+  {
+  }
+
+// Do some basic exercise of the RFM23B class, eg that it compiles.
+static void testISRRXQueue1Deep()
+  {
+  Serial.println("ISRRXQueue1Deep");
+  OTRadioLink::ISRRXQueue1Deep<> q0;
+  allISRRXQueue(q0);
+
+
+  }
+
 
 // BASE
 // Test for expected behaviour of RNG8 PRNG starting from a known state.
@@ -216,6 +242,7 @@ void loop()
   // OTRadioLink
   testFrameDump();
   testCRC7_5B();
+  testISRRXQueue1Deep();
 
   // OTRFM23BLink
   testRFM23B();
