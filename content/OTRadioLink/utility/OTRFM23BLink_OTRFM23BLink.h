@@ -480,7 +480,7 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                             { ++filteredRXedMessageCountRecent; } // Drop the frame.
                         else
                             {
-                            if(lengthRX > maxlen) { lengthRX > maxlen; } // Be safe...
+                            if(lengthRX > maxlen) { lengthRX = maxlen; } // Be safe...
                             queuedRXedMessageCount = 1; // Mark message as queued.
                             }
                         }
