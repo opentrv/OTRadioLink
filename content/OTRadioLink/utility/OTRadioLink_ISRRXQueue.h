@@ -87,7 +87,7 @@ namespace OTRadioLink
 #endif
         };
 
-    // Minimal fast 1-deep queue.
+    // Minimal, fast, 1-deep queue.
     // Can receive at most one frame.
     // A frame to be queued can be up to maxRXBytes bytes long.
     // Does minimal checking; all arguments must be sane.
@@ -105,7 +105,7 @@ namespace OTRadioLink
             virtual void getRXCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen)
                 { queueRXMsgsMin = 1; maxRXMsgLen = maxRXBytes; }
 
-            // Fetches the first (oldest) queued RX message, returning its length, or 0 if no message waiting.
+            // Fetches the first (oldest) queued RX message returning its length, or 0 if no message waiting.
             // If the waiting message is too long it is truncated to fit,
             // so allocating a buffer at least one longer than any valid message
             // should indicate an oversize inbound message.
@@ -115,8 +115,8 @@ namespace OTRadioLink
                 // Lock out interrupts to safely access the queue/buffers.
                 ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
                     {
-                    if(0 == queuedRXedMessageCount) { return(0); }
-                    // Copy into caller's buffer up to its capacity.
+                    if(0 == queuedRXedMessageCount) { return(0); } // Queue is empty.
+                    // If message waiting, copy into caller's buffer up to its capacity.
                     const uint8_t len = min(buflen, lengthRX);
                     memcpy(buf, (const uint8_t *)bufferRX, len);
                     // Update to mark the queue as now empty.
