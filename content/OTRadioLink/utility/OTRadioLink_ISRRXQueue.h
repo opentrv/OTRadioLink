@@ -93,7 +93,7 @@ namespace OTRadioLink
     // A frame to be queued can be up to maxRXBytes bytes long.
     // Does minimal checking; all arguments must be sane.
     template<uint8_t maxRXBytes = 64>
-    class ISRRSQueue1Deep : public ISRRXQueue
+    class ISRRXQueue1Deep : public ISRRXQueue
         {
         private:
             // 1-deep RX queue and buffer used to accept data during RX.
