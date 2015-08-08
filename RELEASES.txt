@@ -9,7 +9,7 @@ or release/freeze points.
 
 
 pending:
-
+    DHD20150809: starting V0.08...  (aiming to allow better, testable, RX queueing)
 
 
 
@@ -20,7 +20,7 @@ pending:
     Deployed where:  (released copy on GitHub https://github.com/DamonHD/OTRadioLink V0.7).
     Changes since last freezepoint (developer/mgr initials and brief description):
     Previous significant freezepoint: V0.6
-    DHD20150804: starting V0.7... (aim to work better in busy channel w/ filtering, queueing, TX level ctl)
+    DHD20150804: starting V0.7... (aiming to work better in busy channel w/ filtering, queueing, TX level ctl)
     DHD20150804: added in-ISR RX filtering.
     DHD20150805: fixing some scope issues around delay_us().
     DHD20150805: issues still pending: n-deep RX queue, TX level control, double-TX kludge, TX delay times.
