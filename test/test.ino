@@ -177,8 +177,10 @@ static void testRFM23B()
   OTRFM23BLink::OTRFM23BLink<OTV0P2BASE::V0p2_PIN_SPI_nSS> l0;
   OTRFM23BLink::OTRFM23BLink<OTV0P2BASE::V0p2_PIN_SPI_nSS, -1> l1;
   OTRFM23BLink::OTRFM23BLink<OTV0P2BASE::V0p2_PIN_SPI_nSS, 9> l2;
-  // Cam't do anything with this unless on V0p2 board.
-  //l0.preinit(NULL); // Must not break anything nor stall!
+//#ifdef ON_V0P2_BOARD
+//  // Can't do anything with this unless on V0p2 board.
+//  l0.preinit(NULL); // Must not break anything nor stall!
+//#endif
   }
 
 // Some tests for all ISRRXQueue implementations.
@@ -213,9 +215,23 @@ static void allISRRXQueue(OTRadioLink::ISRRXQueue &q)
 static void testISRRXQueue1Deep()
   {
   Serial.println("ISRRXQueue1Deep");
-  OTRadioLink::ISRRXQueue1Deep<> q0;
-  allISRRXQueue(q0);
-  // TODO: specific tests for this buffer.
+  OTRadioLink::ISRRXQueue1Deep<> q;
+  allISRRXQueue(q);
+  // Specific tests for this queue type.
+  // Check queue is empty again.
+  AssertIsEqual(0, q.getRXMsgsQueued());
+  uint8_t buf1[1];
+  AssertIsEqual(0, q.getRXMsg(buf1, 1));
+  // Pretend to be an ISR and try to load up a message.
+  volatile uint8_t *ib1 = q._getRXBufForInbound();
+  AssertIsTrue(NULL != ib1); 
+  const uint8_t r1 = OTV0P2BASE::randRNG8();
+  *ib1 = r1;
+  q._loadedBuf(1);
+  // Check that the message was queued.
+  AssertIsEqual(1, q.getRXMsgsQueued());
+  // Verify that the queue is now full.
+  AssertIsTrue(NULL == q._getRXBufForInbound()); 
   }
 
 
