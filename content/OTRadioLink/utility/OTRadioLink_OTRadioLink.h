@@ -110,10 +110,6 @@ namespace OTRadioLink
             // Per-channel configuration, read-only.
             const OTRadioChannelConfig * channelConfig;
 
-            // Current count of received messages queued.
-            // Marked volatile for ISR-/thread- safe access without a lock.
-            volatile uint8_t queuedRXedMessageCount;
-
             // Current recent/short count of dropped messages due to RX overrun.
             // Increments when an inbound frame is not dequeued quickly enough and one has to be dropped.
             // This value wraps after 255/0xff.
@@ -147,7 +143,7 @@ namespace OTRadioLink
         public:
             OTRadioLink()
               : listenChannel(-1), nChannels(0), channelConfig(NULL),
-                queuedRXedMessageCount(0), droppedRXedMessageCountRecent(0), filteredRXedMessageCountRecent(0),
+                droppedRXedMessageCountRecent(0), filteredRXedMessageCountRecent(0),
                 filterRXISR(NULL)
                 { }
 
@@ -224,9 +220,8 @@ namespace OTRadioLink
             inline int8_t getListenChannel() { return(listenChannel); }
 
             // Fetches the current count of queued messages for RX.
-            // Non-virtual, for speed.
             // ISR-/thread- safe.
-            inline uint8_t getRXMsgsQueued() { return(queuedRXedMessageCount); }
+            virtual uint8_t getRXMsgsQueued() = 0;
 
             // Current recent/short count of dropped messages due to RX overrun.
             // Increments when an inbound frame is not dequeued quickly enough and one has to be dropped.

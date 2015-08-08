@@ -227,6 +227,10 @@ namespace OTRFM23BLink
             virtual void getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen)
                 { queueRXMsgsMin = QueueRXMsgsMin; maxRXMsgLen = MaxRXMsgLen; maxTXMsgLen = MaxTXMsgLen; }
 
+            // Fetches the current count of queued messages for RX.
+            // ISR-/thread- safe.
+            virtual uint8_t getRXMsgsQueued() { return(queueRX.getRXMsgsQueued()); }
+
 #ifdef _USE_BUILT_IN_RX_QUEUE
             // Fetches the first (oldest) queued RX message, returning its length, or 0 if no message waiting.
             // If the waiting message is too long it is truncated to fit,
