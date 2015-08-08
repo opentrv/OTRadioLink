@@ -37,6 +37,12 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #include "OTV0P2BASE_FastDigitalIO.h"
 #include "OTV0P2BASE_PowerManagement.h"
 
+#define _USE_BUILT_IN_RX_QUEUE // Temporary until switched to new queue...
+
+#ifndef _USE_BUILT_IN_RX_QUEUE
+#include "OTRadioLink_ISRRXQueue.h"
+#endif
+
 namespace OTRFM23BLink
     {
     // NOTE: SYSTEM-WIDE IMPLICATIONS FOR SPI USE.
@@ -112,10 +118,15 @@ namespace OTRFM23BLink
             // Too long may allow overruns, too short may make long-frame reception hard.
             volatile uint8_t maxTypicalFrameBytes;
 
+#ifdef _USE_BUILT_IN_RX_QUEUE
             // 1-deep RX queue and buffer used to accept data during RX.
             // Marked as volatile for ISR-/thread- safe (sometimes lock-free) access.
             volatile uint8_t lengthRX; // Non-zero when a frame is waiting.
             volatile uint8_t bufferRX[MaxRXMsgLen];
+#else
+            // RX queue.
+            ISRRXQueue1Deep queueRX;
+#endif
 
             // Constructor only available to deriving class.
             OTRFM23BLinkBase() : lastRXErr(0), maxTypicalFrameBytes(MAX_RX_FRAME_DEFAULT) { }
@@ -215,14 +226,19 @@ namespace OTRFM23BLink
             virtual bool begin();
 
             // Fetches the current inbound RX minimum queue capacity and maximum RX (and TX) raw message size.
+            // TODO: fetch some of the parameters from the RX queue.
             virtual void getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen)
                 { queueRXMsgsMin = QueueRXMsgsMin; maxRXMsgLen = MaxRXMsgLen; maxTXMsgLen = MaxTXMsgLen; }
 
+#ifdef _USE_BUILT_IN_RX_QUEUE
             // Fetches the first (oldest) queued RX message, returning its length, or 0 if no message waiting.
             // If the waiting message is too long it is truncated to fit,
             // so allocating a buffer at least one longer than any valid message
             // should indicate an oversize inbound message.
             virtual uint8_t getRXMsg(uint8_t *buf, uint8_t buflen);
+#else
+            virtual uint8_t getRXMsg(uint8_t *buf, uint8_t buflen) { return(queueRX.getRXMsg(buf, buflen)); }
+#endif
 
             // Returns the current receive error state; 0 indicates no error, +ve is the error value.
             // RX errors may be queued with depth greater than one,
@@ -469,8 +485,30 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                     {
                     // Received frame.
                     // If there is space in the queue then read in the frame, else discard it.
+#ifndef _USE_BUILT_IN_RX_QUEUE
+                    volatile *const bufRX = queueRX._getRXBufForInbound();
+                    if(NULL != bufRX)
+                        {
+                        // Attempt to read the entire frame.
+                        _RXFIFO((uint8_t *)bufferRX, MaxRXMsgLen);
+                        uint8_t lengthRX = MaxRXMsgLen; // Not very clever yet!
+                        // If an RX filter is present then apply it.
+                        quickFrameFilter_t *const f = filterRXISR;
+                        if((NULL != f) && !f(bufferRX, lengthRX))
+                            {
+                            ++filteredRXedMessageCountRecent; // Drop the frame.
+                            queueRX._loadedBuf(0); // Don't queue this frame...
+                            }
+                        else
+                            {
+                            if(lengthRX > MaxRXMsgLen) { lengthRX = MaxRXMsgLen; } // Be safe...
+                            queueRX._loadedBuf(lengthRX); // Mark message as queued.
+                            }
+                        }
+#else
                     if(0 == queuedRXedMessageCount)
                         {
+                        // Attempt to read the entire frame.
                         const size_t maxlen = sizeof(bufferRX);
                         _RXFIFO((uint8_t *)bufferRX, maxlen);
                         lengthRX = maxlen; // Not very clever yet!
@@ -484,14 +522,15 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                             queuedRXedMessageCount = 1; // Mark message as queued.
                             }
                         }
+#endif
                     else
                         {
+                        // DISCARD/drop frame that there is no room to RX.
                         uint8_t tmpbuf[1];
-                        _RXFIFO(tmpbuf, sizeof(tmpbuf)); // Discard...
+                        _RXFIFO(tmpbuf, sizeof(tmpbuf));
                         ++droppedRXedMessageCountRecent;
                         lastRXErr = RXErr_DroppedFrame;
                         }
-                    // Attempt to read the entire frame.
                     // Clear up and force back to listening...
                     _dolisten();
                     return;

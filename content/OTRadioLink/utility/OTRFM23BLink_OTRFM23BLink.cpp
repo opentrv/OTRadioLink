@@ -283,6 +283,7 @@ void OTRFM23BLinkBase::_RXFIFO(uint8_t *buf, const uint8_t bufSize)
         }
     }
 
+#ifdef _USE_BUILT_IN_RX_QUEUE
 // Fetches the first (oldest) queued RX message, returning its length, or 0 if no message waiting.
 // If the waiting message is too long it is truncated to fit,
 // so allocating a buffer at least one longer than any valid message
@@ -323,7 +324,7 @@ uint8_t OTRFM23BLinkBase::getRXMsg(uint8_t *buf, uint8_t buflen)
 
     return(0);
     }
-
+#endif
 
 // Begin access to (initialise) this radio link if applicable and not already begun.
 // Returns true if it successfully began, false otherwise.
