@@ -220,18 +220,25 @@ static void testISRRXQueue1Deep()
   // Specific tests for this queue type.
   // Check queue is empty again.
   AssertIsEqual(0, q.getRXMsgsQueued());
-  uint8_t buf1[1];
-  AssertIsEqual(0, q.getRXMsg(buf1, 1));
+  uint8_t buf2[2];
+  AssertIsEqual(0, q.getRXMsg(buf2, 2));
   // Pretend to be an ISR and try to load up a message.
-  volatile uint8_t *ib1 = q._getRXBufForInbound();
-  AssertIsTrue(NULL != ib1); 
+  volatile uint8_t *ib2 = q._getRXBufForInbound();
+  AssertIsTrue(NULL != ib2); 
   const uint8_t r1 = OTV0P2BASE::randRNG8();
-  *ib1 = r1;
-  q._loadedBuf(1);
+  ib2[0] = r1; ib2[1] = 0;
+  q._loadedBuf(2);
   // Check that the message was queued.
   AssertIsEqual(1, q.getRXMsgsQueued());
-  // Verify that the queue is now full.
-  AssertIsTrue(NULL == q._getRXBufForInbound()); 
+  // Verify that the queue is now full (no space for new RX).
+  AssertIsTrue(NULL == q._getRXBufForInbound());
+  // Try to retrieve the queued message.
+  AssertIsEqual(1, q.getRXMsgsQueued());
+  AssertIsEqual(2, q.getRXMsg(buf2, 2));
+  AssertIsEqual(r1, buf2[0]);
+  // Check that the queue is empty again.
+  AssertIsEqual(0, q.getRXMsgsQueued());
+  AssertIsEqual(0, q.getRXMsg(buf2, 2));
   }
 
 
