@@ -211,7 +211,7 @@ static void allISRRXQueue(OTRadioLink::ISRRXQueue &q)
   AssertIsEqual(0, q.getRXMsg(buf1, 1));
   }
 
-// Do some basic exercise of the RFM23B class, eg that it compiles.
+// Do some basic exercise of the ISRRXQueue1Deep class.
 static void testISRRXQueue1Deep()
   {
   Serial.println("ISRRXQueue1Deep");
