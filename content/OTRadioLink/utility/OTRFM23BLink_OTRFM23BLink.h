@@ -38,7 +38,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #include "OTV0P2BASE_PowerManagement.h"
 #include "OTRadioLink_ISRRXQueue.h"
 
-#define _USE_BUILT_IN_RX_QUEUE // Temporary until switched to new queue...
+//#define _USE_BUILT_IN_RX_QUEUE // Temporary until switched to new queue...
 
 namespace OTRFM23BLink
     {
@@ -122,7 +122,7 @@ namespace OTRFM23BLink
             volatile uint8_t bufferRX[MaxRXMsgLen];
 #else
             // RX queue.
-            /*::OTRadioLink::*/ISRRXQueue1Deep queueRX;
+            ::OTRadioLink::ISRRXQueue1Deep<MaxRXMsgLen> queueRX;
 #endif
 
             // Constructor only available to deriving class.
@@ -483,8 +483,8 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                     // Received frame.
                     // If there is space in the queue then read in the frame, else discard it.
 #ifndef _USE_BUILT_IN_RX_QUEUE
-                    volatile uint8_t *const bufRX = queueRX._getRXBufForInbound();
-                    if(NULL != bufRX)
+                    volatile uint8_t *const bufferRX = queueRX._getRXBufForInbound();
+                    if(NULL != bufferRX)
                         {
                         // Attempt to read the entire frame.
                         _RXFIFO((uint8_t *)bufferRX, MaxRXMsgLen);

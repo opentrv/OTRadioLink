@@ -20,8 +20,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
  * OpenTRV Radio Link base class.
  */
 
-#ifndef ARDUINO_LIB_OTRADIOLINK_OTRADIOLINK_H
-#define ARDUINO_LIB_OTRADIOLINK_OTRADIOLINK_H
+#ifndef ARDUINO_LIB_OTRADIOLINK_ISRRXQUEUE_H
+#define ARDUINO_LIB_OTRADIOLINK_ISRRXQUEUE_H
 
 #include <stddef.h>
 #include <stdint.h>
