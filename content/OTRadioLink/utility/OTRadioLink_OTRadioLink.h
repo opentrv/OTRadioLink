@@ -242,7 +242,7 @@ namespace OTRadioLink
             // ISR-/thread- safe.
             inline uint8_t getRXMsgsFilteredRecent() { return(filteredRXedMessageCountRecent); }
 
-            // Fetches the first (oldest) queued RX message, returning its length, or 0 if no message waiting.
+            // Fetches the first (oldest) queued RX message returning its length, or 0 if no message waiting.
             // If the waiting message is too long it is truncated to fit,
             // so allocating a buffer at least one longer than any valid message
             // should indicate an oversize inbound message.

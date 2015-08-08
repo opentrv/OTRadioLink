@@ -64,18 +64,19 @@ namespace OTRadioLink
             virtual uint8_t getRXMsg(uint8_t *buf, uint8_t buflen) = 0;
 
             // Get pointer for inbound/RX frame able to accommodate max frame size; NULL if no space.
-            // Call this to get a pointer to load an inbound frame into;
-            // after uploading the frame call loadedBuf() to queue the new frame
+            // Call this to get a pointer to load an inbound frame (<=maxRXBytes bytes) into;
+            // after uploading the frame call _loadedBuf() to queue the new frame
             // or abandon an upload on this occasion.
             // Must only be called from within an ISR and/or with interfering threads excluded;
-            // typically there can be no other activity on the queue until loadedBuf()
+            // typically there can be no other activity on the queue until _loadedBuf()
             // or use of the pointer is abandoned.
+            // _loadedBuf() should not be called if this returns NULL.
             virtual volatile uint8_t *_getRXBufForInbound() = 0;
 
             // Call after loading an RXed frame into the buffer indicated by _getRXBufForInbound().
             // The argument is the size of the frame loaded into the buffer to be queued.
             // It is possible to formally abandon an upload attempt by calling this with 0.
-            virtual void _loadBuf(uint8_t frameLen) = 0;
+            virtual void _loadedBuf(uint8_t frameLen) = 0;
 
 #if 0 // Defining the virtual destructor uses ~800+ bytes of Flash by forcing use of malloc()/free().
             // Ensure safe instance destruction when derived from.
@@ -87,7 +88,7 @@ namespace OTRadioLink
 #endif
         };
 
-    // Minimal fast 1-deep queue.
+    // Minimal, fast, 1-deep queue.
     // Can receive at most one frame.
     // A frame to be queued can be up to maxRXBytes bytes long.
     // Does minimal checking; all arguments must be sane.
@@ -105,7 +106,7 @@ namespace OTRadioLink
             virtual void getRXCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen)
                 { queueRXMsgsMin = 1; maxRXMsgLen = maxRXBytes; }
 
-            // Fetches the first (oldest) queued RX message, returning its length, or 0 if no message waiting.
+            // Fetches the first (oldest) queued RX message returning its length, or 0 if no message waiting.
             // If the waiting message is too long it is truncated to fit,
             // so allocating a buffer at least one longer than any valid message
             // should indicate an oversize inbound message.
@@ -115,8 +116,8 @@ namespace OTRadioLink
                 // Lock out interrupts to safely access the queue/buffers.
                 ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
                     {
-                    if(0 == queuedRXedMessageCount) { return(0); }
-                    // Copy into caller's buffer up to its capacity.
+                    if(0 == queuedRXedMessageCount) { return(0); } // Queue is empty.
+                    // If message waiting, copy into caller's buffer up to its capacity.
                     const uint8_t len = min(buflen, lengthRX);
                     memcpy(buf, (const uint8_t *)bufferRX, len);
                     // Update to mark the queue as now empty.
@@ -131,8 +132,9 @@ namespace OTRadioLink
             // after uploading the frame call _loadedBuf() to queue the new frame
             // or abandon an upload on this occasion.
             // Must only be called from within an ISR and/or with interfering threads excluded;
-            // typically there can be no other activity on the queue until loadedBuf()
+            // typically there can be no other activity on the queue until _loadedBuf()
             // or use of the pointer is abandoned.
+            // _loadedBuf() should not be called if this returns NULL.
             virtual volatile uint8_t *_getRXBufForInbound()
                 {
                 // If something already queued, so no space for a new message, return NULL.
@@ -145,7 +147,7 @@ namespace OTRadioLink
             // The frame can be no larger than maxRXBytes bytes.
             // It is possible to formally abandon an upload attempt by calling this with 0.
             // Must still be in the scope of the same (ISR) call as _getRXBufForInbound().
-            virtual void _loadBuf(uint8_t frameLen)
+            virtual void _loadedBuf(uint8_t frameLen)
                 {
                 if(0 == frameLen) { return; } // New frame not being uploaded.
                 if(frameLen > maxRXBytes) { frameLen = maxRXBytes; } // Be safe...
