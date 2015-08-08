@@ -26,6 +26,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #include <stddef.h>
 #include <stdint.h>
 
+#include <util/atomic.h>
+#include <Arduino.h>
+
 // Use namespaces to help avoid collisions.
 namespace OTRadioLink
     {
@@ -43,8 +46,8 @@ namespace OTRadioLink
             volatile uint8_t queuedRXedMessageCount;
 
         public:
-            // Fetches the current inbound RX minimum queue capacity and maximum RX (and TX) raw message size.
-            virtual void getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen) = 0;
+            // Fetches the current inbound RX minimum queue capacity and maximum RX raw message size.
+            virtual void getRXCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen) = 0;
 
             // Fetches the current count of queued messages for RX.
             // Non-virtual, for speed.
@@ -65,6 +68,46 @@ namespace OTRadioLink
 #else
 #define OTRADIOLINK_ISRRXQUEUE NO_VIRT_DEST // Beware, no virtual destructor so be careful of use via base pointers.
 #endif
+        };
+
+    // Minimal fast 1-deep queue.
+    // Can receive at most one frame.
+    // A frame to be queued can be up to maxRXBytes bytes long.
+    template<uint8_t maxRXBytes = 64>
+    class ISRRSQueue1Deep : public ISRRXQueue
+        {
+        private:
+            // 1-deep RX queue and buffer used to accept data during RX.
+            // Marked as volatile for ISR-/thread- safe (sometimes lock-free) access.
+            volatile uint8_t lengthRX; // Non-zero when a frame is waiting.
+            volatile uint8_t bufferRX[maxRXBytes];
+
+        public:
+            // Fetches the current inbound RX minimum queue capacity and maximum RX raw message size.
+            virtual void getRXCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen)
+                { queueRXMsgsMin = 1; maxRXMsgLen = maxRXBytes; }
+
+            // Fetches the first (oldest) queued RX message, returning its length, or 0 if no message waiting.
+            // If the waiting message is too long it is truncated to fit,
+            // so allocating a buffer at least one longer than any valid message
+            // should indicate an oversize inbound message.
+            // The buf pointer must not be NULL.
+            uint8_t getRXMsg(uint8_t *const buf, const uint8_t buflen)
+                {
+                // Lock out interrupts to safely access the queue/buffers.
+                ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
+                    {
+                    if(0 == queuedRXedMessageCount) { return(0); }
+                    // Copy into caller's buffer up to its capacity.
+                    const uint8_t len = min(buflen, lengthRX);
+                    memcpy(buf, (const uint8_t *)bufferRX, len);
+                    // Update the data structures to mark the queue as now empty.
+                    lengthRX = 0;
+                    queuedRXedMessageCount = 0;
+                    return(len);
+                    }
+                return(0);
+                }
         };
     }
 
