@@ -182,9 +182,31 @@ static void testRFM23B()
   }
 
 // Some tests for all ISRRXQueue implementations.
-// Assumes being passed a freshly-created instance.
+// Assumes being passed an empty freshly-created instance.
+// Leaves the queue instance empty when done.
 static void allISRRXQueue(OTRadioLink::ISRRXQueue &q)
   {
+  uint8_t queueRXMsgsMin;
+  uint8_t maxRXMsgLen;
+  q.getRXCapacity(queueRXMsgsMin,maxRXMsgLen);
+  AssertIsTrueWithErr((queueRXMsgsMin >= 1), queueRXMsgsMin); 
+  AssertIsTrueWithErr((maxRXMsgLen >= 64), maxRXMsgLen); 
+  AssertIsEqual(0, q.getRXMsgsQueued());
+  uint8_t buf1[1];
+  AssertIsEqual(0, q.getRXMsg(buf1, 1));
+  // Pretend to be an ISR and try to load up a message.
+  volatile uint8_t *ib1 = q._getRXBufForInbound();
+  AssertIsTrue(NULL != ib1); 
+  const uint8_t r1 = OTV0P2BASE::randRNG8();
+  *ib1 = r1;
+  q._loadedBuf(1);
+  // Try to retrieve the queued message.
+  AssertIsEqual(1, q.getRXMsgsQueued());
+  AssertIsEqual(1, q.getRXMsg(buf1, 1));
+  AssertIsEqual(r1, buf1[0]);
+  // Check that the queue is empty again.
+  AssertIsEqual(0, q.getRXMsgsQueued());
+  AssertIsEqual(0, q.getRXMsg(buf1, 1));
   }
 
 // Do some basic exercise of the RFM23B class, eg that it compiles.
@@ -193,8 +215,7 @@ static void testISRRXQueue1Deep()
   Serial.println("ISRRXQueue1Deep");
   OTRadioLink::ISRRXQueue1Deep<> q0;
   allISRRXQueue(q0);
-
-
+  // TODO: specific tests for this buffer.
   }
 
 
