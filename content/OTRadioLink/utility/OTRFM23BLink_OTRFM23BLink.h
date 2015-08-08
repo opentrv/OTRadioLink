@@ -38,7 +38,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #include "OTV0P2BASE_PowerManagement.h"
 #include "OTRadioLink_ISRRXQueue.h"
 
-//#define _USE_BUILT_IN_RX_QUEUE // Temporary until switched to new queue...
+#define _USE_BUILT_IN_RX_QUEUE // Temporary until switched to new queue...
 
 namespace OTRFM23BLink
     {
@@ -493,12 +493,11 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                         quickFrameFilter_t *const f = filterRXISR;
                         if((NULL != f) && !f(bufferRX, lengthRX))
                             {
-                            ++filteredRXedMessageCountRecent; // Drop the frame.
+                            ++filteredRXedMessageCountRecent; // Drop the frame: filter didn't like it.
                             queueRX._loadedBuf(0); // Don't queue this frame...
                             }
                         else
                             {
-                            if(lengthRX > MaxRXMsgLen) { lengthRX = MaxRXMsgLen; } // Be safe...
                             queueRX._loadedBuf(lengthRX); // Queue message.
                             }
                         }

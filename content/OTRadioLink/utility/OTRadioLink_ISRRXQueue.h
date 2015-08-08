@@ -150,6 +150,8 @@ namespace OTRadioLink
             virtual void _loadedBuf(uint8_t frameLen)
                 {
                 if(0 == frameLen) { return; } // New frame not being uploaded.
+                if(0 != queuedRXedMessageCount) { return; } // Prevent messing with existing queued message.
+                if(frameLen > maxRXBytes) { frameLen = maxRXBytes; } // Be safe...
                 lengthRX = frameLen;
                 queuedRXedMessageCount = 1; // Mark message as queued.
                 }
