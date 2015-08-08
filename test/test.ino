@@ -211,7 +211,7 @@ static void allISRRXQueue(OTRadioLink::ISRRXQueue &q)
   AssertIsEqual(0, q.getRXMsg(buf1, 1));
   }
 
-// Do some basic exercise of the ISRRXQueue1Deep class.
+// Do some basic exercise of ISRRXQueue1Deep.
 static void testISRRXQueue1Deep()
   {
   Serial.println("ISRRXQueue1Deep");
