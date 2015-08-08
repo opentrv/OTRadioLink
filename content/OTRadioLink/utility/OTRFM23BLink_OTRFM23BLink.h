@@ -222,6 +222,11 @@ namespace OTRFM23BLink
             // ISR-/thread- safe.
             virtual uint8_t getRXMsgsQueued() { return(queueRX.getRXMsgsQueued()); }
 
+
+            // Fetches the first (oldest) queued RX message, returning its length, or 0 if no message waiting.
+            // If the waiting message is too long it is truncated to fit,
+            // so allocating a buffer at least one longer than any valid message
+            // should indicate an oversize inbound message.
             virtual uint8_t getRXMsg(uint8_t *buf, uint8_t buflen) { return(queueRX.getRXMsg(buf, buflen)); }
 
             // Returns the current receive error state; 0 indicates no error, +ve is the error value.
