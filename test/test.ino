@@ -185,6 +185,12 @@ static void testRFM23B()
 // Assumes being passed a freshly-created instance.
 static void allISRRXQueue(OTRadioLink::ISRRXQueue &q)
   {
+  uint8_t queueRXMsgsMin;
+  uint8_t maxRXMsgLen;
+  q.getRXCapacity(queueRXMsgsMin,maxRXMsgLen);
+  AssertIsTrueWithErr((queueRXMsgsMin >= 1), queueRXMsgsMin); 
+  AssertIsTrueWithErr((maxRXMsgLen >= 64), maxRXMsgLen); 
+  AssertIsEqual(0, q.getRXMsgsQueued());
   }
 
 // Do some basic exercise of the RFM23B class, eg that it compiles.
