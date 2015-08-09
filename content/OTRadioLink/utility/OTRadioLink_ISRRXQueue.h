@@ -197,7 +197,11 @@ namespace OTRadioLink
             //     peekRXMessage() or removeRXMessage() or getRXMsg()
             // The buffer pointed to MUST NOT be altered.
             // Not intended to be called from an ISR.
+<<<<<<< HEAD
             virtual const volatile uint8_t *peekRXMessage(uint8_t &len) const
+=======
+            virtual const volatile uint8_t *peekRXMessage(uint8_t &len)
+>>>>>>> refs/remotes/origin/master
                 {
                 // Return NULL if no message waiting.
                 if(0 == queuedRXedMessageCount) { return(NULL); }
