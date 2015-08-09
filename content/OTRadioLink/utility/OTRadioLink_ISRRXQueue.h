@@ -73,6 +73,23 @@ namespace OTRadioLink
             // should indicate an oversize inbound message.
             virtual uint8_t getRXMsg(uint8_t *buf, uint8_t buflen) = 0;
 
+            // Peek at first (oldest) queued RX message, returning a pointer or NULL if no message waiting.
+            // The pointer returned is NULL if there is no message,
+            // else the pointer is to the start of the message and len is filled in with the length.
+            // This allows a message to be decoded directly from the queue buffer
+            // without copying or use of another buffer.
+            // The returned pointer and length are valid until the next
+            //     peekRXMessage() or removeRXMessage() or getRXMsg()
+            // The buffer pointed to MUST NOT be altered.
+            // Not intended to be called from an ISR.
+            virtual const volatile uint8_t *peekRXMessage(uint8_t &len) = 0;
+
+            // Remove the first (oldest) queued RX message.
+            // Typically used after peekRXMessage().
+            // Does nothing if the queue is empty.
+            // Not intended to be called from an ISR.
+            virtual void removeRXMessage() = 0;
+
             // Get pointer for inbound/RX frame able to accommodate max frame size; NULL if no space.
             // Call this to get a pointer to load an inbound frame (<=maxRXBytes bytes) into;
             // after uploading the frame call _loadedBuf() to queue the new frame
@@ -169,6 +186,33 @@ namespace OTRadioLink
                 if(frameLen > maxRXBytes) { frameLen = maxRXBytes; } // Be safe...
                 lengthRX = frameLen;
                 queuedRXedMessageCount = 1; // Mark message as queued.
+                }
+
+            // Peek at first (oldest) queued RX message, returning a pointer or NULL if no message waiting.
+            // The pointer returned is NULL if there is no message,
+            // else the pointer is to the start of the message and len is filled in with the length.
+            // This allows a message to be decoded directly from the queue buffer
+            // without copying or use of another buffer.
+            // The returned pointer and length are valid until the next
+            //     peekRXMessage() or removeRXMessage() or getRXMsg()
+            // The buffer pointed to MUST NOT be altered.
+            // Not intended to be called from an ISR.
+            virtual const volatile uint8_t *peekRXMessage(uint8_t &len)
+                {
+                // Return NULL if no message waiting.
+                if(0 == queuedRXedMessageCount) { return(NULL); }
+                len = lengthRX;
+                return(bufferRX);
+                }
+
+            // Remove the first (oldest) queued RX message.
+            // Typically used after peekRXMessage().
+            // Does nothing if the queue is empty.
+            // Not intended to be called from an ISR.
+            virtual void removeRXMessage()
+                {
+                // Clear any extant message in the queue.
+                queuedRXedMessageCount = 0;
                 }
         };
     }
