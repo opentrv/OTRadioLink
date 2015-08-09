@@ -549,7 +549,7 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             //    where roughly
             //    RSSI [16..230] ~ [-120..0]dB 0.5 dB Steps
             //    RSSI [231] ~ [0.5..20]dB 0.5 dB Steps
-            uint8_t getRSSI()
+            uint8_t getRSSI() const
                 {
                 ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
                     {
@@ -565,7 +565,7 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // NOT OFFICIAL API: MAY BE WITHDRAWN AT ANY TIME.
             // Only valid when in RX mode.
             // Units as per RFM23B.
-            uint8_t getMode()
+            uint8_t getMode() const
                 {
                 ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
                     {
@@ -578,12 +578,12 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
 
             // Fetches the current inbound RX minimum queue capacity and maximum RX (and TX) raw message size.
             // TODO: fetch some of the parameters from the RX queue.
-            virtual void getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen)
+            virtual void getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen) const
                 { queueRXMsgsMin = QueueRXMsgsMin; maxRXMsgLen = MaxRXMsgLen; maxTXMsgLen = MaxTXMsgLen; }
 
             // Fetches the current count of queued messages for RX.
             // ISR-/thread- safe.
-            virtual uint8_t getRXMsgsQueued() { return(queueRX.getRXMsgsQueued()); }
+            virtual uint8_t getRXMsgsQueued() const { return(queueRX.getRXMsgsQueued()); }
 
 //            // Fetches the first (oldest) queued RX message, returning its length, or 0 if no message waiting.
 //            // If the waiting message is too long it is truncated to fit,

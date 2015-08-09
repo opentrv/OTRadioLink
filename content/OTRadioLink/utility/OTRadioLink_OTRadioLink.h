@@ -201,7 +201,7 @@ namespace OTRadioLink
             virtual bool isAvailable() const { return(true); }
 
             // Fetches the current inbound RX minimum queue capacity and maximum RX (and TX) raw message size.
-            virtual void getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen) = 0;
+            virtual void getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen) const = 0;
 
             // If activeRX is true, listen for incoming messages on the specified (default first/0) channel,
             // else (if activeRX is false) make sure that the receiver is shut down.
@@ -220,25 +220,25 @@ namespace OTRadioLink
             // Returns channel being listened on, or -1 if none.
             // Non-virtual, for speed.
             // ISR-/thread- safe.
-            inline int8_t getListenChannel() { return(listenChannel); }
+            inline int8_t getListenChannel() const { return(listenChannel); }
 
             // Fetches the current count of queued messages for RX.
             // ISR-/thread- safe.
-            virtual uint8_t getRXMsgsQueued() = 0;
+            virtual uint8_t getRXMsgsQueued() const = 0;
 
             // Current recent/short count of dropped messages due to RX overrun.
             // Increments when an inbound frame is not dequeued quickly enough and one has to be dropped.
             // This value wraps after 255/0xff.
             // Non-virtual, for speed.
             // ISR-/thread- safe.
-            inline uint8_t getRXMsgsDroppedRecent() { return(droppedRXedMessageCountRecent); }
+            inline uint8_t getRXMsgsDroppedRecent() const { return(droppedRXedMessageCountRecent); }
 
             // Current recent/short count of filtered (dropped as uninteresting) messages due to RX overrun.
             // Increments when an inbound frame is not dequeued quickly enough and one has to be dropped.
             // This value wraps after 255/0xff.
             // Non-virtual, for speed.
             // ISR-/thread- safe.
-            inline uint8_t getRXMsgsFilteredRecent() { return(filteredRXedMessageCountRecent); }
+            inline uint8_t getRXMsgsFilteredRecent() const { return(filteredRXedMessageCountRecent); }
 
 //            // Fetches the first (oldest) queued RX message returning its length, or 0 if no message waiting.
 //            // If the waiting message is too long it is truncated to fit,
