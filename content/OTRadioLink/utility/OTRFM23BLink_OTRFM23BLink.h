@@ -113,9 +113,6 @@ namespace OTRFM23BLink
             // Too long may allow overruns, too short may make long-frame reception hard.
             volatile uint8_t maxTypicalFrameBytes;
 
-            // RX queue.
-            ::OTRadioLink::ISRRXQueue1Deep<MaxRXMsgLen> queueRX;
-
             // Constructor only available to deriving class.
             OTRFM23BLinkBase() : lastRXErr(0), maxTypicalFrameBytes(MAX_RX_FRAME_DEFAULT) { }
 
@@ -213,22 +210,6 @@ namespace OTRFM23BLink
             // Defaults to do nothing (and return false).
             virtual bool begin();
 
-            // Fetches the current inbound RX minimum queue capacity and maximum RX (and TX) raw message size.
-            // TODO: fetch some of the parameters from the RX queue.
-            virtual void getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen)
-                { queueRXMsgsMin = QueueRXMsgsMin; maxRXMsgLen = MaxRXMsgLen; maxTXMsgLen = MaxTXMsgLen; }
-
-            // Fetches the current count of queued messages for RX.
-            // ISR-/thread- safe.
-            virtual uint8_t getRXMsgsQueued() { return(queueRX.getRXMsgsQueued()); }
-
-
-            // Fetches the first (oldest) queued RX message, returning its length, or 0 if no message waiting.
-            // If the waiting message is too long it is truncated to fit,
-            // so allocating a buffer at least one longer than any valid message
-            // should indicate an oversize inbound message.
-            virtual uint8_t getRXMsg(uint8_t *buf, uint8_t buflen) { return(queueRX.getRXMsg(buf, buflen)); }
-
             // Returns the current receive error state; 0 indicates no error, +ve is the error value.
             // RX errors may be queued with depth greater than one,
             // or only the last RX error may be retained.
@@ -270,6 +251,9 @@ namespace OTRFM23BLink
     class OTRFM23BLink : public OTRFM23BLinkBase
         {
         private:
+            // RX queue.
+            ::OTRadioLink::ISRRXQueue1Deep<MaxRXMsgLen> queueRX;
+
             // Internal routines to enable/disable RFM23B on the the SPI bus.
             // These depend only on the (constant) SPI_nSS_DigitalPin template parameter
             // so these should turn into single assembler instructions in principle.
@@ -517,6 +501,11 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                 }
 
         public:
+            // True if there is hardware interrupt support.
+            // This might be dedicated to the radio, or shared with other devices.
+            // Should be a compile-time constant.
+            static const bool hasInterruptSupport = (RFM_nIRQ_DigitalPin >= 0);
+
             OTRFM23BLink() { }
 
             // Do very minimal pre-initialisation, eg at power up, to get radio to safe low-power mode.
@@ -587,10 +576,20 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                     }
                 }
 
-            // True if there is hardware interrupt support.
-            // This might be dedicated to the radio, or shared with other devices.
-            // Should be a compile-time constant.
-            static const bool hasInterruptSupport = (RFM_nIRQ_DigitalPin >= 0);
+            // Fetches the current inbound RX minimum queue capacity and maximum RX (and TX) raw message size.
+            // TODO: fetch some of the parameters from the RX queue.
+            virtual void getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen)
+                { queueRXMsgsMin = QueueRXMsgsMin; maxRXMsgLen = MaxRXMsgLen; maxTXMsgLen = MaxTXMsgLen; }
+
+            // Fetches the current count of queued messages for RX.
+            // ISR-/thread- safe.
+            virtual uint8_t getRXMsgsQueued() { return(queueRX.getRXMsgsQueued()); }
+
+            // Fetches the first (oldest) queued RX message, returning its length, or 0 if no message waiting.
+            // If the waiting message is too long it is truncated to fit,
+            // so allocating a buffer at least one longer than any valid message
+            // should indicate an oversize inbound message.
+            virtual uint8_t getRXMsg(uint8_t *buf, uint8_t buflen) { return(queueRX.getRXMsg(buf, buflen)); }
 
 #if 0 // Defining the virtual destructor uses ~800+ bytes of Flash by forcing use of malloc()/free().
             // Ensure safe instance destruction when derived from.
