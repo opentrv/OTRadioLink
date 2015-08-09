@@ -191,6 +191,8 @@ static void allISRRXQueue(OTRadioLink::ISRRXQueue &q)
   uint8_t queueRXMsgsMin;
   uint8_t maxRXMsgLen;
   q.getRXCapacity(queueRXMsgsMin,maxRXMsgLen);
+  AssertIsTrue(q.isEmpty());
+  AssertIsTrue(!q.isFull());
   AssertIsTrueWithErr((queueRXMsgsMin >= 1), queueRXMsgsMin); 
   AssertIsTrueWithErr((maxRXMsgLen >= 64), maxRXMsgLen); 
   AssertIsEqual(0, q.getRXMsgsQueued());
@@ -203,12 +205,15 @@ static void allISRRXQueue(OTRadioLink::ISRRXQueue &q)
   *ib1 = r1;
   q._loadedBuf(1);
   // Try to retrieve the queued message.
+  AssertIsTrue(!q.isEmpty());
   AssertIsEqual(1, q.getRXMsgsQueued());
   AssertIsEqual(1, q.getRXMsg(buf1, 1));
   AssertIsEqual(r1, buf1[0]);
   // Check that the queue is empty again.
   AssertIsEqual(0, q.getRXMsgsQueued());
   AssertIsEqual(0, q.getRXMsg(buf1, 1));
+  AssertIsTrue(q.isEmpty());
+  AssertIsTrue(!q.isFull());
   }
 
 // Do some basic exercise of ISRRXQueue1Deep.
@@ -231,6 +236,8 @@ static void testISRRXQueue1Deep()
   // Check that the message was queued.
   AssertIsEqual(1, q.getRXMsgsQueued());
   // Verify that the queue is now full (no space for new RX).
+  AssertIsTrue(!q.isEmpty());
+  AssertIsTrue(q.isFull());
   AssertIsTrue(NULL == q._getRXBufForInbound());
   // Try to retrieve the queued message.
   AssertIsEqual(1, q.getRXMsgsQueued());
