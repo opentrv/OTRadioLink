@@ -191,9 +191,9 @@ bool OTRFM23BLinkBase::sendRaw(const uint8_t *const buf, const uint8_t buflen, c
         // nap(WDTO_15MS, false); // FIXME: no nap() support yet // Sleeping with interrupts disabled?
         delay(15);
 
-        // FIXME: should just be able to resend FIFO without reloading.
-        _modeStandbyAndClearState_();
-        _queueFrameInTXFIFO(buf, buflen);
+//        // FIXME: should just be able to resend FIFO without reloading.
+//        _modeStandbyAndClearState_();
+//        _queueFrameInTXFIFO(buf, buflen);
 
         // Resend the frame.
         if(!_TXFIFO()) { result = false; }
