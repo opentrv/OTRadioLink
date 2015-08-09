@@ -57,6 +57,16 @@ namespace OTRadioLink
             // ISR-/thread- safe.
             inline uint8_t getRXMsgsQueued() { return(queuedRXedMessageCount); }
 
+            // True if the queue is empty.
+            // Non-virtual, for speed.
+            // ISR-/thread- safe.
+            inline uint8_t isEmpty() { return(0 == queuedRXedMessageCount); }
+
+            // True if the queue is full.
+            // True iff _getRXBufForInbound() would return NULL.
+            // ISR-/thread- safe.
+            virtual uint8_t isFull() = 0;
+
             // Fetches the first (oldest) queued RX message, returning its length, or 0 if no message waiting.
             // If the waiting message is too long it is truncated to fit,
             // so allocating a buffer at least one longer than any valid message
@@ -126,6 +136,11 @@ namespace OTRadioLink
                     }
                 return(0);
                 }
+
+            // True if the queue is full.
+            // True iff _getRXBufForInbound() would return NULL.
+            // ISR-/thread- safe.
+            virtual uint8_t isFull() { return(0 != queuedRXedMessageCount); }
 
             // Get pointer for inbound/RX frame able to accommodate max frame size; NULL if no space.
             // Call this to get a pointer to load an inbound frame (<=maxRXBytes bytes) into;
