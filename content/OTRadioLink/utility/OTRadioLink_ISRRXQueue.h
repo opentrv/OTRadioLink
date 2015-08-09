@@ -79,7 +79,7 @@ namespace OTRadioLink
             // This allows a message to be decoded directly from the queue buffer
             // without copying or the use of another buffer.
             // The returned pointer and length are valid until the next
-            //     peekRXMessage() or removeRXMessage() or getRXMsg()
+            //     peekRXMessage() or removeRXMessage()
             // This does not remove the message or alter the queue.
             // The buffer pointed to MUST NOT be altered.
             // Not intended to be called from an ISR.
@@ -195,7 +195,7 @@ namespace OTRadioLink
             // This allows a message to be decoded directly from the queue buffer
             // without copying or the use of another buffer.
             // The returned pointer and length are valid until the next
-            //     peekRXMessage() or removeRXMessage() or getRXMsg()
+            //     peekRXMessage() or removeRXMessage()
             // This does not remove the message or alter the queue.
             // The buffer pointed to MUST NOT be altered.
             // Not intended to be called from an ISR.
@@ -215,6 +215,87 @@ namespace OTRadioLink
                 {
                 // Clear any extant message in the queue.
                 queuedRXedMessageCount = 0;
+                }
+        };
+
+    // N-deep queue that can efficiently store variable-length messages.
+    // Total size limited to 256 bytes for efficiency of representation on 8-bit MCU.
+    // A frame to be queued can be up to maxRXBytes bytes long.
+    // maximum message size (maxRXBytes) should be well under 255 bytes.
+    // This can queue more short messages than full-size ones.
+    // (So filters that trim message length may be helpful in maximising effective capacity.)
+    // Does minimal checking; all arguments must be sane.
+    template<uint8_t maxRXBytes, uint8_t targetISRRXMinQueueCapacity = 2>
+    class ISRRXQueueVarLenMsg : public ISRRXQueue
+        {
+        private:
+            /*Actual buffer size taken (bytes). */
+            static const int BUFSIZ = min(256, maxRXBytes * (int)targetISRRXMinQueueCapacity);
+            /**Buffer holding a circular queue.
+             * Contains a circular sequence of (len,data+) segments.
+             * Wrapping around the end is done with a len==0 segment or hitting the end exactly.
+             */
+            uint8_t buf[BUFSIZ];
+
+        public:
+            /*Guaranteed minimum number of (full-length) messages that can be queued. */
+            static const uint8_t MinQueueCapacityMsgs = BUFSIZ / (maxRXBytes + 1);
+
+            // Fetches the current inbound RX minimum queue capacity and maximum RX raw message size.
+            virtual void getRXCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen)
+                { queueRXMsgsMin = MinQueueCapacityMsgs; maxRXMsgLen = maxRXBytes; }
+
+            // True if the queue is full.
+            // True iff _getRXBufForInbound() would return NULL.
+            // ISR-/thread- safe.
+            virtual uint8_t isFull() { return(false); } // FIXME
+
+            // Get pointer for inbound/RX frame able to accommodate max frame size; NULL if no space.
+            // Call this to get a pointer to load an inbound frame (<=maxRXBytes bytes) into;
+            // after uploading the frame call _loadedBuf() to queue the new frame
+            // or abandon an upload on this occasion.
+            // Must only be called from within an ISR and/or with interfering threads excluded;
+            // typically there can be no other activity on the queue until _loadedBuf()
+            // or use of the pointer is abandoned.
+            // _loadedBuf() should not be called if this returns NULL.
+            virtual volatile uint8_t *_getRXBufForInbound()
+                {
+                return(NULL); // FIXME
+                }
+
+            // Call after loading an RXed frame into the buffer indicated by _getRXBufForInbound().
+            // The argument is the size of the frame loaded into the buffer to be queued.
+            // The frame can be no larger than maxRXBytes bytes.
+            // It is possible to formally abandon an upload attempt by calling this with 0.
+            // Must still be in the scope of the same (ISR) call as _getRXBufForInbound().
+            virtual void _loadedBuf(uint8_t frameLen)
+                {
+                if(0 == frameLen) { return; } // New frame not being uploaded.
+                return; // FIXME
+                }
+
+            // Peek at first (oldest) queued RX message, returning a pointer or NULL if no message waiting.
+            // The pointer returned is NULL if there is no message,
+            // else the pointer is to the start of the message and len is filled in with the length.
+            // This allows a message to be decoded directly from the queue buffer
+            // without copying or the use of another buffer.
+            // The returned pointer and length are valid until the next
+            //     peekRXMessage() or removeRXMessage()
+            // This does not remove the message or alter the queue.
+            // The buffer pointed to MUST NOT be altered.
+            // Not intended to be called from an ISR.
+            virtual const volatile uint8_t *peekRXMsg(uint8_t &len) const
+                {
+                return(NULL); // FIXME
+                }
+
+            // Remove the first (oldest) queued RX message.
+            // Typically used after peekRXMessage().
+            // Does nothing if the queue is empty.
+            // Not intended to be called from an ISR.
+            virtual void removeRXMsg()
+                {
+                // FIXME
                 }
         };
     }

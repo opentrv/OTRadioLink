@@ -252,7 +252,7 @@ namespace OTRadioLink
             // This allows a message to be decoded directly from the queue buffer
             // without copying or the use of another buffer.
             // The returned pointer and length are valid until the next
-            //     peekRXMessage() or removeRXMessage() or getRXMsg()
+            //     peekRXMessage() or removeRXMessage()
             // This does not remove the message or alter the queue.
             // The buffer pointed to MUST NOT be altered.
             // Not intended to be called from an ISR.

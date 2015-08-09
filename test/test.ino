@@ -183,6 +183,7 @@ static void testRFM23B()
 //#endif
   }
 
+// Pick test buffer size to match actual RFM23B buffer/FIFO size.
 static const uint8_t TEST_MIN_Q_MSG_SIZE = 64;
 
 // Some tests for all ISRRXQueue implementations.
@@ -266,6 +267,15 @@ static void testISRRXQueue1Deep()
   }
 
 
+// Do some basic exercise of ISRRXQueue1Deep.
+static void testISRRXQueueVarLenMsg()
+  {
+  Serial.println("ISRRXQueueVarLenMsg");
+  OTRadioLink::ISRRXQueueVarLenMsg<TEST_MIN_Q_MSG_SIZE, 2> q;
+//  allISRRXQueue(q); // FIXME
+  }
+
+
 // BASE
 // Test for expected behaviour of RNG8 PRNG starting from a known state.
 static void testRNG8()
@@ -311,6 +321,7 @@ void loop()
   testFrameDump();
   testCRC7_5B();
   testISRRXQueue1Deep();
+  testISRRXQueueVarLenMsg();
 
   // OTRFM23BLink
   testRFM23B();
