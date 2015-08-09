@@ -95,6 +95,8 @@ namespace OTRadioLink
             // The message length is passed by reference and may be *reduced* by the filter if appropriate.
             // This routine must complete quickly and must not do things unsafe in an ISR context,
             // such as access to non-volatile state or operations such as EEPROM access on the ATmega.
+            // In extreme cases this can be used as a hook to trigger fast processing
+            // entirely in the ISR, skipping the usual processing flow.
             // TODO: should take RX channel parameter (different protocols may be in use on each channel).
             typedef bool quickFrameFilter_t(const volatile uint8_t *buf, volatile uint8_t &buflen);
 
