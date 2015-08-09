@@ -595,9 +595,10 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // The pointer returned is NULL if there is no message,
             // else the pointer is to the start of the message and len is filled in with the length.
             // This allows a message to be decoded directly from the queue buffer
-            // without copying or use of another buffer.
+            // without copying or the use of another buffer.
             // The returned pointer and length are valid until the next
             //     peekRXMessage() or removeRXMessage() or getRXMsg()
+            // This does not remove the message or alter the queue.
             // The buffer pointed to MUST NOT be altered.
             // Not intended to be called from an ISR.
             virtual const volatile uint8_t *peekRXMessage(uint8_t &len) const { return(queueRX.peekRXMessage(len)); }
