@@ -217,6 +217,29 @@ namespace OTRadioLink
                 queuedRXedMessageCount = 0;
                 }
         };
+
+
+    // N-deep queue that can efficiently store variable-length messages, total size limited to 256 bytes.
+    // A frame to be queued can be up to maxRXBytes bytes long.
+    // maximum message size (maxRXBytes) should be well under 255 bytes.
+    // This can queue more short messages than full-size ones.
+    // (So filters that trim message length may be helpful in maximising effective capacity.)
+    // Does minimal checking; all arguments must be sane.
+    template<uint8_t maxRXBytes, uint8_t targetISRRXMinQueueCapacity = 2>
+    class ISRRXQueueVarLenMsg : public ISRRXQueue
+        {
+        private:
+            /*Actual buffer size taken (bytes). */
+            static const int BUFSIZ = min(256, maxRXBytes * (int)targetISRRXMinQueueCapacity);
+            /**Buffer holding a circular queue.
+             * Contains a circular sequence of (len,data+) segments.
+             * Wrapping around the end is done with a len==0 segment or hitting the end exactly.
+             */
+            uint8_t buf[BUFSIZ];
+        public:
+            /*Guaranteed minimum number of (full-length) messages that can be queued. */
+            static const uint8_t MinQueueCapacityMsgs = BUFSIZ / (maxRXBytes + 1);
+        };
     }
 
 
