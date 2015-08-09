@@ -591,6 +591,23 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // should indicate an oversize inbound message.
             virtual uint8_t getRXMsg(uint8_t *buf, uint8_t buflen) { return(queueRX.getRXMsg(buf, buflen)); }
 
+            // Peek at first (oldest) queued RX message, returning a pointer or NULL if no message waiting.
+            // The pointer returned is NULL if there is no message,
+            // else the pointer is to the start of the message and len is filled in with the length.
+            // This allows a message to be decoded directly from the queue buffer
+            // without copying or use of another buffer.
+            // The returned pointer and length are valid until the next
+            //     peekRXMessage() or removeRXMessage() or getRXMsg()
+            // The buffer pointed to MUST NOT be altered.
+            // Not intended to be called from an ISR.
+            virtual const volatile uint8_t *peekRXMessage(uint8_t &len) const { return(queueRX.peekRXMessage(len)); }
+
+            // Remove the first (oldest) queued RX message.
+            // Typically used after peekRXMessage().
+            // Does nothing if the queue is empty.
+            // Not intended to be called from an ISR.
+            virtual void removeRXMessage() { queueRX.removeRXMessage(); }
+
 #if 0 // Defining the virtual destructor uses ~800+ bytes of Flash by forcing use of malloc()/free().
             // Ensure safe instance destruction when derived from.
             // by default attempts to shut down the sensor and otherwise free resources when done.
