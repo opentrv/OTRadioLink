@@ -183,6 +183,8 @@ static void testRFM23B()
 //#endif
   }
 
+static const uint8_t TEST_MIN_Q_MSG_SIZE = 64;
+
 // Some tests for all ISRRXQueue implementations.
 // Assumes being passed an empty freshly-created instance.
 // Leaves the queue instance empty when done.
@@ -190,14 +192,16 @@ static void allISRRXQueue(OTRadioLink::ISRRXQueue &q)
   {
   uint8_t queueRXMsgsMin;
   uint8_t maxRXMsgLen;
-  q.getRXCapacity(queueRXMsgsMin,maxRXMsgLen);
+  q.getRXCapacity(queueRXMsgsMin, maxRXMsgLen);
   AssertIsTrue(q.isEmpty());
   AssertIsTrue(!q.isFull());
+  uint8_t len;
+  AssertIsTrue(NULL == q.peekRXMsg(len));
   AssertIsTrueWithErr((queueRXMsgsMin >= 1), queueRXMsgsMin); 
-  AssertIsTrueWithErr((maxRXMsgLen >= 64), maxRXMsgLen); 
+  AssertIsTrueWithErr((maxRXMsgLen >= TEST_MIN_Q_MSG_SIZE), maxRXMsgLen); 
   AssertIsEqual(0, q.getRXMsgsQueued());
-  uint8_t buf1[1];
-  AssertIsEqual(0, q.getRXMsg(buf1, 1));
+//  uint8_t buf1[1];
+//  AssertIsEqual(0, q.getRXMsg(buf1, 1));
   // Pretend to be an ISR and try to load up a message.
   volatile uint8_t *ib1 = q._getRXBufForInbound();
   AssertIsTrue(NULL != ib1); 
@@ -206,27 +210,35 @@ static void allISRRXQueue(OTRadioLink::ISRRXQueue &q)
   q._loadedBuf(1);
   // Try to retrieve the queued message.
   AssertIsTrue(!q.isEmpty());
+  AssertIsTrue(NULL != q.peekRXMsg(len));
+  const volatile uint8_t *pb = q.peekRXMsg(len);
+  AssertIsTrue(NULL != pb);
+  AssertIsEqual(1, len);
   AssertIsEqual(1, q.getRXMsgsQueued());
-  AssertIsEqual(1, q.getRXMsg(buf1, 1));
-  AssertIsEqual(r1, buf1[0]);
+//  AssertIsEqual(1, q.getRXMsg(buf1, 1));
+  AssertIsEqual(r1, pb[0]);
+  q.removeRXMsg();
   // Check that the queue is empty again.
   AssertIsEqual(0, q.getRXMsgsQueued());
-  AssertIsEqual(0, q.getRXMsg(buf1, 1));
+//  AssertIsEqual(0, q.getRXMsg(buf1, 1));
   AssertIsTrue(q.isEmpty());
   AssertIsTrue(!q.isFull());
+  AssertIsTrue(NULL == q.peekRXMsg(len));
+  q.removeRXMsg();
+  AssertIsTrue(q.isEmpty());
   }
 
 // Do some basic exercise of ISRRXQueue1Deep.
 static void testISRRXQueue1Deep()
   {
   Serial.println("ISRRXQueue1Deep");
-  OTRadioLink::ISRRXQueue1Deep<> q;
+  OTRadioLink::ISRRXQueue1Deep<TEST_MIN_Q_MSG_SIZE> q;
   allISRRXQueue(q);
   // Specific tests for this queue type.
   // Check queue is empty again.
   AssertIsEqual(0, q.getRXMsgsQueued());
-  uint8_t buf2[2];
-  AssertIsEqual(0, q.getRXMsg(buf2, 2));
+//  uint8_t buf2[2];
+//  AssertIsEqual(0, q.getRXMsg(buf2, 2));
   // Pretend to be an ISR and try to load up a message.
   volatile uint8_t *ib2 = q._getRXBufForInbound();
   AssertIsTrue(NULL != ib2); 
@@ -241,11 +253,16 @@ static void testISRRXQueue1Deep()
   AssertIsTrue(NULL == q._getRXBufForInbound());
   // Try to retrieve the queued message.
   AssertIsEqual(1, q.getRXMsgsQueued());
-  AssertIsEqual(2, q.getRXMsg(buf2, 2));
-  AssertIsEqual(r1, buf2[0]);
+//  AssertIsEqual(2, q.getRXMsg(buf2, 2));
+  uint8_t len;
+  const volatile uint8_t *pb = q.peekRXMsg(len);
+  AssertIsTrue(NULL != pb); 
+  AssertIsEqual(r1, pb[0]);
+  q.removeRXMsg();
   // Check that the queue is empty again.
+  AssertIsTrue(q.isEmpty());
   AssertIsEqual(0, q.getRXMsgsQueued());
-  AssertIsEqual(0, q.getRXMsg(buf2, 2));
+//  AssertIsEqual(0, q.getRXMsg(buf2, 2));
   }
 
 

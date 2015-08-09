@@ -67,11 +67,11 @@ namespace OTRadioLink
             // ISR-/thread- safe.
             virtual uint8_t isFull() = 0;
 
-            // Fetches the first (oldest) queued RX message, returning its length, or 0 if no message waiting.
-            // If the waiting message is too long it is truncated to fit,
-            // so allocating a buffer at least one longer than any valid message
-            // should indicate an oversize inbound message.
-            virtual uint8_t getRXMsg(uint8_t *buf, uint8_t buflen) = 0;
+//            // Fetches the first (oldest) queued RX message, returning its length, or 0 if no message waiting.
+//            // If the waiting message is too long it is truncated to fit,
+//            // so allocating a buffer at least one longer than any valid message
+//            // should indicate an oversize inbound message.
+//            virtual uint8_t getRXMsg(uint8_t *buf, uint8_t buflen) = 0;
 
             // Peek at first (oldest) queued RX message, returning a pointer or NULL if no message waiting.
             // The pointer returned is NULL if there is no message,
@@ -83,13 +83,13 @@ namespace OTRadioLink
             // This does not remove the message or alter the queue.
             // The buffer pointed to MUST NOT be altered.
             // Not intended to be called from an ISR.
-            virtual const volatile uint8_t *peekRXMessage(uint8_t &len) const = 0;
+            virtual const volatile uint8_t *peekRXMsg(uint8_t &len) const = 0;
 
             // Remove the first (oldest) queued RX message.
             // Typically used after peekRXMessage().
             // Does nothing if the queue is empty.
             // Not intended to be called from an ISR.
-            virtual void removeRXMessage() = 0;
+            virtual void removeRXMsg() = 0;
 
             // Get pointer for inbound/RX frame able to accommodate max frame size; NULL if no space.
             // Call this to get a pointer to load an inbound frame (<=maxRXBytes bytes) into;
@@ -120,7 +120,7 @@ namespace OTRadioLink
     // Can receive at most one frame.
     // A frame to be queued can be up to maxRXBytes bytes long.
     // Does minimal checking; all arguments must be sane.
-    template<uint8_t maxRXBytes = 64>
+    template<uint8_t maxRXBytes>
     class ISRRXQueue1Deep : public ISRRXQueue
         {
         private:
@@ -134,26 +134,26 @@ namespace OTRadioLink
             virtual void getRXCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen)
                 { queueRXMsgsMin = 1; maxRXMsgLen = maxRXBytes; }
 
-            // Fetches the first (oldest) queued RX message returning its length, or 0 if no message waiting.
-            // If the waiting message is too long it is truncated to fit,
-            // so allocating a buffer at least one longer than any valid message
-            // should indicate an oversize inbound message.
-            // The buf pointer must not be NULL.
-            virtual uint8_t getRXMsg(uint8_t *const buf, const uint8_t buflen)
-                {
-                // Lock out interrupts to safely access the queue/buffers.
-                ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
-                    {
-                    if(0 == queuedRXedMessageCount) { return(0); } // Queue is empty.
-                    // If message waiting, copy into caller's buffer up to its capacity.
-                    const uint8_t len = min(buflen, lengthRX);
-                    memcpy(buf, (const uint8_t *)bufferRX, len);
-                    // Update to mark the queue as now empty.
-                    queuedRXedMessageCount = 0;
-                    return(len);
-                    }
-                return(0);
-                }
+//            // Fetches the first (oldest) queued RX message returning its length, or 0 if no message waiting.
+//            // If the waiting message is too long it is truncated to fit,
+//            // so allocating a buffer at least one longer than any valid message
+//            // should indicate an oversize inbound message.
+//            // The buf pointer must not be NULL.
+//            virtual uint8_t getRXMsg(uint8_t *const buf, const uint8_t buflen)
+//                {
+//                // Lock out interrupts to safely access the queue/buffers.
+//                ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
+//                    {
+//                    if(0 == queuedRXedMessageCount) { return(0); } // Queue is empty.
+//                    // If message waiting, copy into caller's buffer up to its capacity.
+//                    const uint8_t len = min(buflen, lengthRX);
+//                    memcpy(buf, (const uint8_t *)bufferRX, len);
+//                    // Update to mark the queue as now empty.
+//                    queuedRXedMessageCount = 0;
+//                    return(len);
+//                    }
+//                return(0);
+//                }
 
             // True if the queue is full.
             // True iff _getRXBufForInbound() would return NULL.
@@ -199,7 +199,7 @@ namespace OTRadioLink
             // This does not remove the message or alter the queue.
             // The buffer pointed to MUST NOT be altered.
             // Not intended to be called from an ISR.
-            virtual const volatile uint8_t *peekRXMessage(uint8_t &len) const
+            virtual const volatile uint8_t *peekRXMsg(uint8_t &len) const
                 {
                 // Return NULL if no message waiting.
                 if(0 == queuedRXedMessageCount) { return(NULL); }
@@ -211,7 +211,7 @@ namespace OTRadioLink
             // Typically used after peekRXMessage().
             // Does nothing if the queue is empty.
             // Not intended to be called from an ISR.
-            virtual void removeRXMessage()
+            virtual void removeRXMsg()
                 {
                 // Clear any extant message in the queue.
                 queuedRXedMessageCount = 0;

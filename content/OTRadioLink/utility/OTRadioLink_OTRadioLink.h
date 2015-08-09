@@ -240,11 +240,11 @@ namespace OTRadioLink
             // ISR-/thread- safe.
             inline uint8_t getRXMsgsFilteredRecent() { return(filteredRXedMessageCountRecent); }
 
-            // Fetches the first (oldest) queued RX message returning its length, or 0 if no message waiting.
-            // If the waiting message is too long it is truncated to fit,
-            // so allocating a buffer at least one longer than any valid message
-            // should indicate an oversize inbound message.
-            virtual uint8_t getRXMsg(uint8_t *buf, uint8_t buflen) = 0;
+//            // Fetches the first (oldest) queued RX message returning its length, or 0 if no message waiting.
+//            // If the waiting message is too long it is truncated to fit,
+//            // so allocating a buffer at least one longer than any valid message
+//            // should indicate an oversize inbound message.
+//            virtual uint8_t getRXMsg(uint8_t *buf, uint8_t buflen) = 0;
 
             // Peek at first (oldest) queued RX message, returning a pointer or NULL if no message waiting.
             // The pointer returned is NULL if there is no message,
@@ -256,13 +256,13 @@ namespace OTRadioLink
             // This does not remove the message or alter the queue.
             // The buffer pointed to MUST NOT be altered.
             // Not intended to be called from an ISR.
-            virtual const volatile uint8_t *peekRXMessage(uint8_t &len) const = 0;
+            virtual const volatile uint8_t *peekRXMsg(uint8_t &len) const = 0;
 
             // Remove the first (oldest) queued RX message.
             // Typically used after peekRXMessage().
             // Does nothing if the queue is empty.
             // Not intended to be called from an ISR.
-            virtual void removeRXMessage() = 0;
+            virtual void removeRXMsg() = 0;
 
             // Basic RX error numbers in range 0--127 as returned by getRXRerr() (cast to uint8_t).
             // Implementations can provide more specific errors in range 128--255.
