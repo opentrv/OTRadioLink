@@ -225,42 +225,27 @@ namespace OTRadioLink
     // This can queue more short messages than full-size ones.
     // (So filters that trim message length may be helpful in maximising effective capacity.)
     // Does minimal checking; all arguments must be sane.
-    template<uint8_t maxRXBytes, uint8_t targetISRRXMinQueueCapacity = 2>
-    class ISRRXQueueVarLenMsg : public ISRRXQueue
+    class ISRRXQueueVarLenMsgBase : public ISRRXQueue
         {
-        private:
-            /*Actual buffer size taken (bytes). */
-            static const int BUFSIZ = min(256, maxRXBytes * (int)targetISRRXMinQueueCapacity);
-            /**Buffer holding a circular queue.
-             * Contains a circular sequence of (len,data+) segments.
-             * Wrapping around the end is done with a len==0 segment or hitting the end exactly.
-             */
-            volatile uint8_t buf[BUFSIZ];
-
+        protected:
+            // BUFSIZE-1 (to fit in uint8_t); maximum allowed index in b/buf.
+            const uint8_t bsm1;
+            // Shadow of buf.
+            volatile uint8_t *const b;
             // Offsets to the start of the oldest and next entries in buf.
             // When oldest == next then isEmpty(), ie the queue is empty.
-            uint8_t oldest, next;
-
-        public:
-            // Create an instance.
-            ISRRXQueueVarLenMsg() : oldest(0), next(0) { }
-
-            /*Guaranteed minimum number of (full-length) messages that can be queued. */
-            static const uint8_t MinQueueCapacityMsgs = BUFSIZ / (maxRXBytes + 1);
-
-            // Fetches the current inbound RX minimum queue capacity and maximum RX raw message size.
-            virtual void getRXCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen) const
-                { queueRXMsgsMin = MinQueueCapacityMsgs; maxRXMsgLen = maxRXBytes; }
-
+            volatile uint8_t oldest, next;
+            // Construct an instance.
+            ISRRXQueueVarLenMsgBase(volatile uint8_t *bp, uint8_t bsm) : bsm1(bsm), b(bp), oldest(0), next(0) { }
             // True if the queue is full.
             // True iff _getRXBufForInbound() would return NULL.
             // Must be protected against re-entrance, eg by interrupts being blocked before calling.
-            inline uint8_t _isFull() const { return(true); } // FIXME
-
+            inline uint8_t _isFull() const;
+        public:
             // True if the queue is full.
             // True iff _getRXBufForInbound() would return NULL.
             // ISR-/thread- safe.
-            virtual uint8_t isFull() const { ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { return(_isFull()); } }
+            virtual uint8_t isFull() const;
 
             // Get pointer for inbound/RX frame able to accommodate max frame size; NULL if no space.
             // Call this to get a pointer to load an inbound frame (<=maxRXBytes bytes) into;
@@ -270,22 +255,14 @@ namespace OTRadioLink
             // typically there can be no other activity on the queue until _loadedBuf()
             // or use of the pointer is abandoned.
             // _loadedBuf() should not be called if this returns NULL.
-            virtual volatile uint8_t *_getRXBufForInbound()
-                {
-                if(_isFull()) { return(NULL); }
-                return(NULL); // FIXME
-                }
+            virtual volatile uint8_t *_getRXBufForInbound();
 
             // Call after loading an RXed frame into the buffer indicated by _getRXBufForInbound().
             // The argument is the size of the frame loaded into the buffer to be queued.
             // The frame can be no larger than maxRXBytes bytes.
             // It is possible to formally abandon an upload attempt by calling this with 0.
             // Must still be in the scope of the same (ISR) call as _getRXBufForInbound().
-            virtual void _loadedBuf(uint8_t frameLen)
-                {
-                if(0 == frameLen) { return; } // New frame not being uploaded.
-                return; // FIXME
-                }
+            virtual void _loadedBuf(uint8_t frameLen);
 
             // Peek at first (oldest) queued RX message, returning a pointer or NULL if no message waiting.
             // The pointer returned is NULL if there is no message,
@@ -297,22 +274,32 @@ namespace OTRadioLink
             // This does not remove the message or alter the queue.
             // The buffer pointed to MUST NOT be altered.
             // Not intended to be called from an ISR.
-            virtual const volatile uint8_t *peekRXMsg(uint8_t &len) const
-                {
-                if(isEmpty()) { return(NULL); }
-                // Return access to content of 'oldest' item if queue not empty.
-                len = buf[oldest];
-                return(buf + oldest + 1);
-                }
+            virtual const volatile uint8_t *peekRXMsg(uint8_t &len) const;
 
             // Remove the first (oldest) queued RX message.
             // Typically used after peekRXMessage().
             // Does nothing if the queue is empty.
             // Not intended to be called from an ISR.
-            virtual void removeRXMsg()
-                {
-                // FIXME
-                }
+            virtual void removeRXMsg();
+        };
+    template<uint8_t maxRXBytes, uint8_t targetISRRXMinQueueCapacity = 2>
+    class ISRRXQueueVarLenMsg : public ISRRXQueueVarLenMsgBase
+        {
+        private:
+            /*Actual buffer size taken (bytes). */
+            static const int BUFSIZ = min(256, maxRXBytes * (int)targetISRRXMinQueueCapacity);
+            /**Buffer holding a circular queue.
+             * Contains a circular sequence of (len,data+) segments.
+             * Wrapping around the end is done with a len==0 segment or hitting the end exactly.
+             */
+            volatile uint8_t buf[BUFSIZ];
+        public:
+            ISRRXQueueVarLenMsg() : ISRRXQueueVarLenMsgBase(buf, (uint8_t)(BUFSIZ-1)) { }
+            /*Guaranteed minimum number of (full-length) messages that can be queued. */
+            static const uint8_t MinQueueCapacityMsgs = BUFSIZ / (maxRXBytes + 1);
+            // Fetches the current inbound RX minimum queue capacity and maximum RX raw message size.
+            virtual void getRXCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen) const
+                { queueRXMsgsMin = MinQueueCapacityMsgs; maxRXMsgLen = maxRXBytes; }
         };
     }
 

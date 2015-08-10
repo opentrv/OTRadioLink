@@ -24,4 +24,69 @@ namespace OTRadioLink
     {
 
 
+// True if the queue is full.
+// True iff _getRXBufForInbound() would return NULL.
+// Must be protected against re-entrance, eg by interrupts being blocked before calling.
+uint8_t ISRRXQueueVarLenMsgBase::_isFull() const { return(true); } // FIXME
+
+// True if the queue is full.
+// True iff _getRXBufForInbound() would return NULL.
+// ISR-/thread- safe.
+uint8_t ISRRXQueueVarLenMsgBase::isFull() const { ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { return(_isFull()); } }
+
+// Get pointer for inbound/RX frame able to accommodate max frame size; NULL if no space.
+// Call this to get a pointer to load an inbound frame (<=maxRXBytes bytes) into;
+// after uploading the frame call _loadedBuf() to queue the new frame
+// or abandon an upload on this occasion.
+// Must only be called from within an ISR and/or with interfering threads excluded;
+// typically there can be no other activity on the queue until _loadedBuf()
+// or use of the pointer is abandoned.
+// _loadedBuf() should not be called if this returns NULL.
+volatile uint8_t *ISRRXQueueVarLenMsgBase::_getRXBufForInbound()
+    {
+    if(_isFull()) { return(NULL); }
+    return(NULL); // FIXME
+    }
+
+// Call after loading an RXed frame into the buffer indicated by _getRXBufForInbound().
+// The argument is the size of the frame loaded into the buffer to be queued.
+// The frame can be no larger than maxRXBytes bytes.
+// It is possible to formally abandon an upload attempt by calling this with 0.
+// Must still be in the scope of the same (ISR) call as _getRXBufForInbound().
+void ISRRXQueueVarLenMsgBase::_loadedBuf(uint8_t frameLen)
+    {
+    if(0 == frameLen) { return; } // New frame not being uploaded.
+    return; // FIXME
+    }
+
+// Peek at first (oldest) queued RX message, returning a pointer or NULL if no message waiting.
+// The pointer returned is NULL if there is no message,
+// else the pointer is to the start of the message and len is filled in with the length.
+// This allows a message to be decoded directly from the queue buffer
+// without copying or the use of another buffer.
+// The returned pointer and length are valid until the next
+//     peekRXMessage() or removeRXMessage()
+// This does not remove the message or alter the queue.
+// The buffer pointed to MUST NOT be altered.
+// Not intended to be called from an ISR.
+const volatile uint8_t *ISRRXQueueVarLenMsgBase::peekRXMsg(uint8_t &len) const
+    {
+    if(isEmpty()) { return(NULL); }
+    // Return access to content of 'oldest' item if queue not empty.
+    len = b[oldest];
+    return(b + oldest + 1);
+    }
+
+// Remove the first (oldest) queued RX message.
+// Typically used after peekRXMessage().
+// Does nothing if the queue is empty.
+// Not intended to be called from an ISR.
+void ISRRXQueueVarLenMsgBase::removeRXMsg()
+    {
+    // FIXME
+    }
+
+
+
+
     }
