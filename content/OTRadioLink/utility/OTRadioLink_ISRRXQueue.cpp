@@ -27,7 +27,24 @@ namespace OTRadioLink
 // True if the queue is full.
 // True iff _getRXBufForInbound() would return NULL.
 // Must be protected against re-entrance, eg by interrupts being blocked before calling.
-uint8_t ISRRXQueueVarLenMsgBase::_isFull() const { return(true); } // FIXME
+uint8_t ISRRXQueueVarLenMsgBase::_isFull() const
+    {
+    // If 'next' index is on or after 'oldest'
+    // then this is full if there isn't space for the largest possible frame.
+    // (If space is (or becomes) available before the 'oldest' index
+    // then the 'next' index should have been wrapped around already;
+    // this ISR routine should be as fast as possible.)
+    if(next >= oldest)
+        {
+        // If there space for length byte + largest frame?
+        const uint8_t spaceBeforeEndExclLen = bsm1 - next; // Note that buf size is bsm1+1.
+        return(spaceBeforeEndExclLen < mf); // True if not enough space (excluding len).
+        }
+    // Else if 'next' is before 'oldest'
+    // then check for enough space *including* the leading length.
+    const uint8_t spaceBeforeOldest = oldest - next;
+    return(spaceBeforeOldest <= mf); // True if not enough space (including len).
+    }
 
 // True if the queue is full.
 // True iff _getRXBufForInbound() would return NULL.
@@ -83,6 +100,8 @@ const volatile uint8_t *ISRRXQueueVarLenMsgBase::peekRXMsg(uint8_t &len) const
 // Not intended to be called from an ISR.
 void ISRRXQueueVarLenMsgBase::removeRXMsg()
     {
+    // Note: this may need to wrap 'next' index around start if this makes enough space,
+    // at least in part to keep the ISR side as fast as possible.
     // FIXME
     }
 

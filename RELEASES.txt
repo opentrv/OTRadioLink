@@ -12,6 +12,7 @@ pending:
     DHD20150808: starting V0.08...  (aiming to allow better, testable, RX queueing)
     DHD20150808: fixed possible timing bug in OneWire impl due to missing brackets in delay macro.
     DHD20150808: created ISRRXQueue1Deep, and tested and deployed in OTRFM23BLink.
+    DHD20150809: started ISRRXQueueVarLenMsg.
 
 
 
