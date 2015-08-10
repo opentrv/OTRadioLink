@@ -272,7 +272,7 @@ static void testISRRXQueueVarLenMsg()
   {
   Serial.println("ISRRXQueueVarLenMsg");
   OTRadioLink::ISRRXQueueVarLenMsg<TEST_MIN_Q_MSG_SIZE, 2> q;
-//  allISRRXQueue(q); // FIXME
+  allISRRXQueue(q); // FIXME
   }
 
 

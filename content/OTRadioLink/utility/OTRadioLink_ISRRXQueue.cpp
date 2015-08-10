@@ -80,7 +80,7 @@ void ISRRXQueueVarLenMsgBase::_loadedBuf(uint8_t frameLen)
     // PANIC if frameLen > max!
     b[next] = frameLen;
     const int newNext = next + 1 + frameLen;
-    if (newNext > bsm1) { next = 0; } // Wrap.
+    if(newNext > bsm1) { next = 0; } // Wrap.
     else { next = (uint8_t) newNext; }
     ++queuedRXedMessageCount;
     return;
@@ -99,6 +99,7 @@ void ISRRXQueueVarLenMsgBase::_loadedBuf(uint8_t frameLen)
 const volatile uint8_t *ISRRXQueueVarLenMsgBase::peekRXMsg(uint8_t &len) const
     {
     if(isEmpty()) { return(NULL); }
+    // Cannot now become empty nor 'oldest' index change even if ISR is called.
     // Return access to content of 'oldest' item if queue not empty.
     len = b[oldest];
     return(b + oldest + 1);
@@ -112,12 +113,27 @@ void ISRRXQueueVarLenMsgBase::removeRXMsg()
     {
     // Nothing to do if empty.
     if(isEmpty()) { return; }
-    // Note: this may need to wrap 'next' index around start if this makes enough space,
-    // at least in part to keep the ISR side as fast as possible.
-    const bool wasFull = _isFull(); // May need to adjust 'next' also.
+    // Cannot now become empty nor 'oldest' index change even if ISR is called.
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+        {
+        // FIXME
+        // This may need to wrap 'next' index around start if this makes enough space,
+        // at least in part to keep the ISR side as fast as possible.
 
-    // FIXME
+        // Full state could change due to ISR activity if not locked out.
+        const bool wasFull = _isFull(); // May need to adjust 'next' also.
 
+        // Advance 'oldest' index to discard oldest length+frame, wrapping if necessary.
+        const int newOldest = oldest + 1 + b[oldest];
+        if(newOldest > bsm1) { oldest = 0; } // Wrap.
+        else
+            {
+            oldest = (uint8_t) newOldest;
+            // If new item is of length 0 then wrap to the start.
+            if(0 == b[oldest]) { oldest = 0; }
+            }
+        --queuedRXedMessageCount;
+        }
     }
 
 
