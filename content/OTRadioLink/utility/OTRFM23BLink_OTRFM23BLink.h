@@ -48,6 +48,9 @@ namespace OTRFM23BLink
     // ALL COMPOUND SPI OPERATIONS MAY NEED TO PERFORMED WITH
     // INTERRUPTS DISABLED.
 
+    // All foreground RFM23B access should be protected from interrupts
+    // but this code's ISR that may interefere with (eg) register access.
+
     // Base class for RFM23B radio link hardware driver.
     // Neither re-entrant nor ISR-safe except where stated.
     // Contains elements that do not depend on template parameters.
@@ -363,6 +366,7 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("Rx");
             // Read/discard status (both registers) to clear interrupts.
             // SPI must already be configured and running.
             // Inline for maximum speed ie minimum latency and CPU cycles.
+            // Interrupts from interfering access must already be blocked.
             inline void _clearInterrupts()
                 {
                 _SELECT();
