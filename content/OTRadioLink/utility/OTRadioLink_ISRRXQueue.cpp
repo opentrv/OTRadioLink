@@ -110,9 +110,14 @@ const volatile uint8_t *ISRRXQueueVarLenMsgBase::peekRXMsg(uint8_t &len) const
 // Not intended to be called from an ISR.
 void ISRRXQueueVarLenMsgBase::removeRXMsg()
     {
+    // Nothing to do if empty.
+    if(isEmpty()) { return; }
     // Note: this may need to wrap 'next' index around start if this makes enough space,
     // at least in part to keep the ISR side as fast as possible.
+    const bool wasFull = _isFull(); // May need to adjust 'next' also.
+
     // FIXME
+
     }
 
 
