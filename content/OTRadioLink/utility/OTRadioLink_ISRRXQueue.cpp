@@ -116,10 +116,6 @@ void ISRRXQueueVarLenMsgBase::removeRXMsg()
     // Cannot now become empty nor 'oldest' index change even if ISR is called.
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
         {
-        // FIXME
-        // This may need to wrap 'next' index around start if this makes enough space,
-        // at least in part to keep the ISR side as fast as possible.
-
         // Full state could change due to ISR activity if not locked out.
         const bool wasFull = _isFull(); // May need to adjust 'next' also.
 
@@ -131,6 +127,12 @@ void ISRRXQueueVarLenMsgBase::removeRXMsg()
             oldest = (uint8_t) newOldest;
             // If new item is of length 0 then wrap to the start.
             if(0 == b[oldest]) { oldest = 0; }
+            }
+        if(wasFull)
+            {
+// FIXME
+            // This may need to wrap 'next' index around start if this makes enough space,
+            // at least in part to keep the ISR side as fast as possible.
             }
         --queuedRXedMessageCount;
         }
