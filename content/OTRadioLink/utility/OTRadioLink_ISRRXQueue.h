@@ -228,6 +228,8 @@ namespace OTRadioLink
     class ISRRXQueueVarLenMsgBase : public ISRRXQueue
         {
         protected:
+            // Maximum allowed single frame in the queue.
+            const uint8_t mf;
             // BUFSIZE-1 (to fit in uint8_t); maximum allowed index in b/buf.
             const uint8_t bsm1;
             // Shadow of buf.
@@ -236,7 +238,7 @@ namespace OTRadioLink
             // When oldest == next then isEmpty(), ie the queue is empty.
             volatile uint8_t oldest, next;
             // Construct an instance.
-            ISRRXQueueVarLenMsgBase(volatile uint8_t *bp, uint8_t bsm) : bsm1(bsm), b(bp), oldest(0), next(0) { }
+            ISRRXQueueVarLenMsgBase(const uint8_t maxFrame, volatile uint8_t *bp, uint8_t bsm) : mf(maxFrame), bsm1(bsm), b(bp), oldest(0), next(0) { }
             // True if the queue is full.
             // True iff _getRXBufForInbound() would return NULL.
             // Must be protected against re-entrance, eg by interrupts being blocked before calling.
@@ -286,15 +288,15 @@ namespace OTRadioLink
     class ISRRXQueueVarLenMsg : public ISRRXQueueVarLenMsgBase
         {
         private:
-            /*Actual buffer size taken (bytes). */
-            static const int BUFSIZ = min(256, maxRXBytes * (int)targetISRRXMinQueueCapacity);
+            /*Actual buffer size (bytes). */
+            static const int BUFSIZ = min(256, maxRXBytes * (1+(int)targetISRRXMinQueueCapacity));
             /**Buffer holding a circular queue.
              * Contains a circular sequence of (len,data+) segments.
              * Wrapping around the end is done with a len==0 segment or hitting the end exactly.
              */
             volatile uint8_t buf[BUFSIZ];
         public:
-            ISRRXQueueVarLenMsg() : ISRRXQueueVarLenMsgBase(buf, (uint8_t)(BUFSIZ-1)) { }
+            ISRRXQueueVarLenMsg() : ISRRXQueueVarLenMsgBase(maxRXBytes, buf, (uint8_t)(BUFSIZ-1)) { }
             /*Guaranteed minimum number of (full-length) messages that can be queued. */
             static const uint8_t MinQueueCapacityMsgs = BUFSIZ / (maxRXBytes + 1);
             // Fetches the current inbound RX minimum queue capacity and maximum RX raw message size.
