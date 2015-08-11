@@ -228,39 +228,41 @@ static void allISRRXQueue(OTRadioLink::ISRRXQueue &q)
   q.removeRXMsg();
   AssertIsTrue(q.isEmpty());
   
-  // Fill the queue up and empty it again.
-  // (Maximum of 255 messages queued in fact.)
-  uint8_t queued = 0;
-  while((queued < 255) && !q.isFull())
+  // Fill the queue up and empty it again, a few times!
+  for(int8_t i = 1 + (3 & OTV0P2BASE::randRNG8() % TEST_MIN_Q_MSG_SIZE); i-- > 0; )
     {
-    AssertIsEqual(queued, q.getRXMsgsQueued());
-    uint8_t bufFull[TEST_MIN_Q_MSG_SIZE];
-    len = 1 + (OTV0P2BASE::randRNG8() % TEST_MIN_Q_MSG_SIZE);
-    volatile uint8_t *ibF = q._getRXBufForInbound();
-    ibF[0] = queued;
-    ibF[len-1] = queued;
-    AssertIsTrue(NULL != ibF); 
-    q._loadedBuf(len);
-    ++queued;
-    AssertIsEqual(queued, q.getRXMsgsQueued());
-    }
-  Serial.print("Queued: "); Serial.println(queued);
-  for(int dq = 0; queued > 0; ++dq)
-    {
-    Serial.print(" q: "); Serial.println(queued);
-    AssertIsEqual(queued, q.getRXMsgsQueued());
-    AssertIsTrue(!q.isEmpty());
-    uint8_t len;
-    const volatile uint8_t *pb = q.peekRXMsg(len);
-    AssertIsTrueWithErr(NULL != pb, queued);
-    AssertIsTrue((len > 0) && (len <= TEST_MIN_Q_MSG_SIZE));
-//    Serial.print(" [0]: "); Serial.println(pb[0]);
-    AssertIsEqual(dq, pb[0]);
-    AssertIsEqual(dq, pb[len - 1]);
-    q.removeRXMsg();
-    --queued;
-    AssertIsEqual(queued, q.getRXMsgsQueued());
-    AssertIsTrue((queued > 0) || !q.isFull()); // Fragmentation may prevent queue becoming 'not full' immediately.
+    // (Maximum of 255 messages queued in fact.)
+    uint8_t queued = 0;
+    while((queued < 255) && !q.isFull())
+      {
+      AssertIsEqual(queued, q.getRXMsgsQueued());
+      uint8_t bufFull[TEST_MIN_Q_MSG_SIZE];
+      len = 1 + (OTV0P2BASE::randRNG8() % TEST_MIN_Q_MSG_SIZE);
+      volatile uint8_t *ibF = q._getRXBufForInbound();
+      ibF[0] = queued;
+      ibF[len-1] = queued;
+      AssertIsTrue(NULL != ibF); 
+      q._loadedBuf(len);
+      ++queued;
+      AssertIsEqual(queued, q.getRXMsgsQueued());
+      }
+  //  Serial.print("Queued: "); Serial.println(queued);
+    for(int dq = 0; queued > 0; ++dq)
+      {
+  //    Serial.print(" q: "); Serial.println(queued);
+      AssertIsEqual(queued, q.getRXMsgsQueued());
+      AssertIsTrue(!q.isEmpty());
+      uint8_t len;
+      const volatile uint8_t *pb = q.peekRXMsg(len);
+      AssertIsTrueWithErr(NULL != pb, queued);
+      AssertIsTrue((len > 0) && (len <= TEST_MIN_Q_MSG_SIZE));
+      AssertIsEqual(dq, pb[0]);
+      AssertIsEqual(dq, pb[len - 1]);
+      q.removeRXMsg();
+      --queued;
+      AssertIsEqual(queued, q.getRXMsgsQueued());
+      AssertIsTrue((queued > 0) || !q.isFull()); // Fragmentation may prevent queue becoming 'not full' immediately.
+      }
     }
 
   // Check that the queue is empty again.
@@ -316,7 +318,7 @@ static void testISRRXQueueVarLenMsg()
   {
   Serial.println("ISRRXQueueVarLenMsg");
   OTRadioLink::ISRRXQueueVarLenMsg<TEST_MIN_Q_MSG_SIZE, 2> q;
-//  allISRRXQueue(q); // FIXME
+  allISRRXQueue(q);
   }
 
 

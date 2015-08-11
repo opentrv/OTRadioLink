@@ -130,7 +130,15 @@ void ISRRXQueueVarLenMsgBase::removeRXMsg()
             }
         if(wasFull)
             {
-// FIXME
+            // If 'next' is after 'oldest'
+            // (assumed with not enough space before the end for a max-size entry),
+            // and there is enough space before 'oldest' for a max-size entry,
+            // then pull the next pointer back to 0, ie wrap it around.
+            if((next >= oldest) && (oldest >= mf+1))
+                {
+                if(next <= bsm1) { b[next] = 0; } // Put in forwarding pointer to start.
+                next = 0;
+                }
             // This may need to wrap 'next' index around start if this makes enough space,
             // at least in part to keep the ISR side as fast as possible.
             }
