@@ -254,7 +254,7 @@ namespace OTRFM23BLink
         {
         private:
             // RX queue.
-#if 0
+#if 1
             // Simple and fast 1-deep queue.
             ::OTRadioLink::ISRRXQueue1Deep<MaxRXMsgLen> queueRX;
 #else
