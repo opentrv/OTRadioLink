@@ -57,8 +57,6 @@ namespace OTRFM23BLink
     class OTRFM23BLinkBase : public OTRadioLink::OTRadioLink
         {
         public:
-            // RX (minimum) queue capacity in messages.
-            static const int QueueRXMsgsMin = 1;
             // Maximum raw RX message size in bytes.
             static const int MaxRXMsgLen = 64;
             // Maximum rawTX message size in bytes.
@@ -247,15 +245,22 @@ namespace OTRFM23BLink
     // terminating with an 0xff register value
     // ie argument is not a pointer into SRAM, it is into PROGMEM!
     // const uint8_t registerValues[][2]);
-
+    //
     // Hardwire to I/O pin for RFM23B active-low SPI device select: SPI_nSS_DigitalPin.
     // Hardwire to I/O pin for RFM23B active-low interrupt RFM_nIRQ_DigitalPin (-1 if none).
+    // Set the targetISRRXMinQueueCapacity to at least 2, or 3 if RAM space permits, for busy RF channels.
     template <uint8_t SPI_nSS_DigitalPin, int8_t RFM_nIRQ_DigitalPin = -1, uint8_t targetISRRXMinQueueCapacity = 2>
     class OTRFM23BLink : public OTRFM23BLinkBase
         {
         private:
             // RX queue.
+#if 0
+            // Simple and fast 1-deep queue.
             ::OTRadioLink::ISRRXQueue1Deep<MaxRXMsgLen> queueRX;
+#else
+            // Queue that can make good use of space for variable-length messages.
+            ::OTRadioLink::ISRRXQueueVarLenMsg<MaxRXMsgLen, targetISRRXMinQueueCapacity> queueRX;
+#endif
 
             // Internal routines to enable/disable RFM23B on the the SPI bus.
             // These depend only on the (constant) SPI_nSS_DigitalPin template parameter
@@ -581,19 +586,15 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                 }
 
             // Fetches the current inbound RX minimum queue capacity and maximum RX (and TX) raw message size.
-            // TODO: fetch some of the parameters from the RX queue.
             virtual void getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen) const
-                { queueRXMsgsMin = QueueRXMsgsMin; maxRXMsgLen = MaxRXMsgLen; maxTXMsgLen = MaxTXMsgLen; }
+                {
+                queueRX.getRXCapacity(queueRXMsgsMin, maxRXMsgLen);
+                maxTXMsgLen = MaxTXMsgLen;
+                }
 
             // Fetches the current count of queued messages for RX.
             // ISR-/thread- safe.
             virtual uint8_t getRXMsgsQueued() const { return(queueRX.getRXMsgsQueued()); }
-
-//            // Fetches the first (oldest) queued RX message, returning its length, or 0 if no message waiting.
-//            // If the waiting message is too long it is truncated to fit,
-//            // so allocating a buffer at least one longer than any valid message
-//            // should indicate an oversize inbound message.
-//            virtual uint8_t getRXMsg(uint8_t *buf, uint8_t buflen) { return(queueRX.getRXMsg(buf, buflen)); }
 
             // Peek at first (oldest) queued RX message, returning a pointer or NULL if no message waiting.
             // The pointer returned is NULL if there is no message,
