@@ -186,93 +186,91 @@ static void testRFM23B()
 // Pick test buffer size to match actual RFM23B buffer/FIFO size.
 static const uint8_t TEST_MIN_Q_MSG_SIZE = 64;
 
-// Some tests for all ISRRXQueue implementations.
+// Tests for all ISRRXQueue implementations.
 // Assumes being passed an empty freshly-created instance.
 // Leaves the queue instance empty when done.
 static void allISRRXQueue(OTRadioLink::ISRRXQueue &q)
   {
-  uint8_t queueRXMsgsMin;
-  uint8_t maxRXMsgLen;
-  q.getRXCapacity(queueRXMsgsMin, maxRXMsgLen);
-  AssertIsTrue(q.isEmpty());
-  AssertIsTrue(!q.isFull());
-  uint8_t len;
-  AssertIsTrue(NULL == q.peekRXMsg(len));
-  AssertIsTrueWithErr((queueRXMsgsMin >= 1), queueRXMsgsMin); 
-  AssertIsTrueWithErr((maxRXMsgLen >= TEST_MIN_Q_MSG_SIZE), maxRXMsgLen); 
-  AssertIsEqual(0, q.getRXMsgsQueued());
-//  uint8_t buf1[1];
-//  AssertIsEqual(0, q.getRXMsg(buf1, 1));
-  // Pretend to be an ISR and try to load up a message.
-  volatile uint8_t *ib1 = q._getRXBufForInbound();
-  AssertIsTrue(NULL != ib1); 
-  const uint8_t r1 = OTV0P2BASE::randRNG8();
-  *ib1 = r1;
-  q._loadedBuf(1);
-  // Try to retrieve the queued message.
-  AssertIsTrue(!q.isEmpty());
-  AssertIsTrue(NULL != q.peekRXMsg(len));
-  const volatile uint8_t *pb = q.peekRXMsg(len);
-  AssertIsTrue(NULL != pb);
-  AssertIsEqual(1, len);
-  AssertIsEqual(1, q.getRXMsgsQueued());
-//  AssertIsEqual(1, q.getRXMsg(buf1, 1));
-  AssertIsEqual(r1, pb[0]);
-  q.removeRXMsg();
-  // Check that the queue is empty again.
-  AssertIsEqual(0, q.getRXMsgsQueued());
-//  AssertIsEqual(0, q.getRXMsg(buf1, 1));
-  AssertIsTrue(q.isEmpty());
-  AssertIsTrue(!q.isFull());
-  AssertIsTrue(NULL == q.peekRXMsg(len));
-  q.removeRXMsg();
-  AssertIsTrue(q.isEmpty());
-  
-  // Fill the queue up and empty it again, a few times!
-  for(int8_t i = 1 + (3 & OTV0P2BASE::randRNG8() % TEST_MIN_Q_MSG_SIZE); i-- > 0; )
+//  Serial.println("allISRRXQueue");
+  for(uint8_t j = 2; j-- > 0; )
     {
-    // (Maximum of 255 messages queued in fact.)
-    uint8_t queued = 0;
-    while((queued < 255) && !q.isFull())
+    uint8_t queueRXMsgsMin;
+    uint8_t maxRXMsgLen;
+    q.getRXCapacity(queueRXMsgsMin, maxRXMsgLen);
+    AssertIsTrue(q.isEmpty());
+    AssertIsTrue(!q.isFull());
+    uint8_t len;
+    AssertIsTrue(NULL == q.peekRXMsg(len));
+    AssertIsTrueWithErr((queueRXMsgsMin >= 1), queueRXMsgsMin); 
+    AssertIsTrueWithErr((maxRXMsgLen >= TEST_MIN_Q_MSG_SIZE), maxRXMsgLen); 
+    AssertIsEqual(0, q.getRXMsgsQueued());
+    // Pretend to be an ISR and try to load up a message.
+    volatile uint8_t *ib1 = q._getRXBufForInbound();
+    AssertIsTrue(NULL != ib1); 
+    const uint8_t r1 = OTV0P2BASE::randRNG8();
+    *ib1 = r1;
+    q._loadedBuf(1);
+    // Try to retrieve the queued message.
+    AssertIsTrue(!q.isEmpty());
+    AssertIsTrue(NULL != q.peekRXMsg(len));
+    const volatile uint8_t *pb = q.peekRXMsg(len);
+    AssertIsTrue(NULL != pb);
+    AssertIsEqual(1, len);
+    AssertIsEqual(1, q.getRXMsgsQueued());
+    AssertIsEqual(r1, pb[0]);
+    q.removeRXMsg();
+    // Check that the queue is empty again.
+    AssertIsEqual(0, q.getRXMsgsQueued());
+    AssertIsTrue(q.isEmpty());
+    AssertIsTrue(!q.isFull());
+    AssertIsTrue(NULL == q.peekRXMsg(len));
+    q.removeRXMsg();
+    AssertIsTrue(q.isEmpty());
+    
+    // Fill the queue up and empty it again, a few times!
+    for(int8_t i = 1 + (3 & OTV0P2BASE::randRNG8() % TEST_MIN_Q_MSG_SIZE); i-- > 0; )
       {
-      AssertIsEqual(queued, q.getRXMsgsQueued());
-      uint8_t bufFull[TEST_MIN_Q_MSG_SIZE];
-      len = 1 + (OTV0P2BASE::randRNG8() % TEST_MIN_Q_MSG_SIZE);
-      volatile uint8_t *ibF = q._getRXBufForInbound();
-      ibF[0] = queued;
-      ibF[len-1] = queued;
-      AssertIsTrue(NULL != ibF); 
-      q._loadedBuf(len);
-      ++queued;
-      AssertIsEqual(queued, q.getRXMsgsQueued());
+      // (Maximum of 255 messages queued in fact.)
+      uint8_t queued = 0;
+      while((queued < 255) && !q.isFull())
+        {
+        AssertIsEqual(queued, q.getRXMsgsQueued());
+        uint8_t bufFull[TEST_MIN_Q_MSG_SIZE];
+        len = 1 + (OTV0P2BASE::randRNG8() % TEST_MIN_Q_MSG_SIZE);
+        volatile uint8_t *ibF = q._getRXBufForInbound();
+        ibF[0] = queued;
+        ibF[len-1] = queued;
+        AssertIsTrue(NULL != ibF); 
+        q._loadedBuf(len);
+        ++queued;
+        AssertIsEqual(queued, q.getRXMsgsQueued());
+        }
+      Serial.print("Queued: "); Serial.println(queued);
+      for(int dq = 0; queued > 0; ++dq)
+        {
+        AssertIsEqual(queued, q.getRXMsgsQueued());
+        AssertIsTrue(!q.isEmpty());
+        uint8_t len;
+        const volatile uint8_t *pb = q.peekRXMsg(len);
+        AssertIsTrueWithErr(NULL != pb, queued);
+        AssertIsTrue((len > 0) && (len <= TEST_MIN_Q_MSG_SIZE));
+        AssertIsEqual(dq, pb[0]);
+        AssertIsEqual(dq, pb[len - 1]);
+        q.removeRXMsg();
+        --queued;
+        AssertIsEqual(queued, q.getRXMsgsQueued());
+        AssertIsTrue((queued > 0) || !q.isFull()); // Fragmentation may prevent queue becoming 'not full' immediately.
+        }
       }
-  //  Serial.print("Queued: "); Serial.println(queued);
-    for(int dq = 0; queued > 0; ++dq)
-      {
-  //    Serial.print(" q: "); Serial.println(queued);
-      AssertIsEqual(queued, q.getRXMsgsQueued());
-      AssertIsTrue(!q.isEmpty());
-      uint8_t len;
-      const volatile uint8_t *pb = q.peekRXMsg(len);
-      AssertIsTrueWithErr(NULL != pb, queued);
-      AssertIsTrue((len > 0) && (len <= TEST_MIN_Q_MSG_SIZE));
-      AssertIsEqual(dq, pb[0]);
-      AssertIsEqual(dq, pb[len - 1]);
-      q.removeRXMsg();
-      --queued;
-      AssertIsEqual(queued, q.getRXMsgsQueued());
-      AssertIsTrue((queued > 0) || !q.isFull()); // Fragmentation may prevent queue becoming 'not full' immediately.
-      }
+  
+    // Check that the queue is empty again.
+    AssertIsEqual(0, q.getRXMsgsQueued());
+    AssertIsTrue(q.isEmpty());
+    AssertIsTrue(!q.isFull());
+    AssertIsTrue(NULL == q.peekRXMsg(len));
+    q.removeRXMsg();
+    AssertIsTrue(q.isEmpty());
     }
-
-  // Check that the queue is empty again.
-  AssertIsEqual(0, q.getRXMsgsQueued());
-//  AssertIsEqual(0, q.getRXMsg(buf1, 1));
-  AssertIsTrue(q.isEmpty());
-  AssertIsTrue(!q.isFull());
-  AssertIsTrue(NULL == q.peekRXMsg(len));
-  q.removeRXMsg();
-  AssertIsTrue(q.isEmpty());
   }
 
 // Do some basic exercise of ISRRXQueue1Deep.
@@ -284,8 +282,6 @@ static void testISRRXQueue1Deep()
   // Specific tests for this queue type.
   // Check queue is empty again.
   AssertIsEqual(0, q.getRXMsgsQueued());
-//  uint8_t buf2[2];
-//  AssertIsEqual(0, q.getRXMsg(buf2, 2));
   // Pretend to be an ISR and try to load up a message.
   volatile uint8_t *ib2 = q._getRXBufForInbound();
   AssertIsTrue(NULL != ib2); 
@@ -300,7 +296,6 @@ static void testISRRXQueue1Deep()
   AssertIsTrue(NULL == q._getRXBufForInbound());
   // Try to retrieve the queued message.
   AssertIsEqual(1, q.getRXMsgsQueued());
-//  AssertIsEqual(2, q.getRXMsg(buf2, 2));
   uint8_t len;
   const volatile uint8_t *pb = q.peekRXMsg(len);
   AssertIsTrue(NULL != pb); 
@@ -309,7 +304,6 @@ static void testISRRXQueue1Deep()
   // Check that the queue is empty again.
   AssertIsTrue(q.isEmpty());
   AssertIsEqual(0, q.getRXMsgsQueued());
-//  AssertIsEqual(0, q.getRXMsg(buf2, 2));
   }
 
 
@@ -318,7 +312,7 @@ static void testISRRXQueueVarLenMsg()
   {
   Serial.println("ISRRXQueueVarLenMsg");
   OTRadioLink::ISRRXQueueVarLenMsg<TEST_MIN_Q_MSG_SIZE, 2> q;
-  allISRRXQueue(q);
+//  allISRRXQueue(q);
   }
 
 
