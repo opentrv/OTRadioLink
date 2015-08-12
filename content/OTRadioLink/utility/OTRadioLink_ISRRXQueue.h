@@ -118,7 +118,7 @@ namespace OTRadioLink
 
     // Minimal, fast, 1-deep queue.
     // Can receive at most one frame.
-    // A frame to be queued can be up to maxRXBytes bytes long.
+    //   * maxRXBytes  a frame to be queued can be up to maxRXBytes bytes long; in the range [0,255]
     // Does minimal checking; all arguments must be sane.
     template<uint8_t maxRXBytes>
     class ISRRXQueue1Deep : public ISRRXQueue
@@ -284,6 +284,8 @@ namespace OTRadioLink
             // Not intended to be called from an ISR.
             virtual void removeRXMsg();
         };
+    //   * maxRXBytes  a frame to be queued can be up to maxRXBytes bytes long; in the range [0,255]
+    //   * targetISRRXMinQueueCapacity  target number of max-sized frames queueable [1,255], usually [2,4]
     template<uint8_t maxRXBytes, uint8_t targetISRRXMinQueueCapacity = 2>
     class ISRRXQueueVarLenMsg : public ISRRXQueueVarLenMsgBase
         {
