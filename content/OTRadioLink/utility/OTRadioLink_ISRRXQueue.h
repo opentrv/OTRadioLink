@@ -242,7 +242,7 @@ namespace OTRadioLink
             // True if the queue is full.
             // True iff _getRXBufForInbound() would return NULL.
             // Must be protected against re-entrance, eg by interrupts being blocked before calling.
-            inline uint8_t _isFull() const;
+            uint8_t _isFull() const;
         public:
             // True if the queue is full.
             // True iff _getRXBufForInbound() would return NULL.

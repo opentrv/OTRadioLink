@@ -29,19 +29,21 @@ namespace OTRadioLink
 // Must be protected against re-entrance, eg by interrupts being blocked before calling.
 uint8_t ISRRXQueueVarLenMsgBase::_isFull() const
     {
-    // If 'next' index is on or after 'oldest'
+    // If 'next' index is on 'oldest' then queued-item count determines status.
+    if(next == oldest) { return(!isEmpty()); }
+    // If 'next' index is after 'oldest'
     // then this is full if there isn't space for the largest possible frame.
     // (If space is (or becomes) available before the 'oldest' index
     // then the 'next' index should have been wrapped around already;
     // this ISR routine should be as fast as possible.)
-    if(next >= oldest)
+    if(next > oldest)
         {
-        // If there space for length byte + largest frame?
+        // Is there space for length byte + largest frame before the end of the buffer?
         const uint8_t spaceBeforeEndExclLen = bsm1 - next; // Note that buf size is bsm1+1.
         return(spaceBeforeEndExclLen < mf); // True if not enough space (excluding len).
         }
-    // Else if 'next' is before 'oldest'
-    // then check for enough space *including* the leading length.
+    // Else 'next' is before 'oldest'
+    // so check for enough space *including* the leading length.
     const uint8_t spaceBeforeOldest = oldest - next;
     return(spaceBeforeOldest <= mf); // True if not enough space (including len).
     }
@@ -79,8 +81,9 @@ void ISRRXQueueVarLenMsgBase::_loadedBuf(uint8_t frameLen)
     if(0 == frameLen) { return; } // New frame not being uploaded.
     // PANIC if frameLen > max!
     b[next] = frameLen;
-    const int newNext = next + 1 + frameLen;
-    if(newNext > bsm1) { next = 0; } // Wrap.
+    const int newNext = next + 1 + (int)frameLen;
+    if(newNext > bsm1) { next = 0; } // Wrap if at end.
+    else if(newNext == bsm1) { b[newNext] = 0; next = 0; } // Leave forwarding pointer and wrap if at end.
     else { next = (uint8_t) newNext; }
     ++queuedRXedMessageCount;
     return;
@@ -99,7 +102,8 @@ void ISRRXQueueVarLenMsgBase::_loadedBuf(uint8_t frameLen)
 const volatile uint8_t *ISRRXQueueVarLenMsgBase::peekRXMsg(uint8_t &len) const
     {
     if(isEmpty()) { return(NULL); }
-    // Cannot now become empty nor 'oldest' index change even if ISR is called.
+    // Cannot now become empty nor can the 'oldest' index change even if an ISR is invoked,
+    // thus interrupts need not be blocked here.
     // Return access to content of 'oldest' item if queue not empty.
     len = b[oldest];
     return(b + oldest + 1);
@@ -113,15 +117,15 @@ void ISRRXQueueVarLenMsgBase::removeRXMsg()
     {
     // Nothing to do if empty.
     if(isEmpty()) { return; }
-    // Cannot now become empty nor 'oldest' index change even if ISR is called.
+    // May have to inspect and adjust all state, so block interrupts.
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
         {
         // Full state could change due to ISR activity if not locked out.
         const bool wasFull = _isFull(); // May need to adjust 'next' also.
 
         // Advance 'oldest' index to discard oldest length+frame, wrapping if necessary.
-        const int newOldest = oldest + 1 + b[oldest];
-        if(newOldest > bsm1) { oldest = 0; } // Wrap.
+        const int newOldest = oldest + 1 + (int)(b[oldest]);
+        if(newOldest >= bsm1) { oldest = 0; } // Wrap if at end.
         else
             {
             oldest = (uint8_t) newOldest;
@@ -130,7 +134,7 @@ void ISRRXQueueVarLenMsgBase::removeRXMsg()
             }
         if(wasFull)
             {
-            // If 'next' is after 'oldest'
+            // If the queue was full and 'next' is after/at 'oldest'
             // (assumed with not enough space before the end for a max-size entry),
             // and there is enough space before 'oldest' for a max-size entry,
             // then pull the next pointer back to 0, ie wrap it around.
