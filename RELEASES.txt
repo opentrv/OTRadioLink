@@ -13,7 +13,7 @@ pending:
     DHD20150808: fixed possible timing bug in OneWire impl due to missing brackets in delay macro.
     DHD20150808: created ISRRXQueue1Deep, and tested and deployed in OTRFM23BLink.
     DHD20150809: started ISRRXQueueVarLenMsg (COH-44), w/ shared generic unit tests for all queue impls.
-    DHD20150811: OTRFM23BLink temporarily using ISRRXQueueVarLenMsg with a min RX queue capacity of 2.
+    DHD20150811: OTRFM23BLink temporarily tested ISRRXQueueVarLenMsg with a min RX queue capacity of 2.
 
 
 

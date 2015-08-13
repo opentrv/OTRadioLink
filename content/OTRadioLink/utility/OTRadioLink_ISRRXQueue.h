@@ -26,7 +26,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #include <stddef.h>
 #include <stdint.h>
 
-#include <util/atomic.h>
 #include <Arduino.h>
 
 // Use namespaces to help avoid collisions.
@@ -283,6 +282,13 @@ namespace OTRadioLink
             // Does nothing if the queue is empty.
             // Not intended to be called from an ISR.
             virtual void removeRXMsg();
+#define ISRRXQueueVarLenMsg_VALIDATE
+#ifdef ISRRXQueueVarLenMsg_VALIDATE
+            // Validate state, dumping diagnostics to Print stream and returning false if problems found.
+            // Intended for use in debugging only.
+            bool validate(Print *p, uint8_t &n, uint8_t &o, uint8_t &c, const volatile uint8_t *&bp, int &s) const;
+
+#endif
         };
     //   * maxRXBytes  a frame to be queued can be up to maxRXBytes bytes long; in the range [0,255]
     //   * targetISRRXMinQueueCapacity  target number of max-sized frames queueable [1,255], usually [2,4]

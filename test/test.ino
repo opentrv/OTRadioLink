@@ -312,7 +312,15 @@ static void testISRRXQueueVarLenMsg()
   {
   Serial.println("ISRRXQueueVarLenMsg");
   OTRadioLink::ISRRXQueueVarLenMsg<TEST_MIN_Q_MSG_SIZE, 2> q;
-//  allISRRXQueue(q);
+//  allISRRXQueue(q); // FIXME
+  // Some type/impl-specific whitebox tests.
+#ifdef ISRRXQueueVarLenMsg_VALIDATE
+  OTRadioLink::ISRRXQueueVarLenMsg<2, 2> q0;
+  uint8_t n, o, c;
+  const volatile uint8_t *bp;
+  int s;
+  q0.validate(&Serial, n, o, c, bp, s);
+#endif
   }
 
 
