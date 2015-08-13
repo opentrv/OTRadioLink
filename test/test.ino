@@ -382,7 +382,7 @@ static void testISRRXQueueVarLenMsg()
   AssertIsTrue(q0.isFull());
   q0.validate(&Serial, n, o, c, bp, s);
   AssertIsEqual(2, c);
-  AssertIsEqual(2, n); AssertIsEqual(3, o); // Contingent on impl; 'next' index wrapped around.
+  AssertIsEqual(2, n); AssertIsEqual(3, o); // Contingent on impl.
   AssertIsEqual(1, bp[0]);
   AssertIsEqual(r3, bp[1]);
 #endif
