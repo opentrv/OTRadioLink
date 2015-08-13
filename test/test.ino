@@ -316,6 +316,7 @@ static void testISRRXQueueVarLenMsg()
   // Some type/impl-specific whitebox tests.
 #ifdef ISRRXQueueVarLenMsg_VALIDATE
   OTRadioLink::ISRRXQueueVarLenMsg<2, 2> q0;
+  AssertIsTrue(q0.isEmpty());
   uint8_t n, o, c;
   const volatile uint8_t *bp;
   int s;
@@ -323,7 +324,7 @@ static void testISRRXQueueVarLenMsg()
   AssertIsEqual(6, s); // Space for 2 x (1 + 2) entries.
   AssertIsEqual(0, c);
   AssertIsEqual(0, n); AssertIsEqual(0, o); // Contingent on impl.
-  // Pretend to be an ISR and try to load up a message.
+  // Pretend to be an ISR and try to load up a (max-size) message.
   volatile uint8_t *ib = q0._getRXBufForInbound();
   AssertIsTrue(NULL != ib); 
   const uint8_t r1 = OTV0P2BASE::randRNG8();
@@ -335,21 +336,42 @@ static void testISRRXQueueVarLenMsg()
   AssertIsEqual(2, bp[0]);
   AssertIsEqual(r1, bp[1]);
   AssertIsEqual((uint8_t)~r1, bp[2]);
-  // Pretend to be an ISR and try to load up a 2nd message.
+  AssertIsTrue(!q0.isEmpty());
+  AssertIsTrue(!q0.isFull());
+  // Pretend to be an ISR and try to load up a 2nd (max-size) message.
   ib = q0._getRXBufForInbound();
   AssertIsTrue(NULL != ib); 
   const uint8_t r2 = OTV0P2BASE::randRNG8();
   ib[0] = r2; ib[1] = ~r2;
   q0._loadedBuf(2);
+  AssertIsTrue(!q0.isEmpty());
+  AssertIsTrue(q0.isFull());
   q0.validate(&Serial, n, o, c, bp, s);
   AssertIsEqual(2, c);
-  AssertIsEqual(0, n); AssertIsEqual(0, o); // Contingent on impl.
+  AssertIsEqual(0, n); AssertIsEqual(0, o); // Contingent on impl; 'next' index wrapped around.
   AssertIsEqual(2, bp[0]);
   AssertIsEqual(r1, bp[1]);
   AssertIsEqual((uint8_t)~r1, bp[2]);
   AssertIsEqual(2, bp[3]);
   AssertIsEqual(r2, bp[4]);
   AssertIsEqual((uint8_t)~r2, bp[5]);
+  // Attempt to unqueue the first message.
+  uint8_t len;
+  const volatile uint8_t *pb = q0.peekRXMsg(len);
+  AssertIsTrue(NULL != pb);
+  AssertIsEqual(2, len);
+  AssertIsEqual(r1, pb[0]);
+  AssertIsEqual((uint8_t)~r1, pb[1]);
+  AssertIsTrue(!q0.isEmpty());
+  AssertIsTrue(q0.isFull());
+  AssertIsEqual(2, q0.getRXMsgsQueued());
+  q0.removeRXMsg();
+  AssertIsEqual(1, q0.getRXMsgsQueued());
+  AssertIsTrue(!q0.isEmpty());
+  AssertIsTrue(!q0.isFull());
+  q0.validate(&Serial, n, o, c, bp, s);
+  AssertIsEqual(1, c);
+  AssertIsEqual(0, n); AssertIsEqual(3, o); // Contingent on impl.
 #endif
   }
 
@@ -359,6 +381,7 @@ static void testISRRXQueueVarLenMsg()
 static void testRNG8()
   {
   Serial.println("RNG8");
+  const uint8_t r = OTV0P2BASE::randRNG8(); // Capture a value before reset.
   // Reset to known state; API not normally exposed and only exists for unit tests.
   OTV0P2BASE::resetRNG8();
   // Extract and check a few initial values.
@@ -370,6 +393,9 @@ static void testRNG8()
   AssertIsTrue(0 == v2);
   AssertIsTrue(3 == v3);
   AssertIsTrue(14 == v4);
+  // Be kind to other test routines that use RNG8 and put some noise back in!
+  static uint8_t c1, c2;
+  OTV0P2BASE::seedRNG8(r, ++c1, c2--);
   }
 
 
