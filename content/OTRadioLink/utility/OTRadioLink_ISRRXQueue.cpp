@@ -129,7 +129,7 @@ void ISRRXQueueVarLenMsgBase::removeRXMsg()
 
         // Advance 'oldest' index to discard oldest length+frame, wrapping if necessary.
         const int newOldest = oldest + 1 + (int)(b[oldest]);
-        if(newOldest >= bsm1) { oldest = 0; } // Wrap if at end.
+        if(newOldest >= bsm1) { oldest = 0; } // Wrap if at end (or too close for a real entry).
         else
             {
             oldest = (uint8_t) newOldest;

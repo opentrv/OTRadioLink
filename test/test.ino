@@ -416,6 +416,71 @@ static void testISRRXQueueVarLenMsg()
   q0.validate(&Serial, n, o, c, bp, s);
   AssertIsEqual(0, c);
   AssertIsEqual(2, n); AssertIsEqual(2, o); // Contingent on impl.
+
+//ISRRXQueueVarLenMsg
+//
+//*** queuedRXedMessageCount=0 next=0 oldest=0
+//
+//|6 01 'C002 ABE
+//
+//*** queuedRXedMessageCount=1 next=3 oldest=0
+//
+//|6 02 ,D302 ABE
+//
+//*** queuedRXedMessageCount=2 next=0 oldest=0
+//
+//|6 02 ,D30289 v
+//
+//*** queuedRXedMessageCount=1 next=0 oldest=3
+//
+//|6 02 ,D30289 v
+//
+//*** queuedRXedMessageCount=2 next=2 oldest=3
+//
+//|6 0197D30289 v
+//
+//*** queuedRXedMessageCount=1 next=2 oldest=0
+//
+//|6 0197D30289 v
+//
+//*** queuedRXedMessageCount=0 next=2 oldest=2
+//
+//|6 0197D30289 v
+//
+//...
+//
+//ISRRXQueueVarLenMsg
+//
+//*** queuedRXedMessageCount=0 next=0 oldest=0
+//
+//|6 0197D30289 v
+//
+//*** queuedRXedMessageCount=1 next=3 oldest=0
+//
+//|6 02FF000289 v
+//
+//*** queuedRXedMessageCount=2 next=0 oldest=0
+//
+//|6 02FF000218E7
+//
+//*** queuedRXedMessageCount=1 next=0 oldest=3
+//
+//|6 02FF000218E7
+//
+//*** queuedRXedMessageCount=2 next=2 oldest=3
+//
+//|6 01 F000218E7
+//
+//*** queuedRXedMessageCount=1 next=2 oldest=0
+//
+//|6 01 F000218E7
+//
+//*** queuedRXedMessageCount=0 next=2 oldest=0
+//
+//|6 01 F000218E7
+//
+//***Test FAILED*** val=0 =0x0 at line 419
+
 #endif
   }
 
