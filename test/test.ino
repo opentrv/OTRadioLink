@@ -298,7 +298,7 @@ static void testISRRXQueue1Deep()
   AssertIsEqual(1, q.getRXMsgsQueued());
   uint8_t len;
   const volatile uint8_t *pb = q.peekRXMsg(len);
-  AssertIsTrue(NULL != pb); 
+  AssertIsTrue(NULL != pb);
   AssertIsEqual(r1, pb[0]);
   q.removeRXMsg();
   // Check that the queue is empty again.
@@ -320,6 +320,36 @@ static void testISRRXQueueVarLenMsg()
   const volatile uint8_t *bp;
   int s;
   q0.validate(&Serial, n, o, c, bp, s);
+  AssertIsEqual(6, s); // Space for 2 x (1 + 2) entries.
+  AssertIsEqual(0, c);
+  AssertIsEqual(0, n); AssertIsEqual(0, o); // Contingent on impl.
+  // Pretend to be an ISR and try to load up a message.
+  volatile uint8_t *ib = q0._getRXBufForInbound();
+  AssertIsTrue(NULL != ib); 
+  const uint8_t r1 = OTV0P2BASE::randRNG8();
+  ib[0] = r1; ib[1] = ~r1;
+  q0._loadedBuf(2);
+  q0.validate(&Serial, n, o, c, bp, s);
+  AssertIsEqual(1, c);
+  AssertIsEqual(3, n); AssertIsEqual(0, o); // Contingent on impl.
+  AssertIsEqual(2, bp[0]);
+  AssertIsEqual(r1, bp[1]);
+  AssertIsEqual((uint8_t)~r1, bp[2]);
+  // Pretend to be an ISR and try to load up a 2nd message.
+  ib = q0._getRXBufForInbound();
+  AssertIsTrue(NULL != ib); 
+  const uint8_t r2 = OTV0P2BASE::randRNG8();
+  ib[0] = r2; ib[1] = ~r2;
+  q0._loadedBuf(2);
+  q0.validate(&Serial, n, o, c, bp, s);
+  AssertIsEqual(2, c);
+  AssertIsEqual(0, n); AssertIsEqual(0, o); // Contingent on impl.
+  AssertIsEqual(2, bp[0]);
+  AssertIsEqual(r1, bp[1]);
+  AssertIsEqual((uint8_t)~r1, bp[2]);
+  AssertIsEqual(2, bp[3]);
+  AssertIsEqual(r2, bp[4]);
+  AssertIsEqual((uint8_t)~r2, bp[5]);
 #endif
   }
 
