@@ -381,7 +381,7 @@ static void testISRRXQueueVarLenMsg()
 static void testRNG8()
   {
   Serial.println("RNG8");
-  const uint8_t r = OTV0P2BASE::randRNG8(); // Capture a value before reset.
+  const uint8_t r = OTV0P2BASE::randRNG8(); // Capture a value and some noise before reset.
   // Reset to known state; API not normally exposed and only exists for unit tests.
   OTV0P2BASE::resetRNG8();
   // Extract and check a few initial values.
