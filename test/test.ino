@@ -372,6 +372,19 @@ static void testISRRXQueueVarLenMsg()
   q0.validate(&Serial, n, o, c, bp, s);
   AssertIsEqual(1, c);
   AssertIsEqual(0, n); AssertIsEqual(3, o); // Contingent on impl.
+  // Pretend to be an ISR and try to load up a 3nd (min-size) message.
+  ib = q0._getRXBufForInbound();
+  AssertIsTrue(NULL != ib); 
+  const uint8_t r3 = OTV0P2BASE::randRNG8();
+  ib[0] = r3;
+  q0._loadedBuf(1);
+  AssertIsTrue(!q0.isEmpty());
+  AssertIsTrue(q0.isFull());
+  q0.validate(&Serial, n, o, c, bp, s);
+  AssertIsEqual(2, c);
+  AssertIsEqual(2, n); AssertIsEqual(3, o); // Contingent on impl; 'next' index wrapped around.
+  AssertIsEqual(1, bp[0]);
+  AssertIsEqual(r3, bp[1]);
 #endif
   }
 
@@ -381,7 +394,7 @@ static void testISRRXQueueVarLenMsg()
 static void testRNG8()
   {
   Serial.println("RNG8");
-  const uint8_t r = OTV0P2BASE::randRNG8(); // Capture a value before reset.
+  const uint8_t r = OTV0P2BASE::randRNG8(); // Capture a value and some noise before reset.
   // Reset to known state; API not normally exposed and only exists for unit tests.
   OTV0P2BASE::resetRNG8();
   // Extract and check a few initial values.
