@@ -324,7 +324,7 @@ static void testISRRXQueueVarLenMsg()
   AssertIsEqual(6, s); // Space for 2 x (1 + 2) entries.
   AssertIsEqual(0, c);
   AssertIsEqual(0, n); AssertIsEqual(0, o); // Contingent on impl.
-  // Pretend to be an ISR and try to load up a (max-size) message.
+  // Pretend to be an ISR and try to load up 1st (max-size) message.
   volatile uint8_t *ib = q0._getRXBufForInbound();
   AssertIsTrue(NULL != ib); 
   const uint8_t r1 = OTV0P2BASE::randRNG8();
@@ -372,7 +372,7 @@ static void testISRRXQueueVarLenMsg()
   q0.validate(&Serial, n, o, c, bp, s);
   AssertIsEqual(1, c);
   AssertIsEqual(0, n); AssertIsEqual(3, o); // Contingent on impl.
-  // Pretend to be an ISR and try to load up a 3nd (min-size) message.
+  // Pretend to be an ISR and try to load up a 3rd (min-size) message.
   ib = q0._getRXBufForInbound();
   AssertIsTrue(NULL != ib); 
   const uint8_t r3 = OTV0P2BASE::randRNG8();
