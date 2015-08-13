@@ -382,9 +382,25 @@ static void testISRRXQueueVarLenMsg()
   AssertIsTrue(q0.isFull());
   q0.validate(&Serial, n, o, c, bp, s);
   AssertIsEqual(2, c);
-  AssertIsEqual(2, n); AssertIsEqual(3, o); // Contingent on impl; 'next' index wrapped around.
+  AssertIsEqual(2, n); AssertIsEqual(3, o); // Contingent on impl.
   AssertIsEqual(1, bp[0]);
   AssertIsEqual(r3, bp[1]);
+  // Attempt to unqueue the 2nd message.
+  pb = q0.peekRXMsg(len);
+  AssertIsTrue(NULL != pb);
+  AssertIsEqual(2, len);
+  AssertIsEqual(r2, pb[0]);
+  AssertIsEqual((uint8_t)~r2, pb[1]);
+  AssertIsTrue(!q0.isEmpty());
+  AssertIsTrue(q0.isFull());
+  AssertIsEqual(2, q0.getRXMsgsQueued());
+  q0.removeRXMsg();
+  AssertIsEqual(1, q0.getRXMsgsQueued());
+  AssertIsTrue(!q0.isEmpty());
+  AssertIsTrue(!q0.isFull());
+  q0.validate(&Serial, n, o, c, bp, s);
+  AssertIsEqual(1, c);
+  AssertIsEqual(2, n); AssertIsEqual(0, o); // Contingent on impl.
 #endif
   }
 
