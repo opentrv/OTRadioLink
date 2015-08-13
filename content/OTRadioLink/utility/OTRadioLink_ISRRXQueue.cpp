@@ -16,7 +16,11 @@ under the Licence.
 Author(s) / Copyright (s): Damon Hart-Davis 2015
 */
 
+#include <util/atomic.h>
+
 #include "OTRadioLink_ISRRXQueue.h"
+
+#include "OTRadioLink_OTRadioLink.h"
 
 
 // Use namespaces to help avoid collisions.
@@ -150,7 +154,19 @@ void ISRRXQueueVarLenMsgBase::removeRXMsg()
         }
     }
 
-
+#ifdef ISRRXQueueVarLenMsg_VALIDATE
+// Validate state, dumping diagnostics to Print stream and returning false if problems found.
+// Intended for use in debugging only.
+bool ISRRXQueueVarLenMsgBase::validate(Print *p)
+    {
+    p->print("*** queuedRXedMessageCount="); p->print(queuedRXedMessageCount);
+    p->print(" next="); p->print(next);
+    p->print(" oldest="); p->print(oldest);
+    p->println();
+    ::OTRadioLink::printRXMsg(p, (const uint8_t *)b, bsm1+1);
+    return(true); // No problem found.
+    }
+#endif
 
 
     }
