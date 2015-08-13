@@ -343,7 +343,7 @@ static void testISRRXQueueVarLenMsg()
   q0._loadedBuf(2);
   q0.validate(&Serial, n, o, c, bp, s);
   AssertIsEqual(2, c);
-  AssertIsEqual(0, n); AssertIsEqual(0, o); // Contingent on impl.
+  AssertIsEqual(0, n); AssertIsEqual(0, o); // Contingent on impl; index wrapped around.
   AssertIsEqual(2, bp[0]);
   AssertIsEqual(r1, bp[1]);
   AssertIsEqual((uint8_t)~r1, bp[2]);
