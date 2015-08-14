@@ -16,7 +16,7 @@ pending:
     DHD20150811: OTRFM23BLink temporarily tested ISRRXQueueVarLenMsg with a min RX queue capacity of 2.
     DHD20150814: ISRRXQueueVarLenMsg tested and (slightly) optimised.
     DHD20150814: OTRFM23BLink again tested ISRRXQueueVarLenMsg with a min RX queue capacity of 2.
-    DHD20150814: issues still pending: TX level control, TX delay times, trim-trailing-nulls RX filter.
+    DHD20150814: issues still pending: TX level control, TX delay times, trim-trailing-zeros RX filter.
 
 
 
