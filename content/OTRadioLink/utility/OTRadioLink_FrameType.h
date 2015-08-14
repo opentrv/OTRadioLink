@@ -32,15 +32,20 @@ namespace OTRadioLink
     enum FrameType_V0p2_FS20
         {
         // An FS20 encoded message is indicated by one or more leading 0xcc bytes.
+        // (Maximum 45 bytes + possible trailing stats frame 3--10 including trailing CRC7, plain-text.)
         FTp2_FS20_native             = 0xcc,
 
+        // 'Full stats' standalone.
+        // (At most 10 bytes including trailing CRC7, plain-text.)
         FTp2_FullStatsIDL            = 't', // 0x74
         FTp2_FullStatsIDH            = 'v', // 0x76
 
         // (Trailing '}' must have high bit set and be followed by (7_5B) CRC byte.)
+        // (Nominally limited to 56 bytes, including trailing CRC7, plain-text.)
         FTp2_JSONRaw                 = '{', // 0x7b
 
         // Messages for minimal central-control V1 (eg REV9 variant).
+        // (All fixed-length 8-byte, including trailing CRC7, plain-text.)
         FTp2_CC1Alert                = '!', // 0x21
         FTp2_CC1PollAndCmd           = '?', // 0x3f
         FTp2_CC1PollResponse         = '*', // 0x2a
