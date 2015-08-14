@@ -31,7 +31,7 @@ namespace OTRadioLink
     // the leading byte received indicates the frame type that follows.
     enum FrameType_V0p2_FS20
         {
-        // An FS20 encoded message is indicated by one or more leading 0xcc bytes.
+        // An FS20 encoded (valve position) message is indicated by one or more leading 0xcc bytes.
         // (Maximum 45 bytes + possible trailing stats frame 3--10 including trailing CRC7, plain-text.)
         FTp2_FS20_native             = 0xcc,
 
