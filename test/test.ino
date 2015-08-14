@@ -169,6 +169,16 @@ static void testCRC7_5B()
   AssertIsEqual(0x7b, OTRadioLink::crc7_5B_update_nz_final(0x50, 40)); 
   }
 
+// Test the trim-trailing-zeros frame filter.
+static void testFrameFilterTrailingZeros()
+  {
+  Serial.println("FrameFilterTrailingZeros");
+  uint8_t buf[64];
+  uint8_t len;
+  len = sizeof(buf);
+  AssertIsTrue(OTRadioLink::frameFilterTrailingZeros(buf, len)); // Should never reject frame.
+  AssertIsTrue(len <= sizeof(buf)); // Should not make frame bigger!
+  }
 
 // Do some basic exercise of the RFM23B class, eg that it compiles.
 static void testRFM23B()
@@ -468,6 +478,7 @@ void loop()
   // OTRadioLink
   testFrameDump();
   testCRC7_5B();
+  testFrameFilterTrailingZeros();
   testISRRXQueue1Deep();
   testISRRXQueueVarLenMsg();
 

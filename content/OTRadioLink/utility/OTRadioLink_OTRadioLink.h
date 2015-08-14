@@ -80,25 +80,35 @@ namespace OTRadioLink
             const bool isEnc:1;
         } OTRadioChannelConfig_t;
 
+    // Type of a fast ISR-safe filter routine to quickly reject uninteresting RX frames.
+    // Return false if the frame is uninteresting and should be dropped.
+    // The aim of this is to drop such uninteresting frames quickly and reduce queueing pressure.
+    // This should reduce CPU load and dropped frames in a busy channel.
+    // The received frame is in the leading portion of the supplied buffer
+    // (there may be trailing undefined data).
+    // The buffer content may not be altered.
+    // The message length is passed by reference and may be *reduced* by the filter if appropriate.
+    // This routine must complete quickly and must not do things unsafe in an ISR context,
+    // such as access to non-volatile state or operations such as EEPROM access on the ATmega.
+    // In extreme cases this can be used as a hook to trigger fast processing
+    // entirely in the ISR, skipping the usual processing flow.
+    // TODO: should take RX channel parameter (different protocols may be in use on each channel).
+    typedef bool quickFrameFilter_t(const volatile uint8_t *buf, volatile uint8_t &buflen);
+
+    // Heuristic filter, especially useful for OOK carrier, to trim (all but first) trailing zeros.
+    // Useful (eg) to fit more frames into RX queues if frame type is not explicit
+    // and (eg with OOK operation) tail of frame buffer is filled with zeros.
+    // Leaves first trailing zero for those frame types that may legitimately have one trailing zero.
+    // Always returns true, ie never rejects a frame outright.
+    quickFrameFilter_t frameFilterTrailingZeros;
+
     // Base class for radio link hardware driver.
     // Neither re-entrant nor ISR-safe except where stated.
     class OTRadioLink
         {
         public:
-            // Type of a fast ISR-safe filter routine to quickly reject uninteresting RX frames.
-            // The aim of this is to drop such uninteresting frames quickly and reduce queueing pressure.
-            // This should reduce CPU load and dropped frames in a busy channel.
-            // The routine should return false if the frame is uninteresting and should be dropped.
-            // The received frame is in the leading portion of the supplied buffer
-            // (there may be trailing undefined data).
-            // The buffer content may not be altered.
-            // The message length is passed by reference and may be *reduced* by the filter if appropriate.
-            // This routine must complete quickly and must not do things unsafe in an ISR context,
-            // such as access to non-volatile state or operations such as EEPROM access on the ATmega.
-            // In extreme cases this can be used as a hook to trigger fast processing
-            // entirely in the ISR, skipping the usual processing flow.
-            // TODO: should take RX channel parameter (different protocols may be in use on each channel).
-            typedef bool quickFrameFilter_t(const volatile uint8_t *buf, volatile uint8_t &buflen);
+            // Import typedef into this class for itself and derived classes.
+            typedef ::OTRadioLink::quickFrameFilter_t quickFrameFilter_t;
 
         private:
             // Channel being listened on or -1.
