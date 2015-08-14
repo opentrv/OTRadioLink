@@ -33,21 +33,15 @@ namespace OTRadioLink
 // Must be protected against re-entrance, eg by interrupts being blocked before calling.
 uint8_t ISRRXQueueVarLenMsgBase::_isFull() const
     {
+    // If 'next' index is after 'oldest'
+    // then would be full if there weren't space for the largest possible frame
+    // but the 'next' index should have been wrapped already,
+    // so this always returns false.
+    if(next > oldest) { return(false); }
     // If 'next' index is on 'oldest' then queued-item count determines status.
     if(next == oldest) { return(!isEmpty()); }
-    // If 'next' index is after 'oldest'
-    // then this is full if there isn't space for the largest possible frame.
-    // (If space is (or becomes) available before the 'oldest' index
-    // then the 'next' index should have been wrapped around already;
-    // this ISR routine should be as fast as possible.)
-    if(next > oldest)
-        {
-        // Is there space for length byte + largest frame before the end of the buffer?
-        const uint8_t spaceBeforeEndExclLen = bsm1 - next; // Note that buf size is bsm1+1.
-        return(spaceBeforeEndExclLen < mf); // True if not enough space (excluding len).
-        }
     // Else 'next' is before 'oldest'
-    // so check for enough space *including* the leading length.
+    // so check for enough space between them *including* the leading length.
     const uint8_t spaceBeforeOldest = oldest - next;
     return(spaceBeforeOldest <= mf); // True if not enough space (including len).
     }
@@ -79,15 +73,14 @@ volatile uint8_t *ISRRXQueueVarLenMsgBase::_getRXBufForInbound()
 // The frame can be no larger than maxRXBytes bytes.
 // It is possible to formally abandon an upload attempt by calling this with 0.
 // Must still be in the scope of the same (ISR) call as _getRXBufForInbound().
-void ISRRXQueueVarLenMsgBase::_loadedBuf(uint8_t frameLen)
+void ISRRXQueueVarLenMsgBase::_loadedBuf(const uint8_t frameLen)
     {
     // This ISR is kept as short/fast as possible.
     if(0 == frameLen) { return; } // New frame not being uploaded.
     // PANIC if frameLen > max!
     b[next] = frameLen;
-    const int newNext = next + 1 + (int)frameLen;
-    if(newNext > bsm1) { next = 0; } // Wrap if at end.
-    else if(newNext == bsm1) { b[newNext] = 0; next = 0; } // Leave forwarding pointer and wrap if at end.
+    const int newNext = 1 + (int)next + (int)frameLen;
+    if(newNext > lui) { next = 0; } // Wrap if not enough space for new full frame before buf end.
     else { next = (uint8_t) newNext; }
     ++queuedRXedMessageCount;
     return;
@@ -124,32 +117,12 @@ void ISRRXQueueVarLenMsgBase::removeRXMsg()
     // May have to inspect and adjust all state, so block interrupts.
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
         {
-        // Full state could change due to ISR activity if not locked out.
-        const bool wasFull = _isFull(); // May need to adjust 'next' also.
-
         // Advance 'oldest' index to discard oldest length+frame, wrapping if necessary.
-        const int newOldest = oldest + 1 + (int)(b[oldest]);
-        if(newOldest >= bsm1) { oldest = 0; } // Wrap if at end (or too close for a real entry).
-        else
-            {
-            oldest = (uint8_t) newOldest;
-            // If new item is of length 0 then wrap to the start.
-            if(0 == b[oldest]) { oldest = 0; }
-            }
-        if(wasFull)
-            {
-            // If the queue was full and 'next' is after/at 'oldest'
-            // (assumed with not enough space before the end for a max-size entry),
-            // and there is enough space before 'oldest' for a max-size entry,
-            // then pull the next pointer back to 0, ie wrap it around.
-            if((next >= oldest) && (oldest >= mf+1))
-                {
-                if(next <= bsm1) { b[next] = 0; } // Put in forwarding pointer to start.
-                next = 0;
-                }
-            // This may need to wrap 'next' index around start if this makes enough space,
-            // at least in part to keep the ISR side as fast as possible.
-            }
+        // A wrap will be needed if advancing 'oldest' would take it too close to the buffer end
+        // for a valid max-size incoming frame to have been stored there.
+        const int newOldest = 1 + (int)oldest + (int)(b[oldest]);
+        if(newOldest > lui) { oldest = 0; } // Wrap if at end (or too close for a real entry).
+        else { oldest = (uint8_t) newOldest; }
         --queuedRXedMessageCount;
         }
     }

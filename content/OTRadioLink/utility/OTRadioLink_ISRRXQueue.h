@@ -227,17 +227,21 @@ namespace OTRadioLink
     class ISRRXQueueVarLenMsgBase : public ISRRXQueue
         {
         protected:
+            // Shadow of buf.
+            volatile uint8_t *const b;
             // Maximum allowed single frame in the queue.
             const uint8_t mf;
             // BUFSIZE-1 (to fit in uint8_t); maximum allowed index in b/buf.
             const uint8_t bsm1;
-            // Shadow of buf.
-            volatile uint8_t *const b;
+            // Last usable index beyond which there is not enough space for len+maxSizeFrame.
+            const uint8_t lui;
             // Offsets to the start of the oldest and next entries in buf.
             // When oldest == next then isEmpty(), ie the queue is empty.
             volatile uint8_t oldest, next;
             // Construct an instance.
-            ISRRXQueueVarLenMsgBase(const uint8_t maxFrame, volatile uint8_t *bp, uint8_t bsm) : mf(maxFrame), bsm1(bsm), b(bp), oldest(0), next(0) { }
+            ISRRXQueueVarLenMsgBase(uint8_t maxFrame, volatile uint8_t *bp, uint8_t bsm)
+                : b(bp), mf(maxFrame), bsm1(bsm), lui(bsm - maxFrame), oldest(0), next(0)
+                { }
             // True if the queue is full.
             // True iff _getRXBufForInbound() would return NULL.
             // Must be protected against re-entrance, eg by interrupts being blocked before calling.
@@ -282,7 +286,7 @@ namespace OTRadioLink
             // Does nothing if the queue is empty.
             // Not intended to be called from an ISR.
             virtual void removeRXMsg();
-#define ISRRXQueueVarLenMsg_VALIDATE
+#undef ISRRXQueueVarLenMsg_VALIDATE
 #ifdef ISRRXQueueVarLenMsg_VALIDATE
             // Validate state, dumping diagnostics to Print stream and returning false if problems found.
             // Intended for use in debugging only.
