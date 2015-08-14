@@ -31,6 +31,7 @@ namespace OTRadioLink
 // True if the queue is full.
 // True iff _getRXBufForInbound() would return NULL.
 // Must be protected against re-entrance, eg by interrupts being blocked before calling.
+#if 0 // Inlined
 uint8_t ISRRXQueueVarLenMsgBase::_isFull() const
     {
     // If 'next' index is after 'oldest'
@@ -45,6 +46,7 @@ uint8_t ISRRXQueueVarLenMsgBase::_isFull() const
     const uint8_t spaceBeforeOldest = oldest - next;
     return(spaceBeforeOldest <= mf); // True if not enough space (including len).
     }
+#endif
 
 // True if the queue is full.
 // True iff _getRXBufForInbound() would return NULL.
@@ -60,6 +62,7 @@ uint8_t ISRRXQueueVarLenMsgBase::isFull() const
 // typically there can be no other activity on the queue until _loadedBuf()
 // or use of the pointer is abandoned.
 // _loadedBuf() should not be called if this returns NULL.
+#if 0 // Inlined
 volatile uint8_t *ISRRXQueueVarLenMsgBase::_getRXBufForInbound()
     {
     // This ISR is kept as short/fast as possible.
@@ -67,12 +70,14 @@ volatile uint8_t *ISRRXQueueVarLenMsgBase::_getRXBufForInbound()
     // Return access to content of frame area for 'next' item if queue not full.
     return(b + next + 1);
     }
+#endif
 
 // Call after loading an RXed frame into the buffer indicated by _getRXBufForInbound().
 // The argument is the size of the frame loaded into the buffer to be queued.
 // The frame can be no larger than maxRXBytes bytes.
 // It is possible to formally abandon an upload attempt by calling this with 0.
 // Must still be in the scope of the same (ISR) call as _getRXBufForInbound().
+#if 0 // Inlined
 void ISRRXQueueVarLenMsgBase::_loadedBuf(const uint8_t frameLen)
     {
     // This ISR is kept as short/fast as possible.
@@ -85,6 +90,7 @@ void ISRRXQueueVarLenMsgBase::_loadedBuf(const uint8_t frameLen)
     ++queuedRXedMessageCount;
     return;
     }
+#endif
 
 // Peek at first (oldest) queued RX message, returning a pointer or NULL if no message waiting.
 // The pointer returned is NULL if there is no message,
@@ -102,9 +108,9 @@ const volatile uint8_t *ISRRXQueueVarLenMsgBase::peekRXMsg(uint8_t &len) const
     if(isEmpty()) { return(NULL); }
     // Cannot now become empty nor can the 'oldest' index change even if an ISR is invoked,
     // thus interrupts need not be blocked here.
-    // Return access to content of 'oldest' item if queue not empty.
-    len = b[oldest];
-    return(b + oldest + 1);
+    const volatile uint8_t *p = b + oldest;
+    len = *p++;
+    return(p);
     }
 #endif
 
