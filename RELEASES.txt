@@ -15,6 +15,8 @@ pending:
     DHD20150809: started ISRRXQueueVarLenMsg (COH-44), w/ shared generic unit tests for all queue impls.
     DHD20150811: OTRFM23BLink temporarily tested ISRRXQueueVarLenMsg with a min RX queue capacity of 2.
     DHD20150814: ISRRXQueueVarLenMsg tested and (slightly) optimised.
+    DHD20150814: OTRFM23BLink again tested ISRRXQueueVarLenMsg with a min RX queue capacity of 2.
+    DHD20150814: issues still pending: TX level control, TX delay times, trim-trailing-nulls RX filter.
 
 
 
