@@ -178,6 +178,23 @@ static void testFrameFilterTrailingZeros()
   len = sizeof(buf);
   AssertIsTrue(OTRadioLink::frameFilterTrailingZeros(buf, len)); // Should never reject frame.
   AssertIsTrue(len <= sizeof(buf)); // Should not make frame bigger!
+  memset(buf, 0, sizeof(buf)); // Clear to all zeros.
+  len = sizeof(buf);
+  AssertIsTrue(OTRadioLink::frameFilterTrailingZeros(buf, len)); // Should never reject frame.
+  AssertIsEqual(1, len); // Should work with shortest (all-zeros) frame retaining final zero.
+  buf[0] = 69;
+  len = sizeof(buf);
+  AssertIsTrue(OTRadioLink::frameFilterTrailingZeros(buf, len)); // Should never reject frame.
+  AssertIsEqual(2, len); // Should work with shortest non-zero frame retaining final zero.
+  const uint8_t p = 23;
+  buf[p] = 1;
+  len = sizeof(buf);
+  AssertIsTrue(OTRadioLink::frameFilterTrailingZeros(buf, len)); // Should never reject frame.
+  AssertIsEqual(p+2, len); // Should work with intermediate frame retaining final zero.
+  buf[sizeof(buf)-1] = 42;
+  len = sizeof(buf);
+  AssertIsTrue(OTRadioLink::frameFilterTrailingZeros(buf, len)); // Should never reject frame.
+  AssertIsEqual(sizeof(buf), len); // Should work with max frame without trailing zeros.
   }
 
 // Do some basic exercise of the RFM23B class, eg that it compiles.
@@ -272,7 +289,7 @@ static void allISRRXQueue(OTRadioLink::ISRRXQueue &q)
         AssertIsTrue((queued > 0) || !q.isFull()); // Fragmentation may prevent queue becoming 'not full' immediately.
         }
       }
-  
+
     // Check that the queue is empty again.
     AssertIsEqual(0, q.getRXMsgsQueued());
     AssertIsTrue(q.isEmpty());

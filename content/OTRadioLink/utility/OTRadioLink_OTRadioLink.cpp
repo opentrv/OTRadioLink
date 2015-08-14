@@ -81,9 +81,14 @@ namespace OTRadioLink
     // and (eg with OOK operation) tail of frame buffer is filled with zeros.
     // Leaves first trailing zero for those frame types that may legitimately have one trailing zero.
     // Always returns true, ie never rejects a frame outright.
-    bool frameFilterTrailingZeros(const volatile uint8_t *buf, volatile uint8_t &buflen)
+    bool frameFilterTrailingZeros(const volatile uint8_t *const buf, volatile uint8_t &buflen)
         {
-        // TODO!
+        if(buflen <= 1) { return(true); } // Too short to trim.
+        const volatile uint8_t *b = buf + buflen - 1;
+        if(0 != *b) { return(true); } // No trailing nulls at all, so don't trim frame size.
+        // Check for first non-zero byte from end backwards.
+        while(0 == *--b) { if(b == buf) { buflen = 1; return(true); } }
+        buflen = (uint8_t)(b - buf + 2);
         return(true);
         }
 
