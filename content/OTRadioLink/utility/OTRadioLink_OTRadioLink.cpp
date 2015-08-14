@@ -76,6 +76,16 @@ namespace OTRadioLink
     // which has to be set up and running for this to work.
     void dumpRXMsg(const uint8_t *buf, const uint8_t len) { printRXMsg(&Serial, buf, len); }
 
+    // Heuristic filter, especially useful for OOK carrier, to trim (all but first) trailing zeros.
+    // Useful to fit more frames into RX queues if frame type is not explicit
+    // and (eg with OOK operation) tail of frame buffer is filled with zeros.
+    // Leaves first trailing zero for those frame types that may legitimately have one trailing zero.
+    // Always returns true, ie never rejects a frame outright.
+    bool frameFilterTrailingZeros(const volatile uint8_t *buf, volatile uint8_t &buflen)
+        {
+        // TODO!
+        return(true);
+        }
 
     // Set (or clear) the optional fast filter for RX ISR/poll; NULL to clear.
     // The routine should return false to drop an inbound frame early in processing,
