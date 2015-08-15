@@ -222,17 +222,28 @@ namespace OTRadioLink
             // Must be protected against re-entrance, eg by interrupts being blocked before calling.
             uint8_t _isFull() const
                 {
+                const uint8_t n = next, o = oldest; // Cache volatile values.
                 // If 'next' index is after 'oldest'
                 // then would be full if there weren't space for the largest possible frame
                 // but the 'next' index should have been wrapped already,
                 // so this always returns false.
-                if(next > oldest) { return(false); }
+                if(n > o) { return(false); }
                 // If 'next' index is on 'oldest' then queued-item count determines status.
-                if(next == oldest) { return(!isEmpty()); }
+                if(n == o) { return(!isEmpty()); }
                 // Else 'next' is before 'oldest'
                 // so check for enough space between them *including* the leading length.
-                const uint8_t spaceBeforeOldest = oldest - next;
+                const uint8_t spaceBeforeOldest = o - n;
                 return(spaceBeforeOldest <= mf); // True if not enough space (including len).
+                }
+            // Compute new index given old one and the length of the frame.
+            // Works for both adding a message at 'next' and removing one at 'oldest'.
+            // Is inline for speed; does not adjust any state.
+            // TODO: try to eliminate use of longer int for speed.
+            inline uint8_t newIndex(const uint8_t prevIndex, const uint8_t frameLen) const
+                {
+                const uint16_t newIndex = 1U + (uint16_t)prevIndex + (uint16_t)frameLen;
+                if(newIndex > (uint16_t)lui) { return(0); } // Wrap if too to close to end for a max-size entry.
+                return((uint8_t) newIndex);
                 }
         public:
             // True if the queue is full.
@@ -266,10 +277,9 @@ namespace OTRadioLink
                 // This ISR is kept as short/fast as possible.
                 if(0 == frameLen) { return; } // New frame not being uploaded.
                 // PANIC if frameLen > max!
-                b[next] = frameLen;
-                const int newNext = 1 + (int)next + (int)frameLen;
-                if(newNext > lui) { next = 0; } // Wrap if not enough space for new full frame before buf end.
-                else { next = (uint8_t) newNext; }
+                const uint8_t n = next; // Cache volatile value.
+                b[n] = frameLen;
+                next = newIndex(n, frameLen);
                 ++queuedRXedMessageCount;
                 return;
                 }
