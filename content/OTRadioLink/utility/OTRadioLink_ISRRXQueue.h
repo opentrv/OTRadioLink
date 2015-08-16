@@ -18,6 +18,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 
 /*
  * OpenTRV Radio Link base class.
+ *
+ * Keywords: C++ embedded Arduino interrupt ISR radio RX receive queue ring buffer low-copy
  */
 
 #ifndef ARDUINO_LIB_OTRADIOLINK_ISRRXQUEUE_H
