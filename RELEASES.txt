@@ -9,6 +9,20 @@ or release/freeze points.
 
 
 pending:
+    DHD20150817: issues still pending: TX level control.
+
+
+
+
+
+
+
+20150817:
+    freezepoint name: V0.8
+    branch name: HEAD
+    Deployed where: 16WW (released copy on GitHub https://github.com/DamonHD/OTRadioLink V0.8).
+    Changes since last freezepoint (developer/mgr initials and brief description):
+    Previous significant freezepoint: V0.7
     DHD20150808: starting V0.08...  (aiming to allow better, testable, RX queueing)
     DHD20150808: fixed possible timing bug in OneWire impl due to missing brackets in delay macro.
     DHD20150808: created ISRRXQueue1Deep, and tested and deployed in OTRFM23BLink.
@@ -16,11 +30,11 @@ pending:
     DHD20150811: OTRFM23BLink temporarily tested ISRRXQueueVarLenMsg with a min RX queue capacity of 2.
     DHD20150814: ISRRXQueueVarLenMsg tested and (slightly) optimised.
     DHD20150814: OTRFM23BLink again tested ISRRXQueueVarLenMsg with a min RX queue capacity of 2.
-    DHD20150814: implemented/tested OTRadioLink::frameFilterTrailingZeros().
-    DHD20150814: issues still pending: TX level control, TX delay times.
-
-
-
+    DHD20150814: *implemented ISRRXQueueVarLenMsg (COH-44), n-deep RX queueing.
+    DHD20150814: *OTRFM23BLink using ISRRXQueueVarLenMsg with a default min RX queue capacity of 2.
+    DHD20150814: *implemented/tested OTRadioLink::frameFilterTrailingZeros().
+    DHD20150817: replaced TX delay with code that does not need timer1 / delay() support.
+    DHD20150817: preparing to release: issues still pending: TX level control.
 
 20150805:
     freezepoint name: V0.7
@@ -29,7 +43,7 @@ pending:
     Changes since last freezepoint (developer/mgr initials and brief description):
     Previous significant freezepoint: V0.6
     DHD20150804: starting V0.7... (aiming to work better in busy channel w/ filtering, queueing, TX level ctl)
-    DHD20150804: added in-ISR RX filtering.
+    DHD20150804: *added in-ISR RX filtering.
     DHD20150805: fixing some scope issues around delay_us().
     DHD20150805: issues still pending: n-deep RX queue, TX level control, double-TX kludge, TX delay times.
 
@@ -47,7 +61,7 @@ pending:
     Deployed where:  (released copy on GitHub https://github.com/DamonHD/OTRadioLink V0.5).
     Changes since last freezepoint (developer/mgr initials and brief description):
     Previous significant freezepoint: V0.4
-    DHD20150727: migrated in RND8 PRNG code.
+    DHD20150727: *migrated in RND8 PRNG code.
     DHD20150802: fixed bug in FTp2_FullStatsIDx values
 
 20150727:
@@ -69,7 +83,7 @@ pending:
     Previous significant freezepoint: V0.2
     DHD20150723: tweaking default RX FIFO threshold.
     DHD20150723: V0.3-alpha: OTRFM23BLink probably manages the basics now at least poll-driven.
-    DHD20150724: COH-8: servicing of RX in interrupt allows handling longer frames without RX overrun.
+    DHD20150724: *COH-8: servicing of RX in interrupt allows handling longer frames without RX overrun.
     DHD20150726: V0.3-beta: short of bugs, eg in TX, this should be close! 
 
 20150719:

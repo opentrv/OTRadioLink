@@ -132,7 +132,8 @@ bool OTRFM23BLinkBase::_TXFIFO()
         _modeTX_();
         }
 
-    delay(1); // FIXME: does this help?
+    // RFM23B data sheet claims up to 800uS from standby to TX; be conservative,
+    ::OTV0P2BASE::_delay_x4(250); // Spin CPU for ~1ms; does not depend on timer1, etc.
 
     // Repeatedly nap until packet sent, with upper bound of ~120ms on TX time in case there is a problem.
     // (TX time is ~1.6ms per byte at 5000bps.)
@@ -140,10 +141,10 @@ bool OTRFM23BLinkBase::_TXFIFO()
     // Status is failed until RFM23B gives positive confirmation of frame sent.
     bool result = false;
     // Spin until TX complete or timeout.
-    const unsigned long startms = millis();
-    while(millis() - startms < MAX_TX_ms)
+    for(int i = MAX_TX_ms; --i >= 0; )
         {
-        delay(1); // FIXME: does this help?
+        // Spin CPU for ~1ms; does not depend on timer1, delay(), millis(), etc, Arduino support.
+        ::OTV0P2BASE::_delay_x4(250);
         // FIXME: don't have nap() support yet // nap(WDTO_15MS, true); // Sleep in low power mode for a short time waiting for bits to be sent...
         const uint8_t status = _readReg8Bit_(REG_INT_STATUS1); // TODO: could use nIRQ instead if available.
         if(status & 4) { result = true; break; } // Packet sent!
