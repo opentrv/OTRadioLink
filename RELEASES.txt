@@ -9,7 +9,7 @@ or release/freeze points.
 
 
 pending:
-    DHD20150817: issues still pending: TX level control.
+    DHD20150817: issues still pending: TX level control, support for multiple channels, RX filter signature.
 
 
 
