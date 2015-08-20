@@ -32,7 +32,7 @@ namespace OTRadioLink
     enum FrameType_V0p2_FS20
         {
         // An FS20 encoded (valve position) message is indicated by one or more leading 0xcc bytes.
-        // (35--45 bytes + possible trailing stats frame 3--8 including trailing CRC7, plain-text.)
+        // (35--45 bytes + possible 3--8 byte trailing stats frame including trailing CRC7, plain-text.)
         FTp2_FS20_native             = 0xcc,
 
         // 'Full stats' standalone.
@@ -56,6 +56,10 @@ namespace OTRadioLink
     // For those that are *not* FS20 a high bit set (0x80) indicates a secure message format variant.
     // (For such secure frames the frame type should generally be part of the authenticated data.)
     const static uint8_t V0P2_FRAME_TYPE_NONFS20_SEC_FLAG = 0x80;
+
+    // Size bounds of FS20 frame as seen by V0p2 code with raw 5kbps fixed-bit-width decode.
+    const static uint8_t V0P2_MESSAGING_FS20_MIN_BYTES = 35;
+    const static uint8_t V0P2_MESSAGING_FS20_MAX_BYTES = 45;
 
     // V0p2 Full Stats Message (short ID)
     // ==================================
@@ -96,11 +100,11 @@ namespace OTRadioLink
     // and to allow time from final byte arriving to collect the data without overrun.
     //
     // Absolute maximum, eg with RFM23B / FS20 OOK carrier (and interrupt-serviced RX at hub).
-    const static int MSG_JSON_ABS_MAX_LENGTH = 55;
+    const static int V0P2_MESSAGING_JSON_ABS_MAX_LENGTH = 55;
     // Typical/recommended maximum.
-    const static int MSG_JSON_MAX_LENGTH = 54;
+    const static int V0P2_MESSAGING_JSON_MAX_LENGTH = 54;
     // Maximum for frames in 'secure' format, eg with authentication and encryption wrappers.
-    const static int MSG_JSON_MAX_LENGTH_SECURE = 32;
+    const static int V0P2_MESSAGING_JSON_MAX_LENGTH_SECURE = 32;
     }
 
 #endif
