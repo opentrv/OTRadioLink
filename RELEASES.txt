@@ -10,7 +10,7 @@ or release/freeze points.
 
 pending:
     DHD20150817: issues still pending: TX level control, support for multiple channels, RX filter signature.
-
+    DHD20150820: starting V0.9...
 
 
 
@@ -23,7 +23,7 @@ pending:
     Deployed where: 16WW (released copy on GitHub https://github.com/DamonHD/OTRadioLink V0.8).
     Changes since last freezepoint (developer/mgr initials and brief description):
     Previous significant freezepoint: V0.7
-    DHD20150808: starting V0.08...  (aiming to allow better, testable, RX queueing)
+    DHD20150808: starting V0.8...  (aiming to allow better, testable, RX queueing)
     DHD20150808: fixed possible timing bug in OneWire impl due to missing brackets in delay macro.
     DHD20150808: created ISRRXQueue1Deep, and tested and deployed in OTRFM23BLink.
     DHD20150809: started ISRRXQueueVarLenMsg (COH-44), w/ shared generic unit tests for all queue impls.

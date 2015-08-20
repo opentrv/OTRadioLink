@@ -32,11 +32,11 @@ namespace OTRadioLink
     enum FrameType_V0p2_FS20
         {
         // An FS20 encoded (valve position) message is indicated by one or more leading 0xcc bytes.
-        // (Maximum 45 bytes + possible trailing stats frame 3--10 including trailing CRC7, plain-text.)
+        // (35--45 bytes + possible trailing stats frame 3--8 including trailing CRC7, plain-text.)
         FTp2_FS20_native             = 0xcc,
 
         // 'Full stats' standalone.
-        // (At most 10 bytes including trailing CRC7, plain-text.)
+        // (At most 8 bytes including trailing CRC7, plain-text.)
         FTp2_FullStatsIDL            = 't', // 0x74
         FTp2_FullStatsIDH            = 'v', // 0x76
 
@@ -84,6 +84,8 @@ namespace OTRadioLink
     const static uint8_t V0P2_MESSAGING_LEADING_FULL_STATS_HEADER_MASK = 0xfc;
     const static uint8_t V0P2_MESSAGING_LEADING_FULL_STATS_HEADER_BITS_ID_PRESENT = 4;
     const static uint8_t V0P2_MESSAGING_LEADING_FULL_STATS_HEADER_BITS_ID_HIGH = 2;
+    const static uint8_t V0P2_MESSAGING_LEADING_FULL_STATS_MIN_BYTES_ON_WIRE = 3;
+    const static uint8_t V0P2_MESSAGING_LEADING_FULL_STATS_MAX_BYTES_ON_WIRE = 8;
 
     // Maximum length of raw JSON (ASCII7 printable text) object {...} message payload.
     // Maximum length of JSON (text) message payload.
