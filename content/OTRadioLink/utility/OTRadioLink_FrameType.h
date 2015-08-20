@@ -96,11 +96,11 @@ namespace OTRadioLink
     // and to allow time from final byte arriving to collect the data without overrun.
     //
     // Absolute maximum, eg with RFM23B / FS20 OOK carrier (and interrupt-serviced RX at hub).
-    const static int MSG_JSON_ABS_MAX_LENGTH = 55;
+    const static int V0P2_MESSAGING_JSON_ABS_MAX_LENGTH = 55;
     // Typical/recommended maximum.
-    const static int MSG_JSON_MAX_LENGTH = 54;
+    const static int V0P2_MESSAGING_JSON_MAX_LENGTH = 54;
     // Maximum for frames in 'secure' format, eg with authentication and encryption wrappers.
-    const static int MSG_JSON_MAX_LENGTH_SECURE = 32;
+    const static int V0P2_MESSAGING_JSON_MAX_LENGTH_SECURE = 32;
     }
 
 #endif
