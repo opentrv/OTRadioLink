@@ -17,8 +17,6 @@ pending:
 
 
 
-
-
 20150817:
     freezepoint name: V0.8
     branch name: HEAD
