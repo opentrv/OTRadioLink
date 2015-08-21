@@ -5,7 +5,7 @@ Library format: pre-1.5-IDE
 Description
 ===========
 
-The 'OTRadioLink' OpenTRV Radio Comms Link definitions library.
+The 'OTV0p2Base' OpenTRV basic hardware, power and sensor support library.
 
 Uses as namespace to help reduce chance of name collisions.
 
@@ -34,4 +34,3 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 Notes
 =====
 
-Initially (2015/07) built on Mac OS X 10.10 Arduino 1.0.5.
