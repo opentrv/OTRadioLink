@@ -18,7 +18,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 
 /*
  Simple/small/fast Pseudo-Random Number Generator support.
- 
+
  For when rand()/random() are too big/slow/etc.
  */
 
@@ -48,5 +48,6 @@ static inline bool randRNG8NextBoolean() { return(0 != (0x8 & randRNG8())); }
 }
 
 #endif
+
 
 

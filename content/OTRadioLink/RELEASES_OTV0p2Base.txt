@@ -10,6 +10,7 @@ or release/freeze points.
 
 pending:
     DHD20150821: starting split of this RELEASES note from OTRadioLink.
+    DHD20150821: D21SM: moved MinimalOneWire support to base support library from mainline code.
 
 
 

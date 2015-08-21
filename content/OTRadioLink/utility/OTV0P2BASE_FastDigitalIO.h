@@ -24,6 +24,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #ifndef OTV0P2BASE_FASTDIGITALIO_H
 #define OTV0P2BASE_FASTDIGITALIO_H
 
+#include <Arduino.h>
+
 namespace OTV0P2BASE
 {
 
