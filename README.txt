@@ -22,4 +22,4 @@ OTRadioLink
 
 OTV0P2BASE
 
-The lowest of these depends only on the Arduino run-time.
+The lowest of these nominally depends only on the Arduino run-time and the hardware.
