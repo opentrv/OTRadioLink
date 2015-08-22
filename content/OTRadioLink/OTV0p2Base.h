@@ -22,6 +22,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #define ARDUINO_LIB_OTV0P2BASE_VERSION_MAJOR 0
 #define ARDUINO_LIB_OTV0P2BASE_VERSION_MINOR 9
 
+// Base hardware, power and system management for V0p2 AVR-based (ATMega328P) OpenTRV boards.
 
 // Quick/simple PRNG (Pseudo-Random Number Generator).
 #include "utility/OTV0P2BASE_QuickPRNG.h"
