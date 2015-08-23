@@ -44,4 +44,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #include "utility/OTV0P2BASE_Sleep.h"
 #include "utility/OTV0P2BASE_PowerManagement.h"
 
+// Entropy management.
+#include "utility/OTV0P2BASE_Entropy.h"
+
 #endif

@@ -468,6 +468,100 @@ static void testRNG8()
   static uint8_t c1, c2;
   OTV0P2BASE::seedRNG8(r, ++c1, c2--);
   }
+// Tests of entropy gathering routines.
+//
+// Maximum number of identical nominally random bits (or values with approx one bit of entropy) in a row tolerated.
+// Set large enough that even soak testing for many hours should not trigger a failure if behaviour is plausibly correct.
+#define MAX_IDENTICAL_BITS_SEQUENTIALLY 32
+void testEntropyGathering()
+  {
+  Serial.println("EntropyGathering");
+  Serial.println("  FIXME: tests need re-enabling here"); // When code moves over.
+
+  // Test WDT jitter: assumed about 1 bit of entropy per call/result.
+  //DEBUG_SERIAL_PRINT_FLASHSTRING("jWDT... ");
+  const uint8_t jWDT = OTV0P2BASE::clockJitterWDT();
+  for(int i = MAX_IDENTICAL_BITS_SEQUENTIALLY; --i >= 0; )
+    {
+    if(jWDT != OTV0P2BASE::clockJitterWDT()) { break; } // Stop as soon as a different value is obtained.
+    AssertIsTrueWithErr(0 != i, i); // Generated too many identical values in a row. 
+    }
+  //DEBUG_SERIAL_PRINT_FLASHSTRING(" 1st=");
+  //DEBUG_SERIAL_PRINTFMT(jWDT, BIN);
+  //DEBUG_SERIAL_PRINTLN();
+
+#ifndef NO_clockJitterRTC
+  // Test RTC jitter: assumed about 1 bit of entropy per call/result.
+  //DEBUG_SERIAL_PRINT_FLASHSTRING("jRTC... ");
+  // FIXME // for(const uint8_t t0 = getSubCycleTime(); t0 == getSubCycleTime(); ) { } // Wait for sub-cycle time to roll to toughen test.
+  const uint8_t jRTC = OTV0P2BASE::clockJitterRTC();
+  for(int i = MAX_IDENTICAL_BITS_SEQUENTIALLY; --i >= 0; )
+    {
+    if(jRTC != OTV0P2BASE::clockJitterRTC()) { break; } // Stop as soon as a different value is obtained.
+    AssertIsTrue(0 != i); // Generated too many identical values in a row. 
+    }
+  //DEBUG_SERIAL_PRINT_FLASHSTRING(" 1st=");
+  //DEBUG_SERIAL_PRINTFMT(jRTC, BIN);
+  //DEBUG_SERIAL_PRINTLN();
+#endif
+
+#ifndef NO_clockJitterEntropyByte
+  // Test full-byte jitter: assumed about 8 bits of entropy per call/result.
+  //DEBUG_SERIAL_PRINT_FLASHSTRING("jByte... ");
+  //const uint8_t t0j = getSubCycleTime();
+  // FIXME // while(t0j == getSubCycleTime()) { } // Wait for sub-cycle time to roll to toughen test.
+  const uint8_t jByte = OTV0P2BASE::clockJitterEntropyByte();
+
+  for(int i = MAX_IDENTICAL_BITS_SEQUENTIALLY/8; --i >= 0; )
+    {
+    if(jByte != OTV0P2BASE::clockJitterEntropyByte()) { break; } // Stop as soon as a different value is obtained.
+    AssertIsTrue(0 != i); // Generated too many identical values in a row. 
+    }
+  //DEBUG_SERIAL_PRINT_FLASHSTRING(" 1st=");
+  //DEBUG_SERIAL_PRINTFMT(jByte, BIN);
+  //DEBUG_SERIAL_PRINT_FLASHSTRING(", ticks=");
+  //DEBUG_SERIAL_PRINT((uint8_t)(t1j - t0j - 1));
+  //DEBUG_SERIAL_PRINTLN();
+#endif
+  
+//  // Test noisy ADC read: assumed at least one bit of noise per call/result.
+//  const uint8_t nar1 = noisyADCRead(true);
+//#if 0
+//  DEBUG_SERIAL_PRINT_FLASHSTRING("nar1 ");
+//  DEBUG_SERIAL_PRINTFMT(nar1, BIN);
+//  DEBUG_SERIAL_PRINTLN();
+//#endif
+//  for(int i = MAX_IDENTICAL_BITS_SEQUENTIALLY; --i >= 0; )
+//    {
+//    const uint8_t nar = noisyADCRead(true);
+//    if(nar1 != nar) { break; } // Stop as soon as a different value is obtained.
+//#if 0
+//    DEBUG_SERIAL_PRINT_FLASHSTRING("repeat nar ");
+//    DEBUG_SERIAL_PRINTFMT(nar, BIN);
+//    DEBUG_SERIAL_PRINTLN();
+//#endif
+//    AssertIsTrue(0 != i); // Generated too many identical values in a row. 
+//    }
+
+//  for(int w = 0; w < 2; ++w)
+//    {
+//    const bool whiten = (w != 0);
+//    // Test secure random byte generation with and without whitening
+//    // to try to ensure that the underlying generation is sound.
+//    const uint8_t srb1 = getSecureRandomByte(whiten);
+//#if 0
+//    DEBUG_SERIAL_PRINT_FLASHSTRING("srb1 ");
+//    DEBUG_SERIAL_PRINTFMT(srb1, BIN);
+//    if(whiten) { DEBUG_SERIAL_PRINT_FLASHSTRING(" whitened"); } 
+//    DEBUG_SERIAL_PRINTLN();
+//#endif
+//    for(int i = MAX_IDENTICAL_BITS_SEQUENTIALLY/8; --i >= 0; )
+//      {
+//      if(srb1 != getSecureRandomByte(whiten)) { break; } // Stop as soon as a different value is obtained.
+//      AssertIsTrue(0 != i); // Generated too many identical values in a row. 
+//      }
+//    }
+  }
 
 
 
@@ -504,6 +598,7 @@ void loop()
 
   // OTV0p2Base
   testRNG8();
+  testEntropyGathering();
 
 
   // Announce successful loop completion and count.

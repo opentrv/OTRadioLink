@@ -27,15 +27,17 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 
 #include <stddef.h>
 #include <stdint.h>
-
 #include <util/atomic.h> // Atomic primitives for AVR.
+#include <Arduino.h>
 
+#include <OTV0p2Base.h>
 #include <OTRadioLink.h>
 
-#include <Arduino.h>
-#include "OTV0P2BASE_BasicPinAssignments.h"
-#include "OTV0P2BASE_FastDigitalIO.h"
-#include "OTV0P2BASE_PowerManagement.h"
+//#include "OTV0P2BASE_BasicPinAssignments.h"
+//#include "OTV0P2BASE_FastDigitalIO.h"
+//#include "OTV0P2BASE_PowerManagement.h"
+//#include "OTV0P2BASE_Sleep.h"
+
 #include "OTRadioLink_ISRRXQueue.h"
 
 namespace OTRFM23BLink
