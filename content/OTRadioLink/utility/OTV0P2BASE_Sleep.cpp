@@ -84,7 +84,6 @@ bool idleCPU(const int_fast8_t watchdogSleep, const bool allowPrematureWakeup)
   _watchdogFired = 0;
   wdt_enable(watchdogSleep);
   WDTCSR |= (1 << WDIE);
-
   // Keep sleeping until watchdog actually fires, unless premature return is permitted.
   for( ; ; )
     {
@@ -97,8 +96,6 @@ bool idleCPU(const int_fast8_t watchdogSleep, const bool allowPrematureWakeup)
       return(fired);
       }
     }
-
-  return(0 != _watchdogFired);
   }
 
 // Sleep briefly in as lower-power mode as possible until the specified (watchdog) time expires.
@@ -109,10 +106,8 @@ void nap(const int_fast8_t watchdogSleep)
   {
   // Watchdog should (already) be disabled on entry.
   _watchdogFired = 0;
-
   wdt_enable(watchdogSleep);
   WDTCSR |= (1 << WDIE);
-
   // Keep sleeping until watchdog actually fires.
   for( ; ; )
     {
@@ -135,10 +130,8 @@ bool nap(const int_fast8_t watchdogSleep, const bool allowPrematureWakeup)
   {
   // Watchdog should (already) be disabled on entry.
   _watchdogFired = 0;
-
   wdt_enable(watchdogSleep);
   WDTCSR |= (1 << WDIE);
-
   // Keep sleeping until watchdog actually fires, unless premature return is permitted.
   for( ; ; )
     {
