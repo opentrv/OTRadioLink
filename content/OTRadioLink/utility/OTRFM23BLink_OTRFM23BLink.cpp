@@ -206,7 +206,7 @@ bool OTRFM23BLinkBase::sendRaw(const uint8_t *const buf, const uint8_t buflen, c
     return(result);
     }
 
-// Switch listening off, on on to selected channel.
+// Switch listening off, on to selected channel.
 // listenChannel will have been set by time this is called.
 // This always switches to standby mode first, then switches on RX as needed.
 void OTRFM23BLinkBase::_dolisten()

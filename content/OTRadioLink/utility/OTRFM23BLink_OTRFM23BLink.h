@@ -191,7 +191,7 @@ namespace OTRFM23BLink
             // Trailing bytes (more than were actually sent) undefined.
             void _RXFIFO(uint8_t *buf, const uint8_t bufSize);
 
-            // Switch listening off, on on to selected channel.
+            // Switch listening off, on to selected channel.
             // listenChannel will have been set by time this is called.
             virtual void _dolisten();
 
