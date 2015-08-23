@@ -40,7 +40,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 // Basic immutable GPIO assignments and similar.
 #include "utility/OTV0P2BASE_BasicPinAssignments.h"
 
-// Power management and other misc support.
+// Power and I/O management and other misc support.
+#include "utility/OTV0P2BASE_Sleep.h"
 #include "utility/OTV0P2BASE_PowerManagement.h"
 
 #endif

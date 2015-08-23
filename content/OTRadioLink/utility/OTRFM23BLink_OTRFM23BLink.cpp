@@ -32,7 +32,7 @@ void OTRFM23BLinkBase::setMaxTypicalFrameBytes(const uint8_t _maxTypicalFrameByt
     }
 
 // Returns true iff RFM23 appears to be correctly connected.
-bool OTRFM23BLinkBase::_checkConnected()
+bool OTRFM23BLinkBase::_checkConnected() const
     {
     const bool neededEnable = _upSPI_();
     bool isOK = false;
@@ -175,7 +175,7 @@ bool OTRFM23BLinkBase::sendRaw(const uint8_t *const buf, const uint8_t buflen, c
     // Should not need to lock out interrupts while sending
     // as no poll()/ISR should start until this completes,
     // but will need to stop any RX in process,
-    // eg to avoid TX buffer being zapped.
+    // eg to avoid TX FIFO buffer being zapped during RX handling.
 
     // Disable all interrupts (eg to avoid invoking the RX handler).
     _modeStandbyAndClearState_();
@@ -189,12 +189,8 @@ bool OTRFM23BLinkBase::sendRaw(const uint8_t *const buf, const uint8_t buflen, c
     if(power >= TXmax)
         {
         // Wait a little before retransmission.
-        // nap(WDTO_15MS, false); // FIXME: no nap() support yet // Sleeping with interrupts disabled?
-        delay(15);
-
-//        // FIXME: should just be able to resend FIFO without reloading.
-//        _modeStandbyAndClearState_();
-//        _queueFrameInTXFIFO(buf, buflen);
+        // nap(WDTO_15MS, false); // FIXME: no nap() or idle() support yet // Sleeping with interrupts disabled?
+        delay(15); // FIXME: make this a configurable value.
 
         // Resend the frame.
         if(!_TXFIFO()) { result = false; }
