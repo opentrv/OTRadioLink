@@ -151,7 +151,7 @@ bool nap(const int_fast8_t watchdogSleep, const bool allowPrematureWakeup)
 
 #include <util/crc16.h>
 
-// Capture a little entropy from clock jitter between CPU and WDT clocks; possibly one bit of entropy captured.
+// Extract and return a little entropy from clock jitter between CPU and WDT clocks; possibly one bit of entropy captured.
 // Expensive in terms of CPU time and thus energy.
 // TODO: may be able to reduce clock speed to lower energy cost while still detecting useful jitter.
 // NOTE: in this file to have direct access to WDT.
@@ -166,7 +166,7 @@ uint_fast8_t clockJitterWDT()
   return(count);
   }
 
-// Combined clock jitter techniques to generate approximately 8 bits (the entire result byte) of entropy efficiently on demand.
+// Combined clock jitter techniques to return approximately 8 bits (the entire result byte) of entropy efficiently on demand.
 // Expensive in terms of CPU time and thus energy, though possibly more efficient than basic clockJitterXXX() routines.
 // Internally this uses a CRC as a relatively fast and hopefully effective hash over intermediate values.
 // Note the that rejection of repeat values will be less effective with two interleaved gathering mechanisms

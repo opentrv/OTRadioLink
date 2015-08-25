@@ -33,17 +33,31 @@ namespace OTV0P2BASE
 // Note that implementation of routines declared here may be dispersed over multiple files
 // to have access to some of the available entropy in the system.
 
-// Capture a little entropy from clock jitter between CPU and WDT clocks; possibly one bit of entropy captured.
+// Extract and return a little entropy from clock jitter between CPU and WDT clocks; possibly one bit of entropy captured.
 // Expensive in terms of CPU time and thus energy.
 uint_fast8_t clockJitterWDT();
 
-// Capture a little entropy from clock jitter between CPU and 32768Hz RTC clocks; possibly up to 2 bits of entropy captured.
+// Extract and return a little entropy from clock jitter between CPU and 32768Hz RTC clocks; possibly up to 2 bits of entropy captured.
 // Expensive in terms of CPU time and thus energy.
 uint_fast8_t clockJitterRTC();
 
-// Combined clock jitter techniques to generate approximately 8 bits (the entire result byte) of entropy efficiently on demand.
+// Combined clock jitter techniques to return approximately 8 bits (the entire result byte) of entropy efficiently on demand.
 // Expensive in terms of CPU time and thus energy, though possibly more efficient than basic clockJitterXXX() routines.
 uint_fast8_t clockJitterEntropyByte();
+
+//// Generate 'secure' new random byte.
+//// This should be essentially all entropy and unguessable.
+//// Likely to be slow and may force some I/O.
+//// Not thread-/ISR- safe.
+////  * whiten  if true whiten the output a little more, but little or no extra entropy is added;
+////      if false then it is easier to test if the underlying source provides new entropy reliably
+//uint8_t getSecureRandomByte(bool whiten = true);
+
+// Add entropy to the pool, if any, along with an estimate of how many bits of real entropy are present.
+//   * data   byte containing 'random' bits.
+//   * estBits estimated number of truely securely random bits in range [0,8].
+// Not thread-/ISR- safe.
+void addEntropyToPool(uint8_t data, uint8_t estBits);
 
 
 }
