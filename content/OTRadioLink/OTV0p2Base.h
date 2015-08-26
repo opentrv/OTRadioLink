@@ -37,6 +37,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
   Basic AVR power consumption ticking an (empty) control loop at ~0.5Hz should be ~1uA.
  */
 
+// EEPROM allocation and access.
+#include "utility/OTV0P2BASE_EEPROM.h"
 
 // Quick/simple PRNG (Pseudo-Random Number Generator).
 #include "utility/OTV0P2BASE_QuickPRNG.h"
@@ -57,6 +59,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 // Power and I/O management and other misc support.
 #include "utility/OTV0P2BASE_Sleep.h"
 #include "utility/OTV0P2BASE_PowerManagement.h"
+
+// Software Real-Time Clock (RTC) support.
+#include "utility/OTV0P2BASE_RTC.h"
 
 // Entropy management.
 #include "utility/OTV0P2BASE_Entropy.h"

@@ -448,6 +448,27 @@ static void testISRRXQueueVarLenMsg()
 
 
 // BASE
+// Self-test of EEPROM functioning (and smart/split erase/write).
+// Will not usually perform any wear-inducing activity (is idempotent).
+static void testEEPROM()
+  {
+  Serial.println("EEPROM");
+  if((uint8_t) 0xff != eeprom_read_byte((uint8_t*)V0P2BASE_EE_START_TEST_LOC))
+    {
+    AssertIsTrue(OTV0P2BASE::eeprom_smart_erase_byte((uint8_t*)V0P2BASE_EE_START_TEST_LOC)); // Should have attempted erase.
+    AssertIsEqual((uint8_t) 0xff, eeprom_read_byte((uint8_t*)V0P2BASE_EE_START_TEST_LOC)); // Should have erased.
+    }
+  AssertIsTrue(!OTV0P2BASE::eeprom_smart_erase_byte((uint8_t*)V0P2BASE_EE_START_TEST_LOC)); // Should not need erase nor attempt one.
+
+  const uint8_t eaTestPattern = 0xa5; // Test pattern for masking (selective bit clearing).
+  if(0 != ((~eaTestPattern) & eeprom_read_byte((uint8_t*)V0P2BASE_EE_START_TEST_LOC2))) // Will need to clear some bits.
+    {
+      AssertIsTrue(OTV0P2BASE::eeprom_smart_clear_bits((uint8_t*)V0P2BASE_EE_START_TEST_LOC2, eaTestPattern)); // Should have attempted write.
+      AssertIsEqual(0, ((~eaTestPattern) & eeprom_read_byte((uint8_t*)V0P2BASE_EE_START_TEST_LOC2))); // Should have written.
+    }
+  AssertIsTrue(!OTV0P2BASE::eeprom_smart_clear_bits((uint8_t*)V0P2BASE_EE_START_TEST_LOC2, eaTestPattern)); // Should not need write nor attempt one.
+  }
+
 // Test for expected behaviour of RNG8 PRNG starting from a known state.
 static void testRNG8()
   {
@@ -468,6 +489,7 @@ static void testRNG8()
   static uint8_t c1, c2;
   OTV0P2BASE::seedRNG8(r, ++c1, c2--);
   }
+
 // Tests of entropy gathering routines.
 //
 // Maximum number of identical nominally random bits (or values with approx one bit of entropy) in a row tolerated.
@@ -597,6 +619,7 @@ void loop()
   testRFM23B();
 
   // OTV0p2Base
+  testEEPROM();
   testRNG8();
   testEntropyGathering();
 

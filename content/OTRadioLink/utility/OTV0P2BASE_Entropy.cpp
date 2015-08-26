@@ -17,8 +17,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 */
 
 /*
-  Routines for managing entropy for (crypto) random number generation.
-  */
+ Routines for managing entropy for (crypto) random number generation.
+ */
 
 #include <Arduino.h>
 

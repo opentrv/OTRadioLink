@@ -17,8 +17,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 */
 
 /*
-  Routines for managing entropy for (crypto) random number generation.
-  */
+ Routines for managing entropy for (crypto) random number generation.
+ */
 
 #ifndef OTV0P2BASE_ENTROPY_H
 #define OTV0P2BASE_ENTROPY_H
