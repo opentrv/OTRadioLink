@@ -24,6 +24,20 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 
 // Base hardware, power and system management for V0p2 AVR-based (ATMega328P) OpenTRV boards.
 
+/*
+  V0p2 (V0.2) core.
+
+  DHD20130417: hardware setup on bare board.
+    * 1MHz CPU clock (from 8MHz internal RC clock with /8 prescaler) ATmega328P running at 1.8V--5V (typically 2V--3.3V).
+    * Fuse set for BOD-managed additional clock settle time, ie as fast a restart from sleep as possible.
+    * All unused pins unconnected and nominally floating (though driven low as output where possible).
+    * 32768Hz xtal between pins XTAL1 and XTAL2, async timer 2, for accurate timekeeping and low-power sleep.
+    * All unused system modules turned off.
+
+  Basic AVR power consumption ticking an (empty) control loop at ~0.5Hz should be ~1uA.
+ */
+
+
 // Quick/simple PRNG (Pseudo-Random Number Generator).
 #include "utility/OTV0P2BASE_QuickPRNG.h"
 
