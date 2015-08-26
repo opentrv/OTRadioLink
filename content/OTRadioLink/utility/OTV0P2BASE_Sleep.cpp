@@ -146,6 +146,22 @@ bool nap(const int_fast8_t watchdogSleep, const bool allowPrematureWakeup)
   }
 
 
+// Sleep for specified number of _delay_loop2() loops at minimum available CPU speed.
+// Each loop takes 4 cycles at that minimum speed, but entry and exit overheads may take the equivalent of a loop or two.
+// Note: inlining is prevented so as to avoid migrating anything into the section where the CPU is running slowly.
+//
+// Note: may be dubious to run CPU clock less than 4x 32768Hz crystal speed,
+// eg at 31250Hz for 8MHz RC clock and max prescale.
+// Don't access timer 2 registers at low CPU speed, eg in ISRs.
+//
+// This may only be safe to use in practice with interrupts disabled.
+__attribute__ ((noinline)) void _sleepLowPowerLoopsMinCPUSpeed(uint16_t loops)
+  {
+  const clock_div_t prescale = clock_prescale_get(); // Capture current prescale value.
+  clock_prescale_set(MAX_CPU_PRESCALE); // Reduce clock speed (increase prescale) as far as possible.
+  _delay_loop_2(loops); // Burn cycles...
+  clock_prescale_set(prescale); // Restore clock prescale.
+  }
 
 
 

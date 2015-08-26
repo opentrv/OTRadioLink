@@ -44,6 +44,10 @@ namespace OTV0P2BASE
 // nap() routines put the AVR into power-save mode with WTD wake-up (typ 0.8uA+ @1.8V);
 //   stops I/O clocks and all timers except timer 2 (for the RTC).
 // Sleeping in power save mode as per napXXX() waits for timer 2 or external interrupt (typ 0.8uA+ @1.8V).
+//
+// It is also possible to save some power by slowing the CPU clock,
+// though that may disrupt connected timing for I/O device such as the UART,
+// and would possibly cause problems for ISRs invoked while the clock is slow.
 
 // Sleep with BOD disabled in power-save mode; will wake on any interrupt.
 // This particular API is not guaranteed to be maintained: please use sleepUntilInt() instead.
@@ -74,6 +78,57 @@ void nap(int_fast8_t watchdogSleep);
 // May be useful to call minimsePowerWithoutSleep() first, when not needing any modules left on.
 // NOTE: will stop clocks for UART, etc.
 bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);
+
+
+// If CPU clock is 1MHz then *assume* that it is the 8MHz internal RC clock prescaled by 8 unless DEFAULT_CPU_PRESCALE is defined.
+#if F_CPU == 1000000L
+static const uint8_t DEFAULT_CPU_PRESCALE = 3;
+#else
+static const uint8_t DEFAULT_CPU_PRESCALE = 1;
+#endif
+
+static const clock_div_t MAX_CPU_PRESCALE = clock_div_256; // At least for the ATmega328P...
+// Minimum scaled CPU clock speed; expected to be 31250Hz when driven from 8MHz RC clock.
+#if F_CPU > 16000000L
+static const uint32_t MIN_CPU_HZ = ((F_CPU) >> (((int) MAX_CPU_PRESCALE) - (DEFAULT_CPU_PRESCALE)));
+#else
+static const uint16_t MIN_CPU_HZ = ((F_CPU) >> (((int) MAX_CPU_PRESCALE) - (DEFAULT_CPU_PRESCALE)));
+#endif
+
+// Sleep for specified number of _delay_loop2() loops at minimum available CPU speed.
+// Each loop takes 4 cycles at that minimum speed, but entry and exit overheads may take the equivalent of a loop or two.
+// Note: inlining is prevented so as to avoid migrating anything into the section where the CPU is running slowly.
+// Not recommended as-is as may interact badly with interrupts if used naively (eg ISR code runs very slowly).
+// This may only be safe to use with interrupts disabled.
+void _sleepLowPowerLoopsMinCPUSpeed(uint16_t loops) __attribute__ ((noinline));
+// Sleep/spin for approx specified strictly-positive number of milliseconds, in as low-power mode as possible.
+// This may be achieved in part by dynamically slowing the CPU clock if possible.
+// Macro to allow some constant folding at compile time where the sleep-time argument is constant.
+// Should be good for values up to at least 1000, ie 1 second.
+// Assumes MIN_CPU_HZ >> 4000.
+// TODO: break out to non-inlined routine where arg is not constant (__builtin_constant_p).
+// Not recommended as-is as may interact badly with interrupts if used naively (eg ISR code runs very slowly).
+static void inline _sleepLowPowerMs(const uint16_t ms) { _sleepLowPowerLoopsMinCPUSpeed((((MIN_CPU_HZ * (ms)) + 2000) / 4000) - ((MIN_CPU_HZ>=12000)?2:((MIN_CPU_HZ>=8000)?1:0))); }
+// Sleep/spin for (typically a little less than) strictly-positive specified number of milliseconds, in as low-power mode as possible.
+// This may be achieved in part by dynamically slowing the CPU clock if possible.
+// Macro to allow some constant folding at compile time where the sleep-time argument is constant.
+// Should be good for values up to at least 1000, ie 1 second.
+// Uses formulation likely to be quicker than _sleepLowPowerMs() for non-constant argument values,
+// and that results in a somewhat shorter sleep than _sleepLowPowerMs(ms).
+// Assumes MIN_CPU_HZ >> 4000.
+// TODO: break out to non-inlined routine where arg is not constant (__builtin_constant_p).
+// Not recommended as-is as may interact badly with interrupts if used naively (eg ISR code runs very slowly).
+static void inline _sleepLowPowerLessThanMs(const uint16_t ms) { _sleepLowPowerLoopsMinCPUSpeed(((MIN_CPU_HZ/4000) * (ms)) - ((MIN_CPU_HZ>=12000)?2:((MIN_CPU_HZ>=8000)?1:0))); }
+// Sleep/spin for approx specified strictly-positive number of milliseconds, in as low-power mode as possible.
+// Nap() may be more efficient for intervals of longer than 15ms.
+// Interrupts are blocked for about 1ms at a time.
+// Should be good for the full range of values and should take no time where 0ms is specified.
+static void inline sleepLowPowerMs(uint16_t ms) { while(ms-- > 0) { ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { _sleepLowPowerMs(1); } } }
+// Sleep/spin for (typically a little less than) strictly-positive specified number of milliseconds, in as low-power mode as possible.
+// Nap() may be more efficient for intervals of longer than 15ms.
+// Interrupts are blocked for about 1ms at a time.
+// Should be good for the full range of values and should take no time where 0ms is specified.
+static void inline sleepLowPowerLessThanMs(uint16_t ms) { while(ms-- > 0) { ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { _sleepLowPowerLessThanMs(1); } } }
 
 
 }

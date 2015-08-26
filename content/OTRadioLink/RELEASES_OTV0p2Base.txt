@@ -13,6 +13,7 @@ pending:
     DHD20150821: D21SM: moved MinimalOneWire support to base support library from mainline code.
     DHD20150825: D21SM: moved more entropy-related support to base support library from mainline code.
     DHD20150826: D21SM: moved EEPROM and RTC support to base support library from mainline code.
+    DHD20150826: D21SM: moved more sleep support to base support library from mainline code.
 
 
 
