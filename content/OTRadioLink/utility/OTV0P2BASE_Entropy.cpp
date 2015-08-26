@@ -105,5 +105,13 @@ void addEntropyToPool(const uint8_t data, const uint8_t estBits)
   seedRNG8(data, --count8, TCNT2); // cycleCountCPU(), getSubCycleTime()); // FIXME
   }
 
+// Capture a little system entropy, effectively based on call timing.
+// This call should typically take << 1ms at 1MHz CPU.
+// Does not change CPU clock speeds, mess with interrupts (other than possible brief blocking), or do I/O, or sleep.
+// Should inject some noise into secure (TBD) and non-secure (RNG8) PRNGs.
+void captureEntropy1()
+//  { OTV0P2BASE::seedRNG8(_getSubCycleTime() ^ _adcNoise, cycleCountCPU() ^ Supply_mV.get(), _watchdogFired); } // FIXME
+  { OTV0P2BASE::seedRNG8(TCNT2, 69 /* cycleCountCPU() ^ Supply_mV.get() */, 42 /*_watchdogFired*/); } // FIXME
+
 
 }

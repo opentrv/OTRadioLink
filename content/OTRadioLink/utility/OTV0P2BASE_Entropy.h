@@ -59,6 +59,12 @@ uint_fast8_t clockJitterEntropyByte();
 // Not thread-/ISR- safe.
 void addEntropyToPool(uint8_t data, uint8_t estBits);
 
+// Capture a little system entropy, effectively based on call timing.
+// This call should typically take << 1ms at 1MHz CPU.
+// Does not change CPU clock speeds, mess with interrupts (other than possible brief blocking), or do I/O, or sleep.
+// Should inject some noise into secure (TBD) and non-secure (RNG8) PRNGs, or at least churn them.
+void captureEntropy1();
+
 
 }
 #endif
