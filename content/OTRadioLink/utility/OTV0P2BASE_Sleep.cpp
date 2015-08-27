@@ -77,7 +77,7 @@ ISR(WDT_vect)
 //   * watchdogSleep is one of the WDTO_XX values from <avr/wdt.h>
 // Should reduce power consumption vs spinning the CPU more than 3x, though not nearly as much as nap().
 // True iff watchdog timer expired; false if something else woke the CPU.
-// Only use this if not disallowed for board type, eg with ENABLE_USE_OF_AVR_IDLE_MODE.
+// WARNING: DHD20150827: seems able to cause crash/reset of some REV0 and REV9 boards, eg called from CLI.
 bool idleCPU(const int_fast8_t watchdogSleep, const bool allowPrematureWakeup)
   {
   // Watchdog should (already) be disabled on entry.
