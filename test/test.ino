@@ -464,8 +464,8 @@ static void testEEPROM()
   const uint8_t eaTestPattern = 0xa5; // Test pattern for masking (selective bit clearing).
   if(0 != ((~eaTestPattern) & eeprom_read_byte((uint8_t*)V0P2BASE_EE_START_TEST_LOC2))) // Will need to clear some bits.
     {
-      AssertIsTrue(OTV0P2BASE::eeprom_smart_clear_bits((uint8_t*)V0P2BASE_EE_START_TEST_LOC2, eaTestPattern)); // Should have attempted write.
-      AssertIsEqual(0, ((~eaTestPattern) & eeprom_read_byte((uint8_t*)V0P2BASE_EE_START_TEST_LOC2))); // Should have written.
+    AssertIsTrue(OTV0P2BASE::eeprom_smart_clear_bits((uint8_t*)V0P2BASE_EE_START_TEST_LOC2, eaTestPattern)); // Should have attempted write.
+    AssertIsEqual(0, ((~eaTestPattern) & eeprom_read_byte((uint8_t*)V0P2BASE_EE_START_TEST_LOC2))); // Should have written.
     }
   AssertIsTrue(!OTV0P2BASE::eeprom_smart_clear_bits((uint8_t*)V0P2BASE_EE_START_TEST_LOC2, eaTestPattern)); // Should not need write nor attempt one.
   }
@@ -476,11 +476,13 @@ static void testSleep()
   Serial.println("Sleep");
   // Flush serial output to avoid TXing while messing with (CPU and serial) clock.
   Serial.flush();
-  for(uint8_t i = 0; i < 100; ++i)
+  for(uint8_t i = 0; i < 25; ++i)
     {
-    OTV0P2BASE::nap(WDTO_15MS);
-    OTV0P2BASE::nap(WDTO_15MS, OTV0P2BASE::randRNG8NextBoolean());
-    OTV0P2BASE::idleCPU(WDTO_15MS, OTV0P2BASE::randRNG8NextBoolean());
+    const uint8_t to = OTV0P2BASE::randRNG8NextBoolean() ? WDTO_15MS : WDTO_60MS;
+    OTV0P2BASE::nap(to);
+    OTV0P2BASE::nap(to, OTV0P2BASE::randRNG8NextBoolean());
+    OTV0P2BASE::idleCPU(to, OTV0P2BASE::randRNG8NextBoolean());
+    OTV0P2BASE::idleCPU(to, OTV0P2BASE::randRNG8NextBoolean());
     }
   }
 
