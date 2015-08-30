@@ -474,7 +474,8 @@ static void testEEPROM()
 static void testSleep()
   {
   Serial.println("Sleep");
-  Serial.flush(); // Avoid TXing while messing with (CPU and serial) clock.
+  // Flush serial output to avoid TXing while messing with (CPU and serial) clock.
+  Serial.flush();
   for(uint8_t i = 0; i < 100; ++i)
     {
     OTV0P2BASE::nap(WDTO_15MS);
