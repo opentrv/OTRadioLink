@@ -471,6 +471,7 @@ static void testEEPROM()
   }
 
 // Check that the various forms of sleep don't break anything or hang.
+// TODO: check that user of async timer 2 doesn't cause problems.
 static void testSleep()
   {
   Serial.println("Sleep");
