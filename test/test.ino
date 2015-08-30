@@ -464,8 +464,8 @@ static void testEEPROM()
   const uint8_t eaTestPattern = 0xa5; // Test pattern for masking (selective bit clearing).
   if(0 != ((~eaTestPattern) & eeprom_read_byte((uint8_t*)V0P2BASE_EE_START_TEST_LOC2))) // Will need to clear some bits.
     {
-      AssertIsTrue(OTV0P2BASE::eeprom_smart_clear_bits((uint8_t*)V0P2BASE_EE_START_TEST_LOC2, eaTestPattern)); // Should have attempted write.
-      AssertIsEqual(0, ((~eaTestPattern) & eeprom_read_byte((uint8_t*)V0P2BASE_EE_START_TEST_LOC2))); // Should have written.
+    AssertIsTrue(OTV0P2BASE::eeprom_smart_clear_bits((uint8_t*)V0P2BASE_EE_START_TEST_LOC2, eaTestPattern)); // Should have attempted write.
+    AssertIsEqual(0, ((~eaTestPattern) & eeprom_read_byte((uint8_t*)V0P2BASE_EE_START_TEST_LOC2))); // Should have written.
     }
   AssertIsTrue(!OTV0P2BASE::eeprom_smart_clear_bits((uint8_t*)V0P2BASE_EE_START_TEST_LOC2, eaTestPattern)); // Should not need write nor attempt one.
   }
