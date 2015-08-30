@@ -448,6 +448,7 @@ static void testISRRXQueueVarLenMsg()
 
 
 // BASE
+
 // Self-test of EEPROM functioning (and smart/split erase/write).
 // Will not usually perform any wear-inducing activity (is idempotent).
 static void testEEPROM()
@@ -467,6 +468,19 @@ static void testEEPROM()
       AssertIsEqual(0, ((~eaTestPattern) & eeprom_read_byte((uint8_t*)V0P2BASE_EE_START_TEST_LOC2))); // Should have written.
     }
   AssertIsTrue(!OTV0P2BASE::eeprom_smart_clear_bits((uint8_t*)V0P2BASE_EE_START_TEST_LOC2, eaTestPattern)); // Should not need write nor attempt one.
+  }
+
+// Check that the various forms of sleep don't break anything or hang.
+static void testSleep()
+  {
+  Serial.println("Sleep");
+  Serial.flush(); // Avoid TXing while messing with (CPU and serial) clock.
+  for(uint8_t i = 0; i < 100; ++i)
+    {
+    OTV0P2BASE::nap(WDTO_15MS);
+    OTV0P2BASE::nap(WDTO_15MS, OTV0P2BASE::randRNG8NextBoolean());
+    OTV0P2BASE::idleCPU(WDTO_15MS, OTV0P2BASE::randRNG8NextBoolean());
+    }
   }
 
 // Test for expected behaviour of RNG8 PRNG starting from a known state.
@@ -620,6 +634,7 @@ void loop()
 
   // OTV0p2Base
   testEEPROM();
+  testSleep();
   testRNG8();
   testEntropyGathering();
 
