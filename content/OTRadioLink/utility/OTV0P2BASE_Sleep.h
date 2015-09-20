@@ -81,6 +81,9 @@ static __inline__ void _delay_x4(uint8_t n) // Takes 4n cycles to run.
 #define OTV0P2BASE_delay_us(us) delayMicroseconds(us) // Assume that the built-in routine will behave itself for faster CPU clocks.
 #endif
 
+// Delay (busy wait) the specified number of milliseconds in the range [0,255].
+// This may be extended by interrupts, etc, so must not be regarded as very precise.
+static inline void delay_ms(uint8_t ms) { while(ms-- > 0) { OTV0P2BASE_delay_us(996); /* Allow for some loop overhead. */ } }
 
 // Sleep with BOD disabled in power-save mode; will wake on any interrupt.
 // This particular API is not guaranteed to be maintained: please use sleepUntilInt() instead.
@@ -96,7 +99,9 @@ static inline void sleepUntilInt() { sleepPwrSaveWithBODDisabled(); }
 // Should reduce power consumption vs spinning the CPU more than 3x, though not nearly as much as nap().
 // True iff watchdog timer expired; false if something else woke the CPU.
 // Only use this if not disallowed for board type, eg with ENABLE_USE_OF_AVR_IDLE_MODE.
-bool idleCPU(int_fast8_t watchdogSleep, bool allowPrematureWakeup = false);
+// DHD20150920: CURRENTLY NOT RECOMMENDED AS STILL SEEMS TO CAUSE SOME BOARDS TO CRASH.
+#define OTV0P2BASE_IDLE_NOT_RECOMMENDED
+bool _idleCPU(int_fast8_t watchdogSleep, bool allowPrematureWakeup = false);
 
 // Sleep briefly in as lower-power mode as possible until the specified (watchdog) time expires.
 //   * watchdogSleep is one of the WDTO_XX values from <avr/wdt.h>

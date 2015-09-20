@@ -482,8 +482,8 @@ static void testSleep()
     const uint8_t to = OTV0P2BASE::randRNG8NextBoolean() ? WDTO_15MS : WDTO_60MS;
     OTV0P2BASE::nap(to);
     OTV0P2BASE::nap(to, OTV0P2BASE::randRNG8NextBoolean());
-    OTV0P2BASE::idleCPU(to, OTV0P2BASE::randRNG8NextBoolean());
-    OTV0P2BASE::idleCPU(to, OTV0P2BASE::randRNG8NextBoolean());
+    OTV0P2BASE::_idleCPU(to, OTV0P2BASE::randRNG8NextBoolean());
+    OTV0P2BASE::_idleCPU(to, OTV0P2BASE::randRNG8NextBoolean());
     }
   }
 

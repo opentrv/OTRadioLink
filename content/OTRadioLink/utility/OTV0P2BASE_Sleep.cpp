@@ -78,7 +78,7 @@ ISR(WDT_vect)
 // Should reduce power consumption vs spinning the CPU more than 3x, though not nearly as much as nap().
 // True iff watchdog timer expired; false if something else woke the CPU.
 // WARNING: DHD20150827: seems able to cause crash/reset of some REV0 and REV9 boards, eg called from CLI.
-bool idleCPU(const int_fast8_t watchdogSleep, const bool allowPrematureWakeup)
+bool _idleCPU(const int_fast8_t watchdogSleep, const bool allowPrematureWakeup)
   {
   // Watchdog should (already) be disabled on entry.
   _watchdogFired = 0;
