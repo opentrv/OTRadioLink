@@ -46,8 +46,8 @@ bool t_powerUpSPIIfDisabled()
         {
         if(!(PRR & _BV(PRSPI))) { return(false); }
 
+        fastDigitalWrite(SPI_nSS, HIGH); // Ensure that nSS is HIGH ASAP and thus any slave deselected when powering up SPI.
         pinMode(SPI_nSS, OUTPUT); // Ensure that nSS is an output to avoid forcing SPI to slave mode by accident.
-        fastDigitalWrite(SPI_nSS, HIGH); // Ensure that nSS is HIGH and thus any slave deselected when powering up SPI.
 
         PRR &= ~_BV(PRSPI); // Enable SPI power.
 
@@ -78,8 +78,8 @@ void t_powerDownSPI()
         SPCR &= ~_BV(SPE); // Disable SPI.
         PRR |= _BV(PRSPI); // Power down...
 
+        fastDigitalWrite(SPI_nSS, HIGH); // Ensure that nSS is HIGH ASAP and thus any slave deselected when powering up SPI.
         pinMode(SPI_nSS, OUTPUT); // Ensure that nSS is an output to avoid forcing SPI to slave mode by accident.
-        fastDigitalWrite(SPI_nSS, HIGH); // Ensure that nSS is HIGH and thus any slave deselected when powering up SPI.
 
         // Avoid pins from floating when SPI is disabled.
         // Try to preserve general I/O direction and restore previous output values for outputs.

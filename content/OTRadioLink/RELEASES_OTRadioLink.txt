@@ -14,6 +14,7 @@ pending:
     DHD20150821: repo transferred from DamonHD to OpenTRV a/cs on GitHub.
     DHD20150821: commit/push after repo transfer...
     DHD20150920: TODO-547: deprecating use of IDLE mode after more trouble seen on REV1 boards.
+    DHD20150920: TODO-547: same issue seen without use of IDLE when polling fast.
 
 
 
