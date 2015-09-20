@@ -23,6 +23,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 #include <OTRadioLink.h>
 
 #include "OTRFM23BLink_OTRFM23BLink.h"
+#include "OTV0P2BASE_Sleep.h"
 
 namespace OTRFM23BLink {
 
@@ -193,8 +194,11 @@ bool OTRFM23BLinkBase::sendRaw(const uint8_t *const buf, const uint8_t buflen, c
         // Wait a little before retransmission.
         // nap(WDTO_15MS, false); // FIXME: no nap() or idle() support yet // Sleeping with interrupts disabled?
         // delay(15); // FIXME: make this a configurable value.
-        //::OTV0P2BASE::idleCPU(WDTO_15MS, false); // FIXME: make this a configurable value.
-	::OTV0P2BASE::delay_ms(15);
+#ifndef OTV0P2BASE_IDLE_NOT_RECOMMENDED
+        ::OTV0P2BASE::idleCPU(WDTO_15MS, false); // FIXME: make this a configurable value.
+#else
+        ::OTV0P2BASE::delay_ms(15); // FIXME: seems a shame to burn cycles/juice here...
+#endif
 
         // Resend the frame.
         if(!_TXFIFO()) { result = false; }
