@@ -39,6 +39,7 @@ namespace OTV0P2BASE
 
 
 // Normal power drain ignoring I/O (typ 0.3mA @ 1MHz CPU, 2V)
+// ...delay..() routines burn CPU cycles at full power for accurate small microsecond delays.
 // idleCPU() routines put the AVR into idle mode with WDT wake-up (typ 40uA @ 1MHz CPU, 2V; 3x--10x savings);
 //   all clocks except CPU run so, for example, Serial should still function.
 // nap() routines put the AVR into power-save mode with WTD wake-up (typ 0.8uA+ @1.8V);
@@ -48,6 +49,38 @@ namespace OTV0P2BASE
 // It is also possible to save some power by slowing the CPU clock,
 // though that may disrupt connected timing for I/O device such as the UART,
 // and would possibly cause problems for ISRs invoked while the clock is slow.
+
+// Attempt to sleep accurate-ish small number of microseconds even with our slow (1MHz) CPU clock.
+// This does not attempt to adjust clock speeds or sleep.
+// Interrupts should probably be disabled around the code that uses this to avoid extra unexpected delays.
+#if (F_CPU == 1000000) && defined(__AVR_ATmega328P__)
+static inline void _delay_us(const uint8_t us) { }
+static __inline__ void _delay_NOP(void) { __asm__ volatile ( "nop" "\n\t" ); } // Assumed to take 1us with 1MHz CPU clock.
+static __inline__ void _delay_x4(uint8_t n) // Takes 4n cycles to run.
+  {
+  __asm__ volatile // Similar to _delay_loop_1() from util/delay_basic.h but multiples of 4 cycles are easier.
+     (
+      "1: dec  %0" "\n\t"
+      "   breq 2f" "\n\t"
+      "2: brne 1b"
+      : "=r" (n)
+      : "0" (n)
+    );
+  }
+// Delay (busy wait) the specified number of microseconds in the range [4,1023] (<4 will work if a constant).
+// Nominally equivalent to delayMicroseconds() except that 1.0.x version of that is broken for slow CPU clocks.
+// Granularity is 1us if parameter is a compile-time constant, else 4us.
+#define OTV0P2BASE_delay_us(us) do { \
+    if(__builtin_constant_p((us)) && ((us) == 0)) { /* Nothing to do. */ } \
+    else { \
+      if(__builtin_constant_p((us)) && ((us) & 1)) { ::OTV0P2BASE::_delay_NOP(); } \
+      if(__builtin_constant_p((us)) && ((us) & 2)) { ::OTV0P2BASE::_delay_NOP(); ::OTV0P2BASE::_delay_NOP(); } \
+      if((us) >= 4) { ::OTV0P2BASE::_delay_x4((us) >> 2); } \
+      } } while(false)
+#else
+#define OTV0P2BASE_delay_us(us) delayMicroseconds(us) // Assume that the built-in routine will behave itself for faster CPU clocks.
+#endif
+
 
 // Sleep with BOD disabled in power-save mode; will wake on any interrupt.
 // This particular API is not guaranteed to be maintained: please use sleepUntilInt() instead.

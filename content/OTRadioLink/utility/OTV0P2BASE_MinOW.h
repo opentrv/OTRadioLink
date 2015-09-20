@@ -28,6 +28,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 
 // Fast GPIO support and micro timing routines.
 #include "utility/OTV0P2BASE_FastDigitalIO.h"
+#include "utility/OTV0P2BASE_Sleep.h"
 
 namespace OTV0P2BASE
 {

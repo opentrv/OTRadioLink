@@ -43,7 +43,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 // Quick/simple PRNG (Pseudo-Random Number Generator).
 #include "utility/OTV0P2BASE_QuickPRNG.h"
 
-// Fast GPIO support and micro timing routines.
+// Fast GPIO support routines.
 #include "utility/OTV0P2BASE_FastDigitalIO.h"
 
 // Minimal light-weight standard-speed OneWire(TM) support.
@@ -56,7 +56,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 // Basic immutable GPIO assignments and similar.
 #include "utility/OTV0P2BASE_BasicPinAssignments.h"
 
-// Power and I/O management and other misc support.
+// Power, micro timing, I/O management and other misc support.
 #include "utility/OTV0P2BASE_Sleep.h"
 #include "utility/OTV0P2BASE_PowerManagement.h"
 
