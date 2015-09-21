@@ -63,7 +63,7 @@ class MinimalOneWireBase
 
     // Standardised delays; must be inlined and usually have interrupts turned off around them.
     // These are all reduced by enough time to allow two instructions, eg maximally-fast port operations.
-    static const uint8_t stdDelayReduction = 2;
+    static const uint8_t stdDelayReduction = 5; // 5 suggested by COHEAT in the field, originally 2;
     inline void delayA() const { OTV0P2BASE_delay_us(  6 - stdDelayReduction); }
     inline void delayB() const { OTV0P2BASE_delay_us( 64 - stdDelayReduction); }
     inline void delayC() const { OTV0P2BASE_delay_us( 60 - stdDelayReduction); }

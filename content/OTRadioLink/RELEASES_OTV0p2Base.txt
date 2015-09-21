@@ -15,6 +15,8 @@ pending:
     DHD20150826: D21SM: moved EEPROM and RTC support to base support library from mainline code.
     DHD20150826: D21SM: moved more sleep support to base support library from mainline code.
     DHD20150827: COH-63: added warning about continuing problems with IDLE mode (in CLI, on REV9 this time).
+    DHD20150920: incorporating fix from COHEAT in OW: static const uint8_t stdDelayReduction = 5; // MarkT //  was: 2;
+
 
 
 
