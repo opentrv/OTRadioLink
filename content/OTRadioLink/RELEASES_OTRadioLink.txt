@@ -16,6 +16,7 @@ pending:
     DHD20150920: TODO-547: deprecating use of IDLE mode after more trouble seen on REV1 boards.
     DHD20150920: TODO-547: same issue seen without use of IDLE when polling fast.
     DHD20150922: TODO-547: may be an SPI issue (REV1 uses SCK for LED), not IDLE, so running SPI slower by default.
+    DHD20150922: TODO-547: still crashing, but had not correctly enabled delays around nSS.
 
 
 

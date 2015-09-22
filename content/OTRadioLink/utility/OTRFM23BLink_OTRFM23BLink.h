@@ -272,9 +272,10 @@ namespace OTRFM23BLink
             // Internal routines to enable/disable RFM23B on the the SPI bus.
             // These depend only on the (constant) SPI_nSS_DigitalPin template parameter
             // so these should turn into single assembler instructions in principle.
+            // Introduce some delays to allow signals to stabilise if running slow.
             static const bool runSPISlow = ::OTV0P2BASE::DEFAULT_RUN_SPI_SLOW;
-            inline void _nSSWait() const { OTV0P2BASE_busy_spin_delay(runSPISlow?0:4); }
-            // Wait from SPI select to continuing, and after op to deselect, and after deselect.
+            inline void _nSSWait() const { OTV0P2BASE_busy_spin_delay(runSPISlow?4:0); }
+            // Wait from SPI select to op, and after op to deselect, and after deselect.
             inline void _SELECT() const { fastDigitalWrite(SPI_nSS_DigitalPin, LOW); _nSSWait(); } // Select/enable RFM23B.
             inline void _DESELECT() const { _nSSWait(); fastDigitalWrite(SPI_nSS_DigitalPin, HIGH); _nSSWait(); } // Deselect/disable RFM23B.
             // Versions accessible to the base class...
