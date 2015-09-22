@@ -273,6 +273,7 @@ namespace OTRFM23BLink
             // These depend only on the (constant) SPI_nSS_DigitalPin template parameter
             // so these should turn into single assembler instructions in principle.
             // Introduce some delays to allow signals to stabilise if running slow.
+            // From the RFM23B datasheet (S3/p14) tEN & tSS are 20ns so waits shouldn't be necessary for AVR CPU speeds!
             static const bool runSPISlow = ::OTV0P2BASE::DEFAULT_RUN_SPI_SLOW;
             inline void _nSSWait() const { OTV0P2BASE_busy_spin_delay(runSPISlow?4:0); }
             // Wait from SPI select to op, and after op to deselect, and after deselect.
