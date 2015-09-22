@@ -272,8 +272,11 @@ namespace OTRFM23BLink
             // Internal routines to enable/disable RFM23B on the the SPI bus.
             // These depend only on the (constant) SPI_nSS_DigitalPin template parameter
             // so these should turn into single assembler instructions in principle.
-            inline void _SELECT() const { fastDigitalWrite(SPI_nSS_DigitalPin, LOW); } // Select/enable RFM23B.
-            inline void _DESELECT() const { fastDigitalWrite(SPI_nSS_DigitalPin, HIGH); } // Deselect/disable RFM23B.
+            static const bool runSPISlow = ::OTV0P2BASE::DEFAULT_RUN_SPI_SLOW;
+            inline void _nSSWait() const { OTV0P2BASE_busy_spin_delay(runSPISlow?0:4); }
+            // Wait from SPI select to continuing, and after op to deselect, and after deselect.
+            inline void _SELECT() const { fastDigitalWrite(SPI_nSS_DigitalPin, LOW); _nSSWait(); } // Select/enable RFM23B.
+            inline void _DESELECT() const { _nSSWait(); fastDigitalWrite(SPI_nSS_DigitalPin, HIGH); _nSSWait(); } // Deselect/disable RFM23B.
             // Versions accessible to the base class...
             virtual void _SELECT_() const { _SELECT(); }
             virtual void _DESELECT_() const { _DESELECT(); }
@@ -281,8 +284,8 @@ namespace OTRFM23BLink
             // Power SPI up and down given this particular SPI/RFM23B select line.
             // Use all other default values.
             // Inlined non-virtual implementations for speed.
-            inline bool _upSPI() const { return(OTV0P2BASE::t_powerUpSPIIfDisabled<SPI_nSS_DigitalPin>()); }
-            inline void _downSPI() const { OTV0P2BASE::t_powerDownSPI<SPI_nSS_DigitalPin, OTV0P2BASE::V0p2_PIN_SPI_SCK, OTV0P2BASE::V0p2_PIN_SPI_MOSI, OTV0P2BASE::V0p2_PIN_SPI_MISO>(); }
+            inline bool _upSPI() const { return(OTV0P2BASE::t_powerUpSPIIfDisabled<SPI_nSS_DigitalPin, runSPISlow>()); }
+            inline void _downSPI() const { OTV0P2BASE::t_powerDownSPI<SPI_nSS_DigitalPin, OTV0P2BASE::V0p2_PIN_SPI_SCK, OTV0P2BASE::V0p2_PIN_SPI_MOSI, OTV0P2BASE::V0p2_PIN_SPI_MISO, runSPISlow>(); }
             // Versions accessible to the base class...
             virtual bool _upSPI_() const { return(_upSPI()); }
             virtual void _downSPI_() const { _downSPI(); }

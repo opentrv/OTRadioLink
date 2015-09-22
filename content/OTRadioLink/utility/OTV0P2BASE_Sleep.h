@@ -77,7 +77,10 @@ static __inline__ void _delay_x4(uint8_t n) // Takes 4n cycles to run.
       if(__builtin_constant_p((us)) && ((us) & 2)) { ::OTV0P2BASE::_delay_NOP(); ::OTV0P2BASE::_delay_NOP(); } \
       if((us) >= 4) { ::OTV0P2BASE::_delay_x4((us) >> 2); } \
       } } while(false)
+// Guaranteed CPU-busy-spin delay with no dependency on interrupts, microseconds [4,1023] (<4 will work if a constant).
+#define OTV0P2BASE_busy_spin_delay(us) { OTV0P2BASE_delay_us(us); }
 #else
+// No definition for OTV0P2BASE_busy_spin_delay().
 #define OTV0P2BASE_delay_us(us) delayMicroseconds(us) // Assume that the built-in routine will behave itself for faster CPU clocks.
 #endif
 
