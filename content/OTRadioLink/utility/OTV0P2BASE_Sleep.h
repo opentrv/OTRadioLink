@@ -53,10 +53,9 @@ namespace OTV0P2BASE
 // Attempt to sleep accurate-ish small number of microseconds even with our slow (1MHz) CPU clock.
 // This does not attempt to adjust clock speeds or sleep.
 // Interrupts should probably be disabled around the code that uses this to avoid extra unexpected delays.
-#if (F_CPU == 1000000) && defined(__AVR_ATmega328P__)
-static inline void _delay_us(const uint8_t us) { }
+#if defined(__AVR_ATmega328P__)
 static __inline__ void _delay_NOP(void) { __asm__ volatile ( "nop" "\n\t" ); } // Assumed to take 1us with 1MHz CPU clock.
-static __inline__ void _delay_x4(uint8_t n) // Takes 4n cycles to run.
+static __inline__ void _delay_x4cycles(uint8_t n) // Takes 4n CPU cycles to run, 0 runs for 256 cycles.
   {
   __asm__ volatile // Similar to _delay_loop_1() from util/delay_basic.h but multiples of 4 cycles are easier.
      (
@@ -67,18 +66,33 @@ static __inline__ void _delay_x4(uint8_t n) // Takes 4n cycles to run.
       : "0" (n)
     );
   }
+
+// OTV0P2BASE_busy_spin_delay is a guaranteed CPU-busy-spin delay with no dependency on interrupts,
+// microseconds [4,1023] (<4 will work if a constant).
+#if (F_CPU == 1000000)
 // Delay (busy wait) the specified number of microseconds in the range [4,1023] (<4 will work if a constant).
 // Nominally equivalent to delayMicroseconds() except that 1.0.x version of that is broken for slow CPU clocks.
 // Granularity is 1us if parameter is a compile-time constant, else 4us.
-#define OTV0P2BASE_delay_us(us) do { \
+#define OTV0P2BASE_busy_spin_delay(us) do { \
     if(__builtin_constant_p((us)) && ((us) == 0)) { /* Nothing to do. */ } \
     else { \
       if(__builtin_constant_p((us)) && ((us) & 1)) { ::OTV0P2BASE::_delay_NOP(); } \
       if(__builtin_constant_p((us)) && ((us) & 2)) { ::OTV0P2BASE::_delay_NOP(); ::OTV0P2BASE::_delay_NOP(); } \
-      if((us) >= 4) { ::OTV0P2BASE::_delay_x4((us) >> 2); } \
+      if((us) >= 4) { ::OTV0P2BASE::_delay_x4cycles((us) >> 2); } \
       } } while(false)
-// Guaranteed CPU-busy-spin delay with no dependency on interrupts, microseconds [4,1023] (<4 will work if a constant).
-#define OTV0P2BASE_busy_spin_delay(us) { OTV0P2BASE_delay_us(us); }
+#elif (F_CPU == 16000000) // Arduino UNO runs at 16MHz; make special-case efficient code.
+#define OTV0P2BASE_busy_spin_delay(us) do { \
+    if(__builtin_constant_p((us)) && ((us) == 0)) { /* Nothing to do. */ } \
+    else { \
+      for(uint8_t _usBlocks = us >> 6; _usBlocks-- > 0; ) { ::OTV0P2BASE::_delay_x4cycles(0); } \
+      ::OTV0P2BASE::_delay_x4cycles((us & 63) << 2); \
+      } } while(false)
+#endif
+#endif
+
+
+#if defined(OTV0P2BASE_busy_spin_delay)
+#define OTV0P2BASE_delay_us(us) OTV0P2BASE_busy_spin_delay(us)
 #else
 // No definition for OTV0P2BASE_busy_spin_delay().
 #define OTV0P2BASE_delay_us(us) delayMicroseconds(us) // Assume that the built-in routine will behave itself for faster CPU clocks.
