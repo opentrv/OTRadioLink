@@ -66,7 +66,7 @@ void setup()
 
 void loop()
 {
-    if(Serial.available() > 0)
+  if(Serial.available() > 0)
   {
     uint8_t input = Serial.read();
     Serial.print("Input\t");
@@ -116,11 +116,11 @@ void serialInput(uint8_t input)
 //    gprs.setAPN(apn, sizeof(apn)-1);  // dont send null termination
     gprs.startGPRS();
     break;
- 
+
     case 'i':
     gprs.getIP(buffer);
     break;
-   
+
     case'u':
     gprs.setPIN(pin, sizeof(pin)-1); // dont send null termination
     break;
@@ -132,15 +132,15 @@ void serialInput(uint8_t input)
     case 's':
     gprs.sendUDP(UDP_SEND_STR, sizeof(UDP_SEND_STR));
     break;
-    
+
     case 'e':
     gprs.closeUDP();
     break;
-    
+
     case 'v':
     gprs.verbose();
     break;
-    
+
     default:
     break;
   }
