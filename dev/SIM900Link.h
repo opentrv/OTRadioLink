@@ -109,7 +109,7 @@ public:
     }
 
     // Serial functions
-    uint8_t blockingRead(char *data, uint8_t length);
+    uint8_t timedBlockingRead(char *data, uint8_t length);
     void write(const char *data, uint8_t length);
     void write(const char data);
     void print(const int value);

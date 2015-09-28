@@ -60,7 +60,7 @@ void setup()
   Serial.begin(baud);
   softSer.begin(baud);
   gprs.begin(baud);
-  gprs.verbose();
+//  gprs.verbose();
   Serial.println("Setup Done");
 }
 
