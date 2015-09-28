@@ -14,6 +14,7 @@ specific language governing permissions and limitations
 under the Licence.
 
 Author(s) / Copyright (s): Deniz Erbilgin 2015
+                           Damon Hart-Davis 2015
 */
 
 #include "SIM900Link.h"
@@ -24,9 +25,8 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
  * @param	rxPin		Rx pin for software serial
  * @param	txPin		Tx pin for software serial
  */
-OTSIM900Link::OTSIM900Link(uint8_t pwrPin, SoftwareSerial *_softSerial)
+OTSIM900Link::OTSIM900Link(uint8_t pwrPin, SoftwareSerial *_softSerial) : PWR_PIN(pwrPin)
 {
-  PWR_PIN = pwrPin;
   pinMode(PWR_PIN, OUTPUT);
   softSerial = _softSerial;
 }

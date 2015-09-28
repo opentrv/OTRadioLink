@@ -14,6 +14,7 @@ specific language governing permissions and limitations
 under the Licence.
 
 Author(s) / Copyright (s): Deniz Erbilgin 2015
+                           Damon Hart-Davis 2015
 */
 
 #ifndef SIM900LINK_H_
@@ -71,7 +72,7 @@ public:
   // put module name here
 
   // pins for software serial
-  uint8_t PWR_PIN;
+  const uint8_t PWR_PIN;
 
   /************************* Private Methods *******************************/
     // Power up/down
@@ -82,7 +83,9 @@ public:
      */
     inline void powerOn()
     {
+      digitalWrite(PWR_PIN, LOW);
       if(!isPowered()) {
+        delay(500);
         digitalWrite(PWR_PIN, HIGH);
         delay(1000);
         digitalWrite(PWR_PIN, LOW);
@@ -94,7 +97,9 @@ public:
      */
     inline void powerOff()
     {
+      digitalWrite(PWR_PIN, LOW);
       if(isPowered()) {
+        delay(500);
         digitalWrite(PWR_PIN, HIGH);
         delay(1000);
         digitalWrite(PWR_PIN, LOW);

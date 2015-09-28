@@ -14,6 +14,7 @@ specific language governing permissions and limitations
 under the Licence.
 
 Author(s) / Copyright (s): Deniz Erbilgin 2015
+                           Damon Hart-Davis 2015
 */
 
 
@@ -22,6 +23,8 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
 
 SoftwareSerial softSer(7,8);
 OTSIM900Link gprs(9, &softSer);
+// Geeetech board needs solder jumper made for D9 to drive power pin.
+// http://www.geeetech.com/Documents/GPRSshield_sch.pdf
 
 /**
  * Temporary class for OTSIM900 tests
@@ -62,7 +65,7 @@ void setup()
 
 void loop()
 {
-    if(Serial.available() >0)
+    if(Serial.available() > 0)
   {
     uint8_t input = Serial.read();
     Serial.print("Input\t");
@@ -80,11 +83,14 @@ void serialInput(uint8_t input)
 {
   char buffer[64];
   switch(input) {
+    case 'P': // Attempt to force power on if not already so.
+      if(!gprs.isPowered()) { gprs.powerOn(); }
     case 'p':
       if(gprs.isPowered()) Serial.println("True");
-      else Serial.print("False");
+      else Serial.println("False");
       break;
       
+
     case 'm':
       gprs.checkModule();
       break;
