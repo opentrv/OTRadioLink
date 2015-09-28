@@ -109,8 +109,10 @@ bool OTSIM900Link::sendUDP(const char *frame, uint8_t length)
 		// check for correct response?
     // The ">" prompt will appear somewhere at the end of the buffer.
     uint8_t len;
-		if(((len = timedBlockingRead(buffer, sizeof(buffer))) > 1) /* &&
-		   (buffer[len - 1] == '>') */ ) {
+		if(((len = timedBlockingRead(buffer, sizeof(buffer))) > 2) &&
+		   (buffer[len - 2] == '>') ) { // Sends a trailing space???
+//        Serial.println(len);
+//        Serial.print(buffer[len - 2]); Serial.print(buffer[len - 1]);
 				write(frame, length);
 				write(AT_END);
         Serial.println("sent");
