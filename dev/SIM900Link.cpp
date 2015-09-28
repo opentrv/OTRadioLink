@@ -102,6 +102,8 @@ bool OTSIM900Link::sendUDP(const char *frame, uint8_t length)
 		char buffer[64];
 		write(AT_START, sizeof(AT_START));
 		write(AT_SEND_UDP, sizeof(AT_SEND_UDP));
+		write('=');
+    print(length);
 		write(AT_END);
 
 		// check for correct response?
@@ -186,6 +188,15 @@ void OTSIM900Link::write(char data)
 }
 
 /**
+ * @brief  Writes a character to software serial
+ * @param data  character to write
+ */
+void OTSIM900Link::print(const int value)
+{
+  softSerial->print(value);
+}
+
+/**
  * @brief	Checks module ID
  * @param	name	pointer to array to compare name with
  * @param	length	length of array name
@@ -257,7 +268,7 @@ bool OTSIM900Link::isRegistered()
  */
 void OTSIM900Link::setAPN(const char *APN, uint8_t length)
 {
-  char data[64];
+  char data[128];
   write(AT_START, sizeof(AT_START));
   write(AT_SET_APN, sizeof(AT_SET_APN));
   write(AT_SET);
@@ -291,6 +302,13 @@ uint8_t OTSIM900Link::getIP(char *IPAddress)
   char data[64];
   write(AT_START, sizeof(AT_START));
   write(AT_GET_IP, sizeof(AT_GET_IP));
+  write(AT_END);
+  blockingRead(data, sizeof(data));
+  Serial.println(data);
+
+  delay(100);
+  write(AT_START, sizeof(AT_START));
+  write("+CIPSTATUS", 10);
   write(AT_END);
   blockingRead(data, sizeof(data));
   Serial.println(data);
