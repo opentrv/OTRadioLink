@@ -109,10 +109,8 @@ bool OTSIM900Link::sendUDP(const char *frame, uint8_t length)
 		// check for correct response?
     // The ">" prompt will appear somewhere at the end of the buffer.
     uint8_t len;
-		if(((len = timedBlockingRead(buffer, sizeof(buffer))) > 2) &&
-		   ((buffer[len - 2] == '>') || (buffer[len - 1] == '>'))) { // Sends a trailing space???
-//        Serial.println(len);
-//        Serial.print(buffer[len - 2]); Serial.print(buffer[len - 1]);
+		if(((len = timedBlockingRead(buffer, sizeof(buffer), '>')) > 2) &&
+		   ((buffer[len - 2] == '>') || (buffer[len - 1] == '>'))) { // Sends whitespace after > sometimes?
 				write(frame, length);
 				write(AT_END);
         Serial.println("sent");
@@ -151,7 +149,7 @@ bool OTSIM900Link::isPowered()
  * @param	length	length of data buffer
  * @retval	length of data received before time out
  */
-uint8_t OTSIM900Link::timedBlockingRead(char *data, uint8_t length)
+uint8_t OTSIM900Link::timedBlockingRead(char *data, uint8_t length, const char terminatingChar)
 {;
   // clear buffer, get time and init i to 0
   memset(data, 0, length);
@@ -159,12 +157,16 @@ uint8_t OTSIM900Link::timedBlockingRead(char *data, uint8_t length)
 
   uint16_t startTime = millis();
   // 100ms is time to fill buffer? probs got maths wrong on this.
-  // May have to wait a little longer because of (eg) interactions with the network.
-  while ((millis() - startTime) <= 200) {
+  // May have to wait a little longer because of (eg) interactions with the network,
+  // especially if a terminating char is known.
+  const bool hasTerminatingChar = (0 != terminatingChar);
+  const int timeoutms = hasTerminatingChar ? 500 : 200;
+  while ((millis() - startTime) <= timeoutms) {
     if (softSerial->available() > 0) {
-      *data = softSerial->read();
-      data++;
+      const char c = softSerial->read();
+      *data++ = c;
       i++;
+      if(hasTerminatingChar && (c == terminatingChar)) { break; }
     }
     // break if receive too long.
     if (i >= length) {
