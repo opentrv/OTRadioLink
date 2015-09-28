@@ -107,10 +107,11 @@ bool OTSIM900Link::sendUDP(const char *frame, uint8_t length)
 		write(AT_END);
 
 		// check for correct response?
-		blockingRead(buffer, sizeof(buffer));
-		if (buffer[0] == '>'){
+		if((timedBlockingRead(buffer, sizeof(buffer)) > 1) &&
+		   (buffer[0] == '>')) {
 				write(frame, length);
 				write(AT_END);
+        return true;
 		} else return false;
 
 		// check for send ok ack
@@ -130,9 +131,9 @@ bool OTSIM900Link::isPowered()
   memset(data, 0 , sizeof(data));
 	write(AT_START, sizeof(AT_START));
 	write(AT_END);
-	blockingRead(data, sizeof(data));
-  
-	if(data[0] == 'A') return true;
+	if((timedBlockingRead(data, sizeof(data)) > 0) &&
+     (data[0] == 'A'))
+     { return true; }
 	else return false;
 }
 
@@ -143,7 +144,7 @@ bool OTSIM900Link::isPowered()
  * @param	length	length of data buffer
  * @retval	length of data received before time out
  */
-uint8_t OTSIM900Link::blockingRead(char *data, uint8_t length)
+uint8_t OTSIM900Link::timedBlockingRead(char *data, uint8_t length)
 {;
   // clear buffer, get time and init i to 0
   memset(data, 0, length);
@@ -208,7 +209,7 @@ bool OTSIM900Link::checkModule(/*const char *name, uint8_t  length*/)
   write(AT_START, sizeof(AT_START));
   write(AT_GET_MODULE);
   write(AT_END);
-  blockingRead(data, sizeof(data));
+  timedBlockingRead(data, sizeof(data));
   Serial.println(data);
 }
 
@@ -225,7 +226,7 @@ bool OTSIM900Link::checkNetwork(char *buffer, uint8_t length)
   write(AT_NETWORK, sizeof(AT_NETWORK));
   write(AT_QUERY);
   write(AT_END);
-  blockingRead(data, sizeof(data));
+  timedBlockingRead(data, sizeof(data));
   Serial.println(data);
 }
 
@@ -243,21 +244,21 @@ bool OTSIM900Link::isRegistered()
   write(AT_REGISTRATION, sizeof(AT_REGISTRATION));
   write(AT_QUERY);
   write(AT_END);
-  blockingRead(data, sizeof(data));
+  timedBlockingRead(data, sizeof(data));
   Serial.println(data);
   delay(100);
   write(AT_START, sizeof(AT_START));
   write(AT_GPRS_REGISTRATION0, sizeof(AT_GPRS_REGISTRATION0));
   write(AT_QUERY);
   write(AT_END);
-  blockingRead(data, sizeof(data));
+  timedBlockingRead(data, sizeof(data));
   Serial.println(data);
   delay(100);
   write(AT_START, sizeof(AT_START));
   write(AT_GPRS_REGISTRATION, sizeof(AT_GPRS_REGISTRATION));
   write(AT_QUERY);
   write(AT_END);
-  blockingRead(data, sizeof(data));
+  timedBlockingRead(data, sizeof(data));
   Serial.println(data);
 }
 
@@ -276,7 +277,7 @@ void OTSIM900Link::setAPN(const char *APN, uint8_t length)
   write(APN, length);
   write('\"');
   write(AT_END);
-  blockingRead(data, sizeof(data));
+  timedBlockingRead(data, sizeof(data));
   Serial.println(data);
 }
 
@@ -293,7 +294,7 @@ bool OTSIM900Link::startGPRS()
   write(AT_START, sizeof(AT_START));
   write(AT_START_GPRS, sizeof(AT_START_GPRS));
   write(AT_END);
-  blockingRead(data, sizeof(data));
+  timedBlockingRead(data, sizeof(data));
   Serial.println(data);
 }
 
@@ -303,14 +304,14 @@ uint8_t OTSIM900Link::getIP(char *IPAddress)
   write(AT_START, sizeof(AT_START));
   write(AT_GET_IP, sizeof(AT_GET_IP));
   write(AT_END);
-  blockingRead(data, sizeof(data));
+  timedBlockingRead(data, sizeof(data));
   Serial.println(data);
 
   delay(100);
   write(AT_START, sizeof(AT_START));
   write("+CIPSTATUS", 10);
   write(AT_END);
-  blockingRead(data, sizeof(data));
+  timedBlockingRead(data, sizeof(data));
   Serial.println(data);
 }
 
@@ -334,7 +335,7 @@ void OTSIM900Link::verbose()
   write(AT_SET);
   write('2'); // 0: no error codes, 1: error codes, 2: full error descriptions
   write(AT_END);
-  blockingRead(data, sizeof(data));
+  timedBlockingRead(data, sizeof(data));
   Serial.println(data);
 }
 
@@ -352,7 +353,7 @@ void OTSIM900Link::setPIN(const char *pin, uint8_t length)
   write(AT_SET);
   write(pin, length);
   write(AT_END);
-  blockingRead(data, sizeof(data));
+  timedBlockingRead(data, sizeof(data));
   Serial.println(data);
 }
 
@@ -367,7 +368,7 @@ bool OTSIM900Link::checkPIN()
   write(AT_PIN, sizeof(AT_PIN));
   write(AT_QUERY);
   write(AT_END);
-  blockingRead(data, sizeof(data));
+  timedBlockingRead(data, sizeof(data));
   Serial.println(data);
 }
 
