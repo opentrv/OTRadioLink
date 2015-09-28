@@ -165,8 +165,8 @@ uint8_t OTSIM900Link::timedBlockingRead(char *data, uint8_t length, const char t
     if (softSerial->available() > 0) {
       const char c = softSerial->read();
       *data++ = c;
-      i++;
       if(hasTerminatingChar && (c == terminatingChar)) { break; }
+      i++;
     }
     // break if receive too long.
     if (i >= length) {
