@@ -14,6 +14,7 @@ specific language governing permissions and limitations
 under the Licence.
 
 Author(s) / Copyright (s): Deniz Erbilgin 2015
+                           Damon Hart-Davis 2015
 */
 
 
@@ -22,6 +23,8 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
 
 SoftwareSerial softSer(7,8);
 OTSIM900Link gprs(9, &softSer);
+// Geeetech board needs solder jumper made for D9 to drive power pin.
+// http://www.geeetech.com/Documents/GPRSshield_sch.pdf
 
 /**
  * Temporary class for OTSIM900 tests
@@ -36,6 +39,7 @@ OTSIM900Link gprs(9, &softSer);
  * - If pin required, enter 'u'
  * - To print module name to console, enter 'm'
  * - To print connected network to console, enter 'n'
+ * - To register 'r'
  * - To start GPRS, enter 'g'
  * - To check IP address, enter 'i'
  * - To open UDP connection, enter 'o'
@@ -45,9 +49,9 @@ OTSIM900Link gprs(9, &softSer);
  */
  
 static const int baud = 19200;  // don't chage this - may break softwareserial
-static const char apn[] = "internet";
+static const char apn[] = "m2mkit"; // "internet";
 static const char pin[] = "0000";
-static const char UDP_ADDR[] = "46.101.52.212";
+static const char UDP_ADDR[] = "79.135.97.66";
 static const char UDP_PORT[] = "9999";
 static const char UDP_SEND_STR[] = "udp-string";
 
@@ -62,7 +66,7 @@ void setup()
 
 void loop()
 {
-    if(Serial.available() >0)
+    if(Serial.available() > 0)
   {
     uint8_t input = Serial.read();
     Serial.print("Input\t");
@@ -80,35 +84,45 @@ void serialInput(uint8_t input)
 {
   char buffer[64];
   switch(input) {
+    case 'P': // Attempt to force power on if not already so.
+      if(!gprs.isPowered()) { gprs.powerOn(); }
     case 'p':
       if(gprs.isPowered()) Serial.println("True");
-      else Serial.print("False");
+      else Serial.println("False");
       break;
-      
+
     case 'm':
       gprs.checkModule();
       break;
       
+    case 'c':
+    gprs.checkPIN();
+    break;
+
     case 'n':
     gprs.checkNetwork(buffer, sizeof(buffer));
     break;
 
-    case 'i':
-    gprs.getIP(buffer);
+    case 'r':
+    gprs.setAPN(apn, sizeof(apn)-1);  // dont send null termination
+    break;
+
+    case 'R':
+    gprs.isRegistered();
     break;
 
     case 'g':
-    gprs.isRegistered();
-    gprs.setAPN(apn, sizeof(apn)-1);  // dont send null termination
+    //gprs.isRegistered();
+//    gprs.setAPN(apn, sizeof(apn)-1);  // dont send null termination
     gprs.startGPRS();
     break;
-    
+ 
+    case 'i':
+    gprs.getIP(buffer);
+    break;
+   
     case'u':
     gprs.setPIN(pin, sizeof(pin)-1); // dont send null termination
-    break;
-
-    case 'c':
-    gprs.checkPIN();
     break;
 
     case 'o':
@@ -121,6 +135,10 @@ void serialInput(uint8_t input)
     
     case 'e':
     gprs.closeUDP();
+    break;
+    
+    case 'v':
+    gprs.verbose();
     break;
     
     default:

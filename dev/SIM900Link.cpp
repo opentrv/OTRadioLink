@@ -14,6 +14,7 @@ specific language governing permissions and limitations
 under the Licence.
 
 Author(s) / Copyright (s): Deniz Erbilgin 2015
+                           Damon Hart-Davis 2015
 */
 
 #include "SIM900Link.h"
@@ -24,9 +25,8 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
  * @param	rxPin		Rx pin for software serial
  * @param	txPin		Tx pin for software serial
  */
-OTSIM900Link::OTSIM900Link(uint8_t pwrPin, SoftwareSerial *_softSerial)
+OTSIM900Link::OTSIM900Link(uint8_t pwrPin, SoftwareSerial *_softSerial) : PWR_PIN(pwrPin)
 {
-  PWR_PIN = pwrPin;
   pinMode(PWR_PIN, OUTPUT);
   softSerial = _softSerial;
 }
@@ -64,9 +64,10 @@ bool OTSIM900Link::openUDP(const char *address, uint8_t addressLength, const cha
 	//if(!isOpenUDP()){
 		write(AT_START, sizeof(AT_START));
 		write(AT_START_UDP, sizeof(AT_START_UDP));
+    write("=\"UDP\",", 7); // FIXME!
 		write('\"');
 		write(address, addressLength);
-		write("\",\"", sizeof(3));
+		write("\",\"", 3);
 		write(port, portLength);
 		write('\"');
 		write(AT_END);
@@ -218,14 +219,31 @@ bool OTSIM900Link::checkNetwork(char *buffer, uint8_t length)
 }
 
 /**
- * @brief 	check if module connected and registered
+ * @brief 	check if module connected and registered (GSM and GPRS)
  * @retval	true if registered
  */
 bool OTSIM900Link::isRegistered()
 {
+//  Check the GSM registration via AT commands ( "AT+CREG?" returns "+CREG:x,1" or "+CREG:x,5"; where "x" is 0, 1 or 2).
+//  Check the GPRS registration via AT commands ("AT+CGATT?" returns "+CGATT:1" and "AT+CGREG?" returns "+CGREG:x,1" or "+CGREG:x,5"; where "x" is 0, 1 or 2). 
+
   char data[64];
   write(AT_START, sizeof(AT_START));
   write(AT_REGISTRATION, sizeof(AT_REGISTRATION));
+  write(AT_QUERY);
+  write(AT_END);
+  blockingRead(data, sizeof(data));
+  Serial.println(data);
+  delay(100);
+  write(AT_START, sizeof(AT_START));
+  write(AT_GPRS_REGISTRATION0, sizeof(AT_GPRS_REGISTRATION0));
+  write(AT_QUERY);
+  write(AT_END);
+  blockingRead(data, sizeof(data));
+  Serial.println(data);
+  delay(100);
+  write(AT_START, sizeof(AT_START));
+  write(AT_GPRS_REGISTRATION, sizeof(AT_GPRS_REGISTRATION));
   write(AT_QUERY);
   write(AT_END);
   blockingRead(data, sizeof(data));
@@ -338,12 +356,14 @@ bool OTSIM900Link::checkPIN()
 //const char OTSIM900Link::AT_[] = { }
 const char OTSIM900Link::AT_START[2] = { 'A', 'T' };
 const char OTSIM900Link::AT_NETWORK[5] = { '+', 'C', 'O', 'P', 'S'};
-const char OTSIM900Link::AT_REGISTRATION[5] = { '+', 'C', 'R', 'E', 'G' };
+const char OTSIM900Link::AT_REGISTRATION[5] = { '+', 'C', 'R', 'E', 'G' }; // GSM registration.
+const char OTSIM900Link::AT_GPRS_REGISTRATION0[6] = { '+', 'C', 'G', 'A', 'T', 'T' }; // GPRS registration.
+const char OTSIM900Link::AT_GPRS_REGISTRATION[6] = { '+', 'C', 'G', 'R', 'E', 'G' }; // GPRS registration.
 const char OTSIM900Link::AT_SET_APN[5] = { '+', 'C', 'S', 'T', 'T' };
 const char OTSIM900Link::AT_START_GPRS[6] = { '+', 'C', 'I', 'I', 'C', 'R' };
 const char OTSIM900Link::AT_GET_IP[6] = { '+', 'C', 'I', 'F', 'S', 'R' };
 const char OTSIM900Link::AT_VERBOSE_ERRORS[5] = { '+', 'C', 'M', 'E', 'E' };
 const char OTSIM900Link::AT_PIN[5] = { '+', 'C', 'P', 'I', 'N' };
 const char OTSIM900Link::AT_START_UDP[9] = { '+', 'C', 'I', 'P', 'S', 'T', 'A', 'R', 'T' };
-const char OTSIM900Link::AT_CLOSE_UDP[8] = { '+', 'C', 'I', 'P', 'S', 'E', 'N', 'D' };
-const char OTSIM900Link::AT_SEND_UDP[9] = { '+', 'C', 'I', 'P', 'C', 'L', 'O', 'S', 'E' };
+const char OTSIM900Link::AT_SEND_UDP[8] = { '+', 'C', 'I', 'P', 'S', 'E', 'N', 'D' };
+const char OTSIM900Link::AT_CLOSE_UDP[9] = { '+', 'C', 'I', 'P', 'C', 'L', 'O', 'S', 'E' };
