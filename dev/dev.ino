@@ -47,7 +47,7 @@ OTSIM900Link gprs(9, &softSer);
  * - To close UDP connection, enter 'e'
  * - Board will close PGP on shutdown (Will add in a method to do this seperately later)
  */
- 
+
 static const int baud = 19200;  // don't chage this - may break softwareserial
 static const char apn[] = "m2mkit.telefonica.com"; // "internet";
 static const char pin[] = "0000";
