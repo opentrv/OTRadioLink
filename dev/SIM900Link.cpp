@@ -114,8 +114,9 @@ bool OTSIM900Link::sendUDP(const char *frame, uint8_t length)
 				write(frame, length);
 				write(AT_END);
         Serial.println("sent");
-        return true;
+        return(true);
 		}
+
 
 		// check for send ok ack
 
