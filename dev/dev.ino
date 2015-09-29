@@ -35,25 +35,28 @@ OTSIM900Link gprs(9, &softSer);
  * 
  * - Board will automatically power up module when serial started.
  * - To check in software if module is powered, enter 'p'
+ * - To attempt to force power up, enter 'P'
  * - To check if pin required, enter 'c'
  * - If pin required, enter 'u'
  * - To print module name to console, enter 'm'
  * - To print connected network to console, enter 'n'
- * - To register 'r'
+ * - To check network registration, enter 'R'
+ * - To set access point name, enter 'r'
  * - To start GPRS, enter 'g'
  * - To check IP address, enter 'i'
  * - To open UDP connection, enter 'o'
  * - To send UDP packet, enter 's'
  * - To close UDP connection, enter 'e'
+ * - For verbose errors, enter 'v'
  * - Board will close PGP on shutdown (Will add in a method to do this seperately later)
  */
 
 static const int baud = 19200;  // don't chage this - may break softwareserial
-static const char apn[] = "m2mkit.telefonica.com"; // "internet";
-static const char pin[] = "0000";
-static const char UDP_ADDR[] = "79.135.97.66";
+static const char apn[] = "internet"; // "m2mkit.telefonica.com"
+static const char pin[] = "7634";
+static const char UDP_ADDR[] = "46.101.52.242";
 static const char UDP_PORT[] = "9999";
-static const char UDP_SEND_STR[] = "udp-string";
+static const char UDP_SEND_STR[] = "The cat in the hat";
 
 void setup()
 {
@@ -83,6 +86,7 @@ void loop()
 void serialInput(uint8_t input)
 {
   char buffer[64];
+  int n = 0;
   switch(input) {
     case 'P': // Attempt to force power on if not already so.
       if(!gprs.isPowered()) { gprs.powerOn(); }
@@ -112,8 +116,6 @@ void serialInput(uint8_t input)
     break;
 
     case 'g':
-    //gprs.isRegistered();
-//    gprs.setAPN(apn, sizeof(apn)-1);  // dont send null termination
     gprs.startGPRS();
     break;
 

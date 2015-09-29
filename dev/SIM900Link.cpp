@@ -108,20 +108,22 @@ bool OTSIM900Link::sendUDP(const char *frame, uint8_t length)
 
 		// check for correct response?
     // The ">" prompt will appear somewhere at the end of the buffer.
-    uint8_t len;
+    waitForTerm('>');
+    write(frame, length);
+  /*  uint8_t len;
 		if(((len = timedBlockingRead(buffer, sizeof(buffer), '>')) > 2) &&
 		   ((buffer[len - 2] == '>') || (buffer[len - 1] == '>'))) { // Sends whitespace after > sometimes?
 				write(frame, length);
 				write(AT_END);
         Serial.println("sent");
         return(true);
-		}
+		}*/
 
 
 		// check for send ok ack
 
-    Serial.println("not sent");
-		return false;
+    //Serial.println("not sent");
+		//return false;
 	//}
 }
 
@@ -180,6 +182,19 @@ uint8_t OTSIM900Link::timedBlockingRead(char *data, uint8_t length, const char t
   return i;
 }
 
+/**
+ * @brief   blocks process until module ready to take send string
+ */
+void OTSIM900Link::waitForTerm(uint8_t terminatingChar)
+{
+  unsigned int startTime = millis();
+  unsigned int endTime = startTime + 1000; // time out after a second
+  while(startTime < endTime) {
+    const uint8_t c = softSerial->read();
+    if (c == terminatingChar) return;
+  }
+  Serial.println("Timeout");
+}
 /**
  * @brief	Writes an array to software serial
  * @param	data	data buffer to write from
