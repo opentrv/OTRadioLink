@@ -128,6 +128,7 @@ public:
     void setPIN(const char *pin, uint8_t length);
     bool checkPIN();
 
+    void waitForTerm(uint8_t terminatingChar);
 };
 
 #endif /* SIM900LINK_H_ */
