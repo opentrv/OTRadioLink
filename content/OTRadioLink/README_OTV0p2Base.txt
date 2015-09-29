@@ -1,4 +1,18 @@
-/*
+Target platform: Arduino UNO (or similar)
+Library format: pre-1.5-IDE
+
+
+Description
+===========
+
+The 'OTV0p2Base' OpenTRV basic hardware, power and sensor support library.
+
+Uses as namespace to help reduce chance of name collisions.
+
+
+Licence
+=======
+
 The OpenTRV project licenses this file to you
 under the Apache Licence, Version 2.0 (the "Licence");
 you may not use this file except in compliance
@@ -14,15 +28,9 @@ specific language governing permissions and limitations
 under the Licence.
 
 Author(s) / Copyright (s): Damon Hart-Davis 2015
-*/
 
-#ifndef ARDUINO_LIB_OTRFM23BLINK_H
-#define ARDUINO_LIB_OTRFM23BLINK_H
 
-#define ARDUINO_LIB_OTRFM23BLINK_VERSION_MAJOR 0
-#define ARDUINO_LIB_OTRFM23BLINK_VERSION_MINOR 9
 
-// RFM23B support.
-#include "utility/OTRFM23BLink_OTRFM23BLink.h"
+Notes
+=====
 
-#endif

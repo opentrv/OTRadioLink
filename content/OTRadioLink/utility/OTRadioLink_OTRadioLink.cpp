@@ -23,6 +23,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #include <Arduino.h>
 #include <Print.h>
 
+#include "OTV0P2BASE_Sleep.h"
+
 
 // Use namespaces to help avoid collisions.
 namespace OTRadioLink

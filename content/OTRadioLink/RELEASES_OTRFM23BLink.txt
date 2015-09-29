@@ -1,0 +1,23 @@
+ALL SIGNIFICANT RELEASES AND BRANCHES (and to-do)
+
+
+This document is used to record all significant releases and branches
+in the code tree.
+
+Follow agreed procedures before creating (or deleting) branches
+or release/freeze points.
+
+
+pending:
+    DHD20150821: starting split of this RELEASES note from OTRadioLink.
+    DHD20150929: COH-70: made default OTRFM23BLink RX queue capacity 3 (was 2).
+
+
+
+20150817:
+    freezepoint name: V0.8 (as part of OTRadioLink)
+    branch name: HEAD
+    Deployed where: 16WW (released copy on GitHub https://github.com/DamonHD/OTRadioLink V0.8).
+    Changes since last freezepoint (developer/mgr initials and brief description):
+    Previous significant freezepoint: V0.7
+

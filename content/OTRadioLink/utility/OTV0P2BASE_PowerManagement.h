@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2015
+Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 */
 
 /*
@@ -34,20 +34,27 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 namespace OTV0P2BASE
 {
 
+
+// True if the default is the run the SPI bus a bit below maximum (eg for REV2 board).
+static const bool DEFAULT_RUN_SPI_SLOW = true;
+
 // TEMPLATED DEFINITIONS OF SPI power up/down.
 //
 // If SPI was disabled, power it up, enable it as master and with a sensible clock speed, etc, and return true.
 // If already powered up then do nothing other than return false.
 // If this returns true then a matching powerDownSPI() may be advisable.
-template <uint8_t SPI_nSS>
+// The optional slowSPI flag, if true, attempts to run the bus slow, eg for when long or loaded with LED on SCK.
+template <uint8_t SPI_nSS, bool slowSPI>
 bool t_powerUpSPIIfDisabled()
     {
     ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
         {
         if(!(PRR & _BV(PRSPI))) { return(false); }
 
-        pinMode(SPI_nSS, OUTPUT); // Ensure that nSS is an output to avoid forcing SPI to slave mode by accident.
-        fastDigitalWrite(SPI_nSS, HIGH); // Ensure that nSS is HIGH and thus any slave deselected when powering up SPI.
+        // Ensure that nSS is HIGH ASAP and thus any slave deselected when powering up SPI.
+        fastDigitalWrite(SPI_nSS, HIGH);
+        // Ensure that nSS is an output to avoid forcing SPI to slave mode by accident.
+        pinMode(SPI_nSS, OUTPUT);
 
         PRR &= ~_BV(PRSPI); // Enable SPI power.
 
@@ -57,7 +64,7 @@ bool t_powerUpSPIIfDisabled()
         const uint8_t ENABLE_MASTER = _BV(SPE) | _BV(MSTR);
 #if F_CPU <= 2000000 // Needs minimum prescale (x2) with slow (<=2MHz) CPU clock.
         SPCR = ENABLE_MASTER; // 2x clock prescale for <=1MHz SPI clock from <=2MHz CPU clock (500kHz SPI @ 1MHz CPU).
-        SPSR = _BV(SPI2X);
+        if(!slowSPI) { SPSR = _BV(SPI2X); } // Slow will give 4x prescale for 250kHz bus at 1MHz CPU.
 #elif F_CPU <= 8000000
         SPCR = ENABLE_MASTER; // 4x clock prescale for <=2MHz SPI clock from nominal <=8MHz CPU clock.
         SPSR = 0;
@@ -70,16 +77,19 @@ bool t_powerUpSPIIfDisabled()
     }
 //
 // Power down SPI.
-template <uint8_t SPI_nSS, uint8_t SPI_SCK, uint8_t SPI_MOSI, uint8_t SPI_MISO>
+template <uint8_t SPI_nSS, uint8_t SPI_SCK, uint8_t SPI_MOSI, uint8_t SPI_MISO, bool slowSPI>
 void t_powerDownSPI()
     {
     ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
         {
+        // Ensure that nSS is HIGH ASAP and thus any slave deselected when powering up SPI.
+        fastDigitalWrite(SPI_nSS, HIGH);
+
         SPCR &= ~_BV(SPE); // Disable SPI.
         PRR |= _BV(PRSPI); // Power down...
 
-        pinMode(SPI_nSS, OUTPUT); // Ensure that nSS is an output to avoid forcing SPI to slave mode by accident.
-        fastDigitalWrite(SPI_nSS, HIGH); // Ensure that nSS is HIGH and thus any slave deselected when powering up SPI.
+        // Ensure that nSS is an output to avoid forcing SPI to slave mode by accident.
+        pinMode(SPI_nSS, OUTPUT);
 
         // Avoid pins from floating when SPI is disabled.
         // Try to preserve general I/O direction and restore previous output values for outputs.
@@ -96,9 +106,9 @@ void t_powerDownSPI()
 // If SPI was disabled, power it up, enable it as master and with a sensible clock speed, etc, and return true.
 // If already powered up then do nothing other than return false.
 // If this returns true then a matching powerDownSPI() may be advisable.
-inline bool powerUpSPIIfDisabled() { return(t_powerUpSPIIfDisabled<V0p2_PIN_SPI_nSS>()); }
+inline bool powerUpSPIIfDisabled() { return(t_powerUpSPIIfDisabled<V0p2_PIN_SPI_nSS, DEFAULT_RUN_SPI_SLOW>()); }
 // Power down SPI.
-inline void powerDownSPI() { t_powerDownSPI<V0p2_PIN_SPI_nSS, V0p2_PIN_SPI_SCK, V0p2_PIN_SPI_MOSI, V0p2_PIN_SPI_MISO>(); }
+inline void powerDownSPI() { t_powerDownSPI<V0p2_PIN_SPI_nSS, V0p2_PIN_SPI_SCK, V0p2_PIN_SPI_MOSI, V0p2_PIN_SPI_MISO, DEFAULT_RUN_SPI_SLOW>(); }
 
 }
 #endif

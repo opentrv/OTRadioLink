@@ -1,0 +1,30 @@
+ALL SIGNIFICANT RELEASES AND BRANCHES (and to-do)
+
+
+This document is used to record all significant releases and branches
+in the code tree.
+
+Follow agreed procedures before creating (or deleting) branches
+or release/freeze points.
+
+
+pending:
+    DHD20150821: split of this RELEASES note from OTRadioLink and OTRFM23BLink.
+    DHD20150821: D21SM: moved MinimalOneWire support to base support library from mainline code.
+    DHD20150825: D21SM: moved more entropy-related support to base support library from mainline code.
+    DHD20150826: D21SM: moved EEPROM and RTC support to base support library from mainline code.
+    DHD20150826: D21SM: moved more sleep support to base support library from mainline code.
+    DHD20150827: COH-63: added warning about continuing problems with IDLE mode (in CLI, on REV9 this time).
+    DHD20150920: fix from COHEAT in OW for DS18B20 to work properly for them: static const uint8_t stdDelayReduction = 5; // MarkT //  was: 2;
+
+
+
+
+
+20150817:
+    freezepoint name: V0.8 (as part of OTRadioLink)
+    branch name: HEAD
+    Deployed where: 16WW (released copy on GitHub https://github.com/DamonHD/OTRadioLink V0.8).
+    Changes since last freezepoint (developer/mgr initials and brief description):
+    Previous significant freezepoint: V0.7
+

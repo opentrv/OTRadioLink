@@ -35,5 +35,3 @@ Notes
 =====
 
 Initially (2015/07) built on Mac OS X 10.10 Arduino 1.0.5.
-
-Initially (up to at least V0.3) contains OTV0P2BASE and OTRFM23BLink proto-libs / namespaces also.

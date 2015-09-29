@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2015
+Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 */
 
 /*
@@ -27,15 +27,17 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 
 #include <stddef.h>
 #include <stdint.h>
-
 #include <util/atomic.h> // Atomic primitives for AVR.
+#include <Arduino.h>
 
+#include <OTV0p2Base.h>
 #include <OTRadioLink.h>
 
-#include <Arduino.h>
-#include "OTV0P2BASE_BasicPinAssignments.h"
-#include "OTV0P2BASE_FastDigitalIO.h"
-#include "OTV0P2BASE_PowerManagement.h"
+//#include "OTV0P2BASE_BasicPinAssignments.h"
+//#include "OTV0P2BASE_FastDigitalIO.h"
+//#include "OTV0P2BASE_PowerManagement.h"
+//#include "OTV0P2BASE_Sleep.h"
+
 #include "OTRadioLink_ISRRXQueue.h"
 
 namespace OTRFM23BLink
@@ -121,7 +123,8 @@ namespace OTRFM23BLink
             // SPI must already be configured and running.
             // TODO: convert from busy-wait to sleep, at least in a standby mode, if likely longer than 10s of uS.
             // At lowest SPI clock prescale (x2) this is likely to spin for ~16 CPU cycles (8 bits each taking 2 cycles).
-            inline uint8_t _io(const uint8_t data) { SPDR = data; while (!(SPSR & _BV(SPIF))) { } return(SPDR); }
+            // Treat as if this does not alter state, though in some cases it will.
+            inline uint8_t _io(const uint8_t data) const { SPDR = data; while (!(SPSR & _BV(SPIF))) { } return(SPDR); }
             // Write one byte over SPI (ignoring the value read back).
             // SPI must already be configured and running.
             // TODO: convert from busy-wait to sleep, at least in a standby mode, if likely longer than 10s of uS.
@@ -130,19 +133,20 @@ namespace OTRFM23BLink
 
             // Internal routines to enable/disable RFM23B on the the SPI bus.
             // Versions accessible to the base class...
-            virtual void _SELECT_() = 0;
-            virtual void _DESELECT_() = 0;
+            virtual void _SELECT_() const = 0;
+            virtual void _DESELECT_() const = 0;
 
             // Slower virtual calls but avoiding duplicated/header code.
             // Power SPI up and down given this particular SPI/RFM23B select line.
-            virtual bool _upSPI_() = 0;
-            virtual void _downSPI_() = 0;
+            virtual bool _upSPI_() const = 0;
+            virtual void _downSPI_() const = 0;
             // Write to 8-bit register on RFM22.
             // SPI must already be configured and running.
             virtual void _writeReg8Bit_(const uint8_t addr, const uint8_t val) = 0;
             // Read from 8-bit register on RFM22.
             // SPI must already be configured and running.
-            virtual uint8_t _readReg8Bit_(const uint8_t addr) = 0;
+            // Treat as if this does not alter state, though in some cases it will.
+            virtual uint8_t _readReg8Bit_(const uint8_t addr) const = 0;
             // Enter standby mode (consume least possible power but retain register contents).
             // FIFO state and pending interrupts are cleared.
             // Typical consumption in standby 450nA (cf 15nA when shut down, 8.5mA TUNE, 18--80mA RX/TX).
@@ -161,7 +165,7 @@ namespace OTRFM23BLink
             virtual void _clearInterrupts_() = 0;
 
             // Returns true iff RFM23 appears to be correctly connected.
-            bool _checkConnected();
+            bool _checkConnected() const;
 
             // Configure the radio from a list of register/value pairs in readonly PROGMEM/Flash, terminating with an 0xff register value.
             // NOTE: argument is not a pointer into SRAM, it is into PROGMEM!
@@ -187,7 +191,7 @@ namespace OTRFM23BLink
             // Trailing bytes (more than were actually sent) undefined.
             void _RXFIFO(uint8_t *buf, const uint8_t bufSize);
 
-            // Switch listening off, on on to selected channel.
+            // Switch listening off, on to selected channel.
             // listenChannel will have been set by time this is called.
             virtual void _dolisten();
 
@@ -223,13 +227,16 @@ namespace OTRFM23BLink
             // Revert afterwards to listen()ing if enabled,
             // else usually power down the radio if not listening.
             //   * power  hint to indicate transmission importance
-            ///    and thus possibly power or other efforts to get it heard;
+            //     and thus possibly power or other efforts to get it heard;
             //     this hint may be ignored.
             //   * listenAfter  if true then try to listen after transmit
             //     for enough time to allow a remote turn-around and TX;
             //     may be ignored if radio will revert to receive mode anyway.
             // Returns true if the transmission was made, else false.
             // May block to transmit (eg to avoid copying the buffer).
+            //
+            // Implementation specifics:
+            //   * at TXmax will do double TX with 15ms IDLE mode between.
             virtual bool sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal, bool listenAfter = false);
 
             // End access to this radio link if applicable and not already ended.
@@ -249,7 +256,7 @@ namespace OTRFM23BLink
     // Hardwire to I/O pin for RFM23B active-low SPI device select: SPI_nSS_DigitalPin.
     // Hardwire to I/O pin for RFM23B active-low interrupt RFM_nIRQ_DigitalPin (-1 if none).
     // Set the targetISRRXMinQueueCapacity to at least 2, or 3 if RAM space permits, for busy RF channels.
-    template <uint8_t SPI_nSS_DigitalPin, int8_t RFM_nIRQ_DigitalPin = -1, uint8_t targetISRRXMinQueueCapacity = 2>
+    template <uint8_t SPI_nSS_DigitalPin, int8_t RFM_nIRQ_DigitalPin = -1, uint8_t targetISRRXMinQueueCapacity = 3>
     class OTRFM23BLink : public OTRFM23BLinkBase
         {
         private:
@@ -265,24 +272,29 @@ namespace OTRFM23BLink
             // Internal routines to enable/disable RFM23B on the the SPI bus.
             // These depend only on the (constant) SPI_nSS_DigitalPin template parameter
             // so these should turn into single assembler instructions in principle.
-            inline void _SELECT() { fastDigitalWrite(SPI_nSS_DigitalPin, LOW); } // Select/enable RFM23B.
-            inline void _DESELECT() { fastDigitalWrite(SPI_nSS_DigitalPin, HIGH); } // Deselect/disable RFM23B.
+            // Introduce some delays to allow signals to stabilise if running slow.
+            // From the RFM23B datasheet (S3/p14) tEN & tSS are 20ns so waits shouldn't be necessary for AVR CPU speeds!
+            static const bool runSPISlow = ::OTV0P2BASE::DEFAULT_RUN_SPI_SLOW;
+            inline void _nSSWait() const { OTV0P2BASE_busy_spin_delay(runSPISlow?4:0); }
+            // Wait from SPI select to op, and after op to deselect, and after deselect.
+            inline void _SELECT() const { fastDigitalWrite(SPI_nSS_DigitalPin, LOW); _nSSWait(); } // Select/enable RFM23B.
+            inline void _DESELECT() const { _nSSWait(); fastDigitalWrite(SPI_nSS_DigitalPin, HIGH); _nSSWait(); } // Deselect/disable RFM23B.
             // Versions accessible to the base class...
-            virtual void _SELECT_() { _SELECT(); }
-            virtual void _DESELECT_() { _DESELECT(); }
+            virtual void _SELECT_() const { _SELECT(); }
+            virtual void _DESELECT_() const { _DESELECT(); }
 
             // Power SPI up and down given this particular SPI/RFM23B select line.
             // Use all other default values.
             // Inlined non-virtual implementations for speed.
-            inline bool _upSPI() { return(OTV0P2BASE::t_powerUpSPIIfDisabled<SPI_nSS_DigitalPin>()); }
-            inline void _downSPI() { OTV0P2BASE::t_powerDownSPI<SPI_nSS_DigitalPin, OTV0P2BASE::V0p2_PIN_SPI_SCK, OTV0P2BASE::V0p2_PIN_SPI_MOSI, OTV0P2BASE::V0p2_PIN_SPI_MISO>(); }
+            inline bool _upSPI() const { return(OTV0P2BASE::t_powerUpSPIIfDisabled<SPI_nSS_DigitalPin, runSPISlow>()); }
+            inline void _downSPI() const { OTV0P2BASE::t_powerDownSPI<SPI_nSS_DigitalPin, OTV0P2BASE::V0p2_PIN_SPI_SCK, OTV0P2BASE::V0p2_PIN_SPI_MOSI, OTV0P2BASE::V0p2_PIN_SPI_MISO, runSPISlow>(); }
             // Versions accessible to the base class...
-            virtual bool _upSPI_() { return(_upSPI()); }
-            virtual void _downSPI_() { _downSPI(); }
+            virtual bool _upSPI_() const { return(_upSPI()); }
+            virtual void _downSPI_() const { _downSPI(); }
 
             // True if interrupt line is inactive (or doesn't exist).
             // A poll or interrupt service routine can terminate immediately if this is true.
-            inline bool interruptLineIsEnabledAndInactive() { return(hasInterruptSupport && (LOW != fastDigitalRead(RFM_nIRQ_DigitalPin))); }
+            inline bool interruptLineIsEnabledAndInactive() const { return(hasInterruptSupport && (LOW != fastDigitalRead(RFM_nIRQ_DigitalPin))); }
 
             // Write to 8-bit register on RFM23B.
             // SPI must already be configured and running.
@@ -309,7 +321,8 @@ namespace OTRFM23BLink
 
             // Read from 8-bit register on RFM23B.
             // SPI must already be configured and running.
-            inline uint8_t _readReg8Bit(const uint8_t addr)
+            // Treat as if this does not alter state, though in some cases it will.
+            inline uint8_t _readReg8Bit(const uint8_t addr) const
                 {
                 _SELECT();
                 _io(addr & 0x7f); // Force to read.
@@ -318,11 +331,12 @@ namespace OTRFM23BLink
                 return(result);
                 }
             // Version accessible to the base class...
-            virtual uint8_t _readReg8Bit_(const uint8_t addr) { return(_readReg8Bit(addr)); }
+            virtual uint8_t _readReg8Bit_(const uint8_t addr) const { return(_readReg8Bit(addr)); }
 
             // Read from 16-bit big-endian register pair.
             // The result has the first (lower-numbered) register in the most significant byte.
-            uint16_t _readReg16Bit(const uint8_t addr)
+            // Treat as if this does not alter state, though in some cases it will.
+            uint16_t _readReg16Bit(const uint8_t addr) const
                 {
                 _SELECT();
                 _io(addr & 0x7f); // Force to read.

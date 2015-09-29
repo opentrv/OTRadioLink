@@ -13,14 +13,17 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2015
+Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 */
 
-#include "OTRFM23BLink_OTRFM23BLink.h"
+/**TEMPORARILY IN OTRadioLink AREA BEFORE BEING MOVED TO OWN LIBRARY. */
 
 #include <util/atomic.h>
+#include <OTV0p2Base.h>
+#include <OTRadioLink.h>
 
-/**TEMPORARILY IN OTRadioLink AREA BEFORE BEING MOVED TO OWN LIBRARY. */
+#include "OTRFM23BLink_OTRFM23BLink.h"
+#include "OTV0P2BASE_Sleep.h"
 
 namespace OTRFM23BLink {
 
@@ -32,7 +35,7 @@ void OTRFM23BLinkBase::setMaxTypicalFrameBytes(const uint8_t _maxTypicalFrameByt
     }
 
 // Returns true iff RFM23 appears to be correctly connected.
-bool OTRFM23BLinkBase::_checkConnected()
+bool OTRFM23BLinkBase::_checkConnected() const
     {
     const bool neededEnable = _upSPI_();
     bool isOK = false;
@@ -133,7 +136,8 @@ bool OTRFM23BLinkBase::_TXFIFO()
         }
 
     // RFM23B data sheet claims up to 800uS from standby to TX; be conservative,
-    ::OTV0P2BASE::_delay_x4(250); // Spin CPU for ~1ms; does not depend on timer1, etc.
+    //::OTV0P2BASE::_delay_x4(250); // Spin CPU for ~1ms; does not depend on timer1, etc.
+    OTV0P2BASE_busy_spin_delay(1000);
 
     // Repeatedly nap until packet sent, with upper bound of ~120ms on TX time in case there is a problem.
     // (TX time is ~1.6ms per byte at 5000bps.)
@@ -144,7 +148,8 @@ bool OTRFM23BLinkBase::_TXFIFO()
     for(int i = MAX_TX_ms; --i >= 0; )
         {
         // Spin CPU for ~1ms; does not depend on timer1, delay(), millis(), etc, Arduino support.
-        ::OTV0P2BASE::_delay_x4(250);
+//        ::OTV0P2BASE::_delay_x4(250);
+        OTV0P2BASE_busy_spin_delay(1000);
         // FIXME: don't have nap() support yet // nap(WDTO_15MS, true); // Sleep in low power mode for a short time waiting for bits to be sent...
         const uint8_t status = _readReg8Bit_(REG_INT_STATUS1); // TODO: could use nIRQ instead if available.
         if(status & 4) { result = true; break; } // Packet sent!
@@ -175,7 +180,7 @@ bool OTRFM23BLinkBase::sendRaw(const uint8_t *const buf, const uint8_t buflen, c
     // Should not need to lock out interrupts while sending
     // as no poll()/ISR should start until this completes,
     // but will need to stop any RX in process,
-    // eg to avoid TX buffer being zapped.
+    // eg to avoid TX FIFO buffer being zapped during RX handling.
 
     // Disable all interrupts (eg to avoid invoking the RX handler).
     _modeStandbyAndClearState_();
@@ -189,12 +194,13 @@ bool OTRFM23BLinkBase::sendRaw(const uint8_t *const buf, const uint8_t buflen, c
     if(power >= TXmax)
         {
         // Wait a little before retransmission.
-        // nap(WDTO_15MS, false); // FIXME: no nap() support yet // Sleeping with interrupts disabled?
-        delay(15);
-
-//        // FIXME: should just be able to resend FIFO without reloading.
-//        _modeStandbyAndClearState_();
-//        _queueFrameInTXFIFO(buf, buflen);
+        // nap(WDTO_15MS, false); // FIXME: no nap() or idle() support yet // Sleeping with interrupts disabled?
+        // delay(15); // FIXME: make this a configurable value.
+#ifndef OTV0P2BASE_IDLE_NOT_RECOMMENDED
+        ::OTV0P2BASE::_idleCPU(WDTO_15MS, false); // FIXME: make this a configurable delay.
+#else
+        ::OTV0P2BASE::delay_ms(15); // FIXME: seems a shame to burn cycles/juice here...
+#endif
 
         // Resend the frame.
         if(!_TXFIFO()) { result = false; }
@@ -207,7 +213,7 @@ bool OTRFM23BLinkBase::sendRaw(const uint8_t *const buf, const uint8_t buflen, c
     return(result);
     }
 
-// Switch listening off, on on to selected channel.
+// Switch listening off, on to selected channel.
 // listenChannel will have been set by time this is called.
 // This always switches to standby mode first, then switches on RX as needed.
 void OTRFM23BLinkBase::_dolisten()

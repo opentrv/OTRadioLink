@@ -20,19 +20,50 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #define ARDUINO_LIB_OTV0P2BASE_H
 
 #define ARDUINO_LIB_OTV0P2BASE_VERSION_MAJOR 0
-#define ARDUINO_LIB_OTV0P2BASE_VERSION_MINOR 8
+#define ARDUINO_LIB_OTV0P2BASE_VERSION_MINOR 9
 
+// Base hardware, power and system management for V0p2 AVR-based (ATMega328P) OpenTRV boards.
+
+/*
+  V0p2 (V0.2) core.
+
+  DHD20130417: hardware setup on bare board.
+    * 1MHz CPU clock (from 8MHz internal RC clock with /8 prescaler) ATmega328P running at 1.8V--5V (typically 2V--3.3V).
+    * Fuse set for BOD-managed additional clock settle time, ie as fast a restart from sleep as possible.
+    * All unused pins unconnected and nominally floating (though driven low as output where possible).
+    * 32768Hz xtal between pins XTAL1 and XTAL2, async timer 2, for accurate timekeeping and low-power sleep.
+    * All unused system modules turned off.
+
+  Basic AVR power consumption ticking an (empty) control loop at ~0.5Hz should be ~1uA.
+ */
+
+// EEPROM allocation and access.
+#include "utility/OTV0P2BASE_EEPROM.h"
+
+// Quick/simple PRNG (Pseudo-Random Number Generator).
+#include "utility/OTV0P2BASE_QuickPRNG.h"
+
+// Fast GPIO support routines.
+#include "utility/OTV0P2BASE_FastDigitalIO.h"
+
+// Minimal light-weight standard-speed OneWire(TM) support.
+#include "utility/OTV0P2BASE_MinOW.h"
+
+// Base/common sensor and actuator types.
+#include "utility/OTV0P2BASE_Sensor.h"
+#include "utility/OTV0P2BASE_Actuator.h"
 
 // Basic immutable GPIO assignments and similar.
 #include "utility/OTV0P2BASE_BasicPinAssignments.h"
 
-// Fast GPIO support and micro timing routines.
-#include "utility/OTV0P2BASE_FastDigitalIO.h"
-
-// Power management and other misc support.
+// Power, micro timing, I/O management and other misc support.
+#include "utility/OTV0P2BASE_Sleep.h"
 #include "utility/OTV0P2BASE_PowerManagement.h"
 
-// Quick/simple PRNG (Pseudo-Random Number Generator).
-#include "utility/OTV0P2BASE_QuickPRNG.h"
+// Software Real-Time Clock (RTC) support.
+#include "utility/OTV0P2BASE_RTC.h"
+
+// Entropy management.
+#include "utility/OTV0P2BASE_Entropy.h"
 
 #endif

@@ -299,7 +299,7 @@ namespace OTRadioLink
             // Revert afterwards to listen()ing if enabled,
             // else usually power down the radio if not listening.
             //   * power  hint to indicate transmission importance
-            ///    and thus possibly power or other efforts to get it heard;
+            //     and thus possibly power or other efforts to get it heard;
             //     this hint may be ignored.
             //   * listenAfter  if true then try to listen after transmit
             //     for enough time to allow a remote turn-around and TX;
