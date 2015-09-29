@@ -10,7 +10,7 @@ or release/freeze points.
 
 pending:
     DHD20150821: starting split of this RELEASES note from OTRadioLink.
-
+    DHD20150929: COH-70: made default OTRFM23BLink RX queue capacity 3 (was 2).
 
 
 
