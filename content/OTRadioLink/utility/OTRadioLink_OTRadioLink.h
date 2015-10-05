@@ -205,7 +205,7 @@ namespace OTRadioLink
             // Allows logic to end() if required at the end of a block, etc.
             // Should if possible leave the radio initialised but in a low-power state,
             // with significant power only being drawn if the radio is put in RX/listen mode,
-            // or a TX is being done,
+            // or a TX is being done or about to be done,
             // or the radio is being powered up to allow RX or TX to be done.
             // Defaults to do nothing (and return false).
             virtual bool begin() { return(false); }
