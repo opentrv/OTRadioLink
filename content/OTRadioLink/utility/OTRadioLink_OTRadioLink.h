@@ -103,7 +103,8 @@ namespace OTRadioLink
     quickFrameFilter_t frameFilterTrailingZeros;
 
     // Base class for radio link hardware driver.
-    // Neither re-entrant nor ISR-safe except where stated.
+    // Radios can support multiple channels and can be (for example) TX-only for leaf nodes.
+    // Implementation cannot be assume to either re-entrant or ISR-safe except where stated.
     class OTRadioLink
         {
         public:
@@ -202,6 +203,10 @@ namespace OTRadioLink
             // Begin access to (initialise) this radio link if applicable and not already begun.
             // Returns true if it successfully began, false otherwise.
             // Allows logic to end() if required at the end of a block, etc.
+            // Should if possible leave the radio initialised but in a low-power state,
+            // with significant power only being drawn if the radio is put in RX/listen mode,
+            // or a TX is being done,
+            // or the radio is being powered up to allow RX or TX to be done.
             // Defaults to do nothing (and return false).
             virtual bool begin() { return(false); }
 
