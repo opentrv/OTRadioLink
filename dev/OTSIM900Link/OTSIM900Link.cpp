@@ -17,7 +17,8 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
                            Damon Hart-Davis 2015
 */
 
-#include "SIM900Link.h"
+#include "OTSIM900Link.h"
+
 
 /**
  * @brief	Constructor. Initializes softSerial and sets PWR_PIN
@@ -33,15 +34,30 @@ OTSIM900Link::OTSIM900Link(uint8_t pwrPin, SoftwareSerial *_softSerial) : PWR_PI
 
 /**
  * @brief	begin software serial and power up SIM module
- * @todo	include everything except opening the UDP port in this
- *        why can't I set softSerial->begin like this?
+ * @todo	work out setPin and setAPN
+ *          why can't I set softSerial->begin like this?
  * @param	baud	baudrate communicating with SIM900
  */
 bool OTSIM900Link::begin()
 {
-	//softSerial->begin(baud);
+	//softSerial->begin(baud);	// SoftwareSerial breaks if anything up to and including this happens in class
 	powerOn();
-  return true;
+
+	// perform steps that can be done without network connection
+	/*								// these are broken
+	if (checkPIN()) {
+		setPin(PIN, sizeof(PIN));	// will probably end up being *PIN and length of pin
+	}
+
+	setAPN(APN, sizeof(APN));		// see setPin
+
+	// block until network registered
+	while(!isRegistered) {/* delay function *//*}
+
+	startGPRS();
+	*/
+
+	return true;
 }
 
 /**
@@ -65,7 +81,7 @@ bool OTSIM900Link::openUDP(const char *address, uint8_t addressLength, const cha
 	//if(!isOpenUDP()){
 		write(AT_START, sizeof(AT_START));
 		write(AT_START_UDP, sizeof(AT_START_UDP));
-    write("=\"UDP\",", 7); // FIXME!
+		write("=\"UDP\",", 7); // FIXME!
 		write('\"');
 		write(address, addressLength);
 		write("\",\"", 3);
@@ -120,13 +136,13 @@ bool OTSIM900Link::sendUDP(const char *frame, uint8_t length)
 
 /**
  * @brief	check if module has power
+ * @todo	better check?
  * @retval	true if module is powered up
- * @todo	  find an alternative to strcmp
  */
 bool OTSIM900Link::isPowered()
 {
 	char data[9];
-  memset(data, 0 , sizeof(data));
+	memset(data, 0 , sizeof(data));
 	write(AT_START, sizeof(AT_START));
 	write(AT_END);
 	if((timedBlockingRead(data, sizeof(data)) > 0) &&
@@ -137,7 +153,6 @@ bool OTSIM900Link::isPowered()
 
 /**
  * @brief	Enter blocking read. Fills buffer or times out after 100 ms
- * @todo  get rid of Serial.prints
  * @param	data	data buffer to write to
  * @param	length	length of data buffer
  * @retval	length of data received before time out
@@ -188,6 +203,7 @@ void OTSIM900Link::waitForTerm(uint8_t terminatingChar)
 }
 /**
  * @brief	Writes an array to software serial
+ * @todo	change these to overloaded prints?
  * @param	data	data buffer to write from
  * @param	length	length of data buffer
  */
@@ -307,10 +323,10 @@ void OTSIM900Link::setAPN(const char *APN, uint8_t length)
 
 /**
  * @brief	Start GPRS connection
- * @retval	returns true if connected
- * @note	check power, check registered, check gprs active
  * @todo	check for OK response on each set?
  * 			check syntax correct
+ * @retval	returns true if connected
+ * @note	check power, check registered, check gprs active
  */
 bool OTSIM900Link::startGPRS()
 {
@@ -325,7 +341,7 @@ bool OTSIM900Link::startGPRS()
 
 /**
  * @brief	Get IP address
- * @todo	implement writing IP
+ * @todo	implement returning IP address
  * @param	pointer to array to store IP address in. must be at least 16 characters long
  * @retval	return length of IP address. Return 0 if no connection
  */
@@ -349,6 +365,7 @@ uint8_t OTSIM900Link::getIP(char *IPAddress)
 
 /**
  * @brief	check if UDP open
+ * @todo	implement function
  * @retval	true if open
  */
 bool OTSIM900Link::isOpenUDP()
@@ -373,7 +390,6 @@ void OTSIM900Link::verbose()
 
 /**
  * @brief   Enter PIN code
- * @todo    replace softSer-> print(long )
  * @param   pin     pointer to array containing pin code
  * @param   length  length of pin
  */

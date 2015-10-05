@@ -260,7 +260,7 @@ namespace OTRadioLink
             // This does not remove the message or alter the queue.
             // The buffer pointed to MUST NOT be altered.
             // Not intended to be called from an ISR.
-            virtual const volatile uint8_t *peekRXMsg(uint8_t &len) const = 0;
+            virtual const volatile uint8_t *peekRXMsg(uint8_t &len) /*const*/ = 0;
 
             // Remove the first (oldest) queued RX message.
             // Typically used after peekRXMessage().

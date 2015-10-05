@@ -17,15 +17,24 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
                            Damon Hart-Davis 2015
 */
 
-#ifndef SIM900LINK_H_
-#define SIM900LINK_H_
+#ifndef OTSIM900LINK_H_
+#define OTSIM900LINK_H_
 
 #include <Arduino.h>
+#include <OTRadioLink.h>
 #include <SoftwareSerial.h>
 #include <string.h>
 #include <stdint.h>
 
-class OTSIM900Link
+/**
+ * @todo	SIM900 has a low power state which stays connected to network
+ * 			- Not sure how much power reduced
+ * 			- If not sending often may be more efficient to power up and wait for connect each time
+ * 			Make OTSIM900LinkBase to abstract serial interface?
+ * 			Get rid of Serial.prints or put in ifdef DEBUG
+ */
+
+class OTSIM900Link : public OTRadioLink::OTRadioLink
 {
 public:
   OTSIM900Link(uint8_t pwrPin, SoftwareSerial *_softSerial);
@@ -45,7 +54,7 @@ public:
 
 //private:
   SoftwareSerial *softSerial;
- /***************** AT Commands and Private Constants ******************/
+ /***************** AT Commands and Private Constants and variables ******************/
     // set AT commands here
     // These may not be supported by all sim modules so may need to move
     // to concrete implementation
@@ -70,15 +79,16 @@ public:
 
     // Standard Responses
 
-
-  // put module name here
-
   // pins for software serial
   const uint8_t PWR_PIN;
 
-  /************************* Private Methods *******************************/
-    // Power up/down
-  bool isPowered();
+  // variables	How do I set these? Want them set outside class but may be variable length
+  char APN[];
+  char PIN[];
+
+/************************* Private Methods *******************************/
+  	// Power up/down
+    bool isPowered();
     /**
      * @brief power up module
      * @note  check if already powered
@@ -129,6 +139,30 @@ public:
     bool checkPIN();
 
     void waitForTerm(uint8_t terminatingChar);
+
+protected:	// define abstract methods here
+    // These are unused as no RX
+    virtual void _dolisten() {}
+    virtual void getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen) const {}
+    virtual uint8_t getRXMsgsQueued() const {return 0;}
+    virtual const volatile uint8_t *peekRXMsg(uint8_t &len) const {return 0;}
+    virtual void removeRXMsg() {}
+    // Not sure what to do with this
+    virtual bool sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal, bool listenAfter = false) {return false;};
+
+/* other methods (copied from OTRadioLink as is)
+// not sure if necessary:
+virtual bool _doconfig() { return(true); }		// could this replace something?
+virtual void preinit(const void *preconfig) {}	// not really relevant?
+virtual void panicShutdown() { preinit(NULL); }	// see above
+virtual bool isAvailable();
+
+// no RX:
+virtual uint8_t getRXErr() { return(0); }
+virtual void poll() {}
+virtual bool handleInterruptSimple() { return(false); }
+
+*/
 };
 
-#endif /* SIM900LINK_H_ */
+#endif /* OTSIM900LINK_H_ */

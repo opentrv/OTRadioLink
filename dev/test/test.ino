@@ -19,6 +19,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
 
 
 #include <SoftwareSerial.h>
+#include <OTRadioLink.h>
 #include <OTSIM900Link.h>
 
 SoftwareSerial softSer(7,8);
@@ -57,8 +58,8 @@ static const int baud = 19200;  // don't chage this - may break softwareserial
 
 
 #if 1 == CREDS // DE
-static const char apn[] = "internet"; // "m2mkit.telefonica.com"
-static const char pin[] = "7634";
+static const char apn[] = "m2mkit.telefonica.com"; // "m2mkit.telefonica.com"
+static const char pin[] = "0000";
 static const char UDP_ADDR[] = "46.101.52.242";
 static const char UDP_PORT[] = "9999";
 #elif 2 == CREDS // DHD
@@ -75,7 +76,7 @@ void setup()
 {
   Serial.begin(baud);
   softSer.begin(baud);
-  gprs.begin(baud);
+  gprs.begin();
 //  gprs.verbose();
   Serial.println("Setup Done");
 }
