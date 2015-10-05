@@ -22,6 +22,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
 
 /**
  * @brief	Constructor. Initializes softSerial and sets PWR_PIN
+ * @todo	Can/should pinMode be replaced?
  * @param	pwrPin		SIM900 power on/off pin
  * @param	rxPin		Rx pin for software serial
  * @param	txPin		Tx pin for software serial
@@ -33,15 +34,18 @@ OTSIM900Link::OTSIM900Link(uint8_t pwrPin, SoftwareSerial *_softSerial) : PWR_PI
 }
 
 /**
- * @brief	begin software serial and power up SIM module
- * @todo	work out setPin and setAPN
+ * @brief	begin software serial
+ * @todo	What is this actually going to do?
+ * 			- Turning module on automatically starts radio, so this does not fit desired begin behaviour
+ * 			- There is a low power mode but this still requires an active connection to stay registered
+ * 			- APN etc need to be set after each power up. Is this just going to store these in object?
  *          why can't I set softSerial->begin like this?
  * @param	baud	baudrate communicating with SIM900
  */
 bool OTSIM900Link::begin()
 {
-	//softSerial->begin(baud);	// SoftwareSerial breaks if anything up to and including this happens in class
-	powerOn();
+
+	//powerOn();
 
 	// perform steps that can be done without network connection
 	/*								// these are broken
@@ -52,7 +56,7 @@ bool OTSIM900Link::begin()
 	setAPN(APN, sizeof(APN));		// see setPin
 
 	// block until network registered
-	while(!isRegistered) {/* delay function *//*}
+	while(!isRegistered) {}			// FIXME: Add delay in loop
 
 	startGPRS();
 	*/
@@ -125,12 +129,11 @@ bool OTSIM900Link::sendUDP(const char *frame, uint8_t length)
 		print(length);
 		write(AT_END);
 
-		// check for correct response?
-    // The ">" prompt will appear somewhere at the end of the buffer.
-    waitForTerm('>');
-    write(frame, length);
-
-    return true;	// add check here
+		// '>' indicates module is ready for UDP frame
+		if (waitForTerm('>')) {
+			write(frame, length);
+			return true;	// add check here
+		} else return false;
 	//}
 }
 
@@ -141,7 +144,7 @@ bool OTSIM900Link::sendUDP(const char *frame, uint8_t length)
  */
 bool OTSIM900Link::isPowered()
 {
-	char data[9];
+	char data[64];
 	memset(data, 0 , sizeof(data));
 	write(AT_START, sizeof(AT_START));
 	write(AT_END);
@@ -152,7 +155,21 @@ bool OTSIM900Link::isPowered()
 }
 
 /**
+ * @brief	Reads a single character from softSerial
+ * @retval	returns character read, or 0 if no data to read
+ */
+uint8_t OTSIM900Link::read()
+{
+	uint8_t data;
+	data = softSerial->read();
+	if (data > 0) return data;
+	else return 0;
+}
+
+/**
  * @brief	Enter blocking read. Fills buffer or times out after 100 ms
+ * @todo	what to do with terminatingChar? Using 0 as default fails?
+ * 			Overloaded for now
  * @param	data	data buffer to write to
  * @param	length	length of data buffer
  * @retval	length of data received before time out
@@ -163,43 +180,55 @@ uint8_t OTSIM900Link::timedBlockingRead(char *data, uint8_t length, const char t
   memset(data, 0, length);
   uint8_t i = 0;
 
-  uint16_t startTime = millis();
+  uint32_t startTime = millis();
   // 100ms is time to fill buffer? probs got maths wrong on this.
   // May have to wait a little longer because of (eg) interactions with the network,
   // especially if a terminating char is known.
   const bool hasTerminatingChar = (0 != terminatingChar);
-  const uint16_t timeoutms = hasTerminatingChar ? 500 : 200;
+  const uint32_t timeoutms = 2000;//hasTerminatingChar ? 500 : 200;	FIXME return to normal
   while ((millis() - startTime) <= timeoutms) {
     if (softSerial->available() > 0) {
-      const char c = softSerial->read();
+      const char c = read();
       *data++ = c;
       if(hasTerminatingChar && (c == terminatingChar)) { break; }
       i++;
+#ifdef OTSIM900LINK_DEBUG
+      Serial.print((uint8_t) c, HEX);	// print raw values
+      Serial.print(" ");
+#endif // OTSIM900LINK_DEBUG
     }
     // break if receive too long.
     if (i >= length) {
+#ifdef OTSIM900LINK_DEBUG
       Serial.println("\n--Serial Overrun");
+#endif // OTSIM900LINK_DEBUG
       // FIXME: rest of input still had to be absorbed to avoid fouling next interaction.
       break;
     }
   }
+#ifdef OTSIM900LINK_DEBUG
   Serial.print("\n--Buffer Length: ");
   Serial.println(i);
+#endif // OTSIM900LINK_DEBUG
   return i;
 }
 
 /**
- * @brief   blocks process until module ready to take send string
+ * @brief   blocks process until terminatingChar received
+ * @param	terminatingChar		character to block until
  */
-void OTSIM900Link::waitForTerm(uint8_t terminatingChar)
+bool OTSIM900Link::waitForTerm(uint8_t terminatingChar)
 {
-  unsigned int startTime = millis();
-  unsigned int endTime = startTime + 1000; // time out after a second
-  while(startTime < endTime) {
-    const uint8_t c = softSerial->read();
-    if (c == terminatingChar) return;
+  //unsigned long startTime = millis();
+  unsigned long endTime = millis() + 1000; // time out after a second
+  while(millis() < endTime) {
+    const uint8_t c = read();
+    if (c == terminatingChar) return true;
   }
+#ifdef OTSIM900LINK_DEBUG
   Serial.println("Timeout");
+#endif // OTSIM900LINK_DEBUG
+  return false;
 }
 /**
  * @brief	Writes an array to software serial
@@ -244,7 +273,9 @@ bool OTSIM900Link::checkModule(/*const char *name, uint8_t  length*/)
   write(AT_GET_MODULE);
   write(AT_END);
   timedBlockingRead(data, sizeof(data));
+#ifdef OTSIM900LINK_DEBUG
   Serial.println(data);
+#endif // OTSIM900LINK_DEBUG
   return true;
 }
 
@@ -262,14 +293,17 @@ bool OTSIM900Link::checkNetwork(char *buffer, uint8_t length)
   write(AT_NETWORK, sizeof(AT_NETWORK));
   write(AT_QUERY);
   write(AT_END);
-  timedBlockingRead(data, sizeof(data));
+  Serial.println(timedBlockingRead(data, sizeof(data)));
+#ifdef OTSIM900LINK_DEBUG
   Serial.println(data);
+#endif // OTSIM900LINK_DEBUG
   return true;
 }
 
 /**
  * @brief 	check if module connected and registered (GSM and GPRS)
  * @todo	implement check
+ * 			are two registration checks needed?
  * @retval	true if registered
  */
 bool OTSIM900Link::isRegistered()
@@ -283,21 +317,27 @@ bool OTSIM900Link::isRegistered()
   write(AT_QUERY);
   write(AT_END);
   timedBlockingRead(data, sizeof(data));
+#ifdef OTSIM900LINK_DEBUG
   Serial.println(data);
-  delay(100);
+#endif // OTSIM900LINK_DEBUG
+/*  delay(100);
   write(AT_START, sizeof(AT_START));
   write(AT_GPRS_REGISTRATION0, sizeof(AT_GPRS_REGISTRATION0));
   write(AT_QUERY);
   write(AT_END);
   timedBlockingRead(data, sizeof(data));
+#ifdef OTSIM900LINK_DEBUG
   Serial.println(data);
+#endif // OTSIM900LINK_DEBUG
   delay(100);
   write(AT_START, sizeof(AT_START));
   write(AT_GPRS_REGISTRATION, sizeof(AT_GPRS_REGISTRATION));
   write(AT_QUERY);
   write(AT_END);
   timedBlockingRead(data, sizeof(data));
+#ifdef OTSIM900LINK_DEBUG
   Serial.println(data);
+#endif // OTSIM900LINK_DEBUG*/
 
   return true;
 }
@@ -317,8 +357,10 @@ void OTSIM900Link::setAPN(const char *APN, uint8_t length)
   write(APN, length);
   write('\"');
   write(AT_END);
+#ifdef OTSIM900LINK_DEBUG
   timedBlockingRead(data, sizeof(data));
   Serial.println(data);
+#endif // OTSIM900LINK_DEBUG
 }
 
 /**
@@ -335,7 +377,9 @@ bool OTSIM900Link::startGPRS()
   write(AT_START_GPRS, sizeof(AT_START_GPRS));
   write(AT_END);
   timedBlockingRead(data, sizeof(data));
+#ifdef OTSIM900LINK_DEBUG
   Serial.println(data);
+#endif // OTSIM900LINK_DEBUG
   return true;
 }
 
@@ -352,14 +396,17 @@ uint8_t OTSIM900Link::getIP(char *IPAddress)
   write(AT_GET_IP, sizeof(AT_GET_IP));
   write(AT_END);
   timedBlockingRead(data, sizeof(data));
+#ifdef OTSIM900LINK_DEBUG
   Serial.println(data);
-
+#endif // OTSIM900LINK_DEBUG
   delay(100);
   write(AT_START, sizeof(AT_START));
   write("+CIPSTATUS", 10);
   write(AT_END);
   timedBlockingRead(data, sizeof(data));
+#ifdef OTSIM900LINK_DEBUG
   Serial.println(data);
+#endif // OTSIM900LINK_DEBUG
   return 0;	// this needs to change
 }
 
@@ -378,6 +425,7 @@ bool OTSIM900Link::isOpenUDP()
  */
 void OTSIM900Link::verbose()
 {
+#ifdef OTSIM900LINK_DEBUG
   char data[64];
   write(AT_START, sizeof(AT_START));
   write(AT_VERBOSE_ERRORS, sizeof(AT_VERBOSE_ERRORS));
@@ -386,6 +434,7 @@ void OTSIM900Link::verbose()
   write(AT_END);
   timedBlockingRead(data, sizeof(data));
   Serial.println(data);
+#endif // OTSIM900LINK_DEBUG
 }
 
 /**
@@ -402,7 +451,10 @@ void OTSIM900Link::setPIN(const char *pin, uint8_t length)
   write(pin, length);
   write(AT_END);
   timedBlockingRead(data, sizeof(data));
+
+#ifdef OTSIM900LINK_DEBUG
   Serial.println(data);
+#endif // OTSIM900LINK_DEBUG
 }
 
 /**
@@ -417,7 +469,10 @@ bool OTSIM900Link::checkPIN()
   write(AT_QUERY);
   write(AT_END);
   timedBlockingRead(data, sizeof(data));
+
+#ifdef OTSIM900LINK_DEBUG
   Serial.println(data);
+#endif // OTSIM900LINK_DEBUG
 
   return false;
 }
@@ -431,10 +486,12 @@ const char OTSIM900Link::AT_GPRS_REGISTRATION[6] = { '+', 'C', 'G', 'R', 'E', 'G
 const char OTSIM900Link::AT_SET_APN[5] = { '+', 'C', 'S', 'T', 'T' };
 const char OTSIM900Link::AT_START_GPRS[6] = { '+', 'C', 'I', 'I', 'C', 'R' };
 const char OTSIM900Link::AT_GET_IP[6] = { '+', 'C', 'I', 'F', 'S', 'R' };
-const char OTSIM900Link::AT_VERBOSE_ERRORS[5] = { '+', 'C', 'M', 'E', 'E' };
 const char OTSIM900Link::AT_PIN[5] = { '+', 'C', 'P', 'I', 'N' };
 const char OTSIM900Link::AT_START_UDP[9] = { '+', 'C', 'I', 'P', 'S', 'T', 'A', 'R', 'T' };
 const char OTSIM900Link::AT_SEND_UDP[8] = { '+', 'C', 'I', 'P', 'S', 'E', 'N', 'D' };
 const char OTSIM900Link::AT_CLOSE_UDP[9] = { '+', 'C', 'I', 'P', 'C', 'L', 'O', 'S', 'E' };
+#ifdef OTSIM900LINK_DEBUG
+const char OTSIM900Link::AT_VERBOSE_ERRORS[5] = { '+', 'C', 'M', 'E', 'E' };
+#endif // OTSIM900LINK_DEBUG
 
 // tcpdump -Avv udp and dst port 9999

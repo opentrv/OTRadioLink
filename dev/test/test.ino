@@ -17,13 +17,12 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
                            Damon Hart-Davis 2015
 */
 
-
 #include <SoftwareSerial.h>
 #include <OTRadioLink.h>
 #include <OTSIM900Link.h>
 
-SoftwareSerial softSer(7,8);
-OTSIM900Link gprs(9, &softSer);
+SoftwareSerial softSer(7,8);  // rx and tx pins for SIM900 module
+OTSIM900Link gprs(9, &softSer); // power pin and pointer to SoftwareSerial
 // Geeetech board needs solder jumper made for D9 to drive power pin.
 // http://www.geeetech.com/Documents/GPRSshield_sch.pdf
 
@@ -54,7 +53,7 @@ OTSIM900Link gprs(9, &softSer);
 
 static const int baud = 19200;  // don't chage this - may break softwareserial
 
-#define CREDS 2 // Choose set of hardwired credentials and target address.
+#define CREDS 1 // Choose set of hardwired credentials and target address.
 
 
 #if 1 == CREDS // DE
@@ -77,6 +76,8 @@ void setup()
   Serial.begin(baud);
   softSer.begin(baud);
   gprs.begin();
+  gprs.powerOn();
+  delay(1000);
 //  gprs.verbose();
   Serial.println("Setup Done");
 }
@@ -86,9 +87,11 @@ void loop()
   if(Serial.available() > 0)
   {
     uint8_t input = Serial.read();
-    Serial.print("Input\t");
-    Serial.println((char)input);
-    serialInput(input);
+    if (input != '\n') {
+      Serial.print("\nInput\t");
+      Serial.println((char)input);
+      serialInput(input);
+    }
   }
   if(softSer.available() >0)
   {
@@ -104,6 +107,7 @@ void serialInput(uint8_t input)
   switch(input) {
     case 'P': // Attempt to force power on if not already so.
       if(!gprs.isPowered()) { gprs.powerOn(); }
+      delay(1000);
     case 'p':
       if(gprs.isPowered()) Serial.println("True");
       else Serial.println("False");

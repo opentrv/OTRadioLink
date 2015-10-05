@@ -26,12 +26,20 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
 #include <string.h>
 #include <stdint.h>
 
+#ifndef OTSIM900LINK_DEBUG
+#define OTSIM900LINK_DEBUG
+#endif // OTSIM900LINK_DEBUG
+
 /**
+ * @note	To enable serial debug define 'OTSIM900LINK_DEBUG'
  * @todo	SIM900 has a low power state which stays connected to network
  * 			- Not sure how much power reduced
  * 			- If not sending often may be more efficient to power up and wait for connect each time
  * 			Make OTSIM900LinkBase to abstract serial interface?
  * 			Get rid of Serial.prints or put in ifdef DEBUG
+ * 			Add methods to set APN, PIN and UDP send address
+ * 			- These require variable length arrays and I'm not sure how to implement in class
+ * 			Make read & write inline?
  */
 
 class OTSIM900Link : public OTRadioLink::OTRadioLink
@@ -66,11 +74,13 @@ public:
       static const char AT_SET_APN[5];
       static const char AT_START_GPRS[6];
       static const char AT_GET_IP[6];
-      static const char AT_VERBOSE_ERRORS[5];
       static const char AT_PIN[5];
       static const char AT_START_UDP[9];
       static const char AT_SEND_UDP[8];
       static const char AT_CLOSE_UDP[9];
+#ifdef OTSIM900LINK_DEBUG
+      static const char AT_VERBOSE_ERRORS[5];
+#endif // OTSIM900LINK_DEBUG
       
       static const char AT_GET_MODULE = 'I';
       static const char AT_SET = '=';
@@ -82,16 +92,18 @@ public:
   // pins for software serial
   const uint8_t PWR_PIN;
 
-  // variables	How do I set these? Want them set outside class but may be variable length
-  char APN[];
-  char PIN[];
+  // variables
+  /// @todo	How do I set these? Want them set outside class but may be variable length
+  //char APN[];
+  //char PIN[];
 
 /************************* Private Methods *******************************/
   	// Power up/down
     bool isPowered();
+
     /**
-     * @brief power up module
-     * @note  check if already powered
+     * @brief 	Power up module
+     * @todo	replace digitalWrite with fastDigitalWrite
      */
     inline void powerOn()
     {
@@ -99,13 +111,14 @@ public:
       if(!isPowered()) {
         delay(500);
         digitalWrite(PWR_PIN, HIGH);
-        delay(1000);
+        delay(500);
         digitalWrite(PWR_PIN, LOW);
       }
     }
+
     /**
-     * @brief power down module
-     * @note  check if powered and close UDP if required
+     * @brief 	Close UDP if necessary and power down module.
+     * @todo	replace digitalWrite with fastDigitalWrite
      */
     inline void powerOff()
     {
@@ -119,7 +132,9 @@ public:
     }
 
     // Serial functions
+    uint8_t read();
     uint8_t timedBlockingRead(char *data, uint8_t length, char terminatingChar = 0);
+    //uint8_t timedBlockingRead(char *data, uint8_t length);
     void write(const char *data, uint8_t length);
     void write(const char data);
     void print(const int value);
@@ -138,7 +153,7 @@ public:
     void setPIN(const char *pin, uint8_t length);
     bool checkPIN();
 
-    void waitForTerm(uint8_t terminatingChar);
+    bool waitForTerm(uint8_t terminatingChar);
 
 protected:	// define abstract methods here
     // These are unused as no RX
