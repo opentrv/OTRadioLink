@@ -23,6 +23,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 
 #include "OTV0P2BASE_Sleep.h"
 
+#include <util/crc16.h>
+
+
 namespace OTV0P2BASE
 {
 // Define macro to disable BOD during sleep here if not included in Arduino AVR toolset...
@@ -163,9 +166,6 @@ __attribute__ ((noinline)) void _sleepLowPowerLoopsMinCPUSpeed(uint16_t loops)
   clock_prescale_set(prescale); // Restore clock prescale.
   }
 
-
-
-#include <util/crc16.h>
 
 // Extract and return a little entropy from clock jitter between CPU and WDT clocks; possibly one bit of entropy captured.
 // Expensive in terms of CPU time and thus energy.
