@@ -76,9 +76,10 @@ bool OTSIM900Link::end()
 
 /**
  * @brief	open UDP connection to input ip address
+ * @todo	clean up writes
  * @param	array containing IP address to open connection to in format xxx.xxx.xxx.xxx (keep all zeros)
  * @retval	returns true if UDP opened
- * @note	check gprs and if UDP already open
+ * @note	is it necessary to check if UDP open?
  */
 bool OTSIM900Link::openUDP(const char *address, uint8_t addressLength, const char *port, uint8_t portLength)
 {
@@ -104,12 +105,12 @@ bool OTSIM900Link::openUDP(const char *address, uint8_t addressLength, const cha
  */
 bool OTSIM900Link::closeUDP()
 {
-	//if(isOpenUDP()){
+	if(isOpenUDP()){
 		write(AT_START, sizeof(AT_START));
 		write(AT_CLOSE_UDP, sizeof(AT_CLOSE_UDP));
 		write(AT_END);
 		return false;
-	//}
+	}
 }
 
 /**
@@ -122,7 +123,7 @@ bool OTSIM900Link::closeUDP()
  */
 bool OTSIM900Link::sendUDP(const char *frame, uint8_t length)
 {
-	//if(isOpenUDP()){
+	if(isOpenUDP()){
 		write(AT_START, sizeof(AT_START));
 		write(AT_SEND_UDP, sizeof(AT_SEND_UDP));
 		write('=');
@@ -134,7 +135,7 @@ bool OTSIM900Link::sendUDP(const char *frame, uint8_t length)
 			write(frame, length);
 			return true;	// add check here
 		} else return false;
-	//}
+	}
 }
 
 /**
@@ -261,7 +262,7 @@ void OTSIM900Link::print(const int value)
 
 /**
  * @brief	Checks module ID
- * @todo	Implement check
+ * @todo	Implement check?
  * @param	name	pointer to array to compare name with
  * @param	length	length of array name
  * @retval	returns true if ID recovered successfully
@@ -382,8 +383,6 @@ bool OTSIM900Link::setAPN(const char *APN, uint8_t length)
 
 /**
  * @brief	Start GPRS connection
- * @todo	check for OK response on each set?
- * 			check syntax correct
  * @retval	returns true if connected
  * @note	check power, check registered, check gprs active
  */
@@ -398,9 +397,31 @@ bool OTSIM900Link::startGPRS()
   // response stuff
   const char *dataCut;
   uint8_t dataCutLength = 0;
-  dataCutLength = getResponse(dataCut, data, sizeof(data), 0x0A);
+  dataCutLength = getResponse(dataCut, data, sizeof(data), 0x0A);	// unreliable
   if (*dataCut == 'O') return true;	// expected response 'OK'
   else return false;
+}
+
+/**
+ * @brief	Shut GPRS connection
+ * @todo	check for OK response on each set?
+ * 			check syntax correct
+ * @retval	returns false if shut
+ */
+bool OTSIM900Link::shutGPRS()
+{
+  char data[96];
+  write(AT_START, sizeof(AT_START));
+  write(AT_SHUT_GPRS, sizeof(AT_SHUT_GPRS));
+  write(AT_END);
+  timedBlockingRead(data, sizeof(data));
+
+  // response stuff
+  const char *dataCut;
+  uint8_t dataCutLength = 0;
+  dataCutLength = getResponse(dataCut, data, sizeof(data), 0x0A);
+  if (*dataCut == 'S') return false;	// expected response 'SHUT OK'
+  else return true;
 }
 
 /**
@@ -423,10 +444,6 @@ uint8_t OTSIM900Link::getIP(char *IPAddress)
   dataCutLength = getResponse(dataCut, data, sizeof(data), 0x0A);
 
 /*  delay(100);
-  write(AT_START, sizeof(AT_START));
-  write("+CIPSTATUS", 10);
-  write(AT_END);
-  timedBlockingRead(data, sizeof(data));
 
   // response stuff
   char *dataCut2;
@@ -447,7 +464,20 @@ uint8_t OTSIM900Link::getIP(char *IPAddress)
  */
 bool OTSIM900Link::isOpenUDP()
 {
+	char data[64];
+	write(AT_START, sizeof(AT_START));
+	write("+CIPSTATUS", 10);
+	write(AT_END);
+	timedBlockingRead(data, sizeof(data));
 
+	Serial.println(data);
+
+	// response stuff
+	const char *dataCut;
+	uint8_t dataCutLength = 0;
+	dataCutLength = getResponse(dataCut, data, sizeof(data), ' '); // first ' ' appears right before useful part of message
+	if (*dataCut == 'C') return true; // expected string is 'CONNECT OK'. no other possible string begins with R
+	else return false;
 }
 
 /**
@@ -460,7 +490,7 @@ void OTSIM900Link::verbose()
   write(AT_START, sizeof(AT_START));
   write(AT_VERBOSE_ERRORS, sizeof(AT_VERBOSE_ERRORS));
   write(AT_SET);
-  write('2'); // 0: no error codes, 1: error codes, 2: full error descriptions
+  write('0'); // 0: no error codes, 1: error codes, 2: full error descriptions
   write(AT_END);
   timedBlockingRead(data, sizeof(data));
   Serial.println(data);
@@ -511,15 +541,13 @@ bool OTSIM900Link::checkPIN()
 /**
  * @brief	Returns a pointer to section of response containing important data
  * 			and sets its length to a variable
- * @todo	how to make a reference to const char *
+ * @param	newPtr		reference to a pointer to a constant used to indicate start of useful data
  * @param	data		pointer to array containing response from device
  * @param	dataLength	length of array
- * @param	newLength	reference to a uint8_t to store new array length in
  * @param	startChar	ignores everything up to and including this character
- * @retval	pointer to start of useful message. Returns NULL if startChar and 0x0D not found
- * 			in bounds of array.
+ * @retval	length of new data
  */
-uint8_t OTSIM900Link::getResponse(const char *&newPtr, const char *data, uint8_t dataLength, char _startChar)
+uint8_t OTSIM900Link::getResponse(const char * &newPtr, const char *data, uint8_t dataLength, char _startChar)
 {
 	char startChar = _startChar;
 	uint8_t  i = 0;	// 'AT' + command + 0x0D
@@ -535,7 +563,7 @@ uint8_t OTSIM900Link::getResponse(const char *&newPtr, const char *data, uint8_t
 	i++;
 
 	// Set pointer to start of and index
-	newPtr = (char *) data;
+	newPtr = data;
 	i0 = i;
 
 	// Find end of response
@@ -569,6 +597,7 @@ const char OTSIM900Link::AT_GPRS_REGISTRATION0[6] = { '+', 'C', 'G', 'A', 'T', '
 const char OTSIM900Link::AT_GPRS_REGISTRATION[6] = { '+', 'C', 'G', 'R', 'E', 'G' }; // GPRS registration.
 const char OTSIM900Link::AT_SET_APN[5] = { '+', 'C', 'S', 'T', 'T' };
 const char OTSIM900Link::AT_START_GPRS[6] = { '+', 'C', 'I', 'I', 'C', 'R' };
+const char OTSIM900Link::AT_SHUT_GPRS[8] = { '+', 'C', 'I', 'P', 'S', 'H', 'U', 'T' };
 const char OTSIM900Link::AT_GET_IP[6] = { '+', 'C', 'I', 'F', 'S', 'R' };
 const char OTSIM900Link::AT_PIN[5] = { '+', 'C', 'P', 'I', 'N' };
 const char OTSIM900Link::AT_START_UDP[9] = { '+', 'C', 'I', 'P', 'S', 'T', 'A', 'R', 'T' };

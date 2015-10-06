@@ -40,6 +40,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
  * 			Add methods to set APN, PIN and UDP send address
  * 			- These require variable length arrays and I'm not sure how to implement in class
  * 			Make read & write inline?
+ * 			Will need to change error checking based on CME state
  */
 
 class OTSIM900Link : public OTRadioLink::OTRadioLink
@@ -73,6 +74,7 @@ public:
       static const char AT_GPRS_REGISTRATION[6];
       static const char AT_SET_APN[5];
       static const char AT_START_GPRS[6];
+      static const char AT_SHUT_GPRS[8];
       static const char AT_GET_IP[6];
       static const char AT_PIN[5];
       static const char AT_START_UDP[9];
@@ -146,6 +148,7 @@ public:
 
     bool setAPN(const char *APN, uint8_t length);
     bool startGPRS();
+    bool shutGPRS();
     uint8_t getIP(char *IPAddress);
     bool isOpenUDP();
 
@@ -155,7 +158,7 @@ public:
 
     bool waitForTerm(uint8_t terminatingChar);
 
-    uint8_t getResponse(const char *&newPtr, const char *data, uint8_t dataLength, char _startChar);
+    uint8_t getResponse(const char * &newPtr, const char *data, uint8_t dataLength, char _startChar);
 
 protected:	// define abstract methods here
     // These are unused as no RX

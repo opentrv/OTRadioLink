@@ -142,6 +142,10 @@ void serialInput(uint8_t input)
     Serial.println(buffer);
     break;
 
+    case 'O':
+    Serial.println(gprs.isOpenUDP());
+    break;
+
     case'u':
     gprs.setPIN(pin, sizeof(pin)-1); // dont send null termination
     break;
@@ -158,6 +162,10 @@ void serialInput(uint8_t input)
     gprs.closeUDP();
     break;
 
+    case 'E':
+    Serial.println(gprs.shutGPRS());
+    break;
+    
     case 'v':
     gprs.verbose();
     break;
