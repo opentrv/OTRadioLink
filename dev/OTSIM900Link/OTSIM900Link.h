@@ -144,7 +144,7 @@ public:
     bool checkNetwork(char *buffer, uint8_t length);
     bool isRegistered();
 
-    void setAPN(const char *APN, uint8_t length);
+    bool setAPN(const char *APN, uint8_t length);
     bool startGPRS();
     uint8_t getIP(char *IPAddress);
     bool isOpenUDP();
@@ -155,6 +155,8 @@ public:
 
     bool waitForTerm(uint8_t terminatingChar);
 
+    char *getResponse(const char *data, uint8_t dataLength, uint8_t &newLength, char startChar);
+
 protected:	// define abstract methods here
     // These are unused as no RX
     virtual void _dolisten() {}
@@ -164,6 +166,7 @@ protected:	// define abstract methods here
     virtual void removeRXMsg() {}
     // Not sure what to do with this
     virtual bool sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal, bool listenAfter = false) {return false;};
+
 
 /* other methods (copied from OTRadioLink as is)
 // not sure if necessary:

@@ -118,7 +118,7 @@ void serialInput(uint8_t input)
       break;
       
     case 'c':
-    gprs.checkPIN();
+    Serial.println(gprs.checkPIN() );
     break;
 
     case 'n':
@@ -126,19 +126,20 @@ void serialInput(uint8_t input)
     break;
 
     case 'r':
-    gprs.setAPN(apn, sizeof(apn)-1);  // dont send null termination
+    Serial.println(gprs.setAPN(apn, sizeof(apn)-1));  // dont send null termination
     break;
 
     case 'R':
-    gprs.isRegistered();
+    Serial.println(gprs.isRegistered());
     break;
 
     case 'g':
-    gprs.startGPRS();
+    Serial.println(gprs.startGPRS());
     break;
 
     case 'i':
-    gprs.getIP(buffer);
+    Serial.println(gprs.getIP(buffer));
+    Serial.println(buffer);
     break;
 
     case'u':
