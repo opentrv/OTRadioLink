@@ -155,7 +155,7 @@ public:
 
     bool waitForTerm(uint8_t terminatingChar);
 
-    char *getResponse(const char *data, uint8_t dataLength, uint8_t &newLength, char startChar);
+    uint8_t getResponse(const char *&newPtr, const char *data, uint8_t dataLength, char _startChar);
 
 protected:	// define abstract methods here
     // These are unused as no RX
