@@ -40,6 +40,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
  * 			- These require variable length arrays and I'm not sure how to implement in class
  * 			Make read & write inline?
  * 			Will need to change error checking based on CME state
+ * 			encapsulating softwareserial seems to break some functions?
  */
 
 //template<uint8_t rxPin, uint8_t txPin>	//FIXME	gave up on templating as breaks functions in cpp file
