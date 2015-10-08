@@ -61,7 +61,7 @@ bool OTSIM900Link::begin()
 	startGPRS();
 	*/
 
-	return true;
+	return false;
 }
 
 /**
@@ -124,6 +124,7 @@ bool OTSIM900Link::closeUDP()
 bool OTSIM900Link::sendUDP(const char *frame, uint8_t length)
 {
 	if(isOpenUDP()){
+		uint32_t time = millis();
 		write(AT_START, sizeof(AT_START));
 		write(AT_SEND_UDP, sizeof(AT_SEND_UDP));
 		write('=');
@@ -217,11 +218,12 @@ uint8_t OTSIM900Link::timedBlockingRead(char *data, uint8_t length, const char t
 /**
  * @brief   blocks process until terminatingChar received
  * @param	terminatingChar		character to block until
+ * @retval	returns true if character found, or false on 1000ms timeout
  */
 bool OTSIM900Link::waitForTerm(uint8_t terminatingChar)
 {
   //unsigned long startTime = millis();
-  unsigned long endTime = millis() + 1000; // time out after a second
+  uint32_t endTime = millis() + 1000; // time out after a second
   while(millis() < endTime) {
     const uint8_t c = read();
     if (c == terminatingChar) return true;
@@ -443,13 +445,6 @@ uint8_t OTSIM900Link::getIP(char *IPAddress)
   uint8_t dataCutLength = 0;
   dataCutLength = getResponse(dataCut, data, sizeof(data), 0x0A);
 
-/*  delay(100);
-
-  // response stuff
-  char *dataCut2;
-  uint8_t dataCutLength2 = 0;
-  dataCut2 = getResponse(data, sizeof(data), dataCutLength2, ' ');*/
-
   if(*dataCut == '+') return 0; // all error messages will start with a '+'
   else {
 	  memcpy(IPAddress, dataCut, dataCutLength);
@@ -547,7 +542,7 @@ bool OTSIM900Link::checkPIN()
  * @param	startChar	ignores everything up to and including this character
  * @retval	length of new data
  */
-uint8_t OTSIM900Link::getResponse(const char * &newPtr, const char *data, uint8_t dataLength, char _startChar)
+char *OTSIM900Link::getResponse(const char * &newPtr, const char *data, uint8_t dataLength, char _startChar)
 {
 	char startChar = _startChar;
 	uint8_t  i = 0;	// 'AT' + command + 0x0D

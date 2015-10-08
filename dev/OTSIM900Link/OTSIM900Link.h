@@ -36,13 +36,13 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
  * 			- Not sure how much power reduced
  * 			- If not sending often may be more efficient to power up and wait for connect each time
  * 			Make OTSIM900LinkBase to abstract serial interface?
- * 			Get rid of Serial.prints or put in ifdef DEBUG
  * 			Add methods to set APN, PIN and UDP send address
  * 			- These require variable length arrays and I'm not sure how to implement in class
  * 			Make read & write inline?
  * 			Will need to change error checking based on CME state
  */
 
+template<rxPin, txPin>
 class OTSIM900Link : public OTRadioLink::OTRadioLink
 {
 public:
@@ -52,17 +52,16 @@ public:
     bool begin();
     bool end();
 
-    bool openUDP(const char *address, uint8_t addressLength, const char *port, uint8_t portLength);
-    bool closeUDP();
-    bool sendUDP(const char *frame, uint8_t length);
-    //void setupUDP(const char *ipAddress, uint8_t ipAddressLength, const char *port, uint8_t portLength)
-
+    virtual bool sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal, bool listenAfter = false) {return false;}; // this will wrap sendUDP
+    virtual bool isAvailable();	 // checks radio is there independant of power state
   // set max frame bytes
     //void setMaxTypicalFrameBytes(uint8_t maxTypicalFrameBytes);
-    //bool sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal, bool listenAfter = false) {};
+    //poll()
+    // bool queueToSend(const uint8_t *buf, const uint8_t len, txPower = 0);
 
 //private:
-  SoftwareSerial *softSerial;
+  //SoftwareSerial *softSerial;
+    SoftwareSerial softSerial;
  /***************** AT Commands and Private Constants and variables ******************/
     // set AT commands here
     // These may not be supported by all sim modules so may need to move
@@ -80,9 +79,7 @@ public:
       static const char AT_START_UDP[9];
       static const char AT_SEND_UDP[8];
       static const char AT_CLOSE_UDP[9];
-#ifdef OTSIM900LINK_DEBUG
       static const char AT_VERBOSE_ERRORS[5];
-#endif // OTSIM900LINK_DEBUG
       
       static const char AT_GET_MODULE = 'I';
       static const char AT_SET = '=';
@@ -96,8 +93,8 @@ public:
 
   // variables
   /// @todo	How do I set these? Want them set outside class but may be variable length
-  //char APN[];
-  //char PIN[];
+  // char APN[];
+  // char PIN[];
 
 /************************* Private Methods *******************************/
   	// Power up/down
@@ -160,6 +157,11 @@ public:
 
     uint8_t getResponse(const char * &newPtr, const char *data, uint8_t dataLength, char _startChar);
 
+    bool openUDP(const char *address, uint8_t addressLength, const char *port, uint8_t portLength);
+    bool closeUDP();
+    bool sendUDP(const char *frame, uint8_t length);
+    //void setupUDP(const char *ipAddress, uint8_t ipAddressLength, const char *port, uint8_t portLength)
+
 protected:	// define abstract methods here
     // These are unused as no RX
     virtual void _dolisten() {}
@@ -167,22 +169,11 @@ protected:	// define abstract methods here
     virtual uint8_t getRXMsgsQueued() const {return 0;}
     virtual const volatile uint8_t *peekRXMsg(uint8_t &len) const {return 0;}
     virtual void removeRXMsg() {}
-    // Not sure what to do with this
-    virtual bool sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal, bool listenAfter = false) {return false;};
-
 
 /* other methods (copied from OTRadioLink as is)
-// not sure if necessary:
 virtual bool _doconfig() { return(true); }		// could this replace something?
 virtual void preinit(const void *preconfig) {}	// not really relevant?
 virtual void panicShutdown() { preinit(NULL); }	// see above
-virtual bool isAvailable();
-
-// no RX:
-virtual uint8_t getRXErr() { return(0); }
-virtual void poll() {}
-virtual bool handleInterruptSimple() { return(false); }
-
 */
 };
 
