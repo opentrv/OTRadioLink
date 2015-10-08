@@ -52,7 +52,8 @@ public:
     bool begin();
     bool end();
 
-    virtual bool sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal, bool listenAfter = false) {return false;}; // this will wrap sendUDP
+    bool queueToSend(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, Txpower power = TXnormal);
+
     inline bool isAvailable(){ return bAvailable; };	 // checks radio is there independant of power state
   // set max frame bytes
     //void setMaxTypicalFrameBytes(uint8_t maxTypicalFrameBytes);
@@ -175,13 +176,21 @@ public:
 
     bool getInitState();
 
-protected:	// define abstract methods here
+public:	// define abstract methods here
     // These are unused as no RX
-    virtual void _dolisten() {}
-    virtual void getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen) const {}
+    virtual void _dolisten() {};
+    /**
+     * @todo	function to get maxTXMsgLen?
+     */
+    virtual void getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen) const {
+    	queuRXMsgsMin = 0;
+    	maxRXMsgLen = 0;
+    	maxTXMsgLen = 64;
+    };
     virtual uint8_t getRXMsgsQueued() const {return 0;}
-    virtual const volatile uint8_t *peekRXMsg(uint8_t &len) const {return 0;}
+    virtual const volatile uint8_t *peekRXMsg(uint8_t &len) const {len = 0; return 0;}
     virtual void removeRXMsg() {}
+    bool sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal, bool listenAfter = false) {return false;};
 
 /* other methods (copied from OTRadioLink as is)
 virtual bool _doconfig() { return(true); }		// could this replace something?

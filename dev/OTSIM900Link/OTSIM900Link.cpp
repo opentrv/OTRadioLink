@@ -75,6 +75,21 @@ bool OTSIM900Link::end()
 }
 
 /**
+ * @brief	Puts message in queue to send on wakeup
+ * @todo	implement and make virtual method in OTRadioLink
+ * @param	buf		pointer to buffer to send
+ * @param	buflen	length of buffer to send
+ * @param	channel	ignored
+ * @param	Txpower	ignored
+ * @retval	returns true if send process inited
+ * @note	requires calling of poll() to check if message sent successfully
+ */
+bool OTSIM900Link::queueToSend(const uint8_t *buff, uint8_t buflen, int8_t channel = 0, Txpower power = TXnormal)
+{
+	return false;
+}
+
+/**
  * @brief	open UDP connection to input ip address
  * @todo	clean up writes
  * @param	array containing IP address to open connection to in format xxx.xxx.xxx.xxx (keep all zeros)
