@@ -42,7 +42,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
  * 			Will need to change error checking based on CME state
  */
 
-template<rxPin, txPin>
+//template<rxPin, txPin>
 class OTSIM900Link : public OTRadioLink::OTRadioLink
 {
 public:
@@ -53,15 +53,16 @@ public:
     bool end();
 
     virtual bool sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal, bool listenAfter = false) {return false;}; // this will wrap sendUDP
-    virtual bool isAvailable();	 // checks radio is there independant of power state
+    //virtual bool isAvailable();	 // checks radio is there independant of power state
   // set max frame bytes
     //void setMaxTypicalFrameBytes(uint8_t maxTypicalFrameBytes);
     //poll()
     // bool queueToSend(const uint8_t *buf, const uint8_t len, txPower = 0);
 
 //private:
-  //SoftwareSerial *softSerial;
-    SoftwareSerial softSerial;
+  SoftwareSerial *softSerial;
+
+   //SoftwareSerial softSerial;
  /***************** AT Commands and Private Constants and variables ******************/
     // set AT commands here
     // These may not be supported by all sim modules so may need to move
@@ -155,7 +156,7 @@ public:
 
     bool waitForTerm(uint8_t terminatingChar);
 
-    uint8_t getResponse(const char * &newPtr, const char *data, uint8_t dataLength, char _startChar);
+    const char *getResponse(uint8_t &newLength, const char *data, uint8_t dataLength, char _startChar);
 
     bool openUDP(const char *address, uint8_t addressLength, const char *port, uint8_t portLength);
     bool closeUDP();

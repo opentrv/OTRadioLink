@@ -301,7 +301,7 @@ bool OTSIM900Link::checkNetwork(char *buffer, uint8_t length)
   // response stuff
   const char *dataCut;
   uint8_t dataCutLength = 0;
-  dataCutLength = getResponse(dataCut, data, sizeof(data), ' '); // first ' ' appears right before useful part of message
+  dataCut= getResponse(dataCutLength, data, sizeof(data), ' '); // first ' ' appears right before useful part of message
 
   return true;
 }
@@ -327,7 +327,7 @@ bool OTSIM900Link::isRegistered()
   // response stuff
   const char *dataCut;
   uint8_t dataCutLength = 0;
-  dataCutLength = getResponse(dataCut, data, sizeof(data), ' '); // first ' ' appears right before useful part of message
+  dataCut = getResponse(dataCutLength, data, sizeof(data), ' '); // first ' ' appears right before useful part of message
 
 /*  delay(100);
   write(AT_START, sizeof(AT_START));
@@ -374,7 +374,7 @@ bool OTSIM900Link::setAPN(const char *APN, uint8_t length)
   // response stuff
   const char *dataCut;
   uint8_t dataCutLength = 0;
-  dataCutLength = getResponse(dataCut, data, sizeof(data), 0x0A);
+  dataCut = getResponse(dataCutLength, data, sizeof(data), 0x0A);
 #ifdef OTSIM900LINK_DEBUG
   //Serial.println(data);
 #endif // OTSIM900LINK_DEBUG
@@ -399,7 +399,7 @@ bool OTSIM900Link::startGPRS()
   // response stuff
   const char *dataCut;
   uint8_t dataCutLength = 0;
-  dataCutLength = getResponse(dataCut, data, sizeof(data), 0x0A);	// unreliable
+  dataCut= getResponse(dataCutLength, data, sizeof(data), 0x0A);	// unreliable
   if (*dataCut == 'O') return true;	// expected response 'OK'
   else return false;
 }
@@ -421,7 +421,7 @@ bool OTSIM900Link::shutGPRS()
   // response stuff
   const char *dataCut;
   uint8_t dataCutLength = 0;
-  dataCutLength = getResponse(dataCut, data, sizeof(data), 0x0A);
+  dataCut= getResponse(dataCutLength, data, sizeof(data), 0x0A);
   if (*dataCut == 'S') return false;	// expected response 'SHUT OK'
   else return true;
 }
@@ -443,7 +443,7 @@ uint8_t OTSIM900Link::getIP(char *IPAddress)
   // response stuff
   const char *dataCut;
   uint8_t dataCutLength = 0;
-  dataCutLength = getResponse(dataCut, data, sizeof(data), 0x0A);
+  dataCut= getResponse(dataCutLength, data, sizeof(data), 0x0A);
 
   if(*dataCut == '+') return 0; // all error messages will start with a '+'
   else {
@@ -470,7 +470,7 @@ bool OTSIM900Link::isOpenUDP()
 	// response stuff
 	const char *dataCut;
 	uint8_t dataCutLength = 0;
-	dataCutLength = getResponse(dataCut, data, sizeof(data), ' '); // first ' ' appears right before useful part of message
+	dataCut = getResponse(dataCutLength, data, sizeof(data), ' '); // first ' ' appears right before useful part of message
 	if (*dataCut == 'C') return true; // expected string is 'CONNECT OK'. no other possible string begins with R
 	else return false;
 }
@@ -528,7 +528,7 @@ bool OTSIM900Link::checkPIN()
   // response stuff
   const char *dataCut;
   uint8_t dataCutLength = 0;
-  dataCutLength = getResponse(dataCut, data, sizeof(data), ' '); // first ' ' appears right before useful part of message
+  dataCut = getResponse(dataCutLength, data, sizeof(data), ' '); // first ' ' appears right before useful part of message
   if (*dataCut == 'R') return true; // expected string is 'READY'. no other possible string begins with R
   else return false;
 }
@@ -536,23 +536,25 @@ bool OTSIM900Link::checkPIN()
 /**
  * @brief	Returns a pointer to section of response containing important data
  * 			and sets its length to a variable
- * @param	newPtr		reference to a pointer to a constant used to indicate start of useful data
+ * @param	newLength	length of useful data
  * @param	data		pointer to array containing response from device
  * @param	dataLength	length of array
  * @param	startChar	ignores everything up to and including this character
- * @retval	length of new data
+ * @retval	pointer to start of useful data
  */
-char *OTSIM900Link::getResponse(const char * &newPtr, const char *data, uint8_t dataLength, char _startChar)
+const char *OTSIM900Link::getResponse(uint8_t &newLength, const char *data, uint8_t dataLength, char _startChar)
 {
 	char startChar = _startChar;
+	const char *newPtr = NULL;
 	uint8_t  i = 0;	// 'AT' + command + 0x0D
 	uint8_t i0 = 0; // start index
+	newLength = 0;
 
 	// Ignore echo of command
 	while (*data !=  startChar) {
 		data++;
 		i++;
-		if(i > dataLength) return 0;
+		if(i >= dataLength) return NULL;
 	}
 	data++;
 	i++;
@@ -565,8 +567,10 @@ char *OTSIM900Link::getResponse(const char * &newPtr, const char *data, uint8_t 
 	while(*data != 0x0D) {	// find end of response
 		data++;
 		i++;
-		if(i > dataLength) return 0;
+		if(i >= dataLength) return NULL;
 	}
+
+	newLength = i - i0;
 
 #ifdef OTSIM900LINK_DEBUG
 	Serial.print("start ptr: ");
@@ -574,14 +578,14 @@ char *OTSIM900Link::getResponse(const char * &newPtr, const char *data, uint8_t 
 	Serial.print("\tend ptr: ");
 	Serial.print((uint16_t) data);
 	Serial.print("\tlength: ");
-	Serial.println(i-i0);
+	Serial.println(newLength);
 
 	Serial.print("dataCut: ");
-	Serial.write(newPtr, i-i0);
+	Serial.write(newPtr, newLength);
 	Serial.println();
 #endif // OTSIM900LINK_DEBUG
 
-	return i - i0;	// return length of new array
+	return newPtr;	// return length of new array
 }
 
 //const char OTSIM900Link::AT_[] = { }
