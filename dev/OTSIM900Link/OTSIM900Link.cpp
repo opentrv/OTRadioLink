@@ -620,13 +620,12 @@ bool OTSIM900Link::getInitState()
 	}
 
 	if( data[0] == 'A' ) { // state 3 or 4
-#ifdef OTSIM900LINK_DEBUG
-	Serial.println("- Module Present");
-#endif // OTSIM900LINK_DEBUG
-
 		bAvailable = true;
 		bPowered = true;
 		powerOff();
+#ifdef OTSIM900LINK_DEBUG
+	Serial.println("- Module Present");
+#endif // OTSIM900LINK_DEBUG
 		return true;	// state 3
 	} else {
 #ifdef OTSIM900LINK_DEBUG

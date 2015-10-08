@@ -135,7 +135,7 @@ public:
     {
     	delay(500);
     	digitalWrite(PWR_PIN, HIGH);
-    	delay(500);
+    	delay(1000);
     	digitalWrite(PWR_PIN, LOW);
     	bPowered = !bPowered;
     	delay(500);
