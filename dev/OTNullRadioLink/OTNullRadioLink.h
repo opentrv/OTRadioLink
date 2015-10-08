@@ -18,6 +18,17 @@ private:
 	SoftwareSerial s;
 public:
 	Test() : s(rxPin, txPin) {};
+
+	void begin(uint16_t baud) {s.begin(baud);}
+	void print(char string[]) {s.print(string);}
+	char read()
+	{
+		char data;
+		data = s.read();
+		if (data > 0) return data;
+		else return '\0';
+	}
+	uint8_t available() { return s.available(); }
 };
 
 
