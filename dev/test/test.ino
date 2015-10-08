@@ -76,7 +76,7 @@ void setup()
   Serial.begin(baud);
   softSer.begin(baud);
   gprs.begin();
-  gprs.powerOn();
+  //gprs.powerOn();
   delay(1000);
 //  gprs.verbose();
   Serial.println("Setup Done");

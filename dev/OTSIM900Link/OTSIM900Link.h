@@ -53,7 +53,7 @@ public:
     bool end();
 
     virtual bool sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal, bool listenAfter = false) {return false;}; // this will wrap sendUDP
-    //virtual bool isAvailable();	 // checks radio is there independant of power state
+    inline bool isAvailable(){ return bAvailable; };	 // checks radio is there independant of power state
   // set max frame bytes
     //void setMaxTypicalFrameBytes(uint8_t maxTypicalFrameBytes);
     //poll()
@@ -61,8 +61,8 @@ public:
 
 //private:
   SoftwareSerial *softSerial;
-
    //SoftwareSerial softSerial;
+
  /***************** AT Commands and Private Constants and variables ******************/
     // set AT commands here
     // These may not be supported by all sim modules so may need to move
@@ -96,39 +96,49 @@ public:
   /// @todo	How do I set these? Want them set outside class but may be variable length
   // char APN[];
   // char PIN[];
+  bool bAvailable;
+  bool bPowered;
 
 /************************* Private Methods *******************************/
   	// Power up/down
-    bool isPowered();
+  /**
+   * @brief	check if module has power
+   * @todo	is this needed?
+   * @retval	true if module is powered up
+   */
+    inline bool isPowered() { return bPowered; };
 
     /**
      * @brief 	Power up module
-     * @todo	replace digitalWrite with fastDigitalWrite
      */
     inline void powerOn()
     {
       digitalWrite(PWR_PIN, LOW);
-      if(!isPowered()) {
-        delay(500);
-        digitalWrite(PWR_PIN, HIGH);
-        delay(500);
-        digitalWrite(PWR_PIN, LOW);
-      }
+      if(!isPowered()) powerToggle();
     }
 
     /**
      * @brief 	Close UDP if necessary and power down module.
-     * @todo	replace digitalWrite with fastDigitalWrite
      */
     inline void powerOff()
     {
       digitalWrite(PWR_PIN, LOW);
-      if(isPowered()) {
-        delay(500);
-        digitalWrite(PWR_PIN, HIGH);
-        delay(1000);
-        digitalWrite(PWR_PIN, LOW);
-      }
+      if(isPowered()) powerToggle();
+    }
+
+    /**
+     * @brief	toggles power
+     * @todo	replace digitalWrite with fastDigitalWrite
+     * 			Does this need to be inline?
+     */
+    inline void powerToggle()
+    {
+    	delay(500);
+    	digitalWrite(PWR_PIN, HIGH);
+    	delay(500);
+    	digitalWrite(PWR_PIN, LOW);
+    	bPowered = !bPowered;
+    	delay(500);
     }
 
     // Serial functions
@@ -162,6 +172,8 @@ public:
     bool closeUDP();
     bool sendUDP(const char *frame, uint8_t length);
     //void setupUDP(const char *ipAddress, uint8_t ipAddressLength, const char *port, uint8_t portLength)
+
+    bool getInitState();
 
 protected:	// define abstract methods here
     // These are unused as no RX

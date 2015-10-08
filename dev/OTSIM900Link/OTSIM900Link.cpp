@@ -31,6 +31,8 @@ OTSIM900Link::OTSIM900Link(uint8_t pwrPin, SoftwareSerial *_softSerial) : PWR_PI
 {
   pinMode(PWR_PIN, OUTPUT);
   softSerial = _softSerial;
+  bAvailable = false;
+  bPowered = false;
 }
 
 /**
@@ -40,12 +42,12 @@ OTSIM900Link::OTSIM900Link(uint8_t pwrPin, SoftwareSerial *_softSerial) : PWR_PI
  * 			- There is a low power mode but this still requires an active connection to stay registered
  * 			- APN etc need to be set after each power up. Is this just going to store these in object?
  *          why can't I set softSerial->begin like this?
+ *          Move check to a method
  * @param	baud	baudrate communicating with SIM900
  */
 bool OTSIM900Link::begin()
 {
-
-	//powerOn();
+	return getInitState();
 
 	// perform steps that can be done without network connection
 	/*								// these are broken
@@ -60,8 +62,6 @@ bool OTSIM900Link::begin()
 
 	startGPRS();
 	*/
-
-	return false;
 }
 
 /**
@@ -110,7 +110,7 @@ bool OTSIM900Link::closeUDP()
 		write(AT_CLOSE_UDP, sizeof(AT_CLOSE_UDP));
 		write(AT_END);
 		return false;
-	}
+	} else return true;
 }
 
 /**
@@ -135,25 +135,9 @@ bool OTSIM900Link::sendUDP(const char *frame, uint8_t length)
 		if (waitForTerm('>')) {
 			write(frame, length);
 			return true;	// add check here
-		} else return false;
+		}
 	}
-}
-
-/**
- * @brief	check if module has power
- * @todo	better check?
- * @retval	true if module is powered up
- */
-bool OTSIM900Link::isPowered()
-{
-	char data[64];
-	memset(data, 0 , sizeof(data));
-	write(AT_START, sizeof(AT_START));
-	write(AT_END);
-	if((timedBlockingRead(data, sizeof(data)) > 0) &&
-     (data[0] == 'A'))
-     { return true; }
-	else return false;
+	return false;
 }
 
 /**
@@ -586,6 +570,72 @@ const char *OTSIM900Link::getResponse(uint8_t &newLength, const char *data, uint
 #endif // OTSIM900LINK_DEBUG
 
 	return newPtr;	// return length of new array
+}
+
+/**
+ * @brief	Test if radio is available and set available and power flags
+ * 			returns to powered off state?
+ * @todo	possible to just cycle power and read return val
+ * 			Lots of testing
+ * @retval	true if module found and returns correct start value
+ * @note	Possible states at start up:
+ * 			1. no module - No response
+ * 			2. module not powered - No response
+ * 			3. module powered - correct response
+ * 			4. wrong module - unexpected response
+ */
+bool OTSIM900Link::getInitState()
+{
+	// Test if available and set flags
+	bAvailable = false;
+	bPowered = false;
+	char data[10];	// max expected response
+	memset(data, 0 , sizeof(data));
+
+#ifdef OTSIM900LINK_DEBUG
+	Serial.println("Check for module: ");
+#endif // OTSIM900LINK_DEBUG
+	write(AT_START, sizeof(AT_START));
+	write(AT_END);
+	if (timedBlockingRead(data, sizeof(data)) == 0) { // state 1 or 2
+
+#ifdef OTSIM900LINK_DEBUG
+	Serial.println("- Attempt to force State 3");
+#endif // OTSIM900LINK_DEBUG
+
+		powerToggle();
+		memset(data, 0, sizeof(data));
+		waitForTerm(0x0A);
+		write(AT_START, sizeof(AT_START));
+		write(AT_END);
+		if (timedBlockingRead(data, sizeof(data)) == 0) { // state 1
+
+#ifdef OTSIM900LINK_DEBUG
+	Serial.println("-- Failed. No Module");
+#endif // OTSIM900LINK_DEBUG
+
+			bPowered = false;
+			return false;
+		}
+	}
+
+	if( data[0] == 'A' ) { // state 3 or 4
+#ifdef OTSIM900LINK_DEBUG
+	Serial.println("- Module Present");
+#endif // OTSIM900LINK_DEBUG
+
+		bAvailable = true;
+		bPowered = true;
+		powerOff();
+		return true;	// state 3
+	} else {
+#ifdef OTSIM900LINK_DEBUG
+	Serial.println("- Unexpected Response");
+#endif // OTSIM900LINK_DEBUG
+		bAvailable = false;
+		bPowered = false;
+		return false;	// state 4
+	}
 }
 
 //const char OTSIM900Link::AT_[] = { }
