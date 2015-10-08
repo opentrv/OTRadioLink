@@ -27,10 +27,10 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
  * @param	rxPin		Rx pin for software serial
  * @param	txPin		Tx pin for software serial
  */
-OTSIM900Link::OTSIM900Link(uint8_t pwrPin, SoftwareSerial *_softSerial) : PWR_PIN(pwrPin)
+OTSIM900Link::OTSIM900Link(uint8_t pwrPin, uint8_t rxPin, uint8_t txPin) : PWR_PIN(pwrPin), softSerial(7, 8)
 {
   pinMode(PWR_PIN, OUTPUT);
-  softSerial = _softSerial;
+  //softSerial = _softSerial;	// FIXME
   bAvailable = false;
   bPowered = false;
 }
@@ -47,6 +47,7 @@ OTSIM900Link::OTSIM900Link(uint8_t pwrPin, SoftwareSerial *_softSerial) : PWR_PI
  */
 bool OTSIM900Link::begin()
 {
+	softSerial.begin(19200);	// FIXME
 	return getInitState();
 
 	// perform steps that can be done without network connection
@@ -84,7 +85,7 @@ bool OTSIM900Link::end()
  * @retval	returns true if send process inited
  * @note	requires calling of poll() to check if message sent successfully
  */
-bool OTSIM900Link::queueToSend(const uint8_t *buff, uint8_t buflen, int8_t channel = 0, Txpower power = TXnormal)
+bool OTSIM900Link::queueToSend(const uint8_t *buff, uint8_t buflen, int8_t channel, TXpower power)
 {
 	return false;
 }
@@ -149,6 +150,7 @@ bool OTSIM900Link::sendUDP(const char *frame, uint8_t length)
 		// '>' indicates module is ready for UDP frame
 		if (waitForTerm('>')) {
 			write(frame, length);
+			delay(500);
 			return true;	// add check here
 		}
 	}
@@ -162,7 +164,7 @@ bool OTSIM900Link::sendUDP(const char *frame, uint8_t length)
 uint8_t OTSIM900Link::read()
 {
 	uint8_t data;
-	data = softSerial->read();
+	data = softSerial.read();	// FIXME
 	if (data > 0) return data;
 	else return 0;
 }
@@ -188,7 +190,7 @@ uint8_t OTSIM900Link::timedBlockingRead(char *data, uint8_t length, const char t
   const bool hasTerminatingChar = (0 != terminatingChar);
   const uint32_t timeoutms = 2000;//hasTerminatingChar ? 500 : 200;	FIXME return to normal
   while ((millis() - startTime) <= timeoutms) {
-    if (softSerial->available() > 0) {
+    if (softSerial.available() > 0) {	// FIXME
       const char c = read();
       *data++ = c;
       if(hasTerminatingChar && (c == terminatingChar)) { break; }
@@ -240,7 +242,7 @@ bool OTSIM900Link::waitForTerm(uint8_t terminatingChar)
  */
 void OTSIM900Link::write(const char *data, uint8_t length)
 {
-	softSerial->write(data, length);
+	softSerial.write(data, length);	// FIXME
 }
 
 /**
@@ -249,7 +251,7 @@ void OTSIM900Link::write(const char *data, uint8_t length)
  */
 void OTSIM900Link::write(char data)
 {
-	softSerial->write(data);
+	softSerial.write(data);	// FIXME
 }
 
 /**
@@ -258,7 +260,7 @@ void OTSIM900Link::write(char data)
  */
 void OTSIM900Link::print(const int value)
 {
-  softSerial->print(value);
+  softSerial.print(value);	// FIXME
 }
 
 /**

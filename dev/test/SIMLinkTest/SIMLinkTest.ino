@@ -21,8 +21,9 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
 #include <OTRadioLink.h>
 #include <OTSIM900Link.h>
 
-SoftwareSerial softSer(7,8);  // rx and tx pins for SIM900 module
-OTSIM900Link gprs(9, &softSer); // power pin and pointer to SoftwareSerial
+//SoftwareSerial softSer(7,8);  // rx and tx pins for SIM900 module
+//OTSIM900Link gprs(9, &softSer); // power pin and pointer to SoftwareSerial
+OTSIM900Link gprs(9, 7, 8);
 // Geeetech board needs solder jumper made for D9 to drive power pin.
 // http://www.geeetech.com/Documents/GPRSshield_sch.pdf
 
@@ -74,8 +75,9 @@ static const char UDP_SEND_STR[] = "The cat in the hat";
 void setup()
 {
   Serial.begin(baud);
-  softSer.begin(baud);
+//  softSer.begin(baud);
   gprs.begin();
+  delay(1000);
   gprs.powerOn();
   delay(1000);
 //  gprs.verbose();
@@ -93,9 +95,9 @@ void loop()
       serialInput(input);
     }
   }
-  if(softSer.available() >0)
+  if(gprs.serAvailable() >0)
   {
-    char incoming_char=softSer.read(); //Get the character from the cellular serial port.
+    char incoming_char=(char)gprs.read(); //Get the character from the cellular serial port.
     Serial.print(incoming_char); //Print the incoming character to the terminal.
   }
 }

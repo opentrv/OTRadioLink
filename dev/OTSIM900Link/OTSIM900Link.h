@@ -42,17 +42,17 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
  * 			Will need to change error checking based on CME state
  */
 
-//template<rxPin, txPin>
+//template<uint8_t rxPin, uint8_t txPin>	//FIXME	gave up on templating as breaks functions in cpp file
 class OTSIM900Link : public OTRadioLink::OTRadioLink
 {
 public:
-  OTSIM900Link(uint8_t pwrPin, SoftwareSerial *_softSerial);
+  OTSIM900Link(uint8_t pwrPin, uint8_t rxPin, uint8_t txPin);
 
 /************************* Public Methods *****************************/
     bool begin();
     bool end();
 
-    bool queueToSend(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, Txpower power = TXnormal);
+    bool queueToSend(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal);
 
     inline bool isAvailable(){ return bAvailable; };	 // checks radio is there independant of power state
   // set max frame bytes
@@ -61,8 +61,8 @@ public:
     // bool queueToSend(const uint8_t *buf, const uint8_t len, txPower = 0);
 
 //private:
-  SoftwareSerial *softSerial;
-   //SoftwareSerial softSerial;
+  //SoftwareSerial *softSerial;
+   SoftwareSerial softSerial;
 
  /***************** AT Commands and Private Constants and variables ******************/
     // set AT commands here
@@ -144,6 +144,7 @@ public:
 
     // Serial functions
     uint8_t read();
+    uint8_t serAvailable() {return softSerial.available();}	//FIXME delete?
     uint8_t timedBlockingRead(char *data, uint8_t length, char terminatingChar = 0);
     //uint8_t timedBlockingRead(char *data, uint8_t length);
     void write(const char *data, uint8_t length);
@@ -183,7 +184,7 @@ public:	// define abstract methods here
      * @todo	function to get maxTXMsgLen?
      */
     virtual void getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen) const {
-    	queuRXMsgsMin = 0;
+    	queueRXMsgsMin = 0;
     	maxRXMsgLen = 0;
     	maxTXMsgLen = 64;
     };
