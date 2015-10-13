@@ -71,7 +71,7 @@ static const char UDP_SEND_STR[] = "The cat in the hat";
 
 
 
-const OTSIM900Link::OTSIM900LinkConfig_t radioConfig = {pin, apn, UDP_ADDR, UDP_PORT};
+const OTSIM900Link::OTSIM900LinkConfig_t radioConfig = {baud, pin, apn, UDP_ADDR, UDP_PORT};
 
 OTSIM900Link::OTSIM900Link gprs(&radioConfig, 6, 7, 8);
 
@@ -79,7 +79,7 @@ void setup()
 {
   Serial.begin(4800);
 //  softSer.begin(baud);
-  gprs.begin(baud);
+  gprs.begin();
   delay(1000);
 //  gprs.verbose();
   Serial.println("Setup Done");
@@ -96,17 +96,17 @@ void loop()
       serialInput(input);
     }
   }
-  if(gprs.serAvailable() >0)
+/*  if(gprs.serAvailable() >0)
   {
     char incoming_char=(char)gprs.read(); //Get the character from the cellular serial port.
     Serial.print(incoming_char); //Print the incoming character to the terminal.
-  }
+  }*/
 }
 
 void serialInput(uint8_t input)
 {
   switch(input) {
-    case 'P': // Attempt to force power on if not already so.
+   /* case 'P': // Attempt to force power on if not already so.
       gprs.powerOn();
       delay(1000);
     case 'p':
@@ -153,13 +153,13 @@ void serialInput(uint8_t input)
 
     case 'o':
     gprs.openUDP(); // don't send null termination
-    break;
+    break;*/
 
     case 's':
     gprs.queueToSend((uint8_t *)UDP_SEND_STR, sizeof(UDP_SEND_STR));
     break;
 
-    case 'e':
+    /*case 'e':
     gprs.closeUDP();
     break;
 
@@ -169,7 +169,7 @@ void serialInput(uint8_t input)
     
     case 'v':
     gprs.verbose();
-    break;
+    break;*/
 
     default:
     break;

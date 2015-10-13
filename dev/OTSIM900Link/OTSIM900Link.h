@@ -26,9 +26,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
 #include <string.h>
 #include <stdint.h>
 
-#ifndef OTSIM900LINK_DEBUG
-#define OTSIM900LINK_DEBUG
-#endif // OTSIM900LINK_DEBUG
+//#define OTSIM900LINK_DEBUG
 
 /**
  * @note	To use library:
@@ -124,9 +122,6 @@ private:
   const uint8_t PWR_PIN;
 
   // variables
-  /// @todo	How do I set these? Want them set outside class but may be variable length
-  // char APN[];
-  // char PIN[];
   bool bAvailable;
   bool bPowered;
   const OTSIM900LinkConfig_t *config;

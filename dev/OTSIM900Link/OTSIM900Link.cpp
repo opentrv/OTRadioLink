@@ -53,7 +53,7 @@ bool OTSIM900Link::begin()
 #ifdef OTSIM900LINK_DEBUG
   Serial.println("Get Init State");
 #endif // OTSIM900LINK_DEBUG
-	if (!getInitState()) return false;	// exit function if no/wrong module
+	if (!getInitState()) return false; 	// exit function if no/wrong module
 	flush();	// discard preamble
 	//delay(1000);
 

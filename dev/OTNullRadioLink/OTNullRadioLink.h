@@ -19,25 +19,14 @@ class OTNullRadioLink : public OTRadioLink::OTRadioLink
 {
 /****************** Interface *******************/
 public:
-	OTNullRadioLink(uint16_t _baud);
-	bool begin()
-	{
-		Serial.println("NullRadio");
-		return (true);};
-	//virtual void preinit(const void *preconfig)
-	//virtual void panicShutdown(); // original: { preinit(NULL); }
+	OTNullRadioLink();
+	bool begin() {return (true);};
 	void getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen) const;
 	uint8_t getRXMsgsQueued() const;
 	const volatile uint8_t *peekRXMsg(uint8_t &len) const;
 	void removeRXMsg();
 	bool sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal, bool listenAfter = false);
-	//bool queueToSend(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal);
-	void poll() {};
-	//virtual bool handleInterruptSimple(); // original: { return(false); }
-	//virtual bool end(); // original: { return(false); }
 public:
-	const uint16_t baud;
-
 	void _dolisten() {};
 };
 
