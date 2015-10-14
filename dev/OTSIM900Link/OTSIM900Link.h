@@ -30,11 +30,17 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
 
 /**
  * @note	To use library:
- * 			1- create OTSIM900LinkConfig_t
- * 			2- create OTSIM900Link, passing pointer to OTSIM900LinkConfig_t and pin values
- * 			3- begin starts radio and sets up PGP instance, before returning to GPRS off mode
- * 			4- queueToSend starts GPRS, opens UDP, sends message then deactivates GPRS. Process takes 5-10 seconds
- * 			5- poll goes in interrupt and sets boolean when message sent(?) //FIXME not yet implemented
+ * 			- create \0 terminated array containing pin, apn, and udp data
+ * 			- create OTSIM900LinkConfig_t, initing pointing to above arrays
+ * 			- create OTRadioLinkConfig_t with a pointer to above struct
+ * 			- create OTSIM900Link
+ * 			- pass pointer to radiolink structure to OTSIM900Link::configure()
+ * 			- begin starts radio and sets up PGP instance, before returning to GPRS off mode
+ * 			- queueToSend starts GPRS, opens UDP, sends message then deactivates GPRS. Process takes 5-10 seconds
+ * 			- poll goes in interrupt and sets boolean when message sent(?) //FIXME not yet implemented
+ * @todo	implement eeprom string copy helper (possibly checking if in ram or in eeprom
+ *			Assign last ~256 bytes of eeprom to radio config struct
+ *
  */
 
 namespace OTSIM900Link
@@ -43,6 +49,7 @@ namespace OTSIM900Link
 /**
  * @struct	OTSIM900LinkConfig_t
  * @brief	Structure containing config data for OTSIM900Link
+ * @note	Struct and internal pointers must last as long as OTSIM900Link object
  * @todo	move pin definitions to config?
  * @param	PIN		Pointer to \0 terminated array containing SIM pin code
  * @param	APN		Pointer to \0 terminated array containing access point name
@@ -50,11 +57,12 @@ namespace OTSIM900Link
  * @param	UDP_Port	Pointer to \0 terminated array containing  UDP port
  */
 typedef struct OTSIM900LinkConfig_t {
-	const uint16_t baud;
-	const char *PIN;
-	const char *APN;
-	const char *UDP_Address;
-	const char *UDP_Port;
+	// Is in eeprom?
+	const bool bEEPROM;
+	const uint8_t *PIN;
+	const uint8_t *APN;
+	const uint8_t *UDP_Address;
+	const uint8_t *UDP_Port;
 };
 
 

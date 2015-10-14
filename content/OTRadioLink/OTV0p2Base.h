@@ -66,4 +66,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 // Entropy management.
 #include "utility/OTV0P2BASE_Entropy.h"
 
+// Serial IO
+#include "utility/OTV0P2BASE_Serial_IO.h"
+
 #endif
