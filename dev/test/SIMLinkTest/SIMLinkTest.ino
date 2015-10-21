@@ -17,12 +17,10 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
                            Damon Hart-Davis 2015
 */
 
-
 #include <SoftwareSerial.h>
+#include <OTRadioLink.h>
 #include <OTSIM900Link.h>
 
-SoftwareSerial softSer(7,8);
-OTSIM900Link gprs(9, &softSer);
 // Geeetech board needs solder jumper made for D9 to drive power pin.
 // http://www.geeetech.com/Documents/GPRSshield_sch.pdf
 
@@ -51,14 +49,14 @@ OTSIM900Link gprs(9, &softSer);
  * - Board will close PGP on shutdown (Will add in a method to do this seperately later)
  */
 
-static const int baud = 19200;  // don't chage this - may break softwareserial
+static const int baud = 4800;  // don't chage this - faster will break softwareserial on V0p2
 
-#define CREDS 2 // Choose set of hardwired credentials and target address.
+#define CREDS 1 // Choose set of hardwired credentials and target address.
 
 
 #if 1 == CREDS // DE
-static const char apn[] = "internet"; // "m2mkit.telefonica.com"
-static const char pin[] = "7634";
+static const char apn[] = "m2mkit.telefonica.com"; // "m2mkit.telefonica.com"
+static const char pin[] = "0000";
 static const char UDP_ADDR[] = "46.101.52.242";
 static const char UDP_PORT[] = "9999";
 #elif 2 == CREDS // DHD
@@ -71,11 +69,18 @@ static const char UDP_PORT[] = "9999";
 
 static const char UDP_SEND_STR[] = "The cat in the hat";
 
+
+
+const OTSIM900Link::OTSIM900LinkConfig_t radioConfig = {baud, pin, apn, UDP_ADDR, UDP_PORT};
+
+OTSIM900Link::OTSIM900Link gprs(&radioConfig, 6, 7, 8);
+
 void setup()
 {
-  Serial.begin(baud);
-  softSer.begin(baud);
-  gprs.begin(baud);
+  Serial.begin(4800);
+//  softSer.begin(baud);
+  gprs.begin();
+  delay(1000);
 //  gprs.verbose();
   Serial.println("Setup Done");
 }
@@ -85,24 +90,25 @@ void loop()
   if(Serial.available() > 0)
   {
     uint8_t input = Serial.read();
-    Serial.print("Input\t");
-    Serial.println((char)input);
-    serialInput(input);
+    if (input != '\n') {
+      Serial.print("\nInput\t");
+      Serial.println((char)input);
+      serialInput(input);
+    }
   }
-  if(softSer.available() >0)
+/*  if(gprs.serAvailable() >0)
   {
-    char incoming_char=softSer.read(); //Get the character from the cellular serial port.
+    char incoming_char=(char)gprs.read(); //Get the character from the cellular serial port.
     Serial.print(incoming_char); //Print the incoming character to the terminal.
-  }
+  }*/
 }
 
 void serialInput(uint8_t input)
 {
-  char buffer[64];
-  int n = 0;
   switch(input) {
-    case 'P': // Attempt to force power on if not already so.
-      if(!gprs.isPowered()) { gprs.powerOn(); }
+   /* case 'P': // Attempt to force power on if not already so.
+      gprs.powerOn();
+      delay(1000);
     case 'p':
       if(gprs.isPowered()) Serial.println("True");
       else Serial.println("False");
@@ -113,48 +119,57 @@ void serialInput(uint8_t input)
       break;
       
     case 'c':
-    gprs.checkPIN();
+    Serial.println(gprs.checkPIN() );
     break;
 
     case 'n':
-    gprs.checkNetwork(buffer, sizeof(buffer));
+    gprs.checkNetwork();
     break;
 
     case 'r':
-    gprs.setAPN(apn, sizeof(apn)-1);  // dont send null termination
+    //Serial.println(gprs.setAPN(apn, sizeof(apn)-1));  // dont send null termination
+    Serial.println(gprs.setAPN());
     break;
 
     case 'R':
-    gprs.isRegistered();
+    Serial.println(gprs.isRegistered());
     break;
 
     case 'g':
-    gprs.startGPRS();
+    Serial.println(gprs.startGPRS());
     break;
 
     case 'i':
-    gprs.getIP(buffer);
+    Serial.println(gprs.getIP());
+    break;
+
+    case 'O':
+    Serial.println(gprs.isOpenUDP());
     break;
 
     case'u':
-    gprs.setPIN(pin, sizeof(pin)-1); // dont send null termination
+    gprs.setPIN(); // dont send null termination
     break;
 
     case 'o':
-    gprs.openUDP(UDP_ADDR, sizeof(UDP_ADDR)-1, UDP_PORT, sizeof(UDP_PORT)-1); // don't send null termination
-    break;
+    gprs.openUDP(); // don't send null termination
+    break;*/
 
     case 's':
-    gprs.sendUDP(UDP_SEND_STR, sizeof(UDP_SEND_STR));
+    gprs.queueToSend((uint8_t *)UDP_SEND_STR, sizeof(UDP_SEND_STR));
     break;
 
-    case 'e':
+    /*case 'e':
     gprs.closeUDP();
     break;
 
+    case 'E':
+    Serial.println(gprs.shutGPRS());
+    break;
+    
     case 'v':
     gprs.verbose();
-    break;
+    break;*/
 
     default:
     break;

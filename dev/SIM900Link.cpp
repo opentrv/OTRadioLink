@@ -37,7 +37,7 @@ OTSIM900Link::OTSIM900Link(uint8_t pwrPin, SoftwareSerial *_softSerial) : PWR_PI
  *        why can't I set softSerial->begin like this?
  * @param	baud	baudrate communicating with SIM900
  */
-bool OTSIM900Link::begin(uint8_t baud)
+bool OTSIM900Link::begin()
 {
 	//softSerial->begin(baud);
 	powerOn();
@@ -51,6 +51,7 @@ bool OTSIM900Link::end()
 {
 	closeUDP();
 	powerOff();
+	return false;
 }
 
 /**
@@ -77,6 +78,7 @@ bool OTSIM900Link::openUDP(const char *address, uint8_t addressLength, const cha
 
 /**
  * @brief	close UDP connection
+ * @todo	implement checks
  * @retval	returns true if UDP closed
  * @note	check UDP open
  */
@@ -86,11 +88,13 @@ bool OTSIM900Link::closeUDP()
 		write(AT_START, sizeof(AT_START));
 		write(AT_CLOSE_UDP, sizeof(AT_CLOSE_UDP));
 		write(AT_END);
+		return false;
 	//}
 }
 
 /**
  * @brief	send UDP frame
+ * @todo	add check for successful send
  * @param	pointer to array containing frame to send
  * @param	length of frame
  * @retval	returns true if send successful
@@ -99,31 +103,18 @@ bool OTSIM900Link::closeUDP()
 bool OTSIM900Link::sendUDP(const char *frame, uint8_t length)
 {
 	//if(isOpenUDP()){
-		char buffer[64];
 		write(AT_START, sizeof(AT_START));
 		write(AT_SEND_UDP, sizeof(AT_SEND_UDP));
 		write('=');
-    print(length);
+		print(length);
 		write(AT_END);
 
 		// check for correct response?
     // The ">" prompt will appear somewhere at the end of the buffer.
     waitForTerm('>');
     write(frame, length);
-  /*  uint8_t len;
-		if(((len = timedBlockingRead(buffer, sizeof(buffer), '>')) > 2) &&
-		   ((buffer[len - 2] == '>') || (buffer[len - 1] == '>'))) { // Sends whitespace after > sometimes?
-				write(frame, length);
-				write(AT_END);
-        Serial.println("sent");
-        return(true);
-		}*/
 
-
-		// check for send ok ack
-
-    //Serial.println("not sent");
-		//return false;
+    return true;	// add check here
 	//}
 }
 
@@ -162,7 +153,7 @@ uint8_t OTSIM900Link::timedBlockingRead(char *data, uint8_t length, const char t
   // May have to wait a little longer because of (eg) interactions with the network,
   // especially if a terminating char is known.
   const bool hasTerminatingChar = (0 != terminatingChar);
-  const int timeoutms = hasTerminatingChar ? 500 : 200;
+  const uint16_t timeoutms = hasTerminatingChar ? 500 : 200;
   while ((millis() - startTime) <= timeoutms) {
     if (softSerial->available() > 0) {
       const char c = softSerial->read();
@@ -225,6 +216,7 @@ void OTSIM900Link::print(const int value)
 
 /**
  * @brief	Checks module ID
+ * @todo	Implement check
  * @param	name	pointer to array to compare name with
  * @param	length	length of array name
  * @retval	returns true if ID recovered successfully
@@ -237,10 +229,12 @@ bool OTSIM900Link::checkModule(/*const char *name, uint8_t  length*/)
   write(AT_END);
   timedBlockingRead(data, sizeof(data));
   Serial.println(data);
+  return true;
 }
 
 /**
  * @brief	Checks connected network
+ * @todo	implement check
  * @param	buffer	pointer to array to store network name in
  * @param	length	length of buffer
  * @param	returns true if connected to network
@@ -254,10 +248,12 @@ bool OTSIM900Link::checkNetwork(char *buffer, uint8_t length)
   write(AT_END);
   timedBlockingRead(data, sizeof(data));
   Serial.println(data);
+  return true;
 }
 
 /**
  * @brief 	check if module connected and registered (GSM and GPRS)
+ * @todo	implement check
  * @retval	true if registered
  */
 bool OTSIM900Link::isRegistered()
@@ -286,6 +282,8 @@ bool OTSIM900Link::isRegistered()
   write(AT_END);
   timedBlockingRead(data, sizeof(data));
   Serial.println(data);
+
+  return true;
 }
 
 /**
@@ -322,8 +320,15 @@ bool OTSIM900Link::startGPRS()
   write(AT_END);
   timedBlockingRead(data, sizeof(data));
   Serial.println(data);
+  return true;
 }
 
+/**
+ * @brief	Get IP address
+ * @todo	implement writing IP
+ * @param	pointer to array to store IP address in. must be at least 16 characters long
+ * @retval	return length of IP address. Return 0 if no connection
+ */
 uint8_t OTSIM900Link::getIP(char *IPAddress)
 {
   char data[64];
@@ -339,6 +344,7 @@ uint8_t OTSIM900Link::getIP(char *IPAddress)
   write(AT_END);
   timedBlockingRead(data, sizeof(data));
   Serial.println(data);
+  return 0;	// this needs to change
 }
 
 /**
@@ -396,6 +402,8 @@ bool OTSIM900Link::checkPIN()
   write(AT_END);
   timedBlockingRead(data, sizeof(data));
   Serial.println(data);
+
+  return false;
 }
 
 //const char OTSIM900Link::AT_[] = { }

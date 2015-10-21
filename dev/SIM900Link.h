@@ -31,7 +31,7 @@ public:
   OTSIM900Link(uint8_t pwrPin, SoftwareSerial *_softSerial);
 
 /************************* Public Methods *****************************/
-    bool begin(uint8_t baud);
+    bool begin();
     bool end();
 
     bool openUDP(const char *address, uint8_t addressLength, const char *port, uint8_t portLength);
