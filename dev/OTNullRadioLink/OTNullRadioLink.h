@@ -1,12 +1,23 @@
 /*
- * OTNullRadioLink.h
- *
- *  Created on: 7 Oct 2015
- *      Author: Denzo
- */
+The OpenTRV project licenses this file to you
+under the Apache Licence, Version 2.0 (the "Licence");
+you may not use this file except in compliance
+with the Licence. You may obtain a copy of the Licence at
 
-#ifndef DEV_OTNULLRADIOLINK_OTNULLRADIOLINK_H_
-#define DEV_OTNULLRADIOLINK_OTNULLRADIOLINK_H_
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the Licence is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied. See the Licence for the
+specific language governing permissions and limitations
+under the Licence.
+
+Author(s) / Copyright (s): Deniz Erbilgin 2015
+*/
+
+#ifndef OTNULLRADIOLINK_OTNULLRADIOLINK_H_
+#define OTNULLRADIOLINK_OTNULLRADIOLINK_H_
 
 #include <Arduino.h>
 #include <OTRadioLink.h>
@@ -31,4 +42,4 @@ public:
 };
 
 }  //OTNullRadioLink
-#endif /* DEV_OTNULLRADIOLINK_OTNULLRADIOLINK_H_ */
+#endif /* OTNULLRADIOLINK_OTNULLRADIOLINK_H_ */
