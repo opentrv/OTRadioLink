@@ -14,6 +14,7 @@ specific language governing permissions and limitations
 under the Licence.
 
 Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
+                           Deniz Erbilgin 2015
 */
 
 /*
@@ -30,6 +31,11 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 
 #include "OTV0P2BASE_BasicPinAssignments.h"
 #include "OTV0P2BASE_FastDigitalIO.h"
+
+/**
+ * Temp fixes
+ */
+#define BAUD 4800 // FIXME delete!
 
 namespace OTV0P2BASE
 {
@@ -110,5 +116,37 @@ inline bool powerUpSPIIfDisabled() { return(t_powerUpSPIIfDisabled<V0p2_PIN_SPI_
 // Power down SPI.
 inline void powerDownSPI() { t_powerDownSPI<V0p2_PIN_SPI_nSS, V0p2_PIN_SPI_SCK, V0p2_PIN_SPI_MOSI, V0p2_PIN_SPI_MISO, DEFAULT_RUN_SPI_SLOW>(); }
 
-}
+/************** Serial IO stuff ************************/
+// Moved from Power Management.h
+// If serial (UART/USART0) was disabled, power it up, do Serial.begin(), and return true.
+// If already powered up then do nothing other than return false.
+// If this returns true then a matching powerDownSerial() may be advisable.
+bool powerUpSerialIfDisabled();
+// Flush any pending serial (UART/USART0) output and power it down.
+void powerDownSerial();
+#ifdef __AVR_ATmega328P__
+// Returns true if hardware USART0 buffer in ATMmega328P is non-empty; may occasionally return a spurious false.
+// There may still be a byte in the process of being transmitted when this is false.
+// This should not interfere with HardwareSerial's handling.
+#define serialTXInProgress() (!(UCSR0A & _BV(UDRE0)))
+// Does a Serial.flush() attempting to do some useful work (eg I/O polling) while waiting for output to drain.
+// Assumes hundreds of CPU cycles available for each character queued for TX.
+// Does not change CPU clock speed or disable or mess with USART0, though may poll it.
+void flushSerialProductive();
+// Does a Serial.flush() idling for 30ms at a time while waiting for output to drain.
+// Does not change CPU clock speed or disable or mess with USART0, though may poll it.
+// Sleeps in IDLE mode for up to 15ms at a time (using watchdog) waking early on interrupt
+// so the caller must be sure RX overrun (etc) will not be an issue.
+// Switches to flushSerialProductive() behaviour
+// if in danger of overrunning a minor cycle while idling.
+void flushSerialSCTSensitive();
+#else
+#define flushSerialProductive() Serial.flush()
+#define flushSerialSCTSensitive() Serial.flush()
 #endif
+
+
+
+
+} // OTV0P2BASE
+#endif // OTV0P2BASE_POWERMANAGEMENT_H

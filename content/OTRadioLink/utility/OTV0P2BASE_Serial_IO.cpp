@@ -14,6 +14,7 @@ specific language governing permissions and limitations
 under the Licence.
 
 Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
+                           Deniz Erbilgin 2015
 */
 
 /*
@@ -28,6 +29,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 
 //#include "Power_Management.h"
 
+namespace OTV0P2BASE
+{
 
 // Flush to use for all serialPrintXXX() and DEBUG_PRINTXXX routines.
 #define _flush() flushSerialSCTSensitive()
@@ -131,11 +134,6 @@ void serialPrintlnAndFlush()
 
 
 
-
-
-
-
-
 #ifdef DEBUG // Don't emit debug-support code unless in DEBUG.
 
 // Print timestamp with no newline in format: MinutesSinceMidnight:Seconds:SubCycleTime
@@ -154,6 +152,8 @@ void _debug_serial_timestamp()
   if(neededWaking) { powerDownSerial(); }
   }
 
-#endif
+#endif // DEBUG
+
+} // OTV0P2BASE
 
 

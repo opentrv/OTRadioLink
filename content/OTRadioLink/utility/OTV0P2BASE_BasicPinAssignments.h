@@ -34,6 +34,10 @@ static const uint8_t V0p2_PIN_SPI_MISO = 12; // ATMega328P-PU PDIP pin 18, PB4.
 static const uint8_t V0p2_PIN_SPI_MOSI = 11; // ATMega328P-PU PDIP pin 17, PB3.
 static const uint8_t V0p2_PIN_SPI_nSS = 10; // ATMega328P-PU PDIP pin 16, PB2.  Active low enable.
 
+// Serial List
+static const uint8_t V0p2_PIN_SERIAL_RX = 0; // ATMega328P-PU PDIP pin 2, PD0.
+static const uint8_t V0p2_PIN_SERIAL_TX = 1; // ATMega328P-PU PDIP pin 3, PD1.
+
 }
 
 #endif

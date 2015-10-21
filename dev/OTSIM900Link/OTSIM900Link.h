@@ -22,7 +22,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
 
 #include <Arduino.h>
 #include <OTRadioLink.h>
-#include <SoftwareSerial.h>
+#include <OTSoftSerial.h>
 #include <string.h>
 #include <stdint.h>
 
@@ -59,10 +59,10 @@ namespace OTSIM900Link
 typedef struct OTSIM900LinkConfig_t {
 	// Is in eeprom?
 	const bool bEEPROM;
-	const uint8_t *PIN;
-	const uint8_t *APN;
-	const uint8_t *UDP_Address;
-	const uint8_t *UDP_Port;
+	const char *PIN;
+	const char *APN;
+	const char *UDP_Address;
+	const char *UDP_Port;
 };
 
 
@@ -96,8 +96,8 @@ public:
     void poll();
 
 private:
-  //SoftwareSerial *softSerial;
-   SoftwareSerial softSerial;
+   //SoftwareSerial softSerial;
+   OTV0P2BASE::OTSoftSerial softSerial;
 
  /***************** AT Commands and Private Constants and variables ******************/
     // set AT commands here
@@ -118,7 +118,7 @@ private:
       static const char AT_SEND_UDP[9];
       static const char AT_CLOSE_UDP[10];
       static const char AT_VERBOSE_ERRORS[6];
-      
+
       static const char AT_GET_MODULE = 'I';
       static const char AT_SET = '=';
       static const char AT_QUERY = '?';
@@ -133,6 +133,7 @@ private:
   bool bAvailable;
   bool bPowered;
   const OTSIM900LinkConfig_t *config;
+  const uint16_t baud = 2400;
 /************************* Private Methods *******************************/
   	// Power up/down
   /**
@@ -177,12 +178,12 @@ private:
 
     // Serial functions
     uint8_t read();
-    uint8_t serAvailable() {return softSerial.available();}	//FIXME delete?
-    void flush();
-    uint8_t timedBlockingRead(char *data, uint8_t length, char terminatingChar = 0);
+    //uint8_t serAvailable() {return softSerial.available();}	//FIXME delete?
+    //void flush();
+    uint8_t timedBlockingRead(char *data, uint8_t length);
     //uint8_t timedBlockingRead(char *data, uint8_t length);
     void write(const char *data, uint8_t length);
-    void write(const char data);
+    void print(const char data);
     void print(const int value);
     void print(const char *string);
 
