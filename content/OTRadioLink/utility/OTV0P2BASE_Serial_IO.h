@@ -33,11 +33,11 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 
 // On serial output certain characters at the start of a line are reserved.
 // These are used by remote software to trigger particular actions.
-#define LINE_START_CHAR_CLI '>' // CLI prompt.
+/*#define LINE_START_CHAR_CLI '>' // CLI prompt.
 #define LINE_START_CHAR_ERROR '!' // Error log line.
 #define LINE_START_CHAR_WARNING '?' // Warning log line.
 #define LINE_START_CHAR_RSTATS '@' // Remote stats log line.
-#define LINE_START_CHAR_STATS '=' // Local stats log line.
+#define LINE_START_CHAR_STATS '=' // Local stats log line.*/
 
 
 namespace OTV0P2BASE

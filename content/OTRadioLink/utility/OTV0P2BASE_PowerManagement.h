@@ -32,11 +32,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 #include "OTV0P2BASE_BasicPinAssignments.h"
 #include "OTV0P2BASE_FastDigitalIO.h"
 
-/**
- * Temp fixes
- */
-#define BAUD 4800 // FIXME delete!
-
 namespace OTV0P2BASE
 {
 
@@ -118,10 +113,23 @@ inline void powerDownSPI() { t_powerDownSPI<V0p2_PIN_SPI_nSS, V0p2_PIN_SPI_SCK, 
 
 /************** Serial IO stuff ************************/
 // Moved from Power Management.h
+
+// Check if serial is (already) powered up.
+static inline bool _serialIsPoweredUp() { return(!(PRR & _BV(PRUSART0))); }
+
+
 // If serial (UART/USART0) was disabled, power it up, do Serial.begin(), and return true.
 // If already powered up then do nothing other than return false.
 // If this returns true then a matching powerDownSerial() may be advisable.
-bool powerUpSerialIfDisabled();
+// Defaults to V0p2 unit baud rate
+template <uint16_t baud>
+bool powerUpSerialIfDisabled()
+{
+	if(_serialIsPoweredUp()) { return(false); }
+	PRR &= ~_BV(PRUSART0); // Enable the UART.
+	Serial.begin(baud); // Set it going.
+	return(true);
+}
 // Flush any pending serial (UART/USART0) output and power it down.
 void powerDownSerial();
 #ifdef __AVR_ATmega328P__

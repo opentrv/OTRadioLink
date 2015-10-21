@@ -28,20 +28,6 @@ namespace OTV0P2BASE
 {
 // Moved from Power_Management.cpp
 
-// Check if serial is (already) powered up.
-static bool _serialIsPoweredUp() { return(!(PRR & _BV(PRUSART0))); }
-
-// If serial was disabled, power it up, do Serial.begin(), and return true.
-// If already powered up then do nothing other than return false.
-// If this returns true then a matching powerDownSerial() may be advisable.
-bool powerUpSerialIfDisabled()
-  {
-  if(_serialIsPoweredUp()) { return(false); }
-  PRR &= ~_BV(PRUSART0); // Enable the UART.
-  Serial.begin(BAUD); // Set it going.
-  return(true);
-  }
-
 // Flush any pending UART TX bytes in the hardware if UART is enabled, eg useful after Serial.flush() and before sleep.
 void flushSerialHW()
   {
