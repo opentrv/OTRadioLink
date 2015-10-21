@@ -16,7 +16,7 @@ under the Licence.
 Author(s) / Copyright (s): Deniz Erbilgin 2015
 */
 
-#include "OTNullRadioLink.h"
+#include "OTRadioLink_OTNullRadioLink.h"
 
 namespace OTNullRadioLink {
 

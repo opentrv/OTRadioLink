@@ -22,7 +22,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
 
 #include <Arduino.h>
 #include <OTRadioLink.h>
-#include <OTSoftSerial.h>
+#include <OTV0p2Base.h>
 #include <string.h>
 #include <stdint.h>
 

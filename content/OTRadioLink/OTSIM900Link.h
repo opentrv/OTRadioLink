@@ -13,23 +13,16 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Deniz Erbilgin 2015
+Author(s) / Copyright (s): Damon Hart-Davis 2015
 */
 
-#ifndef OTSOFTSERIAL_OTSOFTSERIAL_H_
-#define OTSOFTSERIAL_OTSOFTSERIAL_H_
+#ifndef ARDUINO_LIB_OTSIM900LINK_H
+#define ARDUINO_LIB_OTSIM900LINK_H
 
-/**
- * @todo Temporary file. Remove when put in proper library.
- */
-#ifndef F_CPU
-/* prevent compiler error by supplying a default */
-# warning "F_CPU not defined for <OTV0p2Base.h>"
-//# define F_CPU 1000000UL	// This is default for V0p2
-#endif
+#define ARDUINO_LIB_OTSIM900LINK_VERSION_MAJOR 0
+#define ARDUINO_LIB_OTSIM900LINK_VERSION_MINOR 9
 
+// SIM900 GSM support.
+#include "utility/OTSIM900Link_OTSIM900Link.h"
 
-#include "OTV0P2BASE_SoftSerial.h"
-
-
-#endif /* OTSOFTSERIAL_OTSOFTSERIAL_H_ */
+#endif // ARDUINO_LIB_OTSIM900LINK_H

@@ -17,7 +17,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
                            Damon Hart-Davis 2015
 */
 
-#include "OTSIM900Link.h"
+#include "OTSIM900Link_OTSIM900Link.h"
 
 namespace OTSIM900Link
 {
