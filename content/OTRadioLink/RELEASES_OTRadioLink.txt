@@ -9,7 +9,7 @@ or release/freeze points.
 
 
 pending:
-
+    DE20151022:  TODO-565: Added queueToSend function.
 
 
 
