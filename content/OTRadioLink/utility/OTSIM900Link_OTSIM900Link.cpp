@@ -112,6 +112,9 @@ bool OTSIM900Link::end()
  */
 bool OTSIM900Link::sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel, TXpower power, bool listenAfter)
 {
+#ifdef OTSIM900LINK_DEBUG
+	Serial.println("Send Raw");
+#endif // OTSIM900LINK_DEBUG
 	//if(isOpenUDP()){
 		return sendUDP((const char *)buf, buflen);
 	//} else return false;
@@ -131,11 +134,13 @@ bool OTSIM900Link::queueToSend(const uint8_t *buf, uint8_t buflen, int8_t channe
 {
 	openUDP();
 	delay(5000);	// find better way?
-	//flush();
 
-	sendRaw(buf, buflen);
+	bool sent = sendRaw(buf, buflen); // FIXME
+#ifdef OTSIM900LINK_DEBUG
+	Serial.println(sent);
+#endif // OTSIM900LINK_DEBUG
 	shutGPRS();
-	return true;
+	return sent;
 }
 
 /**
@@ -156,6 +161,9 @@ void OTSIM900Link::poll()
  */
 bool OTSIM900Link::openUDP()
 {
+#ifdef OTSIM900LINK_DEBUG
+	Serial.println("Open UDP");
+#endif // OTSIM900LINK_DEBUG
 	//if(!isOpenUDP()){
 		print(AT_START);
 		print(AT_START_UDP);
@@ -166,6 +174,7 @@ bool OTSIM900Link::openUDP()
 		print(config->UDP_Port);
 		print('\"');
 		print(AT_END);
+
 	//}
 	return true;
 }
@@ -277,8 +286,8 @@ uint8_t OTSIM900Link::timedBlockingRead(char *data, uint8_t length)
 
 
 #ifdef OTSIM900LINK_DEBUG
-  //Serial.print("\n--Buffer Length: ");
-  //Serial.println(i);
+  Serial.print("\n--Buffer Length: ");
+  Serial.println(i);
 #endif // OTSIM900LINK_DEBUG
   return i;
 }
@@ -337,9 +346,9 @@ void OTSIM900Link::print(char data)
  * @brief  Writes a character to software serial
  * @param data  character to write
  */
-void OTSIM900Link::print(const int value)
+void OTSIM900Link::print(const uint8_t value)
 {
-  softSerial.print(value);	// FIXME
+  softSerial.printNum(value);	// FIXME
 }
 
 void OTSIM900Link::print(const char *string)
@@ -404,11 +413,6 @@ bool OTSIM900Link::isRegistered()
 //  Check the GPRS registration via AT commands ("AT+CGATT?" returns "+CGATT:1" and "AT+CGREG?" returns "+CGREG:x,1" or "+CGREG:x,5"; where "x" is 0, 1 or 2). 
 
   char data[64];
-  /*write(AT_START, sizeof(AT_START)-1);
-  write(AT_REGISTRATION, sizeof(AT_REGISTRATION)-1);
-  write(AT_QUERY);
-  write(AT_END);*/
-
   print(AT_START);
   print(AT_REGISTRATION);
   print(AT_QUERY);
@@ -468,7 +472,7 @@ bool OTSIM900Link::setAPN()
   uint8_t dataCutLength = 0;
   dataCut = getResponse(dataCutLength, data, sizeof(data), 0x0A);
 #ifdef OTSIM900LINK_DEBUG
-  //Serial.println(data);
+  Serial.println(data);
 #endif // OTSIM900LINK_DEBUG
 
   if (*dataCut == 'O') return true;	// expected response 'OK'
@@ -555,7 +559,9 @@ bool OTSIM900Link::isOpenUDP()
 	print(AT_END);
 	timedBlockingRead(data, sizeof(data));
 
-	Serial.println(data);
+#ifdef OTSIM900LINK_DEBUG
+  Serial.println(data);
+#endif // OTSIM900LINK_DEBUG
 
 	// response stuff
 	const char *dataCut;
@@ -567,15 +573,17 @@ bool OTSIM900Link::isOpenUDP()
 
 /**
  * @brief   Set verbose errors
+ * @todo	What will be done with this?
+ * 			Change level to enum
  */
-void OTSIM900Link::verbose()
+void OTSIM900Link::verbose(uint8_t level)
 {
 #ifdef OTSIM900LINK_DEBUG
   char data[64];
   print(AT_START);
   print(AT_VERBOSE_ERRORS);
   print(AT_SET);
-  print('0'); // 0: no error codes, 1: error codes, 2: full error descriptions
+  print((char)(level + '0')); // 0: no error codes, 1: error codes, 2: full error descriptions
   print(AT_END);
   timedBlockingRead(data, sizeof(data));
   Serial.println(data);

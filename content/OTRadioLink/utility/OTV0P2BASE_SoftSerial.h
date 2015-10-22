@@ -42,9 +42,10 @@ public:
 
 	uint8_t read();
 	uint8_t read(uint8_t *buf, uint8_t len);
-	void print(uint8_t c);
+	void print(char c);
 	void write(const char *buf, uint8_t len);
 	uint8_t print(const char *buf);
+	void printNum(uint8_t number);
 
 private:
 	const uint8_t rxPin;
