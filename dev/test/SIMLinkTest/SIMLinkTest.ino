@@ -17,7 +17,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
                            Damon Hart-Davis 2015
 */
 
-#include <SoftwareSerial.h>
+#include <OTSoftSerial.h>
 #include <OTRadioLink.h>
 #include <OTSIM900Link.h>
 

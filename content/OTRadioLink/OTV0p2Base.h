@@ -69,4 +69,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 // Serial IO
 #include "utility/OTV0P2BASE_Serial_IO.h"
 
+// Soft Serial
+#include "utility/OTV0P2BASE_SoftSerial.h"
+
 #endif

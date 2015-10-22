@@ -1,0 +1,22 @@
+ALL SIGNIFICANT RELEASES AND BRANCHES (and to-do)
+
+
+This document is used to record all significant releases and branches
+in the code tree.
+
+Follow agreed procedures before creating (or deleting) branches
+or release/freeze points.
+
+
+pending:
+
+
+
+20150817:
+    freezepoint name: V0.9 (as part of OTRadioLink)
+    branch name: HEAD
+    Deployed where: 16WW (released copy on GitHub https://github.com/DamonHD/OTRadioLink V0.8).
+    Changes since last freezepoint (developer/mgr initials and brief description):
+    Previous significant freezepoint: V0.8
+    DE20151021: Created OTSIM900Link
+

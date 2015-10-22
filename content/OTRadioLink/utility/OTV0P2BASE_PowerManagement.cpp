@@ -14,6 +14,7 @@ specific language governing permissions and limitations
 under the Licence.
 
 Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
+                           Deniz Erbilgin 2015
 */
 
 /*
@@ -25,10 +26,78 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 
 namespace OTV0P2BASE
 {
+// Moved from Power_Management.cpp
+
+// Flush any pending UART TX bytes in the hardware if UART is enabled, eg useful after Serial.flush() and before sleep.
+void flushSerialHW()
+  {
+  if(PRR & _BV(PRUSART0)) { return; } // UART not running, so nothing to do.
+
+  // Snippet c/o http://www.gammon.com.au/forum/?id=11428
+  // TODO: try to sleep in a low-ish power mode while waiting for data to clear.
+  while(!(UCSR0A & _BV(UDRE0)))  // Wait for empty transmit buffer.
+     { UCSR0A |= _BV(TXC0); }  // Mark transmission not complete.
+  while(!(UCSR0A & _BV(TXC0))) { } // Wait for the transmission to complete.
+  return;
+  }
+
+#ifndef flushSerialProductive
+// Does a Serial.flush() attempting to do some useful work (eg I/O polling) while waiting for output to drain.
+// Assumes hundreds of CPU cycles available for each character queued for TX.
+// Does not change CPU clock speed or disable or mess with USART0, though may poll it.
+void flushSerialProductive()
+  {
+#if 0 && defined(DEBUG)
+  if(!_serialIsPoweredUp()) { panic(); } // Trying to operate serial without it powered up.
+#endif
+  // Can productively spin here churning PRNGs or the like before the flush(), checking for the UART TX buffer to empty...
+  // An occasional premature exit to flush() due to Serial interrupt handler interaction is benign, and indeed more grist to the mill.
+  while(serialTXInProgress()) { /*8burnHundredsOfCyclesProductivelyAndPoll();*/ }
+  Serial.flush(); // Wait for all output to have been sent.
+  // Could wait two character times at 10 bits per character based on BAUD.
+  // Or mass with the UART...
+  flushSerialHW();
+  }
+#endif
+
+#ifndef flushSerialSCTSensitive
+// Does a Serial.flush() idling for 15ms at a time while waiting for output to drain.
+// Does not change CPU clock speed or disable or mess with USART0, though may poll it.
+// Sleeps in IDLE mode for ~15ms at a time (backtopped by watchdog) waking on any interrupt
+// so that the caller must be sure RX overrun (etc) will not be an issue.
+// Switches to flushSerialProductive() behaviour
+// if in danger of overrunning a minor cycle while idling.
+void flushSerialSCTSensitive()
+  {
+#if 0 && defined(DEBUG)
+  if(!_serialIsPoweredUp()) { panic(); } // Trying to operate serial without it powered up.
+#endif
+#ifdef ENABLE_USE_OF_AVR_IDLE_MODE
+  while(serialTXInProgress() && (getSubCycleTime() < GSCT_MAX - 2 - (20/SUBCYCLE_TICK_MS_RD)))
+    { idle15AndPoll(); } // Save much power by idling CPU, though everything else runs.
+#endif
+  flushSerialProductive();
+  }
+#endif
 
 
+// Flush any pending serial output and power it down if up.
+void powerDownSerial()
+  {
+  if(_serialIsPoweredUp())
+    {
+    // Flush serial output and shut down if apparently active.
+    Serial.flush();
+    //flushSerialHW();
+    Serial.end();
+    }
+  pinMode(V0p2_PIN_SERIAL_RX, INPUT_PULLUP);
+  pinMode(V0p2_PIN_SERIAL_TX, INPUT_PULLUP);
+  PRR |= _BV(PRUSART0); // Disable the UART module.
+  }
 
-}
+
+} // OTV0P2BASE
 
 
 

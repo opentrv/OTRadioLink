@@ -1,4 +1,18 @@
-/*
+Target platform: Arduino UNO (or similar)
+Library format: pre-1.5-IDE
+
+
+Description
+===========
+
+The 'OTSIM900Link' OpenTRV SIM900 radio module library implementation of the OTRadioLink API.
+
+Uses as namespace to help reduce chance of name collisions.
+
+
+Licence
+=======
+
 The OpenTRV project licenses this file to you
 under the Apache Licence, Version 2.0 (the "Licence");
 you may not use this file except in compliance
@@ -14,25 +28,8 @@ specific language governing permissions and limitations
 under the Licence.
 
 Author(s) / Copyright (s): Damon Hart-Davis 2015
-*/
-
-#ifndef ARDUINO_LIB_OTRADIOLINK_H
-#define ARDUINO_LIB_OTRADIOLINK_H
-
-#define ARDUINO_LIB_OTRADIOLINK_VERSION_MAJOR 0
-#define ARDUINO_LIB_OTRADIOLINK_VERSION_MINOR 9
+                           Deniz Erbilgin 2015
 
 
-// Radio message frame types and related information.
-#include "utility/OTRadioLink_FrameType.h"
-
-// Specialist simple CRC support.
-#include "utility/OTRadioLink_CRC.h"
-
-// Radio Link base class definition.
-#include "utility/OTRadioLink_OTRadioLink.h"
-
-// Radio Link Null class definition.
-#include "utility/OTRadioLink_OTNullRadioLink.h"
-
-#endif
+Notes
+=====

@@ -14,6 +14,7 @@ specific language governing permissions and limitations
 under the Licence.
 
 Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
+                           Deniz Erbilgin 2015
 */
 
 /*
@@ -27,15 +28,20 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 #ifndef OTV0P2BASE_SERIAL_IO_H
 #define OTV0P2BASE_SERIAL_IO_H
 
+#include <Arduino.h>
+#include <OTV0p2Base.h>
 
 // On serial output certain characters at the start of a line are reserved.
 // These are used by remote software to trigger particular actions.
-#define LINE_START_CHAR_CLI '>' // CLI prompt.
+/*#define LINE_START_CHAR_CLI '>' // CLI prompt.
 #define LINE_START_CHAR_ERROR '!' // Error log line.
 #define LINE_START_CHAR_WARNING '?' // Warning log line.
 #define LINE_START_CHAR_RSTATS '@' // Remote stats log line.
-#define LINE_START_CHAR_STATS '=' // Local stats log line.
+#define LINE_START_CHAR_STATS '=' // Local stats log line.*/
 
+
+namespace OTV0P2BASE
+{
 
 // Write a single (Flash-resident) string to serial followed by line-end and wait for transmission to complete.
 // This enables the serial if required and shuts it down afterwards if it wasn't enabled.
@@ -70,7 +76,7 @@ void serialPrintAndFlush(unsigned long u, int fmt = DEC);
 void serialPrintlnAndFlush();
 
 
-
+/*
 #ifndef DEBUG
 #define DEBUG_SERIAL_PRINT(s) // Do nothing.
 #define DEBUG_SERIAL_PRINTFMT(s, format) // Do nothing.
@@ -92,7 +98,8 @@ extern void _debug_serial_timestamp();
 #define DEBUG_SERIAL_TIMESTAMP() _debug_serial_timestamp()
 
 #endif // DEBUG
-
+*/
+} // OTV0P2BASE
 
 #endif // OTV0P2BASE_SERIAL_IO_H
 

@@ -16,23 +16,13 @@ under the Licence.
 Author(s) / Copyright (s): Damon Hart-Davis 2015
 */
 
-#ifndef ARDUINO_LIB_OTRADIOLINK_H
-#define ARDUINO_LIB_OTRADIOLINK_H
+#ifndef ARDUINO_LIB_OTSIM900LINK_H
+#define ARDUINO_LIB_OTSIM900LINK_H
 
-#define ARDUINO_LIB_OTRADIOLINK_VERSION_MAJOR 0
-#define ARDUINO_LIB_OTRADIOLINK_VERSION_MINOR 9
+#define ARDUINO_LIB_OTSIM900LINK_VERSION_MAJOR 0
+#define ARDUINO_LIB_OTSIM900LINK_VERSION_MINOR 9
 
+// SIM900 GSM support.
+#include "utility/OTSIM900Link_OTSIM900Link.h"
 
-// Radio message frame types and related information.
-#include "utility/OTRadioLink_FrameType.h"
-
-// Specialist simple CRC support.
-#include "utility/OTRadioLink_CRC.h"
-
-// Radio Link base class definition.
-#include "utility/OTRadioLink_OTRadioLink.h"
-
-// Radio Link Null class definition.
-#include "utility/OTRadioLink_OTNullRadioLink.h"
-
-#endif
+#endif // ARDUINO_LIB_OTSIM900LINK_H
