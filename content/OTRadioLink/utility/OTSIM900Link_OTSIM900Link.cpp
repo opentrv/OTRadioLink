@@ -54,15 +54,12 @@ bool OTSIM900Link::begin()
   Serial.println("Get Init State");
 #endif // OTSIM900LINK_DEBUG
 	if (!getInitState()) return false; 	// exit function if no/wrong module
-	//flush();	// discard preamble
-	//delay(1000);
 
 	// perform steps that can be done without network connection
 #ifdef OTSIM900LINK_DEBUG
   Serial.println("Power up");
 #endif // OTSIM900LINK_DEBUG
 	powerOn();
-	//flush();
 
 #ifdef OTSIM900LINK_DEBUG
   Serial.println("Check Pin");
@@ -86,7 +83,7 @@ bool OTSIM900Link::begin()
   Serial.println("Start GPRS");
 #endif // OTSIM900LINK_DEBUG
 	startGPRS(); // starting and shutting gprs brings module to state
-	delay(500);
+	delay(1000);
 	shutGPRS();	 // where openUDP can automatically start gprs
 	return true;
 }
@@ -102,7 +99,7 @@ bool OTSIM900Link::end()
 }
 
 /**
- * @brief	Sends message
+ * @brief	Sends message. Will shut UDP and attempt to resend if sendUDP fails
  * @param	buf		pointer to buffer to send
  * @param	buflen	length of buffer to send
  * @param	channel	ignored
@@ -112,12 +109,21 @@ bool OTSIM900Link::end()
  */
 bool OTSIM900Link::sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel, TXpower power, bool listenAfter)
 {
+	bool bSent = false;
+
 #ifdef OTSIM900LINK_DEBUG
 	Serial.println("Send Raw");
 #endif // OTSIM900LINK_DEBUG
-	//if(isOpenUDP()){
+	bSent = sendUDP((const char *)buf, buflen);
+	if(bSent) return true;
+	else {	// Shut GPRS and try again if failed
+		shutGPRS();
+		delay(1000);
+
+		openUDP();
+		delay(5000);
 		return sendUDP((const char *)buf, buflen);
-	//} else return false;
+	}
 }
 
 /**
