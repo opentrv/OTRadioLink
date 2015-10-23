@@ -18,7 +18,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
 
 #include "OTRadioLink_OTNullRadioLink.h"
 
-namespace OTNullRadioLink {
+namespace OTRadioLink {
 
 OTNullRadioLink::OTNullRadioLink() {}
 
@@ -38,7 +38,7 @@ uint8_t OTNullRadioLink::getRXMsgsQueued() const
 const volatile uint8_t *OTNullRadioLink::peekRXMsg(uint8_t &len) const
 {
 	len = 0;
-	return 0;
+	return NULL;
 }
 void OTNullRadioLink::removeRXMsg()
 {
@@ -52,10 +52,5 @@ bool OTNullRadioLink::sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel
 	Serial.println("\n--End Message");*/
 	return true;
 }
-
-/*bool queueToSend(const uint8_t *buf, uint8_t buflen, int8_t channel, TXpower power)
-{
-	return false;
-}*/
 
 } // OTNullRadioLink

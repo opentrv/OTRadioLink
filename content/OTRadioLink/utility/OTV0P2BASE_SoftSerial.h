@@ -42,17 +42,18 @@ public:
 
 	uint8_t read();
 	uint8_t read(uint8_t *buf, uint8_t len);
-	void print(uint8_t c);
+	void print(char c);
 	void write(const char *buf, uint8_t len);
 	uint8_t print(const char *buf);
+	void printNum(int8_t number);
 
 private:
 	const uint8_t rxPin;
 	const uint8_t txPin;
-	const uint16_t timeOut = 1000;	// length of timeout in millis
+	static const uint16_t timeOut = 1000;	// length of timeout in millis
 	// Used to tune delay cycle times
 		// Compensates for time setting up registries in delay func
-	const uint8_t tuningVal = 21;	// was 24 for arduino
+	static const uint8_t tuningVal = 21;	// was 24 for arduino
 
 	uint16_t baud;
 	uint8_t halfDelay;
