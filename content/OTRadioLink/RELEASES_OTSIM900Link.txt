@@ -9,7 +9,8 @@ or release/freeze points.
 
 
 pending:
-    DE20151022: Modified debug and fixed sendUDP
+    DE20151022: Modified debug and fixed sendUDP.
+    DE20151023: Fixed compiler warnings.
 
 
 20150817:

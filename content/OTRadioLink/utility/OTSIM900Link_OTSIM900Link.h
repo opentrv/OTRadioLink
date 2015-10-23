@@ -55,14 +55,14 @@ namespace OTSIM900Link
  * @param	UDP_Address	Pointer to \0 terminated array containing UDP address to send to
  * @param	UDP_Port	Pointer to \0 terminated array containing  UDP port
  */
-typedef struct OTSIM900LinkConfig_t {
+typedef struct OTSIM900LinkConfig {
 	// Is in eeprom?
 	const bool bEEPROM;	// FIXME not yet implemented
 	const char *PIN;
 	const char *APN;
 	const char *UDP_Address;
 	const char *UDP_Port;
-};
+} OTSIM900LinkConfig_t;
 
 
 /**
@@ -93,8 +93,6 @@ public:
 #ifndef OTSIM900LINK_DEBUG
 private:
 #endif // OTSIM900LINK_DEBUG
-   //SoftwareSerial softSerial;
-   OTV0P2BASE::OTSoftSerial softSerial;
 
  /***************** AT Commands and Private Constants and variables ******************/
     // set AT commands here
@@ -125,12 +123,14 @@ private:
 
   // pins for software serial
   const uint8_t PWR_PIN;
+  //SoftwareSerial softSerial;
+  OTV0P2BASE::OTSoftSerial softSerial;
 
   // variables
   bool bAvailable;
   bool bPowered;
   const OTSIM900LinkConfig_t *config;
-  const uint16_t baud = 2400; // max reliable baud
+  static const uint16_t baud = 2400; // max reliable baud
 /************************* Private Methods *******************************/
   	// Power up/down
   /**
@@ -175,10 +175,7 @@ private:
 
     // Serial functions
     uint8_t read();
-    //uint8_t serAvailable() {return softSerial.available();}	//FIXME delete?
-    //void flush();
     uint8_t timedBlockingRead(char *data, uint8_t length);
-    //uint8_t timedBlockingRead(char *data, uint8_t length);
     void write(const char *data, uint8_t length);
     void print(const char data);
     void print(const uint8_t value);
@@ -206,7 +203,6 @@ private:
     bool openUDP();
     bool closeUDP();
     bool sendUDP(const char *frame, uint8_t length);
-    //void setupUDP(const char *ipAddress, uint8_t ipAddressLength, const char *port, uint8_t portLength)
 
     bool getInitState();
 

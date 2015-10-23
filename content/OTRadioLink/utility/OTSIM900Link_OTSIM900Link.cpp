@@ -29,7 +29,7 @@ namespace OTSIM900Link
  * @param	rxPin		Rx pin for software serial
  * @param	txPin		Tx pin for software serial
  */
-OTSIM900Link::OTSIM900Link(const OTSIM900LinkConfig_t *_config, uint8_t pwrPin, uint8_t rxPin, uint8_t txPin) : PWR_PIN(pwrPin), softSerial(7, 8)
+OTSIM900Link::OTSIM900Link(const OTSIM900LinkConfig_t *_config, uint8_t pwrPin, uint8_t rxPin, uint8_t txPin) : PWR_PIN(pwrPin), softSerial(rxPin, txPin)
 {
   pinMode(PWR_PIN, OUTPUT);
   bAvailable = false;
@@ -394,9 +394,9 @@ bool OTSIM900Link::checkNetwork()
   timedBlockingRead(data, sizeof(data));
 
   // response stuff
-  const char *dataCut;
-  uint8_t dataCutLength = 0;
-  dataCut= getResponse(dataCutLength, data, sizeof(data), ' '); // first ' ' appears right before useful part of message
+  //const char *dataCut;
+  //uint8_t dataCutLength = 0;
+  //dataCut= getResponse(dataCutLength, data, sizeof(data), ' '); // first ' ' appears right before useful part of message
 
   return true;
 }
@@ -762,6 +762,7 @@ const char OTSIM900Link::AT_CLOSE_UDP[10] = "+CIPCLOSE";
 const char OTSIM900Link::AT_SHUT_GPRS[9] = "+CIPSHUT";
 
 const char OTSIM900Link::AT_VERBOSE_ERRORS[6] = "+CMEE";
+
 
 // tcpdump -Avv udp and dst port 9999
 } // OTSIM900Link
