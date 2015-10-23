@@ -47,9 +47,9 @@ void OTNullRadioLink::removeRXMsg()
 
 bool OTNullRadioLink::sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel, TXpower power, bool listenAfter)
 {
-	/*Serial.println("--Start Message:");
-	Serial.write(buf, buflen);
-	Serial.println("\n--End Message");*/
+	/*DEBUG_SERIAL_PRINT_FLASHSTRING("Radio: ");
+	DEBUG_SERIAL_PRINT((char *)buf);
+	DEBUG_SERIAL_PRINTLN();*/ //FIXME Breaks unit tests
 	return true;
 }
 

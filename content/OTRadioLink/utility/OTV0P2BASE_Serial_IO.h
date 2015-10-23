@@ -31,14 +31,40 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 #include <Arduino.h>
 #include <OTV0p2Base.h>
 
+/*
+#define DEBUG
+
+// FIXME	These are defined in V0p2_main/Serial_IO.h
 // On serial output certain characters at the start of a line are reserved.
 // These are used by remote software to trigger particular actions.
-/*#define LINE_START_CHAR_CLI '>' // CLI prompt.
+#define LINE_START_CHAR_CLI '>' // CLI prompt.
 #define LINE_START_CHAR_ERROR '!' // Error log line.
 #define LINE_START_CHAR_WARNING '?' // Warning log line.
 #define LINE_START_CHAR_RSTATS '@' // Remote stats log line.
-#define LINE_START_CHAR_STATS '=' // Local stats log line.*/
+#define LINE_START_CHAR_STATS '=' // Local stats log line.
 
+#ifndef DEBUG
+#define DEBUG_SERIAL_PRINT(s) // Do nothing.
+#define DEBUG_SERIAL_PRINTFMT(s, format) // Do nothing.
+#define DEBUG_SERIAL_PRINT_FLASHSTRING(fs) // Do nothing.
+#define DEBUG_SERIAL_PRINTLN_FLASHSTRING(fs) // Do nothing.
+#define DEBUG_SERIAL_PRINTLN() // Do nothing.
+#define DEBUG_SERIAL_TIMESTAMP() // Do nothing.
+#else
+
+// Send simple string or numeric to serial port and wait for it to have been sent.
+// Make sure that Serial.begin() has been invoked, etc.
+#define DEBUG_SERIAL_PRINT(s) { OTV0P2BASE::serialPrintAndFlush(s); }
+#define DEBUG_SERIAL_PRINTFMT(s, fmt) { OTV0P2BASE::serialPrintAndFlush((s), (fmt)); }
+#define DEBUG_SERIAL_PRINT_FLASHSTRING(fs) { OTV0P2BASE::serialPrintAndFlush(F(fs)); }
+#define DEBUG_SERIAL_PRINTLN_FLASHSTRING(fs) { OTV0P2BASE::serialPrintlnAndFlush(F(fs)); }
+#define DEBUG_SERIAL_PRINTLN() { OTV0P2BASE::serialPrintlnAndFlush(); }
+// Print timestamp with no newline in format: MinutesSinceMidnight:Seconds:SubCycleTime
+//extern void _debug_serial_timestamp();
+//#define DEBUG_SERIAL_TIMESTAMP() _debug_serial_timestamp()
+
+#endif // DEBUG
+*/
 
 namespace OTV0P2BASE
 {
@@ -76,29 +102,6 @@ void serialPrintAndFlush(unsigned long u, int fmt = DEC);
 void serialPrintlnAndFlush();
 
 
-/*
-#ifndef DEBUG
-#define DEBUG_SERIAL_PRINT(s) // Do nothing.
-#define DEBUG_SERIAL_PRINTFMT(s, format) // Do nothing.
-#define DEBUG_SERIAL_PRINT_FLASHSTRING(fs) // Do nothing.
-#define DEBUG_SERIAL_PRINTLN_FLASHSTRING(fs) // Do nothing.
-#define DEBUG_SERIAL_PRINTLN() // Do nothing.
-#define DEBUG_SERIAL_TIMESTAMP() // Do nothing.
-#else
-
-// Send simple string or numeric to serial port and wait for it to have been sent.
-// Make sure that Serial.begin() has been invoked, etc.
-#define DEBUG_SERIAL_PRINT(s) { serialPrintAndFlush(s); }
-#define DEBUG_SERIAL_PRINTFMT(s, fmt) { serialPrintAndFlush((s), (fmt)); }
-#define DEBUG_SERIAL_PRINT_FLASHSTRING(fs) { serialPrintAndFlush(F(fs)); }
-#define DEBUG_SERIAL_PRINTLN_FLASHSTRING(fs) { serialPrintlnAndFlush(F(fs)); }
-#define DEBUG_SERIAL_PRINTLN() { serialPrintlnAndFlush(); }
-// Print timestamp with no newline in format: MinutesSinceMidnight:Seconds:SubCycleTime
-extern void _debug_serial_timestamp();
-#define DEBUG_SERIAL_TIMESTAMP() _debug_serial_timestamp()
-
-#endif // DEBUG
-*/
 } // OTV0P2BASE
 
 #endif // OTV0P2BASE_SERIAL_IO_H

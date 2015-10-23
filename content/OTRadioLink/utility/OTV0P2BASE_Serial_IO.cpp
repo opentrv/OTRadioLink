@@ -27,8 +27,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 
 #include "OTV0P2BASE_Serial_IO.h"
 
-//#include "Power_Management.h"
-
 namespace OTV0P2BASE
 {
 // default baud for V0p2 unit
@@ -139,7 +137,7 @@ void serialPrintlnAndFlush()
 #ifdef DEBUG // Don't emit debug-support code unless in DEBUG.
 
 // Print timestamp with no newline in format: MinutesSinceMidnight:Seconds:SubCycleTime
-void _debug_serial_timestamp()
+void _debug_serial_timestamp()	// FIXME This getSubCycleTime breaks in unit tests
   {
   const bool neededWaking = powerUpSerialIfDisabled<V0p2_DEFAULT_UART_BAUD>();
   // Grab time values ASAP, fastest-incrementing first.
