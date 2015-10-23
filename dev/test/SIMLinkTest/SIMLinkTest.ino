@@ -106,7 +106,8 @@ void loop()
 void serialInput(uint8_t input)
 {
   switch(input) {
-    case 'P': // Attempt to force power on if not already so.
+    /*These are all private functions */
+      case 'P': // Attempt to force power on if not already so.
       gprs.powerOn();
       delay(1000);
     case 'p':
