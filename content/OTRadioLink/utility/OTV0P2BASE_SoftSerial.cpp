@@ -18,7 +18,8 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
 
 #include "OTV0P2BASE_SoftSerial.h"
 
-#include <stdio.h>
+//#include <stdio.h>
+#include <stdlib.h>
 #include <util/atomic.h>
 #include <OTV0p2Base.h>
 
@@ -205,20 +206,22 @@ uint8_t OTSoftSerial::print(const char *buf)
  * @brief	Converts uint8_t to string and prints to serial
  * @param	uint8_t number to print
  * @todo	make overloaded print instead? will this confuse with print char?
- * 			Replace snprintf as has huge (>1KB) overhead
+ * @note	This makes use of non standard stdlib function itoa(). May break when not
+ * 			compiled with avr-libc
  */
-void OTSoftSerial::printNum(uint8_t number)
+void OTSoftSerial::printNum(int8_t number)
 {
-	static const uint8_t maxNumLength = 3;
+	static const uint8_t maxNumLength = 3; // Double this if ever need to convert to int16_t
 	// init buffer array
 	char buf[maxNumLength];
 	memset(buf, 0, maxNumLength);
 
 	// convert and fill buffer
-	uint8_t numLength = (uint8_t)snprintf(buf, maxNumLength, "%d", number);
+	//uint8_t numLength = (uint8_t)snprintf(buf, maxNumLength, "%d", number);
+	itoa(number, buf, 10);	// convert integer to string, base 10
 
 	// print buffer
-	write(buf, numLength);
+	print(buf);
 }
 /**************************** Private Methods ****************************/
 
