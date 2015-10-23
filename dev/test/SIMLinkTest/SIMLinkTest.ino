@@ -17,7 +17,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
                            Damon Hart-Davis 2015
 */
 
-#include <OTSoftSerial.h>
+#include <OTV0p2Base.h>
 #include <OTRadioLink.h>
 #include <OTSIM900Link.h>
 
@@ -45,11 +45,12 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
  * - To open UDP connection, enter 'o'
  * - To send UDP packet, enter 's'
  * - To close UDP connection, enter 'e'
- * - For verbose errors, enter 'v'
+ * - For non verbose errors, enter 'v'
+ * - For verbose errors, enter 'V'
  * - Board will close PGP on shutdown (Will add in a method to do this seperately later)
  */
 
-static const int baud = 4800;  // don't chage this - faster will break softwareserial on V0p2
+static const bool bEEPROM = false;  // Sets whether radio saved in flash or eeprom
 
 #define CREDS 1 // Choose set of hardwired credentials and target address.
 
@@ -71,17 +72,16 @@ static const char UDP_SEND_STR[] = "The cat in the hat";
 
 
 
-const OTSIM900Link::OTSIM900LinkConfig_t radioConfig = {baud, pin, apn, UDP_ADDR, UDP_PORT};
+const OTSIM900Link::OTSIM900LinkConfig_t radioConfig = {bEEPROM, pin, apn, UDP_ADDR, UDP_PORT};
 
 OTSIM900Link::OTSIM900Link gprs(&radioConfig, 6, 7, 8);
 
 void setup()
 {
   Serial.begin(4800);
-//  softSer.begin(baud);
+  Serial.println("Setup Start");
   gprs.begin();
   delay(1000);
-//  gprs.verbose();
   Serial.println("Setup Done");
 }
 
@@ -106,7 +106,8 @@ void loop()
 void serialInput(uint8_t input)
 {
   switch(input) {
-   /* case 'P': // Attempt to force power on if not already so.
+    /*These are all private functions */
+      case 'P': // Attempt to force power on if not already so.
       gprs.powerOn();
       delay(1000);
     case 'p':
@@ -153,13 +154,9 @@ void serialInput(uint8_t input)
 
     case 'o':
     gprs.openUDP(); // don't send null termination
-    break;*/
-
-    case 's':
-    gprs.queueToSend((uint8_t *)UDP_SEND_STR, sizeof(UDP_SEND_STR));
     break;
 
-    /*case 'e':
+    case 'e':
     gprs.closeUDP();
     break;
 
@@ -168,8 +165,20 @@ void serialInput(uint8_t input)
     break;
     
     case 'v':
-    gprs.verbose();
-    break;*/
+    gprs.verbose(0);
+    break;
+
+    case 'V':
+    gprs.verbose(2);
+    break;
+
+    case 'S':
+    gprs.sendUDP(UDP_SEND_STR, sizeof(UDP_SEND_STR));
+    break;
+    
+    case 's':
+    gprs.queueToSend((uint8_t *)UDP_SEND_STR, sizeof(UDP_SEND_STR));
+    break;
 
     default:
     break;

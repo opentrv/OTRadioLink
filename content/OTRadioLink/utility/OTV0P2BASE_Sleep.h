@@ -117,7 +117,7 @@ static inline void sleepUntilInt() { sleepPwrSaveWithBODDisabled(); }
 // True iff watchdog timer expired; false if something else woke the CPU.
 // Only use this if not disallowed for board type, eg with ENABLE_USE_OF_AVR_IDLE_MODE.
 // DHD20150920: POSSIBLY NOT RECOMMENDED AS STILL SEEMS TO CAUSE SOME BOARDS TO CRASH.
-//#define OTV0P2BASE_IDLE_NOT_RECOMMENDED // IF DEFINED, avoid IDLE mode.
+#define OTV0P2BASE_IDLE_NOT_RECOMMENDED // IF DEFINED, avoid IDLE mode.
 bool _idleCPU(int_fast8_t watchdogSleep, bool allowPrematureWakeup = false);
 
 // Sleep briefly in as lower-power mode as possible until the specified (watchdog) time expires.

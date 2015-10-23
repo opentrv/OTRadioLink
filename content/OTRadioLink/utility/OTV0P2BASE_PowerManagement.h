@@ -36,8 +36,8 @@ namespace OTV0P2BASE
 {
 
 
-// True if the default is the run the SPI bus a bit below maximum (eg for REV2 board).
-static const bool DEFAULT_RUN_SPI_SLOW = true;
+// If true, default is to run the SPI bus a bit below maximum (eg for REV2 board).
+static const bool DEFAULT_RUN_SPI_SLOW = false;
 
 // TEMPLATED DEFINITIONS OF SPI power up/down.
 //

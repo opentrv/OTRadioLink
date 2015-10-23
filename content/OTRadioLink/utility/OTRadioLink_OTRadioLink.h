@@ -313,6 +313,15 @@ namespace OTRadioLink
             // May block to transmit (eg to avoid copying the buffer).
             virtual bool sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal, bool listenAfter = false) = 0;
 
+            // Add raw frame to send queue, to be sent when radio is ready.	// FIXME check over this
+            // This does not add any pre- or post- amble (etc)
+            // that particular receivers may require.
+            //   * power  hint to indicate transmission importance
+            //     and thus possibly power or other efforts to get it heard;
+            //     this hint may be ignored.
+            // Defaults to sendRaw, in which case see sendRaw comments.
+            virtual bool queueToSend(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal) { return sendRaw(buf, buflen, channel, power); };
+
             // Poll for incoming messages (eg where interrupts are not available).
             // Will only have any effect when listen(true, ...) is in effect.
             // Can be used safely in addition to handling inbound interrupts.

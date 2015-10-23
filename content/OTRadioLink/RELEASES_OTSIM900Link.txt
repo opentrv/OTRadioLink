@@ -9,7 +9,9 @@ or release/freeze points.
 
 
 pending:
-
+    DE20151022: Modified debug and fixed sendUDP.
+    DE20151023: Fixed compiler warnings.
+    DE20151023: Fixed issue due to GPRS not shutting correctly on startup.
 
 
 20150817:

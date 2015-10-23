@@ -9,6 +9,12 @@ or release/freeze points.
 
 
 pending:
+    DE20151022:  Added printNum to OTSoftSerial.
+    DE20151023:  Fixed compiler warnings from OTSoftSerial.
+    DE20151023:  Replaced snprintf with itoa() in OTSoftSerial. 
+    DHD20151025: TODO-547: reverted SPI to run at maximum-available speed by default.
+    DHD20151025: TODO-547: defined OTV0P2BASE_IDLE_NOT_RECOMMENDED.
+
 
 
 
@@ -27,7 +33,6 @@ pending:
     DHD20150920: fix from COHEAT in OW for DS18B20 to work properly for them: static const uint8_t stdDelayReduction = 5; // MarkT //  was: 2;
     DE20151021:  TODO-570: Migrated in Serial_IO
     DE20151021:  Created OTSoftSerial
-
 
 
 

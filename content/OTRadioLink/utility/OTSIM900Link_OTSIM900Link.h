@@ -50,20 +50,19 @@ namespace OTSIM900Link
  * @struct	OTSIM900LinkConfig_t
  * @brief	Structure containing config data for OTSIM900Link
  * @note	Struct and internal pointers must last as long as OTSIM900Link object
- * @todo	move pin definitions to config?
  * @param	PIN		Pointer to \0 terminated array containing SIM pin code
  * @param	APN		Pointer to \0 terminated array containing access point name
  * @param	UDP_Address	Pointer to \0 terminated array containing UDP address to send to
  * @param	UDP_Port	Pointer to \0 terminated array containing  UDP port
  */
-typedef struct OTSIM900LinkConfig_t {
+typedef struct OTSIM900LinkConfig {
 	// Is in eeprom?
-	const bool bEEPROM;
+	const bool bEEPROM;	// FIXME not yet implemented
 	const char *PIN;
 	const char *APN;
 	const char *UDP_Address;
 	const char *UDP_Port;
-};
+} OTSIM900LinkConfig_t;
 
 
 /**
@@ -71,13 +70,9 @@ typedef struct OTSIM900LinkConfig_t {
  * @todo	SIM900 has a low power state which stays connected to network
  * 			- Not sure how much power reduced
  * 			- If not sending often may be more efficient to power up and wait for connect each time
- * 			Make OTSIM900LinkBase to abstract serial interface?
+ * 			Make OTSIM900LinkBase to abstract serial interface and allow templating?
  * 			Make read & write inline?
- * 			Will need to change error checking based on CME state?
- *			Problem with using AT commands as strings as print sends null termination.
- *			- Temporary workaround: made write send one less character
  */
-//template<uint8_t rxPin, uint8_t txPin>	//FIXME	gave up on templating as breaks functions in cpp file
 class OTSIM900Link : public OTRadioLink::OTRadioLink
 {
 public:
@@ -95,9 +90,9 @@ public:
     //void setMaxTypicalFrameBytes(uint8_t maxTypicalFrameBytes);
     void poll();
 
+#ifndef OTSIM900LINK_DEBUG
 private:
-   //SoftwareSerial softSerial;
-   OTV0P2BASE::OTSoftSerial softSerial;
+#endif // OTSIM900LINK_DEBUG
 
  /***************** AT Commands and Private Constants and variables ******************/
     // set AT commands here
@@ -128,12 +123,14 @@ private:
 
   // pins for software serial
   const uint8_t PWR_PIN;
+  //SoftwareSerial softSerial;
+  OTV0P2BASE::OTSoftSerial softSerial;
 
   // variables
   bool bAvailable;
   bool bPowered;
   const OTSIM900LinkConfig_t *config;
-  const uint16_t baud = 2400;
+  static const uint16_t baud = 2400; // max reliable baud
 /************************* Private Methods *******************************/
   	// Power up/down
   /**
@@ -178,13 +175,10 @@ private:
 
     // Serial functions
     uint8_t read();
-    //uint8_t serAvailable() {return softSerial.available();}	//FIXME delete?
-    //void flush();
     uint8_t timedBlockingRead(char *data, uint8_t length);
-    //uint8_t timedBlockingRead(char *data, uint8_t length);
     void write(const char *data, uint8_t length);
     void print(const char data);
-    void print(const int value);
+    void print(const uint8_t value);
     void print(const char *string);
 
     // write AT commands
@@ -198,7 +192,7 @@ private:
     uint8_t getIP();
     bool isOpenUDP();
 
-    void verbose();
+    void verbose(uint8_t level);
     void setPIN();
     bool checkPIN();
 
@@ -209,7 +203,6 @@ private:
     bool openUDP();
     bool closeUDP();
     bool sendUDP(const char *frame, uint8_t length);
-    //void setupUDP(const char *ipAddress, uint8_t ipAddressLength, const char *port, uint8_t portLength)
 
     bool getInitState();
 
