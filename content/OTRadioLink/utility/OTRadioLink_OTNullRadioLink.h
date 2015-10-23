@@ -16,13 +16,13 @@ under the Licence.
 Author(s) / Copyright (s): Deniz Erbilgin 2015
 */
 
-#ifndef OTNULLRADIOLINK_OTNULLRADIOLINK_H_
-#define OTNULLRADIOLINK_OTNULLRADIOLINK_H_
+#ifndef OTRADIOLINK_OTNULLRADIOLINK_H_
+#define OTRADIOLINK_OTNULLRADIOLINK_H_
 
 #include <Arduino.h>
 #include <OTRadioLink.h>
 
-namespace OTNullRadioLink{
+namespace OTRadioLink{
 /**
  * @brief	This is a skeleton class that extends OTRadiolink and does nothing
  */
@@ -37,9 +37,9 @@ public:
 	const volatile uint8_t *peekRXMsg(uint8_t &len) const;
 	void removeRXMsg();
 	bool sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal, bool listenAfter = false);
-public:
+private:
 	void _dolisten() {};
 };
 
 }  //OTNullRadioLink
-#endif /* OTNULLRADIOLINK_OTNULLRADIOLINK_H_ */
+#endif /* OTRADIOLINK_OTNULLRADIOLINK_H_ */
