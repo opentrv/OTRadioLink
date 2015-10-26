@@ -13,6 +13,7 @@ pending:
     DE20151023:  Fixed compiler warnings from OTSoftSerial.
     DE20151023:  Replaced snprintf with itoa() in OTSoftSerial. 
     DE20151026:  Fixed compiler warning due to isValid() in Sensor class
+    DE20151026:  Added radio config location to OTV0P2BASE_EEPROM.h
         
 
 
