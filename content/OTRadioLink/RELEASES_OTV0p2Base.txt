@@ -12,7 +12,8 @@ pending:
     DE20151022:  Added printNum to OTSoftSerial.
     DE20151023:  Fixed compiler warnings from OTSoftSerial.
     DE20151023:  Replaced snprintf with itoa() in OTSoftSerial. 
-    
+    DE20151026:  Fixed compiler warning due to isValid() in Sensor class
+        
 
 
 20151021:

@@ -174,7 +174,7 @@ namespace OTRadioLink
             // but could for example be a minimal set of register number/values pairs in ROM.
             // This routine must not lock up if radio is not actually available/fitted.
             // Defaults to do nothing.
-            virtual void preinit(const void *preconfig) { }
+            virtual void preinit(const void *) { }
 
             // Emergency shutdown of radio to save power on system panic.
             // Defaults to call preinit(NULL).

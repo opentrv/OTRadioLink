@@ -219,7 +219,7 @@ namespace OTRFM23BLink
             // RX errors may be queued with depth greater than one,
             // or only the last RX error may be retained.
             // Higher-numbered error states may be more severe or more specific.
-            virtual uint8_t getRXErr() { ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { const uint8_t r = (uint8_t)lastRXErr; lastRXErr = 0; return(r); } }
+            virtual uint8_t getRXErr() { ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { const uint8_t r = (uint8_t)lastRXErr; lastRXErr = 0; return(r); } return 0;} // FIXME Added return 0 to fix warning
 
             // Send/TX a raw frame on the specified (default first/0) channel.
             // This does not add any pre- or post- amble (etc)
