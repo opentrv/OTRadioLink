@@ -31,9 +31,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 #include <Arduino.h>
 #include <OTV0p2Base.h>
 
-/*
-#define DEBUG
 
+#define DEBUG
+/*
 // FIXME	These are defined in V0p2_main/Serial_IO.h
 // On serial output certain characters at the start of a line are reserved.
 // These are used by remote software to trigger particular actions.
@@ -42,7 +42,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 #define LINE_START_CHAR_WARNING '?' // Warning log line.
 #define LINE_START_CHAR_RSTATS '@' // Remote stats log line.
 #define LINE_START_CHAR_STATS '=' // Local stats log line.
-
+*/
 #ifndef DEBUG
 #define DEBUG_SERIAL_PRINT(s) // Do nothing.
 #define DEBUG_SERIAL_PRINTFMT(s, format) // Do nothing.
@@ -64,7 +64,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 //#define DEBUG_SERIAL_TIMESTAMP() _debug_serial_timestamp()
 
 #endif // DEBUG
-*/
+
 
 namespace OTV0P2BASE
 {
@@ -80,6 +80,10 @@ void serialPrintAndFlush(__FlashStringHelper const *text);
 // Write a single string to serial and wait for transmission to complete.
 // This enables the serial if required and shuts it down afterwards if it wasn't enabled.
 void serialPrintAndFlush(char const *text);
+
+// Write a single (read-only) string to serial followed by line-end and wait for transmission to complete.
+// This enables the serial if required and shuts it down afterwards if it wasn't enabled.
+void serialPrintlnAndFlush(char const *text);
 
 // Write a single (Flash-resident) character to serial and wait for transmission to complete.
 // This enables the serial if required and shuts it down afterwards if it wasn't enabled.

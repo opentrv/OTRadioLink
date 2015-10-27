@@ -12,6 +12,7 @@ pending:
     DE20151022: Modified debug and fixed sendUDP.
     DE20151023: Fixed compiler warnings.
     DE20151023: Fixed issue due to GPRS not shutting correctly on startup.
+    DE20151023: Fixed compiler warnings.
 
 
 20150817:

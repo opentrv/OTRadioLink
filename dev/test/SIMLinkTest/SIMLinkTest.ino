@@ -68,13 +68,13 @@ static const char UDP_PORT[] = "9999";
 #endif
 
 
-static const char UDP_SEND_STR[] = "The cat in the hat";
+static const char UDP_SEND_STR[] = "The cat in the hat 2";
 
 
 
-const OTSIM900Link::OTSIM900LinkConfig_t radioConfig = {bEEPROM, pin, apn, UDP_ADDR, UDP_PORT};
+const OTSIM900Link::OTSIM900LinkConfig_t radioConfig = {pin, apn, UDP_ADDR, UDP_PORT};
 
-OTSIM900Link::OTSIM900Link gprs(&radioConfig, 6, 7, 8);
+OTSIM900Link::OTSIM900Link gprs(&radioConfig, 6, 9, 8);
 
 void setup()
 {

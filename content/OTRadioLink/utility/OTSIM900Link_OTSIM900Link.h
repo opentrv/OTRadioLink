@@ -21,12 +21,14 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
 #define OTSIM900LINK_H_
 
 #include <Arduino.h>
+//#include <EEPROM.h> // FIXME removed to reduce compiler warnings
+#include <util/atomic.h>
 #include <OTRadioLink.h>
 #include <OTV0p2Base.h>
 #include <string.h>
 #include <stdint.h>
 
-//#define OTSIM900LINK_DEBUG
+#define OTSIM900LINK_DEBUG
 
 /**
  * @note	To use library:
@@ -38,9 +40,6 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
  * 			- begin starts radio and sets up PGP instance, before returning to GPRS off mode
  * 			- queueToSend starts GPRS, opens UDP, sends message then deactivates GPRS. Process takes 5-10 seconds
  * 			- poll goes in interrupt and sets boolean when message sent(?) //FIXME not yet implemented
- * @todo	implement eeprom string copy helper (possibly checking if in ram or in eeprom
- *			Assign last ~256 bytes of eeprom to radio config struct
- *
  */
 
 namespace OTSIM900Link
@@ -49,21 +48,36 @@ namespace OTSIM900Link
 /**
  * @struct	OTSIM900LinkConfig_t
  * @brief	Structure containing config data for OTSIM900Link
+ * @todo	Finish EEPROM stuff
+ * 			Add enum
+ * 			Use template?
+ * 			Just uncomment from outside?
  * @note	Struct and internal pointers must last as long as OTSIM900Link object
  * @param	PIN		Pointer to \0 terminated array containing SIM pin code
  * @param	APN		Pointer to \0 terminated array containing access point name
  * @param	UDP_Address	Pointer to \0 terminated array containing UDP address to send to
  * @param	UDP_Port	Pointer to \0 terminated array containing  UDP port
  */
+// If stored in SRAM
 typedef struct OTSIM900LinkConfig {
 	// Is in eeprom?
-	const bool bEEPROM;	// FIXME not yet implemented
+	//const bool bEEPROM;
 	const char *PIN;
 	const char *APN;
 	const char *UDP_Address;
 	const char *UDP_Port;
 } OTSIM900LinkConfig_t;
 
+/* If stored in EEPROM
+typedef struct OTSIM900LinkConfig {
+	// Is in eeprom?
+	const bool bEEPROM;
+	const EEPtr PIN;
+	const EEPtr APN;
+	const EEPtr UDP_Address;
+	const EEPtr UDP_Port;
+} OTSIM900LinkConfig_t;
+*/
 
 /**
  * @note	To enable serial debug define 'OTSIM900LINK_DEBUG'
@@ -129,6 +143,7 @@ private:
   // variables
   bool bAvailable;
   bool bPowered;
+  volatile bool bSendPending;
   const OTSIM900LinkConfig_t *config;
   static const uint16_t baud = 2400; // max reliable baud
 /************************* Private Methods *******************************/
@@ -220,6 +235,8 @@ public:	// define abstract methods here
     virtual uint8_t getRXMsgsQueued() const {return 0;}
     virtual const volatile uint8_t *peekRXMsg(uint8_t &len) const {len = 0; return 0;}
     virtual void removeRXMsg() {}
+    bool _doconfig() { return(true); }
+
 
 /* other methods (copied from OTRadioLink as is)
 virtual bool _doconfig() { return(true); }		// could this replace something?
