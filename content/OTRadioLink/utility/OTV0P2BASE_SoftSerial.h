@@ -20,6 +20,8 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
 #define OTSOFTSERIAL_OTV0P2BASE_SOFTSERIAL_H_
 
 #include "Arduino.h"
+#include <OTV0p2Base.h>
+
 #include <stdint.h>
 
 namespace OTV0P2BASE
@@ -50,7 +52,8 @@ public:
 private:
 	const uint8_t rxPin;
 	const uint8_t txPin;
-	static const uint16_t timeOut = 10;	// length of timeout in millis
+//	static const uint16_t timeOut= 250;//SUB_CYCLE_TICKS_PER_S / 2; // FIXME 0.5 second timeout?	// length of timeout in millis
+	static const uint16_t timeOut = 10; // length of timeout in millis
 	// Used to tune delay cycle times
 		// Compensates for time setting up registries in delay func
 	static const uint8_t tuningVal = 21;	// was 24 for arduino

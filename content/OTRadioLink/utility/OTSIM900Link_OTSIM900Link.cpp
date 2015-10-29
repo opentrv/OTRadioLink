@@ -192,11 +192,10 @@ bool OTSIM900Link::openUDP()
 		print(AT_END);
 
 
-		  timedBlockingRead(data, sizeof(data));
+		  timedBlockingRead(data, sizeof(data)); // FIXME do stuff with this
 		  // response stuff
-		  const char *dataCut;
 		  uint8_t dataCutLength = 0;
-		  dataCut= getResponse(dataCutLength, data, sizeof(data), 0x0A);
+		  getResponse(dataCutLength, data, sizeof(data), 0x0A);
 	//}
 	return true;
 }
@@ -498,9 +497,9 @@ bool OTSIM900Link::startGPRS()
 
 
   // response stuff
-  const char *dataCut;
+//  const char *dataCut;
   uint8_t dataCutLength = 0;
-  dataCut= getResponse(dataCutLength, data, sizeof(data), 0x0A);	// unreliable
+  getResponse(dataCutLength, data, sizeof(data), 0x0A);	// unreliable
   if (dataCutLength == 9) return true;	// expected response 'OK'
   else return false;
 }

@@ -21,7 +21,6 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
 //#include <stdio.h>
 #include <stdlib.h>
 #include <util/atomic.h>
-#include <OTV0p2Base.h>
 
 namespace OTV0P2BASE
 {
@@ -73,13 +72,18 @@ uint8_t OTSoftSerial::read()
 	uint8_t val = 0;
 
 	uint32_t endTime = millis() + timeOut;
+	// wait for line to go low
+	while(fastDigitalRead(rxPin)) {
+		if(endTime < millis()) return 0;
+	}
 
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
 		// wait for line to go low
-		while(fastDigitalRead(rxPin)) {
-			if(endTime < millis()) return 0;
-		}
+//		uint8_t endTime = getSubCycleTime() + timeOut;
+//		while(fastDigitalRead(rxPin)) {
+//			if(endTime == getSubCycleTime() ) return 0; // FIXME Should be ok as time taken per tick is double time taken to receive byte
+//		}
 
 		// wait for mid point of bit
 		_delay_x4cycles(halfDelay);
@@ -91,7 +95,9 @@ uint8_t OTSoftSerial::read()
 		}
 
 		// wait for stop bit
-		while (!fastDigitalRead(rxPin));
+		while (!fastDigitalRead(rxPin)){
+//			if(endTime == getSubCycleTime() ) return 0; // FIXME Should be ok as time taken per tick is double time taken to receive byte
+		}
 	}
 	return val;
 }
@@ -113,6 +119,14 @@ uint8_t OTSoftSerial::read(uint8_t *buf, uint8_t len)
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
 		while (count < len) {
+//			uint8_t endTime = getSubCycleTime() + timeOut;
+			// wait for line to go low
+//			while (fastDigitalRead(rxPin)) {
+//				if(endTime == getSubCycleTime() ) {
+//					return 0; // FIXME Should be ok as time taken per tick is double time taken to receive byte
+//				}
+//			}
+
 			uint16_t timer = 10000;	// attempting timeout
 			// wait for line to go low
 			while (fastDigitalRead(rxPin)) {
@@ -138,7 +152,9 @@ uint8_t OTSoftSerial::read(uint8_t *buf, uint8_t len)
 			count++;
 
 			// wait for stop bit
-			while (!fastDigitalRead(rxPin)) { }// FIXME this breaks function when nothing connected
+			while (!fastDigitalRead(rxPin)) {
+//				//if(endTime == getSubCycleTime() ) return 0; // FIXME Should be ok as time taken per tick is double time taken to receive byte
+			}
 		}
 	}
 	return count;
