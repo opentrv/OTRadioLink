@@ -55,10 +55,10 @@ bool OTNullRadioLink::sendRaw(const uint8_t *buf, uint8_t buflen, int8_t , TXpow
 	uint8_t buffer[buflen+1];
 	memcpy(buffer, buf, buflen);
 	buffer[buflen] = '\0';
-	// print if in debug mode
-	DEBUG_SERIAL_PRINT_FLASHSTRING("Radio: ");
-	DEBUG_SERIAL_PRINT((char *)buf);
-	DEBUG_SERIAL_PRINTLN(); //FIXME Breaks unit tests
+//	// print if in debug mode
+//	DEBUG_SERIAL_PRINT_FLASHSTRING("Radio: ");
+//	DEBUG_SERIAL_PRINT((char *)buf);
+//	DEBUG_SERIAL_PRINTLN(); //FIXME Breaks unit tests
 	return true;
 }
 
