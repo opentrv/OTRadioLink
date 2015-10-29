@@ -36,6 +36,14 @@ namespace OTV0P2BASE
 {
 
 
+// If ADC was disabled, power it up, do Serial.begin(), and return true.
+// If already powered up then do nothing other than return false.
+// This does not power up the analogue comparator; this needs to be manually enabled if required.
+// If this returns true then a matching powerDownADC() may be advisable.
+bool powerUpADCIfDisabled();
+// Power ADC down.
+void powerDownADC();
+
 // If true, default is to run the SPI bus a bit below maximum (eg for REV2 board).
 static const bool DEFAULT_RUN_SPI_SLOW = false;
 

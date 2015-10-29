@@ -652,7 +652,6 @@ static void testRNG8()
 void testEntropyGathering()
   {
   Serial.println("EntropyGathering");
-  Serial.println("  FIXME: tests need re-enabling here"); // When code moves over.
 
   // Test WDT jitter: assumed about 1 bit of entropy per call/result.
   //DEBUG_SERIAL_PRINT_FLASHSTRING("jWDT... ");
@@ -669,7 +668,7 @@ void testEntropyGathering()
 #ifndef NO_clockJitterRTC
   // Test RTC jitter: assumed about 1 bit of entropy per call/result.
   //DEBUG_SERIAL_PRINT_FLASHSTRING("jRTC... ");
-  // FIXME // for(const uint8_t t0 = getSubCycleTime(); t0 == getSubCycleTime(); ) { } // Wait for sub-cycle time to roll to toughen test.
+  for(const uint8_t t0 = OTV0P2BASE::getSubCycleTime(); t0 == OTV0P2BASE::getSubCycleTime(); ) { } // Wait for sub-cycle time to roll to toughen test.
   const uint8_t jRTC = OTV0P2BASE::clockJitterRTC();
   for(int i = MAX_IDENTICAL_BITS_SEQUENTIALLY; --i >= 0; )
     {
@@ -684,8 +683,8 @@ void testEntropyGathering()
 #ifndef NO_clockJitterEntropyByte
   // Test full-byte jitter: assumed about 8 bits of entropy per call/result.
   //DEBUG_SERIAL_PRINT_FLASHSTRING("jByte... ");
-  //const uint8_t t0j = getSubCycleTime();
-  // FIXME // while(t0j == getSubCycleTime()) { } // Wait for sub-cycle time to roll to toughen test.
+  const uint8_t t0j = OTV0P2BASE::getSubCycleTime();
+  while(t0j == OTV0P2BASE::getSubCycleTime()) { } // Wait for sub-cycle time to roll to toughen test.
   const uint8_t jByte = OTV0P2BASE::clockJitterEntropyByte();
 
   for(int i = MAX_IDENTICAL_BITS_SEQUENTIALLY/8; --i >= 0; )

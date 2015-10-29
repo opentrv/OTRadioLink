@@ -20,11 +20,13 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
  Routines for managing entropy for (crypto) random number generation.
  */
 
+#include <util/crc16.h>
 #include <Arduino.h>
 
 #include "OTV0P2BASE_Entropy.h"
 
 #include "OTV0P2BASE_QuickPRNG.h"
+#include "OTV0P2BASE_ADC.h"
 
 
 namespace OTV0P2BASE
@@ -61,7 +63,7 @@ uint8_t getSecureRandomByte(const bool whiten)
 //#ifdef WAKEUP_32768HZ_XTAL
   // Use various real noise sources and whiten with PRNG and other counters.
   // Mix the bits also to help ensure good distribution.
-  uint8_t w1 = ::OTV0P2BASE::clockJitterEntropyByte(); // Real noise.
+  uint8_t w1 = OTV0P2BASE::clockJitterEntropyByte(); // Real noise.
 //#else // WARNING: poor substitute if 32768Hz xtal not available.
 //  uint8_t w1 = clockJitterWDT() + (::OTV0P2BASE::clockJitterWDT() << 5);
 //  w1 ^= (w1 << 1); // Mix.
@@ -79,16 +81,16 @@ uint8_t getSecureRandomByte(const bool whiten)
 //#endif
   const uint8_t v1 = w1;
   w1 ^= (w1 << 3); // Mix.
-  w1 ^= noisyADCRead(true); // Some more real noise, possibly ~1 bit.
+  w1 ^= OTV0P2BASE::noisyADCRead(true); // Some more real noise, possibly ~1 bit.
   w1 ^= (w1 << 4); // Mix.
   const uint8_t v2 = w1;
-  w1 ^= ::OTV0P2BASE::clockJitterWDT(); // Possibly ~1 bit more of entropy.
+  w1 ^= OTV0P2BASE::clockJitterWDT(); // Possibly ~1 bit more of entropy.
   w1 ^= (w1 >> 4); // Mix.
   if(whiten)
     {
     w1 ^= OTV0P2BASE::randRNG8(); // Whiten.
     w1 ^= (w1 << 3); // Mix.
-    w1 ^= _crc_ibutton_update(cycleCountCPU() ^ (uint8_t)(intptr_t)&v1, --count8 - (uint8_t)(intptr_t)&v2); // Whiten.
+    w1 ^= _crc_ibutton_update(/*cycleCountCPU() ^ FIXME */ (uint8_t)(intptr_t)&v1, --count8 - (uint8_t)(intptr_t)&v2); // Whiten.
     }
   w1 ^= _crc_ibutton_update(v1, v2); // Complex hash.
   return(w1);

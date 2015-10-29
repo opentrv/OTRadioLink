@@ -17,15 +17,20 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 */
 
 /*
- Real-time clock support.
+ ADC (Analogue-to-Digital Converter) support.
  */
 
 
-//#include <util/atomic.h>
-//
-//#include <Arduino.h>
+#include <util/atomic.h>
+#include <util/crc16.h>
+#include <Arduino.h>
 
 #include "OTV0P2BASE_ADC.h"
+
+#include <OTV0P2Base.h>
+
+#include "OTV0P2BASE_PowerManagement.h"
+#include "OTV0P2BASE_Sleep.h"
 
 
 namespace OTV0P2BASE
@@ -172,11 +177,14 @@ bool analogueVsBandgapRead(const uint8_t aiNumber, const bool napToSettle)
 //
 // If defined, update _adcNoise value to make noisyADCRead() output at least a poor PRNG if called in a loop, though might disguise underlying problems.
 //#define CATCH_OTHER_NOISE_DURING_NAR // May hide underlying weakness if defined.
+#define IGNORE_POWERUPIO // FIXME
 uint8_t noisyADCRead(const bool powerUpIO)
   {
   const bool neededEnable = powerUpADCIfDisabled();
+#ifndef IGNORE_POWERUPIO
   const bool poweredUpIO = powerUpIO;
   if(powerUpIO) { power_intermittent_peripherals_enable(false); }
+#endif
   // Sample supply voltage.
   ADMUX = _BV(REFS0) | 14; // Bandgap vs Vcc.
   ADCSRB = 0; // Enable free-running mode.
@@ -241,7 +249,9 @@ uint8_t noisyADCRead(const bool powerUpIO)
     }
   bitClear(ADCSRA, ADIE); // Turn off ADC interrupt.
   bitClear(ADCSRA, ADATE); // Turn off ADC auto-trigger.
+#ifndef IGNORE_POWERUPIO
   if(poweredUpIO) { power_intermittent_peripherals_disable(); }
+#endif
   if(neededEnable) { powerDownADC(); }
   result ^= l1; // Ensure that the Vcc raw lsbs get directly folded in to the final result.
 #if 0 && defined(DEBUG)
