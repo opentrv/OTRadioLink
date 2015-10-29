@@ -475,6 +475,114 @@ static void testISRRXQueueVarLenMsg()
   }
 
 
+// OTRadValve
+
+class DummyHardwareDriver : public OTRadValve::HardwareMotorDriverInterface
+  {
+  public:
+    // Detect if end-stop is reached or motor current otherwise very high.
+    virtual bool isCurrentHigh(OTRadValve::HardwareMotorDriverInterface::motor_drive mdir = motorDriveOpening) const { return(currentHigh); }
+  public:
+    DummyHardwareDriver() : currentHigh(false) { }
+    virtual void motorRun(uint8_t maxRunTicks, motor_drive dir, OTRadValve::HardwareMotorDriverInterfaceCallbackHandler &callback)
+      { }
+    // isCurrentHigh() returns this value.
+    bool currentHigh;
+  };
+
+// Test calibration calculations in CurrentSenseValveMotorDirect.
+// Also check some of the use of those calculations.
+static void testCSVMDC()
+  {
+  Serial.println("CSVMDC");
+  OTRadValve::CurrentSenseValveMotorDirect::CalibrationParameters cp;
+  volatile uint16_t ticksFromOpen, ticksReverse;
+  // Test the calculations with one plausible calibration data set.
+  AssertIsTrue(cp.updateAndCompute(1601U, 1105U)); // Must not fail...
+  AssertIsEqual(4, cp.getApproxPrecisionPC());
+  AssertIsEqual(25, cp.getTfotcSmall());
+  AssertIsEqual(17, cp.getTfctoSmall());
+  // Check that a calibration instance can be reused correctly.
+  const uint16_t tfo2 = 1803U;
+  const uint16_t tfc2 = 1373U;
+  AssertIsTrue(cp.updateAndCompute(tfo2, tfc2)); // Must not fail...
+  AssertIsEqual(3, cp.getApproxPrecisionPC());
+  AssertIsEqual(28, cp.getTfotcSmall());
+  AssertIsEqual(21, cp.getTfctoSmall());
+  // Check that computing position works...
+  // Simple case: fully closed, no accumulated reverse ticks.
+  ticksFromOpen = tfo2;
+  ticksReverse = 0;
+  AssertIsEqual(0, cp.computePosition(ticksFromOpen, ticksReverse));
+  AssertIsEqual(tfo2, ticksFromOpen);
+  AssertIsEqual(0, ticksReverse);
+  // Simple case: fully open, no accumulated reverse ticks.
+  ticksFromOpen = 0;
+  ticksReverse = 0;
+  AssertIsEqual(100, cp.computePosition(ticksFromOpen, ticksReverse));
+  AssertIsEqual(0, ticksFromOpen);
+  AssertIsEqual(0, ticksReverse);
+  // Try at half-way mark, no reverse ticks.
+  ticksFromOpen = tfo2 / 2;
+  ticksReverse = 0;
+  AssertIsEqual(50, cp.computePosition(ticksFromOpen, ticksReverse));
+  AssertIsEqual(tfo2/2, ticksFromOpen);
+  AssertIsEqual(0, ticksReverse);
+  // Try at half-way mark with just one reverse tick (nothing should change).
+  ticksFromOpen = tfo2 / 2;
+  ticksReverse = 1;
+  AssertIsEqual(50, cp.computePosition(ticksFromOpen, ticksReverse));
+  AssertIsEqual(tfo2/2, ticksFromOpen);
+  AssertIsEqual(1, ticksReverse);
+  // Try at half-way mark with a big-enough block of reverse ticks to be significant.
+  ticksFromOpen = tfo2 / 2;
+  ticksReverse = cp.getTfctoSmall();
+  AssertIsEqual(51, cp.computePosition(ticksFromOpen, ticksReverse));
+  AssertIsEqual(tfo2/2 - cp.getTfotcSmall(), ticksFromOpen);
+  AssertIsEqual(0, ticksReverse);
+// DHD20151025: one set of actual measurements during calibration.
+//    ticksFromOpenToClosed: 1529
+//    ticksFromClosedToOpen: 1295
+  }
+
+// Test that direct abstract motor drive logic is sane.
+static void testCurrentSenseValveMotorDirect()
+  {
+  Serial.println("CurrentSenseValveMotorDirect");
+  DummyHardwareDriver dhw;
+  OTRadValve::CurrentSenseValveMotorDirect csvmd1(&dhw);
+  // POWER IP
+  // Whitebox test of internal state: should be init.
+  AssertIsEqual(OTRadValve::CurrentSenseValveMotorDirect::init, csvmd1.getState());
+  // Verify NOT marked as in normal run state immediately upon initialisation.
+  AssertIsTrue(!csvmd1.isInNormalRunState());
+  // Verify NOT marked as in error state immediately upon initialisation.
+  AssertIsTrue(!csvmd1.isInErrorState());
+  // Target % open must start off in a sensible state; fully-closed is good.
+  AssertIsEqual(0, csvmd1.getTargetPC());
+
+  // FIRST POLL(S) AFTER POWER_UP; RETRACTING THE PIN.
+  csvmd1.poll();
+  // Whitebox test of internal state: should be valvePinWithdrawing.
+  AssertIsEqual(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawing, csvmd1.getState());
+  // More polls shouldn't make any difference initially.
+  csvmd1.poll();
+  // Whitebox test of internal state: should be valvePinWithdrawing.
+  AssertIsEqual(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawing, csvmd1.getState());
+  csvmd1.poll();
+  // Whitebox test of internal state: should be valvePinWithdrawing.
+  AssertIsEqual(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawing, csvmd1.getState());
+//  // Simulate hitting end-stop (high current).
+//  dhw.currentHigh = true;
+//  AssertIsTrue(dhw.isCurrentHigh());
+//  csvmd1.poll();
+//  // Whitebox test of internal state: should be valvePinWithdrawn.
+//  AssertIsEqual(CurrentSenseValveMotorDirect::valvePinWithdrawn, csvmd1.getState());
+//  dhw.currentHigh = false;
+  // TODO
+  }
+
+
 // BASE
 
 // Self-test of EEPROM functioning (and smart/split erase/write).
@@ -592,43 +700,43 @@ void testEntropyGathering()
   //DEBUG_SERIAL_PRINTLN();
 #endif
   
-//  // Test noisy ADC read: assumed at least one bit of noise per call/result.
-//  const uint8_t nar1 = noisyADCRead(true);
-//#if 0
-//  DEBUG_SERIAL_PRINT_FLASHSTRING("nar1 ");
-//  DEBUG_SERIAL_PRINTFMT(nar1, BIN);
-//  DEBUG_SERIAL_PRINTLN();
-//#endif
-//  for(int i = MAX_IDENTICAL_BITS_SEQUENTIALLY; --i >= 0; )
-//    {
-//    const uint8_t nar = noisyADCRead(true);
-//    if(nar1 != nar) { break; } // Stop as soon as a different value is obtained.
-//#if 0
-//    DEBUG_SERIAL_PRINT_FLASHSTRING("repeat nar ");
-//    DEBUG_SERIAL_PRINTFMT(nar, BIN);
-//    DEBUG_SERIAL_PRINTLN();
-//#endif
-//    AssertIsTrue(0 != i); // Generated too many identical values in a row. 
-//    }
+  // Test noisy ADC read: assumed at least one bit of noise per call/result.
+  const uint8_t nar1 = OTV0P2BASE::noisyADCRead(true);
+#if 0
+  DEBUG_SERIAL_PRINT_FLASHSTRING("nar1 ");
+  DEBUG_SERIAL_PRINTFMT(nar1, BIN);
+  DEBUG_SERIAL_PRINTLN();
+#endif
+  for(int i = MAX_IDENTICAL_BITS_SEQUENTIALLY; --i >= 0; )
+    {
+    const uint8_t nar = OTV0P2BASE::noisyADCRead(true);
+    if(nar1 != nar) { break; } // Stop as soon as a different value is obtained.
+#if 0
+    DEBUG_SERIAL_PRINT_FLASHSTRING("repeat nar ");
+    DEBUG_SERIAL_PRINTFMT(nar, BIN);
+    DEBUG_SERIAL_PRINTLN();
+#endif
+    AssertIsTrue(0 != i); // Generated too many identical values in a row. 
+    }
 
-//  for(int w = 0; w < 2; ++w)
-//    {
-//    const bool whiten = (w != 0);
-//    // Test secure random byte generation with and without whitening
-//    // to try to ensure that the underlying generation is sound.
-//    const uint8_t srb1 = getSecureRandomByte(whiten);
-//#if 0
-//    DEBUG_SERIAL_PRINT_FLASHSTRING("srb1 ");
-//    DEBUG_SERIAL_PRINTFMT(srb1, BIN);
-//    if(whiten) { DEBUG_SERIAL_PRINT_FLASHSTRING(" whitened"); } 
-//    DEBUG_SERIAL_PRINTLN();
-//#endif
-//    for(int i = MAX_IDENTICAL_BITS_SEQUENTIALLY/8; --i >= 0; )
-//      {
-//      if(srb1 != getSecureRandomByte(whiten)) { break; } // Stop as soon as a different value is obtained.
-//      AssertIsTrue(0 != i); // Generated too many identical values in a row. 
-//      }
-//    }
+  for(int w = 0; w < 2; ++w)
+    {
+    const bool whiten = (w != 0);
+    // Test secure random byte generation with and without whitening
+    // to try to ensure that the underlying generation is sound.
+    const uint8_t srb1 = OTV0P2BASE::getSecureRandomByte(whiten);
+#if 0
+    DEBUG_SERIAL_PRINT_FLASHSTRING("srb1 ");
+    DEBUG_SERIAL_PRINTFMT(srb1, BIN);
+    if(whiten) { DEBUG_SERIAL_PRINT_FLASHSTRING(" whitened"); } 
+    DEBUG_SERIAL_PRINTLN();
+#endif
+    for(int i = MAX_IDENTICAL_BITS_SEQUENTIALLY/8; --i >= 0; )
+      {
+      if(srb1 != OTV0P2BASE::getSecureRandomByte(whiten)) { break; } // Stop as soon as a different value is obtained.
+      AssertIsTrue(0 != i); // Generated too many identical values in a row. 
+      }
+    }
   }
 
 
@@ -664,6 +772,10 @@ void loop()
 
   // OTRFM23BLink
   testRFM23B();
+
+  // OTRadValve
+  testCSVMDC();
+  testCurrentSenseValveMotorDirect();
 
   // OTV0p2Base
   testEEPROM();

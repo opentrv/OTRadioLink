@@ -63,6 +63,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 // Software Real-Time Clock (RTC) support.
 #include "utility/OTV0P2BASE_RTC.h"
 
+// ADC (Analogue-to-Digital Converter) support.
+#include "utility/OTV0P2BASE_ADC.h"
+
 // Entropy management.
 #include "utility/OTV0P2BASE_Entropy.h"
 

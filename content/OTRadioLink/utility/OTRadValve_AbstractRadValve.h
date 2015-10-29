@@ -55,7 +55,6 @@ class AbstractRadValve : public OTV0P2BASE::SimpleTSUint8Actuator
 
     // Call when given user signal that valve has been fitted (ie is fully on).
     // By default does nothing (no valve fitting may be needed).
-    // Is ISR-/thread- safe.
     virtual void signalValveFitted() { }
 
     // Waiting for indication that the valve head has been fitted to the tail.
@@ -94,9 +93,6 @@ class AbstractRadValve : public OTV0P2BASE::SimpleTSUint8Actuator
 // Generic callback handler for hardware valve motor driver.
 class HardwareMotorDriverInterfaceCallbackHandler
   {
-  protected:
-    ~HardwareMotorDriverInterfaceCallbackHandler() {}
-
   public:
     // Called when end stop hit, eg by overcurrent detection.
     // Can be called while run() is in progress.
@@ -125,17 +121,6 @@ class HardwareMotorDriverInterface
       motorDriveOpening, // Drive towards the valve-open position.
       motorStateInvalid // Higher than any valid state.
       };
-
-  protected:
-    HardwareMotorDriverInterface() : last_dir((uint8_t)motorOff) { }
-
-//    // Could attempt to force motor off at destruction...
-//    ~HardwareMotorDriverInterface() : { }
-
-    // Last recorded direction.
-    // Helpful to record shaft-encoder and other behaviour correctly around direction changes.
-    // Marked volatile and stored as uint8_t to help thread-safety, and potentially save space.
-    volatile uint8_t last_dir;
 
   public:
     // Detect (poll) if end-stop is reached or motor current otherwise very high.

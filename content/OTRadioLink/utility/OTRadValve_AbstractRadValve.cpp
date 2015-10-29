@@ -20,7 +20,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 
 #include "OTRadValve_AbstractRadValve.h"
 
-namespace OTRFM23BLink
+namespace OTRadValve
     {
 
 

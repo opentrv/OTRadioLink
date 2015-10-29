@@ -124,12 +124,12 @@ static inline bool _serialIsPoweredUp() { return(!(PRR & _BV(PRUSART0))); }
 // Defaults to V0p2 unit baud rate
 template <uint16_t baud>
 bool powerUpSerialIfDisabled()
-{
-	if(_serialIsPoweredUp()) { return(false); }
-	PRR &= ~_BV(PRUSART0); // Enable the UART.
-	Serial.begin(baud); // Set it going.
-	return(true);
-}
+  {
+  if(_serialIsPoweredUp()) { return(false); }
+  PRR &= ~_BV(PRUSART0); // Enable the UART.
+  Serial.begin(baud); // Set it going.
+  return(true);
+  }
 // Flush any pending serial (UART/USART0) output and power it down.
 void powerDownSerial();
 #ifdef __AVR_ATmega328P__
