@@ -207,9 +207,9 @@ static inline uint8_t _getSubCycleTime() { return (TCNT2); }
 //#define GSCT_MAX 255
 const uint8_t GSCT_MAX = 255;
 
-//// Basic cycle length in milliseconds; strictly positive.
+//// Basic cycle length in milliseconds; strictly positive. FIXME only 2 tick cycle support
 const uint16_t BASIC_CYCLE_MS = 2000;
-const uint8_t SUB_CYCLE_TICKS_PER_S = (GSCT_MAX + 1)/2
+const uint8_t SUB_CYCLE_TICKS_PER_S = (GSCT_MAX + 1)/2;
 //#if defined(V0P2BASE_TWO_S_TICK_RTC_SUPPORT)
 //#define BASIC_CYCLE_MS 2000
 //#define SUB_CYCLE_TICKS_PER_S ((GSCT_MAX+1)/2) // Sub-cycle ticks per second.
@@ -219,13 +219,16 @@ const uint8_t SUB_CYCLE_TICKS_PER_S = (GSCT_MAX + 1)/2
 //#endif
 //// Approx (rounded down) milliseconds per tick of OTV0P2BASE::getSubCycleTime(); strictly positive.
 //#define SUBCYCLE_TICK_MS_RD (BASIC_CYCLE_MS / (GSCT_MAX+1))
-const uint8_t =
+const uint8_t SUBCYCLE_TICK_MS_RD = (BASIC_CYCLE_MS / (GSCT_MAX+1));
 //// Approx (rounded to nearest) milliseconds per tick of OTV0P2BASE::getSubCycleTime(); strictly positive and no less than SUBCYCLE_TICK_MS_R
 //#define SUBCYCLE_TICK_MS_RN ((BASIC_CYCLE_MS + ((GSCT_MAX+1)/2)) / (GSCT_MAX+1))
-//
+const uint8_t SUBCYCLE_TICK_MS_RN = ((BASIC_CYCLE_MS + ((GSCT_MAX+1)/2)) / (GSCT_MAX+1));
 //// Returns (rounded-down) approx milliseconds until end of current basic cycle; non-negative.
 //// Upper limit is set by length of basic cycle, thus 1000 or 2000 typically.
 //#define msRemainingThisBasicCycle() (SUBCYCLE_TICK_MS_RD * (GSCT_MAX-OTV0P2BASE::getSubCycleTime()))
+static inline uint16_t msRemainingThisBasicCycle() { return (SUBCYCLE_TICK_MS_RD * (GSCT_MAX-getSubCycleTime() ) ); }
 
 } // OTV0P2BASE
+
+
 #endif // OTV0P2BASE_SLEEP_H

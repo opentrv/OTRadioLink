@@ -71,15 +71,16 @@ void OTSoftSerial::end()
 uint8_t OTSoftSerial::read()
 {
 	uint8_t val = 0;
-	uint32_t endTime = millis() + timeOut;
 
-	// wait for line to go low
-	while(fastDigitalRead(rxPin)) {
-		if(endTime < millis()) return 0;
-	}
+	uint32_t endTime = millis() + timeOut;
 
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
+		// wait for line to go low
+		while(fastDigitalRead(rxPin)) {
+			if(endTime < millis()) return 0;
+		}
+
 		// wait for mid point of bit
 		_delay_x4cycles(halfDelay);
 
