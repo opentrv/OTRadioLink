@@ -90,6 +90,26 @@ class AbstractRadValve : public OTV0P2BASE::SimpleTSUint8Actuator
 
 
 
+// Default minimum valve percentage open to be considered actually/significantly open; [1,100].
+// Setting this above 0 delays calling for heat from a central boiler until water is likely able to flow.
+// (It may however be possible to scavenge some heat if a particular valve opens below this and the circulation pump is already running, for example.)
+// DHD20130522: FHT8V + valve heads in use have not typically been open until around 6%; at least one opens at ~20%.
+// Allowing valve to linger at just below this level without calling for heat when shutting
+// may allow comfortable boiler pump overrun in older systems with no/poor bypass to avoid overheating.
+// DHD20151014: may need reduction to <5 for use in high-pressure systems.
+static const uint8_t DEFAULT_VALVE_PC_MIN_REALLY_OPEN = 11;
+
+// Default valve percentage at which significant heating power is being provided.
+// For many valves much of the time this may be effectively fully open,
+// ie no change beyond this makes significant difference to heat delivery.
+// Should be significantly higher than DEFAULT_MIN_VALVE_PC_REALLY_OPEN.
+// DHD20151014: has been ~33% but ~66% more robust, eg for tricky all-in-one units.
+static const uint8_t DEFAULT_VALVE_PC_FAIRLY_OPEN = 66;
+
+
+
+
+
 // Generic callback handler for hardware valve motor driver.
 class HardwareMotorDriverInterfaceCallbackHandler
   {
@@ -134,8 +154,6 @@ class HardwareMotorDriverInterface
     //   * callback  callback handler
     virtual void motorRun(uint8_t maxRunTicks, motor_drive dir, HardwareMotorDriverInterfaceCallbackHandler &callback) = 0;
   };
-
-
     }
 
 

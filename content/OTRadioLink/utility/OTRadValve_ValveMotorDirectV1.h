@@ -99,6 +99,11 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
     // Must have a lifetime exceeding that of this enclosing object.
     OTRadValve::HardwareMotorDriverInterface * const hw;
 
+    // Minimum percent at which valve is usually open [1,00];
+    const uint8_t minOpenPC;
+    // Minimum percent at which valve is usually moderately open [minOpenPC+1,00];
+    const uint8_t fairlyOpenPC;
+
   public:
     // Basic/coarse state of driver.
     // There may be microstates within most these basic states.
@@ -206,8 +211,10 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
   public:
     // Create an instance, passing in a reference to the non-NULL hardware driver.
     // The hardware driver instance lifetime must be longer than this instance.
-    CurrentSenseValveMotorDirect(OTRadValve::HardwareMotorDriverInterface * const hwDriver) :
-        hw(hwDriver), currentPC(0), targetPC(0)
+    CurrentSenseValveMotorDirect(OTRadValve::HardwareMotorDriverInterface * const hwDriver,
+                                 uint8_t _minOpenPC = OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN,
+                                 uint8_t _fairlyOpenPC = OTRadValve::DEFAULT_VALVE_PC_FAIRLY_OPEN) :
+        hw(hwDriver), minOpenPC(_minOpenPC), fairlyOpenPC(_fairlyOpenPC), currentPC(0), targetPC(0)
         { changeState(init); }
 
     // Poll.
@@ -425,7 +432,9 @@ class ValveMotorDirectV1 : public OTRadValve::AbstractRadValve
     CurrentSenseValveMotorDirect logic;
 
   public:
-    ValveMotorDirectV1() : logic(&driver) { }
+    ValveMotorDirectV1(uint8_t minOpenPC = OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN,
+                       uint8_t fairlyOpenPC = OTRadValve::DEFAULT_VALVE_PC_FAIRLY_OPEN)
+      : logic(&driver, minOpenPC, fairlyOpenPC) { }
 
     // Regular poll/update.
     // This and get() return the actual estimated valve position.

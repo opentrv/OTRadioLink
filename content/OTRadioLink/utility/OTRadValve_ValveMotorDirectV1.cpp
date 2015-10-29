@@ -585,7 +585,7 @@ DEBUG_SERIAL_PRINTLN();
       // Must work when eps is zero (ie with sub-percent precision).
       const uint8_t eps = cp.getApproxPrecisionPC();
       const bool toOpenFast = (targetPC >= (100 - 2*eps));
-      if(toOpenFast || (targetPC <= max(2*eps, DEFAULT_MIN_VALVE_PC_REALLY_OPEN/2)))
+      if(toOpenFast || (targetPC <= max(2*eps, minOpenPC>>1)))
         {
         // If not apparently yet at end-stop
         // (ie not at correct end stop or with spurious unreconciled ticks)
@@ -622,8 +622,8 @@ if(toOpenFast) { DEBUG_SERIAL_PRINTLN_FLASHSTRING("-->"); } else { DEBUG_SERIAL_
         // Hit the end-stop, possibly prematurely.
         if(hitEndStop)
           {
-          // Report serious tracking error.
-          if(currentPC < min(DEFAULT_VALVE_PC_MODERATELY_OPEN, 100 - 8*eps))
+          // Report serious tracking error (well before 'fairly open' %).
+          if(currentPC < min(fairlyOpenPC, 100 - 8*eps))
             { trackingError(); }
           // Silently auto-adjust when end-stop hit close to expected position.
           else
@@ -648,7 +648,8 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("->");
         if(hitEndStop)
           {
           // Report serious tracking error.
-          if(currentPC > max(min(DEFAULT_VALVE_PC_MODERATELY_OPEN-1, 2*DEFAULT_VALVE_PC_MODERATELY_OPEN), 8*eps))
+//          if(currentPC > max(min(DEFAULT_VALVE_PC_MODERATELY_OPEN-1, 2*DEFAULT_VALVE_PC_MODERATELY_OPEN), 8*eps))
+          if(currentPC > max(2*minOpenPC, 8*eps))
             { trackingError(); }
           // Silently auto-adjust when end-stop hit close to expected position.
           else
