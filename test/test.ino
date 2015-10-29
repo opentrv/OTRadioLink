@@ -28,6 +28,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #include <OTV0p2Base.h>
 #include <OTRadioLink.h>
 #include <OTRFM23BLink.h>
+#include <OTRadValve.h>
 
 
 #if F_CPU == 1000000 // 1MHz CPU indicates V0p2 board.
