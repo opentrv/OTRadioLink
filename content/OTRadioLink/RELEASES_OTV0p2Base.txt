@@ -14,6 +14,7 @@ pending:
     DE20151023:  Replaced snprintf with itoa() in OTSoftSerial. 
     DE20151026:  Fixed compiler warning due to isValid() in Sensor class
     DE20151026:  Added radio config location to OTV0P2BASE_EEPROM.h
+    DE20151028:  getSubCycleTime() made static inline and migrated in
         
 
 
