@@ -13,6 +13,7 @@ pending:
     DE20151023: Fixed compiler warnings.
     DE20151023: Fixed issue due to GPRS not shutting correctly on startup.
     DE20151023: Fixed compiler warnings.
+    DE20151028: Fixed issue with startup failing when GSM module turned off.
 
 
 20150817:

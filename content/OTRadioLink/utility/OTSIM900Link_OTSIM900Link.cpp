@@ -719,7 +719,7 @@ bool OTSIM900Link::getInitState()
 
 		powerToggle();
 		memset(data, 0, sizeof(data));
-		flushUntil(0x0A);
+		//flushUntil(0x0A);
 		print(AT_START);
 		print(AT_END);
 		if (timedBlockingRead(data, sizeof(data)) == 0) { // state 1

@@ -50,7 +50,7 @@ public:
 private:
 	const uint8_t rxPin;
 	const uint8_t txPin;
-	static const uint16_t timeOut = 1000;	// length of timeout in millis
+	static const uint16_t timeOut = 10;	// length of timeout in millis
 	// Used to tune delay cycle times
 		// Compensates for time setting up registries in delay func
 	static const uint8_t tuningVal = 21;	// was 24 for arduino

@@ -185,7 +185,7 @@ private:
     	delay(1000);
     	digitalWrite(PWR_PIN, LOW);
     	bPowered = !bPowered;
-    	delay(1500);
+    	delay(3000);
     }
 
     // Serial functions
