@@ -45,11 +45,20 @@ void OTNullRadioLink::removeRXMsg()
 
 }
 
-bool OTNullRadioLink::sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel, TXpower power, bool listenAfter)
+/**
+ * @brief	If debug enabled, prints a string to serial
+ * @param	buf		Pointer to a buffer
+ */
+bool OTNullRadioLink::sendRaw(const uint8_t *buf, uint8_t buflen, int8_t , TXpower , bool )
 {
-	/*Serial.println("--Start Message:");
-	Serial.write(buf, buflen);
-	Serial.println("\n--End Message");*/
+	// add zero termination
+	uint8_t buffer[buflen+1];
+	memcpy(buffer, buf, buflen);
+	buffer[buflen] = '\0';
+//	// print if in debug mode
+//	DEBUG_SERIAL_PRINT_FLASHSTRING("Radio: ");
+//	DEBUG_SERIAL_PRINT((char *)buf);
+//	DEBUG_SERIAL_PRINTLN(); //FIXME Breaks unit tests
 	return true;
 }
 

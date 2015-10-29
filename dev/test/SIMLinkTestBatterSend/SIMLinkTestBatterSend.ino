@@ -68,119 +68,26 @@ static const char UDP_PORT[] = "9999";
 #endif
 
 
-static const char UDP_SEND_STR[] = "The cat in the hat 2";
+static const uint8_t UDP_SEND_STR[] = "The cat in the hat battery";
 
 
 
-const OTSIM900Link::OTSIM900LinkConfig_t radioConfig = {pin, apn, UDP_ADDR, UDP_PORT};
+const OTSIM900Link::OTSIM900LinkConfig_t radioConfig = {bEEPROM, pin, apn, UDP_ADDR, UDP_PORT};
 
-OTSIM900Link::OTSIM900Link gprs(&radioConfig, 6, 9, 8);
+OTSIM900Link::OTSIM900Link gprs(&radioConfig, 6, 7, 8);
 
 void setup()
 {
-  Serial.begin(4800);
-  Serial.println("Setup Start");
+ // Serial.begin(4800);
   gprs.begin();
-  delay(1000);
-  Serial.println("Setup Done");
+  //Serial.println("Setup done");
+  delay(5000);
+  //Serial.println("sending");
+  //Serial.print(gprs.queueToSend(UDP_SEND_STR, sizeof(UDP_SEND_STR)));
+  gprs.queueToSend(UDP_SEND_STR, sizeof(UDP_SEND_STR));
 }
 
 void loop()
 {
-  if(Serial.available() > 0)
-  {
-    uint8_t input = Serial.read();
-    if (input != '\n') {
-      Serial.print("\nInput\t");
-      Serial.println((char)input);
-      serialInput(input);
-    }
-  }
-/*  if(gprs.serAvailable() >0)
-  {
-    char incoming_char=(char)gprs.read(); //Get the character from the cellular serial port.
-    Serial.print(incoming_char); //Print the incoming character to the terminal.
-  }*/
-}
 
-void serialInput(uint8_t input)
-{
-  switch(input) {
-    /*These are all private functions */
-      case 'P': // Attempt to force power on if not already so.
-      gprs.powerOn();
-      delay(1000);
-    case 'p':
-      if(gprs.isPowered()) Serial.println("True");
-      else Serial.println("False");
-      break;
-
-    case 'm':
-      gprs.checkModule();
-      break;
-      
-    case 'c':
-    Serial.println(gprs.checkPIN() );
-    break;
-
-    case 'n':
-    gprs.checkNetwork();
-    break;
-
-    case 'r':
-    //Serial.println(gprs.setAPN(apn, sizeof(apn)-1));  // dont send null termination
-    Serial.println(gprs.setAPN());
-    break;
-
-    case 'R':
-    Serial.println(gprs.isRegistered());
-    break;
-
-    case 'g':
-    Serial.println(gprs.startGPRS());
-    break;
-
-    case 'i':
-    Serial.println(gprs.getIP());
-    break;
-
-    case 'O':
-    Serial.println(gprs.isOpenUDP());
-    break;
-
-    case'u':
-    gprs.setPIN(); // dont send null termination
-    break;
-
-    case 'o':
-    gprs.openUDP(); // don't send null termination
-    break;
-
-    case 'e':
-    gprs.closeUDP();
-    break;
-
-    case 'E':
-    Serial.println(gprs.shutGPRS());
-    break;
-    
-    case 'v':
-    gprs.verbose(0);
-    break;
-
-    case 'V':
-    gprs.verbose(2);
-    break;
-
-    case 'S':
-    gprs.sendUDP(UDP_SEND_STR, sizeof(UDP_SEND_STR));
-    break;
-    
-    case 's':
-    gprs.queueToSend((uint8_t *)UDP_SEND_STR, sizeof(UDP_SEND_STR));
-    break;
-
-    default:
-    break;
-  }
 }

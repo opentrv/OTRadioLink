@@ -21,6 +21,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
 
 #include <Arduino.h>
 #include <OTRadioLink.h>
+#include <OTV0p2Base.h>
 
 namespace OTRadioLink{
 /**
@@ -36,6 +37,7 @@ public:
 	uint8_t getRXMsgsQueued() const;
 	const volatile uint8_t *peekRXMsg(uint8_t &len) const;
 	void removeRXMsg();
+	// Should always be sent null terminated strings
 	bool sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal, bool listenAfter = false);
 private:
 	void _dolisten() {};

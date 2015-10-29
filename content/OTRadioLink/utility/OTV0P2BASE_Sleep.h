@@ -93,10 +93,10 @@ static __inline__ void _delay_x4cycles(uint8_t n) // Takes 4n CPU cycles to run,
 
 #if defined(OTV0P2BASE_busy_spin_delay)
 #define OTV0P2BASE_delay_us(us) OTV0P2BASE_busy_spin_delay(us)
-#else
+#else // OTV0P2BASE_busy_spin_delay
 // No definition for OTV0P2BASE_busy_spin_delay().
 #define OTV0P2BASE_delay_us(us) delayMicroseconds(us) // Assume that the built-in routine will behave itself for faster CPU clocks.
-#endif
+#endif // OTV0P2BASE_busy_spin_delay
 
 // Delay (busy wait) the specified number of milliseconds in the range [0,255].
 // This may be extended by interrupts, etc, so must not be regarded as very precise.
@@ -138,17 +138,17 @@ bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);
 // If CPU clock is 1MHz then *assume* that it is the 8MHz internal RC clock prescaled by 8 unless DEFAULT_CPU_PRESCALE is defined.
 #if F_CPU == 1000000L
 static const uint8_t DEFAULT_CPU_PRESCALE = 3;
-#else
+#else // F_CPU == 1000000L
 static const uint8_t DEFAULT_CPU_PRESCALE = 1;
-#endif
+#endif // F_CPU == 1000000L
 
 static const clock_div_t MAX_CPU_PRESCALE = clock_div_256; // At least for the ATmega328P...
 // Minimum scaled CPU clock speed; expected to be 31250Hz when driven from 8MHz RC clock.
 #if F_CPU > 16000000L
 static const uint32_t MIN_CPU_HZ = ((F_CPU) >> (((int) MAX_CPU_PRESCALE) - (DEFAULT_CPU_PRESCALE)));
-#else
+#else // F_CPU > 16000000L
 static const uint16_t MIN_CPU_HZ = ((F_CPU) >> (((int) MAX_CPU_PRESCALE) - (DEFAULT_CPU_PRESCALE)));
-#endif
+#endif // F_CPU > 16000000L
 
 // Sleep for specified number of _delay_loop2() loops at minimum available CPU speed.
 // Each loop takes 4 cycles at that minimum speed, but entry and exit overheads may take the equivalent of a loop or two.
@@ -185,6 +185,50 @@ static void inline sleepLowPowerMs(uint16_t ms) { while(ms-- > 0) { ATOMIC_BLOCK
 // Should be good for the full range of values and should take no time where 0ms is specified.
 static void inline sleepLowPowerLessThanMs(uint16_t ms) { while(ms-- > 0) { ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { _sleepLowPowerLessThanMs(1); } } }
 
+//#if defined(WAKEUP_32768HZ_XTAL) || 1 // FIXME: avoid getSubCycleTime() where slow clock NOT available.
+//// Get fraction of the way through the basic cycle in range [0,255].
+//// This can be used for precision timing during the cycle,
+//// or to avoid overrunning a cycle with tasks of variable timing.
+//// Only valid if running the slow (32768Hz) clock.
+//#define getSubCycleTime() ((uint8_t)TCNT2)
+//// Approximation which is allowed to be zero if true value not available.
+//#define _getSubCycleTime() (getSubCycleTime())
+//#else
+//// Approximation which is allowed to be zero if true value not available.
+//#define _getSubCycleTime() (0)
 
-}
-#endif
+static inline uint8_t getSubCycleTime() { return (TCNT2); }
+static inline uint8_t _getSubCycleTime() { return (TCNT2); }
+
+//#endif // WAKEUP_32768HZ_XTAL
+
+//// Maximum value for OTV0P2BASE::getSubCycleTime(); full cycle length is this + 1.
+//// So ~4ms per count for a 1s cycle time, ~8ms per count for a 2s cycle time.
+//#define GSCT_MAX 255
+const uint8_t GSCT_MAX = 255;
+
+//// Basic cycle length in milliseconds; strictly positive. FIXME only 2 tick cycle support
+const uint16_t BASIC_CYCLE_MS = 2000;
+const uint8_t SUB_CYCLE_TICKS_PER_S = (GSCT_MAX + 1)/2;
+//#if defined(V0P2BASE_TWO_S_TICK_RTC_SUPPORT)
+//#define BASIC_CYCLE_MS 2000
+//#define SUB_CYCLE_TICKS_PER_S ((GSCT_MAX+1)/2) // Sub-cycle ticks per second.
+//#else
+//#define BASIC_CYCLE_MS 1000
+//#define SUB_CYCLE_TICKS_PER_S (GSCT_MAX+1) // Sub-cycle ticks per second.
+//#endif
+//// Approx (rounded down) milliseconds per tick of OTV0P2BASE::getSubCycleTime(); strictly positive.
+//#define SUBCYCLE_TICK_MS_RD (BASIC_CYCLE_MS / (GSCT_MAX+1))
+const uint8_t SUBCYCLE_TICK_MS_RD = (BASIC_CYCLE_MS / (GSCT_MAX+1));
+//// Approx (rounded to nearest) milliseconds per tick of OTV0P2BASE::getSubCycleTime(); strictly positive and no less than SUBCYCLE_TICK_MS_R
+//#define SUBCYCLE_TICK_MS_RN ((BASIC_CYCLE_MS + ((GSCT_MAX+1)/2)) / (GSCT_MAX+1))
+const uint8_t SUBCYCLE_TICK_MS_RN = ((BASIC_CYCLE_MS + ((GSCT_MAX+1)/2)) / (GSCT_MAX+1));
+//// Returns (rounded-down) approx milliseconds until end of current basic cycle; non-negative.
+//// Upper limit is set by length of basic cycle, thus 1000 or 2000 typically.
+//#define msRemainingThisBasicCycle() (SUBCYCLE_TICK_MS_RD * (GSCT_MAX-OTV0P2BASE::getSubCycleTime()))
+static inline uint16_t msRemainingThisBasicCycle() { return (SUBCYCLE_TICK_MS_RD * (GSCT_MAX-getSubCycleTime() ) ); }
+
+} // OTV0P2BASE
+
+
+#endif // OTV0P2BASE_SLEEP_H

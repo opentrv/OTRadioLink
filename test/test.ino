@@ -34,7 +34,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #define ON_V0P2_BOARD
 #endif
 
-
 void setup()
   {
 #ifdef ON_V0P2_BOARD
@@ -129,6 +128,34 @@ class PrintToBuf : public Print
     uint8_t *const buf;
     const uint8_t buflen;
   };
+
+// Test OTNullRadioLink
+static void testNullRadio()
+{
+	Serial.println("NullRadio");
+	uint8_t length;
+	uint8_t RXMsgsMin, TXMsgLen;
+	uint8_t buffer[5] = "test";
+	OTRadioLink::OTNullRadioLink radio;
+	// begin
+	AssertIsTrue(radio.begin());
+	// getCapacity
+	RXMsgsMin = 10;
+	length = 10;
+	TXMsgLen = 10;
+	radio.getCapacity(RXMsgsMin, length, TXMsgLen);
+    AssertIsEqual(0, RXMsgsMin);
+    AssertIsEqual(0, length);
+    AssertIsEqual(0, TXMsgLen);
+	// getRXMsgsQueued
+	AssertIsEqual(0, radio.getRXMsgsQueued());
+	// peekRXMsg
+	length = 10;
+	AssertIsEqual(NULL, (int)radio.peekRXMsg(length));
+	AssertIsEqual(0, length);
+	// sendRaw
+	AssertIsTrue(radio.sendRaw(buffer, sizeof(buffer)));
+}
 
 // Test the frame-dump routine.
 static void testFrameDump()
@@ -627,6 +654,7 @@ void loop()
   testLibVersions();
 
   // OTRadioLink
+  testNullRadio();
   testFrameDump();
   testCRC7_5B();
   testFrameFilterTrailingZeros();

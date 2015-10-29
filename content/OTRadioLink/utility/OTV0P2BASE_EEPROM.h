@@ -145,6 +145,11 @@ namespace OTV0P2BASE
 //#error EEPROM allocation problem: filter overlaps with stats
 //#endif
 
+// Start area of radio config mem
+#define V0P2BASE_EE_START_RADIO 768 // INCLUSIVE START OF RADIO CONFIG AREA.
+#define V0P2BASE_EE_SIZE_RADIO 256 // SIZE OF RADIO CONFIG AREA.
+
+
 
 // Updates an EEPROM byte iff not currently at the specified target value.
 // May be able to selectively erase or write (ie reduce wear) to reach the desired value.

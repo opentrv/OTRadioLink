@@ -27,8 +27,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 
 #include "OTV0P2BASE_Serial_IO.h"
 
-//#include "Power_Management.h"
-
 namespace OTV0P2BASE
 {
 // default baud for V0p2 unit
@@ -68,6 +66,18 @@ void serialPrintAndFlush(const char * const text)
   const bool neededWaking = powerUpSerialIfDisabled<V0p2_DEFAULT_UART_BAUD>();
   // Send the text.
   Serial.print(text);
+  // Ensure that all text is sent before this routine returns, in case any sleep/powerdown follows that kills the UART.
+  _flush();
+  if(neededWaking) { powerDownSerial(); }
+  }
+
+// Write a single (read-only) string to serial followed by line-end and wait for transmission to complete.
+// This enables the serial if required and shuts it down afterwards if it wasn't enabled.
+void serialPrintlnAndFlush(const char * const line)
+  {
+  const bool neededWaking = powerUpSerialIfDisabled<V0p2_DEFAULT_UART_BAUD>();
+  // Send the line of text followed by line end.
+  Serial.println(line);
   // Ensure that all text is sent before this routine returns, in case any sleep/powerdown follows that kills the UART.
   _flush();
   if(neededWaking) { powerDownSerial(); }
@@ -139,7 +149,7 @@ void serialPrintlnAndFlush()
 #ifdef DEBUG // Don't emit debug-support code unless in DEBUG.
 
 // Print timestamp with no newline in format: MinutesSinceMidnight:Seconds:SubCycleTime
-void _debug_serial_timestamp()
+/*void _debug_serial_timestamp()	// FIXME This getSubCycleTime breaks in unit tests
   {
   const bool neededWaking = powerUpSerialIfDisabled<V0p2_DEFAULT_UART_BAUD>();
   // Grab time values ASAP, fastest-incrementing first.
@@ -153,7 +163,7 @@ void _debug_serial_timestamp()
   _flush();
   if(neededWaking) { powerDownSerial(); }
   }
-
+*/
 #endif // DEBUG
 
 } // OTV0P2BASE

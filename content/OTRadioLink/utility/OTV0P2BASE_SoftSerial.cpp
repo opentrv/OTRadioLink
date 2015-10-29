@@ -21,7 +21,6 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
 //#include <stdio.h>
 #include <stdlib.h>
 #include <util/atomic.h>
-#include <OTV0p2Base.h>
 
 namespace OTV0P2BASE
 {
@@ -71,15 +70,21 @@ void OTSoftSerial::end()
 uint8_t OTSoftSerial::read()
 {
 	uint8_t val = 0;
-	uint32_t endTime = millis() + timeOut;
 
+	uint32_t endTime = millis() + timeOut;
 	// wait for line to go low
 	while(fastDigitalRead(rxPin)) {
 		if(endTime < millis()) return 0;
 	}
 
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-		{
+	{
+		// wait for line to go low
+//		uint8_t endTime = getSubCycleTime() + timeOut;
+//		while(fastDigitalRead(rxPin)) {
+//			if(endTime == getSubCycleTime() ) return 0; // FIXME Should be ok as time taken per tick is double time taken to receive byte
+//		}
+
 		// wait for mid point of bit
 		_delay_x4cycles(halfDelay);
 
@@ -90,7 +95,9 @@ uint8_t OTSoftSerial::read()
 		}
 
 		// wait for stop bit
-		while (!fastDigitalRead(rxPin));
+		while (!fastDigitalRead(rxPin)){
+//			if(endTime == getSubCycleTime() ) return 0; // FIXME Should be ok as time taken per tick is double time taken to receive byte
+		}
 	}
 	return val;
 }
@@ -109,10 +116,17 @@ uint8_t OTSoftSerial::read(uint8_t *buf, uint8_t len)
 	uint8_t count = 0;
 	uint8_t shortDelay = 1;
 	uint8_t val = 0;
-
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
 		while (count < len) {
+//			uint8_t endTime = getSubCycleTime() + timeOut;
+			// wait for line to go low
+//			while (fastDigitalRead(rxPin)) {
+//				if(endTime == getSubCycleTime() ) {
+//					return 0; // FIXME Should be ok as time taken per tick is double time taken to receive byte
+//				}
+//			}
+
 			uint16_t timer = 10000;	// attempting timeout
 			// wait for line to go low
 			while (fastDigitalRead(rxPin)) {
@@ -138,7 +152,9 @@ uint8_t OTSoftSerial::read(uint8_t *buf, uint8_t len)
 			count++;
 
 			// wait for stop bit
-			while (!fastDigitalRead(rxPin));
+			while (!fastDigitalRead(rxPin)) {
+//				//if(endTime == getSubCycleTime() ) return 0; // FIXME Should be ok as time taken per tick is double time taken to receive byte
+			}
 		}
 	}
 	return count;
@@ -213,12 +229,13 @@ void OTSoftSerial::printNum(int8_t number)
 {
 	static const uint8_t maxNumLength = 3; // Double this if ever need to convert to int16_t
 	// init buffer array
-	char buf[maxNumLength];
-	memset(buf, 0, maxNumLength);
+	char buf[maxNumLength+1];
+	memset(buf, 0, maxNumLength+1);
 
 	// convert and fill buffer
 	//uint8_t numLength = (uint8_t)snprintf(buf, maxNumLength, "%d", number);
 	itoa(number, buf, 10);	// convert integer to string, base 10
+
 
 	// print buffer
 	print(buf);

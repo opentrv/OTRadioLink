@@ -34,6 +34,7 @@ OTSIM900Link::OTSIM900Link(const OTSIM900LinkConfig_t *_config, uint8_t pwrPin, 
   pinMode(PWR_PIN, OUTPUT);
   bAvailable = false;
   bPowered = false;
+  bSendPending = false;
   config = _config;
 }
 
@@ -51,40 +52,44 @@ bool OTSIM900Link::begin()
 	softSerial.begin(baud);
 
 #ifdef OTSIM900LINK_DEBUG
-  Serial.println("Get Init State");
+	OTV0P2BASE::serialPrintlnAndFlush(F("Get Init State"));
 #endif // OTSIM900LINK_DEBUG
 	if (!getInitState()) return false; 	// exit function if no/wrong module
-
 	// perform steps that can be done without network connection
+
 #ifdef OTSIM900LINK_DEBUG
-  Serial.println("Power up");
+  OTV0P2BASE::serialPrintlnAndFlush(F("Power up"));
 #endif // OTSIM900LINK_DEBUG
+  delay(5000);
 	powerOn();
 
 #ifdef OTSIM900LINK_DEBUG
-  Serial.println("Check Pin");
+  OTV0P2BASE::serialPrintlnAndFlush(F("Check Pin"));
 #endif // OTSIM900LINK_DEBUG
 	if (!checkPIN()) {
 		setPIN();
 	}
 
 #ifdef OTSIM900LINK_DEBUG
-  Serial.println("Wait for Registration");
+  OTV0P2BASE::serialPrintlnAndFlush(F("Wait for Registration"));
 #endif // OTSIM900LINK_DEBUG
 	// block until network registered
 	while(!isRegistered()) { delay(2000); }
 
 #ifdef OTSIM900LINK_DEBUG
-  Serial.println("Set APN");
+  OTV0P2BASE::serialPrintlnAndFlush(F("Set APN"));
 #endif // OTSIM900LINK_DEBUG
   while(!setAPN());
 
 #ifdef OTSIM900LINK_DEBUG
-  Serial.println("Start GPRS");
+  OTV0P2BASE::serialPrintlnAndFlush(F("Start GPRS"));
 #endif // OTSIM900LINK_DEBUG
-	startGPRS(); // starting and shutting gprs brings module to state
-	delay(1000);
+  delay(1000);
+	OTV0P2BASE::serialPrintAndFlush(startGPRS()); // starting and shutting gprs brings module to state
+	delay(5000);
+	//getIP();
 	shutGPRS();	 // where openUDP can automatically start gprs
+	//openUDP();
 	return true;
 }
 
@@ -107,12 +112,12 @@ bool OTSIM900Link::end()
  * @retval	returns true if send process inited
  * @note	requires calling of poll() to check if message sent successfully
  */
-bool OTSIM900Link::sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel, TXpower power, bool listenAfter)
+bool OTSIM900Link::sendRaw(const uint8_t *buf, uint8_t buflen, int8_t , TXpower , bool)
 {
 	bool bSent = false;
 
 #ifdef OTSIM900LINK_DEBUG
-	Serial.println("Send Raw");
+	OTV0P2BASE::serialPrintlnAndFlush(F("Send Raw"));
 #endif // OTSIM900LINK_DEBUG
 	bSent = sendUDP((const char *)buf, buflen);
 	if(bSent) return true;
@@ -136,16 +141,19 @@ bool OTSIM900Link::sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel, T
  * @retval	returns true if send process inited
  * @note	requires calling of poll() to check if message sent successfully
  */
-bool OTSIM900Link::queueToSend(const uint8_t *buf, uint8_t buflen, int8_t channel, TXpower power)
+bool OTSIM900Link::queueToSend(const uint8_t *buf, uint8_t buflen, int8_t , TXpower )
 {
+	bSendPending = true;
 	openUDP();
 	delay(5000);	// find better way?
 
 	bool sent = sendRaw(buf, buflen); // FIXME
 #ifdef OTSIM900LINK_DEBUG
-	Serial.println(sent);
+	OTV0P2BASE::serialPrintAndFlush(sent);
+	OTV0P2BASE::serialPrintlnAndFlush();
 #endif // OTSIM900LINK_DEBUG
 	shutGPRS();
+	bSendPending = false;
 	return sent;
 }
 
@@ -155,7 +163,7 @@ bool OTSIM900Link::queueToSend(const uint8_t *buf, uint8_t buflen, int8_t channe
  */
 void OTSIM900Link::poll()
 {
-
+	if (bSendPending) {} // do something...
 }
 
 /**
@@ -167,8 +175,10 @@ void OTSIM900Link::poll()
  */
 bool OTSIM900Link::openUDP()
 {
+	char data[64];
+	memset(data, 0, sizeof(data));
 #ifdef OTSIM900LINK_DEBUG
-	Serial.println("Open UDP");
+	OTV0P2BASE::serialPrintlnAndFlush(F("Open UDP"));
 #endif // OTSIM900LINK_DEBUG
 	//if(!isOpenUDP()){
 		print(AT_START);
@@ -181,6 +191,11 @@ bool OTSIM900Link::openUDP()
 		print('\"');
 		print(AT_END);
 
+
+		  timedBlockingRead(data, sizeof(data)); // FIXME do stuff with this
+		  // response stuff
+		  uint8_t dataCutLength = 0;
+		  getResponse(dataCutLength, data, sizeof(data), 0x0A);
 	//}
 	return true;
 }
@@ -211,6 +226,9 @@ bool OTSIM900Link::closeUDP()
  */
 bool OTSIM900Link::sendUDP(const char *frame, uint8_t length)
 {
+	char data[32];
+	memset(data, 0, sizeof(data));
+
 	print(AT_START);
 	print(AT_SEND_UDP);
 	print('=');
@@ -223,6 +241,7 @@ bool OTSIM900Link::sendUDP(const char *frame, uint8_t length)
 		delay(500);
 		return true;	// add check here
 	}
+
 	return false;
 }
 
@@ -242,9 +261,9 @@ uint8_t OTSIM900Link::read()
  */
 /*void OTSIM900Link::flush()
 {
-	Serial.print("- Flush: ");
-	while(softSerial.available() > 0) Serial.print((char) softSerial.read());
-	Serial.println();
+	OTV0P2BASE::serialPrintAndFlush("- Flush: ");
+	while(softSerial.available() > 0) OTV0P2BASE::serialPrintAndFlush((char) softSerial.read());
+	OTV0P2BASE::serialPrintlnAndFlush();
 }*/
 
 /**
@@ -261,39 +280,12 @@ uint8_t OTSIM900Link::timedBlockingRead(char *data, uint8_t length)
   memset(data, 0, length);
   uint8_t i = 0;
 
-  /*uint32_t startTime = millis();
-  // 100ms is time to fill buffer? probs got maths wrong on this.
-  // May have to wait a little longer because of (eg) interactions with the network,
-  // especially if a terminating char is known.
-  const bool hasTerminatingChar = (0 != terminatingChar);
-  const uint32_t timeoutms = 2000;//hasTerminatingChar ? 500 : 200;	FIXME return to normal
-  while ((millis() - startTime) <= timeoutms) {
-    if (softSerial.available() > 0) {	// FIXME
-      const char c = read();
-      *data++ = c;
-      if(hasTerminatingChar && (c == terminatingChar)) { break; }
-      i++;
-#ifdef OTSIM900LINK_DEBUG
-      //Serial.print((uint8_t) c, HEX);	// print raw values
-      //Serial.print(" ");
-#endif // OTSIM900LINK_DEBUG
-    }
-    // break if receive too long.
-    if (i >= length) {
-#ifdef OTSIM900LINK_DEBUG
-      Serial.println("\n--Serial Overrun");
-#endif // OTSIM900LINK_DEBUG
-      // FIXME: rest of input still had to be absorbed to avoid fouling next interaction.
-      break;
-    }
-  }*/
   i = softSerial.read((uint8_t *)data, length);
 
-
-
 #ifdef OTSIM900LINK_DEBUG
-  Serial.print("\n--Buffer Length: ");
-  Serial.println(i);
+  OTV0P2BASE::serialPrintAndFlush(F("\n--Buffer Length: "));
+  OTV0P2BASE::serialPrintAndFlush(i);
+  OTV0P2BASE::serialPrintlnAndFlush();
 #endif // OTSIM900LINK_DEBUG
   return i;
 }
@@ -308,23 +300,23 @@ bool OTSIM900Link::flushUntil(uint8_t _terminatingChar)
 	const uint8_t terminatingChar = _terminatingChar;
 
 #ifdef OTSIM900LINK_DEBUG
-	Serial.print("- Flush Until 0x");
-	Serial.print(terminatingChar, HEX);
-	Serial.println(": ");
+	OTV0P2BASE::serialPrintAndFlush(F("- Flush"));
+	//OTV0P2BASE::serialPrintAndFlush(terminatingChar, HEX);
+	//OTV0P2BASE::serialPrintlnAndFlush(F(": "));
 #endif // OTSIM900LINK_DEBUG
 
-  uint32_t endTime = millis() + 2000; // time out after a second
+  uint32_t endTime = millis() + 1000; // time out after a second
   while(millis() < endTime) {
     const uint8_t c = read();
 
 #ifdef OTSIM900LINK_DEBUG
-    if(c != 0xFF) Serial.print((char) c);
+    //if(c != 0xFF) OTV0P2BASE::serialPrintAndFlush((char) c);
 #endif // OTSIM900LINK_DEBUG
 
     if (c == terminatingChar) return true;
   }
 #ifdef OTSIM900LINK_DEBUG
-  Serial.println("Timeout");
+  OTV0P2BASE::serialPrintlnAndFlush(F("Flush: Timeout"));
 #endif // OTSIM900LINK_DEBUG
   return false;
 }
@@ -359,7 +351,7 @@ void OTSIM900Link::print(const uint8_t value)
 
 void OTSIM900Link::print(const char *string)
 {
-  softSerial.print(string);	// FIXME
+	softSerial.print(string);	// FIXME
 }
 
 
@@ -371,14 +363,15 @@ void OTSIM900Link::print(const char *string)
  * @retval	returns true if ID recovered successfully
  */
 bool OTSIM900Link::checkModule()
-{
+ {
   char data[32];
   print(AT_START);
   print(AT_GET_MODULE);
   print(AT_END);
   timedBlockingRead(data, sizeof(data));
 #ifdef OTSIM900LINK_DEBUG
-  Serial.println(data);
+  OTV0P2BASE::serialPrintAndFlush(data);
+  OTV0P2BASE::serialPrintlnAndFlush();
 #endif // OTSIM900LINK_DEBUG
   return true;
 }
@@ -438,7 +431,7 @@ bool OTSIM900Link::isRegistered()
   write(AT_END);
   timedBlockingRead(data, sizeof(data));
 #ifdef OTSIM900LINK_DEBUG
-  Serial.println(data);
+  OTV0P2BASE::serialPrintlnAndFlush(data);
 #endif // OTSIM900LINK_DEBUG
   delay(100);
   write(AT_START, sizeof(AT_START));
@@ -447,7 +440,7 @@ bool OTSIM900Link::isRegistered()
   write(AT_END);
   timedBlockingRead(data, sizeof(data));
 #ifdef OTSIM900LINK_DEBUG
-  Serial.println(data);
+  OTV0P2BASE::serialPrintlnAndFlush(data);
 #endif // OTSIM900LINK_DEBUG*/
 
   if (dataCut[2] == '1' || dataCut[2] == '5' ) return true;	// expected response '1' or '5'
@@ -478,7 +471,7 @@ bool OTSIM900Link::setAPN()
   uint8_t dataCutLength = 0;
   dataCut = getResponse(dataCutLength, data, sizeof(data), 0x0A);
 #ifdef OTSIM900LINK_DEBUG
-  Serial.println(data);
+  OTV0P2BASE::serialPrintlnAndFlush(data);
 #endif // OTSIM900LINK_DEBUG
 
   if (*dataCut == 'O') return true;	// expected response 'OK'
@@ -498,11 +491,16 @@ bool OTSIM900Link::startGPRS()
   print(AT_END);
   timedBlockingRead(data, sizeof(data));
 
+  data[90] = '\0';
+	OTV0P2BASE::serialPrintAndFlush(data);
+	OTV0P2BASE::serialPrintlnAndFlush();
+
+
   // response stuff
-  const char *dataCut;
+//  const char *dataCut;
   uint8_t dataCutLength = 0;
-  dataCut= getResponse(dataCutLength, data, sizeof(data), 0x0A);	// unreliable
-  if (*dataCut == 'O') return true;	// expected response 'OK'
+  getResponse(dataCutLength, data, sizeof(data), 0x0A);	// unreliable
+  if (dataCutLength == 9) return true;	// expected response 'OK'
   else return false;
 }
 
@@ -566,7 +564,7 @@ bool OTSIM900Link::isOpenUDP()
 	timedBlockingRead(data, sizeof(data));
 
 #ifdef OTSIM900LINK_DEBUG
-  Serial.println(data);
+  OTV0P2BASE::serialPrintlnAndFlush(data);
 #endif // OTSIM900LINK_DEBUG
 
 	// response stuff
@@ -584,7 +582,6 @@ bool OTSIM900Link::isOpenUDP()
  */
 void OTSIM900Link::verbose(uint8_t level)
 {
-#ifdef OTSIM900LINK_DEBUG
   char data[64];
   print(AT_START);
   print(AT_VERBOSE_ERRORS);
@@ -592,7 +589,8 @@ void OTSIM900Link::verbose(uint8_t level)
   print((char)(level + '0')); // 0: no error codes, 1: error codes, 2: full error descriptions
   print(AT_END);
   timedBlockingRead(data, sizeof(data));
-  Serial.println(data);
+#ifdef OTSIM900LINK_DEBUG
+  OTV0P2BASE::serialPrintlnAndFlush(data);
 #endif // OTSIM900LINK_DEBUG
 }
 
@@ -612,7 +610,7 @@ void OTSIM900Link::setPIN()
   timedBlockingRead(data, sizeof(data));
 
 #ifdef OTSIM900LINK_DEBUG
-  Serial.println(data);
+  OTV0P2BASE::serialPrintlnAndFlush(data);
 #endif // OTSIM900LINK_DEBUG
 }
 
@@ -677,9 +675,11 @@ const char *OTSIM900Link::getResponse(uint8_t &newLength, const char *data, uint
 	newLength = i - i0;
 
 #ifdef OTSIM900LINK_DEBUG
-	Serial.print("- Response: ");
-	Serial.write(newPtr, newLength);
-	Serial.println();
+	char *stringEnd = (char *)data;
+	 *stringEnd = '\0';
+	OTV0P2BASE::serialPrintAndFlush("- Response: ");
+	OTV0P2BASE::serialPrintAndFlush(newPtr);
+	OTV0P2BASE::serialPrintlnAndFlush();
 #endif // OTSIM900LINK_DEBUG
 
 	return newPtr;	// return length of new array
@@ -706,25 +706,25 @@ bool OTSIM900Link::getInitState()
 	memset(data, 0 , sizeof(data));
 
 #ifdef OTSIM900LINK_DEBUG
-	Serial.println("Check for module: ");
+	OTV0P2BASE::serialPrintlnAndFlush("Check for module: ");
 #endif // OTSIM900LINK_DEBUG
 	print(AT_START);
 	print(AT_END);
 	if (timedBlockingRead(data, sizeof(data)) == 0) { // state 1 or 2
 
 #ifdef OTSIM900LINK_DEBUG
-	Serial.println("- Attempt to force State 3");
+	OTV0P2BASE::serialPrintlnAndFlush("- Attempt to force State 3");
 #endif // OTSIM900LINK_DEBUG
 
 		powerToggle();
 		memset(data, 0, sizeof(data));
-		flushUntil(0x0A);
+		//flushUntil(0x0A);
 		print(AT_START);
 		print(AT_END);
 		if (timedBlockingRead(data, sizeof(data)) == 0) { // state 1
 
 #ifdef OTSIM900LINK_DEBUG
-	Serial.println("-- Failed. No Module");
+	OTV0P2BASE::serialPrintlnAndFlush("-- Failed. No Module");
 #endif // OTSIM900LINK_DEBUG
 
 			bPowered = false;
@@ -733,21 +733,22 @@ bool OTSIM900Link::getInitState()
 	}
 
 	if( data[0] == 'A' ) { // state 3 or 4
+#ifdef OTSIM900LINK_DEBUG
+	OTV0P2BASE::serialPrintlnAndFlush("- Module Present");
+#endif // OTSIM900LINK_DEBUG
 		bAvailable = true;
 		bPowered = true;
 		powerOff();
-#ifdef OTSIM900LINK_DEBUG
-	Serial.println("- Module Present");
-#endif // OTSIM900LINK_DEBUG
 		return true;	// state 3
 	} else {
 #ifdef OTSIM900LINK_DEBUG
-	Serial.println("- Unexpected Response");
+	OTV0P2BASE::serialPrintlnAndFlush("- Unexpected Response");
 #endif // OTSIM900LINK_DEBUG
 		bAvailable = false;
 		bPowered = false;
 		return false;	// state 4
 	}
+	return true;
 }
 
 //const char OTSIM900Link::AT_[] = "";
