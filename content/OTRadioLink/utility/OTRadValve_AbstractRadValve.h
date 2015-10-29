@@ -53,6 +53,15 @@ class AbstractRadValve : public OTV0P2BASE::SimpleTSUint8Actuator
     // If true then the new target value was accepted.
     virtual bool set(const uint8_t newValue) { return(false); }
 
+    // Call when given user signal that valve has been fitted (ie is fully on).
+    // By default does nothing (no valve fitting may be needed).
+    // Is ISR-/thread- safe.
+    virtual void signalValveFitted() { }
+
+    // Waiting for indication that the valve head has been fitted to the tail.
+    // By default returns false (no valve fitting may be needed).
+    virtual bool isWaitingForValveToBeFitted() const { return(false); }
+
     // Returns true iff not in error state and not (re)calibrating/(re)initialising/(re)syncing.
     // By default there is no recalibration step.
     virtual bool isInNormalRunState() const { return(true); }
