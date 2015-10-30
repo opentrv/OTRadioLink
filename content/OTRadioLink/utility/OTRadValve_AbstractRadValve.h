@@ -91,6 +91,7 @@ class AbstractRadValve : public OTV0P2BASE::SimpleTSUint8Actuator
 
 
 // Default minimum valve percentage open to be considered actually/significantly open; [1,100].
+// Anything like this will usually be shut or very minimal flows.
 // Setting this above 0 delays calling for heat from a central boiler until water is likely able to flow.
 // (It may however be possible to scavenge some heat if a particular valve opens below this and the circulation pump is already running, for example.)
 // DHD20130522: FHT8V + valve heads in use have not typically been open until around 6%; at least one opens at ~20%.
@@ -100,12 +101,16 @@ class AbstractRadValve : public OTV0P2BASE::SimpleTSUint8Actuator
 // may allow comfortable boiler pump overrun in older systems with no/poor bypass to avoid overheating.
 static const uint8_t DEFAULT_VALVE_PC_MIN_REALLY_OPEN = 15;
 
+// Safer value for valves to very likely be significantly open, in range [DEFAULT_VALVE_PC_MIN_REALLY_OPEN,DEFAULT_VALVE_PC_FAIRLY_OPEN].
+// DHD20151030: with initial dead-reckoning direct drive impl valves may not be open until ~45%.
+static const uint8_t DEFAULT_VALVE_PC_SAFER_OPEN = 50;
+
 // Default valve percentage at which significant heating power is being provided.
 // For many valves much of the time this may be effectively fully open,
 // ie no change beyond this makes significant difference to heat delivery.
 // Should be significantly higher than DEFAULT_MIN_VALVE_PC_REALLY_OPEN.
 // DHD20151014: has been ~33% but ~66% more robust, eg for tricky all-in-one units.
-static const uint8_t DEFAULT_VALVE_PC_FAIRLY_OPEN = 67;
+static const uint8_t DEFAULT_VALVE_PC_MODERATELY_OPEN = 67;
 
 
 
