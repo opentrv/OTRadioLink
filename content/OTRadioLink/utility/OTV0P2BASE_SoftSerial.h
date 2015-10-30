@@ -52,8 +52,7 @@ public:
 private:
 	const uint8_t rxPin;
 	const uint8_t txPin;
-//	static const uint16_t timeOut= 250;//SUB_CYCLE_TICKS_PER_S / 2; // FIXME 0.5 second timeout?	// length of timeout in millis
-	static const uint16_t timeOut = 10; // length of timeout in millis
+	static const uint16_t timeOut = 8000;	// length of timeout in somethings TODO work this out
 	// Used to tune delay cycle times
 		// Compensates for time setting up registries in delay func
 	static const uint8_t tuningVal = 21;	// was 24 for arduino
@@ -61,6 +60,7 @@ private:
 	uint16_t baud;
 	uint8_t halfDelay;
 	uint8_t fullDelay;
+
 };
 
 } // OTV0P2BASE

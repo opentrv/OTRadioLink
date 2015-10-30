@@ -70,20 +70,14 @@ void OTSoftSerial::end()
 uint8_t OTSoftSerial::read()
 {
 	uint8_t val = 0;
-
-	uint32_t endTime = millis() + timeOut;
-	// wait for line to go low
-	while(fastDigitalRead(rxPin)) {
-		if(endTime < millis()) return 0;
-	}
+	uint16_t timer = 65535;
 
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
 		// wait for line to go low
-//		uint8_t endTime = getSubCycleTime() + timeOut;
-//		while(fastDigitalRead(rxPin)) {
-//			if(endTime == getSubCycleTime() ) return 0; // FIXME Should be ok as time taken per tick is double time taken to receive byte
-//		}
+		while (fastDigitalRead(rxPin)) {
+			if (--timer == 0) return 0;
+		}
 
 		// wait for mid point of bit
 		_delay_x4cycles(halfDelay);
@@ -94,9 +88,9 @@ uint8_t OTSoftSerial::read()
 			val |= fastDigitalRead(rxPin) << i;
 		}
 
-		// wait for stop bit
-		while (!fastDigitalRead(rxPin)){
-//			if(endTime == getSubCycleTime() ) return 0; // FIXME Should be ok as time taken per tick is double time taken to receive byte
+		timer = 8000;
+		while (!fastDigitalRead(rxPin)) {
+			//if (--timer == 0) return 0;
 		}
 	}
 	return val;
@@ -113,27 +107,18 @@ uint8_t OTSoftSerial::read()
  */
 uint8_t OTSoftSerial::read(uint8_t *buf, uint8_t len)
 {
+	uint16_t timer = 0;
 	uint8_t count = 0;
 	uint8_t shortDelay = 1;
 	uint8_t val = 0;
+
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
 		while (count < len) {
-//			uint8_t endTime = getSubCycleTime() + timeOut;
 			// wait for line to go low
-//			while (fastDigitalRead(rxPin)) {
-//				if(endTime == getSubCycleTime() ) {
-//					return 0; // FIXME Should be ok as time taken per tick is double time taken to receive byte
-//				}
-//			}
-
-			uint16_t timer = 10000;	// attempting timeout
-			// wait for line to go low
+			timer = 8000;
 			while (fastDigitalRead(rxPin)) {
-				_delay_x4cycles(shortDelay);
-				if (--timer == 0) {
-					return count;
-				}
+				if (--timer == 0) return count;
 			}
 
 			// wait for mid point of bit
@@ -152,8 +137,9 @@ uint8_t OTSoftSerial::read(uint8_t *buf, uint8_t len)
 			count++;
 
 			// wait for stop bit
+			timer = 8000;
 			while (!fastDigitalRead(rxPin)) {
-//				//if(endTime == getSubCycleTime() ) return 0; // FIXME Should be ok as time taken per tick is double time taken to receive byte
+				if (--timer == 0) return count;
 			}
 		}
 	}
