@@ -22,11 +22,34 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
   including interrupts and sleep.
   */
 
+#include <util/atomic.h>
+#include <Arduino.h>
+
 #include "OTV0P2BASE_PowerManagement.h"
 
 namespace OTV0P2BASE
 {
-// Moved from Power_Management.cpp
+
+
+// If ADC was disabled, power it up, do Serial.begin(), and return true.
+// If already powered up then do nothing other than return false.
+// This does not power up the analogue comparator; this needs to be manually enabled if required.
+// If this returns true then a matching powerDownADC() may be advisable.
+bool powerUpADCIfDisabled()
+  {
+  if(!(PRR & _BV(PRADC))) { return(false); }
+  PRR &= ~_BV(PRADC); // Enable the ADC.
+  ADCSRA |= _BV(ADEN);
+  return(true);
+  }
+
+// Power ADC down.
+void powerDownADC()
+  {
+  ADCSRA &= ~_BV(ADEN); // Do before power_[adc|all]_disable() to avoid freezing the ADC in an active state!
+  PRR |= _BV(PRADC); // Disable the ADC.
+  }
+
 
 // Flush any pending UART TX bytes in the hardware if UART is enabled, eg useful after Serial.flush() and before sleep.
 void flushSerialHW()

@@ -236,7 +236,7 @@ namespace OTRFM23BLink
             // May block to transmit (eg to avoid copying the buffer).
             //
             // Implementation specifics:
-            //   * at TXmax will do double TX with 15ms IDLE mode between.
+            //   * at TXmax will do double TX with 15ms sleep/IDLE mode between.
             virtual bool sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal, bool listenAfter = false);
 
             // End access to this radio link if applicable and not already ended.

@@ -194,12 +194,11 @@ bool OTRFM23BLinkBase::sendRaw(const uint8_t *const buf, const uint8_t buflen, c
     if(power >= TXmax)
         {
         // Wait a little before retransmission.
-        // nap(WDTO_15MS, false); // FIXME: no nap() or idle() support yet // Sleeping with interrupts disabled?
-        // delay(15); // FIXME: make this a configurable value.
 #ifndef OTV0P2BASE_IDLE_NOT_RECOMMENDED
         ::OTV0P2BASE::_idleCPU(WDTO_15MS, false); // FIXME: make this a configurable delay.
 #else
-        ::OTV0P2BASE::delay_ms(15); // FIXME: seems a shame to burn cycles/juice here...
+        ::OTV0P2BASE::nap(WDTO_15MS); // FIXME: make this a configurable delay.
+//        ::OTV0P2BASE::delay_ms(15); // FIXME: seems a shame to burn cycles/juice here...
 #endif
 
         // Resend the frame.

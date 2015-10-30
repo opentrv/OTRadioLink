@@ -36,8 +36,16 @@ namespace OTV0P2BASE
 {
 
 
-// True if the default is the run the SPI bus a bit below maximum (eg for REV2 board).
-static const bool DEFAULT_RUN_SPI_SLOW = true;
+// If ADC was disabled, power it up, do Serial.begin(), and return true.
+// If already powered up then do nothing other than return false.
+// This does not power up the analogue comparator; this needs to be manually enabled if required.
+// If this returns true then a matching powerDownADC() may be advisable.
+bool powerUpADCIfDisabled();
+// Power ADC down.
+void powerDownADC();
+
+// If true, default is to run the SPI bus a bit below maximum (eg for REV2 board).
+static const bool DEFAULT_RUN_SPI_SLOW = false;
 
 // TEMPLATED DEFINITIONS OF SPI power up/down.
 //
@@ -124,12 +132,12 @@ static inline bool _serialIsPoweredUp() { return(!(PRR & _BV(PRUSART0))); }
 // Defaults to V0p2 unit baud rate
 template <uint16_t baud>
 bool powerUpSerialIfDisabled()
-{
-	if(_serialIsPoweredUp()) { return(false); }
-	PRR &= ~_BV(PRUSART0); // Enable the UART.
-	Serial.begin(baud); // Set it going.
-	return(true);
-}
+  {
+  if(_serialIsPoweredUp()) { return(false); }
+  PRR &= ~_BV(PRUSART0); // Enable the UART.
+  Serial.begin(baud); // Set it going.
+  return(true);
+  }
 // Flush any pending serial (UART/USART0) output and power it down.
 void powerDownSerial();
 #ifdef __AVR_ATmega328P__
