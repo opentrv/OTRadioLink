@@ -209,7 +209,7 @@ static const uint8_t GSCT_MAX = 255;
 
 //// Basic cycle length in milliseconds; strictly positive. FIXME only 2 tick cycle support
 static const uint16_t BASIC_CYCLE_MS = 2000;
-static const uint8_t SUB_CYCLE_TICKS_PER_S = (GSCT_MAX + 1)/2;
+static const uint8_t SUB_CYCLE_TICKS_PER_S = (uint8_t)((1 + (int)GSCT_MAX)/2); // Careful of overflow.
 //#if defined(V0P2BASE_TWO_S_TICK_RTC_SUPPORT)
 //#define BASIC_CYCLE_MS 2000
 //#define SUB_CYCLE_TICKS_PER_S ((GSCT_MAX+1)/2) // Sub-cycle ticks per second.
