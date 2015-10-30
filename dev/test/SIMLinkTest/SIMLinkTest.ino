@@ -59,7 +59,7 @@ static const bool bEEPROM = false;  // Sets whether radio saved in flash or eepr
 static const char apn[] = "m2mkit.telefonica.com"; // "m2mkit.telefonica.com"
 static const char pin[] = "0000";
 static const char UDP_ADDR[] = "46.101.52.242";
-static const char UDP_PORT[] = "9999";
+static const char UDP_PORT[] = "1023";
 #elif 2 == CREDS // DHD
 static const char apn[] = "m2mkit.telefonica.com";
 static const char pin[] = "0000";
@@ -74,12 +74,15 @@ static const char UDP_SEND_STR[] = "The cat in the hat 2";
 
 const OTSIM900Link::OTSIM900LinkConfig_t radioConfig = {pin, apn, UDP_ADDR, UDP_PORT};
 
-OTSIM900Link::OTSIM900Link gprs(&radioConfig, 6, 9, 8);
+const OTRadioLink::OTRadioChannelConfig_t channelConfig((void *)&radioConfig, 0, 0, 1);
+
+OTSIM900Link::OTSIM900Link gprs(/*&radioConfig,*/ 6, 9, 8);
 
 void setup()
 {
   Serial.begin(4800);
   Serial.println("Setup Start");
+  gprs.configure(1, &channelConfig);
   gprs.begin();
   delay(1000);
   Serial.println("Setup Done");
@@ -96,11 +99,8 @@ void loop()
       serialInput(input);
     }
   }
-/*  if(gprs.serAvailable() >0)
-  {
-    char incoming_char=(char)gprs.read(); //Get the character from the cellular serial port.
-    Serial.print(incoming_char); //Print the incoming character to the terminal.
-  }*/
+  char c = gprs.read();
+  if(c != 0xFF) Serial.print(c);
 }
 
 void serialInput(uint8_t input)
@@ -180,6 +180,10 @@ void serialInput(uint8_t input)
     gprs.queueToSend((uint8_t *)UDP_SEND_STR, sizeof(UDP_SEND_STR));
     break;
 
+    case 'M':
+    gprs.write(UDP_SEND_STR, sizeof(UDP_SEND_STR));
+    break;
+    
     default:
     break;
   }

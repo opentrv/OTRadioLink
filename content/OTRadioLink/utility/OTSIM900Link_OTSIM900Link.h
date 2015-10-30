@@ -21,7 +21,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
 #define OTSIM900LINK_H_
 
 #include <Arduino.h>
-//#include <EEPROM.h> // FIXME removed to reduce compiler warnings
+//#include <util/eeprom.h> // FIXME removed to reduce compiler warnings
 #include <util/atomic.h>
 #include <OTRadioLink.h>
 #include <OTV0p2Base.h>
@@ -60,24 +60,39 @@ namespace OTSIM900Link
  */
 // If stored in SRAM
 typedef struct OTSIM900LinkConfig {
+//private:
 	// Is in eeprom?
-	//const bool bEEPROM;
+//	const bool bEEPROM;
 	const char *PIN;
 	const char *APN;
 	const char *UDP_Address;
 	const char *UDP_Port;
+//public:
+	/**
+	 * @brief	Copies radio config data from EEPROM to an array
+	 * @param	buf		pointer to destination buffer
+	 * @param	field	enum containing desired config field
+	 * @retval	length of data copied to buffer
+	 */
+//    uint8_t get(uint8_t *buf, char *src) {
+//    	uint8_t count = 0;
+//    	uint16_t location = (uint16_t) src;
+//    	while (*buf != '\0') {
+//			*buf = eeprom_read_byte(location);
+//			buf++;
+//			location++;
+//			count++;
+//        }
+//    	return count;
+//    }
 } OTSIM900LinkConfig_t;
 
-/* If stored in EEPROM
-typedef struct OTSIM900LinkConfig {
-	// Is in eeprom?
-	const bool bEEPROM;
-	const EEPtr PIN;
-	const EEPtr APN;
-	const EEPtr UDP_Address;
-	const EEPtr UDP_Port;
-} OTSIM900LinkConfig_t;
-*/
+//typedef enum RadioEepromField {
+//	EEPROM_PIN,
+//	EEPROM_APN,
+//	EEPROM_UDP_ADDR,
+//	EEPROM_UDP_PORT
+//};
 
 /**
  * @note	To enable serial debug define 'OTSIM900LINK_DEBUG'
@@ -90,7 +105,7 @@ typedef struct OTSIM900LinkConfig {
 class OTSIM900Link : public OTRadioLink::OTRadioLink
 {
 public:
-  OTSIM900Link(const OTSIM900LinkConfig_t *_config, uint8_t pwrPin, uint8_t rxPin, uint8_t txPin);
+  OTSIM900Link(/*const OTSIM900LinkConfig_t *_config,*/ uint8_t pwrPin, uint8_t rxPin, uint8_t txPin);
 
 /************************* Public Methods *****************************/
     bool begin();
@@ -221,6 +236,9 @@ private:
 
     bool getInitState();
 
+    bool _doconfig();
+
+
 public:	// define abstract methods here
     // These are unused as no RX
     virtual void _dolisten() {};
@@ -235,7 +253,6 @@ public:	// define abstract methods here
     virtual uint8_t getRXMsgsQueued() const {return 0;}
     virtual const volatile uint8_t *peekRXMsg(uint8_t &len) const {len = 0; return 0;}
     virtual void removeRXMsg() {}
-    bool _doconfig() { return(true); }
 
 
 /* other methods (copied from OTRadioLink as is)

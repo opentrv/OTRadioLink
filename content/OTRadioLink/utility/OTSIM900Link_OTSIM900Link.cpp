@@ -29,13 +29,26 @@ namespace OTSIM900Link
  * @param	rxPin		Rx pin for software serial
  * @param	txPin		Tx pin for software serial
  */
-OTSIM900Link::OTSIM900Link(const OTSIM900LinkConfig_t *_config, uint8_t pwrPin, uint8_t rxPin, uint8_t txPin) : PWR_PIN(pwrPin), softSerial(rxPin, txPin)
+OTSIM900Link::OTSIM900Link(/*const OTSIM900LinkConfig_t *_config,*/ uint8_t pwrPin, uint8_t rxPin, uint8_t txPin) : PWR_PIN(pwrPin), softSerial(rxPin, txPin)
 {
   pinMode(PWR_PIN, OUTPUT);
   bAvailable = false;
   bPowered = false;
   bSendPending = false;
-  config = _config;
+  config = NULL;
+}
+
+/**
+ * @brief 	Assigns OTSIM900LinkConfig config. Must be called before begin()
+ * @retval	returns true if assigned or false if config is NULL
+ */
+bool OTSIM900Link::_doconfig()
+{
+	if (channelConfig->config == NULL) return false;
+	else {
+		config = (const OTSIM900LinkConfig_t *) channelConfig->config;
+		return true;
+	}
 }
 
 /**
@@ -193,6 +206,7 @@ bool OTSIM900Link::openUDP()
 
 
 		  timedBlockingRead(data, sizeof(data)); // FIXME do stuff with this
+		  OTV0P2BASE::serialPrintAndFlush(data);
 		  // response stuff
 		  uint8_t dataCutLength = 0;
 		  getResponse(dataCutLength, data, sizeof(data), 0x0A);
@@ -234,8 +248,10 @@ bool OTSIM900Link::sendUDP(const char *frame, uint8_t length)
 	print('=');
 	print(length);
 	print(AT_END);
-
-	// '>' indicates module is ready for UDP frame
+//	  timedBlockingRead(data, sizeof(data)); // FIXME this section
+//	  // response stuff
+//	  OTV0P2BASE::serialPrintAndFlush(data);
+//	 '>' indicates module is ready for UDP frame
 	if (flushUntil('>')) {
 		write(frame, length);
 		delay(500);
@@ -292,6 +308,7 @@ uint8_t OTSIM900Link::timedBlockingRead(char *data, uint8_t length)
 
 /**
  * @brief   blocks process until terminatingChar received
+ * @todo	use getSubCycle() to remove dependency on interrupts?
  * @param	terminatingChar		character to block until
  * @retval	returns true if character found, or false on 1000ms timeout
  */
