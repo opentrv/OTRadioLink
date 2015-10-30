@@ -27,7 +27,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 
 #include "OTV0P2BASE_ADC.h"
 
-#include <OTV0P2Base.h>
+#include <OTV0p2Base.h>
 
 #include "OTV0P2BASE_PowerManagement.h"
 #include "OTV0P2BASE_Sleep.h"
