@@ -31,7 +31,6 @@ namespace OTV0P2BASE
  * @class	OTSoftSerial
  * @brief	Blocking software serial that runs using no interrupts
  * 			Defaults to 2400 baud as this is what it runs at most reliably
- * @todo	replace digitalWrite with fastDigitalWrite
  */
 class OTSoftSerial
 {
@@ -47,7 +46,7 @@ public:
 	void print(char c);
 	void write(const char *buf, uint8_t len);
 	uint8_t print(const char *buf);
-	void printNum(int8_t number);
+	void printNum(int8_t number); // FIXME can this be made better?
 
 private:
 	const uint8_t rxPin;
