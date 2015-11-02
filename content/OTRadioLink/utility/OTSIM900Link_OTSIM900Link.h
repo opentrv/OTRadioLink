@@ -105,7 +105,7 @@ typedef struct OTSIM900LinkConfig {
 class OTSIM900Link : public OTRadioLink::OTRadioLink
 {
 public:
-  OTSIM900Link(/*const OTSIM900LinkConfig_t *_config,*/ uint8_t pwrPin, uint8_t rxPin, uint8_t txPin);
+  OTSIM900Link(uint8_t pwrPin, uint8_t rxPin, uint8_t txPin);
 
 /************************* Public Methods *****************************/
     bool begin();

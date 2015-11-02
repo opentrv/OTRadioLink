@@ -458,7 +458,7 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // Keeping this small minimises service time.
             // This does NOT attempt to interpret or filter inbound messages, just queues them.
             // Ensures radio is in RX mode at exit if listening is enabled.
-            void _poll(const bool /*inISR*/)
+            void _poll(const bool inISR)
                 {
                 // Nothing to do if not listening at the moment.
                 if(-1 == getListenChannel()) { return; }

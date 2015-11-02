@@ -62,7 +62,6 @@ namespace OTV0P2BASE
 
 // READ GENERIC
 // Handle quickly constant-value pins that we know about; fall back to generic run-time routine for rest.
-// FIXME removed check to get rid of warnings
 #define fastDigitalRead(pin) \
     ((__builtin_constant_p((pin)) && ((pin) >= 0) && ((pin) < 8)) ? ((int) ((PIND >> (pin)) & 1)) : \
     ((__builtin_constant_p((pin)) && ((pin) >= 8) && ((pin) < 14)) ? ((int) ((PINB >> max(((pin)-8),0)) & 1)) : \
@@ -72,7 +71,6 @@ namespace OTV0P2BASE
 /* Register: PORTD for 0--7, PORTB for 8--13, (eg 13 is PORTB), 14--19 PINC (ADC/AI). */
 /* Bit: 0--7 as-is, 8--13 subtract 8, else subtract 14. */
 // Handle quickly constant-value pins that we know about; fall back to generic run-time routine for rest.
-// FIXME removed check to get rid of warnings
 #define fastDigitalWrite(pin, value) do { \
     if(__builtin_constant_p((pin)) && (__builtin_constant_p(value) && ((pin) >= 0) && ((pin) < 8))) { bitWrite(PORTD, (pin), (value)); } \
     else if(__builtin_constant_p((pin)) && (__builtin_constant_p((value)) && ((pin) >= 8) && ((pin) < 14))) { bitWrite(PORTB, max((pin)-8,0), (value)); } \
