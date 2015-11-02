@@ -324,6 +324,18 @@ void OTSIM900Link::print(const char *string)
 	softSerial.print(string);
 }
 
+/**
+ * @brief	Copies string from EEPROM and prints to softSerial
+ * @todo	should I make get return one byte and loop it in here?
+ * @param	pointer to eeprom location string is stored in
+ */
+void OTSIM900Link::print(const void *src)
+{
+	char buf[24];
+	memset(buf, 0x0, sizeof(buf));
+	config->get(buf, src);
+    print(buf);
+}
 
 /**
  * @brief	Checks module ID

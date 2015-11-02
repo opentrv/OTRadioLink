@@ -20,6 +20,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
 #include <OTV0p2Base.h>
 #include <OTRadioLink.h>
 #include <OTSIM900Link.h>
+#include <avr/eeprom.h>
 
 // Geeetech board needs solder jumper made for D9 to drive power pin.
 // http://www.geeetech.com/Documents/GPRSshield_sch.pdf
@@ -50,21 +51,26 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
  * - Board will close PGP on shutdown (Will add in a method to do this seperately later)
  */
 
-static const bool bEEPROM = false;  // Sets whether radio saved in flash or eeprom
-
 #define CREDS 1 // Choose set of hardwired credentials and target address.
 
 
 #if 1 == CREDS // DE
-static const char apn[] = "m2mkit.telefonica.com"; // "m2mkit.telefonica.com"
-static const char pin[] = "0000";
-static const char UDP_ADDR[] = "46.101.52.242";
-static const char UDP_PORT[] = "9999";
+static const bool bEEPROM = false;
+static const char apn[] PROGMEM = "m2mkit.telefonica.com"; // "m2mkit.telefonica.com"
+static const char pin[] PROGMEM = "0000";
+static const char UDP_ADDR[] PROGMEM = "46.101.52.242";
+static const char UDP_PORT[] PROGMEM = "9999";
 #elif 2 == CREDS // DHD
 static const char apn[] = "m2mkit.telefonica.com";
 static const char pin[] = "0000";
 static const char UDP_ADDR[] = "79.135.97.66";
 static const char UDP_PORT[] = "9999";
+#elif 3 == CREDS // DE EEPROM
+static const bool bEEPROM   = true;
+static const void *pin      = (void *)0x0300;
+static const void *apn      = (void *)0x0305;
+static const void *UDP_ADDR = (void *)0x031B;
+static const void *UDP_PORT = (void *)0x0329;
 #endif
 
 
@@ -72,11 +78,11 @@ static const char UDP_SEND_STR[] = "The cat in the hat 2";
 
 
 
-const OTSIM900Link::OTSIM900LinkConfig_t radioConfig = {pin, apn, UDP_ADDR, UDP_PORT};
+const OTSIM900Link::OTSIM900LinkConfig_t radioConfig = {bEEPROM, pin, apn, UDP_ADDR, UDP_PORT};
 
 const OTRadioLink::OTRadioChannelConfig_t channelConfig((void *)&radioConfig, 0, 0, 1);
 
-OTSIM900Link::OTSIM900Link gprs(/*&radioConfig,*/ 6, 9, 8);
+OTSIM900Link::OTSIM900Link gprs(6, 9, 8);
 
 void setup()
 {
@@ -105,9 +111,21 @@ void loop()
 
 void serialInput(uint8_t input)
 {
+  char buf[42];
+  memset(buf, 0, sizeof(buf));
   switch(input) {
     /*These are all private functions */
-      case 'P': // Attempt to force power on if not already so.
+    case 'L':
+      for(uint8_t i = 0; i < sizeof(buf); i++) {
+        uint16_t ptr = 0x0300 + i;
+        char c = (char)eeprom_read_byte((const uint8_t *)ptr);
+        
+        Serial.print((uint8_t)c, HEX);
+        Serial.print(" ");
+      }
+      break;
+      
+    case 'P': // Attempt to force power on if not already so.
       gprs.powerOn();
       delay(1000);
     case 'p':
@@ -139,7 +157,7 @@ void serialInput(uint8_t input)
     case 'g':
     Serial.println(gprs.startGPRS());
     break;
-
+ 
     case 'i':
     Serial.println(gprs.getIP());
     break;
@@ -178,10 +196,6 @@ void serialInput(uint8_t input)
     
     case 's':
     gprs.queueToSend((uint8_t *)UDP_SEND_STR, sizeof(UDP_SEND_STR));
-    break;
-
-    case 'M':
-    gprs.write(UDP_SEND_STR, sizeof(UDP_SEND_STR));
     break;
     
     default:
