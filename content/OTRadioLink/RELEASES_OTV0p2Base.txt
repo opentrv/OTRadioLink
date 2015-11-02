@@ -17,6 +17,7 @@ pending:
     DE20151026:  Fixed compiler warning due to isValid() in Sensor class
     DE20151026:  Added radio config location to OTV0P2BASE_EEPROM.h
     DE20151028:  getSubCycleTime() made static inline and migrated in
+    DHD20151030: added USER2 and CO2 stats record space in EEPROM.
 
 
 
