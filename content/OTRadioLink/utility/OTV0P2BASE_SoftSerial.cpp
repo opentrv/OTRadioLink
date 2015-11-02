@@ -70,20 +70,14 @@ void OTSoftSerial::end()
 uint8_t OTSoftSerial::read()
 {
 	uint8_t val = 0;
-
-	uint32_t endTime = millis() + timeOut;
-	// wait for line to go low
-	while(fastDigitalRead(rxPin)) {
-		if(endTime < millis()) return 0;
-	}
+	uint16_t timer = timeOut;
 
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
 		// wait for line to go low
-//		uint8_t endTime = getSubCycleTime() + timeOut;
-//		while(fastDigitalRead(rxPin)) {
-//			if(endTime == getSubCycleTime() ) return 0; // FIXME Should be ok as time taken per tick is double time taken to receive byte
-//		}
+		while (fastDigitalRead(rxPin)) {
+			if (--timer == 0) return 0;
+		}
 
 		// wait for mid point of bit
 		_delay_x4cycles(halfDelay);
@@ -94,9 +88,9 @@ uint8_t OTSoftSerial::read()
 			val |= fastDigitalRead(rxPin) << i;
 		}
 
-		// wait for stop bit
-		while (!fastDigitalRead(rxPin)){
-//			if(endTime == getSubCycleTime() ) return 0; // FIXME Should be ok as time taken per tick is double time taken to receive byte
+		timer = timeOut;
+		while (!fastDigitalRead(rxPin)) {
+			if (--timer == 0) return 0;
 		}
 	}
 	return val;
@@ -106,34 +100,24 @@ uint8_t OTSoftSerial::read()
 
 /**
  * @brief	Blocking read that times out after ?? seconds
- * @todo	How to implement timeout?
  * @param	buf	pointer to array to store read in
  * @param	len	max length of array to store read in
  * @retval	Length of read. Returns 0 if nothing received
  */
 uint8_t OTSoftSerial::read(uint8_t *buf, uint8_t len)
 {
+	uint16_t timer = 0;
 	uint8_t count = 0;
 	uint8_t shortDelay = 1;
 	uint8_t val = 0;
+
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
 		while (count < len) {
-//			uint8_t endTime = getSubCycleTime() + timeOut;
 			// wait for line to go low
-//			while (fastDigitalRead(rxPin)) {
-//				if(endTime == getSubCycleTime() ) {
-//					return 0; // FIXME Should be ok as time taken per tick is double time taken to receive byte
-//				}
-//			}
-
-			uint16_t timer = 10000;	// attempting timeout
-			// wait for line to go low
+			timer = timeOut;
 			while (fastDigitalRead(rxPin)) {
-				_delay_x4cycles(shortDelay);
-				if (--timer == 0) {
-					return count;
-				}
+				if (--timer == 0) return count;
 			}
 
 			// wait for mid point of bit
@@ -152,8 +136,9 @@ uint8_t OTSoftSerial::read(uint8_t *buf, uint8_t len)
 			count++;
 
 			// wait for stop bit
+			timer = timeOut;
 			while (!fastDigitalRead(rxPin)) {
-//				//if(endTime == getSubCycleTime() ) return 0; // FIXME Should be ok as time taken per tick is double time taken to receive byte
+				if (--timer == 0) return count;
 			}
 		}
 	}
@@ -220,7 +205,7 @@ uint8_t OTSoftSerial::print(const char *buf)
 
 /**
  * @brief	Converts uint8_t to string and prints to serial
- * @param	uint8_t number to print
+ * @param	int8_t number to print, range (-128, 127)
  * @todo	make overloaded print instead? will this confuse with print char?
  * @note	This makes use of non standard stdlib function itoa(). May break when not
  * 			compiled with avr-libc
@@ -228,14 +213,11 @@ uint8_t OTSoftSerial::print(const char *buf)
 void OTSoftSerial::printNum(int8_t number)
 {
 	static const uint8_t maxNumLength = 3; // Double this if ever need to convert to int16_t
-	// init buffer array
-	char buf[maxNumLength+1];
+	char buf[maxNumLength+1]; // maximum possible size + \0 termination
 	memset(buf, 0, maxNumLength+1);
 
 	// convert and fill buffer
-	//uint8_t numLength = (uint8_t)snprintf(buf, maxNumLength, "%d", number);
 	itoa(number, buf, 10);	// convert integer to string, base 10
-
 
 	// print buffer
 	print(buf);
