@@ -326,15 +326,20 @@ void OTSIM900Link::print(const char *string)
 
 /**
  * @brief	Copies string from EEPROM and prints to softSerial
- * @todo	should I make get return one byte and loop it in here?
+ * @fixme	switching to this version makes send occasionally time out
  * @param	pointer to eeprom location string is stored in
  */
 void OTSIM900Link::print(const void *src)
 {
-	char buf[24];
-	memset(buf, 0x0, sizeof(buf));
-	config->get(buf, src);
-    print(buf);
+	char c = 0xff;	// to avoid exiting the while loop without \0 getting written
+	const uint8_t *ptr = (const uint8_t *) src;
+	// loop through and print each value
+	while (1) {
+		c = config->get(ptr);
+		if (c == '\0') return;
+		print(c);
+		ptr++;
+	}
 }
 
 /**

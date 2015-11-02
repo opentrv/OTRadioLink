@@ -51,7 +51,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
  * - Board will close PGP on shutdown (Will add in a method to do this seperately later)
  */
 
-#define CREDS 1 // Choose set of hardwired credentials and target address.
+#define CREDS 3 // Choose set of hardwired credentials and target address.
 
 
 #if 1 == CREDS // DE
@@ -73,6 +73,7 @@ static const void *UDP_ADDR = (void *)0x031B;
 static const void *UDP_PORT = (void *)0x0329;
 #endif
 
+void serialInput(uint8_t);
 
 static const char UDP_SEND_STR[] = "The cat in the hat 2";
 

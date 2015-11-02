@@ -49,10 +49,7 @@ namespace OTSIM900Link
 /**
  * @struct	OTSIM900LinkConfig_t
  * @brief	Structure containing config data for OTSIM900Link
- * @todo	Finish EEPROM stuff
- * 			Add enum
- * 			Use template?
- * 			Just uncomment from outside?
+ * @todo	This is a bit weird - take pointer from struct and pass to helper function in struct
  * @note	Struct and internal pointers must last as long as OTSIM900Link object
  * @param	bEEPROM	true if strings stored in EEPROM, else held in FLASH
  * @param	PIN		Pointer to \0 terminated array containing SIM pin code
@@ -80,24 +77,17 @@ typedef struct OTSIM900LinkConfig {
 	 * @param	field	memory location
 	 * @retval	length of data copied to buffer
 	 */
-    uint8_t get(char *buf, const void *src) const{
-    	uint8_t count = 0;
-    	const uint8_t *location = (const uint8_t *)src;
-    	char c = 0xff;
-    	while (c != '\0') {
-    		switch (bEEPROM) {
-    		case true:
-    			c = eeprom_read_byte(location);
-    			break;
-    		case false:
-    			c = pgm_read_byte(location);
-    		}
-			*buf = c;
-			buf++;
-			location++;
-        }
-    	count = (const uint16_t)location - (const uint16_t)src;
-    	return count;
+    char get(const uint8_t *src) const{
+    	char c = 0;
+    	switch (bEEPROM) {
+    	case true:
+    		c = eeprom_read_byte(src);
+    		break;
+    	case false:
+    		c = pgm_read_byte(src);
+    		break;
+    	}
+    	return c;
     }
 } OTSIM900LinkConfig_t;
 
