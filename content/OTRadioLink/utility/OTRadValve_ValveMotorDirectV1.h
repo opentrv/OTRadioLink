@@ -244,12 +244,12 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
     // Called when end stop hit, eg by overcurrent detection.
     // Can be called while run() is in progress.
     // Is ISR-/thread- safe.
-    virtual void signalHittingEndStop(bool opening) { endStopDetected = true; }
+    virtual void signalHittingEndStop(bool /*opening*/) { endStopDetected = true; }
 
     // Called when encountering leading edge of a mark in the shaft rotation in forward direction (falling edge in reverse).
     // Can be called while run() is in progress.
     // Is ISR-/thread- safe.
-    virtual void signalShaftEncoderMarkStart(bool opening) { /* TODO */ }
+    virtual void signalShaftEncoderMarkStart(bool /*opening*/) { /* TODO */ }
 
     // Called with each motor run sub-cycle tick.
     // Is ISR-/thread- safe.

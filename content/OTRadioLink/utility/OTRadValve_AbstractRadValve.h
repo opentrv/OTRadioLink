@@ -51,7 +51,7 @@ class AbstractRadValve : public OTV0P2BASE::SimpleTSUint8Actuator
     // Ignores invalid values.
     // Some implementations may ignore/reject all attempts to directly set the values.
     // If true then the new target value was accepted.
-    virtual bool set(const uint8_t newValue) { return(false); }
+    virtual bool set(const uint8_t /*newValue*/) { return(false); }
 
     // Call when given user signal that valve has been fitted (ie is fully on).
     // By default does nothing (no valve fitting may be needed).
@@ -104,6 +104,8 @@ static const uint8_t DEFAULT_VALVE_PC_MIN_REALLY_OPEN = 15;
 // Safer value for valves to very likely be significantly open, in range [DEFAULT_VALVE_PC_MIN_REALLY_OPEN,DEFAULT_VALVE_PC_FAIRLY_OPEN].
 // DHD20151030: with initial dead-reckoning direct drive impl valves may not be open until ~45%.
 static const uint8_t DEFAULT_VALVE_PC_SAFER_OPEN = 50;
+
+static const uint8_t DEFAULT_VALVE_PC_FAIRLY_OPEN = 55; // FIXME I have no idea what I'm doing
 
 // Default valve percentage at which significant heating power is being provided.
 // For many valves much of the time this may be effectively fully open,
