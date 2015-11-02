@@ -59,7 +59,7 @@ static const bool bEEPROM = false;  // Sets whether radio saved in flash or eepr
 static const char apn[] = "m2mkit.telefonica.com"; // "m2mkit.telefonica.com"
 static const char pin[] = "0000";
 static const char UDP_ADDR[] = "46.101.52.242";
-static const char UDP_PORT[] = "1023";
+static const char UDP_PORT[] = "9999";
 #elif 2 == CREDS // DHD
 static const char apn[] = "m2mkit.telefonica.com";
 static const char pin[] = "0000";
@@ -99,8 +99,8 @@ void loop()
       serialInput(input);
     }
   }
-  char c = gprs.read();
-  if(c != 0xFF) Serial.print(c);
+  //char c = gprs.read();
+  //if(c != 0xFF) Serial.print(c);
 }
 
 void serialInput(uint8_t input)
