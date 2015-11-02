@@ -458,7 +458,7 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // Keeping this small minimises service time.
             // This does NOT attempt to interpret or filter inbound messages, just queues them.
             // Ensures radio is in RX mode at exit if listening is enabled.
-            void _poll(const bool inISR)
+            void _poll(const bool /*inISR*/)
                 {
                 // Nothing to do if not listening at the moment.
                 if(-1 == getListenChannel()) { return; }
@@ -539,7 +539,7 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // This routine must not lock up if radio is not actually available/fitted.
             // Argument is ignored for this implementation.
             // NOT INTERRUPT SAFE and should not be called concurrently with any other RFM23B/SPI operation.
-            virtual void preinit(const void *preconfig) { _powerOnInit(); }
+            virtual void preinit(const void */*preconfig*/) { _powerOnInit(); }
 
             // Poll for incoming messages (eg where interrupts are not available).
             // Will only have any effect when listen(true, ...) is active.

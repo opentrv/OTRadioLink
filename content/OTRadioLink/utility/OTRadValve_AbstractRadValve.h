@@ -51,7 +51,7 @@ class AbstractRadValve : public OTV0P2BASE::SimpleTSUint8Actuator
     // Ignores invalid values.
     // Some implementations may ignore/reject all attempts to directly set the values.
     // If true then the new target value was accepted.
-    virtual bool set(const uint8_t newValue) { return(false); }
+    virtual bool set(const uint8_t /*newValue*/) { return(false); }
 
     // Call when given user signal that valve has been fitted (ie is fully on).
     // By default does nothing (no valve fitting may be needed).
