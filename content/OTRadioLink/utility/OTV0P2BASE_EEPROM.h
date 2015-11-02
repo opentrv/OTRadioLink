@@ -128,11 +128,15 @@ namespace OTV0P2BASE
 #define V0P2BASE_EE_STATS_SET_OCCPC_BY_HOUR_SMOOTHED     5  // Smoothed hourly observed occupancy percentage [0,100].
 #define V0P2BASE_EE_STATS_SET_RHPC_BY_HOUR               6  // Last hourly relative humidity % samples in range [0,100].
 #define V0P2BASE_EE_STATS_SET_RHPC_BY_HOUR_SMOOTHED      7  // Smoothed hourly relative humidity % samples in range [0,100].
-#define V0P2BASE_EE_STATS_SET_USER1_BY_HOUR              8  // Last hourly user-defined stats value in range [0,254].
-#define V0P2BASE_EE_STATS_SET_USER1_BY_HOUR_SMOOTHED     9  // Smoothed hourly user-defined stats value in range [0,254].
+#define V0P2BASE_EE_STATS_SET_CO2_BY_HOUR                8  // Last hourly companded CO2 ppm samples in range [0,254].
+#define V0P2BASE_EE_STATS_SET_CO2_BY_HOUR_SMOOTHED       9  // Smoothed hourly companded CO2 ppm samples in range [0,254].
+#define V0P2BASE_EE_STATS_SET_USER1_BY_HOUR              10 // Last hourly user-defined stats value in range [0,254].
+#define V0P2BASE_EE_STATS_SET_USER1_BY_HOUR_SMOOTHED     11 // Smoothed hourly user-defined stats value in range [0,254].
+#define V0P2BASE_EE_STATS_SET_USER2_BY_HOUR              12 // Last hourly user-defined stats value in range [0,254].
+#define V0P2BASE_EE_STATS_SET_USER2_BY_HOUR_SMOOTHED     13 // Smoothed hourly user-defined stats value in range [0,254].
 //#define V0P2BASE_EE_STATS_SET_WARMMODE_BY_HOUR_OF_WK    10  // Each sample is last 7 days' WARM mode bitset by hour. [0,127].
 
-#define V0P2BASE_EE_STATS_SETS 10 // Number of stats sets in range [0,V0P2BASE_EE_STATS_SETS-1].
+#define V0P2BASE_EE_STATS_SETS 14 // Number of stats sets in range [0,V0P2BASE_EE_STATS_SETS-1].
 
 // Compute start of stats set n (in range [0,V0P2BASE_EE_STATS_SETS-1]) in EEPROM.
 // Eg use as V0P2BASE_EE_STATS_START_ADDR(V0P2BASE_EE_STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED) in

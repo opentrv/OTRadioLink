@@ -213,7 +213,7 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
     // The hardware driver instance lifetime must be longer than this instance.
     CurrentSenseValveMotorDirect(OTRadValve::HardwareMotorDriverInterface * const hwDriver,
                                  uint8_t _minOpenPC = OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN,
-                                 uint8_t _fairlyOpenPC = OTRadValve::DEFAULT_VALVE_PC_FAIRLY_OPEN) :
+                                 uint8_t _fairlyOpenPC = OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN) :
         hw(hwDriver), minOpenPC(_minOpenPC), fairlyOpenPC(_fairlyOpenPC), currentPC(0), targetPC(0)
         { changeState(init); }
 
@@ -433,7 +433,7 @@ class ValveMotorDirectV1 : public OTRadValve::AbstractRadValve
 
   public:
     ValveMotorDirectV1(uint8_t minOpenPC = OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN,
-                       uint8_t fairlyOpenPC = OTRadValve::DEFAULT_VALVE_PC_FAIRLY_OPEN)
+                       uint8_t fairlyOpenPC = OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN)
       : logic(&driver, minOpenPC, fairlyOpenPC) { }
 
     // Regular poll/update.
