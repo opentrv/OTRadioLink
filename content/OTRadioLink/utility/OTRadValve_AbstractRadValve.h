@@ -105,8 +105,6 @@ static const uint8_t DEFAULT_VALVE_PC_MIN_REALLY_OPEN = 15;
 // DHD20151030: with initial dead-reckoning direct drive impl valves may not be open until ~45%.
 static const uint8_t DEFAULT_VALVE_PC_SAFER_OPEN = 50;
 
-static const uint8_t DEFAULT_VALVE_PC_FAIRLY_OPEN = 55; // FIXME I have no idea what I'm doing
-
 // Default valve percentage at which significant heating power is being provided.
 // For many valves much of the time this may be effectively fully open,
 // ie no change beyond this makes significant difference to heat delivery.
