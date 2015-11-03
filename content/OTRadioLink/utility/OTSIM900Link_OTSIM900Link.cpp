@@ -28,7 +28,7 @@ namespace OTSIM900Link
  * @param	rxPin		Rx pin for software serial
  * @param	txPin		Tx pin for software serial
  */
-OTSIM900Link::OTSIM900Link(uint8_t pwrPin, uint8_t rxPin, uint8_t txPin) : PWR_PIN(pwrPin), softSerial(rxPin, txPin)
+OTSIM900Link::OTSIM900Link(uint8_t, uint8_t pwrPin, uint8_t rxPin, uint8_t txPin) : PWR_PIN(pwrPin), softSerial(rxPin, txPin)
 {
   pinMode(PWR_PIN, OUTPUT);
   bAvailable = false;
