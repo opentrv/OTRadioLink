@@ -52,14 +52,14 @@ void OTNullRadioLink::removeRXMsg()
  */
 bool OTNullRadioLink::sendRaw(const uint8_t *buf, uint8_t buflen, int8_t , TXpower , bool )
 {
-//	const char *pBuf = (const char *) buf;
-//	// print if in debug mode
-//	DEBUG_SERIAL_PRINT_FLASHSTRING("Radio: ");
-//	for (uint8_t i = 0; i < buflen; i++) {
-//		DEBUG_SERIAL_PRINT(*pBuf);
-//		pBuf++;
-//	}
-//	DEBUG_SERIAL_PRINTLN();
+	const char *pBuf = (const char *) buf;
+	// print if in debug mode
+	DEBUG_SERIAL_PRINT_FLASHSTRING("Radio: ");
+	for (uint8_t i = 0; i < buflen; i++) {
+		DEBUG_SERIAL_PRINT(*pBuf);
+		pBuf++;
+	}
+	DEBUG_SERIAL_PRINTLN();
 	return true;
 }
 

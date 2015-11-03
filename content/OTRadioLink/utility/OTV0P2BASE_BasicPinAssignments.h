@@ -14,6 +14,7 @@ specific language governing permissions and limitations
 under the Licence.
 
 Author(s) / Copyright (s): Damon Hart-Davis 2015
+                           Deniz Erbilgin 2015
 */
 
 /*
@@ -36,6 +37,8 @@ static const uint8_t V0p2_PIN_SPI_SCK = 13; // ATMega328P-PU PDIP pin 19, PB5.
 static const uint8_t V0p2_PIN_SPI_MISO = 12; // ATMega328P-PU PDIP pin 18, PB4.
 static const uint8_t V0p2_PIN_SPI_MOSI = 11; // ATMega328P-PU PDIP pin 17, PB3.
 static const uint8_t V0p2_PIN_SPI_nSS = 10; // ATMega328P-PU PDIP pin 16, PB2.  Active low enable.
+
+// TODO move I2C here?
 
 }
 
