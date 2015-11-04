@@ -83,7 +83,7 @@ const OTSIM900Link::OTSIM900LinkConfig_t radioConfig = {bEEPROM, pin, apn, UDP_A
 
 const OTRadioLink::OTRadioChannelConfig_t channelConfig((void *)&radioConfig, 0, 0, 1);
 
-OTSIM900Link::OTSIM900Link gprs(6, 9, 8);
+OTSIM900Link::OTSIM900Link gprs(A3, 6, 9, 8);
 
 void setup()
 {
