@@ -208,6 +208,9 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
     // Report an apparent serious tracking error that may need full recalibration.
     void trackingError();
 
+    // True if using positional encoder, else using crude dead-reckoning.
+    bool usingPositionalEncoder() { return(false); }
+
   public:
     // Create an instance, passing in a reference to the non-NULL hardware driver.
     // The hardware driver instance lifetime must be longer than this instance.
@@ -235,6 +238,9 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
     // Set current target % open in range [0,100].
     // Coerced into range.
     void setTargetPC(uint8_t newPC) { targetPC = min(newPC, 100); }
+
+    // Get estimated minimum percentage open for significant flow for this device; strictly positive in range [1,99].
+    virtual uint8_t getMinPercentOpen() const;
 
     // Minimally wiggle the motor to give tactile feedback and/or show to be working.
     // May take a significant fraction of a second.
@@ -311,7 +317,7 @@ class ValveMotorDirectV1HardwareDriverBase : public OTRadValve::HardwareMotorDri
 
 // Implementation for V1 (REV7/DORM1) motor.
 // Usually not instantiated except within ValveMotorDirectV1.
-// Creating multiple instances almost certainly a BAD IDEA.
+// Creating multiple instances (trying to drive same motor) almost certainly a BAD IDEA.
 template <uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin>
 class ValveMotorDirectV1HardwareDriver : public ValveMotorDirectV1HardwareDriverBase
   {
@@ -453,6 +459,9 @@ class ValveMotorDirectV1 : public OTRadValve::AbstractRadValve
       logic.setTargetPC(newValue);
       return(true);
       }
+
+    // Get estimated minimum percentage open for significant flow for this device; strictly positive in range [1,99].
+    virtual uint8_t getMinPercentOpen() const { return(logic.getMinPercentOpen()); }
 
     // Call when given user signal that valve has been fitted (ie is fully on).
     virtual void signalValveFitted() { logic.signalValveFitted(); }

@@ -346,6 +346,14 @@ uint8_t CurrentSenseValveMotorDirect::CalibrationParameters::computePosition(
   }
 
 
+// Get estimated minimum percentage open for significant flow for this device; strictly positive in range [1,99].
+uint8_t CurrentSenseValveMotorDirect::getMinPercentOpen() const
+    {
+    // If in dead-reckoning mode use a very safe threshold,
+    // else use a somewhat tighter one.
+    return(usingPositionalEncoder() ? max(10, DEFAULT_VALVE_PC_MIN_REALLY_OPEN) : max(50, DEFAULT_VALVE_PC_SAFER_OPEN));
+    }
+
 // Minimally wiggle the motor to give tactile feedback and/or show to be working.
 // May take a significant fraction of a second.
 // Finishes with the motor turned off, and a bias to closing the valve.
