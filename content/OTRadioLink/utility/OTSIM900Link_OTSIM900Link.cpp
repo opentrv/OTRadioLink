@@ -24,28 +24,34 @@ namespace OTSIM900Link
 
 /**
  * @brief	Constructor. Initializes softSerial and sets PWR_PIN
- * @todo	Can/should pinMode be replaced?
  * @param	pwrPin		SIM900 power on/off pin
  * @param	rxPin		Rx pin for software serial
  * @param	txPin		Tx pin for software serial
  */
-OTSIM900Link::OTSIM900Link(const OTSIM900LinkConfig_t *_config, uint8_t pwrPin, uint8_t rxPin, uint8_t txPin) : PWR_PIN(pwrPin), softSerial(rxPin, txPin)
+OTSIM900Link::OTSIM900Link(uint8_t pwrPin, uint8_t rxPin, uint8_t txPin) : PWR_PIN(pwrPin), softSerial(rxPin, txPin)
 {
   pinMode(PWR_PIN, OUTPUT);
   bAvailable = false;
   bPowered = false;
   bSendPending = false;
-  config = _config;
+  config = NULL;
 }
 
 /**
- * @brief	begin software serial
- * @todo	What is this actually going to do?
- * 			- Turning module on automatically starts radio, so this does not fit desired begin behaviour
- * 			- There is a low power mode but this still requires an active connection to stay registered
- * 			- APN etc need to be set after each power up. Is this just going to store these in object?
- *          why can't I set softSerial->begin like this?
- *          Move check to a method
+ * @brief 	Assigns OTSIM900LinkConfig config. Must be called before begin()
+ * @retval	returns true if assigned or false if config is NULL
+ */
+bool OTSIM900Link::_doconfig()
+{
+	if (channelConfig->config == NULL) return false;
+	else {
+		config = (const OTSIM900LinkConfig_t *) channelConfig->config;
+		return true;
+	}
+}
+
+/**
+ * @brief	Starts software serial, checks for module and inits state
  */
 bool OTSIM900Link::begin()
 {
@@ -79,17 +85,14 @@ bool OTSIM900Link::begin()
 #ifdef OTSIM900LINK_DEBUG
   OTV0P2BASE::serialPrintlnAndFlush(F("Set APN"));
 #endif // OTSIM900LINK_DEBUG
-  while(!setAPN());
-
+  	while(!setAPN());
+    delay(1000);
 #ifdef OTSIM900LINK_DEBUG
   OTV0P2BASE::serialPrintlnAndFlush(F("Start GPRS"));
 #endif // OTSIM900LINK_DEBUG
-  delay(1000);
 	OTV0P2BASE::serialPrintAndFlush(startGPRS()); // starting and shutting gprs brings module to state
 	delay(5000);
-	//getIP();
 	shutGPRS();	 // where openUDP can automatically start gprs
-	//openUDP();
 	return true;
 }
 
@@ -133,7 +136,6 @@ bool OTSIM900Link::sendRaw(const uint8_t *buf, uint8_t buflen, int8_t , TXpower 
 
 /**
  * @brief	Puts message in queue to send on wakeup
- * @todo	implement and make virtual method in OTRadioLink
  * @param	buf		pointer to buffer to send
  * @param	buflen	length of buffer to send
  * @param	channel	ignored
@@ -145,13 +147,8 @@ bool OTSIM900Link::queueToSend(const uint8_t *buf, uint8_t buflen, int8_t , TXpo
 {
 	bSendPending = true;
 	openUDP();
-	delay(5000);	// find better way?
-
-	bool sent = sendRaw(buf, buflen); // FIXME
-#ifdef OTSIM900LINK_DEBUG
-	OTV0P2BASE::serialPrintAndFlush(sent);
-	OTV0P2BASE::serialPrintlnAndFlush();
-#endif // OTSIM900LINK_DEBUG
+	delay(5000);
+	bool sent = sendRaw(buf, buflen);
 	shutGPRS();
 	bSendPending = false;
 	return sent;
@@ -168,8 +165,9 @@ void OTSIM900Link::poll()
 
 /**
  * @brief	open UDP connection to input ip address
- * @todo	clean up writes
- * @param	array containing IP address to open connection to in format xxx.xxx.xxx.xxx (keep all zeros)
+ * @todo	Check for successful open
+ * 			find better way of writing this
+ * @param	array containing server IP
  * @retval	returns true if UDP opened
  * @note	is it necessary to check if UDP open?
  */
@@ -180,23 +178,23 @@ bool OTSIM900Link::openUDP()
 #ifdef OTSIM900LINK_DEBUG
 	OTV0P2BASE::serialPrintlnAndFlush(F("Open UDP"));
 #endif // OTSIM900LINK_DEBUG
-	//if(!isOpenUDP()){
-		print(AT_START);
-		print(AT_START_UDP);
-		print("=\"UDP\","); // FIXME! string length is declared 1 longer than it should
-		print('\"');
-		print(config->UDP_Address);
-		print("\",\"");	// FIXME!
-		print(config->UDP_Port);
-		print('\"');
-		print(AT_END);
+	print(AT_START);
+	print(AT_START_UDP);
+	print("=\"UDP\",");
+	print('\"');
+	print(config->UDP_Address);
+	print("\",\"");
+	print(config->UDP_Port);
+	print('\"');
+	print(AT_END);
 
+	// Implement check here
+	timedBlockingRead(data, sizeof(data));
+	OTV0P2BASE::serialPrintAndFlush(data);
+	// response stuff
+	uint8_t dataCutLength = 0;
+	getResponse(dataCutLength, data, sizeof(data), 0x0A);
 
-		  timedBlockingRead(data, sizeof(data)); // FIXME do stuff with this
-		  // response stuff
-		  uint8_t dataCutLength = 0;
-		  getResponse(dataCutLength, data, sizeof(data), 0x0A);
-	//}
 	return true;
 }
 
@@ -208,12 +206,10 @@ bool OTSIM900Link::openUDP()
  */
 bool OTSIM900Link::closeUDP()
 {
-	//if(isOpenUDP()){
-		print(AT_START);
-		print(AT_CLOSE_UDP);
-		print(AT_END);
-		return false;
-	//} else return true;
+	print(AT_START);
+	print(AT_CLOSE_UDP);
+	print(AT_END);
+	return false;
 }
 
 /**
@@ -226,23 +222,17 @@ bool OTSIM900Link::closeUDP()
  */
 bool OTSIM900Link::sendUDP(const char *frame, uint8_t length)
 {
-	char data[32];
-	memset(data, 0, sizeof(data));
-
 	print(AT_START);
 	print(AT_SEND_UDP);
 	print('=');
 	print(length);
 	print(AT_END);
-
-	// '>' indicates module is ready for UDP frame
+//	 '>' indicates module is ready for UDP frame
 	if (flushUntil('>')) {
 		write(frame, length);
 		delay(500);
 		return true;	// add check here
-	}
-
-	return false;
+	} else return false;
 }
 
 /**
@@ -252,27 +242,15 @@ bool OTSIM900Link::sendUDP(const char *frame, uint8_t length)
 uint8_t OTSIM900Link::read()
 {
 	uint8_t data;
-	data = softSerial.read();	// FIXME
+	data = softSerial.read();
 	return data;
 }
 
 /**
- * @brief	empties serial buffer
- */
-/*void OTSIM900Link::flush()
-{
-	OTV0P2BASE::serialPrintAndFlush("- Flush: ");
-	while(softSerial.available() > 0) OTV0P2BASE::serialPrintAndFlush((char) softSerial.read());
-	OTV0P2BASE::serialPrintlnAndFlush();
-}*/
-
-/**
  * @brief	Enter blocking read. Fills buffer or times out after 100 ms
- * @todo	what to do with terminatingChar? Using 0 as default fails?
- * 			Overloaded for now
  * @param	data	data buffer to write to
  * @param	length	length of data buffer
- * @retval	length of data received before time out
+ * @retval	number of characters received before time out
  */
 uint8_t OTSIM900Link::timedBlockingRead(char *data, uint8_t length)
 {;
@@ -301,20 +279,13 @@ bool OTSIM900Link::flushUntil(uint8_t _terminatingChar)
 
 #ifdef OTSIM900LINK_DEBUG
 	OTV0P2BASE::serialPrintAndFlush(F("- Flush"));
-	//OTV0P2BASE::serialPrintAndFlush(terminatingChar, HEX);
-	//OTV0P2BASE::serialPrintlnAndFlush(F(": "));
 #endif // OTSIM900LINK_DEBUG
 
-  uint32_t endTime = millis() + 1000; // time out after a second
-  while(millis() < endTime) {
+	const uint8_t endTime = OTV0P2BASE::getSubCycleTime() + 128; // This value gives about a second (only for 2000ms cycle)
+	while (OTV0P2BASE::getSubCycleTime() != endTime) { // as time taken by read() is << than tick time
     const uint8_t c = read();
-
-#ifdef OTSIM900LINK_DEBUG
-    //if(c != 0xFF) OTV0P2BASE::serialPrintAndFlush((char) c);
-#endif // OTSIM900LINK_DEBUG
-
     if (c == terminatingChar) return true;
-  }
+    }
 #ifdef OTSIM900LINK_DEBUG
   OTV0P2BASE::serialPrintlnAndFlush(F("Flush: Timeout"));
 #endif // OTSIM900LINK_DEBUG
@@ -322,7 +293,6 @@ bool OTSIM900Link::flushUntil(uint8_t _terminatingChar)
 }
 /**
  * @brief	Writes an array to software serial
- * @todo	change these to overloaded prints?
  * @param	data	data buffer to write from
  * @param	length	length of data buffer
  */
@@ -337,7 +307,7 @@ void OTSIM900Link::write(const char *data, uint8_t length)
  */
 void OTSIM900Link::print(char data)
 {
-	softSerial.print(data);	// FIXME
+	softSerial.print(data);
 }
 
 /**
@@ -351,7 +321,7 @@ void OTSIM900Link::print(const uint8_t value)
 
 void OTSIM900Link::print(const char *string)
 {
-	softSerial.print(string);	// FIXME
+	softSerial.print(string);
 }
 
 

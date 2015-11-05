@@ -31,7 +31,6 @@ namespace OTV0P2BASE
  * @class	OTSoftSerial
  * @brief	Blocking software serial that runs using no interrupts
  * 			Defaults to 2400 baud as this is what it runs at most reliably
- * @todo	replace digitalWrite with fastDigitalWrite
  */
 class OTSoftSerial
 {
@@ -47,13 +46,12 @@ public:
 	void print(char c);
 	void write(const char *buf, uint8_t len);
 	uint8_t print(const char *buf);
-	void printNum(int8_t number);
+	void printNum(int8_t number); // FIXME can this be made better?
 
 private:
 	const uint8_t rxPin;
 	const uint8_t txPin;
-//	static const uint16_t timeOut= 250;//SUB_CYCLE_TICKS_PER_S / 2; // FIXME 0.5 second timeout?	// length of timeout in millis
-	static const uint16_t timeOut = 10; // length of timeout in millis
+	static const uint16_t timeOut = 8000;	// length of timeout in somethings TODO work this out
 	// Used to tune delay cycle times
 		// Compensates for time setting up registries in delay func
 	static const uint8_t tuningVal = 21;	// was 24 for arduino
@@ -61,6 +59,7 @@ private:
 	uint16_t baud;
 	uint8_t halfDelay;
 	uint8_t fullDelay;
+
 };
 
 } // OTV0P2BASE

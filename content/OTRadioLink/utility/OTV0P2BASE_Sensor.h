@@ -54,7 +54,7 @@ class Sensor
 
     // Returns true if this sensor reading value passed is potentially valid, eg in-range.
     // Default is to always return true, ie all values potentially valid.
-    virtual bool isValid(T /*value*/) const { return(true); }	// FIXME commented out variable name to prevent compiler warning
+    virtual bool isValid(T value) const { return(true); }
 
     // Returns true if this sensor is definitely unavailable or behaving incorrectly.
     // The default case is to assume that if the code is wired in then the device will work.
