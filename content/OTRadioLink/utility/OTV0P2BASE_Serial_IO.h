@@ -105,6 +105,10 @@ void serialPrintAndFlush(unsigned long u, int fmt = DEC);
 // This enables the serial if required and shuts it down afterwards if it wasn't enabled.
 void serialPrintlnAndFlush();
 
+// Write a single (read-only) buffer of length len to serial followed by line-end and wait for transmission to complete.
+// This enables the serial if required and shuts it down afterwards if it wasn't enabled.
+void serialWriteAndFlush(char const *buf, uint8_t len);
+
 
 } // OTV0P2BASE
 

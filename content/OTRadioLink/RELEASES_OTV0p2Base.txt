@@ -19,6 +19,7 @@ pending:
     DE20151028:  getSubCycleTime() made static inline and migrated in
     DHD20151030: added USER2 and CO2 stats record space in EEPROM.
     DE20151102:  OTV0P2BASE_SoftSerial now working with V0p2_main
+    DE20151105:  Added serialWriteAndFlush to Serial_IO.
 
 
 
