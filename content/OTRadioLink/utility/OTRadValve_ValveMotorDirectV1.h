@@ -75,16 +75,16 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
           bool updateAndCompute(uint16_t ticksFromOpenToClosed, uint16_t ticksFromClosedToOpen);
 
           // Get a ticks either way.
-          inline uint16_t getTicksFromOpenToClosed() { return(ticksFromOpenToClosed); }
-          inline uint16_t getTicksFromClosedToOpen() { return(ticksFromClosedToOpen); }
+          inline uint16_t getTicksFromOpenToClosed() const { return(ticksFromOpenToClosed); }
+          inline uint16_t getTicksFromClosedToOpen() const { return(ticksFromClosedToOpen); }
 
           // Approx precision in % as min ticks / DR size in range [0,100].
           // A return value of zero indicates that sub-percent precision is possible.
-          inline uint8_t getApproxPrecisionPC() { return(approxPrecisionPC); }
+          inline uint8_t getApproxPrecisionPC() const { return(approxPrecisionPC); }
 
           // Get a reduced ticks open/closed in ratio to allow small conversions; at least a few bits.
-          inline uint8_t getTfotcSmall() { return(tfotcSmall); }
-          inline uint8_t getTfctoSmall() { return(tfctoSmall); }
+          inline uint8_t getTfotcSmall() const { return(tfotcSmall); }
+          inline uint8_t getTfctoSmall() const { return(tfctoSmall); }
 
           // Compute reconciliation/adjustment of ticks, and compute % position [0,100].
           // Reconcile any reverse ticks (and adjust with forward ticks if needed).
@@ -185,6 +185,10 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
     // Maintained across all states; defaults to 'closed'/0.
     uint8_t targetPC;
 
+    // True if using positional encoder, else using crude dead-reckoning.
+    // Only defined once calibration is complete.
+    bool usingPositionalEncoder() const { return(false); }
+
     // Run fast towards/to end stop as far as possible in this call.
     // Terminates significantly before the end of the sub-cycle.
     // Possibly allows partial recalibration, or at least re-homing.
@@ -207,9 +211,6 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
 
     // Report an apparent serious tracking error that may need full recalibration.
     void trackingError();
-
-    // True if using positional encoder, else using crude dead-reckoning.
-    bool usingPositionalEncoder() { return(false); }
 
   public:
     // Create an instance, passing in a reference to the non-NULL hardware driver.
