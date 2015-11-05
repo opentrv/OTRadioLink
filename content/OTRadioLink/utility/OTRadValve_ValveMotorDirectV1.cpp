@@ -45,7 +45,8 @@ static const uint8_t minMotorDRTicks = max(1, (uint8_t)(minMotorDRMS / OTV0P2BAS
 // Absolute limit in sub-cycle beyond which motor should not be started.
 // This should allow meaningful movement and stop and settle and no sub-cycle overrun.
 // Allows for up to 120ms enforced sleep either side of motor run for example.
-static const uint8_t sctAbsLimit = OTV0P2BASE::GSCT_MAX - max(1, ((OTV0P2BASE::GSCT_MAX+1)/10)) - OTRadValve::ValveMotorDirectV1HardwareDriverBase::minMotorRunupTicks - (uint8_t)(240 / OTV0P2BASE::SUBCYCLE_TICK_MS_RD);
+// This should not be so greedy as to (eg) make the CLI unusable: 90% is pushing it.
+static const uint8_t sctAbsLimit = OTV0P2BASE::GSCT_MAX - max(1, ((OTV0P2BASE::GSCT_MAX+1)/8)) - OTRadValve::ValveMotorDirectV1HardwareDriverBase::minMotorRunupTicks - (uint8_t)(240 / OTV0P2BASE::SUBCYCLE_TICK_MS_RD);
 
 // Absolute limit in sub-cycle beyond which motor should not be started for dead-reckoning pulse.
 // This should allow meaningful movement and no sub-cycle overrun.
