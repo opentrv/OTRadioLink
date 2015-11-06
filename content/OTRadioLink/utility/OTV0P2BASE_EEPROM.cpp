@@ -158,7 +158,7 @@ uint8_t getMinByHourStat(const uint8_t statsSet)
   {
   if(statsSet > (V0P2BASE_EE_END_STATS - V0P2BASE_EE_START_STATS) / V0P2BASE_EE_STATS_SET_SIZE) { return(STATS_UNSET_BYTE); } // Invalid set.
   uint8_t result = STATS_UNSET_BYTE;
-  for(uint8_t hh = 24; hh-- != 0; )
+  for(int8_t hh = 24; --hh >= 0; )
     {
     const uint8_t v = eeprom_read_byte((uint8_t *)(V0P2BASE_EE_START_STATS + (statsSet * (int)V0P2BASE_EE_STATS_SET_SIZE) + (int)hh));
     // Optimisation/cheat: all valid samples are less than STATS_UNSET_BYTE.
@@ -172,7 +172,7 @@ uint8_t getMaxByHourStat(const uint8_t statsSet)
   {
   if(statsSet > (V0P2BASE_EE_END_STATS - V0P2BASE_EE_START_STATS) / V0P2BASE_EE_STATS_SET_SIZE) { return(STATS_UNSET_BYTE); } // Invalid set.
   uint8_t result = STATS_UNSET_BYTE;
-  for(uint8_t hh = 24; hh-- != 0; )
+  for(int8_t hh = 24; --hh >= 0; )
     {
     const uint8_t v = eeprom_read_byte((uint8_t *)(V0P2BASE_EE_START_STATS + (statsSet * (int)V0P2BASE_EE_STATS_SET_SIZE) + (int)hh));
     if((STATS_UNSET_BYTE != v) &&
