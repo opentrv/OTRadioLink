@@ -642,6 +642,30 @@ static void testSleep()
     }
   }
 
+// Test basic behaviour of stats quartile routines.
+static void testQuartiles()
+  {
+  Serial.println("Quartiles");
+  // For whatever happens to be in EEPROM at the moment, test for sanity for all stats sets.
+  // This does not write to EEPROM, so will not wear it out.
+  // Make sure that nothing can be seen as top and bottom quartile at same time.
+  // Make sure that there cannot be too many items reported in each quartile
+  for(uint8_t i = 0; i < V0P2BASE_EE_STATS_SETS; ++i)
+    {
+    int bQ = 0, tQ = 0;
+    for(uint8_t j = 0; j < 24; ++j)
+      {
+      const bool inTopQ = OTV0P2BASE::inOutlierQuartile(true, i, j);
+      if(inTopQ) { ++tQ; }
+      const bool inBotQ = OTV0P2BASE::inOutlierQuartile(false, i, j);
+      if(inBotQ) { ++bQ; }
+      AssertIsTrue(!inTopQ || !inBotQ);
+      }
+    AssertIsTrue(bQ <= 6);
+    AssertIsTrue(tQ <= 6);
+    }
+  }
+
 // Test for expected behaviour of RNG8 PRNG starting from a known state.
 static void testRNG8()
   {
@@ -799,6 +823,7 @@ void loop()
   testRTCPersist();
   testEEPROM();
   testSleep();
+  testQuartiles();
   testRNG8();
   testEntropyGathering();
 
