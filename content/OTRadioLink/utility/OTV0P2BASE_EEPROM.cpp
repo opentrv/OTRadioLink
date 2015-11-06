@@ -17,7 +17,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 */
 
 /*
- EEPROM space allocation and utilities.
+ EEPROM space allocation and utilities including some of the simple rolling stats management.
 
  NOTE: NO EEPROM ACCESS SHOULD HAPPEN FROM ANY ISR CODE ELSE VARIOUS FAILURE MODES ARE POSSIBLE
  */
@@ -138,6 +138,29 @@ bool eeprom_smart_clear_bits(uint8_t *p, uint8_t mask)
     }
   return(false);
 #endif
+  }
+
+
+// Get raw stats value for hour HH [0,23] from stats set N from non-volatile (EEPROM) store.
+// A value of 0xff (255) means unset (or out of range); other values depend on which stats set is being used.
+// The stats set is determined by the order in memory.
+uint8_t getByHourStat(uint8_t hh, uint8_t statsSet)
+  {
+  if(statsSet > (V0P2BASE_EE_END_STATS - V0P2BASE_EE_START_STATS) / V0P2BASE_EE_STATS_SET_SIZE) { return((uint8_t) 0xff); } // Invalid set.
+  if(hh > 23) { return((uint8_t) 0xff); } // Invalid hour.
+  return(eeprom_read_byte((uint8_t *)(V0P2BASE_EE_START_STATS + (statsSet * (int)V0P2BASE_EE_STATS_SET_SIZE) + (int)hh)));
+  }
+
+
+// Clear all collected statistics, eg when moving device to a new room or at a major time change.
+// Requires 1.8ms per byte for each byte that actually needs erasing.
+//   * maxBytesToErase limit the number of bytes erased to this; strictly positive, else 0 to allow 65536
+// Returns true if finished with all bytes erased.
+bool zapStats(uint16_t maxBytesToErase)
+  {
+  for(uint8_t *p = (uint8_t *)V0P2BASE_EE_START_STATS; p <= (uint8_t *)V0P2BASE_EE_END_STATS; ++p)
+    { if(OTV0P2BASE::eeprom_smart_erase_byte(p)) { if(--maxBytesToErase == 0) { return(false); } } } // Stop if out of time...
+  return(true); // All done.
   }
 
 

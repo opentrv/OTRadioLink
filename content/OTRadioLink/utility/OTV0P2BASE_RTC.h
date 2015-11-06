@@ -104,6 +104,11 @@ uint_least16_t getMinutesSinceMidnightLT();
 // Thread-safe and ISR-safe.
 uint_least16_t getDaysSince1999LT();
 
+// Get previous hour in current local time, wrapping round from 0 to 23.
+uint_least8_t getPrevHourLT();
+// Get next hour in current local time, wrapping round from 23 back to 0.
+uint_least8_t getNextHourLT();
+
 
 // Set time as hours [0,23] and minutes [0,59].
 // Will ignore attempts to set bad values and return false in that case.

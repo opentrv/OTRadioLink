@@ -17,7 +17,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 */
 
 /*
- EEPROM space allocation and utilities.
+ EEPROM space allocation and utilities including some of the simple rolling stats management.
 
  NOTE: NO EEPROM ACCESS SHOULD HAPPEN FROM ANY ISR CODE ELSE VARIOUS FAILURE MODES ARE POSSIBLE
  */
@@ -177,6 +177,27 @@ bool eeprom_smart_erase_byte(uint8_t *p);
 // As with the AVR eeprom_XXX_byte() macros, not safe to use outside and within ISRs as-is.
 // Returns true iff a write was performed.
 bool eeprom_smart_clear_bits(uint8_t *p, uint8_t mask);
+
+
+
+// 'Unset'/invalid values for byte (eg raw EEPROM byte) and 2-byte signed int (eg after decompression).
+static const uint8_t STATS_UNSET_BYTE = 0xff;
+static const int16_t STATS_UNSET_INT = 0x7fff;
+
+// Clear all collected statistics, eg when moving device to a new room or at a major time change.
+// Requires 1.8ms per byte for each byte that actually needs erasing.
+//   * maxBytesToErase limit the number of bytes erased to this; strictly positive, else 0 to allow 65536
+// Returns true if finished with all bytes erased.
+bool zapStats(uint16_t maxBytesToErase = 0);
+
+// Get raw stats value for hour HH [0,23] from stats set N from non-volatile (EEPROM) store.
+// A value of STATS_UNSET_BYTE (0xff (255)) means unset (or out of range); other values depend on which stats set is being used.
+uint8_t getByHourStat(uint8_t hh, uint8_t statsSet);
+
+// Get minimum sample from given stats set ignoring all unset samples; STATS_UNSET_BYTE if all samples are unset.
+uint8_t getMinHourStat(uint8_t statsSet);
+// Get maximum sample from given stats set ignoring all unset samples; STATS_UNSET_BYTE if all samples are unset.
+uint8_t getMaxHourStat(uint8_t statsSet);
 
 
 }

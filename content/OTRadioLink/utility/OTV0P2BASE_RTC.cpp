@@ -192,6 +192,22 @@ uint_least16_t getDaysSince1999LT()
   }
 
 
+// Get previous hour in current local time, wrapping round from 0 to 23.
+uint_least8_t getPrevHourLT()
+  {
+  const uint_least16_t h = OTV0P2BASE::getHoursLT();
+  if(0 == h) { return(23); }
+  return(h - 1);
+  }
+// Get next hour in current local time, wrapping round from 23 back to 0.
+uint_least8_t getNextHourLT()
+  {
+  const uint_least16_t h = OTV0P2BASE::getHoursLT();
+  if(h >= 23) { return(0); }
+  return(h + 1);
+  }
+
+
 // Set time as hours [0,23] and minutes [0,59].
 // Will ignore attempts to set bad values and return false in that case.
 // Returns true if all OK and the time has been set.
