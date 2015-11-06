@@ -585,6 +585,25 @@ static void testCurrentSenseValveMotorDirect()
 
 // BASE
 
+// Test elements of RTC time persist/restore (without causing more EEPROM wear, if working correctly).
+static void testRTCPersist()
+  {
+  Serial.println("RTCPersist");
+  // Perform with interrupts shut out to avoid RTC ISR interferring.
+  // This will effectively stall the RTC.
+  bool minutesPersistOK;
+  ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
+    {
+    const uint_least16_t mb = OTV0P2BASE::getMinutesSinceMidnightLT();
+    OTV0P2BASE::persistRTC();
+    OTV0P2BASE::restoreRTC();
+    const uint_least16_t ma = OTV0P2BASE::getMinutesSinceMidnightLT();
+    // Check that persist/restore did not change live minutes value at least, within the 15-minute quantum used.
+    minutesPersistOK = (mb/15 == ma/15);
+    }
+    AssertIsTrue(minutesPersistOK);
+  }
+
 // Self-test of EEPROM functioning (and smart/split erase/write).
 // Will not usually perform any wear-inducing activity (is idempotent).
 static void testEEPROM()
@@ -777,6 +796,7 @@ void loop()
   testCurrentSenseValveMotorDirect();
 
   // OTV0p2Base
+  testRTCPersist();
   testEEPROM();
   testSleep();
   testRNG8();
