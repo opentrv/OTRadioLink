@@ -75,16 +75,16 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
           bool updateAndCompute(uint16_t ticksFromOpenToClosed, uint16_t ticksFromClosedToOpen);
 
           // Get a ticks either way.
-          inline uint16_t getTicksFromOpenToClosed() { return(ticksFromOpenToClosed); }
-          inline uint16_t getTicksFromClosedToOpen() { return(ticksFromClosedToOpen); }
+          inline uint16_t getTicksFromOpenToClosed() const { return(ticksFromOpenToClosed); }
+          inline uint16_t getTicksFromClosedToOpen() const { return(ticksFromClosedToOpen); }
 
           // Approx precision in % as min ticks / DR size in range [0,100].
           // A return value of zero indicates that sub-percent precision is possible.
-          inline uint8_t getApproxPrecisionPC() { return(approxPrecisionPC); }
+          inline uint8_t getApproxPrecisionPC() const { return(approxPrecisionPC); }
 
           // Get a reduced ticks open/closed in ratio to allow small conversions; at least a few bits.
-          inline uint8_t getTfotcSmall() { return(tfotcSmall); }
-          inline uint8_t getTfctoSmall() { return(tfctoSmall); }
+          inline uint8_t getTfotcSmall() const { return(tfotcSmall); }
+          inline uint8_t getTfctoSmall() const { return(tfctoSmall); }
 
           // Compute reconciliation/adjustment of ticks, and compute % position [0,100].
           // Reconcile any reverse ticks (and adjust with forward ticks if needed).
@@ -185,6 +185,10 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
     // Maintained across all states; defaults to 'closed'/0.
     uint8_t targetPC;
 
+    // True if using positional encoder, else using crude dead-reckoning.
+    // Only defined once calibration is complete.
+    bool usingPositionalEncoder() const { return(false); }
+
     // Run fast towards/to end stop as far as possible in this call.
     // Terminates significantly before the end of the sub-cycle.
     // Possibly allows partial recalibration, or at least re-homing.
@@ -236,6 +240,9 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
     // Coerced into range.
     void setTargetPC(uint8_t newPC) { targetPC = min(newPC, 100); }
 
+    // Get estimated minimum percentage open for significant flow for this device; strictly positive in range [1,99].
+    virtual uint8_t getMinPercentOpen() const;
+
     // Minimally wiggle the motor to give tactile feedback and/or show to be working.
     // May take a significant fraction of a second.
     // Finishes with the motor turned off.
@@ -244,12 +251,12 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
     // Called when end stop hit, eg by overcurrent detection.
     // Can be called while run() is in progress.
     // Is ISR-/thread- safe.
-    virtual void signalHittingEndStop(bool /*opening*/) { endStopDetected = true; }
+    virtual void signalHittingEndStop(bool opening) { endStopDetected = true; }
 
     // Called when encountering leading edge of a mark in the shaft rotation in forward direction (falling edge in reverse).
     // Can be called while run() is in progress.
     // Is ISR-/thread- safe.
-    virtual void signalShaftEncoderMarkStart(bool /*opening*/) { /* TODO */ }
+    virtual void signalShaftEncoderMarkStart(bool opening) { /* TODO */ }
 
     // Called with each motor run sub-cycle tick.
     // Is ISR-/thread- safe.
@@ -311,7 +318,7 @@ class ValveMotorDirectV1HardwareDriverBase : public OTRadValve::HardwareMotorDri
 
 // Implementation for V1 (REV7/DORM1) motor.
 // Usually not instantiated except within ValveMotorDirectV1.
-// Creating multiple instances almost certainly a BAD IDEA.
+// Creating multiple instances (trying to drive same motor) almost certainly a BAD IDEA.
 template <uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin>
 class ValveMotorDirectV1HardwareDriver : public ValveMotorDirectV1HardwareDriverBase
   {
@@ -453,6 +460,9 @@ class ValveMotorDirectV1 : public OTRadValve::AbstractRadValve
       logic.setTargetPC(newValue);
       return(true);
       }
+
+    // Get estimated minimum percentage open for significant flow for this device; strictly positive in range [1,99].
+    virtual uint8_t getMinPercentOpen() const { return(logic.getMinPercentOpen()); }
 
     // Call when given user signal that valve has been fitted (ie is fully on).
     virtual void signalValveFitted() { logic.signalValveFitted(); }
