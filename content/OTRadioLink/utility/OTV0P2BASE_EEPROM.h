@@ -195,9 +195,9 @@ bool zapStats(uint16_t maxBytesToErase = 0);
 uint8_t getByHourStat(uint8_t hh, uint8_t statsSet);
 
 // Get minimum sample from given stats set ignoring all unset samples; STATS_UNSET_BYTE if all samples are unset.
-uint8_t getMinHourStat(uint8_t statsSet);
+uint8_t getMinByHourStat(uint8_t statsSet);
 // Get maximum sample from given stats set ignoring all unset samples; STATS_UNSET_BYTE if all samples are unset.
-uint8_t getMaxHourStat(uint8_t statsSet);
+uint8_t getMaxByHourStat(uint8_t statsSet);
 
 //// Returns true iff there is a full set of stats (none unset) and this 3/4s of the values are higher than the supplied sample.
 //// Always returns false if all samples are the same.
