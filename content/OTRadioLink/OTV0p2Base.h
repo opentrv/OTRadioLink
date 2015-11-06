@@ -37,7 +37,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
   Basic AVR power consumption ticking an (empty) control loop at ~0.5Hz should be ~1uA.
  */
 
-// EEPROM allocation and access.
+// EEPROM space allocation and utilities including some of the simple rolling stats management.
 #include "utility/OTV0P2BASE_EEPROM.h"
 
 // Quick/simple PRNG (Pseudo-Random Number Generator).

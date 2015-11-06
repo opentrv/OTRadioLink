@@ -17,7 +17,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 */
 
 /*
- EEPROM space allocation and utilities.
+ EEPROM space allocation and utilities including some of the simple rolling stats management.
 
  NOTE: NO EEPROM ACCESS SHOULD HAPPEN FROM ANY ISR CODE ELSE VARIOUS FAILURE MODES ARE POSSIBLE
  */
@@ -177,6 +177,48 @@ bool eeprom_smart_erase_byte(uint8_t *p);
 // As with the AVR eeprom_XXX_byte() macros, not safe to use outside and within ISRs as-is.
 // Returns true iff a write was performed.
 bool eeprom_smart_clear_bits(uint8_t *p, uint8_t mask);
+
+
+
+// 'Unset'/invalid values for byte (eg raw EEPROM byte) and 2-byte signed int (eg after decompression).
+static const uint8_t STATS_UNSET_BYTE = 0xff;
+static const int16_t STATS_UNSET_INT = 0x7fff;
+
+// Clear all collected statistics, eg when moving device to a new room or at a major time change.
+// Requires 1.8ms per byte for each byte that actually needs erasing.
+//   * maxBytesToErase limit the number of bytes erased to this; strictly positive, else 0 to allow 65536
+// Returns true if finished with all bytes erased.
+bool zapStats(uint16_t maxBytesToErase = 0);
+
+// Get raw stats value for hour HH [0,23] from stats set N from non-volatile (EEPROM) store.
+// A value of STATS_UNSET_BYTE (0xff (255)) means unset (or out of range); other values depend on which stats set is being used.
+uint8_t getByHourStat(uint8_t hh, uint8_t statsSet);
+
+// Get minimum sample from given stats set ignoring all unset samples; STATS_UNSET_BYTE if all samples are unset.
+uint8_t getMinHourStat(uint8_t statsSet);
+// Get maximum sample from given stats set ignoring all unset samples; STATS_UNSET_BYTE if all samples are unset.
+uint8_t getMaxHourStat(uint8_t statsSet);
+
+//// Returns true iff there is a full set of stats (none unset) and this 3/4s of the values are higher than the supplied sample.
+//// Always returns false if all samples are the same.
+////   * s is start of (24) sample set in EEPROM
+////   * sample to be tested for being in lower quartile
+//bool inBottomQuartile(const uint8_t *sE, const uint8_t sample);
+//// Returns true iff there is a full set of stats (none unset) and this 3/4s of the values are lower than the supplied sample.
+//// Always returns false if all samples are the same.
+////   * s is start of (24) sample set in EEPROM
+////   * sample to be tested for being in lower quartile
+//bool inTopQuartile(const uint8_t *sE, const uint8_t sample);
+
+// Returns true if specified hour is (conservatively) in the specified outlier quartile for specified stats set.
+// Returns false if a full set of stats not available, eg including the specified hour.
+// Always returns false if all samples are the same.
+//   * inTop  test for membership of the top quartile if true, bottom quartile if false
+//   * statsSet  stats set number to use.
+//   * hour  hour of day to use or inOutlierQuartile_CURRENT_HOUR for current hour or inOutlierQuartile_NEXT_HOUR for next hour
+static const uint8_t inOutlierQuartile_CURRENT_HOUR = ~0 - 1;
+static const uint8_t inOutlierQuartile_NEXT_HOUR = ~0;
+bool inOutlierQuartile(uint8_t inTop, uint8_t statsSet, uint8_t hour = inOutlierQuartile_CURRENT_HOUR);
 
 
 }
