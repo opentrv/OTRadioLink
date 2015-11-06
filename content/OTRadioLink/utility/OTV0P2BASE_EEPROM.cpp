@@ -154,7 +154,7 @@ uint8_t getByHourStat(uint8_t hh, uint8_t statsSet)
   }
 
 // Get minimum sample from given stats set ignoring all unset samples; STATS_UNSET_BYTE if all samples are unset.
-uint8_t getMinByHourStat(uint8_t statsSet)
+uint8_t getMinByHourStat(const uint8_t statsSet)
   {
   if(statsSet > (V0P2BASE_EE_END_STATS - V0P2BASE_EE_START_STATS) / V0P2BASE_EE_STATS_SET_SIZE) { return(STATS_UNSET_BYTE); } // Invalid set.
   uint8_t result = STATS_UNSET_BYTE;
@@ -168,7 +168,7 @@ uint8_t getMinByHourStat(uint8_t statsSet)
   }
 
 // Get maximum sample from given stats set ignoring all unset samples; STATS_UNSET_BYTE if all samples are unset.
-uint8_t getMaxByHourStat(uint8_t statsSet)
+uint8_t getMaxByHourStat(const uint8_t statsSet)
   {
   if(statsSet > (V0P2BASE_EE_END_STATS - V0P2BASE_EE_START_STATS) / V0P2BASE_EE_STATS_SET_SIZE) { return(STATS_UNSET_BYTE); } // Invalid set.
   uint8_t result = STATS_UNSET_BYTE;
