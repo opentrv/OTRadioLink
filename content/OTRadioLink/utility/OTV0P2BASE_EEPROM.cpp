@@ -192,7 +192,7 @@ bool inBottomQuartile(const uint8_t *sE, const uint8_t sample)
   for(int8_t hh = 24; --hh >= 0; ++sE)
     {
     const uint8_t v = eeprom_read_byte(sE);
-    if(OTV0P2BASE::STATS_UNSET_INT == v) { return(false); } // Abort if not a full set of stats (eg at least one full day's worth).
+    if(OTV0P2BASE::STATS_UNSET_BYTE == v) { return(false); } // Abort if not a full set of stats (eg at least one full day's worth).
     if(v > sample) { if(++valuesHigher >= 18) { return(true); } } // Stop as soon as known to be in lower quartile.
     }
   return(false); // Not in lower quartile.
@@ -208,7 +208,7 @@ bool inTopQuartile(const uint8_t *sE, const uint8_t sample)
   for(int8_t hh = 24; --hh >= 0; ++sE)
     {
     const uint8_t v = eeprom_read_byte(sE);
-    if(OTV0P2BASE::STATS_UNSET_INT == v) { return(false); } // Abort if not a full set of stats (eg at least one full day's worth).
+    if(OTV0P2BASE::STATS_UNSET_BYTE == v) { return(false); } // Abort if not a full set of stats (eg at least one full day's worth).
     if(v < sample) { if(++valuesLower >= 18) { return(true); } } // Stop as soon as known to be in upper quartile.
     }
   return(false); // Not in upper quartile.
@@ -227,7 +227,7 @@ bool inOutlierQuartile(const uint8_t inTop, const uint8_t statsSet, const uint8_
     ((hour > 23) ? OTV0P2BASE::getNextHourLT() : hour);
   const uint8_t *ss = (uint8_t *)(V0P2BASE_EE_STATS_START_ADDR(statsSet));
   const uint8_t sample = eeprom_read_byte(ss + hh);
-  if(OTV0P2BASE::STATS_UNSET_INT == sample) { return(false); }
+  if(OTV0P2BASE::STATS_UNSET_BYTE == sample) { return(false); }
   if(inTop) { return(inTopQuartile(ss, sample)); }
   return(inBottomQuartile(ss, sample));
   }
