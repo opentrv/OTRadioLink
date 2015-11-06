@@ -123,15 +123,16 @@ bool OTSIM900Link::sendRaw(const uint8_t *buf, uint8_t buflen, int8_t , TXpower 
 	OTV0P2BASE::serialPrintlnAndFlush(F("Send Raw"));
 #endif // OTSIM900LINK_DEBUG
 	bSent = sendUDP((const char *)buf, buflen);
-	if(bSent) return true;
-	else {	// Shut GPRS and try again if failed
-		shutGPRS();
-		delay(1000);
-
-		openUDP();
-		delay(5000);
-		return sendUDP((const char *)buf, buflen);
-	}
+//	if(bSent) return true;
+//	else {	// Shut GPRS and try again if failed
+//		shutGPRS();
+//		delay(1000);
+//
+//		openUDP();
+//		delay(5000);
+//		return sendUDP((const char *)buf, buflen);
+//	}
+	return bSent;
 }
 
 /**
@@ -472,15 +473,15 @@ bool OTSIM900Link::setAPN()
  */
 bool OTSIM900Link::startGPRS()
 {
-  char data[96];
+  char data[16];
   print(AT_START);
   print(AT_START_GPRS);
   print(AT_END);
   timedBlockingRead(data, sizeof(data));
 
-  data[90] = '\0';
-	OTV0P2BASE::serialPrintAndFlush(data);
-	OTV0P2BASE::serialPrintlnAndFlush();
+//  data[90] = '\0';
+//	OTV0P2BASE::serialPrintAndFlush(data);
+//	OTV0P2BASE::serialPrintlnAndFlush();
 
 
   // response stuff
