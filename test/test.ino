@@ -642,7 +642,7 @@ static void testSleep()
     }
   }
 
-// Test basic behaviour of stats quartile routines.
+// Test basic behaviour of stats quartile and related routines.
 static void testQuartiles()
   {
   Serial.println("Quartiles");
@@ -663,6 +663,8 @@ static void testQuartiles()
       }
     AssertIsTrue(bQ <= 6);
     AssertIsTrue(tQ <= 6);
+    // Max can never be less than min, even if no samples are defined.
+    AssertIsTrue(OTV0P2BASE::getMaxByHourStat(i) >= OTV0P2BASE::getMinByHourStat(i));
     }
   }
 
