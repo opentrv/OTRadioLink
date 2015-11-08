@@ -215,17 +215,11 @@ static void testCurrentSenseValveMotorDirect()
   }
 
 
-
-
-
-
-
-
 // Test for general sanity of computation of desired valve position.
-static void testComputeRequiredTRVPercentOpen()
+// In particular test the logic in ModelledRadValveState for extreme positions.
+static void testMRVSExtremes()
   {
-#ifdef ENABLE_MODELLED_RAD_VALVE
-  DEBUG_SERIAL_PRINTLN_FLASHSTRING("ComputeRequiredTRVPercentOpen");
+  Serial.println("MRVSExtremes");
   // Test that if the real temperature is zero
   // and the initial valve position is anything less than 100%
   // that after one tick (with mainly defaults)
@@ -234,9 +228,9 @@ static void testComputeRequiredTRVPercentOpen()
   // and also test that the fully-open state is reached in a bounded number of ticks ie bounded time.
   static const int maxFullTravelMins = 25;
 //  DEBUG_SERIAL_PRINTLN_FLASHSTRING("open...");
-  ModelledRadValveInputState is0(0);
-  is0.targetTempC = OTV0P2BASE::randRNG8NextBoolean() ? FROST : WARM;
-  ModelledRadValveState rs0;
+  OTRadValve::ModelledRadValveInputState is0(0);
+  is0.targetTempC = OTV0P2BASE::randRNG8NextBoolean() ? 5 : 25;
+  OTRadValve::ModelledRadValveState rs0;
   const uint8_t valvePCOpenInitial0 = OTV0P2BASE::randRNG8() % 100;
   volatile uint8_t valvePCOpen = valvePCOpenInitial0;
   for(int i = maxFullTravelMins; --i >= 0; ) // Must fully open in reasonable time.
@@ -265,9 +259,9 @@ static void testComputeRequiredTRVPercentOpen()
   //   * Check that linger was long enough (if linger threshold is higher enough to allow it).
   // Also check for some correct initialisation and 'velocity'/smoothing behaviour.
 //  DEBUG_SERIAL_PRINTLN_FLASHSTRING("close...");
-  ModelledRadValveInputState is1(100<<4);
-  is1.targetTempC = OTV0P2BASE::randRNG8NextBoolean() ? FROST : WARM;
-  ModelledRadValveState rs1;
+  OTRadValve::ModelledRadValveInputState is1(100<<4);
+  is1.targetTempC = OTV0P2BASE::randRNG8NextBoolean() ? 5 : 25;
+  OTRadValve::ModelledRadValveState rs1;
   AssertIsTrue(!rs1.initialised); // Initialisation not yet complete.
   const uint8_t valvePCOpenInitial1 = 1 + (OTV0P2BASE::randRNG8() % 100);
   valvePCOpen = valvePCOpenInitial1;
@@ -296,9 +290,9 @@ static void testComputeRequiredTRVPercentOpen()
   AssertIsEqual(0, valvePCOpen);
   AssertIsEqual(valvePCOpenInitial1, rs1.cumulativeMovementPC);
   AssertIsTrue(hitLinger == lookForLinger);
-  if(lookForLinger) { AssertIsTrue(lingerMins >= min(is1.minPCOpen, DEFAULT_MAX_RUN_ON_TIME_M)); }
+  if(lookForLinger) { AssertIsTrue(lingerMins >= min(is1.minPCOpen, OTRadValve::DEFAULT_MAX_RUN_ON_TIME_M)); }
   // Filtering should not have been engaged and velocity should be zero (temperature is flat).
-  for(int i = ModelledRadValveState::filterLength; --i >= 0; ) { AssertIsEqual(100<<4, rs1.prevRawTempC16[i]); }
+  for(int i = OTRadValve::ModelledRadValveState::filterLength; --i >= 0; ) { AssertIsEqual(100<<4, rs1.prevRawTempC16[i]); }
   AssertIsEqual(100<<4, rs1.getSmoothedRecent());
 //  AssertIsEqual(0, rs1.getVelocityC16PerTick());
   AssertIsTrue(!rs1.isFiltering);
@@ -317,26 +311,21 @@ static void testComputeRequiredTRVPercentOpen()
 //  AssertIsEqualWithDelta(step2C16, rs2.getVelocityC16PerTick(), 2);
   // Test that soft setback works as expected to support dark-based quick setback.
   // ENERGY SAVING RULE TEST (TODO-442 2a: "Setback in WARM mode must happen in dark (quick response) or long vacant room.")
-#ifndef OMIT_MODULE_LDROCCUPANCYDETECTION
-      //AmbLight._TEST_set_multi_((j != 0) ? 1023 : 0, j != 0);
     // ENERGY SAVING RULE TEST (TODO-442 2a: "Setback in WARM mode must happen in dark (quick response) or long vacant room.")
-    ModelledRadValveInputState is3(100<<4);
-    is3.targetTempC = WARM;
+    OTRadValve::ModelledRadValveInputState is3(100<<4);
+    is3.targetTempC = 25;
     // Try a range of (whole-degree) offsets...
     for(int offset = -2; offset <= +2; ++offset)
       {
       // Try soft setback off and on.
       for(int s = 0; s < 2; ++s) 
         {
-#if defined(ALLOW_SOFT_SETBACK)
-        is3.softSetback = (0 != s);
-#endif
         // Other than in the proportional range, valve should unconditionally be driven off/on by gross temperature error.
         if(0 != offset)
           {
           is3.refTempC16 = (is3.targetTempC + offset) << 4;
           // Where adjusted reference temperature is (well) below target, valve should be driven on.
-          ModelledRadValveState rs3a;
+          OTRadValve::ModelledRadValveState rs3a;
           valvePCOpen = 0;
           rs3a.tick(valvePCOpen, is3);
 //DEBUG_SERIAL_PRINT('@');
@@ -346,7 +335,7 @@ static void testComputeRequiredTRVPercentOpen()
 //DEBUG_SERIAL_PRINTLN();
           AssertIsTrue((offset < 0) ? (valvePCOpen > 0) : (0 == valvePCOpen));
           // Where adjusted reference temperature is (well) above target, valve should be driven off.
-          ModelledRadValveState rs3b;
+          OTRadValve::ModelledRadValveState rs3b;
           valvePCOpen = 100;
           rs3b.tick(valvePCOpen, is3);
           AssertIsTrue((offset < 0) ? (100 == valvePCOpen) : (valvePCOpen < 100));
@@ -355,32 +344,19 @@ static void testComputeRequiredTRVPercentOpen()
           {
           // Below the half way mark the valve should always be opened (from off), soft setback or not.
           is3.refTempC16 = (is3.targetTempC << 4) + 0x4;
-          ModelledRadValveState rs3c;
+          OTRadValve::ModelledRadValveState rs3c;
           valvePCOpen = 0;
           rs3c.tick(valvePCOpen, is3);
           AssertIsTrue(valvePCOpen > 0);
           // Above the half way mark the valve should only be opened without soft setback.
           is3.refTempC16 = (is3.targetTempC << 4) + 0xc;
-          ModelledRadValveState rs3d;
+          OTRadValve::ModelledRadValveState rs3d;
           valvePCOpen = 0;
           rs3d.tick(valvePCOpen, is3);
-#if 1 /* TODO-453: drift down soft by default */
           AssertIsTrue(0 == valvePCOpen);
-#elif defined(ALLOW_SOFT_SETBACK)
-          AssertIsTrue(is3.softSetback ? (0 == valvePCOpen) : (valvePCOpen > 0));
-#else
-          AssertIsTrue(valvePCOpen > 0);
-#endif
           }
         }
       }
-
-#if defined(QUICK_DARK_SETBACK_IS_SOFT)
-
-    // TODO
-#endif
-#endif
-#endif // ENABLE_MODELLED_RAD_VALVE
   }
 
 
@@ -411,7 +387,7 @@ void loop()
 
   testCSVMDC();
   testCurrentSenseValveMotorDirect();
-  testComputeRequiredTRVPercentOpen();
+  testMRVSExtremes();
 
 
   // Announce successful loop completion and count.
