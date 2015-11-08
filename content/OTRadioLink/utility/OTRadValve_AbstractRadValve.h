@@ -160,7 +160,8 @@ class HardwareMotorDriverInterface
     //   * callback  callback handler
     virtual void motorRun(uint8_t maxRunTicks, motor_drive dir, HardwareMotorDriverInterfaceCallbackHandler &callback) = 0;
   };
-    }
 
+
+    }
 
 #endif

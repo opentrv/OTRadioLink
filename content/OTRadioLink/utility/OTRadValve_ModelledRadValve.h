@@ -16,22 +16,28 @@ under the Licence.
 Author(s) / Copyright (s): Damon Hart-Davis 2015
 */
 
-#ifndef ARDUINO_LIB_OTRADVALVE_H
-#define ARDUINO_LIB_OTRADVALVE_H
+/*
+ * OpenTRV model and smart control of (thermostatic) radiator valve.
+ *
+ * Also includes some common supporting base/interface classes.
+ */
 
-#define ARDUINO_LIB_OTRADVALVE_VERSION_MAJOR 0
-#define ARDUINO_LIB_OTRADVALVE_VERSION_MINOR 9
+#ifndef ARDUINO_LIB_OTRADVALVE_MODELLEDRADVALVE_H
+#define ARDUINO_LIB_OTRADVALVE_MODELLEDRADVALVE_H
 
-// Radiator valve support, abstract and common implementations.
 
-// Abstract/base interface for basic (thermostatic) radiator valves.
-#include "utility/OTRadValve_AbstractRadValve.h"
+#include <stddef.h>
+#include <stdint.h>
+#include <OTV0p2Base.h>
 
-// OpenTRV model and smart control of (thermostatic) radiator valve.
-#include "utility/OTRadValve_ModelledRadValve.h"
 
-// Driver for DORM1/REV7 direct motor drive.
-#include "utility/OTRadValve_ValveMotorDirectV1.h"
+// Use namespaces to help avoid collisions.
+namespace OTRadValve
+    {
 
+
+
+
+    }
 
 #endif

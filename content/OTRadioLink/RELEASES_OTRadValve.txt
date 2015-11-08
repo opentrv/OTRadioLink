@@ -13,3 +13,4 @@ pending:
     DHD20151029: moved ValveMotorDirectV1 down to lib.
     DHD20151105: making valve slightly less greedy on max motor run time from 2s cycle.
     DHD20151105: applying other tweaks from initial deployment in live heating system.
+    DHD20151108: starting to move ModelledRadValve down for extra unit tests.
