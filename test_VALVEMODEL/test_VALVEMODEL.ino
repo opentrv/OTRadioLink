@@ -375,9 +375,9 @@ static void testMRVSOpenFastFromCold593()
   // (and filtering is not switched on)
   // that after one tick
   // that the valve is open to at least DEFAULT_VALVE_PC_MODERATELY_OPEN.
-  OTRadValve::ModelledRadValveInputState is0(0);
+  // Starting temp >2C below target, even with 0.5 offset.
+  OTRadValve::ModelledRadValveInputState is0(OTV0P2BASE::randRNG8() & 0xf8);
   is0.targetTempC = 18; // Modest target temperature.
-  is0.refTempC16 = OTV0P2BASE::randRNG8() & 0xf8; // Starting temp >2C below, even with 0.5 offset.
   OTRadValve::ModelledRadValveState rs0;
   volatile uint8_t valvePCOpen = OTV0P2BASE::randRNG8() % OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN;
   // Futz some input parameters that should not matter.
