@@ -227,31 +227,30 @@ DEBUG_SERIAL_PRINTLN();
       // Open glacially if explicitly requested or if temperature overshoot has happened or is a danger,
       // or if there's likely no one going to care about getting on target particularly quickly (or would prefer reduced noise).
       //
-      // If already at least the expected minimum % open for significant flow,
-      //   and wide deadband (eg in FROST mode or dark) to avoid over-eager pre-warm / anticipation for example (TODO-467)
-      // OR
-      //   filtering is on indicating rapid recent changes or jitter,
-      //   and the last raw change was upwards,
-      // then force glacial mode to try to damp oscillations and avoid overshoot and excessive valve movement (TODO-453).
+      // If already at least at the expected minimum % open for significant flow,
+      // AND a wide deadband has been allowed by the caller (eg room dark or filtering is on or doing pre-warm)
+      //   if not way below target to avoid over-eager pre-warm / anticipation for example (TODO-467)
+      //     OR
+      //   if filtering is on indicating rapid recent changes or jitter, and the last raw change was upwards,
+      // THEN force glacial mode to try to damp oscillations and avoid overshoot and excessive valve movement (TODO-453).
       const bool beGlacial = inputState.glacial ||
-          ((valvePCOpen >= inputState.minPCOpen) &&
+          ((valvePCOpen >= inputState.minPCOpen) && inputState.widenDeadband &&
               (
 #if defined(GLACIAL_ON_WITH_WIDE_DEADBAND)
-               // Don't work so hard to reach and hold target temp with wide deadband
-               // (widened eg because room is dark, or this is a pre-warm in FROST mode, or temperature is gyrating)
-               // and not comfort mode nor massively below (possibly already setback) target temp.
-               (inputState.widenDeadband && inputState.hasEcoBias && !vBelowTarget) ||
+               // Don't work so hard to reach and hold target temp
+               // if not in comfort mode nor massively below (possibly already setback) target temp.
+               (inputState.hasEcoBias && !vBelowTarget) ||
 #endif
                (isFiltering && (getRawDelta() > 0)))); // FIXME: maybe redundant w/ GLACIAL_ON_WITH_WIDE_DEADBAND and widenDeadband set when isFiltering is true
       if(beGlacial) { return(valvePCOpen + 1); }
 
-      // If well below target and without a wide deadband,
+      // If well below target (and without a wide deadband),
       // go straight to 'moderately open' if less open currently (TODO-593),
       // which should allow flow and turn the boiler on ASAP,
       // a little like a mini-BAKE.
+      // For this to work, don't set a wide deadband when, eg, user has just touched the controls.
       const uint8_t cappedModeratelyOpen = min(inputState.maxPCOpen, OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN);
-      if(vBelowTarget && (valvePCOpen < cappedModeratelyOpen) &&
-          !inputState.widenDeadband) // FIXME: allow this anyway if user recently touched the controls (TODO-593).
+      if(vBelowTarget && !inputState.widenDeadband && (valvePCOpen < cappedModeratelyOpen))
           { return(cappedModeratelyOpen); }
 
       // Ensure that the valve opens quickly from cold for acceptable response (TODO-593)
