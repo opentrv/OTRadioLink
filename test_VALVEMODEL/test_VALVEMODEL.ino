@@ -216,7 +216,7 @@ static void testCurrentSenseValveMotorDirect()
 
 
 // Test for general sanity of computation of desired valve position.
-// In particular test the logic in ModelledRadValveState for extreme positions.
+// In particular test the logic in ModelledRadValveState for starting from extreme positions.
 static void testMRVSExtremes()
   {
   Serial.println("MRVSExtremes");
