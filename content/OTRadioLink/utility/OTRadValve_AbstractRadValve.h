@@ -102,12 +102,16 @@ class AbstractRadValve : public OTV0P2BASE::SimpleTSUint8Actuator
 static const uint8_t DEFAULT_VALVE_PC_MIN_REALLY_OPEN = 15;
 
 // Safer value for valves to very likely be significantly open, in range [DEFAULT_VALVE_PC_MIN_REALLY_OPEN,DEFAULT_VALVE_PC_FAIRLY_OPEN].
+// NOTE: below this value is likely to let a boller switch off also,
+// so DO NOT CHANGE this value between boiler and valve code without good reason.
 // DHD20151030: with initial dead-reckoning direct drive impl valves may not be open until ~45%.
 static const uint8_t DEFAULT_VALVE_PC_SAFER_OPEN = 50;
 
 // Default valve percentage at which significant heating power is being provided.
 // For many valves much of the time this may be effectively fully open,
 // ie no change beyond this makes significant difference to heat delivery.
+// NOTE: at/above this value is likely to force a boiler on also,
+// so DO NOT CHANGE this value between boiler and valve code without good reason.
 // Should be significantly higher than DEFAULT_MIN_VALVE_PC_REALLY_OPEN.
 // DHD20151014: has been ~33% but ~66% more robust, eg for tricky all-in-one units.
 static const uint8_t DEFAULT_VALVE_PC_MODERATELY_OPEN = 67;

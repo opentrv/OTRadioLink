@@ -251,17 +251,15 @@ DEBUG_SERIAL_PRINTLN();
       // a little like a mini-BAKE.
       const uint8_t cappedModeratelyOpen = min(inputState.maxPCOpen, OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN);
       if(vBelowTarget && (valvePCOpen < cappedModeratelyOpen) &&
-          !inputState.widenDeadband)
+          !inputState.widenDeadband) // FIXME: allow this anyway if user recently touched the controls (TODO-593).
           { return(cappedModeratelyOpen); }
 
-      // Ensure that the valve opens quickly from cold for acceptable response (TODO-593).
+      // Ensure that the valve opens quickly from cold for acceptable response (TODO-593)
+      // both locally in terms of valve position and also in terms of the boiler responding.
       // Less fast if already moderately open or with a wide deadband.
       const uint8_t slewRate =
           ((valvePCOpen >= OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN) || !inputState.widenDeadband) ?
-              TRV_MAX_SLEW_PC_PER_MIN :
-              // Open VFAST until almost all valves would be significantly open.
-              ((valvePCOpen >= OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN) ?
-                  TRV_SLEW_PC_PER_MIN_FAST : TRV_SLEW_PC_PER_MIN_VFAST);
+              TRV_MAX_SLEW_PC_PER_MIN : TRV_SLEW_PC_PER_MIN_VFAST;
       const uint8_t minOpenFromCold = max(slewRate, inputState.minPCOpen);
       // Open to 'minimum' likely open state immediately if less open currently.
       if(valvePCOpen < minOpenFromCold) { return(minOpenFromCold); }
