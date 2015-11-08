@@ -228,6 +228,21 @@ static const uint8_t SUBCYCLE_TICK_MS_RN = ((BASIC_CYCLE_MS + ((GSCT_MAX+1)/2)) 
 //#define msRemainingThisBasicCycle() (SUBCYCLE_TICK_MS_RD * (GSCT_MAX-OTV0P2BASE::getSubCycleTime()))
 static inline uint16_t msRemainingThisBasicCycle() { return (SUBCYCLE_TICK_MS_RD * (GSCT_MAX-getSubCycleTime() ) ); }
 
+// Return some approximate/fast measure of CPU cycles elapsed.  Will not count when (eg) CPU/TIMER0 not running.
+// Rather depends on Arduino/wiring setup for micros()/millis().
+#ifndef DONT_USE_TIMER0
+#if defined(TCNT0)
+static inline uint8_t getCPUCycleCount() { return((uint8_t)TCNT0); }
+#elif defined(TCNT0L)
+static inline uint8_t getCPUCycleCount() { return((uint8_t)TCNT0L); }
+#else
+#error TIMER0 not defined
+#endif
+#else
+#define getCPUCycleCount() ((uint8_t)0) // Fixed result if TIMER0 is not used (for normal Arduino purposes).
+#endif
+
+
 } // OTV0P2BASE
 
 
