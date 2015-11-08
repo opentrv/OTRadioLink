@@ -23,7 +23,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
  * does not need V0p2 boards or hardware.
  *
  * Some tests here may duplicate those in the core libraries,
- * which is OK to double-check some core functionality.
+ * which is OK in order to double-check some core functionality.
  */
 
 // Arduino libraries imported here (even for use in other .cpp files).
