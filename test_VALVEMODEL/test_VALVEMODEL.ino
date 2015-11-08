@@ -359,9 +359,38 @@ static void testMRVSExtremes()
       }
   }
 
-
-
-
+// Test the logic in ModelledRadValveState to open fast from well below target (TODO-593).
+// This is to cover the case where the use manually turns on/up the valve
+// and expects quick response from the valve
+// and the remote boiler (which may require >= DEFAULT_VALVE_PC_MODERATELY_OPEN to start).
+// This relies on no widened deadband being set.
+// It may also require filtering (from gyrating temperatures) not to have been invoked.
+static void testMRVSOpenFastFromCold593()
+  {
+  Serial.println("MRVSOpenFastFromCold593");
+  // Test that if the real temperature is at least 2 degrees below the target
+  // and the initial valve position is 0/closed
+  // (or any below OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN)
+  // and a widened deadband has not been requested
+  // (and filtering is not switched on)
+  // that after one tick
+  // that the valve is open to at least DEFAULT_VALVE_PC_MODERATELY_OPEN.
+  OTRadValve::ModelledRadValveInputState is0(0);
+  is0.targetTempC = 18; // Modest target temperature.
+  is0.refTempC16 = OTV0P2BASE::randRNG8() & 0xf8; // Starting temp >2C below, even with 0.5 offset.
+  OTRadValve::ModelledRadValveState rs0;
+  volatile uint8_t valvePCOpen = OTV0P2BASE::randRNG8() % OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN;
+  // Futz some input parameters that should not matter.
+  is0.widenDeadband = false;
+  rs0.isFiltering = OTV0P2BASE::randRNG8NextBoolean();
+  is0.hasEcoBias = OTV0P2BASE::randRNG8NextBoolean();
+  // Run the algorithm one tick.
+  rs0.tick(valvePCOpen, is0);
+  const uint8_t newValvePos = valvePCOpen;
+  AssertIsTrue(newValvePos >= OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN);
+  AssertIsTrue(newValvePos <= 100);
+  AssertIsTrue(rs0.valveMoved);
+  }
 
 
 // To be called from loop() instead of main code when running unit tests.
@@ -388,6 +417,7 @@ void loop()
   testCSVMDC();
   testCurrentSenseValveMotorDirect();
   testMRVSExtremes();
+  testMRVSOpenFastFromCold593();
 
 
   // Announce successful loop completion and count.

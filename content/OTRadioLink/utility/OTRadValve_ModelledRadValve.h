@@ -188,7 +188,7 @@ struct ModelledRadValveState
 
     // Computes a new valve position given supplied input state including the current valve position; [0,100].
     // Uses no state other than that passed as the arguments (thus unit testable).
-    // FIXME: This supplied 'retained' state may be updated, nothing else is changed.
+    // Does not alter any of the input state.
     // Uses hysteresis and a proportional control and some other cleverness.
     // Is always willing to turn off quickly, but on slowly (AKA "slow start" algorithm),
     // and tries to eliminate unnecessary 'hunting' which makes noise and uses actuator energy.
