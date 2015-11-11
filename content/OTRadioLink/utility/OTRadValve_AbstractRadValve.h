@@ -45,6 +45,10 @@ namespace OTRadValve
 // and/or expose alternative API for the time-critical elements.
 class AbstractRadValve : public OTV0P2BASE::SimpleTSUint8Actuator
   {
+  protected:
+    // Prevent direct creation of naked instance of this base/abstract class.
+    AbstractRadValve() { }
+
   public:
     // Returns true if this target valve open % value passed is valid, ie in range [0,100].
     virtual bool isValid(const uint8_t value) const { return(value <= 100); }
@@ -88,6 +92,17 @@ class AbstractRadValve : public OTV0P2BASE::SimpleTSUint8Actuator
     // Finishes with the motor turned off.
     // By default does nothing.
     virtual void wiggle() { }
+  };
+
+
+// Null radiator valve driver implementation.
+// Never in normal (nor error) state.
+class NullRadValve : public AbstractRadValve
+  {
+  public:
+    // Returns true iff not in error state and not (re)calibrating/(re)initialising/(re)syncing.
+    // Always false for null implementation.
+    virtual bool isInNormalRunState() const { return(false); }
   };
 
 
