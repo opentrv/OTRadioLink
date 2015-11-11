@@ -70,10 +70,10 @@ void OTSoftSerial::end()
 uint8_t OTSoftSerial::read()
 {
 	uint8_t val = 0;
-	uint16_t timer = timeOut;
 
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
+		uint16_t timer = timeOut;
 		// wait for line to go low
 		while (fastDigitalRead(rxPin)) {
 			if (--timer == 0) return 0;
@@ -106,16 +106,15 @@ uint8_t OTSoftSerial::read()
  */
 uint8_t OTSoftSerial::read(uint8_t *buf, uint8_t len)
 {
-	uint16_t timer = 0;
-	uint8_t count = 0;
-	uint8_t shortDelay = 1;
-	uint8_t val = 0;
+	register uint8_t count = 0;
 
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
 		while (count < len) {
 			// wait for line to go low
-			timer = timeOut;
+			register uint8_t val;
+			register uint16_t timer = timeOut;
+			val = 0;
 			while (fastDigitalRead(rxPin)) {
 				if (--timer == 0) return count;
 			}
@@ -131,7 +130,6 @@ uint8_t OTSoftSerial::read(uint8_t *buf, uint8_t len)
 
 			// write val to buf and increment buf and count ready for next char
 			*buf = val;
-			val = 0;
 			buf++;
 			count++;
 
