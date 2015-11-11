@@ -41,6 +41,8 @@ namespace OTRadValve
 // Implementations may require read() called at a fixed rate,
 // though should tolerate calls being skipped when time is tight for other operations,
 // since read() may take substantial time (hundreds of milliseconds).
+// Implementations must document when read() calls are critical,
+// and/or expose alternative API for the time-critical elements.
 class AbstractRadValve : public OTV0P2BASE::SimpleTSUint8Actuator
   {
   public:
