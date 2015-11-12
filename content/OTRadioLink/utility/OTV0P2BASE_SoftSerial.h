@@ -54,7 +54,7 @@ private:
 	static const uint16_t timeOut = 8000;	// length of timeout in somethings TODO work this out
 	// Used to tune delay cycle times
 		// Compensates for time setting up registries in delay func
-	static const uint8_t tuningVal = 21;	// was 24 for arduino
+	static const uint8_t tuningVal = 22;	// was 24 for arduino
 
 	uint16_t baud;
 	uint8_t halfDelay;

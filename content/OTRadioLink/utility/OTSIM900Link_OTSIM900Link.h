@@ -29,7 +29,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
 #include <string.h>
 #include <stdint.h>
 
-#define OTSIM900LINK_DEBUG
+//#define OTSIM900LINK_DEBUG
 
 /**
  * @note	To use library:

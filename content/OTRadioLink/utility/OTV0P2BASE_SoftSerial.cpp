@@ -45,13 +45,14 @@ OTSoftSerial::OTSoftSerial(uint8_t _rxPin, uint8_t _txPin) : rxPin(_rxPin), txPi
 void OTSoftSerial::begin(uint16_t _baud)
 {
 	baud = _baud;
-	uint16_t bitCycles = (F_CPU/4) / baud;	// delay function burns 4 cpu instructions per cycle
+	uint16_t bitCycles = 104;//(F_CPU/4) / baud;	// delay function burns 4 cpu instructions per cycle
 	halfDelay = bitCycles/2 - tuningVal;
 	fullDelay = bitCycles - tuningVal;
 
 	pinMode(rxPin, INPUT);
-	pinMode(txPin, OUTPUT);
+	pinMode(txPin, OUTPUT);  // TODO move this to start of send?
 	fastDigitalWrite(txPin, HIGH);	// set txPin to high
+	//fastDigitalWrite(rxPin, HIGH);
 }
 
 /**
@@ -104,18 +105,18 @@ uint8_t OTSoftSerial::read()
  * @param	len	max length of array to store read in
  * @retval	Length of read. Returns 0 if nothing received
  */
-uint8_t OTSoftSerial::read(uint8_t *buf, uint8_t len)
+uint8_t OTSoftSerial::read(uint8_t *buf, uint8_t _len)
 {
-	uint16_t timer = 0;
 	uint8_t count = 0;
-	uint8_t shortDelay = 1;
-	uint8_t val = 0;
+	uint8_t len = _len;
 
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
 		while (count < len) {
 			// wait for line to go low
-			timer = timeOut;
+			register uint16_t timer = timeOut;
+			register uint8_t val;
+			val = 0;
 			while (fastDigitalRead(rxPin)) {
 				if (--timer == 0) return count;
 			}
@@ -130,8 +131,8 @@ uint8_t OTSoftSerial::read(uint8_t *buf, uint8_t len)
 			}
 
 			// write val to buf and increment buf and count ready for next char
+			//val &= ~(1 << 7);
 			*buf = val;
-			val = 0;
 			buf++;
 			count++;
 
@@ -153,8 +154,8 @@ void OTSoftSerial::print(char _c)
 {
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
-		uint8_t mask = 0x01;
-		uint8_t c = _c;
+		register uint8_t mask = 0x01;
+		register uint8_t c = _c;
 
 		// Send start bit
 		fastDigitalWrite(txPin, LOW);

@@ -191,7 +191,7 @@ bool OTSIM900Link::openUDP()
 
 	// Implement check here
 	timedBlockingRead(data, sizeof(data));
-	OTV0P2BASE::serialPrintAndFlush(data);
+	//OTV0P2BASE::serialPrintAndFlush(data);
 	// response stuff
 	uint8_t dataCutLength = 0;
 	getResponse(dataCutLength, data, sizeof(data), 0x0A);
