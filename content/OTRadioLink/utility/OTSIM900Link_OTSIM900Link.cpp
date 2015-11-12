@@ -720,22 +720,22 @@ bool OTSIM900Link::getInitState()
 		}
 	}
 
-	if( data[0] == 'A' ) { // state 3 or 4
+//	if( data[0] == 'A' ) { // state 3 or 4
 #ifdef OTSIM900LINK_DEBUG
 	OTV0P2BASE::serialPrintlnAndFlush("- Module Present");
 #endif // OTSIM900LINK_DEBUG
 		bAvailable = true;
 		bPowered = true;
 		powerOff();
-		return true;	// state 3
-	} else {
-#ifdef OTSIM900LINK_DEBUG
-	OTV0P2BASE::serialPrintlnAndFlush("- Unexpected Response");
-#endif // OTSIM900LINK_DEBUG
-		bAvailable = false;
-		bPowered = false;
-		return false;	// state 4
-	}
+//		return true;	// state 3
+//	} else {
+//#ifdef OTSIM900LINK_DEBUG
+//	OTV0P2BASE::serialPrintlnAndFlush("- Unexpected Response");
+//#endif // OTSIM900LINK_DEBUG
+//		bAvailable = false;
+//		bPowered = false;
+//		return false;	// state 4
+//	}
 	return true;
 }
 
