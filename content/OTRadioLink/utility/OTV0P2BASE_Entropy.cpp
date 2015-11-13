@@ -25,8 +25,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 
 #include "OTV0P2BASE_Entropy.h"
 
-#include "OTV0P2BASE_QuickPRNG.h"
 #include "OTV0P2BASE_ADC.h"
+#include "OTV0P2BASE_QuickPRNG.h"
+#include "OTV0P2BASE_Sleep.h"
 
 
 namespace OTV0P2BASE
@@ -104,7 +105,7 @@ void addEntropyToPool(const uint8_t data, const uint8_t /*estBits*/)
   {
   // TODO: no real entropy pool yet.
   //seedRNG8(data, cycleCountCPU(), getSubCycleTime()); // FIXME
-  seedRNG8(data, --count8, TCNT2); // cycleCountCPU(), getSubCycleTime()); // FIXME
+  seedRNG8(data ^ ++count8, /* --count8, TCNT2); */ getCPUCycleCount(), getSubCycleTime()); // FIXME
   }
 
 // Capture a little system entropy, effectively based on call timing.
@@ -112,8 +113,8 @@ void addEntropyToPool(const uint8_t data, const uint8_t /*estBits*/)
 // Does not change CPU clock speeds, mess with interrupts (other than possible brief blocking), or do I/O, or sleep.
 // Should inject some noise into secure (TBD) and non-secure (RNG8) PRNGs.
 void captureEntropy1()
-//  { OTV0P2BASE::seedRNG8(_getSubCycleTime() ^ _adcNoise, cycleCountCPU() ^ Supply_mV.get(), _watchdogFired); } // FIXME
-  { OTV0P2BASE::seedRNG8(TCNT2, 69 /* cycleCountCPU() ^ Supply_mV.get() */, 42 /*_watchdogFired*/); } // FIXME
+//  { OTV0P2BASE::seedRNG8(_getSubCycleTime() ^ _adcNoise, getCPUCycleCount() ^ Supply_mV.get(), _watchdogFired); } // FIXME
+  { OTV0P2BASE::seedRNG8(TCNT2, getCPUCycleCount() /* ^ Supply_mV.get() */, 42 /*_watchdogFired*/); } // FIXME
 
 
 }

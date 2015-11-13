@@ -27,6 +27,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 // Abstract/base interface for basic (thermostatic) radiator valves.
 #include "utility/OTRadValve_AbstractRadValve.h"
 
+// OpenTRV model and smart control of (thermostatic) radiator valve.
+#include "utility/OTRadValve_ModelledRadValve.h"
+
 // Driver for DORM1/REV7 direct motor drive.
 #include "utility/OTRadValve_ValveMotorDirectV1.h"
 

@@ -148,9 +148,38 @@ bool eeprom_smart_clear_bits(uint8_t *p, uint8_t mask)
 // The stats set is determined by the order in memory.
 uint8_t getByHourStat(uint8_t hh, uint8_t statsSet)
   {
-  if(statsSet > (V0P2BASE_EE_END_STATS - V0P2BASE_EE_START_STATS) / V0P2BASE_EE_STATS_SET_SIZE) { return((uint8_t) 0xff); } // Invalid set.
+  if(statsSet > (V0P2BASE_EE_END_STATS - V0P2BASE_EE_START_STATS) / V0P2BASE_EE_STATS_SET_SIZE) { return(STATS_UNSET_BYTE); } // Invalid set.
   if(hh > 23) { return((uint8_t) 0xff); } // Invalid hour.
   return(eeprom_read_byte((uint8_t *)(V0P2BASE_EE_START_STATS + (statsSet * (int)V0P2BASE_EE_STATS_SET_SIZE) + (int)hh)));
+  }
+
+// Get minimum sample from given stats set ignoring all unset samples; STATS_UNSET_BYTE if all samples are unset.
+uint8_t getMinByHourStat(const uint8_t statsSet)
+  {
+  if(statsSet > (V0P2BASE_EE_END_STATS - V0P2BASE_EE_START_STATS) / V0P2BASE_EE_STATS_SET_SIZE) { return(STATS_UNSET_BYTE); } // Invalid set.
+  uint8_t result = STATS_UNSET_BYTE;
+  for(int8_t hh = 24; --hh >= 0; )
+    {
+    const uint8_t v = eeprom_read_byte((uint8_t *)(V0P2BASE_EE_START_STATS + (statsSet * (int)V0P2BASE_EE_STATS_SET_SIZE) + (int)hh));
+    // Optimisation/cheat: all valid samples are less than STATS_UNSET_BYTE.
+    if(v < result) { result = v; }
+    }
+  return(result);
+  }
+
+// Get maximum sample from given stats set ignoring all unset samples; STATS_UNSET_BYTE if all samples are unset.
+uint8_t getMaxByHourStat(const uint8_t statsSet)
+  {
+  if(statsSet > (V0P2BASE_EE_END_STATS - V0P2BASE_EE_START_STATS) / V0P2BASE_EE_STATS_SET_SIZE) { return(STATS_UNSET_BYTE); } // Invalid set.
+  uint8_t result = STATS_UNSET_BYTE;
+  for(int8_t hh = 24; --hh >= 0; )
+    {
+    const uint8_t v = eeprom_read_byte((uint8_t *)(V0P2BASE_EE_START_STATS + (statsSet * (int)V0P2BASE_EE_STATS_SET_SIZE) + (int)hh));
+    if((STATS_UNSET_BYTE != v) &&
+       ((STATS_UNSET_BYTE == result) || (v > result)))
+      { result = v; }
+    }
+  return(result);
   }
 
 // Returns true iff there is a full set of stats (none unset) and this 3/4s of the values are higher than the supplied sample.
@@ -163,7 +192,7 @@ bool inBottomQuartile(const uint8_t *sE, const uint8_t sample)
   for(int8_t hh = 24; --hh >= 0; ++sE)
     {
     const uint8_t v = eeprom_read_byte(sE);
-    if(OTV0P2BASE::STATS_UNSET_INT == v) { return(false); } // Abort if not a full set of stats (eg at least one full day's worth).
+    if(OTV0P2BASE::STATS_UNSET_BYTE == v) { return(false); } // Abort if not a full set of stats (eg at least one full day's worth).
     if(v > sample) { if(++valuesHigher >= 18) { return(true); } } // Stop as soon as known to be in lower quartile.
     }
   return(false); // Not in lower quartile.
@@ -179,7 +208,7 @@ bool inTopQuartile(const uint8_t *sE, const uint8_t sample)
   for(int8_t hh = 24; --hh >= 0; ++sE)
     {
     const uint8_t v = eeprom_read_byte(sE);
-    if(OTV0P2BASE::STATS_UNSET_INT == v) { return(false); } // Abort if not a full set of stats (eg at least one full day's worth).
+    if(OTV0P2BASE::STATS_UNSET_BYTE == v) { return(false); } // Abort if not a full set of stats (eg at least one full day's worth).
     if(v < sample) { if(++valuesLower >= 18) { return(true); } } // Stop as soon as known to be in upper quartile.
     }
   return(false); // Not in upper quartile.
@@ -198,7 +227,7 @@ bool inOutlierQuartile(const uint8_t inTop, const uint8_t statsSet, const uint8_
     ((hour > 23) ? OTV0P2BASE::getNextHourLT() : hour);
   const uint8_t *ss = (uint8_t *)(V0P2BASE_EE_STATS_START_ADDR(statsSet));
   const uint8_t sample = eeprom_read_byte(ss + hh);
-  if(OTV0P2BASE::STATS_UNSET_INT == sample) { return(false); }
+  if(OTV0P2BASE::STATS_UNSET_BYTE == sample) { return(false); }
   if(inTop) { return(inTopQuartile(ss, sample)); }
   return(inBottomQuartile(ss, sample));
   }

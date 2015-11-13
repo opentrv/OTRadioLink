@@ -41,8 +41,14 @@ namespace OTRadValve
 // Implementations may require read() called at a fixed rate,
 // though should tolerate calls being skipped when time is tight for other operations,
 // since read() may take substantial time (hundreds of milliseconds).
+// Implementations must document when read() calls are critical,
+// and/or expose alternative API for the time-critical elements.
 class AbstractRadValve : public OTV0P2BASE::SimpleTSUint8Actuator
   {
+  protected:
+    // Prevent direct creation of naked instance of this base/abstract class.
+    AbstractRadValve() { }
+
   public:
     // Returns true if this target valve open % value passed is valid, ie in range [0,100].
     virtual bool isValid(const uint8_t value) const { return(value <= 100); }
@@ -89,6 +95,17 @@ class AbstractRadValve : public OTV0P2BASE::SimpleTSUint8Actuator
   };
 
 
+// Null radiator valve driver implementation.
+// Never in normal (nor error) state.
+class NullRadValve : public AbstractRadValve
+  {
+  public:
+    // Returns true iff not in error state and not (re)calibrating/(re)initialising/(re)syncing.
+    // Always false for null implementation.
+    virtual bool isInNormalRunState() const { return(false); }
+  };
+
+
 
 // Default minimum valve percentage open to be considered actually/significantly open; [1,100].
 // Anything like this will usually be shut or very minimal flows.
@@ -102,12 +119,16 @@ class AbstractRadValve : public OTV0P2BASE::SimpleTSUint8Actuator
 static const uint8_t DEFAULT_VALVE_PC_MIN_REALLY_OPEN = 15;
 
 // Safer value for valves to very likely be significantly open, in range [DEFAULT_VALVE_PC_MIN_REALLY_OPEN,DEFAULT_VALVE_PC_FAIRLY_OPEN].
+// NOTE: below this value is likely to let a boller switch off also,
+// so DO NOT CHANGE this value between boiler and valve code without good reason.
 // DHD20151030: with initial dead-reckoning direct drive impl valves may not be open until ~45%.
 static const uint8_t DEFAULT_VALVE_PC_SAFER_OPEN = 50;
 
 // Default valve percentage at which significant heating power is being provided.
 // For many valves much of the time this may be effectively fully open,
 // ie no change beyond this makes significant difference to heat delivery.
+// NOTE: at/above this value is likely to force a boiler on also,
+// so DO NOT CHANGE this value between boiler and valve code without good reason.
 // Should be significantly higher than DEFAULT_MIN_VALVE_PC_REALLY_OPEN.
 // DHD20151014: has been ~33% but ~66% more robust, eg for tricky all-in-one units.
 static const uint8_t DEFAULT_VALVE_PC_MODERATELY_OPEN = 67;
@@ -160,7 +181,8 @@ class HardwareMotorDriverInterface
     //   * callback  callback handler
     virtual void motorRun(uint8_t maxRunTicks, motor_drive dir, HardwareMotorDriverInterfaceCallbackHandler &callback) = 0;
   };
-    }
 
+
+    }
 
 #endif
