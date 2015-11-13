@@ -46,8 +46,8 @@ void OTSoftSerial::begin(uint16_t _baud)
 {
 	baud = _baud;
 	uint16_t bitCycles = (F_CPU/4) / baud;	// delay function burns 4 cpu instructions per cycle
-	halfDelay = bitCycles/2 - tuningVal;
-	fullDelay = bitCycles - tuningVal;
+	halfDelay = bitCycles/2-readTuning;
+	fullDelay = bitCycles;
 
 	pinMode(rxPin, INPUT);
 	pinMode(txPin, OUTPUT);
@@ -70,6 +70,7 @@ void OTSoftSerial::end()
 uint8_t OTSoftSerial::read()
 {
 	uint8_t val = 0;
+	const uint8_t readFullDelay = fullDelay-readTuning;
 
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
@@ -84,7 +85,7 @@ uint8_t OTSoftSerial::read()
 
 		// step through bits and read value	// FIXME better way of doing this?
 		for(uint8_t i = 0; i < 8; i++) {
-			_delay_x4cycles(fullDelay);
+			_delay_x4cycles(readFullDelay);
 			val |= fastDigitalRead(rxPin) << i;
 		}
 
@@ -108,13 +109,14 @@ uint8_t OTSoftSerial::read(uint8_t *buf, uint8_t _len)
 {
 	uint8_t len = _len;
 	uint8_t count = 0;
+	const uint8_t readFullDelay = fullDelay-readTuning;
 
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
 		while (count < len) {
 			// wait for line to go low
-			register uint16_t timer = timeOut;
-			register uint8_t val;
+			uint16_t timer = timeOut;
+			uint8_t val;
 			val = 0;
 			while (fastDigitalRead(rxPin)) {
 				if (--timer == 0) return count;
@@ -125,7 +127,7 @@ uint8_t OTSoftSerial::read(uint8_t *buf, uint8_t _len)
 
 			// step through bits and read value	// FIXME better way of doing this?
 			for(uint8_t i = 0; i < 8; i++) {
-				_delay_x4cycles(fullDelay);
+				_delay_x4cycles(readFullDelay);
 				val |= fastDigitalRead(rxPin) << i;
 			}
 
@@ -152,23 +154,24 @@ void OTSoftSerial::print(char _c)
 {
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
-		register uint8_t mask = 0x01;
-		register uint8_t c = _c;
+		const uint8_t writeFullDelay = fullDelay-writeTuning;
+		uint8_t mask = 0x01;
+		uint8_t c = _c;
 
 		// Send start bit
 		fastDigitalWrite(txPin, LOW);
-		_delay_x4cycles(fullDelay);
+		_delay_x4cycles(writeFullDelay);
 
 		// send byte. Loops until mask overflows back to 0
 		while(mask != 0) {
 			fastDigitalWrite(txPin, mask & c);
-			_delay_x4cycles(fullDelay);
+			_delay_x4cycles(writeFullDelay);
 			mask = mask << 1;	// bit shift to next value
 		}
 
 		// send stop bit
 		fastDigitalWrite(txPin, HIGH);
-		_delay_x4cycles(fullDelay);
+		_delay_x4cycles(writeFullDelay);
 	}
 }
 
