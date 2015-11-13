@@ -21,14 +21,15 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
 #define OTSIM900LINK_H_
 
 #include <Arduino.h>
-//#include <util/eeprom.h> // FIXME removed to reduce compiler warnings
 #include <util/atomic.h>
+#include <avr/eeprom.h>
+#include <avr/pgmspace.h>
 #include <OTRadioLink.h>
 #include <OTV0p2Base.h>
 #include <string.h>
 #include <stdint.h>
 
-#define OTSIM900LINK_DEBUG
+//#define OTSIM900LINK_DEBUG
 
 /**
  * @note	To use library:
@@ -48,11 +49,9 @@ namespace OTSIM900Link
 /**
  * @struct	OTSIM900LinkConfig_t
  * @brief	Structure containing config data for OTSIM900Link
- * @todo	Finish EEPROM stuff
- * 			Add enum
- * 			Use template?
- * 			Just uncomment from outside?
+ * @todo	This is a bit weird - take pointer from struct and pass to helper function in struct
  * @note	Struct and internal pointers must last as long as OTSIM900Link object
+ * @param	bEEPROM	true if strings stored in EEPROM, else held in FLASH
  * @param	PIN		Pointer to \0 terminated array containing SIM pin code
  * @param	APN		Pointer to \0 terminated array containing access point name
  * @param	UDP_Address	Pointer to \0 terminated array containing UDP address to send to
@@ -62,37 +61,36 @@ namespace OTSIM900Link
 typedef struct OTSIM900LinkConfig {
 //private:
 	// Is in eeprom?
-//	const bool bEEPROM;
-	const char *PIN;
-	const char *APN;
-	const char *UDP_Address;
-	const char *UDP_Port;
+	const bool bEEPROM;
+	const void *PIN;
+	const void *APN;
+	const void *UDP_Address;
+	const void *UDP_Port;
 //public:
 	/**
 	 * @brief	Copies radio config data from EEPROM to an array
+	 * @todo	memory bound check?
+	 * 			Is it worth indexing from beginning of mem location and adding offset?
+	 * 			check count returns correct number
+	 * 			How to implement check if in eeprom?
 	 * @param	buf		pointer to destination buffer
-	 * @param	field	enum containing desired config field
+	 * @param	field	memory location
 	 * @retval	length of data copied to buffer
 	 */
-//    uint8_t get(uint8_t *buf, char *src) {
-//    	uint8_t count = 0;
-//    	uint16_t location = (uint16_t) src;
-//    	while (*buf != '\0') {
-//			*buf = eeprom_read_byte(location);
-//			buf++;
-//			location++;
-//			count++;
-//        }
-//    	return count;
-//    }
+    char get(const uint8_t *src) const{
+    	char c = 0;
+    	switch (bEEPROM) {
+    	case true:
+    		c = eeprom_read_byte(src);
+    		break;
+    	case false:
+    		c = pgm_read_byte(src);
+    		break;
+    	}
+    	return c;
+    }
 } OTSIM900LinkConfig_t;
 
-//typedef enum RadioEepromField {
-//	EEPROM_PIN,
-//	EEPROM_APN,
-//	EEPROM_UDP_ADDR,
-//	EEPROM_UDP_PORT
-//};
 
 /**
  * @note	To enable serial debug define 'OTSIM900LINK_DEBUG'
@@ -105,7 +103,7 @@ typedef struct OTSIM900LinkConfig {
 class OTSIM900Link : public OTRadioLink::OTRadioLink
 {
 public:
-  OTSIM900Link(uint8_t pwrPin, uint8_t rxPin, uint8_t txPin);
+  OTSIM900Link(uint8_t pwrSwitchPin, uint8_t pwrPin, uint8_t rxPin, uint8_t txPin);
 
 /************************* Public Methods *****************************/
     bool begin();
@@ -210,6 +208,7 @@ private:
     void print(const char data);
     void print(const uint8_t value);
     void print(const char *string);
+    void print(const void *src);
 
     // write AT commands
     bool checkModule();

@@ -46,8 +46,8 @@ void OTSoftSerial::begin(uint16_t _baud)
 {
 	baud = _baud;
 	uint16_t bitCycles = (F_CPU/4) / baud;	// delay function burns 4 cpu instructions per cycle
-	halfDelay = bitCycles/2 - tuningVal;
-	fullDelay = bitCycles - tuningVal;
+	halfDelay = bitCycles/2-readTuning;
+	fullDelay = bitCycles;
 
 	pinMode(rxPin, INPUT);
 	pinMode(txPin, OUTPUT);
@@ -70,10 +70,11 @@ void OTSoftSerial::end()
 uint8_t OTSoftSerial::read()
 {
 	uint8_t val = 0;
-	uint16_t timer = timeOut;
+	const uint8_t readFullDelay = fullDelay-readTuning;
 
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
+		uint16_t timer = timeOut;
 		// wait for line to go low
 		while (fastDigitalRead(rxPin)) {
 			if (--timer == 0) return 0;
@@ -84,7 +85,7 @@ uint8_t OTSoftSerial::read()
 
 		// step through bits and read value	// FIXME better way of doing this?
 		for(uint8_t i = 0; i < 8; i++) {
-			_delay_x4cycles(fullDelay);
+			_delay_x4cycles(readFullDelay);
 			val |= fastDigitalRead(rxPin) << i;
 		}
 
@@ -104,18 +105,19 @@ uint8_t OTSoftSerial::read()
  * @param	len	max length of array to store read in
  * @retval	Length of read. Returns 0 if nothing received
  */
-uint8_t OTSoftSerial::read(uint8_t *buf, uint8_t len)
+uint8_t OTSoftSerial::read(uint8_t *buf, uint8_t _len)
 {
-	uint16_t timer = 0;
+	uint8_t len = _len;
 	uint8_t count = 0;
-	uint8_t shortDelay = 1;
-	uint8_t val = 0;
+	const uint8_t readFullDelay = fullDelay-readTuning;
 
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
 		while (count < len) {
 			// wait for line to go low
-			timer = timeOut;
+			uint16_t timer = timeOut;
+			uint8_t val;
+			val = 0;
 			while (fastDigitalRead(rxPin)) {
 				if (--timer == 0) return count;
 			}
@@ -125,13 +127,12 @@ uint8_t OTSoftSerial::read(uint8_t *buf, uint8_t len)
 
 			// step through bits and read value	// FIXME better way of doing this?
 			for(uint8_t i = 0; i < 8; i++) {
-				_delay_x4cycles(fullDelay);
+				_delay_x4cycles(readFullDelay);
 				val |= fastDigitalRead(rxPin) << i;
 			}
 
 			// write val to buf and increment buf and count ready for next char
 			*buf = val;
-			val = 0;
 			buf++;
 			count++;
 
@@ -153,23 +154,24 @@ void OTSoftSerial::print(char _c)
 {
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
+		const uint8_t writeFullDelay = fullDelay-writeTuning;
 		uint8_t mask = 0x01;
 		uint8_t c = _c;
 
 		// Send start bit
 		fastDigitalWrite(txPin, LOW);
-		_delay_x4cycles(fullDelay);
+		_delay_x4cycles(writeFullDelay);
 
 		// send byte. Loops until mask overflows back to 0
 		while(mask != 0) {
 			fastDigitalWrite(txPin, mask & c);
-			_delay_x4cycles(fullDelay);
+			_delay_x4cycles(writeFullDelay);
 			mask = mask << 1;	// bit shift to next value
 		}
 
 		// send stop bit
 		fastDigitalWrite(txPin, HIGH);
-		_delay_x4cycles(fullDelay);
+		_delay_x4cycles(writeFullDelay);
 	}
 }
 

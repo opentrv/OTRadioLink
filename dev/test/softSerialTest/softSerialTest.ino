@@ -1,6 +1,6 @@
 #include <OTV0p2Base.h>
 
-OTV0P2BASE::OTSoftSerial ser(7, 8);
+OTV0P2BASE::OTSoftSerial ser(8, 5);
 //SoftwareSerial ser(7,8);
 static const char sendStr1[] = "AT\n";
 static const uint8_t pwr_pin = 6;
@@ -31,7 +31,13 @@ void loop() {
       Serial.print(ser.read(val, sizeof(val)-1));
       Serial.print("\t:");
 
-      Serial.println((char *)val);
+      Serial.print((char *)val);
+      Serial.print(" Raw: ");
+      for(uint8_t i = 0; i < (sizeof(val)); i++) {
+        Serial.print(val[i], HEX);
+        Serial.print(" ");
+      }
+      Serial.println();
     }
   }
 }

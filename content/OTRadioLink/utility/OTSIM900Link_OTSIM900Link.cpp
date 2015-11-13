@@ -28,7 +28,7 @@ namespace OTSIM900Link
  * @param	rxPin		Rx pin for software serial
  * @param	txPin		Tx pin for software serial
  */
-OTSIM900Link::OTSIM900Link(uint8_t pwrPin, uint8_t rxPin, uint8_t txPin) : PWR_PIN(pwrPin), softSerial(rxPin, txPin)
+OTSIM900Link::OTSIM900Link(uint8_t, uint8_t pwrPin, uint8_t rxPin, uint8_t txPin) : PWR_PIN(pwrPin), softSerial(rxPin, txPin)
 {
   pinMode(PWR_PIN, OUTPUT);
   bAvailable = false;
@@ -123,15 +123,16 @@ bool OTSIM900Link::sendRaw(const uint8_t *buf, uint8_t buflen, int8_t , TXpower 
 	OTV0P2BASE::serialPrintlnAndFlush(F("Send Raw"));
 #endif // OTSIM900LINK_DEBUG
 	bSent = sendUDP((const char *)buf, buflen);
-	if(bSent) return true;
-	else {	// Shut GPRS and try again if failed
-		shutGPRS();
-		delay(1000);
-
-		openUDP();
-		delay(5000);
-		return sendUDP((const char *)buf, buflen);
-	}
+//	if(bSent) return true;
+//	else {	// Shut GPRS and try again if failed
+//		shutGPRS();
+//		delay(1000);
+//
+//		openUDP();
+//		delay(5000);
+//		return sendUDP((const char *)buf, buflen);
+//	}
+	return bSent;
 }
 
 /**
@@ -190,7 +191,7 @@ bool OTSIM900Link::openUDP()
 
 	// Implement check here
 	timedBlockingRead(data, sizeof(data));
-	OTV0P2BASE::serialPrintAndFlush(data);
+	//OTV0P2BASE::serialPrintAndFlush(data);
 	// response stuff
 	uint8_t dataCutLength = 0;
 	getResponse(dataCutLength, data, sizeof(data), 0x0A);
@@ -324,6 +325,23 @@ void OTSIM900Link::print(const char *string)
 	softSerial.print(string);
 }
 
+/**
+ * @brief	Copies string from EEPROM and prints to softSerial
+ * @fixme	switching to this version makes send occasionally time out
+ * @param	pointer to eeprom location string is stored in
+ */
+void OTSIM900Link::print(const void *src)
+{
+	char c = 0xff;	// to avoid exiting the while loop without \0 getting written
+	const uint8_t *ptr = (const uint8_t *) src;
+	// loop through and print each value
+	while (1) {
+		c = config->get(ptr);
+		if (c == '\0') return;
+		print(c);
+		ptr++;
+	}
+}
 
 /**
  * @brief	Checks module ID
@@ -455,15 +473,15 @@ bool OTSIM900Link::setAPN()
  */
 bool OTSIM900Link::startGPRS()
 {
-  char data[96];
+  char data[16];
   print(AT_START);
   print(AT_START_GPRS);
   print(AT_END);
   timedBlockingRead(data, sizeof(data));
 
-  data[90] = '\0';
-	OTV0P2BASE::serialPrintAndFlush(data);
-	OTV0P2BASE::serialPrintlnAndFlush();
+//  data[90] = '\0';
+//	OTV0P2BASE::serialPrintAndFlush(data);
+//	OTV0P2BASE::serialPrintlnAndFlush();
 
 
   // response stuff
@@ -702,22 +720,22 @@ bool OTSIM900Link::getInitState()
 		}
 	}
 
-	if( data[0] == 'A' ) { // state 3 or 4
+//	if( data[0] == 'A' ) { // state 3 or 4
 #ifdef OTSIM900LINK_DEBUG
 	OTV0P2BASE::serialPrintlnAndFlush("- Module Present");
 #endif // OTSIM900LINK_DEBUG
 		bAvailable = true;
 		bPowered = true;
 		powerOff();
-		return true;	// state 3
-	} else {
-#ifdef OTSIM900LINK_DEBUG
-	OTV0P2BASE::serialPrintlnAndFlush("- Unexpected Response");
-#endif // OTSIM900LINK_DEBUG
-		bAvailable = false;
-		bPowered = false;
-		return false;	// state 4
-	}
+//		return true;	// state 3
+//	} else {
+//#ifdef OTSIM900LINK_DEBUG
+//	OTV0P2BASE::serialPrintlnAndFlush("- Unexpected Response");
+//#endif // OTSIM900LINK_DEBUG
+//		bAvailable = false;
+//		bPowered = false;
+//		return false;	// state 4
+//	}
 	return true;
 }
 

@@ -47,18 +47,19 @@ void OTNullRadioLink::removeRXMsg()
 
 /**
  * @brief	If debug enabled, prints a string to serial
+ * @todo	Work out what to do about debug config
  * @param	buf		Pointer to a buffer
  */
 bool OTNullRadioLink::sendRaw(const uint8_t *buf, uint8_t buflen, int8_t , TXpower , bool )
 {
-	// add zero termination
-	uint8_t buffer[buflen+1];
-	memcpy(buffer, buf, buflen);
-	buffer[buflen] = '\0';
-//	// print if in debug mode
-//	DEBUG_SERIAL_PRINT_FLASHSTRING("Radio: ");
-//	DEBUG_SERIAL_PRINT((char *)buf);
-//	DEBUG_SERIAL_PRINTLN(); //FIXME Breaks unit tests
+	const char *pBuf = (const char *) buf;
+	// print if in debug mode
+	DEBUG_SERIAL_PRINT_FLASHSTRING("Radio: ");
+	for (uint8_t i = 0; i < buflen; i++) {
+		DEBUG_SERIAL_PRINT(*pBuf);
+		pBuf++;
+	}
+	DEBUG_SERIAL_PRINTLN();
 	return true;
 }
 

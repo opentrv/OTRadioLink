@@ -143,7 +143,14 @@ void serialPrintlnAndFlush()
   if(neededWaking) { powerDownSerial(); }
   }
 
-
+void serialWriteAndFlush(const char* buf, uint8_t len) {
+	const bool neededWaking = powerUpSerialIfDisabled<V0p2_DEFAULT_UART_BAUD>();
+	// Send the character.
+	Serial.write(buf, len);
+	// Ensure that all text is sent before this routine returns, in case any sleep/powerdown follows that kills the UART.
+	_flush();
+	if(neededWaking) { powerDownSerial(); }
+}
 
 
 #ifdef DEBUG // Don't emit debug-support code unless in DEBUG.
@@ -167,5 +174,3 @@ void serialPrintlnAndFlush()
 #endif // DEBUG
 
 } // OTV0P2BASE
-
-
