@@ -84,8 +84,8 @@ static __inline__ void _delay_x4cycles(uint8_t n) // Takes 4n CPU cycles to run,
 #define OTV0P2BASE_busy_spin_delay(us) do { \
     if(__builtin_constant_p((us)) && ((us) == 0)) { /* Nothing to do. */ } \
     else { \
-      for(uint8_t _usBlocks = us >> 6; _usBlocks-- > 0; ) { ::OTV0P2BASE::_delay_x4cycles(0); } \
-      ::OTV0P2BASE::_delay_x4cycles((us & 63) << 2); \
+      for(uint8_t _usBlocks = ((us) >> 6); _usBlocks-- > 0; ) { ::OTV0P2BASE::_delay_x4cycles(0); } \
+      ::OTV0P2BASE::_delay_x4cycles(((us) & 63) << 2); \
       } } while(false)
 #endif
 #endif
