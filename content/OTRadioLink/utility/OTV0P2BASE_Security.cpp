@@ -34,7 +34,7 @@ namespace OTV0P2BASE
 {
 
 
-// Get the current basic ßstats transmission level (for data outbound from this node).
+// Get the current basic stats transmission level (for data outbound from this node).
 // May not exactly match enumerated levels; use inequalities.
 // Not thread-/ISR- safe.
 stats_TX_level getStatsTXLevel() { return((stats_TX_level)eeprom_read_byte((uint8_t *)V0P2BASE_EE_START_STATS_TX_ENABLE)); }
