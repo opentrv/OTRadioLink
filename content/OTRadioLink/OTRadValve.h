@@ -30,6 +30,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 // OpenTRV model and smart control of (thermostatic) radiator valve.
 #include "utility/OTRadValve_ModelledRadValve.h"
 
+// Driver for FTH8V wireless valve actuator (and FS20 protocol encode/decode).
+#include "utility/OTRadValve_FHT8VRadValve.h"
+
 // Driver for DORM1/REV7 direct motor drive.
 #include "utility/OTRadValve_ValveMotorDirectV1.h"
 
