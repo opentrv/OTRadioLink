@@ -14,6 +14,8 @@ specific language governing permissions and limitations
 under the Licence.
 
 Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
+                           Gary Gladman 2015
+                           Mike Stirling 2013
 */
 
 //#include <OTV0p2Base.h>
