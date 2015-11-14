@@ -30,7 +30,7 @@ namespace OTV0P2BASE
 {
 
 
-// Leaf node privacy level: how much to transmit about stats such as temperature and occupancy?
+// Leaf node privacy level: how much to transmit about stats such as temperature and occupancy.
 // The greater numerically the value, the less data is sent, especially over an insecure channel.
 // Excess unencrypted stats may, for example, allow a clever burglar to work out when no one is home.
 // Note that even in the 'always' setting,
@@ -40,10 +40,10 @@ namespace OTV0P2BASE
 // Lower values mean less that security is required.
 enum stats_TX_level
   {
-    stTXalwaysAll = 0, // Always be prepared to transmit all stats.
-    stTXmostUnsec = 0x80, // Allow TX of all but most security-sensitive stats in plaintext, eg occupancy status.
-    stTXsecOnly = 0xfe, // Only transmit if the stats TX can be kept secure/encrypted.
-    stTXnever = 0xff, // Never transmit status info above the minimum necessary.
+  stTXalwaysAll = 0,    // Always be prepared to transmit all stats (zero privacy).
+  stTXmostUnsec = 0x80, // Allow TX of all but most security-sensitive stats in plaintext, eg occupancy status.
+  stTXsecOnly   = 0xfe, // Only transmit if the stats TX can be kept secure/encrypted.
+  stTXnever     = 0xff, // Never transmit status info beyond the minimum necessary.
   };
 
 // Get the current basic stats transmission level (for data outbound from this node).
