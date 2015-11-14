@@ -23,8 +23,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #ifndef OTV0P2BASE_SECURITY_H
 #define OTV0P2BASE_SECURITY_H
 
-#include <stdint.h>
-
 
 namespace OTV0P2BASE
 {
