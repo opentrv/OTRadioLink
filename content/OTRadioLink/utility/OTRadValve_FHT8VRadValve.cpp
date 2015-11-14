@@ -34,34 +34,34 @@ namespace OTRadValve
 //// Provide RFM22/RFM23 register settings for use with FHT8V in Flash memory.
 //// Consists of a sequence of (reg#,value) pairs terminated with a 0xff register number.  The reg#s are <128, ie top bit clear.
 //// Magic numbers c/o Mike Stirling!
-//const uint8_t FHT8VRadValveBase::FHT8V_RFM22_Reg_Values[][2] PROGMEM =
+//const uint8_t FHT8VRadValveBase::FHT8V_RFM23_Reg_Values[][2] PROGMEM =
 //  {
 //  // Putting TX power setting first to help with dynamic adjustment.
 //// From AN440: The output power is configurable from +13 dBm to -8 dBm (Si4430/31), and from +20 dBM to -1 dBM (Si4432) in ~3 dB steps. txpow[2:0]=000 corresponds to min output power, while txpow[2:0]=111 corresponds to max output power.
 //// The maximum legal ERP (not TX output power) on 868.35 MHz is 25 mW with a 1% duty cycle (see IR2030/1/16).
 ////EEPROM ($6d,%00001111) ; RFM22REG_TX_POWER: Maximum TX power: 100mW for RFM22; not legal in UK/EU on RFM22 for this band.
 ////EEPROM ($6d,%00001000) ; RFM22REG_TX_POWER: Minimum TX power (-1dBm).
-//#ifndef RFM22_IS_ACTUALLY_RFM23
-//    #ifndef RFM22_GOOD_RF_ENV
-//    {0x6d,0xd}, // RFM22REG_TX_POWER: RFM22 +14dBm ~25mW ERP with 1/4-wave antenna.
-//    #else // Tone down for good RF backplane, etc.
-//    {0x6d,0x9},
-//    #endif
-//#else
-//    #ifndef RFM22_GOOD_RF_ENV
-//    {0x6d,0xf}, // RFM22REG_TX_POWER: RFM23 max power (+13dBm) for ERP ~25mW with 1/4-wave antenna.
-//    #else // Tone down for good RF backplane, etc.
-//    {0x6d,0xb},
-//    #endif
-//#endif
+////#ifndef RFM22_IS_ACTUALLY_RFM23
+////    #ifndef RFM22_GOOD_RF_ENV
+////    {0x6d,0xd}, // RFM22REG_TX_POWER: RFM22 +14dBm ~25mW ERP with 1/4-wave antenna.
+////    #else // Tone down for good RF backplane, etc.
+////    {0x6d,0x9},
+////    #endif
+////#else
+////    #ifndef RFM22_GOOD_RF_ENV
+////    {0x6d,0xf}, // RFM22REG_TX_POWER: RFM23 max power (+13dBm) for ERP ~25mW with 1/4-wave antenna.
+////    #else // Tone down for good RF backplane, etc.
+//    {0x6d,0xb}, // RF23B, good RF conditions.
+////    #endif
+////#endif
 //
 //    {6,0}, // Disable default chiprdy and por interrupts.
 //    {8,0}, // RFM22REG_OP_CTRL2: ANTDIVxxx, RXMPK, AUTOTX, ENLDM
 //
-//#ifndef RFM22_IS_ACTUALLY_RFM23
-//// For RFM22 with RXANT tied to GPIO0, and TXANT tied to GPIO1...
-//    {0xb,0x15}, {0xc,0x12}, // Can be omitted FOR RFM23.
-//#endif
+////#ifndef RFM22_IS_ACTUALLY_RFM23
+////// For RFM22 with RXANT tied to GPIO0, and TXANT tied to GPIO1...
+////    {0xb,0x15}, {0xc,0x12}, // Can be omitted FOR RFM23.
+////#endif
 //
 //// 0x30 = 0x00 - turn off packet handling
 //// 0x33 = 0x06 - set 4 byte sync
@@ -77,7 +77,7 @@ namespace OTRadValve
 //    {0x73,0}, {0x74,0}, // Frequency offset
 //// Channel 0 frequency = 868 MHz, 10 kHz channel steps, high band.
 //    {0x75,0x73}, {0x76,100}, {0x77,0}, // BAND_SELECT,FB(hz), CARRIER_FREQ0&CARRIER_FREQ1,FC(hz) where hz=868MHz
-//    {0x79,35}, // 868.35 MHz - FHT
+//    {0x79,35}, // 868.35 MHz - FHT8V/FS20.
 //    {0x7a,1}, // One 10kHz channel step.
 //
 //// RX-only
@@ -193,7 +193,7 @@ namespace OTRadValve
 //  // Generate body.
 //  bptr = _FHT8VCreate200usAppendByteEP(bptr, command->hc1);
 //  bptr = _FHT8VCreate200usAppendByteEP(bptr, command->hc2);
-//#ifdef FHT8V_ADR_USED
+//#ifdef OTV0P2BASE_FHT8V_ADR_USED
 //  bptr = _FHT8VCreate200usAppendByteEP(bptr, command->address);
 //#else
 //  bptr = _FHT8VCreate200usAppendByteEP(bptr, 0); // Default/broadcast.  TODO: could possibly be further optimised to send 0 value more efficiently.
@@ -201,7 +201,7 @@ namespace OTRadValve
 //  bptr = _FHT8VCreate200usAppendByteEP(bptr, command->command);
 //  bptr = _FHT8VCreate200usAppendByteEP(bptr, command->extension);
 //  // Generate checksum.
-//#ifdef FHT8V_ADR_USED
+//#ifdef OTV0P2BASE_FHT8V_ADR_USED
 //  const uint8_t checksum = 0xc + command->hc1 + command->hc2 + command->address + command->command + command->extension;
 //#else
 //  const uint8_t checksum = 0xc + command->hc1 + command->hc2 + command->command + command->extension;
@@ -219,107 +219,6 @@ namespace OTRadValve
 //  }
 //
 //
-//// Create FHT8V TRV outgoing valve-setting command frame (terminated with 0xff) at bptr with optional headers and trailers.
-////   * TRVPercentOpen value is used to generate the frame
-////   * doHeader  if true then an extra RFM22/23-friendly 0xaaaaaaaa sync header is preprended
-////   * trailer  if not null then a stats trailer is appended, built from that info plus a CRC
-////   * command  on entry hc1, hc2 (and address if used) must be set correctly, this sets the command and extension; never NULL
-//// The generated command frame can be resent indefinitely.
-//// The output buffer used must be (at least) FHT8V_200US_BIT_STREAM_FRAME_BUF_SIZE bytes.
-//// Returns pointer to the terminating 0xff on exit.
-//uint8_t *FHT8VRadValveBase::FHT8VCreateValveSetCmdFrameHT_r(uint8_t *const bptrInitial, const bool doHeader, FHT8VRadValveBase::fht8v_msg_t *const command, const uint8_t TRVPercentOpen, const FullStatsMessageCore_t *trailer)
-//  {
-//  uint8_t *bptr = bptrInitial;
-//
-//  command->command = 0x26;
-//  command->extension = (TRVPercentOpen * 255) / 100;
-//
-//  // Add RFM22/23-friendly pre-preamble if requested, eg when calling for heat from the boiler (TRV actually open).
-//  // NOTE: this requires more buffer space.
-//  if(doHeader)
-//    {
-//    memset(bptr, RFM22_PREAMBLE_BYTE, RFM22_PREAMBLE_BYTES);
-//    bptr += RFM22_PREAMBLE_BYTES;
-//    }
-//
-//  bptr = FHT8VRadValveBase::FHT8VCreate200usBitStreamBptr(bptr, command);
-//
-//#if defined(ALLOW_STATS_TX)
-//  if(NULL != trailer)
-//    {
-//#if defined(ALLOW_MINIMAL_STATS_TXRX)
-//    // As bandwidth optimisation just write minimal trailer if only temp&power available.
-//    if(trailer->containsTempAndPower &&
-//       !trailer->containsID && !trailer->containsAmbL)
-//      {
-//      writeTrailingMinimalStatsPayload(bptr, &(trailer->tempAndPower));
-//      bptr += 3;
-//      *bptr = (uint8_t)0xff; // Terminate TX bytes.
-//      }
-//    else
-//#endif
-//      {
-//      // Assume enough space in buffer for largest possible stats message.
-//      uint8_t * const tail = encodeFullStatsMessageCore(bptr, FHT8VRadValve<>::FHT8V_200US_BIT_STREAM_FRAME_BUF_SIZE - (bptr - bptrInitial), getStatsTXLevel(), false, trailer);
-//      if(NULL != tail) { bptr = tail; } // Encoding should not actually fail, but this copes gracefully if so!
-//      }
-//    }
-//#endif
-//
-//#if 0 && defined(DEBUG)
-//  // Check that the buffer end was not overrun.
-//  if(bptr - bptrInitial >= FHT8V_200US_BIT_STREAM_FRAME_BUF_SIZE) { panic(F("TX gen too large")); }
-//#endif
-//
-//  return(bptr);
-//  }
-//
-//
-//// Create FHT8V TRV outgoing valve-setting command frame (terminated with 0xff) at bptr.
-//// The TRVPercentOpen value is used to generate the frame.
-//// On entry hc1, hc2 (and addresss if used) must be set correctly; this sets command and extension.
-//// The generated command frame can be resent indefinitely.
-//// The output buffer used must be (at least) FHT8V_200US_BIT_STREAM_FRAME_BUF_SIZE bytes.
-//// Returns pointer to the terminating 0xff on exit.
-////
-//// Implicitly decides whether to add optional header and trailer components.
-////
-//// NOTE: with SUPPORT_TEMP_TX defined will also insert trailing stats payload where appropriate.
-//// Also reports local stats as if remote.
-//uint8_t * FHT8VRadValveBase::FHT8VCreateValveSetCmdFrame_r(uint8_t *const bptr, FHT8VRadValveBase::fht8v_msg_t *command, const uint8_t TRVPercentOpen)
-//  {
-//  const bool etmsp = enableTrailingStatsPayload();
-//
-//  // Add RFM22-friendly pre-preamble only if calling for heat from the boiler (TRV actually open)
-//  // OR if adding a trailer that the hub should see.
-//  // Only do this for smart local valves; assume slave valves need not signal back to the boiler this way.
-//  // NOTE: this requires more buffer space.
-//  const bool doHeader = etmsp
-////#if defined(RFM22_SYNC_BCFH) && defined(LOCAL_VALVE)
-////  // NOTE: the percentage-open threshold to call for heat from the boiler is set to allow the valve to open significantly, etc.
-////      || (TRVPercentOpen >= NominalRadValve.getMinValvePcReallyOpen())
-////#endif
-//      ;
-//
-//  const bool doTrailer = etmsp;
-////  trailingMinimalStatsPayload_t trailer;
-////  if(doTrailer)
-////    {
-////    trailer.powerLow = isBatteryLow();
-////    trailer.tempC16 = getTemperatureC16(); // Use last value read.
-////    }
-//  FullStatsMessageCore_t trailer;
-//  if(doTrailer)
-//    {
-//    populateCoreStats(&trailer);
-//    // Record/log stats as if remote, but secure, and with ID.
-////    outputCoreStats(&Serial, true, &trailer); // FIXME
-//    // Ensure that no ID is encoded in the message sent on the air since it would be a repeat from the FHT8V frame.
-//    trailer.containsID = false;
-//    }
-//
-//  return(FHT8VCreateValveSetCmdFrameHT_r(bptr, doHeader, command, TRVPercentOpen, (doTrailer ? &trailer : NULL)));
-//  }
 //
 //
 //// Sends to FHT8V in FIFO mode command bitstream from buffer starting at bptr up until terminating 0xff,
@@ -363,10 +262,10 @@ namespace OTRadValve
 //  // Transmit correct valve-setting command that should already be in the buffer...
 //  // May not allow double TX for non-sync transmissions to conserve bandwidth.
 //  FHT8VTXFHTQueueAndSendCmd(buf, ALLOW_NON_SYNC_DOUBLE_TX && allowDoubleTX);
-//#ifdef ENABLE_NOMINAL_RAD_VALVE
+////#ifdef ENABLE_NOMINAL_RAD_VALVE
 //  // Indicate state that valve should now actually be in (or physically moving to)...
 //  setFHT8V_isValveOpen();
-//#endif
+////#endif
 //  }
 //
 //
@@ -777,7 +676,7 @@ namespace OTRadValve
 //
 //  command->hc1 = readOneByteWithParity(&state);
 //  command->hc2 = readOneByteWithParity(&state);
-//#ifdef FHT8V_ADR_USED
+//#ifdef OTV0P2BASE_FHT8V_ADR_USED
 //  command->address = readOneByteWithParity(&state);
 //#else
 //  const uint8_t address = readOneByteWithParity(&state);
@@ -794,7 +693,7 @@ namespace OTRadValve
 //    }
 //
 //   // Generate and check checksum.
-//#ifdef FHT8V_ADR_USED
+//#ifdef OTV0P2BASE_FHT8V_ADR_USED
 //  const uint8_t checksum = 0xc + command->hc1 + command->hc2 + command->address + command->command + command->extension;
 //#else
 //  const uint8_t checksum = 0xc + command->hc1 + command->hc2 + address + command->command + command->extension;

@@ -45,11 +45,11 @@ namespace OTRadValve
 //
 //    // TX buffer (non-null) and size (non-zero).
 //    uint8_t * const buf;
-//    const uint8_t size;
+//    const uint8_t bufSize;
 //    // Construct an instance, providing TX buffer details.
-//    FHT8VRadValveBase(uint8_t *_buf, uint8_t _size)
+//    FHT8VRadValveBase(uint8_t *_buf, uint8_t _bufSize)
 //      : radio(NULL),
-//        buf(_buf), size(_size),
+//        buf(_buf), bufSize(_bufSize),
 //        halfSecondCount(0)
 //      {
 //      clearHC(); // Cleared housecodes will prevent any attempt to sync with FTH8V.
@@ -134,7 +134,7 @@ namespace OTRadValve
 //      {
 //      uint8_t hc1;
 //      uint8_t hc2;
-//#ifdef FHT8V_ADR_USED
+//#ifdef OTV0P2BASE_FHT8V_ADR_USED
 //      uint8_t address;
 //#endif
 //      uint8_t command;
@@ -178,24 +178,6 @@ namespace OTRadValve
 //    // This ignores any prefix needed for particular radios such as the RFM23B.
 //    // ~80ms upwards.
 //    static const uint8_t FHT8V_APPROX_MAX_RAW_TX_MS = ((((MIN_FHT8V_200US_BIT_STREAM_BUF_SIZE-1)*8) + 4) / 5);
-//
-//    // Create FHT8V TRV outgoing valve-setting command frame (terminated with 0xff) at bptr.
-//    // The TRVPercentOpen value is used to generate the frame.
-//    // On entry hc1, hc2 (and addresss if used) must be set correctly; this sets command and extension.
-//    // The generated command frame can be resent indefinitely.
-//    // The command buffer used must be (at least) FHT8V_200US_BIT_STREAM_FRAME_BUF_SIZE bytes plus extra preamble and trailers.
-//    // Returns pointer to the terminating 0xff on exit.
-//    static uint8_t *FHT8VCreateValveSetCmdFrame_r(uint8_t *bptr, fht8v_msg_t *command, const uint8_t TRVPercentOpen);
-//
-//    // Create FHT8V TRV outgoing valve-setting command frame (terminated with 0xff) at bptr with optional headers and trailers.
-//    //   * TRVPercentOpen value is used to generate the frame
-//    //   * doHeader  if true then an extra RFM22/23-friendly 0xaaaaaaaa sync header is preprended
-//    //   * trailer  if not null then a stats trailer is appended, built from that info plus a CRC
-//    //   * command  on entry hc1, hc2 (and addresss if used) must be set correctly, this sets the command and extension; never NULL
-//    // The generated command frame can be resent indefinitely.
-//    // The output buffer used must be (at least) FHT8V_200US_BIT_STREAM_FRAME_BUF_SIZE bytes.
-//    // Returns pointer to the terminating 0xff on exit.
-//    static uint8_t *FHT8VCreateValveSetCmdFrameHT_r(uint8_t *bptr, bool doHeader, FHT8VRadValveBase::fht8v_msg_t *command, uint8_t TRVPercentOpen, const FullStatsMessageCore_t *trailer);
 //
 //    // Typical FHT8V 'open' percentage, though partly depends on valve tails, etc.
 //    // This is set to err on the side of slightly open to allow
@@ -248,10 +230,18 @@ namespace OTRadValve
 //
 //
 //    // A set of RFM22/RFM23 register settings for use with FHT8V, stored in (read-only) program/Flash memory.
-//    // Consists of a sequence of (reg#,value) pairs terminated with a $ff register.  The reg#s are <128, ie top bit clear.
+//    // Consists of a sequence of (reg#,value) pairs terminated with a 0xff register.
+//    // The (valid) reg#s are <128, ie top bit clear.
 //    // Magic numbers c/o Mike Stirling!
 //    // Should not be linked into code image unless explicitly referred to.
-//    static const uint8_t FHT8V_RFM22_Reg_Values[][2] PROGMEM;
+//    static const uint8_t FHT8V_RFM23_Reg_Values[][2] PROGMEM;
+//
+//    // Values designed to work with FHT8V_RFM23_Reg_Values register settings.
+//    static const uint8_t RFM23_PREAMBLE_BYTE = 0xaa; // Preamble byte for RFM23 reception.
+//    static const uint8_t RFM23_PREAMBLE_MIN_BYTES = 4; // Minimum number of preamble bytes for reception.
+//    static const uint8_t RFM23_PREAMBLE_BYTES = 5; // Recommended number of preamble bytes for reliable reception.
+//    static const uint8_t RFM23_SYNC_BYTE = 0xcc; // Sync-word trailing byte (with FHT8V primarily).
+//    static const uint8_t RFM23_SYNC_MIN_BYTES = 3; // Minimum number of sync bytes.
 //
 //    // Does nothing for now; different timing/driver routines are used.
 //    virtual uint8_t read() { return(value); }
@@ -286,49 +276,7 @@ namespace OTRadValve
 //    // ALSO MANAGES RX FROM OTHER NODES WHEN ENABLED IN HUB MODE.
 //    bool FHT8VPollSyncAndTX_Next(bool allowDoubleTX = false);
 //  };
-//
-//template <uint8_t preambleBytes /* = RFM22_PREAMBLE_BYTES */, uint8_t trailerBytes>
-//class FHT8VRadValve : public FHT8VRadValveBase
-//  {
-//  public:
-//    static const uint8_t FHT8V_MAX_EXTRA_PREAMBLE_BYTES = preambleBytes; // RFM22_PREAMBLE_BYTES
-//    static const uint8_t FHT8V_MAX_EXTRA_TRAILER_BYTES = trailerBytes; // (1+max(MESSAGING_TRAILING_MINIMAL_STATS_PAYLOAD_BYTES,FullStatsMessageCore_MAX_BYTES_ON_WIRE));
-//    static const uint8_t FHT8V_200US_BIT_STREAM_FRAME_BUF_SIZE = (FHT8V_MAX_EXTRA_PREAMBLE_BYTES + (FHT8VRadValve::MIN_FHT8V_200US_BIT_STREAM_BUF_SIZE) + FHT8V_MAX_EXTRA_TRAILER_BYTES); // Buffer space needed.
-//
-//    // Approximate maximum transmission (TX) time for FHT8V command frame in ms; strictly positive.
-//    // ~80ms upwards.
-//    static const uint8_t FHT8V_APPROX_MAX_TX_MS = ((((FHT8V_200US_BIT_STREAM_FRAME_BUF_SIZE-1)*8) + 4) / 5);
-//
-//  private:
-//    // Shared command buffer for TX to FHT8V.
-//    uint8_t FHT8VTXCommandArea[FHT8V_200US_BIT_STREAM_FRAME_BUF_SIZE];
-//
-//  public:
-//  //    // Construct an instance attached to a (RFM23B, or RFM22B) radio module.
-////    // The RFM23B instance life must at least match that of this instance.
-////    FHT8VRadValve(OTRadioLink::OTRFM23BLinkBase *) { }
-////    // Construct an instance attached to a generic radio module.
-////    // The RFM23B instance life must at least match that of this instance.
-////    FHT8VRadValve(OTRadioLink::OTRadioLink *) : FHT8VRadValveBase(FHT8VTXCommandArea, FHT8V_200US_BIT_STREAM_FRAME_BUF_SIZE) { }
-//    // Construct an instance.
-//    FHT8VRadValve() : FHT8VRadValveBase(FHT8VTXCommandArea, FHT8V_200US_BIT_STREAM_FRAME_BUF_SIZE) { }
-//
-//    // Create FHT8V TRV outgoing valve-setting command frame (terminated with 0xff) in the shared TX buffer.
-//    //   * valvePC  the percentage open to set the valve [0,100]
-//    // HC1 and HC2 are fetched with the FHT8VGetHC1() and FHT8VGetHC2() calls, and address is always 0.
-//    // The generated command frame can be resent indefinitely.
-//    // If no valve is set up then this may simply terminate an empty buffer with 0xff.
-//    void FHT8VCreateValveSetCmdFrame(const uint8_t valvePC)
-//      {
-//      FHT8VRadValveBase::fht8v_msg_t command;
-//      command.hc1 = getHC1();
-//      command.hc2 = getHC2();
-//#ifdef FHT8V_ADR_USED
-//      command.address = 0;
-//#endif
-//      FHT8VRadValveBase::FHT8VCreateValveSetCmdFrame_r(FHT8VTXCommandArea, &command, valvePC);
-//      }
-//  };
+
 
     }
 
