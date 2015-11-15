@@ -541,11 +541,13 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // NOT INTERRUPT SAFE and should not be called concurrently with any other RFM23B/SPI operation.
             virtual void preinit(const void */*preconfig*/) { _powerOnInit(); }
 
-            // Poll for incoming messages (eg where interrupts are not available).
-            // Will only have any effect when listen(true, ...) is active.
-            // Can be used safely in addition to handling inbound interrupts.
+            // Poll for incoming messages (eg where interrupts are not available) and other processing.
+            // Can be used safely in addition to handling inbound/outbound interrupts.
             // Where interrupts are not available should be called at least as often
             // as messages are expected to arrive to avoid radio receiver overrun.
+            // May also be used for output processing,
+            // eg to run a transmit state machine.
+            // May be called very frequently and should not take more than a few 100ms per call.
             virtual void poll() { if(!interruptLineIsEnabledAndInactive()) { ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { _poll(false); } } }
 
             // Handle simple interrupt for this radio link.
