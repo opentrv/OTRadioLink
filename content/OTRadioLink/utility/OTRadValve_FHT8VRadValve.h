@@ -329,14 +329,6 @@ class FHT8VRadValve : public FHT8VRadValveBase
     // Shared command buffer for TX to FHT8V.
     uint8_t FHT8VTXCommandArea[FHT8V_200US_BIT_STREAM_FRAME_BUF_SIZE];
 
-  public:
-    // Construct an instance.
-    // Optionally pass in a function to add a trailer, eg a stats trailer, to each TX buffer.
-    // Set the TX buffer empty, currently terminated with an 0xff in [0].
-    FHT8VRadValve(appendToTXBufferFF_t *trailerFnPtr)
-      : FHT8VRadValveBase(FHT8VTXCommandArea, FHT8V_200US_BIT_STREAM_FRAME_BUF_SIZE, trailerFnPtr)
-      { FHT8VTXCommandArea[0] = 0xff; }
-
     // Create FHT8V TRV outgoing valve-setting command frame (terminated with 0xff) in the shared TX buffer.
     //   * valvePC  the percentage open to set the valve [0,100]
     //   * forceExtraPreamble  if true then force insertion of an extra preamble
@@ -400,6 +392,26 @@ class FHT8VRadValve : public FHT8VRadValveBase
 // Check that the buffer end was not overrun.
 if(bptr - bptrInitial >= bufSize) { panic(F("FHT8V frame too big")); }
 #endif
+      }
+
+  public:
+    // Construct an instance.
+    // Optionally pass in a function to add a trailer, eg a stats trailer, to each TX buffer.
+    // Set the TX buffer empty, currently terminated with an 0xff in [0].
+    FHT8VRadValve(appendToTXBufferFF_t *trailerFnPtr)
+      : FHT8VRadValveBase(FHT8VTXCommandArea, FHT8V_200US_BIT_STREAM_FRAME_BUF_SIZE, trailerFnPtr)
+      { FHT8VTXCommandArea[0] = 0xff; }
+
+    // Set new target %-open value (if in range).
+    // Updates TX buffer with new command and new trailer.
+    // Returns true if the specified value is accepted.
+    virtual bool set(const uint8_t newValue)
+      {
+      if(newValue > 100) { return(false); }
+      value = newValue;
+      // Create new TX buffer, forcing extra preamble if valve probably open.
+      FHT8VCreateValveSetCmdFrame(newValue, newValue >= getMinPercentOpen());
+      return(true);
       }
   };
 
