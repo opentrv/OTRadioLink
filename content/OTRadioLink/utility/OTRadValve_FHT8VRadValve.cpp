@@ -225,14 +225,14 @@ uint8_t *FHT8VRadValveBase::FHT8VCreate200usBitStreamBptr(uint8_t *bptr, const F
 
 
 
-// Sends to FHT8V in FIFO mode command bitstream from buffer starting at bptr up until terminating 0xff,
-// then reverts to low-power standby mode if not in hub mode, RX for OpenTRV FHT8V if in hub mode.
+// Sends to FHT8V in FIFO mode command bitstream from buffer starting at bptr up until terminating 0xff.
 // The trailing 0xff is not sent.
 //
-// Returns immediately without transmitting if the command buffer starts with 0xff (ie is empty).
-// (If doubleTX is true, sends the bitstream twice, with a short (~8ms) pause between transmissions, to help ensure reliable delivery.)
+// If doubleTX is true, this sends the bitstream twice, with a short (~8ms) pause between transmissions, to help ensure reliable delivery.
 //
-// Returns immediately without tryitn got transmit if the radio is NULL.
+// Returns immediately without transmitting if the command buffer starts with 0xff (ie is empty).
+//
+// Returns immediately without trying got transmit if the radio is NULL.
 //
 // Note: single transmission time is up to about 80ms (without extra trailers), double up to about 170ms.
 void FHT8VRadValveBase::FHT8VTXFHTQueueAndSendCmd(uint8_t *bptr, const bool doubleTX)

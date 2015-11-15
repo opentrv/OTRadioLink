@@ -122,12 +122,14 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
     // FIXME: be passed a function (such as pollIIO) to call while waiting.
     void sleepUntilSubCycleTimeOptionalRX(uint8_t sleepUntil);
 
-    // Sends to FHT8V in FIFO mode command bitstream from buffer starting at bptr up until terminating 0xff,
-    // then reverts to low-power standby mode if not in hub mode, RX for OpenTRV FHT8V if in hub mode.
+    // Sends to FHT8V in FIFO mode command bitstream from buffer starting at bptr up until terminating 0xff.
     // The trailing 0xff is not sent.
     //
+    // If doubleTX is true, this sends the bitstream twice, with a short (~8ms) pause between transmissions, to help ensure reliable delivery.
+    //
     // Returns immediately without transmitting if the command buffer starts with 0xff (ie is empty).
-    // (If doubleTX is true, sends the bitstream twice, with a short (~8ms) pause between transmissions, to help ensure reliable delivery.)
+    //
+    // Returns immediately without trying got transmit if the radio is NULL.
     //
     // Note: single transmission time is up to about 80ms (without extra trailers), double up to about 170ms.
     void FHT8VTXFHTQueueAndSendCmd(uint8_t *bptr, const bool doubleTX);
