@@ -225,14 +225,14 @@ uint8_t *FHT8VRadValveBase::FHT8VCreate200usBitStreamBptr(uint8_t *bptr, const F
 
 
 
-// Sends to FHT8V in FIFO mode command bitstream from buffer starting at bptr up until terminating 0xff,
-// then reverts to low-power standby mode if not in hub mode, RX for OpenTRV FHT8V if in hub mode.
+// Sends to FHT8V in FIFO mode command bitstream from buffer starting at bptr up until terminating 0xff.
 // The trailing 0xff is not sent.
 //
-// Returns immediately without transmitting if the command buffer starts with 0xff (ie is empty).
-// (If doubleTX is true, sends the bitstream twice, with a short (~8ms) pause between transmissions, to help ensure reliable delivery.)
+// If doubleTX is true, this sends the bitstream twice, with a short (~8ms) pause between transmissions, to help ensure reliable delivery.
 //
-// Returns immediately without tryitn got transmit if the radio is NULL.
+// Returns immediately without transmitting if the command buffer starts with 0xff (ie is empty).
+//
+// Returns immediately without trying got transmit if the radio is NULL.
 //
 // Note: single transmission time is up to about 80ms (without extra trailers), double up to about 170ms.
 void FHT8VRadValveBase::FHT8VTXFHTQueueAndSendCmd(uint8_t *bptr, const bool doubleTX)
@@ -393,13 +393,14 @@ bool FHT8VRadValveBase::doSync(const bool allowDoubleTX)
 #endif
       OTV0P2BASE::serialPrintlnAndFlush(F("FHT8V SYNC FINAL"));
 
-      // Assume now in sync...
+      // Assume NOW IN SYNC with the valve...
       syncedWithFHT8V = true;
 
       // On PICAXE there was no time to recompute valve-setting command immediately after SYNC FINAL SEND...
       // Mark buffer as empty to get it filled with the real TRV valve-setting command ASAP.
 //      *FHT8VTXCommandArea = 0xff;
-      // On ATmega there is plenty of CPU heft to fill command buffer immediately with valve-setting command.
+      // On the ATmega there is plenty of CPU heft
+      // to fill the command buffer immediately with a valve-setting command.
       FHT8VCreateValveSetCmdFrame(get());
 
       // Set up correct delay to next TX; no more this minor cycle...
