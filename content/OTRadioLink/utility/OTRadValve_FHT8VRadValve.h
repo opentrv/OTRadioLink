@@ -331,10 +331,11 @@ class FHT8VRadValve : public FHT8VRadValveBase
 
   public:
     // Construct an instance.
-    // Optional function to add a trailer, eg a stats trailer, to each TX buffer.
+    // Optionally pass in a function to add a trailer, eg a stats trailer, to each TX buffer.
+    // Set the TX buffer empty, currently terminated with an 0xff in [0].
     FHT8VRadValve(appendToTXBufferFF_t *trailerFnPtr)
       : FHT8VRadValveBase(FHT8VTXCommandArea, FHT8V_200US_BIT_STREAM_FRAME_BUF_SIZE, trailerFnPtr)
-      { }
+      { FHT8VTXCommandArea[0] = 0xff; }
 
     // Create FHT8V TRV outgoing valve-setting command frame (terminated with 0xff) in the shared TX buffer.
     //   * valvePC  the percentage open to set the valve [0,100]
