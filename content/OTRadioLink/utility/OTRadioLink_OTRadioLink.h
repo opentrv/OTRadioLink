@@ -322,11 +322,13 @@ namespace OTRadioLink
             // Defaults to sendRaw, in which case see sendRaw comments.
             virtual bool queueToSend(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal) { return sendRaw(buf, buflen, channel, power); };
 
-            // Poll for incoming messages (eg where interrupts are not available).
-            // Will only have any effect when listen(true, ...) is in effect.
-            // Can be used safely in addition to handling inbound interrupts.
+            // Poll for incoming messages (eg where interrupts are not available) and other processing.
+            // Can be used safely in addition to handling inbound/outbound interrupts.
             // Where interrupts are not available should be called at least as often
             // as messages are expected to arrive to avoid radio receiver overrun.
+            // May also be used for output processing,
+            // eg to run a transmit state machine.
+            // May be called very frequently and should not take more than a few 100ms per call.
             // Default is to do nothing.
             virtual void poll() { }
 

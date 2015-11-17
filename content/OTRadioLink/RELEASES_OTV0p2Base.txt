@@ -20,7 +20,8 @@ pending:
     DHD20151030: added USER2 and CO2 stats record space in EEPROM.
     DE20151102:  OTV0P2BASE_SoftSerial now working with V0p2_main
     DE20151105:  Added serialWriteAndFlush to Serial_IO.
-    DHD20151106: D21FM: moving some EEPROM-based stats down into base library.
+    DHD20151106: D21FM: moved some EEPROM-based stats down into base library.
+    DHD20151114: D21FM: moved stats_TX_level and related down into base library.
 
 
 

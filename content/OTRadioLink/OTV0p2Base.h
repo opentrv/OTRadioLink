@@ -66,6 +66,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 // ADC (Analogue-to-Digital Converter) support.
 #include "utility/OTV0P2BASE_ADC.h"
 
+// Basic security support.
+#include "utility/OTV0P2BASE_Security.h"
+
 // Entropy management.
 #include "utility/OTV0P2BASE_Entropy.h"
 

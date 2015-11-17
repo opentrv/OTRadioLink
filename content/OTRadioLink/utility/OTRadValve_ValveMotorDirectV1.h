@@ -452,8 +452,8 @@ class ValveMotorDirectV1 : public OTRadValve::AbstractRadValve
       return(value);
       }
 
-    // Set new target value (if in range).
-    // Returns true if specified value accepted.
+    // Set new target %-open value (if in range).
+    // Returns true if the specified value is accepted.
     virtual bool set(const uint8_t newValue)
       {
       if(newValue > 100) { return(false); }
