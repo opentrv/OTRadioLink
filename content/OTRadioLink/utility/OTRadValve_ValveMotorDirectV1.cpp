@@ -231,7 +231,7 @@ bool ValveMotorDirectV1HardwareDriverBase::spinSCTTicks(const uint8_t maxRunTick
 //  const bool currentSense = (mi > miHigh) &&
 //    // Recheck the value read in case spiky.
 //    (analogueNoiseReducedRead(MOTOR_DRIVE_MI_AIN, INTERNAL) > miHigh) && (analogueNoiseReducedRead(MOTOR_DRIVE_MI_AIN, INTERNAL) > miHigh);
-////  if(mi > ((2*miHigh)/4)) { DEBUG_SERIAL_PRINT(mi); DEBUG_SERIAL_PRINTLN(); }
+////  if(mi > ((2*miHigh)/4)) { V0P2BASE_DEBUG_SERIAL_PRINT(mi); V0P2BASE_DEBUG_SERIAL_PRINTLN(); }
 //#endif
 //  return(currentSense);
 //  }
@@ -427,7 +427,7 @@ void CurrentSenseValveMotorDirect::poll()
     // Power-up: move to 'pin withdrawing' state and possibly start a timer.
     case init:
       {
-//DEBUG_SERIAL_PRINTLN_FLASHSTRING("  init");
+//V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("  init");
       wiggle(); // Tactile feedback and ensure that the motor is left stopped.
       changeState(valvePinWithdrawing);
       // TODO: record time withdrawl starts (to allow time out).
@@ -437,7 +437,7 @@ void CurrentSenseValveMotorDirect::poll()
     // Fully withdrawing pin (nominally opening valve) to make valve head easy to fit.
     case valvePinWithdrawing:
       {
-//DEBUG_SERIAL_PRINTLN_FLASHSTRING("  valvePinWithdrawing");
+//V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("  valvePinWithdrawing");
       // Once end-stop has been hit, move to state to wait for user signal and then start calibration.
       if(runFastTowardsEndStop(true)) { changeState(valvePinWithdrawn); }
       break;
@@ -446,7 +446,7 @@ void CurrentSenseValveMotorDirect::poll()
     // Running (initial) calibration cycle.
     case valvePinWithdrawn:
       {
-//DEBUG_SERIAL_PRINTLN_FLASHSTRING("  valvePinWithdrawn");
+//V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("  valvePinWithdrawn");
 
       // Wait for signal from user that valve has been fitted...
       // TODO: alternative timeout allows for automatic recovery from crash/restart after say 10 mins.
@@ -461,17 +461,17 @@ void CurrentSenseValveMotorDirect::poll()
     // Running (initial or re-) calibration cycle.
     case valveCalibrating:
       {
-//DEBUG_SERIAL_PRINTLN_FLASHSTRING("  valveCalibrating");
-//      DEBUG_SERIAL_PRINT_FLASHSTRING("    calibState: ");
-//      DEBUG_SERIAL_PRINT(perState.calibrating.calibState);
-//      DEBUG_SERIAL_PRINTLN();
+//V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("  valveCalibrating");
+//      V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("    calibState: ");
+//      V0P2BASE_DEBUG_SERIAL_PRINT(perState.calibrating.calibState);
+//      V0P2BASE_DEBUG_SERIAL_PRINTLN();
       // Select activity based on micro-state.
       switch(perState.valveCalibrating.calibState)
         {
         case 0:
           {
-#if 0 && defined(DEBUG)
-DEBUG_SERIAL_PRINTLN_FLASHSTRING("+calibrating");
+#if 0 && defined(V0P2BASE_DEBUG)
+V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("+calibrating");
 #endif
           ++perState.valveCalibrating.calibState; // Move to next micro state.
           break;
@@ -535,16 +535,16 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("+calibrating");
           // Set all measured calibration input parameters and current position.
           cp.updateAndCompute(perState.valveCalibrating.ticksFromOpenToClosed, perState.valveCalibrating.ticksFromClosedToOpen);
 
-#if 0 && defined(DEBUG)
-DEBUG_SERIAL_PRINT_FLASHSTRING("    ticksFromOpenToClosed: ");
-DEBUG_SERIAL_PRINT(cp.getTicksFromOpenToClosed());
-DEBUG_SERIAL_PRINTLN();
-DEBUG_SERIAL_PRINT_FLASHSTRING("    ticksFromClosedToOpen: ");
-DEBUG_SERIAL_PRINT(cp.getTicksFromClosedToOpen());
-DEBUG_SERIAL_PRINTLN();
-DEBUG_SERIAL_PRINT_FLASHSTRING("    precision %: ");
-DEBUG_SERIAL_PRINT(cp.getApproxPrecisionPC());
-DEBUG_SERIAL_PRINTLN();
+#if 0 && defined(V0P2BASE_DEBUG)
+V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("    ticksFromOpenToClosed: ");
+V0P2BASE_DEBUG_SERIAL_PRINT(cp.getTicksFromOpenToClosed());
+V0P2BASE_DEBUG_SERIAL_PRINTLN();
+V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("    ticksFromClosedToOpen: ");
+V0P2BASE_DEBUG_SERIAL_PRINT(cp.getTicksFromClosedToOpen());
+V0P2BASE_DEBUG_SERIAL_PRINTLN();
+V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("    precision %: ");
+V0P2BASE_DEBUG_SERIAL_PRINT(cp.getApproxPrecisionPC());
+V0P2BASE_DEBUG_SERIAL_PRINTLN();
 #endif
 
           // Move to normal valve running state...
@@ -565,13 +565,13 @@ DEBUG_SERIAL_PRINTLN();
     // Normal running state: attempt to track the specified target valve open percentage.
     case valveNormal:
       {
-//DEBUG_SERIAL_PRINTLN_FLASHSTRING("  valveNormal");
+//V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("  valveNormal");
 
       // Recalibrate if a serious tracking error was detected.
       if(needsRecalibrating)
         {
-#if 0 && defined(DEBUG)
-DEBUG_SERIAL_PRINTLN_FLASHSTRING("!needsRecalibrating");
+#if 0 && defined(V0P2BASE_DEBUG)
+V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("!needsRecalibrating");
 #endif
         changeState(valveCalibrating);
         break;
@@ -583,12 +583,12 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("!needsRecalibrating");
 
       // If the current estimated position does NOT match the target
       // then (incrementally) try to adjust to match.
-#if 0 && defined(DEBUG)
-DEBUG_SERIAL_PRINT_FLASHSTRING("  valve err: @");
-DEBUG_SERIAL_PRINT(currentPC);
-DEBUG_SERIAL_PRINT_FLASHSTRING(" vs target ");
-DEBUG_SERIAL_PRINT(targetPC);
-DEBUG_SERIAL_PRINTLN();
+#if 0 && defined(V0P2BASE_DEBUG)
+V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("  valve err: @");
+V0P2BASE_DEBUG_SERIAL_PRINT(currentPC);
+V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING(" vs target ");
+V0P2BASE_DEBUG_SERIAL_PRINT(targetPC);
+V0P2BASE_DEBUG_SERIAL_PRINTLN();
 #endif
 
       // Special case where target is an end-point (or close to).
@@ -613,8 +613,8 @@ DEBUG_SERIAL_PRINTLN();
             }
         // Estimate intermediate position.
         else { recomputePosition(); }
-#if 0 && defined(DEBUG)
-if(toOpenFast) { DEBUG_SERIAL_PRINTLN_FLASHSTRING("-->"); } else { DEBUG_SERIAL_PRINTLN_FLASHSTRING("--<"); }
+#if 0 && defined(V0P2BASE_DEBUG)
+if(toOpenFast) { V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("-->"); } else { V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("--<"); }
 #endif
         break;
         }
@@ -645,8 +645,8 @@ if(toOpenFast) { DEBUG_SERIAL_PRINTLN_FLASHSTRING("-->"); } else { DEBUG_SERIAL_
             ticksFromOpen = 0;
             }
           }
-#if 0 && defined(DEBUG)
-DEBUG_SERIAL_PRINTLN_FLASHSTRING("->");
+#if 0 && defined(V0P2BASE_DEBUG)
+V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("->");
 #endif
         break;
         }
@@ -671,8 +671,8 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("->");
             ticksFromOpen = cp.getTicksFromOpenToClosed();
             }
           }
-#if 0 && defined(DEBUG)
-DEBUG_SERIAL_PRINTLN_FLASHSTRING("-<");
+#if 0 && defined(V0P2BASE_DEBUG)
+V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("-<");
 #endif
         break;
         }

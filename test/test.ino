@@ -699,20 +699,20 @@ void testEntropyGathering()
   Serial.println("EntropyGathering");
 
   // Test WDT jitter: assumed about 1 bit of entropy per call/result.
-  //DEBUG_SERIAL_PRINT_FLASHSTRING("jWDT... ");
+  //V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("jWDT... ");
   const uint8_t jWDT = OTV0P2BASE::clockJitterWDT();
   for(int i = MAX_IDENTICAL_BITS_SEQUENTIALLY; --i >= 0; )
     {
     if(jWDT != OTV0P2BASE::clockJitterWDT()) { break; } // Stop as soon as a different value is obtained.
     AssertIsTrueWithErr(0 != i, i); // Generated too many identical values in a row. 
     }
-  //DEBUG_SERIAL_PRINT_FLASHSTRING(" 1st=");
-  //DEBUG_SERIAL_PRINTFMT(jWDT, BIN);
-  //DEBUG_SERIAL_PRINTLN();
+  //V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING(" 1st=");
+  //V0P2BASE_DEBUG_SERIAL_PRINTFMT(jWDT, BIN);
+  //V0P2BASE_DEBUG_SERIAL_PRINTLN();
 
 #ifndef NO_clockJitterRTC
   // Test RTC jitter: assumed about 1 bit of entropy per call/result.
-  //DEBUG_SERIAL_PRINT_FLASHSTRING("jRTC... ");
+  //V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("jRTC... ");
   for(const uint8_t t0 = OTV0P2BASE::getSubCycleTime(); t0 == OTV0P2BASE::getSubCycleTime(); ) { } // Wait for sub-cycle time to roll to toughen test.
   const uint8_t jRTC = OTV0P2BASE::clockJitterRTC();
   for(int i = MAX_IDENTICAL_BITS_SEQUENTIALLY; --i >= 0; )
@@ -720,14 +720,14 @@ void testEntropyGathering()
     if(jRTC != OTV0P2BASE::clockJitterRTC()) { break; } // Stop as soon as a different value is obtained.
     AssertIsTrue(0 != i); // Generated too many identical values in a row. 
     }
-  //DEBUG_SERIAL_PRINT_FLASHSTRING(" 1st=");
-  //DEBUG_SERIAL_PRINTFMT(jRTC, BIN);
-  //DEBUG_SERIAL_PRINTLN();
+  //V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING(" 1st=");
+  //V0P2BASE_DEBUG_SERIAL_PRINTFMT(jRTC, BIN);
+  //V0P2BASE_DEBUG_SERIAL_PRINTLN();
 #endif
 
 #ifndef NO_clockJitterEntropyByte
   // Test full-byte jitter: assumed about 8 bits of entropy per call/result.
-  //DEBUG_SERIAL_PRINT_FLASHSTRING("jByte... ");
+  //V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("jByte... ");
   const uint8_t t0j = OTV0P2BASE::getSubCycleTime();
   while(t0j == OTV0P2BASE::getSubCycleTime()) { } // Wait for sub-cycle time to roll to toughen test.
   const uint8_t jByte = OTV0P2BASE::clockJitterEntropyByte();
@@ -737,28 +737,28 @@ void testEntropyGathering()
     if(jByte != OTV0P2BASE::clockJitterEntropyByte()) { break; } // Stop as soon as a different value is obtained.
     AssertIsTrue(0 != i); // Generated too many identical values in a row. 
     }
-  //DEBUG_SERIAL_PRINT_FLASHSTRING(" 1st=");
-  //DEBUG_SERIAL_PRINTFMT(jByte, BIN);
-  //DEBUG_SERIAL_PRINT_FLASHSTRING(", ticks=");
-  //DEBUG_SERIAL_PRINT((uint8_t)(t1j - t0j - 1));
-  //DEBUG_SERIAL_PRINTLN();
+  //V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING(" 1st=");
+  //V0P2BASE_DEBUG_SERIAL_PRINTFMT(jByte, BIN);
+  //V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING(", ticks=");
+  //V0P2BASE_DEBUG_SERIAL_PRINT((uint8_t)(t1j - t0j - 1));
+  //V0P2BASE_DEBUG_SERIAL_PRINTLN();
 #endif
   
   // Test noisy ADC read: assumed at least one bit of noise per call/result.
   const uint8_t nar1 = OTV0P2BASE::noisyADCRead(true);
 #if 0
-  DEBUG_SERIAL_PRINT_FLASHSTRING("nar1 ");
-  DEBUG_SERIAL_PRINTFMT(nar1, BIN);
-  DEBUG_SERIAL_PRINTLN();
+  V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("nar1 ");
+  V0P2BASE_DEBUG_SERIAL_PRINTFMT(nar1, BIN);
+  V0P2BASE_DEBUG_SERIAL_PRINTLN();
 #endif
   for(int i = MAX_IDENTICAL_BITS_SEQUENTIALLY; --i >= 0; )
     {
     const uint8_t nar = OTV0P2BASE::noisyADCRead(true);
     if(nar1 != nar) { break; } // Stop as soon as a different value is obtained.
 #if 0
-    DEBUG_SERIAL_PRINT_FLASHSTRING("repeat nar ");
-    DEBUG_SERIAL_PRINTFMT(nar, BIN);
-    DEBUG_SERIAL_PRINTLN();
+    V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("repeat nar ");
+    V0P2BASE_DEBUG_SERIAL_PRINTFMT(nar, BIN);
+    V0P2BASE_DEBUG_SERIAL_PRINTLN();
 #endif
     AssertIsTrue(0 != i); // Generated too many identical values in a row. 
     }
@@ -770,10 +770,10 @@ void testEntropyGathering()
     // to try to ensure that the underlying generation is sound.
     const uint8_t srb1 = OTV0P2BASE::getSecureRandomByte(whiten);
 #if 0
-    DEBUG_SERIAL_PRINT_FLASHSTRING("srb1 ");
-    DEBUG_SERIAL_PRINTFMT(srb1, BIN);
-    if(whiten) { DEBUG_SERIAL_PRINT_FLASHSTRING(" whitened"); } 
-    DEBUG_SERIAL_PRINTLN();
+    V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("srb1 ");
+    V0P2BASE_DEBUG_SERIAL_PRINTFMT(srb1, BIN);
+    if(whiten) { V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING(" whitened"); } 
+    V0P2BASE_DEBUG_SERIAL_PRINTLN();
 #endif
     for(int i = MAX_IDENTICAL_BITS_SEQUENTIALLY/8; --i >= 0; )
       {

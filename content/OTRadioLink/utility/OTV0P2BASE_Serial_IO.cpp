@@ -20,7 +20,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 /*
  Simple debug output to the serial port at its default (bootloader BAUD) rate.
 
- Only enabled if DEBUG is defined, else does nothing, or at least as little as possible.
+ Only enabled if V0P2BASE_DEBUG is defined, else does nothing, or at least as little as possible.
  
  See some other possibilities here: http://playground.arduino.cc/Main/Printf
  */
@@ -32,7 +32,7 @@ namespace OTV0P2BASE
 // default baud for V0p2 unit
 static const uint16_t V0p2_DEFAULT_UART_BAUD = 4800;
 
-// Flush to use for all serialPrintXXX() and DEBUG_PRINTXXX routines.
+// Flush to use for all serialPrintXXX() and V0P2BASE_DEBUG_PRINTXXX routines.
 #define _flush() flushSerialSCTSensitive() // FIXME
 
 // Write a single (Flash-resident) string to serial followed by line-end and wait for transmission to complete.
@@ -153,7 +153,7 @@ void serialWriteAndFlush(const char* buf, uint8_t len) {
 }
 
 
-#ifdef DEBUG // Don't emit debug-support code unless in DEBUG.
+#ifdef V0P2BASE_DEBUG // Don't emit debug-support code unless in V0P2BASE_DEBUG.
 
 // Print timestamp with no newline in format: MinutesSinceMidnight:Seconds:SubCycleTime
 /*void _debug_serial_timestamp()	// FIXME This getSubCycleTime breaks in unit tests
@@ -171,6 +171,6 @@ void serialWriteAndFlush(const char* buf, uint8_t len) {
   if(neededWaking) { powerDownSerial(); }
   }
 */
-#endif // DEBUG
+#endif // V0P2BASE_DEBUG
 
 } // OTV0P2BASE

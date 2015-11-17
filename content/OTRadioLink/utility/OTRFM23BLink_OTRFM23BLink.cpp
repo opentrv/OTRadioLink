@@ -46,8 +46,8 @@ bool OTRFM23BLinkBase::_checkConnected() const
         if(SUPPORTED_DEVICE_VERSION == rVersion)
             { isOK = true; }
         }
-#if 0 && defined(DEBUG)
-if(!isOK) { DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 bad"); }
+#if 0 && defined(V0P2BASE_DEBUG)
+if(!isOK) { V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 bad"); }
 #endif
     if(neededEnable) { _downSPI_(); }
     return(isOK);
@@ -66,12 +66,12 @@ void OTRFM23BLinkBase::_registerBlockSetup(const uint8_t registerValues[][2])
             const uint8_t reg = pgm_read_byte(&(registerValues[0][0]));
             const uint8_t val = pgm_read_byte(&(registerValues[0][1]));
             if(0xff == reg) { break; }
-#if 0 && defined(DEBUG)
-            DEBUG_SERIAL_PRINT_FLASHSTRING("RFM23 reg 0x");
-            DEBUG_SERIAL_PRINTFMT(reg, HEX);
-            DEBUG_SERIAL_PRINT_FLASHSTRING(" = 0x");
-            DEBUG_SERIAL_PRINTFMT(val, HEX);
-            DEBUG_SERIAL_PRINTLN();
+#if 0 && defined(V0P2BASE_DEBUG)
+            V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("RFM23 reg 0x");
+            V0P2BASE_DEBUG_SERIAL_PRINTFMT(reg, HEX);
+            V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING(" = 0x");
+            V0P2BASE_DEBUG_SERIAL_PRINTFMT(val, HEX);
+            V0P2BASE_DEBUG_SERIAL_PRINTLN();
 #endif
             _writeReg8Bit_(reg, val);
             ++registerValues;
@@ -93,8 +93,8 @@ void OTRFM23BLinkBase::_clearTXFIFO()
 // This uses an efficient burst write.
 void OTRFM23BLinkBase::_queueFrameInTXFIFO(const uint8_t *bptr, uint8_t buflen)
     {
-#if 0 && defined(DEBUG)
-    if(0 == *bptr) { DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM22QueueCmdToFF: buffer uninitialised"); panic(); }
+#if 0 && defined(V0P2BASE_DEBUG)
+    if(0 == *bptr) { V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM22QueueCmdToFF: buffer uninitialised"); panic(); }
 #endif
     // Lock out interrupts.
     ATOMIC_BLOCK (ATOMIC_RESTORESTATE)

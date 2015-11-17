@@ -390,7 +390,7 @@ class FHT8VRadValve : public FHT8VRadValveBase
         //if(NULL != tail) { bptr = tail; } // Encoding should not actually fail, but this copes gracefully if so!
         }
 
-#if 0 && defined(DEBUG)
+#if 0 && defined(V0P2BASE_DEBUG)
 // Check that the buffer end was not overrun.
 if(bptr - bptrInitial >= bufSize) { panic(F("FHT8V frame too big")); }
 #endif
