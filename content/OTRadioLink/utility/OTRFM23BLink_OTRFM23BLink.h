@@ -351,8 +351,8 @@ namespace OTRFM23BLink
             inline void _modeStandby()
                 {
                 _writeReg8Bit(REG_OP_CTRL1, 0);
-#if 0 && defined(DEBUG)
-DEBUG_SERIAL_PRINT_FLASHSTRING("Sb");
+#if 0 && defined(V0P2BASE_DEBUG)
+V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("Sb");
 #endif
                 }
             // Version accessible to the base class...
@@ -363,8 +363,8 @@ DEBUG_SERIAL_PRINT_FLASHSTRING("Sb");
             inline void _modeTX()
                 {
                 _writeReg8Bit(REG_OP_CTRL1, 9); // TXON | XTON
-#if 0 && defined(DEBUG)
-DEBUG_SERIAL_PRINTLN_FLASHSTRING("Tx");
+#if 0 && defined(V0P2BASE_DEBUG)
+V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Tx");
 #endif
                 }
             // Version accessible to the base class...
@@ -375,8 +375,8 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("Tx");
             inline void _modeRX()
                 {
                 _writeReg8Bit(REG_OP_CTRL1, 5); // RXON | XTON
-#if 0 && defined(DEBUG)
-DEBUG_SERIAL_PRINTLN_FLASHSTRING("Rx");
+#if 0 && defined(V0P2BASE_DEBUG)
+V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Rx");
 #endif
                 }
             // Version accessible to the base class...
@@ -419,7 +419,7 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("Rx");
                     _clearInterrupts();
                     if(neededEnable) { _downSPI(); }
                     }
-// DEBUG_SERIAL_PRINTLN_FLASHSTRING("SCS");
+// V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("SCS");
                 }
             // Version accessible to the base class...
             virtual void _modeStandbyAndClearState_() { _modeStandbyAndClearState(); }
@@ -442,8 +442,8 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("Rx");
             // Inline to get to a sensible state in as few instructions as possible.
             inline void _powerOnInit()
                 {
-#if 0 && defined(DEBUG)
-DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
+#if 0 && defined(V0P2BASE_DEBUG)
+V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
 #endif
                 const bool neededEnable = _upSPI();
                 _writeReg8Bit(REG_OP_CTRL1, REG_OP_CTRL1_SWRES);

@@ -70,7 +70,7 @@ void flushSerialHW()
 // Does not change CPU clock speed or disable or mess with USART0, though may poll it.
 void flushSerialProductive()
   {
-#if 0 && defined(DEBUG)
+#if 0 && defined(V0P2BASE_DEBUG)
   if(!_serialIsPoweredUp()) { panic(); } // Trying to operate serial without it powered up.
 #endif
   // Can productively spin here churning PRNGs or the like before the flush(), checking for the UART TX buffer to empty...
@@ -92,7 +92,7 @@ void flushSerialProductive()
 // if in danger of overrunning a minor cycle while idling.
 void flushSerialSCTSensitive()
   {
-#if 0 && defined(DEBUG)
+#if 0 && defined(V0P2BASE_DEBUG)
   if(!_serialIsPoweredUp()) { panic(); } // Trying to operate serial without it powered up.
 #endif
 #ifdef ENABLE_USE_OF_AVR_IDLE_MODE

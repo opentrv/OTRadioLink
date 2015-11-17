@@ -24,6 +24,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 
 // Base hardware, power and system management for V0p2 AVR-based (ATMega328P) OpenTRV boards.
 
+#define V0P2BASE_DEBUG
+
 /*
   V0p2 (V0.2) core.
 

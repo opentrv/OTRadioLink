@@ -106,13 +106,13 @@ int ModelledRadValveState::getSmoothedRecent() const
 //  const int oldSmoothed = smallIntMean<filterLength/2>(prevRawTempC16 + (filterLength/2));
 //  const int newSmoothed = getSmoothedRecent();
 //  const int velocity = (newSmoothed - oldSmoothed + (int)(filterLength/4)) / (int)(filterLength/2); // Avoid going unsigned by accident.
-////DEBUG_SERIAL_PRINT_FLASHSTRING("old&new sm, velocity: ");
-////DEBUG_SERIAL_PRINT(oldSmoothed);
-////DEBUG_SERIAL_PRINT('&');
-////DEBUG_SERIAL_PRINT(newSmoothed);
-////DEBUG_SERIAL_PRINT(',');
-////DEBUG_SERIAL_PRINT(velocity);
-////DEBUG_SERIAL_PRINTLN();
+////V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("old&new sm, velocity: ");
+////V0P2BASE_DEBUG_SERIAL_PRINT(oldSmoothed);
+////V0P2BASE_DEBUG_SERIAL_PRINT('&');
+////V0P2BASE_DEBUG_SERIAL_PRINT(newSmoothed);
+////V0P2BASE_DEBUG_SERIAL_PRINT(',');
+////V0P2BASE_DEBUG_SERIAL_PRINT(velocity);
+////V0P2BASE_DEBUG_SERIAL_PRINTLN();
 //  return(velocity);
 //  }
 
@@ -192,12 +192,12 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const Modelle
 // Usually called by tick() which does required state updates afterwards.
 uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valvePCOpen, const ModelledRadValveInputState &inputState) const
   {
-#if 0 && defined(DEBUG)
-DEBUG_SERIAL_PRINT_FLASHSTRING("targ=");
-DEBUG_SERIAL_PRINT(inputState.targetTempC);
-DEBUG_SERIAL_PRINT_FLASHSTRING(" room=");
-DEBUG_SERIAL_PRINT(inputState.refTempC);
-DEBUG_SERIAL_PRINTLN();
+#if 0 && defined(V0P2BASE_DEBUG)
+V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("targ=");
+V0P2BASE_DEBUG_SERIAL_PRINT(inputState.targetTempC);
+V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING(" room=");
+V0P2BASE_DEBUG_SERIAL_PRINT(inputState.refTempC);
+V0P2BASE_DEBUG_SERIAL_PRINTLN();
 #endif
 
   // Possibly-adjusted and.or smoothed temperature to use for targeting.
@@ -207,7 +207,7 @@ DEBUG_SERIAL_PRINTLN();
   // (Well) under temp target: open valve up.
   if(adjustedTempC < inputState.targetTempC)
     {
-//DEBUG_SERIAL_PRINTLN_FLASHSTRING("under temp");
+//V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("under temp");
     // Limit valve open slew to help minimise overshoot and actuator noise.
     // This should also reduce nugatory setting changes when occupancy (etc) is fluctuating.
     // Thus it may take several minutes to turn the radiator fully on,
@@ -272,7 +272,7 @@ DEBUG_SERIAL_PRINTLN();
   // (Well) over temp target: close valve down.
   if(adjustedTempC > inputState.targetTempC)
     {
-//DEBUG_SERIAL_PRINTLN_FLASHSTRING("over temp");
+//V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("over temp");
 
     if(0 != valvePCOpen)
       {
@@ -343,7 +343,7 @@ DEBUG_SERIAL_PRINTLN();
     const uint8_t minAbsSlew = max(realMinUlp, _minAbsSlew);
     if(tooOpen) // Currently open more than required.  Still below target at top of proportional range.
       {
-//DEBUG_SERIAL_PRINTLN_FLASHSTRING("slightly too open");
+//V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("slightly too open");
       const uint8_t slew = valvePCOpen - targetPO;
       // Ensure no hunting for ~1ulp temperature wobble.
       if(slew < minAbsSlew) { return(valvePCOpen); }
@@ -375,7 +375,7 @@ DEBUG_SERIAL_PRINTLN();
       }
 
     // if(targetPO > TRVPercentOpen) // Currently open less than required.  Still below target at top of proportional range.
-//DEBUG_SERIAL_PRINTLN_FLASHSTRING("slightly too closed");
+//V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("slightly too closed");
     // If room is well below target and in BAKE mode then immediately open to maximum.
     // Needs debounced bake mode value to avoid spuriously slamming open the valve as the user cycles through modes.
     if(inputState.inBakeMode) { return(inputState.maxPCOpen); }

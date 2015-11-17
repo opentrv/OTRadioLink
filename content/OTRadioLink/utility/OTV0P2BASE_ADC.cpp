@@ -137,10 +137,10 @@ bool analogueVsBandgapRead(const uint8_t aiNumber, const bool napToSettle)
 
   // Read comparator output from ACO (ACSR).
   bool result = (0 != (ACSR & _BV(ACO)));
-#if 0 && defined(DEBUG)
-  DEBUG_SERIAL_PRINT_FLASHSTRING("ACSR: ");
-  DEBUG_SERIAL_PRINT(ACSR);
-  DEBUG_SERIAL_PRINTLN();
+#if 0 && defined(V0P2BASE_DEBUG)
+  V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("ACSR: ");
+  V0P2BASE_DEBUG_SERIAL_PRINT(ACSR);
+  V0P2BASE_DEBUG_SERIAL_PRINTLN();
 #endif
 
   ACSR |= _BV(ACD); // Disable the analogue comparator.
@@ -196,12 +196,12 @@ uint8_t noisyADCRead(const bool powerUpIO)
   while(!ADC_complete) { ++count; } // Busy wait while 'timing' the ADC conversion.
   const uint8_t l1 = ADCL; // Capture the low byte and latch the high byte.
   const uint8_t h1 = ADCH; // Capture the high byte.
-#if 0 && defined(DEBUG)
-  DEBUG_SERIAL_PRINT_FLASHSTRING("NAR V: ");
-  DEBUG_SERIAL_PRINTFMT(h1, HEX);
-  DEBUG_SERIAL_PRINT(' ');
-  DEBUG_SERIAL_PRINTFMT(l1, HEX);
-  DEBUG_SERIAL_PRINTLN();
+#if 0 && defined(V0P2BASE_DEBUG)
+  V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("NAR V: ");
+  V0P2BASE_DEBUG_SERIAL_PRINTFMT(h1, HEX);
+  V0P2BASE_DEBUG_SERIAL_PRINT(' ');
+  V0P2BASE_DEBUG_SERIAL_PRINTFMT(l1, HEX);
+  V0P2BASE_DEBUG_SERIAL_PRINTLN();
 #endif
   // Sample internal temperature.
   ADMUX = _BV(REFS1) | _BV(REFS0) | _BV(MUX3); // Temp vs bandgap.
@@ -210,12 +210,12 @@ uint8_t noisyADCRead(const bool powerUpIO)
   while(!ADC_complete) { ++count; } // Busy wait while 'timing' the ADC conversion.
   const uint8_t l2 = ADCL; // Capture the low byte and latch the high byte.
   const uint8_t h2 = ADCH; // Capture the high byte.
-#if 0 && defined(DEBUG)
-  DEBUG_SERIAL_PRINT_FLASHSTRING("NAR T: ");
-  DEBUG_SERIAL_PRINTFMT(h2, HEX);
-  DEBUG_SERIAL_PRINT(' ');
-  DEBUG_SERIAL_PRINTFMT(l2, HEX);
-  DEBUG_SERIAL_PRINTLN();
+#if 0 && defined(V0P2BASE_DEBUG)
+  V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("NAR T: ");
+  V0P2BASE_DEBUG_SERIAL_PRINTFMT(h2, HEX);
+  V0P2BASE_DEBUG_SERIAL_PRINT(' ');
+  V0P2BASE_DEBUG_SERIAL_PRINTFMT(l2, HEX);
+  V0P2BASE_DEBUG_SERIAL_PRINTLN();
 #endif
   uint8_t result = (h1 << 5) ^ (l2) ^ (h2 << 3) ^ count;
 #if defined(CATCH_OTHER_NOISE_DURING_NAR)
@@ -231,20 +231,20 @@ uint8_t noisyADCRead(const bool powerUpIO)
     while(!ADC_complete) { ++count; }
     const uint8_t l = ADCL; // Capture the low byte and latch the high byte.
     const uint8_t h = ADCH; // Capture the high byte.
-#if 0 && defined(DEBUG)
-    DEBUG_SERIAL_PRINT_FLASHSTRING("NAR M: ");
-    DEBUG_SERIAL_PRINTFMT(h, HEX);
-    DEBUG_SERIAL_PRINT(' ');
-    DEBUG_SERIAL_PRINTFMT(l, HEX);
-    DEBUG_SERIAL_PRINT(' ');
-    DEBUG_SERIAL_PRINT(count);
-    DEBUG_SERIAL_PRINTLN();
+#if 0 && defined(V0P2BASE_DEBUG)
+    V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("NAR M: ");
+    V0P2BASE_DEBUG_SERIAL_PRINTFMT(h, HEX);
+    V0P2BASE_DEBUG_SERIAL_PRINT(' ');
+    V0P2BASE_DEBUG_SERIAL_PRINTFMT(l, HEX);
+    V0P2BASE_DEBUG_SERIAL_PRINT(' ');
+    V0P2BASE_DEBUG_SERIAL_PRINT(count);
+    V0P2BASE_DEBUG_SERIAL_PRINTLN();
 #endif
     result = _crc_ibutton_update(result ^ h, l ^ count); // A thorough hash.
-#if 0 && defined(DEBUG)
-    DEBUG_SERIAL_PRINT_FLASHSTRING("NAR R: ");
-    DEBUG_SERIAL_PRINTFMT(result, HEX);
-    DEBUG_SERIAL_PRINTLN();
+#if 0 && defined(V0P2BASE_DEBUG)
+    V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("NAR R: ");
+    V0P2BASE_DEBUG_SERIAL_PRINTFMT(result, HEX);
+    V0P2BASE_DEBUG_SERIAL_PRINTLN();
 #endif
     }
   bitClear(ADCSRA, ADIE); // Turn off ADC interrupt.
@@ -254,10 +254,10 @@ uint8_t noisyADCRead(const bool powerUpIO)
 #endif
   if(neededEnable) { powerDownADC(); }
   result ^= l1; // Ensure that the Vcc raw lsbs get directly folded in to the final result.
-#if 0 && defined(DEBUG)
-  DEBUG_SERIAL_PRINT_FLASHSTRING("NAR: ");
-  DEBUG_SERIAL_PRINTFMT(result, HEX);
-  DEBUG_SERIAL_PRINTLN();
+#if 0 && defined(V0P2BASE_DEBUG)
+  V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("NAR: ");
+  V0P2BASE_DEBUG_SERIAL_PRINTFMT(result, HEX);
+  V0P2BASE_DEBUG_SERIAL_PRINTLN();
 #endif
   return(result); // Use all the bits collected.
   }

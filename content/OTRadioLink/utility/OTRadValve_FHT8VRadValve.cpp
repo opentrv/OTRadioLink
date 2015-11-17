@@ -244,7 +244,7 @@ void FHT8VRadValveBase::FHT8VTXFHTQueueAndSendCmd(uint8_t *bptr, const bool doub
   const uint8_t buflen = OTRadioLink::frameLenFFTerminated(bptr);
   r->sendRaw(bptr, buflen, 0, doubleTX ? OTRadioLink::OTRadioLink::TXmax : OTRadioLink::OTRadioLink::TXnormal);
 
-  //DEBUG_SERIAL_PRINTLN_FLASHSTRING("SC");
+  //V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("SC");
   }
 
 // Call just after TX of valve-setting command which is assumed to reflect current TRVPercentOpen state.
@@ -282,8 +282,8 @@ void FHT8VRadValveBase::valveSettingTX(const bool allowDoubleTX)
 // FIXME: should be passed a function (such as pollIO()) to call while waiting.
 void FHT8VRadValveBase::sleepUntilSubCycleTimeOptionalRX(const uint8_t sleepUntil)
     {
-#if 0 && defined(DEBUG)
-    DEBUG_SERIAL_PRINT_FLASHSTRING("TXwait");
+#if 0 && defined(V0P2BASE_DEBUG)
+    V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("TXwait");
 #endif
     // Poll I/O regularly in case listening out for radio comms.
     OTRadioLink::OTRadioLink * const r = radio;
@@ -299,8 +299,8 @@ void FHT8VRadValveBase::sleepUntilSubCycleTimeOptionalRX(const uint8_t sleepUnti
 ////        { pollIO(); }
 //        { r->poll(); } // FIXME: only polls this radio
 //      }
-//#if 0 && defined(DEBUG)
-//    DEBUG_SERIAL_PRINT_FLASHSTRING("*");
+//#if 0 && defined(V0P2BASE_DEBUG)
+//    V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("*");
 //#endif
 
     // Sleep until the right time, close enough for FS20 purposes.
@@ -327,10 +327,10 @@ bool FHT8VRadValveBase::doSync(const bool allowDoubleTX)
     {
     // Starting sync process.
     syncStateFHT8V = 241;
-#if 0 && defined(DEBUG)
-    DEBUG_SERIAL_TIMESTAMP();
-    DEBUG_SERIAL_PRINT(' ');
-    //DEBUG_SERIAL_PRINTLN_FLASHSTRING("FHT8V syncing...");
+#if 0 && defined(V0P2BASE_DEBUG)
+    V0P2BASE_DEBUG_SERIAL_TIMESTAMP();
+    V0P2BASE_DEBUG_SERIAL_PRINT(' ');
+    //V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("FHT8V syncing...");
 #endif
     OTV0P2BASE::serialPrintlnAndFlush(F("FHT8V SYNC..."));
     }
@@ -350,11 +350,11 @@ bool FHT8VRadValveBase::doSync(const bool allowDoubleTX)
         { sleepUntilSubCycleTimeOptionalRX((OTV0P2BASE::SUB_CYCLE_TICKS_PER_S/2) * halfSecondCount); }
       FHT8VTXFHTQueueAndSendCmd(buf, allowDoubleTX); // SEND SYNC
       // Note that FHT8VTXCommandArea now does not contain a valid valve-setting command...
-#if 0 && defined(DEBUG)
-      DEBUG_SERIAL_TIMESTAMP();
-      DEBUG_SERIAL_PRINT_FLASHSTRING(" FHT8V SYNC ");
-      DEBUG_SERIAL_PRINT(syncStateFHT8V);
-      DEBUG_SERIAL_PRINTLN();
+#if 0 && defined(V0P2BASE_DEBUG)
+      V0P2BASE_DEBUG_SERIAL_TIMESTAMP();
+      V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING(" FHT8V SYNC ");
+      V0P2BASE_DEBUG_SERIAL_PRINT(syncStateFHT8V);
+      V0P2BASE_DEBUG_SERIAL_PRINTLN();
 #endif
       }
 
@@ -386,10 +386,10 @@ bool FHT8VRadValveBase::doSync(const bool allowDoubleTX)
       if(halfSecondCount > 0) { sleepUntilSubCycleTimeOptionalRX((OTV0P2BASE::SUB_CYCLE_TICKS_PER_S/2) * halfSecondCount); }
       FHT8VTXFHTQueueAndSendCmd(buf, allowDoubleTX); // SEND SYNC FINAL
       // Note that FHT8VTXCommandArea now does not contain a valid valve-setting command...
-#if 0 && defined(DEBUG)
-      DEBUG_SERIAL_TIMESTAMP();
-      DEBUG_SERIAL_PRINT(' ');
-      //DEBUG_SERIAL_PRINTLN_FLASHSTRING(" FHT8V SYNC FINAL");
+#if 0 && defined(V0P2BASE_DEBUG)
+      V0P2BASE_DEBUG_SERIAL_TIMESTAMP();
+      V0P2BASE_DEBUG_SERIAL_PRINT(' ');
+      //V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING(" FHT8V SYNC FINAL");
 #endif
       OTV0P2BASE::serialPrintlnAndFlush(F("FHT8V SYNC FINAL"));
 
@@ -441,7 +441,7 @@ bool FHT8VRadValveBase::FHT8VPollSyncAndTX_First(const bool allowDoubleTX)
   // Always make maximum effort to be heard by valve when syncing (ie do double TX).
   if(!syncedWithFHT8V) { return(doSync(true)); }
 
-#if 0 && defined(DEBUG)
+#if 0 && defined(V0P2BASE_DEBUG)
    if(0 == halfSecondsToNextFHT8VTX) { panic(F("FHT8V hs count 0 too soon")); }
 #endif
 
@@ -456,10 +456,10 @@ bool FHT8VRadValveBase::FHT8VPollSyncAndTX_First(const bool allowDoubleTX)
   if(0 == --halfSecondsToNextFHT8VTX)
     {
     valveSettingTX(allowDoubleTX); // Should be heard by valve.
-#if 0 && defined(DEBUG)
-    DEBUG_SERIAL_TIMESTAMP();
-    DEBUG_SERIAL_PRINT(' ');
-    // DEBUG_SERIAL_PRINTLN_FLASHSTRING(" FHT8V TX");
+#if 0 && defined(V0P2BASE_DEBUG)
+    V0P2BASE_DEBUG_SERIAL_TIMESTAMP();
+    V0P2BASE_DEBUG_SERIAL_PRINT(' ');
+    // V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING(" FHT8V TX");
     OTV0P2BASE::serialPrintlnAndFlush(F("FHT8V TX"));
 #endif
     // Set up correct delay to next TX.
@@ -485,7 +485,7 @@ bool FHT8VRadValveBase::FHT8VPollSyncAndTX_First(const bool allowDoubleTX)
 bool FHT8VRadValveBase::FHT8VPollSyncAndTX_Next(const bool allowDoubleTX)
   {
   ++halfSecondCount; // Reflects count of calls since _First(), ie how many
-#if 0 && defined(DEBUG)
+#if 0 && defined(V0P2BASE_DEBUG)
     if(halfSecondCount > MAX_HSC) { panic(F("FHT8VPollSyncAndTX_Next() called too often")); }
 #endif
 
@@ -511,10 +511,10 @@ bool FHT8VRadValveBase::FHT8VPollSyncAndTX_Next(const bool allowDoubleTX)
     {
     sleepUntilSubCycleTimeOptionalRX((OTV0P2BASE::SUB_CYCLE_TICKS_PER_S/2) * halfSecondCount); // Sleep.
     valveSettingTX(allowDoubleTX); // Should be heard by valve.
-#if 0 && defined(DEBUG)
-    DEBUG_SERIAL_TIMESTAMP();
-    DEBUG_SERIAL_PRINT(' ');
-    // DEBUG_SERIAL_PRINTLN_FLASHSTRING(" FHT8V TX");
+#if 0 && defined(V0P2BASE_DEBUG)
+    V0P2BASE_DEBUG_SERIAL_TIMESTAMP();
+    V0P2BASE_DEBUG_SERIAL_PRINT(' ');
+    // V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING(" FHT8V TX");
 #endif
     OTV0P2BASE::serialPrintlnAndFlush(F("FHT8V TX"));
 //    handleQueuedMessages(&Serial, true, radio); // Deal with any pending I/O built up while waiting.
@@ -556,15 +556,15 @@ static uint8_t readOneBit(decode_state_t *const state)
   if(state->failed) { return(0); } // Refuse to do anything further once decoding has failed.
 
   if(0 == state->mask) { state->mask = 0xc0; } // Special treatment of 0 as equivalent to 0xc0 on entry.
-#if 0 && defined(DEBUG)
+#if 0 && defined(V0P2BASE_DEBUG)
   if((state->mask != 0xc0) && (state->mask != 0x30) && (state->mask != 0xc) && (state->mask != 3)) { panic(); }
 #endif
 
   // First two bits read must be 11.
   if(state->mask != (state->mask & *(state->bitStream)))
     {
-#if 0 && defined(DEBUG)
-    DEBUG_SERIAL_PRINTLN_FLASHSTRING("leading 11 corrupt");
+#if 0 && defined(V0P2BASE_DEBUG)
+    V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("leading 11 corrupt");
 #endif
     state->failed = true; return(0);
     }
@@ -584,8 +584,8 @@ static uint8_t readOneBit(decode_state_t *const state)
     {
     case 0:
       {
-#if 0 && defined(DEBUG)
-      DEBUG_SERIAL_PRINTLN_FLASHSTRING("decoded 0");
+#if 0 && defined(V0P2BASE_DEBUG)
+      V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("decoded 0");
 #endif
       // Advance the mask; if the mask becomes 0 then advance the byte pointer.
       if(0 == ((state->mask) >>= 2)) { ++(state->bitStream); }
@@ -594,12 +594,12 @@ static uint8_t readOneBit(decode_state_t *const state)
     case 0x80: case 0x20: case 8: case 2: break; // OK: looks like second pair of an encoded 1.
     default:
       {
-#if 0 && defined(DEBUG)
-      DEBUG_SERIAL_PRINT_FLASHSTRING("Invalid second pair ");
-      DEBUG_SERIAL_PRINTFMT(secondPair, HEX);
-      DEBUG_SERIAL_PRINT_FLASHSTRING(" from ");
-      DEBUG_SERIAL_PRINTFMT(*(state->bitStream), HEX);
-      DEBUG_SERIAL_PRINTLN();
+#if 0 && defined(V0P2BASE_DEBUG)
+      V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("Invalid second pair ");
+      V0P2BASE_DEBUG_SERIAL_PRINTFMT(secondPair, HEX);
+      V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING(" from ");
+      V0P2BASE_DEBUG_SERIAL_PRINTFMT(*(state->bitStream), HEX);
+      V0P2BASE_DEBUG_SERIAL_PRINTLN();
 #endif
       state->failed = true; return(0);
       }
@@ -616,16 +616,16 @@ static uint8_t readOneBit(decode_state_t *const state)
   // Third pair of bits must be 00.
   if(0 != (state->mask & *(state->bitStream)))
      {
-#if 0 && defined(DEBUG)
-    DEBUG_SERIAL_PRINTLN_FLASHSTRING("trailing 00 corrupt");
+#if 0 && defined(V0P2BASE_DEBUG)
+    V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("trailing 00 corrupt");
 #endif
     state->failed = true; return(0);
     }
 
   // Advance the mask; if the mask becomes 0 then advance the byte pointer.
   if(0 == ((state->mask) >>= 2)) { ++(state->bitStream); }
-#if 0 && defined(DEBUG)
-  DEBUG_SERIAL_PRINTLN_FLASHSTRING("decoded 1");
+#if 0 && defined(V0P2BASE_DEBUG)
+  V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("decoded 1");
 #endif
   return(1); // Decoded a 1.
   }
@@ -650,8 +650,8 @@ static uint8_t readOneByteWithParity(decode_state_t *const state)
   // Then get parity bit and check.
   if(parity != readOneBit(state))
     {
-#if 0 && defined(DEBUG)
-    DEBUG_SERIAL_PRINTLN_FLASHSTRING("bad parity");
+#if 0 && defined(V0P2BASE_DEBUG)
+    V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("bad parity");
 #endif
     state->failed = true;
     }
@@ -670,20 +670,20 @@ uint8_t const * FHT8VRadValveBase::FHT8VDecodeBitStream(uint8_t const *bitStream
   state.mask = 0;
   state.failed = false;
 
-#if 0 && defined(DEBUG)
-  DEBUG_SERIAL_PRINT_FLASHSTRING("FHT8VDecodeBitStream:");
+#if 0 && defined(V0P2BASE_DEBUG)
+  V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("FHT8VDecodeBitStream:");
   for(uint8_t const *p = bitStream; p <= lastByte; ++p)
       {
-      DEBUG_SERIAL_PRINT_FLASHSTRING(" &");
-      DEBUG_SERIAL_PRINTFMT(*p, HEX);
+      V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING(" &");
+      V0P2BASE_DEBUG_SERIAL_PRINTFMT(*p, HEX);
       }
-  DEBUG_SERIAL_PRINTLN();
+  V0P2BASE_DEBUG_SERIAL_PRINTLN();
 #endif
 
   // Find and absorb the leading encoded '1', else quit if not found by end of stream.
   while(0 == readOneBit(&state)) { if(state.failed) { return(NULL); } }
-#if 0 && defined(DEBUG)
-  DEBUG_SERIAL_PRINTLN_FLASHSTRING("Read leading 1");
+#if 0 && defined(V0P2BASE_DEBUG)
+  V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Read leading 1");
 #endif
 
   command->hc1 = readOneByteWithParity(&state);
@@ -698,8 +698,8 @@ uint8_t const * FHT8VRadValveBase::FHT8VDecodeBitStream(uint8_t const *bitStream
   const uint8_t checksumRead = readOneByteWithParity(&state);
   if(state.failed)
     {
-#if 0 && defined(DEBUG)
-    DEBUG_SERIAL_PRINTLN_FLASHSTRING("Failed to read message");
+#if 0 && defined(V0P2BASE_DEBUG)
+    V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Failed to read message");
 #endif
     return(NULL);
     }
@@ -712,30 +712,30 @@ uint8_t const * FHT8VRadValveBase::FHT8VDecodeBitStream(uint8_t const *bitStream
 #endif
   if(checksum != checksumRead)
     {
-#if 0 && defined(DEBUG)
-    DEBUG_SERIAL_PRINTLN_FLASHSTRING("Checksum failed");
+#if 0 && defined(V0P2BASE_DEBUG)
+    V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Checksum failed");
 #endif
     state.failed = true; return(NULL);
     }
-#if 0 && defined(DEBUG)
+#if 0 && defined(V0P2BASE_DEBUG)
   else
     {
-    DEBUG_SERIAL_PRINTLN_FLASHSTRING("Checksum OK");
+    V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Checksum OK");
     }
 #endif
 
   // Check the trailing encoded '0'.
   if(0 != readOneBit(&state))
     {
-#if 0 && defined(DEBUG)
-    DEBUG_SERIAL_PRINTLN_FLASHSTRING("Read of trailing 0 failed");
+#if 0 && defined(V0P2BASE_DEBUG)
+    V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Read of trailing 0 failed");
 #endif
     state.failed = true; return(NULL);
     }
   if(state.failed) { return(NULL); }
 
-#if 0 && defined(DEBUG)
-    DEBUG_SERIAL_PRINTLN_FLASHSTRING("Read entire message");
+#if 0 && defined(V0P2BASE_DEBUG)
+    V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Read entire message");
 #endif
   // Return pointer to where any trailing data may be
   // in next byte beyond end of FHT8V frame.

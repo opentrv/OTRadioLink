@@ -72,10 +72,10 @@ bool MinimalOneWireBase::reset()
   // Timing is not critical here so interrupts are allowed in again...
   delayJ();
 
-#if 0 && defined(DEBUG)
-  DEBUG_SERIAL_PRINT_FLASHSTRING("OW reset");
-  if(result) { DEBUG_SERIAL_PRINT_FLASHSTRING(" found slave(s)"); }
-  DEBUG_SERIAL_PRINTLN();
+#if 0 && defined(V0P2BASE_DEBUG)
+  V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("OW reset");
+  if(result) { V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING(" found slave(s)"); }
+  V0P2BASE_DEBUG_SERIAL_PRINTLN();
 #endif
 
   return(result);
@@ -147,11 +147,11 @@ bool MinimalOneWireBase::search(uint8_t newAddr[])
       // Read bit and the complement.
       const bool idBit = read_bit();
       const bool cmplIDBit = read_bit();
-#if 0 && defined(DEBUG)
-      DEBUG_SERIAL_PRINT_FLASHSTRING("Search read bit&compl: ");
-      DEBUG_SERIAL_PRINT(idBit);
-      DEBUG_SERIAL_PRINT(cmplIDBit);
-      DEBUG_SERIAL_PRINTLN();
+#if 0 && defined(V0P2BASE_DEBUG)
+      V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("Search read bit&compl: ");
+      V0P2BASE_DEBUG_SERIAL_PRINT(idBit);
+      V0P2BASE_DEBUG_SERIAL_PRINT(cmplIDBit);
+      V0P2BASE_DEBUG_SERIAL_PRINTLN();
 #endif
 
       // Stop if no slave devices on the bus.
@@ -181,20 +181,20 @@ bool MinimalOneWireBase::search(uint8_t newAddr[])
       ++idBitNumber;
       if(0 == (addrByteMask <<= 1))
         {
-#if 0 && defined(DEBUG)
-        DEBUG_SERIAL_PRINT_FLASHSTRING("Addr byte: ");
-        DEBUG_SERIAL_PRINTFMT(addr[addrByteNumber], HEX);
-        DEBUG_SERIAL_PRINTLN();
+#if 0 && defined(V0P2BASE_DEBUG)
+        V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("Addr byte: ");
+        V0P2BASE_DEBUG_SERIAL_PRINTFMT(addr[addrByteNumber], HEX);
+        V0P2BASE_DEBUG_SERIAL_PRINTLN();
 #endif
         addrByteMask = 1;
         ++addrByteNumber;
         }
 
       // Send the next search bit...
-#if 0 && defined(DEBUG)
-      DEBUG_SERIAL_PRINT_FLASHSTRING("Search write: ");
-      DEBUG_SERIAL_PRINT(searchDirection);
-      DEBUG_SERIAL_PRINTLN();
+#if 0 && defined(V0P2BASE_DEBUG)
+      V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("Search write: ");
+      V0P2BASE_DEBUG_SERIAL_PRINT(searchDirection);
+      V0P2BASE_DEBUG_SERIAL_PRINTLN();
 #endif
       write_bit(searchDirection);
       } while(addrByteNumber < 8); // Collect all address bytes!

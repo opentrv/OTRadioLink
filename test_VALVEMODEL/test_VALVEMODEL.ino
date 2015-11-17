@@ -227,7 +227,7 @@ static void testMRVSExtremes()
   // ie that when below any possible legal target FROST/WARM/BAKE temperature the valve will open monotonically,
   // and also test that the fully-open state is reached in a bounded number of ticks ie bounded time.
   static const int maxFullTravelMins = 25;
-//  DEBUG_SERIAL_PRINTLN_FLASHSTRING("open...");
+//  V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("open...");
   OTRadValve::ModelledRadValveInputState is0(0);
   is0.targetTempC = OTV0P2BASE::randRNG8NextBoolean() ? 5 : 25;
   OTRadValve::ModelledRadValveState rs0;
@@ -258,7 +258,7 @@ static void testMRVSExtremes()
   //   * Once in linger all reductions should be by 1% until possible final jump to 0.
   //   * Check that linger was long enough (if linger threshold is higher enough to allow it).
   // Also check for some correct initialisation and 'velocity'/smoothing behaviour.
-//  DEBUG_SERIAL_PRINTLN_FLASHSTRING("close...");
+//  V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("close...");
   OTRadValve::ModelledRadValveInputState is1(100<<4);
   is1.targetTempC = OTV0P2BASE::randRNG8NextBoolean() ? 5 : 25;
   OTRadValve::ModelledRadValveState rs1;
@@ -300,14 +300,14 @@ static void testMRVSExtremes()
 //  ModelledRadValveState rs2;
 //  // Test with steady rising/falling value.
 //  const int step2C16 = (randRNG8() & 0x1f) - 16;
-//DEBUG_SERIAL_PRINT(step2C16);
-//DEBUG_SERIAL_PRINTLN();
+//V0P2BASE_DEBUG_SERIAL_PRINT(step2C16);
+//V0P2BASE_DEBUG_SERIAL_PRINTLN();
 //  const int base2C16 = (FROST + (randRNG8() % (WARM - FROST))) << 16;
 //  rs2.prevRawTempC16[0] = base2C16;
 //  for(int i = 1; i < ModelledRadValveState::filterLength; ++i)
 //    { rs2.prevRawTempC16[i] = rs2.prevRawTempC16[i-1] - step2C16; }
-////DEBUG_SERIAL_PRINT(rs2.getVelocityC16PerTick());
-////DEBUG_SERIAL_PRINTLN();
+////V0P2BASE_DEBUG_SERIAL_PRINT(rs2.getVelocityC16PerTick());
+////V0P2BASE_DEBUG_SERIAL_PRINTLN();
 //  AssertIsEqualWithDelta(step2C16, rs2.getVelocityC16PerTick(), 2);
   // Test that soft setback works as expected to support dark-based quick setback.
   // ENERGY SAVING RULE TEST (TODO-442 2a: "Setback in WARM mode must happen in dark (quick response) or long vacant room.")
@@ -328,11 +328,11 @@ static void testMRVSExtremes()
           OTRadValve::ModelledRadValveState rs3a;
           valvePCOpen = 0;
           rs3a.tick(valvePCOpen, is3);
-//DEBUG_SERIAL_PRINT('@');
-//DEBUG_SERIAL_PRINT(offset);
-//DEBUG_SERIAL_PRINT(' ');
-//DEBUG_SERIAL_PRINT(valvePCOpen);
-//DEBUG_SERIAL_PRINTLN();
+//V0P2BASE_DEBUG_SERIAL_PRINT('@');
+//V0P2BASE_DEBUG_SERIAL_PRINT(offset);
+//V0P2BASE_DEBUG_SERIAL_PRINT(' ');
+//V0P2BASE_DEBUG_SERIAL_PRINT(valvePCOpen);
+//V0P2BASE_DEBUG_SERIAL_PRINTLN();
           AssertIsTrue((offset < 0) ? (valvePCOpen > 0) : (0 == valvePCOpen));
           // Where adjusted reference temperature is (well) above target, valve should be driven off.
           OTRadValve::ModelledRadValveState rs3b;

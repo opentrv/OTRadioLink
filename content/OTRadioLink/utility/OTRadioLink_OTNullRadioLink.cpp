@@ -54,12 +54,12 @@ bool OTNullRadioLink::sendRaw(const uint8_t *buf, uint8_t buflen, int8_t , TXpow
 {
 	const char *pBuf = (const char *) buf;
 	// print if in debug mode
-	DEBUG_SERIAL_PRINT_FLASHSTRING("Radio: ");
+	V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("Radio: ");
 	for (uint8_t i = 0; i < buflen; i++) {
-		DEBUG_SERIAL_PRINT(*pBuf);
+		V0P2BASE_DEBUG_SERIAL_PRINT(*pBuf);
 		pBuf++;
 	}
-	DEBUG_SERIAL_PRINTLN();
+	V0P2BASE_DEBUG_SERIAL_PRINTLN();
 	return true;
 }
 
