@@ -282,10 +282,10 @@ bool OTSIM900Link::flushUntil(uint8_t _terminatingChar)
 	OTV0P2BASE::serialPrintAndFlush(F("- Flush"));
 #endif // OTSIM900LINK_DEBUG
 
-	const uint8_t endTime = OTV0P2BASE::getSubCycleTime() + 128; // This value gives about a second (only for 2000ms cycle)
-	while (OTV0P2BASE::getSubCycleTime() != endTime) { // as time taken by read() is << than tick time
-    const uint8_t c = read();
-    if (c == terminatingChar) return true;
+	const uint8_t startTime = OTV0P2BASE::getSecondsLT(); // This value gives about a second (only for 2000ms cycle)
+	while (OTV0P2BASE::getSecondsLT() == startTime) { // FIXME Replace this logic
+		const uint8_t c = read();
+		if (c == terminatingChar) return true;
     }
 #ifdef OTSIM900LINK_DEBUG
   OTV0P2BASE::serialPrintlnAndFlush(F("Flush: Timeout"));
