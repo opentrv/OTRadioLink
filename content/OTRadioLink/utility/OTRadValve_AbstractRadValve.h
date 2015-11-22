@@ -118,7 +118,7 @@ class NullRadValve : public AbstractRadValve
 // may allow comfortable boiler pump overrun in older systems with no/poor bypass to avoid overheating.
 static const uint8_t DEFAULT_VALVE_PC_MIN_REALLY_OPEN = 15;
 
-// Safer value for valves to very likely be significantly open, in range [DEFAULT_VALVE_PC_MIN_REALLY_OPEN,DEFAULT_VALVE_PC_MODERATELY_OPEN].
+// Safer value for valves to very likely be significantly open, in range [DEFAULT_VALVE_PC_MIN_REALLY_OPEN+1,DEFAULT_VALVE_PC_MODERATELY_OPEN-1].
 // NOTE: below this value is likely to let a boiler switch off also,
 // so DO NOT CHANGE this value between boiler and valve code without good reason.
 // DHD20151030: with initial dead-reckoning direct drive impl valves may not be open until ~45%.
