@@ -107,7 +107,7 @@ class NullRadValve : public AbstractRadValve
 
 
 
-// Default minimum valve percentage open to be considered actually/significantly open; [1,100].
+// Default minimum valve percentage open to be considered actually/significantly open; [1,99].
 // Anything like this will usually be shut or very minimal flows.
 // Setting this above 0 delays calling for heat from a central boiler until water is likely able to flow.
 // (It may however be possible to scavenge some heat if a particular valve opens below this and the circulation pump is already running, for example.)
@@ -118,13 +118,13 @@ class NullRadValve : public AbstractRadValve
 // may allow comfortable boiler pump overrun in older systems with no/poor bypass to avoid overheating.
 static const uint8_t DEFAULT_VALVE_PC_MIN_REALLY_OPEN = 15;
 
-// Safer value for valves to very likely be significantly open, in range [DEFAULT_VALVE_PC_MIN_REALLY_OPEN,DEFAULT_VALVE_PC_FAIRLY_OPEN].
-// NOTE: below this value is likely to let a boller switch off also,
+// Safer value for valves to very likely be significantly open, in range [DEFAULT_VALVE_PC_MIN_REALLY_OPEN,DEFAULT_VALVE_PC_MODERATELY_OPEN].
+// NOTE: below this value is likely to let a boiler switch off also,
 // so DO NOT CHANGE this value between boiler and valve code without good reason.
 // DHD20151030: with initial dead-reckoning direct drive impl valves may not be open until ~45%.
 static const uint8_t DEFAULT_VALVE_PC_SAFER_OPEN = 50;
 
-// Default valve percentage at which significant heating power is being provided.
+// Default valve percentage at which significant heating power is being provided [DEFAULT_VALVE_PC_SAFER_OPEN+1,99].
 // For many valves much of the time this may be effectively fully open,
 // ie no change beyond this makes significant difference to heat delivery.
 // NOTE: at/above this value is likely to force a boiler on also,
