@@ -249,7 +249,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
       // which should allow flow and turn the boiler on ASAP,
       // a little like a mini-BAKE.
       // For this to work, don't set a wide deadband when, eg, user has just touched the controls.
-      const uint8_t cappedModeratelyOpen = min(inputState.maxPCOpen, OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN);
+      const uint8_t cappedModeratelyOpen = min(inputState.maxPCOpen, OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN+1);
       if(vBelowTarget && !inputState.widenDeadband && (valvePCOpen < cappedModeratelyOpen))
           { return(cappedModeratelyOpen); }
 
@@ -257,7 +257,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
       // both locally in terms of valve position and also in terms of the boiler responding.
       // Less fast if already moderately open or with a wide deadband.
       const uint8_t slewRate =
-          ((valvePCOpen >= OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN) || !inputState.widenDeadband) ?
+          ((valvePCOpen > OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN) || !inputState.widenDeadband) ?
               TRV_MAX_SLEW_PC_PER_MIN : TRV_SLEW_PC_PER_MIN_VFAST;
       const uint8_t minOpenFromCold = max(slewRate, inputState.minPCOpen);
       // Open to 'minimum' likely open state immediately if less open currently.
@@ -404,7 +404,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
 #if defined(GLACIAL_ON_WITH_WIDE_DEADBAND)
         inputState.widenDeadband ||
 #endif
-        (lsbits >= 8) || ((lsbits >= 4) && (valvePCOpen >= OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN));
+        (lsbits >= 8) || ((lsbits >= 4) && (valvePCOpen > OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN));
     if(beGlacial) { return(valvePCOpen + 1); }
 
     // Slew open faster with comfort bias.
