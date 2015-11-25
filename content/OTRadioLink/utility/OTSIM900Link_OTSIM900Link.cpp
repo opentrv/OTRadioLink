@@ -33,8 +33,10 @@ OTSIM900Link::OTSIM900Link(uint8_t, uint8_t pwrPin, uint8_t rxPin, uint8_t txPin
   pinMode(PWR_PIN, OUTPUT);
   bAvailable = false;
   bPowered = false;
-  bSendPending = false;
   config = NULL;
+  state = IDLE;
+  memset(txQueue, 0, sizeof(txQueue));
+
 }
 
 /**
@@ -108,6 +110,7 @@ bool OTSIM900Link::end()
 
 /**
  * @brief	Sends message. Will shut UDP and attempt to resend if sendUDP fails
+ * @todo	clean this up
  * @param	buf		pointer to buffer to send
  * @param	buflen	length of buffer to send
  * @param	channel	ignored
@@ -146,11 +149,11 @@ bool OTSIM900Link::sendRaw(const uint8_t *buf, uint8_t buflen, int8_t , TXpower 
  */
 bool OTSIM900Link::queueToSend(const uint8_t *buf, uint8_t buflen, int8_t , TXpower )
 {
-	if ((buf == NULL) || (buflen > maxTXMsgLen) || (txMessageQueue >= maxTxQueueLength)) return false;	// TODO check logic
+	if ((buf == NULL) || (buflen > 64) || (txMessageQueue >= maxTxQueueLength)) return false;	// TODO check logic and sort out maxTXMsgLen problem
 	// Increment message queue
 	txMessageQueue++;
 	// copy into queue here?
-	memcpy(buf, txQueue, buflen);
+	memcpy(txQueue, buf, buflen);
 
 	return true;
 }
@@ -165,14 +168,14 @@ void OTSIM900Link::poll()
 {
 	if (txMessageQueue) {
 		// State machine in here
-		switch (sendState) {
+		switch (state) {
 		case IDLE:
 			// print signal strength
 			getSignalStrength();
 			delay(300);
 			// open udp connection
 			openUDP();
-			sendState = WAIT_FOR_UDP;
+			state = WAIT_FOR_UDP;
 			break;
 		case WAIT_FOR_UDP:
 			// check if udp opened
@@ -181,7 +184,7 @@ void OTSIM900Link::poll()
 				// shut
 				shutGPRS();
 
-				if (!txMessageQueue--) sendState = IDLE;
+				if (!txMessageQueue--) state = IDLE;
 			}
 
 			break;
@@ -261,6 +264,7 @@ bool OTSIM900Link::closeUDP()
  * @brief	send UDP frame
  * @todo	add check for successful send
  * 			split this into init sending and write message
+ * 			How will size of message be found/passed?
  * @param	pointer to array containing frame to send
  * @param	length of frame
  * @retval	returns true if send successful
@@ -809,6 +813,25 @@ void OTSIM900Link::getSignalStrength()
 	dataCut = getResponse(dataCutLength, data, sizeof(data), ' '); // first ' ' appears right before useful part of message
 }
 
+/**
+ * @brief	This will be called in interrupt while waiting for send prompt
+ * @todo	Must do nothing if not in WAIT_FOR_PROMPT state
+ * 			in WAIT_FOR_PROMPT:
+ * 			- trigger if pin low
+ * 			- disable interrupts (where?)
+ * 			- set flag
+ * 			- enable interrupts
+ * 	@retval	returns true on successful exit
+ */
+bool OTSIM900Link::handleInterruptSimple()
+{
+	if (state == WAIT_FOR_PROMPT) {
+		ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+//			if(read() == '>') FLAG GOES HERE; // '>' is prompt
+		}
+	}
+	return true;
+}
 
 //const char OTSIM900Link::AT_[] = "";
 const char OTSIM900Link::AT_START[3] = "AT";
