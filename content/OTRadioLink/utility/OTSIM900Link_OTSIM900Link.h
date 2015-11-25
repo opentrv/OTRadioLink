@@ -249,6 +249,10 @@ private:
 		WAIT_FOR_SENDOK
     };
 
+    // TODO expand this so that it can take multiple messages
+    uint8_t txQueue[maxTXMsgLen]; // FIXME this probably won't work
+    static const uint8_t maxTxQueueLength;
+
 
 public:	// define abstract methods here
     // These are unused as no RX

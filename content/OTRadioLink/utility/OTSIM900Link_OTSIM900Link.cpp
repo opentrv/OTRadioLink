@@ -146,18 +146,12 @@ bool OTSIM900Link::sendRaw(const uint8_t *buf, uint8_t buflen, int8_t , TXpower 
  */
 bool OTSIM900Link::queueToSend(const uint8_t *buf, uint8_t buflen, int8_t , TXpower )
 {
+	if ((buf == NULL) || (buflen > maxTXMsgLen) || (txMessageQueue >= maxTxQueueLength)) return false;	// TODO check logic
 	// Increment message queue
 	txMessageQueue++;
-
 	// copy into queue here?
+	memcpy(buf, txQueue, buflen);
 
-	// This stuff will move to poll()
-	getSignalStrength();
-	delay(500);
-	openUDP();
-	delay(5000);
-	bool sent = sendRaw(buf, buflen);
-	shutGPRS();
 	return true;
 }
 
@@ -173,15 +167,21 @@ void OTSIM900Link::poll()
 		// State machine in here
 		switch (sendState) {
 		case IDLE:
+			// print signal strength
+			getSignalStrength();
+			delay(300);
 			// open udp connection
-			// openUDP();
+			openUDP();
+			sendState = WAIT_FOR_UDP;
 			break;
 		case WAIT_FOR_UDP:
 			// check if udp opened
 			if(isOpenUDP()){
-				sendRaw();	// TODO  replace this with start sending function
+				sendRaw(txQueue, sizeof(txQueue));	// TODO  replace this with start sending function and work out what to do with sizeof
 				// shut
 				shutGPRS();
+
+				if (!txMessageQueue--) sendState = IDLE;
 			}
 
 			break;
