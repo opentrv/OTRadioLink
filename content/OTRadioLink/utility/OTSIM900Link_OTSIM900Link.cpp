@@ -80,7 +80,7 @@ bool OTSIM900Link::begin()
   OTV0P2BASE::serialPrintlnAndFlush(F("Wait for Registration"));
 #endif // OTSIM900LINK_DEBUG
 	// block until network registered
-	while(!isRegistered()) { printDiagnostics(); delay(2000); }
+	while(!isRegistered()) { getSignalStrength(); delay(2000); }
 
 #ifdef OTSIM900LINK_DEBUG
   OTV0P2BASE::serialPrintlnAndFlush(F("Set APN"));
@@ -147,7 +147,7 @@ bool OTSIM900Link::sendRaw(const uint8_t *buf, uint8_t buflen, int8_t , TXpower 
 bool OTSIM900Link::queueToSend(const uint8_t *buf, uint8_t buflen, int8_t , TXpower )
 {
 	bSendPending = true;
-	printDiagnostics();
+	getSignalStrength();
 	delay(500);
 	openUDP();
 	delay(5000);
@@ -264,9 +264,9 @@ uint8_t OTSIM900Link::timedBlockingRead(char *data, uint8_t length)
   i = softSerial.read((uint8_t *)data, length);
 
 #ifdef OTSIM900LINK_DEBUG
-  OTV0P2BASE::serialPrintAndFlush(F("\n--Buffer Length: "));
-  OTV0P2BASE::serialPrintAndFlush(i);
-  OTV0P2BASE::serialPrintlnAndFlush();
+//  OTV0P2BASE::serialPrintAndFlush(F("\n--Buffer Length: "));
+//  OTV0P2BASE::serialPrintAndFlush(i);
+//  OTV0P2BASE::serialPrintlnAndFlush();
 #endif // OTSIM900LINK_DEBUG
   return i;
 }
@@ -669,7 +669,6 @@ const char *OTSIM900Link::getResponse(uint8_t &newLength, const char *data, uint
 #ifdef OTSIM900LINK_DEBUG
 	char *stringEnd = (char *)data;
 	 *stringEnd = '\0';
-	OTV0P2BASE::serialPrintAndFlush("- Response: ");
 	OTV0P2BASE::serialPrintAndFlush(newPtr);
 	OTV0P2BASE::serialPrintlnAndFlush();
 #endif // OTSIM900LINK_DEBUG
@@ -748,16 +747,19 @@ bool OTSIM900Link::getInitState()
  */
 void OTSIM900Link::getSignalStrength()
 {
-	  char data[40];
-	  print(AT_START);
-	  print(AT_SIGNAL);
-	  print(AT_END);
-	  timedBlockingRead(data, sizeof(data));
+#ifdef OTSIM900LINK_DEBUG
+	OTV0P2BASE::serialPrintlnAndFlush(F("Signal Strength: "));
+#endif // OTSIM900LINK_DEBUG
+	char data[32];
+	print(AT_START);
+	print(AT_SIGNAL);
+	print(AT_END);
+	timedBlockingRead(data, sizeof(data));
 
-	  // response stuff
-	  const char *dataCut;
-	  uint8_t dataCutLength = 0;
-	  dataCut = getResponse(dataCutLength, data, sizeof(data), ' '); // first ' ' appears right before useful part of message
+	// response stuff
+	const char *dataCut;
+	uint8_t dataCutLength = 0;
+	dataCut = getResponse(dataCutLength, data, sizeof(data), ' '); // first ' ' appears right before useful part of message
 }
 
 

@@ -15,10 +15,10 @@ pending:
     DE20151023:  Fixed compiler warnings.
     DE20151028:  Fixed issue with startup failing when GSM module turned off.
     DE20151028:  Set up configuration to use OTRadioLink interface.
-    DE20151102:  Added support for putting config in eeprom
-    DE20151112:  Modified read and write timings for better reliability
-    DE20151113:  Added utilities for setting baud and writing radioconfig to eeprom
-    DE20151125:  Added signal quality diagnostics
+    DE20151102:  Added support for putting config in eeprom.
+    DE20151112:  Modified read and write timings for better reliability.
+    DE20151113:  Added utilities for setting baud and writing radioconfig to eeprom.
+    DE20151125:  Added signal quality diagnostics.
 
 
 20150817:
