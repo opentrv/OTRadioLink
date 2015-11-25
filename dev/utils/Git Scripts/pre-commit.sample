@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# pre-commit
+# Script for automatically regenerating OTRadioLink.zip on commit
+# How to use:
+# 1- Make sure you have at least EGit 4.10 from http://www.eclipse.org/egit/download/
+# 1- copy to OTRadioLink/.git/hooks
+# 2- rename to pre-commit (deleting .sample)
+#
+# The script will be automatically run before a commit.
+
+echo 'pre-commit: Generate zip'
+
+zip -r OTRadioLink.zip ./content/OTRadioLink
+git add ./OTRadioLink.zip
+
+exit 0
