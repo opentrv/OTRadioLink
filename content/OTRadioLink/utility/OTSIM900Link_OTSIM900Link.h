@@ -157,7 +157,7 @@ private:
   // variables
   bool bAvailable;
   bool bPowered;
-  volatile bool bSendPending;
+  volatile uint8_t txMessageQueue;
   const OTSIM900LinkConfig_t *config;
   static const uint16_t baud = 2400; // max reliable baud
 /************************* Private Methods *******************************/
@@ -240,6 +240,14 @@ private:
     bool _doconfig();
 
     bool printDiagnostics();
+
+    // TODO check this is in correct place
+    enum sendState {
+    	IDLE,
+		WAIT_FOR_UDP,
+		WAIT_FOR_PROMPT,
+		WAIT_FOR_SENDOK
+    };
 
 
 public:	// define abstract methods here

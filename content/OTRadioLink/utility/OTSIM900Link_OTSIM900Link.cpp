@@ -146,24 +146,66 @@ bool OTSIM900Link::sendRaw(const uint8_t *buf, uint8_t buflen, int8_t , TXpower 
  */
 bool OTSIM900Link::queueToSend(const uint8_t *buf, uint8_t buflen, int8_t , TXpower )
 {
-	bSendPending = true;
+	// Increment message queue
+	txMessageQueue++;
+
+	// copy into queue here?
+
+	// This stuff will move to poll()
 	getSignalStrength();
 	delay(500);
 	openUDP();
 	delay(5000);
 	bool sent = sendRaw(buf, buflen);
 	shutGPRS();
-	bSendPending = false;
-	return sent;
+	return true;
 }
 
 /**
- * @brief
- * @todo	everything
+ * @brief	Polling routine steps through 4 stage state machine
+ * @todo	test 2 stage state machine
+ * 			add in other stages
+ * 			allow for sending multiple messages in one session
  */
 void OTSIM900Link::poll()
 {
-	if (bSendPending) {} // do something...
+	if (txMessageQueue) {
+		// State machine in here
+		switch (sendState) {
+		case IDLE:
+			// open udp connection
+			// openUDP();
+			break;
+		case WAIT_FOR_UDP:
+			// check if udp opened
+			if(isOpenUDP()){
+				sendRaw();	// TODO  replace this with start sending function
+				// shut
+				shutGPRS();
+			}
+
+			break;
+			// TODO add these in once 2 stage state machine works
+//		case WAIT_FOR_PROMPT:
+//			// check for flag from interrupt
+//			//   - write message if true
+//			//   - else check for timeout
+//			if (!bPromptFlag) {
+//				checkTimeout;
+//			} else {
+//				sendRaw();
+//				txMessageQueue--;
+//			}
+//			break;
+//		case WAIT_FOR_SENDOK:
+//			// wait for send ok (flag from interrupt?)
+//			// then shut GPRS
+//			break;
+
+		default:
+			break;
+		}
+	}
 }
 
 /**
@@ -218,6 +260,7 @@ bool OTSIM900Link::closeUDP()
 /**
  * @brief	send UDP frame
  * @todo	add check for successful send
+ * 			split this into init sending and write message
  * @param	pointer to array containing frame to send
  * @param	length of frame
  * @retval	returns true if send successful
@@ -225,13 +268,17 @@ bool OTSIM900Link::closeUDP()
  */
 bool OTSIM900Link::sendUDP(const char *frame, uint8_t length)
 {
+	// TODO this bit will be initSendUDP
 	print(AT_START);
 	print(AT_SEND_UDP);
 	print('=');
 	print(length);
 	print(AT_END);
+
+	// TODO flushUntil will be replaced with isr routine
 //	 '>' indicates module is ready for UDP frame
 	if (flushUntil('>')) {
+		// TODO this bit will remain in this
 		write(frame, length);
 		delay(500);
 		return true;	// add check here
