@@ -80,7 +80,7 @@ bool OTSIM900Link::begin()
   OTV0P2BASE::serialPrintlnAndFlush(F("Wait for Registration"));
 #endif // OTSIM900LINK_DEBUG
 	// block until network registered
-	while(!isRegistered()) { delay(2000); }
+	while(!isRegistered()) { printDiagnostics(); delay(2000); }
 
 #ifdef OTSIM900LINK_DEBUG
   OTV0P2BASE::serialPrintlnAndFlush(F("Set APN"));
@@ -147,6 +147,8 @@ bool OTSIM900Link::sendRaw(const uint8_t *buf, uint8_t buflen, int8_t , TXpower 
 bool OTSIM900Link::queueToSend(const uint8_t *buf, uint8_t buflen, int8_t , TXpower )
 {
 	bSendPending = true;
+	printDiagnostics();
+	delay(500);
 	openUDP();
 	delay(5000);
 	bool sent = sendRaw(buf, buflen);
@@ -280,6 +282,7 @@ bool OTSIM900Link::flushUntil(uint8_t _terminatingChar)
 
 #ifdef OTSIM900LINK_DEBUG
 	OTV0P2BASE::serialPrintAndFlush(F("- Flush"));
+	OTV0P2BASE::serialPrintlnAndFlush();
 #endif // OTSIM900LINK_DEBUG
 
 	const uint8_t startTime = OTV0P2BASE::getSecondsLT(); // This value gives about a second (only for 2000ms cycle)
@@ -290,6 +293,7 @@ bool OTSIM900Link::flushUntil(uint8_t _terminatingChar)
 #ifdef OTSIM900LINK_DEBUG
   OTV0P2BASE::serialPrintlnAndFlush(F("Flush: Timeout"));
 #endif // OTSIM900LINK_DEBUG
+
   return false;
 }
 /**
@@ -739,8 +743,27 @@ bool OTSIM900Link::getInitState()
 	return true;
 }
 
+/**
+ * @brief	get signal strength
+ */
+void OTSIM900Link::getSignalStrength()
+{
+	  char data[40];
+	  print(AT_START);
+	  print(AT_SIGNAL);
+	  print(AT_END);
+	  timedBlockingRead(data, sizeof(data));
+
+	  // response stuff
+	  const char *dataCut;
+	  uint8_t dataCutLength = 0;
+	  dataCut = getResponse(dataCutLength, data, sizeof(data), ' '); // first ' ' appears right before useful part of message
+}
+
+
 //const char OTSIM900Link::AT_[] = "";
 const char OTSIM900Link::AT_START[3] = "AT";
+const char OTSIM900Link::AT_SIGNAL[5] = "+CSQ";
 const char OTSIM900Link::AT_NETWORK[6] = "+COPS";
 const char OTSIM900Link::AT_REGISTRATION[6] = "+CREG"; // GSM registration.
 const char OTSIM900Link::AT_GPRS_REGISTRATION0[7] = "+CGATT"; // GPRS registration.
@@ -757,7 +780,6 @@ const char OTSIM900Link::AT_CLOSE_UDP[10] = "+CIPCLOSE";
 const char OTSIM900Link::AT_SHUT_GPRS[9] = "+CIPSHUT";
 
 const char OTSIM900Link::AT_VERBOSE_ERRORS[6] = "+CMEE";
-
 
 // tcpdump -Avv udp and dst port 9999
 } // OTSIM900Link

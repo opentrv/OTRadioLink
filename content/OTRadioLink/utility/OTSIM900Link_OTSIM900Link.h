@@ -126,6 +126,7 @@ private:
     // These may not be supported by all sim modules so may need to move
     // to concrete implementation
   	  static const char AT_START[3];
+  	  static const char AT_SIGNAL[5];
       static const char AT_NETWORK[6];
       static const char AT_REGISTRATION[6];
       static const char AT_GPRS_REGISTRATION0[7];
@@ -220,6 +221,7 @@ private:
     bool shutGPRS();
     uint8_t getIP();
     bool isOpenUDP();
+    void getSignalStrength();
 
     void verbose(uint8_t level);
     void setPIN();
@@ -236,6 +238,8 @@ private:
     bool getInitState();
 
     bool _doconfig();
+
+    bool printDiagnostics();
 
 
 public:	// define abstract methods here

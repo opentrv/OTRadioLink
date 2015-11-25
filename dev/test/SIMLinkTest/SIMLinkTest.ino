@@ -198,6 +198,10 @@ void serialInput(uint8_t input)
     case 's':
     gprs.queueToSend((uint8_t *)UDP_SEND_STR, sizeof(UDP_SEND_STR));
     break;
+
+    case 'q':
+    gprs.printDiagnostics();
+    break;
     
     default:
     break;
