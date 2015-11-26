@@ -91,6 +91,13 @@ typedef struct OTSIM900LinkConfig {
     }
 } OTSIM900LinkConfig_t;
 
+enum SendState {
+    	IDLE,
+		WAIT_FOR_UDP,
+		WAIT_FOR_PROMPT,
+		WAIT_FOR_SENDOK
+    };
+
 
 /**
  * @note	To enable serial debug define 'OTSIM900LINK_DEBUG'
@@ -117,6 +124,12 @@ public:
     //void setMaxTypicalFrameBytes(uint8_t maxTypicalFrameBytes);
     void poll();
 
+    /**
+     * @brief	This will be called in interrupt while waiting for send prompt
+     * @retval	returns true on successful exit
+     */
+    bool handleInterruptSimple();
+
 #ifndef OTSIM900LINK_DEBUG
 private:
 #endif // OTSIM900LINK_DEBUG
@@ -126,6 +139,7 @@ private:
     // These may not be supported by all sim modules so may need to move
     // to concrete implementation
   	  static const char AT_START[3];
+  	  static const char AT_SIGNAL[5];
       static const char AT_NETWORK[6];
       static const char AT_REGISTRATION[6];
       static const char AT_GPRS_REGISTRATION0[7];
@@ -156,7 +170,7 @@ private:
   // variables
   bool bAvailable;
   bool bPowered;
-  volatile bool bSendPending;
+  volatile uint8_t txMessageQueue;
   const OTSIM900LinkConfig_t *config;
   static const uint16_t baud = 2400; // max reliable baud
 /************************* Private Methods *******************************/
@@ -220,6 +234,7 @@ private:
     bool shutGPRS();
     uint8_t getIP();
     bool isOpenUDP();
+    void getSignalStrength();
 
     void verbose(uint8_t level);
     void setPIN();
@@ -237,6 +252,14 @@ private:
 
     bool _doconfig();
 
+    bool printDiagnostics();
+
+    // TODO check this is in correct place
+    volatile SendState state;
+    // TODO expand this so that it can take multiple messages
+    uint8_t txQueue[64]; // 64 is maxTxMsgLen (from OTRadioLink)
+    static const uint8_t maxTxQueueLength = 1;
+
 
 public:	// define abstract methods here
     // These are unused as no RX
@@ -252,6 +275,7 @@ public:	// define abstract methods here
     virtual uint8_t getRXMsgsQueued() const {return 0;}
     virtual const volatile uint8_t *peekRXMsg(uint8_t &len) const {len = 0; return 0;}
     virtual void removeRXMsg() {}
+
 
 
 /* other methods (copied from OTRadioLink as is)
