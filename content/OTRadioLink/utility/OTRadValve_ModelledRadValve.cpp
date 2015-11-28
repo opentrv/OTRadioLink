@@ -227,7 +227,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
     if(inputState.inBakeMode) { return(inputState.maxPCOpen); }
 
     // Avoid trying to heat the outside world when a window or door is opened (TODO-621).
-    // This is a short-term tactical response to a cold draught,
+    // This is a short-term tactical response to a persistent cold draught,
     // eg from a window being opened to ventilate a room manually,
     // or a door being left open.
     //
@@ -240,6 +240,11 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
     // (if not inhibited from turning down, in which case avoid opening any further).
     // Turning the valve down should also inhibit reopening it for a little while,
     // even once the temperature has stopped falling.
+    //
+    // It seems sensible to stop calling for heat immediately if one of these events seems to be happening,
+    // though that (a) may not stop the boiler and heat delivery if other rooms are calling for heat
+    // and (b) may prevent the boiler being started again for a while if this was a false alarm,
+    // so may annoy users and make heating control seem erratic.
     if((adjustedTempC > MIN_VALVE_TARGET_C) &&
        (getRawDelta() < 0) &&
        (getRawDelta(MIN_WINDOW_OPEN_TEMP_FALL_M) <= -(int)MIN_WINDOW_OPEN_TEMP_FALL_C16))
