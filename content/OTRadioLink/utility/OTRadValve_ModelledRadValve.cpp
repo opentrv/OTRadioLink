@@ -116,12 +116,26 @@ int ModelledRadValveState::getSmoothedRecent() const
 //  return(velocity);
 //  }
 
-// Maximum jump between adjacent readings before forcing filtering.
+// Maximum jump between adjacent readings before forcing filtering; strictly +ve.
 // Too small a value may in some circumstances cap room rate rise to this per minute.
 // Too large a value may fail to sufficiently help damp oscillations and overshoot.
 // As to be at least as large as the minimum temperature sensor precision to avoid false triggering of the filter.
-// Typical values range from 2 (for 1/8C precision temperature sensor) up to 4.
-static const int MAX_TEMP_JUMP_C16 = 3; // 3/16C.
+// Typical values range from 2 (for better-than 1/8C-precision temperature sensor) up to 4.
+static const uint8_t MAX_TEMP_JUMP_C16 = 3; // 3/16C.
+
+// Minimum drop in temperature over recent time to trigger 'window open' response; strictly +ve.
+// Should probably be significantly larger than MAX_TEMP_JUMP_C16 to avoid triggering alongside any filtering.
+// Needs to be be a fast enough fall NOT to be triggered by normal temperature gyrations close to a radiator.
+// Nominally target something like ~1C drop over a few minutes and/or the filter length.
+// TODO-621: in case of very sharp drop in temperature,
+// assume that a window or door has been opened,
+// by accident or to ventilate the room,
+// so suppress heating to reduce waste.
+static const uint8_t MIN_WINDOW_OPEN_TEMP_FALL_C16 = 16; // 1C.
+// Minutes over which temperature should be falling to trigger 'window open' response; strictly +ve.
+// TODO-621.
+// Needs to be be a fast enough fall NOT to be triggered by normal temperature gyrations close to a radiator.
+static const uint8_t MIN_WINDOW_OPEN_TEMP_FALL_M = 10;
 
 // Perform per-minute tasks such as counter and filter updates then recompute valve position.
 // The input state must be complete including target and reference temperatures
@@ -200,7 +214,7 @@ V0P2BASE_DEBUG_SERIAL_PRINT(inputState.refTempC);
 V0P2BASE_DEBUG_SERIAL_PRINTLN();
 #endif
 
-  // Possibly-adjusted and.or smoothed temperature to use for targeting.
+  // Possibly-adjusted and/or smoothed temperature to use for targeting.
   const int adjustedTempC16 = isFiltering ? (getSmoothedRecent() + refTempOffsetC16) : inputState.refTempC16;
   const int8_t adjustedTempC = (adjustedTempC16 >> 4);
 
@@ -208,16 +222,47 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
   if(adjustedTempC < inputState.targetTempC)
     {
 //V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("under temp");
+    // Force to fully open in BAKE mode.
+    // Need debounced bake mode value to avoid spurious slamming open of the valve as the user cycles through modes.
+    if(inputState.inBakeMode) { return(inputState.maxPCOpen); }
+
+    // Avoid trying to heat the outside world when a window or door is opened (TODO-621).
+    // This is a short-term tactical response to a cold draught,
+    // eg from a window being opened to ventilate a room manually,
+    // or a door being left open.
+    //
+    // BECAUSE not currently very close to target
+    // (possibly because of sudden temperature drop already from near target)
+    // AND IF temperature above minimum frost safety threshold
+    // and temperature is currently falling
+    // and temperature fall over the last few minutes is large
+    // THEN attempt to stop calling for heat immediately and continue to turn down slowly
+    // (if not inhibited from turning down, in which case avoid opening any further).
+    // Turning the valve down should also inhibit reopening it for a little while,
+    // even once the temperature has stopped falling.
+    if((adjustedTempC > MIN_VALVE_TARGET_C) &&
+       (getRawDelta() < 0) &&
+       (getRawDelta(MIN_WINDOW_OPEN_TEMP_FALL_M) <= -(int)MIN_WINDOW_OPEN_TEMP_FALL_C16))
+        {
+        if(!dontTurndown())
+          {
+          // Try to turn down far enough to stop calling for heat immediately.
+          if(valvePCOpen >= OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN)
+            { return(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN - 1); }
+          // Else close the valve at least a little further if possible.
+          if(valvePCOpen > 0)
+            { return(valvePCOpen - 1); }
+          }
+        // Else at least avoid opening the valve.
+        return(valvePCOpen);
+        }
+
     // Limit valve open slew to help minimise overshoot and actuator noise.
     // This should also reduce nugatory setting changes when occupancy (etc) is fluctuating.
     // Thus it may take several minutes to turn the radiator fully on,
     // though probably opening the first third or so will allow near-maximum heat output in practice.
     if(valvePCOpen < inputState.maxPCOpen)
       {
-      // If room is well below target and in BAKE mode then immediately open to maximum.
-      // Need debounced bake mode value to avoid spurious slamming open of the valve as the user cycles through modes.
-      if(inputState.inBakeMode) { return(inputState.maxPCOpen); }
-
       // Reduce valve hunting: defer re-opening if recently closed.
       if(dontTurnup()) { return(valvePCOpen); }
 
