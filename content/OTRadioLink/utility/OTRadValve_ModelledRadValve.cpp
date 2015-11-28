@@ -233,19 +233,22 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
     //
     // BECAUSE not currently very close to target
     // (possibly because of sudden temperature drop already from near target)
-    // AND IF temperature above minimum frost safety threshold
-    // and temperature is currently falling
-    // and temperature fall over the last few minutes is large
-    // THEN attempt to stop calling for heat immediately and continue to turn down slowly
+    // AND IF system has 'eco' bias (so ried harder to save energy)
+    // and the temperature above a minimum frost safety threshold
+    // and the temperature is currently falling
+    // and the temperature fall over the last few minutes is large
+    // THEN attempt to stop calling for heat immediately and continue to turn down
     // (if not inhibited from turning down, in which case avoid opening any further).
     // Turning the valve down should also inhibit reopening it for a little while,
     // even once the temperature has stopped falling.
     //
     // It seems sensible to stop calling for heat immediately if one of these events seems to be happening,
-    // though that (a) may not stop the boiler and heat delivery if other rooms are calling for heat
-    // and (b) may prevent the boiler being started again for a while if this was a false alarm,
-    // so may annoy users and make heating control seem erratic.
-    if((adjustedTempC > MIN_VALVE_TARGET_C) &&
+    // though that (a) may not stop the boiler and heat delivery if other rooms are still calling for heat
+    // and (b) may prevent the boiler being started again for a while even if this was a false alarm,
+    // so may annoy users and make heating control seem erratic,
+    // so only do this in 'eco' mode where permission has been given to try harder to save energy.
+    if(inputState.hasEcoBias &&
+       (adjustedTempC > MIN_VALVE_TARGET_C) &&
        (getRawDelta() < 0) &&
        (getRawDelta(MIN_WINDOW_OPEN_TEMP_FALL_M) <= -(int)MIN_WINDOW_OPEN_TEMP_FALL_C16))
         {
@@ -254,9 +257,11 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
           // Try to turn down far enough to stop calling for heat immediately.
           if(valvePCOpen >= OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN)
             { return(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN - 1); }
-          // Else close the valve at least a little further if possible.
-          if(valvePCOpen > 0)
-            { return(valvePCOpen - 1); }
+          // Else continue to close at a reasonable pace.
+          if(valvePCOpen > TRV_MAX_SLEW_PC_PER_MIN)
+            { return(valvePCOpen - TRV_MAX_SLEW_PC_PER_MIN); }
+          // Else close it.
+          return(0);
           }
         // Else at least avoid opening the valve.
         return(valvePCOpen);
