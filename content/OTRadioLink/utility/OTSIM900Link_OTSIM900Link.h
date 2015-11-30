@@ -173,6 +173,7 @@ private:
   volatile uint8_t txMessageQueue;
   const OTSIM900LinkConfig_t *config;
   static const uint16_t baud = 2400; // max reliable baud
+  static const uint8_t flushTimeOut = 10;
 /************************* Private Methods *******************************/
   	// Power up/down
   /**

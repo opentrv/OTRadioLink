@@ -200,7 +200,7 @@ void serialInput(uint8_t input)
     break;
 
     case 'q':
-    gprs.printDiagnostics();
+    gprs.getSignalStrength();
     break;
     
     default:

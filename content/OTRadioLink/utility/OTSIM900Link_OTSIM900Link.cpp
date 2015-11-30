@@ -149,11 +149,18 @@ bool OTSIM900Link::sendRaw(const uint8_t *buf, uint8_t buflen, int8_t , TXpower 
  */
 bool OTSIM900Link::queueToSend(const uint8_t *buf, uint8_t buflen, int8_t , TXpower )
 {
-	if ((buf == NULL) || (buflen > 64) || (txMessageQueue >= maxTxQueueLength)) return false;	// TODO check logic and sort out maxTXMsgLen problem
-	// Increment message queue
-	txMessageQueue++;
-	// copy into queue here?
-	memcpy(txQueue, buf, buflen);
+//	if ((buf == NULL) || (buflen > 64) || (txMessageQueue >= maxTxQueueLength)) return false;	// TODO check logic and sort out maxTXMsgLen problem
+//	// Increment message queue
+//	txMessageQueue++;
+//	// copy into queue here?
+//	memcpy(txQueue, buf, buflen);
+//
+	getSignalStrength();
+	delay(500);
+	openUDP();
+	delay(5000);
+	sendRaw(buf, buflen);
+	shutGPRS();
 
 	return true;
 }
@@ -166,49 +173,49 @@ bool OTSIM900Link::queueToSend(const uint8_t *buf, uint8_t buflen, int8_t , TXpo
  */
 void OTSIM900Link::poll()
 {
-	if (txMessageQueue) {
-		// State machine in here
-		switch (state) {
-		case IDLE:
-			// print signal strength
-			getSignalStrength();
-			delay(300);
-			// open udp connection
-			openUDP();
-			state = WAIT_FOR_UDP;
-			break;
-		case WAIT_FOR_UDP:
-			// check if udp opened
-			if(isOpenUDP()){
-				sendRaw(txQueue, sizeof(txQueue));	// TODO  replace this with start sending function and work out what to do with sizeof
-				// shut
-				shutGPRS();
-
-				if (!txMessageQueue--) state = IDLE;
-			}
-
-			break;
-			// TODO add these in once 2 stage state machine works
-//		case WAIT_FOR_PROMPT:
-//			// check for flag from interrupt
-//			//   - write message if true
-//			//   - else check for timeout
-//			if (!bPromptFlag) {
-//				checkTimeout;
-//			} else {
-//				sendRaw();
-//				txMessageQueue--;
+//	if (txMessageQueue) {
+//		// State machine in here
+//		switch (state) {
+//		case IDLE:
+//			// print signal strength
+//			getSignalStrength();
+//			delay(300);
+//			// open udp connection
+//			openUDP();
+//			state = WAIT_FOR_UDP;
+//			break;
+//		case WAIT_FOR_UDP:
+//			// check if udp opened
+//			if(isOpenUDP()){
+//				sendRaw(txQueue, sizeof(txQueue));	// TODO  replace this with start sending function and work out what to do with sizeof
+//				// shut
+//				shutGPRS();
+//
+//				if (!txMessageQueue--) state = IDLE;
 //			}
+//
 //			break;
-//		case WAIT_FOR_SENDOK:
-//			// wait for send ok (flag from interrupt?)
-//			// then shut GPRS
+//			// TODO add these in once 2 stage state machine works
+////		case WAIT_FOR_PROMPT:
+////			// check for flag from interrupt
+////			//   - write message if true
+////			//   - else check for timeout
+////			if (!bPromptFlag) {
+////				checkTimeout;
+////			} else {
+////				sendRaw();
+////				txMessageQueue--;
+////			}
+////			break;
+////		case WAIT_FOR_SENDOK:
+////			// wait for send ok (flag from interrupt?)
+////			// then shut GPRS
+////			break;
+//
+//		default:
 //			break;
-
-		default:
-			break;
-		}
-	}
+//		}
+//	}
 }
 
 /**
@@ -273,6 +280,8 @@ bool OTSIM900Link::closeUDP()
 bool OTSIM900Link::sendUDP(const char *frame, uint8_t length)
 {
 	// TODO this bit will be initSendUDP
+	OTV0P2BASE::serialPrintAndFlush(OTV0P2BASE::getSecondsLT());
+
 	print(AT_START);
 	print(AT_SEND_UDP);
 	print('=');
@@ -332,17 +341,22 @@ bool OTSIM900Link::flushUntil(uint8_t _terminatingChar)
 	const uint8_t terminatingChar = _terminatingChar;
 
 #ifdef OTSIM900LINK_DEBUG
-	OTV0P2BASE::serialPrintAndFlush(F("- Flush"));
-	OTV0P2BASE::serialPrintlnAndFlush();
+	OTV0P2BASE::serialPrintAndFlush(F("- Flush: "));
 #endif // OTSIM900LINK_DEBUG
 
-	const uint8_t startTime = OTV0P2BASE::getSecondsLT(); // This value gives about a second (only for 2000ms cycle)
-	while (OTV0P2BASE::getSecondsLT() == startTime) { // FIXME Replace this logic
+	const uint8_t endTime = OTV0P2BASE::getSecondsLT() + flushTimeOut;
+	while (OTV0P2BASE::getSecondsLT() <= endTime) { // FIXME Replace this logic
 		const uint8_t c = read();
-		if (c == terminatingChar) return true;
+		if (c == terminatingChar) {
+#ifdef OTSIM900LINK_DEBUG
+  //OTV0P2BASE::serialPrintlnAndFlush(F(" done"));
+#endif // OTSIM900LINK_DEBUG
+			return true;
+		}
     }
 #ifdef OTSIM900LINK_DEBUG
-  OTV0P2BASE::serialPrintlnAndFlush(F("Flush: Timeout"));
+  OTV0P2BASE::serialPrintlnAndFlush(F(" Timeout"));
+  OTV0P2BASE::serialPrintAndFlush(OTV0P2BASE::getSecondsLT());
 #endif // OTSIM900LINK_DEBUG
 
   return false;
@@ -799,7 +813,7 @@ bool OTSIM900Link::getInitState()
 void OTSIM900Link::getSignalStrength()
 {
 #ifdef OTSIM900LINK_DEBUG
-	OTV0P2BASE::serialPrintlnAndFlush(F("Signal Strength: "));
+	OTV0P2BASE::serialPrintAndFlush(F("Signal Strength: "));
 #endif // OTSIM900LINK_DEBUG
 	char data[32];
 	print(AT_START);
