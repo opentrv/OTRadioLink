@@ -100,6 +100,13 @@ struct ModelledRadValveInputState
 // All initial values set by the constructor are sane.
 struct ModelledRadValveState
   {
+  // Minimum and maximum bounds target temperatures for valve; degrees C/Celsius/centigrade, strictly positive.
+  // Minimum is some way above 0C to avoid freezing pipework even with small measurement errors and non-uniform temperatures.
+  // Maximum is set a little below boiling/100C for DHW applications for safety.
+  // Setbacks and uplifts cannot move temperature targets outside this range for safety.
+  static const uint8_t MIN_VALVE_TARGET_C = 4; // Minimum temperature setting allowed (to avoid freezing, allowing for offsets at temperature sensor, etc).
+  static const uint8_t MAX_VALVE_TARGET_C = 96; // Maximum temperature setting allowed (eg for DHW).
+
   ModelledRadValveState() :
     initialised(false),
     isFiltering(false),
@@ -179,24 +186,27 @@ struct ModelledRadValveState
   // Get smoothed raw/unadjusted temperature from the most recent samples.
   int getSmoothedRecent() const;
 
-  // get last change in temperature, +ve means rising.
+  // Get last change in temperature (C*16, signed); +ve means rising.
   int getRawDelta() const { return(prevRawTempC16[0] - prevRawTempC16[1]); }
+
+  // Get last change in temperature (C*16, signed) from n ticks ago capped to filter length; +ve means rising.
+  int getRawDelta(uint8_t n) const { return(prevRawTempC16[0] - prevRawTempC16[min(n, filterLength-1)]); }
 
 //  // Compute an estimate of rate/velocity of temperature change in C/16 per minute/tick.
 //  // A positive value indicates that temperature is rising.
 //  // Based on comparing the most recent smoothed value with an older smoothed value.
 //  int getVelocityC16PerTick();
 
-    // Computes a new valve position given supplied input state including the current valve position; [0,100].
-    // Uses no state other than that passed as the arguments (thus unit testable).
-    // Does not alter any of the input state.
-    // Uses hysteresis and a proportional control and some other cleverness.
-    // Is always willing to turn off quickly, but on slowly (AKA "slow start" algorithm),
-    // and tries to eliminate unnecessary 'hunting' which makes noise and uses actuator energy.
-    // Nominally called at a regular rate, once per minute.
-    // All inputState values should be set to sensible values before starting.
-    // Usually called by tick() which does required state updates afterwards.
-    uint8_t computeRequiredTRVPercentOpen(const uint8_t currentValvePCOpen, const ModelledRadValveInputState &inputState) const;
+  // Computes a new valve position given supplied input state including the current valve position; [0,100].
+  // Uses no state other than that passed as the arguments (thus unit testable).
+  // Does not alter any of the input state.
+  // Uses hysteresis and a proportional control and some other cleverness.
+  // Is always willing to turn off quickly, but on slowly (AKA "slow start" algorithm),
+  // and tries to eliminate unnecessary 'hunting' which makes noise and uses actuator energy.
+  // Nominally called at a regular rate, once per minute.
+  // All inputState values should be set to sensible values before starting.
+  // Usually called by tick() which does required state updates afterwards.
+  uint8_t computeRequiredTRVPercentOpen(const uint8_t currentValvePCOpen, const ModelledRadValveInputState &inputState) const;
   };
 
 
