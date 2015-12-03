@@ -29,6 +29,11 @@ namespace OTRadioLink
     {
     // For V0p2 messages on an FS20 carrier (868.35MHz, OOK, 5kbps raw)
     // the leading byte received indicates the frame type that follows.
+    // These are all implicit-length pre-2015Q3 style messages,
+    // which are hard to receive efficiently or back to back
+    // as it is necessary to laod a full (RFM23B/64-byte) FIFO
+    // and then see what is in it,
+    // missing anything else right behind a short message.
     enum FrameType_V0p2_FS20
         {
         // An FS20 encoded (valve position) message is indicated by one or more leading 0xcc bytes.
