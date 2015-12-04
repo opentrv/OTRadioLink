@@ -32,7 +32,7 @@ static const int8_t refTempOffsetC16 = 8;
 ModelledRadValveInputState::ModelledRadValveInputState(const int realTempC16) :
     targetTempC(12 /* FROST */),
     minPCOpen(OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN), maxPCOpen(100),
-    widenDeadband(false), glacial(false), hasEcoBias(false), inBakeMode(false)
+    widenDeadband(false), glacial(false), hasEcoBias(false), inBakeMode(false), fastResponseRequired(false)
     { setReferenceTemperatures(realTempC16); }
 
 // Calculate reference temperature from real temperature.
@@ -289,7 +289,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
       //   if filtering is on indicating rapid recent changes or jitter, and the last raw change was upwards,
       // THEN force glacial mode to try to damp oscillations and avoid overshoot and excessive valve movement (TODO-453).
       const bool beGlacial = inputState.glacial ||
-          ((valvePCOpen >= inputState.minPCOpen) && inputState.widenDeadband &&
+          ((valvePCOpen >= inputState.minPCOpen) && inputState.widenDeadband && !inputState.fastResponseRequired &&
               (
 #if defined(GLACIAL_ON_WITH_WIDE_DEADBAND)
                // Don't work so hard to reach and hold target temp
@@ -300,12 +300,14 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
       if(beGlacial) { return(valvePCOpen + 1); }
 
       // If well below target (and without a wide deadband),
-      // go straight to 'moderately open' if less open currently (TODO-593),
+      // or needing a fast response to manual input to be responsive (TODO-593),
+      // then go straight to 'moderately open' if less open currently,
       // which should allow flow and turn the boiler on ASAP,
       // a little like a mini-BAKE.
       // For this to work, don't set a wide deadband when, eg, user has just touched the controls.
       const uint8_t cappedModeratelyOpen = min(inputState.maxPCOpen, OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN+1);
-      if(vBelowTarget && !inputState.widenDeadband && (valvePCOpen < cappedModeratelyOpen))
+      if((valvePCOpen < cappedModeratelyOpen) &&
+         (inputState.fastResponseRequired || (vBelowTarget && !inputState.widenDeadband)))
           { return(cappedModeratelyOpen); }
 
       // Ensure that the valve opens quickly from cold for acceptable response (TODO-593)
@@ -358,7 +360,9 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
 
       // TODO-109: with comfort bias close relatively slowly to reduce wasted effort from minor overshoots.
       // TODO-453: close relatively slowly when temperature error is small (<1C) to reduce wasted effort from minor overshoots.
+      // TODO-593: if user is manually adjusting device then attempt to respond quickly.
       if(((!inputState.hasEcoBias) || justOverTemp || isFiltering) &&
+         (!inputState.fastResponseRequired) &&
          (valvePCOpen > constrain(((int)lingerThreshold) + TRV_SLEW_PC_PER_MIN_FAST, TRV_SLEW_PC_PER_MIN_FAST, inputState.maxPCOpen)))
         { return(valvePCOpen - TRV_SLEW_PC_PER_MIN_FAST); }
 

@@ -88,6 +88,9 @@ struct ModelledRadValveInputState
   bool hasEcoBias;
   // True if in BAKE mode.
   bool inBakeMode;
+  // User just adjusted controls or other fast response needed.
+  // (Should not be true at same time as widenDeadband.)
+  bool fastResponseRequired;
 
   // Reference (room) temperature in C/16; must be set before each valve position recalc.
   // Proportional control is in the region where (refTempC16>>4) == targetTempC.
