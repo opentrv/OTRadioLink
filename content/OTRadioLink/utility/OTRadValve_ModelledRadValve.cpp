@@ -379,6 +379,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
   //
   // Use currentTempC16 lsbits to set valve percentage for proportional feedback
   // to provide more efficient and quieter TRV drive and probably more stable room temperature.
+  // Bigger lsbits value means closer to target from below, so closer to valve off.
   const uint8_t lsbits = (uint8_t) (adjustedTempC16 & 0xf); // LSbits of temperature above base of proportional adjustment range.
 //    uint8_t tmp = (uint8_t) (refTempC16 & 0xf); // Only interested in lsbits.
   const uint8_t tmp = 16 - lsbits; // Now in range 1 (at warmest end of 'correct' temperature) to 16 (coolest).
@@ -448,7 +449,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
 
     // TODO-453: minimise valve movement (and thus noise and battery use).
     // Keeping the temperature steady anywhere in the target proportional range
-    // while minimising valve moment/noise/etc is a good goal,
+    // while minimising valve movement/noise/etc is a good goal,
     // so if raw temperatures are rising at the moment then leave the valve as-is.
     // If fairly near the final target then also leave the valve as-is (TODO-453 & TODO-451).
     const int rise = getRawDelta();
@@ -466,7 +467,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
         (lsbits >= 8) || ((lsbits >= 4) && (valvePCOpen > OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN));
     if(beGlacial) { return(valvePCOpen + 1); }
 
-    // Slew open faster with comfort bias.
+    // Slew open faster with comfort bias.  (Or with explicit request? inputState.fastResponseRequired TODO-593)
     const uint8_t maxSlew = (!inputState.hasEcoBias) ? TRV_SLEW_PC_PER_MIN_FAST : TRV_MAX_SLEW_PC_PER_MIN;
     if(slew > maxSlew)
         { return(valvePCOpen + maxSlew); } // Cap slew rate open.
