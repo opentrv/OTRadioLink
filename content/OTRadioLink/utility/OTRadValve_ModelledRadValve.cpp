@@ -233,7 +233,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
     //
     // BECAUSE not currently very close to target
     // (possibly because of sudden temperature drop already from near target)
-    // AND IF system has 'eco' bias (so ried harder to save energy)
+    // AND IF system has 'eco' bias (so tries harder to save energy)
     // and the temperature above a minimum frost safety threshold
     // and the temperature is currently falling
     // and the temperature fall over the last few minutes is large

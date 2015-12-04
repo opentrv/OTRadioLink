@@ -80,7 +80,7 @@ struct ModelledRadValveInputState
 
   // If true then allow a wider deadband (more temperature drift) to save energy and valve noise.
   // This is a strong hint that the system can work less strenuously to hit, and stay on, target,
-  // and/or that the user has not manually requested an adjustment recently so this must be responsive.
+  // and/or that the user has not manually requested an adjustment recently so this need not be ultra responsive.
   bool widenDeadband;
   // True if in glacial mode.
   bool glacial;
