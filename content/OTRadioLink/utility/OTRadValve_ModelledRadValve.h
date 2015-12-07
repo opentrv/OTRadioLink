@@ -80,7 +80,7 @@ struct ModelledRadValveInputState
 
   // If true then allow a wider deadband (more temperature drift) to save energy and valve noise.
   // This is a strong hint that the system can work less strenuously to hit, and stay on, target,
-  // and/or that the user has not manually requested an adjustment recently so this must be responsive.
+  // and/or that the user has not manually requested an adjustment recently so this need not be ultra responsive.
   bool widenDeadband;
   // True if in glacial mode.
   bool glacial;
@@ -88,6 +88,9 @@ struct ModelledRadValveInputState
   bool hasEcoBias;
   // True if in BAKE mode.
   bool inBakeMode;
+  // User just adjusted controls or other fast response needed.
+  // (Should not be true at same time as widenDeadband.)
+  bool fastResponseRequired;
 
   // Reference (room) temperature in C/16; must be set before each valve position recalc.
   // Proportional control is in the region where (refTempC16>>4) == targetTempC.
