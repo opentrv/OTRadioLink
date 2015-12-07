@@ -310,7 +310,8 @@ namespace OTRadioLink
             //     for enough time to allow a remote turn-around and TX;
             //     may be ignored if radio will revert to receive mode anyway.
             // Returns true if the transmission was made, else false.
-            // May block to transmit (eg to avoid copying the buffer).
+            // May block to transmit (eg to avoid copying the buffer),
+            // for as much as hundreds of milliseconds depending on the data, carrier, etc.
             virtual bool sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal, bool listenAfter = false) = 0;
 
             // Add raw frame to send queue, to be sent when radio is ready.	// FIXME check over this
@@ -319,7 +320,8 @@ namespace OTRadioLink
             //   * power  hint to indicate transmission importance
             //     and thus possibly power or other efforts to get it heard;
             //     this hint may be ignored.
-            // Defaults to sendRaw, in which case see sendRaw comments.
+            // Defaults to redirect to sendRaw(), in which case see sendRaw() comments.
+            // Should not block unless in a call to sendRaw().
             virtual bool queueToSend(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal) { return sendRaw(buf, buflen, channel, power); };
 
             // Poll for incoming messages (eg where interrupts are not available) and other processing.
