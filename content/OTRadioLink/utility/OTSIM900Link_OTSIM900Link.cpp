@@ -28,8 +28,10 @@ namespace OTSIM900Link
  * @param	rxPin		Rx pin for software serial
  * @param	txPin		Tx pin for software serial
  */
-OTSIM900Link::OTSIM900Link(uint8_t, uint8_t pwrPin, uint8_t rxPin, uint8_t txPin) : PWR_PIN(pwrPin), softSerial(rxPin, txPin)
+OTSIM900Link::OTSIM900Link(uint8_t pwrSwitchPin, uint8_t pwrPin, uint8_t rxPin, uint8_t txPin) : HARD_PWR_PIN(pwrSwitchPin), PWR_PIN(pwrPin), softSerial(rxPin, txPin)
 {
+//  fastDigitalWrite(HARD_PWR_PIN, 1); // Set power switch to off
+//  pinMode(HARD_PWR_PIN, OUTPUT);
   pinMode(PWR_PIN, OUTPUT);
   bAvailable = false;
   bPowered = false;
@@ -57,6 +59,7 @@ bool OTSIM900Link::_doconfig()
  */
 bool OTSIM900Link::begin()
 {
+//	fastDigitalWrite(HARD_PWR_PIN, 0);
 	softSerial.begin(baud);
 
 #ifdef OTSIM900LINK_DEBUG
