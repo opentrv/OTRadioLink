@@ -28,7 +28,7 @@ namespace OTSIM900Link
  * @param	rxPin		Rx pin for software serial
  * @param	txPin		Tx pin for software serial
  */
-OTSIM900Link::OTSIM900Link(uint8_t, uint8_t pwrPin, uint8_t rxPin, uint8_t txPin) : PWR_PIN(pwrPin), softSerial(rxPin, txPin)
+OTSIM900Link::OTSIM900Link(uint8_t hardPwrPin, uint8_t pwrPin, uint8_t rxPin, uint8_t txPin) : HARD_PWR_PIN(hardPwrPin), PWR_PIN(pwrPin), softSerial(rxPin, txPin)
 {
   pinMode(PWR_PIN, OUTPUT);
   bAvailable = false;
@@ -149,18 +149,11 @@ bool OTSIM900Link::sendRaw(const uint8_t *buf, uint8_t buflen, int8_t , TXpower 
  */
 bool OTSIM900Link::queueToSend(const uint8_t *buf, uint8_t buflen, int8_t , TXpower )
 {
-//	if ((buf == NULL) || (buflen > 64) || (txMessageQueue >= maxTxQueueLength)) return false;	// TODO check logic and sort out maxTXMsgLen problem
-//	// Increment message queue
-//	txMessageQueue++;
-//	// copy into queue here?
-//	memcpy(txQueue, buf, buflen);
-//
-	getSignalStrength();
-	delay(500);
-	openUDP();
-	delay(5000);
-	sendRaw(buf, buflen);
-	shutGPRS();
+	if ((buf == NULL) || (buflen > 64) || (txMessageQueue >= maxTxQueueLength)) return false;	// TODO check logic and sort out maxTXMsgLen problem
+	// Increment message queue
+	txMessageQueue++;
+	// copy into queue here?
+	memcpy(txQueue, buf, buflen);
 
 	return true;
 }
@@ -173,49 +166,51 @@ bool OTSIM900Link::queueToSend(const uint8_t *buf, uint8_t buflen, int8_t , TXpo
  */
 void OTSIM900Link::poll()
 {
-//	if (txMessageQueue) {
-//		// State machine in here
-//		switch (state) {
-//		case IDLE:
-//			// print signal strength
-//			getSignalStrength();
-//			delay(300);
-//			// open udp connection
-//			openUDP();
-//			state = WAIT_FOR_UDP;
-//			break;
-//		case WAIT_FOR_UDP:
-//			// check if udp opened
-//			if(isOpenUDP()){
-//				sendRaw(txQueue, sizeof(txQueue));	// TODO  replace this with start sending function and work out what to do with sizeof
-//				// shut
-//				shutGPRS();
-//
-//				if (!txMessageQueue--) state = IDLE;
+	if (txMessageQueue) {
+		// State machine in here
+		switch (state) {
+		case IDLE:
+			// print signal strength
+			getSignalStrength();
+			delay(300);
+			// open udp connection
+			openUDP();
+			state = WAIT_FOR_UDP;
+			break;
+		case WAIT_FOR_UDP:
+			// check if udp opened
+			if(isOpenUDP()){
+				// Delay for module
+				delay(300);
+				sendRaw(txQueue, sizeof(txQueue));	// TODO  replace this with start sending function and work out what to do with sizeof
+				// shut
+				shutGPRS();
+
+				if (!(--txMessageQueue)) state = IDLE;
+			}
+
+			break;
+			// TODO add these in once interrupt set up
+//		case WAIT_FOR_PROMPT:
+//			// check for flag from interrupt
+//			//   - write message if true
+//			//   - else check for timeout
+//			if (!bPromptFlag) {
+//				checkTimeout;
+//			} else {
+//				sendRaw();
+//				txMessageQueue--;
 //			}
-//
 //			break;
-//			// TODO add these in once 2 stage state machine works
-////		case WAIT_FOR_PROMPT:
-////			// check for flag from interrupt
-////			//   - write message if true
-////			//   - else check for timeout
-////			if (!bPromptFlag) {
-////				checkTimeout;
-////			} else {
-////				sendRaw();
-////				txMessageQueue--;
-////			}
-////			break;
-////		case WAIT_FOR_SENDOK:
-////			// wait for send ok (flag from interrupt?)
-////			// then shut GPRS
-////			break;
-//
-//		default:
+//		case WAIT_FOR_SENDOK:
+//			// wait for send ok (flag from interrupt?)
+//			// then shut GPRS
 //			break;
-//		}
-//	}
+
+		default:
+			break;
+		}
+	}
 }
 
 /**
@@ -347,12 +342,7 @@ bool OTSIM900Link::flushUntil(uint8_t _terminatingChar)
 	const uint8_t endTime = OTV0P2BASE::getSecondsLT() + flushTimeOut;
 	while (OTV0P2BASE::getSecondsLT() <= endTime) { // FIXME Replace this logic
 		const uint8_t c = read();
-		if (c == terminatingChar) {
-#ifdef OTSIM900LINK_DEBUG
-  //OTV0P2BASE::serialPrintlnAndFlush(F(" done"));
-#endif // OTSIM900LINK_DEBUG
-			return true;
-		}
+		if (c == terminatingChar) return true;
     }
 #ifdef OTSIM900LINK_DEBUG
   OTV0P2BASE::serialPrintlnAndFlush(F(" Timeout"));
@@ -396,7 +386,7 @@ void OTSIM900Link::print(const char *string)
 
 /**
  * @brief	Copies string from EEPROM and prints to softSerial
- * @fixme	switching to this version makes send occasionally time out
+ * @fixme	Potential for infinite loop
  * @param	pointer to eeprom location string is stored in
  */
 void OTSIM900Link::print(const void *src)
@@ -481,25 +471,6 @@ bool OTSIM900Link::isRegistered()
   uint8_t dataCutLength = 0;
   dataCut = getResponse(dataCutLength, data, sizeof(data), ' '); // first ' ' appears right before useful part of message
 
-/*  delay(100);
-  write(AT_START, sizeof(AT_START));
-  write(AT_GPRS_REGISTRATION0, sizeof(AT_GPRS_REGISTRATION0));
-  write(AT_QUERY);
-  write(AT_END);
-  timedBlockingRead(data, sizeof(data));
-#ifdef OTSIM900LINK_DEBUG
-  OTV0P2BASE::serialPrintlnAndFlush(data);
-#endif // OTSIM900LINK_DEBUG
-  delay(100);
-  write(AT_START, sizeof(AT_START));
-  write(AT_GPRS_REGISTRATION, sizeof(AT_GPRS_REGISTRATION));
-  write(AT_QUERY);
-  write(AT_END);
-  timedBlockingRead(data, sizeof(data));
-#ifdef OTSIM900LINK_DEBUG
-  OTV0P2BASE::serialPrintlnAndFlush(data);
-#endif // OTSIM900LINK_DEBUG*/
-
   if (dataCut[2] == '1' || dataCut[2] == '5' ) return true;	// expected response '1' or '5'
   else return false;
 }
@@ -548,13 +519,9 @@ bool OTSIM900Link::startGPRS()
   print(AT_END);
   timedBlockingRead(data, sizeof(data));
 
-//  data[90] = '\0';
-//	OTV0P2BASE::serialPrintAndFlush(data);
-//	OTV0P2BASE::serialPrintlnAndFlush();
-
 
   // response stuff
-//  const char *dataCut;
+  const char *dataCut;
   uint8_t dataCutLength = 0;
   getResponse(dataCutLength, data, sizeof(data), 0x0A);	// unreliable
   if (dataCutLength == 9) return true;	// expected response 'OK'
@@ -843,12 +810,12 @@ void OTSIM900Link::getSignalStrength()
  */
 bool OTSIM900Link::handleInterruptSimple()
 {
-	if (state == WAIT_FOR_PROMPT) {
-		ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+//	if (state == WAIT_FOR_PROMPT) {
+//		ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
 //			if(read() == '>') FLAG GOES HERE; // '>' is prompt
-		}
-	}
-	return true;
+//		}
+//	}
+//	return true;
 }
 
 //const char OTSIM900Link::AT_[] = "";

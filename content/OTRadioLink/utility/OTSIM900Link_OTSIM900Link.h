@@ -164,6 +164,7 @@ private:
 
   // pins for software serial
   const uint8_t PWR_PIN;
+  const uint8_t HARD_PWR_PIN;
   //SoftwareSerial softSerial;
   OTV0P2BASE::OTSoftSerial softSerial;
 
@@ -259,7 +260,7 @@ private:
     volatile SendState state;
     // TODO expand this so that it can take multiple messages
     uint8_t txQueue[64]; // 64 is maxTxMsgLen (from OTRadioLink)
-    static const uint8_t maxTxQueueLength = 1;
+    static const uint8_t maxTxQueueLength = 1; // TODO Could this be moved out into OTRadioLink
 
 
 public:	// define abstract methods here
