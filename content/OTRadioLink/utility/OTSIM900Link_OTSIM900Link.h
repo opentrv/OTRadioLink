@@ -164,6 +164,7 @@ private:
 
   // pins for software serial
   const uint8_t PWR_PIN;
+  const uint8_t HARD_PWR_PIN;
   //SoftwareSerial softSerial;
   OTV0P2BASE::OTSoftSerial softSerial;
 
@@ -173,6 +174,7 @@ private:
   volatile uint8_t txMessageQueue;
   const OTSIM900LinkConfig_t *config;
   static const uint16_t baud = 2400; // max reliable baud
+  static const uint8_t flushTimeOut = 10;
 /************************* Private Methods *******************************/
   	// Power up/down
   /**

@@ -51,14 +51,14 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
  * - Board will close PGP on shutdown (Will add in a method to do this seperately later)
  */
 
-#define CREDS 3 // Choose set of hardwired credentials and target address.
+#define CREDS 1 // Choose set of hardwired credentials and target address.
 
 
 #if 1 == CREDS // DE
 static const bool bEEPROM = false;
 static const char apn[] PROGMEM = "m2mkit.telefonica.com"; // "m2mkit.telefonica.com"
 static const char pin[] PROGMEM = "0000";
-static const char UDP_ADDR[] PROGMEM = "46.101.52.242";
+static const char UDP_ADDR[] PROGMEM = "46.101.64.191";
 static const char UDP_PORT[] PROGMEM = "9999";
 #elif 2 == CREDS // DHD
 static const char apn[] = "m2mkit.telefonica.com";
@@ -200,7 +200,7 @@ void serialInput(uint8_t input)
     break;
 
     case 'q':
-    gprs.printDiagnostics();
+    gprs.getSignalStrength();
     break;
     
     default:

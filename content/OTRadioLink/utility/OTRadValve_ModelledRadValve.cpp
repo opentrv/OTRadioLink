@@ -32,7 +32,7 @@ static const int8_t refTempOffsetC16 = 8;
 ModelledRadValveInputState::ModelledRadValveInputState(const int realTempC16) :
     targetTempC(12 /* FROST */),
     minPCOpen(OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN), maxPCOpen(100),
-    widenDeadband(false), glacial(false), hasEcoBias(false), inBakeMode(false)
+    widenDeadband(false), glacial(false), hasEcoBias(false), inBakeMode(false), fastResponseRequired(false)
     { setReferenceTemperatures(realTempC16); }
 
 // Calculate reference temperature from real temperature.
@@ -233,7 +233,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
     //
     // BECAUSE not currently very close to target
     // (possibly because of sudden temperature drop already from near target)
-    // AND IF system has 'eco' bias (so ried harder to save energy)
+    // AND IF system has 'eco' bias (so tries harder to save energy)
     // and the temperature above a minimum frost safety threshold
     // and the temperature is currently falling
     // and the temperature fall over the last few minutes is large
@@ -289,23 +289,27 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
       //   if filtering is on indicating rapid recent changes or jitter, and the last raw change was upwards,
       // THEN force glacial mode to try to damp oscillations and avoid overshoot and excessive valve movement (TODO-453).
       const bool beGlacial = inputState.glacial ||
-          ((valvePCOpen >= inputState.minPCOpen) && inputState.widenDeadband &&
+          ((valvePCOpen >= inputState.minPCOpen) && inputState.widenDeadband && !inputState.fastResponseRequired &&
               (
 #if defined(GLACIAL_ON_WITH_WIDE_DEADBAND)
-               // Don't work so hard to reach and hold target temp
-               // if not in comfort mode nor massively below (possibly already setback) target temp.
+               // Don't rush to open the valve
+               // if neither in comfort mode nor massively below (possibly already setback) target temp.
                (inputState.hasEcoBias && !vBelowTarget) ||
 #endif
+               // Don't rush to open the valve
+               // if temperature is jittery but is moving in the right direction.
                (isFiltering && (getRawDelta() > 0)))); // FIXME: maybe redundant w/ GLACIAL_ON_WITH_WIDE_DEADBAND and widenDeadband set when isFiltering is true
       if(beGlacial) { return(valvePCOpen + 1); }
 
       // If well below target (and without a wide deadband),
-      // go straight to 'moderately open' if less open currently (TODO-593),
+      // or needing a fast response to manual input to be responsive (TODO-593),
+      // then go straight to 'moderately open' if less open currently,
       // which should allow flow and turn the boiler on ASAP,
       // a little like a mini-BAKE.
       // For this to work, don't set a wide deadband when, eg, user has just touched the controls.
       const uint8_t cappedModeratelyOpen = min(inputState.maxPCOpen, OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN+1);
-      if(vBelowTarget && !inputState.widenDeadband && (valvePCOpen < cappedModeratelyOpen))
+      if((valvePCOpen < cappedModeratelyOpen) &&
+         (inputState.fastResponseRequired || (vBelowTarget && !inputState.widenDeadband)))
           { return(cappedModeratelyOpen); }
 
       // Ensure that the valve opens quickly from cold for acceptable response (TODO-593)
@@ -358,7 +362,9 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
 
       // TODO-109: with comfort bias close relatively slowly to reduce wasted effort from minor overshoots.
       // TODO-453: close relatively slowly when temperature error is small (<1C) to reduce wasted effort from minor overshoots.
+      // TODO-593: if user is manually adjusting device then attempt to respond quickly.
       if(((!inputState.hasEcoBias) || justOverTemp || isFiltering) &&
+         (!inputState.fastResponseRequired) &&
          (valvePCOpen > constrain(((int)lingerThreshold) + TRV_SLEW_PC_PER_MIN_FAST, TRV_SLEW_PC_PER_MIN_FAST, inputState.maxPCOpen)))
         { return(valvePCOpen - TRV_SLEW_PC_PER_MIN_FAST); }
 
@@ -375,6 +381,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
   //
   // Use currentTempC16 lsbits to set valve percentage for proportional feedback
   // to provide more efficient and quieter TRV drive and probably more stable room temperature.
+  // Bigger lsbits value means closer to target from below, so closer to valve off.
   const uint8_t lsbits = (uint8_t) (adjustedTempC16 & 0xf); // LSbits of temperature above base of proportional adjustment range.
 //    uint8_t tmp = (uint8_t) (refTempC16 & 0xf); // Only interested in lsbits.
   const uint8_t tmp = 16 - lsbits; // Now in range 1 (at warmest end of 'correct' temperature) to 16 (coolest).
@@ -444,7 +451,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
 
     // TODO-453: minimise valve movement (and thus noise and battery use).
     // Keeping the temperature steady anywhere in the target proportional range
-    // while minimising valve moment/noise/etc is a good goal,
+    // while minimising valve movement/noise/etc is a good goal,
     // so if raw temperatures are rising at the moment then leave the valve as-is.
     // If fairly near the final target then also leave the valve as-is (TODO-453 & TODO-451).
     const int rise = getRawDelta();
@@ -462,7 +469,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
         (lsbits >= 8) || ((lsbits >= 4) && (valvePCOpen > OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN));
     if(beGlacial) { return(valvePCOpen + 1); }
 
-    // Slew open faster with comfort bias.
+    // Slew open faster with comfort bias.  (Or with explicit request? inputState.fastResponseRequired TODO-593)
     const uint8_t maxSlew = (!inputState.hasEcoBias) ? TRV_SLEW_PC_PER_MIN_FAST : TRV_MAX_SLEW_PC_PER_MIN;
     if(slew > maxSlew)
         { return(valvePCOpen + maxSlew); } // Cap slew rate open.

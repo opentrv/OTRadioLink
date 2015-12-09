@@ -5,7 +5,7 @@ OTV0P2BASE::OTSoftSerial ser(8, 5);
 static const char sendStr1[] = "AT\n";
 static const uint8_t pwr_pin = 6;
 
-static const uint16_t baud = 4800;
+static const uint16_t baud = 19200;
 
 void setup() {
   // put your setup code here, to run once:

@@ -281,6 +281,8 @@ bool OTSIM900Link::closeUDP()
 bool OTSIM900Link::sendUDP(const char *frame, uint8_t length)
 {
 	// TODO this bit will be initSendUDP
+	OTV0P2BASE::serialPrintAndFlush(OTV0P2BASE::getSecondsLT());
+
 	print(AT_START);
 	print(AT_SEND_UDP);
 	print('=');
@@ -340,17 +342,17 @@ bool OTSIM900Link::flushUntil(uint8_t _terminatingChar)
 	const uint8_t terminatingChar = _terminatingChar;
 
 #ifdef OTSIM900LINK_DEBUG
-	OTV0P2BASE::serialPrintAndFlush(F("- Flush"));
-	OTV0P2BASE::serialPrintlnAndFlush();
+	OTV0P2BASE::serialPrintAndFlush(F("- Flush: "));
 #endif // OTSIM900LINK_DEBUG
 
-	const uint8_t startTime = OTV0P2BASE::getSecondsLT(); // This value gives about a second (only for 2000ms cycle)
-	while (OTV0P2BASE::getSecondsLT() == startTime) { // FIXME Replace this logic
+	const uint8_t endTime = OTV0P2BASE::getSecondsLT() + flushTimeOut;
+	while (OTV0P2BASE::getSecondsLT() <= endTime) { // FIXME Replace this logic
 		const uint8_t c = read();
 		if (c == terminatingChar) return true;
     }
 #ifdef OTSIM900LINK_DEBUG
-  OTV0P2BASE::serialPrintlnAndFlush(F("Flush: Timeout"));
+  OTV0P2BASE::serialPrintlnAndFlush(F(" Timeout"));
+  OTV0P2BASE::serialPrintAndFlush(OTV0P2BASE::getSecondsLT());
 #endif // OTSIM900LINK_DEBUG
 
   return false;
@@ -755,11 +757,16 @@ bool OTSIM900Link::getInitState()
 	char data[10];	// max expected response
 	memset(data, 0 , sizeof(data));
 
+	delay(1000); // To allow for garbage sent on startup
+
 #ifdef OTSIM900LINK_DEBUG
 	OTV0P2BASE::serialPrintlnAndFlush("Check for module: ");
 #endif // OTSIM900LINK_DEBUG
 	print(AT_START);
 	print(AT_END);
+
+	print(AT_START);
+	print(AT_END);	// FIXME this is getting ugly
 	if (timedBlockingRead(data, sizeof(data)) == 0) { // state 1 or 2
 
 #ifdef OTSIM900LINK_DEBUG
@@ -780,24 +787,23 @@ bool OTSIM900Link::getInitState()
 			bPowered = false;
 			return false;
 		}
-	}
-
-//	if( data[0] == 'A' ) { // state 3 or 4
+	} else if( data[0] == 'A' ) { // state 3 or 4
 #ifdef OTSIM900LINK_DEBUG
 	OTV0P2BASE::serialPrintlnAndFlush("- Module Present");
 #endif // OTSIM900LINK_DEBUG
 		bAvailable = true;
 		bPowered = true;
 		powerOff();
-//		return true;	// state 3
-//	} else {
-//#ifdef OTSIM900LINK_DEBUG
-//	OTV0P2BASE::serialPrintlnAndFlush("- Unexpected Response");
-//#endif // OTSIM900LINK_DEBUG
-//		bAvailable = false;
-//		bPowered = false;
-//		return false;	// state 4
-//	}
+		return true;	// state 3
+	} else {
+#ifdef OTSIM900LINK_DEBUG
+	OTV0P2BASE::serialPrintAndFlush("- Unexpected Response: ");
+	OTV0P2BASE::serialPrintlnAndFlush(data);
+#endif // OTSIM900LINK_DEBUG
+		bAvailable = false;
+		bPowered = false;
+		return false;	// state 4
+	}
 	return true;
 }
 
@@ -807,7 +813,7 @@ bool OTSIM900Link::getInitState()
 void OTSIM900Link::getSignalStrength()
 {
 #ifdef OTSIM900LINK_DEBUG
-	OTV0P2BASE::serialPrintlnAndFlush(F("Signal Strength: "));
+	OTV0P2BASE::serialPrintAndFlush(F("Signal Strength: "));
 #endif // OTSIM900LINK_DEBUG
 	char data[32];
 	print(AT_START);
