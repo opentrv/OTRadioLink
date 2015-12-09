@@ -166,12 +166,6 @@ bool OTSIM900Link::queueToSend(const uint8_t *buf, uint8_t buflen, int8_t , TXpo
  */
 void OTSIM900Link::poll()
 {
-//	OTV0P2BASE::serialPrintAndFlush(F("STATE: "));
-//	OTV0P2BASE::serialPrintAndFlush(state);
-//	OTV0P2BASE::serialPrintlnAndFlush();
-//	OTV0P2BASE::serialPrintAndFlush(F("Msg Queue: "));
-//	OTV0P2BASE::serialPrintAndFlush(txMessageQueue);
-//	OTV0P2BASE::serialPrintlnAndFlush();
 	if (txMessageQueue) {
 		// State machine in here
 		switch (state) {
@@ -196,7 +190,7 @@ void OTSIM900Link::poll()
 			}
 
 			break;
-			// TODO add these in once 2 stage state machine works
+			// TODO add these in once interrupt set up
 //		case WAIT_FOR_PROMPT:
 //			// check for flag from interrupt
 //			//   - write message if true
@@ -392,7 +386,7 @@ void OTSIM900Link::print(const char *string)
 
 /**
  * @brief	Copies string from EEPROM and prints to softSerial
- * @fixme	switching to this version makes send occasionally time out
+ * @fixme	Potential for infinite loop
  * @param	pointer to eeprom location string is stored in
  */
 void OTSIM900Link::print(const void *src)
@@ -477,25 +471,6 @@ bool OTSIM900Link::isRegistered()
   uint8_t dataCutLength = 0;
   dataCut = getResponse(dataCutLength, data, sizeof(data), ' '); // first ' ' appears right before useful part of message
 
-/*  delay(100);
-  write(AT_START, sizeof(AT_START));
-  write(AT_GPRS_REGISTRATION0, sizeof(AT_GPRS_REGISTRATION0));
-  write(AT_QUERY);
-  write(AT_END);
-  timedBlockingRead(data, sizeof(data));
-#ifdef OTSIM900LINK_DEBUG
-  OTV0P2BASE::serialPrintlnAndFlush(data);
-#endif // OTSIM900LINK_DEBUG
-  delay(100);
-  write(AT_START, sizeof(AT_START));
-  write(AT_GPRS_REGISTRATION, sizeof(AT_GPRS_REGISTRATION));
-  write(AT_QUERY);
-  write(AT_END);
-  timedBlockingRead(data, sizeof(data));
-#ifdef OTSIM900LINK_DEBUG
-  OTV0P2BASE::serialPrintlnAndFlush(data);
-#endif // OTSIM900LINK_DEBUG*/
-
   if (dataCut[2] == '1' || dataCut[2] == '5' ) return true;	// expected response '1' or '5'
   else return false;
 }
@@ -544,13 +519,9 @@ bool OTSIM900Link::startGPRS()
   print(AT_END);
   timedBlockingRead(data, sizeof(data));
 
-//  data[90] = '\0';
-//	OTV0P2BASE::serialPrintAndFlush(data);
-//	OTV0P2BASE::serialPrintlnAndFlush();
-
 
   // response stuff
-//  const char *dataCut;
+  const char *dataCut;
   uint8_t dataCutLength = 0;
   getResponse(dataCutLength, data, sizeof(data), 0x0A);	// unreliable
   if (dataCutLength == 9) return true;	// expected response 'OK'
@@ -839,12 +810,12 @@ void OTSIM900Link::getSignalStrength()
  */
 bool OTSIM900Link::handleInterruptSimple()
 {
-	if (state == WAIT_FOR_PROMPT) {
+//	if (state == WAIT_FOR_PROMPT) {
 //		ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
 //			if(read() == '>') FLAG GOES HERE; // '>' is prompt
 //		}
-	}
-	return true;
+//	}
+//	return true;
 }
 
 //const char OTSIM900Link::AT_[] = "";
