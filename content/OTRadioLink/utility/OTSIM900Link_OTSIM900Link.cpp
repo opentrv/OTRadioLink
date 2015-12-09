@@ -166,6 +166,12 @@ bool OTSIM900Link::queueToSend(const uint8_t *buf, uint8_t buflen, int8_t , TXpo
  */
 void OTSIM900Link::poll()
 {
+//	OTV0P2BASE::serialPrintAndFlush(F("STATE: "));
+//	OTV0P2BASE::serialPrintAndFlush(state);
+//	OTV0P2BASE::serialPrintlnAndFlush();
+//	OTV0P2BASE::serialPrintAndFlush(F("Msg Queue: "));
+//	OTV0P2BASE::serialPrintAndFlush(txMessageQueue);
+//	OTV0P2BASE::serialPrintlnAndFlush();
 	if (txMessageQueue) {
 		// State machine in here
 		switch (state) {
@@ -180,11 +186,12 @@ void OTSIM900Link::poll()
 		case WAIT_FOR_UDP:
 			// check if udp opened
 			if(isOpenUDP()){
+				// delay here?
 				sendRaw(txQueue, sizeof(txQueue));	// TODO  replace this with start sending function and work out what to do with sizeof
 				// shut
 				shutGPRS();
 
-				if (!txMessageQueue--) state = IDLE;
+				if (!(--txMessageQueue)) state = IDLE;
 			}
 
 			break;
@@ -826,9 +833,9 @@ void OTSIM900Link::getSignalStrength()
 bool OTSIM900Link::handleInterruptSimple()
 {
 	if (state == WAIT_FOR_PROMPT) {
-		ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+//		ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
 //			if(read() == '>') FLAG GOES HERE; // '>' is prompt
-		}
+//		}
 	}
 	return true;
 }
