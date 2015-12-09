@@ -186,7 +186,8 @@ void OTSIM900Link::poll()
 		case WAIT_FOR_UDP:
 			// check if udp opened
 			if(isOpenUDP()){
-				// delay here?
+				// Delay for module
+				delay(300);
 				sendRaw(txQueue, sizeof(txQueue));	// TODO  replace this with start sending function and work out what to do with sizeof
 				// shut
 				shutGPRS();
