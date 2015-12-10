@@ -157,6 +157,16 @@ class HardwareMotorDriverInterfaceCallbackHandler
     virtual void signalRunSCTTick(bool opening) = 0;
   };
 
+// Trivial do-nothing implementation of HardwareMotorDriverInterfaceCallbackHandler.
+class NullHardwareMotorDriverInterfaceCallbackHandler : public HardwareMotorDriverInterfaceCallbackHandler
+  {
+  public:
+    virtual void signalHittingEndStop(bool) { }
+    virtual void signalShaftEncoderMarkStart(bool) { }
+    virtual void signalRunSCTTick(bool) { }
+  };
+
+
 // Interface for low-level hardware motor driver.
 class HardwareMotorDriverInterface
   {
