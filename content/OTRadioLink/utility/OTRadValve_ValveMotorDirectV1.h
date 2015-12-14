@@ -338,10 +338,10 @@ class ValveMotorDirectV1HardwareDriver : public ValveMotorDirectV1HardwareDriver
       const uint16_t mi = OTV0P2BASE::analogueNoiseReducedRead(MOTOR_DRIVE_MI_AIN_DigitalPin, INTERNAL);
       const uint16_t miHigh = (OTRadValve::HardwareMotorDriverInterface::motorDriveClosing == mdir) ?
           maxCurrentReadingClosing : maxCurrentReadingOpening;
-      const bool currentSense = (mi > miHigh) &&
+      const bool currentSense = (mi > miHigh); // &&
         // Recheck the value read in case spiky.
-        (OTV0P2BASE::analogueNoiseReducedRead(MOTOR_DRIVE_MI_AIN_DigitalPin, INTERNAL) > miHigh) &&
-        (OTV0P2BASE::analogueNoiseReducedRead(MOTOR_DRIVE_MI_AIN_DigitalPin, INTERNAL) > miHigh);
+        // (OTV0P2BASE::analogueNoiseReducedRead(MOTOR_DRIVE_MI_AIN_DigitalPin, INTERNAL) > miHigh) &&
+        // (OTV0P2BASE::analogueNoiseReducedRead(MOTOR_DRIVE_MI_AIN_DigitalPin, INTERNAL) > miHigh);
       return(currentSense);
       }
 

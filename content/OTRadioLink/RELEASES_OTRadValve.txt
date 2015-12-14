@@ -17,3 +17,7 @@ pending:
     DHD20151111: added NullRadioValve.
     DHD20151111: prevented AbstractRadValve from being directly instantiated.
     DHD20151204: TODO-593: trying to ensure quick turn on from cold following manual control use.
+    DHD20151210: TODO-606: implemented NullHardwareMotorDriverInterfaceCallbackHandler.
+    DHD20151210: TODO-606: implemented EndStopHardwareMotorDriverInterfaceCallbackHandler.
+    DHD20151210: TODO-606: eliminated some redundant motor-current ADC reads.
+
