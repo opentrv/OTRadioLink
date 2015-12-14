@@ -159,6 +159,7 @@ struct ModelledRadValveState
   // and help to avoid boiler short-cycling.
   uint8_t valveTurndownCountdownM;
   // Mark flow as having been reduced.
+  // TODO: possibly decrease reopen delay in comfort mode and increase in filtering/wide-deadband/eco mode.
   void valveTurndown() { valveTurndownCountdownM = ANTISEEK_VALVE_REOPEN_DELAY_M; }
   // If true then avoid turning up the heat yet.
   bool dontTurnup() const { return(0 != valveTurndownCountdownM); }
@@ -172,6 +173,7 @@ struct ModelledRadValveState
   // and help to avoid boiler short-cycling.
   uint8_t valveTurnupCountdownM;
   // Mark flow as having been increased.
+  // TODO: possibly increase reclose delay in filtering/wide-deadband mode.
   void valveTurnup() { valveTurnupCountdownM = ANTISEEK_VALVE_RECLOSE_DELAY_M; }
   // If true then avoid turning down the heat yet.
   bool dontTurndown() const { return(0 != valveTurnupCountdownM); }
