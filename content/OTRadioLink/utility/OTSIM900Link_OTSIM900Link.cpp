@@ -92,7 +92,8 @@ bool OTSIM900Link::begin()
 #ifdef OTSIM900LINK_DEBUG
   OTV0P2BASE::serialPrintlnAndFlush(F("Start GPRS"));
 #endif // OTSIM900LINK_DEBUG
-	OTV0P2BASE::serialPrintAndFlush(startGPRS()); // starting and shutting gprs brings module to state
+//	OTV0P2BASE::serialPrintAndFlush(startGPRS()); // starting and shutting gprs brings module to state
+  startGPRS();
 	delay(5000);
 	shutGPRS();	 // where openUDP can automatically start gprs
 	return true;
@@ -181,7 +182,7 @@ void OTSIM900Link::poll()
 			// check if udp opened
 			if(isOpenUDP()){
 				// Delay for module
-				delay(300);
+//				delay(300);
 				sendRaw(txQueue, sizeof(txQueue));	// TODO  replace this with start sending function and work out what to do with sizeof
 				// shut
 				shutGPRS();
@@ -275,7 +276,7 @@ bool OTSIM900Link::closeUDP()
 bool OTSIM900Link::sendUDP(const char *frame, uint8_t length)
 {
 	// TODO this bit will be initSendUDP
-	OTV0P2BASE::serialPrintAndFlush(OTV0P2BASE::getSecondsLT());
+//	OTV0P2BASE::serialPrintAndFlush(OTV0P2BASE::getSecondsLT());
 
 	print(AT_START);
 	print(AT_SEND_UDP);
@@ -283,12 +284,12 @@ bool OTSIM900Link::sendUDP(const char *frame, uint8_t length)
 	print(length);
 	print(AT_END);
 
-	// TODO flushUntil will be replaced with isr routine
+	// TODO flushUntil may be replaced with isr routine
 //	 '>' indicates module is ready for UDP frame
 	if (flushUntil('>')) {
 		// TODO this bit will remain in this
 		write(frame, length);
-		delay(500);
+//		delay(200);
 		return true;	// add check here
 	} else return false;
 }

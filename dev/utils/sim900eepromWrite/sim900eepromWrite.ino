@@ -14,7 +14,7 @@
 static const uint16_t eepromStart = 768; // Do not change
 static const uint8_t pin[] = "0000";
 static const uint8_t apn[] = "m2mkit.telefonica.com";
-static const uint8_t udpAddr[] = "46.101.52.242";
+static const uint8_t udpAddr[] = "46.101.64.191";
 static const uint8_t udpPort[] = "9999";
 
 
