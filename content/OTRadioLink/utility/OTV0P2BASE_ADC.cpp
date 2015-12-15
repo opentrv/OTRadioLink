@@ -85,7 +85,7 @@ uint16_t _analogueNoiseReducedReadM(const uint8_t admux, int8_t samples)
 
 // Read ADC/analogue input with reduced noise if possible, in range [0,1023].
 //   * aiNumber is the analogue input number [0,7] for ATMega328P
-//   * mode  is the analogue reference, eg DEFAULT (Vcc).
+//   * mode  is the analogue reference, eg DEFAULT (Vcc). TODO write up possible modes
 // May set sleep mode to SLEEP_MODE_ADC, and disable sleep on exit.
 // Nominally equivalent to analogReference(mode); return(analogRead(pinNumber));
 uint16_t analogueNoiseReducedRead(const uint8_t aiNumber, const uint8_t mode)
