@@ -154,6 +154,7 @@ bool OTSIM900Link::queueToSend(const uint8_t *buf, uint8_t buflen, int8_t , TXpo
 	// Increment message queue
 	txMessageQueue++;
 	// copy into queue here?
+//	memset(txQueue, 0, sizeof(txQueue));
 	memcpy(txQueue, buf, buflen);
 
 	return true;
@@ -183,7 +184,7 @@ void OTSIM900Link::poll()
 			if(isOpenUDP()){
 				// Delay for module
 //				delay(300);
-				sendRaw(txQueue, sizeof(txQueue));	// TODO  replace this with start sending function and work out what to do with sizeof
+				sendRaw(txQueue, strlen((const char*)txQueue));	// TODO  replace this with start sending function and work out what to do with sizeof
 				// shut
 				shutGPRS();
 
