@@ -29,6 +29,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
 #include <string.h>
 #include <stdint.h>
 
+//#define OTSIM900LINK_DEBUG
 
 /**
  * @note	To use library:
@@ -259,6 +260,7 @@ private:
     volatile SendState state;
     // TODO expand this so that it can take multiple messages
     uint8_t txQueue[64]; // 64 is maxTxMsgLen (from OTRadioLink)
+    uint8_t txMsgLen;  // This stores the length of the tx message. will have to be redone for multiple txQueue
     static const uint8_t maxTxQueueLength = 1; // TODO Could this be moved out into OTRadioLink
 
 

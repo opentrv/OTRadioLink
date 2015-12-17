@@ -36,6 +36,7 @@ OTSIM900Link::OTSIM900Link(uint8_t hardPwrPin, uint8_t pwrPin, uint8_t rxPin, ui
   config = NULL;
   state = IDLE;
   memset(txQueue, 0, sizeof(txQueue));
+  txMsgLen = 0;
 
 }
 
@@ -154,9 +155,8 @@ bool OTSIM900Link::queueToSend(const uint8_t *buf, uint8_t buflen, int8_t , TXpo
 	// Increment message queue
 	txMessageQueue++;
 	// copy into queue here?
-//	memset(txQueue, 0, sizeof(txQueue));
 	memcpy(txQueue, buf, buflen);
-
+	txMsgLen = buflen;
 	return true;
 }
 
@@ -183,8 +183,10 @@ void OTSIM900Link::poll()
 			// check if udp opened
 			if(isOpenUDP()){
 				// Delay for module
-//				delay(300);
-				sendRaw(txQueue, strlen((const char*)txQueue));	// TODO  replace this with start sending function and work out what to do with sizeof
+				delay(300);
+//				sendRaw(txQueue, strlen((const char*)txQueue));	// TODO  replace this with start sending function and work out what to do with sizeof
+				sendRaw(txQueue, txMsgLen);	// TODO  Can't use strlen with binary data
+				delay(300);
 				// shut
 				shutGPRS();
 
@@ -338,7 +340,7 @@ bool OTSIM900Link::flushUntil(uint8_t _terminatingChar)
 	const uint8_t terminatingChar = _terminatingChar;
 
 #ifdef OTSIM900LINK_DEBUG
-	OTV0P2BASE::serialPrintAndFlush(F("- Flush: "));
+//	OTV0P2BASE::serialPrintAndFlush(F("- Flush: "));
 #endif // OTSIM900LINK_DEBUG
 
 	const uint8_t endTime = OTV0P2BASE::getSecondsLT() + flushTimeOut;
