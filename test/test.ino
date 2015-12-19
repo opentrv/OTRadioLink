@@ -783,6 +783,25 @@ void testEntropyGathering()
     }
   }
 
+#if !defined(DISABLE_SENSOR_UNIT_TESTS)
+static OTV0P2BASE::SupplyVoltageCentiVolts Supply_cV;
+static void testSupplyVoltageMonitor()
+  {
+  Serial.println("SupplyVoltageMonitor");
+  const uint8_t cV = Supply_cV.read();
+#if 1
+  OTV0P2BASE::serialPrintAndFlush("  Battery cV: ");
+  OTV0P2BASE::serialPrintAndFlush(cV, DEC);
+  OTV0P2BASE::serialPrintlnAndFlush();
+#endif
+  // During testing power supply voltage should be above ~1.7V BOD limit,
+  // and no higher than 3.6V for V0p2 boards which is RFM22 Vss limit.
+  // Note that REV9 first boards are running at 3.6V nominal!
+  // Also, this test may get run on UNO/5V hardware.
+  AssertIsTrueWithErr((cV >= 170) && (cV < 510), cV);
+  }
+#endif
+
 
 
 // To be called from loop() instead of main code when running unit tests.
@@ -824,10 +843,14 @@ void loop()
   // OTV0p2Base
   testRTCPersist();
   testEEPROM();
-  testSleep();
   testQuartiles();
   testRNG8();
   testEntropyGathering();
+#if !defined(DISABLE_SENSOR_UNIT_TESTS)
+  testSupplyVoltageMonitor();
+#endif // !defined(DISABLE_SENSOR_UNIT_TESTS)
+  // Very slow tests.
+  testSleep();
 
 
   // Announce successful loop completion and count.

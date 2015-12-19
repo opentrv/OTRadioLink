@@ -32,6 +32,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 #include "OTV0P2BASE_BasicPinAssignments.h"
 #include "OTV0P2BASE_FastDigitalIO.h"
 
+#include "OTV0P2BASE_Sensor.h"
+
 namespace OTV0P2BASE
 {
 
@@ -162,6 +164,54 @@ void flushSerialSCTSensitive();
 #endif
 
 
+
+// Sensor for supply (eg battery) voltage in centivolts.
+// Uses centivolts (cV) rather than millivolts (mv)
+// to save transmitting/logging an information-free final digit
+// even at the risk of some units confusion, though UCUM compliant.
+// To use this an instance should be defined (there is no overhead if not).
+class SupplyVoltageCentiVolts : public OTV0P2BASE::Sensor<uint16_t>
+  {
+  private:
+    // Internal bandgap (1.1V nominal, 1.0--1.2V) as fraction of Vcc [0,1023].
+    uint16_t rawInv;
+    // Last measured supply voltage (cV) (nominally 0V--3.6V abs max) [0,360].
+    uint16_t cV;
+    // True if last-measured voltage was low.
+    bool isLow;
+
+  public:
+    // Initialise to cautious values.
+    SupplyVoltageCentiVolts() : cV(0), isLow(true) { }
+
+    // Force a read/poll of the supply voltage and return the value sensed.
+    // Expensive/slow.
+    // NOT thread-safe or usable within ISRs (Interrupt Service Routines).
+    virtual uint16_t read();
+
+    // Return last value fetched by read(); undefined before first read()).
+    // Fast.
+    // NOT thread-safe nor usable within ISRs (Interrupt Service Routines).
+    virtual uint16_t get() const { return(cV); }
+
+    // Returns a suggested (JSON) tag/field/key name including units of get(); NULL means no recommended tag.
+    // The lifetime of the pointed-to text must be at least that of the Sensor instance.
+    virtual const char *tag() const { return("B|cV"); }
+
+    // Get internal bandgap (1.1V nominal, 1.0--1.2V) as fraction of Vcc.
+    uint16_t getRawInv() const { return(rawInv); }
+
+    // Returns true if the supply voltage is low/marginal.
+    // This depends on the AVR and other hardware components (eg sensors) in use.
+    bool isSupplyVoltageLow() const { return(isLow); }
+
+    // Returns true if the supply appears to be something that does not need monitoring.
+    // This assumes that anything at/above 3V is mains
+    // or at least a long way from needing monitoring.
+    bool isMains() const { return(!isLow && (cV >= 300)); }
+  };
+//// Singleton implementation/instance.
+//extern SupplyVoltageCentiVolts Supply_cV;
 
 
 } // OTV0P2BASE

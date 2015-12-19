@@ -117,4 +117,28 @@ void captureEntropy1()
   { OTV0P2BASE::seedRNG8(TCNT2, getCPUCycleCount() /* ^ Supply_mV.get() */, 42 /*_watchdogFired*/); } // FIXME
 
 
+// Compute a CRC of all of SRAM as a hash that should contain some entropy, especially after power-up.
+#if !defined(RAMSTART)
+#define RAMSTART (0x100)
+#endif
+uint16_t sramCRC()
+  {
+  uint16_t result = ~0U;
+  for(uint8_t *p = (uint8_t *)RAMSTART; p <= (uint8_t *)RAMEND; ++p)
+    { result = _crc_ccitt_update(result, *p); }
+  return(result);
+  }
+// Compute a CRC of all of EEPROM as a hash that may contain some entropy, particularly across restarts.
+uint16_t eeCRC()
+  {
+  uint16_t result = ~0U;
+  for(uint8_t *p = (uint8_t *)0; p <= (uint8_t *)E2END; ++p)
+    {
+    const uint8_t v = eeprom_read_byte(p);
+    result = _crc_ccitt_update(result, v);
+    }
+  return(result);
+  }
+
+
 }
