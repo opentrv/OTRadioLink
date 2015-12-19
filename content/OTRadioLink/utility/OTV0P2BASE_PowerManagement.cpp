@@ -24,8 +24,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 
 #include <util/atomic.h>
 #include <Arduino.h>
-
 #include "OTV0P2BASE_PowerManagement.h"
+#include "OTV0P2BASE_ADC.h"
 
 namespace OTV0P2BASE
 {
@@ -43,12 +43,12 @@ bool powerUpADCIfDisabled()
   return(true);
   }
 
-// Power ADC down.
-void powerDownADC()
-  {
-  ADCSRA &= ~_BV(ADEN); // Do before power_[adc|all]_disable() to avoid freezing the ADC in an active state!
-  PRR |= _BV(PRADC); // Disable the ADC.
-  }
+//// Power ADC down.
+//void powerDownADC()
+//  {
+//  ADCSRA &= ~_BV(ADEN); // Do before power_[adc|all]_disable() to avoid freezing the ADC in an active state!
+//  PRR |= _BV(PRADC); // Disable the ADC.
+//  }
 
 
 // Flush any pending UART TX bytes in the hardware if UART is enabled, eg useful after Serial.flush() and before sleep.
@@ -117,6 +117,46 @@ void powerDownSerial()
   pinMode(V0p2_PIN_SERIAL_RX, INPUT_PULLUP);
   pinMode(V0p2_PIN_SERIAL_TX, INPUT_PULLUP);
   PRR |= _BV(PRUSART0); // Disable the UART module.
+  }
+
+
+// Default low-battery threshold suitable for 2xAA NiMH, with AVR BOD at 1.8V.
+// Set to be high enough for common sensors such as SHT21, ie >= 2.1V.
+#define BATTERY_LOW_CV 210
+
+//// Using some sensors forces a higher voltage threshold for 'low battery'.
+//#if defined(SENSOR_SHT21_ENABLE)
+//#define SENSOR_SHT21_MINMV 2199 // Only specified down to 2.1V.
+//#if BATTERY_LOW_MV < SENSOR_SHT21_MINMV
+//#undef BATTERY_LOW_MV
+//#define BATTERY_LOW_MV SENSOR_SHT21_MINMV
+//#endif
+//#endif
+
+// Force a read/poll of the supply voltage and return the value sensed.
+// Expensive/slow.
+// NOT thread-safe nor usable within ISRs (Interrupt Service Routines).
+uint16_t SupplyVoltageCentiVolts::read()
+  {
+  // Measure internal bandgap (1.1V nominal, 1.0--1.2V) as fraction of Vcc [0,1023].
+  const uint16_t raw = OTV0P2BASE::_analogueNoiseReducedReadM(_BV(REFS0) | 14);
+  // If Vcc was 1.1V then raw ADC would be 1023, so (1023<<6)/raw = 1<<6, target output 110.
+  // If Vcc was 2.2V then raw ADC would be 511, so (1023<<6)/raw = 2<<6, target output 220.
+  // (Raw ADC output of 0, which would cause a divide-by-zero, is effectively impossible.)
+//  const uint16_t result = ((1023U<<6) / raw) * (1100U>>6); // For mV, without overflow.
+  const uint16_t result = (((1023U<<6) / raw) * 55U) >> 5; // For cV, without overflow.
+  rawInv = raw;
+  cV = result;
+  isLow = (result <= BATTERY_LOW_CV);
+#if 0 && defined(DEBUG)
+  DEBUG_SERIAL_PRINT_FLASHSTRING("Battery cV: ");
+  DEBUG_SERIAL_PRINT(result);
+  DEBUG_SERIAL_PRINT_FLASHSTRING(" raw ");
+  DEBUG_SERIAL_PRINT(raw);
+  if(batteryLow) { DEBUG_SERIAL_PRINT_FLASHSTRING(" LOW"); }
+  DEBUG_SERIAL_PRINTLN();
+#endif
+  return(result);
   }
 
 
