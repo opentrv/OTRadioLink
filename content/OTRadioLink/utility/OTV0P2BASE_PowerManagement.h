@@ -44,7 +44,13 @@ namespace OTV0P2BASE
 // If this returns true then a matching powerDownADC() may be advisable.
 bool powerUpADCIfDisabled();
 // Power ADC down.
-void powerDownADC();
+// Likely shorter inline than just the call/return!
+inline void powerDownADC()
+  {
+  ADCSRA &= ~_BV(ADEN); // Do before power_[adc|all]_disable() to avoid freezing the ADC in an active state!
+  PRR |= _BV(PRADC); // Disable the ADC.
+  }
+
 
 // If true, default is to run the SPI bus a bit below maximum (eg for REV2 board).
 static const bool DEFAULT_RUN_SPI_SLOW = false;
@@ -120,6 +126,7 @@ void t_powerDownSPI()
 inline bool powerUpSPIIfDisabled() { return(t_powerUpSPIIfDisabled<V0p2_PIN_SPI_nSS, DEFAULT_RUN_SPI_SLOW>()); }
 // Power down SPI.
 inline void powerDownSPI() { t_powerDownSPI<V0p2_PIN_SPI_nSS, V0p2_PIN_SPI_SCK, V0p2_PIN_SPI_MOSI, V0p2_PIN_SPI_MISO, DEFAULT_RUN_SPI_SLOW>(); }
+
 
 /************** Serial IO stuff ************************/
 // Moved from Power Management.h

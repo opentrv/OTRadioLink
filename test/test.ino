@@ -33,6 +33,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 
 #if F_CPU == 1000000 // 1MHz CPU indicates V0p2 board.
 #define ON_V0P2_BOARD
+#else
+#define DISABLE_SENSOR_UNIT_TESTS // Not on correct h/w.
 #endif
 
 void setup()
@@ -787,24 +789,32 @@ void testEntropyGathering()
 static OTV0P2BASE::SupplyVoltageCentiVolts Supply_cV;
 static void testSupplyVoltageMonitor()
   {
-  Serial.println("SupplyVoltageMonitor");
-  const uint8_t cV = Supply_cV.read();
-#if 1
-  OTV0P2BASE::serialPrintAndFlush("  Battery cV: ");
-  OTV0P2BASE::serialPrintAndFlush(cV, DEC);
-  OTV0P2BASE::serialPrintlnAndFlush();
-#endif
-  // During testing power supply voltage should be above ~1.7V BOD limit,
-  // and no higher than 3.6V for V0p2 boards which is RFM22 Vss limit.
-  // Note that REV9 first boards are running at 3.6V nominal!
-  // Also, this test may get run on UNO/5V hardware.
-  AssertIsTrueWithErr((cV >= 170) && (cV < 510), cV);
+//  Serial.println("SupplyVoltageMonitor");
+//  const bool neededPowerUp = OTV0P2BASE::powerUpADCIfDisabled();
+//  const uint8_t cV = Supply_cV.read();
+//  const uint8_t ri = Supply_cV.getRawInv();
+//#if 1
+//  OTV0P2BASE::serialPrintAndFlush("  Battery cV: ");
+//  OTV0P2BASE::serialPrintAndFlush(cV);
+//  OTV0P2BASE::serialPrintlnAndFlush();
+//  OTV0P2BASE::serialPrintAndFlush("  Raw inverse: ");
+//  OTV0P2BASE::serialPrintAndFlush(ri);
+//  OTV0P2BASE::serialPrintlnAndFlush();
+//#endif
+//  // During testing power supply voltage should be above ~1.7V BOD limit,
+//  // and no higher than 3.6V for V0p2 boards which is RFM22 Vss limit.
+//  // Note that REV9 first boards are running at 3.6V nominal!
+//  // Also, this test may get run on UNO/5V hardware.
+//  AssertIsTrueWithErr((cV >= 170) && (cV < 510), cV);
+//  // Would expect raw inverse to be <= 1023 for Vcc >= 1.1V.
+//  // Should be ~512 at 2.2V, ~310 at 3.3V.
+//  AssertIsTrueWithErr((ri >= 200) && (ri < 1023), ri);
+//  if(neededPowerUp) { OTV0P2BASE::powerDownADC(); }
   }
 #endif
 
 
 
-// To be called from loop() instead of main code when running unit tests.
 // Tests generally flag an error and stop the test cycle with a call to panic() or error().
 void loop()
   {

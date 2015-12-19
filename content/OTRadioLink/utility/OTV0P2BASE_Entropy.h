@@ -68,7 +68,7 @@ void captureEntropy1();
 // Compute a CRC of all of SRAM as a hash that should contain some entropy, especially after power-up.
 uint16_t sramCRC();
 // Compute a CRC of all of EEPROM as a hash that may contain some entropy, particularly across restarts.
-static uint16_t eeCRC();
+uint16_t eeCRC();
 
 
 }

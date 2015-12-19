@@ -43,12 +43,12 @@ bool powerUpADCIfDisabled()
   return(true);
   }
 
-// Power ADC down.
-void powerDownADC()
-  {
-  ADCSRA &= ~_BV(ADEN); // Do before power_[adc|all]_disable() to avoid freezing the ADC in an active state!
-  PRR |= _BV(PRADC); // Disable the ADC.
-  }
+//// Power ADC down.
+//void powerDownADC()
+//  {
+//  ADCSRA &= ~_BV(ADEN); // Do before power_[adc|all]_disable() to avoid freezing the ADC in an active state!
+//  PRR |= _BV(PRADC); // Disable the ADC.
+//  }
 
 
 // Flush any pending UART TX bytes in the hardware if UART is enabled, eg useful after Serial.flush() and before sleep.
@@ -139,12 +139,12 @@ void powerDownSerial()
 uint16_t SupplyVoltageCentiVolts::read()
   {
   // Measure internal bandgap (1.1V nominal, 1.0--1.2V) as fraction of Vcc [0,1023].
-//  const uint16_t raw = read1V1wrtBattery();
   const uint16_t raw = OTV0P2BASE::_analogueNoiseReducedReadM(_BV(REFS0) | 14);
-  // If Vcc was 1.1V ADC would give 1023.
-  // If Vcc was 2.2V ADC would give 511.
-//  const uint16_t result = ((1023U<<6) / raw) * (1100U>>6); // For mV.
-  const uint16_t result = ((1023U<<3) / raw) * (110U>>3); // For cV.
+  // If Vcc was 1.1V then raw ADC would be 1023, so (1023<<6)/raw = 1<<6, target output 110.
+  // If Vcc was 2.2V then raw ADC would be 511, so (1023<<6)/raw = 2<<6, target output 220.
+  // (Raw ADC output of 0, which would cause a divide-by-zero, is effectively impossible.)
+//  const uint16_t result = ((1023U<<6) / raw) * (1100U>>6); // For mV, without overflow.
+  const uint16_t result = (((1023U<<6) / raw) * 55U) >> 5; // For cV, without overflow.
   rawInv = raw;
   cV = result;
   isLow = (result <= BATTERY_LOW_CV);
