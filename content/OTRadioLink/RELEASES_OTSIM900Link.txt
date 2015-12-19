@@ -19,6 +19,7 @@ pending:
     DE20151112:  Modified read and write timings for better reliability.
     DE20151113:  Added utilities for setting baud and writing radioconfig to eeprom.
     DE20151125:  Added signal quality diagnostics.
+    DE20151217:  Added support for binary frames without truncation at null character
 
 
 20150817:

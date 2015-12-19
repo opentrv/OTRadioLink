@@ -22,6 +22,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #define ARDUINO_LIB_OTSIM900LINK_VERSION_MAJOR 0
 #define ARDUINO_LIB_OTSIM900LINK_VERSION_MINOR 9
 
+
 // SIM900 GSM support.
 #include "utility/OTSIM900Link_OTSIM900Link.h"
 
