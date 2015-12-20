@@ -487,7 +487,7 @@ bool OTSIM900Link::isRegistered()
  */
 bool OTSIM900Link::setAPN()
 {
-  char data[96];
+  char data[96]; // FIXME: that's a LOT of stack!
   print(AT_START);
   print(AT_SET_APN);
   print(AT_SET);
@@ -540,7 +540,7 @@ bool OTSIM900Link::startGPRS()
  */
 bool OTSIM900Link::shutGPRS()
 {
-  char data[96];
+  char data[96]; // FIXME: that's a LOT of stack!
   print(AT_START);
   print(AT_SHUT_GPRS);
   print(AT_END);
