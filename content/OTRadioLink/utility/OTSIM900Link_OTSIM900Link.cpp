@@ -151,7 +151,7 @@ bool OTSIM900Link::sendRaw(const uint8_t *buf, uint8_t buflen, int8_t , TXpower 
  */
 bool OTSIM900Link::queueToSend(const uint8_t *buf, uint8_t buflen, int8_t , TXpower )
 {
-	if ((buf == NULL) || (buflen > 64) || (txMessageQueue >= maxTxQueueLength)) return false;	// TODO check logic and sort out maxTXMsgLen problem
+	if ((buf == NULL) || (buflen > sizeof(txQueue)) || (txMessageQueue >= maxTxQueueLength)) return false;	// TODO check logic and sort out maxTXMsgLen problem
 	// Increment message queue
 	txMessageQueue++;
 	// copy into queue here?
