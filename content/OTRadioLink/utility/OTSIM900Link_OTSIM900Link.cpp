@@ -27,17 +27,21 @@ namespace OTSIM900Link
  * @param    pwrPin        SIM900 power on/off pin
  * @param    rxPin        Rx pin for software serial
  * @param    txPin        Tx pin for software serial
+ *
+ * Cannot do anything with side-effects,
+ * as may be called before run-time fully initialised!
  */
-OTSIM900Link::OTSIM900Link(uint8_t hardPwrPin, uint8_t pwrPin, uint8_t rxPin, uint8_t txPin) : HARD_PWR_PIN(hardPwrPin), PWR_PIN(pwrPin), softSerial(rxPin, txPin)
+OTSIM900Link::OTSIM900Link(uint8_t hardPwrPin, uint8_t pwrPin, uint8_t rxPin, uint8_t txPin)
+  : HARD_PWR_PIN(hardPwrPin), PWR_PIN(pwrPin), softSerial(rxPin, txPin)
 {
-  pinMode(PWR_PIN, OUTPUT);
+//  pinMode(PWR_PIN, OUTPUT); // Can't do here since this constructor may be static/global.
   bAvailable = false;
   bPowered = false;
   config = NULL;
   state = IDLE;
   memset(txQueue, 0, sizeof(txQueue));
   txMsgLen = 0;
-
+  txMessageQueue = 0;
 }
 
 /**
@@ -58,6 +62,8 @@ bool OTSIM900Link::_doconfig()
  */
 bool OTSIM900Link::begin()
 {
+    pinMode(PWR_PIN, OUTPUT);
+
     softSerial.begin(baud);
 
 #ifdef OTSIM900LINK_DEBUG
@@ -168,7 +174,7 @@ bool OTSIM900Link::queueToSend(const uint8_t *buf, uint8_t buflen, int8_t , TXpo
  */
 void OTSIM900Link::poll()
 {
-    if (txMessageQueue) {
+    if (txMessageQueue > 0) {
         // State machine in here
         switch (state) {
         case IDLE:
