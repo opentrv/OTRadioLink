@@ -32,80 +32,84 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
 //#define OTSIM900LINK_DEBUG
 
 /**
- * @note	To use library:
- * 			- create \0 terminated array containing pin, apn, and udp data
- * 			- create OTSIM900LinkConfig_t, initing pointing to above arrays
- * 			- create OTRadioLinkConfig_t with a pointer to above struct
- * 			- create OTSIM900Link
- * 			- pass pointer to radiolink structure to OTSIM900Link::configure()
- * 			- begin starts radio and sets up PGP instance, before returning to GPRS off mode
- * 			- queueToSend starts GPRS, opens UDP, sends message then deactivates GPRS. Process takes 5-10 seconds
- * 			- poll goes in interrupt and sets boolean when message sent(?) //FIXME not yet implemented
+ * @note    To use library:
+ *             - create \0 terminated array containing pin, apn, and udp data
+ *             - create OTSIM900LinkConfig_t, initing pointing to above arrays
+ *             - create OTRadioLinkConfig_t with a pointer to above struct
+ *             - create OTSIM900Link
+ *             - pass pointer to radiolink structure to OTSIM900Link::configure()
+ *             - begin starts radio and sets up PGP instance, before returning to GPRS off mode
+ *             - queueToSend starts GPRS, opens UDP, sends message then deactivates GPRS. Process takes 5-10 seconds
+ *             - poll goes in interrupt and sets boolean when message sent(?) //FIXME not yet implemented
  */
 
 namespace OTSIM900Link
 {
 
+
 /**
- * @struct	OTSIM900LinkConfig_t
- * @brief	Structure containing config data for OTSIM900Link
- * @todo	This is a bit weird - take pointer from struct and pass to helper function in struct
- * @note	Struct and internal pointers must last as long as OTSIM900Link object
- * @param	bEEPROM	true if strings stored in EEPROM, else held in FLASH
- * @param	PIN		Pointer to \0 terminated array containing SIM pin code
- * @param	APN		Pointer to \0 terminated array containing access point name
- * @param	UDP_Address	Pointer to \0 terminated array containing UDP address to send to
- * @param	UDP_Port	Pointer to \0 terminated array containing  UDP port
+ * @struct    OTSIM900LinkConfig_t
+ * @brief    Structure containing config data for OTSIM900Link
+ * @todo    This is a bit weird - take pointer from struct and pass to helper function in struct
+ * @note    Struct and internal pointers must last as long as OTSIM900Link object
+ * @param    bEEPROM    true if strings stored in EEPROM, else held in FLASH
+ * @param    PIN        Pointer to \0 terminated array containing SIM pin code
+ * @param    APN        Pointer to \0 terminated array containing access point name
+ * @param    UDP_Address    Pointer to \0 terminated array containing UDP address to send to as IPv4 dotted quad
+ * @param    UDP_Port    Pointer to \0 terminated array containing UDP port in decimal
  */
 // If stored in SRAM
 typedef struct OTSIM900LinkConfig {
 //private:
-	// Is in eeprom?
-	const bool bEEPROM;
-	const void *PIN;
-	const void *APN;
-	const void *UDP_Address;
-	const void *UDP_Port;
+    // Is in eeprom?
+    const bool bEEPROM;
+    const void * const PIN;
+    const void * const APN;
+    const void * const UDP_Address;
+    const void * const UDP_Port;
+
+    OTSIM900LinkConfig(bool e, const void *p, const void *a, const void *ua, const void *up)
+      : bEEPROM(e), PIN(p), APN(a), UDP_Address(ua), UDP_Port(up) { }
 //public:
-	/**
-	 * @brief	Copies radio config data from EEPROM to an array
-	 * @todo	memory bound check?
-	 * 			Is it worth indexing from beginning of mem location and adding offset?
-	 * 			check count returns correct number
-	 * 			How to implement check if in eeprom?
-	 * @param	buf		pointer to destination buffer
-	 * @param	field	memory location
-	 * @retval	length of data copied to buffer
-	 */
+    /**
+     * @brief    Copies radio config data from EEPROM to an array
+     * @todo    memory bound check?
+     *             Is it worth indexing from beginning of mem location and adding offset?
+     *             check count returns correct number
+     *             How to implement check if in eeprom?
+     * @param    buf        pointer to destination buffer
+     * @param    field    memory location
+     * @retval    length of data copied to buffer
+     */
     char get(const uint8_t *src) const{
-    	char c = 0;
-    	switch (bEEPROM) {
-    	case true:
-    		c = eeprom_read_byte(src);
-    		break;
-    	case false:
-    		c = pgm_read_byte(src);
-    		break;
-    	}
-    	return c;
+        char c = 0;
+        switch (bEEPROM) {
+        case true:
+            c = eeprom_read_byte(src);
+            break;
+        case false:
+            c = pgm_read_byte(src);
+            break;
+        }
+        return c;
     }
 } OTSIM900LinkConfig_t;
 
 enum SendState {
-    	IDLE,
-		WAIT_FOR_UDP,
-		WAIT_FOR_PROMPT,
-		WAIT_FOR_SENDOK
+        IDLE,
+        WAIT_FOR_UDP,
+        WAIT_FOR_PROMPT,
+        WAIT_FOR_SENDOK
     };
 
 
 /**
- * @note	To enable serial debug define 'OTSIM900LINK_DEBUG'
- * @todo	SIM900 has a low power state which stays connected to network
- * 			- Not sure how much power reduced
- * 			- If not sending often may be more efficient to power up and wait for connect each time
- * 			Make OTSIM900LinkBase to abstract serial interface and allow templating?
- * 			Make read & write inline?
+ * @note    To enable serial debug define 'OTSIM900LINK_DEBUG'
+ * @todo    SIM900 has a low power state which stays connected to network
+ *             - Not sure how much power reduced
+ *             - If not sending often may be more efficient to power up and wait for connect each time
+ *             Make OTSIM900LinkBase to abstract serial interface and allow templating?
+ *             Make read & write inline?
  */
 class OTSIM900Link : public OTRadioLink::OTRadioLink
 {
@@ -119,14 +123,14 @@ public:
     bool sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal, bool listenAfter = false);
     bool queueToSend(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal);
 
-    inline bool isAvailable(){ return bAvailable; };	 // checks radio is there independant of power state
+    inline bool isAvailable(){ return bAvailable; };     // checks radio is there independant of power state
   // set max frame bytes
     //void setMaxTypicalFrameBytes(uint8_t maxTypicalFrameBytes);
     void poll();
 
     /**
-     * @brief	This will be called in interrupt while waiting for send prompt
-     * @retval	returns true on successful exit
+     * @brief    This will be called in interrupt while waiting for send prompt
+     * @retval    returns true on successful exit
      */
     bool handleInterruptSimple();
 
@@ -138,8 +142,8 @@ private:
     // set AT commands here
     // These may not be supported by all sim modules so may need to move
     // to concrete implementation
-  	  static const char AT_START[3];
-  	  static const char AT_SIGNAL[5];
+        static const char AT_START[3];
+        static const char AT_SIGNAL[5];
       static const char AT_NETWORK[6];
       static const char AT_REGISTRATION[6];
       static const char AT_GPRS_REGISTRATION0[7];
@@ -158,7 +162,7 @@ private:
       static const char AT_GET_MODULE = 'I';
       static const char AT_SET = '=';
       static const char AT_QUERY = '?';
-  	  static const char AT_END = '\r';
+        static const char AT_END = '\r';
 
     // Standard Responses
 
@@ -176,16 +180,16 @@ private:
   static const uint16_t baud = 2400; // max reliable baud
   static const uint8_t flushTimeOut = 10;
 /************************* Private Methods *******************************/
-  	// Power up/down
+      // Power up/down
   /**
-   * @brief	check if module has power
-   * @todo	is this needed?
-   * @retval	true if module is powered up
+   * @brief    check if module has power
+   * @todo    is this needed?
+   * @retval    true if module is powered up
    */
     inline bool isPowered() { return bPowered; };
 
     /**
-     * @brief 	Power up module
+     * @brief     Power up module
      */
     inline void powerOn()
     {
@@ -194,7 +198,7 @@ private:
     }
 
     /**
-     * @brief 	Close UDP if necessary and power down module.
+     * @brief     Close UDP if necessary and power down module.
      */
     inline void powerOff()
     {
@@ -203,18 +207,18 @@ private:
     }
 
     /**
-     * @brief	toggles power
-     * @todo	replace digitalWrite with fastDigitalWrite
-     * 			Does this need to be inline?
+     * @brief    toggles power
+     * @todo    replace digitalWrite with fastDigitalWrite
+     *             Does this need to be inline?
      */
     inline void powerToggle()
     {
-    	delay(500);
-    	digitalWrite(PWR_PIN, HIGH);
-    	delay(1000);
-    	digitalWrite(PWR_PIN, LOW);
-    	bPowered = !bPowered;
-    	delay(3000);
+        delay(500);
+        digitalWrite(PWR_PIN, HIGH);
+        delay(1000);
+        digitalWrite(PWR_PIN, LOW);
+        bPowered = !bPowered;
+        delay(3000);
     }
 
     // Serial functions
@@ -264,30 +268,29 @@ private:
     static const uint8_t maxTxQueueLength = 1; // TODO Could this be moved out into OTRadioLink
 
 
-public:	// define abstract methods here
+public:    // define abstract methods here
     // These are unused as no RX
-    virtual void _dolisten() {};
+    virtual void _dolisten() {}
     /**
-     * @todo	function to get maxTXMsgLen?
+     * @todo    function to get maxTXMsgLen?
      */
     virtual void getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen) const {
-    	queueRXMsgsMin = 0;
-    	maxRXMsgLen = 0;
-    	maxTXMsgLen = 64;
+        queueRXMsgsMin = 0;
+        maxRXMsgLen = 0;
+        maxTXMsgLen = 64;
     };
     virtual uint8_t getRXMsgsQueued() const {return 0;}
     virtual const volatile uint8_t *peekRXMsg(uint8_t &len) const {len = 0; return 0;}
     virtual void removeRXMsg() {}
 
 
-
 /* other methods (copied from OTRadioLink as is)
-virtual bool _doconfig() { return(true); }		// could this replace something?
-virtual void preinit(const void *preconfig) {}	// not really relevant?
-virtual void panicShutdown() { preinit(NULL); }	// see above
+virtual bool _doconfig() { return(true); }        // could this replace something?
+virtual void preinit(const void *preconfig) {}    // not really relevant?
+virtual void panicShutdown() { preinit(NULL); }    // see above
 */
 };
 
-}	// namespace OTSIM900Link
+}    // namespace OTSIM900Link
 
 #endif /* OTSIM900LINK_H_ */
