@@ -63,6 +63,7 @@ bool OTSIM900Link::_doconfig()
 bool OTSIM900Link::begin()
 {
     pinMode(PWR_PIN, OUTPUT);
+    digitalWrite(PWR_PIN, LOW);
 
     softSerial.begin(baud);
 
