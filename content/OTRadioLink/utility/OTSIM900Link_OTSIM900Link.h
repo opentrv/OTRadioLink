@@ -113,6 +113,10 @@ enum SendState {
  */
 class OTSIM900Link : public OTRadioLink::OTRadioLink
 {
+  // Maximum number of significant chars in the SIM900 response.
+  // Minimising this reduces stack and/or global space pressures.
+  static const uint8_t MAX_SIM900_RESPONSE_CHARS = 64;
+
 public:
   OTSIM900Link(uint8_t pwrSwitchPin, uint8_t pwrPin, uint8_t rxPin, uint8_t txPin);
 
@@ -175,7 +179,7 @@ private:
   // variables
   bool bAvailable;
   bool bPowered;
-  volatile uint8_t txMessageQueue;
+  volatile uint8_t txMessageQueue; // Number of frames currently queued for TX.
   const OTSIM900LinkConfig_t *config;
   static const uint16_t baud = 2400; // max reliable baud
   static const uint8_t flushTimeOut = 10;
