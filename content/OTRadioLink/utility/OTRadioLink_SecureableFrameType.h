@@ -73,7 +73,7 @@ namespace OTRadioLink
 
         // Frame type nominally from FrameType_Secureable.
         // Top bit indicates secure frame if 1/true.
-        uint8_t frameType;
+        uint8_t fType;
 
         // Frame sequence number mod 16 [0,15] (bits 4 to 7) and ID length [0,15] (bits 0-3).
         //
@@ -81,7 +81,7 @@ namespace OTRadioLink
         // increment is skipped for multiple TX used for noise immunity.
         // If a counter is used as part of (eg) security IV/nonce
         // then these 4 bits may be its least significant bits.
-        uint8_t seqAndIl;
+        uint8_t seqIl;
 
         // ID bytes (0 implies anonymous, 1 or 2 typical domestic, length il)
         //
@@ -90,7 +90,7 @@ namespace OTRadioLink
         // but may under some circumstances (depending on message type)
         // be the ID of the target/recipient.
         const static uint8_t maxIDLength = 8;
-        unit8_t id[maxIDLength];
+        uint8_t id[maxIDLength];
 
         // Body length including any padding [0,249] but generally << 60.
         uint8_t bl;
