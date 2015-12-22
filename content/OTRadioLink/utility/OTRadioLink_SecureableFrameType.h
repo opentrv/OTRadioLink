@@ -47,23 +47,35 @@ namespace OTRadioLink
     // The leading byte received indicates the length of frame that follows,
     // with the following byte indicating the frame type.
     // The leading frame-length byte allows efficient packet RX with many low-end radios.
+    //
+    // Frame types of 32/0x20 or above are reserved to OpenTRV to define.
+    // Frame types < 32/0x20 (ignoring secure bit) are defined as
+    // local-use-only and may be defined and used privately
+    // (within a local radio network ~100m max or local wired network)
+    // for any reasonable purpose providing use is generally consistent with
+    // the rest of the protocol, and frames are not allowed to escape the local network.
     enum FrameType_Secureable
         {
         // No message should be type 0x00 (nor 0xff).
         FTS_NONE                        = 0,
+
+        // Frame types < 32/0x20 (ignoring secure bit) are defined as local-use-only.
+        FTS_MAX_LOCAL_TYPE              = 31,
+        // Frame types of 32/0x20 or above are reserved to OpenTRV to define.
+        FTS_MAN_PUBLIC_TYPE             = 32,
 
         // "I'm alive" message with empty (zero-length) message body.
         // Same crypto algorithm as 'O' frame type to be used when secure.
         // This message can be sent asynchronously,
         // or after a random delay in response to a broadcast liveness query.
         // ID should not be zero length as this makes little sense anonymously.
-        FS_ALIVE                        = 1,
+        FS_ALIVE                        = '!',
 
         // OpenTRV basic valve/sensor leaf-to-hub frame (secure if high-bit set).
         FTS_BasicSensorOrValve          = 'O', // 0x4f
         };
 
-    // A high bit set (0x80) in the type indicates a secure message format variant.
+    // A high bit set (0x80) in the type indicates the secure message format variant.
     // The frame type is part of the authenticated data.
     const static uint8_t SECUREABLE_FRAME_TYPE_SEC_FLAG = 0x80;
 
