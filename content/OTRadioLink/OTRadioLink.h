@@ -25,6 +25,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 
 // Radio message frame types and related information.
 #include "utility/OTRadioLink_FrameType.h"
+#include "utility/OTRadioLink_SecureableFrameType.h"
 
 // Specialist simple CRC support.
 #include "utility/OTRadioLink_CRC.h"
