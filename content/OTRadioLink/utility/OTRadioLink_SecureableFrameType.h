@@ -48,6 +48,20 @@ namespace OTRadioLink
     // The frame type is part of the authenticated data.
     const static uint8_t SECUREABLE_FRAME_TYPE_SEC_FLAG = 0x80;
 
+    // Logical header for the securable frame format.
+    // Organised to be efficient to get in and out of wire format.
+    struct SecurableFrameHeader
+        {
+        // Frame length excluding/after this byte.
+        // Appears first to assist radio hardware packet handling.
+        uint8_t fl;
+
+        // Frame type (top bit indicates secure if 1/true).
+        uint8_t frameType;
+
+        // TODO
+        };
+
 
     }
 
