@@ -27,11 +27,11 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 
 namespace OTRadioLink
     {
-    // For V0p2 messages on an FS20 carrier (868.35MHz, OOK, 5kbps raw)
+    // For unsecured V0p2 messages on an FS20 carrier (868.35MHz, OOK, 5kbps raw)
     // the leading byte received indicates the frame type that follows.
-    // These are all implicit-length pre-2015Q3 style messages,
+    // These are all implicit-length pre-2015Q3-style non-secureable messages,
     // which are hard to receive efficiently or back to back
-    // as it is necessary to laod a full (RFM23B/64-byte) FIFO
+    // as it is necessary to load a full (RFM23B/64-byte) FIFO
     // and then see what is in it,
     // missing anything else right behind a short message.
     enum FrameType_V0p2_FS20
