@@ -53,7 +53,8 @@ namespace OTRadioLink
     // local-use-only and may be defined and used privately
     // (within a local radio network ~100m max or local wired network)
     // for any reasonable purpose providing use is generally consistent with
-    // the rest of the protocol, and frames are not allowed to escape the local network.
+    // the rest of the protocol,
+    // and providing that frames are not allowed to escape the local network.
     enum FrameType_Secureable
         {
         // No message should be type 0x00 (nor 0xff).
