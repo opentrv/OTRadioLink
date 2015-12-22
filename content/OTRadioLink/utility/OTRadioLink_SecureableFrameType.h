@@ -53,13 +53,34 @@ namespace OTRadioLink
     struct SecurableFrameHeader
         {
         // Frame length excluding/after this byte.
-        // Appears first to assist radio hardware packet handling.
+        // Appears first on the wire to support radio hardware packet handling.
+        //     fl = hl-1 + bl + tl
+        // where hl header length, bl body length, tl trailer length
         uint8_t fl;
 
-        // Frame type (top bit indicates secure if 1/true).
+        // Frame type nominally from FrameType_Secureable.
+        // Top bit indicates secure frame if 1/true.
         uint8_t frameType;
 
-        // TODO
+        // Frame sequence number mod 16 [0,15] (bits 4 to 7) and ID length [0,15] (bits 0-3).
+        //
+        // Sequence number increments from 0, wraps at 15;
+        // increment is skipped for double/multiple TX for noise immunity.
+        // If a counter is used as part of (eg) security IV/nonce
+        // then these 4 bits may be its least significant bits.
+        uint8_t seqAndIl;
+
+        // ID bytes (0 implies anonymous, 1 or 2 typical domestic, length il)
+        //
+        // This is the first il bytes of the leaf's (typically 64-bit) full ID.
+        // Thus this is typically the ID of the sending sensor/valve/etc,
+        // but may under some circumstances (depending on message type)
+        // be the ID of the target/recipient.
+        const static uint8_t maxIDLength = 8;
+        unit8_t id[maxIDLength];
+
+        // Body length including any padding [0,249] but generally << 60.
+        uint8_t bl;
         };
 
 
