@@ -17,7 +17,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 */
 
 /*
- * Radio message frame types and related information.
+ * Radio message secureable frame types and related information.
  */
 
 #ifndef ARDUINO_LIB_OTRADIOLINK_SECUREABLEFRAMETYPE_H
@@ -46,7 +46,7 @@ namespace OTRadioLink
 
     // A high bit set (0x80) in the type indicates a secure message format variant.
     // The frame type is part of the authenticated data.
-    const static uint8_t SECURABLE_FRAME_TYPE_SEC_FLAG = 0x80;
+    const static uint8_t SECUREABLE_FRAME_TYPE_SEC_FLAG = 0x80;
 
 
     }

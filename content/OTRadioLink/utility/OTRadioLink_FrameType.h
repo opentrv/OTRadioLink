@@ -17,7 +17,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 */
 
 /*
- * Radio message frame types and related information.
+ * Radio message (V0p2, non-secureable) frame types and related information.
  */
 
 #ifndef ARDUINO_LIB_OTRADIOLINK_FRAMETYPE_H
