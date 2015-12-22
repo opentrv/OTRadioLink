@@ -78,7 +78,7 @@ namespace OTRadioLink
         // Frame sequence number mod 16 [0,15] (bits 4 to 7) and ID length [0,15] (bits 0-3).
         //
         // Sequence number increments from 0, wraps at 15;
-        // increment is skipped for double/multiple TX for noise immunity.
+        // increment is skipped for multiple TX used for noise immunity.
         // If a counter is used as part of (eg) security IV/nonce
         // then these 4 bits may be its least significant bits.
         uint8_t seqAndIl;
