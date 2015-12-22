@@ -32,6 +32,17 @@ namespace OTRadioLink
     // Secureable (V0p2) messages.
     // Based on 2015Q4 spec and successors:
     //     http://www.earth.org.uk/OpenTRV/stds/network/20151203-DRAFT-SecureBasicFrame.txt
+    // This is primarily intended for local wireless communications
+    // between sensors/actuators and a local hub/concentrator,
+    // but should be robust enough to traverse public WANs in some circumstances.
+    //
+    // This can be used in a lightweight non-secure form,
+    // or in a secured form,
+    // with the security nominally including authentication and encryption,
+    // with algorithms and parameters agreed in advance between leaf and hub,
+    // and possibly varying by message type.
+    // The initial supported auth/enc crypto mechanism is AES-GCM with 128-bit keys.
+    //
     // The leading byte received indicates the length of frame that follows,
     // with the following byte indicating the frame type.
     // The leading frame-length byte allows efficient packet RX with many low-end radios.
@@ -48,8 +59,10 @@ namespace OTRadioLink
     // The frame type is part of the authenticated data.
     const static uint8_t SECUREABLE_FRAME_TYPE_SEC_FLAG = 0x80;
 
-    // Logical header for the securable frame format.
-    // Organised to be efficient to get in and out of wire format.
+    // Logical header for the secureable frame format.
+    // Intended to be efficient to hold and work with in memory
+    // and to convert to and from wire format.
+    // All of this header should be (in wire format) authenticated for secure frames.
     struct SecurableFrameHeader
         {
         // Frame length excluding/after this byte.
