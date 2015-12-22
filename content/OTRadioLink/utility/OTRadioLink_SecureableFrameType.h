@@ -49,10 +49,17 @@ namespace OTRadioLink
     enum FrameType_Secureable
         {
         // No message should be type 0x00 (nor 0xff).
-        FTS_NONE                     = 0,
+        FTS_NONE                        = 0,
+
+        // "I'm alive" message with empty (zero-length) message body.
+        // Same crypto algorithm as 'O' frame type to be used when secure.
+        // This message can be sent asynchronously,
+        // or after a random delay in response to a broadcast liveness query.
+        // ID should not be zero length as this makes little sense anonymously.
+        FS_ALIVE                        = 1,
 
         // OpenTRV basic valve/sensor leaf-to-hub frame (secure if high-bit set).
-        FTS_BasicSensorOrValve       = 'O', // 0x4f
+        FTS_BasicSensorOrValve          = 'O', // 0x4f
         };
 
     // A high bit set (0x80) in the type indicates a secure message format variant.
