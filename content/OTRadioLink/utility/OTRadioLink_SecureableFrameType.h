@@ -41,7 +41,8 @@ namespace OTRadioLink
     // with the security nominally including authentication and encryption,
     // with algorithms and parameters agreed in advance between leaf and hub,
     // and possibly varying by message type.
-    // The initial supported auth/enc crypto mechanism is AES-GCM with 128-bit keys.
+    // The initial supported auth/enc crypto mechanism (as of 2015Q4)
+    // is AES-GCM with 128-bit pre-shared keys (and pre-shared IDs).
     //
     // The leading byte received indicates the length of frame that follows,
     // with the following byte indicating the frame type.
@@ -49,10 +50,17 @@ namespace OTRadioLink
     enum FrameType_Secureable
         {
         // No message should be type 0x00 (nor 0xff).
-        FTS_NONE                     = 0,
+        FTS_NONE                        = 0,
+
+        // "I'm alive" message with empty (zero-length) message body.
+        // Same crypto algorithm as 'O' frame type to be used when secure.
+        // This message can be sent asynchronously,
+        // or after a random delay in response to a broadcast liveness query.
+        // ID should not be zero length as this makes little sense anonymously.
+        FS_ALIVE                        = 1,
 
         // OpenTRV basic valve/sensor leaf-to-hub frame (secure if high-bit set).
-        FTS_BasicSensorOrValve       = 'O', // 0x4f
+        FTS_BasicSensorOrValve          = 'O', // 0x4f
         };
 
     // A high bit set (0x80) in the type indicates a secure message format variant.
