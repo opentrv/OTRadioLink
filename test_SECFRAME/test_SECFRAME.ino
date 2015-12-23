@@ -108,7 +108,7 @@ static void testLibVersions()
 
 
 
-// Test that direct abstract motor drive logic is sane.
+// Test that...
 static void testNowt()
   {
   Serial.println("Nowt");
@@ -119,7 +119,6 @@ static void testNowt()
 //  AssertIsTrue(!csvmd1.isInErrorState());
 //  // Target % open must start off in a sensible state; fully-closed is good.
 //  AssertIsEqual(0, csvmd1.getTargetPC());
-
   }
 
 
