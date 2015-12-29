@@ -296,7 +296,8 @@ class ValveMotorDirectV1HardwareDriverBase : public OTRadValve::HardwareMotorDri
     // Maximum current reading allowed when closing the valve (against the spring).
     static const uint16_t maxCurrentReadingClosing = 600;
     // Maximum current reading allowed when opening the valve (retracting the pin, no resisting force).
-    static const uint16_t maxCurrentReadingOpening = 500; // DHD20151023: 400 seemed marginal.
+    // Keep this as low as possible to reduce the chance of skipping the end-stop and game over...
+    static const uint16_t maxCurrentReadingOpening = 450; // DHD20151023: 400 seemed marginal.
 
   protected:
     // Spin for up to the specified number of SCT ticks, monitoring current and position encoding.

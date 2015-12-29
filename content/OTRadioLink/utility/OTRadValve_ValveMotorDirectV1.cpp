@@ -298,7 +298,9 @@ OTV0P2BASE::serialPrintlnAndFlush();
     case init:
       {
 //V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("  init");
-      wiggle(); // Tactile feedback and ensure that the motor is left stopped.
+      // Tactile feedback and ensure that the motor is left stopped.
+      // Should also allow calibration of the shaft-encoder outputs, ie [min.max].
+      wiggle();
       changeState(valvePinWithdrawing);
       // TODO: record time withdrawl starts (to allow time out).
       break;
