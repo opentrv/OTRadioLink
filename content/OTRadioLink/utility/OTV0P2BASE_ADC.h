@@ -62,5 +62,12 @@ bool analogueVsBandgapRead(uint8_t aiNumber, bool napToSettle);
 uint8_t noisyADCRead(bool powerUpIO = true);
 
 
+// Get approximate internal temperature in nominal C/16.
+// Only accurate to +/- 10C uncalibrated.
+// May set sleep mode to SLEEP_MODE_ADC, and disables sleep on exit.
+int readInternalTemperatureC16();
+// TODO: find a better location for this.
+
+
 }
 #endif

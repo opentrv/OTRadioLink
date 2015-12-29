@@ -24,8 +24,10 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 
 #include <util/atomic.h>
 #include <Arduino.h>
+#include <Wire.h>
 #include "OTV0P2BASE_PowerManagement.h"
 #include "OTV0P2BASE_ADC.h"
+#include "OTV0P2BASE_Sleep.h"
 
 namespace OTV0P2BASE
 {
@@ -117,6 +119,65 @@ void powerDownSerial()
   pinMode(V0p2_PIN_SERIAL_RX, INPUT_PULLUP);
   pinMode(V0p2_PIN_SERIAL_TX, INPUT_PULLUP);
   PRR |= _BV(PRUSART0); // Disable the UART module.
+  }
+
+
+// If TWI (I2C) was disabled, power it up, do Wire.begin(), and return true.
+// If already powered up then do nothing other than return false.
+// If this returns true then a matching powerDownRWI() may be advisable.
+bool powerUpTWIIfDisabled()
+  {
+  if(!(PRR & _BV(PRTWI))) { return(false); }
+
+  PRR &= ~_BV(PRTWI); // Enable TWI power.
+  TWCR |= _BV(TWEN); // Enable TWI.
+  Wire.begin(); // Set it going.
+  // TODO: reset TWBR and prescaler for our low CPU frequency     (TWBR = ((F_CPU / TWI_FREQ) - 16) / 2 gives -3!)
+#if F_CPU <= 1000000
+  TWBR = 0; // Implies SCL freq of F_CPU / (16 + 2 * TBWR * PRESC) = 62.5kHz @ F_CPU==1MHz and PRESC==1 (from Wire/TWI code).
+#endif
+  return(true);
+  }
+
+// Power down TWI (I2C).
+void powerDownTWI()
+  {
+  TWCR &= ~_BV(TWEN); // Disable TWI.
+  PRR |= _BV(PRTWI); // Disable TWI power.
+
+  // De-activate internal pullups for TWI especially if powering down all TWI devices.
+  //digitalWrite(SDA, 0);
+  //digitalWrite(SCL, 0);
+
+  // Convert to hi-Z inputs.
+  //pinMode(SDA, INPUT);
+  //pinMode(SCL, INPUT);
+  }
+
+
+// Enable power to intermittent peripherals.
+//   * waitUntilStable  wait long enough (and maybe test) for I/O power to become stable.
+// Waiting for stable may only be necessary for those items hung from IO_POWER cap;
+// items powered direct from IO_POWER_UP may need no such wait.
+//
+// Switches the digital line to high then output (to avoid ever *discharging* the output cap).
+// Note that with 100nF cap, and 330R (or lower) resistor from the output pin,
+// then 1ms delay should be plenty for the voltage on the cap to settle.
+void power_intermittent_peripherals_enable(bool waitUntilStable)
+  {
+  fastDigitalWrite(V0p2_PIN_DEFAULT_IO_POWER_UP, HIGH);
+  pinMode(V0p2_PIN_DEFAULT_IO_POWER_UP, OUTPUT);
+  // If requested, wait long enough that I/O peripheral power should be stable.
+  // Wait in a relatively low-power way...
+  if(waitUntilStable) { sleepLowPowerMs(1); }
+  }
+
+// Disable/remove power to intermittent peripherals.
+// Switches the digital line to input with no pull-up (ie high-Z).
+// There should be some sort of load to stop this floating.
+void power_intermittent_peripherals_disable()
+  {
+  pinMode(V0p2_PIN_DEFAULT_IO_POWER_UP, INPUT);
   }
 
 

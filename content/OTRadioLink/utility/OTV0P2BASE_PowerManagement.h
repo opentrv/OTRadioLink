@@ -171,6 +171,23 @@ void flushSerialSCTSensitive();
 #endif
 
 
+// If TWI (I2C) was disabled, power it up, do Wire.begin(), and return true.
+// If already powered up then do nothing other than return false.
+// If this returns true then a matching powerDownTWI() may be advisable.
+bool powerUpTWIIfDisabled();
+// Power down TWI (I2C).
+void powerDownTWI();
+
+
+// Enable power to intermittent peripherals.
+//   * waitUntilStable  wait long enough (and maybe test) for I/O power to become stable.
+// Waiting for stable may only be necessary for those items hung from IO_POWER cap;
+// items powered direct from IO_POWER_UP may need no such wait.
+void power_intermittent_peripherals_enable(bool waitUntilStable = false);
+
+// Disable/remove power to intermittent peripherals.
+void power_intermittent_peripherals_disable();
+
 
 // Sensor for supply (eg battery) voltage in centivolts.
 // Uses centivolts (cV) rather than millivolts (mv)
