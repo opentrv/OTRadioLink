@@ -40,7 +40,15 @@ static const uint8_t V0p2_PIN_SPI_MISO = 12; // ATMega328P-PU PDIP pin 18, PB4.
 static const uint8_t V0p2_PIN_SPI_MOSI = 11; // ATMega328P-PU PDIP pin 17, PB3.
 static const uint8_t V0p2_PIN_SPI_nSS = 10; // ATMega328P-PU PDIP pin 16, PB2.  Active low enable.
 
-// TODO move I2C here?
+// I2C/TWI: SDA (ain 4), SCL (ain 5), interrupt (dpin3)
+static const uint8_t V0p2_PIN_SDA_AIN = 4; // ATMega328P-PU PDIP pin 27, PC4.
+static const uint8_t V0p2_PIN_SCL_AIN = 5; // ATMega328P-PU PDIP pin 28, PC5.
+
+// Default pin to power-up I/O low-power (sensors) only intermittently enabled, when high, digital out.
+// Can be connected direct, or via 330R+ current limit and 100nF+ decoupling).
+// NOTE: this is a feature of V0p2 boards rather inherent to the AVR/ATMega328P.
+static const uint8_t V0p2_PIN_DEFAULT_IO_POWER_UP = 7; // ATMega328P-PU PDIP pin 13, PD7, no usable analogue input.
+
 
 }
 
