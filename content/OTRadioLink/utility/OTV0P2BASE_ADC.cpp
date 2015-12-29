@@ -151,17 +151,17 @@ bool analogueVsBandgapRead(const uint8_t aiNumber, const bool napToSettle)
   }
 
 
-// Default low-battery threshold suitable for 2xAA NiMH, with AVR BOD at 1.8V.
-#define BATTERY_LOW_MV 2000
-
-// Using some sensors forces a higher voltage threshold for 'low battery'.
-#if defined(SENSOR_SHT21_ENABLE)
-#define SENSOR_SHT21_MINMV 2199 // Only specified down to 2.1V.
-#if BATTERY_LOW_MV < SENSOR_SHT21_MINMV
-#undef BATTERY_LOW_MV
-#define BATTERY_LOW_MV SENSOR_SHT21_MINMV
-#endif
-#endif
+//// Default low-battery threshold suitable for 2xAA NiMH, with AVR BOD at 1.8V.
+//#define BATTERY_LOW_MV 2000
+//
+//// Using some sensors forces a higher voltage threshold for 'low battery'.
+//#if defined(SENSOR_SHT21_ENABLE)
+//#define SENSOR_SHT21_MINMV 2199 // Only specified down to 2.1V.
+//#if BATTERY_LOW_MV < SENSOR_SHT21_MINMV
+//#undef BATTERY_LOW_MV
+//#define BATTERY_LOW_MV SENSOR_SHT21_MINMV
+//#endif
+//#endif
 
 
 

@@ -350,14 +350,16 @@ class ValveMotorDirectV1HardwareDriver : public ValveMotorDirectV1HardwareDriver
       {
       // Power up IR emitter for shaft encoder and assume instant-on, as this has to be as fast as reasonably possible.
       OTV0P2BASE::power_intermittent_peripherals_enable();
-      const uint16_t mc = OTV0P2BASE::analogueNoiseReducedRead(MOTOR_DRIVE_MC_AIN_DigitalPin, INTERNAL);
+      const bool result = OTV0P2BASE::analogueVsBandgapRead(MOTOR_DRIVE_MC_AIN_DigitalPin, true);
+//      const uint16_t mc = OTV0P2BASE::analogueNoiseReducedRead(MOTOR_DRIVE_MC_AIN_DigitalPin, INTERNAL);
       OTV0P2BASE::power_intermittent_peripherals_disable();
-#if 1 // 0 && defined(V0P2BASE_DEBUG)
-OTV0P2BASE::serialPrintAndFlush(F("    MC: "));
-OTV0P2BASE::serialPrintAndFlush(mc, DEC);
-OTV0P2BASE::serialPrintlnAndFlush();
-#endif
-      return(mc > 512);
+      return(result);
+      //#if 1 // 0 && defined(V0P2BASE_DEBUG)
+//OTV0P2BASE::serialPrintAndFlush(F("    MC: "));
+//OTV0P2BASE::serialPrintAndFlush(mc, DEC);
+//OTV0P2BASE::serialPrintlnAndFlush();
+//#endif
+//      return(mc < 512);
       }
 
     // Call to actually run/stop motor.
