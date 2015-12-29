@@ -222,6 +222,7 @@ uint8_t CurrentSenseValveMotorDirect::getMinPercentOpen() const
 // Minimally wiggle the motor to give tactile feedback and/or show to be working.
 // May take a significant fraction of a second.
 // Finishes with the motor turned off, and a bias to closing the valve.
+// Should also have enough movement/play to allow calibration of the shaft encoder.
 void CurrentSenseValveMotorDirect::wiggle()
   {
   hw->motorRun(0, OTRadValve::HardwareMotorDriverInterface::motorOff, *this);

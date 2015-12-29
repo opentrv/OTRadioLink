@@ -336,6 +336,12 @@ class ValveMotorDirectV1HardwareDriver : public ValveMotorDirectV1HardwareDriver
       // Check for high motor current indicating hitting an end-stop.
       // Measure motor current against (fixed) internal reference.
       const uint16_t mi = OTV0P2BASE::analogueNoiseReducedRead(MOTOR_DRIVE_MI_AIN_DigitalPin, INTERNAL);
+//      const uint16_t mi = OTV0P2BASE::analogueNoiseReducedRead(MOTOR_DRIVE_MI_AIN_DigitalPin, DEFAULT);
+//#if 1 // 0 && defined(V0P2BASE_DEBUG)
+//OTV0P2BASE::serialPrintAndFlush(F("    MI: "));
+//OTV0P2BASE::serialPrintAndFlush(mi, DEC);
+//OTV0P2BASE::serialPrintlnAndFlush();
+//#endif
       const uint16_t miHigh = (OTRadValve::HardwareMotorDriverInterface::motorDriveClosing == mdir) ?
           maxCurrentReadingClosing : maxCurrentReadingOpening;
       const bool currentSense = (mi > miHigh); // &&
@@ -350,16 +356,16 @@ class ValveMotorDirectV1HardwareDriver : public ValveMotorDirectV1HardwareDriver
       {
       // Power up IR emitter for shaft encoder and assume instant-on, as this has to be as fast as reasonably possible.
       OTV0P2BASE::power_intermittent_peripherals_enable();
-      const bool result = OTV0P2BASE::analogueVsBandgapRead(MOTOR_DRIVE_MC_AIN_DigitalPin, true);
-//      const uint16_t mc = OTV0P2BASE::analogueNoiseReducedRead(MOTOR_DRIVE_MC_AIN_DigitalPin, INTERNAL);
+//      const bool result = OTV0P2BASE::analogueVsBandgapRead(MOTOR_DRIVE_MC_AIN_DigitalPin, true);
+      const uint16_t mc = OTV0P2BASE::analogueNoiseReducedRead(MOTOR_DRIVE_MC_AIN_DigitalPin, INTERNAL);
+       const bool result = (mc < 100); // Arrrgh!
       OTV0P2BASE::power_intermittent_peripherals_disable();
+#if 1 // 0 && defined(V0P2BASE_DEBUG)
+OTV0P2BASE::serialPrintAndFlush(F("    MC: "));
+OTV0P2BASE::serialPrintAndFlush(mc, DEC);
+OTV0P2BASE::serialPrintlnAndFlush();
+#endif
       return(result);
-      //#if 1 // 0 && defined(V0P2BASE_DEBUG)
-//OTV0P2BASE::serialPrintAndFlush(F("    MC: "));
-//OTV0P2BASE::serialPrintAndFlush(mc, DEC);
-//OTV0P2BASE::serialPrintlnAndFlush();
-//#endif
-//      return(mc < 512);
       }
 
     // Call to actually run/stop motor.
