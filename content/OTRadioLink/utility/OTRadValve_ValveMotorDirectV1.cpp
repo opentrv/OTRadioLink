@@ -19,6 +19,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 #include "OTRadValve_AbstractRadValve.h"
 #include "OTRadValve_ValveMotorDirectV1.h"
 
+#include "OTV0P2BASE_Serial_IO.h"
+
 namespace OTRadValve
     {
 
@@ -281,6 +283,13 @@ void CurrentSenseValveMotorDirect::trackingError()
 // May block for hundreds of milliseconds.
 void CurrentSenseValveMotorDirect::poll()
   {
+
+#if 1 // 0 && defined(V0P2BASE_DEBUG)
+OTV0P2BASE::serialPrintAndFlush(F("    isOnShaftEncoderMark(): "));
+OTV0P2BASE::serialPrintAndFlush(hw->isOnShaftEncoderMark());
+OTV0P2BASE::serialPrintlnAndFlush();
+#endif
+
   // Run the state machine based on the major state.
   switch(state)
     {
@@ -395,16 +404,26 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("+calibrating");
           // Set all measured calibration input parameters and current position.
           cp.updateAndCompute(perState.valveCalibrating.ticksFromOpenToClosed, perState.valveCalibrating.ticksFromClosedToOpen);
 
-#if 0 && defined(V0P2BASE_DEBUG)
-V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("    ticksFromOpenToClosed: ");
-V0P2BASE_DEBUG_SERIAL_PRINT(cp.getTicksFromOpenToClosed());
-V0P2BASE_DEBUG_SERIAL_PRINTLN();
-V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("    ticksFromClosedToOpen: ");
-V0P2BASE_DEBUG_SERIAL_PRINT(cp.getTicksFromClosedToOpen());
-V0P2BASE_DEBUG_SERIAL_PRINTLN();
-V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("    precision %: ");
-V0P2BASE_DEBUG_SERIAL_PRINT(cp.getApproxPrecisionPC());
-V0P2BASE_DEBUG_SERIAL_PRINTLN();
+#if 1 // 0 && defined(V0P2BASE_DEBUG)
+//V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("    ticksFromOpenToClosed: ");
+//V0P2BASE_DEBUG_SERIAL_PRINT(cp.getTicksFromOpenToClosed());
+//V0P2BASE_DEBUG_SERIAL_PRINTLN();
+//V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("    ticksFromClosedToOpen: ");
+//V0P2BASE_DEBUG_SERIAL_PRINT(cp.getTicksFromClosedToOpen());
+//V0P2BASE_DEBUG_SERIAL_PRINTLN();
+//V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("    precision %: ");
+//V0P2BASE_DEBUG_SERIAL_PRINT(cp.getApproxPrecisionPC());
+//V0P2BASE_DEBUG_SERIAL_PRINTLN();
+
+OTV0P2BASE::serialPrintAndFlush(F("    ticksFromOpenToClosed: "));
+OTV0P2BASE::serialPrintAndFlush(cp.getTicksFromOpenToClosed());
+OTV0P2BASE::serialPrintlnAndFlush();
+OTV0P2BASE::serialPrintAndFlush(F("    ticksFromClosedToOpen: "));
+OTV0P2BASE::serialPrintAndFlush(cp.getTicksFromClosedToOpen());
+OTV0P2BASE::serialPrintlnAndFlush();
+OTV0P2BASE::serialPrintAndFlush(F("    precision %: "));
+OTV0P2BASE::serialPrintAndFlush(cp.getApproxPrecisionPC());
+OTV0P2BASE::serialPrintlnAndFlush();
 #endif
 
           // Move to normal valve running state...

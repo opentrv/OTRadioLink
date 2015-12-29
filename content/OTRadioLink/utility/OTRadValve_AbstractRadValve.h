@@ -178,7 +178,7 @@ class EndStopHardwareMotorDriverInterfaceCallbackHandler : public HardwareMotorD
   };
 
 
-// Interface for low-level hardware motor driver.
+// Interface/base for low-level hardware motor driver.
 class HardwareMotorDriverInterface
   {
   public:
@@ -194,6 +194,9 @@ class HardwareMotorDriverInterface
   public:
     // Detect (poll) if end-stop is reached or motor current otherwise very high.
     virtual bool isCurrentHigh(HardwareMotorDriverInterface::motor_drive mdir = motorDriveOpening) const = 0;
+
+    // Poll simple shaft encoder output; true if on mark, false if not or if unused for this driver.
+    virtual bool isOnShaftEncoderMark() const { return(false); }
 
     // Call to actually run/stop motor.
     // May take as much as (say) 200ms eg to change direction.

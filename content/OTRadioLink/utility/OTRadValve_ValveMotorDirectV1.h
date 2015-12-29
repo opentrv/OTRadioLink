@@ -319,7 +319,7 @@ class ValveMotorDirectV1HardwareDriverBase : public OTRadValve::HardwareMotorDri
 // Implementation for V1 (REV7/DORM1) motor.
 // Usually not instantiated except within ValveMotorDirectV1.
 // Creating multiple instances (trying to drive same motor) almost certainly a BAD IDEA.
-template <uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin>
+template <uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin, uint8_t MOTOR_DRIVE_MC_AIN_DigitalPin>
 class ValveMotorDirectV1HardwareDriver : public ValveMotorDirectV1HardwareDriverBase
   {
     // Last recorded direction.
@@ -343,6 +343,18 @@ class ValveMotorDirectV1HardwareDriver : public ValveMotorDirectV1HardwareDriver
         // (OTV0P2BASE::analogueNoiseReducedRead(MOTOR_DRIVE_MI_AIN_DigitalPin, INTERNAL) > miHigh) &&
         // (OTV0P2BASE::analogueNoiseReducedRead(MOTOR_DRIVE_MI_AIN_DigitalPin, INTERNAL) > miHigh);
       return(currentSense);
+      }
+
+    // Poll simple shaft encoder output; true if on mark, false if not or if unused for this driver.
+    virtual bool isOnShaftEncoderMark() const
+      {
+      const uint16_t mc = OTV0P2BASE::analogueNoiseReducedRead(MOTOR_DRIVE_MC_AIN_DigitalPin, INTERNAL);
+#if 1 // 0 && defined(V0P2BASE_DEBUG)
+OTV0P2BASE::serialPrintAndFlush(F("    MC: "));
+OTV0P2BASE::serialPrintAndFlush(mc, DEC);
+OTV0P2BASE::serialPrintlnAndFlush();
+#endif
+      return(mc > 512);
       }
 
     // Call to actually run/stop motor.
@@ -429,12 +441,12 @@ class ValveMotorDirectV1HardwareDriver : public ValveMotorDirectV1HardwareDriver
   };
 
 // Actuator/driver for direct local (radiator) valve motor control.
-template <uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin>
+template <uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin, uint8_t MOTOR_DRIVE_MC_AIN_DigitalPin>
 class ValveMotorDirectV1 : public OTRadValve::AbstractRadValve
   {
   private:
     // Driver for the V1/DORM1 hardware.
-    ValveMotorDirectV1HardwareDriver<MOTOR_DRIVE_ML_DigitalPin, MOTOR_DRIVE_MR_DigitalPin, MOTOR_DRIVE_MI_AIN_DigitalPin> driver;
+    ValveMotorDirectV1HardwareDriver<MOTOR_DRIVE_ML_DigitalPin, MOTOR_DRIVE_MR_DigitalPin, MOTOR_DRIVE_MI_AIN_DigitalPin, MOTOR_DRIVE_MC_AIN_DigitalPin> driver;
     // Logic to manage state, etc.
     CurrentSenseValveMotorDirect logic;
 
