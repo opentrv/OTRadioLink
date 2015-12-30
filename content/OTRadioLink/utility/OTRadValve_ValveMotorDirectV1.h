@@ -297,6 +297,7 @@ class ValveMotorDirectV1HardwareDriverBase : public OTRadValve::HardwareMotorDri
     static const uint16_t maxCurrentReadingClosing = 600;
     // Maximum current reading allowed when opening the valve (retracting the pin, no resisting force).
     // Keep this as low as possible to reduce the chance of skipping the end-stop and game over...
+    // DHD20151229: at 500 Shenzhen sample unit without outer case (so with more flex) was able to drive past end-stop.
     static const uint16_t maxCurrentReadingOpening = 450; // DHD20151023: 400 seemed marginal.
 
   protected:
@@ -359,9 +360,9 @@ class ValveMotorDirectV1HardwareDriver : public ValveMotorDirectV1HardwareDriver
       OTV0P2BASE::power_intermittent_peripherals_enable();
 //      const bool result = OTV0P2BASE::analogueVsBandgapRead(MOTOR_DRIVE_MC_AIN_DigitalPin, true);
       const uint16_t mc = OTV0P2BASE::analogueNoiseReducedRead(MOTOR_DRIVE_MC_AIN_DigitalPin, INTERNAL);
-       const bool result = (mc < 100); // Arrrgh!
+       const bool result = (mc < 120); // Arrrgh! FIXME: needs autocalibration during wiggle().
       OTV0P2BASE::power_intermittent_peripherals_disable();
-#if 1 // 0 && defined(V0P2BASE_DEBUG)
+#if 0 && defined(V0P2BASE_DEBUG)
 OTV0P2BASE::serialPrintAndFlush(F("    MC: "));
 OTV0P2BASE::serialPrintAndFlush(mc, DEC);
 OTV0P2BASE::serialPrintlnAndFlush();

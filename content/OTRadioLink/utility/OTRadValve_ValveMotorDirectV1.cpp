@@ -285,7 +285,7 @@ void CurrentSenseValveMotorDirect::trackingError()
 void CurrentSenseValveMotorDirect::poll()
   {
 
-#if 1 // 0 && defined(V0P2BASE_DEBUG)
+#if 0 && defined(V0P2BASE_DEBUG)
 OTV0P2BASE::serialPrintAndFlush(F("    isOnShaftEncoderMark(): "));
 OTV0P2BASE::serialPrintAndFlush(hw->isOnShaftEncoderMark());
 OTV0P2BASE::serialPrintlnAndFlush();
