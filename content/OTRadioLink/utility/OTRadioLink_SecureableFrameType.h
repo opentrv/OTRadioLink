@@ -13,11 +13,15 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2015
+Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 */
 
 /*
  * Radio message secureable frame types and related information.
+ *
+ * Based on 2015Q4 spec and successors:
+ *     http://www.earth.org.uk/OpenTRV/stds/network/20151203-DRAFT-SecureBasicFrame.txt
+ *     https://raw.githubusercontent.com/DamonHD/OpenTRV/master/standards/protocol/IoTCommsFrameFormat/SecureBasicFrame-*.txt
  */
 
 #ifndef ARDUINO_LIB_OTRADIOLINK_SECUREABLEFRAMETYPE_H
@@ -32,6 +36,8 @@ namespace OTRadioLink
     // Secureable (V0p2) messages.
     // Based on 2015Q4 spec and successors:
     //     http://www.earth.org.uk/OpenTRV/stds/network/20151203-DRAFT-SecureBasicFrame.txt
+    //     https://raw.githubusercontent.com/DamonHD/OpenTRV/master/standards/protocol/IoTCommsFrameFormat/SecureBasicFrame-V0.1-201501.txt
+    //
     // This is primarily intended for local wireless communications
     // between sensors/actuators and a local hub/concentrator,
     // but should be robust enough to traverse public WANs in some circumstances.
@@ -123,7 +129,7 @@ namespace OTRadioLink
 
         // Body length including any padding [0,251] but generally << 60.
         uint8_t bl;
-        // Compute the offset in the entire frame of the start of the body after nominal fl (ie where the fType offset is zero).
+        // Compute the offset from the start of the frame of the body after nominal fl (ie where the fType offset is zero).
         uint8_t getBodyOffset() const { return(3 + getIl()); }
 
         // Compute tl (trailer length) [1,251].
