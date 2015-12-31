@@ -34,6 +34,7 @@ namespace OTRadioLink
 
 
     // Secureable (V0p2) messages.
+    //
     // Based on 2015Q4 spec and successors:
     //     http://www.earth.org.uk/OpenTRV/stds/network/20151203-DRAFT-SecureBasicFrame.txt
     //     https://raw.githubusercontent.com/DamonHD/OpenTRV/master/standards/protocol/IoTCommsFrameFormat/SecureBasicFrame-V0.1-201501.txt
