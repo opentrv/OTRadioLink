@@ -108,7 +108,7 @@ namespace OTRadioLink
         // Frame sequence number mod 16 [0,15] (bits 4 to 7) and ID length [0,15] (bits 0-3).
         //
         // Sequence number increments from 0, wraps at 15;
-        // increment is skipped for multiple TX used for noise immunity.
+        // increment is skipped for repeat TXes used for noise immunity.
         // If a counter is used as part of (eg) security IV/nonce
         // then these 4 bits may be its least significant bits.
         uint8_t seqIl;
@@ -133,9 +133,11 @@ namespace OTRadioLink
         // Compute the offset from the start of the frame of the body after nominal fl (ie where the fType offset is zero).
         uint8_t getBodyOffset() const { return(3 + getIl()); }
 
-        // Compute tl (trailer length) [1,251].
+        // Compute tl (trailer length) [1,251]; must == 1 for insecure frame.
         // Other fields must be valid for this to return a valid answer.
         uint8_t getTl() const { return(fl - 3 - getIl() - bl); }
+        // Compute the offset from the start of the frame of the trailer after nominal fl (ie where the fType offset is zero).
+        uint8_t getTrailerOffset() const { return(3 + getIl() + bl); }
         };
 
 
