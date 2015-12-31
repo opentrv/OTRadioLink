@@ -123,7 +123,7 @@ namespace OTRadioLink
 
         // Body length including any padding [0,251] but generally << 60.
         uint8_t bl;
-        // Compute the offset in the entire frame of the start of the body after nominal fl (ie where the fType offset is zero).
+        // Compute the offset from the start of the frame of the body after nominal fl (ie where the fType offset is zero).
         uint8_t getBodyOffset() const { return(3 + getIl()); }
 
         // Compute tl (trailer length) [1,251].
