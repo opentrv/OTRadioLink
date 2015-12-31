@@ -57,8 +57,9 @@ namespace OTRadioLink
     // and providing that frames are not allowed to escape the local network.
     enum FrameType_Secureable
         {
-        // No message should be type 0x00 (nor 0xff).
+        // No message should be type 0x00/0x01 (nor 0x7f/0xff).
         FTS_NONE                        = 0,
+        FTS_INVALID                     = 0x7f,
 
         // Frame types < 32/0x20 (ignoring secure bit) are defined as local-use-only.
         FTS_MAX_LOCAL_TYPE              = 31,
@@ -92,9 +93,10 @@ namespace OTRadioLink
         // where hl header length, bl body length, tl trailer length
         uint8_t fl;
 
-        // Frame type nominally from FrameType_Secureable.
+        // Frame type nominally from FrameType_Secureable (bits 0-6, [1,126]).
         // Top bit indicates secure frame if 1/true.
         uint8_t fType;
+        bool isSecure() const { return(0 != (0x80 & fType)); }
 
         // Frame sequence number mod 16 [0,15] (bits 4 to 7) and ID length [0,15] (bits 0-3).
         //
@@ -103,18 +105,30 @@ namespace OTRadioLink
         // If a counter is used as part of (eg) security IV/nonce
         // then these 4 bits may be its least significant bits.
         uint8_t seqIl;
+        // Get frame sequence number mod 16 [0,15].
+        uint8_t getSeq() const { return((seqIl >> 4) & 0xf); }
+        // Get il (ID length) [0,15].
+        uint8_t getIl() const { return(seqIl & 0xf); }
 
-        // ID bytes (0 implies anonymous, 1 or 2 typical domestic, length il)
+        // ID bytes (0 implies anonymous, 1 or 2 typical domestic, length il).
         //
-        // This is the first il bytes of the leaf's (typically 64-bit) full ID.
+        // This is the first il bytes of the leaf's (64-bit) full ID.
         // Thus this is typically the ID of the sending sensor/valve/etc,
         // but may under some circumstances (depending on message type)
         // be the ID of the target/recipient.
+        //
+        // Initial implementations are limited to 8 bytes of ID.
         const static uint8_t maxIDLength = 8;
         uint8_t id[maxIDLength];
 
-        // Body length including any padding [0,249] but generally << 60.
+        // Body length including any padding [0,251] but generally << 60.
         uint8_t bl;
+        // Compute offset in frame of body length after nominal fl (eg where fType offset is zero).
+        uint8_t getBodyOffset() const { return(3 + getIl()); }
+
+        // Compute tl (trailer length) [1,251].
+        // Other fields must be valid for this to return a valid answer.
+        uint8_t getTl() const { return(fl - 3 - getIl() - bl); }
         };
 
 
