@@ -96,7 +96,7 @@ namespace OTRadioLink
         {
         // Frame length excluding/after this byte.
         // Appears first on the wire to support radio hardware packet handling.
-        //     fl = hl-1 + bl + tl
+        //     fl = hl-1 + bl + tl = 3+il + bl + tl
         // where hl header length, bl body length, tl trailer length
         uint8_t fl;
 
