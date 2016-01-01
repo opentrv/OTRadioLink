@@ -13,11 +13,15 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2015
+Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 */
 
 /*
  * Radio message secureable frame types and related information.
+ *
+ * Based on 2015Q4 spec and successors:
+ *     http://www.earth.org.uk/OpenTRV/stds/network/20151203-DRAFT-SecureBasicFrame.txt
+ *     https://raw.githubusercontent.com/DamonHD/OpenTRV/master/standards/protocol/IoTCommsFrameFormat/SecureBasicFrame-*.txt
  */
 
 #ifndef ARDUINO_LIB_OTRADIOLINK_SECUREABLEFRAMETYPE_H
@@ -30,8 +34,11 @@ namespace OTRadioLink
 
 
     // Secureable (V0p2) messages.
+    //
     // Based on 2015Q4 spec and successors:
     //     http://www.earth.org.uk/OpenTRV/stds/network/20151203-DRAFT-SecureBasicFrame.txt
+    //     https://raw.githubusercontent.com/DamonHD/OpenTRV/master/standards/protocol/IoTCommsFrameFormat/SecureBasicFrame-V0.1-201601.txt
+    //
     // This is primarily intended for local wireless communications
     // between sensors/actuators and a local hub/concentrator,
     // but should be robust enough to traverse public WANs in some circumstances.
@@ -57,8 +64,9 @@ namespace OTRadioLink
     // and providing that frames are not allowed to escape the local network.
     enum FrameType_Secureable
         {
-        // No message should be type 0x00 (nor 0xff).
+        // No message should be type 0x00/0x01 (nor 0x7f/0xff).
         FTS_NONE                        = 0,
+        FTS_INVALID                     = 0x7f,
 
         // Frame types < 32/0x20 (ignoring secure bit) are defined as local-use-only.
         FTS_MAX_LOCAL_TYPE              = 31,
@@ -86,35 +94,72 @@ namespace OTRadioLink
     // All of this header should be (in wire format) authenticated for secure frames.
     struct SecurableFrameHeader
         {
-        // Frame length excluding/after this byte.
+        // Create an instance as an invalid frame header.
+        SecurableFrameHeader() : fl(0) { }
+
+        // Frame length excluding/after this byte; zero indicates an invalid frame.
         // Appears first on the wire to support radio hardware packet handling.
-        //     fl = hl-1 + bl + tl
+        //     fl = hl-1 + bl + tl = 3+il + bl + tl
         // where hl header length, bl body length, tl trailer length
+        // Should usually be set last to leave header clearly invalid until complete.
         uint8_t fl;
 
-        // Frame type nominally from FrameType_Secureable.
+        // Frame type nominally from FrameType_Secureable (bits 0-6, [1,126]).
         // Top bit indicates secure frame if 1/true.
         uint8_t fType;
+        bool isSecure() const { return(0 != (0x80 & fType)); }
 
         // Frame sequence number mod 16 [0,15] (bits 4 to 7) and ID length [0,15] (bits 0-3).
         //
         // Sequence number increments from 0, wraps at 15;
-        // increment is skipped for multiple TX used for noise immunity.
+        // increment is skipped for repeat TXes used for noise immunity.
         // If a counter is used as part of (eg) security IV/nonce
         // then these 4 bits may be its least significant bits.
         uint8_t seqIl;
+        // Get frame sequence number mod 16 [0,15].
+        uint8_t getSeq() const { return((seqIl >> 4) & 0xf); }
+        // Get il (ID length) [0,15].
+        uint8_t getIl() const { return(seqIl & 0xf); }
 
-        // ID bytes (0 implies anonymous, 1 or 2 typical domestic, length il)
+        // ID bytes (0 implies anonymous, 1 or 2 typical domestic, length il).
         //
-        // This is the first il bytes of the leaf's (typically 64-bit) full ID.
+        // This is the first il bytes of the leaf's (64-bit) full ID.
         // Thus this is typically the ID of the sending sensor/valve/etc,
         // but may under some circumstances (depending on message type)
         // be the ID of the target/recipient.
+        //
+        // Initial implementations are limited to 8 bytes of ID.
         const static uint8_t maxIDLength = 8;
         uint8_t id[maxIDLength];
 
-        // Body length including any padding [0,249] but generally << 60.
+        // Body length including any padding [0,251] but generally << 60.
         uint8_t bl;
+        // Compute the offset of the body from the start of the frame after nominal fl (ie where the fType offset is zero).
+        uint8_t getBodyOffset() const { return(3 + getIl()); }
+
+        // Compute tl (trailer length) [1,251]; must == 1 for insecure frame.
+        // Other fields must be valid for this to return a valid answer.
+        uint8_t getTl() const { return(fl - 3 - getIl() - bl); }
+        // Compute the offset of the trailer from the start of the frame after nominal fl (ie where the fType offset is zero).
+        uint8_t getTrailerOffset() const { return(3 + getIl() + bl); }
+
+
+
+        // Check parameters for, and if OK encode into the given buffer, the header for a small secureable frame.
+        // This does not permit creation of frames with more than
+        // This does not deal with encoding the body or the trailer.
+        // Having validated the parameters they are copied into the structure
+        // and then into the supplied buffer.
+        // (If the parameters are invalid or the buffer too small, 0 is returned to indicate an error.)
+        // The fl byte in the structure is set to the frame length, else 0 in case of any error.
+        // Returns number of bytes of encoded header excluding nominally-leading fl length byte; 0 in case of error.
+        uint8_t checkAndEncodeSmallFrameHeader(uint8_t buf, uint8_t bufLen,
+                                               uint8_t fl_,
+                                               uint8_t fType_,
+                                               uint8_t seqNum_,
+                                               uint8_t il_, const uint8_t *id_,
+                                               uint8_t bl_,
+                                               uint8_t tl_);
         };
 
 

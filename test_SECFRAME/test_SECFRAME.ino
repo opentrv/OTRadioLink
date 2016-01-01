@@ -30,9 +30,11 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 
 #define UNIT_TESTS
 
+#include <Wire.h>
+
 // Include the library under test.
 #include <OTV0p2Base.h>
-#include <OTRadValve.h>
+#include <OTRadioLink.h>
 
 #if F_CPU == 1000000 // 1MHz CPU indicates V0p2 board.
 #define ON_V0P2_BOARD
@@ -92,7 +94,7 @@ static inline void errorIfNotEqual(int expected, int actual, int delta, int line
 static void testLibVersion()
   {
   Serial.println("LibVersion");
-#if !(0 == ARDUINO_LIB_OTRADVALVE_VERSION_MAJOR) || !(9 == ARDUINO_LIB_OTRADVALVE_VERSION_MINOR)
+#if !(0 == ARDUINO_LIB_OTRADIOLINK_VERSION_MAJOR) || !(9 == ARDUINO_LIB_OTRADIOLINK_VERSION_MINOR)
 #error Wrong library version!
 #endif 
   }
