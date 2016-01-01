@@ -90,6 +90,7 @@ class AbstractRadValve : public OTV0P2BASE::SimpleTSUint8Actuator
     // Minimally wiggles the motor to give tactile feedback and/or show to be working.
     // May take a significant fraction of a second.
     // Finishes with the motor turned off.
+    // May also be used to (re)calibrate any shaft/position encoder and end-stop detection.
     // By default does nothing.
     virtual void wiggle() { }
   };
