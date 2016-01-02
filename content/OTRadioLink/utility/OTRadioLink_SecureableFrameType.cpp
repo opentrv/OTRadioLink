@@ -24,6 +24,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
  *     https://raw.githubusercontent.com/DamonHD/OpenTRV/master/standards/protocol/IoTCommsFrameFormat/SecureBasicFrame-*.txt
  */
 
+#include <string.h>
 #include "OTRadioLink_SecureableFrameType.h"
 
 namespace OTRadioLink
@@ -89,7 +90,7 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf,
     // TODO
     // TODO
     // Trailer length must be exactly 1 for non-secure frame.
-    if(!secure) { if(1 != _tl) { return(0); } } // ERROR
+    if(!secure_) { if(1 != tl_) { return(0); } } // ERROR
 
 
 
