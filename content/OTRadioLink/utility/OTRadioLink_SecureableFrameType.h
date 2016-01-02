@@ -66,7 +66,7 @@ namespace OTRadioLink
         {
         // No message should be type 0x00/0x01 (nor 0x7f/0xff).
         FTS_NONE                        = 0,
-        FTS_INVALID                     = 0x7f,
+        FTS_INVALID_HIGH                = 0x7f,
 
         // Frame types < 32/0x20 (ignoring secure bit) are defined as local-use-only.
         FTS_MAX_LOCAL_TYPE              = 31,
@@ -144,8 +144,7 @@ namespace OTRadioLink
         uint8_t getTrailerOffset() const { return(3 + getIl() + bl); }
 
 
-
-        // Check parameters for, and if OK encode into the given buffer, the header for a small secureable frame.
+        // Check parameters for, and if valid then encode into the given buffer, the header for a small secureable frame.
         // This does not permit encoding of frames with more than 64 bytes (ie 'small' frames only).
         // This does not deal with encoding the body or the trailer.
         // Having validated the parameters they are copied into the structure
@@ -155,7 +154,7 @@ namespace OTRadioLink
         // Returns number of bytes of encoded header excluding nominally-leading fl length byte; 0 in case of error.
         uint8_t checkAndEncodeSmallFrameHeader(uint8_t *buf, uint8_t bufLen,
                                                uint8_t fl_,
-                                               uint8_t fType_,
+                                               bool secure_, FrameType_Secureable fType_,
                                                uint8_t seqNum_,
                                                uint8_t il_, const uint8_t *id_,
                                                uint8_t bl_,
