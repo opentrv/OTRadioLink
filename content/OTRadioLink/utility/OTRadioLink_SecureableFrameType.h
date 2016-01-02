@@ -149,7 +149,7 @@ namespace OTRadioLink
         // This does not permit encoding of frames with more than 64 bytes (ie 'small' frames only).
         // This does not deal with encoding the body or the trailer.
         // Having validated the parameters they are copied into the structure
-        // and then into the supplied buffer.
+        // and then into the supplied buffer, returning the number of bytes written.
         // (If the parameters are invalid or the buffer too small, 0 is returned to indicate an error.)
         // The fl byte in the structure is set to the frame length, else 0 in case of any error.
         // Returns number of bytes of encoded header excluding nominally-leading fl length byte; 0 in case of error.
