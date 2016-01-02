@@ -97,6 +97,11 @@ namespace OTRadioLink
         // Create an instance as an invalid frame header.
         SecurableFrameHeader() : fl(0) { }
 
+        // Returns true if the frame header in this struct instance is invalid.
+        // This is only reliable if all manipulation of struct content
+        // is by the member functions.
+        bool isInvalid() { return(0 == fl); }
+
         // Frame length excluding/after this byte; zero indicates an invalid frame.
         // Appears first on the wire to support radio hardware packet handling.
         //     fl = hl-1 + bl + tl = 3+il + bl + tl
@@ -149,7 +154,15 @@ namespace OTRadioLink
         // This does not deal with encoding the body or the trailer.
         // Having validated the parameters they are copied into the structure
         // and then into the supplied buffer, returning the number of bytes written.
-        // (If the parameters are invalid or the buffer too small, 0 is returned to indicate an error.)
+        // Performs at least the 'Quick Integrity Checks' from the spec, eg SecureBasicFrame-V0.1-201601.txt
+        //  * fl >= 4 (type, seq/il, bl, trailer bytes)
+        //  * fl may be further constrained by system limits, typically to <= 64
+        //  * type (the first frame byte) is never 0x00, 0x80, 0x7f, 0xff.
+        //  * il <= 8 for initial implementations (internal node ID is 8 bytes)
+        //  * il <= fl - 4 (ID length; minimum of 4 bytes of other overhead)
+        //  * bl <= fl - 4 - il (body length; minimum of 4 bytes of other overhead)
+        //  * the final frame byte (the final trailer byte) is never 0x00 nor 0xff
+        //  * tl == 1 for non-secure, tl >= 1 for secure (tl = fl - 3 - il - bl)        // (If the parameters are invalid or the buffer too small, 0 is returned to indicate an error.)
         // The fl byte in the structure is set to the frame length, else 0 in case of any error.
         // Returns number of bytes of encoded header excluding nominally-leading fl length byte; 0 in case of error.
         uint8_t checkAndEncodeSmallFrameHeader(uint8_t *buf, uint8_t bufLen,

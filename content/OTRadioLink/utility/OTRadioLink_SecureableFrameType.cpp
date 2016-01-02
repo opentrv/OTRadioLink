@@ -35,6 +35,15 @@ namespace OTRadioLink
 // This does not deal with encoding the body or the trailer.
 // Having validated the parameters they are copied into the structure
 // and then into the supplied buffer, returning the number of bytes written.
+// Performs at least the 'Quick Integrity Checks' from the spec, eg SecureBasicFrame-V0.1-201601.txt
+//  * fl >= 4 (type, seq/il, bl, trailer bytes)
+//  * fl may be further constrained by system limits, typically to <= 64
+//  * type (the first frame byte) is never 0x00, 0x80, 0x7f, 0xff.
+//  * il <= 8 for initial implementations (internal node ID is 8 bytes)
+//  * il <= fl - 4 (ID length; minimum of 4 bytes of other overhead)
+//  * bl <= fl - 4 - il (body length; minimum of 4 bytes of other overhead)
+//  * the final frame byte (the final trailer byte) is never 0x00 nor 0xff
+//  * tl == 1 for non-secure, tl >= 1 for secure (tl = fl - 3 - il - bl)
 // (If the parameters are invalid or the buffer too small, 0 is returned to indicate an error.)
 // The fl byte in the structure is set to the frame length, else 0 in case of any error.
 // Returns number of bytes of encoded header excluding nominally-leading fl length byte; 0 in case of error.
@@ -46,6 +55,18 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf,
                                                const uint8_t bl_,
                                                const uint8_t tl_)
     {
+    // Make frame 'invalid' until everything is finished and checks out.
+    fl = 0;
+
+    // Quick integrity checks.
+    // Involves setting some fields to enable others to be checked.
+    if((fl_ < 4) || (fl_ > 63)) { return(0); } // ERROR
+    if((FTS_NONE == fType_) || (fType_ >= FTS_INVALID_HIGH)) { return(0); } // ERROR
+    fType = secure_ ? (0x80 | (uint8_t) fType_) : (0x7f & (uint8_t) fType_);
+    // TODO
+
+
+    // fl = ...
     return(0); // ERROR TODO/FIXME
     }
 
