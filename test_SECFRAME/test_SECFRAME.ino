@@ -110,17 +110,24 @@ static void testLibVersions()
 
 
 
-// Test that...
-static void testNowt()
+// Test quick integrity checks, for TX and RX.
+static void testFrameQIC()
   {
-  Serial.println("Nowt");
-//  AssertIsEqual(OTRadValve::CurrentSenseValveMotorDirect::init, csvmd1.getState());
-//  // Verify NOT marked as in normal run state immediately upon initialisation.
-//  AssertIsTrue(!csvmd1.isInNormalRunState());
-//  // Verify NOT marked as in error state immediately upon initialisation.
-//  AssertIsTrue(!csvmd1.isInErrorState());
-//  // Target % open must start off in a sensible state; fully-closed is good.
-//  AssertIsEqual(0, csvmd1.getTargetPC());
+  Serial.println("FramQIC");
+  OTRadioLink::SecurableFrameHeader sfh;
+  uint8_t id[OTRadioLink::SecurableFrameHeader::maxIDLength];
+  uint8_t buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize];
+  // Unitilialised SecurableFrameHeader should be 'invalid'.
+  AssertIsTrue(sfh.isInvalid());
+  // Test various bad input combos.
+  // Can futz (some of the) inputs that should not matter...
+  // Should fail with bad ID length.
+  AssertIsEqual(0, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
+                                               false, OTRadioLink::FTS_BasicSensorOrValve,
+                                               OTV0P2BASE::randRNG8(),
+                                               OTRadioLink::SecurableFrameHeader::maxIDLength + 1, id,
+                                               2,
+                                               1));
   }
 
 
@@ -147,7 +154,7 @@ void loop()
   testLibVersion();
   testLibVersions();
 
-  testNowt();
+  testFrameQIC();
 
 
 
