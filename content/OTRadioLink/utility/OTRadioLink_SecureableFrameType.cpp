@@ -71,15 +71,20 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf,
     fl = 0;
 
     // Quick integrity checks.
-    // Involves setting some fields to enable others to be checked.
-//    if((fl_ < 4) || (fl_ > 63)) { return(0); } // ERROR
+    // Involves setting some fields as this progresses to enable others to be checked.
+    // Frame type must be valid (in particular precluding all-0s and all-1s values).
     if((FTS_NONE == fType_) || (fType_ >= FTS_INVALID_HIGH)) { return(0); } // ERROR
     fType = secure_ ? (0x80 | (uint8_t) fType_) : (0x7f & (uint8_t) fType_);
+    // ID must be of a valid size, and have a non-NULL pointer.
     if((il_ > maxIDLength) || (NULL == id_)) { return(0); } // ERROR
     // TODO
+    // Trailer length must be exactly 1 for non-secure frame.
+    if(!secure && (1 != _tl)) { return(0); } // ERROR
+
 
 
     // fl = ...
+//    if((fl_ < 4) || (fl_ > 63)) { return(0); } // ERROR
     return(0); // ERROR TODO/FIXME
     }
 
