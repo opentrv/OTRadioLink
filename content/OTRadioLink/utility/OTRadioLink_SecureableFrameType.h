@@ -146,7 +146,7 @@ namespace OTRadioLink
 
 
         // Check parameters for, and if OK encode into the given buffer, the header for a small secureable frame.
-        // This does not permit creation of frames with more than
+        // This does not permit encoding of frames with more than 64 bytes (ie 'small' frames only).
         // This does not deal with encoding the body or the trailer.
         // Having validated the parameters they are copied into the structure
         // and then into the supplied buffer.
