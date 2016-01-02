@@ -95,8 +95,8 @@ namespace OTRadioLink
     // Note: fl = hl-1 + bl + tl = 3+il + bl + tl
     struct SecurableFrameHeader
         {
-        // Create an instance as an invalid frame header.
-        SecurableFrameHeader() : fl(0) { }
+        // Create an instance as an invalid frame header (invalid length and ID).
+        SecurableFrameHeader() : fl(0) { id[0] = 0xff; }
 
         // Returns true if the frame header in this struct instance is invalid.
         // This is only reliable if all manipulation of struct content
@@ -160,7 +160,7 @@ namespace OTRadioLink
         //  * fType_  frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
         //  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
         //  * il_  ID length in bytes at most 8 (could be 15 for non-small frames)
-        //  * id_  source of ID bytes, at least il_ long, non-NULL
+        //  * id_  source of ID bytes, at least il_ long; NULL means pre-filled but must not start with 0xff.
         //  * bl_  body length in bytes [0,251] at most
         //  * tl_  trailer length [1,251[ at most, always == 1 for non-secure frame
         //

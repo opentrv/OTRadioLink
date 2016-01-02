@@ -39,7 +39,7 @@ namespace OTRadioLink
 //  * secure_ true if this is to be a secure frame
 //  * fType_  frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
 //  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
-//  * il_  ID length in bytes at most 8 (could be 15 for non-small frames)
+//  * id_  source of ID bytes, at least il_ long; NULL means pre-filled but must not start with 0xff.
 //  * id_  source of ID bytes, at least il_ long, non-NULL
 //  * bl_  body length in bytes [0,251] at most
 //  * tl_  trailer length [1,251[ at most, always == 1 for non-secure frame
@@ -89,11 +89,13 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf,
     fType = secure_ ? (0x80 | (uint8_t) fType_) : (0x7f & (uint8_t) fType_);
     //  4) il <= 8 for initial implementations (internal node ID is 8 bytes)
     //  5) NOT APPLICABLE FOR ENCODE: il <= fl - 4 (ID length; minimum of 4 bytes of other overhead)
-    // ID must be of a legitimate size, and have a non-NULL pointer.
-    if((il_ > maxIDLength) || (NULL == id_)) { return(0); } // ERROR
+    // ID must be of a legitimate size and have a non-NULL pointer,
+    // else if prefilled (id_ is NULL) must not start with 0xff.
+    const bool idPreFilled = (NULL == id_);
+    if((il_ > maxIDLength) || (idPreFilled && (0xff == id[0]))) { return(0); } // ERROR
     // Copy the ID length and bytes, and sequence number lsbs, to the header struct.
     seqIl = il_ | (seqNum_ << 4);
-    memcpy(id, id_, il_);
+    if(!idPreFilled) { memcpy(id, id_, il_); }
     // Header length minus frame length byte.
     const uint8_t hlmfl = 3 + il_;
     // Error return if not enough space in buf for encoded header.

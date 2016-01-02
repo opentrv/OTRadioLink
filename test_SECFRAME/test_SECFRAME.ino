@@ -168,7 +168,13 @@ static void testFrameQIC()
                                                1, id,
                                                0,
                                                252));
-  
+  // Should fail with impossible body + trailer length (for small frame).
+  AssertIsEqual(0, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
+                                               OTV0P2BASE::randRNG8NextBoolean(), OTRadioLink::FTS_ALIVE,
+                                               OTV0P2BASE::randRNG8(),
+                                               1, id,
+                                               32,
+                                               32));
   // "I'm Alive!" message with 1-byte ID should succeed and be of known header length (4).
   AssertIsEqual(4, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
                                                false, OTRadioLink::FTS_ALIVE,
@@ -176,9 +182,19 @@ static void testFrameQIC()
                                                1, id, // Minimal (non-empty) ID.
                                                0, // No payload.
                                                1));
+  // Large but legal body size.
+  AssertIsEqual(4, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
+                                               false, OTRadioLink::FTS_ALIVE,
+                                               OTV0P2BASE::randRNG8(),
+                                               1, id, // Minimal (non-empty) ID.
+                                               32,
+                                               1));
   }
 
 
+// TODO: test actual encoded form of some of above headers...
+// TODO: test with EEPROM ID source (id_ == NULL) ...
+// TODO: add EEPROM prefill static call and pad 1st trailing byte with 0xff.
 
 
 // To be called from loop() instead of main code when running unit tests.
