@@ -148,7 +148,7 @@ static void testFrameQIC()
                                                2, id,
                                                2,
                                                1));
-//  // "I'm Alive!" message woth 1-byte ID hould succeed and be of known header length.
+//  // "I'm Alive!" message woth 1-byte ID hould succeed and be of known header length (4).
 //  AssertIsEqual(4, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
 //                                               false, OTRadioLink::FTS_BasicSensorOrValve,
 //                                               OTV0P2BASE::randRNG8(),
