@@ -78,7 +78,7 @@ namespace OTRadioLink
         // This message can be sent asynchronously,
         // or after a short randomised delay in response to a broadcast liveness query.
         // ID should not be zero length as this makes little sense anonymously.
-        FS_ALIVE                        = '!',
+        FTS_ALIVE                       = '!',
 
         // OpenTRV basic valve/sensor leaf-to-hub frame (secure if high-bit set).
         FTS_BasicSensorOrValve          = 'O', // 0x4f
@@ -183,7 +183,7 @@ namespace OTRadioLink
         // (If the parameters are invalid or the buffer too small, 0 is returned to indicate an error.)
         // The fl byte in the structure is set to the frame length, else 0 in case of any error.
         // Returns number of bytes of encoded header excluding nominally-leading fl length byte; 0 in case of error.
-        uint8_t checkAndEncodeSmallFrameHeader(uint8_t *buf, uint8_t bufLen,
+        uint8_t checkAndEncodeSmallFrameHeader(uint8_t *buf, uint8_t buflen,
                                                bool secure_, FrameType_Secureable fType_,
                                                uint8_t seqNum_,
                                                uint8_t il_, const uint8_t *id_,

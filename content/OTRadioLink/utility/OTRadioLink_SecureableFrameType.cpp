@@ -63,7 +63,7 @@ namespace OTRadioLink
 // (If the parameters are invalid or the buffer too small, 0 is returned to indicate an error.)
 // The fl byte in the structure is set to the frame length, else 0 in case of any error.
 // Returns number of bytes of encoded header excluding nominally-leading fl length byte; 0 in case of error.
-uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf, const uint8_t bufLen,
+uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf, const uint8_t buflen,
                                                const bool secure_, const FrameType_Secureable fType_,
                                                const uint8_t seqNum_,
                                                const uint8_t il_, const uint8_t *const id_,
@@ -83,22 +83,36 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf,
     if((FTS_NONE == fType_) || (fType_ >= FTS_INVALID_HIGH)) { return(0); } // ERROR
     fType = secure_ ? (0x80 | (uint8_t) fType_) : (0x7f & (uint8_t) fType_);
     //  * il <= 8 for initial implementations (internal node ID is 8 bytes)
-    // ID must be of a valid size, and have a non-NULL pointer.
+    // ID must be of a legitimate size, and have a non-NULL pointer.
     if((il_ > maxIDLength) || (NULL == id_)) { return(0); } // ERROR
     // Copy the ID length and bytes, and sequence number lsbs, to the header struct.
     seqIl = il_ | (seqNum_ << 4);
     memcpy(id, id_, il_);
+    // Header length minus frame length byte.
+    const uint8_t hlmfl = 3 + il_;
+    // Error return if not enough space in buf for encoded header.
+    if(hlmfl > buflen) { return(0); } // ERROR
     // TODO
     // TODO
     // Trailer length must be exactly 1 for non-secure frame.
     if(!secure_) { if(1 != tl_) { return(0); } } // ERROR
+    else { } // TODO: NON-SECURE CASE
+    // TODO
+    // TODO
 
+    const uint8_t fl_ = hlmfl + bl_ + tl_;
+    if((fl_ < 4) || (fl_ > maxSmallFrameSize)) { return(0); } // ERROR
 
+    // Write encoded header to buf.
+    buf[0] = fType;
+    buf[1] = seqIl;
+    memcpy(buf + 2, id, il_);
+    buf[2 + il_] = bl_;
 
-    // fl_ = ...
-    // if((fl_ < 4) || (fl_ > maxSmallFrameSize)) { return(0); } // ERROR
-    // fl = fl_;
-    return(0); // ERROR FIXME
+    fl = fl_; // Set fl field to valid value as last action.
+
+    // Return header length (without logical-first frame-length bytes).
+    return(hlmfl);
     }
 
 
