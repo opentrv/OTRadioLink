@@ -75,6 +75,9 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf,
 
     // Quick integrity checks from spec.
     //
+    // (Because it is primarily focused on checking received packets,
+    // things happen in a different order here.)
+    //
     // Involves setting some fields as this progresses to enable others to be checked.
     // Must be done in an order that avoids overflow from even egregious bad values,
     // and that is efficient since this will be on every TX code path.
