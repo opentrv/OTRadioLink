@@ -146,14 +146,14 @@ namespace OTRadioLink
 
 
         // Check parameters for, and if OK encode into the given buffer, the header for a small secureable frame.
-        // This does not permit creation of frames with more than
+        // This does not permit encoding of frames with more than 64 bytes (ie 'small' frames only).
         // This does not deal with encoding the body or the trailer.
         // Having validated the parameters they are copied into the structure
         // and then into the supplied buffer.
         // (If the parameters are invalid or the buffer too small, 0 is returned to indicate an error.)
         // The fl byte in the structure is set to the frame length, else 0 in case of any error.
         // Returns number of bytes of encoded header excluding nominally-leading fl length byte; 0 in case of error.
-        uint8_t checkAndEncodeSmallFrameHeader(uint8_t buf, uint8_t bufLen,
+        uint8_t checkAndEncodeSmallFrameHeader(uint8_t *buf, uint8_t bufLen,
                                                uint8_t fl_,
                                                uint8_t fType_,
                                                uint8_t seqNum_,
