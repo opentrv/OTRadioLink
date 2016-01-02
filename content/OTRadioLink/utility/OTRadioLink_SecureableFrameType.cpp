@@ -46,7 +46,7 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf,
                                                const uint8_t bl_,
                                                const uint8_t tl_)
     {
-    return(0); // ERROR: FIXME
+    return(0); // ERROR TODO/FIXME
     }
 
 
