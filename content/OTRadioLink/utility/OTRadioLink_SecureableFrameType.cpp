@@ -25,6 +25,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
  */
 
 #include <string.h>
+
 #include "OTRadioLink_SecureableFrameType.h"
 
 namespace OTRadioLink
@@ -93,10 +94,11 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf,
     if(!secure_) { if(1 != tl_) { return(0); } } // ERROR
 
 
+
     // fl_ = ...
     // if((fl_ < 4) || (fl_ > maxSmallFrameSize)) { return(0); } // ERROR
     // fl = fl_;
-    return(0); // ERROR TODO/FIXME
+    return(0); // ERROR FIXME
     }
 
 

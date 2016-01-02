@@ -128,6 +128,33 @@ static void testFrameQIC()
                                                OTRadioLink::SecurableFrameHeader::maxIDLength + 1, id,
                                                2,
                                                1));
+  // Should fail with bad buffer length.
+  AssertIsEqual(0, sfh.checkAndEncodeSmallFrameHeader(buf, 0,
+                                               false, OTRadioLink::FTS_BasicSensorOrValve,
+                                               OTV0P2BASE::randRNG8(),
+                                               2, id,
+                                               2,
+                                               1));
+  // Should fail with bad frame type.
+  AssertIsEqual(0, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
+                                               OTV0P2BASE::randRNG8NextBoolean(), OTRadioLink::FTS_NONE,
+                                               OTV0P2BASE::randRNG8(),
+                                               2, id,
+                                               2,
+                                               1));
+  AssertIsEqual(0, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
+                                               OTV0P2BASE::randRNG8NextBoolean(), OTRadioLink::FTS_INVALID_HIGH,
+                                               OTV0P2BASE::randRNG8(),
+                                               2, id,
+                                               2,
+                                               1));
+//  // "I'm Alive!" message woth 1-byte ID hould succeed and be of known header length.
+//  AssertIsEqual(4, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
+//                                               false, OTRadioLink::FTS_BasicSensorOrValve,
+//                                               OTV0P2BASE::randRNG8(),
+//                                               1, id, // Minimal (non-empty) ID.
+//                                               0, // No payload.
+//                                               1));
   }
 
 

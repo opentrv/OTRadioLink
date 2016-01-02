@@ -76,7 +76,7 @@ namespace OTRadioLink
         // "I'm alive" message with empty (zero-length) message body.
         // Same crypto algorithm as 'O' frame type to be used when secure.
         // This message can be sent asynchronously,
-        // or after a random delay in response to a broadcast liveness query.
+        // or after a short randomised delay in response to a broadcast liveness query.
         // ID should not be zero length as this makes little sense anonymously.
         FS_ALIVE                        = '!',
 
