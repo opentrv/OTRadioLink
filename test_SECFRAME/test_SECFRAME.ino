@@ -148,13 +148,34 @@ static void testFrameQIC()
                                                2, id,
                                                2,
                                                1));
-//  // "I'm Alive!" message woth 1-byte ID hould succeed and be of known header length (4).
-//  AssertIsEqual(4, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
-//                                               false, OTRadioLink::FTS_BasicSensorOrValve,
-//                                               OTV0P2BASE::randRNG8(),
-//                                               1, id, // Minimal (non-empty) ID.
-//                                               0, // No payload.
-//                                               1));
+  // Should fail with impossible body length.
+  AssertIsEqual(0, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
+                                               OTV0P2BASE::randRNG8NextBoolean(), OTRadioLink::FTS_ALIVE,
+                                               OTV0P2BASE::randRNG8(),
+                                               1, id,
+                                               252,
+                                               1));
+  // Should fail with impossible trailer length.
+  AssertIsEqual(0, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
+                                               OTV0P2BASE::randRNG8NextBoolean(), OTRadioLink::FTS_ALIVE,
+                                               OTV0P2BASE::randRNG8(),
+                                               1, id,
+                                               0,
+                                               0));
+  AssertIsEqual(0, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
+                                               OTV0P2BASE::randRNG8NextBoolean(), OTRadioLink::FTS_ALIVE,
+                                               OTV0P2BASE::randRNG8(),
+                                               1, id,
+                                               0,
+                                               252));
+  
+  // "I'm Alive!" message with 1-byte ID should succeed and be of known header length (4).
+  AssertIsEqual(4, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
+                                               false, OTRadioLink::FTS_ALIVE,
+                                               OTV0P2BASE::randRNG8(),
+                                               1, id, // Minimal (non-empty) ID.
+                                               0, // No payload.
+                                               1));
   }
 
 

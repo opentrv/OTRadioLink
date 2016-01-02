@@ -78,7 +78,7 @@ namespace OTRadioLink
         // This message can be sent asynchronously,
         // or after a short randomised delay in response to a broadcast liveness query.
         // ID should not be zero length as this makes little sense anonymously.
-        FS_ALIVE                        = '!',
+        FTS_ALIVE                       = '!',
 
         // OpenTRV basic valve/sensor leaf-to-hub frame (secure if high-bit set).
         FTS_BasicSensorOrValve          = 'O', // 0x4f
@@ -170,20 +170,19 @@ namespace OTRadioLink
         // and then into the supplied buffer, returning the number of bytes written.
         //
         // Performs at least the 'Quick Integrity Checks' from the spec, eg SecureBasicFrame-V0.1-201601.txt
-        //  * fl >= 4 (type, seq/il, bl, trailer bytes)
-        //  * fl may be further constrained by system limits, typically to <= 64
-        //  * type (the first frame byte) is never 0x00, 0x80, 0x7f, 0xff.
-        //  * il <= 8 for initial implementations (internal node ID is 8 bytes)
-        //  * il <= fl - 4 (ID length; minimum of 4 bytes of other overhead)
-        //  * bl <= fl - 4 - il (body length; minimum of 4 bytes of other overhead)
-        //  * the final frame byte (the final trailer byte) is never 0x00 nor 0xff
-        //  * tl == 1 for non-secure, tl >= 1 for secure (tl = fl - 3 - il - bl)
-        // Note: fl = hl-1 + bl + tl = 3+il + bl + tl
+        //  1) fl >= 4 (type, seq/il, bl, trailer bytes)
+        //  2) fl may be further constrained by system limits, typically to <= 64
+        //  3) type (the first frame byte) is never 0x00, 0x80, 0x7f, 0xff.
+        //  4) il <= 8 for initial implementations (internal node ID is 8 bytes)
+        //  5) il <= fl - 4 (ID length; minimum of 4 bytes of other overhead)
+        //  6) bl <= fl - 4 - il (body length; minimum of 4 bytes of other overhead)
+        //  7) the final frame byte (the final trailer byte) is never 0x00 nor 0xff
+        //  8) tl == 1 for non-secure, tl >= 1 for secure (tl = fl - 3 - il - bl)        // Note: fl = hl-1 + bl + tl = 3+il + bl + tl
         //
         // (If the parameters are invalid or the buffer too small, 0 is returned to indicate an error.)
         // The fl byte in the structure is set to the frame length, else 0 in case of any error.
         // Returns number of bytes of encoded header excluding nominally-leading fl length byte; 0 in case of error.
-        uint8_t checkAndEncodeSmallFrameHeader(uint8_t *buf, uint8_t bufLen,
+        uint8_t checkAndEncodeSmallFrameHeader(uint8_t *buf, uint8_t buflen,
                                                bool secure_, FrameType_Secureable fType_,
                                                uint8_t seqNum_,
                                                uint8_t il_, const uint8_t *id_,
