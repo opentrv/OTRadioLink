@@ -73,6 +73,8 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf,
 
     // Quick integrity checks.
     // Involves setting some fields as this progresses to enable others to be checked.
+    // Must be done in an order that avoids overflow from even egregious bad values,
+    // and that is efficient since this will be on every TX code path.
     //
     //  * type (the first frame byte) is never 0x00, 0x80, 0x7f, 0xff.
     // Frame type must be valid (in particular precluding all-0s and all-1s values).
@@ -81,13 +83,14 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf,
     //  * il <= 8 for initial implementations (internal node ID is 8 bytes)
     // ID must be of a valid size, and have a non-NULL pointer.
     if((il_ > maxIDLength) || (NULL == id_)) { return(0); } // ERROR
-    // Copy the ID length and bytes to the header struct.
-    il = il_;
+    // Copy the ID length and bytes, and sequence number lsbs, to the header struct.
+    seqIl = il_ | (seqNum_ << 4);
     memcpy(id, id_, il_);
     // TODO
     // TODO
     // Trailer length must be exactly 1 for non-secure frame.
     if(!secure) { if(1 != _tl) { return(0); } } // ERROR
+
 
 
 
