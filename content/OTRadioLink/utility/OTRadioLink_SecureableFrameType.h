@@ -92,6 +92,7 @@ namespace OTRadioLink
     // Intended to be efficient to hold and work with in memory
     // and to convert to and from wire format.
     // All of this header should be (in wire format) authenticated for secure frames.
+    // Note: fl = hl-1 + bl + tl = 3+il + bl + tl
     struct SecurableFrameHeader
         {
         // Create an instance as an invalid frame header.
@@ -102,6 +103,8 @@ namespace OTRadioLink
         // is by the member functions.
         bool isInvalid() { return(0 == fl); }
 
+        // Maximum (small) frame size is 64, excluding fl byte.
+        static const uint8_t maxSmallFrameSize = 63;
         // Frame length excluding/after this byte; zero indicates an invalid frame.
         // Appears first on the wire to support radio hardware packet handling.
         //     fl = hl-1 + bl + tl = 3+il + bl + tl
@@ -175,6 +178,7 @@ namespace OTRadioLink
         //  * bl <= fl - 4 - il (body length; minimum of 4 bytes of other overhead)
         //  * the final frame byte (the final trailer byte) is never 0x00 nor 0xff
         //  * tl == 1 for non-secure, tl >= 1 for secure (tl = fl - 3 - il - bl)
+        // Note: fl = hl-1 + bl + tl = 3+il + bl + tl
         //
         // (If the parameters are invalid or the buffer too small, 0 is returned to indicate an error.)
         // The fl byte in the structure is set to the frame length, else 0 in case of any error.

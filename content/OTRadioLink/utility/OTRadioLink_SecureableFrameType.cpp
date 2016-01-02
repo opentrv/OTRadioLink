@@ -56,6 +56,7 @@ namespace OTRadioLink
 //  * bl <= fl - 4 - il (body length; minimum of 4 bytes of other overhead)
 //  * the final frame byte (the final trailer byte) is never 0x00 nor 0xff
 //  * tl == 1 for non-secure, tl >= 1 for secure (tl = fl - 3 - il - bl)
+// Note: fl = hl-1 + bl + tl = 3+il + bl + tl
 //
 // (If the parameters are invalid or the buffer too small, 0 is returned to indicate an error.)
 // The fl byte in the structure is set to the frame length, else 0 in case of any error.
@@ -71,15 +72,27 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf,
     fl = 0;
 
     // Quick integrity checks.
-    // Involves setting some fields to enable others to be checked.
-//    if((fl_ < 4) || (fl_ > 63)) { return(0); } // ERROR
+    // Involves setting some fields as this progresses to enable others to be checked.
+    //
+    //  * type (the first frame byte) is never 0x00, 0x80, 0x7f, 0xff.
+    // Frame type must be valid (in particular precluding all-0s and all-1s values).
     if((FTS_NONE == fType_) || (fType_ >= FTS_INVALID_HIGH)) { return(0); } // ERROR
     fType = secure_ ? (0x80 | (uint8_t) fType_) : (0x7f & (uint8_t) fType_);
+    //  * il <= 8 for initial implementations (internal node ID is 8 bytes)
+    // ID must be of a valid size, and have a non-NULL pointer.
     if((il_ > maxIDLength) || (NULL == id_)) { return(0); } // ERROR
+    // Copy the ID length and bytes to the header struct.
+    il = il_;
+    memcpy(id, id_, il_);
     // TODO
+    // TODO
+    // Trailer length must be exactly 1 for non-secure frame.
+    if(!secure) { if(1 != _tl) { return(0); } } // ERROR
+
 
 
     // fl = ...
+//    if((fl_ < 4) || (fl_ > maxSmallFrameSize)) { return(0); } // ERROR
     return(0); // ERROR TODO/FIXME
     }
 
