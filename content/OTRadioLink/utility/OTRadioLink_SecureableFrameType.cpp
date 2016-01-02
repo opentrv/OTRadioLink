@@ -75,7 +75,7 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf,
 
     // Quick integrity checks from spec.
     //
-    // (Because it is primarily focused on checking received packets,
+    // (Because it the spec is primarily focused on checking received packets,
     // things happen in a different order here.)
     //
     // Involves setting some fields as this progresses to enable others to be checked.
