@@ -73,6 +73,8 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf,
 
     // Quick integrity checks.
     // Involves setting some fields as this progresses to enable others to be checked.
+    // Must be done in an order that avoids overflow from even egregious bad values,
+    // and that is efficient since this will be on every TX code path.
     //
     //  * type (the first frame byte) is never 0x00, 0x80, 0x7f, 0xff.
     // Frame type must be valid (in particular precluding all-0s and all-1s values).
@@ -88,6 +90,7 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf,
     // TODO
     // Trailer length must be exactly 1 for non-secure frame.
     if(!secure) { if(1 != _tl) { return(0); } } // ERROR
+
 
 
 
