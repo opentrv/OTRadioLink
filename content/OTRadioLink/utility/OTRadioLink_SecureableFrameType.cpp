@@ -93,9 +93,9 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf,
 
 
 
-
-    // fl = ...
-//    if((fl_ < 4) || (fl_ > maxSmallFrameSize)) { return(0); } // ERROR
+    // fl_ = ...
+    // if((fl_ < 4) || (fl_ > maxSmallFrameSize)) { return(0); } // ERROR
+    // fl = fl_;
     return(0); // ERROR TODO/FIXME
     }
 
