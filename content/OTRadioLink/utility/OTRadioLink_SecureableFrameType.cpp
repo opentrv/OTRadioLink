@@ -80,7 +80,7 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf,
     // things happen in a different order here.)
     //
     // Involves setting some fields as this progresses to enable others to be checked.
-    // Must be done in an order that avoids overflow from even egregious bad values,
+    // Must be done in a manner that avoids overflow with even egregious/malicious bad values,
     // and that is efficient since this will be on every TX code path.
     //
     //  1) NOT APPLICABLE FOR ENCODE: fl >= 4 (type, seq/il, bl, trailer bytes)
@@ -104,6 +104,7 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf,
     //  6) bl <= fl - 4 - il (body length; minimum of 4 bytes of other overhead)
     //  2) fl may be further constrained by system limits, typically to <= 64
     if(bl_ > maxSmallFrameSize - 1 - hlmfl) { return(0); } // ERROR
+    bl = bl_;
     //  8) NON_SECURE: tl == 1 for non-secure
     if(!secure_) { if(1 != tl_) { return(0); } } // ERROR
     // Trailer length must be at least 1 for non-secure frame.
@@ -120,7 +121,7 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf,
     // Should not get here if true // if((fl_ > maxSmallFrameSize)) { return(0); } // ERROR
 
     // Write encoded header to buf starting with fl.
-    buf[0] = fl;
+    buf[0] = fl_;
     buf[1] = fType;
     buf[2] = seqIl;
     memcpy(buf + 3, id, il_);
@@ -130,6 +131,31 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf,
 
     // Return encoded header length including frame-length byte.
     return(hlmfl + 1);
+    }
+
+// Decode header and check parameters/validity for inbound short secureable frame.
+// The buffer starts with the fl frame length byte.
+//
+// Parameters:
+//  * buf  buffer to decode header from, of at least length buflen; never NULL
+//  * buflen  available length in buf; if too small for encoded header routine will fail (return 0)
+//
+// Performs at least the 'Quick Integrity Checks' from the spec, eg SecureBasicFrame-V0.1-201601.txt
+//  1) fl >= 4 (type, seq/il, bl, trailer bytes)
+//  2) fl may be further constrained by system limits, typically to <= 64
+//  3) type (the first frame byte) is never 0x00, 0x80, 0x7f, 0xff.
+//  4) il <= 8 for initial implementations (internal node ID is 8 bytes)
+//  5) il <= fl - 4 (ID length; minimum of 4 bytes of other overhead)
+//  6) bl <= fl - 4 - il (body length; minimum of 4 bytes of other overhead)
+//  7) the final frame byte (the final trailer byte) is never 0x00 nor 0xff
+//  8) tl == 1 for non-secure, tl >= 1 for secure (tl = fl - 3 - il - bl)        // Note: fl = hl-1 + bl + tl = 3+il + bl + tl
+//
+// (If the header is invalid or the buffer too small, 0 is returned to indicate an error.)
+// The fl byte in the structure is set to the frame length, else 0 in case of any error.
+// Returns number of bytes of decoded header excluding nominally-leading fl length byte; 0 in case of error.
+uint8_t SecurableFrameHeader::checkAndDecodeSmaleFrameHeader(const uint8_t *buf, uint8_t buflen)
+    {
+    return(0); // FAIL FIXME
     }
 
 
