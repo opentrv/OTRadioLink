@@ -202,11 +202,8 @@ static void testFrameQIC()
   // Should fail with bad (too large) frame length for 'small' frame.
   buf[0] = 64;
   AssertIsEqual(0, sfh.checkAndDecodeSmallFrameHeader(buf, sizeof(buf)));
-  // Should fail with bad (too large) frame length for 'small' frame.
-  buf[0] = max(64U, OTV0P2BASE::randRNG8());
-  AssertIsEqual(0, sfh.checkAndDecodeSmallFrameHeader(buf, sizeof(buf)));
   // Should fail with bad (too large) frame header for the input buffer.
-  const uint8_t buf1[] = { 0x08, 0x4f, 0x02, 0x80, 0x81, 0x02, 0x00, 0x01, 0x23 };
+  const uint8_t buf1[] = { 0x08, 0x4f, 0x02, 0x80, 0x81 }; // , 0x02, 0x00, 0x01, 0x23 };
   AssertIsEqual(0, sfh.checkAndDecodeSmallFrameHeader(buf1, 5));
   // TODO
   // TODO
