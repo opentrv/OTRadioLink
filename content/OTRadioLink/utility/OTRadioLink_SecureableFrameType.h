@@ -103,7 +103,7 @@ namespace OTRadioLink
         // is by the member functions.
         bool isInvalid() { return(0 == fl); }
 
-        // Maximum (small) frame size is 64, excluding fl byte.
+        // Maximum (small) frame size is 63, excluding fl byte.
         static const uint8_t maxSmallFrameSize = 63;
         // Frame length excluding/after this byte; zero indicates an invalid frame.
         // Appears first on the wire to support radio hardware packet handling.
@@ -171,15 +171,16 @@ namespace OTRadioLink
         // Having validated the parameters they are copied into the structure
         // and then into the supplied buffer, returning the number of bytes written.
         //
-        // Performs at least the 'Quick Integrity Checks' from the spec, eg SecureBasicFrame-V0.1-201601.txt
+        // Performs as many as possible of the 'Quick Integrity Checks' from the spec, eg SecureBasicFrame-V0.1-201601.txt
         //  1) fl >= 4 (type, seq/il, bl, trailer bytes)
-        //  2) fl may be further constrained by system limits, typically to <= 64
+        //  2) fl may be further constrained by system limits, typically to <= 63
         //  3) type (the first frame byte) is never 0x00, 0x80, 0x7f, 0xff.
         //  4) il <= 8 for initial implementations (internal node ID is 8 bytes)
         //  5) il <= fl - 4 (ID length; minimum of 4 bytes of other overhead)
         //  6) bl <= fl - 4 - il (body length; minimum of 4 bytes of other overhead)
-        //  7) the final frame byte (the final trailer byte) is never 0x00 nor 0xff
-        //  8) tl == 1 for non-secure, tl >= 1 for secure (tl = fl - 3 - il - bl)        // Note: fl = hl-1 + bl + tl = 3+il + bl + tl
+        //  7) NOT DONE: the final frame byte (the final trailer byte) is never 0x00 nor 0xff
+        //  8) tl == 1 for non-secure, tl >= 1 for secure (tl = fl - 3 - il - bl)
+        // Note: fl = hl-1 + bl + tl = 3+il + bl + tl
         //
         // (If the parameters are invalid or the buffer too small, 0 is returned to indicate an error.)
         // The fl byte in the structure is set to the frame length, else 0 in case of any error.
@@ -203,15 +204,16 @@ namespace OTRadioLink
         //  * buf  buffer to decode header from, of at least length buflen; never NULL
         //  * buflen  available length in buf; if too small for encoded header routine will fail (return 0)
         //
-        // Performs at least the 'Quick Integrity Checks' from the spec, eg SecureBasicFrame-V0.1-201601.txt
+        // Performs as many as possible of the 'Quick Integrity Checks' from the spec, eg SecureBasicFrame-V0.1-201601.txt
         //  1) fl >= 4 (type, seq/il, bl, trailer bytes)
-        //  2) fl may be further constrained by system limits, typically to <= 64
+        //  2) fl may be further constrained by system limits, typically to <= 63
         //  3) type (the first frame byte) is never 0x00, 0x80, 0x7f, 0xff.
         //  4) il <= 8 for initial implementations (internal node ID is 8 bytes)
         //  5) il <= fl - 4 (ID length; minimum of 4 bytes of other overhead)
         //  6) bl <= fl - 4 - il (body length; minimum of 4 bytes of other overhead)
-        //  7) the final frame byte (the final trailer byte) is never 0x00 nor 0xff
-        //  8) tl == 1 for non-secure, tl >= 1 for secure (tl = fl - 3 - il - bl)        // Note: fl = hl-1 + bl + tl = 3+il + bl + tl
+        //  7) the final frame byte (the final trailer byte) is never 0x00 nor 0xff (if whole frame available)
+        //  8) tl == 1 for non-secure, tl >= 1 for secure (tl = fl - 3 - il - bl)
+        // Note: fl = hl-1 + bl + tl = 3+il + bl + tl
         //
         // (If the header is invalid or the buffer too small, 0 is returned to indicate an error.)
         // The fl byte in the structure is set to the frame length, else 0 in case of any error.
