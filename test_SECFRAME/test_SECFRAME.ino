@@ -203,7 +203,7 @@ static void testFrameQIC()
   buf[0] = 64;
   AssertIsEqual(0, sfh.checkAndDecodeSmallFrameHeader(buf, sizeof(buf)));
   // Should fail with bad (too large) frame length for 'small' frame.
-  buf[0] = max(64, OTV0P2BASE::randRNG8());
+  buf[0] = max(64U, OTV0P2BASE::randRNG8());
   AssertIsEqual(0, sfh.checkAndDecodeSmallFrameHeader(buf, sizeof(buf)));
   // Should fail with bad (too large) frame header for the input buffer.
   const uint8_t buf1[] = { 0x08, 0x4f, 0x02, 0x80, 0x81, 0x02, 0x00, 0x01, 0x23 };
@@ -296,7 +296,6 @@ static void testFrameHeaderDecoding()
   {
   Serial.println("FrameHeaderDecoding");
   OTRadioLink::SecurableFrameHeader sfh;
-//  uint8_t buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize + 1];
   //
   // Test vector 1 / example from the spec.
   //Example insecure frame, valve unit 0% open, no call for heat/flags/stats.
@@ -324,6 +323,34 @@ static void testFrameHeaderDecoding()
   AssertIsEqual(1, sfh.getTl());
   AssertIsEqual(6, sfh.getBodyOffset());
   AssertIsEqual(8, sfh.getTrailerOffset());
+  //
+  // Test vector 2 / example from the spec.
+  //Example insecure frame, no valve, representative minimum stats {"b":1}
+  //In this case the frame sequence number is zero, and ID is 0x80 0x81.
+  //
+  //0e 4f 02 80 81 08 | 7f 11 7b 22 62 22 3a 31 | 61
+  //
+  //0e length of header (14) after length byte 5 + body 8 + trailer 1
+  //4f 'O' insecure OpenTRV basic frame
+  //02 0 sequence number, ID length 2
+  //80 ID byte 1
+  //81 ID byte 2
+  //08 body length 8
+  //7f no valve, no call for heat
+  //11 stats present flag only, unreported occupancy
+  //7b 22 62 22 3a 31  {"b":1  Stats: note that implicit trailing '}' is not sent.
+  //61 CRC value
+  const uint8_t buf2[] = { 0x0e, 0x4f, 0x02, 0x80, 0x81, 0x08, 0x7f, 0x11, 0x7b, 0x22, 0x62, 0x22, 0x3a, 0x31, 0x61 };
+  AssertIsEqual(6, sfh.checkAndDecodeSmallFrameHeader(buf2, sizeof(buf2)));
+  // Check decoded parameters.
+  AssertIsEqual(14, sfh.fl);
+  AssertIsEqual(2, sfh.getIl());
+  AssertIsEqual(0x80, sfh.id[0]);
+  AssertIsEqual(0x81, sfh.id[1]);
+  AssertIsEqual(8, sfh.bl);
+  AssertIsEqual(1, sfh.getTl());
+  AssertIsEqual(6, sfh.getBodyOffset());
+  AssertIsEqual(14, sfh.getTrailerOffset());
   }
 
 
