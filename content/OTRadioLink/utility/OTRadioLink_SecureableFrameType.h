@@ -142,17 +142,19 @@ namespace OTRadioLink
 
         // Body length including any padding [0,251] but generally << 60.
         uint8_t bl;
-        // Compute the offset of the body from the start of the frame after nominal fl (ie where the fType offset is zero).
-        uint8_t getBodyOffset() const { return(3 + getIl()); }
+        // Compute the offset of the body from the start of the frame starting wth nominal fl byte.
+        uint8_t getBodyOffset() const { return(4 + getIl()); }
 
         // Compute tl (trailer length) [1,251]; must == 1 for insecure frame.
         // Other fields must be valid for this to return a valid answer.
         uint8_t getTl() const { return(fl - 3 - getIl() - bl); }
-        // Compute the offset of the trailer from the start of the frame after nominal fl (ie where the fType offset is zero).
-        uint8_t getTrailerOffset() const { return(3 + getIl() + bl); }
+        // Compute the offset of the trailer from the start of the frame starting with nominal fl byte.
+        uint8_t getTrailerOffset() const { return(4 + getIl() + bl); }
 
 
         // Check parameters for, and if valid then encode into the given buffer, the header for a small secureable frame.
+        // The buffer starts with the fl frame length byte.
+        //
         // Parameters:
         //  * buf  buffer to encode header to, of at least length buflen; never NULL
         //  * buflen  available length in buf; if too small for encoded header routine will fail (return 0)
@@ -195,6 +197,9 @@ namespace OTRadioLink
         uint8_t loadIDFromEEPROM();
 
         // Decode header and check parameters/validity for inbound short secureable frame.
+        // The buffer starts with the fl frame length byte.
+        //
+        // Parameters:
         //  * buf  buffer to decode header from, of at least length buflen; never NULL
         //  * buflen  available length in buf; if too small for encoded header routine will fail (return 0)
         //

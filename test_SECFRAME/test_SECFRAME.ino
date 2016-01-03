@@ -175,15 +175,15 @@ static void testFrameQIC()
                                                1, id,
                                                32,
                                                32));
-  // "I'm Alive!" message with 1-byte ID should succeed and be of known header length (4).
-  AssertIsEqual(4, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
+  // "I'm Alive!" message with 1-byte ID should succeed and be of full header length (5).
+  AssertIsEqual(5, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
                                                false, OTRadioLink::FTS_ALIVE,
                                                OTV0P2BASE::randRNG8(),
                                                1, id, // Minimal (non-empty) ID.
                                                0, // No payload.
                                                1));
   // Large but legal body size.
-  AssertIsEqual(4, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
+  AssertIsEqual(5, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
                                                false, OTRadioLink::FTS_ALIVE,
                                                OTV0P2BASE::randRNG8(),
                                                1, id, // Minimal (non-empty) ID.
@@ -216,21 +216,22 @@ static void testFrameHeaderEncoding()
   //23 CRC value
   id[0] = 80;
   id[1] = 81;
-  AssertIsEqual(5, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
+  AssertIsEqual(6, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
                                                false, OTRadioLink::FTS_BasicSensorOrValve,
                                                OTV0P2BASE::randRNG8(),
                                                2, id,
                                                2,
                                                1));
-  AssertIsEqual(8, sfh.fl);
-  AssertIsEqual(0x4f, buf[0]);
-  AssertIsEqual(0x02, buf[1]);
-  AssertIsEqual(0x80, buf[2]);
-  AssertIsEqual(0x81, buf[3]);
-  AssertIsEqual(0x02, buf[4]);
+  AssertIsEqual(0x08, buf[0]);
+  AssertIsEqual(0x4f, buf[1]);
+  AssertIsEqual(0x02, buf[2]);
+  AssertIsEqual(0x80, buf[3]);
+  AssertIsEqual(0x81, buf[4]);
+  AssertIsEqual(0x02, buf[5]);
   // Check related parameters.
-  AssertIsEqual(5, sfh.getBodyOffset());
-  AssertIsEqual(7, sfh.getTrailerOffset());
+  AssertIsEqual(8, sfh.fl);
+  AssertIsEqual(6, sfh.getBodyOffset());
+  AssertIsEqual(8, sfh.getTrailerOffset());
   //
   // Test vector 2 / example from the spec.
   //Example insecure frame, no valve, representative minimum stats {"b":1}
@@ -250,21 +251,22 @@ static void testFrameHeaderEncoding()
   //61 CRC value
   id[0] = 80;
   id[1] = 81;
-  AssertIsEqual(5, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
+  AssertIsEqual(8, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
                                                false, OTRadioLink::FTS_BasicSensorOrValve,
                                                OTV0P2BASE::randRNG8(),
                                                2, id,
                                                8,
                                                1));
-  AssertIsEqual(14, sfh.fl);
-  AssertIsEqual(0x4f, buf[0]);
-  AssertIsEqual(0x02, buf[1]);
-  AssertIsEqual(0x80, buf[2]);
-  AssertIsEqual(0x81, buf[3]);
-  AssertIsEqual(0x08, buf[4]);
+  AssertIsEqual(0x0f, buf[0]);
+  AssertIsEqual(0x4f, buf[1]);
+  AssertIsEqual(0x02, buf[2]);
+  AssertIsEqual(0x80, buf[3]);
+  AssertIsEqual(0x81, buf[4]);
+  AssertIsEqual(0x08, buf[5]);
   // Check related parameters.
-  AssertIsEqual(5, sfh.getBodyOffset());
-  AssertIsEqual(13, sfh.getTrailerOffset());
+  AssertIsEqual(14, sfh.fl);
+  AssertIsEqual(6, sfh.getBodyOffset());
+  AssertIsEqual(14, sfh.getTrailerOffset());
   }
 
 

@@ -33,14 +33,16 @@ namespace OTRadioLink
 
 
 // Check parameters for, and if valid then encode into the given buffer, the header for a small secureable frame.
+// The buffer starts with the fl frame length byte.
+//
 // Parameters:
 //  * buf  buffer to encode header to, of at least length buflen; never NULL
 //  * buflen  available length in buf; if too small for encoded header routine will fail (return 0)
 //  * secure_ true if this is to be a secure frame
 //  * fType_  frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
 //  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
+//  * il_  ID length in bytes at most 8 (could be 15 for non-small frames)
 //  * id_  source of ID bytes, at least il_ long; NULL means pre-filled but must not start with 0xff.
-//  * id_  source of ID bytes, at least il_ long, non-NULL
 //  * bl_  body length in bytes [0,251] at most
 //  * tl_  trailer length [1,251[ at most, always == 1 for non-secure frame
 //
@@ -57,8 +59,7 @@ namespace OTRadioLink
 //  5) il <= fl - 4 (ID length; minimum of 4 bytes of other overhead)
 //  6) bl <= fl - 4 - il (body length; minimum of 4 bytes of other overhead)
 //  7) the final frame byte (the final trailer byte) is never 0x00 nor 0xff
-//  8) tl == 1 for non-secure, tl >= 1 for secure (tl = fl - 3 - il - bl)
-// Note: fl = hl-1 + bl + tl = 3+il + bl + tl
+//  8) tl == 1 for non-secure, tl >= 1 for secure (tl = fl - 3 - il - bl)        // Note: fl = hl-1 + bl + tl = 3+il + bl + tl
 //
 // (If the parameters are invalid or the buffer too small, 0 is returned to indicate an error.)
 // The fl byte in the structure is set to the frame length, else 0 in case of any error.
@@ -119,15 +120,16 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf,
     // Should not get here if true // if((fl_ > maxSmallFrameSize)) { return(0); } // ERROR
 
     // Write encoded header to buf.
-    buf[0] = fType;
-    buf[1] = seqIl;
-    memcpy(buf + 2, id, il_);
-    buf[2 + il_] = bl_;
+    buf[0] = fl;
+    buf[1] = fType;
+    buf[2] = seqIl;
+    memcpy(buf + 3, id, il_);
+    buf[3 + il_] = bl_;
 
     fl = fl_; // Set fl field to valid value as last action / side-effect.
 
-    // Return header length (without logically-first frame-length byte).
-    return(hlmfl);
+    // Return encoded header length including frame-length byte).
+    return(hlmfl + 1);
     }
 
 
