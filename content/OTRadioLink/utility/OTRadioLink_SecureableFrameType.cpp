@@ -119,7 +119,7 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf,
     const uint8_t fl_ = hlmfl + bl_ + tl_;
     // Should not get here if true // if((fl_ > maxSmallFrameSize)) { return(0); } // ERROR
 
-    // Write encoded header to buf.
+    // Write encoded header to buf starting with fl.
     buf[0] = fl;
     buf[1] = fType;
     buf[2] = seqIl;
@@ -128,7 +128,7 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf,
 
     fl = fl_; // Set fl field to valid value as last action / side-effect.
 
-    // Return encoded header length including frame-length byte).
+    // Return encoded header length including frame-length byte.
     return(hlmfl + 1);
     }
 
