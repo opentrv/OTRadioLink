@@ -119,7 +119,7 @@ static void testFrameQIC()
   uint8_t buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize];
   // Uninitialised SecurableFrameHeader should be 'invalid'.
   AssertIsTrue(sfh.isInvalid());
-  // Test various bad input combos.
+  // Test various bad input combos that should be caught by QIC.
   // Can futz (some of the) inputs that should not matter...
   // Should fail with bad ID length.
   AssertIsEqual(0, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
@@ -275,7 +275,7 @@ static void testFrameHeaderDecoding()
   Serial.println("FrameHeaderDecoding");
   OTRadioLink::SecurableFrameHeader sfh;
   uint8_t buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize];
-  // Test various bad input combos.
+  // Test various bad input combos that should be caught by QIC.
   // Can futz (some of the) inputs that should not matter...
   // Should fail with bad (too small) buffer.
   buf[0] = OTV0P2BASE::randRNG8();
