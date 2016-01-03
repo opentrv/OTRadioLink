@@ -208,7 +208,7 @@ namespace OTRadioLink
         //  7) the final frame byte (the final trailer byte) is never 0x00 nor 0xff
         //  8) tl == 1 for non-secure, tl >= 1 for secure (tl = fl - 3 - il - bl)        // Note: fl = hl-1 + bl + tl = 3+il + bl + tl
         //
-        // (If the parameters are invalid or the buffer too small, 0 is returned to indicate an error.)
+        // (If the header is invalid or the buffer too small, 0 is returned to indicate an error.)
         // The fl byte in the structure is set to the frame length, else 0 in case of any error.
         // Returns number of bytes of decoded header excluding nominally-leading fl length byte; 0 in case of error.
         uint8_t checkAndDecodeSmaleFrameHeader(const uint8_t *buf, uint8_t buflen);
