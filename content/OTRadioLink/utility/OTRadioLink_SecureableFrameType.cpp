@@ -159,7 +159,7 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf,
 // (If the header is invalid or the buffer too small, 0 is returned to indicate an error.)
 // The fl byte in the structure is set to the frame length, else 0 in case of any error.
 // Returns number of bytes of decoded header excluding nominally-leading fl length byte; 0 in case of error.
-uint8_t SecurableFrameHeader::checkAndDecodeSmallFrameHeader(const uint8_t *buf, uint8_t buflen)
+uint8_t SecurableFrameHeader::checkAndDecodeSmallFrameHeader(const uint8_t *const buf, uint8_t buflen)
     {
     // Make frame 'invalid' until everything is finished and checks out.
     fl = 0;
@@ -215,6 +215,27 @@ uint8_t SecurableFrameHeader::checkAndDecodeSmallFrameHeader(const uint8_t *buf,
     // Return decoded header length including frame-length byte; body should immediately follow.
     return(hlifl); // SUCCESS!
     }
+
+// Compute and return CRC for non-secure frames; 0 indicates an error.
+// This is the value that should be at getTrailerOffset().
+// Can be called after checkAndEncodeSmallFrameHeader() or checkAndDecodeSmallFrameHeader()
+// to compute the correct 7-bit CRC value (which can never be 0x00 or 0xff);
+// the equality check (on decode) or write (on encode) will then need to be done.
+uint8_t computeNonSecureCRC(const uint8_t *const buf, uint8_t buflen)
+    {
+    // Check that struct has been computed and buffer is at least large enough.
+    if(isInvalid()) { return(0); } // ERROR
+    if(buflen <= fl) { return(0); } // ERROR
+    // Initialise CRC with 0x7f;
+    uint8_t crc = 0x7f;
+    const uint8_t *p = buf;
+    // Include in calc all bytes up to but not including the trailer/CRC byte.
+    for(uint8_t i = fl; i > 0; --i) { crc = crc7_5B_update(uint8_t crc, *p++); }
+    // Ensure 0x00 result is converted to avoid forbidden value.
+    if(0 == crc) { crc = 0x80; }
+    return(crc);
+    }
+
 
 
     }

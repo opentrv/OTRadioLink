@@ -205,6 +205,12 @@ static void testFrameQIC()
   // Should fail with bad (too large) frame header for the input buffer.
   const uint8_t buf1[] = { 0x08, 0x4f, 0x02, 0x80, 0x81 }; // , 0x02, 0x00, 0x01, 0x23 };
   AssertIsEqual(0, sfh.checkAndDecodeSmallFrameHeader(buf1, 5));
+  // Should fail with bad trailer byte (illegal 0x00 value).
+  const uint8_t buf2[] = { 0x08, 0x4f, 0x02, 0x80, 0x81, 0x02, 0x00, 0x01, 0x00 };
+  AssertIsEqual(0, sfh.checkAndDecodeSmallFrameHeader(buf2, sizeof(buf2)));
+  // Should fail with bad trailer byte (illegal 0xff value).
+  const uint8_t buf3[] = { 0x08, 0x4f, 0x02, 0x80, 0x81, 0x02, 0x00, 0x01, 0xff };
+  AssertIsEqual(0, sfh.checkAndDecodeSmallFrameHeader(buf3, sizeof(buf3)));
   // TODO
   // TODO
   // TODO
