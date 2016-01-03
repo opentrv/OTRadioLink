@@ -185,12 +185,12 @@ uint8_t SecurableFrameHeader::checkAndDecodeSmallFrameHeader(const uint8_t *buf,
     if(il_ > maxIDLength) { return(0); } // ERROR
 //  5) il <= fl - 4 (ID length; minimum of 4 bytes of other overhead)
     if(il_ > fl_ - 4) { return(0); } // ERROR
-    // Capture ID bytes.
-    memcpy(id, buf+3, il_);
     // Header length including frame length byte.
     const uint8_t hlifl = 4 + il_;
     // If buffer doesn't contain enough data for the full header then return an error.
     if(hlifl > buflen) { return(0); } // ERROR
+    // Capture the ID bytes.
+    memcpy(id, buf+3, il_);
 //  6) bl <= fl - 4 - il (body length; minimum of 4 bytes of other overhead)
     const uint8_t bl_ = buf[hlifl - 1];
     if(bl_ > fl_ - hlifl) { return(0); } // ERROR
