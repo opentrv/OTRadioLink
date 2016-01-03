@@ -268,9 +268,8 @@ static void testFrameHeaderEncoding()
   }
 
 
-// TODO: test actual encoded form of some of above headers...
 // TODO: test with EEPROM ID source (id_ == NULL) ...
-// TODO: add EEPROM prefill static call and pad 1st trailing byte with 0xff.
+// TODO: add EEPROM prefill static routine and pad 1st trailing byte with 0xff.
 
 
 // To be called from loop() instead of main code when running unit tests.
