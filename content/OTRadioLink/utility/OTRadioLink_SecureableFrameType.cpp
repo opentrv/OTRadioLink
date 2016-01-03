@@ -179,11 +179,11 @@ uint8_t SecurableFrameHeader::checkAndDecodeSmallFrameHeader(const uint8_t *buf,
     const bool secure_ = isSecure();
     const FrameType_Secureable fType_ = (FrameType_Secureable)(fType & 0x7f);
     if((FTS_NONE == fType_) || (fType_ >= FTS_INVALID_HIGH)) { return(0); } // ERROR
-//  4) il <= 8 for initial implementations (internal node ID is 8 bytes)
+    //  4) il <= 8 for initial implementations (internal node ID is 8 bytes)
     seqIl = buf[2];
     const uint8_t il_ = getIl();
     if(il_ > maxIDLength) { return(0); } // ERROR
-//  5) il <= fl - 4 (ID length; minimum of 4 bytes of other overhead)
+    //  5) il <= fl - 4 (ID length; minimum of 4 bytes of other overhead)
     if(il_ > fl_ - 4) { return(0); } // ERROR
     // Header length including frame length byte.
     const uint8_t hlifl = 4 + il_;
@@ -191,17 +191,17 @@ uint8_t SecurableFrameHeader::checkAndDecodeSmallFrameHeader(const uint8_t *buf,
     if(hlifl > buflen) { return(0); } // ERROR
     // Capture the ID bytes.
     memcpy(id, buf+3, il_);
-//  6) bl <= fl - 4 - il (body length; minimum of 4 bytes of other overhead)
+    //  6) bl <= fl - 4 - il (body length; minimum of 4 bytes of other overhead)
     const uint8_t bl_ = buf[hlifl - 1];
     if(bl_ > fl_ - hlifl) { return(0); } // ERROR
     bl = bl_;
-//  7) ONLY CHECKED IF FULL FRAME AVAILABLE: the final frame byte (the final trailer byte) is never 0x00 nor 0xff
+    //  7) ONLY CHECKED IF FULL FRAME AVAILABLE: the final frame byte (the final trailer byte) is never 0x00 nor 0xff
     if(buflen > fl_)
         {
         const uint8_t lastByte = buf[fl_];
         if((0x00 == lastByte) || (0xff == lastByte)) { return(0); } // ERROR
         }
-//  8) tl == 1 for non-secure, tl >= 1 for secure (tl = fl - 3 - il - bl)
+    //  8) tl == 1 for non-secure, tl >= 1 for secure (tl = fl - 3 - il - bl)
     const uint8_t tl_ = getTl();
     if(secure_) { if(1 != tl_) { return(0); } } // ERROR
     else
