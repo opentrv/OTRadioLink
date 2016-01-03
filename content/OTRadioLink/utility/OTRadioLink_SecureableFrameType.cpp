@@ -28,6 +28,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 
 #include "OTRadioLink_SecureableFrameType.h"
 
+#include "OTRadioLink_CRC.h"
+
 namespace OTRadioLink
     {
 
@@ -221,7 +223,7 @@ uint8_t SecurableFrameHeader::checkAndDecodeSmallFrameHeader(const uint8_t *cons
 // Can be called after checkAndEncodeSmallFrameHeader() or checkAndDecodeSmallFrameHeader()
 // to compute the correct 7-bit CRC value (which can never be 0x00 or 0xff);
 // the equality check (on decode) or write (on encode) will then need to be done.
-uint8_t computeNonSecureCRC(const uint8_t *const buf, uint8_t buflen)
+uint8_t SecurableFrameHeader::computeNonSecureFrameCRC(const uint8_t *const buf, uint8_t buflen) const
     {
     // Check that struct has been computed and buffer is at least large enough.
     if(isInvalid()) { return(0); } // ERROR
@@ -230,7 +232,7 @@ uint8_t computeNonSecureCRC(const uint8_t *const buf, uint8_t buflen)
     uint8_t crc = 0x7f;
     const uint8_t *p = buf;
     // Include in calc all bytes up to but not including the trailer/CRC byte.
-    for(uint8_t i = fl; i > 0; --i) { crc = crc7_5B_update(uint8_t crc, *p++); }
+    for(uint8_t i = fl; i > 0; --i) { crc = crc7_5B_update(crc, *p++); }
     // Ensure 0x00 result is converted to avoid forbidden value.
     if(0 == crc) { crc = 0x80; }
     return(crc);

@@ -101,7 +101,7 @@ namespace OTRadioLink
         // Returns true if the frame header in this struct instance is invalid.
         // This is only reliable if all manipulation of struct content
         // is by the member functions.
-        bool isInvalid() { return(0 == fl); }
+        bool isInvalid() const { return(0 == fl); }
 
         // Maximum (small) frame size is 63, excluding fl byte.
         static const uint8_t maxSmallFrameSize = 63;
@@ -219,7 +219,6 @@ namespace OTRadioLink
         // The fl byte in the structure is set to the frame length, else 0 in case of any error.
         // Returns number of bytes of decoded header excluding nominally-leading fl length byte; 0 in case of error.
         uint8_t checkAndDecodeSmallFrameHeader(const uint8_t *buf, uint8_t buflen);
-        };
 
         // Compute and return CRC for non-secure frames; 0 indicates an error.
         // This is the value that should be at getTrailerOffset().
@@ -230,7 +229,9 @@ namespace OTRadioLink
         // Parameters:
         //  * buf  buffer containing the entire frame except trailer/CRC; never NULL
         //  * buflen  available length in buf; if too small then this routine will fail (return 0)
-        uint8_t computeNonSecureCRC(const uint8_t *buf, uint8_t buflen);
+        uint8_t computeNonSecureFrameCRC(const uint8_t *buf, uint8_t buflen) const;
+        };
+
 
     }
 
