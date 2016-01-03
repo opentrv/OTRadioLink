@@ -117,7 +117,7 @@ static void testFrameQIC()
   OTRadioLink::SecurableFrameHeader sfh;
   uint8_t id[OTRadioLink::SecurableFrameHeader::maxIDLength];
   uint8_t buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize];
-  // Unitilialised SecurableFrameHeader should be 'invalid'.
+  // Uninitialised SecurableFrameHeader should be 'invalid'.
   AssertIsTrue(sfh.isInvalid());
   // Test various bad input combos.
   // Can futz (some of the) inputs that should not matter...
@@ -191,11 +191,78 @@ static void testFrameQIC()
                                                1));
   }
 
+// Test encoding of header for TX.
+static void testFrameHeaderEncoding()
+  {
+  Serial.println("FrameHeaderEncoding");
+  OTRadioLink::SecurableFrameHeader sfh;
+  uint8_t id[OTRadioLink::SecurableFrameHeader::maxIDLength];
+  uint8_t buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize];
+  // Test vector / example from the spec.
+  //Example insecure frame, valve unit 0% open, no call for heat/flags/stats.
+  //In this case the frame sequence number is zero, and ID is 0x80 0x81.
+  //
+  //08 4f 02 80 81 02 | 00 01 | 23
+  //
+  //08 length of header (8) after length byte 5 + body 2 + trailer 1
+  //4f 'O' insecure OpenTRV basic frame
+  //02 0 sequence number, ID length 2
+  //80 ID byte 1
+  //81 ID byte 2
+  //02 body length 2
+  //00 valve 0%, no call for heat
+  //01 no flags or stats, unreported occupancy
+  //23 CRC value
+  id[0] = 80;
+  id[1] = 81;
+  AssertIsEqual(5, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
+                                               false, OTRadioLink::FTS_BasicSensorOrValve,
+                                               OTV0P2BASE::randRNG8(),
+                                               2, id,
+                                               2,
+                                               1));
+  AssertIsEqual(8, sfh.fl);
+  AssertIsEqual(0x4f, buf[0]);
+  AssertIsEqual(0x02, buf[1]);
+  AssertIsEqual(0x80, buf[2]);
+  AssertIsEqual(0x81, buf[3]);
+  AssertIsEqual(0x02, buf[4]);
+  // Test vector / example from the spec.
+  //Example insecure frame, no valve, representative minimum stats {"b":1}
+  //In this case the frame sequence number is zero, and ID is 0x80 0x81.
+  //
+  //0e 4f 02 80 81 08 | 7f 11 7b 22 62 22 3a 31 | 61
+  //
+  //0e length of header (14) after length byte 5 + body 8 + trailer 1
+  //4f 'O' insecure OpenTRV basic frame
+  //02 0 sequence number, ID length 2
+  //80 ID byte 1
+  //81 ID byte 2
+  //08 body length 8
+  //7f no valve, no call for heat
+  //11 stats present flag only, unreported occupancy
+  //7b 22 62 22 3a 31  {"b":1  Stats: note that implicit trailing '}' is not sent.
+  //61 CRC value
+  id[0] = 80;
+  id[1] = 81;
+  AssertIsEqual(5, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
+                                               false, OTRadioLink::FTS_BasicSensorOrValve,
+                                               OTV0P2BASE::randRNG8(),
+                                               2, id,
+                                               8,
+                                               1));
+  AssertIsEqual(14, sfh.fl);
+  AssertIsEqual(0x4f, buf[0]);
+  AssertIsEqual(0x02, buf[1]);
+  AssertIsEqual(0x80, buf[2]);
+  AssertIsEqual(0x81, buf[3]);
+  AssertIsEqual(0x08, buf[4]);
+  }
+
 
 // TODO: test actual encoded form of some of above headers...
 // TODO: test with EEPROM ID source (id_ == NULL) ...
 // TODO: add EEPROM prefill static call and pad 1st trailing byte with 0xff.
-
 
 
 // To be called from loop() instead of main code when running unit tests.
