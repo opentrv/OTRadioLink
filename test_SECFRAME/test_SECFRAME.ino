@@ -198,7 +198,8 @@ static void testFrameHeaderEncoding()
   OTRadioLink::SecurableFrameHeader sfh;
   uint8_t id[OTRadioLink::SecurableFrameHeader::maxIDLength];
   uint8_t buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize];
-  // Test vector / example from the spec.
+  //
+  // Test vector 1 / example from the spec.
   //Example insecure frame, valve unit 0% open, no call for heat/flags/stats.
   //In this case the frame sequence number is zero, and ID is 0x80 0x81.
   //
@@ -227,7 +228,11 @@ static void testFrameHeaderEncoding()
   AssertIsEqual(0x80, buf[2]);
   AssertIsEqual(0x81, buf[3]);
   AssertIsEqual(0x02, buf[4]);
-  // Test vector / example from the spec.
+  // Check related parameters.
+  AssertIsEqual(5, sfh.getBodyOffset());
+  AssertIsEqual(7, sfh.getTrailerOffset());
+  //
+  // Test vector 2 / example from the spec.
   //Example insecure frame, no valve, representative minimum stats {"b":1}
   //In this case the frame sequence number is zero, and ID is 0x80 0x81.
   //
@@ -257,6 +262,9 @@ static void testFrameHeaderEncoding()
   AssertIsEqual(0x80, buf[2]);
   AssertIsEqual(0x81, buf[3]);
   AssertIsEqual(0x08, buf[4]);
+  // Check related parameters.
+  AssertIsEqual(5, sfh.getBodyOffset());
+  AssertIsEqual(13, sfh.getTrailerOffset());
   }
 
 
