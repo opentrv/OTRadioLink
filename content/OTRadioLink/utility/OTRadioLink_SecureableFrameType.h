@@ -190,6 +190,7 @@ namespace OTRadioLink
                                                uint8_t tl_);
 
         // Loads the node ID from the EEPROM or other non-volatile ID store.
+        // Can be called after before a call to checkAndEncodeSmallFrameHeader() with id_ == NULL.
         // Pads at end with 0xff if the EEPROM ID is shorter than the maximum 'short frame' ID.
         uint8_t loadIDFromEEPROM();
         };
