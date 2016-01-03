@@ -116,9 +116,10 @@ static void testFrameQIC()
   Serial.println("FramQIC");
   OTRadioLink::SecurableFrameHeader sfh;
   uint8_t id[OTRadioLink::SecurableFrameHeader::maxIDLength];
-  uint8_t buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize];
+  uint8_t buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize + 1];
   // Uninitialised SecurableFrameHeader should be 'invalid'.
   AssertIsTrue(sfh.isInvalid());
+  // ENCODE
   // Test various bad input combos that should be caught by QIC.
   // Can futz (some of the) inputs that should not matter...
   // Should fail with bad ID length.
@@ -189,6 +190,25 @@ static void testFrameQIC()
                                                1, id, // Minimal (non-empty) ID.
                                                32,
                                                1));
+  // DECODE
+  // Test various bad input combos that should be caught by QIC.
+  // Can futz (some of the) inputs that should not matter...
+  // Should fail with bad (too small) buffer.
+  buf[0] = OTV0P2BASE::randRNG8();
+  AssertIsEqual(0, sfh.checkAndDecodeSmallFrameHeader(buf, 0));
+  // Should fail with bad (too small) frame length.
+  buf[0] = 3 & OTV0P2BASE::randRNG8();
+  AssertIsEqual(0, sfh.checkAndDecodeSmallFrameHeader(buf, sizeof(buf)));
+  // Should fail with bad (too large) frame length for 'small' frame.
+  buf[0] = 64;
+  AssertIsEqual(0, sfh.checkAndDecodeSmallFrameHeader(buf, sizeof(buf)));
+  // Should fail with bad (too large) frame length for 'small' frame.
+  buf[0] = max(64, OTV0P2BASE::randRNG8());
+  AssertIsEqual(0, sfh.checkAndDecodeSmallFrameHeader(buf, sizeof(buf)));
+  // Should fail with bad (too large) frame length for input buffer.
+  buf[0] = max(32, OTV0P2BASE::randRNG8());
+  AssertIsEqual(0, sfh.checkAndDecodeSmallFrameHeader(buf, min(16, sizeof(buf))));
+  // TODO
   }
 
 // Test encoding of header for TX.
@@ -269,21 +289,39 @@ static void testFrameHeaderEncoding()
   AssertIsEqual(14, sfh.getTrailerOffset());
   }
 
-// Test encoding of header for TX.
+// Test decoding of header for RX.
 static void testFrameHeaderDecoding()
   {
   Serial.println("FrameHeaderDecoding");
   OTRadioLink::SecurableFrameHeader sfh;
-  uint8_t buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize];
-  // Test various bad input combos that should be caught by QIC.
-  // Can futz (some of the) inputs that should not matter...
-  // Should fail with bad (too small) buffer.
-  buf[0] = OTV0P2BASE::randRNG8();
-  AssertIsEqual(0, sfh.checkAndDecodeSmallFrameHeader(buf, 0));
-  // Should fail with bad (too small) frame length.
-  buf[0] = 3 & OTV0P2BASE::randRNG8();
-  AssertIsEqual(0, sfh.checkAndDecodeSmallFrameHeader(buf, sizeof(buf)));
-  // TODO
+//  uint8_t buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize + 1];
+  //
+  // Test vector 1 / example from the spec.
+  //Example insecure frame, valve unit 0% open, no call for heat/flags/stats.
+  //In this case the frame sequence number is zero, and ID is 0x80 0x81.
+  //
+  //08 4f 02 80 81 02 | 00 01 | 23
+  //
+  //08 length of header (8) after length byte 5 + body 2 + trailer 1
+  //4f 'O' insecure OpenTRV basic frame
+  //02 0 sequence number, ID length 2
+  //80 ID byte 1
+  //81 ID byte 2
+  //02 body length 2
+  //00 valve 0%, no call for heat
+  //01 no flags or stats, unreported occupancy
+  //23 CRC value
+  const uint8_t buf1[] = { 0x08, 0x4f, 0x02, 0x80, 0x81, 0x02, 0x00, 0x01, 0x23 };
+  AssertIsEqual(6, sfh.checkAndDecodeSmallFrameHeader(buf1, sizeof(buf1)));
+  // Check decoded parameters.
+  AssertIsEqual(8, sfh.fl);
+  AssertIsEqual(2, sfh.getIl());
+  AssertIsEqual(0x80, sfh.id[0]);
+  AssertIsEqual(0x81, sfh.id[1]);
+  AssertIsEqual(2, sfh.bl);
+  AssertIsEqual(1, sfh.getTl());
+  AssertIsEqual(6, sfh.getBodyOffset());
+  AssertIsEqual(8, sfh.getTrailerOffset());
   }
 
 
