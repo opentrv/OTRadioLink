@@ -225,9 +225,10 @@ uint8_t SecurableFrameHeader::checkAndDecodeSmallFrameHeader(const uint8_t *cons
 // the equality check (on decode) or write (on encode) will then need to be done.
 uint8_t SecurableFrameHeader::computeNonSecureFrameCRC(const uint8_t *const buf, uint8_t buflen) const
     {
-    // Check that struct has been computed and buffer is at least large enough.
+    // Check that struct has been computed.
     if(isInvalid()) { return(0); } // ERROR
-    if(buflen <= fl) { return(0); } // ERROR
+    // Check that buffer is at least large enough for all but the CRC byte itself.
+    if(buflen < fl) { return(0); } // ERROR
     // Initialise CRC with 0x7f;
     uint8_t crc = 0x7f;
     const uint8_t *p = buf;

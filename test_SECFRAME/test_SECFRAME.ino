@@ -357,6 +357,53 @@ static void testFrameHeaderDecoding()
   }
 
 
+// Test CRC computation for insecure frames.
+static void testInsecureFrameCRC()
+  {
+  Serial.println("InsecureFrameCRC");
+  OTRadioLink::SecurableFrameHeader sfh;
+  //
+  // Test vector 1 / example from the spec.
+  //Example insecure frame, valve unit 0% open, no call for heat/flags/stats.
+  //In this case the frame sequence number is zero, and ID is 0x80 0x81.
+  //
+  //08 4f 02 80 81 02 | 00 01 | 23
+  //
+  //08 length of header (8) after length byte 5 + body 2 + trailer 1
+  //4f 'O' insecure OpenTRV basic frame
+  //02 0 sequence number, ID length 2
+  //80 ID byte 1
+  //81 ID byte 2
+  //02 body length 2
+  //00 valve 0%, no call for heat
+  //01 no flags or stats, unreported occupancy
+  //23 CRC value
+  const uint8_t buf1[] = { 0x08, 0x4f, 0x02, 0x80, 0x81, 0x02, 0x00, 0x01 }; //, 0x23 };
+  AssertIsEqual(6, sfh.checkAndDecodeSmallFrameHeader(buf1, sizeof(buf1)));
+  AssertIsEqual(0x23, sfh.computeNonSecureFrameCRC(buf1, sizeof(buf1)));
+  //
+  // Test vector 2 / example from the spec.
+  //Example insecure frame, no valve, representative minimum stats {"b":1}
+  //In this case the frame sequence number is zero, and ID is 0x80 0x81.
+  //
+  //0e 4f 02 80 81 08 | 7f 11 7b 22 62 22 3a 31 | 61
+  //
+  //0e length of header (14) after length byte 5 + body 8 + trailer 1
+  //4f 'O' insecure OpenTRV basic frame
+  //02 0 sequence number, ID length 2
+  //80 ID byte 1
+  //81 ID byte 2
+  //08 body length 8
+  //7f no valve, no call for heat
+  //11 stats present flag only, unreported occupancy
+  //7b 22 62 22 3a 31  {"b":1  Stats: note that implicit trailing '}' is not sent.
+  //61 CRC value
+  const uint8_t buf2[] = { 0x0e, 0x4f, 0x02, 0x80, 0x81, 0x08, 0x7f, 0x11, 0x7b, 0x22, 0x62, 0x22, 0x3a, 0x31 }; // , 0x61 };
+  AssertIsEqual(6, sfh.checkAndDecodeSmallFrameHeader(buf2, sizeof(buf2)));
+  AssertIsEqual(0x61, sfh.computeNonSecureFrameCRC(buf2, sizeof(buf2)));
+  }
+
+
 // TODO: test with EEPROM ID source (id_ == NULL) ...
 // TODO: add EEPROM prefill static routine and pad 1st trailing byte with 0xff.
 
@@ -385,6 +432,7 @@ void loop()
   testFrameQIC();
   testFrameHeaderEncoding();
   testFrameHeaderDecoding();
+  testInsecureFrameCRC();
 
 
 
