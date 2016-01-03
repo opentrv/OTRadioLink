@@ -188,6 +188,10 @@ namespace OTRadioLink
                                                uint8_t il_, const uint8_t *id_,
                                                uint8_t bl_,
                                                uint8_t tl_);
+
+        // Loads the node ID from the EEPROM or other non-volatile ID store.
+        // Pads at end with 0xff if the EEPROM ID is shorter than the maximum 'short frame' ID.
+        uint8_t loadIDFromEEPROM();
         };
 
 
