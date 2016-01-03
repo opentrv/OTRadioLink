@@ -190,8 +190,28 @@ namespace OTRadioLink
                                                uint8_t tl_);
 
         // Loads the node ID from the EEPROM or other non-volatile ID store.
+        // Can be called after before a call to checkAndEncodeSmallFrameHeader() with id_ == NULL.
         // Pads at end with 0xff if the EEPROM ID is shorter than the maximum 'short frame' ID.
         uint8_t loadIDFromEEPROM();
+
+        // Decode header and check parameters/validity for inbound short secureable frame.
+        //  * buf  buffer to decode header from, of at least length buflen; never NULL
+        //  * buflen  available length in buf; if too small for encoded header routine will fail (return 0)
+        //
+        // Performs at least the 'Quick Integrity Checks' from the spec, eg SecureBasicFrame-V0.1-201601.txt
+        //  1) fl >= 4 (type, seq/il, bl, trailer bytes)
+        //  2) fl may be further constrained by system limits, typically to <= 64
+        //  3) type (the first frame byte) is never 0x00, 0x80, 0x7f, 0xff.
+        //  4) il <= 8 for initial implementations (internal node ID is 8 bytes)
+        //  5) il <= fl - 4 (ID length; minimum of 4 bytes of other overhead)
+        //  6) bl <= fl - 4 - il (body length; minimum of 4 bytes of other overhead)
+        //  7) the final frame byte (the final trailer byte) is never 0x00 nor 0xff
+        //  8) tl == 1 for non-secure, tl >= 1 for secure (tl = fl - 3 - il - bl)        // Note: fl = hl-1 + bl + tl = 3+il + bl + tl
+        //
+        // (If the parameters are invalid or the buffer too small, 0 is returned to indicate an error.)
+        // The fl byte in the structure is set to the frame length, else 0 in case of any error.
+        // Returns number of bytes of decoded header excluding nominally-leading fl length byte; 0 in case of error.
+        uint8_t checkAndDecodeSmaleFrameHeader(const uint8_t *buf, uint8_t buflen);
         };
 
 
