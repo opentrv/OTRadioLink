@@ -214,11 +214,11 @@ static void testFrameHeaderEncoding()
   //00 valve 0%, no call for heat
   //01 no flags or stats, unreported occupancy
   //23 CRC value
-  id[0] = 80;
-  id[1] = 81;
+  id[0] = 0x80;
+  id[1] = 0x81;
   AssertIsEqual(6, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
                                                false, OTRadioLink::FTS_BasicSensorOrValve,
-                                               OTV0P2BASE::randRNG8(),
+                                               0,
                                                2, id,
                                                2,
                                                1));
@@ -249,15 +249,15 @@ static void testFrameHeaderEncoding()
   //11 stats present flag only, unreported occupancy
   //7b 22 62 22 3a 31  {"b":1  Stats: note that implicit trailing '}' is not sent.
   //61 CRC value
-  id[0] = 80;
-  id[1] = 81;
-  AssertIsEqual(8, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
+  id[0] = 0x80;
+  id[1] = 0x81;
+  AssertIsEqual(6, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
                                                false, OTRadioLink::FTS_BasicSensorOrValve,
-                                               OTV0P2BASE::randRNG8(),
+                                               0,
                                                2, id,
                                                8,
                                                1));
-  AssertIsEqual(0x0f, buf[0]);
+  AssertIsEqual(0x0e, buf[0]);
   AssertIsEqual(0x4f, buf[1]);
   AssertIsEqual(0x02, buf[2]);
   AssertIsEqual(0x80, buf[3]);
@@ -267,6 +267,23 @@ static void testFrameHeaderEncoding()
   AssertIsEqual(14, sfh.fl);
   AssertIsEqual(6, sfh.getBodyOffset());
   AssertIsEqual(14, sfh.getTrailerOffset());
+  }
+
+// Test encoding of header for TX.
+static void testFrameHeaderDecoding()
+  {
+  Serial.println("FrameHeaderDecoding");
+  OTRadioLink::SecurableFrameHeader sfh;
+  uint8_t buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize];
+  // Test various bad input combos.
+  // Can futz (some of the) inputs that should not matter...
+  // Should fail with bad (too small) buffer.
+  buf[0] = OTV0P2BASE::randRNG8();
+  AssertIsEqual(0, sfh.checkAndDecodeSmallFrameHeader(buf, 0));
+  // Should fail with bad (too small) frame length.
+  buf[0] = 3 & OTV0P2BASE::randRNG8();
+  AssertIsEqual(0, sfh.checkAndDecodeSmallFrameHeader(buf, sizeof(buf)));
+  // TODO
   }
 
 
@@ -296,6 +313,8 @@ void loop()
   testLibVersions();
 
   testFrameQIC();
+  testFrameHeaderEncoding();
+  testFrameHeaderDecoding();
 
 
 
