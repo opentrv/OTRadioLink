@@ -230,6 +230,16 @@ namespace OTRadioLink
         //  * buf  buffer containing the entire frame except trailer/CRC; never NULL
         //  * buflen  available length in buf; if too small then this routine will fail (return 0)
         uint8_t computeNonSecureFrameCRC(const uint8_t *buf, uint8_t buflen) const;
+
+        // Round up to next 16 multiple, eg for encryption that works in fixed-size blocks for input [0,240].
+        // Eg 0 -> 0, 1 -> 16, ... 16 -> 16, 17 -> 32 ...
+        // Undefined for values above 240.
+        uint8_t roundUp16(uint8_t s) { return((s + 15) & 0xf0); }
+
+//        // Padding method of plain-text prior to encryption with 16-byte block length.
+//        // Does padding in place.
+//        // Returns padded size in bytes, or zero in case of error.
+//        uint8_t addPaddingTo16BTrailing0sAndPadCount(const uint8_t *buf, uint8_t buflen, unit8_t datalen) const;
         };
 
 
