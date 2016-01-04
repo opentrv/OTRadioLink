@@ -88,6 +88,18 @@ namespace OTRadioLink
     // The frame type is part of the authenticated data.
     const static uint8_t SECUREABLE_FRAME_TYPE_SEC_FLAG = 0x80;
 
+    // For most small frames generally the maximum encrypted body size is 32.
+    // That represents ~50% of the potential payload of a small (~63) byte frame.
+    // Always padding to that size is simple and makes traffic analysis harder.
+    // More sophisticated padding schemes are allowed to pad to smaller than 32,
+    // eg to 16 bytes for 16-byte-block encryption mechanisms,
+    // to conserve bandwidth.
+    const static uint8_t ENC_BODY_SMALL_FIXED_CTEXT_SIZE = 32;
+
+    // For fixed-size default encrypted bodies the maximum plaintext size is one less.
+    const static uint8_t ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE =
+        ENC_BODY_SMALL_FIXED_CTEXT_SIZE - 1;
+
     // Logical header for the secureable frame format.
     // Intended to be efficient to hold and work with in memory
     // and to convert to and from wire format.
@@ -236,10 +248,13 @@ namespace OTRadioLink
         // Undefined for values above 240.
         uint8_t roundUp16(uint8_t s) { return((s + 15) & 0xf0); }
 
-//        // Padding method of plain-text prior to encryption with 16-byte block length.
-//        // Does padding in place.
-//        // Returns padded size in bytes, or zero in case of error.
-//        uint8_t addPaddingTo16BTrailing0sAndPadCount(const uint8_t *buf, uint8_t buflen, unit8_t datalen) const;
+        // Padding method of plain-text prior to encryption with 32-byte fixed length padded output.
+        // Does padding in place.
+        // Padded size is 32, maximum unpadded size is 31.
+        // All padding bytes after input text up to final byte are zero.
+        // Final byte gives number of bytes of padding added including the final byte.
+        // Returns padded size in bytes (32), or zero in case of error.
+        uint8_t addPaddingTo32BTrailing0sAndPadCount(const uint8_t *buf, uint8_t buflen, uint8_t datalen) const;
         };
 
 
