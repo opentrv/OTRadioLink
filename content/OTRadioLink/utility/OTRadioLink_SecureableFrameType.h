@@ -236,10 +236,10 @@ namespace OTRadioLink
         // Undefined for values above 240.
         uint8_t roundUp16(uint8_t s) { return((s + 15) & 0xf0); }
 
-//        // Padding method of plain-text prior to encryption with 16-byte block length.
-//        // Does padding in place.
-//        // Returns padded size in bytes, or zero in case of error.
-//        uint8_t addPaddingTo16BTrailing0sAndPadCount(const uint8_t *buf, uint8_t buflen, unit8_t datalen) const;
+        // Padding method of plain-text prior to encryption with 16-byte block length.
+        // Does padding in place.
+        // Returns padded size in bytes, or zero in case of error.
+        uint8_t addPaddingTo16BTrailing0sAndPadCount(const uint8_t *buf, uint8_t buflen, unit8_t datalen) const;
         };
 
 
