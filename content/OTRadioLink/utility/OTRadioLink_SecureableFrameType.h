@@ -252,7 +252,7 @@ namespace OTRadioLink
         // Does padding in place.
         // Padded size is (ENC_BODY_SMALL_FIXED_CTEXT_SIZE) 32, maximum unpadded size is 31.
         // All padding bytes after input text up to final byte are zero.
-        // Final byte gives number of bytes of padding added excluding the final byte itself [0,31].
+        // Final byte gives number of zero bytes of padding added from plain-text to final byte itself [0,31].
         // Returns padded size in bytes (32), or zero in case of error.
         uint8_t addPaddingTo32BTrailing0sAndPadCount(const uint8_t *buf, uint8_t datalen) const;
         };
