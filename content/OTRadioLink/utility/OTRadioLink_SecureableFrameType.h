@@ -250,7 +250,7 @@ namespace OTRadioLink
 
         // Padding method of plain-text prior to encryption with 32-byte fixed length padded output.
         // Does padding in place.
-        // Padded size is 32, maximum unpadded size is 31.
+        // Padded size is (ENC_BODY_SMALL_FIXED_CTEXT_SIZE) 32, maximum unpadded size is 31.
         // All padding bytes after input text up to final byte are zero.
         // Final byte gives number of bytes of padding added including the final byte.
         // Returns padded size in bytes (32), or zero in case of error.
