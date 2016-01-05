@@ -298,6 +298,9 @@ OTV0P2BASE::serialPrintlnAndFlush();
     case init:
       {
 //V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("  init");
+      // Make sure that the motor is unconditionally turned off.
+      hw->motorRun(0, OTRadValve::HardwareMotorDriverInterface::motorOff, *this);
+
       // Make start-up a little less eager/greedy.
       //
       // Randomly postpone wiggle and valve-full-open a little to spread out start-up activity.
@@ -315,7 +318,7 @@ OTV0P2BASE::serialPrintlnAndFlush();
 
       // Now start on fully withdrawing pin.
       changeState(valvePinWithdrawing);
-      // TODO: record time withdrawl starts (to allow time out).
+      // TODO: record time withdrawal starts (to allow time out).
       break;
       }
 
