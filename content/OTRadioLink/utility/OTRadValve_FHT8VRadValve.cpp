@@ -316,7 +316,8 @@ void FHT8VRadValveBase::sleepUntilSubCycleTimeOptionalRX(const uint8_t sleepUnti
 
 // Run the algorithm to get in sync with the receiver.
 // Uses halfSecondCount.
-// Iff this returns true then a(nother) call FHT8VPollSyncAndTX_Next() at or before each 0.5s from the cycle start should be made.
+// Iff this returns true then a(nother) call to FHT8VPollSyncAndTX_Next()
+// at or before each 0.5s from the cycle start should be made.
 bool FHT8VRadValveBase::doSync(const bool allowDoubleTX)
   {
   // Do not attempt sync at all (and thus do not attempt any other TX) if valve is disabled.
@@ -325,6 +326,21 @@ bool FHT8VRadValveBase::doSync(const bool allowDoubleTX)
 
   if(0 == syncStateFHT8V)
     {
+    // Make start-up a little less eager/greedy.
+    //
+    // Randomly postpone sync process a little in order to help avoid clashes
+    // eg if many mains-powered devices restart at once after a power cut.
+    // May also help interaction with CLI at start-up, and reduce peak power demands.
+    // Cannot postpone too long as may make user think that something is broken.
+    // Can only help a little since even one other sync can drown out this one,
+    // and it would be probably bad to *ever* wait a full sync (120s+) period.
+    // (If future we could listen for other sync activity, and back off if any heard.)
+    // So, KISS.
+    //
+    // Have approx 15/16 chance of postponing on each call (each 2s),
+    // thus typically start well within 32s.
+    if(0 != (0x1e & OTV0P2BASE::randRNG8())) { syncedWithFHT8V = false; return(false); } // Postpone.
+
     // Starting sync process.
     syncStateFHT8V = 241;
 #if 0 && defined(V0P2BASE_DEBUG)

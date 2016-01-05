@@ -298,9 +298,22 @@ OTV0P2BASE::serialPrintlnAndFlush();
     case init:
       {
 //V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("  init");
+      // Make start-up a little less eager/greedy.
+      //
+      // Randomly postpone wiggle and valve-full-open a little to spread out start-up activity.
+      // May also help interaction with CLI at start-up, and reduce peak power demands.
+      // Cannot postpone too long as may make user think that something is broken.
+      // So, KISS.
+      //
+      // Have approx 7/8 chance of postponing on each call (each 2s),
+      // thus typically start well within 16s.
+      if(0 != (0x70 & OTV0P2BASE::randRNG8())) { break; } // Postpone.
+
       // Tactile feedback and ensure that the motor is left stopped.
       // Should also allow calibration of the shaft-encoder outputs, ie [min.max].
       wiggle();
+
+      // Now start on fully withdrawing pin.
       changeState(valvePinWithdrawing);
       // TODO: record time withdrawl starts (to allow time out).
       break;
