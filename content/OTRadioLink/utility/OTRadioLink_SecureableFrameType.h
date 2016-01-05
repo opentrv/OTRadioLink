@@ -242,20 +242,25 @@ namespace OTRadioLink
         //  * buf  buffer containing the entire frame except trailer/CRC; never NULL
         //  * buflen  available length in buf; if too small then this routine will fail (return 0)
         uint8_t computeNonSecureFrameCRC(const uint8_t *buf, uint8_t buflen) const;
+        };
+
 
 //        // Round up to next 16 multiple, eg for encryption that works in fixed-size blocks for input [0,240].
 //        // Eg 0 -> 0, 1 -> 16, ... 16 -> 16, 17 -> 32 ...
 //        // Undefined for values above 240.
-//        uint8_t roundUp16(uint8_t s) { return((s + 15) & 0xf0); }
+//        uint8_t roundUpTo16s(uint8_t s) { return((s + 15) & 0xf0); }
 
-        // Padding method of plain-text prior to encryption with 32-byte fixed length padded output.
-        // Does padding in place.
+        // Pads plain-text prior to encryption with 32-byte fixed length padded output.
+        // Simple method that allows unpadding at receiver, does padding in place.
         // Padded size is (ENC_BODY_SMALL_FIXED_CTEXT_SIZE) 32, maximum unpadded size is 31.
         // All padding bytes after input text up to final byte are zero.
         // Final byte gives number of zero bytes of padding added from plain-text to final byte itself [0,31].
         // Returns padded size in bytes (32), or zero in case of error.
-        uint8_t addPaddingTo32BTrailing0sAndPadCount(const uint8_t *buf, uint8_t datalen) const;
-        };
+        //
+        // Parameters:
+        //  * buf  buffer containing the entire frame except trailer/CRC; must be >= 32 bytes, never NULL
+        //  * datalen  unpadded data size at start of buf; if too large (>31) then this routine will fail (return 0)
+        uint8_t addPaddingTo32BTrailing0sAndPadCount(const uint8_t *buf, uint8_t datalen);
 
 
     }
