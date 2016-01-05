@@ -384,7 +384,7 @@ OTV0P2BASE::serialPrintlnAndFlush();
     //   * maxRunTicks  maximum sub-cycle ticks to attempt to run/spin for); zero will run for shortest reasonable time
     //   * dir  direction to run motor (or off/stop)
     //   * callback  callback handler
-    // Note that for REV7/DORM1 with ~2.4V+ battery, H-bridge drive ~20mA+, motor ~200mA.
+    // DHD20160105: note that for REV7/DORM1 with ~2.4V+ battery, H-bridge drive itself ~20mA+, motor ~200mA.
     virtual void motorRun(const uint8_t maxRunTicks,
                           const OTRadValve::HardwareMotorDriverInterface::motor_drive dir,
                           OTRadValve::HardwareMotorDriverInterfaceCallbackHandler &callback)
