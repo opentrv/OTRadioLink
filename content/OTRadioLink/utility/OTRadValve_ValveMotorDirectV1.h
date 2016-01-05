@@ -156,6 +156,8 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
         // Measure of real time spent trying in current microstate.
         uint8_t wallclock2sTicks; // read() calls counted at ~2s intervals.
         } valveCalibrating;
+      // State used while valve pin is initially fully withdrawing.
+      struct { uint8_t wallclock2sTicks; } valvePinWithdrawing;
       // State used while waiting for the valve to be fitted.
       struct { volatile bool valveFitted; } valvePinWithdrawn;
       } perState;
@@ -276,8 +278,10 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
     // Waiting for indication that the valvehead  has been fitted to the tail.
     virtual bool isWaitingForValveToBeFitted() const { return(state == (uint8_t)valvePinWithdrawn); }
 
-    // Returns true iff not in error state and not (re)calibrating/(re)initialising/(re)syncing.
-    virtual bool isInNormalRunState() const { return(state >= (uint8_t)valveNormal); }
+    // Returns true iff in normal running state.
+    // True means not in error state and not (re)calibrating/(re)initialising/(re)syncing.
+    // May be false temporarily while declacinating.
+    virtual bool isInNormalRunState() const { return(state == (uint8_t)valveNormal); }
 
     // Returns true if in an error state.
     // May be recoverable by forcing recalibration.
