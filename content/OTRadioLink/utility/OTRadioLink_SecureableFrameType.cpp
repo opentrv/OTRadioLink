@@ -240,7 +240,7 @@ uint8_t SecurableFrameHeader::computeNonSecureFrameCRC(const uint8_t *const buf,
     }
 
 
-// Pads plain-text prior to encryption with 32-byte fixed length padded output.
+// Pads plain-text in place prior to encryption with 32-byte fixed length padded output.
 // Simple method that allows unpadding at receiver, does padding in place.
 // Padded size is (ENC_BODY_SMALL_FIXED_CTEXT_SIZE) 32, maximum unpadded size is 31.
 // All padding bytes after input text up to final byte are zero.
@@ -250,14 +250,15 @@ uint8_t SecurableFrameHeader::computeNonSecureFrameCRC(const uint8_t *const buf,
 // Parameters:
 //  * buf  buffer containing the entire frame except trailer/CRC; must be >= 32 bytes, never NULL
 //  * datalen  unpadded data size at start of buf; if too large (>31) then this routine will fail (return 0)
-uint8_t addPaddingTo32BTrailing0sAndPadCount(const uint8_t *const buf, const uint8_t datalen)
+uint8_t addPaddingTo32BTrailing0sAndPadCount(uint8_t *const buf, const uint8_t datalen)
     {
     if(NULL == buf) { return(0); } // ERROR
     if(datalen > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
-
-    return(0); // FAIL FIXME
+    const uint8_t paddingZeros = ENC_BODY_SMALL_FIXED_CTEXT_SIZE - 1 - datalen;
+    buf[ENC_BODY_SMALL_FIXED_CTEXT_SIZE - 1] = paddingZeros;
+    memset(buf + datalen, 0, paddingZeros);
+    return(ENC_BODY_SMALL_FIXED_CTEXT_SIZE); // DONE
     }
-
 
 
     }

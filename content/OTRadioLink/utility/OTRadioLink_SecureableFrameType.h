@@ -250,7 +250,7 @@ namespace OTRadioLink
 //        // Undefined for values above 240.
 //        uint8_t roundUpTo16s(uint8_t s) { return((s + 15) & 0xf0); }
 
-        // Pads plain-text prior to encryption with 32-byte fixed length padded output.
+        // Pads plain-text in place prior to encryption with 32-byte fixed length padded output.
         // Simple method that allows unpadding at receiver, does padding in place.
         // Padded size is (ENC_BODY_SMALL_FIXED_CTEXT_SIZE) 32, maximum unpadded size is 31.
         // All padding bytes after input text up to final byte are zero.
@@ -260,7 +260,7 @@ namespace OTRadioLink
         // Parameters:
         //  * buf  buffer containing the entire frame except trailer/CRC; must be >= 32 bytes, never NULL
         //  * datalen  unpadded data size at start of buf; if too large (>31) then this routine will fail (return 0)
-        uint8_t addPaddingTo32BTrailing0sAndPadCount(const uint8_t *buf, uint8_t datalen);
+        uint8_t addPaddingTo32BTrailing0sAndPadCount(uint8_t *buf, uint8_t datalen);
 
 
     }
