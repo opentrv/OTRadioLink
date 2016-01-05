@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2015
+Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 */
 
 /*
@@ -90,6 +90,7 @@ class AbstractRadValve : public OTV0P2BASE::SimpleTSUint8Actuator
     // Minimally wiggles the motor to give tactile feedback and/or show to be working.
     // May take a significant fraction of a second.
     // Finishes with the motor turned off.
+    // May also be used to (re)calibrate any shaft/position encoder and end-stop detection.
     // By default does nothing.
     virtual void wiggle() { }
   };
@@ -178,7 +179,7 @@ class EndStopHardwareMotorDriverInterfaceCallbackHandler : public HardwareMotorD
   };
 
 
-// Interface for low-level hardware motor driver.
+// Interface/base for low-level hardware motor driver.
 class HardwareMotorDriverInterface
   {
   public:
@@ -194,6 +195,9 @@ class HardwareMotorDriverInterface
   public:
     // Detect (poll) if end-stop is reached or motor current otherwise very high.
     virtual bool isCurrentHigh(HardwareMotorDriverInterface::motor_drive mdir = motorDriveOpening) const = 0;
+
+    // Poll simple shaft encoder output; true if on mark, false if not or if unused for this driver.
+    virtual bool isOnShaftEncoderMark() const { return(false); }
 
     // Call to actually run/stop motor.
     // May take as much as (say) 200ms eg to change direction.

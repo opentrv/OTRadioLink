@@ -99,7 +99,7 @@ namespace OTRadioLink
     // to save queue space and CPU, and cope better with a busy channel.
     void OTRadioLink::setFilterRXISR(quickFrameFilter_t *const filterRX)
         {
-        // Lock out interrupts while fiddling with interrupts and starting the TX.
+        // Lock out interrupts to ensure no partial pointer is seen.
         ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
             { filterRXISR = filterRX; }
         }

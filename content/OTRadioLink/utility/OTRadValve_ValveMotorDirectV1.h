@@ -296,7 +296,9 @@ class ValveMotorDirectV1HardwareDriverBase : public OTRadValve::HardwareMotorDri
     // Maximum current reading allowed when closing the valve (against the spring).
     static const uint16_t maxCurrentReadingClosing = 600;
     // Maximum current reading allowed when opening the valve (retracting the pin, no resisting force).
-    static const uint16_t maxCurrentReadingOpening = 500; // DHD20151023: 400 seemed marginal.
+    // Keep this as low as possible to reduce the chance of skipping the end-stop and game over...
+    // DHD20151229: at 500 Shenzhen sample unit without outer case (so with more flex) was able to drive past end-stop.
+    static const uint16_t maxCurrentReadingOpening = 450; // DHD20151023: 400 seemed marginal.
 
   protected:
     // Spin for up to the specified number of SCT ticks, monitoring current and position encoding.
@@ -319,7 +321,7 @@ class ValveMotorDirectV1HardwareDriverBase : public OTRadValve::HardwareMotorDri
 // Implementation for V1 (REV7/DORM1) motor.
 // Usually not instantiated except within ValveMotorDirectV1.
 // Creating multiple instances (trying to drive same motor) almost certainly a BAD IDEA.
-template <uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin>
+template <uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin, uint8_t MOTOR_DRIVE_MC_AIN_DigitalPin>
 class ValveMotorDirectV1HardwareDriver : public ValveMotorDirectV1HardwareDriverBase
   {
     // Last recorded direction.
@@ -336,6 +338,12 @@ class ValveMotorDirectV1HardwareDriver : public ValveMotorDirectV1HardwareDriver
       // Check for high motor current indicating hitting an end-stop.
       // Measure motor current against (fixed) internal reference.
       const uint16_t mi = OTV0P2BASE::analogueNoiseReducedRead(MOTOR_DRIVE_MI_AIN_DigitalPin, INTERNAL);
+//      const uint16_t mi = OTV0P2BASE::analogueNoiseReducedRead(MOTOR_DRIVE_MI_AIN_DigitalPin, DEFAULT);
+//#if 1 // 0 && defined(V0P2BASE_DEBUG)
+//OTV0P2BASE::serialPrintAndFlush(F("    MI: "));
+//OTV0P2BASE::serialPrintAndFlush(mi, DEC);
+//OTV0P2BASE::serialPrintlnAndFlush();
+//#endif
       const uint16_t miHigh = (OTRadValve::HardwareMotorDriverInterface::motorDriveClosing == mdir) ?
           maxCurrentReadingClosing : maxCurrentReadingOpening;
       const bool currentSense = (mi > miHigh); // &&
@@ -343,6 +351,23 @@ class ValveMotorDirectV1HardwareDriver : public ValveMotorDirectV1HardwareDriver
         // (OTV0P2BASE::analogueNoiseReducedRead(MOTOR_DRIVE_MI_AIN_DigitalPin, INTERNAL) > miHigh) &&
         // (OTV0P2BASE::analogueNoiseReducedRead(MOTOR_DRIVE_MI_AIN_DigitalPin, INTERNAL) > miHigh);
       return(currentSense);
+      }
+
+    // Poll simple shaft encoder output; true if on mark, false if not or if unused for this driver.
+    virtual bool isOnShaftEncoderMark() const
+      {
+      // Power up IR emitter for shaft encoder and assume instant-on, as this has to be as fast as reasonably possible.
+      OTV0P2BASE::power_intermittent_peripherals_enable();
+//      const bool result = OTV0P2BASE::analogueVsBandgapRead(MOTOR_DRIVE_MC_AIN_DigitalPin, true);
+      const uint16_t mc = OTV0P2BASE::analogueNoiseReducedRead(MOTOR_DRIVE_MC_AIN_DigitalPin, INTERNAL);
+       const bool result = (mc < 120); // Arrrgh! FIXME: needs autocalibration during wiggle().
+      OTV0P2BASE::power_intermittent_peripherals_disable();
+#if 0 && defined(V0P2BASE_DEBUG)
+OTV0P2BASE::serialPrintAndFlush(F("    MC: "));
+OTV0P2BASE::serialPrintAndFlush(mc, DEC);
+OTV0P2BASE::serialPrintlnAndFlush();
+#endif
+      return(result);
       }
 
     // Call to actually run/stop motor.
@@ -429,12 +454,12 @@ class ValveMotorDirectV1HardwareDriver : public ValveMotorDirectV1HardwareDriver
   };
 
 // Actuator/driver for direct local (radiator) valve motor control.
-template <uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin>
+template <uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin, uint8_t MOTOR_DRIVE_MC_AIN_DigitalPin>
 class ValveMotorDirectV1 : public OTRadValve::AbstractRadValve
   {
   private:
     // Driver for the V1/DORM1 hardware.
-    ValveMotorDirectV1HardwareDriver<MOTOR_DRIVE_ML_DigitalPin, MOTOR_DRIVE_MR_DigitalPin, MOTOR_DRIVE_MI_AIN_DigitalPin> driver;
+    ValveMotorDirectV1HardwareDriver<MOTOR_DRIVE_ML_DigitalPin, MOTOR_DRIVE_MR_DigitalPin, MOTOR_DRIVE_MI_AIN_DigitalPin, MOTOR_DRIVE_MC_AIN_DigitalPin> driver;
     // Logic to manage state, etc.
     CurrentSenseValveMotorDirect logic;
 

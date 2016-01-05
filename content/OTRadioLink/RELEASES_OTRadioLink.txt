@@ -13,6 +13,7 @@ pending:
     DE20151023:  Added unit tests for OTNullRadioLink
     DE20151026:  Fixed compiler warning due to preinit()
     DE20151103:  Updated nullRadio
+    DHD20151222: created FrameType_Secureable enum and 'secure frame types' header.
 
 
 20151021:

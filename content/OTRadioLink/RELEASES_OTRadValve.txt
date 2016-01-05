@@ -20,4 +20,4 @@ pending:
     DHD20151210: TODO-606: implemented NullHardwareMotorDriverInterfaceCallbackHandler.
     DHD20151210: TODO-606: implemented EndStopHardwareMotorDriverInterfaceCallbackHandler.
     DHD20151210: TODO-606: eliminated some redundant motor-current ADC reads.
-
+    DHD20151229: TODO-370, TODO-595: working on shaft encoder on first samples from Shenzhen.

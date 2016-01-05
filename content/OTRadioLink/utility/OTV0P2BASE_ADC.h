@@ -41,7 +41,7 @@ uint16_t _analogueNoiseReducedReadM(const uint8_t admux, int8_t samples = 3);
 //   * mode  is the analogue reference, eg DEFAULT (Vcc).
 // May set sleep mode to SLEEP_MODE_ADC, and disable sleep on exit.
 // Nominally equivalent to analogReference(mode); return(analogRead(pinNumber));
-// Takes 500-600 microseconds to execute (tested with an oscilloscope by strobing pin).
+// DE201512: takes 500-600 microseconds to execute @ 1MHZ CPU (tested with an oscilloscope by strobing pin).
 uint16_t analogueNoiseReducedRead(uint8_t aiNumber, uint8_t mode);
 
 // Read from the specified analogue input vs the band-gap reference; true means AI > Vref.
@@ -52,14 +52,21 @@ uint16_t analogueNoiseReducedRead(uint8_t aiNumber, uint8_t mode);
 // eg from being used for BOD; if not, it must be given time to start up.
 // For input settle time explanation please see for example:
 //   * http://electronics.stackexchange.com/questions/67171/input-impedance-of-arduino-uno-analog-pins
-// Takes 50-60 microseconds to execute when napToSettle is false (tested with an oscilloscope by strobing pin).
-bool analogueVsBandgapRead(uint8_t aiNumber, bool napToSettle);
+// DE201512: takes 50-60 microseconds to execute @ 1MHZ CPU when napToSettle is false (tested with an oscilloscope by strobing pin).
+bool analogueVsBandgapRead(uint8_t aiNumber, bool napToSettle = false);
 
 // Attempt to capture maybe one bit of noise/entropy with an ADC read, possibly more likely in the lsbits if at all.
 // If requested (and needed) powers up extra I/O during the reads.
 //   powerUpIO if true then power up I/O (and power down after if so)
-// Takes ~2300 microseconds to execute (tested with an oscilloscope by strobing pin).
+// DE201512: takes ~2300 microseconds to execute @ 1MHZ CPU (tested with an oscilloscope by strobing pin).
 uint8_t noisyADCRead(bool powerUpIO = true);
+
+
+// Get approximate internal temperature in nominal C/16.
+// Only accurate to +/- 10C uncalibrated.
+// May set sleep mode to SLEEP_MODE_ADC, and disables sleep on exit.
+int readInternalTemperatureC16();
+// TODO: find a better location for this.
 
 
 }

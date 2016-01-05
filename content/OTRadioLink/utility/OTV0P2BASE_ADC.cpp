@@ -151,17 +151,17 @@ bool analogueVsBandgapRead(const uint8_t aiNumber, const bool napToSettle)
   }
 
 
-// Default low-battery threshold suitable for 2xAA NiMH, with AVR BOD at 1.8V.
-#define BATTERY_LOW_MV 2000
-
-// Using some sensors forces a higher voltage threshold for 'low battery'.
-#if defined(SENSOR_SHT21_ENABLE)
-#define SENSOR_SHT21_MINMV 2199 // Only specified down to 2.1V.
-#if BATTERY_LOW_MV < SENSOR_SHT21_MINMV
-#undef BATTERY_LOW_MV
-#define BATTERY_LOW_MV SENSOR_SHT21_MINMV
-#endif
-#endif
+//// Default low-battery threshold suitable for 2xAA NiMH, with AVR BOD at 1.8V.
+//#define BATTERY_LOW_MV 2000
+//
+//// Using some sensors forces a higher voltage threshold for 'low battery'.
+//#if defined(SENSOR_SHT21_ENABLE)
+//#define SENSOR_SHT21_MINMV 2199 // Only specified down to 2.1V.
+//#if BATTERY_LOW_MV < SENSOR_SHT21_MINMV
+//#undef BATTERY_LOW_MV
+//#define BATTERY_LOW_MV SENSOR_SHT21_MINMV
+//#endif
+//#endif
 
 
 
@@ -262,6 +262,25 @@ uint8_t noisyADCRead(const bool powerUpIO)
   return(result); // Use all the bits collected.
   }
 
+
+// Get approximate internal temperature in nominal C/16.
+// Only accurate to +/- 10C uncalibrated.
+// May set sleep mode to SLEEP_MODE_ADC, and disables sleep on exit.
+int readInternalTemperatureC16()
+  {
+  // Measure internal temperature sensor against internal voltage source.
+  // Response is ~1mv/C with 0C at ~289mV according to the data sheet.
+  const uint16_t raw = OTV0P2BASE::_analogueNoiseReducedReadM(_BV(REFS1) | _BV(REFS0) | _BV(MUX3), 1);
+#if 0 && defined(DEBUG)
+  DEBUG_SERIAL_PRINT_FLASHSTRING("Int temp raw: ");
+  DEBUG_SERIAL_PRINT(raw);
+  DEBUG_SERIAL_PRINTLN_FLASHSTRING("");
+#endif
+  //const int degC = (raw - 328) ; // Crude fast adjustment for one sensor at ~20C (DHD20130429).
+  const int degC = ((((int)raw) - 324) * 210) >> 4; // Slightly less crude adjustment, see http://playground.arduino.cc//Main/InternalTemperatureSensor
+  return(degC);
+  }
+// TODO: find a better location for this.
 
 
 }
