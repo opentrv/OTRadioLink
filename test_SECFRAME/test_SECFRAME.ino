@@ -413,7 +413,7 @@ static void testSimplePadding()
   // Provoke failure with over-long unpadded plain-text.
   AssertIsEqual(0, OTRadioLink::addPaddingTo32BTrailing0sAndPadCount(buf, 1 + OTRadioLink::ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE));  
   // Check padding in case with single random data byte (and the rest of the buffer set differently).
-  // Check the padded result for correctness.
+  // Check the entire padded result for correctness.
   const uint8_t db0 = OTV0P2BASE::randRNG8();
   buf[0] = db0;
   memset(buf+1, ~db0, sizeof(buf)-1);
