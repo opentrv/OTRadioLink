@@ -252,6 +252,9 @@ uint8_t SecurableFrameHeader::computeNonSecureFrameCRC(const uint8_t *const buf,
 //  * datalen  unpadded data size at start of buf; if too large (>31) then this routine will fail (return 0)
 uint8_t addPaddingTo32BTrailing0sAndPadCount(const uint8_t *const buf, const uint8_t datalen)
     {
+    if(NULL == buf) { return(0); } // ERROR
+    if(datalen > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
+
     return(0); // FAIL FIXME
     }
 
