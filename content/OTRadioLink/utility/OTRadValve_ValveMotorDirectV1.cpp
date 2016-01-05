@@ -326,6 +326,17 @@ OTV0P2BASE::serialPrintlnAndFlush();
     case valvePinWithdrawing:
       {
 //V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("  valvePinWithdrawing");
+
+      // If taking stupidly long to withdraw the pin fully
+      // then assume a problem with the motor/mechanics and give up.
+      // Don't panic() so that the unit can still (for example) transmit stats.
+      if(++perState.valvePinWithdrawing.wallclock2sTicks > MAX_TRAVEL_WALLCLOCK_2s_TICKS)
+          {
+          OTV0P2BASE::serialPrintlnAndFlush(F("!valve pin withdraw fail"));
+          changeState(valveError);
+          break;
+          }
+
       // Once end-stop has been hit, move to state to wait for user signal and then start calibration.
       if(runFastTowardsEndStop(true)) { changeState(valvePinWithdrawn); }
       break;
@@ -359,7 +370,7 @@ OTV0P2BASE::serialPrintlnAndFlush();
       // Don't panic() so that the unit can still (for example) transmit stats.
       if(++perState.valveCalibrating.wallclock2sTicks > MAX_TRAVEL_WALLCLOCK_2s_TICKS)
           {
-          OTV0P2BASE::serialPrintAndFlush(F("!valve calibration fail"));
+          OTV0P2BASE::serialPrintlnAndFlush(F("!valve calibration fail"));
           changeState(valveError);
           break;
           }
@@ -600,7 +611,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("-<");
       {
       changeState(valveError);
       hw->motorRun(0, OTRadValve::HardwareMotorDriverInterface::motorOff, *this);
-      OTV0P2BASE::serialPrintAndFlush(F("!valve error"));
+      OTV0P2BASE::serialPrintlnAndFlush(F("!valve error"));
       //panic(); // FIXME // Not expected to return.
       return;
       }
