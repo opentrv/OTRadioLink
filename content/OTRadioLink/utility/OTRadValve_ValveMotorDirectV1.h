@@ -39,12 +39,18 @@ namespace OTRadValve
 // Designed to be embedded in a motor controller instance.
 // This used the sub-cycle clock for timing.
 // This is sensitive to sub-cycle position, ie will try to avoid causing a main loop overrun.
+// May report some key status on Serial, with any error line(s) starting with "!'.
 class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInterfaceCallbackHandler
   {
   public:
     // Maximum time to move pin between fully retracted and extended and vv, seconds, strictly positive.
     // Set as a limit to allow a timeout when things go wrong.
     static const uint8_t MAX_TRAVEL_S = 4 * 60; // 4 minutes.
+
+    // Assumed calls to read() before timeout (assuming o call each 2s).
+    // If calls are received less often this will presumably take longer to perform movements,
+    // so it is appropriate to use a 2s ticks approximation.
+    static const uint8_t MAX_TRAVEL_2s_TICKS = max(4, MAX_TRAVEL_S / 2);
 
     // Calibration parameters.
     // Data received during the calibration process,
@@ -135,9 +141,9 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
     // Change state and perform some book-keeping.
     inline void changeState(const driverState newState) { state = (uint8_t)newState; clearPerState(); }
 
-    // Data used only within one major state and not needing to be saved between state.
+    // Data used only within one major state and not needing to be saved between states.
     // Thus it can be shared in a union to save space.
-    // This can be cleared to all zeros with clearPerState(), so starts each state as all zeros.
+    // This can be cleared to all zeros with clearPerState(), so starts each state zeroed.
     union
       {
       // State used while calibrating.
