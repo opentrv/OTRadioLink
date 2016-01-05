@@ -50,7 +50,7 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
     // Assumed calls to read() before timeout (assuming o call each 2s).
     // If calls are received less often this will presumably take longer to perform movements,
     // so it is appropriate to use a 2s ticks approximation.
-    static const uint8_t MAX_TRAVEL_2s_TICKS = max(4, MAX_TRAVEL_S / 2);
+    static const uint8_t MAX_TRAVEL_WALLCLOCK_2s_TICKS = max(4, MAX_TRAVEL_S / 2);
 
     // Calibration parameters.
     // Data received during the calibration process,
@@ -153,6 +153,8 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
 //        uint8_t runCount; // Completed round-trip calibration runs.
         uint16_t ticksFromOpenToClosed;
         uint16_t ticksFromClosedToOpen;
+        // Measure of real time spent trying in current microstate.
+        uint8_t wallclock2sTicks; // read() calls counted at ~2s intervals.
         } valveCalibrating;
       // State used while waiting for the valve to be fitted.
       struct { volatile bool valveFitted; } valvePinWithdrawn;
@@ -382,6 +384,7 @@ OTV0P2BASE::serialPrintlnAndFlush();
     //   * maxRunTicks  maximum sub-cycle ticks to attempt to run/spin for); zero will run for shortest reasonable time
     //   * dir  direction to run motor (or off/stop)
     //   * callback  callback handler
+    // Note that for REV7/DORM1 with ~2.4V+ battery, H-bridge drive ~20mA+, motor ~200mA.
     virtual void motorRun(const uint8_t maxRunTicks,
                           const OTRadValve::HardwareMotorDriverInterface::motor_drive dir,
                           OTRadValve::HardwareMotorDriverInterfaceCallbackHandler &callback)
