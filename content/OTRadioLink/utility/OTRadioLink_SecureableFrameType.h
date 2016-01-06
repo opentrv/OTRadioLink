@@ -258,9 +258,17 @@ namespace OTRadioLink
         // Returns padded size in bytes (32), or zero in case of error.
         //
         // Parameters:
-        //  * buf  buffer containing the entire frame except trailer/CRC; must be >= 32 bytes, never NULL
+        //  * buf  buffer containing the plain-text; must be >= 32 bytes, never NULL
         //  * datalen  unpadded data size at start of buf; if too large (>31) then this routine will fail (return 0)
         uint8_t addPaddingTo32BTrailing0sAndPadCount(uint8_t *buf, uint8_t datalen);
+
+        // Unpads plain-text in place prior to encryption with 32-byte fixed length padded output.
+        // Reverses/validates padding applied by addPaddingTo32BTrailing0sAndPadCount().
+        // Returns unpadded data length (at start of buffer) or 0xff in case of error.
+        //
+        // Parameters:
+        //  * buf  buffer containing the plain-text; must be >= 32 bytes, never NULL
+        uint8_t removePaddingTo32BTrailing0sAndPadCount(const uint8_t *buf);
 
 
     }
