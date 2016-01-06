@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2015
+Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 */
 
 /*
@@ -39,12 +39,18 @@ namespace OTRadValve
 // Designed to be embedded in a motor controller instance.
 // This used the sub-cycle clock for timing.
 // This is sensitive to sub-cycle position, ie will try to avoid causing a main loop overrun.
+// May report some key status on Serial, with any error line(s) starting with "!'.
 class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInterfaceCallbackHandler
   {
   public:
     // Maximum time to move pin between fully retracted and extended and vv, seconds, strictly positive.
     // Set as a limit to allow a timeout when things go wrong.
     static const uint8_t MAX_TRAVEL_S = 4 * 60; // 4 minutes.
+
+    // Assumed calls to read() before timeout (assuming o call each 2s).
+    // If calls are received less often this will presumably take longer to perform movements,
+    // so it is appropriate to use a 2s ticks approximation.
+    static const uint8_t MAX_TRAVEL_WALLCLOCK_2s_TICKS = max(4, MAX_TRAVEL_S / 2);
 
     // Calibration parameters.
     // Data received during the calibration process,
@@ -135,9 +141,9 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
     // Change state and perform some book-keeping.
     inline void changeState(const driverState newState) { state = (uint8_t)newState; clearPerState(); }
 
-    // Data used only within one major state and not needing to be saved between state.
+    // Data used only within one major state and not needing to be saved between states.
     // Thus it can be shared in a union to save space.
-    // This can be cleared to all zeros with clearPerState(), so starts each state as all zeros.
+    // This can be cleared to all zeros with clearPerState(), so starts each state zeroed.
     union
       {
       // State used while calibrating.
@@ -147,7 +153,11 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
 //        uint8_t runCount; // Completed round-trip calibration runs.
         uint16_t ticksFromOpenToClosed;
         uint16_t ticksFromClosedToOpen;
+        // Measure of real time spent trying in current microstate.
+        uint8_t wallclock2sTicks; // read() calls counted at ~2s intervals.
         } valveCalibrating;
+      // State used while valve pin is initially fully withdrawing.
+      struct { uint8_t wallclock2sTicks; } valvePinWithdrawing;
       // State used while waiting for the valve to be fitted.
       struct { volatile bool valveFitted; } valvePinWithdrawn;
       } perState;
@@ -268,8 +278,10 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
     // Waiting for indication that the valvehead  has been fitted to the tail.
     virtual bool isWaitingForValveToBeFitted() const { return(state == (uint8_t)valvePinWithdrawn); }
 
-    // Returns true iff not in error state and not (re)calibrating/(re)initialising/(re)syncing.
-    virtual bool isInNormalRunState() const { return(state >= (uint8_t)valveNormal); }
+    // Returns true iff in normal running state.
+    // True means not in error state and not (re)calibrating/(re)initialising/(re)syncing.
+    // May be false temporarily while declacinating.
+    virtual bool isInNormalRunState() const { return(state == (uint8_t)valveNormal); }
 
     // Returns true if in an error state.
     // May be recoverable by forcing recalibration.
@@ -376,6 +388,7 @@ OTV0P2BASE::serialPrintlnAndFlush();
     //   * maxRunTicks  maximum sub-cycle ticks to attempt to run/spin for); zero will run for shortest reasonable time
     //   * dir  direction to run motor (or off/stop)
     //   * callback  callback handler
+    // DHD20160105: note that for REV7/DORM1 with ~2.4V+ battery, H-bridge drive itself ~20mA+, motor ~200mA.
     virtual void motorRun(const uint8_t maxRunTicks,
                           const OTRadValve::HardwareMotorDriverInterface::motor_drive dir,
                           OTRadValve::HardwareMotorDriverInterfaceCallbackHandler &callback)

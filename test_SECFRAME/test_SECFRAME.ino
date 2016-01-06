@@ -419,11 +419,11 @@ static void testSimplePadding()
   memset(buf+1, ~db0, sizeof(buf)-1);
   AssertIsEqual(32, OTRadioLink::addPaddingTo32BTrailing0sAndPadCount(buf, 1));
   AssertIsEqual(db0, buf[0]);
-  for(int i = 30; --i > 0; ) { AssertIsEqual(30, buf[i]); }
+  for(int i = 30; --i > 0; ) { AssertIsEqual(0, buf[i]); }
   AssertIsEqual(30, buf[31]);
-
-  // TODO
-
+  // Ensure that unpadding works.
+  AssertIsEqual(1, OTRadioLink::removePaddingTo32BTrailing0sAndPadCount(buf));
+  AssertIsEqual(db0, buf[0]);
   }
 
 
