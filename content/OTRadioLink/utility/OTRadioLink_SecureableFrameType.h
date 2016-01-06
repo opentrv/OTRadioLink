@@ -275,4 +275,31 @@ namespace OTRadioLink
 
     }
 
+
+/* LIBRARY INTERDEPENDENCY POLICY
+
+DHD20160106
+
+I have been deciding how best to get at the encryption needed for secure frame support in
+OTRadioLink/BASELIB without making the OTAESGCM and OTRadioLink libraries interdependent.
+
+In particular I want to keep OTAESGCM as lightweight as possible and in no way dependent
+on our V0p2 hardware support for example.
+
+I also don’t want to force occasional developers against V0P2 code to load up lots of code
+and libs that they may not even need (eg OTAESGCM) in some kind of DLL hell equivalent.
+
+I propose to require pointers to enc/dec routines with the right signature to be made available
+at run-time to the OTRadioLink frame RX/TX support routines, which means that only the top level
+code that needs the secure frame functionality need link in the OTAESGCM lib, and other apps
+get no dependency.  (Note, I’m relying on C++ type safety on signatures here ideally,
+to completely minimise mutual dependencies, though there’s still the issue of retained/opaque
+state to deal with, etc, etc.)
+
+It also means that different enc/auth mechanisms can be selected at run-time or compile-time.
+
+ */
+
+
+
 #endif
