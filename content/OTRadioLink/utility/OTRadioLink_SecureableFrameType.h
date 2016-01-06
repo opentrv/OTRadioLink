@@ -268,6 +268,8 @@ namespace OTRadioLink
         //
         // Parameters:
         //  * buf  buffer containing the plain-text; must be >= 32 bytes, never NULL
+        //
+        // NOTE: does not check that all padding bytes are actually zero.
         uint8_t removePaddingTo32BTrailing0sAndPadCount(const uint8_t *buf);
 
 
