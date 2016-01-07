@@ -286,11 +286,12 @@ namespace OTRadioLink
         // which implies likely requirement for padding of the plain text.
         // Note that the authenticated text size is not fixed, ie is zero or more bytes.
         // Returns true on success, false on failure.
-        template <uint8_t textSize> bool fixedTextSizeSimpleEnc(void *state,
+        template <uint8_t textSize, uint8_t keySize, uint8_t nonceSize, uint8_t tagSize>
+            bool fixedTextSizeSimpleEnc(void *state,
                 const uint8_t *key, const uint8_t *nonce,
-                const uint8_t *authtext, unit8_t authtextSize,
+                const uint8_t *authtext, uint8_t authtextSize,
                 const uint8_t *plaintext,
-                uint8_t *ciphertext, uint8_t *tag);
+                uint8_t *ciphertextOut, uint8_t *tagOut);
 
 
     }
