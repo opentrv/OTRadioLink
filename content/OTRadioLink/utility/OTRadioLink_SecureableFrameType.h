@@ -271,6 +271,19 @@ namespace OTRadioLink
         //
         // NOTE: does not check that all padding bytes are actually zero.
         uint8_t removePaddingTo32BTrailing0sAndPadCount(const uint8_t *buf);
+//
+//
+//        // Signature of basic fixed-size text encryption/authentication function
+//        // (suitable for type 'O' valve/sensor small frame for example)
+//        // that can be fulfilled by AES-128-GCM for example
+//        // where:
+//        //   * textSize is 32
+//        //   * keySize is 16
+//        //   * nonceSize is 12
+//        //   * tagSize is 16
+//        // Note that the authenticated text size is not fixed, ie is zero or more bytes.
+//        template <uint8_t textSize> bool fixedTextSizeSimpleEnc(void *state,
+//                const uint8_t *plaintext, uint8_t *ciphertext);
 
 
     }
