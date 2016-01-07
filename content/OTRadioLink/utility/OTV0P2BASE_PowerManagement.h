@@ -38,6 +38,21 @@ namespace OTV0P2BASE
 {
 
 
+// Call from setup() for V0p2 board to turn off unused modules, set up timers and interrupts, etc.
+// I/O pin setting is not done here.
+void powerSetup();
+
+// Selectively turn off all modules that need not run continuously on V0p2 board
+// so as to minimise power without (ie over and above) explicitly entering a sleep mode.
+// Suitable for start-up and for belt-and-braces use before main sleep on each cycle,
+// to ensure that nothing power-hungry is accidentally left on.
+// Any module that may need to run all the time should not be turned off here.
+// May be called from panic(), so do not be too clever.
+// Does NOT attempt to power down the radio, eg in case that needs to be left in RX mode.
+// Does NOT attempt to power down the hardware serial/UART.
+void minimisePowerWithoutSleep();
+
+
 // If ADC was disabled, power it up, do Serial.begin(), and return true.
 // If already powered up then do nothing other than return false.
 // This does not power up the analogue comparator; this needs to be manually enabled if required.

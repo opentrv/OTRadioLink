@@ -23,6 +23,11 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
   */
 
 #include <util/atomic.h>
+#include <avr/wdt.h>
+//#include <avr/interrupt.h>
+//#include <avr/power.h>
+//#include <avr/sleep.h>
+//#include <util/delay_basic.h>
 #include <Arduino.h>
 #include <Wire.h>
 #include "OTV0P2BASE_PowerManagement.h"
@@ -219,6 +224,115 @@ uint16_t SupplyVoltageCentiVolts::read()
 #endif
   return(result);
   }
+
+
+// Selectively turn off all modules that need not run continuously on V0p2 board
+// so as to minimise power without (ie over and above) explicitly entering a sleep mode.
+// Suitable for start-up and for belt-and-braces use before main sleep on each cycle,
+// to ensure that nothing power-hungry is accidentally left on.
+// Any module that may need to run all the time should not be turned off here.
+// May be called from panic(), so do not be too clever.
+// Does NOT attempt to power down the radio, eg in case that needs to be left in RX mode.
+// Does NOT attempt to power down the hardware serial/UART.
+void minimisePowerWithoutSleep()
+  {
+  // Disable the watchdog timer.
+  wdt_disable();
+
+  // Ensure that external peripherals are powered down.
+  OTV0P2BASE::power_intermittent_peripherals_disable();
+
+  // Turn off analogue stuff that eats power.
+  ADCSRA = 0; // Do before power_[adc|all]_disable() to avoid freezing the ADC in an active state!
+  ACSR = (1<<ACD); // Disable the analog comparator.
+  DIDR0 = 0x3F; // Disable digital input buffers on all ADC0-ADC5 pins.
+    // More subtle approach possible...
+    //  // Turn off the digital input buffers on analogue inputs in use as such
+    //  // so as to reduce power consumption with mid-supply input voltages.
+    //  DIDR0 = 0
+    //#if defined(TEMP_POT_AIN)
+    //    | (1 << TEMP_POT_AIN)
+    //#endif
+    //#if defined(LDR_SENSOR_AIN)
+    //    | (1 << LDR_SENSOR_AIN)
+    //#endif
+    //    ;
+  DIDR1 = (1<<AIN1D)|(1<<AIN0D); // Disable digital input buffer on AIN1/0.
+  power_adc_disable();
+
+  // Ensure that SPI is powered down.
+  OTV0P2BASE::powerDownSPI();
+
+  // Ensure that TWI is powered down.
+  OTV0P2BASE::powerDownTWI();
+
+  // TIMERS
+  // See: http://letsmakerobots.com/node/28278
+  //   * For Arduino timer0 is used for the timer functions such as delay(), millis() and micros().
+  //   * Servo Library uses timer1 (on UNO).
+  //   * tone() function uses at least timer2.
+  // Note that timer 0 in normal use sometimes seems to eat a lot of power.
+
+//#if defined(DONT_USE_TIMER0)
+//  power_timer0_disable();
+//#endif
+
+  power_timer1_disable();
+
+//#ifndef WAKEUP_32768HZ_XTAL
+//  power_timer2_disable();
+//#endif
+  }
+
+//#ifdef WAKEUP_32768HZ_XTAL
+static void timer2XtalIntSetup()
+ {
+  // Set up TIMER2 to wake CPU out of sleep regularly using external 32768Hz crystal.
+  // See http://www.atmel.com/Images/doc2505.pdf
+  TCCR2A = 0x00;
+
+//#if defined(HALF_SECOND_RTC_SUPPORT)
+//  TCCR2B = (1<<CS22); // Set CLK/64 for overflow interrupt every 0.5s.
+//#elif defined(V0P2BASE_TWO_S_TICK_RTC_SUPPORT)
+  TCCR2B = (1<<CS22)|(1<<CS21); // Set CLK/128 for overflow interrupt every 2s.
+//#else
+//  TCCR2B = (1<<CS22)|(1<<CS20); // Set CLK/128 for overflow interrupt every 1s.
+//#endif
+  //TCCR2B = (1<<CS22)|(1<<CS21)|(1<<CS20); // Set CLK/1024 for overflow interrupt every 8s (slowest possible).
+
+  ASSR = (1<<AS2); // Enable asynchronous operation.
+  TIMSK2 = (1<<TOIE2); // Enable the timer 2 interrupt.
+  }
+//#endif
+
+// Call from setup() for V0p2 board to turn off unused modules, set up timers and interrupts, etc.
+// I/O pin setting is not done here.
+void powerSetup()
+  {
+//#ifdef DEBUG
+//  assert(OTV0P2BASE::DEFAULT_CPU_PRESCALE == clock_prescale_get()); // Verify that CPU prescaling is as expected.
+//#endif
+
+  // Do normal gentle switch off, including analogue module/control in correct order.
+  minimisePowerWithoutSleep();
+
+  // Brutally force off all modules, then re-enable explicitly below any still needed.
+  power_all_disable();
+
+//#if !defined(DONT_USE_TIMER0)
+  power_timer0_enable(); // Turning timer 0 off messes up some standard Arduino support such as delay() and millis().
+//#endif
+
+//#if defined(WAKEUP_32768HZ_XTAL)
+  power_timer2_enable();
+  timer2XtalIntSetup();
+//#endif
+  }
+
+
+
+
+
 
 
 } // OTV0P2BASE
