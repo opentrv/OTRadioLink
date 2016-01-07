@@ -269,21 +269,28 @@ namespace OTRadioLink
         // Parameters:
         //  * buf  buffer containing the plain-text; must be >= 32 bytes, never NULL
         //
-        // NOTE: does not check that all padding bytes are actually zero.
+        // NOTE: mqy not check that all padding bytes are actually zero.
         uint8_t removePaddingTo32BTrailing0sAndPadCount(const uint8_t *buf);
-//
-//
-//        // Signature of basic fixed-size text encryption/authentication function
-//        // (suitable for type 'O' valve/sensor small frame for example)
-//        // that can be fulfilled by AES-128-GCM for example
-//        // where:
-//        //   * textSize is 32
-//        //   * keySize is 16
-//        //   * nonceSize is 12
-//        //   * tagSize is 16
-//        // Note that the authenticated text size is not fixed, ie is zero or more bytes.
-//        template <uint8_t textSize> bool fixedTextSizeSimpleEnc(void *state,
-//                const uint8_t *plaintext, uint8_t *ciphertext);
+
+
+        // Signature of basic fixed-size text encryption/authentication function
+        // (suitable for type 'O' valve/sensor small frame for example)
+        // that can be fulfilled by AES-128-GCM for example
+        // where:
+        //   * textSize is 32
+        //   * keySize is 16
+        //   * nonceSize is 12
+        //   * tagSize is 16
+        // The plain-text (and identical cipher-text) size is picked to be
+        // a multiple of the cipher's block size,
+        // which implies likely requirement for padding of the plain text.
+        // Note that the authenticated text size is not fixed, ie is zero or more bytes.
+        // Returns true on success, false on failure.
+        template <uint8_t textSize> bool fixedTextSizeSimpleEnc(void *state,
+                const uint8_t *key, const uint8_t *nonce,
+                const uint8_t *authtext, unit8_t authtextSize,
+                const uint8_t *plaintext,
+                uint8_t *ciphertext, uint8_t *tag);
 
 
     }
