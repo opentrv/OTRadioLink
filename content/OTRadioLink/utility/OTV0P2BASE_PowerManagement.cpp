@@ -280,7 +280,7 @@ void minimisePowerWithoutSleep()
   power_timer1_disable();
 
 //#ifndef WAKEUP_32768HZ_XTAL
-  power_timer2_disable();
+//  power_timer2_disable();
 //#endif
   }
 
