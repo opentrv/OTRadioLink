@@ -294,6 +294,12 @@ namespace OTRadioLink
                 uint8_t *ciphertextOut, uint8_t *tagOut);
 
 
+
+
+        // NULL basic fixed-size text 'encryption' function.
+        // DOES NOT ENCRYPT OR AUTHENTICATE SO DO NOT USE IN PRODUCTION SYSTEMS.
+        // Emulates some aspects of the process to test real implementations against.
+
     }
 
 
