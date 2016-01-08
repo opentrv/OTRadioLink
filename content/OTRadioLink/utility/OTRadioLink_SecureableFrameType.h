@@ -297,6 +297,7 @@ namespace OTRadioLink
         // NULL basic fixed-size text 'encryption' function.
         // DOES NOT ENCRYPT OR AUTHENTICATE SO DO NOT USE IN PRODUCTION SYSTEMS.
         // Emulates some aspects of the process to test real implementations against.
+        // Returns true on success, false on failure.
         bool fixedTextSizeSimpleEnc_NULL_IMPL(void *state,
                 const uint8_t *key, const uint8_t *nonce,
                 const uint8_t *authtext, uint8_t authtextSize,
