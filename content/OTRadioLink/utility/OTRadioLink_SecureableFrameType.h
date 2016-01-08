@@ -302,6 +302,7 @@ namespace OTRadioLink
         // Does not use state so that pointer may be NULL but all others must be non-NULL.
         // Copies the plaintext to the ciphertext.
         // Copies the nonce to the tag and pads with trailing zeros.
+        // The key is ignored (though one must be supplied).
         bool fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL(void *state,
                 const uint8_t *key, const uint8_t *nonce,
                 const uint8_t *authtext, uint8_t authtextSize,

@@ -452,6 +452,9 @@ template <uint8_t textSize, uint8_t keySize, uint8_t nonceSize, uint8_t tagSize>
         const uint8_t *plaintext,
         uint8_t *ciphertextOut, uint8_t *tagOut);
 
+// All-zeros 16-byte/128-bit key.
+static const uint8_t zeroKey[16] = { };
+
 // Test basic access to crypto features.
 static void testCryptoAccess()
   {
@@ -460,6 +463,16 @@ static void testCryptoAccess()
   const OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t nep = OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL;
   // Check that calling the NULL enc routine with bad args fails.
   AssertIsTrue(!nep(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL));
+  const uint8_t plaintext1[16] = { 'a', 'b', 'c', OTV0P2BASE::randRNG8(), 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4 };
+  const uint8_t nonce1[12] = { 'q', 'u', 'i', 'c', 'k', ' ', 6, 5, 4, 3, 2, 1 };
+  uint8_t authtext1[2] = { 'H', 'i' };
+  // Output ciphertext and tag buffers.
+  uint8_t co1[32], to1[16];
+  AssertIsTrue(nep(NULL, zeroKey, nonce1, authtext1, sizeof(authtext1), plaintext1, co1, to1));
+  AssertIsEqual(0, memcmp(plaintext1, co1, 32));
+  AssertIsEqual(0, memcmp(nonce1, to1, 12));
+  AssertIsEqual(0, to1[12]);
+  AssertIsEqual(0, to1[15]);
   }
 
 
