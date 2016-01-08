@@ -121,5 +121,3 @@ void serialWriteAndFlush(char const *buf, uint8_t len);
 } // OTV0P2BASE
 
 #endif // OTV0P2BASE_SERIAL_IO_H
-
-
