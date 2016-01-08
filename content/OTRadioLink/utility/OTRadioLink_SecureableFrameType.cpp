@@ -296,13 +296,11 @@ bool fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL(void * const state,
     // Does not use state, but checks that all other pointers are non-NULL.
     if((NULL == key) || (NULL == nonce) || (NULL == authtext) || (NULL == plaintext) ||
        (NULL == ciphertextOut) || (NULL == tagOut)) { return(false); } // ERROR
-
-    // Copies the plaintext to the ciphertext.
-    // Copies the nonce to the tag and pads with trailing zeros.
+    // Copy the plaintext to the ciphertext, and the nonce to the tag padded with trailing zeros.
     memcpy(ciphertextOut, plaintext, 32);
     memcpy(tagOut, nonce, 12);
     memset(tagOut+12, 0, 4);
-
+    // Done.
     return(true);
     }
 
