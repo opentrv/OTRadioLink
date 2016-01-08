@@ -331,7 +331,6 @@ to completely minimise mutual dependencies, though there’s still the issue of 
 state to deal with, etc, etc.)
 
 It also means that different enc/auth mechanisms can be selected at run-time or compile-time.
-
  */
 
 
