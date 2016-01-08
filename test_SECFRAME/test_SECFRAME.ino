@@ -35,6 +35,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 // Include the library under test.
 #include <OTV0p2Base.h>
 #include <OTRadioLink.h>
+// Also testing against crypto.
+#include <OTAESGCM.h>
 
 #if F_CPU == 1000000 // 1MHz CPU indicates V0p2 board.
 #define ON_V0P2_BOARD
@@ -96,7 +98,7 @@ static void testLibVersion()
   Serial.println("LibVersion");
 #if !(0 == ARDUINO_LIB_OTRADIOLINK_VERSION_MAJOR) || !(9 == ARDUINO_LIB_OTRADIOLINK_VERSION_MINOR)
 #error Wrong library version!
-#endif 
+#endif
   }
 
 // Check that correct versions of underlying libraries are in use.
@@ -105,7 +107,11 @@ static void testLibVersions()
   Serial.println("LibVersions");
 #if !(0 == ARDUINO_LIB_OTV0P2BASE_VERSION_MAJOR) || !(9 == ARDUINO_LIB_OTV0P2BASE_VERSION_MINOR)
 #error Wrong library version!
-#endif  
+#endif
+
+#if !(0 == ARDUINO_LIB_OTAESGCM_VERSION_MAJOR) || !(2 > ARDUINO_LIB_OTAESGCM_VERSION_MINOR)
+#error Wrong library version!
+#endif
   }
 
 
