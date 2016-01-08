@@ -286,18 +286,23 @@ namespace OTRadioLink
         // which implies likely requirement for padding of the plain text.
         // Note that the authenticated text size is not fixed, ie is zero or more bytes.
         // Returns true on success, false on failure.
-        typedef bool (*fixedTextSizeSimpleEnc_ptr_t)(void *state,
+        typedef bool (*fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t)(void *state,
                 const uint8_t *key, const uint8_t *nonce,
                 const uint8_t *authtext, uint8_t authtextSize,
                 const uint8_t *plaintext,
                 uint8_t *ciphertextOut, uint8_t *tagOut);
 
 
-
         // NULL basic fixed-size text 'encryption' function.
         // DOES NOT ENCRYPT OR AUTHENTICATE SO DO NOT USE IN PRODUCTION SYSTEMS.
-        // Emulates some aspects of the process to test real implementations against.
-        bool fixedTextSizeSimpleEnc_NULL_IMPL(void *state,
+        // Emulates some aspects of the process to test real implementations against,
+        // and that some possible gross errors in the use of the crypto are absent.
+        // Returns true on success, false on failure.
+        //
+        // Does not use state so that pointer may be NULL but all others must be non-NULL.
+        // Copies the plaintext to the ciphertext.
+        // Copies the nonce to the tag and pads with trailing zeros.
+        bool fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL(void *state,
                 const uint8_t *key, const uint8_t *nonce,
                 const uint8_t *authtext, uint8_t authtextSize,
                 const uint8_t *plaintext,

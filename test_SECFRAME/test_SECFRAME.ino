@@ -456,6 +456,10 @@ template <uint8_t textSize, uint8_t keySize, uint8_t nonceSize, uint8_t tagSize>
 static void testCryptoAccess()
   {
   Serial.println("CryptoAccess");
+  // Check NULL enc routine is correct type.
+  const OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t nep = OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL;
+  // Check that calling the NULL enc routine with bad args fails.
+  AssertIsTrue(!nep(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL));
   }
 
 

@@ -277,6 +277,29 @@ uint8_t removePaddingTo32BTrailing0sAndPadCount(const uint8_t *const buf)
     }
 
 
+// NULL basic fixed-size text 'encryption' function.
+// DOES NOT ENCRYPT OR AUTHENTICATE SO DO NOT USE IN PRODUCTION SYSTEMS.
+// Emulates some aspects of the process to test real implementations against,
+// and that some possible gross errors in the use of the crypto are absent.
+// Returns true on success, false on failure.
+//
+// Does not use state so that pointer may be NULL but all others must be non-NULL.
+// Copies the plaintext to the ciphertext.
+// Copies the nonce to the tag and pads with trailing zeros.
+bool fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL(void * const state,
+        const uint8_t *const key, const uint8_t *const nonce,
+        const uint8_t *const authtext, const uint8_t authtextSize,
+        const uint8_t *const plaintext,
+        uint8_t *const ciphertextOut, uint8_t *const tagOut)
+    {
+    // Does not use state, but checks all other pointers are non-NULL.
+    if((NULL == key) || (null == NONCE) || (null == authtext) ||
+       (NULL == plaintext) || (ciphertextOut == NULL) || (tagOut == NULL)) { return(false); } // ERROR
+
+    return(false); // FAIL FIXME
+    }
+
+
     }
 
 
