@@ -287,7 +287,7 @@ namespace OTRadioLink
         // Note that the authenticated text size is not fixed, ie is zero or more bytes.
         // Returns true on success, false on failure.
         typedef bool (*fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t)(void *state,
-                const uint8_t *key, const uint8_t *nonce,
+                const uint8_t *key, const uint8_t *iv,
                 const uint8_t *authtext, uint8_t authtextSize,
                 const uint8_t *plaintext,
                 uint8_t *ciphertextOut, uint8_t *tagOut);
@@ -304,7 +304,7 @@ namespace OTRadioLink
         // Copies the nonce to the tag and pads with trailing zeros.
         // The key is ignored (though one must be supplied).
         bool fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL(void *state,
-                const uint8_t *key, const uint8_t *nonce,
+                const uint8_t *key, const uint8_t *iv,
                 const uint8_t *authtext, uint8_t authtextSize,
                 const uint8_t *plaintext,
                 uint8_t *ciphertextOut, uint8_t *tagOut);
