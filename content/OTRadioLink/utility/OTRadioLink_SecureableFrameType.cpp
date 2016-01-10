@@ -240,6 +240,20 @@ uint8_t SecurableFrameHeader::computeNonSecureFrameCRC(const uint8_t *const buf,
     }
 
 
+// Compose (encode) entire non-secure small frame from header params, body and CRC trailer.
+// Returns the total number of bytes written out for the frame
+// (including, and with a value one higher than the first 'fl' bytes).
+// Returns zero in case of error.
+// The supplied buffer may have to be up to 64 bytes long.
+uint8_t encodeNonsecureSmallFrame(uint8_t *const buf, const uint8_t buflen,
+                                    const FrameType_Secureable fType_,
+                                    const uint8_t seqNum_,
+                                    const uint8_t il_, const uint8_t *const id_,
+                                    const uint8_t *const body, const uint8_t bl_)
+    {
+    return(0); // FAIL FIXME
+    }
+
 // Pads plain-text in place prior to encryption with 32-byte fixed length padded output.
 // Simple method that allows unpadding at receiver, does padding in place.
 // Padded size is (ENC_BODY_SMALL_FIXED_CTEXT_SIZE) 32, maximum unpadded size is 31.
