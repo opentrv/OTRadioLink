@@ -233,10 +233,11 @@ namespace OTRadioLink
         uint8_t checkAndDecodeSmallFrameHeader(const uint8_t *buf, uint8_t buflen);
 
         // Compute and return CRC for non-secure frames; 0 indicates an error.
-        // This is the value that should be at getTrailerOffset().
+        // This is the value that should be at getTrailerOffset() / offset fl.
         // Can be called after checkAndEncodeSmallFrameHeader() or checkAndDecodeSmallFrameHeader()
         // to compute the correct CRC value;
         // the equality check (on decode) or write (on encode) will then need to be done.
+        // Note that the body must already be in place in the buffer.
         //
         // Parameters:
         //  * buf  buffer containing the entire frame except trailer/CRC; never NULL
@@ -356,6 +357,23 @@ namespace OTRadioLink
                 const uint8_t *authtext, uint8_t authtextSize,
                 const uint8_t *ciphertext, const uint8_t *tag,
                 uint8_t *plaintextOut);
+
+        // Compose (encode) entire secure small frame from header params, body and CRC trailer.
+        // This uses fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t style encryption/authentication.
+        // The matching decryption function should be used for decoding/verifying.
+        // The crypto method may need to vary based on frame type,
+        // and on negotiations between the participants in the communications.
+        // Returns the total number of bytes written out for the frame
+        // (including, and with a value one higher than the first 'fl' bytes).
+        // Returns zero in case of error.
+        // The supplied buffer may have to be up to 64 bytes long.
+        uint8_t encodeSecureSmallFrame(uint8_t *buf, uint8_t buflen,
+                                            FrameType_Secureable fType_,
+                                            uint8_t seqNum_,
+                                            const uint8_t *id_, uint8_t il_,
+                                            const uint8_t *body, uint8_t bl_,
+                                            const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t *e);
+
     }
 
 
