@@ -350,7 +350,8 @@ uint8_t encodeSecureSmallFrameRaw(uint8_t *const buf, const uint8_t buflen,
 
     buf[fl] = 0x80; // Indicates this 128-bit AES-GCM encryption/authentication type.
     // Done.
-    return(fl + 1);
+    //return(fl + 1);
+    return(false); // FAIL  NOT FULLY IMPLEMENTED  FIXME
     }
 
 
