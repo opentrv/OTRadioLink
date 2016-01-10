@@ -466,7 +466,7 @@ static void testCryptoAccess()
   const OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t nep = OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL;
   // Check that calling the NULL enc routine with bad args fails.
   AssertIsTrue(!nep(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL));
-  const uint8_t plaintext1[16] = { 'a', 'b', 'c', OTV0P2BASE::randRNG8(), 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4 };
+  const uint8_t plaintext1[32] = { 'a', 'b', 'c', OTV0P2BASE::randRNG8(), 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4 };
   const uint8_t nonce1[12] = { 'q', 'u', 'i', 'c', 'k', ' ', 6, 5, 4, 3, 2, 1 };
   uint8_t authtext1[2] = { 'H', 'i' };
   // Output ciphertext and tag buffers.
@@ -480,6 +480,10 @@ static void testCryptoAccess()
   const OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t ndp = OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL;
   // Check that calling the NULL decc routine with bad args fails.
   AssertIsTrue(!ndp(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL));
+  // Decode the ciphertext and tag from above and ensure that it 'works'.
+  uint8_t plaintext1Decoded[32];
+  AssertIsTrue(ndp(NULL, zeroKey, nonce1, authtext1, sizeof(authtext1), co1, to1, plaintext1Decoded));
+  AssertIsEqual(0, memcmp(plaintext1, plaintext1Decoded, 32));
   }
 
 
