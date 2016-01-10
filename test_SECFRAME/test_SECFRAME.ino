@@ -352,7 +352,7 @@ static void testFrameHeaderDecoding()
   //11 stats present flag only, unreported occupancy
   //7b 22 62 22 3a 31  {"b":1  Stats: note that implicit trailing '}' is not sent.
   //61 CRC value
-  const uint8_t buf2[] = { 0x0e, 0x4f, 0x02, 0x80, 0x81, 0x08, 0x7f, 0x11, 0x7b, 0x22, 0x62, 0x22, 0x3a, 0x31, 0x61 };
+  static const uint8_t buf2[] = { 0x0e, 0x4f, 0x02, 0x80, 0x81, 0x08, 0x7f, 0x11, 0x7b, 0x22, 0x62, 0x22, 0x3a, 0x31, 0x61 };
   AssertIsEqual(6, sfh.checkAndDecodeSmallFrameHeader(buf2, sizeof(buf2)));
   // Check decoded parameters.
   AssertIsEqual(14, sfh.fl);
@@ -435,55 +435,98 @@ static void testSimplePadding()
   AssertIsEqual(db0, buf[0]);
   }
 
-// Signature of basic fixed-size text encryption/authentication function
-// (suitable for type 'O' valve/sensor small frame for example)
-// that can be fulfilled by AES-128-GCM for example
-// where:
-//   * textSize is 32
-//   * keySize is 16
-//   * nonceSize is 12
-//   * tagSize is 16
-// The plain-text (and identical cipher-text) size is picked to be
-// a multiple of the cipher's block size,
-// which implies likely requirement for padding of the plain text.
-// Note that the authenticated text size is not fixed, ie is zero or more bytes.
-// Returns true on success, false on failure.
-template <uint8_t textSize, uint8_t keySize, uint8_t nonceSize, uint8_t tagSize>
-    bool fixedTextSizeSimpleEnc(void *state,
-        const uint8_t *key, const uint8_t *nonce,
-        const uint8_t *authtext, uint8_t authtextSize,
-        const uint8_t *plaintext,
-        uint8_t *ciphertextOut, uint8_t *tagOut);
 
 // All-zeros 16-byte/128-bit key.
 static const uint8_t zeroKey[16] = { };
 
-// Test basic access to crypto features.
-static void testCryptoAccess()
+// Test simple fixed-size NULL enc/dec behaviour.
+static void testSimpleNULLEncDec()
   {
-  Serial.println("CryptoAccess");
-  // Check NULL enc routine is correct type.
-  const OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t nep = OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL;
+  const OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e = OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL;
+  const OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d = OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL;
   // Check that calling the NULL enc routine with bad args fails.
-  AssertIsTrue(!nep(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL));
-  const uint8_t plaintext1[32] = { 'a', 'b', 'c', OTV0P2BASE::randRNG8(), 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4 };
-  const uint8_t nonce1[12] = { 'q', 'u', 'i', 'c', 'k', ' ', 6, 5, 4, 3, 2, 1 };
-  uint8_t authtext1[2] = { 'H', 'i' };
+  AssertIsTrue(!e(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL));
+  static const uint8_t plaintext1[32] = { 'a', 'b', 'c', 'd', 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4 };
+  static const uint8_t nonce1[12] = { 'q', 'u', 'i', 'c', 'k', ' ', 6, 5, 4, 3, 2, 1 };
+  static const uint8_t authtext1[2] = { 'H', 'i' };
   // Output ciphertext and tag buffers.
   uint8_t co1[32], to1[16];
-  AssertIsTrue(nep(NULL, zeroKey, nonce1, authtext1, sizeof(authtext1), plaintext1, co1, to1));
+  AssertIsTrue(e(NULL, zeroKey, nonce1, authtext1, sizeof(authtext1), plaintext1, co1, to1));
   AssertIsEqual(0, memcmp(plaintext1, co1, 32));
   AssertIsEqual(0, memcmp(nonce1, to1, 12));
   AssertIsEqual(0, to1[12]);
   AssertIsEqual(0, to1[15]);
-  // Check NULL dec routine is correct type.
-  const OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t ndp = OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL;
   // Check that calling the NULL decc routine with bad args fails.
-  AssertIsTrue(!ndp(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL));
+  AssertIsTrue(!d(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL));
   // Decode the ciphertext and tag from above and ensure that it 'works'.
   uint8_t plaintext1Decoded[32];
-  AssertIsTrue(ndp(NULL, zeroKey, nonce1, authtext1, sizeof(authtext1), co1, to1, plaintext1Decoded));
+  AssertIsTrue(d(NULL, zeroKey, nonce1, authtext1, sizeof(authtext1), co1, to1, plaintext1Decoded));
   AssertIsEqual(0, memcmp(plaintext1, plaintext1Decoded, 32));
+  }
+
+
+
+
+
+//static OTAESGCM::OTAES128GCMGeneric<> ed; // FIXME: ensure state is cleared afterwards.
+//
+//bool fixed32Be(void *,
+//        const uint8_t *key, const uint8_t *iv,
+//        const uint8_t *authtext, uint8_t authtextSize,
+//        const uint8_t *plaintext,
+//        uint8_t *ciphertextOut, uint8_t *tagOut)
+//  {
+//  if((NULL == key) || (NULL == iv) ||
+//     (NULL == plaintext) || (NULL == ciphertextOut) || (NULL == tagOut)) { return(false); } // ERROR
+//  return(ed.gcmEncrypt(key, iv, plaintext, 32, authtext, authtextSize, ciphertextOut, tagOut));
+//  }
+//
+//bool fixed32Bd(void *state,
+//        const uint8_t *key, const uint8_t *iv,
+//        const uint8_t *authtext, uint8_t authtextSize,
+//        const uint8_t *ciphertext, const uint8_t *tag,
+//        uint8_t *plaintextOut)
+//  {
+//  if((NULL == key) || (NULL == iv) ||
+//     (NULL == ciphertext) || (NULL == tag) || (NULL == tag)) { return(false); } // ERROR
+//  return(ed.gcmDecrypt(key, iv, ciphertext, 32, authtext, authtextSize, tag, plaintextOut));
+//  }
+
+// Test a simple fixed-size enc/dec function pair.
+// Aborts with Assert...() in case of failure.
+static void runSimpleEncDec(const OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                            const OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d)
+  {
+  // Check that calling the NULL enc routine with bad args fails.
+  AssertIsTrue(!e(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL));
+  static const uint8_t plaintext1[32] = { 'a', 'b', 'c', 'd', 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4 };
+  static const uint8_t nonce1[12] = { 'q', 'u', 'i', 'c', 'k', ' ', 6, 5, 4, 3, 2, 1 };
+  static const uint8_t authtext1[2] = { 'H', 'i' };
+  // Output ciphertext and tag buffers.
+  uint8_t co1[32], to1[16];
+  AssertIsTrue(e(NULL, zeroKey, nonce1, authtext1, sizeof(authtext1), plaintext1, co1, to1));
+  // Check that calling the NULL decc routine with bad args fails.
+  AssertIsTrue(!d(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL));
+  // Decode the ciphertext and tag from above and ensure that it 'works'.
+  uint8_t plaintext1Decoded[32];
+  AssertIsTrue(d(NULL, zeroKey, nonce1, authtext1, sizeof(authtext1), co1, to1, plaintext1Decoded));
+  AssertIsEqual(0, memcmp(plaintext1, plaintext1Decoded, 32));
+  }
+
+// Test basic access to crypto features.
+// Check basic operation of the simple fixed-sized encode/decode routines.
+static void testCryptoAccess()
+  {
+  Serial.println("CryptoAccess");
+  // NULL enc/dec.
+  runSimpleEncDec(OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL,
+                  OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL);
+//  // AES-GCM 128-bit key enc/dec with static state.
+//  runSimpleEncDec(fixed32Be,
+//                  fixed32Bd);
+  // AES-GCM 128-bit key enc/dec.
+  runSimpleEncDec(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS,
+                  OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS);
   }
 
 
@@ -573,6 +616,7 @@ void loop()
   testFrameHeaderDecoding();
   testInsecureFrameCRC();
   testSimplePadding();
+  testSimpleNULLEncDec();
   testCryptoAccess();
   testGCMVS1ViaFixed32BTextSize();
 
@@ -586,5 +630,6 @@ void loop()
   Serial.println();
   Serial.println();
   Serial.println();
+  Serial.flush();
   delay(2000);
   }
