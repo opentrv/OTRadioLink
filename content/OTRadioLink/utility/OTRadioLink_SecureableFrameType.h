@@ -251,6 +251,14 @@ namespace OTRadioLink
         // (including, and with a value one higher than the first 'fl' bytes).
         // Returns zero in case of error.
         // The supplied buffer may have to be up to 64 bytes long.
+        //
+        // Parameters:
+        //  * buf  buffer containing the entire frame except trailer/CRC; never NULL
+        //  * buflen  available length in buf; if too small then this routine will fail (return 0)
+        //  * fType_  frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
+        //  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
+        //  * id_ / il_  ID bytes (and length) to go in the header
+        //  * body / bl_  body data (and length)
         uint8_t encodeNonsecureSmallFrame(uint8_t *buf, uint8_t buflen,
                                             FrameType_Secureable fType_,
                                             uint8_t seqNum_,
@@ -359,6 +367,7 @@ namespace OTRadioLink
                 uint8_t *plaintextOut);
 
         // Compose (encode) entire secure small frame from header params, body and CRC trailer.
+        // This is a raw/partial impl that requires the IV/nonce to be supplied.
         // This uses fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t style encryption/authentication.
         // The matching decryption function should be used for decoding/verifying.
         // The crypto method may need to vary based on frame type,
@@ -367,12 +376,23 @@ namespace OTRadioLink
         // (including, and with a value one higher than the first 'fl' bytes).
         // Returns zero in case of error.
         // The supplied buffer may have to be up to 64 bytes long.
-        uint8_t encodeSecureSmallFrame(uint8_t *buf, uint8_t buflen,
-                                            FrameType_Secureable fType_,
-                                            uint8_t seqNum_,
-                                            const uint8_t *id_, uint8_t il_,
-                                            const uint8_t *body, uint8_t bl_,
-                                            const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t *e);
+        //
+        // Parameters:
+        //  * buf  buffer containing the entire frame except trailer/CRC; never NULL
+        //  * buflen  available length in buf; if too small then this routine will fail (return 0)
+        //  * fType_  frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
+        //  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
+        //  * id_ / il_  ID bytes (and length) to go in the header
+        //  * body / bl_  body data (and length)
+        //  * iv  12-byte initialisation vector / nonce; never NULL
+        //  * e  encryption function; never NULL
+        uint8_t encodeSecureSmallFrameRaw(uint8_t *buf, uint8_t buflen,
+                                        FrameType_Secureable fType_,
+                                        uint8_t seqNum_,
+                                        const uint8_t *id_, uint8_t il_,
+                                        const uint8_t *body, uint8_t bl_,
+                                        const uint8_t *iv,
+                                        const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t *e);
 
     }
 

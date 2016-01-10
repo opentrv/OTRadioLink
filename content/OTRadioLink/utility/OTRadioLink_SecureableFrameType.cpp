@@ -288,6 +288,72 @@ uint8_t encodeNonsecureSmallFrame(uint8_t *const buf, const uint8_t buflen,
     }
 
 
+// Compose (encode) entire secure small frame from header params, body and CRC trailer.
+// This is a raw/partial impl that requires the IV/nonce to be supplied.
+// This uses fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t style encryption/authentication.
+// The matching decryption function should be used for decoding/verifying.
+// The crypto method may need to vary based on frame type,
+// and on negotiations between the participants in the communications.
+// Returns the total number of bytes written out for the frame
+// (including, and with a value one higher than the first 'fl' bytes).
+// Returns zero in case of error.
+// The supplied buffer may have to be up to 64 bytes long.
+//
+// Parameters:
+//  * buf  buffer containing the entire frame except trailer/CRC; never NULL
+//  * buflen  available length in buf; if too small then this routine will fail (return 0)
+//  * fType_  frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
+//  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
+//  * id_ / il_  ID bytes (and length) to go in the header
+//  * body / bl_  body data (and length), before padding/encryption
+//  * iv  12-byte initialisation vector / nonce; never NULL
+//  * e  encryption function; never NULL
+uint8_t encodeSecureSmallFrameRaw(uint8_t *const buf, const uint8_t buflen,
+                                const FrameType_Secureable fType_,
+                                const uint8_t seqNum_,
+                                const uint8_t *const id_, const uint8_t il_,
+                                const uint8_t *const body, const uint8_t bl_,
+                                const uint8_t *const iv,
+                                const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t *e)
+    {
+    if((NULL == iv) || (NULL == e)) { return(0); } // ERROR
+    // Stop if unencrypted body is too big.
+    if(bl_ > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
+    const uint8_t encryptedBodyLength = (0 == bl_) ? 0 : ENC_BODY_SMALL_FIXED_CTEXT_SIZE;
+    // Let checkAndEncodeSmallFrameHeader() validate buf and id_.
+    // If necessary (bl_ > 0) body is validated below.
+    OTRadioLink::SecurableFrameHeader sfh;
+    const uint8_t hl = sfh.checkAndEncodeSmallFrameHeader(buf, buflen,
+                                               false, fType_, // Not secure.
+                                               seqNum_,
+                                               id_, il_,
+                                               encryptedBodyLength,
+                                               23); // 23-byte authentication trailer.
+    // Fail if header encoding fails.
+    if(0 == hl) { return(0); } // ERROR
+    // Fail if buffer is not large enough to accommodate full frame.
+    const uint8_t fl = sfh.fl;
+    if(fl >= buflen) { return(0); } // ERROR
+    // If body is too big to be encoded, fail.
+
+    // Copy across and pad body, if any.
+    if(bl_ > 0)
+        {
+        if(NULL == body) { return(0); } // ERROR
+        const uint8_t bodyOffset = buf + sfh.getBodyOffset();
+        memcpy(bodyOffset, body, bl_);
+        if(0 == addPaddingTo32BTrailing0sAndPadCount(bodyOffset, bl_)) { return(0); } // ERROR
+        // TODO: encrypt the body...
+        }
+
+    // TODO: copy the tag and nonce/iv into the trailer...
+
+    buf[fl] = 0x80; // Indicates this 128-bit AES-GCM encryption/authentication type.
+    // Done.
+    return(fl + 1);
+    }
+
+
 // Pads plain-text in place prior to encryption with 32-byte fixed length padded output.
 // Simple method that allows unpadding at receiver, does padding in place.
 // Padded size is (ENC_BODY_SMALL_FIXED_CTEXT_SIZE) 32, maximum unpadded size is 31.
