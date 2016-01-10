@@ -397,7 +397,7 @@ namespace OTRadioLink
                                         const uint8_t *id_, uint8_t il_,
                                         const uint8_t *body, uint8_t bl_,
                                         const uint8_t *iv,
-                                        const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t *e,
+                                        fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t *e,
                                         void *state, const uint8_t *key);
 
     }

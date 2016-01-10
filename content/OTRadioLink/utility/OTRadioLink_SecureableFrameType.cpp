@@ -316,7 +316,7 @@ uint8_t encodeSecureSmallFrameRaw(uint8_t *const buf, const uint8_t buflen,
                                 const uint8_t *const id_, const uint8_t il_,
                                 const uint8_t *const body, const uint8_t bl_,
                                 const uint8_t *const iv,
-                                const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t *e,
+                                fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t *const e,
                                 void *state, const uint8_t *const key)
     {
     if((NULL == iv) || (NULL == e) || (NULL == key)) { return(0); } // ERROR

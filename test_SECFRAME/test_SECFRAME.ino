@@ -366,9 +366,9 @@ static void testFrameHeaderDecoding()
   }
 
 // Test CRC computation for insecure frames.
-static void testInsecureFrameCRC()
+static void testNonsecureFrameCRC()
   {
-  Serial.println("InsecureFrameCRC");
+  Serial.println("NonsecureFrameCRC");
   OTRadioLink::SecurableFrameHeader sfh;
   //
   // Test vector 1 / example from the spec.
@@ -411,11 +411,10 @@ static void testInsecureFrameCRC()
   AssertIsEqual(0x61, sfh.computeNonSecureFrameCRC(buf2, sizeof(buf2)));
   }
 
-// Test encoding of entire non-secire frame for TX.
+// Test encoding of entire non-secure frame for TX.
 static void testNonSecureSmallFrameEncoding()
   {
   Serial.println("NonSecureSmallFrameEncoding");
-  OTRadioLink::SecurableFrameHeader sfh;
   uint8_t buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize];
   //
   // Test vector 1 / example from the spec.
@@ -484,7 +483,7 @@ static void testSimpleNULLEncDec()
   const OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e = OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL;
   const OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d = OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL;
   // Check that calling the NULL enc routine with bad args fails.
-  AssertIsTrue(!e(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL));
+  AssertIsTrue(!e(NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL));
   static const uint8_t plaintext1[32] = { 'a', 'b', 'c', 'd', 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4 };
   static const uint8_t nonce1[12] = { 'q', 'u', 'i', 'c', 'k', ' ', 6, 5, 4, 3, 2, 1 };
   static const uint8_t authtext1[2] = { 'H', 'i' };
@@ -496,7 +495,7 @@ static void testSimpleNULLEncDec()
   AssertIsEqual(0, to1[12]);
   AssertIsEqual(0, to1[15]);
   // Check that calling the NULL decc routine with bad args fails.
-  AssertIsTrue(!d(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL));
+  AssertIsTrue(!d(NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL));
   // Decode the ciphertext and tag from above and ensure that it 'works'.
   uint8_t plaintext1Decoded[32];
   AssertIsTrue(d(NULL, zeroKey, nonce1, authtext1, sizeof(authtext1), co1, to1, plaintext1Decoded));
@@ -537,7 +536,7 @@ static void runSimpleEncDec(const OTRadioLink::fixed32BTextSize12BNonce16BTagSim
                             const OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d)
   {
   // Check that calling the NULL enc routine with bad args fails.
-  AssertIsTrue(!e(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL));
+  AssertIsTrue(!e(NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL));
   static const uint8_t plaintext1[32] = { 'a', 'b', 'c', 'd', 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4 };
   static const uint8_t nonce1[12] = { 'q', 'u', 'i', 'c', 'k', ' ', 6, 5, 4, 3, 2, 1 };
   static const uint8_t authtext1[2] = { 'H', 'i' };
@@ -545,7 +544,7 @@ static void runSimpleEncDec(const OTRadioLink::fixed32BTextSize12BNonce16BTagSim
   uint8_t co1[32], to1[16];
   AssertIsTrue(e(NULL, zeroKey, nonce1, authtext1, sizeof(authtext1), plaintext1, co1, to1));
   // Check that calling the NULL decc routine with bad args fails.
-  AssertIsTrue(!d(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL));
+  AssertIsTrue(!d(NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL));
   // Decode the ciphertext and tag from above and ensure that it 'works'.
   uint8_t plaintext1Decoded[32];
   AssertIsTrue(d(NULL, zeroKey, nonce1, authtext1, sizeof(authtext1), co1, to1, plaintext1Decoded));
@@ -623,6 +622,57 @@ static void testGCMVS1ViaFixed32BTextSize()
   AssertIsEqual(0, memcmp(input, inputDecoded, 32));
   }
 
+// Test encoding of entire secure frame for TX.
+static void testSecureSmallFrameEncoding()
+  {
+  Serial.println("SecureSmallFrameEncoding");
+  uint8_t buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize];
+  //Example 3: secure, no valve, representative minimum stats {"b":1}).
+  //In this case the frame sequence number is zero,
+  //and the ID is 0xaa 0xaa 0xaa 0xaa (transmitted) with the next ID bytes 0x55 0x55.
+  //ResetCounter = 42
+  //TxMsgCounter = 793
+  //(Thus nonce/IV: aa aa aa aa 55 55 00 00 2a 00 03 19)
+  //
+  //3f cf 04 aa aa aa aa 20 | b3 45 f9 29 69 57 0c b8 28 66 14 b4 f0 69 b0 08 71 da d8 fe 47 c1 c3 53 83 48 88 03 7d 58 75 75 | 00 00 2a 00 03 19 d9 07 51 06 e1 40 ff 29 84 df 71 c0 48 10 c7 fc 80 
+  //
+  //3f  length of header (63) after length byte 5 + (encrypted) body 32 + trailer 32
+  //cf  'O' secure OpenTRV basic frame
+  //04  0 sequence number, ID length 4
+  //aa  ID byte 1
+  //aa  ID byte 2
+  //aa  ID byte 3
+  //aa  ID byte 4
+  //20  body length 32 (after padding and encryption)
+  //    Plaintext body (length 8): 0x7f 0x11 { " b " : 1 
+  //    Padded: 7f 11 7b 22 62 22 3a 31 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 17
+  //b3 45 f9 ... 58 75 75  32 bytes of encrypted body
+  //00 00 2a  reset counter
+  //00 03 19  message counter
+  //d9 07 51 ... 10 c7 fc  16 bytes of authentication tag
+  //80  enc/auth type/format indicator.
+  const uint8_t id[] = { 0xaa, 0xaa, 0xaa, 0xaa };
+  const uint8_t iv[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55, 0x00, 0x00, 0x2a, 0x00, 0x03, 0x19 };
+  const uint8_t body[] = { 0x7f, 0x11, 0x7b, 0x22, 0x62, 0x22, 0x3a, 0x31 };
+  AssertIsEqual(63, OTRadioLink::encodeSecureSmallFrameRaw(buf, sizeof(buf),
+                                    OTRadioLink::FTS_BasicSensorOrValve,
+                                    0,
+                                    id, 4,
+                                    body, sizeof(body),
+                                    iv,
+                                    OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS,
+                                    NULL, zeroKey));
+  AssertIsEqual(0x08, buf[0]);
+  AssertIsEqual(0x4f, buf[1]);
+  AssertIsEqual(0x02, buf[2]);
+  AssertIsEqual(0x80, buf[3]);
+  AssertIsEqual(0x81, buf[4]);
+  AssertIsEqual(0x02, buf[5]);
+  AssertIsEqual(0x00, buf[6]);
+  AssertIsEqual(0x01, buf[7]);
+  AssertIsEqual(0x23, buf[8]);
+  }
+
 
 // TODO: test with EEPROM ID source (id_ == NULL) ...
 // TODO: add EEPROM prefill static routine and pad 1st trailing byte with 0xff.
@@ -652,12 +702,13 @@ void loop()
   testFrameQIC();
   testFrameHeaderEncoding();
   testFrameHeaderDecoding();
-  testInsecureFrameCRC();
+  testNonsecureFrameCRC();
   testNonSecureSmallFrameEncoding();
   testSimplePadding();
   testSimpleNULLEncDec();
   testCryptoAccess();
   testGCMVS1ViaFixed32BTextSize();
+  testSecureSmallFrameEncoding();
 
 
 
