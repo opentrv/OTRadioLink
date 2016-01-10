@@ -476,6 +476,10 @@ static void testCryptoAccess()
   AssertIsEqual(0, memcmp(nonce1, to1, 12));
   AssertIsEqual(0, to1[12]);
   AssertIsEqual(0, to1[15]);
+  // Check NULL dec routine is correct type.
+  const OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t ndp = OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL;
+  // Check that calling the NULL decc routine with bad args fails.
+  AssertIsTrue(!ndp(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL));
   }
 
 

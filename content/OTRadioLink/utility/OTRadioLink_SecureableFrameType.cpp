@@ -285,23 +285,44 @@ uint8_t removePaddingTo32BTrailing0sAndPadCount(const uint8_t *const buf)
 //
 // Does not use state so that pointer may be NULL but all others must be non-NULL.
 // Copies the plaintext to the ciphertext.
-// Copies the nonce to the tag and pads with trailing zeros.
+// Copies the nonce/IV to the tag and pads with trailing zeros.
 // The key is ignored (though one must be supplied).
 bool fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL(void * const state,
-        const uint8_t *const key, const uint8_t *const nonce,
+        const uint8_t *const key, const uint8_t *const iv,
         const uint8_t *const authtext, const uint8_t authtextSize,
         const uint8_t *const plaintext,
         uint8_t *const ciphertextOut, uint8_t *const tagOut)
     {
     // Does not use state, but checks that all other pointers are non-NULL.
-    if((NULL == key) || (NULL == nonce) || (NULL == authtext) || (NULL == plaintext) ||
+    if((NULL == key) || (NULL == iv) || (NULL == authtext) || (NULL == plaintext) ||
        (NULL == ciphertextOut) || (NULL == tagOut)) { return(false); } // ERROR
     // Copy the plaintext to the ciphertext, and the nonce to the tag padded with trailing zeros.
     memcpy(ciphertextOut, plaintext, 32);
-    memcpy(tagOut, nonce, 12);
+    memcpy(tagOut, iv, 12);
     memset(tagOut+12, 0, 4);
     // Done.
     return(true);
+    }
+
+// NULL basic fixed-size text 'decryption' function.
+// DOES NOT DECRYPT OR AUTHENTICATE SO DO NOT USE IN PRODUCTION SYSTEMS.
+// Emulates some aspects of the process to test real implementations against,
+// and that some possible gross errors in the use of the crypto are absent.
+// Returns true on success, false on failure.
+//
+// Does not use state so that pointer may be NULL but all others must be non-NULL.
+// Copies the ciphertext to the plaintext.
+// Verifies that the tag seems to have been constructed appropriately.
+bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(void *const state,
+        const uint8_t *const key, const uint8_t *const iv,
+        const uint8_t *const authtext, const uint8_t authtextSize,
+        const uint8_t *const ciphertext, const uint8_t *const tag,
+        uint8_t *const plaintextOut)
+    {
+    // Does not use state, but checks that all other pointers are non-NULL.
+    if((NULL == key) || (NULL == iv) || (NULL == authtext) || (NULL == ciphertext) || (NULL == tag) ||
+       (NULL == plaintextOut)) { return(false); } // ERROR
+    return(false); // FAIL FIXME
     }
 
 
