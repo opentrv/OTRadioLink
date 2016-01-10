@@ -304,6 +304,7 @@ namespace OTRadioLink
         // a multiple of the cipher's block size,
         // which implies likely requirement for padding of the plain text.
         // Note that the authenticated text size is not fixed, ie is zero or more bytes.
+        // Decrypts/authenticates the output of a fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t function.)
         // Returns true on success, false on failure.
         typedef bool (*fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t)(void *state,
                 const uint8_t *key, const uint8_t *iv,
