@@ -292,6 +292,25 @@ namespace OTRadioLink
                 const uint8_t *plaintext,
                 uint8_t *ciphertextOut, uint8_t *tagOut);
 
+        // Signature of pointer to basic fixed-size text decryption/authentication function.
+        // (Suitable for type 'O' valve/sensor small frame for example.)
+        // Can be fulfilled by AES-128-GCM for example
+        // where:
+        //   * textSize is 32
+        //   * keySize is 16
+        //   * nonceSize is 12
+        //   * tagSize is 16
+        // The plain-text (and identical cipher-text) size is picked to be
+        // a multiple of the cipher's block size,
+        // which implies likely requirement for padding of the plain text.
+        // Note that the authenticated text size is not fixed, ie is zero or more bytes.
+        // Returns true on success, false on failure.
+        typedef bool (*fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t)(void *state,
+                const uint8_t *key, const uint8_t *iv,
+                const uint8_t *authtext, uint8_t authtextSize,
+                const uint8_t *ciphertext, const uint8_t *tag,
+                uint8_t *plaintextOut);
+
 
         // NULL basic fixed-size text 'encryption' function.
         // DOES NOT ENCRYPT OR AUTHENTICATE SO DO NOT USE IN PRODUCTION SYSTEMS.
@@ -302,12 +321,27 @@ namespace OTRadioLink
         // Does not use state so that pointer may be NULL but all others must be non-NULL.
         // Copies the plaintext to the ciphertext.
         // Copies the nonce to the tag and pads with trailing zeros.
-        // The key is ignored (though one must be supplied).
+        // The key is not used (though one must be supplied).
         bool fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL(void *state,
                 const uint8_t *key, const uint8_t *iv,
                 const uint8_t *authtext, uint8_t authtextSize,
                 const uint8_t *plaintext,
                 uint8_t *ciphertextOut, uint8_t *tagOut);
+
+        // NULL basic fixed-size text 'decryption' function.
+        // DOES NOT DECRYPT OR AUTHENTICATE SO DO NOT USE IN PRODUCTION SYSTEMS.
+        // Emulates some aspects of the process to test real implementations against,
+        // and that some possible gross errors in the use of the crypto are absent.
+        // Returns true on success, false on failure.
+        //
+        // Does not use state so that pointer may be NULL but all others must be non-NULL.
+        // Copies the ciphertext to the plaintext.
+        // Verifies that the tag seems to have been constructed appropriately.
+        bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(void *state,
+                const uint8_t *key, const uint8_t *iv,
+                const uint8_t *authtext, uint8_t authtextSize,
+                const uint8_t *ciphertext, const uint8_t *tag,
+                uint8_t *plaintextOut);
     }
 
 
