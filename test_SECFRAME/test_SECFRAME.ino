@@ -529,7 +529,6 @@ static void testCryptoAccess()
                   OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS);
   }
 
-
 // Check using NIST GCMVS test vector.
 // Test via fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS interface.
 // See http://csrc.nist.gov/groups/STM/cavp/documents/mac/gcmvs.pdf

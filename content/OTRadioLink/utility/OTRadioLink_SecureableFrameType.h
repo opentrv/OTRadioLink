@@ -244,6 +244,16 @@ namespace OTRadioLink
         uint8_t computeNonSecureFrameCRC(const uint8_t *buf, uint8_t buflen) const;
         };
 
+        // Compose (encode) entire non-secure small frame from header params, body and CRC trailer.
+        // Returns the total number of bytes written out for the frame
+        // (including, and with a value one higher than the first 'fl' bytes).
+        // Returns zero in case of error.
+        // The supplied buffer may have to be up to 64 bytes long.
+        uint8_t encodeNonsecureSmallFrame(uint8_t *buf, uint8_t buflen,
+                                            FrameType_Secureable fType_,
+                                            uint8_t seqNum_,
+                                            uint8_t il_, const uint8_t *id_,
+                                            const uint8_t *body, uint8_t bl_);
 
 //        // Round up to next 16 multiple, eg for encryption that works in fixed-size blocks for input [0,240].
 //        // Eg 0 -> 0, 1 -> 16, ... 16 -> 16, 17 -> 32 ...
