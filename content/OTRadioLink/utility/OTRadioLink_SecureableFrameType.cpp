@@ -305,18 +305,21 @@ uint8_t encodeNonsecureSmallFrame(uint8_t *const buf, const uint8_t buflen,
 //  * fType_  frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
 //  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
 //  * id_ / il_  ID bytes (and length) to go in the header
-//  * body / bl_  body data (and length), before padding/encryption
+//  * body / bl_  body data (and length), before padding/encryption, no larger than ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE
 //  * iv  12-byte initialisation vector / nonce; never NULL
 //  * e  encryption function; never NULL
+//  * state  pointer to state for e, if required, else NULL
+//  * key  secret key; never NULL
 uint8_t encodeSecureSmallFrameRaw(uint8_t *const buf, const uint8_t buflen,
                                 const FrameType_Secureable fType_,
                                 const uint8_t seqNum_,
                                 const uint8_t *const id_, const uint8_t il_,
                                 const uint8_t *const body, const uint8_t bl_,
                                 const uint8_t *const iv,
-                                const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t *e)
+                                const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t *e,
+                                void *state, const uint8_t *const key)
     {
-    if((NULL == iv) || (NULL == e)) { return(0); } // ERROR
+    if((NULL == iv) || (NULL == e) || (NULL == key)) { return(0); } // ERROR
     // Stop if unencrypted body is too big.
     if(bl_ > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
     const uint8_t encryptedBodyLength = (0 == bl_) ? 0 : ENC_BODY_SMALL_FIXED_CTEXT_SIZE;
@@ -336,17 +339,21 @@ uint8_t encodeSecureSmallFrameRaw(uint8_t *const buf, const uint8_t buflen,
     if(fl >= buflen) { return(0); } // ERROR
     // If body is too big to be encoded, fail.
 
-    // Copy across and pad body, if any.
+    // Pad body and copy into place, if any.
+    uint8_t paddingBuf[32];
     if(bl_ > 0)
         {
         if(NULL == body) { return(0); } // ERROR
-        const uint8_t bodyOffset = buf + sfh.getBodyOffset();
-        memcpy(bodyOffset, body, bl_);
-        if(0 == addPaddingTo32BTrailing0sAndPadCount(bodyOffset, bl_)) { return(0); } // ERROR
-        // TODO: encrypt the body...
+        memcpy(paddingBuf, body, bl_);
+        if(0 == addPaddingTo32BTrailing0sAndPadCount(paddingBuf, bl_)) { return(0); } // ERROR
         }
 
-    // TODO: copy the tag and nonce/iv into the trailer...
+    const uint8_t hl = sfh.getHl();
+    // Encrypt body (if any) directly into the buffer.
+    // Insert the tag directly into the buffer (before the final byte).
+    if(!e(state, key, iv, buf, hl, (0 == bl_) ? NULL : paddingBuf, buf + hl, buf[fl - 16])) { return(0); } // ERROR
+
+    // TODO: copy part of the nonce/iv into the trailer...
 
     buf[fl] = 0x80; // Indicates this 128-bit AES-GCM encryption/authentication type.
     // Done.

@@ -152,10 +152,13 @@ namespace OTRadioLink
         const static uint8_t maxIDLength = 8;
         uint8_t id[maxIDLength];
 
+        // Get header length including the leading frame-length byte.
+        inline uint8_t getHl() const { return(4 + getIl()); }
+
         // Body length including any padding [0,251] but generally << 60.
         uint8_t bl;
         // Compute the offset of the body from the start of the frame starting wth nominal fl byte.
-        uint8_t getBodyOffset() const { return(4 + getIl()); }
+        inline uint8_t getBodyOffset() const { return(getHl()); }
 
         // Compute tl (trailer length) [1,251]; must == 1 for insecure frame.
         // Other fields must be valid for this to return a valid answer.
@@ -297,12 +300,12 @@ namespace OTRadioLink
         // (Suitable for type 'O' valve/sensor small frame for example.)
         // Can be fulfilled by AES-128-GCM for example
         // where:
-        //   * textSize is 32
+        //   * textSize is 32 (or zero if plaintext is NULL)
         //   * keySize is 16
         //   * nonceSize is 12
         //   * tagSize is 16
         // The plain-text (and identical cipher-text) size is picked to be
-        // a multiple of the cipher's block size,
+        // a multiple of the cipher's block size, or zero,
         // which implies likely requirement for padding of the plain text.
         // Note that the authenticated text size is not fixed, ie is zero or more bytes.
         // Returns true on success, false on failure.
@@ -316,12 +319,12 @@ namespace OTRadioLink
         // (Suitable for type 'O' valve/sensor small frame for example.)
         // Can be fulfilled by AES-128-GCM for example
         // where:
-        //   * textSize is 32
+        //   * textSize is 32 (or zero if ciphertext is NULL)
         //   * keySize is 16
         //   * nonceSize is 12
         //   * tagSize is 16
         // The plain-text (and identical cipher-text) size is picked to be
-        // a multiple of the cipher's block size,
+        // a multiple of the cipher's block size, or zero,
         // which implies likely requirement for padding of the plain text.
         // Note that the authenticated text size is not fixed, ie is zero or more bytes.
         // Decrypts/authenticates the output of a fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t function.)
@@ -383,16 +386,19 @@ namespace OTRadioLink
         //  * fType_  frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
         //  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
         //  * id_ / il_  ID bytes (and length) to go in the header
-        //  * body / bl_  body data (and length)
+        //  * body / bl_  body data (and length), before padding/encryption, no larger than ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE
         //  * iv  12-byte initialisation vector / nonce; never NULL
         //  * e  encryption function; never NULL
+        //  * state  pointer to state for e, if required, else NULL
+        //  * key  secret key; never NULL
         uint8_t encodeSecureSmallFrameRaw(uint8_t *buf, uint8_t buflen,
                                         FrameType_Secureable fType_,
                                         uint8_t seqNum_,
                                         const uint8_t *id_, uint8_t il_,
                                         const uint8_t *body, uint8_t bl_,
                                         const uint8_t *iv,
-                                        const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t *e);
+                                        const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t *e,
+                                        void *state, const uint8_t *key);
 
     }
 
