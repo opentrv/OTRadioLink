@@ -311,6 +311,7 @@ bool fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL(void * const state,
 // Returns true on success, false on failure.
 //
 // Does not use state so that pointer may be NULL but all others must be non-NULL.
+// Undoes/checks fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL().
 // Copies the ciphertext to the plaintext.
 // Verifies that the tag seems to have been constructed appropriately.
 bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(void *const state,
@@ -322,7 +323,12 @@ bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(void *const state,
     // Does not use state, but checks that all other pointers are non-NULL.
     if((NULL == key) || (NULL == iv) || (NULL == authtext) || (NULL == ciphertext) || (NULL == tag) ||
        (NULL == plaintextOut)) { return(false); } // ERROR
-    return(false); // FAIL FIXME
+    // Verify that the first and last bytes of the tag look correct.
+    if((tag[0] != iv[0]) || (0 != tag[15])) { return(false); } // ERROR
+    // Copy the ciphertext to the plaintext.
+    memcpy(plaintextOut, ciphertext, 32);
+    // Done.
+    return(true);
     }
 
 

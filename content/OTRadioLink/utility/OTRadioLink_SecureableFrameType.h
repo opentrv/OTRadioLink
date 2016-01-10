@@ -335,6 +335,8 @@ namespace OTRadioLink
         // Returns true on success, false on failure.
         //
         // Does not use state so that pointer may be NULL but all others must be non-NULL.
+        // Undoes/checks fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL().
+        // Undoes/checks fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL().
         // Copies the ciphertext to the plaintext.
         // Verifies that the tag seems to have been constructed appropriately.
         bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(void *state,
