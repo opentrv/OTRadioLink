@@ -435,20 +435,20 @@ static void testNonSecureSmallFrameEncoding()
   //23 CRC value
   const uint8_t id[] =  { 0x80, 0x81 };
   const uint8_t body[] = { 0x00, 0x01 };
-//  AssertIsEqual(9, OTRadioLink::encodeNonsecureSmallFrame(buf, sizeof(buf),
-//                                    OTRadioLink::FTS_BasicSensorOrValve,
-//                                    0,
-//                                    id, 2,
-//                                    body, 2));
-//  AssertIsEqual(0x08, buf[0]);
-//  AssertIsEqual(0x4f, buf[1]);
-//  AssertIsEqual(0x02, buf[2]);
-//  AssertIsEqual(0x80, buf[3]);
-//  AssertIsEqual(0x81, buf[4]);
-//  AssertIsEqual(0x02, buf[5]);
-//  AssertIsEqual(0x00, buf[6]);
-//  AssertIsEqual(0x01, buf[7]);
-//  AssertIsEqual(0x23, buf[8]);
+  AssertIsEqual(9, OTRadioLink::encodeNonsecureSmallFrame(buf, sizeof(buf),
+                                    OTRadioLink::FTS_BasicSensorOrValve,
+                                    0,
+                                    id, 2,
+                                    body, 2));
+  AssertIsEqual(0x08, buf[0]);
+  AssertIsEqual(0x4f, buf[1]);
+  AssertIsEqual(0x02, buf[2]);
+  AssertIsEqual(0x80, buf[3]);
+  AssertIsEqual(0x81, buf[4]);
+  AssertIsEqual(0x02, buf[5]);
+  AssertIsEqual(0x00, buf[6]);
+  AssertIsEqual(0x01, buf[7]);
+  AssertIsEqual(0x23, buf[8]);
   }
 
 // Test simple plain-text padding for encryption.

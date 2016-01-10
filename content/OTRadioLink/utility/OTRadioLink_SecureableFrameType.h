@@ -233,10 +233,11 @@ namespace OTRadioLink
         uint8_t checkAndDecodeSmallFrameHeader(const uint8_t *buf, uint8_t buflen);
 
         // Compute and return CRC for non-secure frames; 0 indicates an error.
-        // This is the value that should be at getTrailerOffset().
+        // This is the value that should be at getTrailerOffset() / offset fl.
         // Can be called after checkAndEncodeSmallFrameHeader() or checkAndDecodeSmallFrameHeader()
         // to compute the correct CRC value;
         // the equality check (on decode) or write (on encode) will then need to be done.
+        // Note that the body must already be in place in the buffer.
         //
         // Parameters:
         //  * buf  buffer containing the entire frame except trailer/CRC; never NULL

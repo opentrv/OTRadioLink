@@ -191,8 +191,12 @@ uint8_t SecurableFrameHeader::checkAndDecodeSmallFrameHeader(const uint8_t *cons
     const uint8_t hlifl = 4 + il_;
     // If buffer doesn't contain enough data for the full header then return an error.
     if(hlifl > buflen) { return(0); } // ERROR
-    // Capture the ID bytes.
-    memcpy(id, buf+3, il_);
+    // Capture the ID bytes, if any.
+    if(il_ > 0)
+        {
+        if(NULL == id) { return(0); } // ERROR
+        memcpy(id, buf+3, il_);
+        }
     //  6) bl <= fl - 4 - il (body length; minimum of 4 bytes of other overhead)
     const uint8_t bl_ = buf[hlifl - 1];
     if(bl_ > fl_ - hlifl) { return(0); } // ERROR
@@ -219,10 +223,15 @@ uint8_t SecurableFrameHeader::checkAndDecodeSmallFrameHeader(const uint8_t *cons
     }
 
 // Compute and return CRC for non-secure frames; 0 indicates an error.
-// This is the value that should be at getTrailerOffset().
+// This is the value that should be at getTrailerOffset() / offset fl.
 // Can be called after checkAndEncodeSmallFrameHeader() or checkAndDecodeSmallFrameHeader()
-// to compute the correct 7-bit CRC value (which can never be 0x00 or 0xff);
+// to compute the correct CRC value;
 // the equality check (on decode) or write (on encode) will then need to be done.
+// Note that the body must already be in place in the buffer.
+//
+// Parameters:
+//  * buf  buffer containing the entire frame except trailer/CRC; never NULL
+//  * buflen  available length in buf; if too small then this routine will fail (return 0)
 uint8_t SecurableFrameHeader::computeNonSecureFrameCRC(const uint8_t *const buf, uint8_t buflen) const
     {
     // Check that struct has been computed.
@@ -251,8 +260,33 @@ uint8_t encodeNonsecureSmallFrame(uint8_t *const buf, const uint8_t buflen,
                                     const uint8_t *const id_, const uint8_t il_,
                                     const uint8_t *const body, const uint8_t bl_)
     {
-    return(0); // FAIL FIXME
+    // Let checkAndEncodeSmallFrameHeader() validate buf and id_.
+    // If necessary (bl_ > 0) body is validated below.
+    OTRadioLink::SecurableFrameHeader sfh;
+    const uint8_t hl = sfh.checkAndEncodeSmallFrameHeader(buf, buflen,
+                                               false, fType_, // Not secure.
+                                               seqNum_,
+                                               id_, il_,
+                                               bl_,
+                                               1); // 1-byte CRC trailer.
+    // Fail if header encoding fails.
+    if(0 == hl) { return(0); } // ERROR
+    // Fail if buffer is not large enough to accommodate full frame.
+    const uint8_t fl = sfh.fl;
+    if(fl >= buflen) { return(0); } // ERROR
+    // Copy in body, if any.
+    if(bl_ > 0)
+        {
+        if(NULL == body) { return(0); } // ERROR
+        memcpy(buf + sfh.getBodyOffset(), body, bl_);
+        }
+    // Compute and write in the CRC trailer...
+    const uint8_t crc = sfh.computeNonSecureFrameCRC(buf, buflen);
+    buf[fl] = crc;
+    // Done.
+    return(fl + 1);
     }
+
 
 // Pads plain-text in place prior to encryption with 32-byte fixed length padded output.
 // Simple method that allows unpadding at receiver, does padding in place.
