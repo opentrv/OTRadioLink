@@ -135,68 +135,68 @@ static void testFrameQIC()
   AssertIsEqual(0, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
                                                false, OTRadioLink::FTS_BasicSensorOrValve,
                                                OTV0P2BASE::randRNG8(),
-                                               OTRadioLink::SecurableFrameHeader::maxIDLength + 1, id,
+                                               id, OTRadioLink::SecurableFrameHeader::maxIDLength + 1,
                                                2,
                                                1));
   // Should fail with bad buffer length.
   AssertIsEqual(0, sfh.checkAndEncodeSmallFrameHeader(buf, 0,
                                                false, OTRadioLink::FTS_BasicSensorOrValve,
                                                OTV0P2BASE::randRNG8(),
-                                               2, id,
+                                               id, 2,
                                                2,
                                                1));
   // Should fail with bad frame type.
   AssertIsEqual(0, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
                                                OTV0P2BASE::randRNG8NextBoolean(), OTRadioLink::FTS_NONE,
                                                OTV0P2BASE::randRNG8(),
-                                               2, id,
+                                               id, 2,
                                                2,
                                                1));
   AssertIsEqual(0, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
                                                OTV0P2BASE::randRNG8NextBoolean(), OTRadioLink::FTS_INVALID_HIGH,
                                                OTV0P2BASE::randRNG8(),
-                                               2, id,
+                                               id, 2,
                                                2,
                                                1));
   // Should fail with impossible body length.
   AssertIsEqual(0, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
                                                OTV0P2BASE::randRNG8NextBoolean(), OTRadioLink::FTS_ALIVE,
                                                OTV0P2BASE::randRNG8(),
-                                               1, id,
+                                               id, 1,
                                                252,
                                                1));
   // Should fail with impossible trailer length.
   AssertIsEqual(0, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
                                                OTV0P2BASE::randRNG8NextBoolean(), OTRadioLink::FTS_ALIVE,
                                                OTV0P2BASE::randRNG8(),
-                                               1, id,
+                                               id, 1,
                                                0,
                                                0));
   AssertIsEqual(0, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
                                                OTV0P2BASE::randRNG8NextBoolean(), OTRadioLink::FTS_ALIVE,
                                                OTV0P2BASE::randRNG8(),
-                                               1, id,
+                                               id, 1,
                                                0,
                                                252));
   // Should fail with impossible body + trailer length (for small frame).
   AssertIsEqual(0, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
                                                OTV0P2BASE::randRNG8NextBoolean(), OTRadioLink::FTS_ALIVE,
                                                OTV0P2BASE::randRNG8(),
-                                               1, id,
+                                               id, 1,
                                                32,
                                                32));
   // "I'm Alive!" message with 1-byte ID should succeed and be of full header length (5).
   AssertIsEqual(5, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
                                                false, OTRadioLink::FTS_ALIVE,
                                                OTV0P2BASE::randRNG8(),
-                                               1, id, // Minimal (non-empty) ID.
+                                               id, 1, // Minimal (non-empty) ID.
                                                0, // No payload.
                                                1));
   // Large but legal body size.
   AssertIsEqual(5, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
                                                false, OTRadioLink::FTS_ALIVE,
                                                OTV0P2BASE::randRNG8(),
-                                               1, id, // Minimal (non-empty) ID.
+                                               id, 1, // Minimal (non-empty) ID.
                                                32,
                                                1));
   // DECODE
@@ -253,7 +253,7 @@ static void testFrameHeaderEncoding()
   AssertIsEqual(6, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
                                                false, OTRadioLink::FTS_BasicSensorOrValve,
                                                0,
-                                               2, id,
+                                               id, 2,
                                                2,
                                                1));
   AssertIsEqual(0x08, buf[0]);
@@ -288,7 +288,7 @@ static void testFrameHeaderEncoding()
   AssertIsEqual(6, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
                                                false, OTRadioLink::FTS_BasicSensorOrValve,
                                                0,
-                                               2, id,
+                                               id, 2,
                                                8,
                                                1));
   AssertIsEqual(0x0e, buf[0]);
@@ -411,6 +411,45 @@ static void testInsecureFrameCRC()
   AssertIsEqual(0x61, sfh.computeNonSecureFrameCRC(buf2, sizeof(buf2)));
   }
 
+// Test encoding of entire non-secire frame for TX.
+static void testNonSecureSmallFrameEncoding()
+  {
+  Serial.println("NonSecureSmallFrameEncoding");
+  OTRadioLink::SecurableFrameHeader sfh;
+  uint8_t buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize];
+  //
+  // Test vector 1 / example from the spec.
+  //Example insecure frame, valve unit 0% open, no call for heat/flags/stats.
+  //In this case the frame sequence number is zero, and ID is 0x80 0x81.
+  //
+  //08 4f 02 80 81 02 | 00 01 | 23
+  //
+  //08 length of header (8) after length byte 5 + body 2 + trailer 1
+  //4f 'O' insecure OpenTRV basic frame
+  //02 0 sequence number, ID length 2
+  //80 ID byte 1
+  //81 ID byte 2
+  //02 body length 2
+  //00 valve 0%, no call for heat
+  //01 no flags or stats, unreported occupancy
+  //23 CRC value
+  const uint8_t id[] =  { 0x80, 0x81 };
+  const uint8_t body[] = { 0x00, 0x01 };
+//  AssertIsEqual(9, OTRadioLink::encodeNonsecureSmallFrame(buf, sizeof(buf),
+//                                    OTRadioLink::FTS_BasicSensorOrValve,
+//                                    0,
+//                                    id, 2,
+//                                    body, 2));
+//  AssertIsEqual(0x08, buf[0]);
+//  AssertIsEqual(0x4f, buf[1]);
+//  AssertIsEqual(0x02, buf[2]);
+//  AssertIsEqual(0x80, buf[3]);
+//  AssertIsEqual(0x81, buf[4]);
+//  AssertIsEqual(0x02, buf[5]);
+//  AssertIsEqual(0x00, buf[6]);
+//  AssertIsEqual(0x01, buf[7]);
+//  AssertIsEqual(0x23, buf[8]);
+  }
 
 // Test simple plain-text padding for encryption.
 static void testSimplePadding()
@@ -614,6 +653,7 @@ void loop()
   testFrameHeaderEncoding();
   testFrameHeaderDecoding();
   testInsecureFrameCRC();
+  testNonSecureSmallFrameEncoding();
   testSimplePadding();
   testSimpleNULLEncDec();
   testCryptoAccess();

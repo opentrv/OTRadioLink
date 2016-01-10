@@ -70,7 +70,7 @@ namespace OTRadioLink
 uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf, const uint8_t buflen,
                                                const bool secure_, const FrameType_Secureable fType_,
                                                const uint8_t seqNum_,
-                                               const uint8_t il_, const uint8_t *const id_,
+                                               const uint8_t *const id_, const uint8_t il_,
                                                const uint8_t bl_,
                                                const uint8_t tl_)
     {
@@ -248,7 +248,7 @@ uint8_t SecurableFrameHeader::computeNonSecureFrameCRC(const uint8_t *const buf,
 uint8_t encodeNonsecureSmallFrame(uint8_t *const buf, const uint8_t buflen,
                                     const FrameType_Secureable fType_,
                                     const uint8_t seqNum_,
-                                    const uint8_t il_, const uint8_t *const id_,
+                                    const uint8_t *const id_, const uint8_t il_,
                                     const uint8_t *const body, const uint8_t bl_)
     {
     return(0); // FAIL FIXME
