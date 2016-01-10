@@ -320,7 +320,7 @@ uint8_t encodeSecureSmallFrameRaw(uint8_t *const buf, const uint8_t buflen,
                                 void *state, const uint8_t *const key)
     {
     if((NULL == iv) || (NULL == e) || (NULL == key)) { return(0); } // ERROR
-    // Stop if unencrypted body is too big.
+    // Stop if unencrypted body is too big for this scheme.
     if(bl_ > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
     const uint8_t encryptedBodyLength = (0 == bl_) ? 0 : ENC_BODY_SMALL_FIXED_CTEXT_SIZE;
     // Let checkAndEncodeSmallFrameHeader() validate buf and id_.
@@ -337,9 +337,7 @@ uint8_t encodeSecureSmallFrameRaw(uint8_t *const buf, const uint8_t buflen,
     // Fail if buffer is not large enough to accommodate full frame.
     const uint8_t fl = sfh.fl;
     if(fl >= buflen) { return(0); } // ERROR
-    // If body is too big to be encoded, fail.
-
-    // Pad body and copy into place, if any.
+    // Pad body, if any.
     uint8_t paddingBuf[32];
     if(bl_ > 0)
         {
@@ -347,18 +345,16 @@ uint8_t encodeSecureSmallFrameRaw(uint8_t *const buf, const uint8_t buflen,
         memcpy(paddingBuf, body, bl_);
         if(0 == addPaddingTo32BTrailing0sAndPadCount(paddingBuf, bl_)) { return(0); } // ERROR
         }
-
     const uint8_t hl = sfh.getHl();
     // Encrypt body (if any) directly into the buffer.
     // Insert the tag directly into the buffer (before the final byte).
     if(!e(state, key, iv, buf, hl, (0 == bl_) ? NULL : paddingBuf, buf + hl, buf[fl - 16])) { return(0); } // ERROR
-
-    // TODO: copy part of the nonce/iv into the trailer...
-
-    buf[fl] = 0x80; // Indicates this 128-bit AES-GCM encryption/authentication type.
+    // Copy the counters part (last 6 bytes of) the nonce/IV into the trailer...
+    memcpy(buf + fl - 22, iv + 6, 6);
+    // Set final trailer byte to indicate encryption type and format.
+    buf[fl] = 0x80;
     // Done.
-    //return(fl + 1);
-    return(false); // FAIL  NOT FULLY IMPLEMENTED  FIXME
+    return(fl + 1);
     }
 
 
