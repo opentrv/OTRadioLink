@@ -634,9 +634,10 @@ static void testSecureSmallFrameEncoding()
   //TxMsgCounter = 793
   //(Thus nonce/IV: aa aa aa aa 55 55 00 00 2a 00 03 19)
   //
-  //3f cf 04 aa aa aa aa 20 | b3 45 f9 29 69 57 0c b8 28 66 14 b4 f0 69 b0 08 71 da d8 fe 47 c1 c3 53 83 48 88 03 7d 58 75 75 | 00 00 2a 00 03 19 d9 07 51 06 e1 40 ff 29 84 df 71 c0 48 10 c7 fc 80 
+  //3e cf 04 aa aa aa aa 20 | b3 45 f9 29 69 57 0c b8 28 66 14 b4 f0 69 b0 08 71 da d8 fe 47 c1 c3 53 83 48 88 03 7d 58 75 75 | 00 00 2a 00 03 19 97 5b da df 92 08 42 b8 c1 3b dc 02 76 54 cb 8d 80 
   //
-  //3f  length of header (63) after length byte 5 + (encrypted) body 32 + trailer 32
+  //
+  //3e  length of header (62) after length byte 5 + (encrypted) body 32 + trailer 32
   //cf  'O' secure OpenTRV basic frame
   //04  0 sequence number, ID length 4
   //aa  ID byte 1
@@ -649,7 +650,7 @@ static void testSecureSmallFrameEncoding()
   //b3 45 f9 ... 58 75 75  32 bytes of encrypted body
   //00 00 2a  reset counter
   //00 03 19  message counter
-  //d9 07 51 ... 10 c7 fc  16 bytes of authentication tag
+  //97 5b da ... 54 cb 8d  16 bytes of authentication tag
   //80  enc/auth type/format indicator.
   const uint8_t id[] = { 0xaa, 0xaa, 0xaa, 0xaa };
   const uint8_t iv[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55, 0x00, 0x00, 0x2a, 0x00, 0x03, 0x19 };
@@ -663,7 +664,7 @@ static void testSecureSmallFrameEncoding()
                                     OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS,
                                     NULL, zeroKey));
   //3f cf 04 aa aa aa aa 20 | ...
-  AssertIsEqual(0x3f, buf[0]);
+  AssertIsEqual(0x3e, buf[0]);
   AssertIsEqual(0xcf, buf[1]);
   AssertIsEqual(0x04, buf[2]);
   AssertIsEqual(0xaa, buf[3]);
@@ -672,8 +673,18 @@ static void testSecureSmallFrameEncoding()
   AssertIsEqual(0xaa, buf[6]);
   AssertIsEqual(0x20, buf[7]);
   //... b3 45 f9 29 69 57 0c b8 28 66 14 b4 f0 69 b0 08 71 da d8 fe 47 c1 c3 53 83 48 88 03 7d 58 75 75 | ...
-  //... 00 00 2a 00 03 19 d9 07 51 06 e1 40 ff 29 84 df 71 c0 48 10 c7 fc 80
-  AssertIsEqual(0x80, buf[63]);
+  AssertIsEqual(0xb3, buf[8]); // 1st byte of encrypted body.
+  AssertIsEqual(0x75, buf[39]); // 32nd/last byte of encrypted body.
+  //... 00 00 2a 00 03 19 97 5b da df 92 08 42 b8 c1 3b dc 02 76 54 cb 8d 80
+  AssertIsEqual(0x00, buf[40]); // 1st byte of counters.
+  AssertIsEqual(0x00, buf[41]);
+  AssertIsEqual(0x2a, buf[42]);
+  AssertIsEqual(0x00, buf[43]); 
+  AssertIsEqual(0x03, buf[44]);
+  AssertIsEqual(0x19, buf[45]); // Last byte of counters.
+  AssertIsEqual(0x97, buf[46]); // 1st byte of tag.
+  AssertIsEqual(0x8d, buf[61]); // 16th/last byte of tag.
+  AssertIsEqual(0x80, buf[62]); // enc format.
   }
 
 
