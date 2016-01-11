@@ -300,7 +300,7 @@ uint8_t encodeNonsecureSmallFrame(uint8_t *const buf, const uint8_t buflen,
 // The supplied buffer may have to be up to 64 bytes long.
 //
 // Parameters:
-//  * buf  buffer containing the entire frame except trailer/CRC; never NULL
+//  * buf  buffer to which is written the entire frame including trailer; never NULL
 //  * buflen  available length in buf; if too small then this routine will fail (return 0)
 //  * fType_  frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
 //  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number

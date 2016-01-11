@@ -256,7 +256,7 @@ namespace OTRadioLink
         // The supplied buffer may have to be up to 64 bytes long.
         //
         // Parameters:
-        //  * buf  buffer containing the entire frame except trailer/CRC; never NULL
+        //  * buf  buffer to which is written the entire frame including trailer/CRC; never NULL
         //  * buflen  available length in buf; if too small then this routine will fail (return 0)
         //  * fType_  frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
         //  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
@@ -381,7 +381,7 @@ namespace OTRadioLink
         // The supplied buffer may have to be up to 64 bytes long.
         //
         // Parameters:
-        //  * buf  buffer containing the entire frame except trailer/CRC; never NULL
+        //  * buf  buffer to which is written the entire frame including trailer; never NULL
         //  * buflen  available length in buf; if too small then this routine will fail (return 0)
         //  * fType_  frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
         //  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
@@ -411,15 +411,15 @@ namespace OTRadioLink
         // Returns zero in case of error, eg because authentication failed.
         //
         // Typical workflow:
-        // first decode the header alone to extract the ID and frame type,
-        // then use those to select a candidate key, construct an iv/nonce,
-        // then call this routine with that decoded header and the full buffer
-        // to authenticate and decrypt the frame.
+        //   * decode the header alone to extract the ID and frame type
+        //   * use those to select a candidate key, construct an iv/nonce
+        //   * call this routine with that decoded header and the full buffer
+        //     to authenticate and decrypt the frame.
         //
         // Parameters:
-        //  * buf  buffer containing the entire frame except trailer/CRC; never NULL
+        //  * buf  buffer containing the entire frame including trailer; never NULL
         //  * buflen  available length in buf; if too small then this routine will fail (return 0)
-        //  * sfh  header parameters decoded into this (must be provided by called); never NULL
+        //  * sfh  decoded frame header; never NULL
         //  * decodedBodyOut  body, if any, will be decoded into this; never NULL
         //  * iv  12-byte initialisation vector / nonce; never NULL
         //  * d  decryption function; never NULL
