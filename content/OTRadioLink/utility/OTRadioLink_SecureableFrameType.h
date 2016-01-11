@@ -403,15 +403,15 @@ namespace OTRadioLink
         // Decode entire secure small frame from raw frame bytes and crypto support.
         // This is a raw/partial impl that requires the IV/nonce to be supplied.
         // This uses fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t style encryption/authentication.
-        // The matching encryption function should have been used for encrypting.
+        // The matching encryption function should have been used for encoding this frame.
         // The crypto method may need to vary based on frame type,
         // and on negotiations between the participants in the communications.
         // Returns the total number of bytes read for the frame
         // (including, and with a value one higher than the first 'fl' bytes).
         // Returns zero in case of error.
         //
-        // It may be necessary to first decode the header alone to extract the ID,
-        // and then use the ID to select a candidate key, construct an iv/nonce,
+        // It may be necessary to first decode the header alone to extract the ID and frame type,
+        // and then use those to select a candidate key, construct an iv/nonce,
         // and then call this to authenticate and decrypt the frame.
         //
         // Parameters:
