@@ -403,33 +403,32 @@ namespace OTRadioLink
         // Decode entire secure small frame from raw frame bytes and crypto support.
         // This is a raw/partial impl that requires the IV/nonce to be supplied.
         // This uses fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t style encryption/authentication.
-        // The matching encryption function should have been used for encrypting.
+        // The matching encryption function should have been used for encoding this frame.
         // The crypto method may need to vary based on frame type,
         // and on negotiations between the participants in the communications.
         // Returns the total number of bytes read for the frame
         // (including, and with a value one higher than the first 'fl' bytes).
-        // Returns zero in case of error.
+        // Returns zero in case of error, eg because authentication failed.
         //
-        // It may be necessary to first decode the header alone to extract the ID,
-        // and then use the ID to select a candidate key, construct an iv/nonce,
-        // and then call this to authenticate and decrypt the frame.
+        // First decode the header alone to extract the ID and frame type,
+        // and then use those to select a candidate key, construct an iv/nonce,
+        // and then call this routine with that decoded header and the full buffer
+        // to authenticate and decrypt the frame.
         //
         // Parameters:
         //  * buf  buffer containing the entire frame except trailer/CRC; never NULL
         //  * buflen  available length in buf; if too small then this routine will fail (return 0)
         //  * sfh  header parameters decoded into this (must be provided by called); never NULL
-        //  * decodedBodyOut  body will be decoded into this, if any
+        //  * decodedBodyOut  body, if any, will be decoded into this; never NULL
         //  * iv  12-byte initialisation vector / nonce; never NULL
         //  * d  decryption function; never NULL
         //  * state  pointer to state for d, if required, else NULL
         //  * key  secret key; never NULL
-        uint8_t decodeSecureSmallFrameRaw(const uint8_t *buf, uint8_t buflen,
-                                        SecurableFrameHeader *sfh,
-                                        uint8_t *decryptedBodyOut, uint8_t decodedBodyOutBuflen, uint8_t &decodedBodyOutSize,
-                                        FrameType_Secureable fType_,
-                                        const uint8_t *iv,
+        uint8_t decodeSecureSmallFrameRaw(const SecurableFrameHeader *sfh,
+                                        const uint8_t *buf, uint8_t buflen,
                                         fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
-                                        void *state, const uint8_t *key);
+                                        void *state, const uint8_t *key, const uint8_t *iv,
+                                        uint8_t *decryptedBodyOut, uint8_t decodedBodyOutBuflen, uint8_t &decodedBodyOutSize);
 
     }
 
