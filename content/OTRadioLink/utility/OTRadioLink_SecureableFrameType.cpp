@@ -105,7 +105,7 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf,
     // Error return if not enough space in buf for the complete encoded header.
     if(hlifl > buflen) { return(0); } // ERROR
     //  6) bl <= fl - 4 - il (body length; minimum of 4 bytes of other overhead)
-    //  2) fl may be further constrained by system limits, typically to <= 64
+    //  2) fl may be further constrained by system limits, typically to <= 63
     if(bl_ > maxSmallFrameSize - hlifl) { return(0); } // ERROR
     bl = bl_;
     //  8) NON_SECURE: tl == 1 for non-secure
@@ -116,7 +116,7 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf,
         // Zero-length trailer never allowed.
         if(0 == tl_) { return(0); } // ERROR
         //  8) OVERSIZE WHEN SECURE: tl >= 1 for secure (tl = fl - 3 - il - bl)
-        //  2) fl may be further constrained by system limits, typically to <= 64
+        //  2) fl may be further constrained by system limits, typically to <= 63
         if(tl_ > maxSmallFrameSize+1 - hlifl - bl_) { return(0); } // ERROR
         }
 
@@ -327,7 +327,7 @@ uint8_t encodeSecureSmallFrameRaw(uint8_t *const buf, const uint8_t buflen,
     // If necessary (bl_ > 0) body is validated below.
     OTRadioLink::SecurableFrameHeader sfh;
     const uint8_t hl = sfh.checkAndEncodeSmallFrameHeader(buf, buflen,
-                                               false, fType_, // Not secure.
+                                               true, fType_,
                                                seqNum_,
                                                id_, il_,
                                                encryptedBodyLength,
@@ -339,7 +339,7 @@ uint8_t encodeSecureSmallFrameRaw(uint8_t *const buf, const uint8_t buflen,
     if(fl >= buflen) { return(0); } // ERROR
     // Pad body, if any.
     uint8_t paddingBuf[32];
-    if(bl_ > 0)
+    if(0 != bl_)
         {
         if(NULL == body) { return(0); } // ERROR
         memcpy(paddingBuf, body, bl_);

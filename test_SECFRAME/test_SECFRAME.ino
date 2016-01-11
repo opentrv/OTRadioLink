@@ -662,15 +662,18 @@ static void testSecureSmallFrameEncoding()
                                     iv,
                                     OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS,
                                     NULL, zeroKey));
-  AssertIsEqual(0x08, buf[0]);
-  AssertIsEqual(0x4f, buf[1]);
-  AssertIsEqual(0x02, buf[2]);
-  AssertIsEqual(0x80, buf[3]);
-  AssertIsEqual(0x81, buf[4]);
-  AssertIsEqual(0x02, buf[5]);
-  AssertIsEqual(0x00, buf[6]);
-  AssertIsEqual(0x01, buf[7]);
-  AssertIsEqual(0x23, buf[8]);
+  //3f cf 04 aa aa aa aa 20 | ...
+  AssertIsEqual(0x3f, buf[0]);
+  AssertIsEqual(0xcf, buf[1]);
+  AssertIsEqual(0x04, buf[2]);
+  AssertIsEqual(0xaa, buf[3]);
+  AssertIsEqual(0xaa, buf[4]);
+  AssertIsEqual(0xaa, buf[5]);
+  AssertIsEqual(0xaa, buf[6]);
+  AssertIsEqual(0x20, buf[7]);
+  //... b3 45 f9 29 69 57 0c b8 28 66 14 b4 f0 69 b0 08 71 da d8 fe 47 c1 c3 53 83 48 88 03 7d 58 75 75 | ...
+  //... 00 00 2a 00 03 19 d9 07 51 06 e1 40 ff 29 84 df 71 c0 48 10 c7 fc 80
+  AssertIsEqual(0x80, buf[63]);
   }
 
 
