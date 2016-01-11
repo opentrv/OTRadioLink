@@ -316,7 +316,7 @@ uint8_t encodeSecureSmallFrameRaw(uint8_t *const buf, const uint8_t buflen,
                                 const uint8_t *const id_, const uint8_t il_,
                                 const uint8_t *const body, const uint8_t bl_,
                                 const uint8_t *const iv,
-                                fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t *const e,
+                                const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
                                 void *state, const uint8_t *const key)
     {
     if((NULL == iv) || (NULL == e) || (NULL == key)) { return(0); } // ERROR
@@ -345,10 +345,10 @@ uint8_t encodeSecureSmallFrameRaw(uint8_t *const buf, const uint8_t buflen,
         memcpy(paddingBuf, body, bl_);
         if(0 == addPaddingTo32BTrailing0sAndPadCount(paddingBuf, bl_)) { return(0); } // ERROR
         }
-    const uint8_t hl = sfh.getHl();
+//    const uint8_t hl = sfh.getHl();
     // Encrypt body (if any) directly into the buffer.
     // Insert the tag directly into the buffer (before the final byte).
-    if(!e(state, key, iv, buf, hl, (0 == bl_) ? NULL : paddingBuf, buf + hl, buf[fl - 16])) { return(0); } // ERROR
+    if(!e(state, key, iv, buf, hl, (0 == bl_) ? NULL : paddingBuf, buf + hl, buf + fl - 16)) { return(0); } // ERROR
     // Copy the counters part (last 6 bytes of) the nonce/IV into the trailer...
     memcpy(buf + fl - 22, iv + 6, 6);
     // Set final trailer byte to indicate encryption type and format.
