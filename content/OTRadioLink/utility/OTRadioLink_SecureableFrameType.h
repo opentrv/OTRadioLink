@@ -249,7 +249,7 @@ namespace OTRadioLink
         };
 
 
-        // Compose (encode) entire non-secure small frame from header params, body and CRC trailer.
+        // Encode entire non-secure small frame from header params and body.
         // Returns the total number of bytes written out for the frame
         // (including, and with a value one higher than the first 'fl' bytes).
         // Returns zero in case of error.
@@ -369,7 +369,7 @@ namespace OTRadioLink
                 const uint8_t *ciphertext, const uint8_t *tag,
                 uint8_t *plaintextOut);
 
-        // Compose (encode) entire secure small frame from header params, body and CRC trailer.
+        // Encode entire secure small frame from header params and body and crypto support.
         // This is a raw/partial impl that requires the IV/nonce to be supplied.
         // This uses fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t style encryption/authentication.
         // The matching decryption function should be used for decoding/verifying.
@@ -398,6 +398,37 @@ namespace OTRadioLink
                                         const uint8_t *body, uint8_t bl_,
                                         const uint8_t *iv,
                                         fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                                        void *state, const uint8_t *key);
+
+        // Decode entire secure small frame from raw frame bytes and crypto support.
+        // This is a raw/partial impl that requires the IV/nonce to be supplied.
+        // This uses fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t style encryption/authentication.
+        // The matching encryption function should have been used for encrypting.
+        // The crypto method may need to vary based on frame type,
+        // and on negotiations between the participants in the communications.
+        // Returns the total number of bytes read for the frame
+        // (including, and with a value one higher than the first 'fl' bytes).
+        // Returns zero in case of error.
+        //
+        // It may be necessary to first decode the header alone to extract the ID,
+        // and then use the ID to select a candidate key, construct an iv/nonce,
+        // and then call this to authenticate and decrypt the frame.
+        //
+        // Parameters:
+        //  * buf  buffer containing the entire frame except trailer/CRC; never NULL
+        //  * buflen  available length in buf; if too small then this routine will fail (return 0)
+        //  * sfh  header parameters decoded into this (must be provided by called); never NULL
+        //  * decodedBodyOut  body will be decoded into this, if any
+        //  * iv  12-byte initialisation vector / nonce; never NULL
+        //  * d  decryption function; never NULL
+        //  * state  pointer to state for d, if required, else NULL
+        //  * key  secret key; never NULL
+        uint8_t decodeSecureSmallFrameRaw(const uint8_t *buf, uint8_t buflen,
+                                        SecurableFrameHeader *sfh,
+                                        uint8_t *decryptedBodyOut, uint8_t decodedBodyOutBuflen, uint8_t &decodedBodyOutSize,
+                                        FrameType_Secureable fType_,
+                                        const uint8_t *iv,
+                                        fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
                                         void *state, const uint8_t *key);
 
     }
