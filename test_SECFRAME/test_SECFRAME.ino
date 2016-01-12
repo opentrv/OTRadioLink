@@ -622,7 +622,7 @@ static void testGCMVS1ViaFixed32BTextSize()
   AssertIsEqual(0, memcmp(input, inputDecoded, 32));
   }
 
-// Test encoding of entire secure frame for TX.
+// Test encoding/encryption then decoding/decryption of entire secure frame.
 static void testSecureSmallFrameEncoding()
   {
   Serial.println("SecureSmallFrameEncoding");
@@ -655,15 +655,17 @@ static void testSecureSmallFrameEncoding()
   const uint8_t id[] = { 0xaa, 0xaa, 0xaa, 0xaa };
   const uint8_t iv[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55, 0x00, 0x00, 0x2a, 0x00, 0x03, 0x19 };
   const uint8_t body[] = { 0x7f, 0x11, 0x7b, 0x22, 0x62, 0x22, 0x3a, 0x31 };
-  AssertIsEqual(63, OTRadioLink::encodeSecureSmallFrameRaw(buf, sizeof(buf),
+  const uint8_t encodedLength = OTRadioLink::encodeSecureSmallFrameRaw(buf, sizeof(buf),
                                     OTRadioLink::FTS_BasicSensorOrValve,
                                     0,
                                     id, 4,
                                     body, sizeof(body),
                                     iv,
                                     OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS,
-                                    NULL, zeroKey));
-  //3f cf 04 aa aa aa aa 20 | ...
+                                    NULL, zeroKey);
+  AssertIsEqual(63, encodedLength);
+  AssertIsTrue(encodedLength <= sizeof(buf));
+  //3e cf 04 aa aa aa aa 20 | ...
   AssertIsEqual(0x3e, buf[0]);
   AssertIsEqual(0xcf, buf[1]);
   AssertIsEqual(0x04, buf[2]);
@@ -685,6 +687,9 @@ static void testSecureSmallFrameEncoding()
   AssertIsEqual(0x97, buf[46]); // 1st byte of tag.
   AssertIsEqual(0x8d, buf[61]); // 16th/last byte of tag.
   AssertIsEqual(0x80, buf[62]); // enc format.
+  // To decode, first unpick the header.
+  OTRadioLink::SecurableFrameHeader sfhRX;
+//  AssertIsTrue(0 != sfhRX.checkAndDecodeSmallFrameHeader(buf, encodedLength));
   }
 
 
