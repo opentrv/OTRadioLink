@@ -722,7 +722,6 @@ static void testSecureSmallFrameEncoding()
                ((seqNum == sfhRX.getSeq()) && (sizeof(body) == decodedBodyOutSize) && (0 == memcmp(body, decryptedBodyOut, sizeof(body))) && (0 == memcmp(id, sfhRX.id, 4))));
   }
 
-
 // TODO: test with EEPROM ID source (id_ == NULL) ...
 // TODO: add EEPROM prefill static routine and pad 1st trailing byte with 0xff.
 
