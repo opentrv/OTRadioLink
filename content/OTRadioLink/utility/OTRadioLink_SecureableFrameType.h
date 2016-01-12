@@ -117,7 +117,7 @@ namespace OTRadioLink
 
         // Maximum (small) frame size is 63, excluding fl byte.
         static const uint8_t maxSmallFrameSize = 63;
-        // Frame length excluding/after this byte; zero indicates an invalid frame.
+        // Frame length excluding/after this byte [0,63]; zero indicates an invalid frame.
         // Appears first on the wire to support radio hardware packet handling.
         //     fl = hl-1 + bl + tl = 3+il + bl + tl
         // where hl header length, bl body length, tl trailer length

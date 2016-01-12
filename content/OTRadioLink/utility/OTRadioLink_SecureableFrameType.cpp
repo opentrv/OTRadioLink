@@ -386,8 +386,28 @@ uint8_t decodeSecureSmallFrameRaw(const SecurableFrameHeader *const sfh,
     {
     if((NULL == sfh) || (NULL == buf) || (NULL == d) ||
         (NULL == key) || (NULL == iv) || (NULL == decryptedBodyOut)) { return(0); } // ERROR
-
-    return(0); // FAIL FIXME
+    // Abort if header was not decoded properly.
+    if(sfh->isInvalid()) { return(0); } // ERROR
+    // Abort if expected constraints for simple fixed-size secure frame are not met.
+    const uint8_t fl = sfh->fl;
+    //if(fl > SecurableFrameHeader::maxSmallFrameSize) { return(0); } // ERROR
+    if(23 != sfh->getTl()) { return(0); } // ERROR
+    if(0x80 != buf[fl]) { return(0); } // ERROR
+    const uint8_t bl = sfh->bl;
+    if((0 != bl) && (ENC_BODY_SMALL_FIXED_CTEXT_SIZE != bl)) { return(0); } // ERROR
+    // Attempt to authenticate and decrypt.
+    uint8_t decryptBuf[ENC_BODY_SMALL_FIXED_CTEXT_SIZE];
+    if(!d(state, key, iv, buf, sfh->getHl(),
+                buf + sfh->getBodyOffset(), buf + fl - 16,
+                decryptBuf)) { return(0); } // ERROR
+    // Unpad the decrypted text in place.
+    const uint8_t upbl = removePaddingTo32BTrailing0sAndPadCount(decryptBuf);
+    if(upbl > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
+    if(upbl > decodedBodyOutBuflen) { return(0); } // ERROR
+    memcpy(decryptedBodyOut, decryptBuf, upbl);
+    decodedBodyOutSize = upbl;
+    // Done.
+    return(fl + 1);
     }
 
 
