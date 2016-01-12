@@ -705,6 +705,14 @@ static void testSecureSmallFrameEncoding()
   // Body content should be correctly decrypted and extracted.
   AssertIsEqual(sizeof(body), decodedBodyOutSize);
   AssertIsEqual(0, memcmp(body, decryptedBodyOut, sizeof(body)));
+  // Check that flipping any single bit should make the decode fail...
+  buf[OTV0P2BASE::randRNG8() % encodedLength] ^= (uint8_t) (0x100U >> (1+(OTV0P2BASE::randRNG8()&7)));
+  AssertIsTrue((0 == sfhRX.checkAndDecodeSmallFrameHeader(buf, encodedLength)) ||
+               (0 == OTRadioLink::decodeSecureSmallFrameRaw(&sfhRX,
+                                        buf, encodedLength,
+                                        OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
+                                        NULL, zeroKey, iv,
+                                        decryptedBodyOut, sizeof(decryptedBodyOut), decodedBodyOutSize)));
   }
 
 
