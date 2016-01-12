@@ -652,8 +652,11 @@ static void testSecureSmallFrameEncoding()
   //00 03 19  message counter
   //97 5b da ... 54 cb 8d  16 bytes of authentication tag
   //80  enc/auth type/format indicator.
-  const uint8_t id[] = { 0xaa, 0xaa, 0xaa, 0xaa };
+  // Preshared ID prefix; only an initial part/prefix of this goes on the wire in the header.
+  const uint8_t id[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55 };
+  // IV/nonce starting with first 6 bytes of preshared ID, then 6 bytes of counter.
   const uint8_t iv[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55, 0x00, 0x00, 0x2a, 0x00, 0x03, 0x19 };
+  // 'O' frame body with some JSON stats.
   const uint8_t body[] = { 0x7f, 0x11, 0x7b, 0x22, 0x62, 0x22, 0x3a, 0x31 };
   const uint8_t encodedLength = OTRadioLink::encodeSecureSmallFrameRaw(buf, sizeof(buf),
                                     OTRadioLink::FTS_BasicSensorOrValve,
@@ -688,9 +691,20 @@ static void testSecureSmallFrameEncoding()
   AssertIsEqual(0x8d, buf[61]); // 16th/last byte of tag.
   AssertIsEqual(0x80, buf[62]); // enc format.
   // To decode, emulating RX, structurally validate unpack the header and extract the ID.
-  // (Nominally a longer ID and key is looked up with the ID in the header, and an iv built.)
   OTRadioLink::SecurableFrameHeader sfhRX;
   AssertIsTrue(0 != sfhRX.checkAndDecodeSmallFrameHeader(buf, encodedLength));
+  // (Nominally a longer ID and key is looked up with the ID in the header, and an iv built.)
+  uint8_t decodedBodyOutSize;
+  uint8_t decryptedBodyOut[OTRadioLink::ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE];
+  // Should decode and authenticate correctly.
+  AssertIsTrue(0 != OTRadioLink::decodeSecureSmallFrameRaw(&sfhRX,
+                                        buf, encodedLength,
+                                        OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
+                                        NULL, zeroKey, iv,
+                                        decryptedBodyOut, sizeof(decryptedBodyOut), decodedBodyOutSize));
+  // Body content should be correctly decrypted and extracted.
+  AssertIsEqual(sizeof(body), decodedBodyOutSize);
+  AssertIsEqual(0, memcmp(body, decryptedBodyOut, sizeof(body)));
   }
 
 

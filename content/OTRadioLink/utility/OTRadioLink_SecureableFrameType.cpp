@@ -378,12 +378,15 @@ uint8_t encodeSecureSmallFrameRaw(uint8_t *const buf, const uint8_t buflen,
 //  * d  decryption function; never NULL
 //  * state  pointer to state for d, if required, else NULL
 //  * key  secret key; never NULL
-uint8_t decodeSecureSmallFrameRaw(const SecurableFrameHeader *sfh,
-                                const uint8_t *buf, uint8_t buflen,
-                                fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
-                                void *state, const uint8_t *key, const uint8_t *iv,
-                                uint8_t *decryptedBodyOut, uint8_t decodedBodyOutBuflen, uint8_t &decodedBodyOutSize)
+uint8_t decodeSecureSmallFrameRaw(const SecurableFrameHeader *const sfh,
+                                const uint8_t *const buf, const uint8_t buflen,
+                                const fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
+                                void *const state, const uint8_t *const key, const uint8_t *const iv,
+                                uint8_t *const decryptedBodyOut, uint8_t decodedBodyOutBuflen, uint8_t &decodedBodyOutSize)
     {
+    if((NULL == sfh) || (NULL == buf) || (NULL == d) ||
+        (NULL == key) || (NULL == iv) || (NULL == decryptedBodyOut)) { return(0); } // ERROR
+
     return(0); // FAIL FIXME
     }
 
