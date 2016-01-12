@@ -498,9 +498,9 @@ bool OTSIM900Link::setAPN()
   print(AT_START);
   print(AT_SET_APN);
   print(AT_SET);
-  print('\"');
+//  print('\"');
   print(config->APN);
-  print('\"');
+//  print('\"');
   print(AT_END);
 
   timedBlockingRead(data, sizeof(data));
