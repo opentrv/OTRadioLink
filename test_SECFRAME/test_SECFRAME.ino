@@ -690,7 +690,7 @@ static void testSecureSmallFrameEncoding()
   // To decode, emulating RX, structurally validate unpack the header and extract the ID.
   // (Nominally a longer ID and key is looked up with the ID in the header, and an iv built.)
   OTRadioLink::SecurableFrameHeader sfhRX;
-//  AssertIsTrue(0 != sfhRX.checkAndDecodeSmallFrameHeader(buf, encodedLength));
+  AssertIsTrue(0 != sfhRX.checkAndDecodeSmallFrameHeader(buf, encodedLength));
   }
 
 

@@ -160,7 +160,7 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf,
 //
 // (If the header is invalid or the buffer too small, 0 is returned to indicate an error.)
 // The fl byte in the structure is set to the frame length, else 0 in case of any error.
-// Returns number of bytes of decoded header excluding nominally-leading fl length byte; 0 in case of error.
+// Returns number of bytes of decoded header including nominally-leading fl length byte; 0 in case of error.
 uint8_t SecurableFrameHeader::checkAndDecodeSmallFrameHeader(const uint8_t *const buf, uint8_t buflen)
     {
     // Make frame 'invalid' until everything is finished and checks out.
@@ -191,12 +191,8 @@ uint8_t SecurableFrameHeader::checkAndDecodeSmallFrameHeader(const uint8_t *cons
     const uint8_t hlifl = 4 + il_;
     // If buffer doesn't contain enough data for the full header then return an error.
     if(hlifl > buflen) { return(0); } // ERROR
-    // Capture the ID bytes, if any.
-    if(il_ > 0)
-        {
-        if(NULL == id) { return(0); } // ERROR
-        memcpy(id, buf+3, il_);
-        }
+    // Capture the ID bytes, in the storage in the instance, if any.
+    if(il_ > 0) { memcpy(id, buf+3, il_); }
     //  6) bl <= fl - 4 - il (body length; minimum of 4 bytes of other overhead)
     const uint8_t bl_ = buf[hlifl - 1];
     if(bl_ > fl_ - hlifl) { return(0); } // ERROR
@@ -208,12 +204,9 @@ uint8_t SecurableFrameHeader::checkAndDecodeSmallFrameHeader(const uint8_t *cons
         if((0x00 == lastByte) || (0xff == lastByte)) { return(0); } // ERROR
         }
     //  8) tl == 1 for non-secure, tl >= 1 for secure (tl = fl - 3 - il - bl)
-    const uint8_t tl_ = getTl();
-    if(secure_) { if(1 != tl_) { return(0); } } // ERROR
-    else
-        {
-        if(tl_ < 1) { return(0); } // ERROR
-        }
+    const uint8_t tl_ = fl_ - 3 - il_ - bl; // Same calc, but getTl() can't be used as fl not yet set.
+    if(!secure_) { if(1 != tl_) { return(0); } } // ERROR
+    else if(0 == tl_) { return(0); } // ERROR
 
     // Set fl field to valid value as last action / side-effect.
     fl = fl_;
