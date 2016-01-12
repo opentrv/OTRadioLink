@@ -658,9 +658,10 @@ static void testSecureSmallFrameEncoding()
   const uint8_t iv[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55, 0x00, 0x00, 0x2a, 0x00, 0x03, 0x19 };
   // 'O' frame body with some JSON stats.
   const uint8_t body[] = { 0x7f, 0x11, 0x7b, 0x22, 0x62, 0x22, 0x3a, 0x31 };
+  const uint8_t seqNum = 0;
   const uint8_t encodedLength = OTRadioLink::encodeSecureSmallFrameRaw(buf, sizeof(buf),
                                     OTRadioLink::FTS_BasicSensorOrValve,
-                                    0,
+                                    seqNum,
                                     id, 4,
                                     body, sizeof(body),
                                     iv,
@@ -705,6 +706,20 @@ static void testSecureSmallFrameEncoding()
   // Body content should be correctly decrypted and extracted.
   AssertIsEqual(sizeof(body), decodedBodyOutSize);
   AssertIsEqual(0, memcmp(body, decryptedBodyOut, sizeof(body)));
+  // Check that flipping any single bit should make the decode fail
+  // unless it leaves all info (seqNum, id, body) untouched.
+  const uint8_t loc = OTV0P2BASE::randRNG8() % encodedLength;
+  const uint8_t mask = (uint8_t) (0x100U >> (1+(OTV0P2BASE::randRNG8()&7)));
+  buf[loc] ^= mask;
+//  Serial.println(loc);
+//  Serial.println(mask);
+  AssertIsTrue((0 == sfhRX.checkAndDecodeSmallFrameHeader(buf, encodedLength)) ||
+               (0 == OTRadioLink::decodeSecureSmallFrameRaw(&sfhRX,
+                                        buf, encodedLength,
+                                        OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
+                                        NULL, zeroKey, iv,
+                                        decryptedBodyOut, sizeof(decryptedBodyOut), decodedBodyOutSize)) ||
+               ((seqNum == sfhRX.getSeq()) && (sizeof(body) == decodedBodyOutSize) && (0 == memcmp(body, decryptedBodyOut, sizeof(body))) && (0 == memcmp(id, sfhRX.id, 4))));
   }
 
 
