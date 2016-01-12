@@ -120,13 +120,14 @@ private:
 // Private consts and variables
     const OTRN2483LinkConfig *config;  // Pointer to radio config
     static const uint16_t baud = 2400;	 // OTSoftSer baud rate. todo switch to template to allow higher speed
+    bool bAvailable;
 
     /**
      * @brief   Unused. For compatibility with OTRadioLink.
      */
     void _dolisten() {};
 
-}
+};
 
 
 

@@ -22,6 +22,7 @@ namespace OTRN2483Link
 {
 
 OTRN2483Link::OTRN2483Link::OTRN2483Link() {
+	bAvailable = false;
 }
 
 bool OTRN2483Link::OTRN2483Link::begin() {
