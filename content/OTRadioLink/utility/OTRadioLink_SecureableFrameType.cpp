@@ -357,6 +357,43 @@ uint8_t encodeSecureSmallFrameRaw(uint8_t *const buf, const uint8_t buflen,
     return(fl + 1);
     }
 
+// Decode entire secure small frame from raw frame bytes and crypto support.
+// This is a raw/partial impl that requires the IV/nonce to be supplied.
+// This uses fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t style encryption/authentication.
+// The matching encryption function should have been used for encoding this frame.
+// The crypto method may need to vary based on frame type,
+// and on negotiations between the participants in the communications.
+// Returns the total number of bytes read for the frame
+// (including, and with a value one higher than the first 'fl' bytes).
+// Returns zero in case of error, eg because authentication failed.
+//
+// Typical workflow:
+//   * decode the header alone to extract the ID and frame type
+//   * use those to select a candidate key, construct an iv/nonce
+//   * call this routine with that decoded header and the full buffer
+//     to authenticate and decrypt the frame.
+//
+// Parameters:
+//  * buf  buffer containing the entire frame including header and trailer; never NULL
+//  * buflen  available length in buf; if too small then this routine will fail (return 0)
+//  * sfh  decoded frame header; never NULL
+//  * decodedBodyOut  body, if any, will be decoded into this; never NULL
+//  * decodedBodyOutBuflen  size of decodedBodyOut to decode in to;
+//        if too small the routine will exist with an error (0)
+//  * decodedBodyOutSize  is set to the size of the decoded body in decodedBodyOut
+//  * iv  12-byte initialisation vector / nonce; never NULL
+//  * d  decryption function; never NULL
+//  * state  pointer to state for d, if required, else NULL
+//  * key  secret key; never NULL
+uint8_t decodeSecureSmallFrameRaw(const SecurableFrameHeader *sfh,
+                                const uint8_t *buf, uint8_t buflen,
+                                fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
+                                void *state, const uint8_t *key, const uint8_t *iv,
+                                uint8_t *decryptedBodyOut, uint8_t decodedBodyOutBuflen, uint8_t &decodedBodyOutSize)
+    {
+    return(0); // FAIL FIXME
+    }
+
 
 // Pads plain-text in place prior to encryption with 32-byte fixed length padded output.
 // Simple method that allows unpadding at receiver, does padding in place.

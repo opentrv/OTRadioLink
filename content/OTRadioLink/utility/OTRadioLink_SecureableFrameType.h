@@ -417,10 +417,13 @@ namespace OTRadioLink
         //     to authenticate and decrypt the frame.
         //
         // Parameters:
-        //  * buf  buffer containing the entire frame including trailer; never NULL
+        //  * buf  buffer containing the entire frame including header and trailer; never NULL
         //  * buflen  available length in buf; if too small then this routine will fail (return 0)
         //  * sfh  decoded frame header; never NULL
         //  * decodedBodyOut  body, if any, will be decoded into this; never NULL
+        //  * decodedBodyOutBuflen  size of decodedBodyOut to decode in to;
+        //        if too small the routine will exist with an error (0)
+        //  * decodedBodyOutSize  is set to the size of the decoded body in decodedBodyOut
         //  * iv  12-byte initialisation vector / nonce; never NULL
         //  * d  decryption function; never NULL
         //  * state  pointer to state for d, if required, else NULL
@@ -430,6 +433,7 @@ namespace OTRadioLink
                                         fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
                                         void *state, const uint8_t *key, const uint8_t *iv,
                                         uint8_t *decryptedBodyOut, uint8_t decodedBodyOutBuflen, uint8_t &decodedBodyOutSize);
+
 
     }
 
