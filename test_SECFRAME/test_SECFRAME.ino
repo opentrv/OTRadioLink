@@ -687,7 +687,8 @@ static void testSecureSmallFrameEncoding()
   AssertIsEqual(0x97, buf[46]); // 1st byte of tag.
   AssertIsEqual(0x8d, buf[61]); // 16th/last byte of tag.
   AssertIsEqual(0x80, buf[62]); // enc format.
-  // To decode, first unpick the header.
+  // To decode, emulating RX, structurally validate unpack the header and extract the ID.
+  // (Nominally a longer ID and key is looked up with the ID in the header, and an iv built.)
   OTRadioLink::SecurableFrameHeader sfhRX;
 //  AssertIsTrue(0 != sfhRX.checkAndDecodeSmallFrameHeader(buf, encodedLength));
   }
