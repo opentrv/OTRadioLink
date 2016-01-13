@@ -16,6 +16,15 @@ under the Licence.
 Author(s) / Copyright (s): Deniz Erbilgin 2016
 */
 
+//Collection of useful links:
+//http://openlora.com/forum/viewtopic.php?f=5&t=6
+//http://forum.thethingsnetwork.org/t/ttn-uno-beta-release-documentation/290/47?u=nestorayuso
+//http://thinginnovations.uk/getting-started-with-microchip-rn2483-lorawan-modules
+//
+//Command list:
+//http://ww1.microchip.com/downloads/en/DeviceDoc/40001784C.pdf
+
+
 #ifndef OTRN2483LINK_OTRN2483LINK_H_
 #define OTRN2483LINK_OTRN2483LINK_H_
 
@@ -104,6 +113,7 @@ public:
 private:
 // Private methods
     // Serial
+    OTSoftSerial ser;
     uint8_t read();
     uint8_t timedBlockingRead(char *data, uint8_t length);
     void write(const char *data, uint8_t length);

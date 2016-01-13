@@ -23,9 +23,27 @@ namespace OTRN2483Link
 
 OTRN2483Link::OTRN2483Link::OTRN2483Link() {
 	bAvailable = false;
+	// Init OTSoftSerial
 }
 
 bool OTRN2483Link::OTRN2483Link::begin() {
+	// Begin OTSoftSerial
+	// Reset RN2483
+	// Wait for response
+	// Example of setting up LoRaWAN from http://thinginnovations.uk/getting-started-with-microchip-rn2483-lorawan-modules
+//	  sendCmd("sys factoryRESET");
+//	  sendCmd("sys get hweui");
+//	  sendCmd("mac get deveui");
+//
+//	  // For TTN
+//	  sendCmd("mac set devaddr AABBCCDD");  // Set own address
+//	  sendCmd("mac set appskey 2B7E151628AED2A6ABF7158809CF4F3C");
+//	  sendCmd("mac set nwkskey 2B7E151628AED2A6ABF7158809CF4F3C");
+//	  sendCmd("mac set adr off");
+//	  sendCmd("mac set rx2 3 869525000");
+//	  sendCmd("mac join abp");
+//	  sendCmd("mac get status");
+//	  sendCmd("mac get devaddr");
 }
 
 /**
