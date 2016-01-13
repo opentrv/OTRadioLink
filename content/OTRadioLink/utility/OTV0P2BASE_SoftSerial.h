@@ -32,12 +32,10 @@ namespace OTV0P2BASE
  * @brief	Blocking software serial that runs using no interrupts
  * 			Defaults to 2400 baud as this is what it runs at most reliably
  */
-class OTSoftSerial
+class OTSoftSerialBase
 {
 public:
 	// public interface:
-	OTSoftSerial(uint8_t _rxPin, uint8_t _txPin);
-
 	void begin(uint16_t baud = 2400);
 	void end();
 
@@ -48,7 +46,10 @@ public:
 	uint8_t print(const char *buf);
 	void printNum(int8_t number); // FIXME can this be made better?
 
-private:
+protected:
+	// Constructor only accessible to derived class
+	OTSoftSerialBase(uint8_t _rxPin, uint8_t _txPin);
+
 	const uint8_t rxPin;
 	const uint8_t txPin;
 	static const uint16_t timeOut = 8000;	// length of timeout in somethings TODO work this out
@@ -62,6 +63,16 @@ private:
 	uint8_t fullDelay;
 
 };
+
+template <uint8_t RX_PIN, uint8_t TX_PIN, uint16_t BAUD>
+class OTSoftSerial : public OTSoftSerialBase
+{
+public:
+	OTSoftSerial();
+private:
+
+};
+
 
 } // OTV0P2BASE
 #endif /* OTSOFTSERIAL_OTV0P2BASE_SOFTSERIAL_H_ */
