@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
+Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 */
 
 /*
@@ -60,6 +60,10 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
     // Radio link usually expected to be RFM23B; non-NULL when available.
     OTRadioLink::OTRadioLink *radio;
 
+    // Radio channel to use for TX; defaults to 0.
+    // Should be set before any sync with the FHT8V.
+    int8_t channelTX;
+
     // TX buffer (non-null) and size (non-zero).
     uint8_t * const buf;
     const uint8_t bufSize;
@@ -70,7 +74,7 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
 
     // Construct an instance, providing TX buffer details.
     FHT8VRadValveBase(uint8_t *_buf, uint8_t _bufSize, appendToTXBufferFF_t *trailerFnPtr)
-      : radio(NULL),
+      : radio(NULL), channelTX(0),
         buf(_buf), bufSize(_bufSize),
         trailerFn(trailerFnPtr),
         halfSecondCount(0)
@@ -164,6 +168,10 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
 
     // Set radio to use (if non-NULL) or clear access to radio (if NULL).
     void setRadio(OTRadioLink::OTRadioLink *r) { radio = r; }
+
+    // Set radio channel to use for TX to FHT8V; defaults to 0.
+    // Should be set before any sync with the FHT8V.
+    void setChannelTX(int8_t channel) { channelTX = channel; }
 
     // Decode raw bitstream into non-null command structure passed in; returns true if successful.
     // Will return non-null if OK, else NULL if anything obviously invalid is detected such as failing parity or checksum.
