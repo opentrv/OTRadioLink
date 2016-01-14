@@ -39,7 +39,7 @@ namespace OTRadValve
 //
 // http://stakeholders.ofcom.org.uk/binaries/spectrum/spectrum-policy-area/spectrum-management/research-guidelines-tech-info/interface-requirements/IR_2030-june2014.pdf
 // IR 2030 - UK Interface Requirements 2030 Licence Exempt Short Range Devices
-// FHT8V use at 868.35MHz is covered on p21 IR2030/1/16 (ref EN 300 220 2013/752/EU Band No.48)
+// FHT8V use at 868.35MHz is covered on p21 IR2030/1/16 2010/0168/UK Oct 2010 (ref EN 300 220 2013/752/EU Band No.48)
 // 868.0 - 868.6 MHz max 25 mW e.r.p.
 // Techniques to access spectrum and mitigate interference that provide at least equivalent performance
 // to the techniques described in harmonised standards adopted under Directive 1999/5/EC must be used. Alternatively a duty cycle limit of 1 % may be used.
