@@ -21,7 +21,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
 namespace OTRN2483Link
 {
 
-OTRN2483Link::OTRN2483Link::OTRN2483Link() {
+OTRN2483Link::OTRN2483Link::OTRN2483Link() : ser(8, 5) {
 	bAvailable = false;
 	// Init OTSoftSerial
 }

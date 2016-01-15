@@ -113,7 +113,7 @@ public:
 private:
 // Private methods
     // Serial
-    OTSoftSerial ser;
+    OTV0P2BASE::OTSoftSerial ser;
     uint8_t read();
     uint8_t timedBlockingRead(char *data, uint8_t length);
     void write(const char *data, uint8_t length);
