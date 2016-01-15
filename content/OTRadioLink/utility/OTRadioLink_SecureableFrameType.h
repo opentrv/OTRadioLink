@@ -117,7 +117,7 @@ namespace OTRadioLink
 
         // Maximum (small) frame size is 63, excluding fl byte.
         static const uint8_t maxSmallFrameSize = 63;
-        // Frame length excluding/after this byte; zero indicates an invalid frame.
+        // Frame length excluding/after this byte [0,63]; zero indicates an invalid frame.
         // Appears first on the wire to support radio hardware packet handling.
         //     fl = hl-1 + bl + tl = 3+il + bl + tl
         // where hl header length, bl body length, tl trailer length
@@ -152,10 +152,13 @@ namespace OTRadioLink
         const static uint8_t maxIDLength = 8;
         uint8_t id[maxIDLength];
 
+        // Get header length including the leading frame-length byte.
+        inline uint8_t getHl() const { return(4 + getIl()); }
+
         // Body length including any padding [0,251] but generally << 60.
         uint8_t bl;
         // Compute the offset of the body from the start of the frame starting wth nominal fl byte.
-        uint8_t getBodyOffset() const { return(4 + getIl()); }
+        inline uint8_t getBodyOffset() const { return(getHl()); }
 
         // Compute tl (trailer length) [1,251]; must == 1 for insecure frame.
         // Other fields must be valid for this to return a valid answer.
@@ -200,7 +203,7 @@ namespace OTRadioLink
         uint8_t checkAndEncodeSmallFrameHeader(uint8_t *buf, uint8_t buflen,
                                                bool secure_, FrameType_Secureable fType_,
                                                uint8_t seqNum_,
-                                               uint8_t il_, const uint8_t *id_,
+                                               const uint8_t *id_, uint8_t il_,
                                                uint8_t bl_,
                                                uint8_t tl_);
 
@@ -229,14 +232,15 @@ namespace OTRadioLink
         //
         // (If the header is invalid or the buffer too small, 0 is returned to indicate an error.)
         // The fl byte in the structure is set to the frame length, else 0 in case of any error.
-        // Returns number of bytes of decoded header excluding nominally-leading fl length byte; 0 in case of error.
+        // Returns number of bytes of decoded header including nominally-leading fl length byte; 0 in case of error.
         uint8_t checkAndDecodeSmallFrameHeader(const uint8_t *buf, uint8_t buflen);
 
         // Compute and return CRC for non-secure frames; 0 indicates an error.
-        // This is the value that should be at getTrailerOffset().
+        // This is the value that should be at getTrailerOffset() / offset fl.
         // Can be called after checkAndEncodeSmallFrameHeader() or checkAndDecodeSmallFrameHeader()
         // to compute the correct CRC value;
         // the equality check (on decode) or write (on encode) will then need to be done.
+        // Note that the body must already be in place in the buffer.
         //
         // Parameters:
         //  * buf  buffer containing the entire frame except trailer/CRC; never NULL
@@ -244,6 +248,25 @@ namespace OTRadioLink
         uint8_t computeNonSecureFrameCRC(const uint8_t *buf, uint8_t buflen) const;
         };
 
+
+        // Encode entire non-secure small frame from header params and body.
+        // Returns the total number of bytes written out for the frame
+        // (including, and with a value one higher than the first 'fl' bytes).
+        // Returns zero in case of error.
+        // The supplied buffer may have to be up to 64 bytes long.
+        //
+        // Parameters:
+        //  * buf  buffer to which is written the entire frame including trailer/CRC; never NULL
+        //  * buflen  available length in buf; if too small then this routine will fail (return 0)
+        //  * fType_  frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
+        //  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
+        //  * id_ / il_  ID bytes (and length) to go in the header
+        //  * body / bl_  body data (and length)
+        uint8_t encodeNonsecureSmallFrame(uint8_t *buf, uint8_t buflen,
+                                            FrameType_Secureable fType_,
+                                            uint8_t seqNum_,
+                                            const uint8_t *id_, uint8_t il_,
+                                            const uint8_t *body, uint8_t bl_);
 
 //        // Round up to next 16 multiple, eg for encryption that works in fixed-size blocks for input [0,240].
 //        // Eg 0 -> 0, 1 -> 16, ... 16 -> 16, 17 -> 32 ...
@@ -269,8 +292,147 @@ namespace OTRadioLink
         // Parameters:
         //  * buf  buffer containing the plain-text; must be >= 32 bytes, never NULL
         //
-        // NOTE: does not check that all padding bytes are actually zero.
+        // NOTE: mqy not check that all padding bytes are actually zero.
         uint8_t removePaddingTo32BTrailing0sAndPadCount(const uint8_t *buf);
+
+
+        // Signature of pointer to basic fixed-size text encryption/authentication function.
+        // (Suitable for type 'O' valve/sensor small frame for example.)
+        // Can be fulfilled by AES-128-GCM for example
+        // where:
+        //   * textSize is 32 (or zero if plaintext is NULL)
+        //   * keySize is 16
+        //   * nonceSize is 12
+        //   * tagSize is 16
+        // The plain-text (and identical cipher-text) size is picked to be
+        // a multiple of the cipher's block size, or zero,
+        // which implies likely requirement for padding of the plain text.
+        // Note that the authenticated text size is not fixed, ie is zero or more bytes.
+        // Returns true on success, false on failure.
+        typedef bool (*fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t)(void *state,
+                const uint8_t *key, const uint8_t *iv,
+                const uint8_t *authtext, uint8_t authtextSize,
+                const uint8_t *plaintext,
+                uint8_t *ciphertextOut, uint8_t *tagOut);
+
+        // Signature of pointer to basic fixed-size text decryption/authentication function.
+        // (Suitable for type 'O' valve/sensor small frame for example.)
+        // Can be fulfilled by AES-128-GCM for example
+        // where:
+        //   * textSize is 32 (or zero if ciphertext is NULL)
+        //   * keySize is 16
+        //   * nonceSize is 12
+        //   * tagSize is 16
+        // The plain-text (and identical cipher-text) size is picked to be
+        // a multiple of the cipher's block size, or zero,
+        // which implies likely requirement for padding of the plain text.
+        // Note that the authenticated text size is not fixed, ie is zero or more bytes.
+        // Decrypts/authenticates the output of a fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t function.)
+        // Returns true on success, false on failure.
+        typedef bool (*fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t)(void *state,
+                const uint8_t *key, const uint8_t *iv,
+                const uint8_t *authtext, uint8_t authtextSize,
+                const uint8_t *ciphertext, const uint8_t *tag,
+                uint8_t *plaintextOut);
+
+
+        // NULL basic fixed-size text 'encryption' function.
+        // DOES NOT ENCRYPT OR AUTHENTICATE SO DO NOT USE IN PRODUCTION SYSTEMS.
+        // Emulates some aspects of the process to test real implementations against,
+        // and that some possible gross errors in the use of the crypto are absent.
+        // Returns true on success, false on failure.
+        //
+        // Does not use state so that pointer may be NULL but all others must be non-NULL.
+        // Copies the plaintext to the ciphertext.
+        // Copies the nonce/IV to the tag and pads with trailing zeros.
+        // The key is not used (though one must be supplied).
+        bool fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL(void *state,
+                const uint8_t *key, const uint8_t *iv,
+                const uint8_t *authtext, uint8_t authtextSize,
+                const uint8_t *plaintext,
+                uint8_t *ciphertextOut, uint8_t *tagOut);
+
+        // NULL basic fixed-size text 'decryption' function.
+        // DOES NOT DECRYPT OR AUTHENTICATE SO DO NOT USE IN PRODUCTION SYSTEMS.
+        // Emulates some aspects of the process to test real implementations against,
+        // and that some possible gross errors in the use of the crypto are absent.
+        // Returns true on success, false on failure.
+        //
+        // Does not use state so that pointer may be NULL but all others must be non-NULL.
+        // Undoes/checks fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL().
+        // Undoes/checks fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL().
+        // Copies the ciphertext to the plaintext.
+        // Verifies that the tag seems to have been constructed appropriately.
+        bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(void *state,
+                const uint8_t *key, const uint8_t *iv,
+                const uint8_t *authtext, uint8_t authtextSize,
+                const uint8_t *ciphertext, const uint8_t *tag,
+                uint8_t *plaintextOut);
+
+        // Encode entire secure small frame from header params and body and crypto support.
+        // This is a raw/partial impl that requires the IV/nonce to be supplied.
+        // This uses fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t style encryption/authentication.
+        // The matching decryption function should be used for decoding/verifying.
+        // The crypto method may need to vary based on frame type,
+        // and on negotiations between the participants in the communications.
+        // Returns the total number of bytes written out for the frame
+        // (including, and with a value one higher than the first 'fl' bytes).
+        // Returns zero in case of error.
+        // The supplied buffer may have to be up to 64 bytes long.
+        //
+        // Parameters:
+        //  * buf  buffer to which is written the entire frame including trailer; never NULL
+        //  * buflen  available length in buf; if too small then this routine will fail (return 0)
+        //  * fType_  frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
+        //  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
+        //  * id_ / il_  ID bytes (and length) to go in the header
+        //  * body / bl_  body data (and length), before padding/encryption, no larger than ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE
+        //  * iv  12-byte initialisation vector / nonce; never NULL
+        //  * e  encryption function; never NULL
+        //  * state  pointer to state for e, if required, else NULL
+        //  * key  secret key; never NULL
+        uint8_t encodeSecureSmallFrameRaw(uint8_t *buf, uint8_t buflen,
+                                        FrameType_Secureable fType_,
+                                        uint8_t seqNum_,
+                                        const uint8_t *id_, uint8_t il_,
+                                        const uint8_t *body, uint8_t bl_,
+                                        const uint8_t *iv,
+                                        fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                                        void *state, const uint8_t *key);
+
+        // Decode entire secure small frame from raw frame bytes and crypto support.
+        // This is a raw/partial impl that requires the IV/nonce to be supplied.
+        // This uses fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t style encryption/authentication.
+        // The matching encryption function should have been used for encoding this frame.
+        // The crypto method may need to vary based on frame type,
+        // and on negotiations between the participants in the communications.
+        // Returns the total number of bytes read for the frame
+        // (including, and with a value one higher than the first 'fl' bytes).
+        // Returns zero in case of error, eg because authentication failed.
+        //
+        // Typical workflow:
+        //   * decode the header alone to extract the ID and frame type
+        //   * use those to select a candidate key, construct an iv/nonce
+        //   * call this routine with that decoded header and the full buffer
+        //     to authenticate and decrypt the frame.
+        //
+        // Parameters:
+        //  * buf  buffer containing the entire frame including header and trailer; never NULL
+        //  * buflen  available length in buf; if too small then this routine will fail (return 0)
+        //  * sfh  decoded frame header; never NULL
+        //  * decodedBodyOut  body, if any, will be decoded into this; never NULL
+        //  * decodedBodyOutBuflen  size of decodedBodyOut to decode in to;
+        //        if too small the routine will exist with an error (0)
+        //  * decodedBodyOutSize  is set to the size of the decoded body in decodedBodyOut
+        //  * iv  12-byte initialisation vector / nonce; never NULL
+        //  * d  decryption function; never NULL
+        //  * state  pointer to state for d, if required, else NULL
+        //  * key  secret key; never NULL
+        uint8_t decodeSecureSmallFrameRaw(const SecurableFrameHeader *sfh,
+                                        const uint8_t *buf, uint8_t buflen,
+                                        fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
+                                        void *state, const uint8_t *key, const uint8_t *iv,
+                                        uint8_t *decryptedBodyOut, uint8_t decodedBodyOutBuflen, uint8_t &decodedBodyOutSize);
 
 
     }
@@ -297,7 +459,6 @@ to completely minimise mutual dependencies, though there’s still the issue of 
 state to deal with, etc, etc.)
 
 It also means that different enc/auth mechanisms can be selected at run-time or compile-time.
-
  */
 
 

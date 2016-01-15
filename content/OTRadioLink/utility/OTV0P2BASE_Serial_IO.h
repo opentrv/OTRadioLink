@@ -32,16 +32,10 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 #include <OTV0p2Base.h>
 
 
-/*
-// FIXME	These are defined in V0p2_main/Serial_IO.h
-// On serial output certain characters at the start of a line are reserved.
-// These are used by remote software to trigger particular actions.
-#define LINE_START_CHAR_CLI '>' // CLI prompt.
-#define LINE_START_CHAR_ERROR '!' // Error log line.
-#define LINE_START_CHAR_WARNING '?' // Warning log line.
-#define LINE_START_CHAR_RSTATS '@' // Remote stats log line.
-#define LINE_START_CHAR_STATS '=' // Local stats log line.
-*/
+namespace OTV0P2BASE
+{
+
+
 #ifndef V0P2BASE_DEBUG
 #define V0P2BASE_DEBUG_SERIAL_PRINT(s) // Do nothing.
 #define V0P2BASE_DEBUG_SERIAL_PRINTFMT(s, format) // Do nothing.
@@ -65,8 +59,23 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 #endif // V0P2BASE_DEBUG
 
 
-namespace OTV0P2BASE
-{
+
+// Conventions for data sent on V0p2 serial (FTDI) link to indicate 'significant' lines.
+// If the initial character on a line is one of the following distinguished values
+// then that implies that the entire line is for the described purpose.
+// For example, lines from the V0p2 unit starting with '!' can be written to an error log.
+enum Serial_LineType_InitChar {
+    // Reserved characters at the start of a line from V0p2 to attached server/upstream system.
+    SERLINE_START_CHAR_CLI = '>', // CLI prompt.
+    SERLINE_START_CHAR_ERROR = '!', // Error log line.
+    SERLINE_START_CHAR_WARNING = '?', // Warning log line.
+    SERLINE_START_CHAR_INFO = '+', // Informational log line.
+    SERLINE_START_CHAR_RSTATS = '@', // Remote (binary) stats log line.
+    SERLINE_START_CHAR_RJSTATS = '{', // Remote (JSON) stats log line.
+    SERLINE_START_CHAR_STATS = '=' // Local stats log line.
+};
+
+
 
 // Write a single (Flash-resident) string to serial followed by line-end and wait for transmission to complete.
 // This enables the serial if required and shuts it down afterwards if it wasn't enabled.
@@ -112,5 +121,3 @@ void serialWriteAndFlush(char const *buf, uint8_t len);
 } // OTV0P2BASE
 
 #endif // OTV0P2BASE_SERIAL_IO_H
-
-

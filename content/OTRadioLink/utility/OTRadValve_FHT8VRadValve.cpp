@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
+Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
                            Gary Gladman 2015
                            Mike Stirling 2013
 */
@@ -228,6 +228,8 @@ uint8_t *FHT8VRadValveBase::FHT8VCreate200usBitStreamBptr(uint8_t *bptr, const F
 // Sends to FHT8V in FIFO mode command bitstream from buffer starting at bptr up until terminating 0xff.
 // The trailing 0xff is not sent.
 //
+// Sends on the TX channel set, defaulting to 0.
+//
 // If doubleTX is true, this sends the bitstream twice, with a short (~8ms) pause between transmissions, to help ensure reliable delivery.
 //
 // Returns immediately without transmitting if the command buffer starts with 0xff (ie is empty).
@@ -242,7 +244,7 @@ void FHT8VRadValveBase::FHT8VTXFHTQueueAndSendCmd(uint8_t *bptr, const bool doub
   if(NULL == r) { return; }
 
   const uint8_t buflen = OTRadioLink::frameLenFFTerminated(bptr);
-  r->sendRaw(bptr, buflen, 0, doubleTX ? OTRadioLink::OTRadioLink::TXmax : OTRadioLink::OTRadioLink::TXnormal);
+  r->sendRaw(bptr, buflen, channelTX, doubleTX ? OTRadioLink::OTRadioLink::TXmax : OTRadioLink::OTRadioLink::TXnormal);
 
   //V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("SC");
   }

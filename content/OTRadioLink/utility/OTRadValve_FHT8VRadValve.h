@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
+Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 */
 
 /*
@@ -36,6 +36,15 @@ namespace OTRadValve
 
 
 // FHT8V radio-controlled radiator valve, using FS20 protocol.
+//
+// http://stakeholders.ofcom.org.uk/binaries/spectrum/spectrum-policy-area/spectrum-management/research-guidelines-tech-info/interface-requirements/IR_2030-june2014.pdf
+// IR 2030 - UK Interface Requirements 2030 Licence Exempt Short Range Devices
+// FHT8V use at 868.35MHz is covered on p21 IR2030/1/16 2010/0168/UK Oct 2010 (ref EN 300 220 2013/752/EU Band No.48)
+// 868.0 - 868.6 MHz max 25 mW e.r.p.
+// Techniques to access spectrum and mitigate interference that provide at least equivalent performance
+// to the techniques described in harmonised standards adopted under Directive 1999/5/EC must be used. Alternatively a duty cycle limit of 1 % may be used.
+// See band 48: http://eur-lex.europa.eu/legal-content/EN/TXT/PDF/?uri=CELEX:32013D0752&from=EN
+//
 class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
   {
   public:
@@ -60,6 +69,10 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
     // Radio link usually expected to be RFM23B; non-NULL when available.
     OTRadioLink::OTRadioLink *radio;
 
+    // Radio channel to use for TX; defaults to 0.
+    // Should be set before any sync with the FHT8V.
+    int8_t channelTX;
+
     // TX buffer (non-null) and size (non-zero).
     uint8_t * const buf;
     const uint8_t bufSize;
@@ -70,7 +83,7 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
 
     // Construct an instance, providing TX buffer details.
     FHT8VRadValveBase(uint8_t *_buf, uint8_t _bufSize, appendToTXBufferFF_t *trailerFnPtr)
-      : radio(NULL),
+      : radio(NULL), channelTX(0),
         buf(_buf), bufSize(_bufSize),
         trailerFn(trailerFnPtr),
         halfSecondCount(0)
@@ -164,6 +177,10 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
 
     // Set radio to use (if non-NULL) or clear access to radio (if NULL).
     void setRadio(OTRadioLink::OTRadioLink *r) { radio = r; }
+
+    // Set radio channel to use for TX to FHT8V; defaults to 0.
+    // Should be set before any sync with the FHT8V.
+    void setChannelTX(int8_t channel) { channelTX = channel; }
 
     // Decode raw bitstream into non-null command structure passed in; returns true if successful.
     // Will return non-null if OK, else NULL if anything obviously invalid is detected such as failing parity or checksum.
