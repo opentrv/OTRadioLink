@@ -31,7 +31,7 @@ namespace OTV0P2BASE
  * @param    rxPin    Pin to receive from
  * @param    txPin    Pin to transmit from
  */
-OTSoftSerialBase::OTSoftSerialBase(uint8_t _rxPin, uint8_t _txPin) : rxPin(_rxPin), txPin(_txPin)
+OTSoftSerial::OTSoftSerial(uint8_t _rxPin, uint8_t _txPin) : rxPin(_rxPin), txPin(_txPin)
 {
     baud = 0;
     halfDelay = 0;
@@ -42,7 +42,7 @@ OTSoftSerialBase::OTSoftSerialBase(uint8_t _rxPin, uint8_t _txPin) : rxPin(_rxPi
  * @brief Starts serial port
  * @param baud    Baud rate to operate at. Defaults to 2400
  */
-void OTSoftSerialBase::begin()
+void OTSoftSerial::begin(uint16_t _baud)
 {
     baud = _baud;
     uint16_t bitCycles = (F_CPU/4) / baud;    // delay function burns 4 cpu instructions per cycle
@@ -57,7 +57,7 @@ void OTSoftSerialBase::begin()
 /**
  * @brief    Closes serial port
  */
-void OTSoftSerialBase::end()
+void OTSoftSerial::end()
 {
     fastDigitalWrite(txPin, LOW);    // set txPin to input with no pullup
     pinMode(txPin, INPUT);
@@ -67,7 +67,7 @@ void OTSoftSerialBase::end()
  * @brief    Blocking read a single char
  * @retval    value received
  */
-uint8_t OTSoftSerialBase::read()
+uint8_t OTSoftSerial::read()
 {
     uint8_t val = 0;
     const uint8_t readFullDelay = fullDelay-readTuning;
@@ -105,7 +105,7 @@ uint8_t OTSoftSerialBase::read()
  * @param    len    max length of array to store read in
  * @retval    Length of read. Returns 0 if nothing received
  */
-uint8_t OTSoftSerialBase::read(uint8_t *buf, uint8_t _len)
+uint8_t OTSoftSerial::read(uint8_t *buf, uint8_t _len)
 {
     uint8_t len = _len;
     uint8_t count = 0;
@@ -150,7 +150,7 @@ uint8_t OTSoftSerialBase::read(uint8_t *buf, uint8_t _len)
  * @brief    Writes a character to serial
  * @param    c    character to write
  */
-void OTSoftSerialBase::print(char _c)
+void OTSoftSerial::print(char _c)
 {
     ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
     {
@@ -180,7 +180,7 @@ void OTSoftSerialBase::print(char _c)
  * @param    buf    buffer to write to serial
  * @param    len    length of buffer
  */
-void OTSoftSerialBase::write(const char *buf, uint8_t len)
+void OTSoftSerial::write(const char *buf, uint8_t len)
 {
     for (uint8_t i = 0; i < len; i++) {
         print(*buf);
@@ -194,7 +194,7 @@ void OTSoftSerialBase::write(const char *buf, uint8_t len)
  * @retval    size of array printed
  * @todo    implement max string length/timeout?
  */
-uint8_t OTSoftSerialBase::print(const char *buf)
+uint8_t OTSoftSerial::print(const char *buf)
 {
     uint8_t i = 0;
     while (*buf != '\0') {
@@ -212,7 +212,7 @@ uint8_t OTSoftSerialBase::print(const char *buf)
  * @note    This makes use of non standard stdlib function itoa(). May break when not
  *             compiled with avr-libc
  */
-void OTSoftSerialBase::printNum(const int8_t number)
+void OTSoftSerial::printNum(const int8_t number)
 {
     static const uint8_t maxNumLength = 4; // eg -127. Increase this if ever need to convert to int16_t
     char buf[maxNumLength+1]; // maximum possible size + \0 termination
