@@ -28,6 +28,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014--2015
 #ifndef OTV0P2BASE_SENSOR_H
 #define OTV0P2BASE_SENSOR_H
 
+#include <stdint.h>
+#include <stddef.h>
+
 
 namespace OTV0P2BASE
 {

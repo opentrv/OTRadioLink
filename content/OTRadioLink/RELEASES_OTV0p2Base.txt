@@ -22,6 +22,7 @@ pending:
     DE20151105:  Added serialWriteAndFlush to Serial_IO.
     DHD20151106: D21FM: moved some EEPROM-based stats down into base library.
     DHD20151114: D21FM: moved stats_TX_level and related down into base library.
+    DHD20160115: D21FM: moved [Sensor]AmbientLight down to base library.
 
 
 

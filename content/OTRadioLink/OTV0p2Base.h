@@ -39,6 +39,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
   Basic AVR power consumption ticking an (empty) control loop at ~0.5Hz should be ~1uA.
  */
 
+// Some basic utility functions and definitions.
+#include "utility/OTV0P2BASE_Util.h"
+
 // EEPROM space allocation and utilities including some of the simple rolling stats management.
 #include "utility/OTV0P2BASE_EEPROM.h"
 
@@ -54,6 +57,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 // Base/common sensor and actuator types.
 #include "utility/OTV0P2BASE_Sensor.h"
 #include "utility/OTV0P2BASE_Actuator.h"
+
+// Concrete sensor implementations.
+#include "utility/OTV0P2BASE_SensorAmbientLight.h"
 
 // Basic immutable GPIO assignments and similar.
 #include "utility/OTV0P2BASE_BasicPinAssignments.h"
