@@ -159,5 +159,25 @@ class SensorAmbientLight : public SimpleTSUint8Sensor
   };
 
 
+// Dummy placeholder AmbientLight sensor class with always-false dummy static status methods.
+// Can be to reduce code complexity, by eliminating some need for preprocessing.
+class DummySensorAmbientLight
+  {
+  public:
+    // Not available, so always returns false.
+    static bool isAvailable() { return(false); }
+
+    // Unknown, so always false.
+    // Thread-safe and usable within ISRs (Interrupt Service Routines).
+    static bool isRoomLit() { return(false); }
+
+    // Unknown, so always false.
+    // Thread-safe and usable within ISRs (Interrupt Service Routines).
+    static bool isRoomDark() { return(false); }
+  };
+
+
+
+
 }
 #endif
