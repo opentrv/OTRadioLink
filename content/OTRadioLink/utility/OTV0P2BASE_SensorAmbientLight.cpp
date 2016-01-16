@@ -67,7 +67,7 @@ uint8_t SensorAmbientLight::read()
   // Power on to top of LDR/phototransistor.
 //  power_intermittent_peripherals_enable(false); // No need to wait for anything to stablise as direct of IO_POWER_UP.
   OTV0P2BASE::power_intermittent_peripherals_enable(false); // Will take a nap() below to allow supply to quieten.
-  OTV0P2BASE::nap(WDTO_30MS); // Give supply a moment to settle, eg from heavy current draw.
+  OTV0P2BASE::nap(WDTO_30MS); // Give supply a moment to settle, eg from heavy current draw elsewhere.
   // Photosensor vs Vsupply [0,1023].  // May allow against Vbandgap again for some variants.
   const uint16_t al0 = OTV0P2BASE::analogueNoiseReducedRead(V0p2_PIN_LDR_SENSOR_AIN, DEFAULT); // ALREFERENCE);
   const uint16_t al = al0; // Use raw value as-is.
@@ -136,11 +136,13 @@ uint8_t SensorAmbientLight::read()
     darkTicks = 0;
     }
 
-  if((NULL != possOccCallback) && (newValue != value))
+  // If a callback is set
+  // then treat a sharp brightening as a possible/weak indication of occupancy, eg light flicked on.
+  if((NULL != possOccCallback) && (newValue > oldValue))
     {
-    // Treat a sharp brightening as a possible/weak indication of occupancy, eg light flicked on.
-    // Ignore false trigger at start-up.
-    if((~0U != rawValue) && (newValue > oldValue) && ((newValue - oldValue) >= upDelta))
+    // Ignore false trigger at start-up,
+    // and only respond to a large-enough jump in light levels.
+    if((~0U != rawValue) && ((newValue - oldValue) >= upDelta))
       {
 #if 0 && defined(DEBUG)
 DEBUG_SERIAL_PRINT_FLASHSTRING("  UP: ambient light rise/upDelta/newval/dt/lt: ");
@@ -213,15 +215,16 @@ void SensorAmbientLight::_recomputeThresholds(const bool sensitive)
     }
 
   // If the range between recent max and min too narrow then assume unusable.
-  if((recentMin > MAX_AMBLIGHT_VALUE_UINT8 - ABS_MIN_AMBLIGHT_RANGE_UINT8) ||
+  if((recentMin >= MAX_AMBLIGHT_VALUE_UINT8 - ABS_MIN_AMBLIGHT_RANGE_UINT8) ||
      (recentMax <= recentMin) ||
-     (recentMax - recentMin < ABS_MIN_AMBLIGHT_RANGE_UINT8))
+     (recentMax - recentMin <= ABS_MIN_AMBLIGHT_RANGE_UINT8))
     {
     // Use the supplied default light threshold and derive the rest from it.
     lightThreshold = defaultLightThreshold;
     upDelta = max(1, lightThreshold >> 2); // Delta ~25% of light threshold.
     darkThreshold = lightThreshold - upDelta;
     // Assume unusable.
+    darkTicks = 0; // Scrub any previous possibly-misleading value.
     unusable = true;
     return;
     }
