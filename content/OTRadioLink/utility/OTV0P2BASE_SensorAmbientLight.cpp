@@ -200,7 +200,7 @@ static const uint8_t ABS_MIN_AMBLIGHT_HYST_UINT8 = 2;
 void SensorAmbientLight::_recomputeThresholds(const bool sensitive)
   {
   // If either recent max or min is unset then assume device usable by default.
-  // Use built-in thresholds.
+  // Use default threshold(s).
   if((0xff == recentMin) || (0xff == recentMax))
     {
     // Use the supplied default light threshold and derive the rest from it.
