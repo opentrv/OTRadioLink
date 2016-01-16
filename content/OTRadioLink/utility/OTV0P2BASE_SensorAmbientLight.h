@@ -124,12 +124,12 @@ class SensorAmbientLight : public SimpleTSUint8Sensor
     // Set 'possible occupancy' callback function (for moderate confidence of human presence); NULL for no callback.
     void setPossOccCallback(void (*possOccCallback_)()) { possOccCallback = possOccCallback_; }
 
-    // Returns true if room is lit enough for someone to be active.
-    // False if unknown.
+    // Returns true if room is probably lit enough for someone to be active, with some hysteresis.
+    // False if unknown or sensor appears unusable.
     // Thread-safe and usable within ISRs (Interrupt Service Routines).
-    bool isRoomLit() const { return(isRoomLitFlag); }
+    bool isRoomLit() const { return(isRoomLitFlag && !unusable); }
 
-    // Returns true if room is light enough for someone to be active.
+    // Returns true if room is probably too dark for someone to be active, with some hysteresis.
     // False if unknown or sensor appears unusable,
     // thus it is possible for both isRoomLit() and isRoomDark() to be false.
     // Thread-safe and usable within ISRs (Interrupt Service Routines).

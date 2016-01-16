@@ -83,7 +83,7 @@ class PseudoSensorOccupancyTracker : public OTV0P2BASE::SimpleTSUint8Sensor
     virtual const char *tag() const { return("occ|%"); }
 
     // True if activity/occupancy recently reported (within last couple of minutes).
-    // Includes weak and strong reports.
+    // Activity includes weak and strong reports.
     // Thread-safe.
     bool reportedRecently() { return(0 != activityCountdownM); }
 
@@ -100,7 +100,7 @@ class PseudoSensorOccupancyTracker : public OTV0P2BASE::SimpleTSUint8Sensor
     // Thread-safe.
     bool isLikelyRecentlyOccupied() { return(occupationCountdownM > OCCUPATION_TIMEOUT_1_M); }
 
-    // False if room likely currently unoccupied (no active occupants).
+    // Returns true if room likely currently unoccupied (no active occupants).
     // Defaults to false (and API still exists) when ENABLE_OCCUPANCY_SUPPORT not defined.
     // This may require a substantial time after activity stops to become true.
     // This and isLikelyOccupied() cannot be true together; it is possible for neither to be true.
