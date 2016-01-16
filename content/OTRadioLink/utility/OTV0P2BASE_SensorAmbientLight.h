@@ -160,6 +160,7 @@ class SensorAmbientLight : public SimpleTSUint8Sensor
 
 
 // Dummy placeholder AmbientLight sensor class with always-false dummy static status methods.
+// These methods should be fully optimised away by the compiler in many/most cases.
 // Can be to reduce code complexity, by eliminating some need for preprocessing.
 class DummySensorAmbientLight
   {

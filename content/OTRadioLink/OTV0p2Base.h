@@ -60,6 +60,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 
 // Concrete sensor implementations.
 #include "utility/OTV0P2BASE_SensorAmbientLight.h"
+#include "utility/OTV0P2BASE_SensorOccupancy.h"
 
 // Basic immutable GPIO assignments and similar.
 #include "utility/OTV0P2BASE_BasicPinAssignments.h"

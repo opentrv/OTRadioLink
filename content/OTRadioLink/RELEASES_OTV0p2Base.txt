@@ -24,6 +24,7 @@ pending:
     DHD20151114: D21FM: moved stats_TX_level and related down into base library.
     DHD20160115: D21FM: moved [Sensor]AmbientLight down to base library.
     DHD20160116: D21FM: moved currently-unused boiler driver logic down to base library.
+    DHD20160116: D21FM: moved occupancy pseudo-sensor down to base library.
 
 
 
