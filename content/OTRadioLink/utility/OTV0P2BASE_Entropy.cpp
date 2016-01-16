@@ -104,8 +104,7 @@ uint8_t getSecureRandomByte(const bool whiten)
 void addEntropyToPool(const uint8_t data, const uint8_t /*estBits*/)
   {
   // TODO: no real entropy pool yet.
-  //seedRNG8(data, cycleCountCPU(), getSubCycleTime()); // FIXME
-  seedRNG8(data ^ ++count8, /* --count8, TCNT2); */ getCPUCycleCount(), getSubCycleTime()); // FIXME
+  seedRNG8(data ^ ++count8, getCPUCycleCount(), getSubCycleTime());
   }
 
 // Capture a little system entropy, effectively based on call timing.

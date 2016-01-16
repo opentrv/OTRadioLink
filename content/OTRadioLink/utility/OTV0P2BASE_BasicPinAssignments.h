@@ -52,6 +52,9 @@ static const uint8_t V0p2_PIN_DEFAULT_IO_POWER_UP = 7; // ATMega328P-PU PDIP pin
 // Ambient light sensor (eg LDR) analogue input: higher voltage means more light.
 static const uint8_t V0p2_PIN_LDR_SENSOR_AIN = 0; // ATMega328P-PU PDIP pin 23, PC0.
 
+// Temperature potentiometer, present in REV 2/3/4/7.
+static const uint8_t V0p2_PIN_TEMP_POT_AIN = 1; // ATMega328P-PU PDIP pin 24, PC1.
+
 
 }
 

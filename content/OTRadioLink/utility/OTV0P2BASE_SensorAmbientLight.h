@@ -178,7 +178,5 @@ class DummySensorAmbientLight
   };
 
 
-
-
 }
 #endif
