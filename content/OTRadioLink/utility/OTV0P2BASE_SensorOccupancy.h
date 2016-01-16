@@ -150,7 +150,7 @@ class PseudoSensorOccupancyTracker : public OTV0P2BASE::SimpleTSUint8Sensor
     static const uint8_t longVacantHThrH = 24;
     // Threshold hours above which room is considered long long vacant.
     // Longer than longVacantHThrH but much less than 3 days to try to capture some weekend-absence savings.
-    // 8h less than 2d may capture full office savings for the whole day of Sunday
+    // ~8h less than 2d may capture full office energy savings for the whole day of Sunday
     // counting from from last occupancy at end of (working) day Friday for example.
     static const uint8_t longLongVacantHThrH = 39;
 
