@@ -124,7 +124,7 @@ class PseudoSensorOccupancyTracker : public OTV0P2BASE::SimpleTSUint8Sensor
     // Thread-safe.
     void markAsPossiblyOccupied();
 
-    // Two-bit occupancy: (00 not disclosed,) 1 not occupied, 2 possibly occupied, 3 probably occupied.
+    // Two-bit occupancy: 0 not known/disclosed, 1 not occupied, 2 possibly occupied, 3 probably occupied.
     // 0 is not returned by this implementation.
     // Thread-safe.
     uint8_t twoBitOccupancyValue() { return(isLikelyRecentlyOccupied() ? 3 : (isLikelyOccupied() ? 2 : 1)); }
