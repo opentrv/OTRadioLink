@@ -198,7 +198,7 @@ static const uint8_t ABS_MIN_AMBLIGHT_HYST_UINT8 = 2;
 
 // Recomputes thresholds and 'unusable' based on current state.
 // WARNING: called from (static) constructors so do not attempt (eg) use of Serial.
-//   * sensitive  if true be reasonably sensitive to possible occupancy changes, else less so.
+//   * sensitive  if true be more sensitive to possible occupancy changes, else less so.
 void SensorAmbientLight::_recomputeThresholds(const bool sensitive)
   {
   // If either recent max or min is unset then assume device usable by default.
@@ -256,7 +256,7 @@ void SensorAmbientLight::_recomputeThresholds(const bool sensitive)
 // Short term stats are typically over the last day,
 // longer term typically over the last week or so (eg rolling exponential decays).
 // Call regularly, roughly hourly, to drive other internal time-dependent adaptation.
-//   * sensitive if true be reasonably sensitive to possible occupancy changes, else less so.
+//   * sensitive if true be more sensitive to possible occupancy changes, else less so.
 void SensorAmbientLight::setMinMax(const uint8_t recentMinimumOrFF, const uint8_t recentMaximumOrFF,
                              const uint8_t longerTermMinimumOrFF, const uint8_t longerTermMaximumOrFF,
                              const bool sensitive)

@@ -87,7 +87,7 @@ class SensorAmbientLight : public SimpleTSUint8Sensor
 
     // Recomputes thresholds and 'unusable' based on current state.
     // WARNING: called from (static) constructors so do not attempt (eg) use of Serial.
-    //   * sensitive  if true be reasonably sensitive to possible occupancy changes, else less so.
+    //   * sensitive  if true be more sensitive to possible occupancy changes, else less so.
     void _recomputeThresholds(bool sensitive = true);
 
   public:
@@ -145,7 +145,7 @@ class SensorAmbientLight : public SimpleTSUint8Sensor
     // Short term stats are typically over the last day,
     // longer term typically over the last week or so (eg rolling exponential decays).
     // Call regularly, roughly hourly, to drive other internal time-dependent adaptation.
-    //   * sensitive  if true be reasonably sensitive to possible occupancy changes, else less so.
+    //   * sensitive  if true be more sensitive to possible occupancy changes, else less so.
     void setMinMax(uint8_t recentMinimumOrFF, uint8_t recentMaximumOrFF,
                    uint8_t longerTermMinimumOrFF = 0xff, uint8_t longerTermMaximumOrFF = 0xff,
                    bool sensitive = true);
