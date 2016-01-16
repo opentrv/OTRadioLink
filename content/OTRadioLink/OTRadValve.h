@@ -36,5 +36,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 // Driver for DORM1/REV7 direct motor drive.
 #include "utility/OTRadValve_ValveMotorDirectV1.h"
 
+// Driver for boiler.
+#include "utility/OTRadValve_BoilerDriver.h"
 
 #endif
