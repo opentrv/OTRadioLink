@@ -28,6 +28,8 @@ pending:
     DHD20160116: D21FM: moved temperature pot/dial sensor down to base library.
     DHD20160117: D21FM: moved simple valve programme/scheduler down to base library.
     DHD20160117: moved simple CRC support from OTRadioLink to OTV0P2BASE.
+    DHD20160117: D21FM: moved JSON stats generator down to base library.
+    DHD20160117: D21FM: moved unique ID generator down to base library.
 
 
 
