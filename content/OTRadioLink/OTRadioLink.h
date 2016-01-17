@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2015
+Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 */
 
 #ifndef ARDUINO_LIB_OTRADIOLINK_H
