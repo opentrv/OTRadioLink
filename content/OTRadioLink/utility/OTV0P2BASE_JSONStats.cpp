@@ -25,6 +25,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014--2016
 #include "OTV0P2BASE_JSONStats.h"
 
 #include "OTV0P2BASE_CRC.h"
+#include "OTV0P2BASE_EEPROM.h"
 
 
 namespace OTV0P2BASE

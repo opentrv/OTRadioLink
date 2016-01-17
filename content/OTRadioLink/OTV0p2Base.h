@@ -95,5 +95,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 
 // Support for JSON stats.
 #include "utility/OTV0P2BASE_JSONStats.h"
+// Support for older/simple compact binary stats.
+#include "utility/OTV0P2BASE_SimpleBinaryStats.h"
 
 #endif

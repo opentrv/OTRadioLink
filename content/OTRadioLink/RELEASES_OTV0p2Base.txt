@@ -30,6 +30,7 @@ pending:
     DHD20160117: moved simple CRC support from OTRadioLink to OTV0P2BASE.
     DHD20160117: D21FM: moved JSON stats generator down to base library.
     DHD20160117: D21FM: moved unique ID generator down to base library.
+    DHD20160117: D21FM: moved old binary stats encodings down to base library.
 
 
 

@@ -24,8 +24,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014--2016
 #define OTV0P2BASE_JSONSTATS_H
 
 #include <Arduino.h>
-#include <OTV0p2Base.h>
 
+#include "OTV0P2BASE_Sensor.h"
 #include "OTV0P2BASE_Util.h"
 
 
