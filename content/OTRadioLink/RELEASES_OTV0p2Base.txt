@@ -26,6 +26,7 @@ pending:
     DHD20160116: D21FM: moved currently-unused boiler driver logic down to base library.
     DHD20160116: D21FM: moved occupancy pseudo-sensor down to base library.
     DHD20160116: D21FM: moved temperature pot/dial sensor down to base library.
+    DHD20160117: D21FM: moved simple valve programme/scheduler down to base library.
 
 
 

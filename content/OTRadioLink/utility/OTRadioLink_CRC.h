@@ -56,4 +56,22 @@ namespace OTRadioLink
     }
 
 
+// Note on CRCs
+// ============
+// See http://users.ece.cmu.edu/~koopman/roses/dsn04/koopman04_crc_poly_embedded.pdf
+// Also: http://users.ece.cmu.edu/~koopman/crc/
+// Also: http://www.ross.net/crc/crcpaper.html
+// Also: http://en.wikipedia.org/wiki/Cyclic_redundancy_check
+// 8-bit CRCs available in AVR (HD = Hamming distance):
+//     Nickname | Within 1% of bound | Within 2x of bound | Same HD, but more than 2x bound | Worse HD than bound
+// _crc8_ccitt_update() polynomial x^8 + x^2 + x + 1     (0x07/0xE0/0x83) aka ATM-8  | 53-119 | 18-52 | 10-17; 248-2048 | 8-9; 120-247 (not in Arduino 1.0.5)
+// _crc_ibutton_update() polynomial: x^8 + x^5 + x^4 + 1 (0x31/0x8C/0x98) aka DOWCRC | 43-119 | 19-42 | 10-18; 248-2048 | 8-9; 120-247
+// Provided:
+// crc8_C2_update()                                      (..../..../0x97) aka C2     | 27-50; 52; 56-119 | 18-26; 51; 53-55 | 10-17; 248-2048 | 8-9; 120-247
+
+// An implication is that for a 2-byte or 3-byte (16/24bit) message body
+// either _crc8_ccitt_update() or _crc_ibutton_update() is as good as can be done
+// which means that the supplied optimised implementations are probably good choices.
+
+
 #endif
