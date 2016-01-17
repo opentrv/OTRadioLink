@@ -37,16 +37,6 @@ namespace OTV0P2BASE
 {
 
 
-// Minimum change (hysteresis) enforced in 'reduced noise' version value; must be greater than 1.
-// Aim to provide reasonable noise immunity, even from an ageing carbon-track pot.
-// Allow reasonable remaining granularity of response, at least 10s of distinct positions (>=5 bits).
-static const uint8_t RN_HYST = 8;
-
-// Bottom and top parts of reduced noise range reserved for forcing FROST or BOOST.
-// Should be big enough to hit easily (and must be larger than RN_HYST)
-// but not so big as to really constrain the temperature range or cause confusion.
-static const uint8_t RN_FRBO = (fnmax(8, 2*RN_HYST));
-
 // Force a read/poll of the temperature pot and return the value sensed [0,255] (cold to hot).
 // Potentially expensive/slow.
 // This value has some hysteresis applied to reduce noise.
