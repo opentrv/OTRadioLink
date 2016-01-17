@@ -84,7 +84,7 @@ bool ensureIDCreated(const bool force)
         break;
         }
      }
-  if(!allGood) { OTV0P2BASE::serialPrintlnAndFlush(F("Invalid ID")); }
+//  if(!allGood) { OTV0P2BASE::serialPrintlnAndFlush(F("Invalid ID")); }
   return(allGood);
   }
 
