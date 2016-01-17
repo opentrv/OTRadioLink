@@ -85,10 +85,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 // Entropy management.
 #include "utility/OTV0P2BASE_Entropy.h"
 
-// Serial IO
+// Serial IO (hardware Serial + debug support).
 #include "utility/OTV0P2BASE_Serial_IO.h"
-
-// Soft Serial
+// Soft Serial.
 #include "utility/OTV0P2BASE_SoftSerial.h"
 
 #endif
