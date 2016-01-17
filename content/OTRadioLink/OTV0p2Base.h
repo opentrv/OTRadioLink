@@ -90,4 +90,10 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 // Soft Serial.
 #include "utility/OTV0P2BASE_SoftSerial.h"
 
+// Specialist simple CRC support.
+#include "utility/OTV0P2BASE_CRC.h"
+
+// Support for JSON stats.
+#include "utility/OTV0P2BASE_JSONStats.h"
+
 #endif

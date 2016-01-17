@@ -27,8 +27,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 
 #include <stddef.h>
 #include <stdint.h>
-
 #include <Print.h>
+#include <OTV0p2Base.h>
+
 
 // Use namespaces to help avoid collisions.
 namespace OTRadioLink
@@ -359,6 +360,14 @@ namespace OTRadioLink
 #define OTRADIOLINK_NO_VIRT_DEST // Beware, no virtual destructor so be careful of use via base pointers.
 #endif
         };
+
+
+    // Forward some CRC definitions that were in OTRadioLink for compatibility (DHD20160117).
+    inline uint8_t crc7_5B_update(uint8_t crc, uint8_t datum) { return(OTV0P2BASE::crc7_5B_update(crc, datum)); }
+    static const uint8_t crc7_5B_update_nz_ALT = OTV0P2BASE::crc7_5B_update_nz_ALT;
+    inline uint8_t crc7_5B_update_nz_final(uint8_t crc, uint8_t datum) { return(OTV0P2BASE::crc7_5B_update_nz_final(crc, datum)); }
+
+
     }
 
 

@@ -28,6 +28,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 #define ARDUINO_LIB_OTRADIOLINK_SECUREABLEFRAMETYPE_H
 
 #include <stdint.h>
+#include <OTV0p2Base.h>
+
 
 namespace OTRadioLink
     {

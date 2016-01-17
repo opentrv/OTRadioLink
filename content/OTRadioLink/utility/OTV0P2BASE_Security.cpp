@@ -27,7 +27,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 
 #include "OTV0P2BASE_Security.h"
 
+#include "OTV0P2BASE_ADC.h"
 #include "OTV0P2BASE_EEPROM.h"
+#include "OTV0P2BASE_Serial_IO.h"
 
 
 namespace OTV0P2BASE
@@ -39,6 +41,52 @@ namespace OTV0P2BASE
 // Not thread-/ISR- safe.
 stats_TX_level getStatsTXLevel() { return((stats_TX_level)eeprom_read_byte((uint8_t *)V0P2BASE_EE_START_STATS_TX_ENABLE)); }
 
+
+// Coerce any EEPROM-based node OpenTRV ID bytes to valid values if unset (0xff) or if forced,
+// by filling with valid values (0x80--0xfe) from decent entropy gathered on the fly.
+// Will moan about invalid values and return false but not attempt to reset,
+// eg in case underlying EEPROM cell is worn/failing.
+// Returns true iff all values good.
+bool ensureIDCreated(const bool force)
+  {
+  bool allGood = true;
+  for(uint8_t i = 0; i < V0P2BASE_EE_LEN_ID; ++i)
+    {
+    uint8_t * const loc = i + (uint8_t *)V0P2BASE_EE_START_ID;
+    if(force || (0xff == eeprom_read_byte(loc))) // Byte is unset or change is being forced.
+        {
+//        OTV0P2BASE::serialPrintAndFlush(F("Setting ID byte "));
+//        OTV0P2BASE::serialPrintAndFlush(i);
+//        OTV0P2BASE::serialPrintAndFlush(' ');
+        for( ; ; )
+          {
+          // Try to make decently-randomised 'unique-ish' ID.
+          // The ID is not confidential, and will be transmitted in the clear.
+          // The system will typically not have been running long when this is invoked.
+          const uint8_t newValue = 0x80 | OTV0P2BASE::getSecureRandomByte();
+          if(0xff == newValue) { continue; } // Reject unusable value.
+          OTV0P2BASE::eeprom_smart_update_byte(loc, newValue);
+//          OTV0P2BASE::serialPrintAndFlush(newValue, HEX);
+          break;
+          }
+//        OTV0P2BASE::serialPrintlnAndFlush();
+        }
+    // Validate.
+    const uint8_t v2 = eeprom_read_byte(loc);
+    if(!validIDByte(v2))
+        {
+        allGood = false;
+//        OTV0P2BASE::serialPrintAndFlush(F("Invalid ID byte "));
+//        OTV0P2BASE::serialPrintAndFlush(i);
+//        OTV0P2BASE::serialPrintAndFlush(F(" ... "));
+//        OTV0P2BASE::serialPrintAndFlush(v2, HEX);
+//        OTV0P2BASE::serialPrintlnAndFlush();
+        break;
+        }
+     }
+  if(!allGood) { OTV0P2BASE::serialPrintlnAndFlush(F("Invalid ID")); }
+  return(allGood);
+  }
 
 
 }

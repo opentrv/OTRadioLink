@@ -14,6 +14,10 @@ pending:
     DE20151026:  Fixed compiler warning due to preinit()
     DE20151103:  Updated nullRadio
     DHD20151222: created FrameType_Secureable enum and 'secure frame types' header.
+    DHD20160117: moved simple CRC support from OTRadioLink to OTV0P2BASE.
+
+
+
 
 
 20151021:
@@ -32,10 +36,6 @@ pending:
     DHD20150922: TODO-547: still crashing, but had not correctly enabled delays around nSS.
     DHD20150924: Allowing radio code to at least compile on UNO.
     DE20151014:  Created null radio implementation
-
-
-
-
 
 20150817:
     freezepoint name: V0.8

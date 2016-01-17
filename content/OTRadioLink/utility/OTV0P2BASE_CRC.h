@@ -20,14 +20,16 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
  * Specialist simple CRC support.
  */
 
-#ifndef ARDUINO_LIB_OTRADIOLINK_CRC_H
-#define ARDUINO_LIB_OTRADIOLINK_CRC_H
+#ifndef ARDUINO_LIB_OTV0P2BASE_CRC_H
+#define ARDUINO_LIB_OTV0P2BASE_CRC_H
 
 #include <stdint.h>
 
 // Use namespaces to help avoid collisions.
-namespace OTRadioLink
+namespace OTV0P2BASE
     {
+
+
     // Simple small CRC definitions, typically not readily available elsewhere.
 
     /**Update 7-bit CRC with next byte; result always has top bit zero.
@@ -53,6 +55,8 @@ namespace OTRadioLink
      * Use this ONLY on the final byte.
      */
     extern uint8_t crc7_5B_update_nz_final(uint8_t crc, uint8_t datum);
+
+
     }
 
 

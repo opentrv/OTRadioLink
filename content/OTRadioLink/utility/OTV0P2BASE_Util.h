@@ -41,6 +41,16 @@ template <class T> const T& fnmin(const T& a, const T& b) { return((a>b)?b:a); }
 template <class T> const T& fnmax(const T& a, const T& b) { return((a<b)?b:a); }
 
 
+// Extract ASCII hex digit in range [0-9][a-f] (ie lowercase) from bottom 4 bits of argument.
+// Eg, passing in 0xa (10) returns 'a'.
+// The top 4 bits are ignored.
+inline char hexDigit(const uint8_t value) { const uint8_t v = 0xf&value; if(v<10) { return('0'+v); } return('a'+(v-10)); }
+//static inline char hexDigit(const uint8_t value) { const uint8_t v = *("0123456789abcdef" + (0xf&value)); }
+// Fill in the first two bytes of buf with the ASCII hex digits of the value passed.
+// Eg, passing in a value 0x4e sets buf[0] to '4' and buf[1] to 'e'.
+inline void hexDigits(const uint8_t value, char * const buf) { buf[0] = hexDigit(value>>4); buf[1] = hexDigit(value); }
+
+
 }
 
 #endif

@@ -27,9 +27,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #include "utility/OTRadioLink_FrameType.h"
 #include "utility/OTRadioLink_SecureableFrameType.h"
 
-// Specialist simple CRC support.
-#include "utility/OTRadioLink_CRC.h"
-
 // Radio Link base class definition.
 #include "utility/OTRadioLink_OTRadioLink.h"
 
