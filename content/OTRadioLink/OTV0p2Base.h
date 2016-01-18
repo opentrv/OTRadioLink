@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2015
+Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 */
 
 #ifndef ARDUINO_LIB_OTV0P2BASE_H
@@ -39,6 +39,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
   Basic AVR power consumption ticking an (empty) control loop at ~0.5Hz should be ~1uA.
  */
 
+// Some basic utility functions and definitions.
+#include "utility/OTV0P2BASE_Util.h"
+
 // EEPROM space allocation and utilities including some of the simple rolling stats management.
 #include "utility/OTV0P2BASE_EEPROM.h"
 
@@ -55,6 +58,11 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #include "utility/OTV0P2BASE_Sensor.h"
 #include "utility/OTV0P2BASE_Actuator.h"
 
+// Concrete sensor implementations.
+#include "utility/OTV0P2BASE_SensorAmbientLight.h"
+#include "utility/OTV0P2BASE_SensorTemperaturePot.h"
+#include "utility/OTV0P2BASE_SensorOccupancy.h"
+
 // Basic immutable GPIO assignments and similar.
 #include "utility/OTV0P2BASE_BasicPinAssignments.h"
 
@@ -65,6 +73,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 // Software Real-Time Clock (RTC) support.
 #include "utility/OTV0P2BASE_RTC.h"
 
+// Simple valve programmer/scheduler.
+#include "utility/OTV0P2BASE_SimpleValveSchedule.h"
+
 // ADC (Analogue-to-Digital Converter) support.
 #include "utility/OTV0P2BASE_ADC.h"
 
@@ -74,10 +85,17 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 // Entropy management.
 #include "utility/OTV0P2BASE_Entropy.h"
 
-// Serial IO
+// Serial IO (hardware Serial + debug support).
 #include "utility/OTV0P2BASE_Serial_IO.h"
-
-// Soft Serial
+// Soft Serial.
 #include "utility/OTV0P2BASE_SoftSerial.h"
+
+// Specialist simple CRC support.
+#include "utility/OTV0P2BASE_CRC.h"
+
+// Support for JSON stats.
+#include "utility/OTV0P2BASE_JSONStats.h"
+// Support for older/simple compact binary stats.
+#include "utility/OTV0P2BASE_SimpleBinaryStats.h"
 
 #endif

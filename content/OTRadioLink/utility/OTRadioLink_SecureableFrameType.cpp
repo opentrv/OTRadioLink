@@ -28,7 +28,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 
 #include "OTRadioLink_SecureableFrameType.h"
 
-#include "OTRadioLink_CRC.h"
+#include "OTV0P2BASE_CRC.h"
 
 namespace OTRadioLink
     {
@@ -235,7 +235,7 @@ uint8_t SecurableFrameHeader::computeNonSecureFrameCRC(const uint8_t *const buf,
     uint8_t crc = 0x7f;
     const uint8_t *p = buf;
     // Include in calc all bytes up to but not including the trailer/CRC byte.
-    for(uint8_t i = fl; i > 0; --i) { crc = crc7_5B_update(crc, *p++); }
+    for(uint8_t i = fl; i > 0; --i) { crc = OTV0P2BASE::crc7_5B_update(crc, *p++); }
     // Ensure 0x00 result is converted to avoid forbidden value.
     if(0 == crc) { crc = 0x80; }
     return(crc);

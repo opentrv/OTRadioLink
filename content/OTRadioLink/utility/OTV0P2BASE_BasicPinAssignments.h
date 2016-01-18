@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2015
+Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
                            Deniz Erbilgin 2015
 */
 
@@ -48,6 +48,12 @@ static const uint8_t V0p2_PIN_SCL_AIN = 5; // ATMega328P-PU PDIP pin 28, PC5.
 // Can be connected direct, or via 330R+ current limit and 100nF+ decoupling).
 // NOTE: this is a feature of V0p2 boards rather inherent to the AVR/ATMega328P.
 static const uint8_t V0p2_PIN_DEFAULT_IO_POWER_UP = 7; // ATMega328P-PU PDIP pin 13, PD7, no usable analogue input.
+
+// Ambient light sensor (eg LDR) analogue input: higher voltage means more light.
+static const uint8_t V0p2_PIN_LDR_SENSOR_AIN = 0; // ATMega328P-PU PDIP pin 23, PC0.
+
+// Temperature potentiometer, present in REV 2/3/4/7.
+static const uint8_t V0p2_PIN_TEMP_POT_AIN = 1; // ATMega328P-PU PDIP pin 24, PC1.
 
 
 }

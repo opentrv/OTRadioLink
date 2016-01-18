@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2015
+Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 */
 
 #ifndef ARDUINO_LIB_OTRADVALVE_H
@@ -36,5 +36,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 // Driver for DORM1/REV7 direct motor drive.
 #include "utility/OTRadValve_ValveMotorDirectV1.h"
 
+// Driver for boiler.
+#include "utility/OTRadValve_BoilerDriver.h"
 
 #endif

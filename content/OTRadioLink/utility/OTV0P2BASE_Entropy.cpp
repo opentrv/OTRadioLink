@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2015
+Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 */
 
 /*
@@ -36,7 +36,7 @@ namespace OTV0P2BASE
 
 // Extract and return a little entropy from clock jitter between CPU and 32768Hz RTC clocks; possibly up to 2 bits of entropy captured.
 // Expensive in terms of CPU time and thus energy.
-// TODO: may be able to reduce clock speed at little to lower energy cost while still detecting useful jitter
+// TODO: may be able to reduce clock speed a little to lower energy cost while still detecting useful jitter
 //   (but not below 131072kHz since CPU clock must be >= 4x RTC clock to stay on data-sheet and access TCNT2).
 uint_fast8_t clockJitterRTC()
   {
@@ -104,8 +104,7 @@ uint8_t getSecureRandomByte(const bool whiten)
 void addEntropyToPool(const uint8_t data, const uint8_t /*estBits*/)
   {
   // TODO: no real entropy pool yet.
-  //seedRNG8(data, cycleCountCPU(), getSubCycleTime()); // FIXME
-  seedRNG8(data ^ ++count8, /* --count8, TCNT2); */ getCPUCycleCount(), getSubCycleTime()); // FIXME
+  seedRNG8(data ^ ++count8, getCPUCycleCount(), getSubCycleTime());
   }
 
 // Capture a little system entropy, effectively based on call timing.
@@ -128,6 +127,7 @@ uint16_t sramCRC()
     { result = _crc_ccitt_update(result, *p); }
   return(result);
   }
+
 // Compute a CRC of all of EEPROM as a hash that may contain some entropy, particularly across restarts.
 uint16_t eeCRC()
   {

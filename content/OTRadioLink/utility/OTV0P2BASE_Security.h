@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2015
+Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 */
 
 /*
@@ -48,6 +48,17 @@ enum stats_TX_level
 // May not exactly match enumerated levels; use inequalities.
 // Not thread-/ISR- safe.
 stats_TX_level getStatsTXLevel();
+
+
+// Returns true iff valid OpenTRV node ID byte: must have the top bit set and not be 0xff.
+inline bool validIDByte(const uint8_t v) { return((0 != (0x80 & v)) && (0xff != v)); }
+
+// Coerce any EEPROM-based node OpenTRV ID bytes to valid values if unset (0xff) or if forced,
+// by filling with valid values (0x80--0xfe) from decent entropy.
+// Will moan about invalid values and return false but not attempt to reset,
+// eg in case underlying EEPROM cell is worn/failing.
+// Returns true if all values good.
+bool ensureIDCreated(const bool force = false);
 
 
 //#if 0 // Pairing API outline.
