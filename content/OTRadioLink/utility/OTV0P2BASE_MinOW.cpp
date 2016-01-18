@@ -29,6 +29,7 @@ Note: original XABC code from "EternityForest" appears to be in the public domai
 namespace OTV0P2BASE
 {
 
+
 // Create very light-weight standard-speed OneWire(TM) support if a pin has been allocated to it.
 // Meant to be similar to use to OneWire library V2.2.
 // Supports search but not necessarily CRC.
@@ -220,13 +221,17 @@ bool MinimalOneWireBase::search(uint8_t newAddr[])
   return(result);
   }
 
-
 // Select a particular device on the bus.
 void MinimalOneWireBase::select(const uint8_t addr[8])
   {
   write(0x55);
   for(uint8_t i = 0; i < 8; ++i) { write(addr[i]); }
   }
+
+
+// By default create lightweight support for OW on default (OW_DQ, digital 2) pin: cost ~12 SRAM bytes.
+// Designed to work with 1MHz/1MIPS CPU clock.
+OTV0P2BASE::MinimalOneWire<> MinOW_DEFAULT_OWDQ;
 
 
 }
