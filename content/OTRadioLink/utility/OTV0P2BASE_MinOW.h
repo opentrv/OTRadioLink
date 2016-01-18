@@ -26,6 +26,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 #include <stdint.h>
 #include <util/atomic.h>
 
+// Source of default DQ pin.
+#include "utility/OTV0P2BASE_BasicPinAssignments.h"
 // Fast GPIO support and micro timing routines.
 #include "utility/OTV0P2BASE_FastDigitalIO.h"
 #include "utility/OTV0P2BASE_Sleep.h"
@@ -134,7 +136,7 @@ class MinimalOneWireBase
     void select(const uint8_t addr[8]);
   };
 
-template <uint8_t DigitalPin>
+template <uint8_t DigitalPin = V0p2_PIN_OW_DQ_DATA>
 class MinimalOneWire : public MinimalOneWireBase
   {
   private:
@@ -205,6 +207,10 @@ class MinimalOneWire : public MinimalOneWireBase
       if(high) { delayB(); } else { delayD(); }
       }
   };
+
+// By default create lightweight support for OW on default (OW_DQ, digital 2) pin: cost ~12 SRAM bytes.
+// Designed to work with 1MHz/1MIPS CPU clock.
+extern OTV0P2BASE::MinimalOneWire<> MinOW_DEFAULT_OWDQ;
 
 
 }
