@@ -13,7 +13,9 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
+Author(s) / Copyright (s): Damon Hart-Davis 2014--2016
+                           John Harvey 2014 (DS18B20 code)
+                           Deniz Erbilgin 2015--2016
 */
 
 /*
@@ -22,14 +24,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 
 #include "OTV0P2BASE_SensorDS18B20.h"
-
-//#include <Arduino.h>
-
-//#include "OTV0P2BASE_ADC.h"
-//#include "OTV0P2BASE_BasicPinAssignments.h"
-//#include "OTV0P2BASE_Entropy.h"
-//#include "OTV0P2BASE_PowerManagement.h"
-//#include "OTV0P2BASE_Sleep.h"
 
 
 namespace OTV0P2BASE
@@ -96,7 +90,7 @@ bool TemperatureC16_DS18B20::init()
 
   if(!found)
     {
-    DEBUG_SERIAL_PRINTLN_FLASHSTRING("DS18B20 not found");
+//    DEBUG_SERIAL_PRINTLN_FLASHSTRING("DS18B20 not found");
     address[0] = 0; // Indicate that no DS18B20 was found.
     }
   return(found);

@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
+Author(s) / Copyright (s): Damon Hart-Davis 2014--2016
 */
 
 /*
@@ -26,6 +26,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 //#include "OTV0P2BASE_Util.h"
 #include "OTV0P2BASE_MinOW.h"
 #include "OTV0P2BASE_Sensor.h"
+#include "utility/OTV0P2BASE_SensorTemperatureC16Base.h"
 
 
 namespace OTV0P2BASE
@@ -93,6 +94,10 @@ class TemperatureC16_DS18B20 : public TemperatureC16Base
     // Returns number of useful binary digits after the binary point.
     // 8 less than total precision for DS18B20.
     virtual int8_t getBitsAfterPoint() const { return(precision - 8); }
+
+    // Returns true if this sensor is definitely unavailable or behaving incorrectly.
+    // This is after an attempt to initialise has not found a DS18B20 on the bus.
+    virtual bool isUnavailable() const { return(initialised && (0 == address[0])); }
 
     // Create instance with given OneWire connection, bus ordinal and precision.
     // No two instances should attempt to target the same DS18B20,
