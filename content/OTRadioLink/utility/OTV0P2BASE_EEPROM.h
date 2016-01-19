@@ -102,7 +102,6 @@ namespace OTV0P2BASE
 #define V0P2BASE_EE_START_MAX_VALVE_PC_OPEN 30 // Ignored entirely if outside range [1,100], eg if default/unprogrammed 0xff.
 
 // Minimum (total percentage across all rads) that all rads should be on before heating should fire.
-// Default might be (say) DEFAULT_VALVE_PC_MODERATELY_OPEN eg 33%, or twice the minimum.
 #define V0P2BASE_EE_START_MIN_TOTAL_VALVE_PC_OPEN 31 // Ignored entirely if outside range [1,100], eg if default/unprogrammed 0xff.
 
 

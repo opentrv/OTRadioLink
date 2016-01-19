@@ -303,11 +303,13 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
 
       // If well below target (and without a wide deadband),
       // or needing a fast response to manual input to be responsive (TODO-593),
-      // then go straight to 'moderately open' if less open currently,
+      // then jump straight to (just over*) 'moderately open' if less open currently,
       // which should allow flow and turn the boiler on ASAP,
       // a little like a mini-BAKE.
       // For this to work, don't set a wide deadband when, eg, user has just touched the controls.
-      const uint8_t cappedModeratelyOpen = min(inputState.maxPCOpen, OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN+1);
+      // *Jump to just over moderately-open threshold to defeat any small rounding errors in the data path, etc,
+      // since boiler is likely to regard this threshold as a trigger to immediate action.
+      const uint8_t cappedModeratelyOpen = min(inputState.maxPCOpen, min(99, OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN+TRV_SLEW_PC_PER_MIN_FAST));
       if((valvePCOpen < cappedModeratelyOpen) &&
          (inputState.fastResponseRequired || (vBelowTarget && !inputState.widenDeadband)))
           { return(cappedModeratelyOpen); }
