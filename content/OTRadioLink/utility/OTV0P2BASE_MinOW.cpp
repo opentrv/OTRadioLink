@@ -229,9 +229,10 @@ void MinimalOneWireBase::select(const uint8_t addr[8])
   }
 
 
-// By default create lightweight support for OW on default (OW_DQ, digital 2) pin: cost ~12 SRAM bytes.
-// Designed to work with 1MHz/1MIPS CPU clock.
-OTV0P2BASE::MinimalOneWire<> MinOW_DEFAULT_OWDQ;
+//// By default create lightweight support for OW on default (OW_DQ, digital 2) pin.
+//// DHD20160119: Cost ~12 SRAM bytes / ~500 code/Flash bytes.
+//// Designed to work with 1MHz/1MIPS CPU clock.
+//OTV0P2BASE::MinimalOneWire<> MinOW_DEFAULT_OWDQ;
 
 
 }
