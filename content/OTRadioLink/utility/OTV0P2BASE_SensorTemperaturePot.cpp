@@ -43,7 +43,7 @@ namespace OTV0P2BASE
 // Not thread-safe nor usable within ISRs (Interrupt Service Routines).
 uint8_t SensorTemperaturePot::read()
   {
-  // No need to wait for voltage to stablise as pot top end directly driven by IO_POWER_UP.
+  // No need to wait for voltage to stabilise as pot top end directly driven by IO_POWER_UP.
   OTV0P2BASE::power_intermittent_peripherals_enable(false);
   const uint16_t tpRaw = OTV0P2BASE::analogueNoiseReducedRead(V0p2_PIN_TEMP_POT_AIN, DEFAULT); // Vcc reference.
   OTV0P2BASE::power_intermittent_peripherals_disable();
