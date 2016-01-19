@@ -31,7 +31,7 @@ pending:
     DHD20160117: D21FM: moved JSON stats generator down to base library.
     DHD20160117: D21FM: moved unique ID generator down to base library.
     DHD20160117: D21FM: moved old binary stats encodings down to base library.
-    DHD20160118: D21FM: moved SHT21 temp/RH% sensor support down to base library.
+    DHD20160118: D21FM: preparing to move SHT21 temp/RH% sensor support down to base library.
 
 
 

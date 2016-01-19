@@ -165,8 +165,8 @@ class SensorAmbientLight : public SimpleTSUint8Sensor
 class DummySensorAmbientLight
   {
   public:
-    // Not available, so always returns false.
-    static bool isAvailable() { return(false); }
+    // Not available, so always returns true.
+    static bool isUnavailable() { return(true); }
 
     // Unknown, so always false.
     // Thread-safe and usable within ISRs (Interrupt Service Routines).
