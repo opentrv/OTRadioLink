@@ -175,6 +175,7 @@ bool OTSIM900Link::queueToSend(const uint8_t *buf, uint8_t buflen, int8_t , TXpo
  */
 void OTSIM900Link::poll()
 {
+	uint8_t udpState = 0;
     if (txMessageQueue > 0) {
         // State machine in here
         switch (state) {
@@ -183,24 +184,36 @@ void OTSIM900Link::poll()
             getSignalStrength();
             delay(300);
             // open udp connection
-            openUDP();
-            state = WAIT_FOR_UDP;
+            state = START_GPRS;
             break;
+
+        case START_GPRS:
+        	udpState = isOpenUDP();
+        	if (udpState == 0) openUDP();
+        	else if (udpState == 1) state = WAIT_FOR_UDP;
+        	else if (udpState == 2) { shutGPRS(); state = RESTART_CONNECTION; }
+        	//				} else if (isOpenUDP() == 2){
+        	//					// handle PDP DEACT here
+        	//					state = START_GPRS;
+        	//				}
+        	break;
+
         case WAIT_FOR_UDP:
-            // check if udp opened
-            if(isOpenUDP()){
-                // Delay for module
-                delay(300);
-//                sendRaw(txQueue, strlen((const char*)txQueue));    // TODO  replace this with start sending function and work out what to do with sizeof
-                sendRaw(txQueue, txMsgLen);    // TODO  Can't use strlen with binary data
-                delay(300);
-                // shut
-                shutGPRS();
-
-                if (!(--txMessageQueue)) state = IDLE;
-            }
-
+			sendRaw(txQueue, txMsgLen);    // TODO  Can't use strlen with binary data
+			delay(300);
+			// shut
+			shutGPRS();
+			if (!(--txMessageQueue)) state = IDLE;
             break;
+
+        case RESTART_CONNECTION:
+            if (isRegistered()) {
+                begin();
+                txMessageQueue = 0;
+                state = IDLE;
+            }
+          break;
+
             // TODO add these in once interrupt set up
 //        case WAIT_FOR_PROMPT:
 //            // check for flag from interrupt
@@ -535,6 +548,9 @@ bool OTSIM900Link::startGPRS()
   const char *dataCut;
   uint8_t dataCutLength = 0;
   getResponse(dataCutLength, data, sizeof(data), 0x0A);    // unreliable
+#ifdef OTSIM900LINK_DEBUG
+  OTV0P2BASE::serialPrintlnAndFlush(data);
+#endif // OTSIM900LINK_DEBUG
   if (dataCutLength == 9) return true;    // expected response 'OK'
   else return false;
 }
@@ -590,7 +606,7 @@ uint8_t OTSIM900Link::getIP()
  * @todo    implement function
  * @retval    true if open
  */
-bool OTSIM900Link::isOpenUDP()
+uint8_t OTSIM900Link::isOpenUDP()
 {
     char data[MAX_SIM900_RESPONSE_CHARS];
     print(AT_START);
@@ -606,7 +622,8 @@ bool OTSIM900Link::isOpenUDP()
     const char *dataCut;
     uint8_t dataCutLength = 0;
     dataCut = getResponse(dataCutLength, data, sizeof(data), ' '); // first ' ' appears right before useful part of message
-    if (*dataCut == 'C') return true; // expected string is 'CONNECT OK'. no other possible string begins with R
+    if (*dataCut == 'C') return 1; // expected string is 'CONNECT OK'. no other possible string begins with R
+    else if (*dataCut == 'P') return 2;
     else return false;
 }
 

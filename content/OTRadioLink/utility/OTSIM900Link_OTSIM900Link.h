@@ -29,7 +29,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
 #include <string.h>
 #include <stdint.h>
 
-//#define OTSIM900LINK_DEBUG
+#define OTSIM900LINK_DEBUG
 
 /**
  * @note    To use library:
@@ -97,9 +97,11 @@ typedef struct OTSIM900LinkConfig {
 
 enum SendState {
         IDLE,
+		START_GPRS,
         WAIT_FOR_UDP,
-        WAIT_FOR_PROMPT,
-        WAIT_FOR_SENDOK
+		RESTART_CONNECTION,
+//        WAIT_FOR_PROMPT,
+//        WAIT_FOR_SENDOK
     };
 
 
@@ -243,7 +245,7 @@ private:
     bool startGPRS();
     bool shutGPRS();
     uint8_t getIP();
-    bool isOpenUDP();
+    uint8_t isOpenUDP();
     void getSignalStrength();
 
     void verbose(uint8_t level);
