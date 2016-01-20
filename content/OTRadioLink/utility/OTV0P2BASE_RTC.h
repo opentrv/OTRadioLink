@@ -116,7 +116,15 @@ uint_least8_t getNextHourLT();
 // Does not attempt to set seconds.
 // Thread/interrupt safe, but do not call this from an ISR.
 // Will persist time to survive reset as necessary.
-bool setHoursMinutesLT(int hours, int minutes);
+bool setHoursMinutesLT(uint8_t hours, uint8_t minutes);
+
+// Set seconds [0,59].
+// Not persisted.
+// Will ignore attempts to set bad values and return false in that case.
+// Will drop the least significant bit if counting in 2s increments.
+// Returns true if all OK and the time has been set.
+// Thread/interrupt safe, but do not call this from an ISR.
+bool setSeconds(uint8_t seconds);
 
 
 // Length of main loop and wakeup cycle/tick in seconds.
