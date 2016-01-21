@@ -84,13 +84,6 @@ class TemperatureC16_DS18B20 : public TemperatureC16Base
     // Default precision; defaults to minimum for speed.
     static const uint8_t DEFAULT_PRECISION = MIN_PRECISION;
 
-    // Error value returned if device unavailable or not yet read.
-    // Negative and below minimum value that DS18B20 can return legitimately (-55C).
-    static const int16_t INVALID_TEMP = -128 * 16; // Nominally -128C.
-
-    // Returns true if the given value indicates, or may indicate, an error.
-    virtual bool isErrorValue(int16_t value) const { return(INVALID_TEMP == value); }
-
     // Returns number of useful binary digits after the binary point.
     // 8 less than total precision for DS18B20.
     virtual int8_t getBitsAfterPoint() const { return(precision - 8); }
@@ -104,7 +97,7 @@ class TemperatureC16_DS18B20 : public TemperatureC16Base
     // though different DS18B20s on the same bus or different buses is allowed.
     // Precision defaults to minimum (9 bits, 0.5C resolution) for speed.
     TemperatureC16_DS18B20(OTV0P2BASE::MinimalOneWireBase &ow, uint8_t _busOrder = 0, uint8_t _precision = DEFAULT_PRECISION)
-      : busOrder(_busOrder), initialised(false), value(INVALID_TEMP), minOW(ow)
+      : busOrder(_busOrder), initialised(false), value(DEFAULT_INVALID_TEMP), minOW(ow)
       {
       // Coerce precision to be valid.
       precision = constrain(_precision, MIN_PRECISION, MAX_PRECISION);
@@ -118,11 +111,6 @@ class TemperatureC16_DS18B20 : public TemperatureC16Base
     // Expensive/slow.
     // Not thread-safe nor usable within ISRs (Interrupt Service Routines).
     virtual int16_t read();
-
-    // Return last value fetched by read(); undefined before first read().
-    // Fast.
-    // Not thread-safe nor usable within ISRs (Interrupt Service Routines).
-    virtual int16_t get() const { return(value); }
   };
 
 
