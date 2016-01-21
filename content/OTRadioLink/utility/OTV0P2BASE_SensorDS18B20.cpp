@@ -103,7 +103,7 @@ bool TemperatureC16_DS18B20::init()
 int16_t TemperatureC16_DS18B20::read()
   {
   if(!initialised) { init(); }
-  if(0 == address[0]) { value = INVALID_TEMP; return(INVALID_TEMP); }
+  if(0 == address[0]) { value = DEFAULT_INVALID_TEMP; return(DEFAULT_INVALID_TEMP); }
 
   // Start a temperature reading.
   minOW.reset();
@@ -111,6 +111,7 @@ int16_t TemperatureC16_DS18B20::read()
   minOW.write(0x44); // Start conversion without parasite power.
   //delay(750); // 750ms should be enough.
   // Poll for conversion complete (bus released)...
+  // FIXME: don;t allow indefinite blocking.
   while(minOW.read_bit() == 0) { OTV0P2BASE::nap(WDTO_15MS); }
 
   // Fetch temperature (scratchpad read).

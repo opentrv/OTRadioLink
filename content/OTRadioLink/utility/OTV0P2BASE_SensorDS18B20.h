@@ -51,24 +51,21 @@ namespace OTV0P2BASE
 class TemperatureC16_DS18B20 : public TemperatureC16Base
   {
   private:
-    // Ordinal of this DS18B20 on the OW bus.
-    // FIXME: not currently used.
-    const uint8_t busOrder;
-
-    // Precision [9,12].
-    uint8_t precision;
-
-    // Address of DS18B20 being used, else [0] == 0 if none found.
-    uint8_t address[8];
+    // Reference to minimal OneWire support instance for appropriate GPIO.
+    OTV0P2BASE::MinimalOneWireBase &minOW;
 
     // True once initialised.
     bool initialised;
 
-    // Current value in (shifted) C.
-    int16_t value;
+    // Precision in range [9,12].
+    const uint8_t precision;
 
-    // Reference to minimal OneWire support instance for appropriate GPIO.
-    OTV0P2BASE::MinimalOneWireBase &minOW;
+    // Ordinal of this DS18B20 on the OW bus.
+    // FIXME: not currently used.
+    const uint8_t busOrder;
+
+    // Address of DS18B20 being used, else [0] == 0 if none found.
+    uint8_t address[8];
 
     // Initialise the device (if any) before first use.
     // Returns true iff successful.
@@ -84,13 +81,6 @@ class TemperatureC16_DS18B20 : public TemperatureC16Base
     // Default precision; defaults to minimum for speed.
     static const uint8_t DEFAULT_PRECISION = MIN_PRECISION;
 
-    // Error value returned if device unavailable or not yet read.
-    // Negative and below minimum value that DS18B20 can return legitimately (-55C).
-    static const int16_t INVALID_TEMP = -128 * 16; // Nominally -128C.
-
-    // Returns true if the given value indicates, or may indicate, an error.
-    virtual bool isErrorValue(int16_t value) const { return(INVALID_TEMP == value); }
-
     // Returns number of useful binary digits after the binary point.
     // 8 less than total precision for DS18B20.
     virtual int8_t getBitsAfterPoint() const { return(precision - 8); }
@@ -104,25 +94,17 @@ class TemperatureC16_DS18B20 : public TemperatureC16Base
     // though different DS18B20s on the same bus or different buses is allowed.
     // Precision defaults to minimum (9 bits, 0.5C resolution) for speed.
     TemperatureC16_DS18B20(OTV0P2BASE::MinimalOneWireBase &ow, uint8_t _busOrder = 0, uint8_t _precision = DEFAULT_PRECISION)
-      : busOrder(_busOrder), initialised(false), value(INVALID_TEMP), minOW(ow)
-      {
-      // Coerce precision to be valid.
-      precision = constrain(_precision, MIN_PRECISION, MAX_PRECISION);
-      }
+      : minOW(ow), initialised(false), precision(constrain(_precision, MIN_PRECISION, MAX_PRECISION)), busOrder(_busOrder)
+      { }
 
     // Get current precision in bits [9,12]; 9 gives 1/2C resolution, 12 gives 1/16C resolution.
-    uint8_t getPrecisionBits() { return(precision); }
+    uint8_t getPrecisionBits() const { return(precision); }
 
     // Force a read/poll of temperature and return the value sensed in nominal units of 1/16 C.
     // At sub-maximum precision lsbits will be zero or undefined.
     // Expensive/slow.
     // Not thread-safe nor usable within ISRs (Interrupt Service Routines).
     virtual int16_t read();
-
-    // Return last value fetched by read(); undefined before first read().
-    // Fast.
-    // Not thread-safe nor usable within ISRs (Interrupt Service Routines).
-    virtual int16_t get() const { return(value); }
   };
 
 
