@@ -62,6 +62,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 #include "utility/OTV0P2BASE_SensorAmbientLight.h"
 #include "utility/OTV0P2BASE_SensorTemperaturePot.h"
 #include "utility/OTV0P2BASE_SensorTemperatureC16Base.h"
+#include "utility/OTV0P2BASE_SensorTMP112.h"
 #include "utility/OTV0P2BASE_SensorSHT21.h"
 #include "utility/OTV0P2BASE_SensorDS18B20.h"
 #include "utility/OTV0P2BASE_SensorOccupancy.h"

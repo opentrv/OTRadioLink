@@ -17,7 +17,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 */
 
 /*
- SHT21 temperature and relative humidity detector.
+ SHT21 temperature and relative humidity sensor.
  */
 
 #ifndef OTV0P2BASE_SENSORSHT21_H
