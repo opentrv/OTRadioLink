@@ -128,6 +128,7 @@ int16_t TemperatureC16_DS18B20::read()
   // TODO: mask out undefined LSBs if precision not maximum.
   const int16_t rawC16 = (d1 << 8) | (d0);
 
+  value = rawC16;
   return(rawC16);
   }
 
