@@ -31,6 +31,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #define UNIT_TESTS
 
 // Include the library under test.
+#include <Wire.h>
 #include <OTV0p2Base.h>
 #include <OTRadValve.h>
 
