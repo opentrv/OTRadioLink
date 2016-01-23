@@ -326,7 +326,30 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
     // The generated command frame can be resent indefinitely.
     // If no valve is set up then this may simply terminate an empty buffer with 0xff.
     virtual void FHT8VCreateValveSetCmdFrame(const uint8_t valvePC, const bool forceExtraPreamble = false) = 0;
-  };
+
+    // Helper method to convert from [0,100] %-open scale to [0,255] for FHT8V.
+    // Designed to be a fast be good approximation avoiding division or multiplication.
+    // In particular is monotonic and maps both ends of the scale correctly.
+    // Needs to be a good enough approximation to avoid upsetting control algorithms/loops.
+    // (Multiplication on the ATMega329P may be too fast for avoiding it to be important though).
+    // Guaranteed to be 255 when valvePC is 100 (max), and 0 when TRVPercentOpen is 0,
+    // and a decent approximation of (valvePC * 255) / 100 in between.
+    static inline uint8_t convertPercentTo255Scale(const uint8_t valvePC)
+        {
+        // This approximation is (valvePC * 250) / 100, ie *2.5, as *(2+0.5).
+        // Mapped values at various key points on the scale:
+        //      %       mapped to       target  error   %error  comment
+        //      0       0               0       0       0       fully closed: must be correct
+        //      1       3               3       0       0
+        //     50     125               128     3       1.2     important boiler drop-out threshold
+        //     67     168               171     3       1.2     important boiler trigger threshold
+        //     99     248               252     4       1.6
+        //    100     255               255     0       0       fully open: must be correct
+        const uint8_t result = (valvePC >= 100) ? 255 :
+          ((valvePC<<1) + ((1+valvePC)>>1));
+        return(result);
+        }
+};
 
 
 // maxTrailerBytes specifies the maximum number of bytes of trailer that can be added.
@@ -370,9 +393,8 @@ class FHT8VRadValve : public FHT8VRadValveBase
       // Optimised for speed and to avoid pulling in a division subroutine.
       // Guaranteed to be 255 when valvePC is 100 (max), and 0 when TRVPercentOpen is 0,
       // and a decent approximation of (valvePC * 255) / 100 in between.
+      command.extension = convertPercentTo255Scale(valvePC);
       // The approximation is (valvePC * 250) / 100, ie *2.5, as *(2+0.5).
-      command.extension = (valvePC >= 100) ? 255 :
-        ((valvePC<<1) + ((1+valvePC)>>1));
 
       // Work out if a trailer is allowed (by security level) and is possible to encode.
       appendToTXBufferFF_t const *tfp = *trailerFn;
