@@ -196,15 +196,16 @@ static void testCurrentSenseValveMotorDirect()
 
   // FIRST POLL(S) AFTER POWER_UP; RETRACTING THE PIN.
   csvmd1.poll();
-  // Whitebox test of internal state: should be valvePinWithdrawing.
-  AssertIsEqual(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawing, csvmd1.getState());
-  // More polls shouldn't make any difference initially.
-  csvmd1.poll();
-  // Whitebox test of internal state: should be valvePinWithdrawing.
-  AssertIsEqual(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawing, csvmd1.getState());
-  csvmd1.poll();
-  // Whitebox test of internal state: should be valvePinWithdrawing.
-  AssertIsEqual(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawing, csvmd1.getState());
+  // DHD20160123: now waits randomised number of ticks before starting to withdraw.
+//  // Whitebox test of internal state: should be valvePinWithdrawing.
+//  AssertIsEqual(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawing, csvmd1.getState());
+//  // More polls shouldn't make any difference initially.
+//  csvmd1.poll();
+//  // Whitebox test of internal state: should be valvePinWithdrawing.
+//  AssertIsEqual(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawing, csvmd1.getState());
+//  csvmd1.poll();
+//  // Whitebox test of internal state: should be valvePinWithdrawing.
+//  AssertIsEqual(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawing, csvmd1.getState());
 //  // Simulate hitting end-stop (high current).
 //  dhw.currentHigh = true;
 //  AssertIsTrue(dhw.isCurrentHigh());
