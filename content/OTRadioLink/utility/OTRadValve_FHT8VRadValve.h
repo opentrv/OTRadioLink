@@ -349,19 +349,34 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
 //        const uint8_t result = (valvePC >= 100) ? 255 :
 //          ((valvePC<<1) + ((1+valvePC)>>1));
 
-        // This approximation is valvePC * (2 + 1/2 + 1/32) with each part rounded down.
+//        // This approximation is valvePC * (2 + 1/2 + 1/32) with each part rounded down.
+//        // Mapped values at various key points on the scale:
+//        //      %       mapped to       target  error   %error  comment
+//        //      0       0               0       0       0       fully closed: must be correct
+//        //      1       2               3       1       0.4%
+//        //      2       5               5       0       0
+//        //     50     126               128     2       0.7%    important boiler drop-out threshold
+//        //     67     169               171     2       0.7%    important boiler trigger threshold
+//        //     68     172               173     1       0.4%
+//        //     99     250               252     2       0.7%
+//        //    100     255               255     0       0       fully open: must be correct
+//        const uint8_t result = (valvePC >= 100) ? 255 :
+//          ((valvePC<<1) + (valvePC>>1) + (valvePC>>5));
+
+        // This approximation is valvePC * (2 + 1/2 + 1/16) with each part rounded down.
         // Mapped values at various key points on the scale:
         //      %       mapped to       target  error   %error  comment
         //      0       0               0       0       0       fully closed: must be correct
         //      1       2               3       1       0.4%
-        //      2       5               5       0
-        //     50     126               128     2       0.7%    important boiler drop-out threshold
-        //     67     169               171     2       0.7%    important boiler trigger threshold
-        //     68     172               173     1       0.4%
-        //     99     250               252     2       0.7%
-        //    100     255               255     0       0       fully open: must be correct
+        //      2       5               5       0       0
+        //     50     128               128     0       0       important boiler drop-out threshold
+        //     66     169               168     1       0.4%
+        //     67     171               171     0       0       important boiler trigger threshold
+        //     68     174               173     1       0.4%
+        //     99     253               252     1       0.4%
+        //    100     255               255     X       0       fully open: must be correct
         const uint8_t result = (valvePC >= 100) ? 255 :
-          ((valvePC<<1) + (valvePC>>1) + (valvePC>>5));
+          ((valvePC<<1) + (valvePC>>1) + (valvePC>>4));
 
         return(result);
         }
@@ -382,6 +397,7 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
         //    126          49      49       0       0
         //    128          50      50       0       0       important boiler drop-out threshold
         //    169          66      66       0       0
+        //    170          67      67       0       0
         //    171          67      67       0       0       important boiler trigger threshold
         //    172          67      67       0       0
         //    254          99     100       1       1
