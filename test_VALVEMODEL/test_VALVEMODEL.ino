@@ -395,7 +395,52 @@ static void testMRVSOpenFastFromCold593()
   }
 
 
-// To be called from loop() instead of main code when running unit tests.
+// Test (fast) mappings back and forth between [0,100] valve open percentage and [0,255] FS20 representation.
+static void testFHT8VPercentage()
+  {
+  Serial.println("FHT8VPercentage");
+  // Test that end-points are mapped correctly from % -> FS20 scale.
+  AssertIsEqual(0, OTRadValve::FHT8VRadValveBase::convertPercentTo255Scale(0));
+  AssertIsEqual(255, OTRadValve::FHT8VRadValveBase::convertPercentTo255Scale(100));
+  // Test that illegal/over values handled sensibly.
+  AssertIsEqual(255, OTRadValve::FHT8VRadValveBase::convertPercentTo255Scale(101));
+  AssertIsEqual(255, OTRadValve::FHT8VRadValveBase::convertPercentTo255Scale(255));
+  // Test that end-points are mapped correctly from FS20 scale to %.
+  AssertIsEqual(0, OTRadValve::FHT8VRadValveBase::convert255ScaleToPercent(0));
+  AssertIsEqual(100, OTRadValve::FHT8VRadValveBase::convert255ScaleToPercent(255));
+  // Test that some critical thresholds are mapped back and forth (round-trip) correctly.
+  AssertIsEqual(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, OTRadValve::FHT8VRadValveBase::convert255ScaleToPercent(OTRadValve::FHT8VRadValveBase::convertPercentTo255Scale(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN)));
+  AssertIsEqual(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN, OTRadValve::FHT8VRadValveBase::convert255ScaleToPercent(OTRadValve::FHT8VRadValveBase::convertPercentTo255Scale(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN)));
+  // Check that all mappings back and forth (round-trip) are reasonably close to target.
+  const uint8_t eps = 2; // Tolerance in %
+  for(uint8_t i = 0; i <= 100; ++i)
+    {
+    AssertIsEqualWithDelta(i, OTRadValve::FHT8VRadValveBase::convert255ScaleToPercent(OTRadValve::FHT8VRadValveBase::convertPercentTo255Scale(i)), eps);  
+    }
+  // Check for monotonicity of mapping % -> FS20.
+  for(uint8_t i = 0; i < 100; ++i)
+    {
+    AssertIsTrue(
+      OTRadValve::FHT8VRadValveBase::convertPercentTo255Scale(i) <=
+      OTRadValve::FHT8VRadValveBase::convertPercentTo255Scale(i+1));  
+    }
+  // Check for monotonicity of mapping FS20 => %.
+  for(uint8_t i = 0; i < 100; ++i)
+    {
+    AssertIsTrue(
+      OTRadValve::FHT8VRadValveBase::convert255ScaleToPercent(OTRadValve::FHT8VRadValveBase::convertPercentTo255Scale(i)) <=
+      OTRadValve::FHT8VRadValveBase::convert255ScaleToPercent(OTRadValve::FHT8VRadValveBase::convertPercentTo255Scale(i+1)));  
+    }
+  // Check for monotonicity of round-trip.
+  for(uint8_t i = 0; i < 100; ++i)
+    {
+    AssertIsTrue(
+      OTRadValve::FHT8VRadValveBase::convertPercentTo255Scale(i) <=
+      OTRadValve::FHT8VRadValveBase::convertPercentTo255Scale(i+1));  
+    }
+  }
+
+
 // Tests generally flag an error and stop the test cycle with a call to panic() or error().
 void loop()
   {
@@ -416,6 +461,7 @@ void loop()
   testLibVersion();
   testLibVersions();
 
+  testFHT8VPercentage();
   testCSVMDC();
   testCurrentSenseValveMotorDirect();
   testMRVSExtremes();
