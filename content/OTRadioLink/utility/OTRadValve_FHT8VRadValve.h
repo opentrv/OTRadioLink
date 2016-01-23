@@ -383,6 +383,7 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
 
     // Helper method to convert from [0,255] scale to [0,100] %-open from FHT8V/FS20 frame.
     // Designed to be a fast and good approximation avoiding division.
+    // Processes the common valve fully-closed and fully-open cases efficiently.
     // In particular this is monotonic and maps both ends of the scale correctly.
     // Needs to be a good enough approximation to avoid upsetting control algorithms/loops (TODO-593).
     // (Multiplication on the ATMega328P may be too fast for avoiding it to be important though).
