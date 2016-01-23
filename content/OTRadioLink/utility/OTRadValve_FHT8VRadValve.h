@@ -330,7 +330,7 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
     // Helper method to convert from [0,100] %-open scale to [0,255] for FHT8V/FS20 frame.
     // Designed to be a fast and good approximation avoiding division or multiplication.
     // In particular this is monotonic and maps both ends of the scale correctly.
-    // Needs to be a good enough approximation to avoid upsetting control algorithms/loops.
+    // Needs to be a good enough approximation to avoid upsetting control algorithms/loops (TODO-593).
     // (Multiplication on the ATMega328P may be too fast for avoiding it to be important though).
     // Guaranteed to be 255 when valvePC is 100 (max), and 0 when TRVPercentOpen is 0,
     // and a decent approximation of (valvePC * 255) / 100 in between.
@@ -384,7 +384,7 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
     // Helper method to convert from [0,255] scale to [0,100] %-open from FHT8V/FS20 frame.
     // Designed to be a fast and good approximation avoiding division.
     // In particular this is monotonic and maps both ends of the scale correctly.
-    // Needs to be a good enough approximation to avoid upsetting control algorithms/loops.
+    // Needs to be a good enough approximation to avoid upsetting control algorithms/loops (TODO-593).
     // (Multiplication on the ATMega328P may be too fast for avoiding it to be important though).
     // Unit testable.
     static inline uint8_t convert255ScaleToPercent(const uint8_t scale255)
