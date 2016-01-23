@@ -357,6 +357,7 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
         //      2       5               5       0
         //     50     126               128     2       0.7%    important boiler drop-out threshold
         //     67     169               171     2       0.7%    important boiler trigger threshold
+        //     68     172               173     1       0.4%
         //     99     250               252     2       0.7%
         //    100     255               255     0       0       fully open: must be correct
         const uint8_t result = (valvePC >= 100) ? 255 :
@@ -382,15 +383,16 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
         //    128          50      50       0       0       important boiler drop-out threshold
         //    169          66      66       0       0
         //    171          67      67       0       0       important boiler trigger threshold
-        //    255         100       0       0       0       fully open: must be correct
+        //    172          67      67       0       0
+        //    254          99     100       1       1
+        //    255         100     100       0       0       fully open: must be correct
         const uint8_t percentOpen =
             (0 == scale255) ? 0 :
             ((255 == scale255) ? 100 :
-            // Approximation that works at 1 (=>1%) and 254 (=>99%).
-            ((uint8_t) ((scale255 * (int)100 + 199) >> 8)));
+            ((uint8_t) ((scale255 * (uint16_t)100U + 199U) >> 8)));
         return(percentOpen);
         }
-};
+  };
 
 
 // maxTrailerBytes specifies the maximum number of bytes of trailer that can be added.
