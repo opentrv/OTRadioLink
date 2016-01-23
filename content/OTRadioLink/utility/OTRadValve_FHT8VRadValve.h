@@ -326,7 +326,71 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
     // The generated command frame can be resent indefinitely.
     // If no valve is set up then this may simply terminate an empty buffer with 0xff.
     virtual void FHT8VCreateValveSetCmdFrame(const uint8_t valvePC, const bool forceExtraPreamble = false) = 0;
-  };
+
+    // Helper method to convert from [0,100] %-open scale to [0,255] for FHT8V/FS20 frame.
+    // Designed to be a fast and good approximation avoiding division or multiplication.
+    // In particular this is monotonic and maps both ends of the scale correctly.
+    // Needs to be a good enough approximation to avoid upsetting control algorithms/loops.
+    // (Multiplication on the ATMega328P may be too fast for avoiding it to be important though).
+    // Guaranteed to be 255 when valvePC is 100 (max), and 0 when TRVPercentOpen is 0,
+    // and a decent approximation of (valvePC * 255) / 100 in between.
+    // Unit testable.
+    static inline uint8_t convertPercentTo255Scale(const uint8_t valvePC)
+        {
+//        // This approximation is (valvePC * 250) / 100, ie *2.5, as *(2+0.5).
+//        // Mapped values at various key points on the scale:
+//        //      %       mapped to       target  error   %error  comment
+//        //      0       0               0       0       0       fully closed: must be correct
+//        //      1       3               3       0       0
+//        //     50     125               128     3       1.2     important boiler drop-out threshold
+//        //     67     168               171     3       1.2     important boiler trigger threshold
+//        //     99     248               252     4       1.6
+//        //    100     255               255     0       0       fully open: must be correct
+//        const uint8_t result = (valvePC >= 100) ? 255 :
+//          ((valvePC<<1) + ((1+valvePC)>>1));
+
+        // This approximation is valvePC * (2 + 1/2 + 1/32) with each part rounded down.
+        // Mapped values at various key points on the scale:
+        //      %       mapped to       target  error   %error  comment
+        //      0       0               0       0       0       fully closed: must be correct
+        //      1       2               3       1       0.4%
+        //      2       5               5       0
+        //     50     126               128     2       0.7%    important boiler drop-out threshold
+        //     67     169               171     2       0.7%    important boiler trigger threshold
+        //     99     250               252     2       0.7%
+        //    100     255               255     0       0       fully open: must be correct
+        const uint8_t result = (valvePC >= 100) ? 255 :
+          ((valvePC<<1) + (valvePC>>1) + (valvePC>>5));
+
+        return(result);
+        }
+
+    // Helper method to convert from [0,255] scale to [0,100] %-open from FHT8V/FS20 frame.
+    // Designed to be a fast and good approximation avoiding division.
+    // In particular this is monotonic and maps both ends of the scale correctly.
+    // Needs to be a good enough approximation to avoid upsetting control algorithms/loops.
+    // (Multiplication on the ATMega328P may be too fast for avoiding it to be important though).
+    // Unit testable.
+    static inline uint8_t convert255ScaleToPercent(const uint8_t scale255)
+        {
+        // Mapped values at various key points on the scale:
+        // [0,255]   mapped %       target  error   %error  comment
+        //      0           0       0       0       0       fully closed: must be correct
+        //      1           1       0       1       1
+        //      2           1       1       0       0
+        //    126          49      49       0       0
+        //    128          50      50       0       0       important boiler drop-out threshold
+        //    169          66      66       0       0
+        //    171          67      67       0       0       important boiler trigger threshold
+        //    255         100       0       0       0       fully open: must be correct
+        const uint8_t percentOpen =
+            (0 == scale255) ? 0 :
+            ((255 == scale255) ? 100 :
+            // Approximation that works at 1 (=>1%) and 254 (=>99%).
+            ((uint8_t) ((scale255 * (int)100 + 199) >> 8)));
+        return(percentOpen);
+        }
+};
 
 
 // maxTrailerBytes specifies the maximum number of bytes of trailer that can be added.
@@ -370,9 +434,8 @@ class FHT8VRadValve : public FHT8VRadValveBase
       // Optimised for speed and to avoid pulling in a division subroutine.
       // Guaranteed to be 255 when valvePC is 100 (max), and 0 when TRVPercentOpen is 0,
       // and a decent approximation of (valvePC * 255) / 100 in between.
+      command.extension = convertPercentTo255Scale(valvePC);
       // The approximation is (valvePC * 250) / 100, ie *2.5, as *(2+0.5).
-      command.extension = (valvePC >= 100) ? 255 :
-        ((valvePC<<1) + ((1+valvePC)>>1));
 
       // Work out if a trailer is allowed (by security level) and is possible to encode.
       appendToTXBufferFF_t const *tfp = *trailerFn;
