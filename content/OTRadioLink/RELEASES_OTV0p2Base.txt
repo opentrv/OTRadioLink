@@ -36,6 +36,7 @@ pending:
     DHD20160120: D21FM: added setSeconds() to RTC.
     DHD20160121: D21FM: moved TMP112 temp sensor support down to base library.
     DHD20160121: D21FM: moved SHT21 temp/RH% sensor support down to base library.
+    DHD20160123: Created improved %age<->FS20 valve-open conversions in FHT8VRadValveBase.
 
 
 
