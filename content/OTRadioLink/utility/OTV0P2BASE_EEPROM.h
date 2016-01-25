@@ -105,8 +105,6 @@ namespace OTV0P2BASE
 #define V0P2BASE_EE_START_MIN_TOTAL_VALVE_PC_OPEN 31 // Ignored entirely if outside range [1,100], eg if default/unprogrammed 0xff.
 
 
-
-
 //// Housecode filter at central hub.
 //// Intended to fit snug up before stats area.
 //#define V0P2BASE_EE_START_HUB_HC_FILTER 240
@@ -178,8 +176,7 @@ bool eeprom_smart_erase_byte(uint8_t *p);
 bool eeprom_smart_clear_bits(uint8_t *p, uint8_t mask);
 
 
-
-// 'Unset'/invalid values for byte (eg raw EEPROM byte) and 2-byte signed int (eg after decompression).
+// 'Unset'/invalid stats values for byte (eg raw EEPROM byte) and 2-byte signed int (eg after decompression).
 static const uint8_t STATS_UNSET_BYTE = 0xff;
 static const int16_t STATS_UNSET_INT = 0x7fff;
 
@@ -199,7 +196,6 @@ uint8_t getMinByHourStat(uint8_t statsSet);
 // Get maximum sample from given stats set ignoring all unset samples; STATS_UNSET_BYTE if all samples are unset.
 uint8_t getMaxByHourStat(uint8_t statsSet);
 
-
 // Returns true if specified hour is (conservatively) in the specified outlier quartile for specified stats set.
 // Returns false if at least a near-full set of stats not available, eg including the specified hour.
 // Always returns false if all samples are the same.
@@ -209,6 +205,10 @@ uint8_t getMaxByHourStat(uint8_t statsSet);
 static const uint8_t inOutlierQuartile_CURRENT_HOUR = ~0 - 1;
 static const uint8_t inOutlierQuartile_NEXT_HOUR = ~0;
 bool inOutlierQuartile(uint8_t inTop, uint8_t statsSet, uint8_t hour = inOutlierQuartile_CURRENT_HOUR);
+
+//// Get number of values with value less than the specified value; -1 for invalid stats set.
+//// (With the UNSET value specified, count will be of all samples that have been set, ie are not unset.)
+//int8_t countStatSamplesBelow(uint8_t statsSet, uint8_t value);
 
 
 }
