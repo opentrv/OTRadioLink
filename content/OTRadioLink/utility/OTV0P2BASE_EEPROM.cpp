@@ -34,7 +34,7 @@ namespace OTV0P2BASE
 {
 
 
-// Updates an EEEPROM byte iff not currently already at the specified target value.
+// Updates an EEPROM byte iff not currently already at the specified target value.
 // May be able to selectively erase or write (ie reduce wear) to reach the desired value.
 // As with the AVR eeprom_XXX_byte() macros, not safe to use outside and within ISRs as-is.
 // Returns true iff an erase and/or write was performed.
@@ -143,13 +143,16 @@ bool eeprom_smart_clear_bits(uint8_t *p, uint8_t mask)
   }
 
 
-// Get raw stats value for hour HH [0,23] from stats set N from non-volatile (EEPROM) store.
+// Get raw stats value for specified hour [0,23]/current/next from stats set N from non-volatile (EEPROM) store.
 // A value of 0xff (255) means unset (or out of range); other values depend on which stats set is being used.
 // The stats set is determined by the order in memory.
-uint8_t getByHourStat(uint8_t hh, uint8_t statsSet)
+//   * hour  hour of day to use, or ~0 for current hour, or >23 for next hour.
+uint8_t getByHourStat(uint8_t hour, uint8_t statsSet)
   {
   if(statsSet > (V0P2BASE_EE_END_STATS - V0P2BASE_EE_START_STATS) / V0P2BASE_EE_STATS_SET_SIZE) { return(STATS_UNSET_BYTE); } // Invalid set.
-  if(hh > 23) { return((uint8_t) 0xff); } // Invalid hour.
+//  if(hh > 23) { return((uint8_t) 0xff); } // Invalid hour.
+  const uint8_t hh = (inOutlierQuartile_CURRENT_HOUR == hour) ? OTV0P2BASE::getHoursLT() :
+    ((hour > 23) ? OTV0P2BASE::getNextHourLT() : hour);
   return(eeprom_read_byte((uint8_t *)(V0P2BASE_EE_START_STATS + (statsSet * (int)V0P2BASE_EE_STATS_SET_SIZE) + (int)hh)));
   }
 
@@ -219,15 +222,18 @@ bool inTopQuartile(const uint8_t *sE, const uint8_t sample)
 // Always returns false if all samples are the same.
 //   * inTop  test for membership of the top quartile if true, bottom quartile if false
 //   * statsSet  stats set number to use.
-//   * hour  hour of day to use or ~0 for current hour.
+//   * hour  hour of day to use, or ~0 for current hour, or >23 for next hour.
 bool inOutlierQuartile(const uint8_t inTop, const uint8_t statsSet, const uint8_t hour)
   {
-  if(statsSet >= V0P2BASE_EE_STATS_SETS) { return(false); } // Bad stats set number, ie unsafe.
-  const uint8_t hh = (inOutlierQuartile_CURRENT_HOUR == hour) ? OTV0P2BASE::getHoursLT() :
-    ((hour > 23) ? OTV0P2BASE::getNextHourLT() : hour);
-  const uint8_t *ss = (uint8_t *)(V0P2BASE_EE_STATS_START_ADDR(statsSet));
-  const uint8_t sample = eeprom_read_byte(ss + hh);
+//  if(statsSet >= V0P2BASE_EE_STATS_SETS) { return(false); } // Bad stats set number, ie unsafe.
+//  const uint8_t hh = (inOutlierQuartile_CURRENT_HOUR == hour) ? OTV0P2BASE::getHoursLT() :
+//    ((hour > 23) ? OTV0P2BASE::getNextHourLT() : hour);
+//  const uint8_t sample = eeprom_read_byte(ss + hh);
+  // Rely on getByHourStat() to validate statsSet, returning UNSET if invalid,
+  // and to deal with current/next hour if specified.
+  const uint8_t sample = getByHourStat(hour, statsSet);
   if(OTV0P2BASE::STATS_UNSET_BYTE == sample) { return(false); }
+  const uint8_t *ss = (uint8_t *)(V0P2BASE_EE_STATS_START_ADDR(statsSet));
   if(inTop) { return(inTopQuartile(ss, sample)); }
   return(inBottomQuartile(ss, sample));
   }
