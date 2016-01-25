@@ -198,16 +198,6 @@ uint8_t getMinByHourStat(uint8_t statsSet);
 // Get maximum sample from given stats set ignoring all unset samples; STATS_UNSET_BYTE if all samples are unset.
 uint8_t getMaxByHourStat(uint8_t statsSet);
 
-//// Returns true iff there is a full set of stats (none unset) and this 3/4s of the values are higher than the supplied sample.
-//// Always returns false if all samples are the same.
-////   * s is start of (24) sample set in EEPROM
-////   * sample to be tested for being in lower quartile
-//bool inBottomQuartile(const uint8_t *sE, const uint8_t sample);
-//// Returns true iff there is a full set of stats (none unset) and this 3/4s of the values are lower than the supplied sample.
-//// Always returns false if all samples are the same.
-////   * s is start of (24) sample set in EEPROM
-////   * sample to be tested for being in lower quartile
-//bool inTopQuartile(const uint8_t *sE, const uint8_t sample);
 
 // Returns true if specified hour is (conservatively) in the specified outlier quartile for specified stats set.
 // Returns false if a full set of stats not available, eg including the specified hour.
