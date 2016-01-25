@@ -189,7 +189,7 @@ bool zapStats(uint16_t maxBytesToErase = 0);
 // Get raw stats value for specified hour [0,23]/current/next from stats set N from non-volatile (EEPROM) store.
 // A value of STATS_UNSET_BYTE (0xff (255)) means unset (or out of range); other values depend on which stats set is being used.
 //   * hour  hour of day to use, or ~0 for current hour, or >23 for next hour.
-uint8_t getByHourStat(uint8_t hour, uint8_t statsSet);
+uint8_t getByHourStat(uint8_t statsSet, uint8_t hour);
 
 // Get minimum sample from given stats set ignoring all unset samples; STATS_UNSET_BYTE if all samples are unset.
 uint8_t getMinByHourStat(uint8_t statsSet);
@@ -204,11 +204,11 @@ uint8_t getMaxByHourStat(uint8_t statsSet);
 //   * hour  hour of day to use or inOutlierQuartile_CURRENT_HOUR for current hour or inOutlierQuartile_NEXT_HOUR for next hour
 static const uint8_t inOutlierQuartile_CURRENT_HOUR = ~0 - 1;
 static const uint8_t inOutlierQuartile_NEXT_HOUR = ~0;
-bool inOutlierQuartile(uint8_t inTop, uint8_t statsSet, uint8_t hour = inOutlierQuartile_CURRENT_HOUR);
+bool inOutlierQuartile(bool inTop, uint8_t statsSet, uint8_t hour = inOutlierQuartile_CURRENT_HOUR);
 
-//// Get number of values with value less than the specified value; -1 for invalid stats set.
-//// (With the UNSET value specified, count will be of all samples that have been set, ie are not unset.)
-//int8_t countStatSamplesBelow(uint8_t statsSet, uint8_t value);
+// Compute the number of stats samples in specified set less than the specified value; returns -1 for invalid stats set.
+// (With the UNSET value specified, count will be of all samples that have been set, ie are not unset.)
+int8_t countStatSamplesBelow(uint8_t statsSet, uint8_t value);
 
 
 }
