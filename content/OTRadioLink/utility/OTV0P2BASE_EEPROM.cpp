@@ -182,7 +182,7 @@ uint8_t getMaxByHourStat(const uint8_t statsSet)
   return(result);
   }
 
-// Returns true iff there is a full set of stats (none unset) and 3/4s of the values are higher than the supplied sample.
+// Returns true iff there is a near-full set of stats (none unset) and 3/4s of the values are higher than the supplied sample.
 // Always returns false if all samples are the same.
 //   * s is start of (24) sample set in EEPROM
 //   * sample to be tested for being in lower quartile
@@ -198,7 +198,7 @@ bool inBottomQuartile(const uint8_t *sE, const uint8_t sample)
   return(false); // Not in lower quartile.
   }
 
-// Returns true iff there is a full set of stats (none unset) and 3/4s of the values are lower than the supplied sample.
+// Returns true iff there is a near-full set of stats (none unset) and 3/4s of the values are lower than the supplied sample.
 // Always returns false if all samples are the same.
 //   * s is start of (24) sample set in EEPROM
 //   * sample to be tested for being in lower quartile

@@ -200,7 +200,7 @@ uint8_t getMaxByHourStat(uint8_t statsSet);
 
 
 // Returns true if specified hour is (conservatively) in the specified outlier quartile for specified stats set.
-// Returns false if a full set of stats not available, eg including the specified hour.
+// Returns false if at least a near-full set of stats not available, eg including the specified hour.
 // Always returns false if all samples are the same.
 //   * inTop  test for membership of the top quartile if true, bottom quartile if false
 //   * statsSet  stats set number to use.
