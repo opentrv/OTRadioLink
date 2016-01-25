@@ -180,6 +180,10 @@ bool eeprom_smart_clear_bits(uint8_t *p, uint8_t mask);
 static const uint8_t STATS_UNSET_BYTE = 0xff;
 static const int16_t STATS_UNSET_INT = 0x7fff;
 
+// Special values indicating the current hour and the next hour, for stats.
+static const uint8_t STATS_SPECIAL_HOUR_CURRENT_HOUR = ~0 - 1;
+static const uint8_t STATS_SPECIAL_HOUR_NEXT_HOUR = ~0;
+
 // Clear all collected statistics, eg when moving device to a new room or at a major time change.
 // Requires 1.8ms per byte for each byte that actually needs erasing.
 //   * maxBytesToErase limit the number of bytes erased to this; strictly positive, else 0 to allow 65536
@@ -201,10 +205,8 @@ uint8_t getMaxByHourStat(uint8_t statsSet);
 // Always returns false if all samples are the same.
 //   * inTop  test for membership of the top quartile if true, bottom quartile if false
 //   * statsSet  stats set number to use.
-//   * hour  hour of day to use or inOutlierQuartile_CURRENT_HOUR for current hour or inOutlierQuartile_NEXT_HOUR for next hour
-static const uint8_t inOutlierQuartile_CURRENT_HOUR = ~0 - 1;
-static const uint8_t inOutlierQuartile_NEXT_HOUR = ~0;
-bool inOutlierQuartile(bool inTop, uint8_t statsSet, uint8_t hour = inOutlierQuartile_CURRENT_HOUR);
+//   * hour  hour of day to use or STATS_SPECIAL_HOUR_CURRENT_HOUR for current hour or STATS_SPECIAL_HOUR_NEXT_HOUR for next hour
+bool inOutlierQuartile(bool inTop, uint8_t statsSet, uint8_t hour = STATS_SPECIAL_HOUR_CURRENT_HOUR);
 
 // Compute the number of stats samples in specified set less than the specified value; returns -1 for invalid stats set.
 // (With the UNSET value specified, count will be of all samples that have been set, ie are not unset.)

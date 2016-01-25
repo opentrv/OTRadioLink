@@ -151,7 +151,7 @@ uint8_t getByHourStat(const uint8_t statsSet, const uint8_t hour)
   {
   if(statsSet > (V0P2BASE_EE_END_STATS - V0P2BASE_EE_START_STATS) / V0P2BASE_EE_STATS_SET_SIZE) { return(STATS_UNSET_BYTE); } // Invalid set.
 //  if(hh > 23) { return((uint8_t) 0xff); } // Invalid hour.
-  const uint8_t hh = (inOutlierQuartile_CURRENT_HOUR == hour) ? OTV0P2BASE::getHoursLT() :
+  const uint8_t hh = (STATS_SPECIAL_HOUR_CURRENT_HOUR == hour) ? OTV0P2BASE::getHoursLT() :
     ((hour > 23) ? OTV0P2BASE::getNextHourLT() : hour);
   return(eeprom_read_byte((uint8_t *)(V0P2BASE_EE_START_STATS + (statsSet * (int)V0P2BASE_EE_STATS_SET_SIZE) + (int)hh)));
   }
@@ -244,7 +244,7 @@ bool inTopQuartile(const uint8_t *sE, const uint8_t sample)
 bool inOutlierQuartile(const bool inTop, const uint8_t statsSet, const uint8_t hour)
   {
 //  if(statsSet >= V0P2BASE_EE_STATS_SETS) { return(false); } // Bad stats set number, ie unsafe.
-//  const uint8_t hh = (inOutlierQuartile_CURRENT_HOUR == hour) ? OTV0P2BASE::getHoursLT() :
+//  const uint8_t hh = (STATS_SPECIAL_HOUR_CURRENT_HOUR == hour) ? OTV0P2BASE::getHoursLT() :
 //    ((hour > 23) ? OTV0P2BASE::getNextHourLT() : hour);
 //  const uint8_t sample = eeprom_read_byte(ss + hh);
   // Rely on getByHourStat() to validate statsSet, returning UNSET if invalid,
