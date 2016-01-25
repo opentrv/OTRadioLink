@@ -136,9 +136,9 @@ class SensorAmbientLight : public SimpleTSUint8Sensor
     bool isRoomDark() const { return(!isRoomLitFlag && !unusable); }
 
     // Get number of minutes (read() calls) that the room has been continuously dark for [0,255].
-    // Does not roll over from maximum value.
+    // Does not roll over from maximum value, ie stays at 255 until the room becomes light.
     // Reset to zero in light.
-    // Does not increment if the sensor decides that it is unusable.
+    // Stays at zero if the sensor decides that it is unusable.
     uint8_t getDarkMinutes() const { return(darkTicks); }
 
     // Set recent min and max ambient light levels from recent stats, to allow auto adjustment to dark; ~0/0xff means no min/max available.
