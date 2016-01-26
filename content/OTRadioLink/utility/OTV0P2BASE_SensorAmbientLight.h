@@ -42,6 +42,11 @@ namespace OTV0P2BASE
 // Sensor for ambient light level; 0 is dark, 255 is bright.
 class SensorAmbientLight : public SimpleTSUint8Sensor
   {
+  public:
+    // Default value for (default)LightThreshold.
+    // Works for normal LDR pointing forward.
+    static const uint8_t DEFAULT_LIGHT_THRESHOLD = 50;
+
   private:
     // Raw ambient light value [0,1023] dark--light, possibly companded.
     uint16_t rawValue;
@@ -67,10 +72,6 @@ class SensorAmbientLight : public SimpleTSUint8Sensor
     // So lightThreshold is strictly greater than darkThreshold.
     uint8_t darkThreshold, lightThreshold;
 
-    // Default value for defaultLightThreshold.
-    // Works for normal LDR pointing forward.
-    static const uint8_t DEFAULT_defaultLightThreshold = 50;
-
     // Default light threshold (from which dark will be deduced as ~25% lower).
     // Set in constructor.
     // This is used if setMinMax() is not used.
@@ -91,7 +92,7 @@ class SensorAmbientLight : public SimpleTSUint8Sensor
     void _recomputeThresholds(bool sensitive = true);
 
   public:
-    SensorAmbientLight(const uint8_t defaultLightThreshold_ = DEFAULT_defaultLightThreshold)
+    SensorAmbientLight(const uint8_t defaultLightThreshold_ = DEFAULT_LIGHT_THRESHOLD)
       : rawValue(~0U), // Initial value is distinct.
         isRoomLitFlag(false), darkTicks(0),
         recentMin(~0), recentMax(~0),
@@ -123,6 +124,9 @@ class SensorAmbientLight : public SimpleTSUint8Sensor
 
     // Set 'possible occupancy' callback function (for moderate confidence of human presence); NULL for no callback.
     void setPossOccCallback(void (*possOccCallback_)()) { possOccCallback = possOccCallback_; }
+
+    // Get light threshold, above which room is considered light enough for activity [1,254].
+    uint8_t getLightThreshold() const { return(lightThreshold); }
 
     // Returns true if room is probably lit enough for someone to be active, with some hysteresis.
     // False if unknown or sensor appears unusable.
