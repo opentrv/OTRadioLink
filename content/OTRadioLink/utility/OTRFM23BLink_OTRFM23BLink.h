@@ -40,6 +40,47 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 
 #include "OTRadioLink_ISRRXQueue.h"
 
+
+// RFM23B_REG_03_INTERRUPT_STATUS1                0x03
+#define RFM23B_IFFERROR                           0x80<<8
+#define RFM23B_ITXFFAFULL                         0x40<<8
+#define RFM23B_ITXFFAEM                           0x20<<8
+#define RFM23B_IRXFFAFULL                         0x10<<8
+#define RFM23B_IEXT                               0x08<<8
+#define RFM23B_IPKSENT                            0x04<<8
+#define RFM23B_IPKVALID                           0x02<<8
+#define RFM23B_ICRCERROR                          0x01<<8
+
+// RFM23B_REG_04_INTERRUPT_STATUS2                0x04
+#define RFM23B_ISWDET                             0x80
+#define RFM23B_IPREAVAL                           0x40
+#define RFM23B_IPREAINVAL                         0x20
+#define RFM23B_IRSSI                              0x10
+#define RFM23B_IWUT                               0x08
+#define RFM23B_ILBD                               0x04
+#define RFM23B_ICHIPRDY                           0x02
+#define RFM23B_IPOR                               0x01
+
+// RFM23B_REG_05_INTERRUPT_ENABLE1                0x05
+#define RFM23B_ENFFERR                            0x80
+#define RFM23B_ENTXFFAFULL                        0x40
+#define RFM23B_ENTXFFAEM                          0x20
+#define RFM23B_ENRXFFAFULL                        0x10
+#define RFM23B_ENEXT                              0x08
+#define RFM23B_ENPKSENT                           0x04
+#define RFM23B_ENPKVALID                          0x02
+#define RFM23B_ENCRCERROR                         0x01
+
+// RFM23B_REG_06_INTERRUPT_ENABLE2                0x06
+#define RFM23B_ENSWDET                            0x80
+#define RFM23B_ENPREAVAL                          0x40
+#define RFM23B_ENPREAINVAL                        0x20
+#define RFM23B_ENRSSI                             0x10
+#define RFM23B_ENWUT                              0x08
+#define RFM23B_ENLBDI                             0x04
+#define RFM23B_ENCHIPRDY                          0x02
+#define RFM23B_ENPOR                              0x01
+
 namespace OTRFM23BLink
     {
     // NOTE: SYSTEM-WIDE IMPLICATIONS FOR SPI USE.
@@ -87,7 +128,15 @@ namespace OTRFM23BLink
             // so attempt to be higher than that.
             static const uint8_t MAX_RX_FRAME_DEFAULT = 60;
 
+            // Milenko const OTRadioChannelConfig configChannel[2];
+
         protected:
+            // Currently configured channel.
+            uint8_t _currentChannel = 1;
+
+            static const uint8_t _regValuesGFSK[][2] PROGMEM;
+            static const uint8_t _regValuesOOK[][2] PROGMEM;
+
             static const uint8_t REG_INT_STATUS1 = 3; // Interrupt status register 1.
             static const uint8_t REG_INT_STATUS2 = 4; // Interrupt status register 2.
             static const uint8_t REG_INT_ENABLE1 = 5; // Interrupt enable register 1.
@@ -98,6 +147,8 @@ namespace OTRFM23BLink
             static const uint8_t REG_RSSI = 0x26; // RSSI.
             static const uint8_t REG_RSSI1 = 0x28; // Antenna 1 diversity / RSSI.
             static const uint8_t REG_RSSI2 = 0x29; // Antenna 2 diversity / RSSI.
+            static const uint8_t REG_3E_PACKET_LENGTH= 0x3e; 
+            static const uint8_t REG_4B_RECEIVED_PACKET_LENGTH = 0x4b; 
             static const uint8_t REG_TX_POWER = 0x6d; // Transmit power.
             static const uint8_t REG_RX_FIFO_CTRL = 0x7e; // RX FIFO control.
             static const uint8_t REG_FIFO = 0x7f; // TX FIFO on write, RX FIFO on read.
@@ -203,6 +254,12 @@ namespace OTRFM23BLink
 #else
 #define OTRFM23BLINK_NO_VIRT_DEST // Beware, no virtual destructor so be careful of use via base pointers.
 #endif
+            // Configure radio for transmission via channel
+            void _setChannel (uint8_t channel);
+   
+            // Compact register dump
+            void readRegs(uint8_t from, uint8_t to, uint8_t noHeader = 0);
+            void printHex(int val); 
 
         public:
             // Set typical maximum frame length in bytes [1,63] to optimise radio behaviour.
@@ -460,13 +517,115 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // Ensures radio is in RX mode at exit if listening is enabled.
             void _poll(const bool inISR)
                 {
+ 
                 // Nothing to do if not listening at the moment.
                 if(-1 == getListenChannel()) { return; }
+
                 // See what has arrived, if anything.
                 const uint16_t status = _readStatusBoth();
-                // Typical statuses during successful receive:
-                //   * 0x2492
-                //   * 0x3412
+                if ( _currentChannel == 0 )
+                {
+#if 1
+                   if (status & RFM23B_IFFERROR)
+                   {
+                      V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("IFFERROR ");  
+                      // Clear RX and TX FIFOs simultaneously.
+                      _writeReg8Bit_(REG_OP_CTRL2, 3); // FFCLRRX | FFCLRTX
+                      _writeReg8Bit_(REG_OP_CTRL2, 0); // Needs both writes to clear.
+                    }
+#if 0
+                    if (status & RFM23B_ITXFFAEM)
+                    {
+                       V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("ITXFFAEM  ");  
+                    }
+#endif
+#if 1
+                    if (status & RFM23B_IRXFFAFULL)
+                    {
+                       V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("IRXFFAFULL "); 
+                     }
+#endif 
+#if 1
+                    if (status & RFM23B_IWUT)
+                    {
+                       V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("IWUT "); 
+                     }
+#endif
+                    if (status & RFM23B_IPKVALID) // Packet received OK
+                    {
+                        //V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("IPKVALID(");   
+                        const bool neededEnable = _upSPI();
+                        uint8_t len = _readReg8Bit(REG_4B_RECEIVED_PACKET_LENGTH);
+                        if(neededEnable) { _downSPI(); }
+                        //V0P2BASE_DEBUG_SERIAL_PRINTFMT(len,HEX);  
+                        //V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING(") ");   
+#if 1
+                        // Received frame.
+                        // If there is space in the queue then read in the frame, else discard it.
+                        volatile uint8_t *const bufferRX = queueRX._getRXBufForInbound();
+                        if(NULL != bufferRX)
+                        {
+                                   // Attempt to read the entire frame.
+                                   _RXFIFO((uint8_t *)bufferRX, len);
+                                   uint8_t lengthRX = len; // Not very clever yet!
+                                   // If an RX filter is present then apply it.
+                                   quickFrameFilter_t *const f = filterRXISR;
+                                   if((NULL != f) && !f(bufferRX, lengthRX))
+                                   {
+                                       ++filteredRXedMessageCountRecent; // Drop the frame: filter didn't like it.
+                                       queueRX._loadedBuf(0); // Don't queue this frame...
+                                   }
+                                   else
+                                   {
+                                       queueRX._loadedBuf(lengthRX); // Queue message.
+                                   }
+                        }
+                        else
+                        {
+                                   // DISCARD/drop frame that there is no room to RX.
+                                   uint8_t tmpbuf[1];
+                                   _RXFIFO(tmpbuf, sizeof(tmpbuf));
+                                   ++droppedRXedMessageCountRecent;
+                                   lastRXErr = RXErr_DroppedFrame;
+                        }
+                               // Clear up and force back to listening...
+                        _dolisten();
+                        //return;
+#endif
+                    }
+#if 1
+                    if (status & RFM23B_ICRCERROR) // CRC error
+                    {
+                       	   V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("ICRCERR ");  
+                           // Clear RX and TX FIFOs simultaneously.
+                           _writeReg8Bit_(REG_OP_CTRL2, 2); // FFCLRRX | FFCLRTX
+                           _writeReg8Bit_(REG_OP_CTRL2, 0); // Needs both writes to clear.
+                    }
+#endif
+#if 1
+                    // Syn detected
+                    if (status & RFM23B_ISWDET) 
+                    {
+                           // In case of problems, we should start timer here and if frame
+                           // is not ready, restart receve
+                       	   //_lastSynTime = millis();
+                       	   V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("ISWDET ");  
+                    }
+#endif
+#if 0
+                    // Preamble received
+                    if (status & RFM23B_IPREAVAL) 
+                    {
+                       	   _lastPreambleTime = millis();
+                       	   V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("IPREAVAL ");  
+                    }
+#endif
+#endif
+                } 
+                else {
+                    // Typical statuses during successful receive:
+                    //   * 0x2492
+                    //   * 0x3412
                 if(status & 0x8000)
                     {
                     // RX FIFO overflow/underflow: give up and reset.
@@ -522,6 +681,8 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                     return;
                     }
                 }
+                }
+          
 
         public:
             // True if there is hardware interrupt support.
