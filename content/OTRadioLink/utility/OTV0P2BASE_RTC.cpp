@@ -119,6 +119,7 @@ void persistRTC()
 // Returns true if the persisted data seemed valid and was restored, in full or part.
 // To void on average using 15/2 minutes at each reset/restart,
 // this starts the internal time a little over half way into the restored 15-minute slot.
+// This restores the minutes and above but leaves seconds unset.
 bool restoreRTC()
   {
   uint8_t persistedValue;
@@ -214,10 +215,10 @@ uint_least8_t getNextHourLT()
 // Does not attempt to set seconds.
 // Thread/interrupt safe, but do not call this from an ISR.
 // Will persist time to survive reset / power-cycle as necessary.
-bool setHoursMinutesLT(int hours, int minutes)
+bool setHoursMinutesLT(const uint8_t hours, const uint8_t minutes)
   {
-  if((hours < 0) || (hours > 23) || (minutes < 0) || (minutes > 59)) { return(false); } // Invalid time.
-  const uint_least16_t computedMinutesSinceMidnightLT = (uint_least16_t) ((60 * hours) + minutes);
+  if((hours > 23) || (minutes > 59)) { return(false); } // Invalid time.
+  const uint_least16_t computedMinutesSinceMidnightLT = (uint_least16_t) ((60 * (uint_least16_t)hours) + minutes);
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
     {
     if(computedMinutesSinceMidnightLT != _minutesSinceMidnightLT)
@@ -228,6 +229,23 @@ bool setHoursMinutesLT(int hours, int minutes)
       }
     }
   return(true); // Assume set and persisted OK.
+  }
+
+// Set seconds [0,59].
+// Not persisted.
+// Will ignore attempts to set bad values and return false in that case.
+// Will drop the least significant bit if counting in 2s increments.
+// Returns true if all OK and the time has been set.
+// Thread/interrupt safe, but do not call this from an ISR.
+bool setSeconds(const uint8_t seconds)
+  {
+  if(seconds > 59) { return(false); } // Invalid time.
+#if defined(V0P2BASE_TWO_S_TICK_RTC_SUPPORT)
+  _secondsLT = seconds & ~1; // Drop the bottom bit.  Assumed safe/atomic.
+#else
+  _secondsLT = seconds; // Assumed safe/atomic.
+#endif
+  return(true); // Assume set OK.
   }
 
 

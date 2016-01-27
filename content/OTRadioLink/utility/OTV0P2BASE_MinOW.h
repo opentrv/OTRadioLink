@@ -44,6 +44,9 @@ namespace OTV0P2BASE
 // OneWire search/discovery: http://www.maximintegrated.com/en/app-notes/index.mvp/id/187
 // All transactions with OneWire slaves should start with a reset()
 // which will also ensure that the GPIO is correctly configured.
+// Not intended to be thread-/ISR- safe.
+// Operations on separate instances (using different GPIOs) can be concurrent.
+// Generally use the derived class templated for the particular GPIO pin.
 class MinimalOneWireBase
   {
   private:
@@ -136,6 +139,8 @@ class MinimalOneWireBase
     void select(const uint8_t addr[8]);
   };
 
+// Not intended to be thread-/ISR- safe.
+// Operations on separate instances (using different GPIOs) can be concurrent.
 template <uint8_t DigitalPin = V0p2_PIN_OW_DQ_DATA>
 class MinimalOneWire : public MinimalOneWireBase
   {

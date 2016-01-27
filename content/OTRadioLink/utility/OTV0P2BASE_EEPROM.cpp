@@ -34,7 +34,7 @@ namespace OTV0P2BASE
 {
 
 
-// Updates an EEEPROM byte iff not currently already at the specified target value.
+// Updates an EEPROM byte iff not currently already at the specified target value.
 // May be able to selectively erase or write (ie reduce wear) to reach the desired value.
 // As with the AVR eeprom_XXX_byte() macros, not safe to use outside and within ISRs as-is.
 // Returns true iff an erase and/or write was performed.
@@ -143,14 +143,33 @@ bool eeprom_smart_clear_bits(uint8_t *p, uint8_t mask)
   }
 
 
-// Get raw stats value for hour HH [0,23] from stats set N from non-volatile (EEPROM) store.
+// Get raw stats value for specified hour [0,23]/current/next from stats set N from non-volatile (EEPROM) store.
 // A value of 0xff (255) means unset (or out of range); other values depend on which stats set is being used.
 // The stats set is determined by the order in memory.
-uint8_t getByHourStat(uint8_t hh, uint8_t statsSet)
+//   * hour  hour of day to use, or ~0 for current hour, or >23 for next hour.
+uint8_t getByHourStat(const uint8_t statsSet, const uint8_t hour)
   {
   if(statsSet > (V0P2BASE_EE_END_STATS - V0P2BASE_EE_START_STATS) / V0P2BASE_EE_STATS_SET_SIZE) { return(STATS_UNSET_BYTE); } // Invalid set.
-  if(hh > 23) { return((uint8_t) 0xff); } // Invalid hour.
+//  if(hh > 23) { return((uint8_t) 0xff); } // Invalid hour.
+  const uint8_t hh = (STATS_SPECIAL_HOUR_CURRENT_HOUR == hour) ? OTV0P2BASE::getHoursLT() :
+    ((hour > 23) ? OTV0P2BASE::getNextHourLT() : hour);
   return(eeprom_read_byte((uint8_t *)(V0P2BASE_EE_START_STATS + (statsSet * (int)V0P2BASE_EE_STATS_SET_SIZE) + (int)hh)));
+  }
+
+// Compute the number of stats samples in specified set less than the specified value; returns -1 for invalid stats set.
+// (With the UNSET value specified, count will be of all samples that have been set, ie are not unset.)
+int8_t countStatSamplesBelow(const uint8_t statsSet, const uint8_t value)
+  {
+  if(statsSet > (V0P2BASE_EE_END_STATS - V0P2BASE_EE_START_STATS) / V0P2BASE_EE_STATS_SET_SIZE) { return(-1); } // Invalid set.
+  if(0 == value) { return(0); } // Optimisation for common value.
+  const uint8_t *sE = (uint8_t *)(V0P2BASE_EE_STATS_START_ADDR(statsSet));
+  int8_t result = 0;
+  for(int8_t hh = 24; --hh >= 0; ++sE)
+    {
+    const uint8_t v = eeprom_read_byte(sE);
+    if(v < value) { ++result; }
+    }
+  return(result);
   }
 
 // Get minimum sample from given stats set ignoring all unset samples; STATS_UNSET_BYTE if all samples are unset.
@@ -160,6 +179,7 @@ uint8_t getMinByHourStat(const uint8_t statsSet)
   uint8_t result = STATS_UNSET_BYTE;
   for(int8_t hh = 24; --hh >= 0; )
     {
+    // FIXME: optimise (move multiplication out of loop)
     const uint8_t v = eeprom_read_byte((uint8_t *)(V0P2BASE_EE_START_STATS + (statsSet * (int)V0P2BASE_EE_STATS_SET_SIZE) + (int)hh));
     // Optimisation/cheat: all valid samples are less than STATS_UNSET_BYTE.
     if(v < result) { result = v; }
@@ -174,6 +194,7 @@ uint8_t getMaxByHourStat(const uint8_t statsSet)
   uint8_t result = STATS_UNSET_BYTE;
   for(int8_t hh = 24; --hh >= 0; )
     {
+    // FIXME: optimise (move multiplication out of loop)
     const uint8_t v = eeprom_read_byte((uint8_t *)(V0P2BASE_EE_START_STATS + (statsSet * (int)V0P2BASE_EE_STATS_SET_SIZE) + (int)hh));
     if((STATS_UNSET_BYTE != v) &&
        ((STATS_UNSET_BYTE == result) || (v > result)))
@@ -182,7 +203,7 @@ uint8_t getMaxByHourStat(const uint8_t statsSet)
   return(result);
   }
 
-// Returns true iff there is a full set of stats (none unset) and this 3/4s of the values are higher than the supplied sample.
+// Returns true iff there is a near-full set of stats (none unset) and 3/4s of the values are higher than the supplied sample.
 // Always returns false if all samples are the same.
 //   * s is start of (24) sample set in EEPROM
 //   * sample to be tested for being in lower quartile
@@ -198,7 +219,7 @@ bool inBottomQuartile(const uint8_t *sE, const uint8_t sample)
   return(false); // Not in lower quartile.
   }
 
-// Returns true iff there is a full set of stats (none unset) and this 3/4s of the values are lower than the supplied sample.
+// Returns true iff there is a near-full set of stats (none unset) and 3/4s of the values are lower than the supplied sample.
 // Always returns false if all samples are the same.
 //   * s is start of (24) sample set in EEPROM
 //   * sample to be tested for being in lower quartile
@@ -219,15 +240,18 @@ bool inTopQuartile(const uint8_t *sE, const uint8_t sample)
 // Always returns false if all samples are the same.
 //   * inTop  test for membership of the top quartile if true, bottom quartile if false
 //   * statsSet  stats set number to use.
-//   * hour  hour of day to use or ~0 for current hour.
-bool inOutlierQuartile(const uint8_t inTop, const uint8_t statsSet, const uint8_t hour)
+//   * hour  hour of day to use, or ~0 for current hour, or >23 for next hour.
+bool inOutlierQuartile(const bool inTop, const uint8_t statsSet, const uint8_t hour)
   {
-  if(statsSet >= V0P2BASE_EE_STATS_SETS) { return(false); } // Bad stats set number, ie unsafe.
-  const uint8_t hh = (inOutlierQuartile_CURRENT_HOUR == hour) ? OTV0P2BASE::getHoursLT() :
-    ((hour > 23) ? OTV0P2BASE::getNextHourLT() : hour);
-  const uint8_t *ss = (uint8_t *)(V0P2BASE_EE_STATS_START_ADDR(statsSet));
-  const uint8_t sample = eeprom_read_byte(ss + hh);
+//  if(statsSet >= V0P2BASE_EE_STATS_SETS) { return(false); } // Bad stats set number, ie unsafe.
+//  const uint8_t hh = (STATS_SPECIAL_HOUR_CURRENT_HOUR == hour) ? OTV0P2BASE::getHoursLT() :
+//    ((hour > 23) ? OTV0P2BASE::getNextHourLT() : hour);
+//  const uint8_t sample = eeprom_read_byte(ss + hh);
+  // Rely on getByHourStat() to validate statsSet, returning UNSET if invalid,
+  // and to deal with current/next hour if specified.
+  const uint8_t sample = getByHourStat(statsSet, hour);
   if(OTV0P2BASE::STATS_UNSET_BYTE == sample) { return(false); }
+  const uint8_t *ss = (uint8_t *)(V0P2BASE_EE_STATS_START_ADDR(statsSet));
   if(inTop) { return(inTopQuartile(ss, sample)); }
   return(inBottomQuartile(ss, sample));
   }

@@ -32,6 +32,12 @@ pending:
     DHD20160117: D21FM: moved unique ID generator down to base library.
     DHD20160117: D21FM: moved old binary stats encodings down to base library.
     DHD20160118: D21FM: preparing to move SHT21 temp/RH% sensor support down to base library.
+    DHD20160119: D21FM: moved (external) DS18B20 temp sensor support down to base library.
+    DHD20160120: D21FM: added setSeconds() to RTC.
+    DHD20160121: D21FM: moved TMP112 temp sensor support down to base library.
+    DHD20160121: D21FM: moved SHT21 temp/RH% sensor support down to base library.
+    DHD20160123: Created improved %age<->FS20 valve-open conversions in FHT8VRadValveBase.
+    DHD20160125: API changes for getByHourStat() and addition of countStatSamplesBelow().
 
 
 

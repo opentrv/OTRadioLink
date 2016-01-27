@@ -303,11 +303,13 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
 
       // If well below target (and without a wide deadband),
       // or needing a fast response to manual input to be responsive (TODO-593),
-      // then go straight to 'moderately open' if less open currently,
+      // then jump straight to (just over*) 'moderately open' if less open currently,
       // which should allow flow and turn the boiler on ASAP,
       // a little like a mini-BAKE.
       // For this to work, don't set a wide deadband when, eg, user has just touched the controls.
-      const uint8_t cappedModeratelyOpen = min(inputState.maxPCOpen, OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN+1);
+      // *Jump to just over moderately-open threshold to defeat any small rounding errors in the data path, etc,
+      // since boiler is likely to regard this threshold as a trigger to immediate action.
+      const uint8_t cappedModeratelyOpen = min(inputState.maxPCOpen, min(99, OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN+TRV_SLEW_PC_PER_MIN_FAST));
       if((valvePCOpen < cappedModeratelyOpen) &&
          (inputState.fastResponseRequired || (vBelowTarget && !inputState.widenDeadband)))
           { return(cappedModeratelyOpen); }
@@ -483,3 +485,47 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
 
 
     }
+
+
+//// Median filter.
+//// Find mean of interquatile range of group of ints where sum can be computed in an int without loss.
+//// FIXME: needs a unit test or three.
+//template<uint8_t N> int smallIntIQMean(const int data[N])
+//  {
+//  // Copy array content.
+//  int copy[N];
+//  for(int8_t i = N; --i >= 0; ) { copy[i] = data[i]; }
+//  // Sort in place with a bubble sort (yeuck) assuming the array to be small.
+//  // FIXME: replace with insertion sort for efficiency.
+//  // FIXME: break out sort as separate subroutine.
+//  uint8_t n = N;
+//  do
+//    {
+//    uint8_t newn = 0;
+//    for(uint8_t i = 0; ++i < n; )
+//      {
+//      const int c0 = copy[i-1];
+//      const int c1 = copy[i];
+//      if(c0 > c1)
+//         {
+//         copy[i] = c0;
+//         copy[i-1] = c1;
+//         newn = i;
+//         }
+//      }
+//    n = newn;
+//    } while(0 != n);
+//#if 0 && defined(DEBUG)
+//DEBUG_SERIAL_PRINT_FLASHSTRING("sorted: ");
+//for(uint8_t i = 0; i < N; ++i) { DEBUG_SERIAL_PRINT(copy[i]); DEBUG_SERIAL_PRINT(' '); }
+//DEBUG_SERIAL_PRINTLN();
+//#endif
+//  // Extract mean of interquartile range.
+//  const size_t sampleSize = N/2;
+//  const size_t start = N/4;
+//  // Assume values will be nowhere near the extremes.
+//  int sum = 0;
+//  for(uint8_t i = start; i < start + sampleSize; ++i) { sum += copy[i]; }
+//  // Compute rounded-up mean.
+//  return((sum + sampleSize/2) / sampleSize);
+//  }
