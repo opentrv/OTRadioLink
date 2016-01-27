@@ -21,15 +21,27 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
 namespace OTRN2483Link
 {
 
-OTRN2483Link::OTRN2483Link::OTRN2483Link() : ser(8, 5) {
+OTRN2483Link::OTRN2483Link() : ser(8, 5), config(NULL), rxPin(8), txPin(5), resetPin(A2) {
 	bAvailable = false;
 	// Init OTSoftSerial
 }
 
-bool OTRN2483Link::OTRN2483Link::begin() {
+bool OTRN2483Link::begin() {
+	char buffer[5];
+	memset(buffer, 0, 5);
+	// init resetPin
+	pinMode(resetPin, OUTPUT);
 	// Begin OTSoftSerial
-	// Reset RN2483
+	ser.begin();
+	// Reset RN2483:fastDigitalWrite(resetPin, LOW); // reset pin
+	fastDigitalWrite(resetPin, HIGH);
+	fastDigitalWrite(txPin, LOW); // Set baudrate
+	OTV0P2BASE::delay_ms(5);
+	fastDigitalWrite(txPin, HIGH);
+	ser.print('U');
 	// Wait for response
+	ser.print("sys get hweui\r\n");
+	timedBlockingRead(buffer, sizeof(buffer));
 	// Example of setting up LoRaWAN from http://thinginnovations.uk/getting-started-with-microchip-rn2483-lorawan-modules
 //	  sendCmd("sys factoryRESET");
 //	  sendCmd("sys get hweui");
@@ -44,29 +56,45 @@ bool OTRN2483Link::OTRN2483Link::begin() {
 //	  sendCmd("mac join abp");
 //	  sendCmd("mac get status");
 //	  sendCmd("mac get devaddr");
+	return true;
 }
 
 /**
  * @brief   Sends a raw frame
  * @param   buf	Send buffer. Should always be sent null terminated strings
  */
-bool OTRN2483Link::OTRN2483Link::sendRaw(const uint8_t* buf, uint8_t buflen,
+bool OTRN2483Link::sendRaw(const uint8_t* buf, uint8_t buflen,
 		int8_t channel, TXpower power, bool listenAfter) {
 }
 
+uint8_t OTRN2483Link::timedBlockingRead(char *data, uint8_t length)
+{
 
+	  // clear buffer, get time and init i to 0
+	  memset(data, 0, length);
+	  uint8_t i = 0;
+
+	  i = ser.read((uint8_t *)data, length);
+
+//	#ifdef OTSIM900LINK_DEBUG
+	  OTV0P2BASE::serialPrintAndFlush(F("\n--Buffer Length: "));
+	  OTV0P2BASE::serialPrintAndFlush(i);
+	  OTV0P2BASE::serialPrintlnAndFlush();
+//	#endif // OTSIM900LINK_DEBUG
+	  return i;
+}
 
 /****************************** Unused Virtual methods ***************************/
-void OTRN2483Link::OTRN2483Link::getCapacity(uint8_t& queueRXMsgsMin,
+void OTRN2483Link::getCapacity(uint8_t& queueRXMsgsMin,
 		uint8_t& maxRXMsgLen, uint8_t& maxTXMsgLen) const {
     queueRXMsgsMin = 0;
     maxRXMsgLen = 0;
     maxTXMsgLen = 0;
 }
-uint8_t OTRN2483Link::OTRN2483Link::getRXMsgsQueued() const {
+uint8_t OTRN2483Link::getRXMsgsQueued() const {
     return 0;
 }
-const volatile uint8_t* OTRN2483Link::OTRN2483Link::peekRXMsg(
+const volatile uint8_t* OTRN2483Link::peekRXMsg(
 		uint8_t& len) const {
     len = 0;
     return NULL;
