@@ -298,9 +298,9 @@ bool OTRFM23BLinkBase::sendRaw(const uint8_t *const buf, const uint8_t buflen, c
 
     // Disable all interrupts (eg to avoid invoking the RX handler).
     _modeStandbyAndClearState_();
-
+    
     _setChannel(channel);
-
+ 
     // Load the frame into the TX FIFO.
     _queueFrameInTXFIFO(buf, buflen);
     
@@ -309,8 +309,9 @@ bool OTRFM23BLinkBase::sendRaw(const uint8_t *const buf, const uint8_t buflen, c
     const bool neededEnable = _upSPI_();
 
     // Check if packet handling in RFM23B is enabled and set packet length
-    if ( _readReg8Bit_(REG_30_DATA_ACCESS_CONTROL) & RFM23B_ENPACRX )  
+    if ( _readReg8Bit_(REG_30_DATA_ACCESS_CONTROL) & RFM23B_ENPACTX )  {
        _writeReg8Bit_(REG_3E_PACKET_LENGTH, buflen); 
+    }
     if(neededEnable) { _downSPI_(); }
 
     // Send the frame once.
@@ -400,15 +401,12 @@ void OTRFM23BLinkBase::_RXFIFO(uint8_t *buf, const uint8_t bufSize)
         const bool neededEnable = _upSPI_();
 
         _modeStandby_();
-        //V0P2BASE_DEBUG_SERIAL_PRINT("Rx:");
 
         // Do burst read from RX FIFO.
         _SELECT_();
         _io(REG_FIFO & 0x7F);
         for(int i = 0; i < bufSize; ++i)
-            { *buf++ = _io(0);  /*V0P2BASE_DEBUG_SERIAL_PRINTFMT(buf[-1],HEX);*/  }
-        //V0P2BASE_DEBUG_SERIAL_PRINT("!");
-        //V0P2BASE_DEBUG_SERIAL_PRINTLN();
+            { *buf++ = _io(0); }
         _DESELECT_();
 
         // Clear RX and TX FIFOs simultaneously.
@@ -441,6 +439,7 @@ void OTRFM23BLinkBase::_RXFIFO(uint8_t *buf, const uint8_t bufSize)
 
 void OTRFM23BLinkBase::_setChannel(uint8_t channel)
     {
+
       if (_currentChannel == channel) return;
 
       if (channel == 0)
@@ -451,12 +450,12 @@ void OTRFM23BLinkBase::_setChannel(uint8_t channel)
       V0P2BASE_DEBUG_SERIAL_PRINT("C:");
       V0P2BASE_DEBUG_SERIAL_PRINT(channel);
       V0P2BASE_DEBUG_SERIAL_PRINTLN();
-      readRegs((uint8_t)0,(uint8_t)0x7e);
+      //readRegs((uint8_t)0,(uint8_t)0x7e);
 #endif
       _currentChannel = channel;
     }
 
-#if 1 && defined(MILENKO_DEBUG)
+#if 0 && defined(MILENKO_DEBUG)
 void OTRFM23BLinkBase::printHex(int val)  
     {
        if (val < 16)
