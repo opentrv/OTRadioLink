@@ -27,6 +27,120 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 
 namespace OTRFM23BLink {
 
+const uint8_t OTRFM23BLinkBase::_regValuesOOK[][2] =
+  {
+
+#if 0 // From FHT8V - keep it here for referenece (while testing, delete when finished)
+    {0x6d,0xb}, // RF23B, good RF conditions.
+    {6,0}, // Disable default chiprdy and por interrupts.
+    {8,0}, // RFM22REG_OP_CTRL2: ANTDIVxxx, RXMPK, AUTOTX, ENLDM
+    {0x30,0}, {0x33,6}, {0x34,8}, {0x35,0x10}, {0x36,0xaa}, {0x37,0xcc}, {0x38,0xcc}, {0x39,0xcc},
+
+    {0x6e,40}, {0x6f,245}, // 5000bps, ie 200us/bit for FHT (6 for 1, 4 for 0).  10485 split across the registers, MSB first.
+    {0x70,0x20}, // MOD CTRL 1: low bit rate (<30kbps), no Manchester encoding, no whitening.
+    {0x71,0x21}, // MOD CTRL 2: OOK modulation.
+    {0x72,0x20}, // Deviation GFSK. ; WAS EEPROM ($72,8) ; Deviation 5 kHz GFSK.
+    {0x73,0}, {0x74,0}, // Frequency offset
+// Channel 0 frequency = 868 MHz, 10 kHz channel steps, high band.
+    {0x75,0x73}, {0x76,100}, {0x77,0}, // BAND_SELECT,FB(hz), CARRIER_FREQ0&CARRIER_FREQ1,FC(hz) where hz=868MHz
+    {0x79,35}, // 868.35 MHz - FHT8V/FS20.
+    {0x7a,1}, // One 10kHz channel step.
+// RX-only
+    {0x1c,0xc1}, {0x1d,0x40}, {0x1e,0xa}, {0x1f,3}, {0x20,0x96}, {0x21,0}, {0x22,0xda}, {0x23,0x74}, {0x24,0}, {0x25,0xdc},
+    {0x2a,0x24},
+    {0x2c,0x28}, {0x2d,0xfa}, {0x2e,0x29},
+    {0x69,0x60}, // AGC enable: SGIN | AGCEN
+    { 0xff, 0xff } // End of settings.
+#endif
+    { 0x05, 0x01 },
+    { 0x06,    0 },
+    { 0x07, 0x00 },
+    { 0x08,    0 },
+    { 0x0b, 0x15 },
+    { 0x0c, 0x12 },
+    { 0x1c, 0xc1 },
+    { 0x1d, 0x40 },
+    { 0x1f,    3 },
+    { 0x20, 0x96 },
+    { 0x21,    0 },
+    { 0x22, 0xda },
+    { 0x23, 0x74 },
+    { 0x24,    0 },
+    { 0x25, 0xdc },
+    { 0x2c, 0x28 },
+    { 0x2d, 0xfa },
+    { 0x2e, 0x29 },
+    { 0x2e, 0x29 },
+    { 0x30, 0x00 },
+    { 0x32, 0x0c },
+    { 0x33, 0x06 },
+    { 0x35, 0x10 },
+    { 0x36, 0xaa },
+    { 0x37, 0xcc },
+    { 0x38, 0xcc },
+    { 0x39, 0xcc },
+
+    { 0x58,  0x0 }, // Milenko: From RadioHead, I dont think it is needed
+
+    { 0x69, 0x60 }, // AGC enable: SGIN | AGCEN
+    { 0x6e, 0x28 },
+    { 0x6f, 0xf5 }, // 5000bps, ie 200us/bit for FHT (6 for 1, 4 for 0).  10485 split across the registers, MSB first.
+    { 0x70, 0x20 }, // MOD CTRL 1: low bit rate (<30kbps), no Manchester encoding, no whitening.
+    { 0x71, 0x21 }, // MOD CTRL 2: OOK modulation.
+    { 0x72, 0x20 }, // Deviation GFSK. ; WAS EEPROM ($72,8) ; Deviation 5 kHz GFSK.
+    { 0x76, 0x64 }, // Deviation GFSK. ; WAS EEPROM ($72,8) ; Deviation 5 kHz GFSK.
+    { 0x77, 0x00 }, // Deviation GFSK. ; WAS EEPROM ($72,8) ; Deviation 5 kHz GFSK.
+    { 0x79, 0x23 }, // Deviation GFSK. ; WAS EEPROM ($72,8) ; Deviation 5 kHz GFSK.
+    { 0x7a, 0x01 }, // Deviation GFSK. ; WAS EEPROM ($72,8) ; Deviation 5 kHz GFSK.
+
+    { 0xff, 0xff } // End of settings.
+  };
+
+const uint8_t OTRFM23BLinkBase::_regValuesGFSK[][2] =
+  {
+    { 0x05, 0x07 },
+    { 0x06, 0x40 },
+    { 0x07, 0x01 },
+    { 0x08,    0 },
+    { 0x0b, 0x15 },
+    { 0x0c, 0x12 },
+    { 0x1c, 0x06 },
+    { 0x1d, 0x44 },
+    { 0x1f,    3 },
+    { 0x20, 0x45 },
+    { 0x21,    1 },
+    { 0x22, 0xd7 },
+    { 0x23, 0xdc },
+    { 0x24,    7 },
+    { 0x25, 0x6e },
+    { 0x2c, 0x40 },
+    { 0x2d, 0x0a },
+    { 0x2e, 0x2d },
+
+    { 0x30, 0x88 },
+    { 0x32, 0x88 },
+    { 0x33, 0x02 },
+    { 0x35, 0x2a },
+    { 0x36, 0x2d },
+    { 0x37, 0xd4 },
+    { 0x38, 0x00 },
+    { 0x39, 0x00 },
+
+    { 0x58, 0x80 }, // Milenko: From RadioHead, I dont think it is needed
+
+    { 0x69, 0x60 }, // AGC enable: SGIN | AGCEN
+    { 0x6e, 0x0e },
+    { 0x6f, 0xbf }, // 5000bps, ie 200us/bit for FHT (6 for 1, 4 for 0).  10485 split across the registers, MSB first.
+    { 0x70, 0x0c }, // MOD CTRL 1: low bit rate (<30kbps), no Manchester encoding, no whitening.
+    { 0x71, 0x23 }, // MOD CTRL 2: OOK modulation.
+    { 0x72, 0x2e }, // Deviation GFSK. ; WAS EEPROM ($72,8) ; Deviation 5 kHz GFSK.
+    { 0x76, 0x6b }, // Deviation GFSK. ; WAS EEPROM ($72,8) ; Deviation 5 kHz GFSK.
+    { 0x77, 0x80 }, // Deviation GFSK. ; WAS EEPROM ($72,8) ; Deviation 5 kHz GFSK.
+    { 0x79, 0x00 }, // Deviation GFSK. ; WAS EEPROM ($72,8) ; Deviation 5 kHz GFSK.
+    { 0x7a, 0x00 }, // Deviation GFSK. ; WAS EEPROM ($72,8) ; Deviation 5 kHz GFSK.
+
+    { 0xff, 0xff } // End of settings.
+  };
 // Set typical maximum frame length in bytes [1,63] to optimise radio behaviour.
 // Too long may allow overruns, too short may make long-frame reception hard.
 void OTRFM23BLinkBase::setMaxTypicalFrameBytes(const uint8_t _maxTypicalFrameBytes)
@@ -185,8 +299,16 @@ bool OTRFM23BLinkBase::sendRaw(const uint8_t *const buf, const uint8_t buflen, c
     // Disable all interrupts (eg to avoid invoking the RX handler).
     _modeStandbyAndClearState_();
 
+    _setChannel(channel);
+
     // Load the frame into the TX FIFO.
     _queueFrameInTXFIFO(buf, buflen);
+    
+    // Channel 0 is alsways GFSK
+    const bool neededEnable = _upSPI_();
+    if ( _currentChannel == 0 ) 
+       _writeReg8Bit_(REG_3E_PACKET_LENGTH, buflen); // Total length that will be sent
+    if(neededEnable) { _downSPI_(); }
 
     // Send the frame once.
     bool result = _TXFIFO();
@@ -243,12 +365,20 @@ void OTRFM23BLinkBase::_dolisten()
 
         // Enable requested RX-related interrupts.
         // Do this regardless of hardware interrupt support on the board.
-        _writeReg8Bit_(REG_INT_ENABLE1, 0x10); // enrxffafull: Enable RX FIFO Almost Full.
-        _writeReg8Bit_(REG_INT_ENABLE2, WAKE_ON_SYNC_RX ? 0x80 : 0); // enswdet: Enable Sync Word Detected.
+        if ( _currentChannel == 0 )  {
+           _writeReg8Bit_(REG_INT_ENABLE1, RFM23B_ENPKVALID); // enable all interrupts
+           //_writeReg8Bit_(REG_INT_ENABLE1, 0xff); // enable all interrupts
+           _writeReg8Bit_(REG_INT_ENABLE2, 0); // enable all interrupts
+        }
+        else {
+           _writeReg8Bit_(REG_INT_ENABLE1, 0x10); // enrxffafull: Enable RX FIFO Almost Full.
+           _writeReg8Bit_(REG_INT_ENABLE2, WAKE_ON_SYNC_RX ? 0x80 : 0); // enswdet: Enable Sync Word Detected.
+       }
 
         // Clear any current interrupt/status.
         _clearInterrupts_();
 
+        _setChannel(lc);
         // Start listening.
         _modeRX_();
 
@@ -267,12 +397,15 @@ void OTRFM23BLinkBase::_RXFIFO(uint8_t *buf, const uint8_t bufSize)
         const bool neededEnable = _upSPI_();
 
         _modeStandby_();
+        //V0P2BASE_DEBUG_SERIAL_PRINT("Rx:");
 
         // Do burst read from RX FIFO.
         _SELECT_();
         _io(REG_FIFO & 0x7F);
         for(int i = 0; i < bufSize; ++i)
-            { *buf++ = _io(0);  }
+            { *buf++ = _io(0);  /*V0P2BASE_DEBUG_SERIAL_PRINTFMT(buf[-1],HEX);*/  }
+        //V0P2BASE_DEBUG_SERIAL_PRINT("!");
+        //V0P2BASE_DEBUG_SERIAL_PRINTLN();
         _DESELECT_();
 
         // Clear RX and TX FIFOs simultaneously.
@@ -289,15 +422,86 @@ void OTRFM23BLinkBase::_RXFIFO(uint8_t *buf, const uint8_t bufSize)
         }
     }
 
+// Set RFM23B for tranmission via selected channel
+// Channel defines following parameters:
+//   - modulation
+//   - carrier frequency
+//   - freqeuncy deviation
+//   - parameters of a filter
+//   - chanell bitrate
+//   - packet format
+//
+// Currently we have 2 channels: 
+//   Ch0 - OOK/868.3/5000/FHT(FS20)
+//   Ch1 - GFSK/868.5/57600/COHEAT
+//
+
+void OTRFM23BLinkBase::_setChannel(uint8_t channel)
+    {
+      if (_currentChannel == channel) return;
+
+      if (channel == 1)
+           _registerBlockSetup((regValPair_t *) _regValuesOOK);
+      else 
+           _registerBlockSetup((regValPair_t *) _regValuesGFSK);
+#if 0
+      V0P2BASE_DEBUG_SERIAL_PRINT("C:");
+      V0P2BASE_DEBUG_SERIAL_PRINT(channel);
+      V0P2BASE_DEBUG_SERIAL_PRINTLN();
+      readRegs((uint8_t)0,(uint8_t)0x7e);
+#endif
+      _currentChannel = channel;
+    }
+
+void OTRFM23BLinkBase::printHex(int val)  
+    {
+       if (val < 16)
+         V0P2BASE_DEBUG_SERIAL_PRINT("0");
+       V0P2BASE_DEBUG_SERIAL_PRINTFMT(val, HEX);
+    }
+
+void OTRFM23BLinkBase::readRegs(uint8_t from, uint8_t to, uint8_t noHeader)
+   {
+      uint8_t regVal;
+
+      const bool neededEnable = _upSPI_();
+
+      if ( noHeader == 0) {
+         V0P2BASE_DEBUG_SERIAL_PRINTLN();
+         V0P2BASE_DEBUG_SERIAL_PRINT("    00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F");
+      }
+      if ( from%16) {
+         V0P2BASE_DEBUG_SERIAL_PRINTLN();
+         printHex(from&0xf0);
+         V0P2BASE_DEBUG_SERIAL_PRINT(":");
+      }
+      uint8_t i;
+      for ( i = 0; i <= from%16; i++) V0P2BASE_DEBUG_SERIAL_PRINT("   ");
+      for ( i = from; i <= to; i++) {
+         regVal = _readReg8Bit_(i); 
+         if (i % 16 == 0) {
+            V0P2BASE_DEBUG_SERIAL_PRINTLN();
+            printHex(i);
+            V0P2BASE_DEBUG_SERIAL_PRINT(":");
+         }
+         V0P2BASE_DEBUG_SERIAL_PRINT(" ");
+         printHex(regVal);
+      }
+      V0P2BASE_DEBUG_SERIAL_PRINTLN();
+
+      if(neededEnable) { _downSPI_(); }
+}
 
 // Begin access to (initialise) this radio link if applicable and not already begun.
 // Returns true if it successfully began, false otherwise.
 // Allows logic to end() if required at the end of a block, etc.
 bool OTRFM23BLinkBase::begin()
     {
-    if(1 != nChannels) { return(false); } // Can only handle a single channel.
+    //if(1 != nChannels) { return(false); } // Can only handle a single channel.
     if(!_checkConnected()) { return(false); }
+    // Default incitalization is for OOK (Channel 1)
     _registerBlockSetup((const regValPair_t *)(channelConfig->config));
+    _currentChannel = 1;
     _modeStandbyAndClearState_();
     return(true);
     }
