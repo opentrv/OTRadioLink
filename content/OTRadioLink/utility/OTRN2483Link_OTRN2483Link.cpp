@@ -60,11 +60,42 @@ bool OTRN2483Link::begin() {
 }
 
 /**
+ * @brief	End LoRaWAN connection
+ */
+bool OTRN2483Link::end()
+{
+	return true;
+}
+
+
+/**
  * @brief   Sends a raw frame
  * @param   buf	Send buffer. Should always be sent null terminated strings
  */
 bool OTRN2483Link::sendRaw(const uint8_t* buf, uint8_t buflen,
-		int8_t channel, TXpower power, bool listenAfter) {
+		int8_t channel, TXpower power, bool listenAfter)
+{
+	return false;
+}
+
+/**
+ * @brief   Puts message in queue to send on wakeup
+ * @param   buf        pointer to buffer to send
+ * @param   buflen    length of buffer to send
+ * @param   channel    ignored
+ * @param   Txpower    ignored
+ * @retval  returns true if send process inited
+ * @todo    This is OTSIM900Link documentation
+ * @note    requires calling of poll() to check if message sent successfully
+ */
+bool OTRN2483Link::queueToSend(const uint8_t *buf, uint8_t buflen, int8_t channel, TXpower power)
+{
+	return false;
+}
+
+void OTRN2483Link::poll()
+{
+
 }
 
 uint8_t OTRN2483Link::timedBlockingRead(char *data, uint8_t length)

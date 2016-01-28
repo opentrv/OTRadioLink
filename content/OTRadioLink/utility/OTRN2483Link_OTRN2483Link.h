@@ -91,7 +91,7 @@ public:
 	// Public interface
     OTRN2483Link();
 
-    void preinit(const void *preconfig) {};  // Todo decide if preinit needed
+    void preinit(const void */*preconfig*/) {};  // Todo decide if preinit needed
     bool begin();
     bool end();
 
@@ -99,7 +99,7 @@ public:
     bool queueToSend(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal);
     inline bool isAvailable(){ return bAvailable; };     // checks radio is there independant of power state
     void poll();
-    bool handleInterruptSimple();
+    bool handleInterruptSimple() { return true;};
 
     /**
      * @brief   Unused. For compatibility with OTRadioLink.
@@ -125,7 +125,7 @@ private:
     // Commands
 
     // Setup
-    bool _doconfig();
+    bool _doconfig() { return true; };
 
 // Private consts and variables
     const OTRN2483LinkConfig *config;  // Pointer to radio config
