@@ -118,11 +118,17 @@ private:
     uint8_t timedBlockingRead(char *data, uint8_t length);
     void write(const char *data, uint8_t length);
     void print(const char data);
-    void print(const uint8_t value);
+    void print(const uint8_t value);	// todo change this so it prints in hex?
     void print(const char *string);
     void print(const void *src);
 
     // Commands
+    void factoryReset();
+    void setBaud();
+    void setDevAddr(const uint8_t *address);
+    void setKeys(const uint8_t *appKey, const uint8_t *networkKey);
+    void joinABP();
+    bool getStatus();
 
     // Setup
     bool _doconfig() { return true; };
@@ -134,6 +140,23 @@ private:
     const uint8_t rxPin;
     const uint8_t txPin;
     const uint8_t resetPin;
+
+
+    static const char SYS_START[5];
+    static const char SYS_RESET[18]; // todo this can be removed on board with working reset line
+
+    static const char MAC_START[5];
+    static const char MAC_DEVADDR[9];
+    static const char MAC_APPSKEY[9];
+    static const char MAC_NWKSKEY[9];
+    static const char MAC_ADR_OFF[8];	// TODO find out what this does
+    static const char MAC_JOINABP[9];
+    static const char MAC_STATUS[7];
+    static const char MAC_SEND[12];		// Sends an unconfirmed packet on channel 1
+
+    static const char RN2483_SET[5];
+    static const char RN2483_GET[5];
+    static const char RN2483_END[3];
 
     /**
      * @brief   Unused. For compatibility with OTRadioLink.
