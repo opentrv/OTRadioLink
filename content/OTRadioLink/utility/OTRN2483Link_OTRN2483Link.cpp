@@ -20,7 +20,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
 
 namespace OTRN2483Link
 {
-
+// TODO proper constructor
 OTRN2483Link::OTRN2483Link() : ser(8, 5), config(NULL), rxPin(8), txPin(5), resetPin(A2) {
 	bAvailable = false;
 	// Init OTSoftSerial
@@ -42,21 +42,17 @@ bool OTRN2483Link::begin() {
 
 	// Set up for TTN
 //	// Set Device Address
-    setDevAddr(NULL);
+    setDevAddr(NULL); // TODO not needed if saved to EEPROM
 //
 //	// Set keys
-    setKeys(NULL, NULL);
+    setKeys(NULL, NULL); // TODO not needed if saved to EEPROM
 
     // join network
     joinABP();
 
-	// get status (returns 0000001 when it works for me)
-//	print("mac get status\r\n");
+	// get status (returns 0001 when it works for me)
     getStatus();
-
-//	timedBlockingRead(buffer, sizeof(buffer));
 	// Send
-//	print("mac tx uncnf 1 5245563134\r\n");
     sendRaw((const uint8_t *)"hello world", 11);
 
 	return true;
@@ -78,8 +74,8 @@ bool OTRN2483Link::end()
 bool OTRN2483Link::sendRaw(const uint8_t* buf, uint8_t buflen,
 		int8_t channel, TXpower power, bool listenAfter)
 {
-	char dataBuf[32];
-	memset(dataBuf, 0, sizeof(dataBuf));
+//	char dataBuf[32];
+//	memset(dataBuf, 0, sizeof(dataBuf));
 
 	uint8_t outputBuf[buflen * 2];
 	getHex(buf, outputBuf, sizeof(outputBuf));
@@ -88,26 +84,12 @@ bool OTRN2483Link::sendRaw(const uint8_t* buf, uint8_t buflen,
 	write((const char *)outputBuf, sizeof(outputBuf));
 	print(RN2483_END);
 
-	timedBlockingRead(dataBuf, sizeof(dataBuf));
-	OTV0P2BASE::serialPrintAndFlush(dataBuf);
+//	timedBlockingRead(dataBuf, sizeof(dataBuf));
+//	OTV0P2BASE::serialPrintAndFlush(dataBuf);
 
 	return false;
 }
 
-/**
- * @brief   Puts message in queue to send on wakeup
- * @param   buf        pointer to buffer to send
- * @param   buflen    length of buffer to send
- * @param   channel    ignored
- * @param   Txpower    ignored
- * @retval  returns true if send process inited
- * @todo    This is OTSIM900Link documentation
- * @note    requires calling of poll() to check if message sent successfully
- */
-//bool OTRN2483Link::queueToSend(const uint8_t *buf, uint8_t buflen, int8_t channel, TXpower power)
-//{
-//	return false;
-//}
 
 void OTRN2483Link::poll()
 {
@@ -265,7 +247,6 @@ bool OTRN2483Link::getStatus()
 }
 /**
  * @brief   Saves current mac state
- * @todo    UNTESTED
  */
 void OTRN2483Link::save()
 {

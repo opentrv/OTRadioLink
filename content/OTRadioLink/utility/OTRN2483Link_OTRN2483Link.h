@@ -27,7 +27,6 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
 
 /**
  * @todo    - Add config functionality
- *          - Ascii/binary to hex conversion to allow meaningful tx
  *          - Move commands to progmem
  *          - Add intelligent way of utilising device eeprom (w/ mac save)
  *          - Is there any special low power mode?
@@ -52,9 +51,6 @@ namespace OTRN2483Link
  * @struct  OTRN2483LinkConfig
  * @brief   Structure containing config data for OTRN2483LinkConfig
  * @todo    Work out other required variables for LoRa
- * @param    bEEPROM    true if strings stored in EEPROM, else held in FLASH
- * @param    UDP_Address    Pointer to \0 terminated array containing UDP address to send to as IPv4 dotted quad
- * @param    UDP_Port    Pointer to \0 terminated array containing UDP port in decimal
  */
 typedef struct OTRN2483LinkConfig {
     // Is in eeprom?
@@ -92,7 +88,6 @@ typedef struct OTRN2483LinkConfig {
 /**
  * @brief   This is a class that extends OTRadioLink to communicate via LoRaWAN
  *          using the RN2483 radio module.
- * @todo	Make class
  */
 class OTRN2483Link : public OTRadioLink::OTRadioLink
 {
@@ -100,7 +95,7 @@ public:
 	// Public interface
     OTRN2483Link();
 
-    void preinit(const void */*preconfig*/) {};  // Todo decide if preinit needed
+    void preinit(const void */*preconfig*/) {};
     bool begin();
     bool end();
 
@@ -163,7 +158,7 @@ private:
     static const char MAC_DEVADDR[9];
     static const char MAC_APPSKEY[9];
     static const char MAC_NWKSKEY[9];
-    static const char MAC_ADR_OFF[8];	// TODO find out what this does
+    static const char MAC_ADR_OFF[8];
     static const char MAC_JOINABP[9];
     static const char MAC_STATUS[7];
     static const char MAC_SEND[12];		// Sends an unconfirmed packet on channel 1
