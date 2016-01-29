@@ -25,6 +25,15 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
 //http://ww1.microchip.com/downloads/en/DeviceDoc/40001784C.pdf
 
 
+/**
+ * @todo    - Add config functionality
+ *          - Ascii/binary to hex conversion to allow meaningful tx
+ *          - Move commands to progmem
+ *          - Add intelligent way of utilising device eeprom (w/ mac save)
+ *          - Is there any special low power mode?
+ *          - Save stuff into EEPROM
+ */
+
 #ifndef OTRN2483LINK_OTRN2483LINK_H_
 #define OTRN2483LINK_OTRN2483LINK_H_
 
@@ -96,7 +105,7 @@ public:
     bool end();
 
     bool sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal, bool listenAfter = false);
-    bool queueToSend(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal);
+//    bool queueToSend(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal);
     inline bool isAvailable(){ return bAvailable; };     // checks radio is there independant of power state
     void poll();
     bool handleInterruptSimple() { return true;};
@@ -124,14 +133,19 @@ private:
 
     // Commands
     void factoryReset();
+    void reset();
     void setBaud();
     void setDevAddr(const uint8_t *address);
     void setKeys(const uint8_t *appKey, const uint8_t *networkKey);
     void joinABP();
     bool getStatus();
+    void save();
 
     // Setup
     bool _doconfig() { return true; };
+
+    // misc
+    bool getHex(const uint8_t *string, uint8_t *output, uint8_t outputLen);
 
 // Private consts and variables
     const OTRN2483LinkConfig *config;  // Pointer to radio config
@@ -143,7 +157,7 @@ private:
 
 
     static const char SYS_START[5];
-    static const char SYS_RESET[18]; // todo this can be removed on board with working reset line
+    static const char SYS_RESET[6]; // todo this can be removed on board with working reset line
 
     static const char MAC_START[5];
     static const char MAC_DEVADDR[9];
@@ -153,6 +167,7 @@ private:
     static const char MAC_JOINABP[9];
     static const char MAC_STATUS[7];
     static const char MAC_SEND[12];		// Sends an unconfirmed packet on channel 1
+    static const char MAC_SAVE[5];
 
     static const char RN2483_SET[5];
     static const char RN2483_GET[5];

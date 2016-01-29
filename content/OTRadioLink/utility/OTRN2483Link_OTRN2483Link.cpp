@@ -35,27 +35,19 @@ bool OTRN2483Link::begin() {
 	ser.begin();
 	// Reset
 //	print("sys factoryRESET\r\n");
-    factoryReset();
+//    factoryReset();
 	// set baudrate
 	setBaud();
 	// todo check RN2483 is present and communicative here
 
 	// Set up for TTN
-	// Set Device Address
-//	print("mac set devaddr 02011104\r\n");
+//	// Set Device Address
     setDevAddr(NULL);
-
-	// Set keys
+//
+//	// Set keys
     setKeys(NULL, NULL);
 
-	// Do whatever this does
-//	print("mac set adr off\r\n");
-
-	// rx stuff that's probably not needed // TODO check if this is needed when not rxing
-//	print("mac set rx3 3 869525000\r\n");
-
-	// join abp (registers with gateway or something)
-//	print("mac join abp\r\n");
+    // join network
     joinABP();
 
 	// get status (returns 0000001 when it works for me)
@@ -65,7 +57,7 @@ bool OTRN2483Link::begin() {
 //	timedBlockingRead(buffer, sizeof(buffer));
 	// Send
 //	print("mac tx uncnf 1 5245563134\r\n");
-    sendRaw(NULL, 0);
+    sendRaw((const uint8_t *)"hello world", 11);
 
 	return true;
 }
@@ -81,15 +73,24 @@ bool OTRN2483Link::end()
 
 /**
  * @brief   Sends a raw frame
- * @param   buf	Send buffer. Should always be sent null terminated strings
+ * @param   buf	Send buffer.
  */
 bool OTRN2483Link::sendRaw(const uint8_t* buf, uint8_t buflen,
 		int8_t channel, TXpower power, bool listenAfter)
 {
+	char dataBuf[32];
+	memset(dataBuf, 0, sizeof(dataBuf));
+
+	uint8_t outputBuf[buflen * 2];
+	getHex(buf, outputBuf, sizeof(outputBuf));
 	print(MAC_START);
 	print(MAC_SEND);
-	print("5245563134");
+	write((const char *)outputBuf, sizeof(outputBuf));
 	print(RN2483_END);
+
+	timedBlockingRead(dataBuf, sizeof(dataBuf));
+	OTV0P2BASE::serialPrintAndFlush(dataBuf);
+
 	return false;
 }
 
@@ -103,10 +104,10 @@ bool OTRN2483Link::sendRaw(const uint8_t* buf, uint8_t buflen,
  * @todo    This is OTSIM900Link documentation
  * @note    requires calling of poll() to check if message sent successfully
  */
-bool OTRN2483Link::queueToSend(const uint8_t *buf, uint8_t buflen, int8_t channel, TXpower power)
-{
-	return false;
-}
+//bool OTRN2483Link::queueToSend(const uint8_t *buf, uint8_t buflen, int8_t channel, TXpower power)
+//{
+//	return false;
+//}
 
 void OTRN2483Link::poll()
 {
@@ -169,10 +170,22 @@ void OTRN2483Link::setBaud()
 }
 
 /**
+ * @brief   reset device and eeprom to factory defaults
+ * @note    Currently using software reset as there is a short on my REV14
+ * @fixme   Currently non-functional
+ */
+void OTRN2483Link::factoryReset()
+{
+	print(SYS_START);
+//	print(SYS_RESET);
+	print(RN2483_END);
+}
+
+/**
  * @brief   reset device
  * @note    Currently using software reset as there is a short on my REV14
  */
-void OTRN2483Link::factoryReset()
+void OTRN2483Link::reset()
 {
 	print(SYS_START);
 	print(SYS_RESET);
@@ -182,6 +195,7 @@ void OTRN2483Link::factoryReset()
 //	//todo delay here
 //	fastDigitalWrite(resetPin, HIGH);
 }
+
 /**
  * @brief   sets device address
  * @param   pointer to 4 byte buffer containing address
@@ -222,18 +236,18 @@ void OTRN2483Link::setKeys(const uint8_t *appKey, const uint8_t *networkKey)
 	print(RN2483_END);
 }
 /**
- * @brief
- * @todo    Find out what this does and write brief
+ * @brief   Sets adaptive data rate off and activates connection by personalisation
+ * @todo    Move adaptive data rate out and work out if this is what we want
  */
 void OTRN2483Link::joinABP()
 {
 	print(MAC_START);
 	print(RN2483_SET);
-	print(MAC_ADR_OFF);
+	print(MAC_ADR_OFF); // Adaptive data rate
 	print(RN2483_END);
 
 	print(MAC_START);
-	print(MAC_JOINABP);
+	print(MAC_JOINABP); // Join by ABP (activation by personalisation)
 	print(RN2483_END);
 }
 /**
@@ -250,10 +264,52 @@ bool OTRN2483Link::getStatus()
 	print(RN2483_END);
 }
 /**
- * @brief
+ * @brief   Saves current mac state
+ * @todo    UNTESTED
  */
-//void OTRN2483Link::
-//void OTRN2483Link::
+void OTRN2483Link::save()
+{
+	print(MAC_START);
+	print(MAC_SAVE);
+	print(RN2483_END);
+}
+
+/**
+ * @brief   converts a string to hex representation
+ * @param   string  String to convert
+ * @param   output  buffer to hold output. This should be twice the length of string
+ * @param   outputLen   Length of output
+ * @retval  returns true if output success
+ * @note    This function only checks output bounds. If input string is too short
+ *          it will overrun.
+ *          Will terminate if passed a null pointer.
+ * @todo    Possibly better to make part of send function and send as byte is converted
+ */
+bool OTRN2483Link::getHex(const uint8_t *input, uint8_t *output, uint8_t outputLen)
+{
+	  if((input || output) == NULL) return false; // check for null pointer
+	    uint8_t counter = outputLen;
+	    // convert to hex
+	  while(counter) {
+	    uint8_t highValue = *input >> 4;
+	    uint8_t lowValue  = *input & 0x0f;
+	    uint8_t temp;
+
+	    temp = highValue;
+	    if(temp <= 9) temp += '0';
+	    else temp += ('A' - 10);
+	    *output++ = temp;
+
+	    temp = lowValue;
+	    if(temp <= 9) temp += '0';
+	    else temp += ('A'-10);
+	    *output++ = temp;
+
+	    input++;
+	    counter -= 2;
+	  }
+	  return true;
+}
 
 /****************************** Unused Virtual methods ***************************/
 void OTRN2483Link::getCapacity(uint8_t& queueRXMsgsMin,
@@ -272,7 +328,7 @@ const volatile uint8_t* OTRN2483Link::peekRXMsg(
 }
 
 const char OTRN2483Link::SYS_START[5] = "sys ";
-const char OTRN2483Link::SYS_RESET[18] = "factoryRESET"; // FIXME this can be removed on board with working reset line
+const char OTRN2483Link::SYS_RESET[6] = "reset"; // FIXME this can be removed on board with working reset line
 
 const char OTRN2483Link::MAC_START[5] = "mac ";
 const char OTRN2483Link::MAC_DEVADDR[9] = "devaddr ";
@@ -282,6 +338,7 @@ const char OTRN2483Link::MAC_ADR_OFF[8] = "adr off";	// TODO find out what this 
 const char OTRN2483Link::MAC_JOINABP[9] = "join abp";
 const char OTRN2483Link::MAC_STATUS[7] = "status";
 const char OTRN2483Link::MAC_SEND[12] = "tx uncnf 1 ";		// Sends an unconfirmed packet on channel 1
+const char OTRN2483Link::MAC_SAVE[5] = "save";
 
 const char OTRN2483Link::RN2483_SET[5] = "set ";
 const char OTRN2483Link::RN2483_GET[5] = "get ";
