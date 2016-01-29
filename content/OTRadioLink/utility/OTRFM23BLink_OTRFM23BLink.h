@@ -42,7 +42,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #include "OTRadioLink_ISRRXQueue.h"
 
 
-
 namespace OTRFM23BLink
     {
     // NOTE: SYSTEM-WIDE IMPLICATIONS FOR SPI USE.
@@ -99,49 +98,49 @@ namespace OTRFM23BLink
             static const uint8_t _regValuesGFSK[][2] PROGMEM;
             static const uint8_t _regValuesOOK[][2] PROGMEM;
 
-            // RFM23B_REG_03_INTERRUPT_STATUS1               0x03
-            static const uint8_t RFM23B_IFFERROR          0x80<<8
-            static const uint8_t RFM23B_ITXFFAFULL        0x40<<8
-            static const uint8_t RFM23B_ITXFFAEM          0x20<<8
-            static const uint8_t RFM23B_IRXFFAFULL        0x10<<8
-            static const uint8_t RFM23B_IEXT              0x08<<8
-            static const uint8_t RFM23B_IPKSENT           0x04<<8
-            static const uint8_t RFM23B_IPKVALID          0x02<<8
-            static const uint8_t RFM23B_ICRCERROR         0x01<<8
+            // RFM23B_REG_03_INTERRUPT_STATUS1
+            static const uint16_t RFM23B_IFFERROR   = 0x80<<8;
+            static const uint16_t RFM23B_ITXFFAFULL = 0x40<<8;
+            static const uint16_t RFM23B_ITXFFAEM   = 0x20<<8;
+            static const uint16_t RFM23B_IRXFFAFULL = 0x10<<8;
+            static const uint16_t RFM23B_IEXT       = 0x08<<8;
+            static const uint16_t RFM23B_IPKSENT    = 0x04<<8;
+            static const uint16_t RFM23B_IPKVALID   = 0x02<<8;
+            static const uint16_t RFM23B_ICRCERROR  = 0x01<<8;
+          
+            // RFM23B_REG_04_INTERRUPT_STATUS2
+            static const uint8_t RFM23B_ISWDET     =    0x80;
+            static const uint8_t RFM23B_IPREAVAL   =    0x40;
+            static const uint8_t RFM23B_IPREAINVAL =    0x20;
+            static const uint8_t RFM23B_IRSSI      =    0x10;
+            static const uint8_t RFM23B_IWUT       =    0x08;
+            static const uint8_t RFM23B_ILBD       =    0x04;
+            static const uint8_t RFM23B_ICHIPRDY   =    0x02;
+            static const uint8_t RFM23B_IPOR       =    0x01;
            
-            // RFM23B_REG_04_INTERRUPT_STATUS2               0x04
-            static const uint8_t RFM23B_ISWDET               0x80
-            static const uint8_t RFM23B_IPREAVAL             0x40
-            static const uint8_t RFM23B_IPREAINVAL           0x20
-            static const uint8_t RFM23B_IRSSI                0x10
-            static const uint8_t RFM23B_IWUT                 0x08
-            static const uint8_t RFM23B_ILBD                 0x04
-            static const uint8_t RFM23B_ICHIPRDY             0x02
-            static const uint8_t RFM23B_IPOR                 0x01
+            // RFM23B_REG_05_INTERRUPT_ENABLE1
+            static const uint8_t RFM23B_ENFFERR    =    0x80;
+            static const uint8_t RFM23B_ENTXFFAFUL =    0x40;
+            static const uint8_t RFM23B_ENTXFFAEM  =    0x20;
+            static const uint8_t RFM23B_ENRXFFAFUL =    0x10;
+            static const uint8_t RFM23B_ENEXT      =    0x08;
+            static const uint8_t RFM23B_ENPKSENT   =    0x04;
+            static const uint8_t RFM23B_ENPKVALID  =    0x02;
+            static const uint8_t RFM23B_ENCRCERROR =    0x01;
            
-            // RFM23B_REG_05_INTERRUPT_ENABLE1               0x05
-            static const uint8_t RFM23B_ENFFERR              0x80
-            static const uint8_t RFM23B_ENTXFFAFUL           0x40
-            static const uint8_t RFM23B_ENTXFFAEM            0x20
-            static const uint8_t RFM23B_ENRXFFAFUL           0x10
-            static const uint8_t RFM23B_ENEXT                0x08
-            static const uint8_t RFM23B_ENPKSENT             0x04
-            static const uint8_t RFM23B_ENPKVALID            0x02
-            static const uint8_t RFM23B_ENCRCERROR           0x01
-           
-            // RFM23B_REG_06_INTERRUPT_ENABLE2               0x06
-            static const uint8_t RFM23B_ENSWDET              0x80
-            static const uint8_t RFM23B_ENPREAVAL            0x40
-            static const uint8_t RFM23B_ENPREAINVAL          0x20
-            static const uint8_t RFM23B_ENRSSI               0x10
-            static const uint8_t RFM23B_ENWUT                0x08
-            static const uint8_t RFM23B_ENLBDI               0x04
-            static const uint8_t RFM23B_ENCHIPRDY            0x02
-            static const uint8_t RFM23B_ENPOR                0x01
+            // RFM23B_REG_06_INTERRUPT_ENABLE2
+            static const uint8_t RFM23B_ENSWDET    =    0x80;
+            static const uint8_t RFM23B_ENPREAVAL  =    0x40;
+            static const uint8_t RFM23B_ENPREAINVAL=    0x20;
+            static const uint8_t RFM23B_ENRSSI     =    0x10;
+            static const uint8_t RFM23B_ENWUT      =    0x08;
+            static const uint8_t RFM23B_ENLBDI     =    0x04;
+            static const uint8_t RFM23B_ENCHIPRDY  =    0x02;
+            static const uint8_t RFM23B_ENPOR      =    0x01;
 
             // RFM23B_REG_30_DATA_ACCESS_CONTROL
-            static const uint8_t RFM23B_ENPACRX              0x80
-            static const uint8_t RFM23B_ENPACTX              0x40
+            static const uint8_t RFM23B_ENPACRX    =    0x80;
+            static const uint8_t RFM23B_ENPACTX    =    0x08;
 
             static const uint8_t REG_INT_STATUS1 = 3; // Interrupt status register 1.
             static const uint8_t REG_INT_STATUS2 = 4; // Interrupt status register 2.
@@ -532,7 +531,13 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
 
                 // See what has arrived, if anything.
                 const uint16_t status = _readStatusBoth();
-                if ( _currentChannel == 0 )
+
+                // We need to check if RFM23B is in packet mode and based on that 
+                // we selelct interrupt routine
+                const bool neededEnable = _upSPI_();
+                uint8_t rxMode = _readReg8Bit_(REG_30_DATA_ACCESS_CONTROL);
+                if(neededEnable) { _downSPI_(); }
+                if ( rxMode & RFM23B_ENPACRX ) 
                 {
 #if 1 && defined(MILENKO_DEBUG)
                    if (status & RFM23B_IFFERROR)
@@ -563,12 +568,9 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
 #endif
                     if (status & RFM23B_IPKVALID) // Packet received OK
                     {
-                        //V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("IPKVALID(");   
                         const bool neededEnable = _upSPI();
                         uint8_t len = _readReg8Bit(REG_4B_RECEIVED_PACKET_LENGTH);
                         if(neededEnable) { _downSPI(); }
-                        //V0P2BASE_DEBUG_SERIAL_PRINTFMT(len,HEX);  
-                        //V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING(") ");   
                         // Received frame.
                         // If there is space in the queue then read in the frame, else discard it.
                         volatile uint8_t *const bufferRX = queueRX._getRXBufForInbound();
