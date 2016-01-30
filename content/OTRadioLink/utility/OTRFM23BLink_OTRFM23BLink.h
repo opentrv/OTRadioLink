@@ -89,11 +89,19 @@ namespace OTRFM23BLink
             // so attempt to be higher than that.
             static const uint8_t MAX_RX_FRAME_DEFAULT = 60;
 
+            // Type of the config information that this radio expects passed
+            // as the config field of the OTRadioChannelConfig object.
+            // Each channel is an array of {0xff, 0xff} terminated register number/value pairs,
+            // and the config is an array of pointers to the available channels.
+            //  static const uint8_t FHT8V_RFM23_Reg_Values[][2] PROGMEM;
+            // Type of one channel's array of register pairs.
+            typedef const uint8_t RFM23_Reg_Values_t[][2] PROGMEM;
+
             // Milenko const OTRadioChannelConfig configChannel[2];
 
         protected:
-            // Currently configured channel.
-            uint8_t _currentChannel = 0;
+            // Currently configured channel; starts at default 0.
+            uint8_t _currentChannel;
 
             static const uint8_t _regValuesGFSK[][2] PROGMEM;
             static const uint8_t _regValuesOOK[][2] PROGMEM;
@@ -174,7 +182,7 @@ namespace OTRFM23BLink
             volatile uint8_t maxTypicalFrameBytes;
 
             // Constructor only available to deriving class.
-            OTRFM23BLinkBase() : lastRXErr(0), maxTypicalFrameBytes(MAX_RX_FRAME_DEFAULT) { }
+            OTRFM23BLinkBase() : _currentChannel(0), lastRXErr(0), maxTypicalFrameBytes(MAX_RX_FRAME_DEFAULT) { }
 
             // Write/read one byte over SPI...
             // SPI must already be configured and running.
@@ -691,7 +699,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                     }
                 }
                 }
-          
+
 
         public:
             // True if there is hardware interrupt support.
