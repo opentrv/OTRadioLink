@@ -91,9 +91,8 @@ namespace OTRFM23BLink
 
             // Type of the config information that this radio expects passed
             // as the config field of the OTRadioChannelConfig object.
-            // Each channel is an array of {0xff, 0xff} terminated register number/value pairs,
-            // and the config is an array of pointers to the available channels.
-            //  static const uint8_t FHT8V_RFM23_Reg_Values[][2] PROGMEM;
+            // This is an array of {0xff, 0xff} terminated register number/value pairs,
+            // in Flash/PROGMEM, which is cast to a void* for OTRadioChannelConfig::config.
             // Type of one channel's array of register pairs.
             typedef const uint8_t RFM23_Reg_Values_t[][2] PROGMEM;
 

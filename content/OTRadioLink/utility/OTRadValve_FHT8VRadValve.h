@@ -273,7 +273,9 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
     // Consists of a sequence of (reg#,value) pairs terminated with a 0xff register.
     // The (valid) reg#s are <128, ie top bit clear.
     // Magic numbers c/o Mike Stirling!
-    // Should not be linked into code image unless explicitly referred to.
+    // Should not be linked into code image unless explicitly referred to and used.
+    // Should match the RFM23_Reg_Values_t type for the RFM23B.
+    // Note that this assumes default register settings in the RFM23B when powered up.
     static const uint8_t FHT8V_RFM23_Reg_Values[][2] PROGMEM;
 
     // Values designed to work with FHT8V_RFM23_Reg_Values register settings.
