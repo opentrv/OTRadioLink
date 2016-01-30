@@ -260,7 +260,7 @@ namespace OTRFM23BLink
 #define OTRFM23BLINK_NO_VIRT_DEST // Beware, no virtual destructor so be careful of use via base pointers.
 #endif
             // Configure radio for transmission via channel
-            void _setChannel (uint8_t channel);
+            void _setChannel (int8_t channel);
    
 #if 1 && defined(MILENKO_DEBUG)
             // Compact register dump

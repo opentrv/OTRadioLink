@@ -350,8 +350,6 @@ void OTRFM23BLinkBase::_dolisten()
     const int8_t lc = getListenChannel();
     if(-1 == lc) { return; }
 
-    // FIXME: ignores channel.
-
     // Ensure listening.
 
     // Disable interrupts while enabling them at RFM23B and entering RX mode.
@@ -363,6 +361,8 @@ void OTRFM23BLinkBase::_dolisten()
         _writeReg8Bit_(REG_OP_CTRL2, 3); // FFCLRRX | FFCLRTX
         _writeReg8Bit_(REG_OP_CTRL2, 0);
 
+        _setChannel(lc);
+
         // Set FIFO RX almost-full threshold as specified.
     //    _RFM22WriteReg8Bit(RFM22REG_RX_FIFO_CTRL, min(nearlyFullThreshold, 63));
         _writeReg8Bit_(REG_RX_FIFO_CTRL, maxTypicalFrameBytes); // 55 is the default.
@@ -371,8 +371,8 @@ void OTRFM23BLinkBase::_dolisten()
         // Do this regardless of hardware interrupt support on the board.
         // Check if packet handling in RFM23B is enabled and eneable interrupts accordingly
         if ( _readReg8Bit_(REG_30_DATA_ACCESS_CONTROL) & RFM23B_ENPACRX )  {
-           _writeReg8Bit_(REG_INT_ENABLE1, RFM23B_ENPKVALID); // enable all interrupts
-           _writeReg8Bit_(REG_INT_ENABLE2, 0); // enable all interrupts
+           _writeReg8Bit_(REG_INT_ENABLE1, RFM23B_ENPKVALID); // Waiting for valid packet
+           _writeReg8Bit_(REG_INT_ENABLE2, 0); 
         }
         else {
            _writeReg8Bit_(REG_INT_ENABLE1, 0x10); // enrxffafull: Enable RX FIFO Almost Full.
@@ -382,7 +382,6 @@ void OTRFM23BLinkBase::_dolisten()
         // Clear any current interrupt/status.
         _clearInterrupts_();
 
-        _setChannel(lc);
         // Start listening.
         _modeRX_();
 
@@ -432,17 +431,16 @@ void OTRFM23BLinkBase::_RXFIFO(uint8_t *buf, const uint8_t bufSize)
 //   - chanell bitrate
 //   - packet format
 //
-// Currently we have 2 channels: 
-//   Ch0 - OOK/868.3/5000/FHT(FS20)
-//   Ch1 - GFSK/868.5/57600/COHEAT
-//
-
-void OTRFM23BLinkBase::_setChannel(uint8_t channel)
+void OTRFM23BLinkBase::_setChannel(int8_t channel)
     {
 
+      // Check if current configuration supports requested channel number
+      if ( (channel > nChannels) || (channel == -1) ) return;
+
+      // No need to configre if channel not changed
       if (_currentChannel == channel) return;
 
-      if (channel == 0)
+      if (channel == 1)
            _registerBlockSetup((regValPair_t *) _regValuesOOK);
       else 
            _registerBlockSetup((regValPair_t *) _regValuesGFSK);
