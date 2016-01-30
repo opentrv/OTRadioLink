@@ -13,7 +13,8 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
+Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
+                           Milenko Alcin 2016
 */
 
 /*
@@ -52,7 +53,7 @@ namespace OTRFM23BLink
     // INTERRUPTS DISABLED.
 
     // All foreground RFM23B access should be protected from interrupts
-    // but this code's ISR that may interefere with (eg) register access.
+    // but this code's ISR that may interfere with (eg) register access.
 
     // Base class for RFM23B radio link hardware driver.
     // Neither re-entrant nor ISR-safe except where stated.
@@ -88,14 +89,26 @@ namespace OTRFM23BLink
             // so attempt to be higher than that.
             static const uint8_t MAX_RX_FRAME_DEFAULT = 60;
 
+            // Type of the config information that this radio expects passed
+            // as the config field of the OTRadioChannelConfig object.
+            // This is an array of {0xff, 0xff} terminated register number/value pairs,
+            // in Flash/PROGMEM, which is cast to a void* for OTRadioChannelConfig::config.
+            // Type of one channel's array of register pairs.
+            typedef const uint8_t RFM23_Reg_Values_t[][2] PROGMEM;
+
+            // Register settings for some common uses.
+            // Register settings for Milenko-special 868.5MHz (EU band 48) GFSK 57.6kbps circa 2016/01.
+//            static const uint8_t _regValuesGFSK[][2] PROGMEM;
+            static const RFM23_Reg_Values_t StandardRegSettingsGFSK;
+            // Register settings for FS20 (FHT8B) 868.35MHz (EU band 48) OOK 5kbps carrier, no packet handler.
+//            static const uint8_t _regValuesOOK[][2] PROGMEM;
+            static const RFM23_Reg_Values_t StandardRegSettingsOOK;
+
             // Milenko const OTRadioChannelConfig configChannel[2];
 
         protected:
-            // Currently configured channel.
-            uint8_t _currentChannel = 0;
-
-            static const uint8_t _regValuesGFSK[][2] PROGMEM;
-            static const uint8_t _regValuesOOK[][2] PROGMEM;
+            // Currently configured channel; starts at default 0.
+            uint8_t _currentChannel;
 
             // RFM23B_REG_03_INTERRUPT_STATUS1
             static const uint16_t RFM23B_IFFERROR   = 0x80<<8;
@@ -106,7 +119,7 @@ namespace OTRFM23BLink
             static const uint16_t RFM23B_IPKSENT    = 0x04<<8;
             static const uint16_t RFM23B_IPKVALID   = 0x02<<8;
             static const uint16_t RFM23B_ICRCERROR  = 0x01<<8;
-          
+
             // RFM23B_REG_04_INTERRUPT_STATUS2
             static const uint8_t RFM23B_ISWDET     =    0x80;
             static const uint8_t RFM23B_IPREAVAL   =    0x40;
@@ -116,7 +129,7 @@ namespace OTRFM23BLink
             static const uint8_t RFM23B_ILBD       =    0x04;
             static const uint8_t RFM23B_ICHIPRDY   =    0x02;
             static const uint8_t RFM23B_IPOR       =    0x01;
-           
+
             // RFM23B_REG_05_INTERRUPT_ENABLE1
             static const uint8_t RFM23B_ENFFERR    =    0x80;
             static const uint8_t RFM23B_ENTXFFAFUL =    0x40;
@@ -126,7 +139,7 @@ namespace OTRFM23BLink
             static const uint8_t RFM23B_ENPKSENT   =    0x04;
             static const uint8_t RFM23B_ENPKVALID  =    0x02;
             static const uint8_t RFM23B_ENCRCERROR =    0x01;
-           
+
             // RFM23B_REG_06_INTERRUPT_ENABLE2
             static const uint8_t RFM23B_ENSWDET    =    0x80;
             static const uint8_t RFM23B_ENPREAVAL  =    0x40;
@@ -173,7 +186,7 @@ namespace OTRFM23BLink
             volatile uint8_t maxTypicalFrameBytes;
 
             // Constructor only available to deriving class.
-            OTRFM23BLinkBase() : lastRXErr(0), maxTypicalFrameBytes(MAX_RX_FRAME_DEFAULT) { }
+            OTRFM23BLinkBase() : _currentChannel(0), lastRXErr(0), maxTypicalFrameBytes(MAX_RX_FRAME_DEFAULT) { }
 
             // Write/read one byte over SPI...
             // SPI must already be configured and running.
@@ -690,7 +703,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                     }
                 }
                 }
-          
+
 
         public:
             // True if there is hardware interrupt support.
