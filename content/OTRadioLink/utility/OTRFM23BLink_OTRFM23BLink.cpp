@@ -28,7 +28,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 namespace OTRFM23BLink {
 
-const uint8_t OTRFM23BLinkBase::_regValuesOOK[][2] =
+const uint8_t OTRFM23BLinkBase::StandardRegSettingsOOK[][2] =
   {
 
 #if 0 // From FHT8V - keep it here for referenece (while testing, delete when finished)
@@ -97,7 +97,7 @@ const uint8_t OTRFM23BLinkBase::_regValuesOOK[][2] =
     { 0xff, 0xff } // End of settings.
   };
 
-const uint8_t OTRFM23BLinkBase::_regValuesGFSK[][2] =
+const uint8_t OTRFM23BLinkBase::StandardRegSettingsGFSK[][2] =
   {
     { 0x05, 0x07 },
     { 0x06, 0x40 },
@@ -444,9 +444,9 @@ void OTRFM23BLinkBase::_setChannel(uint8_t channel)
       if (_currentChannel == channel) return;
 
       if (channel == 0)
-           _registerBlockSetup((regValPair_t *) _regValuesOOK);
+           _registerBlockSetup((regValPair_t *) StandardRegSettingsOOK);
       else 
-           _registerBlockSetup((regValPair_t *) _regValuesGFSK);
+           _registerBlockSetup((regValPair_t *) StandardRegSettingsGFSK);
 #if 0 && defined(MILENKO_DEBUG)
       V0P2BASE_DEBUG_SERIAL_PRINT("C:");
       V0P2BASE_DEBUG_SERIAL_PRINT(channel);
