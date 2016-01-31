@@ -497,8 +497,8 @@ bool OTRFM23BLinkBase::begin()
     {
     //if(1 != nChannels) { return(false); } // Can only handle a single channel.
     if(!_checkConnected()) { return(false); }
-    // Default incitalization is for OOK (Channel 1)
-    _registerBlockSetup((const regValPair_t *)(channelConfig->config));
+    // Set registers for default (0) channel.
+    _registerBlockSetup((regValPair_t *) (channelConfig[0].config));
     _modeStandbyAndClearState_();
     return(true);
     }
