@@ -299,12 +299,12 @@ bool OTRFM23BLinkBase::sendRaw(const uint8_t *const buf, const uint8_t buflen, c
 
     // Disable all interrupts (eg to avoid invoking the RX handler).
     _modeStandbyAndClearState_();
-    
+
     _setChannel(channel);
- 
+
     // Load the frame into the TX FIFO.
     _queueFrameInTXFIFO(buf, buflen);
-    
+
     // Channel 0 is alsways GFSK
     // Move this into _TXFIFO
     const bool neededEnable = _upSPI_();
@@ -351,9 +351,8 @@ void OTRFM23BLinkBase::_dolisten()
     const int8_t lc = getListenChannel();
     if(-1 == lc) { return; }
 
-    // FIXME: ignores channel.
-
-    // Ensure listening.
+    // Ensure on right channel.
+    _setChannel(lc);
 
     // Disable interrupts while enabling them at RFM23B and entering RX mode.
     ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
@@ -365,12 +364,11 @@ void OTRFM23BLinkBase::_dolisten()
         _writeReg8Bit_(REG_OP_CTRL2, 0);
 
         // Set FIFO RX almost-full threshold as specified.
-    //    _RFM22WriteReg8Bit(RFM22REG_RX_FIFO_CTRL, min(nearlyFullThreshold, 63));
         _writeReg8Bit_(REG_RX_FIFO_CTRL, maxTypicalFrameBytes); // 55 is the default.
 
         // Enable requested RX-related interrupts.
         // Do this regardless of hardware interrupt support on the board.
-        // Check if packet handling in RFM23B is enabled and eneable interrupts accordingly
+        // Check if packet handling in RFM23B is enabled and enable interrupts accordingly.
         if ( _readReg8Bit_(REG_30_DATA_ACCESS_CONTROL) & RFM23B_ENPACRX )  {
            _writeReg8Bit_(REG_INT_ENABLE1, RFM23B_ENPKVALID); // enable all interrupts
            _writeReg8Bit_(REG_INT_ENABLE2, 0); // enable all interrupts
@@ -383,7 +381,6 @@ void OTRFM23BLinkBase::_dolisten()
         // Clear any current interrupt/status.
         _clearInterrupts_();
 
-        _setChannel(lc);
         // Start listening.
         _modeRX_();
 
