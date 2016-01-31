@@ -264,6 +264,7 @@ bool OTRFM23BLinkBase::_TXFIFO()
         {
         // Spin CPU for ~1ms; does not depend on timer1, delay(), millis(), etc, Arduino support.
 //        ::OTV0P2BASE::_delay_x4(250);
+        // FIXME: RFM23B probably unlikely to exceed 80kbps, thus at least 100uS per byte, so no point sleeping much less.
         OTV0P2BASE_busy_spin_delay(1000);
         // FIXME: don't have nap() support yet // nap(WDTO_15MS, true); // Sleep in low power mode for a short time waiting for bits to be sent...
         const uint8_t status = _readReg8Bit_(REG_INT_STATUS1); // TODO: could use nIRQ instead if available.
