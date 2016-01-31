@@ -193,7 +193,7 @@ void OTRFM23BLinkBase::_registerBlockSetup(const uint8_t registerValues[][2])
             const uint8_t reg = pgm_read_byte(&(registerValues[0][0]));
             const uint8_t val = pgm_read_byte(&(registerValues[0][1]));
             if(0xff == reg) { break; }
-#if 0 && defined(V0P2BASE_DEBUG)
+#if 1 && defined(V0P2BASE_DEBUG)
             V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("RFM23 reg 0x");
             V0P2BASE_DEBUG_SERIAL_PRINTFMT(reg, HEX);
             V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING(" = 0x");
