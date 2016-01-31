@@ -13,8 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
-                           Milenko Alcin 2016
+Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 */
 
 /**TEMPORARILY IN OTRadioLink AREA BEFORE BEING MOVED TO OWN LIBRARY. */
@@ -28,7 +27,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 namespace OTRFM23BLink {
 
-const uint8_t OTRFM23BLinkBase::StandardRegSettingsOOK[][2] =
+const uint8_t OTRFM23BLinkBase::_regValuesOOK[][2] =
   {
 
 #if 0 // From FHT8V - keep it here for referenece (while testing, delete when finished)
@@ -97,7 +96,7 @@ const uint8_t OTRFM23BLinkBase::StandardRegSettingsOOK[][2] =
     { 0xff, 0xff } // End of settings.
   };
 
-const uint8_t OTRFM23BLinkBase::StandardRegSettingsGFSK[][2] =
+const uint8_t OTRFM23BLinkBase::_regValuesGFSK[][2] =
   {
     { 0x05, 0x07 },
     { 0x06, 0x40 },
@@ -351,8 +350,6 @@ void OTRFM23BLinkBase::_dolisten()
     const int8_t lc = getListenChannel();
     if(-1 == lc) { return; }
 
-    // FIXME: ignores channel.
-
     // Ensure listening.
 
     // Disable interrupts while enabling them at RFM23B and entering RX mode.
@@ -364,6 +361,8 @@ void OTRFM23BLinkBase::_dolisten()
         _writeReg8Bit_(REG_OP_CTRL2, 3); // FFCLRRX | FFCLRTX
         _writeReg8Bit_(REG_OP_CTRL2, 0);
 
+        _setChannel(lc);
+
         // Set FIFO RX almost-full threshold as specified.
     //    _RFM22WriteReg8Bit(RFM22REG_RX_FIFO_CTRL, min(nearlyFullThreshold, 63));
         _writeReg8Bit_(REG_RX_FIFO_CTRL, maxTypicalFrameBytes); // 55 is the default.
@@ -372,8 +371,8 @@ void OTRFM23BLinkBase::_dolisten()
         // Do this regardless of hardware interrupt support on the board.
         // Check if packet handling in RFM23B is enabled and eneable interrupts accordingly
         if ( _readReg8Bit_(REG_30_DATA_ACCESS_CONTROL) & RFM23B_ENPACRX )  {
-           _writeReg8Bit_(REG_INT_ENABLE1, RFM23B_ENPKVALID); // enable all interrupts
-           _writeReg8Bit_(REG_INT_ENABLE2, 0); // enable all interrupts
+           _writeReg8Bit_(REG_INT_ENABLE1, RFM23B_ENPKVALID); // Waiting for valid packet
+           _writeReg8Bit_(REG_INT_ENABLE2, 0); 
         }
         else {
            _writeReg8Bit_(REG_INT_ENABLE1, 0x10); // enrxffafull: Enable RX FIFO Almost Full.
@@ -383,7 +382,6 @@ void OTRFM23BLinkBase::_dolisten()
         // Clear any current interrupt/status.
         _clearInterrupts_();
 
-        _setChannel(lc);
         // Start listening.
         _modeRX_();
 
@@ -433,20 +431,19 @@ void OTRFM23BLinkBase::_RXFIFO(uint8_t *buf, const uint8_t bufSize)
 //   - chanell bitrate
 //   - packet format
 //
-// Currently we have 2 channels: 
-//   Ch0 - OOK/868.3/5000/FHT(FS20)
-//   Ch1 - GFSK/868.5/57600/COHEAT
-//
-
-void OTRFM23BLinkBase::_setChannel(uint8_t channel)
+void OTRFM23BLinkBase::_setChannel(int8_t channel)
     {
 
+      // Check if current configuration supports requested channel number
+      if ( (channel > nChannels) || (channel == -1) ) return;
+
+      // No need to configre if channel not changed
       if (_currentChannel == channel) return;
 
-      if (channel == 0)
-           _registerBlockSetup((regValPair_t *) StandardRegSettingsOOK);
+      if (channel == 1)
+           _registerBlockSetup((regValPair_t *) _regValuesOOK);
       else 
-           _registerBlockSetup((regValPair_t *) StandardRegSettingsGFSK);
+           _registerBlockSetup((regValPair_t *) _regValuesGFSK);
 #if 0 && defined(MILENKO_DEBUG)
       V0P2BASE_DEBUG_SERIAL_PRINT("C:");
       V0P2BASE_DEBUG_SERIAL_PRINT(channel);
