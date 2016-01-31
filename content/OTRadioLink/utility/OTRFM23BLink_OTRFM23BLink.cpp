@@ -28,10 +28,10 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 namespace OTRFM23BLink {
 
-const uint8_t OTRFM23BLinkBase::StandardRegSettingsOOK[][2] =
+const uint8_t OTRFM23BLinkBase::StandardRegSettingsOOK[][2] PROGMEM =
   {
 
-#if 0 // From FHT8V - keep it here for referenece (while testing, delete when finished)
+#if 0 // From FHT8V - keep it here for reference (while testing, delete when finished)
     {0x6d,0xb}, // RF23B, good RF conditions.
     {6,0}, // Disable default chiprdy and por interrupts.
     {8,0}, // RFM22REG_OP_CTRL2: ANTDIVxxx, RXMPK, AUTOTX, ENLDM
@@ -81,7 +81,7 @@ const uint8_t OTRFM23BLinkBase::StandardRegSettingsOOK[][2] =
     { 0x38, 0xcc },
     { 0x39, 0xcc },
 
-    { 0x58,  0x0 }, // Milenko: I dont think it is needed
+//    { 0x58,  0x0 }, // Milenko: I dont think it is needed
 
     { 0x69, 0x60 }, // AGC enable: SGIN | AGCEN
     { 0x6e, 0x28 }, // 5000bps, ie 200us/bit for FHT (6 for 1, 4 for 0).  10485 split across the registers, MSB first.
@@ -97,7 +97,7 @@ const uint8_t OTRFM23BLinkBase::StandardRegSettingsOOK[][2] =
     { 0xff, 0xff } // End of settings.
   };
 
-const uint8_t OTRFM23BLinkBase::StandardRegSettingsGFSK[][2] =
+const uint8_t OTRFM23BLinkBase::StandardRegSettingsGFSK[][2] PROGMEM =
   {
     { 0x05, 0x07 },
     { 0x06, 0x40 },
@@ -127,7 +127,7 @@ const uint8_t OTRFM23BLinkBase::StandardRegSettingsGFSK[][2] =
     { 0x38, 0x00 },
     { 0x39, 0x00 },
 
-    { 0x58, 0x80 }, // Milenko: I dont think it is needed
+//    { 0x58, 0x80 }, // Milenko: I dont think it is needed
 
     { 0x69, 0x60 }, 
     { 0x6e, 0x0e },
@@ -152,7 +152,19 @@ void OTRFM23BLinkBase::setMaxTypicalFrameBytes(const uint8_t _maxTypicalFrameByt
 // Returns true iff RFM23 appears to be correctly connected.
 bool OTRFM23BLinkBase::_checkConnected() const
     {
+//    // Give radio time to start up.
+//    OTV0P2BASE::nap(WDTO_15MS);
+
     const bool neededEnable = _upSPI_();
+
+//    // If SPI was already up, power down, wait and power up again.
+//    if(!neededEnable)
+//      {
+//      _downSPI_();
+//      OTV0P2BASE::nap(WDTO_15MS);
+//      _upSPI_();
+//      }
+
     bool isOK = false;
     const uint8_t rType = _readReg8Bit_(0); // May read as 0 if not connected at all.
     if(SUPPORTED_DEVICE_TYPE == rType)
@@ -264,8 +276,8 @@ bool OTRFM23BLinkBase::_TXFIFO()
         {
         // Spin CPU for ~1ms; does not depend on timer1, delay(), millis(), etc, Arduino support.
 //        ::OTV0P2BASE::_delay_x4(250);
-        // RFM23B probably unlikely to exceed 80kbps, thus at least 100uS per byte, so no point sleeping much less.
-        OTV0P2BASE_busy_spin_delay(100);
+        // FIXME: RFM23B probably unlikely to exceed 80kbps, thus at least 100uS per byte, so no point sleeping much less.
+        OTV0P2BASE_busy_spin_delay(1000);
         // FIXME: don't have nap() support yet // nap(WDTO_15MS, true); // Sleep in low power mode for a short time waiting for bits to be sent...
         const uint8_t status = _readReg8Bit_(REG_INT_STATUS1); // TODO: could use nIRQ instead if available.
         if(status & 4) { result = true; break; } // Packet sent!
@@ -305,7 +317,7 @@ bool OTRFM23BLinkBase::sendRaw(const uint8_t *const buf, const uint8_t buflen, c
     // Load the frame into the TX FIFO.
     _queueFrameInTXFIFO(buf, buflen);
 
-    // Channel 0 is alsways GFSK
+    // Channel 0 is always GFSK
     // Move this into _TXFIFO
     const bool neededEnable = _upSPI_();
 
@@ -495,6 +507,12 @@ void OTRFM23BLinkBase::readRegs(uint8_t from, uint8_t to, uint8_t noHeader)
 // Allows logic to end() if required at the end of a block, etc.
 bool OTRFM23BLinkBase::begin()
     {
+//    V0P2BASE_DEBUG_SERIAL_PRINT('p');
+//    V0P2BASE_DEBUG_SERIAL_PRINTFMT((intptr_t)StandardRegSettingsGFSK, HEX);
+//    V0P2BASE_DEBUG_SERIAL_PRINTLN();
+//    V0P2BASE_DEBUG_SERIAL_PRINTFMT((intptr_t)channelConfig[0].config, HEX);
+//    V0P2BASE_DEBUG_SERIAL_PRINTLN();
+
     //if(1 != nChannels) { return(false); } // Can only handle a single channel.
     if(!_checkConnected()) { return(false); }
     // Set registers for default (0) channel.
