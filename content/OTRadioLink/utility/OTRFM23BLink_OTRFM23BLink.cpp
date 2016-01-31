@@ -290,7 +290,6 @@ bool OTRFM23BLinkBase::_TXFIFO()
 // May block to transmit (eg to avoid copying the buffer).
 bool OTRFM23BLinkBase::sendRaw(const uint8_t *const buf, const uint8_t buflen, const int8_t channel, const TXpower power, const bool listenAfter)
     {
-    // FIXME: ignores channel entirely.
     // FIXME: currently ignores all hints.
 
     // Should not need to lock out interrupts while sending
@@ -425,35 +424,31 @@ void OTRFM23BLinkBase::_RXFIFO(uint8_t *buf, const uint8_t bufSize)
         }
     }
 
-// Set RFM23B for tranmission via selected channel
-// Channel defines following parameters:
-//   - modulation
-//   - carrier frequency
-//   - freqeuncy deviation
-//   - parameters of a filter
-//   - chanell bitrate
-//   - packet format
-//
-// Currently we have 2 channels: 
-//   Ch0 - OOK/868.3/5000/FHT(FS20)
-//   Ch1 - GFSK/868.5/57600/COHEAT
-//
-
-void OTRFM23BLinkBase::_setChannel(uint8_t channel)
+// Configure radio for transmission via specified channel < nChannels; non-negative.
+void OTRFM23BLinkBase::_setChannel(const uint8_t channel)
     {
+      // Reject out-of-range channel requests.
+      if(channel >= nChannels) { return; }
 
-      if (_currentChannel == channel) return;
+      // Nothing to do if already on the correct channel.
+      if(_currentChannel == channel) { return; }
 
-      if (channel == 0)
-           _registerBlockSetup((regValPair_t *) StandardRegSettingsOOK);
-      else 
-           _registerBlockSetup((regValPair_t *) StandardRegSettingsGFSK);
+//      if (channel == 0)
+//           _registerBlockSetup((regValPair_t *) StandardRegSettingsOOK);
+//      else
+//           _registerBlockSetup((regValPair_t *) StandardRegSettingsGFSK);
+
+      // Set up registers for new config.
+      _registerBlockSetup((regValPair_t *) (channelConfig[channel].config));
+
 #if 0 && defined(MILENKO_DEBUG)
       V0P2BASE_DEBUG_SERIAL_PRINT("C:");
       V0P2BASE_DEBUG_SERIAL_PRINT(channel);
       V0P2BASE_DEBUG_SERIAL_PRINTLN();
       //readRegs((uint8_t)0,(uint8_t)0x7e);
 #endif
+
+      // Remember channel now in use.
       _currentChannel = channel;
     }
 
