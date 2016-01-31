@@ -60,6 +60,12 @@ namespace OTRFM23BLink
     // Contains elements that do not depend on template parameters.
     class OTRFM23BLinkBase : public OTRadioLink::OTRadioLink
         {
+        protected:
+            // Configure the radio from a list of register/value pairs in readonly PROGMEM/Flash, terminating with an 0xff register value.
+            // NOTE: argument is not a pointer into SRAM, it is into PROGMEM!
+            typedef uint8_t regValPair_t[2];
+            void _registerBlockSetup(const regValPair_t* registerValues);
+
         public:
             // Maximum raw RX message size in bytes.
             static const int MaxRXMsgLen = 64;
@@ -235,11 +241,6 @@ namespace OTRFM23BLink
 
             // Returns true iff RFM23 appears to be correctly connected.
             bool _checkConnected() const;
-
-            // Configure the radio from a list of register/value pairs in readonly PROGMEM/Flash, terminating with an 0xff register value.
-            // NOTE: argument is not a pointer into SRAM, it is into PROGMEM!
-            typedef uint8_t regValPair_t[2];
-            void _registerBlockSetup(const regValPair_t* registerValues);
 
             // Clear TX FIFO.
             // SPI must already be configured and running.
