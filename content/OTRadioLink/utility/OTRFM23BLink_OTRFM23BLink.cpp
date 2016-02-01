@@ -13,7 +13,8 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
+Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
+                           Milenko Alcin 2016
 */
 
 /**TEMPORARILY IN OTRadioLink AREA BEFORE BEING MOVED TO OWN LIBRARY. */
@@ -27,6 +28,161 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 
 namespace OTRFM23BLink {
 
+const uint8_t OTRFM23BLinkBase::StandardRegSettingsOOK[][2] PROGMEM =
+  {
+#if 0 // From FHT8V - keep it here for reference (while testing, delete when finished)
+      // Putting TX power setting first to help with dynamic adjustment.
+// From AN440: The output power is configurable from +13 dBm to -8 dBm (Si4430/31), and from +20 dBM to -1 dBM (Si4432) in ~3 dB steps. txpow[2:0]=000 corresponds to min output power, while txpow[2:0]=111 corresponds to max output power.
+// The maximum legal ERP (not TX output power) on 868.35 MHz is 25 mW with a 1% duty cycle (see IR2030/1/16).
+//EEPROM ($6d,%00001111) ; RFM22REG_TX_POWER: Maximum TX power: 100mW for RFM22; not legal in UK/EU on RFM22 for this band.
+//EEPROM ($6d,%00001000) ; RFM22REG_TX_POWER: Minimum TX power (-1dBm).
+//#ifndef RFM22_IS_ACTUALLY_RFM23
+//    #ifndef RFM22_GOOD_RF_ENV
+//    {0x6d,0xd}, // RFM22REG_TX_POWER: RFM22 +14dBm ~25mW ERP with 1/4-wave antenna.
+//    #else // Tone down for good RF backplane, etc.
+//    {0x6d,0x9},
+//    #endif
+//#else
+//    #ifndef RFM22_GOOD_RF_ENV
+//    {0x6d,0xf}, // RFM22REG_TX_POWER: RFM23 max power (+13dBm) for ERP ~25mW with 1/4-wave antenna.
+//    #else // Tone down for good RF backplane, etc.
+    {0x6d,0xb}, // RF23B, good RF conditions.
+//    #endif
+//#endif
+
+    {6,0}, // Disable default chiprdy and por interrupts.
+    {8,0}, // RFM22REG_OP_CTRL2: ANTDIVxxx, RXMPK, AUTOTX, ENLDM
+
+//#ifndef RFM22_IS_ACTUALLY_RFM23
+//// For RFM22 with RXANT tied to GPIO0, and TXANT tied to GPIO1...
+//    {0xb,0x15}, {0xc,0x12}, // Can be omitted FOR RFM23.
+//#endif
+
+// 0x30 = 0x00 - turn off packet handling
+// 0x33 = 0x06 - set 4 byte sync
+// 0x34 = 0x08 - set 4 byte preamble
+// 0x35 = 0x10 - set preamble threshold (RX) 2 nybbles / 1 bytes of preamble.
+// 0x36-0x39 = 0xaacccccc - set sync word, using end of RFM22-pre-preamble and start of FHT8V preamble.
+    {0x30,0}, {0x33,6}, {0x34,8}, {0x35,0x10}, {0x36,0xaa}, {0x37,0xcc}, {0x38,0xcc}, {0x39,0xcc},
+
+    {0x6e,40}, {0x6f,245}, // 5000bps, ie 200us/bit for FHT (6 for 1, 4 for 0).  10485 split across the registers, MSB first.
+    {0x70,0x20}, // MOD CTRL 1: low bit rate (<30kbps), no Manchester encoding, no whitening.
+    {0x71,0x21}, // MOD CTRL 2: OOK modulation.
+    {0x72,0x20}, // Deviation GFSK. ; WAS EEPROM ($72,8) ; Deviation 5 kHz GFSK.
+    {0x73,0}, {0x74,0}, // Frequency offset
+// Channel 0 frequency = 868 MHz, 10 kHz channel steps, high band.
+    {0x75,0x73}, {0x76,100}, {0x77,0}, // BAND_SELECT,FB(hz), CARRIER_FREQ0&CARRIER_FREQ1,FC(hz) where hz=868MHz
+    {0x79,35}, // 868.35 MHz - FHT8V/FS20.
+    {0x7a,1}, // One 10kHz channel step.
+
+// RX-only
+//#ifdef USE_MODULE_FHT8VSIMPLE_RX // RX-specific settings, again c/o Mike S.
+    {0x1c,0xc1}, {0x1d,0x40}, {0x1e,0xa}, {0x1f,3}, {0x20,0x96}, {0x21,0}, {0x22,0xda}, {0x23,0x74}, {0x24,0}, {0x25,0xdc},
+    {0x2a,0x24},
+    {0x2c,0x28}, {0x2d,0xfa}, {0x2e,0x29},
+    {0x69,0x60}, // AGC enable: SGIN | AGCEN
+#endif
+    { 0x05, 0x01 },
+    { 0x06,    0 }, // Disable default chiprdy and por interrupts.
+    { 0x07, 0x01 }, // READY mode.
+    { 0x08,    0 }, // RFM22REG_OP_CTRL2: ANTDIVxxx, RXMPK, AUTOTX, ENLDM.
+    { 0x0b, 0x15 },
+    { 0x0c, 0x12 },
+    { 0x1c, 0xc1 },
+    { 0x1d, 0x40 },
+{0x1e,0xa}, // Default 0xa.
+    { 0x1f,    3 },
+    { 0x20, 0x96 },
+    { 0x21,    0 },
+    { 0x22, 0xda },
+    { 0x23, 0x74 },
+    { 0x24,    0 },
+    { 0x25, 0xdc },
+{0x2a,0x24}, // Default 0.
+    { 0x2c, 0x28 },
+    { 0x2d, 0xfa },
+    { 0x2e, 0x29 },
+    { 0x2e, 0x29 },
+    { 0x30, 0x00 }, // Turn off packet handling.
+    { 0x32, 0x0c },
+    { 0x33, 0x06 }, // Set 4 byte sync.
+{0x34,8}, // Set 4 byte preamble.
+    { 0x35, 0x10 }, // Set preamble threshold (RX) 2 nybbles / 1 bytes of preamble.
+    { 0x36, 0xaa }, // 0x36-0x39 = 0xaacccccc - set sync word, using end of RFM22-pre-preamble and start of FHT8V preamble.
+    { 0x37, 0xcc },
+    { 0x38, 0xcc },
+    { 0x39, 0xcc },
+
+//    { 0x58,  0x0 }, // Milenko: I dont think it is needed
+
+    { 0x69, 0x60 }, // AGC enable: SGIN | AGCEN
+{0x6d,0xb}, // RF23B, good RF conditions.
+    { 0x6e, 0x28 }, // 5000bps, ie 200us/bit for FHT (6 for 1, 4 for 0).  10485 split across the registers, MSB first.
+    { 0x6f, 0xf5 },
+    { 0x70, 0x20 }, // MOD CTRL 1: low bit rate (<30kbps), no Manchester encoding, no whitening.
+    { 0x71, 0x21 }, // MOD CTRL 2: OOK modulation.
+    { 0x72, 0x20 }, // Deviation GFSK. ; WAS EEPROM ($72,8) ; Deviation 5 kHz GFSK.
+{0x73,0}, // Frequency offset LSB, default 0.
+{0x74,0}, // Frequency offset MSB, default 0.
+{0x75,0x73}, // (w/76&77) BAND_SELECT,FB(hz), CARRIER_FREQ0&CARRIER_FREQ1,FC(hz) where hz=868MHz; default 0x75.
+    { 0x76, 0x64 },
+    { 0x77, 0x00 },
+    { 0x79, 0x23 }, // 868.35 MHz - FHT8V/FS20.
+    { 0x7a, 0x01 }, // One 10kHz channel step.
+
+    { 0xff, 0xff } // End of settings.
+  };
+
+const uint8_t OTRFM23BLinkBase::StandardRegSettingsGFSK[][2] PROGMEM =
+  {
+    { 0x05, 0x07 },
+    { 0x06,    0 }, // Disable default chiprdy and por interrupts.
+    { 0x07, 0x01 }, // READY mode.
+    { 0x08,    0 }, // RFM22REG_OP_CTRL2: ANTDIVxxx, RXMPK, AUTOTX, ENLDM.
+    { 0x0b, 0x15 },
+    { 0x0c, 0x12 },
+    { 0x1c, 0x06 },
+    { 0x1d, 0x44 },
+    { 0x1f,    3 },
+    { 0x20, 0x45 },
+    { 0x21,    1 },
+    { 0x22, 0xd7 },
+    { 0x23, 0xdc },
+    { 0x24,    7 },
+    { 0x25, 0x6e },
+    { 0x2c, 0x40 },
+    { 0x2d, 0x0a },
+    { 0x2e, 0x2d },
+
+    { 0x30, 0x88 }, // Turn on packet handling.
+    { 0x32, 0x88 },
+    { 0x33, 0x02 }, // Should not matter.  Maybe 0x22 default would be better?
+    { 0x35, 0x2a }, // Default 0x2a.
+    { 0x36, 0x2d },
+    { 0x37, 0xd4 },
+    { 0x38, 0x00 },
+    { 0x39, 0x00 },
+
+//    { 0x58, 0x80 }, // Milenko: I dont think it is needed
+
+    { 0x69, 0x60 },
+{0x6d,0xb}, // RF23B, good RF conditions.
+    { 0x6e, 0x0e },
+    { 0x6f, 0xbf },
+    { 0x70, 0x0c }, // Default 0x0c.
+    { 0x71, 0x23 },
+    { 0x72, 0x2e },
+{0x73,0}, // Frequency offset LSB, default 0.
+{0x74,0}, // Frequency offset MSB, default 0.
+{0x75, 0x75},
+    { 0x76, 0x6b },
+    { 0x77, 0x80 },
+    { 0x79, 0x00 }, // Default is 0.
+    { 0x7a, 0x00 }, // Default is 0.
+
+    { 0xff, 0xff } // End of settings.
+  };
+
 // Set typical maximum frame length in bytes [1,63] to optimise radio behaviour.
 // Too long may allow overruns, too short may make long-frame reception hard.
 void OTRFM23BLinkBase::setMaxTypicalFrameBytes(const uint8_t _maxTypicalFrameBytes)
@@ -37,7 +193,19 @@ void OTRFM23BLinkBase::setMaxTypicalFrameBytes(const uint8_t _maxTypicalFrameByt
 // Returns true iff RFM23 appears to be correctly connected.
 bool OTRFM23BLinkBase::_checkConnected() const
     {
+//    // Give radio time to start up.
+//    OTV0P2BASE::nap(WDTO_15MS);
+
     const bool neededEnable = _upSPI_();
+
+//    // If SPI was already up, power down, wait and power up again.
+//    if(!neededEnable)
+//      {
+//      _downSPI_();
+//      OTV0P2BASE::nap(WDTO_15MS);
+//      _upSPI_();
+//      }
+
     bool isOK = false;
     const uint8_t rType = _readReg8Bit_(0); // May read as 0 if not connected at all.
     if(SUPPORTED_DEVICE_TYPE == rType)
@@ -149,6 +317,7 @@ bool OTRFM23BLinkBase::_TXFIFO()
         {
         // Spin CPU for ~1ms; does not depend on timer1, delay(), millis(), etc, Arduino support.
 //        ::OTV0P2BASE::_delay_x4(250);
+        // FIXME: RFM23B probably unlikely to exceed 80kbps, thus at least 100uS per byte, so no point sleeping much less.
         OTV0P2BASE_busy_spin_delay(1000);
         // FIXME: don't have nap() support yet // nap(WDTO_15MS, true); // Sleep in low power mode for a short time waiting for bits to be sent...
         const uint8_t status = _readReg8Bit_(REG_INT_STATUS1); // TODO: could use nIRQ instead if available.
@@ -174,7 +343,6 @@ bool OTRFM23BLinkBase::_TXFIFO()
 // May block to transmit (eg to avoid copying the buffer).
 bool OTRFM23BLinkBase::sendRaw(const uint8_t *const buf, const uint8_t buflen, const int8_t channel, const TXpower power, const bool listenAfter)
     {
-    // FIXME: ignores channel entirely.
     // FIXME: currently ignores all hints.
 
     // Should not need to lock out interrupts while sending
@@ -185,8 +353,21 @@ bool OTRFM23BLinkBase::sendRaw(const uint8_t *const buf, const uint8_t buflen, c
     // Disable all interrupts (eg to avoid invoking the RX handler).
     _modeStandbyAndClearState_();
 
+    // Transmit on the channel specified.
+    _setChannel(channel);
+
+//    // Disable all interrupts (eg to avoid invoking the RX handler).
+//    _modeStandbyAndClearState_();
+
     // Load the frame into the TX FIFO.
     _queueFrameInTXFIFO(buf, buflen);
+
+    // If in packet-handling mode then set the frame length.
+    const bool neededEnable = _upSPI_();
+    // Check if packet handling in RFM23B is enabled and set packet length
+    if(_readReg8Bit_(REG_30_DATA_ACCESS_CONTROL) & RFM23B_ENPACTX)
+       { _writeReg8Bit_(REG_3E_PACKET_LENGTH, buflen); }
+    if(neededEnable) { _downSPI_(); }
 
     // Send the frame once.
     bool result = _TXFIFO();
@@ -224,9 +405,11 @@ void OTRFM23BLinkBase::_dolisten()
     const int8_t lc = getListenChannel();
     if(-1 == lc) { return; }
 
-    // FIXME: ignores channel.
+    // Ensure on right channel.
+    _setChannel(lc);
 
-    // Ensure listening.
+//    // Unconditionally stop listening and go into low-power standby mode.
+//    _modeStandbyAndClearState_();
 
     // Disable interrupts while enabling them at RFM23B and entering RX mode.
     ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
@@ -238,13 +421,19 @@ void OTRFM23BLinkBase::_dolisten()
         _writeReg8Bit_(REG_OP_CTRL2, 0);
 
         // Set FIFO RX almost-full threshold as specified.
-    //    _RFM22WriteReg8Bit(RFM22REG_RX_FIFO_CTRL, min(nearlyFullThreshold, 63));
         _writeReg8Bit_(REG_RX_FIFO_CTRL, maxTypicalFrameBytes); // 55 is the default.
 
         // Enable requested RX-related interrupts.
         // Do this regardless of hardware interrupt support on the board.
-        _writeReg8Bit_(REG_INT_ENABLE1, 0x10); // enrxffafull: Enable RX FIFO Almost Full.
-        _writeReg8Bit_(REG_INT_ENABLE2, WAKE_ON_SYNC_RX ? 0x80 : 0); // enswdet: Enable Sync Word Detected.
+        // Check if packet handling in RFM23B is enabled and enable interrupts accordingly.
+        if ( _readReg8Bit_(REG_30_DATA_ACCESS_CONTROL) & RFM23B_ENPACRX )  {
+           _writeReg8Bit_(REG_INT_ENABLE1, RFM23B_ENPKVALID); // enable all interrupts
+           _writeReg8Bit_(REG_INT_ENABLE2, 0); // enable all interrupts
+        }
+        else {
+           _writeReg8Bit_(REG_INT_ENABLE1, 0x10); // enrxffafull: Enable RX FIFO Almost Full.
+           _writeReg8Bit_(REG_INT_ENABLE2, WAKE_ON_SYNC_RX ? 0x80 : 0); // enswdet: Enable Sync Word Detected.
+       }
 
         // Clear any current interrupt/status.
         _clearInterrupts_();
@@ -272,7 +461,7 @@ void OTRFM23BLinkBase::_RXFIFO(uint8_t *buf, const uint8_t bufSize)
         _SELECT_();
         _io(REG_FIFO & 0x7F);
         for(int i = 0; i < bufSize; ++i)
-            { *buf++ = _io(0);  }
+            { *buf++ = _io(0); }
         _DESELECT_();
 
         // Clear RX and TX FIFOs simultaneously.
@@ -289,15 +478,102 @@ void OTRFM23BLinkBase::_RXFIFO(uint8_t *buf, const uint8_t bufSize)
         }
     }
 
+// Configure radio for transmission via specified channel < nChannels; non-negative.
+void OTRFM23BLinkBase::_setChannel(const uint8_t channel)
+    {
+    // Nothing to do if already on the correct channel.
+    if(_currentChannel == channel) { return; }
+
+    // Reject out-of-range channel requests.
+    if(channel >= nChannels) { return; }
+
+//    V0P2BASE_DEBUG_SERIAL_PRINT('c');
+//    V0P2BASE_DEBUG_SERIAL_PRINT(channel);
+//    V0P2BASE_DEBUG_SERIAL_PRINTLN();
+
+//      if (channel == 0)
+//           _registerBlockSetup((regValPair_t *) StandardRegSettingsOOK);
+//      else
+//           _registerBlockSetup((regValPair_t *) StandardRegSettingsGFSK);
+
+    // Set up registers for new config.
+    _registerBlockSetup((regValPair_t *) (channelConfig[channel].config));
+
+#if 0 && defined(MILENKO_DEBUG)
+      V0P2BASE_DEBUG_SERIAL_PRINT("C:");
+      V0P2BASE_DEBUG_SERIAL_PRINT(channel);
+      V0P2BASE_DEBUG_SERIAL_PRINTLN();
+      //readRegs((uint8_t)0,(uint8_t)0x7e);
+#endif
+
+    // Remember channel now in use.
+    _currentChannel = channel;
+    }
+
+#if 0 && defined(MILENKO_DEBUG)
+void OTRFM23BLinkBase::printHex(int val)  
+    {
+       if (val < 16)
+         V0P2BASE_DEBUG_SERIAL_PRINT("0");
+       V0P2BASE_DEBUG_SERIAL_PRINTFMT(val, HEX);
+    }
+
+void OTRFM23BLinkBase::readRegs(uint8_t from, uint8_t to, uint8_t noHeader)
+   {
+      uint8_t regVal;
+
+      const bool neededEnable = _upSPI_();
+
+      if ( noHeader == 0) {
+         V0P2BASE_DEBUG_SERIAL_PRINTLN();
+         V0P2BASE_DEBUG_SERIAL_PRINT("    00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F");
+      }
+      if ( from%16) {
+         V0P2BASE_DEBUG_SERIAL_PRINTLN();
+         printHex(from&0xf0);
+         V0P2BASE_DEBUG_SERIAL_PRINT(":");
+      }
+      uint8_t i;
+      for ( i = 0; i <= from%16; i++) V0P2BASE_DEBUG_SERIAL_PRINT("   ");
+      for ( i = from; i <= to; i++) {
+         regVal = _readReg8Bit_(i); 
+         if (i % 16 == 0) {
+            V0P2BASE_DEBUG_SERIAL_PRINTLN();
+            printHex(i);
+            V0P2BASE_DEBUG_SERIAL_PRINT(":");
+         }
+         V0P2BASE_DEBUG_SERIAL_PRINT(" ");
+         printHex(regVal);
+      }
+      V0P2BASE_DEBUG_SERIAL_PRINTLN();
+
+      if(neededEnable) { _downSPI_(); }
+}
+#endif
 
 // Begin access to (initialise) this radio link if applicable and not already begun.
 // Returns true if it successfully began, false otherwise.
 // Allows logic to end() if required at the end of a block, etc.
 bool OTRFM23BLinkBase::begin()
     {
-    if(1 != nChannels) { return(false); } // Can only handle a single channel.
+//    V0P2BASE_DEBUG_SERIAL_PRINT('n');
+//    V0P2BASE_DEBUG_SERIAL_PRINT(nChannels);
+//    V0P2BASE_DEBUG_SERIAL_PRINTLN();
+//    V0P2BASE_DEBUG_SERIAL_PRINT('p');
+//    V0P2BASE_DEBUG_SERIAL_PRINTFMT((intptr_t)StandardRegSettingsGFSK, HEX);
+//    V0P2BASE_DEBUG_SERIAL_PRINTLN();
+//    V0P2BASE_DEBUG_SERIAL_PRINTFMT((intptr_t)channelConfig[0].config, HEX);
+//    V0P2BASE_DEBUG_SERIAL_PRINTLN();
+//    V0P2BASE_DEBUG_SERIAL_PRINT('p');
+//    V0P2BASE_DEBUG_SERIAL_PRINTFMT((intptr_t)StandardRegSettingsOOK, HEX);
+//    V0P2BASE_DEBUG_SERIAL_PRINTLN();
+//    V0P2BASE_DEBUG_SERIAL_PRINTFMT((intptr_t)channelConfig[1].config, HEX);
+//    V0P2BASE_DEBUG_SERIAL_PRINTLN();
+
+    //if(1 != nChannels) { return(false); } // Can only handle a single channel.
     if(!_checkConnected()) { return(false); }
-    _registerBlockSetup((const regValPair_t *)(channelConfig->config));
+    // Set registers for default (0) channel.
+    _registerBlockSetup((regValPair_t *) (channelConfig[0].config));
     _modeStandbyAndClearState_();
     return(true);
     }

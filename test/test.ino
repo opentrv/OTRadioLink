@@ -20,7 +20,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
  */
 
 // Arduino libraries imported here (even for use in other .cpp files).
-//#include <SPI.h>
+#include <Wire.h>
 
 #define UNIT_TESTS
 

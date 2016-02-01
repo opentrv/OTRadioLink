@@ -38,6 +38,8 @@ static const bool ALLOW_NON_SYNC_DOUBLE_TX = false;
 // Provide RFM22/RFM23 register settings for use with FHT8V in Flash memory.
 // Consists of a sequence of (reg#,value) pairs terminated with a 0xff register number.  The reg#s are <128, ie top bit clear.
 // Magic numbers c/o Mike Stirling!
+// Should match the RFM23_Reg_Values_t type for the RFM23B.
+// Note that this assumes default register settings in the RFM23B when powered up.
 const uint8_t FHT8VRadValveBase::FHT8V_RFM23_Reg_Values[][2] PROGMEM =
   {
   // Putting TX power setting first to help with dynamic adjustment.

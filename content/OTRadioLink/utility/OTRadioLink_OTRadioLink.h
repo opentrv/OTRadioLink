@@ -121,8 +121,10 @@ namespace OTRadioLink
 
         protected:
             // Number of channels; strictly positive.
+            // Logically read-only after configuration.
             int8_t nChannels;
             // Per-channel configuration, read-only.
+            // This is the pointer to the start of an array of channel configurations.
             const OTRadioChannelConfig * channelConfig;
 
             // Current recent/short count of dropped messages due to RX overrun.
