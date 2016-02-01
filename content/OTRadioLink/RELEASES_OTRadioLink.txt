@@ -10,9 +10,9 @@ or release/freeze points.
 
 pending:
     DE20151022:  TODO-565: Added queueToSend function.
-    DE20151023:  Added unit tests for OTNullRadioLink
-    DE20151026:  Fixed compiler warning due to preinit()
-    DE20151103:  Updated nullRadio
+    DE20151023:  Added unit tests for OTNullRadioLink.
+    DE20151026:  Fixed compiler warning due to preinit().
+    DE20151103:  Updated nullRadio.
     DHD20151222: created FrameType_Secureable enum and 'secure frame types' header.
     DHD20160117: moved simple CRC support from OTRadioLink to OTV0P2BASE.
     DHD20160131: added dynamic channel-switching support to RFM23B, with 57600bps GFSK packet-handling config.
