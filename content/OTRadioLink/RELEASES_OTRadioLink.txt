@@ -15,6 +15,7 @@ pending:
     DE20151103:  Updated nullRadio
     DHD20151222: created FrameType_Secureable enum and 'secure frame types' header.
     DHD20160117: moved simple CRC support from OTRadioLink to OTV0P2BASE.
+    DHD20160131: added dynamic channel-switching support to RFM23B, with 57600bps GFSK packet-handling config.
 
 
 
