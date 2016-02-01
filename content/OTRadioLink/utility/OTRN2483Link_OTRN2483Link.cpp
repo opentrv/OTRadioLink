@@ -54,8 +54,6 @@ bool OTRN2483Link::begin() {
 	// get status (returns 0001 when it works for me)
     getStatus();
 	// Send
-    sendRaw((const uint8_t *)"hello world", 11);
-
 	return true;
 }
 
@@ -106,11 +104,11 @@ uint8_t OTRN2483Link::timedBlockingRead(char *data, uint8_t length)
 
 	  i = ser.read((uint8_t *)data, length);
 
-//	#ifdef OTSIM900LINK_DEBUG
+	#ifdef OTRN2483LINK_DEBUG
 	  OTV0P2BASE::serialPrintAndFlush(F("\n--Buffer Length: "));
 	  OTV0P2BASE::serialPrintAndFlush(i);
 	  OTV0P2BASE::serialPrintlnAndFlush();
-//	#endif // OTSIM900LINK_DEBUG
+	#endif // OTRN2483LINK_DEBUG
 	  return i;
 }
 
