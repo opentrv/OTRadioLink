@@ -21,7 +21,8 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
 namespace OTRN2483Link
 {
 // TODO proper constructor
-OTRN2483Link::OTRN2483Link() : ser(8, 5), config(NULL), rxPin(8), txPin(5), resetPin(A2) {
+
+OTRN2483Link::OTRN2483Link(uint8_t _nRstPin, uint8_t rxPin, uint8_t txPin) : config(NULL), ser(rxPin, txPin), nRstPin(_nRstPin) {
 	bAvailable = false;
 	// Init OTSoftSerial
 }
@@ -30,7 +31,7 @@ bool OTRN2483Link::begin() {
 	char buffer[5];
 	memset(buffer, 0, 5);
 	// init resetPin
-	pinMode(resetPin, INPUT);	// TODO This is shorting on my board
+	pinMode(nRstPin, INPUT);	// TODO This is shorting on my board
 	// Begin OTSoftSerial
 	ser.begin();
 	// Reset
@@ -145,9 +146,7 @@ void OTRN2483Link::print(const char *string)
  */
 void OTRN2483Link::setBaud()
 {
-	fastDigitalWrite(txPin, LOW); // send break
-	OTV0P2BASE::delay_ms(5);
-	fastDigitalWrite(txPin, HIGH);
+	ser.sendBreak();
 	print('U'); // send syncro character
 }
 
@@ -268,7 +267,7 @@ void OTRN2483Link::save()
  */
 bool OTRN2483Link::getHex(const uint8_t *input, uint8_t *output, uint8_t outputLen)
 {
-	  if((input || output) == NULL) return false; // check for null pointer
+	  if((input == NULL) || (output == NULL)) return false; // check for null pointer
 	    uint8_t counter = outputLen;
 	    // convert to hex
 	  while(counter) {

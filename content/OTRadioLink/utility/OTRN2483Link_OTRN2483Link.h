@@ -93,7 +93,7 @@ class OTRN2483Link : public OTRadioLink::OTRadioLink
 {
 public:
 	// Public interface
-    OTRN2483Link();
+    OTRN2483Link(uint8_t _nRstPin, uint8_t rxPin, uint8_t txPin);
 
     void preinit(const void */*preconfig*/) {};
     bool begin();
@@ -117,7 +117,6 @@ public:
 private:
 // Private methods
     // Serial
-    OTV0P2BASE::OTSoftSerial ser;
     uint8_t read();
     uint8_t timedBlockingRead(char *data, uint8_t length);
     void write(const char *data, uint8_t length);
@@ -144,11 +143,10 @@ private:
 
 // Private consts and variables
     const OTRN2483LinkConfig *config;  // Pointer to radio config
+    OTV0P2BASE::OTSoftSerial ser;
     static const uint16_t baud = 2400;	 // OTSoftSer baud rate. todo switch to template to allow higher speed
     bool bAvailable;
-    const uint8_t rxPin;
-    const uint8_t txPin;
-    const uint8_t resetPin;
+    const uint8_t nRstPin;
 
 
     static const char SYS_START[5];
