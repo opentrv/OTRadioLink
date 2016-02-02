@@ -82,105 +82,224 @@ const uint8_t OTRFM23BLinkBase::StandardRegSettingsOOK[][2] PROGMEM =
     {0x2c,0x28}, {0x2d,0xfa}, {0x2e,0x29},
     {0x69,0x60}, // AGC enable: SGIN | AGCEN
 #endif
-    { 0x05, 0x01 },
-    { 0x06,    0 }, // Disable default chiprdy and por interrupts.
-    { 0x07, 0x01 }, // READY mode.
-    { 0x08,    0 }, // RFM22REG_OP_CTRL2: ANTDIVxxx, RXMPK, AUTOTX, ENLDM.
-    { 0x0b, 0x15 },
-    { 0x0c, 0x12 },
-    { 0x1c, 0xc1 },
-    { 0x1d, 0x40 },
-{0x1e,0xa}, // Default 0xa.
-    { 0x1f,    3 },
-    { 0x20, 0x96 },
-    { 0x21,    0 },
-    { 0x22, 0xda },
-    { 0x23, 0x74 },
-    { 0x24,    0 },
-    { 0x25, 0xdc },
-{0x2a,0x24}, // Default 0.
-    { 0x2c, 0x28 },
-    { 0x2d, 0xfa },
-    { 0x2e, 0x29 },
-    { 0x2e, 0x29 },
-    { 0x30, 0x00 }, // Turn off packet handling.
-    { 0x32, 0x0c },
-    { 0x33, 0x06 }, // Set 4 byte sync.
-{0x34,8}, // Set 4 byte preamble.
-    { 0x35, 0x10 }, // Set preamble threshold (RX) 2 nybbles / 1 bytes of preamble.
-    { 0x36, 0xaa }, // 0x36-0x39 = 0xaacccccc - set sync word, using end of RFM22-pre-preamble and start of FHT8V preamble.
-    { 0x37, 0xcc },
-    { 0x38, 0xcc },
-    { 0x39, 0xcc },
 
-//    { 0x58,  0x0 }, // Milenko: I dont think it is needed
-
-    { 0x69, 0x60 }, // AGC enable: SGIN | AGCEN
-{0x6d,0xb}, // RF23B, good RF conditions.
-    { 0x6e, 0x28 }, // 5000bps, ie 200us/bit for FHT (6 for 1, 4 for 0).  10485 split across the registers, MSB first.
-    { 0x6f, 0xf5 },
-    { 0x70, 0x20 }, // MOD CTRL 1: low bit rate (<30kbps), no Manchester encoding, no whitening.
-    { 0x71, 0x21 }, // MOD CTRL 2: OOK modulation.
-    { 0x72, 0x20 }, // Deviation GFSK. ; WAS EEPROM ($72,8) ; Deviation 5 kHz GFSK.
-{0x73,0}, // Frequency offset LSB, default 0.
-{0x74,0}, // Frequency offset MSB, default 0.
-{0x75,0x73}, // (w/76&77) BAND_SELECT,FB(hz), CARRIER_FREQ0&CARRIER_FREQ1,FC(hz) where hz=868MHz; default 0x75.
-    { 0x76, 0x64 },
-    { 0x77, 0x00 },
-    { 0x79, 0x23 }, // 868.35 MHz - FHT8V/FS20.
-    { 0x7a, 0x01 }, // One 10kHz channel step.
-
+//    Reg , val       Default R/W   Function/Desc                        Comment
+//   0x00,  N/A        0x00    R  - Device Type   		
+//   0x01,  N/A        0x06    R  - Device Version 	 	
+//   0x02,  N/A         --     R  - Device Status     	
+//   0x03,  N/A         --     R  - Interrupt Status 1		
+//   0x04,  N/A         --     R  - Interrupt Status 2		
+   { 0x05,    1 }, //  0x00   R/W - Interrupt Enable 1:                  ICRCERROR
+   { 0x06,    0 }, //  0x03   R/W - Interrupt Enable 2
+   { 0x07,    1 }, //  0x01   R/W - Operating &Function Control 1:       XTON
+   { 0x08,    0 }, //  0x00   R/W - Operating &Function Control 2:
+   { 0x09, 0x7f }, //  0x7F   R/W - Crystal Oscillator Load Capacitance:
+   { 0x0a,    6 }, //  0x06   R/W - Microcontr Output Clock:             4MHz on DIO2
+   { 0x0b, 0x15 }, //  0x00   R/W - GPIO0 Configuration:                 GPIO0=RX State
+   { 0x0c, 0x12 }, //  0x00   R/W - GPIO1 Configuration:                 GPIO1=TX State
+   { 0x0d,    0 }, //  0x00   R/W - GPIO2 Configuration:
+   { 0x0e,    0 }, //  0x00   R/W - I/O Port Configuration:
+   { 0x0f,    0 }, //  0x00   R/W - ADC Configuration:
+   { 0x10,    0 }, //  0x00   R/W - ADC Sensor Amplifier:
+//   0x11,  N/A         --     R  - ADC Value:   
+   { 0x12, 0x20 }, //  0x20   R/W - Temperature Sensor Control:
+   { 0x13,    0 }, //  0x00   R/W - Temperature Value Offset:
+   { 0x14,    3 }, //  0x03   R/W - Wake-Up Timer Period 1:
+   { 0x15,    0 }, //  0x00   R/W - Wake-Up Timer Period 2:
+   { 0x16,    1 }, //  0x01   R/W - Wake-Up Timer Period 3:
+//   0x17,  N/A         --     R  -  Wake-Up Timer Value 1:
+//   0x18,  N/A         --     R  -  Wake-Up Timer Value 2:
+   { 0x19, 0x01 }, //  0x01   R/W - Low-Duty Cycle Mode Duration:
+   { 0x1a, 0x14 }, //  0x14   R/W - Low Battery Detector Thr0xesold:
+//   0x1b,  N/A         --     R  - Battery Voltage Level:
+   { 0x1c, 0xc1 }, //  0x01   R/W - IF Filter Bandwidth:                 BW=4,9 kHz ?
+   { 0x1d, 0x40 }, //  0x44   R/W - AFC Loop Gearshift Override:         ENAFC
+   { 0x1e, 0x0a }, //  0x0a   R/W - AFC Timing Control:                  
+   { 0x1f,    3 }, //  0x03   R/W - Clock Recovery Gearshift Override:
+   { 0x20, 0x96 }, //  0x64   R/W - Clock Recovery Oversampling Rate:
+   { 0x21,    0 }, //  0x01   R/W - Clock Recovery Offset 2:
+   { 0x22, 0xda }, //  0x47   R/W - Clock Recovery Offset 1:
+   { 0x23, 0x74 }, //  0xae   R/W - Clock Recovery Offset 0:
+   { 0x24, 0x00 }, //  0x02   R/W - Clock Recovery Timing Loop Gain 1:
+   { 0x25, 0xdc }, //  0x8f   R/W - Clock Recovery Timing Loop Gain 0:
+//   0x26,  N/A         --     R  - Received Signal Strenght Indicator:
+   { 0x27, 0x1e }, //  0x1e   R/W - RSSI Threshold for Clear Channel Indicator:
+//   0x28,  N/A         --     R  - Antenna Diversity Register 1:
+//   0x29,  N/A         --     R  - Antenna Diversity Register 2:
+   { 0x2a, 0x24 }, //  0x00   R/W - AFC Limiter value:    		
+//   0x2b,  N/A         --     R  - AFC Correction Read:
+   { 0x2c, 0x28 }, //  0x18   R/W - OOK Counter Value 1:
+   { 0x2d, 0xfa }, //  0xbc   R/W - OOK Counter Value 2:
+   { 0x2e, 0x29 }, //  0x26   R/W - Slicer Peak Hold Reserved:
+//   0x2f,  N/A         --          RESERVED
+   { 0x30,    0 }, //  0x8d   R/W - Data Access Control:                 Packet handler disabled Rx & Txi, CRC disabled
+//   0x31,  N/A         --     R  - EzMAC status:
+   { 0x32, 0x0c }, //  0x0c   R/W - Header Control 1:                    
+   { 0x33,    6 }, //  0x22   R/W - Header Control 2:                    4 bytes syn, no header
+   { 0x34, 0x08 }, //  0x08   R/W - Preamble Length:                    32 bit preamble preamble
+   { 0x35, 0x10 }, //  0x2a   R/W - Preamble Detection Control:          8 bit preabmle detection
+   { 0x36, 0xaa }, //  0x2d   R/W - Sync Word 3:		
+   { 0x37, 0xcc }, //  0xd4   R/W - Sync Word 2:		
+   { 0x38, 0xcc }, //  0x00   R/W - Sync Word 1:    		
+   { 0x39, 0xcc }, //  0x00   R/W - Sync Word 0:    		
+   { 0x3a,    0 }, //  0x00   R/W - Transmit Header 3:	  	
+   { 0x3b,    0 }, //  0x00   R/W - Transmit Header 2:		
+   { 0x3c,    0 }, //  0x00   R/W - Transmit Header 1:
+   { 0x3d,    0 }, //  0x00   R/W - Transmit Header 0: 	
+   { 0x3e,    0 }, //  0x00   R/W - Transmit Packet Length:
+   { 0x3f,    0 }, //  0x00   R/W - Check Header 3:
+   { 0x40,    0 }, //  0x00   R/W - Check Header 2:
+   { 0x41,    0 }, //  0x00   R/W - Check Header 1:
+   { 0x42,    0 }, //  0x00   R/W - Check Header 0:
+   { 0x43, 0xff }, //  0xff   R/W - Header Enable 3:
+   { 0x44, 0xff }, //  0xff   R/W - Header Enable 2:
+   { 0x45, 0xff }, //  0xff   R/W - Header Enable 1:
+   { 0x46, 0xff }, //  0xff   R/W - Header Enable 0:
+//   0x47,  N/A         --     R  - Received Header 3:
+//   0x48,  N/A         --     R  - Received Header 2:
+//   0x49,  N/A         --     R  - Received Header 1:
+//   0x4a,  N/A         --     R  - Received Header 0:
+//   0x4b,  N/A         --     R  - Received Packet Length:
+//   0x4c-0x4e                      RESERVED
+   { 0x4F, 0x10 }, //  0x10   R/W - ADC8 Control:
+//   0x50-0x5f                      RESERVED
+   { 0x60, 0xa0 }, //  0xa0   R/W - Channel Filter Coecfficient Address:
+//   0x61,  N/A                     RESERVED
+   { 0x62, 0x24 }, //  0x24   R/W - Crystal Oscillator/Power-on-Reset Control
+//   0x63-0x68                      RESERVED
+   { 0x69, 0x60 }, //  0x20   R/W - AGC Override:                         SGIN=1, AGCEN=1. PGA=0
+//   0x6a-0x6c                      RESERVED
+   { 0x6d, 0x0b }, //  0x18   R/W - TX Power:                             LNA_SW=1, TXPOW=3
+   { 0x6e, 0x28 }, //  0x0A   R/W - TX Data Rate 1:                       5000 Hz
+   { 0x6f, 0xf5 }, //  0x3D   R/W - TX Data Rate 0:
+   { 0x70, 0x20 }, //  0x0c   R/W - Modulation Mode Control 1:            TXDTRTSCALE=1
+   { 0x71, 0x21 }, //  0x00   R/W - Modulation Mode Control 2:            Source=FIFO, Modulation=OOK
+   { 0x72, 0x20 }, //  0x20   R/W - Frequency Deviation:                  Fdev=20000kHz
+   { 0x73,    0 }, //  0x00   R/W - Frequency Offset 1:
+   { 0x74,    0 }, //  0x00   R/W - Frequency Offset 2:
+   { 0x75, 0x73 }, //  0x75   R/W - Frequency Band Select:
+   { 0x76, 0x64 }, //  0xbb   R/W - Nominal Carrier Frequency 1:
+   { 0x77, 0x00 }, //  0x80   R/W - Nominal Carrier Frequency 0:          868,35 MHz
+//   0x78,  N/A                     RESERVED
+   { 0x79, 0x23 }, //  0x00   R/W - Frequency Hopping Channel Select:
+   { 0x7a, 0x01 }, //  0x00   R/W - Frequency Hopping Step Size:
+//   0x7b,  N/A                     RESERVED
+   { 0x7c, 0x37 }, //  0x37   R/W - TX FIFO Control 1:
+   { 0x7d,    4 }, //  0x04   R/W - TX FIFO Control 2:
+   { 0x7e, 0x37 }, //  0x37   R/W - RX FIFO Control:
+//   0x7f   N/A               R/W - FIFO Access
     { 0xff, 0xff } // End of settings.
   };
 
 const uint8_t OTRFM23BLinkBase::StandardRegSettingsGFSK[][2] PROGMEM =
   {
-    { 0x05, 0x07 },
-    { 0x06,    0 }, // Disable default chiprdy and por interrupts.
-    { 0x07, 0x01 }, // READY mode.
-    { 0x08,    0 }, // RFM22REG_OP_CTRL2: ANTDIVxxx, RXMPK, AUTOTX, ENLDM.
-    { 0x0b, 0x15 },
-    { 0x0c, 0x12 },
-    { 0x1c, 0x06 },
-    { 0x1d, 0x44 },
-    { 0x1f,    3 },
-    { 0x20, 0x45 },
-    { 0x21,    1 },
-    { 0x22, 0xd7 },
-    { 0x23, 0xdc },
-    { 0x24,    7 },
-    { 0x25, 0x6e },
-    { 0x2c, 0x40 },
-    { 0x2d, 0x0a },
-    { 0x2e, 0x2d },
-
-    { 0x30, 0x88 }, // Turn on packet handling.
-    { 0x32, 0x88 },
-    { 0x33, 0x02 }, // Should not matter.  Maybe 0x22 default would be better?
-    { 0x35, 0x2a }, // Default 0x2a.
-    { 0x36, 0x2d },
-    { 0x37, 0xd4 },
-    { 0x38, 0x00 },
-    { 0x39, 0x00 },
-
-//    { 0x58, 0x80 }, // Milenko: I dont think it is needed
-
-    { 0x69, 0x60 },
-{0x6d,0xb}, // RF23B, good RF conditions.
-    { 0x6e, 0x0e },
-    { 0x6f, 0xbf },
-    { 0x70, 0x0c }, // Default 0x0c.
-    { 0x71, 0x23 },
-    { 0x72, 0x2e },
-{0x73,0}, // Frequency offset LSB, default 0.
-{0x74,0}, // Frequency offset MSB, default 0.
-{0x75, 0x75},
-    { 0x76, 0x6b },
-    { 0x77, 0x80 },
-    { 0x79, 0x00 }, // Default is 0.
-    { 0x7a, 0x00 }, // Default is 0.
-
-    { 0xff, 0xff } // End of settings.
+//   Reg ,  Val       Default R/W   Function/Desc                       Comment
+//
+//   0x00,  N/A        0x08    R  - Device Type   		
+//   0x01,  N/A        0x06    R  - Device Version 	 	
+//   0x02,  N/A         --     R  - Device Status     	
+//   0x03,  N/A         --     R  - Interrupt Status 1		
+//   0x04,  N/A         --     R  - Interrupt Status 2		
+   { 0x05,    0 }, //  0x00   R/W - Interrupt Enable 1:                  Interrupts are enabled in FW later on
+   { 0x06,    0 }, //  0x03   R/W - Interrupt Enable 2
+   { 0x07,    1 }, //  0x01   R/W - Operating &Function Control 1:       XTON
+   { 0x08,    0 }, //  0x00   R/W - Operating &Function Control 2:
+   { 0x09, 0x7f }, //  0x7F   R/W - Crystal Oscillator Load Capacitance:
+   { 0x0a,    6 }, //  0x06   R/W - Microcontr Output Clock:             4MHz on DIO2
+   { 0x0b, 0x15 }, //  0x00   R/W - GPIO0 Configuration:                 GPIO0=RX State
+   { 0x0c, 0x12 }, //  0x00   R/W - GPIO1 Configuration:                 GPIO1=TX State
+   { 0x0d,    0 }, //  0x00   R/W - GPIO2 Configuration:
+   { 0x0e,    0 }, //  0x00   R/W - I/O Port Configuration:
+   { 0x0f,    0 }, //  0x00   R/W - ADC Configuration:
+   { 0x10,    0 }, //  0x00   R/W - ADC Sensor Amplifier:
+//   0x11,  N/A         --     R  - ADC Value:   
+   { 0x12, 0x20 }, //  0x20   R/W - Temperature Sensor Control:
+   { 0x13,    0 }, //  0x00   R/W - Temperature Value Offset:
+   { 0x14,    3 }, //  0x03   R/W - Wake-Up Timer Period 1:
+   { 0x15,    0 }, //  0x00   R/W - Wake-Up Timer Period 2:
+   { 0x16,    1 }, //  0x01   R/W - Wake-Up Timer Period 3:
+//   0x17,  N/A         --     R  -  Wake-Up Timer Value 1:
+//   0x18,  N/A         --     R  -  Wake-Up Timer Value 2:
+   { 0x19,    1 }, //  0x01   R/W - Low-Duty Cycle Mode Duration:
+   { 0x1a, 0x14 }, //  0x14   R/W - Low Battery Detector Thr0xesold:
+//   0x1b,  N/A         --     R  - Battery Voltage Level:
+   { 0x1c,    6 }, //  0x01   R/W - IF Filter Bandwidth:                 BW=127,9 kHz
+   { 0x1d, 0x44 }, //  0x44   R/W - AFC Loop Gea0xrsift Override:
+   { 0x1e, 0x0a }, //  0x0a   R/W - AFC Timing Control:
+   { 0x1f,    3 }, //  0x03   R/W - Clock Recovery Gearshift Override:
+   { 0x20, 0x45 }, //  0x64   R/W - Clock Recovery Oversampling Ratio:
+   { 0x21,    1 }, //  0x01   R/W - Clock Recovery Offset 2:
+   { 0x22, 0xd7 }, //  0x47   R/W - Clock Recovery Offset 1:
+   { 0x23, 0xdc }, //  0xae   R/W - Clock Recovery Offset 0:
+   { 0x24, 0x07 }, //  0x02   R/W - Clock Recovery Timing Loop Gain 1:
+   { 0x25, 0x6e }, //  0x8f   R/W - Clock Recovery Timing Loop Gain 0:
+//   0x26,  N/A         --     R  - Received Signal Strenght Indicator:
+   { 0x27, 0x1e }, //  0x1e   R/W - RSSI Threshold for Clear Channel Indicator:
+//   0x28,  N/A         --     R  - Antenna Diversity Register 1:
+//   0x29,  N/A         --     R  - Antenna Diversity Register 2:
+   { 0x2a, 0x28 }, //  0x00   R/W - AFC Limiter:    		
+//   0x2b,  N/A         --     R  - AFC Correction Read:
+   { 0x2c, 0x40 }, //  0x18   R/W - OOK Counter Value 1:
+   { 0x2d, 0x0a }, //  0xbc   R/W - OOK Counter Value 2:
+   { 0x2e, 0x2d }, //  0x26   R/W - Slicer Peak Hold Reserved:
+//   0x2f,  N/A         --          RESERVED
+   { 0x30, 0x88 }, //  0x8d   R/W - Data Access Control:                 Packet mode enabled Rx & Tx
+//   0x31,  N/A         --     R  - EzMAC status:
+   { 0x32, 0x00 }, //  0x0c   R/W - Header Control 1:                    No header = 0x00
+   { 0x33,    2 }, //  0x22   R/W - Header Control 2:                    2 bytes syn, no header
+   { 0x34, 0x0a }, //  0x08   R/W - Preamble Length:                    40 bit preamble preamble
+   { 0x35, 0x2a }, //  0x2a   R/W - Preamble Detection Control:         20 bit preabmle detection
+   { 0x36, 0x2d }, //  0x2d   R/W - Sync Word 3:		
+   { 0x37, 0xd4 }, //  0xd4   R/W - Sync Word 2:		
+   { 0x38,    0 }, //  0x00   R/W - Sync Word 1:    		
+   { 0x39,    0 }, //  0x00   R/W - Sync Word 0:    		
+   { 0x3a,    0 }, //  0x00   R/W - Transmit Header 3:	  	
+   { 0x3b,    0 }, //  0x00   R/W - Transmit Header 2:		
+   { 0x3c,    0 }, //  0x00   R/W - Transmit Header 1:
+   { 0x3d,    0 }, //  0x00   R/W - Transmit Header 0: 	
+   { 0x3e,    0 }, //  0x00   R/W - Transmit Packet Length:
+   { 0x3f,    0 }, //  0x00   R/W - Check Header 3:
+   { 0x40,    0 }, //  0x00   R/W - Check Header 2:
+   { 0x41,    0 }, //  0x00   R/W - Check Header 1:
+   { 0x42,    0 }, //  0x00   R/W - Check Header 0:
+   { 0x43, 0xff }, //  0xff   R/W - Header Enable 3:
+   { 0x44, 0xff }, //  0xff   R/W - Header Enable 2:
+   { 0x45, 0xff }, //  0xff   R/W - Header Enable 1:
+   { 0x46, 0xff }, //  0xff   R/W - Header Enable 0:
+//   0x47,  N/A         --     R  - Received Header 3:
+//   0x48,  N/A         --     R  - Received Header 2:
+//   0x49,  N/A         --     R  - Received Header 1:
+//   0x4a,  N/A         --     R  - Received Header 0:
+//   0x4b,  N/A         --     R  - Received Packet Length:
+//   0x4c-0x4E                      RESERVED
+   { 0x4f, 0x10 }, //  0x10   R/W - ADC8 Control:
+//   0x50-0x5f                      RESERVED
+   { 0x60, 0xa0 }, //  0xa0   R/W - Channel Filter Coecfficient Address:
+//   0x61,  N/A                     RESERVED
+   { 0x62, 0x24 }, //  0x24   R/W - Crystal Oscillator/Power-on-Reset Control
+//   0x63-0x68                      RESERVED
+   { 0x69, 0x60 }, //  0x20   R/W - AGC Override:                         SGIN=1, AGCEN=1   
+//   0x6a-0x6c                      RESERVED
+   { 0x6d, 0x0b }, //  0x18   R/W - TX Power:                             LNA=1 for direct tie, TxPwr=3
+   { 0x6e, 0x0e }, //  0x0A   R/W - TX Data Rate 1:                       57602 Hz
+   { 0x6f, 0xbf }, //  0x3D   R/W - TX Data Rate 0:
+   { 0x70, 0x0c }, //  0x0c   R/W - Modulation Mode Control 1:            Manchester Pream Polarity = 1
+   { 0x71, 0x23 }, //  0x00   R/W - Modulation Mode Control 2:            Source=FIFO, Modulation=GFSK
+   { 0x72, 0x2e }, //  0x20   R/W - Frequency Deviation:                  Fdev=28750Hz
+   { 0x73,    0 }, //  0x00   R/W - Frequency Offset 1:
+   { 0x74,    0 }, //  0x00   R/W - Frequency Offset 2:
+   { 0x75, 0x73 }, //  0x75   R/W - Frequency Band Select:
+   { 0x76, 0x6a }, //  0xbb   R/W - Nominal Carrier Frequency 1:
+   { 0x77, 0x40 }, //  0x80   R/W - Nominal Carrier Frequency 0:          868,5MHz
+//   0x78,  N/A                     RESERVED
+   { 0x79,    0 }, //  0x00   R/W - Frequency Hopping Channel Select:
+   { 0x7a,    0 }, //  0x00   R/W - Frequency Hopping Step Size:
+//   0x7b,  N/A                     RESERVED
+   { 0x7c, 0x37 }, //  0x37   R/W - TX FIFO Control 1:
+   { 0x7d,    4 }, //  0x04   R/W - TX FIFO Control 2:
+   { 0x7e, 0x37 }, //  0x37   R/W - RX FIFO Control:
+//   0x7F   N/A               R/W - FIFO Access
+   { 0xff, 0xff } // End of settings.
   };
 
 // Set typical maximum frame length in bytes [1,63] to optimise radio behaviour.
