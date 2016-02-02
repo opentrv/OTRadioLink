@@ -224,6 +224,16 @@ void OTSoftSerial::printNum(const int8_t number)
     // print buffer
     print(buf);
 }
+
+/**
+ * @brief   Sends a break condition by pulling the tx line low for 5 ms (far longer than it takes to send a character at 2400 baud)
+ */
+void OTSoftSerial::sendBreak()
+{
+	fastDigitalWrite(txPin, LOW);
+	delay(5);
+	fastDigitalWrite(txPin, HIGH);
+}
 /**************************** Private Methods ****************************/
 
 
