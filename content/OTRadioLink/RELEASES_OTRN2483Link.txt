@@ -1,0 +1,15 @@
+ALL SIGNIFICANT RELEASES AND BRANCHES (and to-do)
+
+
+This document is used to record all significant releases and branches
+in the code tree.
+
+Follow agreed procedures before creating (or deleting) branches
+or release/freeze points.
+
+
+pending:
+    DE20160129:  Implemented basic test send functionality
+    DE20160129:  Implemented initial LoRaWAN setup and stats tx
+    DE20160201:  Added set-able pin defs 
+

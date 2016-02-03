@@ -47,6 +47,7 @@ public:
 	void write(const char *buf, uint8_t len);
 	uint8_t print(const char *buf);
 	void printNum(int8_t number); // FIXME can this be made better?
+	void sendBreak();
 
 private:
 	const uint8_t rxPin;

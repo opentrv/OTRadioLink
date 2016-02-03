@@ -25,6 +25,14 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
 //http://ww1.microchip.com/downloads/en/DeviceDoc/40001784C.pdf
 
 
+/**
+ * @todo    - Add config functionality
+ *          - Move commands to progmem
+ *          - Add intelligent way of utilising device eeprom (w/ mac save)
+ *          - Is there any special low power mode?
+ *          - Save stuff into EEPROM
+ */
+
 #ifndef OTRN2483LINK_OTRN2483LINK_H_
 #define OTRN2483LINK_OTRN2483LINK_H_
 
@@ -43,9 +51,6 @@ namespace OTRN2483Link
  * @struct  OTRN2483LinkConfig
  * @brief   Structure containing config data for OTRN2483LinkConfig
  * @todo    Work out other required variables for LoRa
- * @param    bEEPROM    true if strings stored in EEPROM, else held in FLASH
- * @param    UDP_Address    Pointer to \0 terminated array containing UDP address to send to as IPv4 dotted quad
- * @param    UDP_Port    Pointer to \0 terminated array containing UDP port in decimal
  */
 typedef struct OTRN2483LinkConfig {
     // Is in eeprom?
@@ -83,23 +88,22 @@ typedef struct OTRN2483LinkConfig {
 /**
  * @brief   This is a class that extends OTRadioLink to communicate via LoRaWAN
  *          using the RN2483 radio module.
- * @todo	Make class
  */
 class OTRN2483Link : public OTRadioLink::OTRadioLink
 {
 public:
 	// Public interface
-    OTRN2483Link();
+    OTRN2483Link(uint8_t _nRstPin, uint8_t rxPin, uint8_t txPin);
 
-    void preinit(const void *preconfig) {};  // Todo decide if preinit needed
+    void preinit(const void */*preconfig*/) {};
     bool begin();
     bool end();
 
     bool sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal, bool listenAfter = false);
-    bool queueToSend(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal);
+//    bool queueToSend(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal);
     inline bool isAvailable(){ return bAvailable; };     // checks radio is there independant of power state
     void poll();
-    bool handleInterruptSimple();
+    bool handleInterruptSimple() { return true;};
 
     /**
      * @brief   Unused. For compatibility with OTRadioLink.
@@ -113,24 +117,54 @@ public:
 private:
 // Private methods
     // Serial
-    OTV0P2BASE::OTSoftSerial ser;
     uint8_t read();
     uint8_t timedBlockingRead(char *data, uint8_t length);
     void write(const char *data, uint8_t length);
     void print(const char data);
-    void print(const uint8_t value);
+    void print(const uint8_t value);	// todo change this so it prints in hex?
     void print(const char *string);
     void print(const void *src);
 
     // Commands
+    void factoryReset();
+    void reset();
+    void setBaud();
+    void setDevAddr(const uint8_t *address);
+    void setKeys(const uint8_t *appKey, const uint8_t *networkKey);
+    void joinABP();
+    bool getStatus();
+    void save();
 
     // Setup
-    bool _doconfig();
+    bool _doconfig() { return true; };
+
+    // misc
+    bool getHex(const uint8_t *string, uint8_t *output, uint8_t outputLen);
 
 // Private consts and variables
     const OTRN2483LinkConfig *config;  // Pointer to radio config
+    OTV0P2BASE::OTSoftSerial ser;
     static const uint16_t baud = 2400;	 // OTSoftSer baud rate. todo switch to template to allow higher speed
     bool bAvailable;
+    const uint8_t nRstPin;
+
+
+    static const char SYS_START[5];
+    static const char SYS_RESET[6]; // todo this can be removed on board with working reset line
+
+    static const char MAC_START[5];
+    static const char MAC_DEVADDR[9];
+    static const char MAC_APPSKEY[9];
+    static const char MAC_NWKSKEY[9];
+    static const char MAC_ADR_OFF[8];
+    static const char MAC_JOINABP[9];
+    static const char MAC_STATUS[7];
+    static const char MAC_SEND[12];		// Sends an unconfirmed packet on channel 1
+    static const char MAC_SAVE[5];
+
+    static const char RN2483_SET[5];
+    static const char RN2483_GET[5];
+    static const char RN2483_END[3];
 
     /**
      * @brief   Unused. For compatibility with OTRadioLink.
