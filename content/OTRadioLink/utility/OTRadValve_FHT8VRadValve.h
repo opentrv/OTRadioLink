@@ -269,15 +269,6 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
     // Returns try if in sync AND current position AND last command sent to valve indicate open.
     virtual bool isControlledValveReallyOpen() const { return(syncedWithFHT8V && FHT8V_isValveOpen && (value >= getMinPercentOpen())); }
 
-    // A set of RFM22/RFM23 register settings for use with FHT8V, stored in (read-only) program/Flash memory.
-    // Consists of a sequence of (reg#,value) pairs terminated with a 0xff register.
-    // The (valid) reg#s are <128, ie top bit clear.
-    // Magic numbers c/o Mike Stirling!
-    // Should not be linked into code image unless explicitly referred to and used.
-    // Should match the RFM23_Reg_Values_t type for the RFM23B.
-    // Note that this assumes default register settings in the RFM23B when powered up.
-    static const uint8_t FHT8V_RFM23_Reg_Values[][2] PROGMEM;
-
     // Values designed to work with FHT8V_RFM23_Reg_Values register settings.
     static const uint8_t RFM23_PREAMBLE_BYTE = 0xaa; // Preamble byte for RFM23 reception.
     static const uint8_t RFM23_PREAMBLE_MIN_BYTES = 4; // Minimum number of preamble bytes for reception.

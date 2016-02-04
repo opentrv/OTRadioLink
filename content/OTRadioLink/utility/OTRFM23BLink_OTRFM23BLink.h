@@ -55,6 +55,8 @@ namespace OTRFM23BLink
     // All foreground RFM23B access should be protected from interrupts
     // but this code's ISR that may interfere with (eg) register access.
 
+    // See end for library of common configurations.
+
     // Base class for RFM23B radio link hardware driver.
     // Neither re-entrant nor ISR-safe except where stated.
     // Contains elements that do not depend on template parameters.
@@ -101,16 +103,6 @@ namespace OTRFM23BLink
             // in Flash/PROGMEM, which is cast to a void* for OTRadioChannelConfig::config.
             // Type of one channel's array of register pairs.
             typedef const uint8_t RFM23_Reg_Values_t[][2] PROGMEM;
-
-            // Register settings for some common uses.
-            // Register settings for Milenko-special 868.5MHz (EU band 48) GFSK 57.6kbps circa 2016/01.
-//            static const uint8_t _regValuesGFSK[][2] PROGMEM;
-            static const RFM23_Reg_Values_t StandardRegSettingsGFSK;
-            // Register settings for FS20 (FHT8B) 868.35MHz (EU band 48) OOK 5kbps carrier, no packet handler.
-//            static const uint8_t _regValuesOOK[][2] PROGMEM;
-            static const RFM23_Reg_Values_t StandardRegSettingsOOK;
-
-            // Milenko const OTRadioChannelConfig configChannel[2];
 
         protected:
             // Currently configured channel; starts at default 0.
@@ -822,6 +814,25 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
 #define OTRFM23BLINK_NO_VIRT_DEST // Beware, no virtual destructor so be careful of use via base pointers.
 #endif
         };
+
+
+    // Library of common RFM23B configurations.
+    // Only link in (refer to) those required at run-time.
+
+    // Minimal register settings for FS20 (FHT8V) compatible 868.35MHz (EU band 48) OOK 5kbps carrier, no packet handler.
+    // Provide RFM22/RFM23 register settings for use with FHT8V in Flash memory.
+    // Consists of a sequence of (reg#,value) pairs terminated with a 0xff register number.  The reg#s are <128, ie top bit clear.
+    // Magic numbers c/o Mike Stirling!
+    // Note that this assumes default register settings in the RFM23B when powered up.
+    extern const OTRFM23BLinkBase::RFM23_Reg_Values_t FHT8V_RFM23_Reg_Values;
+
+    // Full register settings for 868.5MHz (EU band 48) GFSK 57.6kbps.
+    // Full config including all default values, so safe for dynamic switching.
+    extern const OTRFM23BLinkBase::RFM23_Reg_Values_t StandardRegSettingsGFSK57600;
+
+    // Full register settings for FS20 (FHT8B) 868.35MHz (EU band 48) OOK 5kbps carrier, no packet handler.
+    // Full config including all default values, so safe for dynamic switching.
+    extern const OTRFM23BLinkBase::RFM23_Reg_Values_t StandardRegSettingsOOK5000;
 
     }
 #endif
