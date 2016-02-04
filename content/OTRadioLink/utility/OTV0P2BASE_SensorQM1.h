@@ -32,6 +32,11 @@ namespace OTV0P2BASE
  EXPERIMENTAL!!! API IS SUBJECT TO CHANGE!
 
  Functionality and code only enabled if ENABLE_VOICE_SENSOR is defined.
+
+   @todo   Check functions:
+               - setPossOccCallback
+               - isUnavailable?
+               - isVoiceDetected (should the sensors have a common api?)
  */
 // Sensor for supply (eg battery) voltage in millivolts.
 class VoiceDetectionQM1 : public OTV0P2BASE::SimpleTSUint8Sensor
@@ -52,11 +57,14 @@ class VoiceDetectionQM1 : public OTV0P2BASE::SimpleTSUint8Sensor
 //    // Lock out time after interrupt
 //    // only needs to be > 10secs, but go for between 2 mins to make sure (we have a 4 min cycle anyway)
 //    static const uint8_t lockingPeriod = 2;
+    // 'Possible occupancy' callback function (for moderate confidence of human presence).
+    // If not NULL, is called when this sensor detects indications of occupancy.
+    void (*possOccCallback)();
 
 
   public:
     // Initialise to cautious values.
-    VoiceDetectionQM1() : count(0), isDetected(false) { }
+    VoiceDetectionQM1() : count(0), isDetected(false), possOccCallback(NULL) { }
 
     // Force a read/poll of the voice level and return the value sensed.
     // Potentially expensive/slow.
@@ -72,6 +80,10 @@ class VoiceDetectionQM1 : public OTV0P2BASE::SimpleTSUint8Sensor
     // else another interrupt handler in the chain may be called
     // to attempt to clear the interrupt.
     virtual bool handleInterruptSimple();
+
+    // Set 'possible occupancy' callback function (for moderate confidence of human presence); NULL for no callback.
+    void setPossOccCallback(void (*possOccCallback_)()) { possOccCallback = possOccCallback_; }
+
 
     // Returns true if voice has been detected in this or previous poll period.
     bool isVoiceDetected() { return(isDetected); }

@@ -65,6 +65,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 #include "utility/OTV0P2BASE_SensorTMP112.h"
 #include "utility/OTV0P2BASE_SensorSHT21.h"
 #include "utility/OTV0P2BASE_SensorDS18B20.h"
+#include "utility/OTV0P2BASE_SensorQM1.h"
 #include "utility/OTV0P2BASE_SensorOccupancy.h"
 
 // Basic immutable GPIO assignments and similar.
