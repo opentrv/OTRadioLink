@@ -834,5 +834,6 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
     // Full config including all default values, so safe for dynamic switching.
     extern const OTRFM23BLinkBase::RFM23_Reg_Values_t StandardRegSettingsOOK5000;
 
+
     }
 #endif
