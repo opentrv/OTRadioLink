@@ -134,6 +134,14 @@ namespace OTRadioLink
         // +------+--------+----+----------------+
         static const uint8_t minFrameSize = 4;
 
+        // Minimum possible frame size is 4, excluding fl byte.
+        // Minimal frame (excluding logical leading length fl byte) is:
+        //   type, seq/idlen, zero-length ID, bl, zero-length body, 1-byte trailer.
+        // +------+--------+----+----------------+
+        // | type | seqidl | bl | 1-byte-trailer |
+        // +------+--------+----+----------------+
+        static const uint8_t minFrameSize = 4;
+
         // Maximum (small) frame size is 63, excluding fl byte.
         static const uint8_t maxSmallFrameSize = 63;
         // Frame length excluding/after this byte [0,63]; zero indicates an invalid frame.
