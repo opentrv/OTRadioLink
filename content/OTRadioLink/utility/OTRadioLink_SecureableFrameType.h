@@ -73,13 +73,14 @@ namespace OTRadioLink
         // Frame types < 32/0x20 (ignoring secure bit) are defined as local-use-only.
         FTS_MAX_LOCAL_TYPE              = 31,
         // Frame types of 32/0x20 or above are reserved to OpenTRV to define.
-        FTS_MAN_PUBLIC_TYPE             = 32,
+        FTS_MIN_PUBLIC_TYPE             = 32,
 
-        // "I'm alive" message with empty (zero-length) message body.
-        // Same crypto algorithm as 'O' frame type to be used when secure.
+        // "I'm alive" / beacon message generally with empty (zero-length) message body.
+        // Uses same crypto algorithm as 'O' frame type when secure.
         // This message can be sent asynchronously,
         // or after a short randomised delay in response to a broadcast liveness query.
-        // ID should not be zero length as this makes little sense anonymously.
+        // ID should usually not be zero length (or any non-unique prefix)
+        // as the computational burden on the receiver could be large.
         FTS_ALIVE                       = '!',
 
         // OpenTRV basic valve/sensor leaf-to-hub frame (secure if high-bit set).
@@ -107,6 +108,11 @@ namespace OTRadioLink
     // and to convert to and from wire format.
     // All of this header should be (in wire format) authenticated for secure frames.
     // Note: fl = hl-1 + bl + tl = 3+il + bl + tl
+    //
+    // Frame format excluding logical leading length (fl) byte:
+    // +------+--------+-----------------+----+--------------------+------------------+
+    // | type | seqidl | ID [0,15] bytes | bl | body [0,254] bytes | trailer 1+ bytes |
+    // +------+--------+-----------------+----+--------------------+------------------+
     struct SecurableFrameHeader
         {
         // Create an instance as an invalid frame header (invalid length and ID).
@@ -116,6 +122,14 @@ namespace OTRadioLink
         // This is only reliable if all manipulation of struct content
         // is by the member functions.
         bool isInvalid() const { return(0 == fl); }
+
+        // Minimum possible frame size is 4, excluding fl byte.
+        // Minimal frame (excluding logical leading length fl byte) is:
+        //   type, seq/idlen, zero-length ID, bl, zero-length body, 1-byte trailer.
+        // +------+--------+----+----------------+
+        // | type | seqidl | bl | 1-byte-trailer |
+        // +------+--------+----+----------------+
+        static const uint8_t minFrameSize = 4;
 
         // Maximum (small) frame size is 63, excluding fl byte.
         static const uint8_t maxSmallFrameSize = 63;
