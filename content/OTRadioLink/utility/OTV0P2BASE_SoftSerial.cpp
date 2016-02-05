@@ -49,7 +49,7 @@ void OTSoftSerial::begin(uint16_t _baud)
     halfDelay = bitCycles/2-readTuning;
     fullDelay = bitCycles;
 
-    pinMode(rxPin, INPUT);
+    pinMode(rxPin, INPUT_PULLUP);
     pinMode(txPin, OUTPUT);
     fastDigitalWrite(txPin, HIGH);    // set txPin to high
 }
@@ -59,8 +59,8 @@ void OTSoftSerial::begin(uint16_t _baud)
  */
 void OTSoftSerial::end()
 {
-    fastDigitalWrite(txPin, LOW);    // set txPin to input with no pullup
-    pinMode(txPin, INPUT);
+    // set txPin to input with pullup to prevent floating pins
+    pinMode(txPin, INPUT_PULLUP);
 }
 
 /**
