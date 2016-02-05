@@ -462,17 +462,13 @@ namespace OTRadioLink
     // Returns number of bytes written to buffer, or 0 in case of error.
     // Note that the frame will be 5 + ID-length (up to maxIDLength) bytes,
     // so the buffer must be large enough to accommodate that.
-    //  * sfh  workspace for constructing header,
-    //        also extracts the previous sequence number and increments before using,
-    //        so that sending a series of (insecure) frames with the same sfh instance
-    //        will generate a contiguous stream of sequence numbers
-    //        in the absence of errors
     //  * buf  buffer to which is written the entire frame including trailer; never NULL
     //  * buflen  available length in buf; if too small then this routine will fail (return 0)
+    //  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
     //  * id_ / il_  ID bytes (and length) to go in the header
     static const uint8_t generateInsecureBeaconMaxBufSize = 5 + SecurableFrameHeader::maxIDLength;
-    uint8_t generateInsecureBeacon(SecurableFrameHeader &sfh,
-                                    uint8_t *buf, uint8_t buflen,
+    uint8_t generateInsecureBeacon(uint8_t *buf, uint8_t buflen,
+                                    const uint8_t seqNum_,
                                     const uint8_t *id_, uint8_t il_);
 
 

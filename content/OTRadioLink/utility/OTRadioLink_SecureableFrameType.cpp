@@ -510,24 +510,19 @@ bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(void *const state,
 // Returns number of bytes written to buffer, or 0 in case of error.
 // Note that the frame will be at least 4 + ID-length (up to maxIDLength) bytes,
 // so the buffer must be large enough to accommodate that.
-//  * sfh  workspace for constructing header,
-//        also extracts the previous sequence number and increments before using,
-//        so that sending a series of (insecure) frames with the same sfh instance
-//        will generate a contiguous stream of sequence numbers
-//        in the absence of errors
 //  * buf  buffer to which is written the entire frame including trailer; never NULL
 //  * buflen  available length in buf; if too small then this routine will fail (return 0)
+//  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
 //  * id_ / il_  ID bytes (and length) to go in the header
-uint8_t generateInsecureBeacon(SecurableFrameHeader &sfh,
-                                uint8_t *const buf, const uint8_t buflen,
+uint8_t generateInsecureBeacon(uint8_t *const buf, const uint8_t buflen,
+                                const uint8_t seqNum_,
                                 const uint8_t *const id_, const uint8_t il_)
     {
-    // Increment the old sequence number to get the new one.
-    const uint8_t newSeqNum = (sfh.getSeq() + 1) & 0xf;
+    SecurableFrameHeader sfh;
     // "I'm Alive!" / beacon message.
     return(encodeNonsecureSmallFrame(buf, buflen,
                                     OTRadioLink::FTS_ALIVE,
-                                    newSeqNum,
+                                    seqNum_,
                                     id_, il_,
                                     NULL, 0));
     }

@@ -737,6 +737,14 @@ static void testBeaconEncoding()
   AssertIsEqual(0x00, buf[2]);
   AssertIsEqual(0x00, buf[3]);
   AssertIsEqual(0x65, buf[4]);
+  // Generate 0-length-ID beacon automatically on seq # 1.
+  const uint8_t b1 = OTRadioLink::generateInsecureBeacon(sfh, buf, sizeof(buf), NULL, 0);
+  AssertIsEqual(5, b1);
+  AssertIsEqual(0x04, buf[0]);
+  AssertIsEqual(0x21, buf[1]);
+  AssertIsEqual(0x10, buf[2]);
+  AssertIsEqual(0x00, buf[3]);
+  AssertIsEqual(0x65, buf[4]); // FIXME
   }
 
 
