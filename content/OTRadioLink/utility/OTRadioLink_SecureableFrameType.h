@@ -134,14 +134,6 @@ namespace OTRadioLink
         // +------+--------+----+----------------+
         static const uint8_t minFrameSize = 4;
 
-        // Minimum possible frame size is 4, excluding fl byte.
-        // Minimal frame (excluding logical leading length fl byte) is:
-        //   type, seq/idlen, zero-length ID, bl, zero-length body, 1-byte trailer.
-        // +------+--------+----+----------------+
-        // | type | seqidl | bl | 1-byte-trailer |
-        // +------+--------+----+----------------+
-        static const uint8_t minFrameSize = 4;
-
         // Maximum (small) frame size is 63, excluding fl byte.
         static const uint8_t maxSmallFrameSize = 63;
         // Frame length excluding/after this byte [0,63]; zero indicates an invalid frame.
@@ -481,13 +473,6 @@ namespace OTRadioLink
     extern uint8_t generateInsecureBeacon(SecurableFrameHeader &sh,
                                         uint8_t *buf, uint8_t buflen,
                                         const uint8_t *id_, uint8_t il_);
-//      // "I'm Alive!" message with 1-byte ID should succeed and be of full header length (5).
-//  AssertIsEqual(5, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
-//                                               false, OTRadioLink::FTS_ALIVE,
-//                                               OTV0P2BASE::randRNG8(),
-//                                               id, 1, // Minimal (non-empty) ID.
-//                                               0, // No payload.
-//                                               1));
 
 
     }
