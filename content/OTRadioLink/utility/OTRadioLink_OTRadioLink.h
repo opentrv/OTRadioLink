@@ -69,7 +69,7 @@ namespace OTRadioLink
                 config(_config), isFull(_isFull), isRX(_isRX), isTX(_isTX), isAuth(_isAuth), isEnc(_isEnc) { }
             // Opaque configuration dependent on radio type.
             const void *config;
-            // True if this is a full radio configuration, else partial/delta.
+            // True if this is a full radio configuration, including default register values, else partial/delta.
             const bool isFull:1;
             // True if this configuration is/supports RX.  For many radios TX/RX may be exclusive.
             const bool isRX:1;
