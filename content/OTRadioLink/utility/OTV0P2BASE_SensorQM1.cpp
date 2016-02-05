@@ -33,7 +33,7 @@ namespace OTV0P2BASE
 // Strictly positive.
 // DHD20151119: even now it seems a threshold of >= 2 is needed to avoid false positives.
 // DE20160101:  Lowered detection threshold as new boards have lower sensitivity
-static const uint8_t voiceDetectionThreshold = 4;
+static const uint8_t voiceDetectionThreshold = 4; // TODO move into class?
 
 // Force a read/poll of the voice level and return the value sensed.
 // Thread-safe and ISR-safe.
@@ -42,9 +42,9 @@ uint8_t VoiceDetectionQM1::read()
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
   {
     isDetected = ((value = count) >= voiceDetectionThreshold);
-    // clear count and detection flag
-    // isTriggered = false;
-    count = 0;
+    // clear count every 4 mins
+    // sensor is only triggered every 4 mins so this *should* work
+    if( !(getMinutesSinceMidnightLT() & 0x03) ) count = 0; // FIXME ugly hack. When are we going to have proper sensor read scheduling?
   }
   return(value);
 }
@@ -65,13 +65,9 @@ bool VoiceDetectionQM1::handleInterruptSimple()
       isDetected = true;
       // Don't regard this as a very strong indication,
       // as it could be a TV or radio on in the room.
-//      Occupancy.markAsPossiblyOccupied();
+      possOccCallback();
     }
   }
-
-  //    // Flag that interrupt has occurred
-  //    endOfLocking = OTV0P2BASE::getMinutesSinceMidnightLT() + lockingPeriod;
-  //    isTriggered = true;
   // No further work to be done to 'clear' interrupt.
   return (true);
 }

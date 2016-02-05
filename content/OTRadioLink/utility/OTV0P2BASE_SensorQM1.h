@@ -22,6 +22,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 
 #include "OTV0P2BASE_Util.h"
 #include "OTV0P2BASE_Sensor.h"
+#include "OTV0P2BASE_Serial_IO.h"
 
 namespace OTV0P2BASE
 {
@@ -72,7 +73,7 @@ class VoiceDetectionQM1 : public OTV0P2BASE::SimpleTSUint8Sensor
     virtual uint8_t read();
 
     // Returns preferred poll interval (in seconds); non-zero.
-    virtual uint8_t preferredPollInterval_s() const { return(60); }
+    virtual uint8_t preferredPollInterval_s() const { return(240); }
 
     // Handle simple interrupt.
     // Fast and ISR (Interrupt Service Routines) safe.
