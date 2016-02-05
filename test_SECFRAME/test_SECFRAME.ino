@@ -119,6 +119,10 @@ static const int AES_KEY_SIZE = 128; // in bits
 static const int GCM_NONCE_LENGTH = 12; // in bytes
 static const int GCM_TAG_LENGTH = 16; // in bytes (default 16, 12 possible)
 
+// All-zeros const 16-byte/128-bit key.
+// Can be used for other purposes.
+static const uint8_t zeroKey[16] = { };
+
 // Test quick integrity checks, for TX and RX.
 static void testFrameQIC()
   {
@@ -473,10 +477,6 @@ static void testSimplePadding()
   AssertIsEqual(db0, buf[0]);
   }
 
-
-// All-zeros 16-byte/128-bit key.
-static const uint8_t zeroKey[16] = { };
-
 // Test simple fixed-size NULL enc/dec behaviour.
 static void testSimpleNULLEncDec()
   {
@@ -726,25 +726,32 @@ static void testSecureSmallFrameEncoding()
 static void testBeaconEncoding()
   {
   Serial.println("BeaconEncoding");
-  OTRadioLink::SecurableFrameHeader sfh;
   uint8_t buf[OTRadioLink::generateInsecureBeaconMaxBufSize];
   // Generate zero-length-ID beacon.
-  // Should also be sequence number 0 (if sfh is non-static).
-  const uint8_t b0 = OTRadioLink::generateInsecureBeacon(sfh, buf, sizeof(buf), NULL, 0);
+  const uint8_t b0 = OTRadioLink::generateInsecureBeacon(buf, sizeof(buf), 0, NULL, 0);
   AssertIsEqual(5, b0);
   AssertIsEqual(0x04, buf[0]);
   AssertIsEqual(0x21, buf[1]);
   AssertIsEqual(0x00, buf[2]);
   AssertIsEqual(0x00, buf[3]);
   AssertIsEqual(0x65, buf[4]);
-  // Generate 0-length-ID beacon automatically on seq # 1.
-  const uint8_t b1 = OTRadioLink::generateInsecureBeacon(sfh, buf, sizeof(buf), NULL, 0);
-  AssertIsEqual(5, b1);
-  AssertIsEqual(0x04, buf[0]);
+  // Generate maximum-length-ID beacon automatically at non-zero seq.
+  const uint8_t b1 = OTRadioLink::generateInsecureBeacon(buf, sizeof(buf), 4, zeroKey, OTRadioLink::SecurableFrameHeader::maxIDLength);
+  AssertIsEqual(13, b1);
+  AssertIsEqual(0x0c, buf[0]);
   AssertIsEqual(0x21, buf[1]);
-  AssertIsEqual(0x10, buf[2]);
+  AssertIsEqual(0x48, buf[2]);
   AssertIsEqual(0x00, buf[3]);
-  AssertIsEqual(0x65, buf[4]); // FIXME
+  AssertIsEqual(0x00, buf[4]);
+  AssertIsEqual(0x00, buf[5]);
+  AssertIsEqual(0x00, buf[6]);
+  AssertIsEqual(0x00, buf[7]);
+  AssertIsEqual(0x00, buf[8]);
+  AssertIsEqual(0x00, buf[9]);
+  AssertIsEqual(0x00, buf[10]);
+  AssertIsEqual(0x00, buf[11]);
+  AssertIsEqual(0x29, buf[12]);
+  // TODO: secure beacon...
   }
 
 
