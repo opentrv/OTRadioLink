@@ -281,7 +281,7 @@ uint8_t encodeNonsecureSmallFrame(uint8_t *const buf, const uint8_t buflen,
     }
 
 
-// Compose (encode) entire secure small frame from header params, body and CRC trailer.
+// Encode entire secure small frame from header params and body and crypto support.
 // This is a raw/partial impl that requires the IV/nonce to be supplied.
 // This uses fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t style encryption/authentication.
 // The matching decryption function should be used for decoding/verifying.
@@ -500,6 +500,36 @@ bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(void *const state,
     memcpy(plaintextOut, ciphertext, 32);
     // Done.
     return(true);
+    }
+
+
+
+// CONVENIENCE/BOILERPLATE METHODS
+
+// Create (insecure) Alive / beacon (FTS_ALIVE) frame with an empty body.
+// Returns number of bytes written to buffer, or 0 in case of error.
+// Note that the frame will be at least 4 + ID-length (up to maxIDLength) bytes,
+// so the buffer must be large enough to accommodate that.
+//  * sfh  workspace for constructing header,
+//        also extracts the previous sequence number and increments before using,
+//        so that sending a series of (insecure) frames with the same sh
+//        will generate a contiguous stream of sequence numbers
+//        in the absence of errors
+//  * buf  buffer to which is written the entire frame including trailer; never NULL
+//  * buflen  available length in buf; if too small then this routine will fail (return 0)
+//  * id_ / il_  ID bytes (and length) to go in the header
+uint8_t generateInsecureBeacon(SecurableFrameHeader &sfh,
+                                uint8_t *const buf, const uint8_t buflen,
+                                const uint8_t *const id_, const uint8_t il_)
+    {
+    // Increment the old sequence number to get the new one.
+    const uint8_t newSeqNum = (sfh.getSeq() + 1) & 0xf;
+    // "I'm Alive!" / beacon message.
+    return(encodeNonsecureSmallFrame(buf, buflen,
+                                    OTRadioLink::FTS_ALIVE,
+                                    newSeqNum,
+                                    id_, il_,
+                                    NULL, 0));
     }
 
 
