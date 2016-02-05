@@ -32,10 +32,14 @@ namespace OTV0P2BASE
 
  EXPERIMENTAL!!! API IS SUBJECT TO CHANGE!
 
+ NOTE: Currently does not have a good way of clearing its count and still
+       actually sending voice data. As a workaround, clears data every 4 mins,
+       meaning that if Txing more frequently than that, will repeat send
+       previous value
+
  Functionality and code only enabled if ENABLE_VOICE_SENSOR is defined.
 
    @todo   Check functions:
-               - setPossOccCallback
                - isUnavailable?
                - isVoiceDetected (should the sensors have a common api?)
  */
