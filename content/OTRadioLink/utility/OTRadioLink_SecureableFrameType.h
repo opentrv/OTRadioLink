@@ -134,14 +134,6 @@ namespace OTRadioLink
         // +------+--------+----+----------------+
         static const uint8_t minFrameSize = 4;
 
-        // Minimum possible frame size is 4, excluding fl byte.
-        // Minimal frame (excluding logical leading length fl byte) is:
-        //   type, seq/idlen, zero-length ID, bl, zero-length body, 1-byte trailer.
-        // +------+--------+----+----------------+
-        // | type | seqidl | bl | 1-byte-trailer |
-        // +------+--------+----+----------------+
-        static const uint8_t minFrameSize = 4;
-
         // Maximum (small) frame size is 63, excluding fl byte.
         static const uint8_t maxSmallFrameSize = 63;
         // Frame length excluding/after this byte [0,63]; zero indicates an invalid frame.
@@ -276,7 +268,8 @@ namespace OTRadioLink
         };
 
 
-    // Encode entire non-secure small frame from header params and body.
+
+    // Compose (encode) entire non-secure small frame from header params, body and CRC trailer.
     // Returns the total number of bytes written out for the frame
     // (including, and with a value one higher than the first 'fl' bytes).
     // Returns zero in case of error.
@@ -467,27 +460,20 @@ namespace OTRadioLink
 
     // Create (insecure) Alive / beacon (FTS_ALIVE) frame with an empty body.
     // Returns number of bytes written to buffer, or 0 in case of error.
-    // Note that the frame will be at least 4 + ID-length (up to maxIDLength) bytes,
+    // Note that the frame will be 5 + ID-length (up to maxIDLength) bytes,
     // so the buffer must be large enough to accommodate that.
-    //  * sh  workspace for constructing header,
+    //  * sfh  workspace for constructing header,
     //        also extracts the previous sequence number and increments before using,
-    //        so that sending a series of (insecure) frames with the same sh
+    //        so that sending a series of (insecure) frames with the same sfh instance
     //        will generate a contiguous stream of sequence numbers
-    //        in the absense of errors
+    //        in the absence of errors
     //  * buf  buffer to which is written the entire frame including trailer; never NULL
     //  * buflen  available length in buf; if too small then this routine will fail (return 0)
     //  * id_ / il_  ID bytes (and length) to go in the header
-    static const uint8_t generateInsecureBeaconBufSize = 4 + SecurableFrameHeader::maxIDLength;
-    extern uint8_t generateInsecureBeacon(SecurableFrameHeader &sh,
-                                        uint8_t *buf, uint8_t buflen,
-                                        const uint8_t *id_, uint8_t il_);
-//      // "I'm Alive!" message with 1-byte ID should succeed and be of full header length (5).
-//  AssertIsEqual(5, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
-//                                               false, OTRadioLink::FTS_ALIVE,
-//                                               OTV0P2BASE::randRNG8(),
-//                                               id, 1, // Minimal (non-empty) ID.
-//                                               0, // No payload.
-//                                               1));
+    static const uint8_t generateInsecureBeaconMaxBufSize = 5 + SecurableFrameHeader::maxIDLength;
+    uint8_t generateInsecureBeacon(SecurableFrameHeader &sfh,
+                                    uint8_t *buf, uint8_t buflen,
+                                    const uint8_t *id_, uint8_t il_);
 
 
     }

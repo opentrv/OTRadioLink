@@ -722,8 +722,22 @@ static void testSecureSmallFrameEncoding()
                ((seqNum == sfhRX.getSeq()) && (sizeof(body) == decodedBodyOutSize) && (0 == memcmp(body, decryptedBodyOut, sizeof(body))) && (0 == memcmp(id, sfhRX.id, 4))));
   }
 
-// TODO: test with EEPROM ID source (id_ == NULL) ...
-// TODO: add EEPROM prefill static routine and pad 1st trailing byte with 0xff.
+// Test encoding of beacon frames.
+static void testBeaconEncoding()
+  {
+  Serial.println("BeaconEncoding");
+  OTRadioLink::SecurableFrameHeader sfh;
+  uint8_t buf[OTRadioLink::generateInsecureBeaconMaxBufSize];
+  // Generate zero-length-ID beacon.
+  // Should also be sequence number 0 (if sfh is non-static).
+  const uint8_t b0 = OTRadioLink::generateInsecureBeacon(sfh, buf, sizeof(buf), NULL, 0);
+  AssertIsEqual(5, b0);
+  AssertIsEqual(0x04, buf[0]);
+  AssertIsEqual(0x21, buf[1]);
+  AssertIsEqual(0x00, buf[2]);
+  AssertIsEqual(0x00, buf[3]);
+  AssertIsEqual(0x65, buf[4]);
+  }
 
 
 // To be called from loop() instead of main code when running unit tests.
@@ -757,6 +771,7 @@ void loop()
   testCryptoAccess();
   testGCMVS1ViaFixed32BTextSize();
   testSecureSmallFrameEncoding();
+  testBeaconEncoding();
 
 
 
