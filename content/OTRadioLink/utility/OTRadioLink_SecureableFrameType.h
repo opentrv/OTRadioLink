@@ -111,7 +111,7 @@ namespace OTRadioLink
     //
     // Frame format excluding logical leading length (fl) byte:
     // +------+--------+-----------------+----+--------------------+------------------+
-    // | type | seqidl | ID [0,15] bytes | bl | body [0,254] bytes | trailer 1+ bytes |
+    // | type | seqidl | ID [0,15] bytes | bl | body [0,251] bytes | trailer 1+ bytes |
     // +------+--------+-----------------+----+--------------------+------------------+
     struct SecurableFrameHeader
         {
