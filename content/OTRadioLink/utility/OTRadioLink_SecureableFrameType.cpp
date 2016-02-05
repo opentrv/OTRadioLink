@@ -93,13 +93,18 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf,
     fType = secure_ ? (0x80 | (uint8_t) fType_) : (0x7f & (uint8_t) fType_);
     //  4) il <= 8 for initial implementations (internal node ID is 8 bytes)
     //  5) NOT APPLICABLE FOR ENCODE: il <= fl - 4 (ID length; minimum of 4 bytes of other overhead)
-    // ID must be of a legitimate size and have a non-NULL pointer,
-    // else if prefilled (id_ is NULL) must not start with 0xff.
-    const bool idPreFilled = (NULL == id_);
-    if((il_ > maxIDLength) || (idPreFilled && (0xff == id[0]))) { return(0); } // ERROR
+    // ID must be of a legitimate size.
+    // A non-NULL pointer is a RAM source, else an EEPROM source.
+    if(il_ > maxIDLength) { return(0); } // ERROR
     // Copy the ID length and bytes, and sequence number lsbs, to the header struct.
     seqIl = il_ | (seqNum_ << 4);
-    if(!idPreFilled) { memcpy(id, id_, il_); }
+    if(il_ > 0)
+      {
+      // Copy in ID if not zero length, from RAM or EEPROM as appropriate.
+      const bool idFromEEPROM = (NULL == id_);
+      if(!idFromEEPROM) { memcpy(id, id_, il_); }
+      else { eeprom_read_block(id, (uint8_t *)V0P2BASE_EE_START_ID, il_); }
+      }
     // Header length including frame length byte.
     const uint8_t hlifl = 4 + il_;
     // Error return if not enough space in buf for the complete encoded header.
@@ -247,6 +252,14 @@ uint8_t SecurableFrameHeader::computeNonSecureFrameCRC(const uint8_t *const buf,
 // (including, and with a value one higher than the first 'fl' bytes).
 // Returns zero in case of error.
 // The supplied buffer may have to be up to 64 bytes long.
+//
+// Parameters:
+//  * buf  buffer to which is written the entire frame including trailer/CRC; never NULL
+//  * buflen  available length in buf; if too small then this routine will fail (return 0)
+//  * fType_  frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
+//  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
+//  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
+//  * body / bl_  body data (and length)
 uint8_t encodeNonsecureSmallFrame(uint8_t *const buf, const uint8_t buflen,
                                     const FrameType_Secureable fType_,
                                     const uint8_t seqNum_,
@@ -297,7 +310,7 @@ uint8_t encodeNonsecureSmallFrame(uint8_t *const buf, const uint8_t buflen,
 //  * buflen  available length in buf; if too small then this routine will fail (return 0)
 //  * fType_  frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
 //  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
-//  * id_ / il_  ID bytes (and length) to go in the header
+//  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
 //  * body / bl_  body data (and length), before padding/encryption, no larger than ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE
 //  * iv  12-byte initialisation vector / nonce; never NULL
 //  * e  encryption function; never NULL
@@ -513,7 +526,7 @@ bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(void *const state,
 //  * buf  buffer to which is written the entire frame including trailer; never NULL
 //  * buflen  available length in buf; if too small then this routine will fail (return 0)
 //  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
-//  * id_ / il_  ID bytes (and length) to go in the header
+//  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
 uint8_t generateInsecureBeacon(uint8_t *const buf, const uint8_t buflen,
                                 const uint8_t seqNum_,
                                 const uint8_t *const id_, const uint8_t il_)

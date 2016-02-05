@@ -733,9 +733,9 @@ static void testBeaconEncoding()
   AssertIsEqual(0x04, buf[0]);
   AssertIsEqual(0x21, buf[1]);
   AssertIsEqual(0x00, buf[2]);
-  AssertIsEqual(0x00, buf[3]);
+  AssertIsEqual(0x00, buf[3]); // Body length 0.
   AssertIsEqual(0x65, buf[4]);
-  // Generate maximum-length-ID beacon automatically at non-zero seq.
+  // Generate maximum-length-zero-ID beacon automatically at non-zero seq.
   const uint8_t b1 = OTRadioLink::generateInsecureBeacon(buf, sizeof(buf), 4, zeroKey, OTRadioLink::SecurableFrameHeader::maxIDLength);
   AssertIsEqual(13, b1);
   AssertIsEqual(0x0c, buf[0]);
@@ -749,8 +749,18 @@ static void testBeaconEncoding()
   AssertIsEqual(0x00, buf[8]);
   AssertIsEqual(0x00, buf[9]);
   AssertIsEqual(0x00, buf[10]);
-  AssertIsEqual(0x00, buf[11]);
+  AssertIsEqual(0x00, buf[11]); // Body length 0.
   AssertIsEqual(0x29, buf[12]);
+  // Generate maximum-length-from-EEPROM-ID beacon automatically at non-zero seq.
+  const uint8_t b2 = OTRadioLink::generateInsecureBeacon(buf, sizeof(buf), 5, NULL, OTRadioLink::SecurableFrameHeader::maxIDLength);
+  AssertIsEqual(13, b2);
+  AssertIsEqual(0x0c, buf[0]);
+  AssertIsEqual(0x21, buf[1]);
+  AssertIsEqual(0x58, buf[2]);
+  for(uint8_t i = 0; i < OTRadioLink::SecurableFrameHeader::maxIDLength; ++i)
+    { AssertIsEqual(eeprom_read_byte((uint8_t *)(V0P2BASE_EE_START_ID + i)), buf[3 + i]); }
+  AssertIsEqual(0x00, buf[11]); // Body length 0.
+//  AssertIsEqual(0x29, buf[12]); // CRC will vary with ID.
   // TODO: secure beacon...
   }
 

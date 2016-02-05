@@ -226,11 +226,6 @@ namespace OTRadioLink
                                                uint8_t bl_,
                                                uint8_t tl_);
 
-        // Loads the node ID from the EEPROM or other non-volatile ID store.
-        // Can be called before a call to checkAndEncodeSmallFrameHeader() with id_ == NULL.
-        // Pads at end with 0xff if the EEPROM ID is shorter than the maximum 'short frame' ID.
-        uint8_t loadIDFromEEPROM();
-
         // Decode header and check parameters/validity for inbound short secureable frame.
         // The buffer starts with the fl frame length byte.
         //
@@ -280,7 +275,7 @@ namespace OTRadioLink
     //  * buflen  available length in buf; if too small then this routine will fail (return 0)
     //  * fType_  frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
     //  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
-    //  * id_ / il_  ID bytes (and length) to go in the header
+    //  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
     //  * body / bl_  body data (and length)
     uint8_t encodeNonsecureSmallFrame(uint8_t *buf, uint8_t buflen,
                                         FrameType_Secureable fType_,
@@ -405,7 +400,7 @@ namespace OTRadioLink
     //  * buflen  available length in buf; if too small then this routine will fail (return 0)
     //  * fType_  frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
     //  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
-    //  * id_ / il_  ID bytes (and length) to go in the header
+    //  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
     //  * body / bl_  body data (and length), before padding/encryption, no larger than ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE
     //  * iv  12-byte initialisation vector / nonce; never NULL
     //  * e  encryption function; never NULL
@@ -465,7 +460,7 @@ namespace OTRadioLink
     //  * buf  buffer to which is written the entire frame including trailer; never NULL
     //  * buflen  available length in buf; if too small then this routine will fail (return 0)
     //  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
-    //  * id_ / il_  ID bytes (and length) to go in the header
+    //  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
     static const uint8_t generateInsecureBeaconMaxBufSize = 5 + SecurableFrameHeader::maxIDLength;
     uint8_t generateInsecureBeacon(uint8_t *buf, uint8_t buflen,
                                     const uint8_t seqNum_,
