@@ -62,12 +62,18 @@ namespace OTRadioLink
     //     { printRXMsg(&Serial, buf, len); }
     void dumpRXMsg(const uint8_t *buf, const uint8_t len);
 
+    // Per-channel immutable configuration.
+    // Includes some opaque data purely for the radio module implementation.
+    // Includes public flags indicating features of the channel,
+    // eg whether it inherently provides security features,
+    // and whether it is framed (eg using the hardware packet handler) or not.
     typedef class OTRadioChannelConfig
         {
         public:
-            OTRadioChannelConfig(const void *_config, bool _isFull, bool _isRX, bool _isTX, bool _isAuth = false, bool _isEnc = false) :
-                config(_config), isFull(_isFull), isRX(_isRX), isTX(_isTX), isAuth(_isAuth), isEnc(_isEnc) { }
+            OTRadioChannelConfig(const void *_config, bool _isFull, bool _isRX = true, bool _isTX = true, bool _isAuth = false, bool _isEnc = false, bool _isUnframed = false) :
+                config(_config), isFull(_isFull), isRX(_isRX), isTX(_isTX), isAuth(_isAuth), isEnc(_isEnc), isUnframed(_isUnframed) { }
             // Opaque configuration dependent on radio type.
+            // Nothing other than the radio module should attempt to access/use this.
             const void *config;
             // True if this is a full radio configuration, including default register values, else partial/delta.
             const bool isFull:1;
@@ -75,10 +81,12 @@ namespace OTRadioLink
             const bool isRX:1;
             // True if this configuration is/supports TX.  For many radios TX/RX may be exclusive.
             const bool isTX:1;
-            // True if this bearer provides an authenticated/hard-to-spoof link.
+            // True if this bearer inherently provides an authenticated/hard-to-spoof link.
             const bool isAuth:1;
-            // True if this bearer provides an encrypted/secure/private link.
+            // True if this bearer inherently provides an encrypted/secure/private link.
             const bool isEnc:1;
+            // True if this bearer does not provide framing including explicit (leading) frame length.
+            const bool isUnframed:1;
         } OTRadioChannelConfig_t;
 
     // Type of a fast ISR-safe filter routine to quickly reject uninteresting RX frames.
@@ -125,6 +133,7 @@ namespace OTRadioLink
             int8_t nChannels;
             // Per-channel configuration, read-only.
             // This is the pointer to the start of an array of channel configurations.
+            // Cannot be NULL after successful configure() with nChannels > 0.
             const OTRadioChannelConfig * channelConfig;
 
             // Current recent/short count of dropped messages due to RX overrun.
@@ -193,14 +202,21 @@ namespace OTRadioLink
             // The base/0 configuration will be applied at begin().
             // The supplied configuration lifetime must be at least that of this OTRadioLink instance
             // as the pointer will be retained internally.
-            // Some radios will have everything hardwired
-            // and can be called with (1, NULL) and will set everything internally.
             bool configure(int8_t channels, const OTRadioChannelConfig_t * const configs)
                 {
                 if((channels <= 0) || (NULL == configs)) { return(false); }
                 nChannels = channels;
                 channelConfig = configs;
                 return(_doconfig());
+                }
+
+            // Get (read-only) config for specified channel (defaulting to 0).
+            // Returns NULL if no channels set or invalid channel requested.
+            // This includes the flags for such features as framing and inherent security.
+            const OTRadioChannelConfig_t *getChannelConfig(const uint8_t channel = 0) const
+                {
+                if(channel >= nChannels) { return(NULL); }
+                return(channelConfig + channel);
                 }
 
             // Begin access to (initialise) this radio link if applicable and not already begun.
