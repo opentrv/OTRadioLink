@@ -110,7 +110,7 @@ public:
      */
     void getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen) const;
     uint8_t getRXMsgsQueued() const;
-    const volatile uint8_t *peekRXMsg(uint8_t &len) const;
+    const volatile uint8_t *peekRXMsg() const;
     void removeRXMsg() {};
 
 

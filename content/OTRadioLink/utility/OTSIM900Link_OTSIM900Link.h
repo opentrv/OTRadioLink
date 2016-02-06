@@ -286,7 +286,7 @@ public:    // define abstract methods here
         maxTXMsgLen = 64;
     };
     virtual uint8_t getRXMsgsQueued() const {return 0;}
-    virtual const volatile uint8_t *peekRXMsg(uint8_t &len) const {len = 0; return 0;}
+    virtual const volatile uint8_t *peekRXMsg() const {return 0;}
     virtual void removeRXMsg() {}
 
 
