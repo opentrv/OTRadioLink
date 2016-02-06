@@ -270,7 +270,7 @@ static void allISRRXQueue(OTRadioLink::ISRRXQueue &q)
     // Try to retrieve the queued message.
     AssertIsTrue(!q.isEmpty());
     AssertIsTrue(NULL != q.peekRXMsg(len));
-    const volatile uint8_t *pb = q.peekRXMsg(len);
+    const volatile uint8_t *pb = q.peekRXMsg(len); //
     AssertIsTrue(NULL != pb);
     AssertIsEqual(1, len);
     AssertIsEqual(1, q.getRXMsgsQueued());
@@ -368,6 +368,7 @@ static void testISRRXQueue1Deep()
 static void testISRRXQueueVarLenMsg()
   {
   Serial.println("ISRRXQueueVarLenMsg");
+  OTV0P2BASE::flushSerialProductive(); // Flush all prior serial output as this may mess with CPU clock and thus USART timing...
   OTRadioLink::ISRRXQueueVarLenMsg<TEST_MIN_Q_MSG_SIZE, 2> q;
   allISRRXQueue(q);
   // Some type/impl-specific whitebox tests.
@@ -565,15 +566,15 @@ static void testCurrentSenseValveMotorDirect()
 
   // FIRST POLL(S) AFTER POWER_UP; RETRACTING THE PIN.
   csvmd1.poll();
-  // Whitebox test of internal state: should be valvePinWithdrawing.
-  AssertIsEqual(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawing, csvmd1.getState());
-  // More polls shouldn't make any difference initially.
-  csvmd1.poll();
-  // Whitebox test of internal state: should be valvePinWithdrawing.
-  AssertIsEqual(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawing, csvmd1.getState());
-  csvmd1.poll();
-  // Whitebox test of internal state: should be valvePinWithdrawing.
-  AssertIsEqual(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawing, csvmd1.getState());
+//  // Whitebox test of internal state: should be valvePinWithdrawing.
+//  AssertIsEqual(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawing, csvmd1.getState());
+//  // More polls shouldn't make any difference initially.
+//  csvmd1.poll();
+//  // Whitebox test of internal state: should be valvePinWithdrawing.
+//  AssertIsEqual(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawing, csvmd1.getState());
+//  csvmd1.poll();
+//  // Whitebox test of internal state: should be valvePinWithdrawing.
+//  AssertIsEqual(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawing, csvmd1.getState());
 //  // Simulate hitting end-stop (high current).
 //  dhw.currentHigh = true;
 //  AssertIsTrue(dhw.isCurrentHigh());
@@ -628,12 +629,11 @@ static void testEEPROM()
   }
 
 // Check that the various forms of sleep don't break anything or hang.
-// TODO: check that user of async timer 2 doesn't cause problems.
+// TODO: check that use of async timer 2 doesn't cause problems.
 static void testSleep()
   {
   Serial.println("Sleep");
-  // Flush serial output to avoid TXing while messing with (CPU and serial) clock.
-  Serial.flush();
+  OTV0P2BASE::flushSerialProductive(); // Flush all prior serial output as this may mess with CPU clock and thus UART timing...
   for(uint8_t i = 0; i < 25; ++i)
     {
     const uint8_t to = OTV0P2BASE::randRNG8NextBoolean() ? WDTO_15MS : WDTO_60MS;
@@ -699,7 +699,7 @@ static void testRNG8()
 void testEntropyGathering()
   {
   Serial.println("EntropyGathering");
-
+  OTV0P2BASE::flushSerialProductive(); // Flush all prior serial output as this may mess with CPU clock and thus UART timing...
   // Test WDT jitter: assumed about 1 bit of entropy per call/result.
   //V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("jWDT... ");
   const uint8_t jWDT = OTV0P2BASE::clockJitterWDT();
