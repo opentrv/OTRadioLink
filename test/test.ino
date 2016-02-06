@@ -153,9 +153,7 @@ static void testNullRadio()
 	// getRXMsgsQueued
 	AssertIsEqual(0, radio.getRXMsgsQueued());
 	// peekRXMsg
-	length = 10;
-	AssertIsEqual(NULL, (int)radio.peekRXMsg(length));
-	AssertIsEqual(0, length);
+	AssertIsEqual(NULL, (int)radio.peekRXMsg());
 	// sendRaw
 	AssertIsTrue(radio.sendRaw(buffer, sizeof(buffer)));
 }
@@ -228,6 +226,7 @@ static void testFrameFilterTrailingZeros()
   }
 
 // Do some basic exercise of the RFM23B class, eg that it compiles.
+// DHD20160206: possibly causing a crash periodically when run on an UNO.
 static void testRFM23B()
   {
   Serial.println("RFM23B");
@@ -256,8 +255,7 @@ static void allISRRXQueue(OTRadioLink::ISRRXQueue &q)
     q.getRXCapacity(queueRXMsgsMin, maxRXMsgLen);
     AssertIsTrue(q.isEmpty());
     AssertIsTrue(!q.isFull());
-    uint8_t len;
-    AssertIsTrue(NULL == q.peekRXMsg(len));
+    AssertIsTrue(NULL == q.peekRXMsg());
     AssertIsTrueWithErr((queueRXMsgsMin >= 1), queueRXMsgsMin); 
     AssertIsTrueWithErr((maxRXMsgLen >= TEST_MIN_Q_MSG_SIZE), maxRXMsgLen); 
     AssertIsEqual(0, q.getRXMsgsQueued());
@@ -269,21 +267,23 @@ static void allISRRXQueue(OTRadioLink::ISRRXQueue &q)
     q._loadedBuf(1);
     // Try to retrieve the queued message.
     AssertIsTrue(!q.isEmpty());
-    AssertIsTrue(NULL != q.peekRXMsg(len));
-    const volatile uint8_t *pb = q.peekRXMsg(len); //
+    AssertIsTrue(NULL != q.peekRXMsg());
+    const volatile uint8_t *pb = q.peekRXMsg();
     AssertIsTrue(NULL != pb);
-    AssertIsEqual(1, len);
     AssertIsEqual(1, q.getRXMsgsQueued());
+    // Ensure that byte 'before' buffer start is frame length...
+    AssertIsEqual(1, pb[-1]);
+    // Ensure that buffer content is correct.
     AssertIsEqual(r1, pb[0]);
     q.removeRXMsg();
     // Check that the queue is empty again.
     AssertIsEqual(0, q.getRXMsgsQueued());
     AssertIsTrue(q.isEmpty());
     AssertIsTrue(!q.isFull());
-    AssertIsTrue(NULL == q.peekRXMsg(len));
+    AssertIsTrue(NULL == q.peekRXMsg());
     q.removeRXMsg();
     AssertIsTrue(q.isEmpty());
-    
+
     // Fill the queue up and empty it again, a few times!
     for(int8_t i = 1 + (3 & OTV0P2BASE::randRNG8() % TEST_MIN_Q_MSG_SIZE); i-- > 0; )
       {
@@ -293,7 +293,7 @@ static void allISRRXQueue(OTRadioLink::ISRRXQueue &q)
         {
         AssertIsEqual(queued, q.getRXMsgsQueued());
         uint8_t bufFull[TEST_MIN_Q_MSG_SIZE];
-        len = 1 + (OTV0P2BASE::randRNG8() % TEST_MIN_Q_MSG_SIZE);
+        const uint8_t len = 1 + (OTV0P2BASE::randRNG8() % TEST_MIN_Q_MSG_SIZE);
         volatile uint8_t *ibF = q._getRXBufForInbound();
         ibF[0] = queued;
         ibF[len-1] = queued;
@@ -307,10 +307,12 @@ static void allISRRXQueue(OTRadioLink::ISRRXQueue &q)
         {
         AssertIsEqual(queued, q.getRXMsgsQueued());
         AssertIsTrue(!q.isEmpty());
-        uint8_t len;
-        const volatile uint8_t *pb = q.peekRXMsg(len);
+        const volatile uint8_t *pb = q.peekRXMsg();
         AssertIsTrueWithErr(NULL != pb, queued);
+        // Ensure that byte 'before' buffer start is frame length...
+        const uint8_t len = pb[-1];
         AssertIsTrue((len > 0) && (len <= TEST_MIN_Q_MSG_SIZE));
+        // Ensure that buffer content is correct.
         AssertIsEqual(dq, pb[0]);
         AssertIsEqual(dq, pb[len - 1]);
         q.removeRXMsg();
@@ -324,7 +326,7 @@ static void allISRRXQueue(OTRadioLink::ISRRXQueue &q)
     AssertIsEqual(0, q.getRXMsgsQueued());
     AssertIsTrue(q.isEmpty());
     AssertIsTrue(!q.isFull());
-    AssertIsTrue(NULL == q.peekRXMsg(len));
+    AssertIsTrue(NULL == q.peekRXMsg());
     q.removeRXMsg();
     AssertIsTrue(q.isEmpty());
     }
@@ -353,10 +355,11 @@ static void testISRRXQueue1Deep()
   AssertIsTrue(NULL == q._getRXBufForInbound());
   // Try to retrieve the queued message.
   AssertIsEqual(1, q.getRXMsgsQueued());
-  uint8_t len;
-  const volatile uint8_t *pb = q.peekRXMsg(len);
+  const volatile uint8_t *pb = q.peekRXMsg();
   AssertIsTrue(NULL != pb);
+  AssertIsEqual(2, pb[-1]); // Length.
   AssertIsEqual(r1, pb[0]);
+  AssertIsEqual(0, pb[1]);
   q.removeRXMsg();
   // Check that the queue is empty again.
   AssertIsTrue(q.isEmpty());
@@ -415,9 +418,9 @@ static void testISRRXQueueVarLenMsg()
   AssertIsEqual((uint8_t)~r2, bp[5]);
   // Attempt to unqueue the first message.
   uint8_t len;
-  const volatile uint8_t *pb = q0.peekRXMsg(len);
+  const volatile uint8_t *pb = q0.peekRXMsg();
   AssertIsTrue(NULL != pb);
-  AssertIsEqual(2, len);
+  AssertIsEqual(2, pb[-1]);
   AssertIsEqual(r1, pb[0]);
   AssertIsEqual((uint8_t)~r1, pb[1]);
   AssertIsTrue(!q0.isEmpty());
@@ -444,9 +447,9 @@ static void testISRRXQueueVarLenMsg()
   AssertIsEqual(1, bp[0]);
   AssertIsEqual(r3, bp[1]);
   // Attempt to unqueue the 2nd message.
-  pb = q0.peekRXMsg(len);
+  pb = q0.peekRXMsg();
   AssertIsTrue(NULL != pb);
-  AssertIsEqual(2, len);
+  AssertIsEqual(2, pb[-1]);
   AssertIsEqual(r2, pb[0]);
   AssertIsEqual((uint8_t)~r2, pb[1]);
   AssertIsTrue(!q0.isEmpty());
@@ -460,9 +463,9 @@ static void testISRRXQueueVarLenMsg()
   AssertIsEqual(1, c);
   AssertIsEqual(2, n); AssertIsEqual(0, o); // Contingent on impl.
   // Attempt to unqueue the 3rd message.
-  pb = q0.peekRXMsg(len);
+  pb = q0.peekRXMsg();
   AssertIsTrue(NULL != pb);
-  AssertIsEqual(1, len);
+  AssertIsEqual(1, pb[-1]);
   AssertIsEqual(r3, pb[0]);
   AssertIsTrue(!q0.isEmpty());
   AssertIsTrue(!q0.isFull());
@@ -479,19 +482,6 @@ static void testISRRXQueueVarLenMsg()
 
 
 // OTRadValve
-
-class DummyHardwareDriver : public OTRadValve::HardwareMotorDriverInterface
-  {
-  public:
-    // Detect if end-stop is reached or motor current otherwise very high.
-    virtual bool isCurrentHigh(OTRadValve::HardwareMotorDriverInterface::motor_drive mdir = motorDriveOpening) const { return(currentHigh); }
-  public:
-    DummyHardwareDriver() : currentHigh(false) { }
-    virtual void motorRun(uint8_t maxRunTicks, motor_drive dir, OTRadValve::HardwareMotorDriverInterfaceCallbackHandler &callback)
-      { }
-    // isCurrentHigh() returns this value.
-    bool currentHigh;
-  };
 
 // Test calibration calculations in CurrentSenseValveMotorDirect.
 // Also check some of the use of those calculations.
@@ -548,13 +538,28 @@ static void testCSVMDC()
 //    ticksFromClosedToOpen: 1295
   }
 
+
+class DummyHardwareDriver : public OTRadValve::HardwareMotorDriverInterface
+  {
+  public:
+    // Detect if end-stop is reached or motor current otherwise very high.
+    virtual bool isCurrentHigh(OTRadValve::HardwareMotorDriverInterface::motor_drive mdir = motorDriveOpening) const { return(currentHigh); }
+  public:
+    DummyHardwareDriver() : currentHigh(false) { }
+    virtual void motorRun(uint8_t maxRunTicks, motor_drive dir, OTRadValve::HardwareMotorDriverInterfaceCallbackHandler &callback)
+      { }
+    // isCurrentHigh() returns this value.
+    bool currentHigh;
+  };
+
 // Test that direct abstract motor drive logic is sane.
+// DHD20160206: possibly causing a crash periodically when run on an UNO.
 static void testCurrentSenseValveMotorDirect()
   {
   Serial.println("CurrentSenseValveMotorDirect");
   DummyHardwareDriver dhw;
   OTRadValve::CurrentSenseValveMotorDirect csvmd1(&dhw);
-  // POWER IP
+  // POWER UP
   // Whitebox test of internal state: should be init.
   AssertIsEqual(OTRadValve::CurrentSenseValveMotorDirect::init, csvmd1.getState());
   // Verify NOT marked as in normal run state immediately upon initialisation.
@@ -844,7 +849,9 @@ void loop()
   testISRRXQueueVarLenMsg();
 
   // OTRFM23BLink
+#if !defined(DISABLE_SENSOR_UNIT_TESTS)
   testRFM23B();
+#endif
 
   // OTRadValve
   testCSVMDC();

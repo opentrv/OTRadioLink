@@ -276,7 +276,8 @@ namespace OTRadioLink
 
             // Peek at first (oldest) queued RX message, returning a pointer or NULL if no message waiting.
             // The pointer returned is NULL if there is no message,
-            // else the pointer is to the start of the message and len is filled in with the length.
+            // else the pointer is to the start of the message/frame
+            // and the length is in the byte before the start of the frame.
             // This allows a message to be decoded directly from the queue buffer
             // without copying or the use of another buffer.
             // The returned pointer and length are valid until the next
@@ -284,7 +285,7 @@ namespace OTRadioLink
             // This does not remove the message or alter the queue.
             // The buffer pointed to MUST NOT be altered.
             // Not intended to be called from an ISR.
-            virtual const volatile uint8_t *peekRXMsg(uint8_t &len) const = 0;
+            virtual const volatile uint8_t *peekRXMsg() const = 0;
 
             // Remove the first (oldest) queued RX message.
             // Typically used after peekRXMessage().

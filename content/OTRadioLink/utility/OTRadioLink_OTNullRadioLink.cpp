@@ -35,9 +35,8 @@ uint8_t OTNullRadioLink::getRXMsgsQueued() const
 	return 0;
 }
 
-const volatile uint8_t *OTNullRadioLink::peekRXMsg(uint8_t &len) const
+const volatile uint8_t *OTNullRadioLink::peekRXMsg() const
 {
-	len = 0;
 	return NULL;
 }
 void OTNullRadioLink::removeRXMsg()

@@ -35,7 +35,7 @@ public:
 	bool begin() {return (true);};
 	void getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen) const;
 	uint8_t getRXMsgsQueued() const;
-	const volatile uint8_t *peekRXMsg(uint8_t &len) const;
+	const volatile uint8_t *peekRXMsg() const;
 	void removeRXMsg();
 	// Should always be sent null terminated strings
 	bool sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal, bool listenAfter = false);
