@@ -352,7 +352,7 @@ uint8_t encodeSecureSmallFrameRaw(uint8_t *const buf, const uint8_t buflen,
                                 const uint8_t *const body, const uint8_t bl_,
                                 const uint8_t *const iv,
                                 const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
-                                void *state, const uint8_t *const key)
+                                void *const state, const uint8_t *const key)
     {
     if((NULL == iv) || (NULL == e) || (NULL == key)) { return(0); } // ERROR
     // Stop if unencrypted body is too big for this scheme.
@@ -581,18 +581,28 @@ uint8_t generateNonsecureBeacon(uint8_t *const buf, const uint8_t buflen,
                                     NULL, 0));
     }
 
-//    // Create secure Alive / beacon (FTS_ALIVE) frame with an empty body.
-//    // Returns number of bytes written to buffer, or 0 in case of error.
-//    // Note that the frame will be 5 + ID-length (up to maxIDLength) bytes,
-//    // so the buffer must be large enough to accommodate that.
-//    //  * buf  buffer to which is written the entire frame including trailer; never NULL
-//    //  * buflen  available length in buf; if too small then this routine will fail (return 0)
-//    //  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
-//    //  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
-//    static const uint8_t generateSecureBeaconMaxBufSize = 5 + SecurableFrameHeader::maxIDLength;
-//    uint8_t generateSecureBeacon(uint8_t *buf, uint8_t buflen,
-//                                    const uint8_t seqNum_,
-//                                    const uint8_t *id_, uint8_t il_);
+// Create secure Alive / beacon (FTS_ALIVE) frame with an empty body.
+// Returns number of bytes written to buffer, or 0 in case of error.
+// Note that the frame will be 27 + ID-length (up to maxIDLength) bytes,
+// so the buffer must be large enough to accommodate that.
+//  * buf  buffer to which is written the entire frame including trailer; never NULL
+//  * buflen  available length in buf; if too small then this routine will fail (return 0)
+//  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
+//  * iv  12-byte initialisation vector / nonce; never NULL
+//  * key  16-byte secret key; never NULL
+// NOTE: this version requires the IV to be supplied and the transmitted ID length to chosen.
+uint8_t generateSecureBeaconRaw(uint8_t *const buf, const uint8_t buflen,
+                                const uint8_t *const id_, const uint8_t il_,
+                                const uint8_t *const iv,
+                                const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                                void *const state, const uint8_t *const key)
+    {
+    const uint8_t encodedLength = OTRadioLink::encodeSecureSmallFrameRaw(buf, buflen,
+                                    OTRadioLink::FTS_ALIVE,
+                                    id_, il_,
+                                    NULL, 0,
+                                    iv, e, state, key);
+    }
 
 
     }

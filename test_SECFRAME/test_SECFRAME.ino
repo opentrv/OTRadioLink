@@ -516,34 +516,6 @@ static void testSimpleNULLEncDec()
   AssertIsEqual(0, memcmp(plaintext1, plaintext1Decoded, 32));
   }
 
-
-
-
-
-//static OTAESGCM::OTAES128GCMGeneric<> ed; // FIXME: ensure state is cleared afterwards.
-//
-//bool fixed32Be(void *,
-//        const uint8_t *key, const uint8_t *iv,
-//        const uint8_t *authtext, uint8_t authtextSize,
-//        const uint8_t *plaintext,
-//        uint8_t *ciphertextOut, uint8_t *tagOut)
-//  {
-//  if((NULL == key) || (NULL == iv) ||
-//     (NULL == plaintext) || (NULL == ciphertextOut) || (NULL == tagOut)) { return(false); } // ERROR
-//  return(ed.gcmEncrypt(key, iv, plaintext, 32, authtext, authtextSize, ciphertextOut, tagOut));
-//  }
-//
-//bool fixed32Bd(void *state,
-//        const uint8_t *key, const uint8_t *iv,
-//        const uint8_t *authtext, uint8_t authtextSize,
-//        const uint8_t *ciphertext, const uint8_t *tag,
-//        uint8_t *plaintextOut)
-//  {
-//  if((NULL == key) || (NULL == iv) ||
-//     (NULL == ciphertext) || (NULL == tag) || (NULL == tag)) { return(false); } // ERROR
-//  return(ed.gcmDecrypt(key, iv, ciphertext, 32, authtext, authtextSize, tag, plaintextOut));
-//  }
-
 // Test a simple fixed-size enc/dec function pair.
 // Aborts with Assert...() in case of failure.
 static void runSimpleEncDec(const OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
@@ -573,9 +545,6 @@ static void testCryptoAccess()
   // NULL enc/dec.
   runSimpleEncDec(OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL,
                   OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL);
-//  // AES-GCM 128-bit key enc/dec with static state.
-//  runSimpleEncDec(fixed32Be,
-//                  fixed32Bd);
   // AES-GCM 128-bit key enc/dec.
   runSimpleEncDec(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS,
                   OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS);
@@ -780,6 +749,8 @@ static void testBeaconEncoding()
   const uint8_t id[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55 };
   // IV/nonce starting with first 6 bytes of preshared ID, then 6 bytes of counter.
   const uint8_t iv[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55, 0x00, 0x00, 0x2a, 0x00, 0x03, 0x19 };
+  const uint8_t sb1 = OTRadioLink::generateSecureBeaconRaw(buf, sizeof(buf), id, 4, iv, OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS, NULL, key);
+  AssertIsEqual(27, sb1);
   }
 
 
