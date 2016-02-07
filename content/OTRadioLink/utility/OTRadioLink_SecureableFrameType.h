@@ -506,6 +506,7 @@ namespace OTRadioLink
     //  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
     //  * iv  12-byte initialisation vector / nonce; never NULL
     //  * key  16-byte secret key; never NULL
+    // NOTE: this version requires the IV to be supplied and the transmitted ID length to chosen.
     static const uint8_t generateSecureBeaconMaxBufSize = 27 + SecurableFrameHeader::maxIDLength;
     uint8_t generateSecureBeaconRaw(uint8_t *buf, uint8_t buflen,
                                     const uint8_t *id_, uint8_t il_,
