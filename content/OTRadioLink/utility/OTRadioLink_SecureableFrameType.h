@@ -445,6 +445,11 @@ namespace OTRadioLink
     // (including, and with a value one higher than the first 'fl' bytes).
     // Returns zero in case of error, eg because authentication failed.
     //
+    // Also checks (nominally dependent on frame type and/or trailing tag byte/type) that
+    // the header sequence number lsbs matches the IV message counter 4 lsbs (in byte 11),
+    // ie the sequence number is not arbitrary but is derived (redundantly) from the IV.
+    // (MAY NEED FIXING eg message counter moved to last IV byte or dependent and above.)
+    //
     // Typical workflow:
     //   * decode the header alone to extract the ID and frame type
     //   * use those to select a candidate key, construct an iv/nonce
@@ -452,8 +457,6 @@ namespace OTRadioLink
     //     to authenticate and decrypt the frame.
     //
     // Note extra checks to be done:
-    //   * header sequence number lsbs match nonce counter 4 lsbs
-    //     (should be done early as quick and likely to detects some gross TX errors)
     //   * the incoming message counter must be strictly greater than
     //     the last last authenticated message from this ID
     //     to prevent replay attacks;
