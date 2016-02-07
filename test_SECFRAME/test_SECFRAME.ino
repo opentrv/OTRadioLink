@@ -410,9 +410,13 @@ static void testNonsecureFrameCRC()
   //11 stats present flag only, unreported occupancy
   //7b 22 62 22 3a 31  {"b":1  Stats: note that implicit trailing '}' is not sent.
   //61 CRC value
-  const uint8_t buf2[] = { 0x0e, 0x4f, 0x02, 0x80, 0x81, 0x08, 0x7f, 0x11, 0x7b, 0x22, 0x62, 0x22, 0x3a, 0x31 }; // , 0x61 };
-  AssertIsEqual(6, sfh.checkAndDecodeSmallFrameHeader(buf2, sizeof(buf2)));
-  AssertIsEqual(0x61, sfh.computeNonSecureFrameCRC(buf2, sizeof(buf2)));
+  const uint8_t buf2[] = { 0x0e, 0x4f, 0x02, 0x80, 0x81, 0x08, 0x7f, 0x11, 0x7b, 0x22, 0x62, 0x22, 0x3a, 0x31, 0x61 };
+  // Just decode and check the frame header first
+  AssertIsEqual(6, sfh.checkAndDecodeSmallFrameHeader(buf2, 6));
+  AssertIsEqual(0x61, sfh.computeNonSecureFrameCRC(buf2, sizeof(buf2) - 1));
+  // To decode, emulating RX, structurally validate unpack the header and extract the ID.
+  AssertIsTrue(0 != sfh.checkAndDecodeSmallFrameHeader(buf2, sizeof(buf2));
+  AssertIsTrue(0 != decodeNonsecureSmallFrameRaw(&sfh, buf2, sizeof(buf2));
   }
 
 // Test encoding of entire non-secure frame for TX.
