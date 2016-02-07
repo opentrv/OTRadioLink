@@ -174,6 +174,9 @@ namespace OTRadioLink
         // Get header length including the leading frame-length byte.
         inline uint8_t getHl() const { return(4 + getIl()); }
 
+        // Maximum small frame body size is maximum frame size minus 4, excluding fl byte.
+        // This maximum size is only achieved with non-secure frames with zero-length ID.
+        static const uint8_t maxSmallFrameBodySize = maxSmallFrameSize - 4;
         // Body length including any padding [0,251] but generally << 60.
         uint8_t bl;
         // Compute the offset of the body from the start of the frame starting wth nominal fl byte.

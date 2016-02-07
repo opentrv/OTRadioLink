@@ -390,9 +390,12 @@ static void testNonsecureFrameCRC()
   //00 valve 0%, no call for heat
   //01 no flags or stats, unreported occupancy
   //23 CRC value
-  const uint8_t buf1[] = { 0x08, 0x4f, 0x02, 0x80, 0x81, 0x02, 0x00, 0x01 }; //, 0x23 };
-  AssertIsEqual(6, sfh.checkAndDecodeSmallFrameHeader(buf1, sizeof(buf1)));
-  AssertIsEqual(0x23, sfh.computeNonSecureFrameCRC(buf1, sizeof(buf1)));
+  const uint8_t buf1[] = { 0x08, 0x4f, 0x02, 0x80, 0x81, 0x02, 0x00, 0x01, 0x23 };
+  AssertIsEqual(6, sfh.checkAndDecodeSmallFrameHeader(buf1, 6));
+  AssertIsEqual(0x23, sfh.computeNonSecureFrameCRC(buf1, sizeof(buf1) - 1));
+  // Decode entire frame, emulating RX, structurally validating the header then checking the CRC.
+  AssertIsTrue(0 != sfh.checkAndDecodeSmallFrameHeader(buf1, sizeof(buf1)));
+  AssertIsTrue(0 != decodeNonsecureSmallFrameRaw(&sfh, buf1, sizeof(buf1)));
   //
   // Test vector 2 / example from the spec.
   //Example insecure frame, no valve, representative minimum stats {"b":1}
@@ -414,7 +417,7 @@ static void testNonsecureFrameCRC()
   // Just decode and check the frame header first
   AssertIsEqual(6, sfh.checkAndDecodeSmallFrameHeader(buf2, 6));
   AssertIsEqual(0x61, sfh.computeNonSecureFrameCRC(buf2, sizeof(buf2) - 1));
-  // To decode, emulating RX, structurally validate unpack the header and extract the ID.
+  // Decode entire frame, emulating RX, structurally validating the header then checking the CRC.
   AssertIsTrue(0 != sfh.checkAndDecodeSmallFrameHeader(buf2, sizeof(buf2)));
   AssertIsTrue(0 != decodeNonsecureSmallFrameRaw(&sfh, buf2, sizeof(buf2)));
   }
