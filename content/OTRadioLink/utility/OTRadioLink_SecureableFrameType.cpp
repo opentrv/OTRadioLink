@@ -246,7 +246,6 @@ uint8_t SecurableFrameHeader::computeNonSecureFrameCRC(const uint8_t *const buf,
     return(crc);
     }
 
-
 // Compose (encode) entire non-secure small frame from header params, body and CRC trailer.
 // Returns the total number of bytes written out for the frame
 // (including, and with a value one higher than the first 'fl' bytes).
@@ -322,7 +321,6 @@ uint8_t decodeNonsecureSmallFrameRaw(const SecurableFrameHeader *sfh,
     // Done
     return(fl + 1);
     }
-
 
 // Encode entire secure small frame from header params and body and crypto support.
 // This is a raw/partial impl that requires the IV/nonce to be supplied.
@@ -490,7 +488,6 @@ uint8_t removePaddingTo32BTrailing0sAndPadCount(const uint8_t *const buf)
     return(datalen); // FAIL FIXME
     }
 
-
 // NULL basic fixed-size text 'encryption' function.
 // DOES NOT ENCRYPT OR AUTHENTICATE SO DO NOT USE IN PRODUCTION SYSTEMS.
 // Emulates some aspects of the process to test real implementations against,
@@ -544,7 +541,6 @@ bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(void *const state,
     // Done.
     return(true);
     }
-
 
 
 // CONVENIENCE/BOILERPLATE METHODS
