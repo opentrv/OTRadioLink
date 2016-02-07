@@ -283,6 +283,22 @@ namespace OTRadioLink
                                         const uint8_t *id_, uint8_t il_,
                                         const uint8_t *body, uint8_t bl_);
 
+    // Decode entire non-secure small frame from raw frame bytes support.
+    // Returns the total number of bytes read for the frame
+    // (including, and with a value one higher than the first 'fl' bytes).
+    // Returns zero in case of error, eg because the CRC check failed.
+    //
+    // Typical workflow:
+    //   * decode the header alone to extract the ID and frame type
+    //   * use the frame header's bl and getBodyOffset() to get the body and body length
+    //
+    // Parameters:
+    //  * buf  buffer containing the entire frame including header and trailer; never NULL
+    //  * buflen  available length in buf; if too small then this routine will fail (return 0)
+    //  * sfh  decoded frame header; never NULL
+    uint8_t decodeNonsecureSmallFrameRaw(const SecurableFrameHeader *sfh,
+                                         const uint8_t *buf, uint8_t buflen);
+
 //        // Round up to next 16 multiple, eg for encryption that works in fixed-size blocks for input [0,240].
 //        // Eg 0 -> 0, 1 -> 16, ... 16 -> 16, 17 -> 32 ...
 //        // Undefined for values above 240.
@@ -435,10 +451,10 @@ namespace OTRadioLink
     //  * buf  buffer containing the entire frame including header and trailer; never NULL
     //  * buflen  available length in buf; if too small then this routine will fail (return 0)
     //  * sfh  decoded frame header; never NULL
-    //  * decodedBodyOut  body, if any, will be decoded into this; never NULL
-    //  * decodedBodyOutBuflen  size of decodedBodyOut to decode in to;
+    //  * decryptedBodyOut  body, if any, will be decoded into this; never NULL
+    //  * decryptedBodyOutBuflen  size of decodedBodyOut to decode in to;
     //        if too small the routine will exist with an error (0)
-    //  * decodedBodyOutSize  is set to the size of the decoded body in decodedBodyOut
+    //  * decryptedBodyOutSize  is set to the size of the decoded body in decodedBodyOut
     //  * iv  12-byte initialisation vector / nonce; never NULL
     //  * d  decryption function; never NULL
     //  * state  pointer to state for d, if required, else NULL
@@ -447,7 +463,7 @@ namespace OTRadioLink
                                     const uint8_t *buf, uint8_t buflen,
                                     fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
                                     void *state, const uint8_t *key, const uint8_t *iv,
-                                    uint8_t *decryptedBodyOut, uint8_t decodedBodyOutBuflen, uint8_t &decodedBodyOutSize);
+                                    uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
 
 
 

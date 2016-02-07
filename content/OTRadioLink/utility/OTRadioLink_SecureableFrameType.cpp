@@ -293,6 +293,36 @@ uint8_t encodeNonsecureSmallFrame(uint8_t *const buf, const uint8_t buflen,
     return(fl + 1);
     }
 
+// Decode entire non-secure small frame from raw frame bytes support.
+// Returns the total number of bytes read for the frame
+// (including, and with a value one higher than the first 'fl' bytes).
+// Returns zero in case of error, eg because the CRC check failed.
+//
+// Typical workflow:
+//   * decode the header alone to extract the ID and frame type
+//   * use the frame header's bl and getBodyOffset() to get the body and body length
+//
+// Parameters:
+//  * buf  buffer containing the entire frame including header and trailer; never NULL
+//  * buflen  available length in buf; if too small then this routine will fail (return 0)
+//  * sfh  decoded frame header; never NULL
+uint8_t decodeNonsecureSmallFrameRaw(const SecurableFrameHeader *sfh,
+                                     const uint8_t *buf, uint8_t buflen)
+    {
+    if((NULL == sfh) || (NULL == buf)) { return(0); } // ERROR
+    // Abort if header was not decoded properly.
+    if(sfh->isInvalid()) { return(0); } // ERROR
+    // Abort if expected constraints for simple fixed-size secure frame are not met.
+    const uint8_t fl = sfh->fl;
+    if(1 != sfh->getTl()) { return(0); } // ERROR
+    // Compute the expected CRC trailer...
+    const uint8_t crc = sfh.computeNonSecureFrameCRC(buf, buflen);
+    if(0 == crc) { return(0); } // ERROR
+    if(buf[fl] != crc) { return(0); } // ERROR
+    // Done
+    return(fl + 1);
+    }
+
 
 // Encode entire secure small frame from header params and body and crypto support.
 // This is a raw/partial impl that requires the IV/nonce to be supplied.
@@ -383,10 +413,10 @@ uint8_t encodeSecureSmallFrameRaw(uint8_t *const buf, const uint8_t buflen,
 //  * buf  buffer containing the entire frame including header and trailer; never NULL
 //  * buflen  available length in buf; if too small then this routine will fail (return 0)
 //  * sfh  decoded frame header; never NULL
-//  * decodedBodyOut  body, if any, will be decoded into this; never NULL
-//  * decodedBodyOutBuflen  size of decodedBodyOut to decode in to;
+//  * decryptedBodyOut  body, if any, will be decoded into this; never NULL
+//  * decryptedBodyOutBuflen  size of decodedBodyOut to decode in to;
 //        if too small the routine will exist with an error (0)
-//  * decodedBodyOutSize  is set to the size of the decoded body in decodedBodyOut
+//  * decryptedBodyOutSize  is set to the size of the decoded body in decodedBodyOut
 //  * iv  12-byte initialisation vector / nonce; never NULL
 //  * d  decryption function; never NULL
 //  * state  pointer to state for d, if required, else NULL
@@ -395,7 +425,7 @@ uint8_t decodeSecureSmallFrameRaw(const SecurableFrameHeader *const sfh,
                                 const uint8_t *const buf, const uint8_t buflen,
                                 const fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
                                 void *const state, const uint8_t *const key, const uint8_t *const iv,
-                                uint8_t *const decryptedBodyOut, uint8_t decodedBodyOutBuflen, uint8_t &decodedBodyOutSize)
+                                uint8_t *const decryptedBodyOut, uint8_t decryptedOutBuflen, uint8_t &decryptedBodyOutSize)
     {
     if((NULL == sfh) || (NULL == buf) || (NULL == d) ||
         (NULL == key) || (NULL == iv) || (NULL == decryptedBodyOut)) { return(0); } // ERROR
@@ -416,7 +446,7 @@ uint8_t decodeSecureSmallFrameRaw(const SecurableFrameHeader *const sfh,
     // Unpad the decrypted text in place.
     const uint8_t upbl = removePaddingTo32BTrailing0sAndPadCount(decryptBuf);
     if(upbl > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
-    if(upbl > decodedBodyOutBuflen) { return(0); } // ERROR
+    if(upbl > decryptedBodyOutBuflen) { return(0); } // ERROR
     memcpy(decryptedBodyOut, decryptBuf, upbl);
     decodedBodyOutSize = upbl;
     // Done.
