@@ -849,8 +849,8 @@ void loop()
   testISRRXQueueVarLenMsg();
 
   // OTRFM23BLink
-#if !defined(DISABLE_SENSOR_UNIT_TESTS)
-  testRFM23B();
+#if 0 && !defined(DISABLE_SENSOR_UNIT_TESTS)
+  testRFM23B(); // DHD20160207: definitely seems to be toxic even ov REV2 board.
 #endif
 
   // OTRadValve
