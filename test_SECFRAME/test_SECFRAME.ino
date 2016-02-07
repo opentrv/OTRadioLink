@@ -415,8 +415,8 @@ static void testNonsecureFrameCRC()
   AssertIsEqual(6, sfh.checkAndDecodeSmallFrameHeader(buf2, 6));
   AssertIsEqual(0x61, sfh.computeNonSecureFrameCRC(buf2, sizeof(buf2) - 1));
   // To decode, emulating RX, structurally validate unpack the header and extract the ID.
-  AssertIsTrue(0 != sfh.checkAndDecodeSmallFrameHeader(buf2, sizeof(buf2));
-  AssertIsTrue(0 != decodeNonsecureSmallFrameRaw(&sfh, buf2, sizeof(buf2));
+  AssertIsTrue(0 != sfh.checkAndDecodeSmallFrameHeader(buf2, sizeof(buf2)));
+  AssertIsTrue(0 != decodeNonsecureSmallFrameRaw(&sfh, buf2, sizeof(buf2)));
   }
 
 // Test encoding of entire non-secure frame for TX.

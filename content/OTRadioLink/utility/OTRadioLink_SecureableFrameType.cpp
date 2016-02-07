@@ -315,7 +315,7 @@ uint8_t decodeNonsecureSmallFrameRaw(const SecurableFrameHeader *sfh,
     const uint8_t fl = sfh->fl;
     if(1 != sfh->getTl()) { return(0); } // ERROR
     // Compute the expected CRC trailer...
-    const uint8_t crc = sfh.computeNonSecureFrameCRC(buf, buflen);
+    const uint8_t crc = sfh->computeNonSecureFrameCRC(buf, buflen);
     if(0 == crc) { return(0); } // ERROR
     if(buf[fl] != crc) { return(0); } // ERROR
     // Done
@@ -423,7 +423,7 @@ uint8_t decodeSecureSmallFrameRaw(const SecurableFrameHeader *const sfh,
                                 const uint8_t *const buf, const uint8_t buflen,
                                 const fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
                                 void *const state, const uint8_t *const key, const uint8_t *const iv,
-                                uint8_t *const decryptedBodyOut, uint8_t decryptedOutBuflen, uint8_t &decryptedBodyOutSize)
+                                uint8_t *const decryptedBodyOut, const uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize)
     {
     if((NULL == sfh) || (NULL == buf) || (NULL == d) ||
         (NULL == key) || (NULL == iv) || (NULL == decryptedBodyOut)) { return(0); } // ERROR
@@ -446,7 +446,7 @@ uint8_t decodeSecureSmallFrameRaw(const SecurableFrameHeader *const sfh,
     if(upbl > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
     if(upbl > decryptedBodyOutBuflen) { return(0); } // ERROR
     memcpy(decryptedBodyOut, decryptBuf, upbl);
-    decodedBodyOutSize = upbl;
+    decryptedBodyOutSize = upbl;
     // Done.
     return(fl + 1);
     }
