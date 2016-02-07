@@ -1,10 +1,3 @@
-#include <OTRadioLink.h>
-#include <OTRadValve.h>
-#include <OTRFM23BLink.h>
-#include <OTRN2483Link.h>
-#include <OTSIM900Link.h>
-#include <OTV0p2Base.h>
-
 /*
 The OpenTRV project licenses this file to you
 under the Apache Licence, Version 2.0 (the "Licence");
@@ -41,9 +34,14 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 
 // Include the library under test.
 #include <OTV0p2Base.h>
-#include <OTRadioLink.h>
 // Also testing against crypto.
 #include <OTAESGCM.h>
+
+#include <OTRadioLink.h>
+#include <OTRadValve.h>
+#include <OTRFM23BLink.h>
+#include <OTRN2483Link.h>
+#include <OTSIM900Link.h>
 
 #if F_CPU == 1000000 // 1MHz CPU indicates V0p2 board.
 #define ON_V0P2_BOARD
