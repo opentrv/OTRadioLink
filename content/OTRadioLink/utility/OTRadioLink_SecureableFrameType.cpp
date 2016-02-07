@@ -333,11 +333,13 @@ uint8_t decodeNonsecureSmallFrameRaw(const SecurableFrameHeader *sfh,
 // Returns zero in case of error.
 // The supplied buffer may have to be up to 64 bytes long.
 //
+// Note that the sequence number is taken from the 4 least significant bits
+// of the message counter (at byte 6 in the nonce).
+//
 // Parameters:
 //  * buf  buffer to which is written the entire frame including trailer; never NULL
 //  * buflen  available length in buf; if too small then this routine will fail (return 0)
 //  * fType_  frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
-//  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
 //  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
 //  * body / bl_  body data (and length), before padding/encryption, no larger than ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE
 //  * iv  12-byte initialisation vector / nonce; never NULL
@@ -346,7 +348,6 @@ uint8_t decodeNonsecureSmallFrameRaw(const SecurableFrameHeader *sfh,
 //  * key  secret key; never NULL
 uint8_t encodeSecureSmallFrameRaw(uint8_t *const buf, const uint8_t buflen,
                                 const FrameType_Secureable fType_,
-                                const uint8_t seqNum_,
                                 const uint8_t *const id_, const uint8_t il_,
                                 const uint8_t *const body, const uint8_t bl_,
                                 const uint8_t *const iv,
@@ -359,6 +360,7 @@ uint8_t encodeSecureSmallFrameRaw(uint8_t *const buf, const uint8_t buflen,
     const uint8_t encryptedBodyLength = (0 == bl_) ? 0 : ENC_BODY_SMALL_FIXED_CTEXT_SIZE;
     // Let checkAndEncodeSmallFrameHeader() validate buf and id_.
     // If necessary (bl_ > 0) body is validated below.
+    const uint8_t seqNum_ = iv[6] & 0xf;
     OTRadioLink::SecurableFrameHeader sfh;
     const uint8_t hl = sfh.checkAndEncodeSmallFrameHeader(buf, buflen,
                                                true, fType_,
@@ -444,6 +446,8 @@ uint8_t decodeSecureSmallFrameRaw(const SecurableFrameHeader *const sfh,
     if(0x80 != buf[fl]) { return(0); } // ERROR
     const uint8_t bl = sfh->bl;
     if((0 != bl) && (ENC_BODY_SMALL_FIXED_CTEXT_SIZE != bl)) { return(0); } // ERROR
+    // Check that header sequence number lsbs match nonce counter 4 lsbs.
+    if(sfh->getSeq() != (iv[6] & 0xf)) { return(0); } // ERROR
     // Attempt to authenticate and decrypt.
     uint8_t decryptBuf[ENC_BODY_SMALL_FIXED_CTEXT_SIZE];
     if(!d(state, key, iv, buf, sfh->getHl(),

@@ -414,11 +414,13 @@ namespace OTRadioLink
     // Returns zero in case of error.
     // The supplied buffer may have to be up to 64 bytes long.
     //
+    // Note that the sequence number is taken from the 4 least significant bits
+    // of the message counter (at byte 6 in the nonce).
+    //
     // Parameters:
     //  * buf  buffer to which is written the entire frame including trailer; never NULL
     //  * buflen  available length in buf; if too small then this routine will fail (return 0)
     //  * fType_  frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
-    //  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
     //  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
     //  * body / bl_  body data (and length), before padding/encryption, no larger than ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE
     //  * iv  12-byte initialisation vector / nonce; never NULL
@@ -427,7 +429,6 @@ namespace OTRadioLink
     //  * key  secret key; never NULL
     uint8_t encodeSecureSmallFrameRaw(uint8_t *buf, uint8_t buflen,
                                     FrameType_Secureable fType_,
-                                    uint8_t seqNum_,
                                     const uint8_t *id_, uint8_t il_,
                                     const uint8_t *body, uint8_t bl_,
                                     const uint8_t *iv,
