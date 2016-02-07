@@ -450,6 +450,14 @@ namespace OTRadioLink
     //   * call this routine with that decoded header and the full buffer
     //     to authenticate and decrypt the frame.
     //
+    // Note extra checks to be done:
+    //   * header sequence number lsbs match nonce counter 4 lsbs
+    //     (should be done early as quick and likely to detects some gross TX errors)
+    //   * the incoming message counter must be strictly greater than
+    //     the last last authenticated message from this ID
+    //     to prevent replay attacks;
+    //     is quick and can also be done early to save processing energy.
+    //
     // Parameters:
     //  * buf  buffer containing the entire frame including header and trailer; never NULL
     //  * buflen  available length in buf; if too small then this routine will fail (return 0)
