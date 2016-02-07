@@ -1,3 +1,10 @@
+#include <OTRadioLink.h>
+#include <OTRadValve.h>
+#include <OTRFM23BLink.h>
+#include <OTRN2483Link.h>
+#include <OTSIM900Link.h>
+#include <OTV0p2Base.h>
+
 /*
 The OpenTRV project licenses this file to you
 under the Apache Licence, Version 2.0 (the "Licence");
@@ -635,14 +642,13 @@ static void testSecureSmallFrameEncoding()
   Serial.println("SecureSmallFrameEncoding");
   uint8_t buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize];
   //Example 3: secure, no valve, representative minimum stats {"b":1}).
-  //In this case the frame sequence number is zero,
+  //Note that the sequence number must match the 4 lsbs of the message count, ie from iv[11].
   //and the ID is 0xaa 0xaa 0xaa 0xaa (transmitted) with the next ID bytes 0x55 0x55.
   //ResetCounter = 42
   //TxMsgCounter = 793
   //(Thus nonce/IV: aa aa aa aa 55 55 00 00 2a 00 03 19)
   //
-  //3e cf 04 aa aa aa aa 20 | b3 45 f9 29 69 57 0c b8 28 66 14 b4 f0 69 b0 08 71 da d8 fe 47 c1 c3 53 83 48 88 03 7d 58 75 75 | 00 00 2a 00 03 19 97 5b da df 92 08 42 b8 c1 3b dc 02 76 54 cb 8d 80 
-  //
+  //3e cf 94 aa aa aa aa 20 | b3 45 f9 29 69 57 0c b8 28 66 14 b4 f0 69 b0 08 71 da d8 fe 47 c1 c3 53 83 48 88 03 7d 58 75 75 | 00 00 2a 00 03 19 29 3b 31 52 c3 26 d2 6d d0 8d 70 1e 4b 68 0d cb 80
   //
   //3e  length of header (62) after length byte 5 + (encrypted) body 32 + trailer 32
   //cf  'O' secure OpenTRV basic frame
@@ -657,7 +663,7 @@ static void testSecureSmallFrameEncoding()
   //b3 45 f9 ... 58 75 75  32 bytes of encrypted body
   //00 00 2a  reset counter
   //00 03 19  message counter
-  //97 5b da ... 54 cb 8d  16 bytes of authentication tag
+  //29 3b 31 ... 68 0d cb  16 bytes of authentication tag
   //80  enc/auth type/format indicator.
   // Preshared ID prefix; only an initial part/prefix of this goes on the wire in the header.
   const uint8_t id[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55 };
@@ -686,15 +692,15 @@ static void testSecureSmallFrameEncoding()
   //... b3 45 f9 29 69 57 0c b8 28 66 14 b4 f0 69 b0 08 71 da d8 fe 47 c1 c3 53 83 48 88 03 7d 58 75 75 | ...
   AssertIsEqual(0xb3, buf[8]); // 1st byte of encrypted body.
   AssertIsEqual(0x75, buf[39]); // 32nd/last byte of encrypted body.
-  //... 00 00 2a 00 03 19 97 5b da df 92 08 42 b8 c1 3b dc 02 76 54 cb 8d 80
+  //... 00 00 2a 00 03 19 29 3b 31 52 c3 26 d2 6d d0 8d 70 1e 4b 68 0d cb 80
   AssertIsEqual(0x00, buf[40]); // 1st byte of counters.
   AssertIsEqual(0x00, buf[41]);
   AssertIsEqual(0x2a, buf[42]);
   AssertIsEqual(0x00, buf[43]); 
   AssertIsEqual(0x03, buf[44]);
   AssertIsEqual(0x19, buf[45]); // Last byte of counters.
-  AssertIsEqual(0x97, buf[46]); // 1st byte of tag.
-  AssertIsEqual(0x8d, buf[61]); // 16th/last byte of tag.
+  AssertIsEqual(0x29, buf[46]); // 1st byte of tag.
+  AssertIsEqual(0xcb, buf[61]); // 16th/last byte of tag.
   AssertIsEqual(0x80, buf[62]); // enc format.
   // To decode, emulating RX, structurally validate unpack the header and extract the ID.
   OTRadioLink::SecurableFrameHeader sfhRX;
@@ -731,9 +737,10 @@ static void testSecureSmallFrameEncoding()
 static void testBeaconEncoding()
   {
   Serial.println("BeaconEncoding");
-  uint8_t buf[OTRadioLink::generateInsecureBeaconMaxBufSize];
+  // Non-secure beacon.
+  uint8_t buf[OTRadioLink::generateNonsecureBeaconMaxBufSize];
   // Generate zero-length-ID beacon.
-  const uint8_t b0 = OTRadioLink::generateInsecureBeacon(buf, sizeof(buf), 0, NULL, 0);
+  const uint8_t b0 = OTRadioLink::generateNonsecureBeacon(buf, sizeof(buf), 0, NULL, 0);
   AssertIsEqual(5, b0);
   AssertIsEqual(0x04, buf[0]);
   AssertIsEqual(0x21, buf[1]);
@@ -741,7 +748,7 @@ static void testBeaconEncoding()
   AssertIsEqual(0x00, buf[3]); // Body length 0.
   AssertIsEqual(0x65, buf[4]);
   // Generate maximum-length-zero-ID beacon automatically at non-zero seq.
-  const uint8_t b1 = OTRadioLink::generateInsecureBeacon(buf, sizeof(buf), 4, zeroKey, OTRadioLink::SecurableFrameHeader::maxIDLength);
+  const uint8_t b1 = OTRadioLink::generateNonsecureBeacon(buf, sizeof(buf), 4, zeroKey, OTRadioLink::SecurableFrameHeader::maxIDLength);
   AssertIsEqual(13, b1);
   AssertIsEqual(0x0c, buf[0]);
   AssertIsEqual(0x21, buf[1]);
@@ -757,7 +764,7 @@ static void testBeaconEncoding()
   AssertIsEqual(0x00, buf[11]); // Body length 0.
   AssertIsEqual(0x29, buf[12]);
   // Generate maximum-length-from-EEPROM-ID beacon automatically at non-zero seq.
-  const uint8_t b2 = OTRadioLink::generateInsecureBeacon(buf, sizeof(buf), 5, NULL, OTRadioLink::SecurableFrameHeader::maxIDLength);
+  const uint8_t b2 = OTRadioLink::generateNonsecureBeacon(buf, sizeof(buf), 5, NULL, OTRadioLink::SecurableFrameHeader::maxIDLength);
   AssertIsEqual(13, b2);
   AssertIsEqual(0x0c, buf[0]);
   AssertIsEqual(0x21, buf[1]);
@@ -765,8 +772,14 @@ static void testBeaconEncoding()
   for(uint8_t i = 0; i < OTRadioLink::SecurableFrameHeader::maxIDLength; ++i)
     { AssertIsEqual(eeprom_read_byte((uint8_t *)(V0P2BASE_EE_START_ID + i)), buf[3 + i]); }
   AssertIsEqual(0x00, buf[11]); // Body length 0.
-//  AssertIsEqual(0x29, buf[12]); // CRC will vary with ID.
-  // TODO: secure beacon...
+  //AssertIsEqual(0xXX, buf[12]); // CRC will vary with ID.
+  //
+  // Secure beacon...  All zeros key; ID and IV as from spec Example 3 at 20160207.
+  const uint8_t *const key = zeroKey;
+  // Preshared ID prefix; only an initial part/prefix of this goes on the wire in the header.
+  const uint8_t id[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55 };
+  // IV/nonce starting with first 6 bytes of preshared ID, then 6 bytes of counter.
+  const uint8_t iv[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55, 0x00, 0x00, 0x2a, 0x00, 0x03, 0x19 };
   }
 
 

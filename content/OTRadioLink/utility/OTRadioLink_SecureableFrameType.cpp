@@ -560,7 +560,7 @@ bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(void *const state,
 
 // CONVENIENCE/BOILERPLATE METHODS
 
-// Create (insecure) Alive / beacon (FTS_ALIVE) frame with an empty body.
+// Create non-secure Alive / beacon (FTS_ALIVE) frame with an empty body.
 // Returns number of bytes written to buffer, or 0 in case of error.
 // Note that the frame will be at least 4 + ID-length (up to maxIDLength) bytes,
 // so the buffer must be large enough to accommodate that.
@@ -568,7 +568,7 @@ bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(void *const state,
 //  * buflen  available length in buf; if too small then this routine will fail (return 0)
 //  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
 //  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
-uint8_t generateInsecureBeacon(uint8_t *const buf, const uint8_t buflen,
+uint8_t generateNonsecureBeacon(uint8_t *const buf, const uint8_t buflen,
                                 const uint8_t seqNum_,
                                 const uint8_t *const id_, const uint8_t il_)
     {
@@ -580,6 +580,19 @@ uint8_t generateInsecureBeacon(uint8_t *const buf, const uint8_t buflen,
                                     id_, il_,
                                     NULL, 0));
     }
+
+//    // Create secure Alive / beacon (FTS_ALIVE) frame with an empty body.
+//    // Returns number of bytes written to buffer, or 0 in case of error.
+//    // Note that the frame will be 5 + ID-length (up to maxIDLength) bytes,
+//    // so the buffer must be large enough to accommodate that.
+//    //  * buf  buffer to which is written the entire frame including trailer; never NULL
+//    //  * buflen  available length in buf; if too small then this routine will fail (return 0)
+//    //  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
+//    //  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
+//    static const uint8_t generateSecureBeaconMaxBufSize = 5 + SecurableFrameHeader::maxIDLength;
+//    uint8_t generateSecureBeacon(uint8_t *buf, uint8_t buflen,
+//                                    const uint8_t seqNum_,
+//                                    const uint8_t *id_, uint8_t il_);
 
 
     }
