@@ -743,7 +743,8 @@ static void testBeaconEncoding()
   AssertIsEqual(0x00, buf[11]); // Body length 0.
   //AssertIsEqual(0xXX, buf[12]); // CRC will vary with ID.
   //
-  for(int idLen = 0; idLen <= 4; ++idLen)
+//  const unsigned long before = millis();
+  for(int idLen = 0; idLen <= 8; ++idLen)
     {
     // Secure beacon...  All zeros key; ID and IV as from spec Example 3 at 20160207.
     const uint8_t *const key = zeroKey;
@@ -754,6 +755,8 @@ static void testBeaconEncoding()
     const uint8_t sb1 = OTRadioLink::generateSecureBeaconRaw(buf, sizeof(buf), id, idLen, iv, OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS, NULL, key);
     AssertIsEqual(27 + idLen, sb1);
     }
+//  const unsigned long after = millis();
+//  Serial.println(after - before); // DHD20160207: 1442 for 8 rounds, or ~180ms per encryption.
   }
 
 
