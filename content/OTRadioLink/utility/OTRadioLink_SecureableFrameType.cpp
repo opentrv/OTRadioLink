@@ -381,8 +381,7 @@ uint8_t encodeSecureSmallFrameRaw(uint8_t *const buf, const uint8_t buflen,
         memcpy(paddingBuf, body, bl_);
         if(0 == addPaddingTo32BTrailing0sAndPadCount(paddingBuf, bl_)) { return(0); } // ERROR
         }
-//    const uint8_t hl = sfh.getHl();
-    // Encrypt body (if any) directly into the buffer.
+    // Encrypt body (if any) from the padding buffer to the output buffer.
     // Insert the tag directly into the buffer (before the final byte).
     if(!e(state, key, iv, buf, hl, (0 == bl_) ? NULL : paddingBuf, buf + hl, buf + fl - 16)) { return(0); } // ERROR
     // Copy the counters part (last 6 bytes of) the nonce/IV into the trailer...

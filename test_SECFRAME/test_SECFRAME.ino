@@ -707,7 +707,7 @@ static void testBeaconEncoding()
   {
   Serial.println("BeaconEncoding");
   // Non-secure beacon.
-  uint8_t buf[OTRadioLink::generateNonsecureBeaconMaxBufSize];
+  uint8_t buf[max(OTRadioLink::generateNonsecureBeaconMaxBufSize, OTRadioLink::generateSecureBeaconMaxBufSize)];
   // Generate zero-length-ID beacon.
   const uint8_t b0 = OTRadioLink::generateNonsecureBeacon(buf, sizeof(buf), 0, NULL, 0);
   AssertIsEqual(5, b0);
@@ -743,14 +743,17 @@ static void testBeaconEncoding()
   AssertIsEqual(0x00, buf[11]); // Body length 0.
   //AssertIsEqual(0xXX, buf[12]); // CRC will vary with ID.
   //
-  // Secure beacon...  All zeros key; ID and IV as from spec Example 3 at 20160207.
-  const uint8_t *const key = zeroKey;
-  // Preshared ID prefix; only an initial part/prefix of this goes on the wire in the header.
-  const uint8_t id[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55 };
-  // IV/nonce starting with first 6 bytes of preshared ID, then 6 bytes of counter.
-  const uint8_t iv[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55, 0x00, 0x00, 0x2a, 0x00, 0x03, 0x19 };
-  const uint8_t sb1 = OTRadioLink::generateSecureBeaconRaw(buf, sizeof(buf), id, 4, iv, OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS, NULL, key);
-  AssertIsEqual(27, sb1);
+  for(int idLen = 0; idLen <= 4; ++idLen)
+    {
+    // Secure beacon...  All zeros key; ID and IV as from spec Example 3 at 20160207.
+    const uint8_t *const key = zeroKey;
+    // Preshared ID prefix; only an initial part/prefix of this goes on the wire in the header.
+    const uint8_t id[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55 };
+    // IV/nonce starting with first 6 bytes of preshared ID, then 6 bytes of counter.
+    const uint8_t iv[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55, 0x00, 0x00, 0x2a, 0x00, 0x03, 0x19 };
+    const uint8_t sb1 = OTRadioLink::generateSecureBeaconRaw(buf, sizeof(buf), id, idLen, iv, OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS, NULL, key);
+    AssertIsEqual(27 + idLen, sb1);
+    }
   }
 
 
