@@ -485,7 +485,8 @@ namespace OTRadioLink
     // plus possible other adjustments such has forcing bit values for reverse flows.
     // This routine constructs an IV from this expanded ID
     // (which must be at least length 6 for 'O' / 0x80 style enc/auth)
-    // and other information in the header.
+    // and other information in the header
+    // and calls decodeSecureSmallFrameRaw().
     //
     // If several candidate nodes share the ID prefix in the frame header
     // (in the extreme case with a zero-length header ID for an anonymous frame)
