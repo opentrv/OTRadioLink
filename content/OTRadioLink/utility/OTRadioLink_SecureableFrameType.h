@@ -486,7 +486,7 @@ namespace OTRadioLink
     // This routine constructs an IV from this expanded ID
     // (which must be at least length 6 for 'O' / 0x80 style enc/auth)
     // and other information in the header
-    // and calls decodeSecureSmallFrameRaw().
+    // and then returns the result of calling decodeSecureSmallFrameRaw().
     //
     // If several candidate nodes share the ID prefix in the frame header
     // (in the extreme case with a zero-length header ID for an anonymous frame)
