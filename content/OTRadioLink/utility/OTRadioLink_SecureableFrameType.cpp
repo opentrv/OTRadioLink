@@ -423,7 +423,8 @@ uint8_t encodeSecureSmallFrameRaw(uint8_t *const buf, const uint8_t buflen,
 //  * buf  buffer containing the entire frame including header and trailer; never NULL
 //  * buflen  available length in buf; if too small then this routine will fail (return 0)
 //  * sfh  decoded frame header; never NULL
-//  * decryptedBodyOut  body, if any, will be decoded into this; never NULL
+//  * decryptedBodyOut  body, if any, will be decoded into this;
+//        can be NULL if no plaintext is expected/wanted
 //  * decryptedBodyOutBuflen  size of decodedBodyOut to decode in to;
 //        if too small the routine will exist with an error (0)
 //  * decryptedBodyOutSize  is set to the size of the decoded body in decodedBodyOut
@@ -438,7 +439,7 @@ uint8_t decodeSecureSmallFrameRaw(const SecurableFrameHeader *const sfh,
                                 uint8_t *const decryptedBodyOut, const uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize)
     {
     if((NULL == sfh) || (NULL == buf) || (NULL == d) ||
-        (NULL == key) || (NULL == iv) || (NULL == decryptedBodyOut)) { return(0); } // ERROR
+        (NULL == key) || (NULL == iv)) { return(0); } // ERROR
     // Abort if header was not decoded properly.
     if(sfh->isInvalid()) { return(0); } // ERROR
     // Abort if expected constraints for simple fixed-size secure frame are not met.
@@ -450,17 +451,23 @@ uint8_t decodeSecureSmallFrameRaw(const SecurableFrameHeader *const sfh,
     if((0 != bl) && (ENC_BODY_SMALL_FIXED_CTEXT_SIZE != bl)) { return(0); } // ERROR
     // Check that header sequence number lsbs match nonce counter 4 lsbs.
     if(sfh->getSeq() != (iv[11] & 0xf)) { return(0); } // ERROR
+    // Note if plaintext is actually wanted/expected.
+    const bool plaintextWanted = (NULL != decryptedBodyOut);
     // Attempt to authenticate and decrypt.
     uint8_t decryptBuf[ENC_BODY_SMALL_FIXED_CTEXT_SIZE];
     if(!d(state, key, iv, buf, sfh->getHl(),
                 buf + sfh->getBodyOffset(), buf + fl - 16,
                 decryptBuf)) { return(0); } // ERROR
-    // Unpad the decrypted text in place.
-    const uint8_t upbl = removePaddingTo32BTrailing0sAndPadCount(decryptBuf);
-    if(upbl > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
-    if(upbl > decryptedBodyOutBuflen) { return(0); } // ERROR
-    memcpy(decryptedBodyOut, decryptBuf, upbl);
-    decryptedBodyOutSize = upbl;
+    if(plaintextWanted)
+        {
+        // Unpad the decrypted text in place.
+        const uint8_t upbl = removePaddingTo32BTrailing0sAndPadCount(decryptBuf);
+        if(upbl > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
+        if(upbl > decryptedBodyOutBuflen) { return(0); } // ERROR
+        memcpy(decryptedBodyOut, decryptBuf, upbl);
+        decryptedBodyOutSize = upbl;
+        // TODO: optimise later if plaintext not required but ciphertext present.
+        }
     // Done.
     return(fl + 1);
     }
@@ -484,8 +491,9 @@ uint8_t decodeSecureSmallFrameRaw(const SecurableFrameHeader *const sfh,
 // (which may involve more than a simple increment)
 // to the new values to prevent replay attacks.
 //
-//   * adjID / adjIDLen  adjusted candidate ID and available length (must be >= 6)
-//         based on ID in (structurally validated) sfh
+//   * adjID / adjIDLen  adjusted candidate ID (never NULL)
+//         and available length (must be >= 6)
+//         based on the received ID in (the already structurally validated) header
 uint8_t decodeSecureSmallFrameFromID(const SecurableFrameHeader *const sfh,
                                 const uint8_t *const buf, const uint8_t buflen,
                                 const fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
@@ -493,7 +501,25 @@ uint8_t decodeSecureSmallFrameFromID(const SecurableFrameHeader *const sfh,
                                 void *const state, const uint8_t *const key,
                                 uint8_t *const decryptedBodyOut, const uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize)
     {
-    return(0); // FIXME not yet implemented
+    // Rely on decodeSecureSmallFrameRaw() for validation of items not directly needed here.
+    if((NULL == sfh) || (NULL == buf) || (NULL == adjID)) { return(0); } // ERROR
+    if(adjIDLen < 6) { return(0); } // ERROR
+    // Abort if header was not decoded properly.
+    if(sfh->isInvalid()) { return(0); } // ERROR
+    // Abort if expected constraints for simple fixed-size secure frame are not met.
+    if(23 != sfh->getTl()) { return(0); } // ERROR
+//    const uint8_t fl = sfh->fl;
+//    if(0x80 != buf[fl]) { return(0); } // ERROR
+    // Construct IV from supplied (possibly adjusted) ID + counters from (start of) trailer.
+    uint8_t iv[12];
+    memcpy(iv, adjID, 6);
+    memcpy(iv + 6, buf + sfh->getTrailerOffset(), 6);
+    // Now do actual decrypt/auth.
+    return(decodeSecureSmallFrameRaw(sfh,
+                                buf, buflen,
+                                d,
+                                state, key, iv,
+                                decryptedBodyOut, decryptedBodyOutBuflen, decryptedBodyOutSize));
     }
 
 // Pads plain-text in place prior to encryption with 32-byte fixed length padded output.

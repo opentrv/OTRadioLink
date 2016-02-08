@@ -466,7 +466,8 @@ namespace OTRadioLink
     //  * buf  buffer containing the entire frame including header and trailer; never NULL
     //  * buflen  available length in buf; if too small then this routine will fail (return 0)
     //  * sfh  decoded frame header; never NULL
-    //  * decryptedBodyOut  body, if any, will be decoded into this; never NULL
+    //  * decryptedBodyOut  body, if any, will be decoded into this;
+    //        can be NULL if no plaintext is expected/wanted
     //  * decryptedBodyOutBuflen  size of decodedBodyOut to decode in to;
     //        if too small the routine will exist with an error (0)
     //  * decryptedBodyOutSize  is set to the size of the decoded body in decodedBodyOut
@@ -499,8 +500,9 @@ namespace OTRadioLink
     // (which may involve more than a simple increment)
     // to the new values to prevent replay attacks.
     //
-    //   * adjID / adjIDLen  adjusted candidate ID and available length (must be >= 6)
-    //         based on ID in (structurally validated) sfh
+    //   * adjID / adjIDLen  adjusted candidate ID (never NULL)
+    //         and available length (must be >= 6)
+    //         based on the received ID in (the already structurally validated) header
     uint8_t decodeSecureSmallFrameFromID(const SecurableFrameHeader *sfh,
                                     const uint8_t *buf, uint8_t buflen,
                                     fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
