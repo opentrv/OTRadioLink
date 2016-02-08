@@ -496,7 +496,6 @@ uint8_t decodeSecureSmallFrameFromID(const SecurableFrameHeader *const sfh,
     return(0); // FIXME not yet implemented
     }
 
-
 // Pads plain-text in place prior to encryption with 32-byte fixed length padded output.
 // Simple method that allows unpadding at receiver, does padding in place.
 // Padded size is (ENC_BODY_SMALL_FIXED_CTEXT_SIZE) 32, maximum unpadded size is 31.
