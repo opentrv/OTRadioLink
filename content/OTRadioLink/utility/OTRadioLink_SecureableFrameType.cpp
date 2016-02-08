@@ -93,13 +93,18 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf,
     fType = secure_ ? (0x80 | (uint8_t) fType_) : (0x7f & (uint8_t) fType_);
     //  4) il <= 8 for initial implementations (internal node ID is 8 bytes)
     //  5) NOT APPLICABLE FOR ENCODE: il <= fl - 4 (ID length; minimum of 4 bytes of other overhead)
-    // ID must be of a legitimate size and have a non-NULL pointer,
-    // else if prefilled (id_ is NULL) must not start with 0xff.
-    const bool idPreFilled = (NULL == id_);
-    if((il_ > maxIDLength) || (idPreFilled && (0xff == id[0]))) { return(0); } // ERROR
+    // ID must be of a legitimate size.
+    // A non-NULL pointer is a RAM source, else an EEPROM source.
+    if(il_ > maxIDLength) { return(0); } // ERROR
     // Copy the ID length and bytes, and sequence number lsbs, to the header struct.
     seqIl = il_ | (seqNum_ << 4);
-    if(!idPreFilled) { memcpy(id, id_, il_); }
+    if(il_ > 0)
+      {
+      // Copy in ID if not zero length, from RAM or EEPROM as appropriate.
+      const bool idFromEEPROM = (NULL == id_);
+      if(!idFromEEPROM) { memcpy(id, id_, il_); }
+      else { eeprom_read_block(id, (uint8_t *)V0P2BASE_EE_START_ID, il_); }
+      }
     // Header length including frame length byte.
     const uint8_t hlifl = 4 + il_;
     // Error return if not enough space in buf for the complete encoded header.
@@ -241,12 +246,19 @@ uint8_t SecurableFrameHeader::computeNonSecureFrameCRC(const uint8_t *const buf,
     return(crc);
     }
 
-
 // Compose (encode) entire non-secure small frame from header params, body and CRC trailer.
 // Returns the total number of bytes written out for the frame
 // (including, and with a value one higher than the first 'fl' bytes).
 // Returns zero in case of error.
 // The supplied buffer may have to be up to 64 bytes long.
+//
+// Parameters:
+//  * buf  buffer to which is written the entire frame including trailer/CRC; never NULL
+//  * buflen  available length in buf; if too small then this routine will fail (return 0)
+//  * fType_  frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
+//  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
+//  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
+//  * body / bl_  body data (and length)
 uint8_t encodeNonsecureSmallFrame(uint8_t *const buf, const uint8_t buflen,
                                     const FrameType_Secureable fType_,
                                     const uint8_t seqNum_,
@@ -280,8 +292,37 @@ uint8_t encodeNonsecureSmallFrame(uint8_t *const buf, const uint8_t buflen,
     return(fl + 1);
     }
 
+// Decode entire non-secure small frame from raw frame bytes support.
+// Returns the total number of bytes read for the frame
+// (including, and with a value one higher than the first 'fl' bytes).
+// Returns zero in case of error, eg because the CRC check failed.
+//
+// Typical workflow:
+//   * decode the header alone to extract the ID and frame type
+//   * use the frame header's bl and getBodyOffset() to get the body and body length
+//
+// Parameters:
+//  * buf  buffer containing the entire frame including header and trailer; never NULL
+//  * buflen  available length in buf; if too small then this routine will fail (return 0)
+//  * sfh  decoded frame header; never NULL
+uint8_t decodeNonsecureSmallFrameRaw(const SecurableFrameHeader *sfh,
+                                     const uint8_t *buf, uint8_t buflen)
+    {
+    if((NULL == sfh) || (NULL == buf)) { return(0); } // ERROR
+    // Abort if header was not decoded properly.
+    if(sfh->isInvalid()) { return(0); } // ERROR
+    // Abort if expected constraints for simple fixed-size secure frame are not met.
+    const uint8_t fl = sfh->fl;
+    if(1 != sfh->getTl()) { return(0); } // ERROR
+    // Compute the expected CRC trailer...
+    const uint8_t crc = sfh->computeNonSecureFrameCRC(buf, buflen);
+    if(0 == crc) { return(0); } // ERROR
+    if(buf[fl] != crc) { return(0); } // ERROR
+    // Done
+    return(fl + 1);
+    }
 
-// Compose (encode) entire secure small frame from header params, body and CRC trailer.
+// Encode entire secure small frame from header params and body and crypto support.
 // This is a raw/partial impl that requires the IV/nonce to be supplied.
 // This uses fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t style encryption/authentication.
 // The matching decryption function should be used for decoding/verifying.
@@ -292,12 +333,14 @@ uint8_t encodeNonsecureSmallFrame(uint8_t *const buf, const uint8_t buflen,
 // Returns zero in case of error.
 // The supplied buffer may have to be up to 64 bytes long.
 //
+// Note that the sequence number is taken from the 4 least significant bits
+// of the message counter (at byte 6 in the nonce).
+//
 // Parameters:
 //  * buf  buffer to which is written the entire frame including trailer; never NULL
 //  * buflen  available length in buf; if too small then this routine will fail (return 0)
 //  * fType_  frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
-//  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
-//  * id_ / il_  ID bytes (and length) to go in the header
+//  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
 //  * body / bl_  body data (and length), before padding/encryption, no larger than ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE
 //  * iv  12-byte initialisation vector / nonce; never NULL
 //  * e  encryption function; never NULL
@@ -305,12 +348,11 @@ uint8_t encodeNonsecureSmallFrame(uint8_t *const buf, const uint8_t buflen,
 //  * key  secret key; never NULL
 uint8_t encodeSecureSmallFrameRaw(uint8_t *const buf, const uint8_t buflen,
                                 const FrameType_Secureable fType_,
-                                const uint8_t seqNum_,
                                 const uint8_t *const id_, const uint8_t il_,
                                 const uint8_t *const body, const uint8_t bl_,
                                 const uint8_t *const iv,
                                 const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
-                                void *state, const uint8_t *const key)
+                                void *const state, const uint8_t *const key)
     {
     if((NULL == iv) || (NULL == e) || (NULL == key)) { return(0); } // ERROR
     // Stop if unencrypted body is too big for this scheme.
@@ -318,6 +360,7 @@ uint8_t encodeSecureSmallFrameRaw(uint8_t *const buf, const uint8_t buflen,
     const uint8_t encryptedBodyLength = (0 == bl_) ? 0 : ENC_BODY_SMALL_FIXED_CTEXT_SIZE;
     // Let checkAndEncodeSmallFrameHeader() validate buf and id_.
     // If necessary (bl_ > 0) body is validated below.
+    const uint8_t seqNum_ = iv[11] & 0xf;
     OTRadioLink::SecurableFrameHeader sfh;
     const uint8_t hl = sfh.checkAndEncodeSmallFrameHeader(buf, buflen,
                                                true, fType_,
@@ -338,8 +381,7 @@ uint8_t encodeSecureSmallFrameRaw(uint8_t *const buf, const uint8_t buflen,
         memcpy(paddingBuf, body, bl_);
         if(0 == addPaddingTo32BTrailing0sAndPadCount(paddingBuf, bl_)) { return(0); } // ERROR
         }
-//    const uint8_t hl = sfh.getHl();
-    // Encrypt body (if any) directly into the buffer.
+    // Encrypt body (if any) from the padding buffer to the output buffer.
     // Insert the tag directly into the buffer (before the final byte).
     if(!e(state, key, iv, buf, hl, (0 == bl_) ? NULL : paddingBuf, buf + hl, buf + fl - 16)) { return(0); } // ERROR
     // Copy the counters part (last 6 bytes of) the nonce/IV into the trailer...
@@ -360,20 +402,31 @@ uint8_t encodeSecureSmallFrameRaw(uint8_t *const buf, const uint8_t buflen,
 // (including, and with a value one higher than the first 'fl' bytes).
 // Returns zero in case of error, eg because authentication failed.
 //
+// Also checks (nominally dependent on frame type and/or trailing tag byte/type) that
+// the header sequence number lsbs matches the IV message counter 4 lsbs (in byte 11),
+// ie the sequence number is not arbitrary but is derived (redundantly) from the IV.
+// (MAY NEED FIXING eg message counter moved to last IV byte or dependent and above.)
+//
 // Typical workflow:
 //   * decode the header alone to extract the ID and frame type
 //   * use those to select a candidate key, construct an iv/nonce
 //   * call this routine with that decoded header and the full buffer
 //     to authenticate and decrypt the frame.
 //
+// Note extra checks to be done:
+//   * the incoming message counter must be strictly greater than
+//     the last last authenticated message from this ID
+//     to prevent replay attacks;
+//     is quick and can also be done early to save processing energy.
+//
 // Parameters:
 //  * buf  buffer containing the entire frame including header and trailer; never NULL
 //  * buflen  available length in buf; if too small then this routine will fail (return 0)
 //  * sfh  decoded frame header; never NULL
-//  * decodedBodyOut  body, if any, will be decoded into this; never NULL
-//  * decodedBodyOutBuflen  size of decodedBodyOut to decode in to;
+//  * decryptedBodyOut  body, if any, will be decoded into this; never NULL
+//  * decryptedBodyOutBuflen  size of decodedBodyOut to decode in to;
 //        if too small the routine will exist with an error (0)
-//  * decodedBodyOutSize  is set to the size of the decoded body in decodedBodyOut
+//  * decryptedBodyOutSize  is set to the size of the decoded body in decodedBodyOut
 //  * iv  12-byte initialisation vector / nonce; never NULL
 //  * d  decryption function; never NULL
 //  * state  pointer to state for d, if required, else NULL
@@ -382,7 +435,7 @@ uint8_t decodeSecureSmallFrameRaw(const SecurableFrameHeader *const sfh,
                                 const uint8_t *const buf, const uint8_t buflen,
                                 const fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
                                 void *const state, const uint8_t *const key, const uint8_t *const iv,
-                                uint8_t *const decryptedBodyOut, uint8_t decodedBodyOutBuflen, uint8_t &decodedBodyOutSize)
+                                uint8_t *const decryptedBodyOut, const uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize)
     {
     if((NULL == sfh) || (NULL == buf) || (NULL == d) ||
         (NULL == key) || (NULL == iv) || (NULL == decryptedBodyOut)) { return(0); } // ERROR
@@ -395,6 +448,8 @@ uint8_t decodeSecureSmallFrameRaw(const SecurableFrameHeader *const sfh,
     if(0x80 != buf[fl]) { return(0); } // ERROR
     const uint8_t bl = sfh->bl;
     if((0 != bl) && (ENC_BODY_SMALL_FIXED_CTEXT_SIZE != bl)) { return(0); } // ERROR
+    // Check that header sequence number lsbs match nonce counter 4 lsbs.
+    if(sfh->getSeq() != (iv[11] & 0xf)) { return(0); } // ERROR
     // Attempt to authenticate and decrypt.
     uint8_t decryptBuf[ENC_BODY_SMALL_FIXED_CTEXT_SIZE];
     if(!d(state, key, iv, buf, sfh->getHl(),
@@ -403,9 +458,9 @@ uint8_t decodeSecureSmallFrameRaw(const SecurableFrameHeader *const sfh,
     // Unpad the decrypted text in place.
     const uint8_t upbl = removePaddingTo32BTrailing0sAndPadCount(decryptBuf);
     if(upbl > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
-    if(upbl > decodedBodyOutBuflen) { return(0); } // ERROR
+    if(upbl > decryptedBodyOutBuflen) { return(0); } // ERROR
     memcpy(decryptedBodyOut, decryptBuf, upbl);
-    decodedBodyOutSize = upbl;
+    decryptedBodyOutSize = upbl;
     // Done.
     return(fl + 1);
     }
@@ -446,7 +501,6 @@ uint8_t removePaddingTo32BTrailing0sAndPadCount(const uint8_t *const buf)
     const uint8_t datalen = ENC_BODY_SMALL_FIXED_CTEXT_SIZE - 1 - paddingZeros;
     return(datalen); // FAIL FIXME
     }
-
 
 // NULL basic fixed-size text 'encryption' function.
 // DOES NOT ENCRYPT OR AUTHENTICATE SO DO NOT USE IN PRODUCTION SYSTEMS.
@@ -500,6 +554,53 @@ bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(void *const state,
     memcpy(plaintextOut, ciphertext, 32);
     // Done.
     return(true);
+    }
+
+
+// CONVENIENCE/BOILERPLATE METHODS
+
+// Create non-secure Alive / beacon (FTS_ALIVE) frame with an empty body.
+// Returns number of bytes written to buffer, or 0 in case of error.
+// Note that the frame will be at least 4 + ID-length (up to maxIDLength) bytes,
+// so the buffer must be large enough to accommodate that.
+//  * buf  buffer to which is written the entire frame including trailer; never NULL
+//  * buflen  available length in buf; if too small then this routine will fail (return 0)
+//  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
+//  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
+uint8_t generateNonsecureBeacon(uint8_t *const buf, const uint8_t buflen,
+                                const uint8_t seqNum_,
+                                const uint8_t *const id_, const uint8_t il_)
+    {
+    SecurableFrameHeader sfh;
+    // "I'm Alive!" / beacon message.
+    return(encodeNonsecureSmallFrame(buf, buflen,
+                                    OTRadioLink::FTS_ALIVE,
+                                    seqNum_,
+                                    id_, il_,
+                                    NULL, 0));
+    }
+
+// Create secure Alive / beacon (FTS_ALIVE) frame with an empty body.
+// Returns number of bytes written to buffer, or 0 in case of error.
+// Note that the frame will be 27 + ID-length (up to maxIDLength) bytes,
+// so the buffer must be large enough to accommodate that.
+//  * buf  buffer to which is written the entire frame including trailer; never NULL
+//  * buflen  available length in buf; if too small then this routine will fail (return 0)
+//  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
+//  * iv  12-byte initialisation vector / nonce; never NULL
+//  * key  16-byte secret key; never NULL
+// NOTE: this version requires the IV to be supplied and the transmitted ID length to chosen.
+uint8_t generateSecureBeaconRaw(uint8_t *const buf, const uint8_t buflen,
+                                const uint8_t *const id_, const uint8_t il_,
+                                const uint8_t *const iv,
+                                const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                                void *const state, const uint8_t *const key)
+    {
+    const uint8_t encodedLength = OTRadioLink::encodeSecureSmallFrameRaw(buf, buflen,
+                                    OTRadioLink::FTS_ALIVE,
+                                    id_, il_,
+                                    NULL, 0,
+                                    iv, e, state, key);
     }
 
 

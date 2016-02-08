@@ -82,7 +82,7 @@ void flushSerialProductive()
 #endif
   // Can productively spin here churning PRNGs or the like before the flush(), checking for the UART TX buffer to empty...
   // An occasional premature exit to flush() due to Serial interrupt handler interaction is benign, and indeed more grist to the mill.
-  while(serialTXInProgress()) { /*8burnHundredsOfCyclesProductivelyAndPoll();*/ }
+  while(serialTXInProgress()) { /* burnHundredsOfCyclesProductivelyAndPoll(); */ }
   Serial.flush(); // Wait for all output to have been sent.
   // Could wait two character times at 10 bits per character based on BAUD.
   // Or mass with the UART...

@@ -111,7 +111,7 @@ namespace OTRadioLink
     //
     // Frame format excluding logical leading length (fl) byte:
     // +------+--------+-----------------+----+--------------------+------------------+
-    // | type | seqidl | ID [0,15] bytes | bl | body [0,254] bytes | trailer 1+ bytes |
+    // | type | seqidl | ID [0,15] bytes | bl | body [0,251] bytes | trailer 1+ bytes |
     // +------+--------+-----------------+----+--------------------+------------------+
     struct SecurableFrameHeader
         {
@@ -125,14 +125,6 @@ namespace OTRadioLink
         // This is only reliable if all manipulation of struct content
         // is by the member functions.
         bool isInvalid() const { return(0 == fl); }
-
-        // Minimum possible frame size is 4, excluding fl byte.
-        // Minimal frame (excluding logical leading length fl byte) is:
-        //   type, seq/idlen, zero-length ID, bl, zero-length body, 1-byte trailer.
-        // +------+--------+----+----------------+
-        // | type | seqidl | bl | 1-byte-trailer |
-        // +------+--------+----+----------------+
-        static const uint8_t minFrameSize = 4;
 
         // Minimum possible frame size is 4, excluding fl byte.
         // Minimal frame (excluding logical leading length fl byte) is:
@@ -182,6 +174,9 @@ namespace OTRadioLink
         // Get header length including the leading frame-length byte.
         inline uint8_t getHl() const { return(4 + getIl()); }
 
+        // Maximum small frame body size is maximum frame size minus 4, excluding fl byte.
+        // This maximum size is only achieved with non-secure frames with zero-length ID.
+        static const uint8_t maxSmallFrameBodySize = maxSmallFrameSize - 4;
         // Body length including any padding [0,251] but generally << 60.
         uint8_t bl;
         // Compute the offset of the body from the start of the frame starting wth nominal fl byte.
@@ -234,11 +229,6 @@ namespace OTRadioLink
                                                uint8_t bl_,
                                                uint8_t tl_);
 
-        // Loads the node ID from the EEPROM or other non-volatile ID store.
-        // Can be called before a call to checkAndEncodeSmallFrameHeader() with id_ == NULL.
-        // Pads at end with 0xff if the EEPROM ID is shorter than the maximum 'short frame' ID.
-        uint8_t loadIDFromEEPROM();
-
         // Decode header and check parameters/validity for inbound short secureable frame.
         // The buffer starts with the fl frame length byte.
         //
@@ -276,7 +266,8 @@ namespace OTRadioLink
         };
 
 
-    // Encode entire non-secure small frame from header params and body.
+
+    // Compose (encode) entire non-secure small frame from header params, body and CRC trailer.
     // Returns the total number of bytes written out for the frame
     // (including, and with a value one higher than the first 'fl' bytes).
     // Returns zero in case of error.
@@ -287,13 +278,29 @@ namespace OTRadioLink
     //  * buflen  available length in buf; if too small then this routine will fail (return 0)
     //  * fType_  frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
     //  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
-    //  * id_ / il_  ID bytes (and length) to go in the header
+    //  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
     //  * body / bl_  body data (and length)
     uint8_t encodeNonsecureSmallFrame(uint8_t *buf, uint8_t buflen,
                                         FrameType_Secureable fType_,
                                         uint8_t seqNum_,
                                         const uint8_t *id_, uint8_t il_,
                                         const uint8_t *body, uint8_t bl_);
+
+    // Decode entire non-secure small frame from raw frame bytes support.
+    // Returns the total number of bytes read for the frame
+    // (including, and with a value one higher than the first 'fl' bytes).
+    // Returns zero in case of error, eg because the CRC check failed.
+    //
+    // Typical workflow:
+    //   * decode the header alone to extract the ID and frame type
+    //   * use the frame header's bl and getBodyOffset() to get the body and body length
+    //
+    // Parameters:
+    //  * buf  buffer containing the entire frame including header and trailer; never NULL
+    //  * buflen  available length in buf; if too small then this routine will fail (return 0)
+    //  * sfh  decoded frame header; never NULL
+    uint8_t decodeNonsecureSmallFrameRaw(const SecurableFrameHeader *sfh,
+                                         const uint8_t *buf, uint8_t buflen);
 
 //        // Round up to next 16 multiple, eg for encryption that works in fixed-size blocks for input [0,240].
 //        // Eg 0 -> 0, 1 -> 16, ... 16 -> 16, 17 -> 32 ...
@@ -407,12 +414,14 @@ namespace OTRadioLink
     // Returns zero in case of error.
     // The supplied buffer may have to be up to 64 bytes long.
     //
+    // Note that the sequence number is taken from the 4 least significant bits
+    // of the message counter (at byte 6 in the nonce).
+    //
     // Parameters:
     //  * buf  buffer to which is written the entire frame including trailer; never NULL
     //  * buflen  available length in buf; if too small then this routine will fail (return 0)
     //  * fType_  frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
-    //  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
-    //  * id_ / il_  ID bytes (and length) to go in the header
+    //  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
     //  * body / bl_  body data (and length), before padding/encryption, no larger than ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE
     //  * iv  12-byte initialisation vector / nonce; never NULL
     //  * e  encryption function; never NULL
@@ -420,7 +429,6 @@ namespace OTRadioLink
     //  * key  secret key; never NULL
     uint8_t encodeSecureSmallFrameRaw(uint8_t *buf, uint8_t buflen,
                                     FrameType_Secureable fType_,
-                                    uint8_t seqNum_,
                                     const uint8_t *id_, uint8_t il_,
                                     const uint8_t *body, uint8_t bl_,
                                     const uint8_t *iv,
@@ -437,20 +445,31 @@ namespace OTRadioLink
     // (including, and with a value one higher than the first 'fl' bytes).
     // Returns zero in case of error, eg because authentication failed.
     //
+    // Also checks (nominally dependent on frame type and/or trailing tag byte/type) that
+    // the header sequence number lsbs matches the IV message counter 4 lsbs (in byte 11),
+    // ie the sequence number is not arbitrary but is derived (redundantly) from the IV.
+    // (MAY NEED FIXING eg message counter moved to last IV byte or dependent and above.)
+    //
     // Typical workflow:
     //   * decode the header alone to extract the ID and frame type
     //   * use those to select a candidate key, construct an iv/nonce
     //   * call this routine with that decoded header and the full buffer
     //     to authenticate and decrypt the frame.
     //
+    // Note extra checks to be done:
+    //   * the incoming message counter must be strictly greater than
+    //     the last last authenticated message from this ID
+    //     to prevent replay attacks;
+    //     is quick and can also be done early to save processing energy.
+    //
     // Parameters:
     //  * buf  buffer containing the entire frame including header and trailer; never NULL
     //  * buflen  available length in buf; if too small then this routine will fail (return 0)
     //  * sfh  decoded frame header; never NULL
-    //  * decodedBodyOut  body, if any, will be decoded into this; never NULL
-    //  * decodedBodyOutBuflen  size of decodedBodyOut to decode in to;
+    //  * decryptedBodyOut  body, if any, will be decoded into this; never NULL
+    //  * decryptedBodyOutBuflen  size of decodedBodyOut to decode in to;
     //        if too small the routine will exist with an error (0)
-    //  * decodedBodyOutSize  is set to the size of the decoded body in decodedBodyOut
+    //  * decryptedBodyOutSize  is set to the size of the decoded body in decodedBodyOut
     //  * iv  12-byte initialisation vector / nonce; never NULL
     //  * d  decryption function; never NULL
     //  * state  pointer to state for d, if required, else NULL
@@ -459,35 +478,41 @@ namespace OTRadioLink
                                     const uint8_t *buf, uint8_t buflen,
                                     fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
                                     void *state, const uint8_t *key, const uint8_t *iv,
-                                    uint8_t *decryptedBodyOut, uint8_t decodedBodyOutBuflen, uint8_t &decodedBodyOutSize);
+                                    uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
 
 
 
     // CONVENIENCE/BOILERPLATE METHODS
 
-    // Create (insecure) Alive / beacon (FTS_ALIVE) frame with an empty body.
+    // Create non-secure Alive / beacon (FTS_ALIVE) frame with an empty body.
     // Returns number of bytes written to buffer, or 0 in case of error.
-    // Note that the frame will be at least 4 + ID-length (up to maxIDLength) bytes,
+    // Note that the frame will be 5 + ID-length (up to maxIDLength) bytes,
     // so the buffer must be large enough to accommodate that.
-    //  * sh  workspace for constructing header,
-    //        also extracts the previous sequence number and increments before using,
-    //        so that sending a series of (insecure) frames with the same sh
-    //        will generate a contiguous stream of sequence numbers
-    //        in the absense of errors
     //  * buf  buffer to which is written the entire frame including trailer; never NULL
     //  * buflen  available length in buf; if too small then this routine will fail (return 0)
-    //  * id_ / il_  ID bytes (and length) to go in the header
-    static const uint8_t generateInsecureBeaconBufSize = 4 + SecurableFrameHeader::maxIDLength;
-    extern uint8_t generateInsecureBeacon(SecurableFrameHeader &sh,
-                                        uint8_t *buf, uint8_t buflen,
-                                        const uint8_t *id_, uint8_t il_);
-//      // "I'm Alive!" message with 1-byte ID should succeed and be of full header length (5).
-//  AssertIsEqual(5, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
-//                                               false, OTRadioLink::FTS_ALIVE,
-//                                               OTV0P2BASE::randRNG8(),
-//                                               id, 1, // Minimal (non-empty) ID.
-//                                               0, // No payload.
-//                                               1));
+    //  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
+    //  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
+    static const uint8_t generateNonsecureBeaconMaxBufSize = 5 + SecurableFrameHeader::maxIDLength;
+    uint8_t generateNonsecureBeacon(uint8_t *buf, uint8_t buflen,
+                                    const uint8_t seqNum_,
+                                    const uint8_t *id_, uint8_t il_);
+
+    // Create secure Alive / beacon (FTS_ALIVE) frame with an empty body.
+    // Returns number of bytes written to buffer, or 0 in case of error.
+    // Note that the frame will be 27 + ID-length (up to maxIDLength) bytes,
+    // so the buffer must be large enough to accommodate that.
+    //  * buf  buffer to which is written the entire frame including trailer; never NULL
+    //  * buflen  available length in buf; if too small then this routine will fail (return 0)
+    //  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
+    //  * iv  12-byte initialisation vector / nonce; never NULL
+    //  * key  16-byte secret key; never NULL
+    // NOTE: this version requires the IV to be supplied and the transmitted ID length to chosen.
+    static const uint8_t generateSecureBeaconMaxBufSize = 27 + SecurableFrameHeader::maxIDLength;
+    uint8_t generateSecureBeaconRaw(uint8_t *buf, uint8_t buflen,
+                                    const uint8_t *id_, uint8_t il_,
+                                    const uint8_t *const iv,
+                                    const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                                    void *state, const uint8_t *key);
 
 
     }
