@@ -752,6 +752,22 @@ static void testBeaconEncoding()
     const uint8_t iv[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55, 0x00, 0x00, 0x2a, 0x00, 0x03, 0x19 };
     const uint8_t sb1 = OTRadioLink::generateSecureBeaconRaw(buf, sizeof(buf), id, idLen, iv, OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS, NULL, key);
     AssertIsEqual(27 + idLen, sb1);
+    //
+    // Check decoding (auth/decrypt) of beacon at various levels.
+    // Validate structure of frame first.
+    // This is quick and checks for insane/dangerous values throughout.
+    OTRadioLink::SecurableFrameHeader sfh;
+    const uint8_t l = sfh.checkAndDecodeSmallFrameHeader(buf, sb1);
+    AssertIsEqual(4 + idLen, l);
+    uint8_t decryptedBodyOutSize;
+    const uint8_t dl = OTRadioLink::decodeSecureSmallFrameFromID(&sfh,
+                                    buf, sizeof(buf),
+                                    OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
+                                    id, sizeof(id),
+                                    NULL, key,
+                                    NULL, 0, decryptedBodyOutSize);
+    // Should be able to decode, ie pass authentication.
+    AssertIsEqual(27 + idLen, dl);         
     }
 //  const unsigned long after = millis();
 //  Serial.println(after - before); // DHD20160207: 1442 for 8 rounds, or ~180ms per encryption.
