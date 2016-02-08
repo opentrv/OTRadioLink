@@ -480,6 +480,32 @@ namespace OTRadioLink
                                     void *state, const uint8_t *key, const uint8_t *iv,
                                     uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
 
+    // As for decodeSecureSmallFrameRaw() but passed a candidate node/counterparty ID
+    // derived from the frame ID in the incoming header,
+    // plus possible other adjustments such has forcing bit values for reverse flows.
+    // This routine constructs an IV from this expanded ID
+    // (which must be at least length 6 for 'O' / 0x80 style enc/auth)
+    // and other information in the header.
+    //
+    // If several candidate nodes share the ID prefix in the frame header
+    // (in the extreme case with a zero-length header ID for an anonymous frame)
+    // then they may all have to be tested in turn until one succeeds.
+    //
+    // Generally a call to this should be done AFTER checking that
+    // the aggregate message counter is higher than for the last successful receive
+    // (for this node and flow direction)
+    // and after a success those message counters should be updated
+    // to the new values to prevent replay attacks.
+    //
+    //   * adjID / adjIDLen  adjusted candidate ID and available length (must be >= 6)
+    //         based on ID in (structurally validated) sfh
+    uint8_t decodeSecureSmallFrameFromID(const SecurableFrameHeader *sfh,
+                                    const uint8_t *buf, uint8_t buflen,
+                                    fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
+                                    const uint8_t *adjID, uint8_t adjIDLen,
+                                    void *state, const uint8_t *key,
+                                    uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
+
 
 
     // CONVENIENCE/BOILERPLATE METHODS
