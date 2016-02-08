@@ -376,10 +376,10 @@ namespace OTRadioLink
     // and that some possible gross errors in the use of the crypto are absent.
     // Returns true on success, false on failure.
     //
-    // Does not use state so that pointer may be NULL but all others must be non-NULL.
-    // Copies the plaintext to the ciphertext.
+    // Does not use state so that pointer may be NULL but all others must be non-NULL except plaintext.
+    // Copies the plaintext to the ciphertext, unless plaintext is NULL.
     // Copies the nonce/IV to the tag and pads with trailing zeros.
-    // The key is not used (though one must be supplied).
+    // The key is ignored (though one must be supplied).
     bool fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL(void *state,
             const uint8_t *key, const uint8_t *iv,
             const uint8_t *authtext, uint8_t authtextSize,
@@ -392,10 +392,9 @@ namespace OTRadioLink
     // and that some possible gross errors in the use of the crypto are absent.
     // Returns true on success, false on failure.
     //
-    // Does not use state so that pointer may be NULL but all others must be non-NULL.
+    // Does not use state so that pointer may be NULL but all others must be non-NULL except ciphertext.
     // Undoes/checks fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL().
-    // Undoes/checks fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL().
-    // Copies the ciphertext to the plaintext.
+    // Copies the ciphertext to the plaintext, unless ciphertext is NULL.
     // Verifies that the tag seems to have been constructed appropriately.
     bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(void *state,
             const uint8_t *key, const uint8_t *iv,

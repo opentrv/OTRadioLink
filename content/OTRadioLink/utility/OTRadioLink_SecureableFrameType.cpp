@@ -456,7 +456,7 @@ uint8_t decodeSecureSmallFrameRaw(const SecurableFrameHeader *const sfh,
     // Attempt to authenticate and decrypt.
     uint8_t decryptBuf[ENC_BODY_SMALL_FIXED_CTEXT_SIZE];
     if(!d(state, key, iv, buf, sfh->getHl(),
-                buf + sfh->getBodyOffset(), buf + fl - 16,
+                (0 == bl) ? NULL : buf + sfh->getBodyOffset(), buf + fl - 16,
                 decryptBuf)) { return(0); } // ERROR
     if(plaintextWanted)
         {
@@ -564,8 +564,8 @@ uint8_t removePaddingTo32BTrailing0sAndPadCount(const uint8_t *const buf)
 // and that some possible gross errors in the use of the crypto are absent.
 // Returns true on success, false on failure.
 //
-// Does not use state so that pointer may be NULL but all others must be non-NULL.
-// Copies the plaintext to the ciphertext.
+// Does not use state so that pointer may be NULL but all others must be non-NULL except plaintext.
+// Copies the plaintext to the ciphertext, unless plaintext is NULL.
 // Copies the nonce/IV to the tag and pads with trailing zeros.
 // The key is ignored (though one must be supplied).
 bool fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL(void * const state,
@@ -575,10 +575,10 @@ bool fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL(void * const state,
         uint8_t *const ciphertextOut, uint8_t *const tagOut)
     {
     // Does not use state, but checks that all other pointers are non-NULL.
-    if((NULL == key) || (NULL == iv) || (NULL == authtext) || (NULL == plaintext) ||
+    if((NULL == key) || (NULL == iv) || (NULL == authtext) ||
        (NULL == ciphertextOut) || (NULL == tagOut)) { return(false); } // ERROR
     // Copy the plaintext to the ciphertext, and the nonce to the tag padded with trailing zeros.
-    memcpy(ciphertextOut, plaintext, 32);
+    if(NULL != plaintext) { memcpy(ciphertextOut, plaintext, 32); }
     memcpy(tagOut, iv, 12);
     memset(tagOut+12, 0, 4);
     // Done.
@@ -591,9 +591,9 @@ bool fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL(void * const state,
 // and that some possible gross errors in the use of the crypto are absent.
 // Returns true on success, false on failure.
 //
-// Does not use state so that pointer may be NULL but all others must be non-NULL.
+// Does not use state so that pointer may be NULL but all others must be non-NULL except ciphertext.
 // Undoes/checks fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL().
-// Copies the ciphertext to the plaintext.
+// Copies the ciphertext to the plaintext, unless ciphertext is NULL.
 // Verifies that the tag seems to have been constructed appropriately.
 bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(void *const state,
         const uint8_t *const key, const uint8_t *const iv,
@@ -602,12 +602,12 @@ bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(void *const state,
         uint8_t *const plaintextOut)
     {
     // Does not use state, but checks that all other pointers are non-NULL.
-    if((NULL == key) || (NULL == iv) || (NULL == authtext) || (NULL == ciphertext) || (NULL == tag) ||
+    if((NULL == key) || (NULL == iv) || (NULL == authtext) || (NULL == tag) ||
        (NULL == plaintextOut)) { return(false); } // ERROR
     // Verify that the first and last bytes of the tag look correct.
     if((tag[0] != iv[0]) || (0 != tag[15])) { return(false); } // ERROR
     // Copy the ciphertext to the plaintext.
-    memcpy(plaintextOut, ciphertext, 32);
+    if(NULL != ciphertext) { memcpy(plaintextOut, ciphertext, 32); }
     // Done.
     return(true);
     }

@@ -521,18 +521,22 @@ static void runSimpleEncDec(const OTRadioLink::fixed32BTextSize12BNonce16BTagSim
   {
   // Check that calling the NULL enc routine with bad args fails.
   AssertIsTrue(!e(NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL));
+  // Try with plaintext and authext...
   static const uint8_t plaintext1[32] = { 'a', 'b', 'c', 'd', 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4 };
   static const uint8_t nonce1[12] = { 'q', 'u', 'i', 'c', 'k', ' ', 6, 5, 4, 3, 2, 1 };
   static const uint8_t authtext1[2] = { 'H', 'i' };
   // Output ciphertext and tag buffers.
   uint8_t co1[32], to1[16];
   AssertIsTrue(e(NULL, zeroKey, nonce1, authtext1, sizeof(authtext1), plaintext1, co1, to1));
-  // Check that calling the NULL decc routine with bad args fails.
+  // Check that calling the NULL dec routine with bad args fails.
   AssertIsTrue(!d(NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL));
   // Decode the ciphertext and tag from above and ensure that it 'works'.
   uint8_t plaintext1Decoded[32];
   AssertIsTrue(d(NULL, zeroKey, nonce1, authtext1, sizeof(authtext1), co1, to1, plaintext1Decoded));
   AssertIsEqual(0, memcmp(plaintext1, plaintext1Decoded, 32));
+  // Try with authtext and no plaintext.
+  AssertIsTrue(e(NULL, zeroKey, nonce1, authtext1, sizeof(authtext1), NULL, co1, to1));
+  AssertIsTrue(d(NULL, zeroKey, nonce1, authtext1, sizeof(authtext1), NULL, to1, plaintext1Decoded));
   }
 
 // Test basic access to crypto features.
@@ -760,14 +764,22 @@ static void testBeaconEncoding()
     const uint8_t l = sfh.checkAndDecodeSmallFrameHeader(buf, sb1);
     AssertIsEqual(4 + idLen, l);
     uint8_t decryptedBodyOutSize;
-    const uint8_t dl = OTRadioLink::decodeSecureSmallFrameFromID(&sfh,
+    const uint8_t dlr = OTRadioLink::decodeSecureSmallFrameRaw(&sfh,
+                                    buf, sizeof(buf),
+                                    OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
+                                    NULL, key, iv,
+                                    NULL, 0, decryptedBodyOutSize);
+    // Should be able to decode, ie pass authentication.
+    AssertIsEqual(27 + idLen, dlr);
+    // Construct IV from ID and trailer.
+    const uint8_t dlfi = OTRadioLink::decodeSecureSmallFrameFromID(&sfh,
                                     buf, sizeof(buf),
                                     OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
                                     id, sizeof(id),
                                     NULL, key,
                                     NULL, 0, decryptedBodyOutSize);
     // Should be able to decode, ie pass authentication.
-    AssertIsEqual(27 + idLen, dl);         
+    AssertIsEqual(27 + idLen, dlfi);         
     }
 //  const unsigned long after = millis();
 //  Serial.println(after - before); // DHD20160207: 1442 for 8 rounds, or ~180ms per encryption.
