@@ -527,8 +527,8 @@ namespace OTRadioLink
     // to help make 'cracking' the key harder
     // and to reduce the chance of reuse of IVs
     // even in the face of hardware or software error.
-    // When this counter reaches 0xffffffffffff no more messages can be sent
-    // until new keys are shared and the counter reset.
+    // When this counter reaches 0xffffffffffff then no more messages can be sent
+    // until new keys are shared and the counter is reset.
     static const uint8_t primaryPeristentTXMessageCounterBytes = 6;
     // Fills the supplied 6-byte array with the monotonically-increasing primary TX counter.
     // Returns true on success; false on failure for example because the counter has reached its maximum value.
