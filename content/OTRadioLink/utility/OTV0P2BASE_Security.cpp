@@ -89,4 +89,11 @@ bool ensureIDCreated(const bool force)
   }
 
 
+bool setPrimaryBuilding16ByteSecretKey(const uint8_t *key)
+  {
+  return(false); // FIXME
+  }
+
+
+
 }

@@ -61,6 +61,9 @@ inline bool validIDByte(const uint8_t v) { return((0 != (0x80 & v)) && (0xff != 
 bool ensureIDCreated(const bool force = false);
 
 
+bool setPrimaryBuilding16ByteSecretKey(const uint8_t *key);
+
+
 //#if 0 // Pairing API outline.
 //struct pairInfo { bool successfullyPaired; };
 //bool startPairing(bool primary, &pairInfo);
