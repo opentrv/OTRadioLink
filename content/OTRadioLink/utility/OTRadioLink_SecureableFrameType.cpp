@@ -633,9 +633,9 @@ bool getPrimarySecure6BytePersistentTXMessageCounter(uint8_t *const buf)
             {
             // FIXME: increment persistent counter carefully FIXME FIXME
             // FIXME: fail if persistent count is all 0xff which will catch hitting ceiling and uninitialised EEPROM.
-            // Fill with entropy lsbs of ephemeral part so as not to reduce lifetime significantly.
-            for(uint8_t i = sizeof(ephemeral); --i > 0; )
-              { ephemeral[i] = OTV0P2BASE::getSecureRandomByte(); }
+            // FIXME: Fill with entropy lsbs of ephemeral part so as not to reduce lifetime significantly.
+//            for(uint8_t i = sizeof(ephemeral); --i > 0; )
+//              { ephemeral[i] = OTV0P2BASE::getSecureRandomByte(); } // DHD20160209: was causing reset!
             initialised = true;
             }
 
