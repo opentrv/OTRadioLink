@@ -423,7 +423,8 @@ uint8_t encodeSecureSmallFrameRaw(uint8_t *const buf, const uint8_t buflen,
 //  * buf  buffer containing the entire frame including header and trailer; never NULL
 //  * buflen  available length in buf; if too small then this routine will fail (return 0)
 //  * sfh  decoded frame header; never NULL
-//  * decryptedBodyOut  body, if any, will be decoded into this; never NULL
+//  * decryptedBodyOut  body, if any, will be decoded into this;
+//        can be NULL if no plaintext is expected/wanted
 //  * decryptedBodyOutBuflen  size of decodedBodyOut to decode in to;
 //        if too small the routine will exist with an error (0)
 //  * decryptedBodyOutSize  is set to the size of the decoded body in decodedBodyOut
@@ -438,7 +439,7 @@ uint8_t decodeSecureSmallFrameRaw(const SecurableFrameHeader *const sfh,
                                 uint8_t *const decryptedBodyOut, const uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize)
     {
     if((NULL == sfh) || (NULL == buf) || (NULL == d) ||
-        (NULL == key) || (NULL == iv) || (NULL == decryptedBodyOut)) { return(0); } // ERROR
+        (NULL == key) || (NULL == iv)) { return(0); } // ERROR
     // Abort if header was not decoded properly.
     if(sfh->isInvalid()) { return(0); } // ERROR
     // Abort if expected constraints for simple fixed-size secure frame are not met.
@@ -450,21 +451,76 @@ uint8_t decodeSecureSmallFrameRaw(const SecurableFrameHeader *const sfh,
     if((0 != bl) && (ENC_BODY_SMALL_FIXED_CTEXT_SIZE != bl)) { return(0); } // ERROR
     // Check that header sequence number lsbs match nonce counter 4 lsbs.
     if(sfh->getSeq() != (iv[11] & 0xf)) { return(0); } // ERROR
+    // Note if plaintext is actually wanted/expected.
+    const bool plaintextWanted = (NULL != decryptedBodyOut);
     // Attempt to authenticate and decrypt.
     uint8_t decryptBuf[ENC_BODY_SMALL_FIXED_CTEXT_SIZE];
     if(!d(state, key, iv, buf, sfh->getHl(),
-                buf + sfh->getBodyOffset(), buf + fl - 16,
+                (0 == bl) ? NULL : buf + sfh->getBodyOffset(), buf + fl - 16,
                 decryptBuf)) { return(0); } // ERROR
-    // Unpad the decrypted text in place.
-    const uint8_t upbl = removePaddingTo32BTrailing0sAndPadCount(decryptBuf);
-    if(upbl > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
-    if(upbl > decryptedBodyOutBuflen) { return(0); } // ERROR
-    memcpy(decryptedBodyOut, decryptBuf, upbl);
-    decryptedBodyOutSize = upbl;
+    if(plaintextWanted)
+        {
+        // Unpad the decrypted text in place.
+        const uint8_t upbl = removePaddingTo32BTrailing0sAndPadCount(decryptBuf);
+        if(upbl > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
+        if(upbl > decryptedBodyOutBuflen) { return(0); } // ERROR
+        memcpy(decryptedBodyOut, decryptBuf, upbl);
+        decryptedBodyOutSize = upbl;
+        // TODO: optimise later if plaintext not required but ciphertext present.
+        }
     // Done.
     return(fl + 1);
     }
 
+// As for decodeSecureSmallFrameRaw() but passed a candidate node/counterparty ID
+// derived from the frame ID in the incoming header,
+// plus possible other adjustments such has forcing bit values for reverse flows.
+// This routine constructs an IV from this expanded ID
+// (which must be at least length 6 for 'O' / 0x80 style enc/auth)
+// and other information in the header
+// and then returns the result of calling decodeSecureSmallFrameRaw().
+//
+// If several candidate nodes share the ID prefix in the frame header
+// (in the extreme case with a zero-length header ID for an anonymous frame)
+// then they may all have to be tested in turn until one succeeds.
+//
+// Generally a call to this should be done AFTER checking that
+// the aggregate RXed message counter is higher than for the last successful receive
+// (for this node and flow direction)
+// and after a success those message counters should be updated
+// (which may involve more than a simple increment)
+// to the new values to prevent replay attacks.
+//
+//   * adjID / adjIDLen  adjusted candidate ID (never NULL)
+//         and available length (must be >= 6)
+//         based on the received ID in (the already structurally validated) header
+uint8_t decodeSecureSmallFrameFromID(const SecurableFrameHeader *const sfh,
+                                const uint8_t *const buf, const uint8_t buflen,
+                                const fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
+                                const uint8_t *const adjID, const uint8_t adjIDLen,
+                                void *const state, const uint8_t *const key,
+                                uint8_t *const decryptedBodyOut, const uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize)
+    {
+    // Rely on decodeSecureSmallFrameRaw() for validation of items not directly needed here.
+    if((NULL == sfh) || (NULL == buf) || (NULL == adjID)) { return(0); } // ERROR
+    if(adjIDLen < 6) { return(0); } // ERROR
+    // Abort if header was not decoded properly.
+    if(sfh->isInvalid()) { return(0); } // ERROR
+    // Abort if expected constraints for simple fixed-size secure frame are not met.
+    if(23 != sfh->getTl()) { return(0); } // ERROR
+//    const uint8_t fl = sfh->fl;
+//    if(0x80 != buf[fl]) { return(0); } // ERROR
+    // Construct IV from supplied (possibly adjusted) ID + counters from (start of) trailer.
+    uint8_t iv[12];
+    memcpy(iv, adjID, 6);
+    memcpy(iv + 6, buf + sfh->getTrailerOffset(), 6);
+    // Now do actual decrypt/auth.
+    return(decodeSecureSmallFrameRaw(sfh,
+                                buf, buflen,
+                                d,
+                                state, key, iv,
+                                decryptedBodyOut, decryptedBodyOutBuflen, decryptedBodyOutSize));
+    }
 
 // Pads plain-text in place prior to encryption with 32-byte fixed length padded output.
 // Simple method that allows unpadding at receiver, does padding in place.
@@ -508,8 +564,8 @@ uint8_t removePaddingTo32BTrailing0sAndPadCount(const uint8_t *const buf)
 // and that some possible gross errors in the use of the crypto are absent.
 // Returns true on success, false on failure.
 //
-// Does not use state so that pointer may be NULL but all others must be non-NULL.
-// Copies the plaintext to the ciphertext.
+// Does not use state so that pointer may be NULL but all others must be non-NULL except plaintext.
+// Copies the plaintext to the ciphertext, unless plaintext is NULL.
 // Copies the nonce/IV to the tag and pads with trailing zeros.
 // The key is ignored (though one must be supplied).
 bool fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL(void * const state,
@@ -519,10 +575,10 @@ bool fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL(void * const state,
         uint8_t *const ciphertextOut, uint8_t *const tagOut)
     {
     // Does not use state, but checks that all other pointers are non-NULL.
-    if((NULL == key) || (NULL == iv) || (NULL == authtext) || (NULL == plaintext) ||
+    if((NULL == key) || (NULL == iv) || (NULL == authtext) ||
        (NULL == ciphertextOut) || (NULL == tagOut)) { return(false); } // ERROR
     // Copy the plaintext to the ciphertext, and the nonce to the tag padded with trailing zeros.
-    memcpy(ciphertextOut, plaintext, 32);
+    if(NULL != plaintext) { memcpy(ciphertextOut, plaintext, 32); }
     memcpy(tagOut, iv, 12);
     memset(tagOut+12, 0, 4);
     // Done.
@@ -535,9 +591,9 @@ bool fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL(void * const state,
 // and that some possible gross errors in the use of the crypto are absent.
 // Returns true on success, false on failure.
 //
-// Does not use state so that pointer may be NULL but all others must be non-NULL.
+// Does not use state so that pointer may be NULL but all others must be non-NULL except ciphertext.
 // Undoes/checks fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL().
-// Copies the ciphertext to the plaintext.
+// Copies the ciphertext to the plaintext, unless ciphertext is NULL.
 // Verifies that the tag seems to have been constructed appropriately.
 bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(void *const state,
         const uint8_t *const key, const uint8_t *const iv,
@@ -546,12 +602,12 @@ bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(void *const state,
         uint8_t *const plaintextOut)
     {
     // Does not use state, but checks that all other pointers are non-NULL.
-    if((NULL == key) || (NULL == iv) || (NULL == authtext) || (NULL == ciphertext) || (NULL == tag) ||
+    if((NULL == key) || (NULL == iv) || (NULL == authtext) || (NULL == tag) ||
        (NULL == plaintextOut)) { return(false); } // ERROR
     // Verify that the first and last bytes of the tag look correct.
     if((tag[0] != iv[0]) || (0 != tag[15])) { return(false); } // ERROR
     // Copy the ciphertext to the plaintext.
-    memcpy(plaintextOut, ciphertext, 32);
+    if(NULL != ciphertext) { memcpy(plaintextOut, ciphertext, 32); }
     // Done.
     return(true);
     }
