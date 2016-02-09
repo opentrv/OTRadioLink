@@ -621,21 +621,31 @@ bool getPrimarySecure6BytePersistentTXMessageCounter(uint8_t *const buf)
     {
     if(NULL == buf) { return(false); }
 
+    // False when first called.
+    // Used to drive roll of persistent part
+    // and initialisation of non-persistent part.
+    static bool initialised;
+
+    // Ephemeral (non-perisisted) least-significant bytes of message count.
+    static uint8_t ephemeral[3];
+
+    // Temporary area for initialising ephemeral[] where needed.
+    uint8_t tmpE[sizeof(ephemeral) - 1];
+    if(!initialised)
+        {
+        for(uint8_t i = sizeof(tmpE); i-- > 0; )
+          { tmpE[i] = OTV0P2BASE::getSecureRandomByte(); } // Doesn't like being having interrupts off.
+        }
+
     // Disable interrupts while adjusting counter and copying back to the caller.
     ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
         {
-        // False when first called.
-        // Used to drive roll of persistent part
-        // and initialisation of non-persistent part.
-        static bool initialised;
-        static uint8_t ephemeral[3];
         if(!initialised)
             {
             // FIXME: increment persistent counter carefully FIXME FIXME
             // FIXME: fail if persistent count is all 0xff which will catch hitting ceiling and uninitialised EEPROM.
-            // FIXME: Fill with entropy lsbs of ephemeral part so as not to reduce lifetime significantly.
-//            for(uint8_t i = sizeof(ephemeral); --i > 0; )
-//              { ephemeral[i] = OTV0P2BASE::getSecureRandomByte(); } // DHD20160209: was causing reset!
+            // Fill lsbs of ephemeral part with entropy so as not to reduce lifetime significantly.
+            memcpy(ephemeral, tmpE, min(sizeof(tmpE), sizeof(ephemeral)));
             initialised = true;
             }
 
