@@ -509,6 +509,12 @@ namespace OTRadioLink
                                     void *state, const uint8_t *key,
                                     uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
 
+    // Fill in 12-byte IV for 'O'-style (0x80) AESGCM security.
+    // This used the local node ID as-is for the first 6 bytes.
+    // This uses and increments the primary message counter for the last 6 bytes.
+    // Returns true on success, false on failure eg due to message counter generation failure.
+    bool compute12ByteIDAndCounterIV(uint8_t *ivBuf);
+
     // Get primary (semi-persistent) message counter for TX from an OpenTRV leaf under its own ID.
     // This counter increases monotonically
     // (and so may provide a sequence number)
@@ -568,6 +574,19 @@ namespace OTRadioLink
                                     const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
                                     void *state, const uint8_t *key);
 
+    // Create secure Alive / beacon (FTS_ALIVE) frame with an empty body for transmission.
+    // Returns number of bytes written to buffer, or 0 in case of error.
+    // The IV is constructed from the node ID and the primary TX message counter.
+    // Note that the frame will be 27 + ID-length (up to maxIDLength) bytes,
+    // so the buffer must be large enough to accommodate that.
+    //  * buf  buffer to which is written the entire frame including trailer; never NULL
+    //  * buflen  available length in buf; if too small then this routine will fail (return 0)
+    //  * il_  ID length for the header; ID comes from EEPROM
+    //  * key  16-byte secret key; never NULL
+    uint8_t generateSecureBeaconRawForTX(uint8_t *buf, uint8_t buflen,
+                                    uint8_t il_,
+                                    fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                                    void *state, const uint8_t *key);
 
     }
 

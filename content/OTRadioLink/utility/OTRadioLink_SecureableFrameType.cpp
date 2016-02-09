@@ -614,6 +614,19 @@ bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(void *const state,
     return(true);
     }
 
+// Fill in 12-byte IV for 'O'-style (0x80) AESGCM security.
+// This used the local node ID as-is for the first 6 bytes.
+// This uses and increments the primary message counter for the last 6 bytes.
+// Returns true on success, false on failure eg due to message counter generation failure.
+bool compute12ByteIDAndCounterIV(uint8_t *const ivBuf)
+    {
+    if(NULL == ivBuf) { return(false); }
+    // Fill in first 6 bytes of this node's ID.
+    eeprom_read_block(ivBuf, (uint8_t *)V0P2BASE_EE_START_ID, 6);
+    // Generate and fill in new message count and capture status.
+    return(getPrimarySecure6BytePersistentTXMessageCounter(ivBuf + 6));
+    }
+
 // Fills the supplied 6-byte array with the monotonically-increasing primary TX counter.
 // Returns true on success; false on failure for example because the counter has reached its maximum value.
 // Highest-index bytes in the array increment fastest.
@@ -631,10 +644,11 @@ bool getPrimarySecure6BytePersistentTXMessageCounter(uint8_t *const buf)
         static uint8_t ephemeral[3];
         if(!initialised)
             {
-            // FIXME: increment persistent counter carefully.
-            // Set lsbs of ephemeral part that won't reduce lifetime significantly.
+            // FIXME: increment persistent counter carefully FIXME FIXME
+            // FIXME: fail if persistent count is all 0xff which will catch hitting ceiling and uninitialised EEPROM.
+            // Fill with entropy lsbs of ephemeral part so as not to reduce lifetime significantly.
             for(uint8_t i = sizeof(ephemeral); --i > 0; )
-              { ephemeral[i] = getSecureRandomByte(); }
+              { ephemeral[i] = OTV0P2BASE::getSecureRandomByte(); }
             initialised = true;
             }
 
@@ -698,12 +712,35 @@ uint8_t generateSecureBeaconRaw(uint8_t *const buf, const uint8_t buflen,
                                 const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
                                 void *const state, const uint8_t *const key)
     {
-    const uint8_t encodedLength = OTRadioLink::encodeSecureSmallFrameRaw(buf, buflen,
+    return(OTRadioLink::encodeSecureSmallFrameRaw(buf, buflen,
                                     OTRadioLink::FTS_ALIVE,
                                     id_, il_,
                                     NULL, 0,
-                                    iv, e, state, key);
+                                    iv, e, state, key));
     }
+
+// Create secure Alive / beacon (FTS_ALIVE) frame with an empty body for transmission.
+// Returns number of bytes written to buffer, or 0 in case of error.
+// The IV is constructed from the node ID and the primary TX message counter.
+// Note that the frame will be 27 + ID-length (up to maxIDLength) bytes,
+// so the buffer must be large enough to accommodate that.
+//  * buf  buffer to which is written the entire frame including trailer; never NULL
+//  * buflen  available length in buf; if too small then this routine will fail (return 0)
+//  * il_  ID length for the header; ID comes from EEPROM
+//  * key  16-byte secret key; never NULL
+uint8_t generateSecureBeaconRawForTX(uint8_t *const buf, const uint8_t buflen,
+                                const uint8_t il_,
+                                const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                                void *const state, const uint8_t *const key)
+    {
+    uint8_t iv[12];
+    if(!compute12ByteIDAndCounterIV(iv)) { return(0); }
+    return(OTRadioLink::generateSecureBeaconRaw(buf, buflen,
+                                    NULL, il_,
+                                    NULL, 0,
+                                    iv, e, state, key));
+    }
+
 
 
     }
