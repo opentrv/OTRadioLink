@@ -737,7 +737,6 @@ uint8_t generateSecureBeaconRawForTX(uint8_t *const buf, const uint8_t buflen,
     if(!compute12ByteIDAndCounterIV(iv)) { return(0); }
     return(OTRadioLink::generateSecureBeaconRaw(buf, buflen,
                                     NULL, il_,
-                                    NULL, 0,
                                     iv, e, state, key));
     }
 
