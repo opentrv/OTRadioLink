@@ -509,6 +509,31 @@ namespace OTRadioLink
                                     void *state, const uint8_t *key,
                                     uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
 
+    // Get primary (semi-persistent) message counter for TX from an OpenTRV leaf under its own ID.
+    // This counter increases monotonically
+    // (and so may provide a sequence number)
+    // and is designed never to repeat a value
+    // which is very important for AES-GCM in particular
+    // as reuse of an IV (that includes this counter)
+    // badly undermines security of particular key.
+    // This counter may be shared across TXes with multiple keys if need be,
+    // though would normally we only associated with one key.
+    // This counter can can be reset if associated with entirely new keys.
+    // The top 3 of the 6 bytes of the counter are persisted in non-volatile storage
+    // and incremented after a reboot/restart
+    // and if the lower 3 bytes overflow into them.
+    // Some of the lest significant bits of the lower three (ephemeral) bytes
+    // may be initialised with entropy over a restart
+    // to help make 'cracking' the key harder
+    // and to reduce the chance of reuse of IVs
+    // even in the face of hardware or software error.
+    // When this counter reaches 0xffffffffffff no more messages can be sent
+    // until new keys are shared and the counter reset.
+    static const uint8_t primaryPeristentTXMessageCounterBytes = 6;
+    // Fills the supplied 6-byte array with the monotonically-increasing primary TX counter.
+    // Returns true on success; false on failure for example because the counter has reached its maximum value.
+    // Highest-index bytes in the array increment fastest.
+    bool getPrimarySecure6BytePersistentTXMessageCounter(uint8_t *buf);
 
 
     // CONVENIENCE/BOILERPLATE METHODS

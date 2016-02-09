@@ -24,6 +24,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
  *     https://raw.githubusercontent.com/DamonHD/OpenTRV/master/standards/protocol/IoTCommsFrameFormat/SecureBasicFrame-*.txt
  */
 
+#include <util/atomic.h>
+
 #include <string.h>
 
 #include "OTRadioLink_SecureableFrameType.h"
@@ -610,6 +612,50 @@ bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(void *const state,
     if(NULL != ciphertext) { memcpy(plaintextOut, ciphertext, 32); }
     // Done.
     return(true);
+    }
+
+// Fills the supplied 6-byte array with the monotonically-increasing primary TX counter.
+// Returns true on success; false on failure for example because the counter has reached its maximum value.
+// Highest-index bytes in the array increment fastest.
+bool getPrimarySecure6BytePersistentTXMessageCounter(uint8_t *const buf)
+    {
+    if(NULL == buf) { return(false); }
+
+    // Disable interrupts while adjusting counter and copying back to the caller.
+    ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
+        {
+        // False when first called.
+        // Used to drive roll of persistent part
+        // and initialisation of non-persistent part.
+        static bool initialised;
+        static uint8_t ephemeral[3];
+        if(!initialised)
+            {
+            // FIXME: increment persistent counter carefully.
+            // Set lsbs of ephemeral part that won't reduce lifetime significantly.
+            for(uint8_t i = sizeof(ephemeral); --i > 0; )
+              { ephemeral[i] = getSecureRandomByte(); }
+            initialised = true;
+            }
+
+        // FIXME: NOT FULLY IMPLEMENTED YET: IMPORTANT FOR SECURITY TO COMPLETE
+
+        // FIXME: increment the counter including the persistent part where necessary.
+        for(uint8_t i = sizeof(ephemeral); i-- > 0; )
+            {
+            if(0 != ++ephemeral[i]) { break; }
+            if(0 == i)
+                {
+                // FIXME: increment the persistent part FIXME FIXME
+                }
+            }
+
+        // FIXME: copy in the persistent part.
+        memcpy(buf, 0, 3); // FIXME: just use zeros for now FIXME FIXME
+        // Copy in the ephemeral part.
+        memcpy(buf + 3, ephemeral, sizeof(ephemeral));
+        return(true); // FIXME: lie and claim that all is well.
+        }
     }
 
 
