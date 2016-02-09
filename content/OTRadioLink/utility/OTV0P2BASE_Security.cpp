@@ -89,4 +89,25 @@ bool ensureIDCreated(const bool force)
   }
 
 
+// Dummy implementations of setPrimaryBuilding16ByteSecretKey & getPrimaryBuilding16ByteSecretKey
+// Notes copied from TODO-788:
+// Clearing a key should 'smart' erase the appropriate EEPROM bytes back to their original 0xff values.
+// bool getPrimaryBuilding16ByteSecretKey(uint8_t *key) fills in the 16-byte key buffer passed to it and returns true,
+// or on failure (eg because the key is unset and all 0xffs) returns false.
+bool setPrimaryBuilding16ByteSecretKey(const uint8_t *newKey)
+  {
+  if(newKey == NULL) return false;
+  // convert hex string to binary array
+  //   - if any bytes are invalid, return false (this may also function as a free length check)
+  OTV0P2BASE::serialPrintAndFlush((const char *)newKey);
+  OTV0P2BASE::serialPrintlnAndFlush(); // echo
+  return(false); // FIXME
+  }
+bool getPrimaryBuilding16ByteSecretKey(const uint8_t *key)
+  {
+  return(false); // FIXME
+  }
+
+
+
 }
