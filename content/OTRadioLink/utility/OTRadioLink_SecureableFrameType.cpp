@@ -652,7 +652,7 @@ bool getPrimarySecure6BytePersistentTXMessageCounter(uint8_t *const buf)
             }
 
         // FIXME: copy in the persistent part.
-        memcpy(buf, 0, 3); // FIXME: just use zeros for now FIXME FIXME
+        memset(buf, 0, 3); // FIXME: just use zeros for now FIXME FIXME
         // Copy in the ephemeral part.
         memcpy(buf + 3, ephemeral, 3);
         return(true); // FIXME: lie and claim that all is well.
