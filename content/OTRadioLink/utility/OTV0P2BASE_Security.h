@@ -41,7 +41,7 @@ enum stats_TX_level
   stTXalwaysAll = 0,    // Always be prepared to transmit all stats (zero privacy).
   stTXmostUnsec = 0x80, // Allow TX of all but most security-sensitive stats in plaintext, eg occupancy status.
   stTXsecOnly   = 0xfe, // Only transmit if the stats TX can be kept secure/encrypted.
-  stTXnever     = 0xff, // Never transmit status info beyond the minimum necessary.
+  stTXnever     = 0xff, // DEFAULT: never transmit status info beyond the minimum necessary.
   };
 
 // Get the current basic stats transmission level (for data outbound from this node).
