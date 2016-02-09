@@ -62,6 +62,7 @@ bool ensureIDCreated(const bool force = false);
 
 
 bool setPrimaryBuilding16ByteSecretKey(const uint8_t *key);
+bool getPrimaryBuilding16ByteSecretKey(uint8_t *key);
 
 
 //#if 0 // Pairing API outline.
