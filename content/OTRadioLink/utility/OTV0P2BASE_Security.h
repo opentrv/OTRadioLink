@@ -60,6 +60,14 @@ inline bool validIDByte(const uint8_t v) { return((0 != (0x80 & v)) && (0xff != 
 // Returns true if all values good.
 bool ensureIDCreated(const bool force = false);
 
+// Dummy implementations of setPrimaryBuilding16ByteSecretKey & getPrimaryBuilding16ByteSecretKey
+// Notes copied from TODO-788:
+// Clearing a key should 'smart' erase the appropriate EEPROM bytes back to their original 0xff values.
+// bool getPrimaryBuilding16ByteSecretKey(uint8_t *key) fills in the 16-byte key buffer passed to it and returns true,
+// or on failure (eg because the key is unset and all 0xffs) returns false.
+bool setPrimaryBuilding16ByteSecretKey(const uint8_t *newKey);
+
+bool getPrimaryBuilding16ByteSecretKey(const uint8_t *key);
 
 bool setPrimaryBuilding16ByteSecretKey(const uint8_t *key);
 bool getPrimaryBuilding16ByteSecretKey(uint8_t *key);
