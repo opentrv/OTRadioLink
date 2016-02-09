@@ -98,6 +98,8 @@ bool setPrimaryBuilding16ByteSecretKey(const uint8_t *newKey)
   if(newKey == NULL) return false;
   // convert hex string to binary array
   //   - if any bytes are invalid, return false (this may also function as a free length check)
+  Serial.write(newKey, 32);
+  Serial.println(); // echo characters back for debug purposes
   return false; // FIXME temporary for dummy function
   }
 
