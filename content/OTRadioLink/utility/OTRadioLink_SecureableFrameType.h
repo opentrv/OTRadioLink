@@ -199,7 +199,7 @@ namespace OTRadioLink
         //  * fType_  frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
         //  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
         //  * il_  ID length in bytes at most 8 (could be 15 for non-small frames)
-        //  * id_  source of ID bytes, at least il_ long; NULL means pre-filled but must not start with 0xff.
+        //  * id_  source of ID bytes, at least il_ long; NULL means fill from EEPROM
         //  * bl_  body length in bytes [0,251] at most
         //  * tl_  trailer length [1,251[ at most, always == 1 for non-secure frame
         //

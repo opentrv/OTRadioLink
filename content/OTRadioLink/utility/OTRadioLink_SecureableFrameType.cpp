@@ -356,7 +356,7 @@ uint8_t encodeSecureSmallFrameRaw(uint8_t *const buf, const uint8_t buflen,
                                 const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
                                 void *const state, const uint8_t *const key)
     {
-    if((NULL == iv) || (NULL == e) || (NULL == key)) { return(0); } // ERROR
+    if((NULL == e) || (NULL == key)) { return(0); } // ERROR
     // Stop if unencrypted body is too big for this scheme.
     if(bl_ > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
     const uint8_t encryptedBodyLength = (0 == bl_) ? 0 : ENC_BODY_SMALL_FIXED_CTEXT_SIZE;
@@ -614,19 +614,6 @@ bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(void *const state,
     return(true);
     }
 
-// Fill in 12-byte IV for 'O'-style (0x80) AESGCM security.
-// This used the local node ID as-is for the first 6 bytes.
-// This uses and increments the primary message counter for the last 6 bytes.
-// Returns true on success, false on failure eg due to message counter generation failure.
-bool compute12ByteIDAndCounterIV(uint8_t *const ivBuf)
-    {
-    if(NULL == ivBuf) { return(false); }
-    // Fill in first 6 bytes of this node's ID.
-    eeprom_read_block(ivBuf, (uint8_t *)V0P2BASE_EE_START_ID, 6);
-    // Generate and fill in new message count and capture status.
-    return(getPrimarySecure6BytePersistentTXMessageCounter(ivBuf + 6));
-    }
-
 // Fills the supplied 6-byte array with the monotonically-increasing primary TX counter.
 // Returns true on success; false on failure for example because the counter has reached its maximum value.
 // Highest-index bytes in the array increment fastest.
@@ -667,9 +654,22 @@ bool getPrimarySecure6BytePersistentTXMessageCounter(uint8_t *const buf)
         // FIXME: copy in the persistent part.
         memcpy(buf, 0, 3); // FIXME: just use zeros for now FIXME FIXME
         // Copy in the ephemeral part.
-        memcpy(buf + 3, ephemeral, sizeof(ephemeral));
+        memcpy(buf + 3, ephemeral, 3);
         return(true); // FIXME: lie and claim that all is well.
         }
+    }
+
+// Fill in 12-byte IV for 'O'-style (0x80) AESGCM security.
+// This used the local node ID as-is for the first 6 bytes.
+// This uses and increments the primary message counter for the last 6 bytes.
+// Returns true on success, false on failure eg due to message counter generation failure.
+bool compute12ByteIDAndCounterIV(uint8_t *const ivBuf)
+    {
+    if(NULL == ivBuf) { return(false); }
+    // Fill in first 6 bytes of this node's ID.
+    eeprom_read_block(ivBuf, (uint8_t *)V0P2BASE_EE_START_ID, 6);
+    // Generate and fill in new message count at end of IV.
+    return(getPrimarySecure6BytePersistentTXMessageCounter(ivBuf + 6));
     }
 
 
@@ -739,7 +739,6 @@ uint8_t generateSecureBeaconRawForTX(uint8_t *const buf, const uint8_t buflen,
                                     NULL, il_,
                                     iv, e, state, key));
     }
-
 
 
     }
