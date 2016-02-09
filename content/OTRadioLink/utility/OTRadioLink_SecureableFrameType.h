@@ -199,7 +199,7 @@ namespace OTRadioLink
         //  * fType_  frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
         //  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
         //  * il_  ID length in bytes at most 8 (could be 15 for non-small frames)
-        //  * id_  source of ID bytes, at least il_ long; NULL means pre-filled but must not start with 0xff.
+        //  * id_  source of ID bytes, at least il_ long; NULL means fill from EEPROM
         //  * bl_  body length in bytes [0,251] at most
         //  * tl_  trailer length [1,251[ at most, always == 1 for non-secure frame
         //
@@ -509,6 +509,37 @@ namespace OTRadioLink
                                     void *state, const uint8_t *key,
                                     uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
 
+    // Fill in 12-byte IV for 'O'-style (0x80) AESGCM security.
+    // This used the local node ID as-is for the first 6 bytes.
+    // This uses and increments the primary message counter for the last 6 bytes.
+    // Returns true on success, false on failure eg due to message counter generation failure.
+    bool compute12ByteIDAndCounterIV(uint8_t *ivBuf);
+
+    // Get primary (semi-persistent) message counter for TX from an OpenTRV leaf under its own ID.
+    // This counter increases monotonically
+    // (and so may provide a sequence number)
+    // and is designed never to repeat a value
+    // which is very important for AES-GCM in particular
+    // as reuse of an IV (that includes this counter)
+    // badly undermines security of particular key.
+    // This counter may be shared across TXes with multiple keys if need be,
+    // though would normally we only associated with one key.
+    // This counter can can be reset if associated with entirely new keys.
+    // The top 3 of the 6 bytes of the counter are persisted in non-volatile storage
+    // and incremented after a reboot/restart
+    // and if the lower 3 bytes overflow into them.
+    // Some of the lest significant bits of the lower three (ephemeral) bytes
+    // may be initialised with entropy over a restart
+    // to help make 'cracking' the key harder
+    // and to reduce the chance of reuse of IVs
+    // even in the face of hardware or software error.
+    // When this counter reaches 0xffffffffffff then no more messages can be sent
+    // until new keys are shared and the counter is reset.
+    static const uint8_t primaryPeristentTXMessageCounterBytes = 6;
+    // Fills the supplied 6-byte array with the monotonically-increasing primary TX counter.
+    // Returns true on success; false on failure for example because the counter has reached its maximum value.
+    // Highest-index bytes in the array increment fastest.
+    bool getPrimarySecure6BytePersistentTXMessageCounter(uint8_t *buf);
 
 
     // CONVENIENCE/BOILERPLATE METHODS
@@ -543,6 +574,19 @@ namespace OTRadioLink
                                     const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
                                     void *state, const uint8_t *key);
 
+    // Create secure Alive / beacon (FTS_ALIVE) frame with an empty body for transmission.
+    // Returns number of bytes written to buffer, or 0 in case of error.
+    // The IV is constructed from the node ID and the primary TX message counter.
+    // Note that the frame will be 27 + ID-length (up to maxIDLength) bytes,
+    // so the buffer must be large enough to accommodate that.
+    //  * buf  buffer to which is written the entire frame including trailer; never NULL
+    //  * buflen  available length in buf; if too small then this routine will fail (return 0)
+    //  * il_  ID length for the header; ID comes from EEPROM
+    //  * key  16-byte secret key; never NULL
+    uint8_t generateSecureBeaconRawForTX(uint8_t *buf, uint8_t buflen,
+                                    uint8_t il_,
+                                    fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                                    void *state, const uint8_t *key);
 
     }
 
