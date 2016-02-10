@@ -179,7 +179,7 @@ namespace OTRadioLink
         static const uint8_t maxSmallFrameBodySize = maxSmallFrameSize - 4;
         // Body length including any padding [0,251] but generally << 60.
         uint8_t bl;
-        // Compute the offset of the body from the start of the frame starting wth nominal fl byte.
+        // Compute the offset of the body from the start of the frame starting with nominal fl byte.
         inline uint8_t getBodyOffset() const { return(getHl()); }
 
         // Compute tl (trailer length) [1,251]; must == 1 for insecure frame.
