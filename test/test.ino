@@ -132,6 +132,39 @@ class PrintToBuf : public Print
     const uint8_t buflen;
   };
 
+// Test convert hex to binary
+static void testParseHexVal()
+{
+  Serial.println("parseHexVal");
+  uint8_t result = 0;
+  for(uint8_t i = 0; i <= 9; i++) {
+    result = OTV0P2BASE::parseHexVal(i+'0');
+    AssertIsEqual(result, i);
+  }
+  for (uint8_t i = 0; i <= 5; i++) {
+    result = OTV0P2BASE::parseHexVal(i+'A');
+    AssertIsEqual(result, i+10);
+  }
+}
+static void testParseHex()
+{
+  Serial.println("parseHex");
+  uint8_t token[2];
+  memset(token, '0', sizeof(2));
+  uint8_t result = 0;
+
+  token[0] = 'F';
+  result = OTV0P2BASE::parseHex(token);
+  AssertIsEqual(result, 240);
+  token[0] = '0';
+  token[1] = 'F';
+  result = OTV0P2BASE::parseHex(token);
+  AssertIsEqual(result, 15);
+  token[0] = 'F';
+  result = OTV0P2BASE::parseHex(token);
+  AssertIsEqual(result, 255);
+}
+
 // Test OTNullRadioLink
 static void testNullRadio()
 {
@@ -858,6 +891,8 @@ void loop()
   testCurrentSenseValveMotorDirect();
 
   // OTV0p2Base
+  testParseHexVal();
+  testParseHex();
   testRTCPersist();
   testEEPROM();
   testQuartiles();
