@@ -104,6 +104,16 @@ namespace OTV0P2BASE
 // Minimum (total percentage across all rads) that all rads should be on before heating should fire.
 #define V0P2BASE_EE_START_MIN_TOTAL_VALVE_PC_OPEN 31 // Ignored entirely if outside range [1,100], eg if default/unprogrammed 0xff.
 
+//TODO-793
+// 16 Byte primary building key (secret key)
+static const uint16_t VOP2BASE_EE_START_16BYTE_PRIMARY_BUILDING_KEY = 112;
+static const uint16_t VOP2BASE_EE_LEN_16BYTE_PRIMARY_BUILDING_KEY  = 16;
+
+
+// Start area of radio config mem
+static const uint16_t V0P2BASE_EE_START_RADIO = 128; // INCLUSIVE START OF RADIO CONFIG AREA.
+static const uint16_t V0P2BASE_EE_LEN_RADIO  = 128; // SIZE OF RADIO CONFIG AREA.
+static const uint16_t V0P2BASE_EE_END_RADIO  = 255;
 
 //// Housecode filter at central hub.
 //// Intended to fit snug up before stats area.
@@ -146,11 +156,22 @@ namespace OTV0P2BASE
 //#error EEPROM allocation problem: filter overlaps with stats
 //#endif
 
-// Start area of radio config mem
-#define V0P2BASE_EE_START_RADIO 768 // INCLUSIVE START OF RADIO CONFIG AREA.
-#define V0P2BASE_EE_SIZE_RADIO 256 // SIZE OF RADIO CONFIG AREA.
+// TODO-793
+// Node associations memory. Should fit 16 nodes within 256 bytes of EEPROM
+static const uint16_t V0P2BASE_EE_START_NODE_ASSOCIATIONS = 768; // Inclusive start of node associations
+static const uint16_t V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE  = 16;              // Size in entries/bytes of one Node association entry
 
+// Node association fields, 0 upwards, contiguous.
+static const uint16_t V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID         = 0;  // 8 Byte node ID.
+static const uint16_t V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH  = 0;  // 8 Byte node ID.
+static const uint16_t V0P2BASE_EE_NODE_ASSOCIATIONS_RESERVED      = 8;  // Reserved
 
+static const uint16_t V0P2BASE_EE_NODE_ASSOCIATIONS_SETS          = 16; // Maximum possible node associations
+
+// Compute start of node association set (in range [0,V0P2BASE_EE_NODE_ASSOCIATIONS_SETS-1]) in EEPROM.
+// static const uint16_t V0P2BASE_EE_NODE_ASSOCIATIONS_START_ADDR
+// INCLUSIVE END OF NODE ASSOCIATIONS AREA: must point to last byte used.
+static const uint16_t V0P2BASE_EE_END_NODE_ASSOCIATIONS = (V0P2BASE_EE_NODE_ASSOCIATIONS_SETS * V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE)-1; //
 
 // Updates an EEPROM byte iff not currently at the specified target value.
 // May be able to selectively erase or write (ie reduce wear) to reach the desired value.
