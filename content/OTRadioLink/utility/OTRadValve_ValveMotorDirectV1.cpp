@@ -37,7 +37,7 @@ static const uint8_t minMotorDRTicks = max(1, (uint8_t)(minMotorDRMS / OTV0P2BAS
 // This should allow meaningful movement and stop and settle and no sub-cycle overrun.
 // Allows for up to 120ms enforced sleep either side of motor run for example.
 // This should not be so greedy as to (eg) make the CLI unusable: 90% is pushing it.
-static const uint8_t sctAbsLimit = OTV0P2BASE::GSCT_MAX - max(1, ((OTV0P2BASE::GSCT_MAX+1)/8)) - OTRadValve::ValveMotorDirectV1HardwareDriverBase::minMotorRunupTicks - (uint8_t)(240 / OTV0P2BASE::SUBCYCLE_TICK_MS_RD);
+static const uint8_t sctAbsLimit = OTV0P2BASE::GSCT_MAX - max(1, ((OTV0P2BASE::GSCT_MAX+1)/4)) - OTRadValve::ValveMotorDirectV1HardwareDriverBase::minMotorRunupTicks - 1 - (uint8_t)(240 / OTV0P2BASE::SUBCYCLE_TICK_MS_RD);
 
 // Absolute limit in sub-cycle beyond which motor should not be started for dead-reckoning pulse.
 // This should allow meaningful movement and no sub-cycle overrun.
@@ -66,7 +66,7 @@ bool ValveMotorDirectV1HardwareDriverBase::spinSCTTicks(const uint8_t maxRunTick
   uint8_t sct = sctStart;
   const uint8_t maxTicksBeforeAbsLimit = (sctAbsLimit - sct);
   // Abort immediately if not enough time to do minimum run.
-  if((sct > sctAbsLimit) || (maxTicksBeforeAbsLimit < minTicksBeforeAbort)) { return(true); }
+  if((sct >= sctAbsLimit) || (maxTicksBeforeAbsLimit < minTicksBeforeAbort)) { return(true); }
   // Note if opening or closing...
   const bool stopped = (HardwareMotorDriverInterface::motorOff == dir);
   const bool isOpening = (HardwareMotorDriverInterface::motorDriveOpening == dir);
