@@ -117,7 +117,7 @@ bool getPrimaryBuilding16ByteSecretKey(uint8_t *const key)
  */
 void clearAllNodeIDs()
 {
-	uint8_t *nodeIDPtr = V0P2BASE_EE_START_NODE_ASSOCIATIONS;
+	uint8_t *nodeIDPtr = (uint8_t *)V0P2BASE_EE_START_NODE_ASSOCIATIONS;
 	// loop through EEPROM node ID locations, erasing the first byte
 	for(uint8_t i = 0; i < V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS;	i++) {
         eeprom_smart_erase_byte(nodeIDPtr);
@@ -132,7 +132,7 @@ void clearAllNodeIDs()
  */
 uint8_t addNodeID(const uint8_t *nodeID)
 {
-	uint8_t *eepromPtr = V0P2BASE_EE_START_NODE_ASSOCIATIONS;
+	uint8_t *eepromPtr = (uint8_t *)V0P2BASE_EE_START_NODE_ASSOCIATIONS;
 	// loop through node ID locations checking for invalid byte (0xff)
 	for(uint8_t i = 0; i <= V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS; i ++) {
 		if(eeprom_read_byte(eepromPtr) == 0xff) {
