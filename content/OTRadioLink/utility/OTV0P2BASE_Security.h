@@ -14,6 +14,7 @@ specific language governing permissions and limitations
 under the Licence.
 
 Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
+                           Deniz Erbilgin   2016
 */
 
 /*
@@ -60,10 +61,22 @@ inline bool validIDByte(const uint8_t v) { return((0 != (0x80 & v)) && (0xff != 
 // Returns true if all values good.
 bool ensureIDCreated(const bool force = false);
 
-
+// Functions for setting a 16 byte primary building secret key
 bool setPrimaryBuilding16ByteSecretKey(const uint8_t *key);
 bool getPrimaryBuilding16ByteSecretKey(uint8_t *key);
 
+/**
+ * @brief   Clears all existing node IDs by writing 0xff to first byte.
+ * @todo    Should this return something useful, such as the number of bytes cleared?
+ */
+void clearAllNodeIDs();
+
+/**
+ * @brief   Checks through stored node IDs and adds a new one if there is space.
+ * @param   pointer to new 8 byte node ID
+ * @retval  Number of stored node IDs, or 0xFF if storage full
+ */
+uint8_t addNodeID(const uint8_t *nodeID);
 
 //#if 0 // Pairing API outline.
 //struct pairInfo { bool successfullyPaired; };
