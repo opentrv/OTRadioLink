@@ -111,6 +111,38 @@ bool getPrimaryBuilding16ByteSecretKey(uint8_t *const key)
   return(true); // Lie and claim that key is OK.
   }
 
+/**
+ * @brief   Clears all existing node IDs by erasing the first byte.
+ * @todo    Should this return something useful, such as the number of bytes cleared?
+ */
+void clearAllNodeIDs()
+{
+	uint8_t *nodeIDPtr = V0P2BASE_EE_START_NODE_ASSOCIATIONS;
+	// loop through EEPROM node ID locations, erasing the first byte
+	for(uint8_t i = 0; i < V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS;	i++) {
+        eeprom_smart_erase_byte(nodeIDPtr);
+		nodeIDPtr += V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE; // increment ptr
+	}
+}
 
+/**
+ * @brief   Checks through stored node IDs and adds a new one if there is space.
+ * @param   pointer to new 8 byte node ID
+ * @retval  Number of stored node IDs, or 0xFF if storage full
+ */
+uint8_t addNodeID(const uint8_t *nodeID)
+{
+	uint8_t *eepromPtr = V0P2BASE_EE_START_NODE_ASSOCIATIONS;
+	// loop through node ID locations checking for invalid byte (0xff)
+	for(uint8_t i = 0; i <= V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS; i ++) {
+		if(eeprom_read_byte(eepromPtr) == 0xff) {
+			for(uint8_t j = 0; j < V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH; j++)
+			    eeprom_smart_update_byte(eepromPtr++, *nodeID++);
+			return i;
+		}
+		eepromPtr += V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE; // increment ptr
+	}
+	return 0xff;
+}
 
 }
