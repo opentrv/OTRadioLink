@@ -81,6 +81,12 @@ namespace OTRadioLink
         // or after a short randomised delay in response to a broadcast liveness query.
         // ID should usually not be zero length (or any non-unique prefix)
         // as the computational burden on the receiver could be large.
+        //
+        // When received by a leaf node it identifies itself physically if possible,
+        // eg through any local UI such as flashing lights or tactile actuators,
+        // for example to help a field technician ID a device and verify comms.
+        // Devices may refuse to do this (or limit their response)
+        // for a number of reasons including minimising the scope for misuse.
         FTS_ALIVE                       = '!',
 
         // OpenTRV basic valve/sensor leaf-to-hub frame (secure if high-bit set).

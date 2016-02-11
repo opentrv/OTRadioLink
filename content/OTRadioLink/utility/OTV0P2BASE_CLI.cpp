@@ -25,6 +25,7 @@ namespace OTV0P2BASE {
  * @param   pointer to a token containing characters between 0-9, a-f or A-F
  * @retval  byte containing converted value
  * @todo    write good comments
+ *          add checks
  */
 uint8_t parseHex(const uint8_t *tok)
 {
