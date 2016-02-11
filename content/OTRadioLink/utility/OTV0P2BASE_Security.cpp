@@ -134,11 +134,11 @@ uint8_t addNodeID(const uint8_t *nodeID)
 {
 	uint8_t *eepromPtr = (uint8_t *)V0P2BASE_EE_START_NODE_ASSOCIATIONS;
 	// loop through node ID locations checking for invalid byte (0xff)
-	for(uint8_t i = 0; i <= V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS; i ++) {
+	for(uint8_t i = 0; i < V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS; i ++) {
 		if(eeprom_read_byte(eepromPtr) == 0xff) {
 			for(uint8_t j = 0; j < V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH; j++)
 			    eeprom_smart_update_byte(eepromPtr++, *nodeID++);
-			return i;
+			return (i+1);
 		}
 		eepromPtr += V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE; // increment ptr
 	}
