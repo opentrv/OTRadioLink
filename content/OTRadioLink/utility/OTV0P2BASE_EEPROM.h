@@ -162,16 +162,16 @@ static const uint16_t V0P2BASE_EE_START_NODE_ASSOCIATIONS = 768; // Inclusive st
 static const uint16_t V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE  = 16;              // Size in entries/bytes of one Node association entry
 
 // Node association fields, 0 upwards, contiguous.
-static const uint16_t V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID         = 0;  // 8 Byte node ID.
-static const uint16_t V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH  = 0;  // 8 Byte node ID.
+static const uint16_t V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_OFFSET  = 0;  // 8 Byte node ID.
+static const uint16_t V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH  = 8;  // 8 Byte node ID.
 static const uint16_t V0P2BASE_EE_NODE_ASSOCIATIONS_RESERVED      = 8;  // Reserved
 
-static const uint16_t V0P2BASE_EE_NODE_ASSOCIATIONS_SETS          = 16; // Maximum possible node associations
+static const uint16_t V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS      = 16; // Maximum possible node associations
 
 // Compute start of node association set (in range [0,V0P2BASE_EE_NODE_ASSOCIATIONS_SETS-1]) in EEPROM.
 // static const uint16_t V0P2BASE_EE_NODE_ASSOCIATIONS_START_ADDR
 // INCLUSIVE END OF NODE ASSOCIATIONS AREA: must point to last byte used.
-static const uint16_t V0P2BASE_EE_END_NODE_ASSOCIATIONS = (V0P2BASE_EE_NODE_ASSOCIATIONS_SETS * V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE)-1; //
+static const uint16_t V0P2BASE_EE_END_NODE_ASSOCIATIONS = (V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS * V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE)-1; //
 
 // Updates an EEPROM byte iff not currently at the specified target value.
 // May be able to selectively erase or write (ie reduce wear) to reach the desired value.
