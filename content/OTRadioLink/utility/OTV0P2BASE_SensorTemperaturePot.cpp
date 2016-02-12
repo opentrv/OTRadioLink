@@ -55,14 +55,14 @@ uint8_t SensorTemperaturePot::read()
   if((uint8_t)tp != (uint8_t)raw) { ::OTV0P2BASE::addEntropyToPool((uint8_t)tp, 0); } // Claim zero entropy as may be forced by Eve.
 
   // Capture reduced-noise value with a little hysteresis.
-  // Only update the value if changed significantly to reduce noise.
+  // Only update the value if changed significantly so as to reduce noise.
   const uint8_t oldValue = value;
   const uint8_t shifted = tp >> 2;
   if(((shifted > oldValue) && (shifted - oldValue >= RN_HYST)) ||
      ((shifted < oldValue) && (oldValue - shifted >= RN_HYST)))
     {
     const uint8_t rn = (uint8_t) shifted;
-    // Atomically store reduced-noise normalised value.
+    // Atomically store the reduced-noise normalised value.
     value = rn;
 
     // Smart responses to adjustment/movement of temperature pot.
