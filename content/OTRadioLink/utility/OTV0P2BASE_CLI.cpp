@@ -35,6 +35,83 @@ namespace CLI {
 void InvalidIgnored() { Serial.println(F("Invalid, ignored.")); }
 
 
+// Set / clear node association(s) (nodes to accept frames from) (eg "A hh hh hh hh hh hh hh hh").
+//        To add a new node: "A hh hh hh hh hh hh hh hh"
+//        - Reads first two bytes of each token in hex and ignores the rest.
+//        - Prints number of nodes set to serial
+//        - Stops adding nodes once EEPROM full
+//        - No error checking yet.
+//        - Only accepts upper case for hex values.
+//        To clear all nodes: "A *"
+bool SetNodeAssoc::doCommand(char *const buf, const uint8_t buflen)
+    {
+    char *last; // Used by strtok_r().
+    char *tok1;
+    // Minimum 3 character sequence makes sense and is safe to tokenise, eg "A *".
+    if ((buflen >= 3) && (NULL != (tok1 = strtok_r(buf + 2, " ", &last))))
+        {
+        if ('*' == *tok1)
+            {
+            // function call to clear noeds
+            OTV0P2BASE::clearAllNodeIDs();
+            Serial.println(F("Nodes cleared"));
+            }
+        else if (buflen >= 25)
+            { // corresponds to "A " followed by 8 space-separated tokens
+            // Note: As there is no variable for the number of nodes stored, will pass pointer to
+            //       addNodeID which will return a value based on how many spaces there are left
+            uint8_t nodeID[8]; // Buffer to store node ID// TODO replace with settable node size constant
+            uint8_t nodesSet = 0; // stores the number of nodes set
+            // Loop through tokens setting nodeID        // TODO Should this check for invalid ID bytes? (i.e. containing 0xFF)
+            for (uint8_t i = 0; i < sizeof(nodeID); i++)
+                {
+                char *thisTok = strtok_r(NULL, " ", &last); // Extract token
+                // if token is valid, parse hex to binary
+                if (NULL != thisTok)
+                    {
+                    nodeID[i] = OTV0P2BASE::parseHex(
+                            (uint8_t *) thisTok);
+                    }
+                }
+            // Write this to EEPROM
+            nodesSet = OTV0P2BASE::addNodeID(nodeID); // TODO write function
+            // Report outcome
+            if (nodesSet <= 16)
+                {
+                Serial.print(nodesSet);
+                Serial.println(F(" nodes stored"));
+                }
+            else
+                Serial.println(F("Could not add node"));
+            }
+#if 0 && defined(DEBUG)
+        else if( (n >= 7) && ('?' == *tok1) )
+            {
+            uint8_t prefix[2];
+            uint8_t nodeID[8];
+            for(uint8_t i = 0; i < sizeof(prefix); i++)
+                {
+                char *thisTok = strtok_r(NULL, " ", &last); // Extract token
+                // if token is valid, parse hex to binary
+                if(NULL != thisTok)
+                    {
+                    prefix[i] = OTV0P2BASE::parseHex((uint8_t *)thisTok);
+                    }
+                }
+            Serial.print(OTV0P2BASE::getNextMatchingNodeID(10, prefix, sizeof(prefix), nodeID));
+            Serial.print(" - ");
+            for(uint8_t i = 0; i < sizeof(nodeID); i++)
+                {
+                Serial.print(nodeID[i], HEX);
+                Serial.print(" ");
+                }
+            Serial.println();
+            }
+#endif  // 1 && DEBUG
+        }
+    return(false);
+    }
+
 // Dump (human-friendly) stats (eg "D N").
 // DEBUG only: "D?" to force partial stats sample and "D!" to force an immediate full stats sample; use with care.
 // Avoid showing status afterwards as may already be rather a lot of output.
@@ -136,6 +213,77 @@ bool NodeID::doCommand(char *const buf, const uint8_t buflen)
       }
     Serial.println();
     return(true);
+    }
+
+// Set secret key ("K ...").
+// "K B XX .. XX"  sets the primary building key, "K B *" erases it.
+bool SetSecretKey::doCommand(char *const buf, const uint8_t buflen)
+    {
+    char *last; // Used by strtok_r().
+    char *tok1;
+    // Minimum 5 character sequence makes sense and is safe to tokenise, eg "K B *".
+    if((buflen >= 5) && (NULL != (tok1 = strtok_r(buf + 2, " ", &last))))
+        {
+        if ('B' == *tok1)
+            { // Check first token is a 'B'
+            char *tok2 = strtok_r(NULL, " ", &last);
+            // if second token is '*' clears eeprom. Otherwise, test to see if
+            // a valid key has been entered
+            if (NULL != tok2)
+                {
+                if (*tok2 == '*')
+                    {
+                    OTV0P2BASE::setPrimaryBuilding16ByteSecretKey (NULL);
+                    Serial.println(F("Building Key cleared"));
+#if 0 && defined(DEBUG)
+                    uint8_t keyTest[16];
+                    OTV0P2BASE::getPrimaryBuilding16ByteSecretKey(keyTest);
+                    for(uint8_t i = 0; i < sizeof(keyTest); i++)
+                        {
+                        Serial.print(keyTest[i], HEX);
+                        Serial.print(" ");
+                        }
+                    Serial.println();
+#endif
+                    }
+                else if (buflen == 51)
+                    { // "K B" + 16x " hh" tokens.
+                    // 0 array to store new key
+                    uint8_t newKey[OTV0P2BASE::VOP2BASE_EE_LEN_16BYTE_PRIMARY_BUILDING_KEY];
+                    uint8_t *eepromPtr =
+                            (uint8_t *) OTV0P2BASE::VOP2BASE_EE_START_16BYTE_PRIMARY_BUILDING_KEY;
+                    // parse and set first token, which has already been recovered
+                    newKey[0] = OTV0P2BASE::parseHex((uint8_t *) tok2);
+                    // loop through rest of secret key
+                    for (uint8_t i = 1; i < OTV0P2BASE::VOP2BASE_EE_LEN_16BYTE_PRIMARY_BUILDING_KEY; i++)
+                        {
+                        char *thisTok = strtok_r(NULL, " ", &last);
+                        newKey[i] = OTV0P2BASE::parseHex((uint8_t *) thisTok);
+                        }
+                    OTV0P2BASE::setPrimaryBuilding16ByteSecretKey(
+                            newKey);
+#if 0 && defined(DEBUG)
+                    Serial.println(F("Building Key set"));
+#endif
+
+#if 0 && defined(DEBUG)
+                    uint8_t keyTest[16];
+                    OTV0P2BASE::getPrimaryBuilding16ByteSecretKey(keyTest);
+                    for(uint8_t i = 0; i < sizeof(keyTest); i++)
+                        {
+                        Serial.print(keyTest[i], HEX);
+                        Serial.print(" ");
+                        }
+                    Serial.println();
+#endif
+
+                    }
+                else
+                    InvalidIgnored();
+                }
+            }
+        }
+    return(false);
     }
 
 // Set local time (eg "T HH MM").

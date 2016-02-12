@@ -52,6 +52,9 @@ namespace CLI {
     // Standard/common CLI command implementations
     //--------------------------------------------
 
+    // Set / clear node association(s) (nodes to accept frames from) (eg "A hh hh hh hh hh hh hh hh").
+    class SetNodeAssoc : public CLIEntryBase { public: virtual bool doCommand(char *buf, uint8_t buflen); };
+
     // Dump (human-friendly) stats (eg "D N").
     class DumpStats : public CLIEntryBase { public: virtual bool doCommand(char *buf, uint8_t buflen); };
 
@@ -86,6 +89,9 @@ namespace CLI {
     //
     //>
     class NodeID : public CLIEntryBase { public: virtual bool doCommand(char *buf, uint8_t buflen); };
+
+    // Set secret key ("K ...").
+    class SetSecretKey : public CLIEntryBase { public: virtual bool doCommand(char *buf, uint8_t buflen); };
 
     // Set local time (eg "T HH MM").
     class SetTime : public CLIEntryBase { public: virtual bool doCommand(char *buf, uint8_t buflen); };
