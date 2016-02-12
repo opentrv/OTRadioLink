@@ -71,14 +71,14 @@ uint8_t SensorTemperaturePot::read()
     // Ignore first reading which might otherwise cause spurious mode change, etc.
     if((uint16_t)~0U != (uint16_t)raw) // Ignore if raw not yet set for the first time.
       {
-      const uint8_t minS = minExpected >> 2;
-      const uint8_t maxS = maxExpected >> 2;
-      // Compute low end stop threshold avoiding overflow.
-      const uint8_t realMinScaled = reverse ? maxS : minS;
-      const uint8_t loEndStop = (realMinScaled >= 255 - RN_FRBO) ? realMinScaled : (realMinScaled + RN_FRBO);
-      // Compute high end stop threshold avoiding underflow.
-      const uint8_t realMaxScaled = reverse ? minS : maxS;
-      const uint8_t hiEndStop = (realMaxScaled < RN_FRBO) ? realMaxScaled : (realMaxScaled - RN_FRBO);
+//      const uint8_t minS = minExpected >> 2;
+//      const uint8_t maxS = maxExpected >> 2;
+//      // Compute low end stop threshold avoiding overflow.
+//      const uint8_t realMinScaled = reverse ? maxS : minS;
+//      const uint8_t loEndStop = (realMinScaled >= 255 - RN_FRBO) ? realMinScaled : (realMinScaled + RN_FRBO);
+//      // Compute high end stop threshold avoiding underflow.
+//      const uint8_t realMaxScaled = reverse ? minS : maxS;
+//      const uint8_t hiEndStop = (realMaxScaled < RN_FRBO) ? realMaxScaled : (realMaxScaled - RN_FRBO);
       // Force FROST mode when dial turned right down to bottom.
       if(rn < loEndStop) { if(NULL != warmModeCallback) { warmModeCallback(false); } }
       // Start BAKE mode when dial turned right up to top.
