@@ -52,7 +52,7 @@ namespace CLI {
     // Standard/common CLI command implementations
     //--------------------------------------------
 
-    // Dump (human-friendly) stats (eg "D N")
+    // Dump (human-friendly) stats (eg "D N").
     class DumpStats : public CLIEntryBase { public: virtual bool doCommand(char *buf, uint8_t buflen); };
 
     // Used to show or reset node ID (eg "I").

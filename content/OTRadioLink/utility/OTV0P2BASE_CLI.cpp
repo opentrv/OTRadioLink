@@ -123,7 +123,6 @@ bool DumpStats::doCommand(char *const buf, const uint8_t buflen)
     return(false);
     }
 
-
 // Show / reset node ID ('I').
 bool NodeID::doCommand(char *const buf, const uint8_t buflen)
     {
