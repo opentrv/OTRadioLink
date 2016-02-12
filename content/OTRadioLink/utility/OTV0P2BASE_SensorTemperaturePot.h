@@ -48,8 +48,9 @@ class SensorTemperaturePot : public OTV0P2BASE::SimpleTSUint8Sensor
     // Aim to provide reasonable noise immunity, even from an ageing carbon-track pot.
     // Allow reasonable remaining granularity of response, at least 10s of distinct positions (>=5 bits).
     // This is in terms of steps on the non-raw [0,255] nominal output scale.
-    // Note that some applications may only see a fraction of full scale movement (eg ~25% for DORM1).
-    static const uint8_t RN_HYST = 4;
+    // Note that some applications may only see a fraction of full scale movement (eg ~25% for DORM1),
+    // so allowing for reasonable end stops and tolerances that further constrains this value from above.
+    static const uint8_t RN_HYST = 2;
 
     // Bottom and top parts of normalised/8-bit reduced noise range reserved for end-stops (forcing FROST or BAKE).
     // Should be big enough to hit easily (and must be larger than RN_HYST)
