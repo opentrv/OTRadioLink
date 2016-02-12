@@ -83,11 +83,12 @@ uint8_t addNodeID(const uint8_t *nodeID);
  *          matching ID found, it will return -1.
  * @param   index   Index to start searching from.
  *          prefix  Prefix to match.
+ *          prefixLen  Length of prefix
  *          nodeID  Buffer to write nodeID too. First byte written to 0xff
  *                  if no match found.
  * @retval  returns index or 0xff if no matching node ID found
  */
-uint8_t getNextMatchingNodeID(const uint8_t _index, const uint8_t *prefix, uint8_t *nodeID);
+uint8_t getNextMatchingNodeID(const uint8_t _index, const uint8_t *prefix, const uint8_t prefixLen, uint8_t *nodeID);
 
 //#if 0 // Pairing API outline.
 //struct pairInfo { bool successfullyPaired; };
