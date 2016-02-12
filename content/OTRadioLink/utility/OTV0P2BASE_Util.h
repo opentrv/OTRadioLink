@@ -14,6 +14,7 @@ specific language governing permissions and limitations
 under the Licence.
 
 Author(s) / Copyright (s): Damon Hart-Davis 2014--2016
+                           Deniz Erbilgin 2016
 */
 
 /*
@@ -49,6 +50,38 @@ inline char hexDigit(const uint8_t value) { const uint8_t v = 0xf&value; if(v<10
 // Fill in the first two bytes of buf with the ASCII hex digits of the value passed.
 // Eg, passing in a value 0x4e sets buf[0] to '4' and buf[1] to 'e'.
 inline void hexDigits(const uint8_t value, char * const buf) { buf[0] = hexDigit(value>>4); buf[1] = hexDigit(value); }
+
+
+/**
+ * @brief   Convert a single hex character into a 4 bit nibble
+ * @param   ascii character between 0-9, a-f or A-F
+ * @retval  nibble containing a value between 0 and 15
+ * @todo    - way of doing this without all the branches?
+ *          - error checking!!!
+ *          - lower case characters!!!
+ */
+static inline uint8_t parseHexVal(const uint8_t hexchar)
+{
+  uint8_t myByte = hexchar;
+
+  if(myByte >= 'A') {
+    myByte -= 'A';
+    myByte += 10;
+    return myByte;
+  } else if (myByte >= '0') {
+    myByte -= '0';
+    return myByte;
+  } else return 0;
+}
+
+/**
+ * @brief   Convert 2 hex characters (eg "0a") into a binary value
+ * @param   pointer to a token containing characters between 0-9, a-f or A-F
+ * @retval  byte containing converted value
+ * @todo    write good comments
+ *          add checks
+ */
+uint8_t parseHex(const uint8_t *tok);
 
 
 }
