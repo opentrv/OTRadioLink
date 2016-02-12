@@ -62,7 +62,21 @@ inline bool validIDByte(const uint8_t v) { return((0 != (0x80 & v)) && (0xff != 
 bool ensureIDCreated(const bool force = false);
 
 // Functions for setting a 16 byte primary building secret key
+/**
+ * @brief   Sets the primary building 16 byte secret key in eeprom.
+ * @param   newKey    A pointer to the first byte of a 16 byte array containing the new key.
+ *                    On passing a NULL pointer, the stored key will be cleared.
+ *                    NOTE: The key pointed to by newKey must be stored as binary, NOT as text.
+ * @retval  true if new key is set, else false.
+ */
 bool setPrimaryBuilding16ByteSecretKey(const uint8_t *key);
+
+/**
+ * @brief   Fills an array with the 16 byte primary building key.
+ * @param   key    A pointer to a 16 byte buffer to write the key too.
+ * @retval  true if written successfully, false if key is a NULL pointer
+ * @note    Does not check if a key has been set.
+ */
 bool getPrimaryBuilding16ByteSecretKey(uint8_t *key);
 
 /**
@@ -83,9 +97,8 @@ uint8_t addNodeID(const uint8_t *nodeID);
  *          matching ID found, it will return -1.
  * @param   index   Index to start searching from.
  *          prefix  Prefix to match.
- *          prefixLen  Length of prefix
- *          nodeID  Buffer to write nodeID too. First byte written to 0xff
- *                  if no match found.
+ *          prefixLen  Length of prefixuint8fdsafds
+ *          nodeID  Buffer to write nodeID to. THIS IS NOT PRESERVED WHEN FUNCTION RETURNS 0xff!
  * @retval  returns index or 0xff if no matching node ID found
  */
 uint8_t getNextMatchingNodeID(const uint8_t _index, const uint8_t *prefix, const uint8_t prefixLen, uint8_t *nodeID);
