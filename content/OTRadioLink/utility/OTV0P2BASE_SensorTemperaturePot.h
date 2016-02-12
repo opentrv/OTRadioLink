@@ -23,6 +23,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #ifndef OTV0P2BASE_SENSORTEMPERATUREPOT_H
 #define OTV0P2BASE_SENSORTEMPERATUREPOT_H
 
+#include <Arduino.h>
+
 #include "OTV0P2BASE_Util.h"
 #include "OTV0P2BASE_Sensor.h"
 
@@ -50,6 +52,7 @@ class SensorTemperaturePot : public OTV0P2BASE::SimpleTSUint8Sensor
     // This is in terms of steps on the non-raw [0,255] nominal output scale.
     // Note that some applications may only see a fraction of full scale movement (eg ~25% for DORM1),
     // so allowing for reasonable end stops and tolerances that further constrains this value from above.
+    // DHD20160212: observed manual precision with base REV10 pot ~8--10, so RN_HYST >= 2 is reasonable.
     static const uint8_t RN_HYST = 2;
 
     // Bottom and top parts of normalised/8-bit reduced noise range reserved for end-stops (forcing FROST or BAKE).
@@ -58,7 +61,7 @@ class SensorTemperaturePot : public OTV0P2BASE::SimpleTSUint8Sensor
     // This is in terms of steps on the non-raw [0,255] nominal output scale.
     // Note that some applications may only see a fraction of full scale movement (eg ~25% for DORM1),
     // so allowing for reasonable end stops and tolerances that further constrains this value from above.
-    static const uint8_t RN_FRBO = 2*RN_HYST;
+    static const uint8_t RN_FRBO = max(2*RN_HYST, 8);
 
   private:
     // Raw pot value [0,1023] if extra precision is required.
