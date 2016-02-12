@@ -90,24 +90,44 @@ bool ensureIDCreated(const bool force)
 
 
 
-// Dummy implementations of setPrimaryBuilding16ByteSecretKey & getPrimaryBuilding16ByteSecretKey
-// Notes copied from TODO-788:
-// Clearing a key should 'smart' erase the appropriate EEPROM bytes back to their original 0xff values.
-// bool getPrimaryBuilding16ByteSecretKey(uint8_t *key) fills in the 16-byte key buffer passed to it and returns true,
-// or on failure (eg because the key is unset and all 0xffs) returns false.
-bool setPrimaryBuilding16ByteSecretKey(const uint8_t *const newKey) // <-- this should be 16-byte binary, NOT text!
+/**
+ * @brief   Sets the primary building 16 byte secret key in eeprom.
+ * @param   newKey    A pointer to the first byte of a 16 byte array containing the new key.
+ *                    On passing a NULL pointer, the stored key will be cleared.
+ *                    NOTE: The key pointed to by newKey must be stored as binary, NOT as text.
+ * @retval  true if new key is set, else false.
+ */
+bool setPrimaryBuilding16ByteSecretKey(const uint8_t *newKey) // <-- this should be 16-byte binary, NOT text!
+{
+    // if newKey is a null pointer, clear existing key
+    if(newKey == NULL) {
+    	// clear key here
+    	for(uint8_t i = 0; i < VOP2BASE_EE_LEN_16BYTE_PRIMARY_BUILDING_KEY; i++) {
+    		eeprom_smart_update_byte((uint8_t *)VOP2BASE_EE_START_16BYTE_PRIMARY_BUILDING_KEY+i, 0xff);
+    	}
+    	return(false);
+    } else {
+        // set new key
+    	for(uint8_t i = 0; i < VOP2BASE_EE_LEN_16BYTE_PRIMARY_BUILDING_KEY; i++) {
+    		eeprom_smart_update_byte((uint8_t *)VOP2BASE_EE_START_16BYTE_PRIMARY_BUILDING_KEY+i, *newKey++);
+    	}
+    	return true;
+    }
+}
+
+/**
+ * @brief   Fills an array with the 16 byte primary building key.
+ * @param   key    A pointer to a 16 byte buffer to write the key too.
+ * @retval  true if written successfully, false if key is a NULL pointer
+ * @note    Does not check if a key has been set.
+ */
+bool getPrimaryBuilding16ByteSecretKey(uint8_t * key)
   {
-  if(newKey == NULL) { return(false); }
-  // convert hex string to binary array
-  //   - if any bytes are invalid, return false (this may also function as a free length check)
-//  OTV0P2BASE::serialPrintAndFlush((const char *)newKey);
-//  OTV0P2BASE::serialPrintlnAndFlush(); // echo
-  return(false); // FIXME
-  }
-bool getPrimaryBuilding16ByteSecretKey(uint8_t *const key)
-  {
-  if(key == NULL) { return(false); }
-  memset(key, 0, 16); // All zeros key.
+//	uint8_t *buf = (uint8_t *) key;
+    if(key == NULL) { return(false); }
+    for(uint8_t i = 0; i < OTV0P2BASE::VOP2BASE_EE_LEN_16BYTE_PRIMARY_BUILDING_KEY; i++) {
+        *key++ = eeprom_read_byte(OTV0P2BASE::VOP2BASE_EE_START_16BYTE_PRIMARY_BUILDING_KEY+i);
+    }
   return(true); // Lie and claim that key is OK.
   }
 
