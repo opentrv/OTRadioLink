@@ -52,15 +52,16 @@ class SensorTemperaturePot : public OTV0P2BASE::SimpleTSUint8Sensor
     // This is in terms of steps on the non-raw [0,255] nominal output scale.
     // Note that some applications may only see a fraction of full scale movement (eg ~25% for DORM1),
     // so allowing for reasonable end stops and tolerances that further constrains this value from above.
-    // DHD20160212: observed manual precision with base REV10 pot ~8--10, so RN_HYST >= 2 is reasonable.
+    // DHD20160212: observed manual precision with base REV10 pot ~8--16 raw, so RN_HYST >= 2 is reasonable.
     static const uint8_t RN_HYST = 2;
 
     // Bottom and top parts of normalised/8-bit reduced noise range reserved for end-stops (forcing FROST or BAKE).
-    // Should be big enough to hit easily (and must be larger than RN_HYST)
+    // Should be big enough to hit easily (and should be larger than RN_HYST)
     // but not so big as to really constrain the temperature range or cause confusion.
     // This is in terms of steps on the non-raw [0,255] nominal output scale.
     // Note that some applications may only see a fraction of full scale movement (eg ~25% for DORM1),
     // so allowing for reasonable end stops and tolerances that further constrains this value from above.
+    // Note that absolute skew of pot in different devices units may be much larger than unit self-precision.
     static const uint8_t RN_FRBO = max(2*RN_HYST, 8);
 
   private:
