@@ -157,8 +157,8 @@ uint8_t addNodeID(const uint8_t *nodeID)
 uint8_t getNextMatchingNodeID(const uint8_t _index, const uint8_t *prefix, const uint8_t prefixLen, uint8_t *nodeID)
 {
 	// check inputs are sane
-	if( (prefix == NULL) | (nodeID == NULL)) return 0xf0;
-	if(prefixLen >= V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH) return 0xf1;
+	if( (prefix == NULL) | (nodeID == NULL)) return 0xff;
+	if(prefixLen >= V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH) return 0xff;
 
 	uint8_t index = _index;
 	uint8_t *eepromPtr = (uint8_t *)V0P2BASE_EE_START_NODE_ASSOCIATIONS + (index *  V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE);
@@ -168,7 +168,7 @@ uint8_t getNextMatchingNodeID(const uint8_t _index, const uint8_t *prefix, const
 	//   - if no match, exit loop.
 	for(; index < V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS; index++) {
 		uint8_t temp = eeprom_read_byte(eepromPtr); // temp variable for byte read
-		if(temp == 0xff) return 0xf2;//break;    // last entry reached. exit w/ error.
+		if(temp == 0xff) return 0xff;//break;    // last entry reached. exit w/ error.
 		else if(temp == *prefix) { // this is the case where it matches
 			// loop through first prefixLen bytes of nodeID, comparing output
 			uint8_t i; // persistent loop counter
