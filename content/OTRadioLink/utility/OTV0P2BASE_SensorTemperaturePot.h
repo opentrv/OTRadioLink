@@ -114,10 +114,12 @@ class SensorTemperaturePot : public OTV0P2BASE::SimpleTSUint8Sensor
     inline bool isReversed() { return(minExpected > maxExpected); }
 
     // A value below this (scaled) is deemed to be at the low end stop region (allowing for reversed movement).
-    const uint8_t loEndStop; // = (realMinScaled >= 255 - RN_FRBO) ? realMinScaled : (realMinScaled + RN_FRBO);
+    const uint8_t loEndStop;
+    // Returns true if at the low end stop: ISR safe.
     inline bool isAtLoEndStop() { return(value < loEndStop); }
     // A value above this (scaled) is deemed to be at the high end stop region (allowing for reversed movement).
-    const uint8_t hiEndStop; // = (realMaxScaled < RN_FRBO) ? realMaxScaled : (realMaxScaled - RN_FRBO);
+    const uint8_t hiEndStop;
+    // Returns true if at the high end stop: ISR safe.
     inline bool isAtHiEndStop() { return(value > hiEndStop); }
 
     // Force a read/poll of the temperature pot and return the value sensed [0,255] (cold to hot).
