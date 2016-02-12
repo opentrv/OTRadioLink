@@ -128,7 +128,7 @@ void clearAllNodeIDs()
 /**
  * @brief   Checks through stored node IDs and adds a new one if there is space.
  * @param   pointer to new 8 byte node ID
- * @retval  Number of stored node IDs, or 0xFF if storage full
+ * @retval  Number of stored node IDs, or 0xff if storage full
  */
 uint8_t addNodeID(const uint8_t *nodeID)
 {
@@ -142,6 +142,55 @@ uint8_t addNodeID(const uint8_t *nodeID)
 		}
 		eepromPtr += V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE; // increment ptr
 	}
+	return 0xff;
+}
+
+/**
+ * @brief   Returns first matching node ID after the index provided. If no
+ *          matching ID found, it will return -1.
+ * @param   index   Index to start searching from.
+ *          prefix  Prefix to match.
+ *          prefixLen  Length of prefixuint8fdsafds
+ *          nodeID  Buffer to write nodeID to. THIS IS NOT PRESERVED WHEN FUNCTION RETURNS 0xff!
+ * @retval  returns index or 0xff if no matching node ID found
+ */
+uint8_t getNextMatchingNodeID(const uint8_t _index, const uint8_t *prefix, const uint8_t prefixLen, uint8_t *nodeID)
+{
+	// check inputs are sane
+	if( (prefix == NULL) | (nodeID == NULL)) return 0xff;
+	if(prefixLen >= V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH) return 0xff;
+
+	uint8_t index = _index;
+	uint8_t *eepromPtr = (uint8_t *)V0P2BASE_EE_START_NODE_ASSOCIATIONS + (index *  V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE);
+
+	// Loop through node IDs until match or last entry tested.
+	//   - if a match is found, return index and fill nodeID
+	//   - if no match, exit loop.
+	for(; index < V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS; index++) {
+		uint8_t temp = eeprom_read_byte(eepromPtr); // temp variable for byte read
+		if(temp == 0xff) return 0xff;//break;    // last entry reached. exit w/ error.
+		else if(temp == *prefix) { // this is the case where it matches
+			// loop through first prefixLen bytes of nodeID, comparing output
+			uint8_t i; // persistent loop counter
+			uint8_t *tempPtr = eepromPtr;	// temp pointer so that eepromPtr is preserved if not a match
+			nodeID[0] = temp;
+			for(i = 1; i < prefixLen; i++) {
+				// if bytes match, copy and check next byte?
+				temp = eeprom_read_byte(tempPtr++);
+				if(prefix[i] == temp) {
+					nodeID[i] = temp;
+				} else break; // exit inner loop.
+			}
+			// Since prefix matches, copy rest of node ID
+			for (; i < (V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH); i++) {
+				nodeID[i] = eeprom_read_byte(tempPtr++);
+			}
+			return index;
+		}
+		eepromPtr += V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE; // Increment ptr to next node ID field
+	}
+
+	// If the loop exits, then no match has been found.
 	return 0xff;
 }
 
