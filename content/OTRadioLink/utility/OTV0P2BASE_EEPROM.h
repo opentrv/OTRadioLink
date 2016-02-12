@@ -235,5 +235,28 @@ bool inOutlierQuartile(bool inTop, uint8_t statsSet, uint8_t hour = STATS_SPECIA
 int8_t countStatSamplesBelow(uint8_t statsSet, uint8_t value);
 
 
+// Range-compress an signed int 16ths-Celsius temperature to a unsigned single-byte value < 0xff.
+// This preserves at least the first bit after the binary point for all values,
+// and three bits after binary point for values in the most interesting mid range around normal room temperatures,
+// with transitions at whole degrees Celsius.
+// Input values below 0C are treated as 0C, and above 100C as 100C, thus allowing air and DHW temperature values.
+static const int16_t COMPRESSION_C16_FLOOR_VAL = 0; // Floor input value to compression.
+static const int16_t COMPRESSION_C16_LOW_THRESHOLD = (16<<4); // Values in range [COMPRESSION_LOW_THRESHOLD_C16,COMPRESSION_HIGH_THRESHOLD_C16[ have maximum precision.
+static const uint8_t COMPRESSION_C16_LOW_THR_AFTER = (COMPRESSION_C16_LOW_THRESHOLD>>3); // Low threshold after compression.
+static const int16_t COMPRESSION_C16_HIGH_THRESHOLD = (24<<4);
+static const uint8_t COMPRESSION_C16_HIGH_THR_AFTER = (COMPRESSION_C16_LOW_THR_AFTER + ((COMPRESSION_C16_HIGH_THRESHOLD-COMPRESSION_C16_LOW_THRESHOLD)>>1)); // High threshold after compression.
+static const int16_t COMPRESSION_C16_CEIL_VAL = (100<<4); // Ceiling input value to compression.
+static const uint8_t COMPRESSION_C16_CEIL_VAL_AFTER = (COMPRESSION_C16_HIGH_THR_AFTER + ((COMPRESSION_C16_CEIL_VAL-COMPRESSION_C16_HIGH_THRESHOLD) >> 3)); // Ceiling input value after compression.
+uint8_t compressTempC16(int16_t tempC16);
+// Reverses range compression done by compressTempC16(); results in range [0,100], with varying precision based on original value.
+// 0xff (or other invalid) input results in STATS_UNSET_INT.
+int16_t expandTempC16(uint8_t cTemp);
+
+// Maximum valid encoded/compressed stats values.
+static const uint8_t MAX_STATS_TEMP = COMPRESSION_C16_CEIL_VAL_AFTER; // Maximum valid compressed temperature value in stats.
+static const uint8_t MAX_STATS_AMBLIGHT = 254; // Maximum valid ambient light value in stats (very top of range is compressed).
+
+
+
 }
 #endif
