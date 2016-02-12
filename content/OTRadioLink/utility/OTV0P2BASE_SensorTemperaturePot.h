@@ -113,11 +113,11 @@ class SensorTemperaturePot : public OTV0P2BASE::SimpleTSUint8Sensor
     // Returns true if the pot output is to be reversed from the natural direction.
     inline bool isReversed() { return(minExpected > maxExpected); }
 
-    // A value below this (scaled) is deemed to be at the low end stop region (allowing for reversed movement).
+    // A (scaled) value below this is deemed to be at the low end stop region (allowing for reversed movement).
     const uint8_t loEndStop;
     // Returns true if at the low end stop: ISR safe.
     inline bool isAtLoEndStop() { return(value < loEndStop); }
-    // A value above this (scaled) is deemed to be at the high end stop region (allowing for reversed movement).
+    // A (scaled) value above this is deemed to be at the high end stop region (allowing for reversed movement).
     const uint8_t hiEndStop;
     // Returns true if at the high end stop: ISR safe.
     inline bool isAtHiEndStop() { return(value > hiEndStop); }
