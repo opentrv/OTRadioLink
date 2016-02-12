@@ -74,9 +74,20 @@ void clearAllNodeIDs();
 /**
  * @brief   Checks through stored node IDs and adds a new one if there is space.
  * @param   pointer to new 8 byte node ID
- * @retval  Number of stored node IDs, or 0xFF if storage full
+ * @retval  Number of stored node IDs, or 0xff if storage full
  */
 uint8_t addNodeID(const uint8_t *nodeID);
+
+/**
+ * @brief   Returns first matching node ID after the index provided. If no
+ *          matching ID found, it will return -1.
+ * @param   index   Index to start searching from.
+ *          prefix  Prefix to match.
+ *          nodeID  Buffer to write nodeID too. First byte written to 0xff
+ *                  if no match found.
+ * @retval  returns index or 0xff if no matching node ID found
+ */
+uint8_t getNextMatchingNodeID(const uint8_t _index, const uint8_t *prefix, uint8_t *nodeID);
 
 //#if 0 // Pairing API outline.
 //struct pairInfo { bool successfullyPaired; };
