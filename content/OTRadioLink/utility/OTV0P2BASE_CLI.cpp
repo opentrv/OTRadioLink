@@ -65,7 +65,7 @@ bool SetNodeAssoc::doCommand(char *const buf, const uint8_t buflen)
                 Serial.print(nodeID[0], HEX);
                 Serial.print(' ');
                 Serial.print(nodeID[1], HEX);
-                Serial.println(F(" ... "));
+                Serial.print(F(" ... "));
                 Serial.print(nodeID[OpenTRV_Node_ID_Bytes - 1], HEX);
                 Serial.println();
                 }
