@@ -100,12 +100,19 @@ void clearAllNodeAssociations();
  */
 uint8_t countNodeAssociations();
 
+/**Get node ID of association at specified index.
+ * Returns true if successful.
+ *   * index  association index of required node ID
+ *   * nodeID  8-byte buffer to receive ID; never NULL
+ */
+bool getNodeAssociation(uint8_t index, uint8_t *nodeID);
+
 /**
  * @brief   Checks through stored node IDs and adds a new one if there is space.
  * @param   pointer to new 8 byte node ID
- * @retval  Number of stored node IDs, or 0xff if storage full
+ * @retval  index of this new association, or -1 if no space
  */
-uint8_t addNodeAssociation(const uint8_t *nodeID);
+int8_t addNodeAssociation(const uint8_t *nodeID);
 
 /**
  * @brief   Returns first matching node ID after the index provided. If no

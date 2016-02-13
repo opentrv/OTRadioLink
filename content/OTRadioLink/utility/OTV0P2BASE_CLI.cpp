@@ -57,6 +57,16 @@ bool SetNodeAssoc::doCommand(char *const buf, const uint8_t buflen)
             Serial.print(F("Nodes: "));
             const uint8_t nn = countNodeAssociations();
             Serial.println(nn);
+            // Print first two bytes of each association's node ID.
+            for(uint8_t i = 0; i < nn; ++i)
+                {
+                uint8_t nodeID[OpenTRV_Node_ID_Bytes];
+                getNodeAssociation(i, nodeID);
+                Serial.print(nodeID[0], HEX);
+                Serial.print(' ');
+                Serial.print(nodeID[1], HEX);
+                Serial.println();
+                }
             }
         else if('*' == *tok1)
             {
@@ -82,16 +92,15 @@ bool SetNodeAssoc::doCommand(char *const buf, const uint8_t buflen)
                             (uint8_t *) thisTok);
                     }
                 }
-            // Write this to EEPROM
-            const uint8_t nodesSet = OTV0P2BASE::addNodeAssociation(nodeID);
-            // Report outcome
-            if(nodesSet <= 16)
+            // Try to save this association to EEPROM, reporting result.
+            const int8_t index = OTV0P2BASE::addNodeAssociation(nodeID);
+            if(index >= 0)
                 {
-                Serial.print(nodesSet);
-                Serial.println(F(" nodes stored"));
+                Serial.print(F("Index "));
+                Serial.println(index);
                 }
             else
-                { Serial.println(F("Could not add node")); }
+                { Serial.println(F("!no space")); }
             }
 #if 0 && defined(DEBUG)
         else if( (n >= 7) && ('?' == *tok1) )
