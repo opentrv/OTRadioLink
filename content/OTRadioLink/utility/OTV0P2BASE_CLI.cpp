@@ -57,7 +57,7 @@ bool SetNodeAssoc::doCommand(char *const buf, const uint8_t buflen)
             Serial.print(F("Nodes: "));
             const uint8_t nn = countNodeAssociations();
             Serial.println(nn);
-            // Print first two bytes of each association's node ID.
+            // Print first two bytes (and last) of each association's node ID.
             for(uint8_t i = 0; i < nn; ++i)
                 {
                 uint8_t nodeID[OpenTRV_Node_ID_Bytes];
