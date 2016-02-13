@@ -210,9 +210,11 @@ namespace OTRadioLink
                 return(_doconfig());
                 }
 
-            // Get (read-only) config for specified channel (defaulting to 0).
+            // Get pointer to (read-only) config for specified channel (defaulting to 0).
             // Returns NULL if no channels set or invalid channel requested.
             // This includes the flags for such features as framing and inherent security.
+            // The lifetime of the returned pointer/object is at least until
+            // the next call to configure() or destruction of this instance.
             const OTRadioChannelConfig_t *getChannelConfig(const uint8_t channel = 0) const
                 {
                 if(channel >= nChannels) { return(NULL); }
