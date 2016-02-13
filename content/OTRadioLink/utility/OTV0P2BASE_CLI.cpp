@@ -51,6 +51,7 @@ bool SetNodeAssoc::doCommand(char *const buf, const uint8_t buflen)
     // Minimum 3 character sequence makes sense and is safe to tokenise, eg "A *".
     if((buflen >= 3) && (NULL != (tok1 = strtok_r(buf + 2, " ", &last))))
         {
+        // "A ?" or "A ? XX"
         if('?' == *tok1)
             {
             // Query current association status.
@@ -68,6 +69,15 @@ bool SetNodeAssoc::doCommand(char *const buf, const uint8_t buflen)
                 Serial.print(F(" ... "));
                 Serial.print(nodeID[OpenTRV_Node_ID_Bytes - 1], HEX);
                 Serial.println();
+                }
+            // If byte is provided in token after '?' then show index from looking up that prefix from 0.
+            char *tok2 = strtok_r(NULL, " ", &last);
+            if(NULL != tok2)
+                {
+                const uint8_t prefix1 = OTV0P2BASE::parseHex((uint8_t *)tok2);
+                uint8_t nodeID[OpenTRV_Node_ID_Bytes];
+                const int8_t index = getNextMatchingNodeID(0, &prefix1, 1, nodeID);
+                Serial.println(index);
                 }
             }
         else if('*' == *tok1)
@@ -89,10 +99,7 @@ bool SetNodeAssoc::doCommand(char *const buf, const uint8_t buflen)
                 {
                 // if token is valid, parse hex to binary.
                 if(NULL != thisTok)
-                    {
-                    nodeID[i] = OTV0P2BASE::parseHex(
-                            (uint8_t *) thisTok);
-                    }
+                    { nodeID[i] = OTV0P2BASE::parseHex((uint8_t *)thisTok); }
                 }
             // Try to save this association to EEPROM, reporting result.
             const int8_t index = OTV0P2BASE::addNodeAssociation(nodeID);
@@ -104,30 +111,30 @@ bool SetNodeAssoc::doCommand(char *const buf, const uint8_t buflen)
             else
                 { Serial.println(F("!no space")); }
             }
-#if 0 && defined(DEBUG)
-        else if( (n >= 7) && ('?' == *tok1) )
-            {
-            uint8_t prefix[2];
-            uint8_t nodeID[8];
-            for(uint8_t i = 0; i < sizeof(prefix); i++)
-                {
-                char *thisTok = strtok_r(NULL, " ", &last); // Extract token
-                // if token is valid, parse hex to binary
-                if(NULL != thisTok)
-                    {
-                    prefix[i] = OTV0P2BASE::parseHex((uint8_t *)thisTok);
-                    }
-                }
-            Serial.print(OTV0P2BASE::getNextMatchingNodeID(10, prefix, sizeof(prefix), nodeID));
-            Serial.print(" - ");
-            for(uint8_t i = 0; i < sizeof(nodeID); i++)
-                {
-                Serial.print(nodeID[i], HEX);
-                Serial.print(" ");
-                }
-            Serial.println();
-            }
-#endif  // 1 && DEBUG
+//#if 0 && defined(DEBUG)
+//        else if( (n >= 7) && ('?' == *tok1) )
+//            {
+//            uint8_t prefix[2];
+//            uint8_t nodeID[8];
+//            for(uint8_t i = 0; i < sizeof(prefix); i++)
+//                {
+//                char *thisTok = strtok_r(NULL, " ", &last); // Extract token
+//                // if token is valid, parse hex to binary
+//                if(NULL != thisTok)
+//                    {
+//                    prefix[i] = OTV0P2BASE::parseHex((uint8_t *)thisTok);
+//                    }
+//                }
+//            Serial.print(OTV0P2BASE::getNextMatchingNodeID(10, prefix, sizeof(prefix), nodeID));
+//            Serial.print(" - ");
+//            for(uint8_t i = 0; i < sizeof(nodeID); i++)
+//                {
+//                Serial.print(nodeID[i], HEX);
+//                Serial.print(" ");
+//                }
+//            Serial.println();
+//            }
+//#endif  // 1 && DEBUG
         else { InvalidIgnored(); } // Indicate bad args.
         }
     else { InvalidIgnored(); } // Indicate bad args.
