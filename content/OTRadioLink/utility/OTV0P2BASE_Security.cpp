@@ -195,10 +195,10 @@ int8_t addNodeAssociation(const uint8_t *nodeID)
  * @param   index   Index to start searching from.
  *          prefix  Prefix to match.
  *          prefixLen  Length of prefixuint8fdsafds
- *          nodeID  Buffer to write nodeID to. THIS IS NOT PRESERVED WHEN FUNCTION RETURNS 0xff!
- * @retval  returns index or 0xff if no matching node ID found
+ *          nodeID  Buffer to write nodeID to. THIS IS NOT PRESERVED WHEN FUNCTION RETURNS -1!
+ * @retval  returns index or -1 if no matching node ID found
  */
-uint8_t getNextMatchingNodeID(const uint8_t _index, const uint8_t *prefix, const uint8_t prefixLen, uint8_t *nodeID)
+int8_t getNextMatchingNodeID(const uint8_t _index, const uint8_t *prefix, const uint8_t prefixLen, uint8_t *nodeID)
 {
     // check inputs are sane
     if( (prefix == NULL) | (nodeID == NULL)) return 0xff;
@@ -234,8 +234,8 @@ uint8_t getNextMatchingNodeID(const uint8_t _index, const uint8_t *prefix, const
         eepromPtr += V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE; // Increment ptr to next node ID field
     }
 
-    // If the loop exits, then no match has been found.
-    return 0xff;
+    // No match has been found.
+    return(-1);
 }
 
 }

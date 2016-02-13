@@ -120,10 +120,10 @@ int8_t addNodeAssociation(const uint8_t *nodeID);
  * @param   index   Index to start searching from.
  *          prefix  Prefix to match.
  *          prefixLen  Length of prefixuint8fdsafds
- *          nodeID  Buffer to write nodeID to. THIS IS NOT PRESERVED WHEN FUNCTION RETURNS 0xff!
- * @retval  returns index or 0xff if no matching node ID found
+ *          nodeID  Buffer to write nodeID to. THIS IS NOT PRESERVED WHEN FUNCTION RETURNS -1!
+ * @retval  returns index or -1 if no matching node ID found
  */
-uint8_t getNextMatchingNodeID(const uint8_t _index, const uint8_t *prefix, const uint8_t prefixLen, uint8_t *nodeID);
+int8_t getNextMatchingNodeID(const uint8_t _index, const uint8_t *prefix, const uint8_t prefixLen, uint8_t *nodeID);
 
 //#if 0 // Pairing API outline.
 //struct pairInfo { bool successfullyPaired; };
