@@ -117,15 +117,18 @@ bool setPrimaryBuilding16ByteSecretKey(const uint8_t *newKey) // <-- this should
 
 /**
  * @brief   Fills an array with the 16 byte primary building key.
- * @param   key    A pointer to a 16 byte buffer to write the key too.
+ * @param   key  pointer to a 16 byte buffer to write the key too.
  * @retval  true if written successfully, false if key is a NULL pointer
  * @note    Does not check if a key has been set.
  */
 bool getPrimaryBuilding16ByteSecretKey(uint8_t *key)
   {
   if(key == NULL) { return(false); }
-  for(uint8_t i = 0; i < OTV0P2BASE::VOP2BASE_EE_LEN_16BYTE_PRIMARY_BUILDING_KEY; i++)
-    { *key++ = eeprom_read_byte((uint8_t *)OTV0P2BASE::VOP2BASE_EE_START_16BYTE_PRIMARY_BUILDING_KEY+i); }
+//  for(uint8_t i = 0; i < OTV0P2BASE::VOP2BASE_EE_LEN_16BYTE_PRIMARY_BUILDING_KEY; i++)
+//    { *key++ = eeprom_read_byte((uint8_t *)OTV0P2BASE::VOP2BASE_EE_START_16BYTE_PRIMARY_BUILDING_KEY+i); }
+  eeprom_read_block(key,
+                    (uint8_t *)OTV0P2BASE::VOP2BASE_EE_START_16BYTE_PRIMARY_BUILDING_KEY,
+                    OTV0P2BASE::VOP2BASE_EE_LEN_16BYTE_PRIMARY_BUILDING_KEY);
   return(true); // Lie and claim that key is OK.
   }
 

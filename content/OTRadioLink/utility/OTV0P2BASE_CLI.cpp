@@ -55,7 +55,7 @@ bool SetNodeAssoc::doCommand(char *const buf, const uint8_t buflen)
         if('?' == *tok1)
             {
             // Query current association status.
-            Serial.println(F("Nodes:"));
+            Serial.println(F("IDs:"));
             const uint8_t nn = countNodeAssociations();
 //            Serial.println(nn);
             // Print first two bytes (and last) of each association's node ID.

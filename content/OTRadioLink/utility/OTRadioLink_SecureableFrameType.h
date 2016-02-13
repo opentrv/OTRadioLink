@@ -599,6 +599,25 @@ namespace OTRadioLink
                                     fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
                                     void *state, const uint8_t *key);
 
+    // Create simple 'O' (FTS_BasicSensorOrValve) frame with an optional stats section for transmission.
+    // Returns number of bytes written to buffer, or 0 in case of error.
+    // The IV is constructed from the node ID and the primary TX message counter.
+    // Note that the frame will be 27 + ID-length (up to maxIDLength) bytes,
+    // so the buffer must be large enough to accommodate that.
+    //  * buf  buffer to which is written the entire frame including trailer; never NULL
+    //  * buflen  available length in buf; if too small then this routine will fail (return 0)
+    //  * valvePC  percentage valve is open or 0x7f if no valve to report on
+    //  * statsJSON  '\0'-terminated {} JSON stats, or NULL if none.
+    //  * il_  ID length for the header; ID comes from EEPROM
+    //  * key  16-byte secret key; never NULL
+    uint8_t generateSecureOFrameRawForTX(uint8_t *buf, uint8_t buflen,
+                                    uint8_t il_,
+                                    uint8_t valvePC,
+                                    const char *statsJSON,
+                                    fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                                    void *state, const uint8_t *key);
+
+
     }
 
 

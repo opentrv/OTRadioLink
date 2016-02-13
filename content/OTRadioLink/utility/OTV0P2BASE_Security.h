@@ -80,7 +80,7 @@ bool setPrimaryBuilding16ByteSecretKey(const uint8_t *key);
 
 /**
  * @brief   Fills an array with the 16 byte primary building key.
- * @param   key    A pointer to a 16 byte buffer to write the key too.
+ * @param   key  pointer to a 16 byte buffer to write the key too.
  * @retval  true if written successfully, false if key is a NULL pointer
  * @note    Does not check if a key has been set.
  */
