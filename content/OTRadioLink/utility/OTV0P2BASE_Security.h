@@ -51,7 +51,12 @@ enum stats_TX_level
 stats_TX_level getStatsTXLevel();
 
 
-// Returns true iff valid OpenTRV node ID byte: must have the top bit set and not be 0xff.
+// Size of OpenTRV node ID in bytes.
+// Note that 0xff is never a valid OpenTRV node ID byte.
+// Note that most OpenTRV node ID bytes should have the top bit (0x80) set.
+static const uint8_t OpenTRV_Node_ID_Bytes = 8;
+
+// Returns true iff definitely valid OpenTRV node ID byte: must have the top bit set and not be 0xff.
 inline bool validIDByte(const uint8_t v) { return((0 != (0x80 & v)) && (0xff != v)); }
 
 // Coerce any EEPROM-based node OpenTRV ID bytes to valid values if unset (0xff) or if forced,

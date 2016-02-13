@@ -42,27 +42,34 @@ void InvalidIgnored() { Serial.println(F("Invalid, ignored.")); }
 //        - Stops adding nodes once EEPROM full
 //        - No error checking yet.
 //        - Only accepts upper case for hex values.
-//        To clear all nodes: "A *"
+//        To clear all nodes: "A *".
+//        To query current status "A ?".
 bool SetNodeAssoc::doCommand(char *const buf, const uint8_t buflen)
     {
     char *last; // Used by strtok_r().
     char *tok1;
     // Minimum 3 character sequence makes sense and is safe to tokenise, eg "A *".
-    if ((buflen >= 3) && (NULL != (tok1 = strtok_r(buf + 2, " ", &last))))
+    if((buflen >= 3) && (NULL != (tok1 = strtok_r(buf + 2, " ", &last))))
         {
-        if ('*' == *tok1)
+        if('?' == *tok1)
             {
-            // function call to clear noeds
-            OTV0P2BASE::clearAllNodeIDs();
-            Serial.println(F("Nodes cleared"));
+            // Query current association status.
+            Serial.println(F("Assoc:"));
             }
-        else if (buflen >= 25)
-            { // corresponds to "A " followed by 8 space-separated tokens
+        else if('*' == *tok1)
+            {
+            // Clear node IDs.
+            OTV0P2BASE::clearAllNodeIDs();
+            Serial.println(F("Cleared"));
+            }
+        else if(buflen >= (1 + 3*OpenTRV_Node_ID_Bytes)) // 25)
+            {
+            // corresponds to "A " followed by 8 space-separated hex-byte tokens.
             // Note: As there is no variable for the number of nodes stored, will pass pointer to
             //       addNodeID which will return a value based on how many spaces there are left
-            uint8_t nodeID[8]; // Buffer to store node ID// TODO replace with settable node size constant
-            uint8_t nodesSet = 0; // stores the number of nodes set
-            // Loop through tokens setting nodeID        // TODO Should this check for invalid ID bytes? (i.e. containing 0xFF)
+            uint8_t nodeID[OpenTRV_Node_ID_Bytes]; // Buffer to store node ID // TODO replace with settable node size constant
+            // Loop through tokens setting nodeID.
+            // FIXME check for invalid ID bytes (i.e. containing 0xFF or non-HEX)
             for (uint8_t i = 0; i < sizeof(nodeID); i++)
                 {
                 char *thisTok = strtok_r(NULL, " ", &last); // Extract token
@@ -74,15 +81,15 @@ bool SetNodeAssoc::doCommand(char *const buf, const uint8_t buflen)
                     }
                 }
             // Write this to EEPROM
-            nodesSet = OTV0P2BASE::addNodeID(nodeID); // TODO write function
+            const uint8_t nodesSet = OTV0P2BASE::addNodeID(nodeID);
             // Report outcome
-            if (nodesSet <= 16)
+            if(nodesSet <= 16)
                 {
                 Serial.print(nodesSet);
                 Serial.println(F(" nodes stored"));
                 }
             else
-                Serial.println(F("Could not add node"));
+                { Serial.println(F("Could not add node")); }
             }
 #if 0 && defined(DEBUG)
         else if( (n >= 7) && ('?' == *tok1) )
@@ -108,6 +115,7 @@ bool SetNodeAssoc::doCommand(char *const buf, const uint8_t buflen)
             Serial.println();
             }
 #endif  // 1 && DEBUG
+        else { InvalidIgnored(); } // Indicate bad args.
         }
     return(false);
     }
