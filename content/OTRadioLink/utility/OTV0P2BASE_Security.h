@@ -119,7 +119,7 @@ int8_t addNodeAssociation(const uint8_t *nodeID);
  *          matching ID found, it will return -1.
  * @param   index   Index to start searching from.
  *          prefix  Prefix to match.
- *          prefixLen  Length of prefixuint8fdsafds
+ *          prefixLen  Length of prefix, [0,8] bytes.
  *          nodeID  Buffer to write nodeID to. THIS IS NOT PRESERVED WHEN FUNCTION RETURNS -1!
  * @retval  returns index or -1 if no matching node ID found
  */

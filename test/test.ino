@@ -135,33 +135,33 @@ class PrintToBuf : public Print
 // Test convert hex to binary
 static void testParseHexVal()
 {
-  Serial.println("parseHexVal");
+  Serial.println("parseHexDigit");
   uint8_t result = 0;
   for(uint8_t i = 0; i <= 9; i++) {
-    result = OTV0P2BASE::parseHexVal(i+'0');
+    result = OTV0P2BASE::parseHexDigit(i+'0');
     AssertIsEqual(result, i);
   }
   for (uint8_t i = 0; i <= 5; i++) {
-    result = OTV0P2BASE::parseHexVal(i+'A');
+    result = OTV0P2BASE::parseHexDigit(i+'A');
     AssertIsEqual(result, i+10);
   }
 }
 static void testParseHex()
 {
-  Serial.println("parseHex");
+  Serial.println("parseHexByte");
   uint8_t token[2];
   memset(token, '0', sizeof(2));
   uint8_t result = 0;
 
   token[0] = 'F';
-  result = OTV0P2BASE::parseHex(token);
+  result = OTV0P2BASE::parseHexByte(token);
   AssertIsEqual(result, 240);
   token[0] = '0';
   token[1] = 'F';
-  result = OTV0P2BASE::parseHex(token);
+  result = OTV0P2BASE::parseHexByte(token);
   AssertIsEqual(result, 15);
   token[0] = 'F';
-  result = OTV0P2BASE::parseHex(token);
+  result = OTV0P2BASE::parseHexByte(token);
   AssertIsEqual(result, 255);
 }
 

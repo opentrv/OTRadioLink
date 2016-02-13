@@ -14,6 +14,7 @@ specific language governing permissions and limitations
 under the Licence.
 
 Author(s) / Copyright (s): Deniz Erbilgin 2016
+                           Damon Hart-Davis 2016
 */
 
 #include "OTV0P2BASE_Util.h"
@@ -22,23 +23,24 @@ namespace OTV0P2BASE {
 
 
 /**
- * @brief   Convert 2 hex characters (eg "0a") into a binary value
+ * @brief   Convert 1-2 hex character string (eg "0a") into a binary value
  * @param   pointer to a token containing characters between 0-9, a-f or A-F
- * @retval  byte containing converted value
- * @todo    write good comments
- *          add checks
+ * @retval  byte containing converted value [0,255]; -1 in case of error
  */
-uint8_t parseHex(const uint8_t *tok)
-{
-  if((NULL == tok) || ('\0' == tok[0]) || ('\0' == tok[1])) { return(0); } // ERROR
-
-  uint8_t hiNibble = *tok++;
-  uint8_t lowNibble = *tok;
-
-  hiNibble = parseHexVal(hiNibble) << 4;
-  hiNibble |= parseHexVal(lowNibble);
-  return hiNibble;
-}
+int parseHexByte(const char *const s)
+    {
+    if(NULL == s) { return(-1); } // ERROR
+    const char c0 = s[0];
+    if('\0' == c0) { return(-1); } // ERROR
+    const int8_t d0 = parseHexDigit(c0);
+    if(-1 == d0) { return(-1); } // ERROR
+    // If input string only one character, treat as low nybble, eg "a" => 10.
+    const char c1 = s[1];
+    if('\0' == c1) { return(d0); }
+    const int8_t d1 = parseHexDigit(c1);
+    if(-1 == d1) { return(-1); } // ERROR
+    return((d0 << 4) | d1);
+    }
 
 
 }

@@ -194,7 +194,7 @@ int8_t addNodeAssociation(const uint8_t *nodeID)
  *          matching ID found, it will return -1.
  * @param   index   Index to start searching from.
  *          prefix  Prefix to match.
- *          prefixLen  Length of prefixuint8fdsafds
+ *          prefixLen  Length of prefix, [0,8] bytes.
  *          nodeID  Buffer to write nodeID to. THIS IS NOT PRESERVED WHEN FUNCTION RETURNS -1!
  * @retval  returns index or -1 if no matching node ID found
  */
@@ -213,7 +213,7 @@ int8_t getNextMatchingNodeID(const uint8_t _index, const uint8_t *prefix, const 
     for(; index < V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS; index++) {
         uint8_t temp = eeprom_read_byte(eepromPtr); // temp variable for byte read
         if(temp == 0xff) { return(-1); } // last entry reached. exit w/ error.
-        else if(temp == *prefix) { // this is the case where it matches
+        else if((0 == prefixLen) || (temp == *prefix)) { // this is the case where it matches
             // loop through first prefixLen bytes of nodeID, comparing output
             uint8_t i; // persistent loop counter
             uint8_t *tempPtr = eepromPtr;    // temp pointer so that eepromPtr is preserved if not a match

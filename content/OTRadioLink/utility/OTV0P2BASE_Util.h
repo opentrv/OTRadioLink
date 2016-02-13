@@ -54,34 +54,23 @@ inline void hexDigits(const uint8_t value, char * const buf) { buf[0] = hexDigit
 
 /**
  * @brief   Convert a single hex character into a 4 bit nibble
- * @param   ascii character between 0-9, a-f or A-F
- * @retval  nibble containing a value between 0 and 15
- * @todo    - way of doing this without all the branches?
- *          - error checking!!!
- *          - lower case characters!!!
+ * @param   ASCII character in ranges 0-9, a-f or A-F
+ * @retval  nibble containing a value between 0 and 15; -1 in case of error
  */
-static inline uint8_t parseHexVal(const uint8_t hexchar)
+inline int8_t parseHexDigit(const char hexchar)
 {
-  uint8_t myByte = hexchar;
-
-  if(myByte >= 'A') {
-    myByte -= 'A';
-    myByte += 10;
-    return myByte;
-  } else if (myByte >= '0') {
-    myByte -= '0';
-    return myByte;
-  } else return 0;
+  if((hexchar >= '0') && (hexchar <= '9')) { return(hexchar - '0'); }
+  if((hexchar >= 'a') && (hexchar <= 'f')) { return(hexchar - 'a' + 10); }
+  if((hexchar >= 'A') && (hexchar <= 'F')) { return(hexchar - 'A' + 10); }
+  return(-1); // ERROR
 }
 
 /**
- * @brief   Convert 2 hex characters (eg "0a") into a binary value
+ * @brief   Convert 1-2 hex character string (eg "0a") into a binary value
  * @param   pointer to a token containing characters between 0-9, a-f or A-F
- * @retval  byte containing converted value
- * @todo    write good comments
- *          add checks
+ * @retval  byte containing converted value [0,255]; -1 in case of error
  */
-uint8_t parseHex(const uint8_t *tok);
+int parseHexByte(const char *s);
 
 
 }

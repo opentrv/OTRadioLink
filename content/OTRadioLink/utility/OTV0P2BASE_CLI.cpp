@@ -55,9 +55,9 @@ bool SetNodeAssoc::doCommand(char *const buf, const uint8_t buflen)
         if('?' == *tok1)
             {
             // Query current association status.
-            Serial.print(F("Nodes: "));
+            Serial.println(F("Nodes:"));
             const uint8_t nn = countNodeAssociations();
-            Serial.println(nn);
+//            Serial.println(nn);
             // Print first two bytes (and last) of each association's node ID.
             for(uint8_t i = 0; i < nn; ++i)
                 {
@@ -74,10 +74,14 @@ bool SetNodeAssoc::doCommand(char *const buf, const uint8_t buflen)
             char *tok2 = strtok_r(NULL, " ", &last);
             if(NULL != tok2)
                 {
-                const uint8_t prefix1 = OTV0P2BASE::parseHex((uint8_t *)tok2);
-                uint8_t nodeID[OpenTRV_Node_ID_Bytes];
-                const int8_t index = getNextMatchingNodeID(0, &prefix1, 1, nodeID);
-                Serial.println(index);
+                const int p1 = OTV0P2BASE::parseHexByte(tok2);
+                if(-1 != p1)
+                    {
+                    const uint8_t prefix1 = p1;
+                    uint8_t nodeID[OpenTRV_Node_ID_Bytes];
+                    const int8_t index = getNextMatchingNodeID(0, &prefix1, 1, nodeID);
+                    Serial.println(index);
+                    }
                 }
             }
         else if('*' == *tok1)
@@ -99,7 +103,11 @@ bool SetNodeAssoc::doCommand(char *const buf, const uint8_t buflen)
                 {
                 // if token is valid, parse hex to binary.
                 if(NULL != thisTok)
-                    { nodeID[i] = OTV0P2BASE::parseHex((uint8_t *)thisTok); }
+                    {
+                    const int ib = OTV0P2BASE::parseHexByte(thisTok);
+                    if(-1 == ib) { InvalidIgnored(); return(false); } // ERROR: abrupt exit.
+                    nodeID[i] = (uint8_t) ib;
+                    }
                 }
             // Try to save this association to EEPROM, reporting result.
             const int8_t index = OTV0P2BASE::addNodeAssociation(nodeID);
@@ -109,32 +117,8 @@ bool SetNodeAssoc::doCommand(char *const buf, const uint8_t buflen)
                 Serial.println(index);
                 }
             else
-                { Serial.println(F("!no space")); }
+                { InvalidIgnored(); } // Full.
             }
-//#if 0 && defined(DEBUG)
-//        else if( (n >= 7) && ('?' == *tok1) )
-//            {
-//            uint8_t prefix[2];
-//            uint8_t nodeID[8];
-//            for(uint8_t i = 0; i < sizeof(prefix); i++)
-//                {
-//                char *thisTok = strtok_r(NULL, " ", &last); // Extract token
-//                // if token is valid, parse hex to binary
-//                if(NULL != thisTok)
-//                    {
-//                    prefix[i] = OTV0P2BASE::parseHex((uint8_t *)thisTok);
-//                    }
-//                }
-//            Serial.print(OTV0P2BASE::getNextMatchingNodeID(10, prefix, sizeof(prefix), nodeID));
-//            Serial.print(" - ");
-//            for(uint8_t i = 0; i < sizeof(nodeID); i++)
-//                {
-//                Serial.print(nodeID[i], HEX);
-//                Serial.print(" ");
-//                }
-//            Serial.println();
-//            }
-//#endif  // 1 && DEBUG
         else { InvalidIgnored(); } // Indicate bad args.
         }
     else { InvalidIgnored(); } // Indicate bad args.
@@ -275,22 +259,23 @@ bool SetSecretKey::doCommand(char *const buf, const uint8_t buflen)
                     Serial.println();
 #endif
                     }
-                else if (buflen == 51)
+                else if (buflen >= 3 + 3*16)
                     { // "K B" + 16x " hh" tokens.
                     // 0 array to store new key
                     uint8_t newKey[OTV0P2BASE::VOP2BASE_EE_LEN_16BYTE_PRIMARY_BUILDING_KEY];
                     uint8_t *eepromPtr =
                             (uint8_t *) OTV0P2BASE::VOP2BASE_EE_START_16BYTE_PRIMARY_BUILDING_KEY;
                     // parse and set first token, which has already been recovered
-                    newKey[0] = OTV0P2BASE::parseHex((uint8_t *) tok2);
+                    newKey[0] = OTV0P2BASE::parseHexByte(tok2);
                     // loop through rest of secret key
                     for (uint8_t i = 1; i < OTV0P2BASE::VOP2BASE_EE_LEN_16BYTE_PRIMARY_BUILDING_KEY; i++)
                         {
                         char *thisTok = strtok_r(NULL, " ", &last);
-                        newKey[i] = OTV0P2BASE::parseHex((uint8_t *) thisTok);
+                        const int ib = OTV0P2BASE::parseHexByte(thisTok);
+                        if(-1 == ib) { InvalidIgnored(); return(false); } // ERROR: abrupt exit.
+                        newKey[i] = (uint8_t)ib;
                         }
-                    OTV0P2BASE::setPrimaryBuilding16ByteSecretKey(
-                            newKey);
+                    OTV0P2BASE::setPrimaryBuilding16ByteSecretKey(newKey);
 #if 0 && defined(DEBUG)
                     Serial.println(F("Building Key set"));
 #endif
