@@ -442,10 +442,10 @@ uint8_t SimpleStatsRotationBase::writeJSON(uint8_t *const buf, const uint8_t buf
         // Skip stat if too sensitive to include in this output.
         DescValueTuple &s = stats[next];
         if(sensitivity > s.descriptor.sensitivity) { continue; }
-        // If low priority then skip the chance to TX some of the time,
+        // If low priority and unchanged then skip the chance to TX some of the time,
         // eg if a high-priority item was included already (so space is at a premium),
         // or just randomly.
-        if(s.descriptor.lowPriority && (gotHiPri || randRNG8NextBoolean())) { continue; }
+        if(s.descriptor.lowPriority && !s.flags.changed && (gotHiPri || randRNG8NextBoolean())) { continue; }
         // Found suitable stat to include in output.
         loPriIndex = next;
         gotLoPri = true;
