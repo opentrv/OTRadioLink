@@ -72,12 +72,12 @@ struct GenericStatsDescriptor
     // The name must be a valid printable ASCII7 char [32,126] name
     // and the pointer too it must remain valid until this instance
     // and all copies have been disposed of (so is probably best a static string).
-    // The default sensitivity is set to forbid transmission at all but minimum (0) leaf TX security settings.
-    // By default the stat is normal priority.
+    // By default the statistic is normal priority.
+    // Sensitivity by default does not allow TX unless at minimal privacy level.
     GenericStatsDescriptor(const char * const statKey,
-                           const uint8_t statSensitivity = 1,
-                           const bool statHighPriority = false)
-      : key(statKey), sensitivity(statSensitivity), highPriority(statHighPriority)
+                           const bool statLowPriority = false,
+                           const uint8_t statSensitivity = 1)
+      : key(statKey), lowPriority(statLowPriority), sensitivity(statSensitivity)
     { }
 
     // Null-terminated short stat/key name.
@@ -90,8 +90,14 @@ struct GenericStatsDescriptor
     // The default is to allow the stat to be sent unless device is in default maximum privacy mode.
     uint8_t sensitivity;
 
-    // If true, this statistic has high priority/importance and should be sent in all transmissions.
-    bool highPriority;
+    // If true, this statistic has low priority/importance and should be sent infrequently.
+    // This is a way of saving TX bandwidth for more important stats.
+    // Low priority items will usually be treated as normal when they change, ie sent quickly.
+    // Candidates for this flag include slowly changing stats such as battery voltage,
+    // and nominally redundant stats that can be derived from others
+    // such as cumulative valve movement (can be deduced from valve % samples)
+    // and hours vacancy (can be deduced from hours since last occupancy).
+    bool lowPriority;
   };
 
 
@@ -134,11 +140,12 @@ class SimpleStatsRotationBase
     // If properties not already set and not supplied then stat will get defaults.
     // If descriptor is supplied then its key must match (and the descriptor will be copied).
     // True if successful, false otherwise (eg capacity already reached).
-    bool put(SimpleStatsKey key, int newValue);
+    bool put(SimpleStatsKey key, int newValue, bool statLowPriority = false);
 
     // Create/update value for the given sensor.
     // True if successful, false otherwise (eg capacity already reached).
-    template <class T> bool put(const OTV0P2BASE::Sensor<T> &s) { return(put(s.tag(), s.get())); }
+    template <class T> bool put(const OTV0P2BASE::Sensor<T> &s, bool statLowPriority = false)
+        { return(put(s.tag(), s.get(), statLowPriority)); }
 
     // Create/update stat/key with specified descriptor/properties.
     // The name is taken from the descriptor.
@@ -148,9 +155,10 @@ class SimpleStatsRotationBase
     // True iff the item existed and was removed.
     bool remove(SimpleStatsKey key);
 
-    // Set ID to given value, or NULL to track system ID; returns false if ID unsafe.
+    // Set ID to given value, or NULL to use first 2 bytes of system ID; returns false if ID unsafe.
     // If NULL (the default) then dynamically generate the system ID,
     // eg house code as two bytes of hex if set, else first two bytes of binary ID as hex.
+    // If ID is non-NULL but points to an empty string then no ID is inserted at all.
     // The lifetime of the pointed to string must exceed that of this instance.
     bool setID(const char * const _id)
       {
@@ -162,7 +170,7 @@ class SimpleStatsRotationBase
     uint8_t size() { return(nStats); }
 
     // True if no stats items being managed.
-    // May usefully inidicate that the structure needs to be populated.
+    // May usefully indicate that the structure needs to be populated.
     bool isEmpty() { return(0 == nStats); }
 
     // True if any changed values are pending (not yet written out).
@@ -256,8 +264,9 @@ class SimpleStatsRotationBase
     // Coerced into range if necessary.
     uint8_t lastTXedHiPri;
 
-    // ID as null terminated string, or NULL to track system ID.
+    // ID as null terminated string, or NULL to use first 2 bytes of system ID.
     // Used as string value of compulsory leading "@" key/field.
+    // If ID is non-NULL but points to an empty string then no ID is inserted at all.
     // Can be changed at run-time.
     const char *id;
 

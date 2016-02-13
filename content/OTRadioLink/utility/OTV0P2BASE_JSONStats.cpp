@@ -26,6 +26,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014--2016
 
 #include "OTV0P2BASE_CRC.h"
 #include "OTV0P2BASE_EEPROM.h"
+#include "OTV0P2BASE_QuickPRNG.h"
 
 
 namespace OTV0P2BASE
@@ -241,7 +242,7 @@ bool SimpleStatsRotationBase::putDescriptor(const GenericStatsDescriptor &descri
 // If properties not already set and not supplied then stat will get defaults.
 // If descriptor is supplied then its key must match (and the descriptor will be copied).
 // True if successful, false otherwise (eg capacity already reached).
-bool SimpleStatsRotationBase::put(const SimpleStatsKey key, const int newValue)
+bool SimpleStatsRotationBase::put(const SimpleStatsKey key, const int newValue, const bool statLowPriority)
   {
   if(!isValidSimpleStatsKey(key))
     {
@@ -350,24 +351,14 @@ uint8_t SimpleStatsRotationBase::writeJSON(uint8_t *const buf, const uint8_t buf
   // Start object.
   bp.print('{');
 
-  // Write ID first.
-  // If an explicit ID is supplied then use it
-  // else compute it taking the housecode by preference if it is set.
-  bp.print(F("\"@\":\""));
-
-  if(NULL != id) { bp.print(id); } // Value has to be 'safe' (eg no " nor \ in it).
-//#ifdef USE_MODULE_FHT8VSIMPLE
-//  else if(localFHT8VTRVEnabled())
-//      {
-//      const uint8_t hc1 = FHT8VGetHC1();
-//      const uint8_t hc2 = FHT8VGetHC2();
-//      bp.print(hexDigit(hc1 >> 4));
-//      bp.print(hexDigit(hc1));
-//      bp.print(hexDigit(hc2 >> 4));
-//      bp.print(hexDigit(hc2));
-//      }
-//#endif
-  else
+  // Write ID first unless disabled entirely by being set to an empty string.
+  if((NULL == id) || ('\0' != *id))
+    {
+    // If an explicit ID is supplied then use it
+    // else use the first two bytes of the node ID.
+    bp.print(F("\"@\":\""));
+    if(NULL != id) { bp.print(id); } // Value has to be 'safe' (eg no " nor \ in it).
+    else
       {
       const uint8_t id1 = eeprom_read_byte(0 + (uint8_t *)V0P2BASE_EE_START_ID);
       const uint8_t id2 = eeprom_read_byte(1 + (uint8_t *)V0P2BASE_EE_START_ID);
@@ -376,9 +367,9 @@ uint8_t SimpleStatsRotationBase::writeJSON(uint8_t *const buf, const uint8_t buf
       bp.print(hexDigit(id2 >> 4));
       bp.print(hexDigit(id2));
       }
-
-  bp.print('"');
-  commaPending = true;
+    bp.print('"');
+    commaPending = true;
+    }
 
   // Write count next iff enabled.
   if(c.enabled)
@@ -401,7 +392,7 @@ uint8_t SimpleStatsRotationBase::writeJSON(uint8_t *const buf, const uint8_t buf
     // High-pri/changed stats.
     // Only do this on a portion of runs to let 'normal' stats get a look-in.
     // This happens on even-numbered runs (eg including the first, typically).
-    // Write at most one high-priority item.
+    // TX at most one high-priority item this way.
     if(0 == (c.count & 1))
       {
       uint8_t next = lastTXedHiPri;
@@ -412,14 +403,14 @@ uint8_t SimpleStatsRotationBase::writeJSON(uint8_t *const buf, const uint8_t buf
         // Skip stat if too sensitive to include in this output.
         DescValueTuple &s = stats[next];
         if(sensitivity > s.descriptor.sensitivity) { continue; }
-        // Skip stat if neither changed nor high-priority.
-        if(!s.descriptor.highPriority && !s.flags.changed) { continue; }
+        // Skip stat if unchanged.
+        if(!s.flags.changed) { continue; }
         // Found suitable stat to include in output.
         hiPriIndex = next;
         gotHiPri = true;
         // Add to JSON output.
         print(bp, s, commaPending);
-        // If successful, ie still space for the closing "}\0" without running over-length
+        // If successful, ie still space for the closing "}\0" without running over-length,
         // then mark this as a fall-back, else rewind and discard this item.
         if(bp.getSize() > bufSize - 3) { bp.rewind(); break; }
         else
@@ -451,6 +442,10 @@ uint8_t SimpleStatsRotationBase::writeJSON(uint8_t *const buf, const uint8_t buf
         // Skip stat if too sensitive to include in this output.
         DescValueTuple &s = stats[next];
         if(sensitivity > s.descriptor.sensitivity) { continue; }
+        // If low priority then skip the chance to TX some of the time,
+        // eg if a high-priority item was included already (so space is at a premium),
+        // or just randomly.
+        if(s.descriptor.lowPriority && (gotHiPri || randRNG8NextBoolean())) { continue; }
         // Found suitable stat to include in output.
         loPriIndex = next;
         gotLoPri = true;
