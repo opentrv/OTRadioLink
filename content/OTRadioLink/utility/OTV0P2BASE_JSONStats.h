@@ -82,7 +82,8 @@ struct GenericStatsDescriptor
 
     // Null-terminated short stat/key name.
     // Should generally be of form "x" where x is a single letter (case sensitive) for a unitless quantity,
-    // or "x|u" where x is the name followed by a vertical bar and the units, eg "t|C" for temperature in Celsius.
+    // or "x|u" where x is the name followed by a vertical bar and the units,
+    // eg "B|cV" for battery voltage in centi-volts.
     // This pointer must be to static storage, eg does not need lifetime management.
     SimpleStatsKey key;
 
@@ -99,7 +100,6 @@ struct GenericStatsDescriptor
     // The default is to allow the stat to be sent unless device is in default maximum privacy mode.
     uint8_t sensitivity;
   };
-
 
 // Print to a bounded buffer.
 class BufPrint : public Print
@@ -126,7 +126,7 @@ class BufPrint : public Print
   };
 
 // Manage sending of stats, possibly by rotation to keep frame sizes small.
-// This will try to prioritise sending some key stats and sending of changed values.
+// This will try to prioritise sending of changed and important values.
 // This is primarily expected to support JSON stats,
 // but a hook for other formats such as binary may be provided.
 // The template parameter is the maximum number of values to be sent in one frame,
