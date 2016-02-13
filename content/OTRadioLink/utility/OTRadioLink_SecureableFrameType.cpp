@@ -446,7 +446,7 @@ uint8_t decodeSecureSmallFrameRaw(const SecurableFrameHeader *const sfh,
     if(sfh->isInvalid()) { return(0); } // ERROR
     // Abort if expected constraints for simple fixed-size secure frame are not met.
     const uint8_t fl = sfh->fl;
-    //if(fl > SecurableFrameHeader::maxSmallFrameSize) { return(0); } // ERROR
+    if(fl >= buflen) { return(0); } // ERROR
     if(23 != sfh->getTl()) { return(0); } // ERROR
     if(0x80 != buf[fl]) { return(0); } // ERROR
     const uint8_t bl = sfh->bl;
@@ -512,6 +512,7 @@ uint8_t decodeSecureSmallFrameFromID(const SecurableFrameHeader *const sfh,
     if(23 != sfh->getTl()) { return(0); } // ERROR
 //    const uint8_t fl = sfh->fl;
 //    if(0x80 != buf[fl]) { return(0); } // ERROR
+    if(sfh->getTrailerOffset() + 6 > buflen) { return(0); } // ERROR
     // Construct IV from supplied (possibly adjusted) ID + counters from (start of) trailer.
     uint8_t iv[12];
     memcpy(iv, adjID, 6);
