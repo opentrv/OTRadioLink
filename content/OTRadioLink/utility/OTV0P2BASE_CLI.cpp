@@ -36,7 +36,7 @@ void InvalidIgnored() { Serial.println(F("Invalid, ignored.")); }
 
 
 // Set / clear node association(s) (nodes to accept frames from) (eg "A hh hh hh hh hh hh hh hh").
-//        To add a new node: "A hh hh hh hh hh hh hh hh"
+//        To add a new node/association: "A hh hh hh hh hh hh hh hh"
 //        - Reads first two bytes of each token in hex and ignores the rest.
 //        - Prints number of nodes set to serial
 //        - Stops adding nodes once EEPROM full
