@@ -109,6 +109,11 @@ namespace OTRadioLink
     const static uint8_t ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE =
         ENC_BODY_SMALL_FIXED_CTEXT_SIZE - 1;
 
+    // Standard length of ID to transmit for secure frame (with body data).
+    // Long enough to make risk of non-unique prefixes small.
+    // Short enough to produce encrypted frame shorter than the maximum permitted.
+    const static uint8_t ENC_BODY_DEFAULT_ID_BYTES = 4;
+
     // Logical header for the secureable frame format.
     // Intended to be efficient to hold and work with in memory
     // and to convert to and from wire format.
