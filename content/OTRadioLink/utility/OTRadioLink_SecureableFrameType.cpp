@@ -455,7 +455,7 @@ uint8_t decodeSecureSmallFrameRaw(const SecurableFrameHeader *const sfh,
     if(sfh->getSeq() != (iv[11] & 0xf)) { return(0); } // ERROR
     // Note if plaintext is actually wanted/expected.
     const bool plaintextWanted = (NULL != decryptedBodyOut);
-    // Default is to indicate empty decrypted body.
+    // Default is to indicate empty decrypted body; in any case do not leave it uninitialised.
     decryptedBodyOutSize = 0;
     // Attempt to authenticate and decrypt.
     uint8_t decryptBuf[ENC_BODY_SMALL_FIXED_CTEXT_SIZE];
