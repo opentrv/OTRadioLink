@@ -317,7 +317,7 @@ bool SimpleStatsRotationBase::changedValue()
   }
 
 //#if defined(ALLOW_JSON_OUTPUT)
-// Write stats in JSON format to provided buffer; returns a non-zero value if successful.
+// Write stats in JSON format to provided buffer; returns the non-zero JSON length if successful.
 // Output starts with an "@" (ID) string field,
 // then and optional count (if enabled),
 // then the tracked stats as space permits,
@@ -327,7 +327,7 @@ bool SimpleStatsRotationBase::changedValue()
 //
 //   * buf  is the byte/char buffer to write the JSON to; never NULL
 //   * bufSize is the capacity of the buffer starting at buf in bytes;
-//       should be two (2) greater than the largest JSON output to be generates
+//       should be two (2) greater than the largest JSON output to be generated
 //       to allow for a trailing null and one extra byte/char to ensure that the message is not over-large
 //   * sensitivity  threshold below which (sensitive) stats will not be included; 0 means include everything
 //   * maximise  if true attempt to maximise the number of stats squeezed into each frame,
