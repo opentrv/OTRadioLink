@@ -54,19 +54,21 @@ bool SetNodeAssoc::doCommand(char *const buf, const uint8_t buflen)
         if('?' == *tok1)
             {
             // Query current association status.
-            Serial.println(F("Assoc:"));
+            Serial.print(F("Nodes: "));
+            const uint8_t nn = countNodeAssociations();
+            Serial.println(nn);
             }
         else if('*' == *tok1)
             {
             // Clear node IDs.
-            OTV0P2BASE::clearAllNodeIDs();
+            OTV0P2BASE::clearAllNodeAssociations();
             Serial.println(F("Cleared"));
             }
         else if(buflen >= (1 + 3*OpenTRV_Node_ID_Bytes)) // 25)
             {
             // corresponds to "A " followed by 8 space-separated hex-byte tokens.
             // Note: As there is no variable for the number of nodes stored, will pass pointer to
-            //       addNodeID which will return a value based on how many spaces there are left
+            //       addNodeAssociation which will return a value based on how many spaces there are left
             uint8_t nodeID[OpenTRV_Node_ID_Bytes]; // Buffer to store node ID // TODO replace with settable node size constant
             // Loop through tokens setting nodeID.
             // FIXME check for invalid ID bytes (i.e. containing 0xFF or non-HEX)
@@ -81,7 +83,7 @@ bool SetNodeAssoc::doCommand(char *const buf, const uint8_t buflen)
                     }
                 }
             // Write this to EEPROM
-            const uint8_t nodesSet = OTV0P2BASE::addNodeID(nodeID);
+            const uint8_t nodesSet = OTV0P2BASE::addNodeAssociation(nodeID);
             // Report outcome
             if(nodesSet <= 16)
                 {
@@ -117,7 +119,8 @@ bool SetNodeAssoc::doCommand(char *const buf, const uint8_t buflen)
 #endif  // 1 && DEBUG
         else { InvalidIgnored(); } // Indicate bad args.
         }
-    return(false);
+    else { InvalidIgnored(); } // Indicate bad args.
+    return(false); // Don't print stats: may have done a lot of work...
     }
 
 // Dump (human-friendly) stats (eg "D N").
@@ -286,11 +289,11 @@ bool SetSecretKey::doCommand(char *const buf, const uint8_t buflen)
 #endif
 
                     }
-                else
-                    InvalidIgnored();
+                else { InvalidIgnored(); }
                 }
             }
         }
+    else { InvalidIgnored(); }
     return(false);
     }
 

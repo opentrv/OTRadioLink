@@ -24,6 +24,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 #ifndef OTV0P2BASE_SECURITY_H
 #define OTV0P2BASE_SECURITY_H
 
+#include "OTV0P2BASE_EEPROM.h"
+
 
 namespace OTV0P2BASE
 {
@@ -84,18 +86,26 @@ bool setPrimaryBuilding16ByteSecretKey(const uint8_t *key);
  */
 bool getPrimaryBuilding16ByteSecretKey(uint8_t *key);
 
+// Maximum number of node associations that can be maintained.
+// This puts an upper bound on the number of nodes which a hub can listen to.
+static const uint8_t MAX_NODE_ASSOCIATIONS = V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS;
+
 /**
- * @brief   Clears all existing node IDs by writing 0xff to first byte.
- * @todo    Should this return something useful, such as the number of bytes cleared?
+ * @brief   Clears all existing node ID associations (by setting/erasing first byte to 0xff).
  */
-void clearAllNodeIDs();
+void clearAllNodeAssociations();
+
+/**Return current number of node ID associations.
+ * Will be zero immediately after clearAllNodeAssociations().
+ */
+uint8_t countNodeAssociations();
 
 /**
  * @brief   Checks through stored node IDs and adds a new one if there is space.
  * @param   pointer to new 8 byte node ID
  * @retval  Number of stored node IDs, or 0xff if storage full
  */
-uint8_t addNodeID(const uint8_t *nodeID);
+uint8_t addNodeAssociation(const uint8_t *nodeID);
 
 /**
  * @brief   Returns first matching node ID after the index provided. If no
