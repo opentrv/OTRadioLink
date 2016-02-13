@@ -669,11 +669,11 @@ bool getPrimarySecure6BytePersistentTXMessageCounter(uint8_t *const buf)
         }
     }
 
-// Fill in 12-byte IV for 'O'-style (0x80) AESGCM security.
-// This used the local node ID as-is for the first 6 bytes.
+// Fill in 12-byte IV for 'O'-style (0x80) AESGCM security for a frame to TX.
+// This uses the local node ID as-is for the first 6 bytes.
 // This uses and increments the primary message counter for the last 6 bytes.
 // Returns true on success, false on failure eg due to message counter generation failure.
-bool compute12ByteIDAndCounterIV(uint8_t *const ivBuf)
+bool compute12ByteIDAndCounterIVForTX(uint8_t *const ivBuf)
     {
     if(NULL == ivBuf) { return(false); }
     // Fill in first 6 bytes of this node's ID.
@@ -744,7 +744,7 @@ uint8_t generateSecureBeaconRawForTX(uint8_t *const buf, const uint8_t buflen,
                                 void *const state, const uint8_t *const key)
     {
     uint8_t iv[12];
-    if(!compute12ByteIDAndCounterIV(iv)) { return(0); }
+    if(!compute12ByteIDAndCounterIVForTX(iv)) { return(0); }
     return(OTRadioLink::generateSecureBeaconRaw(buf, buflen,
                                     NULL, il_,
                                     iv, e, state, key));

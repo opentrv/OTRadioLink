@@ -515,11 +515,11 @@ namespace OTRadioLink
                                     void *state, const uint8_t *key,
                                     uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
 
-    // Fill in 12-byte IV for 'O'-style (0x80) AESGCM security.
-    // This used the local node ID as-is for the first 6 bytes.
+    // Fill in 12-byte IV for 'O'-style (0x80) AESGCM security for a frame to TX.
+    // This uses the local node ID as-is for the first 6 bytes.
     // This uses and increments the primary message counter for the last 6 bytes.
     // Returns true on success, false on failure eg due to message counter generation failure.
-    bool compute12ByteIDAndCounterIV(uint8_t *ivBuf);
+    bool compute12ByteIDAndCounterIVForTX(uint8_t *ivBuf);
 
     // Get primary (semi-persistent) message counter for TX from an OpenTRV leaf under its own ID.
     // This counter increases monotonically
