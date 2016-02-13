@@ -151,30 +151,42 @@ uint8_t countNodeAssociations()
     uint8_t *eepromPtr = (uint8_t *)V0P2BASE_EE_START_NODE_ASSOCIATIONS;
     // Loop through node ID locations checking for invalid byte (0xff).
     for(uint8_t i = 0; i < V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS; i++, eepromPtr += V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE)
-        {
-        if(0xff == eeprom_read_byte(eepromPtr)) { return(i); }
-        }
+        { if(0xff == eeprom_read_byte(eepromPtr)) { return(i); } }
     return(V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS); // All full!
     }
+
+/**Get node ID of association at specified index.
+ * Returns true if successful.
+ *   * index  association index of required node ID
+ *   * nodeID  8-byte buffer to receive ID; never NULL
+ */
+bool getNodeAssociation(const uint8_t index, uint8_t *const nodeID)
+  {
+  if((NULL == nodeID) || (index >= countNodeAssociations())) { return(false); } // FAIL: bad args.
+  eeprom_read_block(nodeID,
+                    (uint8_t *)(V0P2BASE_EE_START_NODE_ASSOCIATIONS + index*(uint16_t)V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE),
+                    OpenTRV_Node_ID_Bytes);
+  return(true);
+  }
 
 /**
  * @brief   Checks through stored node IDs and adds a new one if there is space.
  * @param   pointer to new 8 byte node ID
- * @retval  Number of stored node IDs, or 0xff if storage full
+ * @retval  index of this new association, or -1 if no space
  */
-uint8_t addNodeAssociation(const uint8_t *nodeID)
+int8_t addNodeAssociation(const uint8_t *nodeID)
 {
     uint8_t *eepromPtr = (uint8_t *)V0P2BASE_EE_START_NODE_ASSOCIATIONS;
-    // Loop through node ID locations checking for invalid byte (0xff).
+    // Loop through node ID locations checking for empty slot marked by invalid byte (0xff).
     for(uint8_t i = 0; i < V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS; i ++) {
         if(eeprom_read_byte(eepromPtr) == 0xff) {
             for(uint8_t j = 0; j < V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH; j++)
                 eeprom_smart_update_byte(eepromPtr++, *nodeID++);
-            return (i+1);
+            return (i);
         }
         eepromPtr += V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE; // increment ptr
     }
-    return 0xff;
+    return(-1); // No space.
 }
 
 /**
