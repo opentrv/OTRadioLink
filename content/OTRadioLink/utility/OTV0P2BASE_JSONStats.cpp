@@ -316,7 +316,6 @@ bool SimpleStatsRotationBase::changedValue()
   return(false);
   }
 
-//#if defined(ALLOW_JSON_OUTPUT)
 // Write stats in JSON format to provided buffer; returns the non-zero JSON length if successful.
 // Output starts with an "@" (ID) string field,
 // then and optional count (if enabled),
@@ -489,7 +488,6 @@ uint8_t SimpleStatsRotationBase::writeJSON(uint8_t *const buf, const uint8_t buf
 
   return(bp.getSize()); // Success!
   }
-//#endif
 
 
 } // OTV0P2BASE
