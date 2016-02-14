@@ -19,6 +19,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 /*
  * Default set of ENABLE_XXX flags as used by a valve application.
  *
+ * This should define (or nominally #undef) ONLY symbols with names starting "ENABLE_".
+ *
  * Specific sets by date may also be available.
  *
  * These are meant be be fairly stable over time;
@@ -92,6 +94,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 #define ENABLE_AMBLIGHT_SENSOR
 // IF DEFINED: allow for less light on sideways-pointing ambient light sensor, eg on cut4 2014/03/17 REV2 boards (TODO-209).
 #undef ENABLE_AMBLIGHT_EXTRA_SENSITIVE
+// IF DEFINED: use RoHS-compliant phototransistor in place of default LDR.
+#undef ENABLE_AMBIENT_LIGHT_SENSOR_PHOTOTRANS_TEPT4400
 // IF DEFINED: use the temperature-setting potentiometer/dial if present.
 #define ENABLE_TEMP_POT_IF_PRESENT
 // Enable use of OneWire devices.
