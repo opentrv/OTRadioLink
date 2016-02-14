@@ -114,6 +114,20 @@ namespace OTRadioLink
 #endif
         };
 
+    // Dummy/null always-empty queue that can never hold a frame.
+    // Use as a space-saving stub/placeholder
+    class ISRRXQueueNULL : public ISRRXQueue
+        {
+        public:
+            virtual void getRXCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen) const
+                { queueRXMsgsMin = 0; maxRXMsgLen = 0; }
+            virtual uint8_t isFull() const { return(true); }
+            virtual volatile uint8_t *_getRXBufForInbound() { return(NULL); }
+            virtual void _loadedBuf(uint8_t frameLen) { }
+            virtual const volatile uint8_t *peekRXMsg() const { return(NULL); }
+            virtual void removeRXMsg() { }
+        };
+
     // Minimal, fast, 1-deep queue.
     // Can receive at most one frame.
     //   * maxRXBytes  a frame to be queued can be up to maxRXBytes bytes long; in the range [0,255]
@@ -126,7 +140,7 @@ namespace OTRadioLink
             // Frame is preceded in memory by its length.
             // Marked as volatile for ISR-/thread- safe (sometimes lock-free) access.
             volatile uint8_t fullBuf[1 + maxRXBytes];
-//            volatile uint8_t *const bufferRX = fullBuf + 1; // Alias for frame istelf.
+//            volatile uint8_t *const bufferRX = fullBuf + 1; // Alias for frame itself.
 
         public:
             // Fetches the current inbound RX minimum queue capacity and maximum RX raw message size.
@@ -158,7 +172,7 @@ namespace OTRadioLink
             // The frame can be no larger than maxRXBytes bytes.
             // It is possible to formally abandon an upload attempt by calling this with 0.
             // Must still be in the scope of the same (ISR) call as _getRXBufForInbound().
-            virtual void _loadedBuf(uint8_t frameLen)
+            virtual void _loadedBuf(const uint8_t frameLen)
                 {
                 if(0 == frameLen) { return; } // New frame not being uploaded.
                 if(0 != queuedRXedMessageCount) { return; } // Prevent messing with existing queued message.
