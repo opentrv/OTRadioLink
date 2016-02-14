@@ -114,7 +114,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 // IF DEFINED: try to trim memory (primarily RAM, also code/Flash) space used.
 #define ENABLE_TRIMMED_MEMORY
 // IF DEFINED: try to trim bandwidth as may be especially expensive/scarce.
-#define ENABLE_TRIMMED_BANDWIDTH
+#undef ENABLE_TRIMMED_BANDWIDTH
 // IF DEFINED: allow periodic machine- and human- readable status report to serial, starting with "=".
 #undef ENABLE_SERIAL_STATUS_REPORT
 // IF DEFINED: allow binary stats to be TXed.
