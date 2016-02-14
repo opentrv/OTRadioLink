@@ -152,6 +152,23 @@ namespace OTRFM23BLink
             static const uint8_t RFM23B_ENPACRX    =    0x80;
             static const uint8_t RFM23B_ENPACTX    =    0x08;
 
+// RH_RF22_REG_33_HEADER_CONTROL2               
+            static const uint8_t RFM23B_HDLEN      =    0x70;
+            static const uint8_t RFM23B_HDLEN_0    =    0x00;
+            static const uint8_t RFM23B_HDLEN_1    =    0x10;
+            static const uint8_t RFM23B_HDLEN_2    =    0x20;
+            static const uint8_t RFM23B_HDLEN_3    =    0x30;
+            static const uint8_t RFM23B_HDLEN_4    =    0x40;
+            static const uint8_t RFM23B_VARPKLEN   =    0x00;
+            static const uint8_t RFM23B_FIXPKLEN   =    0x08;
+            static const uint8_t RFM23B_SYNCLEN    =    0x06;
+            static const uint8_t RFM23B_SYNCLEN_1  =    0x00;
+            static const uint8_t RFM23B_SYNCLEN_2  =    0x02;
+            static const uint8_t RFM23B_SYNCLEN_3  =    0x04;
+            static const uint8_t RFM23B_SYNCLEN_4  =    0x06;
+            static const uint8_t RFM23B_PREALEN8   =    0x01;
+
+
             static const uint8_t REG_INT_STATUS1 = 3; // Interrupt status register 1.
             static const uint8_t REG_INT_STATUS2 = 4; // Interrupt status register 2.
             static const uint8_t REG_INT_ENABLE1 = 5; // Interrupt enable register 1.
@@ -163,7 +180,10 @@ namespace OTRFM23BLink
             static const uint8_t REG_RSSI1 = 0x28; // Antenna 1 diversity / RSSI.
             static const uint8_t REG_RSSI2 = 0x29; // Antenna 2 diversity / RSSI.
             static const uint8_t REG_30_DATA_ACCESS_CONTROL = 0x30; 
-            static const uint8_t REG_3E_PACKET_LENGTH= 0x3e; 
+            static const uint8_t REG_33_HEADER_CONTROL2  = 0x33; 
+            static const uint8_t REG_3E_PACKET_LENGTH    = 0x3e; 
+            static const uint8_t REG_3A_TRANSMIT_HEADER3 = 0x3a; 
+            static const uint8_t REG_47_RECEIVED_HEADER3 = 0x47; 
             static const uint8_t REG_4B_RECEIVED_PACKET_LENGTH = 0x4b; 
             static const uint8_t REG_TX_POWER = 0x6d; // Transmit power.
             static const uint8_t REG_RX_FIFO_CTRL = 0x7e; // RX FIFO control.
@@ -546,60 +566,26 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                 if(rxMode & RFM23B_ENPACRX)
                   {
                   // Packet-handling mode...
-
-//#if 1 && defined(MILENKO_DEBUG)
-//                  if(status & RFM23B_IFFERROR)
-//                    {
-//                    V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("IFFERROR ");
-//                    // Clear RX and TX FIFOs simultaneously.
-//                    _writeReg8Bit_(REG_OP_CTRL2, 3); // FFCLRRX | FFCLRTX
-//                    _writeReg8Bit_(REG_OP_CTRL2, 0); // Needs both writes to clear.
-//                    }
-//#endif
-//#if 0 && defined(MILENKO_DEBUG)
-//                    if(status & RFM23B_ITXFFAEM)
-//                        {
-//                        V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("ITXFFAEM  ");
-//                        }
-//#endif
-//#if 1 && defined(MILENKO_DEBUG)
-//                    if(status & RFM23B_IRXFFAFULL)
-//                        {
-//                        V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("IRXFFAFULL ");
-//                        }
-//#endif
-//#if 1 && defined(MILENKO_DEBUG)
-//                    if(status & RFM23B_IWUT)
-//                        {
-//                        V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("IWUT ");
-//                        }
-//#endif
                     if(status & RFM23B_IPKVALID) // Packet received OK
                         {
                         const bool neededEnable = _upSPI();
                         // Extract packet/frame length...
-                        const uint8_t len = _readReg8Bit(REG_4B_RECEIVED_PACKET_LENGTH);
+                        uint8_t lengthRX; 
+                        // Number of bytes to read depends whether fixed of variable packet lenght
+                        if ((_readReg8Bit_(REG_33_HEADER_CONTROL2) & RFM23B_FIXPKLEN ) == RFM23B_FIXPKLEN ) 
+                           lengthRX = _readReg8Bit(REG_3E_PACKET_LENGTH);
+                        else
+                           lengthRX = _readReg8Bit(REG_4B_RECEIVED_PACKET_LENGTH);
                         if(neededEnable) { _downSPI(); }
                         // Received frame.
                         // If there is space in the queue then read in the frame, else discard it.
-                        volatile uint8_t *const bufferRX = (len > MaxRXMsgLen) ? NULL :
+                        volatile uint8_t *const bufferRX = (lengthRX > MaxRXMsgLen) ? NULL :
                             queueRX._getRXBufForInbound();
                         if(NULL != bufferRX)
                             {
                             // Attempt to read the entire frame.
-                            _RXFIFO((uint8_t *)bufferRX, len);
-                            uint8_t lengthRX = len; // Exact length is known.
-                            // If an RX filter is present then apply it.
-                            quickFrameFilter_t *const f = filterRXISR;
-                            if((NULL != f) && !f(bufferRX, lengthRX))
-                                {
-                                ++filteredRXedMessageCountRecent; // Drop the frame: filter didn't like it.
-                                queueRX._loadedBuf(0); // Don't queue this frame...
-                                }
-                            else
-                                {
-                                queueRX._loadedBuf(lengthRX); // Queue message.
-                                }
+                            _RXFIFO((uint8_t *)bufferRX, lengthRX); 
+                            queueRX._loadedBuf(lengthRX); // Queue message.
                             }
                         else
                             {
@@ -609,29 +595,10 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                             ++droppedRXedMessageCountRecent;
                             lastRXErr = RXErr_DroppedFrame;
                             }
-                               // Clear up and force back to listening...
+                        // Clear up and force back to listening...
                         _dolisten();
                         //return;
                         }
-#if 1 && defined(MILENKO_DEBUG)
-                    if(status & RFM23B_ICRCERROR) // CRC error
-                        {
-                        V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("ICRCERR ");
-                        // Clear RX and TX FIFOs simultaneously.
-                        _writeReg8Bit_(REG_OP_CTRL2, 2); // FFCLRRX | FFCLRTX
-                        _writeReg8Bit_(REG_OP_CTRL2, 0); // Needs both writes to clear.
-                        }
-#endif
-#if 1 && defined(MILENKO_DEBUG)
-                    // Syn detected
-                    if(status & RFM23B_ISWDET)
-                        {
-                        // In case of problems, we should start timer here and if frame
-                        // is not ready, restart receve
-                        //_lastSynTime = millis();
-                        V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("ISWDET ");
-                        }
-#endif
 #if 0 && defined(MILENKO_DEBUG)
                     // Preamble received
                     if(status & RFM23B_IPREAVAL)
@@ -842,6 +809,9 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
     // Full config including all default values, so safe for dynamic switching.
     extern const OTRFM23BLinkBase::RFM23_Reg_Values_t StandardRegSettingsOOK5000;
 
+    // Full register settings for 868.0MHz (EU band 48) GFSK 49.26 kbps.
+    // Full config including all default values, so safe for dynamic switching.
+    extern const OTRFM23BLinkBase::RFM23_Reg_Values_t StandardRegSettingsJeeLabs;
 
     }
 #endif
