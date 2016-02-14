@@ -240,13 +240,16 @@ bool OTRFM23BLinkBase::sendRaw(const uint8_t *const buf, const uint8_t buflen, c
     return(result);
     }
 
-// Switch listening off, on to selected channel.
+// Switch listening off, or on to specified channel.
 // listenChannel will have been set by time this is called.
 // This always switches to standby mode first, then switches on RX as needed.
 void OTRFM23BLinkBase::_dolisten()
     {
     // Unconditionally stop listening and go into low-power standby mode.
     _modeStandbyAndClearState_();
+
+    // Nothing further to do if RX not allowed.
+    if(!allowRXOps) { return; }
 
     // Nothing further to do if not listening.
     const int8_t lc = getListenChannel();
@@ -333,15 +336,6 @@ void OTRFM23BLinkBase::_setChannel(const uint8_t channel)
 
     // Reject out-of-range channel requests.
     if(channel >= nChannels) { return; }
-
-//    V0P2BASE_DEBUG_SERIAL_PRINT('c');
-//    V0P2BASE_DEBUG_SERIAL_PRINT(channel);
-//    V0P2BASE_DEBUG_SERIAL_PRINTLN();
-
-//      if (channel == 0)
-//           _registerBlockSetup((regValPair_t *) StandardRegSettingsOOK);
-//      else
-//           _registerBlockSetup((regValPair_t *) StandardRegSettingsGFSK);
 
     // Set up registers for new config.
     _registerBlockSetup((regValPair_t *) (channelConfig[channel].config));

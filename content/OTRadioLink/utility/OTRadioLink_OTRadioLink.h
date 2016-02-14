@@ -162,7 +162,7 @@ namespace OTRadioLink
             // Defaults to do nothing.
             virtual bool _doconfig() { return(true); }
 
-            // Switch listening off, or on and to specified channel.
+            // Switch listening off, or on to specified channel.
             // listenChannel will have been set by time this is called.
             virtual void _dolisten() = 0;
 

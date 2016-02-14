@@ -183,8 +183,13 @@ namespace OTRFM23BLink
             // Too long may allow overruns, too short may make long-frame reception hard.
             volatile uint8_t maxTypicalFrameBytes;
 
+            // If true then allow RX operations.
+            const bool allowRXOps;
+
             // Constructor only available to deriving class.
-            OTRFM23BLinkBase() : _currentChannel(0), lastRXErr(0), maxTypicalFrameBytes(MAX_RX_FRAME_DEFAULT) { }
+            OTRFM23BLinkBase(bool _allowRX = true)
+              : _currentChannel(0), lastRXErr(0), maxTypicalFrameBytes(MAX_RX_FRAME_DEFAULT), allowRXOps(_allowRX)
+              { }
 
             // Write/read one byte over SPI...
             // SPI must already be configured and running.
@@ -326,20 +331,30 @@ namespace OTRFM23BLink
     // Hardwire to I/O pin for RFM23B active-low SPI device select: SPI_nSS_DigitalPin.
     // Hardwire to I/O pin for RFM23B active-low interrupt RFM_nIRQ_DigitalPin (-1 if none).
     // Set the targetISRRXMinQueueCapacity to at least 2, or 3 if RAM space permits, for busy RF channels.
-    // With allowRX false as much as possible of the receive side is turned off.
+    // With allowRX == false as much as possible of the receive side is disabled.
     static const uint8_t DEFAULT_RFM23B_RX_QUEUE_CAPACITY = 3;
     template <uint8_t SPI_nSS_DigitalPin, int8_t RFM_nIRQ_DigitalPin = -1, uint8_t targetISRRXMinQueueCapacity = 3, bool allowRX = true>
     class OTRFM23BLink : public OTRFM23BLinkBase
         {
         private:
-            // RX queue.
-#if 0
-            // Simple and fast 1-deep queue.
-            ::OTRadioLink::ISRRXQueue1Deep<MaxRXMsgLen> queueRX;
-#else
-            // Queue that can make good use of space for variable-length messages.
-            ::OTRadioLink::ISRRXQueueVarLenMsg<MaxRXMsgLen, targetISRRXMinQueueCapacity> queueRX;
-#endif
+            // Use some template meta-programming
+            // to replace the RX queue with a dummy if RX is not allowed/required.
+            // Eg see https://en.wikibooks.org/wiki/C%2B%2B_Programming/Templates/Template_Meta-Programming#Compile-time_programming
+            template <bool Condition, typename TypeTrue, typename TypeFalse>
+              class typeIf;
+            template <typename TypeTrue, typename TypeFalse>
+              struct typeIf<true, TypeTrue, TypeFalse> { typedef TypeTrue t; };
+            template <typename TypeTrue, typename TypeFalse>
+              struct typeIf<false, TypeTrue, TypeFalse> { typedef TypeFalse t; };
+            typename typeIf<allowRX, ::OTRadioLink::ISRRXQueueVarLenMsg<MaxRXMsgLen, targetISRRXMinQueueCapacity>, ::OTRadioLink::ISRRXQueueNULL>::t queueRX;
+
+//#if 0
+//            // Simple and fast 1-deep queue.
+//            ::OTRadioLink::ISRRXQueue1Deep<MaxRXMsgLen> queueRX;
+//#else
+//            // Queue that can make good use of space for variable-length messages.
+//            ::OTRadioLink::ISRRXQueueVarLenMsg<MaxRXMsgLen, targetISRRXMinQueueCapacity> queueRX;
+//#endif
 
             // Internal routines to enable/disable RFM23B on the the SPI bus.
             // These depend only on the (constant) SPI_nSS_DigitalPin template parameter
@@ -714,7 +729,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // Should be a compile-time constant.
             static const bool hasInterruptSupport = (RFM_nIRQ_DigitalPin >= 0);
 
-            OTRFM23BLink() { }
+            OTRFM23BLink() : OTRFM23BLinkBase(allowRX) { }
 
             // Do very minimal pre-initialisation, eg at power up, to get radio to safe low-power mode.
             // Argument is read-only pre-configuration data;
@@ -745,6 +760,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // Initiating interrupt assumed blocked until this returns.
             virtual bool handleInterruptSimple()
                 {
+                if(!allowRX) { return(false); }
                 if(interruptLineIsEnabledAndInactive()) { return(false); }
                 _poll(true);
                 return(true);

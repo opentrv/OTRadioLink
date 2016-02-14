@@ -122,8 +122,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 //////////////////////////////////////// RADIO OPTIONS
 // IF DEFINED: enable (at least) a primary radio module; without, this unit has no radio comms.
 #define ENABLE_RADIO_PRIMARY_MODULE
-// IF DEFINED: enable a 'null' radio module; can be used to simplify code for a radio-less unit.
-#undef ENABLE_RADIO_NULL
 // IF DEFINED: had RFM23B as the primary radio module: default from REV1 to REV11.
 #define ENABLE_RADIO_RFM23B
 // IF DEFINED: make RFM23B the primary radio.
@@ -132,12 +130,16 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #undef ENABLE_RADIO_SECONDARY_MODULE
 // IF DEFINED: enable a WAN-relay radio module, primarily to relay stats outbound.
 #undef ENABLE_RADIO_SECONDARY_MODULE_AS_RELAY
+// IF DEFINED: enable a 'null' radio module; can be used to simplify code for a radio-less unit.
+#undef ENABLE_RADIO_NULL
 // IF DEFINED: enable periodic secure beacon broadcast.
 #undef ENABLE_SECURE_RADIO_BEACON
 // IF DEFINED: enable support for fast (>50kbps) packet-handling carrier (leading length byte).
 #undef ENABLE_FAST_FRAMED_CARRIER_SUPPORT
 // IF DEFINED: enable support for FS20 carrier for RX or TX.
 #define ENABLE_FS20_CARRIER_SUPPORT
+// IF DEFINED: enable raw preamble injection/framing eg for FS20 over RFM23B.
+#define ENABLE_RFM23B_FS20_RAW_PREAMBLE
 // IF DEFINED: use FHT8V wireless radio module/valve, eg to control FHT8V local valve.
 #define ENABLE_FHT8VSIMPLE
 // IF DEFINED: enable support for FS20 carrier for RX of raw FS20 and piggybacked binary (non-JSON) stats.

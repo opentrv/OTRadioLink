@@ -115,6 +115,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #define ENABLE_TRIMMED_MEMORY
 // IF DEFINED: try to trim bandwidth as may be especially expensive/scarce.
 #define ENABLE_TRIMMED_BANDWIDTH
+// IF DEFINED: allow periodic machine- and human- readable status report to serial, starting with "=".
+#undef ENABLE_SERIAL_STATUS_REPORT
 // IF DEFINED: allow binary stats to be TXed.
 #undef ENABLE_BINARY_STATS_TX
 // IF DEFINED: enable support for FS20 carrier for RX or TX.
@@ -123,6 +125,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #undef ENABLE_FHT8VSIMPLE
 // IF DEFINED: enable support for FS20 carrier for TX specifically (to allow RX-only).
 #undef ENABLE_FS20_CARRIER_SUPPORT_TX
+// IF DEFINED: enable raw preamble injection/framing eg for FS20 over RFM23B.
+#undef ENABLE_RFM23B_FS20_RAW_PREAMBLE
 // IF DEFINED: enable support for FS20 encoding/decoding, eg to send to FHT8V.
 #undef ENABLE_FS20_ENCODING_SUPPORT
 // IF DEFINED: enable periodic secure beacon broadcast.
