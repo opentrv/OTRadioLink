@@ -777,7 +777,7 @@ uint8_t generateSecureOFrameRawForTX(uint8_t *const buf, const uint8_t buflen,
     const int slp1 = hasStats ? strlen(statsJSON) : 1; // Stats length including trailing '}' (not sent).
     if(slp1 > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE-1) { return(0); } // ERROR
     const uint8_t statslen = (uint8_t)(slp1 - 1); // Drop trailing '}' implicitly.
-    uint8_t bbuf[ENC_BODY_SMALL_FIXED_CTEXT_SIZE];
+    uint8_t bbuf[ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE];
     bbuf[0] = (valvePC <= 100) ? valvePC : 0x7f;
     bbuf[1] = hasStats ? 0x10 : 0; // Indicate presence of stats.
     if(hasStats) { memcpy(bbuf + 2, statsJSON, statslen); }
