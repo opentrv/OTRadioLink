@@ -326,8 +326,9 @@ namespace OTRFM23BLink
     // Hardwire to I/O pin for RFM23B active-low SPI device select: SPI_nSS_DigitalPin.
     // Hardwire to I/O pin for RFM23B active-low interrupt RFM_nIRQ_DigitalPin (-1 if none).
     // Set the targetISRRXMinQueueCapacity to at least 2, or 3 if RAM space permits, for busy RF channels.
+    // With allowRX false as much as possible of the receive side is turned off.
     static const uint8_t DEFAULT_RFM23B_RX_QUEUE_CAPACITY = 3;
-    template <uint8_t SPI_nSS_DigitalPin, int8_t RFM_nIRQ_DigitalPin = -1, uint8_t targetISRRXMinQueueCapacity = 3>
+    template <uint8_t SPI_nSS_DigitalPin, int8_t RFM_nIRQ_DigitalPin = -1, uint8_t targetISRRXMinQueueCapacity = 3, bool allowRX = true>
     class OTRFM23BLink : public OTRFM23BLinkBase
         {
         private:
@@ -531,6 +532,8 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // Ensures radio is in RX mode at exit if listening is enabled.
             void _poll(const bool inISR)
                 {
+                // Nothing to do if RX is not allowed.
+                if(!allowRX) { return; }
  
                 // Nothing to do if not listening at the moment.
                 if(-1 == getListenChannel()) { return; }
