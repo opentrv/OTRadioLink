@@ -66,7 +66,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #undef ENABLE_PRIMARY_TEMP_SENSOR_SHT21
 // IF DEFINED: enable use AVR's 'idle' mode to stop the CPU but leave I/O (eg Serial) running to save power.
 // DHD20150920: CURRENTLY NOT RECOMMENDED AS STILL SEEMS TO CAUSE SOME BOARDS TO CRASH.
-#define ENABLE_USE_OF_AVR_IDLE_MODE
+#undef ENABLE_USE_OF_AVR_IDLE_MODE
 // Secondary radio
 // IF DEFINED: enable a secondary (typically WAN-relay) radio module.
 #define ENABLE_RADIO_SECONDARY_MODULE
@@ -102,7 +102,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #undef ENABLE_PRIMARY_TEMP_SENSOR_SHT21
 // IF DEFINED: enable use AVR's 'idle' mode to stop the CPU but leave I/O (eg Serial) running to save power.
 // DHD20150920: CURRENTLY NOT RECOMMENDED AS STILL SEEMS TO CAUSE SOME BOARDS TO CRASH.
-#define ENABLE_USE_OF_AVR_IDLE_MODE
+#undef ENABLE_USE_OF_AVR_IDLE_MODE
 // IF DEFINED: support for general timed and multi-input occupancy detection / use.
 #define ENABLE_OCCUPANCY_SUPPORT
 // IF DEFINED: enable a 'null' radio module; without this unit is stand-alone.
@@ -131,6 +131,16 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 #ifdef CONFIG_REV10_AS_GSM_RELAY_ONLY // REV10: stats relay.
 #define V0p2_REV 10
+// IF DEFINED: support one on and one off time per day (possibly in conjunction with 'learn' button).
+#undef ENABLE_SINGLETON_SCHEDULE
+// IF DEFINED: use active-low LEARN button(s).  Needs ENABLE_SINGLETON_SCHEDULE.
+#undef ENABLE_LEARN_BUTTON // OPTIONAL ON V0.09 PCB1
+// IF DEFINED: try to trim memory (primarily RAM, also code/Flash) space used.
+#undef ENABLE_TRIMMED_MEMORY
+// IF DEFINED: try to trim bandwidth as may be especially expensive/scarce.
+#undef ENABLE_TRIMMED_BANDWIDTH
+// IF DEFINED: allow periodic machine- and human- readable status report to serial, starting with "=".
+#undef ENABLE_SERIAL_STATUS_REPORT
 // Using RoHS-compliant phototransistor in place of LDR.
 #define ENABLE_AMBIENT_LIGHT_SENSOR_PHOTOTRANS_TEPT4400
 // IF DEFINED: basic FROST/WARM temperatures are settable.
@@ -145,16 +155,43 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #undef ENABLE_BOILER_HUB
 // IF DEFINED: allow binary stats to be TXed.
 #undef ENABLE_BINARY_STATS_TX
+// IF DEFINED: enable support for FS20 carrier for RX or TX.
+#undef ENABLE_FS20_CARRIER_SUPPORT
+// IF DEFINED: use FHT8V wireless radio module/valve.
+#undef ENABLE_FHT8VSIMPLE
+// IF DEFINED: enable support for FS20 carrier for TX specifically (to allow RX-only).
+#undef ENABLE_FS20_CARRIER_SUPPORT_TX
+// IF DEFINED: enable raw preamble injection/framing eg for FS20 over RFM23B.
+#undef ENABLE_RFM23B_FS20_RAW_PREAMBLE
+// IF DEFINED: enable support for FS20 encoding/decoding, eg to send to FHT8V.
+#undef ENABLE_FS20_ENCODING_SUPPORT
+// IF DEFINED: enable periodic secure beacon broadcast.
+#undef ENABLE_SECURE_RADIO_BEACON
+// IF DEFINED: allow non-secure OpenTRV secure frame RX (as of 2015/12): DISABLED BY DEFAULT.
+#undef ENABLE_OTSECUREFRAME_INSECURE_RX_PERMITTED
+// IF DEFINED: enable support for fast (>50kbps) packet-handling carrier (leading length byte).
+#define ENABLE_FAST_FRAMED_CARRIER_SUPPORT
+// IF DEFINED: enable OpenTRV secure frame encoding/decoding (as of 2015/12).
+// DHD20160214: costs 5866 bytes to enable vs 3426 for FS20 support.
+#define ENABLE_OTSECUREFRAME_ENCODING_SUPPORT
 // IF DEFINED: enable support for FS20 carrier for RX of raw FS20 and piggybacked binary (non-JSON) stats.
 #undef ENABLE_FS20_NATIVE_AND_BINARY_STATS_RX
 // IF DEFINED: allow RX of stats frames.
 #define ENABLE_STATS_RX
 // IF DEFINED: allow TX of stats frames.
 #define ENABLE_STATS_TX
-// IF DEFINED: use active-low LEARN button(s).  Needs ENABLE_SINGLETON_SCHEDULE.
-#undef ENABLE_LEARN_BUTTON // OPTIONAL ON V0.09 PCB1
-// IF DEFINED: this unit supports CLI over the USB/serial connection, eg for run-time reconfig.
+// IF DEFINED: allow radio listen/RX.
+#define ENABLE_RADIO_RX
+/// IF DEFINED: this unit supports CLI over the USB/serial connection, eg for run-time reconfig.
 #define ENABLE_CLI
+// IF DEFINED: there is run-time help available for the CLI.
+#undef ENABLE_CLI_HELP
+// IF DEFINED: enable a full OpenTRV CLI.
+#define ENABLE_FULL_OT_CLI
+// IF DEFINED: enable and extended CLI with a longer input buffer for example.
+#undef ENABLE_EXTENDED_CLI
+// IF DEFINED: enable a full OpenTRV UI with normal LEDs etc.
+#undef ENABLE_FULL_OT_UI
 // IF DEFINED: support for general timed and multi-input occupancy detection / use.
 #undef ENABLE_OCCUPANCY_SUPPORT
 // IF DEFINED: enable a secondary (typically WAN-relay) radio module.
@@ -164,6 +201,10 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 // SIM900 relay.
 #define ENABLE_RADIO_SIM900   // Enable SIM900
 #define ENABLE_RADIO_SECONDARY_SIM900  // Assign SIM900
+// IF DEFINED: always allow some kind of stats TX, whatever the privacy settings.
+// HAS HUGE PRIVACY IMPLICATIONS: DO NOT ENABLE UNNECESSARILY!
+// DHD20160214: makes sense to ensure that the relay unit is always talkative, at least initially.
+#define ENABLE_ALWAYS_TX_ALL_STATS
 #endif // CONFIG_REV10_AS_GSM_RELAY_ONLY
 
 
