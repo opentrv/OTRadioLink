@@ -135,6 +135,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #undef ENABLE_SINGLETON_SCHEDULE
 // IF DEFINED: use active-low LEARN button(s).  Needs ENABLE_SINGLETON_SCHEDULE.
 #undef ENABLE_LEARN_BUTTON // OPTIONAL ON V0.09 PCB1
+// IF DEFINED: support for general timed and multi-input occupancy detection / use.
+#undef ENABLE_OCCUPANCY_SUPPORT
 // IF DEFINED: try to trim memory (primarily RAM, also code/Flash) space used.
 #undef ENABLE_TRIMMED_MEMORY
 // IF DEFINED: try to trim bandwidth as may be especially expensive/scarce.
@@ -192,8 +194,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #undef ENABLE_EXTENDED_CLI
 // IF DEFINED: enable a full OpenTRV UI with normal LEDs etc.
 #undef ENABLE_FULL_OT_UI
-// IF DEFINED: support for general timed and multi-input occupancy detection / use.
-#undef ENABLE_OCCUPANCY_SUPPORT
 // IF DEFINED: enable a secondary (typically WAN-relay) radio module.
 #define ENABLE_RADIO_SECONDARY_MODULE
 // IF DEFINED: enable a WAN-relay radio module, primarily to relay stats outbound.
