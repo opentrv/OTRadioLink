@@ -39,6 +39,7 @@ pending:
     DHD20160123: Created improved %age<->FS20 valve-open conversions in FHT8VRadValveBase.
     DHD20160125: API changes for getByHourStat() and addition of countStatSamplesBelow().
     DE20160201:  Implemented break sending in OTSoftSerial
+    DE20160210:  Created OTV0P2BASE_CLI for common CLI support functions
 
 
 

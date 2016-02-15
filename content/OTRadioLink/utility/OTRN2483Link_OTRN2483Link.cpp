@@ -299,9 +299,7 @@ void OTRN2483Link::getCapacity(uint8_t& queueRXMsgsMin,
 uint8_t OTRN2483Link::getRXMsgsQueued() const {
     return 0;
 }
-const volatile uint8_t* OTRN2483Link::peekRXMsg(
-		uint8_t& len) const {
-    len = 0;
+const volatile uint8_t* OTRN2483Link::peekRXMsg() const {
     return NULL;
 }
 

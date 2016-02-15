@@ -55,14 +55,14 @@ uint8_t SensorTemperaturePot::read()
   if((uint8_t)tp != (uint8_t)raw) { ::OTV0P2BASE::addEntropyToPool((uint8_t)tp, 0); } // Claim zero entropy as may be forced by Eve.
 
   // Capture reduced-noise value with a little hysteresis.
-  // Only update the value if changed significantly.
+  // Only update the value if changed significantly so as to reduce noise.
   const uint8_t oldValue = value;
   const uint8_t shifted = tp >> 2;
   if(((shifted > oldValue) && (shifted - oldValue >= RN_HYST)) ||
      ((shifted < oldValue) && (oldValue - shifted >= RN_HYST)))
     {
     const uint8_t rn = (uint8_t) shifted;
-    // Atomically store reduced-noise normalised value.
+    // Atomically store the reduced-noise normalised value.
     value = rn;
 
     // Smart responses to adjustment/movement of temperature pot.
@@ -71,14 +71,6 @@ uint8_t SensorTemperaturePot::read()
     // Ignore first reading which might otherwise cause spurious mode change, etc.
     if((uint16_t)~0U != (uint16_t)raw) // Ignore if raw not yet set for the first time.
       {
-      const uint8_t minS = minExpected >> 2;
-      const uint8_t maxS = maxExpected >> 2;
-      // Compute low end stop threshold avoiding overflow.
-      const uint8_t realMinScaled = reverse ? maxS : minS;
-      const uint8_t loEndStop = (realMinScaled >= 255 - RN_FRBO) ? realMinScaled : (realMinScaled + RN_FRBO);
-      // Compute high end stop threshold avoiding underflow.
-      const uint8_t realMaxScaled = reverse ? minS : maxS;
-      const uint8_t hiEndStop = (realMaxScaled < RN_FRBO) ? realMaxScaled : (realMaxScaled - RN_FRBO);
       // Force FROST mode when dial turned right down to bottom.
       if(rn < loEndStop) { if(NULL != warmModeCallback) { warmModeCallback(false); } }
       // Start BAKE mode when dial turned right up to top.

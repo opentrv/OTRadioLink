@@ -14,6 +14,7 @@ specific language governing permissions and limitations
 under the Licence.
 
 Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
+                           Deniz Erbilgin   2016
 */
 
 /*
@@ -22,6 +23,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 
 #ifndef OTV0P2BASE_SECURITY_H
 #define OTV0P2BASE_SECURITY_H
+
+#include "OTV0P2BASE_EEPROM.h"
 
 
 namespace OTV0P2BASE
@@ -41,7 +44,7 @@ enum stats_TX_level
   stTXalwaysAll = 0,    // Always be prepared to transmit all stats (zero privacy).
   stTXmostUnsec = 0x80, // Allow TX of all but most security-sensitive stats in plaintext, eg occupancy status.
   stTXsecOnly   = 0xfe, // Only transmit if the stats TX can be kept secure/encrypted.
-  stTXnever     = 0xff, // Never transmit status info beyond the minimum necessary.
+  stTXnever     = 0xff, // DEFAULT: never transmit status info beyond the minimum necessary.
   };
 
 // Get the current basic stats transmission level (for data outbound from this node).
@@ -50,7 +53,12 @@ enum stats_TX_level
 stats_TX_level getStatsTXLevel();
 
 
-// Returns true iff valid OpenTRV node ID byte: must have the top bit set and not be 0xff.
+// Size of OpenTRV node ID in bytes.
+// Note that 0xff is never a valid OpenTRV node ID byte.
+// Note that most OpenTRV node ID bytes should have the top bit (0x80) set.
+static const uint8_t OpenTRV_Node_ID_Bytes = 8;
+
+// Returns true iff definitely valid OpenTRV node ID byte: must have the top bit set and not be 0xff.
 inline bool validIDByte(const uint8_t v) { return((0 != (0x80 & v)) && (0xff != v)); }
 
 // Coerce any EEPROM-based node OpenTRV ID bytes to valid values if unset (0xff) or if forced,
@@ -60,6 +68,62 @@ inline bool validIDByte(const uint8_t v) { return((0 != (0x80 & v)) && (0xff != 
 // Returns true if all values good.
 bool ensureIDCreated(const bool force = false);
 
+// Functions for setting a 16 byte primary building secret key
+/**
+ * @brief   Sets the primary building 16 byte secret key in eeprom.
+ * @param   newKey    A pointer to the first byte of a 16 byte array containing the new key.
+ *                    On passing a NULL pointer, the stored key will be cleared.
+ *                    NOTE: The key pointed to by newKey must be stored as binary, NOT as text.
+ * @retval  true if new key is set, else false.
+ */
+bool setPrimaryBuilding16ByteSecretKey(const uint8_t *key);
+
+/**
+ * @brief   Fills an array with the 16 byte primary building key.
+ * @param   key  pointer to a 16 byte buffer to write the key too.
+ * @retval  true if written successfully, false if key is a NULL pointer
+ * @note    Does not check if a key has been set.
+ */
+bool getPrimaryBuilding16ByteSecretKey(uint8_t *key);
+
+// Maximum number of node associations that can be maintained.
+// This puts an upper bound on the number of nodes which a hub can listen to.
+static const uint8_t MAX_NODE_ASSOCIATIONS = V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS;
+
+/**
+ * @brief   Clears all existing node ID associations (by setting/erasing first byte to 0xff).
+ */
+void clearAllNodeAssociations();
+
+/**Return current number of node ID associations.
+ * Will be zero immediately after clearAllNodeAssociations().
+ */
+uint8_t countNodeAssociations();
+
+/**Get node ID of association at specified index.
+ * Returns true if successful.
+ *   * index  association index of required node ID
+ *   * nodeID  8-byte buffer to receive ID; never NULL
+ */
+bool getNodeAssociation(uint8_t index, uint8_t *nodeID);
+
+/**
+ * @brief   Checks through stored node IDs and adds a new one if there is space.
+ * @param   pointer to new 8 byte node ID
+ * @retval  index of this new association, or -1 if no space
+ */
+int8_t addNodeAssociation(const uint8_t *nodeID);
+
+/**
+ * @brief   Returns first matching node ID after the index provided. If no
+ *          matching ID found, it will return -1.
+ * @param   index   Index to start searching from.
+ *          prefix  Prefix to match.
+ *          prefixLen  Length of prefix, [0,8] bytes.
+ *          nodeID  Buffer to write nodeID to. THIS IS NOT PRESERVED WHEN FUNCTION RETURNS -1!
+ * @retval  returns index or -1 if no matching node ID found
+ */
+int8_t getNextMatchingNodeID(uint8_t _index, const uint8_t *prefix, uint8_t prefixLen, uint8_t *nodeID);
 
 //#if 0 // Pairing API outline.
 //struct pairInfo { bool successfullyPaired; };
