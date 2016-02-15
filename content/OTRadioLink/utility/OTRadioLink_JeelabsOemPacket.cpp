@@ -72,7 +72,13 @@ uint8_t JeelabsOemPacket::encode( uint8_t * const buf,  const uint8_t buflen,  c
 
        // Format packet header
        buf[0] = _groupID;
-       buf[1] = ackConf ? 0x80 : 0 | dest ? 0x40 : 0 | ackReq ? 0x20 : 0 | dest ? nodeID : _nodeID;
+       if (dest) 
+         buf[1] = nodeID | 0x40;
+       else
+         buf[1] = _nodeID;
+
+       buf[1] |= (ackConf ? 0x80 : 0) | (ackReq ? 0x20 : 0);
+         
        buf[2] = buflen;
 
        uint16_t crc = calcCrc(buf, buflen+3);
@@ -94,29 +100,46 @@ uint8_t JeelabsOemPacket::encode( uint8_t * const buf,  const uint8_t buflen,  c
  *    acqReq  - acknowledgement requested
  *    ackConf - this packet is acknowledgement
  */
-uint8_t JeelabsOemPacket::decode( uint8_t *  const buf, uint8_t * const buflen,  uint8_t *nodeID,  bool * const dest,  bool * const ackReq,  bool * const ackConf)
+uint8_t JeelabsOemPacket::decode(uint8_t * const buf, uint8_t &buflen,  uint8_t &nodeID,  bool &dest,  bool &ackReq,  bool &ackConf)
     {
-
+       // Check everything in case filter function was not called
        // Check if for our group
        if (buf[0] != _groupID) return -1; 
        // CRC OK?
        if ( calcCrc(buf, buf[2]+5))  return -2; 
 
        // Decode heder and if not broadcast, check if for us
-       *nodeID  = buf[1] & 0x1f;
-       *dest    = buf[1] & 0x40 ? true : false;  
+       nodeID  = buf[1] & 0x1f;
+       dest    = buf[1] & 0x40 ? true : false;  
 
-       if ( *dest && (*nodeID != _nodeID) ) return -3;// not for us. Ignore
+       if ( dest && (nodeID != _nodeID) ) return -3;// not for us. Ignore
 
-       *ackConf = buf[1] & 0x80 ? true : false;  
-       *ackReq  = buf[1] & 0x20 ? true : false;  
-       *buflen  = buf[2];
+       ackConf = buf[1] & 0x80 ? true : false;  
+       ackReq  = buf[1] & 0x20 ? true : false;  
+       buflen  = buf[2];
        
        // Move payload to the beggining of the buffer
-       memmove(buf, &buf[3], *buflen);
+       memmove(buf, &buf[3], buflen);
 
-       return *buflen;
+       return buflen;
 
+    }
+
+/*
+ * Filter for the interrupt route, to avoid vasting buffer space.
+ * Checks if payload lentgh is reasonable and if CRC is OK
+ */
+bool JeelabsOemPacket::filter( const volatile uint8_t *buf, volatile uint8_t &buflen)
+    {
+       buflen  = buf[2]+5;
+       if (buflen > 64 ) return false;
+
+       uint16_t crc = ~0;
+       for (uint8_t i=0; i<buflen ; i++ ) crc = _crc16_update( crc, buf[i]);
+      
+       if ( crc )  return false; 
+    
+       return true;
     }
 
 /*

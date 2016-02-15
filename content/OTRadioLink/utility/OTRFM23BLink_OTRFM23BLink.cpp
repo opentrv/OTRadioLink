@@ -276,6 +276,8 @@ void OTRFM23BLinkBase::_dolisten()
         if ( _readReg8Bit_(REG_30_DATA_ACCESS_CONTROL) & RFM23B_ENPACRX )  {
            _writeReg8Bit_(REG_INT_ENABLE1, RFM23B_ENPKVALID);
            _writeReg8Bit_(REG_INT_ENABLE2, 0); 
+           if ((_readReg8Bit_(REG_33_HEADER_CONTROL2) & RFM23B_FIXPKLEN ) == RFM23B_FIXPKLEN ) 
+              _writeReg8Bit_(REG_3E_PACKET_LENGTH, maxTypicalFrameBytes);
         }
         else {
            _writeReg8Bit_(REG_INT_ENABLE1, 0x10); // enrxffafull: Enable RX FIFO Almost Full.
@@ -846,8 +848,8 @@ const uint8_t StandardRegSettingsJeeLabs[][2] PROGMEM =
 //   0x31,  N/A         --     R  - EzMAC status:
    { 0x32, 0x00 }, //  0x0c   R/W - Header Control 1:                    No header = 0x00
    { 0x33, 8    }, //  0x22   R/W - Header Control 2:                   fix packet length, 1 byte syn, no header
-   { 0x34, 0x0a }, //  0x08   R/W - Preamble Length:                    40 bit preamble preamble
-   { 0x35, 0x2a }, //  0x2a   R/W - Preamble Detection Control:         20 bit preabmle detection
+   { 0x34, 0x06 }, //  0x08   R/W - Preamble Length:                    24 bit preamble preamble
+   { 0x35, 0x22 }, //  0x2a   R/W - Preamble Detection Control:         16 bit preabmle detection
    { 0x36, 0x2d }, //  0x2d   R/W - Sync Word 3:
    { 0x37, 0xd4 }, //  0xd4   R/W - Sync Word 2:
    { 0x38,    0 }, //  0x00   R/W - Sync Word 1:

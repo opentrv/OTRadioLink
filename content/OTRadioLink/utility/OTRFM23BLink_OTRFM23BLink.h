@@ -584,8 +584,18 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                         if(NULL != bufferRX)
                             {
                             // Attempt to read the entire frame.
-                            _RXFIFO((uint8_t *)bufferRX, lengthRX); 
-                            queueRX._loadedBuf(lengthRX); // Queue message.
+                            _RXFIFO((uint8_t *)bufferRX, MaxRXMsgLen);
+                            // If an RX filter is present then apply it.
+                            quickFrameFilter_t *const f = filterRXISR;
+                            if((NULL != f) && !f(bufferRX, lengthRX))
+                                {
+                                ++filteredRXedMessageCountRecent; // Drop the frame: filter didn't like it.
+                                queueRX._loadedBuf(0); // Don't queue this frame...
+                                }
+                            else
+                                {
+                                queueRX._loadedBuf(lengthRX); // Queue message.
+                                }
                             }
                         else
                             {

@@ -62,8 +62,11 @@ namespace OTRadioLink
         // Default node ID chosen arbitrarily, group ID is JeeLabs default
         JeelabsOemPacket() { _nodeID = 5; _groupID = 100; }; 
         uint8_t setNodeAndGroupID(const uint8_t nodeID, const uint8_t groupID);
+        uint8_t getNodeID() { return _nodeID; };
+        uint8_t getGroupID() { return _groupID; };
         uint8_t encode( uint8_t * const buf,  const uint8_t buflen,  const uint8_t nodeID = 0,  const bool dest = false,  const bool ackReq = false,  const bool ackConf = false);
-        uint8_t decode( uint8_t *  const buf, uint8_t * const buflen,  uint8_t *nodeID,  bool * const dest,  bool * const ackReq,  bool * const ackConf);
+        uint8_t decode(uint8_t * const buf, uint8_t &buflen,  uint8_t &nodeID,  bool &dest,  bool &ackReq,  bool &ackConf);
+        static bool filter( const volatile uint8_t *buf, volatile uint8_t &buflen);
         };
     }
 #endif
