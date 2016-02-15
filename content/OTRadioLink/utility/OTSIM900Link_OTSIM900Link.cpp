@@ -175,7 +175,7 @@ bool OTSIM900Link::queueToSend(const uint8_t *buf, uint8_t buflen, int8_t , TXpo
  */
 void OTSIM900Link::poll()
 {
-	uint8_t udpState = 0;
+    uint8_t udpState = 0;
     if (txMessageQueue > 0) {
         // State machine in here
         switch (state) {
@@ -188,22 +188,22 @@ void OTSIM900Link::poll()
             break;
 
         case START_GPRS:
-        	udpState = isOpenUDP();
-        	if (udpState == 0) openUDP();
-        	else if (udpState == 1) state = WAIT_FOR_UDP;
-        	else if (udpState == 2) { shutGPRS(); state = RESTART_CONNECTION; }
-        	//				} else if (isOpenUDP() == 2){
-        	//					// handle PDP DEACT here
-        	//					state = START_GPRS;
-        	//				}
-        	break;
+            udpState = isOpenUDP();
+            if (udpState == 0) openUDP();
+            else if (udpState == 1) state = WAIT_FOR_UDP;
+            else if (udpState == 2) { shutGPRS(); state = RESTART_CONNECTION; }
+            //                } else if (isOpenUDP() == 2){
+            //                    // handle PDP DEACT here
+            //                    state = START_GPRS;
+            //                }
+            break;
 
         case WAIT_FOR_UDP:
-			sendRaw(txQueue, txMsgLen);    // TODO  Can't use strlen with binary data
-			delay(300);
-			// shut
-			shutGPRS();
-			if (!(--txMessageQueue)) state = IDLE;
+            sendRaw(txQueue, txMsgLen);    // TODO  Can't use strlen with binary data
+            delay(300);
+            // shut
+            shutGPRS();
+            if (!(--txMessageQueue)) state = IDLE;
             break;
 
         case RESTART_CONNECTION:
@@ -342,10 +342,10 @@ uint8_t OTSIM900Link::timedBlockingRead(char *data, uint8_t length)
 
   i = softSerial.read((uint8_t *)data, length);
 
-#ifdef OTSIM900LINK_DEBUG
-//  OTV0P2BASE::serialPrintAndFlush(F("\n--Buffer Length: "));
-//  OTV0P2BASE::serialPrintAndFlush(i);
-//  OTV0P2BASE::serialPrintlnAndFlush();
+#if 0 && defined(OTSIM900LINK_DEBUG)
+  OTV0P2BASE::serialPrintAndFlush(F("\n--Buffer Length: "));
+  OTV0P2BASE::serialPrintAndFlush(i);
+  OTV0P2BASE::serialPrintlnAndFlush();
 #endif // OTSIM900LINK_DEBUG
   return i;
 }

@@ -128,7 +128,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #undef ENABLE_SETTABLE_TARGET_TEMPERATURES
 #endif // CONFIG_REV10_BUSSHELTER
 
-
 #ifdef CONFIG_REV10_AS_GSM_RELAY_ONLY // REV10: stats relay.
 #define V0p2_REV 10
 // IF DEFINED: support one on and one off time per day (possibly in conjunction with 'learn' button).
@@ -138,7 +137,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 // IF DEFINED: support for general timed and multi-input occupancy detection / use.
 #undef ENABLE_OCCUPANCY_SUPPORT
 // IF DEFINED: try to trim memory (primarily RAM, also code/Flash) space used.
-#undef ENABLE_TRIMMED_MEMORY
+#define ENABLE_TRIMMED_MEMORY
 // IF DEFINED: try to trim bandwidth as may be especially expensive/scarce.
 #undef ENABLE_TRIMMED_BANDWIDTH
 // IF DEFINED: allow periodic machine- and human- readable status report to serial, starting with "=".
@@ -184,6 +183,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #define ENABLE_STATS_TX
 // IF DEFINED: allow radio listen/RX.
 #define ENABLE_RADIO_RX
+// IF DEFINED: allow JSON stats frames.
+#define ENABLE_JSON_OUTPUT
 /// IF DEFINED: this unit supports CLI over the USB/serial connection, eg for run-time reconfig.
 #define ENABLE_CLI
 // IF DEFINED: there is run-time help available for the CLI.
@@ -206,7 +207,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 // DHD20160214: makes sense to ensure that the relay unit is always talkative, at least initially.
 #define ENABLE_ALWAYS_TX_ALL_STATS
 #endif // CONFIG_REV10_AS_GSM_RELAY_ONLY
-
 
 #ifdef CONFIG_REV10_BHR // REV10: boiler hub and stats relay.
 #define V0p2_REV 10
