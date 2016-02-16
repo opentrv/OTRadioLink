@@ -74,7 +74,7 @@ bool ensureIDCreated(const bool force = false);
  * @param   newKey    A pointer to the first byte of a 16 byte array containing the new key.
  *                    On passing a NULL pointer, the stored key will be cleared.
  *                    NOTE: The key pointed to by newKey must be stored as binary, NOT as text.
- * @retval  true if new key is set, else false.
+ * @retval  true if key is cleared successfully or new key is set, else false.
  */
 bool setPrimaryBuilding16ByteSecretKey(const uint8_t *key);
 

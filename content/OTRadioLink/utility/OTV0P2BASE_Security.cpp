@@ -95,7 +95,7 @@ bool ensureIDCreated(const bool force)
  * @param   newKey    A pointer to the first byte of a 16 byte array containing the new key.
  *                    On passing a NULL pointer, the stored key will be cleared.
  *                    NOTE: The key pointed to by newKey must be stored as binary, NOT as text.
- * @retval  true if new key is set, else false.
+ * @retval  true if key is cleared successfully or new key is set, else false.
  */
 bool setPrimaryBuilding16ByteSecretKey(const uint8_t *newKey) // <-- this should be 16-byte binary, NOT text!
 {
@@ -103,15 +103,15 @@ bool setPrimaryBuilding16ByteSecretKey(const uint8_t *newKey) // <-- this should
     if(newKey == NULL) {
         // clear key here
         for(uint8_t i = 0; i < VOP2BASE_EE_LEN_16BYTE_PRIMARY_BUILDING_KEY; i++) {
-            eeprom_smart_update_byte((uint8_t *)VOP2BASE_EE_START_16BYTE_PRIMARY_BUILDING_KEY+i, 0xff);
+            eeprom_smart_update_byte(((uint8_t *)VOP2BASE_EE_START_16BYTE_PRIMARY_BUILDING_KEY)+i, 0xff);
         }
-        return(false);
+        return(true);
     } else {
         // set new key
         for(uint8_t i = 0; i < VOP2BASE_EE_LEN_16BYTE_PRIMARY_BUILDING_KEY; i++) {
-            eeprom_smart_update_byte((uint8_t *)VOP2BASE_EE_START_16BYTE_PRIMARY_BUILDING_KEY+i, *newKey++);
+            eeprom_smart_update_byte(((uint8_t *)VOP2BASE_EE_START_16BYTE_PRIMARY_BUILDING_KEY)+i, *newKey++);
         }
-        return true;
+        return(true);
     }
 }
 

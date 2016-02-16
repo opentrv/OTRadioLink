@@ -237,17 +237,18 @@ bool SetSecretKey::doCommand(char *const buf, const uint8_t buflen)
     // Minimum 5 character sequence makes sense and is safe to tokenise, eg "K B *".
     if((buflen >= 5) && (NULL != (tok1 = strtok_r(buf + 2, " ", &last))))
         {
-        if ('B' == *tok1)
-            { // Check first token is a 'B'
+        if('B' == toupper(*tok1))
+            {
+            // If first token is a 'B'...
             char *tok2 = strtok_r(NULL, " ", &last);
-            // if second token is '*' clears eeprom. Otherwise, test to see if
-            // a valid key has been entered
-            if (NULL != tok2)
+            // If second token is '*' clears EEPROM.
+            // Otherwise, test to see if a valid key has been entered.
+            if(NULL != tok2)
                 {
                 if (*tok2 == '*')
                     {
                     OTV0P2BASE::setPrimaryBuilding16ByteSecretKey (NULL);
-                    Serial.println(F("Building Key cleared"));
+                    Serial.println(F("B clear"));
 #if 0 && defined(DEBUG)
                     uint8_t keyTest[16];
                     OTV0P2BASE::getPrimaryBuilding16ByteSecretKey(keyTest);
@@ -258,13 +259,13 @@ bool SetSecretKey::doCommand(char *const buf, const uint8_t buflen)
                         }
                     Serial.println();
 #endif
+                    return(false);
                     }
-                else if (buflen >= 3 + 3*16)
-                    { // "K B" + 16x " hh" tokens.
+                else if(buflen >= 3 + 2*16)
+                    {
+                    // "K B" + 16x " hh" or " h" tokens.
                     // 0 array to store new key
                     uint8_t newKey[OTV0P2BASE::VOP2BASE_EE_LEN_16BYTE_PRIMARY_BUILDING_KEY];
-                    uint8_t *eepromPtr =
-                            (uint8_t *) OTV0P2BASE::VOP2BASE_EE_START_16BYTE_PRIMARY_BUILDING_KEY;
                     // parse and set first token, which has already been recovered
                     newKey[0] = OTV0P2BASE::parseHexByte(tok2);
                     // loop through rest of secret key
@@ -276,8 +277,8 @@ bool SetSecretKey::doCommand(char *const buf, const uint8_t buflen)
                         newKey[i] = (uint8_t)ib;
                         }
                     OTV0P2BASE::setPrimaryBuilding16ByteSecretKey(newKey);
-#if 0 && defined(DEBUG)
-                    Serial.println(F("Building Key set"));
+#if 1 // && defined(DEBUG)
+                    Serial.println(F("B set"));
 #endif
 
 #if 0 && defined(DEBUG)
@@ -290,13 +291,12 @@ bool SetSecretKey::doCommand(char *const buf, const uint8_t buflen)
                         }
                     Serial.println();
 #endif
-
+                    return(false);
                     }
-                else { InvalidIgnored(); }
                 }
             }
         }
-    else { InvalidIgnored(); }
+    InvalidIgnored();
     return(false);
     }
 
