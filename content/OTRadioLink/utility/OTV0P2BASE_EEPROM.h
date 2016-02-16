@@ -105,22 +105,17 @@ namespace OTV0P2BASE
 // Minimum (total percentage across all rads) that all rads should be on before heating should fire.
 #define V0P2BASE_EE_START_MIN_TOTAL_VALVE_PC_OPEN 31 // Ignored entirely if outside range [1,100], eg if default/unprogrammed 0xff.
 
-//TODO-793
-// 16 Byte primary building key (secret key)
-static const uint8_t *VOP2BASE_EE_START_16BYTE_PRIMARY_BUILDING_KEY = (uint8_t *)112;
+
+// 16 Byte primary building (secret, symmetric) key.  (TODO-793)
+static const intptr_t VOP2BASE_EE_START_16BYTE_PRIMARY_BUILDING_KEY = 112;
 static const uint8_t VOP2BASE_EE_LEN_16BYTE_PRIMARY_BUILDING_KEY  = 16;
 
 
-// Start area of radio config mem
-static const uint8_t *V0P2BASE_EE_START_RADIO = (uint8_t *)128; // INCLUSIVE START OF RADIO CONFIG AREA. // FIXME should this be a uint8_t? (technically a pointer to a 1 KiB eeprom)
-static const uint8_t V0P2BASE_EE_LEN_RADIO  = 128; // SIZE OF RADIO CONFIG AREA.
-static const uint8_t *V0P2BASE_EE_END_RADIO  = (uint8_t *)255;
+// Start area of non-volatile radio config, eg for GSM APN and target IP address.
+static const intptr_t V0P2BASE_EE_START_RADIO = 128; // INCLUSIVE START OF RADIO CONFIG AREA.
+static const uint8_t V0P2BASE_EE_LEN_RADIO  = 128; // SIZE OF RADIO CONFIG AREA (bytes).
+static const intptr_t V0P2BASE_EE_END_RADIO = 255;
 
-//// Housecode filter at central hub.
-//// Intended to fit snug up before stats area.
-//#define V0P2BASE_EE_START_HUB_HC_FILTER 240
-//#define V0P2BASE_EE_HUB_HC_FILTER_COUNT 8 // Max count of house codes (each 2 bytes) filtered for.
-//#define V0P2BASE_EE_END_HUB_HC_FILTER (V0P2BASE_EE_START_HUB_HC_FILTER+2*(V0P2BASE_EE_HUB_HC_FILTER_COUNT)-1)
 
 // Bulk data storage: should fit within 1kB EEPROM of ATmega328P or 512B of ATmega164P.
 #define V0P2BASE_EE_START_STATS 256 // INCLUSIVE START OF BULK STATS AREA.
@@ -157,22 +152,25 @@ static const uint8_t *V0P2BASE_EE_END_RADIO  = (uint8_t *)255;
 //#error EEPROM allocation problem: filter overlaps with stats
 //#endif
 
-// TODO-793
-// Node associations memory. Should fit 16 nodes within 256 bytes of EEPROM
-static const uint8_t *V0P2BASE_EE_START_NODE_ASSOCIATIONS = (uint8_t *)768; // Inclusive start of node associations
-static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE  = 16;              // Size in entries/bytes of one Node association entry
+
+// Node associations memory. Can fit 16 nodes within 256 bytes of EEPROM.  (TODO-793)
+// Note that all valid entries/associations are contiguous at the start of the area.
+// The first (invalid) node ID starting with 0xff indicates that it and all subsequent entries are empty.
+static const intptr_t V0P2BASE_EE_START_NODE_ASSOCIATIONS = 768;  // Inclusive start of node associations.
+static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE = 16; // Size in bytes of one Node association entry.
 
 // Node association fields, 0 upwards, contiguous.
 static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_OFFSET  = 0;  // 8 Byte node ID.
 static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH  = 8;  // 8 Byte node ID.
 static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_RESERVED_OFFSET = 8;  // Reserved
 
-static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS      = 16; // Maximum possible node associations
+static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS = 16; // Maximum possible node associations.
 
 // Compute start of node association set (in range [0,V0P2BASE_EE_NODE_ASSOCIATIONS_SETS-1]) in EEPROM.
 // static const uint16_t V0P2BASE_EE_NODE_ASSOCIATIONS_START_ADDR
 // INCLUSIVE END OF NODE ASSOCIATIONS AREA: must point to last byte used.
-static const uint8_t *V0P2BASE_EE_END_NODE_ASSOCIATIONS = (uint8_t *)((V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS * V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE)-1); //
+static const intptr_t V0P2BASE_EE_END_NODE_ASSOCIATIONS = ((V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS * V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE)-1);
+
 
 // Updates an EEPROM byte iff not currently at the specified target value.
 // May be able to selectively erase or write (ie reduce wear) to reach the desired value.
@@ -233,6 +231,27 @@ bool inOutlierQuartile(bool inTop, uint8_t statsSet, uint8_t hour = STATS_SPECIA
 // Compute the number of stats samples in specified set less than the specified value; returns -1 for invalid stats set.
 // (With the UNSET value specified, count will be of all samples that have been set, ie are not unset.)
 int8_t countStatSamplesBelow(uint8_t statsSet, uint8_t value);
+
+// Range-compress an signed int 16ths-Celsius temperature to a unsigned single-byte value < 0xff.
+// This preserves at least the first bit after the binary point for all values,
+// and three bits after binary point for values in the most interesting mid range around normal room temperatures,
+// with transitions at whole degrees Celsius.
+// Input values below 0C are treated as 0C, and above 100C as 100C, thus allowing air and DHW temperature values.
+static const int16_t COMPRESSION_C16_FLOOR_VAL = 0; // Floor input value to compression.
+static const int16_t COMPRESSION_C16_LOW_THRESHOLD = (16<<4); // Values in range [COMPRESSION_LOW_THRESHOLD_C16,COMPRESSION_HIGH_THRESHOLD_C16[ have maximum precision.
+static const uint8_t COMPRESSION_C16_LOW_THR_AFTER = (COMPRESSION_C16_LOW_THRESHOLD>>3); // Low threshold after compression.
+static const int16_t COMPRESSION_C16_HIGH_THRESHOLD = (24<<4);
+static const uint8_t COMPRESSION_C16_HIGH_THR_AFTER = (COMPRESSION_C16_LOW_THR_AFTER + ((COMPRESSION_C16_HIGH_THRESHOLD-COMPRESSION_C16_LOW_THRESHOLD)>>1)); // High threshold after compression.
+static const int16_t COMPRESSION_C16_CEIL_VAL = (100<<4); // Ceiling input value to compression.
+static const uint8_t COMPRESSION_C16_CEIL_VAL_AFTER = (COMPRESSION_C16_HIGH_THR_AFTER + ((COMPRESSION_C16_CEIL_VAL-COMPRESSION_C16_HIGH_THRESHOLD) >> 3)); // Ceiling input value after compression.
+uint8_t compressTempC16(int16_t tempC16);
+// Reverses range compression done by compressTempC16(); results in range [0,100], with varying precision based on original value.
+// 0xff (or other invalid) input results in STATS_UNSET_INT.
+int16_t expandTempC16(uint8_t cTemp);
+
+// Maximum valid encoded/compressed stats values.
+static const uint8_t MAX_STATS_TEMP = COMPRESSION_C16_CEIL_VAL_AFTER; // Maximum valid compressed temperature value in stats.
+static const uint8_t MAX_STATS_AMBLIGHT = 254; // Maximum valid ambient light value in stats (very top of range is compressed).
 
 
 }

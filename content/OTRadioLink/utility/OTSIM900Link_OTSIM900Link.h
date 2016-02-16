@@ -97,9 +97,9 @@ typedef struct OTSIM900LinkConfig {
 
 enum SendState {
         IDLE,
-		START_GPRS,
+        START_GPRS,
         WAIT_FOR_UDP,
-		RESTART_CONNECTION,
+        RESTART_CONNECTION,
 //        WAIT_FOR_PROMPT,
 //        WAIT_FOR_SENDOK
     };

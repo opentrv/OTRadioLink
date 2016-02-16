@@ -24,6 +24,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 #ifndef OTV0P2BASE_SECURITY_H
 #define OTV0P2BASE_SECURITY_H
 
+#include "OTV0P2BASE_EEPROM.h"
+
 
 namespace OTV0P2BASE
 {
@@ -51,7 +53,12 @@ enum stats_TX_level
 stats_TX_level getStatsTXLevel();
 
 
-// Returns true iff valid OpenTRV node ID byte: must have the top bit set and not be 0xff.
+// Size of OpenTRV node ID in bytes.
+// Note that 0xff is never a valid OpenTRV node ID byte.
+// Note that most OpenTRV node ID bytes should have the top bit (0x80) set.
+static const uint8_t OpenTRV_Node_ID_Bytes = 8;
+
+// Returns true iff definitely valid OpenTRV node ID byte: must have the top bit set and not be 0xff.
 inline bool validIDByte(const uint8_t v) { return((0 != (0x80 & v)) && (0xff != v)); }
 
 // Coerce any EEPROM-based node OpenTRV ID bytes to valid values if unset (0xff) or if forced,
@@ -67,41 +74,56 @@ bool ensureIDCreated(const bool force = false);
  * @param   newKey    A pointer to the first byte of a 16 byte array containing the new key.
  *                    On passing a NULL pointer, the stored key will be cleared.
  *                    NOTE: The key pointed to by newKey must be stored as binary, NOT as text.
- * @retval  true if new key is set, else false.
+ * @retval  true if key is cleared successfully or new key is set, else false.
  */
 bool setPrimaryBuilding16ByteSecretKey(const uint8_t *key);
 
 /**
  * @brief   Fills an array with the 16 byte primary building key.
- * @param   key    A pointer to a 16 byte buffer to write the key too.
+ * @param   key  pointer to a 16 byte buffer to write the key too.
  * @retval  true if written successfully, false if key is a NULL pointer
  * @note    Does not check if a key has been set.
  */
 bool getPrimaryBuilding16ByteSecretKey(uint8_t *key);
 
+// Maximum number of node associations that can be maintained.
+// This puts an upper bound on the number of nodes which a hub can listen to.
+static const uint8_t MAX_NODE_ASSOCIATIONS = V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS;
+
 /**
- * @brief   Clears all existing node IDs by writing 0xff to first byte.
- * @todo    Should this return something useful, such as the number of bytes cleared?
+ * @brief   Clears all existing node ID associations (by setting/erasing first byte to 0xff).
  */
-void clearAllNodeIDs();
+void clearAllNodeAssociations();
+
+/**Return current number of node ID associations.
+ * Will be zero immediately after clearAllNodeAssociations().
+ */
+uint8_t countNodeAssociations();
+
+/**Get node ID of association at specified index.
+ * Returns true if successful.
+ *   * index  association index of required node ID
+ *   * nodeID  8-byte buffer to receive ID; never NULL
+ */
+bool getNodeAssociation(uint8_t index, uint8_t *nodeID);
 
 /**
  * @brief   Checks through stored node IDs and adds a new one if there is space.
  * @param   pointer to new 8 byte node ID
- * @retval  Number of stored node IDs, or 0xff if storage full
+ * @retval  index of this new association, or -1 if no space
  */
-uint8_t addNodeID(const uint8_t *nodeID);
+int8_t addNodeAssociation(const uint8_t *nodeID);
 
 /**
  * @brief   Returns first matching node ID after the index provided. If no
  *          matching ID found, it will return -1.
  * @param   index   Index to start searching from.
  *          prefix  Prefix to match.
- *          prefixLen  Length of prefixuint8fdsafds
- *          nodeID  Buffer to write nodeID to. THIS IS NOT PRESERVED WHEN FUNCTION RETURNS 0xff!
- * @retval  returns index or 0xff if no matching node ID found
+ *          prefixLen  Length of prefix, [0,8] bytes.
+ *          nodeID  Buffer to write nodeID to. THIS IS NOT PRESERVED WHEN FUNCTION RETURNS -1!
+ * @retval  returns index or -1 if no matching node ID found
  */
-uint8_t getNextMatchingNodeID(const uint8_t _index, const uint8_t *prefix, const uint8_t prefixLen, uint8_t *nodeID);
+int8_t getNextMatchingNodeID(uint8_t _index, const uint8_t *prefix, uint8_t prefixLen, uint8_t *nodeID);
 
 //#if 0 // Pairing API outline.
 //struct pairInfo { bool successfullyPaired; };

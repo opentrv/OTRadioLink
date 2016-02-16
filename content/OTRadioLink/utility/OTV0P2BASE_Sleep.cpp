@@ -21,9 +21,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
   Uses a combination of sleep modes, watchdog timer (WDT), and other techniques.
   */
 
-#include "OTV0P2BASE_Sleep.h"
-
 #include <util/crc16.h>
+
+#include "OTV0P2BASE_Sleep.h"
 
 
 namespace OTV0P2BASE
