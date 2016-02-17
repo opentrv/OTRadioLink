@@ -137,7 +137,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 // IF DEFINED: support for general timed and multi-input occupancy detection / use.
 #undef ENABLE_OCCUPANCY_SUPPORT
 // IF DEFINED: try to trim memory (primarily RAM, also code/Flash) space used.
-#define ENABLE_TRIMMED_MEMORY
+#undef ENABLE_TRIMMED_MEMORY
 // IF DEFINED: try to trim bandwidth as may be especially expensive/scarce.
 #undef ENABLE_TRIMMED_BANDWIDTH
 // IF DEFINED: allow periodic machine- and human- readable status report to serial, starting with "=".
