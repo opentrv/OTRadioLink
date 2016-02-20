@@ -280,7 +280,7 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
 
     // Returns true iff in normal running state.
     // True means not in error state and not (re)calibrating/(re)initialising/(re)syncing.
-    // May be false temporarily while declacinating.
+    // May be false temporarily while decalcinating.
     virtual bool isInNormalRunState() const { return(state == (uint8_t)valveNormal); }
 
     // Returns true if in an error state.

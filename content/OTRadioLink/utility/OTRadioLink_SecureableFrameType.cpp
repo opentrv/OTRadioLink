@@ -446,7 +446,7 @@ uint8_t decodeSecureSmallFrameRaw(const SecurableFrameHeader *const sfh,
     if(sfh->isInvalid()) { return(0); } // ERROR
     // Abort if expected constraints for simple fixed-size secure frame are not met.
     const uint8_t fl = sfh->fl;
-    //if(fl > SecurableFrameHeader::maxSmallFrameSize) { return(0); } // ERROR
+    if(fl >= buflen) { return(0); } // ERROR
     if(23 != sfh->getTl()) { return(0); } // ERROR
     if(0x80 != buf[fl]) { return(0); } // ERROR
     const uint8_t bl = sfh->bl;
@@ -460,7 +460,7 @@ uint8_t decodeSecureSmallFrameRaw(const SecurableFrameHeader *const sfh,
     if(!d(state, key, iv, buf, sfh->getHl(),
                 (0 == bl) ? NULL : buf + sfh->getBodyOffset(), buf + fl - 16,
                 decryptBuf)) { return(0); } // ERROR
-    if(plaintextWanted)
+    if(plaintextWanted && (0 != bl))
         {
         // Unpad the decrypted text in place.
         const uint8_t upbl = removePaddingTo32BTrailing0sAndPadCount(decryptBuf);
@@ -470,6 +470,8 @@ uint8_t decodeSecureSmallFrameRaw(const SecurableFrameHeader *const sfh,
         decryptedBodyOutSize = upbl;
         // TODO: optimise later if plaintext not required but ciphertext present.
         }
+    // Ensure that decryptedBodyOutSize is not left initialised even if no frame body RXed/wanted.
+    else { decryptedBodyOutSize = 0; }
     // Done.
     return(fl + 1);
     }
@@ -512,6 +514,7 @@ uint8_t decodeSecureSmallFrameFromID(const SecurableFrameHeader *const sfh,
     if(23 != sfh->getTl()) { return(0); } // ERROR
 //    const uint8_t fl = sfh->fl;
 //    if(0x80 != buf[fl]) { return(0); } // ERROR
+    if(sfh->getTrailerOffset() + 6 > buflen) { return(0); } // ERROR
     // Construct IV from supplied (possibly adjusted) ID + counters from (start of) trailer.
     uint8_t iv[12];
     memcpy(iv, adjID, 6);
@@ -669,11 +672,11 @@ bool getPrimarySecure6BytePersistentTXMessageCounter(uint8_t *const buf)
         }
     }
 
-// Fill in 12-byte IV for 'O'-style (0x80) AESGCM security.
-// This used the local node ID as-is for the first 6 bytes.
+// Fill in 12-byte IV for 'O'-style (0x80) AESGCM security for a frame to TX.
+// This uses the local node ID as-is for the first 6 bytes.
 // This uses and increments the primary message counter for the last 6 bytes.
 // Returns true on success, false on failure eg due to message counter generation failure.
-bool compute12ByteIDAndCounterIV(uint8_t *const ivBuf)
+bool compute12ByteIDAndCounterIVForTX(uint8_t *const ivBuf)
     {
     if(NULL == ivBuf) { return(false); }
     // Fill in first 6 bytes of this node's ID.
@@ -744,13 +747,46 @@ uint8_t generateSecureBeaconRawForTX(uint8_t *const buf, const uint8_t buflen,
                                 void *const state, const uint8_t *const key)
     {
     uint8_t iv[12];
-    if(!compute12ByteIDAndCounterIV(iv)) { return(0); }
+    if(!compute12ByteIDAndCounterIVForTX(iv)) { return(0); }
     return(OTRadioLink::generateSecureBeaconRaw(buf, buflen,
                                     NULL, il_,
                                     iv, e, state, key));
     }
 
-
+// Create simple 'O' (FTS_BasicSensorOrValve) frame with an optional stats section for transmission.
+// Returns number of bytes written to buffer, or 0 in case of error.
+// The IV is constructed from the node ID and the primary TX message counter.
+// Note that the frame will be 27 + ID-length (up to maxIDLength) bytes,
+// so the buffer must be large enough to accommodate that.
+//  * buf  buffer to which is written the entire frame including trailer; never NULL
+//  * buflen  available length in buf; if too small then this routine will fail (return 0)
+//  * valvePC  percentage valve is open or 0x7f if no valve to report on
+//  * statsJSON  '\0'-terminated {} JSON stats, or NULL if none.
+//  * il_  ID length for the header; ID comes from EEPROM
+//  * key  16-byte secret key; never NULL
+uint8_t generateSecureOFrameRawForTX(uint8_t *const buf, const uint8_t buflen,
+                                const uint8_t il_,
+                                const uint8_t valvePC,
+                                const char *const statsJSON,
+                                const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                                void *const state, const uint8_t *const key)
+    {
+    uint8_t iv[12];
+    if(!compute12ByteIDAndCounterIVForTX(iv)) { return(0); }
+    const bool hasStats = (NULL != statsJSON) && ('{' == statsJSON[0]);
+    const int slp1 = hasStats ? strlen(statsJSON) : 1; // Stats length including trailing '}' (not sent).
+    if(slp1 > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE-1) { return(0); } // ERROR
+    const uint8_t statslen = (uint8_t)(slp1 - 1); // Drop trailing '}' implicitly.
+    uint8_t bbuf[ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE];
+    bbuf[0] = (valvePC <= 100) ? valvePC : 0x7f;
+    bbuf[1] = hasStats ? 0x10 : 0; // Indicate presence of stats.
+    if(hasStats) { memcpy(bbuf + 2, statsJSON, statslen); }
+    return(OTRadioLink::encodeSecureSmallFrameRaw(buf, buflen,
+                                    OTRadioLink::FTS_BasicSensorOrValve,
+                                    NULL, il_,
+                                    bbuf, (hasStats ? 2+statslen : 2),
+                                    iv, e, state, key));
     }
 
 
+}

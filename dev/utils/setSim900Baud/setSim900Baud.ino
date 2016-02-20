@@ -12,7 +12,7 @@
 SoftwareSerial ser(7,8);
 
 static const char setBaudCommand[] = "AT+IPR";
-static const uint16_t initialBaud = 19200;
+static const uint16_t initialBaud = 19200; // 2400;
 
 void setup() {
   // put your setup code here, to run once:
@@ -52,18 +52,20 @@ void setBaud()
   char baud[7];
   memset(baud, 0, sizeof(baud));
   Serial.println("\n++ Set Baud ++");
+  while(Serial.available()) { } // Clear anything buffered...
   Serial.print("Enter Baud rate followed by '\\r': ");
-  for(uint8_t i = 0; i < (sizeof(baud)-1); i++) {
+  for(uint8_t i = 0; i < (sizeof(baud)-1); ) {
     char c = 0;
-    while(!Serial.available()); // block until serial available
+    while(!Serial.available()) { } // block until serial available
 
-    if(Serial.available() > 0) c = Serial.read();
+    if(Serial.available() > 0) { c = Serial.read(); }
 
-    if(c == '\r') break;
+    if((i > 0) && ((c == '\r') || (c == '\n'))) { baud[i] = '\0'; break; }
     else if (c >= '0' && c <= '9') {
-      baud[i] = c;
+      baud[i++] = c;
     } //else return;
   }
+  Serial.print("Entered: ");
   Serial.println(baud);
 
   ser.write(setBaudCommand, sizeof(setBaudCommand)-1);
