@@ -633,11 +633,16 @@ bool getPrimarySecure6BytePersistentTXMessageCounter(uint8_t *const buf)
     static uint8_t ephemeral[3];
 
     // Temporary area for initialising ephemeral[] where needed.
-    uint8_t tmpE[sizeof(ephemeral) - 1];
+    uint8_t tmpE[sizeof(ephemeral)];
     if(!initialised)
         {
         for(uint8_t i = sizeof(tmpE); i-- > 0; )
-          { tmpE[i] = OTV0P2BASE::getSecureRandomByte(); } // Doesn't like being having interrupts off.
+          { tmpE[i] = OTV0P2BASE::getSecureRandomByte(); } // Doesn't like being called with interrupts off.
+        // Mask off top bits of top (most significant byte) to preserve most of the remaining counter life
+        // but allow ~20 bits ie a decent chunk of 1 million messages
+        // (maybe several years at a message every 4 minutes)
+        // before likely IV reuse even with absence/failure of the restart counter.
+        tmpE[0] = 0xf & (tmpE[0] ^ (tmpE[0] >> 4));
         }
 
     // Disable interrupts while adjusting counter and copying back to the caller.
@@ -652,7 +657,7 @@ bool getPrimarySecure6BytePersistentTXMessageCounter(uint8_t *const buf)
             initialised = true;
             }
 
-        // FIXME: NOT FULLY IMPLEMENTED YET: IMPORTANT FOR SECURITY TO COMPLETE
+        // FIXME: NOT FULLY IMPLEMENTED YET: IMPORTANT FOR SECURITY TO COMPLETE THIS
 
         // FIXME: increment the counter including the persistent part where necessary.
         for(uint8_t i = sizeof(ephemeral); i-- > 0; )
