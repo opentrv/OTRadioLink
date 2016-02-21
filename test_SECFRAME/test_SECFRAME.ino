@@ -428,7 +428,7 @@ static void testNonsecureFrameCRC()
   }
 
 // Test encoding of entire non-secure frame for TX.
-static void testNonSecureSmallFrameEncoding()
+static void testNonsecureSmallFrameEncoding()
   {
   Serial.println("NonSecureSmallFrameEncoding");
   uint8_t buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize];
@@ -785,6 +785,16 @@ static void testBeaconEncoding()
 //  Serial.println(after - before); // DHD20160207: 1442 for 8 rounds, or ~180ms per encryption.
   }
 
+// Test handling of persistent/reboot/restart part of primary message counter.
+static void testPermMsgCount()
+  {
+  Serial.println("PermMsgCount");
+  uint8_t buf[OTV0P2BASE::VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR];
+//  // Initial test that blank EEPROM after processing yields all zeros.
+//  OTRadioLink::loadRaw3BytePersistentTXRestartCounterFromEEPROM(buf);
+//  for(int i = 0; i < sizeof(buf); ++i) { AssertIsEqual(0, buf[i]); }
+  }
+
 
 // To be called from loop() instead of main code when running unit tests.
 // Tests generally flag an error and stop the test cycle with a call to panic() or error().
@@ -811,14 +821,14 @@ void loop()
   testFrameHeaderEncoding();
   testFrameHeaderDecoding();
   testNonsecureFrameCRC();
-  testNonSecureSmallFrameEncoding();
+  testNonsecureSmallFrameEncoding();
+  testPermMsgCount();
   testSimplePadding();
   testSimpleNULLEncDec();
   testCryptoAccess();
   testGCMVS1ViaFixed32BTextSize();
   testSecureSmallFrameEncoding();
   testBeaconEncoding();
-
 
 
   // Announce successful loop completion and count.
