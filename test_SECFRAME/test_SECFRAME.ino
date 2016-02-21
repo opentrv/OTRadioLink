@@ -794,9 +794,13 @@ static void testPermMsgCount()
 //  // Initial test that blank EEPROM after processing yields all zeros.
 //  OTRadioLink::loadRaw3BytePersistentTXRestartCounterFromEEPROM(buf);
 //  for(int i = 0; i < sizeof(buf); ++i) { AssertIsEqual(0, buf[i]); }
-  // Initialise to state of empty EEPROM.
+  // Initialise to state of empty EEPROM; result should be a valid all-zeros restart count.
   memset(loadBuf, 0, sizeof(loadBuf));
   AssertIsTrue(OTRadioLink::read3BytePersistentTXRestartCounter(loadBuf, buf));
+  AssertIsEqual(0, memcmp(buf, zeroKey, OTRadioLink::primaryPeristentTXMessageRestartCounterBytes));
+  // Initialise to all-0xff state (with correct CRC), which should cause failure.
+  memset(loadBuf, 0xff, sizeof(loadBuf)); loadBuf[3] = 0x6a; loadBuf[7] = 0x6a;
+  AssertIsTrue(!OTRadioLink::read3BytePersistentTXRestartCounter(loadBuf, buf));
   }
 
 

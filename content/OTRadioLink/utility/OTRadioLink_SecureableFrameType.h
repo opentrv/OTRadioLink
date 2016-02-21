@@ -525,6 +525,7 @@ namespace OTRadioLink
     // Deals with inversion and checksum checking.
     // Input buffer (loadBuf) must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
     // Output buffer (buf) must be 3 bytes long.
+    // Will report failure when count is all 0xff values.
     static const uint8_t primaryPeristentTXMessageRestartCounterBytes = 3;
     bool read3BytePersistentTXRestartCounter(const uint8_t *loadBuf, uint8_t *buf);
 

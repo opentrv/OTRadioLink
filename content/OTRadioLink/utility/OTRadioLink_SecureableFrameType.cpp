@@ -637,9 +637,19 @@ static void loadRaw3BytePersistentTXRestartCounterFromEEPROM(uint8_t *const load
 // Deals with inversion and checksum checking.
 // Input buffer (loadBuf) must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
 // Output buffer (buf) must be 3 bytes long.
+// Will report failure when count is all 0xff values.
 bool read3BytePersistentTXRestartCounter(const uint8_t *const loadBuf, uint8_t *const buf)
     {
-    return(false); // FIXME: not implemented
+    // For now use the primary copy only; fail if the CRC is not intact.
+    const uint8_t *const base = loadBuf;
+    uint8_t crc = 0;
+    for(int i = 0; i < primaryPeristentTXMessageRestartCounterBytes; ++i) { crc = OTV0P2BASE::crc7_5B_update(crc, base[i]); }
+    if(crc != base[primaryPeristentTXMessageRestartCounterBytes]) { return(false); } // CRC failed.
+    // Check for all 0xff (maximum) value and fail if found.
+    if((0x6a == crc) && (0xff == base[0]) && (0xff == base[1]) && (0xff == base[1])) { return(false); }
+    // Copy (primary) counter to output.
+    for(int i = 0; i < primaryPeristentTXMessageRestartCounterBytes; ++i) { buf[i] = base[i]; }
+    return(true);
     }
 
 // Get the 3 bytes of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
