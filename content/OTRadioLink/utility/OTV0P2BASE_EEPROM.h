@@ -105,6 +105,7 @@ namespace OTV0P2BASE
 // Minimum (total percentage across all rads) that all rads should be on before heating should fire.
 #define V0P2BASE_EE_START_MIN_TOTAL_VALVE_PC_OPEN 31 // Ignored entirely if outside range [1,100], eg if default/unprogrammed 0xff.
 
+
 // TX message counter (most-significant) persistent reboot/restart 3 bytes.  (TODO-728)
 // Nominally the counter associated with the primary TX key,
 // which may be the primary building key for simple configurations,
@@ -118,7 +119,6 @@ namespace OTV0P2BASE
 static const intptr_t VOP2BASE_EE_START_PERSISTENT_MSG_RESTART_CTR = 104; // Primary set.
 static const intptr_t VOP2BASE_EE_START_PERSISTENT_MSG_RESTART_CTR_ALTERNATE = 108; // Alternate set.
 static const uint8_t VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR = 8;
-
 // 16 Byte primary building (secret, symmetric) key.  (TODO-793)
 static const intptr_t VOP2BASE_EE_START_16BYTE_PRIMARY_BUILDING_KEY = 112;
 static const uint8_t VOP2BASE_EE_LEN_16BYTE_PRIMARY_BUILDING_KEY  = 16;
