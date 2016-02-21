@@ -622,22 +622,35 @@ bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(void *const state,
 // Deals with inversion, but does not interpret the data.
 // Separates the EEPROM access from the data interpretation to simplify unit testing.
 // Buffer must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
-void loadRaw3BytePersistentTXRestartCounterFromEEPROM(uint8_t *const buf)
+static void loadRaw3BytePersistentTXRestartCounterFromEEPROM(uint8_t *const loadBuf)
     {
-    if(NULL == buf) { return; }
-    eeprom_read_block(buf,
+    if(NULL == loadBuf) { return; }
+    eeprom_read_block(loadBuf,
                     (uint8_t *)(OTV0P2BASE::VOP2BASE_EE_START_PERSISTENT_MSG_RESTART_CTR),
                     OTV0P2BASE::VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR);
     // Invert all the bytes.
-    for(int i = 0; i < OTV0P2BASE::VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR; ) { buf[i++] ^= 0xff; }
+    for(int i = 0; i < OTV0P2BASE::VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR; ) { loadBuf[i++] ^= 0xff; }
+    }
+
+// Interpret the persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
+// Combines results from primary and secondary as appropriate.
+// Deals with inversion and checksum checking.
+// Input buffer (loadBuf) must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
+// Output buffer (buf) must be 3 bytes long.
+bool read3BytePersistentTXRestartCounter(const uint8_t *const loadBuf, uint8_t *const buf)
+    {
+    return(false); // FIXME: not implemented
     }
 
 // Get the 3 bytes of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
 // Combines results from primary and secondary as appropriate.
 // Deals with inversion and checksum checking.
+// Output buffer (buf) must be 3 bytes long.
 bool get3BytePersistentTXRestartCounter(uint8_t *const buf)
     {
-    return(false); // FIXME: not implemented
+    uint8_t loadBuf[OTV0P2BASE::VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR];
+    loadRaw3BytePersistentTXRestartCounterFromEEPROM(loadBuf);
+    return(read3BytePersistentTXRestartCounter(loadBuf, buf));
     }
 
 // Fills the supplied 6-byte array with the monotonically-increasing primary TX counter.

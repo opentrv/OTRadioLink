@@ -520,11 +520,18 @@ namespace OTRadioLink
                                     void *state, const uint8_t *key,
                                     uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
 
-    // Fill in 12-byte IV for 'O'-style (0x80) AESGCM security for a frame to TX.
-    // This uses the local node ID as-is for the first 6 bytes.
-    // This uses and increments the primary message counter for the last 6 bytes.
-    // Returns true on success, false on failure eg due to message counter generation failure.
-    bool compute12ByteIDAndCounterIVForTX(uint8_t *ivBuf);
+//// Load the raw form of the persistent reboot/restart message counter from EEPROM into the supplied array.
+//// Deals with inversion, but does not interpret the data.
+//// Separates the EEPROM access from the data interpretation to simplify unit testing.
+//// Buffer must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
+//void loadRaw3BytePersistentTXRestartCounterFromEEPROM(uint8_t *const buf);
+
+    // Interpret the persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
+    // Combines results from primary and secondary as appropriate.
+    // Deals with inversion and checksum checking.
+    // Input buffer (loadBuf) must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
+    // Output buffer (buf) must be 3 bytes long.
+    bool read3BytePersistentTXRestartCounter(const uint8_t *loadBuf, uint8_t *buf);
 
     // Get primary (semi-persistent) message counter for TX from an OpenTRV leaf under its own ID.
     // This counter increases monotonically
@@ -551,6 +558,12 @@ namespace OTRadioLink
     // Returns true on success; false on failure for example because the counter has reached its maximum value.
     // Highest-index bytes in the array increment fastest.
     bool getPrimarySecure6BytePersistentTXMessageCounter(uint8_t *buf);
+
+    // Fill in 12-byte IV for 'O'-style (0x80) AESGCM security for a frame to TX.
+    // This uses the local node ID as-is for the first 6 bytes.
+    // This uses and increments the primary message counter for the last 6 bytes.
+    // Returns true on success, false on failure eg due to message counter generation failure.
+    bool compute12ByteIDAndCounterIVForTX(uint8_t *ivBuf);
 
 
     // CONVENIENCE/BOILERPLATE METHODS
