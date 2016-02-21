@@ -622,6 +622,7 @@ bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(void *const state,
 // Deals with inversion, but does not interpret the data.
 // Separates the EEPROM access from the data interpretation to simplify unit testing.
 // Buffer must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
+// Not ISR-safe.
 static void loadRaw3BytePersistentTXRestartCounterFromEEPROM(uint8_t *const loadBuf)
     {
     if(NULL == loadBuf) { return; }
@@ -632,7 +633,27 @@ static void loadRaw3BytePersistentTXRestartCounterFromEEPROM(uint8_t *const load
     for(int i = 0; i < OTV0P2BASE::VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR; ) { loadBuf[i++] ^= 0xff; }
     }
 
-// Interpret RAM copy of  persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
+// Save the raw form of the persistent reboot/restart message counter to EEPROM from the supplied array.
+// Deals with inversion, but does not interpret the data.
+// Separates the EEPROM access from the data interpretation to simplify unit testing.
+// Uses a smart update for each byte and ensures that each byte appears to read back correctly
+// else fails with a false return value, which may or may not leave an intact good value in place.
+// Buffer must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
+// Not ISR-safe.
+static bool saveRaw3BytePersistentTXRestartCounterFromEEPROM(const uint8_t *const loadBuf)
+    {
+    if(NULL == loadBuf) { return(false); }
+    // Invert all the bytes and write them back carefully testing each OK before starting the next.
+    for(int i = 0; i < OTV0P2BASE::VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR; )
+        {
+        const uint8_t b = loadBuf[i] ^ 0xff;
+        OTV0P2BASE::eeprom_smart_update_byte((uint8_t *)(OTV0P2BASE::VOP2BASE_EE_START_PERSISTENT_MSG_RESTART_CTR) + i, b);
+        if(b != eeprom_read_byte((uint8_t *)(OTV0P2BASE::VOP2BASE_EE_START_PERSISTENT_MSG_RESTART_CTR) + i)) { return(false); }
+        }
+    return(true);
+    }
+
+// Interpret RAM copy of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
 // Combines results from primary and secondary as appropriate.
 // Deals with inversion and checksum checking.
 // Input buffer (loadBuf) must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.

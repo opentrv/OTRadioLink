@@ -520,7 +520,7 @@ namespace OTRadioLink
                                     void *state, const uint8_t *key,
                                     uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
 
-    // Interpret RAM copy of  persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
+    // Interpret RAM copy of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
     // Combines results from primary and secondary as appropriate.
     // Deals with inversion and checksum checking.
     // Input buffer (loadBuf) must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
