@@ -789,10 +789,14 @@ static void testBeaconEncoding()
 static void testPermMsgCount()
   {
   Serial.println("PermMsgCount");
-  uint8_t buf[OTV0P2BASE::VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR];
+  uint8_t loadBuf[OTV0P2BASE::VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR];
+  uint8_t buf[OTRadioLink::primaryPeristentTXMessageRestartCounterBytes];
 //  // Initial test that blank EEPROM after processing yields all zeros.
 //  OTRadioLink::loadRaw3BytePersistentTXRestartCounterFromEEPROM(buf);
 //  for(int i = 0; i < sizeof(buf); ++i) { AssertIsEqual(0, buf[i]); }
+  // Initialise to state of empty EEPROM.
+  memset(loadBuf, 0, sizeof(loadBuf));
+  AssertIsTrue(OTRadioLink::read3BytePersistentTXRestartCounter(loadBuf, buf));
   }
 
 

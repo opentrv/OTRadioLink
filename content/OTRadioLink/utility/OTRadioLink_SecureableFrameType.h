@@ -520,17 +520,12 @@ namespace OTRadioLink
                                     void *state, const uint8_t *key,
                                     uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
 
-//// Load the raw form of the persistent reboot/restart message counter from EEPROM into the supplied array.
-//// Deals with inversion, but does not interpret the data.
-//// Separates the EEPROM access from the data interpretation to simplify unit testing.
-//// Buffer must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
-//void loadRaw3BytePersistentTXRestartCounterFromEEPROM(uint8_t *const buf);
-
     // Interpret the persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
     // Combines results from primary and secondary as appropriate.
     // Deals with inversion and checksum checking.
     // Input buffer (loadBuf) must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
     // Output buffer (buf) must be 3 bytes long.
+    static const uint8_t primaryPeristentTXMessageRestartCounterBytes = 3;
     bool read3BytePersistentTXRestartCounter(const uint8_t *loadBuf, uint8_t *buf);
 
     // Get primary (semi-persistent) message counter for TX from an OpenTRV leaf under its own ID.
