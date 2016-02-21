@@ -798,9 +798,16 @@ static void testPermMsgCount()
   memset(loadBuf, 0, sizeof(loadBuf));
   AssertIsTrue(OTRadioLink::read3BytePersistentTXRestartCounter(loadBuf, buf));
   AssertIsEqual(0, memcmp(buf, zeroKey, OTRadioLink::primaryPeristentTXMessageRestartCounterBytes));
+  // Ensure that it can be incremented and gives the correct next (0x000001) value.
+  AssertIsTrue(OTRadioLink::increment3BytePersistentTXRestartCounter(loadBuf));
+  AssertIsTrue(OTRadioLink::read3BytePersistentTXRestartCounter(loadBuf, buf));
+  AssertIsEqual(0, memcmp(buf, zeroKey, OTRadioLink::primaryPeristentTXMessageRestartCounterBytes - 1));
+  AssertIsEqual(1, buf[2]);
   // Initialise to all-0xff state (with correct CRC), which should cause failure.
   memset(loadBuf, 0xff, sizeof(loadBuf)); loadBuf[3] = 0x6a; loadBuf[7] = 0x6a;
   AssertIsTrue(!OTRadioLink::read3BytePersistentTXRestartCounter(loadBuf, buf));
+  // Ensure that it CANNOT be incremented.
+  AssertIsTrue(!OTRadioLink::increment3BytePersistentTXRestartCounter(loadBuf));
   }
 
 

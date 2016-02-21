@@ -632,7 +632,7 @@ static void loadRaw3BytePersistentTXRestartCounterFromEEPROM(uint8_t *const load
     for(int i = 0; i < OTV0P2BASE::VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR; ) { loadBuf[i++] ^= 0xff; }
     }
 
-// Interpret the persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
+// Interpret RAM copy of  persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
 // Combines results from primary and secondary as appropriate.
 // Deals with inversion and checksum checking.
 // Input buffer (loadBuf) must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
@@ -640,7 +640,8 @@ static void loadRaw3BytePersistentTXRestartCounterFromEEPROM(uint8_t *const load
 // Will report failure when count is all 0xff values.
 bool read3BytePersistentTXRestartCounter(const uint8_t *const loadBuf, uint8_t *const buf)
     {
-    // For now use the primary copy only; fail if the CRC is not intact.
+    // FIXME: for now use the primary copy only.
+    // Fail if the CRC is not valid.
     const uint8_t *const base = loadBuf;
     uint8_t crc = 0;
     for(int i = 0; i < primaryPeristentTXMessageRestartCounterBytes; ++i) { crc = OTV0P2BASE::crc7_5B_update(crc, base[i]); }
@@ -649,6 +650,32 @@ bool read3BytePersistentTXRestartCounter(const uint8_t *const loadBuf, uint8_t *
     if((0x6a == crc) && (0xff == base[0]) && (0xff == base[1]) && (0xff == base[1])) { return(false); }
     // Copy (primary) counter to output.
     for(int i = 0; i < primaryPeristentTXMessageRestartCounterBytes; ++i) { buf[i] = base[i]; }
+    return(true);
+    }
+
+// Increment RAM copy of persistent reboot/restart message counter; returns false on failure.
+// Will refuse to increment such that the top byte overflows, ie when already at 0xff.
+// Updates the CRC.
+// Input/output buffer (loadBuf) must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
+bool increment3BytePersistentTXRestartCounter(uint8_t *const loadBuf)
+    {
+    uint8_t buf[primaryPeristentTXMessageRestartCounterBytes];
+    if(!read3BytePersistentTXRestartCounter(loadBuf, buf)) { return(false); }
+    for(uint8_t i = primaryPeristentTXMessageRestartCounterBytes; i-- > 0; )
+        {
+        if(0 != ++buf[i]) { break; }
+        if(0 == i) { return(false); } // Overflow from top byte not permitted.
+        }
+    // Compute the CRC.
+    uint8_t crc = 0;
+    for(int i = 0; i < primaryPeristentTXMessageRestartCounterBytes; ++i) { crc = OTV0P2BASE::crc7_5B_update(crc, buf[i]); }
+    // Write both copies, primary and alternate.
+    // FIXME: alternate in future to halve write cost on LSB/CRC bytes, eg always write even to primary, odd to alt.
+    for(uint8_t *base = loadBuf; base <= loadBuf + 4; base += 4)
+        {
+        for(int i = 0; i < primaryPeristentTXMessageRestartCounterBytes; ++i) { base[i] = buf[i]; }
+        base[primaryPeristentTXMessageRestartCounterBytes] = crc;
+        }
     return(true);
     }
 

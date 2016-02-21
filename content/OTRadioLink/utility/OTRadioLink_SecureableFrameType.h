@@ -520,7 +520,7 @@ namespace OTRadioLink
                                     void *state, const uint8_t *key,
                                     uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
 
-    // Interpret the persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
+    // Interpret RAM copy of  persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
     // Combines results from primary and secondary as appropriate.
     // Deals with inversion and checksum checking.
     // Input buffer (loadBuf) must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
@@ -528,6 +528,11 @@ namespace OTRadioLink
     // Will report failure when count is all 0xff values.
     static const uint8_t primaryPeristentTXMessageRestartCounterBytes = 3;
     bool read3BytePersistentTXRestartCounter(const uint8_t *loadBuf, uint8_t *buf);
+    // Increment RAM copy of persistent reboot/restart message counter; returns false on failure.
+    // Will refuse to increment such that the top byte overflows, ie when already at 0xff.
+    // Updates the CRC.
+    // Input/output buffer (loadBuf) must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
+    bool increment3BytePersistentTXRestartCounter(uint8_t *loadBuf);
 
     // Get primary (semi-persistent) message counter for TX from an OpenTRV leaf under its own ID.
     // This counter increases monotonically
