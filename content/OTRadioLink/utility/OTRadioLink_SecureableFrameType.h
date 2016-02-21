@@ -553,6 +553,7 @@ namespace OTRadioLink
     // Fills the supplied 6-byte array with the monotonically-increasing primary TX counter.
     // Returns true on success; false on failure for example because the counter has reached its maximum value.
     // Highest-index bytes in the array increment fastest.
+    // Not ISR-safe.
     bool getPrimarySecure6BytePersistentTXMessageCounter(uint8_t *buf);
 
     // Fill in 12-byte IV for 'O'-style (0x80) AESGCM security for a frame to TX.

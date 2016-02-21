@@ -666,6 +666,7 @@ bool get3BytePersistentTXRestartCounter(uint8_t *const buf)
 // Fills the supplied 6-byte array with the monotonically-increasing primary TX counter.
 // Returns true on success; false on failure for example because the counter has reached its maximum value.
 // Highest-index bytes in the array increment fastest.
+// Not ISR-safe.
 bool getPrimarySecure6BytePersistentTXMessageCounter(uint8_t *const buf)
     {
     if(NULL == buf) { return(false); }
@@ -675,7 +676,7 @@ bool getPrimarySecure6BytePersistentTXMessageCounter(uint8_t *const buf)
     // and initialisation of non-persistent part.
     static bool initialised;
 
-    // Ephemeral (non-perisisted) least-significant bytes of message count.
+    // Ephemeral (non-persisted) least-significant bytes of message count.
     static uint8_t ephemeral[3];
 
     // Temporary area for initialising ephemeral[] where needed.
@@ -715,11 +716,11 @@ bool getPrimarySecure6BytePersistentTXMessageCounter(uint8_t *const buf)
                 }
             }
 
-        // FIXME: copy in the persistent part.
-        memset(buf, 0, 3); // FIXME: just use zeros for now FIXME FIXME
+        // Copy in the persistent part.
+        if(!get3BytePersistentTXRestartCounter(buf)) { return(false); }
         // Copy in the ephemeral part.
         memcpy(buf + 3, ephemeral, 3);
-        return(true); // FIXME: lie and claim that all is well.
+        return(true); // FIXME: lie and claim that all is well: see above...
         }
     }
 
