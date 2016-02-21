@@ -617,6 +617,22 @@ bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(void *const state,
     return(true);
     }
 
+// Get the 3 bytes of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
+// Reads directly from the primary or alternate copy as specified.
+// Deals with inversion and checksum checking.
+bool get3BytePersistentTXRestartCounter(uint8_t *const buf, const bool alternate)
+    {
+    return(false); // FIXME: not implemented
+    }
+
+// Get the 3 bytes of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
+// Combines results from primary and secondary as appropriate.
+// Deals with inversion and checksum checking.
+bool get3BytePersistentTXRestartCounter(uint8_t *const buf)
+    {
+    return(false); // FIXME: not implemented
+    }
+
 // Fills the supplied 6-byte array with the monotonically-increasing primary TX counter.
 // Returns true on success; false on failure for example because the counter has reached its maximum value.
 // Highest-index bytes in the array increment fastest.
