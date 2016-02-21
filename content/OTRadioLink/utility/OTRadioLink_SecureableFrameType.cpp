@@ -640,7 +640,7 @@ static void loadRaw3BytePersistentTXRestartCounterFromEEPROM(uint8_t *const load
 // else fails with a false return value, which may or may not leave an intact good value in place.
 // Buffer must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
 // Not ISR-safe.
-static bool saveRaw3BytePersistentTXRestartCounterFromEEPROM(const uint8_t *const loadBuf)
+static bool saveRaw3BytePersistentTXRestartCounterToEEPROM(const uint8_t *const loadBuf)
     {
     if(NULL == loadBuf) { return(false); }
     // Invert all the bytes and write them back carefully testing each OK before starting the next.
@@ -649,6 +649,21 @@ static bool saveRaw3BytePersistentTXRestartCounterFromEEPROM(const uint8_t *cons
         const uint8_t b = loadBuf[i] ^ 0xff;
         OTV0P2BASE::eeprom_smart_update_byte((uint8_t *)(OTV0P2BASE::VOP2BASE_EE_START_PERSISTENT_MSG_RESTART_CTR) + i, b);
         if(b != eeprom_read_byte((uint8_t *)(OTV0P2BASE::VOP2BASE_EE_START_PERSISTENT_MSG_RESTART_CTR) + i)) { return(false); }
+        }
+    return(true);
+    }
+
+// Reset the persistent reboot/restart message counter in EEPROM; returns false on failure.
+// TO BE USED WITH EXTREME CAUTION as reusing the message counts and resulting IVs
+// destroys the security of the cipher.
+// Probably only sensible to call this when changing either the ID or the key (or both).
+// Erases the underlying EEPROM bytes.
+bool resetRaw3BytePersistentTXRestartCounterInEEPROM()
+    {
+    for(int i = 0; i < OTV0P2BASE::VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR; )
+        {
+        OTV0P2BASE::eeprom_smart_erase_byte((uint8_t *)(OTV0P2BASE::VOP2BASE_EE_START_PERSISTENT_MSG_RESTART_CTR) + i);
+        if(0xff != eeprom_read_byte((uint8_t *)(OTV0P2BASE::VOP2BASE_EE_START_PERSISTENT_MSG_RESTART_CTR) + i)) { return(false); }
         }
     return(true);
     }

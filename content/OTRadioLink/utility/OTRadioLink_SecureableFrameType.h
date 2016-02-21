@@ -533,6 +533,12 @@ namespace OTRadioLink
     // Updates the CRC.
     // Input/output buffer (loadBuf) must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
     bool increment3BytePersistentTXRestartCounter(uint8_t *loadBuf);
+    // Reset the persistent reboot/restart message counter in EEPROM; returns false on failure.
+    // TO BE USED WITH EXTREME CAUTION as reusing the message counts and resulting IVs
+    // destroys the security of the cipher.
+    // Probably only sensible to call this when changing either the ID or the key (or both).
+    // Erases the underlying EEPROM bytes.
+    bool resetRaw3BytePersistentTXRestartCounterInEEPROM();
 
     // Get primary (semi-persistent) message counter for TX from an OpenTRV leaf under its own ID.
     // This counter increases monotonically
