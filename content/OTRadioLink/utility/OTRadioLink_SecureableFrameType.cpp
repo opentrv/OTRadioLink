@@ -715,6 +715,17 @@ bool increment3BytePersistentTXRestartCounter(uint8_t *const loadBuf)
     return(true);
     }
 
+// Increment EEPROM copy of persistent reboot/restart message counter; returns false on failure.
+// Will refuse to increment such that the top byte overflows, ie when already at 0xff.
+static bool increment3BytePersistentTXRestartCounter()
+    {
+    // Increment the persistent part; fail entirely if not usable/incrementable (eg all 0xff).
+    uint8_t loadBuf[OTV0P2BASE::VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR];
+    loadRaw3BytePersistentTXRestartCounterFromEEPROM(loadBuf);
+    if(!increment3BytePersistentTXRestartCounter(loadBuf)) { return(false); }
+    if(!saveRaw3BytePersistentTXRestartCounterToEEPROM(loadBuf)) { return(false); }
+    }
+
 // Get the 3 bytes of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
 // Combines results from primary and secondary as appropriate.
 // Deals with inversion and checksum checking.
@@ -756,35 +767,44 @@ bool getPrimarySecure6BytePersistentTXMessageCounter(uint8_t *const buf)
         }
 
     // Disable interrupts while adjusting counter and copying back to the caller.
+    // Though since it is slow, incrementing the persistent counter (when done) is outside this block.
+    bool incrementPersistent = false;
     ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
         {
         if(!initialised)
             {
-            // FIXME: increment persistent counter carefully FIXME FIXME
-            // FIXME: fail if persistent count is all 0xff which will catch hitting ceiling and uninitialised EEPROM.
+            // Prepare to increment the persistent part below.
+            incrementPersistent = true;
             // Fill lsbs of ephemeral part with entropy so as not to reduce lifetime significantly.
             memcpy(ephemeral+max(0,sizeof(ephemeral)-sizeof(tmpE)), tmpE, min(sizeof(tmpE), sizeof(ephemeral)));
             initialised = true;
             }
 
-        // FIXME: NOT FULLY IMPLEMENTED YET: IMPORTANT FOR SECURITY TO COMPLETE THIS
-
-        // FIXME: increment the counter including the persistent part where necessary.
+        // Increment the counter including the persistent part where necessary.
         for(uint8_t i = sizeof(ephemeral); i-- > 0; )
             {
             if(0 != ++ephemeral[i]) { break; }
             if(0 == i)
                 {
-                // FIXME: increment the persistent part FIXME FIXME
+                // Prepare to increment the persistent part below.
+                incrementPersistent = true;
                 }
             }
 
-        // Copy in the persistent part.
-        if(!get3BytePersistentTXRestartCounter(buf)) { return(false); }
         // Copy in the ephemeral part.
         memcpy(buf + 3, ephemeral, 3);
-        return(true); // FIXME: lie and claim that all is well: see above...
         }
+
+    // Increment persistent part if necessary.
+    // Done outside atomic block as potentially slow (worst-case 8 EEPROM full writes).
+    if(incrementPersistent)
+        {
+        // Increment the persistent part; fail entirely if not usable/incrementable (eg all 0xff).
+        if(!increment3BytePersistentTXRestartCounter()) { return(false); }
+        }
+    // Copy in the persistent part; fail entirely if it is not usable.
+    if(!get3BytePersistentTXRestartCounter(buf)) { return(false); }
+    return(true);
     }
 
 // Fill in 12-byte IV for 'O'-style (0x80) AESGCM security for a frame to TX.
