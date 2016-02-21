@@ -617,21 +617,6 @@ bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(void *const state,
     return(true);
     }
 
-//// Get the 3 bytes of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
-//// Reads directly from the primary or alternate copy as specified.
-//// Deals with inversion and checksum checking.
-//bool get3BytePersistentTXRestartCounter(uint8_t *const buf, const bool alternate)
-//    {
-//    uint8_t restart[4];
-//    eeprom_read_block(restart,
-//                    (uint8_t *)(alternate ? VOP2BASE_EE_START_PERSISTENT_MSG_RESTART_CTR_ALTERNATE : VOP2BASE_EE_START_PERSISTENT_MSG_RESTART_CTR),
-//                    sizeof(restart));
-//    // TODO: check CRC
-//    return(false); // FIXME: not implemented
-//    }
-//
-// VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR
-
 // Load the raw form of the persistent reboot/restart message counter from EEPROM into the supplied array.
 // Deals with inversion, but does not interpret the data.
 // Separates the EEPROM access from the data interpretation to simplify unit testing.
