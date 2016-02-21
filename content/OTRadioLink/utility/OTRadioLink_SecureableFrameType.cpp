@@ -617,6 +617,43 @@ bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(void *const state,
     return(true);
     }
 
+//// Get the 3 bytes of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
+//// Reads directly from the primary or alternate copy as specified.
+//// Deals with inversion and checksum checking.
+//bool get3BytePersistentTXRestartCounter(uint8_t *const buf, const bool alternate)
+//    {
+//    uint8_t restart[4];
+//    eeprom_read_block(restart,
+//                    (uint8_t *)(alternate ? VOP2BASE_EE_START_PERSISTENT_MSG_RESTART_CTR_ALTERNATE : VOP2BASE_EE_START_PERSISTENT_MSG_RESTART_CTR),
+//                    sizeof(restart));
+//    // TODO: check CRC
+//    return(false); // FIXME: not implemented
+//    }
+//
+// VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR
+
+// Load the raw form of the persistent reboot/restart message counter from EEPROM into the supplied array.
+// Deals with inversion, but does not interpret the data.
+// Separates the EEPROM access from the data interpretation to simplify unit testing.
+// Buffer must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
+void loadRaw3BytePersistentTXRestartCounterFromEEPROM(uint8_t *const buf)
+    {
+    if(NULL == buf) { return; }
+    eeprom_read_block(buf,
+                    (uint8_t *)(VOP2BASE_EE_START_PERSISTENT_MSG_RESTART_CTR),
+                    VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR);
+    // Invert all the bytes.
+    for(int i = 0; i < VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR; ++i) { buf[i] ^= 0xff; }
+    }
+
+// Get the 3 bytes of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
+// Combines results from primary and secondary as appropriate.
+// Deals with inversion and checksum checking.
+bool get3BytePersistentTXRestartCounter(uint8_t *const buf)
+    {
+    return(false); // FIXME: not implemented
+    }
+
 // Fills the supplied 6-byte array with the monotonically-increasing primary TX counter.
 // Returns true on success; false on failure for example because the counter has reached its maximum value.
 // Highest-index bytes in the array increment fastest.
