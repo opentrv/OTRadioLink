@@ -12,4 +12,6 @@ pending:
     DE20160129:  Implemented basic test send functionality
     DE20160129:  Implemented initial LoRaWAN setup and stats tx
     DE20160201:  Added set-able pin defs 
+    DE20160221:  Added optional sleep and eeprom modes, and implemented reset line
+    
 
