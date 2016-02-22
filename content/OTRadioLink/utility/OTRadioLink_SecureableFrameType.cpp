@@ -802,14 +802,17 @@ bool getPrimarySecure6BytePersistentTXMessageCounter(uint8_t *const buf)
     static bool initialised;
     const bool doInitialisation = !initialised;
     if(doInitialisation) { initialised = true; }
+    bool incrementPersistent = false;
 
     // If initialising and persistent/restart part is all zeros
-    // then force it to an entropy-laden non-zero value.
+    // then force it to an entropy-laden non-zero value,
+    // else simply increment it as per the expected restart counter behaviour.
     if(doInitialisation)
         {
         if(!get3BytePersistentTXRestartCounter(buf)) { return(false); }
         if((0 == buf[0]) && (0 == buf[1]) && (0 == buf[2]))
             { if(!resetRaw3BytePersistentTXRestartCounterInEEPROM(false)) { return(false); } }
+        else { incrementPersistent = true; }
         }
 
     // Ephemeral (non-persisted) least-significant bytes of message count.
@@ -830,16 +833,12 @@ bool getPrimarySecure6BytePersistentTXMessageCounter(uint8_t *const buf)
 
     // Disable interrupts while adjusting counter and copying back to the caller.
     // Though since it is slow, incrementing the persistent counter (when done) is outside this block.
-    bool incrementPersistent = false;
     ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
         {
         if(doInitialisation)
             {
-            // Prepare to increment the persistent part below.
-            incrementPersistent = true;
             // Fill lsbs of ephemeral part with entropy so as not to reduce lifetime significantly.
             memcpy(ephemeral+max(0,sizeof(ephemeral)-sizeof(tmpE)), tmpE, min(sizeof(tmpE), sizeof(ephemeral)));
-            initialised = true;
             }
 
         // Increment the counter including the persistent part where necessary.
@@ -861,9 +860,10 @@ bool getPrimarySecure6BytePersistentTXMessageCounter(uint8_t *const buf)
     // Done outside atomic block as potentially slow (worst-case 8 EEPROM full writes).
     if(incrementPersistent)
         {
-        // Increment the persistent part; fail entirely if not usable/incrementable (eg all 0xff).
+        // Increment the persistent part; fail entirely if not usable/incrementable (eg at max value).
         if(!increment3BytePersistentTXRestartCounter()) { return(false); }
         }
+
     // Copy in the persistent part; fail entirely if it is not usable.
     if(!get3BytePersistentTXRestartCounter(buf)) { return(false); }
 
