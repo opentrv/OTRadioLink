@@ -521,7 +521,7 @@ namespace OTRadioLink
                                     uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
 
     // Load the raw form of the persistent reboot/restart message counter from EEPROM into the supplied array.
-    // Deals with inversion, but does not interpret the data.
+    // Deals with inversion, but does not interpret the data or check CRCs etc.
     // Separates the EEPROM access from the data interpretation to simplify unit testing.
     // Buffer must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
     // Not ISR-safe.
@@ -539,6 +539,11 @@ namespace OTRadioLink
     // Updates the CRC.
     // Input/output buffer (loadBuf) must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
     bool increment3BytePersistentTXRestartCounter(uint8_t *loadBuf);
+    // Get the 3 bytes of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
+    // Combines results from primary and secondary as appropriate.
+    // Deals with inversion and checksum checking.
+    // Output buffer (buf) must be 3 bytes long.
+    bool get3BytePersistentTXRestartCounter(uint8_t *buf);
 
     // Reset the persistent reboot/restart message counter in EEPROM; returns false on failure.
     // TO BE USED WITH EXTREME CAUTION: reusing the message counts and resulting IVs
@@ -547,6 +552,8 @@ namespace OTRadioLink
     // This can reset the restart counter to all zeros (erasing the underlying EEPROM bytes),
     // or (default) reset only the most significant bits to zero (preserving device life)
     // but inject entropy into the least significant bits to reduce risk value/IV reuse in error.
+    // If called with false then interrupts should not be blocked to allow entropy gathering,
+    // and counter is guaranteed to be non-zero.
     bool resetRaw3BytePersistentTXRestartCounterInEEPROM(bool allZeros = false);
     // Increment EEPROM copy of persistent reboot/restart message counter; returns false on failure.
     // Will refuse to increment such that the top byte overflows, ie when already at 0xff.

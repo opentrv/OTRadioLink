@@ -620,7 +620,7 @@ bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(void *const state,
     }
 
 // Load the raw form of the persistent reboot/restart message counter from EEPROM into the supplied array.
-// Deals with inversion, but does not interpret the data.
+// Deals with inversion, but does not interpret the data or check CRCs etc.
 // Separates the EEPROM access from the data interpretation to simplify unit testing.
 // Buffer must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
 // Not ISR-safe.
@@ -661,6 +661,8 @@ static bool saveRaw3BytePersistentTXRestartCounterToEEPROM(const uint8_t *const 
 // This can reset the restart counter to all zeros (erasing the underlying EEPROM bytes),
 // or (default) reset only the most significant bits to zero (preserving device life)
 // but inject entropy into the least significant bits to reduce risk value/IV reuse in error.
+// If called with false then interrupts should not be blocked to allow entropy gathering,
+// and counter is guaranteed to be non-zero.
 bool resetRaw3BytePersistentTXRestartCounterInEEPROM(const bool allZeros)
     {
     if(allZeros)
@@ -674,12 +676,22 @@ bool resetRaw3BytePersistentTXRestartCounterInEEPROM(const bool allZeros)
         }
     else
         {
-        // FIXME FIXME
-        // Make only msbits zero, and file rest with entropy and reset the CRC.
+        // Make only msbits zero, and fill rest with entropy and reset the CRC.
+        // Buffer for noise bytes; msbits will be kept as zero.  Tack CRC on the end.
+        uint8_t noise[primaryPeristentTXMessageRestartCounterBytes + 1];
+        for(uint8_t i = 0; i < primaryPeristentTXMessageRestartCounterBytes; ) { noise[i++] = OTV0P2BASE::getSecureRandomByte(); }
+        noise[0] = 0xf & (noise[0] ^ (noise[0] >> 4)); // Keep top 4 bits clear to preserve > 90% of possible life.
+        // Ensure that entire sequence is non-zero by forcing lsb to 1 (if enough of) noise seems to be 0.
+        if((0 == noise[primaryPeristentTXMessageRestartCounterBytes-1]) && (0 == noise[1]) && (0 == noise[0])) { noise[primaryPeristentTXMessageRestartCounterBytes-1] = 1; }
+        // Compute CRC for new value.
+        uint8_t crc = 0;
+        for(int i = 0; i < primaryPeristentTXMessageRestartCounterBytes; ++i) { crc = _crc8_ccitt_update(crc, noise[i]); }
+        noise[primaryPeristentTXMessageRestartCounterBytes] = crc;
         for(uint8_t i = 0; i < OTV0P2BASE::VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR; ++i)
             {
-            OTV0P2BASE::eeprom_smart_erase_byte((uint8_t *)(OTV0P2BASE::VOP2BASE_EE_START_PERSISTENT_MSG_RESTART_CTR) + i);
-            if(0xff != eeprom_read_byte((uint8_t *)(OTV0P2BASE::VOP2BASE_EE_START_PERSISTENT_MSG_RESTART_CTR) + i)) { return(false); }
+            const uint8_t b = noise[i & 3];
+            OTV0P2BASE::eeprom_smart_update_byte((uint8_t *)(OTV0P2BASE::VOP2BASE_EE_START_PERSISTENT_MSG_RESTART_CTR) + i, b);
+            if(b != eeprom_read_byte((uint8_t *)(OTV0P2BASE::VOP2BASE_EE_START_PERSISTENT_MSG_RESTART_CTR) + i)) { return(false); }
             }
         }
     return(true);
@@ -693,14 +705,14 @@ bool resetRaw3BytePersistentTXRestartCounterInEEPROM(const bool allZeros)
 // Will report failure when count is all 0xff values.
 bool read3BytePersistentTXRestartCounter(const uint8_t *const loadBuf, uint8_t *const buf)
     {
-    // FIXME: for now use the primary copy only.
+    // FIXME: for now use the primary copy only: should be able to salvage from secondary, else take higher+1.
     // Fail if the CRC is not valid.
     const uint8_t *const base = loadBuf;
     uint8_t crc = 0;
     for(int i = 0; i < primaryPeristentTXMessageRestartCounterBytes; ++i) { crc = _crc8_ccitt_update(crc, base[i]); }
     if(crc != base[primaryPeristentTXMessageRestartCounterBytes]) { return(false); } // CRC failed.
     // Check for all 0xff (maximum) value and fail if found.
-    if((0x6a == crc) && (0xff == base[0]) && (0xff == base[1]) && (0xff == base[1])) { return(false); }
+    if((0xff == base[0]) && (0xff == base[1]) && (0xff == base[2])) { return(false); }
     // Copy (primary) counter to output.
     for(int i = 0; i < primaryPeristentTXMessageRestartCounterBytes; ++i) { buf[i] = base[i]; }
     return(true);
