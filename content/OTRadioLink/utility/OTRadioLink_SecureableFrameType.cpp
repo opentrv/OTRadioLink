@@ -699,17 +699,11 @@ OTV0P2BASE::serialPrintlnAndFlush();
     return(true);
     }
 
-// Interpret RAM copy of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
-// Combines results from primary and secondary as appropriate.
-// Deals with inversion and checksum checking.
-// Input buffer (loadBuf) must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
-// Output buffer (buf) must be 3 bytes long.
-// Will report failure when count is all 0xff values.
-bool read3BytePersistentTXRestartCounter(const uint8_t *const loadBuf, uint8_t *const buf)
+// Read exactly one of the copies of the persistent reboot/restart message counter; returns false on failure.
+static bool readOne3BytePersistentTXRestartCounter(const uint8_t *const base, uint8_t *const buf)
     {
     // FIXME: for now use the primary copy only: should be able to salvage from secondary, else take higher+1.
     // Fail if the CRC is not valid.
-    const uint8_t *const base = loadBuf;
     uint8_t crc = 0;
     for(int i = 0; i < primaryPeristentTXMessageRestartCounterBytes; ++i) { crc = _crc8_ccitt_update(crc, base[i]); }
 #if 0
@@ -719,12 +713,29 @@ OTV0P2BASE::serialPrintAndFlush(' ');
 OTV0P2BASE::serialPrintAndFlush(base[primaryPeristentTXMessageRestartCounterBytes], HEX);
 OTV0P2BASE::serialPrintlnAndFlush();
 #endif
-    if(crc != base[primaryPeristentTXMessageRestartCounterBytes]) { OTV0P2BASE::serialPrintlnAndFlush(F("CRC failed")); return(false); } // CRC failed.
+    if(crc != base[primaryPeristentTXMessageRestartCounterBytes]) { /* OTV0P2BASE::serialPrintlnAndFlush(F("CRC failed")); */ return(false); } // CRC failed.
     // Check for all 0xff (maximum) value and fail if found.
     if((0xff == base[0]) && (0xff == base[1]) && (0xff == base[2])) { /* OTV0P2BASE::serialPrintlnAndFlush(F("counter at max")); */ return(false); } // Counter at max.
     // Copy (primary) counter to output.
     for(int i = 0; i < primaryPeristentTXMessageRestartCounterBytes; ++i) { buf[i] = base[i]; }
     return(true);
+    }
+
+
+// Interpret RAM copy of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
+// Combines results from primary and secondary as appropriate,
+// for example to recover from message counter corruption due to a failure during write.
+// TODO: should still do more to (for example) rewrite failed copy for resilience against multiple write failures.
+// Deals with inversion and checksum checking.
+// Input buffer (loadBuf) must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
+// Output buffer (buf) must be 3 bytes long.
+// Will report failure when count is all 0xff values.
+bool read3BytePersistentTXRestartCounter(const uint8_t *const loadBuf, uint8_t *const buf)
+    {
+    // Read the primary copy.
+    if(readOne3BytePersistentTXRestartCounter(loadBuf, buf)) { return(true); }
+    // Failing that try the secondary copy.
+    return(readOne3BytePersistentTXRestartCounter(loadBuf + 4, buf));
     }
 
 // Increment RAM copy of persistent reboot/restart message counter; returns false on failure.

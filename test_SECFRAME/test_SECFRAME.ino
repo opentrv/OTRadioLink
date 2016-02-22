@@ -808,6 +808,18 @@ static void testPermMsgCount()
   AssertIsTrue(!OTRadioLink::read3BytePersistentTXRestartCounter(loadBuf, buf));
   // Ensure that it CANNOT be incremented.
   AssertIsTrue(!OTRadioLink::increment3BytePersistentTXRestartCounter(loadBuf));
+  // Test recovery from broken primary counter a few times.
+  memset(loadBuf, 0, sizeof(loadBuf));
+  for(uint8_t i = 0; i < 3; ++i)
+    {
+    // Damage one of the primary or secondary counter bytes (or CRCs).
+    loadBuf[0x7 & OTV0P2BASE::randRNG8()] = OTV0P2BASE::randRNG8();
+    AssertIsTrue(OTRadioLink::read3BytePersistentTXRestartCounter(loadBuf, buf));
+    AssertIsEqual(0, buf[1]);
+    AssertIsEqual(0, buf[1]);
+    AssertIsEqual(i, buf[2]);
+    AssertIsTrue(OTRadioLink::increment3BytePersistentTXRestartCounter(loadBuf));
+    }
   }
 
 // Test handling of persistent/reboot/restart part of primary message counter.

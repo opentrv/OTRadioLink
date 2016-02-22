@@ -527,7 +527,9 @@ namespace OTRadioLink
     // Not ISR-safe.
     void loadRaw3BytePersistentTXRestartCounterFromEEPROM(uint8_t *loadBuf);
     // Interpret RAM copy of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
-    // Combines results from primary and secondary as appropriate.
+    // Combines results from primary and secondary as appropriate,
+    // for example to recover from message counter corruption due to a failure during write.
+    // TODO: should still do more to (for example) rewrite failed copy for resilience against multiple write failures.
     // Deals with inversion and checksum checking.
     // Input buffer (loadBuf) must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
     // Output buffer (buf) must be 3 bytes long.
