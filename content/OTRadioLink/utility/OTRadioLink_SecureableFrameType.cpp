@@ -25,6 +25,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
  */
 
 #include <util/atomic.h>
+#include <util/crc16.h>
 #include <string.h>
 
 #include "OTRadioLink_SecureableFrameType.h"
@@ -657,13 +658,30 @@ static bool saveRaw3BytePersistentTXRestartCounterToEEPROM(const uint8_t *const 
 // TO BE USED WITH EXTREME CAUTION as reusing the message counts and resulting IVs
 // destroys the security of the cipher.
 // Probably only sensible to call this when changing either the ID or the key (or both).
-// Erases the underlying EEPROM bytes.
-bool resetRaw3BytePersistentTXRestartCounterInEEPROM()
+// This can reset the restart counter to all zeros (erasing the underlying EEPROM bytes),
+// or (default) reset only the most significant bits to zero (preserving device life)
+// but inject entropy into the least significant bits to reduce risk value/IV reuse in error.
+bool resetRaw3BytePersistentTXRestartCounterInEEPROM(const bool allZeros)
     {
-    for(int i = 0; i < OTV0P2BASE::VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR; )
+    if(allZeros)
         {
-        OTV0P2BASE::eeprom_smart_erase_byte((uint8_t *)(OTV0P2BASE::VOP2BASE_EE_START_PERSISTENT_MSG_RESTART_CTR) + i);
-        if(0xff != eeprom_read_byte((uint8_t *)(OTV0P2BASE::VOP2BASE_EE_START_PERSISTENT_MSG_RESTART_CTR) + i)) { return(false); }
+        // Erase everything, leaving counter all-zeros with correct (0) CRC.
+        for(int i = 0; i < OTV0P2BASE::VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR; )
+            {
+            OTV0P2BASE::eeprom_smart_erase_byte((uint8_t *)(OTV0P2BASE::VOP2BASE_EE_START_PERSISTENT_MSG_RESTART_CTR) + i);
+            if(0xff != eeprom_read_byte((uint8_t *)(OTV0P2BASE::VOP2BASE_EE_START_PERSISTENT_MSG_RESTART_CTR) + i)) { return(false); }
+            }
+        }
+    else
+        {
+        // FIXME
+        // Make only msbits zero, and file rest with entropy and reset the CRC.
+        for(int i = 0; i < OTV0P2BASE::VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR; )
+            {
+            // FIXME
+            OTV0P2BASE::eeprom_smart_erase_byte((uint8_t *)(OTV0P2BASE::VOP2BASE_EE_START_PERSISTENT_MSG_RESTART_CTR) + i);
+            if(0xff != eeprom_read_byte((uint8_t *)(OTV0P2BASE::VOP2BASE_EE_START_PERSISTENT_MSG_RESTART_CTR) + i)) { return(false); }
+            }
         }
     return(true);
     }
@@ -680,7 +698,7 @@ bool read3BytePersistentTXRestartCounter(const uint8_t *const loadBuf, uint8_t *
     // Fail if the CRC is not valid.
     const uint8_t *const base = loadBuf;
     uint8_t crc = 0;
-    for(int i = 0; i < primaryPeristentTXMessageRestartCounterBytes; ++i) { crc = OTV0P2BASE::crc7_5B_update(crc, base[i]); }
+    for(int i = 0; i < primaryPeristentTXMessageRestartCounterBytes; ++i) { crc = _crc8_ccitt_update(crc, base[i]); }
     if(crc != base[primaryPeristentTXMessageRestartCounterBytes]) { return(false); } // CRC failed.
     // Check for all 0xff (maximum) value and fail if found.
     if((0x6a == crc) && (0xff == base[0]) && (0xff == base[1]) && (0xff == base[1])) { return(false); }
@@ -704,7 +722,7 @@ bool increment3BytePersistentTXRestartCounter(uint8_t *const loadBuf)
         }
     // Compute the CRC.
     uint8_t crc = 0;
-    for(int i = 0; i < primaryPeristentTXMessageRestartCounterBytes; ++i) { crc = OTV0P2BASE::crc7_5B_update(crc, buf[i]); }
+    for(int i = 0; i < primaryPeristentTXMessageRestartCounterBytes; ++i) { crc = _crc8_ccitt_update(crc, buf[i]); }
     // Write both copies, primary and alternate.
     // FIXME: alternate in future to halve write cost on LSB/CRC bytes, eg always write even to primary, odd to alt.
     for(uint8_t *base = loadBuf; base <= loadBuf + 4; base += 4)

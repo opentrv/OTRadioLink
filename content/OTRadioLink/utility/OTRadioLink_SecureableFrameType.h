@@ -537,8 +537,10 @@ namespace OTRadioLink
     // TO BE USED WITH EXTREME CAUTION as reusing the message counts and resulting IVs
     // destroys the security of the cipher.
     // Probably only sensible to call this when changing either the ID or the key (or both).
-    // Erases the underlying EEPROM bytes.
-    bool resetRaw3BytePersistentTXRestartCounterInEEPROM();
+    // This can reset the restart counter to all zeros (erasing the underlying EEPROM bytes),
+    // or (default) reset only the most significant bits to zero (preserving device life)
+    // but inject entropy into the least significant bits to reduce risk value/IV reuse in error.
+    bool resetRaw3BytePersistentTXRestartCounterInEEPROM(bool allZeros = false);
 
     // Get primary (semi-persistent) message counter for TX from an OpenTRV leaf under its own ID.
     // This counter increases monotonically
