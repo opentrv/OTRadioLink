@@ -858,7 +858,6 @@ void loop()
   testSecureSmallFrameEncoding();
   testBeaconEncoding();
 
-
   // Run-once tests.
   // May cause wear on (eg) EEPROM, so only run once,
   // and only after all other tests have passed.
