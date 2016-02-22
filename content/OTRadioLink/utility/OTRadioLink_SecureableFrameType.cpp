@@ -785,20 +785,31 @@ bool getPrimarySecure6BytePersistentTXMessageCounter(uint8_t *const buf)
     {
     if(NULL == buf) { return(false); }
 
-    // False when first called.
+    // False when first called, ie on first call to this routine after board boot/restart.
     // Used to drive roll of persistent part
     // and initialisation of non-persistent part.
     static bool initialised;
+    const bool doInitialisation = !initialised;
+    if(doInitialisation) { initialised = true; }
+
+    // If initialising and persistent/restart part is all zeros
+    // then force it to an entropy-laden non-zero value.
+    if(doInitialisation)
+        {
+        if(!get3BytePersistentTXRestartCounter(buf)) { return(false); }
+        if((0 == buf[0]) && (0 == buf[1]) && (0 == buf[2]))
+            { if(!resetRaw3BytePersistentTXRestartCounterInEEPROM(false)) { return(false); } }
+        }
 
     // Ephemeral (non-persisted) least-significant bytes of message count.
     static uint8_t ephemeral[3];
 
     // Temporary area for initialising ephemeral[] where needed.
     uint8_t tmpE[sizeof(ephemeral)];
-    if(!initialised)
+    if(doInitialisation)
         {
         for(uint8_t i = sizeof(tmpE); i-- > 0; )
-          { tmpE[i] = OTV0P2BASE::getSecureRandomByte(); } // Doesn't like being called with interrupts off.
+            { tmpE[i] = OTV0P2BASE::getSecureRandomByte(); } // Doesn't like being called with interrupts off.
         // Mask off top bits of top (most significant byte) to preserve most of the remaining counter life
         // but allow ~20 bits ie a decent chunk of 1 million messages
         // (maybe several years at a message every 4 minutes)
@@ -811,7 +822,7 @@ bool getPrimarySecure6BytePersistentTXMessageCounter(uint8_t *const buf)
     bool incrementPersistent = false;
     ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
         {
-        if(!initialised)
+        if(doInitialisation)
             {
             // Prepare to increment the persistent part below.
             incrementPersistent = true;
@@ -844,6 +855,7 @@ bool getPrimarySecure6BytePersistentTXMessageCounter(uint8_t *const buf)
         }
     // Copy in the persistent part; fail entirely if it is not usable.
     if(!get3BytePersistentTXRestartCounter(buf)) { return(false); }
+
     return(true);
     }
 

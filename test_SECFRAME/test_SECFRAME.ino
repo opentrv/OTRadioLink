@@ -838,6 +838,18 @@ static void testPermMsgCountRunOnce()
   AssertIsTrue(OTRadioLink::resetRaw3BytePersistentTXRestartCounterInEEPROM());
   AssertIsTrue(OTRadioLink::get3BytePersistentTXRestartCounter(buf));
   AssertIsTrue(0 != memcmp(buf, zeroKey, OTRadioLink::primaryPeristentTXMessageRestartCounterBytes));
+  // Initial test that from blank EEPROM (or reset to all zeros)
+  // that getting the message counter gives non-zero reboot and ephemeral parts.
+  AssertIsTrue(OTRadioLink::resetRaw3BytePersistentTXRestartCounterInEEPROM(true));
+  uint8_t mcbuf[OTRadioLink::primaryPeristentTXMessageCounterBytes];
+  AssertIsTrue(OTRadioLink::getPrimarySecure6BytePersistentTXMessageCounter(mcbuf));
+#if 1
+  for(int i = 0; i < sizeof(mcbuf); ++i) { Serial.print(' '); Serial.print(mcbuf[i], HEX); }
+  Serial.println();
+#endif
+  // Assert that each half of the message counter is non-zero.
+  AssertIsTrue((0 != mcbuf[0]) || (0 != mcbuf[1]) || (0 != mcbuf[2]));
+  AssertIsTrue((0 != mcbuf[3]) || (0 != mcbuf[4]) || (0 != mcbuf[5]));
   }
 
 
