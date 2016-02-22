@@ -846,6 +846,18 @@ void loop()
   testBeaconEncoding();
 
 
+  // Run-once tests.
+  // May cause wear on (eg) EEPROM, so only run once,
+  // and only after everything else has passed.
+  static bool runOnce;
+  if(!runOnce)
+    {
+    Serial.print(F("Run-once tests... "));
+    // TODO
+    runOnce = true;
+    }
+
+
   // Announce successful loop completion and count.
   ++loopCount;
   Serial.println();
