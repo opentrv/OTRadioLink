@@ -810,6 +810,19 @@ static void testPermMsgCount()
   AssertIsTrue(!OTRadioLink::increment3BytePersistentTXRestartCounter(loadBuf));
   }
 
+// Test handling of persistent/reboot/restart part of primary message counter.
+// Tests to only be run once because they may cause device wear.
+static void testPermMsgCountRunOnce()
+  {
+  Serial.println("PermMsgCountRunOnce");
+  uint8_t loadBuf[OTV0P2BASE::VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR];
+  uint8_t buf[OTRadioLink::primaryPeristentTXMessageRestartCounterBytes];
+//  // Initial test that blank EEPROM after processing yields all zeros.
+//  OTRadioLink::loadRaw3BytePersistentTXRestartCounterFromEEPROM(buf);
+//  for(int i = 0; i < sizeof(buf); ++i) { AssertIsEqual(0, buf[i]); }
+  }
+
+
 
 // To be called from loop() instead of main code when running unit tests.
 // Tests generally flag an error and stop the test cycle with a call to panic() or error().
@@ -844,6 +857,18 @@ void loop()
   testGCMVS1ViaFixed32BTextSize();
   testSecureSmallFrameEncoding();
   testBeaconEncoding();
+
+
+  // Run-once tests.
+  // May cause wear on (eg) EEPROM, so only run once,
+  // and only after all other tests have passed.
+  static bool runOnce;
+  if(!runOnce)
+    {
+    runOnce = true;
+    Serial.println(F("Run-once tests... "));
+    testPermMsgCountRunOnce();
+    }
 
 
   // Announce successful loop completion and count.
