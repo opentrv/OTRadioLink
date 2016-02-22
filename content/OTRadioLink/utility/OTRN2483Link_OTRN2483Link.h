@@ -36,6 +36,13 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
 #ifndef OTRN2483LINK_OTRN2483LINK_H_
 #define OTRN2483LINK_OTRN2483LINK_H_
 
+// IF DEFINED: Puts RN2483 to sleep after send
+#define RN2483_ALLOW_SLEEP
+// IF DEFINED: Assumes that LoRaWAN settings are saved in RN2483 EEPROM and does not attempt to set them itself
+//#define RN2483_CONFIG_IN_EEPROM
+// IF DEFINED: Enables adaptive data rate. This is only relevant if RN2483_CONFIG_IN_EEPROM is UNDEFINED
+//#define RN2483_ENABLE_ADR // TODO: Untested but may reduce power consumption
+
 #include <Arduino.h>
 #include <avr/eeprom.h>
 #include <avr/pgmspace.h>
@@ -102,12 +109,12 @@ public:
     bool sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal, bool listenAfter = false);
 //    bool queueToSend(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal);
     inline bool isAvailable(){ return bAvailable; };     // checks radio is there independant of power state
-    void poll();
     bool handleInterruptSimple() { return true;};
 
     /**
      * @brief   Unused. For compatibility with OTRadioLink.
      */
+    void poll();
     void getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen) const;
     uint8_t getRXMsgsQueued() const;
     const volatile uint8_t *peekRXMsg() const;
@@ -149,22 +156,29 @@ private:
     const uint8_t nRstPin;
 
 
-    static const char SYS_START[5];
-    static const char SYS_RESET[6]; // todo this can be removed on board with working reset line
+    static const char SYS_START[5];	  // Beginning of "sys" command set
+    static const char SYS_SLEEP[7];   // Sleep mode
+//    static const char SYS_RESET[6]; // todo this can be removed on board with working reset line
 
-    static const char MAC_START[5];
-    static const char MAC_DEVADDR[9];
-    static const char MAC_APPSKEY[9];
-    static const char MAC_NWKSKEY[9];
-    static const char MAC_ADR_OFF[8];
-    static const char MAC_JOINABP[9];
+    static const char MAC_START[5];   // Beginning of "mac" command set
+#ifndef RN2483_CONFIG_IN_EEPROM
+    static const char MAC_DEVADDR[9]; // device address (required for ABP)
+    static const char MAC_APPSKEY[9]; // Application session key (required for ABP)
+    static const char MAC_NWKSKEY[9]; // Network session key (required for ABP)
+#ifdef RN2483_ENABLE_ADR
+    static const char MAC_ADR[7];     // Set Adaptive Datarate "on"
+#else
+    static const char MAC_ADR[8];     // Set Adaptive Datarate "off"
+#endif
+#endif // RN2483_CONFIG_IN_EEPROM
+    static const char MAC_JOINABP[9]; // Join LoRaWAN network by ABP (activation by personalisation)
     static const char MAC_STATUS[7];
     static const char MAC_SEND[12];		// Sends an unconfirmed packet on channel 1
     static const char MAC_SAVE[5];
 
-    static const char RN2483_SET[5];
-    static const char RN2483_GET[5];
-    static const char RN2483_END[3];
+    static const char RN2483_SET[5];  // Set command
+    static const char RN2483_GET[5];  // Get command
+    static const char RN2483_END[3];  // End of command (CR LF)
 
     /**
      * @brief   Unused. For compatibility with OTRadioLink.
