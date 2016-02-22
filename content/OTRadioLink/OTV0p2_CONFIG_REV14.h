@@ -102,12 +102,10 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 #endif // CONFIG_REV14_PROTO
 
-#ifdef CONFIG_REV14 // REV14 as
+#ifdef CONFIG_REV14 // REV14 w/ light sensor, SHT21 and voice sensor
 // Revision REV7 of V0.2 board, all-in-one valve unit with local motor drive.
 // In this off-label mode being used as stats gatherers or simple hubs.
 #define V0p2_REV 14
-// IF DEFINED: initial direct motor drive design.  Doesn't imply it gets used, but I/O can be set up safely.
-#define ENABLE_V1_DIRECT_MOTOR_DRIVE
 // IF DEFINED: enable use of on-board SHT21 RH and temp sensor (in lieu of TMP112).
 #define ENABLE_PRIMARY_TEMP_SENSOR_SHT21
 // Using RoHS-compliant phototransistor in place of LDR.
@@ -134,6 +132,10 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #undef ENABLE_BINARY_STATS_TX
 // IF DEFINED: enable support for FS20 carrier for RX of raw FS20 and piggybacked binary (non-JSON) stats.
 #undef ENABLE_FS20_NATIVE_AND_BINARY_STATS_RX
+//#define ENABLE_PRIMARY_TEMP_SENSOR_SHT21
+// IF DEFINED: enable use AVR's 'idle' mode to stop the CPU but leave I/O (eg Serial) running to save power.
+// DHD20150920: CURRENTLY NOT RECOMMENDED AS STILL SEEMS TO CAUSE SOME BOARDS TO CRASH.
+#define ENABLE_USE_OF_AVR_IDLE_MODE
 
 
 // IF DEFINED: use active-low LEARN button(s).  Needs ENABLE_SINGLETON_SCHEDULE.  ***
