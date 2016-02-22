@@ -678,7 +678,8 @@ bool resetRaw3BytePersistentTXRestartCounterInEEPROM(const bool allZeros)
         {
         // Make only msbits zero, and fill rest with entropy and reset the CRC.
         // Buffer for noise bytes; msbits will be kept as zero.  Tack CRC on the end.
-        uint8_t noise[primaryPeristentTXMessageRestartCounterBytes + 1];
+        // Then duplicate to second half for backup copy.
+        uint8_t noise[OTV0P2BASE::VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR];
         for(uint8_t i = 0; i < primaryPeristentTXMessageRestartCounterBytes; ) { noise[i++] = OTV0P2BASE::getSecureRandomByte(); }
         noise[0] = 0xf & (noise[0] ^ (noise[0] >> 4)); // Keep top 4 bits clear to preserve > 90% of possible life.
         // Ensure that entire sequence is non-zero by forcing lsb to 1 (if enough of) noise seems to be 0.
@@ -687,12 +688,13 @@ bool resetRaw3BytePersistentTXRestartCounterInEEPROM(const bool allZeros)
         uint8_t crc = 0;
         for(int i = 0; i < primaryPeristentTXMessageRestartCounterBytes; ++i) { crc = _crc8_ccitt_update(crc, noise[i]); }
         noise[primaryPeristentTXMessageRestartCounterBytes] = crc;
-        for(uint8_t i = 0; i < OTV0P2BASE::VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR; ++i)
-            {
-            const uint8_t b = noise[i & 3];
-            OTV0P2BASE::eeprom_smart_update_byte((uint8_t *)(OTV0P2BASE::VOP2BASE_EE_START_PERSISTENT_MSG_RESTART_CTR) + i, b);
-            if(b != eeprom_read_byte((uint8_t *)(OTV0P2BASE::VOP2BASE_EE_START_PERSISTENT_MSG_RESTART_CTR) + i)) { return(false); }
-            }
+#if 0
+OTV0P2BASE::serialPrintAndFlush(F("CRC computed "));
+OTV0P2BASE::serialPrintAndFlush(crc, HEX);
+OTV0P2BASE::serialPrintlnAndFlush();
+#endif
+        memcpy(noise + 4, noise, 4);
+        saveRaw3BytePersistentTXRestartCounterToEEPROM(noise);
         }
     return(true);
     }
@@ -710,9 +712,16 @@ bool read3BytePersistentTXRestartCounter(const uint8_t *const loadBuf, uint8_t *
     const uint8_t *const base = loadBuf;
     uint8_t crc = 0;
     for(int i = 0; i < primaryPeristentTXMessageRestartCounterBytes; ++i) { crc = _crc8_ccitt_update(crc, base[i]); }
-    if(crc != base[primaryPeristentTXMessageRestartCounterBytes]) { return(false); } // CRC failed.
+#if 0
+OTV0P2BASE::serialPrintAndFlush(F("CRC expected vs actual "));
+OTV0P2BASE::serialPrintAndFlush(crc, HEX);
+OTV0P2BASE::serialPrintAndFlush(' ');
+OTV0P2BASE::serialPrintAndFlush(base[primaryPeristentTXMessageRestartCounterBytes], HEX);
+OTV0P2BASE::serialPrintlnAndFlush();
+#endif
+    if(crc != base[primaryPeristentTXMessageRestartCounterBytes]) { OTV0P2BASE::serialPrintlnAndFlush(F("CRC failed")); return(false); } // CRC failed.
     // Check for all 0xff (maximum) value and fail if found.
-    if((0xff == base[0]) && (0xff == base[1]) && (0xff == base[2])) { return(false); }
+    if((0xff == base[0]) && (0xff == base[1]) && (0xff == base[2])) { /* OTV0P2BASE::serialPrintlnAndFlush(F("counter at max")); */ return(false); } // Counter at max.
     // Copy (primary) counter to output.
     for(int i = 0; i < primaryPeristentTXMessageRestartCounterBytes; ++i) { buf[i] = base[i]; }
     return(true);

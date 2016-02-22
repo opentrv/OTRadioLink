@@ -804,7 +804,7 @@ static void testPermMsgCount()
   AssertIsEqual(0, memcmp(buf, zeroKey, OTRadioLink::primaryPeristentTXMessageRestartCounterBytes - 1));
   AssertIsEqual(1, buf[2]);
   // Initialise to all-0xff state (with correct CRC), which should cause failure.
-  memset(loadBuf, 0xff, sizeof(loadBuf)); loadBuf[3] = 0x6a; loadBuf[7] = 0x6a;
+  memset(loadBuf, 0xff, sizeof(loadBuf)); loadBuf[3] = 0xf; loadBuf[7] = 0xf;
   AssertIsTrue(!OTRadioLink::read3BytePersistentTXRestartCounter(loadBuf, buf));
   // Ensure that it CANNOT be incremented.
   AssertIsTrue(!OTRadioLink::increment3BytePersistentTXRestartCounter(loadBuf));
@@ -839,7 +839,6 @@ static void testPermMsgCountRunOnce()
   AssertIsTrue(OTRadioLink::get3BytePersistentTXRestartCounter(buf));
   AssertIsTrue(0 != memcmp(buf, zeroKey, OTRadioLink::primaryPeristentTXMessageRestartCounterBytes));
   }
-
 
 
 // To be called from loop() instead of main code when running unit tests.
