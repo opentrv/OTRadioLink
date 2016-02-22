@@ -674,11 +674,10 @@ bool resetRaw3BytePersistentTXRestartCounterInEEPROM(const bool allZeros)
         }
     else
         {
-        // FIXME
+        // FIXME FIXME
         // Make only msbits zero, and file rest with entropy and reset the CRC.
         for(uint8_t i = 0; i < OTV0P2BASE::VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR; ++i)
             {
-            // FIXME
             OTV0P2BASE::eeprom_smart_erase_byte((uint8_t *)(OTV0P2BASE::VOP2BASE_EE_START_PERSISTENT_MSG_RESTART_CTR) + i);
             if(0xff != eeprom_read_byte((uint8_t *)(OTV0P2BASE::VOP2BASE_EE_START_PERSISTENT_MSG_RESTART_CTR) + i)) { return(false); }
             }
