@@ -42,16 +42,17 @@ bool OTRN2483Link::begin() {
 	// todo check RN2483 is present and communicative here
 
 	// Set up for TTN
+#ifndef RN2483_CONFIG_IN_EEPROM
 //	// Set Device Address
     setDevAddr(NULL); // TODO not needed if saved to EEPROM
 //
 //	// Set keys
     setKeys(NULL, NULL); // TODO not needed if saved to EEPROM
-
+#endif
     // join network
     joinABP();
 
-	// get status (returns 0001 when it works for me)
+	// get status (returns 0001 when connected and not Txing)
     getStatus();
 	// Send
 	return true;
@@ -85,8 +86,14 @@ bool OTRN2483Link::sendRaw(const uint8_t* buf, uint8_t buflen,
 
 //	timedBlockingRead(dataBuf, sizeof(dataBuf));
 //	OTV0P2BASE::serialPrintAndFlush(dataBuf);
+#ifdef RN2483_ALLOW_SLEEP
+	print(SYS_START);
+	print(SYS_SLEEP);
+	print("230000"); // FIXME sleeps for 3m50s
+	print(RN2483_END);
+#endif // RN2483_ALLOW_SLEEP
 
-	return false;
+	return true;
 }
 
 
@@ -166,13 +173,13 @@ void OTRN2483Link::factoryReset()
  */
 void OTRN2483Link::reset()
 {
-	print(SYS_START);
-	print(SYS_RESET);
-	print(RN2483_END);
+//	print(SYS_START);
+//	print(SYS_RESET);
+//	print(RN2483_END);
 
-//	fastDigitalWrite(resetPin, LOW); // reset pin
-//	//todo delay here
-//	fastDigitalWrite(resetPin, HIGH);
+	fastDigitalWrite(nRstPin, LOW); // reset pin
+	delay(10); // wait a bit
+	fastDigitalWrite(nRstPin, HIGH);
 }
 
 /**
@@ -215,14 +222,14 @@ void OTRN2483Link::setKeys(const uint8_t *appKey, const uint8_t *networkKey)
 	print(RN2483_END);
 }
 /**
- * @brief   Sets adaptive data rate off and activates connection by personalisation
- * @todo    Move adaptive data rate out and work out if this is what we want
+ * @brief   Sets adaptive data rate depending on config and activates connection by personalisation
+ * @todo    Move adaptive data rate out.
  */
 void OTRN2483Link::joinABP()
 {
 	print(MAC_START);
 	print(RN2483_SET);
-	print(MAC_ADR_OFF); // Adaptive data rate
+	print(MAC_ADR); // Adaptive data rate
 	print(RN2483_END);
 
 	print(MAC_START);
@@ -304,13 +311,20 @@ const volatile uint8_t* OTRN2483Link::peekRXMsg() const {
 }
 
 const char OTRN2483Link::SYS_START[5] = "sys ";
-const char OTRN2483Link::SYS_RESET[6] = "reset"; // FIXME this can be removed on board with working reset line
+const char OTRN2483Link::SYS_SLEEP[7] = "sleep ";
+//const char OTRN2483Link::SYS_RESET[6] = "reset"; // FIXME this can be removed on board with working reset line
 
 const char OTRN2483Link::MAC_START[5] = "mac ";
+#ifndef RN2483_CONFIG_IN_EEPROM
 const char OTRN2483Link::MAC_DEVADDR[9] = "devaddr ";
 const char OTRN2483Link::MAC_APPSKEY[9] = "appskey ";
 const char OTRN2483Link::MAC_NWKSKEY[9] = "nwkskey ";
-const char OTRN2483Link::MAC_ADR_OFF[8] = "adr off";	// TODO find out what this does
+#ifdef RN2483_ENABLE_ADR
+const char OTRN2483Link::MAC_ADR[7] = "adr on";
+#else
+const char OTRN2483Link::MAC_ADR[8] = "adr off";
+#endif
+#endif // RN2483_CONFIG_IN_EEPROM
 const char OTRN2483Link::MAC_JOINABP[9] = "join abp";
 const char OTRN2483Link::MAC_STATUS[7] = "status";
 const char OTRN2483Link::MAC_SEND[12] = "tx uncnf 1 ";		// Sends an unconfirmed packet on channel 1
