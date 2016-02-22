@@ -13,5 +13,7 @@ pending:
     DE20160129:  Implemented initial LoRaWAN setup and stats tx
     DE20160201:  Added set-able pin defs 
     DE20160221:  Added optional sleep and eeprom modes, and implemented reset line
+    DE20160221:  Added nap before entering sleep
+    
     
 
