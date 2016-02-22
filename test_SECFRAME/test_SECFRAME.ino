@@ -812,14 +812,26 @@ static void testPermMsgCount()
 
 // Test handling of persistent/reboot/restart part of primary message counter.
 // Tests to only be run once because they may cause device wear.
+// NOTE: best not to run on a real device as this will mess with its counters, etc.
+// We will clear the key so as to make it clear that this device is not secure.
 static void testPermMsgCountRunOnce()
   {
   Serial.println("PermMsgCountRunOnce");
+  // We're compromising system security and keys here, so clear any secret keys set, first.
+  AssertIsTrue(OTV0P2BASE::setPrimaryBuilding16ByteSecretKey(NULL)); // Fail if we can't ensure that the key is cleared.
+  // Working buffer space...
   uint8_t loadBuf[OTV0P2BASE::VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR];
   uint8_t buf[OTRadioLink::primaryPeristentTXMessageRestartCounterBytes];
-//  // Initial test that blank EEPROM after processing yields all zeros.
-//  OTRadioLink::loadRaw3BytePersistentTXRestartCounterFromEEPROM(buf);
-//  for(int i = 0; i < sizeof(buf); ++i) { AssertIsEqual(0, buf[i]); }
+  // Initial test that blank EEPROM after processing yields all zeros.
+  OTRadioLink::resetRaw3BytePersistentTXRestartCounterInEEPROM(true);
+  OTRadioLink::loadRaw3BytePersistentTXRestartCounterFromEEPROM(loadBuf);
+  AssertIsTrue(0 == memcmp(loadBuf, zeroKey, sizeof(loadBuf)));
+  AssertIsTrue(OTRadioLink::read3BytePersistentTXRestartCounter(loadBuf, buf));
+  AssertIsEqual(0, memcmp(buf, zeroKey, OTRadioLink::primaryPeristentTXMessageRestartCounterBytes));
+  // Increment the persistent TX counter and ensure that we see it as non-zero.
+  OTRadioLink::increment3BytePersistentTXRestartCounter();
+  OTRadioLink::loadRaw3BytePersistentTXRestartCounterFromEEPROM(buf);
+  AssertIsTrue(0 != memcmp(buf, zeroKey, OTRadioLink::primaryPeristentTXMessageRestartCounterBytes));
   }
 
 
