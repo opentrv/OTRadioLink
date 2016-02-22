@@ -43,25 +43,31 @@ namespace OTV0P2BASE
 // Not thread-safe nor usable within ISRs (Interrupt Service Routines).
 uint8_t SensorTemperaturePot::read()
   {
+  // Capture the old raw value early.
+  const uint16_t oldRaw = raw;
+
   // No need to wait for voltage to stabilise as pot top end directly driven by IO_POWER_UP.
   OTV0P2BASE::power_intermittent_peripherals_enable(false);
   const uint16_t tpRaw = OTV0P2BASE::analogueNoiseReducedRead(V0p2_PIN_TEMP_POT_AIN, DEFAULT); // Vcc reference.
   OTV0P2BASE::power_intermittent_peripherals_disable();
 
   const bool reverse = isReversed();
-  const uint16_t tp = reverse ? (TEMP_POT_RAW_MAX - tpRaw) : tpRaw;
+  const uint16_t newRaw = reverse ? (TEMP_POT_RAW_MAX - tpRaw) : tpRaw;
 
   // Capture entropy from changed LS bits.
-  if((uint8_t)tp != (uint8_t)raw) { ::OTV0P2BASE::addEntropyToPool((uint8_t)tp, 0); } // Claim zero entropy as may be forced by Eve.
+  if((uint8_t)newRaw != (uint8_t)oldRaw) { ::OTV0P2BASE::addEntropyToPool((uint8_t)newRaw, 0); } // Claim zero entropy as may be forced by Eve.
 
   // Capture reduced-noise value with a little hysteresis.
   // Only update the value if changed significantly so as to reduce noise.
+  // Too much hysteresis may make the dial difficult to use,
+  // especially if the rotation is physically constrained.
   const uint8_t oldValue = value;
-  const uint8_t shifted = tp >> 2;
-  if(((shifted > oldValue) && (shifted - oldValue >= RN_HYST)) ||
-     ((shifted < oldValue) && (oldValue - shifted >= RN_HYST)))
+  const uint8_t potentialNewValue = newRaw >> 2;
+  if(((potentialNewValue > oldValue) && (newRaw - oldRaw >= (RN_HYST<<2))) ||
+     ((potentialNewValue < oldValue) && (oldRaw - newRaw >= (RN_HYST<<2))))
     {
-    const uint8_t rn = (uint8_t) shifted;
+    // Use this potential new value as a reduced-noise new value.
+    const uint8_t rn = (uint8_t) potentialNewValue;
     // Atomically store the reduced-noise normalised value.
     value = rn;
 
@@ -95,7 +101,7 @@ uint8_t SensorTemperaturePot::read()
 #endif
 
   // Store new raw value last.
-  raw = tp;
+  raw = newRaw;
   // Return noise-reduced value.
   return(value);
   }

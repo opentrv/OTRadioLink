@@ -46,14 +46,14 @@ class SensorTemperaturePot : public OTV0P2BASE::SimpleTSUint8Sensor
     // Maximum 'raw' temperature pot/dial value.
     static const uint16_t TEMP_POT_RAW_MAX = 1023;
 
-    // Minimum change (hysteresis) enforced in normalised/8-bit 'reduced noise' range value; must be greater than 1.
+    // Minimum change (hysteresis) enforced in normalised/8-bit 'reduced noise' range value; strictly positive.
     // Aim to provide reasonable noise immunity, even from an ageing carbon-track pot.
     // Allow reasonable remaining granularity of response, at least 10s of distinct positions (>=5 bits).
     // This is in terms of steps on the non-raw [0,255] nominal output scale.
     // Note that some applications may only see a fraction of full scale movement (eg ~25% for DORM1),
     // so allowing for reasonable end stops and tolerances that further constrains this value from above.
     // DHD20160212: observed manual precision with base REV10 pot ~8--16 raw, so RN_HYST >= 2 is reasonable.
-    static const uint8_t RN_HYST = 2;
+    static const uint8_t RN_HYST = 1;
 
     // Bottom and top parts of normalised/8-bit reduced noise range reserved for end-stops (forcing FROST or BAKE).
     // Should be big enough to hit easily (and should be larger than RN_HYST)

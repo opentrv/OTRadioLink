@@ -428,7 +428,7 @@ static void testNonsecureFrameCRC()
   }
 
 // Test encoding of entire non-secure frame for TX.
-static void testNonSecureSmallFrameEncoding()
+static void testNonsecureSmallFrameEncoding()
   {
   Serial.println("NonSecureSmallFrameEncoding");
   uint8_t buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize];
@@ -785,6 +785,31 @@ static void testBeaconEncoding()
 //  Serial.println(after - before); // DHD20160207: 1442 for 8 rounds, or ~180ms per encryption.
   }
 
+// Test handling of persistent/reboot/restart part of primary message counter.
+static void testPermMsgCount()
+  {
+  Serial.println("PermMsgCount");
+  uint8_t loadBuf[OTV0P2BASE::VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR];
+  uint8_t buf[OTRadioLink::primaryPeristentTXMessageRestartCounterBytes];
+//  // Initial test that blank EEPROM after processing yields all zeros.
+//  OTRadioLink::loadRaw3BytePersistentTXRestartCounterFromEEPROM(buf);
+//  for(int i = 0; i < sizeof(buf); ++i) { AssertIsEqual(0, buf[i]); }
+  // Initialise to state of empty EEPROM; result should be a valid all-zeros restart count.
+  memset(loadBuf, 0, sizeof(loadBuf));
+  AssertIsTrue(OTRadioLink::read3BytePersistentTXRestartCounter(loadBuf, buf));
+  AssertIsEqual(0, memcmp(buf, zeroKey, OTRadioLink::primaryPeristentTXMessageRestartCounterBytes));
+  // Ensure that it can be incremented and gives the correct next (0x000001) value.
+  AssertIsTrue(OTRadioLink::increment3BytePersistentTXRestartCounter(loadBuf));
+  AssertIsTrue(OTRadioLink::read3BytePersistentTXRestartCounter(loadBuf, buf));
+  AssertIsEqual(0, memcmp(buf, zeroKey, OTRadioLink::primaryPeristentTXMessageRestartCounterBytes - 1));
+  AssertIsEqual(1, buf[2]);
+  // Initialise to all-0xff state (with correct CRC), which should cause failure.
+  memset(loadBuf, 0xff, sizeof(loadBuf)); loadBuf[3] = 0x6a; loadBuf[7] = 0x6a;
+  AssertIsTrue(!OTRadioLink::read3BytePersistentTXRestartCounter(loadBuf, buf));
+  // Ensure that it CANNOT be incremented.
+  AssertIsTrue(!OTRadioLink::increment3BytePersistentTXRestartCounter(loadBuf));
+  }
+
 
 // To be called from loop() instead of main code when running unit tests.
 // Tests generally flag an error and stop the test cycle with a call to panic() or error().
@@ -811,7 +836,8 @@ void loop()
   testFrameHeaderEncoding();
   testFrameHeaderDecoding();
   testNonsecureFrameCRC();
-  testNonSecureSmallFrameEncoding();
+  testNonsecureSmallFrameEncoding();
+  testPermMsgCount();
   testSimplePadding();
   testSimpleNULLEncDec();
   testCryptoAccess();
@@ -819,6 +845,17 @@ void loop()
   testSecureSmallFrameEncoding();
   testBeaconEncoding();
 
+
+  // Run-once tests.
+  // May cause wear on (eg) EEPROM, so only run once,
+  // and only after everything else has passed.
+  static bool runOnce;
+  if(!runOnce)
+    {
+    Serial.print(F("Run-once tests... "));
+    // TODO
+    runOnce = true;
+    }
 
 
   // Announce successful loop completion and count.

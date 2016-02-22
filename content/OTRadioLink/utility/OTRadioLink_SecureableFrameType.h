@@ -520,11 +520,25 @@ namespace OTRadioLink
                                     void *state, const uint8_t *key,
                                     uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
 
-    // Fill in 12-byte IV for 'O'-style (0x80) AESGCM security for a frame to TX.
-    // This uses the local node ID as-is for the first 6 bytes.
-    // This uses and increments the primary message counter for the last 6 bytes.
-    // Returns true on success, false on failure eg due to message counter generation failure.
-    bool compute12ByteIDAndCounterIVForTX(uint8_t *ivBuf);
+    // Interpret RAM copy of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
+    // Combines results from primary and secondary as appropriate.
+    // Deals with inversion and checksum checking.
+    // Input buffer (loadBuf) must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
+    // Output buffer (buf) must be 3 bytes long.
+    // Will report failure when count is all 0xff values.
+    static const uint8_t primaryPeristentTXMessageRestartCounterBytes = 3;
+    bool read3BytePersistentTXRestartCounter(const uint8_t *loadBuf, uint8_t *buf);
+    // Increment RAM copy of persistent reboot/restart message counter; returns false on failure.
+    // Will refuse to increment such that the top byte overflows, ie when already at 0xff.
+    // Updates the CRC.
+    // Input/output buffer (loadBuf) must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
+    bool increment3BytePersistentTXRestartCounter(uint8_t *loadBuf);
+    // Reset the persistent reboot/restart message counter in EEPROM; returns false on failure.
+    // TO BE USED WITH EXTREME CAUTION as reusing the message counts and resulting IVs
+    // destroys the security of the cipher.
+    // Probably only sensible to call this when changing either the ID or the key (or both).
+    // Erases the underlying EEPROM bytes.
+    bool resetRaw3BytePersistentTXRestartCounterInEEPROM();
 
     // Get primary (semi-persistent) message counter for TX from an OpenTRV leaf under its own ID.
     // This counter increases monotonically
@@ -550,7 +564,14 @@ namespace OTRadioLink
     // Fills the supplied 6-byte array with the monotonically-increasing primary TX counter.
     // Returns true on success; false on failure for example because the counter has reached its maximum value.
     // Highest-index bytes in the array increment fastest.
+    // Not ISR-safe.
     bool getPrimarySecure6BytePersistentTXMessageCounter(uint8_t *buf);
+
+    // Fill in 12-byte IV for 'O'-style (0x80) AESGCM security for a frame to TX.
+    // This uses the local node ID as-is for the first 6 bytes.
+    // This uses and increments the primary message counter for the last 6 bytes.
+    // Returns true on success, false on failure eg due to message counter generation failure.
+    bool compute12ByteIDAndCounterIVForTX(uint8_t *ivBuf);
 
 
     // CONVENIENCE/BOILERPLATE METHODS
