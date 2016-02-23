@@ -804,15 +804,18 @@ bool getPrimarySecure6BytePersistentTXMessageCounter(uint8_t *const buf)
     if(doInitialisation) { initialised = true; }
     bool incrementPersistent = false;
 
-    // If initialising and persistent/restart part is all zeros
-    // then force it to an entropy-laden non-zero value,
-    // else simply increment it as per the expected restart counter behaviour.
+    // VITAL FOR CIPHER SECURITY: increase value of restart/reboot counter before first use after (re)boot.
+    // Security improvement: if initialising and persistent/restart part is all zeros
+    // then force it to an entropy-laden non-zero value that still leaves most of its lifetime.
+    // Else simply increment it as per the expected restart counter behaviour.
+    // NOTE: at the very least the restart counter must be incremented here.
     if(doInitialisation)
         {
         if(!get3BytePersistentTXRestartCounter(buf)) { return(false); }
         if((0 == buf[0]) && (0 == buf[1]) && (0 == buf[2]))
             { if(!resetRaw3BytePersistentTXRestartCounterInEEPROM(false)) { return(false); } }
-        else { incrementPersistent = true; }
+        else
+            { incrementPersistent = true; }
         }
 
     // Ephemeral (non-persisted) least-significant bytes of message count.
