@@ -169,6 +169,9 @@ class SensorAmbientLight : public SimpleTSUint8Sensor
 class DummySensorAmbientLight
   {
   public:
+    // Not available, so always a 'dark' value.
+    static uint8_t get() { return(0); }
+
     // Not available, so always returns true.
     static bool isUnavailable() { return(true); }
 

@@ -142,6 +142,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #undef ENABLE_TRIMMED_BANDWIDTH
 // IF DEFINED: allow periodic machine- and human- readable status report to serial, starting with "=".
 #undef ENABLE_SERIAL_STATUS_REPORT
+// IF DEFINED: allow use of ambient light sensor.
+#undef ENABLE_AMBLIGHT_SENSOR
+// IF DEFINED: allow for less light on sideways-pointing ambient light sensor, eg on cut4 2014/03/17 REV2 boards (TODO-209).
 // Using RoHS-compliant phototransistor in place of LDR.
 #define ENABLE_AMBIENT_LIGHT_SENSOR_PHOTOTRANS_TEPT4400
 // IF DEFINED: basic FROST/WARM temperatures are settable.
