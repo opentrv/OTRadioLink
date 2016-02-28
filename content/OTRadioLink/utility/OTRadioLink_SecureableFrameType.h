@@ -525,9 +525,14 @@ namespace OTRadioLink
     //  b) avoid replay attacks.
     //
     // The implementation on both TX and RX sides should:
-    //  a) allow nominally 10 years' life from the EEPROM (assuming 100,000 full write operations per byte),
+    //  a) allow nominally 10 years' life from the non-volatile store and thus the unit,
     //  b) be resistant to (for example) deliberate power-cycling during update,
     //  c) random EEPROM byte failures.
+    //
+    // Some assumptions:
+    //  a) aiming for 10 years' continuous product life at transmitters and receivers,
+    //  b) around one TX per sensor/valve node per 4 minutes,
+    //  c) ~100k full erase/write cycles per EEPROM byte (partial writes can be cheaper), as ATmega328P.
     //
     // Load the raw form of the persistent reboot/restart message counter from EEPROM into the supplied array.
     // Deals with inversion, but does not interpret the data or check CRCs etc.
