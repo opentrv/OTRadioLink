@@ -520,6 +520,15 @@ namespace OTRadioLink
                                     void *state, const uint8_t *key,
                                     uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
 
+    // Note that the message counter is designed both to:
+    //  a) prevent reuse of IVs, which can fatally weaken the cipher
+    //  b) avoid replay attacks.
+    //
+    // The implementation on both TX and RX sides should:
+    //  a) allow nominally 10 years life from the EEPROM (assumed 100,000 full write operations per byte)
+    //  b) be resistant to (for example) deliberate power-cycling during update
+    //  c) random EEPROM byte failures.
+    //
     // Load the raw form of the persistent reboot/restart message counter from EEPROM into the supplied array.
     // Deals with inversion, but does not interpret the data or check CRCs etc.
     // Separates the EEPROM access from the data interpretation to simplify unit testing.
