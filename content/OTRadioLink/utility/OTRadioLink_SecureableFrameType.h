@@ -520,6 +520,8 @@ namespace OTRadioLink
                                     void *state, const uint8_t *key,
                                     uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
 
+    // Design notes on use of message counters vs novn-volatile storage life, eg for ATMega328P.
+    //
     // Note that the message counter is designed to:
     //  a) prevent reuse of IVs, which can fatally weaken the cipher,
     //  b) avoid replay attacks.
@@ -536,7 +538,7 @@ namespace OTRadioLink
     //
     // 100k updates over 10Y implies ~10k/y or about 1 per hour;
     // that is about one full EEPROM erase/write per 15 messages at one message per 4 minutes.
-    //
+
     // Load the raw form of the persistent reboot/restart message counter from EEPROM into the supplied array.
     // Deals with inversion, but does not interpret the data or check CRCs etc.
     // Separates the EEPROM access from the data interpretation to simplify unit testing.
