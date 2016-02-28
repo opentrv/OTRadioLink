@@ -520,7 +520,7 @@ namespace OTRadioLink
                                     void *state, const uint8_t *key,
                                     uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
 
-    // Note that the message counter is designed both to:
+    // Note that the message counter is designed to:
     //  a) prevent reuse of IVs, which can fatally weaken the cipher,
     //  b) avoid replay attacks.
     //
