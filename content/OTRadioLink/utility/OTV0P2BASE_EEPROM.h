@@ -166,7 +166,15 @@ static const intptr_t V0P2BASE_EE_END_RADIO = 255;
 //#endif
 
 
-// Node associations memory. Can fit 16 nodes within 256 bytes of EEPROM.  (TODO-793)
+// Node security association storage.
+// (ID plus permanent message counter for RX.)
+// Can fit 16 nodes within 256 bytes of EEPROM.  (TODO-793)
+//
+// Working area ahead for updating node associations,
+// in particular to safely update message counters.
+static const intptr_t V0P2BASE_EE_START_NODE_ASSOCIATIONS_WORK_START = 704;
+static const uint8_t V0P2BASE_EE_START_NODE_ASSOCIATIONS_WORK_LEN = 64;
+//
 // Note that all valid entries/associations are contiguous at the start of the area.
 // The first (invalid) node ID starting with 0xff indicates that it and all subsequent entries are empty.
 static const intptr_t V0P2BASE_EE_START_NODE_ASSOCIATIONS = 768;  // Inclusive start of node associations.

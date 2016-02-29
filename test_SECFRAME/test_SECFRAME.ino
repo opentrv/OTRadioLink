@@ -804,10 +804,64 @@ static void testPermMsgCount()
   AssertIsEqual(0, memcmp(buf, zeroKey, OTRadioLink::primaryPeristentTXMessageRestartCounterBytes - 1));
   AssertIsEqual(1, buf[2]);
   // Initialise to all-0xff state (with correct CRC), which should cause failure.
-  memset(loadBuf, 0xff, sizeof(loadBuf)); loadBuf[3] = 0x6a; loadBuf[7] = 0x6a;
+  memset(loadBuf, 0xff, sizeof(loadBuf)); loadBuf[3] = 0xf; loadBuf[7] = 0xf;
   AssertIsTrue(!OTRadioLink::read3BytePersistentTXRestartCounter(loadBuf, buf));
   // Ensure that it CANNOT be incremented.
   AssertIsTrue(!OTRadioLink::increment3BytePersistentTXRestartCounter(loadBuf));
+  // Test recovery from broken primary counter a few times.
+  memset(loadBuf, 0, sizeof(loadBuf));
+  for(uint8_t i = 0; i < 3; ++i)
+    {
+    // Damage one of the primary or secondary counter bytes (or CRCs).
+    loadBuf[0x7 & OTV0P2BASE::randRNG8()] = OTV0P2BASE::randRNG8();
+    AssertIsTrue(OTRadioLink::read3BytePersistentTXRestartCounter(loadBuf, buf));
+    AssertIsEqual(0, buf[1]);
+    AssertIsEqual(0, buf[1]);
+    AssertIsEqual(i, buf[2]);
+    AssertIsTrue(OTRadioLink::increment3BytePersistentTXRestartCounter(loadBuf));
+    }
+  }
+
+// Test handling of persistent/reboot/restart part of primary message counter.
+// Tests to only be run once because they may cause device wear.
+// NOTE: best not to run on a real device as this will mess with its counters, etc.
+// We will clear the key so as to make it clear that this device is not secure.
+static void testPermMsgCountRunOnce()
+  {
+  Serial.println("PermMsgCountRunOnce");
+  // We're compromising system security and keys here, so clear any secret keys set, first.
+  AssertIsTrue(OTV0P2BASE::setPrimaryBuilding16ByteSecretKey(NULL)); // Fail if we can't ensure that the key is cleared.
+  // Working buffer space...
+  uint8_t loadBuf[OTV0P2BASE::VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR];
+  uint8_t buf[OTRadioLink::primaryPeristentTXMessageRestartCounterBytes];
+  // Initial test that blank EEPROM (or reset to all zeros) after processing yields all zeros.
+  AssertIsTrue(OTRadioLink::resetRaw3BytePersistentTXRestartCounterInEEPROM(true));
+  OTRadioLink::loadRaw3BytePersistentTXRestartCounterFromEEPROM(loadBuf);
+  AssertIsTrue(0 == memcmp(loadBuf, zeroKey, sizeof(loadBuf)));
+  AssertIsTrue(OTRadioLink::read3BytePersistentTXRestartCounter(loadBuf, buf));
+  AssertIsEqual(0, memcmp(buf, zeroKey, OTRadioLink::primaryPeristentTXMessageRestartCounterBytes));
+  AssertIsTrue(OTRadioLink::get3BytePersistentTXRestartCounter(buf));
+  AssertIsTrue(0 == memcmp(buf, zeroKey, OTRadioLink::primaryPeristentTXMessageRestartCounterBytes));
+  // Increment the persistent TX counter and ensure that we see it as non-zero.
+  AssertIsTrue(OTRadioLink::increment3BytePersistentTXRestartCounter());
+  AssertIsTrue(OTRadioLink::get3BytePersistentTXRestartCounter(buf));
+  AssertIsTrue(0 != memcmp(buf, zeroKey, OTRadioLink::primaryPeristentTXMessageRestartCounterBytes));
+  // So reset to non-all-zeros (should be default) and make sure that we see it as not-all-zeros.
+  AssertIsTrue(OTRadioLink::resetRaw3BytePersistentTXRestartCounterInEEPROM());
+  AssertIsTrue(OTRadioLink::get3BytePersistentTXRestartCounter(buf));
+  AssertIsTrue(0 != memcmp(buf, zeroKey, OTRadioLink::primaryPeristentTXMessageRestartCounterBytes));
+  // Initial test that from blank EEPROM (or reset to all zeros)
+  // that getting the message counter gives non-zero reboot and ephemeral parts.
+  AssertIsTrue(OTRadioLink::resetRaw3BytePersistentTXRestartCounterInEEPROM(true));
+  uint8_t mcbuf[OTRadioLink::primaryPeristentTXMessageCounterBytes];
+  AssertIsTrue(OTRadioLink::getPrimarySecure6BytePersistentTXMessageCounter(mcbuf));
+#if 1
+  for(int i = 0; i < sizeof(mcbuf); ++i) { Serial.print(' '); Serial.print(mcbuf[i], HEX); }
+  Serial.println();
+#endif
+  // Assert that each half of the message counter is non-zero.
+  AssertIsTrue((0 != mcbuf[0]) || (0 != mcbuf[1]) || (0 != mcbuf[2]));
+  AssertIsTrue((0 != mcbuf[3]) || (0 != mcbuf[4]) || (0 != mcbuf[5]));
   }
 
 
@@ -845,16 +899,15 @@ void loop()
   testSecureSmallFrameEncoding();
   testBeaconEncoding();
 
-
   // Run-once tests.
   // May cause wear on (eg) EEPROM, so only run once,
-  // and only after everything else has passed.
+  // and only after all other tests have passed.
   static bool runOnce;
   if(!runOnce)
     {
-    Serial.print(F("Run-once tests... "));
-    // TODO
     runOnce = true;
+    Serial.println(F("Run-once tests... "));
+    testPermMsgCountRunOnce();
     }
 
 

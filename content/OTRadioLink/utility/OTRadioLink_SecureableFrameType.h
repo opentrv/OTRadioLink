@@ -520,8 +520,35 @@ namespace OTRadioLink
                                     void *state, const uint8_t *key,
                                     uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
 
+    // Design notes on use of message counters vs novn-volatile storage life, eg for ATMega328P.
+    //
+    // Note that the message counter is designed to:
+    //  a) prevent reuse of IVs, which can fatally weaken the cipher,
+    //  b) avoid replay attacks.
+    //
+    // The implementation on both TX and RX sides should:
+    //  a) allow nominally 10 years' life from the non-volatile store and thus the unit,
+    //  b) be resistant to (for example) deliberate power-cycling during update,
+    //  c) random EEPROM byte failures.
+    //
+    // Some assumptions:
+    //  a) aiming for 10 years' continuous product life at transmitters and receivers,
+    //  b) around one TX per sensor/valve node per 4 minutes,
+    //  c) ~100k full erase/write cycles per EEPROM byte (partial writes can be cheaper), as ATmega328P.
+    //
+    // 100k updates over 10Y implies ~10k/y or about 1 per hour;
+    // that is about one full EEPROM erase/write per 15 messages at one message per 4 minutes.
+
+    // Load the raw form of the persistent reboot/restart message counter from EEPROM into the supplied array.
+    // Deals with inversion, but does not interpret the data or check CRCs etc.
+    // Separates the EEPROM access from the data interpretation to simplify unit testing.
+    // Buffer must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
+    // Not ISR-safe.
+    void loadRaw3BytePersistentTXRestartCounterFromEEPROM(uint8_t *loadBuf);
     // Interpret RAM copy of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
-    // Combines results from primary and secondary as appropriate.
+    // Combines results from primary and secondary as appropriate,
+    // for example to recover from message counter corruption due to a failure during write.
+    // TODO: should still do more to (for example) rewrite failed copy for resilience against multiple write failures.
     // Deals with inversion and checksum checking.
     // Input buffer (loadBuf) must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
     // Output buffer (buf) must be 3 bytes long.
@@ -533,12 +560,26 @@ namespace OTRadioLink
     // Updates the CRC.
     // Input/output buffer (loadBuf) must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
     bool increment3BytePersistentTXRestartCounter(uint8_t *loadBuf);
+    // Get the 3 bytes of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
+    // Combines results from primary and secondary as appropriate.
+    // Deals with inversion and checksum checking.
+    // Output buffer (buf) must be 3 bytes long.
+    bool get3BytePersistentTXRestartCounter(uint8_t *buf);
+
     // Reset the persistent reboot/restart message counter in EEPROM; returns false on failure.
-    // TO BE USED WITH EXTREME CAUTION as reusing the message counts and resulting IVs
+    // TO BE USED WITH EXTREME CAUTION: reusing the message counts and resulting IVs
     // destroys the security of the cipher.
     // Probably only sensible to call this when changing either the ID or the key (or both).
-    // Erases the underlying EEPROM bytes.
-    bool resetRaw3BytePersistentTXRestartCounterInEEPROM();
+    // This can reset the restart counter to all zeros (erasing the underlying EEPROM bytes),
+    // or (default) reset only the most significant bits to zero (preserving device life)
+    // but inject entropy into the least significant bits to reduce risk value/IV reuse in error.
+    // If called with false then interrupts should not be blocked to allow entropy gathering,
+    // and counter is guaranteed to be non-zero.
+    bool resetRaw3BytePersistentTXRestartCounterInEEPROM(bool allZeros = false);
+    // Increment EEPROM copy of persistent reboot/restart message counter; returns false on failure.
+    // Will refuse to increment such that the top byte overflows, ie when already at 0xff.
+    // TO BE USED WITH EXTREME CAUTION: calling this unnecessarily will shorten life before needing to change ID/key.
+    bool increment3BytePersistentTXRestartCounter();
 
     // Get primary (semi-persistent) message counter for TX from an OpenTRV leaf under its own ID.
     // This counter increases monotonically

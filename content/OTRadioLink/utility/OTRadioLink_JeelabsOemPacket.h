@@ -13,7 +13,8 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
+Author(s) / Copyright (s): Milenko Alcin 2016
+                           Damon Hart-Davis 2016
 */
 
 /*
@@ -37,7 +38,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
  * other information that are needed to format the packet are passed as paramteres.
  * Method moves payload to the right place, formats packet header and add CRC.
  * 
- * Preamble and first syn byte are added by packet handler in OTRFM23B. 
+ * Preamble and first syn byte are added by packet handler in OTRFM23BLink.
  * 
  */
 
