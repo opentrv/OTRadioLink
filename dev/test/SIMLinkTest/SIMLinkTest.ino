@@ -58,7 +58,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
 static const bool bEEPROM = false;
 static const char apn[] PROGMEM = "m2mkit.telefonica.com"; // "m2mkit.telefonica.com"
 static const char pin[] PROGMEM = "0000";
-static const char UDP_ADDR[] PROGMEM = "46.101.64.191";
+static const char UDP_ADDR[] PROGMEM = "0.0.0.0";
 static const char UDP_PORT[] PROGMEM = "9999";
 #elif 2 == CREDS // DHD
 static const char apn[] = "m2mkit.telefonica.com";
