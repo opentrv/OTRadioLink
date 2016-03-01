@@ -538,6 +538,19 @@ namespace OTRadioLink
     //
     // 100k updates over 10Y implies ~10k/y or about 1 per hour;
     // that is about one full EEPROM erase/write per 15 messages at one message per 4 minutes.
+    //
+    // Check message counter for given ID, ie that it is high enough to be worth authenticating.
+    // ID is full (8-byte) node ID; counter is full (6-byte) counter.
+    // Returns false if this counter value is not higher than the last received authenticated value.
+    bool validateRXMessageCount(const uint8_t *ID, const uint8_t *counter);
+    // Update persistent message counter for received frame AFTER successful authentication.
+    // ID is full (8-byte) node ID; counter is full (6-byte) counter.
+    // Returns false on failure, eg if message counter is not higher than the previous value for this node.
+    // The implementation should allow several years of life typical message rates (see above).
+    // The implementation should be robust in the face of power failures / reboots, accidental or malicious,
+    // not allowing replays nor other cryptographic attacks, nor forcing node dissociation.
+    // Must only be called once the RXed message has passed authentication.
+    bool updateRXMessageCountAfterAuthentication(const uint8_t *ID, const uint8_t *counter);
 
     // Load the raw form of the persistent reboot/restart message counter from EEPROM into the supplied array.
     // Deals with inversion, but does not interpret the data or check CRCs etc.
