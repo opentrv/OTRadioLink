@@ -566,6 +566,13 @@ namespace OTRadioLink
     // Output buffer (buf) must be 3 bytes long.
     bool get3BytePersistentTXRestartCounter(uint8_t *buf);
 
+    // Check message counter for given ID, ie that it is high enough to be worth authenticating.
+    // Returns false if this counter value is not higher than the last received authenticated value.
+    //XXX
+    // Update persistent message counter for received frame AFTER successful authentication.
+    // Returns false on failure.
+    //XXX
+
     // Reset the persistent reboot/restart message counter in EEPROM; returns false on failure.
     // TO BE USED WITH EXTREME CAUTION: reusing the message counts and resulting IVs
     // destroys the security of the cipher.
