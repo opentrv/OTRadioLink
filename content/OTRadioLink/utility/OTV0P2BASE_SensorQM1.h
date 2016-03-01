@@ -53,6 +53,9 @@ class VoiceDetectionQM1 : public OTV0P2BASE::SimpleTSUint8Sensor
     // True if voice is detected.
     // Marked volatile for thread-safe lock-free access.
     volatile bool isDetected;
+    // True if in low power mode.
+    // Marked volatile for thread-safe (simple) lock-free access.
+//    volatile bool isLowPwr;
     // Last time sensor was polled
     // Marked volatile for thread-safe (simple) lock-free access.
 //    volatile uint16_t endOfLocking;

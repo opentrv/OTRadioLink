@@ -76,6 +76,10 @@ bool OTRN2483Link::sendRaw(const uint8_t* buf, uint8_t buflen,
 {
 //	char dataBuf[32];
 //	memset(dataBuf, 0, sizeof(dataBuf));
+#ifdef RN2483_ALLOW_SLEEP
+	setBaud();
+	OTV0P2BASE::nap(WDTO_15MS, true);
+#endif // RN2483_ALLOW_SLEEP
 
 	uint8_t outputBuf[buflen * 2];
 	getHex(buf, outputBuf, sizeof(outputBuf));
@@ -87,9 +91,10 @@ bool OTRN2483Link::sendRaw(const uint8_t* buf, uint8_t buflen,
 //	timedBlockingRead(dataBuf, sizeof(dataBuf));
 //	OTV0P2BASE::serialPrintAndFlush(dataBuf);
 #ifdef RN2483_ALLOW_SLEEP
+	OTV0P2BASE::nap(WDTO_120MS, true);
 	print(SYS_START);
 	print(SYS_SLEEP);
-	print("230000"); // FIXME sleeps for 3m50s
+	print("300000"); // FIXME sleeps for 4 mins
 	print(RN2483_END);
 #endif // RN2483_ALLOW_SLEEP
 
@@ -173,13 +178,13 @@ void OTRN2483Link::factoryReset()
  */
 void OTRN2483Link::reset()
 {
-//	print(SYS_START);
-//	print(SYS_RESET);
-//	print(RN2483_END);
+	print(SYS_START);
+	print(SYS_RESET);
+	print(RN2483_END);
 
-	fastDigitalWrite(nRstPin, LOW); // reset pin
-	delay(10); // wait a bit
-	fastDigitalWrite(nRstPin, HIGH);
+//	fastDigitalWrite(nRstPin, LOW); // reset pin
+//	delay(10); // wait a bit
+//	fastDigitalWrite(nRstPin, HIGH);
 }
 
 /**
@@ -312,7 +317,7 @@ const volatile uint8_t* OTRN2483Link::peekRXMsg() const {
 
 const char OTRN2483Link::SYS_START[5] = "sys ";
 const char OTRN2483Link::SYS_SLEEP[7] = "sleep ";
-//const char OTRN2483Link::SYS_RESET[6] = "reset"; // FIXME this can be removed on board with working reset line
+const char OTRN2483Link::SYS_RESET[6] = "reset"; // FIXME this can be removed on board with working reset line
 
 const char OTRN2483Link::MAC_START[5] = "mac ";
 #ifndef RN2483_CONFIG_IN_EEPROM
