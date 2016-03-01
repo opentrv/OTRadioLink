@@ -54,6 +54,9 @@ bool OTRN2483Link::begin() {
 
 	// get status (returns 0001 when connected and not Txing)
     getStatus();
+
+    // Set data rate.
+    setDataRate();
 	// Send
 	return true;
 }
@@ -74,13 +77,20 @@ bool OTRN2483Link::end()
 bool OTRN2483Link::sendRaw(const uint8_t* buf, uint8_t buflen,
 		int8_t channel, TXpower power, bool listenAfter)
 {
-//	char dataBuf[32];
-//	memset(dataBuf, 0, sizeof(dataBuf));
+	char dataBuf[16];
+	memset(dataBuf, 0, sizeof(dataBuf));
 #ifdef RN2483_ALLOW_SLEEP
 	setBaud();
 	OTV0P2BASE::nap(WDTO_15MS, true);
 #endif // RN2483_ALLOW_SLEEP
-
+#if 1
+	print(MAC_START);
+	print(RN2483_GET);
+	print(MAC_SET_DR); // todo fix command name
+	print(RN2483_END);
+    timedBlockingRead(dataBuf, sizeof(dataBuf));
+    OTV0P2BASE::serialPrintAndFlush(dataBuf);
+#endif // 1
 	uint8_t outputBuf[buflen * 2];
 	getHex(buf, outputBuf, sizeof(outputBuf));
 	print(MAC_START);
@@ -116,7 +126,7 @@ uint8_t OTRN2483Link::timedBlockingRead(char *data, uint8_t length)
 
 	  i = ser.read((uint8_t *)data, length);
 
-	#ifdef OTRN2483LINK_DEBUG
+	#if 1 //OTRN2483LINK_DEBUG
 	  OTV0P2BASE::serialPrintAndFlush(F("\n--Buffer Length: "));
 	  OTV0P2BASE::serialPrintAndFlush(i);
 	  OTV0P2BASE::serialPrintlnAndFlush();
@@ -199,7 +209,7 @@ void OTRN2483Link::setDevAddr(const uint8_t *address)
 	print(MAC_START);
 	print(RN2483_SET);
 	print(MAC_DEVADDR);
-	print("02011104"); // TODO this will be stored as number in config
+	print("02011123"); // TODO this will be stored as number in config
 //	print(address);
 	print(RN2483_END);
 }
@@ -262,6 +272,23 @@ void OTRN2483Link::save()
 	print(MAC_START);
 	print(MAC_SAVE);
 	print(RN2483_END);
+}
+
+/**
+ * @brief   Sets data rate range
+ * @note    Syntax:
+ *            - <ch> <minRate> <maxRate>
+ *            - 0 is SF12
+ *            - 2 is SF10
+ *            - 5 is SF7
+ */
+void OTRN2483Link::setDataRate()
+{
+    print(MAC_START);
+    print(RN2483_SET);
+    print(MAC_SET_DR);
+    print("0");
+    print(RN2483_END);
 }
 
 /**
@@ -329,6 +356,7 @@ const char OTRN2483Link::MAC_ADR[7] = "adr on";
 #else
 const char OTRN2483Link::MAC_ADR[8] = "adr off";
 #endif
+const char OTRN2483Link::MAC_SET_DR[4] = "dr ";
 #endif // RN2483_CONFIG_IN_EEPROM
 const char OTRN2483Link::MAC_JOINABP[9] = "join abp";
 const char OTRN2483Link::MAC_STATUS[7] = "status";
