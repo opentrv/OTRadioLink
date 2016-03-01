@@ -549,6 +549,7 @@ namespace OTRadioLink
     // The implementation should allow several years of life typical message rates (see above).
     // The implementation should be robust in the face of power failures / reboots, accidental or malicious,
     // not allowing replays nor other cryptographic attacks, nor forcing node dissociation.
+    // Must only be called once the RXed message has passed authentication.
     bool updateRXMessageCountAfterAuthentication(const uint8_t *ID, const uint8_t *counter);
 
     // Load the raw form of the persistent reboot/restart message counter from EEPROM into the supplied array.
@@ -577,6 +578,13 @@ namespace OTRadioLink
     // Deals with inversion and checksum checking.
     // Output buffer (buf) must be 3 bytes long.
     bool get3BytePersistentTXRestartCounter(uint8_t *buf);
+
+    // Check message counter for given ID, ie that it is high enough to be worth authenticating.
+    // Returns false if this counter value is not higher than the last received authenticated value.
+    //XXX
+    // Update persistent message counter for received frame AFTER successful authentication.
+    // Returns false on failure.
+    //XXX
 
     // Reset the persistent reboot/restart message counter in EEPROM; returns false on failure.
     // TO BE USED WITH EXTREME CAUTION: reusing the message counts and resulting IVs
