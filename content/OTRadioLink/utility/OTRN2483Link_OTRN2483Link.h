@@ -141,6 +141,7 @@ private:
     void joinABP();
     bool getStatus();
     void save();
+    void setDataRate(uint8_t dataRate);
 
     // Setup
     bool _doconfig() { return true; };
@@ -170,6 +171,7 @@ private:
 #else
     static const char MAC_ADR[8];     // Set Adaptive Datarate "off"
 #endif
+    static const char MAC_SET_DR[4];   // Set ch 1 data rate.
 #endif // RN2483_CONFIG_IN_EEPROM
     static const char MAC_JOINABP[9]; // Join LoRaWAN network by ABP (activation by personalisation)
     static const char MAC_STATUS[7];
