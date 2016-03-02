@@ -165,6 +165,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 //#define RADIO_PRIMARY_RN2483 // Must be secondary to avoid sending preamble etc
 #define RADIO_SECONDARY_RN2483
 
+#define ENABLE_FREQUENT_STATS_TX
 // Define voice module
 //#define ENABLE_VOICE_SENSOR
 //#define ENABLE_OCCUPANCY_DETECTION_FROM_VOICE
