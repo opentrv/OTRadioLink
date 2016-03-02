@@ -127,7 +127,7 @@ uint8_t OTRN2483Link::timedBlockingRead(char *data, uint8_t length)
 
 	  i = ser.read((uint8_t *)data, length);
 
-	#if 1 //OTRN2483LINK_DEBUG
+	#if 0 //OTRN2483LINK_DEBUG
 	  OTV0P2BASE::serialPrintAndFlush(F("\n--Buffer Length: "));
 	  OTV0P2BASE::serialPrintAndFlush(i);
 	  OTV0P2BASE::serialPrintlnAndFlush();
@@ -326,7 +326,7 @@ bool OTRN2483Link::getHex(const uint8_t *input, uint8_t *output, uint8_t outputL
 	    input++;
 	    counter -= 2;
 	  }
-#if 1
+#if 0
 	  OTV0P2BASE::serialPrintAndFlush("hex out: ");
 	  OTV0P2BASE::serialPrintAndFlush((const char *)output);
 	  OTV0P2BASE::serialPrintlnAndFlush();
