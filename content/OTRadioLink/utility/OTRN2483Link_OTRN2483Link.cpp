@@ -100,6 +100,8 @@ bool OTRN2483Link::sendRaw(const uint8_t* buf, uint8_t buflen,
 #if 1
 	timedBlockingRead(dataBuf, sizeof(dataBuf));
 	OTV0P2BASE::serialPrintAndFlush(dataBuf);
+	OTV0P2BASE::serialPrintAndFlush(sizeof(outputBuf));
+    OTV0P2BASE::serialPrintlnAndFlush();
 #endif
 #ifdef RN2483_ALLOW_SLEEP
 	OTV0P2BASE::nap(WDTO_120MS, true);
@@ -210,7 +212,7 @@ void OTRN2483Link::setDevAddr(const uint8_t *address)
 	print(MAC_START);
 	print(RN2483_SET);
 	print(MAC_DEVADDR);
-	print("02011121"); // TODO this will be stored as number in config
+	print("02011124"); // TODO this will be stored as number in config
 //	print(address);
 	print(RN2483_END);
 }
@@ -288,7 +290,7 @@ void OTRN2483Link::setDataRate(uint8_t dataRate)
     print(MAC_START);
     print(RN2483_SET);
     print(MAC_SET_DR);
-    print("1");
+    print("2");
     print(RN2483_END);
 }
 
