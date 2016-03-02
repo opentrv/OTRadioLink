@@ -23,7 +23,8 @@ unit    datarate
 23      1
 24      2
 
-Failed packets:
+
+Some failed packets:
 
 {"@":"e8e7","+":2,"H|%":26,"T|C16":389,"O":1,"L":251}
 invalid_data_len�106
@@ -34,3 +35,6 @@ Radio: {"@":"e8e7","+":2,"H|%":26,"T|C16":389,"O":1,"L":251�v
 invalid_data_len�106
 Radio: {"@":"e8e7","+":4,"L":250,"T|C16":389,"H|%":26,"O":1�
 
+Common points:
+- if length is over 100, returns "invalid_data_len"
+- Occasionally fails with a "no_free_ch". No idea what it means though.
