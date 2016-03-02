@@ -93,6 +93,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #define ENABLE_UI_LED_2_IF_AVAILABLE
 // IF DEFINED: simplified mode button behaviour: tapping button invokes BAKE, not mode cycling.
 #undef ENABLE_SIMPLIFIED_MODE_BAKE
+// IF DEFINED: enabled frequent stats TX, eg every minute, for diagnostics.
+#undef ENABLE_FREQUENT_STATS_TX
 //////////////////////////////////////// SENSOR OPTIONS (and support for them)
 // IF DEFINED: allow use of ambient light sensor.
 #define ENABLE_AMBLIGHT_SENSOR
