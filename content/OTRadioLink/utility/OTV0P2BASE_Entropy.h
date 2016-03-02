@@ -70,6 +70,12 @@ uint16_t sramCRC();
 // Compute a CRC of all of EEPROM as a hash that may contain some entropy, particularly across restarts.
 uint16_t eeCRC();
 
+// Seed PRNGs and entropy pool.
+// Scrapes entropy from SRAM and EEPROM and some I/O (safely).
+// Call this early in boot, but possibly after gathering initial data from some sensors,
+// entropy from which can be scraped out of SRAM.
+void seedPRNGs();
+
 
 }
 #endif
