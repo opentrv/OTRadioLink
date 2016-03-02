@@ -95,6 +95,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #undef ENABLE_SIMPLIFIED_MODE_BAKE
 // IF DEFINED: enabled frequent stats TX, eg every minute, for diagnostics.
 #undef ENABLE_FREQUENT_STATS_TX
+// IF DEFINED: the (strictly +ve) value of the flag is the maximum JSON frame size allowed.
+#undef ENABLE_JSON_STATS_LEN_CAP
 //////////////////////////////////////// SENSOR OPTIONS (and support for them)
 // IF DEFINED: allow use of ambient light sensor.
 #define ENABLE_AMBLIGHT_SENSOR
