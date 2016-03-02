@@ -16,6 +16,7 @@ Data rate:
     6) dr 5 =  SF7, 230/250 octets*
 *<repeater compatible>/<not repeater compatible>, assumed octets (not labeled in LoRaWan spec table 16/17)
 
+DHD2060302: JSON frame lengths above 49 seem to fail at the low data rates 0/1/2.
 
 Testing data rates:
 unit    datarate
