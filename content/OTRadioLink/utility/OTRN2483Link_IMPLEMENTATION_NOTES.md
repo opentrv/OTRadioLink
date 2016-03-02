@@ -19,5 +19,18 @@ Data rate:
 
 Testing data rates:
 unit    datarate
-21      1
+21      0
+23      1
+24      2
+
+Failed packets:
+
+{"@":"e8e7","+":2,"H|%":26,"T|C16":389,"O":1,"L":251}
+invalid_data_len�106
+Radio: {"@":"e8e7","+":2,"H|%":26,"T|C16":389,"O":1,"L":251�v
+
+
+{"@":"e8e7","+":4,"L":250,"T|C16":389,"H|%":26,"O":1}
+invalid_data_len�106
+Radio: {"@":"e8e7","+":4,"L":250,"T|C16":389,"H|%":26,"O":1�
 
