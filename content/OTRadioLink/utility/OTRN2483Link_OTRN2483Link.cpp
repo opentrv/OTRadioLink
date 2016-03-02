@@ -56,7 +56,7 @@ bool OTRN2483Link::begin() {
     getStatus();
 
     // Set data rate.
-    setDataRate();
+    setDataRate(0);
 	// Send
 	return true;
 }
@@ -83,10 +83,10 @@ bool OTRN2483Link::sendRaw(const uint8_t* buf, uint8_t buflen,
 	setBaud();
 	OTV0P2BASE::nap(WDTO_15MS, true);
 #endif // RN2483_ALLOW_SLEEP
-#if 1
+#if 0
 	print(MAC_START);
 	print(RN2483_GET);
-	print(MAC_SET_DR); // todo fix command name
+	print("dr"); // todo fix command name
 	print(RN2483_END);
     timedBlockingRead(dataBuf, sizeof(dataBuf));
     OTV0P2BASE::serialPrintAndFlush(dataBuf);
@@ -97,9 +97,10 @@ bool OTRN2483Link::sendRaw(const uint8_t* buf, uint8_t buflen,
 	print(MAC_SEND);
 	write((const char *)outputBuf, sizeof(outputBuf));
 	print(RN2483_END);
-
-//	timedBlockingRead(dataBuf, sizeof(dataBuf));
-//	OTV0P2BASE::serialPrintAndFlush(dataBuf);
+#if 1
+	timedBlockingRead(dataBuf, sizeof(dataBuf));
+	OTV0P2BASE::serialPrintAndFlush(dataBuf);
+#endif
 #ifdef RN2483_ALLOW_SLEEP
 	OTV0P2BASE::nap(WDTO_120MS, true);
 	print(SYS_START);
@@ -209,7 +210,7 @@ void OTRN2483Link::setDevAddr(const uint8_t *address)
 	print(MAC_START);
 	print(RN2483_SET);
 	print(MAC_DEVADDR);
-	print("02011123"); // TODO this will be stored as number in config
+	print("02011121"); // TODO this will be stored as number in config
 //	print(address);
 	print(RN2483_END);
 }
@@ -282,12 +283,12 @@ void OTRN2483Link::save()
  *            - 2 is SF10
  *            - 5 is SF7
  */
-void OTRN2483Link::setDataRate()
+void OTRN2483Link::setDataRate(uint8_t dataRate)
 {
     print(MAC_START);
     print(RN2483_SET);
     print(MAC_SET_DR);
-    print("0");
+    print("1");
     print(RN2483_END);
 }
 
@@ -325,6 +326,11 @@ bool OTRN2483Link::getHex(const uint8_t *input, uint8_t *output, uint8_t outputL
 	    input++;
 	    counter -= 2;
 	  }
+#if 1
+	  OTV0P2BASE::serialPrintAndFlush("hex out: ");
+	  OTV0P2BASE::serialPrintAndFlush((const char *)output);
+	  OTV0P2BASE::serialPrintlnAndFlush();
+#endif
 	  return true;
 }
 

@@ -1,0 +1,23 @@
+Various RN2483 notes:
+
+Currently variables defined in functions (in .cpp file). Ugly but no time to do it properly
+
+Sleep Mode:
+  - Does not wake from sleep in our particular implementation.
+  - You tell it how long to sleep for in 100s of ms and it *should* wake up at the end.
+
+Data rate:
+  - 5 data rates (dr) in LoRaWAN class A. Each coresponds to a different spread factor (SF) and has a different max payload length:
+    1) dr 0 = SF12, 59/59   octets*
+    2) dr 1 = SF11, 59/59   octets*
+    3) dr 2 = SF10, 59/59   octets*
+    4) dr 3 =  SF9, 123/123 octets*
+    5) dr 4 =  SF8, 230/250 octets*
+    6) dr 5 =  SF7, 230/250 octets*
+*<repeater compatible>/<not repeater compatible>, assumed octets (not labeled in LoRaWan spec table 16/17)
+
+
+Testing data rates:
+unit    datarate
+21      1
+

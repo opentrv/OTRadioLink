@@ -141,7 +141,7 @@ private:
     void joinABP();
     bool getStatus();
     void save();
-    void setDataRate();
+    void setDataRate(uint8_t dataRate);
 
     // Setup
     bool _doconfig() { return true; };
