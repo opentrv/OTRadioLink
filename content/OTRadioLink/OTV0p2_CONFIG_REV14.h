@@ -166,6 +166,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #define RADIO_SECONDARY_RN2483
 
 #define ENABLE_FREQUENT_STATS_TX
+#define ENABLE_JSON_STATS_LEN_CAP 49
 // Define voice module
 //#define ENABLE_VOICE_SENSOR
 //#define ENABLE_OCCUPANCY_DETECTION_FROM_VOICE
