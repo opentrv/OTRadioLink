@@ -43,6 +43,12 @@ namespace HWTEST
 {
 
 
+// Returns true if the 32768Hz low-frequency async crystal oscillator appears to be sane.
+// This means the the Timer 2 clock needs to be running
+// and have an acceptable frequency compared to the CPU clock (1MHz).
+// Uses nap, and needs the Timer 2 to have been set up in async clock mode.
+// In passing gathers some entropy for the system.
+bool check32768HzOsc();
 
 
 } }
