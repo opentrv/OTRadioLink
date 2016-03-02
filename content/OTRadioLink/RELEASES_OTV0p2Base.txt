@@ -40,7 +40,7 @@ pending:
     DHD20160125: API changes for getByHourStat() and addition of countStatSamplesBelow().
     DE20160201:  Implemented break sending in OTSoftSerial
     DE20160210:  Created OTV0P2BASE_CLI for common CLI support functions
-
+    DHD20160302: D21FM: TODO-844: moving some of h/w tests (eg for POST) down.
 
 
 
