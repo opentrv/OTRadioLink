@@ -536,11 +536,11 @@ namespace OTRadioLink
             // When this counter reaches 0xffffffffffff then no more messages can be sent
             // until new keys are shared and the counter is reset.
             static const uint8_t primaryPeristentTXMessageCounterBytes = 6;
-            // Fills the supplied 6-byte array with the monotonically-increasing primary TX counter.
+            // Fills the supplied 6-byte array with the incremented monotonically-increasing primary TX counter.
             // Returns true on success; false on failure for example because the counter has reached its maximum value.
             // Highest-index bytes in the array increment fastest.
             // Not ISR-safe.
-            virtual bool getPrimarySecure6BytePersistentTXMessageCounter(uint8_t *buf) = 0;
+            virtual bool incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(uint8_t *buf) = 0;
 
             // Fill in 12-byte IV for 'O'-style (0x80) AESGCM security for a frame to TX.
             // This uses the local node ID as-is for the first 6 bytes.

@@ -44,15 +44,6 @@ SimpleSecureFrame32or0BodyV0p2 &SimpleSecureFrame32or0BodyV0p2::getInstance()
     }
 
 
-// Factory method to get singleton instance.
-SimpleSecureFrame32or0BodyV0p2 &SimpleSecureFrame32or0BodyV0p2::getInstance()
-    {
-    // Create/initialise on first use, NOT statically.
-    static SimpleSecureFrame32or0BodyV0p2 instance;
-    return(instance);
-    }
-
-
 // Load the raw form of the persistent reboot/restart message counter from EEPROM into the supplied array.
 // Deals with inversion, but does not interpret the data or check CRCs etc.
 // Separates the EEPROM access from the data interpretation to simplify unit testing.
@@ -221,11 +212,11 @@ bool SimpleSecureFrame32or0BodyV0p2::increment3BytePersistentTXRestartCounter()
     return(true);
     }
 
-// Fills the supplied 6-byte array with the monotonically-increasing primary TX counter.
+// Fills the supplied 6-byte array with the incremented monotonically-increasing primary TX counter.
 // Returns true on success; false on failure for example because the counter has reached its maximum value.
 // Highest-index bytes in the array increment fastest.
 // Not ISR-safe.
-bool SimpleSecureFrame32or0BodyV0p2::getPrimarySecure6BytePersistentTXMessageCounter(uint8_t *const buf)
+bool SimpleSecureFrame32or0BodyV0p2::incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(uint8_t *const buf)
     {
     if(NULL == buf) { return(false); }
 
@@ -306,6 +297,21 @@ bool SimpleSecureFrame32or0BodyV0p2::getPrimarySecure6BytePersistentTXMessageCou
     return(true);
     }
 
+// Check message counter for given ID, ie that it is high enough to be worth authenticating.
+// ID is full (8-byte) node ID; counter is full (6-byte) counter.
+// Returns false if this counter value is not higher than the last received authenticated value.
+bool SimpleSecureFrame32or0BodyV0p2::validateRXMessageCount(const uint8_t *ID, const uint8_t *counter) const
+    { return(false); } // FIXME not implemented
+// Update persistent message counter for received frame AFTER successful authentication.
+// ID is full (8-byte) node ID; counter is full (6-byte) counter.
+// Returns false on failure, eg if message counter is not higher than the previous value for this node.
+// The implementation should allow several years of life typical message rates (see above).
+// The implementation should be robust in the face of power failures / reboots, accidental or malicious,
+// not allowing replays nor other cryptographic attacks, nor forcing node dissociation.
+// Must only be called once the RXed message has passed authentication.
+bool SimpleSecureFrame32or0BodyV0p2::updateRXMessageCountAfterAuthentication(const uint8_t *ID, const uint8_t *counter)
+    { return(false); } // FIXME not implemented
+
 
 // Fill in 12-byte IV for 'O'-style (0x80) AESGCM security for a frame to TX.
 // This uses the local node ID as-is for the first 6 bytes.
@@ -317,7 +323,7 @@ bool SimpleSecureFrame32or0BodyV0p2::compute12ByteIDAndCounterIVForTX(uint8_t *c
     // Fill in first 6 bytes of this node's ID.
     eeprom_read_block(ivBuf, (uint8_t *)V0P2BASE_EE_START_ID, 6);
     // Generate and fill in new message count at end of IV.
-    return(getPrimarySecure6BytePersistentTXMessageCounter(ivBuf + 6));
+    return(incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(ivBuf + 6));
     }
 
 

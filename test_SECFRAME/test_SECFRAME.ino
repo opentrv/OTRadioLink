@@ -855,7 +855,7 @@ static void testPermMsgCountRunOnce()
   // that getting the message counter gives non-zero reboot and ephemeral parts.
   AssertIsTrue(instance.resetRaw3BytePersistentTXRestartCounterInEEPROM(true));
   uint8_t mcbuf[OTRadioLink::SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageCounterBytes];
-  AssertIsTrue(instance.getPrimarySecure6BytePersistentTXMessageCounter(mcbuf));
+  AssertIsTrue(instance.incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(mcbuf));
 #if 1
   for(int i = 0; i < sizeof(mcbuf); ++i) { Serial.print(' '); Serial.print(mcbuf[i], HEX); }
   Serial.println();
