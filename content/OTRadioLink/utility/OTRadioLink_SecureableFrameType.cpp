@@ -383,7 +383,7 @@ uint8_t encodeSecureSmallFrameRaw(uint8_t *const buf, const uint8_t buflen,
         {
         if(NULL == body) { return(0); } // ERROR
         memcpy(paddingBuf, body, bl_);
-        if(0 == addPaddingTo32BTrailing0sAndPadCount(paddingBuf, bl_)) { return(0); } // ERROR
+        if(0 == SimpleSecureFrame32or0BodyBase::addPaddingTo32BTrailing0sAndPadCount(paddingBuf, bl_)) { return(0); } // ERROR
         }
     // Encrypt body (if any) from the padding buffer to the output buffer.
     // Insert the tag directly into the buffer (before the final byte).
@@ -465,7 +465,7 @@ uint8_t decodeSecureSmallFrameRaw(const SecurableFrameHeader *const sfh,
     if(plaintextWanted && (0 != bl))
         {
         // Unpad the decrypted text in place.
-        const uint8_t upbl = removePaddingTo32BTrailing0sAndPadCount(decryptBuf);
+        const uint8_t upbl = SimpleSecureFrame32or0BodyBase::removePaddingTo32BTrailing0sAndPadCount(decryptBuf);
         if(upbl > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
         if(upbl > decryptedBodyOutBuflen) { return(0); } // ERROR
         memcpy(decryptedBodyOut, decryptBuf, upbl);
@@ -539,7 +539,7 @@ uint8_t decodeSecureSmallFrameFromID(const SecurableFrameHeader *const sfh,
 // Parameters:
 //  * buf  buffer containing the plain-text; must be >= 32 bytes, never NULL
 //  * datalen  unpadded data size at start of buf; if too large (>31) then this routine will fail (return 0)
-uint8_t addPaddingTo32BTrailing0sAndPadCount(uint8_t *const buf, const uint8_t datalen)
+uint8_t SimpleSecureFrame32or0BodyBase::addPaddingTo32BTrailing0sAndPadCount(uint8_t *const buf, const uint8_t datalen)
     {
     if(NULL == buf) { return(0); } // ERROR
     if(datalen > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
@@ -557,7 +557,7 @@ uint8_t addPaddingTo32BTrailing0sAndPadCount(uint8_t *const buf, const uint8_t d
 //  * buf  buffer containing the plain-text; must be >= 32 bytes, never NULL
 //
 // NOTE: does not check that all padding bytes are actually zero.
-uint8_t removePaddingTo32BTrailing0sAndPadCount(const uint8_t *const buf)
+uint8_t SimpleSecureFrame32or0BodyBase::removePaddingTo32BTrailing0sAndPadCount(const uint8_t *const buf)
     {
     const uint8_t paddingZeros = buf[ENC_BODY_SMALL_FIXED_CTEXT_SIZE - 1];
     if(paddingZeros > 31) { return(0); } // ERROR

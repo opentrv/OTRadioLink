@@ -324,31 +324,37 @@ namespace OTRadioLink
     // Some implementations make sense only as singletons,
     // eg because they store state at fixed locations in EEPROM.
     // It is possible to provide implementations not tied to any particular hardware architecture.
+    // This provides stateless implementation-independent implementations of some key routines.
     class SimpleSecureFrame32or0BodyBase
         {
+        public:
+            // Pads plain-text in place prior to encryption with 32-byte fixed length padded output.
+            // Simple method that allows unpadding at receiver, does padding in place.
+            // Padded size is (ENC_BODY_SMALL_FIXED_CTEXT_SIZE) 32, maximum unpadded size is 31.
+            // All padding bytes after input text up to final byte are zero.
+            // Final byte gives number of zero bytes of padding added from plain-text to final byte itself [0,31].
+            // Returns padded size in bytes (32), or zero in case of error.
+            //
+            // Parameters:
+            //  * buf  buffer containing the plain-text; must be >= 32 bytes, never NULL
+            //  * datalen  unpadded data size at start of buf; if too large (>31) then this routine will fail (return 0)
+            static uint8_t addPaddingTo32BTrailing0sAndPadCount(uint8_t *buf, uint8_t datalen);
+
+            // Unpads plain-text in place prior to encryption with 32-byte fixed length padded output.
+            // Reverses/validates padding applied by addPaddingTo32BTrailing0sAndPadCount().
+            // Returns unpadded data length (at start of buffer) or 0xff in case of error.
+            //
+            // Parameters:
+            //  * buf  buffer containing the plain-text; must be >= 32 bytes, never NULL
+            //
+            // NOTE: mqy not check that all padding bytes are actually zero.
+            static uint8_t removePaddingTo32BTrailing0sAndPadCount(const uint8_t *buf);
         };
 
-    // Pads plain-text in place prior to encryption with 32-byte fixed length padded output.
-    // Simple method that allows unpadding at receiver, does padding in place.
-    // Padded size is (ENC_BODY_SMALL_FIXED_CTEXT_SIZE) 32, maximum unpadded size is 31.
-    // All padding bytes after input text up to final byte are zero.
-    // Final byte gives number of zero bytes of padding added from plain-text to final byte itself [0,31].
-    // Returns padded size in bytes (32), or zero in case of error.
-    //
-    // Parameters:
-    //  * buf  buffer containing the plain-text; must be >= 32 bytes, never NULL
-    //  * datalen  unpadded data size at start of buf; if too large (>31) then this routine will fail (return 0)
-    uint8_t addPaddingTo32BTrailing0sAndPadCount(uint8_t *buf, uint8_t datalen);
-
-    // Unpads plain-text in place prior to encryption with 32-byte fixed length padded output.
-    // Reverses/validates padding applied by addPaddingTo32BTrailing0sAndPadCount().
-    // Returns unpadded data length (at start of buffer) or 0xff in case of error.
-    //
-    // Parameters:
-    //  * buf  buffer containing the plain-text; must be >= 32 bytes, never NULL
-    //
-    // NOTE: mqy not check that all padding bytes are actually zero.
-    uint8_t removePaddingTo32BTrailing0sAndPadCount(const uint8_t *buf);
+    // V0p2 implementation for 0 or 32 byte encrypted body sections.
+    class SimpleSecureFrame32or0BodyV0p2 : public SimpleSecureFrame32or0BodyBase
+        {
+        };
 
 
     // Signature of pointer to basic fixed-size text encryption/authentication function.
