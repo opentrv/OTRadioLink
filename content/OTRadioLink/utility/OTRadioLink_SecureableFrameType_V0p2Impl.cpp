@@ -44,6 +44,15 @@ SimpleSecureFrame32or0BodyV0p2 &SimpleSecureFrame32or0BodyV0p2::getInstance()
     }
 
 
+// Factory method to get singleton instance.
+SimpleSecureFrame32or0BodyV0p2 &SimpleSecureFrame32or0BodyV0p2::getInstance()
+    {
+    // Create/initialise on first use, NOT statically.
+    static SimpleSecureFrame32or0BodyV0p2 instance;
+    return(instance);
+    }
+
+
 // Load the raw form of the persistent reboot/restart message counter from EEPROM into the supplied array.
 // Deals with inversion, but does not interpret the data or check CRCs etc.
 // Separates the EEPROM access from the data interpretation to simplify unit testing.

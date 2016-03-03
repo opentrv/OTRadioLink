@@ -745,7 +745,7 @@ static void testBeaconEncoding()
   AssertIsEqual(0x00, buf[11]); // Body length 0.
   //AssertIsEqual(0xXX, buf[12]); // CRC will vary with ID.
   //
-//  const unsigned long before = millis();
+  //const unsigned long before = millis();
   for(int idLen = 0; idLen <= 8; ++idLen)
     {
     // Secure beacon...  All zeros key; ID and IV as from spec Example 3 at 20160207.
