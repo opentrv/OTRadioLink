@@ -796,29 +796,29 @@ static void testPermMsgCount()
 //  for(int i = 0; i < sizeof(buf); ++i) { AssertIsEqual(0, buf[i]); }
   // Initialise to state of empty EEPROM; result should be a valid all-zeros restart count.
   memset(loadBuf, 0, sizeof(loadBuf));
-  AssertIsTrue(OTRadioLink::read3BytePersistentTXRestartCounter(loadBuf, buf));
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyV0p2::getInstance().read3BytePersistentTXRestartCounter(loadBuf, buf));
   AssertIsEqual(0, memcmp(buf, zeroKey, OTRadioLink::SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageRestartCounterBytes));
   // Ensure that it can be incremented and gives the correct next (0x000001) value.
-  AssertIsTrue(OTRadioLink::increment3BytePersistentTXRestartCounter(loadBuf));
-  AssertIsTrue(OTRadioLink::read3BytePersistentTXRestartCounter(loadBuf, buf));
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyV0p2::getInstance().increment3BytePersistentTXRestartCounter(loadBuf));
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyV0p2::getInstance().read3BytePersistentTXRestartCounter(loadBuf, buf));
   AssertIsEqual(0, memcmp(buf, zeroKey, OTRadioLink::SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageRestartCounterBytes - 1));
   AssertIsEqual(1, buf[2]);
   // Initialise to all-0xff state (with correct CRC), which should cause failure.
   memset(loadBuf, 0xff, sizeof(loadBuf)); loadBuf[3] = 0xf; loadBuf[7] = 0xf;
-  AssertIsTrue(!OTRadioLink::read3BytePersistentTXRestartCounter(loadBuf, buf));
+  AssertIsTrue(!OTRadioLink::SimpleSecureFrame32or0BodyV0p2::getInstance().read3BytePersistentTXRestartCounter(loadBuf, buf));
   // Ensure that it CANNOT be incremented.
-  AssertIsTrue(!OTRadioLink::increment3BytePersistentTXRestartCounter(loadBuf));
+  AssertIsTrue(!OTRadioLink::SimpleSecureFrame32or0BodyV0p2::getInstance().increment3BytePersistentTXRestartCounter(loadBuf));
   // Test recovery from broken primary counter a few times.
   memset(loadBuf, 0, sizeof(loadBuf));
   for(uint8_t i = 0; i < 3; ++i)
     {
     // Damage one of the primary or secondary counter bytes (or CRCs).
     loadBuf[0x7 & OTV0P2BASE::randRNG8()] = OTV0P2BASE::randRNG8();
-    AssertIsTrue(OTRadioLink::read3BytePersistentTXRestartCounter(loadBuf, buf));
+    AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyV0p2::getInstance().read3BytePersistentTXRestartCounter(loadBuf, buf));
     AssertIsEqual(0, buf[1]);
     AssertIsEqual(0, buf[1]);
     AssertIsEqual(i, buf[2]);
-    AssertIsTrue(OTRadioLink::increment3BytePersistentTXRestartCounter(loadBuf));
+    AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyV0p2::getInstance().increment3BytePersistentTXRestartCounter(loadBuf));
     }
   }
 
@@ -831,19 +831,20 @@ static void testPermMsgCountRunOnce()
   Serial.println("PermMsgCountRunOnce");
   // We're compromising system security and keys here, so clear any secret keys set, first.
   AssertIsTrue(OTV0P2BASE::setPrimaryBuilding16ByteSecretKey(NULL)); // Fail if we can't ensure that the key is cleared.
+  SimpleSecureFrame32or0BodyV0p2 instance = SimpleSecureFrame32or0BodyV0p2::getInstance();
   // Working buffer space...
   uint8_t loadBuf[OTV0P2BASE::VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR];
   uint8_t buf[OTRadioLink::SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageRestartCounterBytes];
   // Initial test that blank EEPROM (or reset to all zeros) after processing yields all zeros.
-  AssertIsTrue(OTRadioLink::resetRaw3BytePersistentTXRestartCounterInEEPROM(true));
+  AssertIsTrue(instance.resetRaw3BytePersistentTXRestartCounterInEEPROM(true));
   OTRadioLink::loadRaw3BytePersistentTXRestartCounterFromEEPROM(loadBuf);
   AssertIsTrue(0 == memcmp(loadBuf, zeroKey, sizeof(loadBuf)));
-  AssertIsTrue(OTRadioLink::read3BytePersistentTXRestartCounter(loadBuf, buf));
+  AssertIsTrue(instance.read3BytePersistentTXRestartCounter(loadBuf, buf));
   AssertIsEqual(0, memcmp(buf, zeroKey, OTRadioLink::SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageRestartCounterBytes));
-  AssertIsTrue(OTRadioLink::get3BytePersistentTXRestartCounter(buf));
+  AssertIsTrue(instance.get3BytePersistentTXRestartCounter(buf));
   AssertIsTrue(0 == memcmp(buf, zeroKey, OTRadioLink::SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageRestartCounterBytes));
   // Increment the persistent TX counter and ensure that we see it as non-zero.
-  AssertIsTrue(OTRadioLink::increment3BytePersistentTXRestartCounter());
+  AssertIsTrue(instance.increment3BytePersistentTXRestartCounter());
   AssertIsTrue(OTRadioLink::get3BytePersistentTXRestartCounter(buf));
   AssertIsTrue(0 != memcmp(buf, zeroKey, OTRadioLink::SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageRestartCounterBytes));
   // So reset to non-all-zeros (should be default) and make sure that we see it as not-all-zeros.
