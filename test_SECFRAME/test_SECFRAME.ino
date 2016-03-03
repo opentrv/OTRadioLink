@@ -472,28 +472,28 @@ static void testSimplePadding()
   Serial.println("SimplePadding");
   uint8_t buf[OTRadioLink::ENC_BODY_SMALL_FIXED_CTEXT_SIZE];
   // Provoke failure with NULL buffer.
-  AssertIsEqual(0, OTRadioLink::addPaddingTo32BTrailing0sAndPadCount(NULL, 0x1f & OTV0P2BASE::randRNG8()));
+  AssertIsEqual(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::addPaddingTo32BTrailing0sAndPadCount(NULL, 0x1f & OTV0P2BASE::randRNG8()));
   // Provoke failure with over-long unpadded plain-text.
-  AssertIsEqual(0, OTRadioLink::addPaddingTo32BTrailing0sAndPadCount(buf, 1 + OTRadioLink::ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE));  
+  AssertIsEqual(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::addPaddingTo32BTrailing0sAndPadCount(buf, 1 + OTRadioLink::ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE));  
   // Check padding in case with single random data byte (and the rest of the buffer set differently).
   // Check the entire padded result for correctness.
   const uint8_t db0 = OTV0P2BASE::randRNG8();
   buf[0] = db0;
   memset(buf+1, ~db0, sizeof(buf)-1);
-  AssertIsEqual(32, OTRadioLink::addPaddingTo32BTrailing0sAndPadCount(buf, 1));
+  AssertIsEqual(32, OTRadioLink::SimpleSecureFrame32or0BodyBase::addPaddingTo32BTrailing0sAndPadCount(buf, 1));
   AssertIsEqual(db0, buf[0]);
   for(int i = 30; --i > 0; ) { AssertIsEqual(0, buf[i]); }
   AssertIsEqual(30, buf[31]);
   // Ensure that unpadding works.
-  AssertIsEqual(1, OTRadioLink::removePaddingTo32BTrailing0sAndPadCount(buf));
+  AssertIsEqual(1, OTRadioLink::SimpleSecureFrame32or0BodyBase::removePaddingTo32BTrailing0sAndPadCount(buf));
   AssertIsEqual(db0, buf[0]);
   }
 
 // Test simple fixed-size NULL enc/dec behaviour.
 static void testSimpleNULLEncDec()
   {
-  const OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e = OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL;
-  const OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d = OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL;
+  const OTRadioLink::SimpleSecureFrame32or0BodyBase::fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e = OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL;
+  const OTRadioLink::SimpleSecureFrame32or0BodyBase::fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d = OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL;
   // Check that calling the NULL enc routine with bad args fails.
   AssertIsTrue(!e(NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL));
   static const uint8_t plaintext1[32] = { 'a', 'b', 'c', 'd', 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4 };
@@ -516,8 +516,8 @@ static void testSimpleNULLEncDec()
 
 // Test a simple fixed-size enc/dec function pair.
 // Aborts with Assert...() in case of failure.
-static void runSimpleEncDec(const OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
-                            const OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d)
+static void runSimpleEncDec(const OTRadioLink::SimpleSecureFrame32or0BodyBase::fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                            const OTRadioLink::SimpleSecureFrame32or0BodyBase::fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d)
   {
   // Check that calling the NULL enc routine with bad args fails.
   AssertIsTrue(!e(NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL));
@@ -642,7 +642,7 @@ static void testSecureSmallFrameEncoding()
   const uint8_t iv[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55, 0x00, 0x00, 0x2a, 0x00, 0x03, 0x19 };
   // 'O' frame body with some JSON stats.
   const uint8_t body[] = { 0x7f, 0x11, 0x7b, 0x22, 0x62, 0x22, 0x3a, 0x31 };
-  const uint8_t encodedLength = OTRadioLink::encodeSecureSmallFrameRaw(buf, sizeof(buf),
+  const uint8_t encodedLength = OTRadioLink::SimpleSecureFrame32or0BodyBase::encodeSecureSmallFrameRaw(buf, sizeof(buf),
                                     OTRadioLink::FTS_BasicSensorOrValve,
                                     id, 4,
                                     body, sizeof(body),
@@ -680,7 +680,7 @@ static void testSecureSmallFrameEncoding()
   uint8_t decodedBodyOutSize;
   uint8_t decryptedBodyOut[OTRadioLink::ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE];
   // Should decode and authenticate correctly.
-  AssertIsTrue(0 != OTRadioLink::decodeSecureSmallFrameRaw(&sfhRX,
+  AssertIsTrue(0 != OTRadioLink::SimpleSecureFrame32or0BodyBase::decodeSecureSmallFrameRaw(&sfhRX,
                                         buf, encodedLength,
                                         OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
                                         NULL, zeroKey, iv,
@@ -696,7 +696,7 @@ static void testSecureSmallFrameEncoding()
 //  Serial.println(loc);
 //  Serial.println(mask);
   AssertIsTrue((0 == sfhRX.checkAndDecodeSmallFrameHeader(buf, encodedLength)) ||
-               (0 == OTRadioLink::decodeSecureSmallFrameRaw(&sfhRX,
+               (0 == OTRadioLink::SimpleSecureFrame32or0BodyBase::decodeSecureSmallFrameRaw(&sfhRX,
                                         buf, encodedLength,
                                         OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
                                         NULL, zeroKey, iv,
@@ -764,7 +764,7 @@ static void testBeaconEncoding()
     const uint8_t l = sfh.checkAndDecodeSmallFrameHeader(buf, sb1);
     AssertIsEqual(4 + idLen, l);
     uint8_t decryptedBodyOutSize;
-    const uint8_t dlr = OTRadioLink::decodeSecureSmallFrameRaw(&sfh,
+    const uint8_t dlr = OTRadioLink::SimpleSecureFrame32or0BodyBase::decodeSecureSmallFrameRaw(&sfh,
                                     buf, sizeof(buf),
                                     OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
                                     NULL, key, iv,
