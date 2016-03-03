@@ -37,7 +37,14 @@ namespace OTRadioLink
     // V0p2 implementation for 0 or 32 byte encrypted body sections.
     class SimpleSecureFrame32or0BodyV0p2 : public SimpleSecureFrame32or0BodyBase
         {
+        private:
+            // Constructor is private to force use of factory method to return singleton.
+            SimpleSecureFrame32or0BodyV0p2() { }
+
         public:
+            // Factory method to get singleton instance.
+            static SimpleSecureFrame32or0BodyV0p2 &getInstance();
+
             // Design notes on use of message counters vs non-volatile storage life, eg for ATMega328P.
             //
             // Note that the message counter is designed to:

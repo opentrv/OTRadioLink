@@ -22,6 +22,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
  */
 
 #include <util/atomic.h>
+#include <util/crc16.h>
 #include <string.h>
 
 #include "OTRadioLink_SecureableFrameType.h"
@@ -32,6 +33,15 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 
 namespace OTRadioLink
     {
+
+
+// Factory method to get singleton instance.
+SimpleSecureFrame32or0BodyV0p2 &SimpleSecureFrame32or0BodyV0p2::getInstance()
+    {
+    // Create/initialise on first use, NOT statically.
+    static SimpleSecureFrame32or0BodyV0p2 instance;
+    return(instance);
+    }
 
 
 // Load the raw form of the persistent reboot/restart message counter from EEPROM into the supplied array.
@@ -120,19 +130,19 @@ static bool readOne3BytePersistentTXRestartCounter(const uint8_t *const base, ui
     // FIXME: for now use the primary copy only: should be able to salvage from secondary, else take higher+1.
     // Fail if the CRC is not valid.
     uint8_t crc = 0;
-    for(int i = 0; i < primaryPeristentTXMessageRestartCounterBytes; ++i) { crc = _crc8_ccitt_update(crc, base[i]); }
+    for(int i = 0; i < SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageRestartCounterBytes; ++i) { crc = _crc8_ccitt_update(crc, base[i]); }
 #if 0
 OTV0P2BASE::serialPrintAndFlush(F("CRC expected vs actual "));
 OTV0P2BASE::serialPrintAndFlush(crc, HEX);
 OTV0P2BASE::serialPrintAndFlush(' ');
-OTV0P2BASE::serialPrintAndFlush(base[primaryPeristentTXMessageRestartCounterBytes], HEX);
+OTV0P2BASE::serialPrintAndFlush(base[SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageRestartCounterBytes], HEX);
 OTV0P2BASE::serialPrintlnAndFlush();
 #endif
-    if(crc != base[primaryPeristentTXMessageRestartCounterBytes]) { /* OTV0P2BASE::serialPrintlnAndFlush(F("CRC failed")); */ return(false); } // CRC failed.
+    if(crc != base[SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageRestartCounterBytes]) { /* OTV0P2BASE::serialPrintlnAndFlush(F("CRC failed")); */ return(false); } // CRC failed.
     // Check for all 0xff (maximum) value and fail if found.
     if((0xff == base[0]) && (0xff == base[1]) && (0xff == base[2])) { /* OTV0P2BASE::serialPrintlnAndFlush(F("counter at max")); */ return(false); } // Counter at max.
     // Copy (primary) counter to output.
-    for(int i = 0; i < primaryPeristentTXMessageRestartCounterBytes; ++i) { buf[i] = base[i]; }
+    for(int i = 0; i < SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageRestartCounterBytes; ++i) { buf[i] = base[i]; }
     return(true);
     }
 
@@ -199,6 +209,91 @@ bool SimpleSecureFrame32or0BodyV0p2::increment3BytePersistentTXRestartCounter()
     loadRaw3BytePersistentTXRestartCounterFromEEPROM(loadBuf);
     if(!increment3BytePersistentTXRestartCounter(loadBuf)) { return(false); }
     if(!saveRaw3BytePersistentTXRestartCounterToEEPROM(loadBuf)) { return(false); }
+    return(true);
+    }
+
+// Fills the supplied 6-byte array with the monotonically-increasing primary TX counter.
+// Returns true on success; false on failure for example because the counter has reached its maximum value.
+// Highest-index bytes in the array increment fastest.
+// Not ISR-safe.
+bool SimpleSecureFrame32or0BodyV0p2::getPrimarySecure6BytePersistentTXMessageCounter(uint8_t *const buf)
+    {
+    if(NULL == buf) { return(false); }
+
+    // False when first called, ie on first call to this routine after board boot/restart.
+    // Used to drive roll of persistent part
+    // and initialisation of non-persistent part.
+    static bool initialised;
+    const bool doInitialisation = !initialised;
+    if(doInitialisation) { initialised = true; }
+    bool incrementPersistent = false;
+
+    // VITAL FOR CIPHER SECURITY: increase value of restart/reboot counter before first use after (re)boot.
+    // Security improvement: if initialising and persistent/restart part is all zeros
+    // then force it to an entropy-laden non-zero value that still leaves most of its lifetime.
+    // Else simply increment it as per the expected restart counter behaviour.
+    // NOTE: AS A MINIMUM the restart counter must be incremented here on initialisation.
+    if(doInitialisation)
+        {
+        if(!get3BytePersistentTXRestartCounter(buf)) { return(false); }
+        if((0 == buf[0]) && (0 == buf[1]) && (0 == buf[2]))
+            { if(!resetRaw3BytePersistentTXRestartCounterInEEPROM(false)) { return(false); } }
+        else
+            { incrementPersistent = true; }
+        }
+
+    // Ephemeral (non-persisted) least-significant bytes of message count.
+    static uint8_t ephemeral[3];
+
+    // Temporary area for initialising ephemeral[] where needed.
+    uint8_t tmpE[sizeof(ephemeral)];
+    if(doInitialisation)
+        {
+        for(uint8_t i = sizeof(tmpE); i-- > 0; )
+            { tmpE[i] = OTV0P2BASE::getSecureRandomByte(); } // Doesn't like being called with interrupts off.
+        // Mask off top bits of top (most significant byte) to preserve most of the remaining counter life
+        // but allow ~20 bits ie a decent chunk of 1 million messages
+        // (maybe several years at a message every 4 minutes)
+        // before likely IV reuse even with absence/failure of the restart counter.
+        tmpE[0] = 0xf & (tmpE[0] ^ (tmpE[0] >> 4));
+        }
+
+    // Disable interrupts while adjusting counter and copying back to the caller.
+    // Though since it is slow, incrementing the persistent counter (when done) is outside this block.
+    ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
+        {
+        if(doInitialisation)
+            {
+            // Fill lsbs of ephemeral part with entropy so as not to reduce lifetime significantly.
+            memcpy(ephemeral+max(0,sizeof(ephemeral)-sizeof(tmpE)), tmpE, min(sizeof(tmpE), sizeof(ephemeral)));
+            }
+
+        // Increment the counter including the persistent part where necessary.
+        for(uint8_t i = sizeof(ephemeral); i-- > 0; )
+            {
+            if(0 != ++ephemeral[i]) { break; }
+            if(0 == i)
+                {
+                // Prepare to increment the persistent part below.
+                incrementPersistent = true;
+                }
+            }
+
+        // Copy in the ephemeral part.
+        memcpy(buf + 3, ephemeral, 3);
+        }
+
+    // Increment persistent part if necessary.
+    // Done outside atomic block as potentially slow (worst-case 8 EEPROM full writes).
+    if(incrementPersistent)
+        {
+        // Increment the persistent part; fail entirely if not usable/incrementable (eg at max value).
+        if(!increment3BytePersistentTXRestartCounter()) { return(false); }
+        }
+
+    // Copy in the persistent part; fail entirely if it is not usable.
+    if(!get3BytePersistentTXRestartCounter(buf)) { return(false); }
+
     return(true);
     }
 
