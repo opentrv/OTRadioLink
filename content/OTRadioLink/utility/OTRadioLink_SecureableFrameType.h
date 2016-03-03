@@ -318,6 +318,16 @@ namespace OTRadioLink
 //        // Undefined for values above 240.
 //        uint8_t roundUpTo16s(uint8_t s) { return((s + 15) & 0xf0); }
 
+
+    // Base class for simple implementations that supports 0 or 32 byte encrypted body sections.
+    // This wraps up any necessary state, persistent and ephemeral, such as message counters.
+    // Some implementations make sense only as singletons,
+    // eg because they store state at fixed locations in EEPROM.
+    // It is possible to provide implementations not tied to any particular hardware architecture.
+    class SimpleSecureFrame32or0BodyBase
+        {
+        };
+
     // Pads plain-text in place prior to encryption with 32-byte fixed length padded output.
     // Simple method that allows unpadding at receiver, does padding in place.
     // Padded size is (ENC_BODY_SMALL_FIXED_CTEXT_SIZE) 32, maximum unpadded size is 31.
