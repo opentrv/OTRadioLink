@@ -313,6 +313,57 @@ bool SimpleSecureFrame32or0BodyV0p2::updateRXMessageCountAfterAuthentication(con
     { return(false); } // FIXME not implemented
 
 
+// As for decodeSecureSmallFrameRaw() but passed a candidate node/counterparty ID
+// derived from the frame ID in the incoming header,
+// plus possible other adjustments such has forcing bit values for reverse flows.
+// This routine constructs an IV from this expanded ID
+// (which must be at least length 6 for 'O' / 0x80 style enc/auth)
+// and other information in the header
+// and then returns the result of calling decodeSecureSmallFrameRaw().
+//
+// If several candidate nodes share the ID prefix in the frame header
+// (in the extreme case with a zero-length header ID for an anonymous frame)
+// then they may all have to be tested in turn until one succeeds.
+//
+// Generally a call to this should be done AFTER checking that
+// the aggregate RXed message counter is higher than for the last successful receive
+// (for this node and flow direction)
+// and after a success those message counters should be updated
+// (which may involve more than a simple increment)
+// to the new values to prevent replay attacks.
+//
+//   * adjID / adjIDLen  adjusted candidate ID (never NULL)
+//         and available length (must be >= 6)
+//         based on the received ID in (the already structurally validated) header
+uint8_t SimpleSecureFrame32or0BodyV0p2::decodeSecureSmallFrameFromID(const SecurableFrameHeader *const sfh,
+                                const uint8_t *const buf, const uint8_t buflen,
+                                const SimpleSecureFrame32or0BodyBase::fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
+                                const uint8_t *const adjID, const uint8_t adjIDLen,
+                                void *const state, const uint8_t *const key,
+                                uint8_t *const decryptedBodyOut, const uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize)
+    {
+    // Rely on decodeSecureSmallFrameRaw() for validation of items not directly needed here.
+    if((NULL == sfh) || (NULL == buf) || (NULL == adjID)) { return(0); } // ERROR
+    if(adjIDLen < 6) { return(0); } // ERROR
+    // Abort if header was not decoded properly.
+    if(sfh->isInvalid()) { return(0); } // ERROR
+    // Abort if expected constraints for simple fixed-size secure frame are not met.
+    if(23 != sfh->getTl()) { return(0); } // ERROR
+//    const uint8_t fl = sfh->fl;
+//    if(0x80 != buf[fl]) { return(0); } // ERROR
+    if(sfh->getTrailerOffset() + 6 > buflen) { return(0); } // ERROR
+    // Construct IV from supplied (possibly adjusted) ID + counters from (start of) trailer.
+    uint8_t iv[12];
+    memcpy(iv, adjID, 6);
+    memcpy(iv + 6, buf + sfh->getTrailerOffset(), 6);
+    // Now do actual decrypt/auth.
+    return(SimpleSecureFrame32or0BodyBase::decodeSecureSmallFrameRaw(sfh,
+                                buf, buflen,
+                                d,
+                                state, key, iv,
+                                decryptedBodyOut, decryptedBodyOutBuflen, decryptedBodyOutSize));
+    }
+
 // Fill in 12-byte IV for 'O'-style (0x80) AESGCM security for a frame to TX.
 // This uses the local node ID as-is for the first 6 bytes.
 // This uses and increments the primary message counter for the last 6 bytes.

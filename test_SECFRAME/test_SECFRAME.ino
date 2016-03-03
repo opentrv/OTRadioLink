@@ -772,7 +772,7 @@ static void testBeaconEncoding()
     // Should be able to decode, ie pass authentication.
     AssertIsEqual(27 + idLen, dlr);
     // Construct IV from ID and trailer.
-    const uint8_t dlfi = OTRadioLink::decodeSecureSmallFrameFromID(&sfh,
+    const uint8_t dlfi = OTRadioLink::SimpleSecureFrame32or0BodyV0p2::getInstance().decodeSecureSmallFrameFromID(&sfh,
                                     buf, sizeof(buf),
                                     OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
                                     id, sizeof(id),
@@ -791,9 +791,6 @@ static void testPermMsgCount()
   Serial.println("PermMsgCount");
   uint8_t loadBuf[OTV0P2BASE::VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR];
   uint8_t buf[OTRadioLink::SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageRestartCounterBytes];
-//  // Initial test that blank EEPROM after processing yields all zeros.
-//  OTRadioLink::loadRaw3BytePersistentTXRestartCounterFromEEPROM(buf);
-//  for(int i = 0; i < sizeof(buf); ++i) { AssertIsEqual(0, buf[i]); }
   // Initialise to state of empty EEPROM; result should be a valid all-zeros restart count.
   memset(loadBuf, 0, sizeof(loadBuf));
   AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyV0p2::read3BytePersistentTXRestartCounter(loadBuf, buf));
@@ -820,6 +817,9 @@ static void testPermMsgCount()
     AssertIsEqual(i, buf[2]);
     AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyV0p2::getInstance().increment3BytePersistentTXRestartCounter(loadBuf));
     }
+  // Also verify in passing that all zero message counter will never be acceptable for an RX message,
+  // regardless of the node ID, since the new count as to be higher than any previous for the ID.
+  AssertIsTrue(!OTRadioLink::SimpleSecureFrame32or0BodyV0p2::getInstance().validateRXMessageCount(zeroKey, zeroKey));
   }
 
 // Test handling of persistent/reboot/restart part of primary message counter.

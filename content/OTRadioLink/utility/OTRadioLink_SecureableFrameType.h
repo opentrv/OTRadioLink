@@ -548,55 +548,83 @@ namespace OTRadioLink
             // Returns true on success, false on failure eg due to message counter generation failure.
             virtual bool compute12ByteIDAndCounterIVForTX(uint8_t *ivBuf) = 0;
 
-        // Create secure Alive / beacon (FTS_ALIVE) frame with an empty body.
-        // Returns number of bytes written to buffer, or 0 in case of error.
-        // Note that the frame will be 27 + ID-length (up to maxIDLength) bytes,
-        // so the buffer must be large enough to accommodate that.
-        //  * buf  buffer to which is written the entire frame including trailer; never NULL
-        //  * buflen  available length in buf; if too small then this routine will fail (return 0)
-        //  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
-        //  * iv  12-byte initialisation vector / nonce; never NULL
-        //  * key  16-byte secret key; never NULL
-        // NOTE: this version requires the IV to be supplied and the transmitted ID length to chosen.
-        static const uint8_t generateSecureBeaconMaxBufSize = 27 + SecurableFrameHeader::maxIDLength;
-        static uint8_t generateSecureBeaconRaw(uint8_t *buf, uint8_t buflen,
-                                        const uint8_t *id_, uint8_t il_,
-                                        const uint8_t *const iv,
-                                        const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
-                                        void *state, const uint8_t *key);
+            // Create secure Alive / beacon (FTS_ALIVE) frame with an empty body.
+            // Returns number of bytes written to buffer, or 0 in case of error.
+            // Note that the frame will be 27 + ID-length (up to maxIDLength) bytes,
+            // so the buffer must be large enough to accommodate that.
+            //  * buf  buffer to which is written the entire frame including trailer; never NULL
+            //  * buflen  available length in buf; if too small then this routine will fail (return 0)
+            //  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
+            //  * iv  12-byte initialisation vector / nonce; never NULL
+            //  * key  16-byte secret key; never NULL
+            // NOTE: this version requires the IV to be supplied and the transmitted ID length to chosen.
+            static const uint8_t generateSecureBeaconMaxBufSize = 27 + SecurableFrameHeader::maxIDLength;
+            static uint8_t generateSecureBeaconRaw(uint8_t *buf, uint8_t buflen,
+                                            const uint8_t *id_, uint8_t il_,
+                                            const uint8_t *const iv,
+                                            const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                                            void *state, const uint8_t *key);
 
-        // Create secure Alive / beacon (FTS_ALIVE) frame with an empty body for transmission.
-        // Returns number of bytes written to buffer, or 0 in case of error.
-        // The IV is constructed from the node ID and the primary TX message counter.
-        // Note that the frame will be 27 + ID-length (up to maxIDLength) bytes,
-        // so the buffer must be large enough to accommodate that.
-        //  * buf  buffer to which is written the entire frame including trailer; never NULL
-        //  * buflen  available length in buf; if too small then this routine will fail (return 0)
-        //  * il_  ID length for the header; ID comes from EEPROM
-        //  * key  16-byte secret key; never NULL
-        uint8_t generateSecureBeaconRawForTX(uint8_t *buf, uint8_t buflen,
-                                        uint8_t il_,
-                                        fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
-                                        void *state, const uint8_t *key);
+            // Create secure Alive / beacon (FTS_ALIVE) frame with an empty body for transmission.
+            // Returns number of bytes written to buffer, or 0 in case of error.
+            // The IV is constructed from the node ID and the primary TX message counter.
+            // Note that the frame will be 27 + ID-length (up to maxIDLength) bytes,
+            // so the buffer must be large enough to accommodate that.
+            //  * buf  buffer to which is written the entire frame including trailer; never NULL
+            //  * buflen  available length in buf; if too small then this routine will fail (return 0)
+            //  * il_  ID length for the header; ID comes from EEPROM
+            //  * key  16-byte secret key; never NULL
+            uint8_t generateSecureBeaconRawForTX(uint8_t *buf, uint8_t buflen,
+                                            uint8_t il_,
+                                            fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                                            void *state, const uint8_t *key);
 
-        // Create simple 'O' (FTS_BasicSensorOrValve) frame with an optional stats section for transmission.
-        // Returns number of bytes written to buffer, or 0 in case of error.
-        // The IV is constructed from the node ID and the primary TX message counter.
-        // Note that the frame will be 27 + ID-length (up to maxIDLength) bytes,
-        // so the buffer must be large enough to accommodate that.
-        //  * buf  buffer to which is written the entire frame including trailer; never NULL
-        //  * buflen  available length in buf; if too small then this routine will fail (return 0)
-        //  * valvePC  percentage valve is open or 0x7f if no valve to report on
-        //  * statsJSON  '\0'-terminated {} JSON stats, or NULL if none.
-        //  * il_  ID length for the header; ID comes from EEPROM
-        //  * key  16-byte secret key; never NULL
-        uint8_t generateSecureOFrameRawForTX(uint8_t *buf, uint8_t buflen,
-                                        uint8_t il_,
-                                        uint8_t valvePC,
-                                        const char *statsJSON,
-                                        fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
-                                        void *state, const uint8_t *key);
+            // Create simple 'O' (FTS_BasicSensorOrValve) frame with an optional stats section for transmission.
+            // Returns number of bytes written to buffer, or 0 in case of error.
+            // The IV is constructed from the node ID and the primary TX message counter.
+            // Note that the frame will be 27 + ID-length (up to maxIDLength) bytes,
+            // so the buffer must be large enough to accommodate that.
+            //  * buf  buffer to which is written the entire frame including trailer; never NULL
+            //  * buflen  available length in buf; if too small then this routine will fail (return 0)
+            //  * valvePC  percentage valve is open or 0x7f if no valve to report on
+            //  * statsJSON  '\0'-terminated {} JSON stats, or NULL if none.
+            //  * il_  ID length for the header; ID comes from EEPROM
+            //  * key  16-byte secret key; never NULL
+            uint8_t generateSecureOFrameRawForTX(uint8_t *buf, uint8_t buflen,
+                                            uint8_t il_,
+                                            uint8_t valvePC,
+                                            const char *statsJSON,
+                                            fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                                            void *state, const uint8_t *key);
 
+            // As for decodeSecureSmallFrameRaw() but passed a candidate node/counterparty ID
+            // derived from the frame ID in the incoming header,
+            // plus possible other adjustments such has forcing bit values for reverse flows.
+            // This routine constructs an IV from this expanded ID
+            // (which must be at least length 6 for 'O' / 0x80 style enc/auth)
+            // and other information in the header
+            // and then returns the result of calling decodeSecureSmallFrameRaw().
+            //
+            // If several candidate nodes share the ID prefix in the frame header
+            // (in the extreme case with a zero-length header ID for an anonymous frame)
+            // then they may all have to be tested in turn until one succeeds.
+            //
+            // Generally a call to this should be done AFTER checking that
+            // the aggregate RXed message counter is higher than for the last successful receive
+            // (for this node and flow direction)
+            // and after a success those message counters should be updated
+            // (which may involve more than a simple increment)
+            // to the new values to prevent replay attacks.
+            //
+            //   * adjID / adjIDLen  adjusted candidate ID (never NULL)
+            //         and available length (must be >= 6)
+            //         based on the received ID in (the already structurally validated) header
+            virtual uint8_t decodeSecureSmallFrameFromID(const SecurableFrameHeader *sfh,
+                                            const uint8_t *buf, uint8_t buflen,
+                                            SimpleSecureFrame32or0BodyBase::fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
+                                            const uint8_t *adjID, uint8_t adjIDLen,
+                                            void *state, const uint8_t *key,
+                                            uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize) = 0;
         };
 
 
@@ -631,35 +659,6 @@ namespace OTRadioLink
             const uint8_t *authtext, uint8_t authtextSize,
             const uint8_t *ciphertext, const uint8_t *tag,
             uint8_t *plaintextOut);
-
-    // As for decodeSecureSmallFrameRaw() but passed a candidate node/counterparty ID
-    // derived from the frame ID in the incoming header,
-    // plus possible other adjustments such has forcing bit values for reverse flows.
-    // This routine constructs an IV from this expanded ID
-    // (which must be at least length 6 for 'O' / 0x80 style enc/auth)
-    // and other information in the header
-    // and then returns the result of calling decodeSecureSmallFrameRaw().
-    //
-    // If several candidate nodes share the ID prefix in the frame header
-    // (in the extreme case with a zero-length header ID for an anonymous frame)
-    // then they may all have to be tested in turn until one succeeds.
-    //
-    // Generally a call to this should be done AFTER checking that
-    // the aggregate RXed message counter is higher than for the last successful receive
-    // (for this node and flow direction)
-    // and after a success those message counters should be updated
-    // (which may involve more than a simple increment)
-    // to the new values to prevent replay attacks.
-    //
-    //   * adjID / adjIDLen  adjusted candidate ID (never NULL)
-    //         and available length (must be >= 6)
-    //         based on the received ID in (the already structurally validated) header
-    uint8_t decodeSecureSmallFrameFromID(const SecurableFrameHeader *sfh,
-                                    const uint8_t *buf, uint8_t buflen,
-                                    SimpleSecureFrame32or0BodyBase::fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
-                                    const uint8_t *adjID, uint8_t adjIDLen,
-                                    void *state, const uint8_t *key,
-                                    uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
 
 
     // CONVENIENCE/BOILERPLATE METHODS
