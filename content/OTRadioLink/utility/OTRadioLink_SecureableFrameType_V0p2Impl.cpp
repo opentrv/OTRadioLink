@@ -16,22 +16,25 @@ under the Licence.
 Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 */
 
-#ifndef ARDUINO_LIB_OTRADIOLINK_H
-#define ARDUINO_LIB_OTRADIOLINK_H
+/*
+ * V0p2-specific implementation of secure frame code,
+ * using EEPROM for non-volatile storage of (eg) message counters.
+ */
 
-#define ARDUINO_LIB_OTRADIOLINK_VERSION_MAJOR 0
-#define ARDUINO_LIB_OTRADIOLINK_VERSION_MINOR 9
+#include <util/atomic.h>
+#include <string.h>
+
+#include "OTRadioLink_SecureableFrameType.h"
+#include "OTRadioLink_SecureableFrameType_V0p2Impl.h"
+
+#include "OTV0P2BASE_EEPROM.h"
 
 
-// Radio message frame types and related information.
-#include "utility/OTRadioLink_FrameType.h"
-#include "utility/OTRadioLink_SecureableFrameType.h"
-#include "utility/OTRadioLink_SecureableFrameType_V0p2Impl.h"
+namespace OTRadioLink
+    {
 
-// Radio Link base class definition.
-#include "utility/OTRadioLink_OTRadioLink.h"
 
-// Radio Link Null class definition.
-#include "utility/OTRadioLink_OTNullRadioLink.h"
 
-#endif
+
+
+    }
