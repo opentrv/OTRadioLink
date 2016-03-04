@@ -518,7 +518,9 @@ uint8_t SimpleSecureFrame32or0BodyBase::removePaddingTo32BTrailing0sAndPadCount(
 // Returns false if this counter value is not higher than the last received authenticated value.
 bool SimpleSecureFrame32or0BodyBase::validateRXMessageCount(const uint8_t *ID, const uint8_t *counter) const
     {
-    // USE bool getLastRXMessageCounter(const uint8_t * const ID, uint8_t * const counter) const = 0;
+    // Fetch the current counter; instant fail if not possible.
+    uint8_t currentCounter[primaryPeristentTXMessageCounterBytes];
+    if(!getLastRXMessageCounter(ID, currentCounter)) { return(false); } // FAIL
 
     // TODO
 

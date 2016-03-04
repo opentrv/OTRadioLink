@@ -99,7 +99,7 @@ namespace OTRadioLink
             // Read current (last-authenticated) RX message count for specified node, or return false if failed.
             // Will fail for invalid node ID or for unrecoverable memory corruption.
             // Both args must be non-NULL, with counter pointing to enough space to copy the message counter value to.
-            virtual bool getLastRXMessageCounter(const uint8_t * const ID, uint8_t * const counter) const;
+            virtual bool getLastRXMessageCounter(const uint8_t * const ID, uint8_t *counter) const;
             // Update persistent message counter for received frame AFTER successful authentication.
             // ID is full (8-byte) node ID; counter is full (6-byte) counter.
             // Returns false on failure, eg if message counter is not higher than the previous value for this node.
