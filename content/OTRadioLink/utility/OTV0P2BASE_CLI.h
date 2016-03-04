@@ -53,6 +53,7 @@ namespace CLI {
     //--------------------------------------------
 
     // Set / clear node association(s) (nodes to accept frames from) (eg "A hh hh hh hh hh hh hh hh").
+    // On writing a new association/entry all bytes after the ID must be erased to 0xff.
     class SetNodeAssoc : public CLIEntryBase { public: virtual bool doCommand(char *buf, uint8_t buflen); };
 
     // Dump (human-friendly) stats (eg "D N").
