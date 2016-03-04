@@ -97,6 +97,7 @@ bool ensureIDCreated(const bool force)
  *                    NOTE: The key pointed to by newKey must be stored as binary, NOT as text.
  * @retval  true if key is cleared successfully or new key is set, else false.
  */
+// Functions for setting a 16 byte primary building secret key which must not be all-1s.
 bool setPrimaryBuilding16ByteSecretKey(const uint8_t *newKey) // <-- this should be 16-byte binary, NOT text!
 {
     // if newKey is a null pointer, clear existing key
@@ -118,18 +119,18 @@ bool setPrimaryBuilding16ByteSecretKey(const uint8_t *newKey) // <-- this should
 /**
  * @brief   Fills an array with the 16 byte primary building key.
  * @param   key  pointer to a 16 byte buffer to write the key too.
- * @retval  true if written successfully, false if key is a NULL pointer
- * @note    Does not check if a key has been set.
+ * @retval  true if key appears to be set and is retrieved
  */
 bool getPrimaryBuilding16ByteSecretKey(uint8_t *key)
   {
   if(key == NULL) { return(false); }
-//  for(uint8_t i = 0; i < OTV0P2BASE::VOP2BASE_EE_LEN_16BYTE_PRIMARY_BUILDING_KEY; i++)
-//    { *key++ = eeprom_read_byte((uint8_t *)OTV0P2BASE::VOP2BASE_EE_START_16BYTE_PRIMARY_BUILDING_KEY+i); }
   eeprom_read_block(key,
                     (uint8_t *)OTV0P2BASE::VOP2BASE_EE_START_16BYTE_PRIMARY_BUILDING_KEY,
                     OTV0P2BASE::VOP2BASE_EE_LEN_16BYTE_PRIMARY_BUILDING_KEY);
-  return(true); // Lie and claim that key is OK.
+  bool isOK = false;
+  for(uint8_t i = 0; i < OTV0P2BASE::VOP2BASE_EE_LEN_16BYTE_PRIMARY_BUILDING_KEY; ++i)
+    { if(0xff != key[i]) { isOK = true; } } // Keep execution time relatively constant; no 'break'.
+  return(isOK);
   }
 
 /**
@@ -144,7 +145,7 @@ void clearAllNodeAssociations()
 //    for(uint8_t i = 0; i < V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS; ++i) {
 //        eeprom_smart_erase_byte(nodeIDPtr);
 //        nodeIDPtr += V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE; // increment ptr
-    }
+//    }
 }
 
 /**Return current number of node ID associations.

@@ -68,7 +68,7 @@ inline bool validIDByte(const uint8_t v) { return((0 != (0x80 & v)) && (0xff != 
 // Returns true if all values good.
 bool ensureIDCreated(const bool force = false);
 
-// Functions for setting a 16 byte primary building secret key
+// Functions for setting a 16 byte primary building secret key which must not be all-1s.
 /**
  * @brief   Sets the primary building 16 byte secret key in eeprom.
  * @param   newKey    A pointer to the first byte of a 16 byte array containing the new key.
@@ -81,8 +81,7 @@ bool setPrimaryBuilding16ByteSecretKey(const uint8_t *key);
 /**
  * @brief   Fills an array with the 16 byte primary building key.
  * @param   key  pointer to a 16 byte buffer to write the key too.
- * @retval  true if written successfully, false if key is a NULL pointer
- * @note    Does not check if a key has been set.
+ * @retval  true if key appears to be set and is retrieved
  */
 bool getPrimaryBuilding16ByteSecretKey(uint8_t *key);
 
