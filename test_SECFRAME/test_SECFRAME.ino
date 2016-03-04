@@ -904,6 +904,7 @@ static void testNodeAssocRunOnce()
     { AssertIsEqual(1, OTV0P2BASE::getNextMatchingNodeID(0, ID1, i, NULL)); }
   for(uint8_t i = 1; i <= sizeof(ID1); ++i)
     { AssertIsEqual(1, OTV0P2BASE::getNextMatchingNodeID(1, ID1, i, NULL)); }
+  // Test that first ID cannot be matched from after its index in the table.
   for(uint8_t i = 1; i <= sizeof(ID0); ++i)
     { AssertIsEqual(0, OTV0P2BASE::getNextMatchingNodeID(0, ID0, i, NULL)); }
   for(uint8_t i = 1; i <= sizeof(ID0); ++i)

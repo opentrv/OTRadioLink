@@ -216,16 +216,15 @@ int8_t addNodeAssociation(const uint8_t *nodeID)
 int8_t getNextMatchingNodeID(const uint8_t _index, const uint8_t *prefix, const uint8_t prefixLen, uint8_t *nodeID)
 {
     // Validate inputs.
+    if(_index >= V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS) { return(-1); }
     if(prefixLen > V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH) { return(-1); }
-    if((prefix == NULL) && (0 != prefixLen)) { return(-1); }
-
-    uint8_t index = _index;
-    uint8_t *eepromPtr = (uint8_t *)V0P2BASE_EE_START_NODE_ASSOCIATIONS + (_index *  (int)V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE);
+    if((NULL == prefix) && (0 != prefixLen)) { return(-1); }
 
     // Loop through node IDs until match or last entry tested.
     //   - if a match is found, return index and fill nodeID
     //   - if no match, exit loop.
-    for(; index < V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS; index++) {
+    uint8_t *eepromPtr = (uint8_t *)V0P2BASE_EE_START_NODE_ASSOCIATIONS + (_index *  (int)V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE);
+    for(uint8_t index = _index; index < V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS; index++) {
         uint8_t temp = eeprom_read_byte(eepromPtr); // temp variable for byte read
         if(temp == 0xff) { return(-1); } // last entry reached. exit w/ error.
         else if((0 == prefixLen) || (temp == *prefix)) { // this is the case where it matches
@@ -248,11 +247,12 @@ int8_t getNextMatchingNodeID(const uint8_t _index, const uint8_t *prefix, const 
             }
             return index;
         }
-        eepromPtr += V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE; // Increment ptr to next node ID field
+        eepromPtr += V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE; // Increment ptr to next node ID field.
     }
 
     // No match has been found.
     return(-1);
 }
+
 
 }
