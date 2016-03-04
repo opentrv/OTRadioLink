@@ -299,7 +299,7 @@ bool SimpleSecureFrame32or0BodyV0p2::incrementAndGetPrimarySecure6BytePersistent
 
 // Read RX message count from specified EEPROM location; fails if CRC fails.
 // First 6 bytes are counter MSB first, followed by CRC.
-static bool getRXMessageCountFromTable(const uint8_t * const eepromLoc, uint8_t * const counter)
+static bool getLastRXMessageCounterFromTable(const uint8_t * const eepromLoc, uint8_t * const counter)
     {
 
     // TODO
@@ -313,9 +313,9 @@ static bool getRXMessageCountFromTable(const uint8_t * const eepromLoc, uint8_t 
 // TODO: use the bit-wise bit clear across 2 bytes (primary and secondary) to give 16 ops before needing to update main counters.
 // TODO: if both primary and secondary OK use the higher one to allow alternating updates.
 // Both args must be non-NULL, with counter pointing to enough space to copy the message counter value to.
-static bool getRXMessageCount(const uint8_t * const ID, uint8_t * const counter)
+bool SimpleSecureFrame32or0BodyV0p2::getLastRXMessageCounter(const uint8_t * const ID, uint8_t * const counter) const
     {
-    if(NULL == counter) { return(false); } // FAIL
+    if((NULL == ID) || (NULL == counter)) { return(false); } // FAIL
     // First look up the node association; fail if not present.
     const int8_t index = OTV0P2BASE::getNextMatchingNodeID(0, ID, OTV0P2BASE::OpenTRV_Node_ID_Bytes, counter);
     if(index < 0) { return(false); } // FAIL
@@ -323,21 +323,10 @@ static bool getRXMessageCount(const uint8_t * const ID, uint8_t * const counter)
     // Compute base location in EEPROM of association table entry/row.
     uint8_t * const rawPtr = (uint8_t *)(OTV0P2BASE::V0P2BASE_EE_START_NODE_ASSOCIATIONS + index*(uint16_t)OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE);
     // Try primary then secondary (on assumption that both will be written to).
-    const bool primaryOK = getRXMessageCountFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET, counter);
+    const bool primaryOK = getLastRXMessageCounterFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET, counter);
     if(primaryOK) { return(true); }
-    const bool secondaryOK = getRXMessageCountFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET, counter);
+    const bool secondaryOK = getLastRXMessageCounterFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET, counter);
     return(secondaryOK);
-    }
-
-// Check message counter for given ID, ie that it is high enough to be eligible for authenticating/processing.
-// ID is full (8-byte) node ID; counter is full (6-byte) counter.
-// Returns false if this counter value is not higher than the last received authenticated value.
-bool SimpleSecureFrame32or0BodyV0p2::validateRXMessageCount(const uint8_t *ID, const uint8_t *counter) const
-    {
-
-    // TODO
-
-    return(false); // FIXME not implemented
     }
 
 // Update persistent message counter for received frame AFTER successful authentication.

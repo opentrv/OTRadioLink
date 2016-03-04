@@ -513,6 +513,18 @@ uint8_t SimpleSecureFrame32or0BodyBase::removePaddingTo32BTrailing0sAndPadCount(
     return(datalen); // FAIL FIXME
     }
 
+// Check message counter for given ID, ie that it is high enough to be eligible for authenticating/processing.
+// ID is full (8-byte) node ID; counter is full (6-byte) counter.
+// Returns false if this counter value is not higher than the last received authenticated value.
+bool SimpleSecureFrame32or0BodyBase::validateRXMessageCount(const uint8_t *ID, const uint8_t *counter) const
+    {
+    // USE bool getLastRXMessageCounter(const uint8_t * const ID, uint8_t * const counter) const = 0;
+
+    // TODO
+
+    return(false); // FIXME not implemented
+    }
+
 // NULL basic fixed-size text 'encryption' function.
 // DOES NOT ENCRYPT OR AUTHENTICATE SO DO NOT USE IN PRODUCTION SYSTEMS.
 // Emulates some aspects of the process to test real implementations against,
