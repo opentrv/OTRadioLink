@@ -44,6 +44,8 @@ void InvalidIgnored() { Serial.println(F("Invalid, ignored.")); }
 //        - Only accepts upper case for hex values.
 //        To clear all nodes: "A *".
 //        To query current status "A ?".
+// On writing a new association/entry all bytes after the ID must be erased to 0xff.
+// TODO: optionally allow setting (persistent) MSBs of counter to current+1 and force counterparty restart to eliminate replay attack.
 bool SetNodeAssoc::doCommand(char *const buf, const uint8_t buflen)
     {
     char *last; // Used by strtok_r().

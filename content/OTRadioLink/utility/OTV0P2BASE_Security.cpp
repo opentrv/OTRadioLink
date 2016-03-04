@@ -177,14 +177,21 @@ bool getNodeAssociation(const uint8_t index, uint8_t *const nodeID)
  * @param   pointer to new 8 byte node ID
  * @retval  index of this new association, or -1 if no space
  */
+// TODO: optionally allow setting (persistent) MSBs of counter to current+1 and force counterparty restart to eliminate replay attack.
 int8_t addNodeAssociation(const uint8_t *nodeID)
 {
     uint8_t *eepromPtr = (uint8_t *)V0P2BASE_EE_START_NODE_ASSOCIATIONS;
     // Loop through node ID locations checking for empty slot marked by invalid byte (0xff).
     for(uint8_t i = 0; i < V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS; i ++) {
         if(eeprom_read_byte(eepromPtr) == 0xff) {
-            for(uint8_t j = 0; j < V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH; j++)
-                eeprom_smart_update_byte(eepromPtr++, *nodeID++);
+            for(uint8_t j = 0; j < V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE; j++) {
+                if(j < V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH) {
+                    eeprom_smart_update_byte(eepromPtr++, *nodeID++);
+                } else {
+                    // On writing a new association/entry all bytes after the ID must be erased to 0xff.
+                    eeprom_smart_erase_byte(eepromPtr++);
+                }
+            }
             return (i);
         }
         eepromPtr += V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE; // increment ptr

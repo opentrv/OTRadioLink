@@ -301,7 +301,13 @@ bool SimpleSecureFrame32or0BodyV0p2::incrementAndGetPrimarySecure6BytePersistent
 // ID is full (8-byte) node ID; counter is full (6-byte) counter.
 // Returns false if this counter value is not higher than the last received authenticated value.
 bool SimpleSecureFrame32or0BodyV0p2::validateRXMessageCount(const uint8_t *ID, const uint8_t *counter) const
-    { return(false); } // FIXME not implemented
+    {
+
+    // TODO
+
+    return(false); // FIXME not implemented
+    }
+
 // Update persistent message counter for received frame AFTER successful authentication.
 // ID is full (8-byte) node ID; counter is full (6-byte) counter.
 // Returns false on failure, eg if message counter is not higher than the previous value for this node.
@@ -310,7 +316,13 @@ bool SimpleSecureFrame32or0BodyV0p2::validateRXMessageCount(const uint8_t *ID, c
 // not allowing replays nor other cryptographic attacks, nor forcing node dissociation.
 // Must only be called once the RXed message has passed authentication.
 bool SimpleSecureFrame32or0BodyV0p2::updateRXMessageCountAfterAuthentication(const uint8_t *ID, const uint8_t *counter)
-    { return(false); } // FIXME not implemented
+    {
+    if(!validateRXMessageCount(ID, counter)) { return(false); } // Putative new counter value not valid; reject.
+
+    // TODO
+
+    return(false); // FIXME not implemented
+    }
 
 
 // As for decodeSecureSmallFrameRaw() but passed a candidate node/counterparty ID

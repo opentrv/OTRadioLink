@@ -324,7 +324,7 @@ namespace OTRadioLink
     // Some implementations make sense only as singletons,
     // eg because they store state at fixed locations in EEPROM.
     // It is possible to provide implementations not tied to any particular hardware architecture.
-    // This provides stateless implementation-independent implementations of some key routines.
+    // This provides stateless hardware-independent implementations of some key routines.
     class SimpleSecureFrame32or0BodyBase
         {
         public:
