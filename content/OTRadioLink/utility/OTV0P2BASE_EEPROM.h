@@ -181,9 +181,15 @@ static const intptr_t V0P2BASE_EE_START_NODE_ASSOCIATIONS = 768;  // Inclusive s
 static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE = 32; // Size in bytes of one Node association entry.
 //
 // Node association fields, 0 upwards, contiguous.
-static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_OFFSET  = 0;  // 8 Byte node ID.
-static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH  = 8;  // 8 Byte node ID.
-static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_RESERVED_OFFSET = 8;  // Reserved starting offiset.
+// Offset of full-byte ID in table row.
+static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_OFFSET = 0; // 8 Byte node ID.
+static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH = 8; // 8 Byte node ID.
+// Primary RX message counter (6 bytes + CRC + reserved) offset.
+static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET = 8;
+// Secondary RX message counter (6 bytes + CRC + reserved) offset.
+static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET = 16;
+// Reserved starting offset in table row.
+static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_RESERVED_OFFSET = 24;
 //
 // Maximum possible node associations.
 // Where more that this are needed then device can be in pass-through mode
