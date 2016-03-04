@@ -482,7 +482,7 @@ namespace OTRadioLink
             //  a) aiming for 10 years' continuous product life at transmitters and receivers,
             //  b) around one TX per sensor/valve node per 4 minutes,
             //
-            // Check message counter for given ID, ie that it is high enough to be worth authenticating.
+            // Check message counter for given ID, ie that it is high enough to be eligible for authenticating/processing.
             // ID is full (8-byte) node ID; counter is full (6-byte) counter.
             // Returns false if this counter value is not higher than the last received authenticated value.
             virtual bool validateRXMessageCount(const uint8_t *ID, const uint8_t *counter) const = 0;
