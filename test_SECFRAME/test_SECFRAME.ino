@@ -878,6 +878,18 @@ static void testPermMsgCountRunOnce()
   AssertIsTrue((0 != mcbuf[3]) || (0 != mcbuf[4]) || (0 != mcbuf[5]));
   }
 
+// Test some basic parameters of node associations.
+// Tests to only be run once because they may cause device wear.
+// NOTE: best not to run on a real device as this will mess with its associations, etc.
+static void testNodeAssocRunOnce()
+  {
+  Serial.println("NodeAssocRunOnce");
+  OTV0P2BASE::clearAllNodeAssociations();
+  AssertIsEqual(0, OTV0P2BASE::countNodeAssociations());
+  AssertIsEqual(-1, OTV0P2BASE::getNextMatchingNodeID(0, NULL, 0, NULL));
+  // TODO: test adding associations and looking them up.
+  }
+
 
 // To be called from loop() instead of main code when running unit tests.
 // Tests generally flag an error and stop the test cycle with a call to panic() or error().
@@ -923,6 +935,7 @@ void loop()
     runOnce = true;
     Serial.println(F("Run-once tests... "));
     testPermMsgCountRunOnce();
+    testNodeAssocRunOnce();
     }
 
 
