@@ -785,7 +785,20 @@ static void testBeaconEncoding()
 //  Serial.println(after - before); // DHD20160207: 1442 for 8 rounds, or ~180ms per encryption.
   }
 
+// Test some basic parameters of node associations.
+// Does not wear non-volatile memory (eg EEPROM).
+static void testNodeAssoc()
+  {
+  Serial.println("NodeAssoc");
+  const uint8_t nas = OTV0P2BASE::countNodeAssociations();
+  AssertIsTrue(nas <= OTV0P2BASE::MAX_NODE_ASSOCIATIONS);
+  const int8_t i = OTV0P2BASE::getNextMatchingNodeID(0, NULL, 0, NULL);
+  // Zero-length prefix look-up should succeed IFF there is at least one entry.
+  AssertIsTrue((0 == nas) == (-1 == i));
+  }
+
 // Test handling of persistent/reboot/restart part of primary message counter.
+// Does not wear non-volatile memory (eg EEPROM).
 static void testPermMsgCount()
   {
   Serial.println("PermMsgCount");
@@ -899,6 +912,7 @@ void loop()
   testGCMVS1ViaFixed32BTextSize();
   testSecureSmallFrameEncoding();
   testBeaconEncoding();
+  testNodeAssoc();
 
   // Run-once tests.
   // May cause wear on (eg) EEPROM, so only run once,

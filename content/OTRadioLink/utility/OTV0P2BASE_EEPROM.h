@@ -168,10 +168,9 @@ static const intptr_t V0P2BASE_EE_END_RADIO = 255;
 
 // Node security association storage.
 // (ID plus permanent message counter for RX.)
-// Can fit 16 nodes within 256 bytes of EEPROM.  (TODO-793)
+// Can fit 8 nodes within 256 bytes of EEPROM with 24 bytes of related data.  (TODO-793)
 //
-// Working area ahead for updating node associations,
-// in particular to safely update message counters.
+// Working area ahead for updating node associations.
 static const intptr_t V0P2BASE_EE_START_NODE_ASSOCIATIONS_WORK_START = 704;
 static const uint8_t V0P2BASE_EE_START_NODE_ASSOCIATIONS_WORK_LEN = 64;
 //
@@ -179,15 +178,18 @@ static const uint8_t V0P2BASE_EE_START_NODE_ASSOCIATIONS_WORK_LEN = 64;
 // The first (invalid) node ID starting with 0xff indicates that it and all subsequent entries are empty.
 // On writing a new entry all bytes after the ID must be erased to 0xff.
 static const intptr_t V0P2BASE_EE_START_NODE_ASSOCIATIONS = 768;  // Inclusive start of node associations.
-static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE = 16; // Size in bytes of one Node association entry.
-
+static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE = 32; // Size in bytes of one Node association entry.
+//
 // Node association fields, 0 upwards, contiguous.
 static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_OFFSET  = 0;  // 8 Byte node ID.
 static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH  = 8;  // 8 Byte node ID.
-static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_RESERVED_OFFSET = 8;  // Reserved
-
-static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS = 16; // Maximum possible node associations.
-
+static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_RESERVED_OFFSET = 8;  // Reserved starting offiset.
+//
+// Maximum possible node associations.
+// Where more that this are needed then device can be in pass-through mode
+// for more powerful back-end server can filter out unwanted traffic.
+static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS = 8;
+//
 // Compute start of node association set (in range [0,V0P2BASE_EE_NODE_ASSOCIATIONS_SETS-1]) in EEPROM.
 // static const uint16_t V0P2BASE_EE_NODE_ASSOCIATIONS_START_ADDR
 // INCLUSIVE END OF NODE ASSOCIATIONS AREA: must point to last byte used.

@@ -203,16 +203,16 @@ int8_t addNodeAssociation(const uint8_t *nodeID)
  * @brief   Returns first matching node ID after the index provided. If no
  *          matching ID found, it will return -1.
  * @param   index   Index to start searching from.
- *          prefix  Prefix to match.
+ *          prefix  Prefix to match; can be NULL iff prefixLen == 0.
  *          prefixLen  Length of prefix, [0,8] bytes.
- *          nodeID  Buffer to write nodeID to. THIS IS NOT PRESERVED WHEN FUNCTION RETURNS -1!
+ *          nodeID  Buffer to write nodeID to; can be NULL if only the index return value is required. THIS IS NOT PRESERVED WHEN FUNCTION RETURNS -1!
  * @retval  returns index or -1 if no matching node ID found
  */
 int8_t getNextMatchingNodeID(const uint8_t _index, const uint8_t *prefix, const uint8_t prefixLen, uint8_t *nodeID)
 {
     // Validate inputs.
-    if((prefix == NULL) | (nodeID == NULL)) { return(-1); }
-    if(prefixLen >= V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH) { return(-1); }
+    if(prefixLen > V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH) { return(-1); }
+    if((prefix == NULL) && (0 != prefixLen)) { return(-1); }
 
     uint8_t index = _index;
     uint8_t *eepromPtr = (uint8_t *)V0P2BASE_EE_START_NODE_ASSOCIATIONS + (index *  V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE);
@@ -227,17 +227,19 @@ int8_t getNextMatchingNodeID(const uint8_t _index, const uint8_t *prefix, const 
             // loop through first prefixLen bytes of nodeID, comparing output
             uint8_t i; // persistent loop counter
             uint8_t *tempPtr = eepromPtr;    // temp pointer so that eepromPtr is preserved if not a match
-            nodeID[0] = temp;
+            if(NULL != nodeID) { nodeID[0] = temp; }
             for(i = 1; i < prefixLen; i++) {
                 // if bytes match, copy and check next byte?
                 temp = eeprom_read_byte(tempPtr++);
                 if(prefix[i] == temp) {
-                    nodeID[i] = temp;
+                    if(NULL != nodeID) { nodeID[i] = temp; }
                 } else break; // exit inner loop.
             }
-            // Since prefix matches, copy rest of node ID
-            for (; i < (V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH); i++) {
-                nodeID[i] = eeprom_read_byte(tempPtr++);
+            if(NULL != nodeID) {
+                // Since prefix matches, copy rest of node ID.
+                for (; i < (V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH); i++) {
+                    nodeID[i] = eeprom_read_byte(tempPtr++);
+                }
             }
             return index;
         }

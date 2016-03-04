@@ -86,8 +86,8 @@ bool setPrimaryBuilding16ByteSecretKey(const uint8_t *key);
  */
 bool getPrimaryBuilding16ByteSecretKey(uint8_t *key);
 
-// Maximum number of node associations that can be maintained.
-// This puts an upper bound on the number of nodes which a hub can listen to.
+// Maximum number of node associations that can be maintained for secure traffic.
+// This puts an upper bound on the number of nodes which a hub can listen to securely.
 static const uint8_t MAX_NODE_ASSOCIATIONS = V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS;
 
 /**
@@ -118,9 +118,9 @@ int8_t addNodeAssociation(const uint8_t *nodeID);
  * @brief   Returns first matching node ID after the index provided. If no
  *          matching ID found, it will return -1.
  * @param   index   Index to start searching from.
- *          prefix  Prefix to match.
+ *          prefix  Prefix to match; can be NULL iff prefixLen == 0.
  *          prefixLen  Length of prefix, [0,8] bytes.
- *          nodeID  Buffer to write nodeID to. THIS IS NOT PRESERVED WHEN FUNCTION RETURNS -1!
+ *          nodeID  Buffer to write nodeID to; can be NULL if only the index return value is required. THIS IS NOT PRESERVED WHEN FUNCTION RETURNS -1!
  * @retval  returns index or -1 if no matching node ID found
  */
 int8_t getNextMatchingNodeID(uint8_t _index, const uint8_t *prefix, uint8_t prefixLen, uint8_t *nodeID);
