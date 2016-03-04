@@ -138,14 +138,16 @@ bool getPrimaryBuilding16ByteSecretKey(uint8_t *key)
  */
 void clearAllNodeAssociations()
 {
-    // It is sufficient to ensure that the first byte of the first entry is erased (0xff).
     uint8_t *nodeIDPtr = (uint8_t *)V0P2BASE_EE_START_NODE_ASSOCIATIONS;
-    eeprom_smart_erase_byte(nodeIDPtr);
-//    // loop through EEPROM node ID locations, erasing the first byte
-//    for(uint8_t i = 0; i < V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS; ++i) {
-//        eeprom_smart_erase_byte(nodeIDPtr);
-//        nodeIDPtr += V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE; // increment ptr
-//    }
+////     It would be sufficient to ensure that the first byte of the first entry is erased (0xff)
+////     IF we erase the first byte of the following entry each time we add any except the last.
+//    eeprom_smart_erase_byte(nodeIDPtr);
+    // Loop through EEPROM node ID locations, erasing the first byte of each.
+    // (0xff is never a valid OpenTRV ID byte.)
+    for(uint8_t i = 0; i < V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS; ++i) {
+        eeprom_smart_erase_byte(nodeIDPtr);
+        nodeIDPtr += V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE; // increment ptr
+    }
 }
 
 /**Return current number of node ID associations.
@@ -218,7 +220,7 @@ int8_t getNextMatchingNodeID(const uint8_t _index, const uint8_t *prefix, const 
     if((prefix == NULL) && (0 != prefixLen)) { return(-1); }
 
     uint8_t index = _index;
-    uint8_t *eepromPtr = (uint8_t *)V0P2BASE_EE_START_NODE_ASSOCIATIONS + (index *  V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE);
+    uint8_t *eepromPtr = (uint8_t *)V0P2BASE_EE_START_NODE_ASSOCIATIONS + (_index *  (int)V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE);
 
     // Loop through node IDs until match or last entry tested.
     //   - if a match is found, return index and fill nodeID

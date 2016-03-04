@@ -878,6 +878,38 @@ static void testPermMsgCountRunOnce()
   AssertIsTrue((0 != mcbuf[3]) || (0 != mcbuf[4]) || (0 != mcbuf[5]));
   }
 
+// Test some basic parameters of node associations.
+// Tests to only be run once because they may cause device wear.
+// NOTE: best not to run on a real device as this will mess with its associations, etc.
+static void testNodeAssocRunOnce()
+  {
+  Serial.println("NodeAssocRunOnce");
+  OTV0P2BASE::clearAllNodeAssociations();
+  AssertIsEqual(0, OTV0P2BASE::countNodeAssociations());
+  AssertIsEqual(-1, OTV0P2BASE::getNextMatchingNodeID(0, NULL, 0, NULL));
+  // Test adding associations and looking them up.
+  const uint8_t ID0[] = { 0xa0, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7 };
+  AssertIsEqual(0, OTV0P2BASE::addNodeAssociation(ID0));
+  AssertIsEqual(1, OTV0P2BASE::countNodeAssociations());
+  AssertIsEqual(0, OTV0P2BASE::getNextMatchingNodeID(0, NULL, 0, NULL));
+  for(uint8_t i = 0; i <= sizeof(ID0); ++i)
+    { AssertIsEqual(0, OTV0P2BASE::getNextMatchingNodeID(0, ID0, i, NULL)); }
+  const uint8_t ID1[] = { 0x88, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0x8f };
+  AssertIsEqual(1, OTV0P2BASE::addNodeAssociation(ID1));
+  AssertIsEqual(2, OTV0P2BASE::countNodeAssociations());
+  // Zero-length-lookup matches any entry.
+  AssertIsEqual(0, OTV0P2BASE::getNextMatchingNodeID(0, NULL, 0, NULL));
+  AssertIsEqual(1, OTV0P2BASE::getNextMatchingNodeID(1, NULL, 0, NULL));
+  for(uint8_t i = 1; i <= sizeof(ID1); ++i)
+    { AssertIsEqual(1, OTV0P2BASE::getNextMatchingNodeID(0, ID1, i, NULL)); }
+  for(uint8_t i = 1; i <= sizeof(ID1); ++i)
+    { AssertIsEqual(1, OTV0P2BASE::getNextMatchingNodeID(1, ID1, i, NULL)); }
+  for(uint8_t i = 1; i <= sizeof(ID0); ++i)
+    { AssertIsEqual(0, OTV0P2BASE::getNextMatchingNodeID(0, ID0, i, NULL)); }
+  for(uint8_t i = 1; i <= sizeof(ID0); ++i)
+    { AssertIsEqual(-1, OTV0P2BASE::getNextMatchingNodeID(1, ID0, i, NULL)); }
+  }
+
 
 // To be called from loop() instead of main code when running unit tests.
 // Tests generally flag an error and stop the test cycle with a call to panic() or error().
@@ -923,6 +955,7 @@ void loop()
     runOnce = true;
     Serial.println(F("Run-once tests... "));
     testPermMsgCountRunOnce();
+    testNodeAssocRunOnce();
     }
 
 
