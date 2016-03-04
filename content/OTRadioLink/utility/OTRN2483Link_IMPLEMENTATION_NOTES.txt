@@ -63,7 +63,7 @@ Calculating per-channel duty cycle (DISCLAIMER: I have no idea what I'm doing):
 - TTN page on LoRaWAN frequencies: http://thethingsnetwork.org/wiki/LoRaWAN-Frequencies
 - Semtech notes on calculating airtime: http://www.semtech.com/images/datasheet/LoraDesignGuide_STD.pdf
 
-- Based on spreadsheet from linked TTN forum, we can send every 4 mins across 3 default channels without exceeding 1% duty cycle.
+- Based on spreadsheet from linked TTN forum, we can send a 50 byte payload in the default (868.0-868.6 MHz) channels every 4 mins, as long as we don't go slower than SF10.
 
 Comparison of duty cycles and TTN fair usage at different data rates.
 Datarate|Max Send Rate|TTN max:
