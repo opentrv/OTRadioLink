@@ -91,7 +91,7 @@ bool getPrimaryBuilding16ByteSecretKey(uint8_t *key);
 static const uint8_t MAX_NODE_ASSOCIATIONS = V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS;
 
 /**
- * @brief   Clears all existing node ID associations (by setting/erasing first byte to 0xff).
+ * @brief   Clears all existing node ID associations.
  */
 void clearAllNodeAssociations();
 
