@@ -191,9 +191,9 @@ static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET = 16;
 // Reserved starting offset in table row.
 static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_RESERVED_OFFSET = 24;
 //
-// Maximum possible node associations.
-// Where more that this are needed then device can be in pass-through mode
-// for more powerful back-end server can filter out unwanted traffic.
+// Maximum possible node associations, ie nodes that can be securely received from.
+// Where more than this are needed then this device can be in pass-through mode
+// for more powerful back-end server to filter/auth/decrypt wanted traffic.
 static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS = 8;
 //
 // Compute start of node association set (in range [0,V0P2BASE_EE_NODE_ASSOCIATIONS_SETS-1]) in EEPROM.
