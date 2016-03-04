@@ -897,6 +897,9 @@ static void testNodeAssocRunOnce()
   AssertIsEqual(0, OTV0P2BASE::getNextMatchingNodeID(0, NULL, 0, NULL));
   for(uint8_t i = 0; i <= sizeof(ID0); ++i)
     { AssertIsEqual(0, OTV0P2BASE::getNextMatchingNodeID(0, ID0, i, NULL)); }
+  // Check that RX msg count for new association is OK, and all zeros.
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyV0p2::getInstance().getLastRXMessageCounter(ID0, mcbuf));
+  AssertIsEqual(0, memcmp(mcbuf, zeroKey, sizeof(mcbuf)));
   const uint8_t ID1[] = { 0x88, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0x8f };
   AssertIsEqual(1, OTV0P2BASE::addNodeAssociation(ID1));
   AssertIsEqual(2, OTV0P2BASE::countNodeAssociations());
