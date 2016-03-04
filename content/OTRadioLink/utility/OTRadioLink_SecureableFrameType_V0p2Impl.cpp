@@ -297,6 +297,27 @@ bool SimpleSecureFrame32or0BodyV0p2::incrementAndGetPrimarySecure6BytePersistent
     return(true);
     }
 
+// Read current (last-authenticated) RX message count for specified node, or return false if failed.
+// Deals with any redundancy/corruption etc.
+// Both args must be non-NULL, with counter pointing to enough space to copy the message counter value to.
+static bool getRXMessageCount(const uint8_t * const ID, uint8_t * const counter)
+    {
+    if(NULL == counter) { return(false); } // FAIL
+    // First look up the node association; fail if not present.
+    const int8_t index = OTV0P2BASE::getNextMatchingNodeID(0, ID, OTV0P2BASE::OpenTRV_Node_ID_Bytes, counter);
+    if(index < 0) { return(false); } // FAIL
+
+    // Note: nominal risk of race if associations table can be altered concurrently.
+
+//    eeprom_read_block(nodeID,
+//                    (uint8_t *)(V0P2BASE_EE_START_NODE_ASSOCIATIONS + index*(uint16_t)V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE),
+//                    OpenTRV_Node_ID_Bytes);
+
+
+    return(false); // FIXME not implemented
+    }
+
+
 // Check message counter for given ID, ie that it is high enough to be worth authenticating.
 // ID is full (8-byte) node ID; counter is full (6-byte) counter.
 // Returns false if this counter value is not higher than the last received authenticated value.
