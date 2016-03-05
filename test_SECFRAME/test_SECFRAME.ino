@@ -883,7 +883,7 @@ static void testPermMsgCountRunOnce()
   // Initial test that from blank EEPROM (or reset to all zeros)
   // that getting the message counter gives non-zero reboot and ephemeral parts.
   AssertIsTrue(instance.resetRaw3BytePersistentTXRestartCounterInEEPROM(true));
-  uint8_t mcbuf[OTRadioLink::SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageCounterBytes];
+  uint8_t mcbuf[OTRadioLink::SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes];
   AssertIsTrue(instance.incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(mcbuf));
 #if 1
   for(int i = 0; i < sizeof(mcbuf); ++i) { Serial.print(' '); Serial.print(mcbuf[i], HEX); }
@@ -904,7 +904,7 @@ static void testNodeAssocRunOnce()
   AssertIsEqual(0, OTV0P2BASE::countNodeAssociations());
   AssertIsEqual(-1, OTV0P2BASE::getNextMatchingNodeID(0, NULL, 0, NULL));
   // Check that attempting to get aux data for a non-existent node/association fails.
-  uint8_t mcbuf[OTRadioLink::SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageCounterBytes];
+  uint8_t mcbuf[OTRadioLink::SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes];
   AssertIsTrue(!OTRadioLink::SimpleSecureFrame32or0BodyV0p2::getInstance().getLastRXMessageCounter(zeroKey, mcbuf));
   // Test adding associations and looking them up.
   const uint8_t ID0[] = { 0xa0, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7 };

@@ -501,7 +501,7 @@ namespace OTRadioLink
             // Check one (6-byte) message counter against another for magnitude.
             // Returns 0 if they are identical, +ve if the first counter is greater, -ve otherwise.
             static int16_t msgcountercmp(const uint8_t *counter1, const uint8_t *counter2)
-                { return(memcmp(counter1, counter2, primaryPeristentTXMessageCounterBytes)); }
+                { return(memcmp(counter1, counter2, fullMessageCounterBytes)); }
             // Check message counter for given ID, ie that it is high enough to be eligible for authenticating/processing.
             // ID is full (8-byte) node ID; counter is full (6-byte) counter.
             // Returns false if this counter value is not higher than the last received authenticated value.
@@ -555,7 +555,7 @@ namespace OTRadioLink
             // even in the face of hardware or software error.
             // When this counter reaches 0xffffffffffff then no more messages can be sent
             // until new keys are shared and the counter is reset.
-            static const uint8_t primaryPeristentTXMessageCounterBytes = 6;
+            static const uint8_t fullMessageCounterBytes = 6;
             // Fills the supplied 6-byte array with the incremented monotonically-increasing primary TX counter.
             // Returns true on success; false on failure for example because the counter has reached its maximum value.
             // Highest-index bytes in the array increment fastest.

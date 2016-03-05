@@ -307,20 +307,21 @@ static bool getLastRXMessageCounterFromTable(const uint8_t * const eepromLoc, ui
     //   * to reduce wear on normal increment
     //     (lsbit goes from 1 to 0 and and nothing else changes
     //     allowing a write without erase on half the increments)
-    eeprom_read_block(counter, eepromLoc, SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageCounterBytes);
-    for(uint8_t i = 0; i < SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageCounterBytes; ++i) { counter[i] ^= 0xff; }
+    eeprom_read_block(counter, eepromLoc, SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes);
+    for(uint8_t i = 0; i < SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes; ++i) { counter[i] ^= 0xff; }
 
     // Now check the CRC byte (immediately following the counter):
     //  1) Fail if the top bit was clear indicating an update in progress...
     //  2) Fail if the CRC itself does not match,
-    const uint8_t crcRAW = eeprom_read_byte(eepromLoc + SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageCounterBytes);
-    // Abort/fail if update did not complete.
+    const uint8_t crcRAW = eeprom_read_byte(eepromLoc + SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes);
+    // Abort/fail if there appears to be an incomplete update.
     if(0 == (crcRAW & 1)) { return(false); } // FAIL
-
-    // Validate the CRC.
-
+    // Compute/validate the 7-bit CRC.
+    uint8_t crc = 0;
+    for(int i = 0; i < SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes; ++i) { crc = OTV0P2BASE::crc7_5B_update(crc, counter[i]); }
+    if(((crcRAW ^ 0xff) & 0x7f) != crc)  { return(false); } // FAIL
     return(true); // FIXME: claim this is done.
-
+//
 //    // TODO
 //
 //    return(false); // FIXME not implemented
@@ -424,9 +425,9 @@ bool SimpleSecureFrame32or0BodyV0p2::compute12ByteIDAndCounterIVForTX(uint8_t *c
     {
     if(NULL == ivBuf) { return(false); }
     // Fill in first 6 bytes of this node's ID.
-    eeprom_read_block(ivBuf, (uint8_t *)V0P2BASE_EE_START_ID, SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageCounterBytes);
+    eeprom_read_block(ivBuf, (uint8_t *)V0P2BASE_EE_START_ID, SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes);
     // Generate and fill in new message count at end of IV.
-    return(incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(ivBuf + SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageCounterBytes));
+    return(incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(ivBuf + SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes));
     }
 
 
