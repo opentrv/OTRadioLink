@@ -352,12 +352,12 @@ bool SimpleSecureFrame32or0BodyV0p2::getLastRXMessageCounter(const uint8_t * con
 // Carefully update specified counter (primary or secondary) and CRCs as appropriate; returns false on failure.
 // Sets write-in-progress flag before starting and clears it (sets it to 1) with the CRC afterwards.
 // Reads back each byte written before proceeding.
-// TODO: use unary count to reduce wear.
+// TODO: use unary count as proxy for LSBs to reduce wear.
 static bool updateRXMessageCount(uint8_t * const eepromLoc, const uint8_t * const newCounterValue)
     {
     // First set the write-in-progress flag (clear to 0), msbit of the CRC byte...
     uint8_t * const CRCptr = eepromLoc + SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes;
-    OTV0P2BASE::eeprom_smart_clear_bits(CRCptr, 0x7fU);
+    OTV0P2BASE::eeprom_smart_clear_bits(CRCptr, 0x7f);
 
     // TODO
 
