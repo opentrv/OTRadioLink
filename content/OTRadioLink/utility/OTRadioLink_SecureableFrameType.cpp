@@ -349,7 +349,7 @@ uint8_t decodeNonsecureSmallFrameRaw(const SecurableFrameHeader *sfh,
 //  * e  encryption function; never NULL
 //  * state  pointer to state for e, if required, else NULL
 //  * key  secret key; never NULL
-uint8_t SimpleSecureFrame32or0BodyBase::encodeSecureSmallFrameRaw(uint8_t *const buf, const uint8_t buflen,
+uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRaw(uint8_t *const buf, const uint8_t buflen,
                                 const FrameType_Secureable fType_,
                                 const uint8_t *const id_, const uint8_t il_,
                                 const uint8_t *const body, const uint8_t bl_,
@@ -382,7 +382,7 @@ uint8_t SimpleSecureFrame32or0BodyBase::encodeSecureSmallFrameRaw(uint8_t *const
         {
         if(NULL == body) { return(0); } // ERROR
         memcpy(paddingBuf, body, bl_);
-        if(0 == SimpleSecureFrame32or0BodyBase::addPaddingTo32BTrailing0sAndPadCount(paddingBuf, bl_)) { return(0); } // ERROR
+        if(0 == addPaddingTo32BTrailing0sAndPadCount(paddingBuf, bl_)) { return(0); } // ERROR
         }
     // Encrypt body (if any) from the padding buffer to the output buffer.
     // Insert the tag directly into the buffer (before the final byte).
@@ -435,7 +435,7 @@ uint8_t SimpleSecureFrame32or0BodyBase::encodeSecureSmallFrameRaw(uint8_t *const
 //  * d  decryption function; never NULL
 //  * state  pointer to state for d, if required, else NULL
 //  * key  secret key; never NULL
-uint8_t SimpleSecureFrame32or0BodyBase::decodeSecureSmallFrameRaw(const SecurableFrameHeader *const sfh,
+uint8_t SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRaw(const SecurableFrameHeader *const sfh,
                                 const uint8_t *const buf, const uint8_t buflen,
                                 const fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
                                 void *const state, const uint8_t *const key, const uint8_t *const iv,
@@ -464,7 +464,7 @@ uint8_t SimpleSecureFrame32or0BodyBase::decodeSecureSmallFrameRaw(const Securabl
     if(plaintextWanted && (0 != bl))
         {
         // Unpad the decrypted text in place.
-        const uint8_t upbl = SimpleSecureFrame32or0BodyBase::removePaddingTo32BTrailing0sAndPadCount(decryptBuf);
+        const uint8_t upbl = removePaddingTo32BTrailing0sAndPadCount(decryptBuf);
         if(upbl > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
         if(upbl > decryptedBodyOutBuflen) { return(0); } // ERROR
         memcpy(decryptedBodyOut, decryptBuf, upbl);
@@ -487,7 +487,7 @@ uint8_t SimpleSecureFrame32or0BodyBase::decodeSecureSmallFrameRaw(const Securabl
 // Parameters:
 //  * buf  buffer containing the plain-text; must be >= 32 bytes, never NULL
 //  * datalen  unpadded data size at start of buf; if too large (>31) then this routine will fail (return 0)
-uint8_t SimpleSecureFrame32or0BodyBase::addPaddingTo32BTrailing0sAndPadCount(uint8_t *const buf, const uint8_t datalen)
+uint8_t SimpleSecureFrame32or0BodyTXBase::addPaddingTo32BTrailing0sAndPadCount(uint8_t *const buf, const uint8_t datalen)
     {
     if(NULL == buf) { return(0); } // ERROR
     if(datalen > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
@@ -505,7 +505,7 @@ uint8_t SimpleSecureFrame32or0BodyBase::addPaddingTo32BTrailing0sAndPadCount(uin
 //  * buf  buffer containing the plain-text; must be >= 32 bytes, never NULL
 //
 // NOTE: does not check that all padding bytes are actually zero.
-uint8_t SimpleSecureFrame32or0BodyBase::removePaddingTo32BTrailing0sAndPadCount(const uint8_t *const buf)
+uint8_t SimpleSecureFrame32or0BodyRXBase::removePaddingTo32BTrailing0sAndPadCount(const uint8_t *const buf)
     {
     const uint8_t paddingZeros = buf[ENC_BODY_SMALL_FIXED_CTEXT_SIZE - 1];
     if(paddingZeros > 31) { return(0); } // ERROR
@@ -516,7 +516,7 @@ uint8_t SimpleSecureFrame32or0BodyBase::removePaddingTo32BTrailing0sAndPadCount(
 // Check message counter for given ID, ie that it is high enough to be eligible for authenticating/processing.
 // ID is full (8-byte) node ID; counter is full (6-byte) counter.
 // Returns false if this counter value is not higher than the last received authenticated value.
-bool SimpleSecureFrame32or0BodyBase::validateRXMessageCount(const uint8_t *ID, const uint8_t *counter) const
+bool SimpleSecureFrame32or0BodyRXBase::validateRXMessageCount(const uint8_t *ID, const uint8_t *counter) const
     {
     // Validate args (rely on getLastRXMessageCounter() to validate ID).
     if(NULL == counter) { return(false); } // FAIL
@@ -620,10 +620,10 @@ uint8_t generateNonsecureBeacon(uint8_t *const buf, const uint8_t buflen,
 //  * iv  12-byte initialisation vector / nonce; never NULL
 //  * key  16-byte secret key; never NULL
 // NOTE: this version requires the IV to be supplied and the transmitted ID length to chosen.
-uint8_t SimpleSecureFrame32or0BodyBase::generateSecureBeaconRaw(uint8_t *const buf, const uint8_t buflen,
+uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureBeaconRaw(uint8_t *const buf, const uint8_t buflen,
                                 const uint8_t *const id_, const uint8_t il_,
                                 const uint8_t *const iv,
-                                const SimpleSecureFrame32or0BodyBase::fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                                const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
                                 void *const state, const uint8_t *const key)
     {
     return(encodeSecureSmallFrameRaw(buf, buflen,
@@ -642,9 +642,9 @@ uint8_t SimpleSecureFrame32or0BodyBase::generateSecureBeaconRaw(uint8_t *const b
 //  * buflen  available length in buf; if too small then this routine will fail (return 0)
 //  * il_  ID length for the header; ID comes from EEPROM
 //  * key  16-byte secret key; never NULL
-uint8_t SimpleSecureFrame32or0BodyBase::generateSecureBeaconRawForTX(uint8_t *const buf, const uint8_t buflen,
+uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureBeaconRawForTX(uint8_t *const buf, const uint8_t buflen,
                                 const uint8_t il_,
-                                const SimpleSecureFrame32or0BodyBase::fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                                const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
                                 void *const state, const uint8_t *const key)
     {
     uint8_t iv[12];
@@ -665,11 +665,11 @@ uint8_t SimpleSecureFrame32or0BodyBase::generateSecureBeaconRawForTX(uint8_t *co
 //  * statsJSON  '\0'-terminated {} JSON stats, or NULL if none.
 //  * il_  ID length for the header; ID comes from EEPROM
 //  * key  16-byte secret key; never NULL
-uint8_t SimpleSecureFrame32or0BodyBase::generateSecureOFrameRawForTX(uint8_t *const buf, const uint8_t buflen,
+uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX(uint8_t *const buf, const uint8_t buflen,
                                 const uint8_t il_,
                                 const uint8_t valvePC,
                                 const char *const statsJSON,
-                                const SimpleSecureFrame32or0BodyBase::fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                                const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
                                 void *const state, const uint8_t *const key)
     {
     uint8_t iv[12];

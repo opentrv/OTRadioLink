@@ -229,7 +229,7 @@ namespace OTRadioLink
             //         based on the received ID in (the already structurally validated) header
             virtual uint8_t decodeSecureSmallFrameFromID(const SecurableFrameHeader *sfh,
                                             const uint8_t *buf, uint8_t buflen,
-                                            SimpleSecureFrame32or0BodyBase::fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
+                                            fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
                                             const uint8_t *adjID, uint8_t adjIDLen,
                                             void *state, const uint8_t *key,
                                             uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
