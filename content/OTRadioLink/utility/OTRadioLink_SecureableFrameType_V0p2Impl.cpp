@@ -72,10 +72,11 @@ void SimpleSecureFrame32or0BodyTXV0p2::loadRaw3BytePersistentTXRestartCounterFro
 // Uses a smart update for each byte and ensures that each byte appears to read back correctly
 // else fails with a false return value, which may or may not leave an intact good value in place.
 // Buffer must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
+//   * loadBuf  area to save from; never NULL
 // Not ISR-safe.
 static bool saveRaw3BytePersistentTXRestartCounterToEEPROM(const uint8_t *const loadBuf)
     {
-    if(NULL == loadBuf) { return(false); }
+    //if(NULL == loadBuf) { return(false); }
     // Invert all the bytes and write them back carefully testing each OK before starting the next.
     for(uint8_t i = 0; i < OTV0P2BASE::VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR; ++i)
         {
@@ -307,9 +308,11 @@ bool SimpleSecureFrame32or0BodyTXV0p2::incrementAndGetPrimarySecure6BytePersiste
 
 // Read RX message count from specified EEPROM location; fails if CRC fails.
 // First 6 bytes are counter MSB first, followed by CRC.
+//  * eepromLOC  pointer into Flash for this counter instance; never NULL
+//  * counter  buffer to load counter to; never NULL
 static bool getLastRXMessageCounterFromTable(const uint8_t * const eepromLoc, uint8_t * const counter)
     {
-    if((NULL == eepromLoc) || (NULL == counter)) { return(false); } // FAIL
+//    if((NULL == eepromLoc) || (NULL == counter)) { return(false); } // FAIL
     // First get the 6 bytes (inverted) from the start of the given region.
     // The values are inverted so as:
     //   * to be all zeros from fresh/erased EEPROM
@@ -320,14 +323,16 @@ static bool getLastRXMessageCounterFromTable(const uint8_t * const eepromLoc, ui
     for(uint8_t i = 0; i < SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes; ++i) { counter[i] ^= 0xff; }
     // Now check the CRC byte (immediately following the counter):
     //  1) Fail if the top bit was clear indicating an update in progress...
-    //  2) Fail if the CRC itself does not match,
+    //  2) Fail if the CRC itself does not match.
+    // The two operations can be performed at once since the CRC msb should be 0, ie 1 when inverted.
     const uint8_t crcRAW = eeprom_read_byte(eepromLoc + SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes);
-    // Abort/fail if there appears to be an incomplete update.
-    if(0 == (crcRAW & 0x80)) { /* OTV0P2BASE::serialPrintlnAndFlush(F("!RXmc incomplete write")); */ return(false); } // FAIL
     // Compute/validate the 7-bit CRC.
     uint8_t crc = 0;
     for(int i = 0; i < SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes; ++i) { crc = OTV0P2BASE::crc7_5B_update(crc, counter[i]); }
-    if(((~crcRAW) & 0x7f) != crc) { /* OTV0P2BASE::serialPrintlnAndFlush(F("!RXmc bad CRC")); */ return(false); } // FAIL
+//        if(((~crcRAW) & 0x7f) != crc) { OTV0P2BASE::serialPrintlnAndFlush(F("!RXmc bad CRC")); return(false); } // FAIL
+//        // Abort/fail if there appears to be an incomplete update.
+//        if(0 == (crcRAW & 0x80)) { OTV0P2BASE::serialPrintlnAndFlush(F("!RXmc incomplete write")); return(false); } // FAIL
+    if(crc != (uint8_t)~crcRAW) { /* OTV0P2BASE::serialPrintlnAndFlush(F("!RXmc")); */ return(false); } // FAIL
     return(true); // FIXME: claim this is done.
 //
 //    // TODO
@@ -368,7 +373,7 @@ static bool updateRXMessageCount(uint8_t * const eepromLoc, const uint8_t * cons
     // Compute 7-bit CRC to use at the end, with the write-in-progress flag off (1).
     uint8_t crc = 0;
     for(int i = 0; i < SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes; ++i) { crc = OTV0P2BASE::crc7_5B_update(crc, newCounterValue[i]); }
-    const uint8_t rawCRC = 0x80 | ~crc;
+    const uint8_t rawCRC = ~crc; // The CRC's high-bit should be 0, so 1 when inverted.
     // Byte-by-byte careful minimal update of EEPROM, checking after each byte, ie for gross immediate failure.
     uint8_t *p = eepromLoc;
     for(int i = 0; i < SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes; ++i, ++p)
@@ -406,7 +411,6 @@ bool SimpleSecureFrame32or0BodyRXV0p2::updateRXMessageCountAfterAuthentication(c
     if(!updateRXMessageCount(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET, newCounterValue)) { return(false); } // FAIL
     return(true);
     }
-
 
 // As for decodeSecureSmallFrameRaw() but passed a candidate node/counterparty ID
 // derived from the frame ID in the incoming header,
@@ -450,7 +454,7 @@ uint8_t SimpleSecureFrame32or0BodyRXV0p2::decodeSecureSmallFrameFromID(const Sec
     // Construct IV from supplied (possibly adjusted) ID + counters from (start of) trailer.
     uint8_t iv[12];
     memcpy(iv, adjID, 6);
-    memcpy(iv + 6, buf + sfh->getTrailerOffset(), 6);
+    memcpy(iv + 6, buf + sfh->getTrailerOffset(), SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes);
     // Now do actual decrypt/auth.
     return(decodeSecureSmallFrameRaw(sfh,
                                 buf, buflen,
