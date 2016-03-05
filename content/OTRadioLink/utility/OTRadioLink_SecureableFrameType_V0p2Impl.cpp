@@ -310,6 +310,14 @@ static bool getLastRXMessageCounterFromTable(const uint8_t * const eepromLoc, ui
     //     allowing a write without erase on half the increments)
     eeprom_read_block(counter, eepromLoc, SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageCounterBytes);
     for(uint8_t i = 0; i < SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageCounterBytes; ++i) { counter[i] ^= 0xff; }
+
+    // Now check the CRC byte (immediately following the counter):
+    //  1) Fail if the top bit was clear indicating an update in progress...
+    //  2) Fail if the CRC itself does not match,
+    const uint8_t crcRAW = eeprom_read_byte(eepromLoc + SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageCounterBytes);
+    // Abort/fail if update did not complete.
+    if(0 == (crcRAW & 1)) { return(false); } // FAIL
+
     return(true); // FIXME: claim this is done.
 
 //    // TODO
