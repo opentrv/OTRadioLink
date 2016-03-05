@@ -559,6 +559,7 @@ namespace OTRadioLink
             // Fills the supplied 6-byte array with the incremented monotonically-increasing primary TX counter.
             // Returns true on success; false on failure for example because the counter has reached its maximum value.
             // Highest-index bytes in the array increment fastest.
+            // This should never return an all-zero count.
             // Not ISR-safe.
             virtual bool incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(uint8_t *buf) = 0;
 

@@ -214,6 +214,7 @@ bool SimpleSecureFrame32or0BodyV0p2::increment3BytePersistentTXRestartCounter()
 // Fills the supplied 6-byte array with the incremented monotonically-increasing primary TX counter.
 // Returns true on success; false on failure for example because the counter has reached its maximum value.
 // Highest-index bytes in the array increment fastest.
+// This should never return an all-zero count.
 // Not ISR-safe.
 bool SimpleSecureFrame32or0BodyV0p2::incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(uint8_t *const buf)
     {
@@ -330,7 +331,6 @@ static bool getLastRXMessageCounterFromTable(const uint8_t * const eepromLoc, ui
 // Deals with any redundancy/corruption etc.
 // Will fail for invalid node ID or for unrecoverable memory corruption.
 // TODO: use unary count across 2 bytes (primary and secondary) to give 16 ops before needing to update main counters.
-// TODO: if both primary and secondary possible alternate updates to reduce write load per byte.
 // Both args must be non-NULL, with counter pointing to enough space to copy the message counter value to.
 bool SimpleSecureFrame32or0BodyV0p2::getLastRXMessageCounter(const uint8_t * const ID, uint8_t * const counter) const
     {
