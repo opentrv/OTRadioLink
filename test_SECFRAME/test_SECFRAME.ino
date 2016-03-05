@@ -126,7 +126,7 @@ static const int GCM_TAG_LENGTH = 16; // in bytes (default 16, 12 possible)
 
 // All-zeros const 16-byte/128-bit key.
 // Can be used for other purposes.
-static const uint8_t zeroKey[16] = { };
+static const uint8_t zeroBlock[16] = { };
 
 // Test quick integrity checks, for TX and RX.
 static void testFrameQIC()
@@ -501,7 +501,7 @@ static void testSimpleNULLEncDec()
   static const uint8_t authtext1[2] = { 'H', 'i' };
   // Output ciphertext and tag buffers.
   uint8_t co1[32], to1[16];
-  AssertIsTrue(e(NULL, zeroKey, nonce1, authtext1, sizeof(authtext1), plaintext1, co1, to1));
+  AssertIsTrue(e(NULL, zeroBlock, nonce1, authtext1, sizeof(authtext1), plaintext1, co1, to1));
   AssertIsEqual(0, memcmp(plaintext1, co1, 32));
   AssertIsEqual(0, memcmp(nonce1, to1, 12));
   AssertIsEqual(0, to1[12]);
@@ -510,7 +510,7 @@ static void testSimpleNULLEncDec()
   AssertIsTrue(!d(NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL));
   // Decode the ciphertext and tag from above and ensure that it 'works'.
   uint8_t plaintext1Decoded[32];
-  AssertIsTrue(d(NULL, zeroKey, nonce1, authtext1, sizeof(authtext1), co1, to1, plaintext1Decoded));
+  AssertIsTrue(d(NULL, zeroBlock, nonce1, authtext1, sizeof(authtext1), co1, to1, plaintext1Decoded));
   AssertIsEqual(0, memcmp(plaintext1, plaintext1Decoded, 32));
   }
 
@@ -527,16 +527,16 @@ static void runSimpleEncDec(const OTRadioLink::SimpleSecureFrame32or0BodyBase::f
   static const uint8_t authtext1[2] = { 'H', 'i' };
   // Output ciphertext and tag buffers.
   uint8_t co1[32], to1[16];
-  AssertIsTrue(e(NULL, zeroKey, nonce1, authtext1, sizeof(authtext1), plaintext1, co1, to1));
+  AssertIsTrue(e(NULL, zeroBlock, nonce1, authtext1, sizeof(authtext1), plaintext1, co1, to1));
   // Check that calling the NULL dec routine with bad args fails.
   AssertIsTrue(!d(NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL));
   // Decode the ciphertext and tag from above and ensure that it 'works'.
   uint8_t plaintext1Decoded[32];
-  AssertIsTrue(d(NULL, zeroKey, nonce1, authtext1, sizeof(authtext1), co1, to1, plaintext1Decoded));
+  AssertIsTrue(d(NULL, zeroBlock, nonce1, authtext1, sizeof(authtext1), co1, to1, plaintext1Decoded));
   AssertIsEqual(0, memcmp(plaintext1, plaintext1Decoded, 32));
   // Try with authtext and no plaintext.
-  AssertIsTrue(e(NULL, zeroKey, nonce1, authtext1, sizeof(authtext1), NULL, co1, to1));
-  AssertIsTrue(d(NULL, zeroKey, nonce1, authtext1, sizeof(authtext1), NULL, to1, plaintext1Decoded));
+  AssertIsTrue(e(NULL, zeroBlock, nonce1, authtext1, sizeof(authtext1), NULL, co1, to1));
+  AssertIsTrue(d(NULL, zeroBlock, nonce1, authtext1, sizeof(authtext1), NULL, to1, plaintext1Decoded));
   }
 
 // Test basic access to crypto features.
@@ -648,7 +648,7 @@ static void testSecureSmallFrameEncoding()
                                     body, sizeof(body),
                                     iv,
                                     OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS,
-                                    NULL, zeroKey);
+                                    NULL, zeroBlock);
   AssertIsEqual(63, encodedLength);
   AssertIsTrue(encodedLength <= sizeof(buf));
   //3e cf 04 aa aa aa aa 20 | ...
@@ -683,7 +683,7 @@ static void testSecureSmallFrameEncoding()
   AssertIsTrue(0 != OTRadioLink::SimpleSecureFrame32or0BodyBase::decodeSecureSmallFrameRaw(&sfhRX,
                                         buf, encodedLength,
                                         OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
-                                        NULL, zeroKey, iv,
+                                        NULL, zeroBlock, iv,
                                         decryptedBodyOut, sizeof(decryptedBodyOut), decodedBodyOutSize));
   // Body content should be correctly decrypted and extracted.
   AssertIsEqual(sizeof(body), decodedBodyOutSize);
@@ -699,7 +699,7 @@ static void testSecureSmallFrameEncoding()
                (0 == OTRadioLink::SimpleSecureFrame32or0BodyBase::decodeSecureSmallFrameRaw(&sfhRX,
                                         buf, encodedLength,
                                         OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
-                                        NULL, zeroKey, iv,
+                                        NULL, zeroBlock, iv,
                                         decryptedBodyOut, sizeof(decryptedBodyOut), decodedBodyOutSize)) ||
                ((sizeof(body) == decodedBodyOutSize) && (0 == memcmp(body, decryptedBodyOut, sizeof(body))) && (0 == memcmp(id, sfhRX.id, 4))));
   }
@@ -719,7 +719,7 @@ static void testBeaconEncoding()
   AssertIsEqual(0x00, buf[3]); // Body length 0.
   AssertIsEqual(0x65, buf[4]);
   // Generate maximum-length-zero-ID beacon automatically at non-zero seq.
-  const uint8_t b1 = OTRadioLink::generateNonsecureBeacon(buf, sizeof(buf), 4, zeroKey, OTRadioLink::SecurableFrameHeader::maxIDLength);
+  const uint8_t b1 = OTRadioLink::generateNonsecureBeacon(buf, sizeof(buf), 4, zeroBlock, OTRadioLink::SecurableFrameHeader::maxIDLength);
   AssertIsEqual(13, b1);
   AssertIsEqual(0x0c, buf[0]);
   AssertIsEqual(0x21, buf[1]);
@@ -749,7 +749,7 @@ static void testBeaconEncoding()
   for(int idLen = 0; idLen <= 8; ++idLen)
     {
     // Secure beacon...  All zeros key; ID and IV as from spec Example 3 at 20160207.
-    const uint8_t *const key = zeroKey;
+    const uint8_t *const key = zeroBlock;
     // Preshared ID prefix; only an initial part/prefix of this goes on the wire in the header.
     const uint8_t id[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55 };
     // IV/nonce starting with first 6 bytes of preshared ID, then 6 bytes of counter.
@@ -806,7 +806,7 @@ static void testMsgCount()
   const uint8_t count1[] = { 0, 0, 0x83, 0, 0, 0 };
   const uint8_t count2[] = { 0, 0, 0x82, 0x88, 1, 1 };
   // Check that identical values compare as identical.
-  AssertIsEqual(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(zeroKey, zeroKey));
+  AssertIsEqual(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(zeroBlock, zeroBlock));
   AssertIsEqual(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count1, count1));
   AssertIsEqual(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count2, count2));
   AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count1, count2) > 0);
@@ -823,11 +823,11 @@ static void testPermMsgCount()
   // Initialise to state of empty EEPROM; result should be a valid all-zeros restart count.
   memset(loadBuf, 0, sizeof(loadBuf));
   AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyV0p2::read3BytePersistentTXRestartCounter(loadBuf, buf));
-  AssertIsEqual(0, memcmp(buf, zeroKey, OTRadioLink::SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageRestartCounterBytes));
+  AssertIsEqual(0, memcmp(buf, zeroBlock, OTRadioLink::SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageRestartCounterBytes));
   // Ensure that it can be incremented and gives the correct next (0x000001) value.
   AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyV0p2::increment3BytePersistentTXRestartCounter(loadBuf));
   AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyV0p2::read3BytePersistentTXRestartCounter(loadBuf, buf));
-  AssertIsEqual(0, memcmp(buf, zeroKey, OTRadioLink::SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageRestartCounterBytes - 1));
+  AssertIsEqual(0, memcmp(buf, zeroBlock, OTRadioLink::SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageRestartCounterBytes - 1));
   AssertIsEqual(1, buf[2]);
   // Initialise to all-0xff state (with correct CRC), which should cause failure.
   memset(loadBuf, 0xff, sizeof(loadBuf)); loadBuf[3] = 0xf; loadBuf[7] = 0xf;
@@ -848,7 +848,7 @@ static void testPermMsgCount()
     }
   // Also verify in passing that all zero message counter will never be acceptable for an RX message,
   // regardless of the node ID, since the new count as to be higher than any previous for the ID.
-  AssertIsTrue(!OTRadioLink::SimpleSecureFrame32or0BodyV0p2::getInstance().validateRXMessageCount(zeroKey, zeroKey));
+  AssertIsTrue(!OTRadioLink::SimpleSecureFrame32or0BodyV0p2::getInstance().validateRXMessageCount(zeroBlock, zeroBlock));
   }
 
 // Test handling of persistent/reboot/restart part of primary message counter.
@@ -867,23 +867,23 @@ static void testPermMsgCountRunOnce()
   // Initial test that blank EEPROM (or reset to all zeros) after processing yields all zeros.
   AssertIsTrue(instance.resetRaw3BytePersistentTXRestartCounterInEEPROM(true));
   instance.loadRaw3BytePersistentTXRestartCounterFromEEPROM(loadBuf);
-  AssertIsTrue(0 == memcmp(loadBuf, zeroKey, sizeof(loadBuf)));
+  AssertIsTrue(0 == memcmp(loadBuf, zeroBlock, sizeof(loadBuf)));
   AssertIsTrue(instance.read3BytePersistentTXRestartCounter(loadBuf, buf));
-  AssertIsEqual(0, memcmp(buf, zeroKey, OTRadioLink::SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageRestartCounterBytes));
+  AssertIsEqual(0, memcmp(buf, zeroBlock, OTRadioLink::SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageRestartCounterBytes));
   AssertIsTrue(instance.get3BytePersistentTXRestartCounter(buf));
-  AssertIsTrue(0 == memcmp(buf, zeroKey, OTRadioLink::SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageRestartCounterBytes));
+  AssertIsTrue(0 == memcmp(buf, zeroBlock, OTRadioLink::SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageRestartCounterBytes));
   // Increment the persistent TX counter and ensure that we see it as non-zero.
   AssertIsTrue(instance.increment3BytePersistentTXRestartCounter());
   AssertIsTrue(instance.get3BytePersistentTXRestartCounter(buf));
-  AssertIsTrue(0 != memcmp(buf, zeroKey, OTRadioLink::SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageRestartCounterBytes));
+  AssertIsTrue(0 != memcmp(buf, zeroBlock, OTRadioLink::SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageRestartCounterBytes));
   // So reset to non-all-zeros (should be default) and make sure that we see it as not-all-zeros.
   AssertIsTrue(instance.resetRaw3BytePersistentTXRestartCounterInEEPROM());
   AssertIsTrue(instance.get3BytePersistentTXRestartCounter(buf));
-  AssertIsTrue(0 != memcmp(buf, zeroKey, OTRadioLink::SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageRestartCounterBytes));
+  AssertIsTrue(0 != memcmp(buf, zeroBlock, OTRadioLink::SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageRestartCounterBytes));
   // Initial test that from blank EEPROM (or reset to all zeros)
   // that getting the message counter gives non-zero reboot and ephemeral parts.
   AssertIsTrue(instance.resetRaw3BytePersistentTXRestartCounterInEEPROM(true));
-  uint8_t mcbuf[OTRadioLink::SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageCounterBytes];
+  uint8_t mcbuf[OTRadioLink::SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes];
   AssertIsTrue(instance.incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(mcbuf));
 #if 1
   for(int i = 0; i < sizeof(mcbuf); ++i) { Serial.print(' '); Serial.print(mcbuf[i], HEX); }
@@ -895,6 +895,7 @@ static void testPermMsgCountRunOnce()
   }
 
 // Test some basic parameters of node associations.
+// Also has some tests of its interaction with management of RX message counters.
 // Tests to only be run once because they may cause device wear.
 // NOTE: best not to run on a real device as this will mess with its associations, etc.
 static void testNodeAssocRunOnce()
@@ -904,8 +905,8 @@ static void testNodeAssocRunOnce()
   AssertIsEqual(0, OTV0P2BASE::countNodeAssociations());
   AssertIsEqual(-1, OTV0P2BASE::getNextMatchingNodeID(0, NULL, 0, NULL));
   // Check that attempting to get aux data for a non-existent node/association fails.
-  uint8_t mcbuf[OTRadioLink::SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageCounterBytes];
-  AssertIsTrue(!OTRadioLink::SimpleSecureFrame32or0BodyV0p2::getInstance().getLastRXMessageCounter(zeroKey, mcbuf));
+  uint8_t mcbuf[OTRadioLink::SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes];
+  AssertIsTrue(!OTRadioLink::SimpleSecureFrame32or0BodyV0p2::getInstance().getLastRXMessageCounter(zeroBlock, mcbuf));
   // Test adding associations and looking them up.
   const uint8_t ID0[] = { 0xa0, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7 };
   AssertIsEqual(0, OTV0P2BASE::addNodeAssociation(ID0));
@@ -915,14 +916,21 @@ static void testNodeAssocRunOnce()
     { AssertIsEqual(0, OTV0P2BASE::getNextMatchingNodeID(0, ID0, i, NULL)); }
   // Check that RX msg count for new association is OK, and all zeros.
   AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyV0p2::getInstance().getLastRXMessageCounter(ID0, mcbuf));
-  AssertIsEqual(0, memcmp(mcbuf, zeroKey, sizeof(mcbuf)));
+  AssertIsEqual(0, memcmp(mcbuf, zeroBlock, sizeof(mcbuf)));
   // Now deliberately damage the primary count and check that the value can still be retrieved.
   // Ensure damanged byte has at least one 1 and one 0 and is at a random position towards the end.
   OTV0P2BASE::eeprom_smart_update_byte((uint8_t *)(OTV0P2BASE::V0P2BASE_EE_START_NODE_ASSOCIATIONS + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET + 2 + (3 & OTV0P2BASE::randRNG8())), 0x40 | (0x3f & OTV0P2BASE::randRNG8()));
   AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyV0p2::getInstance().getLastRXMessageCounter(ID0, mcbuf));
-  AssertIsEqual(0, memcmp(mcbuf, zeroKey, sizeof(mcbuf)));
-  const uint8_t ID1[] = { 0x88, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0x8f };
+  AssertIsEqual(0, memcmp(mcbuf, zeroBlock, sizeof(mcbuf)));
+  // Attempting to update to the same (0) value should fail.
+  AssertIsTrue(!OTRadioLink::SimpleSecureFrame32or0BodyV0p2::getInstance().updateRXMessageCountAfterAuthentication(ID0, zeroBlock));
+  // Updating to a new count and reading back should work.
+  const uint8_t newCount[] = { 0, 1, 2, 3, 4, 5 };
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyV0p2::getInstance().updateRXMessageCountAfterAuthentication(ID0, newCount));
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyV0p2::getInstance().getLastRXMessageCounter(ID0, mcbuf));
+  AssertIsEqual(0, memcmp(mcbuf, newCount, sizeof(mcbuf)));
   // Add/test second association...
+  const uint8_t ID1[] = { 0x88, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0x8f };
   AssertIsEqual(1, OTV0P2BASE::addNodeAssociation(ID1));
   AssertIsEqual(2, OTV0P2BASE::countNodeAssociations());
   // Zero-length-lookup matches any entry.
