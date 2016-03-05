@@ -900,7 +900,13 @@ static void testNodeAssocRunOnce()
   // Check that RX msg count for new association is OK, and all zeros.
   AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyV0p2::getInstance().getLastRXMessageCounter(ID0, mcbuf));
   AssertIsEqual(0, memcmp(mcbuf, zeroKey, sizeof(mcbuf)));
+  // Now deliberately damage the primary count and check that the value can still be retrieved.
+  // Ensure damanged byte has at least one 1 and one 0 and is at a random position towards the end.
+  OTV0P2BASE::eeprom_smart_update_byte((uint8_t *)(OTV0P2BASE::V0P2BASE_EE_START_NODE_ASSOCIATIONS + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET + 2 + (3 & OTV0P2BASE::randRNG8())), 0x40 | (0x3f & OTV0P2BASE::randRNG8()));
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyV0p2::getInstance().getLastRXMessageCounter(ID0, mcbuf));
+  AssertIsEqual(0, memcmp(mcbuf, zeroKey, sizeof(mcbuf)));
   const uint8_t ID1[] = { 0x88, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0x8f };
+  // Add/test second association...
   AssertIsEqual(1, OTV0P2BASE::addNodeAssociation(ID1));
   AssertIsEqual(2, OTV0P2BASE::countNodeAssociations());
   // Zero-length-lookup matches any entry.
