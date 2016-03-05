@@ -34,7 +34,7 @@ namespace OTRadioLink
     {
 
 
-    // V0p2 implementation for 0 or 32 byte encrypted body sections.
+    // V0p2 TX implementation for 0 or 32 byte encrypted body sections.
     //
     // With all of these routines it is important to check and act on error codes,
     // usually aborting immediately if an error value is returned.
@@ -45,32 +45,15 @@ namespace OTRadioLink
     // The restart/reboot 3 bytes is stored in a primary and secondary copy in EEPROM,
     // along with an 8-bit CRC each, all stored inverted,
     // so that the all-1s erased state of counter and CRC is valid (counter value 0).
-    //
-    // Storage format for RX message counters.
-    // There are primary and secondary copies at offset 8 and 16 from the start of each association,
-    // ie stored in EEPROM against the ID of the leaf being received from.
-    // Each has some redundancy so that errors can be detected,
-    // eg from partial writes/updated arising from code or power failures.
-    //  1) The first 6 bytes of each are the message count, sorted inverted, so as:
-    //  1a) to be all zeros from fresh/erased EEPROM
-    //  1b) to reduce wear on normal increment
-    //      (lsbit goes from 1 to 0 and and nothing else changes
-    //      allowing a write without erase on half the increments)
-    //  2) The next 'CRC byte contains two elements:
-    //  2a) The top bit is cleared/written to zero while the message counter is being updated,
-    //      and erased to high when the CRC is written in after the 6 bytes have been updated.
-    //      Thus if this is found to be low during a read, a write has failed to complete.
-    //  2b) A 7-bit CRC of the message counter bytes, stored inverted,
-    //      so that the all-1s erased state of counter and CRC is valid (counter value 0).
-    class SimpleSecureFrame32or0BodyV0p2 : public SimpleSecureFrame32or0BodyBase
+    class SimpleSecureFrame32or0BodyTXV0p2 : public SimpleSecureFrame32or0BodyTXBase
         {
         private:
             // Constructor is private to force use of factory method to return singleton.
-            SimpleSecureFrame32or0BodyV0p2() { }
+            SimpleSecureFrame32or0BodyTXV0p2() { }
 
         public:
             // Factory method to get singleton instance.
-            static SimpleSecureFrame32or0BodyV0p2 &getInstance();
+            static SimpleSecureFrame32or0BodyTXV0p2 &getInstance();
 
             // Design notes on use of message counters vs non-volatile storage life, eg for ATMega328P.
             //
@@ -123,18 +106,6 @@ namespace OTRadioLink
             // and counter is guaranteed to be non-zero.
             static bool resetRaw3BytePersistentTXRestartCounterInEEPROM(bool allZeros = false);
 
-            // Read current (last-authenticated) RX message count for specified node, or return false if failed.
-            // Will fail for invalid node ID or for unrecoverable memory corruption.
-            // Both args must be non-NULL, with counter pointing to enough space to copy the message counter value to.
-            virtual bool getLastRXMessageCounter(const uint8_t * const ID, uint8_t *counter) const;
-            // Update persistent message counter for received frame AFTER successful authentication.
-            // ID is full (8-byte) node ID; counter is full (6-byte) counter.
-            // Returns false on failure, eg if message counter is not higher than the previous value for this node.
-            // The implementation should allow several years of life typical message rates (see above).
-            // The implementation should be robust in the face of power failures / reboots, accidental or malicious,
-            // not allowing replays nor other cryptographic attacks, nor forcing node dissociation.
-            // Must only be called once the RXed message has passed authentication.
-            virtual bool updateRXMessageCountAfterAuthentication(const uint8_t *ID, const uint8_t *newCounterValue);
             // Get the 3 bytes of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
             // Combines results from primary and secondary as appropriate.
             // Deals with inversion and checksum checking.
@@ -187,6 +158,52 @@ namespace OTRadioLink
             // This uses and increments the primary message counter for the last 6 bytes.
             // Returns true on success, false on failure eg due to message counter generation failure.
             virtual bool compute12ByteIDAndCounterIVForTX(uint8_t *ivBuf);
+        };
+
+    // V0p2 RX implementation for 0 or 32 byte encrypted body sections.
+    //
+    // With all of these routines it is important to check and act on error codes,
+    // usually aborting immediately if an error value is returned.
+    // MUDDLING ON WITHOUT CHECKING FOR ERRORS MAY SEVERELY DAMAGE SYSTEM SECURITY.
+    //
+    // Storage format for RX message counters.
+    // There are primary and secondary copies at offset 8 and 16 from the start of each association,
+    // ie stored in EEPROM against the ID of the leaf being received from.
+    // Each has some redundancy so that errors can be detected,
+    // eg from partial writes/updated arising from code or power failures.
+    //  1) The first 6 bytes of each are the message count, sorted inverted, so as:
+    //  1a) to be all zeros from fresh/erased EEPROM
+    //  1b) to reduce wear on normal increment
+    //      (lsbit goes from 1 to 0 and and nothing else changes
+    //      allowing a write without erase on half the increments)
+    //  2) The next 'CRC byte contains two elements:
+    //  2a) The top bit is cleared/written to zero while the message counter is being updated,
+    //      and erased to high when the CRC is written in after the 6 bytes have been updated.
+    //      Thus if this is found to be low during a read, a write has failed to complete.
+    //  2b) A 7-bit CRC of the message counter bytes, stored inverted,
+    //      so that the all-1s erased state of counter and CRC is valid (counter value 0).
+    class SimpleSecureFrame32or0BodyRXV0p2 : public SimpleSecureFrame32or0BodyRXBase
+        {
+        private:
+            // Constructor is private to force use of factory method to return singleton.
+            SimpleSecureFrame32or0BodyRXV0p2() { }
+
+        public:
+            // Factory method to get singleton instance.
+            static SimpleSecureFrame32or0BodyRXV0p2 &getInstance();
+
+            // Read current (last-authenticated) RX message count for specified node, or return false if failed.
+            // Will fail for invalid node ID or for unrecoverable memory corruption.
+            // Both args must be non-NULL, with counter pointing to enough space to copy the message counter value to.
+            virtual bool getLastRXMessageCounter(const uint8_t * const ID, uint8_t *counter) const;
+            // Update persistent message counter for received frame AFTER successful authentication.
+            // ID is full (8-byte) node ID; counter is full (6-byte) counter.
+            // Returns false on failure, eg if message counter is not higher than the previous value for this node.
+            // The implementation should allow several years of life typical message rates (see above).
+            // The implementation should be robust in the face of power failures / reboots, accidental or malicious,
+            // not allowing replays nor other cryptographic attacks, nor forcing node dissociation.
+            // Must only be called once the RXed message has passed authentication.
+            virtual bool updateRXMessageCountAfterAuthentication(const uint8_t *ID, const uint8_t *newCounterValue);
 
             // As for decodeSecureSmallFrameRaw() but passed a candidate node/counterparty ID
             // derived from the frame ID in the incoming header,
