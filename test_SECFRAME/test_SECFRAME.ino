@@ -917,7 +917,7 @@ static void testNodeAssocRunOnce()
   // Check that RX msg count for new association is OK, and all zeros.
   AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyRXV0p2::getInstance().getLastRXMessageCounter(ID0, mcbuf));
   AssertIsEqual(0, memcmp(mcbuf, zeroBlock, sizeof(mcbuf)));
-  // Now deliberately damage the primary count and check that the value can still be retrieved.
+  // Now deliberately damage the primary count and check that the counter value can still be retrieved.
   // Ensure damanged byte has at least one 1 and one 0 and is at a random position towards the end.
   OTV0P2BASE::eeprom_smart_update_byte((uint8_t *)(OTV0P2BASE::V0P2BASE_EE_START_NODE_ASSOCIATIONS + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET + 2 + (3 & OTV0P2BASE::randRNG8())), 0x40 | (0x3f & OTV0P2BASE::randRNG8()));
   AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyRXV0p2::getInstance().getLastRXMessageCounter(ID0, mcbuf));

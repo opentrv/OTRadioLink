@@ -70,7 +70,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #undef ENABLE_OCCUPANCY_DETECTION_FROM_RH
 // IF UNDEFINED: this unit cannot act as boiler-control hub listening to remote thermostats, possibly in addition to controlling a local TRV.
 #undef ENABLE_BOILER_HUB
-// IF UNDEFINED: do not allow TX of stats frames.
+// IF DEFINED: allow TX of stats frames.
 #define ENABLE_STATS_TX
 // IF UNDEFINED: do not allow RX of stats frames.
 #undef ENABLE_STATS_RX
@@ -106,15 +106,15 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 // Revision REV7 of V0.2 board, all-in-one valve unit with local motor drive.
 // Does not ever need to act as a boiler hub nor to receive stats.
 // Although LEARN buttons are provided, by default they are disabled as is the scheduler.
-// Fast temp dial sampling is forced on to help compensate for slop in early devices.
-// IF DEFINED: support one on and one off time per day (possibly in conjunction with 'learn' button).
-#undef ENABLE_SINGLETON_SCHEDULE
-// IF DEFINED: use active-low LEARN button(s).  Needs ENABLE_SINGLETON_SCHEDULE.
-#undef ENABLE_LEARN_BUTTON // OPTIONAL ON V0.09 PCB1
+// Fast temp dial sampling is forced on to help compensate for mechanical slop in early devices.
 // IF DEFINED: try to trim memory (primarily RAM, also code/Flash) space used.
 #define ENABLE_TRIMMED_MEMORY
 // IF DEFINED: try to trim bandwidth as may be especially expensive/scarce.
 #undef ENABLE_TRIMMED_BANDWIDTH
+// IF DEFINED: support one on and one off time per day (possibly in conjunction with 'learn' button).
+#undef ENABLE_SINGLETON_SCHEDULE
+// IF DEFINED: use active-low LEARN button(s).  Needs ENABLE_SINGLETON_SCHEDULE.
+#undef ENABLE_LEARN_BUTTON // OPTIONAL ON V0.09 PCB1
 // IF DEFINED: allow periodic machine- and human- readable status report to serial, starting with "=".
 #undef ENABLE_SERIAL_STATUS_REPORT
 // IF DEFINED: allow binary stats to be TXed.
