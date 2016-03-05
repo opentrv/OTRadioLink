@@ -498,6 +498,10 @@ namespace OTRadioLink
             // Will fail for invalid node ID or for unrecoverable memory corruption.
             // Both args must be non-NULL, with counter pointing to enough space to copy the message counter value to.
             virtual bool getLastRXMessageCounter(const uint8_t * const ID, uint8_t *counter) const = 0;
+            // Check one (6-byte) message counter against another for magnitude.
+            // Returns 0 if they are identical, +ve if the first counter is greater, -ve otherwise.
+            static int16_t msgcountercmp(const uint8_t *counter1, const uint8_t *counter2)
+                { return(memcmp(counter1, counter2, primaryPeristentTXMessageCounterBytes)); }
             // Check message counter for given ID, ie that it is high enough to be eligible for authenticating/processing.
             // ID is full (8-byte) node ID; counter is full (6-byte) counter.
             // Returns false if this counter value is not higher than the last received authenticated value.

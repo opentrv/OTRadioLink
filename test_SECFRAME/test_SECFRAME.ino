@@ -797,6 +797,22 @@ static void testNodeAssoc()
   AssertIsTrue((0 == nas) == (-1 == i));
   }
 
+// Test some message counter routines.
+// Does not wear non-volatile memory (eg EEPROM).
+static void testMsgCount()
+  {
+  Serial.println("MsgCount");
+  // Two counter values to compare that should help spot overflow or wrong byte order operations.
+  const uint8_t count1[] = { 0, 0, 0x83, 0, 0, 0 };
+  const uint8_t count2[] = { 0, 0, 0x82, 0x88, 1, 1 };
+  // Check that identical values compare as identical.
+  AssertIsEqual(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(zeroKey, zeroKey));
+  AssertIsEqual(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count1, count1));
+  AssertIsEqual(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count2, count2));
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count1, count2) > 0);
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count2, count1) < 0);
+  }
+
 // Test handling of persistent/reboot/restart part of primary message counter.
 // Does not wear non-volatile memory (eg EEPROM).
 static void testPermMsgCount()
@@ -950,6 +966,7 @@ void loop()
   testFrameHeaderDecoding();
   testNonsecureFrameCRC();
   testNonsecureSmallFrameEncoding();
+  testMsgCount();
   testPermMsgCount();
   testSimplePadding();
   testSimpleNULLEncDec();
@@ -966,7 +983,7 @@ void loop()
   if(!runOnce)
     {
     runOnce = true;
-    Serial.println(F("Run-once tests... "));
+    Serial.println(F("RUN-ONCE tests... "));
     testPermMsgCountRunOnce();
     testNodeAssocRunOnce();
     }
