@@ -318,6 +318,16 @@ namespace OTRadioLink
 //        // Undefined for values above 240.
 //        uint8_t roundUpTo16s(uint8_t s) { return((s + 15) & 0xf0); }
 
+
+    // Base class for simple implementations that supports 0 or 32 byte encrypted body sections.
+    // This wraps up any necessary state, persistent and ephemeral, such as message counters.
+    // Some implementations make sense only as singletons,
+    // eg because they store state at fixed locations in EEPROM.
+    // It is possible to provide implementations not tied to any particular hardware architecture.
+    class SimpleSecureFrame32or0BodyBase
+        {
+        };
+
     // Pads plain-text in place prior to encryption with 32-byte fixed length padded output.
     // Simple method that allows unpadding at receiver, does padding in place.
     // Padded size is (ENC_BODY_SMALL_FIXED_CTEXT_SIZE) 32, maximum unpadded size is 31.
@@ -519,6 +529,38 @@ namespace OTRadioLink
                                     const uint8_t *adjID, uint8_t adjIDLen,
                                     void *state, const uint8_t *key,
                                     uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
+
+    // Design notes on use of message counters vs non-volatile storage life, eg for ATMega328P.
+    //
+    // Note that the message counter is designed to:
+    //  a) prevent reuse of IVs, which can fatally weaken the cipher,
+    //  b) avoid replay attacks.
+    //
+    // The implementation on both TX and RX sides should:
+    //  a) allow nominally 10 years' life from the non-volatile store and thus the unit,
+    //  b) be resistant to (for example) deliberate power-cycling during update,
+    //  c) random EEPROM byte failures.
+    //
+    // Some assumptions:
+    //  a) aiming for 10 years' continuous product life at transmitters and receivers,
+    //  b) around one TX per sensor/valve node per 4 minutes,
+    //  c) ~100k full erase/write cycles per EEPROM byte (partial writes can be cheaper), as ATmega328P.
+    //
+    // 100k updates over 10Y implies ~10k/y or about 1 per hour;
+    // that is about one full EEPROM erase/write per 15 messages at one message per 4 minutes.
+    //
+    // Check message counter for given ID, ie that it is high enough to be worth authenticating.
+    // ID is full (8-byte) node ID; counter is full (6-byte) counter.
+    // Returns false if this counter value is not higher than the last received authenticated value.
+    bool validateRXMessageCount(const uint8_t *ID, const uint8_t *counter);
+    // Update persistent message counter for received frame AFTER successful authentication.
+    // ID is full (8-byte) node ID; counter is full (6-byte) counter.
+    // Returns false on failure, eg if message counter is not higher than the previous value for this node.
+    // The implementation should allow several years of life typical message rates (see above).
+    // The implementation should be robust in the face of power failures / reboots, accidental or malicious,
+    // not allowing replays nor other cryptographic attacks, nor forcing node dissociation.
+    // Must only be called once the RXed message has passed authentication.
+    bool updateRXMessageCountAfterAuthentication(const uint8_t *ID, const uint8_t *counter);
 
     // Load the raw form of the persistent reboot/restart message counter from EEPROM into the supplied array.
     // Deals with inversion, but does not interpret the data or check CRCs etc.

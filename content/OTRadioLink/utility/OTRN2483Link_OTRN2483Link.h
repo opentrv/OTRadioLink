@@ -37,7 +37,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
 #define OTRN2483LINK_OTRN2483LINK_H_
 
 // IF DEFINED: Puts RN2483 to sleep after send
-#define RN2483_ALLOW_SLEEP
+//#define RN2483_ALLOW_SLEEP
 // IF DEFINED: Assumes that LoRaWAN settings are saved in RN2483 EEPROM and does not attempt to set them itself
 //#define RN2483_CONFIG_IN_EEPROM
 // IF DEFINED: Enables adaptive data rate. This is only relevant if RN2483_CONFIG_IN_EEPROM is UNDEFINED
@@ -141,6 +141,7 @@ private:
     void joinABP();
     bool getStatus();
     void save();
+    void setDataRate(uint8_t dataRate);
 
     // Setup
     bool _doconfig() { return true; };
@@ -158,7 +159,7 @@ private:
 
     static const char SYS_START[5];	  // Beginning of "sys" command set
     static const char SYS_SLEEP[7];   // Sleep mode
-//    static const char SYS_RESET[6]; // todo this can be removed on board with working reset line
+    static const char SYS_RESET[6]; // todo this can be removed on board with working reset line
 
     static const char MAC_START[5];   // Beginning of "mac" command set
 #ifndef RN2483_CONFIG_IN_EEPROM
@@ -170,6 +171,7 @@ private:
 #else
     static const char MAC_ADR[8];     // Set Adaptive Datarate "off"
 #endif
+    static const char MAC_SET_DR[4];   // Set ch 1 data rate.
 #endif // RN2483_CONFIG_IN_EEPROM
     static const char MAC_JOINABP[9]; // Join LoRaWAN network by ABP (activation by personalisation)
     static const char MAC_STATUS[7];

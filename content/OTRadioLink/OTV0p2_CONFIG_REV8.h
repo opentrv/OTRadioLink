@@ -18,7 +18,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 */
 
 /*
- * Set of ENABLE_XXX flags and V0p2_REV for REV4.
+ * Set of ENABLE_XXX flags and V0p2_REV for REV8.
  *
  * This should define (or #undef) ONLY symbols with names starting "ENABLE_"
  * and V0p2_REV.
@@ -36,31 +36,27 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
  * only other CONFIG includes.
  */
 
-#ifndef ARDUINO_LIB_OTV0P2_CONFIG_REV4_H
-#define ARDUINO_LIB_OTV0P2_CONFIG_REV4_H
+#ifndef ARDUINO_LIB_OTV0P2_CONFIG_REV8_H
+#define ARDUINO_LIB_OTV0P2_CONFIG_REV8_H
 
 
-#ifdef CONFIG_DHD_TESTLAB_REV4_NOHUB // REV4 board but no listening...
-#define CONFIG_DHD_TESTLAB_REV4
-// IF DEFINED: this unit can act as boiler-control hub listening to remote thermostats, possibly in addition to controlling a local TRV.
-#undef ENABLE_BOILER_HUB
-// IF DEFINED: allow RX of stats frames.
-#undef ENABLE_STATS_RX
-// IF DEFINED: allow radio listen/RX.
-#undef ENABLE_RADIO_RX
-#endif
-
-#ifdef CONFIG_DHD_TESTLAB_REV4 // DHD's test lab with TRV on REV4 (cut2) board.
-// Revision of V0.2 board.
-#define V0p2_REV 4 // REV0 covers DHD's breadboard and first V0.2 PCB.
+#ifdef CONFIG_DORM1_BOILER // REV8 boiler-control counterpart to REV7.
+// Revision REV8.B of V0.2 board, boiler control unit.
+// NO LIGHT SENSOR FITTED ON REV8.B BOARDS.
+// BOTH TMP112 AND SHT21 FITTED on REV8.B BOARDS.
+#define V0p2_REV 8
 // IF DEFINED: enable use of on-board SHT21 RH and temp sensor (in lieu of TMP112).
 #define ENABLE_PRIMARY_TEMP_SENSOR_SHT21
 // Using RoHS-compliant phototransistor in place of LDR.
-#define ENABLE_AMBIENT_LIGHT_SENSOR_PHOTOTRANS_TEPT4400
-// Anticipation logic not yet ready for prime-time.
-//#define ENABLE_ANTICIPATION
-// IF UNDEFINED: this unit cannot act as boiler-control hub listening to remote thermostats, possibly in addition to controlling a local TRV.
-//#undef ENABLE_BOILER_HUB
+//#define ENABLE_AMBIENT_LIGHT_SENSOR_PHOTOTRANS_TEPT4400
+// IF DEFINED: this unit can act as boiler-control hub listening to remote thermostats, possibly in addition to controlling a local TRV.
+#define ENABLE_BOILER_HUB
+// IF DEFINED: allow RX of stats frames.
+#undef ENABLE_STATS_RX
+// IF DEFINED: allow TX of stats frames.
+#define ENABLE_STATS_TX
+// IF DEFINED: this unit will act as a thermostat controlling a local TRV (and calling for heat from the boiler), else is a sensor/hub unit.
+#undef ENABLE_LOCAL_TRV
 #endif
 
 

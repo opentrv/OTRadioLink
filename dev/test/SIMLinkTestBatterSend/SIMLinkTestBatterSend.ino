@@ -58,7 +58,7 @@ static const bool bEEPROM = false;  // Sets whether radio saved in flash or eepr
 #if 1 == CREDS // DE
 static const char apn[] = "m2mkit.telefonica.com"; // "m2mkit.telefonica.com"
 static const char pin[] = "0000";
-static const char UDP_ADDR[] = "46.101.52.242";
+static const char UDP_ADDR[] = "0.0.0.0";
 static const char UDP_PORT[] = "9999";
 #elif 2 == CREDS // DHD
 static const char apn[] = "m2mkit.telefonica.com";

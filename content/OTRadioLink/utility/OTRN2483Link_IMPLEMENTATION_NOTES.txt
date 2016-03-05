@@ -1,0 +1,88 @@
+Various RN2483 notes:
+
+Currently variables defined in functions (in .cpp file). Ugly but have not had time to do it properly.
+
+Sleep Mode:
+  - Does not wake from sleep in our particular implementation.
+  - You tell it how long to sleep for in 100s of ms and it *should* wake up at the end.
+
+Data rate:
+  - 5 data rates (dr) in LoRaWAN class A. Each corresponds to a different spread factor (SF) and has a different max payload length:
+    1) dr 0 = SF12, 59/59   octets*
+    2) dr 1 = SF11, 59/59   octets*
+    3) dr 2 = SF10, 59/59   octets*
+    4) dr 3 =  SF9, 123/123 octets*
+    5) dr 4 =  SF8, 230/250 octets*
+    6) dr 5 =  SF7, 230/250 octets*
+*<repeater compatible>/<not repeater compatible>, assumed octets (not labelled in LoRaWan spec table 16/17)
+
+DHD2060302: JSON frame lengths above 49 seem to fail at the low data rates 0/1/2.
+
+Testing data rates:
+unit    datarate
+21      0
+23      1
+24      2
+
+
+Some failed packets:
+
+{"@":"e8e7","+":2,"H|%":26,"T|C16":389,"O":1,"L":251}
+invalid_data_len�106
+Radio: {"@":"e8e7","+":2,"H|%":26,"T|C16":389,"O":1,"L":251�v
+
+
+{"@":"e8e7","+":4,"L":250,"T|C16":389,"H|%":26,"O":1}
+invalid_data_len�106
+Radio: {"@":"e8e7","+":4,"L":250,"T|C16":389,"H|%":26,"O":1�
+
+Common points:
+- if length is over 100, returns "invalid_data_len"
+
+
+Using Adaptive Data Rate (NOT TESTED YET. ALSO MAY NOT BE SUPPORTED BY TTN):
+This requires 2 steps:
+1) Use the "mac set ch drrange" command to set a minimum and maximum per channel data rate.
+2) Use the "mac adr on" command to activate adaptive data rate.
+
+
+Notes on the "no_free_ch" error:
+- This indicates that the maximum duty cycle has been reached on all configured channels.
+- Solutions:
+    1) Tx less often.
+    2) Use a higher data rate.
+    2) Increase the maximum duty cycle ("mac set ch dcycle" I think). This should only be used for dev work as it may break ISM band regs.
+    4) Configure more channels. The RN2483 has 3 default channels but more can be configured. The Kerlink gateway supports 8 channels.
+    5) Use smaller packets
+- TTN fair use policy more limiting anyway.
+
+
+Calculating per-channel duty cycle (DISCLAIMER: I have no idea what I'm doing):
+- Spreadsheet for calculating airtime: http://forum.thethingsnetwork.org/t/spreadsheet-for-lora-airtime-calculation/1190
+- Discussion on duty cycle: http://forum.thethingsnetwork.org/t/duty-cycle-time-on-air/122
+- TTN page on LoRaWAN frequencies: http://thethingsnetwork.org/wiki/LoRaWAN-Frequencies
+- Semtech notes on calculating airtime: http://www.semtech.com/images/datasheet/LoraDesignGuide_STD.pdf
+
+- Based on spreadsheet from linked TTN forum, we can send every 4 mins across 3 default channels without exceeding 1% duty cycle.
+
+Comparison of duty cycles and TTN fair usage at different data rates.
+Datarate|Max Send Rate|TTN max:
+SF7       11.8         254
+SF8       21.5         139
+SF9       39.0          76
+SF10      69.8          42
+SF11     147.9          20
+SF12     279.3          10
+*Assumed packets: 8 symbol preamble + 13 byte header + 50 byte payload + 4/5 coding rate @125kHz bandwidth.
+*Max send Rate: How often packets can be sent (in seconds) without breaching ISM band regulations.
+*TTN max: Maximum packets allowed in 24 Hrs by TTN fair use policy.
+*TTN fair use policy: Each node is allowed a maxiumum of 30 secs airtime per 24 Hr period.
+
+Suggestions for reducing packet size (and therefore duty cycle/airtime):
+- http://forum.thethingsnetwork.org/t/limitations-data-rate-packet-size-30-seconds-day-fair-access-policy-nodes-per-gateway/1300
+- http://forum.thethingsnetwork.org/t/best-practices-to-limit-application-payloads/1302
+
+
+
+
+

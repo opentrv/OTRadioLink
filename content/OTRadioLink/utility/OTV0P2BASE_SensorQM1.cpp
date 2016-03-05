@@ -22,6 +22,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #include <util/atomic.h>
 
 #include <Arduino.h>
+#include <Wire.h> // Arduino I2C library.
 
 #include "OTV0P2BASE_SensorQM1.h"
 
@@ -34,11 +35,42 @@ namespace OTV0P2BASE
 // DHD20151119: even now it seems a threshold of >= 2 is needed to avoid false positives.
 // DE20160101:  Lowered detection threshold as new boards have lower sensitivity
 static const uint8_t voiceDetectionThreshold = 4; // TODO move into class?
+static const uint8_t QM1_I2C_ADDR = 0x09;
+static const uint8_t QM1_I2C_CMD_PERIOD_MASK  = 0x40;   // Mask for setting time between measurements, in 10s of seconds. Bitwise AND with a value between 0x01 and 0x3F
+static const uint8_t QM1_I2C_CMD_RST_PERIOD   = 0x01;   // Reset period to default (4 mins)
+static const uint8_t QM1_I2C_CMD_SET_PERIOD_3 = 0x03;   // Set period to 3 times measurement time (40 secs?)
+static const uint8_t QM1_I2C_CMD_SET_LOW_PWR  = 0x04;   // Set processor to low power mode
+static const uint8_t QM1_I2C_CMD_SET_NORM_PWR = 0x05;   // Set processor to normal mode
+
+// Set true once QM-1 has been initialised.
+static volatile bool QM1_initialised = false;
+
+/**
+ * @brief   Set up QM1 for low power operation
+ * @todo    How to do this TBC.
+ */
+static void QM1_init()
+{
+	const bool neededPowerUp = OTV0P2BASE::powerUpTWIIfDisabled();
+
+	Wire.beginTransmission(QM1_I2C_ADDR);
+	Wire.write( (byte)(0b01000001) );
+	Wire.endTransmission();
+	Wire.beginTransmission(QM1_I2C_ADDR);
+	Wire.write( (byte)QM1_I2C_CMD_SET_LOW_PWR );
+	Wire.endTransmission();
+	QM1_initialised = true;
+
+	// Power down TWI ASAP.
+	if(neededPowerUp) { OTV0P2BASE::powerDownTWI(); }
+}
 
 // Force a read/poll of the voice level and return the value sensed.
 // Thread-safe and ISR-safe.
 uint8_t VoiceDetectionQM1::read()
 {
+  if(!QM1_initialised) QM1_init();
+
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
   {
     isDetected = ((value = count) >= voiceDetectionThreshold);
@@ -68,6 +100,8 @@ bool VoiceDetectionQM1::handleInterruptSimple()
       possOccCallback();
     }
   }
+
+  OTV0P2BASE::serialPrintAndFlush("v");
   // No further work to be done to 'clear' interrupt.
   return (true);
 }

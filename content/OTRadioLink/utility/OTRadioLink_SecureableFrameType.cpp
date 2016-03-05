@@ -721,7 +721,6 @@ OTV0P2BASE::serialPrintlnAndFlush();
     return(true);
     }
 
-
 // Interpret RAM copy of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
 // Combines results from primary and secondary as appropriate,
 // for example to recover from message counter corruption due to a failure during write.
