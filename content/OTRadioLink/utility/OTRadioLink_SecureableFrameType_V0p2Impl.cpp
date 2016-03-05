@@ -79,7 +79,7 @@ static bool saveRaw3BytePersistentTXRestartCounterToEEPROM(const uint8_t *const 
     // Invert all the bytes and write them back carefully testing each OK before starting the next.
     for(uint8_t i = 0; i < OTV0P2BASE::VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR; ++i)
         {
-        const uint8_t b = loadBuf[i] ^ 0xff;
+        const uint8_t b = ~loadBuf[i];
         OTV0P2BASE::eeprom_smart_update_byte((uint8_t *)(OTV0P2BASE::VOP2BASE_EE_START_PERSISTENT_MSG_RESTART_CTR) + i, b);
         if(b != eeprom_read_byte((uint8_t *)(OTV0P2BASE::VOP2BASE_EE_START_PERSISTENT_MSG_RESTART_CTR) + i)) { return(false); }
         }
@@ -327,7 +327,7 @@ static bool getLastRXMessageCounterFromTable(const uint8_t * const eepromLoc, ui
     // Compute/validate the 7-bit CRC.
     uint8_t crc = 0;
     for(int i = 0; i < SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes; ++i) { crc = OTV0P2BASE::crc7_5B_update(crc, counter[i]); }
-    if(((crcRAW ^ 0xff) & 0x7f) != crc) { /* OTV0P2BASE::serialPrintlnAndFlush(F("!RXmc bad CRC")); */ return(false); } // FAIL
+    if(((~crcRAW) & 0x7f) != crc) { /* OTV0P2BASE::serialPrintlnAndFlush(F("!RXmc bad CRC")); */ return(false); } // FAIL
     return(true); // FIXME: claim this is done.
 //
 //    // TODO
@@ -368,12 +368,12 @@ static bool updateRXMessageCount(uint8_t * const eepromLoc, const uint8_t * cons
     // Compute 7-bit CRC to use at the end, with the write-in-progress flag off (1).
     uint8_t crc = 0;
     for(int i = 0; i < SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes; ++i) { crc = OTV0P2BASE::crc7_5B_update(crc, newCounterValue[i]); }
-    const uint8_t rawCRC = 0x80 | (crc ^ 0xff);
+    const uint8_t rawCRC = 0x80 | ~crc;
     // Byte-by-byte careful minimal update of EEPROM, checking after each byte, ie for gross immediate failure.
     uint8_t *p = eepromLoc;
     for(int i = 0; i < SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes; ++i, ++p)
         {
-        const uint8_t asWritten = newCounterValue[i] ^ 0xff;
+        const uint8_t asWritten = ~newCounterValue[i];
         OTV0P2BASE::eeprom_smart_update_byte(p, asWritten);
         if(asWritten != eeprom_read_byte(p)) { return(false); } // FAIL
         }
