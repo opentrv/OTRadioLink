@@ -35,11 +35,19 @@ namespace OTRadioLink
     {
 
 
-// Factory method to get singleton instance.
-SimpleSecureFrame32or0BodyV0p2 &SimpleSecureFrame32or0BodyV0p2::getInstance()
+// Factory method to get singleton TX instance.
+SimpleSecureFrame32or0BodyTXV0p2 &SimpleSecureFrame32or0BodyTXV0p2::getInstance()
     {
     // Create/initialise on first use, NOT statically.
-    static SimpleSecureFrame32or0BodyV0p2 instance;
+    static SimpleSecureFrame32or0BodyTXV0p2 instance;
+    return(instance);
+    }
+
+// Factory method to get singleton RX instance.
+SimpleSecureFrame32or0BodyRXV0p2 &SimpleSecureFrame32or0BodyRXV0p2::getInstance()
+    {
+    // Create/initialise on first use, NOT statically.
+    static SimpleSecureFrame32or0BodyRXV0p2 instance;
     return(instance);
     }
 
@@ -48,7 +56,7 @@ SimpleSecureFrame32or0BodyV0p2 &SimpleSecureFrame32or0BodyV0p2::getInstance()
 // Separates the EEPROM access from the data interpretation to simplify unit testing.
 // Buffer must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
 // Not ISR-safe.
-void SimpleSecureFrame32or0BodyV0p2::loadRaw3BytePersistentTXRestartCounterFromEEPROM(uint8_t *const loadBuf)
+void SimpleSecureFrame32or0BodyTXV0p2::loadRaw3BytePersistentTXRestartCounterFromEEPROM(uint8_t *const loadBuf)
     {
     if(NULL == loadBuf) { return; }
     eeprom_read_block(loadBuf,
@@ -87,7 +95,7 @@ static bool saveRaw3BytePersistentTXRestartCounterToEEPROM(const uint8_t *const 
 // but inject entropy into the least significant bits to reduce risk value/IV reuse in error.
 // If called with false then interrupts should not be blocked to allow entropy gathering,
 // and counter is guaranteed to be non-zero.
-bool SimpleSecureFrame32or0BodyV0p2::resetRaw3BytePersistentTXRestartCounterInEEPROM(const bool allZeros)
+bool SimpleSecureFrame32or0BodyTXV0p2::resetRaw3BytePersistentTXRestartCounterInEEPROM(const bool allZeros)
     {
     if(allZeros)
         {
@@ -129,7 +137,7 @@ static bool readOne3BytePersistentTXRestartCounter(const uint8_t *const base, ui
     // FIXME: for now use the primary copy only if OK: should be able to salvage from secondary, else take higher+1.
     // Fail if the CRC is not valid.
     uint8_t crc = 0;
-    for(int i = 0; i < SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageRestartCounterBytes; ++i) { crc = _crc8_ccitt_update(crc, base[i]); }
+    for(int i = 0; i < SimpleSecureFrame32or0BodyTXBase::primaryPeristentTXMessageRestartCounterBytes; ++i) { crc = _crc8_ccitt_update(crc, base[i]); }
 #if 0
 OTV0P2BASE::serialPrintAndFlush(F("CRC expected vs actual "));
 OTV0P2BASE::serialPrintAndFlush(crc, HEX);
@@ -137,11 +145,11 @@ OTV0P2BASE::serialPrintAndFlush(' ');
 OTV0P2BASE::serialPrintAndFlush(base[SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageRestartCounterBytes], HEX);
 OTV0P2BASE::serialPrintlnAndFlush();
 #endif
-    if(crc != base[SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageRestartCounterBytes]) { /* OTV0P2BASE::serialPrintlnAndFlush(F("CRC failed")); */ return(false); } // CRC failed.
+    if(crc != base[SimpleSecureFrame32or0BodyTXBase::primaryPeristentTXMessageRestartCounterBytes]) { /* OTV0P2BASE::serialPrintlnAndFlush(F("CRC failed")); */ return(false); } // CRC failed.
     // Check for all 0xff (maximum) value and fail if found.
     if((0xff == base[0]) && (0xff == base[1]) && (0xff == base[2])) { /* OTV0P2BASE::serialPrintlnAndFlush(F("counter at max")); */ return(false); } // Counter at max.
     // Copy (primary) counter to output.
-    for(int i = 0; i < SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageRestartCounterBytes; ++i) { buf[i] = base[i]; }
+    for(int i = 0; i < SimpleSecureFrame32or0BodyTXBase::primaryPeristentTXMessageRestartCounterBytes; ++i) { buf[i] = base[i]; }
     return(true);
     }
 
@@ -153,7 +161,7 @@ OTV0P2BASE::serialPrintlnAndFlush();
 // Input buffer (loadBuf) must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
 // Output buffer (buf) must be 3 bytes long.
 // Will report failure when count is all 0xff values.
-bool SimpleSecureFrame32or0BodyV0p2::read3BytePersistentTXRestartCounter(const uint8_t *const loadBuf, uint8_t *const buf)
+bool SimpleSecureFrame32or0BodyTXV0p2::read3BytePersistentTXRestartCounter(const uint8_t *const loadBuf, uint8_t *const buf)
     {
     // Read the primary copy.
     if(readOne3BytePersistentTXRestartCounter(loadBuf, buf)) { return(true); }
@@ -165,7 +173,7 @@ bool SimpleSecureFrame32or0BodyV0p2::read3BytePersistentTXRestartCounter(const u
 // Combines results from primary and secondary as appropriate.
 // Deals with inversion and checksum checking.
 // Output buffer (buf) must be 3 bytes long.
-bool SimpleSecureFrame32or0BodyV0p2::get3BytePersistentTXRestartCounter(uint8_t *const buf) const
+bool SimpleSecureFrame32or0BodyTXV0p2::get3BytePersistentTXRestartCounter(uint8_t *const buf) const
     {
     uint8_t loadBuf[OTV0P2BASE::VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR];
     loadRaw3BytePersistentTXRestartCounterFromEEPROM(loadBuf);
@@ -176,7 +184,7 @@ bool SimpleSecureFrame32or0BodyV0p2::get3BytePersistentTXRestartCounter(uint8_t 
 // Will refuse to increment such that the top byte overflows, ie when already at 0xff.
 // Updates the CRC.
 // Input/output buffer (loadBuf) must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
-bool SimpleSecureFrame32or0BodyV0p2::increment3BytePersistentTXRestartCounter(uint8_t *const loadBuf)
+bool SimpleSecureFrame32or0BodyTXV0p2::increment3BytePersistentTXRestartCounter(uint8_t *const loadBuf)
     {
     uint8_t buf[primaryPeristentTXMessageRestartCounterBytes];
     if(!read3BytePersistentTXRestartCounter(loadBuf, buf)) { return(false); }
@@ -201,7 +209,7 @@ bool SimpleSecureFrame32or0BodyV0p2::increment3BytePersistentTXRestartCounter(ui
 // Increment EEPROM copy of persistent reboot/restart message counter; returns false on failure.
 // Will refuse to increment such that the top byte overflows, ie when already at 0xff.
 // USE WITH CARE: calling this unnecessarily will shorten life before needing to change ID/key.
-bool SimpleSecureFrame32or0BodyV0p2::increment3BytePersistentTXRestartCounter()
+bool SimpleSecureFrame32or0BodyTXV0p2::increment3BytePersistentTXRestartCounter()
     {
     // Increment the persistent part; fail entirely if not usable/incrementable (eg all 0xff).
     uint8_t loadBuf[OTV0P2BASE::VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR];
@@ -216,7 +224,7 @@ bool SimpleSecureFrame32or0BodyV0p2::increment3BytePersistentTXRestartCounter()
 // Highest-index bytes in the array increment fastest.
 // This should never return an all-zero count.
 // Not ISR-safe.
-bool SimpleSecureFrame32or0BodyV0p2::incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(uint8_t *const buf)
+bool SimpleSecureFrame32or0BodyTXV0p2::incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(uint8_t *const buf)
     {
     if(NULL == buf) { return(false); }
 
@@ -332,7 +340,7 @@ static bool getLastRXMessageCounterFromTable(const uint8_t * const eepromLoc, ui
 // Will fail for invalid node ID or for unrecoverable memory corruption.
 // TODO: use unary count across 2 bytes (primary and secondary) to give 16 ops before needing to update main counters.
 // Both args must be non-NULL, with counter pointing to enough space to copy the message counter value to.
-bool SimpleSecureFrame32or0BodyV0p2::getLastRXMessageCounter(const uint8_t * const ID, uint8_t * const counter) const
+bool SimpleSecureFrame32or0BodyRXV0p2::getLastRXMessageCounter(const uint8_t * const ID, uint8_t * const counter) const
     {
     if((NULL == ID) || (NULL == counter)) { return(false); } // FAIL
     // First look up the node association; fail if not present.
@@ -383,7 +391,7 @@ static bool updateRXMessageCount(uint8_t * const eepromLoc, const uint8_t * cons
 // The implementation should be robust in the face of power failures / reboots, accidental or malicious,
 // not allowing replays nor other cryptographic attacks, nor forcing node dissociation.
 // Must only be called once the RXed message has passed authentication.
-bool SimpleSecureFrame32or0BodyV0p2::updateRXMessageCountAfterAuthentication(const uint8_t *ID, const uint8_t *newCounterValue)
+bool SimpleSecureFrame32or0BodyRXV0p2::updateRXMessageCountAfterAuthentication(const uint8_t *ID, const uint8_t *newCounterValue)
     {
     // Validate node ID and new count.
     if(!validateRXMessageCount(ID, newCounterValue)) { return(false); } // Putative new counter value not valid; reject.
@@ -422,9 +430,9 @@ bool SimpleSecureFrame32or0BodyV0p2::updateRXMessageCountAfterAuthentication(con
 //   * adjID / adjIDLen  adjusted candidate ID (never NULL)
 //         and available length (must be >= 6)
 //         based on the received ID in (the already structurally validated) header
-uint8_t SimpleSecureFrame32or0BodyV0p2::decodeSecureSmallFrameFromID(const SecurableFrameHeader *const sfh,
+uint8_t SimpleSecureFrame32or0BodyRXV0p2::decodeSecureSmallFrameFromID(const SecurableFrameHeader *const sfh,
                                 const uint8_t *const buf, const uint8_t buflen,
-                                const SimpleSecureFrame32or0BodyBase::fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
+                                const fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
                                 const uint8_t *const adjID, const uint8_t adjIDLen,
                                 void *const state, const uint8_t *const key,
                                 uint8_t *const decryptedBodyOut, const uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize)
@@ -444,7 +452,7 @@ uint8_t SimpleSecureFrame32or0BodyV0p2::decodeSecureSmallFrameFromID(const Secur
     memcpy(iv, adjID, 6);
     memcpy(iv + 6, buf + sfh->getTrailerOffset(), 6);
     // Now do actual decrypt/auth.
-    return(SimpleSecureFrame32or0BodyBase::decodeSecureSmallFrameRaw(sfh,
+    return(decodeSecureSmallFrameRaw(sfh,
                                 buf, buflen,
                                 d,
                                 state, key, iv,
@@ -455,7 +463,7 @@ uint8_t SimpleSecureFrame32or0BodyV0p2::decodeSecureSmallFrameFromID(const Secur
 // This uses the local node ID as-is for the first 6 bytes.
 // This uses and increments the primary message counter for the last 6 bytes.
 // Returns true on success, false on failure eg due to message counter generation failure.
-bool SimpleSecureFrame32or0BodyV0p2::compute12ByteIDAndCounterIVForTX(uint8_t *const ivBuf)
+bool SimpleSecureFrame32or0BodyTXV0p2::compute12ByteIDAndCounterIVForTX(uint8_t *const ivBuf)
     {
     if(NULL == ivBuf) { return(false); }
     // Fill in first 6 bytes of this node's ID.
