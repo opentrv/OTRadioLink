@@ -330,14 +330,14 @@ static bool getLastRXMessageCounterFromTable(const uint8_t * const eepromLoc, ui
 // Read current (last-authenticated) RX message count for specified node, or return false if failed.
 // Deals with any redundancy/corruption etc.
 // Will fail for invalid node ID or for unrecoverable memory corruption.
-// TODO: use the bit-wise bit clear across 2 bytes (primary and secondary) to give 16 ops before needing to update main counters.
-// TODO: if both primary and secondary OK use the higher one to allow alternating updates.
+// TODO: use unary count across 2 bytes (primary and secondary) to give 16 ops before needing to update main counters.
+// TODO: if both primary and secondary possible alternate updates to reduce write load per byte.
 // Both args must be non-NULL, with counter pointing to enough space to copy the message counter value to.
 bool SimpleSecureFrame32or0BodyV0p2::getLastRXMessageCounter(const uint8_t * const ID, uint8_t * const counter) const
     {
     if((NULL == ID) || (NULL == counter)) { return(false); } // FAIL
     // First look up the node association; fail if not present.
-    const int8_t index = OTV0P2BASE::getNextMatchingNodeID(0, ID, OTV0P2BASE::OpenTRV_Node_ID_Bytes, counter);
+    const int8_t index = OTV0P2BASE::getNextMatchingNodeID(0, ID, OTV0P2BASE::OpenTRV_Node_ID_Bytes, NULL);
     if(index < 0) { return(false); } // FAIL
     // Note: nominal risk of race if associations table can be altered concurrently.
     // Compute base location in EEPROM of association table entry/row.
@@ -349,6 +349,18 @@ bool SimpleSecureFrame32or0BodyV0p2::getLastRXMessageCounter(const uint8_t * con
     return(secondaryOK);
     }
 
+// Carefully update specified counter (primary or secondary) and CRCs as appropriate; returns false on failure.
+// Sets write-in-progress flag before starting and clears it (sets it to 1) with the CRC afterwards.
+// Reads back each byte written before proceeding.
+// TODO: use unary count to reduce wear.
+static bool updateRXMessageCount(const uint8_t * const eepromLoc, const uint8_t * const newCounterValue)
+    {
+
+    // TODO
+
+    return(false); // FIXME not implemented
+    }
+
 // Update persistent message counter for received frame AFTER successful authentication.
 // ID is full (8-byte) node ID; counter is full (6-byte) counter.
 // Returns false on failure, eg if message counter is not higher than the previous value for this node.
@@ -356,13 +368,20 @@ bool SimpleSecureFrame32or0BodyV0p2::getLastRXMessageCounter(const uint8_t * con
 // The implementation should be robust in the face of power failures / reboots, accidental or malicious,
 // not allowing replays nor other cryptographic attacks, nor forcing node dissociation.
 // Must only be called once the RXed message has passed authentication.
-bool SimpleSecureFrame32or0BodyV0p2::updateRXMessageCountAfterAuthentication(const uint8_t *ID, const uint8_t *counter)
+bool SimpleSecureFrame32or0BodyV0p2::updateRXMessageCountAfterAuthentication(const uint8_t *ID, const uint8_t *newCounterValue)
     {
-    if(!validateRXMessageCount(ID, counter)) { return(false); } // Putative new counter value not valid; reject.
-
-    // TODO
-
-    return(false); // FIXME not implemented
+    // Validate node ID and new count.
+    if(!validateRXMessageCount(ID, newCounterValue)) { return(false); } // Putative new counter value not valid; reject.
+    // Look up the node association; fail if not present.
+    const int8_t index = OTV0P2BASE::getNextMatchingNodeID(0, ID, OTV0P2BASE::OpenTRV_Node_ID_Bytes, NULL);
+    if(index < 0) { return(false); } // FAIL (shouldn't be possible after previous validation).
+    // Note: nominal risk of race if associations table can be altered concurrently.
+    // Compute base location in EEPROM of association table entry/row.
+    uint8_t * const rawPtr = (uint8_t *)(OTV0P2BASE::V0P2BASE_EE_START_NODE_ASSOCIATIONS + index*(uint16_t)OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE);
+    // Update primary AND secondary counter copies.
+    if(!updateRXMessageCount(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET, newCounterValue)) { return(false); } // FAIL
+    if(!updateRXMessageCount(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET, newCounterValue)) { return(false); } // FAIL
+    return(true);
     }
 
 
