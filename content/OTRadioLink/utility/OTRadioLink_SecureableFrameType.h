@@ -67,7 +67,7 @@ namespace OTRadioLink
     //
     // With all of these routines it is important to check and act on error codes,
     // usually aborting immediately if an error value is returned.
-    // MUDLING ON WITHOUT CHECKING FOR ERRORS MAY SEVERELY DAMAGE SYSTEM SECURITY.
+    // MUDDLING ON WITHOUT CHECKING FOR ERRORS MAY SEVERELY DAMAGE SYSTEM SECURITY.
     enum FrameType_Secureable
         {
         // No message should be type 0x00/0x01 (nor 0x7f/0xff).
@@ -131,7 +131,7 @@ namespace OTRadioLink
     //
     // With all of these routines it is important to check and act on error codes,
     // usually aborting immediately if an error value is returned.
-    // MUDLING ON WITHOUT CHECKING FOR ERRORS MAY SEVERELY DAMAGE SYSTEM SECURITY.
+    // MUDDLING ON WITHOUT CHECKING FOR ERRORS MAY SEVERELY DAMAGE SYSTEM SECURITY.
     struct SecurableFrameHeader
         {
         // Create an instance as an invalid frame header ready to start with seqNum==0.
@@ -336,7 +336,7 @@ namespace OTRadioLink
     //
     // With all of these routines it is important to check and act on error codes,
     // usually aborting immediately if an error value is returned.
-    // MUDLING ON WITHOUT CHECKING FOR ERRORS MAY SEVERELY DAMAGE SYSTEM SECURITY.
+    // MUDDLING ON WITHOUT CHECKING FOR ERRORS MAY SEVERELY DAMAGE SYSTEM SECURITY.
     class SimpleSecureFrame32or0BodyBase
         {
         public:

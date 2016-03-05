@@ -38,7 +38,7 @@ namespace OTRadioLink
     //
     // With all of these routines it is important to check and act on error codes,
     // usually aborting immediately if an error value is returned.
-    // MUDLING ON WITHOUT CHECKING FOR ERRORS MAY SEVERELY DAMAGE SYSTEM SECURITY.
+    // MUDDLING ON WITHOUT CHECKING FOR ERRORS MAY SEVERELY DAMAGE SYSTEM SECURITY.
     class SimpleSecureFrame32or0BodyV0p2 : public SimpleSecureFrame32or0BodyBase
         {
         private:
