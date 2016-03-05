@@ -301,10 +301,20 @@ bool SimpleSecureFrame32or0BodyV0p2::incrementAndGetPrimarySecure6BytePersistent
 // First 6 bytes are counter MSB first, followed by CRC.
 static bool getLastRXMessageCounterFromTable(const uint8_t * const eepromLoc, uint8_t * const counter)
     {
+    if((NULL == eepromLoc) || (NULL == counter)) { return(false); } // FAIL
+    // First get the 6 bytes (inverted) from the start of the given region.
+    // The values are inverted so as:
+    //   * to be all zeros from fresh/erased EEPROM
+    //   * to reduce wear on normal increment
+    //     (lsbit goes from 1 to 0 and and nothing else changes
+    //     allowing a write without erase on half the increments)
+    eeprom_read_block(counter, eepromLoc, SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageCounterBytes);
+    for(uint8_t i = 0; i < SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageCounterBytes; ++i) { counter[i] ^= 0xff; }
+    return(true); // FIXME: claim this is done.
 
-    // TODO
-
-    return(false); // FIXME not implemented
+//    // TODO
+//
+//    return(false); // FIXME not implemented
     }
 
 // Read current (last-authenticated) RX message count for specified node, or return false if failed.
@@ -405,9 +415,9 @@ bool SimpleSecureFrame32or0BodyV0p2::compute12ByteIDAndCounterIVForTX(uint8_t *c
     {
     if(NULL == ivBuf) { return(false); }
     // Fill in first 6 bytes of this node's ID.
-    eeprom_read_block(ivBuf, (uint8_t *)V0P2BASE_EE_START_ID, 6);
+    eeprom_read_block(ivBuf, (uint8_t *)V0P2BASE_EE_START_ID, SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageCounterBytes);
     // Generate and fill in new message count at end of IV.
-    return(incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(ivBuf + 6));
+    return(incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(ivBuf + SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageCounterBytes));
     }
 
 
