@@ -39,6 +39,29 @@ namespace OTRadioLink
     // With all of these routines it is important to check and act on error codes,
     // usually aborting immediately if an error value is returned.
     // MUDDLING ON WITHOUT CHECKING FOR ERRORS MAY SEVERELY DAMAGE SYSTEM SECURITY.
+    //
+    // Storage format for primary TX message counter.
+    // The ephemeral 3 bytes are held in RAM.
+    // The restart/reboot 3 bytes is stored in a primary and secondary copy in EEPROM,
+    // along with an 8-bit CRC each, all stored inverted,
+    // so that the all-1s erased state of counter and CRC is valid (counter value 0).
+    //
+    // Storage format for RX message counters.
+    // There are primary and secondary copies at offset 8 and 16 from the start of each association,
+    // ie stored in EEPROM against the ID of the leaf being received from.
+    // Each has some redundancy so that errors can be detected,
+    // eg from partial writes/updated arising from code or power failures.
+    //  1) The first 6 bytes of each are the message count, sorted inverted, so as:
+    //  1a) to be all zeros from fresh/erased EEPROM
+    //  1b) to reduce wear on normal increment
+    //      (lsbit goes from 1 to 0 and and nothing else changes
+    //      allowing a write without erase on half the increments)
+    //  2) The next 'CRC byte contains two elements:
+    //  2a) The top bit is cleared/written to zero while the message counter is being updated,
+    //      and erased to high when the CRC is written in after the 6 bytes have been updated.
+    //      Thus if this is found to be low during a read, a write has failed to complete.
+    //  2b) A 7-bit CRC of the message counter bytes, stored inverted,
+    //      so that the all-1s erased state of counter and CRC is valid (counter value 0).
     class SimpleSecureFrame32or0BodyV0p2 : public SimpleSecureFrame32or0BodyBase
         {
         private:

@@ -43,7 +43,6 @@ SimpleSecureFrame32or0BodyV0p2 &SimpleSecureFrame32or0BodyV0p2::getInstance()
     return(instance);
     }
 
-
 // Load the raw form of the persistent reboot/restart message counter from EEPROM into the supplied array.
 // Deals with inversion, but does not interpret the data or check CRCs etc.
 // Separates the EEPROM access from the data interpretation to simplify unit testing.
@@ -127,7 +126,7 @@ OTV0P2BASE::serialPrintlnAndFlush();
 // Read exactly one of the copies of the persistent reboot/restart message counter; returns false on failure.
 static bool readOne3BytePersistentTXRestartCounter(const uint8_t *const base, uint8_t *const buf)
     {
-    // FIXME: for now use the primary copy only: should be able to salvage from secondary, else take higher+1.
+    // FIXME: for now use the primary copy only if OK: should be able to salvage from secondary, else take higher+1.
     // Fail if the CRC is not valid.
     uint8_t crc = 0;
     for(int i = 0; i < SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageRestartCounterBytes; ++i) { crc = _crc8_ccitt_update(crc, base[i]); }
@@ -317,6 +316,8 @@ static bool getLastRXMessageCounterFromTable(const uint8_t * const eepromLoc, ui
     const uint8_t crcRAW = eeprom_read_byte(eepromLoc + SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageCounterBytes);
     // Abort/fail if update did not complete.
     if(0 == (crcRAW & 1)) { return(false); } // FAIL
+
+    // Validate the CRC.
 
     return(true); // FIXME: claim this is done.
 
