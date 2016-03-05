@@ -309,17 +309,16 @@ static bool getLastRXMessageCounterFromTable(const uint8_t * const eepromLoc, ui
     //     allowing a write without erase on half the increments)
     eeprom_read_block(counter, eepromLoc, SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes);
     for(uint8_t i = 0; i < SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes; ++i) { counter[i] ^= 0xff; }
-
     // Now check the CRC byte (immediately following the counter):
     //  1) Fail if the top bit was clear indicating an update in progress...
     //  2) Fail if the CRC itself does not match,
     const uint8_t crcRAW = eeprom_read_byte(eepromLoc + SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes);
     // Abort/fail if there appears to be an incomplete update.
-    if(0 == (crcRAW & 1)) { return(false); } // FAIL
+    if(0 == (crcRAW & 0x80)) { /* OTV0P2BASE::serialPrintlnAndFlush(F("!RXmc incomplete write")); */ return(false); } // FAIL
     // Compute/validate the 7-bit CRC.
     uint8_t crc = 0;
     for(int i = 0; i < SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes; ++i) { crc = OTV0P2BASE::crc7_5B_update(crc, counter[i]); }
-    if(((crcRAW ^ 0xff) & 0x7f) != crc)  { return(false); } // FAIL
+    if(((crcRAW ^ 0xff) & 0x7f) != crc) { /* OTV0P2BASE::serialPrintlnAndFlush(F("!RXmc bad CRC")); */ return(false); } // FAIL
     return(true); // FIXME: claim this is done.
 //
 //    // TODO
@@ -342,7 +341,7 @@ bool SimpleSecureFrame32or0BodyV0p2::getLastRXMessageCounter(const uint8_t * con
     // Note: nominal risk of race if associations table can be altered concurrently.
     // Compute base location in EEPROM of association table entry/row.
     uint8_t * const rawPtr = (uint8_t *)(OTV0P2BASE::V0P2BASE_EE_START_NODE_ASSOCIATIONS + index*(uint16_t)OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE);
-    // Try primary then secondary (on assumption that both will be written to).
+    // Try primary then secondary (both will be written to each time).
     const bool primaryOK = getLastRXMessageCounterFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET, counter);
     if(primaryOK) { return(true); }
     const bool secondaryOK = getLastRXMessageCounterFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET, counter);
@@ -362,7 +361,7 @@ static bool updateRXMessageCount(uint8_t * const eepromLoc, const uint8_t * cons
     uint8_t crc = 0;
     for(int i = 0; i < SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes; ++i) { crc = OTV0P2BASE::crc7_5B_update(crc, newCounterValue[i]); }
     const uint8_t rawCRC = 0x80 | (crc ^ 0xff);
-    // Byte-byt-byte careful minimal update of EEPROM.
+    // Byte-by-byte careful minimal update of EEPROM, checking after each byte, ie for gross immediate failure.
     uint8_t *p = eepromLoc;
     for(int i = 0; i < SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes; ++i, ++p)
         {
@@ -370,7 +369,7 @@ static bool updateRXMessageCount(uint8_t * const eepromLoc, const uint8_t * cons
         OTV0P2BASE::eeprom_smart_update_byte(p, asWritten);
         if(asWritten != eeprom_read_byte(p)) { return(false); } // FAIL
         }
-    // Write CRC byte, clearing write-in-progress flag...
+    // Write CRC byte, clearing write-in-progress flag to 1...
     OTV0P2BASE::eeprom_smart_update_byte(CRCptr, rawCRC);
     if(rawCRC != eeprom_read_byte(CRCptr)) { return(false); } // FAIL
     // Done.

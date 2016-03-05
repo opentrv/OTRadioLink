@@ -929,6 +929,8 @@ static void testNodeAssocRunOnce()
   AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyV0p2::getInstance().updateRXMessageCountAfterAuthentication(ID0, newCount));
   AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyV0p2::getInstance().getLastRXMessageCounter(ID0, mcbuf));
   AssertIsEqual(0, memcmp(mcbuf, newCount, sizeof(mcbuf)));
+  // Attempting to update to a lower (0) value should fail.
+  AssertIsTrue(!OTRadioLink::SimpleSecureFrame32or0BodyV0p2::getInstance().updateRXMessageCountAfterAuthentication(ID0, zeroBlock));
   // Add/test second association...
   const uint8_t ID1[] = { 0x88, 0xa1, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0x8f };
   AssertIsEqual(1, OTV0P2BASE::addNodeAssociation(ID1));
