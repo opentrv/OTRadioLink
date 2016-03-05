@@ -326,8 +326,25 @@ namespace OTRadioLink
 //        // Undefined for values above 240.
 //        uint8_t roundUpTo16s(uint8_t s) { return((s + 15) & 0xf0); }
 
+    // TX&RX Base class common elements that won't consume code/RAM space eg unless actually used.
+    // Mainly types, primitive constants, and a smattering of small static functions.
+    // With all of these routines it is important to check and act on error codes,
+    // usually aborting immediately if an error value is returned.
+    // MUDDLING ON WITHOUT CHECKING FOR ERRORS MAY SEVERELY DAMAGE SYSTEM SECURITY.
+    class SimpleSecureFrame32or0BodyBase
+        {
+        public:
+            // Size of full message counter for tupe-0x80 AES-GCM security frames.
+            static const uint8_t fullMessageCounterBytes = 6;
 
-    // Base class for simple implementations that supports 0 or 32 byte encrypted body sections.
+            // Check one (6-byte) message counter against another for magnitude.
+            // Returns 0 if they are identical, +ve if the first counter is greater, -ve otherwise.
+            static int16_t msgcountercmp(const uint8_t *counter1, const uint8_t *counter2)
+                { return(memcmp(counter1, counter2, fullMessageCounterBytes)); }
+
+        };
+
+    // TX Base class for simple implementations that supports 0 or 32 byte encrypted body sections.
     // This wraps up any necessary state, persistent and ephemeral, such as message counters.
     // Some implementations make sense only as singletons,
     // eg because they store state at fixed locations in EEPROM.
@@ -337,7 +354,7 @@ namespace OTRadioLink
     // With all of these routines it is important to check and act on error codes,
     // usually aborting immediately if an error value is returned.
     // MUDDLING ON WITHOUT CHECKING FOR ERRORS MAY SEVERELY DAMAGE SYSTEM SECURITY.
-    class SimpleSecureFrame32or0BodyBase
+    class SimpleSecureFrame32or0BodyTXBase : public SimpleSecureFrame32or0BodyBase
         {
         public:
             // Pads plain-text in place prior to encryption with 32-byte fixed length padded output.
@@ -351,16 +368,6 @@ namespace OTRadioLink
             //  * buf  buffer containing the plain-text; must be >= 32 bytes, never NULL
             //  * datalen  unpadded data size at start of buf; if too large (>31) then this routine will fail (return 0)
             static uint8_t addPaddingTo32BTrailing0sAndPadCount(uint8_t *buf, uint8_t datalen);
-
-            // Unpads plain-text in place prior to encryption with 32-byte fixed length padded output.
-            // Reverses/validates padding applied by addPaddingTo32BTrailing0sAndPadCount().
-            // Returns unpadded data length (at start of buffer) or 0xff in case of error.
-            //
-            // Parameters:
-            //  * buf  buffer containing the plain-text; must be >= 32 bytes, never NULL
-            //
-            // NOTE: mqy not check that all padding bytes are actually zero.
-            static uint8_t removePaddingTo32BTrailing0sAndPadCount(const uint8_t *buf);
 
             // Signature of pointer to basic fixed-size text encryption/authentication function.
             // (Suitable for type 'O' valve/sensor small frame for example.)
@@ -380,26 +387,6 @@ namespace OTRadioLink
                     const uint8_t *authtext, uint8_t authtextSize,
                     const uint8_t *plaintext,
                     uint8_t *ciphertextOut, uint8_t *tagOut);
-
-            // Signature of pointer to basic fixed-size text decryption/authentication function.
-            // (Suitable for type 'O' valve/sensor small frame for example.)
-            // Can be fulfilled by AES-128-GCM for example
-            // where:
-            //   * textSize is 32 (or zero if ciphertext is NULL)
-            //   * keySize is 16
-            //   * nonceSize is 12
-            //   * tagSize is 16
-            // The plain-text (and identical cipher-text) size is picked to be
-            // a multiple of the cipher's block size, or zero,
-            // which implies likely requirement for padding of the plain text.
-            // Note that the authenticated text size is not fixed, ie is zero or more bytes.
-            // Decrypts/authenticates the output of a fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t function.)
-            // Returns true on success, false on failure.
-            typedef bool (*fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t)(void *state,
-                    const uint8_t *key, const uint8_t *iv,
-                    const uint8_t *authtext, uint8_t authtextSize,
-                    const uint8_t *ciphertext, const uint8_t *tag,
-                    uint8_t *plaintextOut);
 
             // Encode entire secure small frame from header params and body and crypto support.
             // This is a raw/partial impl that requires the IV/nonce to be supplied.
@@ -432,6 +419,154 @@ namespace OTRadioLink
                                             const uint8_t *iv,
                                             fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
                                             void *state, const uint8_t *key);
+
+            // Get the 3 bytes of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
+            // Combines results from primary and secondary as appropriate.
+            // Deals with inversion and checksum checking.
+            // Output buffer (buf) must be 3 bytes long.
+            // Does not increment/alter the counter.
+            static const uint8_t primaryPeristentTXMessageRestartCounterBytes = 3;
+            // Get primary (semi-persistent) message counter for TX from an OpenTRV leaf under its own ID.
+            // This counter increases monotonically
+            // (and so may provide a sequence number)
+            // and is designed never to repeat a value
+            // which is very important for AES-GCM in particular
+            // as reuse of an IV (that includes this counter)
+            // badly undermines security of particular key.
+            // This counter may be shared across TXes with multiple keys if need be,
+            // though would normally we only associated with one key.
+            // This counter can can be reset if associated with entirely new keys.
+            // The top 3 of the 6 bytes of the counter are persisted in non-volatile storage
+            // and incremented after a reboot/restart
+            // and if the lower 3 bytes overflow into them.
+            // Some of the lest significant bits of the lower three (ephemeral) bytes
+            // may be initialised with entropy over a restart
+            // to help make 'cracking' the key harder
+            // and to reduce the chance of reuse of IVs
+            // even in the face of hardware or software error.
+            // When this counter reaches 0xffffffffffff then no more messages can be sent
+            // until new keys are shared and the counter is reset.
+            virtual bool get3BytePersistentTXRestartCounter(uint8_t *buf) const = 0;
+            // Reset the persistent reboot/restart message counter in EEPROM; returns false on failure.
+            // TO BE USED WITH EXTREME CAUTION: reusing the message counts and resulting IVs
+            // destroys the security of the cipher.
+            // Probably only sensible to call this when changing either the ID or the key (or both).
+            // This can reset the restart counter to all zeros (erasing the underlying EEPROM bytes),
+            // or (default) reset only the most significant bits to zero (preserving device life)
+            // but inject entropy into the least significant bits to reduce risk value/IV reuse in error.
+            // If called with false then interrupts should not be blocked to allow entropy gathering,
+            // and counter is guaranteed to be non-zero.
+            virtual bool resetRaw3BytePersistentTXRestartCounter(bool allZeros = false) = 0;
+            // Increment persistent reboot/restart message counter; returns false on failure.
+            // Will refuse to increment such that the top byte overflows, ie when already at 0xff.
+            // TO BE USED WITH EXTREME CAUTION: calling this unnecessarily will shorten life before needing to change ID/key.
+            virtual bool increment3BytePersistentTXRestartCounter() = 0;
+            // Fills the supplied 6-byte array with the incremented monotonically-increasing primary TX counter.
+            // Returns true on success; false on failure for example because the counter has reached its maximum value.
+            // Highest-index bytes in the array increment fastest.
+            // This should never return an all-zero count.
+            // Not ISR-safe.
+            virtual bool incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(uint8_t *buf) = 0;
+
+            // Fill in 12-byte IV for 'O'-style (0x80) AESGCM security for a frame to TX.
+            // This uses the local node ID as-is for the first 6 bytes.
+            // This uses and increments the primary message counter for the last 6 bytes.
+            // Returns true on success, false on failure eg due to message counter generation failure.
+            virtual bool compute12ByteIDAndCounterIVForTX(uint8_t *ivBuf) = 0;
+
+            // Create secure Alive / beacon (FTS_ALIVE) frame with an empty body.
+            // Returns number of bytes written to buffer, or 0 in case of error.
+            // Note that the frame will be 27 + ID-length (up to maxIDLength) bytes,
+            // so the buffer must be large enough to accommodate that.
+            //  * buf  buffer to which is written the entire frame including trailer; never NULL
+            //  * buflen  available length in buf; if too small then this routine will fail (return 0)
+            //  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
+            //  * iv  12-byte initialisation vector / nonce; never NULL
+            //  * key  16-byte secret key; never NULL
+            // NOTE: this version requires the IV to be supplied and the transmitted ID length to chosen.
+            static const uint8_t generateSecureBeaconMaxBufSize = 27 + SecurableFrameHeader::maxIDLength;
+            static uint8_t generateSecureBeaconRaw(uint8_t *buf, uint8_t buflen,
+                                            const uint8_t *id_, uint8_t il_,
+                                            const uint8_t *const iv,
+                                            const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                                            void *state, const uint8_t *key);
+
+            // Create secure Alive / beacon (FTS_ALIVE) frame with an empty body for transmission.
+            // Returns number of bytes written to buffer, or 0 in case of error.
+            // The IV is constructed from the node ID and the primary TX message counter.
+            // Note that the frame will be 27 + ID-length (up to maxIDLength) bytes,
+            // so the buffer must be large enough to accommodate that.
+            //  * buf  buffer to which is written the entire frame including trailer; never NULL
+            //  * buflen  available length in buf; if too small then this routine will fail (return 0)
+            //  * il_  ID length for the header; ID comes from EEPROM
+            //  * key  16-byte secret key; never NULL
+            uint8_t generateSecureBeaconRawForTX(uint8_t *buf, uint8_t buflen,
+                                            uint8_t il_,
+                                            fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                                            void *state, const uint8_t *key);
+
+            // Create simple 'O' (FTS_BasicSensorOrValve) frame with an optional stats section for transmission.
+            // Returns number of bytes written to buffer, or 0 in case of error.
+            // The IV is constructed from the node ID and the primary TX message counter.
+            // Note that the frame will be 27 + ID-length (up to maxIDLength) bytes,
+            // so the buffer must be large enough to accommodate that.
+            //  * buf  buffer to which is written the entire frame including trailer; never NULL
+            //  * buflen  available length in buf; if too small then this routine will fail (return 0)
+            //  * valvePC  percentage valve is open or 0x7f if no valve to report on
+            //  * statsJSON  '\0'-terminated {} JSON stats, or NULL if none.
+            //  * il_  ID length for the header; ID comes from EEPROM
+            //  * key  16-byte secret key; never NULL
+            uint8_t generateSecureOFrameRawForTX(uint8_t *buf, uint8_t buflen,
+                                            uint8_t il_,
+                                            uint8_t valvePC,
+                                            const char *statsJSON,
+                                            fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                                            void *state, const uint8_t *key);
+
+        };
+
+    // RX Base class for simple implementations that supports 0 or 32 byte encrypted body sections.
+    // This wraps up any necessary state, persistent and ephemeral, such as message counters.
+    // Some implementations make sense only as singletons,
+    // eg because they store state at fixed locations in EEPROM.
+    // It is possible to provide implementations not tied to any particular hardware architecture.
+    // This provides stateless hardware-independent implementations of some key routines.
+    //
+    // With all of these routines it is important to check and act on error codes,
+    // usually aborting immediately if an error value is returned.
+    // MUDDLING ON WITHOUT CHECKING FOR ERRORS MAY SEVERELY DAMAGE SYSTEM SECURITY.
+    class SimpleSecureFrame32or0BodyRXBase : public SimpleSecureFrame32or0BodyBase
+        {
+        public:
+            // Unpads plain-text in place prior to encryption with 32-byte fixed length padded output.
+            // Reverses/validates padding applied by addPaddingTo32BTrailing0sAndPadCount().
+            // Returns unpadded data length (at start of buffer) or 0xff in case of error.
+            //
+            // Parameters:
+            //  * buf  buffer containing the plain-text; must be >= 32 bytes, never NULL
+            //
+            // NOTE: mqy not check that all padding bytes are actually zero.
+            static uint8_t removePaddingTo32BTrailing0sAndPadCount(const uint8_t *buf);
+
+            // Signature of pointer to basic fixed-size text decryption/authentication function.
+            // (Suitable for type 'O' valve/sensor small frame for example.)
+            // Can be fulfilled by AES-128-GCM for example
+            // where:
+            //   * textSize is 32 (or zero if ciphertext is NULL)
+            //   * keySize is 16
+            //   * nonceSize is 12
+            //   * tagSize is 16
+            // The plain-text (and identical cipher-text) size is picked to be
+            // a multiple of the cipher's block size, or zero,
+            // which implies likely requirement for padding of the plain text.
+            // Note that the authenticated text size is not fixed, ie is zero or more bytes.
+            // Decrypts/authenticates the output of a fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t function.)
+            // Returns true on success, false on failure.
+            typedef bool (*fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t)(void *state,
+                    const uint8_t *key, const uint8_t *iv,
+                    const uint8_t *authtext, uint8_t authtextSize,
+                    const uint8_t *ciphertext, const uint8_t *tag,
+                    uint8_t *plaintextOut);
 
             // Decode entire secure small frame from raw frame bytes and crypto support.
             // This is a raw/partial impl that requires the IV/nonce to be supplied.
@@ -498,10 +633,6 @@ namespace OTRadioLink
             // Will fail for invalid node ID or for unrecoverable memory corruption.
             // Both args must be non-NULL, with counter pointing to enough space to copy the message counter value to.
             virtual bool getLastRXMessageCounter(const uint8_t * const ID, uint8_t *counter) const = 0;
-            // Check one (6-byte) message counter against another for magnitude.
-            // Returns 0 if they are identical, +ve if the first counter is greater, -ve otherwise.
-            static int16_t msgcountercmp(const uint8_t *counter1, const uint8_t *counter2)
-                { return(memcmp(counter1, counter2, fullMessageCounterBytes)); }
             // Check message counter for given ID, ie that it is high enough to be eligible for authenticating/processing.
             // ID is full (8-byte) node ID; counter is full (6-byte) counter.
             // Returns false if this counter value is not higher than the last received authenticated value.
@@ -514,110 +645,6 @@ namespace OTRadioLink
             // not allowing replays nor other cryptographic attacks, nor forcing node dissociation.
             // Must only be called once the RXed message has passed authentication.
             virtual bool updateRXMessageCountAfterAuthentication(const uint8_t *ID, const uint8_t *newCounterValue) = 0;
-            // Get the 3 bytes of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
-            // Combines results from primary and secondary as appropriate.
-            // Deals with inversion and checksum checking.
-            // Output buffer (buf) must be 3 bytes long.
-            // Does not increment/alter the counter.
-            static const uint8_t primaryPeristentTXMessageRestartCounterBytes = 3;
-            virtual bool get3BytePersistentTXRestartCounter(uint8_t *buf) const = 0;
-            // Reset the persistent reboot/restart message counter in EEPROM; returns false on failure.
-            // TO BE USED WITH EXTREME CAUTION: reusing the message counts and resulting IVs
-            // destroys the security of the cipher.
-            // Probably only sensible to call this when changing either the ID or the key (or both).
-            // This can reset the restart counter to all zeros (erasing the underlying EEPROM bytes),
-            // or (default) reset only the most significant bits to zero (preserving device life)
-            // but inject entropy into the least significant bits to reduce risk value/IV reuse in error.
-            // If called with false then interrupts should not be blocked to allow entropy gathering,
-            // and counter is guaranteed to be non-zero.
-            virtual bool resetRaw3BytePersistentTXRestartCounter(bool allZeros = false) = 0;
-            // Increment persistent reboot/restart message counter; returns false on failure.
-            // Will refuse to increment such that the top byte overflows, ie when already at 0xff.
-            // TO BE USED WITH EXTREME CAUTION: calling this unnecessarily will shorten life before needing to change ID/key.
-            virtual bool increment3BytePersistentTXRestartCounter() = 0;
-            // Get primary (semi-persistent) message counter for TX from an OpenTRV leaf under its own ID.
-            // This counter increases monotonically
-            // (and so may provide a sequence number)
-            // and is designed never to repeat a value
-            // which is very important for AES-GCM in particular
-            // as reuse of an IV (that includes this counter)
-            // badly undermines security of particular key.
-            // This counter may be shared across TXes with multiple keys if need be,
-            // though would normally we only associated with one key.
-            // This counter can can be reset if associated with entirely new keys.
-            // The top 3 of the 6 bytes of the counter are persisted in non-volatile storage
-            // and incremented after a reboot/restart
-            // and if the lower 3 bytes overflow into them.
-            // Some of the lest significant bits of the lower three (ephemeral) bytes
-            // may be initialised with entropy over a restart
-            // to help make 'cracking' the key harder
-            // and to reduce the chance of reuse of IVs
-            // even in the face of hardware or software error.
-            // When this counter reaches 0xffffffffffff then no more messages can be sent
-            // until new keys are shared and the counter is reset.
-            static const uint8_t fullMessageCounterBytes = 6;
-            // Fills the supplied 6-byte array with the incremented monotonically-increasing primary TX counter.
-            // Returns true on success; false on failure for example because the counter has reached its maximum value.
-            // Highest-index bytes in the array increment fastest.
-            // This should never return an all-zero count.
-            // Not ISR-safe.
-            virtual bool incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(uint8_t *buf) = 0;
-
-            // Fill in 12-byte IV for 'O'-style (0x80) AESGCM security for a frame to TX.
-            // This uses the local node ID as-is for the first 6 bytes.
-            // This uses and increments the primary message counter for the last 6 bytes.
-            // Returns true on success, false on failure eg due to message counter generation failure.
-            virtual bool compute12ByteIDAndCounterIVForTX(uint8_t *ivBuf) = 0;
-
-            // Create secure Alive / beacon (FTS_ALIVE) frame with an empty body.
-            // Returns number of bytes written to buffer, or 0 in case of error.
-            // Note that the frame will be 27 + ID-length (up to maxIDLength) bytes,
-            // so the buffer must be large enough to accommodate that.
-            //  * buf  buffer to which is written the entire frame including trailer; never NULL
-            //  * buflen  available length in buf; if too small then this routine will fail (return 0)
-            //  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
-            //  * iv  12-byte initialisation vector / nonce; never NULL
-            //  * key  16-byte secret key; never NULL
-            // NOTE: this version requires the IV to be supplied and the transmitted ID length to chosen.
-            static const uint8_t generateSecureBeaconMaxBufSize = 27 + SecurableFrameHeader::maxIDLength;
-            static uint8_t generateSecureBeaconRaw(uint8_t *buf, uint8_t buflen,
-                                            const uint8_t *id_, uint8_t il_,
-                                            const uint8_t *const iv,
-                                            const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
-                                            void *state, const uint8_t *key);
-
-            // Create secure Alive / beacon (FTS_ALIVE) frame with an empty body for transmission.
-            // Returns number of bytes written to buffer, or 0 in case of error.
-            // The IV is constructed from the node ID and the primary TX message counter.
-            // Note that the frame will be 27 + ID-length (up to maxIDLength) bytes,
-            // so the buffer must be large enough to accommodate that.
-            //  * buf  buffer to which is written the entire frame including trailer; never NULL
-            //  * buflen  available length in buf; if too small then this routine will fail (return 0)
-            //  * il_  ID length for the header; ID comes from EEPROM
-            //  * key  16-byte secret key; never NULL
-            uint8_t generateSecureBeaconRawForTX(uint8_t *buf, uint8_t buflen,
-                                            uint8_t il_,
-                                            fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
-                                            void *state, const uint8_t *key);
-
-            // Create simple 'O' (FTS_BasicSensorOrValve) frame with an optional stats section for transmission.
-            // Returns number of bytes written to buffer, or 0 in case of error.
-            // The IV is constructed from the node ID and the primary TX message counter.
-            // Note that the frame will be 27 + ID-length (up to maxIDLength) bytes,
-            // so the buffer must be large enough to accommodate that.
-            //  * buf  buffer to which is written the entire frame including trailer; never NULL
-            //  * buflen  available length in buf; if too small then this routine will fail (return 0)
-            //  * valvePC  percentage valve is open or 0x7f if no valve to report on
-            //  * statsJSON  '\0'-terminated {} JSON stats, or NULL if none.
-            //  * il_  ID length for the header; ID comes from EEPROM
-            //  * key  16-byte secret key; never NULL
-            uint8_t generateSecureOFrameRawForTX(uint8_t *buf, uint8_t buflen,
-                                            uint8_t il_,
-                                            uint8_t valvePC,
-                                            const char *statsJSON,
-                                            fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
-                                            void *state, const uint8_t *key);
-
             // As for decodeSecureSmallFrameRaw() but passed a candidate node/counterparty ID
             // derived from the frame ID in the incoming header,
             // plus possible other adjustments such has forcing bit values for reverse flows.
