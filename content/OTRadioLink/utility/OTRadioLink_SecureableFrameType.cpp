@@ -523,11 +523,13 @@ bool SimpleSecureFrame32or0BodyBase::validateRXMessageCount(const uint8_t *ID, c
     // Fetch the current counter; instant fail if not possible.
     uint8_t currentCounter[primaryPeristentTXMessageCounterBytes];
     if(!getLastRXMessageCounter(ID, currentCounter)) { return(false); } // FAIL
-    // Check for new counter being larger, MSB first.
-    for(uint8_t i = 0; i < primaryPeristentTXMessageCounterBytes; ++i)
-        { if(counter[i] > currentCounter[i]) { return(true); } }
-    // New counter not larger, so fail.
-    return(false);
+    // New counter must be larger to be acceptable.
+    return(msgcountercmp(counter, currentCounter) > 0);
+//    // Check for new counter being larger, MSB first.
+//    for(uint8_t i = 0; i < primaryPeristentTXMessageCounterBytes; ++i)
+//        { if(counter[i] > currentCounter[i]) { return(true); } }
+//    // New counter not larger, so fail.
+//    return(false);
     }
 
 // NULL basic fixed-size text 'encryption' function.
