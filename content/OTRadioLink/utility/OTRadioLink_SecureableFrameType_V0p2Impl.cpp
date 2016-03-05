@@ -358,10 +358,23 @@ static bool updateRXMessageCount(uint8_t * const eepromLoc, const uint8_t * cons
     // First set the write-in-progress flag (clear to 0), msbit of the CRC byte...
     uint8_t * const CRCptr = eepromLoc + SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes;
     OTV0P2BASE::eeprom_smart_clear_bits(CRCptr, 0x7f);
-
-    // TODO
-
-    return(false); // FIXME not implemented
+    // Compute 7-bit CRC to use at the end, with the write-in-progress flag off (1).
+    uint8_t crc = 0;
+    for(int i = 0; i < SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes; ++i) { crc = OTV0P2BASE::crc7_5B_update(crc, newCounterValue[i]); }
+    const uint8_t rawCRC = 0x80 | (crc ^ 0xff);
+    // Byte-byt-byte careful minimal update of EEPROM.
+    uint8_t *p = eepromLoc;
+    for(int i = 0; i < SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes; ++i, ++p)
+        {
+        const uint8_t asWritten = newCounterValue[i] ^ 0xff;
+        OTV0P2BASE::eeprom_smart_update_byte(p, asWritten);
+        if(asWritten != eeprom_read_byte(p)) { return(false); } // FAIL
+        }
+    // Write CRC byte, clearing write-in-progress flag...
+    OTV0P2BASE::eeprom_smart_update_byte(CRCptr, rawCRC);
+    if(rawCRC != eeprom_read_byte(CRCptr)) { return(false); } // FAIL
+    // Done.
+    return(true);
     }
 
 // Update persistent message counter for received frame AFTER successful authentication.
