@@ -852,9 +852,9 @@ static void testPermMsgCount()
   }
 
 // Test handling of persistent/reboot/restart part of primary message counter.
-// Tests to only be run once because they may cause device wear.
-// NOTE: best not to run on a real device as this will mess with its counters, etc.
-// We will clear the key so as to make it clear that this device is not secure.
+// Tests to only be run once per restart because they cause device wear (EEPROM).
+// NOTE: best not to run on a live device as this will mess with its associations, etc.
+// This clears the key so as to make it clear that this device is not to be regarded as secure.
 static void testPermMsgCountRunOnce()
   {
   Serial.println("PermMsgCountRunOnce");
@@ -895,9 +895,9 @@ static void testPermMsgCountRunOnce()
   }
 
 // Test some basic parameters of node associations.
-// Also has some tests of its interaction with management of RX message counters.
-// Tests to only be run once because they may cause device wear.
-// NOTE: best not to run on a real device as this will mess with its associations, etc.
+// Also tests intimate interaction with management of RX message counters.
+// Tests to only be run once per restart because they cause device wear (EEPROM).
+// NOTE: best not to run on a live device as this will mess with its associations, etc.
 static void testNodeAssocRunOnce()
   {
   Serial.println("NodeAssocRunOnce");
