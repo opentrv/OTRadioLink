@@ -139,7 +139,6 @@ namespace OTRadioLink
                 if(buf[0] < 0x20) { return(i.increment3BytePersistentTXRestartCounter()); }
                 return(i.resetRaw3BytePersistentTXRestartCounterInEEPROM());
                 }
-
             // Increment persistent reboot/restart message counter; returns false on failure.
             // Will refuse to increment such that the top byte overflows, ie when already at 0xff.
             // TO BE USED WITH EXTREME CAUTION: calling this unnecessarily will shorten life before needing to change ID/key.
