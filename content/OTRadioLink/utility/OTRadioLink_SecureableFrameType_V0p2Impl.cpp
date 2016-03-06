@@ -510,7 +510,7 @@ uint8_t SimpleSecureFrame32or0BodyRXV0p2::decodeSecureSmallFrameSafely(const Sec
     uint8_t senderNodeID[OTV0P2BASE::OpenTRV_Node_ID_Bytes];
     const int8_t index = OTV0P2BASE::getNextMatchingNodeID(0, sfh->id, sfh->getIl(), senderNodeID);
     if(index < 0) { return(0); } // ERROR
-    // Extract the message counter and validate it (that it is higher than previous)...
+    // Extract the message counter and validate it (that it is higher than previously seen)...
     uint8_t messageCounter[SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes];
     // Assume counter positioning as for 0x80 type trailer, ie 6 bytes at start of trailer.
     memcpy(messageCounter, buf + sfh->getTrailerOffset(), SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes);
