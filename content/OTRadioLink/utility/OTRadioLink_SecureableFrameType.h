@@ -284,8 +284,6 @@ namespace OTRadioLink
         uint8_t computeNonSecureFrameCRC(const uint8_t *buf, uint8_t buflen) const;
         };
 
-
-
     // Compose (encode) entire non-secure small frame from header params, body and CRC trailer.
     // Returns the total number of bytes written out for the frame
     // (including, and with a value one higher than the first 'fl' bytes).
@@ -531,6 +529,9 @@ namespace OTRadioLink
     // eg because they store state at fixed locations in EEPROM.
     // It is possible to provide implementations not tied to any particular hardware architecture.
     // This provides stateless hardware-independent implementations of some key routines.
+    //
+    // Implementations may keep a cache of node associations and RX message counters
+    // eg to allow ISR-/thread- safe filtering of inbound frames in interrupt RX routines.
     //
     // With all of these routines it is important to check and act on error codes,
     // usually aborting immediately if an error value is returned.
