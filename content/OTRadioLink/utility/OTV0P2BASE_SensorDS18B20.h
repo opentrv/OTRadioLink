@@ -105,6 +105,11 @@ class TemperatureC16_DS18B20 : public TemperatureC16Base
     // Expensive/slow.
     // Not thread-safe nor usable within ISRs (Interrupt Service Routines).
     virtual int16_t read();
+
+    // Return the address of this sensor
+    void getAddress(uint8_t address[8]);
+
+    static int numberSensors(OTV0P2BASE::MinimalOneWireBase &minOW);
   };
 
 
