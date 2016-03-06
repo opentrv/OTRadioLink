@@ -104,6 +104,8 @@ namespace OTRadioLink
             // but inject entropy into the least significant bits to reduce risk value/IV reuse in error.
             // If called with false then interrupts should not be blocked to allow entropy gathering,
             // and counter is guaranteed to be non-zero.
+            //
+            // Clears the primary building key first.
             static bool resetRaw3BytePersistentTXRestartCounterInEEPROM(bool allZeros = false);
 
             // Get the 3 bytes of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.

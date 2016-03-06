@@ -70,7 +70,7 @@ bool ensureIDCreated(const bool force = false);
 
 // Functions for setting a 16 byte primary building secret key which must not be all-1s.
 /**
- * @brief   Sets the primary building 16 byte secret key in eeprom.
+ * @brief   Sets the primary building 16 byte secret key in EEPROM.
  * @param   newKey    A pointer to the first byte of a 16 byte array containing the new key.
  *                    On passing a NULL pointer, the stored key will be cleared.
  *                    NOTE: The key pointed to by newKey must be stored as binary, NOT as text.

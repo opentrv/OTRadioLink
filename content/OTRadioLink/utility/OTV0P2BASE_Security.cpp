@@ -91,7 +91,7 @@ bool ensureIDCreated(const bool force)
 
 
 /**
- * @brief   Sets the primary building 16 byte secret key in eeprom.
+ * @brief   Sets the primary building 16 byte secret key in EEPROM.
  * @param   newKey    A pointer to the first byte of a 16 byte array containing the new key.
  *                    On passing a NULL pointer, the stored key will be cleared.
  *                    NOTE: The key pointed to by newKey must be stored as binary, NOT as text.
@@ -102,7 +102,7 @@ bool setPrimaryBuilding16ByteSecretKey(const uint8_t *newKey) // <-- this should
 {
     // if newKey is a null pointer, clear existing key
     if(newKey == NULL) {
-        // clear key here
+        // Clear key.
         for(uint8_t i = 0; i < VOP2BASE_EE_LEN_16BYTE_PRIMARY_BUILDING_KEY; i++) {
             eeprom_smart_update_byte(((uint8_t *)VOP2BASE_EE_START_16BYTE_PRIMARY_BUILDING_KEY)+i, 0xff);
         }

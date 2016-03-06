@@ -96,8 +96,13 @@ static bool saveRaw3BytePersistentTXRestartCounterToEEPROM(const uint8_t *const 
 // but inject entropy into the least significant bits to reduce risk value/IV reuse in error.
 // If called with false then interrupts should not be blocked to allow entropy gathering,
 // and counter is guaranteed to be non-zero.
+//
+// Clears the primary building key first.
 bool SimpleSecureFrame32or0BodyTXV0p2::resetRaw3BytePersistentTXRestartCounterInEEPROM(const bool allZeros)
     {
+    // Clear the primary building key.
+    if(!OTV0P2BASE::setPrimaryBuilding16ByteSecretKey(NULL)) { return(false); }
+    // Reset the counter.
     if(allZeros)
         {
         // Erase everything, leaving counter all-zeros with correct (0) CRC.
