@@ -669,8 +669,9 @@ namespace OTRadioLink
             //         and available length (must be >= 6)
             //         based on the received ID in (the already structurally validated) header
             //
-            // TO AVOID RELAY ATTACKS: update the RX message counter after a successful auth with this.
-            virtual uint8_t decodeSecureSmallFrameFromID(const SecurableFrameHeader *sfh,
+            // TO AVOID RELAY ATTACKS: verify the counter is higher than any previous authed message from this sender
+            // then update the RX message counter after a successful auth with this routine.
+            virtual uint8_t _decodeSecureSmallFrameFromID(const SecurableFrameHeader *sfh,
                                             const uint8_t *buf, uint8_t buflen,
                                             fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
                                             const uint8_t *adjID, uint8_t adjIDLen,

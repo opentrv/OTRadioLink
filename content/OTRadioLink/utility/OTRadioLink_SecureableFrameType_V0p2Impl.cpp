@@ -440,7 +440,10 @@ bool SimpleSecureFrame32or0BodyRXV0p2::updateRXMessageCountAfterAuthentication(c
 //   * adjID / adjIDLen  adjusted candidate ID (never NULL)
 //         and available length (must be >= 6)
 //         based on the received ID in (the already structurally validated) header
-uint8_t SimpleSecureFrame32or0BodyRXV0p2::decodeSecureSmallFrameFromID(const SecurableFrameHeader *const sfh,
+//
+// TO AVOID RELAY ATTACKS: verify the counter is higher than any previous authed message from this sender
+// then update the RX message counter after a successful auth with this routine.
+uint8_t SimpleSecureFrame32or0BodyRXV0p2::_decodeSecureSmallFrameFromID(const SecurableFrameHeader *const sfh,
                                 const uint8_t *const buf, const uint8_t buflen,
                                 const fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
                                 const uint8_t *const adjID, const uint8_t adjIDLen,

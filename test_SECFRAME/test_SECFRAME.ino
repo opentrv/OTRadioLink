@@ -772,7 +772,7 @@ static void testBeaconEncoding()
     // Should be able to decode, ie pass authentication.
     AssertIsEqual(27 + idLen, dlr);
     // Construct IV from ID and trailer.
-    const uint8_t dlfi = OTRadioLink::SimpleSecureFrame32or0BodyRXV0p2::getInstance().decodeSecureSmallFrameFromID(&sfh,
+    const uint8_t dlfi = OTRadioLink::SimpleSecureFrame32or0BodyRXV0p2::getInstance()._decodeSecureSmallFrameFromID(&sfh,
                                     buf, sizeof(buf),
                                     OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
                                     id, sizeof(id),
