@@ -232,6 +232,8 @@ bool NodeID::doCommand(char *const buf, const uint8_t buflen)
 
 // Set secret key ("K ...").
 // "K B XX .. XX"  sets the primary building key, "K B *" erases it.
+// Clearing a key conditionally resets the primary TX message counter to avoid IV reuse
+// if a non-NULL callback has been provided.
 bool SetSecretKey::doCommand(char *const buf, const uint8_t buflen)
     {
     char *last; // Used by strtok_r().
@@ -261,6 +263,8 @@ bool SetSecretKey::doCommand(char *const buf, const uint8_t buflen)
                         }
                     Serial.println();
 #endif
+                    // Notify key cleared.
+                    if(NULL != keysClearedFn) { keysClearedFn(); }
                     return(false);
                     }
                 else if(buflen >= 3 + 2*16)

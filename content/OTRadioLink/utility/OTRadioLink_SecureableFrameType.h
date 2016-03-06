@@ -447,7 +447,7 @@ namespace OTRadioLink
             // When this counter reaches 0xffffffffffff then no more messages can be sent
             // until new keys are shared and the counter is reset.
             virtual bool get3BytePersistentTXRestartCounter(uint8_t *buf) const = 0;
-            // Reset the persistent reboot/restart message counter in EEPROM; returns false on failure.
+            // Reset the persistent reboot/restart message counter; returns false on failure.
             // TO BE USED WITH EXTREME CAUTION: reusing the message counts and resulting IVs
             // destroys the security of the cipher.
             // Probably only sensible to call this when changing either the ID or the key (or both).

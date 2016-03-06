@@ -124,6 +124,22 @@ namespace OTRadioLink
             // and counter is guaranteed to be non-zero.
             virtual bool resetRaw3BytePersistentTXRestartCounter(bool allZeros = false)
                 { return(resetRaw3BytePersistentTXRestartCounterInEEPROM(allZeros)); }
+            // Conditional and statically callable version of resetRaw3BytePersistentTXRestartCounter(); returns false on failure.
+            // Creates a new persistent/reboot counter and thus message counter, to reduce IV reuse risk.
+            // TO BE USED WITH EXTREME CAUTION: reusing the message counts and resulting IVs
+            // destroys the security of the cipher.
+            // Probably only sensible to call this when changing either the ID or the key (or both).
+            // Resets (to a randomised value) the restart counter if significant life has been used, else increments it.
+            // Uses singleton instance.
+            static bool resetRaw3BytePersistentTXRestartCounterCond()
+                {
+                SimpleSecureFrame32or0BodyTXV0p2 &i = getInstance();
+                uint8_t buf[primaryPeristentTXMessageRestartCounterBytes];
+                if(!i.get3BytePersistentTXRestartCounter(buf)) { return(false); }
+                if(buf[0] < 0x20) { return(i.increment3BytePersistentTXRestartCounter()); }
+                return(i.resetRaw3BytePersistentTXRestartCounterInEEPROM());
+                }
+
             // Increment persistent reboot/restart message counter; returns false on failure.
             // Will refuse to increment such that the top byte overflows, ie when already at 0xff.
             // TO BE USED WITH EXTREME CAUTION: calling this unnecessarily will shorten life before needing to change ID/key.

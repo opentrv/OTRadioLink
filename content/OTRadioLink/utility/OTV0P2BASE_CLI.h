@@ -53,7 +53,8 @@ namespace CLI {
     //--------------------------------------------
 
     // Set / clear node association(s) (nodes to accept frames from) (eg "A hh hh hh hh hh hh hh hh").
-    // On writing a new association/entry all bytes after the ID must be erased to 0xff.
+    // On writing a new association/entry all bytes after the ID must be erased to 0xff,
+    // and/which will clear RX message counters.
     class SetNodeAssoc : public CLIEntryBase { public: virtual bool doCommand(char *buf, uint8_t buflen); };
 
     // Dump (human-friendly) stats (eg "D N").
@@ -91,8 +92,15 @@ namespace CLI {
     //>
     class NodeID : public CLIEntryBase { public: virtual bool doCommand(char *buf, uint8_t buflen); };
 
-    // Set secret key ("K ...").
-    class SetSecretKey : public CLIEntryBase { public: virtual bool doCommand(char *buf, uint8_t buflen); };
+    // Set/clear secret key(s) ("K ...").
+    // Will call the keysCleared() routine when keys have been cleared, eg to allow resetting of TX message counters.
+    class SetSecretKey : public CLIEntryBase
+        {
+        bool (*const keysClearedFn)();
+        public:
+            SetSecretKey(bool (*keysCleared)()) : keysClearedFn(keysCleared) { }
+            virtual bool doCommand(char *buf, uint8_t buflen);
+        };
 
     // Set local time (eg "T HH MM").
     class SetTime : public CLIEntryBase { public: virtual bool doCommand(char *buf, uint8_t buflen); };
