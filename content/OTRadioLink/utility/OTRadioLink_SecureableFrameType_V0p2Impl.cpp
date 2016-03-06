@@ -503,15 +503,31 @@ uint8_t SimpleSecureFrame32or0BodyRXV0p2::decodeSecureSmallFrameSafely(const Sec
     if(sfh->isInvalid()) { return(0); } // ERROR
     // Abort if frame is not secure.
     if(sfh->isSecure()) { return(0); } // ERROR
+    // Abort if trailer not large enough to extract message counter from safely (and not expected size/flavour).
+    if(23 != sfh->getTl()) { return(0); } // ERROR
     // Look up the full node ID of the sender in the associations table.
     // NOTE: this only tries the first match, ignoring firstIDMatchOnly.
     uint8_t senderNodeID[OTV0P2BASE::OpenTRV_Node_ID_Bytes];
     const int8_t index = OTV0P2BASE::getNextMatchingNodeID(0, sfh->id, sfh->getIl(), senderNodeID);
     if(index < 0) { return(0); } // ERROR
-
-// TODO
-
-return(0); // FIXME not implemented
+    // Extract the message counter and validate it (that it is higher than previous)...
+    uint8_t messageCounter[SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes];
+    // Assume counter positioning as for 0x80 type trailer.
+    memcpy(messageCounter, buf + sfh->getTrailerOffset(), SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes);
+    if(!validateRXMessageCount(senderNodeID, messageCounter) { return(0); } // ERROR
+    // Now attempt to decrypt.
+    // Assumed no need to 'adjust' ID for this form of RX.
+    const uint8_t decodeResult =_decodeSecureSmallFrameFromID(sfh,
+                                                        buf, buflen,
+                                                        d,
+                                                        senderNodeID, OTV0P2BASE::OpenTRV_Node_ID_Bytes,
+                                                        state, key,
+                                                        decryptedBodyOut, decryptedBodyOutBuflen, decryptedBodyOutSize);
+    if(0 == decodeResult) { return(0); } // ERROR
+    // Successfully decoded: update the RX message counter to avoid duplicates/replays.
+    if(!updateRXMessageCountAfterAuthentication(senderNodeID, messageCounter)) { return(0); } // ERROR
+    // Success!
+    return(decodeResult);
     }
 
 
