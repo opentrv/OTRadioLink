@@ -504,8 +504,8 @@ uint8_t SimpleSecureFrame32or0BodyRXV0p2::decodeSecureSmallFrameSafely(const Sec
     if((NULL == sfh) || (NULL == buf)) { return(0); } // ERROR
     // Abort if header was not decoded properly.
     if(sfh->isInvalid()) { return(0); } // ERROR
-    // Abort if frame is not secure.
-    if(sfh->isSecure()) { return(0); } // ERROR
+//    // Abort if frame is not secure.
+//    if(sfh->isSecure()) { return(0); } // ERROR
     // Abort if trailer not large enough to extract message counter from safely (and not expected size/flavour).
     if(23 != sfh->getTl()) { return(0); } // ERROR
     // Look up the full node ID of the sender in the associations table.
@@ -529,7 +529,7 @@ uint8_t SimpleSecureFrame32or0BodyRXV0p2::decodeSecureSmallFrameSafely(const Sec
     if(0 == decodeResult) { return(0); } // ERROR
     // Successfully decoded: update the RX message counter to avoid duplicates/replays.
     if(!updateRXMessageCountAfterAuthentication(senderNodeID, messageCounter)) { return(0); } // ERROR
-    // Success: copy received ID to output buffer (if non-NULL) as last action.
+    // Success: copy sender ID to output buffer (if non-NULL) as last action.
     if(ID != NULL) { memcpy(ID, senderNodeID, OTV0P2BASE::OpenTRV_Node_ID_Bytes); }
     return(decodeResult);
     }
