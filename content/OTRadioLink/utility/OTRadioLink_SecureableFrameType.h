@@ -284,8 +284,6 @@ namespace OTRadioLink
         uint8_t computeNonSecureFrameCRC(const uint8_t *buf, uint8_t buflen) const;
         };
 
-
-
     // Compose (encode) entire non-secure small frame from header params, body and CRC trailer.
     // Returns the total number of bytes written out for the frame
     // (including, and with a value one higher than the first 'fl' bytes).
@@ -532,6 +530,9 @@ namespace OTRadioLink
     // It is possible to provide implementations not tied to any particular hardware architecture.
     // This provides stateless hardware-independent implementations of some key routines.
     //
+    // Implementations may keep a cache of node associations and RX message counters
+    // eg to allow ISR-/thread- safe filtering of inbound frames in interrupt RX routines.
+    //
     // With all of these routines it is important to check and act on error codes,
     // usually aborting immediately if an error value is returned.
     // MUDDLING ON WITHOUT CHECKING FOR ERRORS MAY SEVERELY DAMAGE SYSTEM SECURITY.
@@ -667,6 +668,8 @@ namespace OTRadioLink
             //   * adjID / adjIDLen  adjusted candidate ID (never NULL)
             //         and available length (must be >= 6)
             //         based on the received ID in (the already structurally validated) header
+            //
+            // TO AVOID RELAY ATTACKS: update the RX message counter after a successful auth with this.
             virtual uint8_t decodeSecureSmallFrameFromID(const SecurableFrameHeader *sfh,
                                             const uint8_t *buf, uint8_t buflen,
                                             fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,

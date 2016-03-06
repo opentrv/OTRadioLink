@@ -244,6 +244,8 @@ namespace OTRadioLink
             //   * adjID / adjIDLen  adjusted candidate ID (never NULL)
             //         and available length (must be >= 6)
             //         based on the received ID in (the already structurally validated) header
+            //
+            // TO AVOID RELAY ATTACKS: update the RX message counter after a successful auth with this.
             virtual uint8_t decodeSecureSmallFrameFromID(const SecurableFrameHeader *sfh,
                                             const uint8_t *buf, uint8_t buflen,
                                             fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
