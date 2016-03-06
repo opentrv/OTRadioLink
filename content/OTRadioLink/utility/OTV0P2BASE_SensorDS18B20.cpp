@@ -16,6 +16,7 @@ under the Licence.
 Author(s) / Copyright (s): Damon Hart-Davis 2014--2016
                            John Harvey 2014 (DS18B20 code)
                            Deniz Erbilgin 2015--2016
+                           Jeremy Poulter 2016
 */
 
 /*
