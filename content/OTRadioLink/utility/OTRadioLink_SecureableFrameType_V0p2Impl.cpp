@@ -509,7 +509,6 @@ uint8_t SimpleSecureFrame32or0BodyRXV0p2::decodeSecureSmallFrameSafely(const Sec
     const int8_t index = OTV0P2BASE::getNextMatchingNodeID(0, sfh->id, sfh->getIl(), senderNodeID);
     if(index < 0) { return(0); } // ERROR
 
-
 // TODO
 
 return(0); // FIXME not implemented
