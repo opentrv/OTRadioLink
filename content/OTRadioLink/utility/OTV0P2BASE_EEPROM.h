@@ -90,9 +90,9 @@ static const uint8_t EEPROM_UNARY_1BYTE_MAX_VALUE = 8;
 static const uint8_t EEPROM_UNARY_2BYTE_MAX_VALUE = 16;
 inline uint8_t eeprom_unary_1byte_encode(uint8_t n) { return((n >= 8) ? 0 : (0xffU >> n)); }
 inline uint16_t eeprom_unary_2byte_encode(uint8_t n) { return((n >= 16) ? 0 : (0xffffU >> n)); }
-int8_t eeprom_unary_1byte_decode(uint8_t);
-int8_t eeprom_unary_2byte_decode(uint16_t);
-
+// Decode routines return -1 in case of unexpected/invalid input patterns.
+int8_t eeprom_unary_1byte_decode(uint8_t v);
+int8_t eeprom_unary_2byte_decode(uint16_t v);
 
 
 // Unit test location for erase/write.

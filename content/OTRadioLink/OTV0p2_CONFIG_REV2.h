@@ -193,6 +193,10 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #undef ENABLE_STATS_RX
 // IF DEFINED: allow TX of stats frames.
 #define ENABLE_STATS_TX
+// IF DEFINED: allow radio listen/RX.
+#undef ENABLE_RADIO_RX
+// IF DEFINED: forced always-on radio listen/RX, eg not requiring setup to explicitly enable.
+#undef ENABLE_DEFAULT_ALWAYS_RX
 // IF DEFINED: allow JSON stats frames alongside binary ones.
 #define ENABLE_JSON_OUTPUT
 // IF DEFINED: allow binary stats to be TXed.
