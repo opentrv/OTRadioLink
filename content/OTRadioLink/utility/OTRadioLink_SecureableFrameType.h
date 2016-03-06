@@ -697,11 +697,14 @@ namespace OTRadioLink
             // else all possible entries may be tried depending on the implementation
             // and, for example, time/resource limits.
             // This overloading accepts the decryption function, state and key explicitly.
+            //
+            //  * ID if non-NULL is filled in with the full authenticated sender ID, so must be >= 8 bytes
             virtual uint8_t decodeSecureSmallFrameSafely(const SecurableFrameHeader *sfh,
                                             const uint8_t *buf, uint8_t buflen,
                                             fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
                                             void *state, const uint8_t *key,
                                             uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize,
+                                            uint8_t *ID,
                                             bool firstIDMatchOnly = true) = 0;
         };
 

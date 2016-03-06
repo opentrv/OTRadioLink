@@ -490,11 +490,14 @@ uint8_t SimpleSecureFrame32or0BodyRXV0p2::_decodeSecureSmallFrameFromID(const Se
 // else all possible entries may be tried depending on the implementation
 // and, for example, time/resource limits.
 // This overloading accepts the decryption function, state and key explicitly.
+//
+//  * ID if non-NULL is filled in with the full authenticated sender ID, so must be >= 8 bytes
 uint8_t SimpleSecureFrame32or0BodyRXV0p2::decodeSecureSmallFrameSafely(const SecurableFrameHeader *const sfh,
                                 const uint8_t *const buf, const uint8_t buflen,
                                 const fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
                                 void *const state, const uint8_t *const key,
                                 uint8_t *const decryptedBodyOut, const uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize,
+                                uint8_t *const ID,
                                 bool /*firstIDMatchOnly*/)
     {
     // Rely on _decodeSecureSmallFrameFromID() for validation of items not directly needed here.
@@ -510,7 +513,7 @@ uint8_t SimpleSecureFrame32or0BodyRXV0p2::decodeSecureSmallFrameSafely(const Sec
     uint8_t senderNodeID[OTV0P2BASE::OpenTRV_Node_ID_Bytes];
     const int8_t index = OTV0P2BASE::getNextMatchingNodeID(0, sfh->id, sfh->getIl(), senderNodeID);
     if(index < 0) { return(0); } // ERROR
-    // Extract the message counter and validate it (that it is higher than previous)...
+    // Extract the message counter and validate it (that it is higher than previously seen)...
     uint8_t messageCounter[SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes];
     // Assume counter positioning as for 0x80 type trailer, ie 6 bytes at start of trailer.
     memcpy(messageCounter, buf + sfh->getTrailerOffset(), SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes);
@@ -526,7 +529,8 @@ uint8_t SimpleSecureFrame32or0BodyRXV0p2::decodeSecureSmallFrameSafely(const Sec
     if(0 == decodeResult) { return(0); } // ERROR
     // Successfully decoded: update the RX message counter to avoid duplicates/replays.
     if(!updateRXMessageCountAfterAuthentication(senderNodeID, messageCounter)) { return(0); } // ERROR
-    // Success!
+    // Success: copy received ID to output buffer (if non-NULL) as last action.
+    if(ID != NULL) { memcpy(ID, senderNodeID, OTV0P2BASE::OpenTRV_Node_ID_Bytes); }
     return(decodeResult);
     }
 
