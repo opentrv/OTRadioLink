@@ -646,6 +646,7 @@ namespace OTRadioLink
             // not allowing replays nor other cryptographic attacks, nor forcing node dissociation.
             // Must only be called once the RXed message has passed authentication.
             virtual bool updateRXMessageCountAfterAuthentication(const uint8_t *ID, const uint8_t *newCounterValue) = 0;
+
             // As for decodeSecureSmallFrameRaw() but passed a candidate node/counterparty ID
             // derived from the frame ID in the incoming header,
             // plus possible other adjustments such has forcing bit values for reverse flows.
@@ -653,6 +654,9 @@ namespace OTRadioLink
             // (which must be at least length 6 for 'O' / 0x80 style enc/auth)
             // and other information in the header
             // and then returns the result of calling decodeSecureSmallFrameRaw().
+            // Returns the total number of bytes read for the frame
+            // (including, and with a value one higher than the first 'fl' bytes).
+            // Returns zero in case of error, eg because authentication failed.
             //
             // If several candidate nodes share the ID prefix in the frame header
             // (in the extreme case with a zero-length header ID for an anonymous frame)
@@ -677,6 +681,28 @@ namespace OTRadioLink
                                             const uint8_t *adjID, uint8_t adjIDLen,
                                             void *state, const uint8_t *key,
                                             uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize) = 0;
+
+            // From a structurally correct secure frame, looks up the ID, checks the message counter, decodes, and updates the counter if successful.
+            // THIS IS THE PREFERRED ENTRY POINT FOR DECODING AND RECEIVING SECURE FRAMES.
+            // (Pre-filtering by type and ID and message counter may already have happened.)
+            // Note that this is for frames being send from the ID in the header,
+            // not for lightweight return traffic to the specified ID.
+            // Returns the total number of bytes read for the frame
+            // (including, and with a value one higher than the first 'fl' bytes).
+            // Returns zero in case of error, eg because authentication failed or this is a duplicate message.
+            // If this returns true then the frame is authenticated,
+            // and the decrypted body is available if present and a buffer was provided.
+            // If the 'firstMatchIDOnly' is true (the default)
+            // then this only checks the first ID prefix match found if any,
+            // else all possible entries may be tried depending on the implementation
+            // and, for example, time/resource limits.
+            // This overloading accepts the decryption function, state and key explicitly.
+            virtual uint8_t decodeSecureSmallFrameSafely(const SecurableFrameHeader *sfh,
+                                            const uint8_t *buf, uint8_t buflen,
+                                            fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
+                                            void *state, const uint8_t *key,
+                                            uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize,
+                                            bool firstIDMatchOnly = true) = 0;
         };
 
 
