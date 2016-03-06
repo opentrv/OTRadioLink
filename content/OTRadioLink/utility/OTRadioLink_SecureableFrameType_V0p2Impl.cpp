@@ -425,6 +425,9 @@ bool SimpleSecureFrame32or0BodyRXV0p2::updateRXMessageCountAfterAuthentication(c
 // (which must be at least length 6 for 'O' / 0x80 style enc/auth)
 // and other information in the header
 // and then returns the result of calling decodeSecureSmallFrameRaw().
+// Returns the total number of bytes read for the frame
+// (including, and with a value one higher than the first 'fl' bytes).
+// Returns zero in case of error, eg because authentication failed.
 //
 // If several candidate nodes share the ID prefix in the frame header
 // (in the extreme case with a zero-length header ID for an anonymous frame)
@@ -471,6 +474,48 @@ uint8_t SimpleSecureFrame32or0BodyRXV0p2::_decodeSecureSmallFrameFromID(const Se
                                 state, key, iv,
                                 decryptedBodyOut, decryptedBodyOutBuflen, decryptedBodyOutSize));
     }
+
+// From a structurally correct secure frame, looks up the ID, checks the message counter, decodes, and updates the counter if successful.
+// THIS IS THE PREFERRED ENTRY POINT FOR DECODING AND RECEIVING SECURE FRAMES.
+// (Pre-filtering by type and ID and message counter may already have happened.)
+// Note that this is for frames being send from the ID in the header,
+// not for lightweight return traffic to the specified ID.
+// Returns the total number of bytes read for the frame
+// (including, and with a value one higher than the first 'fl' bytes).
+// Returns zero in case of error, eg because authentication failed or this is a duplicate message.
+// If this returns true then the frame is authenticated,
+// and the decrypted body is available if present and a buffer was provided.
+// If the 'firstMatchIDOnly' is true (the default)
+// then this only checks the first ID prefix match found if any,
+// else all possible entries may be tried depending on the implementation
+// and, for example, time/resource limits.
+// This overloading accepts the decryption function, state and key explicitly.
+uint8_t SimpleSecureFrame32or0BodyRXV0p2::decodeSecureSmallFrameSafely(const SecurableFrameHeader *const sfh,
+                                const uint8_t *const buf, const uint8_t buflen,
+                                const fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
+                                void *const state, const uint8_t *const key,
+                                uint8_t *const decryptedBodyOut, const uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize,
+                                bool /*firstIDMatchOnly*/)
+    {
+    // Rely on _decodeSecureSmallFrameFromID() for validation of items not directly needed here.
+    if((NULL == sfh) || (NULL == buf)) { return(0); } // ERROR
+    // Abort if header was not decoded properly.
+    if(sfh->isInvalid()) { return(0); } // ERROR
+    // Abort if frame is not secure.
+    if(sfh->isSecure()) { return(0); } // ERROR
+    // Look up the full node ID of the sender in the associations table.
+    // NOTE: this only tries the first match, ignoring firstIDMatchOnly.
+    uint8_t senderNodeID[OTV0P2BASE::OpenTRV_Node_ID_Bytes];
+    const int8_t index = OTV0P2BASE::getNextMatchingNodeID(0, sfh->id, sfh->getIl(), senderNodeID);
+    if(index < 0) { return(0); } // ERROR
+
+
+// TODO
+
+return(0); // FIXME not implemented
+    }
+
+
 
 // Fill in 12-byte IV for 'O'-style (0x80) AESGCM security for a frame to TX.
 // This uses the local node ID as-is for the first 6 bytes.
