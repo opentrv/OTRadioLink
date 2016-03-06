@@ -44,6 +44,57 @@ namespace OTV0P2BASE
 #define V0P2BASE_EEPROM_SPLIT_ERASE_WRITE // Separate erase and write are possible.
 #endif
 
+// Updates an EEPROM byte iff not currently at the specified target value.
+// May be able to selectively erase or write (ie reduce wear) to reach the desired value.
+// As with the AVR eeprom_XXX_byte() macros, not safe to use outside and within ISRs as-is.
+// Returns true iff an erase and/or write was performed.
+bool eeprom_smart_update_byte(uint8_t *p, uint8_t value);
+
+// Erases (sets to 0xff) the specified EEPROM byte, avoiding a (redundant) write if possible.
+// If the target byte is already 0xff then this does nothing at all beyond an initial read.
+// This saves a bit of time and power and possibly a little wear also.
+// Without split erase/write this degenerates to a specialised eeprom_update_byte().
+// As with the AVR eeprom_XXX_byte() macros, not safe to use outside and within ISRs as-is.
+// Returns true iff an erase was performed.
+bool eeprom_smart_erase_byte(uint8_t *p);
+
+// ANDs the supplied mask into the specified EEPROM byte, avoiding an initial (redundant) erase if possible.
+// This can be used to ensure that specific bits are 0 while leaving others untouched.
+// If ANDing in the mask has no effect then this does nothing at all beyond an initial read.
+// This saves a bit of time and power and possibly a little EEPROM cell wear also.
+// Without split erase/write this degenerates to a specialised eeprom_smart_update_byte().
+// As with the AVR eeprom_XXX_byte() macros, not safe to use outside and within ISRs as-is.
+// Returns true iff a write was performed.
+bool eeprom_smart_clear_bits(uint8_t *p, uint8_t mask);
+
+
+// EEPROM- (and Flash-) friendly single-byte unary incrementable encoding.
+// A single byte can be used to hold a single value [0,8]
+// such that increment requires only a write of one bit (no erase)
+// and in general increasing the value up to the maximum only requires a single write.
+// An erase is required only to decrease the value (eg back to zero).
+// An initial EEPROM (erased) value of 0xff is mapped to zero.
+// The two byte version can hold values in the range [0,16].
+// Corruption can be detected if an unexpected bit pattern is encountered on decode.
+// For the single byte versions, encodings are:
+//  0 -> 0xff
+//  1 -> 0x7f
+//  2 -> 0x3f
+//  3 -> 0x1f
+//  4 -> 0x0f
+//  5 -> 0x07
+//  6 -> 0x03
+//  7 -> 0x01
+//  8 -> 0x00
+static const uint8_t EEPROM_UNARY_1BYTE_MAX_VALUE = 8;
+static const uint8_t EEPROM_UNARY_2BYTE_MAX_VALUE = 16;
+inline uint8_t eeprom_unary_1byte_encode(uint8_t n) { return((n >= 8) ? 0 : (0xffU >> n)); }
+inline uint16_t eeprom_unary_2byte_encode(uint8_t n) { return((n >= 16) ? 0 : (0xffffU >> n)); }
+int8_t eeprom_unary_1byte_decode(uint8_t);
+int8_t eeprom_unary_2byte_decode(uint16_t);
+
+
+
 // Unit test location for erase/write.
 // Also may be more vulnerable to damage during resets/brown-outs.
 #define V0P2BASE_EE_START_TEST_LOC 0 // 1-byte test location.
@@ -200,30 +251,6 @@ static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS = 8;
 // static const uint16_t V0P2BASE_EE_NODE_ASSOCIATIONS_START_ADDR
 // INCLUSIVE END OF NODE ASSOCIATIONS AREA: must point to last byte used.
 static const intptr_t V0P2BASE_EE_END_NODE_ASSOCIATIONS = ((V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS * V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE)-1);
-
-
-// Updates an EEPROM byte iff not currently at the specified target value.
-// May be able to selectively erase or write (ie reduce wear) to reach the desired value.
-// As with the AVR eeprom_XXX_byte() macros, not safe to use outside and within ISRs as-is.
-// Returns true iff an erase and/or write was performed.
-bool eeprom_smart_update_byte(uint8_t *p, uint8_t value);
-
-// Erases (sets to 0xff) the specified EEPROM byte, avoiding a (redundant) write if possible.
-// If the target byte is already 0xff then this does nothing at all beyond an initial read.
-// This saves a bit of time and power and possibly a little wear also.
-// Without split erase/write this degenerates to a specialised eeprom_update_byte().
-// As with the AVR eeprom_XXX_byte() macros, not safe to use outside and within ISRs as-is.
-// Returns true iff an erase was performed.
-bool eeprom_smart_erase_byte(uint8_t *p);
-
-// ANDs the supplied mask into the specified EEPROM byte, avoiding an initial (redundant) erase if possible.
-// This can be used to ensure that specific bits are 0 while leaving others untouched.
-// If ANDing in the mask has no effect then this does nothing at all beyond an initial read.
-// This saves a bit of time and power and possibly a little EEPROM cell wear also.
-// Without split erase/write this degenerates to a specialised eeprom_smart_update_byte().
-// As with the AVR eeprom_XXX_byte() macros, not safe to use outside and within ISRs as-is.
-// Returns true iff a write was performed.
-bool eeprom_smart_clear_bits(uint8_t *p, uint8_t mask);
 
 
 // 'Unset'/invalid stats values for byte (eg raw EEPROM byte) and 2-byte signed int (eg after decompression).
