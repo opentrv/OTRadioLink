@@ -328,7 +328,7 @@ bool SimpleStatsRotationBase::changedValue()
 //   * bufSize is the capacity of the buffer starting at buf in bytes;
 //       should be two (2) greater than the largest JSON output to be generated
 //       to allow for a trailing null and one extra byte/char to ensure that the message is not over-large
-//   * sensitivity  threshold below which (sensitive) stats will not be included; 0 means include everything
+//   * sensitivity  CURRENTLY IGNORED threshold below which (sensitive) stats will not be included; 0 means include everything
 //   * maximise  if true attempt to maximise the number of stats squeezed into each frame,
 //       potentially at the cost of significant CPU time
 //   * suppressClearChanged  if true then 'changed' flag for included fields is not cleared by this
@@ -399,9 +399,9 @@ uint8_t SimpleStatsRotationBase::writeJSON(uint8_t *const buf, const uint8_t buf
         {
         // Wrap around the end of the stats.
         if(++next >= nStats) { next = 0; }
-        // Skip stat if too sensitive to include in this output.
         DescValueTuple &s = stats[next];
-        if(sensitivity > s.descriptor.sensitivity) { continue; }
+//        // Skip stat if too sensitive to include in this output.
+//        if(sensitivity > s.descriptor.sensitivity) { continue; }
         // Skip stat if unchanged.
         if(!s.flags.changed) { continue; }
         // Found suitable stat to include in output.
@@ -438,9 +438,9 @@ uint8_t SimpleStatsRotationBase::writeJSON(uint8_t *const buf, const uint8_t buf
         if((lastTXed == next) && (nStats > 1)) { continue; }
         // Avoid transmitting the hi-pri item just sent if any.
         if(gotHiPri && (hiPriIndex == next)) { continue; }
-        // Skip stat if too sensitive to include in this output.
         DescValueTuple &s = stats[next];
-        if(sensitivity > s.descriptor.sensitivity) { continue; }
+//        // Skip stat if too sensitive to include in this output.
+//        if(sensitivity > s.descriptor.sensitivity) { continue; }
         // If low priority and unchanged then skip the chance to TX some of the time,
         // eg if a high-priority item was included already (so space is at a premium),
         // or just randomly.
