@@ -144,7 +144,7 @@ int8_t eeprom_unary_2byte_decode(uint16_t v);
 #define V0P2BASE_EE_START_ID 20 // (When controlling FHT8V rad valve): 1-byte value for house-code 1, 0xff if not in use.
 #define V0P2BASE_EE_LEN_ID 8 // 64-bit unique ID.  Only first 2 bytes generally used in OpenTRV-native messages.
 
-// 1-byte valuye used to enable/disable stats transmissions.
+// 1-byte value used to enable/disable stats transmissions.
 // A combination of this value and available channel security determines how much is transmitted.
 #define V0P2BASE_EE_START_STATS_TX_ENABLE 28 // 0xff disables all avoidable stats transmissions; 0 enables all.
 // A 1-byte overrun counter, inverted so 0xff means 0.
@@ -155,6 +155,10 @@ int8_t eeprom_unary_2byte_decode(uint16_t v);
 
 // Minimum (total percentage across all rads) that all rads should be on before heating should fire.
 #define V0P2BASE_EE_START_MIN_TOTAL_VALVE_PC_OPEN 31 // Ignored entirely if outside range [1,100], eg if default/unprogrammed 0xff.
+
+// Lockout time in hours before energy-saving setbacks are enabled (if not 0), stored inverted.
+// Stored inverted so that a default erased (0xff) value will be seen as 0, so no lockout and thus normal behaviour.
+#define V0P2BASE_EE_START_SETBACK_LOCKOUT_COUNTDOWN_H_INV 32
 
 
 // TX message counter (most-significant) persistent reboot/restart 3 bytes.  (TODO-728)
