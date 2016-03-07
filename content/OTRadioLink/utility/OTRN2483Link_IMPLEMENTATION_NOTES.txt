@@ -40,10 +40,11 @@ Common points:
 - if length is over 100, returns "invalid_data_len"
 
 
-Using Adaptive Data Rate (NOT TESTED AS OF 2016/03. ALSO MAY NOT BE SUPPORTED BY TTN):
+Using Adaptive Data Rate (WILL BE TESTED ON 2016/03/08):
 This requires 2 steps:
 1) Use the "mac set ch drrange" command to set a minimum and maximum per channel data rate.
 2) Use the "mac adr on" command to activate adaptive data rate.
+NOTE: According to the mac get status bitmask in the reference manual, bit 5 is 0 when disabled and 1 when disabled. I'm assuming they meant 1 when enabled (2016/03/08)
 
 
 Notes on the "no_free_ch" error:

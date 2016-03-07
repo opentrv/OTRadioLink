@@ -42,12 +42,19 @@ bool OTRN2483Link::begin() {
 	// todo check RN2483 is present and communicative here
 
 	// Set up for TTN
-#ifndef RN2483_CONFIG_IN_EEPROM
+//#ifndef RN2483_CONFIG_IN_EEPROM
 //	// Set Device Address
     setDevAddr(NULL); // TODO not needed if saved to EEPROM
 //
 //	// Set keys
     setKeys(NULL, NULL); // TODO not needed if saved to EEPROM
+//#endif
+
+    // Set data rate
+#ifdef RN2483_ENABLE_ADR
+    setAdaptiveDataRate(1, 5); // send between SF11 and SF7
+#else
+    setDataRate(1); // Send at slowest rate possible without breaking etsi (SF12)
 #endif
     // join network
     joinABP();
@@ -55,8 +62,6 @@ bool OTRN2483Link::begin() {
 	// get status (returns 0001 when connected and not Txing)
     getStatus();
 
-    // Set data rate.
-    setDataRate(0);
 	// Send
 	return true;
 }
@@ -173,17 +178,17 @@ void OTRN2483Link::setBaud()
 	print('U'); // send syncro character
 }
 
-/**
- * @brief   reset device and eeprom to factory defaults
- * @note    Currently using software reset as there is a short on my REV14
- * @fixme   Currently non-functional
- */
-void OTRN2483Link::factoryReset()
-{
-	print(SYS_START);
-//	print(SYS_RESET);
-	print(RN2483_END);
-}
+///**
+// * @brief   reset device and eeprom to factory defaults
+// * @note    Currently using software reset as there is a short on my REV14
+// * @fixme   Currently non-functional
+// */
+//void OTRN2483Link::factoryReset()
+//{
+//	print(SYS_START);
+////	print(SYS_RESET);
+//	print(RN2483_END);
+//}
 
 /**
  * @brief   reset device
@@ -246,11 +251,6 @@ void OTRN2483Link::setKeys(const uint8_t *appKey, const uint8_t *networkKey)
 void OTRN2483Link::joinABP()
 {
 	print(MAC_START);
-	print(RN2483_SET);
-	print(MAC_ADR); // Adaptive data rate
-	print(RN2483_END);
-
-	print(MAC_START);
 	print(MAC_JOINABP); // Join by ABP (activation by personalisation)
 	print(RN2483_END);
 }
@@ -278,31 +278,83 @@ void OTRN2483Link::save()
 }
 
 /**
- * @brief   Sets data rate range
- * @note    Syntax:
- *            - <ch> <minRate> <maxRate>
+ * @brief   Sets data rate
+ * @param   dataRate: desired data rate.
  *            - 0 is SF12
+ *            - 1 is SF11
  *            - 2 is SF10
+ *            - 3 is SF9
+ *            - 4 is SF8
  *            - 5 is SF7
+ * @note    Faster data rates save power and airtime, slower rates give
+ *          better range.
+ * @note    Minimum data rate that allows us to send our packets at 240s
+ *          intervals is  SF11 (see implementation notes for details).
+ * @note    Command reference says it sets the data rate of the next send but
+ *          I think it sets data rate for ALL subsequent sends on ALL channels.
  */
 void OTRN2483Link::setDataRate(uint8_t dataRate)
 {
     print(MAC_START);
     print(RN2483_SET);
     print(MAC_SET_DR);
-    print("2");
+    print((char)('0' + dataRate)); // convert to ascii
     print(RN2483_END);
 }
 
 /**
+ * @brief   Setup adaptive data rate on default channels (0, 1, 2)
+ * @param   minRate: Minimum data rate
+ * @param   maxRate: Maximum data rate
+ *            - 0 is SF12
+ *            - 1 is SF11
+ *            - 2 is SF10
+ *            - 3 is SF9
+ *            - 4 is SF8
+ *            - 5 is SF7
+ * @note    Faster data rates save power and airtime, slower rates give
+ *          better range.
+ * @note    Minimum data rate that allows us to send our packets at 240s
+ *          intervals is  SF11 (see implementation notes for details)
+ * @note    Command reference does not mention this, but adr must be set to on
+ *          AND channel data rate ranges must be set.
+ * @todo    Test if this works on 2016/3/8
+ */
+void OTRN2483Link::setAdaptiveDataRate(uint8_t minRate, uint8_t maxRate)
+{
+	// convert data rates to ascii
+	char min = '0' + minRate;
+	char max = '0' + maxRate;
+
+	// set channel data rate ranges
+	for(uint8_t i = '0'; i < ('0'+3); i++) { // There are 3 default channels we want to set
+        print(MAC_START);
+        print(RN2483_SET);
+        print(MAC_SET_CH);
+        print(MAC_SET_DRRANGE);
+        print((char)i);
+        print(' ');
+        print(min);
+        print(' ');
+        print(max);
+        print(RN2483_END);
+	}
+	// set ADR on
+	print(MAC_START);
+	print(RN2483_SET);
+	print(MAC_ADR); // Adaptive data rate
+	print(RN2483_END);
+}
+
+/**
  * @brief   converts a string to hex representation
- * @param   string  String to convert
- * @param   output  buffer to hold output. This should be twice the length of string
+ * @param   string  String to convert. Will terminate if passed a null pointer.
+ * @param   output  Buffer to hold output. This should be twice the length of string
+ *                  Will terminate if passed a null pointer.
  * @param   outputLen   Length of output
  * @retval  returns true if output success
  * @note    This function only checks output bounds. If input string is too short
  *          it will overrun.
- *          Will terminate if passed a null pointer.
  * @todo    Possibly better to make part of send function and send as byte is converted
  */
 bool OTRN2483Link::getHex(const uint8_t *input, uint8_t *output, uint8_t outputLen)
@@ -359,12 +411,10 @@ const char OTRN2483Link::MAC_START[5] = "mac ";
 const char OTRN2483Link::MAC_DEVADDR[9] = "devaddr ";
 const char OTRN2483Link::MAC_APPSKEY[9] = "appskey ";
 const char OTRN2483Link::MAC_NWKSKEY[9] = "nwkskey ";
-#ifdef RN2483_ENABLE_ADR
 const char OTRN2483Link::MAC_ADR[7] = "adr on";
-#else
-const char OTRN2483Link::MAC_ADR[8] = "adr off";
-#endif
 const char OTRN2483Link::MAC_SET_DR[4] = "dr ";
+const char OTRN2483Link::MAC_SET_CH[4] = "ch ";
+const char OTRN2483Link::MAC_SET_DRRANGE[9] = "drrange ";
 #endif // RN2483_CONFIG_IN_EEPROM
 const char OTRN2483Link::MAC_JOINABP[9] = "join abp";
 const char OTRN2483Link::MAC_STATUS[7] = "status";
