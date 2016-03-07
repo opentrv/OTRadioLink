@@ -138,6 +138,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 // IF DEFINED: enable OpenTRV secure frame encoding/decoding (as of 2015/12).
 // DHD20160214: costs 5866 bytes to enable vs 3426 for FS20 support.
 #define ENABLE_OTSECUREFRAME_ENCODING_SUPPORT
+// IF DEFINED: always allow some kind of stats TX, whatever the privacy settings.
+// OK IN THIS CASE BECAUSE ALL COMMS SECURE.
+#define ENABLE_ALWAYS_TX_ALL_STATS
 #endif
 
 
