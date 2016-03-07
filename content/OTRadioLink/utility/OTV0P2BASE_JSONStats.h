@@ -75,9 +75,9 @@ struct GenericStatsDescriptor
     // By default the statistic is normal priority.
     // Sensitivity by default does not allow TX unless at minimal privacy level.
     GenericStatsDescriptor(const char * const statKey,
-                           const bool statLowPriority = false,
-                           const uint8_t statSensitivity = 1)
-      : key(statKey), lowPriority(statLowPriority), sensitivity(statSensitivity)
+                           const bool statLowPriority = false)
+                           // const uint8_t statSensitivity = 1)
+      : key(statKey), lowPriority(statLowPriority) // , sensitivity(statSensitivity)
     { }
 
     // Null-terminated short stat/key name.
@@ -96,9 +96,9 @@ struct GenericStatsDescriptor
     // and hours vacancy (can be deduced from hours since last occupancy).
     bool lowPriority;
 
-    // Device sensitivity threshold has to be at or below this for stat to be sent.
-    // The default is to allow the stat to be sent unless device is in default maximum privacy mode.
-    uint8_t sensitivity;
+//    // Device sensitivity threshold has to be at or below this for stat to be sent.
+//    // The default is to allow the stat to be sent unless device is in default maximum privacy mode.
+//    uint8_t sensitivity;
   };
 
 // Print to a bounded buffer.
@@ -194,7 +194,7 @@ class SimpleStatsRotationBase
     //   * bufSize is the capacity of the buffer starting at buf in bytes;
     //       should be two (2) greater than the largest JSON output to be generated
     //       to allow for a trailing null and one extra byte/char to ensure that the message is not over-large
-    //   * sensitivity  threshold below which (sensitive) stats will not be included; 0 means include everything
+    //   * sensitivity  CURRENTLY IGNORED threshold below which (sensitive) stats will not be included; 0 means include everything
     //   * maximise  if true attempt to maximise the number of stats squeezed into each frame,
     //       potentially at the cost of significant CPU time
     //   * suppressClearChanged  if true then 'changed' flag for included fields is not cleared by this
@@ -223,7 +223,7 @@ class SimpleStatsRotationBase
         // Set false when the value written out,
         // ie nominally transmitted to a remote listener,
         // to allow priority to be given to sending changed values.
-        bool changed : 1;
+        bool changed /* : 1 */; // Note: bitfields are expensive in code size.
 //
 //        // True if included in the current putative JSON output.
 //        // Initial state unimportant.
@@ -284,10 +284,8 @@ class SimpleStatsRotationBase
       uint8_t count : 3; // Increments on each successful write.
       } c;
 
-//#if defined(ALLOW_JSON_OUTPUT)
     // Print an object field "name":value to the given buffer.
     size_t print(BufPrint &bp, const DescValueTuple &dvt, bool &commaPending) const;
-//#endif
   };
 
 template<uint8_t MaxStats>
