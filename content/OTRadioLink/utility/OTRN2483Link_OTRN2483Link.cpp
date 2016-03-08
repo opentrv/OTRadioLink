@@ -57,7 +57,7 @@ bool OTRN2483Link::begin() {
     setDataRate(1); // Send at slowest rate possible without breaking etsi (SF12)
 #endif
     // set power level
-    setTxPower(2);
+//    setTxPower(2);
 
     // join network
     joinABP();
