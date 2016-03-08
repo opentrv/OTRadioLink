@@ -44,7 +44,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
 // IF DEFINED: Assumes that LoRaWAN settings are saved in RN2483 EEPROM and does not attempt to set them itself
 //#define RN2483_CONFIG_IN_EEPROM
 // IF DEFINED: Enables adaptive data rate. This is only relevant if RN2483_CONFIG_IN_EEPROM is UNDEFINED
-#define RN2483_ENABLE_ADR // TODO: Untested but may reduce power consumption
+//#define RN2483_ENABLE_ADR // TODO: Untested but may reduce power consumption
 
 #include <Arduino.h>
 #include <avr/eeprom.h>
@@ -146,6 +146,7 @@ private:
     void save();
     void setDataRate(uint8_t dataRate);
     void setAdaptiveDataRate(uint8_t minRate, uint8_t maxRate);
+    void setTxPower(uint8_t power);
 
     // Setup
     bool _doconfig() { return true; };
@@ -174,6 +175,7 @@ private:
     static const char MAC_SET_DR[4];   // Set data rate.
     static const char MAC_SET_CH[4];  // Channel stuff
     static const char MAC_SET_DRRANGE[9]; // Set data rate range
+    static const char MAC_POWER[9]; // Set Tx power
 #endif // RN2483_CONFIG_IN_EEPROM
     static const char MAC_JOINABP[9]; // Join LoRaWAN network by ABP (activation by personalisation)
     static const char MAC_STATUS[7];

@@ -56,6 +56,9 @@ bool OTRN2483Link::begin() {
 #else
     setDataRate(1); // Send at slowest rate possible without breaking etsi (SF12)
 #endif
+    // set power level
+    setTxPower(2);
+
     // join network
     joinABP();
 
@@ -217,7 +220,7 @@ void OTRN2483Link::setDevAddr(const uint8_t *address)
 	print(MAC_START);
 	print(RN2483_SET);
 	print(MAC_DEVADDR);
-	print("02011125"); // TODO this will be stored as number in config
+	print("02011123"); // TODO this will be stored as number in config
 //	print(address);
 	print(RN2483_END);
 }
@@ -347,6 +350,26 @@ void OTRN2483Link::setAdaptiveDataRate(uint8_t minRate, uint8_t maxRate)
 }
 
 /**
+ * @brief   Sets Tx power
+ * @param   power:   output power. From LoRaWAN spec:
+ *          - 1: 14 dBm
+ *          - 2: 11 dBm
+ *          - 3:  8 dBm
+ *          - 4:  5 dBm
+ *          - 5:  2 dBm
+ * @note    RN2483 defaults to setting 1 (14 dBm)
+ * @note    The output levels on page 7 of the datasheet are for point to point levels.
+ */
+void OTRN2483Link::setTxPower(uint8_t power)
+{
+    print(MAC_START);
+    print(RN2483_SET);
+    print(MAC_POWER);
+    print((char)('0' + power));
+    print(RN2483_END);
+}
+
+/**
  * @brief   converts a string to hex representation
  * @param   string  String to convert. Will terminate if passed a null pointer.
  * @param   output  Buffer to hold output. This should be twice the length of string
@@ -415,6 +438,7 @@ const char OTRN2483Link::MAC_ADR[7] = "adr on";
 const char OTRN2483Link::MAC_SET_DR[4] = "dr ";
 const char OTRN2483Link::MAC_SET_CH[4] = "ch ";
 const char OTRN2483Link::MAC_SET_DRRANGE[9] = "drrange ";
+const char OTRN2483Link::MAC_POWER[9] = "pwridx ";
 #endif // RN2483_CONFIG_IN_EEPROM
 const char OTRN2483Link::MAC_JOINABP[9] = "join abp";
 const char OTRN2483Link::MAC_STATUS[7] = "status";
