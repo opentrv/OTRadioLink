@@ -217,7 +217,7 @@ void OTRN2483Link::setDevAddr(const uint8_t *address)
 	print(MAC_START);
 	print(RN2483_SET);
 	print(MAC_DEVADDR);
-	print("02011124"); // TODO this will be stored as number in config
+	print("02011125"); // TODO this will be stored as number in config
 //	print(address);
 	print(RN2483_END);
 }

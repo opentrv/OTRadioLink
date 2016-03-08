@@ -26,6 +26,9 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
 
 
 /**
+ * @brief   Set dev addr on line 215 of OTRN2483Link_OTRN2483Link.cpp
+ *          Set data rate on line 57 of OTRN2483Link_OTRN2483Link.cpp
+ *          Set adaptive data rate by uncommmenting #define RN2483_ENABLE_ADR below and setting limits on line 55 of #define RN2483_ENABLE_ADR
  * @todo    - Add config functionality
  *          - Move commands to progmem
  *          - Add intelligent way of utilising device eeprom (w/ mac save)
@@ -48,7 +51,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
 #include <avr/pgmspace.h>
 #include <OTRadioLink.h>
 #include <OTV0p2Base.h>
-#include <string.h>
+#include <string.h>ed25
 #include <stdint.h>
 
 namespace OTRN2483Link
