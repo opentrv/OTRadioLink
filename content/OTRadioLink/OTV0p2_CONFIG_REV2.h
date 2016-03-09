@@ -116,7 +116,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #define ENABLE_STATS_TX
 #endif
 
-
 #ifdef CONFIG_Trial2013Winter_Round2_CC1HUB // REV2 cut4 as CC1 hub.
 #define CONFIG_Trial2013Winter_Round2 // Just like normal REV2 except...
 // IF DEFINED: this unit can act as boiler-control hub listening to remote thermostats, possibly in addition to controlling a local TRV.
@@ -194,6 +193,10 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #undef ENABLE_STATS_RX
 // IF DEFINED: allow TX of stats frames.
 #define ENABLE_STATS_TX
+// IF DEFINED: allow radio listen/RX.
+#undef ENABLE_RADIO_RX
+// IF DEFINED: forced always-on radio listen/RX, eg not requiring setup to explicitly enable.
+#undef ENABLE_DEFAULT_ALWAYS_RX
 // IF DEFINED: allow JSON stats frames alongside binary ones.
 #define ENABLE_JSON_OUTPUT
 // IF DEFINED: allow binary stats to be TXed.
@@ -215,7 +218,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #endif
 
 
-#ifdef CONFIG_Trial2013Winter_Round2_SECURE_HUB
+#ifdef CONFIG_Trial2013Winter_Round2_SECURE_STATSHUB
 #define CONFIG_Trial2013Winter_Round2 // Just like normal REV2 except...
 // IF DEFINED: there is run-time help available for the CLI.
 #undef ENABLE_CLI_HELP
@@ -226,13 +229,13 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 // IF DEFINED: (default) forced always-on radio listen/RX, eg not requiring setup to explicitly enable.
 #define ENABLE_DEFAULT_ALWAYS_RX
 // IF DEFINED: this unit can act as boiler-control hub listening to remote thermostats, possibly in addition to controlling a local TRV.
-#define ENABLE_BOILER_HUB
+#undef ENABLE_BOILER_HUB
 // IF DEFINED: allow RX of stats frames.
 #define ENABLE_STATS_RX
 // IF DEFINED: allow TX of stats frames.
-#define ENABLE_STATS_TX
+#undef ENABLE_STATS_TX
 // IF DEFINED: allow JSON stats frames alongside binary ones.
-#define ENABLE_JSON_OUTPUT
+#undef ENABLE_JSON_OUTPUT
 // IF DEFINED: enable periodic secure beacon broadcast.
 #undef ENABLE_SECURE_RADIO_BEACON
 // IF DEFINED: allow binary stats to be TXed.

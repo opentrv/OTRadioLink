@@ -64,7 +64,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 // IF DEFINED: this unit *can* act as boiler-control hub listening to remote thermostats, possibly in addition to controlling a local TRV.
 #define ENABLE_BOILER_HUB
 //////////////////////////////////////// DEV/MAINT UI OPTIONS (and support for them)
-// IF DEFINED: allow JSON stats frames alongside binary ones.
+// IF DEFINED: allow local generation of JSON stats frames (this may not affect relaying).
 #define ENABLE_JSON_OUTPUT
 // IF DEFINED: allow periodic machine- and human- readable status report to serial, starting with "=".
 #define ENABLE_SERIAL_STATUS_REPORT
@@ -97,6 +97,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #undef ENABLE_FREQUENT_STATS_TX
 // IF DEFINED: the (>>8) value of this flag is the maximum JSON frame size allowed (bytes).
 #undef ENABLE_JSON_STATS_LEN_CAP
+// IF DEFINED: enable a CLI-settable setback lockout (hours/days) to establish a baseline before engaging energy saving setbacks.
+#undef ENABLE_SETBACK_LOCKOUT_COUNTDOWN
 //////////////////////////////////////// SENSOR OPTIONS (and support for them)
 // IF DEFINED: allow use of ambient light sensor.
 #define ENABLE_AMBLIGHT_SENSOR
@@ -156,7 +158,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #undef ENABLE_OTSECUREFRAME_INSECURE_RX_PERMITTED
 // IF DEFINED: allow RX of stats frames.
 #define ENABLE_STATS_RX
-// IF DEFINED: allow TX of stats frames.
+// IF DEFINED: allow TX of local stats frames (should not affect relaying).
 #define ENABLE_STATS_TX
 // IF DEFINED: always allow some kind of stats TX, whatever the privacy settings.
 // HAS HUGE PRIVACY IMPLICATIONS: DO NOT ENABLE UNNECESSARILY!

@@ -44,6 +44,57 @@ namespace OTV0P2BASE
 #define V0P2BASE_EEPROM_SPLIT_ERASE_WRITE // Separate erase and write are possible.
 #endif
 
+// Updates an EEPROM byte iff not currently at the specified target value.
+// May be able to selectively erase or write (ie reduce wear) to reach the desired value.
+// As with the AVR eeprom_XXX_byte() macros, not safe to use outside and within ISRs as-is.
+// Returns true iff an erase and/or write was performed.
+bool eeprom_smart_update_byte(uint8_t *p, uint8_t value);
+
+// Erases (sets to 0xff) the specified EEPROM byte, avoiding a (redundant) write if possible.
+// If the target byte is already 0xff then this does nothing at all beyond an initial read.
+// This saves a bit of time and power and possibly a little wear also.
+// Without split erase/write this degenerates to a specialised eeprom_update_byte().
+// As with the AVR eeprom_XXX_byte() macros, not safe to use outside and within ISRs as-is.
+// Returns true iff an erase was performed.
+bool eeprom_smart_erase_byte(uint8_t *p);
+
+// ANDs the supplied mask into the specified EEPROM byte, avoiding an initial (redundant) erase if possible.
+// This can be used to ensure that specific bits are 0 while leaving others untouched.
+// If ANDing in the mask has no effect then this does nothing at all beyond an initial read.
+// This saves a bit of time and power and possibly a little EEPROM cell wear also.
+// Without split erase/write this degenerates to a specialised eeprom_smart_update_byte().
+// As with the AVR eeprom_XXX_byte() macros, not safe to use outside and within ISRs as-is.
+// Returns true iff a write was performed.
+bool eeprom_smart_clear_bits(uint8_t *p, uint8_t mask);
+
+
+// EEPROM- (and Flash-) friendly single-byte unary incrementable encoding.
+// A single byte can be used to hold a single value [0,8]
+// such that increment requires only a write of one bit (no erase)
+// and in general increasing the value up to the maximum only requires a single write.
+// An erase is required only to decrease the value (eg back to zero).
+// An initial EEPROM (erased) value of 0xff is mapped to zero.
+// The two byte version can hold values in the range [0,16].
+// Corruption can be detected if an unexpected bit pattern is encountered on decode.
+// For the single byte versions, encodings are:
+//  0 -> 0xff
+//  1 -> 0x7f
+//  2 -> 0x3f
+//  3 -> 0x1f
+//  4 -> 0x0f
+//  5 -> 0x07
+//  6 -> 0x03
+//  7 -> 0x01
+//  8 -> 0x00
+static const uint8_t EEPROM_UNARY_1BYTE_MAX_VALUE = 8;
+static const uint8_t EEPROM_UNARY_2BYTE_MAX_VALUE = 16;
+inline uint8_t eeprom_unary_1byte_encode(uint8_t n) { return((n >= 8) ? 0 : (0xffU >> n)); }
+inline uint16_t eeprom_unary_2byte_encode(uint8_t n) { return((n >= 16) ? 0 : (0xffffU >> n)); }
+// Decode routines return -1 in case of unexpected/invalid input patterns.
+int8_t eeprom_unary_1byte_decode(uint8_t v);
+int8_t eeprom_unary_2byte_decode(uint16_t v);
+
+
 // Unit test location for erase/write.
 // Also may be more vulnerable to damage during resets/brown-outs.
 #define V0P2BASE_EE_START_TEST_LOC 0 // 1-byte test location.
@@ -93,7 +144,7 @@ namespace OTV0P2BASE
 #define V0P2BASE_EE_START_ID 20 // (When controlling FHT8V rad valve): 1-byte value for house-code 1, 0xff if not in use.
 #define V0P2BASE_EE_LEN_ID 8 // 64-bit unique ID.  Only first 2 bytes generally used in OpenTRV-native messages.
 
-// 1-byte valuye used to enable/disable stats transmissions.
+// 1-byte value used to enable/disable stats transmissions.
 // A combination of this value and available channel security determines how much is transmitted.
 #define V0P2BASE_EE_START_STATS_TX_ENABLE 28 // 0xff disables all avoidable stats transmissions; 0 enables all.
 // A 1-byte overrun counter, inverted so 0xff means 0.
@@ -104,6 +155,10 @@ namespace OTV0P2BASE
 
 // Minimum (total percentage across all rads) that all rads should be on before heating should fire.
 #define V0P2BASE_EE_START_MIN_TOTAL_VALVE_PC_OPEN 31 // Ignored entirely if outside range [1,100], eg if default/unprogrammed 0xff.
+
+// Lockout time in hours before energy-saving setbacks are enabled (if not 0), stored inverted.
+// Stored inverted so that a default erased (0xff) value will be seen as 0, so no lockout and thus normal behaviour.
+static const intptr_t V0P2BASE_EE_START_SETBACK_LOCKOUT_COUNTDOWN_H_INV = 32;
 
 
 // TX message counter (most-significant) persistent reboot/restart 3 bytes.  (TODO-728)
@@ -168,53 +223,38 @@ static const intptr_t V0P2BASE_EE_END_RADIO = 255;
 
 // Node security association storage.
 // (ID plus permanent message counter for RX.)
-// Can fit 16 nodes within 256 bytes of EEPROM.  (TODO-793)
+// Can fit 8 nodes within 256 bytes of EEPROM with 24 bytes of related data.  (TODO-793)
 //
-// Working area ahead for updating node associations,
-// in particular to safely update message counters.
+// Working area ahead for updating node associations.
 static const intptr_t V0P2BASE_EE_START_NODE_ASSOCIATIONS_WORK_START = 704;
 static const uint8_t V0P2BASE_EE_START_NODE_ASSOCIATIONS_WORK_LEN = 64;
 //
 // Note that all valid entries/associations are contiguous at the start of the area.
 // The first (invalid) node ID starting with 0xff indicates that it and all subsequent entries are empty.
+// On writing a new entry all bytes after the ID must be erased to 0xff.
 static const intptr_t V0P2BASE_EE_START_NODE_ASSOCIATIONS = 768;  // Inclusive start of node associations.
-static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE = 16; // Size in bytes of one Node association entry.
-
+static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE = 32; // Size in bytes of one Node association entry.
+//
 // Node association fields, 0 upwards, contiguous.
-static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_OFFSET  = 0;  // 8 Byte node ID.
-static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH  = 8;  // 8 Byte node ID.
-static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_RESERVED_OFFSET = 8;  // Reserved
-
-static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS = 16; // Maximum possible node associations.
-
+// Offset of full-byte ID in table row.
+static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_OFFSET = 0; // 8 Byte node ID.
+static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH = 8; // 8 Byte node ID.
+// Primary RX message counter (6 bytes + other support) offset.
+static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET = 8;
+// Secondary RX message counter (6 bytes + other support) offset.
+static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET = 16;
+// Reserved starting offset in table row.
+static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_RESERVED_OFFSET = 24;
+//
+// Maximum possible node associations, ie nodes that can be securely received from.
+// Where more than this are needed then this device can be in pass-through mode
+// for more powerful back-end server to filter/auth/decrypt wanted traffic.
+static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS = 8;
+//
 // Compute start of node association set (in range [0,V0P2BASE_EE_NODE_ASSOCIATIONS_SETS-1]) in EEPROM.
 // static const uint16_t V0P2BASE_EE_NODE_ASSOCIATIONS_START_ADDR
 // INCLUSIVE END OF NODE ASSOCIATIONS AREA: must point to last byte used.
 static const intptr_t V0P2BASE_EE_END_NODE_ASSOCIATIONS = ((V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS * V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE)-1);
-
-
-// Updates an EEPROM byte iff not currently at the specified target value.
-// May be able to selectively erase or write (ie reduce wear) to reach the desired value.
-// As with the AVR eeprom_XXX_byte() macros, not safe to use outside and within ISRs as-is.
-// Returns true iff an erase and/or write was performed.
-bool eeprom_smart_update_byte(uint8_t *p, uint8_t value);
-
-// Erases (sets to 0xff) the specified EEPROM byte, avoiding a (redundant) write if possible.
-// If the target byte is already 0xff then this does nothing at all beyond an initial read.
-// This saves a bit of time and power and possibly a little wear also.
-// Without split erase/write this degenerates to a specialised eeprom_update_byte().
-// As with the AVR eeprom_XXX_byte() macros, not safe to use outside and within ISRs as-is.
-// Returns true iff an erase was performed.
-bool eeprom_smart_erase_byte(uint8_t *p);
-
-// ANDs the supplied mask into the specified EEPROM byte, avoiding an initial (redundant) erase if possible.
-// This can be used to ensure that specific bits are 0 while leaving others untouched.
-// If ANDing in the mask has no effect then this does nothing at all beyond an initial read.
-// This saves a bit of time and power and possibly a little EEPROM cell wear also.
-// Without split erase/write this degenerates to a specialised eeprom_smart_update_byte().
-// As with the AVR eeprom_XXX_byte() macros, not safe to use outside and within ISRs as-is.
-// Returns true iff a write was performed.
-bool eeprom_smart_clear_bits(uint8_t *p, uint8_t mask);
 
 
 // 'Unset'/invalid stats values for byte (eg raw EEPROM byte) and 2-byte signed int (eg after decompression).

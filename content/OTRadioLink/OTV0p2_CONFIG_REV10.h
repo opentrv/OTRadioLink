@@ -182,12 +182,12 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #undef ENABLE_FS20_NATIVE_AND_BINARY_STATS_RX
 // IF DEFINED: allow RX of stats frames.
 #define ENABLE_STATS_RX
-// IF DEFINED: allow TX of stats frames.
-#define ENABLE_STATS_TX
+// IF DEFINED: allow TX of local stats frames (should not affect relaying).
+#undef ENABLE_STATS_TX
 // IF DEFINED: allow radio listen/RX.
 #define ENABLE_RADIO_RX
-// IF DEFINED: allow JSON stats frames.
-#define ENABLE_JSON_OUTPUT
+// IF DEFINED: allow local generation of JSON stats frames (this may not affect relaying).
+#undef ENABLE_JSON_OUTPUT
 /// IF DEFINED: this unit supports CLI over the USB/serial connection, eg for run-time reconfig.
 #define ENABLE_CLI
 // IF DEFINED: there is run-time help available for the CLI.

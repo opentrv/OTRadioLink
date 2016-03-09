@@ -16,6 +16,7 @@ under the Licence.
 Author(s) / Copyright (s): Damon Hart-Davis 2014--2016
                            John Harvey 2014 (DS18B20 code)
                            Deniz Erbilgin 2015--2016
+                           Jeremy Poulter 2016
 */
 
 /*
@@ -24,7 +25,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014--2016
 
 
 #include "OTV0P2BASE_SensorDS18B20.h"
-
 
 namespace OTV0P2BASE
 {
@@ -36,16 +36,25 @@ namespace OTV0P2BASE
 // May need to be reinitialised if precision changed.
 bool TemperatureC16_DS18B20::init()
   {
-//  DEBUG_SERIAL_PRINTLN_FLASHSTRING("DS18B20 init...");
+#if 0 && defined(DEBUG)
+  DEBUG_SERIAL_PRINT_FLASHSTRING("DS18B20 init ");
+  DEBUG_SERIAL_PRINTFMT(busOrder, 10);
+  DEBUG_SERIAL_PRINTLN();
+#endif
+
   bool found = false;
+  uint8_t count = busOrder;
 
   // Ensure no bad search state.
   minOW.reset_search();
 
-  for( ; ; )
+  for( ; !found; )
     {
     if(!minOW.search(address))
       {
+#if 0 && defined(DEBUG)
+      DEBUG_SERIAL_PRINTLN_FLASHSTRING("No more devices...");
+#endif
       minOW.reset_search(); // Be kind to any other OW search user.
       break;
       }
@@ -64,10 +73,26 @@ bool TemperatureC16_DS18B20::init()
     if(0x28 != address[0])
       {
 #if 0 && defined(DEBUG)
-      DEBUG_SERIAL_PRINTLN_FLASHSTRING("Not a DS18B20, skipping...");
+          DEBUG_SERIAL_PRINTLN_FLASHSTRING("Not a DS18B20, skipping...");
 #endif
       continue;
       }
+
+    if (count > 0)
+      {
+      count--;
+      continue;
+      }
+
+    // Found one and configured it!
+    found = true;
+    }
+
+  // Search has been run (whether DS18B20 was found or not).
+  initialised = true;
+
+  if(found)
+    {
 
 #if 0 && defined(DEBUG)
     DEBUG_SERIAL_PRINTLN_FLASHSTRING("Setting precision...");
@@ -80,19 +105,13 @@ bool TemperatureC16_DS18B20::init()
     minOW.write(0); // Tl: not used.
 //    MinOW.write(DS1820_PRECISION | 0x1f); // Config register; lsbs all 1.
     minOW.write(((precision - 9) << 6) | 0x1f); // Config register; lsbs all 1.
-
-    // Found one and configured it!
-    found = true;
     }
-
-  // Search has been run (whether DS18B20 was found or not).
-  initialised = true;
-
-  if(!found)
+  else
     {
 //    DEBUG_SERIAL_PRINTLN_FLASHSTRING("DS18B20 not found");
     address[0] = 0; // Indicate that no DS18B20 was found.
     }
+
   return(found);
   }
 
@@ -132,5 +151,28 @@ int16_t TemperatureC16_DS18B20::read()
   return(rawC16);
   }
 
+// Return the address of this sensor
+void TemperatureC16_DS18B20::getAddress(uint8_t address[8])
+{
+  for (uint8_t i = 0; i < 8; ++i) { address[i] = this->address[i]; }
+}
 
+int TemperatureC16_DS18B20::numberSensors(OTV0P2BASE::MinimalOneWireBase &minOW)
+  {
+  uint8_t address[8];
+  int count = 0;
+  minOW.reset_search();
+  while (minOW.search(address))
+    {
+    // Is it a DS18B20?
+    if (0x28 == address[0]) 
+      { 
+      count++;
+      }
+    }
+
+  // Be nice to other clients
+  minOW.reset_search();
+  return count;
+  }
 }

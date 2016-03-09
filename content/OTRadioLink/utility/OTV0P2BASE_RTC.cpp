@@ -59,7 +59,7 @@ volatile uint_least16_t _daysSince1999LT;
 // The bottom 3 bits indicate the quarter hour as follows:
 // 111 => :00, 110 => :15, 100 => :30, 000 => :45.
 // Invalid values (in particular, 0xff, for an erased byte) are ignored.
-// On the hour the full byte is erased and written written, including the lsbits at 1.
+// On the hour the full byte is erased and written, including all the lsbits at 1.
 // At each quarter hour one of the lsbits is written to zero (no erase is needed).
 // Thus an hour causes 1 erase and 4 writes (3 of which only affect one bit each).
 // The AVR EEPROM is rated for 100k cycles per byte (or page, not clear from docs),

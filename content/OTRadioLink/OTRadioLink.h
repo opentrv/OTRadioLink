@@ -26,6 +26,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 // Radio message frame types and related information.
 #include "utility/OTRadioLink_FrameType.h"
 #include "utility/OTRadioLink_SecureableFrameType.h"
+#include "utility/OTRadioLink_SecureableFrameType_V0p2Impl.h"
 
 // Radio Link base class definition.
 #include "utility/OTRadioLink_OTRadioLink.h"

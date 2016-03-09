@@ -91,17 +91,18 @@ bool ensureIDCreated(const bool force)
 
 
 /**
- * @brief   Sets the primary building 16 byte secret key in eeprom.
+ * @brief   Sets the primary building 16 byte secret key in EEPROM.
  * @param   newKey    A pointer to the first byte of a 16 byte array containing the new key.
  *                    On passing a NULL pointer, the stored key will be cleared.
  *                    NOTE: The key pointed to by newKey must be stored as binary, NOT as text.
  * @retval  true if key is cleared successfully or new key is set, else false.
  */
+// Functions for setting a 16 byte primary building secret key which must not be all-1s.
 bool setPrimaryBuilding16ByteSecretKey(const uint8_t *newKey) // <-- this should be 16-byte binary, NOT text!
 {
     // if newKey is a null pointer, clear existing key
     if(newKey == NULL) {
-        // clear key here
+        // Clear key.
         for(uint8_t i = 0; i < VOP2BASE_EE_LEN_16BYTE_PRIMARY_BUILDING_KEY; i++) {
             eeprom_smart_update_byte(((uint8_t *)VOP2BASE_EE_START_16BYTE_PRIMARY_BUILDING_KEY)+i, 0xff);
         }
@@ -118,27 +119,31 @@ bool setPrimaryBuilding16ByteSecretKey(const uint8_t *newKey) // <-- this should
 /**
  * @brief   Fills an array with the 16 byte primary building key.
  * @param   key  pointer to a 16 byte buffer to write the key too.
- * @retval  true if written successfully, false if key is a NULL pointer
- * @note    Does not check if a key has been set.
+ * @retval  true if key appears to be set and is retrieved
  */
 bool getPrimaryBuilding16ByteSecretKey(uint8_t *key)
   {
   if(key == NULL) { return(false); }
-//  for(uint8_t i = 0; i < OTV0P2BASE::VOP2BASE_EE_LEN_16BYTE_PRIMARY_BUILDING_KEY; i++)
-//    { *key++ = eeprom_read_byte((uint8_t *)OTV0P2BASE::VOP2BASE_EE_START_16BYTE_PRIMARY_BUILDING_KEY+i); }
   eeprom_read_block(key,
                     (uint8_t *)OTV0P2BASE::VOP2BASE_EE_START_16BYTE_PRIMARY_BUILDING_KEY,
                     OTV0P2BASE::VOP2BASE_EE_LEN_16BYTE_PRIMARY_BUILDING_KEY);
-  return(true); // Lie and claim that key is OK.
+  bool isOK = false;
+  for(uint8_t i = 0; i < OTV0P2BASE::VOP2BASE_EE_LEN_16BYTE_PRIMARY_BUILDING_KEY; ++i)
+    { if(0xff != key[i]) { isOK = true; } } // Keep execution time relatively constant; no 'break'.
+  return(isOK);
   }
 
 /**
- * @brief Clears all existing node IDs by erasing the first byte of each entry.
+ * @brief Clears all existing node IDs.
  */
 void clearAllNodeAssociations()
 {
     uint8_t *nodeIDPtr = (uint8_t *)V0P2BASE_EE_START_NODE_ASSOCIATIONS;
-    // loop through EEPROM node ID locations, erasing the first byte
+////     It would be sufficient to ensure that the first byte of the first entry is erased (0xff)
+////     IF we erase the first byte of the following entry each time we add any except the last.
+//    eeprom_smart_erase_byte(nodeIDPtr);
+    // Loop through EEPROM node ID locations, erasing the first byte of each.
+    // (0xff is never a valid OpenTRV ID byte.)
     for(uint8_t i = 0; i < V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS; ++i) {
         eeprom_smart_erase_byte(nodeIDPtr);
         nodeIDPtr += V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE; // increment ptr
@@ -177,14 +182,21 @@ bool getNodeAssociation(const uint8_t index, uint8_t *const nodeID)
  * @param   pointer to new 8 byte node ID
  * @retval  index of this new association, or -1 if no space
  */
+// TODO: optionally allow setting (persistent) MSBs of counter to current+1 and force counterparty restart to eliminate replay attack.
 int8_t addNodeAssociation(const uint8_t *nodeID)
 {
     uint8_t *eepromPtr = (uint8_t *)V0P2BASE_EE_START_NODE_ASSOCIATIONS;
     // Loop through node ID locations checking for empty slot marked by invalid byte (0xff).
     for(uint8_t i = 0; i < V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS; i ++) {
         if(eeprom_read_byte(eepromPtr) == 0xff) {
-            for(uint8_t j = 0; j < V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH; j++)
-                eeprom_smart_update_byte(eepromPtr++, *nodeID++);
+            for(uint8_t j = 0; j < V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE; j++) {
+                if(j < V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH) {
+                    eeprom_smart_update_byte(eepromPtr++, *nodeID++);
+                } else {
+                    // On writing a new association/entry all bytes after the ID must be erased to 0xff.
+                    eeprom_smart_erase_byte(eepromPtr++);
+                }
+            }
             return (i);
         }
         eepromPtr += V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE; // increment ptr
@@ -196,49 +208,51 @@ int8_t addNodeAssociation(const uint8_t *nodeID)
  * @brief   Returns first matching node ID after the index provided. If no
  *          matching ID found, it will return -1.
  * @param   index   Index to start searching from.
- *          prefix  Prefix to match.
+ *          prefix  Prefix to match; can be NULL iff prefixLen == 0.
  *          prefixLen  Length of prefix, [0,8] bytes.
- *          nodeID  Buffer to write nodeID to. THIS IS NOT PRESERVED WHEN FUNCTION RETURNS -1!
+ *          nodeID  Buffer to write nodeID to; can be NULL if only the index return value is required. THIS IS NOT PRESERVED WHEN FUNCTION RETURNS -1!
  * @retval  returns index or -1 if no matching node ID found
  */
 int8_t getNextMatchingNodeID(const uint8_t _index, const uint8_t *prefix, const uint8_t prefixLen, uint8_t *nodeID)
 {
     // Validate inputs.
-    if((prefix == NULL) | (nodeID == NULL)) { return(-1); }
-    if(prefixLen >= V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH) { return(-1); }
-
-    uint8_t index = _index;
-    uint8_t *eepromPtr = (uint8_t *)V0P2BASE_EE_START_NODE_ASSOCIATIONS + (index *  V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE);
+    if(_index >= V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS) { return(-1); }
+    if(prefixLen > V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH) { return(-1); }
+    if((NULL == prefix) && (0 != prefixLen)) { return(-1); }
 
     // Loop through node IDs until match or last entry tested.
     //   - if a match is found, return index and fill nodeID
     //   - if no match, exit loop.
-    for(; index < V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS; index++) {
+    uint8_t *eepromPtr = (uint8_t *)V0P2BASE_EE_START_NODE_ASSOCIATIONS + (_index *  (int)V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE);
+    for(uint8_t index = _index; index < V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS; index++) {
         uint8_t temp = eeprom_read_byte(eepromPtr); // temp variable for byte read
         if(temp == 0xff) { return(-1); } // last entry reached. exit w/ error.
         else if((0 == prefixLen) || (temp == *prefix)) { // this is the case where it matches
             // loop through first prefixLen bytes of nodeID, comparing output
             uint8_t i; // persistent loop counter
             uint8_t *tempPtr = eepromPtr;    // temp pointer so that eepromPtr is preserved if not a match
-            nodeID[0] = temp;
+            if(NULL != nodeID) { nodeID[0] = temp; }
             for(i = 1; i < prefixLen; i++) {
                 // if bytes match, copy and check next byte?
                 temp = eeprom_read_byte(tempPtr++);
                 if(prefix[i] == temp) {
-                    nodeID[i] = temp;
+                    if(NULL != nodeID) { nodeID[i] = temp; }
                 } else break; // exit inner loop.
             }
-            // Since prefix matches, copy rest of node ID
-            for (; i < (V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH); i++) {
-                nodeID[i] = eeprom_read_byte(tempPtr++);
+            if(NULL != nodeID) {
+                // Since prefix matches, copy rest of node ID.
+                for (; i < (V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH); i++) {
+                    nodeID[i] = eeprom_read_byte(tempPtr++);
+                }
             }
             return index;
         }
-        eepromPtr += V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE; // Increment ptr to next node ID field
+        eepromPtr += V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE; // Increment ptr to next node ID field.
     }
 
     // No match has been found.
     return(-1);
 }
+
 
 }

@@ -103,6 +103,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #endif // CONFIG_REV14_PROTO
 
 #ifdef CONFIG_REV14 // REV14 w/ light sensor, SHT21 and voice sensor.
+// Measured current consumption (no QM-1 or mobdet): 100-200 uA when serial shut and not attempting TX.
 // Revision REV14 of V0.2 board, Sensor unit with LoRa module and voice detector.
 // In this off-label mode being used as stats gatherers or simple hubs.
 // DE20160221: I may have made a mistake with my oscilloscope setup doing the earlier readings. Revised values below:

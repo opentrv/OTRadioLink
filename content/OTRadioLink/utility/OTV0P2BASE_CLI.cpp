@@ -44,6 +44,8 @@ void InvalidIgnored() { Serial.println(F("Invalid, ignored.")); }
 //        - Only accepts upper case for hex values.
 //        To clear all nodes: "A *".
 //        To query current status "A ?".
+// On writing a new association/entry all bytes after the ID must be erased to 0xff.
+// TODO: optionally allow setting (persistent) MSBs of counter to current+1 and force counterparty restart to eliminate replay attack.
 bool SetNodeAssoc::doCommand(char *const buf, const uint8_t buflen)
     {
     char *last; // Used by strtok_r().
@@ -230,6 +232,8 @@ bool NodeID::doCommand(char *const buf, const uint8_t buflen)
 
 // Set secret key ("K ...").
 // "K B XX .. XX"  sets the primary building key, "K B *" erases it.
+// Clearing a key conditionally resets the primary TX message counter to avoid IV reuse
+// if a non-NULL callback has been provided.
 bool SetSecretKey::doCommand(char *const buf, const uint8_t buflen)
     {
     char *last; // Used by strtok_r().
@@ -259,6 +263,8 @@ bool SetSecretKey::doCommand(char *const buf, const uint8_t buflen)
                         }
                     Serial.println();
 #endif
+                    // Notify key cleared.
+                    if(NULL != keysClearedFn) { keysClearedFn(); }
                     return(false);
                     }
                 else if(buflen >= 3 + 2*16)
