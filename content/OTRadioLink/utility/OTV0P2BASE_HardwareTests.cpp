@@ -55,7 +55,7 @@ namespace HWTEST
 bool check32768HzOsc()
     {
     // Check that the 32768Hz async clock is actually running at least somewhat.
-    const uint8_t earlySCT = OTV0P2BASE::getSubCycleTime();
+    const uint8_t initialSCT = OTV0P2BASE::getSubCycleTime();
 
     // Allow time for 32768Hz crystal to start reliably, see: http://www.atmel.com/Images/doc1259.pdf
 #if 0 && defined(DEBUG)
@@ -70,8 +70,8 @@ bool check32768HzOsc()
         {
         const uint8_t sct = OTV0P2BASE::getSubCycleTime();
         OTV0P2BASE::addEntropyToPool(sct, 0);
-        // If counter has incremented/changed then assume probably OK.
-        if(sct != earlySCT) { return(true); }
+        // If counter has incremented/changed (twice) then assume probably OK.
+        if((sct != initialSCT) && (sct != (uint8_t)(initialSCT+1))) { return(true); }
         // Ensure lower bound of ~3s until loop finishes.
         OTV0P2BASE::nap(WDTO_15MS);
         }
@@ -106,9 +106,9 @@ bool check32768HzOscExtended()
         ::OTV0P2BASE::nap(WDTO_15MS);
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
             {
-            // wait for edge on xtal counter
-            // start counting cycles
-            // on next edge, stop
+            // Wait for edge on xtal counter edge.
+            // Start counting cycles.
+            // On next edge, stop.
             const uint8_t t0 = TCNT2;
             while(t0 == TCNT2) {}
             const uint8_t t01 = TCNT0;
@@ -117,7 +117,7 @@ bool check32768HzOscExtended()
             const uint8_t t02 = TCNT0;
             count = t02-t01;
             }
-      // Check end conditions
+      // Check end conditions.
       if((count < optimalLFClock+errorLFClock) & (count > optimalLFClock-errorLFClock)) { break; }
       if(i > 30) { return(false); } // FAIL { panic(F("xtal")); }
       // Capture some entropy from the (chaotic?) clock wobble, but don't claim any.  (TODO-800)
