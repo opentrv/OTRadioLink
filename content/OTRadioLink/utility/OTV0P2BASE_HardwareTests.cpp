@@ -106,9 +106,9 @@ bool check32768HzOscExtended()
         ::OTV0P2BASE::nap(WDTO_15MS);
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
             {
-            // wait for edge on xtal counter
-            // start counting cycles
-            // on next edge, stop
+            // Wait for edge on xtal counter edge.
+            // Start counting cycles.
+            // On next edge, stop.
             const uint8_t t0 = TCNT2;
             while(t0 == TCNT2) {}
             const uint8_t t01 = TCNT0;
@@ -117,7 +117,7 @@ bool check32768HzOscExtended()
             const uint8_t t02 = TCNT0;
             count = t02-t01;
             }
-      // Check end conditions
+      // Check end conditions.
       if((count < optimalLFClock+errorLFClock) & (count > optimalLFClock-errorLFClock)) { break; }
       if(i > 30) { return(false); } // FAIL { panic(F("xtal")); }
       // Capture some entropy from the (chaotic?) clock wobble, but don't claim any.  (TODO-800)
