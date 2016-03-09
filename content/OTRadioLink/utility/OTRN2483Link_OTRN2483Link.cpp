@@ -31,6 +31,7 @@ bool OTRN2483Link::begin() {
 	char buffer[5];
 	memset(buffer, 0, 5);
 
+	// Wait for RN2483 to boot properly to avoid autobauding issues
 	OTV0P2BASE::nap(WDTO_30MS);
 
 	// init resetPin
@@ -62,7 +63,7 @@ bool OTRN2483Link::begin() {
     setDataRate(1); // Send at slowest rate possible without breaking etsi (SF12)
 #endif
     // set power level
-//    setTxPower(2);
+//    setTxPower(1);
 
     // join network
     joinABP();
