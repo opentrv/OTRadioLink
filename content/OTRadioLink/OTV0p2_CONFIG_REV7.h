@@ -107,6 +107,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 // Does not ever need to act as a boiler hub nor to receive stats.
 // Although LEARN buttons are provided, by default they are disabled as is the scheduler.
 // Fast temp dial sampling is forced on to help compensate for mechanical slop in early devices.
+// Delayed activation is enabled.  (TODO-786)
 // IF DEFINED: try to trim memory (primarily RAM, also code/Flash) space used.
 #define ENABLE_TRIMMED_MEMORY
 // IF DEFINED: try to trim bandwidth as may be especially expensive/scarce.
@@ -141,6 +142,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 // IF DEFINED: always allow some kind of stats TX, whatever the privacy settings.
 // OK IN THIS CASE BECAUSE ALL COMMS SECURE.
 #define ENABLE_ALWAYS_TX_ALL_STATS
+// IF DEFINED: enable a CLI-settable setback lockout (hours/days) to establish a baseline before engaging energy saving setbacks.
+#define ENABLE_SETBACK_LOCKOUT_COUNTDOWN
 #endif
 
 
