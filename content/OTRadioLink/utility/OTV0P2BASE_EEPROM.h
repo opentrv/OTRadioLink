@@ -158,7 +158,7 @@ int8_t eeprom_unary_2byte_decode(uint16_t v);
 
 // Lockout time in hours before energy-saving setbacks are enabled (if not 0), stored inverted.
 // Stored inverted so that a default erased (0xff) value will be seen as 0, so no lockout and thus normal behaviour.
-#define V0P2BASE_EE_START_SETBACK_LOCKOUT_COUNTDOWN_H_INV 32
+static const intptr_t V0P2BASE_EE_START_SETBACK_LOCKOUT_COUNTDOWN_H_INV = 32;
 
 
 // TX message counter (most-significant) persistent reboot/restart 3 bytes.  (TODO-728)
