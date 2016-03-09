@@ -94,21 +94,6 @@ bool check32768HzOscExtended()
     // Check that the slow clock appears to be running.
     if(!check32768HzOsc()) { return(false); }
 
-    // Appears to be running.
-    return(true);
-    }
-
-// Returns true if the 32768Hz low-frequency async crystal oscillator appears to be running and sane.
-// Performs an extended test that the CPU (RC) and crystal frequencies are in a sensible ratio.
-// This means the the Timer 2 clock needs to be running
-// and have an acceptable frequency compared to the CPU clock (1MHz).
-// Uses nap, and needs the Timer 2 to have been set up in async clock mode.
-// In passing gathers some entropy for the system.
-bool check32768HzOscExtended()
-    {
-    // Check that the slow clock appears to be running.
-    if(!check32768HzOsc()) { return(false); }
-
     // Test low frequency oscillator vs main CPU clock oscillator (at 1MHz).
     // Tests clock frequency between 15 ms naps between for up to 30 cycles and fails if not within bounds.
     // As of 2016-02-16, all working REV7s give count >= 120 and that fail to program via bootloader give count <= 119
