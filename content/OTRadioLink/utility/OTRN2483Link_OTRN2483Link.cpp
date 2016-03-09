@@ -30,6 +30,9 @@ OTRN2483Link::OTRN2483Link(uint8_t _nRstPin, uint8_t rxPin, uint8_t txPin) : con
 bool OTRN2483Link::begin() {
 	char buffer[5];
 	memset(buffer, 0, 5);
+
+	OTV0P2BASE::nap(WDTO_30MS);
+
 	// init resetPin
 	pinMode(nRstPin, INPUT);	// TODO This is shorting on my board
 	// Begin OTSoftSerial
@@ -38,6 +41,8 @@ bool OTRN2483Link::begin() {
 //	print("sys factoryRESET\r\n");
 //    factoryReset();
 	// set baudrate
+
+
 	setBaud();
 	// todo check RN2483 is present and communicative here
 

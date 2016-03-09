@@ -14,6 +14,7 @@ pending:
     DE20160201:  Added set-able pin defs 
     DE20160221:  Added optional sleep and eeprom modes, and implemented reset line
     DE20160221:  Added nap before entering sleep
-    DE20160308:  Removed nap as broken, Added data rate and Tx power settings
+    DE20160308:  Removed sleep as broken, Added data rate and Tx power settings
+    De20160309:  Added nap at start of begin() to fix autobauding issues. 
     
 

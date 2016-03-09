@@ -44,7 +44,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
 // IF DEFINED: Assumes that LoRaWAN settings are saved in RN2483 EEPROM and does not attempt to set them itself
 //#define RN2483_CONFIG_IN_EEPROM
 // IF DEFINED: Enables adaptive data rate. This is only relevant if RN2483_CONFIG_IN_EEPROM is UNDEFINED
-//#define RN2483_ENABLE_ADR // TODO: Untested but may reduce power consumption
+#define RN2483_ENABLE_ADR // TODO: Untested but may reduce power consumption
 
 #include <Arduino.h>
 #include <avr/eeprom.h>

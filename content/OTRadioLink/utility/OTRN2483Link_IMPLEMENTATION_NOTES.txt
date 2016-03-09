@@ -93,5 +93,9 @@ From the LoRaWAN spec:
 NOTE: The table in the RN2483 datasheet gives settings between -3 to 15. This only applies to point to point Tx. For LoRaWAN, the values from the LoRaWAN-A spec are correct.
 
 
+Startup Autobauding:
+When attempting to autobaud the RN2483 too quickly after powering the module, it locks onto the wrong baud. A 15 ms delay is enough to prevent this behavious and so a 30 ms delay is being used.
+
+
 
 
