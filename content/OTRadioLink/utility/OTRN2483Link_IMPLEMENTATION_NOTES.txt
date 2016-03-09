@@ -40,7 +40,7 @@ Common points:
 - if length is over 100, returns "invalid_data_len"
 
 
-Using Adaptive Data Rate (WILL BE TESTED ON 2016/03/08):
+Using Adaptive Data Rate (20160309 - Have yet to see the data rate change):
 This requires 2 steps:
 1) Use the "mac set ch drrange" command to set a minimum and maximum per channel data rate.
 2) Use the "mac adr on" command to activate adaptive data rate.
