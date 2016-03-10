@@ -60,12 +60,8 @@ class TemperatureC16_DS18B20 : public TemperatureC16Base
     // Precision in range [9,12].
     const uint8_t precision;
 
-    // Ordinal of this DS18B20 on the OW bus.
-    // FIXME: not currently used.
-    const uint8_t busOrder;
-
-    // Address of DS18B20 being used, else [0] == 0 if none found.
-    uint8_t address[8];
+    // The number of sensors found on the bus
+    int numberSensors;
 
     // Initialise the device (if any) before first use.
     // Returns true iff successful.
@@ -87,29 +83,40 @@ class TemperatureC16_DS18B20 : public TemperatureC16Base
 
     // Returns true if this sensor is definitely unavailable or behaving incorrectly.
     // This is after an attempt to initialise has not found a DS18B20 on the bus.
-    virtual bool isUnavailable() const { return(initialised && (0 == address[0])); }
+    virtual bool isUnavailable() const { return(initialised && 0 == numberSensors); }
 
     // Create instance with given OneWire connection, bus ordinal and precision.
     // No two instances should attempt to target the same DS18B20,
     // though different DS18B20s on the same bus or different buses is allowed.
     // Precision defaults to minimum (9 bits, 0.5C resolution) for speed.
-    TemperatureC16_DS18B20(OTV0P2BASE::MinimalOneWireBase &ow, uint8_t _busOrder = 0, uint8_t _precision = DEFAULT_PRECISION)
-      : minOW(ow), initialised(false), precision(constrain(_precision, MIN_PRECISION, MAX_PRECISION)), busOrder(_busOrder)
+    TemperatureC16_DS18B20(OTV0P2BASE::MinimalOneWireBase &ow, uint8_t _precision = DEFAULT_PRECISION)
+      : minOW(ow), initialised(false), precision(constrain(_precision, MIN_PRECISION, MAX_PRECISION))
       { }
 
     // Get current precision in bits [9,12]; 9 gives 1/2C resolution, 12 gives 1/16C resolution.
     uint8_t getPrecisionBits() const { return(precision); }
 
+    // return the number of DS18B20 sensors on the bus
+    int getNumberSensors();
+
     // Force a read/poll of temperature and return the value sensed in nominal units of 1/16 C.
     // At sub-maximum precision lsbits will be zero or undefined.
     // Expensive/slow.
     // Not thread-safe nor usable within ISRs (Interrupt Service Routines).
+    // When multiple DS18B20 are connected this will read the 'first' one, use ReadMultiple to read the 
+    // values from more than the just the first
     virtual int16_t read();
 
-    // Return the address of this sensor
-    void getAddress(uint8_t address[8]);
-
-    static int numberSensors(OTV0P2BASE::MinimalOneWireBase &minOW);
+    // Force a read/poll of temperature from multiple DS18B29 sensors. The value sensed, in nominal units 
+    // of 1/16 C, is written to the array of uint16_t (with count elements) pointed to by values. The values 
+    // are written in the order they are found on the One-Wire bus. 
+    // index specifies the sensor to start reading at 0 being the first. This can be used to read more sensors 
+    // than elements in the values array
+    // The return is the number of values read
+    // At sub-maximum precision lsbits will be zero or undefined.
+    // Expensive/slow.
+    // Not thread-safe nor usable within ISRs (Interrupt Service Routines).
+    int readMultiple(int16_t *values, int count, int index = 0);
   };
 
 
