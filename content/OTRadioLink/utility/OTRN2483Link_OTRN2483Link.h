@@ -51,7 +51,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
 #include <avr/pgmspace.h>
 #include <OTRadioLink.h>
 #include <OTV0p2Base.h>
-#include <string.h>ed25
+#include <string.h>
 #include <stdint.h>
 
 namespace OTRN2483Link
