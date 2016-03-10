@@ -60,6 +60,9 @@ namespace CLI {
     // Dump (human-friendly) stats (eg "D N").
     class DumpStats : public CLIEntryBase { public: virtual bool doCommand(char *buf, uint8_t buflen); };
 
+    // Show/set generic parameter values (eg "G N [M]").
+    class GenericParam : public CLIEntryBase { public: virtual bool doCommand(char *buf, uint8_t buflen); };
+
     // Used to show or reset node ID (eg "I").
     //
     // Set or display new random ID.

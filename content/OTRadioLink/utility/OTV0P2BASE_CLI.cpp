@@ -215,6 +215,13 @@ bool DumpStats::doCommand(char *const buf, const uint8_t buflen)
     return(false);
     }
 
+// Show/set generic parameter values (eg "G N [M]").
+bool GenericParam::doCommand(char *const buf, const uint8_t buflen)
+    {
+    InvalidIgnored();
+    return(true);
+    }
+
 // Show / reset node ID ('I').
 bool NodeID::doCommand(char *const buf, const uint8_t buflen)
     {
