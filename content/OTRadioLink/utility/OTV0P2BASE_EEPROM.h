@@ -156,13 +156,20 @@ int8_t eeprom_unary_2byte_decode(uint16_t v);
 // Minimum (total percentage across all rads) that all rads should be on before heating should fire.
 #define V0P2BASE_EE_START_MIN_TOTAL_VALVE_PC_OPEN 31 // Ignored entirely if outside range [1,100], eg if default/unprogrammed 0xff.
 
-// Lockout time in hours before energy-saving setbacks are enabled (if not 0), stored inverted.
-// Stored inverted so that a default erased (0xff) value will be seen as 0, so no lockout and thus normal behaviour.
-static const intptr_t V0P2BASE_EE_START_SETBACK_LOCKOUT_COUNTDOWN_H_INV = 32;
 
+// GENERIC STORAGE AREA.
+// Lowest EEPROM address allowed for raw inspect/set.
+// Items beyond this may be particularly security-sensitive, eg secret keys.
+static const intptr_t V0P2BASE_EE_START_RAW_INSPECTABLE = 32;
+// Length of generic storage area.
+static const uint8_t V0P2BASE_EE_LEN_RAW_INSPECTABLE = 32;
 // Highest EEPROM address allowed for raw inspect/set.
 // Items beyond this may be particularly security-sensitive, eg secret keys.
-static const intptr_t V0P2BASE_EE_END_RAW_INSPECTABLE = 63;
+static const intptr_t V0P2BASE_EE_END_RAW_INSPECTABLE = V0P2BASE_EE_START_RAW_INSPECTABLE + V0P2BASE_EE_LEN_RAW_INSPECTABLE - 1;
+// Lockout time in hours before energy-saving setbacks are enabled (if not 0), stored inverted.
+// Stored inverted so that a default erased (0xff) value will be seen as 0, so no lockout and thus normal behaviour.
+static const intptr_t V0P2BASE_EE_START_SETBACK_LOCKOUT_COUNTDOWN_H_INV = 0 + V0P2BASE_EE_START_RAW_INSPECTABLE;
+
 
 // TX message counter (most-significant) persistent reboot/restart 3 bytes.  (TODO-728)
 // Nominally the counter associated with the primary TX key,
