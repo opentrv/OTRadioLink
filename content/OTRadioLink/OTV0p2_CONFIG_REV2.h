@@ -187,6 +187,12 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 #ifdef CONFIG_Trial2013Winter_Round2_SECURE_NOHUB
 #define CONFIG_Trial2013Winter_Round2 // Just like normal REV2 except...
+// IF DEFINED: try to trim bandwidth as may be especially expensive/scarce.
+#undef ENABLE_TRIMMED_BANDWIDTH
+// IF DEFINED: support one on and one off time per day (possibly in conjunction with 'learn' button).
+#undef ENABLE_SINGLETON_SCHEDULE
+// IF DEFINED: use active-low LEARN button(s).  Needs ENABLE_SINGLETON_SCHEDULE.
+#undef ENABLE_LEARN_BUTTON // OPTIONAL ON V0.09 PCB1
 // IF DEFINED: this unit can act as boiler-control hub listening to remote thermostats, possibly in addition to controlling a local TRV.
 #undef ENABLE_BOILER_HUB
 // IF DEFINED: allow RX of stats frames.
@@ -215,6 +221,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #define ENABLE_OTSECUREFRAME_ENCODING_SUPPORT
 // IF DEFINED: allow non-secure OpenTRV secure frame RX (as of 2015/12): DISABLED BY DEFAULT.
 #undef ENABLE_OTSECUREFRAME_INSECURE_RX_PERMITTED
+// IF DEFINED: enable a CLI-settable setback lockout (hours/days) to establish a baseline before engaging energy saving setbacks.
+#define ENABLE_SETBACK_LOCKOUT_COUNTDOWN
 #endif
 
 

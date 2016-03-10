@@ -239,7 +239,7 @@ bool GenericParam::doCommand(char *const buf, const uint8_t buflen)
       const int v = atoi(tok2);
       if((v < 0) || (v > 255)) { InvalidIgnored(); return(false); }
       const uint8_t vb = (uint8_t) v;
-      Serial.println(eeprom_smart_update_byte((uint8_t *)(V0P2BASE_EE_START_RAW_INSPECTABLE + paramN), vb));
+      eeprom_smart_update_byte((uint8_t *)(V0P2BASE_EE_START_RAW_INSPECTABLE + paramN), vb);
       return(true);
       }
     InvalidIgnored();
