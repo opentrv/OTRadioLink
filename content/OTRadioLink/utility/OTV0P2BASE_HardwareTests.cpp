@@ -47,7 +47,7 @@ namespace HWTEST
 {
 
 
-// Returns true if the 32768Hz low-frequency async crystal oscillator appears to be sane.
+// Returns true if the 32768Hz low-frequency async crystal oscillator appears to be running.
 // This means the the Timer 2 clock needs to be running
 // and have an acceptable frequency compared to the CPU clock (1MHz).
 // Uses nap, and needs the Timer 2 to have been set up in async clock mode.
@@ -55,31 +55,44 @@ namespace HWTEST
 bool check32768HzOsc()
     {
     // Check that the 32768Hz async clock is actually running at least somewhat.
-    const uint8_t earlySCT = OTV0P2BASE::getSubCycleTime();
+    const uint8_t initialSCT = OTV0P2BASE::getSubCycleTime();
 
     // Allow time for 32768Hz crystal to start reliably, see: http://www.atmel.com/Images/doc1259.pdf
 #if 0 && defined(DEBUG)
     DEBUG_SERIAL_PRINTLN_FLASHSTRING("Sleeping to let 32768Hz clock start...");
 #endif
-    // Time spent here should not be a whole multiple of basic cycle time to avoid a spuriously-stationary async clock reading!
+    // Time spent here should not be a whole multiple of basic cycle time
+    // to avoid a spuriously-stationary async clock reading!
     // Allow several seconds (~3s+) to start.
     // Attempt to capture some entropy while waiting,
     // implicitly from oscillator start-up time if nothing else.
-    uint8_t sct;
-    for(uint8_t i = 255; (--i > 0) && (earlySCT == (sct = OTV0P2BASE::getSubCycleTime())); )
+    for(uint8_t i = 255; --i > 0; )
         {
+        const uint8_t sct = OTV0P2BASE::getSubCycleTime();
         OTV0P2BASE::addEntropyToPool(sct, 0);
-        OTV0P2BASE::nap(WDTO_15MS); // Ensure lower bound of ~3s until loop finishes.
+        // If counter has incremented/changed (twice) then assume probably OK.
+        if((sct != initialSCT) && (sct != (uint8_t)(initialSCT+1))) { return(true); }
+        // Ensure lower bound of ~3s until loop finishes.
+        OTV0P2BASE::nap(WDTO_15MS);
         }
 #endif
-    const uint8_t latestSCT = OTV0P2BASE::getSubCycleTime();
-    if(latestSCT == earlySCT)
-        {
+
 #if 0 && defined(DEBUG)
-        DEBUG_SERIAL_PRINTLN_FLASHSTRING("32768Hz clock may not be running!");
+    DEBUG_SERIAL_PRINTLN_FLASHSTRING("32768Hz clock may not be running!");
 #endif
-        return(false); // FAIL // panic(F("Xtal")); // Async clock not running.
-        }
+    return(false); // FAIL // panic(F("Xtal")); // Async clock not running.
+    }
+
+// Returns true if the 32768Hz low-frequency async crystal oscillator appears to be running and sane.
+// Performs an extended test that the CPU (RC) and crystal frequencies are in a sensible ratio.
+// This means the the Timer 2 clock needs to be running
+// and have an acceptable frequency compared to the CPU clock (1MHz).
+// Uses nap, and needs the Timer 2 to have been set up in async clock mode.
+// In passing gathers some entropy for the system.
+bool check32768HzOscExtended()
+    {
+    // Check that the slow clock appears to be running.
+    if(!check32768HzOsc()) { return(false); }
 
     // Test low frequency oscillator vs main CPU clock oscillator (at 1MHz).
     // Tests clock frequency between 15 ms naps between for up to 30 cycles and fails if not within bounds.
@@ -93,9 +106,9 @@ bool check32768HzOsc()
         ::OTV0P2BASE::nap(WDTO_15MS);
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
             {
-            // wait for edge on xtal counter
-            // start counting cycles
-            // on next edge, stop
+            // Wait for edge on xtal counter edge.
+            // Start counting cycles.
+            // On next edge, stop.
             const uint8_t t0 = TCNT2;
             while(t0 == TCNT2) {}
             const uint8_t t01 = TCNT0;
@@ -104,7 +117,7 @@ bool check32768HzOsc()
             const uint8_t t02 = TCNT0;
             count = t02-t01;
             }
-      // Check end conditions
+      // Check end conditions.
       if((count < optimalLFClock+errorLFClock) & (count > optimalLFClock-errorLFClock)) { break; }
       if(i > 30) { return(false); } // FAIL { panic(F("xtal")); }
       // Capture some entropy from the (chaotic?) clock wobble, but don't claim any.  (TODO-800)

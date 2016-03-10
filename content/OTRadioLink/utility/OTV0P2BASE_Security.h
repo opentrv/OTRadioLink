@@ -68,9 +68,9 @@ inline bool validIDByte(const uint8_t v) { return((0 != (0x80 & v)) && (0xff != 
 // Returns true if all values good.
 bool ensureIDCreated(const bool force = false);
 
-// Functions for setting a 16 byte primary building secret key
+// Functions for setting a 16 byte primary building secret key which must not be all-1s.
 /**
- * @brief   Sets the primary building 16 byte secret key in eeprom.
+ * @brief   Sets the primary building 16 byte secret key in EEPROM.
  * @param   newKey    A pointer to the first byte of a 16 byte array containing the new key.
  *                    On passing a NULL pointer, the stored key will be cleared.
  *                    NOTE: The key pointed to by newKey must be stored as binary, NOT as text.
@@ -81,17 +81,16 @@ bool setPrimaryBuilding16ByteSecretKey(const uint8_t *key);
 /**
  * @brief   Fills an array with the 16 byte primary building key.
  * @param   key  pointer to a 16 byte buffer to write the key too.
- * @retval  true if written successfully, false if key is a NULL pointer
- * @note    Does not check if a key has been set.
+ * @retval  true if key appears to be set and is retrieved
  */
 bool getPrimaryBuilding16ByteSecretKey(uint8_t *key);
 
-// Maximum number of node associations that can be maintained.
-// This puts an upper bound on the number of nodes which a hub can listen to.
+// Maximum number of node associations that can be maintained for secure traffic.
+// This puts an upper bound on the number of nodes which a hub can listen to securely.
 static const uint8_t MAX_NODE_ASSOCIATIONS = V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS;
 
 /**
- * @brief   Clears all existing node ID associations (by setting/erasing first byte to 0xff).
+ * @brief   Clears all existing node ID associations.
  */
 void clearAllNodeAssociations();
 
@@ -118,9 +117,9 @@ int8_t addNodeAssociation(const uint8_t *nodeID);
  * @brief   Returns first matching node ID after the index provided. If no
  *          matching ID found, it will return -1.
  * @param   index   Index to start searching from.
- *          prefix  Prefix to match.
+ *          prefix  Prefix to match; can be NULL iff prefixLen == 0.
  *          prefixLen  Length of prefix, [0,8] bytes.
- *          nodeID  Buffer to write nodeID to. THIS IS NOT PRESERVED WHEN FUNCTION RETURNS -1!
+ *          nodeID  Buffer to write nodeID to; can be NULL if only the index return value is required. THIS IS NOT PRESERVED WHEN FUNCTION RETURNS -1!
  * @retval  returns index or -1 if no matching node ID found
  */
 int8_t getNextMatchingNodeID(uint8_t _index, const uint8_t *prefix, uint8_t prefixLen, uint8_t *nodeID);

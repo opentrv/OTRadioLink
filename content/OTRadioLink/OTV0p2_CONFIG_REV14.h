@@ -103,6 +103,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #endif // CONFIG_REV14_PROTO
 
 #ifdef CONFIG_REV14 // REV14 w/ light sensor, SHT21 and voice sensor.
+// Measured current consumption (no QM-1 or mobdet): 100-200 uA when serial shut and not attempting TX.
 // Revision REV14 of V0.2 board, Sensor unit with LoRa module and voice detector.
 // In this off-label mode being used as stats gatherers or simple hubs.
 // DE20160221: I may have made a mistake with my oscilloscope setup doing the earlier readings. Revised values below:
@@ -165,7 +166,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 //#define RADIO_PRIMARY_RN2483 // Must be secondary to avoid sending preamble etc
 #define RADIO_SECONDARY_RN2483
 
-#define ENABLE_FREQUENT_STATS_TX
+//#define ENABLE_FREQUENT_STATS_TX
 #define ENABLE_JSON_STATS_LEN_CAP 49
 // Define voice module
 //#define ENABLE_VOICE_SENSOR
