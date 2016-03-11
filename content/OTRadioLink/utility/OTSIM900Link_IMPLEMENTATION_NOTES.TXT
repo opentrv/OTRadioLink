@@ -1,0 +1,23 @@
+Preparing the SIM900 for use with the REV10
+
+1) Find the power pin jumper (JP on the geeetech SIM900 v2.0) and bridge it with a blob of solder.
+
+2) Setting the baud on the SIM900:
+
+IMPORTANT: The current V0p2 with softserial cannot reach a high enough baud to communicate with the SIM900 by default. The following procedure is only tested on the Arduino UNO (20160311).
+
+    - Make sure the two serial selector jumpers are set to SWserial (J7 on the geeetech SIM900 v2.0).
+    - Load the sketch OTRadioLink/dev/utils/setSim900Baud/setSim900Baud.ino onto the Arduino (do NOT edit the sketch!)
+    - Unplug the Arduino and attach the SIM900 shield.
+    - Plug the Arduino back in and open the serial terminal.
+    - WRITE WHAT WILL APPEAR ON TERMINAL IF CORRECTLY COMMUNICATING HERE. If it tells you what the baud is then you can talk to it..
+    - Copy the following into the terminal window (without "s) and press enter: "s2400\r"
+    - WRITE EXPECTED RESPONSE FROM SIM900 HERE. It will give a baud back...
+    
+Other notes:
+- The current version of OTSoftSerial (20160311) can run at a maximum of 2400 baud.
+- SIM900 shield pin out:
+    Shield         | Arduino UNO | V0p2_REV10
+    soft serial Rx | D7          | 8
+    soft serial Tx | D8          | 5
+    power toggle   | D9          | A2
