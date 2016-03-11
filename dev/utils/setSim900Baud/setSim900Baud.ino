@@ -27,20 +27,19 @@ void setup() {
   digitalWrite(9, HIGH);
   delay(500);
   digitalWrite(9, LOW);
-  delay(3000);
+  delay(5000);
   while(ser.available() > 0) ser.read();
 
-  Serial.println("Type 's' to set baud");
-  getBaud();
+  setBaud();
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-  char c = 0;
-  if (Serial.available() > 0) c = Serial.read();
-  if (c == 'l') getPossibleBauds();
-  else if (c == 'r') getBaud();
-  else if (c == 's') setBaud();
+//  char c = 0;
+//  if (Serial.available() > 0) c = Serial.read();
+//  if (c == 'l') getPossibleBauds();
+//  else if (c == 'r') getBaud();
+//  else if (c == 's') setBaud();
   
   if (ser.available() > 0) Serial.print((char)ser.read());
 }

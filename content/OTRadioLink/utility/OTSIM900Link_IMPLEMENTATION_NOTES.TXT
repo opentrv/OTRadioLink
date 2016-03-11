@@ -11,18 +11,6 @@ IMPORTANT: The current V0p2 with softserial cannot reach a high enough baud to c
     - Load the sketch OTRadioLink/dev/utils/setSim900Baud/setSim900Baud.ino onto an Arduino UNO (do NOT edit the sketch!).
     - Unplug the Arduino and attach the SIM900 shield.
     - If step 1 has been carried out, the SIM900 should power up on its own. Otherwise, press and hold the power button on the SIM900 until the red light comes on and reset the arduino.
-    - Expected response for a fresh board:
-
-++ Current Baud ++
-AT+IPR?
-
-+IPR: 0
-
-OK
-
-NOTE: The SIM900 has a lengthy and wordy startup sequence. In practice, other strings may be printed to serial. If the above response is visible, the arduino is correctly communicating with the SIM900. 
-
-    - Type 's' into the terminal window.
     - Expected response on success:
     
 ++ Setting Baud to 2400 ++
