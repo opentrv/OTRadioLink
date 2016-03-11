@@ -127,6 +127,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 // Override schedule on time to simple fixed value of 2h per BH request 2015/10/15.
 #define LEARNED_ON_PERIOD_M 120 // Must be <= 255.
 #define LEARNED_ON_PERIOD_COMFORT_M LEARNED_ON_PERIOD_M
+// IF DEFINED: allow use of ambient light sensor.
+#undef ENABLE_AMBLIGHT_SENSOR
 // Bo just wants the timing for his DHW; no occupancy sensing.
 // IF DEFINED: support for general timed and multi-input occupancy detection / use.
 #undef ENABLE_OCCUPANCY_SUPPORT
