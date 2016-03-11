@@ -137,7 +137,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 // IF DEFINED: support for general timed and multi-input occupancy detection / use.
 #undef ENABLE_OCCUPANCY_SUPPORT
 // IF DEFINED: try to trim memory (primarily RAM, also code/Flash) space used.
-#undef ENABLE_TRIMMED_MEMORY
+#define ENABLE_TRIMMED_MEMORY
 // IF DEFINED: try to trim bandwidth as may be especially expensive/scarce.
 #undef ENABLE_TRIMMED_BANDWIDTH
 // IF DEFINED: allow periodic machine- and human- readable status report to serial, starting with "=".
@@ -153,8 +153,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #undef ENABLE_LOCAL_TRV
 // IF DEFINED: this unit controls a valve, but provides slave valve control only.
 #undef ENABLE_SLAVE_TRV
-// IF DEFINED: (default) forced always-on radio listen/RX, eg not requiring setup to explicitly enable.
-#define ENABLE_DEFAULT_ALWAYS_RX
 // IF DEFINED: this unit can act as boiler-control hub listening to remote thermostats, possibly in addition to controlling a local TRV.
 #undef ENABLE_BOILER_HUB
 // IF DEFINED: allow binary stats to be TXed.
@@ -183,9 +181,11 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 // IF DEFINED: allow RX of stats frames.
 #define ENABLE_STATS_RX
 // IF DEFINED: allow TX of local stats frames (should not affect relaying).
-#undef ENABLE_STATS_TX
+#define ENABLE_STATS_TX
 // IF DEFINED: allow radio listen/RX.
 #define ENABLE_RADIO_RX
+// IF DEFINED: (default) forced always-on radio listen/RX, eg not requiring setup to explicitly enable.
+#define ENABLE_DEFAULT_ALWAYS_RX
 // IF DEFINED: allow local generation of JSON stats frames (this may not affect relaying).
 #undef ENABLE_JSON_OUTPUT
 /// IF DEFINED: this unit supports CLI over the USB/serial connection, eg for run-time reconfig.
