@@ -187,7 +187,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 // IF DEFINED: (default) forced always-on radio listen/RX, eg not requiring setup to explicitly enable.
 #define ENABLE_DEFAULT_ALWAYS_RX
 // IF DEFINED: allow local generation of JSON stats frames (this may not affect relaying).
-#undef ENABLE_JSON_OUTPUT
+#define ENABLE_JSON_OUTPUT
 /// IF DEFINED: this unit supports CLI over the USB/serial connection, eg for run-time reconfig.
 #define ENABLE_CLI
 // IF DEFINED: there is run-time help available for the CLI.
