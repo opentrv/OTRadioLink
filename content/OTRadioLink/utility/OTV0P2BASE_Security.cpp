@@ -104,7 +104,7 @@ bool setPrimaryBuilding16ByteSecretKey(const uint8_t *newKey) // <-- this should
     if(newKey == NULL) {
         // Clear key.
         for(uint8_t i = 0; i < VOP2BASE_EE_LEN_16BYTE_PRIMARY_BUILDING_KEY; i++) {
-            eeprom_smart_update_byte(((uint8_t *)VOP2BASE_EE_START_16BYTE_PRIMARY_BUILDING_KEY)+i, 0xff);
+            eeprom_smart_erase_byte(((uint8_t *)VOP2BASE_EE_START_16BYTE_PRIMARY_BUILDING_KEY)+i);
         }
         return(true);
     } else {
