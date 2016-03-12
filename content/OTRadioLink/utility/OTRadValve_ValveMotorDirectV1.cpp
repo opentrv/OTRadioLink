@@ -25,6 +25,12 @@ namespace OTRadValve
     {
 
 
+
+// Time before starting to retract pint during initialisation, in seconds.
+// Long enough for to leave the CLI some time for setting things like setting secret keys.
+// Short enough not to be annoying waiting for the pin to retract before fitting a valve.
+static const uint8_t initialRetractDelay_s = 30;
+
 // Runtime for dead-reckoning adjustments (from stopped) (ms).
 // Smaller values nominally allow greater precision when dead-reckoning,
 // but may force the calibration to take longer.
@@ -207,7 +213,6 @@ uint8_t CurrentSenseValveMotorDirect::CalibrationParameters::computePosition(
   return((uint8_t) (((ticksFromOpenToClosed - ticksFromOpen) * 100UL) / ticksFromOpenToClosed));
   }
 
-
 // Get estimated minimum percentage open for significant flow for this device; strictly positive in range [1,99].
 uint8_t CurrentSenseValveMotorDirect::getMinPercentOpen() const
     {
@@ -307,10 +312,14 @@ OTV0P2BASE::serialPrintlnAndFlush();
       // May also help interaction with CLI at start-up, and reduce peak power demands.
       // Cannot postpone too long as may make user think that something is broken.
       // So, KISS.
-      //
-      // Have approx 7/8 chance of postponing on each call (each 2s),
-      // thus typically start well within 16s.
-      if(0 != (0x70 & OTV0P2BASE::randRNG8())) { break; } // Postpone.
+
+      static uint8_t ticksWaited;
+      // Assume 2s between calls to poll().
+      if(ticksWaited < initialRetractDelay_s/2) { ++ticksWaited; break; } // Postpone
+
+//      // Have approx 7/8 chance of postponing on each call (each 2s),
+//      // thus typically start well within 16s.
+//      if(0 != (0x70 & OTV0P2BASE::randRNG8())) { break; } // Postpone.
 
       // Tactile feedback and ensure that the motor is left stopped.
       // Should also allow calibration of the shaft-encoder outputs, ie [min.max].
