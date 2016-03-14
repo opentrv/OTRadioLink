@@ -362,14 +362,13 @@ bool SimpleSecureFrame32or0BodyRXV0p2::getLastRXMessageCounter(const uint8_t * c
     uint8_t * const rawPtr = (uint8_t *)(OTV0P2BASE::V0P2BASE_EE_START_NODE_ASSOCIATIONS + index*(uint16_t)OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE);
     // Read low-wear unary increment value from trailing bytes.
     // Use primary 'spare' byte as most significant.
-    // In case of error in the increment value treat it as largest-possible value + 1
-    // which is safe but may cause up to 16 messages to be ignored.
-    // Assume that the high redundancy in the increment value will catch many possible random corruptions,
-    // though failing to complete clearing a bit may allow repeat of the last message.
+    // In case of error in the increment value treat it as the largest-possible value
+    // which is safe (prevents replay) but may cause up to 16 messages to be ignored.
+    // Assume that the high redundancy in the increment value will catch much possible random corruption,
+    // though failing to complete clearing a bit may allow a replay of the last message.
     const uint8_t incr = OTV0P2BASE::eeprom_unary_2byte_decode(eeprom_read_byte(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET + 7),
                                                                eeprom_read_byte(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET + 7));
-    // Multi-byte add of offset to CRC-validated main value.
-    const uint8_t appliedIncr = (incr >= 0) ? incr : (OTV0P2BASE::EEPROM_UNARY_2BYTE_MAX_VALUE+1);
+    const uint8_t appliedIncr = (incr >= 0) ? incr : (OTV0P2BASE::EEPROM_UNARY_2BYTE_MAX_VALUE);
     // Try primary then secondary (both will be written to each time).
     const bool primaryOK = getLastRXMessageCounterFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET, counter);
     if(primaryOK) { return(SimpleSecureFrame32or0BodyBase::msgcounteradd(counter, appliedIncr)); }
