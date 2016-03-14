@@ -325,6 +325,14 @@ uint8_t decodeNonsecureSmallFrameRaw(const SecurableFrameHeader *sfh,
     return(fl + 1);
     }
 
+// Add specified small unsigned value to supplied counter value in place; false if failed.
+// This will fail (returning false) if the counter would overflow.
+bool SimpleSecureFrame32or0BodyBase::msgcounteradd(uint8_t *const counter, const uint8_t delta)
+    {
+    if(0 == delta) { return(true); } // Optimisation: nothing to do.
+    return(false); // FAIL
+    }
+
 // Encode entire secure small frame from header params and body and crypto support.
 // This is a raw/partial impl that requires the IV/nonce to be supplied.
 // This uses fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t style encryption/authentication.
