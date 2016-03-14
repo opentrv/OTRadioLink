@@ -860,6 +860,12 @@ static void testPermMsgCountRunOnce()
   Serial.println("PermMsgCountRunOnce");
   // We're compromising system security and keys here, so clear any secret keys set, first.
   AssertIsTrue(OTV0P2BASE::setPrimaryBuilding16ByteSecretKey(NULL)); // Fail if we can't ensure that the key is cleared.
+  // Check that key is correctly erased.
+  uint8_t tmpKeyBuf[16];
+  AssertIsTrue(!OTV0P2BASE::getPrimaryBuilding16ByteSecretKey(tmpKeyBuf));
+  memset(tmpKeyBuf, 0, sizeof(tmpKeyBuf));
+  // Check that we don't get a spurious key match.
+  AssertIsTrue(!OTV0P2BASE::checkPrimaryBuilding16ByteSecretKey(tmpKeyBuf));
   OTRadioLink::SimpleSecureFrame32or0BodyTXV0p2 instance = OTRadioLink::SimpleSecureFrame32or0BodyTXV0p2::getInstance();
   // Working buffer space...
   uint8_t loadBuf[OTV0P2BASE::VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR];
