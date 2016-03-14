@@ -341,7 +341,7 @@ namespace OTRadioLink
                 { return(memcmp(counter1, counter2, fullMessageCounterBytes)); }
 
             // Add specified small unsigned value to supplied counter value in place; false if failed.
-            // This will fail (returning false) if the counter would overflow.
+            // This will fail (returning false) if the counter would overflow, leaving it unchanged.
             static bool msgcounteradd(uint8_t *counter, uint8_t delta);
         };
 

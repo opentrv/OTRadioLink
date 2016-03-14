@@ -819,13 +819,34 @@ static void testMsgCount()
   Serial.println("MsgCount");
   // Two counter values to compare that should help spot overflow or wrong byte order operations.
   const uint8_t count1[] = { 0, 0, 0x83, 0, 0, 0 };
+  const uint8_t count1plus1[] = { 0, 0, 0x83, 0, 0, 1 };
+  const uint8_t count1plus256[] = { 0, 0, 0x83, 0, 1, 0 };
   const uint8_t count2[] = { 0, 0, 0x82, 0x88, 1, 1 };
+  const uint8_t countmax[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
   // Check that identical values compare as identical.
   AssertIsEqual(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(zeroBlock, zeroBlock));
   AssertIsEqual(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count1, count1));
   AssertIsEqual(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count2, count2));
   AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count1, count2) > 0);
   AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count2, count1) < 0);
+  // Test simple addition to counts.
+  uint8_t count1copy[sizeof(count1)];
+  memcpy(count1copy, count1, sizeof(count1copy));
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcounteradd(count1copy, 0));
+  AssertIsEqual(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count1copy, count1));
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcounteradd(count1copy, 1));
+  AssertIsEqual(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count1copy, count1plus1));
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcounteradd(count1copy, 255));
+  AssertIsEqual(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count1copy, count1plus256));
+  // Test simple addition to counts.
+  uint8_t countmaxcopy[sizeof(countmax)];
+  memcpy(countmaxcopy, countmax, sizeof(countmaxcopy));
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcounteradd(countmaxcopy, 0));
+  AssertIsEqual(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(countmaxcopy, countmax));
+  AssertIsTrue(!OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcounteradd(countmaxcopy, 1));
+  AssertIsEqual(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(countmaxcopy, countmax));
+  AssertIsTrue(!OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcounteradd(countmaxcopy, 42));
+  AssertIsEqual(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(countmaxcopy, countmax));
   }
 
 // Test handling of persistent/reboot/restart part of primary message counter.

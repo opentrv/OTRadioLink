@@ -326,7 +326,7 @@ uint8_t decodeNonsecureSmallFrameRaw(const SecurableFrameHeader *sfh,
     }
 
 // Add specified small unsigned value to supplied counter value in place; false if failed.
-// This will fail (returning false) if the counter would overflow.
+// This will fail (returning false) if the counter would overflow, leaving it unchanged.
 bool SimpleSecureFrame32or0BodyBase::msgcounteradd(uint8_t *const counter, const uint8_t delta)
     {
     if(0 == delta) { return(true); } // Optimisation: nothing to do.
@@ -336,11 +336,12 @@ bool SimpleSecureFrame32or0BodyBase::msgcounteradd(uint8_t *const counter, const
     const uint8_t bumped = lsbyte + delta;
     // If lsbyte does not wrap, as it won't much of the time, update it and return immediately.
     if(bumped > lsbyte) { counter[fullMessageCounterBytes-1] = bumped; return(true); }
-    // Carry will need to ripple up, so check that that won't cause an overflow.
+    // Carry will need to ripple up, so check that that wouldn't cause an overflow.
     bool allFF = true;
     for(uint8_t i = 0; i < fullMessageCounterBytes-1; ++i) { if(0xff != counter[i]) { allFF = false; break; } }
     if(allFF) { return(false); }
-    // Safe from overflow, ripple up the carry as necessary.
+    // Safe from overflow, set lsbyte and ripple up the carry as necessary.
+    counter[fullMessageCounterBytes-1] = bumped;
     for(int8_t i = fullMessageCounterBytes-1; --i > 0; ) { if(0 != ++counter[i]) { break; } }
     // Success!
     return(true);
