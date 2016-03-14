@@ -360,6 +360,8 @@ bool SimpleSecureFrame32or0BodyRXV0p2::getLastRXMessageCounter(const uint8_t * c
     // Note: nominal risk of race if associations table can be altered concurrently.
     // Compute base location in EEPROM of association table entry/row.
     uint8_t * const rawPtr = (uint8_t *)(OTV0P2BASE::V0P2BASE_EE_START_NODE_ASSOCIATIONS + index*(uint16_t)OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE);
+    // Read low-wear unary offset value from trailing bytes.
+//    const uint8_t offset = OTV0P2BASE::eeprom_unary_2byte_decode()
     // Try primary then secondary (both will be written to each time).
     const bool primaryOK = getLastRXMessageCounterFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET, counter);
     if(primaryOK) { return(true); }

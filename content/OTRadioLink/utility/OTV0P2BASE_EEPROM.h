@@ -92,7 +92,9 @@ inline uint8_t eeprom_unary_1byte_encode(uint8_t n) { return((n >= 8) ? 0 : (0xf
 inline uint16_t eeprom_unary_2byte_encode(uint8_t n) { return((n >= 16) ? 0 : (0xffffU << n)); }
 // Decode routines return -1 in case of unexpected/invalid input patterns.
 int8_t eeprom_unary_1byte_decode(uint8_t v);
-int8_t eeprom_unary_2byte_decode(uint16_t v);
+int8_t eeprom_unary_2byte_decode(uint8_t vm, uint8_t vl);
+// First arg is most significant byte.
+inline int8_t eeprom_unary_2byte_decode(uint16_t v) { return(eeprom_unary_2byte_decode((uint8_t)(v >> 8), (uint8_t)v)); }
 
 
 // Unit test location for erase/write.
