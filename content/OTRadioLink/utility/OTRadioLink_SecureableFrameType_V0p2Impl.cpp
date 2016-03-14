@@ -360,6 +360,14 @@ bool SimpleSecureFrame32or0BodyRXV0p2::getLastRXMessageCounter(const uint8_t * c
     // Note: nominal risk of race if associations table can be altered concurrently.
     // Compute base location in EEPROM of association table entry/row.
     uint8_t * const rawPtr = (uint8_t *)(OTV0P2BASE::V0P2BASE_EE_START_NODE_ASSOCIATIONS + index*(uint16_t)OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE);
+    // Read low-wear unary increment value from trailing bytes.
+    // Use primary 'spare' byte as most significant.
+    // In case of error treat value as largest-possible value + 1
+    // which is safe but may cause up to 16 messages to be ignored.
+    const uint8_t incr = OTV0P2BASE::eeprom_unary_2byte_decode(eeprom_read_byte(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET + 7),
+                                                               eeprom_read_byte(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET + 7));
+    // TODO: multi-byte add!
+    if(0 != incr) { return(false); }
     // Try primary then secondary (both will be written to each time).
     const bool primaryOK = getLastRXMessageCounterFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET, counter);
     if(primaryOK) { return(true); }
