@@ -347,8 +347,8 @@ static bool getLastRXMessageCounterFromTable(const uint8_t * const eepromLoc, ui
 
 // Read current (last-authenticated) RX message count for specified node, or return false if failed.
 // Deals with any redundancy/corruption etc.
-// Will fail for invalid node ID or for unrecoverable memory corruption.
-// TODO: use unary count across 2 bytes (primary and secondary) to give 16 ops before needing to update main counters.
+// Will fail for invalid node ID and for unrecoverable memory corruption.
+// Uses unary count across 2 bytes (primary and secondary) to give up to 17 RXes before needing to update main counters.
 // Both args must be non-NULL, with counter pointing to enough space to copy the message counter value to.
 bool SimpleSecureFrame32or0BodyRXV0p2::getLastRXMessageCounter(const uint8_t * const ID, uint8_t * const counter) const
     {
