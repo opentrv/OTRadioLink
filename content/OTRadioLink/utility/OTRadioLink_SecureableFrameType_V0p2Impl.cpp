@@ -380,7 +380,6 @@ bool SimpleSecureFrame32or0BodyRXV0p2::getLastRXMessageCounter(const uint8_t * c
 // Carefully update specified counter (primary or secondary) and CRCs as appropriate; returns false on failure.
 // Sets write-in-progress flag before starting and clears it (sets it to 1) with the CRC afterwards.
 // Reads back each byte written before proceeding.
-// TODO: use unary count as proxy for LSBs to reduce wear.
 static bool updateRXMessageCount(uint8_t * const eepromLoc, const uint8_t * const newCounterValue)
     {
     // First set the write-in-progress flag (clear to 0), msbit of the CRC byte...
@@ -412,6 +411,7 @@ static bool updateRXMessageCount(uint8_t * const eepromLoc, const uint8_t * cons
 // The implementation should be robust in the face of power failures / reboots, accidental or malicious,
 // not allowing replays nor other cryptographic attacks, nor forcing node dissociation.
 // Must only be called once the RXed message has passed authentication.
+// TODO: use unary count as proxy for LSBs to reduce wear; clear unary value after main count increment so as to never have too low a total value.
 bool SimpleSecureFrame32or0BodyRXV0p2::updateRXMessageCountAfterAuthentication(const uint8_t *ID, const uint8_t *newCounterValue)
     {
     // Validate node ID and new count.
