@@ -181,6 +181,7 @@ int8_t eeprom_unary_1byte_decode(const uint8_t v)
         default: return(-1); // ERROR
         }
     }
+// Decode routines return -1 in case of unexpected/invalid input patterns.
 int8_t eeprom_unary_2byte_decode(uint16_t v)
     {
     switch(v)
