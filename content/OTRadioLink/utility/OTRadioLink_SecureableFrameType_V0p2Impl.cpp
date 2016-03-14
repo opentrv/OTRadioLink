@@ -362,17 +362,20 @@ bool SimpleSecureFrame32or0BodyRXV0p2::getLastRXMessageCounter(const uint8_t * c
     uint8_t * const rawPtr = (uint8_t *)(OTV0P2BASE::V0P2BASE_EE_START_NODE_ASSOCIATIONS + index*(uint16_t)OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE);
     // Read low-wear unary increment value from trailing bytes.
     // Use primary 'spare' byte as most significant.
-    // In case of error treat value as largest-possible value + 1
+    // In case of error in the increment value treat it as largest-possible value + 1
     // which is safe but may cause up to 16 messages to be ignored.
+    // Assume that the high redundancy in the increment value will catch many possible random corruptions,
+    // though failing to complete clearing a bit may allow repeat of the last message.
     const uint8_t incr = OTV0P2BASE::eeprom_unary_2byte_decode(eeprom_read_byte(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET + 7),
                                                                eeprom_read_byte(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET + 7));
-    // TODO: multi-byte add of offset to CRC-validated main value.
-    if(0 != incr) { return(false); }
+    // Multi-byte add of offset to CRC-validated main value.
+    const uint8_t appliedIncr = (incr >= 0) ? incr : (OTV0P2BASE::EEPROM_UNARY_2BYTE_MAX_VALUE+1);
     // Try primary then secondary (both will be written to each time).
     const bool primaryOK = getLastRXMessageCounterFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET, counter);
-    if(primaryOK) { return(true); }
+    if(primaryOK) { return(SimpleSecureFrame32or0BodyBase::msgcounteradd(counter, appliedIncr)); }
     const bool secondaryOK = getLastRXMessageCounterFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET, counter);
-    return(secondaryOK);
+    if(secondaryOK) { return(SimpleSecureFrame32or0BodyBase::msgcounteradd(counter, appliedIncr)); }
+    return(false);
     }
 
 // Carefully update specified counter (primary or secondary) and CRCs as appropriate; returns false on failure.
