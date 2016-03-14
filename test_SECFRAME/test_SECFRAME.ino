@@ -785,6 +785,18 @@ static void testBeaconEncoding()
 //  Serial.println(after - before); // DHD20160207: 1442 for 8 rounds, or ~180ms per encryption.
   }
 
+// Test low-wear unary encoding.
+static void testUnaryEncoding()
+  {
+  Serial.println("UnaryEncoding");
+  // Check for conversion back and forth of all allowed represented values.
+  for(uint8_t i = 0; i <= 8; ++i) { AssertIsEqual(i, OTV0P2BASE::eeprom_unary_1byte_decode(OTV0P2BASE::eeprom_unary_1byte_encode(i))); }
+  for(uint8_t i = 0; i <= 16; ++i) { AssertIsEqual(i, OTV0P2BASE::eeprom_unary_2byte_decode(OTV0P2BASE::eeprom_unary_2byte_encode(i))); }
+  // Ensure that all-1s (erased) EEPROM values equate to 0.
+  AssertIsEqual(0, OTV0P2BASE::eeprom_unary_1byte_decode(0xff));
+  AssertIsEqual(0, OTV0P2BASE::eeprom_unary_1byte_decode(0xffffU));
+  }
+
 // Test some basic parameters of node associations.
 // Does not wear non-volatile memory (eg EEPROM).
 static void testNodeAssoc()
@@ -977,6 +989,7 @@ void loop()
   testLibVersion();
   testLibVersions();
 
+  testUnaryEncoding();
   testFrameQIC();
   testFrameHeaderEncoding();
   testFrameHeaderDecoding();
