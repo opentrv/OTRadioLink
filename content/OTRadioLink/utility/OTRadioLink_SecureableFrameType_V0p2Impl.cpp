@@ -315,6 +315,7 @@ bool SimpleSecureFrame32or0BodyTXV0p2::incrementAndGetPrimarySecure6BytePersiste
 // First 6 bytes are counter MSB first, followed by CRC.
 //  * eepromLOC  pointer into Flash for this counter instance; never NULL
 //  * counter  buffer to load counter to; never NULL
+// Pays no attention to the unary counter.
 static bool getLastRXMessageCounterFromTable(const uint8_t * const eepromLoc, uint8_t * const counter)
     {
 //    if((NULL == eepromLoc) || (NULL == counter)) { return(false); } // FAIL
@@ -334,15 +335,8 @@ static bool getLastRXMessageCounterFromTable(const uint8_t * const eepromLoc, ui
     // Compute/validate the 7-bit CRC.
     uint8_t crc = 0;
     for(int i = 0; i < SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes; ++i) { crc = OTV0P2BASE::crc7_5B_update(crc, counter[i]); }
-//        if(((~crcRAW) & 0x7f) != crc) { OTV0P2BASE::serialPrintlnAndFlush(F("!RXmc bad CRC")); return(false); } // FAIL
-//        // Abort/fail if there appears to be an incomplete update.
-//        if(0 == (crcRAW & 0x80)) { OTV0P2BASE::serialPrintlnAndFlush(F("!RXmc incomplete write")); return(false); } // FAIL
     if(crc != (uint8_t)~crcRAW) { /* OTV0P2BASE::serialPrintlnAndFlush(F("!RXmc")); */ return(false); } // FAIL
-    return(true); // FIXME: claim this is done.
-//
-//    // TODO
-//
-//    return(false); // FIXME not implemented
+    return(true); // Done!
     }
 
 // Read current (last-authenticated) RX message count for specified node, or return false if failed.
@@ -380,6 +374,7 @@ bool SimpleSecureFrame32or0BodyRXV0p2::getLastRXMessageCounter(const uint8_t * c
 // Carefully update specified counter (primary or secondary) and CRCs as appropriate; returns false on failure.
 // Sets write-in-progress flag before starting and clears it (sets it to 1) with the CRC afterwards.
 // Reads back each byte written before proceeding.
+// Pays no attention to the unary counter.
 static bool updateRXMessageCount(uint8_t * const eepromLoc, const uint8_t * const newCounterValue)
     {
     // First set the write-in-progress flag (clear to 0), msbit of the CRC byte...
