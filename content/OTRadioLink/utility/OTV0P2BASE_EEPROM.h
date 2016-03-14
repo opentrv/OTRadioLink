@@ -78,18 +78,18 @@ bool eeprom_smart_clear_bits(uint8_t *p, uint8_t mask);
 // Corruption can be detected if an unexpected bit pattern is encountered on decode.
 // For the single byte versions, encodings are:
 //  0 -> 0xff
-//  1 -> 0x7f
-//  2 -> 0x3f
-//  3 -> 0x1f
-//  4 -> 0x0f
-//  5 -> 0x07
-//  6 -> 0x03
-//  7 -> 0x01
+//  1 -> 0xfe
+//  2 -> 0xfc
+//  3 -> 0xf8
+//  4 -> 0xf0
+//  5 -> 0xe0
+//  6 -> 0xc0
+//  7 -> 0x80
 //  8 -> 0x00
 static const uint8_t EEPROM_UNARY_1BYTE_MAX_VALUE = 8;
 static const uint8_t EEPROM_UNARY_2BYTE_MAX_VALUE = 16;
-inline uint8_t eeprom_unary_1byte_encode(uint8_t n) { return((n >= 8) ? 0 : (0xffU >> n)); }
-inline uint16_t eeprom_unary_2byte_encode(uint8_t n) { return((n >= 16) ? 0 : (0xffffU >> n)); }
+inline uint8_t eeprom_unary_1byte_encode(uint8_t n) { return((n >= 8) ? 0 : (0xffU << n)); }
+inline uint16_t eeprom_unary_2byte_encode(uint8_t n) { return((n >= 16) ? 0 : (0xffffU << n)); }
 // Decode routines return -1 in case of unexpected/invalid input patterns.
 int8_t eeprom_unary_1byte_decode(uint8_t v);
 int8_t eeprom_unary_2byte_decode(uint16_t v);

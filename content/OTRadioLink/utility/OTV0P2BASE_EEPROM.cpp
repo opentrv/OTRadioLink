@@ -142,6 +142,70 @@ bool eeprom_smart_clear_bits(uint8_t *p, uint8_t mask)
 #endif
   }
 
+// EEPROM- (and Flash-) friendly single-byte unary incrementable encoding.
+// A single byte can be used to hold a single value [0,8]
+// such that increment requires only a write of one bit (no erase)
+// and in general increasing the value up to the maximum only requires a single write.
+// An erase is required only to decrease the value (eg back to zero).
+// An initial EEPROM (erased) value of 0xff is mapped to zero.
+// The two byte version can hold values in the range [0,16].
+// Corruption can be detected if an unexpected bit pattern is encountered on decode.
+// For the single byte versions, encodings are:
+//  0 -> 0xff
+//  1 -> 0xfe
+//  2 -> 0xfc
+//  3 -> 0xf8
+//  4 -> 0xf0
+//  5 -> 0xe0
+//  6 -> 0xc0
+//  7 -> 0x80
+//  8 -> 0x00
+//static const uint8_t EEPROM_UNARY_1BYTE_MAX_VALUE = 8;
+//static const uint8_t EEPROM_UNARY_2BYTE_MAX_VALUE = 16;
+//inline uint8_t eeprom_unary_1byte_encode(uint8_t n) { return((n >= 8) ? 0 : (0xffU << n)); }
+//inline uint16_t eeprom_unary_2byte_encode(uint8_t n) { return((n >= 16) ? 0 : (0xffffU << n)); }
+// Decode routines return -1 in case of unexpected/invalid input patterns.
+int8_t eeprom_unary_1byte_decode(const uint8_t v)
+    {
+    switch(v)
+        {
+        case 0xff: return(0);
+        case 0xfe: return(1);
+        case 0xfc: return(2);
+        case 0xf8: return(3);
+        case 0xf0: return(4);
+        case 0xe0: return(5);
+        case 0xc0: return(6);
+        case 0x80: return(7);
+        case 0x00: return(8);
+        default: return(-1); // ERROR
+        }
+    }
+int8_t eeprom_unary_2byte_decode(uint16_t v)
+    {
+    switch(v)
+        {
+        case 0xffff: return(0);
+        case 0xfffe: return(1);
+        case 0xfffc: return(2);
+        case 0xfff8: return(3);
+        case 0xfff0: return(4);
+        case 0xffe0: return(5);
+        case 0xffc0: return(6);
+        case 0xff80: return(7);
+        case 0xff00: return(8);
+        case 0xfe00: return(9);
+        case 0xfc00: return(10);
+        case 0xf800: return(11);
+        case 0xf000: return(12);
+        case 0xe000: return(13);
+        case 0xc000: return(14);
+        case 0x8000: return(15);
+        case 0x0000: return(16);
+        default: return(-1); // ERROR
+        }
+    }
+
 
 // Get raw stats value for specified hour [0,23]/current/next from stats set N from non-volatile (EEPROM) store.
 // A value of 0xff (255) means unset (or out of range); other values depend on which stats set is being used.
