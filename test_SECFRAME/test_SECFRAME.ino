@@ -797,7 +797,7 @@ static void testUnaryEncoding()
   AssertIsEqual(0, OTV0P2BASE::eeprom_unary_1byte_decode(0xffffU));
   // Check rejection of at least one bad value.
   AssertIsEqual(-1, OTV0P2BASE::eeprom_unary_1byte_decode(0xef));
-  AssertIsEqual(-1, OTV0P2BASE::eeprom_unary_2byte_decode(0xcccc));
+  AssertIsEqual(-1, OTV0P2BASE::eeprom_unary_2byte_decode(0xccccU));
   }
 
 // Test some basic parameters of node associations.
