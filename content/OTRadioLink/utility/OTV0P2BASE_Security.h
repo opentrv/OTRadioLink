@@ -85,6 +85,11 @@ bool setPrimaryBuilding16ByteSecretKey(const uint8_t *key);
  */
 bool getPrimaryBuilding16ByteSecretKey(uint8_t *key);
 
+// Verify that the stored key is that passed in.
+// Avoids leaking information about the key,
+// eg by printing any of it, or terminating early on mismatch.
+bool checkPrimaryBuilding16ByteSecretKey(const uint8_t *key);
+
 // Maximum number of node associations that can be maintained for secure traffic.
 // This puts an upper bound on the number of nodes which a hub can listen to securely.
 static const uint8_t MAX_NODE_ASSOCIATIONS = V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS;

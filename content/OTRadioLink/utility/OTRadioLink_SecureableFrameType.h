@@ -337,9 +337,13 @@ namespace OTRadioLink
 
             // Check one (6-byte) message counter against another for magnitude.
             // Returns 0 if they are identical, +ve if the first counter is greater, -ve otherwise.
+            // Logically like getting the sign of counter1 - counter2.
             static int16_t msgcountercmp(const uint8_t *counter1, const uint8_t *counter2)
                 { return(memcmp(counter1, counter2, fullMessageCounterBytes)); }
 
+            // Add specified small unsigned value to supplied counter value in place; false if failed.
+            // This will fail (returning false) if the counter would overflow, leaving it unchanged.
+            static bool msgcounteradd(uint8_t *counter, uint8_t delta);
         };
 
     // TX Base class for simple implementations that supports 0 or 32 byte encrypted body sections.
@@ -631,7 +635,7 @@ namespace OTRadioLink
             //  b) around one TX per sensor/valve node per 4 minutes,
             //
             // Read current (last-authenticated) RX message count for specified node, or return false if failed.
-            // Will fail for invalid node ID or for unrecoverable memory corruption.
+            // Will fail for invalid node ID and for unrecoverable memory corruption.
             // Both args must be non-NULL, with counter pointing to enough space to copy the message counter value to.
             virtual bool getLastRXMessageCounter(const uint8_t * const ID, uint8_t *counter) const = 0;
             // Check message counter for given ID, ie that it is high enough to be eligible for authenticating/processing.

@@ -215,6 +215,37 @@ bool DumpStats::doCommand(char *const buf, const uint8_t buflen)
     return(false);
     }
 
+// Show/set generic parameter values (eg "G N [M]").
+bool GenericParam::doCommand(char *const buf, const uint8_t buflen)
+    {
+    char *last; // Used by strtok_r().
+    char *tok1;
+    // Minimum 3 character sequence makes sense and is safe to tokenise, eg "D 0".
+    if((buflen >= 3) && (NULL != (tok1 = strtok_r(buf+2, " ", &last))))
+      {
+      const uint8_t paramN = (uint8_t) atoi(tok1);
+      // Reject if parameter number out of bounds.
+      if(paramN > V0P2BASE_EE_LEN_RAW_INSPECTABLE) { InvalidIgnored(); return(false); }
+      // Check for a second (new value) parameter.
+      // If not present, print the current parameter value raw.
+      char *tok2 = strtok_r(NULL, " ", &last);
+      if(NULL == tok2)
+        {
+        // Print raw value in decimal.
+        Serial.println(eeprom_read_byte((uint8_t *)(V0P2BASE_EE_START_RAW_INSPECTABLE + paramN)));
+        return(true);
+        }
+      // Set (decimal) parameter value.
+      const int v = atoi(tok2);
+      if((v < 0) || (v > 255)) { InvalidIgnored(); return(false); }
+      const uint8_t vb = (uint8_t) v;
+      eeprom_smart_update_byte((uint8_t *)(V0P2BASE_EE_START_RAW_INSPECTABLE + paramN), vb);
+      return(true);
+      }
+    InvalidIgnored();
+    return(false);
+    }
+
 // Show / reset node ID ('I').
 bool NodeID::doCommand(char *const buf, const uint8_t buflen)
     {

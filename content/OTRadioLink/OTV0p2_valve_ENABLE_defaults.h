@@ -76,6 +76,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #define ENABLE_FULL_OT_CLI
 // IF DEFINED: enable a full OpenTRV UI with normal LEDs etc.
 #define ENABLE_FULL_OT_UI
+// IF DEFINED: provide CLI read/write access to generic parameter block.
+#define ENABLE_GENERIC_PARAM_CLI_ACCESS
 // IF DEFINED: enable and extended CLI with a longer input buffer for example.
 #undef ENABLE_EXTENDED_CLI
 // IF DEFINED: physical UI use wakes CLI (not needed when CLI can auto-wake from serial).

@@ -785,6 +785,21 @@ static void testBeaconEncoding()
 //  Serial.println(after - before); // DHD20160207: 1442 for 8 rounds, or ~180ms per encryption.
   }
 
+// Test low-wear unary encoding.
+static void testUnaryEncoding()
+  {
+  Serial.println("UnaryEncoding");
+  // Check for conversion back and forth of all allowed represented values.
+  for(uint8_t i = 0; i <= 8; ++i) { AssertIsEqual(i, OTV0P2BASE::eeprom_unary_1byte_decode(OTV0P2BASE::eeprom_unary_1byte_encode(i))); }
+  for(uint8_t i = 0; i <= 16; ++i) { AssertIsEqual(i, OTV0P2BASE::eeprom_unary_2byte_decode(OTV0P2BASE::eeprom_unary_2byte_encode(i))); }
+  // Ensure that all-1s (erased) EEPROM values equate to 0.
+  AssertIsEqual(0, OTV0P2BASE::eeprom_unary_1byte_decode(0xff));
+  AssertIsEqual(0, OTV0P2BASE::eeprom_unary_1byte_decode(0xffffU));
+  // Check rejection of at least one bad value.
+  AssertIsEqual(-1, OTV0P2BASE::eeprom_unary_1byte_decode(0xef));
+  AssertIsEqual(-1, OTV0P2BASE::eeprom_unary_2byte_decode(0xccccU));
+  }
+
 // Test some basic parameters of node associations.
 // Does not wear non-volatile memory (eg EEPROM).
 static void testNodeAssoc()
@@ -804,13 +819,34 @@ static void testMsgCount()
   Serial.println("MsgCount");
   // Two counter values to compare that should help spot overflow or wrong byte order operations.
   const uint8_t count1[] = { 0, 0, 0x83, 0, 0, 0 };
+  const uint8_t count1plus1[] = { 0, 0, 0x83, 0, 0, 1 };
+  const uint8_t count1plus256[] = { 0, 0, 0x83, 0, 1, 0 };
   const uint8_t count2[] = { 0, 0, 0x82, 0x88, 1, 1 };
+  const uint8_t countmax[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
   // Check that identical values compare as identical.
   AssertIsEqual(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(zeroBlock, zeroBlock));
   AssertIsEqual(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count1, count1));
   AssertIsEqual(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count2, count2));
   AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count1, count2) > 0);
   AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count2, count1) < 0);
+  // Test simple addition to counts.
+  uint8_t count1copy[sizeof(count1)];
+  memcpy(count1copy, count1, sizeof(count1copy));
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcounteradd(count1copy, 0));
+  AssertIsEqual(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count1copy, count1));
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcounteradd(count1copy, 1));
+  AssertIsEqual(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count1copy, count1plus1));
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcounteradd(count1copy, 255));
+  AssertIsEqual(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count1copy, count1plus256));
+  // Test simple addition to counts.
+  uint8_t countmaxcopy[sizeof(countmax)];
+  memcpy(countmaxcopy, countmax, sizeof(countmaxcopy));
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcounteradd(countmaxcopy, 0));
+  AssertIsEqual(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(countmaxcopy, countmax));
+  AssertIsTrue(!OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcounteradd(countmaxcopy, 1));
+  AssertIsEqual(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(countmaxcopy, countmax));
+  AssertIsTrue(!OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcounteradd(countmaxcopy, 42));
+  AssertIsEqual(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(countmaxcopy, countmax));
   }
 
 // Test handling of persistent/reboot/restart part of primary message counter.
@@ -860,6 +896,12 @@ static void testPermMsgCountRunOnce()
   Serial.println("PermMsgCountRunOnce");
   // We're compromising system security and keys here, so clear any secret keys set, first.
   AssertIsTrue(OTV0P2BASE::setPrimaryBuilding16ByteSecretKey(NULL)); // Fail if we can't ensure that the key is cleared.
+  // Check that key is correctly erased.
+  uint8_t tmpKeyBuf[16];
+  AssertIsTrue(!OTV0P2BASE::getPrimaryBuilding16ByteSecretKey(tmpKeyBuf));
+  memset(tmpKeyBuf, 0, sizeof(tmpKeyBuf));
+  // Check that we don't get a spurious key match.
+  AssertIsTrue(!OTV0P2BASE::checkPrimaryBuilding16ByteSecretKey(tmpKeyBuf));
   OTRadioLink::SimpleSecureFrame32or0BodyTXV0p2 instance = OTRadioLink::SimpleSecureFrame32or0BodyTXV0p2::getInstance();
   // Working buffer space...
   uint8_t loadBuf[OTV0P2BASE::VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR];
@@ -947,6 +989,46 @@ static void testNodeAssocRunOnce()
     { AssertIsEqual(0, OTV0P2BASE::getNextMatchingNodeID(0, ID0, i, NULL)); }
   for(uint8_t i = 1; i <= sizeof(ID0); ++i)
     { AssertIsEqual(-1, OTV0P2BASE::getNextMatchingNodeID(1, ID0, i, NULL)); }
+  // Updating (ID0) to a new (up-by-one) count and reading back should work.
+  const uint8_t newCount2[] = { 0, 1, 2, 3, 4, 6 };
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyRXV0p2::getInstance().updateRXMessageCountAfterAuthentication(ID0, newCount2));
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyRXV0p2::getInstance().getLastRXMessageCounter(ID0, mcbuf));
+  AssertIsEqual(0, memcmp(mcbuf, newCount2, sizeof(mcbuf)));
+  // Updating to a new (up-by-slightly-more-than-one) count and reading back should work.
+  const uint8_t newCount3[] = { 0, 1, 2, 3, 4, 9 };
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyRXV0p2::getInstance().updateRXMessageCountAfterAuthentication(ID0, newCount3));
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyRXV0p2::getInstance().getLastRXMessageCounter(ID0, mcbuf));
+  AssertIsEqual(0, memcmp(mcbuf, newCount3, sizeof(mcbuf)));
+  // Updating to a new (up-by-much-more-than-one) count and reading back should work.
+  const uint8_t newCount4[] = { 0, 1, 2, 3, 4, 99 };
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyRXV0p2::getInstance().updateRXMessageCountAfterAuthentication(ID0, newCount4));
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyRXV0p2::getInstance().getLastRXMessageCounter(ID0, mcbuf));
+  AssertIsEqual(0, memcmp(mcbuf, newCount4, sizeof(mcbuf)));
+  // Updating to a new (up-by-much-much-more-than-one) count and reading back should work.
+  const uint8_t newCount5[] = { 0, 1, 0x99, 1, 0x81, (OTV0P2BASE::randRNG8() & 0x7f) };
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyRXV0p2::getInstance().updateRXMessageCountAfterAuthentication(ID0, newCount5));
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyRXV0p2::getInstance().getLastRXMessageCounter(ID0, mcbuf));
+  AssertIsEqual(0, memcmp(mcbuf, newCount5, sizeof(mcbuf)));
+  // Updating to a new (up-by-one) count and reading back should work.
+  const uint8_t newCount6[] = { 0, 1, 0x99, 1, 0x81, 1+newCount5[5] };
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyRXV0p2::getInstance().updateRXMessageCountAfterAuthentication(ID0, newCount6));
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyRXV0p2::getInstance().getLastRXMessageCounter(ID0, mcbuf));
+  AssertIsEqual(0, memcmp(mcbuf, newCount6, sizeof(mcbuf)));
+  // Updating to a new (up-by-one) count and reading back should work.
+  const uint8_t newCount7[] = { 0, 1, 0x99, 1, 0x81, 2+newCount5[5] };
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyRXV0p2::getInstance().updateRXMessageCountAfterAuthentication(ID0, newCount7));
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyRXV0p2::getInstance().getLastRXMessageCounter(ID0, mcbuf));
+  AssertIsEqual(0, memcmp(mcbuf, newCount7, sizeof(mcbuf)));
+  // Updating to a new (up-by-one) count and reading back should work.
+  const uint8_t newCount8[] = { 0, 1, 0x99, 1, 0x81, 3+newCount5[5] };
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyRXV0p2::getInstance().updateRXMessageCountAfterAuthentication(ID0, newCount8));
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyRXV0p2::getInstance().getLastRXMessageCounter(ID0, mcbuf));
+  AssertIsEqual(0, memcmp(mcbuf, newCount8, sizeof(mcbuf)));
+  // Updating to a new (up-by-one) count and reading back should work.
+  const uint8_t newCount9[] = { 0, 1, 0x99, 1, 0x81, 4+newCount5[5] };
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyRXV0p2::getInstance().updateRXMessageCountAfterAuthentication(ID0, newCount9));
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyRXV0p2::getInstance().getLastRXMessageCounter(ID0, mcbuf));
+  AssertIsEqual(0, memcmp(mcbuf, newCount9, sizeof(mcbuf)));
   }
 
 
@@ -971,6 +1053,7 @@ void loop()
   testLibVersion();
   testLibVersions();
 
+  testUnaryEncoding();
   testFrameQIC();
   testFrameHeaderEncoding();
   testFrameHeaderDecoding();

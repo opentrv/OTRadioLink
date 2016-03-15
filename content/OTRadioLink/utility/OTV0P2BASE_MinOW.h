@@ -137,7 +137,10 @@ class MinimalOneWireBase
 
     // Select a particular device on the bus.
     void select(const uint8_t addr[8]);
-  };
+
+    // Select all devices on the bus
+    void skip(void);
+};
 
 // Not intended to be thread-/ISR- safe.
 // Operations on separate instances (using different GPIOs) can be concurrent.

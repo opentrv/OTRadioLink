@@ -182,6 +182,9 @@ class DummySensorAmbientLight
     // Unknown, so always false.
     // Thread-safe and usable within ISRs (Interrupt Service Routines).
     static bool isRoomDark() { return(false); }
+
+    // No sensor, so always zero.
+    static uint8_t getDarkMinutes() { return(0); }
   };
 
 
