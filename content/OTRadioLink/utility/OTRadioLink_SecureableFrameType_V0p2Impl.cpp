@@ -343,7 +343,7 @@ static bool getLastRXMessageCounterFromTable(const uint8_t * const eepromLoc, ui
 // to reduce EEPROM wear by a factor of ~17,
 // nominally extending life to over 20Y at 15 messages per hour (>10Y at 30msg/h),
 // where equipment lifetime is expected to be around 10Y max.
-static const bool use_unary_counter = false;
+static const bool use_unary_counter = true;
 
 // Read current (last-authenticated) RX message count for specified node, or return false if failed.
 // Deals with any redundancy/corruption etc.
