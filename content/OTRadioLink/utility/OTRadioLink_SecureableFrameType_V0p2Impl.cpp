@@ -437,6 +437,7 @@ bool SimpleSecureFrame32or0BodyRXV0p2::updateRXMessageCountAfterAuthentication(c
     //
     // Get the raw counter value ignoring the unary part.
     // Fall back to the secondary value if there is something wrong with the primary,
+    // and fail entirely if the secondary is also broken.
     uint8_t baseCount[fullMessageCounterBytes];
     if(!getLastRXMessageCounterFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET, baseCount)
        && !getLastRXMessageCounterFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET, baseCount))
