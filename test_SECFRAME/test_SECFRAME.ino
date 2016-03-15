@@ -1014,6 +1014,21 @@ static void testNodeAssocRunOnce()
   AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyRXV0p2::getInstance().updateRXMessageCountAfterAuthentication(ID0, newCount6));
   AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyRXV0p2::getInstance().getLastRXMessageCounter(ID0, mcbuf));
   AssertIsEqual(0, memcmp(mcbuf, newCount6, sizeof(mcbuf)));
+  // Updating to a new (up-by-one) count and reading back should work.
+  const uint8_t newCount7[] = { 0, 1, 0x99, 1, 0x81, 2+newCount5[5] };
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyRXV0p2::getInstance().updateRXMessageCountAfterAuthentication(ID0, newCount7));
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyRXV0p2::getInstance().getLastRXMessageCounter(ID0, mcbuf));
+  AssertIsEqual(0, memcmp(mcbuf, newCount7, sizeof(mcbuf)));
+  // Updating to a new (up-by-one) count and reading back should work.
+  const uint8_t newCount8[] = { 0, 1, 0x99, 1, 0x81, 3+newCount5[5] };
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyRXV0p2::getInstance().updateRXMessageCountAfterAuthentication(ID0, newCount8));
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyRXV0p2::getInstance().getLastRXMessageCounter(ID0, mcbuf));
+  AssertIsEqual(0, memcmp(mcbuf, newCount8, sizeof(mcbuf)));
+  // Updating to a new (up-by-one) count and reading back should work.
+  const uint8_t newCount9[] = { 0, 1, 0x99, 1, 0x81, 4+newCount5[5] };
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyRXV0p2::getInstance().updateRXMessageCountAfterAuthentication(ID0, newCount9));
+  AssertIsTrue(OTRadioLink::SimpleSecureFrame32or0BodyRXV0p2::getInstance().getLastRXMessageCounter(ID0, mcbuf));
+  AssertIsEqual(0, memcmp(mcbuf, newCount9, sizeof(mcbuf)));
   }
 
 

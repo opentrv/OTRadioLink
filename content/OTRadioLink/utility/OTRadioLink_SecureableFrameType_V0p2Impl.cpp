@@ -432,6 +432,7 @@ bool SimpleSecureFrame32or0BodyRXV0p2::updateRXMessageCountAfterAuthentication(c
         return(true);
         }
 
+//OTV0P2BASE::serialPrintlnAndFlush(F("updateRXc"));
     // If the counter can be updated using just the unary part then do so to reduce EEPROM wear.
     // Else update the primary/secondary counters to the new value and reset the unary value.
     //
@@ -477,12 +478,14 @@ bool SimpleSecureFrame32or0BodyRXV0p2::updateRXMessageCountAfterAuthentication(c
                 // though usually only one bit will actually be changing...
                 OTV0P2BASE::eeprom_smart_update_byte(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET + 7, vl);
                 OTV0P2BASE::eeprom_smart_update_byte(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET + 7, vm);
+//OTV0P2BASE::serialPrintlnAndFlush(F("updateRXcUnaryOnly"));
                 return(true); // DONE
                 }
             }
         return(false); // FAIL: should not really be possible.
         }
     // else update the underlying main counters, primary AND secondary copies ...
+//OTV0P2BASE::serialPrintlnAndFlush(F("updateRXcFull"));
     if(!updateRXMessageCount(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET, newCounterValue)) { return(false); } // FAIL
     if(!updateRXMessageCount(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET, newCounterValue)) { return(false); } // FAIL
     // ... and reset the unary counter,
