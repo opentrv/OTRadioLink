@@ -337,6 +337,7 @@ namespace OTRadioLink
 
             // Check one (6-byte) message counter against another for magnitude.
             // Returns 0 if they are identical, +ve if the first counter is greater, -ve otherwise.
+            // Logically like getting the sign of counter1 - counter2.
             static int16_t msgcountercmp(const uint8_t *counter1, const uint8_t *counter2)
                 { return(memcmp(counter1, counter2, fullMessageCounterBytes)); }
 
