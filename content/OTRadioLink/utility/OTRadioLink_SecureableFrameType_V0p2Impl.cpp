@@ -371,11 +371,10 @@ bool SimpleSecureFrame32or0BodyRXV0p2::getLastRXMessageCounter(const uint8_t * c
                                               eeprom_read_byte(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET + 7));
     const uint8_t appliedIncr = (incr >= 0) ? incr : (OTV0P2BASE::EEPROM_UNARY_2BYTE_MAX_VALUE);
     // Try primary then secondary (both will be written to each time).
-    const bool primaryOK = getLastRXMessageCounterFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET, counter);
-    if(primaryOK) { return(use_unary_counter ? SimpleSecureFrame32or0BodyBase::msgcounteradd(counter, appliedIncr) : true); }
-    const bool secondaryOK = getLastRXMessageCounterFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET, counter);
-    if(secondaryOK) { return(use_unary_counter ? SimpleSecureFrame32or0BodyBase::msgcounteradd(counter, appliedIncr) : true); }
-    return(false);
+    if(!getLastRXMessageCounterFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET, counter) &&
+       !getLastRXMessageCounterFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET, counter))
+       { return(false); } // FAIL: both counters borked.
+    return(use_unary_counter ? SimpleSecureFrame32or0BodyBase::msgcounteradd(counter, appliedIncr) : true);
     }
 
 // Carefully update specified counter (primary or secondary) and CRCs as appropriate; returns false on failure.
@@ -440,15 +439,15 @@ bool SimpleSecureFrame32or0BodyRXV0p2::updateRXMessageCountAfterAuthentication(c
     // Fall back to the secondary value if there is something wrong with the primary,
     // and fail entirely if the secondary is also broken.
     uint8_t baseCount[fullMessageCounterBytes];
-    if(!getLastRXMessageCounterFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET, baseCount)
-       && !getLastRXMessageCounterFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET, baseCount))
+    if(!getLastRXMessageCounterFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET, baseCount) &&
+       !getLastRXMessageCounterFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET, baseCount))
         { return(false); } // FAIL: both copies borked.
     // Compute the maximum value that the base value could be extended to with the unary part.
     uint8_t maxWithUnary[fullMessageCounterBytes];
     memcpy(maxWithUnary, baseCount, sizeof(maxWithUnary));
     if(!SimpleSecureFrame32or0BodyBase::msgcounteradd(maxWithUnary, OTV0P2BASE::EEPROM_UNARY_2BYTE_MAX_VALUE)) { return(false); } // FAIL: counter too near maximum; might roll.
     // If that is at least as large as the requested new counter value
-    // (AND there was not a problem reading the unarty part)
+    // (AND there was not a problem reading the unary part)
     if(SimpleSecureFrame32or0BodyBase::msgcountercmp(maxWithUnary, newCounterValue) >= 0)
     // then just update the unary value as needed ...
         {
@@ -458,6 +457,7 @@ bool SimpleSecureFrame32or0BodyRXV0p2::updateRXMessageCountAfterAuthentication(c
                                                   eeprom_read_byte(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET + 7));
         // If impossible to read back the existing value then use 0 for a slightly longer search below.
         const uint8_t startIncr = (currentIncr >= 0) ? currentIncr : 0;
+//        const uint8_t startIncr = 0;
         // Try successively larger increments with the unary counter
         // until the total of the base and unary counts is the requested new counter value,
         // then set the unary counter to that value and return a success value.
