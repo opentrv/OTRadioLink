@@ -432,29 +432,46 @@ bool SimpleSecureFrame32or0BodyRXV0p2::updateRXMessageCountAfterAuthentication(c
         return(true);
         }
 
+    // If the counter can be updated using just the unary part then do so to reduce EEPROM wear.
+    // Else update the primary/secondary counters to the new value and reset the unary value.
+    //
     // Get the raw counter value ignoring the unary part.
     // Fall back to the secondary value if there is something wrong with the primary,
     uint8_t baseCount[fullMessageCounterBytes];
     if(!getLastRXMessageCounterFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET, baseCount)
        && !getLastRXMessageCounterFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET, baseCount))
         { return(false); } // FAIL: both copies borked.
-    // Compute the maximum value that the base value could be extended to with the unary.
+    // Compute the maximum value that the base value could be extended to with the unary part.
     uint8_t maxWithUnary[fullMessageCounterBytes];
     memcpy(maxWithUnary, baseCount, maxWithUnary);
     if(!SimpleSecureFrame32or0BodyBase::msgcounteradd(maxWithUnary, OTV0P2BASE::EEPROM_UNARY_2BYTE_MAX_VALUE)) { return(false); } // FAIL: counter too near maximum; might roll.
     // If that is at least as large as the requested new counter value
+    // (AND there was not a problem reading the unarty part)
     if(SimpleSecureFrame32or0BodyBase::msgcountercmp(maxWithUnary, newCounterValue) >= 0)
     // then just update the unary value as needed ...
         {
-        // Get the current unary counter value...
-        // If the counter can be updated using just the unary part then do so to reduce EEPROM wear.
-        // Else update the primary/secondary counters to the new value and reset the unary value.
-        const uint8_t incr = (!use_unary_counter) ? 0 :
+        // Get the current unary counter part...
+        const uint8_t currentIncr = (!use_unary_counter) ? 0 :
             OTV0P2BASE::eeprom_unary_2byte_decode(eeprom_read_byte(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET + 7),
                                                   eeprom_read_byte(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET + 7));
-        const uint8_t appliedIncr = (incr >= 0) ? incr : (OTV0P2BASE::EEPROM_UNARY_2BYTE_MAX_VALUE);
+        // If impossible to read back the existing value then use 0 for a slightly longer search below.
+        const uint8_t startIncr = (incr >= 0) ? incr : 0;
+        // Try successively larger increments with the unary counter
+        // until the total of the base and unary counts is the requested new counter value,
+        // then set the unary counter to that value and return a success value.
+        // In most cases this will take a single increment
+        // as messages will arrive with successive message counter values, barring comms loss.
+        for(uint8_t newIncr = startIncr; newIncr <= OTV0P2BASE::EEPROM_UNARY_2BYTE_MAX_VALUE; ++newIncr)
+            {
+            uint8_t putativeTotal[fullMessageCounterBytes];
+            memcpy(putativeTotal, baseCount, putativeTotal);
+            if(!SimpleSecureFrame32or0BodyBase::msgcounteradd(putativeTotal, newIncr)) { return(false); } // FAIL: counter too near maximum; might roll.
 
-return(X);
+
+// TODO
+
+            }
+        return(false); // FAIL: should not really be possible.
         }
     // else update the underlying main counters, primary AND secondary copies ...
     if(!updateRXMessageCount(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET, newCounterValue)) { return(false); } // FAIL
