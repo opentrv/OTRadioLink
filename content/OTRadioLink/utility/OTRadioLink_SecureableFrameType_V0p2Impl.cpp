@@ -443,7 +443,7 @@ bool SimpleSecureFrame32or0BodyRXV0p2::updateRXMessageCountAfterAuthentication(c
         { return(false); } // FAIL: both copies borked.
     // Compute the maximum value that the base value could be extended to with the unary part.
     uint8_t maxWithUnary[fullMessageCounterBytes];
-    memcpy(maxWithUnary, baseCount, maxWithUnary);
+    memcpy(maxWithUnary, baseCount, sizeof(maxWithUnary));
     if(!SimpleSecureFrame32or0BodyBase::msgcounteradd(maxWithUnary, OTV0P2BASE::EEPROM_UNARY_2BYTE_MAX_VALUE)) { return(false); } // FAIL: counter too near maximum; might roll.
     // If that is at least as large as the requested new counter value
     // (AND there was not a problem reading the unarty part)
@@ -455,7 +455,7 @@ bool SimpleSecureFrame32or0BodyRXV0p2::updateRXMessageCountAfterAuthentication(c
             OTV0P2BASE::eeprom_unary_2byte_decode(eeprom_read_byte(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET + 7),
                                                   eeprom_read_byte(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET + 7));
         // If impossible to read back the existing value then use 0 for a slightly longer search below.
-        const uint8_t startIncr = (incr >= 0) ? incr : 0;
+        const uint8_t startIncr = (currentIncr >= 0) ? currentIncr : 0;
         // Try successively larger increments with the unary counter
         // until the total of the base and unary counts is the requested new counter value,
         // then set the unary counter to that value and return a success value.
@@ -464,12 +464,20 @@ bool SimpleSecureFrame32or0BodyRXV0p2::updateRXMessageCountAfterAuthentication(c
         for(uint8_t newIncr = startIncr; newIncr <= OTV0P2BASE::EEPROM_UNARY_2BYTE_MAX_VALUE; ++newIncr)
             {
             uint8_t putativeTotal[fullMessageCounterBytes];
-            memcpy(putativeTotal, baseCount, putativeTotal);
+            memcpy(putativeTotal, baseCount, sizeof(putativeTotal));
             if(!SimpleSecureFrame32or0BodyBase::msgcounteradd(putativeTotal, newIncr)) { return(false); } // FAIL: counter too near maximum; might roll.
-
-
-// TODO
-
+            if(SimpleSecureFrame32or0BodyBase::msgcountercmp(putativeTotal, newCounterValue) == 0)
+                {
+                // Got it!
+                const uint16_t newU16 = OTV0P2BASE::eeprom_unary_2byte_encode(newIncr);
+                const uint8_t vm = (uint8_t)(newU16 >> 8);
+                const uint8_t vl = (uint8_t)(newU16);
+                // Update in a way easy to detect if interrupted, eg by power failure, so lsbyte first,
+                // though usually only one bit will actually be changing...
+                OTV0P2BASE::eeprom_smart_update_byte(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET + 7, vm);
+                OTV0P2BASE::eeprom_smart_update_byte(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET + 7, vl);
+                return(true); // DONE
+                }
             }
         return(false); // FAIL: should not really be possible.
         }
@@ -478,8 +486,8 @@ bool SimpleSecureFrame32or0BodyRXV0p2::updateRXMessageCountAfterAuthentication(c
     if(!updateRXMessageCount(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET, newCounterValue)) { return(false); } // FAIL
     // ... and reset the unary counter,
     // in a way easy to detect if interrupted, eg by power failure, so lsbyte first.
-    OTV0P2BASE::eeprom_smart_erase(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET + 7);
-    OTV0P2BASE::eeprom_smart_erase(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET + 7);
+    OTV0P2BASE::eeprom_smart_erase_byte(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET + 7);
+    OTV0P2BASE::eeprom_smart_erase_byte(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET + 7);
     return(true);
     }
 
