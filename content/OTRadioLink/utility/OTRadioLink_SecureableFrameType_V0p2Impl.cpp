@@ -432,12 +432,6 @@ bool SimpleSecureFrame32or0BodyRXV0p2::updateRXMessageCountAfterAuthentication(c
         return(true);
         }
 
-    // If the counter can be updated using just the unary part then do so to reduce EEPROM wear.
-    // Else update the primary/secondary counters to the new value and reset the unary value.
-    const uint8_t incr = (!use_unary_counter) ? 0 :
-        OTV0P2BASE::eeprom_unary_2byte_decode(eeprom_read_byte(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET + 7),
-                                              eeprom_read_byte(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET + 7));
-    const uint8_t appliedIncr = (incr >= 0) ? incr : (OTV0P2BASE::EEPROM_UNARY_2BYTE_MAX_VALUE);
     // Get the raw counter value ignoring the unary part.
     // Fall back to the secondary value if there is something wrong with the primary,
     uint8_t baseCount[fullMessageCounterBytes];
@@ -452,6 +446,13 @@ bool SimpleSecureFrame32or0BodyRXV0p2::updateRXMessageCountAfterAuthentication(c
     if(SimpleSecureFrame32or0BodyBase::msgcountercmp(maxWithUnary, newCounterValue) >= 0)
     // then just update the unary value as needed ...
         {
+        // Get the current unary counter value...
+        // If the counter can be updated using just the unary part then do so to reduce EEPROM wear.
+        // Else update the primary/secondary counters to the new value and reset the unary value.
+        const uint8_t incr = (!use_unary_counter) ? 0 :
+            OTV0P2BASE::eeprom_unary_2byte_decode(eeprom_read_byte(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET + 7),
+                                                  eeprom_read_byte(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET + 7));
+        const uint8_t appliedIncr = (incr >= 0) ? incr : (OTV0P2BASE::EEPROM_UNARY_2BYTE_MAX_VALUE);
 
 return(X);
         }
