@@ -108,13 +108,24 @@ bool setPrimaryBuilding16ByteSecretKey(const uint8_t *newKey) // <-- this should
         }
         return(true);
     } else {
-        // set new key
+        // Set new key.
         for(uint8_t i = 0; i < VOP2BASE_EE_LEN_16BYTE_PRIMARY_BUILDING_KEY; i++) {
             eeprom_smart_update_byte(((uint8_t *)VOP2BASE_EE_START_16BYTE_PRIMARY_BUILDING_KEY)+i, *newKey++);
         }
         return(true);
     }
 }
+
+// Verify that the stored key is that passed in.
+// Avoids leaking information about the key,
+// eg by printing any of it, or terminating early on mismatch.
+bool checkPrimaryBuilding16ByteSecretKey(const uint8_t *key)
+    {
+    bool isSame = true;
+    for(uint8_t i = 0; i < VOP2BASE_EE_LEN_16BYTE_PRIMARY_BUILDING_KEY; i++)
+        { isSame &= (*key++ == eeprom_read_byte(((uint8_t *)VOP2BASE_EE_START_16BYTE_PRIMARY_BUILDING_KEY)+i)); }
+    return(isSame);
+    }
 
 /**
  * @brief   Fills an array with the 16 byte primary building key.

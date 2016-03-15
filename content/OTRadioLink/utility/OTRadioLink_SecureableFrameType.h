@@ -340,6 +340,9 @@ namespace OTRadioLink
             static int16_t msgcountercmp(const uint8_t *counter1, const uint8_t *counter2)
                 { return(memcmp(counter1, counter2, fullMessageCounterBytes)); }
 
+            // Add specified small unsigned value to supplied counter value in place; false if failed.
+            // This will fail (returning false) if the counter would overflow, leaving it unchanged.
+            static bool msgcounteradd(uint8_t *counter, uint8_t delta);
         };
 
     // TX Base class for simple implementations that supports 0 or 32 byte encrypted body sections.

@@ -325,6 +325,28 @@ uint8_t decodeNonsecureSmallFrameRaw(const SecurableFrameHeader *sfh,
     return(fl + 1);
     }
 
+// Add specified small unsigned value to supplied counter value in place; false if failed.
+// This will fail (returning false) if the counter would overflow, leaving it unchanged.
+bool SimpleSecureFrame32or0BodyBase::msgcounteradd(uint8_t *const counter, const uint8_t delta)
+    {
+    if(0 == delta) { return(true); } // Optimisation: nothing to do.
+    // Add to last byte, if it overflows ripple up the increment as needed,
+    // but refuse if the counter would roll over.
+    const uint8_t lsbyte = counter[fullMessageCounterBytes-1];
+    const uint8_t bumped = lsbyte + delta;
+    // If lsbyte does not wrap, as it won't much of the time, update it and return immediately.
+    if(bumped > lsbyte) { counter[fullMessageCounterBytes-1] = bumped; return(true); }
+    // Carry will need to ripple up, so check that that wouldn't cause an overflow.
+    bool allFF = true;
+    for(uint8_t i = 0; i < fullMessageCounterBytes-1; ++i) { if(0xff != counter[i]) { allFF = false; break; } }
+    if(allFF) { return(false); }
+    // Safe from overflow, set lsbyte and ripple up the carry as necessary.
+    counter[fullMessageCounterBytes-1] = bumped;
+    for(int8_t i = fullMessageCounterBytes-1; --i > 0; ) { if(0 != ++counter[i]) { break; } }
+    // Success!
+    return(true);
+    }
+
 // Encode entire secure small frame from header params and body and crypto support.
 // This is a raw/partial impl that requires the IV/nonce to be supplied.
 // This uses fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t style encryption/authentication.

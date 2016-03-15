@@ -198,6 +198,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #undef ENABLE_EXTENDED_CLI
 // IF DEFINED: enable a full OpenTRV UI with normal LEDs etc.
 #undef ENABLE_FULL_OT_UI
+// IF DEFINED: provide CLI read/write access to generic parameter block.
+#undef ENABLE_GENERIC_PARAM_CLI_ACCESS
 // IF DEFINED: enable a secondary (typically WAN-relay) radio module.
 #define ENABLE_RADIO_SECONDARY_MODULE
 // IF DEFINED: enable a WAN-relay radio module, primarily to relay stats outbound.
