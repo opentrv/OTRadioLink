@@ -413,7 +413,7 @@ static bool updateRXMessageCount(uint8_t * const eepromLoc, const uint8_t * cons
 // The implementation should be robust in the face of power failures / reboots, accidental or malicious,
 // not allowing replays nor other cryptographic attacks, nor forcing node dissociation.
 // Must only be called once the RXed message has passed authentication.
-// TODO: use unary count as proxy for LSBs to reduce wear; clear unary value after main count increment so as to never have too low a total value.
+// Use a unary count as proxy for LSBs to reduce wear; clear unary value after main count increment so as to never have too low a total value.
 bool SimpleSecureFrame32or0BodyRXV0p2::updateRXMessageCountAfterAuthentication(const uint8_t *ID, const uint8_t *newCounterValue)
     {
     // Validate node ID and new count.
@@ -425,7 +425,7 @@ bool SimpleSecureFrame32or0BodyRXV0p2::updateRXMessageCountAfterAuthentication(c
     // Compute base location in EEPROM of association table entry/row.
     uint8_t * const rawPtr = (uint8_t *)(OTV0P2BASE::V0P2BASE_EE_START_NODE_ASSOCIATIONS + index*(uint16_t)OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE);
 
-
+//if(use_unary_counter)
 
     // Update primary AND secondary counter copies.
     if(!updateRXMessageCount(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET, newCounterValue)) { return(false); } // FAIL
