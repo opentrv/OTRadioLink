@@ -81,30 +81,25 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 // IF DEFINED: enable use AVR's 'idle' mode to stop the CPU but leave I/O (eg Serial) running to save power.
 // DHD20150920: CURRENTLY NOT RECOMMENDED AS STILL SEEMS TO CAUSE SOME BOARDS TO CRASH.
 #undef ENABLE_USE_OF_AVR_IDLE_MODE
-
 // IF DEFINED: enable a 'null' radio module; without this unit is stand-alone.
 #define ENABLE_RADIO_NULL
-
 // Secondary radio
 #undef ENABLE_RADIO_RFM23B
 #undef ENABLE_RADIO_PRIMARY_RFM23B
-
 // IF DEFINED: enable a secondary (typically WAN-relay) radio module.
 #define ENABLE_RADIO_SECONDARY_MODULE
 #define ENABLE_RADIO_RN2483   // Enable RN2483
 //#define RADIO_PRIMARY_RN2483 // Must be secondary to avoid sending preamble etc
 #define ENABLE_RADIO_SECONDARY_RN2483
-
 // Define voice module
 #define ENABLE_VOICE_SENSOR
 #define ENABLE_OCCUPANCY_DETECTION_FROM_VOICE
 #define ENABLE_VOICE_STATS
-
 #endif // CONFIG_REV14_PROTO
 
 #ifdef CONFIG_REV14 // REV14 w/ light sensor, SHT21 and voice sensor.
 // Measured current consumption (no QM-1 or mobdet): 100-200 uA when serial shut and not attempting TX.
-// Revision REV14 of V0.2 board, Sensor unit with LoRa module and voice detector.
+// Revision REV14 of V0.2 board, sensor unit with LoRa module and voice detector.
 // In this off-label mode being used as stats gatherers or simple hubs.
 // DE20160221: I may have made a mistake with my oscilloscope setup doing the earlier readings. Revised values below:
 // - QM-1 turned off, RN2483 in sleep mode, no mobdet:                  2-3 mA
@@ -172,7 +167,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 #ifdef CONFIG_REV14_WORKSHOP // REV14 w/ light sensor and SHT21 for Launchpad final workshop.
 // Measured current consumption (no QM-1 or mobdet): 100-200 uA when serial shut and not attempting TX.
-// Revision REV14 of V0.2 board, Sensor unit with LoRa module and voice detector.
+// Revision REV14 of V0.2 board, sensor unit with LoRa module and voice detector.
 // In this off-label mode being used as stats gatherers or simple hubs.
 // DE20160221: I may have made a mistake with my oscilloscope setup doing the earlier readings. Revised values below:
 // - QM-1 turned off, RN2483 in sleep mode, no mobdet:                  2-3 mA
@@ -204,10 +199,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #undef ENABLE_BINARY_STATS_TX
 // IF DEFINED: enable support for FS20 carrier for RX of raw FS20 and piggybacked binary (non-JSON) stats.
 #undef ENABLE_FS20_NATIVE_AND_BINARY_STATS_RX
-//#define ENABLE_PRIMARY_TEMP_SENSOR_SHT21
-// IF DEFINED: enable use AVR's 'idle' mode to stop the CPU but leave I/O (eg Serial) running to save power.
-// DHD20150920: CURRENTLY NOT RECOMMENDED AS STILL SEEMS TO CAUSE SOME BOARDS TO CRASH.
-#undef ENABLE_USE_OF_AVR_IDLE_MODE
+// IF DEFINED: enable use of on-board SHT21 primary temperature and RH% sensor (in lieu of default TMP112).
+#define ENABLE_PRIMARY_TEMP_SENSOR_SHT21
 // IF DEFINED: use active-low LEARN button(s).  Needs ENABLE_SINGLETON_SCHEDULE.  ***
 #undef ENABLE_LEARN_BUTTON // OPTIONAL ON V0.09 PCB1
 // IF DEFINED: this unit supports CLI over the USB/serial connection, eg for run-time reconfig.
