@@ -230,10 +230,10 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #define ENABLE_JSON_STATS_LEN_CAP 34 // Should allow LoRa SF12 and 4 min TX intervals.
 // IF DEFINED: unconditionally suppress the "@" ID field (carrier supplies it or equiv) to save bandwidth.
 #define ENABLE_JSON_SUPPRESSED_ID
-// Define voice module
-//#define ENABLE_VOICE_SENSOR
-//#define ENABLE_OCCUPANCY_DETECTION_FROM_VOICE
-//#define ENABLE_VOICE_STATS
+// IF DEFINED: unconditionally suppress the "+" ID field and aim for minimum JSON frame size, for poor/noisy comms channels.
+// NOTE: minimising the JSON frame will overall *reduce* bandwidth efficiency and ability to diagnose TX problems.
+#undef ENABLE_JSON_FRAME_MINIMISED
+
 #endif
 
 #endif
