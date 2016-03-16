@@ -231,9 +231,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 // IF DEFINED: unconditionally suppress the "@" ID field (carrier supplies it or equiv) to save bandwidth.
 #define ENABLE_JSON_SUPPRESSED_ID
 // IF DEFINED: unconditionally suppress the "+" ID field and aim for minimum JSON frame size, for poor/noisy comms channels.
-// NOTE: minimising the JSON frame will overall *reduce* bandwidth efficiency and ability to diagnose TX problems.
-#undef ENABLE_JSON_FRAME_MINIMISED
-
+// NOTE: minimising the JSON frame with this will overall *reduce* bandwidth efficiency and ability to diagnose TX problems.
+#define ENABLE_JSON_FRAME_MINIMISED
 #endif
 
 #endif
