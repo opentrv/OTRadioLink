@@ -22,8 +22,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
  *
  * This should define (or nominally #undef) ONLY symbols with names starting "ENABLE_".
  *
- * This should define (or nominally #undef) ONLY symbols with names starting "ENABLE_".
- *
  * Specific sets by date may also be available.
  *
  * These are meant be be fairly stable over time;
@@ -99,6 +97,11 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #undef ENABLE_FREQUENT_STATS_TX
 // IF DEFINED: the (>>8) value of this flag is the maximum JSON frame size allowed (bytes).
 #undef ENABLE_JSON_STATS_LEN_CAP
+// IF DEFINED: unconditionally suppress the "@" ID field (carrier supplies it or equiv) to save bandwidth.
+#undef ENABLE_JSON_SUPPRESSED_ID
+// IF DEFINED: unconditionally suppress the "+" ID field and aim for minimum JSON frame size, for poor/noisy comms channels.
+// NOTE: minimising the JSON frame will overall *reduce* bandwidth efficiency and ability to diagnose TX problems.
+#undef ENABLE_JSON_FRAME_MINIMISED
 // IF DEFINED: enable a CLI-settable setback lockout (hours/days) to establish a baseline before engaging energy saving setbacks.
 #undef ENABLE_SETBACK_LOCKOUT_COUNTDOWN
 //////////////////////////////////////// SENSOR OPTIONS (and support for them)
