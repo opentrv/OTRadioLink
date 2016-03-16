@@ -22,8 +22,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
  *
  * This should define (or nominally #undef) ONLY symbols with names starting "ENABLE_".
  *
- * This should define (or nominally #undef) ONLY symbols with names starting "ENABLE_".
- *
  * Specific sets by date may also be available.
  *
  * These are meant be be fairly stable over time;
