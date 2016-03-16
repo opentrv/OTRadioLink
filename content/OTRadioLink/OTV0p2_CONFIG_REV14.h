@@ -228,6 +228,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #define ENABLE_TRIMMED_BANDWIDTH
 // IF DEFINED: the (>>8) value of this flag is the maximum JSON frame size allowed (bytes).
 #define ENABLE_JSON_STATS_LEN_CAP 34 // Should allow LoRa SF12 and 4 min TX intervals.
+// IF DEFINED: unconditionally suppress the "@" ID field (carrier supplies it or equiv) to save bandwidth.
+#define ENABLE_JSON_SUPPRESSED_ID
 // Define voice module
 //#define ENABLE_VOICE_SENSOR
 //#define ENABLE_OCCUPANCY_DETECTION_FROM_VOICE
