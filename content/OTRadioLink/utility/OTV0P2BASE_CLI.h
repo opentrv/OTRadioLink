@@ -57,7 +57,6 @@ namespace CLI {
     //   * maxSCT maximum sub-cycle time to wait until
     uint8_t promptAndReadCommandLine(uint8_t maxSCT, char *buf, uint8_t bufsize, void (*idlefn)() = NULL);
 
-
     // Prints warning to serial (that must be up and running) that invalid (CLI) input has been ignored.
     // Probably should not be inlined, to avoid creating duplicate strings in Flash.
     void InvalidIgnored();

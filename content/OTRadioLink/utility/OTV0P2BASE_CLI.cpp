@@ -64,8 +64,6 @@ uint8_t promptAndReadCommandLine(const uint8_t maxSCT, char *const buf, const ui
     const uint8_t targetMaxSCT = (maxSCT <= MIN_POLL_SCT) ? ((uint8_t) 0) : ((uint8_t) (maxSCT - 1 - MIN_POLL_SCT));
     if(OTV0P2BASE::getSubCycleTime() >= targetMaxSCT) { return(0); } // Too short to try.
 
-//    const bool neededWaking = OTV0P2BASE::powerUpSerialIfDisabled<V0P2_UART_BAUD>();
-
     // Purge any stray pending input, such as a trailing LF from previous input.
     while(Serial.available() > 0) { Serial.read(); }
 
@@ -173,7 +171,6 @@ uint8_t promptAndReadCommandLine(const uint8_t maxSCT, char *const buf, const ui
 
     // Force any pending output before return / possible UART power-down.
     OTV0P2BASE::flushSerialSCTSensitive();
-//    if(neededWaking) { OTV0P2BASE::powerDownSerial(); }
     return(n);
     }
 
