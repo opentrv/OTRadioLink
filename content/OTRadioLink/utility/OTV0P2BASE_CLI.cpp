@@ -45,8 +45,6 @@ void InvalidIgnored() { Serial.println(F("Invalid, ignored.")); }
 // Character that should trigger any pending command from user to be sent.
 // (Should be avoided at start of status output.)
 static const char CLIPromptChar = ((char) OTV0P2BASE::SERLINE_START_CHAR_CLI);
-// Minimum number of sub-cycle ticks to be prepared to wait for input, often human-driven, not to be frustrating.
-static const uint8_t MIN_POLL_SCT = 16; // ~1/8s.
 // Generate CLI prompt and wait a little while (typically ~1s) for an input command line.
 // Returns number of characters read (not including terminating CR or LF); 0 in case of failure.
 // Ignores any characters queued before generating the prompt.
@@ -61,10 +59,8 @@ uint8_t promptAndReadCommandLine(const uint8_t maxSCT, char *const buf, const ui
     if((NULL == buf) || (bufsize < 2)) { return(0); } // FAIL
 
     // Compute safe limit time given granularity of sleep and buffer fill.
-    const uint8_t targetMaxSCT = (maxSCT <= MIN_POLL_SCT) ? ((uint8_t) 0) : ((uint8_t) (maxSCT - 1 - MIN_POLL_SCT));
+    const uint8_t targetMaxSCT = (maxSCT <= MIN_CLI_POLL_SCT) ? ((uint8_t) 0) : ((uint8_t) (maxSCT - 1 - MIN_CLI_POLL_SCT));
     if(OTV0P2BASE::getSubCycleTime() >= targetMaxSCT) { return(0); } // Too short to try.
-
-//    const bool neededWaking = OTV0P2BASE::powerUpSerialIfDisabled<V0P2_UART_BAUD>();
 
     // Purge any stray pending input, such as a trailing LF from previous input.
     while(Serial.available() > 0) { Serial.read(); }
@@ -173,7 +169,6 @@ uint8_t promptAndReadCommandLine(const uint8_t maxSCT, char *const buf, const ui
 
     // Force any pending output before return / possible UART power-down.
     OTV0P2BASE::flushSerialSCTSensitive();
-//    if(neededWaking) { OTV0P2BASE::powerDownSerial(); }
     return(n);
     }
 
