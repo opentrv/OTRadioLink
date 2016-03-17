@@ -46,6 +46,18 @@ namespace OTV0P2BASE {
 namespace CLI {
 
 
+    // Generate CLI prompt and wait a little while (typically ~1s) for an input command line.
+    // Returns number of characters read (not including terminating CR or LF); 0 in case of failure.
+    // Ignores any characters queued before generating the prompt.
+    // Does not wait if too close to (or beyond) the end of the minor cycle.
+    // Takes a buffer and its size; fills buffer with '\0'-terminated response if return > 0.
+    // Serial must already be running.
+    //   * idlefn: if non-NULL this is called while waiting for input;
+    //       it must not interfere with UART RX, eg by messing with CPU clock or interrupts
+    //   * maxSCT maximum sub-cycle time to wait until
+    uint8_t promptAndReadCommandLine(uint8_t maxSCT, char *buf, uint8_t bufsize, void (*idlefn)() = NULL);
+
+
     // Prints warning to serial (that must be up and running) that invalid (CLI) input has been ignored.
     // Probably should not be inlined, to avoid creating duplicate strings in Flash.
     void InvalidIgnored();
