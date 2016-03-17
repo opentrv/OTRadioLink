@@ -17,6 +17,10 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
                            Damon Hart-Davis 2016
 */
 
+// CLI support routines
+
+// NOTE: some CLI routines may live alongside the devices they support, not here.
+
 #include "OTV0P2BASE_CLI.h"
 
 #include "OTV0P2BASE_EEPROM.h"

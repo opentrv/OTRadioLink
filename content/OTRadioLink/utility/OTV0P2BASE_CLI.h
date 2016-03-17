@@ -19,6 +19,8 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
 
 // CLI support routines
 
+// NOTE: some CLI routines may live alongside the devices they support, not here.
+
 #ifndef CONTENT_OTRADIOLINK_UTILITY_OTV0P2BASE_CLI_H_
 #define CONTENT_OTRADIOLINK_UTILITY_OTV0P2BASE_CLI_H_
 

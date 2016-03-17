@@ -685,5 +685,105 @@ uint8_t const * FHT8VRadValveBase::FHT8VDecodeBitStream(uint8_t const *bitStream
   return(state.bitStream + 1);
   }
 
+// Clear both housecode parts (and thus disable local valve), in non-volatile (EEPROM) store also.
+// Does nothing if FHT8V not in use.
+void FHT8VRadValveBase::nvClearHC()
+  {
+  clearHC();
+  OTV0P2BASE::eeprom_smart_erase_byte((uint8_t*)V0P2BASE_EE_START_FHT8V_HC1);
+  OTV0P2BASE::eeprom_smart_erase_byte((uint8_t*)V0P2BASE_EE_START_FHT8V_HC2);
+  }
+
+// Set (non-volatile) HC1 and HC2 for single/primary FHT8V wireless valve under control.
+// Also set value in FHT8V rad valve model.
+// Does nothing if FHT8V not in use.
+void FHT8VRadValveBase::nvSetHC1(const uint8_t hc)
+  {
+  setHC1(hc);
+  OTV0P2BASE::eeprom_smart_update_byte((uint8_t*)V0P2BASE_EE_START_FHT8V_HC1, hc);
+  }
+void FHT8VRadValveBase::nvSetHC2(const uint8_t hc)
+  {
+  setHC2(hc);
+  OTV0P2BASE::eeprom_smart_update_byte((uint8_t*)V0P2BASE_EE_START_FHT8V_HC2, hc);
+  }
+
+// Get (non-volatile) HC1 and HC2 for single/primary FHT8V wireless valve under control (will be 0xff until set).
+// FHT8V instance values are used as a cache.
+// Does nothing if FHT8V not in use.
+uint8_t FHT8VRadValveBase::nvGetHC1()
+  {
+  const uint8_t vv = getHC1();
+  // If cached value in FHT8V instance is valid, return it.
+  if(OTRadValve::FHT8VRadValveBase::isValidFHTV8HouseCode(vv))
+    {
+    return(vv);
+    }
+  // Else if EEPROM value is valid, then cache it in the FHT8V instance and return it.
+  const uint8_t ev = eeprom_read_byte((uint8_t*)V0P2BASE_EE_START_FHT8V_HC1);
+  if(OTRadValve::FHT8VRadValveBase::isValidFHTV8HouseCode(ev))
+    {
+    setHC1(ev);
+    }
+  return(ev);
+  }
+uint8_t FHT8VRadValveBase::nvGetHC2()
+  {
+  const uint8_t vv = getHC2();
+  // If cached value in FHT8V instance is valid, return it.
+  if(OTRadValve::FHT8VRadValveBase::isValidFHTV8HouseCode(vv))
+    {
+    return(vv);
+    }
+  // Else if EEPROM value is valid, then cache it in the FHT8V instance and return it.
+  const uint8_t ev = eeprom_read_byte((uint8_t*)V0P2BASE_EE_START_FHT8V_HC2);
+  if(OTRadValve::FHT8VRadValveBase::isValidFHTV8HouseCode(ev))
+    {
+    setHC2(ev);
+    }
+  return(ev);
+  }
+
+// Load EEPROM house codes into primary FHT8V instance at start-up or once cleared in FHT8V instance.
+void FHT8VRadValveBase::nvLoadHC()
+  {
+  // Uses side-effect to cache/save in FHT8V instance.
+  nvGetHC1();
+  nvGetHC2();
+  }
+
+// CLI support.
+// Clear/set house code ("H" or "H nn mm").
+// Will clear/set the non-volatile (EEPROM) values and the live ones.
+bool FHT8VRadValveBase::SetHouseCode::doCommand(char *const buf, const uint8_t buflen)
+    {
+    if(NULL == v) { OTV0P2BASE::CLI::InvalidIgnored(); return(false); } // Can't work without valve pointer/
+    char *last; // Used by strtok_r().
+    char *tok1;
+    // Minimum 5 character sequence makes sense and is safe to tokenise, eg "H 1 2".
+    if((buflen >= 5) && (NULL != (tok1 = strtok_r(buf+2, " ", &last))))
+      {
+      char *tok2 = strtok_r(NULL, " ", &last);
+      if(NULL != tok2)
+        {
+        const int hc1 = atoi(tok1);
+        const int hc2 = atoi(tok2);
+        if((hc1 < 0) || (hc1 > 99) || (hc2 < 0) || (hc2 > 99)) { OTV0P2BASE::CLI::InvalidIgnored(); }
+        else
+          {
+          // Set house codes and force resync if changed.
+          v->nvSetHC1(hc1);
+          v->nvSetHC2(hc2);
+          }
+        }
+      }
+    else if(buflen < 2) // Just 'H', possibly with trailing whitespace.
+      {
+      v->nvClearHC(); // Clear codes and force into unsynchronized state.
+      }
+    // Done: show updated status line, possibly with results of update.
+    return(true);
+    }
+
 
     }
