@@ -156,7 +156,8 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
 
     // House codes part 1 and 2 (must each be <= 99 to be valid).
     // Starts as '0xff' as unset EEPROM values would be to indicate 'unset'.
-    uint8_t hc1, hc2;
+    // Marked volatile to allow thread-/ISR- safe lock-free access for read.
+    volatile uint8_t hc1, hc2;
 
   public:
     // Returns true if the supplied house code part is valid for an FHT8V valve.
@@ -171,6 +172,7 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
     void setHC2(uint8_t hc) { if(hc != hc2) { hc2 = hc; resyncWithValve(); } }
     // Get (non-volatile) HC1 and HC2 for single/primary FHT8V wireless valve under control (will be 0xff until set).
     // Both parts must be <= 99 for the house code to be valid and the valve used.
+    // Thread-/ISR- safe, eg for use in radio RX filter IRQ routine.
     uint8_t getHC1() const { return(hc1); }
     uint8_t getHC2() const { return(hc2); }
     // Check if housecode is valid for controlling an FHT8V.
