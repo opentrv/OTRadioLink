@@ -32,6 +32,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #include <Wire.h>
 #include "OTV0P2BASE_PowerManagement.h"
 #include "OTV0P2BASE_ADC.h"
+#include "OTV0P2BASE_Entropy.h"
 #include "OTV0P2BASE_Sleep.h"
 
 namespace OTV0P2BASE
@@ -59,7 +60,7 @@ bool powerUpADCIfDisabled()
 
 
 // Flush any pending UART TX bytes in the hardware if UART is enabled, eg useful after Serial.flush() and before sleep.
-void flushSerialHW()
+static void flushSerialHW()
   {
   if(PRR & _BV(PRUSART0)) { return; } // UART not running, so nothing to do.
 
@@ -71,7 +72,7 @@ void flushSerialHW()
   return;
   }
 
-#ifndef flushSerialProductive
+//#ifndef flushSerialProductive
 // Does a Serial.flush() attempting to do some useful work (eg I/O polling) while waiting for output to drain.
 // Assumes hundreds of CPU cycles available for each character queued for TX.
 // Does not change CPU clock speed or disable or mess with USART0, though may poll it.
@@ -82,13 +83,13 @@ void flushSerialProductive()
 #endif
   // Can productively spin here churning PRNGs or the like before the flush(), checking for the UART TX buffer to empty...
   // An occasional premature exit to flush() due to Serial interrupt handler interaction is benign, and indeed more grist to the mill.
-  while(serialTXInProgress()) { /* burnHundredsOfCyclesProductivelyAndPoll(); */ }
+  while(serialTXInProgress()) { captureEntropy1(); }
   Serial.flush(); // Wait for all output to have been sent.
   // Could wait two character times at 10 bits per character based on BAUD.
-  // Or mass with the UART...
+  // Or mess with the UART...
   flushSerialHW();
   }
-#endif
+//#endif
 
 #ifndef flushSerialSCTSensitive
 // Does a Serial.flush() idling for 15ms at a time while waiting for output to drain.
@@ -102,10 +103,10 @@ void flushSerialSCTSensitive()
 #if 0 && defined(V0P2BASE_DEBUG)
   if(!_serialIsPoweredUp()) { panic(); } // Trying to operate serial without it powered up.
 #endif
-#ifdef ENABLE_USE_OF_AVR_IDLE_MODE
-  while(serialTXInProgress() && (getSubCycleTime() < GSCT_MAX - 2 - (20/SUBCYCLE_TICK_MS_RD)))
-    { idle15AndPoll(); } // Save much power by idling CPU, though everything else runs.
-#endif
+//#ifdef ENABLE_USE_OF_AVR_IDLE_MODE
+//  while(serialTXInProgress() && (getSubCycleTime() < GSCT_MAX - 2 - (20/SUBCYCLE_TICK_MS_RD)))
+//    { idle15AndPoll(); } // Save much power by idling CPU, though everything else runs.
+//#endif
   flushSerialProductive();
   }
 #endif
