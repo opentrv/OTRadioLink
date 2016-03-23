@@ -97,8 +97,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #define ENABLE_FHT8VSIMPLE
 // IF DEFINED: enable support for FS20 carrier for RX or TX.
 #define ENABLE_FS20_CARRIER_SUPPORT
-// IF DEFINED: enable raw preamble injection/framing eg for FS20 over RFM23B.
-#define ENABLE_RFM23B_FS20_RAW_PREAMBLE
 // IF DEFINED: enable support for FS20 encoding/decoding, eg to send to FHT8V.
 #define ENABLE_FS20_ENCODING_SUPPORT
 // IF DEFINED: act as CC1 simple relay node.
