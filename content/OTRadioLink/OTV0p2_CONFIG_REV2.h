@@ -116,6 +116,13 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #define ENABLE_STATS_TX
 #endif
 
+#ifdef CONFIG_Trial2013Winter_Round2_CC1HUB_SECURE
+// Secure COHEAT REV2 hub just like normal one except ...
+#define CONFIG_Trial2013Winter_Round2_CC1HUB
+// IF DEFINED: enable OpenTRV secure frame encoding/decoding (as of 2015/12).
+#define ENABLE_OTSECUREFRAME_ENCODING_SUPPORT
+#endif
+
 #ifdef CONFIG_Trial2013Winter_Round2_CC1HUB // REV2 cut4 as CC1 hub.
 #define CONFIG_Trial2013Winter_Round2 // Just like normal REV2 except...
 // IF DEFINED: this unit can act as boiler-control hub listening to remote thermostats, possibly in addition to controlling a local TRV.

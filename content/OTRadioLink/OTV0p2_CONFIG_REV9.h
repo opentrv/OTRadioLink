@@ -48,6 +48,13 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #define ENABLE_AMBIENT_LIGHT_SENSOR_PHOTOTRANS_TEPT4400_WRONG_WAY
 #endif
 
+#ifdef CONFIG_REV9_SECURE
+// Secure COHEAT REV9 relay just like normal one except ...
+#define CONFIG_REV9
+// IF DEFINED: enable OpenTRV secure frame encoding/decoding (as of 2015/12).
+#define ENABLE_OTSECUREFRAME_ENCODING_SUPPORT
+#endif
+
 #ifdef CONFIG_REV9 // REV9 cut2, derived from REV4.
 // Revision of V0.2 board.
 #define V0p2_REV 9
