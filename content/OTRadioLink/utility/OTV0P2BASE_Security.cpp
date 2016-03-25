@@ -114,6 +114,7 @@ bool setPrimaryBuilding16ByteSecretKey(const uint8_t *const newKey) // <-- this 
             eeprom_smart_update_byte(((uint8_t *)VOP2BASE_EE_START_16BYTE_PRIMARY_BUILDING_KEY)+i, *key++);
         }
         // Verify the key just written.
+        // Historically, esp on a big batch of REV7s, keys did not 'stick' the first time.  (TODO-863)
         return(checkPrimaryBuilding16ByteSecretKey(newKey));
     }
 }
