@@ -633,10 +633,10 @@ bool SimpleSecureFrame32or0BodyTXV0p2::compute12ByteIDAndCounterIVForTX(uint8_t 
 bool SimpleSecureFrame32or0BodyTXV0p2SuppliedID::compute12ByteIDAndCounterIVForTX(uint8_t *const ivBuf)
     {
     if(NULL == ivBuf) { return(false); }
-    // Cannot operate without routine to fetch ID.
-    if(NULL == getID) { return(false); }
+    // Without the fetch function, this copies the first 6 bytes from the internal ID buffer.
+    if(NULL == getID) { memcpy(ivBuf, id, 6); }
     // Fetch entire ID directly to ivBuf for simplicity; lsbytes will be overwritten with message counter.
-    if(!getID(ivBuf)) { return(false); } // ID fetch failed.
+    else if(!getID(ivBuf)) { return(false); } // ID fetch failed.
     // Generate and fill in new message count at end of IV.
     return(incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(ivBuf + SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes));
     }
