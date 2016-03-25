@@ -502,6 +502,8 @@ namespace OTRadioLink
             //  * buflen  available length in buf; if too small then this routine will fail (return 0)
             //  * il_  ID length for the header; ID comes from EEPROM or other pre-supplied ID
             //  * key  16-byte secret key; never NULL
+            // NOTE: THIS API IS LIABLE TO CHANGE
+            // SUPPORT FOR BEACONS MAY BE MADE STATIC SO AS NOT TO DRAG IT INTO IMPLS NO NEEDING IT.
             virtual uint8_t generateSecureBeaconRawForTX(uint8_t *buf, uint8_t buflen,
                                             uint8_t il_,
                                             fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,

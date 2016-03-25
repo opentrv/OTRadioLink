@@ -642,6 +642,8 @@ uint8_t generateNonsecureBeacon(uint8_t *const buf, const uint8_t buflen,
 //  * iv  12-byte initialisation vector / nonce; never NULL
 //  * key  16-byte secret key; never NULL
 // NOTE: this version requires the IV to be supplied and the transmitted ID length to chosen.
+// NOTE: THIS API IS LIABLE TO CHANGE
+// SUPPORT FOR BEACONS MAY BE MADE STATIC SO AS NOT TO DRAG IT INTO IMPLS NO NEEDING IT.
 uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureBeaconRaw(uint8_t *const buf, const uint8_t buflen,
                                 const uint8_t *const id_, const uint8_t il_,
                                 const uint8_t *const iv,
@@ -664,6 +666,8 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureBeaconRaw(uint8_t *const
 //  * buflen  available length in buf; if too small then this routine will fail (return 0)
 //  * il_  ID length for the header; ID comes from EEPROM
 //  * key  16-byte secret key; never NULL
+// NOTE: THIS API IS LIABLE TO CHANGE
+// SUPPORT FOR BEACONS MAY BE MADE STATIC SO AS NOT TO DRAG IT INTO IMPLS NO NEEDING IT.
 uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureBeaconRawForTX(uint8_t *const buf, const uint8_t buflen,
                                 const uint8_t il_,
                                 const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,

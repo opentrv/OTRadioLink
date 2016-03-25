@@ -635,6 +635,8 @@ bool SimpleSecureFrame32or0BodyTXV0p2::compute12ByteIDAndCounterIVForTX(uint8_t 
 //  * buflen  available length in buf; if too small then this routine will fail (return 0)
 //  * il_  ID length for the header; ID comes from same source as used to compute IV
 //  * key  16-byte secret key; never NULL
+// NOTE: THIS API IS LIABLE TO CHANGE
+// SUPPORT FOR BEACONS MAY BE MADE STATIC SO AS NOT TO DRAG IT INTO IMPLS NO NEEDING IT.
 uint8_t SimpleSecureFrame32or0BodyTXV0p2SuppliedID::generateSecureBeaconRawForTX(uint8_t *const buf, const uint8_t buflen,
                                 const uint8_t il_,
                                 const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
@@ -652,6 +654,8 @@ uint8_t SimpleSecureFrame32or0BodyTXV0p2SuppliedID::generateSecureBeaconRawForTX
 // This dynamically fetches the TX ID for the first 6 bytes.
 // This uses and increments the primary message counter for the last 6 bytes.
 // Returns true on success, false on failure eg due to message counter generation failure.
+// NOTE: THIS API IS LIABLE TO CHANGE
+// SUPPORT FOR BEACONS MAY BE MADE STATIC SO AS NOT TO DRAG IT INTO IMPLS NO NEEDING IT.
 bool SimpleSecureFrame32or0BodyTXV0p2SuppliedID::compute12ByteIDAndCounterIVForTX(uint8_t *const ivBuf)
     {
     if(NULL == ivBuf) { return(false); }
