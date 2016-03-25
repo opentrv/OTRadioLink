@@ -500,9 +500,9 @@ namespace OTRadioLink
             // so the buffer must be large enough to accommodate that.
             //  * buf  buffer to which is written the entire frame including trailer; never NULL
             //  * buflen  available length in buf; if too small then this routine will fail (return 0)
-            //  * il_  ID length for the header; ID comes from EEPROM
+            //  * il_  ID length for the header; ID comes from EEPROM or other pre-supplied ID
             //  * key  16-byte secret key; never NULL
-            uint8_t generateSecureBeaconRawForTX(uint8_t *buf, uint8_t buflen,
+            virtual uint8_t generateSecureBeaconRawForTX(uint8_t *buf, uint8_t buflen,
                                             uint8_t il_,
                                             fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
                                             void *state, const uint8_t *key);

@@ -626,6 +626,28 @@ bool SimpleSecureFrame32or0BodyTXV0p2::compute12ByteIDAndCounterIVForTX(uint8_t 
     }
 
 
+// Create secure Alive / beacon (FTS_ALIVE) frame with an empty body for transmission.
+// Returns number of bytes written to buffer, or 0 in case of error.
+// The IV is constructed from the node ID and the primary TX message counter.
+// Note that the frame will be 27 + ID-length (up to maxIDLength) bytes,
+// so the buffer must be large enough to accommodate that.
+//  * buf  buffer to which is written the entire frame including trailer; never NULL
+//  * buflen  available length in buf; if too small then this routine will fail (return 0)
+//  * il_  ID length for the header; ID comes from same source as used to compute IV
+//  * key  16-byte secret key; never NULL
+uint8_t SimpleSecureFrame32or0BodyTXV0p2SuppliedID::generateSecureBeaconRawForTX(uint8_t *const buf, const uint8_t buflen,
+                                const uint8_t il_,
+                                const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                                void *const state, const uint8_t *const key)
+    {
+    uint8_t iv[12];
+    if(il_ > 6) { return(0); } // FAIL: needs to reuse ID from start of IV, of 6 bytes.
+    if(!compute12ByteIDAndCounterIVForTX(iv)) { return(0); }
+    return(generateSecureBeaconRaw(buf, buflen,
+                                    iv, il_, // Cheat reuse of ID from start of IV!
+                                    iv, e, state, key));
+    }
+
 // Fill in 12-byte IV for 'O'-style (0x80) AESGCM security for a frame to TX.
 // This dynamically fetches the TX ID for the first 6 bytes.
 // This uses and increments the primary message counter for the last 6 bytes.
@@ -633,10 +655,10 @@ bool SimpleSecureFrame32or0BodyTXV0p2::compute12ByteIDAndCounterIVForTX(uint8_t 
 bool SimpleSecureFrame32or0BodyTXV0p2SuppliedID::compute12ByteIDAndCounterIVForTX(uint8_t *const ivBuf)
     {
     if(NULL == ivBuf) { return(false); }
-    // Cannot operate without routine to fetch ID.
-    if(NULL == getID) { return(false); }
+    // Without the fetch function, this copies the first 6 bytes from the internal ID buffer.
+    if(NULL == getID) { memcpy(ivBuf, id, 6); }
     // Fetch entire ID directly to ivBuf for simplicity; lsbytes will be overwritten with message counter.
-    if(!getID(ivBuf)) { return(false); } // ID fetch failed.
+    else if(!getID(ivBuf)) { return(false); } // ID fetch failed.
     // Generate and fill in new message count at end of IV.
     return(incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(ivBuf + SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes));
     }
