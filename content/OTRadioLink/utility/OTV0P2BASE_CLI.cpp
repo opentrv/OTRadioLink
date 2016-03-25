@@ -402,6 +402,7 @@ bool NodeID::doCommand(char *const buf, const uint8_t buflen)
 // "K B XX .. XX"  sets the primary building key, "K B *" erases it.
 // Clearing a key conditionally resets the primary TX message counter to avoid IV reuse
 // if a non-NULL callback has been provided.
+// Note that this may take significant time and will mess with the CPU clock.
 bool SetSecretKey::doCommand(char *const buf, const uint8_t buflen)
     {
     char *last; // Used by strtok_r().
@@ -450,10 +451,10 @@ bool SetSecretKey::doCommand(char *const buf, const uint8_t buflen)
                         if(-1 == ib) { InvalidIgnored(); return(false); } // ERROR: abrupt exit.
                         newKey[i] = (uint8_t)ib;
                         }
-                    OTV0P2BASE::setPrimaryBuilding16ByteSecretKey(newKey);
-#if 1 // && defined(DEBUG)
-                    Serial.println(F("B set"));
-#endif
+                    if(OTV0P2BASE::setPrimaryBuilding16ByteSecretKey(newKey))
+                        { Serial.println(F("B set")); }
+                    else
+                        { Serial.println(F("!B")); } // ERROR: key not set
 
 #if 0 && defined(DEBUG)
                     uint8_t keyTest[16];

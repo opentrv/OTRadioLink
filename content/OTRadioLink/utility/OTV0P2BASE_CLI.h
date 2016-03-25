@@ -117,6 +117,7 @@ namespace CLI {
 
     // Set/clear secret key(s) ("K ...").
     // Will call the keysCleared() routine when keys have been cleared, eg to allow resetting of TX message counters.
+    // Note that this may take significant time and will mess with the CPU clock.
     class SetSecretKey : public CLIEntryBase
         {
         bool (*const keysClearedFn)();
