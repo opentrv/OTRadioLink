@@ -47,8 +47,9 @@ namespace OTRadioLink
     // so that the all-1s erased state of counter and CRC is valid (counter value 0).
     class SimpleSecureFrame32or0BodyTXV0p2 : public SimpleSecureFrame32or0BodyTXBase
         {
-        private:
-            // Constructor is private to force use of factory method to return singleton.
+        protected:
+            // Constructor is protected to force use of factory method to return singleton.
+            // Else deriving class can construct some other way.
             SimpleSecureFrame32or0BodyTXV0p2() { }
 
         public:
@@ -176,6 +177,32 @@ namespace OTRadioLink
             // Returns true on success, false on failure eg due to message counter generation failure.
             virtual bool compute12ByteIDAndCounterIVForTX(uint8_t *ivBuf);
         };
+
+
+    // Variant that allows ID for TX to be fetched on demand, not directly using local node ID.
+    class SimpleSecureFrame32or0BodyTXV0p2SuppliedID : public SimpleSecureFrame32or0BodyTXV0p2
+        {
+        public:
+            // Type of pointer to function to fill in 8-byte ID for TX; returns false on failure.
+            typedef bool (*getTXID_t)(uint8_t *);
+
+        private:
+            // Function to fill in 8-byte ID for TX; if NULL then no TX will be possible.
+            const getTXID_t getID;
+
+        public:
+            // Construct with function that fetched the ID to use for TX
+            // (ie not necessarily the local node ID).
+            SimpleSecureFrame32or0BodyTXV0p2SuppliedID(getTXID_t _getID) : getID(_getID) { }
+
+            // Fill in 12-byte IV for 'O'-style (0x80) AESGCM security for a frame to TX.
+            // This uses the ID as supplied (not the local ID) for the first 6 bytes.
+            // This uses and increments the primary message counter for the last 6 bytes.
+            // Returns true on success, false on failure eg due to message counter generation failure.
+            virtual bool compute12ByteIDAndCounterIVForTX(uint8_t *ivBuf);
+        };
+
+
 
     // V0p2 RX implementation for 0 or 32 byte encrypted body sections.
     //
