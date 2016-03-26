@@ -222,23 +222,7 @@ namespace OTRadioLink
             // This will only be used if no function was supplied to the constructor.
             // Note that the primary TX counter will still be used,
             // so gaps will be seen in sequence numbers by recipients.
-            void setID(const uint8_t *buf) { memcpy(id, buf, sizeof(id)); }
-
-//            // Create secure Alive / beacon (FTS_ALIVE) frame with an empty body for transmission.
-//            // Returns number of bytes written to buffer, or 0 in case of error.
-//            // The IV is constructed from the node ID and the primary TX message counter.
-//            // Note that the frame will be 27 + ID-length (up to maxIDLength) bytes,
-//            // so the buffer must be large enough to accommodate that.
-//            //  * buf  buffer to which is written the entire frame including trailer; never NULL
-//            //  * buflen  available length in buf; if too small then this routine will fail (return 0)
-//            //  * il_  ID length for the header; ID comes from same source as used to compute IV
-//            //  * key  16-byte secret key; never NULL
-//            // NOTE: THIS API IS LIABLE TO CHANGE
-//            // SUPPORT FOR BEACONS MAY BE MADE STATIC SO AS NOT TO DRAG IT INTO IMPLS NO NEEDING IT.
-//            virtual uint8_t generateSecureBeaconRawForTX(uint8_t *buf, uint8_t buflen,
-//                                            uint8_t il_,
-//                                            fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
-//                                            void *state, const uint8_t *key);
+            void setTXID(const uint8_t *buf) { memcpy(id, buf, sizeof(id)); }
         };
 
 
