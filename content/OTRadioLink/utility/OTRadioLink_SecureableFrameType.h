@@ -101,7 +101,7 @@ namespace OTRadioLink
         // May use a light-weight security system and/or higher bit rate
         // and only be sent often enough to indicate ~0.5Wh of recent flow,
         // to meet radio duty-cycle (and energy availability) constraints.
-        FTS_I                           = 'I',
+        FTS_CURRENT                     = 'I',
 
         // OpenTRV basic valve/sensor leaf-to-hub frame (secure if high-bit set).
         FTS_BasicSensorOrValve          = 'O', // 0x4f
