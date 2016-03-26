@@ -93,6 +93,16 @@ namespace OTRadioLink
         // for a number of reasons including minimising the scope for misuse.
         FTS_ALIVE                       = '!',
 
+        // Used to indicate current flow.
+        // With empty body section can indicate significant +ve half cycle flow for AC,
+        // usually configured to indicate spill to grid from local microgeneration,
+        // nominally synchronised/timed from start of frame transmission/receipt,
+        // eg from receipt of frame sync if that time can be captured, else computed.
+        // May use a light-weight security system and/or higher bit rate
+        // and only be sent often enough to indicate ~0.5Wh of recent flow,
+        // to meet radio duty-cycle (and energy availability) constraints.
+        FTS_I                           = 'I',
+
         // OpenTRV basic valve/sensor leaf-to-hub frame (secure if high-bit set).
         FTS_BasicSensorOrValve          = 'O', // 0x4f
         };
