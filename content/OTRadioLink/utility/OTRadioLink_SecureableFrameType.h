@@ -489,28 +489,32 @@ namespace OTRadioLink
             virtual bool incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(uint8_t *buf) = 0;
 
             // Fill in 12-byte IV for 'O'-style (0x80) AESGCM security for a frame to TX.
-            // This uses the local node (or other supplied) ID as-is for the first 6 bytes.
+            // This uses the local node ID as-is for the first 6 bytes by default,
+            // but sub-classes may allow other IDs to be supplied.
             // This uses and increments the primary message counter for the last 6 bytes.
             // Returns true on success, false on failure eg due to message counter generation failure.
             virtual bool compute12ByteIDAndCounterIVForTX(uint8_t *ivBuf) = 0;
 
-            // Create secure Alive / beacon (FTS_ALIVE) frame with an empty body.
+            // Create simple 'O'-style secure frame with an optional encrypted body for transmission.
             // Returns number of bytes written to buffer, or 0 in case of error.
-            // Note that the frame will be 27 + ID-length (up to maxIDLength) bytes,
+            // The IV is constructed from the node ID (local from EEPROM, or as supplied)
+            // and the primary TX message counter (which is incremented).
+            // Note that the frame will be 27 + ID-length (up to maxIDLength) + body-length bytes,
             // so the buffer must be large enough to accommodate that.
             //  * buf  buffer to which is written the entire frame including trailer; never NULL
             //  * buflen  available length in buf; if too small then this routine will fail (return 0)
-            //  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
-            //  * iv  12-byte initialisation vector / nonce; never NULL
+            //  * frameType  valid frame type [1,126]
+            //  * body, bl_ body and body length; body non-NULL unless bl_ is zero
+            //  * il_  ID length for the header; ID is local node ID from EEPROM or other pre-supplied ID
             //  * key  16-byte secret key; never NULL
-            // NOTE: this version requires the IV to be supplied and the transmitted ID length to chosen.
-            static const uint8_t generateSecureBeaconMaxBufSize = 27 + SecurableFrameHeader::maxIDLength;
-            static uint8_t generateSecureBeaconRaw(uint8_t *buf, uint8_t buflen,
-                                            const uint8_t *id_, uint8_t il_,
-                                            const uint8_t *const iv,
-                                            const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+            uint8_t generateSecureOStyleFrameForTX(uint8_t *buf, uint8_t buflen,
+                                            FrameType_Secureable fType_,
+                                            uint8_t il_,
+                                            const uint8_t *body, uint8_t bl_,
+                                            fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
                                             void *state, const uint8_t *key);
 
+            static const uint8_t generateSecureBeaconMaxBufSize = 27 + SecurableFrameHeader::maxIDLength;
             // Create secure Alive / beacon (FTS_ALIVE) frame with an empty body for transmission.
             // Returns number of bytes written to buffer, or 0 in case of error.
             // The IV is constructed from the node ID and the primary TX message counter.
@@ -520,31 +524,13 @@ namespace OTRadioLink
             //  * buflen  available length in buf; if too small then this routine will fail (return 0)
             //  * il_  ID length for the header; ID comes from EEPROM or other pre-supplied ID
             //  * key  16-byte secret key; never NULL
+            // Simple example implementation for complete O-style secure frame TX workflow.
             // NOTE: THIS API IS LIABLE TO CHANGE
-            // SUPPORT FOR BEACONS MAY BE MADE STATIC SO AS NOT TO DRAG IT INTO IMPLS NO NEEDING IT.
-            virtual uint8_t generateSecureBeaconRawForTX(uint8_t *buf, uint8_t buflen,
+            uint8_t generateSecureBeaconRawForTX(uint8_t *buf, uint8_t buflen,
                                             uint8_t il_,
                                             fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
-                                            void *state, const uint8_t *key);
-
-//            // Create simple 'O' (FTS_BasicSensorOrValve) frame with an optional stats section for transmission.
-//            // Returns number of bytes written to buffer, or 0 in case of error.
-//            // The IV is constructed from the node ID (built-in from EEPROM or as supplied)
-//            // and the primary TX message counter (which is incremented).
-//            // Note that the frame will be 27 + ID-length (up to maxIDLength) + body-length bytes,
-//            // so the buffer must be large enough to accommodate that.
-//            //  * buf  buffer to which is written the entire frame including trailer; never NULL
-//            //  * buflen  available length in buf; if too small then this routine will fail (return 0)
-//            //  * valvePC  percentage valve is open or 0x7f if no valve to report on
-//            //  * statsJSON  '\0'-terminated {} JSON stats, or NULL if none.
-//            //  * il_  ID length for the header; ID comes from EEPROM
-//            //  * key  16-byte secret key; never NULL
-//            uint8_t generateSecureOFrameRawForTX(uint8_t *buf, uint8_t buflen,
-//                                            uint8_t il_,
-//                                            uint8_t valvePC,
-//                                            const char *statsJSON,
-//                                            fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
-//                                            void *state, const uint8_t *key);
+                                            void *state, const uint8_t *key)
+                { return(generateSecureOStyleFrameForTX(buf, buflen, OTRadioLink::FTS_ALIVE, il_, NULL, 0, e, state, key)); }
 
             // Create simple 'O' (FTS_BasicSensorOrValve) frame with an optional stats section for transmission.
             // Returns number of bytes written to buffer, or 0 in case of error.
@@ -556,15 +542,15 @@ namespace OTRadioLink
             //  * buflen  available length in buf; if too small then this routine will fail (return 0)
             //  * valvePC  percentage valve is open or 0x7f if no valve to report on
             //  * statsJSON  '\0'-terminated {} JSON stats, or NULL if none.
-            //  * il_  ID length for the header; ID comes from EEPROM
+            //  * il_  ID length for the header; ID is local node ID from EEPROM or other pre-supplied ID
             //  * key  16-byte secret key; never NULL
+            // NOTE: THIS API IS LIABLE TO CHANGE
             uint8_t generateSecureOFrameRawForTX(uint8_t *buf, uint8_t buflen,
                                             uint8_t il_,
                                             uint8_t valvePC,
                                             const char *statsJSON,
                                             fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
                                             void *state, const uint8_t *key);
-
         };
 
     // RX Base class for simple implementations that supports 0 or 32 byte encrypted body sections.
