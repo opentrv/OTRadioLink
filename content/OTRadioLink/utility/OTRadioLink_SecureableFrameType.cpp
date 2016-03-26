@@ -547,11 +547,6 @@ bool SimpleSecureFrame32or0BodyRXBase::validateRXMessageCount(const uint8_t *ID,
     if(!getLastRXMessageCounter(ID, currentCounter)) { return(false); } // FAIL
     // New counter must be larger to be acceptable.
     return(msgcountercmp(counter, currentCounter) > 0);
-//    // Check for new counter being larger, MSB first.
-//    for(uint8_t i = 0; i < fullMessageCounterBytes; ++i)
-//        { if(counter[i] > currentCounter[i]) { return(true); } }
-//    // New counter not larger, so fail.
-//    return(false);
     }
 
 // NULL basic fixed-size text 'encryption' function.
@@ -632,51 +627,60 @@ uint8_t generateNonsecureBeacon(uint8_t *const buf, const uint8_t buflen,
                                     NULL, 0));
     }
 
-// Create secure Alive / beacon (FTS_ALIVE) frame with an empty body.
-// Returns number of bytes written to buffer, or 0 in case of error.
-// Note that the frame will be 27 + ID-length (up to maxIDLength) bytes,
-// so the buffer must be large enough to accommodate that.
-//  * buf  buffer to which is written the entire frame including trailer; never NULL
-//  * buflen  available length in buf; if too small then this routine will fail (return 0)
-//  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
-//  * iv  12-byte initialisation vector / nonce; never NULL
-//  * key  16-byte secret key; never NULL
-// NOTE: this version requires the IV to be supplied and the transmitted ID length to chosen.
-// NOTE: THIS API IS LIABLE TO CHANGE
-// SUPPORT FOR BEACONS MAY BE MADE STATIC SO AS NOT TO DRAG IT INTO IMPLS NO NEEDING IT.
-uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureBeaconRaw(uint8_t *const buf, const uint8_t buflen,
-                                const uint8_t *const id_, const uint8_t il_,
-                                const uint8_t *const iv,
-                                const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
-                                void *const state, const uint8_t *const key)
-    {
-    return(encodeSecureSmallFrameRaw(buf, buflen,
-                                    OTRadioLink::FTS_ALIVE,
-                                    id_, il_,
-                                    NULL, 0,
-                                    iv, e, state, key));
-    }
+//// Create secure Alive / beacon (FTS_ALIVE) frame with an empty body.
+//// Returns number of bytes written to buffer, or 0 in case of error.
+//// Note that the frame will be 27 + ID-length (up to maxIDLength) bytes,
+//// so the buffer must be large enough to accommodate that.
+////  * buf  buffer to which is written the entire frame including trailer; never NULL
+////  * buflen  available length in buf; if too small then this routine will fail (return 0)
+////  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
+////  * iv  12-byte initialisation vector / nonce; never NULL
+////  * key  16-byte secret key; never NULL
+//// NOTE: this version requires the IV to be supplied and the transmitted ID length to chosen.
+//// NOTE: THIS API IS LIABLE TO CHANGE
+//uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureBeaconRaw(uint8_t *const buf, const uint8_t buflen,
+//                                const uint8_t *const id_, const uint8_t il_,
+//                                const uint8_t *const iv,
+//                                const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+//                                void *const state, const uint8_t *const key)
+//    {
+//    return(encodeSecureSmallFrameRaw(buf, buflen,
+//                                    OTRadioLink::FTS_ALIVE,
+//                                    id_, il_,
+//                                    NULL, 0,
+//                                    iv, e, state, key));
+//    }
 
-// Create secure Alive / beacon (FTS_ALIVE) frame with an empty body for transmission.
+// Create simple 'O'-style secure frame with an optional encrypted body for transmission.
 // Returns number of bytes written to buffer, or 0 in case of error.
-// The IV is constructed from the node ID and the primary TX message counter.
-// Note that the frame will be 27 + ID-length (up to maxIDLength) bytes,
+// The IV is constructed from the node ID (local from EEPROM, or as supplied)
+// and the primary TX message counter (which is incremented).
+// Note that the frame will be 27 + ID-length (up to maxIDLength) + body-length bytes,
 // so the buffer must be large enough to accommodate that.
 //  * buf  buffer to which is written the entire frame including trailer; never NULL
 //  * buflen  available length in buf; if too small then this routine will fail (return 0)
-//  * il_  ID length for the header; ID comes from EEPROM
+//  * frameType  valid frame type [1,126] FrameType_Secureable cast to uint8_t
+//  * body, bl_ body and body length; body non-NULL unless bl_ is zero
+//  * il_  ID length for the header; ID is local node ID from EEPROM or other pre-supplied ID
 //  * key  16-byte secret key; never NULL
-// NOTE: THIS API IS LIABLE TO CHANGE
-// SUPPORT FOR BEACONS MAY BE MADE STATIC SO AS NOT TO DRAG IT INTO IMPLS NO NEEDING IT.
-uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureBeaconRawForTX(uint8_t *const buf, const uint8_t buflen,
+uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOStyleFrameForTX(uint8_t *const buf, const uint8_t buflen,
+                                const FrameType_Secureable fType_,
                                 const uint8_t il_,
+                                const uint8_t *const body, const uint8_t bl_,
                                 const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
                                 void *const state, const uint8_t *const key)
     {
+    if((fType_ >= FTS_INVALID_HIGH) || (fType_ == FTS_NONE)) { return(0); } // FAIL
     uint8_t iv[12];
-    if(!compute12ByteIDAndCounterIVForTX(iv)) { return(0); }
-    return(generateSecureBeaconRaw(buf, buflen,
-                                    NULL, il_,
+    if(!compute12ByteIDAndCounterIVForTX(iv)) { return(0); } // FAIL
+    // If ID is short then we can cheat by reusing start of IV, else fetch again explicitly...
+    const bool longID = (il_ > 6);
+    uint8_t id[OTV0P2BASE::OpenTRV_Node_ID_Bytes];
+    if(longID && !getTXID(id)) { return(0); } // FAIL
+    return(encodeSecureSmallFrameRaw(buf, buflen,
+                                    fType_,
+                                    (longID ? id : iv), il_,
+                                    body, bl_,
                                     iv, e, state, key));
     }
 
@@ -690,8 +694,9 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureBeaconRawForTX(uint8_t *
 //  * buflen  available length in buf; if too small then this routine will fail (return 0)
 //  * valvePC  percentage valve is open or 0x7f if no valve to report on
 //  * statsJSON  '\0'-terminated {} JSON stats, or NULL if none.
-//  * il_  ID length for the header; ID comes from EEPROM
+//  * il_  ID length for the header; ID is local node ID from EEPROM or other pre-supplied ID
 //  * key  16-byte secret key; never NULL
+// NOTE: THIS API IS LIABLE TO CHANGE
 uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX(uint8_t *const buf, const uint8_t buflen,
                                 const uint8_t il_,
                                 const uint8_t valvePC,
