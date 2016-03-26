@@ -93,6 +93,10 @@ namespace OTRadioLink
         // for a number of reasons including minimising the scope for misuse.
         FTS_ALIVE                       = '!',
 
+        // Reserved frame types at at 2016Q1.
+        FTS_RESERVED_A                  = '*',
+        FTS_RESERVED_Q                  = '?',
+
         // Used to indicate current flow.
         // With empty body section can indicate significant +ve half cycle flow for AC,
         // usually configured to indicate spill to grid from local microgeneration,
