@@ -485,7 +485,8 @@ namespace OTRadioLink
             virtual bool incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(uint8_t *buf) = 0;
 
             // Fill in 12-byte IV for 'O'-style (0x80) AESGCM security for a frame to TX.
-            // This uses the local node ID as-is for the first 6 bytes by default.
+            // This uses the local node ID as-is for the first 6 bytes by default,
+            // but sub-classes may allow other IDs to be supplied.
             // This uses and increments the primary message counter for the last 6 bytes.
             // Returns true on success, false on failure eg due to message counter generation failure.
             virtual bool compute12ByteIDAndCounterIVForTX(uint8_t *ivBuf) = 0;
@@ -525,8 +526,9 @@ namespace OTRadioLink
 
             // Create simple 'O' (FTS_BasicSensorOrValve) frame with an optional stats section for transmission.
             // Returns number of bytes written to buffer, or 0 in case of error.
-            // The IV is constructed from the node ID and the primary TX message counter.
-            // Note that the frame will be 27 + ID-length (up to maxIDLength) bytes,
+            // The IV is constructed from the node ID (built-in from EEPROM or as supplied)
+            // and the primary TX message counter (which is incremented).
+            // Note that the frame will be 27 + ID-length (up to maxIDLength) + body-length bytes,
             // so the buffer must be large enough to accommodate that.
             //  * buf  buffer to which is written the entire frame including trailer; never NULL
             //  * buflen  available length in buf; if too small then this routine will fail (return 0)
