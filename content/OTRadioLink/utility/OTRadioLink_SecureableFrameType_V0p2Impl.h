@@ -56,6 +56,10 @@ namespace OTRadioLink
             // Factory method to get singleton instance.
             static SimpleSecureFrame32or0BodyTXV0p2 &getInstance();
 
+            // Get TX ID that will be used for transmission; returns false on failure.
+            // Argument must be buffer of (at least) OTV0P2BASE::OpenTRV_Node_ID_Bytes bytes.
+            virtual bool getTXID(uint8_t *id);
+
             // Design notes on use of message counters vs non-volatile storage life, eg for ATMega328P.
             //
             // Note that the message counter is designed to:
@@ -172,7 +176,7 @@ namespace OTRadioLink
             virtual bool incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(uint8_t *buf);
 
             // Fill in 12-byte IV for 'O'-style (0x80) AESGCM security for a frame to TX.
-            // This uses the local node ID as-is for the first 6 bytes.
+            // This uses the local node ID as-is for the first 6 bytes if not overridden.
             // This uses and increments the primary message counter for the last 6 bytes.
             // Returns true on success, false on failure eg due to message counter generation failure.
             virtual bool compute12ByteIDAndCounterIVForTX(uint8_t *ivBuf);
@@ -205,6 +209,10 @@ namespace OTRadioLink
             SimpleSecureFrame32or0BodyTXV0p2SuppliedID(getTXID_t _getID = NULL) : getID(_getID)
               { /* if(NULL == _getID) { memset(id, 0xff, sizeof(id)); } */ }
 
+            // Get TX ID that will be used for transmission; returns false on failure.
+            // Argument must be buffer of (at least) OTV0P2BASE::OpenTRV_Node_ID_Bytes bytes.
+            virtual bool getTXID(uint8_t *id);
+
             // Set ID to be used for TX ID for subsequent messages.
             // The supplied buffer must be OTV0P2BASE::OpenTRV_Node_ID_Bytes bytes.
             // The supplied ID is copied to internal state, ie the supplied buffer can be temporary.
@@ -213,12 +221,6 @@ namespace OTRadioLink
             // Note that the primary TX counter will still be used,
             // so gaps will be seen in sequence numbers by recipients.
             void setID(const uint8_t *buf) { memcpy(id, buf, sizeof(id)); }
-
-            // Fill in 12-byte IV for 'O'-style (0x80) AESGCM security for a frame to TX.
-            // This uses the ID as supplied (not the local ID) for the first 6 bytes.
-            // This uses and increments the primary message counter for the last 6 bytes.
-            // Returns true on success, false on failure eg due to message counter generation failure.
-            virtual bool compute12ByteIDAndCounterIVForTX(uint8_t *ivBuf);
 
             // Create secure Alive / beacon (FTS_ALIVE) frame with an empty body for transmission.
             // Returns number of bytes written to buffer, or 0 in case of error.

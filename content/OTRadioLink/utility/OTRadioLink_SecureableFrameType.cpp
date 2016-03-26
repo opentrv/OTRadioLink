@@ -682,8 +682,9 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureBeaconRawForTX(uint8_t *
 
 // Create simple 'O' (FTS_BasicSensorOrValve) frame with an optional stats section for transmission.
 // Returns number of bytes written to buffer, or 0 in case of error.
-// The IV is constructed from the node ID and the primary TX message counter.
-// Note that the frame will be 27 + ID-length (up to maxIDLength) bytes,
+// The IV is constructed from the node ID (built-in from EEPROM or as supplied)
+// and the primary TX message counter (which is incremented).
+// Note that the frame will be 27 + ID-length (up to maxIDLength) + body-length bytes,
 // so the buffer must be large enough to accommodate that.
 //  * buf  buffer to which is written the entire frame including trailer; never NULL
 //  * buflen  available length in buf; if too small then this routine will fail (return 0)

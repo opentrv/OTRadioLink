@@ -373,6 +373,10 @@ namespace OTRadioLink
     class SimpleSecureFrame32or0BodyTXBase : public SimpleSecureFrame32or0BodyBase
         {
         public:
+            // Get TX ID that will be used for transmission; returns false on failure.
+            // Argument must be buffer of (at least) OTV0P2BASE::OpenTRV_Node_ID_Bytes bytes.
+            virtual bool getTXID(uint8_t *id) = 0;
+
             // Pads plain-text in place prior to encryption with 32-byte fixed length padded output.
             // Simple method that allows unpadding at receiver, does padding in place.
             // Padded size is (ENC_BODY_SMALL_FIXED_CTEXT_SIZE) 32, maximum unpadded size is 31.
@@ -485,7 +489,7 @@ namespace OTRadioLink
             virtual bool incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(uint8_t *buf) = 0;
 
             // Fill in 12-byte IV for 'O'-style (0x80) AESGCM security for a frame to TX.
-            // This uses the local node ID as-is for the first 6 bytes by default.
+            // This uses the local node (or other supplied) ID as-is for the first 6 bytes.
             // This uses and increments the primary message counter for the last 6 bytes.
             // Returns true on success, false on failure eg due to message counter generation failure.
             virtual bool compute12ByteIDAndCounterIVForTX(uint8_t *ivBuf) = 0;
@@ -523,10 +527,30 @@ namespace OTRadioLink
                                             fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
                                             void *state, const uint8_t *key);
 
+//            // Create simple 'O' (FTS_BasicSensorOrValve) frame with an optional stats section for transmission.
+//            // Returns number of bytes written to buffer, or 0 in case of error.
+//            // The IV is constructed from the node ID (built-in from EEPROM or as supplied)
+//            // and the primary TX message counter (which is incremented).
+//            // Note that the frame will be 27 + ID-length (up to maxIDLength) + body-length bytes,
+//            // so the buffer must be large enough to accommodate that.
+//            //  * buf  buffer to which is written the entire frame including trailer; never NULL
+//            //  * buflen  available length in buf; if too small then this routine will fail (return 0)
+//            //  * valvePC  percentage valve is open or 0x7f if no valve to report on
+//            //  * statsJSON  '\0'-terminated {} JSON stats, or NULL if none.
+//            //  * il_  ID length for the header; ID comes from EEPROM
+//            //  * key  16-byte secret key; never NULL
+//            uint8_t generateSecureOFrameRawForTX(uint8_t *buf, uint8_t buflen,
+//                                            uint8_t il_,
+//                                            uint8_t valvePC,
+//                                            const char *statsJSON,
+//                                            fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+//                                            void *state, const uint8_t *key);
+
             // Create simple 'O' (FTS_BasicSensorOrValve) frame with an optional stats section for transmission.
             // Returns number of bytes written to buffer, or 0 in case of error.
-            // The IV is constructed from the node ID and the primary TX message counter.
-            // Note that the frame will be 27 + ID-length (up to maxIDLength) bytes,
+            // The IV is constructed from the node ID (built-in from EEPROM or as supplied)
+            // and the primary TX message counter (which is incremented).
+            // Note that the frame will be 27 + ID-length (up to maxIDLength) + body-length bytes,
             // so the buffer must be large enough to accommodate that.
             //  * buf  buffer to which is written the entire frame including trailer; never NULL
             //  * buflen  available length in buf; if too small then this routine will fail (return 0)

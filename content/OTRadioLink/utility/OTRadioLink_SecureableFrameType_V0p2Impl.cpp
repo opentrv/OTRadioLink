@@ -611,20 +611,53 @@ uint8_t SimpleSecureFrame32or0BodyRXV0p2::decodeSecureSmallFrameSafely(const Sec
     return(decodeResult);
     }
 
+// Get TX ID that will be used for transmission; returns false on failure.
+// Argument must be buffer of (at least) OTV0P2BASE::OpenTRV_Node_ID_Bytes bytes.
+bool SimpleSecureFrame32or0BodyTXV0p2::getTXID(uint8_t *const idOut)
+    {
+    if(NULL == idOut) { return(false); }
+    // Copy ID from EEPROM.
+    eeprom_read_block(idOut, (uint8_t *)V0P2BASE_EE_START_ID, OTV0P2BASE::OpenTRV_Node_ID_Bytes);
+    return(true);
+    }
+
+//// Fill in 12-byte IV for 'O'-style (0x80) AESGCM security for a frame to TX.
+//// This uses the local node ID as-is for the first 6 bytes.
+//// This uses and increments the primary message counter for the last 6 bytes.
+//// Returns true on success, false on failure eg due to message counter generation failure.
+//bool SimpleSecureFrame32or0BodyTXV0p2::compute12ByteIDAndCounterIVForTX(uint8_t *const ivBuf)
+//    {
+//    if(NULL == ivBuf) { return(false); }
+//    // Fill in first 6 bytes of this node's ID.
+//    eeprom_read_block(ivBuf, (uint8_t *)V0P2BASE_EE_START_ID, SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes);
+//    // Generate and fill in new message count at end of IV.
+//    return(incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(ivBuf + SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes));
+//    }
 
 // Fill in 12-byte IV for 'O'-style (0x80) AESGCM security for a frame to TX.
-// This uses the local node ID as-is for the first 6 bytes.
+// This dynamically fetches the built-in TX ID (eg from EEPROM or as supplied) for the first 6 bytes.
 // This uses and increments the primary message counter for the last 6 bytes.
 // Returns true on success, false on failure eg due to message counter generation failure.
 bool SimpleSecureFrame32or0BodyTXV0p2::compute12ByteIDAndCounterIVForTX(uint8_t *const ivBuf)
     {
     if(NULL == ivBuf) { return(false); }
-    // Fill in first 6 bytes of this node's ID.
-    eeprom_read_block(ivBuf, (uint8_t *)V0P2BASE_EE_START_ID, SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes);
+    // Fetch entire ID directly to ivBuf for simplicity; lsbytes will be overwritten with message counter.
+    if(!getTXID(ivBuf)) { return(false); } // ID fetch failed.
     // Generate and fill in new message count at end of IV.
-    return(incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(ivBuf + SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes));
+    return(incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(ivBuf + (12-SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes)));
     }
 
+
+// Get TX ID that will be used for transmission; returns false on failure.
+// Argument must be buffer of (at least) OTV0P2BASE::OpenTRV_Node_ID_Bytes bytes.
+bool SimpleSecureFrame32or0BodyTXV0p2SuppliedID::getTXID(uint8_t *const idOut)
+    {
+    if(NULL == idOut) { return(false); }
+    // Without the fetch function, this copies from the internal ID buffer.
+    if(NULL == getID) { memcpy(idOut, id, OTV0P2BASE::OpenTRV_Node_ID_Bytes); }
+    // Dynamically fetch/compute ID.
+    return(getID(idOut));
+    }
 
 // Create secure Alive / beacon (FTS_ALIVE) frame with an empty body for transmission.
 // Returns number of bytes written to buffer, or 0 in case of error.
@@ -650,22 +683,20 @@ uint8_t SimpleSecureFrame32or0BodyTXV0p2SuppliedID::generateSecureBeaconRawForTX
                                     iv, e, state, key));
     }
 
-// Fill in 12-byte IV for 'O'-style (0x80) AESGCM security for a frame to TX.
-// This dynamically fetches the TX ID for the first 6 bytes.
-// This uses and increments the primary message counter for the last 6 bytes.
-// Returns true on success, false on failure eg due to message counter generation failure.
-// NOTE: THIS API IS LIABLE TO CHANGE
-// SUPPORT FOR BEACONS MAY BE MADE STATIC SO AS NOT TO DRAG IT INTO IMPLS NO NEEDING IT.
-bool SimpleSecureFrame32or0BodyTXV0p2SuppliedID::compute12ByteIDAndCounterIVForTX(uint8_t *const ivBuf)
-    {
-    if(NULL == ivBuf) { return(false); }
-    // Without the fetch function, this copies the first 6 bytes from the internal ID buffer.
-    if(NULL == getID) { memcpy(ivBuf, id, 6); }
-    // Fetch entire ID directly to ivBuf for simplicity; lsbytes will be overwritten with message counter.
-    else if(!getID(ivBuf)) { return(false); } // ID fetch failed.
-    // Generate and fill in new message count at end of IV.
-    return(incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(ivBuf + SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes));
-    }
+//// Fill in 12-byte IV for 'O'-style (0x80) AESGCM security for a frame to TX.
+//// This dynamically fetches the TX ID for the first 6 bytes.
+//// This uses and increments the primary message counter for the last 6 bytes.
+//// Returns true on success, false on failure eg due to message counter generation failure.
+//// NOTE: THIS API IS LIABLE TO CHANGE
+//// SUPPORT FOR BEACONS MAY BE MADE STATIC SO AS NOT TO DRAG IT INTO IMPLS NO NEEDING IT.
+//bool SimpleSecureFrame32or0BodyTXV0p2SuppliedID::compute12ByteIDAndCounterIVForTX(uint8_t *const ivBuf)
+//    {
+//    if(NULL == ivBuf) { return(false); }
+//    // Fetch entire ID directly to ivBuf for simplicity; lsbytes will be overwritten with message counter.
+//    if(!getTXID(ivBuf)) { return(false); } // ID fetch failed.
+//    // Generate and fill in new message count at end of IV.
+//    return(incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(ivBuf + SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes));
+//    }
 
 
     }
