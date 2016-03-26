@@ -201,13 +201,15 @@ namespace OTRadioLink
             // This will only be used if no function was supplied to the constructor.
             // Note that the primary TX counter will still be used,
             // so gaps will be seen in sequence numbers by recipients.
+            //
+            // id[0] is 0xff initially, which is nominally invalid, so entire ID is invalid.
             uint8_t id[OTV0P2BASE::OpenTRV_Node_ID_Bytes];
 
         public:
             // Construct with function that fetches/computes the ID to use for TX or NULL.
             // Where NULL is supplied (the default) then the buffer set by setID is used.
             SimpleSecureFrame32or0BodyTXV0p2SuppliedID(getTXID_t _getID = NULL) : getID(_getID)
-              { /* if(NULL == _getID) { memset(id, 0xff, sizeof(id)); } */ }
+              { id[0] = 0xff; }
 
             // Get TX ID that will be used for transmission; returns false on failure.
             // Argument must be buffer of (at least) OTV0P2BASE::OpenTRV_Node_ID_Bytes bytes.

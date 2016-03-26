@@ -627,30 +627,6 @@ uint8_t generateNonsecureBeacon(uint8_t *const buf, const uint8_t buflen,
                                     NULL, 0));
     }
 
-//// Create secure Alive / beacon (FTS_ALIVE) frame with an empty body.
-//// Returns number of bytes written to buffer, or 0 in case of error.
-//// Note that the frame will be 27 + ID-length (up to maxIDLength) bytes,
-//// so the buffer must be large enough to accommodate that.
-////  * buf  buffer to which is written the entire frame including trailer; never NULL
-////  * buflen  available length in buf; if too small then this routine will fail (return 0)
-////  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
-////  * iv  12-byte initialisation vector / nonce; never NULL
-////  * key  16-byte secret key; never NULL
-//// NOTE: this version requires the IV to be supplied and the transmitted ID length to chosen.
-//// NOTE: THIS API IS LIABLE TO CHANGE
-//uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureBeaconRaw(uint8_t *const buf, const uint8_t buflen,
-//                                const uint8_t *const id_, const uint8_t il_,
-//                                const uint8_t *const iv,
-//                                const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
-//                                void *const state, const uint8_t *const key)
-//    {
-//    return(encodeSecureSmallFrameRaw(buf, buflen,
-//                                    OTRadioLink::FTS_ALIVE,
-//                                    id_, il_,
-//                                    NULL, 0,
-//                                    iv, e, state, key));
-//    }
-
 // Create simple 'O'-style secure frame with an optional encrypted body for transmission.
 // Returns number of bytes written to buffer, or 0 in case of error.
 // The IV is constructed from the node ID (local from EEPROM, or as supplied)
