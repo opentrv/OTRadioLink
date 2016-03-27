@@ -228,14 +228,11 @@ void MinimalOneWireBase::select(const uint8_t addr[8])
   for(uint8_t i = 0; i < 8; ++i) { write(addr[i]); }
   }
 
-
-//
-// Do a ROM skip
-//
+// Do a ROM skip.
 void MinimalOneWireBase::skip()
-{
-  write(0xCC);           // Skip ROM
-}
+  {
+  write(0xCC); // Skip ROM
+  }
 
 
 }
