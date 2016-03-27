@@ -216,10 +216,6 @@ class MinimalOneWire : public MinimalOneWireBase
       }
   };
 
-//// By default create lightweight support for OW on default (OW_DQ, digital 2) pin.
-//// Designed to work with 1MHz/1MIPS CPU clock.
-//extern OTV0P2BASE::MinimalOneWire<> MinOW_DEFAULT_OWDQ;
-
 
 }
 

@@ -14,7 +14,7 @@ specific language governing permissions and limitations
 under the Licence.
 
 Author(s) / Copyright (s): Damon Hart-Davis 2014--2016
-                           John Harvey 2014 (DS18B20 code)
+                           John Harvey 2014 (initial DS18B20 code)
                            Deniz Erbilgin 2015--2016
                            Jeremy Poulter 2016
 */
@@ -59,7 +59,7 @@ namespace OTV0P2BASE
 {
 
 
-// Initialise the device (if any) before first use.
+// Initialise the device(s) (if any) before first use.
 // Returns true iff successful.
 // Uses specified order DS18B20 found on bus.
 // May need to be reinitialised if precision changed.
@@ -77,7 +77,7 @@ bool TemperatureC16_DS18B20::init()
   // Ensure no bad search state.
   minOW.reset_search();
 
-  while (minOW.search(address))
+  while(minOW.search(address))
     {
 #if 0 && defined(DEBUG)
     // Found a device.
@@ -107,12 +107,11 @@ bool TemperatureC16_DS18B20::init()
 #endif
 
     minOW.reset();
-    // Write scratchpad/config
+    // Write scratchpad/config.
     minOW.select(address);
     minOW.write(CMD_WRITE_SCRATCH);
     minOW.write(0); // Th: not used.
     minOW.write(0); // Tl: not used.
-//    MinOW.write(DS1820_PRECISION | 0x1f); // Config register; lsbs all 1.
     minOW.write(((precision - 9) << 6) | 0x1f); // Config register; lsbs all 1.
     }
 
@@ -124,7 +123,7 @@ bool TemperatureC16_DS18B20::init()
   // Search has been run (whether DS18B20 was found or not).
   initialised = true;
 
-  numberSensors = count;
+  sensorCount = count;
   return(found);
   }
 
@@ -134,31 +133,28 @@ bool TemperatureC16_DS18B20::init()
 // Not thread-safe nor usable within ISRs (Interrupt Service Routines).
 int16_t TemperatureC16_DS18B20::read()
   {
-  if(1 == readMultiple(&value, 1))
-    {
-    return(value);
-    }
-
+  if(1 == readMultiple(&value, 1)) { return(value); }
   value = DEFAULT_INVALID_TEMP; 
   return(DEFAULT_INVALID_TEMP);
   }
 
-
-// Force a read/poll of temperature from multiple DS18B29 sensors. The value sensed, in nominal units 
-// of 1/16 C, is written to the array of uint16_t (with count elements) pointed to by values. The values 
-// are written in the order they are found on the One-Wire bus. 
-// index specifies the sensor to start reading at 0 being the first. This can be used to read more sensors 
-// than elements in the values array
-// The return is the number of values read
+// Force a read/poll of temperature from multiple DS18B20 sensors; returns number of values read.
+// The value sensed, in nominal units of 1/16 C,
+// is written to the array of uint16_t (with count elements) pointed to by values.
+// The values are written in the order they are found on the One-Wire bus.
+// index specifies the sensor to start reading at 0 being the first (and the default).
+// This can be used to read more sensors
+// than elements in the values array.
+// The return is the number of values read.
 // At sub-maximum precision lsbits will be zero or undefined.
 // Expensive/slow.
 // Not thread-safe nor usable within ISRs (Interrupt Service Routines).
-int TemperatureC16_DS18B20::readMultiple(int16_t *values, int count, int index)
+uint8_t TemperatureC16_DS18B20::readMultiple(int16_t *const values, const uint8_t count, uint8_t index)
   {
   if(!initialised) { init(); }
-  if(0 == numberSensors) { return(0); }
+  if(0 == sensorCount) { return(0); }
 
-  int sensor = 0;
+  uint8_t sensor = 0;
 
   // Start a temperature reading.
   minOW.reset();
@@ -169,10 +165,10 @@ int TemperatureC16_DS18B20::readMultiple(int16_t *values, int count, int index)
   minOW.reset_search();
 
   uint8_t address[8];
-  while (minOW.search(address))
+  while(minOW.search(address))
     {
     // Is this a DS18B20?
-    if (DS18B20_MODEL_ID != address[0])
+    if(DS18B20_MODEL_ID != address[0])
       {
 #if 0 && defined(DEBUG)
       DEBUG_SERIAL_PRINTLN_FLASHSTRING("Not a DS18B20, skipping...");
@@ -181,7 +177,7 @@ int TemperatureC16_DS18B20::readMultiple(int16_t *values, int count, int index)
       }
 
     // Have we reached the first sensor we are interested in
-    if (index > 0) 
+    if(index > 0)
       {
       index--;
       continue;
@@ -191,8 +187,14 @@ int TemperatureC16_DS18B20::readMultiple(int16_t *values, int count, int index)
     minOW.select(address);
 
     // Poll for conversion complete (bus released)...
-    // FIXME: don't allow indefinite blocking.
-    while (minOW.read_bit() == 0) { OTV0P2BASE::nap(WDTO_15MS); }
+    // Don't allow indefinite blocking;
+    // give up after a second of so returning count of values read before this.
+    uint8_t i = 67; // Allow for ~1s as ~15ms per loop.
+    while(minOW.read_bit() == 0)
+      {
+      if(--i == 0) { return(sensor); }
+      OTV0P2BASE::nap(WDTO_15MS);
+      }
 
     // Fetch temperature (scratchpad read).
     minOW.reset();
@@ -211,16 +213,16 @@ int TemperatureC16_DS18B20::readMultiple(int16_t *values, int count, int index)
 
     values[sensor++] = rawC16;
 
-    // Do we have any space left
-    if (sensor >= count) { break; }
+    // Do we have any space left?
+    if(sensor >= count) { break; }
     }
 
   return(sensor);
   }
 
-int TemperatureC16_DS18B20::getNumberSensors()
+uint8_t TemperatureC16_DS18B20::getSensorCount()
   {
-  if (!initialised) { init(); }
-  return numberSensors;
+  if(!initialised) { init(); }
+  return(sensorCount);
   }
 }
