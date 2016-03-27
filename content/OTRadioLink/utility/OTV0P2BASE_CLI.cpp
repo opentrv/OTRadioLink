@@ -114,7 +114,7 @@ uint8_t promptAndReadCommandLine(const uint8_t maxSCT, char *const buf, const ui
           }
         // Quit WITHOUT PROCESSING THE POSSIBLY-INCOMPLETE INPUT if time limit is hit (or very close).
         const uint8_t sct = OTV0P2BASE::getSubCycleTime();
-        if(sct >= targetMaxSCT)
+        if(sct >= maxSCT)
           {
           n = 0;
           break;
