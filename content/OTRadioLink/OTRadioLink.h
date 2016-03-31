@@ -19,8 +19,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 #ifndef ARDUINO_LIB_OTRADIOLINK_H
 #define ARDUINO_LIB_OTRADIOLINK_H
 
-#define ARDUINO_LIB_OTRADIOLINK_VERSION_MAJOR 0
-#define ARDUINO_LIB_OTRADIOLINK_VERSION_MINOR 9
+#define ARDUINO_LIB_OTRADIOLINK_VERSION_MAJOR 1
+#define ARDUINO_LIB_OTRADIOLINK_VERSION_MINOR 0
 
 
 // Radio message frame types and related information.
