@@ -9,6 +9,17 @@ or release/freeze points.
 
 
 pending:
+
+
+    
+    
+    
+20160331:
+    freezepoint name: V1.0 (as part of OTRadioLink)
+    branch name: HEAD
+    Deployed where: Production
+    Changes since last freezepoint (developer/mgr initials and brief description):
+    Previous significant freezepoint: 
     DHD20151029: moved AbstractRadValve down to lib.
     DHD20151029: moved ValveMotorDirectV1 down to lib.
     DHD20151105: making valve slightly less greedy on max motor run time from 2s cycle.
