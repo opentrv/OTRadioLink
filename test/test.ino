@@ -149,7 +149,7 @@ static void testParseHexVal()
 static void testParseHex()
 {
   Serial.println("parseHexByte");
-  uint8_t token[2];
+  char token[2];
   memset(token, '0', sizeof(2));
   uint8_t result = 0;
 
