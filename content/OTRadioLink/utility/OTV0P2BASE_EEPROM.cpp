@@ -180,11 +180,9 @@ bool eeprom_smart_clear_bits(uint8_t *p, uint8_t mask)
 //  6 -> 0xc0
 //  7 -> 0x80
 //  8 -> 0x00
-//static const uint8_t EEPROM_UNARY_1BYTE_MAX_VALUE = 8;
-//static const uint8_t EEPROM_UNARY_2BYTE_MAX_VALUE = 16;
-//inline uint8_t eeprom_unary_1byte_encode(uint8_t n) { return((n >= 8) ? 0 : (0xffU << n)); }
-//inline uint16_t eeprom_unary_2byte_encode(uint8_t n) { return((n >= 16) ? 0 : (0xffffU << n)); }
+//
 // Decode routines return -1 in case of unexpected/invalid input patterns.
+// All other (valid non-negative) return values can be safely cast to unit8_t.
 int8_t eeprom_unary_1byte_decode(const uint8_t v)
     {
     switch(v)
