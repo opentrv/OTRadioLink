@@ -89,6 +89,16 @@ bool eeprom_smart_erase_byte(uint8_t *p)
       EECR = _BV(EEMPE) | _BV(EEPM0); // Set master write-enable bit and erase-only mode.
       EECR |= _BV(EEPE);  // Start erase-only operation.
       }
+
+    // Wait until EEPROM is idle/ready again,
+    // ie so that the operation should be complete before returning.
+    // This is important in case (eg) clocks may be meddled with,
+    // the MCU put to sleep, etc.
+    //
+    // In the case of back-to-back operations
+    // this should not actually add any delay.
+    eeprom_busy_wait();
+
     return(true); // Performed the erase.
     }
   return(false);
@@ -136,6 +146,16 @@ bool eeprom_smart_clear_bits(uint8_t *p, uint8_t mask)
       EECR = _BV(EEMPE) | _BV(EEPM1); // Set master write-enable bit and write-only mode.
       EECR |= _BV(EEPE);  // Start write-only operation.
       }
+
+    // Wait until EEPROM is idle/ready again,
+    // ie so that the operation should be complete before returning.
+    // This is important in case (eg) clocks may be meddled with,
+    // the MCU put to sleep, etc.
+    //
+    // In the case of back-to-back operations
+    // this should not actually add any delay.
+    eeprom_busy_wait();
+
     return(true); // Performed the write.
     }
   return(false);
