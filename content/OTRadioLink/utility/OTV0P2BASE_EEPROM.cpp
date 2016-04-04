@@ -89,6 +89,16 @@ bool eeprom_smart_erase_byte(uint8_t *p)
       EECR = _BV(EEMPE) | _BV(EEPM0); // Set master write-enable bit and erase-only mode.
       EECR |= _BV(EEPE);  // Start erase-only operation.
       }
+
+    // Wait until EEPROM is idle/ready again,
+    // ie so that the operation should be complete before returning.
+    // This is important in case (eg) clocks may be meddled with,
+    // the MCU put to sleep, etc.
+    //
+    // In the case of back-to-back operations
+    // this should not actually add any delay.
+    eeprom_busy_wait();
+
     return(true); // Performed the erase.
     }
   return(false);
@@ -136,6 +146,16 @@ bool eeprom_smart_clear_bits(uint8_t *p, uint8_t mask)
       EECR = _BV(EEMPE) | _BV(EEPM1); // Set master write-enable bit and write-only mode.
       EECR |= _BV(EEPE);  // Start write-only operation.
       }
+
+    // Wait until EEPROM is idle/ready again,
+    // ie so that the operation should be complete before returning.
+    // This is important in case (eg) clocks may be meddled with,
+    // the MCU put to sleep, etc.
+    //
+    // In the case of back-to-back operations
+    // this should not actually add any delay.
+    eeprom_busy_wait();
+
     return(true); // Performed the write.
     }
   return(false);
@@ -160,11 +180,9 @@ bool eeprom_smart_clear_bits(uint8_t *p, uint8_t mask)
 //  6 -> 0xc0
 //  7 -> 0x80
 //  8 -> 0x00
-//static const uint8_t EEPROM_UNARY_1BYTE_MAX_VALUE = 8;
-//static const uint8_t EEPROM_UNARY_2BYTE_MAX_VALUE = 16;
-//inline uint8_t eeprom_unary_1byte_encode(uint8_t n) { return((n >= 8) ? 0 : (0xffU << n)); }
-//inline uint16_t eeprom_unary_2byte_encode(uint8_t n) { return((n >= 16) ? 0 : (0xffffU << n)); }
+//
 // Decode routines return -1 in case of unexpected/invalid input patterns.
+// All other (valid non-negative) return values can be safely cast to unit8_t.
 int8_t eeprom_unary_1byte_decode(const uint8_t v)
     {
     switch(v)

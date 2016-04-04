@@ -93,7 +93,7 @@ static inline void errorIfNotEqual(int expected, int actual, int delta, int line
 static void testLibVersion()
   {
   Serial.println("LibVersion");
-#if !(0 == ARDUINO_LIB_OTRADVALVE_VERSION_MAJOR) || !(9 == ARDUINO_LIB_OTRADVALVE_VERSION_MINOR)
+#if !(1 == ARDUINO_LIB_OTRADVALVE_VERSION_MAJOR) || !(0 == ARDUINO_LIB_OTRADVALVE_VERSION_MINOR)
 #error Wrong library version!
 #endif 
   }
@@ -102,7 +102,7 @@ static void testLibVersion()
 static void testLibVersions()
   {
   Serial.println("LibVersions");
-#if !(0 == ARDUINO_LIB_OTV0P2BASE_VERSION_MAJOR) || !(9 == ARDUINO_LIB_OTV0P2BASE_VERSION_MINOR)
+#if !(1 == ARDUINO_LIB_OTV0P2BASE_VERSION_MAJOR) || !(0 == ARDUINO_LIB_OTV0P2BASE_VERSION_MINOR)
 #error Wrong library version!
 #endif  
   }

@@ -172,7 +172,7 @@ namespace OTRadioLink
             // The frame can be no larger than maxRXBytes bytes.
             // It is possible to formally abandon an upload attempt by calling this with 0.
             // Must still be in the scope of the same (ISR) call as _getRXBufForInbound().
-            virtual void _loadedBuf(const uint8_t frameLen)
+            virtual void _loadedBuf(uint8_t frameLen)
                 {
                 if(0 == frameLen) { return; } // New frame not being uploaded.
                 if(0 != queuedRXedMessageCount) { return; } // Prevent messing with existing queued message.
