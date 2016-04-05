@@ -33,6 +33,11 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #include <OTV0p2Base.h> // Underlying hardware support definitions.
 
 
+
+namespace OTV0P2BASE
+{
+
+
 #ifndef V0P2_UART_BAUD
 #define V0P2_UART_BAUD 4800
 #endif // V0P2_UART_BAUD
@@ -202,9 +207,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 // 1I: and/or pulse input/counter/interrupt
 // ID: and some supply to pulse counter mechanism (eg LED for opto) maybe IO_POWER_UP.
 
-
 // Call this ASAP in setup() to configure I/O safely for the board, avoid pins floating, etc.
-inline void IOSetup()
+static inline void IOSetup()
   {
   // Initialise all digital I/O to safe state ASAP and avoid floating lines where possible.
   // In absence of a specific alternative, drive low as an output to minimise consumption (eg from floating input).
@@ -291,6 +295,8 @@ inline void IOSetup()
     }
   }
 
+
+}
 
 #endif
 

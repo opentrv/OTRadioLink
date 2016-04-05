@@ -17,10 +17,16 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
                            Damon Hart-Davis 2016
 */
 
+// CLI support routines
+
+// NOTE: some CLI routines may live alongside the devices they support, not here.
+
 #include "OTV0P2BASE_CLI.h"
 
 #include "OTV0P2BASE_EEPROM.h"
+#include "OTV0P2BASE_Entropy.h"
 #include "OTV0P2BASE_RTC.h"
+#include "OTV0P2BASE_Serial_IO.h"
 #include "OTV0P2BASE_Security.h"
 #include "OTV0P2BASE_Sleep.h"
 #include "OTV0P2BASE_Util.h"
@@ -34,6 +40,137 @@ namespace CLI {
 // Probably should not be inlined, to avoid creating duplicate strings in Flash.
 void InvalidIgnored() { Serial.println(F("Invalid, ignored.")); }
 
+// If CLI_INTERACTIVE_ECHO defined then immediately echo received characters, not at end of line.
+#define CLI_INTERACTIVE_ECHO
+// Character that should trigger any pending command from user to be sent.
+// (Should be avoided at start of status output.)
+static const char CLIPromptChar = ((char) OTV0P2BASE::SERLINE_START_CHAR_CLI);
+// Generate CLI prompt and wait a little while (typically ~1s) for an input command line.
+// Returns number of characters read (not including terminating CR or LF); 0 in case of failure.
+// Ignores any characters queued before generating the prompt.
+// Does not wait if too close to (or beyond) the end of the minor cycle.
+// Takes a buffer and its size; fills buffer with '\0'-terminated response if return > 0.
+// Serial must already be running.
+//   * idlefn: if non-NULL this is called while waiting for input;
+//       it must not interfere with UART RX, eg by messing with CPU clock or interrupts
+//   * maxSCT maximum sub-cycle time to wait until
+uint8_t promptAndReadCommandLine(const uint8_t maxSCT, char *const buf, const uint8_t bufsize, void (*idlefn)())
+    {
+    if((NULL == buf) || (bufsize < 2)) { return(0); } // FAIL
+
+    // Compute safe limit time given granularity of sleep and buffer fill.
+    const uint8_t targetMaxSCT = (maxSCT <= MIN_CLI_POLL_SCT) ? ((uint8_t) 0) : ((uint8_t) (maxSCT - 1 - MIN_CLI_POLL_SCT));
+    if(OTV0P2BASE::getSubCycleTime() >= targetMaxSCT) { return(0); } // Too short to try.
+
+    // Purge any stray pending input, such as a trailing LF from previous input.
+    while(Serial.available() > 0) { Serial.read(); }
+
+    // Generate and flush prompt character to the user, after a CRLF to reduce ambiguity.
+    // Do this AFTER flushing the input so that sending command immediately after prompt should work.
+    Serial.println();
+    Serial.print(CLIPromptChar);
+    // Idle a short while to try to save energy, waiting for serial TX end and possible RX response start.
+    OTV0P2BASE::flushSerialSCTSensitive();
+
+    // Wait for input command line from the user (received characters may already have been queued)...
+    // Read a line up to a terminating CR, either on its own or as part of CRLF.
+    // (Note that command content and timing may be useful to fold into PRNG entropy pool.)
+    uint8_t n = 0;
+    while(n < bufsize - 1)
+        {
+        // Read next character if immediately available.
+        if(Serial.available() > 0)
+          {
+          int ic = Serial.read();
+          if(('\r' == ic) || ('\n' == ic)) { break; } // Stop at CR, eg from CRLF, or LF.
+    //#ifdef CLI_INTERACTIVE_ECHO
+    //      if(('\b' == ic) || (127 == ic))
+    //        {
+    //        // Handle backspace or delete as delete...
+    //        if(n > 0) // Ignore unless something to delete...
+    //          {
+    //          Serial.print('\b');
+    //          Serial.print(' ');
+    //          Serial.print('\b');
+    //          --n;
+    //          }
+    //        continue;
+    //        }
+    //#endif
+          if((ic < 32) || (ic > 126)) { continue; } // Drop bogus non-printable characters.
+          // Ignore any leading char that is not a letter (or '?' or '+'),
+          // and force leading (command) char to upper case.
+          if(0 == n)
+            {
+            ic = toupper(ic);
+            if(('+' != ic) && ('?' != ic) && ((ic < 'A') || (ic > 'Z'))) { continue; }
+            }
+          // Store the incoming char.
+          buf[n++] = (char) ic;
+#ifdef CLI_INTERACTIVE_ECHO
+          Serial.print((char) ic); // Echo immediately.
+#endif
+          continue;
+          }
+        // Quit WITHOUT PROCESSING THE POSSIBLY-INCOMPLETE INPUT if time limit is hit (or very close).
+        const uint8_t sct = OTV0P2BASE::getSubCycleTime();
+        if(sct >= maxSCT)
+          {
+          n = 0;
+          break;
+          }
+        // Idle waiting for input, to save power, then/else do something useful with some CPU cycles...
+    //#if CAN_IDLE_15MS
+    //    // Minimise power consumption leaving CPU/UART clock running, if no danger of RX overrun.
+    //    // Don't do this too close to end of target end time to avoid missing it.
+    //    // Note: may get woken on timer0 interrupts as well as RX and watchdog.
+    //    if(sct < targetMaxSCT-2)
+    //      {
+    ////      idle15AndPoll(); // COH-63 and others: crashes some REV0 and REV9 boards (reset).
+    //      // Rely on being woken by UART, or timer 0 (every ~16ms with 1MHz CPU), or backstop of timer 2.
+    //      set_sleep_mode(SLEEP_MODE_IDLE); // Leave everything running but the CPU...
+    //      sleep_mode();
+    //      pollIO(false);
+    //      continue;
+    //      }
+    //#endif
+        if(NULL != idlefn) { (idlefn)(); } // Do something useful with the time if possible.
+        }
+
+    if(n > 0)
+        {
+        // For implausible input print a very brief low-CPU-cost help message and give up as efficiently and safely and quickly as possible.
+        const char firstChar = buf[0];
+        const bool plausibleCommand = ((firstChar > ' ') && (firstChar <= 'z'));
+        if(!plausibleCommand)
+            {
+            // Force length back to zero to indicate bad input.
+            n = 0;
+            Serial.println(F("? for help"));
+            }
+        else
+            {
+            // Null-terminate the received command line.
+            buf[n] = '\0';
+
+            // strupr(buf); // Force to upper-case
+#ifdef CLI_INTERACTIVE_ECHO
+            Serial.println(); // ACK user's end-of-line.
+#else
+            Serial.println(buf); // Echo the line received (asynchronously).
+#endif
+        // Restart the CLI timer on receipt of plausible (ASCII) input (cf noise from UART floating or starting up),
+//            resetCLIActiveTimer();
+            }
+
+        // Capture a little potential timing and content entropy at the end, though don't claim any.
+        OTV0P2BASE::addEntropyToPool(firstChar ^ OTV0P2BASE::getSubCycleTime(), 0);
+        }
+
+    // Force any pending output before return / possible UART power-down.
+    OTV0P2BASE::flushSerialSCTSensitive();
+    return(n);
+    }
 
 // Set / clear node association(s) (nodes to accept frames from) (eg "A hh hh hh hh hh hh hh hh").
 //        To add a new node/association: "A hh hh hh hh hh hh hh hh"
@@ -265,6 +402,7 @@ bool NodeID::doCommand(char *const buf, const uint8_t buflen)
 // "K B XX .. XX"  sets the primary building key, "K B *" erases it.
 // Clearing a key conditionally resets the primary TX message counter to avoid IV reuse
 // if a non-NULL callback has been provided.
+// Note that this may take significant time and will mess with the CPU clock.
 bool SetSecretKey::doCommand(char *const buf, const uint8_t buflen)
     {
     char *last; // Used by strtok_r().
@@ -313,10 +451,10 @@ bool SetSecretKey::doCommand(char *const buf, const uint8_t buflen)
                         if(-1 == ib) { InvalidIgnored(); return(false); } // ERROR: abrupt exit.
                         newKey[i] = (uint8_t)ib;
                         }
-                    OTV0P2BASE::setPrimaryBuilding16ByteSecretKey(newKey);
-#if 1 // && defined(DEBUG)
-                    Serial.println(F("B set"));
-#endif
+                    if(OTV0P2BASE::setPrimaryBuilding16ByteSecretKey(newKey))
+                        { Serial.println(F("B set")); }
+                    else
+                        { Serial.println(F("!B")); } // ERROR: key not set
 
 #if 0 && defined(DEBUG)
                     uint8_t keyTest[16];

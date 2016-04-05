@@ -9,6 +9,15 @@ or release/freeze points.
 
 
 pending:
+    DE20160331:  issues still pending: non-blocking at start up and during signal loss, spec for storing eeprom config
+
+
+20160331:
+    freezepoint name: V1.0 (as part of OTRadioLink)
+    branch name: HEAD
+    Deployed where: Production
+    Changes since last freezepoint (developer/mgr initials and brief description):
+    Previous significant freezepoint: V0.9
     DE20151022:  Modified debug and fixed sendUDP.
     DE20151023:  Fixed compiler warnings.
     DE20151023:  Fixed issue due to GPRS not shutting correctly on startup.
@@ -20,8 +29,9 @@ pending:
     DE20151113:  Added utilities for setting baud and writing radioconfig to eeprom.
     DE20151125:  Added signal quality diagnostics.
     DE20151217:  Added support for binary frames without truncation at null character
-    DE20160107:  Added support for APN user name and password
-
+    DE20160107:  Added support for APN user name and password.
+    DE20160331:  Fixed issue when SIM900 enters undefined state after signal loss.
+    DE20160331:  Added state machine to allow non blocking Tx
 
 20150817:
     freezepoint name: V0.9 (as part of OTRadioLink)

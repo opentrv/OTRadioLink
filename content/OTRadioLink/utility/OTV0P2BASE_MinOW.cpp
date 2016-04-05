@@ -228,19 +228,11 @@ void MinimalOneWireBase::select(const uint8_t addr[8])
   for(uint8_t i = 0; i < 8; ++i) { write(addr[i]); }
   }
 
-
-//
-// Do a ROM skip
-//
+// Do a ROM skip.
 void MinimalOneWireBase::skip()
-{
-  write(0xCC);           // Skip ROM
-}
-
-//// By default create lightweight support for OW on default (OW_DQ, digital 2) pin.
-//// DHD20160119: Cost ~12 SRAM bytes / ~500 code/Flash bytes.
-//// Designed to work with 1MHz/1MIPS CPU clock.
-//OTV0P2BASE::MinimalOneWire<> MinOW_DEFAULT_OWDQ;
+  {
+  write(0xCC); // Skip ROM
+  }
 
 
 }

@@ -47,13 +47,18 @@ namespace OTRadioLink
     // so that the all-1s erased state of counter and CRC is valid (counter value 0).
     class SimpleSecureFrame32or0BodyTXV0p2 : public SimpleSecureFrame32or0BodyTXBase
         {
-        private:
-            // Constructor is private to force use of factory method to return singleton.
+        protected:
+            // Constructor is protected to force use of factory method to return singleton.
+            // Else deriving class can construct some other way.
             SimpleSecureFrame32or0BodyTXV0p2() { }
 
         public:
             // Factory method to get singleton instance.
             static SimpleSecureFrame32or0BodyTXV0p2 &getInstance();
+
+            // Get TX ID that will be used for transmission; returns false on failure.
+            // Argument must be buffer of (at least) OTV0P2BASE::OpenTRV_Node_ID_Bytes bytes.
+            virtual bool getTXID(uint8_t *id);
 
             // Design notes on use of message counters vs non-volatile storage life, eg for ATMega328P.
             //
@@ -171,11 +176,56 @@ namespace OTRadioLink
             virtual bool incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(uint8_t *buf);
 
             // Fill in 12-byte IV for 'O'-style (0x80) AESGCM security for a frame to TX.
-            // This uses the local node ID as-is for the first 6 bytes.
+            // This uses the local node ID as-is for the first 6 bytes if not overridden.
             // This uses and increments the primary message counter for the last 6 bytes.
             // Returns true on success, false on failure eg due to message counter generation failure.
             virtual bool compute12ByteIDAndCounterIVForTX(uint8_t *ivBuf);
         };
+
+
+    // Variant that allows ID for TX to be fetched on demand, not directly using local node ID.
+    class SimpleSecureFrame32or0BodyTXV0p2SuppliedID : public SimpleSecureFrame32or0BodyTXV0p2
+        {
+        public:
+            // Type of pointer to function to fill in 8-byte ID for TX; returns false on failure.
+            typedef bool (*getTXID_t)(uint8_t *);
+
+        private:
+            // Function to dynamically compute and fill in 8-byte ID for TX if not NULL.
+            const getTXID_t getID;
+
+            // Settable ID to be used for TX ID for subsequent messages.
+            // The supplied buffer must be OTV0P2BASE::OpenTRV_Node_ID_Bytes bytes.
+            // The supplied ID is copied to internal state, ie the supplied buffer can be temporary.
+            // ID must be composed in accordance with the spec, eg if sending TO targeted ID.
+            // This will only be used if no function was supplied to the constructor.
+            // Note that the primary TX counter will still be used,
+            // so gaps will be seen in sequence numbers by recipients.
+            //
+            // id[0] is 0xff initially, which is nominally invalid, so entire ID is invalid.
+            uint8_t id[OTV0P2BASE::OpenTRV_Node_ID_Bytes];
+
+        public:
+            // Construct with function that fetches/computes the ID to use for TX or NULL.
+            // Where NULL is supplied (the default) then the buffer set by setID is used.
+            SimpleSecureFrame32or0BodyTXV0p2SuppliedID(getTXID_t _getID = NULL) : getID(_getID)
+              { id[0] = 0xff; }
+
+            // Get TX ID that will be used for transmission; returns false on failure.
+            // Argument must be buffer of (at least) OTV0P2BASE::OpenTRV_Node_ID_Bytes bytes.
+            virtual bool getTXID(uint8_t *id);
+
+            // Set ID to be used for TX ID for subsequent messages.
+            // The supplied buffer must be OTV0P2BASE::OpenTRV_Node_ID_Bytes bytes.
+            // The supplied ID is copied to internal state, ie the supplied buffer can be temporary.
+            // ID must be composed in accordance with the spec, eg if sending TO targeted ID.
+            // This will only be used if no function was supplied to the constructor.
+            // Note that the primary TX counter will still be used,
+            // so gaps will be seen in sequence numbers by recipients.
+            void setTXID(const uint8_t *buf) { memcpy(id, buf, sizeof(id)); }
+        };
+
+
 
     // V0p2 RX implementation for 0 or 32 byte encrypted body sections.
     //

@@ -9,6 +9,17 @@ or release/freeze points.
 
 
 pending:
+
+
+
+
+
+20160331:
+    freezepoint name: V1.0
+    branch name: HEAD
+    Deployed where: Production
+    Changes since last freezepoint (developer/mgr initials and brief description):
+    Previous significant freezepoint: V0.9
     DE20151022:  TODO-565: Added queueToSend function.
     DE20151023:  Added unit tests for OTNullRadioLink.
     DE20151026:  Fixed compiler warning due to preinit().
@@ -17,10 +28,8 @@ pending:
     DHD20160117: moved simple CRC support from OTRadioLink to OTV0P2BASE.
     DHD20160131: added dynamic channel-switching support to RFM23B, with 57600bps GFSK packet-handling config.
     DHD20160303: TODO-721: separating out V0p2=specific secure frame impl details (such as EEPROM storage of msg counters).
-
-
-
-
+    DHD20160325: COH-80: support for TX IDs other than local node ID.
+    DE20160331:  Fixed bug preventing compilation when using ISRRXQueue1Deep
 
 20151021:
     freezepoint name: V0.9

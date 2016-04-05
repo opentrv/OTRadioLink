@@ -62,7 +62,7 @@ class TemperatureC16_DS18B20 : public TemperatureC16Base
     const uint8_t precision;
 
     // The number of sensors found on the bus
-    int numberSensors;
+    uint8_t sensorCount;
 
     // Initialise the device (if any) before first use.
     // Returns true iff successful.
@@ -84,7 +84,7 @@ class TemperatureC16_DS18B20 : public TemperatureC16Base
 
     // Returns true if this sensor is definitely unavailable or behaving incorrectly.
     // This is after an attempt to initialise has not found a DS18B20 on the bus.
-    virtual bool isUnavailable() const { return(initialised && 0 == numberSensors); }
+    virtual bool isUnavailable() const { return(initialised && (0 == sensorCount)); }
 
     // Create instance with given OneWire connection, bus ordinal and precision.
     // No two instances should attempt to target the same DS18B20,
@@ -98,7 +98,7 @@ class TemperatureC16_DS18B20 : public TemperatureC16Base
     uint8_t getPrecisionBits() const { return(precision); }
 
     // return the number of DS18B20 sensors on the bus
-    int getNumberSensors();
+    uint8_t getSensorCount();
 
     // Force a read/poll of temperature and return the value sensed in nominal units of 1/16 C.
     // At sub-maximum precision lsbits will be zero or undefined.
@@ -108,16 +108,18 @@ class TemperatureC16_DS18B20 : public TemperatureC16Base
     // values from more than the just the first
     virtual int16_t read();
 
-    // Force a read/poll of temperature from multiple DS18B29 sensors. The value sensed, in nominal units 
-    // of 1/16 C, is written to the array of uint16_t (with count elements) pointed to by values. The values 
-    // are written in the order they are found on the One-Wire bus. 
-    // index specifies the sensor to start reading at 0 being the first. This can be used to read more sensors 
-    // than elements in the values array
-    // The return is the number of values read
+    // Force a read/poll of temperature from multiple DS18B20 sensors; returns number of values read.
+    // The value sensed, in nominal units of 1/16 C,
+    // is written to the array of uint16_t (with count elements) pointed to by values.
+    // The values are written in the order they are found on the One-Wire bus.
+    // index specifies the sensor to start reading at 0 being the first (and the default).
+    // This can be used to read more sensors
+    // than elements in the values array.
+    // The return is the number of values read.
     // At sub-maximum precision lsbits will be zero or undefined.
     // Expensive/slow.
     // Not thread-safe nor usable within ISRs (Interrupt Service Routines).
-    int readMultiple(int16_t *values, int count, int index = 0);
+    uint8_t readMultiple(int16_t *values, uint8_t count, uint8_t index = 0);
   };
 
 

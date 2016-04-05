@@ -9,12 +9,19 @@ or release/freeze points.
 
 
 pending:
+
+
+
+20160331:
+    freezepoint name: V1.0 (as part of OTRadioLink)
+    branch name: HEAD
+    Deployed where: Production
+    Changes since last freezepoint (developer/mgr initials and brief description):
+    Previous significant freezepoint: V0.8
     DHD20150821: starting split of this RELEASES note from OTRadioLink.
     DHD20150929: COH-70: made default OTRFM23BLink RX queue capacity 3 (was 2).
     DHD20151025: delay in RFM23B double-TX now nap() rather than using IDLE.
     DE20151026:  Fixed compiler warning due to getRXErr()
-
-
 
 20150817:
     freezepoint name: V0.8 (as part of OTRadioLink)

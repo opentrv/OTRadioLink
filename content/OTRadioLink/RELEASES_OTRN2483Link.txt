@@ -9,12 +9,19 @@ or release/freeze points.
 
 
 pending:
+    DE20160331:  issues still pending: sane way of handling configuration, templating to reduce size 
+    
+
+20160331:
+    freezepoint name: V1.0 (as part of OTRadioLink)
+    branch name: HEAD
+    Deployed where: Production
+    Changes since last freezepoint (developer/mgr initials and brief description):
+    Previous significant freezepoint: 
     DE20160129:  Implemented basic test send functionality
     DE20160129:  Implemented initial LoRaWAN setup and stats tx
     DE20160201:  Added set-able pin defs 
     DE20160221:  Added optional sleep and eeprom modes, and implemented reset line
     DE20160221:  Added nap before entering sleep
     DE20160308:  Removed sleep as broken, Added data rate and Tx power settings
-    De20160309:  Added nap at start of begin() to fix autobauding issues. 
-    
-
+    DE20160309:  Added nap at start of begin() to fix autobauding issues. 

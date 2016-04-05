@@ -26,6 +26,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 #include <stdint.h>
 #include <OTV0p2Base.h>
+#include "OTV0P2BASE_CLI.h"
 #include <OTRadioLink.h>
 #include "OTRadValve_AbstractRadValve.h"
 
@@ -155,7 +156,8 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
 
     // House codes part 1 and 2 (must each be <= 99 to be valid).
     // Starts as '0xff' as unset EEPROM values would be to indicate 'unset'.
-    uint8_t hc1, hc2;
+    // Marked volatile to allow thread-/ISR- safe lock-free access for read.
+    volatile uint8_t hc1, hc2;
 
   public:
     // Returns true if the supplied house code part is valid for an FHT8V valve.
@@ -170,6 +172,7 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
     void setHC2(uint8_t hc) { if(hc != hc2) { hc2 = hc; resyncWithValve(); } }
     // Get (non-volatile) HC1 and HC2 for single/primary FHT8V wireless valve under control (will be 0xff until set).
     // Both parts must be <= 99 for the house code to be valid and the valve used.
+    // Thread-/ISR- safe, eg for use in radio RX filter IRQ routine.
     uint8_t getHC1() const { return(hc1); }
     uint8_t getHC2() const { return(hc2); }
     // Check if housecode is valid for controlling an FHT8V.
@@ -320,6 +323,24 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
     // If no valve is set up then this may simply terminate an empty buffer with 0xff.
     virtual void FHT8VCreateValveSetCmdFrame(const uint8_t valvePC, const bool forceExtraPreamble = false) = 0;
 
+    // EEPROM / non-volatile operations.
+    // These operations all affect the same EEPROM backing store,
+    // so if these are used the FHT8V instance should be a singleton.
+    //
+    // Clear both housecode parts (and thus disable local valve), in non-volatile (EEPROM) store also.
+    void nvClearHC();
+    // Set (non-volatile) HC1 and HC2 for single/primary FHT8V wireless valve under control.
+    // Will cache in FHT8V instance for speed.
+    void nvSetHC1(uint8_t hc);
+    void nvSetHC2(uint8_t hc);
+    // Get (non-volatile) HC1 and HC2 for single/primary FHT8V wireless valve under control (will be 0xff until set).
+    // Used FHT8V instance as a transparent cache of the values for speed.
+    uint8_t nvGetHC1();
+    uint8_t nvGetHC2();
+    inline uint16_t nvGetHC() { return(nvGetHC2() | (((uint16_t) nvGetHC1()) << 8)); }
+    // Load EEPROM house codes into primary FHT8V instance at start-up or once cleared in FHT8V instance.
+    void nvLoadHC();
+
     // Helper method to convert from [0,100] %-open scale to [0,255] for FHT8V/FS20 frame.
     // Designed to be a fast and good approximation avoiding division or multiplication.
     // In particular this is monotonic and maps both ends of the scale correctly.
@@ -402,6 +423,18 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
             ((uint8_t) ((scale255 * (uint16_t)100U + 199U) >> 8)));
         return(percentOpen);
         }
+
+    // CLI support.
+    // Clear/set house code ("H" or "H nn mm").
+    // Will clear/set the non-volatile (EEPROM) values and the live ones.
+    class SetHouseCode : public OTV0P2BASE::CLIEntryBase
+        {
+        FHT8VRadValveBase *const v;
+        public:
+            SetHouseCode(FHT8VRadValveBase *const valve) : v(valve) { }
+            virtual bool doCommand(char *buf, uint8_t buflen);
+        };
+
   };
 
 

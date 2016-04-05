@@ -48,6 +48,13 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #define ENABLE_AMBIENT_LIGHT_SENSOR_PHOTOTRANS_TEPT4400_WRONG_WAY
 #endif
 
+#ifdef CONFIG_REV9_SECURE
+// Secure COHEAT REV9 relay just like normal one except ...
+#define CONFIG_REV9
+// IF DEFINED: enable OpenTRV secure frame encoding/decoding (as of 2015/12).
+#define ENABLE_OTSECUREFRAME_ENCODING_SUPPORT
+#endif
+
 #ifdef CONFIG_REV9 // REV9 cut2, derived from REV4.
 // Revision of V0.2 board.
 #define V0p2_REV 9
@@ -57,8 +64,12 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #define ENABLE_PRIMARY_TEMP_SENSOR_SHT21
 // IF DEFINED: enable use of additional (eg external) DS18B20 temp sensor(s).
 #define ENABLE_EXTERNAL_TEMP_SENSOR_DS18B20
-// Using RoHS-compliant phototransistor in place of LDR.
-#define ENABLE_AMBIENT_LIGHT_SENSOR_PHOTOTRANS_TEPT4400
+// IF DEFINED: allow use of ambient light sensor.
+#define ENABLE_AMBLIGHT_SENSOR
+// IF DEFINED: allow for less light on sideways-pointing ambient light sensor, eg on cut4 2014/03/17 REV2 boards (TODO-209).
+#undef ENABLE_AMBLIGHT_EXTRA_SENSITIVE
+// IF DEFINED: use RoHS-compliant phototransistor in place of default LDR.
+#undef ENABLE_AMBIENT_LIGHT_SENSOR_PHOTOTRANS_TEPT4400
 // IF UNDEFINED: this unit cannot act as boiler-control hub listening to remote thermostats, possibly in addition to controlling a local TRV.
 #undef ENABLE_BOILER_HUB
 // IF DEFINED: allow RX of stats frames.
@@ -87,8 +98,14 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #define ENABLE_EXTENDED_CLI
 // IF DEFINED: support for general timed and multi-input occupancy detection / use.
 #undef ENABLE_OCCUPANCY_SUPPORT // No direct occupancy tracking at relay unit itself.
-// IF UNDEFINED: no LEARN mode for REV9 boards (window sensor(s) instead).
-//#undef ENABLE_LEARN_BUTTON
+// IF DEFINED: for REV9 boards window sensor(s).
+#define ENABLE_LEARN_BUTTON
+// IF DEFINED: use FHT8V wireless radio module/valve, eg to control FHT8V local valve.
+#define ENABLE_FHT8VSIMPLE
+// IF DEFINED: enable support for FS20 carrier for RX or TX.
+#define ENABLE_FS20_CARRIER_SUPPORT
+// IF DEFINED: enable support for FS20 encoding/decoding, eg to send to FHT8V.
+#define ENABLE_FS20_ENCODING_SUPPORT
 // IF DEFINED: act as CC1 simple relay node.
 #define ALLOW_CC1_SUPPORT
 #define ALLOW_CC1_SUPPORT_RELAY
