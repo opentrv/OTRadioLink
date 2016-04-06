@@ -58,7 +58,6 @@ static int16_t readTemp(const uint8_t address[8])
   minOW.reset();
   minOW.select(address);
   while (minOW.read_bit() == 0) {
-    OTV0P2BASE::nap(WDTO_15MS);
   }
 
   minOW.reset();
@@ -103,7 +102,9 @@ void setup()
 
     if(DS18B20_MODEL_ID == address[0]) 
     {
-      memcpy(firstAddress, address, 8);
+      if (0 == count) {
+        memcpy(firstAddress, address, 8);
+      }
       count++;
     }
 
