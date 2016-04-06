@@ -112,7 +112,7 @@ bool TemperatureC16_DS18B20::init()
     minOW.write(CMD_WRITE_SCRATCH);
     minOW.write(0); // Th: not used.
     minOW.write(0); // Tl: not used.
-    minOW.write(((precision - 9) << 6) | 0x1f); // Config register; lsbs all 1.
+    minOW.write(((precision - 9) << 5) | 0x1f); // Config register; lsbs all 1.
     }
 
 #if 0 && defined(DEBUG)
