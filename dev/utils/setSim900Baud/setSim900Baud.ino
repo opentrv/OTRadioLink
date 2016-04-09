@@ -1,3 +1,23 @@
+/*
+The OpenTRV project licenses this file to you
+under the Apache Licence, Version 2.0 (the "Licence");
+you may not use this file except in compliance
+with the Licence. You may obtain a copy of the Licence at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the Licence is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied. See the Licence for the
+specific language governing permissions and limitations
+under the Licence.
+
+Author(s) / Copyright (s): Deniz Erbilgin 2015--2016
+                           Mark Hill 2016
+                           Damon Hart-Davis 2015--2016
+*/
+
 #include <SoftwareSerial.h>
 
 /**
@@ -27,20 +47,27 @@ void setup() {
   digitalWrite(9, HIGH);
   delay(500);
   digitalWrite(9, LOW);
+  
   delay(5000);
+  setBaud();
+  delay(500);
+  ser.begin(2400);
+  delay(500);
+  getBaud();
   while(ser.available() > 0) ser.read();
 
-  setBaud();
+  delay(500);
+  loop();
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-//  char c = 0;
-//  if (Serial.available() > 0) c = Serial.read();
-//  if (c == 'l') getPossibleBauds();
-//  else if (c == 'r') getBaud();
-//  else if (c == 's') setBaud();
-  
+  char c = 0;
+  if (Serial.available() > 0) c = Serial.read();
+  if (c == 'l') getPossibleBauds();
+  else if (c == 'r') getBaud();
+  else if (c == 's') setBaud();
+ 
   if (ser.available() > 0) Serial.print((char)ser.read());
 }
 
@@ -72,4 +99,3 @@ void setBaud()
 
   //getRate();
 }
-
