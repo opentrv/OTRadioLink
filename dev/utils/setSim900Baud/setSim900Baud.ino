@@ -61,7 +61,6 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
   char c = 0;
   if (Serial.available() > 0) c = Serial.read();
   if (c == 'l') getPossibleBauds();
