@@ -206,6 +206,7 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
     // Returns true if end-stop has apparently been hit,
     // else will require one or more further calls in new sub-cycles
     // to hit the end-stop.
+    // May attempt to ride through stiff mechanics.
     bool runFastTowardsEndStop(bool toOpen);
 
     // Run at 'normal' speed towards/to end for a fixed time/distance.

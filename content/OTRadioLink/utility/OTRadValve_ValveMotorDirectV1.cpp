@@ -248,6 +248,7 @@ void CurrentSenseValveMotorDirect::wiggle()
 // Returns true if end-stop has apparently been hit,
 // else will require one or more further calls in new sub-cycles
 // to hit the end-stop.
+// May attempt to ride through stiff mechanics.
 bool CurrentSenseValveMotorDirect::runFastTowardsEndStop(const bool toOpen)
   {
   // Clear the end-stop detection flag ready.
