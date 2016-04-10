@@ -202,7 +202,8 @@ class HardwareMotorDriverInterface
     // Call to actually run/stop motor.
     // May take as much as (say) 200ms eg to change direction.
     // Stopping (removing power) should typically be very fast, << 100ms.
-    //   * maxRunTicks  maximum sub-cycle ticks to attempt to run/spin for); zero will run for shortest reasonable time
+    //   * maxRunTicks  maximum sub-cycle ticks to attempt to run/spin for);
+    //     zero will run for shortest reasonable time and may raise or ignore stall current limits
     //   * dir  direction to run motor (or off/stop)
     //   * callback  callback handler
     virtual void motorRun(uint8_t maxRunTicks, motor_drive dir, HardwareMotorDriverInterfaceCallbackHandler &callback) = 0;
