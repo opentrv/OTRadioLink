@@ -308,6 +308,7 @@ OTV0P2BASE::serialPrintlnAndFlush();
 
       // Tactile feedback and ensure that the motor is left stopped.
       // Should also allow calibration of the shaft-encoder outputs, ie [min.max].
+      // May also help free 'stuck' mechanics.
       wiggle();
 
       // Wait before withdrawing pin (just after power-up).
@@ -327,6 +328,7 @@ OTV0P2BASE::serialPrintlnAndFlush();
 
       // Tactile feedback and ensure that the motor is left stopped.
       // Should also allow calibration of the shaft-encoder outputs, ie [min.max].
+      // May also help free 'stuck' mechanics.
       wiggle();
 
       // Now start on fully withdrawing pin.
