@@ -25,6 +25,11 @@ namespace OTRadValve
     {
 
 
+// Note: internal resistance of fresh AA alkaline cell may be ~0.2 ohm at room temp:
+//    http://data.energizer.com/PDFs/BatteryIR.pdf
+// NiMH may be nearer 0.025 ohm.
+// Typical motor impedance ~5 ohm.
+
 
 // Time before starting to retract pint during initialisation, in seconds.
 // Long enough for to leave the CLI some time for setting things like setting secret keys.
