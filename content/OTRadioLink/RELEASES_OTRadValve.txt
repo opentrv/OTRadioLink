@@ -9,11 +9,11 @@ or release/freeze points.
 
 
 pending:
+    DHD20160610: TODO-884: trying to provide 'motor good' feedback earlier.
 
 
-    
-    
-    
+
+
 20160331:
     freezepoint name: V1.0 (as part of OTRadioLink)
     branch name: HEAD

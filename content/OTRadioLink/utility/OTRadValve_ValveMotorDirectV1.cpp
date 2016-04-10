@@ -316,7 +316,7 @@ OTV0P2BASE::serialPrintlnAndFlush();
       }
 
     // Wait to start withdrawing pin.
-    // A strategic wait here helps make other start-up easier, including CLI-based config.
+    // A strategic wait here helps make other start-up easier, including CLI-based provisioning.
     case initWaiting:
       {
 //V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("  initWaiting");
