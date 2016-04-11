@@ -9,7 +9,7 @@
  * 's' sets a new baud
  */
 
-SoftwareSerial ser(7,8);
+SoftwareSerial ser(7, 8);
 
 static const char setBaudCommand[] = "AT+IPR";
 static const uint16_t initialBaud = 19200;
@@ -27,34 +27,43 @@ void setup() {
   digitalWrite(9, HIGH);
   delay(500);
   digitalWrite(9, LOW);
-  delay(5000);
-  while(ser.available() > 0) ser.read();
 
+  delay(5000);
+  getBaud();
+  delay(500);
   setBaud();
+  delay(500);
+  ser.begin(2400);
+  delay(500);
+  getBaud();
+  while (ser.available() > 0) ser.read();
+
+  delay(500);
+  loop();
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-//  char c = 0;
-//  if (Serial.available() > 0) c = Serial.read();
-//  if (c == 'l') getPossibleBauds();
-//  else if (c == 'r') getBaud();
-//  else if (c == 's') setBaud();
-  
+  char c = 0;
+  if (Serial.available() > 0) c = Serial.read();
+  if (c == 'l') getPossibleBauds();
+  else if (c == 'r') getBaud();
+  else if (c == 's') setBaud();
+
   if (ser.available() > 0) Serial.print((char)ser.read());
 }
 
 void getPossibleBauds()
 {
   Serial.println("\n++ List Supported Bauds ++");
-  ser.write(setBaudCommand, sizeof(setBaudCommand)-1);
+  ser.write(setBaudCommand, sizeof(setBaudCommand) - 1);
   ser.println("=?");
 }
 
 void getBaud()
 {
-  Serial.println("\n++ Current Baud ++");
-  ser.write(setBaudCommand, sizeof(setBaudCommand)-1);
+  Serial.println("\n++ Current Baud ++ - if correct you'll see <+IPR: 2400>");
+  ser.write(setBaudCommand, sizeof(setBaudCommand) - 1);
   ser.println("?");
 }
 
@@ -64,7 +73,7 @@ void setBaud()
   Serial.print(targetBaud);
   Serial.println(" ++");
 
-  ser.write(setBaudCommand, sizeof(setBaudCommand)-1);
+  ser.write(setBaudCommand, sizeof(setBaudCommand) - 1);
   ser.print("=");
   ser.println(targetBaud);
 
@@ -72,4 +81,3 @@ void setBaud()
 
   //getRate();
 }
-
