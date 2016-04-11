@@ -31,7 +31,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015-2016
 
 // If DEFINED: Prints debug information to serial.
 //             !!! WARNING! THIS WILL CAUSE BLOCKING OF OVER 300 MS!!!
-#undef OTSIM900LINK_DEBUG
+#define OTSIM900LINK_DEBUG
 
 /**
  * @note    To use library:
@@ -98,14 +98,14 @@ typedef struct OTSIM900LinkConfig {
 } OTSIM900LinkConfig_t;
 
 enum OTSIM900LinkState {
-        GETTING_STATE,
+        GET_STATE,
         SIM900_FOUND,
         WAIT_FOR_REGISTRATION,
         SET_APN,
         START_GPRS,
         IDLE,
         WAIT_FOR_UDP,
-        SENDING
+        SENDING,
     };
 
 
@@ -203,7 +203,7 @@ private:
      */
     inline void powerOn()
     {
-      digitalWrite(PWR_PIN, LOW);
+      fastDigitalWrite(PWR_PIN, LOW);
       if(!isPowered()) powerToggle();
     }
 
@@ -212,7 +212,7 @@ private:
      */
     inline void powerOff()
     {
-      digitalWrite(PWR_PIN, LOW);
+      fastDigitalWrite(PWR_PIN, LOW);
       if(isPowered()) powerToggle();
     }
 
@@ -225,9 +225,9 @@ private:
     inline void powerToggle()
     {
         delay(500);
-        digitalWrite(PWR_PIN, HIGH);
+        fastDigitalWrite(PWR_PIN, HIGH);
         delay(1000);
-        digitalWrite(PWR_PIN, LOW);
+        fastDigitalWrite(PWR_PIN, LOW);
         bPowered = !bPowered;
         delay(3000);
     }

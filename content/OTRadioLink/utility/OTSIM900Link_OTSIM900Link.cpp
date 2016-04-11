@@ -63,9 +63,9 @@ bool OTSIM900Link::_doconfig()
 bool OTSIM900Link::begin()
 {
     pinMode(PWR_PIN, OUTPUT);
-    digitalWrite(PWR_PIN, LOW);
+    fastDigitalWrite(PWR_PIN, LOW);
     softSerial.begin(baud);
-    state = GETTING_STATE;
+    state = GET_STATE;
     return true;
 }
 
@@ -97,15 +97,6 @@ bool OTSIM900Link::sendRaw(const uint8_t *buf, uint8_t buflen, int8_t , TXpower 
     OTV0P2BASE::serialPrintlnAndFlush(F("Send Raw"));
 #endif // OTSIM900LINK_DEBUG
     bSent = sendUDP((const char *)buf, buflen);
-//    if(bSent) return true;
-//    else {    // Shut GPRS and try again if failed
-//        shutGPRS();
-//        delay(1000);
-//
-//        openUDP();
-//        delay(5000);
-//        return sendUDP((const char *)buf, buflen);
-//    }
     return bSent;
 }
 
@@ -138,9 +129,12 @@ bool OTSIM900Link::queueToSend(const uint8_t *buf, uint8_t buflen, int8_t , TXpo
 void OTSIM900Link::poll()
 {
     switch (state) {
-    case GETTING_STATE:
+    case GET_STATE:
         // Check SIM900 is present and can be talked to.
         // Panics on failure.
+        memset(txQueue, 0, sizeof(txQueue));
+        txMsgLen = 0;
+        txMessageQueue = 0;
         if(!getInitState()) {
             state = SIM900_FOUND;
             delay(5000); // TODO get rid of this line
@@ -175,8 +169,7 @@ void OTSIM900Link::poll()
         // If message is queued, go to WAIT_FOR_UDP
         if (txMessageQueue > 0) {
 #ifdef OTSIM900LINK_DEBUG
-            getSignalStrength(); // Helps with debugging but otherwise useless
-            delay(300);
+            getSignalStrength(); // Helps with debugging but otherwise useless;
 #endif // OTSIM900LINK_DEBUG
             state = WAIT_FOR_UDP; // TODO-748
         }
@@ -198,7 +191,7 @@ void OTSIM900Link::poll()
         uint8_t udpState = isOpenUDP();
         if(udpState == 1) state = WAIT_FOR_UDP;
         else if (udpState == 0) state = START_GPRS;
-        else if (udpState == 2) state = GETTING_STATE;
+        else if (udpState == 2) state = GET_STATE;
     }
         break;
     case SENDING:
@@ -242,7 +235,6 @@ bool OTSIM900Link::openUDP()
 
     // Implement check here
     timedBlockingRead(data, sizeof(data));
-    //OTV0P2BASE::serialPrintAndFlush(data);
     // response stuff
     uint8_t dataCutLength = 0;
     getResponse(dataCutLength, data, sizeof(data), 0x0A);
@@ -346,7 +338,7 @@ bool OTSIM900Link::flushUntil(uint8_t _terminatingChar)
         const uint8_t c = read();
         if (c == terminatingChar) return true;
     }
-#ifdef OTSIM900LINK_DEBUG
+#if 0 && defined(OTSIM900LINK_DEBUG)
   OTV0P2BASE::serialPrintlnAndFlush(F(" Timeout"));
   OTV0P2BASE::serialPrintAndFlush(OTV0P2BASE::getSecondsLT());
 #endif // OTSIM900LINK_DEBUG
@@ -405,11 +397,11 @@ void OTSIM900Link::print(const void *src)
 }
 
 /**
- * @brief    Checks module ID
+ * @brief   Checks module ID
  * @todo    Implement check?
- * @param    name    pointer to array to compare name with
- * @param    length    length of array name
- * @retval    returns true if ID recovered successfully
+ * @param   name    pointer to array to compare name with
+ * @param   length    length of array name
+ * @retval  returns true if ID recovered successfully
  */
 bool OTSIM900Link::checkModule()
  {
@@ -426,11 +418,11 @@ bool OTSIM900Link::checkModule()
 }
 
 /**
- * @brief    Checks connected network
+ * @brief   Checks connected network
  * @todo    implement check
- * @param    buffer    pointer to array to store network name in
- * @param    length    length of buffer
- * @param    returns true if connected to network
+ * @param   buffer    pointer to array to store network name in
+ * @param   length    length of buffer
+ * @param   returns true if connected to network
  */
 bool OTSIM900Link::checkNetwork()
 {
@@ -440,20 +432,14 @@ bool OTSIM900Link::checkNetwork()
   print(AT_QUERY);
   print(AT_END);
   timedBlockingRead(data, sizeof(data));
-
-  // response stuff
-  //const char *dataCut;
-  //uint8_t dataCutLength = 0;
-  //dataCut= getResponse(dataCutLength, data, sizeof(data), ' '); // first ' ' appears right before useful part of message
-
   return true;
 }
 
 /**
- * @brief     check if module connected and registered (GSM and GPRS)
+ * @brief   check if module connected and registered (GSM and GPRS)
  * @todo    implement check
- *             are two registration checks needed?
- * @retval    true if registered
+ *          are two registration checks needed?
+ * @retval  true if registered
  */
 bool OTSIM900Link::isRegistered()
 {
@@ -463,7 +449,7 @@ bool OTSIM900Link::isRegistered()
   char data[MAX_SIM900_RESPONSE_CHARS];
 
 #ifdef OTSIM900LINK_DEBUG
-    OTV0P2BASE::serialPrintlnAndFlush(F("Wait for Registration"));
+    OTV0P2BASE::serialPrintlnAndFlush(F("WF Reg"));
 #endif // OTSIM900LINK_DEBUG
 
   print(AT_START);
@@ -480,7 +466,7 @@ bool OTSIM900Link::isRegistered()
 
   if (dataCut[2] == '1' || dataCut[2] == '5' ) return true;    // expected response '1' or '5'
   else {
-#ifdef OTSIM900LINK_DEBUG
+#if 0 && defined(OTSIM900LINK_DEBUG)
       getSignalStrength(); // Really only for debug
 #endif // OTSIM900LINK_DEBUG
       return false;
@@ -498,7 +484,7 @@ uint8_t OTSIM900Link::setAPN()
 {
   char data[MAX_SIM900_RESPONSE_CHARS]; // FIXME: was 96: that's a LOT of stack!
 #ifdef OTSIM900LINK_DEBUG
-    OTV0P2BASE::serialPrintlnAndFlush(F("Set APN"));
+    OTV0P2BASE::serialPrintlnAndFlush(F("APN"));
 #endif // OTSIM900LINK_DEBUG
   print(AT_START);
   print(AT_SET_APN);
@@ -512,7 +498,7 @@ uint8_t OTSIM900Link::setAPN()
   const char *dataCut;
   uint8_t dataCutLength = 0;
   dataCut = getResponse(dataCutLength, data, sizeof(data), 0x0A);
-#ifdef OTSIM900LINK_DEBUG
+#if 0 && defined(OTSIM900LINK_DEBUG)
   OTV0P2BASE::serialPrintlnAndFlush(data);
 #endif // OTSIM900LINK_DEBUG
 
@@ -530,7 +516,7 @@ uint8_t OTSIM900Link::startGPRS()
 {
   char data[min(16, MAX_SIM900_RESPONSE_CHARS)];
 #ifdef OTSIM900LINK_DEBUG
-    OTV0P2BASE::serialPrintlnAndFlush(F("Start GPRS"));
+    OTV0P2BASE::serialPrintlnAndFlush(F("GPRS"));
 #endif // OTSIM900LINK_DEBUG
   print(AT_START);
   print(AT_START_GPRS);
@@ -721,7 +707,7 @@ const char *OTSIM900Link::getResponse(uint8_t &newLength, const char *data, uint
 
     newLength = i - i0;
 
-#ifdef OTSIM900LINK_DEBUG
+#if 0 && defined(OTSIM900LINK_DEBUG)
     char *stringEnd = (char *)data;
      *stringEnd = '\0';
     OTV0P2BASE::serialPrintAndFlush(newPtr);
@@ -757,7 +743,7 @@ uint8_t OTSIM900Link::getInitState()
     delay(1000); // To allow for garbage sent on startup
 
 #ifdef OTSIM900LINK_DEBUG
-    OTV0P2BASE::serialPrintlnAndFlush("Check for module: ");
+    OTV0P2BASE::serialPrintlnAndFlush("Module?");
 #endif // OTSIM900LINK_DEBUG
     print(AT_START);
     print(AT_END);
@@ -767,7 +753,7 @@ uint8_t OTSIM900Link::getInitState()
     if (timedBlockingRead(data, sizeof(data)) == 0) { // state 1 or 2
 
 #ifdef OTSIM900LINK_DEBUG
-    OTV0P2BASE::serialPrintlnAndFlush("- Attempt to force State 3");
+    OTV0P2BASE::serialPrintlnAndFlush("- Force On");
 #endif // OTSIM900LINK_DEBUG
 
         powerToggle();
@@ -778,7 +764,7 @@ uint8_t OTSIM900Link::getInitState()
         if (timedBlockingRead(data, sizeof(data)) == 0) { // state 1
 
 #ifdef OTSIM900LINK_DEBUG
-    OTV0P2BASE::serialPrintlnAndFlush("-- Failed. No Module");
+    OTV0P2BASE::serialPrintlnAndFlush("-- Failed");
 #endif // OTSIM900LINK_DEBUG
 
             bPowered = false;
@@ -786,7 +772,7 @@ uint8_t OTSIM900Link::getInitState()
         }
     } else if( data[0] == 'A' ) { // state 3 or 4
 #ifdef OTSIM900LINK_DEBUG
-    OTV0P2BASE::serialPrintlnAndFlush("- Module Present");
+    OTV0P2BASE::serialPrintlnAndFlush("-- Success");
 #endif // OTSIM900LINK_DEBUG
         bAvailable = true;
         bPowered = true;
@@ -794,7 +780,7 @@ uint8_t OTSIM900Link::getInitState()
         return -1;    // state 3
     } else {
 #ifdef OTSIM900LINK_DEBUG
-    OTV0P2BASE::serialPrintAndFlush("- Unexpected Response: ");
+    OTV0P2BASE::serialPrintAndFlush("- Bad Response: ");
     OTV0P2BASE::serialPrintlnAndFlush(data);
 #endif // OTSIM900LINK_DEBUG
         bAvailable = false;
@@ -810,7 +796,7 @@ uint8_t OTSIM900Link::getInitState()
 void OTSIM900Link::getSignalStrength()
 {
 #ifdef OTSIM900LINK_DEBUG
-    OTV0P2BASE::serialPrintAndFlush(F("Signal Strength: "));
+    OTV0P2BASE::serialPrintAndFlush(F("RSSI: "));
 #endif // OTSIM900LINK_DEBUG
     char data[min(32, MAX_SIM900_RESPONSE_CHARS)];
     print(AT_START);
@@ -819,9 +805,8 @@ void OTSIM900Link::getSignalStrength()
     timedBlockingRead(data, sizeof(data));
 
     // response stuff
-//    const char *dataCut;
     uint8_t dataCutLength = 0;
-    /*dataCut =*/ getResponse(dataCutLength, data, sizeof(data), ' '); // first ' ' appears right before useful part of message
+    getResponse(dataCutLength, data, sizeof(data), ' '); // first ' ' appears right before useful part of message
 }
 
 /**
