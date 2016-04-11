@@ -259,7 +259,7 @@ bool sleepUntilSubCycleTime(uint8_t sleepUntil);
 // else the main line code may never be reached.
 // Inline to give the compiler full visibility for efficient use in ISR code (eg avoid full register save).
 //
-// Background, see for example:
+// Background on implementation and issues, see for example:
 //   http://forum.arduino.cc/index.php?topic=12874.0
 //   http://playground.arduino.cc/Main/ArduinoReset
 // This suggests that a timeout of > 2s may be OK with the optiboot loader:
