@@ -264,8 +264,10 @@ bool sleepUntilSubCycleTime(uint8_t sleepUntil);
 //   http://playground.arduino.cc/Main/ArduinoReset
 // This suggests that a timeout of > 2s may be OK with the optiboot loader:
 //   https://tushev.org/articles/arduino/5/arduino-and-watchdog-timer
-#if defined(__AVR_ATmega328P__)
+#if defined(__GNUC__)
 inline void forceReset() __attribute__ ((noreturn));
+#endif // defined(__GNUC__)
+#if defined(__AVR_ATmega328P__)
 inline void forceReset()
     {
     cli();
