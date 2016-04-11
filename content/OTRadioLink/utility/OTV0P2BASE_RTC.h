@@ -17,7 +17,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 */
 
 /*
- Real-time clock support.
+ Real-time clock support AND RTC-connected watchdog/reset.
  */
 
 #ifndef OTV0P2BASE_RTC_H
