@@ -29,7 +29,9 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015-2016
 #include <string.h>
 #include <stdint.h>
 
-//#define OTSIM900LINK_DEBUG
+// If DEFINED: Prints debug information to serial.
+//             !!! WARNING! THIS WILL CAUSE BLOCKING OF OVER 300 MS!!!
+#undef OTSIM900LINK_DEBUG
 
 /**
  * @note    To use library:
@@ -95,13 +97,15 @@ typedef struct OTSIM900LinkConfig {
     }
 } OTSIM900LinkConfig_t;
 
-enum SendState {
-        IDLE,
+enum OTSIM900LinkState {
+        GETTING_STATE,
+        SIM900_FOUND,
+        WAIT_FOR_REGISTRATION,
+        SET_APN,
         START_GPRS,
+        IDLE,
         WAIT_FOR_UDP,
-        RESTART_CONNECTION,
-//        WAIT_FOR_PROMPT,
-//        WAIT_FOR_SENDOK
+        SENDING
     };
 
 
@@ -140,7 +144,7 @@ public:
      */
     bool handleInterruptSimple();
 
-#ifndef OTSIM900LINK_DEBUG
+#ifndef OTSIM900LINK_DEBUG // This is included to ease unit testing.
 private:
 #endif // OTSIM900LINK_DEBUG
 
@@ -148,33 +152,33 @@ private:
     // set AT commands here
     // These may not be supported by all sim modules so may need to move
     // to concrete implementation
-        static const char AT_START[3];
-        static const char AT_SIGNAL[5];
-      static const char AT_NETWORK[6];
-      static const char AT_REGISTRATION[6];
-      static const char AT_GPRS_REGISTRATION0[7];
-      static const char AT_GPRS_REGISTRATION[7];
-      static const char AT_SET_APN[6];
-      static const char AT_START_GPRS[7];
-      static const char AT_SHUT_GPRS[9];
-      static const char AT_GET_IP[7];
-      static const char AT_PIN[6];
-      static const char AT_STATUS[11];
-      static const char AT_START_UDP[10];
-      static const char AT_SEND_UDP[9];
-      static const char AT_CLOSE_UDP[10];
-      static const char AT_VERBOSE_ERRORS[6];
+    static const char AT_START[3];
+    static const char AT_SIGNAL[5];
+    static const char AT_NETWORK[6];
+    static const char AT_REGISTRATION[6];
+    static const char AT_GPRS_REGISTRATION0[7];
+    static const char AT_GPRS_REGISTRATION[7];
+    static const char AT_SET_APN[6];
+    static const char AT_START_GPRS[7];
+    static const char AT_SHUT_GPRS[9];
+    static const char AT_GET_IP[7];
+    static const char AT_PIN[6];
+    static const char AT_STATUS[11];
+    static const char AT_START_UDP[10];
+    static const char AT_SEND_UDP[9];
+    static const char AT_CLOSE_UDP[10];
+    static const char AT_VERBOSE_ERRORS[6];
 
-      static const char AT_GET_MODULE = 'I';
-      static const char AT_SET = '=';
-      static const char AT_QUERY = '?';
-        static const char AT_END = '\r';
+    static const char AT_GET_MODULE = 'I';
+    static const char AT_SET = '=';
+    static const char AT_QUERY = '?';
+    static const char AT_END = '\r';
 
     // Standard Responses
 
   // pins for software serial
-  const uint8_t PWR_PIN;
   const uint8_t HARD_PWR_PIN;
+  const uint8_t PWR_PIN;
   //SoftwareSerial softSerial;
   OTV0P2BASE::OTSoftSerial softSerial;
 
@@ -214,8 +218,9 @@ private:
 
     /**
      * @brief    toggles power
-     * @todo    replace digitalWrite with fastDigitalWrite
-     *             Does this need to be inline?
+     * @todo     replace digitalWrite with fastDigitalWrite
+     *           Does this need to be inline?
+     *           5 second blocking is unacceptable
      */
     inline void powerToggle()
     {
@@ -241,15 +246,15 @@ private:
     bool checkNetwork();
     bool isRegistered();
 
-    bool setAPN();
-    bool startGPRS();
-    bool shutGPRS();
+    uint8_t setAPN();
+    uint8_t startGPRS();
+    uint8_t shutGPRS();
     uint8_t getIP();
     uint8_t isOpenUDP();
     void getSignalStrength();
 
     void verbose(uint8_t level);
-    void setPIN();
+    uint8_t setPIN();
     bool checkPIN();
 
     bool flushUntil(uint8_t terminatingChar);
@@ -260,14 +265,14 @@ private:
     bool closeUDP();
     bool sendUDP(const char *frame, uint8_t length);
 
-    bool getInitState();
+    uint8_t getInitState();
 
     bool _doconfig();
 
     bool printDiagnostics();
 
     // TODO check this is in correct place
-    volatile SendState state;
+    volatile OTSIM900LinkState state;
     // TODO expand this so that it can take multiple messages
     uint8_t txQueue[64]; // 64 is maxTxMsgLen (from OTRadioLink)
     uint8_t txMsgLen;  // This stores the length of the tx message. will have to be redone for multiple txQueue

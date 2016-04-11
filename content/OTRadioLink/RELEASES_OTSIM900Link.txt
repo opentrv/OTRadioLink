@@ -10,6 +10,9 @@ or release/freeze points.
 
 pending:
     DE20160331:  issues still pending: non-blocking at start up and during signal loss, spec for storing eeprom config
+    DE20160411:  Expanded state machine so that start up and loss of signal do not block longer than 5 secs.
+    DE20160411:  Changed methods to exit with -1 on error 
+    
 
 
 20160331:
