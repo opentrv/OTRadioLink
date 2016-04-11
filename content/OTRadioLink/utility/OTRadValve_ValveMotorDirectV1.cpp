@@ -25,6 +25,11 @@ namespace OTRadValve
     {
 
 
+// Note: internal resistance of fresh AA alkaline cell may be ~0.2 ohm at room temp:
+//    http://data.energizer.com/PDFs/BatteryIR.pdf
+// NiMH may be nearer 0.025 ohm.
+// Typical motor impedance expected here ~5 ohm, with supply voltage 2--3V.
+
 
 // Time before starting to retract pint during initialisation, in seconds.
 // Long enough for to leave the CLI some time for setting things like setting secret keys.
@@ -228,6 +233,7 @@ uint8_t CurrentSenseValveMotorDirect::getMinPercentOpen() const
 // May take a significant fraction of a second.
 // Finishes with the motor turned off, and a bias to closing the valve.
 // Should also have enough movement/play to allow calibration of the shaft encoder.
+// May also help set some bounds on stall current, eg if highly asymmetric at each end of travel.
 void CurrentSenseValveMotorDirect::wiggle()
   {
   hw->motorRun(0, OTRadValve::HardwareMotorDriverInterface::motorOff, *this);
@@ -242,6 +248,7 @@ void CurrentSenseValveMotorDirect::wiggle()
 // Returns true if end-stop has apparently been hit,
 // else will require one or more further calls in new sub-cycles
 // to hit the end-stop.
+// May attempt to ride through stiff mechanics.
 bool CurrentSenseValveMotorDirect::runFastTowardsEndStop(const bool toOpen)
   {
   // Clear the end-stop detection flag ready.
@@ -299,30 +306,36 @@ OTV0P2BASE::serialPrintlnAndFlush();
   // Run the state machine based on the major state.
   switch(state)
     {
-    // Power-up: move to 'pin withdrawing' state and possibly start a timer.
+    // Power-up: wiggle and then wait to move to 'pin withdrawing' state.
     case init:
       {
 //V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("  init");
-      // Make sure that the motor is unconditionally turned off.
-      hw->motorRun(0, OTRadValve::HardwareMotorDriverInterface::motorOff, *this);
-
-      // Make start-up a little less eager/greedy.
-      //
-      // Randomly postpone wiggle and valve-full-open a little to spread out start-up activity.
-      // May also help interaction with CLI at start-up, and reduce peak power demands.
-      // Cannot postpone too long as may make user think that something is broken.
-      // So, KISS.
-
-      static uint8_t ticksWaited;
-      // Assume 2s between calls to poll().
-      if(ticksWaited < initialRetractDelay_s/2) { ++ticksWaited; break; } // Postpone
-
-//      // Have approx 7/8 chance of postponing on each call (each 2s),
-//      // thus typically start well within 16s.
-//      if(0 != (0x70 & OTV0P2BASE::randRNG8())) { break; } // Postpone.
+//      // Make sure that the motor is unconditionally turned off.
+//      hw->motorRun(0, OTRadValve::HardwareMotorDriverInterface::motorOff, *this);
 
       // Tactile feedback and ensure that the motor is left stopped.
       // Should also allow calibration of the shaft-encoder outputs, ie [min.max].
+      // May also help free 'stuck' mechanics.
+      wiggle();
+
+      // Wait before withdrawing pin (just after power-up).
+      changeState(initWaiting);
+      break;
+      }
+
+    // Wait to start withdrawing pin.
+    // A strategic wait here helps make other start-up easier, including CLI-based provisioning.
+    case initWaiting:
+      {
+//V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("  initWaiting");
+
+      static uint8_t ticksWaited;
+      // Assume 2s between calls to poll().
+      if(ticksWaited < initialRetractDelay_s/2) { ++ticksWaited; break; } // Postpone pin withdraw after power-up.
+
+      // Tactile feedback and ensure that the motor is left stopped.
+      // Should also allow calibration of the shaft-encoder outputs, ie [min.max].
+      // May also help free 'stuck' mechanics.
       wiggle();
 
       // Now start on fully withdrawing pin.

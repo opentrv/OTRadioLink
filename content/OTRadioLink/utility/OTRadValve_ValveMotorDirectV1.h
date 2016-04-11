@@ -122,6 +122,7 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
     enum driverState
       {
       init = 0, // Power-up state.
+      initWaiting, // Waiting to withdraw pin.
       valvePinWithdrawing, // Retracting pin at power-up.
       valvePinWithdrawn, // Allows valve to be fitted; wait for user signal that valve has been fitted.
       valveCalibrating, // Calibrating full valve travel.
@@ -205,6 +206,7 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
     // Returns true if end-stop has apparently been hit,
     // else will require one or more further calls in new sub-cycles
     // to hit the end-stop.
+    // May attempt to ride through stiff mechanics.
     bool runFastTowardsEndStop(bool toOpen);
 
     // Run at 'normal' speed towards/to end for a fixed time/distance.
