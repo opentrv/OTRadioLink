@@ -89,7 +89,7 @@ bool OTRN2483Link::end()
  * @param   buf	Send buffer.
  */
 bool OTRN2483Link::sendRaw(const uint8_t* buf, uint8_t buflen,
-		int8_t channel, TXpower power, bool listenAfter)
+		int8_t /*channel*/, TXpower /*power*/, bool /*listenAfter*/)
 {
 	char dataBuf[16];
 	memset(dataBuf, 0, sizeof(dataBuf));
@@ -221,7 +221,7 @@ void OTRN2483Link::reset()
  *          and is using addresses 00-04 (as of 2016-01-29)
  * @todo    Confirm this is in hex
  */
-void OTRN2483Link::setDevAddr(const uint8_t *address)
+void OTRN2483Link::setDevAddr(const uint8_t */*address*/)
 {
 	print(MAC_START);
 	print(RN2483_SET);
@@ -239,7 +239,7 @@ void OTRN2483Link::setDevAddr(const uint8_t *address)
  *                      The key is: 2B7E151628AED2A6ABF7158809CF4F3C
  * @note    The RN2483 takes numbers as HEX values.
  */
-void OTRN2483Link::setKeys(const uint8_t *appKey, const uint8_t *networkKey)
+void OTRN2483Link::setKeys(const uint8_t */*appKey*/, const uint8_t */*networkKey*/)
 {
 	print(MAC_START);
 	print(RN2483_SET);
@@ -267,7 +267,7 @@ void OTRN2483Link::joinABP()
  * @brief   Return status
  * @retval
  * @todo    Find out what status messages mean and document.
- *          Do logic
+ *          Implement check
  */
 bool OTRN2483Link::getStatus()
 {
@@ -275,6 +275,7 @@ bool OTRN2483Link::getStatus()
 	print(RN2483_GET);
 	print(MAC_STATUS);
 	print(RN2483_END);
+	return true; // temp to avoid compiler warnings
 }
 /**
  * @brief   Saves current mac state

@@ -68,7 +68,7 @@ typedef struct OTRN2483LinkConfig {
     const void * const UDP_Address;
     const void * const UDP_Port;
 
-    OTRN2483LinkConfig(bool e, const void *p, const void *a, const void *ua, const void *up)
+    OTRN2483LinkConfig(bool e, const void */*p*/, const void */*a*/, const void *ua, const void *up)
       : bEEPROM(e), UDP_Address(ua), UDP_Port(up) { }
     /**
      * @brief    Copies radio config data from EEPROM to an array
