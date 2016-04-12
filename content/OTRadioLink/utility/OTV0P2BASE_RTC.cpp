@@ -249,6 +249,22 @@ bool setSeconds(const uint8_t seconds)
   }
 
 
+
+
+// RTC-based watchdog, if enabled with enableRTCWatchdog(true),
+// will force a reset if the resetRTCWatchDog() is not called
+// between one RTC tick interrupt and the next.
+//
+// If true then the RTC-based watchdog mechanism is enabled.
+static volatile bool _RTCWatchdogEnabled;
+//
+// If true, then enable the RTC-based watchdog; disable otherwise.
+void enableRTCWatchdog(const bool enable) { _RTCWatchdogEnabled = enable; }
+// Must be called between each 'tick' of the RTC clock if enabled, else system will reset.
+void resetRTCWatchDog();
+
+
+
 // Hook into TIMER2 overflow interrupt to drive RTC and provide slow wake-up tick.
 ISR(TIMER2_OVF_vect)
   {
