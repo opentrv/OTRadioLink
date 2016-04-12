@@ -135,5 +135,15 @@ static const uint_fast8_t MAIN_TICK_S = 1;
 #endif
 
 
+// RTC-based watchdog, if enabled with enableRTCWatchdog(true),
+// will force a reset if the resetRTCWatchDog() is not called
+// between on RTC tick interrupt and the next.
+//
+// If true, enable the RTC-based watchdog; disable otherwise.
+void enableRTCWatchdog(bool enable);
+// Must be called between each 'tick' of the RTC clock if enabled else system will reset.
+void resetRTCWatchDog();
+
+
 }
 #endif
