@@ -25,9 +25,10 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 
 #include <Arduino.h>
 
-#include "OTV0P2BASE_RTC.h"
-
 #include "OTV0P2BASE_EEPROM.h"
+#include "OTV0P2BASE_Sleep.h"
+
+#include "OTV0P2BASE_RTC.h"
 
 
 namespace OTV0P2BASE
@@ -257,11 +258,12 @@ bool setSeconds(const uint8_t seconds)
 //
 // If true then the RTC-based watchdog mechanism is enabled.
 static volatile bool _RTCWatchdogEnabled;
-//
 // If true, then enable the RTC-based watchdog; disable otherwise.
 void enableRTCWatchdog(const bool enable) { _RTCWatchdogEnabled = enable; }
+// If true on following tick, watchdog reset is triggered.
+static volatile bool _RTCWatchdogResetNotCalled;
 // Must be called between each 'tick' of the RTC clock if enabled, else system will reset.
-void resetRTCWatchDog();
+void resetRTCWatchDog() { _RTCWatchdogResetNotCalled = false; }
 
 
 
@@ -289,6 +291,12 @@ ISR(TIMER2_OVF_vect)
     _minutesSinceMidnightLT = mTemp;
     }
   _secondsLT = sTemp;
+  // Deal with watchdog, if enabled.
+  if(enableRTCWatchdog)
+    {
+    if(_RTCWatchdogResetNotCalled) { forceReset(); }
+    _RTCWatchdogResetNotCalled = true;
+    }
   }
 
 
