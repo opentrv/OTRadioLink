@@ -47,7 +47,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 // IF DEFINED: enable use AVR's 'idle' mode to stop the CPU but leave I/O clocls (eg Serial) running to save power.
 // DHD20150920: NOT RECOMMENDED AS SEEMS TO CAUSE SOME BOARDS (REV1,REV9) TO CRASH.
 #undef ENABLE_USE_OF_AVR_IDLE_MODE
-// IF DEFINED: use (slow, minimum energy) 32768Hz-clock-based watchdog to recover from software hangups.
+// IF DEFINED: use (slow, low energy) 32768Hz-clock-based watchdog to recover from some software hangups.
 #define ENABLE_WATCHDOG_SLOW
 // IF DEFINED: provide software RTC support by default.
 #define ENABLE_RTC_INTERNAL_SIMPLE
