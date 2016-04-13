@@ -292,7 +292,7 @@ ISR(TIMER2_OVF_vect)
     }
   _secondsLT = sTemp;
   // Deal with watchdog, if enabled.
-  if(enableRTCWatchdog)
+  if(_RTCWatchdogEnabled)
     {
     if(_RTCWatchdogResetNotCalled) { forceReset(); }
     _RTCWatchdogResetNotCalled = true;
