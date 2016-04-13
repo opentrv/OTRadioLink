@@ -232,8 +232,8 @@ bool setHoursMinutesLT(const uint8_t hours, const uint8_t minutes)
   return(true); // Assume set and persisted OK.
   }
 
-// Set seconds [0,59].
-// Not persisted.
+// Set nominal seconds [0,59].
+// Not persisted, may be offset from real time.
 // Will ignore attempts to set bad values and return false in that case.
 // Will drop the least significant bit if counting in 2s increments.
 // Returns true if all OK and the time has been set.

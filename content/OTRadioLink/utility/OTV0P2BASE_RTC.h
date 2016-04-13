@@ -118,8 +118,8 @@ uint_least8_t getNextHourLT();
 // Will persist time to survive reset as necessary.
 bool setHoursMinutesLT(uint8_t hours, uint8_t minutes);
 
-// Set seconds [0,59].
-// Not persisted.
+// Set nominal seconds [0,59].
+// Not persisted, may be offset from real time.
 // Will ignore attempts to set bad values and return false in that case.
 // Will drop the least significant bit if counting in 2s increments.
 // Returns true if all OK and the time has been set.
