@@ -1,4 +1,10 @@
 # OTSoftSerial Implementation Notes
+## Todo:
+- [ ] Rewrite to use stream interface Arduino libs (arduino-1.6.7/hardware/arduino/avr/cores/arduino/Stream.h)
+- [ ] Move read into interrupt (although still blocking).
+- [ ] Make non-blocking.
+- [ ] Template the class to speed it up.
+
 ## Current Problems (20160415):
 1. Have to block for long periods of time while waiting for Rx.
 2. Uses slow Arduino digitalWrite functions as pins are set at runtime.
@@ -11,7 +17,6 @@
     - Separate byte start detection logic from byte Rx logic so that it's easier to do both blocking and interrupt based Rx.
     - Need to think about state of interrupt registers on exit.
     - Need buffer to hold Rx message.
-    
 2. Template OTSoftSerial so that pins set at compile time.
     - This will allow fastDigitalWrite to use fast macros.
     - Previously not done due to unfortunate optimisations when templating.
@@ -26,7 +31,3 @@
 2. We have time to service interrupts between bytes.
 3. Nothing will block too long between bytes.
     - May need to detect this case and retry.
-
-## Other Actions:
-1. Find out how much SIM900 and RN2483 serial options can be changed (extra stop bit/parity bit may give more time between bytes)
-
