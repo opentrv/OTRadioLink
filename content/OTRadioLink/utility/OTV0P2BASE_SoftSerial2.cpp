@@ -15,37 +15,37 @@ OTSoftSerial2::OTSoftSerial2(uint8_t _rxPin, uint8_t _txPin): rxPin(_rxPin), txP
 
 }
 
-void OTV0P2BASE::OTSoftSerial2::begin(long speed) {
+void OTSoftSerial2::begin(long speed) {
 }
 
-bool OTV0P2BASE::OTSoftSerial2::listen() {
+bool OTSoftSerial2::listen() {
 }
 
-void OTV0P2BASE::OTSoftSerial2::end() {
+void OTSoftSerial2::end() {
 }
 
-bool OTV0P2BASE::OTSoftSerial2::isListening() {
+bool OTSoftSerial2::isListening() {
 }
 
-bool OTV0P2BASE::OTSoftSerial2::stopListening() {
+bool OTSoftSerial2::stopListening() {
 }
 
-bool OTV0P2BASE::OTSoftSerial2::overflow() {
+bool OTSoftSerial2::overflow() {
 }
 
-int OTV0P2BASE::OTSoftSerial2::peek() {
+int OTSoftSerial2::peek() {
 }
 
-size_t OTV0P2BASE::OTSoftSerial2::write(uint8_t byte) {
+size_t OTSoftSerial2::write(uint8_t byte) {
 }
 
-int OTV0P2BASE::OTSoftSerial2::read() {
+int OTSoftSerial2::read() {
 }
 
-int OTV0P2BASE::OTSoftSerial2::available() {
+int OTSoftSerial2::available() {
 }
 
-void OTV0P2BASE::OTSoftSerial2::flush() {
+void OTSoftSerial2::flush() {
 }
 
 }
