@@ -1,0 +1,32 @@
+# OTSoftSerial Implementation Notes
+## Current Problems (20160415):
+1. Have to block for long periods of time while waiting for Rx.
+2. Uses slow Arduino digitalWrite functions as pins are set at runtime.
+3. CPU clock rate no longer reliable (might change during runtime).
+
+## Solutions:
+1. Optionally start Rx of each byte with an interrupt.
+    - Interrupt on pin change to low.
+    - Block until byte Rxed and then release.
+    - Separate byte start detection logic from byte Rx logic so that it's easier to do both blocking and interrupt based Rx.
+    - Need to think about state of interrupt registers on exit.
+    - Need buffer to hold Rx message.
+    
+2. Template OTSoftSerial so that pins set at compile time.
+    - This will allow fastDigitalWrite to use fast macros.
+    - Previously not done due to unfortunate optimisations when templating.
+    - Solving 1. will avoid this in our use cases (still might cause problems in non interrupt case)
+3. Check clock speed before each Tx and Rx. Three options:
+    - Force clock to something set at compile time.
+    - Return error.
+    - Adjust constants to compensate.
+
+## Assumptions:
+1. Lowest clock speed is fast enough to accurately sample Rx line.
+2. We have time to service interrupts between bytes.
+3. Nothing will block too long between bytes.
+    - May need to detect this case and retry.
+
+## Other Actions:
+1. Find out how much SIM900 and RN2483 serial options can be changed (extra stop bit/parity bit may give more time between bytes)
+
