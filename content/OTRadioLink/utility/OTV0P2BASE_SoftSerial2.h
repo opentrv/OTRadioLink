@@ -37,13 +37,15 @@ static const uint8_t OTSOFTSERIAL2_BUFFER_SIZE = 32;
 class OTSoftSerial2 : public Stream
 {
 protected:
+    static const uint16_t timeOut = 10000; // fed into loop...
+
     const uint8_t rxPin;
     const uint8_t txPin;
     uint8_t fullDelay;
     uint8_t halfDelay;
-    volatile uint8_t rxBufferHead;
-    volatile uint8_t rxBufferTail;
-    uint8_t rxBuffer[OTSOFTSERIAL2_BUFFER_SIZE];
+//    volatile uint8_t rxBufferHead;
+//    volatile uint8_t rxBufferTail;
+//    uint8_t rxBuffer[OTSOFTSERIAL2_BUFFER_SIZE];
 
 public:
     /**
@@ -52,13 +54,14 @@ public:
      * @param   txPin: Pin to send from.
      */
     OTSoftSerial2(uint8_t rxPin, uint8_t txPin);
-//    ~OTSoftSerial2() {};    // TODO do I delete this?
     /**
      * @brief   Initialises OTSoftSerial2 and sets up pins.
      * @param   speed: The baud to listen at.
      * @fixme   Long is excessive
+     * @todo    what to do about optional stuff.
      */
-    void begin(unsigned long speed);
+    void begin(unsigned long speed) { begin(speed, 0); }
+    void begin(unsigned long speed, uint8_t);
     /**
      * @brief   Disables serial and releases pins.
      */
@@ -85,16 +88,32 @@ public:
      */
     virtual int available();
     /**
-     * @brief   Waits for transmission of outgoing serial data to complete.
-     *          This is not used for OTSoftSerial2 as all writes are synchronous.
-     */
-    virtual void flush() {};
-    /**
      * @brief   Check if serial port is ready for use.
      * @todo    Implement the time checks using this?
      */
     operator bool() { return true; }
     using Print::write; // write(str) and write(buf, size) from Print
+
+    /**************************************************************************
+     * ------------------------ Unimplemented ------------------------------- *
+     *************************************************************************/
+    /**
+     * @brief   Destuctor for OTSoftSerial.
+     * @note    Not implemented to reduce code size.
+     */
+    //    ~OTSoftSerial2() {};    // TODO Does this actually work?
+    /**
+     * @brief   Waits for transmission of outgoing serial data to complete.
+     * @note    This is not used for OTSoftSerial2 as all writes are synchronous.
+     */
+    virtual void flush() {}
+    /**
+     * @brief   Returns the number of elements in the Tx buffer.
+     * @retval  0 as no Tx buffer implemented.
+     * @note    This is not used for OTSoftSerial2 as all writes are synchronous.
+     */
+    int availableForWrite() { return 0; }  //
+
 };
 
 
