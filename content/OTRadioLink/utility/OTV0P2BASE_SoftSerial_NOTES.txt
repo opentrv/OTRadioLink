@@ -26,12 +26,13 @@
     - Return error.
     - Adjust constants to compensate.
 
-## Assumptions:
+## Assumptions & interface additions:
 1. Lowest clock speed is fast enough to accurately sample Rx line.
 2. We have time to service interrupts between bytes.
 3. Nothing will block too long between bytes.
     - May need to detect this case and retry.
+4. Added 'sendBreak()' as we need it for the RN2483.
     
-Notes:
+## Notes:
 - Basic read char and write functions work with FTDI. Still need to test with OTSIM900Link.
 - How to make this capture a stream??? (will it take too long to set up and tear down function?)
