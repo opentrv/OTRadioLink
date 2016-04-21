@@ -37,7 +37,7 @@ static const uint8_t OTSOFTSERIAL2_BUFFER_SIZE = 32;
 class OTSoftSerial2 : public Stream
 {
 protected:
-    static const uint16_t timeOut = 10000; // fed into loop...
+    static const uint16_t timeOut = 60000; // fed into loop...
 
     const uint8_t rxPin;
     const uint8_t txPin;

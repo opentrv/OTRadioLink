@@ -31,3 +31,7 @@
 2. We have time to service interrupts between bytes.
 3. Nothing will block too long between bytes.
     - May need to detect this case and retry.
+    
+Notes:
+- Basic read char and write functions work with FTDI. Still need to test with OTSIM900Link.
+- How to make this capture a stream??? (will it take too long to set up and tear down function?)
