@@ -126,7 +126,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 // IF DEFINED: use active-low LEARN button(s).  Needs ENABLE_SINGLETON_SCHEDULE.  ***
 #undef ENABLE_LEARN_BUTTON // OPTIONAL ON V0.09 PCB1  UI_Minimal.cpp:1180:32: error: 'handleLEARN' was not declared in this scope
 #undef ENABLE_SETTABLE_TARGET_TEMPERATURES
-#endif // CONFIG_REV10_BUSSHELTER
+#endif // CONFIG_REV10_STRIPBOARD
 
 #ifdef CONFIG_REV10_AS_GSM_RELAY_ONLY // REV10: stats relay.
 #define V0p2_REV 10
