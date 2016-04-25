@@ -332,22 +332,29 @@ uint8_t OTSIM900Link::read()
  * @brief    Enter blocking read. Fills buffer or times out after 100 ms
  * @param    data    data buffer to write to
  * @param    length    length of data buffer
- * @retval    number of characters received before time out
+ * @retval   number of characters received before time out
  */
 uint8_t OTSIM900Link::timedBlockingRead(char *data, uint8_t length)
-{;
-  // clear buffer, get time and init i to 0
-  memset(data, 0, length);
-  uint8_t i = 0;
+{
+    // clear buffer, get time and init i to 0
+    uint8_t counter = 0;
+    uint8_t len = length;
+    char *pdata = data;
+    memset(data, 0, length);
 
-  i = softSerial.read((uint8_t *)data, length);
+    while(len--) {
+        char c = softSerial.read();
+        if(c == -1) break;
+        *pdata++ = c;
+        counter++;
+    }
 
 #if 0 && defined(OTSIM900LINK_DEBUG)
   OTV0P2BASE::serialPrintAndFlush(F("\n--Buffer Length: "));
   OTV0P2BASE::serialPrintAndFlush(i);
   OTV0P2BASE::serialPrintlnAndFlush();
 #endif // OTSIM900LINK_DEBUG
-  return i;
+  return counter;
 }
 
 /**
@@ -400,7 +407,7 @@ void OTSIM900Link::print(char data)
  */
 void OTSIM900Link::print(const uint8_t value)
 {
-  softSerial.printNum(value);    // FIXME
+  softSerial.print(value);    // FIXME
 }
 
 void OTSIM900Link::print(const char *string)

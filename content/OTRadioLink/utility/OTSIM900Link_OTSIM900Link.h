@@ -29,7 +29,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
 #include <string.h>
 #include <stdint.h>
 
-//#define OTSIM900LINK_DEBUG
+#define OTSIM900LINK_DEBUG
 
 /**
  * @note    To use library:
@@ -100,8 +100,6 @@ enum SendState {
         START_GPRS,
         WAIT_FOR_UDP,
         RESTART_CONNECTION,
-//        WAIT_FOR_PROMPT,
-//        WAIT_FOR_SENDOK
     };
 
 
@@ -176,7 +174,7 @@ private:
   const uint8_t PWR_PIN;
   const uint8_t HARD_PWR_PIN;
   //SoftwareSerial softSerial;
-  OTV0P2BASE::OTSoftSerial softSerial;
+  OTV0P2BASE::OTSoftSerial2 softSerial;
 
   // variables
   bool bAvailable;
