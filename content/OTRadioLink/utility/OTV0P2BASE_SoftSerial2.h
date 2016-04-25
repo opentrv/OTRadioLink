@@ -16,6 +16,8 @@ under the Licence.
 Author(s) / Copyright (s): Deniz Erbilgin 2016
 */
 
+// NOTE!!! Implementation details are in OTV0P2BASE_SoftSerial_NOTES.txt!!!
+
 #ifndef CONTENT_OTRADIOLINK_UTILITY_OTV0P2BASE_SOFTSERIAL2_H_
 #define CONTENT_OTRADIOLINK_UTILITY_OTV0P2BASE_SOFTSERIAL2_H_
 
