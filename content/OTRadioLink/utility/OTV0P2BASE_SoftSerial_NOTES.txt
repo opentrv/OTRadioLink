@@ -1,6 +1,6 @@
 # OTSoftSerial Implementation Notes
 ## Todo:
-- [ ] Rewrite to use stream interface Arduino libs (arduino-1.6.7/hardware/arduino/avr/cores/arduino/Stream.h)
+- [x] Rewrite to use stream interface Arduino libs (arduino-1.6.7/hardware/arduino/avr/cores/arduino/Stream.h)
 - [ ] Move read into interrupt (although still blocking).
 - [ ] Make non-blocking.
 - [ ] Template the class to speed it up.

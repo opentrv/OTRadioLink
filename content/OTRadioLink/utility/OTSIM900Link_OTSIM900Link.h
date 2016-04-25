@@ -180,7 +180,7 @@ private:
   const uint8_t HARD_PWR_PIN;
   const uint8_t PWR_PIN;
   //SoftwareSerial softSerial;
-  OTV0P2BASE::OTSoftSerial softSerial;
+  OTV0P2BASE::OTSoftSerial2 softSerial;
 
   // variables
   bool bAvailable;
