@@ -166,8 +166,13 @@ void OTSIM900Link::poll()
         OTV0P2BASE::serialPrintlnAndFlush("*START_GPRS");
         // Start GPRS context.
         // TODO: Add retries, Option to shut GPRS here (probably needs a new state)
-        if(!startGPRS()) state = IDLE;
+        if(!startGPRS()) state = OPEN_UDP;
 //        else panic(); // If startGPRS() ever returns an error here then something has probably gone very wrong
+        break;
+    case OPEN_UDP:
+        isOpenUDP();
+        delay(10000);
+        if(openUDP()) state = IDLE;
         break;
     case IDLE:
         // Waiting for message.
@@ -241,12 +246,21 @@ bool OTSIM900Link::openUDP()
     print(config->UDP_Port);
     print('\"');
     print(AT_END);
-
     // Implement check here
     timedBlockingRead(data, sizeof(data));
+
+    OTV0P2BASE::serialPrintAndFlush(data);
+    OTV0P2BASE::serialPrintlnAndFlush();
+
     // response stuff
+    const char *datacut;
     uint8_t dataCutLength = 0;
-    getResponse(dataCutLength, data, sizeof(data), 0x0A);
+    datacut = getResponse(dataCutLength, data, sizeof(data), 0x0A);
+
+    OTV0P2BASE::serialPrintAndFlush(datacut);
+    OTV0P2BASE::serialPrintlnAndFlush();
+
+    if(datacut[0] == 'E') return false;
 
     return true;
 }
@@ -634,7 +648,7 @@ uint8_t OTSIM900Link::isOpenUDP()
     OTV0P2BASE::serialPrintAndFlush("*");
     OTV0P2BASE::serialPrintlnAndFlush(dataCut);
 #endif // OTSIM900LINK_DEBUG
-    if (*dataCut == 'C') return 1; // expected string is 'CONNECT OK'. no other possible string begins with R
+    if (*dataCut == 'C') return 1; // expected string is 'CONNECT OK'. no other possible string begins with C
     else if (*dataCut == 'P') return 2;
     else return false;
 }

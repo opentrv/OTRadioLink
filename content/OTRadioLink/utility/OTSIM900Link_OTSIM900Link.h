@@ -103,6 +103,7 @@ enum OTSIM900LinkState {
         WAIT_FOR_REGISTRATION,
         SET_APN,
         START_GPRS,
+        OPEN_UDP,
         IDLE,
         WAIT_FOR_UDP,
         SENDING,
