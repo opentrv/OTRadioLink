@@ -99,7 +99,7 @@ typedef struct OTSIM900LinkConfig {
 
 enum OTSIM900LinkState {
         GET_STATE,
-        SIM900_FOUND,
+        CHECK_PIN,
         WAIT_FOR_REGISTRATION,
         SET_APN,
         START_GPRS,

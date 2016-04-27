@@ -139,13 +139,13 @@ void OTSIM900Link::poll()
         txMsgLen = 0;
         txMessageQueue = 0;
         if(!getInitState()) {
-            state = SIM900_FOUND;
+            state = CHECK_PIN;
             powerOn();
         } // else panic(); TODO!!! how are we going to panic?
         break;
-    case SIM900_FOUND:
+    case CHECK_PIN:
 #ifdef OTSIM900LINK_DEBUG
-        OTV0P2BASE::serialPrintlnAndFlush("*SIM900_FOUND");
+        OTV0P2BASE::serialPrintlnAndFlush("*CHECK_PIN");
 #endif // OTSIM900LINK_DEBUG
 
         // Set pin if required.
@@ -804,17 +804,12 @@ uint8_t OTSIM900Link::getInitState()
     char data[min(10, MAX_SIM900_RESPONSE_CHARS)];    // max expected response
     memset(data, 0 , sizeof(data));
 
-    delay(1000); // To allow for garbage sent on startup
-
 #ifdef OTSIM900LINK_DEBUG
     OTV0P2BASE::serialPrintlnAndFlush("-Module?");
 #endif // OTSIM900LINK_DEBUG
 
     print(AT_START);
     print(AT_END);
-
-    print(AT_START);
-    print(AT_END);    // FIXME this is getting ugly
 
     if (timedBlockingRead(data, sizeof(data)) == 0) { // No response. Try toggling power.
 #ifdef OTSIM900LINK_DEBUG
@@ -872,22 +867,11 @@ void OTSIM900Link::getSignalStrength()
 }
 
 /**
- * @brief    This will be called in interrupt while waiting for send prompt
- * @todo    Must do nothing if not in WAIT_FOR_PROMPT state
- *             in WAIT_FOR_PROMPT:
- *             - trigger if pin low
- *             - disable interrupts (where?)
- *             - set flag
- *             - enable interrupts
- *     @retval    returns true on successful exit
+ * @brief   placeholder
+ * @retval  returns true on successful exit
  */
 bool OTSIM900Link::handleInterruptSimple()
 {
-//    if (state == WAIT_FOR_PROMPT) {
-//        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-//            if(read() == '>') FLAG GOES HERE; // '>' is prompt
-//        }
-//    }
     return true;
 }
 
