@@ -130,7 +130,9 @@ void OTSIM900Link::poll()
 {
     switch (state) {
     case GET_STATE:
+#ifdef OTSIM900LINK_DEBUG
         OTV0P2BASE::serialPrintlnAndFlush("*GET_STATE");
+#endif // OTSIM900LINK_DEBUG
         // Check SIM900 is present and can be talked to.
         // Panics on failure.
         memset(txQueue, 0, sizeof(txQueue));
@@ -144,34 +146,45 @@ void OTSIM900Link::poll()
 //        else panic();
         break;
     case SIM900_FOUND:
+#ifdef OTSIM900LINK_DEBUG
         OTV0P2BASE::serialPrintlnAndFlush("*SIM900_FOUND");
+#endif // OTSIM900LINK_DEBUG
+
         // Set pin if required.
         // Panics on failure to avoid locking SIM.
         if(checkPIN()) state = WAIT_FOR_REGISTRATION;
-        else if(!setPIN()) /*panic();*/{} // TODOmake sure setPin returns true or false
+        else if(!setPIN()) /*panic();*/{} // TODO make sure setPin returns true or false
         break;
     case WAIT_FOR_REGISTRATION:
+#ifdef OTSIM900LINK_DEBUG
         OTV0P2BASE::serialPrintlnAndFlush("*WAIT_FOR_REG");
+#endif // OTSIM900LINK_DEBUG
         // Wait for registration to GSM network.
         // Stuck in this state until success.
         if(isRegistered()) state = SET_APN;
         break;
     case SET_APN:
+#ifdef OTSIM900LINK_DEBUG
         OTV0P2BASE::serialPrintlnAndFlush("*SET_APN");
+#endif // OTSIM900LINK_DEBUG
         // Attempt to set the APN.
         // Stuck in this state until success.
         if(!setAPN()) state = START_GPRS;
         break;
     case START_GPRS:
+#ifdef OTSIM900LINK_DEBUG
         OTV0P2BASE::serialPrintlnAndFlush("*START_GPRS");
+#endif // OTSIM900LINK_DEBUG
         // Start GPRS context.
         // TODO: Add retries, Option to shut GPRS here (probably needs a new state)
-        if(!startGPRS()) state = OPEN_UDP;
+        if(!startGPRS()) state = GET_IP;
 //        else panic(); // If startGPRS() ever returns an error here then something has probably gone very wrong
         break;
+    case GET_IP:
+        if(getIP()) state = OPEN_UDP;
+        break;
     case OPEN_UDP:
-        isOpenUDP();
-        delay(10000);
+//        isOpenUDP();
         if(openUDP()) state = IDLE;
         break;
     case IDLE:
@@ -194,7 +207,9 @@ void OTSIM900Link::poll()
 //
 //        break;
     case WAIT_FOR_UDP:
+#ifdef OTSIM900LINK_DEBUG
         OTV0P2BASE::serialPrintlnAndFlush("*WAIT_FOR_UDP");
+#endif OTSIM900LINK_DEBUG
         // Start a UDP context and send when ready
         // If GPRS not active, start it.
         // Go to RESTART_CONNECTION on fail
@@ -208,7 +223,9 @@ void OTSIM900Link::poll()
     }
         break;
     case SENDING:
+#ifdef OTSIM900LINK_DEBUG
         OTV0P2BASE::serialPrintlnAndFlush("*SENDING");
+#endif OTSIM900LINK_DEBUG
         // Attempt to send a message
         // Once done, decrement number of messages in queue and return to IDLE
         if (txMessageQueue > 0) {
@@ -249,16 +266,15 @@ bool OTSIM900Link::openUDP()
     // Implement check here
     timedBlockingRead(data, sizeof(data));
 
-    OTV0P2BASE::serialPrintAndFlush(data);
-    OTV0P2BASE::serialPrintlnAndFlush();
-
     // response stuff
     const char *datacut;
     uint8_t dataCutLength = 0;
     datacut = getResponse(dataCutLength, data, sizeof(data), 0x0A);
 
+#ifdef OTSIM900LINK_DEBUG
     OTV0P2BASE::serialPrintAndFlush(datacut);
     OTV0P2BASE::serialPrintlnAndFlush();
+#endif // OTSIM900LINK_DEBUG
 
     if(datacut[0] == 'E') return false;
 
@@ -557,7 +573,6 @@ uint8_t OTSIM900Link::startGPRS()
   print(AT_END);
   timedBlockingRead(data, sizeof(data));
 
-  OTV0P2BASE::serialPrintAndFlush(data);
   // response stuff
   const char *dataCut;
   uint8_t dataCutLength = 0;
@@ -608,8 +623,10 @@ uint8_t OTSIM900Link::getIP()
   print(AT_GET_IP);
   print(AT_END);
   timedBlockingRead(data, sizeof(data));
-  OTV0P2BASE::serialPrintlnAndFlush(data);
 
+#ifdef OTSIM900LINK_DEBUG
+  OTV0P2BASE::serialPrintlnAndFlush(data);
+#endif // OTSIM900LINK_DEBUG
   // response stuff
   const char *dataCut;
   uint8_t dataCutLength = 0;
@@ -633,10 +650,6 @@ uint8_t OTSIM900Link::isOpenUDP()
     print(AT_STATUS);
     print(AT_END);
     timedBlockingRead(data, sizeof(data));
-
-#ifdef OTSIM900LINK_DEBUG
-  OTV0P2BASE::serialPrintAndFlush(data);
-#endif // OTSIM900LINK_DEBUG
 
     // response stuff
     const char *dataCut;

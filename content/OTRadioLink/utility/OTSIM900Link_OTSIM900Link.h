@@ -31,7 +31,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015-2016
 
 // If DEFINED: Prints debug information to serial.
 //             !!! WARNING! THIS WILL CAUSE BLOCKING OF OVER 300 MS!!!
-#define OTSIM900LINK_DEBUG
+//#define OTSIM900LINK_DEBUG
 
 /**
  * @note    To use library:
@@ -103,6 +103,7 @@ enum OTSIM900LinkState {
         WAIT_FOR_REGISTRATION,
         SET_APN,
         START_GPRS,
+        GET_IP,
         OPEN_UDP,
         IDLE,
         WAIT_FOR_UDP,

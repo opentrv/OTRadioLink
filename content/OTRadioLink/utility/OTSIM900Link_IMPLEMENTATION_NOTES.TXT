@@ -28,3 +28,4 @@ Other notes:
 - To edit setSim900Baud.ino:
     - set initialBaud to current SIM900 baud
     - set targetBaud to the baud you want the SIM900 to be set to.
+- For some reason it needs getIP() (AT+CIFSR) to be called after startGPRS() in the state machine version.
