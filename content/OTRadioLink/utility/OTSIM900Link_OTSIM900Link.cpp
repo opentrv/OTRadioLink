@@ -140,10 +140,8 @@ void OTSIM900Link::poll()
         txMessageQueue = 0;
         if(!getInitState()) {
             state = SIM900_FOUND;
-            delay(5000); // TODO get rid of this line
             powerOn();
-        }
-//        else panic();
+        } // else panic(); TODO!!! how are we going to panic?
         break;
     case SIM900_FOUND:
 #ifdef OTSIM900LINK_DEBUG
@@ -794,6 +792,12 @@ const char *OTSIM900Link::getResponse(uint8_t &newLength, const char *data, uint
  */
 uint8_t OTSIM900Link::getInitState()
 {
+    // Check for response.
+    //    - no response: toggle power
+    // Check for expected response
+    //    - unexpected response: fail
+    //    - expected response: success
+
     // Test if available and set flags
     bAvailable = false;
     bPowered = false;
@@ -805,40 +809,39 @@ uint8_t OTSIM900Link::getInitState()
 #ifdef OTSIM900LINK_DEBUG
     OTV0P2BASE::serialPrintlnAndFlush("-Module?");
 #endif // OTSIM900LINK_DEBUG
+
     print(AT_START);
     print(AT_END);
 
     print(AT_START);
     print(AT_END);    // FIXME this is getting ugly
-    if (timedBlockingRead(data, sizeof(data)) == 0) { // state 1 or 2
 
+    if (timedBlockingRead(data, sizeof(data)) == 0) { // No response. Try toggling power.
 #ifdef OTSIM900LINK_DEBUG
     OTV0P2BASE::serialPrintlnAndFlush("-Force On");
 #endif // OTSIM900LINK_DEBUG
-
         powerToggle();
         memset(data, 0, sizeof(data));
         //flushUntil(0x0A);
         print(AT_START);
         print(AT_END);
-        if (timedBlockingRead(data, sizeof(data)) == 0) { // state 1
-
+        if (timedBlockingRead(data, sizeof(data)) == 0) { // Probably no module. Throw error.
 #ifdef OTSIM900LINK_DEBUG
     OTV0P2BASE::serialPrintlnAndFlush("-Failed");
 #endif // OTSIM900LINK_DEBUG
-
             bPowered = false;
             return -1;
         }
-    } else if( data[0] == 'A' ) { // state 3 or 4
+    }
+    if( data[0] == 'A' ) { // Got response. Test if it is the expected one.
 #ifdef OTSIM900LINK_DEBUG
     OTV0P2BASE::serialPrintlnAndFlush("-Success");
 #endif // OTSIM900LINK_DEBUG
         bAvailable = true;
         bPowered = true;
         powerOff();
-        return -1;    // state 3
-    } else {
+        return 0;    // Module found.
+    } else {  // Unexpected response. Maybe incorrect module. Exit with error.
 #ifdef OTSIM900LINK_DEBUG
     OTV0P2BASE::serialPrintAndFlush("- Bad Response: ");
     OTV0P2BASE::serialPrintlnAndFlush(data);
@@ -847,7 +850,6 @@ uint8_t OTSIM900Link::getInitState()
         bPowered = false;
         return -1;    // state 4
     }
-    return 0;
 }
 
 /**
