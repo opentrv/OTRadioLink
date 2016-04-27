@@ -213,11 +213,9 @@ void OTSIM900Link::poll()
         // Go to RESTART_CONNECTION on fail
     {
         uint8_t udpState = isOpenUDP();
-        delay(2000);
-        state = SENDING;
-//        if(udpState == 1) state = SENDING;
+        if(udpState == 1) state = SENDING;
 //        else if (udpState == 0) state = START_GPRS;
-//        else if (udpState == 2) state = GET_STATE;
+        else if (udpState == 2) state = GET_STATE;
     }
         break;
     case SENDING:
@@ -319,7 +317,6 @@ bool OTSIM900Link::sendUDP(const char *frame, uint8_t length)
     if (flushUntil('>')) {
         // TODO this bit will remain in this
         write(frame, length);
-//        delay(200);
         OTV0P2BASE::serialPrintAndFlush("*success");
         return true;    // add check here
     } else {
@@ -637,9 +634,11 @@ uint8_t OTSIM900Link::getIP()
 }
 
 /**
- * @brief    check if UDP open
+ * @brief   check if UDP open
  * @todo    implement function
- * @retval    true if open
+ * @retval  0 if GPRS closed.
+ * @retval  1 if UDP socket open.
+ * @retval  2 if in dead end state.
  */
 uint8_t OTSIM900Link::isOpenUDP()
 {
