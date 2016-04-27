@@ -42,7 +42,6 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015-2016
  *             - pass pointer to radiolink structure to OTSIM900Link::configure()
  *             - begin starts radio and sets up PGP instance, before returning to GPRS off mode
  *             - queueToSend starts GPRS, opens UDP, sends message then deactivates GPRS. Process takes 5-10 seconds
- *             - poll goes in interrupt and sets boolean when message sent(?) //FIXME not yet implemented
  */
 
 namespace OTSIM900Link
@@ -97,6 +96,9 @@ typedef struct OTSIM900LinkConfig {
     }
 } OTSIM900LinkConfig_t;
 
+/**
+ * @brief   Enum containing states of SIM900.
+ */
 enum OTSIM900LinkState {
         GET_STATE,
         CHECK_PIN,
@@ -117,7 +119,6 @@ enum OTSIM900LinkState {
  *             - Not sure how much power reduced
  *             - If not sending often may be more efficient to power up and wait for connect each time
  *             Make OTSIM900LinkBase to abstract serial interface and allow templating?
- *             Make read & write inline?
  */
 class OTSIM900Link : public OTRadioLink::OTRadioLink
 {
@@ -135,9 +136,7 @@ public:
     bool sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal, bool listenAfter = false);
     bool queueToSend(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal);
 
-    inline bool isAvailable(){ return bAvailable; };     // checks radio is there independant of power state
-  // set max frame bytes
-    //void setMaxTypicalFrameBytes(uint8_t maxTypicalFrameBytes);
+    inline bool isAvailable(){ return bAvailable; };     // checks radio is there independent of power state
     void poll();
 
     /**
@@ -195,7 +194,6 @@ private:
       // Power up/down
   /**
    * @brief    check if module has power
-   * @todo    is this needed?
    * @retval    true if module is powered up
    */
     inline bool isPowered() { return bPowered; };
@@ -219,12 +217,11 @@ private:
     }
 
     /**
-     * @brief    toggles power
-     * @todo     replace digitalWrite with fastDigitalWrite
-     *           Does this need to be inline?
-     *           5 second blocking is unacceptable
+     * @brief   toggles power
+     * @todo    5 second blocking is unacceptable
+     * @todo    move into source file.
      */
-    inline void powerToggle()
+    void powerToggle()
     {
         delay(500);
         fastDigitalWrite(PWR_PIN, HIGH);
@@ -273,9 +270,7 @@ private:
 
     bool printDiagnostics();
 
-    // TODO check this is in correct place
-    volatile OTSIM900LinkState state;
-    // TODO expand this so that it can take multiple messages
+    volatile OTSIM900LinkState state;     // TODO check this is in correct place
     uint8_t txQueue[64]; // 64 is maxTxMsgLen (from OTRadioLink)
     uint8_t txMsgLen;  // This stores the length of the tx message. will have to be redone for multiple txQueue
     static const uint8_t maxTxQueueLength = 1; // TODO Could this be moved out into OTRadioLink
@@ -298,7 +293,6 @@ public:    // define abstract methods here
 
 
 /* other methods (copied from OTRadioLink as is)
-virtual bool _doconfig() { return(true); }        // could this replace something?
 virtual void preinit(const void *preconfig) {}    // not really relevant?
 virtual void panicShutdown() { preinit(NULL); }    // see above
 */
