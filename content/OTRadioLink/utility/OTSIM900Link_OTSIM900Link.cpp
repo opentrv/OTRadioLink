@@ -122,7 +122,7 @@ bool OTSIM900Link::queueToSend(const uint8_t *buf, uint8_t buflen, int8_t , TXpo
  */
 void OTSIM900Link::poll()
 {
-    if(!bPowerLock) { // Check to see if powerup/down is in progress
+//    if(!bPowerLock) { // Check to see if powerup/down is in progress
         switch (state) {
         case GET_STATE:  // Check SIM900 is present and can be talked to.
             OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*GET_STATE")
@@ -189,14 +189,9 @@ void OTSIM900Link::poll()
         default:
             break;
         }
-    } else {
-        uint8_t time = OTV0P2BASE::getSecondsLT();
-        if (powerTimer < 59) {  // no overflow
-            if (time > powerTimer) bPowerLock = false;
-        } else {    // overflow
-            if (time < (powerTimer-60) ) bPowerLock = false; // fixme so wrong
-        }
-    }
+//    } else {
+//        TODO check time
+//    }
 }
 
 /**
@@ -743,8 +738,9 @@ void OTSIM900Link::powerToggle()
     delay(1000);  // This is the minimum value that worked reliably
     fastDigitalWrite(PWR_PIN, LOW);
     bPowered = !bPowered;
-    bPowerLock = true;
-    powerTimer = OTV0P2BASE::getSecondsLT() + 3;  // must wait at least 3 seconds for power toggle to finish.
+    delay(3000);
+//    bPowerLock = true;
+//    powerTimer = OTV0P2BASE::getSecondsLT() + 3;  // must wait at least 3 seconds for power toggle to finish.
 }
 
 
