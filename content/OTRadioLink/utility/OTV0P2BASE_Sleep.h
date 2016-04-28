@@ -252,6 +252,31 @@ static inline uint8_t getCPUCycleCount() { return((uint8_t)TCNT0L); }
 bool sleepUntilSubCycleTime(uint8_t sleepUntil);
 
 
+// Forced MCU reset/restart as near full cold-reset as possible.
+// Turns off interrupts, sets the watchdog, and busy-spins until the watchdog forces a reset.
+// The watchdog timeout is long enough that a watchdog-oblivious bootloader
+// can successfully drop through to the main code which can the stop a further reset
+// else the main line code may never be reached.
+// Inline to give the compiler full visibility for efficient use in ISR code (eg avoid full register save).
+//
+// Background on implementation and issues, see for example:
+//   http://forum.arduino.cc/index.php?topic=12874.0
+//   http://playground.arduino.cc/Main/ArduinoReset
+// This suggests that a timeout of > 2s may be OK with the optiboot loader:
+//   https://tushev.org/articles/arduino/5/arduino-and-watchdog-timer
+#if defined(__GNUC__)
+inline void forceReset() __attribute__ ((noreturn));
+#endif // defined(__GNUC__)
+#if defined(__AVR_ATmega328P__)
+inline void forceReset()
+    {
+    cli();
+    wdt_enable(WDTO_4S); // Must be long enough for bootloader to pass control to main code.
+    for( ; ; ) { }
+    }
+#endif // defined(__AVR_ATmega328P__)
+
+
 } // OTV0P2BASE
 
 

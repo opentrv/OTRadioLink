@@ -97,12 +97,20 @@ namespace OTRadioLink
             // typically there can be no other activity on the queue until _loadedBuf()
             // or use of the pointer is abandoned.
             // _loadedBuf() should not be called if this returns NULL.
-            virtual volatile uint8_t *_getRXBufForInbound() = 0;
+            virtual volatile uint8_t *_getRXBufForInbound() const
+#if defined(__GNUC__)
+                __attribute__((hot))
+#endif // defined(__GNUC__)
+                = 0;
 
             // Call after loading an RXed frame into the buffer indicated by _getRXBufForInbound().
             // The argument is the size of the frame loaded into the buffer to be queued.
             // It is possible to formally abandon an upload attempt by calling this with 0.
-            virtual void _loadedBuf(uint8_t frameLen) = 0;
+            virtual void _loadedBuf(uint8_t frameLen)
+#if defined(__GNUC__)
+               __attribute__((hot))
+#endif // defined(__GNUC__)
+               = 0;
 
 #if 0 // Defining the virtual destructor uses ~800+ bytes of Flash by forcing use of malloc()/free().
             // Ensure safe instance destruction when derived from.
@@ -122,7 +130,7 @@ namespace OTRadioLink
             virtual void getRXCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen) const
                 { queueRXMsgsMin = 0; maxRXMsgLen = 0; }
             virtual uint8_t isFull() const { return(true); }
-            virtual volatile uint8_t *_getRXBufForInbound() { return(NULL); }
+            virtual volatile uint8_t *_getRXBufForInbound() const { return(NULL); }
             virtual void _loadedBuf(uint8_t frameLen) { }
             virtual const volatile uint8_t *peekRXMsg() const { return(NULL); }
             virtual void removeRXMsg() { }
@@ -160,7 +168,7 @@ namespace OTRadioLink
             // typically there can be no other activity on the queue until _loadedBuf()
             // or use of the pointer is abandoned.
             // _loadedBuf() should not be called if this returns NULL.
-            virtual volatile uint8_t *_getRXBufForInbound()
+            virtual volatile uint8_t *_getRXBufForInbound() const
                 {
                 // If something already queued, so no space for a new message, return NULL.
                 if(0 != queuedRXedMessageCount) { return(NULL); }
@@ -277,7 +285,7 @@ namespace OTRadioLink
             // typically there can be no other activity on the queue until _loadedBuf()
             // or use of the pointer is abandoned.
             // _loadedBuf() should not be called if this returns NULL.
-            virtual volatile uint8_t *_getRXBufForInbound()
+            virtual volatile uint8_t *_getRXBufForInbound() const
                 {
                 // This ISR is kept as short/fast as possible.
                 if(_isFull()) { return(NULL); }

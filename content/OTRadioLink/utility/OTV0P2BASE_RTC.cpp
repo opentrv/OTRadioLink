@@ -17,7 +17,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 */
 
 /*
- Real-time clock support.
+ Real-time clock support AND RTC-connected watchdog/reset.
  */
 
 
@@ -25,9 +25,10 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 
 #include <Arduino.h>
 
-#include "OTV0P2BASE_RTC.h"
-
 #include "OTV0P2BASE_EEPROM.h"
+#include "OTV0P2BASE_Sleep.h"
+
+#include "OTV0P2BASE_RTC.h"
 
 
 namespace OTV0P2BASE
@@ -231,8 +232,8 @@ bool setHoursMinutesLT(const uint8_t hours, const uint8_t minutes)
   return(true); // Assume set and persisted OK.
   }
 
-// Set seconds [0,59].
-// Not persisted.
+// Set nominal seconds [0,59].
+// Not persisted, may be offset from real time.
 // Will ignore attempts to set bad values and return false in that case.
 // Will drop the least significant bit if counting in 2s increments.
 // Returns true if all OK and the time has been set.
@@ -247,6 +248,23 @@ bool setSeconds(const uint8_t seconds)
 #endif
   return(true); // Assume set OK.
   }
+
+
+
+
+// RTC-based watchdog, if enabled with enableRTCWatchdog(true),
+// will force a reset if the resetRTCWatchDog() is not called
+// between one RTC tick interrupt and the next.
+//
+// If true then the RTC-based watchdog mechanism is enabled.
+static volatile bool _RTCWatchdogEnabled;
+// If true, then enable the RTC-based watchdog; disable otherwise.
+void enableRTCWatchdog(const bool enable) { _RTCWatchdogEnabled = enable; }
+// If true on following tick, watchdog reset is triggered.
+static volatile bool _RTCWatchdogResetNotCalled;
+// Must be called between each 'tick' of the RTC clock if enabled, else system will reset.
+void resetRTCWatchDog() { _RTCWatchdogResetNotCalled = false; }
+
 
 
 // Hook into TIMER2 overflow interrupt to drive RTC and provide slow wake-up tick.
@@ -273,6 +291,12 @@ ISR(TIMER2_OVF_vect)
     _minutesSinceMidnightLT = mTemp;
     }
   _secondsLT = sTemp;
+  // Deal with watchdog, if enabled.
+  if(_RTCWatchdogEnabled)
+    {
+    if(_RTCWatchdogResetNotCalled) { forceReset(); }
+    _RTCWatchdogResetNotCalled = true;
+    }
   }
 
 

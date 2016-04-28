@@ -17,7 +17,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 */
 
 /*
- Real-time clock support.
+ Real-time clock support AND RTC-connected watchdog/reset.
  */
 
 #ifndef OTV0P2BASE_RTC_H
@@ -118,8 +118,8 @@ uint_least8_t getNextHourLT();
 // Will persist time to survive reset as necessary.
 bool setHoursMinutesLT(uint8_t hours, uint8_t minutes);
 
-// Set seconds [0,59].
-// Not persisted.
+// Set nominal seconds [0,59].
+// Not persisted, may be offset from real time.
 // Will ignore attempts to set bad values and return false in that case.
 // Will drop the least significant bit if counting in 2s increments.
 // Returns true if all OK and the time has been set.
@@ -133,6 +133,19 @@ static const uint_fast8_t MAIN_TICK_S = 2;
 #else
 static const uint_fast8_t MAIN_TICK_S = 1;
 #endif
+
+
+// RTC-based watchdog, if enabled with enableRTCWatchdog(true),
+// will force a reset if the resetRTCWatchDog() is not called
+// between one RTC tick interrupt and the next.
+//
+// One possible usage: as start of each major tick in main loop,
+// call resetRTCWatchDog() immediately followed by enableRTCWatchdog(true).
+//
+// If true, then enable the RTC-based watchdog; disable otherwise.
+void enableRTCWatchdog(bool enable);
+// Must be called between each 'tick' of the RTC clock if enabled, else system will reset.
+void resetRTCWatchDog();
 
 
 }
