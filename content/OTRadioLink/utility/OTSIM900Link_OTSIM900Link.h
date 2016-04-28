@@ -186,6 +186,7 @@ private:
   // variables
   bool bAvailable;
   bool bPowered;
+  bool bPowerLock;
   volatile uint8_t txMessageQueue; // Number of frames currently queued for TX.
   const OTSIM900LinkConfig_t *config;
   static const uint16_t baud = 2400; // max reliable baud
@@ -286,5 +287,23 @@ virtual void panicShutdown() { preinit(NULL); }    // see above
 };
 
 }    // namespace OTSIM900Link
+
+#ifndef OTSIM900LINK_DEBUG
+#define OTSIM900LINK_DEBUG_SERIAL_PRINT(s) // Do nothing.
+#define OTSIM900LINK_DEBUG_SERIAL_PRINTFMT(s, format) // Do nothing.
+#define OTSIM900LINK_DEBUG_SERIAL_PRINT_FLASHSTRING(fs) // Do nothing.
+#define OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING(fs) // Do nothing.
+#define OTSIM900LINK_DEBUG_SERIAL_PRINTLN() // Do nothing.
+#else
+// Send simple string or numeric to serial port and wait for it to have been sent.
+// Make sure that Serial.begin() has been invoked, etc.
+#define OTSIM900LINK_DEBUG_SERIAL_PRINT(s) { OTV0P2BASE::serialPrintAndFlush(s); }
+#define OTSIM900LINK_DEBUG_SERIAL_PRINTFMT(s, fmt) { OTV0P2BASE::serialPrintAndFlush((s), (fmt)); }
+#define OTSIM900LINK_DEBUG_SERIAL_PRINT_FLASHSTRING(fs) { OTV0P2BASE::serialPrintAndFlush(F(fs)); }
+#define OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING(fs) { OTV0P2BASE::serialPrintlnAndFlush(F(fs)); }
+#define OTSIM900LINK_DEBUG_SERIAL_PRINTLN(s) { OTV0P2BASE::serialPrintlnAndFlush(s); }
+#endif // OTSIM900LINK_DEBUG
+
+
 
 #endif /* OTSIM900LINK_H_ */
