@@ -31,7 +31,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015-2016
 
 // If DEFINED: Prints debug information to serial.
 //             !!! WARNING! THIS WILL CAUSE BLOCKING OF OVER 300 MS!!!
-#define OTSIM900LINK_DEBUG
+//#define OTSIM900LINK_DEBUG
 
 /**
  * @note    To use library:
@@ -294,7 +294,7 @@ virtual void panicShutdown() { preinit(NULL); }    // see above
 #define OTSIM900LINK_DEBUG_SERIAL_PRINTFMT(s, format) // Do nothing.
 #define OTSIM900LINK_DEBUG_SERIAL_PRINT_FLASHSTRING(fs) // Do nothing.
 #define OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING(fs) // Do nothing.
-#define OTSIM900LINK_DEBUG_SERIAL_PRINTLN() // Do nothing.
+#define OTSIM900LINK_DEBUG_SERIAL_PRINTLN(s) // Do nothing.
 #else
 // Send simple string or numeric to serial port and wait for it to have been sent.
 // Make sure that Serial.begin() has been invoked, etc.

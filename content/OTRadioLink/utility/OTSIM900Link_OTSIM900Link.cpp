@@ -145,7 +145,7 @@ void OTSIM900Link::poll()
             break;
         case SET_APN:  // Attempt to set the APN. Stuck in this state until success.
             OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*SET_APN")
-            if(!setAPN()) state = START_GPRS;
+            if(!setAPN()) state = START_GPRS; // TODO: Watchdog resets here
             break;
         case START_GPRS:  // Start GPRS context.
             OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*START_GPRS")
@@ -156,16 +156,15 @@ void OTSIM900Link::poll()
             // For some reason, AT+CIFSR must done to be able to do any networking.
             // It is the way recommended in SIM900_Appication_Note.pdf section 3: Single Connections.
             // This was not necessary when opening and shutting GPRS as in OTSIM900Link v1.0
+            OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*GET IP");
             if(getIP()) state = OPEN_UDP;
             break;
         case OPEN_UDP:  // Open a udp socket.
+            OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*OPEN UDP");
             if(openUDP()) state = IDLE;
             break;
         case IDLE:  // Waiting for outbound message.
             if (txMessageQueue > 0) {    // If message is queued, go to WAIT_FOR_UDP
-#ifdef OTSIM900LINK_DEBUG
-                getSignalStrength(); // Helps with debugging but otherwise useless;
-#endif // OTSIM900LINK_DEBUG
                 state = WAIT_FOR_UDP; // TODO-748
             }
             break;
@@ -204,7 +203,6 @@ bool OTSIM900Link::openUDP()
 {
     char data[MAX_SIM900_RESPONSE_CHARS];
     memset(data, 0, sizeof(data));
-    OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Open UDP");
     print(AT_START);
     print(AT_START_UDP);
     print("=\"UDP\",");
@@ -420,7 +418,6 @@ bool OTSIM900Link::isRegistered()
 //  Check the GSM registration via AT commands ( "AT+CREG?" returns "+CREG:x,1" or "+CREG:x,5"; where "x" is 0, 1 or 2).
 //  Check the GPRS registration via AT commands ("AT+CGATT?" returns "+CGATT:1" and "AT+CGREG?" returns "+CGREG:x,1" or "+CGREG:x,5"; where "x" is 0, 1 or 2). 
     char data[MAX_SIM900_RESPONSE_CHARS];
-    OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("-WF Reg")
     print(AT_START);
     print(AT_REGISTRATION);
     print(AT_QUERY);
@@ -442,7 +439,6 @@ bool OTSIM900Link::isRegistered()
 uint8_t OTSIM900Link::setAPN()
 {
     char data[MAX_SIM900_RESPONSE_CHARS]; // FIXME: was 96: that's a LOT of stack!
-    OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("-APN")
     print(AT_START);
     print(AT_SET_APN);
     print(AT_SET);
@@ -467,7 +463,6 @@ uint8_t OTSIM900Link::setAPN()
 uint8_t OTSIM900Link::startGPRS()
 {
     char data[min(16, MAX_SIM900_RESPONSE_CHARS)];
-    OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("-GPRS")
     print(AT_START);
     print(AT_START_GPRS);
     print(AT_END);
@@ -477,7 +472,7 @@ uint8_t OTSIM900Link::startGPRS()
     const char *dataCut;
     uint8_t dataCutLength = 0;
     dataCut = getResponse(dataCutLength, data, sizeof(data), 0x0A);    // unreliable
-    OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*")
+    OTSIM900LINK_DEBUG_SERIAL_PRINT_FLASHSTRING("*")
     OTSIM900LINK_DEBUG_SERIAL_PRINT(dataCutLength)
     OTSIM900LINK_DEBUG_SERIAL_PRINT_FLASHSTRING("*")
     OTSIM900LINK_DEBUG_SERIAL_PRINTLN(dataCut)
@@ -708,7 +703,6 @@ uint8_t OTSIM900Link::getInitState()
  */
 void OTSIM900Link::getSignalStrength()
 {
-    OTSIM900LINK_DEBUG_SERIAL_PRINT_FLASHSTRING("-RSSI: ")
     char data[min(32, MAX_SIM900_RESPONSE_CHARS)];
     print(AT_START);
     print(AT_SIGNAL);
