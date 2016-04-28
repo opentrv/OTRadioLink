@@ -216,20 +216,7 @@ private:
       if(isPowered()) powerToggle();
     }
 
-    /**
-     * @brief   toggles power
-     * @todo    5 second blocking is unacceptable
-     * @todo    move into source file.
-     */
-    void powerToggle()
-    {
-        delay(500);
-        fastDigitalWrite(PWR_PIN, HIGH);
-        delay(1000);
-        fastDigitalWrite(PWR_PIN, LOW);
-        bPowered = !bPowered;
-        delay(3000);
-    }
+    void powerToggle();
 
     // Serial functions
     uint8_t read();

@@ -216,9 +216,10 @@ void OTSIM900Link::poll()
 #ifdef OTSIM900LINK_DEBUG
         OTV0P2BASE::serialPrintlnAndFlush("*SENDING");
 #endif OTSIM900LINK_DEBUG
-        // Attempt to send a message
+        // Attempt to send a message.
+        // Check to make sure it is near the start of the subcycle to avoid overrunning.
         // Once done, decrement number of messages in queue and return to IDLE
-        if (txMessageQueue > 0) {
+        if ((txMessageQueue > 0) && (OTV0P2BASE::getSubCycleTime() < 63)) { // TODO! testing
             // TODO logic to check if send attempt successful
             sendRaw(txQueue, txMsgLen); /// @note can't use strlen with encrypted/binary packets
             if(!(--txMessageQueue)) state = IDLE;
@@ -823,6 +824,20 @@ bool OTSIM900Link::handleInterruptSimple()
 {
     return true;
 }
+
+/**
+ * @brief   toggles power
+ * @todo    Replace delays with get time calls
+ */
+void OTSIM900Link::powerToggle()
+{
+    fastDigitalWrite(PWR_PIN, HIGH);
+    delay(1000);  // This is the minimum value that worked reliably
+    fastDigitalWrite(PWR_PIN, LOW);
+    bPowered = !bPowered;
+    delay(3000);  // 3000 ms is a safe wait after powering module.
+}
+
 
 //const char OTSIM900Link::AT_[] = "";
 const char OTSIM900Link::AT_START[3] = "AT";
