@@ -36,6 +36,8 @@ OTSIM900Link::OTSIM900Link(uint8_t hardPwrPin, uint8_t pwrPin, uint8_t rxPin, ui
 {
   bAvailable = false;
   bPowered = false;
+  bPowerLock = false;
+  powerTimer = 0;
   config = NULL;
   state = IDLE;
   memset(txQueue, 0, sizeof(txQueue));
@@ -120,7 +122,7 @@ bool OTSIM900Link::queueToSend(const uint8_t *buf, uint8_t buflen, int8_t , TXpo
  */
 void OTSIM900Link::poll()
 {
-    if(true) { // Check to see if powerup/down is in progress
+    if(!bPowerLock) { // Check to see if powerup/down is in progress
         switch (state) {
         case GET_STATE:  // Check SIM900 is present and can be talked to.
             OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*GET_STATE")
@@ -186,6 +188,13 @@ void OTSIM900Link::poll()
             break;
         default:
             break;
+        }
+    } else {
+        uint8_t time = OTV0P2BASE::getSecondsLT();
+        if (powerTimer < 59) {  // no overflow
+            if (time > powerTimer) bPowerLock = false;
+        } else {    // overflow
+            if (time < (powerTimer-60) ) bPowerLock = false; // fixme so wrong
         }
     }
 }
@@ -675,16 +684,15 @@ uint8_t OTSIM900Link::getInitState()
         OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("-Force On")
         powerToggle();
         memset(data, 0, sizeof(data));
-        print(AT_START);  // Check for a response again.
-        print(AT_END);
         if (timedBlockingRead(data, sizeof(data)) == 0) { // Probably no module. Throw error.
             OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("-Failed")
             bPowered = false;
             return -1;
         }
     }
+
     // Got response. Test if it is the expected one. Power off to reset internal state.
-    if( data[0] == 'A' ) {  // Module found.
+    if( data[0] == 'A') {  // Module found.
         OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("-Success")
         bAvailable = true;
         bPowered = true;
@@ -727,8 +735,7 @@ bool OTSIM900Link::handleInterruptSimple()
 }
 
 /**
- * @brief   toggles power
- * @todo    Replace delays with get time calls
+ * @brief   toggles power and sets power lock.
  */
 void OTSIM900Link::powerToggle()
 {
@@ -736,7 +743,8 @@ void OTSIM900Link::powerToggle()
     delay(1000);  // This is the minimum value that worked reliably
     fastDigitalWrite(PWR_PIN, LOW);
     bPowered = !bPowered;
-    delay(3000);  // 3000 ms is a safe wait after powering module.
+    bPowerLock = true;
+    powerTimer = OTV0P2BASE::getSecondsLT() + 3;  // must wait at least 3 seconds for power toggle to finish.
 }
 
 
