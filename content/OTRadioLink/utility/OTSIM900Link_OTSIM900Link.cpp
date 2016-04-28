@@ -173,6 +173,9 @@ void OTSIM900Link::poll()
 //        else panic(); // If startGPRS() ever returns an error here then something has probably gone very wrong
         break;
     case GET_IP:
+        // For some reason, AT+CIFSR must done to be able to do any networking.
+        // It is the way recommended in SIM900_Appication_Note.pdf section 3: Single Connections.
+        // This was not necessary when opening and shutting GPRS as in OTSIM900Link v1.0
         if(getIP()) state = OPEN_UDP;
         break;
     case OPEN_UDP:
