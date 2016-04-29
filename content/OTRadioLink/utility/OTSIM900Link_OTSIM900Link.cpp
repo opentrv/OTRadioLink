@@ -212,13 +212,13 @@ void OTSIM900Link::poll()
                 } else if (txMessageQueue == 0) state = IDLE;
                 break;
             case PANIC:
-                OTV0P2BASE::serialPrintlnAndFlush(F("FAILED!"));
+                OTV0P2BASE::serialPrintlnAndFlush(F("SIM900_PANIC!"));
                 break;
             default:
                 break;
             }
         }
-    } else if (OTV0P2BASE::getSecondsLT() > powerTimer) {
+    } else if (OTV0P2BASE::getSecondsLT() > powerTimer) {  // Check if ready to stop waiting after power toggled.
         bPowerLock = false;
     }
 }
@@ -739,6 +739,7 @@ bool OTSIM900Link::handleInterruptSimple()
 
 /**
  * @brief   toggles power and sets power lock.
+ * @fixme   proper ovf testing not implemented so the SIM900 may not power on/off near the end of a 60 second cycle.
  */
 void OTSIM900Link::powerToggle()
 {
@@ -748,7 +749,7 @@ void OTSIM900Link::powerToggle()
     bPowered = !bPowered;
 //    delay(3000);
     bPowerLock = true;
-    powerTimer = min((OTV0P2BASE::getSecondsLT() + duration), 58);  // must wait at least 3 seconds for power toggle to finish.
+    powerTimer = min((OTV0P2BASE::getSecondsLT() + duration), 58);  // fixme!
 }
 
 
