@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Deniz Erbilgin 2015
+Author(s) / Copyright (s): Deniz Erbilgin 2015-2016
                            Damon Hart-Davis 2015
 */
 
@@ -29,6 +29,8 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
 #include <string.h>
 #include <stdint.h>
 
+// If DEFINED: Prints debug information to serial.
+//             !!! WARNING! THIS WILL CAUSE BLOCKING OF OVER 300 MS!!!
 //#define OTSIM900LINK_DEBUG
 
 /**
@@ -40,7 +42,6 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
  *             - pass pointer to radiolink structure to OTSIM900Link::configure()
  *             - begin starts radio and sets up PGP instance, before returning to GPRS off mode
  *             - queueToSend starts GPRS, opens UDP, sends message then deactivates GPRS. Process takes 5-10 seconds
- *             - poll goes in interrupt and sets boolean when message sent(?) //FIXME not yet implemented
  */
 
 namespace OTSIM900Link
@@ -95,13 +96,20 @@ typedef struct OTSIM900LinkConfig {
     }
 } OTSIM900LinkConfig_t;
 
-enum SendState {
-        IDLE,
+/**
+ * @brief   Enum containing states of SIM900.
+ */
+enum OTSIM900LinkState {
+        GET_STATE,
+        CHECK_PIN,
+        WAIT_FOR_REGISTRATION,
+        SET_APN,
         START_GPRS,
+        GET_IP,
+        OPEN_UDP,
+        IDLE,
         WAIT_FOR_UDP,
-        RESTART_CONNECTION,
-//        WAIT_FOR_PROMPT,
-//        WAIT_FOR_SENDOK
+        SENDING,
     };
 
 
@@ -111,7 +119,6 @@ enum SendState {
  *             - Not sure how much power reduced
  *             - If not sending often may be more efficient to power up and wait for connect each time
  *             Make OTSIM900LinkBase to abstract serial interface and allow templating?
- *             Make read & write inline?
  */
 class OTSIM900Link : public OTRadioLink::OTRadioLink
 {
@@ -129,9 +136,7 @@ public:
     bool sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal, bool listenAfter = false);
     bool queueToSend(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal);
 
-    inline bool isAvailable(){ return bAvailable; };     // checks radio is there independant of power state
-  // set max frame bytes
-    //void setMaxTypicalFrameBytes(uint8_t maxTypicalFrameBytes);
+    inline bool isAvailable(){ return bAvailable; };     // checks radio is there independent of power state
     void poll();
 
     /**
@@ -140,7 +145,7 @@ public:
      */
     bool handleInterruptSimple();
 
-#ifndef OTSIM900LINK_DEBUG
+#ifndef OTSIM900LINK_DEBUG // This is included to ease unit testing.
 private:
 #endif // OTSIM900LINK_DEBUG
 
@@ -148,39 +153,41 @@ private:
     // set AT commands here
     // These may not be supported by all sim modules so may need to move
     // to concrete implementation
-        static const char AT_START[3];
-        static const char AT_SIGNAL[5];
-      static const char AT_NETWORK[6];
-      static const char AT_REGISTRATION[6];
-      static const char AT_GPRS_REGISTRATION0[7];
-      static const char AT_GPRS_REGISTRATION[7];
-      static const char AT_SET_APN[6];
-      static const char AT_START_GPRS[7];
-      static const char AT_SHUT_GPRS[9];
-      static const char AT_GET_IP[7];
-      static const char AT_PIN[6];
-      static const char AT_STATUS[11];
-      static const char AT_START_UDP[10];
-      static const char AT_SEND_UDP[9];
-      static const char AT_CLOSE_UDP[10];
-      static const char AT_VERBOSE_ERRORS[6];
+    static const char AT_START[3];
+    static const char AT_SIGNAL[5];
+    static const char AT_NETWORK[6];
+    static const char AT_REGISTRATION[6];
+    static const char AT_GPRS_REGISTRATION0[7];
+    static const char AT_GPRS_REGISTRATION[7];
+    static const char AT_SET_APN[6];
+    static const char AT_START_GPRS[7];
+    static const char AT_SHUT_GPRS[9];
+    static const char AT_GET_IP[7];
+    static const char AT_PIN[6];
+    static const char AT_STATUS[11];
+    static const char AT_START_UDP[10];
+    static const char AT_SEND_UDP[9];
+    static const char AT_CLOSE_UDP[10];
+    static const char AT_VERBOSE_ERRORS[6];
 
-      static const char AT_GET_MODULE = 'I';
-      static const char AT_SET = '=';
-      static const char AT_QUERY = '?';
-        static const char AT_END = '\r';
+    static const char AT_GET_MODULE = 'I';
+    static const char AT_SET = '=';
+    static const char AT_QUERY = '?';
+    static const char AT_END = '\r';
 
     // Standard Responses
 
   // pins for software serial
-  const uint8_t PWR_PIN;
   const uint8_t HARD_PWR_PIN;
+  const uint8_t PWR_PIN;
   //SoftwareSerial softSerial;
-  OTV0P2BASE::OTSoftSerial softSerial;
+  OTV0P2BASE::OTSoftSerial2 softSerial;
 
   // variables
   bool bAvailable;
   bool bPowered;
+  bool bPowerLock;
+  uint8_t powerTimer;
   volatile uint8_t txMessageQueue; // Number of frames currently queued for TX.
   const OTSIM900LinkConfig_t *config;
   static const uint16_t baud = 2400; // max reliable baud
@@ -189,7 +196,6 @@ private:
       // Power up/down
   /**
    * @brief    check if module has power
-   * @todo    is this needed?
    * @retval    true if module is powered up
    */
     inline bool isPowered() { return bPowered; };
@@ -199,7 +205,7 @@ private:
      */
     inline void powerOn()
     {
-      digitalWrite(PWR_PIN, LOW);
+      fastDigitalWrite(PWR_PIN, LOW);
       if(!isPowered()) powerToggle();
     }
 
@@ -208,24 +214,11 @@ private:
      */
     inline void powerOff()
     {
-      digitalWrite(PWR_PIN, LOW);
+      fastDigitalWrite(PWR_PIN, LOW);
       if(isPowered()) powerToggle();
     }
 
-    /**
-     * @brief    toggles power
-     * @todo    replace digitalWrite with fastDigitalWrite
-     *             Does this need to be inline?
-     */
-    inline void powerToggle()
-    {
-        delay(500);
-        digitalWrite(PWR_PIN, HIGH);
-        delay(1000);
-        digitalWrite(PWR_PIN, LOW);
-        bPowered = !bPowered;
-        delay(3000);
-    }
+    void powerToggle();
 
     // Serial functions
     uint8_t read();
@@ -241,15 +234,15 @@ private:
     bool checkNetwork();
     bool isRegistered();
 
-    bool setAPN();
-    bool startGPRS();
-    bool shutGPRS();
+    uint8_t setAPN();
+    uint8_t startGPRS();
+    uint8_t shutGPRS();
     uint8_t getIP();
     uint8_t isOpenUDP();
     void getSignalStrength();
 
     void verbose(uint8_t level);
-    void setPIN();
+    uint8_t setPIN();
     bool checkPIN();
 
     bool flushUntil(uint8_t terminatingChar);
@@ -260,15 +253,13 @@ private:
     bool closeUDP();
     bool sendUDP(const char *frame, uint8_t length);
 
-    bool getInitState();
+    uint8_t getInitState();
 
     bool _doconfig();
 
     bool printDiagnostics();
 
-    // TODO check this is in correct place
-    volatile SendState state;
-    // TODO expand this so that it can take multiple messages
+    volatile OTSIM900LinkState state;     // TODO check this is in correct place
     uint8_t txQueue[64]; // 64 is maxTxMsgLen (from OTRadioLink)
     uint8_t txMsgLen;  // This stores the length of the tx message. will have to be redone for multiple txQueue
     static const uint8_t maxTxQueueLength = 1; // TODO Could this be moved out into OTRadioLink
@@ -291,12 +282,29 @@ public:    // define abstract methods here
 
 
 /* other methods (copied from OTRadioLink as is)
-virtual bool _doconfig() { return(true); }        // could this replace something?
 virtual void preinit(const void *preconfig) {}    // not really relevant?
 virtual void panicShutdown() { preinit(NULL); }    // see above
 */
 };
 
 }    // namespace OTSIM900Link
+
+#ifndef OTSIM900LINK_DEBUG
+#define OTSIM900LINK_DEBUG_SERIAL_PRINT(s) // Do nothing.
+#define OTSIM900LINK_DEBUG_SERIAL_PRINTFMT(s, format) // Do nothing.
+#define OTSIM900LINK_DEBUG_SERIAL_PRINT_FLASHSTRING(fs) // Do nothing.
+#define OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING(fs) // Do nothing.
+#define OTSIM900LINK_DEBUG_SERIAL_PRINTLN(s) // Do nothing.
+#else
+// Send simple string or numeric to serial port and wait for it to have been sent.
+// Make sure that Serial.begin() has been invoked, etc.
+#define OTSIM900LINK_DEBUG_SERIAL_PRINT(s) { OTV0P2BASE::serialPrintAndFlush(s); }
+#define OTSIM900LINK_DEBUG_SERIAL_PRINTFMT(s, fmt) { OTV0P2BASE::serialPrintAndFlush((s), (fmt)); }
+#define OTSIM900LINK_DEBUG_SERIAL_PRINT_FLASHSTRING(fs) { OTV0P2BASE::serialPrintAndFlush(F(fs)); }
+#define OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING(fs) { OTV0P2BASE::serialPrintlnAndFlush(F(fs)); }
+#define OTSIM900LINK_DEBUG_SERIAL_PRINTLN(s) { OTV0P2BASE::serialPrintlnAndFlush(s); }
+#endif // OTSIM900LINK_DEBUG
+
+
 
 #endif /* OTSIM900LINK_H_ */

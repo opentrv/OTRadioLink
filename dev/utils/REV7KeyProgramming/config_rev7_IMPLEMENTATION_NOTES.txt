@@ -1,0 +1,41 @@
+Program usage:
+- Can call directly from bash (ie no need for 'python3 '): ./config_rev7.py <serialno>
+- Input csv should not include 'K B ' in front of keys
+- Current fixed values (20160406):
+    - REV7 assigned to ttyUSB0
+    - REV11 assigned to ttyUSB1
+    - Input csv : "./keys.csv"    , Format: <serialNo>,<key>\n
+    - Output csv: "./rev7test.csv", Format: <serialNo>,<key>,<nodeID>\n
+- Will eventually add support for proper options (e.g. set serial devices, input and output files).
+    - Will use getopts module for this
+- Forces double write of key
+- Not verified as had trouble working out how to check properly:
+    - Comparison routine in place but forced to work.
+    - Having trouble reliably catching RXed messages on serial lines. Might be better with async serial io or longer timeouts?
+    - REV11 serial occasionally hangs, causing problems (I think this is due to REV11 UART going to sleep)
+- REQUIRES PYTHON 3.x
+
+PySerial:
+- Uses byte arrays but python 3 uses unicode by default. This means that:
+    - Strings must be 'encoded' before passing to it: mybytes = mystring.encode()
+    - Byte arrays received can be 'decoded' into strings: mystring = mybytes.decode()
+
+RPi.GPIO with relay module:
+- Connected LEDs light up a little at start because of floating pins
+- Facing terminal blocks: | normallyopen | common | normallyclosed | (Needs verification)
+- Our current setup:      |      A       |    B   |       NC       | (A and B are connections, NC not connected)
+- REV7 switched on when GPIO driven LOW
+- Connected to board pin 11 on my prototype (board pins are named according to header, BCM pins are named according to connection to chip)
+- GPIO.cleanup() to avoid error messages
+
+TODO:
+- Proper command line options when calling
+- Fix receiving serial from REV11 so that verification can be done automatically
+- Make more robust
+    - Check for exceptions
+    - Make sure inputs and received serial messages are in correct format
+- Unit tests?
+- Autodetect REV7s
+- Check if serial number/node id previously used?
+- Work out why I can't wake up the REV11 when its UART go to sleep
+- Uncomment bit that clears node association every time

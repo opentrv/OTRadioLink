@@ -31,6 +31,7 @@ namespace OTV0P2BASE
  * @class	OTSoftSerial
  * @brief	Blocking software serial that runs using no interrupts
  * 			Defaults to 2400 baud as this is what it runs at most reliably
+ * 			See OTV0P2BASE_SoftSerial_NOTES.txt for more details
  */
 class OTSoftSerial
 {
@@ -52,7 +53,7 @@ public:
 private:
 	const uint8_t rxPin;
 	const uint8_t txPin;
-	static const uint16_t timeOut = 8000;	// length of timeout in somethings TODO work this out
+	static const uint16_t timeOut = 30000;	// length of timeout in somethings TODO work this out
 	// Used to tune delay cycle times
 		// Compensates for time setting up registries in delay func
 	static const uint8_t readTuning = 22;	// replace this with read and write versions?
