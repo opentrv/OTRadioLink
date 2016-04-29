@@ -123,106 +123,103 @@ bool OTSIM900Link::queueToSend(const uint8_t *buf, uint8_t buflen, int8_t , TXpo
  */
 void OTSIM900Link::poll()
 {
-    if (OTV0P2BASE::getSubCycleTime() < 50) {
-        switch (state) {
-        case GET_STATE:  // Check SIM900 is present and can be talked to.
-            OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*GET_STATE")
-            OTSIM900LINK_DEBUG_SERIAL_PRINT(OTV0P2BASE::getSubCycleTime())
-            OTSIM900LINK_DEBUG_SERIAL_PRINT('\t')
-            memset(txQueue, 0, sizeof(txQueue));
-            txMsgLen = 0;
-            txMessageQueue = 0;
-            bAvailable = false;
-            bPowered = false;
-            if(!interrogateSIM900()) {
-                bAvailable = true;
-                bPowered = true;
-                state = START_UP;
-            } else {
-                state = RETRY_GET_STATE;
+    if (bPowerLock == false) {
+        if (OTV0P2BASE::getSubCycleTime() < 10) {
+            switch (state) {
+            case GET_STATE:  // Check SIM900 is present and can be talked to. Takes up to 220 ticks?
+                OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*GET_STATE")
+                memset(txQueue, 0, sizeof(txQueue));
+                txMsgLen = 0;
+                txMessageQueue = 0;
+                bAvailable = false;
+                bPowered = false;
+                if(!interrogateSIM900()) {
+                    bAvailable = true;
+                    bPowered = true;
+                    state = START_UP;
+                } else {
+                    state = RETRY_GET_STATE;
+                }
+                powerToggle(); // Power down for START_UP/toggle for RETRY_GET_STATE.
+                break;
+            case RETRY_GET_STATE:
+                OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*RETRY_GET_STATE")
+                if(!interrogateSIM900()) {
+                    bAvailable = true;
+                    bPowered = true;
+                    state = START_UP;
+                } else state = PANIC;
+                powerToggle(); // Power down for START_UP
+                break;
+            case START_UP: // takes up to 150 ticks
+                OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*START_UP")
+                powerOn();
+                state = CHECK_PIN;
+                break;
+            case CHECK_PIN:  // Set pin if required. Takes ~100 ticks to exit.
+                OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*CHECK_PIN")
+                if(checkPIN()) state = WAIT_FOR_REGISTRATION;
+                else if(setPIN()) state = PANIC;// TODO make sure setPin returns true or false
+                break;
+            case WAIT_FOR_REGISTRATION:  // Wait for registration to GSM network. Stuck in this state until success. Takes ~150 ticks to exit.
+                OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*WAIT_FOR_REG")
+                if(isRegistered()) state = SET_APN;
+                break;
+            case SET_APN:  // Attempt to set the APN. Stuck in this state until success. Takes up to 200 ticks to exit.
+                OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*SET_APN")
+                if(!setAPN()) state = START_GPRS; // TODO: Watchdog resets here
+                break;
+            case START_GPRS:  // Start GPRS context. Takes ~50 ticks to exit
+                OTSIM900LINK_DEBUG_SERIAL_PRINTLN("*START_GPRS")
+                if(!startGPRS()) state = GET_IP;  // TODO: Add retries, Option to shut GPRS here (probably needs a new state)
+                else state = PANIC; // If startGPRS() ever returns an error here then something has probably gone very wrong
+                break;
+            case GET_IP: // Takes up to 200 ticks to exit.
+                // For some reason, AT+CIFSR must done to be able to do any networking.
+                // It is the way recommended in SIM900_Appication_Note.pdf section 3: Single Connections.
+                // This was not necessary when opening and shutting GPRS as in OTSIM900Link v1.0
+                OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*GET IP")
+                OTSIM900LINK_DEBUG_SERIAL_PRINT(OTV0P2BASE::getSubCycleTime())
+                OTSIM900LINK_DEBUG_SERIAL_PRINT('\t')
+                if(getIP()) state = OPEN_UDP;
+                OTSIM900LINK_DEBUG_SERIAL_PRINT(OTV0P2BASE::getSubCycleTime())
+                OTSIM900LINK_DEBUG_SERIAL_PRINTLN()
+                break;
+            case OPEN_UDP:  // Open a udp socket. Takes ~200 ticks to exit.
+                OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*OPEN UDP")
+                if(openUDP()) state = IDLE;
+                break;
+            case IDLE:  // Waiting for outbound message.
+                if (txMessageQueue > 0) {    // If message is queued, go to WAIT_FOR_UDP
+                    state = WAIT_FOR_UDP; // TODO-748
+                }
+                break;
+            case WAIT_FOR_UDP:  // Make sure UDP context is open. Takes up to 200 ticks to exit.
+                OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*WAIT_FOR_UDP")
+            {
+                uint8_t udpState = isOpenUDP();
+                if(udpState == 1) state = SENDING;
+        //            else if (udpState == 0) state = START_GPRS; // TODO needed for optional wake GPRS to send.
+                else if (udpState == 2) state = GET_STATE;
             }
-            powerToggle();
-            OTSIM900LINK_DEBUG_SERIAL_PRINT(OTV0P2BASE::getSubCycleTime())
-            OTSIM900LINK_DEBUG_SERIAL_PRINTLN()
             break;
-        case RETRY_GET_STATE:
-            OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*RETRY_GET_STATE")
-            OTSIM900LINK_DEBUG_SERIAL_PRINT(OTV0P2BASE::getSubCycleTime())
-            OTSIM900LINK_DEBUG_SERIAL_PRINT('\t')
-            if(!interrogateSIM900()) {
-                bAvailable = true;
-                bPowered = true;
-                state = START_UP;
-                powerToggle();
-            } else state = PANIC;
-            OTSIM900LINK_DEBUG_SERIAL_PRINT(OTV0P2BASE::getSubCycleTime())
-            OTSIM900LINK_DEBUG_SERIAL_PRINTLN()
-            break;
-        case START_UP:
-            OTSIM900LINK_DEBUG_SERIAL_PRINT(OTV0P2BASE::getSubCycleTime())
-            OTSIM900LINK_DEBUG_SERIAL_PRINT('\t')
-            powerOn();
-            state = CHECK_PIN;
-            OTSIM900LINK_DEBUG_SERIAL_PRINT(OTV0P2BASE::getSubCycleTime())
-            OTSIM900LINK_DEBUG_SERIAL_PRINTLN()
-            break;
-        case CHECK_PIN:  // Set pin if required. Takes ~100 ticks to exit.
-            OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*CHECK_PIN")
-            if(checkPIN()) state = WAIT_FOR_REGISTRATION;
-            else if(!setPIN()) state = PANIC;// TODO make sure setPin returns true or false
-            break;
-        case WAIT_FOR_REGISTRATION:  // Wait for registration to GSM network. Stuck in this state until success. Takes ~150 ticks to exit.
-            OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*WAIT_FOR_REG")
-            if(isRegistered()) state = SET_APN;
-            break;
-        case SET_APN:  // Attempt to set the APN. Stuck in this state until success. Takes up to 200 ticks to exit.
-            OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*SET_APN")
-            if(!setAPN()) state = START_GPRS; // TODO: Watchdog resets here
-            break;
-        case START_GPRS:  // Start GPRS context. Takes ~50 ticks to exit
-            OTSIM900LINK_DEBUG_SERIAL_PRINTLN("*START_GPRS")
-            if(!startGPRS()) state = GET_IP;  // TODO: Add retries, Option to shut GPRS here (probably needs a new state)
-            else state = PANIC; // If startGPRS() ever returns an error here then something has probably gone very wrong
-            break;
-        case GET_IP: // Takes up to 200 ticks to exit.
-            // For some reason, AT+CIFSR must done to be able to do any networking.
-            // It is the way recommended in SIM900_Appication_Note.pdf section 3: Single Connections.
-            // This was not necessary when opening and shutting GPRS as in OTSIM900Link v1.0
-            OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*GET IP")
-            if(getIP()) state = OPEN_UDP;
-            break;
-        case OPEN_UDP:  // Open a udp socket. Takes ~200 ticks to exit.
-            OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*OPEN UDP")
-            if(openUDP()) state = IDLE;
-            break;
-        case IDLE:  // Waiting for outbound message.
-            if (txMessageQueue > 0) {    // If message is queued, go to WAIT_FOR_UDP
-                state = WAIT_FOR_UDP; // TODO-748
+            case SENDING:  // Attempt to send a message. Takes ~100 ticks to exit.
+                OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*SENDING")
+                if (txMessageQueue > 0) {  // Check to make sure it is near the start of the subcycle to avoid overrunning.
+                    // TODO logic to check if send attempt successful
+                    sendRaw(txQueue, txMsgLen); /// @note can't use strlen with encrypted/binary packets
+                    if(!(--txMessageQueue)) state = IDLE;  // // Once done, decrement number of messages in queue and return to IDLE
+                } else if (txMessageQueue == 0) state = IDLE;
+                break;
+            case PANIC:
+                OTV0P2BASE::serialPrintlnAndFlush(F("FAILED!"));
+                break;
+            default:
+                break;
             }
-            break;
-        case WAIT_FOR_UDP:  // Make sure UDP context is open. Takes up to 200 ticks to exit.
-            OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*WAIT_FOR_UDP")
-        {
-            uint8_t udpState = isOpenUDP();
-            if(udpState == 1) state = SENDING;
-    //            else if (udpState == 0) state = START_GPRS; // TODO needed for optional wake GPRS to send.
-            else if (udpState == 2) state = GET_STATE;
         }
-        break;
-        case SENDING:  // Attempt to send a message. Takes ~100 ticks to exit.
-            OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*SENDING")
-            if (txMessageQueue > 0) {  // Check to make sure it is near the start of the subcycle to avoid overrunning.
-                // TODO logic to check if send attempt successful
-                sendRaw(txQueue, txMsgLen); /// @note can't use strlen with encrypted/binary packets
-                if(!(--txMessageQueue)) state = IDLE;  // // Once done, decrement number of messages in queue and return to IDLE
-            } else if (txMessageQueue == 0) state = IDLE;
-            break;
-        case PANIC:
-            OTV0P2BASE::serialPrintlnAndFlush(F("FAILED!"));
-            break;
-        default:
-            break;
-        }
+    } else if (OTV0P2BASE::getSecondsLT() > powerTimer) {
+        bPowerLock = false;
     }
 }
 
@@ -505,11 +502,6 @@ uint8_t OTSIM900Link::startGPRS()
     const char *dataCut;
     uint8_t dataCutLength = 0;
     dataCut = getResponse(dataCutLength, data, sizeof(data), 0x0A);    // unreliable
-    OTSIM900LINK_DEBUG_SERIAL_PRINT_FLASHSTRING("*")
-    OTSIM900LINK_DEBUG_SERIAL_PRINT(dataCutLength)
-    OTSIM900LINK_DEBUG_SERIAL_PRINT_FLASHSTRING("*")
-    OTSIM900LINK_DEBUG_SERIAL_PRINTLN(dataCut)
-    //  if (dataCutLength == 9) return 0;    // expected response 'OK'
     if ((dataCut[0] == 'O') & (dataCut[1] == 'K')) return 0;
     else return -1;
 }
@@ -547,8 +539,6 @@ uint8_t OTSIM900Link::getIP()
   print(AT_GET_IP);
   print(AT_END);
   timedBlockingRead(data, sizeof(data));
-  OTSIM900LINK_DEBUG_SERIAL_PRINT(data)
-  OTSIM900LINK_DEBUG_SERIAL_PRINTLN()
   // response stuff
   const char *dataCut;
   uint8_t dataCutLength = 0;
@@ -578,10 +568,6 @@ uint8_t OTSIM900Link::isOpenUDP()
     const char *dataCut;
     uint8_t dataCutLength = 0;
     dataCut = getResponse(dataCutLength, data, sizeof(data), ' '); // first ' ' appears right before useful part of message
-    OTSIM900LINK_DEBUG_SERIAL_PRINT_FLASHSTRING("*")
-    OTSIM900LINK_DEBUG_SERIAL_PRINT(dataCutLength)
-    OTSIM900LINK_DEBUG_SERIAL_PRINT_FLASHSTRING("*")
-    OTSIM900LINK_DEBUG_SERIAL_PRINTLN(dataCut)
     if (*dataCut == 'C') return 1; // expected string is 'CONNECT OK'. no other possible string begins with C
     else if (*dataCut == 'P') return 2;
     else return false;
@@ -694,20 +680,20 @@ const char *OTSIM900Link::getResponse(uint8_t &newLength, const char *data, uint
  *             3. module powered - correct response
  *             4. wrong module - unexpected response
  */
-OTSIM900LinkState OTSIM900Link::getInitState()
-{
-    if (interrogateSIM900()) {
-        powerToggle();
-        if(interrogateSIM900()) {
-            bAvailable = false;
-            bPowered = false;
-            return PANIC;
-        }
-    }
-    bAvailable = true;
-    bPowered = true;
-    return START_UP;
-}
+//OTSIM900LinkState OTSIM900Link::getInitState()
+//{
+//    if (interrogateSIM900()) {
+//        powerToggle();
+//        if(interrogateSIM900()) {
+//            bAvailable = false;
+//            bPowered = false;
+//            return PANIC;
+//        }
+//    }
+//    bAvailable = true;
+//    bPowered = true;
+//    return START_UP;
+//}
 
 /**
  * @brief   Checks module for response.
@@ -760,9 +746,9 @@ void OTSIM900Link::powerToggle()
     delay(1000);  // This is the minimum value that worked reliably
     fastDigitalWrite(PWR_PIN, LOW);
     bPowered = !bPowered;
-    delay(3000);
-//    bPowerLock = true;
-//    powerTimer = OTV0P2BASE::getSecondsLT() + 3;  // must wait at least 3 seconds for power toggle to finish.
+//    delay(3000);
+    bPowerLock = true;
+    powerTimer = min((OTV0P2BASE::getSecondsLT() + duration), 58);  // must wait at least 3 seconds for power toggle to finish.
 }
 
 
