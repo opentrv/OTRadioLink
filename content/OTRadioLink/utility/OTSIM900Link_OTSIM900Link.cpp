@@ -77,7 +77,7 @@ bool OTSIM900Link::begin()
 bool OTSIM900Link::end()
 {
     closeUDP();
-    powerOff();
+//    powerOff(); TODO fix this
     return false;
 }
 
@@ -132,8 +132,29 @@ void OTSIM900Link::poll()
             memset(txQueue, 0, sizeof(txQueue));
             txMsgLen = 0;
             txMessageQueue = 0;
-            state = getInitState();
+            bAvailable = false;
+            bPowered = false;
+            if(!interrogateSIM900()) {
+                bAvailable = true;
+                bPowered = true;
+                state = START_UP;
+            } else {
+                state = RETRY_GET_STATE;
+            }
             powerToggle();
+            OTSIM900LINK_DEBUG_SERIAL_PRINT(OTV0P2BASE::getSubCycleTime())
+            OTSIM900LINK_DEBUG_SERIAL_PRINTLN()
+            break;
+        case RETRY_GET_STATE:
+            OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*RETRY_GET_STATE")
+            OTSIM900LINK_DEBUG_SERIAL_PRINT(OTV0P2BASE::getSubCycleTime())
+            OTSIM900LINK_DEBUG_SERIAL_PRINT('\t')
+            if(!interrogateSIM900()) {
+                bAvailable = true;
+                bPowered = true;
+                state = START_UP;
+                powerToggle();
+            } else state = PANIC;
             OTSIM900LINK_DEBUG_SERIAL_PRINT(OTV0P2BASE::getSubCycleTime())
             OTSIM900LINK_DEBUG_SERIAL_PRINTLN()
             break;

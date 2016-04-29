@@ -31,7 +31,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015-2016
 
 // If DEFINED: Prints debug information to serial.
 //             !!! WARNING! THIS WILL CAUSE BLOCKING OF OVER 300 MS!!!
-//#define OTSIM900LINK_DEBUG
+#define OTSIM900LINK_DEBUG
 
 /**
  * @note    To use library:
@@ -101,6 +101,7 @@ typedef struct OTSIM900LinkConfig {
  */
 enum OTSIM900LinkState {
         GET_STATE,
+        RETRY_GET_STATE,
         START_UP,
         CHECK_PIN,
         WAIT_FOR_REGISTRATION,
