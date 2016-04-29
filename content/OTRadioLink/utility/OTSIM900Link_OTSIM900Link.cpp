@@ -38,6 +38,7 @@ OTSIM900Link::OTSIM900Link(uint8_t hardPwrPin, uint8_t pwrPin, uint8_t rxPin, ui
   bPowered = false;
   bPowerLock = false;
   powerTimer = 0;
+  duration = 3; // seconds
   config = NULL;
   state = IDLE;
   memset(txQueue, 0, sizeof(txQueue));
@@ -122,45 +123,55 @@ bool OTSIM900Link::queueToSend(const uint8_t *buf, uint8_t buflen, int8_t , TXpo
  */
 void OTSIM900Link::poll()
 {
-//    if(!bPowerLock) { // Check to see if powerup/down is in progress
+    if (OTV0P2BASE::getSubCycleTime() < 50) {
         switch (state) {
         case GET_STATE:  // Check SIM900 is present and can be talked to.
             OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*GET_STATE")
+            OTSIM900LINK_DEBUG_SERIAL_PRINT(OTV0P2BASE::getSubCycleTime())
+            OTSIM900LINK_DEBUG_SERIAL_PRINT('\t')
             memset(txQueue, 0, sizeof(txQueue));
             txMsgLen = 0;
             txMessageQueue = 0;
-            if(!getInitState()) {
-                state = CHECK_PIN;
-                powerOn();
-            }  // else panic(); FIXME!!! how are we going to panic?
+            state = getInitState();
+            powerToggle();
+            OTSIM900LINK_DEBUG_SERIAL_PRINT(OTV0P2BASE::getSubCycleTime())
+            OTSIM900LINK_DEBUG_SERIAL_PRINTLN()
             break;
-        case CHECK_PIN:  // Set pin if required. TODO avoid calling setPIN more than once so we don't lock SIM card.
+        case START_UP:
+            OTSIM900LINK_DEBUG_SERIAL_PRINT(OTV0P2BASE::getSubCycleTime())
+            OTSIM900LINK_DEBUG_SERIAL_PRINT('\t')
+            powerOn();
+            state = CHECK_PIN;
+            OTSIM900LINK_DEBUG_SERIAL_PRINT(OTV0P2BASE::getSubCycleTime())
+            OTSIM900LINK_DEBUG_SERIAL_PRINTLN()
+            break;
+        case CHECK_PIN:  // Set pin if required. Takes ~100 ticks to exit.
             OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*CHECK_PIN")
             if(checkPIN()) state = WAIT_FOR_REGISTRATION;
-            else if(!setPIN()) /*panic();*/{} // TODO make sure setPin returns true or false
+            else if(!setPIN()) state = PANIC;// TODO make sure setPin returns true or false
             break;
-        case WAIT_FOR_REGISTRATION:  // Wait for registration to GSM network. Stuck in this state until success.
+        case WAIT_FOR_REGISTRATION:  // Wait for registration to GSM network. Stuck in this state until success. Takes ~150 ticks to exit.
             OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*WAIT_FOR_REG")
             if(isRegistered()) state = SET_APN;
             break;
-        case SET_APN:  // Attempt to set the APN. Stuck in this state until success.
+        case SET_APN:  // Attempt to set the APN. Stuck in this state until success. Takes up to 200 ticks to exit.
             OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*SET_APN")
             if(!setAPN()) state = START_GPRS; // TODO: Watchdog resets here
             break;
-        case START_GPRS:  // Start GPRS context.
-            OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*START_GPRS")
+        case START_GPRS:  // Start GPRS context. Takes ~50 ticks to exit
+            OTSIM900LINK_DEBUG_SERIAL_PRINTLN("*START_GPRS")
             if(!startGPRS()) state = GET_IP;  // TODO: Add retries, Option to shut GPRS here (probably needs a new state)
-//            else panic(); // If startGPRS() ever returns an error here then something has probably gone very wrong
+            else state = PANIC; // If startGPRS() ever returns an error here then something has probably gone very wrong
             break;
-        case GET_IP:
+        case GET_IP: // Takes up to 200 ticks to exit.
             // For some reason, AT+CIFSR must done to be able to do any networking.
             // It is the way recommended in SIM900_Appication_Note.pdf section 3: Single Connections.
             // This was not necessary when opening and shutting GPRS as in OTSIM900Link v1.0
-            OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*GET IP");
+            OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*GET IP")
             if(getIP()) state = OPEN_UDP;
             break;
-        case OPEN_UDP:  // Open a udp socket.
-            OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*OPEN UDP");
+        case OPEN_UDP:  // Open a udp socket. Takes ~200 ticks to exit.
+            OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*OPEN UDP")
             if(openUDP()) state = IDLE;
             break;
         case IDLE:  // Waiting for outbound message.
@@ -168,29 +179,30 @@ void OTSIM900Link::poll()
                 state = WAIT_FOR_UDP; // TODO-748
             }
             break;
-        case WAIT_FOR_UDP:  // Make sure UDP context is open.
+        case WAIT_FOR_UDP:  // Make sure UDP context is open. Takes up to 200 ticks to exit.
             OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*WAIT_FOR_UDP")
         {
             uint8_t udpState = isOpenUDP();
             if(udpState == 1) state = SENDING;
-//            else if (udpState == 0) state = START_GPRS; // TODO needed for optional wake GPRS to send.
+    //            else if (udpState == 0) state = START_GPRS; // TODO needed for optional wake GPRS to send.
             else if (udpState == 2) state = GET_STATE;
         }
         break;
-        case SENDING:  // Attempt to send a message.
+        case SENDING:  // Attempt to send a message. Takes ~100 ticks to exit.
             OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*SENDING")
-            if ((txMessageQueue > 0) && (OTV0P2BASE::getSubCycleTime() < 63)) {  // Check to make sure it is near the start of the subcycle to avoid overrunning.
+            if (txMessageQueue > 0) {  // Check to make sure it is near the start of the subcycle to avoid overrunning.
                 // TODO logic to check if send attempt successful
                 sendRaw(txQueue, txMsgLen); /// @note can't use strlen with encrypted/binary packets
                 if(!(--txMessageQueue)) state = IDLE;  // // Once done, decrement number of messages in queue and return to IDLE
             } else if (txMessageQueue == 0) state = IDLE;
             break;
+        case PANIC:
+            OTV0P2BASE::serialPrintlnAndFlush(F("FAILED!"));
+            break;
         default:
             break;
         }
-//    } else {
-//        TODO check time
-//    }
+    }
 }
 
 /**
@@ -266,12 +278,12 @@ bool OTSIM900Link::sendUDP(const char *frame, uint8_t length)
  * @brief   Reads a single character from softSerial.
  * @retval  Character read, or -1 if none.
  */
-uint8_t OTSIM900Link::read()
-{
-    uint8_t data;
-    data = softSerial.read();
-    return data;
-}
+//uint8_t OTSIM900Link::read()
+//{
+//    uint8_t data;
+//    data = softSerial.read();
+//    return data;
+//}
 
 /**
  * @brief   Enter blocking read. Fills buffer or times out after 100 ms.
@@ -310,7 +322,7 @@ bool OTSIM900Link::flushUntil(uint8_t _terminatingChar)
     const uint8_t terminatingChar = _terminatingChar;
     const uint8_t endTime = OTV0P2BASE::getSecondsLT() + flushTimeOut;
     while (OTV0P2BASE::getSecondsLT() <= endTime) { // FIXME Replace this logic
-        const uint8_t c = read();
+        const uint8_t c = softSerial.read();
         if (c == terminatingChar) return true;
     }
 #if 0
@@ -653,46 +665,41 @@ const char *OTSIM900Link::getResponse(uint8_t &newLength, const char *data, uint
 /**
  * @brief   Test if radio is available and set available and power flags
  *          returns to powered off state?
- * @retval  0 if module found and returns correct start value.
- *          -1 if failed
+ * @retval  START_UP if module found and returns correct start value.
+ *          PANIC if failed
  * @note    Possible states at start up:
  *             1. no module - No response
  *             2. module not powered - No response
  *             3. module powered - correct response
  *             4. wrong module - unexpected response
  */
-uint8_t OTSIM900Link::getInitState()
+OTSIM900LinkState OTSIM900Link::getInitState()
 {
-    bAvailable = false;
-    bPowered = false;
-    char data[min(10, MAX_SIM900_RESPONSE_CHARS)];    // max expected response
-    memset(data, 0 , sizeof(data));
-    OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("-Module?")
-    print(AT_START);  // Check for a response.
-    print(AT_END);
-    if (timedBlockingRead(data, sizeof(data)) == 0) { // No response. Try toggling power.
-        OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("-Force On")
+    if (interrogateSIM900()) {
         powerToggle();
-        memset(data, 0, sizeof(data));
-        if (timedBlockingRead(data, sizeof(data)) == 0) { // Probably no module. Throw error.
-            OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("-Failed")
+        if(interrogateSIM900()) {
+            bAvailable = false;
             bPowered = false;
-            return -1;
+            return PANIC;
         }
     }
+    bAvailable = true;
+    bPowered = true;
+    return START_UP;
+}
 
-    // Got response. Test if it is the expected one. Power off to reset internal state.
-    if( data[0] == 'A') {  // Module found.
-        OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("-Success")
-        bAvailable = true;
-        bPowered = true;
-        powerOff();
+/**
+ * @brief   Checks module for response.
+ * @retval  0 if correct response.
+ * @retval  -1 if unexpected response.
+ */
+uint8_t OTSIM900Link::interrogateSIM900()
+{
+    print(AT_START);
+    print(AT_END);
+    if (softSerial.read() == 'A') {  // This is the expected response.
         return 0;
-    } else {  // Unexpected response. Maybe incorrect module. Exit with error.
-        OTSIM900LINK_DEBUG_SERIAL_PRINT_FLASHSTRING("- Bad Response: ")
-        OTSIM900LINK_DEBUG_SERIAL_PRINTLN(data)
-        bAvailable = false;
-        bPowered = false;
+    } else {  // This means no response.
         return -1;
     }
 }
