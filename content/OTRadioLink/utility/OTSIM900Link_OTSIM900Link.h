@@ -101,6 +101,8 @@ typedef struct OTSIM900LinkConfig {
  */
 enum OTSIM900LinkState {
         GET_STATE,
+        RETRY_GET_STATE,
+        START_UP,
         CHECK_PIN,
         WAIT_FOR_REGISTRATION,
         SET_APN,
@@ -110,6 +112,7 @@ enum OTSIM900LinkState {
         IDLE,
         WAIT_FOR_UDP,
         SENDING,
+        PANIC
     };
 
 
@@ -187,7 +190,8 @@ private:
   bool bAvailable;
   bool bPowered;
   bool bPowerLock;
-  uint8_t powerTimer;
+  int8_t powerTimer;
+  const uint8_t duration = 3;
   volatile uint8_t txMessageQueue; // Number of frames currently queued for TX.
   const OTSIM900LinkConfig_t *config;
   static const uint16_t baud = 2400; // max reliable baud
@@ -221,7 +225,7 @@ private:
     void powerToggle();
 
     // Serial functions
-    uint8_t read();
+//    uint8_t read();
     uint8_t timedBlockingRead(char *data, uint8_t length);
     void write(const char *data, uint8_t length);
     void print(const char data);
@@ -253,7 +257,9 @@ private:
     bool closeUDP();
     bool sendUDP(const char *frame, uint8_t length);
 
-    uint8_t getInitState();
+    OTSIM900LinkState getInitState();
+    uint8_t interrogateSIM900();
+//    uint8_t checkInterrogationResponse();
 
     bool _doconfig();
 
