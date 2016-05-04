@@ -38,7 +38,7 @@ OTSIM900Link::OTSIM900Link(uint8_t hardPwrPin, uint8_t pwrPin, uint8_t rxPin, ui
   bPowered = false;
   bPowerLock = false;
   powerTimer = 0;
-  duration = 3; // seconds
+  //duration = 3; // seconds
   config = NULL;
   state = IDLE;
   memset(txQueue, 0, sizeof(txQueue));
