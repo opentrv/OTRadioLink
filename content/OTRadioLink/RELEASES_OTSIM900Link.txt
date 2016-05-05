@@ -9,13 +9,19 @@ or release/freeze points.
 
 
 pending:
+
+
+20160505:
+    freezepoint name: V1.1 (as part of OTRadioLink)
+    branch name: HEAD
+    Deployed where: Production
+    Changes since last freezepoint (developer/mgr initials and brief description):
+    Previous significant freezepoint: V1.0
     DE20160331:  issues still pending: non-blocking at start up and during signal loss, spec for storing eeprom config
     DE20160411:  Expanded state machine so that start up and loss of signal do not block longer than 5 secs.
     DE20160411:  Changed methods to exit with -1 on error
     DE20160411:  Replaced digitalWrite with fastDigitalWrite and trimmed debug output 
     DE20160428:  Initial working version based on OTSoftSerial2.
-    
-
 
 20160331:
     freezepoint name: V1.0 (as part of OTRadioLink)

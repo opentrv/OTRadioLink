@@ -9,12 +9,22 @@ or release/freeze points.
 
 
 pending:
+
+
+
+
+
+
+
+20160505:
+    freezepoint name: V1.1 (as part of OTRadioLink)
+    branch name: HEAD
+    Deployed where: Production
+    Changes since last freezepoint (developer/mgr initials and brief description):
+    Previous significant freezepoint: V1.0
     JP20160406: fix to correctly set the precision of the DS18B20 sensor.
-    DHD20160412: TODO-887: RTC-based low-power watchdog detecting overruns/jams.
+    DHD20160412: TODO-887: RTC-based low-power watchdog for detecting overruns/jams.
     DE20160427:  Initial synchronous version of OTSoftSerial2.
-
-
-
 
 20160331:
     freezepoint name: V1.0 (as part of OTRadioLink)

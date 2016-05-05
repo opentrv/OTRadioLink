@@ -9,10 +9,17 @@ or release/freeze points.
 
 
 pending:
+
+
+
+
+20160505:
+    freezepoint name: V1.1 (as part of OTRadioLink)
+    branch name: HEAD
+    Deployed where: Production
+    Changes since last freezepoint (developer/mgr initials and brief description):
+    Previous significant freezepoint: V1.0
     DHD20160610: TODO-884: trying to provide 'motor good' feedback earlier.
-
-
-
 
 20160331:
     freezepoint name: V1.0 (as part of OTRadioLink)

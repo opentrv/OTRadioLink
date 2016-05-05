@@ -39,8 +39,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014
     <target name="all"
         description="builds target ZIP file from content directory">
         <echo message="Building ${dist.zip} ..."/>
-	    <zip destfile="${dist.zip}"
-	       basedir="content"/>
+        <zip destfile="${dist.zip}" basedir="content"/>
     </target>
 
 </project>

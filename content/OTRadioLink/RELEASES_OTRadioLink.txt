@@ -14,6 +14,13 @@ pending:
 
 
 
+20160505:
+    freezepoint name: V1.1
+    branch name: HEAD
+    Deployed where: Production
+    Changes since last freezepoint (developer/mgr initials and brief description):
+    Previous significant freezepoint: V1.0
+
 20160331:
     freezepoint name: V1.0
     branch name: HEAD
