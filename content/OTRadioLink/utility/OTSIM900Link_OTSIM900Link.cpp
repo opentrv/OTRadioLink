@@ -154,11 +154,12 @@ void OTSIM900Link::poll()
                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*START_UP")
                 powerOn();
                 state = CHECK_PIN;
+//                state = WAIT_FOR_REGISTRATION; // FIXME
                 break;
             case CHECK_PIN:  // Set pin if required. Takes ~100 ticks to exit.
                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*CHECK_PIN")
                 if(checkPIN()) state = WAIT_FOR_REGISTRATION;
-                else if(setPIN()) state = PANIC;// TODO make sure setPin returns true or false
+//                if(setPIN()) state = PANIC;// TODO make sure setPin returns true or false
                 break;
             case WAIT_FOR_REGISTRATION:  // Wait for registration to GSM network. Stuck in this state until success. Takes ~150 ticks to exit.
                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*WAIT_FOR_REG")
@@ -171,18 +172,15 @@ void OTSIM900Link::poll()
             case START_GPRS:  // Start GPRS context. Takes ~50 ticks to exit
                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN("*START_GPRS")
                 if(!startGPRS()) state = GET_IP;  // TODO: Add retries, Option to shut GPRS here (probably needs a new state)
-                else state = PANIC; // If startGPRS() ever returns an error here then something has probably gone very wrong
+//                else state = PANIC; // If startGPRS() ever returns an error here then something has probably gone very wrong
+                // FIXME 20160505: Need to work out how to handle this. If signal is marginal this will fail.
                 break;
             case GET_IP: // Takes up to 200 ticks to exit.
                 // For some reason, AT+CIFSR must done to be able to do any networking.
                 // It is the way recommended in SIM900_Appication_Note.pdf section 3: Single Connections.
                 // This was not necessary when opening and shutting GPRS as in OTSIM900Link v1.0
                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*GET IP")
-                OTSIM900LINK_DEBUG_SERIAL_PRINT(OTV0P2BASE::getSubCycleTime())
-                OTSIM900LINK_DEBUG_SERIAL_PRINT('\t')
                 if(getIP()) state = OPEN_UDP;
-                OTSIM900LINK_DEBUG_SERIAL_PRINT(OTV0P2BASE::getSubCycleTime())
-                OTSIM900LINK_DEBUG_SERIAL_PRINTLN()
                 break;
             case OPEN_UDP:  // Open a udp socket. Takes ~200 ticks to exit.
                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*OPEN UDP")
@@ -198,7 +196,7 @@ void OTSIM900Link::poll()
             {
                 uint8_t udpState = isOpenUDP();
                 if(udpState == 1) state = SENDING;
-        //            else if (udpState == 0) state = START_GPRS; // TODO needed for optional wake GPRS to send.
+//                else if (udpState == 0) state = GET_STATE; // START_GPRS; // TODO needed for optional wake GPRS to send. FIXME normally commented, set to get_state for testing reset.
                 else if (udpState == 2) state = GET_STATE;
             }
             break;
@@ -217,7 +215,7 @@ void OTSIM900Link::poll()
                 break;
             }
         }
-    } else if (OTV0P2BASE::getSecondsLT() > powerTimer) {  // Check if ready to stop waiting after power toggled.
+    } else if (OTV0P2BASE::getElapsedSecondsLT(powerTimer) > duration) {  // Check if ready to stop waiting after power toggled.
         bPowerLock = false;
     }
 }
@@ -748,7 +746,7 @@ void OTSIM900Link::powerToggle()
     bPowered = !bPowered;
 //    delay(3000);
     bPowerLock = true;
-    powerTimer = min((OTV0P2BASE::getSecondsLT() + duration), 58);  // fixme!
+    powerTimer = OTV0P2BASE::getSecondsLT();
 }
 
 
