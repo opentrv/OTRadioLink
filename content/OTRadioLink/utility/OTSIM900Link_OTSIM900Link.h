@@ -191,7 +191,7 @@ private:
   bool bPowered;
   bool bPowerLock;
   int8_t powerTimer;
-  const uint8_t duration = 3;
+  static const uint8_t duration = 3;
   volatile uint8_t txMessageQueue; // Number of frames currently queued for TX.
   const OTSIM900LinkConfig_t *config;
   static const uint16_t baud = 2400; // max reliable baud

@@ -38,6 +38,10 @@ OTSIM900Link::OTSIM900Link(uint8_t hardPwrPin, uint8_t pwrPin, uint8_t rxPin, ui
   bPowered = false;
   bPowerLock = false;
   powerTimer = 0;
+<<<<<<< HEAD
+=======
+  //duration = 3; // seconds
+>>>>>>> branch 'master' of https://github.com/Denzo77/OTRadioLink
   config = NULL;
   state = IDLE;
   memset(txQueue, 0, sizeof(txQueue));

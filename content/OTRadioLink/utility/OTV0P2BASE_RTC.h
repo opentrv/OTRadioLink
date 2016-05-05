@@ -110,6 +110,16 @@ uint_least8_t getPrevHourLT();
 uint_least8_t getNextHourLT();
 
 
+// Simple short-term (<60s) elapsed-time computations for wall-clock seconds.
+// Will give unhelpful results if called more than 60s after the original sample.
+inline uint_fast8_t getElapsedSecondsLT(const uint_fast8_t startSecondsLT)
+  {
+  const uint_fast8_t now = getSecondsLT();
+  if(now >= startSecondsLT) { return(now - startSecondsLT); }
+  return(60 + now - startSecondsLT);
+  }
+
+
 // Set time as hours [0,23] and minutes [0,59].
 // Will ignore attempts to set bad values and return false in that case.
 // Returns true if all OK and the time has been set.
