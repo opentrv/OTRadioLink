@@ -45,7 +45,8 @@ protected:
 
 //    const uint8_t rxPin;
 //    const uint8_t txPin;
-    uint8_t fullDelay;
+    uint8_t readDelay;
+    uint8_t writeDelay;
     uint8_t halfDelay;
 //    volatile uint8_t rxBufferHead;
 //    volatile uint8_t rxBufferTail;
@@ -57,8 +58,9 @@ public:
      */
     OTSoftSerial2()
     {
+    	readDelay = 0;
+    	writeDelay = 0;
         halfDelay = 0;
-        fullDelay = 0;
     }
     /**
      * @brief   Initialises OTSoftSerial2 and sets up pins.
@@ -70,7 +72,8 @@ public:
     {
         // Set delays
         uint16_t bitCycles = (F_CPU/4) / speed;
-        fullDelay = bitCycles;
+        readDelay = bitCycles - 10;  // Both these need an offset.
+        writeDelay = bitCycles - 25;
         halfDelay = bitCycles/2;
         // Set pins for UART
         pinMode(rxPin, INPUT_PULLUP);
@@ -96,18 +99,18 @@ public:
 
             // Send start bit
             fastDigitalWrite(txPin, LOW);
-            _delay_x4cycles(fullDelay); // fixme delete -5s
+            _delay_x4cycles(writeDelay); // fixme delete -5s
 
             // send byte. Loops until mask overflows back to 0
             while(mask != 0) {
                 fastDigitalWrite(txPin, mask & c);
-                _delay_x4cycles(fullDelay);
+                _delay_x4cycles(writeDelay);
                 mask = mask << 1;    // bit shift to next value
             }
 
             // send stop bit
             fastDigitalWrite(txPin, HIGH);
-            _delay_x4cycles(fullDelay);
+            _delay_x4cycles(writeDelay);
         }
         return 1;
     }
@@ -137,7 +140,7 @@ public:
 
             // step through bits and read value    // FIXME better way of doing this?
             for(uint8_t i = 0; i < 8; i++) {
-                _delay_x4cycles(fullDelay);
+                _delay_x4cycles(readDelay);
                 val |= fastDigitalRead(rxPin) << i;
             }
 
@@ -166,7 +169,7 @@ public:
     void sendBreak()
     {
     	fastDigitalWrite(txPin, LOW);
-    	_delay_x4cycles(fullDelay * 16);
+    	_delay_x4cycles(writeDelay * 16);
     	fastDigitalWrite(txPin, HIGH);
     }
     /**************************************************************************
