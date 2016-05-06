@@ -58,6 +58,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #ifdef CONFIG_REV9 // REV9 cut2, derived from REV4.
 // Revision of V0.2 board.
 #define V0p2_REV 9
+// IF DEFINED: use (slow, low energy) 32768Hz-clock-based watchdog to recover from some software hangups.
+#define ENABLE_WATCHDOG_SLOW
 // Enable use of OneWire devices.
 #define ENABLE_MINIMAL_ONEWIRE_SUPPORT
 // IF DEFINED: enable use of on-board SHT21 RH and temp sensor (in lieu of TMP112).

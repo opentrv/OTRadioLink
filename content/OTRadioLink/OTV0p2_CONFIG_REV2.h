@@ -125,6 +125,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 #ifdef CONFIG_Trial2013Winter_Round2_CC1HUB // REV2 cut4 as CC1 hub.
 #define CONFIG_Trial2013Winter_Round2 // Just like normal REV2 except...
+// IF DEFINED: use (slow, low energy) 32768Hz-clock-based watchdog to recover from some software hangups.
+#define ENABLE_WATCHDOG_SLOW
 // IF DEFINED: this unit can act as boiler-control hub listening to remote thermostats, possibly in addition to controlling a local TRV.
 #undef ENABLE_BOILER_HUB
 // IF DEFINED: allow RX of stats frames.
