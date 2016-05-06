@@ -24,7 +24,8 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
 #include <stdint.h>
 #include "Arduino.h"
 #include <Stream.h>
-#include <OTV0p2Base.h>
+#include "utility/OTV0P2BASE_FastDigitalIO.h"
+#include "utility/OTV0P2BASE_Sleep.h"
 
 namespace OTV0P2BASE
 {
@@ -36,13 +37,14 @@ static const uint8_t OTSOFTSERIAL2_BUFFER_SIZE = 32;
  * @brief   Software serial with optional blocking read and settable interrupt pins.
  *          Extends Stream.h from the Arduino core libraries.
  */
+template <uint8_t rxPin, uint8_t txPin>
 class OTSoftSerial2 : public Stream
 {
 protected:
     static const uint16_t timeOut = 60000; // fed into loop...
 
-    const uint8_t rxPin;
-    const uint8_t txPin;
+//    const uint8_t rxPin;
+//    const uint8_t txPin;
     uint8_t fullDelay;
     uint8_t halfDelay;
 //    volatile uint8_t rxBufferHead;
@@ -52,43 +54,105 @@ protected:
 public:
     /**
      * @brief   Constructor for OTSoftSerial2
-     * @param   rxPin: Pin to receive from.
-     * @param   txPin: Pin to send from.
      */
-    OTSoftSerial2(uint8_t rxPin, uint8_t txPin);
+    OTSoftSerial2()
+    {
+        halfDelay = 0;
+        fullDelay = 0;
+    }
     /**
      * @brief   Initialises OTSoftSerial2 and sets up pins.
      * @param   speed: The baud to listen at.
      * @fixme   Long is excessive
      * @todo    what to do about optional stuff.
      */
+    void begin(unsigned long speed, uint8_t)
+    {
+        // Set delays
+        uint16_t bitCycles = (F_CPU/4) / speed;
+        fullDelay = bitCycles;
+        halfDelay = bitCycles/2;
+        // Set pins for UART
+        pinMode(rxPin, INPUT_PULLUP);
+        pinMode(txPin, OUTPUT);
+        fastDigitalWrite(txPin, HIGH);
+    }
     void begin(unsigned long speed) { begin(speed, 0); }
-    void begin(unsigned long speed, uint8_t);
     /**
      * @brief   Disables serial and releases pins.
      */
-    void end();
+    void end() { pinMode(txPin, INPUT_PULLUP); }
     /**
      * @brief   Write a byte to serial as a binary value.
      * @param   byte: Byte to write.
      * @retval  Number of bytes written.
      */
-    virtual size_t write(uint8_t byte);
+    size_t write(uint8_t byte)
+    {
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+        {
+            uint8_t mask = 0x01;
+            uint8_t c = byte;
+
+            // Send start bit
+            fastDigitalWrite(txPin, LOW);
+            _delay_x4cycles(fullDelay); // fixme delete -5s
+
+            // send byte. Loops until mask overflows back to 0
+            while(mask != 0) {
+                fastDigitalWrite(txPin, mask & c);
+                _delay_x4cycles(fullDelay);
+                mask = mask << 1;    // bit shift to next value
+            }
+
+            // send stop bit
+            fastDigitalWrite(txPin, HIGH);
+            _delay_x4cycles(fullDelay);
+        }
+        return 1;
+    }
     /**
      * @brief   Read next character in the input buffer without removing it.
      * @retval  Next character in input buffer.
      */
-    int peek();
+    int peek() { return -1; }
     /**
      * @brief   Reads a byte from the serial and removes it from the buffer.
      * @retval  Next character in input buffer.
      */
-    virtual int read();
+    int read() {
+        // Blocking read:
+        uint8_t val = 0;
+
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+        {
+            uint16_t timer = timeOut;  // TODO find out if using an attribute will be useful.
+            // wait for line to go low
+            while (fastDigitalRead(rxPin)) {
+                if (--timer == 0) return -1;
+            }
+
+            // wait for mid point of bit
+            _delay_x4cycles(halfDelay);
+
+            // step through bits and read value    // FIXME better way of doing this?
+            for(uint8_t i = 0; i < 8; i++) {
+                _delay_x4cycles(fullDelay);
+                val |= fastDigitalRead(rxPin) << i;
+            }
+
+            timer = timeOut;
+            while (!fastDigitalRead(rxPin)) {
+                if (--timer == 0) return -1;
+            }
+        }
+        return val;
+    }
     /**
      * @brief   Get the number of bytes available to read in the input buffer.
      * @retval  The number of bytes available.
      */
-    virtual int available();
+    int available() { return -1; }
     /**
      * @brief   Check if serial port is ready for use.
      * @todo    Implement the time checks using this?
@@ -99,7 +163,12 @@ public:
     /**************************************************************************
      * -------------------------- Non Standard ------------------------------ *
      *************************************************************************/
-    void sendBreak();
+    void sendBreak()
+    {
+    	fastDigitalWrite(txPin, LOW);
+    	_delay_x4cycles(fullDelay * 16);
+    	fastDigitalWrite(txPin, HIGH);
+    }
     /**************************************************************************
      * ------------------------ Unimplemented ------------------------------- *
      *************************************************************************/
