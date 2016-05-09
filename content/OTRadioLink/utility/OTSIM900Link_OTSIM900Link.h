@@ -31,7 +31,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015-2016
 
 // If DEFINED: Prints debug information to serial.
 //             !!! WARNING! THIS WILL CAUSE BLOCKING OF OVER 300 MS!!!
-//#define OTSIM900LINK_DEBUG
+#define OTSIM900LINK_DEBUG
 
 /**
  * @note    To use library:
@@ -184,7 +184,7 @@ private:
   const uint8_t HARD_PWR_PIN;
   const uint8_t PWR_PIN;
   //SoftwareSerial softSerial;
-  OTV0P2BASE::OTSoftSerial2 softSerial;
+  OTV0P2BASE::OTSoftSerial2<8, 5> softSerial;
 
   // variables
   bool bAvailable;

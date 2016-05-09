@@ -32,7 +32,7 @@ namespace OTSIM900Link
  * as may be called before run-time fully initialised!
  */
 OTSIM900Link::OTSIM900Link(uint8_t hardPwrPin, uint8_t pwrPin, uint8_t rxPin, uint8_t txPin)
-  : HARD_PWR_PIN(hardPwrPin), PWR_PIN(pwrPin), softSerial(rxPin, txPin)
+  : HARD_PWR_PIN(hardPwrPin), PWR_PIN(pwrPin)//, softSerial(rxPin, txPin)
 {
   bAvailable = false;
   bPowered = false;
@@ -701,6 +701,19 @@ uint8_t OTSIM900Link::interrogateSIM900()
 {
     print(AT_START);
     print(AT_END);
+    uint8_t c = 0;
+    // Debug code...
+//    uint8_t startTime = OTV0P2BASE::getSecondsLT();
+//    c = softSerial.read();
+//    uint8_t endTime = OTV0P2BASE::getSecondsLT();
+//    OTSIM900LINK_DEBUG_SERIAL_PRINT("T: ")
+//    OTSIM900LINK_DEBUG_SERIAL_PRINT(startTime)
+//	OTSIM900LINK_DEBUG_SERIAL_PRINT("\t")
+//    OTSIM900LINK_DEBUG_SERIAL_PRINT(endTime)
+//	OTSIM900LINK_DEBUG_SERIAL_PRINT("\t")
+//    OTSIM900LINK_DEBUG_SERIAL_PRINTFMT(c, HEX)
+//    OTSIM900LINK_DEBUG_SERIAL_PRINTLN()
+//    if (c == 'A') {
     if (softSerial.read() == 'A') {  // This is the expected response.
         return 0;
     } else {  // This means no response.

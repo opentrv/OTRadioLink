@@ -126,10 +126,9 @@ public:
     int read() {
         // Blocking read:
         uint8_t val = 0;
-
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
         {
-            uint16_t timer = timeOut;  // TODO find out if using an attribute will be useful.
+            volatile uint16_t timer = timeOut;  // TODO find out if using an attribute will be useful.
             // wait for line to go low
             while (fastDigitalRead(rxPin)) {
                 if (--timer == 0) return -1;
