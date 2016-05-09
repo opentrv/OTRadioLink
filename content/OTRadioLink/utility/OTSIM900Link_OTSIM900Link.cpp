@@ -169,9 +169,11 @@ void OTSIM900Link::poll()
                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*SET_APN")
                 if(!setAPN()) state = START_GPRS; // TODO: Watchdog resets here
                 break;
-            case START_GPRS:  // Start GPRS context. Takes ~50 ticks to exit
+            case START_GPRS:  // Start GPRS context.
                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN("*START_GPRS")
-                if(!startGPRS()) state = GET_IP;  // TODO: Add retries, Option to shut GPRS here (probably needs a new state)
+				if(isOpenUDP() != 3) startGPRS();
+				else state = GET_IP;
+//                if(!startGPRS()) state = GET_IP;  // TODO: Add retries, Option to shut GPRS here (probably needs a new state)
 //                else state = PANIC; // If startGPRS() ever returns an error here then something has probably gone very wrong
                 // FIXME 20160505: Need to work out how to handle this. If signal is marginal this will fail.
                 break;
@@ -567,6 +569,7 @@ uint8_t OTSIM900Link::isOpenUDP()
     dataCut = getResponse(dataCutLength, data, sizeof(data), ' '); // first ' ' appears right before useful part of message
     if (*dataCut == 'C') return 1; // expected string is 'CONNECT OK'. no other possible string begins with C
     else if (*dataCut == 'P') return 2;
+    else if (dataCut[3] == 'G') return 3;
     else return false;
 }
 
@@ -701,7 +704,7 @@ uint8_t OTSIM900Link::interrogateSIM900()
 {
     print(AT_START);
     print(AT_END);
-    uint8_t c = 0;
+//    uint8_t c = 0;
     // Debug code...
 //    uint8_t startTime = OTV0P2BASE::getSecondsLT();
 //    c = softSerial.read();
