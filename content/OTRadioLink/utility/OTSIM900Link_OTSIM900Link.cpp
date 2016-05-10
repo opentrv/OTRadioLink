@@ -159,7 +159,6 @@ void OTSIM900Link::poll()
             case CHECK_PIN:  // Set pin if required. Takes ~100 ticks to exit.
                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*CHECK_PIN")
                 if(checkPIN()) state = WAIT_FOR_REGISTRATION;
-                verbose(1);
 //                if(setPIN()) state = PANIC;// TODO make sure setPin returns true or false
                 break;
             case WAIT_FOR_REGISTRATION:  // Wait for registration to GSM network. Stuck in this state until success. Takes ~150 ticks to exit.
@@ -433,8 +432,8 @@ uint8_t OTSIM900Link::setAPN()
     const char *dataCut;
     uint8_t dataCutLength = 0;
     dataCut = getResponse(dataCutLength, data, sizeof(data), 0x0A);
-//    OTSIM900LINK_DEBUG_SERIAL_PRINTLN(data)
-    if (*dataCut == 'O') return 0;    // expected response 'OK'
+//    OTSIM900LINK_DEBUG_SERIAL_PRINTLN(dataCut)
+    if (dataCut[2] == 'O') return 0;    // expected response 'OK'
     else return -1;
 }
 
