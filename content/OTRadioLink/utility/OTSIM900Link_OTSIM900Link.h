@@ -186,7 +186,7 @@ private:
   static const uint8_t rxPin = 8;
   static const uint8_t txPin = 5;
   //SoftwareSerial softSerial;
-  OTV0P2BASE::OTSoftSerial2<rxPin, txPin> softSerial;
+  OTV0P2BASE::OTSoftSerial2<rxPin, txPin> ser;
 
   // variables
   bool bAvailable;
@@ -227,13 +227,7 @@ private:
     void powerToggle();
 
     // Serial functions
-//    uint8_t read();
     uint8_t timedBlockingRead(char *data, uint8_t length);
-    void write(const char *data, uint8_t length);
-    void print(const char data);
-    void print(const uint8_t value);
-    void print(const char *string);
-    void print(const void *src);
 
     // write AT commands
     bool checkModule();
