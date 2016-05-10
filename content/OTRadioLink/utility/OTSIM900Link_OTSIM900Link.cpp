@@ -31,8 +31,8 @@ namespace OTSIM900Link
  * Cannot do anything with side-effects,
  * as may be called before run-time fully initialised!
  */
-OTSIM900Link::OTSIM900Link(uint8_t hardPwrPin, uint8_t pwrPin, uint8_t rxPin, uint8_t txPin)
-  : HARD_PWR_PIN(hardPwrPin), PWR_PIN(pwrPin)//, softSerial(rxPin, txPin)
+OTSIM900Link::OTSIM900Link(uint8_t hardPwrPin, uint8_t pwrPin, uint8_t _rxPin, uint8_t _txPin)
+  : HARD_PWR_PIN(hardPwrPin), PWR_PIN(pwrPin)
 {
   bAvailable = false;
   bPowered = false;

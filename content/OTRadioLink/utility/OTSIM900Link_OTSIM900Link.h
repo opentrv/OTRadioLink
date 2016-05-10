@@ -183,8 +183,10 @@ private:
   // pins for software serial
   const uint8_t HARD_PWR_PIN;
   const uint8_t PWR_PIN;
+  static const uint8_t rxPin = 8;
+  static const uint8_t txPin = 5;
   //SoftwareSerial softSerial;
-  OTV0P2BASE::OTSoftSerial2<8, 5> softSerial;
+  OTV0P2BASE::OTSoftSerial2<rxPin, txPin> softSerial;
 
   // variables
   bool bAvailable;
