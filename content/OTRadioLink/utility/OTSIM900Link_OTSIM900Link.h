@@ -130,7 +130,7 @@ class OTSIM900Link : public OTRadioLink::OTRadioLink
   static const uint8_t MAX_SIM900_RESPONSE_CHARS = 64;
 
 public:
-  OTSIM900Link(uint8_t pwrSwitchPin, uint8_t pwrPin, uint8_t rxPin, uint8_t txPin);
+  OTSIM900Link(uint8_t pwrSwitchPin, uint8_t pwrPin);
 
 /************************* Public Methods *****************************/
     bool begin();
