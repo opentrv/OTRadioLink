@@ -31,7 +31,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015-2016
 
 // If DEFINED: Prints debug information to serial.
 //             !!! WARNING! THIS WILL CAUSE BLOCKING OF OVER 300 MS!!!
-//#define OTSIM900LINK_DEBUG
+#define OTSIM900LINK_DEBUG
 
 /**
  * @note    To use library:
@@ -176,7 +176,7 @@ private:
     static const char AT_GET_MODULE = 'I';
     static const char AT_SET = '=';
     static const char AT_QUERY = '?';
-    static const char AT_END = '\r';
+//    static const char AT_END = '\r';
 
     // Standard Responses
 
@@ -228,6 +228,7 @@ private:
 
     // Serial functions
     uint8_t timedBlockingRead(char *data, uint8_t length);
+    void printConfig(const void * src);
 
     // write AT commands
     bool checkModule();
@@ -288,6 +289,15 @@ virtual void preinit(const void *preconfig) {}    // not really relevant?
 virtual void panicShutdown() { preinit(NULL); }    // see above
 */
 };
+
+//template<uint8_t rxPin, uint8_t txPin>
+//class OTSIM900Link : public OTSIM900LinkBase
+//{
+//protected:
+//	OTV0P2BASE::OTSoftSerial2<rxPin, txPin> ser
+//
+//};
+
 
 }    // namespace OTSIM900Link
 
