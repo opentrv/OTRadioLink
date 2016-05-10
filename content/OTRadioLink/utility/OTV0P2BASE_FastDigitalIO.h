@@ -71,6 +71,7 @@ namespace OTV0P2BASE
 /* Register: PORTD for 0--7, PORTB for 8--13, (eg 13 is PORTB), 14--19 PINC (ADC/AI). */
 /* Bit: 0--7 as-is, 8--13 subtract 8, else subtract 14. */
 // Handle quickly constant-value pins that we know about; fall back to generic run-time routine for rest.
+// NOTE: Falls back to digitalWrite if 'value' is not a compile time constant.
 #define fastDigitalWrite(pin, value) do { \
     if(__builtin_constant_p((pin)) && (__builtin_constant_p(value) && ((pin) >= 0) && ((pin) < 8))) { bitWrite(PORTD, (pin), (value)); } \
     else if(__builtin_constant_p((pin)) && (__builtin_constant_p((value)) && ((pin) >= 8) && ((pin) < 14))) { bitWrite(PORTB, max((pin)-8,0), (value)); } \
