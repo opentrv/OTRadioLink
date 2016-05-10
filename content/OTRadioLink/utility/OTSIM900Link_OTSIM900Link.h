@@ -31,7 +31,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015-2016
 
 // If DEFINED: Prints debug information to serial.
 //             !!! WARNING! THIS WILL CAUSE BLOCKING OF OVER 300 MS!!!
-#define OTSIM900LINK_DEBUG
+//#define OTSIM900LINK_DEBUG
 
 /**
  * @note    To use library:
@@ -194,7 +194,7 @@ private:
   static const uint8_t duration = 3;
   volatile uint8_t txMessageQueue; // Number of frames currently queued for TX.
   const OTSIM900LinkConfig_t *config;
-  static const uint16_t baud = 2400; // max reliable baud
+  static const uint16_t baud = 9600; // max reliable baud
   static const uint8_t flushTimeOut = 10;
 /************************* Private Methods *******************************/
       // Power up/down
