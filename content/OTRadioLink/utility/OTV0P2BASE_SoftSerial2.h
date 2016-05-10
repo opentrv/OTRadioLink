@@ -43,10 +43,8 @@ class OTSoftSerial2 : public Stream
 protected:
     static const uint16_t timeOut = 60000; // fed into loop...
 
-//    const uint8_t rxPin;
-//    const uint8_t txPin;
-    uint8_t readDelay;
     uint8_t writeDelay;
+    uint8_t readDelay;
     uint8_t halfDelay;
 //    volatile uint8_t rxBufferHead;
 //    volatile uint8_t rxBufferTail;
@@ -58,8 +56,8 @@ public:
      */
     OTSoftSerial2()
     {
-    	readDelay = 0;
     	writeDelay = 0;
+    	readDelay = 0;
         halfDelay = 0;
     }
     /**
@@ -72,9 +70,9 @@ public:
     {
         // Set delays
         uint16_t bitCycles = (F_CPU/4) / speed;
-        readDelay = bitCycles - 10;  // Both these need an offset.
-        writeDelay = bitCycles - 25;
-        halfDelay = bitCycles/2;
+        writeDelay = bitCycles - 3;
+        readDelay = bitCycles - 8;  // Both these need an offset. These values seem to work at 9600 baud.
+        halfDelay = bitCycles/2 - 1;
         // Set pins for UART
         pinMode(rxPin, INPUT_PULLUP);
         pinMode(txPin, OUTPUT);
@@ -103,7 +101,8 @@ public:
 
             // send byte. Loops until mask overflows back to 0
             while(mask != 0) {
-                fastDigitalWrite(txPin, mask & c);
+                if (mask & c) fastDigitalWrite(txPin, HIGH);
+                else fastDigitalWrite(txPin, LOW);
                 _delay_x4cycles(writeDelay);
                 mask = mask << 1;    // bit shift to next value
             }
@@ -142,6 +141,11 @@ public:
                 _delay_x4cycles(readDelay);
                 val |= fastDigitalRead(rxPin) << i;
             }
+//            uint8_t i = 0;
+//            while(i++ < 8) {
+//                _delay_x4cycles(readDelay);
+//                val |= fastDigitalRead(rxPin) << i;
+//            }
 
             timer = timeOut;
             while (!fastDigitalRead(rxPin)) {
