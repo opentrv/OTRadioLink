@@ -14,7 +14,8 @@ pending:
     DE20160411:  Changed methods to exit with -1 on error
     DE20160411:  Replaced digitalWrite with fastDigitalWrite and trimmed debug output 
     DE20160428:  Initial working version based on OTSoftSerial2.
-    
+    DE20160509:  Fixed bug causing OTSIM900Link to block indefinitely when waiting for serial response.
+    DE20160510:  Upped software serial baud to 9600.
 
 
 20160331:

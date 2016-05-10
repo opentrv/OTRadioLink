@@ -3,12 +3,14 @@
 - [x] Rewrite to use stream interface Arduino libs (arduino-1.6.7/hardware/arduino/avr/cores/arduino/Stream.h)
 - [ ] Move read into interrupt (although still blocking).
 - [ ] Make non-blocking.
-- [ ] Template the class to speed it up.
+- [x] Template the class to speed it up.
 
 ## Current Problems (20160415):
 1. Have to block for long periods of time while waiting for Rx.
-2. Uses slow Arduino digitalWrite functions as pins are set at runtime.
+2. ~~Uses slow Arduino digitalWrite functions as pins are set at runtime.~~
 3. CPU clock rate no longer reliable (might change during runtime).
+4. It's difficult to set how long read times are at higher speeds.
+5. AVR has no barrel shift so read time increases with each bit read (only important at high baud).
 
 ## Solutions:
 1. Optionally start Rx of each byte with an interrupt.
@@ -45,6 +47,7 @@ Example function that reads multiple characters into an array (this example is a
  * @param    length  length of data buffer
  * @retval   number of characters received before time out
  */
+```cpp
 uint8_t readLotsOfChars(char *data, uint8_t length)
 {
     // clear buffer, get time and init i to 0
@@ -61,3 +64,4 @@ uint8_t readLotsOfChars(char *data, uint8_t length)
     }
   return counter;
 }
+```
