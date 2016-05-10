@@ -141,11 +141,6 @@ public:
                 _delay_x4cycles(readDelay);
                 val |= fastDigitalRead(rxPin) << i;
             }
-//            uint8_t i = 0;
-//            while(i++ < 8) {
-//                _delay_x4cycles(readDelay);
-//                val |= fastDigitalRead(rxPin) << i;
-//            }
 
             timer = timeOut;
             while (!fastDigitalRead(rxPin)) {
