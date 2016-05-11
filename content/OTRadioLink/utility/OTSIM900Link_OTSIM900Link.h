@@ -123,14 +123,14 @@ enum OTSIM900LinkState {
  *             - If not sending often may be more efficient to power up and wait for connect each time
  *             Make OTSIM900LinkBase to abstract serial interface and allow templating?
  */
-class OTSIM900Link : public OTRadioLink::OTRadioLink
+class OTSIM900LinkBase : public OTRadioLink::OTRadioLink
 {
   // Maximum number of significant chars in the SIM900 response.
   // Minimising this reduces stack and/or global space pressures.
   static const uint8_t MAX_SIM900_RESPONSE_CHARS = 64;
 
 public:
-  OTSIM900Link(uint8_t pwrSwitchPin, uint8_t pwrPin);
+  OTSIM900LinkBase(uint8_t pwrSwitchPin, uint8_t pwrPin);
 
 /************************* Public Methods *****************************/
     bool begin();

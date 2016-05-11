@@ -31,7 +31,7 @@ namespace OTSIM900Link
  * Cannot do anything with side-effects,
  * as may be called before run-time fully initialised!
  */
-OTSIM900Link::OTSIM900Link(uint8_t hardPwrPin, uint8_t pwrPin)
+OTSIM900LinkBase::OTSIM900LinkBase(uint8_t hardPwrPin, uint8_t pwrPin)
   : HARD_PWR_PIN(hardPwrPin), PWR_PIN(pwrPin)
 {
   bAvailable = false;
@@ -49,7 +49,7 @@ OTSIM900Link::OTSIM900Link(uint8_t hardPwrPin, uint8_t pwrPin)
  * @brief     Assigns OTSIM900LinkConfig config. Must be called before begin()
  * @retval    returns true if assigned or false if config is NULL
  */
-bool OTSIM900Link::_doconfig()
+bool OTSIM900LinkBase::_doconfig()
 {
     if (channelConfig->config == NULL) return false;
     else {
@@ -61,7 +61,7 @@ bool OTSIM900Link::_doconfig()
 /**
  * @brief    Starts software serial, checks for module and inits state machine.
  */
-bool OTSIM900Link::begin()
+bool OTSIM900LinkBase::begin()
 {
     pinMode(PWR_PIN, OUTPUT);
     fastDigitalWrite(PWR_PIN, LOW);
@@ -73,7 +73,7 @@ bool OTSIM900Link::begin()
 /**
  * @brief    close UDP connection and power down SIM module
  */
-bool OTSIM900Link::end()
+bool OTSIM900LinkBase::end()
 {
     closeUDP();
 //    powerOff(); TODO fix this
@@ -89,7 +89,7 @@ bool OTSIM900Link::end()
  * @retval  returns true if send process inited.
  * @note    requires calling of poll() to check if message sent successfully
  */
-bool OTSIM900Link::sendRaw(const uint8_t *buf, uint8_t buflen, int8_t , TXpower , bool)
+bool OTSIM900LinkBase::sendRaw(const uint8_t *buf, uint8_t buflen, int8_t , TXpower , bool)
 {
     bool bSent = false;
     OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Send Raw")
@@ -106,7 +106,7 @@ bool OTSIM900Link::sendRaw(const uint8_t *buf, uint8_t buflen, int8_t , TXpower 
  * @retval  returns true if send process inited.
  * @note    requires calling of poll() to check if message sent successfully.
  */
-bool OTSIM900Link::queueToSend(const uint8_t *buf, uint8_t buflen, int8_t , TXpower )
+bool OTSIM900LinkBase::queueToSend(const uint8_t *buf, uint8_t buflen, int8_t , TXpower )
 {
     if ((buf == NULL) || (buflen > sizeof(txQueue)) || (txMessageQueue >= maxTxQueueLength)) return false;    // TODO check logic and sort out maxTXMsgLen problem
     // Increment message queue
@@ -120,7 +120,7 @@ bool OTSIM900Link::queueToSend(const uint8_t *buf, uint8_t buflen, int8_t , TXpo
 /**
  * @brief   Polling routine steps through 4 stage state machine
  */
-void OTSIM900Link::poll()
+void OTSIM900LinkBase::poll()
 {
     if (bPowerLock == false) {
         if (OTV0P2BASE::getSubCycleTime() < 10) {
@@ -228,7 +228,7 @@ void OTSIM900Link::poll()
  * @param   array containing server IP
  * @retval  Returns true if UDP opened
  */
-bool OTSIM900Link::openUDP()
+bool OTSIM900LinkBase::openUDP()
 {
     char data[MAX_SIM900_RESPONSE_CHARS];
     memset(data, 0, sizeof(data));
@@ -259,7 +259,7 @@ bool OTSIM900Link::openUDP()
  * @retval  True if UDP closed.
  * @note    Check UDP open?
  */
-bool OTSIM900Link::closeUDP()
+bool OTSIM900LinkBase::closeUDP()
 {
     ser.print(AT_START);
     ser.println(AT_CLOSE_UDP);
@@ -274,7 +274,7 @@ bool OTSIM900Link::closeUDP()
  * @param   length: Length of frame.
  * @retval  True if send successful.
  */
-bool OTSIM900Link::sendUDP(const char *frame, uint8_t length)
+bool OTSIM900LinkBase::sendUDP(const char *frame, uint8_t length)
 {
     ser.print(AT_START);
     ser.print(AT_SEND_UDP);
@@ -297,7 +297,7 @@ bool OTSIM900Link::sendUDP(const char *frame, uint8_t length)
  * @param   length: Length of data buffer.
  * @retval  Number of characters received before time out.
  */
-uint8_t OTSIM900Link::timedBlockingRead(char *data, uint8_t length)
+uint8_t OTSIM900LinkBase::timedBlockingRead(char *data, uint8_t length)
 {
     // clear buffer, get time and init i to 0
     uint8_t counter = 0;
@@ -321,7 +321,7 @@ uint8_t OTSIM900Link::timedBlockingRead(char *data, uint8_t length)
  * @brief	Utility function for printing from config structure.
  * @param	src:	Source to print from. Should be passed as a config-> pointer.
  */
-void OTSIM900Link::printConfig(const void * src)
+void OTSIM900LinkBase::printConfig(const void * src)
 {
     char c = 0xff;    // to avoid exiting the while loop without \0 getting written
     const uint8_t *ptr = (const uint8_t *) src;
@@ -340,7 +340,7 @@ void OTSIM900Link::printConfig(const void * src)
  * @todo    Make sure this doesn't block longer than 250 ms.
  * @retval  True if character found, or false on 1000ms timeout
  */
-bool OTSIM900Link::flushUntil(uint8_t _terminatingChar)
+bool OTSIM900LinkBase::flushUntil(uint8_t _terminatingChar)
 {
     const uint8_t terminatingChar = _terminatingChar;
     const uint8_t endTime = OTV0P2BASE::getSecondsLT() + flushTimeOut;
@@ -362,7 +362,7 @@ bool OTSIM900Link::flushUntil(uint8_t _terminatingChar)
  * @param   length: length of array name.
  * @retval  True if ID recovered successfully.
  */
-bool OTSIM900Link::checkModule()
+bool OTSIM900LinkBase::checkModule()
 {
 char data[min(32, MAX_SIM900_RESPONSE_CHARS)];
     ser.print(AT_START);
@@ -381,7 +381,7 @@ char data[min(32, MAX_SIM900_RESPONSE_CHARS)];
  * @param   length: length of buffer.
  * @param   True if connected to network.
  */
-bool OTSIM900Link::checkNetwork()
+bool OTSIM900LinkBase::checkNetwork()
 {
     char data[MAX_SIM900_RESPONSE_CHARS];
     ser.print(AT_START);
@@ -396,7 +396,7 @@ bool OTSIM900Link::checkNetwork()
  * @brief   Check if module connected and registered (GSM and GPRS).
  * @retval  True if registered.
  */
-bool OTSIM900Link::isRegistered()
+bool OTSIM900LinkBase::isRegistered()
 {
 //  Check the GSM registration via AT commands ( "AT+CREG?" returns "+CREG:x,1" or "+CREG:x,5"; where "x" is 0, 1 or 2).
 //  Check the GPRS registration via AT commands ("AT+CGATT?" returns "+CGATT:1" and "AT+CGREG?" returns "+CGREG:x,1" or "+CGREG:x,5"; where "x" is 0, 1 or 2). 
@@ -419,7 +419,7 @@ bool OTSIM900Link::isRegistered()
  * @retval  0 if APN set.
  * @retval  -1 if failed to set.
  */
-uint8_t OTSIM900Link::setAPN()
+uint8_t OTSIM900LinkBase::setAPN()
 {
     char data[MAX_SIM900_RESPONSE_CHARS]; // FIXME: was 96: that's a LOT of stack!
     ser.print(AT_START);
@@ -443,7 +443,7 @@ uint8_t OTSIM900Link::setAPN()
  *          -1 if failed.
  * @note    check power, check registered, check gprs active.
  */
-uint8_t OTSIM900Link::startGPRS()
+uint8_t OTSIM900LinkBase::startGPRS()
 {
     char data[min(16, MAX_SIM900_RESPONSE_CHARS)];
     ser.print(AT_START);
@@ -464,7 +464,7 @@ uint8_t OTSIM900Link::startGPRS()
  * @retval  0 if shut.
  * @retval  -1 if failed to shut.
  */
-uint8_t OTSIM900Link::shutGPRS()
+uint8_t OTSIM900LinkBase::shutGPRS()
 {
     char data[MAX_SIM900_RESPONSE_CHARS]; // Was 96: that's a LOT of stack!
     ser.print(AT_START);
@@ -485,7 +485,7 @@ uint8_t OTSIM900Link::shutGPRS()
  * @todo    How should I return the string?
  * @retval  return length of IP address. Return 0 if no connection
  */
-uint8_t OTSIM900Link::getIP()
+uint8_t OTSIM900LinkBase::getIP()
 {
   char data[MAX_SIM900_RESPONSE_CHARS];
   ser.print(AT_START);
@@ -509,7 +509,7 @@ uint8_t OTSIM900Link::getIP()
  * @retval  1 if UDP socket open.
  * @retval  2 if in dead end state.
  */
-uint8_t OTSIM900Link::isOpenUDP()
+uint8_t OTSIM900LinkBase::isOpenUDP()
 {
     char data[MAX_SIM900_RESPONSE_CHARS];
     ser.print(AT_START);
@@ -531,7 +531,7 @@ uint8_t OTSIM900Link::isOpenUDP()
  * @brief   Set verbose errors
  * @param   level: 0 is no error codes, 1 is with codes, 2 is human readable descriptions.
  */
-void OTSIM900Link::verbose(uint8_t level)
+void OTSIM900LinkBase::verbose(uint8_t level)
 {
     char data[MAX_SIM900_RESPONSE_CHARS];
     ser.print(AT_START);
@@ -547,7 +547,7 @@ void OTSIM900Link::verbose(uint8_t level)
  * @brief   Enter PIN code
  * @todo    Check return value?
  */
-uint8_t OTSIM900Link::setPIN()
+uint8_t OTSIM900LinkBase::setPIN()
 {
     char data[MAX_SIM900_RESPONSE_CHARS];
     ser.print(AT_START);
@@ -563,7 +563,7 @@ uint8_t OTSIM900Link::setPIN()
 /**
  * @brief   Check if PIN required
  */
-bool OTSIM900Link::checkPIN()
+bool OTSIM900LinkBase::checkPIN()
 {
     char data[min(40, MAX_SIM900_RESPONSE_CHARS)];
     ser.print(AT_START);
@@ -589,7 +589,7 @@ bool OTSIM900Link::checkPIN()
  * @param   startChar:  Ignores everything up to and including this character.
  * @retval  pointer to start of useful data.
  */
-const char *OTSIM900Link::getResponse(uint8_t &newLength, const char *data, uint8_t dataLength, char _startChar)
+const char *OTSIM900LinkBase::getResponse(uint8_t &newLength, const char *data, uint8_t dataLength, char _startChar)
 {
     char startChar = _startChar;
     const char *newPtr = NULL;
@@ -654,7 +654,7 @@ const char *OTSIM900Link::getResponse(uint8_t &newLength, const char *data, uint
  * @retval  0 if correct response.
  * @retval  -1 if unexpected response.
  */
-uint8_t OTSIM900Link::interrogateSIM900()
+uint8_t OTSIM900LinkBase::interrogateSIM900()
 {
     ser.println(AT_START);
 //    ser.print(AT_END);
@@ -682,7 +682,7 @@ uint8_t OTSIM900Link::interrogateSIM900()
  * @brief   Get signal strength.
  * @todo    Return /print something?
  */
-void OTSIM900Link::getSignalStrength()
+void OTSIM900LinkBase::getSignalStrength()
 {
     char data[min(32, MAX_SIM900_RESPONSE_CHARS)];
     ser.print(AT_START);
@@ -699,7 +699,7 @@ void OTSIM900Link::getSignalStrength()
  * @brief   placeholder
  * @retval  returns true on successful exit
  */
-bool OTSIM900Link::handleInterruptSimple()
+bool OTSIM900LinkBase::handleInterruptSimple()
 {
     return true;
 }
@@ -708,7 +708,7 @@ bool OTSIM900Link::handleInterruptSimple()
  * @brief   toggles power and sets power lock.
  * @fixme   proper ovf testing not implemented so the SIM900 may not power on/off near the end of a 60 second cycle.
  */
-void OTSIM900Link::powerToggle()
+void OTSIM900LinkBase::powerToggle()
 {
     fastDigitalWrite(PWR_PIN, HIGH);
     delay(1000);  // This is the minimum value that worked reliably
@@ -720,25 +720,25 @@ void OTSIM900Link::powerToggle()
 }
 
 
-//const char OTSIM900Link::AT_[] = "";
-const char OTSIM900Link::AT_START[3] = "AT";
-const char OTSIM900Link::AT_SIGNAL[5] = "+CSQ";
-const char OTSIM900Link::AT_NETWORK[6] = "+COPS";
-const char OTSIM900Link::AT_REGISTRATION[6] = "+CREG"; // GSM registration.
-const char OTSIM900Link::AT_GPRS_REGISTRATION0[7] = "+CGATT"; // GPRS registration.
-const char OTSIM900Link::AT_GPRS_REGISTRATION[7] = "+CGREG"; // GPRS registration.
-const char OTSIM900Link::AT_SET_APN[6] = "+CSTT";
-const char OTSIM900Link::AT_START_GPRS[7] = "+CIICR";
-const char OTSIM900Link::AT_GET_IP[7] = "+CIFSR";
-const char OTSIM900Link::AT_PIN[6] = "+CPIN";
+//const char OTSIM900LinkBase::AT_[] = "";
+const char OTSIM900LinkBase::AT_START[3] = "AT";
+const char OTSIM900LinkBase::AT_SIGNAL[5] = "+CSQ";
+const char OTSIM900LinkBase::AT_NETWORK[6] = "+COPS";
+const char OTSIM900LinkBase::AT_REGISTRATION[6] = "+CREG"; // GSM registration.
+const char OTSIM900LinkBase::AT_GPRS_REGISTRATION0[7] = "+CGATT"; // GPRS registration.
+const char OTSIM900LinkBase::AT_GPRS_REGISTRATION[7] = "+CGREG"; // GPRS registration.
+const char OTSIM900LinkBase::AT_SET_APN[6] = "+CSTT";
+const char OTSIM900LinkBase::AT_START_GPRS[7] = "+CIICR";
+const char OTSIM900LinkBase::AT_GET_IP[7] = "+CIFSR";
+const char OTSIM900LinkBase::AT_PIN[6] = "+CPIN";
 
-const char OTSIM900Link::AT_STATUS[11] = "+CIPSTATUS";
-const char OTSIM900Link::AT_START_UDP[10] = "+CIPSTART";
-const char OTSIM900Link::AT_SEND_UDP[9] = "+CIPSEND";
-const char OTSIM900Link::AT_CLOSE_UDP[10] = "+CIPCLOSE";
-const char OTSIM900Link::AT_SHUT_GPRS[9] = "+CIPSHUT";
+const char OTSIM900LinkBase::AT_STATUS[11] = "+CIPSTATUS";
+const char OTSIM900LinkBase::AT_START_UDP[10] = "+CIPSTART";
+const char OTSIM900LinkBase::AT_SEND_UDP[9] = "+CIPSEND";
+const char OTSIM900LinkBase::AT_CLOSE_UDP[10] = "+CIPCLOSE";
+const char OTSIM900LinkBase::AT_SHUT_GPRS[9] = "+CIPSHUT";
 
-const char OTSIM900Link::AT_VERBOSE_ERRORS[6] = "+CMEE";
+const char OTSIM900LinkBase::AT_VERBOSE_ERRORS[6] = "+CMEE";
 
 // tcpdump -Avv udp and dst port 9999
 
