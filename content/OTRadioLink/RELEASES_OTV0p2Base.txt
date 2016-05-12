@@ -9,6 +9,7 @@ or release/freeze points.
 
 
 pending:
+    DE20160510:  OTSoftSerial now runs at 9600 baud.
 
 
 
