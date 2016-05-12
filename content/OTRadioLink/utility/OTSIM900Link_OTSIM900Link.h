@@ -31,8 +31,10 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015-2016
 
 // If DEFINED: Prints debug information to serial.
 //             !!! WARNING! THIS WILL CAUSE BLOCKING OF OVER 300 MS!!!
-#define OTSIM900LINK_DEBUG
+//#define OTSIM900LINK_DEBUG
 
+
+// OTSIM900Link macros for printing debug information to serial.
 #ifndef OTSIM900LINK_DEBUG
 #define OTSIM900LINK_DEBUG_SERIAL_PRINT(s) // Do nothing.
 #define OTSIM900LINK_DEBUG_SERIAL_PRINTFMT(s, format) // Do nothing.
