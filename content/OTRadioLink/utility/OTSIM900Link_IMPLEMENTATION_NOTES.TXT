@@ -30,3 +30,4 @@ Other notes:
     - set initialBaud to current SIM900 baud
     - set targetBaud to the baud you want the SIM900 to be set to.
 - For some reason it needs getIP() (AT+CIFSR) to be called after startGPRS() in the state machine version.
+- Recommend testing with "tcpdump -X udp port 9999" (-X means print hex and ascii)
