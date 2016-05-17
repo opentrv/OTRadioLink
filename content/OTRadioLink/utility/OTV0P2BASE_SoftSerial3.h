@@ -18,8 +18,8 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
 
 // NOTE!!! Implementation details are in OTV0P2BASE_SoftSerial_NOTES.txt!!!
 
-#ifndef CONTENT_OTRADIOLINK_UTILITY_OTV0P2BASE_SOFTSERIAL2_H_
-#define CONTENT_OTRADIOLINK_UTILITY_OTV0P2BASE_SOFTSERIAL2_H_
+#ifndef CONTENT_OTRADIOLINK_UTILITY_OTV0P2BASE_SOFTSERIAL3_H_
+#define CONTENT_OTRADIOLINK_UTILITY_OTV0P2BASE_SOFTSERIAL3_H_
 
 #include <stdint.h>
 #include "Arduino.h"
@@ -30,35 +30,35 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
 namespace OTV0P2BASE
 {
 
-static const uint8_t OTSOFTSERIAL2_BUFFER_SIZE = 32;
+static const uint8_t OTSOFTSERIAL3_BUFFER_SIZE = 32;
 
 /**
- * @class   OTSoftSerial2
+ * @class   OTSoftSerial3
  * @brief   Software serial with optional blocking read and settable interrupt pins.
  *          Extends Stream.h from the Arduino core libraries.
  */
 template <uint8_t rxPin, uint8_t txPin>
-class OTSoftSerial2 : public Stream
+class OTSoftSerial3 : public Stream
 {
 protected:
-    static const uint16_t timeOut = 60000; // fed into loop...
-
     uint8_t writeDelay;
     uint8_t readDelay;
     uint8_t halfDelay;
-//    volatile uint8_t rxBufferHead;
-//    volatile uint8_t rxBufferTail;
-//    uint8_t rxBuffer[OTSOFTSERIAL2_BUFFER_SIZE];
+    volatile uint8_t rxBufferHead;
+    volatile uint8_t rxBufferTail;
+    uint8_t rxBuffer[OTSOFTSERIAL3_BUFFER_SIZE];
 
 public:
     /**
      * @brief   Constructor for OTSoftSerial2
      */
-    OTSoftSerial2()
+    OTSoftSerial3()
     {
-    	writeDelay = 0;
-    	readDelay = 0;
+        writeDelay = 0;
+        readDelay = 0;
         halfDelay = 0;
+        rxBufferHead = 0;
+        rxBufferTail = 0;
     }
     /**
      * @brief   Initialises OTSoftSerial2 and sets up pins.
@@ -71,12 +71,13 @@ public:
         // Set delays
         uint16_t bitCycles = (F_CPU/4) / speed;
         writeDelay = bitCycles - 3;
-        readDelay = bitCycles - 8;  // Both these need an offset. These values seem to work at 9600 baud.
-        halfDelay = bitCycles/2 - 1;
+        readDelay = bitCycles;  // Both these need an offset. These values seem to work at 9600 baud. 8
+        halfDelay = bitCycles/2;
         // Set pins for UART
         pinMode(rxPin, INPUT_PULLUP);
         pinMode(txPin, OUTPUT);
         fastDigitalWrite(txPin, HIGH);
+        memset(rxBuffer, 0, OTSOFTSERIAL3_BUFFER_SIZE);
     }
     void begin(unsigned long speed) { begin(speed, 0); }
     /**
@@ -117,37 +118,17 @@ public:
      * @brief   Read next character in the input buffer without removing it.
      * @retval  Next character in input buffer.
      */
-    int peek() { return -1; }
+    int peek()
+    {
+        return rxBuffer[0];
+    }
     /**
      * @brief   Reads a byte from the serial and removes it from the buffer.
      * @retval  Next character in input buffer.
      */
-    int read() {
-        // Blocking read:
-        uint8_t val = 0;
-        ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-        {
-            volatile uint16_t timer = timeOut;  // TODO find out if using an attribute will be useful.
-            // wait for line to go low
-            while (fastDigitalRead(rxPin)) {
-                if (--timer == 0) return -1;
-            }
-
-            // wait for mid point of bit
-            _delay_x4cycles(halfDelay);
-
-            // step through bits and read value    // FIXME better way of doing this?
-            for(uint8_t i = 0; i < 8; i++) {
-                _delay_x4cycles(readDelay);
-                val |= fastDigitalRead(rxPin) << i;
-            }
-
-            timer = timeOut;
-            while (!fastDigitalRead(rxPin)) {
-                if (--timer == 0) return -1;
-            }
-        }
-        return val;
+    int read()
+    {
+        return -1;
     }
     /**
      * @brief   Get the number of bytes available to read in the input buffer.
@@ -160,7 +141,7 @@ public:
      */
     operator bool() { return true; }
     using Print::write; // write(str) and write(buf, size) from Print
-    
+
     /**************************************************************************
      * -------------------------- Non Standard ------------------------------ *
      *************************************************************************/
@@ -170,9 +151,42 @@ public:
      */
     void sendBreak()
     {
-    	fastDigitalWrite(txPin, LOW);
-    	_delay_x4cycles(writeDelay * 16);
-    	fastDigitalWrite(txPin, HIGH);
+        fastDigitalWrite(txPin, LOW);
+        _delay_x4cycles(writeDelay * 16);
+        fastDigitalWrite(txPin, HIGH);
+    }
+    /**
+     * @brief   Handle interrupts
+     */
+    inline void handle_interrupt()
+    {
+        // Blocking read:
+        uint8_t next = rxBufferTail;
+        uint8_t val = 0;
+        // wait for mid point of bit
+//        _delay_x4cycles(halfDelay);
+        _delay_x4cycles(3);
+
+        // step through bits and read value    // FIXME better way of doing this?
+        for(uint8_t i = 0; i < 8; i++) {
+//            _delay_x4cycles(readDelay);
+            _delay_x4cycles(25);
+            val |= fastDigitalRead(rxPin) << i;
+        }
+        // Writing to the buffer:
+        //  - Increment tail pointer
+        //  - Check for ovf
+        //  - Check tail has not overtaken head.
+        //  - Write char to tail.
+        rxBuffer[0] = val;
+//        next++;
+//        if (next > OTSOFTSERIAL3_BUFFER_SIZE) {
+//            next = 0;
+//        }
+//        if (next != rxBufferHead) {
+//            rxBufferTail = next;
+//            rxBuffer[next] = val;
+//        }
     }
     /**************************************************************************
      * ------------------------ Unimplemented ------------------------------- *
@@ -199,4 +213,4 @@ public:
 
 }
 
-#endif /* CONTENT_OTRADIOLINK_UTILITY_OTV0P2BASE_SOFTSERIAL2_H_ */
+#endif /* CONTENT_OTRADIOLINK_UTILITY_OTV0P2BASE_SOFTSERIAL3_H_ */
