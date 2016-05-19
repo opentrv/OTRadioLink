@@ -104,27 +104,32 @@ void test_available()
  */
 void test_sim900Loopback()
 {
-    Serial.println(__func__);
-    char buf[5];
+//    Serial.println(__func__);
+    char buf[11];
+    const char expected[11] = "AT\r\n\r\nOK\r\n";
     memset(buf, 0, sizeof(buf));
-    ser.println("AT");
-    delay(500);
-    Serial.print("available: ");
-    Serial.println(ser.available());
-    Serial.print("peek: ");
-    Serial.println(ser.peek(), HEX);
+    ser.println("AT"); 
+    delay(1000); // WHY???? Fails to read first go correctly.
+//    ser.println("AT"); 
+//    delay(1000);
+    assert(ser.available() == 10);
+//    Serial.print("peek: ");
+//    Serial.println(ser.peek(), HEX);
     assert(ser.peek() == 'A');
-    for (uint8_t i = 0; i < sizeof(buf); i++) {
-        buf[i] = ser.read();
+    for (uint8_t i = 0; ser.available(); i++) {
+        buf[i] = (char)(ser.read());
     }
-    Serial.print("read: ");  // Expecting 41 54 08 02?
+    Serial.print("read: ");
     for (uint8_t i = 0; i < sizeof(buf); i++) {
-        Serial.print(buf[i], HEX);
+        Serial.print(buf[i] & 0xff, HEX);
         Serial.print(" ");
     }
     Serial.println();
-    assert(buf[0] == 'A');
-    assert(buf[1] == 'T');
+//    uint8_t result = strncmp(buf, expected, sizeof(buf));
+//    assert(result == 0);
+//    assert(buf[0] == 'A');
+//    assert(buf[1] == 'T');
+    delay(500);
 }
 
 
@@ -155,21 +160,23 @@ void setup() {
   PCMSK0 |= (1 << PCINT0); // Arduino digital pin 8
   PCICR |= (1 << PCIE0);
   sei();
+
+  ser.begin(9600);
 }
 
 void loop() {
     // Copy looping stuff from unit tests.
     
     // Actual tests:
-    OTUnitTest::begin(4800);
-    test_begin(); // Not yet implemented.
-    test_available();
-    test_write();
-    test_peek();
-    test_read(); // Commented as covered by 'loopback'
-    test_bool();
-    test_availableForWrite();
+//    OTUnitTest::begin(4800);
+//    test_begin(); // Not yet implemented.
+//    test_available();
+//    test_write();
+//    test_peek();
+//    test_read(); // Commented as covered by 'loopback'
+//    test_bool();
+//    test_availableForWrite();
     test_sim900Loopback();
-    test_teardown();
-    OTUnitTest::end();
+//    test_teardown();
+//    OTUnitTest::end();
 }

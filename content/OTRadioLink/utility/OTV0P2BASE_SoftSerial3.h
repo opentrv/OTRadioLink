@@ -73,7 +73,7 @@ public:
         uint16_t bitCycles = (F_CPU/4) / speed;
         writeDelay = bitCycles - 3;
         readDelay = bitCycles;  // Both these need an offset. These values seem to work at 9600 baud. 8
-        halfDelay = bitCycles/2;
+        halfDelay = bitCycles/2 + readDelay;
         // Set pins for UART
         pinMode(rxPin, INPUT_PULLUP);
         pinMode(txPin, OUTPUT);
@@ -96,6 +96,8 @@ public:
         {
             uint8_t mask = 0x01;
             uint8_t c = byte;
+
+//            memset((void *)rxBuffer, 0, OTSOFTSERIAL3_BUFFER_SIZE); for debug
 
             // Send start bit
             fastDigitalWrite(txPin, LOW);
@@ -148,7 +150,7 @@ public:
      * @brief   Get the number of bytes available to read in the input buffer.
      * @retval  The number of bytes available.
      */
-    int available() { return rxBufferTail; }
+    int available() { return rxBufferTail-rxBufferHead; }
     /**
      * @brief   Check if serial port is ready for use.
      * @todo    Implement the time checks using this?
@@ -178,13 +180,14 @@ public:
         uint8_t bufptr = rxBufferTail;
         uint8_t val = 0;
         // wait for mid point of bit
-//        _delay_x4cycles(halfDelay);
-        _delay_x4cycles(8); // 3
+        _delay_x4cycles(halfDelay- 5);
+//        _delay_x4cycles(8); // 3
 
         // step through bits and read value    // FIXME better way of doing this?
-        for(uint8_t i = 0; i < 8; i++) {
-//            _delay_x4cycles(readDelay);
-            _delay_x4cycles(27); // 25
+        val |= (fastDigitalRead(rxPin) << 0);
+        for(uint8_t i = 1; i < 8; i++) {
+            _delay_x4cycles(readDelay - 8);
+//            _delay_x4cycles(27); // 25
             val |= fastDigitalRead(rxPin) << i;
         }
         // Writing to the buffer:
