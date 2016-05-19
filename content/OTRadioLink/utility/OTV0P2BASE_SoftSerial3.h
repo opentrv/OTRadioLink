@@ -36,6 +36,7 @@ static const uint8_t OTSOFTSERIAL3_BUFFER_SIZE = 32;
  * @class   OTSoftSerial3
  * @brief   Software serial with optional blocking read and settable interrupt pins.
  *          Extends Stream.h from the Arduino core libraries.
+ * @note    This currently does not support a ring buffer. The read buffer is reset after each write and
  */
 template <uint8_t rxPin, uint8_t txPin>
 class OTSoftSerial3 : public Stream
@@ -44,9 +45,9 @@ protected:
     uint8_t writeDelay;
     uint8_t readDelay;
     uint8_t halfDelay;
-    volatile uint8_t rxBufferHead;
+    uint8_t rxBufferHead;
     volatile uint8_t rxBufferTail;
-    uint8_t rxBuffer[OTSOFTSERIAL3_BUFFER_SIZE];
+    volatile uint8_t rxBuffer[OTSOFTSERIAL3_BUFFER_SIZE];
 
 public:
     /**
@@ -66,7 +67,7 @@ public:
      * @fixme   Long is excessive
      * @todo    what to do about optional stuff.
      */
-    void begin(unsigned long speed, uint8_t)
+    void begin(const unsigned long speed, const uint8_t)
     {
         // Set delays
         uint16_t bitCycles = (F_CPU/4) / speed;
@@ -77,9 +78,9 @@ public:
         pinMode(rxPin, INPUT_PULLUP);
         pinMode(txPin, OUTPUT);
         fastDigitalWrite(txPin, HIGH);
-        memset(rxBuffer, 0, OTSOFTSERIAL3_BUFFER_SIZE);
+        memset( (void *)rxBuffer, 0, OTSOFTSERIAL3_BUFFER_SIZE);
     }
-    void begin(unsigned long speed) { begin(speed, 0); }
+    void begin(const unsigned long speed) { begin(speed, 0); }
     /**
      * @brief   Disables serial and releases pins.
      */
@@ -89,7 +90,7 @@ public:
      * @param   byte: Byte to write.
      * @retval  Number of bytes written.
      */
-    size_t write(uint8_t byte)
+    size_t write(const uint8_t byte)
     {
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
         {
@@ -111,6 +112,8 @@ public:
             // send stop bit
             fastDigitalWrite(txPin, HIGH);
             _delay_x4cycles(writeDelay);
+            rxBufferHead = 0;
+            rxBufferTail = 0;
         }
         return 1;
     }
@@ -120,7 +123,12 @@ public:
      */
     int peek()
     {
-        return rxBuffer[0];
+        uint8_t head = rxBufferHead;
+        uint8_t tail = rxBufferTail;
+        if ((tail > 0) && (head < tail)) {
+            return rxBuffer[head];
+        }
+        else return -1;
     }
     /**
      * @brief   Reads a byte from the serial and removes it from the buffer.
@@ -128,13 +136,19 @@ public:
      */
     int read()
     {
-        return -1;
+        uint8_t head = rxBufferHead;
+        uint8_t tail = rxBufferTail;
+        if ((tail > 0) && (head < tail)) {
+            rxBufferHead = head + 1;
+            return rxBuffer[head];
+        }
+        else return -1;
     }
     /**
      * @brief   Get the number of bytes available to read in the input buffer.
      * @retval  The number of bytes available.
      */
-    int available() { return -1; }
+    int available() { return rxBufferTail; }
     /**
      * @brief   Check if serial port is ready for use.
      * @todo    Implement the time checks using this?
@@ -161,16 +175,16 @@ public:
     inline void handle_interrupt()
     {
         // Blocking read:
-        uint8_t next = rxBufferTail;
+        uint8_t bufptr = rxBufferTail;
         uint8_t val = 0;
         // wait for mid point of bit
 //        _delay_x4cycles(halfDelay);
-        _delay_x4cycles(3);
+        _delay_x4cycles(8); // 3
 
         // step through bits and read value    // FIXME better way of doing this?
         for(uint8_t i = 0; i < 8; i++) {
 //            _delay_x4cycles(readDelay);
-            _delay_x4cycles(25);
+            _delay_x4cycles(27); // 25
             val |= fastDigitalRead(rxPin) << i;
         }
         // Writing to the buffer:
@@ -178,7 +192,10 @@ public:
         //  - Check for ovf
         //  - Check tail has not overtaken head.
         //  - Write char to tail.
-        rxBuffer[0] = val;
+        if (bufptr < sizeof(rxBuffer)) {
+            rxBuffer[bufptr] = val;
+            rxBufferTail = bufptr + 1;
+        }
 //        next++;
 //        if (next > OTSOFTSERIAL3_BUFFER_SIZE) {
 //            next = 0;
