@@ -38,13 +38,19 @@ static const uint8_t OTSOFTSERIAL3_BUFFER_SIZE = 32;
  *          Extends Stream.h from the Arduino core libraries.
  * @note    This currently does not support a ring buffer. The read buffer is reset after each write and
  */
-template <uint8_t rxPin, uint8_t txPin>
+template <uint8_t rxPin, uint8_t txPin, uint16_t speed>
 class OTSoftSerial3 : public Stream
 {
 protected:
-    uint8_t writeDelay;
-    uint8_t readDelay;
-    uint8_t halfDelay;
+    // All these are compile time calculations and are automatically substituted as part of program code.
+    static const constexpr uint16_t bitCycles = (F_CPU/4) / speed;
+    static const constexpr uint8_t writeDelay = bitCycles - 5;
+    static const constexpr uint8_t quarterDelay = (bitCycles / 4) - 4;  // For multisampling bits
+    static const constexpr uint8_t halfDelay = (bitCycles / 2) - 7;  // Standard inter-bit delay
+    static const constexpr uint8_t longDelay = halfDelay + 5;  // Longer inter-bit delay
+    static const constexpr uint8_t shortDelay = halfDelay - 5;  // Shorter inter-bit delay
+    static const constexpr uint8_t startDelay = (bitCycles/2)-2; // + (bitCycles / 4);  // 1 bit delay to skip start bit + 1 quarter bit delay for first read position.
+
     uint8_t rxBufferHead;
     volatile uint8_t rxBufferTail;
     volatile uint8_t rxBuffer[OTSOFTSERIAL3_BUFFER_SIZE];
@@ -55,9 +61,6 @@ public:
      */
     OTSoftSerial3()
     {
-        writeDelay = 0;
-        readDelay = 0;
-        halfDelay = 0;
         rxBufferHead = 0;
         rxBufferTail = 0;
     }
@@ -67,20 +70,15 @@ public:
      * @fixme   Long is excessive
      * @todo    what to do about optional stuff.
      */
-    void begin(const unsigned long speed, const uint8_t)
+    void begin(const unsigned long, const uint8_t)
     {
-        // Set delays
-        uint16_t bitCycles = (F_CPU/4) / speed;
-        writeDelay = bitCycles - 3;
-        readDelay = bitCycles;  // Both these need an offset. These values seem to work at 9600 baud. 8
-        halfDelay = bitCycles/2 + readDelay;
         // Set pins for UART
         pinMode(rxPin, INPUT_PULLUP);
         pinMode(txPin, OUTPUT);
         fastDigitalWrite(txPin, HIGH);
         memset( (void *)rxBuffer, 0, OTSOFTSERIAL3_BUFFER_SIZE);
     }
-    void begin(const unsigned long speed) { begin(speed, 0); }
+    void begin(const unsigned long) { begin(0, 0); }
     /**
      * @brief   Disables serial and releases pins.
      */
@@ -173,83 +171,61 @@ public:
     }
 
     /**
-     * @brief	clever logic for reading bit
-     */
-    static inline bool readBit()
-    {
-        /*
-         * - While waiting half bit.
-         * 		- Calculate bit value (ctr >> 1)
-         * 		- Decide whether to change timing
-         * 		- Adjust delay
-         * - Start reading next bit
-         */
-    	uint8_t bitval = 0;
-    	uint8_t temp = 0;
-
-    	bitval = fastDigitalRead(rxPin);
-    	bitval = (bitval << 1);
-    	_delay_x4cycles(quarterDelay);
-    	bitval += fastDigitalRead(rxPin);
-    	bitval = (bitval << 1);
-    	_delay_x4cycles(quarterDelay);
-    	bitval += fastDigitalRead(rxPin);
-
-    	// Half delay logic here
-    	switch (bitval) {
-    	case 0b000: // False
-    		bitval = false;
-            _delay_x4cycles(halfDelay);
-    		break;
-    	case 0b010: // False
-    		bitval = false;
-    		_delay_x4cycles(halfDelay);
-    		break;
-    	case 0b001: // False, Too slow
-    		bitval = false;
-			_delay_x4cycles(halfDelay - 5);
-    		break;
-    	case 0b100: // False, Too fast
-    		bitval = false;
-			_delay_x4cycles(halfDelay + 5);
-    		break;
-    	case 0b111: // True
-    		bitval = true;
-			_delay_x4cycles(halfDelay);
-    		break;
-    	case 0b101: // True
-    		bitval = true;
-			_delay_x4cycles(halfDelay);
-    		break;
-    	case 0b110: // True, Too slow
-    		bitval = true;
-			_delay_x4cycles(halfDelay - 5);
-    		break;
-    	case 0b011: // True, Too fast
-    		bitval = true;
-			_delay_x4cycles(halfDelay + 5);
-    		break;
-    	default:
-    		break;
-    	}
-    	return bitval;
-    }
-    /**
      * @brief   Handle interrupts
      */
-    inline void handle_interrupt()
+    inline void handle_interrupt() __attribute__((always_inline))
     {
         // Blocking read:
         uint8_t bufptr = rxBufferTail;
         uint8_t val = 0;
-        // wait for mid point of bit
-        _delay_x4cycles(halfDelay- 5);
+        // wait for first read time (start bit + 1 quarter of 1st bit)
+        _delay_x4cycles(startDelay);
 
         // step through bits and read value    // FIXME better way of doing this?
-        val |= (readBit() << 0);
-        for(uint8_t i = 1; i < 8; i++) {
-            val |= readBit() << i;
+        // We do first 7 bits in loops and then last bit out of loop to avoid delay.
+        for (uint8_t i = 0; i < 7; i++) {
+            // The loop fills in the top bit and shifts down to reverse bit order
+            // (UART is lsb first, we want msb first)
+            uint8_t bitval = 0;
+            bitval = fastDigitalRead(rxPin);
+            bitval = (bitval << 1);
+            _delay_x4cycles(quarterDelay);
+            bitval += fastDigitalRead(rxPin);
+            bitval = (bitval << 1);
+            _delay_x4cycles(quarterDelay);
+            bitval += fastDigitalRead(rxPin);
+            // Work out if bit high and adjust delay.
+            if ((bitval >= 5) || (bitval == 3)) { // True
+                val += (1 << 7);
+                if(bitval == 0b011) _delay_x4cycles(longDelay);  // Too fast
+                else if (bitval == 0b110) _delay_x4cycles(shortDelay);  // Too slow
+                else _delay_x4cycles(halfDelay);
+            } else { // False
+                val += (0 << 7);
+                if(bitval == 0b100) _delay_x4cycles(longDelay); // Too fast
+                else if ( bitval == 0b001) _delay_x4cycles(shortDelay); // Too slow
+                else _delay_x4cycles(halfDelay);
+            }
+            val = val >> 1;  // shift down.
         }
+#if 0 // Cannot exit fast enough with this.
+        { // Read last bit
+            uint8_t bitval = 0;
+            PORTC |= (1 << 2);
+            bitval = fastDigitalRead(rxPin);
+            _delay_x4cycles(quarterDelay);
+            bitval += fastDigitalRead(rxPin);
+            _delay_x4cycles(quarterDelay);
+            bitval += fastDigitalRead(rxPin);
+            PORTC &= ~(1 << 2);
+            if ((bitval >= 5) || (bitval == 3)) { // True
+                val += (1 << 7);
+            } else { // False
+                val += (0 << 7);
+            }
+        }
+#endif
+        // Update Buffer.
         if (bufptr < sizeof(rxBuffer)) {
             rxBuffer[bufptr] = val;
             rxBufferTail = bufptr + 1;
