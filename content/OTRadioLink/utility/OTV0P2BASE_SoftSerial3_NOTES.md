@@ -6,7 +6,7 @@
 - [ ] Some way of disabling read interrupt when not needed.
 
 ## Current Problems (20160519):
-1. First read set of values read **always** fail.
+1. First read set of values read **always** fails due to time taken to enter interrupt.
 2. CPU clock rate no longer reliable (might change during runtime).
 3. It's difficult to set how long read times are at higher speeds.
 4. AVR has no barrel shift so read time increases with each bit read (only important at high baud).
@@ -38,3 +38,5 @@
     - As values written to buffer, tail is incremented until it reaches the end of the buffer.
     - As values read from buffer, head is incremented until it reaches the tail.
 - This means characters are discarded after the read buffer is full.
+- Occasionally enters interrupt too late causing garbled chars.
+- 
