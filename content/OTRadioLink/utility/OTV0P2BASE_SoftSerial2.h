@@ -37,29 +37,23 @@ static const uint8_t OTSOFTSERIAL2_BUFFER_SIZE = 32;
  * @brief   Software serial with optional blocking read and settable interrupt pins.
  *          Extends Stream.h from the Arduino core libraries.
  */
-template <uint8_t rxPin, uint8_t txPin>
+template <uint8_t rxPin, uint8_t txPin, uint32_t baud>
 class OTSoftSerial2 : public Stream
 {
 protected:
-    static const uint16_t timeOut = 60000; // fed into loop...
+    static const constexpr uint16_t timeOut = 60000; // fed into loop...
 
-    uint8_t writeDelay;
-    uint8_t readDelay;
-    uint8_t halfDelay;
-//    volatile uint8_t rxBufferHead;
-//    volatile uint8_t rxBufferTail;
-//    uint8_t rxBuffer[OTSOFTSERIAL2_BUFFER_SIZE];
+    static const constexpr uint8_t bitCycles = (F_CPU/4) / baud;
+    static const constexpr uint8_t writeDelay = bitCycles - 3;
+    static const constexpr uint8_t readDelay = bitCycles - 8;
+    static const constexpr uint8_t halfDelay = bitCycles/2;
+    static const constexpr uint8_t startDelay = bitCycles + halfDelay;
 
 public:
     /**
      * @brief   Constructor for OTSoftSerial2
      */
-    OTSoftSerial2()
-    {
-    	writeDelay = 0;
-    	readDelay = 0;
-        halfDelay = 0;
-    }
+    OTSoftSerial2() { }
     /**
      * @brief   Initialises OTSoftSerial2 and sets up pins.
      * @param   speed: The baud to listen at.
@@ -69,10 +63,10 @@ public:
     void begin(unsigned long speed, uint8_t)
     {
         // Set delays
-        uint16_t bitCycles = (F_CPU/4) / speed;
-        writeDelay = bitCycles - 3;
-        readDelay = bitCycles - 8;  // Both these need an offset. These values seem to work at 9600 baud.
-        halfDelay = bitCycles/2 - 1;
+//        uint16_t bitCycles = (F_CPU/4) / speed;
+//        writeDelay = bitCycles - 3;
+//        readDelay = bitCycles - 8;  // Both these need an offset. These values seem to work at 9600 baud.
+//        halfDelay = bitCycles/2 - 1;
         // Set pins for UART
         pinMode(rxPin, INPUT_PULLUP);
         pinMode(txPin, OUTPUT);
