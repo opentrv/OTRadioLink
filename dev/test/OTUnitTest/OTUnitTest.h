@@ -11,9 +11,9 @@
  */
 void __assert(const char *__func, const char *__file, int __lineno, const char *__sexp) {
     Serial.print(F("***FAILED "));
-    Serial.print(__sexp);
-    Serial.print(F(" in "));
     Serial.print(__func);
+    Serial.print(F(" with "));
+    Serial.print(__sexp);
     Serial.print(F(", at line "));
     Serial.println(__lineno);
     Serial.flush();
