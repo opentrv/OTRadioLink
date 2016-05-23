@@ -6,7 +6,7 @@ static const constexpr uint8_t txPin = 5;
 static const constexpr uint16_t baud = 9600;
 
 
-OTV0P2BASE::OTSoftSerial3<rxPin, txPin, baud> ser;
+OTV0P2BASE::OTSoftSerial3<rxPin, txPin> ser;
 
 /**
  * @brief Test begin function.
@@ -115,10 +115,11 @@ void test_sim900Loopback()
     char buf[11];
     const char expected[11] = "AT\r\n\r\nOK\r\n";
     memset(buf, 0, sizeof(buf));
-//    ser.println("AT"); 
+    ser.println("DE"); 
 //    delay(1000); // WHY???? Fails to read first go correctly.
-    ser.println("AT"); 
-    delay(500);
+//    ser.println("AT"); 
+//    delay(1000);
+    msDelay(1000);
 //    assert(ser.available() == 10);
 //    Serial.print("peek: ");
 //    Serial.println(ser.peek(), HEX);
@@ -136,7 +137,8 @@ void test_sim900Loopback()
 //    assert(result == 0);
 //    assert(buf[0] == 'A');
 //    assert(buf[1] == 'T');
-    delay(500);
+//    delay(500);
+    msDelay(500);
 }
 
 
@@ -151,6 +153,7 @@ ISR(PCINT0_vect)
     const uint8_t pins = PINB;
     const uint8_t changes = pins ^ prevStatePB;
     prevStatePB = pins;
+
     if((changes & 1) && !(pins & 1)){  // only triggered on falling pin change
         ser.handle_interrupt();
     }
@@ -160,20 +163,21 @@ ISR(PCINT0_vect)
 
 void setup() {
   Serial.begin(4800);
-  pinMode(A2, OUTPUT);
-//  pinMode(A2, LOW);
+
   // Set up interrupts:
   cli();
   PCMSK0 |= (1 << PCINT0); // Arduino digital pin 8
   PCICR |= (1 << PCIE0);
-//  power_timer0_disable();
+  power_timer0_disable();
   sei();
 
-  ser.begin( 0 );
+  ser.begin(9600);
 }
 
 void loop() {
     // Copy looping stuff from unit tests.
+//      delay(2000);
+    msDelay(2000);
     
     // Actual tests:
 //    OTUnitTest::begin(4800);
