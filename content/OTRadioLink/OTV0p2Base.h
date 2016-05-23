@@ -98,7 +98,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 // Soft Serial.
 #include "utility/OTV0P2BASE_SoftSerial.h"
 #include "utility/OTV0P2BASE_SoftSerial2.h"
-#include "utility/OTV0P2BASE_SoftSerial3.h"
 
 // Specialist simple CRC support.
 #include "utility/OTV0P2BASE_CRC.h"

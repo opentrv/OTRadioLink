@@ -31,7 +31,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015-2016
 
 // If DEFINED: Prints debug information to serial.
 //             !!! WARNING! THIS WILL CAUSE BLOCKING OF OVER 300 MS!!!
-#define OTSIM900LINK_DEBUG
+#undef OTSIM900LINK_DEBUG
 
 
 // OTSIM900Link macros for printing debug information to serial.
@@ -342,16 +342,7 @@ public:
      * @brief    This will be called in interrupt while waiting for send prompt
      * @retval    returns true on successful exit
      */
-    inline bool handleInterruptSimple()
-    {
-        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        ser.handle_interrupt();
-        uint8_t c = ser.peek();
-        OTSIM900LINK_DEBUG_SERIAL_PRINTFMT(c, HEX)
-        OTSIM900LINK_DEBUG_SERIAL_PRINTLN();
-        return true;
-        }
-    }
+    bool handleInterruptSimple() {return true;}
 
 #ifndef OTSIM900LINK_DEBUG // This is included to ease unit testing.
 private:
@@ -389,7 +380,7 @@ private:
   const uint8_t HARD_PWR_PIN;
   const uint8_t PWR_PIN;
   //SoftwareSerial softSerial;
-  OTV0P2BASE::OTSoftSerial3<rxPin, txPin> ser;
+  OTV0P2BASE::OTSoftSerial2<rxPin, txPin> ser;
 
   // variables
   bool bAvailable;

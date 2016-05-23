@@ -164,10 +164,6 @@ public:
     /**************************************************************************
      * -------------------------- Non Standard ------------------------------ *
      *************************************************************************/
-    /**
-     * @brief   Sends a break condition (tx line held low for longer than the
-     *          time it takes to send a character.
-     */
     void sendBreak()
     {
     	fastDigitalWrite(txPin, LOW);
