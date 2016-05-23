@@ -29,9 +29,6 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
 
 namespace OTV0P2BASE
 {
-
-//static const uint8_t OTSOFTSERIAL2_BUFFER_SIZE = 32;
-
 /**
  * @class   OTSoftSerial2
  * @brief   Blocking software serial library.
