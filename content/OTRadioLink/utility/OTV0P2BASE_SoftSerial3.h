@@ -97,7 +97,7 @@ public:
             uint8_t mask = 0x01;
             uint8_t c = byte;
 
-            memset((void *)rxBuffer, 0, OTSOFTSERIAL3_BUFFER_SIZE); //for debug
+//            memset((void *)rxBuffer, 0, OTSOFTSERIAL3_BUFFER_SIZE); for debug
 
             // Send start bit
             fastDigitalWrite(txPin, LOW);
@@ -171,69 +171,6 @@ public:
         _delay_x4cycles(writeDelay * 16);
         fastDigitalWrite(txPin, HIGH);
     }
-
-    /**
-     * @brief	clever logic for reading bit
-     */
-    static inline bool readBit()
-    {
-        /*
-         * - While waiting half bit.
-         * 		- Calculate bit value (ctr >> 1)
-         * 		- Decide whether to change timing
-         * 		- Adjust delay
-         * - Start reading next bit
-         */
-    	uint8_t bitval = 0;
-    	uint8_t temp = 0;
-
-    	bitval = fastDigitalRead(rxPin);
-    	bitval = (bitval << 1);
-    	_delay_x4cycles(quarterDelay);
-    	bitval += fastDigitalRead(rxPin);
-    	bitval = (bitval << 1);
-    	_delay_x4cycles(quarterDelay);
-    	bitval += fastDigitalRead(rxPin);
-
-    	// Half delay logic here
-    	switch (bitval) {
-    	case 0b000: // False
-    		bitval = false;
-            _delay_x4cycles(halfDelay);
-    		break;
-    	case 0b010: // False
-    		bitval = false;
-    		_delay_x4cycles(halfDelay);
-    		break;
-    	case 0b001: // False, Too slow
-    		bitval = false;
-			_delay_x4cycles(halfDelay - 5);
-    		break;
-    	case 0b100: // False, Too fast
-    		bitval = false;
-			_delay_x4cycles(halfDelay + 5);
-    		break;
-    	case 0b111: // True
-    		bitval = true;
-			_delay_x4cycles(halfDelay);
-    		break;
-    	case 0b101: // True
-    		bitval = true;
-			_delay_x4cycles(halfDelay);
-    		break;
-    	case 0b110: // True, Too slow
-    		bitval = true;
-			_delay_x4cycles(halfDelay - 5);
-    		break;
-    	case 0b011: // True, Too fast
-    		bitval = true;
-			_delay_x4cycles(halfDelay + 5);
-    		break;
-    	default:
-    		break;
-    	}
-    	return bitval;
-    }
     /**
      * @brief   Handle interrupts
      */
@@ -244,16 +181,32 @@ public:
         uint8_t val = 0;
         // wait for mid point of bit
         _delay_x4cycles(halfDelay- 5);
+//        _delay_x4cycles(8); // 3
 
         // step through bits and read value    // FIXME better way of doing this?
-        val |= (readBit() << 0);
+        val |= (fastDigitalRead(rxPin) << 0);
         for(uint8_t i = 1; i < 8; i++) {
-            val |= readBit() << i;
+            _delay_x4cycles(readDelay - 8);
+//            _delay_x4cycles(27); // 25
+            val |= fastDigitalRead(rxPin) << i;
         }
+        // Writing to the buffer:
+        //  - Increment tail pointer
+        //  - Check for ovf
+        //  - Check tail has not overtaken head.
+        //  - Write char to tail.
         if (bufptr < sizeof(rxBuffer)) {
             rxBuffer[bufptr] = val;
             rxBufferTail = bufptr + 1;
         }
+//        next++;
+//        if (next > OTSOFTSERIAL3_BUFFER_SIZE) {
+//            next = 0;
+//        }
+//        if (next != rxBufferHead) {
+//            rxBufferTail = next;
+//            rxBuffer[next] = val;
+//        }
     }
     /**************************************************************************
      * ------------------------ Unimplemented ------------------------------- *

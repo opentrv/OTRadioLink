@@ -5,7 +5,6 @@ static const constexpr uint8_t rxPin = 8;
 static const constexpr uint8_t txPin = 5;
 static const constexpr uint16_t baud = 9600;
 
-
 OTV0P2BASE::OTSoftSerial3<rxPin, txPin> ser;
 
 /**
@@ -96,12 +95,6 @@ void test_available()
     assert(ser.available() == 0);  // Will be zero for an empty buffer.
 }
 
-void msDelay(int mseconds) {
-      for(int i = mseconds; i != 0; i--) {
-        OTV0P2BASE::_delay_x4cycles(0);
-    }
-}
-
 /**
  * @brief Loopback test. Requires a serial device that will echo anything written.
  * @note  This test is written for the SIM900.
@@ -115,21 +108,20 @@ void test_sim900Loopback()
     char buf[11];
     const char expected[11] = "AT\r\n\r\nOK\r\n";
     memset(buf, 0, sizeof(buf));
-    ser.println("DE"); 
-//    delay(1000); // WHY???? Fails to read first go correctly.
+    ser.println("AT"); 
+    delay(1000); // WHY???? Fails to read first go correctly.
 //    ser.println("AT"); 
 //    delay(1000);
-    msDelay(1000);
-//    assert(ser.available() == 10);
+    assert(ser.available() == 10);
 //    Serial.print("peek: ");
 //    Serial.println(ser.peek(), HEX);
-//    assert(ser.peek() == 'A');
+    assert(ser.peek() == 'A');
     for (uint8_t i = 0; ser.available(); i++) {
         buf[i] = (char)(ser.read());
     }
     Serial.print("read: ");
     for (uint8_t i = 0; i < sizeof(buf); i++) {
-        Serial.print(buf[i], HEX);
+        Serial.print(buf[i] & 0xff, HEX);
         Serial.print(" ");
     }
     Serial.println();
@@ -137,8 +129,7 @@ void test_sim900Loopback()
 //    assert(result == 0);
 //    assert(buf[0] == 'A');
 //    assert(buf[1] == 'T');
-//    delay(500);
-    msDelay(500);
+    delay(500);
 }
 
 
@@ -168,7 +159,6 @@ void setup() {
   cli();
   PCMSK0 |= (1 << PCINT0); // Arduino digital pin 8
   PCICR |= (1 << PCIE0);
-  power_timer0_disable();
   sei();
 
   ser.begin(9600);
@@ -176,8 +166,6 @@ void setup() {
 
 void loop() {
     // Copy looping stuff from unit tests.
-//      delay(2000);
-    msDelay(2000);
     
     // Actual tests:
 //    OTUnitTest::begin(4800);
