@@ -26,6 +26,8 @@ pending:
     JP20160406: fix to correctly set the precision of the DS18B20 sensor.
     DHD20160412: TODO-887: RTC-based low-power watchdog for detecting overruns/jams.
     DE20160427:  Initial synchronous version of OTSoftSerial2.
+    DE20160523:  Working OTSoftSerial2.
+    DE20160523:  Working OTSoftSerialAsync prototype (does not run at 9600 baud).
 
 20160331:
     freezepoint name: V1.0 (as part of OTRadioLink)
