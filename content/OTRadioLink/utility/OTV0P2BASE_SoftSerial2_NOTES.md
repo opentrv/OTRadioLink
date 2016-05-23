@@ -1,8 +1,8 @@
 # OTSoftSerial2 Implementation Notes
 ## Todo:
 - [x] Rewrite to use stream interface Arduino libs (arduino-1.6.7/hardware/arduino/avr/cores/arduino/Stream.h)
-- [ ] ~~Move read into interrupt (although still blocking).~~ Moved to OTSoftSerial3
-- [ ] ~~Make non-blocking.~~ Moved to OTSoftSerial3
+- [ ] Move read into interrupt (although still blocking).
+- [ ] Make non-blocking.
 - [x] Template the class to speed it up.
 
 ## Current Problems (20160415):
@@ -13,12 +13,12 @@
 5. AVR has no barrel shift so read time increases with each bit read (only important at high baud).
 
 ## Solutions:
-1. ~~Optionally start Rx of each byte with an interrupt.~~
-    - ~~Interrupt on pin change to low.~~
-    - ~~Block until byte Rxed and then release.~~
-    - ~~Separate byte start detection logic from byte Rx logic so that it's easier to do both blocking and interrupt based Rx.~~
-    - ~~Need to think about state of interrupt registers on exit.~~
-    - ~~Need buffer to hold Rx message.~~
+1. Optionally start Rx of each byte with an interrupt.
+    - Interrupt on pin change to low.
+    - Block until byte Rxed and then release.
+    - Separate byte start detection logic from byte Rx logic so that it's easier to do both blocking and interrupt based Rx.
+    - Need to think about state of interrupt registers on exit.
+    - Need buffer to hold Rx message.
 2. Template OTSoftSerial so that pins set at compile time.
     - This will allow fastDigitalWrite to use fast macros.
     - Previously not done due to unfortunate optimisations when templating.
