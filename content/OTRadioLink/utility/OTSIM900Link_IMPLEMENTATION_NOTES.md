@@ -12,6 +12,7 @@
 - The current version of OTSoftSerial (20160523) can run at a maximum of 9600 baud.
 - Can autobaud but this will cause issues if the SIM900 is powered up when switching baud. Resetting the SIM900 will fix this.
 - SIM900 shield pin out:
+
 |Shield         | Arduino UNO | V0p2_REV10 |
 | ------------- | ----------- | ---------- |
 |soft serial Rx | D7          | 8          |
