@@ -24,6 +24,8 @@ pending:
     DE20160428:  Initial working version based on OTSoftSerial2.
     DE20160509:  Fixed bug causing OTSIM900Link to block indefinitely when waiting for serial response.
     DE20160510:  Upped software serial baud to 9600.
+    DE20160516:  SIM900 templated.
+    DE20160523:  Updated to work with OTSoftSerial2.
 
 
 20160331:

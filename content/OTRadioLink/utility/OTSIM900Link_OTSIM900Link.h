@@ -181,7 +181,7 @@ public:
     {
         pinMode(PWR_PIN, OUTPUT);
         fastDigitalWrite(PWR_PIN, LOW);
-        ser.begin(baud);
+        ser.begin(0);
         state = GET_STATE;
         return true;
     }
@@ -349,6 +349,10 @@ private:
 #endif // OTSIM900LINK_DEBUG
 
  /***************** AT Commands and Private Constants and variables ******************/
+    static const constexpr uint8_t duration = 3;
+    static const constexpr uint16_t baud = 9600; // max reliable baud
+    static const constexpr uint8_t flushTimeOut = 10;
+
     // set AT commands here
     // These may not be supported by all sim modules so may need to move
     // to concrete implementation
@@ -380,18 +384,15 @@ private:
   const uint8_t HARD_PWR_PIN;
   const uint8_t PWR_PIN;
   //SoftwareSerial softSerial;
-  OTV0P2BASE::OTSoftSerial2<rxPin, txPin> ser;
+  OTV0P2BASE::OTSoftSerial2<rxPin, txPin, baud> ser;
 
   // variables
   bool bAvailable;
   bool bPowered;
   bool bPowerLock;
   int8_t powerTimer;
-  static const uint8_t duration = 3;
   volatile uint8_t txMessageQueue; // Number of frames currently queued for TX.
   const OTSIM900LinkConfig_t *config;
-  static const uint16_t baud = 9600; // max reliable baud
-  static const uint8_t flushTimeOut = 10;
 /************************* Private Methods *******************************/
       // Power up/down
   /**
