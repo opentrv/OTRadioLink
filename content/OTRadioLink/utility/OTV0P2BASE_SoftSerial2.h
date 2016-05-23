@@ -16,7 +16,7 @@ under the Licence.
 Author(s) / Copyright (s): Deniz Erbilgin 2016
 */
 
-// NOTE!!! Implementation details are in OTV0P2BASE_SoftSerial_NOTES.txt!!!
+// NOTE!!! Implementation details are in OTV0P2BASE_SoftSerial2_NOTES.txt!!!
 
 #ifndef CONTENT_OTRADIOLINK_UTILITY_OTV0P2BASE_SOFTSERIAL2_H_
 #define CONTENT_OTRADIOLINK_UTILITY_OTV0P2BASE_SOFTSERIAL2_H_
@@ -30,24 +30,29 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
 namespace OTV0P2BASE
 {
 
-static const uint8_t OTSOFTSERIAL2_BUFFER_SIZE = 32;
+//static const uint8_t OTSOFTSERIAL2_BUFFER_SIZE = 32;
 
 /**
  * @class   OTSoftSerial2
- * @brief   Software serial with optional blocking read and settable interrupt pins.
+ * @brief   Blocking software serial library.
  *          Extends Stream.h from the Arduino core libraries.
+ * @param   rxPin: Receive pin for software UART.
+ * @param   txPin: Transmit pin for software UART.
+ * @param   baud: Speed of UART in baud. Currently reliably supports up to 9600.
+ * @note    This currently supports a max speed of 9600 baud with an F_CPU of 1 MHz.
+ * @todo    Move everything back into source file without breaking templating.
  */
 template <uint8_t rxPin, uint8_t txPin, uint32_t baud>
 class OTSoftSerial2 : public Stream
 {
 protected:
+    // All these are compile time calculations and are automatically substituted as part of program code.
     static const constexpr uint16_t timeOut = 60000; // fed into loop...
-
-    static const constexpr uint8_t bitCycles = (F_CPU/4) / baud;
-    static const constexpr uint8_t writeDelay = bitCycles - 3;
-    static const constexpr uint8_t readDelay = bitCycles - 8;
-    static const constexpr uint8_t halfDelay = bitCycles/2;
-    static const constexpr uint8_t startDelay = bitCycles + halfDelay;
+    static const constexpr uint8_t bitCycles = (F_CPU/4) / baud;  // Number of times _delay_x4cycles needs to loop for 1 bit.
+    static const constexpr uint8_t writeDelay = bitCycles - 3;  // Delay needed to write 1 bit.
+    static const constexpr uint8_t readDelay = bitCycles - 8;  // Delay needed to read 1 bit.
+    static const constexpr uint8_t halfDelay = bitCycles/2;  // todo
+//    static const constexpr uint8_t startDelay = bitCycles + halfDelay;
 
 public:
     /**
@@ -56,27 +61,22 @@ public:
     OTSoftSerial2() { }
     /**
      * @brief   Initialises OTSoftSerial2 and sets up pins.
-     * @param   speed: The baud to listen at.
-     * @fixme   Long is excessive
-     * @todo    what to do about optional stuff.
+     * @param   speed: Not used. Kept for compatibility with Arduino libraries.
      */
-    void begin(unsigned long speed, uint8_t)
+    void begin(unsigned long , uint8_t)
     {
-        // Set delays
-//        uint16_t bitCycles = (F_CPU/4) / speed;
-//        writeDelay = bitCycles - 3;
-//        readDelay = bitCycles - 8;  // Both these need an offset. These values seem to work at 9600 baud.
-//        halfDelay = bitCycles/2 - 1;
         // Set pins for UART
         pinMode(rxPin, INPUT_PULLUP);
         pinMode(txPin, OUTPUT);
         fastDigitalWrite(txPin, HIGH);
     }
-    void begin(unsigned long speed) { begin(speed, 0); }
+    void begin(unsigned long) { begin(0, 0); }
+
     /**
      * @brief   Disables serial and releases pins.
      */
     void end() { pinMode(txPin, INPUT_PULLUP); }
+
     /**
      * @brief   Write a byte to serial as a binary value.
      * @param   byte: Byte to write.
@@ -107,14 +107,12 @@ public:
         }
         return 1;
     }
-    /**
-     * @brief   Read next character in the input buffer without removing it.
-     * @retval  Next character in input buffer.
-     */
-    int peek() { return -1; }
+
     /**
      * @brief   Reads a byte from the serial and removes it from the buffer.
      * @retval  Next character in input buffer.
+     * @note    This routine blocks interrupts until it receives a byte or times out.
+     * @todo    Reorder loop to replace starting 'halfDelay and 'readDelay' with 'startDelay'
      */
     int read() {
         // Blocking read:
@@ -143,11 +141,7 @@ public:
         }
         return val;
     }
-    /**
-     * @brief   Get the number of bytes available to read in the input buffer.
-     * @retval  The number of bytes available.
-     */
-    int available() { return -1; }
+
     /**
      * @brief   Check if serial port is ready for use.
      * @todo    Implement the time checks using this?
@@ -158,6 +152,11 @@ public:
     /**************************************************************************
      * -------------------------- Non Standard ------------------------------ *
      *************************************************************************/
+    /**
+     * @brief   Sends a break condition (tx line held low for longer than the
+     *          time it takes to send a character.
+     * @todo    Make it take a value instead?
+     */
     void sendBreak()
     {
     	fastDigitalWrite(txPin, LOW);
@@ -171,7 +170,17 @@ public:
      * @brief   Destuctor for OTSoftSerial.
      * @note    Not implemented to reduce code size.
      */
-    //    ~OTSoftSerial2() {};    // TODO Does this actually work?
+    //    ~OTSoftSerial2() {};
+    /**
+     * @brief   Read next character in the input buffer without removing it.
+     * @note    Not used. Kept for compatibility with Arduino libraries.
+     */
+    int peek() { return -1; }
+    /**
+     * @brief   Get the number of bytes available to read in the input buffer.
+     * @note    Not used. Kept for compatibility with Arduino libraries.
+     */
+    int available() { return -1; }
     /**
      * @brief   Waits for transmission of outgoing serial data to complete.
      * @note    This is not used for OTSoftSerial2 as all writes are synchronous.
