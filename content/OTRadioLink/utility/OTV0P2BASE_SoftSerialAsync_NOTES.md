@@ -1,4 +1,5 @@
 # OTSoftSerialAsync Implementation Notes
+**NOTE:** The header file 'OTV0P2BASE_SoftSerialAsync.h' is not currently included in 'OTV0p2Base.h' and must be added in to use this library.
 ## Todo:
 - [x] Get initial interrupt read working.
 - [ ] Fix issue with first read always failing.
