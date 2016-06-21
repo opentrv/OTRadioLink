@@ -8,7 +8,7 @@ The following cases will be tested, with hybrid NiMH and alkaline batteries:
 3. The power consumption of sending a packet by radio over an extended period.
 4. The power consumption of encrypting a packet with 128-bit AESGCM and sending it by radio over an extended period.
 
-## Test Device
+## Equipment
 - Device under test:
     - REV7 board.
     - Production ice-cream cones.
@@ -18,6 +18,10 @@ The following cases will be tested, with hybrid NiMH and alkaline batteries:
     - 2x Alkaline (capacity?)
 - How many devices do we test against?
 - How many times do we test each device?
+- Test Rig:
+    - Raspberry Pi.
+    - Serial cables.
+    - Current measurement device (either directly attached or via arduino).
 
 ## Test Plans
 ### 1. Motor
