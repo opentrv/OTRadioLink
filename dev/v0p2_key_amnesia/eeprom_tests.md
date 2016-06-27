@@ -1,4 +1,6 @@
 # EEPROM Tests
+The EEPROM dumps can be found [here](https://github.com/opentrv/OTRadioLink/tree/master/dev/v0p2_key_amnesia/EEPROM%20memory%20dumps). They are intel hex files but with an additional description at the start.
+
 ## Aim
 To isolate key retention issues on the V0p2.
 
@@ -34,7 +36,6 @@ To get a general idea of what happens when the key set and list.
 NOTE: Device powered off after each EEPROM dump.
 
 #### Results
-See test1-x.hex for EEPROM dumps/.
 1. Minimal data - resets, ID etc.
 2. Minimal data - resets, ID etc.
 3. Minimal data - resets, ID etc.
@@ -59,7 +60,7 @@ NOTE: Tests and results are numbered after the stage they were performed at in t
 - This is not important in light of subsequent tests.
 
 #### Purpose
-
+See comments above.
 
 #### Setup
 1. The firmware was burnt using USBTinyISP.
@@ -121,6 +122,3 @@ Notes: No power cycling! Lots of calibrating.
         - K B xx...
         - K B *
         - K B xx...
-
-test
-K B 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee e1
