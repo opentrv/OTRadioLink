@@ -121,6 +121,52 @@ Notes: No power cycling! Lots of calibrating.
         - K B xx...
         - K B *
         - K B xx...
+        
+### 4. Testing key retention while turned off
+#### Purpose
+To find out whether the key will be retained while the power is off. If it is, this suggests that key loss is caused by the device.
+
+#### Setup
+1. The firmware was burnt using USBTinyISP.
+
+#### Method
+1. The key was set and power was removed.
+2. After a >5 minute wait, power was restored and an EEPROM dump was immediately taken.
+3. Was a Tx possible?
+4. An EEPROM dump was taken.
+
+#### Results
+2. The key was present.
+3. First Tx occured. The rest failed as usual.
+4. Key lost.
+
+#### Discussion
+- 5 minutes was chosen as
+    - it would have taken too long otherwise (too many attempts wasted due to unreliable programmer).
+    - Normal cycle is 4 minutes.
+    - Would still like to test with a longer cycle.
+- The results suggest (tentatively) that the key will survive long periods powered down, i.e. that whatever causes key loss happens when device is active.
+
+### 5. Testing key retention without V0p2_Main
+#### Purpose
+To verify that the OTV0p2Base library functions work correctly in the abscence of the V0p2_Main control loop.
+
+#### Method
+1. The device was programmed with using the code at:
+    - Uses OTV0p2Base library functions. These are the same as used in V0p2_Main.
+    - Can set/erase/check/read keys over CLI.
+2. EEPROM dump was taken.
+3. Key was set and read back.
+4. Device was power cycled and key read back.
+5. EEPROM dump was taken.
+
+#### Results
+2. Empty EEPROM.
+5. Key present.
+
+#### Discussion
+- The results suggest that the OTV0p2Base security and EEPROM libraries work as they should.
+
 
 test
 K B 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee e1
