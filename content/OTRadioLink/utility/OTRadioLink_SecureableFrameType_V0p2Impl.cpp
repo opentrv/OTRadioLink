@@ -30,6 +30,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 
 #include "OTV0P2BASE_EEPROM.h"
 
+#include "OTV0p2Base.h"
 
 namespace OTRadioLink
     {
@@ -100,6 +101,7 @@ static bool saveRaw3BytePersistentTXRestartCounterToEEPROM(const uint8_t *const 
 // Clears the primary building key first.
 bool SimpleSecureFrame32or0BodyTXV0p2::resetRaw3BytePersistentTXRestartCounterInEEPROM(const bool allZeros)
     {
+    OTV0P2BASE::serialPrintlnAndFlush(F("Erasing SK!!!"));
     // Clear the primary building key.
     if(!OTV0P2BASE::setPrimaryBuilding16ByteSecretKey(NULL)) { return(false); }
     // Reset the counter.
