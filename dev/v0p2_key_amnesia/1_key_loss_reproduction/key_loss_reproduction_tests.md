@@ -1,8 +1,8 @@
-# EEPROM Tests
+# Key Loss Reproduction Tests
 The EEPROM dumps can be found [here](https://github.com/opentrv/OTRadioLink/tree/master/dev/v0p2_key_amnesia/EEPROM%20memory%20dumps). They are intel hex files but with an additional description at the start.
 
 ## Aim
-To isolate key retention issues on the V0p2.
+To reliably reproduce key loss issues on REV7 running V0p2_Main v1.0.4
 
 ## Test Device and Firmware
 - REV7.
