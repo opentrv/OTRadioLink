@@ -252,8 +252,7 @@ bool SimpleSecureFrame32or0BodyTXV0p2::incrementAndGetPrimarySecure6BytePersiste
         {
         if(!get3BytePersistentTXRestartCounter(buf)) { return(false); }
         if((0 == buf[0]) && (0 == buf[1]) && (0 == buf[2]))
-            {
-            if(!resetRaw3BytePersistentTXRestartCounterInEEPROM(false)) { return(false); } }
+            { if(!resetRaw3BytePersistentTXRestartCounterInEEPROM(false)) { return(false); } }
         else
             { incrementPersistent = true; }
         }
