@@ -1,4 +1,10 @@
 # Config tests
+All code in this report is based on the following tags:
+https://github.com/DamonHD/OpenTRV/tree/0160629-KeyLossTesting
+https://github.com/opentrv/OTRadioLink/tree/20160629-KeyLossTesting
+and is located in:
+https://github.com/opentrv/OTRadioLink/blob/20160629-KeyLossTesting/content/OTRadioLink/utility/OTRadioLink_SecureableFrameType_V0p2Impl.cpp
+
 ## Aim
 To isolate the V0p2_Main config option that leads to key loss.
 
