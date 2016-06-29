@@ -101,7 +101,6 @@ static bool saveRaw3BytePersistentTXRestartCounterToEEPROM(const uint8_t *const 
 // Clears the primary building key first.
 bool SimpleSecureFrame32or0BodyTXV0p2::resetRaw3BytePersistentTXRestartCounterInEEPROM(const bool allZeros)
     {
-    OTV0P2BASE::serialPrintlnAndFlush(F("Erasing SK!!!"));
     // Clear the primary building key.
     if(!OTV0P2BASE::setPrimaryBuilding16ByteSecretKey(NULL)) { return(false); }
     // Reset the counter.
@@ -253,7 +252,9 @@ bool SimpleSecureFrame32or0BodyTXV0p2::incrementAndGetPrimarySecure6BytePersiste
         {
         if(!get3BytePersistentTXRestartCounter(buf)) { return(false); }
         if((0 == buf[0]) && (0 == buf[1]) && (0 == buf[2]))
-            { if(!resetRaw3BytePersistentTXRestartCounterInEEPROM(false)) { return(false); } }
+            {
+            OTV0P2BASE::serialPrintlnAndFlush(F("Erasing SK!!!"));
+            if(!resetRaw3BytePersistentTXRestartCounterInEEPROM(false)) { return(false); } }
         else
             { incrementPersistent = true; }
         }
