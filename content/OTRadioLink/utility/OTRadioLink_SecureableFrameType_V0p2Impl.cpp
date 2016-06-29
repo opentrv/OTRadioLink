@@ -30,6 +30,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 
 #include "OTV0P2BASE_EEPROM.h"
 
+#include "OTV0p2Base.h"
 
 namespace OTRadioLink
     {
