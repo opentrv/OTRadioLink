@@ -403,6 +403,7 @@ bool NodeID::doCommand(char *const buf, const uint8_t buflen)
 // Clearing a key conditionally resets the primary TX message counter to avoid IV reuse
 // if a non-NULL callback has been provided.
 // Note that this may take significant time and will mess with the CPU clock.
+// TODO-907:
 bool SetSecretKey::doCommand(char *const buf, const uint8_t buflen)
     {
     char *last; // Used by strtok_r().
