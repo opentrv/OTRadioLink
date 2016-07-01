@@ -118,6 +118,16 @@ namespace CLI {
     // Set/clear secret key(s) ("K ...").
     // Will call the keysCleared() routine when keys have been cleared, eg to allow resetting of TX message counters.
     // Note that this may take significant time and will mess with the CPU clock.
+    /**
+     * @note    - keysCleared MUST be passed the appropriate function in order to ensure security.
+     *          e.g. The Tx message counter should be reinitialised every time the key is cleared
+     *          when using AESGCM.
+     *          - This is to reduce the risk of devices being prone to replay attacks due to users resetting the
+     *          same key.
+     *          - Especially critical as we currently have no sane way of ensuring this at the
+     *          library level.
+     *          FIXME - DHD should look over this and ammend/clarify as necessary.
+     */
     class SetSecretKey : public CLIEntryBase
         {
         bool (*const keysClearedFn)();

@@ -1,4 +1,14 @@
 # Config tests
+All code in this report is based on the following tags:
+
+https://github.com/DamonHD/OpenTRV/tree/0160629-KeyLossTesting
+
+https://github.com/opentrv/OTRadioLink/tree/20160629-KeyLossTesting
+
+and is located in:
+
+https://github.com/opentrv/OTRadioLink/blob/20160629-KeyLossTesting/content/OTRadioLink/utility/OTRadioLink_SecureableFrameType_V0p2Impl.cpp
+
 ## Aim
 To isolate the V0p2_Main config option that leads to key loss.
 
@@ -23,12 +33,12 @@ To isolate the V0p2_Main config option that leads to key loss.
 
 ### 2. Checking if we reset the IV after writing key.
 #### Method
-1. 1. Put a line to print to serial when the following function is called.
+- Put a line to print to serial when the following function is called.
 ```cpp
 bool SimpleSecureFrame32or0BodyTXV0p2::resetRaw3BytePersistentTXRestartCounterInEEPROM(const bool allZeros)
 ```
-2. Flash and set key.
-3. Reset to trigger Tx
+- Flash and set key.
+- Reset to trigger Tx
 
 #### Discussion
 - The key is lost.
@@ -40,12 +50,12 @@ bool SimpleSecureFrame32or0BodyTXV0p2::incrementAndGetPrimarySecure6BytePersiste
 
 ### 3. Narrowing it down
 #### Method + results
-1. Put a line to print to serial when the following function is called.
+- Put a line to print to serial when the following function is called.
 ```cpp
 bool SimpleSecureFrame32or0BodyTXV0p2::incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(uint8_t *const buf)
 ```
-2. Flash and set key.
-3. Reset to trigger Tx
+- Flash and set key.
+- Reset to trigger Tx
 
 #### Discussion
 - This function initialises the message counter if it is all 0s.
@@ -72,7 +82,7 @@ bool SimpleSecureFrame32or0BodyTXV0p2::incrementAndGetPrimarySecure6BytePersiste
     1. The tx routine gets the key and passes it to the secure frame generation function.
         - The generator calls incrementAndGetPrimarySecure6BytePersistentTXMessageCounter in order to assemble an IV.
         - As the EEPROM was erased during flashing, it initialises the message counter, erasing the key in the process.
-    2. As the key has already been copied to the stack at this point, the rest of the transmission is done successfully.
+    2. As the key has already been copied to the stack at this point, the rest of the transmission is completed successfully.
     3. The next time the tx routine is called, it cannot retrieve the key as it has been erased.
 
         

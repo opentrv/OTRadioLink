@@ -42,7 +42,7 @@ namespace OTV0P2BASE
 enum stats_TX_level
   {
   stTXalwaysAll = 0,    // Always be prepared to transmit all stats (zero privacy).
-  stTXmostUnsec = 0x80, // Allow TX of all but most security-sensitive stats in plaintext, eg occupancy status.
+  stTXmostUnsec = 0x80, // Allow TX of all but most security-sensitive stats in plaintext, eg. occupancy status.
   stTXsecOnly   = 0xfe, // Only transmit if the stats TX can be kept secure/encrypted.
   stTXnever     = 0xff, // DEFAULT: never transmit status info beyond the minimum necessary.
   };
@@ -58,7 +58,7 @@ stats_TX_level getStatsTXLevel();
 // Note that most OpenTRV node ID bytes should have the top bit (0x80) set.
 static const uint8_t OpenTRV_Node_ID_Bytes = 8;
 
-// Returns true iff definitely valid OpenTRV node ID byte: must have the top bit set and not be 0xff.
+// Returns true if definitely valid OpenTRV node ID byte: must have the top bit set and not be 0xff.
 inline bool validIDByte(const uint8_t v) { return((0 != (0x80 & v)) && (0xff != v)); }
 
 // Coerce any EEPROM-based node OpenTRV ID bytes to valid values if unset (0xff) or if forced,
