@@ -96,6 +96,7 @@ bool ensureIDCreated(const bool force)
  *                    On passing a NULL pointer, the stored key will be cleared.
  *                    NOTE: The key pointed to by newKey must be stored as binary, NOT as text.
  * @retval  true if key is cleared successfully or new key is set, else false.
+ * @fixme   TODO-907: THIS OR THE FUNCTION THAT CALLS IT SHOULD BE RESETTING + INITING THE MESSAGE COUNTER!!!
  */
 // Functions for setting a 16 byte primary building secret key, which must not be all-1s.
 bool setPrimaryBuilding16ByteSecretKey(const uint8_t *const newKey) // <-- this should be 16-byte binary, NOT text!
@@ -193,6 +194,7 @@ bool getNodeAssociation(const uint8_t index, uint8_t *const nodeID)
 
 /**
  * @brief   Checks through stored node IDs and adds a new one if there is space.
+ *          The remainder of the node association entry (e.g. message counter) is erased.
  * @param   pointer to new 8 byte node ID
  * @retval  index of this new association, or -1 if no space
  */

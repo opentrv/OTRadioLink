@@ -102,7 +102,13 @@ static bool saveRaw3BytePersistentTXRestartCounterToEEPROM(const uint8_t *const 
 bool SimpleSecureFrame32or0BodyTXV0p2::resetRaw3BytePersistentTXRestartCounterInEEPROM(const bool allZeros)
     {
     // Clear the primary building key.
-    if(!OTV0P2BASE::setPrimaryBuilding16ByteSecretKey(NULL)) { return(false); }
+    /**
+     * @note    This was intended as a way of insuring that a fresh key must be programmed
+     *          when the counter overflows, even if the app layer is wrongly implemented.
+     *          As part of TODO-907, it was discovered that it is causing freshly programmed
+     *          devices to delete their keys.
+     */
+//    if(!OTV0P2BASE::setPrimaryBuilding16ByteSecretKey(NULL)) { return(false); } ///@note commented as part of TODO-907 fix
     // Reset the counter.
     if(allZeros)
         {
