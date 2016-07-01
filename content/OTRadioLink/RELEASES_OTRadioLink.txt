@@ -9,6 +9,7 @@ or release/freeze points.
 
 
 pending:
+    DE20160701:  Fixed key loss issue and updated documentation.
 
 
 
