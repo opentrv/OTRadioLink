@@ -169,9 +169,11 @@ static const uint8_t V0P2BASE_EE_LEN_RAW_INSPECTABLE = 32;
 // Highest EEPROM address allowed for raw inspect/set.
 // Items beyond this may be particularly security-sensitive, eg secret keys.
 static const intptr_t V0P2BASE_EE_END_RAW_INSPECTABLE = V0P2BASE_EE_START_RAW_INSPECTABLE + V0P2BASE_EE_LEN_RAW_INSPECTABLE - 1;
-// Lockout time in hours before energy-saving setbacks are enabled (if not 0), stored inverted.
+// Lockout time before energy-saving setbacks are enabled (if not 0), stored inverted.
+// For release V1.0.4 2016/03/15 the units were hours, allowing for ~10 days max lockout.
+// Subsequent use prefers days, allowing more than enough to cover any part of a heating season.
 // Stored inverted so that a default erased (0xff) value will be seen as 0, so no lockout and thus normal behaviour.
-static const intptr_t V0P2BASE_EE_START_SETBACK_LOCKOUT_COUNTDOWN_H_INV = 0 + V0P2BASE_EE_START_RAW_INSPECTABLE;
+static const intptr_t V0P2BASE_EE_START_SETBACK_LOCKOUT_COUNTDOWN_D_INV = 0 + V0P2BASE_EE_START_RAW_INSPECTABLE;
 
 
 // TX message counter (most-significant) persistent reboot/restart 3 bytes.  (TODO-728)
