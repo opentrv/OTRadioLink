@@ -89,8 +89,10 @@ namespace OTV0P2BASE
 #define LED_HEATCALL_ON_ISR_SAFE() { }
 #else // REV0, REV2 dedicated output pin.
 #define LED_HEATCALL_L 4 // ATMega328P-PU PDIP pin 6, PD4.  PULL LOW TO ACTIVATE.  Not shared with SPI.
-#define LED_HEATCALL_ON() { fastDigitalWrite(LED_HEATCALL_L, LOW); }
-#define LED_HEATCALL_OFF() { fastDigitalWrite(LED_HEATCALL_L, HIGH); }
+//#define LED_HEATCALL_ON() { fastDigitalWrite(LED_HEATCALL_L, LOW); }
+//#define LED_HEATCALL_OFF() { fastDigitalWrite(LED_HEATCALL_L, HIGH); }
+#define LED_HEATCALL_ON()
+#define LED_HEATCALL_OFF()
 // ISR-safe UI LED ON.
 #define LED_HEATCALL_ON_ISR_SAFE() { LED_HEATCALL_ON(); }
 
