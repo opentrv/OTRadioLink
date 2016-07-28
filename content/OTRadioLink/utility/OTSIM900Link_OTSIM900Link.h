@@ -238,6 +238,12 @@ public:
     {
         if (bPowerLock == false) {
             if (OTV0P2BASE::getSubCycleTime() < 10) {
+                if(messageCounter == 255) {  // FIXME an attempt at forcing a hard restart every 255 messages.
+                    messageCounter = 0;
+                    state = GET_STATE;
+                    shutGPRS();
+                    return;
+                }
                 switch (state) {
                 case GET_STATE:  // Check SIM900 is present and can be talked to. Takes up to 220 ticks?
                     OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*GET_STATE")
@@ -267,8 +273,8 @@ public:
                 case START_UP: // takes up to 150 ticks
                     OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*START_UP")
                     powerOn();
-                    state = CHECK_PIN;
-    //                state = WAIT_FOR_REGISTRATION; // FIXME
+                    if(!interrogateSIM900()) state = CHECK_PIN;
+                    else state = GET_STATE;                     // FIXME Testing whether this will make sure the device is on.
                     break;
                 case CHECK_PIN:  // Set pin if required. Takes ~100 ticks to exit.
                     OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*CHECK_PIN")
@@ -391,6 +397,7 @@ private:
   bool bPowered;
   bool bPowerLock;
   int8_t powerTimer;
+  uint8_t messageCounter;  // number of frames sent. Used to schedule a reset.
   volatile uint8_t txMessageQueue; // Number of frames currently queued for TX.
   const OTSIM900LinkConfig_t *config;
 /************************* Private Methods *******************************/
@@ -425,9 +432,11 @@ private:
      */
     void powerToggle()
     {
-        fastDigitalWrite(PWR_PIN, HIGH);
-        delay(1000);  // This is the minimum value that worked reliably
-        fastDigitalWrite(PWR_PIN, LOW);
+//        fastDigitalWrite(PWR_PIN, HIGH);
+        fastDigitalWrite(A2, HIGH);
+        delay(1500);  // This is the minimum value that worked reliably
+//        fastDigitalWrite(PWR_PIN, LOW);
+        fastDigitalWrite(A2, LOW);
         bPowered = !bPowered;
     //    delay(3000);
         bPowerLock = true;
@@ -827,6 +836,7 @@ private:
      */
     bool sendUDP(const char *frame, uint8_t length)
     {
+        messageCounter++; // increment counter
         ser.print(AT_START);
         ser.print(AT_SEND_UDP);
         ser.print('=');
