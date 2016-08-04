@@ -241,7 +241,7 @@ public:
     {
         if (bPowerLock == false) {
             if (OTV0P2BASE::getSubCycleTime() < 10) {
-                if(messageCounter == 15) {  // FIXME an attempt at forcing a hard restart every 255 messages.
+                if(messageCounter == 255) {  // FIXME an attempt at forcing a hard restart every 255 messages.
                     messageCounter = 0;  // reset counter.
                     state = RESET;
                     return;
@@ -295,10 +295,10 @@ public:
                     break;
                 case WAIT_FOR_REGISTRATION:  // Wait for registration to GSM network. Stuck in this state until success. Takes ~150 ticks to exit.
                     OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*WAIT_FOR_REG")
-                    if(++retryCounter > maxRetries) state = RESET;
-                    else if(isRegistered()) {
+//                    if(++retryCounter > maxRetries) state = RESET; // FIXME Turned this off as it affects registering
+                    if(isRegistered()) {
                         state = SET_APN;
-                        retryCounter = 0;
+//                        retryCounter = 0;
                     }
                     break;
                 case SET_APN:  // Attempt to set the APN. Stuck in this state until success. Takes up to 200 ticks to exit.
@@ -365,7 +365,6 @@ public:
                     break;
                 case RESET:
                     OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*RESET")
-                    OTV0P2BASE::serialPrintlnAndFlush("r");
                     retryCounter = 0; // reset retry counter.
                     if(!interrogateSIM900()) {
                         bAvailable = true;
@@ -377,18 +376,13 @@ public:
                     powerOff(); // Power down for START_UP.
                     break;
                 case PANIC:
-                    OTV0P2BASE::serialPrintlnAndFlush(F("SIM900_PANIC!"));
+                    OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("SIM900_PANIC!");
                     break;
                 default:
                     break;
                 }
             }
-        } else if (OTV0P2BASE::getElapsedSecondsLT(powerTimer) > duration) {  // Check if ready to stop waiting after power toggled.
-            bPowerLock = false;
-        } else {
-            OTV0P2BASE::serialPrintAndFlush(OTV0P2BASE::getElapsedSecondsLT(powerTimer));
-            OTV0P2BASE::serialPrintlnAndFlush();
-        }
+        } else if (OTV0P2BASE::getElapsedSecondsLT(powerTimer) > duration) bPowerLock = false; // Check if ready to stop waiting after power toggled.
     }
 
     /**
@@ -402,7 +396,7 @@ private:
 #endif // OTSIM900LINK_DEBUG
 
  /***************** AT Commands and Private Constants and variables ******************/
-    static const constexpr uint8_t duration = 10;
+    static const constexpr uint8_t duration = 10;  // DE20160703:Increased duration due to startup issues.
     static const constexpr uint16_t baud = 9600; // max reliable baud
     static const constexpr uint8_t flushTimeOut = 10;
 
@@ -485,11 +479,9 @@ private:
      */
     void powerToggle()
     {
-//        fastDigitalWrite(PWR_PIN, HIGH);
-        fastDigitalWrite(A2, HIGH);
+        fastDigitalWrite(PWR_PIN, HIGH);
         delay(1500);  // This is the minimum value that worked reliably
-//        fastDigitalWrite(PWR_PIN, LOW);
-        fastDigitalWrite(A2, LOW);
+        fastDigitalWrite(PWR_PIN, LOW);
         bPowered = !bPowered;
     //    delay(3000);
         bPowerLock = true;
@@ -750,7 +742,7 @@ private:
         ser.print(AT_SET);
         printConfig(config->PIN);
         ser.println();
-//        timedBlockingRead(data, sizeof(data));
+//        timedBlockingRead(data, sizeof(data));  // todo redundant until function properly implemented.
         OTSIM900LINK_DEBUG_SERIAL_PRINTLN(data)
         return 0;
     }
