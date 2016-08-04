@@ -7,6 +7,8 @@
 
 ## Problems
 1. Blocks for long periods of time while waiting for response.
+1. Undocumented state where SIM900 gets stuck in PDP-DEACT.
+1. SIM900 stops sending packets, although it behaves as if it is connected normally.
 
 ## Notes
 - The current version of OTSoftSerial (20160523) can run at a maximum of 9600 baud.
