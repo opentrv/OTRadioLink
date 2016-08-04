@@ -37,7 +37,7 @@ void OTRFM23BLinkBase::setMaxTypicalFrameBytes(const uint8_t _maxTypicalFrameByt
     maxTypicalFrameBytes = max(1, min(_maxTypicalFrameBytes, 63));
     }
 
-// Returns true iff RFM23 appears to be correctly connected.
+// Returns true if RFM23 appears to be correctly connected.
 bool OTRFM23BLinkBase::_checkConnected() const
     {
 //    // Give radio time to start up.
