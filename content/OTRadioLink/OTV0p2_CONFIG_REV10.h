@@ -328,7 +328,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 // IF DEFINED: this unit controls a valve, but provides slave valve control only.
 #undef ENABLE_SLAVE_TRV
 // IF DEFINED: this unit can act as boiler-control hub listening to remote thermostats, possibly in addition to controlling a local TRV.
-#undef ENABLE_BOILER_HUB
+#define ENABLE_BOILER_HUB
 // IF DEFINED: allow binary stats to be TXed.
 #undef ENABLE_BINARY_STATS_TX
 // IF DEFINED: enable support for FS20 carrier for RX or TX.
