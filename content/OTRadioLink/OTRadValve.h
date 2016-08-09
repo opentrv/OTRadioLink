@@ -39,4 +39,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 // Driver for boiler.
 #include "utility/OTRadValve_BoilerDriver.h"
 
+// Test motor driver
+#include "utility/OTRadValve_TestValve.h"
+
 #endif
