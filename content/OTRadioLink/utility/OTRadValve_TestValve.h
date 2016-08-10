@@ -18,6 +18,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
 
 /*
  * Driver for DORM1/REV7 direct motor drive.
+ * TODO!!! Rename!
  */
 
 
@@ -37,11 +38,10 @@ namespace OTRadValve
     {
 
 
-// Generic (unit-testable) motor driver login using end-stop detection and simple shaft-encoder.
-// Designed to be embedded in a motor controller instance.
-// This used the sub-cycle clock for timing.
-// This is sensitive to sub-cycle position, ie will try to avoid causing a main loop overrun.
-// May report some key status on Serial, with any error line(s) starting with "!'.
+/**
+ * @class   TestValveMotor
+ * @brief   Generic high level motor driver with minimal logic. Intended for battery and motor drive testing.
+ */
 class TestValveMotor : public OTRadValve::HardwareMotorDriverInterfaceCallbackHandler
   {
   private:
@@ -49,19 +49,13 @@ class TestValveMotor : public OTRadValve::HardwareMotorDriverInterfaceCallbackHa
     // Must have a lifetime exceeding that of this enclosing object.
     OTRadValve::HardwareMotorDriverInterface * const hw;
 
-    // Major state of driver.
-    // On power-up (or full reset) should be 0/init.
-    // Stored as a uint8_t to save a little space and to make atomic operations easier.
-    // Marked volatile so that individual reads are ISR-/thread- safe without a mutex.
-    // Hold a mutex to perform compound operations such as read/modify/write.
-    // Change state with changeState() which will do some other book-keeping.
-    volatile bool state;
+    volatile bool state;  // direction the motor is running in.
 
     // Flag set on signalHittingEndStop() callback from end-top / stall / high-current input.
     // Marked volatile for thread-safe lock-free access (with care).
     volatile bool endStopDetected;
 
-    volatile uint32_t counter;
+    volatile uint32_t counter;  // Stores the number of times motor has hit an endstop.
 
     // Run fast towards/to end stop as far as possible in this call.
     // Terminates significantly before the end of the sub-cycle.
@@ -70,6 +64,7 @@ class TestValveMotor : public OTRadValve::HardwareMotorDriverInterfaceCallbackHa
     // else will require one or more further calls in new sub-cycles
     // to hit the end-stop.
     // May attempt to ride through stiff mechanics.
+    // Prints counter to serial in hex each time an end stop has been reached.
     bool runFastTowardsEndStop(bool toOpen);
 
   public:
@@ -78,16 +73,17 @@ class TestValveMotor : public OTRadValve::HardwareMotorDriverInterfaceCallbackHa
     TestValveMotor(OTRadValve::HardwareMotorDriverInterface * const hwDriver)
   	  : hw(hwDriver), state(false), endStopDetected(false), counter(0) {}
 
-    // Poll.
-    // Regular poll every 1s or 2s,
-    // though tolerates missed polls eg because of other time-critical activity.
-    // May block for hundreds of milliseconds.
+    /**
+     * @brief   Updates the state of the motor logic.
+     *          - Will run until end stop is detected and then reverse
+     *          the direction of the motor and increment counter.
+     */
     void poll();
 
     // unused abstract functions
-    void signalHittingEndStop(bool) {}
+    void signalHittingEndStop(bool) { endStopDetected = true; }
     void signalShaftEncoderMarkStart(bool) {}
-    void signalRunSCTTick(bool) {}
+    void signalRunSCTTick(bool opening) {}
 
 
   };
