@@ -64,10 +64,12 @@ namespace OTV0P2BASE
 #define PIN_SERIAL_RX (::OTV0P2BASE::V0p2_PIN_SERIAL_RX) // 0: ATMega328P-PU PDIP pin 2, PD0.
 #define PIN_SERIAL_TX (::OTV0P2BASE::V0p2_PIN_SERIAL_TX) // 1: ATMega328P-PU PDIP pin 2, PD1.
 // SPI: SCK (dpin 13, also LED on Arduino boards that the bootloader may 'flash'), MISO (dpin 12), MOSI (dpin 11), nSS (dpin 10).
-#define PIN_SPI_SCK (::OTV0P2BASE::V0p2_PIN_SPI_SCK) // 13: ATMega328P-PU PDIP pin 19, PB5.
-#define PIN_SPI_MISO (::OTV0P2BASE::V0p2_PIN_SPI_MISO) // 12: ATMega328P-PU PDIP pin 18, PB4.
-#define PIN_SPI_MOSI (::OTV0P2BASE::V0p2_PIN_SPI_MOSI) // 11: ATMega328P-PU PDIP pin 17, PB3.
-#define PIN_SPI_nSS (::OTV0P2BASE::V0p2_PIN_SPI_nSS) // 10: ATMega328P-PU PDIP pin 16, PB2.  Active low enable.
+/// @note   These #defines are now used by the arduino IDE and cause warnings.
+//#define PIN_SPI_SCK (::OTV0P2BASE::V0p2_PIN_SPI_SCK) // 13: ATMega328P-PU PDIP pin 19, PB5.
+//#define PIN_SPI_MISO (::OTV0P2BASE::V0p2_PIN_SPI_MISO) // 12: ATMega328P-PU PDIP pin 18, PB4.
+//#define PIN_SPI_MOSI (::OTV0P2BASE::V0p2_PIN_SPI_MOSI) // 11: ATMega328P-PU PDIP pin 17, PB3.
+//#define PIN_SPI_nSS (::OTV0P2BASE::V0p2_PIN_SPI_nSS) // 10: ATMega328P-PU PDIP pin 16, PB2.  Active low enable.
+#define V0P2_ENABLE_SPI  // temporary hack around above problem.
 // I2C/TWI: SDA (ain 4), SCL (ain 5), interrupt (dpin3)
 #define PIN_SDA_AIN (::OTV0P2BASE::V0p2_PIN_SDA_AIN) // 4: ATMega328P-PU PDIP pin 27, PC4.
 #define PIN_SCL_AIN (::OTV0P2BASE::V0p2_PIN_SCL_AIN) // 5: ATMega328P-PU PDIP pin 28, PC5.
@@ -272,13 +274,13 @@ static inline void IOSetup()
 #ifdef BUTTON_LEARN2_L
       case BUTTON_LEARN2_L: // Learn button 2 is optional.
 #endif
-#ifdef PIN_SPI_nSS
+#ifdef V0P2_ENABLE_SPI//PIN_SPI_nSS // fixme temporary hack around IDE problems.
       // Do not leave/set SPI nSS as low output (or floating) to avoid waking up SPI slave(s).
-      case PIN_SPI_nSS:
-#endif
-#ifdef PIN_SPI_MISO
+      case V0p2_PIN_SPI_nSS://PIN_SPI_nSS: // FIXME these used to be #defines.
+//#endif
+//#ifdef PIN_SPI_MISO
       // Do not leave/set SPI MISO as low output (or floating).
-      case PIN_SPI_MISO:
+      case V0p2_PIN_SPI_MISO://PIN_SPI_MISO:
 #endif
 #ifdef PIN_OW_DQ_DATA
       // Weak pull-up to avoid leakage current.

@@ -10,7 +10,8 @@ or release/freeze points.
 
 pending:
     DE20160510:  OTSoftSerial now runs at 9600 baud.
-
+    DE20160812:  Fixed boiler hub relay code.
+    DE20160812:  Fixed clashes with Arduino AVR Boards v1.6.12
 
 
 
