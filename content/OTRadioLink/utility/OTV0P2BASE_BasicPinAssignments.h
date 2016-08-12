@@ -49,10 +49,10 @@ static const uint8_t V0p2_PIN_SCL_AIN = 5; // ATMega328P-PU PDIP pin 28, PC5.
 static const uint8_t V0p2_PIN_DEFAULT_IO_POWER_UP = 7; // ATMega328P-PU PDIP pin 13, PD7, no usable analogue input.
 
 // SPI: SCK (dpin 13, also LED on Arduino UNO + REV1 boards that the bootloader may 'flash'), MISO (dpin 12), MOSI (dpin 11), nSS (dpin 10).
-static const uint8_t V0p2_PIN_SPI_nSS = 10; // ATMega328P-PU PDIP pin 16, PB2.  Active low enable.
-static const uint8_t V0p2_PIN_SPI_MOSI = 11; // ATMega328P-PU PDIP pin 17, PB3.
-static const uint8_t V0p2_PIN_SPI_MISO = 12; // ATMega328P-PU PDIP pin 18, PB4.
-static const uint8_t V0p2_PIN_SPI_SCK = 13; // ATMega328P-PU PDIP pin 19, PB5.
+static const constexpr uint8_t V0p2_PIN_SPI_nSS = 10; // ATMega328P-PU PDIP pin 16, PB2.  Active low enable.
+static const constexpr uint8_t V0p2_PIN_SPI_MOSI = 11; // ATMega328P-PU PDIP pin 17, PB3.
+static const constexpr uint8_t V0p2_PIN_SPI_MISO = 12; // ATMega328P-PU PDIP pin 18, PB4.
+static const constexpr uint8_t V0p2_PIN_SPI_SCK = 13; // ATMega328P-PU PDIP pin 19, PB5.
 
 
 // ANALOGUE I/O ASSIGNMENTS
