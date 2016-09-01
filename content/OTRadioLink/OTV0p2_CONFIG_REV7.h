@@ -146,17 +146,16 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #define ENABLE_SETBACK_LOCKOUT_COUNTDOWN
 #endif
 
-
-#ifdef CONFIG_REV7_AS_SENSOR // REV7 as JSON-only stats/sensor leaf.
-// Revision REV7 of V0.2 board, all-in-one valve unit with local motor drive.
-// In this off-label mode being used as stats gatherers or simple hubs.
-#define V0p2_REV 7
-// IF DEFINED: initial direct motor drive design.  Doesn't imply it gets used, but I/O can be set up safely.
-#define ENABLE_V1_DIRECT_MOTOR_DRIVE
-// IF DEFINED: enable use of on-board SHT21 RH and temp sensor (in lieu of TMP112).
-#define ENABLE_PRIMARY_TEMP_SENSOR_SHT21
-// Using RoHS-compliant phototransistor in place of LDR.
-#define ENABLE_AMBIENT_LIGHT_SENSOR_PHOTOTRANS_TEPT4400
+#ifdef CONFIG_REV7_AS_SECURE_SENSOR // REV7 as JSON-only stats/sensor leaf.
+// As DORM1 but without local valve control or settable temperatures.
+#define CONFIG_DORM1
+// IF DEFINED: enable periodic secure beacon broadcast.
+#undef ENABLE_SECURE_RADIO_BEACON
+// IF DEFINED: allow non-secure OpenTRV secure frame RX (as of 2015/12): DISABLED BY DEFAULT.
+#undef ENABLE_OTSECUREFRAME_INSECURE_RX_PERMITTED
+// IF DEFINED: enable OpenTRV secure frame encoding/decoding (as of 2015/12).
+// DHD20160214: costs 5866 bytes to enable vs 3426 for FS20 support.
+#define ENABLE_OTSECUREFRAME_ENCODING_SUPPORT
 // IF DEFINED: use the temperature-setting potentiometer/dial if present.
 #undef ENABLE_TEMP_POT_IF_PRESENT
 // IF DEFINED: basic FROST/WARM temperatures are settable.
@@ -165,22 +164,27 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #undef ENABLE_LOCAL_TRV
 // IF DEFINED: this unit controls a valve, but provides slave valve control only.
 #undef ENABLE_SLAVE_TRV
-// IF DEFINED: this unit can act as boiler-control hub listening to remote thermostats, possibly in addition to controlling a local TRV.
-#undef ENABLE_BOILER_HUB // NO BOILER CODE
-// IF DEFINED: allow RX of stats frames.
-#undef ENABLE_STATS_RX
-// IF DEFINED: allow TX of stats frames.
-#define ENABLE_STATS_TX
-// IF DEFINED: always allow some kind of stats TX, whatever the privacy settings.
-#define ENABLE_ALWAYS_TX_ALL_STATS
-// IF DEFINED: allow JSON stats frames.
-#define ENABLE_JSON_OUTPUT
-// IF DEFINED: allow binary stats to be TXed.
-#undef ENABLE_BINARY_STATS_TX
-// IF DEFINED: enable support for FS20 carrier for RX of raw FS20 and piggybacked binary (non-JSON) stats.
-#undef ENABLE_FS20_NATIVE_AND_BINARY_STATS_RX
 #endif
 
+#ifdef CONFIG_REV7_AS_SENSOR // REV7 as JSON-only stats/sensor leaf.
+// As DORM1 but without local valve control or settable temperatures.
+#define CONFIG_DORM1
+// IF DEFINED: enable periodic secure beacon broadcast.
+#undef ENABLE_SECURE_RADIO_BEACON
+// IF DEFINED: allow non-secure OpenTRV secure frame RX (as of 2015/12): DISABLED BY DEFAULT.
+#define ENABLE_OTSECUREFRAME_INSECURE_RX_PERMITTED
+// IF DEFINED: enable OpenTRV secure frame encoding/decoding (as of 2015/12).
+// DHD20160214: costs 5866 bytes to enable vs 3426 for FS20 support.
+#undef ENABLE_OTSECUREFRAME_ENCODING_SUPPORT
+// IF DEFINED: use the temperature-setting potentiometer/dial if present.
+#undef ENABLE_TEMP_POT_IF_PRESENT
+// IF DEFINED: basic FROST/WARM temperatures are settable.
+#undef ENABLE_SETTABLE_TARGET_TEMPERATURES
+// IF DEFINED: this unit will act as a thermostat controlling a local TRV (and calling for heat from the boiler), else is a sensor/hub unit.
+#undef ENABLE_LOCAL_TRV
+// IF DEFINED: this unit controls a valve, but provides slave valve control only.
+#undef ENABLE_SLAVE_TRV
+#endif
 
 #ifdef CONFIG_DORM1_MUT // REV7 / DORM1 Winter 2014/2015 minimal for unit testing.
 // Revision REV7 of V0.2 board, all-in-one valve unit with local motor drive.
