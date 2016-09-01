@@ -80,6 +80,11 @@ class TestValveMotor : public OTRadValve::HardwareMotorDriverInterfaceCallbackHa
      */
     void poll();
 
+    /**
+     * @brief   Returns the end stop counter.
+     */
+    inline uint32_t getCounter() { return counter; }
+
     // unused abstract functions
     void signalHittingEndStop(bool) { endStopDetected = true; }
     void signalShaftEncoderMarkStart(bool) {}
