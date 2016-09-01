@@ -37,8 +37,7 @@ bool TestValveMotor::runFastTowardsEndStop(bool toOpen)
 	hw->motorRun(0, OTRadValve::HardwareMotorDriverInterface::motorOff, *this);
 	// Report if end-stop has apparently been hit.
 	if (endStopDetected) {
-		OTV0P2BASE::serialPrintAndFlush(++counter, HEX);
-		OTV0P2BASE::serialPrintlnAndFlush();
+		counter++;
 	}
 	return(endStopDetected);
 //    // Clear the end-stop detection flag ready.
