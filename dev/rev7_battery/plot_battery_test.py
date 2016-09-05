@@ -5,18 +5,29 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-FILE_PATH = os.path.realpath("./battery_test-secureTx2.log")
 
+## SETTINGS
+FILE_PATH = os.path.realpath("./battery_test-valve.log")
 PLOT_START = 0.0
-PLOT_END = 600.0
+PLOT_END = 120.0
+MAX_VOLTAGE = 2901 # Max-voltage-inclusive to plot
+MIN_VOLTAGE = 2800 # Min-voltage-inclusive to plot
+
+## CONSTANTS
+CLMN_VOLTAGE = 0
+CLMN_TIME = 1
+CLMN_CURRENT = 2
+CLMN_ENDSTOPS = 3
+
 
 results = []
-foo = []
 
+# This section is for limiting the results to a particular time-slice.
 axis = plt.gca()
-axis.set_xlim([PLOT_START, PLOT_END])
+#axis.set_xlim([PLOT_START, PLOT_END])
 #axis.set_ylim([0.0, 40.0])
 
+# Read the .csv, discarding any text.
 with open(FILE_PATH, 'r') as csvfile:
     spamreader = csv.reader(csvfile, delimiter=',')
     
@@ -25,34 +36,26 @@ with open(FILE_PATH, 'r') as csvfile:
         try:
             temp = [float(x) for x in row]
             #temp[0] = int(row[0]) // 8
-            foo.append(temp)
+            results.append(temp)
         except:
-            if row[0] == "Settings:":
-                #results.append(foo)
-                break
             continue
             
-result_matrix = np.asarray(foo)
-#print(result_matrix)
+result_matrix = np.asarray(results)  # convert to np array.
 
-#foo = np.copy(result_matrix)
-#foo = foo[foo[:,2] == 2.2,:]
-#foo[:,0] = foo[:,0] - foo[0,0]
-#plt.plot(foo[:200,0], foo[:200,1])
-#for v in range(len(result_matrix[:,0,0])):
-bar = np.copy(result_matrix)
-start = 0
+results = np.copy(result_matrix[(result_matrix[:,CLMN_VOLTAGE] <= MAX_VOLTAGE) &  
+                            (result_matrix[:,CLMN_VOLTAGE] >= MIN_VOLTAGE),:])  # Extract the relevant voltage range
 
-bar[:,1] = bar[:,1] - bar[start,1]
-
-bar[:,0] = bar[:,0] * 0.01
-#bar[:,3] = bar[:,3] * 10
-
-plt.plot(bar[:,1], bar[:,0])
-plt.plot(bar[:,1], bar[:,2])
-#plt.plot(bar[:,1], bar[:,3])
-
-#bar += 0.1
+# TODO!!! Need to do something more to filter out readings from wrong voltages.
+ 
+results[:,CLMN_TIME] = results[:,CLMN_TIME] - results[0,CLMN_TIME]  # Take time to start from first reading.
+# Plot values
+plt.plot(results[:,CLMN_TIME], results[:,CLMN_CURRENT])
+plt.plot(results[:,CLMN_TIME], results[:,CLMN_VOLTAGE]*0.1)
+# May not always count endstops.
+try:
+    plt.plot(results[:,CLMN_TIME], results[:,CLMN_ENDSTOPS]* 10)
+except:
+    pass
 
 # show plot
 plt.legend()
