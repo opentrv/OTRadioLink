@@ -110,8 +110,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 // IF DEFINED: enable support for fast (>50kbps) packet-handling carrier (leading length byte).
 #define ENABLE_FAST_FRAMED_CARRIER_SUPPORT
 // IF DEFINED: enable OpenTRV secure frame encoding/decoding (as of 2015/12).
-// DHD20160214: costs 5866 bytes to enable vs 3426 for FS20 support.
-// DE20160411:  costs ~10KB on both Arduino 1.6.5 and 1.6.7 for me. (just over 32KB down to about 22 KB)
 #define ENABLE_OTSECUREFRAME_ENCODING_SUPPORT
 // IF DEFINED: enable support for FS20 carrier for RX of raw FS20 and piggybacked binary (non-JSON) stats.
 #undef ENABLE_FS20_NATIVE_AND_BINARY_STATS_RX
@@ -132,13 +130,56 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #endif
 
 #ifdef CONFIG_Trial2013Winter_Round1_NOHUB // REV1 as TX-only leaf node.
-#define CONFIG_Trial2013Winter_Round1 // Just like normal REV2 except...
+#define CONFIG_Trial2013Winter_Round1 // Just like normal REV1 except...
 // IF DEFINED: this unit can act as boiler-control hub listening to remote thermostats, possibly in addition to controlling a local TRV.
 #undef ENABLE_BOILER_HUB
 // IF DEFINED: allow RX of stats frames.
 #undef ENABLE_STATS_RX
 // IF DEFINED: allow TX of stats frames.
 #define ENABLE_STATS_TX
+#endif
+
+#ifdef CONFIG_Trial2013Winter_Round1_SECURE_SENSOR // REV1 as secure TX-only sensor node.
+#define CONFIG_Trial2013Winter_Round1 // Just like normal REV1 except...
+// IF DEFINED: this unit can act as boiler-control hub listening to remote thermostats, possibly in addition to controlling a local TRV.
+#undef ENABLE_BOILER_HUB
+// IF DEFINED: allow RX of stats frames.
+#undef ENABLE_STATS_RX
+// IF DEFINED: allow TX of stats frames.
+#define ENABLE_STATS_TX
+// IF DEFINED: this unit will act as a thermostat controlling a local TRV (and calling for heat from the boiler), else is a sensor/hub unit.
+#undef ENABLE_LOCAL_TRV
+//
+// EXTRA STUFF FOR SECURE!
+//
+// IF DEFINED: enable support for FS20 carrier for RX or TX.
+#undef ENABLE_FS20_CARRIER_SUPPORT
+// IF DEFINED: use FHT8V wireless radio module/valve.
+#undef ENABLE_FHT8VSIMPLE
+// IF DEFINED: enable support for FS20 carrier for TX specifically (to allow RX-only).
+#undef ENABLE_FS20_CARRIER_SUPPORT_TX
+// IF DEFINED: enable raw preamble injection/framing eg for FS20 over RFM23B.
+#undef ENABLE_RFM23B_FS20_RAW_PREAMBLE
+// IF DEFINED: enable support for FS20 encoding/decoding, eg to send to FHT8V.
+#undef ENABLE_FS20_ENCODING_SUPPORT
+// IF DEFINED: enable periodic secure beacon broadcast.
+#undef ENABLE_SECURE_RADIO_BEACON
+// IF DEFINED: enable support for fast (>50kbps) packet-handling carrier (leading length byte).
+#define ENABLE_FAST_FRAMED_CARRIER_SUPPORT
+// IF DEFINED: enable OpenTRV secure frame encoding/decoding (as of 2015/12).
+#define ENABLE_OTSECUREFRAME_ENCODING_SUPPORT
+// IF DEFINED: enable support for FS20 carrier for RX of raw FS20 and piggybacked binary (non-JSON) stats.
+#undef ENABLE_FS20_NATIVE_AND_BINARY_STATS_RX
+// IF DEFINED: allow local generation of JSON stats frames (this may not affect relaying).
+#define ENABLE_JSON_OUTPUT
+/// IF DEFINED: this unit supports CLI over the USB/serial connection, eg for run-time reconfig.
+#define ENABLE_CLI
+// IF DEFINED: there is run-time help available for the CLI.
+#define ENABLE_CLI_HELP
+// IF DEFINED: enable a full OpenTRV CLI.
+#define ENABLE_FULL_OT_CLI
+// IF DEFINED: enable and extended CLI with a longer input buffer for example.
+#undef ENABLE_EXTENDED_CLI
 #endif
 
 #ifdef CONFIG_Trial2013Winter_Round1 // For trial over winter of 2013--4, first round (REV1).
