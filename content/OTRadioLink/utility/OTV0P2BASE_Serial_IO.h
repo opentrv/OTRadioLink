@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
+Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
                            Deniz Erbilgin 2015
 */
 
@@ -60,10 +60,10 @@ namespace OTV0P2BASE
 
 
 
-// Conventions for data sent on V0p2 serial (FTDI) link to indicate 'significant' lines.
-// If the initial character on a line is one of the following distinguished values
+// Conventions for data sent on V0p2 serial (eg FTDI) link to indicate 'significant' lines.
+// If the initial character on the line is one of the following distinguished values
 // then that implies that the entire line is for the described purpose.
-// For example, lines from the V0p2 unit starting with '!' can be written to an error log.
+// For example, lines from the V0p2 unit starting with '!' can treated as an error log.
 enum Serial_LineType_InitChar {
     // Reserved characters at the start of a line from V0p2 to attached server/upstream system.
     SERLINE_START_CHAR_CLI = '>', // CLI prompt.
