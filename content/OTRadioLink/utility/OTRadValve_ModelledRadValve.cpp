@@ -124,32 +124,57 @@ int ModelledRadValveState::getSmoothedRecent() const
 static const uint8_t MAX_TEMP_JUMP_C16 = 3; // 3/16C.
 
 // Minimum drop in temperature over recent time to trigger 'window open' response; strictly +ve.
-// Should probably be significantly larger than MAX_TEMP_JUMP_C16 to avoid triggering alongside any filtering.
-// Needs to be be a fast enough fall NOT to be triggered by normal temperature gyrations close to a radiator.
-// Nominally target something like ~1C drop over a few minutes and/or the filter length.
+// Nominally target up 0.25C--1C drop over a few minutes (limited by the filter length).
 // TODO-621: in case of very sharp drop in temperature,
 // assume that a window or door has been opened,
 // by accident or to ventilate the room,
 // so suppress heating to reduce waste.
+//
 // See one sample 'airing' data set:
 //     http://www.earth.org.uk/img/20160930-16WWmultisensortempL.README.txt
 //     http://www.earth.org.uk/img/20160930-16WWmultisensortempL.png
 //     http://www.earth.org.uk/img/20160930-16WWmultisensortempL.json.xz
 //
-// 7h (A9B2F7C089EECD89) saw a sharp fall and recovery, possibly from an external door being opened,
+// 7h (hall, A9B2F7C089EECD89) saw a sharp fall and recovery, possibly from an external door being opened:
 // 1C over 10 minutes then recovery by nearly 0.5C over next half hour.
+// Note that there is a potential 'sensitising' occupancy signal available,
+// ie sudden occupancy may allow triggering with a lower temperature drop.
 //[ "2016-09-30T06:45:18Z", "", {"@":"A9B2F7C089EECD89","+":15,"T|C16":319,"H|%":65,"O":1} ]
 //[ "2016-09-30T06:57:10Z", "", {"@":"A9B2F7C089EECD89","+":2,"L":101,"T|C16":302,"H|%":60} ]
 //[ "2016-09-30T07:05:10Z", "", {"@":"A9B2F7C089EECD89","+":4,"T|C16":303,"v|%":0} ]
 //[ "2016-09-30T07:09:08Z", "", {"@":"A9B2F7C089EECD89","+":5,"tT|C":16,"T|C16":305} ]
 //[ "2016-09-30T07:21:08Z", "", {"@":"A9B2F7C089EECD89","+":8,"O":2,"T|C16":308,"H|%":64} ]
 //[ "2016-09-30T07:33:12Z", "", {"@":"A9B2F7C089EECD89","+":11,"tS|C":0,"T|C16":310} ]
-
-static const uint8_t MIN_WINDOW_OPEN_TEMP_FALL_C16 = 16; // 1C.
+//
+// 1g (bedroom, FEDA88A08188E083) saw a slower fall, assumed from airing:
+// initially of .25C in 12m, 0.75C over 1h, bottoming out ~2h later down ~2C.
+// Note that there is a potential 'sensitising' occupancy signal available,
+// ie sudden occupancy may allow triggering with a lower temperature drop.
+//[ "2016-09-30T06:31:38Z", "", {"@":"FEDA88A08188E083","+":9,"gE":0,"T|C16":331,"H|%":67} ]
+//[ "2016-09-30T06:35:30Z", "", {"@":"FEDA88A08188E083","+":10,"T|C16":330,"O":2,"L":2} ]
+//[ "2016-09-30T06:43:30Z", "", {"@":"FEDA88A08188E083","+":12,"H|%":65,"T|C16":327,"O":2} ]
+//[ "2016-09-30T06:59:34Z", "", {"@":"FEDA88A08188E083","+":0,"T|C16":325,"H|%":64,"O":1} ]
+//[ "2016-09-30T07:07:34Z", "", {"@":"FEDA88A08188E083","+":2,"H|%":63,"T|C16":324,"O":1} ]
+//[ "2016-09-30T07:19:30Z", "", {"@":"FEDA88A08188E083","+":5,"vC|%":0,"gE":0,"T|C16":321} ]
+//[ "2016-09-30T07:23:29Z", "", {"@":"FEDA88A08188E083","+":6,"T|C16":320,"H|%":63,"O":1} ]
+//[ "2016-09-30T07:31:27Z", "", {"@":"FEDA88A08188E083","+":8,"L":102,"T|C16":319,"H|%":63} ]
+// ...
+//[ "2016-09-30T08:15:27Z", "", {"@":"FEDA88A08188E083","+":4,"T|C16":309,"H|%":61,"O":1} ]
+//[ "2016-09-30T08:27:41Z", "", {"@":"FEDA88A08188E083","+":7,"vC|%":0,"T|C16":307} ]
+//[ "2016-09-30T08:39:33Z", "", {"@":"FEDA88A08188E083","+":10,"T|C16":305,"H|%":61,"O":1} ]
+//[ "2016-09-30T08:55:29Z", "", {"@":"FEDA88A08188E083","+":14,"T|C16":303,"H|%":61,"O":1} ]
+//[ "2016-09-30T09:07:37Z", "", {"@":"FEDA88A08188E083","+":1,"gE":0,"T|C16":302,"H|%":61} ]
+//[ "2016-09-30T09:11:29Z", "", {"@":"FEDA88A08188E083","+":2,"T|C16":301,"O":1,"L":175} ]
+//[ "2016-09-30T09:19:41Z", "", {"@":"FEDA88A08188E083","+":4,"T|C16":301,"H|%":61,"O":1} ]
+//
+// Should probably be significantly larger than MAX_TEMP_JUMP_C16 to avoid triggering alongside any filtering.
+// Needs to be be a fast enough fall NOT to be triggered by normal temperature gyrations close to a radiator.
+static const uint8_t MIN_WINDOW_OPEN_TEMP_FALL_C16 = max(MAX_TEMP_JUMP_C16+2, 5); // Just over 1/4C.
 // Minutes over which temperature should be falling to trigger 'window open' response; strictly +ve.
 // TODO-621.
 // Needs to be be a fast enough fall NOT to be triggered by normal temperature gyrations close to a radiator.
-static const uint8_t MIN_WINDOW_OPEN_TEMP_FALL_M = 10;
+// Is capped in practice at the filter length.
+static const uint8_t MIN_WINDOW_OPEN_TEMP_FALL_M = 13;
 
 // Perform per-minute tasks such as counter and filter updates then recompute valve position.
 // The input state must be complete including target and reference temperatures
@@ -243,16 +268,17 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
     // Avoid trying to heat the outside world when a window or door is opened (TODO-621).
     // This is a short-term tactical response to a persistent cold draught,
     // eg from a window being opened to ventilate a room manually,
-    // or a door being left open.
+    // or an exterior door being left open.
     //
     // BECAUSE not currently very close to target
     // (possibly because of sudden temperature drop already from near target)
     // AND IF system has 'eco' bias (so tries harder to save energy)
-    // and the temperature above a minimum frost safety threshold
+    // and no fast response has been requested (eg by recent user operation of the controls)
+    // and the temperature is above a minimum frost safety threshold
     // and the temperature is currently falling
     // and the temperature fall over the last few minutes is large
     // THEN attempt to stop calling for heat immediately and continue to turn down
-    // (if not inhibited from turning down, in which case avoid opening any further).
+    // (though if inhibited from turning down yet, then instead avoid opening any further).
     // Turning the valve down should also inhibit reopening it for a little while,
     // even once the temperature has stopped falling.
     //
@@ -262,7 +288,8 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
     // so may annoy users and make heating control seem erratic,
     // so only do this in 'eco' mode where permission has been given to try harder to save energy.
     if(inputState.hasEcoBias &&
-       (adjustedTempC > MIN_VALVE_TARGET_C) &&
+       (!inputState.fastResponseRequired) && // Avoid subverting recent manual call for heat.
+       (adjustedTempC >= MIN_VALVE_TARGET_C) &&
        (getRawDelta() < 0) &&
        (getRawDelta(MIN_WINDOW_OPEN_TEMP_FALL_M) <= -(int)MIN_WINDOW_OPEN_TEMP_FALL_C16))
         {
