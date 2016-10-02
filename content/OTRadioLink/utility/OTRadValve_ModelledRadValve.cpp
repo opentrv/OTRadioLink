@@ -131,6 +131,20 @@ static const uint8_t MAX_TEMP_JUMP_C16 = 3; // 3/16C.
 // assume that a window or door has been opened,
 // by accident or to ventilate the room,
 // so suppress heating to reduce waste.
+// See one sample 'airing' data set:
+//     http://www.earth.org.uk/img/20160930-16WWmultisensortempL.README.txt
+//     http://www.earth.org.uk/img/20160930-16WWmultisensortempL.png
+//     http://www.earth.org.uk/img/20160930-16WWmultisensortempL.json.xz
+//
+// 7h (A9B2F7C089EECD89) saw a sharp fall and recovery, possibly from an external door being opened,
+// 1C over 10 minutes then recovery by nearly 0.5C over next half hour.
+//[ "2016-09-30T06:45:18Z", "", {"@":"A9B2F7C089EECD89","+":15,"T|C16":319,"H|%":65,"O":1} ]
+//[ "2016-09-30T06:57:10Z", "", {"@":"A9B2F7C089EECD89","+":2,"L":101,"T|C16":302,"H|%":60} ]
+//[ "2016-09-30T07:05:10Z", "", {"@":"A9B2F7C089EECD89","+":4,"T|C16":303,"v|%":0} ]
+//[ "2016-09-30T07:09:08Z", "", {"@":"A9B2F7C089EECD89","+":5,"tT|C":16,"T|C16":305} ]
+//[ "2016-09-30T07:21:08Z", "", {"@":"A9B2F7C089EECD89","+":8,"O":2,"T|C16":308,"H|%":64} ]
+//[ "2016-09-30T07:33:12Z", "", {"@":"A9B2F7C089EECD89","+":11,"tS|C":0,"T|C16":310} ]
+
 static const uint8_t MIN_WINDOW_OPEN_TEMP_FALL_C16 = 16; // 1C.
 // Minutes over which temperature should be falling to trigger 'window open' response; strictly +ve.
 // TODO-621.
