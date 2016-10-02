@@ -274,19 +274,25 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
     // (possibly because of sudden temperature drop already from near target)
     // AND IF system has 'eco' bias (so tries harder to save energy)
     // and no fast response has been requested (eg by recent user operation of the controls)
-    // and the temperature is above a minimum frost safety threshold
-    // and the temperature is currently falling
+    // and the temperature is at/above a minimum frost safety threshold
+    // and the temperature is currently falling (over the last measurement period)
     // and the temperature fall over the last few minutes is large
     // THEN attempt to stop calling for heat immediately and continue to turn down
-    // (though if inhibited from turning down yet, then instead avoid opening any further).
+    // (though if inhibited from turning down yet*, then instead avoid opening any further).
     // Turning the valve down should also inhibit reopening it for a little while,
     // even once the temperature has stopped falling.
+    //
+    // *This may be because the valve has just recently been closed
+    // in which case some sort of a temperature drop is not astonishing.
     //
     // It seems sensible to stop calling for heat immediately if one of these events seems to be happening,
     // though that (a) may not stop the boiler and heat delivery if other rooms are still calling for heat
     // and (b) may prevent the boiler being started again for a while even if this was a false alarm,
     // so may annoy users and make heating control seem erratic,
     // so only do this in 'eco' mode where permission has been given to try harder to save energy.
+    //
+    // TODO: could restrict this to when (valvePCOpen >= inputState.minPCOpen) to save some thrashing and allow lingering.
+    // TODO: could explicitly avoid applying this when valve has recently been closed to avoid unwanted feedback loop.
     if(inputState.hasEcoBias &&
        (!inputState.fastResponseRequired) && // Avoid subverting recent manual call for heat.
        (adjustedTempC >= MIN_VALVE_TARGET_C) &&
