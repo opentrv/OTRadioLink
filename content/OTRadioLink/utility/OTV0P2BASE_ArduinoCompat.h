@@ -37,7 +37,7 @@ class __FlashStringHelper;
 #define F(string_literal) (reinterpret_cast<const __FlashStringHelper *>(string_literal))
 #endif
 
-// Minimal skeleton matching Print to allow compilation.
+// Minimal skeleton matching Print to permit compilation on non-Arduino platforms.
 class Print { };
 
 #endif

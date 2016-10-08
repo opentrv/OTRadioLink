@@ -66,9 +66,9 @@ public:
 private:
     const uint8_t rxPin;
     const uint8_t txPin;
-    static const uint16_t timeOut = 30000;    // length of timeout in somethings TODO work this out
+    static const uint16_t timeOut = 30000; // Length of timeout in somethings TODO work this out.
     // Used to tune delay cycle times
-    // Compensates for time setting up registries in delay func
+    // Compensates for time setting up registries in delay function.
     static const uint8_t readTuning = 22;    // replace this with read and write versions?
     static const uint8_t writeTuning = 27;
 
