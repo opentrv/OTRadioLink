@@ -19,7 +19,11 @@ Note: original XABC code from "EternityForest" appears to be in the public domai
 
 /*
  Minimal light-weight standard-speed OneWire(TM) support.
+
+ Only supported on V0p2/AVR currently.
  */
+
+#ifdef ARDUINO_ARCH_AVR // Only supported on V0p2/AVR currently.
 
 #include <util/atomic.h>
 
@@ -236,3 +240,5 @@ void MinimalOneWireBase::skip()
 
 
 }
+
+#endif // ARDUINO_ARCH_AVR // Only supported on V0p2/AVR currently.

@@ -46,9 +46,15 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
 // IF DEFINED: Enables adaptive data rate. This is only relevant if RN2483_CONFIG_IN_EEPROM is UNDEFINED
 #define RN2483_ENABLE_ADR // TODO: Untested but may reduce power consumption
 
+#ifdef ARDUINO
 #include <Arduino.h>
+#endif
+
+#ifdef ARDUINO_ARCH_AVR
 #include <avr/eeprom.h>
 #include <avr/pgmspace.h>
+#endif
+
 #include <OTRadioLink.h>
 #include <OTV0p2Base.h>
 #include <string.h>

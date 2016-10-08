@@ -93,7 +93,7 @@ class SensorAmbientLight : public SimpleTSUint8Sensor
 
   public:
     SensorAmbientLight(const uint8_t defaultLightThreshold_ = DEFAULT_LIGHT_THRESHOLD)
-      : rawValue(~0U), // Initial value is distinct.
+      : rawValue((uint16_t) ~0U), // Initial value is distinct.
         isRoomLitFlag(false), darkTicks(0),
         recentMin(~0), recentMax(~0),
         defaultLightThreshold(fnmin((uint8_t)254, fnmax((uint8_t)1, defaultLightThreshold_))),

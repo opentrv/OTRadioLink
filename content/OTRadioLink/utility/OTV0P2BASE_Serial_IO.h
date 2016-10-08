@@ -28,7 +28,10 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #ifndef OTV0P2BASE_SERIAL_IO_H
 #define OTV0P2BASE_SERIAL_IO_H
 
+#ifdef ARDUINO
 #include <Arduino.h>
+#endif
+
 #include <OTV0p2Base.h>
 
 

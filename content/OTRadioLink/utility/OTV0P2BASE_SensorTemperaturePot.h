@@ -23,7 +23,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #ifndef OTV0P2BASE_SENSORTEMPERATUREPOT_H
 #define OTV0P2BASE_SENSORTEMPERATUREPOT_H
 
+#ifdef ARDUINO
 #include <Arduino.h>
+#endif
 
 #include "OTV0P2BASE_Util.h"
 #include "OTV0P2BASE_Sensor.h"
@@ -101,7 +103,7 @@ class SensorTemperaturePot : public OTV0P2BASE::SimpleTSUint8Sensor
   public:
     // Initialise raw to distinct/special value and all pointers to NULL.
     SensorTemperaturePot(const uint16_t minExpected_ = 0, const uint16_t maxExpected_ = TEMP_POT_RAW_MAX)
-      : raw(~0U),
+      : raw((uint16_t) ~0U),
         occCallback(NULL), warmModeCallback(NULL), bakeStartCallback(NULL),
         minExpected(minExpected_), maxExpected(maxExpected_),
         loEndStop(_computeLoEndStop(minExpected_, maxExpected_)), hiEndStop(_computeHiEndStop(minExpected_, maxExpected_))

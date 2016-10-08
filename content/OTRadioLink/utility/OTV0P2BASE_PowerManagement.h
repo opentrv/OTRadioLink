@@ -26,8 +26,14 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #define OTV0P2BASE_POWERMANAGEMENT_H
 
 #include <stdint.h>
+
+#ifdef ARDUINO_ARCH_AVR
 #include <util/atomic.h>
+#endif
+
+#ifdef ARDUINO
 #include <Arduino.h>
+#endif
 
 #include "OTV0P2BASE_BasicPinAssignments.h"
 #include "OTV0P2BASE_FastDigitalIO.h"

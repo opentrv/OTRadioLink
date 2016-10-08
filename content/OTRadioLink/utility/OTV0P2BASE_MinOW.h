@@ -18,13 +18,20 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 
 /*
  Minimal light-weight standard-speed OneWire(TM) support.
+
+ Only supported on V0p2/AVR currently.
  */
 
 #ifndef OTV0P2BASE_MINOW_H
 #define OTV0P2BASE_MINOW_H
+#ifdef ARDUINO_ARCH_AVR // Only supported on V0p2/AVR currently.
+
 
 #include <stdint.h>
+
+#ifdef ARDUINO_ARCH_AVR
 #include <util/atomic.h>
+#endif
 
 // Source of default DQ pin.
 #include "utility/OTV0P2BASE_BasicPinAssignments.h"
@@ -219,4 +226,5 @@ class MinimalOneWire : public MinimalOneWireBase
 
 }
 
+#endif // ARDUINO_ARCH_AVR // Only supported on V0p2/AVR currently.
 #endif

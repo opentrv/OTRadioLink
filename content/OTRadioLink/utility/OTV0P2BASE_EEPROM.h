@@ -26,7 +26,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #ifndef OTV0P2BASE_EEPROM_H
 #define OTV0P2BASE_EEPROM_H
 
+#ifdef ARDUINO_ARCH_AVR
 #include <avr/eeprom.h>
+#endif
 
 
 namespace OTV0P2BASE

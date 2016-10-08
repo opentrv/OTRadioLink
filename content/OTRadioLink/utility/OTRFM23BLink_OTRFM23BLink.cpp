@@ -20,7 +20,10 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 /**TEMPORARILY IN OTRadioLink AREA BEFORE BEING MOVED TO OWN LIBRARY. */
 
+#ifdef ARDUINO_ARCH_AVR
 #include <util/atomic.h>
+#endif
+
 #include <OTV0p2Base.h>
 #include <OTRadioLink.h>
 
