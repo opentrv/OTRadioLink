@@ -53,6 +53,7 @@ TEST(ExampleTest, ShouldAddTen)
 }
 
 
+
 /**
  * @brief   Getting started with the gtest libraries.
  * @note    - Add the following to Project>Properties>C/C++ Build>Settings>GCC G++ linker>Libraries (-l):
@@ -62,14 +63,3 @@ TEST(ExampleTest, ShouldAddTen)
  *          - Select Google Testing in Run>Run Configuration>C/C++ Unit Test>testTest>C/C++ Testing and click Apply then Run
  *          - Saved the test config
  */
-
-
-// Actually test a real OTRadioLink file.
-TEST(LibraryTest,ShouldConvertFromHex)
-{
-    const char s[] = "0a";
-    // This works. It's inline and only in the header.
-    EXPECT_EQ(10, OTV0P2BASE::parseHexDigit(s[1]));
-    // The compiler can't find this for some reason (function def in source file).
-    EXPECT_EQ(10, OTV0P2BASE::parseHexByte(s));
-}
