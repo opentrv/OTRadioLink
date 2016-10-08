@@ -59,7 +59,7 @@ class SensorAmbientLightOccupancyDetectorInterface
   {
   public:
     // Call regularly with the current ambient light level [0,255].
-    // Returns true if probably occupancy is detected.
+    // Returns true if probable occupancy is detected.
     // Does not block.
     // Not thread-/ISR- safe.
     virtual bool update(uint8_t newLightLevel) = 0;
@@ -95,7 +95,7 @@ class SensorAmbientLightOccupancyDetectorSimple : public SensorAmbientLightOccup
           { }
 
       // Call regularly (~1/60s) with the current ambient light level [0,255].
-      // Returns true if probably occupancy is detected.
+      // Returns true if probable occupancy is detected.
       // Does not block.
       // Not thread-/ISR- safe.
       virtual bool update(uint8_t newLightLevel);
