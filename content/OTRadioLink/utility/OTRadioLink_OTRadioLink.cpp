@@ -87,8 +87,8 @@ namespace OTRadioLink
 #ifdef ARDUINO
     void dumpRXMsg(const uint8_t *buf, const uint8_t len) { printRXMsg(&Serial, buf, len); }
 #else
-    // On non-Arduino platform, dump to stderr.
-    void dumpRXMsg(const uint8_t *buf, const uint8_t len) { fwrite(buf, 1, len, stderr); }
+    // On non-Arduino platform, dump to stdout.
+    void dumpRXMsg(const uint8_t *buf, const uint8_t len) { fwrite(buf, 1, len, stdout); }
 #endif // ARDUINO
 
     // Heuristic filter, especially useful for OOK carrier, to trim (all but first) trailing zeros.
