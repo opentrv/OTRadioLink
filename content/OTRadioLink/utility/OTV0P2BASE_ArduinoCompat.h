@@ -26,6 +26,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 
 #ifndef ARDUINO
 
+#include <stddef.h>
+
 // Enable minimal elements to support cross-compilation.
 // NOT in normal OpenTRV namespace(s).
 
@@ -35,8 +37,17 @@ class __FlashStringHelper;
 #define F(string_literal) (reinterpret_cast<const __FlashStringHelper *>(string_literal))
 #endif
 
-// Minimal skeleton matching Print to permit compilation on non-Arduino platforms.
-class Print { };
+// Minimal skeleton matching Print to permit at least compilation on non-Arduino platforms.
+class Print
+    {
+    public:
+        size_t print(char);
+        size_t println(char);
+        size_t print(const char *);
+        size_t println(const char *);
+        size_t print(const __FlashStringHelper *);
+        size_t println(const __FlashStringHelper *);
+    };
 
 #endif // ARDUINO
 

@@ -21,6 +21,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014--2016
  */
 
 #include <stddef.h>
+#include <string.h>
 
 #include "OTV0P2BASE_JSONStats.h"
 
@@ -123,7 +124,7 @@ int8_t checkJSONMsgRXCRC(const uint8_t * const bptr, const uint8_t bufLen)
 #endif
   uint8_t crc = '{';
   // Scan up to maximum length for terminating '}'-with-high-bit.
-  const uint8_t ml = min(MSG_JSON_ABS_MAX_LENGTH, bufLen);
+  const uint8_t ml = OTV0P2BASE::fnmin(MSG_JSON_ABS_MAX_LENGTH, bufLen);
   const uint8_t *p = bptr + 1;
   for(int i = 1; i < ml; ++i)
     {
@@ -354,9 +355,10 @@ uint8_t SimpleStatsRotationBase::writeJSON(uint8_t *const buf, const uint8_t buf
   if((NULL == id) || ('\0' != *id))
     {
     // If an explicit ID is supplied then use it
-    // else use the first two bytes of the node ID.
+    // else use the first two bytes of the node ID if accessible.
     bp.print(F("\"@\":\""));
     if(NULL != id) { bp.print(id); } // Value has to be 'safe' (eg no " nor \ in it).
+#ifdef V0P2BASE_EE_START_ID // TODO: improve logic/portability
     else
       {
       const uint8_t id1 = eeprom_read_byte(0 + (uint8_t *)V0P2BASE_EE_START_ID);
@@ -366,6 +368,7 @@ uint8_t SimpleStatsRotationBase::writeJSON(uint8_t *const buf, const uint8_t buf
       bp.print(hexDigit(id2 >> 4));
       bp.print(hexDigit(id2));
       }
+#endif
     bp.print('"');
     commaPending = true;
     }

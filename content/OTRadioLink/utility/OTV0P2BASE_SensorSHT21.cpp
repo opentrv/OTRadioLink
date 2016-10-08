@@ -23,8 +23,10 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 #include "OTV0P2BASE_SensorSHT21.h"
 
+#ifdef ARDUINO
 #include <Arduino.h>
 #include <Wire.h> // Arduino I2C library.
+#endif
 
 #include "OTV0P2BASE_Entropy.h"
 #include "OTV0P2BASE_PowerManagement.h"

@@ -35,6 +35,8 @@ namespace OTV0P2BASE
 {
 
 
+#ifdef SimpleValveScheduleBase_DEFINED
+
 //#if defined(UNIT_TESTS)
 //// Support for unit tests to force particular apparent schedule state.
 //// Current override state; 0 (default) means no override.
@@ -251,6 +253,8 @@ bool SimpleValveScheduleBase::isAnyScheduleOnWARMSoon()
 //  return(false);
 //  }
 //#endif
+
+#endif // SimpleValveScheduleBase_DEFINED
 
 
 }

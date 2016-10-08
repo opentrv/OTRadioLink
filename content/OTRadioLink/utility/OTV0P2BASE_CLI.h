@@ -17,7 +17,11 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
                            Damon Hart-Davis 2016
 */
 
-// CLI support routines
+/*
+ * CLI support routines
+ *
+ * Mainly V0p2/AVR only for now.
+ */
 
 // NOTE: some CLI routines may live alongside the devices they support, not here.
 

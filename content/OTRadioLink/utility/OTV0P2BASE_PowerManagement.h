@@ -18,8 +18,10 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 */
 
 /*
-  Utilities to assist with minimal power usage on V0p2 boards,
+  Utilities to assist with minimal power usage,
   including interrupts and sleep.
+
+  Mainly V0p2/AVR specific for now.
   */
 
 #ifndef OTV0P2BASE_POWERMANAGEMENT_H

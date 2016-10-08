@@ -18,6 +18,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 
 /*
  Routines for managing entropy for (crypto) random number generation.
+
+ Almost entirely specific to V0p2/AVR for now.
  */
 
 #ifndef OTV0P2BASE_ENTROPY_H

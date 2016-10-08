@@ -18,6 +18,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 
 /*
  Simple schedule support for TRV.
+
+ V0p2/AVR only for now.
  */
 
 #ifndef OTV0P2BASE_SIMPLEVALVESCHEDULE_H
@@ -30,9 +32,12 @@ namespace OTV0P2BASE
 {
 
 
+#ifdef ARDUINO_ARCH_AVR
+
 // Simple single-button (per programme) on-time scheduler, for individual TRVs.
 // Uses one EEPROM byte per program.
 // Has an on-time that may be varied by, for example, comfort level.
+#define SimpleValveScheduleBase_DEFINED
 class SimpleValveScheduleBase
     {
     public:
@@ -121,6 +126,9 @@ class SimpleValveScheduleBase
 //        void _TEST_set_schedule_override(_TEST_schedule_override override);
 //#endif // defined(UNIT_TESTS)
     };
+
+#endif // ARDUINO_ARCH_AVR
+
 
 // Dummy substitute for SimpleValveScheduleBase
 // for when no Scheduler is require to simplify coding.

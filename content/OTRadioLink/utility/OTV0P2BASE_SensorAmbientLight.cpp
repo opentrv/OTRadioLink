@@ -18,12 +18,16 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 /*
  Ambient light sensor with occupancy detection.
+
+ Specific to V0p2/AVR for now.
  */
 
 
 #include "OTV0P2BASE_SensorAmbientLight.h"
 
+#ifdef ARDUINO
 #include <Arduino.h>
+#endif
 
 #include "OTV0P2BASE_ADC.h"
 #include "OTV0P2BASE_BasicPinAssignments.h"
@@ -35,6 +39,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 namespace OTV0P2BASE
 {
 
+
+#ifdef SensorAmbientLight_DEFINED
 
 // Normal raw scale internally is 10 bits [0,1023].
 static const uint16_t rawScale = 1024;
@@ -142,7 +148,7 @@ uint8_t SensorAmbientLight::read()
     {
     // Ignore false trigger at start-up,
     // and only respond to a large-enough jump in light levels.
-    if((~0U != rawValue) && ((newValue - oldValue) >= upDelta))
+    if((((uint16_t)~0U) != rawValue) && ((newValue - oldValue) >= upDelta))
       {
 #if 0 && defined(DEBUG)
 DEBUG_SERIAL_PRINT_FLASHSTRING("  UP: ambient light rise/upDelta/newval/dt/lt: ");
@@ -207,7 +213,7 @@ void SensorAmbientLight::_recomputeThresholds(const bool sensitive)
     {
     // Use the supplied default light threshold and derive the rest from it.
     lightThreshold = defaultLightThreshold;
-    upDelta = max(1, lightThreshold >> 2); // Delta ~25% of light threshold.
+    upDelta = OTV0P2BASE::fnmax(1, lightThreshold >> 2); // Delta ~25% of light threshold.
     darkThreshold = lightThreshold - upDelta;
     // Assume OK for now.
     unusable = false;
@@ -221,7 +227,7 @@ void SensorAmbientLight::_recomputeThresholds(const bool sensitive)
     {
     // Use the supplied default light threshold and derive the rest from it.
     lightThreshold = defaultLightThreshold;
-    upDelta = max(1, lightThreshold >> 2); // Delta ~25% of light threshold.
+    upDelta = OTV0P2BASE::fnmax(1, lightThreshold >> 2); // Delta ~25% of light threshold.
     darkThreshold = lightThreshold - upDelta;
     // Assume unusable.
     darkTicks = 0; // Scrub any previous possibly-misleading value.
@@ -242,11 +248,11 @@ void SensorAmbientLight::_recomputeThresholds(const bool sensitive)
   // TODO: possibly allow a small adjustment on top of this to allow >= 1 each trigger and trigger-free hours each day.
   // Some areas may have background flicker eg from trees moving or cars passing, so units there may need desensitising.
   // Could (say) increment an additional margin (up to half) on each non-zero-trigger last hour, else decrement.
-  upDelta = max((recentMax - recentMin) >> (sensitive ? 3 : 2), ABS_MIN_AMBLIGHT_HYST_UINT8);
+  upDelta = OTV0P2BASE::fnmax((uint8_t)((recentMax - recentMin) >> (sensitive ? 3 : 2)), ABS_MIN_AMBLIGHT_HYST_UINT8);
   // Provide some noise elbow-room above the observed minimum.
   // Set the hysteresis values to be the same as the upDelta.
-  darkThreshold = (uint8_t) min(254, recentMin+1 + (upDelta>>1));
-  lightThreshold = (uint8_t) min(recentMax-1, darkThreshold + upDelta);
+  darkThreshold = (uint8_t) OTV0P2BASE::fnmin(254, recentMin+1 + (upDelta>>1));
+  lightThreshold = (uint8_t) OTV0P2BASE::fnmin(recentMax-1, darkThreshold + upDelta);
 
   // All seems OK.
   unusable = false;
@@ -262,7 +268,7 @@ void SensorAmbientLight::setMinMax(const uint8_t recentMinimumOrFF, const uint8_
                              const bool sensitive)
   {
   // Simple approach: will ignore an 'unset'/0xff value if the other is good.
-  recentMin = min(recentMinimumOrFF, longerTermMinimumOrFF);
+  recentMin = OTV0P2BASE::fnmin(recentMinimumOrFF, longerTermMinimumOrFF);
 
   if(0xff == recentMaximumOrFF) { recentMin = longerTermMaximumOrFF; }
   else if(0xff == longerTermMaximumOrFF) { recentMin = recentMaximumOrFF; }
@@ -283,6 +289,8 @@ void SensorAmbientLight::setMinMax(const uint8_t recentMinimumOrFF, const uint8_
   DEBUG_SERIAL_PRINTLN();
 #endif
   }
+
+#endif // SensorAmbientLight_DEFINED
 
 
 }

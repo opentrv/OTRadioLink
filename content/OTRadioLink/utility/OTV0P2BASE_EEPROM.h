@@ -21,6 +21,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
  EEPROM space allocation and utilities including some of the simple rolling stats management.
 
  NOTE: NO EEPROM ACCESS SHOULD HAPPEN FROM ANY ISR CODE ELSE VARIOUS FAILURE MODES ARE POSSIBLE
+
+ V0p2/AVR only for now.
  */
 
 #ifndef OTV0P2BASE_EEPROM_H
@@ -34,6 +36,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 namespace OTV0P2BASE
 {
 
+
+#ifdef ARDUINO_ARCH_AVR
 
 // ATmega328P has 1kByte of EEPROM, with an underlying page size (datasheet section 27.5) of 4 bytes for wear purposes.
 // Endurance may be per page (or per bit-change), rather than per byte, eg: http://www.mail-archive.com/avr-libc-dev@nongnu.org/msg02456.html
@@ -330,6 +334,8 @@ int16_t expandTempC16(uint8_t cTemp);
 // Maximum valid encoded/compressed stats values.
 static const uint8_t MAX_STATS_TEMP = COMPRESSION_C16_CEIL_VAL_AFTER; // Maximum valid compressed temperature value in stats.
 static const uint8_t MAX_STATS_AMBLIGHT = 254; // Maximum valid ambient light value in stats (very top of range is compressed).
+
+#endif // ARDUINO_ARCH_AVR
 
 
 }

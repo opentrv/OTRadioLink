@@ -13,22 +13,49 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2015
+Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
                            Deniz Erbilgin   2016
 */
 
+/*
+ Voice sensor.
+
+ EXPERIMENTAL!!! API IS SUBJECT TO CHANGE!
+
+ NOTE: Currently does not have a good way of clearing its count and still
+       actually sending voice data. As a workaround, clears data every 4 mins,
+       meaning that if Txing more frequently than that, will repeat send
+       previous value
+
+ Functionality and code only enabled if ENABLE_VOICE_SENSOR is defined.
+
+   @todo   Check functions:
+               - isUnavailable?
+               - isVoiceDetected (should the sensors have a common api?)
+
+ Only V0p2/AVR for now.
+ */
 
 #include <stdint.h>
-#include <util/atomic.h>
 
+#ifdef ARDUINO_ARCH_AVR
+#include <util/atomic.h>
+#endif
+
+#ifdef ARDUINO
 #include <Arduino.h>
 #include <Wire.h> // Arduino I2C library.
+#endif
 
 #include "OTV0P2BASE_SensorQM1.h"
 
 
 namespace OTV0P2BASE
 {
+
+
+#ifdef VoiceDetectionQM1_DEFINED
+
 // If count meets or exceeds this threshold in one poll period then
 // the room is deemed to be occupied.
 // Strictly positive.
@@ -105,5 +132,8 @@ bool VoiceDetectionQM1::handleInterruptSimple()
   // No further work to be done to 'clear' interrupt.
   return (true);
 }
+
+#endif // VoiceDetectionQM1_DEFINED
+
 
 }

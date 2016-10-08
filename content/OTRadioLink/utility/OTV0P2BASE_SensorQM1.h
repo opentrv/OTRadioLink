@@ -13,19 +13,9 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2015
+Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
                            Deniz Erbilgin   2016
 */
-
-#ifndef CONTENT_OTRADIOLINK_UTILITY_OTV0P2BASE_SENSORQM1_H_
-#define CONTENT_OTRADIOLINK_UTILITY_OTV0P2BASE_SENSORQM1_H_
-
-#include "OTV0P2BASE_Util.h"
-#include "OTV0P2BASE_Sensor.h"
-#include "OTV0P2BASE_Serial_IO.h"
-
-namespace OTV0P2BASE
-{
 
 /*
  Voice sensor.
@@ -42,8 +32,24 @@ namespace OTV0P2BASE
    @todo   Check functions:
                - isUnavailable?
                - isVoiceDetected (should the sensors have a common api?)
+
+ Only V0p2/AVR for now.
  */
-// Sensor for supply (eg battery) voltage in millivolts.
+
+#ifndef CONTENT_OTRADIOLINK_UTILITY_OTV0P2BASE_SENSORQM1_H_
+#define CONTENT_OTRADIOLINK_UTILITY_OTV0P2BASE_SENSORQM1_H_
+
+#include "OTV0P2BASE_Util.h"
+#include "OTV0P2BASE_Sensor.h"
+#include "OTV0P2BASE_Serial_IO.h"
+
+namespace OTV0P2BASE
+{
+
+
+#ifdef ARDUINO_ARCH_AVR
+
+#define VoiceDetectionQM1_DEFINED
 class VoiceDetectionQM1 : public OTV0P2BASE::SimpleTSUint8Sensor
   {
   private:
@@ -104,7 +110,8 @@ class VoiceDetectionQM1 : public OTV0P2BASE::SimpleTSUint8Sensor
     virtual const char *tag() const { return("av"); }
 
   };
-// Singleton implementation/instance.
+
+#endif // ARDUINO_ARCH_AVR
 
 
 }

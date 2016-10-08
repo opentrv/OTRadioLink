@@ -18,6 +18,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 /*
  Ambient light sensor with occupancy detection.
+
+ Specific to V0p2/AVR for now.
  */
 
 #ifndef OTV0P2BASE_SENSORAMBLIGHT_H
@@ -31,6 +33,7 @@ namespace OTV0P2BASE
 {
 
 
+#ifdef ARDUINO_ARCH_AVR
 // Sense (usually non-linearly) over full likely internal ambient lighting range of a (UK) home,
 // down to levels too dark to be active in (and at which heating could be set back for example).
 // This suggests a full scale of at least 50--100 lux, maybe as high as 300 lux, eg see:
@@ -40,6 +43,7 @@ namespace OTV0P2BASE
 // http://www.vishay.com/docs/84154/appnotesensors.pdf
 
 // Sensor for ambient light level; 0 is dark, 255 is bright.
+#define SensorAmbientLight_DEFINED
 class SensorAmbientLight : public SimpleTSUint8Sensor
   {
   public:
@@ -161,11 +165,12 @@ class SensorAmbientLight : public SimpleTSUint8Sensor
 //      { rawValue = newRawValue; value = newRawValue >> 2; isRoomLitFlag = newRoomLitFlag; darkTicks = newDarkTicks; }
 //#endif
   };
+#endif // ARDUINO_ARCH_AVR
 
 
 // Dummy placeholder AmbientLight sensor class with always-false dummy static status methods.
 // These methods should be fully optimised away by the compiler in many/most cases.
-// Can be to reduce code complexity, by eliminating some need for preprocessing.
+// Can be to reduce code complexity, by eliminating some need for pre-processing.
 class DummySensorAmbientLight
   {
   public:

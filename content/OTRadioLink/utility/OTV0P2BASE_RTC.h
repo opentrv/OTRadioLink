@@ -17,7 +17,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 */
 
 /*
- Real-time clock support AND RTC-connected watchdog/reset.
+ Real-time clock support and RTC-connected watchdog/reset.
 
  Wall-clock time is generally in local time [xxLT()],
  ie incorporating daylight saving where appropriate,
