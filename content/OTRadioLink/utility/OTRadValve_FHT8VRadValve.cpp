@@ -18,6 +18,12 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
                            Mike Stirling 2013
 */
 
+/*
+ * Driver for FHT8V wireless valve actuator (and FS20 protocol encode/decode).
+ *
+ * V0p2/AVR only.
+ */
+
 #ifdef ARDUINO_ARCH_AVR
 #include <util/parity.h>
 #endif
@@ -31,6 +37,7 @@ namespace OTRadValve
     {
 
 
+#ifdef FHT8VRadValve_DEFINED
 // If true then allow double TX for normal valve setting, else only allow it for sync.
 // May want to enforce this where bandwidth is known to be scarce.
 static const bool ALLOW_NON_SYNC_DOUBLE_TX = false;
@@ -786,6 +793,7 @@ bool FHT8VRadValveBase::SetHouseCode::doCommand(char *const buf, const uint8_t b
     // Done: show updated status line, possibly with results of update.
     return(true);
     }
+#endif // FHT8VRadValve_DEFINED
 
 
     }
