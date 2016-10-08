@@ -128,13 +128,13 @@ void outputCoreStats(Print *p, bool secure, const FullStatsMessageCore_t *stats)
     // where the T field shows temperature in C with a hex digit after the binary point indicated by C
     // and the optional P field indicates low power.
     p->print((char) OTV0P2BASE::SERLINE_START_CHAR_RSTATS);
-    p->print((((uint16_t)stats->id0) << 8) | stats->id1, HEX);
+    p->print((((uint16_t)stats->id0) << 8) | stats->id1, 16); // HEX
     if(stats->containsTempAndPower)
       {
       p->print(F(";T"));
-      p->print(stats->tempAndPower.tempC16 >> 4, DEC);
+      p->print(stats->tempAndPower.tempC16 >> 4, 10); // DEC
       p->print('C');
-      p->print(stats->tempAndPower.tempC16 & 0xf, HEX);
+      p->print(stats->tempAndPower.tempC16 & 0xf, 16); // HEX
       if(stats->tempAndPower.powerLow) { p->print(F(";P")); } // Insert power-low field if needed.
       }
     if(stats->containsAmbL)
@@ -211,7 +211,7 @@ uint8_t *encodeFullStatsMessageCore(uint8_t * const buf, const uint8_t buflen, c
 
   // WRITE THE MESSAGE!
   // Pointer to next byte to write in message.
-  register uint8_t *b = buf;
+  uint8_t *b = buf;
 
   // Construct the header.
   // * byte 0 :  |  0  |  1  |  1  |  1  |  R0 | IDP | IDH | SEC |   header, 1x reserved 0 bit, ID Present, ID High, SECure
@@ -300,11 +300,11 @@ const uint8_t *decodeFullStatsMessageCore(const uint8_t * const buf, const uint8
 
   // READ THE MESSAGE!
   // Pointer to next byte to read in message.
-  register const uint8_t *b = buf;
+  const uint8_t *b = buf;
 
   // Validate the message header and start to fill in structure.
   const uint8_t header = *b++;
-  // Deonstruct the header.
+  // Deconstruct the header.
   // * byte 0 :  |  0  |  1  |  1  |  1  |  R0 | IDP | IDH | SEC |   header, 1x reserved 0 bit, ID Present, ID High, SECure
 //#define MESSAGING_FULL_STATS_HEADER_MSBS 0x70
 //#define MESSAGING_FULL_STATS_HEADER_MASK 0x70

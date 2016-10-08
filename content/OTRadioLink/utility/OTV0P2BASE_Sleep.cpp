@@ -13,21 +13,28 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2015
+Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 */
 
 /*
   Routines for sleeping for various times with particular trade-offs.
   Uses a combination of sleep modes, watchdog timer (WDT), and other techniques.
+
+  Hardware specific.
   */
 
+#ifdef ARDUINO_ARCH_AVR
 #include <util/crc16.h>
+#endif
 
 #include "OTV0P2BASE_Sleep.h"
 
 
 namespace OTV0P2BASE
 {
+
+#ifdef ARDUINO_ARCH_AVR
+
 // Define macro to disable BOD during sleep here if not included in Arduino AVR toolset...
 // This is only for "pico-power" variants, eg the "P" in ATmega328P.
 #ifndef sleep_bod_disable
@@ -59,11 +66,11 @@ void sleepPwrSaveWithBODDisabled()
   sei();
   }
 
+
 // Set non-zero when the watchdog ISR is invoked, ie the watchdog timer has gone off.
 // Cleared at the start of the watchdog sleep routine.
 // May contain a little entropy concentrated in the least-significant bits, in part from WDT-vs-CPU-clock jitter, especially if not sleeping.
 static volatile uint8_t _watchdogFired;
-
 // Catch watchdog timer interrupt to automatically clear WDIE and WDIF.
 // This allows use of watchdog for low-power timed sleep.
 ISR(WDT_vect)
@@ -75,6 +82,7 @@ ISR(WDT_vect)
   uint8_t x;
   _watchdogFired = ((uint8_t) 0x80) | ((uint8_t) (int) &x); // Ensure non-zero, retaining any entropy in ls bits.
   }
+
 
 // Idle the CPU for specified time but leave everything else running (eg UART), returning on any interrupt or the watchdog timer.
 //   * watchdogSleep is one of the WDTO_XX values from <avr/wdt.h>
@@ -305,6 +313,9 @@ uint_fast8_t clockJitterEntropyByte()
   wdt_disable(); // Ensure no spurious WDT wakeup pending.
   return(result);
   }
+
+#endif // ARDUINO_ARCH_AVR
+
 
 
 }

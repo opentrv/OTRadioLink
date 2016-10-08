@@ -13,12 +13,14 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2015
+Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 */
 
 /*
   Routines for sleeping for various times with particular trade-offs.
   Uses a combination of sleep modes, watchdog timer (WDT), and other techniques.
+
+  Hardware specific.
   */
 
 #ifndef OTV0P2BASE_SLEEP_H

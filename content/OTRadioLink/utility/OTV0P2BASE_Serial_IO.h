@@ -20,6 +20,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 /*
  Serial (USB) I/O.
  
+ For a V0p2 board, write to the hardware serial,
+ otherwise (assuming non-embedded) write to stdout.
+
  Also, simple debug output to the serial port at its default (bootloader BAUD) rate.
 
  The debug support only enabled if V0P2BASE_DEBUG is defined, else does nothing, or at least as little as possible.
