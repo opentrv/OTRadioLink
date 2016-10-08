@@ -41,17 +41,17 @@ class __FlashStringHelper;
 class Print
     {
     public:
-        size_t println();
-        size_t print(char);
-        size_t println(char);
-        size_t print(int, int = 10 /* DEC */);
-        size_t println(int, int = 10 /* DEC */);
-        size_t print(long, int = 10 /* DEC */);
-        size_t println(long, int = 10 /* DEC */);
-        size_t print(const char *);
-        size_t println(const char *);
-        size_t print(const __FlashStringHelper *);
-        size_t println(const __FlashStringHelper *);
+        size_t println() { return(0); }
+        size_t print(char) { return(0); }
+        size_t println(char) { return(0); }
+        size_t print(int, int = 10 /* DEC */) { return(0); }
+        size_t println(int, int = 10 /* DEC */) { return(0); }
+        size_t print(long, int = 10 /* DEC */) { return(0); }
+        size_t println(long, int = 10 /* DEC */) { return(0); }
+        size_t print(const char *) { return(0); }
+        size_t println(const char *) { return(0); }
+        size_t print(const __FlashStringHelper *) { return(0); }
+        size_t println(const __FlashStringHelper *) { return(0); }
     };
 
 #endif // ARDUINO

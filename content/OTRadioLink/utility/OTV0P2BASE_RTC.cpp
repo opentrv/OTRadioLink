@@ -182,16 +182,19 @@ uint_least16_t getMinutesSinceMidnightLT()
 #endif
 #endif // ARDUINO_ARCH_AVR
 
-
+#ifdef ARDUINO_ARCH_AVR
 // Get local time minutes from RTC [0,59].
 // Relatively slow.
 // Thread-safe and ISR-safe.
 uint_least8_t getMinutesLT() { return(getMinutesSinceMidnightLT() % 60); }
+#endif
 
+#ifdef ARDUINO_ARCH_AVR
 // Get local time hours from RTC [0,23].
 // Relatively slow.
 // Thread-safe and ISR-safe.
 uint_least8_t getHoursLT() { return(getMinutesSinceMidnightLT() / 60); }
+#endif
 
 #ifdef ARDUINO_ARCH_AVR
 // Get whole days since the start of 2000/01/01 (ie the midnight between 1999 and 2000), local time.
@@ -206,7 +209,7 @@ uint_least16_t getDaysSince1999LT()
   }
 #endif // ARDUINO_ARCH_AVR
 
-
+#ifdef ARDUINO_ARCH_AVR
 // Get previous hour in current local time, wrapping round from 0 to 23.
 uint_least8_t getPrevHourLT()
   {
@@ -221,6 +224,7 @@ uint_least8_t getNextHourLT()
   if(h >= 23) { return(0); }
   return(h + 1);
   }
+#endif
 
 
 #ifdef ARDUINO_ARCH_AVR
