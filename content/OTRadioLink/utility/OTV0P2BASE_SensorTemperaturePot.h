@@ -18,6 +18,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 /*
  Temperature potentiometer (pot) dial sensor with UI / occupancy outputs.
+
+ V0p2/AVR specific for now.
  */
 
 #ifndef OTV0P2BASE_SENSORTEMPERATUREPOT_H
@@ -35,6 +37,7 @@ namespace OTV0P2BASE
 {
 
 
+#ifdef ARDUINO_ARCH_AVR
 // Sensor for temperature potentiometer/dial; 0 is coldest, 255 is hottest.
 // Note that if the callbacks are enabled, the following are implemented:
 //   * Any operation of the pot calls the occupancy/"UI used" callback.
@@ -42,6 +45,7 @@ namespace OTV0P2BASE
 //   * Start BAKE mode when dial turned right up to top.
 //   * Cancel BAKE mode when dial/temperature turned down.
 //   * Force WARM mode when dial/temperature turned up.
+#define SensorTemperaturePot_DEFINED
 class SensorTemperaturePot : public OTV0P2BASE::SimpleTSUint8Sensor
   {
   public:
@@ -151,6 +155,8 @@ class SensorTemperaturePot : public OTV0P2BASE::SimpleTSUint8Sensor
     // Not thread-safe nor usable within ISRs (Interrupt Service Routines).
     uint16_t getRaw() const { return(raw); }
   };
+
+#endif // ARDUINO_ARCH_AVR
 
 
 }

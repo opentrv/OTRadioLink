@@ -18,13 +18,17 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 /*
  TMP112 temperature sensor.
+
+ V0p2/AVR specific for now.
  */
 
 
 #include "OTV0P2BASE_SensorTMP112.h"
 
+#ifdef ARDUINO
 #include <Arduino.h>
 #include <Wire.h> // Arduino I2C library.
+#endif
 
 #include "OTV0P2BASE_Entropy.h"
 #include "OTV0P2BASE_PowerManagement.h"
@@ -34,6 +38,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 namespace OTV0P2BASE
 {
 
+
+#ifdef RoomTemperatureC16_TMP112_DEFINED
 
 // TMP102 and TMP112 should be interchangeable: latter has better guaranteed accuracy.
 static const uint8_t TMP112_I2C_ADDR = 72;
@@ -121,5 +127,6 @@ int16_t RoomTemperatureC16_TMP112::read()
   return(t16);
   }
 
+#endif // RoomTemperatureC16_TMP112_DEFINED
 
 }
