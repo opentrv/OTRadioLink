@@ -26,7 +26,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 
 
 // Sanity test.
-TEST(SanityTest2,SelfTest)
+TEST(OTV0p2Base,SanityTest)
 {
     EXPECT_EQ(42, 42);
 }

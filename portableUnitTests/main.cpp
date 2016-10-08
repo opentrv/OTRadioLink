@@ -33,7 +33,7 @@ TEST(SanityTest,SelfTest)
 }
 
 // Minimally test a real library function.
-TEST(LibraryTest,ShouldConvertFromHex)
+TEST(SanityTest,ShouldConvertFromHex)
 {
     const char s[] = "0a";
     // This works. It's inline and only in the header.
