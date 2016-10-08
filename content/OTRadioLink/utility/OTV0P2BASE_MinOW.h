@@ -54,6 +54,7 @@ namespace OTV0P2BASE
 // Not intended to be thread-/ISR- safe.
 // Operations on separate instances (using different GPIOs) can be concurrent.
 // Generally use the derived class templated for the particular GPIO pin.
+#define MinimalOneWireBase_DEFINED
 class MinimalOneWireBase
   {
   private:

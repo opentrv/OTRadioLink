@@ -38,8 +38,10 @@ namespace OTV0P2BASE
 
 
 // Templated function versions of min/max that do not evaluate the arguments twice.
-template <class T> const T& fnmin(const T& a, const T& b) { return((a>b)?b:a); }
-template <class T> const T& fnmax(const T& a, const T& b) { return((a<b)?b:a); }
+template <class T> constexpr const T& fnmin( const T& a, const T& b ) { return((a>b)?b:a); }
+template <class T> constexpr const T& fnmax( const T& a, const T& b ) { return((a<b)?b:a); }
+//template <class T> const T& fnmin(const T& a, const T& b) { return((a>b)?b:a); }
+//template <class T> const T& fnmax(const T& a, const T& b) { return((a<b)?b:a); }
 
 
 // Extract ASCII hex digit in range [0-9][a-f] (ie lowercase) from bottom 4 bits of argument.

@@ -23,6 +23,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014--2016
  DS18B20 OneWire(TM) temperature detector.
  */
 
+#if defined(TemperatureC16_DS18B20_DEFINED)
 
 #include "OTV0P2BASE_SensorDS18B20.h"
 
@@ -226,3 +227,5 @@ uint8_t TemperatureC16_DS18B20::getSensorCount()
   return(sensorCount);
   }
 }
+
+#endif // defined(TemperatureC16_DS18B20_DEFINED)

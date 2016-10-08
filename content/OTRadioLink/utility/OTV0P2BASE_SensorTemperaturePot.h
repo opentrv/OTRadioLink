@@ -64,7 +64,7 @@ class SensorTemperaturePot : public OTV0P2BASE::SimpleTSUint8Sensor
     // Note that some applications may only see a fraction of full scale movement (eg ~25% for DORM1),
     // so allowing for reasonable end stops and tolerances that further constrains this value from above.
     // Note that absolute skew of pot in different devices units may be much larger than unit self-precision.
-    static const uint8_t RN_FRBO = max(2*RN_HYST, 8);
+    static const uint8_t RN_FRBO = fnmax(2*RN_HYST, 8);
 
   private:
     // Raw pot value [0,1023] if extra precision is required.
