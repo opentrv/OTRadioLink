@@ -17,7 +17,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 */
 
 /*
- * Driver for OTV0p2Base tests.
+ * Driver for minor OTV0p2Base tests.
  */
 
 #include <stdint.h>
@@ -26,8 +26,12 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 
 
 // Sanity test.
+// Minimally test a real library function.
 TEST(OTV0p2Base,SanityTest)
 {
-    EXPECT_EQ(42, 42);
+    const char s[] = "0a";
+    // This works. It's inline and only in the header.
+    EXPECT_EQ(10, OTV0P2BASE::parseHexDigit(s[1]));
+    // The compiler can't find this for some reason (function def in source file).
+    EXPECT_EQ(10, OTV0P2BASE::parseHexByte(s));
 }
-

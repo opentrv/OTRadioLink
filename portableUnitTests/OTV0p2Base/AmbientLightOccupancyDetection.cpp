@@ -17,7 +17,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 */
 
 /*
- * Driver for OTV0p2Base tests.
+ * Driver for OTV0P2BASE_SensorAmbientLightOccupancy tests.
  */
 
 #include <stdint.h>
