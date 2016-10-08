@@ -25,6 +25,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 
 #include <stdint.h>
+#include <stdlib.h>
+
 #include <OTV0p2Base.h>
 #include "OTV0P2BASE_CLI.h"
 #include <OTRadioLink.h>
@@ -80,7 +82,7 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
 
     // Function to append (stats) trailer(s) to TX buffer (and add trailing 0xff if anything added); NULL if not needed.
     // Pointer set at construction.
-    appendToTXBufferFF_t const *trailerFn;
+    appendToTXBufferFF_t *const trailerFn;
 
     // Construct an instance, providing TX buffer details.
     FHT8VRadValveBase(uint8_t *_buf, uint8_t _bufSize, appendToTXBufferFF_t *trailerFnPtr)
@@ -483,7 +485,7 @@ class FHT8VRadValve : public FHT8VRadValveBase
       // The approximation is (valvePC * 250) / 100, ie *2.5, as *(2+0.5).
 
       // Work out if a trailer is allowed (by security level) and is possible to encode.
-      appendToTXBufferFF_t const *tfp = *trailerFn;
+      appendToTXBufferFF_t *const tfp = *trailerFn;
       const bool doTrailer = (NULL != tfp) && (OTV0P2BASE::getStatsTXLevel() <= OTV0P2BASE::stTXmostUnsec);
 
       // Usually add RFM23-friendly preamble (0xaaaaaaaa sync header) only

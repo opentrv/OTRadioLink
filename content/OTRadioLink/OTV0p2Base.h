@@ -39,6 +39,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
   Basic AVR power consumption ticking an (empty) control loop at ~0.5Hz should be ~1uA.
  */
 
+// Basic compatibility support for Arduino and non-Arduino environments.
+#include "utility/OTV0P2BASE_ArduinoCompat.h"
+
 // Hardware tests, eg as used in POST (Power On Self Test).
 #include "utility/OTV0P2BASE_HardwareTests.h"
 

@@ -25,7 +25,10 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
 #define CONTENT_OTRADIOLINK_UTILITY_OTV0P2BASE_CLI_H_
 
 #include <stdint.h>
+
+#ifdef ARDUINO
 #include <Arduino.h>
+#endif
 
 #include "OTV0P2BASE_Sleep.h"
 
@@ -51,8 +54,12 @@ namespace CLI {
     // Typical 'normal' and 'extended' CLI input buffer sizes.
     static const uint8_t MIN_TYPICAL_CLI_BUFFER = 15;
     static const uint8_t MAX_TYPICAL_CLI_BUFFER = 63;
+    // Minimum number of milliseconds to be prepared to wait for input, often human-driven, not to be frustrating.
+    static const uint8_t MIN_CLI_POLL_SCT_MS = 200;
+#ifdef ARDUINO_ARCH_AVR
     // Minimum number of sub-cycle ticks to be prepared to wait for input, often human-driven, not to be frustrating.
-    static const uint8_t MIN_CLI_POLL_SCT = (200/OTV0P2BASE::SUBCYCLE_TICK_MS_RN); // ~200ms.
+    static const uint8_t MIN_CLI_POLL_SCT = (MIN_CLI_POLL_SCT_MS/OTV0P2BASE::SUBCYCLE_TICK_MS_RN);
+#endif
     // Generate CLI prompt and wait a little while (typically ~1s) for an input command line.
     // Returns number of characters read (not including terminating CR or LF); 0 in case of failure.
     // Ignores any characters queued before generating the prompt.

@@ -20,7 +20,10 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
 #ifndef OTRADIOLINK_OTNULLRADIOLINK_H_
 #define OTRADIOLINK_OTNULLRADIOLINK_H_
 
+#ifdef ARDUINO
 #include <Arduino.h>
+#endif
+
 #include <OTRadioLink.h>
 #include <OTV0p2Base.h>
 

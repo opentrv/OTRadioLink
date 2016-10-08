@@ -14,21 +14,35 @@ specific language governing permissions and limitations
 under the Licence.
 
 Author(s) / Copyright (s): Deniz Erbilgin 2016
+                           Damon Hart-Davis 2016
 */
 
-// NOTE!!! Implementation details are in OTV0P2BASE_SoftSerial2_NOTES.txt!!!
+/*
+ * Software-based serial/UART V2.
+ *
+ * V0p2/AVR only.
+ */
+
+// Implementation details are in OTV0P2BASE_SoftSerial2_NOTES.txt.
 
 #ifndef CONTENT_OTRADIOLINK_UTILITY_OTV0P2BASE_SOFTSERIAL2_H_
 #define CONTENT_OTRADIOLINK_UTILITY_OTV0P2BASE_SOFTSERIAL2_H_
 
 #include <stdint.h>
+
+#ifdef ARDUINO
 #include "Arduino.h"
 #include <Stream.h>
+#endif
+
 #include "utility/OTV0P2BASE_FastDigitalIO.h"
 #include "utility/OTV0P2BASE_Sleep.h"
 
 namespace OTV0P2BASE
 {
+
+
+#ifdef ARDUINO_ARCH_AVR
 /**
  * @class   OTSoftSerial2
  * @brief   Blocking software serial library.
@@ -39,6 +53,7 @@ namespace OTV0P2BASE
  * @note    This currently supports a max speed of 9600 baud with an F_CPU of 1 MHz.
  * @todo    Move everything back into source file without breaking templating.
  */
+#define OTSoftSerial2_DEFINED
 template <uint8_t rxPin, uint8_t txPin, uint32_t baud>
 class OTSoftSerial2 : public Stream
 {
@@ -156,9 +171,9 @@ public:
      */
     void sendBreak()
     {
-    	fastDigitalWrite(txPin, LOW);
-    	_delay_x4cycles(writeDelay * 16);
-    	fastDigitalWrite(txPin, HIGH);
+        fastDigitalWrite(txPin, LOW);
+        _delay_x4cycles(writeDelay * 16);
+        fastDigitalWrite(txPin, HIGH);
     }
     /**************************************************************************
      * ------------------------ Unimplemented ------------------------------- *
@@ -189,8 +204,8 @@ public:
      * @note    This is not used for OTSoftSerial2 as all writes are synchronous.
      */
     int availableForWrite() { return 0; }  //
-
 };
+#endif // ARDUINO_ARCH_AVR
 
 
 }

@@ -26,8 +26,11 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014--2016
 #ifndef OTV0P2BASE_SIMPLEBINARYSTATS_H
 #define OTV0P2BASE_SIMPLEBINARYSTATS_H
 
+#include <string.h>
 
+#ifdef ARDUINO
 #include <Arduino.h>
+#endif
 
 #include "OTV0P2BASE_Security.h"
 #include "OTV0P2BASE_Serial_IO.h"

@@ -22,14 +22,16 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
   including interrupts and sleep.
   */
 
+#ifdef ARDUINO_ARCH_AVR
 #include <util/atomic.h>
 #include <avr/wdt.h>
-//#include <avr/interrupt.h>
-//#include <avr/power.h>
-//#include <avr/sleep.h>
-//#include <util/delay_basic.h>
+#endif
+
+#ifdef ARDUINO
 #include <Arduino.h>
 #include <Wire.h>
+#endif
+
 #include "OTV0P2BASE_PowerManagement.h"
 #include "OTV0P2BASE_ADC.h"
 #include "OTV0P2BASE_Entropy.h"
@@ -39,24 +41,27 @@ namespace OTV0P2BASE
 {
 
 
-// If ADC was disabled, power it up, do Serial.begin(), and return true.
-// If already powered up then do nothing other than return false.
-// This does not power up the analogue comparator; this needs to be manually enabled if required.
-// If this returns true then a matching powerDownADC() may be advisable.
-bool powerUpADCIfDisabled()
-  {
-  if(!(PRR & _BV(PRADC))) { return(false); }
-  PRR &= ~_BV(PRADC); // Enable the ADC.
-  ADCSRA |= _BV(ADEN);
-  return(true);
-  }
+#ifdef ARDUINO_ARCH_AVR
+    // If ADC was disabled, power it up and return true.
+    // If already powered up then do nothing other than return false.
+    // This does not power up the analogue comparator; this needs to be manually enabled if required.
+    // If this returns true then a matching powerDownADC() may be advisable.
+    bool powerUpADCIfDisabled()
+      {
+      if(!(PRR & _BV(PRADC))) { return(false); }
+      PRR &= ~_BV(PRADC); // Enable the ADC.
+      ADCSRA |= _BV(ADEN);
+      return(true);
+      }
 
-//// Power ADC down.
-//void powerDownADC()
-//  {
-//  ADCSRA &= ~_BV(ADEN); // Do before power_[adc|all]_disable() to avoid freezing the ADC in an active state!
-//  PRR |= _BV(PRADC); // Disable the ADC.
-//  }
+    //// Power ADC down.
+    //void powerDownADC()
+    //  {
+    //  ADCSRA &= ~_BV(ADEN); // Do before power_[adc|all]_disable() to avoid freezing the ADC in an active state!
+    //  PRR |= _BV(PRADC); // Disable the ADC.
+    //  }
+#endif // ARDUINO_ARCH_AVR
+
 
 
 // Flush any pending UART TX bytes in the hardware if UART is enabled, eg useful after Serial.flush() and before sleep.
@@ -128,37 +133,39 @@ void powerDownSerial()
   }
 
 
-// If TWI (I2C) was disabled, power it up, do Wire.begin(), and return true.
-// If already powered up then do nothing other than return false.
-// If this returns true then a matching powerDownRWI() may be advisable.
-bool powerUpTWIIfDisabled()
-  {
-  if(!(PRR & _BV(PRTWI))) { return(false); }
+#ifdef ARDUINO_ARCH_AVR
+    // If TWI (I2C) was disabled, power it up, do Wire.begin(), and return true.
+    // If already powered up then do nothing other than return false.
+    // If this returns true then a matching powerDownRWI() may be advisable.
+    bool powerUpTWIIfDisabled()
+      {
+      if(!(PRR & _BV(PRTWI))) { return(false); }
 
-  PRR &= ~_BV(PRTWI); // Enable TWI power.
-  TWCR |= _BV(TWEN); // Enable TWI.
-  Wire.begin(); // Set it going.
-  // TODO: reset TWBR and prescaler for our low CPU frequency     (TWBR = ((F_CPU / TWI_FREQ) - 16) / 2 gives -3!)
-#if F_CPU <= 1000000
-  TWBR = 0; // Implies SCL freq of F_CPU / (16 + 2 * TBWR * PRESC) = 62.5kHz @ F_CPU==1MHz and PRESC==1 (from Wire/TWI code).
-#endif
-  return(true);
-  }
+      PRR &= ~_BV(PRTWI); // Enable TWI power.
+      TWCR |= _BV(TWEN); // Enable TWI.
+      Wire.begin(); // Set it going.
+      // TODO: reset TWBR and prescaler for our low CPU frequency     (TWBR = ((F_CPU / TWI_FREQ) - 16) / 2 gives -3!)
+    #if F_CPU <= 1000000
+      TWBR = 0; // Implies SCL freq of F_CPU / (16 + 2 * TBWR * PRESC) = 62.5kHz @ F_CPU==1MHz and PRESC==1 (from Wire/TWI code).
+    #endif
+      return(true);
+      }
 
-// Power down TWI (I2C).
-void powerDownTWI()
-  {
-  TWCR &= ~_BV(TWEN); // Disable TWI.
-  PRR |= _BV(PRTWI); // Disable TWI power.
+    // Power down TWI (I2C).
+    void powerDownTWI()
+      {
+      TWCR &= ~_BV(TWEN); // Disable TWI.
+      PRR |= _BV(PRTWI); // Disable TWI power.
 
-  // De-activate internal pullups for TWI especially if powering down all TWI devices.
-  //digitalWrite(SDA, 0);
-  //digitalWrite(SCL, 0);
+      // De-activate internal pullups for TWI especially if powering down all TWI devices.
+      //digitalWrite(SDA, 0);
+      //digitalWrite(SCL, 0);
 
-  // Convert to hi-Z inputs.
-  //pinMode(SDA, INPUT);
-  //pinMode(SCL, INPUT);
-  }
+      // Convert to hi-Z inputs.
+      //pinMode(SDA, INPUT);
+      //pinMode(SCL, INPUT);
+      }
+#endif // ARDUINO_ARCH_AVR
 
 
 // Enable power to intermittent peripherals.

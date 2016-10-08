@@ -18,7 +18,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
                            Mike Stirling 2013
 */
 
+#ifdef ARDUINO_ARCH_AVR
 #include <util/parity.h>
+#endif
 
 #include <OTV0p2Base.h>
 #include <OTRadioLink.h>
