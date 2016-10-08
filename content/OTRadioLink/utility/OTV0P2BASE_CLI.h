@@ -24,6 +24,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
 #ifndef CONTENT_OTRADIOLINK_UTILITY_OTV0P2BASE_CLI_H_
 #define CONTENT_OTRADIOLINK_UTILITY_OTV0P2BASE_CLI_H_
 
+#include <stddef.h>
 #include <stdint.h>
 
 #ifdef ARDUINO

@@ -109,7 +109,12 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf,
       // Copy in ID if not zero length, from RAM or EEPROM as appropriate.
       const bool idFromEEPROM = (NULL == id_);
       if(!idFromEEPROM) { memcpy(id, id_, il_); }
-      else { eeprom_read_block(id, (uint8_t *)V0P2BASE_EE_START_ID, il_); }
+      else
+#ifdef ARDUINO_ARCH_AVR
+          { eeprom_read_block(id, (uint8_t *)V0P2BASE_EE_START_ID, il_); }
+#else
+          { return(0); } // ERROR
+#endif
       }
     // Header length including frame length byte.
     const uint8_t hlifl = 4 + il_;

@@ -13,17 +13,29 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Deniz Erbilgin 2015-2016
-                           Damon Hart-Davis 2015
+Author(s) / Copyright (s): Deniz Erbilgin 2015--2016
+                           Damon Hart-Davis 2015--2016
 */
+
+/*
+ * SIM900 Arduino (2G) GSM shield support.
+ *
+ * V0p2/AVR only.
+ */
 
 #ifndef OTSIM900LINK_H_
 #define OTSIM900LINK_H_
 
-#include <Arduino.h>
+#ifdef ARDUINO_ARCH_AVR
 #include <util/atomic.h>
 #include <avr/eeprom.h>
 #include <avr/pgmspace.h>
+#endif
+
+#ifdef ARDUINO
+#include <Arduino.h>
+#endif
+
 #include <OTRadioLink.h>
 #include <OTV0p2Base.h>
 #include <string.h>
@@ -68,6 +80,8 @@ namespace OTSIM900Link
 {
 
 
+#ifdef ARDUINO_ARCH_AVR
+
 /**
  * @struct    OTSIM900LinkConfig_t
  * @brief    Structure containing config data for OTSIM900Link
@@ -79,7 +93,8 @@ namespace OTSIM900Link
  * @param    UDP_Address    Pointer to \0 terminated array containing UDP address to send to as IPv4 dotted quad
  * @param    UDP_Port    Pointer to \0 terminated array containing UDP port in decimal
  */
-// If stored in SRAM
+// If config is stored in SRAM...
+#define OTSIM900LinkConfig_DEFINED
 typedef struct OTSIM900LinkConfig {
 //private:
     // Is in eeprom?
@@ -144,6 +159,7 @@ enum OTSIM900LinkState {
  *             - If not sending often may be more efficient to power up and wait for connect each time
  *             Make OTSIM900LinkBase to abstract serial interface and allow templating?
  */
+#define OTSIM900Link_DEFINED
 template<uint8_t rxPin, uint8_t txPin>
 class OTSIM900Link : public OTRadioLink::OTRadioLink
 {
@@ -1007,6 +1023,7 @@ const char OTSIM900Link<rxPin, txPin>::AT_SHUT_GPRS[9] = "+CIPSHUT";
 template<uint8_t rxPin, uint8_t txPin>
 const char OTSIM900Link<rxPin, txPin>::AT_VERBOSE_ERRORS[6] = "+CMEE";
 
+#endif // ARDUINO_ARCH_AVR
 
 
 }    // namespace OTSIM900Link

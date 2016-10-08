@@ -18,6 +18,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 
 /*
  ADC (Analogue-to-Digital Converter) support.
+
+ V0p2/AVR only for now.
  */
 
 #ifndef OTV0P2BASE_ADC_H
@@ -29,6 +31,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 namespace OTV0P2BASE
 {
 
+
+#ifdef ARDUINO_ARCH_AVR
 
 // Read ADC/analogue input with reduced noise if possible, in range [0,1023].
 //   * admux  is the value to set ADMUX to
@@ -67,6 +71,8 @@ uint8_t noisyADCRead(bool powerUpIO = true);
 // May set sleep mode to SLEEP_MODE_ADC, and disables sleep on exit.
 int readInternalTemperatureC16();
 // TODO: find a better location for this.
+
+#endif // ARDUINO_ARCH_AVR
 
 
 }

@@ -18,12 +18,19 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 
 /*
  ADC (Analogue-to-Digital Converter) support.
+
+ V0p2/AVR only for now.
  */
 
 
+#ifdef ARDUINO_ARCH_AVR
 #include <util/atomic.h>
 #include <util/crc16.h>
+#endif
+
+#ifdef ARDUINO
 #include <Arduino.h>
+#endif
 
 #include "OTV0P2BASE_ADC.h"
 
@@ -36,6 +43,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 namespace OTV0P2BASE
 {
 
+
+#ifdef ARDUINO_ARCH_AVR
 
 // Allow wake from (lower-power) sleep while ADC is running.
 static volatile bool ADC_complete;
@@ -280,7 +289,8 @@ int readInternalTemperatureC16()
   const int degC = ((((int)raw) - 324) * 210) >> 4; // Slightly less crude adjustment, see http://playground.arduino.cc//Main/InternalTemperatureSensor
   return(degC);
   }
-// TODO: find a better location for this.
+
+#endif // ARDUINO_ARCH_AVR
 
 
 }
