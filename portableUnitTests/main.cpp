@@ -53,3 +53,7 @@ TEST(SanityTest,ShouldConvertFromHex)
  *          - Select Google Testing in Run>Run Configuration>C/C++ Unit Test>testTest>C/C++ Testing and click Apply then Run
  *          - Saved the test config
  */
+
+ /**
+  * See also: https://github.com/google/googletest/blob/master/googletest/docs/Primer.md
+  */

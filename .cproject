@@ -65,8 +65,9 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="portableUnitTests|OTRadioLink" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="portableUnitTests"/>
+						<entry excluding="OTV0p2Base|portableUnitTests|OTRadioLink" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="OTV0p2Base" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="portableUnitTests"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="portableUnitTests/OTV0p2Base"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -114,8 +115,9 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="portableUnitTests" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="portableUnitTests"/>
+						<entry excluding="OTV0p2Base|portableUnitTests" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="OTV0p2Base" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="portableUnitTests"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="portableUnitTests/OTV0p2Base"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

@@ -66,6 +66,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 
 // Concrete sensor implementations.
 #include "utility/OTV0P2BASE_SensorAmbientLight.h"
+#include "utility/OTV0P2BASE_SensorAmbientLightOccupancy.h"
 #include "utility/OTV0P2BASE_SensorTemperaturePot.h"
 #include "utility/OTV0P2BASE_SensorTemperatureC16Base.h"
 #include "utility/OTV0P2BASE_SensorTMP112.h"
