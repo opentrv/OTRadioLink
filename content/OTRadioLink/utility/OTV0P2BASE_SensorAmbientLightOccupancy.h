@@ -53,7 +53,7 @@ namespace OTV0P2BASE
 // Light levels should be monotonic with lux.
 //
 // The more linear relationship between lux and the light level
-// in the main region of operation the better.
+// in the typical region of operation the better.
 #define SensorAmbientLightOccupancyDetectorInterface_DEFINED
 class SensorAmbientLightOccupancyDetectorInterface
   {
