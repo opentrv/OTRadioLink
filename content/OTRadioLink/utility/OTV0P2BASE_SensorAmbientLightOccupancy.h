@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
+Author(s) / Copyright (s): Damon Hart-Davis 2016
 */
 
 /*
@@ -32,18 +32,55 @@ namespace OTV0P2BASE
 {
 
 
-// Sensor for ambient light level; 0 is dark, 255 is bright.
+// Helper class to detect occupancy from ambient light levels.
+//
+// The basic mode of operation is to call update() regularly
+// (typically once per minute)
+// with the current ambient light level.
+//
+// If occupancy is detected then update() returns true.
+//
+// The class retains state in order to detect occupancy.
+//
+// A light level of 0 indicates dark.
+//
+// A light level of 255 indicates bright illumination.
+//
+// Light levels should be monotonic with lux.
+//
+// The more linear relationship between lux and the light level
+// in the main region of operation the better.
 #define SensorAmbientLightOccupancyDetectorInterface_DEFINED
 class SensorAmbientLightOccupancyDetectorInterface
   {
   public:
-    // Default value for (default)LightThreshold.
-    // Works for normal LDR pointing forward.
-    static const uint8_t DEFAULT_LIGHT_THRESHOLD = 50;
+      // Call regularly with the current ambient light level [0,255].
+      // Returns true if probably occupancy is detected.
+      // Does not block.
+      // Not thread-/ISR- safe.
+      virtual bool update(uint8_t newLightLevel) = 0;
+  };
 
+
+// Simple reference implementation.
+#define SensorAmbientLightOccupancyDetectorSimple_DEFINED
+class SensorAmbientLightOccupancyDetectorSimple : public SensorAmbientLightOccupancyDetectorInterface
+  {
   private:
+      // Previous ambient light level [0,255]; 0 means dark.
+      // Starts at 255 so that no initial light level can imply occupancy.
+      uint8_t prevLightLevel;
 
   public:
+      SensorAmbientLightOccupancyDetectorSimple()
+        : prevLightLevel(255)
+          { }
+
+      // Call regularly with the current ambient light level [0,255].
+      // Returns true if probably occupancy is detected.
+      // Does not block.
+      // Not thread-/ISR- safe.
+      virtual bool update(uint8_t newLightLevel);
   };
 
 

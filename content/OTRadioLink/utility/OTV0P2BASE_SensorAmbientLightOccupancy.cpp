@@ -17,27 +17,27 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 */
 
 /*
- * Driver for OTV0P2BASE_SensorAmbientLightOccupancy tests.
+ Plug-in for ambient light sensor to provide occupancy detection.
+
+ Provides an interface and a reference implementation.
  */
 
-#include <stdint.h>
-#include <gtest/gtest.h>
-#include <OTV0p2Base.h>
 #include "OTV0P2BASE_SensorAmbientLightOccupancy.h"
 
 
-// Sanity test.
-TEST(AmbientLightOccupancyDetection,SanityTest)
+namespace OTV0P2BASE
 {
-    EXPECT_EQ(42, 42);
-}
 
 
-// Basic test of update() behaviour.
-TEST(AmbientLightOccupancyDetection,update)
-{
-	OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds1;
-    EXPECT_FALSE(ds1.update(0)) << "no initial update should imply occupancy";
-	OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds2;
-    EXPECT_FALSE(ds2.update(255)) << "no initial update should imply occupancy";
+// Call regularly with the current ambient light level [0,255].
+// Returns true if probably occupancy is detected.
+// Does not block.
+// Not thread-/ISR- safe.
+bool SensorAmbientLightOccupancyDetectorSimple::update(const uint8_t newLightLevel)
+    {
+	prevLightLevel = newLightLevel;
+    return(false); // FIXME
+	}
+
+
 }
