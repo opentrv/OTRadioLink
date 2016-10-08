@@ -18,7 +18,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 */
 
 /*
- * Driver for portable C++ unit tests for this library.
+ * Driver and sanity test for portable C++ unit tests for this library.
  */
 
 #include <stdint.h>
