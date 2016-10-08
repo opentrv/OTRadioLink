@@ -25,31 +25,21 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 #include <gtest/gtest.h>
 #include <utility/OTV0P2BASE_Util.h>
 
-class ExampleClass
+
+// Sanity test.
+TEST(SanityTest,SelfTest)
 {
-public:
-	ExampleClass() : myVal(0) {};
-	uint8_t doSomething(uint8_t input)
-	{
-		myVal += input;
-		return (input + 20);
-	}
+    EXPECT_EQ(42, 42);
+}
 
-	uint32_t myVal;
-};
-
-
-TEST(ExampleTest, ShouldAddTen)
+// Minimally test a real library function.
+TEST(LibraryTest,ShouldConvertFromHex)
 {
-	// setup class
-	ExampleClass myClass;
-
-	//run tests
-	EXPECT_EQ(0, myClass.myVal);
-//	EXPECT_EQ(1, myClass.myVal);  // If an EXPECT_ statement fails, the test carries on.
-	EXPECT_EQ(23, myClass.doSomething(3));
-//	ASSERT_EQ(0, myClass.myVal);  // If an ASSERT_ statement fails, the function exits.
-	EXPECT_EQ(3, myClass.myVal);
+    const char s[] = "0a";
+    // This works. It's inline and only in the header.
+    EXPECT_EQ(10, OTV0P2BASE::parseHexDigit(s[1]));
+    // The compiler can't find this for some reason (function def in source file).
+    EXPECT_EQ(10, OTV0P2BASE::parseHexByte(s));
 }
 
 
