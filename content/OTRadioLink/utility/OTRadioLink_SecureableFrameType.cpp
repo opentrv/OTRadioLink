@@ -24,7 +24,10 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
  *     https://raw.githubusercontent.com/DamonHD/OpenTRV/master/standards/protocol/IoTCommsFrameFormat/SecureBasicFrame-*.txt
  */
 
+#ifdef ARDUINO_ARCH_AVR
 #include <util/atomic.h>
+#endif
+
 #include <string.h>
 
 #include "OTRadioLink_SecureableFrameType.h"

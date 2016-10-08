@@ -16,6 +16,12 @@ under the Licence.
 Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 */
 
+/*
+ * Driver for DORM1/REV7 direct motor drive.
+ *
+ * V0p2/AVR only.
+ */
+
 #include "OTRadValve_AbstractRadValve.h"
 #include "OTRadValve_ValveMotorDirectV1.h"
 
@@ -24,6 +30,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 namespace OTRadValve
     {
 
+
+#ifdef ValveMotorDirectV1_DEFINED
 
 // Note: internal resistance of fresh AA alkaline cell may be ~0.2 ohm at room temp:
 //    http://data.energizer.com/PDFs/BatteryIR.pdf
@@ -639,6 +647,8 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("-<");
       }
     }
   }
+
+#endif // ValveMotorDirectV1_DEFINED
 
 
     }

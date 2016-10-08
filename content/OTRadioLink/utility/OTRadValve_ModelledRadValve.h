@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2015
+Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 */
 
 /*
@@ -29,6 +29,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #include <stddef.h>
 #include <stdint.h>
 #include <OTV0p2Base.h>
+#include "OTV0P2BASE_Util.h"
 
 
 // Use namespaces to help avoid collisions.
@@ -195,7 +196,7 @@ struct ModelledRadValveState
   int getRawDelta() const { return(prevRawTempC16[0] - prevRawTempC16[1]); }
 
   // Get last change in temperature (C*16, signed) from n ticks ago capped to filter length; +ve means rising.
-  int getRawDelta(uint8_t n) const { return(prevRawTempC16[0] - prevRawTempC16[min(n, filterLength-1)]); }
+  int getRawDelta(uint8_t n) const { return(prevRawTempC16[0] - prevRawTempC16[OTV0P2BASE::fnmin((size_t)n, filterLength-1)]); }
 
 //  // Compute an estimate of rate/velocity of temperature change in C/16 per minute/tick.
 //  // A positive value indicates that temperature is rising.

@@ -24,22 +24,23 @@ Author(s) / Copyright (s): Milenko Alcin 2016
  * 
  * http://jeelabs.org/2011/06/10/rf12-broadcasts-and-acks/index.html
  *
- * On receive OTRRFM23B driver automatically processes and strips preamble and first SYN byte,i
+ * On receive OTRRFM23B driver automatically processes and strips preamble and first SYN byte,
  * and returns the rest of the packet with following structure: 
  *  
  *   | GroupID | HDR | len | Payload              | CRC |
  * 
  * Decode makes sure that packet is intended for our Group 
  * If dest bit (part of header byte) is set, Node ID is checked as well. 
- * Finally, CRC is checked, and payload is copied to the beggining of the buffer, while
+ * Finally, CRC is checked, and payload is copied to the beginning of the buffer, while
  * header flags and nodeID variables are set accordingly.
  *
  * On transmit, operation is exactly opposite. Payload is received in buffer, while payload length and
- * other information that are needed to format the packet are passed as paramteres.
+ * other information that are needed to format the packet are passed as parameters.
  * Method moves payload to the right place, formats packet header and add CRC.
  * 
  * Preamble and first syn byte are added by packet handler in OTRFM23BLink.
  * 
+ * Currently AVR only.
  */
 
 #ifndef ARDUINO_LIB_OTRADIOLINK_JEELABSOEMPACKET_H
@@ -53,14 +54,17 @@ Author(s) / Copyright (s): Milenko Alcin 2016
 namespace OTRadioLink
     {
 
-     class JeelabsOemPacket 
+
+#ifdef ARDUINO_ARCH_AVR
+#define JeelabsOemPacket_DEFINED
+    class JeelabsOemPacket
         {
         private:
         uint8_t _nodeID;
         uint8_t _groupID;
         uint16_t calcCrc(const uint8_t* buf, uint8_t len);
         public:
-        // Default node ID chosen arbitrarily, group ID is JeeLabs default
+        // Default node ID chosen arbitrarily, group ID is JeeLabs default.
         JeelabsOemPacket() { _nodeID = 5; _groupID = 100; }; 
         uint8_t setNodeAndGroupID(const uint8_t nodeID, const uint8_t groupID);
         uint8_t getNodeID() { return _nodeID; };
@@ -69,5 +73,8 @@ namespace OTRadioLink
         uint8_t decode(uint8_t * const buf, uint8_t &buflen,  uint8_t &nodeID,  bool &dest,  bool &ackReq,  bool &ackConf);
         static bool filter( const volatile uint8_t *buf, volatile uint8_t &buflen);
         };
+#endif // ARDUINO_ARCH_AVR
+
+
     }
 #endif

@@ -24,12 +24,10 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 #define OTV0P2BASE_ARDUINOCOMPAT_H
 
 
-namespace OTV0P2BASE
-{
-
 #ifndef ARDUINO
 
 // Enable minimal elements to support cross-compilation.
+// NOT in normal OpenTRV namespace(s).
 
 // F() macro on Arduino for hosting string constant in Flash, eg print(F("no space taken in RAM")).
 #ifndef F
@@ -40,8 +38,7 @@ class __FlashStringHelper;
 // Minimal skeleton matching Print to permit compilation on non-Arduino platforms.
 class Print { };
 
-#endif
+#endif // ARDUINO
 
-}
 
 #endif

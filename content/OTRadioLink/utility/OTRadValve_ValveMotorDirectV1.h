@@ -18,6 +18,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 
 /*
  * Driver for DORM1/REV7 direct motor drive.
+ *
+ * V0p2/AVR only.
  */
 
 #ifndef ARDUINO_LIB_OTRADVALVE_VALVEMOTORDIRECTV1_H
@@ -35,11 +37,14 @@ namespace OTRadValve
     {
 
 
+#ifdef ARDUINO_ARCH_AVR
+
 // Generic (unit-testable) motor driver login using end-stop detection and simple shaft-encoder.
 // Designed to be embedded in a motor controller instance.
 // This used the sub-cycle clock for timing.
 // This is sensitive to sub-cycle position, ie will try to avoid causing a main loop overrun.
 // May report some key status on Serial, with any error line(s) starting with "!'.
+#define CurrentSenseValveMotorDirect_DEFINED
 class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInterfaceCallbackHandler
   {
   public:
@@ -50,7 +55,7 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
     // Assumed calls to read() before timeout (assuming o call each 2s).
     // If calls are received less often this will presumably take longer to perform movements,
     // so it is appropriate to use a 2s ticks approximation.
-    static const uint8_t MAX_TRAVEL_WALLCLOCK_2s_TICKS = max(4, MAX_TRAVEL_S / 2);
+    static const uint8_t MAX_TRAVEL_WALLCLOCK_2s_TICKS = OTV0P2BASE::fnmax(4, MAX_TRAVEL_S / 2);
 
     // Calibration parameters.
     // Data received during the calibration process,
@@ -335,6 +340,7 @@ class ValveMotorDirectV1HardwareDriverBase : public OTRadValve::HardwareMotorDri
 // Implementation for V1 (REV7/DORM1) motor.
 // Usually not instantiated except within ValveMotorDirectV1.
 // Creating multiple instances (trying to drive same motor) almost certainly a BAD IDEA.
+#define ValveMotorDirectV1HardwareDriver_DEFINED
 template <uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin, uint8_t MOTOR_DRIVE_MC_AIN_DigitalPin>
 class ValveMotorDirectV1HardwareDriver : public ValveMotorDirectV1HardwareDriverBase
   {
@@ -469,6 +475,7 @@ OTV0P2BASE::serialPrintlnAndFlush();
   };
 
 // Actuator/driver for direct local (radiator) valve motor control.
+#define ValveMotorDirectV1_DEFINED
 template <uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin, uint8_t MOTOR_DRIVE_MC_AIN_DigitalPin>
 class ValveMotorDirectV1 : public OTRadValve::AbstractRadValve
   {
@@ -521,6 +528,8 @@ class ValveMotorDirectV1 : public OTRadValve::AbstractRadValve
     // Finishes with the motor turned off, and a bias to closing the valve.
     virtual void wiggle() { logic.wiggle(); }
   };
+
+#endif // ARDUINO_ARCH_AVR
 
 
     }

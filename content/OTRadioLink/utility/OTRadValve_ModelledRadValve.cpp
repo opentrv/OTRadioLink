@@ -13,10 +13,10 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
+Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 */
 
-//#include <OTV0p2Base.h>
+#include <stdlib.h>
 
 #include "OTRadValve_ModelledRadValve.h"
 
@@ -71,8 +71,8 @@ void ModelledRadValveInputState::setReferenceTemperatures(const int currentTempC
 
 // Derived from basic slew values.
 #ifndef TRV_SLEW_GLACIAL
-#define TRV_SLEW_PC_PER_MIN_VFAST (min(34,(4*TRV_MAX_SLEW_PC_PER_MIN))) // Takes >= 3 minutes for full travel.
-#define TRV_SLEW_PC_PER_MIN_FAST (min(20,(2*TRV_MAX_SLEW_PC_PER_MIN))) // Takes >= 5 minutes for full travel.
+#define TRV_SLEW_PC_PER_MIN_VFAST (OTV0P2BASE::fnmin(34,(4*TRV_MAX_SLEW_PC_PER_MIN))) // Takes >= 3 minutes for full travel.
+#define TRV_SLEW_PC_PER_MIN_FAST (OTV0P2BASE::fnmin(20,(2*TRV_MAX_SLEW_PC_PER_MIN))) // Takes >= 5 minutes for full travel.
 #else
 #define TRV_SLEW_PC_PER_MIN_FAST TRV_MAX_SLEW_PC_PER_MIN
 #define TRV_SLEW_PC_PER_MIN_VFAST TRV_MAX_SLEW_PC_PER_MIN
@@ -169,7 +169,7 @@ static const uint8_t MAX_TEMP_JUMP_C16 = 3; // 3/16C.
 //
 // Should probably be significantly larger than MAX_TEMP_JUMP_C16 to avoid triggering alongside any filtering.
 // Needs to be be a fast enough fall NOT to be triggered by normal temperature gyrations close to a radiator.
-static const uint8_t MIN_WINDOW_OPEN_TEMP_FALL_C16 = max(MAX_TEMP_JUMP_C16+2, 5); // Just over 1/4C.
+static const uint8_t MIN_WINDOW_OPEN_TEMP_FALL_C16 = OTV0P2BASE::fnmax(MAX_TEMP_JUMP_C16+2, 5); // Just over 1/4C.
 // Minutes over which temperature should be falling to trigger 'window open' response; strictly +ve.
 // TODO-621.
 // Needs to be be a fast enough fall NOT to be triggered by normal temperature gyrations close to a radiator.
@@ -356,7 +356,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
       // For this to work, don't set a wide deadband when, eg, user has just touched the controls.
       // *Jump to just over moderately-open threshold to defeat any small rounding errors in the data path, etc,
       // since boiler is likely to regard this threshold as a trigger to immediate action.
-      const uint8_t cappedModeratelyOpen = min(inputState.maxPCOpen, min(99, OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN+TRV_SLEW_PC_PER_MIN_FAST));
+      const uint8_t cappedModeratelyOpen = OTV0P2BASE::fnmin(inputState.maxPCOpen, OTV0P2BASE::fnmin((uint8_t)99, (uint8_t)(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN+TRV_SLEW_PC_PER_MIN_FAST)));
       if((valvePCOpen < cappedModeratelyOpen) &&
          (inputState.fastResponseRequired || (vBelowTarget && !inputState.widenDeadband)))
           { return(cappedModeratelyOpen); }
@@ -367,11 +367,11 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
       const uint8_t slewRate =
           ((valvePCOpen > OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN) || !inputState.widenDeadband) ?
               TRV_MAX_SLEW_PC_PER_MIN : TRV_SLEW_PC_PER_MIN_VFAST;
-      const uint8_t minOpenFromCold = max(slewRate, inputState.minPCOpen);
+      const uint8_t minOpenFromCold = OTV0P2BASE::fnmax(slewRate, inputState.minPCOpen);
       // Open to 'minimum' likely open state immediately if less open currently.
       if(valvePCOpen < minOpenFromCold) { return(minOpenFromCold); }
       // Slew open relatively gently...
-      return(min((uint8_t)(valvePCOpen + slewRate), inputState.maxPCOpen)); // Capped at maximum.
+      return(OTV0P2BASE::fnmin((uint8_t)(valvePCOpen + slewRate), inputState.maxPCOpen)); // Capped at maximum.
       }
     // Keep open at maximum allowed.
     return(inputState.maxPCOpen);
@@ -414,7 +414,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
       // TODO-593: if user is manually adjusting device then attempt to respond quickly.
       if(((!inputState.hasEcoBias) || justOverTemp || isFiltering) &&
          (!inputState.fastResponseRequired) &&
-         (valvePCOpen > constrain(((int)lingerThreshold) + TRV_SLEW_PC_PER_MIN_FAST, TRV_SLEW_PC_PER_MIN_FAST, inputState.maxPCOpen)))
+         (valvePCOpen > OTV0P2BASE::fnconstrain((uint8_t)(lingerThreshold + TRV_SLEW_PC_PER_MIN_FAST), (uint8_t)TRV_SLEW_PC_PER_MIN_FAST, inputState.maxPCOpen)))
         { return(valvePCOpen - TRV_SLEW_PC_PER_MIN_FAST); }
 
       // Else (by default) force to (nearly) off immediately when requested, ie eagerly stop heating to conserve energy.
@@ -439,7 +439,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
   const uint8_t targetPORaw = tmp * ulpStep;
   // Constrain from below to likely minimum-open value, in part to deal with TODO-117 'linger open' in lieu of boiler bypass.
   // Constrain from above by maximum percentage open allowed, eg for pay-by-volume systems.
-  const uint8_t targetPO = constrain(targetPORaw, inputState.minPCOpen, inputState.maxPCOpen);
+  const uint8_t targetPO = OTV0P2BASE::fnconstrain(targetPORaw, inputState.minPCOpen, inputState.maxPCOpen);
 
   // Reduce spurious valve/boiler adjustment by avoiding movement at all unless current temperature error is significant.
   if(targetPO != valvePCOpen)
@@ -450,8 +450,8 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
     // Also increase effective deadband if temperature resolution is lower than 1/16th, eg 8ths => 1+2*ulpStep minimum.
 // FIXME //    const uint8_t realMinUlp = 1 + (inputState.isLowPrecision ? 2*ulpStep : ulpStep); // Assume precision no coarser than 1/8C.
     const uint8_t realMinUlp = 1 + ulpStep;
-    const uint8_t _minAbsSlew = (uint8_t)(inputState.widenDeadband ? max(min(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN/2,max(TRV_MAX_SLEW_PC_PER_MIN,2*TRV_MIN_SLEW_PC)), 2+TRV_MIN_SLEW_PC) : TRV_MIN_SLEW_PC);
-    const uint8_t minAbsSlew = max(realMinUlp, _minAbsSlew);
+    const uint8_t _minAbsSlew = (uint8_t)(inputState.widenDeadband ? OTV0P2BASE::fnmax(OTV0P2BASE::fnmin(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN/2,OTV0P2BASE::fnmax(TRV_MAX_SLEW_PC_PER_MIN,2*TRV_MIN_SLEW_PC)), 2+TRV_MIN_SLEW_PC) : TRV_MIN_SLEW_PC);
+    const uint8_t minAbsSlew = OTV0P2BASE::fnmax(realMinUlp, _minAbsSlew);
     if(tooOpen) // Currently open more than required.  Still below target at top of proportional range.
       {
 //V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("slightly too open");

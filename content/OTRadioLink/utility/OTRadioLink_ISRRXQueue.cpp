@@ -16,7 +16,9 @@ under the Licence.
 Author(s) / Copyright (s): Damon Hart-Davis 2015
 */
 
+#ifdef ARDUINO_ARCH_AVR
 #include <util/atomic.h>
+#endif
 
 #include "OTRadioLink_ISRRXQueue.h"
 
@@ -27,12 +29,15 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 namespace OTRadioLink
     {
 
+#ifdef ARDUINO_ARCH_AVR
 // True if the queue is full.
 // True iff _getRXBufForInbound() would return NULL.
 // ISR-/thread- safe.
 uint8_t ISRRXQueueVarLenMsgBase::isFull() const
     { ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { return(_isFull()); } }
+#endif // ARDUINO_ARCH_AVR
 
+#ifdef ARDUINO_ARCH_AVR
 // Remove the first (oldest) queued RX message.
 // Typically used after peekRXMessage().
 // Does nothing if the queue is empty.
@@ -52,6 +57,8 @@ void ISRRXQueueVarLenMsgBase::removeRXMsg()
         --queuedRXedMessageCount;
         }
     }
+#endif // ARDUINO_ARCH_AVR
+
 
 #ifdef ISRRXQueueVarLenMsg_VALIDATE
 // Validate state, dumping diagnostics to Print stream and returning false if problems found.

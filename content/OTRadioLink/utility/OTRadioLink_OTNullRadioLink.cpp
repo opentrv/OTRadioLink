@@ -19,6 +19,8 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
 
 #include "OTRadioLink_OTNullRadioLink.h"
 
+#include "OTV0P2BASE_ArduinoCompat.h"
+
 namespace OTRadioLink {
 
 OTNullRadioLink::OTNullRadioLink() {}
@@ -40,6 +42,7 @@ const volatile uint8_t *OTNullRadioLink::peekRXMsg() const
 {
     return(NULL);
 }
+
 void OTNullRadioLink::removeRXMsg()
 {
 
