@@ -80,7 +80,7 @@ class SensorAmbientLightOccupancyDetectorSimple : public SensorAmbientLightOccup
         : prevLightLevel(255)
           { }
 
-      // Call regularly with the current ambient light level [0,255].
+      // Call regularly (~1/60s) with the current ambient light level [0,255].
       // Returns true if probably occupancy is detected.
       // Does not block.
       // Not thread-/ISR- safe.
