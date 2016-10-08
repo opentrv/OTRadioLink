@@ -32,3 +32,16 @@ TEST(AmbientLightOccupancyDetection,SanityTest)
     EXPECT_EQ(42, 42);
 }
 
+
+// Basic test of update() behaviour.
+TEST(AmbientLightOccupancyDetection,updateBasics)
+{
+    // Check that initial update never indicates occupancy.
+	OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds1;
+    EXPECT_FALSE(ds1.update(0)) << "no initial update should imply occupancy";
+	OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds2;
+    EXPECT_FALSE(ds2.update(255)) << "no initial update should imply occupancy";
+    // Check that update from 0 to max does force occupancy indication (but steady does not).
+    EXPECT_TRUE(ds1.update(255)) << "update from 0 to 255 (max) illumination should signal occupancy";
+    EXPECT_FALSE(ds2.update(255)) << "unchanged 255 (max) light level should not imply occupancy";
+}
