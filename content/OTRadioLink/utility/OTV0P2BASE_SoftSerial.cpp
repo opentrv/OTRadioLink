@@ -18,9 +18,11 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
 
 #include "OTV0P2BASE_SoftSerial.h"
 
-//#include <stdio.h>
 #include <stdlib.h>
+
+#ifdef ARDUINO_ARCH_AVR
 #include <util/atomic.h>
+#endif
 
 namespace OTV0P2BASE
 {

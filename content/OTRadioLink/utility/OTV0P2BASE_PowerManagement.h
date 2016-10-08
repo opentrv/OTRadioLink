@@ -59,94 +59,98 @@ void powerSetup();
 void minimisePowerWithoutSleep();
 
 
-// If ADC was disabled, power it up, do Serial.begin(), and return true.
-// If already powered up then do nothing other than return false.
-// This does not power up the analogue comparator; this needs to be manually enabled if required.
-// If this returns true then a matching powerDownADC() may be advisable.
-bool powerUpADCIfDisabled();
-// Power ADC down.
-// Likely shorter inline than just the call/return!
-inline void powerDownADC()
-  {
-  ADCSRA &= ~_BV(ADEN); // Do before power_[adc|all]_disable() to avoid freezing the ADC in an active state!
-  PRR |= _BV(PRADC); // Disable the ADC.
-  }
+#ifdef ARDUINO_ARCH_AVR
+    // If ADC was disabled, power it up, and return true.
+    // If already powered up then do nothing other than return false.
+    // This does not power up the analogue comparator; this needs to be manually enabled if required.
+    // If this returns true then a matching powerDownADC() may be advisable.
+    bool powerUpADCIfDisabled();
+    // Power ADC down.
+    // Likely shorter inline than just the call/return!
+    inline void powerDownADC()
+      {
+      ADCSRA &= ~_BV(ADEN); // Do before power_[adc|all]_disable() to avoid freezing the ADC in an active state!
+      PRR |= _BV(PRADC); // Disable the ADC.
+      }
+#endif // ARDUINO_ARCH_AVR
 
 
-// If true, default is to run the SPI bus a bit below maximum (eg for REV2 board).
-static const bool DEFAULT_RUN_SPI_SLOW = false;
+#ifdef ARDUINO_ARCH_AVR
+    // If true, default is to run the SPI bus a bit below maximum (eg for REV2 board).
+    static const bool DEFAULT_RUN_SPI_SLOW = false;
 
-// TEMPLATED DEFINITIONS OF SPI power up/down.
-//
-// If SPI was disabled, power it up, enable it as master and with a sensible clock speed, etc, and return true.
-// If already powered up then do nothing other than return false.
-// If this returns true then a matching powerDownSPI() may be advisable.
-// The optional slowSPI flag, if true, attempts to run the bus slow, eg for when long or loaded with LED on SCK.
-template <uint8_t SPI_nSS, bool slowSPI>
-bool t_powerUpSPIIfDisabled()
-    {
-    ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
+    // TEMPLATED DEFINITIONS OF SPI power up/down.
+    //
+    // If SPI was disabled, power it up, enable it as master and with a sensible clock speed, etc, and return true.
+    // If already powered up then do nothing other than return false.
+    // If this returns true then a matching powerDownSPI() may be advisable.
+    // The optional slowSPI flag, if true, attempts to run the bus slow, eg for when long or loaded with LED on SCK.
+    template <uint8_t SPI_nSS, bool slowSPI>
+    bool t_powerUpSPIIfDisabled()
         {
-        if(!(PRR & _BV(PRSPI))) { return(false); }
+        ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
+            {
+            if(!(PRR & _BV(PRSPI))) { return(false); }
 
-        // Ensure that nSS is HIGH ASAP and thus any slave deselected when powering up SPI.
-        fastDigitalWrite(SPI_nSS, HIGH);
-        // Ensure that nSS is an output to avoid forcing SPI to slave mode by accident.
-        pinMode(SPI_nSS, OUTPUT);
+            // Ensure that nSS is HIGH ASAP and thus any slave deselected when powering up SPI.
+            fastDigitalWrite(SPI_nSS, HIGH);
+            // Ensure that nSS is an output to avoid forcing SPI to slave mode by accident.
+            pinMode(SPI_nSS, OUTPUT);
 
-        PRR &= ~_BV(PRSPI); // Enable SPI power.
+            PRR &= ~_BV(PRSPI); // Enable SPI power.
 
-        // Configure raw SPI to match better how it was used in PICAXE V0.09 code.
-        // CPOL = 0, CPHA = 0
-        // Enable SPI, set master mode, set speed.
-        const uint8_t ENABLE_MASTER = _BV(SPE) | _BV(MSTR);
-#if F_CPU <= 2000000 // Needs minimum prescale (x2) with slow (<=2MHz) CPU clock.
-        SPCR = ENABLE_MASTER; // 2x clock prescale for <=1MHz SPI clock from <=2MHz CPU clock (500kHz SPI @ 1MHz CPU).
-        if(!slowSPI) { SPSR = _BV(SPI2X); } // Slow will give 4x prescale for 250kHz bus at 1MHz CPU.
-#elif F_CPU <= 8000000
-        SPCR = ENABLE_MASTER; // 4x clock prescale for <=2MHz SPI clock from nominal <=8MHz CPU clock.
-        SPSR = 0;
-#else // Needs setting for fast (~16MHz) CPU clock.
-        SPCR = _BV(SPR0) | ENABLE_MASTER; // 8x clock prescale for ~2MHz SPI clock from nominal ~16MHz CPU clock.
-        SPSR = _BV(SPI2X);
-#endif
+            // Configure raw SPI to match better how it was used in PICAXE V0.09 code.
+            // CPOL = 0, CPHA = 0
+            // Enable SPI, set master mode, set speed.
+            const uint8_t ENABLE_MASTER = _BV(SPE) | _BV(MSTR);
+    #if F_CPU <= 2000000 // Needs minimum prescale (x2) with slow (<=2MHz) CPU clock.
+            SPCR = ENABLE_MASTER; // 2x clock prescale for <=1MHz SPI clock from <=2MHz CPU clock (500kHz SPI @ 1MHz CPU).
+            if(!slowSPI) { SPSR = _BV(SPI2X); } // Slow will give 4x prescale for 250kHz bus at 1MHz CPU.
+    #elif F_CPU <= 8000000
+            SPCR = ENABLE_MASTER; // 4x clock prescale for <=2MHz SPI clock from nominal <=8MHz CPU clock.
+            SPSR = 0;
+    #else // Needs setting for fast (~16MHz) CPU clock.
+            SPCR = _BV(SPR0) | ENABLE_MASTER; // 8x clock prescale for ~2MHz SPI clock from nominal ~16MHz CPU clock.
+            SPSR = _BV(SPI2X);
+    #endif
+            }
+        return(true);
         }
-    return(true);
-    }
-//
-// Power down SPI.
-template <uint8_t SPI_nSS, uint8_t SPI_SCK, uint8_t SPI_MOSI, uint8_t SPI_MISO, bool slowSPI>
-void t_powerDownSPI()
-    {
-    ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
+    //
+    // Power down SPI.
+    template <uint8_t SPI_nSS, uint8_t SPI_SCK, uint8_t SPI_MOSI, uint8_t SPI_MISO, bool slowSPI>
+    void t_powerDownSPI()
         {
-        // Ensure that nSS is HIGH ASAP and thus any slave deselected when powering up SPI.
-        fastDigitalWrite(SPI_nSS, HIGH);
+        ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
+            {
+            // Ensure that nSS is HIGH ASAP and thus any slave deselected when powering up SPI.
+            fastDigitalWrite(SPI_nSS, HIGH);
 
-        SPCR &= ~_BV(SPE); // Disable SPI.
-        PRR |= _BV(PRSPI); // Power down...
+            SPCR &= ~_BV(SPE); // Disable SPI.
+            PRR |= _BV(PRSPI); // Power down...
 
-        // Ensure that nSS is an output to avoid forcing SPI to slave mode by accident.
-        pinMode(SPI_nSS, OUTPUT);
+            // Ensure that nSS is an output to avoid forcing SPI to slave mode by accident.
+            pinMode(SPI_nSS, OUTPUT);
 
-        // Avoid pins from floating when SPI is disabled.
-        // Try to preserve general I/O direction and restore previous output values for outputs.
-        pinMode(SPI_SCK, OUTPUT);
-        pinMode(SPI_MOSI, OUTPUT);
-        pinMode(SPI_MISO, INPUT_PULLUP);
+            // Avoid pins from floating when SPI is disabled.
+            // Try to preserve general I/O direction and restore previous output values for outputs.
+            pinMode(SPI_SCK, OUTPUT);
+            pinMode(SPI_MOSI, OUTPUT);
+            pinMode(SPI_MISO, INPUT_PULLUP);
 
-        // If sharing SPI SCK with LED indicator then return this pin to being an output (retaining previous value).
-        //if(LED_HEATCALL == PIN_SPI_SCK) { pinMode(LED_HEATCALL, OUTPUT); }
+            // If sharing SPI SCK with LED indicator then return this pin to being an output (retaining previous value).
+            //if(LED_HEATCALL == PIN_SPI_SCK) { pinMode(LED_HEATCALL, OUTPUT); }
+            }
         }
-    }
 
-// STANDARD UNTEMPLATED DEFINITIONS OF SPI power up/down if PIN_SPI_nSS is defined.
-// If SPI was disabled, power it up, enable it as master and with a sensible clock speed, etc, and return true.
-// If already powered up then do nothing other than return false.
-// If this returns true then a matching powerDownSPI() may be advisable.
-inline bool powerUpSPIIfDisabled() { return(t_powerUpSPIIfDisabled<V0p2_PIN_SPI_nSS, DEFAULT_RUN_SPI_SLOW>()); }
-// Power down SPI.
-inline void powerDownSPI() { t_powerDownSPI<V0p2_PIN_SPI_nSS, V0p2_PIN_SPI_SCK, V0p2_PIN_SPI_MOSI, V0p2_PIN_SPI_MISO, DEFAULT_RUN_SPI_SLOW>(); }
+    // STANDARD UNTEMPLATED DEFINITIONS OF SPI power up/down if PIN_SPI_nSS is defined.
+    // If SPI was disabled, power it up, enable it as master and with a sensible clock speed, etc, and return true.
+    // If already powered up then do nothing other than return false.
+    // If this returns true then a matching powerDownSPI() may be advisable.
+    inline bool powerUpSPIIfDisabled() { return(t_powerUpSPIIfDisabled<V0p2_PIN_SPI_nSS, DEFAULT_RUN_SPI_SLOW>()); }
+    // Power down SPI.
+    inline void powerDownSPI() { t_powerDownSPI<V0p2_PIN_SPI_nSS, V0p2_PIN_SPI_SCK, V0p2_PIN_SPI_MOSI, V0p2_PIN_SPI_MISO, DEFAULT_RUN_SPI_SLOW>(); }
+#endif // ARDUINO_ARCH_AVR
 
 
 /************** Serial IO stuff ************************/
@@ -192,12 +196,14 @@ void flushSerialSCTSensitive();
 #endif
 
 
-// If TWI (I2C) was disabled, power it up, do Wire.begin(), and return true.
-// If already powered up then do nothing other than return false.
-// If this returns true then a matching powerDownTWI() may be advisable.
-bool powerUpTWIIfDisabled();
-// Power down TWI (I2C).
-void powerDownTWI();
+#ifdef ARDUINO_ARCH_AVR
+    // If TWI (I2C) was disabled, power it up, do Wire.begin(), and return true.
+    // If already powered up then do nothing other than return false.
+    // If this returns true then a matching powerDownTWI() may be advisable.
+    bool powerUpTWIIfDisabled();
+    // Power down TWI (I2C).
+    void powerDownTWI();
+#endif
 
 
 // Enable power to intermittent peripherals.

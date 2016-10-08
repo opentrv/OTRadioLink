@@ -22,8 +22,12 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
 #define CONTENT_OTRADIOLINK_UTILITY_OTV0P2BASE_SOFTSERIAL2_H_
 
 #include <stdint.h>
+
+#ifdef ARDUINO
 #include "Arduino.h"
 #include <Stream.h>
+#endif
+
 #include "utility/OTV0P2BASE_FastDigitalIO.h"
 #include "utility/OTV0P2BASE_Sleep.h"
 
@@ -156,9 +160,9 @@ public:
      */
     void sendBreak()
     {
-    	fastDigitalWrite(txPin, LOW);
-    	_delay_x4cycles(writeDelay * 16);
-    	fastDigitalWrite(txPin, HIGH);
+        fastDigitalWrite(txPin, LOW);
+        _delay_x4cycles(writeDelay * 16);
+        fastDigitalWrite(txPin, HIGH);
     }
     /**************************************************************************
      * ------------------------ Unimplemented ------------------------------- *

@@ -17,6 +17,10 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
                            Damon Hart-Davis 2016
 */
 
+/*
+ Simple utilities.
+ */
+
 #include "OTV0P2BASE_Util.h"
 
 namespace OTV0P2BASE {

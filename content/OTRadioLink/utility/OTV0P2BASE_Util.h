@@ -18,12 +18,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014--2016
 */
 
 /*
- Base sensor type for simple sensors returning scalar values.
-
- Most sensors should derive from this.
-
- May also be used for pseudo-sensors
- such as synthesised from multiple sensors combined.
+ Simple utilities.
  */
 
 #ifndef OTV0P2BASE_UTIL_H
