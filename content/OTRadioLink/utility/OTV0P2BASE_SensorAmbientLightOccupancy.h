@@ -64,14 +64,15 @@ class SensorAmbientLightOccupancyDetectorInterface
     // Not thread-/ISR- safe.
     virtual bool update(uint8_t newLightLevel) = 0;
 
-    // Set typical, min and max ambient light levels from recent stats, to allow auto adjustment to dark; ~0/0xff means not known.
-    // Typical value is for the current time of day.
+    // Set mean, min and max ambient light levels from recent stats, to allow auto adjustment to room; ~0/0xff means not known.
+    // Mean value is for the current time of day.
     // Short term stats are typically over the last day,
     // longer term typically over the last week or so (eg rolling exponential decays).
     // Call regularly, roughly hourly, to drive other internal time-dependent adaptation.
+    //   * meanNowOrFF  typical/mean light level around this time; 0xff if not known.
     //   * sensitive  if true be more sensitive to possible occupancy changes, else less so.
     // By default does nothing.
-    virtual void setTypMinMax(uint8_t typicalNowOrFF,
+    virtual void setTypMinMax(uint8_t meanNowOrFF,
                       uint8_t recentMinimumOrFF, uint8_t recentMaximumOrFF,
                       uint8_t longerTermMinimumOrFF = 0xff, uint8_t longerTermMaximumOrFF = 0xff,
                       bool sensitive = true)
