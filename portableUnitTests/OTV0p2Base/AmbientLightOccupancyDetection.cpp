@@ -90,7 +90,7 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
     for(const ALDataSample *dp = data; !dp->isEnd(); ++dp)
         {
         const long mins = dp->currentMinute();
-        printf("Mins: %ld\n", mins);
+        fprintf(stderr, "Mins: %ld\n", mins);
         }
 	}
 
