@@ -82,7 +82,6 @@ class SensorAmbientLightOccupancyDetectorInterface
                       uint8_t longerTermMinimumOrFF = 0xff, uint8_t longerTermMaximumOrFF = 0xff,
                       bool sensitive = true)
       { }
-
   };
 
 

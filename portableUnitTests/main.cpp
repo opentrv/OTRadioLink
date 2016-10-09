@@ -30,7 +30,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 TEST(SanityTest,SelfTest)
 {
     EXPECT_EQ(42, 42);
-    fputs("*** Tests built: " __DATE__ " " __TIME__ "\n", stderr);
+//    fputs("*** Tests built: " __DATE__ " " __TIME__ "\n", stderr);
 }
 
 //// Minimally test a real library function.

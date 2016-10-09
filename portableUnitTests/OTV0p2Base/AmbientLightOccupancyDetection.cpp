@@ -101,6 +101,9 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
     int maxI = -1;
     int count = 0;
     int sum = 0;
+    uint8_t byHourMeanI[24];
+    int byHourMeanSumI[24]; memset(byHourMeanSumI, 0, sizeof(byHourMeanSumI));
+    int byHourMeanCountI[24]; memset(byHourMeanCountI, 0, sizeof(byHourMeanCountI));
     for(const ALDataSample *dp = data; !dp->isEnd(); ++dp)
         {
     	long currentMinute = dp->currentMinute();
@@ -110,11 +113,29 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
             if((int)level > maxI) { maxI = level; }
             sum += (int)level;
             ++count;
+    		const uint8_t H = (currentMinute % 1440) / 60;
+            ASSERT_TRUE(H < 24) << "bad hour";
+            byHourMeanSumI[H] += level;
+            ++byHourMeanCountI[H];
             ++currentMinute;
     	    } while((!(dp+1)->isEnd()) && (currentMinute < (dp+1)->currentMinute()));
         }
     const int meanI = (sum + (count>>1)) / count;
     fprintf(stderr, "minI: %d, maxI %d, meanI %d\n", minI, maxI, meanI);
+    for(int i = 24; --i >= 0; )
+        {
+        if(0 != byHourMeanCountI[i])
+            { byHourMeanI[i] = (uint8_t)((byHourMeanSumI[i] + (byHourMeanCountI[i]>>1)) / byHourMeanCountI[i]); }
+        else { byHourMeanI[i] = 0xff; }
+        }
+    fprintf(stderr, "mean by hour:");
+    for(int i = 0; i < 24; ++i)
+        {
+        fputc(' ', stderr);
+        if(0xff == byHourMeanI[i]) { fputc('-', stderr); }
+        else { fprintf(stderr, "%d", (int)byHourMeanI[i]); }
+        }
+    fprintf(stderr, "\n");
     // Run simulation.
     for(const ALDataSample *dp = data; !dp->isEnd(); ++dp)
         {
@@ -126,7 +147,9 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
                 {
                 // If a particular outcome was expected, test against it.
                 const bool expectedOccupancy = (expected > 1);
-                EXPECT_EQ(expectedOccupancy, prediction) << " @ " << int(dp->H) << ":" << int(dp->M) << " + " << (currentMinute - dp->currentMinute());
+        		const uint8_t H = (currentMinute % 1440) / 60;
+        		const uint8_t M = (currentMinute % 60);
+                EXPECT_EQ(expectedOccupancy, prediction) << " @ " << H << ":" << M << " + " << (currentMinute - dp->currentMinute());
                 }
             ++currentMinute;
     	    } while((!(dp+1)->isEnd()) && (currentMinute < (dp+1)->currentMinute()));
@@ -280,5 +303,5 @@ static const ALDataSample sample3lHard[] =
 TEST(AmbientLightOccupancyDetection,sample3lHard)
 {
 	OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds1;
-	simpleDataSampleRun(sample3lHard, &ds1, 1, 182, NULL);
+	simpleDataSampleRun(sample3lHard, &ds1);
 }
