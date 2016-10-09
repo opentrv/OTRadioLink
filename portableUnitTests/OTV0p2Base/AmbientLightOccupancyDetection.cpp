@@ -80,12 +80,18 @@ static const ALDataSample trivialSample1[] =
     };
 
 // Do a simple run over the supplied data, one call per simulated minute until the terminating record is found.
-// Must be supplied in ascending order with a terminating (empty) entry.
+// Must be called with 1 or more data rows in ascending time with a terminating (empty) entry.
 // Repeated rows with the same light value and expected result can be omitted
 // as they will be synthesised by this routine for each virtual minute until the next supplied item.
 // Ensures that any required predictions/detections in either direction are met.
+// Can be supplied with nominal long-term rolling min and max
+// or they can be computed from the data supplied (0xff implies no data).
+// Can be supplied with nominal long-term rolling mean levels by hour,
+// or they can be computed from the data supplied (NULL means none supplied, 0xff entry means none for given hour).
 // Uses only the update() call.
-void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface *const detector)
+void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface *const detector,
+                         const uint8_t minLevel = 0xff, const uint8_t maxLevel = 0xff,
+                         const uint8_t meanByHour[24] = NULL)
     {
     ASSERT_TRUE(NULL != data);
     ASSERT_TRUE(NULL != detector);
@@ -94,7 +100,6 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
         {
     	long currentMinute = dp->currentMinute();
     	do  {
-//            fprintf(stderr, "Mins: %ld\n", currentMinute);
             const bool prediction = detector->update(dp->L);
             const uint8_t expected = dp->expected;
             if(0 != expected)
