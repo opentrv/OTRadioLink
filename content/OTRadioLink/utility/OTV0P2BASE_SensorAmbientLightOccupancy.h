@@ -42,7 +42,7 @@ namespace OTV0P2BASE
 //
 // Generally the initial call to update() should not return true,
 // whatever the indicate current light level,
-// to avoid spurious oocupancy detection at power-up/restart.
+// to avoid spurious occupancy detection at power-up/restart.
 //
 // The class retains state in order to detect occupancy.
 //
@@ -62,6 +62,11 @@ class SensorAmbientLightOccupancyDetectorInterface
     // Returns true if probable occupancy is detected.
     // Does not block.
     // Not thread-/ISR- safe.
+    // Call regularly (~1/60s) with the current ambient light level [0,254].
+    // Returns true if probable occupancy is detected.
+    // Does not block.
+    // Not thread-/ISR- safe.
+    //   * newLightLevel in range [0,254]
     virtual bool update(uint8_t newLightLevel) = 0;
 
     // Set mean, min and max ambient light levels from recent stats, to allow auto adjustment to room; ~0/0xff means not known.
@@ -70,7 +75,7 @@ class SensorAmbientLightOccupancyDetectorInterface
     // longer term typically over the last week or so (eg rolling exponential decays).
     // Call regularly, roughly hourly, to drive other internal time-dependent adaptation.
     //   * meanNowOrFF  typical/mean light level around this time; 0xff if not known.
-    //   * sensitive  if true be more sensitive to possible occupancy changes, else less so.
+    //   * sensitive  if true then be more sensitive to possible occupancy changes, eg to improve comfort.
     // By default does nothing.
     virtual void setTypMinMax(uint8_t meanNowOrFF,
                       uint8_t recentMinimumOrFF, uint8_t recentMaximumOrFF,
@@ -103,6 +108,7 @@ class SensorAmbientLightOccupancyDetectorSimple : public SensorAmbientLightOccup
       // Returns true if probable occupancy is detected.
       // Does not block.
       // Not thread-/ISR- safe.
+      //   * newLightLevel in range [0,254]
       virtual bool update(uint8_t newLightLevel);
   };
 

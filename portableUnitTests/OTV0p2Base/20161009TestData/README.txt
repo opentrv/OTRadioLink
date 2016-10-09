@@ -34,7 +34,7 @@ Occupancy expected until ~21:00.
  
  with awk program such as '{print "{" (0+substr($1, 9, 2)) "," (0+substr($1, 12, 2)) "," (0+substr($1, 15, 2)) "," $3 "},"}'
  
- to get output of the form:
+ to get output of the form {day,hour,minute,level}:
  
- {8,0,1,1},
+ {8,9,33,134},
  

@@ -29,10 +29,11 @@ namespace OTV0P2BASE
 {
 
 
-// Call regularly with the current ambient light level [0,255].
+// Call regularly (~1/60s) with the current ambient light level [0,254].
 // Returns true if probable occupancy is detected.
 // Does not block.
 // Not thread-/ISR- safe.
+//   * newLightLevel in range [0,254]
 bool SensorAmbientLightOccupancyDetectorSimple::update(const uint8_t newLightLevel)
     {
     const bool result = (newLightLevel > prevLightLevel) && // Needs further constraints.
