@@ -30,6 +30,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 TEST(SanityTest,SelfTest)
 {
     EXPECT_EQ(42, 42);
+    fputs("Built at: " __DATE__ " " __TIME__, stderr);
 }
 
 //// Minimally test a real library function.
