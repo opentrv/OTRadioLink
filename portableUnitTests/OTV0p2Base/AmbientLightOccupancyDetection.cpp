@@ -115,14 +115,14 @@ TEST(AmbientLightOccupancyDetection,simpleDataSampleRun)
 	simpleDataSampleRun(trivialSample1, &ds1);
 }
 
-// "5s" 2016/10/08 test set with tough occupancy to detect in the evening up to 21:00Z and in the morning from 06:37Z.
-static const ALDataSample sample5sHard[] =
+// "3l" 2016/10/08 test set with tough occupancy to detect in the evening up to 21:00Z and in the morning from 07:09Z then  06:37Z.
+static const ALDataSample sample3lHard[] =
     {
 {8,0,1,1, 1}, // Definitely not occupied.
 {8,0,17,1, 1}, // Definitely not occupied.
 //...
 {8,6,21,1},
-{8,6,29,2},
+{8,6,29,2, 1}, // Not enough rise to be occupation.
 {8,6,33,2},
 {8,6,45,2},
 {8,6,57,2},
@@ -131,8 +131,8 @@ static const ALDataSample sample5sHard[] =
 {8,7,21,38},
 {8,7,33,84},
 {8,7,37,95},
-{8,7,49,97},
-{8,7,57,93},
+{8,7,49,97, 1}, // Not enough rise to be occupation.
+{8,7,57,93, 1}, // Fall is not indicative of occupation.
 {8,8,5,98},
 {8,8,13,98},
 {8,8,17,93},
@@ -204,12 +204,12 @@ static const ALDataSample sample5sHard[] =
 {8,17,5,20},
 {8,17,13,7},
 {8,17,25,4},
-{8,17,37,44, 2}, // Occupied.
+{8,17,37,44, 2}, // Occupied (light on?).
     {8,17,38,44},
 {8,17,49,42},
 {8,18,1,42},
 {8,18,9,40},
-{8,18,13,42},
+{8,18,13,42, 1}, // Not enough rise to be occupation.
 {8,18,25,40},
 {8,18,37,40},
 {8,18,41,42},
@@ -252,8 +252,8 @@ static const ALDataSample sample5sHard[] =
     };
 
 // Test with real data set.
-TEST(AmbientLightOccupancyDetection,sample5sHard)
+TEST(AmbientLightOccupancyDetection,sample3lHard)
 {
 	OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds1;
-	simpleDataSampleRun(sample5sHard, &ds1);
+	simpleDataSampleRun(sample3lHard, &ds1);
 }

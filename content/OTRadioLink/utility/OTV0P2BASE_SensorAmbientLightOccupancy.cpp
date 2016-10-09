@@ -35,7 +35,8 @@ namespace OTV0P2BASE
 // Not thread-/ISR- safe.
 bool SensorAmbientLightOccupancyDetectorSimple::update(const uint8_t newLightLevel)
     {
-    const bool result = newLightLevel > prevLightLevel; // FIXME: needs further conditions.
+    const bool result = (newLightLevel > prevLightLevel) && // Needs further constraints.
+        (((int)newLightLevel) > (min_delta + (int)prevLightLevel));
 	prevLightLevel = newLightLevel;
     return(result);
 	}

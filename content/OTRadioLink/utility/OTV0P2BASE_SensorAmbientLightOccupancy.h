@@ -85,6 +85,10 @@ class SensorAmbientLightOccupancyDetectorInterface
 #define SensorAmbientLightOccupancyDetectorSimple_DEFINED
 class SensorAmbientLightOccupancyDetectorSimple : public SensorAmbientLightOccupancyDetectorInterface
   {
+  public:
+      // Minimum delta (rise) for occupancy to be detected.
+      static const uint8_t min_delta = 4;
+
   private:
       // Previous ambient light level [0,255]; 0 means dark.
       // Starts at 255 so that no initial light level can imply occupancy.
