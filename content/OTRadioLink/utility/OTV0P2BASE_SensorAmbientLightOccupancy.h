@@ -48,7 +48,7 @@ namespace OTV0P2BASE
 //
 // A light level of 0 indicates dark.
 //
-// A light level of 255 indicates bright illumination.
+// A light level of 254 (or over) indicates bright illumination.
 //
 // Light levels should be monotonic with lux.
 //
@@ -58,7 +58,7 @@ namespace OTV0P2BASE
 class SensorAmbientLightOccupancyDetectorInterface
   {
   public:
-    // Call regularly with the current ambient light level [0,255].
+    // Call regularly with the current ambient light level [0,254].
     // Returns true if probable occupancy is detected.
     // Does not block.
     // Not thread-/ISR- safe.
@@ -90,16 +90,16 @@ class SensorAmbientLightOccupancyDetectorSimple : public SensorAmbientLightOccup
       static const uint8_t epsilon = 8;
 
   private:
-      // Previous ambient light level [0,255]; 0 means dark.
+      // Previous ambient light level [0,254]; 0 means dark.
       // Starts at 255 so that no initial light level can imply occupancy.
       uint8_t prevLightLevel;
 
   public:
       SensorAmbientLightOccupancyDetectorSimple()
-        : prevLightLevel(255)
+        : prevLightLevel(254)
           { }
 
-      // Call regularly (~1/60s) with the current ambient light level [0,255].
+      // Call regularly (~1/60s) with the current ambient light level [0,254].
       // Returns true if probable occupancy is detected.
       // Does not block.
       // Not thread-/ISR- safe.
