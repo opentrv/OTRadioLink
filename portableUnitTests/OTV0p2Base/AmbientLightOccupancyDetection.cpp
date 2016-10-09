@@ -88,7 +88,8 @@ static const ALDataSample trivialSample1[] =
 // or they can be computed from the data supplied (0xff implies no data).
 // Can be supplied with nominal long-term rolling mean levels by hour,
 // or they can be computed from the data supplied (NULL means none supplied, 0xff entry means none for given hour).
-// Uses only the update() call.
+// Uses the update() call for the main simulation.
+// Uses the setTypMinMax() call as the hour rolls; leaves 'sensitive' off by default.
 void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface *const detector,
                          const uint8_t minLevel = 0xff, const uint8_t maxLevel = 0xff,
                          const uint8_t meanByHour[24] = NULL)
@@ -99,8 +100,6 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
     // Compute own values for min, max, etc.
     int minI = 256;
     int maxI = -1;
-    int count = 0;
-    int sum = 0;
     uint8_t byHourMeanI[24];
     int byHourMeanSumI[24]; memset(byHourMeanSumI, 0, sizeof(byHourMeanSumI));
     int byHourMeanCountI[24]; memset(byHourMeanCountI, 0, sizeof(byHourMeanCountI));
@@ -111,8 +110,6 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
             const uint8_t level = dp->L;
             if((int)level < minI) { minI = level; }
             if((int)level > maxI) { maxI = level; }
-            sum += (int)level;
-            ++count;
     		const uint8_t H = (currentMinute % 1440) / 60;
             ASSERT_TRUE(H < 24) << "bad hour";
             byHourMeanSumI[H] += level;
@@ -120,34 +117,49 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
             ++currentMinute;
     	    } while((!(dp+1)->isEnd()) && (currentMinute < (dp+1)->currentMinute()));
         }
-    const int meanI = (sum + (count>>1)) / count;
-    fprintf(stderr, "minI: %d, maxI %d, meanI %d\n", minI, maxI, meanI);
+//    fprintf(stderr, "minI: %d, maxI %d\n", minI, maxI);
     for(int i = 24; --i >= 0; )
         {
         if(0 != byHourMeanCountI[i])
             { byHourMeanI[i] = (uint8_t)((byHourMeanSumI[i] + (byHourMeanCountI[i]>>1)) / byHourMeanCountI[i]); }
         else { byHourMeanI[i] = 0xff; }
         }
-    fprintf(stderr, "mean by hour:");
-    for(int i = 0; i < 24; ++i)
-        {
-        fputc(' ', stderr);
-        if(0xff == byHourMeanI[i]) { fputc('-', stderr); }
-        else { fprintf(stderr, "%d", (int)byHourMeanI[i]); }
-        }
-    fprintf(stderr, "\n");
+//    fprintf(stderr, "mean by hour:");
+//    for(int i = 0; i < 24; ++i)
+//        {
+//        fputc(' ', stderr);
+//        if(0xff == byHourMeanI[i]) { fputc('-', stderr); }
+//        else { fprintf(stderr, "%d", (int)byHourMeanI[i]); }
+//        }
+//    fprintf(stderr, "\n");
+    // Select which params to use.
+    const uint8_t minToUse = (0xff != minLevel) ? minLevel :
+    		((minI < 255) ? (uint8_t)minI : 0xff);
+    const uint8_t maxToUse = (0xff != maxLevel) ? maxLevel :
+    		((maxI >= 0) ? (uint8_t)maxI : 0xff);
     // Run simulation.
+    uint8_t oldH = 0xff;
     for(const ALDataSample *dp = data; !dp->isEnd(); ++dp)
         {
     	long currentMinute = dp->currentMinute();
     	do  {
+    		const uint8_t H = (currentMinute % 1440) / 60;
+    		if(H != oldH)
+    		    {
+    		    // When the hour rolls, set new stats for the detector.
+    		    // Note that implementations be use the end of the hour/period
+    		    // and other times.
+    		    // The detector and caller should aim not to be hugely sensitive to the exact timing,
+    		    // eg by blending prev/current/next periods linearly.
+    		    detector->setTypMinMax(byHourMeanI[H], minToUse, maxToUse, false);
+    		    oldH = H;
+    		    }
             const bool prediction = detector->update(dp->L);
             const uint8_t expected = dp->expected;
             if(0 != expected)
                 {
                 // If a particular outcome was expected, test against it.
                 const bool expectedOccupancy = (expected > 1);
-        		const uint8_t H = (currentMinute % 1440) / 60;
         		const uint8_t M = (currentMinute % 60);
                 EXPECT_EQ(expectedOccupancy, prediction) << " @ " << H << ":" << M << " + " << (currentMinute - dp->currentMinute());
                 }

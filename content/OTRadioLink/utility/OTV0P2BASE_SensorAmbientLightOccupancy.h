@@ -78,8 +78,7 @@ class SensorAmbientLightOccupancyDetectorInterface
     //   * sensitive  if true then be more sensitive to possible occupancy changes, eg to improve comfort.
     // By default does nothing.
     virtual void setTypMinMax(uint8_t meanNowOrFF,
-                      uint8_t recentMinimumOrFF, uint8_t recentMaximumOrFF,
-                      uint8_t longerTermMinimumOrFF = 0xff, uint8_t longerTermMaximumOrFF = 0xff,
+                      uint8_t longTermMinimumOrFF = 0xff, uint8_t longTermMaximumOrFF = 0xff,
                       bool sensitive = true)
       { }
   };
