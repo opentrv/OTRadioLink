@@ -133,7 +133,7 @@ static const ALDataSample sample3lHard[] =
 {8,7,37,95},
 {8,7,49,97, 1}, // Not enough rise to be occupation.
 {8,7,57,93, 1}, // Fall is not indicative of occupation.
-{8,8,5,98},
+{8,8,5,98, 1}, // Sun coming up: not enough rise to indicate occupation.
 {8,8,13,98},
 {8,8,17,93},
 {8,8,25,79},
@@ -247,7 +247,7 @@ static const ALDataSample sample3lHard[] =
 {9,7,25,54},
 {9,7,33,63},
 {9,7,41,73},
-{9,7,45,77},
+{9,7,45,77, 1}, // Sun coming up: not enough rise to indicate occupation.
 { }
     };
 
