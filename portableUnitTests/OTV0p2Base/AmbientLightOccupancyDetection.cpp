@@ -45,3 +45,23 @@ TEST(AmbientLightOccupancyDetection,updateBasics)
     EXPECT_TRUE(ds1.update(255)) << "update from 0 to 255 (max) illumination should signal occupancy";
     EXPECT_FALSE(ds2.update(255)) << "unchanged 255 (max) light level should not imply occupancy";
 }
+
+class ALDataSample
+    {
+    public:
+		// Day/hour/minute and light level and expected result.
+		// An expected result of 0 means no particular result expected from this (anything is acceptable).
+		// An expected result of 1 means occupancy should NOT be reported for this sample.
+		// An expected result of 2+ means occupancy should be reported for this sample.
+	    ALDataSample(uint8_t dayOfMonth, uint8_t hour24, uint8_t min, uint8_t lightLevel, uint8_t expectedResult = 0)
+			{ }
+    };
+
+// Trivial sample, testing initial reaction to start transient.
+static const ALDataSample trivialSample1[] =
+    {
+{ 0, 0, 0, 255, 1 },
+{ 0, 0, 1, 0, 1 },
+{ 0, 0, 5, 0 },
+{ 0, 0, 9, 255, 2 },
+    };
