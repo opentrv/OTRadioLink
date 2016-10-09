@@ -22,3 +22,15 @@ Occupancy expected until ~21:00.
  35.3  33.2  29.7  10.3   2.6  1.4
  
  Should aim to detect opening blinds/curtains in all rooms in morning.
+ 
+ 
+ Parse source data (xx.L.dat) of form:
+ 
+ 2016-10-08T09:33:12Z 96F0CED3B4E690E8 134
+ 
+ with awk program such as '{print "{" (0+substr($1, 9, 2)) "," (0+substr($1, 12, 2)) "," (0+substr($1, 15, 2)) "," $3 "},"}'
+ 
+ to get output of the form:
+ 
+ {8,0,1,1},
+ 
