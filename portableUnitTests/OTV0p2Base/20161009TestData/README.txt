@@ -1,5 +1,6 @@
 Comments on this data set for a little over 24h.
 
+2b hard to detect occupancy at night ~19:XXZ.
 3l hard to detect occupancy all day.
 5s hard to detect occupancy in the evening up to 21:00Z.
 6k generally easy to spot occupancy.

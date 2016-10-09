@@ -90,6 +90,7 @@ static const ALDataSample trivialSample1[] =
 // or they can be computed from the data supplied (NULL means none supplied, 0xff entry means none for given hour).
 // Uses the update() call for the main simulation.
 // Uses the setTypMinMax() call as the hour rolls; leaves 'sensitive' off by default.
+// Will fail if a large amount of the time occupancy is predicted.
 void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface *const detector,
                          const uint8_t minLevel = 0xff, const uint8_t maxLevel = 0xff,
                          const uint8_t meanByHour[24] = NULL)
@@ -97,6 +98,8 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
     ASSERT_TRUE(NULL != data);
     ASSERT_TRUE(NULL != detector);
     ASSERT_FALSE(data->isEnd()) << "do not pass in empty data set";
+    // Count of number of records.
+    int nRecords = 0;
     // Compute own values for min, max, etc.
     int minI = 256;
     int maxI = -1;
@@ -105,6 +108,7 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
     int byHourMeanCountI[24]; memset(byHourMeanCountI, 0, sizeof(byHourMeanCountI));
     for(const ALDataSample *dp = data; !dp->isEnd(); ++dp)
         {
+        ++nRecords;
     	long currentMinute = dp->currentMinute();
     	do  {
             const uint8_t level = dp->L;
@@ -138,6 +142,8 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
     const uint8_t maxToUse = (0xff != maxLevel) ? maxLevel :
     		((maxI >= 0) ? (uint8_t)maxI : 0xff);
     // Run simulation.
+    // Count of number of occupancy signals.
+    int nOccupancyReports = 0;
     uint8_t oldH = 0xff;
     for(const ALDataSample *dp = data; !dp->isEnd(); ++dp)
         {
@@ -158,6 +164,7 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
     		    oldH = H;
     		    }
             const bool prediction = detector->update(dp->L);
+            if(prediction) { ++nOccupancyReports; }
 if(prediction) { fprintf(stderr, "@ %d:%d L = %d\n", H, (int)(currentMinute % 60), dp->L); }
             // Note that for all synthetic ticks the expectation is removed (since there is no level change).
             const uint8_t expected = (currentMinute != dp->currentMinute()) ? 0 : dp->expected;
@@ -171,6 +178,8 @@ if(prediction) { fprintf(stderr, "@ %d:%d L = %d\n", H, (int)(currentMinute % 60
             ++currentMinute;
     	    } while((!(dp+1)->isEnd()) && (currentMinute < (dp+1)->currentMinute()));
         }
+    // Check that there are not huge numbers of (false) positives.
+    ASSERT_TRUE(nOccupancyReports <= (nRecords/2)) << "far too many occupancy indications";
 	}
 
 // Basic test of update() behaviour.
@@ -497,15 +506,215 @@ TEST(AmbientLightOccupancyDetection,sample5sHard)
     simpleDataSampleRun(sample5sHard, &ds1);
 }
 
-//// "2b" 2016/10/08+09 test set with tough occupancy to detect in the evening ~19:00Z to 20:00Z.
-//static const ALDataSample sample2bHard[] =
-//    {
-//    { }
-//    };
-//
-//// Test with real data set.
-//TEST(AmbientLightOccupancyDetection,sample2bHard)
-//{
-//    OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds1;
-//    simpleDataSampleRun(sample2bHard, &ds1);
-//}
+// "2b" 2016/10/08+09 test set with tough occupancy to detect in the evening ~19:00Z to 20:00Z.
+static const ALDataSample sample2bHard[] =
+    {
+{8,0,12,3},
+{8,0,24,3},
+// ...
+{8,7,28,3},
+{8,7,40,180, 2}, // Curtains drawn, OCCUPANCY.
+{8,7,44,179},
+{8,7,52,180},
+{8,8,0,182},
+{8,8,8,183},
+{8,8,20,182},
+{8,8,28,182},
+{8,8,36,183},
+{8,8,48,183},
+{8,8,52,182},
+{8,9,0,182},
+{8,9,4,182},
+{8,9,20,184},
+{8,9,24,183},
+{8,9,32,183},
+{8,9,36,183},
+{8,9,48,183},
+{8,10,4,183},
+{8,10,16,183},
+{8,10,28,182},
+{8,10,32,183},
+{8,10,44,185},
+{8,10,48,186},
+{8,11,0,184},
+{8,11,4,183},
+{8,11,20,184},
+{8,11,24,185},
+{8,11,29,186},
+{8,11,36,185},
+{8,11,44,186},
+{8,11,48,186},
+{8,12,4,186},
+{8,12,16,187},
+{8,12,20,187},
+{8,12,32,184},
+{8,12,36,186},
+{8,12,48,185},
+{8,12,56,185},
+{8,13,4,186},
+{8,13,8,187},
+{8,13,24,186},
+{8,13,28,183},
+{8,13,32,186},
+{8,13,40,120},
+{8,13,44,173},
+{8,13,48,176},
+{8,13,52,178},
+{8,13,56,179},
+{8,14,4,180},
+{8,14,8,182},
+{8,14,12,183},
+{8,14,18,183},
+{8,14,28,185},
+{8,14,32,186},
+{8,14,40,186},
+{8,14,48,185},
+{8,14,52,186},
+{8,15,0,182},
+{8,15,4,181},
+{8,15,12,184},
+{8,15,19,186},
+{8,15,24,182},
+{8,15,32,181},
+{8,15,40,182},
+{8,15,52,182},
+{8,16,0,178},
+{8,16,4,176},
+{8,16,16,181},
+{8,16,20,182},
+{8,16,32,178},
+{8,16,40,176},
+{8,16,48,168},
+{8,16,52,176},
+{8,16,56,154},
+{8,17,5,68},
+{8,17,8,37},
+{8,17,16,30},
+{8,17,20,20},
+{8,17,32,12},
+{8,17,40,5},
+{8,17,44,4},
+{8,17,52,3},
+{8,18,0,3},
+{8,18,12,3},
+{8,18,24,3},
+{8,18,40,3},
+{8,18,52,3},
+{8,19,4,3},
+{8,19,20,3},
+{8,19,32,4},
+{8,19,39,4},
+{8,19,52,4},
+{8,20,0,7},
+{8,20,16,6},
+{8,20,20,10, 2}, // Light on, OCCUPANCY.
+{8,20,28,6},
+{8,20,36,3},
+{8,20,42,3},
+// ...
+{9,7,40,3},
+{9,7,48,3},
+{9,7,52,4},
+{9,8,8,176, 2}, // Curtains drawn, OCCUPANCY.
+{9,8,20,177},
+{9,8,32,177},
+{9,8,44,178},
+{9,8,56,178},
+{9,9,8,179},
+{9,9,16,179},
+{9,9,20,180},
+{9,9,36,180},
+{9,9,48,180},
+{9,9,52,181},
+{9,10,0,181},
+{9,10,4,179},
+{9,10,8,181},
+{9,10,20,182},
+{9,10,24,185},
+{9,10,40,185},
+{9,10,44,184},
+{9,10,52,184},
+{9,11,0,184},
+{9,11,8,185},
+{9,11,12,186},
+{9,11,16,185},
+{9,11,24,183},
+{9,11,28,183},
+{9,11,40,186},
+{9,11,44,186},
+{9,12,4,184},
+{9,12,16,184},
+{9,12,24,186},
+{9,12,32,187},
+{9,12,40,186},
+{9,12,44,187},
+{9,12,56,187},
+{9,13,8,186},
+{9,13,12,185},
+{9,13,13,185},
+{9,13,8,186},
+{9,13,12,185},
+{9,13,13,185},
+{9,13,24,187},
+{9,13,36,188},
+{9,13,48,184},
+{9,13,52,186},
+{9,13,56,185},
+{9,14,4,185},
+{9,14,12,184},
+{9,14,16,186},
+{9,14,28,185},
+{9,14,36,187},
+{9,14,40,186},
+{9,14,52,184},
+{9,15,0,183},
+{9,15,4,185},
+{9,15,8,183},
+{9,15,16,176},
+{9,15,24,164},
+{9,15,28,178},
+{9,15,32,181},
+{9,15,40,177},
+{9,15,44,128},
+{9,15,48,107},
+{9,15,56,98},
+{9,16,0,96},
+{9,16,4,68},
+{9,16,12,63},
+{9,16,20,81},
+{9,16,33,95},
+{9,16,44,97},
+{9,16,52,73},
+{9,16,56,56},
+{9,17,0,46},
+{9,17,4,40},
+{9,17,12,32},
+{9,17,16,25},
+{9,17,32,7},
+{9,17,36,5},
+{9,17,41,4},
+{9,17,48,3},
+{9,18,0,3},
+{9,18,12,3},
+{9,18,28,3},
+{9,18,40,3},
+{9,18,56,3},
+{9,19,8,10, 2}, // Light on, OCCUPANCY.
+{9,19,16,9},
+{9,19,28,10},
+{9,19,44,6},
+{9,19,48,11},
+{9,19,56,8},
+{9,20,4,8},
+{9,20,8,3, 1}, // Light off, no qctive occupancy.
+{9,20,20,3},
+{9,20,36,3},
+    { }
+    };
+
+// Test with real data set.
+TEST(AmbientLightOccupancyDetection,sample2bHard)
+{
+    OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds1;
+    simpleDataSampleRun(sample2bHard, &ds1);
+}
