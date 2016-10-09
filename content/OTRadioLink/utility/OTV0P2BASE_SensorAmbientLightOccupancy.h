@@ -65,8 +65,8 @@ class SensorAmbientLightOccupancyDetectorInterface
     // Call regularly (~1/60s) with the current ambient light level [0,254].
     // Returns true if probable occupancy is detected.
     // Does not block.
-    // Not thread-/ISR- safe.
     //   * newLightLevel in range [0,254]
+    // Not thread-/ISR- safe.
     virtual bool update(uint8_t newLightLevel) = 0;
 
     // Set mean, min and max ambient light levels from recent stats, to allow auto adjustment to room; ~0/0xff means not known.
@@ -77,6 +77,7 @@ class SensorAmbientLightOccupancyDetectorInterface
     //   * meanNowOrFF  typical/mean light level around this time each 24h; 0xff if not known.
     //   * sensitive  if true then be more sensitive to possible occupancy changes, eg to improve comfort.
     // By default does nothing.
+    // Not thread-/ISR- safe.
     virtual void setTypMinMax(uint8_t meanNowOrFF,
                       uint8_t longTermMinimumOrFF = 0xff, uint8_t longTermMaximumOrFF = 0xff,
                       bool sensitive = true)
@@ -112,8 +113,8 @@ class SensorAmbientLightOccupancyDetectorSimple : public SensorAmbientLightOccup
       // Call regularly (~1/60s) with the current ambient light level [0,254].
       // Returns true if probable occupancy is detected.
       // Does not block.
-      // Not thread-/ISR- safe.
       //   * newLightLevel in range [0,254]
+      // Not thread-/ISR- safe.
       virtual bool update(uint8_t newLightLevel);
 
       // Set mean, min and max ambient light levels from recent stats, to allow auto adjustment to room; ~0/0xff means not known.
@@ -123,6 +124,7 @@ class SensorAmbientLightOccupancyDetectorSimple : public SensorAmbientLightOccup
       // Call regularly, roughly hourly, to drive other internal time-dependent adaptation.
       //   * meanNowOrFF  typical/mean light level around this time each 24h; 0xff if not known.
       //   * sensitive  if true then be more sensitive to possible occupancy changes, eg to improve comfort.
+      // Not thread-/ISR- safe.
       virtual void setTypMinMax(uint8_t meanNowOrFF,
                         uint8_t longTermMinimumOrFF = 0xff, uint8_t longTermMaximumOrFF = 0xff,
                         bool sensitive = true);

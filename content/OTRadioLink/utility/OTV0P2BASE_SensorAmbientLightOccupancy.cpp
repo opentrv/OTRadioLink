@@ -32,12 +32,38 @@ namespace OTV0P2BASE
 // Call regularly (~1/60s) with the current ambient light level [0,254].
 // Returns true if probable occupancy is detected.
 // Does not block.
-// Not thread-/ISR- safe.
 //   * newLightLevel in range [0,254]
+// Not thread-/ISR- safe.
 bool SensorAmbientLightOccupancyDetectorSimple::update(const uint8_t newLightLevel)
     {
-    const bool result = (newLightLevel > prevLightLevel) && // Needs further constraints.
-        (((int)newLightLevel) > (epsilon + (int)prevLightLevel));
+    bool result = false;
+    // Only predict occupancy if no reason can be found NOT to.
+    do  {
+        // Minimum/first condition for occupancy is rising light levels.
+        if(newLightLevel <= prevLightLevel) { break; }
+        const uint8_t rise = newLightLevel - prevLightLevel;
+        // Any rise must be more than the fixed floor/noise threshold epsilon.
+        if(rise < epsilon) { break; }
+
+        // Any rise must be a decent fraction of min to mean (or min to max) distance.
+        // Amount to right-shift mean (-min) and max (-min) to generate thresholds.
+        static const int meanShift = 2;
+        static const int maxShift = meanShift + 1;
+        // Assume minimum of 0 if none set.
+        const uint8_t minToUse = (0xff == longTermMinimumOrFF) ? 0 : longTermMinimumOrFF;
+        if((0xff != meanNowOrFF) && (meanNowOrFF >= minToUse))
+			{
+            const uint8_t meanRiseThreshold = (meanNowOrFF - minToUse) >> meanShift;
+            if(rise <= meanRiseThreshold) { break; }
+			}
+        else if((0xff != longTermMaximumOrFF) && (longTermMaximumOrFF >= minToUse))
+            {
+            const uint8_t maxRiseThreshold = (longTermMaximumOrFF - minToUse) >> maxShift;
+            if(rise <= maxRiseThreshold) { break; }
+            }
+
+        result = true;
+        } while(false);
 	prevLightLevel = newLightLevel;
     return(result);
 	}
@@ -49,6 +75,7 @@ bool SensorAmbientLightOccupancyDetectorSimple::update(const uint8_t newLightLev
 // Call regularly, roughly hourly, to drive other internal time-dependent adaptation.
 //   * meanNowOrFF  typical/mean light level around this time each 24h; 0xff if not known.
 //   * sensitive  if true then be more sensitive to possible occupancy changes, eg to improve comfort.
+// Not thread-/ISR- safe.
 void SensorAmbientLightOccupancyDetectorSimple::setTypMinMax(const uint8_t meanNowOrFF,
                   const uint8_t longTermMinimumOrFF, const uint8_t longTermMaximumOrFF,
                   const bool sensitive)

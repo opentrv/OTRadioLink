@@ -151,10 +151,12 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
     		    // and other times.
     		    // The detector and caller should aim not to be hugely sensitive to the exact timing,
     		    // eg by blending prev/current/next periods linearly.
+fprintf(stderr, "mean = %d\n", byHourMeanI[H]);
     		    detector->setTypMinMax(byHourMeanI[H], minToUse, maxToUse, false);
     		    oldH = H;
     		    }
             const bool prediction = detector->update(dp->L);
+if(prediction) { fprintf(stderr, "@ %d:%d L = %d\n", H, (int)(currentMinute % 60), dp->L); }
             const uint8_t expected = dp->expected;
             if(0 != expected)
                 {
@@ -204,19 +206,19 @@ static const ALDataSample sample3lHard[] =
 {8,8,57,103},
 {8,9,5,104},
 {8,9,21,138},
-{8,9,29,132},
-{8,9,33,134},
-{8,9,45,121},
-{8,9,53,125},
-{8,10,5,140},
-{8,10,9,114},
-{8,10,17,121},
-{8,10,21,126},
-{8,10,25,114},
-{8,10,29,107},
+{8,9,29,132, 1}, // Sun coming up; not a sign of occupancy.
+{8,9,33,134, 1}, // Sun coming up; not a sign of occupancy.
+{8,9,45,121, 1}, // Sun coming up; not a sign of occupancy.
+{8,9,53,125, 1}, // Sun coming up; not a sign of occupancy.
+{8,10,5,140, 1}, // Sun coming up; not a sign of occupancy.
+{8,10,9,114, 1}, // Sun coming up; not a sign of occupancy.
+{8,10,17,121, 1}, // Sun coming up; not a sign of occupancy.
+{8,10,21,126, 1}, // Sun coming up; not a sign of occupancy.
+{8,10,25,114, 1}, // Sun coming up; not a sign of occupancy.
+{8,10,29,107, 1}, // Sun coming up; not a sign of occupancy.
 {8,10,41,169},
-{8,10,49,177},
-{8,10,57,126},
+{8,10,49,177, 1}, // Sun coming up; not a sign of occupancy.
+{8,10,57,126, 1}, // Sun coming up; not a sign of occupancy.
 {8,11,1,117},
 {8,11,5,114},
 {8,11,13,111},
@@ -303,10 +305,10 @@ static const ALDataSample sample3lHard[] =
 {9,6,45,32},
 {9,6,53,31},
 {9,7,5,30},
-{9,7,17,41},
+{9,7,17,41, 1}, // Sun coming up; not a sign of occupancy.
 {9,7,25,54},
-{9,7,33,63},
-{9,7,41,73},
+{9,7,33,63, 1}, // Sun coming up; not a sign of occupancy.
+{9,7,41,73, 1}, // Sun coming up; not a sign of occupancy.
 {9,7,45,77, 1}, // Sun coming up: not enough rise to indicate occupation.
 { }
     };
