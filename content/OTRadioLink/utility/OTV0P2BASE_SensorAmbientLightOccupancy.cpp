@@ -42,5 +42,22 @@ bool SensorAmbientLightOccupancyDetectorSimple::update(const uint8_t newLightLev
     return(result);
 	}
 
+// Set mean, min and max ambient light levels from recent stats, to allow auto adjustment to room; ~0/0xff means not known.
+// Mean value is for the current time of day.
+// Short term stats are typically over the last day,
+// longer term typically over the last week or so (eg rolling exponential decays).
+// Call regularly, roughly hourly, to drive other internal time-dependent adaptation.
+//   * meanNowOrFF  typical/mean light level around this time each 24h; 0xff if not known.
+//   * sensitive  if true then be more sensitive to possible occupancy changes, eg to improve comfort.
+void SensorAmbientLightOccupancyDetectorSimple::setTypMinMax(const uint8_t meanNowOrFF,
+                  const uint8_t longTermMinimumOrFF, const uint8_t longTermMaximumOrFF,
+                  const bool sensitive)
+    {
+    this->meanNowOrFF = meanNowOrFF;
+    this->longTermMinimumOrFF = longTermMinimumOrFF;
+    this->longTermMaximumOrFF = longTermMaximumOrFF;
+    this->sensitive = sensitive;
+    }
+
 
 }

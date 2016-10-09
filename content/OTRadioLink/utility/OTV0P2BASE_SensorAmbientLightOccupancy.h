@@ -74,7 +74,7 @@ class SensorAmbientLightOccupancyDetectorInterface
     // Short term stats are typically over the last day,
     // longer term typically over the last week or so (eg rolling exponential decays).
     // Call regularly, roughly hourly, to drive other internal time-dependent adaptation.
-    //   * meanNowOrFF  typical/mean light level around this time; 0xff if not known.
+    //   * meanNowOrFF  typical/mean light level around this time each 24h; 0xff if not known.
     //   * sensitive  if true then be more sensitive to possible occupancy changes, eg to improve comfort.
     // By default does nothing.
     virtual void setTypMinMax(uint8_t meanNowOrFF,
@@ -94,12 +94,19 @@ class SensorAmbientLightOccupancyDetectorSimple : public SensorAmbientLightOccup
 
   private:
       // Previous ambient light level [0,254]; 0 means dark.
-      // Starts at 255 so that no initial light level can imply occupancy.
+      // Starts at max so that no initial light level can imply occupancy.
       uint8_t prevLightLevel;
+
+      // Parameters from setTypMinMax().
+      uint8_t meanNowOrFF;
+	  uint8_t longTermMinimumOrFF = 0xff;
+	  uint8_t longTermMaximumOrFF = 0xff;
+	  bool sensitive;
 
   public:
       SensorAmbientLightOccupancyDetectorSimple()
-        : prevLightLevel(254)
+        : prevLightLevel(254),
+		  meanNowOrFF(0xff), longTermMinimumOrFF(0xff), longTermMaximumOrFF(0xff), sensitive(false)
           { }
 
       // Call regularly (~1/60s) with the current ambient light level [0,254].
@@ -108,6 +115,17 @@ class SensorAmbientLightOccupancyDetectorSimple : public SensorAmbientLightOccup
       // Not thread-/ISR- safe.
       //   * newLightLevel in range [0,254]
       virtual bool update(uint8_t newLightLevel);
+
+      // Set mean, min and max ambient light levels from recent stats, to allow auto adjustment to room; ~0/0xff means not known.
+      // Mean value is for the current time of day.
+      // Short term stats are typically over the last day,
+      // longer term typically over the last week or so (eg rolling exponential decays).
+      // Call regularly, roughly hourly, to drive other internal time-dependent adaptation.
+      //   * meanNowOrFF  typical/mean light level around this time each 24h; 0xff if not known.
+      //   * sensitive  if true then be more sensitive to possible occupancy changes, eg to improve comfort.
+      virtual void setTypMinMax(uint8_t meanNowOrFF,
+                        uint8_t longTermMinimumOrFF = 0xff, uint8_t longTermMaximumOrFF = 0xff,
+                        bool sensitive = true);
   };
 
 
