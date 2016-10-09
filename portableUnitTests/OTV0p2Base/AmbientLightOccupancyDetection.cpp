@@ -72,10 +72,10 @@ class ALDataSample
 // Trivial sample, testing initial reaction to start transient.
 static const ALDataSample trivialSample1[] =
     {
-{ 0, 0, 0, 255, 1 },
-{ 0, 0, 1, 0, 1 },
-{ 0, 0, 5, 0 },
-{ 0, 0, 9, 255, 2 },
+{ 0, 0, 0, 254, 1 }, // Should NOT predict occupancy on first tick.
+{ 0, 0, 1, 0, 1 }, // Should NOT predict occupancy on falling level.
+{ 0, 0, 5, 0 }, // Should NOT predict occupancy on falling level.
+{ 0, 0, 9, 254, 2 }, // Should predict occupancy on level rising to (near) max.
 { }
     };
 
@@ -89,8 +89,19 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
     ASSERT_FALSE(data->isEnd()) << "do not pass in empty data set";
     for(const ALDataSample *dp = data; !dp->isEnd(); ++dp)
         {
-        const long mins = dp->currentMinute();
-        fprintf(stderr, "Mins: %ld\n", mins);
+    	long currentMinute = dp->currentMinute();
+    	do  {
+            fprintf(stderr, "Mins: %ld\n", currentMinute);
+            const bool prediction = detector->update(dp->L);
+            const uint8_t expected = dp->expected;
+            if(0 != expected)
+                {
+                // If a particular outcome was expected, test against it.
+                const bool expectedOccupancy = (expected > 1);
+                EXPECT_EQ(expectedOccupancy, prediction);
+                }
+            ++currentMinute;
+    	    } while((!(dp+1)->isEnd()) && (currentMinute < (dp+1)->currentMinute()));
         }
 	}
 
