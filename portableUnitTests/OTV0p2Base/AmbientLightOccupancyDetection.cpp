@@ -96,6 +96,26 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
     ASSERT_TRUE(NULL != data);
     ASSERT_TRUE(NULL != detector);
     ASSERT_FALSE(data->isEnd()) << "do not pass in empty data set";
+    // Compute own values for min, max, etc.
+    int minI = 256;
+    int maxI = -1;
+    int count = 0;
+    int sum = 0;
+    for(const ALDataSample *dp = data; !dp->isEnd(); ++dp)
+        {
+    	long currentMinute = dp->currentMinute();
+    	do  {
+            const uint8_t level = dp->L;
+            if((int)level < minI) { minI = level; }
+            if((int)level > maxI) { maxI = level; }
+            sum += (int)level;
+            ++count;
+            ++currentMinute;
+    	    } while((!(dp+1)->isEnd()) && (currentMinute < (dp+1)->currentMinute()));
+        }
+    const int meanI = (sum + (count>>1)) / count;
+    fprintf(stderr, "minI: %d, maxI %d, meanI %d\n", minI, maxI, meanI);
+    // Run simulation.
     for(const ALDataSample *dp = data; !dp->isEnd(); ++dp)
         {
     	long currentMinute = dp->currentMinute();
@@ -260,5 +280,5 @@ static const ALDataSample sample3lHard[] =
 TEST(AmbientLightOccupancyDetection,sample3lHard)
 {
 	OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds1;
-	simpleDataSampleRun(sample3lHard, &ds1);
+	simpleDataSampleRun(sample3lHard, &ds1, 1, 182, NULL);
 }
