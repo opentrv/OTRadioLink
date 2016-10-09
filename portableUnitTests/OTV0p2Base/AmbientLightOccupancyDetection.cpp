@@ -122,7 +122,7 @@ static const ALDataSample sample3lHard[] =
 {8,0,17,1, 1}, // Definitely not occupied.
 //...
 {8,6,21,1},
-{8,6,29,2, 1}, // Not enough rise to be occupation.
+{8,6,29,2, 1}, // Not enough rise to indicate occupation.
 {8,6,33,2},
 {8,6,45,2},
 {8,6,57,2},
@@ -236,7 +236,7 @@ static const ALDataSample sample3lHard[] =
 // ...
 {9,5,57,1, 1}, // Definitely not occupied.
 {9,6,13,1, 1}, // Definitely not occupied.
-{9,6,21,2},
+{9,6,21,2, 1}, // Not enough rise to indicate occupation.
 {9,6,33,2},
 {9,6,37,24, 2}, // Curtains drawn: occupied.
     {9,6,38,24},
