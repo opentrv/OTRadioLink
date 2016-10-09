@@ -152,7 +152,9 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
     		    // The detector and caller should aim not to be hugely sensitive to the exact timing,
     		    // eg by blending prev/current/next periods linearly.
 //fprintf(stderr, "mean = %d\n", byHourMeanI[H]);
-    		    detector->setTypMinMax(byHourMeanI[H], minToUse, maxToUse, false);
+                const bool sensitive = false;
+    		    detector->setTypMinMax(byHourMeanI[H], minToUse, maxToUse, sensitive);
+    		    ASSERT_EQ(sensitive, detector->isSensitive());
     		    oldH = H;
     		    }
             const bool prediction = detector->update(dp->L);

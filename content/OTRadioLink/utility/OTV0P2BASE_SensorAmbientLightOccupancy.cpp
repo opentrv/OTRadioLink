@@ -47,8 +47,7 @@ bool SensorAmbientLightOccupancyDetectorSimple::update(const uint8_t newLightLev
 
         // Any rise must be a decent fraction of min to mean (or min to max) distance.
         // Amount to right-shift mean (-min) and max (-min) to generate thresholds.
-        static const int meanShift = sensitive ? 2 : 1;
-        static const int maxShift = meanShift + 1;
+        const uint8_t meanShift = sensitive ? 1 : 0;
         // Assume minimum of 0 if none set.
         const uint8_t minToUse = (0xff == longTermMinimumOrFF) ? 0 : longTermMinimumOrFF;
         if((0xff != meanNowOrFF) && (meanNowOrFF >= minToUse))
@@ -56,11 +55,12 @@ bool SensorAmbientLightOccupancyDetectorSimple::update(const uint8_t newLightLev
             const uint8_t meanRiseThreshold = (meanNowOrFF - minToUse) >> meanShift;
             if(rise <= meanRiseThreshold) { break; }
 			}
-        else if((0xff != longTermMaximumOrFF) && (longTermMaximumOrFF >= minToUse))
-            {
-            const uint8_t maxRiseThreshold = (longTermMaximumOrFF - minToUse) >> maxShift;
-            if(rise <= maxRiseThreshold) { break; }
-            }
+//        else if((0xff != longTermMaximumOrFF) && (longTermMaximumOrFF >= minToUse))
+//            {
+//            const int maxSh÷ift = meanShift + 1;
+//            const uint8_t maxRiseThreshold = (longTermMaximumOrFF - minToUse) >> maxShift;
+//            if(rise <= maxRiseThreshold) { break; }
+//            }
 
         result = true;
         } while(false);
@@ -68,23 +68,23 @@ bool SensorAmbientLightOccupancyDetectorSimple::update(const uint8_t newLightLev
     return(result);
 	}
 
-// Set mean, min and max ambient light levels from recent stats, to allow auto adjustment to room; ~0/0xff means not known.
-// Mean value is for the current time of day.
-// Short term stats are typically over the last day,
-// longer term typically over the last week or so (eg rolling exponential decays).
-// Call regularly, roughly hourly, to drive other internal time-dependent adaptation.
-//   * meanNowOrFF  typical/mean light level around this time each 24h; 0xff if not known.
-//   * sensitive  if true then be more sensitive to possible occupancy changes, eg to improve comfort.
-// Not thread-/ISR- safe.
-void SensorAmbientLightOccupancyDetectorSimple::setTypMinMax(const uint8_t meanNowOrFF,
-                  const uint8_t longTermMinimumOrFF, const uint8_t longTermMaximumOrFF,
-                  const bool sensitive)
-    {
-    this->meanNowOrFF = meanNowOrFF;
-    this->longTermMinimumOrFF = longTermMinimumOrFF;
-    this->longTermMaximumOrFF = longTermMaximumOrFF;
-    this->sensitive = sensitive;
-    }
+//// Set mean, min and max ambient light levels from recent stats, to allow auto adjustment to room; ~0/0xff means not known.
+//// Mean value is for the current time of day.
+//// Short term stats are typically over the last day,
+//// longer term typically over the last week or so (eg rolling exponential decays).
+//// Call regularly, roughly hourly, to drive other internal time-dependent adaptation.
+////   * meanNowOrFF  typical/mean light level around this time each 24h; 0xff if not known.
+////   * sensitive  if true then be more sensitive to possible occupancy changes, eg to improve comfort.
+//// Not thread-/ISR- safe.
+//void SensorAmbientLightOccupancyDetectorSimple::setTypMinMax(const uint8_t meanNowOrFF,
+//                  const uint8_t longTermMinimumOrFF, const uint8_t longTermMaximumOrFF,
+//                  const bool sensitive)
+//    {
+//    this->meanNowOrFF = meanNowOrFF;
+//    this->longTermMinimumOrFF = longTermMinimumOrFF;
+//    this->longTermMaximumOrFF = longTermMaximumOrFF;
+//    this->sensitive = sensitive;
+//    }
 
 
 }

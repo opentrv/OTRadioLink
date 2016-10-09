@@ -80,8 +80,11 @@ class SensorAmbientLightOccupancyDetectorInterface
     // Not thread-/ISR- safe.
     virtual void setTypMinMax(uint8_t meanNowOrFF,
                       uint8_t longTermMinimumOrFF = 0xff, uint8_t longTermMaximumOrFF = 0xff,
-                      bool sensitive = true)
-      { }
+                      bool sensitive = false) { }
+
+    // True if the detector is in 'sensitive' mode.
+    // Defaults to false.
+    virtual bool isSensitive() { return(false); }
   };
 
 
@@ -100,8 +103,8 @@ class SensorAmbientLightOccupancyDetectorSimple : public SensorAmbientLightOccup
 
       // Parameters from setTypMinMax().
       uint8_t meanNowOrFF;
-	  uint8_t longTermMinimumOrFF = 0xff;
-	  uint8_t longTermMaximumOrFF = 0xff;
+	  uint8_t longTermMinimumOrFF;
+	  uint8_t longTermMaximumOrFF;
 	  bool sensitive;
 
   public:
@@ -127,7 +130,16 @@ class SensorAmbientLightOccupancyDetectorSimple : public SensorAmbientLightOccup
       // Not thread-/ISR- safe.
       virtual void setTypMinMax(uint8_t meanNowOrFF,
                         uint8_t longTermMinimumOrFF = 0xff, uint8_t longTermMaximumOrFF = 0xff,
-                        bool sensitive = true);
+                        bool sensitive = false)
+          {
+          this->meanNowOrFF = meanNowOrFF;
+          this->longTermMinimumOrFF = longTermMinimumOrFF;
+          this->longTermMaximumOrFF = longTermMaximumOrFF;
+          this->sensitive = sensitive;
+          }
+
+      // True if the detector is in 'sensitive' mode.
+      virtual bool isSensitive() { return(sensitive); }
   };
 
 
