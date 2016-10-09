@@ -80,6 +80,9 @@ static const ALDataSample trivialSample1[] =
     };
 
 // Do a simple run over the supplied data, one call per simulated minute until the terminating record is found.
+// Must be supplied in ascending order with a terminating (empty) entry.
+// Repeated rows with the same light value and expected result can be omitted
+// as they will be synthesised by this routine for each virtual minute until the next supplied item.
 // Ensures that any required predictions/detections in either direction are met.
 // Uses only the update() call.
 void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface *const detector)
