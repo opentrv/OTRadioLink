@@ -87,7 +87,7 @@ class SensorAmbientLightOccupancyDetectorSimple : public SensorAmbientLightOccup
   {
   public:
       // Minimum delta (rise) for occupancy to be detected; a simple noise floor.
-      static const uint8_t epsilon = 4;
+      static const uint8_t epsilon = 8;
 
   private:
       // Previous ambient light level [0,255]; 0 means dark.
