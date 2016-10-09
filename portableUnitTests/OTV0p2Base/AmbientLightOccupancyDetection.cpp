@@ -49,12 +49,24 @@ TEST(AmbientLightOccupancyDetection,updateBasics)
 class ALDataSample
     {
     public:
+        const uint8_t d, H, M, L, expected;
+
 		// Day/hour/minute and light level and expected result.
 		// An expected result of 0 means no particular result expected from this (anything is acceptable).
 		// An expected result of 1 means occupancy should NOT be reported for this sample.
 		// An expected result of 2+ means occupancy should be reported for this sample.
-	    ALDataSample(uint8_t dayOfMonth, uint8_t hour24, uint8_t min, uint8_t lightLevel, uint8_t expectedResult = 0)
+	    ALDataSample(uint8_t dayOfMonth, uint8_t hour24, uint8_t minute, uint8_t lightLevel, uint8_t expectedResult = 0)
+			: d(dayOfMonth), H(hour24), M(minute), L(lightLevel), expected(expectedResult)
 			{ }
+
+        // Create/mark a terminating entry; all input values invalid.
+	    ALDataSample() : d(255), H(255), M(255), L(255), expected(0) { }
+
+        // Compute current minute for this record.
+        long currentMinute() const { return((((d * 24L) + H) * 60L) + M); }
+
+	    // True for empty/termination data record.
+	    bool isEnd() const { return(d > 31); }
     };
 
 // Trivial sample, testing initial reaction to start transient.
@@ -64,4 +76,27 @@ static const ALDataSample trivialSample1[] =
 { 0, 0, 1, 0, 1 },
 { 0, 0, 5, 0 },
 { 0, 0, 9, 255, 2 },
+{ }
     };
+
+// Do a simple run over the supplied data, one call per simulated minute until the terminating record is found.
+// Ensures that any required predictions/detections in either direction are met.
+// Uses only the update() call.
+void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface *const detector)
+    {
+    ASSERT_TRUE(NULL != data);
+    ASSERT_TRUE(NULL != detector);
+    ASSERT_FALSE(data->isEnd()) << "do not pass in empty data set";
+    for(const ALDataSample *dp = data; !dp->isEnd(); ++dp)
+        {
+        const long mins = dp->currentMinute();
+        printf("Mins: %ld\n", mins);
+        }
+	}
+
+// Basic test of update() behaviour.
+TEST(AmbientLightOccupancyDetection,simpleDataSampleRun)
+{
+	OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds1;
+	simpleDataSampleRun(trivialSample1, &ds1);
+}
