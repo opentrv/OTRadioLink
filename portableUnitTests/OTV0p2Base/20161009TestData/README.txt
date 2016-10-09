@@ -24,6 +24,10 @@ Occupancy expected until ~21:00.
  Should aim to detect opening blinds/curtains in all rooms in morning.
  
  
+ Data extracted from general logs with command such as:
+ 
+     cat .../2016100{8,9}.json | OpenTRV/scripts/filterJSON L 96F0CED3B4E690E8 > ~/tmp/3l.L.dat
+ 
  Parse source data (xx.L.dat) of form:
  
  2016-10-08T09:33:12Z 96F0CED3B4E690E8 134
