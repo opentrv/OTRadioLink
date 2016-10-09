@@ -126,7 +126,7 @@ static const ALDataSample sample3lHard[] =
 {8,6,33,2},
 {8,6,45,2},
 {8,6,57,2},
-{8,7,9,14},  // Occupied: curtains drawn?
+{8,7,9,14},  // OCCUPIED: curtains drawn?
 {8,7,17,35},
 {8,7,21,38},
 {8,7,33,84},
@@ -204,7 +204,7 @@ static const ALDataSample sample3lHard[] =
 {8,17,5,20},
 {8,17,13,7},
 {8,17,25,4},
-{8,17,37,44, 2}, // Occupied (light on?).
+{8,17,37,44, 2}, // OCCUPIED (light on?).
     {8,17,38,44},
 {8,17,49,42},
 {8,18,1,42},
