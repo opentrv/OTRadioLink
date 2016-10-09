@@ -47,7 +47,7 @@ bool SensorAmbientLightOccupancyDetectorSimple::update(const uint8_t newLightLev
 
         // Any rise must be a decent fraction of min to mean (or min to max) distance.
         // Amount to right-shift mean (-min) and max (-min) to generate thresholds.
-        static const int meanShift = 2;
+        static const int meanShift = sensitive ? 2 : 1;
         static const int maxShift = meanShift + 1;
         // Assume minimum of 0 if none set.
         const uint8_t minToUse = (0xff == longTermMinimumOrFF) ? 0 : longTermMinimumOrFF;

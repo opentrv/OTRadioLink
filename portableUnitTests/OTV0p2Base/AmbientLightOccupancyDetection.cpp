@@ -151,19 +151,20 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
     		    // and other times.
     		    // The detector and caller should aim not to be hugely sensitive to the exact timing,
     		    // eg by blending prev/current/next periods linearly.
-fprintf(stderr, "mean = %d\n", byHourMeanI[H]);
+//fprintf(stderr, "mean = %d\n", byHourMeanI[H]);
     		    detector->setTypMinMax(byHourMeanI[H], minToUse, maxToUse, false);
     		    oldH = H;
     		    }
             const bool prediction = detector->update(dp->L);
 if(prediction) { fprintf(stderr, "@ %d:%d L = %d\n", H, (int)(currentMinute % 60), dp->L); }
-            const uint8_t expected = dp->expected;
+            // Note that for all synthetic ticks the expectation is removed (since there is no level change).
+            const uint8_t expected = (currentMinute != dp->currentMinute()) ? 0 : dp->expected;
             if(0 != expected)
                 {
                 // If a particular outcome was expected, test against it.
                 const bool expectedOccupancy = (expected > 1);
         		const uint8_t M = (currentMinute % 60);
-                EXPECT_EQ(expectedOccupancy, prediction) << " @ " << H << ":" << M << " + " << (currentMinute - dp->currentMinute());
+                EXPECT_EQ(expectedOccupancy, prediction) << " @ " << ((int)H) << ":" << ((int)M);
                 }
             ++currentMinute;
     	    } while((!(dp+1)->isEnd()) && (currentMinute < (dp+1)->currentMinute()));
@@ -177,7 +178,7 @@ TEST(AmbientLightOccupancyDetection,simpleDataSampleRun)
 	simpleDataSampleRun(trivialSample1, &ds1);
 }
 
-// "3l" 2016/10/08 test set with tough occupancy to detect in the evening up to 21:00Z and in the morning from 07:09Z then  06:37Z.
+// "3l" 2016/10/08+09 test set with tough occupancy to detect in the evening up to 21:00Z and in the morning from 07:09Z then  06:37Z.
 static const ALDataSample sample3lHard[] =
     {
 {8,0,1,1, 1}, // Definitely not occupied.
@@ -206,19 +207,19 @@ static const ALDataSample sample3lHard[] =
 {8,8,57,103},
 {8,9,5,104},
 {8,9,21,138},
-{8,9,29,132, 1}, // Sun coming up; not a sign of occupancy.
-{8,9,33,134, 1}, // Sun coming up; not a sign of occupancy.
-{8,9,45,121, 1}, // Sun coming up; not a sign of occupancy.
-{8,9,53,125, 1}, // Sun coming up; not a sign of occupancy.
-{8,10,5,140, 1}, // Sun coming up; not a sign of occupancy.
-{8,10,9,114, 1}, // Sun coming up; not a sign of occupancy.
-{8,10,17,121, 1}, // Sun coming up; not a sign of occupancy.
-{8,10,21,126, 1}, // Sun coming up; not a sign of occupancy.
-{8,10,25,114, 1}, // Sun coming up; not a sign of occupancy.
-{8,10,29,107, 1}, // Sun coming up; not a sign of occupancy.
+{8,9,29,132},
+{8,9,33,134},
+{8,9,45,121},
+{8,9,53,125},
+{8,10,5,140},
+{8,10,9,114},
+{8,10,17,121},
+{8,10,21,126},
+{8,10,25,114},
+{8,10,29,107},
 {8,10,41,169},
-{8,10,49,177, 1}, // Sun coming up; not a sign of occupancy.
-{8,10,57,126, 1}, // Sun coming up; not a sign of occupancy.
+{8,10,49,177},
+{8,10,57,126},
 {8,11,1,117},
 {8,11,5,114},
 {8,11,13,111},
@@ -267,7 +268,6 @@ static const ALDataSample sample3lHard[] =
 {8,17,13,7},
 {8,17,25,4},
 {8,17,37,44, 2}, // OCCUPIED (light on?).
-    {8,17,38,44},
 {8,17,49,42},
 {8,18,1,42},
 {8,18,9,40},
@@ -300,12 +300,11 @@ static const ALDataSample sample3lHard[] =
 {9,6,13,1, 1}, // Definitely not occupied.
 {9,6,21,2, 1}, // Not enough rise to indicate occupation.
 {9,6,33,2},
-{9,6,37,24, 2}, // Curtains drawn: occupied.
-    {9,6,38,24},
+{9,6,37,24, 2}, // Curtains drawn: OCCUPIED.
 {9,6,45,32},
 {9,6,53,31},
 {9,7,5,30},
-{9,7,17,41, 1}, // Sun coming up; not a sign of occupancy.
+{9,7,17,41},
 {9,7,25,54},
 {9,7,33,63, 1}, // Sun coming up; not a sign of occupancy.
 {9,7,41,73, 1}, // Sun coming up; not a sign of occupancy.
@@ -319,3 +318,192 @@ TEST(AmbientLightOccupancyDetection,sample3lHard)
 	OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds1;
 	simpleDataSampleRun(sample3lHard, &ds1);
 }
+
+// "5s" 2016/10/08+09 test set with tough occupancy to detect in the evening 21:00Z.
+static const ALDataSample sample5sHard[] =
+    {
+{8,0,3,2, 1}, // Not occupied actively.
+{8,0,19,2, 1}, // Not occupied actively.
+// ...
+{8,5,19,2, 1}, // Not occupied actively.
+{8,5,31,1, 1}, // Not occupied actively.
+{8,5,43,2, 1}, // Not occupied actively.
+// ...
+{8,6,23,4},
+{8,6,35,6},
+{8,6,39,5},
+{8,6,51,6},
+{8,7,3,9},
+{8,7,11,12},
+{8,7,15,13},
+{8,7,19,17},
+{8,7,27,42},
+{8,7,31,68},
+{8,7,43,38},
+{8,7,51,55},
+{8,7,55,63},
+{8,7,59,69},
+{8,8,11,68},
+{8,8,15,74},
+{8,8,27,72},
+{8,8,43,59},
+{8,8,51,38},
+{8,8,55,37},
+{8,8,59,34},
+{8,9,3,43},
+{8,9,19,79},
+{8,9,23,84},
+{8,9,35,92},
+{8,9,39,64},
+{8,9,43,78},
+{8,9,55,68},
+{8,9,59,60},
+{8,10,3,62},
+{8,10,11,41},
+{8,10,15,40},
+{8,10,16,42},
+{8,10,23,40},
+{8,10,27,45},
+{8,10,39,99},
+{8,10,46,146},
+{8,10,51,79},
+{8,10,56,46},
+{8,11,3,54},
+{8,11,7,63},
+{8,11,23,132},
+{8,11,27,125},
+{8,11,39,78},
+{8,11,55,136},
+{8,11,59,132},
+{8,12,7,132},
+{8,12,19,147},
+{8,12,23,114},
+{8,12,35,91},
+{8,12,47,89},
+{8,12,55,85},
+{8,13,3,98},
+{8,13,11,105},
+{8,13,19,106},
+{8,13,31,32},
+{8,13,43,29},
+{8,13,51,45},
+{8,13,55,37},
+{8,13,59,31},
+{8,14,7,42},
+{8,14,27,69},
+{8,14,31,70},
+{8,14,35,63},
+{8,14,55,40},
+{8,15,7,47},
+{8,15,11,48},
+{8,15,19,66},
+{8,15,27,48},
+{8,15,35,46},
+{8,15,43,40},
+{8,15,51,33},
+{8,16,3,24},
+{8,16,11,26},
+{8,16,27,20},
+{8,16,39,14},
+{8,16,54,8},
+{8,16,59,6},
+{8,17,3,5},
+{8,17,19,3},
+{8,17,31,2},
+{8,17,47,2},
+{8,17,59,2},
+{8,18,19,2},
+{8,18,35,2},
+{8,18,47,2},
+{8,18,55,2},
+{8,19,7,2},
+{8,19,19,2},
+{8,19,31,2},
+{8,19,43,2},
+{8,19,55,2},
+{8,20,11,2},
+{8,20,23,2},
+{8,20,35,16, 2}, // Light turned on, OCCUPANCY.
+{8,20,46,16},
+{8,20,55,13},
+{8,20,58,14},
+{8,21,7,3, 1}, // Light turned off, no occupancy.
+{8,21,23,2},
+{8,21,39,2},
+{8,21,55,2},
+{8,22,11,2},
+{8,22,19,2},
+{8,22,31,2},
+{8,22,43,2},
+{8,22,59,2},
+{8,23,15,2},
+{8,23,27,2},
+{8,23,43,2},
+{8,23,59,2},
+{9,0,15,2},
+{9,0,23,2},
+{9,0,39,2},
+{9,0,55,2},
+{9,1,7,2},
+{9,1,15,1},
+{9,1,19,1},
+{9,1,35,1},
+{9,1,51,1},
+{9,2,3,1},
+{9,2,11,1},
+{9,2,23,1},
+{9,2,35,1},
+{9,2,47,1},
+{9,2,59,1},
+{9,3,7,1},
+{9,3,15,1},
+{9,3,31,1},
+{9,3,47,1},
+{9,3,55,1},
+{9,4,11,1},
+{9,4,23,1},
+{9,4,35,1},
+{9,4,43,1},
+{9,4,53,1},
+{9,5,7,1},
+{9,5,19,1},
+{9,5,31,1},
+{9,5,36,1},
+{9,5,47,2},
+{9,5,51,2},
+{9,6,3,3},
+{9,6,15,5},
+{9,6,27,10},
+{9,6,31,12},
+{9,6,35,15},
+{9,6,39,19},
+{9,6,43,26},
+{9,6,59,24},
+{9,7,7,28},
+{9,7,15,66, 1}, // Not yet up and about.
+{9,7,27,181, 2}, // Curtains drawn: OCCUPANCY.
+{9,7,43,181},
+{9,7,51,181},
+{9,7,59,181},
+    { }
+    };
+
+// Test with real data set.
+TEST(AmbientLightOccupancyDetection,sample5sHard)
+{
+    OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds1;
+    simpleDataSampleRun(sample5sHard, &ds1);
+}
+
+//// "2b" 2016/10/08+09 test set with tough occupancy to detect in the evening ~19:00Z to 20:00Z.
+//static const ALDataSample sample2bHard[] =
+//    {
+//    { }
+//    };
+//
+//// Test with real data set.
+//TEST(AmbientLightOccupancyDetection,sample2bHard)
+//{
+//    OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds1;
+//    simpleDataSampleRun(sample2bHard, &ds1);
+//}
