@@ -36,7 +36,7 @@ namespace OTV0P2BASE
 bool SensorAmbientLightOccupancyDetectorSimple::update(const uint8_t newLightLevel)
     {
     const bool result = (newLightLevel > prevLightLevel) && // Needs further constraints.
-        (((int)newLightLevel) > (min_delta + (int)prevLightLevel));
+        (((int)newLightLevel) > (epsilon + (int)prevLightLevel));
 	prevLightLevel = newLightLevel;
     return(result);
 	}
