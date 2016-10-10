@@ -100,6 +100,8 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
     ASSERT_FALSE(data->isEnd()) << "do not pass in empty data set";
     // Count of number of records.
     int nRecords = 0;
+    // COunt number of records with explicit expected response assertion.
+    int nExpectation = 0;
     // Compute own values for min, max, etc.
     int minI = 256;
     int maxI = -1;
@@ -109,6 +111,7 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
     for(const ALDataSample *dp = data; !dp->isEnd(); ++dp)
         {
         ++nRecords;
+        if(0 != dp->expected) { ++nExpectation; }
     	long currentMinute = dp->currentMinute();
     	do  {
             const uint8_t level = dp->L;
@@ -121,6 +124,7 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
             ++currentMinute;
     	    } while((!(dp+1)->isEnd()) && (currentMinute < (dp+1)->currentMinute()));
         }
+    ASSERT_LT(0, nExpectation) << "must assert some expected predictions";
 //    fprintf(stderr, "minI: %d, maxI %d\n", minI, maxI);
     for(int i = 24; --i >= 0; )
         {
@@ -717,4 +721,159 @@ TEST(AmbientLightOccupancyDetection,sample2bHard)
 {
     OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds1;
     simpleDataSampleRun(sample2bHard, &ds1);
+}
+
+// "6k" 2016/10/08+09 test set relatively easy to detect daytime occupancy in busy room.
+static const ALDataSample sample6k[] =
+    {
+{8,0,7,1, 1}, // Not occupied.
+{8,0,19,1},
+{8,0,35,1},
+{8,0,47,1},
+{8,1,3,1},
+{8,1,19,2, 1}, // Not occupied.
+{8,1,35,2},
+{8,1,39,2},
+// ...
+{8,6,11,2},
+{8,6,23,3},
+{8,6,35,5},
+{8,6,39,4},
+{8,6,42,4},
+{8,6,47,4},
+{8,6,55,5},
+{8,7,7,20},
+{8,7,15,25},
+{8,7,19,33},
+{8,7,31,121, 2}, // Light on: OCCUPIED.
+{8,7,40,35},
+{8,7,52,62},
+{8,8,7,168},
+{8,8,19,173},
+{8,8,23,146},
+{8,8,35,96},
+{8,8,43,57},
+{8,8,47,61},
+{8,9,3,44},
+{8,9,7,48},
+{8,9,19,93},
+{8,9,23,107},
+{8,9,31,174},
+{8,9,43,146},
+{8,9,47,128},
+{8,9,55,145},
+{8,10,7,121},
+{8,10,11,110},
+{8,10,19,118},
+{8,10,27,119},
+{8,10,35,137},
+{8,10,39,166},
+{8,10,43,177},
+{8,10,47,180},
+{8,10,55,127},
+{8,10,59,131},
+{8,11,11,152},
+{8,11,15,166},
+{8,11,31,153},
+{8,11,35,147},
+{8,11,43,143},
+{8,11,51,162},
+{8,11,55,178},
+{8,12,7,155},
+{8,12,15,179},
+{8,12,17,172},
+{8,12,19,84},
+{8,12,27,55},
+{8,12,35,85},
+{8,12,43,90},
+{8,12,55,89},
+{8,12,59,100},
+{8,13,11,106},
+{8,13,15,102},
+{8,13,23,101},
+{8,13,35,14},
+{8,13,47,38},
+{8,13,55,34},
+{8,13,59,25},
+{8,14,3,27},
+{8,14,11,41},
+{8,14,15,50},
+{8,14,19,53},
+{8,14,27,58},
+{8,14,31,59},
+{8,14,35,52},
+{8,14,47,63},
+{8,14,59,29},
+{8,15,3,24},
+{8,15,11,38},
+{8,15,15,45},
+{8,15,19,61},
+{8,15,27,44},
+{8,15,39,44},
+{8,15,43,40},
+{8,15,51,33},
+{8,15,55,29},
+{8,15,59,28},
+{8,16,3,23},
+{8,16,19,27},
+{8,16,27,18},
+{8,16,35,164, 2}, // Light on: OCCUPIED.
+{8,16,39,151},
+{8,16,51,153},
+{8,17,3,151},
+{8,17,11,122},
+{8,17,15,131},
+{8,17,31,138},
+{8,17,35,1, 1}, // Light off: not occupied.
+{8,17,43,1},
+{8,17,55,1},
+{8,18,3,1},
+{8,18,15,1},
+{8,18,23,1},
+{8,18,35,1},
+{8,18,47,1},
+{8,18,59,1},
+{8,19,11,1},
+{8,19,23,1},
+{8,19,31,7},
+{8,19,35,6},
+{8,19,47,6},
+{8,19,59,6},
+{8,20,11,6},
+{8,20,19,1},
+{8,20,23,1},
+{8,20,35,1},
+{8,20,51,1},
+{8,20,59,1},
+{8,21,11,1},
+{8,21,27,90, 2}, // Light on: OCCUPIED.
+{8,21,43,82},
+{8,21,47,80},
+{8,21,51,79},
+{8,22,7,1, 1}, // Light off: not occupied.
+{8,22,19,1},
+// ...
+{9,5,59,1},
+{9,6,7,2},
+{9,6,11,2},
+{9,6,15,3},
+{9,6,23,4},
+{9,6,31,6},
+{9,6,35,8},
+{9,6,47,50, 2}, // Light on: OCCUPIED.
+{9,6,51,53},
+{9,7,7,48},
+{9,7,11,57},
+{9,7,23,108},
+{9,7,39,185},
+{9,7,43,184},
+{9,7,51,184},
+    { }
+    };
+
+// Test with real data set.
+TEST(AmbientLightOccupancyDetection,sample6k)
+{
+    OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds1;
+    simpleDataSampleRun(sample6k, &ds1);
 }
