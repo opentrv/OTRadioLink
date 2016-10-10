@@ -147,6 +147,8 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
     const uint8_t maxToUse = (0xff != maxLevel) ? maxLevel :
             ((maxI >= 0) ? (uint8_t)maxI : 0xff);
     // Run simulation at both sensitivities.
+    int nOccupancyReportsSensitive = 0;
+    int nOccupancyReportsNotSensitive = 0;
     for(int s = 0; s <= 1; ++s)
         {
         const bool sensitive = (0 != s);
@@ -188,8 +190,11 @@ fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr);
             }
         // Check that there are not huge numbers of (false) positives.
         ASSERT_TRUE(nOccupancyReports <= (nRecords/2)) << "far too many occupancy indications";
-        detector->update(254); // Force to 'initial'-like state.
+        if(sensitive) { nOccupancyReportsSensitive = nOccupancyReports; }
+        else { nOccupancyReportsNotSensitive = nOccupancyReports; }
+        detector->update(254); // Force detector to 'initial'-like state ready for re-run.
         }
+    EXPECT_LE(nOccupancyReportsNotSensitive, nOccupancyReportsSensitive) << "expect sensitive never to generate fewer reports";
     }
 
 // Basic test of update() behaviour.
