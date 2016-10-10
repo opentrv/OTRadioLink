@@ -90,7 +90,7 @@ static const ALDataSample trivialSample1[] =
 // or they can be computed from the data supplied (NULL means none supplied, 0xff entry means none for given hour).
 // Uses the update() call for the main simulation.
 // Uses the setTypMinMax() call as the hour rolls;
-// runs with 'sensitive' in both states to ensure algorithm's robustness.
+// runs with 'sensitive' in both states to verify algorithm's robustness.
 // Will fail if a large amount of the time occupancy is predicted.
 void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface *const detector,
                          const uint8_t minLevel = 0xff, const uint8_t maxLevel = 0xff,
@@ -168,14 +168,14 @@ fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr);
                     // and other times.
                     // The detector and caller should aim not to be hugely sensitive to the exact timing,
                     // eg by blending prev/current/next periods linearly.
-    //fprintf(stderr, "mean = %d\n", byHourMeanI[H]);
+//fprintf(stderr, "mean = %d\n", byHourMeanI[H]);
                     detector->setTypMinMax(byHourMeanI[H], minToUse, maxToUse, sensitive);
                     ASSERT_EQ(sensitive, detector->isSensitive());
                     oldH = H;
                     }
                 const bool prediction = detector->update(dp->L);
                 if(prediction) { ++nOccupancyReports; }
-    if(prediction) { fprintf(stderr, "@ %d:%d L = %d\n", H, (int)(currentMinute % 60), dp->L); }
+if(prediction) { fprintf(stderr, "@ %d:%d L = %d\n", H, (int)(currentMinute % 60), dp->L); }
                 // Note that for all synthetic ticks the expectation is removed (since there is no level change).
                 const uint8_t expected = (currentMinute != dp->currentMinute()) ? 0 : dp->expected;
                 if(0 != expected)
