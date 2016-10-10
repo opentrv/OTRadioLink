@@ -387,7 +387,7 @@ uint8_t SimpleStatsRotationBase::writeJSON(uint8_t *const buf, const uint8_t buf
 
   bool gotHiPri = false;
   uint8_t hiPriIndex = 0;
-  bool gotLoPri = false;
+//  bool gotLoPri = false;  // (DE20161010) Commented to fix 'unused variable' warning. Goes out of scope without anything ever reading it.
   uint8_t loPriIndex = 0;
   if(nStats != 0)
     {
@@ -450,7 +450,7 @@ uint8_t SimpleStatsRotationBase::writeJSON(uint8_t *const buf, const uint8_t buf
         if(s.descriptor.lowPriority && !s.flags.changed && (gotHiPri || randRNG8NextBoolean())) { continue; }
         // Found suitable stat to include in output.
         loPriIndex = next;
-        gotLoPri = true;
+//        gotLoPri = true;  // (DE20161010) Commented to fix 'unused variable' warning. Goes out of scope without anything ever reading it.
         // Add to JSON output.
         print(bp, s, commaPending);
         // If successful then mark this as a fall-back, else rewind and discard this item.
