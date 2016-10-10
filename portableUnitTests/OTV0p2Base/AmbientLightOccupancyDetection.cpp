@@ -37,9 +37,9 @@ TEST(AmbientLightOccupancyDetection,SanityTest)
 TEST(AmbientLightOccupancyDetection,updateBasics)
 {
     // Check that initial update never indicates occupancy.
-	OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds1;
+    OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds1;
     EXPECT_FALSE(ds1.update(0)) << "no initial update should imply occupancy";
-	OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds2;
+    OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds2;
     EXPECT_FALSE(ds2.update(255)) << "no initial update should imply occupancy";
     // Check that update from 0 to max does force occupancy indication (but steady does not).
     EXPECT_TRUE(ds1.update(255)) << "update from 0 to 255 (max) illumination should signal occupancy";
@@ -51,22 +51,22 @@ class ALDataSample
     public:
         const uint8_t d, H, M, L, expected;
 
-		// Day/hour/minute and light level and expected result.
-		// An expected result of 0 means no particular result expected from this (anything is acceptable).
-		// An expected result of 1 means occupancy should NOT be reported for this sample.
-		// An expected result of 2+ means occupancy should be reported for this sample.
-	    ALDataSample(uint8_t dayOfMonth, uint8_t hour24, uint8_t minute, uint8_t lightLevel, uint8_t expectedResult = 0)
-			: d(dayOfMonth), H(hour24), M(minute), L(lightLevel), expected(expectedResult)
-			{ }
+        // Day/hour/minute and light level and expected result.
+        // An expected result of 0 means no particular result expected from this (anything is acceptable).
+        // An expected result of 1 means occupancy should NOT be reported for this sample.
+        // An expected result of 2+ means occupancy should be reported for this sample.
+        ALDataSample(uint8_t dayOfMonth, uint8_t hour24, uint8_t minute, uint8_t lightLevel, uint8_t expectedResult = 0)
+            : d(dayOfMonth), H(hour24), M(minute), L(lightLevel), expected(expectedResult)
+            { }
 
         // Create/mark a terminating entry; all input values invalid.
-	    ALDataSample() : d(255), H(255), M(255), L(255), expected(0) { }
+        ALDataSample() : d(255), H(255), M(255), L(255), expected(0) { }
 
         // Compute current minute for this record.
         long currentMinute() const { return((((d * 24L) + H) * 60L) + M); }
 
-	    // True for empty/termination data record.
-	    bool isEnd() const { return(d > 31); }
+        // True for empty/termination data record.
+        bool isEnd() const { return(d > 31); }
     };
 
 // Trivial sample, testing initial reaction to start transient.
@@ -89,7 +89,8 @@ static const ALDataSample trivialSample1[] =
 // Can be supplied with nominal long-term rolling mean levels by hour,
 // or they can be computed from the data supplied (NULL means none supplied, 0xff entry means none for given hour).
 // Uses the update() call for the main simulation.
-// Uses the setTypMinMax() call as the hour rolls; leaves 'sensitive' off by default.
+// Uses the setTypMinMax() call as the hour rolls;
+// runs with 'sensitive' in both states to ensure algorithm's robustness.
 // Will fail if a large amount of the time occupancy is predicted.
 void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface *const detector,
                          const uint8_t minLevel = 0xff, const uint8_t maxLevel = 0xff,
@@ -112,17 +113,17 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
         {
         ++nRecords;
         if(0 != dp->expected) { ++nExpectation; }
-    	long currentMinute = dp->currentMinute();
-    	do  {
+        long currentMinute = dp->currentMinute();
+        do  {
             const uint8_t level = dp->L;
             if((int)level < minI) { minI = level; }
             if((int)level > maxI) { maxI = level; }
-    		const uint8_t H = (currentMinute % 1440) / 60;
+            const uint8_t H = (currentMinute % 1440) / 60;
             ASSERT_TRUE(H < 24) << "bad hour";
             byHourMeanSumI[H] += level;
             ++byHourMeanCountI[H];
             ++currentMinute;
-    	    } while((!(dp+1)->isEnd()) && (currentMinute < (dp+1)->currentMinute()));
+            } while((!(dp+1)->isEnd()) && (currentMinute < (dp+1)->currentMinute()));
         }
     ASSERT_LT(0, nExpectation) << "must assert some expected predictions";
 //    fprintf(stderr, "minI: %d, maxI %d\n", minI, maxI);
@@ -142,55 +143,60 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
 //    fprintf(stderr, "\n");
     // Select which params to use.
     const uint8_t minToUse = (0xff != minLevel) ? minLevel :
-    		((minI < 255) ? (uint8_t)minI : 0xff);
+            ((minI < 255) ? (uint8_t)minI : 0xff);
     const uint8_t maxToUse = (0xff != maxLevel) ? maxLevel :
-    		((maxI >= 0) ? (uint8_t)maxI : 0xff);
-    // Run simulation.
-    // Count of number of occupancy signals.
-    int nOccupancyReports = 0;
-    uint8_t oldH = 0xff;
-    for(const ALDataSample *dp = data; !dp->isEnd(); ++dp)
+            ((maxI >= 0) ? (uint8_t)maxI : 0xff);
+    // Run simulation at both sensitivities.
+    for(int s = 0; s <= 1; ++s)
         {
-    	long currentMinute = dp->currentMinute();
-    	do  {
-    		const uint8_t H = (currentMinute % 1440) / 60;
-    		if(H != oldH)
-    		    {
-    		    // When the hour rolls, set new stats for the detector.
-    		    // Note that implementations be use the end of the hour/period
-    		    // and other times.
-    		    // The detector and caller should aim not to be hugely sensitive to the exact timing,
-    		    // eg by blending prev/current/next periods linearly.
-//fprintf(stderr, "mean = %d\n", byHourMeanI[H]);
-                const bool sensitive = false;
-    		    detector->setTypMinMax(byHourMeanI[H], minToUse, maxToUse, sensitive);
-    		    ASSERT_EQ(sensitive, detector->isSensitive());
-    		    oldH = H;
-    		    }
-            const bool prediction = detector->update(dp->L);
-            if(prediction) { ++nOccupancyReports; }
-if(prediction) { fprintf(stderr, "@ %d:%d L = %d\n", H, (int)(currentMinute % 60), dp->L); }
-            // Note that for all synthetic ticks the expectation is removed (since there is no level change).
-            const uint8_t expected = (currentMinute != dp->currentMinute()) ? 0 : dp->expected;
-            if(0 != expected)
-                {
-                // If a particular outcome was expected, test against it.
-                const bool expectedOccupancy = (expected > 1);
-        		const uint8_t M = (currentMinute % 60);
-                EXPECT_EQ(expectedOccupancy, prediction) << " @ " << ((int)H) << ":" << ((int)M);
-                }
-            ++currentMinute;
-    	    } while((!(dp+1)->isEnd()) && (currentMinute < (dp+1)->currentMinute()));
+        const bool sensitive = (0 != s);
+fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr);
+        // Count of number of occupancy signals.
+        int nOccupancyReports = 0;
+        uint8_t oldH = 0xff;
+        for(const ALDataSample *dp = data; !dp->isEnd(); ++dp)
+            {
+            long currentMinute = dp->currentMinute();
+            do  {
+                const uint8_t H = (currentMinute % 1440) / 60;
+                if(H != oldH)
+                    {
+                    // When the hour rolls, set new stats for the detector.
+                    // Note that implementations be use the end of the hour/period
+                    // and other times.
+                    // The detector and caller should aim not to be hugely sensitive to the exact timing,
+                    // eg by blending prev/current/next periods linearly.
+    //fprintf(stderr, "mean = %d\n", byHourMeanI[H]);
+                    detector->setTypMinMax(byHourMeanI[H], minToUse, maxToUse, sensitive);
+                    ASSERT_EQ(sensitive, detector->isSensitive());
+                    oldH = H;
+                    }
+                const bool prediction = detector->update(dp->L);
+                if(prediction) { ++nOccupancyReports; }
+    if(prediction) { fprintf(stderr, "@ %d:%d L = %d\n", H, (int)(currentMinute % 60), dp->L); }
+                // Note that for all synthetic ticks the expectation is removed (since there is no level change).
+                const uint8_t expected = (currentMinute != dp->currentMinute()) ? 0 : dp->expected;
+                if(0 != expected)
+                    {
+                    // If a particular outcome was expected, test against it.
+                    const bool expectedOccupancy = (expected > 1);
+                    const uint8_t M = (currentMinute % 60);
+                    EXPECT_EQ(expectedOccupancy, prediction) << " @ " << ((int)H) << ":" << ((int)M);
+                    }
+                ++currentMinute;
+                } while((!(dp+1)->isEnd()) && (currentMinute < (dp+1)->currentMinute()));
+            }
+        // Check that there are not huge numbers of (false) positives.
+        ASSERT_TRUE(nOccupancyReports <= (nRecords/2)) << "far too many occupancy indications";
+        detector->update(254); // Force to 'initial'-like state.
         }
-    // Check that there are not huge numbers of (false) positives.
-    ASSERT_TRUE(nOccupancyReports <= (nRecords/2)) << "far too many occupancy indications";
-	}
+    }
 
 // Basic test of update() behaviour.
 TEST(AmbientLightOccupancyDetection,simpleDataSampleRun)
 {
-	OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds1;
-	simpleDataSampleRun(trivialSample1, &ds1);
+    OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds1;
+    simpleDataSampleRun(trivialSample1, &ds1);
 }
 
 // "3l" 2016/10/08+09 test set with tough occupancy to detect in the evening up to 21:00Z and in the morning from 07:09Z then  06:37Z.
@@ -330,8 +336,8 @@ static const ALDataSample sample3lHard[] =
 // Test with real data set.
 TEST(AmbientLightOccupancyDetection,sample3lHard)
 {
-	OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds1;
-	simpleDataSampleRun(sample3lHard, &ds1);
+    OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds1;
+    simpleDataSampleRun(sample3lHard, &ds1);
 }
 
 // "5s" 2016/10/08+09 test set with tough occupancy to detect in the evening 21:00Z.
