@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2015
+Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 */
 
 #ifndef ARDUINO_LIB_OTSIM900LINK_H
@@ -23,7 +23,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #define ARDUINO_LIB_OTSIM900LINK_VERSION_MINOR 0
 
 
-// SIM900 GSM support.
+// SIM900 Arduino (2G) GSM shield support.
 #include "utility/OTSIM900Link_OTSIM900Link.h"
 
 #endif // ARDUINO_LIB_OTSIM900LINK_H

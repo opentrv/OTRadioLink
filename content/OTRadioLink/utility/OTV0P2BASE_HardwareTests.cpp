@@ -34,7 +34,10 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 #ifndef OTV0P2BASE_HARDWARETESTS_H
 #define OTV0P2BASE_HARDWARETESTS_H
 
+#ifdef ARDUINO_ARCH_AVR
 #include "util/atomic.h"
+#endif
+
 #include "OTV0P2BASE_Entropy.h"
 #include "OTV0P2BASE_Sleep.h"
 
@@ -47,6 +50,7 @@ namespace HWTEST
 {
 
 
+#ifdef ARDUINO_ARCH_AVR
 // Returns true if the 32768Hz low-frequency async crystal oscillator appears to be running.
 // This means the the Timer 2 clock needs to be running
 // and have an acceptable frequency compared to the CPU clock (1MHz).
@@ -75,14 +79,16 @@ bool check32768HzOsc()
         // Ensure lower bound of ~3s until loop finishes.
         OTV0P2BASE::nap(WDTO_15MS);
         }
-#endif
 
 #if 0 && defined(DEBUG)
     DEBUG_SERIAL_PRINTLN_FLASHSTRING("32768Hz clock may not be running!");
 #endif
     return(false); // FAIL // panic(F("Xtal")); // Async clock not running.
     }
+#endif
+#endif
 
+#ifdef ARDUINO_ARCH_AVR
 // Returns true if the 32768Hz low-frequency async crystal oscillator appears to be running and sane.
 // Performs an extended test that the CPU (RC) and crystal frequencies are in a sensible ratio.
 // This means the the Timer 2 clock needs to be running
@@ -133,6 +139,7 @@ bool check32768HzOscExtended()
 
     return(true); // Success!
     }
+#endif
 
 
 } }

@@ -20,7 +20,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
  Occupancy pseudo-sensor that combines inputs from other sensors.
  */
 
+#ifdef ARDUINO_ARCH_AVR
 #include <util/atomic.h>
+#endif
 
 #include "OTV0P2BASE_SensorOccupancy.h"
 
@@ -38,6 +40,8 @@ namespace OTV0P2BASE
 //#elif OCCUPATION_TIMEOUT_M <= 100
 //#define OCCCP_SHIFT 0
 //#endif
+
+#ifdef ARDUINO
 
 // Shift from minutes remaining to confidence.
 // Will not work correctly with timeout > 100.
@@ -71,7 +75,9 @@ uint8_t PseudoSensorOccupancyTracker::read()
     return(newValue);
     }
   }
+#endif
 
+#ifdef ARDUINO
 // Call when some/weak evidence of room occupation, such as a light being turned on, or voice heard.
 // Do not call based on internal/synthetic events.
 // Doesn't force the room to appear recently occupied.
@@ -91,6 +97,7 @@ void PseudoSensorOccupancyTracker::markAsPossiblyOccupied()
     activityCountdownM = 2; // Probably thread-/ISR- safe anyway, as since atomic byte write.
     }
   }
+#endif
 
 
 }

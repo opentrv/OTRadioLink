@@ -18,6 +18,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 /*
  Temperature potentiometer (pot) dial sensor with UI / occupancy outputs.
+
+ V0p2/AVR specific for now.
  */
 
 
@@ -25,7 +27,10 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #include "OTV0P2BASE_SensorTemperaturePot.h"
 
 #include <stddef.h>
+
+#ifdef ARDUINO
 #include <Arduino.h>
+#endif
 
 #include "OTV0P2BASE_ADC.h"
 #include "OTV0P2BASE_BasicPinAssignments.h"
@@ -36,6 +41,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 namespace OTV0P2BASE
 {
 
+
+#ifdef SensorTemperaturePot_DEFINED
 
 // Force a read/poll of the temperature pot and return the value sensed [0,255] (cold to hot).
 // Potentially expensive/slow.
@@ -105,6 +112,8 @@ uint8_t SensorTemperaturePot::read()
   // Return noise-reduced value.
   return(value);
   }
+
+#endif // SensorTemperaturePot_DEFINED
 
 
 }

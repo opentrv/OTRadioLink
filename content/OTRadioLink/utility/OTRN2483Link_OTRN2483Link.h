@@ -14,7 +14,14 @@ specific language governing permissions and limitations
 under the Licence.
 
 Author(s) / Copyright (s): Deniz Erbilgin 2016
+                           Damon Hart-Davis 2016
 */
+
+/*
+ * OpenTRV RN2483 LoRA Radio Link base class.
+ *
+ * Currently V0p2/AVR ONLY.
+ */
 
 //Collection of useful links:
 //http://openlora.com/forum/viewtopic.php?f=5&t=6
@@ -46,9 +53,15 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
 // IF DEFINED: Enables adaptive data rate. This is only relevant if RN2483_CONFIG_IN_EEPROM is UNDEFINED
 #define RN2483_ENABLE_ADR // TODO: Untested but may reduce power consumption
 
+#ifdef ARDUINO
 #include <Arduino.h>
+#endif
+
+#ifdef ARDUINO_ARCH_AVR
 #include <avr/eeprom.h>
 #include <avr/pgmspace.h>
+#endif
+
 #include <OTRadioLink.h>
 #include <OTV0p2Base.h>
 #include <string.h>
@@ -57,11 +70,14 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
 namespace OTRN2483Link
 {
 
+
+#ifdef ARDUINO_ARCH_AVR
 /**
  * @struct  OTRN2483LinkConfig
  * @brief   Structure containing config data for OTRN2483LinkConfig
  * @todo    Work out other required variables for LoRa
  */
+#define OTRN2483LinkConfig_DEFINED
 typedef struct OTRN2483LinkConfig {
     // Is in eeprom?
     const bool bEEPROM;
@@ -99,6 +115,7 @@ typedef struct OTRN2483LinkConfig {
  * @brief   This is a class that extends OTRadioLink to communicate via LoRaWAN
  *          using the RN2483 radio module.
  */
+#define OTRN2483Link_DEFINED
 class OTRN2483Link : public OTRadioLink::OTRadioLink
 {
 public:
@@ -190,9 +207,8 @@ private:
      * @brief   Unused. For compatibility with OTRadioLink.
      */
     void _dolisten() {};
-
 };
-
+#endif // ARDUINO_ARCH_AVR
 
 
 } // namespace OTRN2483Link

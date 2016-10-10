@@ -31,11 +31,11 @@ Author(s) / Copyright (s): Milenko Alcin 2016
  * 
  * Decode makes sure that packet is intended for our Group 
  * If dest bit (part of header byte) is set, Node ID is checked as well. 
- * Finally, CRC is checked, and payload is copied to the beggining of the buffer, while
+ * Finally, CRC is checked, and payload is copied to the beginning of the buffer, while
  * header flags and nodeID variables are set accordingly.
  *
  * On transmit, operation is exactly opposite. Payload is received in buffer, while payload length and
- * other information that are needed to format the packet are passed as paramteres.
+ * other information that are needed to format the packet are passed as parameters.
  * Method moves payload to the right place, formats packet header and add CRC.
  * 
  * Preamble and first syn byte are added by packet handler in OTRFM23B. 
@@ -47,19 +47,26 @@ Author(s) / Copyright (s): Milenko Alcin 2016
 #include <OTV0p2Base.h>
 
 #include "OTRadioLink_JeelabsOemPacket.h"
+
+#ifdef ARDUINO_ARCH_AVR
 #include <util/crc16.h>
+#endif
 
 
 namespace OTRadioLink
     {
+
+
+#ifdef JeelabsOemPacket_DEFINED
+
 /*
  * Encode JeeLabs packet:
- *    buf     - holds payload, after enocding it points to the beggining of fomratted packet
+ *    buf     - holds payload, after encoding it points to the beginning of formatted packet
  *    buflen  - length of payload
- *    nodeID  - if dest == 1, node ID is the address of the node we are seding to 
+ *    nodeID  - if dest == 1, node ID is the address of the node we are sending to
  *            - if dest == 0, value ignored, the default node ID will be used (see setNodeAndGroupId) 
  *    dest    - if set we are sending to specific node, otherwise we are broadcasting
- *    acqReq  - requesting acknowledgement
+ *    acqReq  - requesting acknowledgment
  *    ackConf - acknowledging previously received packet
  */
 uint8_t JeelabsOemPacket::encode( uint8_t * const buf,  const uint8_t buflen,  const uint8_t nodeID,  const bool dest,  const bool ackReq,  const bool ackConf)
@@ -92,14 +99,14 @@ uint8_t JeelabsOemPacket::encode( uint8_t * const buf,  const uint8_t buflen,  c
 
 /*
  * Decode JeeLabs packet:
- *    buf     - holds packet, after deocding it points to the beggining of payload
+ *    buf     - holds packet, after decoding it points to the beginning of payload
  *    buflen  - length of packet
  *    nodeID  - if dest == 0, node ID of the sender
  *            - if dest == 1, our node ID (the same as set in setNodeAndGroupID)
  *    dest    - == 1 intended for us
               - == 0 broadcast packet
- *    acqReq  - acknowledgement requested
- *    ackConf - this packet is acknowledgement
+ *    acqReq  - acknowledgment requested
+ *    ackConf - this packet is acknowledgment
  */
 uint8_t JeelabsOemPacket::decode(uint8_t * const buf, uint8_t &buflen,  uint8_t &nodeID,  bool &dest,  bool &ackReq,  bool &ackConf)
     {
@@ -109,7 +116,7 @@ uint8_t JeelabsOemPacket::decode(uint8_t * const buf, uint8_t &buflen,  uint8_t 
        // CRC OK?
        if ( calcCrc(buf, buf[2]+5))  return -2; 
 
-       // Decode heder and if not broadcast, check if for us
+       // Decode header and if not broadcast, check if for us
        nodeID  = buf[1] & 0x1f;
        dest    = buf[1] & 0x40 ? true : false;  
 
@@ -119,7 +126,7 @@ uint8_t JeelabsOemPacket::decode(uint8_t * const buf, uint8_t &buflen,  uint8_t 
        ackReq  = buf[1] & 0x20 ? true : false;  
        buflen  = buf[2];
        
-       // Move payload to the beggining of the buffer
+       // Move payload to the beginning of the buffer
        memmove(buf, &buf[3], buflen);
 
        return buflen;
@@ -127,8 +134,8 @@ uint8_t JeelabsOemPacket::decode(uint8_t * const buf, uint8_t &buflen,  uint8_t 
     }
 
 /*
- * Filter for the interrupt route, to avoid vasting buffer space.
- * Checks if payload lentgh is reasonable and if CRC is OK
+ * Filter for the interrupt route, to avoid consuming buffer space with broken frames.
+ * Checks if payload length is reasonable and if CRC is OK.
  */
 bool JeelabsOemPacket::filter( const volatile uint8_t *buf, volatile uint8_t &buflen)
     {
@@ -154,9 +161,9 @@ uint8_t JeelabsOemPacket::setNodeAndGroupID(const uint8_t nodeID, const uint8_t 
     }
 
 
-/*
- * Calculste CRC. Used both in send and receive. Uses default crc routring from 
- * AVR standard clib
+/**Calculate CRC.
+ * Used both in send and receive.
+ * Uses default CRC routine from AVR standard clib.
  */
 uint16_t JeelabsOemPacket::calcCrc(const uint8_t* buf, uint8_t len) 
     {
@@ -166,4 +173,8 @@ uint16_t JeelabsOemPacket::calcCrc(const uint8_t* buf, uint8_t len)
 
        return crc;
     }
+
+#endif // JeelabsOemPacket_DEFINED
+
+
 }

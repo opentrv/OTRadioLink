@@ -18,10 +18,17 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 
 /*
  Routines for managing entropy for (crypto) random number generation.
+
+ Almost entirely specific to V0p2/AVR for now.
  */
 
+#ifdef ARDUINO_ARCH_AVR
 #include <util/crc16.h>
+#endif
+
+#ifdef ARDUINO
 #include <Arduino.h>
+#endif
 
 #include "OTV0P2BASE_Entropy.h"
 
@@ -35,6 +42,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 namespace OTV0P2BASE
 {
 
+
+#ifdef ARDUINO_ARCH_AVR
 
 // Extract and return a little entropy from clock jitter between CPU and 32768Hz RTC clocks; possibly up to 2 bits of entropy captured.
 // Expensive in terms of CPU time and thus energy.
@@ -226,5 +235,8 @@ void seedPRNGs()
   DEBUG_SERIAL_PRINTLN();
 #endif
   }
+
+#endif // ARDUINO_ARCH_AVR
+
 
 }

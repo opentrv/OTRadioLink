@@ -16,12 +16,18 @@ under the Licence.
 Author(s) / Copyright (s): Damon Hart-Davis 2015
 */
 
+#include <stdio.h>
+
 #include "OTRadioLink_OTRadioLink.h"
 
+#ifdef ARDUINO_ARCH_ARV
 #include <util/atomic.h>
+#endif
 
+#ifdef ARDUINO
 #include <Arduino.h>
 #include <Print.h>
+#endif
 
 #include "OTV0P2BASE_Sleep.h"
 
@@ -44,6 +50,7 @@ namespace OTRadioLink
         return(len);
         }
 
+#ifdef ARDUINO
     // Helper routine to dump data frame to a Print output in human- and machine- readable format.
     // Dumps as pipe (|) then length (in decimal) then space then two characters for each byte:
     // printable characters in range 32--126 are rendered as a space then the character,
@@ -72,11 +79,17 @@ namespace OTRadioLink
             }
         p->println();
         }
+#endif // ARDUINO
 
     // Helper routine to dump data frame to Serial in human- and machine- readable format.
     // As per printRXMsg() but to Serial,
-    // which has to be set up and running for this to work.
+    // which has to be set up and running for this to work.#ifdef ARDUINO
+#ifdef ARDUINO
     void dumpRXMsg(const uint8_t *buf, const uint8_t len) { printRXMsg(&Serial, buf, len); }
+#else
+    // On non-Arduino platform, dump to stdout.
+    void dumpRXMsg(const uint8_t *buf, const uint8_t len) { fwrite(buf, 1, len, stdout); }
+#endif // ARDUINO
 
     // Heuristic filter, especially useful for OOK carrier, to trim (all but first) trailing zeros.
     // Useful to fit more frames into RX queues if frame type is not explicit
@@ -94,6 +107,7 @@ namespace OTRadioLink
         return(true);
         }
 
+#ifdef ARDUINO_ARCH_AVR
     // Set (or clear) the optional fast filter for RX ISR/poll; NULL to clear.
     // The routine should return false to drop an inbound frame early in processing,
     // to save queue space and CPU, and cope better with a busy channel.
@@ -103,6 +117,7 @@ namespace OTRadioLink
         ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
             { filterRXISR = filterRX; }
         }
+#endif // ARDUINO_ARCH_AVR
     }
 
 

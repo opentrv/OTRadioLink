@@ -28,7 +28,11 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 #include <stddef.h>
 #include <stdint.h>
 
+#ifdef ARDUINO
 #include <Arduino.h>
+#endif
+
+#include "OTV0P2BASE_Util.h"
 
 // Use namespaces to help avoid collisions.
 namespace OTRadioLink
@@ -348,7 +352,7 @@ namespace OTRadioLink
         {
         private:
             /*Actual buffer size (bytes). */
-            static const int ISRRX_BUFSIZ = min(256, maxRXBytes * (1+(int)targetISRRXMinQueueCapacity));
+            static const int ISRRX_BUFSIZ = OTV0P2BASE::fnmin(256, maxRXBytes * (1+(int)targetISRRXMinQueueCapacity));
             /**Buffer holding a circular queue.
              * Contains a circular sequence of (len,data+) segments.
              * Wrapping around the end is done with a len==0 segment or hitting the end exactly.

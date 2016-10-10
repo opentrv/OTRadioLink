@@ -19,6 +19,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 /*
  * V0p2-specific implementation of secure frame code,
  * using EEPROM for non-volatile storage of (eg) message counters.
+ *
+ * V0p2/AVR only.
  */
 
 #ifndef ARDUINO_LIB_OTRADIOLINK_SECUREABLEFRAMETYPE_V0P2IMPL_H
@@ -34,6 +36,8 @@ namespace OTRadioLink
     {
 
 
+#ifdef ARDUINO_ARCH_AVR
+
     // V0p2 TX implementation for 0 or 32 byte encrypted body sections.
     //
     // With all of these routines it is important to check and act on error codes,
@@ -45,6 +49,7 @@ namespace OTRadioLink
     // The restart/reboot 3 bytes is stored in a primary and secondary copy in EEPROM,
     // along with an 8-bit CRC each, all stored inverted,
     // so that the all-1s erased state of counter and CRC is valid (counter value 0).
+#define SimpleSecureFrame32or0BodyTXV0p2_DEFINED
     class SimpleSecureFrame32or0BodyTXV0p2 : public SimpleSecureFrame32or0BodyTXBase
         {
         protected:
@@ -184,6 +189,7 @@ namespace OTRadioLink
 
 
     // Variant that allows ID for TX to be fetched on demand, not directly using local node ID.
+#define SimpleSecureFrame32or0BodyTXV0p2SuppliedID_DEFINED
     class SimpleSecureFrame32or0BodyTXV0p2SuppliedID : public SimpleSecureFrame32or0BodyTXV0p2
         {
         public:
@@ -249,6 +255,7 @@ namespace OTRadioLink
     //      Thus if this is found to be low during a read, a write has failed to complete.
     //  2b) A 7-bit CRC of the message counter bytes, stored inverted,
     //      so that the all-1s erased state of counter and CRC is valid (counter value 0).
+#define SimpleSecureFrame32or0BodyRXV0p2_DEFINED
     class SimpleSecureFrame32or0BodyRXV0p2 : public SimpleSecureFrame32or0BodyRXBase
         {
         private:
@@ -329,6 +336,8 @@ namespace OTRadioLink
                                             uint8_t *ID,
                                             bool firstIDMatchOnly = true);
         };
+
+#endif // ARDUINO_ARCH_AVR
 
 
     }

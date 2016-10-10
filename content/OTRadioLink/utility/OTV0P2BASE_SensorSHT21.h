@@ -18,6 +18,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 /*
  SHT21 temperature and relative humidity sensor.
+
+ V0p2/AVR specific for now.
  */
 
 #ifndef OTV0P2BASE_SENSORSHT21_H
@@ -30,12 +32,16 @@ namespace OTV0P2BASE
 {
 
 
+#ifdef ARDUINO_ARCH_AVR
+
 // SHT21 sensor for ambient/room temperature in 1/16th of one degree Celsius.
+#define RoomTemperatureC16_SHT21_DEFINED
 class RoomTemperatureC16_SHT21 : public OTV0P2BASE::TemperatureC16Base
   { public: virtual int16_t read(); };
 
 
 // Sensor for relative humidity percentage; 0 is dry, 100 is condensing humid, 255 for error.
+#define HumiditySensorSHT21_DEFINED
 class HumiditySensorSHT21 : public OTV0P2BASE::SimpleTSUint8Sensor
   {
   public:
@@ -84,6 +90,8 @@ class HumiditySensorSHT21 : public OTV0P2BASE::SimpleTSUint8Sensor
     // Thread-safe and usable within ISRs (Interrupt Service Routines).
     bool isRHHighWithHyst() { return(highWithHyst); }
   };
+
+#endif // ARDUINO_ARCH_AVR
 
 // Placeholder namespace with dummy static status methods to reduce code complexity.
 class DummyHumiditySensorSHT21

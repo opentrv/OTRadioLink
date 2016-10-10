@@ -19,26 +19,26 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 /*
  * OpenTRV RFM23B Radio Link base class.
+ *
+ * Currently V0p2/AVR ONLY.
  */
-
-/**TEMPORARILY IN TEST SKETCH BEFORE BEING MOVED TO OWN LIBRARY. */
 
 #ifndef OTRFM23BLINK_OTRFM23BLINK_H
 #define OTRFM23BLINK_OTRFM23BLINK_H
 
 #include <stddef.h>
 #include <stdint.h>
+
+#ifdef ARDUINO_ARCH_AVR
 #include <util/atomic.h> // Atomic primitives for AVR.
+#endif
+
+#ifdef ARDUINO
 #include <Arduino.h>
+#endif
 
 #include <OTV0p2Base.h>
 #include <OTRadioLink.h>
-
-//#include "OTV0P2BASE_BasicPinAssignments.h"
-//#include "OTV0P2BASE_FastDigitalIO.h"
-//#include "OTV0P2BASE_PowerManagement.h"
-//#include "OTV0P2BASE_Sleep.h"
-
 #include "OTRadioLink_ISRRXQueue.h"
 
 
@@ -57,9 +57,11 @@ namespace OTRFM23BLink
 
     // See end for library of common configurations.
 
+#ifdef ARDUINO_ARCH_AVR
     // Base class for RFM23B radio link hardware driver.
     // Neither re-entrant nor ISR-safe except where stated.
     // Contains elements that do not depend on template parameters.
+#define OTRFM23BLinkBase_DEFINED
     class OTRFM23BLinkBase : public OTRadioLink::OTRadioLink
         {
         protected:
@@ -352,6 +354,7 @@ namespace OTRFM23BLink
     // Hardwire to I/O pin for RFM23B active-low interrupt RFM_nIRQ_DigitalPin (-1 if none).
     // Set the targetISRRXMinQueueCapacity to at least 2, or 3 if RAM space permits, for busy RF channels.
     // With allowRX == false as much as possible of the receive side is disabled.
+#define OTRFM23BLink_DEFINED
     static const uint8_t DEFAULT_RFM23B_RX_QUEUE_CAPACITY = 3;
     template <uint8_t SPI_nSS_DigitalPin, int8_t RFM_nIRQ_DigitalPin = -1, uint8_t targetISRRXMinQueueCapacity = 3, bool allowRX = true>
     class OTRFM23BLink : public OTRFM23BLinkBase
@@ -841,6 +844,8 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
     // Full register settings for 868.0MHz (EU band 48) GFSK 49.26 kbps.
     // Full config including all default values, so safe for dynamic switching.
     extern const OTRFM23BLinkBase::RFM23_Reg_Values_t StandardRegSettingsJeeLabs;
+#endif // ARDUINO_ARCH_AVR
+
 
     }
 #endif

@@ -14,12 +14,23 @@ specific language governing permissions and limitations
 under the Licence.
 
 Author(s) / Copyright (s): Deniz Erbilgin 2016
+                           Damon Hart-Davis 2016
 */
+
+/*
+ * OpenTRV RN2483 LoRA Radio Link base class.
+ *
+ * Currently V0p2/AVR ONLY.
+ */
 
 #include "OTRN2483Link_OTRN2483Link.h"
 
 namespace OTRN2483Link
 {
+
+
+#ifdef OTRN2483Link_DEFINED
+
 // TODO proper constructor
 
 OTRN2483Link::OTRN2483Link(uint8_t _nRstPin, uint8_t rxPin, uint8_t txPin) : config(NULL), ser(rxPin, txPin), nRstPin(_nRstPin) {
@@ -455,5 +466,8 @@ const char OTRN2483Link::MAC_SAVE[5] = "save";
 const char OTRN2483Link::RN2483_SET[5] = "set ";
 const char OTRN2483Link::RN2483_GET[5] = "get ";
 const char OTRN2483Link::RN2483_END[3] = "\r\n";
+
+#endif // OTRN2483Link_DEFINED
+
 
 } // namespace OTRN2483Link

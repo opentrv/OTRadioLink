@@ -23,7 +23,11 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014--2016
 #ifndef OTV0P2BASE_JSONSTATS_H
 #define OTV0P2BASE_JSONSTATS_H
 
+#ifdef ARDUINO
 #include <Arduino.h>
+#else
+#include "OTV0P2BASE_ArduinoCompat.h"
+#endif
 
 #include "OTV0P2BASE_Sensor.h"
 #include "OTV0P2BASE_Util.h"
@@ -102,7 +106,7 @@ struct GenericStatsDescriptor
   };
 
 // Print to a bounded buffer.
-class BufPrint : public Print
+class BufPrint: public Print
   {
   private:
     char * const b;

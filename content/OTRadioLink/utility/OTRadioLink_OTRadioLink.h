@@ -27,7 +27,11 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 
 #include <stddef.h>
 #include <stdint.h>
+
+#ifdef ARDUINO
 #include <Print.h>
+#endif
+
 #include <OTV0p2Base.h>
 
 
@@ -39,6 +43,7 @@ namespace OTRadioLink
     // Returns 0 if NULL or unterminated (within 255 bytes).
     uint8_t frameLenFFTerminated(const uint8_t *buf);
 
+#ifdef ARDUINO
     // Helper routine to dump data frame to a Print output in human- and machine- readable format.
     // Dumps as pipe (|) then length (in decimal) then space then two characters for each byte:
     // printable characters in range 32--126 are rendered as a space then the character,
@@ -54,6 +59,7 @@ namespace OTRadioLink
     //
     // Serial has to be set up and running for this to work.
     void printRXMsg(Print *p, const uint8_t *buf, const uint8_t len);
+#endif
 
     // Helper routine to dump data frame to Serial in human- and machine- readable format.
     // As per printRXMsg() but to Serial,
@@ -153,7 +159,7 @@ namespace OTRadioLink
             // to save queue space and CPU, and cope better with a busy channel.
             // This pointer must by updated only with interrupts locked out.
             // Marked volatile for ISR-/thread- access.
-            volatile quickFrameFilter_t *filterRXISR;
+            quickFrameFilter_t *volatile filterRXISR;
 
             // Configure the hardware.
             // Called from configure() once nChannels and channelConfig is set.

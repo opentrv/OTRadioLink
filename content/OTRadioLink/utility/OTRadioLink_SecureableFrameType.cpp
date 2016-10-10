@@ -24,7 +24,10 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
  *     https://raw.githubusercontent.com/DamonHD/OpenTRV/master/standards/protocol/IoTCommsFrameFormat/SecureBasicFrame-*.txt
  */
 
+#ifdef ARDUINO_ARCH_AVR
 #include <util/atomic.h>
+#endif
+
 #include <string.h>
 
 #include "OTRadioLink_SecureableFrameType.h"
@@ -106,7 +109,12 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf,
       // Copy in ID if not zero length, from RAM or EEPROM as appropriate.
       const bool idFromEEPROM = (NULL == id_);
       if(!idFromEEPROM) { memcpy(id, id_, il_); }
-      else { eeprom_read_block(id, (uint8_t *)V0P2BASE_EE_START_ID, il_); }
+      else
+#ifdef ARDUINO_ARCH_AVR
+          { eeprom_read_block(id, (uint8_t *)V0P2BASE_EE_START_ID, il_); }
+#else
+          { return(0); } // ERROR
+#endif
       }
     // Header length including frame length byte.
     const uint8_t hlifl = 4 + il_;

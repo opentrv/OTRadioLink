@@ -18,12 +18,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014--2016
 */
 
 /*
- Base sensor type for simple sensors returning scalar values.
-
- Most sensors should derive from this.
-
- May also be used for pseudo-sensors
- such as synthesised from multiple sensors combined.
+ Simple utilities.
  */
 
 #ifndef OTV0P2BASE_UTIL_H
@@ -37,9 +32,15 @@ namespace OTV0P2BASE
 {
 
 
-// Templated function versions of min/max that do not evaluate the arguments twice.
-template <class T> const T& fnmin(const T& a, const T& b) { return((a>b)?b:a); }
-template <class T> const T& fnmax(const T& a, const T& b) { return((a<b)?b:a); }
+// Templated function versions of min()/max() that do not evaluate the arguments twice.
+template <class T> constexpr const T& fnmin( const T& a, const T& b ) { return((a>b)?b:a); }
+template <class T> constexpr const T& fnmax( const T& a, const T& b ) { return((a<b)?b:a); }
+//template <class T> const T& fnmin(const T& a, const T& b) { return((a>b)?b:a); }
+//template <class T> const T& fnmax(const T& a, const T& b) { return((a<b)?b:a); }
+
+// Compatible non-macro constexpr fn replacement for Arduino constrain().
+// Constrains x to inclusive range [l,h].
+template <class T> constexpr const T& fnconstrain(const T& x, const T& l, const T& h) { return((x<l)?l:((x>h)?h:x)); }
 
 
 // Extract ASCII hex digit in range [0-9][a-f] (ie lowercase) from bottom 4 bits of argument.

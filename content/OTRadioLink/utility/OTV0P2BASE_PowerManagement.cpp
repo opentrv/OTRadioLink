@@ -18,18 +18,22 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 */
 
 /*
-  Utilities to assist with minimal power usage on V0p2 boards,
+  Utilities to assist with minimal power usage,
   including interrupts and sleep.
+
+  Mainly V0p2/AVR specific for now.
   */
 
+#ifdef ARDUINO_ARCH_AVR
 #include <util/atomic.h>
 #include <avr/wdt.h>
-//#include <avr/interrupt.h>
-//#include <avr/power.h>
-//#include <avr/sleep.h>
-//#include <util/delay_basic.h>
+#endif
+
+#ifdef ARDUINO
 #include <Arduino.h>
 #include <Wire.h>
+#endif
+
 #include "OTV0P2BASE_PowerManagement.h"
 #include "OTV0P2BASE_ADC.h"
 #include "OTV0P2BASE_Entropy.h"
@@ -39,26 +43,29 @@ namespace OTV0P2BASE
 {
 
 
-// If ADC was disabled, power it up, do Serial.begin(), and return true.
-// If already powered up then do nothing other than return false.
-// This does not power up the analogue comparator; this needs to be manually enabled if required.
-// If this returns true then a matching powerDownADC() may be advisable.
-bool powerUpADCIfDisabled()
-  {
-  if(!(PRR & _BV(PRADC))) { return(false); }
-  PRR &= ~_BV(PRADC); // Enable the ADC.
-  ADCSRA |= _BV(ADEN);
-  return(true);
-  }
+#ifdef ARDUINO_ARCH_AVR
+    // If ADC was disabled, power it up and return true.
+    // If already powered up then do nothing other than return false.
+    // This does not power up the analogue comparator; this needs to be manually enabled if required.
+    // If this returns true then a matching powerDownADC() may be advisable.
+    bool powerUpADCIfDisabled()
+      {
+      if(!(PRR & _BV(PRADC))) { return(false); }
+      PRR &= ~_BV(PRADC); // Enable the ADC.
+      ADCSRA |= _BV(ADEN);
+      return(true);
+      }
 
-//// Power ADC down.
-//void powerDownADC()
-//  {
-//  ADCSRA &= ~_BV(ADEN); // Do before power_[adc|all]_disable() to avoid freezing the ADC in an active state!
-//  PRR |= _BV(PRADC); // Disable the ADC.
-//  }
+    //// Power ADC down.
+    //void powerDownADC()
+    //  {
+    //  ADCSRA &= ~_BV(ADEN); // Do before power_[adc|all]_disable() to avoid freezing the ADC in an active state!
+    //  PRR |= _BV(PRADC); // Disable the ADC.
+    //  }
+#endif // ARDUINO_ARCH_AVR
 
 
+#ifdef ARDUINO_ARCH_AVR
 // Flush any pending UART TX bytes in the hardware if UART is enabled, eg useful after Serial.flush() and before sleep.
 static void flushSerialHW()
   {
@@ -71,7 +78,10 @@ static void flushSerialHW()
   while(!(UCSR0A & _BV(TXC0))) { } // Wait for the transmission to complete.
   return;
   }
+#endif // ARDUINO_ARCH_AVR
 
+
+#ifdef ARDUINO_ARCH_AVR
 //#ifndef flushSerialProductive
 // Does a Serial.flush() attempting to do some useful work (eg I/O polling) while waiting for output to drain.
 // Assumes hundreds of CPU cycles available for each character queued for TX.
@@ -90,7 +100,10 @@ void flushSerialProductive()
   flushSerialHW();
   }
 //#endif
+#endif // ARDUINO_ARCH_AVR
 
+
+#ifdef ARDUINO_ARCH_AVR
 #ifndef flushSerialSCTSensitive
 // Does a Serial.flush() idling for 15ms at a time while waiting for output to drain.
 // Does not change CPU clock speed or disable or mess with USART0, though may poll it.
@@ -110,8 +123,10 @@ void flushSerialSCTSensitive()
   flushSerialProductive();
   }
 #endif
+#endif // ARDUINO_ARCH_AVR
 
 
+#ifdef ARDUINO_ARCH_AVR
 // Flush any pending serial output and power it down if up.
 void powerDownSerial()
   {
@@ -126,39 +141,42 @@ void powerDownSerial()
   pinMode(V0p2_PIN_SERIAL_TX, INPUT_PULLUP);
   PRR |= _BV(PRUSART0); // Disable the UART module.
   }
+#endif // ARDUINO_ARCH_AVR
 
 
-// If TWI (I2C) was disabled, power it up, do Wire.begin(), and return true.
-// If already powered up then do nothing other than return false.
-// If this returns true then a matching powerDownRWI() may be advisable.
-bool powerUpTWIIfDisabled()
-  {
-  if(!(PRR & _BV(PRTWI))) { return(false); }
+#ifdef ARDUINO_ARCH_AVR
+    // If TWI (I2C) was disabled, power it up, do Wire.begin(), and return true.
+    // If already powered up then do nothing other than return false.
+    // If this returns true then a matching powerDownRWI() may be advisable.
+    bool powerUpTWIIfDisabled()
+      {
+      if(!(PRR & _BV(PRTWI))) { return(false); }
 
-  PRR &= ~_BV(PRTWI); // Enable TWI power.
-  TWCR |= _BV(TWEN); // Enable TWI.
-  Wire.begin(); // Set it going.
-  // TODO: reset TWBR and prescaler for our low CPU frequency     (TWBR = ((F_CPU / TWI_FREQ) - 16) / 2 gives -3!)
-#if F_CPU <= 1000000
-  TWBR = 0; // Implies SCL freq of F_CPU / (16 + 2 * TBWR * PRESC) = 62.5kHz @ F_CPU==1MHz and PRESC==1 (from Wire/TWI code).
-#endif
-  return(true);
-  }
+      PRR &= ~_BV(PRTWI); // Enable TWI power.
+      TWCR |= _BV(TWEN); // Enable TWI.
+      Wire.begin(); // Set it going.
+      // TODO: reset TWBR and prescaler for our low CPU frequency     (TWBR = ((F_CPU / TWI_FREQ) - 16) / 2 gives -3!)
+    #if F_CPU <= 1000000
+      TWBR = 0; // Implies SCL freq of F_CPU / (16 + 2 * TBWR * PRESC) = 62.5kHz @ F_CPU==1MHz and PRESC==1 (from Wire/TWI code).
+    #endif
+      return(true);
+      }
 
-// Power down TWI (I2C).
-void powerDownTWI()
-  {
-  TWCR &= ~_BV(TWEN); // Disable TWI.
-  PRR |= _BV(PRTWI); // Disable TWI power.
+    // Power down TWI (I2C).
+    void powerDownTWI()
+      {
+      TWCR &= ~_BV(TWEN); // Disable TWI.
+      PRR |= _BV(PRTWI); // Disable TWI power.
 
-  // De-activate internal pullups for TWI especially if powering down all TWI devices.
-  //digitalWrite(SDA, 0);
-  //digitalWrite(SCL, 0);
+      // De-activate internal pullups for TWI especially if powering down all TWI devices.
+      //digitalWrite(SDA, 0);
+      //digitalWrite(SCL, 0);
 
-  // Convert to hi-Z inputs.
-  //pinMode(SDA, INPUT);
-  //pinMode(SCL, INPUT);
-  }
+      // Convert to hi-Z inputs.
+      //pinMode(SDA, INPUT);
+      //pinMode(SCL, INPUT);
+      }
+#endif // ARDUINO_ARCH_AVR
 
 
 // Enable power to intermittent peripherals.
@@ -171,11 +189,14 @@ void powerDownTWI()
 // then 1ms delay should be plenty for the voltage on the cap to settle.
 void power_intermittent_peripherals_enable(bool waitUntilStable)
   {
+#ifdef ARDUINO_ARCH_AVR
+  // V0p2/AVR implementation.
   fastDigitalWrite(V0p2_PIN_DEFAULT_IO_POWER_UP, HIGH);
   pinMode(V0p2_PIN_DEFAULT_IO_POWER_UP, OUTPUT);
   // If requested, wait long enough that I/O peripheral power should be stable.
   // Wait in a relatively low-power way...
   if(waitUntilStable) { sleepLowPowerMs(1); }
+#endif // ARDUINO_ARCH_AVR
   }
 
 // Disable/remove power to intermittent peripherals.
@@ -183,11 +204,14 @@ void power_intermittent_peripherals_enable(bool waitUntilStable)
 // There should be some sort of load to stop this floating.
 void power_intermittent_peripherals_disable()
   {
+#ifdef ARDUINO_ARCH_AVR
+  // V0p2/AVR implementation.
   pinMode(V0p2_PIN_DEFAULT_IO_POWER_UP, INPUT);
+#endif // ARDUINO_ARCH_AVR
   }
 
 
-// Default low-battery threshold suitable for 2xAA NiMH, with AVR BOD at 1.8V.
+// Default V0p2 low-battery threshold suitable for 2xAA NiMH, with AVR BOD at 1.8V.
 // Set to be high enough for common sensors such as SHT21, ie >= 2.1V.
 #define BATTERY_LOW_CV 210
 
@@ -200,6 +224,7 @@ void power_intermittent_peripherals_disable()
 //#endif
 //#endif
 
+#ifdef ARDUINO_ARCH_AVR
 // Force a read/poll of the supply voltage and return the value sensed.
 // Expensive/slow.
 // NOT thread-safe nor usable within ISRs (Interrupt Service Routines).
@@ -225,6 +250,7 @@ uint16_t SupplyVoltageCentiVolts::read()
 #endif
   return(result);
   }
+#endif // ARDUINO_ARCH_AVR
 
 
 // Selectively turn off all modules that need not run continuously on V0p2 board
@@ -237,12 +263,17 @@ uint16_t SupplyVoltageCentiVolts::read()
 // Does NOT attempt to power down the hardware serial/UART.
 void minimisePowerWithoutSleep()
   {
+#ifdef ARDUINO_ARCH_AVR
+  // V0p2/AVR implementation.
   // Disable the watchdog timer.
   wdt_disable();
+#endif
 
   // Ensure that external peripherals are powered down.
   OTV0P2BASE::power_intermittent_peripherals_disable();
 
+#ifdef ARDUINO_ARCH_AVR
+  // V0p2/AVR implementation.
   // Turn off analogue stuff that eats power.
   ADCSRA = 0; // Do before power_[adc|all]_disable() to avoid freezing the ADC in an active state!
   ACSR = (1<<ACD); // Disable the analog comparator.
@@ -283,8 +314,10 @@ void minimisePowerWithoutSleep()
 //#ifndef WAKEUP_32768HZ_XTAL
 //  power_timer2_disable();
 //#endif
+#endif // ARDUINO_ARCH_AVR
   }
 
+#ifdef ARDUINO_ARCH_AVR
 //#ifdef WAKEUP_32768HZ_XTAL
 static void timer2XtalIntSetup()
  {
@@ -329,6 +362,7 @@ void powerSetup()
   timer2XtalIntSetup();
 //#endif
   }
+#endif // ARDUINO_ARCH_AVR
 
 
 

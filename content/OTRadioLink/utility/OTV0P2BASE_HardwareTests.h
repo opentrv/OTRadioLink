@@ -29,6 +29,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
  Some may require being passed a Print reference
  (which will often be an active hardware serial connection)
  to dump diagnostics to.
+
+ Hardware specific.
  */
 
 #ifndef OTV0P2BASE_HARDWARETESTS_H
@@ -43,13 +45,16 @@ namespace HWTEST
 {
 
 
+#ifdef ARDUINO_ARCH_AVR
 // Returns true if the 32768Hz low-frequency async crystal oscillator appears to be running.
 // This means the the Timer 2 clock needs to be running
 // and have an acceptable frequency compared to the CPU clock (1MHz).
 // Uses nap, and needs the Timer 2 to have been set up in async clock mode.
 // In passing gathers some entropy for the system.
 bool check32768HzOsc();
+#endif
 
+#ifdef ARDUINO_ARCH_AVR
 // Returns true if the 32768Hz low-frequency async crystal oscillator appears to be running and sane.
 // Performs an extended test that the CPU (RC) and crystal frequencies are in a sensible ratio.
 // This means the the Timer 2 clock needs to be running
@@ -57,6 +62,7 @@ bool check32768HzOsc();
 // Uses nap, and needs the Timer 2 to have been set up in async clock mode.
 // In passing gathers some entropy for the system.
 bool check32768HzOscExtended();
+#endif
 
 
 } }

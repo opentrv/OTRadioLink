@@ -18,6 +18,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 /*
  * Driver for FHT8V wireless valve actuator (and FS20 protocol encode/decode).
+ *
+ * V0p2/AVR only.
  */
 
 #ifndef ARDUINO_LIB_OTRADVALVE_FHT8VRADVALVE_H
@@ -25,6 +27,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 
 #include <stdint.h>
+#include <stdlib.h>
+
 #include <OTV0p2Base.h>
 #include "OTV0P2BASE_CLI.h"
 #include <OTRadioLink.h>
@@ -36,6 +40,7 @@ namespace OTRadValve
     {
 
 
+#ifdef ARDUINO_ARCH_AVR
 // FHT8V radio-controlled radiator valve, using FS20 protocol.
 //
 // http://stakeholders.ofcom.org.uk/binaries/spectrum/spectrum-policy-area/spectrum-management/research-guidelines-tech-info/interface-requirements/IR_2030-june2014.pdf
@@ -45,7 +50,7 @@ namespace OTRadValve
 // Techniques to access spectrum and mitigate interference that provide at least equivalent performance
 // to the techniques described in harmonised standards adopted under Directive 1999/5/EC must be used. Alternatively a duty cycle limit of 1 % may be used.
 // See band 48: http://eur-lex.europa.eu/legal-content/EN/TXT/PDF/?uri=CELEX:32013D0752&from=EN
-//
+#define FHT8VRadValveBase_DEFINED
 class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
   {
   public:
@@ -80,7 +85,7 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
 
     // Function to append (stats) trailer(s) to TX buffer (and add trailing 0xff if anything added); NULL if not needed.
     // Pointer set at construction.
-    appendToTXBufferFF_t const *trailerFn;
+    appendToTXBufferFF_t *const trailerFn;
 
     // Construct an instance, providing TX buffer details.
     FHT8VRadValveBase(uint8_t *_buf, uint8_t _bufSize, appendToTXBufferFF_t *trailerFnPtr)
@@ -441,6 +446,7 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
 // maxTrailerBytes specifies the maximum number of bytes of trailer that can be added.
 // preambleBytes specifies the space to leave for preamble bytes for remote receiver sync (defaults to RFM23-suitable value).
 // preambleByte specifies the (default) preamble byte value to use (defaults to RFM23-suitable value).
+#define FHT8VRadValve_DEFINED
 template <uint8_t maxTrailerBytes, uint8_t preambleBytes = FHT8VRadValveBase::RFM23_PREAMBLE_BYTES, uint8_t preambleByte = FHT8VRadValveBase::RFM23_PREAMBLE_BYTE>
 class FHT8VRadValve : public FHT8VRadValveBase
   {
@@ -483,7 +489,7 @@ class FHT8VRadValve : public FHT8VRadValveBase
       // The approximation is (valvePC * 250) / 100, ie *2.5, as *(2+0.5).
 
       // Work out if a trailer is allowed (by security level) and is possible to encode.
-      appendToTXBufferFF_t const *tfp = *trailerFn;
+      appendToTXBufferFF_t *const tfp = *trailerFn;
       const bool doTrailer = (NULL != tfp) && (OTV0P2BASE::getStatsTXLevel() <= OTV0P2BASE::stTXmostUnsec);
 
       // Usually add RFM23-friendly preamble (0xaaaaaaaa sync header) only
@@ -541,6 +547,7 @@ if(bptr - bptrInitial >= bufSize) { panic(F("FHT8V frame too big")); }
       return(true);
       }
   };
+#endif // ARDUINO_ARCH_AVR
 
 
     }

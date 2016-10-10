@@ -18,9 +18,16 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
                            Mike Stirling 2013 (RFM23B settings)
 */
 
-/**TEMPORARILY IN OTRadioLink AREA BEFORE BEING MOVED TO OWN LIBRARY. */
+/*
+ * OpenTRV RFM23B Radio Link base class.
+ *
+ * Currently V0p2/AVR ONLY.
+ */
 
+#ifdef ARDUINO_ARCH_AVR
 #include <util/atomic.h>
+#endif
+
 #include <OTV0p2Base.h>
 #include <OTRadioLink.h>
 
@@ -29,7 +36,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 namespace OTRFM23BLink {
 
-
+#ifdef OTRFM23BLinkBase_DEFINED
 // Set typical maximum frame length in bytes [1,63] to optimise radio behaviour.
 // Too long may allow overruns, too short may make long-frame reception hard.
 void OTRFM23BLinkBase::setMaxTypicalFrameBytes(const uint8_t _maxTypicalFrameBytes)
@@ -905,6 +912,7 @@ const uint8_t StandardRegSettingsJeeLabs[][2] PROGMEM =
 //   0x7F   N/A               R/W - FIFO Access
    { 0xff, 0xff } // End of settings.
   };
+#endif // OTRFM23BLinkBase_DEFINED
 
 
 }

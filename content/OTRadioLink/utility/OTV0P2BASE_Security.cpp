@@ -20,10 +20,13 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
  Basic security support.
  */
 
-
+#ifdef ARDUINO_ARCH_AVR
 #include <util/atomic.h>
+#endif
 
+#ifdef ARDUINO
 #include <Arduino.h>
+#endif
 
 #include "OTV0P2BASE_Security.h"
 
@@ -39,8 +42,12 @@ namespace OTV0P2BASE
 // Get the current basic stats transmission level (for data outbound from this node).
 // May not exactly match enumerated levels; use inequalities.
 // Not thread-/ISR- safe.
+#ifdef V0P2BASE_EE_START_STATS_TX_ENABLE
 stats_TX_level getStatsTXLevel() { return((stats_TX_level)eeprom_read_byte((uint8_t *)V0P2BASE_EE_START_STATS_TX_ENABLE)); }
+#endif
 
+
+#ifdef ARDUINO_ARCH_AVR
 
 // Coerce any EEPROM-based node OpenTRV ID bytes to valid values if unset (0xff) or if forced,
 // by filling with valid values (0x80--0xfe) from decent entropy gathered on the fly.
@@ -87,7 +94,6 @@ bool ensureIDCreated(const bool force)
 //  if(!allGood) { OTV0P2BASE::serialPrintlnAndFlush(F("Invalid ID")); }
   return(allGood);
   }
-
 
 
 /**
@@ -147,6 +153,7 @@ bool getPrimaryBuilding16ByteSecretKey(uint8_t *key)
     { if(0xff != key[i]) { isOK = true; } } // Keep execution time relatively constant; no 'break'.
   return(isOK);
   }
+
 
 /**
  * @brief Clears all existing node IDs.
@@ -269,6 +276,8 @@ int8_t getNextMatchingNodeID(const uint8_t _index, const uint8_t *prefix, const 
     // No match has been found.
     return(-1);
 }
+
+#endif // ARDUINO_ARCH_AVR
 
 
 }

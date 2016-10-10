@@ -14,13 +14,24 @@ specific language governing permissions and limitations
 under the Licence.
 
 Author(s) / Copyright (s): Deniz Erbilgin 2015
+                           Damon Hart-Davis 2016
 */
+
+/*
+ * Software-based serial/UART.
+ *
+ * V0p2/AVR only.
+ */
+
+#ifdef OTSoftSerial_DEFINED
 
 #include "OTV0P2BASE_SoftSerial.h"
 
-//#include <stdio.h>
 #include <stdlib.h>
+
+#ifdef ARDUINO_ARCH_AVR
 #include <util/atomic.h>
+#endif
 
 namespace OTV0P2BASE
 {
@@ -238,3 +249,6 @@ void OTSoftSerial::sendBreak()
 
 
 } // OTV0P2BASE
+
+#endif // OTSoftSerial_DEFINED
+

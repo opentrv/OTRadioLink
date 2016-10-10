@@ -20,6 +20,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 /*
  Serial (USB) I/O.
  
+ For a V0p2 board, write to the hardware serial,
+ otherwise (assuming non-embedded) write to stdout.
+
  Also, simple debug output to the serial port at its default (bootloader BAUD) rate.
 
  The debug support only enabled if V0P2BASE_DEBUG is defined, else does nothing, or at least as little as possible.
@@ -28,7 +31,12 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #ifndef OTV0P2BASE_SERIAL_IO_H
 #define OTV0P2BASE_SERIAL_IO_H
 
+#ifdef ARDUINO
 #include <Arduino.h>
+#else
+#include "utility/OTV0P2BASE_ArduinoCompat.h"
+#endif
+
 #include <OTV0p2Base.h>
 
 
@@ -99,15 +107,15 @@ void serialPrintAndFlush(char c);
 
 // Write a single (Flash-resident) number to serial and wait for transmission to complete.
 // This enables the serial if required and shuts it down afterwards if it wasn't enabled.
-void serialPrintAndFlush(int i, int fmt = DEC);
+void serialPrintAndFlush(int i, int fmt = 10); // Arduino print.h: #define DEC 10
 
 // Write a single (Flash-resident) number to serial and wait for transmission to complete.
 // This enables the serial if required and shuts it down afterwards if it wasn't enabled.
-void serialPrintAndFlush(unsigned u, int fmt = DEC);
+void serialPrintAndFlush(unsigned u, int fmt = 10); // Arduino print.h: #define DEC 10
 
 // Write a single (Flash-resident) number to serial and wait for transmission to complete.
 // This enables the serial if required and shuts it down afterwards if it wasn't enabled.
-void serialPrintAndFlush(unsigned long u, int fmt = DEC);
+void serialPrintAndFlush(unsigned long u, int fmt = 10); // Arduino print.h: #define DEC 10
 
 // Write line-end to serial and wait for transmission to complete.
 // This enables the serial if required and shuts it down afterwards if it wasn't enabled.

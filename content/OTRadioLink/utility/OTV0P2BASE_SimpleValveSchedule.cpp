@@ -20,10 +20,13 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
  Simple schedule support for TRV.
  */
 
-
+#ifdef ARDUINO_ARCH_AVR
 #include <util/atomic.h>
+#endif
 
+#ifdef ARDUINO
 #include <Arduino.h>
+#endif
 
 #include "OTV0P2BASE_SimpleValveSchedule.h"
 
@@ -34,6 +37,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 namespace OTV0P2BASE
 {
 
+
+#ifdef SimpleValveScheduleBase_DEFINED
 
 //#if defined(UNIT_TESTS)
 //// Support for unit tests to force particular apparent schedule state.
@@ -251,6 +256,8 @@ bool SimpleValveScheduleBase::isAnyScheduleOnWARMSoon()
 //  return(false);
 //  }
 //#endif
+
+#endif // SimpleValveScheduleBase_DEFINED
 
 
 }

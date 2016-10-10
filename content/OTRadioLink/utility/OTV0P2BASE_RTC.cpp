@@ -17,13 +17,18 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 */
 
 /*
- Real-time clock support AND RTC-connected watchdog/reset.
+ Real-time clock support and RTC-connected watchdog/reset.
+
+ Implementation highly hardware specific.
  */
 
-
+#ifdef ARDUINO_ARCH_AVR
 #include <util/atomic.h>
+#endif
 
+#ifdef ARDUINO
 #include <Arduino.h>
+#endif
 
 #include "OTV0P2BASE_EEPROM.h"
 #include "OTV0P2BASE_Sleep.h"
@@ -55,6 +60,7 @@ volatile uint_least16_t _minutesSinceMidnightLT;
 volatile uint_least16_t _daysSince1999LT;
 
 
+#ifdef ARDUINO_ARCH_AVR
 // The encoding for the persisted HH:MM value is as follows.
 // The top 5 bits are the hour in the range [0,23].
 // The bottom 3 bits indicate the quarter hour as follows:
@@ -115,7 +121,9 @@ void persistRTC()
       }
     }
   }
+#endif // ARDUINO_ARCH_AVR
 
+#ifdef ARDUINO_ARCH_AVR
 // Restore software RTC information from non-volatile (EEPROM) store, if possible.
 // Returns true if the persisted data seemed valid and was restored, in full or part.
 // To void on average using 15/2 minutes at each reset/restart,
@@ -156,8 +164,9 @@ bool restoreRTC()
 
   return(true);
   }
+#endif // ARDUINO_ARCH_AVR
 
-
+#ifdef ARDUINO_ARCH_AVR
 // Get minutes since midnight local time [0,1439].
 // Useful to fetch time atomically for scheduling purposes.
 // Preserves interrupt state.
@@ -171,17 +180,23 @@ uint_least16_t getMinutesSinceMidnightLT()
   return(result);
   }
 #endif
+#endif // ARDUINO_ARCH_AVR
 
+#ifdef ARDUINO_ARCH_AVR
 // Get local time minutes from RTC [0,59].
 // Relatively slow.
 // Thread-safe and ISR-safe.
 uint_least8_t getMinutesLT() { return(getMinutesSinceMidnightLT() % 60); }
+#endif
 
+#ifdef ARDUINO_ARCH_AVR
 // Get local time hours from RTC [0,23].
 // Relatively slow.
 // Thread-safe and ISR-safe.
 uint_least8_t getHoursLT() { return(getMinutesSinceMidnightLT() / 60); }
+#endif
 
+#ifdef ARDUINO_ARCH_AVR
 // Get whole days since the start of 2000/01/01 (ie the midnight between 1999 and 2000), local time.
 // This will roll in about 2179, by which time I will not care.
 // Thread-safe and ISR-safe.
@@ -192,8 +207,9 @@ uint_least16_t getDaysSince1999LT()
     { result = _daysSince1999LT; }
   return(result);
   }
+#endif // ARDUINO_ARCH_AVR
 
-
+#ifdef ARDUINO_ARCH_AVR
 // Get previous hour in current local time, wrapping round from 0 to 23.
 uint_least8_t getPrevHourLT()
   {
@@ -208,8 +224,10 @@ uint_least8_t getNextHourLT()
   if(h >= 23) { return(0); }
   return(h + 1);
   }
+#endif
 
 
+#ifdef ARDUINO_ARCH_AVR
 // Set time as hours [0,23] and minutes [0,59].
 // Will ignore attempts to set bad values and return false in that case.
 // Returns true if all OK and the time has been set.
@@ -231,6 +249,8 @@ bool setHoursMinutesLT(const uint8_t hours, const uint8_t minutes)
     }
   return(true); // Assume set and persisted OK.
   }
+#endif // ARDUINO_ARCH_AVR
+
 
 // Set nominal seconds [0,59].
 // Not persisted, may be offset from real time.
@@ -266,7 +286,7 @@ static volatile bool _RTCWatchdogResetNotCalled;
 void resetRTCWatchDog() { _RTCWatchdogResetNotCalled = false; }
 
 
-
+#ifdef ARDUINO_ARCH_AVR
 // Hook into TIMER2 overflow interrupt to drive RTC and provide slow wake-up tick.
 ISR(TIMER2_OVF_vect)
   {
@@ -298,6 +318,7 @@ ISR(TIMER2_OVF_vect)
     _RTCWatchdogResetNotCalled = true;
     }
   }
+#endif // ARDUINO_ARCH_AVR
 
 
 }

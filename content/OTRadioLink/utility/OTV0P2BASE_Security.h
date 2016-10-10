@@ -24,6 +24,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 #ifndef OTV0P2BASE_SECURITY_H
 #define OTV0P2BASE_SECURITY_H
 
+#include <stdint.h>
+
 #include "OTV0P2BASE_EEPROM.h"
 
 
@@ -92,7 +94,9 @@ bool checkPrimaryBuilding16ByteSecretKey(const uint8_t *key);
 
 // Maximum number of node associations that can be maintained for secure traffic.
 // This puts an upper bound on the number of nodes which a hub can listen to securely.
+#ifdef V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS
 static const uint8_t MAX_NODE_ASSOCIATIONS = V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS;
+#endif
 
 /**
  * @brief   Clears all existing node ID associations.

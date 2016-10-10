@@ -18,13 +18,17 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 /*
  SHT21 temperature and relative humidity sensor.
+
+ V0p2/AVR specific for now.
  */
 
 
 #include "OTV0P2BASE_SensorSHT21.h"
 
+#ifdef ARDUINO
 #include <Arduino.h>
 #include <Wire.h> // Arduino I2C library.
+#endif
 
 #include "OTV0P2BASE_Entropy.h"
 #include "OTV0P2BASE_PowerManagement.h"
@@ -34,6 +38,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 namespace OTV0P2BASE
 {
 
+
+#if defined(RoomTemperatureC16_SHT21_DEFINED) || defined(HumiditySensorSHT21_DEFINED)
 
 static const uint8_t SHT21_I2C_ADDR = 0x40;
 static const uint8_t SHT21_I2C_CMD_TEMP_HOLD   = 0xe3;
@@ -80,7 +86,10 @@ static void SHT21_init()
     }
   SHT21_initialised = true;
   }
+#endif // defined(RoomTemperatureC16_SHT21_DEFINED) || defined(HumiditySensorSHT21_DEFINED)
 
+
+#ifdef RoomTemperatureC16_SHT21_DEFINED
 // Measure and return the current ambient temperature in units of 1/16th C.
 // This may contain up to 4 bits of information to the right of the fixed binary point.
 // This may consume significant power and time.
@@ -129,7 +138,9 @@ int RoomTemperatureC16_SHT21::read()
   value = c16;
   return(c16);
   }
+#endif // RoomTemperatureC16_SHT21_DEFINED
 
+#ifdef HumiditySensorSHT21_DEFINED
 // Measure and return the current relative humidity in %; range [0,100] and 255 for error.
 // This may consume significant power and time.
 // Probably no need to do this more than (say) once per minute.
@@ -182,7 +193,7 @@ uint8_t HumiditySensorSHT21::read()
   else if(result < (HUMIDTY_HIGH_RHPC - HUMIDITY_EPSILON_RHPC)) { highWithHyst = false; }
   return(result);
   }
-
+#endif // RoomTemperatureC16_SHT21_DEFINED
 
 
 }

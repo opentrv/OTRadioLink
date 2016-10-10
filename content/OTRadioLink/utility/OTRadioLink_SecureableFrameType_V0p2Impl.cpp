@@ -19,10 +19,15 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 /*
  * V0p2-specific implementation of secure frame code,
  * using EEPROM for non-volatile storage of (eg) message counters.
+ *
+ * V0p2/AVR only.
  */
 
+#ifdef ARDUINO_ARCH_AVR
 #include <util/atomic.h>
 #include <util/crc16.h>
+#endif
+
 #include <string.h>
 
 #include "OTRadioLink_SecureableFrameType.h"
@@ -35,6 +40,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 namespace OTRadioLink
     {
 
+
+#ifdef SimpleSecureFrame32or0BodyTXV0p2_DEFINED
 
 // Factory method to get singleton TX instance.
 SimpleSecureFrame32or0BodyTXV0p2 &SimpleSecureFrame32or0BodyTXV0p2::getInstance()
@@ -652,6 +659,8 @@ bool SimpleSecureFrame32or0BodyTXV0p2SuppliedID::getTXID(uint8_t *const idOut)
     // Dynamically fetch/compute ID.
     return(getID(idOut));
     }
+
+#endif // SimpleSecureFrame32or0BodyTXV0p2_DEFINED
 
 
     }
