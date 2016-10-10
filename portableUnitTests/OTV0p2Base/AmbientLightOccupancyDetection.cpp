@@ -860,7 +860,7 @@ static const ALDataSample sample6k[] =
 {9,6,23,4},
 {9,6,31,6},
 {9,6,35,8},
-{9,6,47,50, 2}, // Light on: OCCUPIED.
+{9,6,47,50, 2}, // Light on or blinds open: OCCUPIED.
 {9,6,51,53},
 {9,7,7,48},
 {9,7,11,57},
