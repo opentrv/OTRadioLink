@@ -39,7 +39,7 @@ bool SensorAmbientLightOccupancyDetectorSimple::update(const uint8_t newLightLev
     bool result = false;
     // Only predict occupancy if no reason can be found NOT to.
     do  {
-        // Minimum/first condition for occupancy is rising light levels.
+        // Minimum/first condition for occupancy is a rising light level.
         if(newLightLevel <= prevLightLevel) { break; }
         const uint8_t rise = newLightLevel - prevLightLevel;
         // Any rise must be more than the fixed floor/noise threshold epsilon.
@@ -47,19 +47,19 @@ bool SensorAmbientLightOccupancyDetectorSimple::update(const uint8_t newLightLev
 
         // Any rise must be a decent fraction of min to mean (or min to max) distance.
         // Amount to right-shift mean (-min) and max (-min) to generate thresholds.
-        const uint8_t meanShift = sensitive ? 1 : 0;
+        const uint8_t meanShift = sensitive ? 2 : 1;
         // Assume minimum of 0 if none set.
         const uint8_t minToUse = (0xff == longTermMinimumOrFF) ? 0 : longTermMinimumOrFF;
         if((0xff != meanNowOrFF) && (meanNowOrFF >= minToUse))
 			{
             const uint8_t meanRiseThreshold = (meanNowOrFF - minToUse) >> meanShift;
-            if(rise <= meanRiseThreshold) { break; }
+            if(rise < meanRiseThreshold) { break; }
 			}
 //        else if((0xff != longTermMaximumOrFF) && (longTermMaximumOrFF >= minToUse))
 //            {
-//            const int maxSh÷ift = meanShift + 1;
+//            const int maxShift = meanShift + 1;
 //            const uint8_t maxRiseThreshold = (longTermMaximumOrFF - minToUse) >> maxShift;
-//            if(rise <= maxRiseThreshold) { break; }
+//            if(rise < maxRiseThreshold) { break; }
 //            }
 
         result = true;

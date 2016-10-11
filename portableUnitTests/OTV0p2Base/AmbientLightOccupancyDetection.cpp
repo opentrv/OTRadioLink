@@ -149,7 +149,7 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
             ((maxI >= 0) ? (uint8_t)maxI : 0xff);
     // Run simulation with different stats blending types
     // to ensure that occupancy detection is robust.
-    enum blending_t { NONE, HALFHOUR, END };
+    enum blending_t { NONE, HALFHOURMIN, HALFHOUR, BYMINUTE, END };
     for(int blending = NONE; blending < END; ++blending)
         {
 if(verbose) { fprintf(stderr, "blending = %d\n", blending); }
@@ -186,7 +186,7 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
                                 }
                             break;
                             }
-                        case HALFHOUR: // Use blended mean for final half hour hour.
+                        case HALFHOURMIN: // Use blended (min) mean for final half hour hour.
                             {
                             const uint8_t thm = byHourMeanI[H];
                             const uint8_t nhm = byHourMeanI[(H+1)%24];
@@ -200,13 +200,41 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
                             detector->setTypMinMax(m, minToUse, maxToUse, sensitive);
                             break;
                             }
+                        case HALFHOUR: // Use blended mean for final half hour hour.
+                            {
+                            const uint8_t thm = byHourMeanI[H];
+                            const uint8_t nhm = byHourMeanI[(H+1)%24];
+                            int8_t m = thm; // Default to this hour's mean.
+                            if(M >= 30)
+                                {
+                                // In last half hour of each hour...
+                                if(0xff == thm) { m = nhm; } // Use next hour mean if none available for this hour.
+                                else if(0xff != nhm) { m = (thm + (int)nhm + 1) / 2; } // Take mean when both hours' means available.
+                                }
+                            detector->setTypMinMax(m, minToUse, maxToUse, sensitive);
+                            break;
+                            }
+                        case BYMINUTE: // Adjust blend by minute.
+                            {
+                            const uint8_t thm = byHourMeanI[H];
+                            const uint8_t nhm = byHourMeanI[(H+1)%24];
+                            int8_t m = thm; // Default to this hour's mean.
+                            if(0xff == thm) { m = nhm; } // Use next hour's mean always if this one's not available.
+                            else
+                                {
+                                // Continuous blend.
+                                m = ((((int)thm) * (60-M)) + (((int)nhm) * M) + 30) / 60;
+                                }
+                            detector->setTypMinMax(m, minToUse, maxToUse, sensitive);
+                            break;
+                            }
                         }
                     oldH = H;
                     const bool prediction = detector->update(dp->L);
                     if(prediction) { ++nOccupancyReports; }
-if(verbose && prediction) { fprintf(stderr, "@ %d:%d L = %d\n", H, (int)(currentMinute % 60), dp->L); }
                     // Note that for all synthetic ticks the expectation is removed (since there is no level change).
                     const uint8_t expected = (currentMinute != dp->currentMinute()) ? 0 : dp->expected;
+if(verbose && prediction) { fprintf(stderr, "@ %d:%d L = %d e = %d\n", H, M, dp->L, expected); }
                     if(0 != expected)
                         {
                         // If a particular outcome was expected, test against it.
@@ -247,7 +275,7 @@ static const ALDataSample sample3lHard[] =
 {8,7,9,14},  // OCCUPIED: curtains drawn?
 {8,7,17,35},
 {8,7,21,38},
-{8,7,33,84},
+{8,7,33,84, 2}, // Lights on or more curtains drawn?  Possibly occupied.
 {8,7,37,95},
 {8,7,49,97, 1}, // Not enough rise to be occupation.
 {8,7,57,93, 1}, // Fall is not indicative of occupation.
@@ -392,7 +420,7 @@ static const ALDataSample sample5sHard[] =
 {8,7,11,12},
 {8,7,15,13},
 {8,7,19,17},
-{8,7,27,42},
+{8,7,27,42}, // ? Curtains drawn?
 {8,7,31,68},
 {8,7,43,38},
 {8,7,51,55},
@@ -483,7 +511,7 @@ static const ALDataSample sample5sHard[] =
 {8,20,55,13},
 {8,20,58,14},
 {8,21,7,3, 1}, // Light turned off, no occupancy.
-{8,21,23,2},
+{8,21,23,2, 1}, // Light turned off, no occupancy.
 {8,21,39,2},
 {8,21,55,2},
 {8,22,11,2},
@@ -534,8 +562,8 @@ static const ALDataSample sample5sHard[] =
 {9,6,39,19},
 {9,6,43,26},
 {9,6,59,24},
-{9,7,7,28},
-{9,7,15,66, 1}, // Not yet up and about.
+{9,7,7,28, 1}, // Not yet up and about.
+{9,7,15,66},
 {9,7,27,181, 2}, // Curtains drawn: OCCUPANCY.
 {9,7,43,181},
 {9,7,51,181},
@@ -747,7 +775,7 @@ static const ALDataSample sample2bHard[] =
 {9,19,16,9},
 {9,19,28,10},
 {9,19,44,6},
-{9,19,48,11},
+{9,19,48,11, 2}, // Small light on?  Possible occupancy.
 {9,19,56,8},
 {9,20,4,8},
 {9,20,8,3, 1}, // Light off, no qctive occupancy.
