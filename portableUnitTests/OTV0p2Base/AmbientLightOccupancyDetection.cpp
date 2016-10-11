@@ -89,9 +89,9 @@ static const ALDataSample trivialSample1[] =
 // Can be supplied with nominal long-term rolling mean levels by hour,
 // or they can be computed from the data supplied (NULL means none supplied, 0xff entry means none for given hour).
 // Uses the update() call for the main simulation.
-// Uses the setTypMinMax() call as the hour rolls;
+// Uses the setTypMinMax() call as the hour rolls or in more complex blended-stats modes;
 // runs with 'sensitive' in both states to verify algorithm's robustness.
-// Will fail if a large amount of the time occupancy is predicted.
+// Will fail if an excessive amount of the time occupancy is predicted (more than ~25%).
 void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface *const detector,
                          const uint8_t minLevel = 0xff, const uint8_t maxLevel = 0xff,
                          const uint8_t meanByHour[24] = NULL)
