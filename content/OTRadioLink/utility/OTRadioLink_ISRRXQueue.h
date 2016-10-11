@@ -135,7 +135,7 @@ namespace OTRadioLink
                 { queueRXMsgsMin = 0; maxRXMsgLen = 0; }
             virtual uint8_t isFull() const { return(true); }
             virtual volatile uint8_t *_getRXBufForInbound() const { return(NULL); }
-            virtual void _loadedBuf(uint8_t frameLen) { }
+            virtual void _loadedBuf(uint8_t /*frameLen*/) { }
             virtual const volatile uint8_t *peekRXMsg() const { return(NULL); }
             virtual void removeRXMsg() { }
         };

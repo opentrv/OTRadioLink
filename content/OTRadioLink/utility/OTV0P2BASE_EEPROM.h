@@ -294,8 +294,8 @@ bool zapStats(uint16_t maxBytesToErase = 0);
 
 // Get raw stats value for specified hour [0,23]/current/next from stats set N from non-volatile (EEPROM) store.
 // A value of STATS_UNSET_BYTE (0xff (255)) means unset (or out of range); other values depend on which stats set is being used.
-//   * hour  hour of day to use, or ~0 for current hour, or >23 for next hour.
-uint8_t getByHourStat(uint8_t statsSet, uint8_t hour);
+//   * hour  hour of day to use, or ~0/0xff for current hour (default), or >23 for next hour.
+uint8_t getByHourStat(uint8_t statsSet, uint8_t hour = 0xff);
 
 // Get minimum sample from given stats set ignoring all unset samples; STATS_UNSET_BYTE if all samples are unset.
 uint8_t getMinByHourStat(uint8_t statsSet);

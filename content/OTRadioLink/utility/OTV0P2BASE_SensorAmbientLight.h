@@ -27,6 +27,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 #include "OTV0P2BASE_Util.h"
 #include "OTV0P2BASE_Sensor.h"
+#include "OTV0P2BASE_SensorAmbientLightOccupancy.h"
 
 
 namespace OTV0P2BASE
@@ -95,6 +96,12 @@ class SensorAmbientLight : public SimpleTSUint8Sensor
     //   * sensitive  if true be more sensitive to possible occupancy changes, else less so.
     void _recomputeThresholds(bool sensitive = true);
 
+    // Embedded occupancy detection object.
+    // May be moved out of here to stand alone,
+    // or could be parameterised at compile time with a template,
+    // or at run time by being constructed with a pointer to the base type.
+    SensorAmbientLightOccupancyDetectorSimple occupancyDetector;
+
   public:
     SensorAmbientLight(const uint8_t defaultLightThreshold_ = DEFAULT_LIGHT_THRESHOLD)
       : rawValue((uint16_t) ~0U), // Initial value is distinct.
@@ -152,9 +159,22 @@ class SensorAmbientLight : public SimpleTSUint8Sensor
     // Set recent min and max ambient light levels from recent stats, to allow auto adjustment to dark; ~0/0xff means no min/max available.
     // Short term stats are typically over the last day,
     // longer term typically over the last week or so (eg rolling exponential decays).
-    // Call regularly, roughly hourly, to drive other internal time-dependent adaptation.
+    // Call regularly, at least roughly hourly, to drive other internal time-dependent adaptation.
     //   * sensitive  if true be more sensitive to possible occupancy changes, else less so.
+    // DEPRECATED: use setTypMinMax() with the extra typical/mean parameter.
     void setMinMax(uint8_t recentMinimumOrFF, uint8_t recentMaximumOrFF,
+                   uint8_t longerTermMinimumOrFF = 0xff, uint8_t longerTermMaximumOrFF = 0xff,
+                   bool sensitive = true)
+        { setTypMinMax(0xff, recentMinimumOrFF, recentMaximumOrFF, longerTermMinimumOrFF,longerTermMaximumOrFF, sensitive); }
+
+    // Set recent min and max ambient light levels from recent stats, to allow auto adjustment to dark; ~0/0xff means no min/max available.
+    // Short term stats are typically over the last day,
+    // longer term typically over the last week or so (eg rolling exponential decays).
+    // Call regularly, at least roughly hourly, to drive other internal time-dependent adaptation.
+    //   * meanNowOrFF  typical/mean light level around this time each 24h; 0xff if not known.
+    //   * sensitive  if true be more sensitive to possible occupancy changes, else less so.
+    void setTypMinMax(uint8_t meanNowOrFF,
+                   uint8_t recentMinimumOrFF, uint8_t recentMaximumOrFF,
                    uint8_t longerTermMinimumOrFF = 0xff, uint8_t longerTermMaximumOrFF = 0xff,
                    bool sensitive = true);
 
