@@ -149,7 +149,7 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
             ((maxI >= 0) ? (uint8_t)maxI : 0xff);
     // Run simulation with different stats blending types
     // to ensure that occupancy detection is robust.
-    enum blending_t { NONE, END };
+    enum blending_t { NONE, HALFHOUR, END };
     for(int blending = NONE; blending < END; ++blending)
         {
 if(verbose) { fprintf(stderr, "blending = %d\n", blending); }
@@ -168,9 +168,10 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
                 long currentMinute = dp->currentMinute();
                 do  {
                     const uint8_t H = (currentMinute % 1440) / 60;
+                    const uint8_t M = (currentMinute % 60);
                     switch(blending)
                         {
-                        case NONE:
+                        case NONE: // Use unblended mean for this hour.
                             {
                             if(H != oldH)
                                 {
@@ -182,11 +183,25 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
 //fprintf(stderr, "mean = %d\n", byHourMeanI[H]);
                                 detector->setTypMinMax(byHourMeanI[H], minToUse, maxToUse, sensitive);
                                 ASSERT_EQ(sensitive, detector->isSensitive());
-                                oldH = H;
                                 }
                             break;
                             }
+                        case HALFHOUR: // Use blended mean for final half hour hour.
+                            {
+                            const uint8_t thm = byHourMeanI[H];
+                            const uint8_t nhm = byHourMeanI[(H+1)%24];
+                            int8_t m = thm; // Default to this hour's mean.
+                            if(M >= 30)
+                                {
+                                // In last half hour of each hour...
+                                if(0xff == thm) { m = nhm; } // Use next hour mean if none available for this hour.
+                                else if(0xff != nhm) { m = OTV0P2BASE::fnmin(nhm, thm); } // Take min when both hours' means available.
+                                }
+                            detector->setTypMinMax(m, minToUse, maxToUse, sensitive);
+                            break;
+                            }
                         }
+                    oldH = H;
                     const bool prediction = detector->update(dp->L);
                     if(prediction) { ++nOccupancyReports; }
 if(verbose && prediction) { fprintf(stderr, "@ %d:%d L = %d\n", H, (int)(currentMinute % 60), dp->L); }
@@ -196,7 +211,6 @@ if(verbose && prediction) { fprintf(stderr, "@ %d:%d L = %d\n", H, (int)(current
                         {
                         // If a particular outcome was expected, test against it.
                         const bool expectedOccupancy = (expected > 1);
-                        const uint8_t M = (currentMinute % 60);
                         EXPECT_EQ(expectedOccupancy, prediction) << " @ " << ((int)H) << ":" << ((int)M);
                         }
                     ++currentMinute;
