@@ -157,7 +157,7 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
         for(int s = 0; s <= 1; ++s)
             {
             const bool sensitive = (0 != s);
-        fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr);
+fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr);
             // Count of number of occupancy signals.
             int nOccupancyReports = 0;
             uint8_t oldH = 0xff;
@@ -173,14 +173,14 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
                         // and other times.
                         // The detector and caller should aim not to be hugely sensitive to the exact timing,
                         // eg by blending prev/current/next periods linearly.
-        //fprintf(stderr, "mean = %d\n", byHourMeanI[H]);
+//fprintf(stderr, "mean = %d\n", byHourMeanI[H]);
                         detector->setTypMinMax(byHourMeanI[H], minToUse, maxToUse, sensitive);
                         ASSERT_EQ(sensitive, detector->isSensitive());
                         oldH = H;
                         }
                     const bool prediction = detector->update(dp->L);
                     if(prediction) { ++nOccupancyReports; }
-        if(prediction) { fprintf(stderr, "@ %d:%d L = %d\n", H, (int)(currentMinute % 60), dp->L); }
+if(prediction) { fprintf(stderr, "@ %d:%d L = %d\n", H, (int)(currentMinute % 60), dp->L); }
                     // Note that for all synthetic ticks the expectation is removed (since there is no level change).
                     const uint8_t expected = (currentMinute != dp->currentMinute()) ? 0 : dp->expected;
                     if(0 != expected)
