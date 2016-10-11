@@ -152,6 +152,7 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
     enum blending_t { NONE, END };
     for(int blending = NONE; blending < END; ++blending)
         {
+if(verbose) { fprintf(stderr, "blending = %d\n", blending); }
         // Run simulation at both sensitivities.
         int nOccupancyReportsSensitive = 0;
         int nOccupancyReportsNotSensitive = 0;
