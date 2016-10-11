@@ -29,7 +29,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 #include <stddef.h>
 #include <stdint.h>
 #include <OTV0p2Base.h>
-#include "OTRadValve_AbstractRadValve.h"
+//#include "OTRadValve_AbstractRadValve.h"
+#include "OTRadValve_ValveMotorBase.h"
 
 
 // Use namespaces to help avoid collisions.
@@ -293,48 +294,6 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
     // Returns true if in an error state.
     // May be recoverable by forcing recalibration.
     virtual bool isInErrorState() const { return(state >= (uint8_t)valveError); }
-  };
-
-
-
-class ValveMotorDirectV1HardwareDriverBase : public OTRadValve::HardwareMotorDriverInterface
-  {
-  public:
-    // Approx minimum time to let H-bridge settle/stabilise (ms).
-    static const uint8_t minMotorHBridgeSettleMS = 8;
-    // Min sub-cycle ticks for H-bridge to settle.
-    static const uint8_t minMotorHBridgeSettleTicks = max(1, minMotorHBridgeSettleMS / OTV0P2BASE::SUBCYCLE_TICK_MS_RD);
-
-    // Approx minimum runtime to get motor up to speed (from stopped) and not give false high-current readings (ms).
-    // Based on DHD20151019 DORM1 prototype rig-up and NiMH battery; 32ms+ seems good.
-    static const uint8_t minMotorRunupMS = 32;
-    // Min sub-cycle ticks to run up.
-    static const uint8_t minMotorRunupTicks = max(1, minMotorRunupMS / OTV0P2BASE::SUBCYCLE_TICK_MS_RD);
-
-  private:
-    // Maximum current reading allowed when closing the valve (against the spring).
-    static const uint16_t maxCurrentReadingClosing = 600;
-    // Maximum current reading allowed when opening the valve (retracting the pin, no resisting force).
-    // Keep this as low as possible to reduce the chance of skipping the end-stop and game over...
-    // DHD20151229: at 500 Shenzhen sample unit without outer case (so with more flex) was able to drive past end-stop.
-    static const uint16_t maxCurrentReadingOpening = 450; // DHD20151023: 400 seemed marginal.
-
-  protected:
-    // Spin for up to the specified number of SCT ticks, monitoring current and position encoding.
-    //   * maxRunTicks  maximum sub-cycle ticks to attempt to run/spin for); strictly positive
-    //   * minTicksBeforeAbort  minimum ticks before abort for end-stop / high-current,
-    //       don't attempt to run at all if less than this time available before (close to) end of sub-cycle;
-    //       should be no greater than maxRunTicks
-    //   * dir  direction to run motor (open or closed) or off if waiting for motor to stop
-    //   * callback  handler to deliver end-stop and position-encoder callbacks to;
-    //     non-null and callbacks must return very quickly
-    // If too few ticks remain before the end of the sub-cycle for the minimum run,
-    // then this will return true immediately.
-    // Invokes callbacks for high current (end stop) and position (shaft) encoder where applicable.
-    // Aborts early if high current is detected at the start,
-    // or after the minimum run period.
-    // Returns true if aborted early from too little time to start, or by high current (assumed end-stop hit).
-    bool spinSCTTicks(uint8_t maxRunTicks, uint8_t minTicksBeforeAbort, OTRadValve::HardwareMotorDriverInterface::motor_drive dir, OTRadValve::HardwareMotorDriverInterfaceCallbackHandler &callback);
   };
 
 // Implementation for V1 (REV7/DORM1) motor.

@@ -22,7 +22,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
  * V0p2/AVR only.
  */
 
-#include "OTRadValve_AbstractRadValve.h"
+//#include "OTRadValve_AbstractRadValve.h"
 #include "OTRadValve_ValveMotorDirectV1.h"
 
 #include "OTV0P2BASE_Serial_IO.h"
@@ -32,111 +32,6 @@ namespace OTRadValve
 
 
 #ifdef ValveMotorDirectV1_DEFINED
-
-// Note: internal resistance of fresh AA alkaline cell may be ~0.2 ohm at room temp:
-//    http://data.energizer.com/PDFs/BatteryIR.pdf
-// NiMH may be nearer 0.025 ohm.
-// Typical motor impedance expected here ~5 ohm, with supply voltage 2--3V.
-
-
-// Time before starting to retract pint during initialisation, in seconds.
-// Long enough for to leave the CLI some time for setting things like setting secret keys.
-// Short enough not to be annoying waiting for the pin to retract before fitting a valve.
-static const uint8_t initialRetractDelay_s = 30;
-
-// Runtime for dead-reckoning adjustments (from stopped) (ms).
-// Smaller values nominally allow greater precision when dead-reckoning,
-// but may force the calibration to take longer.
-// Based on DHD20151020 DORM1 prototype rig-up and NiMH battery; 250ms+ seems good.
-static const uint8_t minMotorDRMS = 250;
-// Min sub-cycle ticks for dead reckoning.
-static const uint8_t minMotorDRTicks = max(1, (uint8_t)(minMotorDRMS / OTV0P2BASE::SUBCYCLE_TICK_MS_RD));
-
-// Absolute limit in sub-cycle beyond which motor should not be started.
-// This should allow meaningful movement and stop and settle and no sub-cycle overrun.
-// Allows for up to 120ms enforced sleep either side of motor run for example.
-// This should not be so greedy as to (eg) make the CLI unusable: 90% is pushing it.
-static const uint8_t sctAbsLimit = OTV0P2BASE::GSCT_MAX - max(1, ((OTV0P2BASE::GSCT_MAX+1)/4)) - OTRadValve::ValveMotorDirectV1HardwareDriverBase::minMotorRunupTicks - 1 - (uint8_t)(240 / OTV0P2BASE::SUBCYCLE_TICK_MS_RD);
-
-// Absolute limit in sub-cycle beyond which motor should not be started for dead-reckoning pulse.
-// This should allow meaningful movement and no sub-cycle overrun.
-static const uint8_t sctAbsLimitDR = sctAbsLimit - minMotorDRTicks;
-
-
-// Spin for up to the specified number of SCT ticks, monitoring current and position encoding.
-//   * maxRunTicks  maximum sub-cycle ticks to attempt to run/spin for); strictly positive
-//   * minTicksBeforeAbort  minimum ticks before abort for end-stop / high-current,
-//       don't attempt to run at all if less than this time available before (close to) end of sub-cycle;
-//       should be no greater than maxRunTicks
-//   * dir  direction to run motor (open or closed) or off if waiting for motor to stop
-//   * callback  handler to deliver end-stop and position-encoder callbacks to;
-//     non-null and callbacks must return very quickly
-// If too few ticks remain before the end of the sub-cycle for the minimum run,
-// then this will return true immediately.
-// Invokes callbacks for high current (end stop) and position (shaft) encoder where applicable.
-// Aborts early if high current is detected at the start,
-// or after the minimum run period.
-// Returns true if aborted early from too little time to start, or by high current (assumed end-stop hit).
-bool ValveMotorDirectV1HardwareDriverBase::spinSCTTicks(const uint8_t maxRunTicks, const uint8_t minTicksBeforeAbort, const OTRadValve::HardwareMotorDriverInterface::motor_drive dir, OTRadValve::HardwareMotorDriverInterfaceCallbackHandler &callback)
-  {
-  // Sub-cycle time now.
-  const uint8_t sctStart = OTV0P2BASE::getSubCycleTime();
-  // Only run up to ~90% point of the minor cycle to leave time for other processing.
-  uint8_t sct = sctStart;
-  const uint8_t maxTicksBeforeAbsLimit = (sctAbsLimit - sct);
-  // Abort immediately if not enough time to do minimum run.
-  if((sct >= sctAbsLimit) || (maxTicksBeforeAbsLimit < minTicksBeforeAbort)) { return(true); }
-  // Note if opening or closing...
-  const bool stopped = (HardwareMotorDriverInterface::motorOff == dir);
-  const bool isOpening = (HardwareMotorDriverInterface::motorDriveOpening == dir);
-  bool currentHigh = false;
-  // Compute time minimum time before return, then target time before stop/return.
-  const uint8_t sctMinRunTime = sctStart + minTicksBeforeAbort; // Min run time to avoid false readings.
-  const uint8_t sctMaxRunTime = sctStart + min(maxRunTicks, maxTicksBeforeAbsLimit);
-  // Do minimum run time, NOT checking for end-stop / high current.
-  for( ; ; )
-    {
-    // Poll shaft encoder output and update tick counter.
-    const uint8_t newSct = OTV0P2BASE::getSubCycleTime();
-    if(newSct != sct)
-      {
-      sct = newSct; // Assumes no intermediate values missed.
-      if(!stopped) { callback.signalRunSCTTick(isOpening); }
-      if(sct >= sctMinRunTime) { break; }
-      }
-    // TODO: shaft encoder
-    }
-
-  // Do as much of requested above-minimum run-time as possible,
-  // iff run time beyond the minimum was actually requested
-  // (else avoid the current sampling entirely).
-  if(sctMaxRunTime > sctMinRunTime)
-    {
-    for( ; ; )
-      {
-      // Check for high current and abort if detected.
-      if(isCurrentHigh(dir)) { currentHigh = true; break; }
-      // Poll shaft encoder output and update tick counter.
-      const uint8_t newSct = OTV0P2BASE::getSubCycleTime();
-      if(newSct != sct)
-        {
-        sct = newSct; // Assumes no intermediate values missed.
-        if(!stopped) { callback.signalRunSCTTick(isOpening); }
-        if(sct >= sctMaxRunTime) { break; }
-        }
-      }
-    }
-
-  // Call back and return true if current high / end-stop seen.
-  if(currentHigh)
-    {
-    callback.signalHittingEndStop(isOpening);
-    return(true);
-    }
-  return(false);
-  }
-
-
 
 
 // Called with each motor run sub-cycle tick.
