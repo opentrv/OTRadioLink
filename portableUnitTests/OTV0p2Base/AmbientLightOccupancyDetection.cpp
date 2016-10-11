@@ -96,7 +96,7 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
                          const uint8_t minLevel = 0xff, const uint8_t maxLevel = 0xff,
                          const uint8_t meanByHour[24] = NULL)
     {
-    static const bool verbose = true; // Set true for more verbose reporting.
+    static const bool verbose = false; // Set true for more verbose reporting.
     ASSERT_TRUE(NULL != data);
     ASSERT_TRUE(NULL != detector);
     ASSERT_FALSE(data->isEnd()) << "do not pass in empty data set";
