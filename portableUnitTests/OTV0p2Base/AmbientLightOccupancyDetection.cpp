@@ -146,55 +146,61 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
             ((minI < 255) ? (uint8_t)minI : 0xff);
     const uint8_t maxToUse = (0xff != maxLevel) ? maxLevel :
             ((maxI >= 0) ? (uint8_t)maxI : 0xff);
-    // Run simulation at both sensitivities.
-    int nOccupancyReportsSensitive = 0;
-    int nOccupancyReportsNotSensitive = 0;
-    for(int s = 0; s <= 1; ++s)
+    // Run simulation with different stats blending types
+    // to ensure that occupancy detection is robust.
+    enum blending_t { NONE, END };
+    for(int blending = NONE; blending < END; ++blending)
         {
-        const bool sensitive = (0 != s);
-fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr);
-        // Count of number of occupancy signals.
-        int nOccupancyReports = 0;
-        uint8_t oldH = 0xff;
-        for(const ALDataSample *dp = data; !dp->isEnd(); ++dp)
+        // Run simulation at both sensitivities.
+        int nOccupancyReportsSensitive = 0;
+        int nOccupancyReportsNotSensitive = 0;
+        for(int s = 0; s <= 1; ++s)
             {
-            long currentMinute = dp->currentMinute();
-            do  {
-                const uint8_t H = (currentMinute % 1440) / 60;
-                if(H != oldH)
-                    {
-                    // When the hour rolls, set new stats for the detector.
-                    // Note that implementations be use the end of the hour/period
-                    // and other times.
-                    // The detector and caller should aim not to be hugely sensitive to the exact timing,
-                    // eg by blending prev/current/next periods linearly.
-//fprintf(stderr, "mean = %d\n", byHourMeanI[H]);
-                    detector->setTypMinMax(byHourMeanI[H], minToUse, maxToUse, sensitive);
-                    ASSERT_EQ(sensitive, detector->isSensitive());
-                    oldH = H;
-                    }
-                const bool prediction = detector->update(dp->L);
-                if(prediction) { ++nOccupancyReports; }
-if(prediction) { fprintf(stderr, "@ %d:%d L = %d\n", H, (int)(currentMinute % 60), dp->L); }
-                // Note that for all synthetic ticks the expectation is removed (since there is no level change).
-                const uint8_t expected = (currentMinute != dp->currentMinute()) ? 0 : dp->expected;
-                if(0 != expected)
-                    {
-                    // If a particular outcome was expected, test against it.
-                    const bool expectedOccupancy = (expected > 1);
-                    const uint8_t M = (currentMinute % 60);
-                    EXPECT_EQ(expectedOccupancy, prediction) << " @ " << ((int)H) << ":" << ((int)M);
-                    }
-                ++currentMinute;
-                } while((!(dp+1)->isEnd()) && (currentMinute < (dp+1)->currentMinute()));
+            const bool sensitive = (0 != s);
+        fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr);
+            // Count of number of occupancy signals.
+            int nOccupancyReports = 0;
+            uint8_t oldH = 0xff;
+            for(const ALDataSample *dp = data; !dp->isEnd(); ++dp)
+                {
+                long currentMinute = dp->currentMinute();
+                do  {
+                    const uint8_t H = (currentMinute % 1440) / 60;
+                    if(H != oldH)
+                        {
+                        // When the hour rolls, set new stats for the detector.
+                        // Note that implementations be use the end of the hour/period
+                        // and other times.
+                        // The detector and caller should aim not to be hugely sensitive to the exact timing,
+                        // eg by blending prev/current/next periods linearly.
+        //fprintf(stderr, "mean = %d\n", byHourMeanI[H]);
+                        detector->setTypMinMax(byHourMeanI[H], minToUse, maxToUse, sensitive);
+                        ASSERT_EQ(sensitive, detector->isSensitive());
+                        oldH = H;
+                        }
+                    const bool prediction = detector->update(dp->L);
+                    if(prediction) { ++nOccupancyReports; }
+        if(prediction) { fprintf(stderr, "@ %d:%d L = %d\n", H, (int)(currentMinute % 60), dp->L); }
+                    // Note that for all synthetic ticks the expectation is removed (since there is no level change).
+                    const uint8_t expected = (currentMinute != dp->currentMinute()) ? 0 : dp->expected;
+                    if(0 != expected)
+                        {
+                        // If a particular outcome was expected, test against it.
+                        const bool expectedOccupancy = (expected > 1);
+                        const uint8_t M = (currentMinute % 60);
+                        EXPECT_EQ(expectedOccupancy, prediction) << " @ " << ((int)H) << ":" << ((int)M);
+                        }
+                    ++currentMinute;
+                    } while((!(dp+1)->isEnd()) && (currentMinute < (dp+1)->currentMinute()));
+                }
+            // Check that there are not huge numbers of (false) positives.
+            ASSERT_TRUE(nOccupancyReports <= (nRecords/2)) << "far too many occupancy indications";
+            if(sensitive) { nOccupancyReportsSensitive = nOccupancyReports; }
+            else { nOccupancyReportsNotSensitive = nOccupancyReports; }
+            detector->update(254); // Force detector to 'initial'-like state ready for re-run.
             }
-        // Check that there are not huge numbers of (false) positives.
-        ASSERT_TRUE(nOccupancyReports <= (nRecords/2)) << "far too many occupancy indications";
-        if(sensitive) { nOccupancyReportsSensitive = nOccupancyReports; }
-        else { nOccupancyReportsNotSensitive = nOccupancyReports; }
-        detector->update(254); // Force detector to 'initial'-like state ready for re-run.
-        }
-    EXPECT_LE(nOccupancyReportsNotSensitive, nOccupancyReportsSensitive) << "expect sensitive never to generate fewer reports";
+        EXPECT_LE(nOccupancyReportsNotSensitive, nOccupancyReportsSensitive) << "expect sensitive never to generate fewer reports";
+    }
     }
 
 // Basic test of update() behaviour.
