@@ -162,23 +162,30 @@ if(verbose) { fprintf(stderr, "blending = %d\n", blending); }
 if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
             // Count of number of occupancy signals.
             int nOccupancyReports = 0;
-            uint8_t oldH = 0xff;
+            uint8_t oldH = 0xff; // Used to detect hour rollover.
             for(const ALDataSample *dp = data; !dp->isEnd(); ++dp)
                 {
                 long currentMinute = dp->currentMinute();
                 do  {
                     const uint8_t H = (currentMinute % 1440) / 60;
-                    if(H != oldH)
+                    switch(blending)
                         {
-                        // When the hour rolls, set new stats for the detector.
-                        // Note that implementations be use the end of the hour/period
-                        // and other times.
-                        // The detector and caller should aim not to be hugely sensitive to the exact timing,
-                        // eg by blending prev/current/next periods linearly.
+                        case NONE:
+                            {
+                            if(H != oldH)
+                                {
+                                // When the hour rolls, set new stats for the detector.
+                                // Note that implementations be use the end of the hour/period
+                                // and other times.
+                                // The detector and caller should aim not to be hugely sensitive to the exact timing,
+                                // eg by blending prev/current/next periods linearly.
 //fprintf(stderr, "mean = %d\n", byHourMeanI[H]);
-                        detector->setTypMinMax(byHourMeanI[H], minToUse, maxToUse, sensitive);
-                        ASSERT_EQ(sensitive, detector->isSensitive());
-                        oldH = H;
+                                detector->setTypMinMax(byHourMeanI[H], minToUse, maxToUse, sensitive);
+                                ASSERT_EQ(sensitive, detector->isSensitive());
+                                oldH = H;
+                                }
+                            break;
+                            }
                         }
                     const bool prediction = detector->update(dp->L);
                     if(prediction) { ++nOccupancyReports; }
@@ -196,7 +203,7 @@ if(verbose && prediction) { fprintf(stderr, "@ %d:%d L = %d\n", H, (int)(current
                     } while((!(dp+1)->isEnd()) && (currentMinute < (dp+1)->currentMinute()));
                 }
             // Check that there are not huge numbers of (false) positives.
-            ASSERT_TRUE(nOccupancyReports <= (nRecords/2)) << "far too many occupancy indications";
+            ASSERT_TRUE(nOccupancyReports <= (nRecords/4)) << "far too many occupancy indications";
             if(sensitive) { nOccupancyReportsSensitive = nOccupancyReports; }
             else { nOccupancyReportsNotSensitive = nOccupancyReports; }
             detector->update(254); // Force detector to 'initial'-like state ready for re-run.
