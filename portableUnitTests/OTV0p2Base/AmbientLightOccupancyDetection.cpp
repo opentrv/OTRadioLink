@@ -96,6 +96,7 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
                          const uint8_t minLevel = 0xff, const uint8_t maxLevel = 0xff,
                          const uint8_t meanByHour[24] = NULL)
     {
+    static const bool verbose = true; // Set true for more verbose reporting.
     ASSERT_TRUE(NULL != data);
     ASSERT_TRUE(NULL != detector);
     ASSERT_FALSE(data->isEnd()) << "do not pass in empty data set";
@@ -157,7 +158,7 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
         for(int s = 0; s <= 1; ++s)
             {
             const bool sensitive = (0 != s);
-fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr);
+if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
             // Count of number of occupancy signals.
             int nOccupancyReports = 0;
             uint8_t oldH = 0xff;
@@ -180,7 +181,7 @@ fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr);
                         }
                     const bool prediction = detector->update(dp->L);
                     if(prediction) { ++nOccupancyReports; }
-if(prediction) { fprintf(stderr, "@ %d:%d L = %d\n", H, (int)(currentMinute % 60), dp->L); }
+if(verbose && prediction) { fprintf(stderr, "@ %d:%d L = %d\n", H, (int)(currentMinute % 60), dp->L); }
                     // Note that for all synthetic ticks the expectation is removed (since there is no level change).
                     const uint8_t expected = (currentMinute != dp->currentMinute()) ? 0 : dp->expected;
                     if(0 != expected)
@@ -200,7 +201,7 @@ if(prediction) { fprintf(stderr, "@ %d:%d L = %d\n", H, (int)(currentMinute % 60
             detector->update(254); // Force detector to 'initial'-like state ready for re-run.
             }
         EXPECT_LE(nOccupancyReportsNotSensitive, nOccupancyReportsSensitive) << "expect sensitive never to generate fewer reports";
-    }
+        }
     }
 
 // Basic test of update() behaviour.
