@@ -50,6 +50,7 @@ bool SensorAmbientLightOccupancyDetectorSimple::update(const uint8_t newLightLev
         const uint8_t meanShift = sensitive ? 2 : 1;
         // Assume minimum of 0 if none set.
         const uint8_t minToUse = (0xff == longTermMinimumOrFF) ? 0 : longTermMinimumOrFF;
+        // If a typical/mean value is available then screen current rise against it.
         if((0xff != meanNowOrFF) && (meanNowOrFF >= minToUse))
 			{
             const uint8_t meanRiseThreshold = (meanNowOrFF - minToUse) >> meanShift;
