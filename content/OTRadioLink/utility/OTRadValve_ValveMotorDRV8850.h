@@ -41,7 +41,7 @@ namespace OTRadValve
  *              - MOTOR_DRIVE_MRL_DigitalPin: Low right fet.
  *              - nSLEEP: Sleep
  */
-template <uint8_t MOTOR_DRIVE_MLH_DigitalPin, uint8_t MOTOR_DRIVE_MLL_DigitalPin, uint8_t MOTOR_DRIVE_MRH_DigitalPin, uint8_t MOTOR_DRIVE_MRL_DigitalPin, uint8_t nSLEEP, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin, uint8_t MOTOR_DRIVE_MC_AIN_DigitalPin>
+template <uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t nSLEEP, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin, uint8_t MOTOR_DRIVE_MC_AIN_DigitalPin>
 class DRV8850HardwareDriver : public ValveMotorDirectV1HardwareDriverBase
 {
     // Last recorded direction.
@@ -90,49 +90,6 @@ OTV0P2BASE::serialPrintlnAndFlush();
     return(result);
     }
 
-  /**
-   * @brief Make sure motor is stopped.
-   */
-  static inline void motorStop()
-  {
-      // Disable H-Bridge
-      fastDigitalWrite(MOTOR_DRIVE_MLH_DigitalPin, LOW);
-      fastDigitalWrite(MOTOR_DRIVE_MLL_DigitalPin, LOW);
-      fastDigitalWrite(MOTOR_DRIVE_MRH_DigitalPin, LOW);
-      fastDigitalWrite(MOTOR_DRIVE_MRL_DigitalPin, LOW);
-      // Put DRV8850 into sleep mode.
-      fastDigitalWrite(nSLEEP, LOW);
-  }
-
-  /**
-   * @brief Close the valve.
-   */
-  static inline void motorClose(const uint8_t prev_dir, const uint8_t dir)
-  {
-      // Make sure H-bridge not running in other direction.
-      fastDigitalWrite(MOTOR_DRIVE_MRL_DigitalPin, LOW);
-      fastDigitalWrite(MOTOR_DRIVE_MLH_DigitalPin, LOW);
-      // Nap to ensure motor has slowed down if changing direction. This prevents brownouts.
-      if(prev_dir != dir) OTV0P2BASE::nap(WDTO_120MS);
-      // Run H-bridge.
-      fastDigitalWrite(MOTOR_DRIVE_MRH_DigitalPin, HIGH);
-      fastDigitalWrite(MOTOR_DRIVE_MLL_DigitalPin, HIGH)
-  }
-
-  /**
-   * @brief Open the valve.
-   */
-  static inline void motorOpen(const uint8_t prev_dir, const uint8_t dir)
-  {
-      // Make sure H-bridge not running in other direction.
-      fastDigitalWrite(MOTOR_DRIVE_MLL_DigitalPin, LOW);
-      fastDigitalWrite(MOTOR_DRIVE_MRH_DigitalPin, LOW);
-      // Nap to ensure motor has slowed down if changing direction. This prevents brownouts.
-      if(prev_dir != dir) OTV0P2BASE::nap(WDTO_120MS);
-      // Run H-bridge.
-      fastDigitalWrite(MOTOR_DRIVE_MLH_DigitalPin, HIGH);
-      fastDigitalWrite(MOTOR_DRIVE_MRL_DigitalPin, HIGH);
-  }
 
   // Call to actually run/stop motor.
   // May take as much as (say) 200ms eg to change direction.
@@ -154,38 +111,35 @@ OTV0P2BASE::serialPrintlnAndFlush();
       {
       case motorDriveClosing:
         {
-//        // Pull one side high immediately *FIRST* for safety.
-//        // Stops motor if other side is not already low.
-//        // (Has no effect if motor is already running in the correct direction.)
-//        fastDigitalWrite(MOTOR_DRIVE_ML_DigitalPin, HIGH);
-//        pinMode(MOTOR_DRIVE_ML_DigitalPin, OUTPUT); // Ensure that the HIGH side is an output (can be done after, as else will be safe weak pull-up).
-//        // Let H-bridge respond and settle, and motor slow down if changing direction.
-//        // Otherwise there is a risk of browning out the device with a big current surge.
-//        if(prev_dir != dir) { OTV0P2BASE::nap(WDTO_120MS); } // Enforced low-power sleep on change of direction....
-//        pinMode(MOTOR_DRIVE_MR_DigitalPin, OUTPUT); // Ensure that the LOW side is an output.
-//        fastDigitalWrite(MOTOR_DRIVE_MR_DigitalPin, LOW); // Pull LOW last.
+		// Stop motor if running in the wrong direction
+		// (Has no effect if motor is already running in the correct direction.)
+		fastDigitalWrite(MOTOR_DRIVE_ML_DigitalPin, LOW);
+		// Wake DRV8850 if asleep
+		fastDigitalWrite(nSLEEP, HIGH);
+		// Let H-bridge respond and settle, and motor slow down if changing direction.
+		// Otherwise there is a risk of browning out the device with a big current surge.
+		if(prev_dir != dir) { OTV0P2BASE::nap(WDTO_120MS); } // Enforced low-power sleep on change of direction....
+		fastDigitalWrite(MOTOR_DRIVE_MR_DigitalPin, HIGH); // Run motor
 
-        motorClose(prev_dir, dir);
-        // Let H-bridge respond and settle and let motor run up.
-        spinSCTTicks(max(maxRunTicks, minMotorRunupTicks), minMotorRunupTicks, dir, callback);
-        break; // Fall through to common case.
+		// Let H-bridge respond and settle and let motor run up.
+		spinSCTTicks(max(maxRunTicks, minMotorRunupTicks), minMotorRunupTicks, dir, callback);
+		break; // Fall through to common case.
         }
 
       case motorDriveOpening:
         {
-        // Pull one side high immediately *FIRST* for safety.
-        // Stops motor if other side is not already low.
-        // (Has no effect if motor is already running in the correct direction.)
-//        fastDigitalWrite(MOTOR_DRIVE_MR_DigitalPin, HIGH);
-//        pinMode(MOTOR_DRIVE_MR_DigitalPin, OUTPUT); // Ensure that the HIGH side is an output (can be done after, as else will be safe weak pull-up).
-//        // Let H-bridge respond and settle, and motor slow down if changing direction.
-//        // Otherwise there is a risk of browning out the device with a big current surge.
-//        if(prev_dir != dir) { OTV0P2BASE::nap(WDTO_120MS); } // Enforced low-power sleep on change of direction....
-//        pinMode(MOTOR_DRIVE_ML_DigitalPin, OUTPUT); // Ensure that the LOW side is an output.
-//        fastDigitalWrite(MOTOR_DRIVE_ML_DigitalPin, LOW); // Pull LOW last.
-        motorOpen(prev_dir, dir);
-        // Let H-bridge respond and settle and let motor run up.
-        spinSCTTicks(max(maxRunTicks, minMotorRunupTicks), minMotorRunupTicks, dir, callback);
+		// Stop motor if running in the wrong direction
+		// (Has no effect if motor is already running in the correct direction.)
+		fastDigitalWrite(MOTOR_DRIVE_MR_DigitalPin, LOW);
+		// Wake DRV8850 if asleep
+		fastDigitalWrite(nSLEEP, HIGH);
+		// Let H-bridge respond and settle, and motor slow down if changing direction.
+		// Otherwise there is a risk of browning out the device with a big current surge.
+		if(prev_dir != dir) { OTV0P2BASE::nap(WDTO_120MS); } // Enforced low-power sleep on change of direction....
+		fastDigitalWrite(MOTOR_DRIVE_ML_DigitalPin, HIGH); // Run motor
+
+		// Let H-bridge respond and settle and let motor run up.
+		spinSCTTicks(max(maxRunTicks, minMotorRunupTicks), minMotorRunupTicks, dir, callback);
         break; // Fall through to common case.
         }
 
@@ -194,7 +148,11 @@ OTV0P2BASE::serialPrintlnAndFlush();
         // Everything off, unconditionally.
         //
         // Turn one side of bridge off ASAP.
-        motorStop();
+        // Motor is automatically stopped in sleep mode.
+		fastDigitalWrite(nSLEEP, LOW);
+		// Pull motor lines low to minimise current consumption (DRV8850 inputs are pulled low).
+		fastDigitalWrite(MOTOR_DRIVE_MR_DigitalPin, LOW);
+		fastDigitalWrite(MOTOR_DRIVE_MR_DigitalPin, LOW);
 
         // todo what is going on here?
         // Let H-bridge respond and settle.
@@ -219,12 +177,12 @@ OTV0P2BASE::serialPrintlnAndFlush();
 };
 
 // Actuator/driver for direct local (radiator) valve motor control.
-template <uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin, uint8_t MOTOR_DRIVE_MC_AIN_DigitalPin>
+template <uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t nSLEEP, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin, uint8_t MOTOR_DRIVE_MC_AIN_DigitalPin>
 class DRV8850Driver : public OTRadValve::AbstractRadValve
   {
   private:
     // Driver for the V1/DORM1 hardware.
-    DRV8850HardwareDriver<MOTOR_DRIVE_ML_DigitalPin, MOTOR_DRIVE_MR_DigitalPin, MOTOR_DRIVE_MI_AIN_DigitalPin, MOTOR_DRIVE_MC_AIN_DigitalPin> driver;
+    DRV8850HardwareDriver<MOTOR_DRIVE_ML_DigitalPin, MOTOR_DRIVE_MR_DigitalPin, nSLEEP, MOTOR_DRIVE_MI_AIN_DigitalPin, MOTOR_DRIVE_MC_AIN_DigitalPin> driver;
     // Logic to manage state, etc.
     CurrentSenseValveMotorDirect logic;
 

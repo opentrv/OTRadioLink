@@ -38,7 +38,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 namespace OTRadValve
     {
 
-#define ARDUINO_ARCH_AVR
 #ifdef ARDUINO_ARCH_AVR
 
 // Implementation for V1 (REV7/DORM1) motor.
