@@ -58,27 +58,28 @@ namespace OTRadValve
     //   * comMin  minimum temperature in comfort mode at any time, even for frost protection (C).
     //   * ecoWarm  'warm' in ECO mode.
     //   * comWarm  'warm' in comfort mode.
-    template<uint8_t ecoMin, uint8_t comMin, uint8_t ecoWarm, uint8_t comWarm>
+    template<uint8_t ecoMinC, uint8_t comMinC, uint8_t ecoWarmC, uint8_t comWarmC,
+             uint8_t bakeLiftC, uint8_t bakeLiftM>
     class ValveControlParameters
         {
         public:
             // Basic frost protection threshold.
             // Must be in range [MIN_TARGET_C,MAX_TARGET_C[.
-            static const uint8_t FROST = OTV0P2BASE::fnmin(OTV0P2BASE::fnmax(ecoMin, MIN_TARGET_C), MAX_TARGET_C);
+            static const uint8_t FROST = OTV0P2BASE::fnmin(OTV0P2BASE::fnmax(ecoMinC, MIN_TARGET_C), MAX_TARGET_C);
             // Frost protection threshold temperature in eco-friendly / ECO-bias mode.
             // Must be in range [MIN_TARGET_C,FROST_COM[.
             static const uint8_t FROST_ECO = FROST;
             // Frost protection threshold temperature in comfort mode, eg to be safer for someone infirm.
             // Must be in range ]FROST_ECO,MAX_TARGET_C].
-            static const uint8_t FROST_COM = OTV0P2BASE::fnmax(OTV0P2BASE::fnmin(comMin, MAX_TARGET_C), FROST_ECO);
+            static const uint8_t FROST_COM = OTV0P2BASE::fnmax(OTV0P2BASE::fnmin(comMinC, MAX_TARGET_C), FROST_ECO);
 
             // Warm temperatures.
             // Warm temperature in eco-friendly / ECO-bias mode.
             // Must be in range [FROST_ECO+1,MAX_TARGET_C].
-            static const uint8_t WARM_ECO = OTV0P2BASE::fnmax(OTV0P2BASE::fnmin(ecoWarm, MAX_TARGET_C), (uint8_t)(FROST_ECO+1));
+            static const uint8_t WARM_ECO = OTV0P2BASE::fnmax(OTV0P2BASE::fnmin(ecoWarmC, MAX_TARGET_C), (uint8_t)(FROST_ECO+1));
             // Warm temperature in comfort mode.
             // Must be in range [FROST_COM+1,MAX_TARGET_C].
-            static const uint8_t WARM_COM = OTV0P2BASE::fnmax(OTV0P2BASE::fnmin(comWarm, MAX_TARGET_C), (uint8_t)(FROST_COM+1));
+            static const uint8_t WARM_COM = OTV0P2BASE::fnmax(OTV0P2BASE::fnmin(comWarmC, MAX_TARGET_C), (uint8_t)(FROST_COM+1));
             // Default 'warm' at a 'safe' temperature.
             static const uint8_t WARM = OTV0P2BASE::fnmax(WARM_ECO, SAFE_ROOM_TEMPERATURE);
 
@@ -90,6 +91,12 @@ namespace OTRadValve
             static const uint8_t TEMP_SCALE_MID = ((WARM_ECO + WARM_COM + 1)/2);
             // Top of range for adjustable-base-temperature systems.
             static const uint8_t TEMP_SCALE_MAX = (WARM_COM+1);
+
+            // Raise target by this many degrees in 'BAKE' mode (strictly positive).
+            // DHD20160927 TODO-980 raised from 5 to 10 to ensure very rarely fails to trigger in in shoulder season.
+            static const uint8_t BAKE_UPLIFT = bakeLiftC;
+            // Maximum 'BAKE' minutes, ie time to crank heating up to BAKE setting (minutes, strictly positive, <255).
+            static const uint8_t BAKE_MAX_M = bakeLiftM;
         };
 
     // Typical radiator valve control parameters.
@@ -110,7 +117,14 @@ namespace OTRadValve
         // (17/18 good for energy saving at ~1C below typical UK room temperatures of ~19C in 2012).
         // Note: BS EN 215:2004 S5.3.5 says maximum setting must be <= 32C, minimum in range [5C,12C].
         17, // Target WARM temperature for ECO bias.
-        21  // Target WARM temperature for Comfort bias.
+        21, // Target WARM temperature for Comfort bias.
+
+
+        // Raise target by this many degrees in 'BAKE' mode (strictly positive).
+        // DHD20160927 TODO-980 raised from 5 to 10 to ensure very rarely fails to trigger in in shoulder season.
+        10,
+        // Maximum 'BAKE' minutes, ie time to crank heating up to BAKE setting (minutes, strictly positive, <255).
+        30
         > DEFAULT_ValveControlParameters;
 
     // Typical DHW (Domestic Hot Water) valve control parameters.
@@ -123,7 +137,14 @@ namespace OTRadValve
         // 55C+ centre value with boost to 60C+ for DHW Legionella control where needed.
         // Note that the low end (~45C) is safe against scalding but may worry some for storage as a Legionella risk.
         45, // Target DHW WARM temperature for ECO bias.
-        65  // Target DHW WARM temperature for Comfort bias.
+        65, // Target DHW WARM temperature for Comfort bias.
+
+
+        // Raise target by this many degrees in 'BAKE' mode (strictly positive).
+        // DHD20160927 TODO-980 raised from 5 to 10 to ensure very rarely fails to trigger in in shoulder season.
+        10,
+        // Maximum 'BAKE' minutes, ie time to crank heating up to BAKE setting (minutes, strictly positive, <255).
+        30
         > DEFAULT_DHW_ValveControlParameters;
 
     }
