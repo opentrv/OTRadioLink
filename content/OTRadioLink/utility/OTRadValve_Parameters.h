@@ -65,50 +65,50 @@ namespace OTRadValve
         public:
             // Basic frost protection threshold.
             // Must be in range [MIN_TARGET_C,MAX_TARGET_C[.
-            static const uint8_t FROST = OTV0P2BASE::fnmin(OTV0P2BASE::fnmax(ecoMinC, MIN_TARGET_C), MAX_TARGET_C);
+            static constexpr uint8_t FROST = OTV0P2BASE::fnmin(OTV0P2BASE::fnmax(ecoMinC, MIN_TARGET_C), MAX_TARGET_C);
             // Frost protection threshold temperature in eco-friendly / ECO-bias mode.
             // Must be in range [MIN_TARGET_C,FROST_COM[.
-            static const uint8_t FROST_ECO = FROST;
+            static constexpr uint8_t FROST_ECO = FROST;
             // Frost protection threshold temperature in comfort mode, eg to be safer for someone infirm.
             // Must be in range ]FROST_ECO,MAX_TARGET_C].
-            static const uint8_t FROST_COM = OTV0P2BASE::fnmax(OTV0P2BASE::fnmin(comMinC, MAX_TARGET_C), FROST_ECO);
+            static constexpr uint8_t FROST_COM = OTV0P2BASE::fnmax(OTV0P2BASE::fnmin(comMinC, MAX_TARGET_C), FROST_ECO);
 
             // Warm temperatures.
             // Warm temperature in eco-friendly / ECO-bias mode.
             // Must be in range [FROST_ECO+1,MAX_TARGET_C].
-            static const uint8_t WARM_ECO = OTV0P2BASE::fnmax(OTV0P2BASE::fnmin(ecoWarmC, MAX_TARGET_C), (uint8_t)(FROST_ECO+1));
+            static constexpr uint8_t WARM_ECO = OTV0P2BASE::fnmax(OTV0P2BASE::fnmin(ecoWarmC, MAX_TARGET_C), (uint8_t)(FROST_ECO+1));
             // Warm temperature in comfort mode.
             // Must be in range [FROST_COM+1,MAX_TARGET_C].
-            static const uint8_t WARM_COM = OTV0P2BASE::fnmax(OTV0P2BASE::fnmin(comWarmC, MAX_TARGET_C), (uint8_t)(FROST_COM+1));
+            static constexpr uint8_t WARM_COM = OTV0P2BASE::fnmax(OTV0P2BASE::fnmin(comWarmC, MAX_TARGET_C), (uint8_t)(FROST_COM+1));
             // Default 'warm' at a 'safe' temperature.
-            static const uint8_t WARM = OTV0P2BASE::fnmax(WARM_ECO, SAFE_ROOM_TEMPERATURE);
+            static constexpr uint8_t WARM = OTV0P2BASE::fnmax(WARM_ECO, SAFE_ROOM_TEMPERATURE);
 
             // Typical markings for a temperature scale.
             // Scale can run from eco warm -1 to comfort warm + 1, eg: * 16 17 18 >19< 20 21 22 BOOST
             // Bottom of range for adjustable-base-temperature systems.
-            static const uint8_t TEMP_SCALE_MIN = (WARM_ECO-1);
+            static constexpr uint8_t TEMP_SCALE_MIN = (WARM_ECO-1);
             // Middle of range for adjustable-base-temperature systems; should be 'eco' baised.
-            static const uint8_t TEMP_SCALE_MID = ((WARM_ECO + WARM_COM + 1)/2);
+            static constexpr uint8_t TEMP_SCALE_MID = ((WARM_ECO + WARM_COM + 1)/2);
             // Top of range for adjustable-base-temperature systems.
-            static const uint8_t TEMP_SCALE_MAX = (WARM_COM+1);
+            static constexpr uint8_t TEMP_SCALE_MAX = (WARM_COM+1);
 
             // Raise target by this many degrees in 'BAKE' mode (strictly positive).
             // DHD20160927 TODO-980 raised from 5 to 10 to ensure very rarely fails to trigger in in shoulder season.
-            static const uint8_t BAKE_UPLIFT = bakeLiftC;
+            static constexpr uint8_t BAKE_UPLIFT = bakeLiftC;
             // Maximum 'BAKE' minutes, ie time to crank heating up to BAKE setting (minutes, strictly positive, <255).
-            static const uint8_t BAKE_MAX_M = bakeLiftM;
+            static constexpr uint8_t BAKE_MAX_M = bakeLiftM;
 
             // Initial minor setback degrees C (strictly positive).  Note that 1C heating setback may result in ~8% saving in the UK.
             // This may be the maximum setback applied with a comfort bias for example.
-            static const uint8_t SETBACK_DEFAULT = 1;
+            static constexpr uint8_t SETBACK_DEFAULT = 1;
             // Enhanced setback, eg in eco mode, for extra energy savings.  Not more than SETBACK_FULL.
-            static const uint8_t SETBACK_ECO = 1+SETBACK_DEFAULT;
+            static constexpr uint8_t SETBACK_ECO = 1+SETBACK_DEFAULT;
             // Full setback degrees C (strictly positive and significantly, ie several degrees, greater than SETBACK_DEFAULT, less than MIN_TARGET_C).
             // Deeper setbacks increase energy savings at the cost of longer times to return to target temperatures.
             // See also (recommending 13F/7C setback to 55F/12C): https://www.mge.com/images/pdf/brochures/residential/setbackthermostat.pdf
             // See also (suggesting for an 8hr setback, 1F set-back = 1% energy savings): http://joneakes.com/jons-fixit-database/1270-How-far-back-should-a-set-back-thermostat-be-set
             // This must set back to no more than than MIN_TARGET_C to avoid problems with unsigned arithmetic.
-            static const uint8_t SETBACK_FULL = 4;
+            static constexpr uint8_t SETBACK_FULL = 4;
         };
 
     // Typical radiator valve control parameters.
