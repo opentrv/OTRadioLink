@@ -54,21 +54,42 @@ namespace OTRadValve
     // Templated set of constant parameters derived together from common arguments.
     // Can be tweaked to parameterise different products,
     // or to make a bigger shift such as to DHW control.
-    //   * frost  basic target frost-protection temperature (C).
-    //   * minComfort  minimum temperature in comfort mode at any time, even for frost protection (C).
-    template<uint8_t ecoMin = 6, uint8_t comMin = 14, uint8_t ecoWarm = 17, uint8_t comWarm = 21>
+    //   * ecoMin  basic target frost-protection temperature (C).
+    //   * comMin  minimum temperature in comfort mode at any time, even for frost protection (C).
+    //   * ecoWarm  'warm' in ECO mode.
+    //   * comWarm  'warm' in comfort mode.
+    template<uint8_t ecoMin, uint8_t comMin, uint8_t ecoWarm, uint8_t comWarm>
     class ValveControlParameters
         {
         public:
             // Basic frost protection threshold.
             // Must be in range [MIN_TARGET_C,MAX_TARGET_C[.
-            static const uint8_t FROST = (OTV0P2BASE::fnmax(ecoMin, OTRadValve::MIN_TARGET_C));
-            // Frost protection threshold, when in eco-friendly / ECO-bias mode.
+            static const uint8_t FROST = OTV0P2BASE::fnmin(OTV0P2BASE::fnmax(ecoMin, MIN_TARGET_C), MAX_TARGET_C);
+            // Frost protection threshold temperature in eco-friendly / ECO-bias mode.
             // Must be in range [MIN_TARGET_C,FROST_COM[.
             static const uint8_t FROST_ECO = FROST;
-            // Frost protection threshold in comfort mode, eg to be safer for someone infirm.
+            // Frost protection threshold temperature in comfort mode, eg to be safer for someone infirm.
             // Must be in range ]FROST_ECO,MAX_TARGET_C].
-            static const uint8_t FROST_COM = OTV0P2BASE::fnmax(FROST_ECO, comMin);
+            static const uint8_t FROST_COM = OTV0P2BASE::fnmax(OTV0P2BASE::fnmin(comMin, MAX_TARGET_C), FROST_ECO);
+
+            // Warm temperatures.
+            // Warm temperature in eco-friendly / ECO-bias mode.
+            // Must be in range [FROST_ECO+1,MAX_TARGET_C].
+            static const uint8_t WARM_ECO = OTV0P2BASE::fnmax(OTV0P2BASE::fnmin(ecoWarm, MAX_TARGET_C), (uint8_t)(FROST_ECO+1));
+            // Warm temperature in comfort mode.
+            // Must be in range [FROST_COM+1,MAX_TARGET_C].
+            static const uint8_t WARM_COM = OTV0P2BASE::fnmax(OTV0P2BASE::fnmin(comWarm, MAX_TARGET_C), (uint8_t)(FROST_COM+1));
+            // Default 'warm' at a 'safe' temperature.
+            static const uint8_t WARM = OTV0P2BASE::fnmax(WARM_ECO, SAFE_ROOM_TEMPERATURE);
+
+            // Typical markings for a temperature scale.
+            // Scale can run from eco warm -1 to comfort warm + 1, eg: * 16 17 18 >19< 20 21 22 BOOST
+            // Bottom of range for adjustable-base-temperature systems.
+            static const uint8_t TEMP_SCALE_MIN = (WARM_ECO-1);
+            // Middle of range for adjustable-base-temperature systems; should be 'eco' baised.
+            static const uint8_t TEMP_SCALE_MID = ((WARM_ECO + WARM_COM + 1)/2);
+            // Top of range for adjustable-base-temperature systems.
+            static const uint8_t TEMP_SCALE_MAX = (WARM_COM+1);
         };
 
     // Typical radiator valve control parameters.
@@ -104,7 +125,6 @@ namespace OTRadValve
         45, // Target DHW WARM temperature for ECO bias.
         65  // Target DHW WARM temperature for Comfort bias.
         > DEFAULT_DHW_ValveControlParameters;
-
 
     }
 
