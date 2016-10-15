@@ -38,7 +38,7 @@ TEST(RadValveParams,paramBasics)
     EXPECT_LE(OTRadValve::MIN_TARGET_C, W);
     EXPECT_GE(OTRadValve::MAX_TARGET_C, W);
     EXPECT_LE(F, W);
-    EXPECT_GE(30, W); // For safety.
+    EXPECT_GE(32, W); // To meet BS EN 215:2004 S5.3.5.
 
     typedef OTRadValve::DEFAULT_DHW_ValveControlParameters DHWParams;
     const int DF = DHWParams::FROST;
