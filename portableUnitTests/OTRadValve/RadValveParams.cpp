@@ -26,7 +26,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 #include "OTRadValve_Parameters.h"
 
 
-// Basic tests of sanity of parameter block.
+// Some basic tests of sanity of parameter block.
 TEST(RadValveParams,paramBasics)
 {
     typedef OTRadValve::DEFAULT_ValveControlParameters defaultParams;
