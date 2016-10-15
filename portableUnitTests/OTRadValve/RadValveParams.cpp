@@ -32,7 +32,22 @@ TEST(RadValveParams,paramBasics)
     typedef OTRadValve::DEFAULT_ValveControlParameters defaultParams;
     const int F = defaultParams::FROST;
     EXPECT_LT(0, F);
+    EXPECT_LE(OTRadValve::MIN_TARGET_C, F);
+    EXPECT_GE(OTRadValve::MAX_TARGET_C, F);
+    const int W = defaultParams::WARM;
+    EXPECT_LE(OTRadValve::MIN_TARGET_C, W);
+    EXPECT_GE(OTRadValve::MAX_TARGET_C, W);
+    EXPECT_LE(F, W);
+    EXPECT_GE(30, W); // For safety.
+
     typedef OTRadValve::DEFAULT_DHW_ValveControlParameters DHWParams;
     const int DF = DHWParams::FROST;
     EXPECT_LT(0, DF);
+    EXPECT_LE(OTRadValve::MIN_TARGET_C, DF);
+    EXPECT_GE(OTRadValve::MAX_TARGET_C, DF);
+    const int DW = DHWParams::WARM;
+    EXPECT_LE(OTRadValve::MIN_TARGET_C, DW);
+    EXPECT_GE(OTRadValve::MAX_TARGET_C, DW);
+    EXPECT_LE(DF, DW);
+    EXPECT_GE(90, W); // For safety.
 }
