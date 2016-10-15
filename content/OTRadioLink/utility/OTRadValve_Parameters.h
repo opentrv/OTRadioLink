@@ -59,7 +59,7 @@ namespace OTRadValve
     //   * ecoWarm  'warm' in ECO mode.
     //   * comWarm  'warm' in comfort mode.
     template<uint8_t ecoMinC, uint8_t comMinC, uint8_t ecoWarmC, uint8_t comWarmC,
-             uint8_t bakeLiftC, uint8_t bakeLiftM>
+             uint8_t bakeLiftC = 10, uint8_t bakeLiftM = 30>
     class ValveControlParameters
         {
         public:
@@ -97,6 +97,18 @@ namespace OTRadValve
             static const uint8_t BAKE_UPLIFT = bakeLiftC;
             // Maximum 'BAKE' minutes, ie time to crank heating up to BAKE setting (minutes, strictly positive, <255).
             static const uint8_t BAKE_MAX_M = bakeLiftM;
+
+            // Initial minor setback degrees C (strictly positive).  Note that 1C heating setback may result in ~8% saving in the UK.
+            // This may be the maximum setback applied with a comfort bias for example.
+            static const uint8_t SETBACK_DEFAULT = 1;
+            // Enhanced setback, eg in eco mode, for extra energy savings.  Not more than SETBACK_FULL.
+            static const uint8_t SETBACK_ECO = 1+SETBACK_DEFAULT;
+            // Full setback degrees C (strictly positive and significantly, ie several degrees, greater than SETBACK_DEFAULT, less than MIN_TARGET_C).
+            // Deeper setbacks increase energy savings at the cost of longer times to return to target temperatures.
+            // See also (recommending 13F/7C setback to 55F/12C): https://www.mge.com/images/pdf/brochures/residential/setbackthermostat.pdf
+            // See also (suggesting for an 8hr setback, 1F set-back = 1% energy savings): http://joneakes.com/jons-fixit-database/1270-How-far-back-should-a-set-back-thermostat-be-set
+            // This must set back to no more than than MIN_TARGET_C to avoid problems with unsigned arithmetic.
+            static const uint8_t SETBACK_FULL = 4;
         };
 
     // Typical radiator valve control parameters.
@@ -117,14 +129,7 @@ namespace OTRadValve
         // (17/18 good for energy saving at ~1C below typical UK room temperatures of ~19C in 2012).
         // Note: BS EN 215:2004 S5.3.5 says maximum setting must be <= 32C, minimum in range [5C,12C].
         17, // Target WARM temperature for ECO bias.
-        21, // Target WARM temperature for Comfort bias.
-
-
-        // Raise target by this many degrees in 'BAKE' mode (strictly positive).
-        // DHD20160927 TODO-980 raised from 5 to 10 to ensure very rarely fails to trigger in in shoulder season.
-        10,
-        // Maximum 'BAKE' minutes, ie time to crank heating up to BAKE setting (minutes, strictly positive, <255).
-        30
+        21  // Target WARM temperature for Comfort bias.
         > DEFAULT_ValveControlParameters;
 
     // Typical DHW (Domestic Hot Water) valve control parameters.
@@ -137,15 +142,9 @@ namespace OTRadValve
         // 55C+ centre value with boost to 60C+ for DHW Legionella control where needed.
         // Note that the low end (~45C) is safe against scalding but may worry some for storage as a Legionella risk.
         45, // Target DHW WARM temperature for ECO bias.
-        65, // Target DHW WARM temperature for Comfort bias.
-
-
-        // Raise target by this many degrees in 'BAKE' mode (strictly positive).
-        // DHD20160927 TODO-980 raised from 5 to 10 to ensure very rarely fails to trigger in in shoulder season.
-        10,
-        // Maximum 'BAKE' minutes, ie time to crank heating up to BAKE setting (minutes, strictly positive, <255).
-        30
+        65  // Target DHW WARM temperature for Comfort bias.
         > DEFAULT_DHW_ValveControlParameters;
+
 
     }
 
