@@ -41,6 +41,15 @@ namespace OTRadValve
     static const uint8_t MIN_TARGET_C = 5; // Minimum temperature setting allowed (to avoid freezing, allowing for offsets at temperature sensor, etc).
     static const uint8_t MAX_TARGET_C = 95; // Maximum temperature setting allowed (eg for DHW).
 
+    // 18C is a safe room temperature even for the slightly infirm according to NHS England 2014:
+    //    http://www.nhs.uk/Livewell/winterhealth/Pages/KeepWarmKeepWell.aspx
+    // Small babies have relatively poor thermoregulation so a device with setbacks may not be suitable for them, else ~18C is good:
+    //    http://www.nhs.uk/conditions/pregnancy-and-baby/pages/reducing-risk-cot-death.aspx
+    // so could possibly be marked explicitly on the control.
+    // 21C is recommended living temperature in retirement housing:
+    //     http://ipc.brookes.ac.uk/publications/pdf/Identifying_the_health_gain_from_retirement_housing.pdf
+    static const uint8_t SAFE_ROOM_TEMPERATURE = 18; // Safe for most purposes.
+
 
     }
 
