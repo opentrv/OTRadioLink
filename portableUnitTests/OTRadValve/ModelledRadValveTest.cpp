@@ -176,7 +176,7 @@ TEST(ModelledRadValve,MRVSOpenFastFromCold593)
     // (or any below OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN)
     // and a widened deadband has not been requested
     // (and filtering is not switched on)
-    // that after one tick
+    // after one tick
     // that the valve is open to at least DEFAULT_VALVE_PC_MODERATELY_OPEN.
     // Starting temp >2C below target, even with 0.5 offset.
     OTRadValve::ModelledRadValveInputState is0(OTV0P2BASE::randRNG8() & 0xf8);
@@ -193,6 +193,7 @@ TEST(ModelledRadValve,MRVSOpenFastFromCold593)
     ASSERT_TRUE(newValvePos >= OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN);
     ASSERT_TRUE(newValvePos <= 100);
     ASSERT_TRUE(rs0.valveMoved);
+    ASSERT_EQ(OTRadValve::ModelledRadValveState::MRVE_OPENFAST, rs0.lastEvent);
 }
 
 
@@ -212,8 +213,8 @@ TEST(ModelledRadValve,DraughtDetectorSimple)
         // (allowing for any internal offsetting)
         // and the initial valve position is anywhere [0,100]
         // but the final temperature measurement shows a large drop
-        // (and eco mode is enabled, and no fast response)
-        // that after one tick
+        // (and ECO mode is enabled, and no fast response)
+        // after one tick
         // the valve is open to less than DEFAULT_VALVE_PC_SAFER_OPEN
         // to try to ensure no call for heat from the boiler.
         //
@@ -240,6 +241,7 @@ if(verbose) { fprintf(stderr, "Valve %d%%.\n", valvePCOpen); }
         rs0.tick(valvePCOpen, is0);
 if(verbose) { fprintf(stderr, "Valve %d%%.\n", valvePCOpen); }
         const uint8_t newValvePos = valvePCOpen;
-        ASSERT_LT(newValvePos, OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN);
+        EXPECT_LT(newValvePos, OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN);
+        ASSERT_EQ(OTRadValve::ModelledRadValveState::MRVE_DRAUGHT, rs0.lastEvent);
         }
 }

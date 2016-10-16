@@ -120,27 +120,29 @@ struct ModelledRadValveState
   // True if the computed valve position was changed by tick().
   bool valveMoved;
 
-//  // Testable/reportable events.
-//  // Cleared at the start of each tick().
-//  // Set as appropriate by computeRequiredTRVPercentOpen() to indicate certain activity and paths taken.
-//  // May only be reported and accessible in debug mode; primarily to facilitate unit testing.
-//  typedef enum
-//    {
-//    MRVE_NONE,      // No event.
-//    MRVE_DRAUGHT    // Cold draught detected.
-//    } event_t;
-//#ifdef DEBUG
-//  event_t lastEvent = MRVE_NONE;
-//  // Clear the last event, ie event state becomes MRVE_NONE.
-//  void clearEvent() { lastEvent = MRVE_NONE; }
-//  // Set the event to be as passed.
-//  void setEvent(event_t event) { lastEvent = event; }
-//#else
-//  // Dummy placeholders where event state not held.
-//  void clearEvent() { }
-//  // Set the event to be as passed.
-//  void setEvent(event_t e) { }
-//#endif
+  // Testable/reportable events.
+  // Cleared at the start of each tick().
+  // Set as appropriate by computeRequiredTRVPercentOpen() to indicate
+  // particular activity and paths taken.
+  // May only be reported and accessible in debug mode; primarily to facilitate unit testing.
+  typedef enum
+    {
+    MRVE_NONE,      // No event.
+    MRVE_OPENFAST,  // Fast open as per TODO-593.
+    MRVE_DRAUGHT    // Cold draught detected.
+    } event_t;
+#if 1 || defined(DEBUG)
+  mutable event_t lastEvent = MRVE_NONE;
+  // Clear the last event, ie event state becomes MRVE_NONE.
+  void clearEvent() const { lastEvent = MRVE_NONE; }
+  // Set the event to be as passed.
+  void setEvent(event_t event) const { lastEvent = event; }
+#else
+  // Dummy placeholders where event state not held.
+  void clearEvent() const { }
+  // Set the event to be as passed.
+  void setEvent(event_t e) const { }
+#endif
 
   // Cumulative valve movement count, as unsigned cumulative percent with rollover [0,8191].
   // This is a useful as a measure of battery consumption (slewing the valve)

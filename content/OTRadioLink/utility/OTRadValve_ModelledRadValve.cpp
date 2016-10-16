@@ -196,7 +196,7 @@ ModelledRadValveState::ModelledRadValveState(const ModelledRadValveInputState &i
 void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const ModelledRadValveInputState &inputState)
   {
   // Forget last event if any.
-//  clearEvent();
+  clearEvent();
 
   const int_fast16_t rawTempC16 = inputState.refTempC16 - refTempOffsetC16; // Remove adjustment for target centre.
   // Do some one-off work on first tick in new instance.
@@ -317,7 +317,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
        (getRawDelta() < 0) &&
        (getRawDelta(MIN_WINDOW_OPEN_TEMP_FALL_M) <= -(int)MIN_WINDOW_OPEN_TEMP_FALL_C16))
         {
-//        setEvent(MRVE_DRAUGHT); // Report draught detected.
+        setEvent(MRVE_DRAUGHT); // Report draught detected.
         if(!dontTurndown())
           {
           // Try to turn down far enough to stop calling for heat immediately.
@@ -378,7 +378,10 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
       const uint8_t cappedModeratelyOpen = OTV0P2BASE::fnmin(inputState.maxPCOpen, OTV0P2BASE::fnmin((uint8_t)99, (uint8_t)(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN+TRV_SLEW_PC_PER_MIN_FAST)));
       if((valvePCOpen < cappedModeratelyOpen) &&
          (inputState.fastResponseRequired || (vBelowTarget && !inputState.widenDeadband)))
-          { return(cappedModeratelyOpen); }
+          {
+          setEvent(MRVE_OPENFAST);
+          return(cappedModeratelyOpen);
+          }
 
       // Ensure that the valve opens quickly from cold for acceptable response (TODO-593)
       // both locally in terms of valve position and also in terms of the boiler responding.
