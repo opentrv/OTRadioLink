@@ -21,15 +21,18 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
  */
 
 #include <gtest/gtest.h>
-#include <OTRadValve_ModelledRadValve.h>
 #include <OTV0P2BASE_QuickPRNG.h>
 #include <OTV0P2BASE_Util.h>
 #include <cstdint>
 #include <cstdio>
 
+#include "OTRadValve_AbstractRadValve.h"
+#include "OTRadValve_ModelledRadValve.h"
+
 
 // Test for general sanity of computation of desired valve position.
 // In particular test the logic in ModelledRadValveState for starting from extreme positions.
+//
 // Adapted 2016/10/16 from test_VALVEMODEL.ino testMRVSExtremes().
 TEST(ModelledRadValve,MRVSExtremes)
 {
@@ -157,4 +160,38 @@ if(verbose) { fprintf(stderr, "@ %d %d\n", offset, valvePCOpen); }
                 }
             }
         }
+}
+
+// Test the logic in ModelledRadValveState to open fast from well below target (TODO-593).
+// This is to cover the case where the use manually turns on/up the valve
+// and expects quick response from the valve
+// and the remote boiler (which may require >= DEFAULT_VALVE_PC_MODERATELY_OPEN to start).
+// This relies on no widened deadband being set.
+// It may also require filtering (from gyrating temperatures) not to have been invoked.
+//
+// Adapted 2016/10/16 from test_VALVEMODEL.ino testMRVSOpenFastFromCold593().
+TEST(ModelledRadValve,MRVSOpenFastFromCold593)
+{
+    // Test that if the real temperature is at least 2 degrees below the target
+    // and the initial valve position is 0/closed
+    // (or any below OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN)
+    // and a widened deadband has not been requested
+    // (and filtering is not switched on)
+    // that after one tick
+    // that the valve is open to at least DEFAULT_VALVE_PC_MODERATELY_OPEN.
+    // Starting temp >2C below target, even with 0.5 offset.
+    OTRadValve::ModelledRadValveInputState is0(OTV0P2BASE::randRNG8() & 0xf8);
+    is0.targetTempC = 18; // Modest target temperature.
+    OTRadValve::ModelledRadValveState rs0;
+    volatile uint8_t valvePCOpen = OTV0P2BASE::randRNG8() % OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN;
+    // Futz some input parameters that should not matter.
+    is0.widenDeadband = false;
+    rs0.isFiltering = OTV0P2BASE::randRNG8NextBoolean();
+    is0.hasEcoBias = OTV0P2BASE::randRNG8NextBoolean();
+    // Run the algorithm one tick.
+    rs0.tick(valvePCOpen, is0);
+    const uint8_t newValvePos = valvePCOpen;
+    ASSERT_TRUE(newValvePos >= OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN);
+    ASSERT_TRUE(newValvePos <= 100);
+    ASSERT_TRUE(rs0.valveMoved);
 }
