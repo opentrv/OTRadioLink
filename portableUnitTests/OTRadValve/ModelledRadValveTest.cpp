@@ -309,14 +309,16 @@ TODO-442:
 //[ "2016-09-30T07:09:08Z", "", {"@":"A9B2F7C089EECD89","+":5,"tT|C":16,"T|C16":305} ]
 //[ "2016-09-30T07:21:08Z", "", {"@":"A9B2F7C089EECD89","+":8,"O":2,"T|C16":308,"H|%":64} ]
 //[ "2016-09-30T07:33:12Z", "", {"@":"A9B2F7C089EECD89","+":11,"tS|C":0,"T|C16":310} ]
+//
+// Using an artificially high target temp in the test data to allow draught-mode detection.
 static const C16DataSample sample7h[] =
     {
-{ 0, 6, 45, 16, 319 },
-{ 0, 6, 57, 16, 302, OTRadValve::ModelledRadValveState::MRVE_DRAUGHT },
-{ 0, 7, 5, 16, 303 },
-{ 0, 7, 9, 16, 305 },
-{ 0, 7, 21, 16, 308 },
-{ 0, 7, 33, 16, 310 },
+{ 0, 6, 45, 20, 319 },
+{ 0, 6, 57, 20, 302, OTRadValve::ModelledRadValveState::MRVE_DRAUGHT },
+{ 0, 7, 5, 20, 303 },
+{ 0, 7, 9, 20, 305 },
+{ 0, 7, 21, 20, 308 },
+{ 0, 7, 33, 20, 310 },
 { }
     };
 //
@@ -324,6 +326,8 @@ static const C16DataSample sample7h[] =
 // initially of .25C in 12m, 0.75C over 1h, bottoming out ~2h later down ~2C.
 // Note that there is a potential 'sensitising' occupancy signal available,
 // ie sudden occupancy may allow triggering with a lower temperature drop.
+//
+// Using an artificially high target temp in the test data to allow draught-mode detection.
 //[ "2016-09-30T06:27:30Z", "", {"@":"FEDA88A08188E083","+":8,"tT|C":17,"tS|C":0} ]
 //[ "2016-09-30T06:31:38Z", "", {"@":"FEDA88A08188E083","+":9,"gE":0,"T|C16":331,"H|%":67} ]
 //[ "2016-09-30T06:35:30Z", "", {"@":"FEDA88A08188E083","+":10,"T|C16":330,"O":2,"L":2} ]
@@ -344,7 +348,22 @@ static const C16DataSample sample7h[] =
 //[ "2016-09-30T09:19:41Z", "", {"@":"FEDA88A08188E083","+":4,"T|C16":301,"H|%":61,"O":1} ]
 static const C16DataSample sample1g[] =
     {
-{ 0, 6, 31, 16, 319 },
+{ 0, 6, 31, 20, 331 },
+{ 0, 6, 35, 20, 330 },
+{ 0, 6, 43, 20, 327, OTRadValve::ModelledRadValveState::MRVE_DRAUGHT },
+{ 0, 6, 59, 20, 325 },
+{ 0, 7, 7, 20, 324 },
+{ 0, 7, 19, 20, 321, OTRadValve::ModelledRadValveState::MRVE_DRAUGHT },
+{ 0, 7, 23, 20, 320 },
+{ 0, 7, 31, 20, 319 },
+//...
+{ 0, 8, 15, 20, 309 },
+{ 0, 8, 27, 20, 307 },
+{ 0, 8, 39, 20, 305 },
+{ 0, 8, 55, 20, 303 },
+{ 0, 9, 7, 20, 302 },
+{ 0, 9, 11, 20, 301 },
+{ 0, 9, 19, 20, 301 },
 { }
     };
 
