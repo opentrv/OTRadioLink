@@ -199,7 +199,7 @@ TEST(ModelledRadValve,MRVSOpenFastFromCold593)
 // Test that the cold draught detector works, with simple synthetic case.
 // Check that a sufficiently sharp drop in temperature
 // (when already below target temperature)
-// inhibits further heating at least partly for a while .
+// inhibits further heating at least partly for a while.
 TEST(ModelledRadValve,DraughtDetectorSimple)
 {
     // If true then be more verbose.
@@ -214,7 +214,9 @@ TEST(ModelledRadValve,DraughtDetectorSimple)
         // but the final temperature measurement shows a large drop
         // (and eco mode is enabled, and no fast response)
         // that after one tick
-        // the valve is open to no more than DEFAULT_VALVE_PC_SAFER_OPEN.
+        // the valve is open to less than DEFAULT_VALVE_PC_SAFER_OPEN
+        // to try to ensure no call for heat from the boiler.
+        //
         // Starting temp as a little below target.
         const uint8_t targetC = OTRadValve::SAFE_ROOM_TEMPERATURE;
         const int_fast16_t roomTemp = (targetC << 4) - 15;
@@ -225,13 +227,13 @@ if(verbose) { fprintf(stderr, "Start\n"); }
         volatile uint8_t valvePCOpen = OTV0P2BASE::randRNG8() % 100;
 if(verbose) { fprintf(stderr, "Valve %d%%.\n", valvePCOpen); }
         // Set necessary conditions to allow draught-detector.
-        // (Not allowed in comfort mode, or when user has just adjuected the controls.)
+        // (Not allowed to activate in comfort mode, or when user has just adjusted the controls.)
         is0.hasEcoBias = true;
         is0.fastResponseRequired = false;
         // Futz some input parameters that should not matter.
         is0.widenDeadband = OTV0P2BASE::randRNG8NextBoolean();
         rs0.isFiltering = OTV0P2BASE::randRNG8NextBoolean();
-        // Set a new significantly lower room temp, as from a draught.
+        // Set a new significantly lower room temp (drop >=0.5C), as from a draught.
         const int_fast16_t droppedRoomTemp = roomTemp - 8 - (OTV0P2BASE::randRNG8() % 32);
         is0.setReferenceTemperatures(droppedRoomTemp);
         // Run the algorithm one tick.
