@@ -199,7 +199,7 @@ TEST(ModelledRadValve,MRVSOpenFastFromCold593)
 // Test that the cold draught detector works, with simple synthetic case.
 // Check that a sufficiently sharp drop in temperature
 // (when already below target temperature)
-// inhibits further heating at least partly for a while .
+// inhibits further heating at least partly for a while.
 TEST(ModelledRadValve,DraughtDetectorSimple)
 {
     // If true then be more verbose.
