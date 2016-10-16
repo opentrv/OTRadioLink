@@ -89,13 +89,8 @@ struct ModelledRadValveInputState
 // to be able to efficiently process signed values with sufficient range for room temperatures.
 struct ModelledRadValveState
   {
-  // Minimum and maximum bounds target temperatures for valve; degrees C/Celsius/centigrade, strictly positive.
-  // Minimum is some way above 0C to avoid freezing pipework even with small measurement errors and non-uniform temperatures.
-  // Maximum is set a little below boiling/100C for DHW applications for safety.
-  // Setbacks and uplifts cannot move temperature targets outside this range for safety.
-  static const uint8_t MIN_VALVE_TARGET_C = 4; // Minimum temperature setting allowed (to avoid freezing, allowing for offsets at temperature sensor, etc).
-  static const uint8_t MAX_VALVE_TARGET_C = 96; // Maximum temperature setting allowed (eg for DHW).
-
+  // Construct an instance, with sensible defaults, but no (room) temperature.
+  // Defers its initialisation with room temperature until first tick().
   ModelledRadValveState() :
     initialised(false),
     isFiltering(false),
@@ -103,6 +98,10 @@ struct ModelledRadValveState
     cumulativeMovementPC(0),
     valveTurndownCountdownM(0), valveTurnupCountdownM(0)
     { }
+
+  // Construct an instance, with sensible defaults, and current (room) temperature from the input state.
+  // Does its initialisation with room temperature immediately.
+  ModelledRadValveState(const ModelledRadValveInputState &inputState);
 
   // Perform per-minute tasks such as counter and filter updates then recompute valve position.
   // The input state must be complete including target and reference temperatures

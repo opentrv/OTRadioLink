@@ -35,7 +35,7 @@ ModelledRadValveInputState::ModelledRadValveInputState(const int_fast16_t realTe
     widenDeadband(false), glacial(false), hasEcoBias(false), inBakeMode(false), fastResponseRequired(false)
     { setReferenceTemperatures(realTempC16); }
 
-// Calculate reference temperature from real temperature.
+// Calculate and store reference temperature(s) from real temperature supplied.
 // Proportional temperature regulation is in a 1C band.
 // By default, for a given target XC the rad is off at (X+1)C so temperature oscillates around that point.
 // This routine shifts the reference point at which the rad is off to (X+0.5C)
@@ -47,7 +47,6 @@ void ModelledRadValveInputState::setReferenceTemperatures(const int_fast16_t cur
   const int_fast16_t referenceTempC16 = currentTempC16 + refTempOffsetC16; // TODO-386: push targeted temperature down by 0.5C to middle of degree.
   refTempC16 = referenceTempC16;
   }
-
 
 
 // Minimum slew/error % distance in central range; should be larger than smallest temperature-sensor-driven step (6) to be effective; [1,100].
@@ -176,6 +175,20 @@ static const uint8_t MIN_WINDOW_OPEN_TEMP_FALL_C16 = OTV0P2BASE::fnmax(MAX_TEMP_
 // Is capped in practice at the filter length.
 static const uint8_t MIN_WINDOW_OPEN_TEMP_FALL_M = 13;
 
+// Construct an instance, with sensible defaults, and current (room) temperature from the input state.
+// Does its initialisation with room temperature immediately.
+ModelledRadValveState::ModelledRadValveState(const ModelledRadValveInputState &inputState) :
+  initialised(true),
+  isFiltering(false),
+  valveMoved(false),
+  cumulativeMovementPC(0),
+  valveTurndownCountdownM(0), valveTurnupCountdownM(0)
+  {
+  // Fills array exactly as tick() would when !initialised.
+  const int_fast16_t rawTempC16 = inputState.refTempC16 - refTempOffsetC16; // Remove adjustment for target centre.
+  for(int i = filterLength; --i >= 0; ) { prevRawTempC16[i] = rawTempC16; }
+  }
+
 // Perform per-minute tasks such as counter and filter updates then recompute valve position.
 // The input state must be complete including target and reference temperatures
 // before calling this including the first time whereupon some further lazy initialisation is done.
@@ -300,7 +313,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
     // TODO: could explicitly avoid applying this when valve has recently been closed to avoid unwanted feedback loop.
     if(inputState.hasEcoBias &&
        (!inputState.fastResponseRequired) && // Avoid subverting recent manual call for heat.
-       (adjustedTempC >= MIN_VALVE_TARGET_C) &&
+       (adjustedTempC >= MIN_TARGET_C) &&
        (getRawDelta() < 0) &&
        (getRawDelta(MIN_WINDOW_OPEN_TEMP_FALL_M) <= -(int)MIN_WINDOW_OPEN_TEMP_FALL_C16))
         {

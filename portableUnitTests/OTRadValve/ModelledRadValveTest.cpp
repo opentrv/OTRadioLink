@@ -202,26 +202,42 @@ TEST(ModelledRadValve,MRVSOpenFastFromCold593)
 // inhibits further heating at least partly for a while .
 TEST(ModelledRadValve,DraughtDetectorSimple)
 {
-//    // If true then be more verbose.
-//    const static bool verbose = false;
+    // If true then be more verbose.
+    const static bool verbose = false;
 
-    // Test that if the real temperature is below the target
-    // and the initial valve position is anywhere [0,100]
-    // but the final temperature measurement shows a large drop
-    // that after one tick
-    // the valve is open to no more than DEFAULT_VALVE_PC_SAFER_OPEN.
-    // Starting temp as much as ~4C below target.
-    const uint8_t targetC = OTRadValve::SAFE_ROOM_TEMPERATURE;
-    OTRadValve::ModelledRadValveInputState is0((targetC << 4) - 1 - (OTV0P2BASE::randRNG8() % 64));
-    is0.targetTempC = targetC;
-    OTRadValve::ModelledRadValveState rs0;
-    volatile uint8_t valvePCOpen = OTV0P2BASE::randRNG8() % 100;
-    // Futz some input parameters that should not matter.
-    is0.widenDeadband = OTV0P2BASE::randRNG8NextBoolean();
-    rs0.isFiltering = OTV0P2BASE::randRNG8NextBoolean();
-    is0.hasEcoBias = OTV0P2BASE::randRNG8NextBoolean();
-    // Run the algorithm one tick.
-    rs0.tick(valvePCOpen, is0);
-    const uint8_t newValvePos = valvePCOpen;
-    ASSERT_TRUE(newValvePos < OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN);
+    // Run the test a few times to help ensure no dependency on state of random generator, etc.
+    for(int i = 8; --i >= 0; )
+        {
+        // Test that if the real temperature is moderately below the target
+        // (allowing for any internal offsetting)
+        // and the initial valve position is anywhere [0,100]
+        // but the final temperature measurement shows a large drop
+        // (and eco mode is enabled, and no fast response)
+        // that after one tick
+        // the valve is open to no more than DEFAULT_VALVE_PC_SAFER_OPEN.
+        // Starting temp as a little below target.
+        const uint8_t targetC = OTRadValve::SAFE_ROOM_TEMPERATURE;
+        const int_fast16_t roomTemp = (targetC << 4) - 15;
+if(verbose) { fprintf(stderr, "Start\n"); }
+        OTRadValve::ModelledRadValveInputState is0(roomTemp);
+        is0.targetTempC = targetC;
+        OTRadValve::ModelledRadValveState rs0(is0);
+        volatile uint8_t valvePCOpen = OTV0P2BASE::randRNG8() % 100;
+if(verbose) { fprintf(stderr, "Valve %d%%.\n", valvePCOpen); }
+        // Set necessary conditions to allow draught-detector.
+        // (Not allowed in comfort mode, or when user has just adjuected the controls.)
+        is0.hasEcoBias = true;
+        is0.fastResponseRequired = false;
+        // Futz some input parameters that should not matter.
+        is0.widenDeadband = OTV0P2BASE::randRNG8NextBoolean();
+        rs0.isFiltering = OTV0P2BASE::randRNG8NextBoolean();
+        // Set a new significantly lower room temp, as from a draught.
+        const int_fast16_t droppedRoomTemp = roomTemp - 8 - (OTV0P2BASE::randRNG8() % 32);
+        is0.setReferenceTemperatures(droppedRoomTemp);
+        // Run the algorithm one tick.
+        rs0.tick(valvePCOpen, is0);
+if(verbose) { fprintf(stderr, "Valve %d%%.\n", valvePCOpen); }
+        const uint8_t newValvePos = valvePCOpen;
+        ASSERT_LT(newValvePos, OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN);
+        }
 }
