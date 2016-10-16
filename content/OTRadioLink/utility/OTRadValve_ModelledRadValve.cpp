@@ -182,7 +182,11 @@ static const uint8_t MIN_WINDOW_OPEN_TEMP_FALL_M = 13;
 //   * valvePCOpenRef  current valve position UPDATED BY THIS ROUTINE, in range [0,100]
 void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const ModelledRadValveInputState &inputState)
   {
+  // Forget last event if any.
+  clearEvent();
+
   const int_fast16_t rawTempC16 = inputState.refTempC16 - refTempOffsetC16; // Remove adjustment for target centre.
+  // Do some one-off work on first tick in new instance.
   if(!initialised)
     {
     // Fill the filter memory with the current room temperature.
@@ -256,7 +260,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
   // Possibly-adjusted and/or smoothed temperature to use for targeting.
   const int_fast16_t adjustedTempC16 = isFiltering ? (getSmoothedRecent() + refTempOffsetC16) : inputState.refTempC16;
   // When reduced to whole Celsius then fewer bits are needed to cover expected temperatures.
-  const int_fast8_t adjustedTempC = (adjustedTempC16 >> 4);
+  const int_fast8_t adjustedTempC = (int_fast8_t) (adjustedTempC16 >> 4);
 
   // (Well) under temp target: open valve up.
   if(adjustedTempC < inputState.targetTempC)
@@ -300,6 +304,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
        (getRawDelta() < 0) &&
        (getRawDelta(MIN_WINDOW_OPEN_TEMP_FALL_M) <= -(int)MIN_WINDOW_OPEN_TEMP_FALL_C16))
         {
+//        setEvent(MRVE_DRAUGHT); // Report draught detected.
         if(!dontTurndown())
           {
           // Try to turn down far enough to stop calling for heat immediately.
