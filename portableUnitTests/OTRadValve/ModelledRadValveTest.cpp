@@ -268,3 +268,19 @@ class C16DataSample
         // True for empty/termination data record.
         bool isEnd() const { return(d > 31); }
     };
+
+// TODO: tests based on real data samples, for multiple aspects of functionality.
+/* eg some or all of:
+TODO-442:
+1a) No prewarm (eg 'smart' extra heating in FROST mode) in a long-vacant room.
+1b) Never a higher pre-warm/FROST-mode target temperature than WARM-mode target.
+1c) Prewarm temperature must be set back from normal WARM target.
+
+2a) Setback in WARM mode must happen in dark (quick response) or long vacant room.
+2b) FULL setbacks (4C as at 20161016) must be possible in full eco mode.
+2c) Setbacks are at most 2C in comfort mode (but there is a setback).
+2d) Bigger setbacks are possible after a room has been vacant longer (eg for weekends).
+2e) Setbacks should be targeted at times of expected low occupancy.
+2f) Some setbacks should be possible in office environments with lights mainly or always on.
+*/
+
