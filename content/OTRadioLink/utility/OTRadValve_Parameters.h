@@ -185,14 +185,14 @@ namespace OTRadValve
     // Default delay in minutes after increasing flow before re-closing is allowed.
     // This is to avoid excessive seeking/noise in the presence of strong draughts for example.
     // Too large a value may cause significant temperature overshoots and possible energy wastage.
-    static const uint8_t ANTISEEK_VALVE_RECLOSE_DELAY_M = 5;
+    static const uint8_t DEFAULT_ANTISEEK_VALVE_RECLOSE_DELAY_M = 5;
     // Default delay in minutes after restricting flow before re-opening is allowed.
     // This is to avoid excessive seeking/noise in the presence of strong draughts for example.
     // Too large a value may cause significant temperature undershoots and discomfort/annoyance.
-    static const uint8_t ANTISEEK_VALVE_REOPEN_DELAY_M = (ANTISEEK_VALVE_RECLOSE_DELAY_M*2);
+    static const uint8_t DEFAULT_ANTISEEK_VALVE_REOPEN_DELAY_M = (DEFAULT_ANTISEEK_VALVE_RECLOSE_DELAY_M*2);
 
     // Typical heat turn-down response time; in minutes, strictly positive.
-    static const uint8_t TURN_DOWN_RESPONSE_TIME_M = (ANTISEEK_VALVE_RECLOSE_DELAY_M + 3);
+    static const uint8_t DEFAULT_TURN_DOWN_RESPONSE_TIME_M = (DEFAULT_ANTISEEK_VALVE_RECLOSE_DELAY_M + 3);
 
     // Assumed daily budget in cumulative (%) valve movement for battery-powered devices.
     static const uint16_t DEFAULT_MAX_CUMULATIVE_PC_DAILY_VALVE_MOVEMENT = 400;
