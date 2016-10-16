@@ -208,7 +208,7 @@ TEST(ModelledRadValve,DraughtDetectorSimple)
     // Run the test a few times to help ensure no dependency on state of random generator, etc.
     for(int i = 8; --i >= 0; )
         {
-        // Test that if the real temperature is moderately below the target
+        // Test that if the real temperature is moderately-to-much below the target
         // (allowing for any internal offsetting)
         // and the initial valve position is anywhere [0,100]
         // but the final temperature measurement shows a large drop
@@ -219,7 +219,7 @@ TEST(ModelledRadValve,DraughtDetectorSimple)
         //
         // Starting temp as a little below target.
         const uint8_t targetC = OTRadValve::SAFE_ROOM_TEMPERATURE;
-        const int_fast16_t roomTemp = (targetC << 4) - 15;
+        const int_fast16_t roomTemp = (targetC << 4) - 15- (OTV0P2BASE::randRNG8() % 32);
 if(verbose) { fprintf(stderr, "Start\n"); }
         OTRadValve::ModelledRadValveInputState is0(roomTemp);
         is0.targetTempC = targetC;
