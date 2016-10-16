@@ -21,10 +21,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
  */
 
 #include <gtest/gtest.h>
-#include <OTV0P2BASE_QuickPRNG.h>
-#include <OTV0P2BASE_Util.h>
 #include <cstdint>
 #include <cstdio>
+#include <OTV0P2BASE_QuickPRNG.h>
 
 #include "OTRadValve_AbstractRadValve.h"
 #include "OTRadValve_ModelledRadValve.h"
