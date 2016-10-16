@@ -46,6 +46,8 @@ TEST(AmbientLightOccupancyDetection,updateBasics)
     EXPECT_FALSE(ds2.update(255)) << "unchanged 255 (max) light level should not imply occupancy";
 }
 
+// Ambient light data samples, along with optional expected result of occupancy detector.
+// Can be directly created from OpenTRV log files.
 class ALDataSample
     {
     public:
