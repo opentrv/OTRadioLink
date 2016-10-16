@@ -246,21 +246,21 @@ if(verbose) { fprintf(stderr, "Valve %d%%.\n", valvePCOpen); }
         }
 }
 
-// C16 (Celsius*16) Temperature data samples, along with optional expected event from ModelledRadValve.
+// C16 (Celsius*16) room Temperature and target data samples, along with optional expected event from ModelledRadValve.
 // Can be directly created from OpenTRV log files.
 class C16DataSample
     {
     public:
-        const uint8_t d, H, M, C16, expected;
+        const uint8_t d, H, M, C16, tC16, expected;
 
         // Day/hour/minute and light level and expected result.
         // An expected result of 0 means no particular event expected from this (anything is acceptable).
-        C16DataSample(uint8_t dayOfMonth, uint8_t hour24, uint8_t minute, uint8_t tempC16, uint8_t expectedResult = 0)
-            : d(dayOfMonth), H(hour24), M(minute), C16(tempC16), expected(expectedResult)
+        C16DataSample(uint8_t dayOfMonth, uint8_t hour24, uint8_t minute, uint8_t tempC16, uint8_t tTempC16, uint8_t expectedResult = 0)
+            : d(dayOfMonth), H(hour24), M(minute), C16(tempC16), tC16(tTempC16), expected(expectedResult)
             { }
 
         // Create/mark a terminating entry; all input values invalid.
-        C16DataSample() : d(255), H(255), M(255), C16(255), expected(0) { }
+        C16DataSample() : d(255), H(255), M(255), C16(255), tC16(255), expected(0) { }
 
         // Compute current minute for this record.
         long currentMinute() const { return((((d * 24L) + H) * 60L) + M); }
