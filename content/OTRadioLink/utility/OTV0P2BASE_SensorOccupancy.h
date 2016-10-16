@@ -110,7 +110,7 @@ class PseudoSensorOccupancyTracker : public OTV0P2BASE::SimpleTSUint8Sensor
     // Thread-safe.
     bool isLikelyUnoccupied() { return(!isLikelyOccupied()); }
 
-    // Call when very strong evidence of room occupation has occurred.
+    // Call when very strong evidence of active room occupation has occurred.
     // Do not call based on internal/synthetic events.
     // Such evidence may include operation of buttons (etc) on the unit or PIR.
     // Do not call from (for example) 'on' schedule change.
@@ -118,7 +118,7 @@ class PseudoSensorOccupancyTracker : public OTV0P2BASE::SimpleTSUint8Sensor
     // Thread-safe and ISR-safe.
     void markAsOccupied() { value = 100; occupationCountdownM = OCCUPATION_TIMEOUT_M; activityCountdownM = 2; }
 
-    // Call when decent but not very strong evidence of room occupation, such as a light being turned on, or voice heard.
+    // Call when decent but not very strong evidence of active room occupation, such as a light being turned on, or voice heard.
     // Do not call based on internal/synthetic events.
     // Doesn't force the room to appear recently occupied.
     // If the hardware allows this may immediately turn on the main GUI LED until normal GUI reverts it,
@@ -127,7 +127,7 @@ class PseudoSensorOccupancyTracker : public OTV0P2BASE::SimpleTSUint8Sensor
     // Thread-safe.
     void markAsPossiblyOccupied();
 
-    // Call when weak evidence of room occupation, such rising RH% or CO2 or mobile phone RF levels.
+    // Call when weak evidence of active room occupation, such rising RH% or CO2 or mobile phone RF levels while not dark.
     // Do not call based on internal/synthetic events.
     // Doesn't force the room to appear recently occupied.
     // If the hardware allows this may immediately turn on the main GUI LED until normal GUI reverts it,

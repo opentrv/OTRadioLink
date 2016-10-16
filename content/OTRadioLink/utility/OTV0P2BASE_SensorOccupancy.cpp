@@ -78,7 +78,7 @@ uint8_t PseudoSensorOccupancyTracker::read()
 #endif
 
 #ifdef ARDUINO
-// Call when decent but not very strong evidence of room occupation, such as a light being turned on, or voice heard.
+// Call when decent but not very strong evidence of active room occupation, such as a light being turned on, or voice heard.
 // Do not call based on internal/synthetic events.
 // Doesn't force the room to appear recently occupied.
 // If the hardware allows this may immediately turn on the main GUI LED until normal GUI reverts it,
@@ -100,7 +100,7 @@ void PseudoSensorOccupancyTracker::markAsPossiblyOccupied()
 #endif
 
 #ifdef ARDUINO
-// Call when weak evidence of room occupation, such rising RH% or CO2 or mobile phone RF levels.
+// Call when weak evidence of active room occupation, such rising RH% or CO2 or mobile phone RF levels while not dark.
 // Do not call based on internal/synthetic events.
 // Doesn't force the room to appear recently occupied.
 // If the hardware allows this may immediately turn on the main GUI LED until normal GUI reverts it,
