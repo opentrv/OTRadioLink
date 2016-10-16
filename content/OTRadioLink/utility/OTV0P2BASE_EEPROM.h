@@ -22,11 +22,13 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
  NOTE: NO EEPROM ACCESS SHOULD HAPPEN FROM ANY ISR CODE ELSE VARIOUS FAILURE MODES ARE POSSIBLE
 
- V0p2/AVR only for now.
+ Mainly V0p2/AVR for now.
  */
 
 #ifndef OTV0P2BASE_EEPROM_H
 #define OTV0P2BASE_EEPROM_H
+
+#include <stdint.h>
 
 #ifdef ARDUINO_ARCH_AVR
 #include <avr/eeprom.h>
@@ -35,6 +37,13 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 namespace OTV0P2BASE
 {
+
+
+// 'Unset'/invalid stats values for byte (eg raw EEPROM byte)
+// and 2-byte signed int (eg after decompression).
+// These are to be used where erased non-volatile (eg EEPROM) values are 0xff.
+static const uint8_t STATS_UNSET_BYTE = 0xff;
+static const int16_t STATS_UNSET_INT = 0x7fff;
 
 
 #ifdef ARDUINO_ARCH_AVR
@@ -277,11 +286,6 @@ static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS = 8;
 // INCLUSIVE END OF NODE ASSOCIATIONS AREA: must point to last byte used.
 static const intptr_t V0P2BASE_EE_END_NODE_ASSOCIATIONS = ((V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS * V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE)-1);
 
-
-// 'Unset'/invalid stats values for byte (eg raw EEPROM byte) and 2-byte signed int (eg after decompression).
-static const uint8_t STATS_UNSET_BYTE = 0xff;
-static const int16_t STATS_UNSET_INT = 0x7fff;
-
 // Special values indicating the current hour and the next hour, for stats.
 static const uint8_t STATS_SPECIAL_HOUR_CURRENT_HOUR = ~0 - 1;
 static const uint8_t STATS_SPECIAL_HOUR_NEXT_HOUR = ~0;
@@ -314,6 +318,9 @@ bool inOutlierQuartile(bool inTop, uint8_t statsSet, uint8_t hour = STATS_SPECIA
 // (With the UNSET value specified, count will be of all samples that have been set, ie are not unset.)
 int8_t countStatSamplesBelow(uint8_t statsSet, uint8_t value);
 
+#endif // ARDUINO_ARCH_AVR
+
+
 // Range-compress an signed int 16ths-Celsius temperature to a unsigned single-byte value < 0xff.
 // This preserves at least the first bit after the binary point for all values,
 // and three bits after binary point for values in the most interesting mid range around normal room temperatures,
@@ -334,8 +341,6 @@ int16_t expandTempC16(uint8_t cTemp);
 // Maximum valid encoded/compressed stats values.
 static const uint8_t MAX_STATS_TEMP = COMPRESSION_C16_CEIL_VAL_AFTER; // Maximum valid compressed temperature value in stats.
 static const uint8_t MAX_STATS_AMBLIGHT = 254; // Maximum valid ambient light value in stats (very top of range is compressed).
-
-#endif // ARDUINO_ARCH_AVR
 
 
 }
