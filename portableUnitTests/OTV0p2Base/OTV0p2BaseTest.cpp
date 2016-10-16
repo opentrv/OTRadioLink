@@ -39,7 +39,7 @@ TEST(OTV0p2Base,SanityTest)
 }
 
 
-// Test temperature companding.
+// Test temperature companding for non-volatile storage.
 //
 // 20161016 moved from OpenTRV-Arduino-V0p2 Unit_Tests.cpp testTempCompand().
 TEST(OTV0p2Base,TempCompand)
