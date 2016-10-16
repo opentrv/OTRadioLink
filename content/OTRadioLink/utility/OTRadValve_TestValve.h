@@ -14,6 +14,7 @@ specific language governing permissions and limitations
 under the Licence.
 
 Author(s) / Copyright (s): Deniz Erbilgin 2016
+                           Damon Hart-Davis 2016
 */
 
 /*
@@ -49,13 +50,15 @@ class TestValveMotor : public OTRadValve::HardwareMotorDriverInterfaceCallbackHa
     // Must have a lifetime exceeding that of this enclosing object.
     OTRadValve::HardwareMotorDriverInterface * const hw;
 
-    volatile bool state;  // direction the motor is running in.
+    // Direction the motor is running in.
+    volatile bool state;
 
     // Flag set on signalHittingEndStop() callback from end-top / stall / high-current input.
     // Marked volatile for thread-safe lock-free access (with care).
     volatile bool endStopDetected;
 
-    volatile uint32_t counter;  // Stores the number of times motor has hit an endstop.
+    // Stores the number of times motor has hit an endstop.
+    volatile uint32_t counter;
 
     // Run fast towards/to end stop as far as possible in this call.
     // Terminates significantly before the end of the sub-cycle.
@@ -85,12 +88,10 @@ class TestValveMotor : public OTRadValve::HardwareMotorDriverInterfaceCallbackHa
      */
     inline uint32_t getCounter() { return counter; }
 
-    // unused abstract functions
+    // Unused abstract functions.
     void signalHittingEndStop(bool) { endStopDetected = true; }
     void signalShaftEncoderMarkStart(bool) {}
-    void signalRunSCTTick(bool opening) {}
-
-
+    void signalRunSCTTick(bool) {}
   };
 
 
