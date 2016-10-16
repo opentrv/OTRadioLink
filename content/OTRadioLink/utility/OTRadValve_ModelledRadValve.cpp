@@ -27,9 +27,9 @@ namespace OTRadValve
 
 
 // Offset from raw temperature to get reference temperature in C/16.
-static const int8_t refTempOffsetC16 = 8;
+static const int_fast8_t refTempOffsetC16 = 8;
 
-ModelledRadValveInputState::ModelledRadValveInputState(const int realTempC16) :
+ModelledRadValveInputState::ModelledRadValveInputState(const int_fast16_t realTempC16) :
     targetTempC(12 /* FROST */),
     minPCOpen(OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN), maxPCOpen(100),
     widenDeadband(false), glacial(false), hasEcoBias(false), inBakeMode(false), fastResponseRequired(false)
@@ -42,9 +42,9 @@ ModelledRadValveInputState::ModelledRadValveInputState(const int realTempC16) :
 // ie to the middle of the specified degree, which is more intuitive,
 // and which may save a little energy if users target the specified temperatures.
 // Suggestion c/o GG ~2014/10 code, and generally less misleading anyway!
-void ModelledRadValveInputState::setReferenceTemperatures(const int currentTempC16)
+void ModelledRadValveInputState::setReferenceTemperatures(const int_fast16_t currentTempC16)
   {
-  const int referenceTempC16 = currentTempC16 + refTempOffsetC16; // TODO-386: push targeted temperature down by 0.5C to middle of degree.
+  const int_fast16_t referenceTempC16 = currentTempC16 + refTempOffsetC16; // TODO-386: push targeted temperature down by 0.5C to middle of degree.
   refTempC16 = referenceTempC16;
   }
 
@@ -84,7 +84,7 @@ void ModelledRadValveInputState::setReferenceTemperatures(const int currentTempC
 // Simple mean filter.
 // Find mean of group of ints where sum can be computed in an int without loss.
 // TODO: needs a unit test or three.
-template<size_t N> int smallIntMean(const int data[N])
+template<size_t N> int_fast16_t smallIntMean(const int_fast16_t data[N])
   {
   // Extract mean.
   // Assume values and sum will be nowhere near the limits.
@@ -95,7 +95,7 @@ template<size_t N> int smallIntMean(const int data[N])
   }
 
 // Get smoothed raw/unadjusted temperature from the most recent samples.
-int ModelledRadValveState::getSmoothedRecent() const
+int_fast16_t ModelledRadValveState::getSmoothedRecent() const
   { return(smallIntMean<filterLength>(prevRawTempC16)); }
 
 //// Compute an estimate of rate/velocity of temperature change in C/16 per minute/tick.
@@ -182,7 +182,7 @@ static const uint8_t MIN_WINDOW_OPEN_TEMP_FALL_M = 13;
 //   * valvePCOpenRef  current valve position UPDATED BY THIS ROUTINE, in range [0,100]
 void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const ModelledRadValveInputState &inputState)
   {
-  const int rawTempC16 = inputState.refTempC16 - refTempOffsetC16; // Remove adjustment for target centre.
+  const int_fast16_t rawTempC16 = inputState.refTempC16 - refTempOffsetC16; // Remove adjustment for target centre.
   if(!initialised)
     {
     // Fill the filter memory with the current room temperature.
@@ -254,8 +254,9 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
 #endif
 
   // Possibly-adjusted and/or smoothed temperature to use for targeting.
-  const int adjustedTempC16 = isFiltering ? (getSmoothedRecent() + refTempOffsetC16) : inputState.refTempC16;
-  const int8_t adjustedTempC = (adjustedTempC16 >> 4);
+  const int_fast16_t adjustedTempC16 = isFiltering ? (getSmoothedRecent() + refTempOffsetC16) : inputState.refTempC16;
+  // When reduced to whole Celsius then fewer bits are needed to cover expected temperatures.
+  const int_fast8_t adjustedTempC = (adjustedTempC16 >> 4);
 
   // (Well) under temp target: open valve up.
   if(adjustedTempC < inputState.targetTempC)

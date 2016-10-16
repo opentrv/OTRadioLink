@@ -63,14 +63,16 @@ static const uint16_t DEFAULT_MAX_CUMULATIVE_PC_DAILY_VALVE_MOVEMENT = 400;
 
 // All input state for computing valve movement.
 // Exposed to allow easier unit testing.
-// FIXME: add flag to indicate manual operation/override, so speedy response required (TODO-593).
+//
+// This uses int_fast16_t for C16 temperatures (ie Celsius * 16)
+// to be able to efficiently process signed values with sufficient range for room temperatures.
 struct ModelledRadValveInputState
   {
   // All initial values set by the constructor are sane, but should not be relied on.
-  ModelledRadValveInputState(const int realTempC16);
+  ModelledRadValveInputState(const int_fast16_t realTempC16);
 
   // Calculate reference temperature from real temperature.
-  void setReferenceTemperatures(const int currentTempC16);
+  void setReferenceTemperatures(const int_fast16_t currentTempC16);
 
   // Current target room temperature in C in range [MIN_TARGET_C,MAX_TARGET_C].
   uint8_t targetTempC;
@@ -80,8 +82,9 @@ struct ModelledRadValveInputState
   uint8_t maxPCOpen;
 
   // If true then allow a wider deadband (more temperature drift) to save energy and valve noise.
-  // This is a strong hint that the system can work less strenuously to hit, and stay on, target,
-  // and/or that the user has not manually requested an adjustment recently so this need not be ultra responsive.
+  // This is a strong hint that the system can work less strenuously to reach or stay on, target,
+  // and/or that the user has not manually requested an adjustment recently
+  // so this need not be ultra responsive.
   bool widenDeadband;
   // True if in glacial mode.
   bool glacial;
@@ -91,17 +94,22 @@ struct ModelledRadValveInputState
   bool inBakeMode;
   // User just adjusted controls or other fast response needed.
   // (Should not be true at same time as widenDeadband.)
+  // Indicates manual operation/override, so speedy response required (TODO-593).
   bool fastResponseRequired;
 
   // Reference (room) temperature in C/16; must be set before each valve position recalc.
   // Proportional control is in the region where (refTempC16>>4) == targetTempC.
-  int refTempC16;
+  // This is signed and at least 16 bits.
+  int_fast16_t refTempC16;
   };
 
 
 // All retained state for computing valve movement, eg containing time-based state.
 // Exposed to allow easier unit testing.
 // All initial values set by the constructor are sane.
+//
+// This uses int_fast16_t for C16 temperatures (ie Celsius * 16)
+// to be able to efficiently process signed values with sufficient range for room temperatures.
 struct ModelledRadValveState
   {
   // Minimum and maximum bounds target temperatures for valve; degrees C/Celsius/centigrade, strictly positive.
@@ -187,16 +195,16 @@ struct ModelledRadValveState
   // These values have any target bias removed.
   // Half the filter size times the tick() interval gives an approximate time constant.
   // Note that full response time of a typical mechanical wax-based TRV is ~20mins.
-  int prevRawTempC16[filterLength];
+  int_fast16_t prevRawTempC16[filterLength];
 
   // Get smoothed raw/unadjusted temperature from the most recent samples.
-  int getSmoothedRecent() const;
+  int_fast16_t getSmoothedRecent() const;
 
   // Get last change in temperature (C*16, signed); +ve means rising.
-  int getRawDelta() const { return(prevRawTempC16[0] - prevRawTempC16[1]); }
+  int_fast16_t getRawDelta() const { return(prevRawTempC16[0] - prevRawTempC16[1]); }
 
   // Get last change in temperature (C*16, signed) from n ticks ago capped to filter length; +ve means rising.
-  int getRawDelta(uint8_t n) const { return(prevRawTempC16[0] - prevRawTempC16[OTV0P2BASE::fnmin((size_t)n, filterLength-1)]); }
+  int_fast16_t getRawDelta(uint8_t n) const { return(prevRawTempC16[0] - prevRawTempC16[OTV0P2BASE::fnmin((size_t)n, filterLength-1)]); }
 
 //  // Compute an estimate of rate/velocity of temperature change in C/16 per minute/tick.
 //  // A positive value indicates that temperature is rising.

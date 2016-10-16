@@ -194,3 +194,14 @@ TEST(ModelledRadValve,MRVSOpenFastFromCold593)
     ASSERT_TRUE(newValvePos <= 100);
     ASSERT_TRUE(rs0.valveMoved);
 }
+
+
+// Test that the cold draught detector works.
+// Check that a sufficiently sharp drop in temperature
+// (when already below target temperature)
+// inhibits further heating at least partly for a while .
+TEST(ModelledRadValve,DraughtDetector)
+{
+//    // If true then be more verbose.
+//    const static bool verbose = false;
+}
