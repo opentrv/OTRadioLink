@@ -251,16 +251,20 @@ if(verbose) { fprintf(stderr, "Valve %d%%.\n", valvePCOpen); }
 class C16DataSample
     {
     public:
-        const uint8_t d, H, M, C16, tC16, expected;
+        const uint8_t d, H, M, tC;
+        const int16_t C16;
+        const OTRadValve::ModelledRadValveState::event_t expected;
 
         // Day/hour/minute and light level and expected result.
         // An expected result of 0 means no particular event expected from this (anything is acceptable).
-        C16DataSample(uint8_t dayOfMonth, uint8_t hour24, uint8_t minute, uint8_t tempC16, uint8_t tTempC16, uint8_t expectedResult = 0)
-            : d(dayOfMonth), H(hour24), M(minute), C16(tempC16), tC16(tTempC16), expected(expectedResult)
+        C16DataSample(uint8_t dayOfMonth, uint8_t hour24, uint8_t minute,
+                      uint8_t tTempC, int16_t tempC16,
+                      OTRadValve::ModelledRadValveState::event_t expectedResult = OTRadValve::ModelledRadValveState::MRVE_NONE)
+            : d(dayOfMonth), H(hour24), M(minute), tC(tTempC), C16(tempC16), expected(expectedResult)
             { }
 
         // Create/mark a terminating entry; all input values invalid.
-        C16DataSample() : d(255), H(255), M(255), C16(255), tC16(255), expected(0) { }
+        C16DataSample() : d(255), H(255), M(255), tC(255), C16(~0), expected(OTRadValve::ModelledRadValveState::MRVE_NONE) { }
 
         // Compute current minute for this record.
         long currentMinute() const { return((((d * 24L) + H) * 60L) + M); }
@@ -283,4 +287,65 @@ TODO-442:
 2e) Setbacks should be targeted at times of expected low occupancy.
 2f) Some setbacks should be possible in office environments with lights mainly or always on.
 */
+
+// Nominally target up 0.25C--1C drop over a few minutes (limited by the filter length).
+// TODO-621: in case of very sharp drop in temperature,
+// assume that a window or door has been opened,
+// by accident or to ventilate the room,
+// so suppress heating to reduce waste.
+//
+// See one sample 'airing' data set:
+//     http://www.earth.org.uk/img/20160930-16WWmultisensortempL.README.txt
+//     http://www.earth.org.uk/img/20160930-16WWmultisensortempL.png
+//     http://www.earth.org.uk/img/20160930-16WWmultisensortempL.json.xz
+//
+// 7h (hall, A9B2F7C089EECD89) saw a sharp fall and recovery, possibly from an external door being opened:
+// 1C over 10 minutes then recovery by nearly 0.5C over next half hour.
+// Note that there is a potential 'sensitising' occupancy signal available,
+// ie sudden occupancy may allow triggering with a lower temperature drop.
+//[ "2016-09-30T06:45:18Z", "", {"@":"A9B2F7C089EECD89","+":15,"T|C16":319,"H|%":65,"O":1} ]
+//[ "2016-09-30T06:57:10Z", "", {"@":"A9B2F7C089EECD89","+":2,"L":101,"T|C16":302,"H|%":60} ]
+//[ "2016-09-30T07:05:10Z", "", {"@":"A9B2F7C089EECD89","+":4,"T|C16":303,"v|%":0} ]
+//[ "2016-09-30T07:09:08Z", "", {"@":"A9B2F7C089EECD89","+":5,"tT|C":16,"T|C16":305} ]
+//[ "2016-09-30T07:21:08Z", "", {"@":"A9B2F7C089EECD89","+":8,"O":2,"T|C16":308,"H|%":64} ]
+//[ "2016-09-30T07:33:12Z", "", {"@":"A9B2F7C089EECD89","+":11,"tS|C":0,"T|C16":310} ]
+static const C16DataSample sample7h[] =
+    {
+{ 0, 6, 45, 16, 319 },
+{ 0, 6, 57, 16, 302, OTRadValve::ModelledRadValveState::MRVE_DRAUGHT },
+{ 0, 7, 5, 16, 303 },
+{ 0, 7, 9, 16, 305 },
+{ 0, 7, 21, 16, 308 },
+{ 0, 7, 33, 16, 310 },
+{ }
+    };
+//
+// 1g (bedroom, FEDA88A08188E083) saw a slower fall, assumed from airing:
+// initially of .25C in 12m, 0.75C over 1h, bottoming out ~2h later down ~2C.
+// Note that there is a potential 'sensitising' occupancy signal available,
+// ie sudden occupancy may allow triggering with a lower temperature drop.
+//[ "2016-09-30T06:27:30Z", "", {"@":"FEDA88A08188E083","+":8,"tT|C":17,"tS|C":0} ]
+//[ "2016-09-30T06:31:38Z", "", {"@":"FEDA88A08188E083","+":9,"gE":0,"T|C16":331,"H|%":67} ]
+//[ "2016-09-30T06:35:30Z", "", {"@":"FEDA88A08188E083","+":10,"T|C16":330,"O":2,"L":2} ]
+//[ "2016-09-30T06:43:30Z", "", {"@":"FEDA88A08188E083","+":12,"H|%":65,"T|C16":327,"O":2} ]
+//[ "2016-09-30T06:59:34Z", "", {"@":"FEDA88A08188E083","+":0,"T|C16":325,"H|%":64,"O":1} ]
+//[ "2016-09-30T07:07:34Z", "", {"@":"FEDA88A08188E083","+":2,"H|%":63,"T|C16":324,"O":1} ]
+//[ "2016-09-30T07:15:36Z", "", {"@":"FEDA88A08188E083","+":4,"L":95,"tT|C":13,"tS|C":4} ]
+//[ "2016-09-30T07:19:30Z", "", {"@":"FEDA88A08188E083","+":5,"vC|%":0,"gE":0,"T|C16":321} ]
+//[ "2016-09-30T07:23:29Z", "", {"@":"FEDA88A08188E083","+":6,"T|C16":320,"H|%":63,"O":1} ]
+//[ "2016-09-30T07:31:27Z", "", {"@":"FEDA88A08188E083","+":8,"L":102,"T|C16":319,"H|%":63} ]
+// ...
+//[ "2016-09-30T08:15:27Z", "", {"@":"FEDA88A08188E083","+":4,"T|C16":309,"H|%":61,"O":1} ]
+//[ "2016-09-30T08:27:41Z", "", {"@":"FEDA88A08188E083","+":7,"vC|%":0,"T|C16":307} ]
+//[ "2016-09-30T08:39:33Z", "", {"@":"FEDA88A08188E083","+":10,"T|C16":305,"H|%":61,"O":1} ]
+//[ "2016-09-30T08:55:29Z", "", {"@":"FEDA88A08188E083","+":14,"T|C16":303,"H|%":61,"O":1} ]
+//[ "2016-09-30T09:07:37Z", "", {"@":"FEDA88A08188E083","+":1,"gE":0,"T|C16":302,"H|%":61} ]
+//[ "2016-09-30T09:11:29Z", "", {"@":"FEDA88A08188E083","+":2,"T|C16":301,"O":1,"L":175} ]
+//[ "2016-09-30T09:19:41Z", "", {"@":"FEDA88A08188E083","+":4,"T|C16":301,"H|%":61,"O":1} ]
+static const C16DataSample sample1g[] =
+    {
+{ 0, 6, 31, 16, 319 },
+{ }
+    };
+
 
