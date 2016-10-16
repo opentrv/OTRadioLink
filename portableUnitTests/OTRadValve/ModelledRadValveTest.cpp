@@ -20,10 +20,12 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
  * OTRadValve ModelledRadValve tests.
  */
 
-#include <stdint.h>
 #include <gtest/gtest.h>
-#include <OTV0p2Base.h>
-#include "OTRadValve_ModelledRadValve.h"
+#include <OTRadValve_ModelledRadValve.h>
+#include <OTV0P2BASE_QuickPRNG.h>
+#include <OTV0P2BASE_Util.h>
+#include <cstdint>
+#include <cstdio>
 
 
 // Test for general sanity of computation of desired valve position.
@@ -89,11 +91,12 @@ TEST(ModelledRadValve,MRVSExtremes)
         is1.widenDeadband = OTV0P2BASE::randRNG8NextBoolean();
         is1.hasEcoBias = OTV0P2BASE::randRNG8NextBoolean();
         const uint8_t oldValvePos = valvePCOpen;
+        ASSERT_TRUE(valvePCOpen >= 0); // Nominally never false because unsigned type.
         rs1.tick(valvePCOpen, is1);
         const uint8_t newValvePos = valvePCOpen;
+        ASSERT_TRUE(valvePCOpen >= 0); // Nominally never false because unsigned type.
         ASSERT_TRUE(rs1.initialised); // Initialisation must have completed.
         ASSERT_TRUE(newValvePos < 100);
-        //    AssertIsTrue(newValvePos >= 0);
         ASSERT_TRUE(newValvePos < oldValvePos);
         if(hitLinger) { ++lingerMins; }
         if(hitLinger && (0 != newValvePos)) { ASSERT_EQ(oldValvePos - 1, newValvePos); }
@@ -110,21 +113,8 @@ TEST(ModelledRadValve,MRVSExtremes)
     ASSERT_EQ(100<<4, rs1.getSmoothedRecent());
     //  AssertIsEqual(0, rs1.getVelocityC16PerTick());
     ASSERT_TRUE(!rs1.isFiltering);
-    // Some tests of basic velocity computation.
-    //  ModelledRadValveState rs2;
-    //  // Test with steady rising/falling value.
-    //  const int step2C16 = (randRNG8() & 0x1f) - 16;
-    //V0P2BASE_DEBUG_SERIAL_PRINT(step2C16);
-    //V0P2BASE_DEBUG_SERIAL_PRINTLN();
-    //  const int base2C16 = (FROST + (randRNG8() % (WARM - FROST))) << 16;
-    //  rs2.prevRawTempC16[0] = base2C16;
-    //  for(int i = 1; i < ModelledRadValveState::filterLength; ++i)
-    //    { rs2.prevRawTempC16[i] = rs2.prevRawTempC16[i-1] - step2C16; }
-    ////V0P2BASE_DEBUG_SERIAL_PRINT(rs2.getVelocityC16PerTick());
-    ////V0P2BASE_DEBUG_SERIAL_PRINTLN();
-    //  AssertIsEqualWithDelta(step2C16, rs2.getVelocityC16PerTick(), 2);
+
     // Test that soft setback works as expected to support dark-based quick setback.
-    // ENERGY SAVING RULE TEST (TODO-442 2a: "Setback in WARM mode must happen in dark (quick response) or long vacant room.")
     // ENERGY SAVING RULE TEST (TODO-442 2a: "Setback in WARM mode must happen in dark (quick response) or long vacant room.")
     OTRadValve::ModelledRadValveInputState is3(100<<4);
     is3.targetTempC = 25;
@@ -142,11 +132,7 @@ TEST(ModelledRadValve,MRVSExtremes)
                 OTRadValve::ModelledRadValveState rs3a;
                 valvePCOpen = 0;
                 rs3a.tick(valvePCOpen, is3);
-                //V0P2BASE_DEBUG_SERIAL_PRINT('@');
-                //V0P2BASE_DEBUG_SERIAL_PRINT(offset);
-                //V0P2BASE_DEBUG_SERIAL_PRINT(' ');
-                //V0P2BASE_DEBUG_SERIAL_PRINT(valvePCOpen);
-                //V0P2BASE_DEBUG_SERIAL_PRINTLN();
+if(verbose) { fprintf(stderr, "@ %d %d\n", offset, valvePCOpen); }
                 ASSERT_TRUE((offset < 0) ? (valvePCOpen > 0) : (0 == valvePCOpen));
                 // Where adjusted reference temperature is (well) above target, valve should be driven off.
                 OTRadValve::ModelledRadValveState rs3b;
