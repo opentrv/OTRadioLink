@@ -30,35 +30,12 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 #include <stdint.h>
 #include <OTV0p2Base.h>
 #include "OTV0P2BASE_Util.h"
+#include "OTRadValve_Parameters.h"
 
 
 // Use namespaces to help avoid collisions.
 namespace OTRadValve
     {
-
-
-// Default maximum time to allow the boiler to run on to allow for lost call-for-heat transmissions etc.
-// Should be (much) greater than the gap between transmissions (eg ~2m for FHT8V/FS20).
-// Should be greater than the run-on time at the OpenTRV boiler unit and any further pump run-on time.
-// Valves may have to linger open at minimum of this plus maybe an extra minute or so for timing skew
-// for systems with poor/absent bypass to avoid overheating.
-// Having too high a linger time value may cause excessive temperature overshoot.
-static const uint8_t DEFAULT_MAX_RUN_ON_TIME_M = 5;
-
-// Delay in minutes after increasing flow before re-closing is allowed.
-// This is to avoid excessive seeking/noise in the presence of strong draughts for example.
-// Too large a value may cause significant temperature overshoots and possible energy wastage.
-static const uint8_t ANTISEEK_VALVE_RECLOSE_DELAY_M = 5;
-// Delay in minutes after restricting flow before re-opening is allowed.
-// This is to avoid excessive seeking/noise in the presence of strong draughts for example.
-// Too large a value may cause significant temperature undershoots and discomfort/annoyance.
-static const uint8_t ANTISEEK_VALVE_REOPEN_DELAY_M = (ANTISEEK_VALVE_RECLOSE_DELAY_M*2);
-
-// Typical heat turn-down response time; in minutes, strictly positive.
-static const uint8_t TURN_DOWN_RESPONSE_TIME_M = (ANTISEEK_VALVE_RECLOSE_DELAY_M + 3);
-
-// Assumed daily budget in cumulative (%) valve movement for battery-powered devices.
-static const uint16_t DEFAULT_MAX_CUMULATIVE_PC_DAILY_VALVE_MOVEMENT = 400;
 
 
 // All input state for computing valve movement.

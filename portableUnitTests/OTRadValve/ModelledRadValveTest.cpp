@@ -205,22 +205,23 @@ TEST(ModelledRadValve,DraughtDetectorSimple)
 //    // If true then be more verbose.
 //    const static bool verbose = false;
 
-//    // Test that if the real temperature is below the target
-//    // and the initial valve position is anywhere [0,100]
-//    // but the final temperature measurement shows a large drop
-//    // that after one tick
-//    // the valve is open to no more than DEFAULT_VALVE_PC_SAFER_OPEN.
-//    // Starting temp >2C below target, even with 0.5 offset.
-//    OTRadValve::ModelledRadValveInputState is0(OTV0P2BASE::randRNG8() & 0xf8);
-//    is0.targetTempC = 18; // Modest target temperature.
-//    OTRadValve::ModelledRadValveState rs0;
-//    volatile uint8_t valvePCOpen = OTV0P2BASE::randRNG8() % 100;
-//    // Futz some input parameters that should not matter.
-//    is0.widenDeadband = OTV0P2BASE::randRNG8NextBoolean();
-//    rs0.isFiltering = OTV0P2BASE::randRNG8NextBoolean();
-//    is0.hasEcoBias = OTV0P2BASE::randRNG8NextBoolean();
-//    // Run the algorithm one tick.
-//    rs0.tick(valvePCOpen, is0);
-//    const uint8_t newValvePos = valvePCOpen;
-//    ASSERT_TRUE(newValvePos < OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN);
+    // Test that if the real temperature is below the target
+    // and the initial valve position is anywhere [0,100]
+    // but the final temperature measurement shows a large drop
+    // that after one tick
+    // the valve is open to no more than DEFAULT_VALVE_PC_SAFER_OPEN.
+    // Starting temp as much as ~4C below target.
+    const uint8_t targetC = OTRadValve::SAFE_ROOM_TEMPERATURE;
+    OTRadValve::ModelledRadValveInputState is0((targetC << 4) - 1 - (OTV0P2BASE::randRNG8() % 64));
+    is0.targetTempC = targetC;
+    OTRadValve::ModelledRadValveState rs0;
+    volatile uint8_t valvePCOpen = OTV0P2BASE::randRNG8() % 100;
+    // Futz some input parameters that should not matter.
+    is0.widenDeadband = OTV0P2BASE::randRNG8NextBoolean();
+    rs0.isFiltering = OTV0P2BASE::randRNG8NextBoolean();
+    is0.hasEcoBias = OTV0P2BASE::randRNG8NextBoolean();
+    // Run the algorithm one tick.
+    rs0.tick(valvePCOpen, is0);
+    const uint8_t newValvePos = valvePCOpen;
+    ASSERT_TRUE(newValvePos < OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN);
 }

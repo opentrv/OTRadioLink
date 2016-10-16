@@ -29,6 +29,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 #include <stddef.h>
 #include <stdint.h>
 #include <OTV0p2Base.h>
+#include "OTRadValve_Parameters.h"
 
 
 // Use namespaces to help avoid collisions.
@@ -105,38 +106,6 @@ class NullRadValve : public AbstractRadValve
     // Always false for null implementation.
     virtual bool isInNormalRunState() const { return(false); }
   };
-
-
-
-// Default minimum valve percentage open to be considered actually/significantly open; [1,99].
-// Anything like this will usually be shut or very minimal flows.
-// Setting this above 0 delays calling for heat from a central boiler until water is likely able to flow.
-// (It may however be possible to scavenge some heat if a particular valve opens below this and the circulation pump is already running, for example.)
-// DHD20130522: FHT8V + valve heads in use have not typically been open until around 6%; at least one opens at ~20%.
-// DHD20151014: may need reduction to <5 for use in high-pressure systems.
-// DHD20151030: with initial dead-reckoning direct drive impl valves may not be open until ~45%.
-// Allowing valve to linger at just below this level without calling for heat when shutting
-// may allow comfortable boiler pump overrun in older systems with no/poor bypass to avoid overheating.
-static const uint8_t DEFAULT_VALVE_PC_MIN_REALLY_OPEN = 15;
-
-// Safer value for valves to very likely be significantly open, in range [DEFAULT_VALVE_PC_MIN_REALLY_OPEN+1,DEFAULT_VALVE_PC_MODERATELY_OPEN-1].
-// NOTE: below this value is likely to let a boiler switch off also,
-// ie a value at/above this is a definite call for heat.
-// so DO NOT CHANGE this value between boiler and valve code without good reason.
-// DHD20151030: with initial dead-reckoning direct drive impl valves may not be open until ~45%.
-static const uint8_t DEFAULT_VALVE_PC_SAFER_OPEN = 50;
-
-// Default valve percentage at which significant heating power is being provided [DEFAULT_VALVE_PC_SAFER_OPEN+1,99].
-// For many valves much of the time this may be effectively fully open,
-// ie no change beyond this makes significant difference to heat delivery.
-// NOTE: at/above this value is likely to force a boiler on also,
-// so DO NOT CHANGE this value between boiler and valve code without good reason.
-// Should be significantly higher than DEFAULT_MIN_VALVE_PC_REALLY_OPEN.
-// DHD20151014: has been ~33% but ~66% more robust, eg for tricky all-in-one units.
-static const uint8_t DEFAULT_VALVE_PC_MODERATELY_OPEN = 67;
-
-
-
 
 
 // Generic callback handler for hardware valve motor driver.
