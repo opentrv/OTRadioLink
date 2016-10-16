@@ -183,7 +183,7 @@ static const uint8_t MIN_WINDOW_OPEN_TEMP_FALL_M = 13;
 void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const ModelledRadValveInputState &inputState)
   {
   // Forget last event if any.
-  clearEvent();
+//  clearEvent();
 
   const int_fast16_t rawTempC16 = inputState.refTempC16 - refTempOffsetC16; // Remove adjustment for target centre.
   // Do some one-off work on first tick in new instance.
