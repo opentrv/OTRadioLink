@@ -25,6 +25,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 
 // Radiator valve support, abstract and common implementations.
 
+// OpenTRV radiator valve basic parameters..
+#include "utility/OTRadValve_Parameters.h"
+
 // Abstract/base interface for basic (thermostatic) radiator valves.
 #include "utility/OTRadValve_AbstractRadValve.h"
 

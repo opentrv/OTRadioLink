@@ -568,7 +568,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // Keeping this small minimises service time.
             // This does NOT attempt to interpret or filter inbound messages, just queues them.
             // Ensures radio is in RX mode at exit if listening is enabled.
-            void _poll(const bool inISR)
+            void _poll()
                 {
                 // Nothing to do if RX is not allowed.
                 if(!allowRX) { return; }
@@ -592,7 +592,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                         const bool neededEnable = _upSPI();
                         // Extract packet/frame length...
                         uint8_t lengthRX; 
-                        // Number of bytes to read depends whether fixed of variable packet lenght
+                        // Number of bytes to read depends whether fixed of variable packet length
                         if ((_readReg8Bit_(REG_33_HEADER_CONTROL2) & RFM23B_FIXPKLEN ) == RFM23B_FIXPKLEN ) 
                            lengthRX = _readReg8Bit(REG_3E_PACKET_LENGTH);
                         else
@@ -728,7 +728,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // May also be used for output processing,
             // eg to run a transmit state machine.
             // May be called very frequently and should not take more than a few 100ms per call.
-            virtual void poll() { if(!interruptLineIsEnabledAndInactive()) { ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { _poll(false); } } }
+            virtual void poll() { if(!interruptLineIsEnabledAndInactive()) { ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { _poll(); } } }
 
             // Handle simple interrupt for this radio link.
             // Must be fast and ISR (Interrupt Service Routine) safe.
@@ -742,7 +742,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                 {
                 if(!allowRX) { return(false); }
                 if(interruptLineIsEnabledAndInactive()) { return(false); }
-                _poll(true);
+                _poll();
                 return(true);
                 }
 

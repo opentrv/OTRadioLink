@@ -121,8 +121,8 @@ uint8_t SensorAmbientLight::read()
   // Capture entropy from changed LS bits.
   if((uint8_t)al != (uint8_t)rawValue) { ::OTV0P2BASE::addEntropyToPool((uint8_t)al, 0); } // Claim zero entropy as may be forced by Eve.
 
-  // Hold the existing/old value for comparison.
-  const uint8_t oldValue = value;
+//  // Hold the existing/old value for comparison.
+//  const uint8_t oldValue = value;
   // Compute the new normalised value.
   const uint8_t newValue = (uint8_t)(al >> shiftRawScaleTo8Bit);
 
@@ -142,30 +142,34 @@ uint8_t SensorAmbientLight::read()
     darkTicks = 0;
     }
 
-  // If a callback is set
-  // then treat a sharp brightening as a possible/weak indication of occupancy, eg light flicked on.
-  if((NULL != possOccCallback) && (newValue > oldValue))
-    {
-    // Ignore false trigger at start-up,
-    // and only respond to a large-enough jump in light levels.
-    if((((uint16_t)~0U) != rawValue) && ((newValue - oldValue) >= upDelta))
-      {
-#if 0 && defined(DEBUG)
-DEBUG_SERIAL_PRINT_FLASHSTRING("  UP: ambient light rise/upDelta/newval/dt/lt: ");
-DEBUG_SERIAL_PRINT((newValue - value));
-DEBUG_SERIAL_PRINT(' ');
-DEBUG_SERIAL_PRINT(upDelta);
-DEBUG_SERIAL_PRINT(' ');
-DEBUG_SERIAL_PRINT(newValue);
-DEBUG_SERIAL_PRINT(' ');
-DEBUG_SERIAL_PRINT(darkThreshold);
-DEBUG_SERIAL_PRINT(' ');
-DEBUG_SERIAL_PRINT(lightThreshold);
-DEBUG_SERIAL_PRINTLN();
-#endif
-      possOccCallback(); // Ping the callback!
-      }
-    }
+//  // If a callback is set
+//  // then treat a sharp brightening as a possible/weak indication of occupancy, eg light flicked on.
+//  if((NULL != possOccCallback) && (newValue > oldValue))
+//    {
+//    // Ignore false trigger at start-up,
+//    // and only respond to a large-enough jump in light levels.
+//    if((((uint16_t)~0U) != rawValue) && ((newValue - oldValue) >= upDelta))
+//      {
+//#if 0 && defined(DEBUG)
+//DEBUG_SERIAL_PRINT_FLASHSTRING("  UP: ambient light rise/upDelta/newval/dt/lt: ");
+//DEBUG_SERIAL_PRINT((newValue - value));
+//DEBUG_SERIAL_PRINT(' ');
+//DEBUG_SERIAL_PRINT(upDelta);
+//DEBUG_SERIAL_PRINT(' ');
+//DEBUG_SERIAL_PRINT(newValue);
+//DEBUG_SERIAL_PRINT(' ');
+//DEBUG_SERIAL_PRINT(darkThreshold);
+//DEBUG_SERIAL_PRINT(' ');
+//DEBUG_SERIAL_PRINT(lightThreshold);
+//DEBUG_SERIAL_PRINTLN();
+//#endif
+//      possOccCallback(); // Ping the callback!
+//      }
+//    }
+
+  // If a callback is set then use the occupancy detector.
+  if((NULL != possOccCallback) && occupancyDetector.update(newValue))
+    { possOccCallback(); } // Ping the callback!
 
 #if 0 && defined(DEBUG)
   DEBUG_SERIAL_PRINT_FLASHSTRING("Ambient light (/1023): ");
@@ -263,7 +267,8 @@ void SensorAmbientLight::_recomputeThresholds(const bool sensitive)
 // longer term typically over the last week or so (eg rolling exponential decays).
 // Call regularly, roughly hourly, to drive other internal time-dependent adaptation.
 //   * sensitive if true be more sensitive to possible occupancy changes, else less so.
-void SensorAmbientLight::setMinMax(const uint8_t recentMinimumOrFF, const uint8_t recentMaximumOrFF,
+void SensorAmbientLight::setTypMinMax(const uint8_t meanNowOrFF,
+                             const uint8_t recentMinimumOrFF, const uint8_t recentMaximumOrFF,
                              const uint8_t longerTermMinimumOrFF, const uint8_t longerTermMaximumOrFF,
                              const bool sensitive)
   {
@@ -279,6 +284,11 @@ void SensorAmbientLight::setMinMax(const uint8_t recentMinimumOrFF, const uint8_
     }
 
   _recomputeThresholds(sensitive);
+
+  // Pass on appropriate properties to the occupancy detector.
+  occupancyDetector.setTypMinMax(meanNowOrFF,
+          longerTermMinimumOrFF, longerTermMaximumOrFF,
+          sensitive);
 
 #if 0 && defined(DEBUG)
   DEBUG_SERIAL_PRINT_FLASHSTRING("Ambient recent min/max: ");

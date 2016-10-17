@@ -27,27 +27,26 @@ namespace OTRadValve
 
 
 // Offset from raw temperature to get reference temperature in C/16.
-static const int8_t refTempOffsetC16 = 8;
+static const int_fast8_t refTempOffsetC16 = 8;
 
-ModelledRadValveInputState::ModelledRadValveInputState(const int realTempC16) :
+ModelledRadValveInputState::ModelledRadValveInputState(const int_fast16_t realTempC16) :
     targetTempC(12 /* FROST */),
     minPCOpen(OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN), maxPCOpen(100),
     widenDeadband(false), glacial(false), hasEcoBias(false), inBakeMode(false), fastResponseRequired(false)
     { setReferenceTemperatures(realTempC16); }
 
-// Calculate reference temperature from real temperature.
+// Calculate and store reference temperature(s) from real temperature supplied.
 // Proportional temperature regulation is in a 1C band.
 // By default, for a given target XC the rad is off at (X+1)C so temperature oscillates around that point.
 // This routine shifts the reference point at which the rad is off to (X+0.5C)
 // ie to the middle of the specified degree, which is more intuitive,
 // and which may save a little energy if users target the specified temperatures.
 // Suggestion c/o GG ~2014/10 code, and generally less misleading anyway!
-void ModelledRadValveInputState::setReferenceTemperatures(const int currentTempC16)
+void ModelledRadValveInputState::setReferenceTemperatures(const int_fast16_t currentTempC16)
   {
-  const int referenceTempC16 = currentTempC16 + refTempOffsetC16; // TODO-386: push targeted temperature down by 0.5C to middle of degree.
+  const int_fast16_t referenceTempC16 = currentTempC16 + refTempOffsetC16; // TODO-386: push targeted temperature down by 0.5C to middle of degree.
   refTempC16 = referenceTempC16;
   }
-
 
 
 // Minimum slew/error % distance in central range; should be larger than smallest temperature-sensor-driven step (6) to be effective; [1,100].
@@ -84,7 +83,7 @@ void ModelledRadValveInputState::setReferenceTemperatures(const int currentTempC
 // Simple mean filter.
 // Find mean of group of ints where sum can be computed in an int without loss.
 // TODO: needs a unit test or three.
-template<size_t N> int smallIntMean(const int data[N])
+template<size_t N> int_fast16_t smallIntMean(const int_fast16_t data[N])
   {
   // Extract mean.
   // Assume values and sum will be nowhere near the limits.
@@ -95,7 +94,7 @@ template<size_t N> int smallIntMean(const int data[N])
   }
 
 // Get smoothed raw/unadjusted temperature from the most recent samples.
-int ModelledRadValveState::getSmoothedRecent() const
+int_fast16_t ModelledRadValveState::getSmoothedRecent() const
   { return(smallIntMean<filterLength>(prevRawTempC16)); }
 
 //// Compute an estimate of rate/velocity of temperature change in C/16 per minute/tick.
@@ -150,11 +149,13 @@ static const uint8_t MAX_TEMP_JUMP_C16 = 3; // 3/16C.
 // initially of .25C in 12m, 0.75C over 1h, bottoming out ~2h later down ~2C.
 // Note that there is a potential 'sensitising' occupancy signal available,
 // ie sudden occupancy may allow triggering with a lower temperature drop.
+//[ "2016-09-30T06:27:30Z", "", {"@":"FEDA88A08188E083","+":8,"tT|C":17,"tS|C":0} ]
 //[ "2016-09-30T06:31:38Z", "", {"@":"FEDA88A08188E083","+":9,"gE":0,"T|C16":331,"H|%":67} ]
 //[ "2016-09-30T06:35:30Z", "", {"@":"FEDA88A08188E083","+":10,"T|C16":330,"O":2,"L":2} ]
 //[ "2016-09-30T06:43:30Z", "", {"@":"FEDA88A08188E083","+":12,"H|%":65,"T|C16":327,"O":2} ]
 //[ "2016-09-30T06:59:34Z", "", {"@":"FEDA88A08188E083","+":0,"T|C16":325,"H|%":64,"O":1} ]
 //[ "2016-09-30T07:07:34Z", "", {"@":"FEDA88A08188E083","+":2,"H|%":63,"T|C16":324,"O":1} ]
+//[ "2016-09-30T07:15:36Z", "", {"@":"FEDA88A08188E083","+":4,"L":95,"tT|C":13,"tS|C":4} ]
 //[ "2016-09-30T07:19:30Z", "", {"@":"FEDA88A08188E083","+":5,"vC|%":0,"gE":0,"T|C16":321} ]
 //[ "2016-09-30T07:23:29Z", "", {"@":"FEDA88A08188E083","+":6,"T|C16":320,"H|%":63,"O":1} ]
 //[ "2016-09-30T07:31:27Z", "", {"@":"FEDA88A08188E083","+":8,"L":102,"T|C16":319,"H|%":63} ]
@@ -176,13 +177,31 @@ static const uint8_t MIN_WINDOW_OPEN_TEMP_FALL_C16 = OTV0P2BASE::fnmax(MAX_TEMP_
 // Is capped in practice at the filter length.
 static const uint8_t MIN_WINDOW_OPEN_TEMP_FALL_M = 13;
 
+// Construct an instance, with sensible defaults, and current (room) temperature from the input state.
+// Does its initialisation with room temperature immediately.
+ModelledRadValveState::ModelledRadValveState(const ModelledRadValveInputState &inputState) :
+  initialised(true),
+  isFiltering(false),
+  valveMoved(false),
+  cumulativeMovementPC(0),
+  valveTurndownCountdownM(0), valveTurnupCountdownM(0)
+  {
+  // Fills array exactly as tick() would when !initialised.
+  const int_fast16_t rawTempC16 = inputState.refTempC16 - refTempOffsetC16; // Remove adjustment for target centre.
+  for(int i = filterLength; --i >= 0; ) { prevRawTempC16[i] = rawTempC16; }
+  }
+
 // Perform per-minute tasks such as counter and filter updates then recompute valve position.
 // The input state must be complete including target and reference temperatures
 // before calling this including the first time whereupon some further lazy initialisation is done.
 //   * valvePCOpenRef  current valve position UPDATED BY THIS ROUTINE, in range [0,100]
 void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const ModelledRadValveInputState &inputState)
   {
-  const int rawTempC16 = inputState.refTempC16 - refTempOffsetC16; // Remove adjustment for target centre.
+  // Forget last event if any.
+  clearEvent();
+
+  const int_fast16_t rawTempC16 = inputState.refTempC16 - refTempOffsetC16; // Remove adjustment for target centre.
+  // Do some one-off work on first tick in new instance.
   if(!initialised)
     {
     // Fill the filter memory with the current room temperature.
@@ -254,8 +273,9 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
 #endif
 
   // Possibly-adjusted and/or smoothed temperature to use for targeting.
-  const int adjustedTempC16 = isFiltering ? (getSmoothedRecent() + refTempOffsetC16) : inputState.refTempC16;
-  const int8_t adjustedTempC = (adjustedTempC16 >> 4);
+  const int_fast16_t adjustedTempC16 = isFiltering ? (getSmoothedRecent() + refTempOffsetC16) : inputState.refTempC16;
+  // When reduced to whole Celsius then fewer bits are needed to cover expected temperatures.
+  const int_fast8_t adjustedTempC = (int_fast8_t) (adjustedTempC16 >> 4);
 
   // (Well) under temp target: open valve up.
   if(adjustedTempC < inputState.targetTempC)
@@ -295,10 +315,11 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
     // TODO: could explicitly avoid applying this when valve has recently been closed to avoid unwanted feedback loop.
     if(inputState.hasEcoBias &&
        (!inputState.fastResponseRequired) && // Avoid subverting recent manual call for heat.
-       (adjustedTempC >= MIN_VALVE_TARGET_C) &&
+       (adjustedTempC >= MIN_TARGET_C) &&
        (getRawDelta() < 0) &&
        (getRawDelta(MIN_WINDOW_OPEN_TEMP_FALL_M) <= -(int)MIN_WINDOW_OPEN_TEMP_FALL_C16))
         {
+        setEvent(MRVE_DRAUGHT); // Report draught detected.
         if(!dontTurndown())
           {
           // Try to turn down far enough to stop calling for heat immediately.
@@ -359,7 +380,10 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
       const uint8_t cappedModeratelyOpen = OTV0P2BASE::fnmin(inputState.maxPCOpen, OTV0P2BASE::fnmin((uint8_t)99, (uint8_t)(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN+TRV_SLEW_PC_PER_MIN_FAST)));
       if((valvePCOpen < cappedModeratelyOpen) &&
          (inputState.fastResponseRequired || (vBelowTarget && !inputState.widenDeadband)))
-          { return(cappedModeratelyOpen); }
+          {
+          setEvent(MRVE_OPENFAST);
+          return(cappedModeratelyOpen);
+          }
 
       // Ensure that the valve opens quickly from cold for acceptable response (TODO-593)
       // both locally in terms of valve position and also in terms of the boiler responding.

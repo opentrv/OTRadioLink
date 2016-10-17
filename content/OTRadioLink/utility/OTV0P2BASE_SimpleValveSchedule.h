@@ -137,7 +137,7 @@ class NULLValveSchedule
     {
     public:
         static uint_least16_t getSimpleScheduleOff(uint8_t) { return(~0); }
-        static uint_least16_t getSimpleScheduleOn(uint8_t which)  { return(~0); }
+        static uint_least16_t getSimpleScheduleOn(uint8_t)  { return(~0); }
         static bool isAnyScheduleOnWARMNow() { return(false); }
         static bool isAnyScheduleOnWARMSoon() { return(false); }
         static bool isAnySimpleScheduleSet() { return(false); }

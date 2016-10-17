@@ -21,7 +21,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
  NOTE: NO EEPROM ACCESS SHOULD HAPPEN FROM ANY ISR CODE ELSE VARIOUS FAILURE MODES ARE POSSIBLE
 
- V0p2/AVR only for now.
+ Mainly V0p2/AVR for now.
  */
 
 #ifdef ARDUINO_ARCH_AVR
@@ -362,6 +362,8 @@ bool zapStats(uint16_t maxBytesToErase)
   return(true); // All done.
   }
 
+#endif // ARDUINO_ARCH_AVR
+
 
 // Range-compress an signed int 16ths-Celsius temperature to a unsigned single-byte value < 0xff.
 // This preserves at least the first bit after the binary point for all values,
@@ -390,8 +392,6 @@ int16_t expandTempC16(const uint8_t cTemp)
     { return(((cTemp - COMPRESSION_C16_HIGH_THR_AFTER) << 3) + COMPRESSION_C16_HIGH_THRESHOLD); }
   return(OTV0P2BASE::STATS_UNSET_INT); // Invalid/unset input.
   }
-
-#endif // ARDUINO_ARCH_AVR
 
 
 }

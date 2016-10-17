@@ -30,6 +30,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 #include <stdint.h>
 #include <OTV0p2Base.h>
 #include "OTV0P2BASE_Util.h"
+#include "OTRadValve_Parameters.h"
 
 
 // Use namespaces to help avoid collisions.
@@ -37,40 +38,18 @@ namespace OTRadValve
     {
 
 
-// Default maximum time to allow the boiler to run on to allow for lost call-for-heat transmissions etc.
-// Should be (much) greater than the gap between transmissions (eg ~2m for FHT8V/FS20).
-// Should be greater than the run-on time at the OpenTRV boiler unit and any further pump run-on time.
-// Valves may have to linger open at minimum of this plus maybe an extra minute or so for timing skew
-// for systems with poor/absent bypass to avoid overheating.
-// Having too high a linger time value may cause excessive temperature overshoot.
-static const uint8_t DEFAULT_MAX_RUN_ON_TIME_M = 5;
-
-// Delay in minutes after increasing flow before re-closing is allowed.
-// This is to avoid excessive seeking/noise in the presence of strong draughts for example.
-// Too large a value may cause significant temperature overshoots and possible energy wastage.
-static const uint8_t ANTISEEK_VALVE_RECLOSE_DELAY_M = 5;
-// Delay in minutes after restricting flow before re-opening is allowed.
-// This is to avoid excessive seeking/noise in the presence of strong draughts for example.
-// Too large a value may cause significant temperature undershoots and discomfort/annoyance.
-static const uint8_t ANTISEEK_VALVE_REOPEN_DELAY_M = (ANTISEEK_VALVE_RECLOSE_DELAY_M*2);
-
-// Typical heat turn-down response time; in minutes, strictly positive.
-static const uint8_t TURN_DOWN_RESPONSE_TIME_M = (ANTISEEK_VALVE_RECLOSE_DELAY_M + 3);
-
-// Assumed daily budget in cumulative (%) valve movement for battery-powered devices.
-static const uint16_t DEFAULT_MAX_CUMULATIVE_PC_DAILY_VALVE_MOVEMENT = 400;
-
-
 // All input state for computing valve movement.
 // Exposed to allow easier unit testing.
-// FIXME: add flag to indicate manual operation/override, so speedy response required (TODO-593).
+//
+// This uses int_fast16_t for C16 temperatures (ie Celsius * 16)
+// to be able to efficiently process signed values with sufficient range for room temperatures.
 struct ModelledRadValveInputState
   {
   // All initial values set by the constructor are sane, but should not be relied on.
-  ModelledRadValveInputState(const int realTempC16);
+  ModelledRadValveInputState(const int_fast16_t realTempC16);
 
   // Calculate reference temperature from real temperature.
-  void setReferenceTemperatures(const int currentTempC16);
+  void setReferenceTemperatures(const int_fast16_t currentTempC16);
 
   // Current target room temperature in C in range [MIN_TARGET_C,MAX_TARGET_C].
   uint8_t targetTempC;
@@ -80,8 +59,9 @@ struct ModelledRadValveInputState
   uint8_t maxPCOpen;
 
   // If true then allow a wider deadband (more temperature drift) to save energy and valve noise.
-  // This is a strong hint that the system can work less strenuously to hit, and stay on, target,
-  // and/or that the user has not manually requested an adjustment recently so this need not be ultra responsive.
+  // This is a strong hint that the system can work less strenuously to reach or stay on, target,
+  // and/or that the user has not manually requested an adjustment recently
+  // so this need not be ultra responsive.
   bool widenDeadband;
   // True if in glacial mode.
   bool glacial;
@@ -91,26 +71,26 @@ struct ModelledRadValveInputState
   bool inBakeMode;
   // User just adjusted controls or other fast response needed.
   // (Should not be true at same time as widenDeadband.)
+  // Indicates manual operation/override, so speedy response required (TODO-593).
   bool fastResponseRequired;
 
   // Reference (room) temperature in C/16; must be set before each valve position recalc.
   // Proportional control is in the region where (refTempC16>>4) == targetTempC.
-  int refTempC16;
+  // This is signed and at least 16 bits.
+  int_fast16_t refTempC16;
   };
 
 
 // All retained state for computing valve movement, eg containing time-based state.
 // Exposed to allow easier unit testing.
 // All initial values set by the constructor are sane.
+//
+// This uses int_fast16_t for C16 temperatures (ie Celsius * 16)
+// to be able to efficiently process signed values with sufficient range for room temperatures.
 struct ModelledRadValveState
   {
-  // Minimum and maximum bounds target temperatures for valve; degrees C/Celsius/centigrade, strictly positive.
-  // Minimum is some way above 0C to avoid freezing pipework even with small measurement errors and non-uniform temperatures.
-  // Maximum is set a little below boiling/100C for DHW applications for safety.
-  // Setbacks and uplifts cannot move temperature targets outside this range for safety.
-  static const uint8_t MIN_VALVE_TARGET_C = 4; // Minimum temperature setting allowed (to avoid freezing, allowing for offsets at temperature sensor, etc).
-  static const uint8_t MAX_VALVE_TARGET_C = 96; // Maximum temperature setting allowed (eg for DHW).
-
+  // Construct an instance, with sensible defaults, but no (room) temperature.
+  // Defers its initialisation with room temperature until first tick().
   ModelledRadValveState() :
     initialised(false),
     isFiltering(false),
@@ -118,6 +98,10 @@ struct ModelledRadValveState
     cumulativeMovementPC(0),
     valveTurndownCountdownM(0), valveTurnupCountdownM(0)
     { }
+
+  // Construct an instance, with sensible defaults, and current (room) temperature from the input state.
+  // Does its initialisation with room temperature immediately.
+  ModelledRadValveState(const ModelledRadValveInputState &inputState);
 
   // Perform per-minute tasks such as counter and filter updates then recompute valve position.
   // The input state must be complete including target and reference temperatures
@@ -135,6 +119,30 @@ struct ModelledRadValveState
 
   // True if the computed valve position was changed by tick().
   bool valveMoved;
+
+  // Testable/reportable events.
+  // Cleared at the start of each tick().
+  // Set as appropriate by computeRequiredTRVPercentOpen() to indicate
+  // particular activity and paths taken.
+  // May only be reported and accessible in debug mode; primarily to facilitate unit testing.
+  typedef enum
+    {
+    MRVE_NONE,      // No event.
+    MRVE_OPENFAST,  // Fast open as per TODO-593.
+    MRVE_DRAUGHT    // Cold draught detected.
+    } event_t;
+#if 1 || defined(DEBUG)
+  mutable event_t lastEvent = MRVE_NONE;
+  // Clear the last event, ie event state becomes MRVE_NONE.
+  void clearEvent() const { lastEvent = MRVE_NONE; }
+  // Set the event to be as passed.
+  void setEvent(event_t event) const { lastEvent = event; }
+#else
+  // Dummy placeholders where event state not held.
+  void clearEvent() const { }
+  // Set the event to be as passed.
+  void setEvent(event_t e) const { }
+#endif
 
   // Cumulative valve movement count, as unsigned cumulative percent with rollover [0,8191].
   // This is a useful as a measure of battery consumption (slewing the valve)
@@ -161,7 +169,7 @@ struct ModelledRadValveState
   uint8_t valveTurndownCountdownM;
   // Mark flow as having been reduced.
   // TODO: possibly decrease reopen delay in comfort mode and increase in filtering/wide-deadband/eco mode.
-  void valveTurndown() { valveTurndownCountdownM = ANTISEEK_VALVE_REOPEN_DELAY_M; }
+  void valveTurndown() { valveTurndownCountdownM = DEFAULT_ANTISEEK_VALVE_REOPEN_DELAY_M; }
   // If true then avoid turning up the heat yet.
   bool dontTurnup() const { return(0 != valveTurndownCountdownM); }
 
@@ -175,7 +183,7 @@ struct ModelledRadValveState
   uint8_t valveTurnupCountdownM;
   // Mark flow as having been increased.
   // TODO: possibly increase reclose delay in filtering/wide-deadband mode.
-  void valveTurnup() { valveTurnupCountdownM = ANTISEEK_VALVE_RECLOSE_DELAY_M; }
+  void valveTurnup() { valveTurnupCountdownM = DEFAULT_ANTISEEK_VALVE_RECLOSE_DELAY_M; }
   // If true then avoid turning down the heat yet.
   bool dontTurndown() const { return(0 != valveTurnupCountdownM); }
 
@@ -187,16 +195,16 @@ struct ModelledRadValveState
   // These values have any target bias removed.
   // Half the filter size times the tick() interval gives an approximate time constant.
   // Note that full response time of a typical mechanical wax-based TRV is ~20mins.
-  int prevRawTempC16[filterLength];
+  int_fast16_t prevRawTempC16[filterLength];
 
   // Get smoothed raw/unadjusted temperature from the most recent samples.
-  int getSmoothedRecent() const;
+  int_fast16_t getSmoothedRecent() const;
 
   // Get last change in temperature (C*16, signed); +ve means rising.
-  int getRawDelta() const { return(prevRawTempC16[0] - prevRawTempC16[1]); }
+  int_fast16_t getRawDelta() const { return(prevRawTempC16[0] - prevRawTempC16[1]); }
 
   // Get last change in temperature (C*16, signed) from n ticks ago capped to filter length; +ve means rising.
-  int getRawDelta(uint8_t n) const { return(prevRawTempC16[0] - prevRawTempC16[OTV0P2BASE::fnmin((size_t)n, filterLength-1)]); }
+  int_fast16_t getRawDelta(uint8_t n) const { return(prevRawTempC16[0] - prevRawTempC16[OTV0P2BASE::fnmin((size_t)n, filterLength-1)]); }
 
 //  // Compute an estimate of rate/velocity of temperature change in C/16 per minute/tick.
 //  // A positive value indicates that temperature is rising.

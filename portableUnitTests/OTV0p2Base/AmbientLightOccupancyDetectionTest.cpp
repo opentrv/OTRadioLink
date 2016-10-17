@@ -46,6 +46,8 @@ TEST(AmbientLightOccupancyDetection,updateBasics)
     EXPECT_FALSE(ds2.update(255)) << "unchanged 255 (max) light level should not imply occupancy";
 }
 
+// Ambient light data samples, along with optional expected result of occupancy detector.
+// Can be directly created from OpenTRV log files.
 class ALDataSample
     {
     public:
@@ -89,13 +91,14 @@ static const ALDataSample trivialSample1[] =
 // Can be supplied with nominal long-term rolling mean levels by hour,
 // or they can be computed from the data supplied (NULL means none supplied, 0xff entry means none for given hour).
 // Uses the update() call for the main simulation.
-// Uses the setTypMinMax() call as the hour rolls;
+// Uses the setTypMinMax() call as the hour rolls or in more complex blended-stats modes;
 // runs with 'sensitive' in both states to verify algorithm's robustness.
-// Will fail if a large amount of the time occupancy is predicted.
+// Will fail if an excessive amount of the time occupancy is predicted (more than ~25%).
 void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface *const detector,
                          const uint8_t minLevel = 0xff, const uint8_t maxLevel = 0xff,
                          const uint8_t meanByHour[24] = NULL)
     {
+    static const bool verbose = false; // Set true for more verbose reporting.
     ASSERT_TRUE(NULL != data);
     ASSERT_TRUE(NULL != detector);
     ASSERT_FALSE(data->isEnd()) << "do not pass in empty data set";
@@ -146,55 +149,111 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
             ((minI < 255) ? (uint8_t)minI : 0xff);
     const uint8_t maxToUse = (0xff != maxLevel) ? maxLevel :
             ((maxI >= 0) ? (uint8_t)maxI : 0xff);
-    // Run simulation at both sensitivities.
-    int nOccupancyReportsSensitive = 0;
-    int nOccupancyReportsNotSensitive = 0;
-    for(int s = 0; s <= 1; ++s)
+    // Run simulation with different stats blending types
+    // to ensure that occupancy detection is robust.
+    enum blending_t { NONE, HALFHOURMIN, HALFHOUR, BYMINUTE, END };
+    for(int blending = NONE; blending < END; ++blending)
         {
-        const bool sensitive = (0 != s);
-fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr);
-        // Count of number of occupancy signals.
-        int nOccupancyReports = 0;
-        uint8_t oldH = 0xff;
-        for(const ALDataSample *dp = data; !dp->isEnd(); ++dp)
+if(verbose) { fprintf(stderr, "blending = %d\n", blending); }
+        // Run simulation at both sensitivities.
+        int nOccupancyReportsSensitive = 0;
+        int nOccupancyReportsNotSensitive = 0;
+        for(int s = 0; s <= 1; ++s)
             {
-            long currentMinute = dp->currentMinute();
-            do  {
-                const uint8_t H = (currentMinute % 1440) / 60;
-                if(H != oldH)
-                    {
-                    // When the hour rolls, set new stats for the detector.
-                    // Note that implementations be use the end of the hour/period
-                    // and other times.
-                    // The detector and caller should aim not to be hugely sensitive to the exact timing,
-                    // eg by blending prev/current/next periods linearly.
-//fprintf(stderr, "mean = %d\n", byHourMeanI[H]);
-                    detector->setTypMinMax(byHourMeanI[H], minToUse, maxToUse, sensitive);
-                    ASSERT_EQ(sensitive, detector->isSensitive());
-                    oldH = H;
-                    }
-                const bool prediction = detector->update(dp->L);
-                if(prediction) { ++nOccupancyReports; }
-if(prediction) { fprintf(stderr, "@ %d:%d L = %d\n", H, (int)(currentMinute % 60), dp->L); }
-                // Note that for all synthetic ticks the expectation is removed (since there is no level change).
-                const uint8_t expected = (currentMinute != dp->currentMinute()) ? 0 : dp->expected;
-                if(0 != expected)
-                    {
-                    // If a particular outcome was expected, test against it.
-                    const bool expectedOccupancy = (expected > 1);
+            const bool sensitive = (0 != s);
+if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
+            // Count of number of occupancy signals.
+            int nOccupancyReports = 0;
+            uint8_t oldH = 0xff; // Used to detect hour rollover.
+            for(const ALDataSample *dp = data; !dp->isEnd(); ++dp)
+                {
+                long currentMinute = dp->currentMinute();
+                do  {
+                    const uint8_t H = (currentMinute % 1440) / 60;
                     const uint8_t M = (currentMinute % 60);
-                    EXPECT_EQ(expectedOccupancy, prediction) << " @ " << ((int)H) << ":" << ((int)M);
-                    }
-                ++currentMinute;
-                } while((!(dp+1)->isEnd()) && (currentMinute < (dp+1)->currentMinute()));
+                    switch(blending)
+                        {
+                        case NONE: // Use unblended mean for this hour.
+                            {
+                            if(H != oldH)
+                                {
+                                // When the hour rolls, set new stats for the detector.
+                                // Note that implementations be use the end of the hour/period
+                                // and other times.
+                                // The detector and caller should aim not to be hugely sensitive to the exact timing,
+                                // eg by blending prev/current/next periods linearly.
+//fprintf(stderr, "mean = %d\n", byHourMeanI[H]);
+                                detector->setTypMinMax(byHourMeanI[H], minToUse, maxToUse, sensitive);
+                                ASSERT_EQ(sensitive, detector->isSensitive());
+                                }
+                            break;
+                            }
+                        case HALFHOURMIN: // Use blended (min) mean for final half hour hour.
+                            {
+                            const uint8_t thm = byHourMeanI[H];
+                            const uint8_t nhm = byHourMeanI[(H+1)%24];
+                            int8_t m = thm; // Default to this hour's mean.
+                            if(M >= 30)
+                                {
+                                // In last half hour of each hour...
+                                if(0xff == thm) { m = nhm; } // Use next hour mean if none available for this hour.
+                                else if(0xff != nhm) { m = OTV0P2BASE::fnmin(nhm, thm); } // Take min when both hours' means available.
+                                }
+                            detector->setTypMinMax(m, minToUse, maxToUse, sensitive);
+                            break;
+                            }
+                        case HALFHOUR: // Use blended mean for final half hour hour.
+                            {
+                            const uint8_t thm = byHourMeanI[H];
+                            const uint8_t nhm = byHourMeanI[(H+1)%24];
+                            int8_t m = thm; // Default to this hour's mean.
+                            if(M >= 30)
+                                {
+                                // In last half hour of each hour...
+                                if(0xff == thm) { m = nhm; } // Use next hour mean if none available for this hour.
+                                else if(0xff != nhm) { m = (thm + (int)nhm + 1) / 2; } // Take mean when both hours' means available.
+                                }
+                            detector->setTypMinMax(m, minToUse, maxToUse, sensitive);
+                            break;
+                            }
+                        case BYMINUTE: // Adjust blend by minute.
+                            {
+                            const uint8_t thm = byHourMeanI[H];
+                            const uint8_t nhm = byHourMeanI[(H+1)%24];
+                            int8_t m = thm; // Default to this hour's mean.
+                            if(0xff == thm) { m = nhm; } // Use next hour's mean always if this one's not available.
+                            else
+                                {
+                                // Continuous blend.
+                                m = ((((int)thm) * (60-M)) + (((int)nhm) * M) + 30) / 60;
+                                }
+                            detector->setTypMinMax(m, minToUse, maxToUse, sensitive);
+                            break;
+                            }
+                        }
+                    oldH = H;
+                    const bool prediction = detector->update(dp->L);
+                    if(prediction) { ++nOccupancyReports; }
+                    // Note that for all synthetic ticks the expectation is removed (since there is no level change).
+                    const uint8_t expected = (currentMinute != dp->currentMinute()) ? 0 : dp->expected;
+if(verbose && prediction) { fprintf(stderr, "@ %d:%d L = %d e = %d\n", H, M, dp->L, expected); }
+                    if(0 != expected)
+                        {
+                        // If a particular outcome was expected, test against it.
+                        const bool expectedOccupancy = (expected > 1);
+                        EXPECT_EQ(expectedOccupancy, prediction) << " @ " << ((int)H) << ":" << ((int)M);
+                        }
+                    ++currentMinute;
+                    } while((!(dp+1)->isEnd()) && (currentMinute < (dp+1)->currentMinute()));
+                }
+            // Check that there are not huge numbers of (false) positives.
+            ASSERT_TRUE(nOccupancyReports <= (nRecords/4)) << "far too many occupancy indications";
+            if(sensitive) { nOccupancyReportsSensitive = nOccupancyReports; }
+            else { nOccupancyReportsNotSensitive = nOccupancyReports; }
+            detector->update(254); // Force detector to 'initial'-like state ready for re-run.
             }
-        // Check that there are not huge numbers of (false) positives.
-        ASSERT_TRUE(nOccupancyReports <= (nRecords/2)) << "far too many occupancy indications";
-        if(sensitive) { nOccupancyReportsSensitive = nOccupancyReports; }
-        else { nOccupancyReportsNotSensitive = nOccupancyReports; }
-        detector->update(254); // Force detector to 'initial'-like state ready for re-run.
+        EXPECT_LE(nOccupancyReportsNotSensitive, nOccupancyReportsSensitive) << "expect sensitive never to generate fewer reports";
         }
-    EXPECT_LE(nOccupancyReportsNotSensitive, nOccupancyReportsSensitive) << "expect sensitive never to generate fewer reports";
     }
 
 // Basic test of update() behaviour.
@@ -218,7 +277,7 @@ static const ALDataSample sample3lHard[] =
 {8,7,9,14},  // OCCUPIED: curtains drawn?
 {8,7,17,35},
 {8,7,21,38},
-{8,7,33,84},
+{8,7,33,84, 2}, // Lights on or more curtains drawn?  Possibly occupied.
 {8,7,37,95},
 {8,7,49,97, 1}, // Not enough rise to be occupation.
 {8,7,57,93, 1}, // Fall is not indicative of occupation.
@@ -363,7 +422,7 @@ static const ALDataSample sample5sHard[] =
 {8,7,11,12},
 {8,7,15,13},
 {8,7,19,17},
-{8,7,27,42},
+{8,7,27,42}, // ? Curtains drawn?
 {8,7,31,68},
 {8,7,43,38},
 {8,7,51,55},
@@ -454,7 +513,7 @@ static const ALDataSample sample5sHard[] =
 {8,20,55,13},
 {8,20,58,14},
 {8,21,7,3, 1}, // Light turned off, no occupancy.
-{8,21,23,2},
+{8,21,23,2, 1}, // Light turned off, no occupancy.
 {8,21,39,2},
 {8,21,55,2},
 {8,22,11,2},
@@ -505,8 +564,8 @@ static const ALDataSample sample5sHard[] =
 {9,6,39,19},
 {9,6,43,26},
 {9,6,59,24},
-{9,7,7,28},
-{9,7,15,66, 1}, // Not yet up and about.
+{9,7,7,28, 1}, // Not yet up and about.
+{9,7,15,66},
 {9,7,27,181, 2}, // Curtains drawn: OCCUPANCY.
 {9,7,43,181},
 {9,7,51,181},
@@ -718,7 +777,7 @@ static const ALDataSample sample2bHard[] =
 {9,19,16,9},
 {9,19,28,10},
 {9,19,44,6},
-{9,19,48,11},
+{9,19,48,11, 2}, // Small light on?  Possible occupancy.
 {9,19,56,8},
 {9,20,4,8},
 {9,20,8,3, 1}, // Light off, no qctive occupancy.
