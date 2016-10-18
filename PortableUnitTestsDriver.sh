@@ -8,6 +8,10 @@
 # /usr/local/{lib,include}.
 #
 # Intended to be run without arguments from top-level dir of project.
+#
+# Run as:
+#
+#     sh ./portableUnitTestsDriver.sh
 
 # Generates a temporary executable at top level.
 EXENAME=tmptestexe
