@@ -26,88 +26,16 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 namespace OTRadValve
 {
 
-// Spin for up to the specified number of SCT ticks, monitoring current and position encoding.
-//   * maxRunTicks  maximum sub-cycle ticks to attempt to run/spin for); strictly positive
-//   * minTicksBeforeAbort  minimum ticks before abort for end-stop / high-current,
-//       don't attempt to run at all if less than this time available before (close to) end of sub-cycle;
-//       should be no greater than maxRunTicks
-//   * dir  direction to run motor (open or closed) or off if waiting for motor to stop
-//   * callback  handler to deliver end-stop and position-encoder callbacks to;
-//     non-null and callbacks must return very quickly
-// If too few ticks remain before the end of the sub-cycle for the minimum run,
-// then this will return true immediately.
-// Invokes callbacks for high current (end stop) and position (shaft) encoder where applicable.
-// Aborts early if high current is detected at the start,
-// or after the minimum run period.
-// Returns true if aborted early from too little time to start, or by high current (assumed end-stop hit).
-bool ValveMotorDirectV1HardwareDriverBase::spinSCTTicks(const uint8_t maxRunTicks, const uint8_t minTicksBeforeAbort, const OTRadValve::HardwareMotorDriverInterface::motor_drive dir, OTRadValve::HardwareMotorDriverInterfaceCallbackHandler &callback)
-  {
-  // Sub-cycle time now.
-  const uint8_t sctStart = OTV0P2BASE::getSubCycleTime();
-  // Only run up to ~90% point of the minor cycle to leave time for other processing.
-  uint8_t sct = sctStart;
-  const uint8_t maxTicksBeforeAbsLimit = (sctAbsLimit - sct);
-  // Abort immediately if not enough time to do minimum run.
-  if((sct >= sctAbsLimit) || (maxTicksBeforeAbsLimit < minTicksBeforeAbort)) { return(true); }
-  // Note if opening or closing...
-  const bool stopped = (HardwareMotorDriverInterface::motorOff == dir);
-  const bool isOpening = (HardwareMotorDriverInterface::motorDriveOpening == dir);
-  bool currentHigh = false;
-  // Compute time minimum time before return, then target time before stop/return.
-  const uint8_t sctMinRunTime = sctStart + minTicksBeforeAbort; // Min run time to avoid false readings.
-  const uint8_t sctMaxRunTime = sctStart + min(maxRunTicks, maxTicksBeforeAbsLimit);
-  // Do minimum run time, NOT checking for end-stop / high current.
-  for( ; ; )
-    {
-    // Poll shaft encoder output and update tick counter.
-    const uint8_t newSct = OTV0P2BASE::getSubCycleTime();
-    if(newSct != sct)
-      {
-      sct = newSct; // Assumes no intermediate values missed.
-      if(!stopped) { callback.signalRunSCTTick(isOpening); }
-      if(sct >= sctMinRunTime) { break; }
-      }
-    // TODO: shaft encoder
-    }
 
-  // Do as much of requested above-minimum run-time as possible,
-  // iff run time beyond the minimum was actually requested
-  // (else avoid the current sampling entirely).
-  if(sctMaxRunTime > sctMinRunTime)
-    {
-    for( ; ; )
-      {
-      // Check for high current and abort if detected.
-      if(isCurrentHigh(dir)) { currentHigh = true; break; }
-      // Poll shaft encoder output and update tick counter.
-      const uint8_t newSct = OTV0P2BASE::getSubCycleTime();
-      if(newSct != sct)
-        {
-        sct = newSct; // Assumes no intermediate values missed.
-        if(!stopped) { callback.signalRunSCTTick(isOpening); }
-        if(sct >= sctMaxRunTime) { break; }
-        }
-      }
-    }
-
-  // Call back and return true if current high / end-stop seen.
-  if(currentHigh)
-    {
-    callback.signalHittingEndStop(isOpening);
-    return(true);
-    }
-  return(false);
-  }
-
-
-//#ifdef ValveMotorDirectV1_DEFINED
-
+#ifdef CurrentSenseValveMotorDirect_DEFINED
 
 // Called with each motor run sub-cycle tick.
-// Is ISR-/thread- safe.
+// Is ISR-/thread- safe ***on AVR***.
 void CurrentSenseValveMotorDirect::signalRunSCTTick(const bool opening)
   {
+#ifdef ARDUINO_ARCH_AVR
   ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
+#endif // ARDUINO_ARCH_AVR
     {
     // Crudely avoid/ignore underflow/overflow for now.
     // Accumulate ticks in different directions in different counters
@@ -123,7 +51,7 @@ void CurrentSenseValveMotorDirect::signalRunSCTTick(const bool opening)
     }
   }
 
-
+#ifdef ARDUINO_ARCH_AVR
 // (Re)populate structure and compute derived parameters.
 // Ensures that all necessary items are gathered at once and none forgotten!
 // Returns true in case of success.
@@ -136,14 +64,14 @@ bool CurrentSenseValveMotorDirect::CalibrationParameters::updateAndCompute(const
 
   // Compute approx precision in % as min ticks / DR size in range [0,100].
   // Inflate estimate slightly to allow for inertia, etc.
-  approxPrecisionPC = (uint8_t) min(100, (128UL*minMotorDRTicks) / min(_ticksFromOpenToClosed, _ticksFromClosedToOpen));
+  approxPrecisionPC = (uint8_t) OTV0P2BASE::fnmin(100, (uint8_t)((128UL*minMotorDRTicks) / OTRadioLink::fnmin(_ticksFromOpenToClosed, _ticksFromClosedToOpen)));
 
   // Compute a small conversion ratio back and forth
   // which does not add too much error but allows single dead-reckoning steps
   // to be converted back and forth.
   uint16_t tfotc = _ticksFromOpenToClosed;
   uint16_t tfcto = _ticksFromClosedToOpen;
-  while(max(tfotc, tfcto) > minMotorDRTicks)
+  while(OTV0P2BASE::fnmax(tfotc, tfcto) > minMotorDRTicks)
     {
     tfotc >>= 1;
     tfcto >>= 1;
@@ -154,12 +82,12 @@ bool CurrentSenseValveMotorDirect::CalibrationParameters::updateAndCompute(const
   // Fail if precision far too poor to be usable.
   if(approxPrecisionPC > 25) { return(false); }
   // Fail if lower ratio value so low (< 4 bits) as to introduce huge error.
-  if(min(tfotc, tfcto) < 8) { return(false); }
+  if(OTV0P2BASE::fnmin(tfotc, tfcto) < 8) { return(false); }
 
   // All OK.
   return(true);
   }
-
+#endif // ARDUINO_ARCH_AVR
 
 // Compute reconciliation/adjustment of ticks, and compute % position [0,100].
 // Reconcile any reverse ticks (and adjust with forward ticks if needed).
@@ -197,8 +125,8 @@ uint8_t CurrentSenseValveMotorDirect::getMinPercentOpen() const
     // else use a somewhat tighter one.
     // TODO: optimise, ie don't compute each time if frequently called.
     return(usingPositionalEncoder() ?
-            max(10 + cp.getApproxPrecisionPC(), DEFAULT_VALVE_PC_MIN_REALLY_OPEN) :
-            max(50 + cp.getApproxPrecisionPC(), DEFAULT_VALVE_PC_SAFER_OPEN));
+            OTV0P2BASE::fnmax((uint8_t)(10 + cp.getApproxPrecisionPC()), (uint8_t)DEFAULT_VALVE_PC_MIN_REALLY_OPEN) :
+            OTV0P2BASE::fnmax((uint8_t)(50 + cp.getApproxPrecisionPC()), (uint8_t)DEFAULT_VALVE_PC_SAFER_OPEN));
     }
 
 // Minimally wiggle the motor to give tactile feedback and/or show to be working.
@@ -235,6 +163,7 @@ bool CurrentSenseValveMotorDirect::runFastTowardsEndStop(const bool toOpen)
   return(endStopDetected);
   }
 
+#ifdef ARDUINO_ARCH_AVR
 // Run at 'normal' speed towards/to end for a fixed time/distance.
 // Terminates significantly before the end of the sub-cycle.
 // Runs at same speed as during calibration.
@@ -253,6 +182,7 @@ bool CurrentSenseValveMotorDirect::runTowardsEndStop(const bool toOpen)
   // Report if end-stop has apparently been hit.
   return(endStopDetected);
   }
+#endif // ARDUINO_ARCH_AVR
 
 
 // Report an apparent serious tracking error that may need full recalibration.
@@ -262,6 +192,7 @@ void CurrentSenseValveMotorDirect::trackingError()
   needsRecalibrating = true;
   }
 
+#ifdef ARDUINO_ARCH_AVR
 // Poll.
 // Regular poll every 1s or 2s,
 // though tolerates missed polls eg because of other time-critical activity.
@@ -514,7 +445,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
       // Must work when eps is zero (ie with sub-percent precision).
       const uint8_t eps = cp.getApproxPrecisionPC();
       const bool toOpenFast = (targetPC >= (100 - 2*eps));
-      if(toOpenFast || (targetPC <= max(2*eps, minOpenPC>>1)))
+      if(toOpenFast || (targetPC <= OTV0P2BASE::fnmax(2*eps, minOpenPC>>1)))
         {
         // If not apparently yet at end-stop
         // (ie not at correct end stop or with spurious unreconciled ticks)
@@ -552,7 +483,7 @@ if(toOpenFast) { V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("-->"); } else { V0P2
         if(hitEndStop)
           {
           // Report serious tracking error (well before 'fairly open' %).
-          if(currentPC < min(fairlyOpenPC, 100 - 8*eps))
+          if(currentPC < OTV0P2BASE::fnmin(fairlyOpenPC, (uint8_t)(100 - 8*eps)))
             { trackingError(); }
           // Silently auto-adjust when end-stop hit close to expected position.
           else
@@ -578,7 +509,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("->");
           {
           // Report serious tracking error.
 //          if(currentPC > max(min(DEFAULT_VALVE_PC_MODERATELY_OPEN-1, 2*DEFAULT_VALVE_PC_MODERATELY_OPEN), 8*eps))
-          if(currentPC > max(2*minOpenPC, 8*eps))
+          if(currentPC > OTV0P2BASE::fnmax(2*minOpenPC, 8*eps))
             { trackingError(); }
           // Silently auto-adjust when end-stop hit close to expected position.
           else
@@ -611,8 +542,89 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("-<");
       }
     }
   }
+#endif // ARDUINO_ARCH_AVR
 
-//#endif // ValveMotorDirectV1_DEFINED
+#endif // CurrentSenseValveMotorDirect_DEFINED
+
+
+
+
+
+#ifdef ValveMotorDirectV1HardwareDriverBase_DEFINED
+// Spin for up to the specified number of SCT ticks, monitoring current and position encoding.
+//   * maxRunTicks  maximum sub-cycle ticks to attempt to run/spin for); strictly positive
+//   * minTicksBeforeAbort  minimum ticks before abort for end-stop / high-current,
+//       don't attempt to run at all if less than this time available before (close to) end of sub-cycle;
+//       should be no greater than maxRunTicks
+//   * dir  direction to run motor (open or closed) or off if waiting for motor to stop
+//   * callback  handler to deliver end-stop and position-encoder callbacks to;
+//     non-null and callbacks must return very quickly
+// If too few ticks remain before the end of the sub-cycle for the minimum run,
+// then this will return true immediately.
+// Invokes callbacks for high current (end stop) and position (shaft) encoder where applicable.
+// Aborts early if high current is detected at the start,
+// or after the minimum run period.
+// Returns true if aborted early from too little time to start, or by high current (assumed end-stop hit).
+bool ValveMotorDirectV1HardwareDriverBase::spinSCTTicks(const uint8_t maxRunTicks, const uint8_t minTicksBeforeAbort, const OTRadValve::HardwareMotorDriverInterface::motor_drive dir, OTRadValve::HardwareMotorDriverInterfaceCallbackHandler &callback)
+  {
+  // Sub-cycle time now.
+  const uint8_t sctStart = OTV0P2BASE::getSubCycleTime();
+  // Only run up to ~90% point of the minor cycle to leave time for other processing.
+  uint8_t sct = sctStart;
+  const uint8_t maxTicksBeforeAbsLimit = (sctAbsLimit - sct);
+  // Abort immediately if not enough time to do minimum run.
+  if((sct >= sctAbsLimit) || (maxTicksBeforeAbsLimit < minTicksBeforeAbort)) { return(true); }
+  // Note if opening or closing...
+  const bool stopped = (HardwareMotorDriverInterface::motorOff == dir);
+  const bool isOpening = (HardwareMotorDriverInterface::motorDriveOpening == dir);
+  bool currentHigh = false;
+  // Compute time minimum time before return, then target time before stop/return.
+  const uint8_t sctMinRunTime = sctStart + minTicksBeforeAbort; // Min run time to avoid false readings.
+  const uint8_t sctMaxRunTime = sctStart + min(maxRunTicks, maxTicksBeforeAbsLimit);
+  // Do minimum run time, NOT checking for end-stop / high current.
+  for( ; ; )
+    {
+    // Poll shaft encoder output and update tick counter.
+    const uint8_t newSct = OTV0P2BASE::getSubCycleTime();
+    if(newSct != sct)
+      {
+      sct = newSct; // Assumes no intermediate values missed.
+      if(!stopped) { callback.signalRunSCTTick(isOpening); }
+      if(sct >= sctMinRunTime) { break; }
+      }
+    // TODO: shaft encoder
+    }
+
+  // Do as much of requested above-minimum run-time as possible,
+  // iff run time beyond the minimum was actually requested
+  // (else avoid the current sampling entirely).
+  if(sctMaxRunTime > sctMinRunTime)
+    {
+    for( ; ; )
+      {
+      // Check for high current and abort if detected.
+      if(isCurrentHigh(dir)) { currentHigh = true; break; }
+      // Poll shaft encoder output and update tick counter.
+      const uint8_t newSct = OTV0P2BASE::getSubCycleTime();
+      if(newSct != sct)
+        {
+        sct = newSct; // Assumes no intermediate values missed.
+        if(!stopped) { callback.signalRunSCTTick(isOpening); }
+        if(sct >= sctMaxRunTime) { break; }
+        }
+      }
+    }
+
+  // Call back and return true if current high / end-stop seen.
+  if(currentHigh)
+    {
+    callback.signalHittingEndStop(isOpening);
+    return(true);
+    }
+  return(false);
+  }
+#endif // ValveMotorDirectV1HardwareDriverBase_DEFINED
+
 
 }
 
