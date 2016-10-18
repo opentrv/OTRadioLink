@@ -29,7 +29,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 
 // Sanity test.
 // Minimally test a real library function.
-TEST(OTV0p2Base,SanityTest)
+// Tests some simple parsing functions.
+TEST(OTV0p2Base,parseHex)
 {
     const char s[] = "0a";
     // This works. It's inline and only in the header.
