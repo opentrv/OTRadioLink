@@ -83,7 +83,7 @@ class FHT8VRadValveUtil
     // Create stream of bytes to be transmitted to FHT80V at 200us per bit, msbit of each byte first.
     // Byte stream is terminated by 0xff byte which is not a possible valid encoded byte.
     // On entry the populated FHT8V command struct is passed by pointer.
-    // On exit, the memory block starting at buffer contains the low-byte, msbit-first bit, 0xff terminated TX sequence.
+    // On exit, the memory block starting at buffer contains the low-byte, msbit-first, 0xff terminated TX sequence.
     // The maximum and minimum possible encoded message sizes are 35 (all zero bytes) and 45 (all 0xff bytes) bytes long.
     // Note that a buffer space of at least 46 bytes is needed to accommodate the longest-possible encoded message plus terminator.
     // This FHT8V messages is encoded with the FS20 protocol.

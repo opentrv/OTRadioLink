@@ -91,19 +91,59 @@ TEST(FHT8VRadValve,FHTEncodingHeadAndTail)
     //// Returns pointer to the terminating 0xff on exit.
     //uint8_t *FHT8VCreateValveSetCmdFrameHT_r(uint8_t *const bptrInitial, const bool doHeader, fht8v_msg_t *const command, const uint8_t TRVPercentOpen, const trailingMinimalStatsPayload_t *trailer)
 
-      uint8_t buf[OTRadValve::FHT8VRadValveUtil::MIN_FHT8V_200US_BIT_STREAM_BUF_SIZE];
-      OTRadValve::FHT8VRadValveUtil::fht8v_msg_t command; // For encoding.
-//      OTRadValve::FHT8VRadValveUtil::fht8v_msg_t commandDecoded; // For decoding.
+    uint8_t buf[OTRadValve::FHT8VRadValveUtil::MIN_FHT8V_200US_BIT_STREAM_BUF_SIZE];
+    OTRadValve::FHT8VRadValveUtil::fht8v_msg_t command; // For encoding.
+    OTRadValve::FHT8VRadValveUtil::fht8v_msg_t commandDecoded; // For decoding.
 
-      // Encode a basic message to set a valve to 0%, without headers or trailers.
-      command.hc1 = 13;
-      command.hc2 = 73;
-    #ifdef OTV0P2BASE_FHT8V_ADR_USED
-      address = 0;
-    #endif
-      memset(buf, 0xff, sizeof(buf));
-        uint8_t *result1 = OTRadValve::FHT8VRadValveUtil::FHT8VCreate200usBitStreamBptr(buf, &command);
-        ASSERT_EQ(((uint8_t)~0U), *result1);
+    // Encode a basic message to set a valve to 0%, without headers or trailers.
+    // Before encoding stream is 13, 73, 0, 38, 0 with checksum 136.
+    // In hex that is 0d 49 00 26 00 88.
+    // An initial preamble of six zero bits and then a single one bit is sent, with the zeros encoded as cc cc cc cc cc cc.
+    // The 7th byte (offset 6) in the buffer therefore consists of the final 1 from the preamble (111000)
+    // and the start of the encoded form for the leading (msbit, bit 7) 0 from the first byte (11),
+    // ie 0xe3.
+    // The 8th byte (offset 7) starts with the trailing bits from before (00)
+    // followed by the next encoded 0 (1100, from bit 6)
+    // and the start of the next encoded 0 (11, from bit 5),
+    // ie 0x33.
+    // The 9th byte (offset 8) starts with trailing bits from before (00)
+    // followed by the encoded 0 (1100, from bit 5)
+    // and the start of the next encoded 1 (11, from bit 4),
+    // ie 0x33.
+    // The 10th byte (offset 9) starts with trailing bits from before (1000)
+    // and the start of the next encoded 1 (1110, from bit 3),
+    // ie 0x8e.
+    command.hc1 = 13;
+    command.hc2 = 73;
+#ifdef OTV0P2BASE_FHT8V_ADR_USED
+    address = 0;
+#endif
+    memset(buf, 0xff, sizeof(buf));
+    uint8_t *result1 = OTRadValve::FHT8VRadValveUtil::FHT8VCreate200usBitStreamBptr(buf, &command);
+    EXPECT_EQ(((uint8_t)~0U), *result1); // Check that result points at terminator value 0xff/~0.
+    ASSERT_GT(sizeof(buf), result1 - buf); // Check not overflowing the buffer.
+// FIXME // EXPECT_EQ(38, result1 - buf); // Check not overflowing the buffer.
+    EXPECT_EQ(((uint8_t)0xcc), buf[0]); // Check that result starts with FHT8V 0xcc preamble.
+    EXPECT_EQ(((uint8_t)0xcc), buf[1]); // Check that result starts with FHT8V 0xcc preamble.
+    EXPECT_EQ(((uint8_t)0xcc), buf[2]); // Check that result starts with FHT8V 0xcc preamble.
+    EXPECT_EQ(((uint8_t)0xcc), buf[3]); // Check that result starts with FHT8V 0xcc preamble.
+    EXPECT_EQ(((uint8_t)0xcc), buf[4]); // Check that result starts with FHT8V 0xcc preamble.
+    EXPECT_EQ(((uint8_t)0xcc), buf[5]); // Check that result starts with FHT8V 0xcc preamble.
+    EXPECT_EQ(((uint8_t)0xe3), buf[6]); // Check end of preamble and start of hc1.
+    EXPECT_EQ(((uint8_t)0x33), buf[7]); // Check continuing hc1.
+    EXPECT_EQ(((uint8_t)0x33), buf[8]); // Check continuing hc1.
+    EXPECT_EQ(((uint8_t)0x8e), buf[9]); // Check continuing hc1.
+// FIXME // EXPECT_EQ(((uint8_t)0xce), buf[34]); // Check part of checksum.
+
+    // Attempt to decode.
+    EXPECT_TRUE(OTRadValve::FHT8VRadValveUtil::FHT8VDecodeBitStream(buf, buf + sizeof(buf) - 1, &commandDecoded));
+    EXPECT_EQ(13, commandDecoded.hc1);
+    EXPECT_EQ(73, commandDecoded.hc2);
+// FIXME // EXPECT_EQ(0x26, commandDecoded.command);
+// FIXME // EXPECT_EQ(0, commandDecoded.extension);
+//    // Verify that trailer NOT present.
+//    EXPECT_TRUE(!verifyHeaderAndCRCForTrailingMinimalStatsPayload(result1));
+
 
 //      uint8_t *result1 = FHT8VCreateValveSetCmdFrameHT_r(buf, false, &command, 0, NULL);
 //      AssertIsTrueWithErr(((uint8_t)~0U) == *result1, *result1); // Check that result points at terminator value 0xff/~0.

@@ -95,6 +95,7 @@ static uint8_t *_FHT8VCreate200usAppendEncBit(uint8_t *bptr, const bool is1)
   }
 
 #ifndef parity_even_bit
+// Drop in replacement for AVR routine.
 static inline uint8_t parity_even_bit(uint8_t v)
     {
     v ^= (v >> 4);
@@ -116,7 +117,7 @@ static uint8_t *_FHT8VCreate200usAppendByteEP(uint8_t *bptr, const uint8_t b)
 // Create stream of bytes to be transmitted to FHT80V at 200us per bit, msbit of each byte first.
 // Byte stream is terminated by 0xff byte which is not a possible valid encoded byte.
 // On entry the populated FHT8V command struct is passed by pointer.
-// On exit, the memory block starting at buffer contains the low-byte, msbit-first bit, 0xff-terminated TX sequence.
+// On exit, the memory block starting at buffer contains the low-byte, msbit-first, 0xff-terminated TX sequence.
 // The maximum and minimum possible encoded message sizes are 35 (all zero bytes) and 45 (all 0xff bytes) bytes long.
 // Note that a buffer space of at least 46 bytes is needed to accommodate the longest-possible encoded message and terminator.
 // Returns pointer to the terminating 0xff on exit.
@@ -161,6 +162,211 @@ uint8_t *FHT8VRadValveUtil::FHT8VCreate200usBitStreamBptr(uint8_t *bptr, const F
   *bptr = (uint8_t)0xff; // Terminate TX bytes.
   return(bptr);
   }
+
+// Current decode state.
+typedef struct
+  {
+  uint8_t const *bitStream; // Initially point to first byte of encoded bit stream.
+  uint8_t const *lastByte; // point to last byte of bit stream.
+  uint8_t mask; // Current bit mask (the next pair of bits to read); initially 0 to become 0xc0;
+  bool failed; // If true, the decode has failed and stays failed/true.
+  } decode_state_t;
+
+// Decode bit pattern 1100 as 0, 111000 as 1.
+// Returns 1 or 0 for the bit decoded, else marks the state as failed.
+// Reads two bits at a time, MSB to LSB, advancing the byte pointer if necessary.
+static uint8_t readOneBit(decode_state_t *const state)
+  {
+  if(state->bitStream > state->lastByte) { state->failed = true; } // Stop if off the buffer end.
+  if(state->failed) { return(0); } // Refuse to do anything further once decoding has failed.
+
+  if(0 == state->mask) { state->mask = 0xc0; } // Special treatment of 0 as equivalent to 0xc0 on entry.
+#if 0 && defined(V0P2BASE_DEBUG)
+  if((state->mask != 0xc0) && (state->mask != 0x30) && (state->mask != 0xc) && (state->mask != 3)) { panic(); }
+#endif
+
+  // First two bits read must be 11.
+  if(state->mask != (state->mask & *(state->bitStream)))
+    {
+#if 0 && defined(V0P2BASE_DEBUG)
+    V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("leading 11 corrupt");
+#endif
+    state->failed = true; return(0);
+    }
+
+  // Advance the mask; if the mask becomes 0 (then 0xc0 again) then advance the byte pointer.
+  if(0 == ((state->mask) >>= 2))
+    {
+    state->mask = 0xc0;
+    // If end of stream is encountered this is an error since more bits need to be read.
+    if(++(state->bitStream) > state->lastByte) { state->failed = true; return(0); }
+    }
+
+  // Next two bits can be 00 to decode a zero,
+  // or 10 (followed by 00) to decode a one.
+  const uint8_t secondPair = (state->mask & *(state->bitStream));
+  switch(secondPair)
+    {
+    case 0:
+      {
+#if 0 && defined(V0P2BASE_DEBUG)
+      V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("decoded 0");
+#endif
+      // Advance the mask; if the mask becomes 0 then advance the byte pointer.
+      if(0 == ((state->mask) >>= 2)) { ++(state->bitStream); }
+      return(0);
+      }
+    case 0x80: case 0x20: case 8: case 2: break; // OK: looks like second pair of an encoded 1.
+    default:
+      {
+#if 0 && defined(V0P2BASE_DEBUG)
+      V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("Invalid second pair ");
+      V0P2BASE_DEBUG_SERIAL_PRINTFMT(secondPair, HEX);
+      V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING(" from ");
+      V0P2BASE_DEBUG_SERIAL_PRINTFMT(*(state->bitStream), HEX);
+      V0P2BASE_DEBUG_SERIAL_PRINTLN();
+#endif
+      state->failed = true; return(0);
+      }
+    }
+
+  // Advance the mask; if the mask becomes 0 (then 0xc0 again) then advance the byte pointer.
+  if(0 == ((state->mask) >>= 2))
+    {
+    state->mask = 0xc0;
+    // If end of stream is encountered this is an error since more bits need to be read.
+    if(++(state->bitStream) > state->lastByte) { state->failed = true; return(0); }
+    }
+
+  // Third pair of bits must be 00.
+  if(0 != (state->mask & *(state->bitStream)))
+     {
+#if 0 && defined(V0P2BASE_DEBUG)
+    V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("trailing 00 corrupt");
+#endif
+    state->failed = true; return(0);
+    }
+
+  // Advance the mask; if the mask becomes 0 then advance the byte pointer.
+  if(0 == ((state->mask) >>= 2)) { ++(state->bitStream); }
+#if 0 && defined(V0P2BASE_DEBUG)
+  V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("decoded 1");
+#endif
+  return(1); // Decoded a 1.
+  }
+
+// Decodes a series of encoded bits plus parity (and checks the parity, failing if wrong).
+// Returns the byte decoded, else marks the state as failed.
+static uint8_t readOneByteWithParity(decode_state_t *const state)
+  {
+  if(state->failed) { return(0); } // Refuse to do anything further once decoding has failed.
+
+  // Read first bit specially...
+  const uint8_t b7 = readOneBit(state);
+  uint8_t result = b7;
+  uint8_t parity = b7;
+  // Then remaining 7 bits...
+  for(int i = 7; --i >= 0; )
+    {
+    const uint8_t bit = readOneBit(state);
+    parity ^= bit;
+    result = (result << 1) | bit;
+    }
+  // Then get parity bit and check.
+  if(parity != readOneBit(state))
+    {
+#if 0 && defined(V0P2BASE_DEBUG)
+    V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("bad parity");
+#endif
+    state->failed = true;
+    }
+  return(result);
+  }
+
+// Decode raw bitstream into non-null command structure passed in; returns true if successful.
+// Will return non-null if OK, else NULL if anything obviously invalid is detected such as failing parity or checksum.
+// Finds and discards leading encoded 1 and trailing 0.
+// Returns NULL on failure, else pointer to next full byte after last decoded.
+uint8_t const * FHT8VRadValveUtil::FHT8VDecodeBitStream(uint8_t const *bitStream, uint8_t const *lastByte, FHT8VRadValveUtil::fht8v_msg_t *command)
+  {
+  decode_state_t state;
+  state.bitStream = bitStream;
+  state.lastByte = lastByte;
+  state.mask = 0;
+  state.failed = false;
+
+#if 0 && defined(V0P2BASE_DEBUG)
+  V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("FHT8VDecodeBitStream:");
+  for(uint8_t const *p = bitStream; p <= lastByte; ++p)
+      {
+      V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING(" &");
+      V0P2BASE_DEBUG_SERIAL_PRINTFMT(*p, HEX);
+      }
+  V0P2BASE_DEBUG_SERIAL_PRINTLN();
+#endif
+
+  // Find and absorb the leading encoded '1', else quit if not found by end of stream.
+  while(0 == readOneBit(&state)) { if(state.failed) { return(NULL); } }
+#if 0 && defined(V0P2BASE_DEBUG)
+  V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Read leading 1");
+#endif
+
+  command->hc1 = readOneByteWithParity(&state);
+  command->hc2 = readOneByteWithParity(&state);
+#ifdef OTV0P2BASE_FHT8V_ADR_USED
+  command->address = readOneByteWithParity(&state);
+#else
+  const uint8_t address = readOneByteWithParity(&state);
+#endif
+  command->command = readOneByteWithParity(&state);
+  command->extension = readOneByteWithParity(&state);
+  const uint8_t checksumRead = readOneByteWithParity(&state);
+  if(state.failed)
+    {
+#if 0 && defined(V0P2BASE_DEBUG)
+    V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Failed to read message");
+#endif
+    return(NULL);
+    }
+
+   // Generate and check checksum.
+#ifdef OTV0P2BASE_FHT8V_ADR_USED
+  const uint8_t checksum = 0xc + command->hc1 + command->hc2 + command->address + command->command + command->extension;
+#else
+  const uint8_t checksum = 0xc + command->hc1 + command->hc2 + address + command->command + command->extension;
+#endif
+  if(checksum != checksumRead)
+    {
+#if 0 && defined(V0P2BASE_DEBUG)
+    V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Checksum failed");
+#endif
+    state.failed = true; return(NULL);
+    }
+#if 0 && defined(V0P2BASE_DEBUG)
+  else
+    {
+    V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Checksum OK");
+    }
+#endif
+
+  // Check the trailing encoded '0'.
+  if(0 != readOneBit(&state))
+    {
+#if 0 && defined(V0P2BASE_DEBUG)
+    V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Read of trailing 0 failed");
+#endif
+    state.failed = true; return(NULL);
+    }
+  if(state.failed) { return(NULL); }
+
+#if 0 && defined(V0P2BASE_DEBUG)
+    V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Read entire message");
+#endif
+  // Return pointer to where any trailing data may be
+  // in next byte beyond end of FHT8V frame.
+  return(state.bitStream + 1);
+  }
+
 #endif // FHT8VRadValveUtil_DEFINED
 
 
@@ -500,218 +706,6 @@ bool FHT8VRadValveBase::FHT8VPollSyncAndTX_Next(const bool allowDoubleTX)
 #endif // ARDUINO_ARCH_AVR
 
 
-
-//#define FHT8V_JSON_FRAME_BUF_SIZE (FHT8V_MAX_EXTRA_PREAMBLE_BYTES + MSG_JSON_MAX_LENGTH + 1 + 1) // Allow for trailing CRC and terminator which can be overwritten with null.
-//#define FHT8V_MAX_FRAME_SIZE (max(FHT8V_200US_BIT_STREAM_FRAME_BUF_SIZE, FHT8V_JSON_FRAME_BUF_SIZE))
-
-//#if FHT8V_MAX_FRAME_SIZE > 65 // Max radio frame buffer plus terminating 0xff...
-//#error frame too big for RFM22/RFM23
-//#endif
-
-
-// Current decode state.
-typedef struct
-  {
-  uint8_t const *bitStream; // Initially point to first byte of encoded bit stream.
-  uint8_t const *lastByte; // point to last byte of bit stream.
-  uint8_t mask; // Current bit mask (the next pair of bits to read); initially 0 to become 0xc0;
-  bool failed; // If true, the decode has failed and stays failed/true.
-  } decode_state_t;
-
-// Decode bit pattern 1100 as 0, 111000 as 1.
-// Returns 1 or 0 for the bit decoded, else marks the state as failed.
-// Reads two bits at a time, MSB to LSB, advancing the byte pointer if necessary.
-static uint8_t readOneBit(decode_state_t *const state)
-  {
-  if(state->bitStream > state->lastByte) { state->failed = true; } // Stop if off the buffer end.
-  if(state->failed) { return(0); } // Refuse to do anything further once decoding has failed.
-
-  if(0 == state->mask) { state->mask = 0xc0; } // Special treatment of 0 as equivalent to 0xc0 on entry.
-#if 0 && defined(V0P2BASE_DEBUG)
-  if((state->mask != 0xc0) && (state->mask != 0x30) && (state->mask != 0xc) && (state->mask != 3)) { panic(); }
-#endif
-
-  // First two bits read must be 11.
-  if(state->mask != (state->mask & *(state->bitStream)))
-    {
-#if 0 && defined(V0P2BASE_DEBUG)
-    V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("leading 11 corrupt");
-#endif
-    state->failed = true; return(0);
-    }
-
-  // Advance the mask; if the mask becomes 0 (then 0xc0 again) then advance the byte pointer.
-  if(0 == ((state->mask) >>= 2))
-    {
-    state->mask = 0xc0;
-    // If end of stream is encountered this is an error since more bits need to be read.
-    if(++(state->bitStream) > state->lastByte) { state->failed = true; return(0); }
-    }
-
-  // Next two bits can be 00 to decode a zero,
-  // or 10 (followed by 00) to decode a one.
-  const uint8_t secondPair = (state->mask & *(state->bitStream));
-  switch(secondPair)
-    {
-    case 0:
-      {
-#if 0 && defined(V0P2BASE_DEBUG)
-      V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("decoded 0");
-#endif
-      // Advance the mask; if the mask becomes 0 then advance the byte pointer.
-      if(0 == ((state->mask) >>= 2)) { ++(state->bitStream); }
-      return(0);
-      }
-    case 0x80: case 0x20: case 8: case 2: break; // OK: looks like second pair of an encoded 1.
-    default:
-      {
-#if 0 && defined(V0P2BASE_DEBUG)
-      V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("Invalid second pair ");
-      V0P2BASE_DEBUG_SERIAL_PRINTFMT(secondPair, HEX);
-      V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING(" from ");
-      V0P2BASE_DEBUG_SERIAL_PRINTFMT(*(state->bitStream), HEX);
-      V0P2BASE_DEBUG_SERIAL_PRINTLN();
-#endif
-      state->failed = true; return(0);
-      }
-    }
-
-  // Advance the mask; if the mask becomes 0 (then 0xc0 again) then advance the byte pointer.
-  if(0 == ((state->mask) >>= 2))
-    {
-    state->mask = 0xc0;
-    // If end of stream is encountered this is an error since more bits need to be read.
-    if(++(state->bitStream) > state->lastByte) { state->failed = true; return(0); }
-    }
-
-  // Third pair of bits must be 00.
-  if(0 != (state->mask & *(state->bitStream)))
-     {
-#if 0 && defined(V0P2BASE_DEBUG)
-    V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("trailing 00 corrupt");
-#endif
-    state->failed = true; return(0);
-    }
-
-  // Advance the mask; if the mask becomes 0 then advance the byte pointer.
-  if(0 == ((state->mask) >>= 2)) { ++(state->bitStream); }
-#if 0 && defined(V0P2BASE_DEBUG)
-  V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("decoded 1");
-#endif
-  return(1); // Decoded a 1.
-  }
-
-// Decodes a series of encoded bits plus parity (and checks the parity, failing if wrong).
-// Returns the byte decoded, else marks the state as failed.
-static uint8_t readOneByteWithParity(decode_state_t *const state)
-  {
-  if(state->failed) { return(0); } // Refuse to do anything further once decoding has failed.
-
-  // Read first bit specially...
-  const uint8_t b7 = readOneBit(state);
-  uint8_t result = b7;
-  uint8_t parity = b7;
-  // Then remaining 7 bits...
-  for(int i = 7; --i >= 0; )
-    {
-    const uint8_t bit = readOneBit(state);
-    parity ^= bit;
-    result = (result << 1) | bit;
-    }
-  // Then get parity bit and check.
-  if(parity != readOneBit(state))
-    {
-#if 0 && defined(V0P2BASE_DEBUG)
-    V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("bad parity");
-#endif
-    state->failed = true;
-    }
-  return(result);
-  }
-
-// Decode raw bitstream into non-null command structure passed in; returns true if successful.
-// Will return non-null if OK, else NULL if anything obviously invalid is detected such as failing parity or checksum.
-// Finds and discards leading encoded 1 and trailing 0.
-// Returns NULL on failure, else pointer to next full byte after last decoded.
-uint8_t const * FHT8VRadValveUtil::FHT8VDecodeBitStream(uint8_t const *bitStream, uint8_t const *lastByte, FHT8VRadValveBase::fht8v_msg_t *command)
-  {
-  decode_state_t state;
-  state.bitStream = bitStream;
-  state.lastByte = lastByte;
-  state.mask = 0;
-  state.failed = false;
-
-#if 0 && defined(V0P2BASE_DEBUG)
-  V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("FHT8VDecodeBitStream:");
-  for(uint8_t const *p = bitStream; p <= lastByte; ++p)
-      {
-      V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING(" &");
-      V0P2BASE_DEBUG_SERIAL_PRINTFMT(*p, HEX);
-      }
-  V0P2BASE_DEBUG_SERIAL_PRINTLN();
-#endif
-
-  // Find and absorb the leading encoded '1', else quit if not found by end of stream.
-  while(0 == readOneBit(&state)) { if(state.failed) { return(NULL); } }
-#if 0 && defined(V0P2BASE_DEBUG)
-  V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Read leading 1");
-#endif
-
-  command->hc1 = readOneByteWithParity(&state);
-  command->hc2 = readOneByteWithParity(&state);
-#ifdef OTV0P2BASE_FHT8V_ADR_USED
-  command->address = readOneByteWithParity(&state);
-#else
-  const uint8_t address = readOneByteWithParity(&state);
-#endif
-  command->command = readOneByteWithParity(&state);
-  command->extension = readOneByteWithParity(&state);
-  const uint8_t checksumRead = readOneByteWithParity(&state);
-  if(state.failed)
-    {
-#if 0 && defined(V0P2BASE_DEBUG)
-    V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Failed to read message");
-#endif
-    return(NULL);
-    }
-
-   // Generate and check checksum.
-#ifdef OTV0P2BASE_FHT8V_ADR_USED
-  const uint8_t checksum = 0xc + command->hc1 + command->hc2 + command->address + command->command + command->extension;
-#else
-  const uint8_t checksum = 0xc + command->hc1 + command->hc2 + address + command->command + command->extension;
-#endif
-  if(checksum != checksumRead)
-    {
-#if 0 && defined(V0P2BASE_DEBUG)
-    V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Checksum failed");
-#endif
-    state.failed = true; return(NULL);
-    }
-#if 0 && defined(V0P2BASE_DEBUG)
-  else
-    {
-    V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Checksum OK");
-    }
-#endif
-
-  // Check the trailing encoded '0'.
-  if(0 != readOneBit(&state))
-    {
-#if 0 && defined(V0P2BASE_DEBUG)
-    V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Read of trailing 0 failed");
-#endif
-    state.failed = true; return(NULL);
-    }
-  if(state.failed) { return(NULL); }
-
-#if 0 && defined(V0P2BASE_DEBUG)
-    V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Read entire message");
-#endif
-  // Return pointer to where any trailing data may be
-  // in next byte beyond end of FHT8V frame.
-  return(state.bitStream + 1);
-  }
 
 #ifdef ARDUINO_ARCH_AVR
 // Clear both housecode parts (and thus disable local valve), in non-volatile (EEPROM) store also.
