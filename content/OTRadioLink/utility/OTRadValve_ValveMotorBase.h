@@ -28,19 +28,6 @@ namespace OTRadValve
 {
 
 
-// Time before starting to retract pint during initialisation, in seconds.
-// Long enough for to leave the CLI some time for setting things like setting secret keys.
-// Short enough not to be annoying waiting for the pin to retract before fitting a valve.
-//static const uint8_t initialRetractDelay_s = 30;
-static const constexpr uint8_t initialRetractDelay_s = 30;
-
-// Runtime for dead-reckoning adjustments (from stopped) (ms).
-// Smaller values nominally allow greater precision when dead-reckoning,
-// but may force the calibration to take longer.
-// Based on DHD20151020 DORM1 prototype rig-up and NiMH battery; 250ms+ seems good.
-static const constexpr uint8_t minMotorDRMS = 250;
-
-
 // Generic (unit-testable) motor driver login using end-stop detection and simple shaft-encoder.
 // Designed to be embedded in a motor controller instance.
 // This used the sub-cycle clock for timing.
@@ -52,12 +39,48 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
   public:
     // Maximum time to move pin between fully retracted and extended and vv, seconds, strictly positive.
     // Set as a limit to allow a timeout when things go wrong.
-    static const uint8_t MAX_TRAVEL_S = 4 * 60; // 4 minutes.
+    static const constexpr uint8_t MAX_TRAVEL_S = 4 * 60; // 4 minutes.
 
     // Assumed calls to read() before timeout (assuming o call each 2s).
     // If calls are received less often this will presumably take longer to perform movements,
     // so it is appropriate to use a 2s ticks approximation.
-    static const uint8_t MAX_TRAVEL_WALLCLOCK_2s_TICKS = OTV0P2BASE::fnmax(4, MAX_TRAVEL_S / 2);
+    static const constexpr uint8_t MAX_TRAVEL_WALLCLOCK_2s_TICKS = OTV0P2BASE::fnmax(4, MAX_TRAVEL_S / 2);
+
+    // Time before starting to retract pint during initialisation, in seconds.
+    // Long enough for to leave the CLI some time for setting things like setting secret keys.
+    // Short enough not to be annoying waiting for the pin to retract before fitting a valve.
+    static const constexpr uint8_t initialRetractDelay_s = 30;
+
+    // Runtime for dead-reckoning adjustments (from stopped) (ms).
+    // Smaller values nominally allow greater precision when dead-reckoning,
+    // but may force the calibration to take longer.
+    // Based on DHD20151020 DORM1 prototype rig-up and NiMH battery; 250ms+ seems good.
+    static const constexpr uint8_t minMotorDRMS = 250;
+
+    // Computes minimum motor dead reckoning ticks given approx ms per tick (pref rounded down).
+    // Keep inline in the header to allow compile-time computation.
+    //
+    // Was:
+    //static const constexpr uint8_t minMotorDRTicks = OTV0P2BASE::fnmax((uint8_t)1, (uint8_t)(minMotorDRMS / OTV0P2BASE::SUBCYCLE_TICK_MS_RD));
+    static constexpr uint8_t computeMinMotorDRTicks(const uint8_t subcycleTicksRoundedDown_ms)
+        { return(OTV0P2BASE::fnmax((uint8_t)1, (uint8_t)(minMotorDRMS / subcycleTicksRoundedDown_ms))); }
+
+    // Computes absolute limit in sub-cycle beyond which motor should not be started.
+    // This should allow meaningful movement and stop and settle and no sub-cycle overrun.
+    // Allows for up to 120ms enforced sleep either side of motor run for example.
+    // This should not be so greedy as to (eg) make the CLI unusable: 90% is pushing it.
+    // Keep inline in the header to allow compile-time computation.
+    //
+    // Was:
+    //static const constexpr uint8_t sctAbsLimit = OTV0P2BASE::GSCT_MAX -
+    //    OTV0P2BASE::fnmax((uint8_t)1, (uint8_t)( ((OTV0P2BASE::GSCT_MAX+1)/4) - OTRadValve::ValveMotorDirectV1HardwareDriverBase::minMotorRunupTicks - 1 - (240 / OTV0P2BASE::SUBCYCLE_TICK_MS_RD) ));
+    static constexpr uint8_t computeSctAbsLimit(const uint8_t subcycleTicksRoundedDown_ms,
+                                                const uint8_t gcst_max,
+                                                const uint8_t minimumMotorRunupTicks)
+        {
+        return(gcst_max -
+               OTV0P2BASE::fnmax((uint8_t)1, (uint8_t)( ((gcst_max+1)/4) - minimumMotorRunupTicks - 1 - (240 / subcycleTicksRoundedDown_ms) )));
+        }
 
     // Calibration parameters.
     // Data received during the calibration process,
@@ -79,7 +102,15 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
           uint8_t tfotcSmall, tfctoSmall;
 
         public:
-          CalibrationParameters() : ticksFromOpenToClosed(0), ticksFromClosedToOpen(0) { }
+          // Minimum sub-cycle ticks for dead reckoning; strictly positive.
+          const uint8_t minMotorDRTicks;
+
+          // Construct an instance of calibration parameters.
+          // Keep all the potentially slow calculations in-line here to allow them to be done at compile-time .
+          CalibrationParameters(const uint8_t _minMotorDRTicks)
+            : ticksFromOpenToClosed(0), ticksFromClosedToOpen(0),
+              minMotorDRTicks(_minMotorDRTicks)
+            { }
 
           // (Re)populate structure and compute derived parameters.
           // Ensures that all necessary items are gathered at once and none forgotten!
@@ -116,6 +147,17 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
     const uint8_t minOpenPC;
     // Minimum percent at which valve is usually moderately open [minOpenPC+1,00];
     const uint8_t fairlyOpenPC;
+
+    // Absolute limit in sub-cycle beyond which motor should not be started.
+    // This should allow meaningful movement and stop and settle and no sub-cycle overrun.
+    // Allows for up to 120ms enforced sleep either side of motor run for example.
+    // This should not be so greedy as to (eg) make the CLI unusable: 90% is pushing it.
+    const uint8_t sctAbsLimit;
+//          static const constexpr uint8_t sctAbsLimit = OTV0P2BASE::GSCT_MAX -
+//              OTV0P2BASE::fnmax((uint8_t)1, (uint8_t)( ((OTV0P2BASE::GSCT_MAX+1)/4) - OTRadValve::ValveMotorDirectV1HardwareDriverBase::minMotorRunupTicks - 1 - (240 / OTV0P2BASE::SUBCYCLE_TICK_MS_RD) ));
+    // Absolute limit in sub-cycle beyond which motor should not be started for dead-reckoning pulse.
+    // This should allow meaningful movement and no sub-cycle overrun.
+    uint8_t computeSctAbsLimitDR() const { return(sctAbsLimit - cp.minMotorDRTicks); }
 
   public:
     // Basic/coarse state of driver.
@@ -234,10 +276,19 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
   public:
     // Create an instance, passing in a reference to the non-NULL hardware driver.
     // The hardware driver instance lifetime must be longer than this instance.
+    //   * minMotorDRTicks  minimum sub-cycle ticks for dead reckoning; strictly positive
+    //   * sctAbsLimit  absolute limit in sub-cycle beyond which motor should not be started
+    // Keep all the potentially slow calculations in-line here to allow them to be done at compile-time .
     CurrentSenseValveMotorDirect(OTRadValve::HardwareMotorDriverInterface * const hwDriver,
+                                 const uint8_t _minMotorDRTicks,
+                                 const uint8_t _sctAbsLimit,
                                  uint8_t _minOpenPC = OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN,
                                  uint8_t _fairlyOpenPC = OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN) :
-        hw(hwDriver), minOpenPC(_minOpenPC), fairlyOpenPC(_fairlyOpenPC), currentPC(0), targetPC(0)
+        hw(hwDriver),
+        minOpenPC(_minOpenPC), fairlyOpenPC(_fairlyOpenPC),
+        sctAbsLimit(_sctAbsLimit),
+        cp(_minMotorDRTicks),
+        currentPC(0), targetPC(0)
         { changeState(init); }
 
     // Poll.

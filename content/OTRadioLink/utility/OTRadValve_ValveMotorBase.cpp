@@ -30,18 +30,18 @@ namespace OTRadValve
 #ifdef CurrentSenseValveMotorDirect_DEFINED
 
 #ifdef ARDUINO_ARCH_AVR
-// Min sub-cycle ticks for dead reckoning.
-static const constexpr uint8_t minMotorDRTicks = OTV0P2BASE::fnmax((uint8_t)1, (uint8_t)(minMotorDRMS / OTV0P2BASE::SUBCYCLE_TICK_MS_RD));
-// Absolute limit in sub-cycle beyond which motor should not be started.
-// This should allow meaningful movement and stop and settle and no sub-cycle overrun.
-// Allows for up to 120ms enforced sleep either side of motor run for example.
-// This should not be so greedy as to (eg) make the CLI unusable: 90% is pushing it.
-static const constexpr uint8_t sctAbsLimit = OTV0P2BASE::GSCT_MAX -
-    OTV0P2BASE::fnmax((uint8_t)1, (uint8_t)( ((OTV0P2BASE::GSCT_MAX+1)/4) - OTRadValve::ValveMotorDirectV1HardwareDriverBase::minMotorRunupTicks - 1 - (240 / OTV0P2BASE::SUBCYCLE_TICK_MS_RD) ));
-// Absolute limit in sub-cycle beyond which motor should not be started for dead-reckoning pulse.
-// This should allow meaningful movement and no sub-cycle overrun.
-//static const uint8_t sctAbsLimitDR = sctAbsLimit - minMotorDRTicks;
-static const constexpr uint8_t sctAbsLimitDR = sctAbsLimit - minMotorDRTicks;
+//// Min sub-cycle ticks for dead reckoning.
+//static const constexpr uint8_t minMotorDRTicks = OTV0P2BASE::fnmax((uint8_t)1, (uint8_t)(minMotorDRMS / OTV0P2BASE::SUBCYCLE_TICK_MS_RD));
+//// Absolute limit in sub-cycle beyond which motor should not be started.
+//// This should allow meaningful movement and stop and settle and no sub-cycle overrun.
+//// Allows for up to 120ms enforced sleep either side of motor run for example.
+//// This should not be so greedy as to (eg) make the CLI unusable: 90% is pushing it.
+//static const constexpr uint8_t sctAbsLimit = OTV0P2BASE::GSCT_MAX -
+//    OTV0P2BASE::fnmax((uint8_t)1, (uint8_t)( ((OTV0P2BASE::GSCT_MAX+1)/4) - OTRadValve::ValveMotorDirectV1HardwareDriverBase::minMotorRunupTicks - 1 - (240 / OTV0P2BASE::SUBCYCLE_TICK_MS_RD) ));
+//// Absolute limit in sub-cycle beyond which motor should not be started for dead-reckoning pulse.
+//// This should allow meaningful movement and no sub-cycle overrun.
+////static const uint8_t sctAbsLimitDR = sctAbsLimit - minMotorDRTicks;
+//static const constexpr uint8_t sctAbsLimitDR = sctAbsLimit - minMotorDRTicks;
 #endif // ARDUINO_ARCH_AVR
 
 // Called with each motor run sub-cycle tick.
@@ -66,7 +66,6 @@ void CurrentSenseValveMotorDirect::signalRunSCTTick(const bool opening)
     }
   }
 
-#ifdef ARDUINO_ARCH_AVR
 // (Re)populate structure and compute derived parameters.
 // Ensures that all necessary items are gathered at once and none forgotten!
 // Returns true in case of success.
@@ -103,7 +102,6 @@ bool CurrentSenseValveMotorDirect::CalibrationParameters::updateAndCompute(const
   // All OK.
   return(true);
   }
-#endif // ARDUINO_ARCH_AVR
 
 // Compute reconciliation/adjustment of ticks, and compute % position [0,100].
 // Reconcile any reverse ticks (and adjust with forward ticks if needed).
@@ -179,7 +177,6 @@ bool CurrentSenseValveMotorDirect::runFastTowardsEndStop(const bool toOpen)
   return(endStopDetected);
   }
 
-#ifdef ARDUINO_ARCH_AVR
 // Run at 'normal' speed towards/to end for a fixed time/distance.
 // Terminates significantly before the end of the sub-cycle.
 // Runs at same speed as during calibration.
@@ -190,7 +187,7 @@ bool CurrentSenseValveMotorDirect::runTowardsEndStop(const bool toOpen)
   // Clear the end-stop detection flag ready.
   endStopDetected = false;
   // Run motor as far as possible on this sub-cycle.
-  hw->motorRun(minMotorDRTicks, toOpen ?
+  hw->motorRun(cp.minMotorDRTicks, toOpen ?
       OTRadValve::HardwareMotorDriverInterface::motorDriveOpening
     : OTRadValve::HardwareMotorDriverInterface::motorDriveClosing, *this);
   // Stop motor and ensure power off.
@@ -198,8 +195,6 @@ bool CurrentSenseValveMotorDirect::runTowardsEndStop(const bool toOpen)
   // Report if end-stop has apparently been hit.
   return(endStopDetected);
   }
-#endif // ARDUINO_ARCH_AVR
-
 
 // Report an apparent serious tracking error that may need full recalibration.
 void CurrentSenseValveMotorDirect::trackingError()
@@ -355,7 +350,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("+calibrating");
               ++perState.valveCalibrating.calibState; // Move to next micro state.
               break;
               }
-            } while(OTV0P2BASE::getSubCycleTime() <= sctAbsLimitDR);
+            } while(OTV0P2BASE::getSubCycleTime() <= computeSctAbsLimitDR());
           break;
           }
         case 3:
@@ -381,7 +376,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("+calibrating");
                 }
               break; // In all cases when end-stop hit don't try to run further in this sub-cycle.
               }
-            } while(OTV0P2BASE::getSubCycleTime() <= sctAbsLimitDR);
+            } while(OTV0P2BASE::getSubCycleTime() <= computeSctAbsLimitDR());
           break;
           }
         case 4:
@@ -583,6 +578,9 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("-<");
 // Returns true if aborted early from too little time to start, or by high current (assumed end-stop hit).
 bool ValveMotorDirectV1HardwareDriverBase::spinSCTTicks(const uint8_t maxRunTicks, const uint8_t minTicksBeforeAbort, const OTRadValve::HardwareMotorDriverInterface::motor_drive dir, OTRadValve::HardwareMotorDriverInterfaceCallbackHandler &callback)
   {
+  static const constexpr uint8_t sctAbsLimit = CurrentSenseValveMotorDirect::computeSctAbsLimit(
+          OTV0P2BASE::SUBCYCLE_TICK_MS_RD, OTV0P2BASE::GSCT_MAX, minMotorRunupTicks);
+
   // Sub-cycle time now.
   const uint8_t sctStart = OTV0P2BASE::getSubCycleTime();
   // Only run up to ~90% point of the minor cycle to leave time for other processing.
