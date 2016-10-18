@@ -10,14 +10,14 @@
 # Intended to be run without arguments from top-level dir of project.
 
 # GTest libs (including main()).
-GLIBS=-lgtest -lpthread -lgtest_main
+GLIBS="-lgtest -lpthread -lgtest_main"
 # Other libs.
 OTHERLIBS=
 
 # Source files dir.
-SRCDIR=portableUnitsTests
+SRCDIR=portableUnitTests
 # Source files.
-SRCS=`find ${SRCDIR} -name '*.cpp' -type f -print`
+SRCS="`find ${SRCDIR} -name '*.cpp' -type f -print`"
 
 echo "Using sources: $SRCS"
 
