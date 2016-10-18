@@ -13,26 +13,6 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
-                            Deniz Erbilgin 2016
+Author(s) / Copyright (s):  Deniz Erbilgin 2016
 */
 
-/*
- * Driver for DORM1/REV7 direct motor drive.
- *
- * V0p2/AVR only.
- */
-
-//#include "OTRadValve_AbstractRadValve.h"
-//#include "OTRadValve_ValveMotorDirectV1.h"
-//
-//#include "OTV0P2BASE_Serial_IO.h"
-//
-//namespace OTRadValve
-//    {
-//
-//
-//
-//
-//
-//    }
