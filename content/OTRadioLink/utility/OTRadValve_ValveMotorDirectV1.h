@@ -19,7 +19,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 /*
  * Driver for DORM1/REV7 direct motor drive.
  *
- * V0p2/AVR only.
+ * Mainly V0p2/AVR.
  */
 
 #ifndef ARDUINO_LIB_OTRADVALVE_VALVEMOTORDIRECTV1_H
@@ -36,8 +36,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 namespace OTRadValve
     {
 
-
-#ifdef ARDUINO_ARCH_AVR
 
 // Generic (unit-testable) motor driver login using end-stop detection and simple shaft-encoder.
 // Designed to be embedded in a motor controller instance.
@@ -255,7 +253,7 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
 
     // Set current target % open in range [0,100].
     // Coerced into range.
-    void setTargetPC(uint8_t newPC) { targetPC = min(newPC, 100); }
+    void setTargetPC(uint8_t newPC) { targetPC = OTV0P2BASE::fnmin(newPC, (uint8_t)100); }
 
     // Get estimated minimum percentage open for significant flow for this device; strictly positive in range [1,99].
     virtual uint8_t getMinPercentOpen() const;
@@ -296,7 +294,9 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
   };
 
 
+#ifdef ARDUINO_ARCH_AVR
 
+// Implementation of driver for REV7 / DORM1 board (with discretes H-bridge).
 class ValveMotorDirectV1HardwareDriverBase : public OTRadValve::HardwareMotorDriverInterface
   {
   public:
