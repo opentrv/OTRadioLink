@@ -14,6 +14,7 @@ specific language governing permissions and limitations
 under the Licence.
 
 Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
+                            Deniz Erbilgin 2016
 */
 
 #ifndef ARDUINO_LIB_OTRADVALVE_H
@@ -36,8 +37,13 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 // Driver for FHT8V wireless valve actuator (and FS20 protocol encode/decode).
 #include "utility/OTRadValve_FHT8VRadValve.h"
 
+#include "utility/OTRadValve_ValveMotorBase.h"
+
 // Driver for DORM1/REV7 direct motor drive.
 #include "utility/OTRadValve_ValveMotorDirectV1.h"
+
+// Driver for DRV8850 motor drive.
+#include "utility/OTRadValve_ValveMotorDRV8850.h"
 
 // Driver for boiler.
 #include "utility/OTRadValve_BoilerDriver.h"
