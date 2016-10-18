@@ -192,7 +192,13 @@ class ValveMotorDirectV1 : public OTRadValve::AbstractRadValve
   public:
     ValveMotorDirectV1(uint8_t minOpenPC = OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN,
                        uint8_t fairlyOpenPC = OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN)
-      : logic(&driver, minOpenPC, fairlyOpenPC) { }
+      : logic(&driver, OTV0P2BASE::getSubCycleTime,
+         OTRadValve::CurrentSenseValveMotorDirect::computeMinMotorDRTicks(OTV0P2BASE::SUBCYCLE_TICK_MS_RD),
+         OTRadValve::CurrentSenseValveMotorDirect::computeSctAbsLimit(OTV0P2BASE::SUBCYCLE_TICK_MS_RD,
+                                                                      OTV0P2BASE::GSCT_MAX,
+                                                                      ValveMotorDirectV1HardwareDriverBase::minMotorRunupTicks),
+        minOpenPC, fairlyOpenPC)
+      { }
 
     // Regular poll/update.
     // This and get() return the actual estimated valve position.

@@ -41,6 +41,8 @@ class DummyHardwareDriver : public OTRadValve::HardwareMotorDriverInterface
     bool currentHigh;
   };
 
+static uint8_t dummyGetSubCycleTime() { return(0); }
+
 // Test that direct abstract motor drive logic is sane.
 //
 // Adapted 2016/10/18 from test_VALVEMODEL.ino testCurrentSenseValveMotorDirect().
@@ -50,7 +52,7 @@ TEST(CurrentSenseValveMotorDirect,bascis)
     const uint8_t gsct_max = 255; // For REV7: OTV0P2BASE::GSCT_MAX.
     const uint8_t minimumMotorRunupTicks = 4; // For REV7: OTRadValve::ValveMotorDirectV1HardwareDriverBase::minMotorRunupTicks.
     DummyHardwareDriver dhw;
-    OTRadValve::CurrentSenseValveMotorDirect csvmd1(&dhw,
+    OTRadValve::CurrentSenseValveMotorDirect csvmd1(&dhw, dummyGetSubCycleTime,
         OTRadValve::CurrentSenseValveMotorDirect::computeMinMotorDRTicks(subcycleTicksRoundedDown_ms),
         OTRadValve::CurrentSenseValveMotorDirect::computeSctAbsLimit(subcycleTicksRoundedDown_ms,
                                                                      gsct_max,

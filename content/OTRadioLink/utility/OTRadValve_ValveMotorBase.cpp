@@ -29,21 +29,6 @@ namespace OTRadValve
 
 #ifdef CurrentSenseValveMotorDirect_DEFINED
 
-#ifdef ARDUINO_ARCH_AVR
-//// Min sub-cycle ticks for dead reckoning.
-//static const constexpr uint8_t minMotorDRTicks = OTV0P2BASE::fnmax((uint8_t)1, (uint8_t)(minMotorDRMS / OTV0P2BASE::SUBCYCLE_TICK_MS_RD));
-//// Absolute limit in sub-cycle beyond which motor should not be started.
-//// This should allow meaningful movement and stop and settle and no sub-cycle overrun.
-//// Allows for up to 120ms enforced sleep either side of motor run for example.
-//// This should not be so greedy as to (eg) make the CLI unusable: 90% is pushing it.
-//static const constexpr uint8_t sctAbsLimit = OTV0P2BASE::GSCT_MAX -
-//    OTV0P2BASE::fnmax((uint8_t)1, (uint8_t)( ((OTV0P2BASE::GSCT_MAX+1)/4) - OTRadValve::ValveMotorDirectV1HardwareDriverBase::minMotorRunupTicks - 1 - (240 / OTV0P2BASE::SUBCYCLE_TICK_MS_RD) ));
-//// Absolute limit in sub-cycle beyond which motor should not be started for dead-reckoning pulse.
-//// This should allow meaningful movement and no sub-cycle overrun.
-////static const uint8_t sctAbsLimitDR = sctAbsLimit - minMotorDRTicks;
-//static const constexpr uint8_t sctAbsLimitDR = sctAbsLimit - minMotorDRTicks;
-#endif // ARDUINO_ARCH_AVR
-
 // Called with each motor run sub-cycle tick.
 // Is ISR-/thread- safe ***on AVR***.
 void CurrentSenseValveMotorDirect::signalRunSCTTick(const bool opening)
@@ -203,7 +188,6 @@ void CurrentSenseValveMotorDirect::trackingError()
   needsRecalibrating = true;
   }
 
-#ifdef ARDUINO_ARCH_AVR
 // Poll.
 // Regular poll every 1s or 2s,
 // though tolerates missed polls eg because of other time-critical activity.
@@ -350,7 +334,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("+calibrating");
               ++perState.valveCalibrating.calibState; // Move to next micro state.
               break;
               }
-            } while(OTV0P2BASE::getSubCycleTime() <= computeSctAbsLimitDR());
+            } while(getSubCycleTimeFn() <= computeSctAbsLimitDR());
           break;
           }
         case 3:
@@ -376,7 +360,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("+calibrating");
                 }
               break; // In all cases when end-stop hit don't try to run further in this sub-cycle.
               }
-            } while(OTV0P2BASE::getSubCycleTime() <= computeSctAbsLimitDR());
+            } while(getSubCycleTimeFn() <= computeSctAbsLimitDR());
           break;
           }
         case 4:
@@ -542,7 +526,6 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("-<");
       }
 
     // Unexpected: go to error state, stop motor and report error on serial.
-    valveError:
     default:
       {
       changeState(valveError);
@@ -553,7 +536,6 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("-<");
       }
     }
   }
-#endif // ARDUINO_ARCH_AVR
 
 #endif // CurrentSenseValveMotorDirect_DEFINED
 

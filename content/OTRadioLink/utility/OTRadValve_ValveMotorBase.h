@@ -143,6 +143,9 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
     // Must have a lifetime exceeding that of this enclosing object.
     OTRadValve::HardwareMotorDriverInterface * const hw;
 
+    // Pointer to function to get current sub-cycle time; never NULL.
+    uint8_t (*const getSubCycleTimeFn)();
+
     // Minimum percent at which valve is usually open [1,00];
     const uint8_t minOpenPC;
     // Minimum percent at which valve is usually moderately open [minOpenPC+1,00];
@@ -276,15 +279,18 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
   public:
     // Create an instance, passing in a reference to the non-NULL hardware driver.
     // The hardware driver instance lifetime must be longer than this instance.
-    //   * minMotorDRTicks  minimum sub-cycle ticks for dead reckoning; strictly positive
-    //   * sctAbsLimit  absolute limit in sub-cycle beyond which motor should not be started
+    //   * _getSubCycleTimeFn  pointer to function to get current sub-cycle time; never NULL
+    //   * _minMotorDRTicks  minimum sub-cycle ticks for dead reckoning; strictly positive
+    //   * _sctAbsLimit  absolute limit in sub-cycle beyond which motor should not be started
     // Keep all the potentially slow calculations in-line here to allow them to be done at compile-time .
     CurrentSenseValveMotorDirect(OTRadValve::HardwareMotorDriverInterface * const hwDriver,
+                                 uint8_t (*_getSubCycleTimeFn)(),
                                  const uint8_t _minMotorDRTicks,
                                  const uint8_t _sctAbsLimit,
                                  uint8_t _minOpenPC = OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN,
                                  uint8_t _fairlyOpenPC = OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN) :
         hw(hwDriver),
+        getSubCycleTimeFn(_getSubCycleTimeFn),
         minOpenPC(_minOpenPC), fairlyOpenPC(_fairlyOpenPC),
         sctAbsLimit(_sctAbsLimit),
         cp(_minMotorDRTicks),
