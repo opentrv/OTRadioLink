@@ -48,8 +48,8 @@ class DRV8850HardwareDriver : public ValveMotorDirectV1HardwareDriverBase
     // Helpful to record shaft-encoder and other behaviour correctly around direction changes.
     // Marked volatile and stored as uint8_t to help thread-safety, and potentially save space.
     volatile uint8_t last_dir;
-    static const constexpr uint16_t maxDevCurrentReadingClosing = 250;  // FIXME
-    static const constexpr uint16_t maxDevCurrentReadingOpening = 200;
+    static const constexpr uint16_t maxDevCurrentReadingClosing = 300;  // FIXME
+    static const constexpr uint16_t maxDevCurrentReadingOpening = 300;
 
 public:
     DRV8850HardwareDriver() : last_dir((uint8_t)motorOff) { }
@@ -152,7 +152,7 @@ OTV0P2BASE::serialPrintlnAndFlush();
         //
         // Turn one side of bridge off ASAP.
         // Motor is automatically stopped in sleep mode.
-//		fastDigitalWrite(nSLEEP, LOW);
+		fastDigitalWrite(nSLEEP, LOW);
 		// Pull motor lines low to minimise current consumption (DRV8850 inputs are pulled low).
 		fastDigitalWrite(MOTOR_DRIVE_MR_DigitalPin, LOW);
 		fastDigitalWrite(MOTOR_DRIVE_MR_DigitalPin, LOW);
