@@ -9,18 +9,33 @@
 #
 # Intended to be run without arguments from top-level dir of project.
 
+# Generates a temporary executable at top level.
+EXENAME=tmptestexe
+
 # GTest libs (including main()).
-GLIBS=-lgtest -lpthread -lgtest_main
+GLIBS="-lgtest -lpthread -lgtest_main"
 # Other libs.
 OTHERLIBS=
 
+# Glib includes
+GINCLUDES=-I/usr/local/include
+# Source includes
+INCLUDES=-Icontent/OTRadioLink
+
 # Source files dir.
-SRCDIR=portableUnitsTests
+SRCDIR=portableUnitTests
 # Source files.
-SRCS=`find ${SRCDIR} -name '*.cpp' -type f -print`
+SRCS="`find ${SRCDIR} -name '*.cpp' -type f -print`"
 
 echo "Using sources: $SRCS"
 
+rm -f ${EXENAME}
+if gcc -o${EXENAME} ${INCLUDES} ${GINCLUDES} ${SRCS} ${GLIBS} ${OTHERLIBS} ; then
+    echo Compiled.
+else
+    echo Failed to compile.
+    exit 2
+fi
 
 # FIXME: not implemented
 exit 1
