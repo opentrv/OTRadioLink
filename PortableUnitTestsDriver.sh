@@ -3,7 +3,7 @@
 # Script to be able to run on common Linux and *nix-like OSes (eg macOS)
 # to build and run the C++ unit tests under the portableUnitTests directory.
 #
-# Requires a newish gcc (even if a front-end to Clang for example)
+# Requires a newish g++ (even if a front-end to Clang for example)
 # and with gtest includes and libraries in system paths or under
 # /usr/local/{lib,include}.
 #
@@ -39,7 +39,7 @@ echo "Using test sources: $TESTSRCS"
 echo "Using project sources: $PROJSRCS"
 
 rm -f ${EXENAME}
-if gcc -o${EXENAME} -std=c++0x -O0 -g3 -Wall -Werror ${INCLUDES} ${GINCLUDES} ${PROJSRCS} ${TESTSRCS} ${GLIBS} ${GLIBDIRS} ${OTHERLIBS} ; then
+if g++ -o ${EXENAME} -std=c++0x -O0 -g3 -Wall -Werror ${INCLUDES} ${GINCLUDES} ${PROJSRCS} ${TESTSRCS} ${GLIBDIRS} ${GLIBS} ${OTHERLIBS} ; then
     echo Compiled.
 else
     echo Failed to compile.
@@ -47,4 +47,4 @@ else
 fi
 
 # Run the tests.
-exec ${EXENAME}
+exec ./${EXENAME}
