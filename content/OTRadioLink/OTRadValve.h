@@ -37,12 +37,16 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 // Driver for FHT8V wireless valve actuator (and FS20 protocol encode/decode).
 #include "utility/OTRadValve_FHT8VRadValve.h"
 
+// Hardware-independent logic for direct proportional valve motor drive..
+#include "utility/OTRadValve_CurrentSenseValveMotorDirect.h"
+
+// Base for TRV1 (DORM1/REV7) and TRV2 direct valve motor drive.
 #include "utility/OTRadValve_ValveMotorBase.h"
 
-// Driver for DORM1/REV7 direct motor drive.
+// Driver for DORM1/REV7 direct valve motor drive.
 #include "utility/OTRadValve_ValveMotorDirectV1.h"
 
-// Driver for DRV8850 motor drive.
+// Driver for DRV8850 valve motor drive.
 #include "utility/OTRadValve_ValveMotorDRV8850.h"
 
 // Driver for boiler.
