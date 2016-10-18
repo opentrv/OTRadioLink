@@ -48,6 +48,8 @@ class DRV8850HardwareDriver : public ValveMotorDirectV1HardwareDriverBase
     // Helpful to record shaft-encoder and other behaviour correctly around direction changes.
     // Marked volatile and stored as uint8_t to help thread-safety, and potentially save space.
     volatile uint8_t last_dir;
+    static const constexpr uint16_t maxDevCurrentReadingClosing = 250;  // FIXME
+    static const constexpr uint16_t maxDevCurrentReadingOpening = 200;
 
 public:
     DRV8850HardwareDriver() : last_dir((uint8_t)motorOff) { }
@@ -65,7 +67,7 @@ public:
 //OTV0P2BASE::serialPrintlnAndFlush();
 //#endif
     const uint16_t miHigh = (OTRadValve::HardwareMotorDriverInterface::motorDriveClosing == mdir) ?
-        maxCurrentReadingClosing : maxCurrentReadingOpening;
+            maxDevCurrentReadingClosing : maxDevCurrentReadingOpening;
     const bool currentSense = (mi > miHigh); // &&
       // Recheck the value read in case spiky.
       // (OTV0P2BASE::analogueNoiseReducedRead(MOTOR_DRIVE_MI_AIN_DigitalPin, INTERNAL) > miHigh) &&
@@ -97,13 +99,14 @@ OTV0P2BASE::serialPrintlnAndFlush();
   //   * maxRunTicks  maximum sub-cycle ticks to attempt to run/spin for); zero will run for shortest reasonable time
   //   * dir  direction to run motor (or off/stop)
   //   * callback  callback handler
-  virtual void motorRun(const uint8_t maxRunTicks,
+  void motorRun(const uint8_t maxRunTicks,
                         const OTRadValve::HardwareMotorDriverInterface::motor_drive dir,
                         OTRadValve::HardwareMotorDriverInterfaceCallbackHandler &callback)
     {
-    // Remember previous state of motor.
+      // Remember previous state of motor.
     // This may help to correctly allow for (eg) position encoding inputs while a motor is slowing.
     const uint8_t prev_dir = last_dir;
+
 
     // TODO This logic needs to change
     // Impossible to short the DRV8850 from here, but need 2 pin changes to change direction.
@@ -149,7 +152,7 @@ OTV0P2BASE::serialPrintlnAndFlush();
         //
         // Turn one side of bridge off ASAP.
         // Motor is automatically stopped in sleep mode.
-		fastDigitalWrite(nSLEEP, LOW);
+//		fastDigitalWrite(nSLEEP, LOW);
 		// Pull motor lines low to minimise current consumption (DRV8850 inputs are pulled low).
 		fastDigitalWrite(MOTOR_DRIVE_MR_DigitalPin, LOW);
 		fastDigitalWrite(MOTOR_DRIVE_MR_DigitalPin, LOW);
