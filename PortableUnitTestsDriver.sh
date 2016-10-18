@@ -17,10 +17,13 @@ GLIBS="-lgtest -lpthread -lgtest_main"
 # Other libs.
 OTHERLIBS=
 
-# Glib includes
-GINCLUDES=-I/usr/local/include
-# Source includes
-INCLUDES=-Icontent/OTRadioLink
+# GTest libs (paths).
+GLIBDIRS="-L/usr/local/lib"
+
+# Glib includes (paths).
+GINCLUDES="-I/usr/local/include"
+# Source includes (paths).
+INCLUDES="-Icontent/OTRadioLink -Icontent/OTRadioLink/utility"
 
 # Source files dir.
 SRCDIR=portableUnitTests
@@ -30,7 +33,7 @@ SRCS="`find ${SRCDIR} -name '*.cpp' -type f -print`"
 echo "Using sources: $SRCS"
 
 rm -f ${EXENAME}
-if gcc -o${EXENAME} ${INCLUDES} ${GINCLUDES} ${SRCS} ${GLIBS} ${OTHERLIBS} ; then
+if gcc -o${EXENAME} -std=c++0x ${INCLUDES} ${GINCLUDES} ${SRCS} ${GLIBS} ${GLIBDIRS} ${OTHERLIBS} ; then
     echo Compiled.
 else
     echo Failed to compile.
