@@ -53,11 +53,57 @@ namespace OTRadValve
 // to the techniques described in harmonised standards adopted under Directive 1999/5/EC must be used. Alternatively a duty cycle limit of 1 % may be used.
 // See band 48: http://eur-lex.europa.eu/legal-content/EN/TXT/PDF/?uri=CELEX:32013D0752&from=EN
 
-// Some utility methods.
+// Some utility constants, types and methods.
 #define FHT8VRadValveUtil_DEFINED
 class FHT8VRadValveUtil
   {
   public:
+    // Type for information content of FHT8V message.
+    // Omits the address field unless it is actually used.
+    typedef struct fht8v_msg
+      {
+      uint8_t hc1;
+      uint8_t hc2;
+#ifdef OTV0P2BASE_FHT8V_ADR_USED
+      uint8_t address;
+#endif
+      uint8_t command;
+      uint8_t extension;
+      } fht8v_msg_t;
+
+    // Typical FHT8V 'open' percentage, though partly depends on valve tails, etc.
+    // This is set to err on the side of slightly open to allow
+    // the 'linger' feature to work to help boilers dump heat with pump over-run
+    // when the the boiler is turned off.
+    // Actual values observed by DHD range from 6% to 25%.
+    static const uint8_t TYPICAL_MIN_PERCENT_OPEN = 10;
+
+    // For longest-possible encoded FHT8V/FS20 command in bytes plus terminating 0xff.
+    static const uint8_t MIN_FHT8V_200US_BIT_STREAM_BUF_SIZE = 46;
+    // Create stream of bytes to be transmitted to FHT80V at 200us per bit, msbit of each byte first.
+    // Byte stream is terminated by 0xff byte which is not a possible valid encoded byte.
+    // On entry the populated FHT8V command struct is passed by pointer.
+    // On exit, the memory block starting at buffer contains the low-byte, msbit-first bit, 0xff terminated TX sequence.
+    // The maximum and minimum possible encoded message sizes are 35 (all zero bytes) and 45 (all 0xff bytes) bytes long.
+    // Note that a buffer space of at least 46 bytes is needed to accommodate the longest-possible encoded message plus terminator.
+    // This FHT8V messages is encoded with the FS20 protocol.
+    // Returns pointer to the terminating 0xff on exit.
+    static uint8_t *FHT8VCreate200usBitStreamBptr(uint8_t *bptr, const fht8v_msg_t *command);
+
+    // Decode raw bitstream into non-null command structure passed in; returns true if successful.
+    // Will return non-null if OK, else NULL if anything obviously invalid is detected such as failing parity or checksum.
+    // Finds and discards leading encoded 1 and trailing 0.
+    // Returns NULL on failure, else pointer to next full byte after last decoded.
+    static uint8_t const *FHT8VDecodeBitStream(uint8_t const *bitStream, uint8_t const *lastByte, fht8v_msg_t *command);
+
+    // Approximate maximum transmission (TX) time for bare FHT8V command frame in ms; strictly positive.
+    // This ignores any prefix needed for particular radios such as the RFM23B.
+    // ~80ms upwards.
+    static const uint8_t FHT8V_APPROX_MAX_RAW_TX_MS = ((((MIN_FHT8V_200US_BIT_STREAM_BUF_SIZE-1)*8) + 4) / 5);
+
+    // Returns true if the supplied house code part is valid for an FHT8V valve.
+    static inline bool isValidFHTV8HouseCode(const uint8_t hc) { return(hc <= 99); }
+
 
     // Helper method to convert from [0,100] %-open scale to [0,255] for FHT8V/FS20 frame.
     // Designed to be a fast and good approximation avoiding division or multiplication.
@@ -143,27 +189,17 @@ class FHT8VRadValveUtil
         }
   };
 
+
+
 #ifdef ARDUINO_ARCH_AVR
+
 #define FHT8VRadValveBase_DEFINED
-class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
+class FHT8VRadValveBase : public OTRadValve::AbstractRadValve, public FHT8VRadValveUtil
   {
   public:
     // Type of function to extend the TX buffer, returns pointer to 0xff just beyond last content byte appended.
     // In case of failure this returns NULL.
     typedef uint8_t *appendToTXBufferFF_t(uint8_t *buf, uint8_t bufSize);
-
-    // Type for information content of FHT8V message.
-    // Omits the address field unless it is actually used.
-    typedef struct
-      {
-      uint8_t hc1;
-      uint8_t hc2;
-#ifdef OTV0P2BASE_FHT8V_ADR_USED
-      uint8_t address;
-#endif
-      uint8_t command;
-      uint8_t extension;
-      } fht8v_msg_t;
 
   protected:
     // Radio link usually expected to be RFM23B; non-NULL when available.
@@ -259,10 +295,7 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
     volatile uint8_t hc1, hc2;
 
   public:
-    // Returns true if the supplied house code part is valid for an FHT8V valve.
-    static inline bool isValidFHTV8HouseCode(const uint8_t hc) { return(hc <= 99); }
-
-    // Clear both housecode parts (and thus disable use of FHT8V valve).
+     // Clear both housecode parts (and thus disable use of FHT8V valve).
     void clearHC() { hc1 = ~0, hc2 = ~0; resyncWithValve(); }
     // Set (non-volatile) HC1 and HC2 for single/primary FHT8V wireless valve under control.
     // Both parts must be <= 99 for the house code to be valid and the valve used.
@@ -284,12 +317,6 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
     // Should be set before any sync with the FHT8V.
     void setChannelTX(int8_t channel) { channelTX = channel; }
 
-    // Decode raw bitstream into non-null command structure passed in; returns true if successful.
-    // Will return non-null if OK, else NULL if anything obviously invalid is detected such as failing parity or checksum.
-    // Finds and discards leading encoded 1 and trailing 0.
-    // Returns NULL on failure, else pointer to next full byte after last decoded.
-    static uint8_t const *FHT8VDecodeBitStream(uint8_t const *bitStream, uint8_t const *lastByte, fht8v_msg_t *command);
-
     // Minimum and maximum FHT8V TX cycle times in half seconds: [115.0,118.5].
     // Fits in an 8-bit unsigned value.
     static const uint8_t MIN_FHT8V_TX_CYCLE_HS = (115*2);
@@ -304,30 +331,6 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
     // will be foregone in this minor cycle,
     inline uint8_t FHT8VTXGapHalfSeconds(const uint8_t hc2, const uint8_t halfSecondCountInMinorCycle)
       { return(FHT8VTXGapHalfSeconds(hc2) - (MAX_HSC - halfSecondCountInMinorCycle)); }
-
-    // For longest-possible encoded FHT8V/FS20 command in bytes plus terminating 0xff.
-    static const uint8_t MIN_FHT8V_200US_BIT_STREAM_BUF_SIZE = 46;
-    // Create stream of bytes to be transmitted to FHT80V at 200us per bit, msbit of each byte first.
-    // Byte stream is terminated by 0xff byte which is not a possible valid encoded byte.
-    // On entry the populated FHT8V command struct is passed by pointer.
-    // On exit, the memory block starting at buffer contains the low-byte, msbit-first bit, 0xff terminated TX sequence.
-    // The maximum and minimum possible encoded message sizes are 35 (all zero bytes) and 45 (all 0xff bytes) bytes long.
-    // Note that a buffer space of at least 46 bytes is needed to accommodate the longest-possible encoded message plus terminator.
-    // This FHT8V messages is encoded with the FS20 protocol.
-    // Returns pointer to the terminating 0xff on exit.
-    static uint8_t *FHT8VCreate200usBitStreamBptr(uint8_t *bptr, const fht8v_msg_t *command);
-
-    // Approximate maximum transmission (TX) time for bare FHT8V command frame in ms; strictly positive.
-    // This ignores any prefix needed for particular radios such as the RFM23B.
-    // ~80ms upwards.
-    static const uint8_t FHT8V_APPROX_MAX_RAW_TX_MS = ((((MIN_FHT8V_200US_BIT_STREAM_BUF_SIZE-1)*8) + 4) / 5);
-
-    // Typical FHT8V 'open' percentage, though partly depends on valve tails, etc.
-    // This is set to err on the side of slightly open to allow
-    // the 'linger' feature to work to help boilers dump heat with pump over-run
-    // when the the boiler is turned off.
-    // Actual values observed by DHD range from 6% to 25%.
-    static const uint8_t TYPICAL_MIN_PERCENT_OPEN = 10;
 
     // Returns true if radio or house codes not set.
     // Remains false while syncing as that is only temporary unavailability.
@@ -422,6 +425,7 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
     // If no valve is set up then this may simply terminate an empty buffer with 0xff.
     virtual void FHT8VCreateValveSetCmdFrame(const uint8_t valvePC, const bool forceExtraPreamble = false) = 0;
 
+#ifdef ARDUINO_ARCH_AVR
     // EEPROM / non-volatile operations.
     // These operations all affect the same EEPROM backing store,
     // so if these are used the FHT8V instance should be a singleton.
@@ -450,9 +454,9 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve
             SetHouseCode(FHT8VRadValveBase *const valve) : v(valve) { }
             virtual bool doCommand(char *buf, uint8_t buflen);
         };
+#endif // ARDUINO_ARCH_AVR
 
   };
-
 
 // maxTrailerBytes specifies the maximum number of bytes of trailer that can be added.
 // preambleBytes specifies the space to leave for preamble bytes for remote receiver sync (defaults to RFM23-suitable value).
@@ -464,7 +468,7 @@ class FHT8VRadValve : public FHT8VRadValveBase
   public:
     static const uint8_t FHT8V_MAX_EXTRA_PREAMBLE_BYTES = preambleBytes; // RFM22_PREAMBLE_BYTES
     static const uint8_t FHT8V_MAX_EXTRA_TRAILER_BYTES = maxTrailerBytes; // (1+max(MESSAGING_TRAILING_MINIMAL_STATS_PAYLOAD_BYTES,FullStatsMessageCore_MAX_BYTES_ON_WIRE));
-    static const uint8_t FHT8V_200US_BIT_STREAM_FRAME_BUF_SIZE = (FHT8V_MAX_EXTRA_PREAMBLE_BYTES + (FHT8VRadValve::MIN_FHT8V_200US_BIT_STREAM_BUF_SIZE) + FHT8V_MAX_EXTRA_TRAILER_BYTES); // Buffer space needed.
+    static const uint8_t FHT8V_200US_BIT_STREAM_FRAME_BUF_SIZE = (FHT8V_MAX_EXTRA_PREAMBLE_BYTES + (FHT8VRadValveUtil::MIN_FHT8V_200US_BIT_STREAM_BUF_SIZE) + FHT8V_MAX_EXTRA_TRAILER_BYTES); // Buffer space needed.
 
     // Approximate maximum transmission (TX) time for FHT8V command frame in ms; strictly positive.
     // ~80ms upwards.
@@ -485,7 +489,7 @@ class FHT8VRadValve : public FHT8VRadValveBase
     // If no valve is set up then this may simply terminate an empty buffer with 0xff.
     virtual void FHT8VCreateValveSetCmdFrame(const uint8_t valvePC, const bool forceExtraPreamble = false)
       {
-      FHT8VRadValveBase::fht8v_msg_t command;
+      FHT8VRadValveUtil::fht8v_msg_t command;
       command.hc1 = getHC1();
       command.hc2 = getHC2();
 #ifdef OTV0P2BASE_FHT8V_ADR_USED

@@ -37,11 +37,7 @@ namespace OTRadValve
     {
 
 
-#ifdef FHT8VRadValve_DEFINED
-// If true then allow double TX for normal valve setting, else only allow it for sync.
-// May want to enforce this where bandwidth is known to be scarce.
-static const bool ALLOW_NON_SYNC_DOUBLE_TX = false;
-
+#ifdef FHT8VRadValveUtil_DEFINED
 
 // Appends encoded 200us-bit representation of logical bit (true for 1, false for 0).
 // If the most significant bit is 0 this appends 1100 else this appends 111000
@@ -98,6 +94,16 @@ static uint8_t *_FHT8VCreate200usAppendEncBit(uint8_t *bptr, const bool is1)
   return(bptr);
   }
 
+#ifndef parity_even_bit
+static inline uint8_t parity_even_bit(uint8_t v)
+    {
+    v ^= (v >> 4);
+    v ^= (v >> 2);
+    v ^= (v >> 1);
+    return(v & 1);
+    }
+#endif
+
 // Appends encoded byte in b msbit first plus trailing even parity bit (9 bits total)
 // to the byte stream being created by FHT8VCreate200usBitStreamBptr.
 static uint8_t *_FHT8VCreate200usAppendByteEP(uint8_t *bptr, const uint8_t b)
@@ -114,7 +120,7 @@ static uint8_t *_FHT8VCreate200usAppendByteEP(uint8_t *bptr, const uint8_t b)
 // The maximum and minimum possible encoded message sizes are 35 (all zero bytes) and 45 (all 0xff bytes) bytes long.
 // Note that a buffer space of at least 46 bytes is needed to accommodate the longest-possible encoded message and terminator.
 // Returns pointer to the terminating 0xff on exit.
-uint8_t *FHT8VRadValveBase::FHT8VCreate200usBitStreamBptr(uint8_t *bptr, const FHT8VRadValveBase::fht8v_msg_t *command)
+uint8_t *FHT8VRadValveUtil::FHT8VCreate200usBitStreamBptr(uint8_t *bptr, const FHT8VRadValveUtil::fht8v_msg_t *command)
   {
   // Generate FHT8V preamble.
   // First 12 x 0 bits of preamble, pre-encoded as 6 x 0xcc bytes.
@@ -155,10 +161,11 @@ uint8_t *FHT8VRadValveBase::FHT8VCreate200usBitStreamBptr(uint8_t *bptr, const F
   *bptr = (uint8_t)0xff; // Terminate TX bytes.
   return(bptr);
   }
+#endif // FHT8VRadValveUtil_DEFINED
 
 
 
-
+#ifdef FHT8VRadValveBase_DEFINED
 // Sends to FHT8V in FIFO mode command bitstream from buffer starting at bptr up until terminating 0xff.
 // The trailing 0xff is not sent.
 //
@@ -197,6 +204,10 @@ void FHT8VRadValveBase::setFHT8V_isValveOpen()
 //  { FHT8V_isValveOpen = false; }
 //#endif
 
+// If true then allow double TX for normal valve setting, else only allow it for sync.
+// May want to enforce this where bandwidth is known to be scarce.
+static const bool ALLOW_NON_SYNC_DOUBLE_TX = false;
+
 // Send current (assumed valve-setting) command and adjust FHT8V_isValveOpen as appropriate.
 // Only appropriate when the command is going to be heard by the FHT8V valve itself, not just the hub.
 void FHT8VRadValveBase::valveSettingTX(const bool allowDoubleTX)
@@ -209,6 +220,7 @@ void FHT8VRadValveBase::valveSettingTX(const bool allowDoubleTX)
   }
 
 
+#ifdef ARDUINO_ARCH_AVR
 // Sleep in reasonably low-power mode until specified target subcycle time, optionally listening (RX) for calls-for-heat.
 // Returns true if OK, false if specified time already passed or significantly missed (eg by more than one tick).
 // May use a combination of techniques to hit the required time.
@@ -249,7 +261,9 @@ void FHT8VRadValveBase::sleepUntilSubCycleTimeOptionalRX(const uint8_t sleepUnti
       if(NULL != r) { r->poll(); } // FIXME: only polls this radio
       }
     }
+#endif // ARDUINO_ARCH_AVR
 
+#ifdef ARDUINO_ARCH_AVR
 // Run the algorithm to get in sync with the receiver.
 // Uses halfSecondCount.
 // Iff this returns true then a(nother) call to FHT8VPollSyncAndTX_Next()
@@ -365,6 +379,8 @@ bool FHT8VRadValveBase::doSync(const bool allowDoubleTX)
   // TODO: avoid forcing most of these calls to save some CPU/energy and improve responsiveness.
   return(true);
   }
+#endif // ARDUINO_ARCH_AVR
+
 
 // Call at start of minor cycle to manage initial sync and subsequent comms with FHT8V valve.
 // Conveys this system's TRVPercentOpen value to the FHT8V value periodically,
@@ -424,6 +440,7 @@ bool FHT8VRadValveBase::FHT8VPollSyncAndTX_First(const bool allowDoubleTX)
 #endif
   }
 
+#ifdef ARDUINO_ARCH_AVR
 // If FHT8VPollSyncAndTX_First() returned true then call this each 0.5s from the start of the cycle, as nearly as possible.
 // This allows for possible transmission slots on each half second.
 //
@@ -480,6 +497,8 @@ bool FHT8VRadValveBase::FHT8VPollSyncAndTX_Next(const bool allowDoubleTX)
   return(true);
 #endif
   }
+#endif // ARDUINO_ARCH_AVR
+
 
 
 //#define FHT8V_JSON_FRAME_BUF_SIZE (FHT8V_MAX_EXTRA_PREAMBLE_BYTES + MSG_JSON_MAX_LENGTH + 1 + 1) // Allow for trailing CRC and terminator which can be overwritten with null.
@@ -614,7 +633,7 @@ static uint8_t readOneByteWithParity(decode_state_t *const state)
 // Will return non-null if OK, else NULL if anything obviously invalid is detected such as failing parity or checksum.
 // Finds and discards leading encoded 1 and trailing 0.
 // Returns NULL on failure, else pointer to next full byte after last decoded.
-uint8_t const * FHT8VRadValveBase::FHT8VDecodeBitStream(uint8_t const *bitStream, uint8_t const *lastByte, FHT8VRadValveBase::fht8v_msg_t *command)
+uint8_t const * FHT8VRadValveUtil::FHT8VDecodeBitStream(uint8_t const *bitStream, uint8_t const *lastByte, FHT8VRadValveBase::fht8v_msg_t *command)
   {
   decode_state_t state;
   state.bitStream = bitStream;
@@ -694,6 +713,7 @@ uint8_t const * FHT8VRadValveBase::FHT8VDecodeBitStream(uint8_t const *bitStream
   return(state.bitStream + 1);
   }
 
+#ifdef ARDUINO_ARCH_AVR
 // Clear both housecode parts (and thus disable local valve), in non-volatile (EEPROM) store also.
 // Does nothing if FHT8V not in use.
 void FHT8VRadValveBase::nvClearHC()
@@ -702,7 +722,9 @@ void FHT8VRadValveBase::nvClearHC()
   OTV0P2BASE::eeprom_smart_erase_byte((uint8_t*)V0P2BASE_EE_START_FHT8V_HC1);
   OTV0P2BASE::eeprom_smart_erase_byte((uint8_t*)V0P2BASE_EE_START_FHT8V_HC2);
   }
+#endif // ARDUINO_ARCH_AVR
 
+#ifdef ARDUINO_ARCH_AVR
 // Set (non-volatile) HC1 and HC2 for single/primary FHT8V wireless valve under control.
 // Also set value in FHT8V rad valve model.
 // Does nothing if FHT8V not in use.
@@ -716,7 +738,10 @@ void FHT8VRadValveBase::nvSetHC2(const uint8_t hc)
   setHC2(hc);
   OTV0P2BASE::eeprom_smart_update_byte((uint8_t*)V0P2BASE_EE_START_FHT8V_HC2, hc);
   }
+#endif // ARDUINO_ARCH_AVR
 
+
+#ifdef ARDUINO_ARCH_AVR
 // Get (non-volatile) HC1 and HC2 for single/primary FHT8V wireless valve under control (will be 0xff until set).
 // FHT8V instance values are used as a cache.
 // Does nothing if FHT8V not in use.
@@ -752,7 +777,6 @@ uint8_t FHT8VRadValveBase::nvGetHC2()
     }
   return(ev);
   }
-
 // Load EEPROM house codes into primary FHT8V instance at start-up or once cleared in FHT8V instance.
 void FHT8VRadValveBase::nvLoadHC()
   {
@@ -760,7 +784,10 @@ void FHT8VRadValveBase::nvLoadHC()
   nvGetHC1();
   nvGetHC2();
   }
+#endif // ARDUINO_ARCH_AVR
 
+
+#ifdef ARDUINO_ARCH_AVR
 // CLI support.
 // Clear/set house code ("H" or "H nn mm").
 // Will clear/set the non-volatile (EEPROM) values and the live ones.
@@ -793,7 +820,9 @@ bool FHT8VRadValveBase::SetHouseCode::doCommand(char *const buf, const uint8_t b
     // Done: show updated status line, possibly with results of update.
     return(true);
     }
-#endif // FHT8VRadValve_DEFINED
+#endif // ARDUINO_ARCH_AVR
+
+#endif // FHT8VRadValveBase_DEFINED
 
 
     }
