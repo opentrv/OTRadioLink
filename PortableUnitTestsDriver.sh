@@ -12,6 +12,16 @@
 # Generates a temporary executable at top level.
 EXENAME=tmptestexe
 
+# Project source root.
+PROJSRCROOT=content/OTRadioLink
+# Project source files under test.
+PROJSRCS="`find ${PROJSRCROOT} -name '*.cpp' -type f -print`"
+
+# Test source files dir.
+TESTSRCDIR=portableUnitTests
+# Source files.
+TESTSRCS="`find ${TESTSRCDIR} -name '*.cpp' -type f -print`"
+
 # GTest libs (including main()).
 GLIBS="-lgtest -lpthread -lgtest_main"
 # Other libs.
@@ -23,22 +33,18 @@ GLIBDIRS="-L/usr/local/lib"
 # Glib includes (paths).
 GINCLUDES="-I/usr/local/include"
 # Source includes (paths).
-INCLUDES="-Icontent/OTRadioLink -Icontent/OTRadioLink/utility"
+INCLUDES="-I${PROJSRCROOT} -I${PROJSRCROOT}/utility"
 
-# Source files dir.
-SRCDIR=portableUnitTests
-# Source files.
-SRCS="`find ${SRCDIR} -name '*.cpp' -type f -print`"
-
-echo "Using sources: $SRCS"
+echo "Using test sources: $TESTSRCS"
+echo "Using project sources: $PROJSRCS"
 
 rm -f ${EXENAME}
-if gcc -o${EXENAME} -std=c++0x ${INCLUDES} ${GINCLUDES} ${SRCS} ${GLIBS} ${GLIBDIRS} ${OTHERLIBS} ; then
+if gcc -o${EXENAME} -std=c++0x -O0 -g3 -Wall -Werror ${INCLUDES} ${GINCLUDES} ${PROJSRCS} ${TESTSRCS} ${GLIBS} ${GLIBDIRS} ${OTHERLIBS} ; then
     echo Compiled.
 else
     echo Failed to compile.
     exit 2
 fi
 
-# FIXME: not implemented
-exit 1
+# Run the tests.
+exec ${EXENAME}
