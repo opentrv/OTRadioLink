@@ -300,20 +300,6 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
 
 
 #ifdef ARDUINO_ARCH_AVR
-// Min sub-cycle ticks for dead reckoning.
-static const constexpr uint8_t minMotorDRTicks = OTV0P2BASE::fnmax(1, (uint8_t)(minMotorDRMS / OTV0P2BASE::SUBCYCLE_TICK_MS_RD));
-// Absolute limit in sub-cycle beyond which motor should not be started.
-// This should allow meaningful movement and stop and settle and no sub-cycle overrun.
-// Allows for up to 120ms enforced sleep either side of motor run for example.
-// This should not be so greedy as to (eg) make the CLI unusable: 90% is pushing it.
-static const constexpr uint8_t sctAbsLimit = OTV0P2BASE::GSCT_MAX - max(1, ((OTV0P2BASE::GSCT_MAX+1)/4)) - OTRadValve::ValveMotorDirectV1HardwareDriverBase::minMotorRunupTicks - 1 - (uint8_t)(240 / OTV0P2BASE::SUBCYCLE_TICK_MS_RD);
-// Absolute limit in sub-cycle beyond which motor should not be started for dead-reckoning pulse.
-// This should allow meaningful movement and no sub-cycle overrun.
-//static const uint8_t sctAbsLimitDR = sctAbsLimit - minMotorDRTicks;
-static constexpr uint8_t sctAbsLimitDR = sctAbsLimit - minMotorDRTicks;
-#endif // ARDUINO_ARCH_AVR
-
-#ifdef ARDUINO_ARCH_AVR
 #define ValveMotorDirectV1HardwareDriverBase_DEFINED
 class ValveMotorDirectV1HardwareDriverBase : public OTRadValve::HardwareMotorDriverInterface
   {
