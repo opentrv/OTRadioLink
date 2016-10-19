@@ -77,6 +77,10 @@ class NullActuatorPhysicalUI : public ActuatorPhysicalUIBase
   };
 
 
+
+// TODO: MODE button vs BAKE button.
+
+
 // Supports boost/MODE button, temperature pot, and a single HEATCALL LED.
 // This does not support LEARN buttons; a derived class does.
 class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
