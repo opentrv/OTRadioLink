@@ -106,6 +106,17 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // For example, can cause the motor to wiggle for tactile reinforcement.
     const void (*userAdditionalFeedback)() = NULL; // FIXME
 
+    // Occupancy callback function (for good confidence of human presence); NULL if not used.
+    // Also indicates that the manual UI has been used.
+    // If not NULL, is called when this sensor detects indications of occupancy.
+    void (*occCallback)() = NULL; // FIXME
+
+    // WARM/FROST and BAKE start/cancel callbacks.
+    // If not NULL, are called when the pot is adjusted appropriately.
+    // Typically at most one of these callbacks would be made on any appropriate pot adjustment.
+    void (*warmModeCallback)(bool) = NULL; // FIXME
+    void (*bakeStartCallback)(bool) = NULL; // FIXME
+
   public:
     // True if a manual UI control has been very recently (minutes ago) operated.
     // The user may still be interacting with the control and the UI etc should probably be extra responsive.
