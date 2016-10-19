@@ -28,6 +28,8 @@ namespace OTRadValve
 {
 
 
+#ifdef ValveMotorDirectV1HardwareDriverBase_DEFINED
+
 /**
  * @class   DRV8850HardwareDriver
  * @brief   Implementation for the DRV8850 motor driver.
@@ -41,6 +43,7 @@ namespace OTRadValve
  *              - MOTOR_DRIVE_MRL_DigitalPin: Low right fet.
  *              - nSLEEP: Sleep
  */
+#define DRV8850HardwareDriver_DEFINED
 template <uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t nSLEEP, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin, uint8_t MOTOR_DRIVE_MC_AIN_DigitalPin>
 class DRV8850HardwareDriver : public ValveMotorDirectV1HardwareDriverBase
 {
@@ -106,7 +109,6 @@ OTV0P2BASE::serialPrintlnAndFlush();
       // Remember previous state of motor.
     // This may help to correctly allow for (eg) position encoding inputs while a motor is slowing.
     const uint8_t prev_dir = last_dir;
-
 
     // TODO This logic needs to change
     // Impossible to short the DRV8850 from here, but need 2 pin changes to change direction.
@@ -232,7 +234,7 @@ class DRV8850Driver : public OTRadValve::AbstractRadValve
     // Finishes with the motor turned off, and a bias to closing the valve.
     virtual void wiggle() { logic.wiggle(); }
   };
-
+#endif // ValveMotorDirectV1HardwareDriverBase_DEFINED
 
 }
 
