@@ -175,11 +175,15 @@ TEST(FHT8VRadValve,FHTEncodingHeadAndTail)
 #ifdef OTV0P2BASE_FHT8V_ADR_USED
     address = 0;
 #endif
-    memset(buf, 0xff, sizeof(buf));
+    command.command = 0x26;
+    command.extension = 0;
+
+    memset(buf, 0, sizeof(buf));
+    *buf = 0xff; // Mark buffer as empty.
     uint8_t *result1 = OTRadValve::FHT8VRadValveUtil::FHT8VCreate200usBitStreamBptr(buf, &command);
     EXPECT_EQ(((uint8_t)~0U), *result1); // Check that result points at terminator value 0xff/~0.
     ASSERT_GT(sizeof(buf), result1 - buf); // Check not overflowing the buffer.
-// FIXME // EXPECT_EQ(38, result1 - buf); // Check result is expected length.
+   EXPECT_EQ(38, result1 - buf); // Check result is expected length.
     EXPECT_EQ(((uint8_t)0xcc), buf[0]); // Check that result starts with FHT8V 0xcc preamble.
     EXPECT_EQ(((uint8_t)0xcc), buf[1]); // Check that result starts with FHT8V 0xcc preamble.
     EXPECT_EQ(((uint8_t)0xcc), buf[2]); // Check that result starts with FHT8V 0xcc preamble.
@@ -192,16 +196,15 @@ TEST(FHT8VRadValve,FHTEncodingHeadAndTail)
     EXPECT_EQ(((uint8_t)0x8e), buf[9]); // Check continuing hc1.
     EXPECT_EQ(((uint8_t)0x33), buf[10]); // Check continuing hc1.
     EXPECT_EQ(((uint8_t)0x8e), buf[11]); // Check continuing hc1.
-// FIXME // EXPECT_EQ(((uint8_t)0x38), buf[12]); // Check continuing hc1 and parity.
-// FIXME // EXPECT_EQ(((uint8_t)0xce), buf[34]); // Check part of checksum.
+    EXPECT_EQ(((uint8_t)0x38), buf[12]); // Check continuing hc1 and parity.
+    EXPECT_EQ(((uint8_t)0xce), buf[34]); // Check part of checksum.
 
     // Attempt to decode.
     EXPECT_TRUE(OTRadValve::FHT8VRadValveUtil::FHT8VDecodeBitStream(buf, buf + sizeof(buf) - 1, &commandDecoded));
     EXPECT_EQ(13, commandDecoded.hc1);
     EXPECT_EQ(73, commandDecoded.hc2);
-// FIXME // EXPECT_EQ(0x26, commandDecoded.command);
-// FIXME // EXPECT_EQ(0, commandDecoded.extension);
-
+    EXPECT_EQ(0x26, commandDecoded.command);
+    EXPECT_EQ(0, commandDecoded.extension);
 //    // Verify that trailer NOT present.
 //    EXPECT_TRUE(!verifyHeaderAndCRCForTrailingMinimalStatsPayload(result1));
 
