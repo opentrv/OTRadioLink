@@ -153,22 +153,19 @@ TEST(FHT8VRadValve,FHTEncodingHeadAndTail)
     // and the start of the next encoded 0 (11, from bit 5),
     // ie 0x33.
     // The 9th byte (offset 8) starts with trailing bits from before (00)
-    // followed by the encoded 0 (1100, from bit 5)
-    // and the start of the next encoded 1 (11, from bit 4),
+    // followed by the encoded 0 (1100, from bit 4)
+    // and the start of the next encoded 1 (11, from bit 3),
     // ie 0x33.
     // The 10th byte (offset 9) starts with trailing bits from before (1000)
-    // and the start of the next encoded 1 (1110, from bit 3),
+    // and the start of the next encoded 1 (1110, from bit 2),
     // ie 0x8e.
     // The 11th byte (offset 10) starts with trailing bits from before (00)
-    // and the next encoded 1 (1100, from bit 2),
+    // and the next encoded 1 (1100, from bit 1),
     // and the start of the next encoded 0 (11, from bit 1),
     // ie 0x33.
     // The 12th byte (offset 11) starts with trailing bits from before (1000)
-    // and the start of the next encoded 1 (1110, from bit 0),
+    // and the start of the next encoded 1 (1110, from parity),
     // ie 0x8e.
-    // The 13th byte (offset 12) starts with trailing bits from before (00)
-    // and the next encoded 1 (111000, from parity),
-    // ie 0x38.
 
     command.hc1 = 13;
     command.hc2 = 73;
@@ -183,7 +180,7 @@ TEST(FHT8VRadValve,FHTEncodingHeadAndTail)
     uint8_t *result1 = OTRadValve::FHT8VRadValveUtil::FHT8VCreate200usBitStreamBptr(buf, &command);
     EXPECT_EQ(((uint8_t)~0U), *result1); // Check that result points at terminator value 0xff/~0.
     ASSERT_GT(sizeof(buf), result1 - buf); // Check not overflowing the buffer.
-   EXPECT_EQ(38, result1 - buf); // Check result is expected length.
+    EXPECT_EQ(38, result1 - buf); // Check result is expected length.
     EXPECT_EQ(((uint8_t)0xcc), buf[0]); // Check that result starts with FHT8V 0xcc preamble.
     EXPECT_EQ(((uint8_t)0xcc), buf[1]); // Check that result starts with FHT8V 0xcc preamble.
     EXPECT_EQ(((uint8_t)0xcc), buf[2]); // Check that result starts with FHT8V 0xcc preamble.
@@ -195,8 +192,7 @@ TEST(FHT8VRadValve,FHTEncodingHeadAndTail)
     EXPECT_EQ(((uint8_t)0x33), buf[8]); // Check continuing hc1.
     EXPECT_EQ(((uint8_t)0x8e), buf[9]); // Check continuing hc1.
     EXPECT_EQ(((uint8_t)0x33), buf[10]); // Check continuing hc1.
-    EXPECT_EQ(((uint8_t)0x8e), buf[11]); // Check continuing hc1.
-    EXPECT_EQ(((uint8_t)0x38), buf[12]); // Check continuing hc1 and parity.
+    EXPECT_EQ(((uint8_t)0x8e), buf[11]); // Check continuing hc1 and parity.
     EXPECT_EQ(((uint8_t)0xce), buf[34]); // Check part of checksum.
 
     // Attempt to decode.
