@@ -17,7 +17,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 */
 
 /*
- * OpenTRV radiator valve physical UI controls and output as an actuator.
+ * OpenTRV radiator valve physical UI controls and output(s) as an actuator.
  *
  * A base class, a null class, and one or more implementations are provided
  * for different stock behaviour with different hardware.
@@ -53,7 +53,8 @@ class ActuatorPhysicalUIBase : public OTV0P2BASE::SimpleTSUint8Actuator
     // If this returns true then the new target value was accepted.
     virtual bool set(const uint8_t /*newValue*/) { return(false); }
 
-    // Call this on even numbered seconds (with current time in seconds) to allow the UI to operate.
+    // Call this nominally on even numbered seconds to allow the UI to operate.
+    // In practice call early once per 2s major cycle.
     // Should never be skipped, so as to allow the UI to remain responsive.
     // Runs in 350ms or less; usually takes only a few milliseconds or microseconds.
     // Returns a non-zero value iff the user interacted with the system, and maybe caused a status change.
@@ -75,6 +76,60 @@ class NullActuatorPhysicalUI : public ActuatorPhysicalUIBase
     virtual uint8_t read() { value = 0; return(value); }
   };
 
+
+// Supports boost/MODE button, temperature pot, and a single HEATCALL LED.
+// This does not support LEARN buttons; a derived class does.
+class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
+  {
+  protected:
+    // Record local manual operation of a physical UI control, eg not remote or via CLI.
+    // Marks room as occupied amongst other things.
+    // Thread-safe.
+    void markUIControlUsed();
+
+    // Record significant local manual operation of a physical UI control, eg not remote or via CLI.
+    // Marks room as occupied amongst other things.
+    // As markUIControlUsed() but likely to generate some feedback to the user, ASAP.
+    // Thread-safe.
+    void markUIControlUsedSignificant();
+
+    // UI feedback.
+    // Provide low-key visual / audio / tactile feedback on a significant user action.
+    // May take hundreds of milliseconds and noticeable energy.
+    // By default includes visual feedback,
+    // but that can be prevented if other visual feedback already in progress.
+    // Marks the UI as used.
+    // Not thread-/ISR- safe.
+    void userOpFeedback(bool includeVisual = true);
+
+    // If non-NULL, callback used to provide additional feedback to the user beyond UI.
+    // For example, can cause the motor to wiggle for tactile reinforcement.
+    const void (*userAdditionalFeedback)() = NULL; // FIXME
+
+  public:
+    // True if a manual UI control has been very recently (minutes ago) operated.
+    // The user may still be interacting with the control and the UI etc should probably be extra responsive.
+    // Thread-safe.
+    bool veryRecentUIControlUse();
+
+    // True if a manual UI control has been recently (tens of minutes ago) operated.
+    // If true then local manual settings should 'win' in any conflict with programmed or remote ones.
+    // For example, remote requests to override settings may be ignored while this is true.
+    // Thread-safe.
+    bool recentUIControlUse();
+
+  public:
+    // Does nothing and forces 'sensor' value to 0 and returns 0.
+    virtual uint8_t read();
+  };
+
+
+// Supports two LEARN buttons, boost/MODE button, temperature pot, and a single HEATCALL LED.
+// This does not support LEARN buttons; a derived class does.
+class ModeAndLearnButtonsAndPotActuatorPhysicalUI : public ModeButtonAndPotActuatorPhysicalUI
+  {
+// TODO
+  };
 
     }
 
