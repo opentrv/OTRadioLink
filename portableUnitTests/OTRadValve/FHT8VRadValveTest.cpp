@@ -132,9 +132,9 @@ TEST(FHT8VRadValve,FHTEncoding)
     // Encode shortest-possible (all-zero-bits) FHT8V command as 200us-bit-stream...
     command.hc1 = 0;
     command.hc2 = 0;
-  #ifdef OTV0P2BASE_FHT8V_ADR_USED
+#ifdef OTV0P2BASE_FHT8V_ADR_USED
     address = 0;
-  #endif
+#endif
     command.command = 0;
     command.extension = 0;
     memset(buf, 0, sizeof(buf));
@@ -155,9 +155,9 @@ TEST(FHT8VRadValve,FHTEncoding)
     // Encode longest-possible (as many 1-bits as possible) FHT8V command as 200us-bit-stream...
     command.hc1 = 0xff;
     command.hc2 = 0xff;
-  #ifdef OTV0P2BASE_FHT8V_ADR_USED
+#ifdef OTV0P2BASE_FHT8V_ADR_USED
     address = 0xff;
-  #endif
+#endif
     command.command = 0xff;
     command.extension = 0xff;
     memset(buf, 0, sizeof(buf));
@@ -178,7 +178,6 @@ TEST(FHT8VRadValve,FHTEncoding)
   #endif
     EXPECT_EQ(0xff, commandDecoded.command);
     EXPECT_EQ(0xff, commandDecoded.extension);
-
 }
 
 // Test of head and tail of FHT8V bitstream encoding and decoding.
