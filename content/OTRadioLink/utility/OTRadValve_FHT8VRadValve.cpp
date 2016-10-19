@@ -39,20 +39,21 @@ namespace OTRadValve
 
 #ifdef FHT8VRadValveUtil_DEFINED
 
-// Appends encoded 200us-bit representation of logical bit (true for 1, false for 0).
-// If the most significant bit is 0 this appends 1100 else this appends 111000
+// Appends encoded 200us-bit representation of logical bit (true for 1, false for 0); returns new pointer.
+// If is1 is false this appends 1100 else (if is1 is true) this appends 111000
 // msb-first to the byte stream being created by FHT8VCreate200usBitStreamBptr.
 // bptr must be pointing at the current byte to update on entry which must start off as 0xff;
 // this will write the byte and increment bptr (and write 0xff to the new location) if one is filled up.
 // Partial byte can only have even number of bits present, ie be in one of 4 states.
 // Two least significant bits used to indicate how many bit pairs are still to be filled,
 // so initial 0xff value (which is never a valid complete filled byte) indicates 'empty'.
-static uint8_t *_FHT8VCreate200usAppendEncBit(uint8_t *bptr, const bool is1)
+// Exposed primarily to allow unit testing.
+uint8_t *FHT8VRadValveUtil::_FHT8VCreate200usAppendEncBit(uint8_t *bptr, const bool is1)
   {
-  const uint8_t bitPairsLeft = (*bptr) & 3; // Find out how many bit pairs are left to fill in the current byte.
+  const uint8_t bitPairsLeftM1 = (*bptr) & 3; // Find out how many bit pairs (-1) are left to fill in the current byte.
   if(!is1) // Appending 1100.
     {
-    switch(bitPairsLeft)
+    switch(bitPairsLeftM1)
       {
       case 3: // Empty target byte (should be 0xff currently).
         *bptr = 0xcd; // %11001101 Write back partial byte (msbits now 1100 and two bit pairs remain free).
@@ -72,7 +73,7 @@ static uint8_t *_FHT8VCreate200usAppendEncBit(uint8_t *bptr, const bool is1)
     }
   else // Appending 111000.
     {
-    switch(bitPairsLeft)
+    switch(bitPairsLeftM1)
       {
       case 3: // Empty target byte (should be 0xff currently).
         *bptr = 0xe0; // %11100000 Write back partial byte (msbits now 111000 and one bit pair remains free).
@@ -94,15 +95,9 @@ static uint8_t *_FHT8VCreate200usAppendEncBit(uint8_t *bptr, const bool is1)
   return(bptr);
   }
 
+// If AVR optimised implementation is not available then use own.
 #ifndef parity_even_bit
-// Drop in replacement for AVR routine.
-static inline uint8_t parity_even_bit(uint8_t v)
-    {
-    v ^= (v >> 4);
-    v ^= (v >> 2);
-    v ^= (v >> 1);
-    return(v & 1);
-    }
+#define parity_even_bit(b) (FHT8VRadValveUtil::xor_parity_even_bit(b))
 #endif
 
 // Appends encoded byte in b msbit first plus trailing even parity bit (9 bits total)
@@ -110,8 +105,8 @@ static inline uint8_t parity_even_bit(uint8_t v)
 static uint8_t *_FHT8VCreate200usAppendByteEP(uint8_t *bptr, const uint8_t b)
   {
   for(uint8_t mask = 0x80; mask != 0; mask >>= 1)
-    { bptr = _FHT8VCreate200usAppendEncBit(bptr, 0 != (b & mask)); }
-  return(_FHT8VCreate200usAppendEncBit(bptr, (bool) parity_even_bit(b))); // Append even parity bit.
+    { bptr = FHT8VRadValveUtil::_FHT8VCreate200usAppendEncBit(bptr, 0 != (b & mask)); }
+  return(FHT8VRadValveUtil::_FHT8VCreate200usAppendEncBit(bptr, 0 != parity_even_bit(b))); // Append even parity bit.
   }
 
 // Create stream of bytes to be transmitted to FHT80V at 200us per bit, msbit of each byte first.

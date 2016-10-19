@@ -76,6 +76,50 @@ TEST(FHT8VRadValve,FHT8VPercentage)
 }
 
 
+// Test of FHT8VRadValveUtil::xor_parity_even_bit().
+TEST(FHT8VRadValve,xor_parity_even_bit)
+{
+    EXPECT_EQ(0, OTRadValve::FHT8VRadValveUtil::xor_parity_even_bit(0x00));
+    EXPECT_EQ(1, OTRadValve::FHT8VRadValveUtil::xor_parity_even_bit(0x0d));
+    EXPECT_EQ(1, OTRadValve::FHT8VRadValveUtil::xor_parity_even_bit(0x49));
+    EXPECT_EQ(1, OTRadValve::FHT8VRadValveUtil::xor_parity_even_bit(0x38));
+    EXPECT_EQ(0, OTRadValve::FHT8VRadValveUtil::xor_parity_even_bit(0x88));
+}
+
+// Test of FHT8VRadValveUtil::_FHT8VCreate200usAppendEncBit().
+TEST(FHT8VRadValve,FHT8VCreate200usAppendEncBit)
+{
+    uint8_t buf[4];
+
+    *buf = 0xff; // Mark buffer as empty.
+    // Write a 0.
+    ASSERT_EQ(buf, OTRadValve::FHT8VRadValveUtil::_FHT8VCreate200usAppendEncBit(buf, false));
+    EXPECT_EQ(0b11000000, 0xf0 & *buf);
+
+    *buf = 0xff; // Mark buffer as empty.
+    // Write a 1.
+    ASSERT_EQ(buf, OTRadValve::FHT8VRadValveUtil::_FHT8VCreate200usAppendEncBit(buf, true));
+    EXPECT_EQ(0b11100000, 0xfc & *buf);
+
+    *buf = 0xff; // Mark buffer as empty.
+    // Write 1, 0, 1, 0.
+    // The 1st byte (offset 0) starts with 111000 (from 1 bit)
+    // and the start of the next encoded 0 (11),
+    // The 2nd byte (offset 1) starts with trailing bits from before (00)
+    // and the next encoded 1 (111000, from parity),
+    // ie 0x38.
+    // The third byte is empty until the final 0 is written to it,
+    // and then starts with 1100.
+    ASSERT_EQ(buf, OTRadValve::FHT8VRadValveUtil::_FHT8VCreate200usAppendEncBit(buf, true));
+    ASSERT_EQ(buf+1, OTRadValve::FHT8VRadValveUtil::_FHT8VCreate200usAppendEncBit(buf, false));
+    EXPECT_EQ(0b11100011, buf[0]);
+    ASSERT_EQ(buf+2, OTRadValve::FHT8VRadValveUtil::_FHT8VCreate200usAppendEncBit(buf+1, true));
+    EXPECT_EQ(0b00111000, buf[1]);
+    EXPECT_EQ(0b11111111, buf[2]);
+    ASSERT_EQ(buf+2, OTRadValve::FHT8VRadValveUtil::_FHT8VCreate200usAppendEncBit(buf+2, false));
+    EXPECT_EQ(0b11000000, 0xf0 & buf[2]);
+}
+
 // Test of head and tail of FHT8V bitstream encoding and decoding.
 //
 // Adapted 2016/10/18 from Unit_Tests.cpp testFHTEncodingHeadAndTail().
@@ -98,9 +142,11 @@ TEST(FHT8VRadValve,FHTEncodingHeadAndTail)
     // Encode a basic message to set a valve to 0%, without headers or trailers.
     // Before encoding stream is 13, 73, 0, 38, 0 with checksum 136.
     // In hex that is 0d 49 00 26 00 88.
-    // An initial preamble of six zero bits and then a single one bit is sent, with the zeros encoded as cc cc cc cc cc cc.
+    // PREAMBLE
+    // An initial preamble of 12 zero bits and then a single one bit is sent, with the zeros encoded as cc cc cc cc cc cc.
+    // HC1
     // The 7th byte (offset 6) in the buffer therefore consists of the final 1 from the preamble (111000)
-    // and the start of the encoded form for the leading (msbit, bit 7) 0 from the first byte (11),
+    // and the start of the encoded form for the leading (msbit, bit 7) 0 from the first byte (11, hc1),
     // ie 0xe3.
     // The 8th byte (offset 7) starts with the trailing bits from before (00)
     // followed by the next encoded 0 (1100, from bit 6)
@@ -113,6 +159,17 @@ TEST(FHT8VRadValve,FHTEncodingHeadAndTail)
     // The 10th byte (offset 9) starts with trailing bits from before (1000)
     // and the start of the next encoded 1 (1110, from bit 3),
     // ie 0x8e.
+    // The 11th byte (offset 10) starts with trailing bits from before (00)
+    // and the next encoded 1 (1100, from bit 2),
+    // and the start of the next encoded 0 (11, from bit 1),
+    // ie 0x33.
+    // The 12th byte (offset 11) starts with trailing bits from before (1000)
+    // and the start of the next encoded 1 (1110, from bit 0),
+    // ie 0x8e.
+    // The 13th byte (offset 12) starts with trailing bits from before (00)
+    // and the next encoded 1 (111000, from parity),
+    // ie 0x38.
+
     command.hc1 = 13;
     command.hc2 = 73;
 #ifdef OTV0P2BASE_FHT8V_ADR_USED
@@ -122,7 +179,7 @@ TEST(FHT8VRadValve,FHTEncodingHeadAndTail)
     uint8_t *result1 = OTRadValve::FHT8VRadValveUtil::FHT8VCreate200usBitStreamBptr(buf, &command);
     EXPECT_EQ(((uint8_t)~0U), *result1); // Check that result points at terminator value 0xff/~0.
     ASSERT_GT(sizeof(buf), result1 - buf); // Check not overflowing the buffer.
-// FIXME // EXPECT_EQ(38, result1 - buf); // Check not overflowing the buffer.
+// FIXME // EXPECT_EQ(38, result1 - buf); // Check result is expected length.
     EXPECT_EQ(((uint8_t)0xcc), buf[0]); // Check that result starts with FHT8V 0xcc preamble.
     EXPECT_EQ(((uint8_t)0xcc), buf[1]); // Check that result starts with FHT8V 0xcc preamble.
     EXPECT_EQ(((uint8_t)0xcc), buf[2]); // Check that result starts with FHT8V 0xcc preamble.
@@ -133,6 +190,9 @@ TEST(FHT8VRadValve,FHTEncodingHeadAndTail)
     EXPECT_EQ(((uint8_t)0x33), buf[7]); // Check continuing hc1.
     EXPECT_EQ(((uint8_t)0x33), buf[8]); // Check continuing hc1.
     EXPECT_EQ(((uint8_t)0x8e), buf[9]); // Check continuing hc1.
+    EXPECT_EQ(((uint8_t)0x33), buf[10]); // Check continuing hc1.
+    EXPECT_EQ(((uint8_t)0x8e), buf[11]); // Check continuing hc1.
+// FIXME // EXPECT_EQ(((uint8_t)0x38), buf[12]); // Check continuing hc1 and parity.
 // FIXME // EXPECT_EQ(((uint8_t)0xce), buf[34]); // Check part of checksum.
 
     // Attempt to decode.
@@ -141,6 +201,7 @@ TEST(FHT8VRadValve,FHTEncodingHeadAndTail)
     EXPECT_EQ(73, commandDecoded.hc2);
 // FIXME // EXPECT_EQ(0x26, commandDecoded.command);
 // FIXME // EXPECT_EQ(0, commandDecoded.extension);
+
 //    // Verify that trailer NOT present.
 //    EXPECT_TRUE(!verifyHeaderAndCRCForTrailingMinimalStatsPayload(result1));
 

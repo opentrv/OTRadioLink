@@ -78,6 +78,26 @@ class FHT8VRadValveUtil
     // Actual values observed by DHD range from 6% to 25%.
     static const uint8_t TYPICAL_MIN_PERCENT_OPEN = 10;
 
+    // Appends encoded 200us-bit representation of logical bit (true for 1, false for 0); returns new pointer.
+    // If is1 is false this appends 1100 else (if is1 is true) this appends 111000
+    // msb-first to the byte stream being created by FHT8VCreate200usBitStreamBptr.
+    // bptr must be pointing at the current byte to update on entry which must start off as 0xff;
+    // this will write the byte and increment bptr (and write 0xff to the new location) if one is filled up.
+    // Partial byte can only have even number of bits present, ie be in one of 4 states.
+    // Two least significant bits used to indicate how many bit pairs are still to be filled,
+    // so initial 0xff value (which is never a valid complete filled byte) indicates 'empty'.
+    // Exposed primarily to allow unit testing.
+    static uint8_t *_FHT8VCreate200usAppendEncBit(uint8_t *bptr, const bool is1);
+
+    // Returns 1 if there is an odd number of 1 bits in v.
+    static inline uint8_t xor_parity_even_bit(uint8_t v)
+        {
+        v ^= (v >> 4);
+        v ^= (v >> 2);
+        v ^= (v >> 1);
+        return(v & 1);
+        }
+
     // For longest-possible encoded FHT8V/FS20 command in bytes plus terminating 0xff.
     static const uint8_t MIN_FHT8V_200US_BIT_STREAM_BUF_SIZE = 46;
     // Create stream of bytes to be transmitted to FHT80V at 200us per bit, msbit of each byte first.
