@@ -102,7 +102,7 @@ OTV0P2BASE::serialPrintlnAndFlush();
   //   * maxRunTicks  maximum sub-cycle ticks to attempt to run/spin for); zero will run for shortest reasonable time
   //   * dir  direction to run motor (or off/stop)
   //   * callback  callback handler
-  void motorRun(const uint8_t maxRunTicks,
+  virtual void motorRun(const uint8_t maxRunTicks,
                         const OTRadValve::HardwareMotorDriverInterface::motor_drive dir,
                         OTRadValve::HardwareMotorDriverInterfaceCallbackHandler &callback)
     {
