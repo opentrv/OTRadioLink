@@ -125,7 +125,6 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
 
 
 // Supports two LEARN buttons, boost/MODE button, temperature pot, and a single HEATCALL LED.
-// This does not support LEARN buttons; a derived class does.
 class ModeAndLearnButtonsAndPotActuatorPhysicalUI : public ModeButtonAndPotActuatorPhysicalUI
   {
 // TODO
