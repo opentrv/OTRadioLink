@@ -43,18 +43,30 @@ class ActuatorPhysicalUIBase : public OTV0P2BASE::SimpleTSUint8Actuator
     ActuatorPhysicalUIBase() { }
 
   public:
-    // Returns true if this target valve open % value passed is valid, ie in range [0,100].
-    virtual bool isValid(const uint8_t value) const { return(value <= 100); }
-
-    // Set new target valve percent open.
-    // Ignores invalid values.
-    // Some implementations may ignore/reject all attempts to directly set the values.
+    // Set a new target output indication, eg mode.
     // If this returns true then the new target value was accepted.
     virtual bool set(const uint8_t /*newValue*/) { return(false); }
 
+    // Call this on even numbered seconds (with current time in seconds) to allow the UI to operate.
+    // Should never be skipped, so as to allow the UI to remain responsive.
+    // Runs in 350ms or less; usually takes only a few milliseconds or microseconds.
+    // Returns a non-zero value iff the user interacted with the system, and maybe caused a status change.
+    // NOTE: since this is on the minimum idle-loop code path, minimise CPU cycles, esp in frost mode.
+    // Also re-activates CLI on main button push.
+    virtual uint8_t read();
 
+    // Preferred poll interval (in seconds); should be called at constant rate, usually 1/60s.
+    virtual uint8_t preferredPollInterval_s() const { return(2); }
   };
 
+
+// Null UI: always returns false for read() and does nothing with set().
+// Has no physical interactions with devices.
+class NullActuatorPhysicalUI : public ActuatorPhysicalUIBase
+  {
+  // Does nothing and forces 'sensor' value to 0 and returns 0.
+  virtual uint8_t read() { value = 0; return(value); }
+  };
 
     }
 
