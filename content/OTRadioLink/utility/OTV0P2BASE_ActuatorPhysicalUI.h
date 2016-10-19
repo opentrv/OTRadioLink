@@ -129,7 +129,6 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // Thread-safe.
     bool recentUIControlUse();
 
-  public:
     // Does nothing and forces 'sensor' value to 0 and returns 0.
     virtual uint8_t read();
   };
