@@ -64,8 +64,9 @@ class ActuatorPhysicalUIBase : public OTV0P2BASE::SimpleTSUint8Actuator
 // Has no physical interactions with devices.
 class NullActuatorPhysicalUI : public ActuatorPhysicalUIBase
   {
-  // Does nothing and forces 'sensor' value to 0 and returns 0.
-  virtual uint8_t read() { value = 0; return(value); }
+  public:
+    // Does nothing and forces 'sensor' value to 0 and returns 0.
+    virtual uint8_t read() { value = 0; return(value); }
   };
 
     }
