@@ -120,6 +120,67 @@ TEST(FHT8VRadValve,FHT8VCreate200usAppendEncBit)
     EXPECT_EQ(0b11000000, 0xf0 & buf[2]);
 }
 
+// Test of FHT8V bitstream encoding and decoding.
+//
+// Adapted 2016/10/19 from Unit_Tests.cpp testFHTEncoding().
+TEST(FHT8VRadValve,FHTEncoding)
+{
+    uint8_t buf[OTRadValve::FHT8VRadValveUtil::MIN_FHT8V_200US_BIT_STREAM_BUF_SIZE];
+    OTRadValve::FHT8VRadValveUtil::fht8v_msg_t command; // For encoding.
+    OTRadValve::FHT8VRadValveUtil::fht8v_msg_t commandDecoded; // For decoding.
+
+    // Encode shortest-possible (all-zero-bits) FHT8V command as 200us-bit-stream...
+    command.hc1 = 0;
+    command.hc2 = 0;
+  #ifdef OTV0P2BASE_FHT8V_ADR_USED
+    address = 0;
+  #endif
+    command.command = 0;
+    command.extension = 0;
+    memset(buf, 0, sizeof(buf));
+
+    *buf = 0xff; // Mark buffer as empty.
+    const uint8_t *const result1 = OTRadValve::FHT8VRadValveUtil::FHT8VCreate200usBitStreamBptr(buf, &command);
+    EXPECT_EQ(((uint8_t)~0U), *result1); // Check that result points at terminator value 0xff/~0.
+    //AssertIsTrue((result1 - buf < MIN_FHT8V_200US_BIT_STREAM_BUF_SIZE), result1-buf); // Check not overflowing the buffer.
+    EXPECT_EQ(result1 - buf, 35); // Check correct length.
+    EXPECT_EQ((uint8_t)0xcc, buf[0]); // Check that result starts with FHT8V 0xcc preamble.
+    // Attempt to decode.
+    EXPECT_TRUE(OTRadValve::FHT8VRadValveUtil::FHT8VDecodeBitStream(buf, buf + sizeof(buf) - 1, &commandDecoded));
+    EXPECT_EQ(0, commandDecoded.hc1);
+    EXPECT_EQ(0, commandDecoded.hc2);
+    EXPECT_EQ(0, commandDecoded.command);
+    EXPECT_EQ(0, commandDecoded.extension);
+
+    // Encode longest-possible (as many 1-bits as possible) FHT8V command as 200us-bit-stream...
+    command.hc1 = 0xff;
+    command.hc2 = 0xff;
+  #ifdef OTV0P2BASE_FHT8V_ADR_USED
+    address = 0xff;
+  #endif
+    command.command = 0xff;
+    command.extension = 0xff;
+    memset(buf, 0, sizeof(buf));
+
+    *buf = 0xff; // Mark buffer as empty.
+    const uint8_t *const result2 = OTRadValve::FHT8VRadValveUtil::FHT8VCreate200usBitStreamBptr(buf, &command);
+    EXPECT_EQ(((uint8_t)~0U), *result2); // Check that result points at terminator value 0xff/~0.
+    const size_t minbufsize = OTRadValve::FHT8VRadValveUtil::MIN_FHT8V_200US_BIT_STREAM_BUF_SIZE;
+    ASSERT_LT(result2 - buf, minbufsize); // Check not overflowing the (minimum-sized) buffer.
+    EXPECT_EQ(result2 - buf, 43); // Check for expected length.
+    EXPECT_EQ((uint8_t)0xcc, buf[0]); // Check that result starts with FHT8V 0xcc preamble.
+    // Attempt to decode.
+    EXPECT_TRUE(OTRadValve::FHT8VRadValveUtil::FHT8VDecodeBitStream(buf, buf + sizeof(buf) - 1, &commandDecoded));
+    EXPECT_EQ(0xff, commandDecoded.hc1);
+    EXPECT_EQ(0xff, commandDecoded.hc2);
+  #ifdef OTV0P2BASE_FHT8V_ADR_USED
+    AssertIsTrueWithErr(0xff == commandDecoded.address, commandDecoded.address);
+  #endif
+    EXPECT_EQ(0xff, commandDecoded.command);
+    EXPECT_EQ(0xff, commandDecoded.extension);
+
+}
+
 // Test of head and tail of FHT8V bitstream encoding and decoding.
 //
 // Adapted 2016/10/18 from Unit_Tests.cpp testFHTEncodingHeadAndTail().
@@ -176,6 +237,7 @@ TEST(FHT8VRadValve,FHTEncodingHeadAndTail)
     command.extension = 0;
 
     memset(buf, 0, sizeof(buf));
+
     *buf = 0xff; // Mark buffer as empty.
     uint8_t *result1 = OTRadValve::FHT8VRadValveUtil::FHT8VCreate200usBitStreamBptr(buf, &command);
     EXPECT_EQ(((uint8_t)~0U), *result1); // Check that result points at terminator value 0xff/~0.
