@@ -69,6 +69,7 @@ class NullActuatorPhysicalUI : public ActuatorPhysicalUIBase
     virtual uint8_t read() { value = 0; return(value); }
   };
 
+
     }
 
 #endif
