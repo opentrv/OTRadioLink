@@ -20,10 +20,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
  * OpenTRV radiator valve physical UI controls and output as an actuator.
  */
 
-#ifndef ARDUINO_LIB_ACTUATOR_PHYSICAL_UI_H
-#define ARDUINO_LIB_ACTUATOR_PHYSICAL_UI_H
-
-
 #include <stddef.h>
 #include <stdint.h>
 #include <OTV0p2Base.h>
@@ -41,5 +37,3 @@ namespace OTV0P2BASE
 
 
     }
-
-#endif
