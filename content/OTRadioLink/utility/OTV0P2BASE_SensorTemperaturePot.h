@@ -81,7 +81,7 @@ class SensorTemperaturePot : public OTV0P2BASE::SimpleTSUint8Sensor
 
     // WARM/FROST and BAKE start/cancel callbacks.
     // If not NULL, are called when the pot is adjusted appropriately.
-    // Typically at most one of these callbacks would be made on any approriate pot adjustment.
+    // Typically at most one of these callbacks would be made on any appropriate pot adjustment.
     void (*warmModeCallback)(bool);
     void (*bakeStartCallback)(bool);
 
