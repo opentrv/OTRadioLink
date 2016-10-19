@@ -104,7 +104,6 @@ OTV0P2BASE::serialPrintlnAndFlush();
                           const OTRadValve::HardwareMotorDriverInterface::motor_drive dir,
                           OTRadValve::HardwareMotorDriverInterfaceCallbackHandler &callback)
       {
-        OTV0P2BASE::serialPrintAndFlush('3');
       // Remember previous state of motor.
       // This may help to correctly allow for (eg) position encoding inputs while a motor is slowing.
       const uint8_t prev_dir = last_dir;
