@@ -33,15 +33,13 @@ namespace OTRadValve
 /**
  * @class   DRV8850HardwareDriver
  * @brief   Implementation for the DRV8850 motor driver.
- * @note    Input lines:
- *              - MOTOR_DRIVE_MI_AIN_DigitalPin: Shaft encoder read?
- *              - MOTOR_DRIVE_MC_AIN_DigitalPin: Motor current read.
- *          Output lines:
- *              - MOTOR_DRIVE_MLH_DigitalPin: High left fet.
- *              - MOTOR_DRIVE_MLL_DigitalPin: Low left fet.
- *              - MOTOR_DRIVE_MRH_DigitalPin: High right fet.
- *              - MOTOR_DRIVE_MRL_DigitalPin: Low right fet.
- *              - nSLEEP: Sleep
+ * @note    IN1H + IN2L and IN1L + IN2H should be tied together and connected to MOTOR_DRIVE_ML_DigitalPin and MOTOR_DRIVE_MR_DigitalPin.
+ *          This is in order to allow 2 pins to control the H-bridge.
+ * @param   MOTOR_DRIVE_MI_AIN_DigitalPin: Current read. This is an ADCMUX number, not a pin number!
+ * @param   MOTOR_DRIVE_MC_AIN_DigitalPin: Shaft encoder read. This is an ADCMUX number, not a pin number!
+ * @param   MOTOR_DRIVE_ML_DigitalPin: H-Bridge control.
+ * @param   MOTOR_DRIVE_MR_DigitalPin: H-Bridge control.
+ * @param   nSLEEP: Sleep
  */
 #define DRV8850HardwareDriver_DEFINED
 template <uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t nSLEEP, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin, uint8_t MOTOR_DRIVE_MC_AIN_DigitalPin>
@@ -51,6 +49,7 @@ class DRV8850HardwareDriver : public ValveMotorDirectV1HardwareDriverBase
     // Helpful to record shaft-encoder and other behaviour correctly around direction changes.
     // Marked volatile and stored as uint8_t to help thread-safety, and potentially save space.
     volatile uint8_t last_dir;
+    // Temporary current limits, as values for REV7 H-Bridge are hard-coded in ValveMotorBase. These are expressed as ADC values.
     static const constexpr uint16_t maxDevCurrentReadingClosing = 300;  // FIXME
     static const constexpr uint16_t maxDevCurrentReadingOpening = 300;
 
@@ -63,7 +62,6 @@ public:
     // Check for high motor current indicating hitting an end-stop.
     // Measure motor current against (fixed) internal reference.
     const uint16_t mi = OTV0P2BASE::analogueNoiseReducedRead(MOTOR_DRIVE_MI_AIN_DigitalPin, INTERNAL);
-//      const uint16_t mi = OTV0P2BASE::analogueNoiseReducedRead(MOTOR_DRIVE_MI_AIN_DigitalPin, DEFAULT);
 //#if 1 // 0 && defined(V0P2BASE_DEBUG)
 //OTV0P2BASE::serialPrintAndFlush(F("    MI: "));
 //OTV0P2BASE::serialPrintAndFlush(mi, DEC);
@@ -102,7 +100,7 @@ OTV0P2BASE::serialPrintlnAndFlush();
   //   * maxRunTicks  maximum sub-cycle ticks to attempt to run/spin for); zero will run for shortest reasonable time
   //   * dir  direction to run motor (or off/stop)
   //   * callback  callback handler
-  void motorRun(const uint8_t maxRunTicks,
+  virtual void motorRun(const uint8_t maxRunTicks,
                         const OTRadValve::HardwareMotorDriverInterface::motor_drive dir,
                         OTRadValve::HardwareMotorDriverInterfaceCallbackHandler &callback)
     {
@@ -110,8 +108,7 @@ OTV0P2BASE::serialPrintlnAndFlush();
     // This may help to correctly allow for (eg) position encoding inputs while a motor is slowing.
     const uint8_t prev_dir = last_dir;
 
-    // TODO This logic needs to change
-    // Impossible to short the DRV8850 from here, but need 2 pin changes to change direction.
+    // Impossible to short the DRV8850 due to internal protection circuits.
     switch(dir)
       {
       case motorDriveClosing:
@@ -151,8 +148,6 @@ OTV0P2BASE::serialPrintlnAndFlush();
     case motorOff: default: // Explicit off, and default for safety.
     {
         // Everything off, unconditionally.
-        //
-        // Turn one side of bridge off ASAP.
         // Motor is automatically stopped in sleep mode.
 		fastDigitalWrite(nSLEEP, LOW);
 		// Pull motor lines low to minimise current consumption (DRV8850 inputs are pulled low).
@@ -163,12 +158,10 @@ OTV0P2BASE::serialPrintlnAndFlush();
         // Let H-bridge respond and settle.
         // Accumulate any shaft movement & time to the previous direction if not already stopped.
         // Wait longer if not previously off to allow for inertia, if shaft encoder is in use.
-        const bool shaftEncoderInUse = false; // FIXME.
+        const bool shaftEncoderInUse = false; // FIXME
         const bool wasOffBefore = (HardwareMotorDriverInterface::motorOff == prev_dir);
         const bool longerWait = shaftEncoderInUse || !wasOffBefore;
         spinSCTTicks(!longerWait ? minMotorHBridgeSettleTicks : minMotorRunupTicks, !longerWait ? 0 : minMotorRunupTicks/2, (motor_drive)prev_dir, callback);
-//        fastDigitalWrite(MOTOR_DRIVE_ML_DigitalPin, HIGH); // Belt and braces force pin logical output state high.
-//        pinMode(MOTOR_DRIVE_ML_DigitalPin, INPUT_PULLUP); // Switch to weak pull-up; slow but possibly marginally safer.
         // Let H-bridge respond and settle.
         spinSCTTicks(minMotorHBridgeSettleTicks, 0, HardwareMotorDriverInterface::motorOff, callback);
         if(prev_dir != dir) { OTV0P2BASE::nap(WDTO_60MS); } // Enforced low-power sleep on change of direction....
