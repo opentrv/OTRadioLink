@@ -18,6 +18,12 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 
 /*
  * OpenTRV radiator valve physical UI controls and output as an actuator.
+ *
+ * A base class, a null class, and one or more implementations are provided
+ * for different stock behaviour with different hardware.
+ *
+ * A mixture of template and constructor parameters
+ * is used to configure the different types.
  */
 
 #ifndef ARDUINO_LIB_ACTUATOR_PHYSICAL_UI_H
