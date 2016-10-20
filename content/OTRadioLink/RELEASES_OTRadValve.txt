@@ -9,7 +9,7 @@ or release/freeze points.
 
 
 pending:
-    DHD20161020: TODO-1026: reduced lower threshold with wide deadband from 8 to 2 (cf 12 without).
+    DHD20161020: TODO-1026: pushd thresholds for movement out when using wide deadband
     DHD20161015: TODO-970: Created OTRadValve_Parameters.h.
     DHD20161002: TODO-621: tuning 'door opened' algorithm to fit some observed data.
 
