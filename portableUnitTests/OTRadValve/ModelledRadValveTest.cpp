@@ -148,7 +148,7 @@ if(verbose) { fprintf(stderr, "@ %d %d\n", offset, valvePCOpen); }
                 // In proportional range.
 //                if(!is3.widenDeadband)
 //                    {
-//                    // Below the half way mark the valve may be opened (from off), soft setback or not.
+//                    // Below the half way mark the valve *may* be opened (from off), soft setback or not.
 //                    is3.refTempC16 = (is3.targetTempC << 4) + 0x4;
 //                    OTRadValve::ModelledRadValveState rs3c;
 //                    valvePCOpen = 0;
@@ -160,7 +160,7 @@ if(verbose) { fprintf(stderr, "@ %d %d\n", offset, valvePCOpen); }
                 OTRadValve::ModelledRadValveState rs3d;
                 valvePCOpen = 0;
                 rs3d.tick(valvePCOpen, is3);
-                ASSERT_TRUE(0 == valvePCOpen);
+                EXPECT_EQ(0, valvePCOpen);
                 }
             }
         }
