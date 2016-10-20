@@ -26,27 +26,11 @@ namespace OTRadValve
     {
 
 
-// Offset from raw temperature to get reference temperature in C/16.
-static const int_fast8_t refTempOffsetC16 = 8;
-
 ModelledRadValveInputState::ModelledRadValveInputState(const int_fast16_t realTempC16) :
     targetTempC(12 /* FROST */),
     minPCOpen(OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN), maxPCOpen(100),
     widenDeadband(false), glacial(false), hasEcoBias(false), inBakeMode(false), fastResponseRequired(false)
     { setReferenceTemperatures(realTempC16); }
-
-// Calculate and store reference temperature(s) from real temperature supplied.
-// Proportional temperature regulation is in a 1C band.
-// By default, for a given target XC the rad is off at (X+1)C so temperature oscillates around that point.
-// This routine shifts the reference point at which the rad is off to (X+0.5C)
-// ie to the middle of the specified degree, which is more intuitive,
-// and which may save a little energy if users target the specified temperatures.
-// Suggestion c/o GG ~2014/10 code, and generally less misleading anyway!
-void ModelledRadValveInputState::setReferenceTemperatures(const int_fast16_t currentTempC16)
-  {
-  const int_fast16_t referenceTempC16 = currentTempC16 + refTempOffsetC16; // TODO-386: push targeted temperature down by 0.5C to middle of degree.
-  refTempC16 = referenceTempC16;
-  }
 
 
 // Minimum slew/error % distance in central range; should be larger than smallest temperature-sensor-driven step (6) to be effective; [1,100].
@@ -187,7 +171,7 @@ ModelledRadValveState::ModelledRadValveState(const ModelledRadValveInputState &i
   valveTurndownCountdownM(0), valveTurnupCountdownM(0)
   {
   // Fills array exactly as tick() would when !initialised.
-  const int_fast16_t rawTempC16 = inputState.refTempC16 - refTempOffsetC16; // Remove adjustment for target centre.
+  const int_fast16_t rawTempC16 = inputState.refTempC16 - ModelledRadValveInputState::refTempOffsetC16; // Remove adjustment for target centre.
   for(int i = filterLength; --i >= 0; ) { prevRawTempC16[i] = rawTempC16; }
   }
 
@@ -200,7 +184,7 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const Modelle
   // Forget last event if any.
   clearEvent();
 
-  const int_fast16_t rawTempC16 = inputState.refTempC16 - refTempOffsetC16; // Remove adjustment for target centre.
+  const int_fast16_t rawTempC16 = inputState.refTempC16 - ModelledRadValveInputState::refTempOffsetC16; // Remove adjustment for target centre.
   // Do some one-off work on first tick in new instance.
   if(!initialised)
     {
@@ -273,7 +257,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
 #endif
 
   // Possibly-adjusted and/or smoothed temperature to use for targeting.
-  const int_fast16_t adjustedTempC16 = isFiltering ? (getSmoothedRecent() + refTempOffsetC16) : inputState.refTempC16;
+  const int_fast16_t adjustedTempC16 = isFiltering ? (getSmoothedRecent() + ModelledRadValveInputState::refTempOffsetC16) : inputState.refTempC16;
   // When reduced to whole Celsius then fewer bits are needed to cover expected temperatures.
   const int_fast8_t adjustedTempC = (int_fast8_t) (adjustedTempC16 >> 4);
 
