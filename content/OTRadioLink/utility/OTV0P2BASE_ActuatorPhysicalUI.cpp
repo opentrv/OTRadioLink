@@ -41,7 +41,7 @@ namespace OTV0P2BASE
 
 #ifdef ARDUINO_ARCH_AVR
 // Use WDT-based timer for xxxPause() routines.
-// Very tiny low-power sleep to approximately match the PICAXE V0.09 routine of the same name.
+// Very tiny low-power sleep.
 static const uint8_t VERYTINY_PAUSE_MS = 5;
 static void inline veryTinyPause() { OTV0P2BASE::sleepLowPowerMs(VERYTINY_PAUSE_MS); }
 // Tiny low-power sleep to approximately match the PICAXE V0.09 routine of the same name.
@@ -60,7 +60,6 @@ static const uint8_t BIG_PAUSE_MS = 120;
 static void inline bigPause() { OTV0P2BASE::nap(WDTO_120MS); } // 120ms vs 288ms nominal for PICAXE V0.09 impl.
 
 #endif
-
 
 
     }
