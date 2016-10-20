@@ -139,7 +139,56 @@ bool check32768HzOscExtended()
 
     return(true); // Success!
     }
-#endif
+#endif // ARDUINO_ARCH_AVR
 
+#ifdef ARDUINO_ARCH_AVR
 
-} }
+/**
+ * @brief	Calibrate the internal RC oscillator against and external crystal oscillator or resonator.
+ * @param
+ * @retval
+ */
+bool calibrateInternalOscWithExtOsc()
+{
+	const constexpr uint8_t maxTries = 128;  // Maximum number of values to attempt.
+	const constexpr uint8_t initOscCal = 0;  // Initial oscillator calibration value to start from.
+	// TCNT2 overflows every 2 seconds. One tick is 2000/256 = 7.815 ms, or 7815 clock cycles at 1 MHz.
+	// Minimum number of cycles we want per count is (7815*1.1)/255 = 34
+	const constexpr uint8_t targetCount = 200;  // TODO! Work out proper value.
+
+    // Check that the slow clock appears to be running.
+    if(!check32768HzOsc()) { return(false); }
+
+    // Set initial calibration value and wait to settle.
+    OSCCAL = initOscCal;
+    NOP(); // todo does this work?
+
+    // Calibration routine
+    for(uint8_t i = 0; i < maxTries; i++)
+	{
+    	uint8_t count = 0;
+
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+		{
+			// Wait for edge on xtal counter edge.
+			const uint8_t t0 = TCNT2;
+			const uint8_t t1 = TCNT2 + 1;
+			while(t0 == TCNT2) {}
+			// Start counting cycles.
+			do {
+				count++;
+				// todo delay here.
+			} while (TCNT2 == t1); // Repeat loop until TCNT2 increments.
+		}
+        // Set new calibration value.
+        if(count > targetCount) OSCCAL--;
+        else if(count < targetCount) OSCCAL++;
+        else break;
+        // todo delay until internal osc settles.
+        NOP();
+	}
+}
+#endif // ARDUINO_ARCH_AVR
+
+}
+}
