@@ -527,9 +527,11 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
     // while minimising valve movement/noise/etc is a good goal,
     // so if raw temperatures are rising at the moment then leave the valve as-is.
     // If fairly near the final target then also leave the valve as-is (TODO-453 & TODO-451).
+    // TODO-1026: minimise movement in dark to avoid disturbing sleep (darkness indicated with wide deadband).
+    // DHD20161020: reduced lower threshold with wide deadband from 8 to 2 (cf 12 without).
     const int rise = getRawDelta();
     if(rise > 0) { return(valvePCOpen); }
-    if( /* (0 == rise) && */ (lsbits >= (inputState.widenDeadband ? 8 : 12))) { return(valvePCOpen); }
+    if( /* (0 == rise) && */ (lsbits >= (inputState.widenDeadband ? 2 : 12))) { return(valvePCOpen); }
 
     // Open glacially if explicitly requested or if temperature overshoot has happened or is a danger.
     // Also be glacial if in soft setback which aims to allow temperatures to drift passively down a little.
@@ -545,7 +547,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
     // Slew open faster with comfort bias.  (Or with explicit request? inputState.fastResponseRequired TODO-593)
     const uint8_t maxSlew = (!inputState.hasEcoBias) ? TRV_SLEW_PC_PER_MIN_FAST : TRV_MAX_SLEW_PC_PER_MIN;
     if(slew > maxSlew)
-        { return(valvePCOpen + maxSlew); } // Cap slew rate open.
+        { return(valvePCOpen + maxSlew); } // Cap slew rate towards open.
     // Adjust directly to target.
     return(targetPO);
     }
