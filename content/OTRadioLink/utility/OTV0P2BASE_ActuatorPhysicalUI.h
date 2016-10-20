@@ -86,6 +86,10 @@ class NullActuatorPhysicalUI : public ActuatorPhysicalUIBase
 class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
   {
   protected:
+    // If true, implements older MODE behaviour hold to cycle through FROST/WARM/BAKE.
+    // If false, button is press to BAKE, and should be interrupt-driven.
+    const bool cycleMODE = false;
+
     // Record local manual operation of a physical UI control, eg not remote or via CLI.
     // Marks room as occupied amongst other things.
     // Thread-safe.
@@ -135,6 +139,12 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
 
     // Does nothing and forces 'sensor' value to 0 and returns 0.
     virtual uint8_t read();
+
+    // Handle simple interrupt for this UI sensor.
+    // Should be wired to the MODE button, edge triggered.
+    // By default does nothing (and returns false).
+    //virtual bool handleInterruptSimple() { return(false); }
+
   };
 
 
