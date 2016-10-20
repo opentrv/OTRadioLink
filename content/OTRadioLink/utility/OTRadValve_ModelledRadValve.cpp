@@ -529,13 +529,13 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
     // TODO-453: minimise valve movement (and thus noise and battery use).
     // Keeping the temperature steady anywhere in the target proportional range
     // while minimising valve movement/noise/etc is a good goal,
-    // so if raw temperatures are rising at the moment then leave the valve as-is.
+    // so if raw temperatures are rising (oer steady) at the moment then leave the valve as-is.
     // If fairly near the final target then also leave the valve as-is (TODO-453 & TODO-451).
-    // TODO-1026: minimise movement in dark to avoid disturbing sleep (darkness indicated with wide deadband).
+    // TODO-1026: minimise movement in dark to avoid disturbing sleep (dark indicated with wide deadband).
     // DHD20161020: reduced lower threshold with wide deadband from 8 to 2 (cf 12 without).
     const int rise = getRawDelta();
-    if(rise > 0) { return(valvePCOpen); }
-    if( /* (0 == rise) && */ (lsbits >= (inputState.widenDeadband ? 2 : 12))) { return(valvePCOpen); }
+    if(rise >= 0) { return(valvePCOpen); }
+    if((lsbits >= (inputState.widenDeadband ? 2 : 12))) { return(valvePCOpen); }
 
     // Open glacially if explicitly requested or if temperature overshoot has happened or is a danger.
     // Also be glacial if in soft setback which aims to allow temperatures to drift passively down a little.
