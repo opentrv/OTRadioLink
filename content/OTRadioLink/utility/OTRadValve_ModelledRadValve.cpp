@@ -474,7 +474,8 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
       // Since the target is the top of the proportional range than nothing within it requires the temperature to be *forced* down.
       // Possibly don't apply this rule at the very top of the range in case filtering is on and the filtered value moves differently to the raw.
       const int rise = getRawDelta();
-      if(rise <= 0) { return(valvePCOpen); }
+      if(rise < 0) { return(valvePCOpen); }
+      if((0 == rise) && inputState.widenDeadband) { return(valvePCOpen); }
 
       // TODO-1026: minimise movement in dark to avoid disturbing sleep (darkness indicated with wide deadband).
       if(inputState.widenDeadband && lsbits < 14) { return(valvePCOpen); }
@@ -518,7 +519,8 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
     // TODO-1026: minimise movement in dark to avoid disturbing sleep (dark indicated with wide deadband).
     // DHD20161020: reduced lower threshold with wide deadband from 8 to 2 (cf 12 without).
     const int rise = getRawDelta();
-    if(rise >= 0) { return(valvePCOpen); }
+    if(rise > 0) { return(valvePCOpen); }
+    if((0 == rise) && inputState.widenDeadband) { return(valvePCOpen); }
     if((lsbits >= (inputState.widenDeadband ? 2 : 12))) { return(valvePCOpen); }
 
     // Open glacially if explicitly requested or if temperature overshoot has happened or is a danger.

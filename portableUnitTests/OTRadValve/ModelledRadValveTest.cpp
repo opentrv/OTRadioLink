@@ -118,14 +118,14 @@ TEST(ModelledRadValve,MRVSExtremes)
 
     // Test that soft setback works as expected to support dark-based quick setback.
     // ENERGY SAVING RULE TEST (TODO-442 2a: "Setback in WARM mode must happen in dark (quick response) or long vacant room.")
-    OTRadValve::ModelledRadValveInputState is3(100<<4);
-    is3.targetTempC = 25;
     // Try a range of (whole-degree) offsets...
     for(int offset = -2; offset <= +2; ++offset)
         {
         // Try soft setback off and on.
         for(int s = 0; s < 2; ++s)
             {
+            OTRadValve::ModelledRadValveInputState is3(100<<4);
+            is3.targetTempC = 25;
             is3.widenDeadband = (s == 1);
             // Other than in the proportional range, valve should unconditionally be driven off/on by gross temperature error.
             if(0 != offset)
@@ -153,10 +153,10 @@ if(verbose) { fprintf(stderr, "@ %d %d\n", offset, valvePCOpen); }
                 OTRadValve::ModelledRadValveState rs3c;
                 valvePCOpen = 100;
                 rs3c.tick(valvePCOpen, is3);
-                EXPECT_EQ(100, valvePCOpen);
-//                --is3.refTempC16;
-//                rs3c.tick(valvePCOpen, is3);
-//                if(is3.widenDeadband) { EXPECT_EQ(100, valvePCOpen); } else { EXPECT_LT(100, valvePCOpen); }
+                if(is3.widenDeadband) { EXPECT_EQ(100, valvePCOpen); } else { EXPECT_GT(100, valvePCOpen); }
+                --is3.refTempC16;
+                rs3c.tick(valvePCOpen, is3);
+                if(is3.widenDeadband) { EXPECT_EQ(100, valvePCOpen); } else { EXPECT_GT(100, valvePCOpen); }
 
                 // (Even well) above the half way mark the valve should only be opened
                 // with temperature moving in wrong direction and without soft setback.
@@ -165,9 +165,10 @@ if(verbose) { fprintf(stderr, "@ %d %d\n", offset, valvePCOpen); }
                 valvePCOpen = 0;
                 rs3d.tick(valvePCOpen, is3);
                 EXPECT_EQ(0, valvePCOpen);
+// FIXME
 //                ++is3.refTempC16;
 //                rs3c.tick(valvePCOpen, is3);
-//                if(is3.widenDeadband) { EXPECT_EQ(0, valvePCOpen); } else { EXPECT_GT(0, valvePCOpen); }
+//                if(is3.widenDeadband) { EXPECT_EQ(0, valvePCOpen); } else { EXPECT_LT(0, valvePCOpen); }
                 }
             }
         }
