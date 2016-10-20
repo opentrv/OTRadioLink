@@ -213,6 +213,8 @@ class FHT8VRadValveUtil
 
 #ifdef ARDUINO_ARCH_AVR
 
+// FIXME: FHT8V code may being loaded into Flash even when not used (TODO-1017)
+
 #define FHT8VRadValveBase_DEFINED
 class FHT8VRadValveBase : public OTRadValve::AbstractRadValve, public FHT8VRadValveUtil
   {
