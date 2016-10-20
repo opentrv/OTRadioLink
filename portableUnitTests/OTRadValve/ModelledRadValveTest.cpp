@@ -136,12 +136,12 @@ TEST(ModelledRadValve,MRVSExtremes)
                 valvePCOpen = 0;
                 rs3a.tick(valvePCOpen, is3);
 if(verbose) { fprintf(stderr, "@ %d %d\n", offset, valvePCOpen); }
-                ASSERT_TRUE((offset < 0) ? (valvePCOpen > 0) : (0 == valvePCOpen));
+                EXPECT_TRUE((offset < 0) ? (valvePCOpen > 0) : (0 == valvePCOpen)) << (int)valvePCOpen;
                 // Where adjusted reference temperature is (well) above target, valve should be driven off.
                 OTRadValve::ModelledRadValveState rs3b;
                 valvePCOpen = 100;
                 rs3b.tick(valvePCOpen, is3);
-                ASSERT_TRUE((offset < 0) ? (100 == valvePCOpen) : (valvePCOpen < 100));
+                EXPECT_TRUE((offset < 0) ? (100 == valvePCOpen) : (valvePCOpen < 100)) << (int)valvePCOpen;
                 }
             else
                 {
