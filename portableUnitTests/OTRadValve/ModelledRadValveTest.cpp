@@ -147,21 +147,27 @@ if(verbose) { fprintf(stderr, "@ %d %d\n", offset, valvePCOpen); }
                 {
                 // In proportional range, ie fairly close to target.
 
-                // Below the half way mark the valve should only be closed
+                // (Even well) below the half way mark the valve should only be closed
                 // with temperature moving in wrong direction and without soft setback.
-                is3.refTempC16 = (is3.targetTempC << 4) + 0x4;
+                is3.refTempC16 = (is3.targetTempC << 4) + 0x1;
                 OTRadValve::ModelledRadValveState rs3c;
                 valvePCOpen = 100;
                 rs3c.tick(valvePCOpen, is3);
                 EXPECT_EQ(100, valvePCOpen);
+//                --is3.refTempC16;
+//                rs3c.tick(valvePCOpen, is3);
+//                if(is3.widenDeadband) { EXPECT_EQ(100, valvePCOpen); } else { EXPECT_LT(100, valvePCOpen); }
 
-                // Above the half way mark the valve should only be opened
+                // (Even well) above the half way mark the valve should only be opened
                 // with temperature moving in wrong direction and without soft setback.
-                is3.refTempC16 = (is3.targetTempC << 4) + 0xc;
+                is3.refTempC16 = (is3.targetTempC << 4) + 0xe;
                 OTRadValve::ModelledRadValveState rs3d;
                 valvePCOpen = 0;
                 rs3d.tick(valvePCOpen, is3);
                 EXPECT_EQ(0, valvePCOpen);
+//                ++is3.refTempC16;
+//                rs3c.tick(valvePCOpen, is3);
+//                if(is3.widenDeadband) { EXPECT_EQ(0, valvePCOpen); } else { EXPECT_GT(0, valvePCOpen); }
                 }
             }
         }
