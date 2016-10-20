@@ -489,7 +489,11 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
       // TODO-453: avoid closing the valve at all when the (raw) temperature is not rising, so as to minimise valve movement.
       // Since the target is the top of the proportional range than nothing within it requires the temperature to be *forced* down.
       // Possibly don't apply this rule at the very top of the range in case filtering is on and the filtered value moves differently to the raw.
-      if(getRawDelta() <= 0) { return(valvePCOpen); }
+      const int rise = getRawDelta();
+      if(rise <= 0) { return(valvePCOpen); }
+
+      // TODO-1026: minimise movement in dark to avoid disturbing sleep (darkness indicated with wide deadband).
+      if(inputState.widenDeadband && lsbits < 14) { return(valvePCOpen); }
 
       // Close glacially if explicitly requested or if temperature undershoot has happened or is a danger.
       // Also be glacial if in soft setback which aims to allow temperatures to drift passively down a little.
