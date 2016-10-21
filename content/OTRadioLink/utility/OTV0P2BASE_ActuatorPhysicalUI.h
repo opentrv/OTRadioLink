@@ -59,7 +59,7 @@ class ActuatorPhysicalUIBase : public OTV0P2BASE::SimpleTSUint8Actuator
     // Runs in 350ms or less; usually takes only a few milliseconds or microseconds.
     // Returns a non-zero value iff the user interacted with the system, and maybe caused a status change.
     // NOTE: since this is on the minimum idle-loop code path, minimise CPU cycles, esp in frost mode.
-    // Also re-activates CLI on main button push.
+    // Replaces: bool tickUI(uint_fast8_t sec);
     virtual uint8_t read();
 
     // Preferred poll interval (in seconds); should be called at constant rate, usually 1/60s.
