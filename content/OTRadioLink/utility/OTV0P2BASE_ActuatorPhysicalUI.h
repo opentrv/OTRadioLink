@@ -130,7 +130,7 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // For example, can cause the motor to wiggle for tactile reinforcement.
     const void (*const userAdditionalFeedback)() = NULL; // FIXME
 
-    // If non-NULL, callback used to provide ISR-safe instant LED on response.
+    // If non-NULL, callback used to provide ISR-safe instant UI-LED-on response.
     // Could be set to LED_HEATCALL_ON_ISR_SAFE() or similar.
     const void (*const safeISRLEDon)() = NULL; // FIXME
 
