@@ -150,7 +150,7 @@ bool check32768HzOscExtended()
  */
 bool calibrateInternalOscWithExtOsc()
 {
-    // todo these should go somewhere else but not sure where.
+    // todo these should probably go somewhere else but not sure where.
 	const constexpr uint8_t maxTries = 128;  // Maximum number of values to attempt.
 	const constexpr uint8_t initOscCal = 0;  // Initial oscillator calibration value to start from.
 	// TCNT2 overflows every 2 seconds. One tick is 2000/256 = 7.815 ms, or 7815 clock cycles at 1 MHz.
@@ -181,7 +181,7 @@ bool calibrateInternalOscWithExtOsc()
 			// todo Count the number of cycles this loop takes! Assuming 40 for now.
 			do {
 				count++; // 2 cycles?
-				// 9*4 = 36 cycles per count. fixme (DE20161021) I don't think this takes register setup into account.
+				// 8*4 = 32 cycles per count. fixme (DE20161021) I don't think this takes register setup into account.
 				_delay_x4cycles(8);
             // Repeat loop until TCNT2 increments.
 			} while (TCNT2 == t1); // 2 cycles?
