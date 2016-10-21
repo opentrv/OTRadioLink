@@ -100,6 +100,11 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // Compound operations on this value must block interrupts.
     volatile uint8_t uiTimeoutM;
 
+    // Set true on significant local UI operation.
+    // Should be cleared when feedback has been given.
+    // Marked volatile for thread-safe lockless access;
+    static volatile bool significantUIOp;
+
     // Record local manual operation of a physical UI control, eg not remote or via CLI.
     // Marks room as occupied amongst other things.
     // To be thread-/ISR- safe, everything that this touches or calls must be.
@@ -123,7 +128,11 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
 
     // If non-NULL, callback used to provide additional feedback to the user beyond UI.
     // For example, can cause the motor to wiggle for tactile reinforcement.
-    const void (*userAdditionalFeedback)() = NULL; // FIXME
+    const void (*const userAdditionalFeedback)() = NULL; // FIXME
+
+    // If non-NULL, callback used to provide ISR-safe instant LED on response.
+    // Could be set to LED_HEATCALL_ON_ISR_SAFE() or similar.
+    const void (*const safeISRLEDon)() = NULL; // FIXME
 
     // Occupancy callback function (for good confidence of human presence); NULL if not used.
     // Also indicates that the manual UI has been used.

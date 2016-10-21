@@ -78,6 +78,22 @@ void ModeButtonAndPotActuatorPhysicalUI::markUIControlUsed()
     if(NULL != occCallbackFN) { occCallbackFN(); }
     }
 
+// Record significant local manual operation of a physical UI control, eg not remote or via CLI.
+// Marks room as occupied amongst other things.
+// As markUIControlUsed() but likely to generate some feedback to the user, ASAP.
+// Thread-safe.
+void ModeButtonAndPotActuatorPhysicalUI::markUIControlUsedSignificant()
+    {
+    // Provide some instant visual feedback if possible.
+    //  LED_HEATCALL_ON_ISR_SAFE();
+    void (*safeISRLEDon_FN)() = safeISRLEDon;
+    if(NULL != safeISRLEDon_FN) { safeISRLEDon_FN(); }
+    // Flag up need for feedback.
+    significantUIOp = true;
+    // Do main UI-touched work.
+    markUIControlUsed();
+    }
+
 // Call this nominally on even numbered seconds to allow the UI to operate.
 // In practice call early once per 2s major cycle.
 // Should never be skipped, so as to allow the UI to remain responsive.
