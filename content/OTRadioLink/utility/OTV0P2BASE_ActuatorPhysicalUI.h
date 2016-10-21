@@ -125,6 +125,11 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     void (*warmModeCallback)(bool) = NULL; // FIXME
     void (*bakeStartCallback)(bool) = NULL; // FIXME
 
+    // Called after handling main controls to handle other buttons and user controls.
+    // Designed to be overridden by derived classes, eg to handle LEARN buttons.
+    // By default does nothing.
+    virtual void handleOtherUserControls() { }
+
   public:
     // True if a manual UI control has been very recently (minutes ago) operated.
     // The user may still be interacting with the control and the UI etc should probably be extra responsive.
