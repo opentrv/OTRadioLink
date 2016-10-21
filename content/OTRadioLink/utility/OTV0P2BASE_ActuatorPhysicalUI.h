@@ -59,7 +59,7 @@ class ActuatorPhysicalUIBase : public OTV0P2BASE::SimpleTSUint8Actuator
     // Runs in 350ms or less; usually takes only a few milliseconds or microseconds.
     // Returns a non-zero value iff the user interacted with the system, and maybe caused a status change.
     // NOTE: since this is on the minimum idle-loop code path, minimise CPU cycles, esp in frost mode.
-    // Replaces: bool tickUI(uint_fast8_t sec);
+    // Replaces: bool tickUI(uint_fast8_t sec).
     virtual uint8_t read();
 
     // Preferred poll interval (in seconds); should be called at constant rate, usually 1/60s.
@@ -77,10 +77,6 @@ class NullActuatorPhysicalUI : public ActuatorPhysicalUIBase
   };
 
 
-
-// TODO: MODE button vs BAKE button.
-
-
 // Supports boost/MODE button, temperature pot, and a single HEATCALL LED.
 // This does not support LEARN buttons; a derived class does.
 class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
@@ -90,8 +86,23 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // If false, button is press to BAKE, and should be interrupt-driven.
     const bool cycleMODE = false;
 
+    // Marked true if the physical UI controls are being used.
+    // Cleared at end of read().
+    // Marked volatile for thread-safe lock-free non-read-modify-write access to byte-wide value.
+    volatile bool statusChange;
+
+    // Minutes that freshly-touched controls are regarded as 'recently' used.
+    static const uint8_t UI_DEFAULT_RECENT_USE_TIMEOUT_M = 31;
+    // Minutes that freshly-touched controls are regarded as 'very recently' used.
+    static const uint8_t UI_DEFAULT_VERY_RECENT_USE_TIMEOUT_M = 2;
+    // If non-zero then UI controls have been recently manually/locally operated; counts down to zero.
+    // Marked volatile for thread-safe lock-free non-read-modify-write access to byte-wide value.
+    // Compound operations on this value must block interrupts.
+    volatile uint8_t uiTimeoutM;
+
     // Record local manual operation of a physical UI control, eg not remote or via CLI.
     // Marks room as occupied amongst other things.
+    // To be thread-/ISR- safe, everything that this touches or calls must be.
     // Thread-safe.
     void markUIControlUsed();
 

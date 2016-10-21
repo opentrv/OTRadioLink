@@ -59,6 +59,38 @@ static void inline mediumPause() { OTV0P2BASE::nap(WDTO_60MS); } // 60ms vs 144m
 static const uint8_t BIG_PAUSE_MS = 120;
 static void inline bigPause() { OTV0P2BASE::nap(WDTO_120MS); } // 120ms vs 288ms nominal for PICAXE V0.09 impl.
 
+// Record local manual operation of a physical UI control, eg not remote or via CLI.
+// Marks room as occupied amongst other things.
+// To be thread-/ISR- safe, everything that this touches or calls must be.
+// Thread-safe.
+void ModeButtonAndPotActuatorPhysicalUI::markUIControlUsed()
+    {
+    statusChange = true; // Note user interaction with the system.
+    uiTimeoutM = UI_DEFAULT_RECENT_USE_TIMEOUT_M; // Ensure that UI controls are kept 'warm' for a little while.
+//  #if defined(ENABLE_UI_WAKES_CLI)
+//    // Make CLI active for a while (at some slight possibly-significant energy cost).
+//    resetCLIActiveTimer(); // Thread-safe.
+//  #endif
+    // User operation of controls locally is strong indication of presence.
+//    Occupancy.markAsOccupied(); // Thread-safe.
+    // Call occupancy callback if set.
+    void (*occCallbackFN)() = occCallback;
+    if(NULL != occCallbackFN) { occCallbackFN(); }
+    }
+
+// Call this nominally on even numbered seconds to allow the UI to operate.
+// In practice call early once per 2s major cycle.
+// Should never be skipped, so as to allow the UI to remain responsive.
+// Runs in 350ms or less; usually takes only a few milliseconds or microseconds.
+// Returns a non-zero value iff the user interacted with the system, and maybe caused a status change.
+// NOTE: since this is on the minimum idle-loop code path, minimise CPU cycles, esp in frost mode.
+// Replaces: bool tickUI(uint_fast8_t sec).
+uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
+    {
+    value = 0; // FIXME
+    return(value);
+    }
+
 #endif
 
 
