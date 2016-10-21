@@ -145,23 +145,26 @@ bool check32768HzOscExtended()
 
 /**
  * @brief	Calibrate the internal RC oscillator against and external crystal oscillator or resonator.
- * @param
- * @retval
+ * @param   todo do we want settable stuff, e.g. ext osc rate, internal osc rate, etc?
+ * @retval  True on calibration success.
  */
 bool calibrateInternalOscWithExtOsc()
 {
+    // todo these should go somewhere else but not sure where.
 	const constexpr uint8_t maxTries = 128;  // Maximum number of values to attempt.
 	const constexpr uint8_t initOscCal = 0;  // Initial oscillator calibration value to start from.
 	// TCNT2 overflows every 2 seconds. One tick is 2000/256 = 7.815 ms, or 7815 clock cycles at 1 MHz.
-	// Minimum number of cycles we want per count is (7815*1.1)/255 = 34
-	const constexpr uint8_t targetCount = 200;  // TODO! Work out proper value.
+	// Minimum number of cycles we want per count is (7815*1.1)/255 = 34, to give some play in case the clock is too fast.
+	const constexpr uint16_t cyclesPerTick = 7815;
+	const constexpr uint8_t innerLoopTime = 36;  // the number of cycles the inner loop takes to execute.
+	const constexpr uint8_t targetCount = cyclesPerTick/innerLoopTime;  // The number of counts we are aiming for.
 
     // Check that the slow clock appears to be running.
     if(!check32768HzOsc()) { return(false); }
 
     // Set initial calibration value and wait to settle.
-    OSCCAL = initOscCal;
-    NOP(); // todo does this work?
+    OSCCAL = initOscCal; // todo think about what happens if oscillator has previously been calibrated! unlikely to have wandered too much.
+    _delay_x4cycles(2); // > 8 us. max oscillator settling time is 5 us.
 
     // Calibration routine
     for(uint8_t i = 0; i < maxTries; i++)
@@ -175,17 +178,21 @@ bool calibrateInternalOscWithExtOsc()
 			const uint8_t t1 = TCNT2 + 1;
 			while(t0 == TCNT2) {}
 			// Start counting cycles.
+			// todo Count the number of cycles this loop takes! Assuming 40 for now.
 			do {
-				count++;
-				// todo delay here.
-			} while (TCNT2 == t1); // Repeat loop until TCNT2 increments.
+				count++; // 2 cycles?
+				// 9*4 = 36 cycles per count. fixme (DE20161021) I don't think this takes register setup into account.
+				_delay_x4cycles(8);
+            // Repeat loop until TCNT2 increments.
+			} while (TCNT2 == t1); // 2 cycles?
 		}
         // Set new calibration value.
         if(count > targetCount) OSCCAL--;
         else if(count < targetCount) OSCCAL++;
-        else break;
-        // todo delay until internal osc settles.
-        NOP();
+        else return true;
+        // Wait for oscillator to settle.
+        _delay_x4cycles(2);
+
 	}
 }
 #endif // ARDUINO_ARCH_AVR
