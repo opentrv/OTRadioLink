@@ -44,7 +44,6 @@ namespace OTV0P2BASE
 namespace HWTEST
 {
 
-
 #ifdef ARDUINO_ARCH_AVR
 // Returns true if the 32768Hz low-frequency async crystal oscillator appears to be running.
 // This means the the Timer 2 clock needs to be running
@@ -64,6 +63,10 @@ bool check32768HzOsc();
 bool check32768HzOscExtended();
 #endif
 
+#ifdef ARDUINO_ARCH_AVR
+
+bool calibrateInternalOscWithExtOsc();
+#endif
 
 } }
 
