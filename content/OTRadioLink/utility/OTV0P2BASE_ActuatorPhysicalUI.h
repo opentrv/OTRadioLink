@@ -35,6 +35,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 #include <OTV0p2Base.h>
 #include "OTV0P2BASE_Actuator.h"
 
+#include "OTV0P2BASE_SensorTemperaturePot.h"
+
 
 // Use namespaces to help avoid collisions.
 namespace OTV0P2BASE
@@ -126,13 +128,26 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // Not thread-/ISR- safe.
     void userOpFeedback(bool includeVisual = true);
 
+    // Temperature pot; must not be null.
+#ifdef SensorTemperaturePot_DEFINED
+    const SensorTemperaturePot *const tempPot;
+#else
+    const OTV0P2BASE::SimpleTSUint8Sensor *const tempPot;
+#endif
+
     // If non-NULL, callback used to provide additional feedback to the user beyond UI.
     // For example, can cause the motor to wiggle for tactile reinforcement.
     const void (*const userAdditionalFeedback)() = NULL; // FIXME
 
+    // Callback used to provide UI-LED-on output, may not be thread-safe; never NULL.
+    // Could be set to LED_HEATCALL_ON() or similar.
+    const void (*const LEDon)();
+    // Callback used to provide UI-LED-off output, may not be thread-safe; never NULL.
+    // Could be set to LED_HEATCALL_OFF() or similar.
+    const void (*const LEDoff)();
     // If non-NULL, callback used to provide ISR-safe instant UI-LED-on response.
     // Could be set to LED_HEATCALL_ON_ISR_SAFE() or similar.
-    const void (*const safeISRLEDon)() = NULL; // FIXME
+    const void (*const safeISRLEDon)();
 
     // Occupancy callback function (for good confidence of human presence); NULL if not used.
     // Also indicates that the manual UI has been used.
@@ -151,6 +166,19 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     virtual void handleOtherUserControls() { }
 
   public:
+    // Construct a default instance.
+    ModeButtonAndPotActuatorPhysicalUI(
+      const OTV0P2BASE::SimpleTSUint8Sensor /* FIXME */ *const _tempPot,
+      const void (*const _LEDon)(), const void (*const _LEDoff)(), const void (*const _safeISRLEDon)())
+      : tempPot(_tempPot),
+        LEDon(_LEDon),  LEDoff(_LEDoff),  safeISRLEDon(_safeISRLEDon)
+      {
+//      // Abort constructor if any bad args...
+//      if((NULL == _tempPot) ||
+//         (NULL == _LEDon) ||
+//         (NULL == _LEDoff)) { panic(); }
+      }
+
     // True if a manual UI control has been very recently (minutes ago) operated.
     // The user may still be interacting with the control and the UI etc should probably be extra responsive.
     // Thread-safe.
