@@ -35,6 +35,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 #include <OTV0p2Base.h>
 #include "OTV0P2BASE_Actuator.h"
 
+#include "OTV0P2BASE_SensorAmbientLight.h"
 #include "OTV0P2BASE_SensorTemperaturePot.h"
 
 
@@ -79,12 +80,16 @@ class NullActuatorPhysicalUI : public ActuatorPhysicalUIBase
   };
 
 
+#ifdef ARDUINO_ARCH_AVR
+
 // Supports boost/MODE button, temperature pot, and a single HEATCALL LED.
 // This does not support LEARN buttons; a derived class does.
+#define ModeButtonAndPotActuatorPhysicalUI_DEFINED
 class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
   {
   protected:
-    // If true, implements older MODE behaviour hold to cycle through FROST/WARM/BAKE.
+    // If true, implements older MODE behaviour hold to cycle through FROST/WARM/BAKE
+    // as selected by ENABLE_SIMPLIFIED_MODE_BAKE.
     // If false, button is press to BAKE, and should be interrupt-driven.
     const bool cycleMODE = false;
 
@@ -128,31 +133,30 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // Not thread-/ISR- safe.
     void userOpFeedback(bool includeVisual = true);
 
-    // Temperature pot; must not be null.
-#ifdef SensorTemperaturePot_DEFINED
-    const SensorTemperaturePot *const tempPot;
-#else
-    const OTV0P2BASE::SimpleTSUint8Sensor *const tempPot;
-#endif
+    // Occupancy tracker; must not be NULL.
+    PseudoSensorOccupancyTracker *const occupancy;
+
+    // Ambient light sensor; must not be NULL
+    const SensorAmbientLight *const ambLight;
+
+    // Temperature pot; may be NULL.
+    // May have read() called to poll pot status and provoke occupancy callbacks.
+    SensorTemperaturePot *const tempPotOpt;
 
     // If non-NULL, callback used to provide additional feedback to the user beyond UI.
     // For example, can cause the motor to wiggle for tactile reinforcement.
-    const void (*const userAdditionalFeedback)() = NULL; // FIXME
+    void (*const userAdditionalFeedback)() = NULL; // FIXME
 
     // Callback used to provide UI-LED-on output, may not be thread-safe; never NULL.
     // Could be set to LED_HEATCALL_ON() or similar.
-    const void (*const LEDon)();
+    void (*const LEDon)();
     // Callback used to provide UI-LED-off output, may not be thread-safe; never NULL.
     // Could be set to LED_HEATCALL_OFF() or similar.
-    const void (*const LEDoff)();
+    void (*const LEDoff)();
     // If non-NULL, callback used to provide ISR-safe instant UI-LED-on response.
     // Could be set to LED_HEATCALL_ON_ISR_SAFE() or similar.
-    const void (*const safeISRLEDon)();
+    void (*const safeISRLEDon)();
 
-    // Occupancy callback function (for good confidence of human presence); NULL if not used.
-    // Also indicates that the manual UI has been used.
-    // If not NULL, is called when this sensor detects indications of occupancy.
-    void (*occCallback)() = NULL; // FIXME
 
     // WARM/FROST and BAKE start/cancel callbacks.
     // If not NULL, are called when the pot is adjusted appropriately.
@@ -165,16 +169,24 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // By default does nothing.
     virtual void handleOtherUserControls() { }
 
+    // Counts calls to read() (was tickUI()).
+    uint8_t tickCount = 0;
+
   public:
     // Construct a default instance.
     ModeButtonAndPotActuatorPhysicalUI(
-      const OTV0P2BASE::SimpleTSUint8Sensor /* FIXME */ *const _tempPot,
-      const void (*const _LEDon)(), const void (*const _LEDoff)(), const void (*const _safeISRLEDon)())
-      : tempPot(_tempPot),
+      PseudoSensorOccupancyTracker *const _occupancy,
+      const SensorAmbientLight *const _ambLight,
+      SensorTemperaturePot *const _tempPotOpt,
+      void (*const _LEDon)(), void (*const _LEDoff)(), void (*const _safeISRLEDon)(),
+        bool _cycleMODE = false)
+      : cycleMODE(_cycleMODE),
+        occupancy(_occupancy), ambLight(_ambLight), tempPotOpt(_tempPotOpt),
         LEDon(_LEDon),  LEDoff(_LEDoff),  safeISRLEDon(_safeISRLEDon)
       {
 //      // Abort constructor if any bad args...
-//      if((NULL == _tempPot) ||
+//      if((NULL == _occupancy) ||
+//         (NULL == _ambLight) ||
 //         (NULL == _LEDon) ||
 //         (NULL == _LEDoff)) { panic(); }
       }
@@ -182,15 +194,21 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // True if a manual UI control has been very recently (minutes ago) operated.
     // The user may still be interacting with the control and the UI etc should probably be extra responsive.
     // Thread-safe.
-    bool veryRecentUIControlUse();
+    bool veryRecentUIControlUse() { return(uiTimeoutM >= (UI_DEFAULT_RECENT_USE_TIMEOUT_M - UI_DEFAULT_VERY_RECENT_USE_TIMEOUT_M)); }
 
     // True if a manual UI control has been recently (tens of minutes ago) operated.
     // If true then local manual settings should 'win' in any conflict with programmed or remote ones.
     // For example, remote requests to override settings may be ignored while this is true.
     // Thread-safe.
-    bool recentUIControlUse();
+    bool recentUIControlUse() { return(0 != uiTimeoutM); }
 
-    // Does nothing and forces 'sensor' value to 0 and returns 0.
+    // Call this nominally on even numbered seconds to allow the UI to operate.
+    // In practice call early once per 2s major cycle.
+    // Should never be skipped, so as to allow the UI to remain responsive.
+    // Runs in 350ms or less; usually takes only a few milliseconds or microseconds.
+    // Returns a non-zero value iff the user interacted with the system, and maybe caused a status change.
+    // NOTE: since this is on the minimum idle-loop code path, minimise CPU cycles, esp in frost mode.
+    // Replaces: bool tickUI(uint_fast8_t sec).
     virtual uint8_t read();
 
     // Handle simple interrupt for this UI sensor.
@@ -206,6 +224,9 @@ class ModeAndLearnButtonsAndPotActuatorPhysicalUI : public ModeButtonAndPotActua
   {
 // TODO
   };
+
+#endif // ARDUINO_ARCH_AVR
+
 
     }
 
