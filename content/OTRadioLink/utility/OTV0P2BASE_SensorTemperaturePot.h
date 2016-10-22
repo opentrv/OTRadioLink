@@ -123,16 +123,16 @@ class SensorTemperaturePot : public OTV0P2BASE::SimpleTSUint8Sensor
     // These read-only values are exposed to assist with any such mapping.
     const uint16_t minExpected, maxExpected;
     // Returns true if the pot output is to be reversed from the natural direction.
-    inline bool isReversed() { return(minExpected > maxExpected); }
+    inline bool isReversed() const { return(minExpected > maxExpected); }
 
     // A (scaled) value below this is deemed to be at the low end stop region (allowing for reversed movement).
     const uint8_t loEndStop;
     // Returns true if at the low end stop: ISR safe.
-    inline bool isAtLoEndStop() { return(value < loEndStop); }
+    inline bool isAtLoEndStop() const { return(value < loEndStop); }
     // A (scaled) value above this is deemed to be at the high end stop region (allowing for reversed movement).
     const uint8_t hiEndStop;
     // Returns true if at the high end stop: ISR safe.
-    inline bool isAtHiEndStop() { return(value > hiEndStop); }
+    inline bool isAtHiEndStop() const { return(value > hiEndStop); }
 
     // Force a read/poll of the temperature pot and return the value sensed [0,255] (cold to hot).
     // Potentially expensive/slow.
