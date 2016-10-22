@@ -187,7 +187,7 @@ bool analogueVsBandgapRead(const uint8_t aiNumber, const bool napToSettle)
 // If defined, update _adcNoise value to make noisyADCRead() output at least a poor PRNG if called in a loop, though might disguise underlying problems.
 //#define CATCH_OTHER_NOISE_DURING_NAR // May hide underlying weakness if defined.
 #define IGNORE_POWERUPIO // FIXME
-uint8_t noisyADCRead(const bool powerUpIO)
+uint8_t noisyADCRead(const bool /*powerUpIO*/)
   {
   const bool neededEnable = powerUpADCIfDisabled();
 #ifndef IGNORE_POWERUPIO
