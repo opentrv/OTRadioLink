@@ -132,7 +132,7 @@ class ValveMode : public OTV0P2BASE::SimpleTSUint8Sensor
     virtual uint8_t read()
       {
       OTV0P2BASE::safeDecIfNZWeak(bakeCountdownM);
-//      ATOMIC_BLOCK (ATOMIC_RESTORESTATE) // NOT THREAD SAFE.
+//      ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
 //        {
 //        // Run down the BAKE mode timer if need be, one tick per minute.
 //        if(bakeCountdownM > 0) { --bakeCountdownM; }
@@ -157,14 +157,14 @@ class ValveMode : public OTV0P2BASE::SimpleTSUint8Sensor
       if(!warm) { cancelBakeDebounced(); }
       }
     // If true then the unit is in 'BAKE' mode, a subset of 'WARM' mode which boosts the temperature target temporarily.
-    // ISR-safe.
+    // ISR-safe (though may yield stale answer if warm is set false concurrently).
     bool inBakeMode() { return(isWarmMode && (0 != bakeCountdownM.load())); }
     // Should be only be called once 'debounced' if coming from a button press for example.
     // Cancel 'bake' mode if active; does not force to FROST mode.
     void cancelBakeDebounced() { bakeCountdownM.store(0); }
     // Start/restart 'BAKE' mode and timeout.
     // Should ideally be only be called once 'debounced' if coming from a button press for example.
-    // Is thread-/ISR- safe.
+    // Is thread-/ISR- safe (though may have no effect if warm is set false concurrently).
     void startBake() { isWarmMode = true; bakeCountdownM.store(DEFAULT_BAKE_MAX_M); }
   };
 

@@ -38,7 +38,7 @@ TEST(Concurrency,AtomicUInt8T)
     EXPECT_EQ(1, v1.load());
     OTV0P2BASE::safeDecIfNZWeak(v1); // In practice not expected to fail.
     EXPECT_EQ(0, v1.load());
-    // Test some initialisations, load/store, decrement.
+    // Test initialisation, load/store, decrement.
     for(uint8_t i = 255; i > 0; --i)
         {
         volatile OTV0P2BASE::Atomic_UInt8T v(i);
@@ -46,7 +46,7 @@ TEST(Concurrency,AtomicUInt8T)
         OTV0P2BASE::safeDecIfNZWeak(v); // In practice not expected to fail.
         EXPECT_EQ(i-1, v.load());
         volatile OTV0P2BASE::Atomic_UInt8T w;
-        w.store(i);
+        w.store(i); // Test explicit store.
         EXPECT_EQ(i, w.load());
         OTV0P2BASE::safeDecIfNZWeak(w); // In practice not expected to fail.
         EXPECT_EQ(i-1, w.load());

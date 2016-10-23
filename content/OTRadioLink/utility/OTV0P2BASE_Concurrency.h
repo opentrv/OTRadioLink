@@ -102,12 +102,13 @@ namespace OTV0P2BASE
     // Does nothing if already zero.
     // May do nothing if interrupted by or interleaved with other activity.
     // Does not loop or spin or block; may shut out interrupts briefly or similar on some platforms.
-    // Typically used to decrement timers until zero.
+    // Safe because will never decrement value through zero, even in face of ISR/thread races.
+    // Typically used by foreground (non-ISR) routines to decrement timers until zero.
     inline void safeDecIfNZWeak(volatile Atomic_UInt8T &v)
       {
       uint8_t o = v.load();
       if(0 == o) { return; }
-      uint8_t om1 = o - 1U;
+      const uint8_t om1 = o - 1U;
       v.compare_exchange_strong(o, om1);
       }
 
