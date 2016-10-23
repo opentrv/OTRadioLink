@@ -65,7 +65,7 @@ class ActuatorPhysicalUIBase : public OTV0P2BASE::SimpleTSUint8Actuator
     // Replaces: bool tickUI(uint_fast8_t sec).
     virtual uint8_t read();
 
-    // Preferred poll interval (in seconds); should be called at constant rate, usually 1/60s.
+    // Preferred poll interval (in seconds); should be called at constant rate, usually 1/2s.
     virtual uint8_t preferredPollInterval_s() const { return(2); }
   };
 
