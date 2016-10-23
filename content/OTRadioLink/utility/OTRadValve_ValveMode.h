@@ -27,8 +27,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 #include <stddef.h>
 #include <stdint.h>
 #include <OTV0p2Base.h>
+#include "OTV0P2BASE_Concurrency.h"
 #include "OTV0P2BASE_Sensor.h"
-
 #include "OTRadValve_Parameters.h"
 
 
@@ -65,7 +65,7 @@ class ValveMode : public OTV0P2BASE::SimpleTSUint8Sensor
 
     // Only relevant if isWarmMode is true.
     // Marked volatile to allow atomic access from ISR without a lock; decrements should lock out interrupts.
-    volatile uint_least8_t bakeCountdownM = 0;
+    volatile OTV0P2BASE::Atomic_UInt8T bakeCountdownM = 0;
 
 //FIXME
 //    #if defined(ENABLE_SIMPLIFIED_MODE_BAKE)
@@ -131,11 +131,12 @@ class ValveMode : public OTV0P2BASE::SimpleTSUint8Sensor
     // Not thread-/ISR- safe.
     virtual uint8_t read()
       {
+      OTV0P2BASE::safeDecIfNZWeak(bakeCountdownM);
 //      ATOMIC_BLOCK (ATOMIC_RESTORESTATE) // NOT THREAD SAFE.
-        {
-        // Run down the BAKE mode timer if need be, one tick per minute.
-        if(bakeCountdownM > 0) { --bakeCountdownM; }
-        }
+//        {
+//        // Run down the BAKE mode timer if need be, one tick per minute.
+//        if(bakeCountdownM > 0) { --bakeCountdownM; }
+//        }
       // Recompute value from underlying.
       value = _get();
       return(value);
@@ -157,14 +158,14 @@ class ValveMode : public OTV0P2BASE::SimpleTSUint8Sensor
       }
     // If true then the unit is in 'BAKE' mode, a subset of 'WARM' mode which boosts the temperature target temporarily.
     // ISR-safe.
-    bool inBakeMode() { return(isWarmMode && (0 != bakeCountdownM)); }
+    bool inBakeMode() { return(isWarmMode && (0 != bakeCountdownM.load())); }
     // Should be only be called once 'debounced' if coming from a button press for example.
     // Cancel 'bake' mode if active; does not force to FROST mode.
-    void cancelBakeDebounced() { bakeCountdownM = 0; }
+    void cancelBakeDebounced() { bakeCountdownM.store(0); }
     // Start/restart 'BAKE' mode and timeout.
     // Should ideally be only be called once 'debounced' if coming from a button press for example.
     // Is thread-/ISR- safe.
-    void startBake() { isWarmMode = true; bakeCountdownM = DEFAULT_BAKE_MAX_M; }
+    void startBake() { isWarmMode = true; bakeCountdownM.store(DEFAULT_BAKE_MAX_M); }
   };
 
 
