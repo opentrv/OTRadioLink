@@ -9,6 +9,7 @@ or release/freeze points.
 
 
 pending:
+    DHD20161023: Created Atomic_UInt8T.
     DHD20161011: Created w/ unit tests SensorAmbientLightOccupancyDetectorSimple.
     DHD20160911: REV1 config CONFIG_Trial2013Winter_Round1_SECURE_SENSOR 
     DHD20160911: REV1 config CONFIG_Trial2013Winter_Round2_SECURE_STATSHUB 
