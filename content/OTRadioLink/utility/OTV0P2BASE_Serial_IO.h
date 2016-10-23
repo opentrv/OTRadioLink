@@ -47,7 +47,7 @@ namespace OTV0P2BASE
 // Version (code/board) information printed as one line to serial (with line-end, and flushed); machine- and human- parseable.
 // Format: "board VX.X REVY YYYY/Mmm/DD HH:MM:SS".
 // Built as a macro to ensure __DATE__ and __TIME__ expanded in the scope of the caller.
-#define V0p2_serialPrintlnBuildVersion() \
+#define V0p2Base_serialPrintlnBuildVersion() \
   do { \
   OTV0P2BASE::serialPrintAndFlush(F("board V0.2 REV")); \
   OTV0P2BASE::serialPrintAndFlush(V0p2_REV); \
