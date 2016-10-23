@@ -91,7 +91,7 @@ void ModeButtonAndPotActuatorPhysicalUI::markUIControlUsedSignificant()
     {
     // Provide some instant visual feedback if possible.
     //  LED_HEATCALL_ON_ISR_SAFE();
-    void (*safeISRLEDon_FN)() = safeISRLEDon;
+    void (*safeISRLEDon_FN)() = safeISRLEDonOpt;
     if(NULL != safeISRLEDon_FN) { safeISRLEDon_FN(); }
     // Flag up need for feedback.
     significantUIOp = true;

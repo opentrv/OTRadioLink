@@ -160,9 +160,9 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // Callback used to provide UI-LED-off output, may not be thread-safe; never NULL.
     // Could be set to LED_HEATCALL_OFF() or similar.
     void (*const LEDoff)();
-    // If non-NULL, callback used to provide ISR-safe instant UI-LED-on response.
+    // Callback used to provide ISR-safe instant UI-LED-on response; may be NULL if so such callback available.
     // Could be set to LED_HEATCALL_ON_ISR_SAFE() or similar.
-    void (*const safeISRLEDon)();
+    void (*const safeISRLEDonOpt)();
 
 
     // WARM/FROST and BAKE start/cancel callbacks.
@@ -187,12 +187,12 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
       OTV0P2BASE::PseudoSensorOccupancyTracker *const _occupancy,
       const OTV0P2BASE::SensorAmbientLight *const _ambLight,
       OTV0P2BASE::SensorTemperaturePot *const _tempPotOpt,
-      void (*const _LEDon)(), void (*const _LEDoff)(), void (*const _safeISRLEDon)(),
+      void (*const _LEDon)(), void (*const _LEDoff)(), void (*const _safeISRLEDonOpt)(),
         bool _cycleMODE = false)
       : cycleMODE(_cycleMODE),
         valveMode(_valveMode), valveController(_valveController),
         occupancy(_occupancy), ambLight(_ambLight), tempPotOpt(_tempPotOpt),
-        LEDon(_LEDon), LEDoff(_LEDoff), safeISRLEDon(_safeISRLEDon)
+        LEDon(_LEDon), LEDoff(_LEDoff), safeISRLEDonOpt(_safeISRLEDonOpt)
       {
 //      // Abort constructor if any bad args...
 //      if((NULL == _valveMode) ||
