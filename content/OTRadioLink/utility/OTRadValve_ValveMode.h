@@ -88,7 +88,7 @@ class ValveMode : public OTV0P2BASE::SimpleTSUint8Sensor
     bool set(const mode_t newValue) { return(set((uint8_t) newValue)); }
 
     // Compute state from underlying.
-    uint8_t _get()
+    uint8_t _get() const
         {
         if(!isWarmMode) { return(VMODE_FROST); }
         if(0 != bakeCountdownM.load()) { return(VMODE_BAKE); }
@@ -115,7 +115,7 @@ class ValveMode : public OTV0P2BASE::SimpleTSUint8Sensor
 
     // Original V0p09/V0p2 API.
     // If true then the unit is in 'warm' (heating) mode, else 'frost' protection mode.
-    bool inWarmMode() { return(isWarmMode); }
+    bool inWarmMode() const { return(isWarmMode); }
     // Has the effect of forcing the warm mode to the specified state immediately.
     // Should be only be called once 'debounced' if coming from a button press for example.
     // If forcing to FROST mode then any pending BAKE time is cancelled.
@@ -126,7 +126,7 @@ class ValveMode : public OTV0P2BASE::SimpleTSUint8Sensor
       }
     // If true then the unit is in 'BAKE' mode, a subset of 'WARM' mode which boosts the temperature target temporarily.
     // ISR-safe (though may yield stale answer if warm is set false concurrently).
-    bool inBakeMode() { return(isWarmMode && (0 != bakeCountdownM.load())); }
+    bool inBakeMode() const { return(isWarmMode && (0 != bakeCountdownM.load())); }
     // Should be only be called once 'debounced' if coming from a button press for example.
     // Cancel 'bake' mode if active; does not force to FROST mode.
     void cancelBakeDebounced() { bakeCountdownM.store(0); }
