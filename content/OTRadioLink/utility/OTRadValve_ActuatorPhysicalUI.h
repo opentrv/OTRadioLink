@@ -34,17 +34,17 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 #include <stdint.h>
 #include <OTV0p2Base.h>
 #include "OTV0P2BASE_Actuator.h"
-
 #include "OTV0P2BASE_SensorAmbientLight.h"
 #include "OTV0P2BASE_SensorTemperaturePot.h"
-
+#include "OTV0P2BASE_SensorOccupancy.h"
+#include "OTRadValve_ValveMode.h"
 
 // Use namespaces to help avoid collisions.
-namespace OTV0P2BASE
+namespace OTRadValve
     {
 
 
-// Base class for physical UI controls on V0p2 devices.
+// Base class for physical UI controls on V0p2 valve devices.
 class ActuatorPhysicalUIBase : public OTV0P2BASE::SimpleTSUint8Actuator
   {
   protected:
@@ -133,15 +133,18 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // Not thread-/ISR- safe.
     void userOpFeedback(bool includeVisual = true);
 
+    // Valve mode; must not be NULL.
+    ValveMode *const valveMode;
+
     // Occupancy tracker; must not be NULL.
-    PseudoSensorOccupancyTracker *const occupancy;
+    OTV0P2BASE::PseudoSensorOccupancyTracker *const occupancy;
 
     // Ambient light sensor; must not be NULL
-    const SensorAmbientLight *const ambLight;
+    const OTV0P2BASE::SensorAmbientLight *const ambLight;
 
     // Temperature pot; may be NULL.
     // May have read() called to poll pot status and provoke occupancy callbacks.
-    SensorTemperaturePot *const tempPotOpt;
+    OTV0P2BASE::SensorTemperaturePot *const tempPotOpt;
 
     // If non-NULL, callback used to provide additional feedback to the user beyond UI.
     // For example, can cause the motor to wiggle for tactile reinforcement.
@@ -175,17 +178,20 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
   public:
     // Construct a default instance.
     ModeButtonAndPotActuatorPhysicalUI(
-      PseudoSensorOccupancyTracker *const _occupancy,
-      const SensorAmbientLight *const _ambLight,
-      SensorTemperaturePot *const _tempPotOpt,
+      ValveMode *const _valveMode,
+      OTV0P2BASE::PseudoSensorOccupancyTracker *const _occupancy,
+      const OTV0P2BASE::SensorAmbientLight *const _ambLight,
+      OTV0P2BASE::SensorTemperaturePot *const _tempPotOpt,
       void (*const _LEDon)(), void (*const _LEDoff)(), void (*const _safeISRLEDon)(),
         bool _cycleMODE = false)
       : cycleMODE(_cycleMODE),
+        valveMode(_valveMode),
         occupancy(_occupancy), ambLight(_ambLight), tempPotOpt(_tempPotOpt),
-        LEDon(_LEDon),  LEDoff(_LEDoff),  safeISRLEDon(_safeISRLEDon)
+        LEDon(_LEDon), LEDoff(_LEDoff), safeISRLEDon(_safeISRLEDon)
       {
 //      // Abort constructor if any bad args...
-//      if((NULL == _occupancy) ||
+//      if((NULL == _valveMode) ||
+//         (NULL == _occupancy) ||
 //         (NULL == _ambLight) ||
 //         (NULL == _LEDon) ||
 //         (NULL == _LEDoff)) { panic(); }

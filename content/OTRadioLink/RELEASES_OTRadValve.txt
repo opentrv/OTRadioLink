@@ -9,8 +9,9 @@ or release/freeze points.
 
 
 pending:
-    DHD20161023: TODO-970: added ValveMode
-    DHD20161020: TODO-1026: pushd thresholds for movement out when using wide deadband
+    DHD20161023: TODO-970: ActuatorPhysicalUIBase now in OTRadValve.
+    DHD20161023: TODO-970: Added ValveMode.
+    DHD20161020: TODO-1026: Pushed out thresholds for movement out when using wide deadband
     DHD20161015: TODO-970: Created OTRadValve_Parameters.h.
     DHD20161002: TODO-621: tuning 'door opened' algorithm to fit some observed data.
 

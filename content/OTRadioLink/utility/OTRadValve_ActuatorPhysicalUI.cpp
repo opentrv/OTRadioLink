@@ -26,16 +26,16 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
  * is used to configure the different types.
  */
 
+#include <OTRadValve_ActuatorPhysicalUI.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <OTV0p2Base.h>
 #include <OTV0P2BASE_Actuator.h>
 
-#include "OTV0P2BASE_ActuatorPhysicalUI.h"
 
 
 // Use namespaces to help avoid collisions.
-namespace OTV0P2BASE
+namespace OTRadValve
     {
 
 
@@ -138,7 +138,7 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
     //  #else
     //    // Even more responsive at some possible energy cost...
         // Polls pot on every tick unless the room has been vacant for a day or two or is in FROST mode.
-        if(enhancedUIFeedback || forthTick || (inWarmMode() && !occupancy->longLongVacant()))
+        if(enhancedUIFeedback || forthTick || (valveMode->inWarmMode() && !occupancy->longLongVacant()))
     //  #endif
           {
           tempPotOpt->read();
@@ -149,7 +149,7 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
       #endif
           // Force to FROST mode (and cancel any erroneous BAKE, etc) when at FROST end of dial.
           const bool isLo = tempPotOpt->isAtLoEndStop();
-          if(isLo) { setWarmModeDebounced(false); }
+          if(isLo) { valveMode->setWarmModeDebounced(false); }
           // Feed back significant change in pot position, ie at temperature boundaries.
           // Synthesise a 'warm' target temp that distinguishes end stops...
           const uint8_t nominalWarmTarget = isLo ? 1 :
@@ -255,7 +255,7 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
 
       // Mode button not pressed: indicate current mode with flash(es); more flashes if actually calling for heat.
       // Force display while UI controls are being used, eg to indicate temp pot position.
-      if(justTouched || inWarmMode()) // Generate flash(es) if in WARM mode or fiddling with UI other than Mode button.
+      if(justTouched || valveMode->inWarmMode()) // Generate flash(es) if in WARM mode or fiddling with UI other than Mode button.
         {
         // DHD20131223: only flash if the room not known to be dark so as to save energy and avoid disturbing sleep, etc.
         // In this case force resample of light level frequently in case user turns light on eg to operate unit.
@@ -267,7 +267,7 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
   #if defined(ENABLE_NOMINAL_RAD_VALVE) && defined(ENABLE_LOCAL_TRV)
                || NominalRadValve.isCallingForHeat()
   #endif
-               || inBakeMode()) && !ambLight->isRoomDark()))
+               || valveMode->inBakeMode()) && !ambLight->isRoomDark()))
           {
           // First flash to indicate WARM mode (or pot being twiddled).
           LEDon();

@@ -65,7 +65,7 @@ class ValveMode : public OTV0P2BASE::SimpleTSUint8Sensor
 
     // Only relevant if isWarmMode is true.
     // Marked volatile to allow atomic access from ISR without a lock; decrements should lock out interrupts.
-    volatile OTV0P2BASE::Atomic_UInt8T bakeCountdownM = 0;
+    volatile OTV0P2BASE::Atomic_UInt8T bakeCountdownM;
 
 //FIXME
 //    #if defined(ENABLE_SIMPLIFIED_MODE_BAKE)
@@ -98,6 +98,9 @@ class ValveMode : public OTV0P2BASE::SimpleTSUint8Sensor
     // Modes.
     // Starts in VMODE_FROST.
     typedef enum { VMODE_FROST, VMODE_WARM, VMODE_BAKE } mode_t;
+
+    // Construct an instance.
+    ValveMode() : bakeCountdownM(0) { }
 
     // Returns true if the mode value passed is valid, ie in range [0,2].
     virtual bool isValid(const uint8_t value) const { return(value <= VMODE_BAKE); }
