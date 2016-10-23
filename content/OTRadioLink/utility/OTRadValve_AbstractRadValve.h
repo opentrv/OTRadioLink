@@ -84,6 +84,22 @@ class AbstractRadValve : public OTV0P2BASE::SimpleTSUint8Actuator
     // against the minimum open percentage.
     virtual bool isControlledValveReallyOpen() const { return(isInNormalRunState() && (value >= getMinPercentOpen())); }
 
+    // True if this unit is actively calling for heat.
+    // This implies that the temperature is (significantly) under target,
+    // the valve is really open,
+    // and this needs more heat than can be passively drawn from an already-running boiler.
+    // The default is to return true when valve is safely open.
+    // Thread-safe and ISR safe.
+    virtual bool isCallingForHeat() const { return(isControlledValveReallyOpen() && (value >= DEFAULT_VALVE_PC_SAFER_OPEN)); }
+
+    // True if the room/ambient temperature is below target, enough to likely call for heat.
+    // This implies that the temperature is (significantly) under target,
+    // the valve is really open,
+    // and this needs more heat than can be passively drawn from an already-running boiler.
+    // The default is to return same as isCallingForHeat().
+    // Thread-safe and ISR safe.
+    virtual bool isUnderTarget() const { return(isCallingForHeat()); }
+
     // Get estimated minimum percentage open for significant flow for this device; strictly positive in range [1,99].
     // Defaults to 1 which is minimum possible legitimate value.
     virtual uint8_t getMinPercentOpen() const { return(1); }

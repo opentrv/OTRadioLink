@@ -264,9 +264,7 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
         // this is to conserve batteries for those people who leave the valves in WARM mode all the time.
         if(justTouched ||
            ((forthTick
-  #if defined(ENABLE_NOMINAL_RAD_VALVE) && defined(ENABLE_LOCAL_TRV)
-               || NominalRadValve.isCallingForHeat()
-  #endif
+               || valveController->isCallingForHeat()
                || valveMode->inBakeMode()) && !ambLight->isRoomDark()))
           {
           // First flash to indicate WARM mode (or pot being twiddled).
@@ -280,12 +278,11 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
           else if(!isComfortTemperature(wt)) { tinyPause(); }
           else { mediumPause(); }
 
-  #if defined(ENABLE_NOMINAL_RAD_VALVE) && defined(ENABLE_LOCAL_TRV)
           // Second flash to indicate actually calling for heat,
           // or likely to be calling for heat while interacting with the controls, to give fast user feedback (TODO-695).
-          if((enhancedUIFeedback && NominalRadValve.isUnderTarget()) ||
-              NominalRadValve.isCallingForHeat() ||
-              inBakeMode())
+          if((enhancedUIFeedback && valveController->isUnderTarget()) ||
+              valveController->isCallingForHeat() ||
+              valveMode->inBakeMode())
             {
             LEDoff();
             offPause(); // V0.09 was mediumPause().
@@ -295,7 +292,7 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
             else if(!isComfortTemperature(wt)) { OTV0P2BASE::sleepLowPowerMs((VERYTINY_PAUSE_MS + TINY_PAUSE_MS) / 2); }
             else { tinyPause(); }
 
-            if(inBakeMode())
+            if(valveMode->inBakeMode())
               {
               // Third (lengthened) flash to indicate BAKE mode.
               LEDoff();
@@ -308,11 +305,9 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
               else { mediumPause(); }
               }
             }
-  #endif
           }
         }
 
-  #if defined(ENABLE_NOMINAL_RAD_VALVE) && defined(ENABLE_LOCAL_TRV)
       // Even in FROST mode, and if actually calling for heat (eg opening the rad valve significantly, etc)
       // then emit a tiny double flash on every 4th tick.
       // This call for heat may be frost protection or pre-warming / anticipating demand.
@@ -320,7 +315,7 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
       // DHD20131223: only flash if the room is not dark (ie or if no working light sensor) so as to save energy and avoid disturbing sleep, etc.
       else if(forthTick &&
               !ambLight->isRoomDark() &&
-              NominalRadValve.isCallingForHeat() /* &&
+              valveController->isCallingForHeat() /* &&
               NominalRadValve.isControlledValveReallyOpen() */ )
         {
         // Double flash every 4th tick indicates call for heat while in FROST MODE (matches call for heat in WARM mode).
@@ -331,7 +326,6 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
         LEDon(); // flash
         veryTinyPause();
         }
-  #endif
 
 // FIXME
 //      // Enforce any changes that may have been driven by other UI components (ie other than MODE button).

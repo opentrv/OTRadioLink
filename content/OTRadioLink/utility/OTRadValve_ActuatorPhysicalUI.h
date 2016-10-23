@@ -38,6 +38,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 #include "OTV0P2BASE_SensorTemperaturePot.h"
 #include "OTV0P2BASE_SensorOccupancy.h"
 #include "OTRadValve_ValveMode.h"
+#include "OTRadValve_AbstractRadValve.h"
 
 // Use namespaces to help avoid collisions.
 namespace OTRadValve
@@ -136,10 +137,13 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // Valve mode; must not be NULL.
     ValveMode *const valveMode;
 
+    // Read-only access to valve controller state.
+    const AbstractRadValve *const valveController;
+
     // Occupancy tracker; must not be NULL.
     OTV0P2BASE::PseudoSensorOccupancyTracker *const occupancy;
 
-    // Ambient light sensor; must not be NULL
+    // Read-only acces to ambient light sensor; must not be NULL
     const OTV0P2BASE::SensorAmbientLight *const ambLight;
 
     // Temperature pot; may be NULL.
@@ -179,18 +183,20 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // Construct a default instance.
     ModeButtonAndPotActuatorPhysicalUI(
       ValveMode *const _valveMode,
+      const AbstractRadValve *const _valveController,
       OTV0P2BASE::PseudoSensorOccupancyTracker *const _occupancy,
       const OTV0P2BASE::SensorAmbientLight *const _ambLight,
       OTV0P2BASE::SensorTemperaturePot *const _tempPotOpt,
       void (*const _LEDon)(), void (*const _LEDoff)(), void (*const _safeISRLEDon)(),
         bool _cycleMODE = false)
       : cycleMODE(_cycleMODE),
-        valveMode(_valveMode),
+        valveMode(_valveMode), valveController(_valveController),
         occupancy(_occupancy), ambLight(_ambLight), tempPotOpt(_tempPotOpt),
         LEDon(_LEDon), LEDoff(_LEDoff), safeISRLEDon(_safeISRLEDon)
       {
 //      // Abort constructor if any bad args...
 //      if((NULL == _valveMode) ||
+//         (NULL == _valveController) ||
 //         (NULL == _occupancy) ||
 //         (NULL == _ambLight) ||
 //         (NULL == _LEDon) ||
