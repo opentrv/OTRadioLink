@@ -76,9 +76,9 @@ class TempControlBase : public OTV0P2BASE::SimpleTSUint8Sensor
     virtual bool setWARMTargetC(uint8_t /*tempC*/) { }  // Does nothing by default.
 
     // True if specified temperature is at or below 'eco' WARM target temperature, ie is eco-friendly.
-    virtual bool isEcoTemperature(uint8_t tempC) { return(true); } // ((tempC) <= PARAMS::WARM_ECO)
+    virtual bool isEcoTemperature(uint8_t tempC) { return(tempC < SAFE_ROOM_TEMPERATURE); } // ((tempC) <= PARAMS::WARM_ECO)
     // True if specified temperature is at or above 'comfort' WARM target temperature.
-    virtual bool isComfortTemperature(uint8_t tempC) { return(false); } // ((tempC) >= PARAMS::WARM_COM)
+    virtual bool isComfortTemperature(uint8_t tempC) { return(tempC > SAFE_ROOM_TEMPERATURE); } // ((tempC) >= PARAMS::WARM_COM)
   };
 
 
