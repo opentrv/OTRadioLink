@@ -31,6 +31,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 // Notion of basic mode of OpenTRV thermostatic radiator valve: FROST, WARM or BAKE.
 #include "utility/OTRadValve_ValveMode.h"
 
+// Temperature control/setting for OpenTRV thermostatic radiator valve.
+#include "utility/OTRadValve_TempControl.h"
+
 // Abstract/base interface for basic (thermostatic) radiator valves.
 #include "utility/OTRadValve_AbstractRadValve.h"
 
