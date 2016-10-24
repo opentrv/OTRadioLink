@@ -87,8 +87,8 @@ namespace OTV0P2BASE
 #define LED_HEATCALL 13 // ATMega328P-PU PDIP pin 19, PB5. SHARED WITH SPI DUTIES as per Arduino UNO...
 #define LED_HEATCALL_ON() { fastDigitalWrite(LED_HEATCALL, HIGH); }
 #define LED_HEATCALL_OFF() { fastDigitalWrite(LED_HEATCALL, LOW); }
-// ISR-safe UI LED ON, else nothing if no ISR-safe version.
-#define LED_HEATCALL_ON_ISR_SAFE() { }
+// ISR-safe UI LED ON; does nothing if no ISR-safe version.
+inline void LED_HEATCALL_ON_ISR_SAFE() { }
 #else // REV0, REV2 dedicated output pin.
 #define LED_HEATCALL_L 4 // ATMega328P-PU PDIP pin 6, PD4.  PULL LOW TO ACTIVATE.  Not shared with SPI.
 #define LED_HEATCALL_ON() { fastDigitalWrite(LED_HEATCALL_L, LOW); }
@@ -98,7 +98,7 @@ namespace OTV0P2BASE
 #define LED_HEATCALL_OFF()
 #endif // 0
 // ISR-safe UI LED ON.
-#define LED_HEATCALL_ON_ISR_SAFE() { LED_HEATCALL_ON(); }
+inline void LED_HEATCALL_ON_ISR_SAFE() { LED_HEATCALL_ON(); }
 
 // Secondary UI LED available on some boards.
 #if (V0p2_REV >= 7) && (V0p2_REV <= 9)

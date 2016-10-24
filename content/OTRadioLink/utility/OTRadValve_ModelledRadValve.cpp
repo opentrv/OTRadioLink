@@ -26,27 +26,11 @@ namespace OTRadValve
     {
 
 
-// Offset from raw temperature to get reference temperature in C/16.
-static const int_fast8_t refTempOffsetC16 = 8;
-
 ModelledRadValveInputState::ModelledRadValveInputState(const int_fast16_t realTempC16) :
     targetTempC(12 /* FROST */),
     minPCOpen(OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN), maxPCOpen(100),
     widenDeadband(false), glacial(false), hasEcoBias(false), inBakeMode(false), fastResponseRequired(false)
     { setReferenceTemperatures(realTempC16); }
-
-// Calculate and store reference temperature(s) from real temperature supplied.
-// Proportional temperature regulation is in a 1C band.
-// By default, for a given target XC the rad is off at (X+1)C so temperature oscillates around that point.
-// This routine shifts the reference point at which the rad is off to (X+0.5C)
-// ie to the middle of the specified degree, which is more intuitive,
-// and which may save a little energy if users target the specified temperatures.
-// Suggestion c/o GG ~2014/10 code, and generally less misleading anyway!
-void ModelledRadValveInputState::setReferenceTemperatures(const int_fast16_t currentTempC16)
-  {
-  const int_fast16_t referenceTempC16 = currentTempC16 + refTempOffsetC16; // TODO-386: push targeted temperature down by 0.5C to middle of degree.
-  refTempC16 = referenceTempC16;
-  }
 
 
 // Minimum slew/error % distance in central range; should be larger than smallest temperature-sensor-driven step (6) to be effective; [1,100].
@@ -187,7 +171,7 @@ ModelledRadValveState::ModelledRadValveState(const ModelledRadValveInputState &i
   valveTurndownCountdownM(0), valveTurnupCountdownM(0)
   {
   // Fills array exactly as tick() would when !initialised.
-  const int_fast16_t rawTempC16 = inputState.refTempC16 - refTempOffsetC16; // Remove adjustment for target centre.
+  const int_fast16_t rawTempC16 = inputState.refTempC16 - ModelledRadValveInputState::refTempOffsetC16; // Remove adjustment for target centre.
   for(int i = filterLength; --i >= 0; ) { prevRawTempC16[i] = rawTempC16; }
   }
 
@@ -200,7 +184,7 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const Modelle
   // Forget last event if any.
   clearEvent();
 
-  const int_fast16_t rawTempC16 = inputState.refTempC16 - refTempOffsetC16; // Remove adjustment for target centre.
+  const int_fast16_t rawTempC16 = inputState.refTempC16 - ModelledRadValveInputState::refTempOffsetC16; // Remove adjustment for target centre.
   // Do some one-off work on first tick in new instance.
   if(!initialised)
     {
@@ -273,7 +257,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
 #endif
 
   // Possibly-adjusted and/or smoothed temperature to use for targeting.
-  const int_fast16_t adjustedTempC16 = isFiltering ? (getSmoothedRecent() + refTempOffsetC16) : inputState.refTempC16;
+  const int_fast16_t adjustedTempC16 = isFiltering ? (getSmoothedRecent() + ModelledRadValveInputState::refTempOffsetC16) : inputState.refTempC16;
   // When reduced to whole Celsius then fewer bits are needed to cover expected temperatures.
   const int_fast8_t adjustedTempC = (int_fast8_t) (adjustedTempC16 >> 4);
 
@@ -489,7 +473,12 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
       // TODO-453: avoid closing the valve at all when the (raw) temperature is not rising, so as to minimise valve movement.
       // Since the target is the top of the proportional range than nothing within it requires the temperature to be *forced* down.
       // Possibly don't apply this rule at the very top of the range in case filtering is on and the filtered value moves differently to the raw.
-      if(getRawDelta() <= 0) { return(valvePCOpen); }
+      const int rise = getRawDelta();
+      if(rise < 0) { return(valvePCOpen); }
+      if((0 == rise) && inputState.widenDeadband) { return(valvePCOpen); }
+
+      // TODO-1026: minimise movement in dark to avoid disturbing sleep (darkness indicated with wide deadband).
+      if(inputState.widenDeadband && lsbits < 14) { return(valvePCOpen); }
 
       // Close glacially if explicitly requested or if temperature undershoot has happened or is a danger.
       // Also be glacial if in soft setback which aims to allow temperatures to drift passively down a little.
@@ -525,11 +514,14 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
     // TODO-453: minimise valve movement (and thus noise and battery use).
     // Keeping the temperature steady anywhere in the target proportional range
     // while minimising valve movement/noise/etc is a good goal,
-    // so if raw temperatures are rising at the moment then leave the valve as-is.
+    // so if raw temperatures are rising (oer steady) at the moment then leave the valve as-is.
     // If fairly near the final target then also leave the valve as-is (TODO-453 & TODO-451).
+    // TODO-1026: minimise movement in dark to avoid disturbing sleep (dark indicated with wide deadband).
+    // DHD20161020: reduced lower threshold with wide deadband from 8 to 2 (cf 12 without).
     const int rise = getRawDelta();
     if(rise > 0) { return(valvePCOpen); }
-    if( /* (0 == rise) && */ (lsbits >= (inputState.widenDeadband ? 8 : 12))) { return(valvePCOpen); }
+    if((0 == rise) && inputState.widenDeadband) { return(valvePCOpen); }
+    if((lsbits >= (inputState.widenDeadband ? 2 : 12))) { return(valvePCOpen); }
 
     // Open glacially if explicitly requested or if temperature overshoot has happened or is a danger.
     // Also be glacial if in soft setback which aims to allow temperatures to drift passively down a little.
@@ -545,7 +537,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
     // Slew open faster with comfort bias.  (Or with explicit request? inputState.fastResponseRequired TODO-593)
     const uint8_t maxSlew = (!inputState.hasEcoBias) ? TRV_SLEW_PC_PER_MIN_FAST : TRV_MAX_SLEW_PC_PER_MIN;
     if(slew > maxSlew)
-        { return(valvePCOpen + maxSlew); } // Cap slew rate open.
+        { return(valvePCOpen + maxSlew); } // Cap slew rate towards open.
     // Adjust directly to target.
     return(targetPO);
     }

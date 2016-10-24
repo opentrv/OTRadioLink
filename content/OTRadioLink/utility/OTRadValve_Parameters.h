@@ -59,7 +59,7 @@ namespace OTRadValve
     //   * ecoWarm  'warm' in ECO mode.
     //   * comWarm  'warm' in comfort mode.
     template<uint8_t ecoMinC, uint8_t comMinC, uint8_t ecoWarmC, uint8_t comWarmC,
-             uint8_t bakeLiftC = 10, uint8_t bakeLiftM = 30>
+             uint8_t bakeLiftC = 10>
     class ValveControlParameters
         {
         public:
@@ -95,8 +95,6 @@ namespace OTRadValve
             // Raise target by this many degrees in 'BAKE' mode (strictly positive).
             // DHD20160927 TODO-980 raised from 5 to 10 to ensure very rarely fails to trigger in in shoulder season.
             static constexpr uint8_t BAKE_UPLIFT = bakeLiftC;
-            // Maximum 'BAKE' minutes, ie time to crank heating up to BAKE setting (minutes, strictly positive, <255).
-            static constexpr uint8_t BAKE_MAX_M = bakeLiftM;
 
             // Initial minor setback degrees C (strictly positive).  Note that 1C heating setback may result in ~8% saving in the UK.
             // This may be the maximum setback applied with a comfort bias for example.
@@ -145,6 +143,9 @@ namespace OTRadValve
         65  // Target DHW WARM temperature for Comfort bias.
         > DEFAULT_DHW_ValveControlParameters;
 
+
+    // Default 'BAKE' minutes, ie time to crank heating up to BAKE setting (minutes, strictly positive, <255).
+    static const uint8_t DEFAULT_BAKE_MAX_M = 30;
 
     // Default minimum valve percentage open to be considered actually/significantly open; [1,99].
     // Anything like this will usually be shut or very minimal flows.

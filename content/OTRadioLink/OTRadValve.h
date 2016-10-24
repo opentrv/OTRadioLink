@@ -28,11 +28,17 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 // OpenTRV radiator valve basic parameters..
 #include "utility/OTRadValve_Parameters.h"
 
+// Notion of basic mode of OpenTRV thermostatic radiator valve: FROST, WARM or BAKE.
+#include "utility/OTRadValve_ValveMode.h"
+
 // Abstract/base interface for basic (thermostatic) radiator valves.
 #include "utility/OTRadValve_AbstractRadValve.h"
 
 // OpenTRV model and smart control of (thermostatic) radiator valve.
 #include "utility/OTRadValve_ModelledRadValve.h"
+
+// Physical valve control UI, treated as an actuator.
+#include "utility/OTRadValve_ActuatorPhysicalUI.h"
 
 // Driver for FHT8V wireless valve actuator (and FS20 protocol encode/decode).
 #include "utility/OTRadValve_FHT8VRadValve.h"

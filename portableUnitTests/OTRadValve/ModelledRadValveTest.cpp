@@ -118,44 +118,57 @@ TEST(ModelledRadValve,MRVSExtremes)
 
     // Test that soft setback works as expected to support dark-based quick setback.
     // ENERGY SAVING RULE TEST (TODO-442 2a: "Setback in WARM mode must happen in dark (quick response) or long vacant room.")
-    OTRadValve::ModelledRadValveInputState is3(100<<4);
-    is3.targetTempC = 25;
     // Try a range of (whole-degree) offsets...
     for(int offset = -2; offset <= +2; ++offset)
         {
         // Try soft setback off and on.
         for(int s = 0; s < 2; ++s)
             {
+            OTRadValve::ModelledRadValveInputState is3(100<<4);
+            is3.targetTempC = 25;
+            is3.widenDeadband = (s == 1);
             // Other than in the proportional range, valve should unconditionally be driven off/on by gross temperature error.
             if(0 != offset)
                 {
-                is3.refTempC16 = (is3.targetTempC + offset) << 4;
+                is3.setReferenceTemperatures((is3.targetTempC + offset) << 4);
                 // Where adjusted reference temperature is (well) below target, valve should be driven on.
                 OTRadValve::ModelledRadValveState rs3a;
                 valvePCOpen = 0;
                 rs3a.tick(valvePCOpen, is3);
 if(verbose) { fprintf(stderr, "@ %d %d\n", offset, valvePCOpen); }
-                ASSERT_TRUE((offset < 0) ? (valvePCOpen > 0) : (0 == valvePCOpen));
+                EXPECT_TRUE((offset < 0) ? (valvePCOpen > 0) : (0 == valvePCOpen)) << (int)valvePCOpen;
                 // Where adjusted reference temperature is (well) above target, valve should be driven off.
                 OTRadValve::ModelledRadValveState rs3b;
                 valvePCOpen = 100;
                 rs3b.tick(valvePCOpen, is3);
-                ASSERT_TRUE((offset < 0) ? (100 == valvePCOpen) : (valvePCOpen < 100));
+                EXPECT_TRUE((offset < 0) ? (100 == valvePCOpen) : (valvePCOpen < 100)) << (int)valvePCOpen;
                 }
             else
                 {
-                // Below the half way mark the valve should always be opened (from off), soft setback or not.
-                is3.refTempC16 = (is3.targetTempC << 4) + 0x4;
+                // In proportional range, ie fairly close to target.
+
+                // (Even well) below the half way mark the valve should only be closed
+                // with temperature moving in wrong direction and without soft setback.
+                is3.setReferenceTemperatures((is3.targetTempC << 4) + 0x1);
                 OTRadValve::ModelledRadValveState rs3c;
-                valvePCOpen = 0;
+                valvePCOpen = 100;
                 rs3c.tick(valvePCOpen, is3);
-                ASSERT_TRUE(valvePCOpen > 0);
-                // Above the half way mark the valve should only be opened without soft setback.
-                is3.refTempC16 = (is3.targetTempC << 4) + 0xc;
+                if(is3.widenDeadband) { EXPECT_EQ(100, valvePCOpen); } else { EXPECT_GT(100, valvePCOpen); }
+                --is3.refTempC16;
+                rs3c.tick(valvePCOpen, is3);
+                if(is3.widenDeadband) { EXPECT_EQ(100, valvePCOpen); } else { EXPECT_GT(100, valvePCOpen); }
+
+                // (Even well) above the half way mark the valve should only be opened
+                // with temperature moving in wrong direction and without soft setback.
+                is3.setReferenceTemperatures((is3.targetTempC << 4) + 0xe);
                 OTRadValve::ModelledRadValveState rs3d;
                 valvePCOpen = 0;
                 rs3d.tick(valvePCOpen, is3);
-                ASSERT_TRUE(0 == valvePCOpen);
+                EXPECT_EQ(0, valvePCOpen);
+// FIXME
+//                ++is3.refTempC16;
+//                rs3c.tick(valvePCOpen, is3);
+//                if(is3.widenDeadband) { EXPECT_EQ(0, valvePCOpen); } else { EXPECT_LT(0, valvePCOpen); }
                 }
             }
         }

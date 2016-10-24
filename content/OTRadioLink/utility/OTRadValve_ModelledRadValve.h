@@ -45,11 +45,24 @@ namespace OTRadValve
 // to be able to efficiently process signed values with sufficient range for room temperatures.
 struct ModelledRadValveInputState
   {
+  // Offset from raw temperature to get reference temperature in C/16.
+  static const int_fast8_t refTempOffsetC16 = 8;
+
   // All initial values set by the constructor are sane, but should not be relied on.
   ModelledRadValveInputState(const int_fast16_t realTempC16);
 
-  // Calculate reference temperature from real temperature.
-  void setReferenceTemperatures(const int_fast16_t currentTempC16);
+  // Calculate and store reference temperature(s) from real temperature supplied.
+  // Proportional temperature regulation is in a 1C band.
+  // By default, for a given target XC the rad is off at (X+1)C so temperature oscillates around that point.
+  // This routine shifts the reference point at which the rad is off to (X+0.5C)
+  // ie to the middle of the specified degree, which is more intuitive,
+  // and which may save a little energy if users target the specified temperatures.
+  // Suggestion c/o GG ~2014/10 code, and generally less misleading anyway!
+  void setReferenceTemperatures(const int_fast16_t currentTempC16)
+    {
+    const int_fast16_t referenceTempC16 = currentTempC16 + refTempOffsetC16; // TODO-386: push targeted temperature down by 0.5C to middle of degree.
+    refTempC16 = referenceTempC16;
+    }
 
   // Current target room temperature in C in range [MIN_TARGET_C,MAX_TARGET_C].
   uint8_t targetTempC;
