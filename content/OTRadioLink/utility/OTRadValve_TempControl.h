@@ -54,10 +54,10 @@ class TempControlBase : public OTV0P2BASE::SimpleTSUint8Sensor
     // Get (possibly dynamically-set) thresholds/parameters.
     // Get 'FROST' protection target in C; no higher than getWARMTargetC() returns, strictly positive, in range [MIN_TARGET_C,MAX_TARGET_C].
     // Depends dynamically on current (last-read) temp-pot setting.
-    virtual uint8_t getFROSTTargetC();
+    virtual uint8_t getFROSTTargetC() { return(MIN_TARGET_C); }
     // Get 'WARM' target in C; no lower than getFROSTTargetC() returns, strictly positive, in range [MIN_TARGET_C,MAX_TARGET_C].
     // Depends dynamically on current (last-read) temp-pot setting.
-    virtual uint8_t getWARMTargetC();
+    virtual uint8_t getWARMTargetC() { return(SAFE_ROOM_TEMPERATURE); }
 
 //    #if defined(TEMP_POT_AVAILABLE)
 //    // Expose internal calculation of WARM target based on user physical control for unit testing.
@@ -70,10 +70,10 @@ class TempControlBase : public OTV0P2BASE::SimpleTSUint8Sensor
     // Set (non-volatile) 'FROST' protection target in C; no higher than getWARMTargetC() returns, strictly positive, in range [MIN_TARGET_C,MAX_TARGET_C].
     // Can also be used, even when a temperature pot is present, to set a floor setback temperature.
     // Returns false if not set, eg because outside range [MIN_TARGET_C,MAX_TARGET_C], else returns true.
-    virtual bool setFROSTTargetC(uint8_t tempC) { } // Does nothing by default.
+    virtual bool setFROSTTargetC(uint8_t /*tempC*/) { } // Does nothing by default.
     // Set 'WARM' target in C; no lower than getFROSTTargetC() returns, strictly positive, in range [MIN_TARGET_C,MAX_TARGET_C].
     // Returns false if not set, eg because below FROST setting or outside range [MIN_TARGET_C,MAX_TARGET_C], else returns true.
-    virtual bool setWARMTargetC(uint8_t tempC) { }  // Does nothing by default.
+    virtual bool setWARMTargetC(uint8_t /*tempC*/) { }  // Does nothing by default.
 
     // True if specified temperature is at or below 'eco' WARM target temperature, ie is eco-friendly.
     virtual bool isEcoTemperature(uint8_t tempC) { return(true); } // ((tempC) <= PARAMS::WARM_ECO)
