@@ -38,14 +38,11 @@ namespace OTRadValve
     {
 
 
-// Abstract class for motor drive.
-// Supports abstract model plus remote (wireless) and local/direct implementations.
-// Implementations may require read() called at a fixed rate,
-// though should tolerate calls being skipped when time is tight for other operations,
-// since read() may take substantial time (hundreds of milliseconds).
-// Implementations must document when read() calls are critical,
-// and/or expose alternative API for the time-critical elements.
-class TempControl : public OTV0P2BASE::SimpleTSUint8Sensor
+// Base class for temperature control.
+// Default as provided by this base is a single fixed safe room temperature.
+// Derived classes support such items as non-volatile CLI-configurable temperatures
+// and analogue temperature potentiometers (such as the REV7/DORM1/TRV1).
+class TempControlBase : public OTV0P2BASE::SimpleTSUint8Sensor
   {
   };
 
