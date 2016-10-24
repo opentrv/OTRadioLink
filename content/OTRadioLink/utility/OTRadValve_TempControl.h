@@ -67,6 +67,7 @@ class TempControlBase : public OTV0P2BASE::SimpleTSUint8Sensor
 //    uint8_t computeWARMTargetC(uint8_t pot, uint8_t loEndStop, uint8_t hiEndStop);
 //    #endif
 
+    // Some systems allow FROST and WARM targets to be set and stored, eg REV1.
     // Set (non-volatile) 'FROST' protection target in C; no higher than getWARMTargetC() returns, strictly positive, in range [MIN_TARGET_C,MAX_TARGET_C].
     // Can also be used, even when a temperature pot is present, to set a floor setback temperature.
     // Returns false if not set, eg because outside range [MIN_TARGET_C,MAX_TARGET_C], else returns true.
