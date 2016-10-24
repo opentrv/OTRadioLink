@@ -49,15 +49,15 @@ class TempControlBase : public OTV0P2BASE::SimpleTSUint8Sensor
     // Several system parameters are adjusted depending on the bias,
     // with 'eco' slanted toward saving energy, eg with lower target temperatures and shorter on-times.
     // This is determined from user-settable temperature values.
-    virtual bool hasEcoBias() { return(true); }
+    virtual bool hasEcoBias() const { return(true); }
 
     // Get (possibly dynamically-set) thresholds/parameters.
     // Get 'FROST' protection target in C; no higher than getWARMTargetC() returns, strictly positive, in range [MIN_TARGET_C,MAX_TARGET_C].
     // Depends dynamically on current (last-read) temp-pot setting.
-    virtual uint8_t getFROSTTargetC() { return(MIN_TARGET_C); }
+    virtual uint8_t getFROSTTargetC() const { return(MIN_TARGET_C); }
     // Get 'WARM' target in C; no lower than getFROSTTargetC() returns, strictly positive, in range [MIN_TARGET_C,MAX_TARGET_C].
     // Depends dynamically on current (last-read) temp-pot setting.
-    virtual uint8_t getWARMTargetC() { return(SAFE_ROOM_TEMPERATURE); }
+    virtual uint8_t getWARMTargetC() const { return(SAFE_ROOM_TEMPERATURE); }
 
 //    #if defined(TEMP_POT_AVAILABLE)
 //    // Expose internal calculation of WARM target based on user physical control for unit testing.
@@ -77,10 +77,19 @@ class TempControlBase : public OTV0P2BASE::SimpleTSUint8Sensor
     virtual bool setWARMTargetC(uint8_t /*tempC*/) { }  // Does nothing by default.
 
     // True if specified temperature is at or below 'eco' WARM target temperature, ie is eco-friendly.
-    virtual bool isEcoTemperature(uint8_t tempC) { return(tempC <= SAFE_ROOM_TEMPERATURE); } // ((tempC) <= PARAMS::WARM_ECO)
+    virtual bool isEcoTemperature(uint8_t tempC) const { return(tempC < getWARMTargetC()); } // ((tempC) <= PARAMS::WARM_ECO)
     // True if specified temperature is at or above 'comfort' WARM target temperature.
-    virtual bool isComfortTemperature(uint8_t tempC) { return(tempC > SAFE_ROOM_TEMPERATURE); } // ((tempC) >= PARAMS::WARM_COM)
+    virtual bool isComfortTemperature(uint8_t tempC) const { return(tempC > getWARMTargetC()); } // ((tempC) >= PARAMS::WARM_COM)
   };
+
+
+#ifdef ARDUINO_ARCH_AVR
+// Non-volatile (EEPROM) stored WARM threshold for some devices without physical controls, eg REV1.
+class TempControlSimpleEEPROMBacked : public TempControlBase
+  {
+
+  };
+#endif // ARDUINO_ARCH_AVR
 
 
     }
