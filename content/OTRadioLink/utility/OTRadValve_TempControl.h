@@ -59,14 +59,6 @@ class TempControlBase // : public OTV0P2BASE::SimpleTSUint8Sensor
     // Depends dynamically on current (last-read) temp-pot setting.
     virtual uint8_t getWARMTargetC() const { return(SAFE_ROOM_TEMPERATURE); }
 
-//    #if defined(TEMP_POT_AVAILABLE)
-//    // Expose internal calculation of WARM target based on user physical control for unit testing.
-//    // Derived from temperature pot position, 0 for coldest (most eco), 255 for hotest (comfort).
-//    // Temp ranges from eco-1C to comfort+1C levels across full (reduced jitter) [0,255] pot range.
-//    // Everything beyond the lo/hi end-stop thresholds is forced to the appropriate end temperature.
-//    uint8_t computeWARMTargetC(uint8_t pot, uint8_t loEndStop, uint8_t hiEndStop);
-//    #endif
-
     // Some systems allow FROST and WARM targets to be set and stored, eg REV1.
     // Set (non-volatile) 'FROST' protection target in C; no higher than getWARMTargetC() returns, strictly positive, in range [MIN_TARGET_C,MAX_TARGET_C].
     // Can also be used, even when a temperature pot is present, to set a floor setback temperature.
