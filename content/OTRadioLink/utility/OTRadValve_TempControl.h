@@ -42,7 +42,7 @@ namespace OTRadValve
 // Default as provided by this base is a single fixed safe room temperature.
 // Derived classes support such items as non-volatile CLI-configurable temperatures (eg REV1)
 // and analogue temperature potentiometers (such as the REV2 and REV7/DORM1/TRV1).
-class TempControlBase : public OTV0P2BASE::SimpleTSUint8Sensor
+class TempControlBase // : public OTV0P2BASE::SimpleTSUint8Sensor
   {
   public:
     // If true (the default) then the system has an 'Eco' energy-saving bias, else it has a 'comfort' bias.
