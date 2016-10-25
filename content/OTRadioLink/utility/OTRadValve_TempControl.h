@@ -85,9 +85,53 @@ class TempControlBase // : public OTV0P2BASE::SimpleTSUint8Sensor
 
 #ifdef ARDUINO_ARCH_AVR
 // Non-volatile (EEPROM) stored WARM threshold for some devices without physical controls, eg REV1.
+// Typically selected if defined(ENABLE_SETTABLE_TARGET_TEMPERATURES)
+#define TempControlSimpleEEPROMBacked_DEFINED
+template <class valveControlParams = DEFAULT_ValveControlParameters>
 class TempControlSimpleEEPROMBacked : public TempControlBase
   {
+  public:
+    virtual uint8_t getWARMTargetC()
+      {
+      // Get persisted value, if any.
+      const uint8_t stored = eeprom_read_byte((uint8_t *)V0P2BASE_EE_START_WARM_C);
+      // If out of bounds or no stored value then use default (or frost value if set and higher).
+      if((stored < OTRadValve::MIN_TARGET_C) || (stored > OTRadValve::MAX_TARGET_C)) { return(OTV0P2BASE::fnmax(valveControlParams::WARM, getFROSTTargetC())); }
+      // Return valid persisted value (or frost value if set and higher).
+      return(OTV0P2BASE::fnmax(stored, getFROSTTargetC()));
+      }
 
+    virtual uint8_t getFROSTTargetC()
+      {
+      // Get persisted value, if any.
+      const uint8_t stored = eeprom_read_byte((uint8_t *)V0P2BASE_EE_START_FROST_C);
+      // If out of bounds or no stored value then use default.
+      if((stored < OTRadValve::MIN_TARGET_C) || (stored > OTRadValve::MAX_TARGET_C)) { return(valveControlParams::FROST); }
+      // TODO-403: cannot use hasEcoBias() with RH% as that would cause infinite recursion!
+      // Return valid persisted value.
+      return(stored);
+      }
+
+    // Set (non-volatile) 'FROST' protection target in C; no higher than getWARMTargetC() returns, strictly positive, in range [MIN_TARGET_C,MAX_TARGET_C].
+    // Can also be used, even when a temperature pot is present, to set a floor setback temperature.
+    // Returns false if not set, eg because outside range [MIN_TARGET_C,MAX_TARGET_C], else returns true.
+    bool setFROSTTargetC(const uint8_t tempC)
+      {
+      if((tempC < OTRadValve::MIN_TARGET_C) || (tempC > OTRadValve::MAX_TARGET_C)) { return(false); } // Invalid temperature.
+      if(tempC > getWARMTargetC()) { return(false); } // Cannot set above WARM target.
+      OTV0P2BASE::eeprom_smart_update_byte((uint8_t *)V0P2BASE_EE_START_FROST_C, tempC); // Update in EEPROM if necessary.
+      return(true); // Assume value correctly written.
+      }
+
+    // Set 'WARM' target in C; no lower than getFROSTTargetC() returns, strictly positive, in range [MIN_TARGET_C,MAX_TARGET_C].
+    // Returns false if not set, eg because below FROST setting or outside range [MIN_TARGET_C,MAX_TARGET_C], else returns true.
+    bool setWARMTargetC(const uint8_t tempC)
+      {
+      if((tempC < OTRadValve::MIN_TARGET_C) || (tempC > OTRadValve::MAX_TARGET_C)) { return(false); } // Invalid temperature.
+      if(tempC < getFROSTTargetC()) { return(false); } // Cannot set below FROST target.
+      OTV0P2BASE::eeprom_smart_update_byte((uint8_t *)V0P2BASE_EE_START_WARM_C, tempC); // Update in EEPROM if necessary.
+      return(true); // Assume value correctly written.
+      }
   };
 #endif // ARDUINO_ARCH_AVR
 
