@@ -38,6 +38,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 #include "OTV0P2BASE_SensorTemperaturePot.h"
 #include "OTV0P2BASE_SensorOccupancy.h"
 #include "OTRadValve_ValveMode.h"
+#include "OTRadValve_TempControl.h"
 #include "OTRadValve_AbstractRadValve.h"
 
 // Use namespaces to help avoid collisions.
@@ -137,6 +138,9 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // Valve mode; must not be NULL.
     ValveMode *const valveMode;
 
+    // Temperature control for set-points; must not be NULL.
+    const TempControlBase *const tempControl;
+
     // Read-only access to valve controller state.
     const AbstractRadValve *const valveController;
 
@@ -164,13 +168,6 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // Could be set to LED_HEATCALL_ON_ISR_SAFE() or similar.
     void (*const safeISRLEDonOpt)();
 
-
-    // WARM/FROST and BAKE start/cancel callbacks.
-    // If not NULL, are called when the pot is adjusted appropriately.
-    // Typically at most one of these callbacks would be made on any appropriate pot adjustment.
-    void (*warmModeCallback)(bool) = NULL; // FIXME
-    void (*bakeStartCallback)(bool) = NULL; // FIXME
-
     // Called after handling main controls to handle other buttons and user controls.
     // Designed to be overridden by derived classes, eg to handle LEARN buttons.
     // By default does nothing.
@@ -181,8 +178,10 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
 
   public:
     // Construct a default instance.
+    // Most arguments must not be NULL.
     ModeButtonAndPotActuatorPhysicalUI(
       ValveMode *const _valveMode,
+      const TempControlBase *const _tempControl,
       const AbstractRadValve *const _valveController,
       OTV0P2BASE::PseudoSensorOccupancyTracker *const _occupancy,
       const OTV0P2BASE::SensorAmbientLight *const _ambLight,
@@ -190,7 +189,7 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
       void (*const _LEDon)(), void (*const _LEDoff)(), void (*const _safeISRLEDonOpt)(),
         bool _cycleMODE = false)
       : cycleMODE(_cycleMODE),
-        valveMode(_valveMode), valveController(_valveController),
+        valveMode(_valveMode), tempControl(_tempControl), valveController(_valveController),
         occupancy(_occupancy), ambLight(_ambLight), tempPotOpt(_tempPotOpt),
         LEDon(_LEDon), LEDoff(_LEDoff), safeISRLEDonOpt(_safeISRLEDonOpt)
       {

@@ -39,7 +39,7 @@ namespace OTRadValve
     {
 
 
-#if defined(ModeButtonAndPotActuatorPhysicalUI_DEFINED) && 0
+#if defined(ModeButtonAndPotActuatorPhysicalUI_DEFINED)
 // Use WDT-based timer for xxxPause() routines.
 // Very tiny low-power sleep.
 static const uint8_t VERYTINY_PAUSE_MS = 5;
@@ -154,7 +154,7 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
           // Synthesise a 'warm' target temp that distinguishes end stops...
           const uint8_t nominalWarmTarget = isLo ? 1 :
               (tempPotOpt->isAtHiEndStop() ? 99 :
-              getWARMTargetC());
+              tempControl->getWARMTargetC());
           // Record of 'last' nominalWarmTarget; initially 0.
           static uint8_t lastNominalWarmTarget;
           if(nominalWarmTarget != lastNominalWarmTarget)
@@ -271,11 +271,11 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
           LEDon();
           // LED on stepwise proportional to temp pot setting.
           // Small number of steps (3) should help make positioning more obvious.
-          const uint8_t wt = getWARMTargetC();
+          const uint8_t wt = tempControl->getWARMTargetC();
           // Makes vtiny|tiny|medium flash for cool|OK|warm temperature target.
           // Stick to minimum length flashes to save energy unless just touched.
-          if(!justTouched || isEcoTemperature(wt)) { veryTinyPause(); }
-          else if(!isComfortTemperature(wt)) { tinyPause(); }
+          if(!justTouched || tempControl->isEcoTemperature(wt)) { veryTinyPause(); }
+          else if(!tempControl->isComfortTemperature(wt)) { tinyPause(); }
           else { mediumPause(); }
 
           // Second flash to indicate actually calling for heat,
@@ -288,8 +288,8 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
             offPause(); // V0.09 was mediumPause().
             LEDon(); // flash
             // Stick to minimum length flashes to save energy unless just touched.
-            if(!justTouched || isEcoTemperature(wt)) { veryTinyPause(); }
-            else if(!isComfortTemperature(wt)) { OTV0P2BASE::sleepLowPowerMs((VERYTINY_PAUSE_MS + TINY_PAUSE_MS) / 2); }
+            if(!justTouched || tempControl->isEcoTemperature(wt)) { veryTinyPause(); }
+            else if(!tempControl->isComfortTemperature(wt)) { OTV0P2BASE::sleepLowPowerMs((VERYTINY_PAUSE_MS + TINY_PAUSE_MS) / 2); }
             else { tinyPause(); }
 
             if(valveMode->inBakeMode())
@@ -300,8 +300,8 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
               LEDon();
               // Makes tiny|small|medium flash for eco|OK|comfort temperature target.
               // Stick to minimum length flashes to save energy unless just touched.
-              if(!justTouched || isEcoTemperature(wt)) { veryTinyPause(); }
-              else if(!isComfortTemperature(wt)) { smallPause(); }
+              if(!justTouched || tempControl->isEcoTemperature(wt)) { veryTinyPause(); }
+              else if(!tempControl->isComfortTemperature(wt)) { smallPause(); }
               else { mediumPause(); }
               }
             }
