@@ -147,7 +147,7 @@ bool check32768HzOscExtended()
 /**
  * @brief	Calibrate the internal RC oscillator against and external crystal oscillator or resonator.
  * @param   todo do we want settable stuff, e.g. ext osc rate, internal osc rate, etc?
- * @retval  True on calibration success.
+ * @retval  True on calibration success. False if Xtal not running or calibration fails.
  * @note    OSCCAL register is cleared on reset so changes are not persistent.
  * @note     cf4:   f8 94           cli                                                         CLEAR INTERRUPTS!!!!!!!!
              cf6:   30 91 b2 00     lds r19, 0x00B2 ; 0x8000b2 <__data_load_end+0x7ff25e>
@@ -235,6 +235,7 @@ bool calibrateInternalOscWithExtOsc()
         // Wait for oscillator to settle.
         _delay_x4cycles(2);
 	}
+    return false;
 }
 #endif // ARDUINO_ARCH_AVR
 
