@@ -45,12 +45,6 @@ namespace OTRadValve
 class TempControlBase
   {
   public:
-    // If true (the default) then the system has an 'Eco' energy-saving bias, else it has a 'comfort' bias.
-    // Several system parameters are adjusted depending on the bias,
-    // with 'eco' slanted toward saving energy, eg with lower target temperatures and shorter on-times.
-    // This is determined from user-settable temperature values.
-    virtual bool hasEcoBias() const { return(true); }
-
     // Get (possibly dynamically-set) thresholds/parameters.
     // Get 'FROST' protection target in C; no higher than getWARMTargetC() returns, strictly positive, in range [MIN_TARGET_C,MAX_TARGET_C].
     // Depends dynamically on current (last-read) temp-pot setting.
@@ -68,10 +62,15 @@ class TempControlBase
     // Returns false if not set, eg because below FROST setting or outside range [MIN_TARGET_C,MAX_TARGET_C], else returns true.
     virtual bool setWARMTargetC(uint8_t /*tempC*/) { return(false); }  // Does nothing by default.
 
+    // If true (the default) then the system has an 'Eco' energy-saving bias, else it has a 'comfort' bias.
+    // Several system parameters are adjusted depending on the bias,
+    // with 'eco' slanted toward saving energy, eg with lower target temperatures and shorter on-times.
+    // This is determined from user-settable temperature values.
+    virtual bool hasEcoBias() const { return(true); }
     // True if specified temperature is at or below 'eco' WARM target temperature, ie is eco-friendly.
-    virtual bool isEcoTemperature(uint8_t tempC) const { return(tempC < getWARMTargetC()); } // ((tempC) <= PARAMS::WARM_ECO)
+    virtual bool isEcoTemperature(uint8_t tempC) const { return(tempC < SAFE_ROOM_TEMPERATURE); } // ((tempC) <= PARAMS::WARM_ECO)
     // True if specified temperature is at or above 'comfort' WARM target temperature.
-    virtual bool isComfortTemperature(uint8_t tempC) const { return(tempC > getWARMTargetC()); } // ((tempC) >= PARAMS::WARM_COM)
+    virtual bool isComfortTemperature(uint8_t tempC) const { return(tempC > SAFE_ROOM_TEMPERATURE); } // ((tempC) >= PARAMS::WARM_COM)
   };
 
 
@@ -124,6 +123,14 @@ class TempControlSimpleEEPROMBacked : public TempControlBase
       OTV0P2BASE::eeprom_smart_update_byte((uint8_t *)V0P2BASE_EE_START_WARM_C, tempC); // Update in EEPROM if necessary.
       return(true); // Assume value correctly written.
       }
+
+    // True if WARM temperature at/below halfway mark between eco and comfort levels.
+    // Midpoint should be just in eco part to provide a system bias toward eco.
+    virtual bool hasEcoBias() { return(getWARMTargetC() <= valveControlParams::TEMP_SCALE_MID); }
+    // True if specified temperature is at or below 'eco' WARM target temperature, ie is eco-friendly.
+    virtual bool isEcoTemperature(uint8_t tempC) { return((tempC) <= valveControlParams::WARM_ECO); }
+    // True if specified temperature is at or above 'comfort' WARM target temperature.
+    virtual bool isComfortTemperature(uint8_t tempC) { return((tempC) >= valveControlParams::WARM_COM); }
   };
 #endif // ARDUINO_ARCH_AVR
 
