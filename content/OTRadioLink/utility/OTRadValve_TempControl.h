@@ -128,9 +128,9 @@ class TempControlSimpleEEPROMBacked : public TempControlBase
     // Midpoint should be just in eco part to provide a system bias toward eco.
     virtual bool hasEcoBias() { return(getWARMTargetC() <= valveControlParams::TEMP_SCALE_MID); }
     // True if specified temperature is at or below 'eco' WARM target temperature, ie is eco-friendly.
-    virtual bool isEcoTemperature(uint8_t tempC) { return((tempC) <= valveControlParams::WARM_ECO); }
+    virtual bool isEcoTemperature(const uint8_t tempC) { return(tempC <= valveControlParams::WARM_ECO); }
     // True if specified temperature is at or above 'comfort' WARM target temperature.
-    virtual bool isComfortTemperature(uint8_t tempC) { return((tempC) >= valveControlParams::WARM_COM); }
+    virtual bool isComfortTemperature(const uint8_t tempC) { return(tempC >= valveControlParams::WARM_COM); }
   };
 #endif // ARDUINO_ARCH_AVR
 
