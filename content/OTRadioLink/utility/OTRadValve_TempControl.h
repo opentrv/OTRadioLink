@@ -207,7 +207,7 @@ class TempControlTempPot : public TempControlSimpleVCP<valveControlParams>
     virtual uint8_t getFROSTTargetC() const
       {
       // Prevent falling to lowest frost temperature if relative humidity is high (eg to avoid mould).
-      const uint8_t result = (!this->hasEcoBias() || ((NULL != rh) && rh->isAvailable() && rh->isRHHighWithHyst())) ? valveControlParams::FROST_ECO : valveControlParams::FROST_COM;
+      const uint8_t result = (!this->hasEcoBias() || ((NULL != rh) && rh->isAvailable() && rh->isRHHighWithHyst())) ? valveControlParams::FROST_COM : valveControlParams::FROST_ECO;
 //    #if defined(ENABLE_SETTABLE_TARGET_TEMPERATURES)
       const uint8_t stored = eeprom_read_byte((uint8_t *)V0P2BASE_EE_START_FROST_C);
       // If stored value is set and in bounds and higher than computed value then use stored value instead.
