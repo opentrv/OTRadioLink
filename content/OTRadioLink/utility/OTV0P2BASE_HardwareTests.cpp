@@ -42,6 +42,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 #include "OTV0P2BASE_Sleep.h"
 
 #include "OTV0P2BASE_HardwareTests.h"
+#include "OTV0P2BASE_Serial_IO.h"
 
 
 namespace OTV0P2BASE
@@ -146,7 +147,25 @@ bool check32768HzOscExtended()
 /**
  * @brief	Calibrate the internal RC oscillator against and external crystal oscillator or resonator.
  * @param   todo do we want settable stuff, e.g. ext osc rate, internal osc rate, etc?
- * @retval  True on calibration success.
+ * @retval  True on calibration success. False if Xtal not running or calibration fails.
+ * @note    OSCCAL register is cleared on reset so changes are not persistent.
+ * @note     cf4:   f8 94           cli                                                         CLEAR INTERRUPTS!!!!!!!!
+             cf6:   30 91 b2 00     lds r19, 0x00B2 ; 0x8000b2 <__data_load_end+0x7ff25e>
+             cfa:   80 91 b2 00     lds r24, 0x00B2 ; 0x8000b2 <__data_load_end+0x7ff25e>
+             cfe:   8f 5f           subi    r24, 0xFF   ; 255
+             d00:   90 91 b2 00     lds r25, 0x00B2 ; 0x8000b2 <__data_load_end+0x7ff25e>
+             d04:   39 17           cp  r19, r25
+             d06:   e1 f3           breq    .-8         ; 0xd00 <main+0x15c>                    WAIT FOR TCNT2?
+             d08:   e1 2c           mov r14, r1                                                 MEASUREMENT LOOP HERE
+             d0a:   e3 94           inc r14                                              1
+             d0c:   91 2f           mov r25, r17                                         1
+             d0e:   9a 95           dec r25                                              *
+             d10:   01 f0           breq    .+0         ; 0xd12 <main+0x16e>             *
+             d12:   e9 f7           brne    .-6         ; 0xd0e <main+0x16a>             4     4 instructions * 8 = 32
+             d14:   90 91 b2 00     lds r25, 0x00B2 ; 0x8000b2 <__data_load_end+0x7ff25e>2?
+             d18:   98 17           cp  r25, r24                                         1
+             d1a:   b9 f3           breq    .-18        ; 0xd0a <main+0x166>             2
+             I make this 7 + 4 * <no delay cycles>
  */
 bool calibrateInternalOscWithExtOsc()
 {
@@ -156,21 +175,24 @@ bool calibrateInternalOscWithExtOsc()
 	// TCNT2 overflows every 2 seconds. One tick is 2000/256 = 7.815 ms, or 7815 clock cycles at 1 MHz.
 	// Minimum number of cycles we want per count is (7815*1.1)/255 = 34, to give some play in case the clock is too fast.
 	const constexpr uint16_t cyclesPerTick = 7815;
-	const constexpr uint8_t innerLoopTime = 36;  // the number of cycles the inner loop takes to execute.
+	const constexpr uint8_t innerLoopTime = 39;  // the number of cycles the inner loop takes to execute.
 	const constexpr uint8_t targetCount = cyclesPerTick/innerLoopTime;  // The number of counts we are aiming for.
 
     // Check that the slow clock appears to be running.
     if(!check32768HzOsc()) { return(false); }
 
     // Set initial calibration value and wait to settle.
-    OSCCAL = initOscCal; // todo think about what happens if oscillator has previously been calibrated! unlikely to have wandered too much.
+//    OSCCAL = initOscCal; // todo think about what happens if oscillator has previously been calibrated! unlikely to have wandered too much.
     _delay_x4cycles(2); // > 8 us. max oscillator settling time is 5 us.
 
     // Calibration routine
     for(uint8_t i = 0; i < maxTries; i++)
 	{
     	uint8_t count = 0;
-
+#if 0
+        OTV0P2BASE::serialPrintAndFlush("OSCCAL: "); // 10000001 on my test version
+        OTV0P2BASE::serialPrintAndFlush(OSCCAL, BIN);
+#endif // 1
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 		{
 			// Wait for edge on xtal counter edge.
@@ -186,14 +208,34 @@ bool calibrateInternalOscWithExtOsc()
             // Repeat loop until TCNT2 increments.
 			} while (TCNT2 == t1); // 2 cycles?
 		}
+#if 0
+        OTV0P2BASE::serialPrintAndFlush("\t count: ");
+        OTV0P2BASE::serialPrintAndFlush(count);
+        OTV0P2BASE::serialPrintAndFlush("\t mismatch: ");
+        OTV0P2BASE::serialPrintAndFlush(count - targetCount);
+        OTV0P2BASE::serialPrintAndFlush(F("\tUUUUU"));
+        OTV0P2BASE::serialPrintlnAndFlush();
+//        delay(1000);
+#endif // 1
         // Set new calibration value.
         if(count > targetCount) OSCCAL--;
         else if(count < targetCount) OSCCAL++;
-        else return true;
+        else {
+            return true;
+//            while (true) {
+//                OTV0P2BASE::serialPrintAndFlush("\t count: ");
+//                OTV0P2BASE::serialPrintAndFlush(count);
+//                OTV0P2BASE::serialPrintAndFlush("\t OSCCAL: ");
+//                OTV0P2BASE::serialPrintAndFlush(OSCCAL, BIN);
+//                OTV0P2BASE::serialPrintAndFlush(F("\tUUUUU"));
+//                OTV0P2BASE::serialPrintlnAndFlush();
+//                delay(1000);
+//            }
+        }
         // Wait for oscillator to settle.
         _delay_x4cycles(2);
-
 	}
+    return false;
 }
 #endif // ARDUINO_ARCH_AVR
 
