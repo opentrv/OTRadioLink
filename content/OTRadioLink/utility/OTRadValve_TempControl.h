@@ -155,7 +155,6 @@ uint8_t TempControlTempPot_computeWARMTargetC(const uint8_t pot, const uint8_t l
   // As a tiny optimisation note that the in-scale end points must be the end temperatures also.
   if(pot <= loEndStop) { return(valveControlParams::TEMP_SCALE_MIN); } // At/near bottom...
   if(pot >= hiEndStop) { return(valveControlParams::TEMP_SCALE_MAX); } // At/near top...
-
   // Allow actual full temp range between low and high end points,
   // plus possibly a little more wiggle-room / manufacturing tolerance.
   // Range is number of actual distinct temperatures on scale between end-stop regions.
@@ -164,13 +163,13 @@ uint8_t TempControlTempPot_computeWARMTargetC(const uint8_t pot, const uint8_t l
   constexpr uint8_t range = DIAL_TEMPS;
   constexpr bool rangeIs1BelowPowerOfTwo = (0 != range) && (0 == (range & (range + 1)));
   // Special-case some ranges to be able to use fast shifts rather than devisions.
-  // This also in particular supports REV7/DORM1/TRV1 shimmed for extra space at range ends.
-  // (REV7 / DORM1 case, with DIAL_TEMPS==7 and usefulScale ~ 47 as of 20160212 on first sample unit.)
-  // The shim allows for a little more mechanical tolerance.
+  // This also in particular supports REV7/DORM1/TRV1 shimmed for extra space at scale ends.
+  // (REV7/DORM1 case is DIAL_TEMPS==7 and usefulScale ~ 47 as of 20160212, eg on first sample unit.)
+  // The shim allows for a little more mechanical tolerance as well as CPU efficiency.
   constexpr bool doShim = rangeIs1BelowPowerOfTwo;
   constexpr uint8_t rangeUsed = doShim ? (range+1) : range;
   // Width of band for each degree C...
-  const uint8_t band = ((usefulScale+(rangeUsed/2)) / rangeUsed); // General case.
+  const uint8_t band = ((usefulScale+(rangeUsed/2)) / rangeUsed);
   // Adjust for actual bottom of useful range...
   const uint8_t ppotBasic = pot - loEndStop;
   const uint8_t shimWidth = (band >> 1);
