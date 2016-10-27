@@ -73,15 +73,30 @@ class TempControlBase
   };
 
 
+// Intermediate templated abstract class that deals with some of the valve control parameters.
+#define TempControlSimpleVCP_DEFINED
+template <class valveControlParams = DEFAULT_ValveControlParameters>
+class TempControlSimpleVCP : public TempControlBase
+  {
+  public:
+    // True if WARM temperature at/below halfway mark between eco and comfort levels.
+    // Midpoint should be just in eco part to provide a system bias toward eco.
+    virtual bool hasEcoBias() const { return(getWARMTargetC() <= valveControlParams::TEMP_SCALE_MID); }
+    // True if specified temperature is at or below 'eco' WARM target temperature, ie is eco-friendly.
+    virtual bool isEcoTemperature(const uint8_t tempC) const { return(tempC <= valveControlParams::WARM_ECO); }
+    // True if specified temperature is at or above 'comfort' WARM target temperature.
+    virtual bool isComfortTemperature(const uint8_t tempC) const { return(tempC >= valveControlParams::WARM_COM); }
+  };
+
 #ifdef ARDUINO_ARCH_AVR
 // Non-volatile (EEPROM) stored WARM threshold for some devices without physical controls, eg REV1.
 // Typically selected if defined(ENABLE_SETTABLE_TARGET_TEMPERATURES)
 #define TempControlSimpleEEPROMBacked_DEFINED
 template <class valveControlParams = DEFAULT_ValveControlParameters>
-class TempControlSimpleEEPROMBacked : public TempControlBase
+class TempControlSimpleEEPROMBacked : public TempControlSimpleVCP<valveControlParams>
   {
   public:
-    virtual uint8_t getWARMTargetC()
+    virtual uint8_t getWARMTargetC() const
       {
       // Get persisted value, if any.
       const uint8_t stored = eeprom_read_byte((uint8_t *)V0P2BASE_EE_START_WARM_C);
@@ -91,7 +106,7 @@ class TempControlSimpleEEPROMBacked : public TempControlBase
       return(OTV0P2BASE::fnmax(stored, getFROSTTargetC()));
       }
 
-    virtual uint8_t getFROSTTargetC()
+    virtual uint8_t getFROSTTargetC() const
       {
       // Get persisted value, if any.
       const uint8_t stored = eeprom_read_byte((uint8_t *)V0P2BASE_EE_START_FROST_C);
@@ -122,14 +137,6 @@ class TempControlSimpleEEPROMBacked : public TempControlBase
       OTV0P2BASE::eeprom_smart_update_byte((uint8_t *)V0P2BASE_EE_START_WARM_C, tempC); // Update in EEPROM if necessary.
       return(true); // Assume value correctly written.
       }
-
-    // True if WARM temperature at/below halfway mark between eco and comfort levels.
-    // Midpoint should be just in eco part to provide a system bias toward eco.
-    virtual bool hasEcoBias() { return(getWARMTargetC() <= valveControlParams::TEMP_SCALE_MID); }
-    // True if specified temperature is at or below 'eco' WARM target temperature, ie is eco-friendly.
-    virtual bool isEcoTemperature(const uint8_t tempC) { return(tempC <= valveControlParams::WARM_ECO); }
-    // True if specified temperature is at or above 'comfort' WARM target temperature.
-    virtual bool isComfortTemperature(const uint8_t tempC) { return(tempC >= valveControlParams::WARM_COM); }
   };
 #endif // ARDUINO_ARCH_AVR
 
@@ -138,11 +145,9 @@ class TempControlSimpleEEPROMBacked : public TempControlBase
 #ifdef SensorTemperaturePot_DEFINED
 #define TempControlTempPot_DEFINED
 template <const OTV0P2BASE::SensorTemperaturePot *const pot, class valveControlParams = DEFAULT_ValveControlParameters>
-class TempControlTempPot : public TempControlBase
+class TempControlTempPot : public TempControlSimpleVCP<valveControlParams>
   {
   public:
-    TempControlTempPot()
-      { }
   };
 #endif // SensorTemperaturePot_DEFINED
 
