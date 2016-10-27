@@ -93,7 +93,7 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // If true, implements older MODE behaviour hold to cycle through FROST/WARM/BAKE
     // as selected by ENABLE_SIMPLIFIED_MODE_BAKE.
     // If false, button is press to BAKE, and should be interrupt-driven.
-    const bool cycleMODE = false;
+    const bool cycleMODE;
 
     // Marked true if the physical UI controls are being used.
     // Cleared at end of read().
@@ -187,7 +187,7 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
       const OTV0P2BASE::SensorAmbientLight *const _ambLight,
       OTV0P2BASE::SensorTemperaturePot *const _tempPotOpt,
       void (*const _LEDon)(), void (*const _LEDoff)(), void (*const _safeISRLEDonOpt)(),
-        bool _cycleMODE = false)
+      bool _cycleMODE = false)
       : cycleMODE(_cycleMODE),
         valveMode(_valveMode), tempControl(_tempControl), valveController(_valveController),
         occupancy(_occupancy), ambLight(_ambLight), tempPotOpt(_tempPotOpt),

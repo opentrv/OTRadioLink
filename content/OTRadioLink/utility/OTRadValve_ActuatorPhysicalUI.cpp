@@ -30,7 +30,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 #include <stddef.h>
 #include <stdint.h>
 #include <OTV0p2Base.h>
-#include <OTV0P2BASE_Actuator.h>
 
 
 
