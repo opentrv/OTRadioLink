@@ -142,6 +142,8 @@ class TempControlSimpleEEPROMBacked : public TempControlSimpleVCP<valveControlPa
 
 
 // For REV2 and REV7 style devices with an analogue potentiometer temperature dial.
+// This can also adjust the temperature thresholds based on relative humidity if a sensor is available.
+// All template parameters must be non-NULL.
 #ifdef SensorTemperaturePot_DEFINED
 #define TempControlTempPot_DEFINED
 template <const OTV0P2BASE::SensorTemperaturePot *const pot, class valveControlParams = DEFAULT_ValveControlParameters>
