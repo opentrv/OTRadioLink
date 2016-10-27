@@ -41,7 +41,7 @@ class HumiditySensorBase : public OTV0P2BASE::SimpleTSUint8Sensor
       // See http://www.cdc.gov/niosh/topics/indoorenv/temperature.html: "The EPA recommends maintaining indoor relative humidity between 30 and 60% to reduce mold growth [EPA 2012]."
       static const uint8_t HUMIDTY_HIGH_RHPC = 70;
       static const uint8_t HUMIDTY_LOW_RHPC = 30;
-      // Defautl epsilon bounds (absolute % +/- around thresholds) for accuracy and hysteresis.
+      // Default epsilon bounds (absolute % +/- around thresholds) for accuracy and hysteresis.
       static const uint8_t HUMIDITY_EPSILON_RHPC = 5;
 
       // If RH% rises by at least this per hour, then it may indicate occupancy.
@@ -54,6 +54,9 @@ class HumiditySensorBase : public OTV0P2BASE::SimpleTSUint8Sensor
 
     public:
       HumiditySensorBase() : SimpleTSUint8Sensor(255), highWithHyst(false) { }
+
+      // Does nothing: value remains invalid.
+      virtual uint8_t read() { return(value); }
 
       // Returns true if the sensor reading value passed is potentially valid, ie in range [0,100].
       virtual bool isValid(const uint8_t value) const { return(value <= 100); }
@@ -74,25 +77,18 @@ class HumiditySensorBase : public OTV0P2BASE::SimpleTSUint8Sensor
 
 #ifdef ARDUINO_ARCH_AVR
 
+// Sensor for relative humidity percentage; 0 is dry, 100 is condensing humid, 255 for error.
+#define HumiditySensorSHT21_DEFINED
+class HumiditySensorSHT21 : public HumiditySensorBase
+  { public: virtual uint8_t read(); };
+
 // SHT21 sensor for ambient/room temperature in 1/16th of one degree Celsius.
 #define RoomTemperatureC16_SHT21_DEFINED
 class RoomTemperatureC16_SHT21 : public OTV0P2BASE::TemperatureC16Base
   { public: virtual int16_t read(); };
 
-
-// Sensor for relative humidity percentage; 0 is dry, 100 is condensing humid, 255 for error.
-#define HumiditySensorSHT21_DEFINED
-class HumiditySensorSHT21 : public HumiditySensorBase
-  {
-  public:
-    // Force a read/poll of the relative humidity % and return the value sensed [0,100] (dry to wet).
-    // Initially (and in case of error) the value 255 is returned as a fail-safe.
-    // Potentially expensive/slow.
-    // Not thread-safe nor usable within ISRs (Interrupt Service Routines).
-    virtual uint8_t read();
-  };
-
 #endif // ARDUINO_ARCH_AVR
+
 
 // Placeholder namespace with dummy static status methods to reduce code complexity.
 class DummyHumiditySensorSHT21
