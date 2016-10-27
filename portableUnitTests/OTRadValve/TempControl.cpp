@@ -52,10 +52,17 @@ TEST(TempControl,TRV1TempControlTempPotcomputeWARMTargetC)
     EXPECT_EQ(tsmax, OTRadValve::TempControlTempPot_computeWARMTargetC<TRV1ValveControlParameters>(255, loEndStop, hiEndStop));
     EXPECT_EQ(tsmin, OTRadValve::TempControlTempPot_computeWARMTargetC<TRV1ValveControlParameters>(loEndStop, loEndStop, hiEndStop));
     EXPECT_EQ(tsmax, OTRadValve::TempControlTempPot_computeWARMTargetC<TRV1ValveControlParameters>(hiEndStop, loEndStop, hiEndStop));
+    // Test for wiggle room.
+    EXPECT_EQ(tsmin, OTRadValve::TempControlTempPot_computeWARMTargetC<TRV1ValveControlParameters>(loEndStop+1, loEndStop, hiEndStop));
+    EXPECT_EQ(tsmax, OTRadValve::TempControlTempPot_computeWARMTargetC<TRV1ValveControlParameters>(hiEndStop-1, loEndStop, hiEndStop));
 
     // Test mid-point.
     const uint8_t tsmid = TRV1ValveControlParameters::TEMP_SCALE_MID;
-    EXPECT_EQ(tsmid, OTRadValve::TempControlTempPot_computeWARMTargetC<TRV1ValveControlParameters>(loEndStop/2 + hiEndStop/2, loEndStop, hiEndStop));
+    const uint8_t approxMidPoint = loEndStop + (usefulScale/2);
+    EXPECT_EQ(tsmid, OTRadValve::TempControlTempPot_computeWARMTargetC<TRV1ValveControlParameters>(approxMidPoint, loEndStop, hiEndStop));
+    // Test for wiggle room.
+    EXPECT_EQ(tsmid, OTRadValve::TempControlTempPot_computeWARMTargetC<TRV1ValveControlParameters>(approxMidPoint-1, loEndStop, hiEndStop));
+    EXPECT_EQ(tsmid, OTRadValve::TempControlTempPot_computeWARMTargetC<TRV1ValveControlParameters>(approxMidPoint+1, loEndStop, hiEndStop));
 }
 
 
