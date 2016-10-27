@@ -26,13 +26,12 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 #include "OTRadValve_TempControl.h"
 
 
-// Test for general sanity of ValveMode.
-TEST(TempControl,TempControlTempPotcomputeWARMTargetC)
+// Test for general sanity of TempControlTempPot_computeWARMTargetC().
+// In particular, simulate some nominal REV7/DORM1/TRV1 numbers.
+TEST(TempControl,TRV1TempControlTempPotcomputeWARMTargetC)
 {
     //    // If true then be more verbose.
     //    const static bool verbose = false;
-
-    // Simulate some nominal REV7/DORM1/TRV1 numbers.
 
     // Parameters as for REV7/DORM1/TRV1 at 2016/10/27.
     typedef OTRadValve::ValveControlParameters<
@@ -51,6 +50,12 @@ TEST(TempControl,TempControlTempPotcomputeWARMTargetC)
     const uint8_t tsmax = TRV1ValveControlParameters::TEMP_SCALE_MAX;
     EXPECT_EQ(tsmin, OTRadValve::TempControlTempPot_computeWARMTargetC<TRV1ValveControlParameters>(0, loEndStop, hiEndStop));
     EXPECT_EQ(tsmax, OTRadValve::TempControlTempPot_computeWARMTargetC<TRV1ValveControlParameters>(255, loEndStop, hiEndStop));
+    EXPECT_EQ(tsmin, OTRadValve::TempControlTempPot_computeWARMTargetC<TRV1ValveControlParameters>(loEndStop, loEndStop, hiEndStop));
+    EXPECT_EQ(tsmax, OTRadValve::TempControlTempPot_computeWARMTargetC<TRV1ValveControlParameters>(hiEndStop, loEndStop, hiEndStop));
+
+    // Test mid-point.
+    const uint8_t tsmid = TRV1ValveControlParameters::TEMP_SCALE_MID;
+    EXPECT_EQ(tsmid, OTRadValve::TempControlTempPot_computeWARMTargetC<TRV1ValveControlParameters>(loEndStop/2 + hiEndStop/2, loEndStop, hiEndStop));
 }
 
 
