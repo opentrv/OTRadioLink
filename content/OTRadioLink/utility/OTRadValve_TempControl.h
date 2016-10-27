@@ -204,6 +204,8 @@ class TempControlTempPot : public TempControlSimpleVCP<valveControlParams>
     uint8_t resultLast = 0;
 
   public:
+    TempControlTempPot() { static_assert(NULL != tempPot, "tempPot arg must not be NULL"); }
+
     virtual uint8_t getFROSTTargetC() const
       {
       // Prevent falling to lowest frost temperature if relative humidity is high (eg to avoid mould).
