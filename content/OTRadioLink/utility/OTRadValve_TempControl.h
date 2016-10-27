@@ -162,28 +162,20 @@ uint8_t TempControlTempPot_computeWARMTargetC(const uint8_t pot, const uint8_t l
   const uint8_t usefulScale = hiEndStop - loEndStop + 1;
   constexpr uint8_t DIAL_TEMPS = valveControlParams::TEMP_SCALE_MAX - valveControlParams::TEMP_SCALE_MIN + 1;
   constexpr uint8_t range = DIAL_TEMPS;
-
-//    #if defined(V0p2_REV) && (7 == V0p2_REV) // Force to DORM1 scale 1+7+1 position scale FROST|16|17|18|19|20|21|22|BOOST.
-//      // REV7 / DORM1 case, with usefulScale ~ 47 as of 20160212 on first sample unit.
-//    #define DIAL_TEMPS_SHIM
-//      const uint8_t rangeUsed = 8;
-//      const uint8_t band = (usefulScale+4) >> 3; // Width of band for each degree C...
-//    #else
-//      // General case.
-  const uint8_t rangeUsed = range;
-  const uint8_t band = (usefulScale+(rangeUsed/2)) / rangeUsed; // Width of band for each degree C...
-//    #endif
-//
-//      // Adjust for actual bottom of useful range...
+  constexpr bool rangeIs1BelowPowerOfTwo = (0 != range) && (0 == (range & (range + 1)));
+  // Special-case some ranges to be able to use fast shifts rather than devisions.
+  // This also in particular supports REV7/DORM1/TRV1 shimmed for extra space at range ends.
+  // (REV7 / DORM1 case, with DIAL_TEMPS==7 and usefulScale ~ 47 as of 20160212 on first sample unit.)
+  // The shim allows for a little more mechanical tolerance.
+  constexpr bool doShim = rangeIs1BelowPowerOfTwo;
+  constexpr uint8_t rangeUsed = doShim ? (range+1) : range;
+  // Width of band for each degree C...
+  const uint8_t band = ((usefulScale+(rangeUsed/2)) / rangeUsed); // General case.
+  // Adjust for actual bottom of useful range...
   const uint8_t ppotBasic = pot - loEndStop;
-//    #ifndef DIAL_TEMPS_SHIM
-  const uint8_t ppot = ppotBasic;
-//    #else
-//      const uint8_t shim = (band >> 1);
-//      if(ppotBasic <= shim) { return(PARAMS::TEMP_SCALE_MIN); }
-//      const uint8_t ppot = ppotBasic - shim; // Shift up by half a slot... (using n temps in space for n+1)
-//    #endif
-//
+  const uint8_t shimWidth = (band >> 1);
+  if(doShim && (ppotBasic <= shimWidth)) { return(valveControlParams::TEMP_SCALE_MIN); }
+  const uint8_t ppot = (!doShim) ? ppotBasic : (ppotBasic - shimWidth);
   // If there is a relatively small number of distinct temperature values
   // then compute the result iteratively...
   if(DIAL_TEMPS < 10)
@@ -197,11 +189,8 @@ uint8_t TempControlTempPot_computeWARMTargetC(const uint8_t pot, const uint8_t l
       }
     return(result);
     }
-  else // ...else do it in one step with a division.
-    {
-    // Intermediate (requires expensive run-time division).
-    return((ppot / band) + valveControlParams::TEMP_SCALE_MIN);
-    }
+  // ...else do it in one step with an (expensive) division.
+  return((ppot / band) + valveControlParams::TEMP_SCALE_MIN);
   }
 
 #ifdef SensorTemperaturePot_DEFINED
