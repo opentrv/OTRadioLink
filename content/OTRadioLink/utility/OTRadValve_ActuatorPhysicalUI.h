@@ -112,7 +112,7 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // Set true on significant local UI operation.
     // Should be cleared when feedback has been given.
     // Marked volatile for thread-safe lockless access;
-    static volatile bool significantUIOp;
+    volatile bool significantUIOp;
 
     // Record local manual operation of a physical UI control, eg not remote or via CLI.
     // Marks room as occupied amongst other things.
@@ -133,7 +133,7 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // but that can be prevented if other visual feedback already in progress.
     // Marks the UI as used.
     // Not thread-/ISR- safe.
-    void userOpFeedback(bool includeVisual = true);
+    void userOpFeedback(bool includeVisual = true) { } // FIXME
 
     // Valve mode; must not be NULL.
     ValveMode *const valveMode;
@@ -220,13 +220,12 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // Returns a non-zero value iff the user interacted with the system, and maybe caused a status change.
     // NOTE: since this is on the minimum idle-loop code path, minimise CPU cycles, esp in frost mode.
     // Replaces: bool tickUI(uint_fast8_t sec).
-    virtual uint8_t read();
+    virtual uint8_t read() override;
 
     // Handle simple interrupt for this UI sensor.
     // Should be wired to the MODE button, edge triggered.
     // By default does nothing (and returns false).
-    //virtual bool handleInterruptSimple() { return(false); }
-
+    virtual bool handleInterruptSimple() override { return(false); }
   };
 
 

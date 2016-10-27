@@ -26,11 +26,11 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
  * is used to configure the different types.
  */
 
-#include <OTRadValve_ActuatorPhysicalUI.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <OTV0p2Base.h>
 
+#include <OTRadValve_ActuatorPhysicalUI.h>
 
 
 // Use namespaces to help avoid collisions.
