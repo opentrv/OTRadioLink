@@ -195,16 +195,22 @@ uint8_t TempControlTempPot_computeWARMTargetC(const uint8_t pot, const uint8_t l
 #ifdef SensorTemperaturePot_DEFINED
 #define TempControlTempPot_DEFINED
 // All template parameters must be non-NULL except the humidity sensor.
-template <const OTV0P2BASE::SensorTemperaturePot *const tempPot, const OTV0P2BASE::HumiditySensorBase *const rh, class valveControlParams = DEFAULT_ValveControlParameters>
+template <const OTV0P2BASE::SensorTemperaturePot *const tempPot, class valveControlParams = DEFAULT_ValveControlParameters>
 class TempControlTempPot : public TempControlSimpleVCP<valveControlParams>
   {
   private:
     // Cached input and result values for getWARMTargetC(); initially zero.
-    uint8_t potLast = 0;
-    uint8_t resultLast = 0;
+    mutable uint8_t potLast = 0;
+    mutable uint8_t resultLast = 0;
+    // Relative humidity sensor; NULL if none.
+    const OTV0P2BASE::HumiditySensorBase *const rh;
 
   public:
-    TempControlTempPot() { static_assert(NULL != tempPot, "tempPot arg must not be NULL"); }
+    TempControlTempPot(const OTV0P2BASE::HumiditySensorBase *const _rh = NULL)
+      : rh(_rh)
+      {
+//      static_assert(NULL != tempPot, "tempPot arg must not be NULL");
+      }
 
     virtual uint8_t getFROSTTargetC() const
       {
