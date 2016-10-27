@@ -144,12 +144,44 @@ class TempControlSimpleEEPROMBacked : public TempControlSimpleVCP<valveControlPa
 // For REV2 and REV7 style devices with an analogue potentiometer temperature dial.
 // This can also adjust the temperature thresholds based on relative humidity if a sensor is available.
 // All template parameters must be non-NULL.
+//
+// Expose calculation of WARM target based on user physical control for unit testing.
+// Derived from temperature pot position, 0 for coldest (most eco), 255 for hottest (comfort).
+// Temp ranges from eco-1C to comfort+1C levels across full (reduced jitter) [0,255] pot range.
+// Everything beyond the lo/hi end-stop thresholds is forced to the appropriate end temperature.
+template <class valveControlParams = DEFAULT_ValveControlParameters>
+uint8_t TempControlTempPot_computeWARMTargetC(uint8_t pot, uint8_t loEndStop, uint8_t hiEndStop)
+  {
+  return(0); // FIXME
+  }
+
 #ifdef SensorTemperaturePot_DEFINED
 #define TempControlTempPot_DEFINED
-template <const OTV0P2BASE::SensorTemperaturePot *const pot, class valveControlParams = DEFAULT_ValveControlParameters>
+template <const OTV0P2BASE::SensorTemperaturePot *const tempPot, class valveControlParams = DEFAULT_ValveControlParameters>
 class TempControlTempPot : public TempControlSimpleVCP<valveControlParams>
   {
+  private:
+    // Cached input and result values for getWARMTargetC(); initially zero.
+    uint8_t potLast = 0;
+    uint8_t resultLast = 0;
+
   public:
+    virtual uint8_t getWARMTargetC() const
+      {
+      const uint8_t pot = tempPot->get();
+      // Force recomputation if pot value changed
+      // or apparently no calc done yet (unlikely/impossible zero cached result).
+      if((potLast != pot) || (0 == resultLast))
+        {
+        const uint8_t result = TempControlTempPot_computeWARMTargetC<valveControlParams>(pot, tempPot->loEndStop, tempPot->hiEndStop);
+        // Cache input/result.
+        resultLast = result;
+        potLast = pot;
+        return(result);
+        }
+      // Return cached result.
+      return(resultLast);
+      }
   };
 #endif // SensorTemperaturePot_DEFINED
 
