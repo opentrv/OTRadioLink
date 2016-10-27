@@ -151,7 +151,57 @@ class TempControlSimpleEEPROMBacked : public TempControlSimpleVCP<valveControlPa
 template <class valveControlParams = DEFAULT_ValveControlParameters>
 uint8_t TempControlTempPot_computeWARMTargetC(const uint8_t pot, const uint8_t loEndStop, const uint8_t hiEndStop)
   {
-  return(0); // FIXME
+  // Everything in the end-stop regions is assigned to the appropriate end temperature.
+  // As a tiny optimisation note that the in-scale end points must be the end temperatures also.
+  if(pot <= loEndStop) { return(valveControlParams::TEMP_SCALE_MIN); } // At/near bottom...
+  if(pot >= hiEndStop) { return(valveControlParams::TEMP_SCALE_MAX); } // At/near top...
+
+  // Allow actual full temp range between low and high end points,
+  // plus possibly a little more wiggle-room / manufacturing tolerance.
+  // Range is number of actual distinct temperatures on scale between end-stop regions.
+  const uint8_t usefulScale = hiEndStop - loEndStop + 1;
+  constexpr uint8_t DIAL_TEMPS = valveControlParams::TEMP_SCALE_MAX - valveControlParams::TEMP_SCALE_MIN + 1;
+  constexpr uint8_t range = DIAL_TEMPS;
+
+//    #if defined(V0p2_REV) && (7 == V0p2_REV) // Force to DORM1 scale 1+7+1 position scale FROST|16|17|18|19|20|21|22|BOOST.
+//      // REV7 / DORM1 case, with usefulScale ~ 47 as of 20160212 on first sample unit.
+//    #define DIAL_TEMPS_SHIM
+//      const uint8_t rangeUsed = 8;
+//      const uint8_t band = (usefulScale+4) >> 3; // Width of band for each degree C...
+//    #else
+//      // General case.
+  const uint8_t rangeUsed = range;
+  const uint8_t band = (usefulScale+(rangeUsed/2)) / rangeUsed; // Width of band for each degree C...
+//    #endif
+//
+//      // Adjust for actual bottom of useful range...
+  const uint8_t ppotBasic = pot - loEndStop;
+//    #ifndef DIAL_TEMPS_SHIM
+  const uint8_t ppot = ppotBasic;
+//    #else
+//      const uint8_t shim = (band >> 1);
+//      if(ppotBasic <= shim) { return(PARAMS::TEMP_SCALE_MIN); }
+//      const uint8_t ppot = ppotBasic - shim; // Shift up by half a slot... (using n temps in space for n+1)
+//    #endif
+//
+  // If there is a relatively small number of distinct temperature values
+  // then compute the result iteratively...
+  if(DIAL_TEMPS < 10)
+    {
+    uint8_t result = valveControlParams::TEMP_SCALE_MIN;
+    uint8_t bottomOfNextBand = band;
+    while((ppot >= bottomOfNextBand) && (result < valveControlParams::TEMP_SCALE_MAX))
+      {
+      ++result;
+      bottomOfNextBand += band;
+      }
+    return(result);
+    }
+  else // ...else do it in one step with a division.
+    {
+    // Intermediate (requires expensive run-time division).
+    return((ppot / band) + valveControlParams::TEMP_SCALE_MIN);
+    }
   }
 
 #ifdef SensorTemperaturePot_DEFINED
