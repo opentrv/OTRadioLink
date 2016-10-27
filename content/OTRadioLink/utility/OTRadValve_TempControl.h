@@ -143,21 +143,21 @@ class TempControlSimpleEEPROMBacked : public TempControlSimpleVCP<valveControlPa
 
 // For REV2 and REV7 style devices with an analogue potentiometer temperature dial.
 // This can also adjust the temperature thresholds based on relative humidity if a sensor is available.
-// All template parameters must be non-NULL.
 //
 // Expose calculation of WARM target based on user physical control for unit testing.
 // Derived from temperature pot position, 0 for coldest (most eco), 255 for hottest (comfort).
 // Temp ranges from eco-1C to comfort+1C levels across full (reduced jitter) [0,255] pot range.
 // Everything beyond the lo/hi end-stop thresholds is forced to the appropriate end temperature.
 template <class valveControlParams = DEFAULT_ValveControlParameters>
-uint8_t TempControlTempPot_computeWARMTargetC(uint8_t pot, uint8_t loEndStop, uint8_t hiEndStop)
+uint8_t TempControlTempPot_computeWARMTargetC(const uint8_t pot, const uint8_t loEndStop, const uint8_t hiEndStop)
   {
   return(0); // FIXME
   }
 
 #ifdef SensorTemperaturePot_DEFINED
 #define TempControlTempPot_DEFINED
-template <const OTV0P2BASE::SensorTemperaturePot *const tempPot, class valveControlParams = DEFAULT_ValveControlParameters>
+// All template parameters must be non-NULL except the humidity sensor.
+template <const OTV0P2BASE::SensorTemperaturePot *const tempPot, const OTV0P2BASE::HumiditySensorBase *const rh, class valveControlParams = DEFAULT_ValveControlParameters>
 class TempControlTempPot : public TempControlSimpleVCP<valveControlParams>
   {
   private:
@@ -166,6 +166,18 @@ class TempControlTempPot : public TempControlSimpleVCP<valveControlParams>
     uint8_t resultLast = 0;
 
   public:
+    virtual uint8_t getFROSTTargetC() const
+      {
+      // Prevent falling to lowest frost temperature if relative humidity is high (eg to avoid mould).
+      const uint8_t result = (!hasEcoBias() || ((NULL != rh) && rh->isAvailable() && rh->isRHHighWithHyst())) ? valveControlParams::FROST_ECO : valveControlParams::FROST_COM;
+//    #if defined(ENABLE_SETTABLE_TARGET_TEMPERATURES)
+      const uint8_t stored = eeprom_read_byte((uint8_t *)V0P2BASE_EE_START_FROST_C);
+      // If stored value is set and in bounds and higher than computed value then use stored value instead.
+      if((stored >= OTRadValve::MIN_TARGET_C) && (stored <= OTRadValve::MAX_TARGET_C) && (stored > result)) { return(stored); }
+//    #endif
+      return(result);
+      }
+
     virtual uint8_t getWARMTargetC() const
       {
       const uint8_t pot = tempPot->get();

@@ -32,6 +32,46 @@ namespace OTV0P2BASE
 {
 
 
+// Base humidity sensor class.
+// TODO: move to own header.
+class HumiditySensorBase : public OTV0P2BASE::SimpleTSUint8Sensor
+    {
+    public:
+      // Default high and low bounds on relative humidity for comfort and (eg) mite/mould growth.
+      // See http://www.cdc.gov/niosh/topics/indoorenv/temperature.html: "The EPA recommends maintaining indoor relative humidity between 30 and 60% to reduce mold growth [EPA 2012]."
+      static const uint8_t HUMIDTY_HIGH_RHPC = 70;
+      static const uint8_t HUMIDTY_LOW_RHPC = 30;
+      // Defautl epsilon bounds (absolute % +/- around thresholds) for accuracy and hysteresis.
+      static const uint8_t HUMIDITY_EPSILON_RHPC = 5;
+
+      // If RH% rises by at least this per hour, then it may indicate occupancy.
+      static const uint8_t HUMIDITY_OCCUPANCY_PC_MIN_RISE_PER_H = 3;
+
+    protected:
+      // True if RH% is high, with hysteresis.
+      // Marked volatile for thread-safe lock-free access.
+      volatile bool highWithHyst;
+
+    public:
+      HumiditySensorBase() : SimpleTSUint8Sensor(255), highWithHyst(false) { }
+
+      // Returns true if the sensor reading value passed is potentially valid, ie in range [0,100].
+      virtual bool isValid(const uint8_t value) const { return(value <= 100); }
+
+      // Returns a suggested (JSON) tag/field/key name including units of get(); NULL means no recommended tag.
+      // The lifetime of the pointed-to text must be at least that of the Sensor instance.
+      virtual const char *tag() const { return("H|%"); }
+
+      // True if RH% high.
+      // Thread-safe and usable within ISRs (Interrupt Service Routines).
+      virtual bool isRHHigh() const { return(get() > (HUMIDTY_HIGH_RHPC+HUMIDITY_EPSILON_RHPC)); }
+
+      // True if RH% high with a hysteresis band of 2 * HUMIDITY_EPSILON_RHPC.
+      // Thread-safe and usable within ISRs (Interrupt Service Routines).
+      virtual bool isRHHighWithHyst() const { return(highWithHyst); }
+    };
+
+
 #ifdef ARDUINO_ARCH_AVR
 
 // SHT21 sensor for ambient/room temperature in 1/16th of one degree Celsius.
@@ -42,53 +82,14 @@ class RoomTemperatureC16_SHT21 : public OTV0P2BASE::TemperatureC16Base
 
 // Sensor for relative humidity percentage; 0 is dry, 100 is condensing humid, 255 for error.
 #define HumiditySensorSHT21_DEFINED
-class HumiditySensorSHT21 : public OTV0P2BASE::SimpleTSUint8Sensor
+class HumiditySensorSHT21 : public HumiditySensorBase
   {
   public:
-    // High and low bounds on relative humidity for comfort and (eg) mite/mould growth.
-    // See http://www.cdc.gov/niosh/topics/indoorenv/temperature.html: "The EPA recommends maintaining indoor relative humidity between 30 and 60% to reduce mold growth [EPA 2012]."
-    static const uint8_t HUMIDTY_HIGH_RHPC = 70;
-    static const uint8_t HUMIDTY_LOW_RHPC = 30;
-    // Epsilon bounds (absolute % +/- around thresholds) for accuracy and hysteresis.
-    static const uint8_t HUMIDITY_EPSILON_RHPC = 5;
-    //#if ((HUMIDTY_HIGH_RHPC + HUMIDITY_EPSILON_RHPC) >= 100)
-    //#error bad RH constants!
-    //#endif
-    //#if ((HUMIDTY_LOW_RHPC - HUMIDITY_EPSILON_RHPC) <= 0)
-    //#error bad RH constants!
-    //#endif
-
-    // If RH% rises by at least this per hour, then it may indicate occupancy.
-    static const uint8_t HUMIDITY_OCCUPANCY_PC_MIN_RISE_PER_H = 3;
-
-  private:
-    // True if RH% is high, with hysteresis.
-    // Marked volatile for thread-safe lock-free access.
-    volatile bool highWithHyst;
-
-  public:
-    HumiditySensorSHT21() : SimpleTSUint8Sensor(255), highWithHyst(false) { }
-
     // Force a read/poll of the relative humidity % and return the value sensed [0,100] (dry to wet).
     // Initially (and in case of error) the value 255 is returned as a fail-safe.
     // Potentially expensive/slow.
     // Not thread-safe nor usable within ISRs (Interrupt Service Routines).
     virtual uint8_t read();
-
-    // Returns true if the sensor reading value passed is potentially valid, ie in range [0,100].
-    virtual bool isValid(const uint8_t value) const { return(value <= 100); }
-
-    // Returns a suggested (JSON) tag/field/key name including units of get(); NULL means no recommended tag.
-    // The lifetime of the pointed-to text must be at least that of the Sensor instance.
-    virtual const char *tag() const { return("H|%"); }
-
-    // True if RH% high.
-    // Thread-safe and usable within ISRs (Interrupt Service Routines).
-    bool isRHHigh() { return(get() > (HUMIDTY_HIGH_RHPC+HUMIDITY_EPSILON_RHPC)); }
-
-    // True if RH% high with a hysteresis band of 2 * HUMIDITY_EPSILON_RHPC.
-    // Thread-safe and usable within ISRs (Interrupt Service Routines).
-    bool isRHHighWithHyst() { return(highWithHyst); }
   };
 
 #endif // ARDUINO_ARCH_AVR
