@@ -137,11 +137,11 @@ class TempControlSimpleEEPROMBacked : public TempControlBase
 // For REV2 and REV7 style devices with an analogue potentiometer temperature dial.
 #ifdef SensorTemperaturePot_DEFINED
 #define TempControlTempPot_DEFINED
-//template <class valveControlParams = DEFAULT_ValveControlParameters>
+template <const OTV0P2BASE::SensorTemperaturePot *const pot, class valveControlParams = DEFAULT_ValveControlParameters>
 class TempControlTempPot : public TempControlBase
   {
   public:
-    TempControlTempPot(const OTV0P2BASE::SensorTemperaturePot *const pot)
+    TempControlTempPot()
       { }
   };
 #endif // SensorTemperaturePot_DEFINED
