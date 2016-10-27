@@ -29,7 +29,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 #include <stddef.h>
 #include <stdint.h>
 #include <OTV0p2Base.h>
-#include "OTV0P2BASE_Sensor.h"
 #include "OTRadValve_Parameters.h"
 
 
@@ -134,6 +133,18 @@ class TempControlSimpleEEPROMBacked : public TempControlBase
   };
 #endif // ARDUINO_ARCH_AVR
 
+
+// For REV2 and REV7 style devices with an analogue potentiometer temperature dial.
+#ifdef SensorTemperaturePot_DEFINED
+#define TempControlTempPot_DEFINED
+//template <class valveControlParams = DEFAULT_ValveControlParameters>
+class TempControlTempPot : public TempControlBase
+  {
+  public:
+    TempControlTempPot(const OTV0P2BASE::SensorTemperaturePot *const pot)
+      { }
+  };
+#endif // SensorTemperaturePot_DEFINED
 
     }
 
