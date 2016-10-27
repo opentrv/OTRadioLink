@@ -90,6 +90,7 @@ inline void LED_HEATCALL_OFF() { fastDigitalWrite(LED_HEATCALL, LOW); }
 // ISR-safe UI LED ON; does nothing if no ISR-safe version.
 inline void LED_HEATCALL_ON_ISR_SAFE() { }
 #else // REV0, REV2 dedicated output pin.
+#define V0P2BASE_LED_HEATCALL_IS_L
 static const uint8_t LED_HEATCALL_L = 4; // ATMega328P-PU PDIP pin 6, PD4.  PULL LOW TO ACTIVATE.  Not shared with SPI.
 inline void LED_HEATCALL_ON() { fastDigitalWrite(LED_HEATCALL_L, LOW); }
 inline void LED_HEATCALL_OFF() { fastDigitalWrite(LED_HEATCALL_L, HIGH); }
@@ -228,23 +229,23 @@ static inline void IOSetup()
 
 #if !defined(ALT_MAIN_LOOP)
       // Switch main UI LED on for the rest of initialisation in non-ALT code...
-#ifdef LED_HEATCALL
+#ifndef V0P2BASE_LED_HEATCALL_IS_L
       case LED_HEATCALL: { pinMode(LED_HEATCALL, OUTPUT); digitalWrite(LED_HEATCALL, HIGH); break; }
-#endif // LED_HEATCALL
-#ifdef LED_HEATCALL_L
+#endif // V0P2BASE_LED_HEATCALL_IS_L
+#ifdef V0P2BASE_LED_HEATCALL_IS_L
       case LED_HEATCALL_L: { pinMode(LED_HEATCALL_L, OUTPUT); digitalWrite(LED_HEATCALL_L, LOW); break; }
-#endif // LED_HEATCALL_l
+#endif // V0P2BASE_LED_HEATCALL_IS_L
 #else // !defined(ALT_MAIN_LOOP)
-#ifdef LED_HEATCALL_L
+#ifdef V0P2BASE_LED_HEATCALL_IS_L
       // Leave main UI LED off in ALT-mode eg in case on minimal power from energy harvesting.
       case LED_HEATCALL_L: { pinMode(LED_HEATCALL_L, OUTPUT); digitalWrite(LED_HEATCALL_L, HIGH); break; }
 #endif // LED_HEATCALL_L
 #endif // !defined(ALT_MAIN_LOOP)
 
       // Switch secondary UI LED off during initialisation.
-#ifdef LED_UI2_L
+#ifdef LED_UI2_EXISTS
       case LED_UI2_L: { pinMode(LED_UI2_L, OUTPUT); digitalWrite(LED_UI2_L, HIGH); break; }
-#endif // LED_UI2_L
+#endif // LED_UI2_EXISTS
 #ifdef VOICE_NIRQ
       // Weak pull-up for external activation by pull-down.
       case VOICE_NIRQ: { pinMode(VOICE_NIRQ, INPUT); break; }

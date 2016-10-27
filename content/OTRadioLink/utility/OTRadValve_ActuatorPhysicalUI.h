@@ -65,7 +65,7 @@ class ActuatorPhysicalUIBase : public OTV0P2BASE::SimpleTSUint8Actuator
     // Returns a non-zero value iff the user interacted with the system, and maybe caused a status change.
     // NOTE: since this is on the minimum idle-loop code path, minimise CPU cycles, esp in frost mode.
     // Replaces: bool tickUI(uint_fast8_t sec).
-    virtual uint8_t read();
+    virtual uint8_t read() = 0;
 
     // Preferred poll interval (in seconds); should be called at constant rate, usually 1/2s.
     virtual uint8_t preferredPollInterval_s() const { return(2); }
