@@ -337,10 +337,9 @@ bool SimpleStatsRotationBase::changedValue()
 uint8_t SimpleStatsRotationBase::writeJSON(uint8_t *const buf, const uint8_t bufSize, const uint8_t sensitivity,
                                            const bool maximise, const bool suppressClearChanged)
   {
-#ifdef DEBUG
-  if(NULL == buf) { panic(0); } // Should never happen.
-#endif
-  // Minimum size is for {"@":""} plus null plus extra padding char/byte to check for overrun.
+  if(NULL == buf) { return(0); } // Should never happen, but be graceful if given a NULL buffer.
+
+// Minimum size is for {"@":""} plus null plus extra padding char/byte to check for overrun.
   if(bufSize < 10) { return(0); } // Failed.
 
   // Write/print to buffer passed in.
