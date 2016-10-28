@@ -270,7 +270,8 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
 
 
 // Supports two LEARN buttons, boost/MODE button, temperature pot, and a single HEATCALL LED.
-class ModeAndLearnButtonsAndPotActuatorPhysicalUI : public ModeButtonAndPotActuatorPhysicalUI
+// Uses the MODE button to cycle though modes as per older (and pot-less) UI such as REV1.
+class CycleModeAndLearnButtonsAndPotActuatorPhysicalUI : public ModeButtonAndPotActuatorPhysicalUI
   {
   public:
     // Inherit the base class constructor.
