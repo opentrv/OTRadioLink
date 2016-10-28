@@ -173,6 +173,9 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
     // Provide extra user feedback for significant UI actions...
     if(significantUIOp) { userOpFeedback(); }
 
+    // Support cycling through modes polling the MODE button.
+    pollMODEButton();
+// FIXME: now use pollMODEButton().
 //  #if !defined(ENABLE_SIMPLIFIED_MODE_BAKE) // if(cycleMODE)
 //    // Full MODE button behaviour:
 //    //   * cycle through FROST/WARM/BAKE while held down

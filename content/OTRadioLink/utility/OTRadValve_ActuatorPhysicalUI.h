@@ -147,7 +147,7 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // Occupancy tracker; must not be NULL.
     OTV0P2BASE::PseudoSensorOccupancyTracker *const occupancy;
 
-    // Read-only acces to ambient light sensor; must not be NULL
+    // Read-only access to ambient light sensor; must not be NULL
     const OTV0P2BASE::SensorAmbientLight *const ambLight;
 
     // Temperature pot; may be NULL.
@@ -167,6 +167,14 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // Callback used to provide ISR-safe instant UI-LED-on response; may be NULL if so such callback available.
     // Could be set to LED_HEATCALL_ON_ISR_SAFE() or similar.
     void (*const safeISRLEDonOpt)();
+
+    // Poll the MODE button to support cycling through modes with the button held down.
+    // This was the older style of interface (eg for REV1/REV2).
+    // The newer interface only uses the MODE button to trigger bake, interrupt-driven.
+    // This is called after polling the temp pot if present,
+    // and after providing feedback for any significant accrued UI interactions.
+    // By default does nothing.
+    void pollMODEButton() { }
 
     // Called after handling main controls to handle other buttons and user controls.
     // Designed to be overridden by derived classes, eg to handle LEARN buttons.
@@ -234,18 +242,29 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
 
     // Handle simple interrupt for from MODE button, edge triggered on button push.
     // Starts BAKE from manual UI interrupt; marks UI as used also.
-    // Vetos switch to BAKE mode if a temp pot/dial is present and at the low end stop, ie in the FROST position.
-    // Was startBakeFromInt().
-    // Marked final to help the compiler optimise this time-critical routine.
-    virtual bool handleInterruptSimple() override final
+    // Vetoes switch to BAKE mode if a temp pot/dial is present and at the low end stop, ie in the FROST position.
+    // Marked inline to try encourage the compiler to produce the best possible code.
+    // Calling this from the ISR entry-point is likely much faster than calling handleInterruptSimple().
+    // ISR-safe.
+    inline void startBakeFromInt()
       {
       if(NULL != tempPotOpt)
         {
         const bool isLo = tempPotOpt->isAtLoEndStop(); // ISR-safe.
-        if(isLo) { markUIControlUsed(); return(true); }
+        if(isLo) { markUIControlUsed(); return; }
         }
       valveMode->startBake();
       markUIControlUsedSignificant();
+      }
+
+    // Handle simple interrupt for from MODE button, edge triggered on button push.
+    // Starts BAKE from manual UI interrupt if not in cycle mode; marks UI as used in any case.
+    // ISR-safe.
+    virtual bool handleInterruptSimple() override
+      {
+      if(cycleMODE) { markUIControlUsed(); }
+      else { startBakeFromInt(); }
+      return(true);
       }
   };
 
@@ -253,6 +272,9 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
 // Supports two LEARN buttons, boost/MODE button, temperature pot, and a single HEATCALL LED.
 class ModeAndLearnButtonsAndPotActuatorPhysicalUI : public ModeButtonAndPotActuatorPhysicalUI
   {
+  public:
+    // Inherit the base class constructor.
+    using ModeButtonAndPotActuatorPhysicalUI::ModeButtonAndPotActuatorPhysicalUI;
 // TODO
   };
 
