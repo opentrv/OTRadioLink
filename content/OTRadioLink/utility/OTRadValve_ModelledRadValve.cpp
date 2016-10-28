@@ -639,7 +639,6 @@ void ModelledRadValve::recalibrate()
 // Stateless directly-testable version behind computeTargetTemperature().
 uint8_t ModelledRadValve::computeTargetTemp(const ModelledRadValveSensorCtrlStats &scs)
   {
-  return(0); // FIXME
   // In FROST mode.
   if(!scs.valveMode->inWarmMode())
     {
