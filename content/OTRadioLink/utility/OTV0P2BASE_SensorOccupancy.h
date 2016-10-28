@@ -73,42 +73,42 @@ class PseudoSensorOccupancyTracker : public OTV0P2BASE::SimpleTSUint8Sensor
     // Potentially expensive/slow.
     // Not thread-safe nor usable within ISRs (Interrupt Service Routines).
     // Poll at a fixed rate.
-    virtual uint8_t read();
+    virtual uint8_t read() override;
 
     // Returns true if this sensor reading value passed is potentially valid, eg in-range.
     // True if in range [0,100].
-    virtual bool isValid(uint8_t value) const { return(value <= 100); }
+    virtual bool isValid(uint8_t value) const override { return(value <= 100); }
 
     // This routine should be called once per minute.
-    virtual uint8_t preferredPollInterval_s() const { return(60); }
+    virtual uint8_t preferredPollInterval_s() const override { return(60); }
 
     // Recommended JSON tag for full value; not NULL.
-    virtual const char *tag() const { return("occ|%"); }
+    virtual const char *tag() const override { return("occ|%"); }
 
     // True if activity/occupancy recently reported (within last couple of minutes).
     // Activity includes weak and strong reports.
     // Thread-safe.
-    bool reportedRecently() { return(0 != activityCountdownM); }
+    bool reportedRecently() const { return(0 != activityCountdownM); }
 
     // Returns true if the room appears to be likely occupied (with active users) now.
     // Operates on a timeout; calling markAsOccupied() restarts the timer.
     // Defaults to false (and API still exists) when ENABLE_OCCUPANCY_SUPPORT not defined.
     // Thread-safe.
-    bool isLikelyOccupied() { return(0 != occupationCountdownM); }
+    bool isLikelyOccupied() const { return(0 != occupationCountdownM); }
 
     // Returns true if the room appears to be likely occupied (with active users) recently.
     // This uses the same timer as isOccupied() (restarted by markAsOccupied())
     // but returns to false somewhat sooner for example to allow ramping up more costly occupancy detection methods
     // and to allow some simple graduated occupancy responses.
     // Thread-safe.
-    bool isLikelyRecentlyOccupied() { return(occupationCountdownM > OCCUPATION_TIMEOUT_LIKELY_M); }
+    bool isLikelyRecentlyOccupied() const { return(occupationCountdownM > OCCUPATION_TIMEOUT_LIKELY_M); }
 
     // Returns true if room likely currently unoccupied (no active occupants).
     // Defaults to false (and API still exists) when ENABLE_OCCUPANCY_SUPPORT not defined.
     // This may require a substantial time after activity stops to become true.
     // This and isLikelyOccupied() cannot be true together; it is possible for neither to be true.
     // Thread-safe.
-    bool isLikelyUnoccupied() { return(!isLikelyOccupied()); }
+    bool isLikelyUnoccupied() const { return(!isLikelyOccupied()); }
 
     // Call when very strong evidence of active room occupation has occurred.
     // Do not call based on internal/synthetic events.
@@ -139,23 +139,23 @@ class PseudoSensorOccupancyTracker : public OTV0P2BASE::SimpleTSUint8Sensor
     // Two-bit occupancy: 0 not known/disclosed, 1 not occupied, 2 possibly occupied, 3 probably occupied.
     // 0 is not returned by this implementation.
     // Thread-safe.
-    uint8_t twoBitOccupancyValue() { return(isLikelyRecentlyOccupied() ? 3 : (isLikelyOccupied() ? 2 : 1)); }
+    uint8_t twoBitOccupancyValue() const { return(isLikelyRecentlyOccupied() ? 3 : (isLikelyOccupied() ? 2 : 1)); }
 
     // Recommended JSON tag for two-bit occupancy value; not NULL.
-    const char *twoBitTag() { return("O"); }
+    const char *twoBitTag() const { return("O"); }
 
     // Returns true if it is worth expending extra effort to check for occupancy.
     // This will happen when confidence in occupancy is not yet zero but is approaching,
     // so checking more thoroughly now can help maintain non-zero value if someone is present and active.
     // At other times more relaxed checking (eg lower power) can be used.
-    bool increaseCheckForOccupancy() { return(!isLikelyRecentlyOccupied() && isLikelyOccupied() && !reportedRecently()); }
+    bool increaseCheckForOccupancy() const { return(!isLikelyRecentlyOccupied() && isLikelyOccupied() && !reportedRecently()); }
 
     // Get number of hours room vacant, zero when room occupied; does not wrap.
     // Is forced to zero as soon as occupancy is detected.
-    uint16_t getVacancyH() { return((value != 0) ? 0 : vacancyH); }
+    uint16_t getVacancyH() const { return((value != 0) ? 0 : vacancyH); }
 
     // Recommended JSON tag for vacancy hours; not NULL.
-    const char *vacHTag() { return("vac|h"); }
+    const char *vacHTag() const { return("vac|h"); }
 
     // Threshold hours above which room is considered long vacant.
     // At least 24h in order to allow once-daily room programmes (including pre-warm) to operate reliably.
@@ -169,12 +169,12 @@ class PseudoSensorOccupancyTracker : public OTV0P2BASE::SimpleTSUint8Sensor
     // Returns true if room appears to have been vacant for over a day.
     // For a home or an office no sign of activity for this long suggests a weekend or a holiday for example.
     // At least 24h in order to allow once-daily room programmes (including pre-warm) to operate reliably.
-    bool longVacant() { return(getVacancyH() > longVacantHThrH); }
+    bool longVacant() const { return(getVacancyH() > longVacantHThrH); }
 
     // Returns true if room appears to have been vacant for much longer than longVacant().
     // For a home or an office no sign of activity for this long suggests a long weekend or a holiday for example.
     // Longer than longVacant() but much less than 3 days to try to capture some weekend-absence savings.
-    bool longLongVacant() { return(getVacancyH() > longLongVacantHThrH); }
+    bool longLongVacant() const { return(getVacancyH() > longLongVacantHThrH); }
 
     // Put directly into energy-conserving 'holiday mode' by making room appear to be 'long vacant'.
     // Be careful of retriggering presence immediately if this is set locally.

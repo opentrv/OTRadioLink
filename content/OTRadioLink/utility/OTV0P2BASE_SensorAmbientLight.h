@@ -34,7 +34,6 @@ namespace OTV0P2BASE
 {
 
 
-#ifdef ARDUINO_ARCH_AVR
 // Sense (usually non-linearly) over full likely internal ambient lighting range of a (UK) home,
 // down to levels too dark to be active in (and at which heating could be set back for example).
 // This suggests a full scale of at least 50--100 lux, maybe as high as 300 lux, eg see:
@@ -43,9 +42,33 @@ namespace OTV0P2BASE
 // http://www.pocklington-trust.org.uk/Resources/Thomas%20Pocklington/Documents/PDF/Research%20Publications/GPG5.pdf
 // http://www.vishay.com/docs/84154/appnotesensors.pdf
 
+#define SensorAmbientLightBase_DEFINED
+// Base class for ambient light sensors, including mocks.
+class SensorAmbientLightBase : public SimpleTSUint8Sensor
+  {
+  public:
+    // Returns true if room is probably lit enough for someone to be active, with some hysteresis.
+    // False if unknown or sensor appears unusable.
+    // Thread-safe and usable within ISRs (Interrupt Service Routines).
+    virtual bool isRoomLit() const = 0;
+
+    // Returns true if room is probably too dark for someone to be active, with some hysteresis.
+    // False if unknown or sensor appears unusable,
+    // thus it is possible for both isRoomLit() and isRoomDark() to be false.
+    // Thread-safe and usable within ISRs (Interrupt Service Routines).
+    virtual bool isRoomDark() const = 0;
+
+    // Get number of minutes (read() calls) that the room has been continuously dark for [0,255].
+    // Does not roll over from maximum value, ie stays at 255 until the room becomes light.
+    // Reset to zero in light.
+    // Stays at zero if the sensor decides that it is unusable.
+    virtual uint8_t getDarkMinutes() const = 0;
+  };
+
+#ifdef ARDUINO_ARCH_AVR
 // Sensor for ambient light level; 0 is dark, 255 is bright.
 #define SensorAmbientLight_DEFINED
-class SensorAmbientLight : public SimpleTSUint8Sensor
+class SensorAmbientLight : public SensorAmbientLightBase
   {
   public:
     // Default value for (default)LightThreshold.
@@ -142,19 +165,19 @@ class SensorAmbientLight : public SimpleTSUint8Sensor
     // Returns true if room is probably lit enough for someone to be active, with some hysteresis.
     // False if unknown or sensor appears unusable.
     // Thread-safe and usable within ISRs (Interrupt Service Routines).
-    bool isRoomLit() const { return(isRoomLitFlag && !unusable); }
+    virtual bool isRoomLit() const override { return(isRoomLitFlag && !unusable); }
 
     // Returns true if room is probably too dark for someone to be active, with some hysteresis.
     // False if unknown or sensor appears unusable,
     // thus it is possible for both isRoomLit() and isRoomDark() to be false.
     // Thread-safe and usable within ISRs (Interrupt Service Routines).
-    bool isRoomDark() const { return(!isRoomLitFlag && !unusable); }
+    virtual bool isRoomDark() const override { return(!isRoomLitFlag && !unusable); }
 
     // Get number of minutes (read() calls) that the room has been continuously dark for [0,255].
     // Does not roll over from maximum value, ie stays at 255 until the room becomes light.
     // Reset to zero in light.
     // Stays at zero if the sensor decides that it is unusable.
-    uint8_t getDarkMinutes() const { return(darkTicks); }
+    virtual uint8_t getDarkMinutes() const override { return(darkTicks); }
 
     // Set recent min and max ambient light levels from recent stats, to allow auto adjustment to dark; ~0/0xff means no min/max available.
     // Short term stats are typically over the last day,

@@ -47,6 +47,7 @@ namespace OTRadValve
 
 
 // Base class for physical UI controls on V0p2 valve devices.
+// Contains a basic subset of operations such as reporting on recent UI activity.
 class ActuatorPhysicalUIBase : public OTV0P2BASE::SimpleTSUint8Actuator
   {
   protected:
@@ -69,6 +70,17 @@ class ActuatorPhysicalUIBase : public OTV0P2BASE::SimpleTSUint8Actuator
 
     // Preferred poll interval (in seconds); should be called at constant rate, usually 1/2s.
     virtual uint8_t preferredPollInterval_s() const { return(2); }
+
+    // True if a manual UI control has been very recently (minutes ago) operated.
+    // The user may still be interacting with the control and the UI etc should probably be extra responsive.
+    // Thread-safe.
+    virtual bool veryRecentUIControlUse() const = 0;
+
+    // True if a manual UI control has been recently (tens of minutes ago) operated.
+    // If true then local manual settings should 'win' in any conflict with programmed or remote ones.
+    // For example, remote requests to override settings may be ignored while this is true.
+    // Thread-safe.
+    virtual bool recentUIControlUse() const = 0;
   };
 
 
@@ -176,10 +188,6 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // May have read() called to poll pot status and provoke occupancy callbacks.
     OTV0P2BASE::SensorTemperaturePot *const tempPotOpt;
 
-    // If non-NULL, callback used to provide additional feedback to the user beyond UI.
-    // For example, can cause the motor to wiggle for tactile reinforcement.
-    void (*const userAdditionalFeedback)() = NULL; // FIXME
-
     // Callback used to provide UI-LED-on output, may not be thread-safe; never NULL.
     // Could be set to LED_HEATCALL_ON() or similar.
     void (*const LEDon)();
@@ -256,13 +264,13 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // True if a manual UI control has been very recently (minutes ago) operated.
     // The user may still be interacting with the control and the UI etc should probably be extra responsive.
     // Thread-safe.
-    bool veryRecentUIControlUse() { return(uiTimeoutM >= (UI_DEFAULT_RECENT_USE_TIMEOUT_M - UI_DEFAULT_VERY_RECENT_USE_TIMEOUT_M)); }
+    virtual bool veryRecentUIControlUse() const override { return(uiTimeoutM >= (UI_DEFAULT_RECENT_USE_TIMEOUT_M - UI_DEFAULT_VERY_RECENT_USE_TIMEOUT_M)); }
 
     // True if a manual UI control has been recently (tens of minutes ago) operated.
     // If true then local manual settings should 'win' in any conflict with programmed or remote ones.
     // For example, remote requests to override settings may be ignored while this is true.
     // Thread-safe.
-    bool recentUIControlUse() { return(0 != uiTimeoutM); }
+    virtual bool recentUIControlUse() const override { return(0 != uiTimeoutM); }
 
     // Call this nominally on even numbered seconds to allow the UI to operate.
     // In practice call early once per 2s major cycle.

@@ -50,7 +50,6 @@ namespace OTRadValve
     //     http://ipc.brookes.ac.uk/publications/pdf/Identifying_the_health_gain_from_retirement_housing.pdf
     static const uint8_t SAFE_ROOM_TEMPERATURE = 18; // Safe for most purposes.
 
-
     // Templated set of constant parameters derived together from common arguments.
     // Can be tweaked to parameterise different products,
     // or to make a bigger shift such as to DHW control.
@@ -109,6 +108,38 @@ namespace OTRadValve
             static constexpr uint8_t SETBACK_FULL = 4;
         };
 
+    // Mechanism to make ValveControlParameters available at run-time.
+    class ValveControlParametersRTBase
+      {
+      public:
+        const uint8_t BAKE_UPLIFT;
+        const uint8_t SETBACK_DEFAULT;
+        const uint8_t SETBACK_ECO;
+        const uint8_t SETBACK_FULL;
+        // Construct an instance.
+        ValveControlParametersRTBase(
+          const uint8_t _BAKE_UPLIFT,
+          const uint8_t _SETBACK_DEFAULT,
+          const uint8_t _SETBACK_ECO,
+          const uint8_t _SETBACK_FULL)
+          : BAKE_UPLIFT(_BAKE_UPLIFT),
+            SETBACK_DEFAULT(_SETBACK_DEFAULT), SETBACK_ECO(_SETBACK_ECO), SETBACK_FULL(_SETBACK_FULL)
+          { }
+      };
+    template<typename VCP>
+    class ValveControlParametersRT : public ValveControlParametersRTBase
+      {
+      public:
+        ValveControlParametersRT()
+          : ValveControlParametersRTBase(
+            VCP::BAKE_UPLIFT,
+            VCP::SETBACK_DEFAULT,
+            VCP::SETBACK_ECO,
+            VCP::SETBACK_FULL)
+          { }
+      };
+
+
     // Typical radiator valve control parameters.
     typedef ValveControlParameters<
         // Default frost-protection (minimum) temperatures in degrees C, strictly positive, in range [MIN_TARGET_C,MAX_TARGET_C].
@@ -142,7 +173,6 @@ namespace OTRadValve
         45, // Target DHW WARM temperature for ECO bias.
         65  // Target DHW WARM temperature for Comfort bias.
         > DEFAULT_DHW_ValveControlParameters;
-
 
     // Default 'BAKE' minutes, ie time to crank heating up to BAKE setting (minutes, strictly positive, <255).
     static const uint8_t DEFAULT_BAKE_MAX_M = 30;
