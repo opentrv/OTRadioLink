@@ -39,31 +39,31 @@ namespace OTRadValve
 
 
 #if defined(ModeButtonAndPotActuatorPhysicalUI_DEFINED)
-// Use WDT-based timer for xxxPause() routines.
-// Very tiny low-power sleep.
-static const uint8_t VERYTINY_PAUSE_MS = 5;
-static void inline veryTinyPause() { OTV0P2BASE::sleepLowPowerMs(VERYTINY_PAUSE_MS); }
-// Tiny low-power sleep to approximately match the PICAXE V0.09 routine of the same name.
-static const uint8_t TINY_PAUSE_MS = 15;
-static void inline tinyPause() { OTV0P2BASE::nap(WDTO_15MS); } // 15ms vs 18ms nominal for PICAXE V0.09 impl.
-// Small low-power sleep.
-static const uint8_t SMALL_PAUSE_MS = 30;
-static void inline smallPause() { OTV0P2BASE::nap(WDTO_30MS); }
-// Medium low-power sleep to approximately match the PICAXE V0.09 routine of the same name.
-// Premature wakeups MAY be allowed to avoid blocking I/O polling for too long.
-static const uint8_t MEDIUM_PAUSE_MS = 60;
-static void inline mediumPause() { OTV0P2BASE::nap(WDTO_60MS); } // 60ms vs 144ms nominal for PICAXE V0.09 impl.
-// Big low-power sleep to approximately match the PICAXE V0.09 routine of the same name.
-// Premature wakeups MAY be allowed to avoid blocking I/O polling for too long.
-static const uint8_t BIG_PAUSE_MS = 120;
-static void inline bigPause() { OTV0P2BASE::nap(WDTO_120MS); } // 120ms vs 288ms nominal for PICAXE V0.09 impl.
-
-// Pause between flashes to allow them to be distinguished (>100ms); was mediumPause() for PICAXE V0.09 impl.
-static void inline offPause()
-  {
-  bigPause(); // 120ms, was V0.09 144ms mediumPause() for PICAXE V0.09 impl.
-//  pollIO(); // Slip in an I/O poll.
-  }
+//// Use WDT-based timer for xxxPause() routines.
+//// Very tiny low-power sleep.
+//static const uint8_t VERYTINY_PAUSE_MS = 5;
+//static void inline veryTinyPause() { OTV0P2BASE::sleepLowPowerMs(VERYTINY_PAUSE_MS); }
+//// Tiny low-power sleep to approximately match the PICAXE V0.09 routine of the same name.
+//static const uint8_t TINY_PAUSE_MS = 15;
+//static void inline tinyPause() { OTV0P2BASE::nap(WDTO_15MS); } // 15ms vs 18ms nominal for PICAXE V0.09 impl.
+//// Small low-power sleep.
+//static const uint8_t SMALL_PAUSE_MS = 30;
+//static void inline smallPause() { OTV0P2BASE::nap(WDTO_30MS); }
+//// Medium low-power sleep to approximately match the PICAXE V0.09 routine of the same name.
+//// Premature wakeups MAY be allowed to avoid blocking I/O polling for too long.
+//static const uint8_t MEDIUM_PAUSE_MS = 60;
+//static void inline mediumPause() { OTV0P2BASE::nap(WDTO_60MS); } // 60ms vs 144ms nominal for PICAXE V0.09 impl.
+//// Big low-power sleep to approximately match the PICAXE V0.09 routine of the same name.
+//// Premature wakeups MAY be allowed to avoid blocking I/O polling for too long.
+//static const uint8_t BIG_PAUSE_MS = 120;
+//static void inline bigPause() { OTV0P2BASE::nap(WDTO_120MS); } // 120ms vs 288ms nominal for PICAXE V0.09 impl.
+//
+//// Pause between flashes to allow them to be distinguished (>100ms); was mediumPause() for PICAXE V0.09 impl.
+//static void inline offPause()
+//  {
+//  bigPause(); // 120ms, was V0.09 144ms mediumPause() for PICAXE V0.09 impl.
+////  pollIO(); // Slip in an I/O poll.
+//  }
 
 // Record local manual operation of a physical UI control, eg not remote or via CLI.
 // Marks room as occupied amongst other things.
@@ -89,9 +89,7 @@ void ModeButtonAndPotActuatorPhysicalUI::markUIControlUsed()
 void ModeButtonAndPotActuatorPhysicalUI::markUIControlUsedSignificant()
     {
     // Provide some instant visual feedback if possible.
-    //  LED_HEATCALL_ON_ISR_SAFE();
-    void (*safeISRLEDon_FN)() = safeISRLEDonOpt;
-    if(NULL != safeISRLEDon_FN) { safeISRLEDon_FN(); }
+    if(NULL != safeISRLEDonOpt) { safeISRLEDonOpt(); }
     // Flag up need for feedback.
     significantUIOp = true;
     // Do main UI-touched work.
@@ -174,84 +172,9 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
     if(significantUIOp) { userOpFeedback(); }
 
     // Support cycling through modes polling the MODE button.
-    pollMODEButton();
-// FIXME: now use pollMODEButton().
-//  #if !defined(ENABLE_SIMPLIFIED_MODE_BAKE) // if(cycleMODE)
-//    // Full MODE button behaviour:
-//    //   * cycle through FROST/WARM/BAKE while held down
-//    //   * switch to selected mode on release
-//    //
-//    // If true then is in WARM (or BAKE) mode; defaults to (starts as) false/FROST.
-//    // Should be only be set when 'debounced'.
-//    // Defaults to (starts as) false/FROST.
-//    static bool isWarmModePutative;
-//    static bool isBakeModePutative;
-//
-//    static bool modeButtonWasPressed;
-//    if(fastDigitalRead(BUTTON_MODE_L) == LOW)
-//      {
-//      if(!modeButtonWasPressed)
-//        {
-//        // Capture real mode variable as button is pressed.
-//        isWarmModePutative = inWarmMode();
-//        isBakeModePutative = inBakeMode();
-//        modeButtonWasPressed = true;
-//        }
-//
-//      // User is pressing the mode button: cycle through FROST | WARM [ | BAKE ].
-//      // Mark controls used and room as currently occupied given button press.
-//      markUIControlUsed();
-//      // LED on...
-//      LEDon();
-//      tinyPause(); // Leading tiny pause...
-//      if(!isWarmModePutative) // Was in FROST mode; moving to WARM mode.
-//        {
-//        isWarmModePutative = true;
-//        isBakeModePutative = false;
-//        // 2 x flash 'heat call' to indicate now in WARM mode.
-//        LEDoff();
-//        offPause();
-//        LEDon();
-//        tinyPause();
-//        }
-//      else if(!isBakeModePutative) // Was in WARM mode, move to BAKE (with full timeout to run).
-//        {
-//        isBakeModePutative = true;
-//        // 2 x flash + one longer flash 'heat call' to indicate now in BAKE mode.
-//        LEDoff();
-//        offPause();
-//        LEDon();
-//        tinyPause();
-//        LEDoff();
-//        mediumPause(); // Note different flash on/off duty cycle to try to distinguish this last flash.
-//        LEDon();
-//        mediumPause();
-//        }
-//      else // Was in BAKE (if supported, else was in WARM), move to FROST.
-//        {
-//        isWarmModePutative = false;
-//        isBakeModePutative = false;
-//        // 1 x flash 'heat call' to indicate now in FROST mode.
-//        }
-//      }
-//    else
-//  #endif // !defined(ENABLE_SIMPLIFIED_MODE_BAKE)
+    // If MODE button is active skip normal LED UI activity.
+    if(!pollMODEButton())
       {
-//  #if !defined(ENABLE_SIMPLIFIED_MODE_BAKE) // if(cycleMODE)
-//      // Update real control variables for mode when button is released.
-//      if(modeButtonWasPressed)
-//        {
-//        // Don't update the debounced WARM mode while button held down.
-//        // Will also capture programmatic changes to isWarmMode, eg from schedules.
-//        const bool isWarmModeDebounced = isWarmModePutative;
-//        setWarmModeDebounced(isWarmModeDebounced);
-//        if(isBakeModePutative) { startBake(); } else { cancelBakeDebounced(); }
-//
-//        markUIControlUsed(); // Note activity on release of MODE button...
-//        modeButtonWasPressed = false;
-//        }
-//  #endif // !defined(ENABLE_SIMPLIFIED_MODE_BAKE)
-
       // Keep reporting UI status if the user has just touched the unit in some way or UI feedback is enhanced.
       const bool justTouched = statusChange || enhancedUIFeedback;
 
@@ -329,20 +252,6 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
         veryTinyPause();
         }
 
-// FIXME: delegate to handleOtherUserControls().
-//      // Enforce any changes that may have been driven by other UI components (ie other than MODE button).
-//      // Eg adjustment of temp pot / eco bias changing scheduled state.
-//      if(statusChange)
-//        {
-//        static bool prevScheduleStatus;
-//        const bool currentScheduleStatus = Scheduler.isAnyScheduleOnWARMNow();
-//        if(currentScheduleStatus != prevScheduleStatus)
-//          {
-//          prevScheduleStatus = currentScheduleStatus;
-//          setWarmModeDebounced(currentScheduleStatus);
-//          }
-//        }
-
       }
 
     // Ensure that the LED forced off unconditionally at least once each cycle.
@@ -351,26 +260,6 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
     // Handle LEARN buttons (etc) in derived classes.
     // Also can be used to handle any simple user schedules.
     handleOtherUserControls(statusChange);
-// FIXME: delegate to handleOtherUserControls().
-//  #ifdef ENABLE_LEARN_BUTTON
-//    // Handle learn button if supported and if is currently pressed.
-//    if(fastDigitalRead(BUTTON_LEARN_L) == LOW)
-//      {
-//      handleLEARN(0);
-//      userOpFeedback(false); // Mark controls used and room as currently occupied given button press.
-//      LEDon(); // Leave heatcall LED on while learn button held down.
-//      }
-//
-//  #if defined(BUTTON_LEARN2_L)
-//    // Handle second learn button if supported and currently pressed and primary learn button not pressed.
-//    else if(fastDigitalRead(BUTTON_LEARN2_L) == LOW)
-//      {
-//      handleLEARN(1);
-//      userOpFeedback(false); // Mark controls used and room as currently occupied given button press.
-//      LEDon(); // Leave heatcall LED on while learn button held down.
-//      }
-//  #endif
-//  #endif
 
     const bool statusChanged = statusChange;
     statusChange = false; // Potential race.

@@ -90,10 +90,31 @@ class NullActuatorPhysicalUI : public ActuatorPhysicalUIBase
 class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
   {
   protected:
-    // If true, implements older MODE behaviour hold to cycle through FROST/WARM/BAKE
-    // as selected by ENABLE_SIMPLIFIED_MODE_BAKE.
-    // If false, button is press to BAKE, and should be interrupt-driven.
-    const bool cycleMODE;
+    // Use WDT-based timer for xxxPause() routines.
+    // Very tiny low-power sleep.
+    static const uint8_t VERYTINY_PAUSE_MS = 5;
+    static void inline veryTinyPause() { OTV0P2BASE::sleepLowPowerMs(VERYTINY_PAUSE_MS); }
+    // Tiny low-power sleep to approximately match the PICAXE V0.09 routine of the same name.
+    static const uint8_t TINY_PAUSE_MS = 15;
+    static void inline tinyPause() { OTV0P2BASE::nap(WDTO_15MS); } // 15ms vs 18ms nominal for PICAXE V0.09 impl.
+    // Small low-power sleep.
+    static const uint8_t SMALL_PAUSE_MS = 30;
+    static void inline smallPause() { OTV0P2BASE::nap(WDTO_30MS); }
+    // Medium low-power sleep to approximately match the PICAXE V0.09 routine of the same name.
+    // Premature wakeups MAY be allowed to avoid blocking I/O polling for too long.
+    static const uint8_t MEDIUM_PAUSE_MS = 60;
+    static void inline mediumPause() { OTV0P2BASE::nap(WDTO_60MS); } // 60ms vs 144ms nominal for PICAXE V0.09 impl.
+    // Big low-power sleep to approximately match the PICAXE V0.09 routine of the same name.
+    // Premature wakeups MAY be allowed to avoid blocking I/O polling for too long.
+    static const uint8_t BIG_PAUSE_MS = 120;
+    static void inline bigPause() { OTV0P2BASE::nap(WDTO_120MS); } // 120ms vs 288ms nominal for PICAXE V0.09 impl.
+
+    // Pause between flashes to allow them to be distinguished (>100ms); was mediumPause() for PICAXE V0.09 impl.
+    static void inline offPause()
+      {
+      bigPause(); // 120ms, was V0.09 144ms mediumPause() for PICAXE V0.09 impl.
+      //  pollIO(); // Slip in an I/O poll.
+      }
 
     // Marked true if the physical UI controls are being used.
     // Cleared at end of read().
@@ -168,13 +189,14 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // Could be set to LED_HEATCALL_ON_ISR_SAFE() or similar.
     void (*const safeISRLEDonOpt)();
 
-    // Poll the MODE button to support cycling through modes with the button held down.
+    // Poll the MODE button to support cycling through modes with the button held down; true if button active.
+    // If this returns true then avoid other LED UI output.
     // This was the older style of interface (eg for REV1/REV2).
     // The newer interface only uses the MODE button to trigger bake, interrupt-driven.
     // This is called after polling the temp pot if present,
     // and after providing feedback for any significant accrued UI interactions.
-    // By default does nothing.
-    void pollMODEButton() { }
+    // By default does nothing and returns false.
+    virtual bool pollMODEButton() { return(false); }
 
     // Called after handling main controls to handle other buttons and user controls.
     // Designed to be overridden by derived classes, eg to handle LEARN buttons.
@@ -204,10 +226,8 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
       OTV0P2BASE::PseudoSensorOccupancyTracker *const _occupancy,
       const OTV0P2BASE::SensorAmbientLight *const _ambLight,
       OTV0P2BASE::SensorTemperaturePot *const _tempPotOpt,
-      void (*const _LEDon)(), void (*const _LEDoff)(), void (*const _safeISRLEDonOpt)(),
-      bool _cycleMODE = false)
-      : cycleMODE(_cycleMODE),
-        valveMode(_valveMode), tempControl(_tempControl), valveController(_valveController),
+      void (*const _LEDon)(), void (*const _LEDoff)(), void (*const _safeISRLEDonOpt)())
+      : valveMode(_valveMode), tempControl(_tempControl), valveController(_valveController),
         occupancy(_occupancy), ambLight(_ambLight), tempPotOpt(_tempPotOpt),
         LEDon(_LEDon), LEDoff(_LEDoff), safeISRLEDonOpt(_safeISRLEDonOpt)
       {
@@ -260,23 +280,152 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // Handle simple interrupt for from MODE button, edge triggered on button push.
     // Starts BAKE from manual UI interrupt if not in cycle mode; marks UI as used in any case.
     // ISR-safe.
-    virtual bool handleInterruptSimple() override
-      {
-      if(cycleMODE) { markUIControlUsed(); }
-      else { startBakeFromInt(); }
-      return(true);
-      }
+    virtual bool handleInterruptSimple() override { startBakeFromInt(); return(true); }
   };
 
 
 // Supports two LEARN buttons, boost/MODE button, temperature pot, and a single HEATCALL LED.
 // Uses the MODE button to cycle though modes as per older (and pot-less) UI such as REV1.
+#define CycleModeAndLearnButtonsAndPotActuatorPhysicalUI_DEFINED
+template <int BUTTON_MODE_L_pin>
 class CycleModeAndLearnButtonsAndPotActuatorPhysicalUI : public ModeButtonAndPotActuatorPhysicalUI
   {
+  private:
+    // If true then is in WARM (or BAKE) mode; defaults to (starts as) false/FROST.
+    // Should be only be set when 'debounced'.
+    // Defaults to (starts as) false/FROST.
+    bool isWarmModePutative;
+    bool isBakeModePutative;
+    bool modeButtonWasPressed;
+
+  protected:
+    // Poll the MODE button to support cycling through modes with the button held down; true if button active.
+    // If this returns true then avoid other LED UI output.
+    // This was the older style of interface (eg for REV1/REV2).
+    // The newer interface only uses the MODE button to trigger bake, interrupt-driven.
+    // This is called after polling the temp pot if present,
+    // and after providing feedback for any significant accrued UI interactions.
+    virtual bool pollMODEButton() override
+      {
+      // Full MODE button behaviour:
+      //   * cycle through FROST/WARM/BAKE while held down showing 1/2/3 flashes as appropriate
+      //   * switch to selected mode on button release
+      const bool modeButtonIsPressed = (LOW == fastDigitalRead(BUTTON_MODE_L_pin));
+      if(modeButtonIsPressed)
+        {
+        if(!modeButtonWasPressed)
+          {
+          // Capture real mode variable as button is pressed.
+          isWarmModePutative = valveMode->inWarmMode();
+          isBakeModePutative = valveMode->inBakeMode();
+          modeButtonWasPressed = true;
+          }
+
+        // User is pressing the mode button: cycle through FROST | WARM [ | BAKE ].
+        // Mark controls used and room as currently occupied given button press.
+        markUIControlUsed();
+        // LED on...
+        this->LEDon();
+        tinyPause(); // Leading tiny pause...
+        if(!isWarmModePutative) // Was in FROST mode; moving to WARM mode.
+          {
+          isWarmModePutative = true;
+          isBakeModePutative = false;
+          // 2 x flash 'heat call' to indicate now in WARM mode.
+          this->LEDoff();
+          offPause();
+          this->LEDon();
+          tinyPause();
+          }
+        else if(!isBakeModePutative) // Was in WARM mode, move to BAKE (with full timeout to run).
+          {
+          isBakeModePutative = true;
+          // 2 x flash + one longer flash 'heat call' to indicate now in BAKE mode.
+          this->LEDoff();
+          offPause();
+          this->LEDon();
+          tinyPause();
+          this->LEDoff();
+          mediumPause(); // Note different flash on/off duty cycle to try to distinguish this last flash.
+          this->LEDon();
+          mediumPause();
+          }
+        else // Was in BAKE (if supported, else was in WARM), move to FROST.
+          {
+          isWarmModePutative = false;
+          isBakeModePutative = false;
+          // 1 x flash 'heat call' to indicate now in FROST mode.
+          }
+        }
+      else
+        {
+        // Update real control variables for mode when the button is released.
+        if(modeButtonWasPressed)
+          {
+          // Don't update the debounced WARM mode while button held down.
+          // Will also capture programmatic changes to isWarmMode, eg from schedules.
+          const bool isWarmModeDebounced = isWarmModePutative;
+          valveMode->setWarmModeDebounced(isWarmModeDebounced);
+          if(isBakeModePutative) { valveMode->startBake(); } else { valveMode->cancelBakeDebounced(); }
+          this->markUIControlUsed(); // Note activity on release of MODE button...
+          modeButtonWasPressed = false;
+          return(false);
+          }
+        }
+      return(modeButtonIsPressed);
+      }
+
+    // Called after handling main controls to handle other buttons and user controls.
+    // This is also a suitable place to handle any simple schedules.
+    // Designed to be overridden by derived classes, eg to handle LEARN buttons.
+    // The UI LED is (possibly JUST) off by the time this is called.
+    // By default does nothing.
+    virtual void handleOtherUserControls() override
+      {
+      // FIXME
+      //      // Enforce any changes that may have been driven by other UI components (ie other than MODE button).
+      //      // Eg adjustment of temp pot / eco bias changing scheduled state.
+      //      if(statusChange)
+      //        {
+      //        static bool prevScheduleStatus;
+      //        const bool currentScheduleStatus = Scheduler.isAnyScheduleOnWARMNow();
+      //        if(currentScheduleStatus != prevScheduleStatus)
+      //          {
+      //          prevScheduleStatus = currentScheduleStatus;
+      //          setWarmModeDebounced(currentScheduleStatus);
+      //          }
+      //        }
+
+      // FIXME
+      //  #ifdef ENABLE_LEARN_BUTTON
+      //    // Handle learn button if supported and if is currently pressed.
+      //    if(fastDigitalRead(BUTTON_LEARN_L) == LOW)
+      //      {
+      //      handleLEARN(0);
+      //      userOpFeedback(false); // Mark controls used and room as currently occupied given button press.
+      //      LEDon(); // Leave heatcall LED on while learn button held down.
+      //      }
+      //
+      //  #if defined(BUTTON_LEARN2_L)
+      //    // Handle second learn button if supported and currently pressed and primary learn button not pressed.
+      //    else if(fastDigitalRead(BUTTON_LEARN2_L) == LOW)
+      //      {
+      //      handleLEARN(1);
+      //      userOpFeedback(false); // Mark controls used and room as currently occupied given button press.
+      //      LEDon(); // Leave heatcall LED on while learn button held down.
+      //      }
+      //  #endif
+      //  #endif
+      }
+
   public:
     // Inherit the base class constructor.
     using ModeButtonAndPotActuatorPhysicalUI::ModeButtonAndPotActuatorPhysicalUI;
-// TODO
+
+    // Handle simple interrupt for from MODE button, edge triggered on button push.
+    // Marks UI as used.
+    // ISR-safe.
+    virtual bool handleInterruptSimple() override final { markUIControlUsed();  return(true); }
   };
 
 #endif // ARDUINO_ARCH_AVR
