@@ -39,6 +39,9 @@ namespace OTV0P2BASE
 class SimpleValveScheduleBase
    {
    public:
+        // Returns maximum number of schedules supported.
+        virtual uint8_t maxSchedules() const = 0;
+
         // Returns the basic on-time for the program, in minutes; strictly positive.
         // Does not include pre-warm (not pre-pre-warm time).
         // Overriding may vary with arbitrary external parameters.
@@ -84,8 +87,7 @@ class SimpleValveScheduleBase
         // May be relatively slow/expensive.
         // Can be used to suppress all 'off' activity except for the final one.
         // Can be used to suppress set-backs during on times.
-        virtual bool isAnySimpleScheduleSet() const = 0;;
-
+        virtual bool isAnySimpleScheduleSet() const = 0;
    };
 
 
@@ -104,6 +106,9 @@ class SimpleValveScheduleEEPROM : public SimpleValveScheduleBase
         // Can be more than the number of buttons, but later schedules will be CLI-only.
         // Depends on space reserved in EEPROM for programmes, one byte per programme.
         static constexpr uint8_t MAX_SIMPLE_SCHEDULES = V0P2BASE_EE_START_MAX_SIMPLE_SCHEDULES;
+
+        // Returns maximum number of schedules supported.
+        virtual uint8_t maxSchedules() const override { return(MAX_SIMPLE_SCHEDULES); }
 
         // Target basic scheduled on time for heating in minutes (typically 1h); strictly positive.
         static constexpr uint8_t BASIC_SCHEDULED_ON_TIME_MINS = 60;
@@ -144,12 +149,12 @@ class SimpleValveScheduleEEPROM : public SimpleValveScheduleBase
         // Invalid parameters will be ignored and false returned,
         // else this will return true and isSimpleScheduleSet() will return true after this.
         // NOTE: over-use of this routine can prematurely wear out the EEPROM.
-        virtual /*static*/ bool setSimpleSchedule(uint_least16_t startMinutesSinceMidnightLT, uint8_t which) override;
+        virtual bool setSimpleSchedule(uint_least16_t startMinutesSinceMidnightLT, uint8_t which) override;
 
         // Clear a simple schedule.
         // There will be neither on nor off events from the selected simple schedule once this is called.
         //   * which  schedule number, counting from 0
-        virtual /*static*/ void clearSimpleSchedule(uint8_t which) override;
+        virtual void clearSimpleSchedule(uint8_t which) override;
 
         // True iff any schedule is 'on'/'WARN' even when schedules overlap.
         // Can be used to suppress all 'off' activity except for the final one.
@@ -166,15 +171,33 @@ class SimpleValveScheduleEEPROM : public SimpleValveScheduleBase
         // May be relatively slow/expensive.
         // Can be used to suppress all 'off' activity except for the final one.
         // Can be used to suppress set-backs during on times.
-        virtual /*static*/ bool isAnySimpleScheduleSet() const override;
+        virtual bool isAnySimpleScheduleSet() const override;
     };
+
 #endif // ARDUINO_ARCH_AVR
 
+
+// Empty type-correct substitute for SimpleValveScheduleBase
+// for when no Scheduler is require to simplify coding.
+// Never has schedules nor allows them to be set.
+class NULLValveSchedule : public SimpleValveScheduleBase
+  {
+  public:
+    virtual uint8_t maxSchedules() const override { return(0); }
+    virtual uint8_t onTime() const override { return(1); }
+    virtual uint_least16_t getSimpleScheduleOff(uint8_t which) const override { return(~0); }
+    virtual uint_least16_t getSimpleScheduleOn(uint8_t which) const override { return(~0); }
+    virtual bool setSimpleSchedule(uint_least16_t startMinutesSinceMidnightLT, uint8_t which) override { return(false); }
+    virtual void clearSimpleSchedule(uint8_t which) override { }
+    virtual bool isAnyScheduleOnWARMNow() const override { return(false); }
+    virtual bool isAnyScheduleOnWARMSoon() const override { return(false); }
+    virtual bool isAnySimpleScheduleSet() const override { return(false); }
+  };
 
 // Dummy substitute for SimpleValveScheduleBase
 // for when no Scheduler is require to simplify coding.
 // Never has schedules nor allows them to be set.
-class NULLValveSchedule
+class DummyValveSchedule
     {
     public:
         static uint_least16_t getSimpleScheduleOff(uint8_t) { return(~0); }
