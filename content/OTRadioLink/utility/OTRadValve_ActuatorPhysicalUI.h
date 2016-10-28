@@ -170,6 +170,16 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
 
     // Called after handling main controls to handle other buttons and user controls.
     // Designed to be overridden by derived classes, eg to handle LEARN buttons.
+    // Is passed 'true' if any status change has happened so far
+    // to enforce any changes that may have been driven by other UI components (ie other than MODE button).
+    // Eg adjustment of temp pot / eco bias changing scheduled state.
+    // By default does nothing.
+    virtual void handleOtherUserControls(bool /*statusChangeSoFar*/) { }
+
+    // Called after handling main controls to handle other buttons and user controls.
+    // This is also a suitable place to handle any simple schedules.
+    // Designed to be overridden by derived classes, eg to handle LEARN buttons.
+    // The UI LED is (possibly JUST) off by the time this is called.
     // By default does nothing.
     virtual void handleOtherUserControls() { }
 
@@ -222,10 +232,21 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // Replaces: bool tickUI(uint_fast8_t sec).
     virtual uint8_t read() override;
 
-    // Handle simple interrupt for this UI sensor.
-    // Should be wired to the MODE button, edge triggered.
-    // By default does nothing (and returns false).
-    virtual bool handleInterruptSimple() override { return(false); }
+    // Handle simple interrupt for from MODE button, edge triggered on button push.
+    // Starts BAKE from manual UI interrupt; marks UI as used also.
+    // Vetos switch to BAKE mode if a temp pot/dial is present and at the low end stop, ie in the FROST position.
+    // Was startBakeFromInt().
+    // Marked final to help the compiler optimise this time-critical routine.
+    virtual bool handleInterruptSimple() override final
+      {
+      if(NULL != tempPotOpt)
+        {
+        const bool isLo = tempPotOpt->isAtLoEndStop(); // ISR-safe.
+        if(isLo) { markUIControlUsed(); return(true); }
+        }
+      valveMode->startBake();
+      markUIControlUsedSignificant();
+      }
   };
 
 

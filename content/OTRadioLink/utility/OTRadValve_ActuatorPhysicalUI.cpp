@@ -150,7 +150,7 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
           const bool isLo = tempPotOpt->isAtLoEndStop();
           if(isLo) { valveMode->setWarmModeDebounced(false); }
           // Feed back significant change in pot position, ie at temperature boundaries.
-          // Synthesise a 'warm' target temp that distinguishes end stops...
+          // Synthesise a 'warm' target temp that distinguishes the end stops...
           const uint8_t nominalWarmTarget = isLo ? 1 :
               (tempPotOpt->isAtHiEndStop() ? 99 :
               tempControl->getWARMTargetC());
@@ -326,7 +326,7 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
         veryTinyPause();
         }
 
-// FIXME
+// FIXME: delegate to handleOtherUserControls().
 //      // Enforce any changes that may have been driven by other UI components (ie other than MODE button).
 //      // Eg adjustment of temp pot / eco bias changing scheduled state.
 //      if(statusChange)
@@ -342,12 +342,13 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
 
       }
 
-    // Ensure LED forced off unconditionally at least once each cycle.
+    // Ensure that the LED forced off unconditionally at least once each cycle.
     LEDoff();
 
     // Handle LEARN buttons (etc) in derived classes.
-    handleOtherUserControls();
-// FIXME
+    // Also can be used to handle any simple user schedules.
+    handleOtherUserControls(statusChange);
+// FIXME: delegate to handleOtherUserControls().
 //  #ifdef ENABLE_LEARN_BUTTON
 //    // Handle learn button if supported and if is currently pressed.
 //    if(fastDigitalRead(BUTTON_LEARN_L) == LOW)
