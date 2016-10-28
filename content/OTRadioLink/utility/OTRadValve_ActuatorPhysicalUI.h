@@ -89,7 +89,7 @@ class NullActuatorPhysicalUI : public ActuatorPhysicalUIBase
 #define ModeButtonAndPotActuatorPhysicalUI_DEFINED
 class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
   {
-  protected:
+  public:
     // Use WDT-based timer for xxxPause() routines.
     // Very tiny low-power sleep.
     static const uint8_t VERYTINY_PAUSE_MS = 5;
@@ -116,6 +116,7 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
       //  pollIO(); // Slip in an I/O poll.
       }
 
+  protected:
     // Marked true if the physical UI controls are being used.
     // Cleared at end of read().
     // Marked volatile for thread-safe lock-free non-read-modify-write access to byte-wide value.
@@ -135,18 +136,6 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // Marked volatile for thread-safe lockless access;
     volatile bool significantUIOp;
 
-    // Record local manual operation of a physical UI control, eg not remote or via CLI.
-    // Marks room as occupied amongst other things.
-    // To be thread-/ISR- safe, everything that this touches or calls must be.
-    // Thread-safe.
-    void markUIControlUsed();
-
-    // Record significant local manual operation of a physical UI control, eg not remote or via CLI.
-    // Marks room as occupied amongst other things.
-    // As markUIControlUsed() but likely to generate some feedback to the user, ASAP.
-    // Thread-safe.
-    void markUIControlUsedSignificant();
-
     // UI feedback.
     // Provide low-key visual / audio / tactile feedback on a significant user action.
     // May take hundreds of milliseconds and noticeable energy.
@@ -154,7 +143,19 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // but that can be prevented if other visual feedback already in progress.
     // Marks the UI as used.
     // Not thread-/ISR- safe.
-    void userOpFeedback(bool includeVisual = true) { } // FIXME
+    void userOpFeedback(const bool includeVisual = true)
+      {
+      if(includeVisual) { LEDon(); }
+      markUIControlUsed();
+      // Sound and tactile feedback with local valve, like mobile phone vibrate mode.
+      // Only do this if in a normal state, eg not calibrating nor in error.
+      if(valveController->isInNormalRunState()) { valveController->wiggle(); }
+      // Were wiggle cannot be used pause briefly to let LED on be seen.
+      else { if(includeVisual) { smallPause(); } }
+      if(includeVisual) { LEDoff(); }
+      // Note that feedback for significant UI action has been given.
+      significantUIOp = false;
+      }
 
     // Valve mode; must not be NULL.
     ValveMode *const valveMode;
@@ -240,6 +241,18 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
 //         (NULL == _LEDoff)) { panic(); }
       }
 
+    // Record local manual operation of a physical UI control, eg not remote or via CLI.
+    // Marks room as occupied amongst other things.
+    // To be thread-/ISR- safe, everything that this touches or calls must be.
+    // Thread-safe.
+    void markUIControlUsed();
+
+    // Record significant local manual operation of a physical UI control, eg not remote or via CLI.
+    // Marks room as occupied amongst other things.
+    // As markUIControlUsed() but likely to generate some feedback to the user, ASAP.
+    // Thread-safe.
+    void markUIControlUsedSignificant();
+
     // True if a manual UI control has been very recently (minutes ago) operated.
     // The user may still be interacting with the control and the UI etc should probably be extra responsive.
     // Thread-safe.
@@ -259,6 +272,24 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // NOTE: since this is on the minimum idle-loop code path, minimise CPU cycles, esp in frost mode.
     // Replaces: bool tickUI(uint_fast8_t sec).
     virtual uint8_t read() override;
+
+    // Start/cancel WARM mode in one call, driven by manual UI input.
+    void setWarmModeFromManualUI(const bool warm)
+      {
+      // Give feedback when changing WARM mode.
+      if(warm != valveMode->inWarmMode()) { this->markUIControlUsedSignificant(); }
+      // Now set/cancel WARM.
+      valveMode->setWarmModeDebounced(warm);
+      }
+
+    // Start/cancel BAKE mode in one call, driven by manual UI input.
+    void setBakeModeFromManualUI(const bool start)
+      {
+      // Give feedback when changing BAKE mode.
+      if(valveMode->inBakeMode() != start) { this->markUIControlUsedSignificant(); }
+      // Now set/cancel BAKE.
+      if(start) { valveMode->startBake(); } else { valveMode->cancelBakeDebounced(); }
+      }
 
     // Handle simple interrupt for from MODE button, edge triggered on button push.
     // Starts BAKE from manual UI interrupt; marks UI as used also.
@@ -286,6 +317,35 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
 
 // Supports two LEARN buttons, boost/MODE button, temperature pot, and a single HEATCALL LED.
 // Uses the MODE button to cycle though modes as per older (and pot-less) UI such as REV1.
+//
+// Implementation of minimal UI using single LED and one or two momentary push-buttons.
+//
+// ; UI DESCRIPTION (derived from V0.09 PICAXE code)
+// ; Button causes cycling through 'off'/'frost' target of 5C, 'warm' target of ~18C,
+// ; and an optional 'bake' mode that raises the target temperature to up to ~24C
+// ; for up to ~30 minutes or until the target is hit then reverts to 'warm' automatically.
+// ; (Button may have to be held down for up to a few seconds to get the unit's attention.)
+// ; As of 2013/12/15 acknowledgment single/double/triple flash in new mode.
+// ;; Up to 2013/12/14, acknowledgment was medium/long/double flash in new mode
+// ;; (medium is frost, long is 'warm', long + second flash is 'bake').
+//
+// ; Without the button pressed,
+// ; the unit generates one to three short flashes on a two-second cycle if in heat mode.
+// ; A first flash indicates "warm mode".  (V0.2: every 4th set of flashes will be dim or omitted if a schedule is set.)
+// ; A second flash if present indicates "calling for heat".
+// ; A third flash if present indicates "bake mode" (which is automatically cancelled after a short time, or if the high target is hit).
+//
+// ; This may optionally support an interactive CLI over the serial connection,
+// ; with reprogramming initiation permitted (instead of CLI) while the UI button is held down.
+//
+// ; If target is not being met then aim to turn TRV on/up and call for heat from the boiler too,
+// ; else if target is being met then turn TRV off/down and stop calling for heat from the boiler.
+// ; Has a small amount of hysteresis to reduce short-cycling of the boiler.
+// ; Does some proportional TRV control as target temperature is neared to reduce overshoot.
+//
+// ; This can use a simple setback (drops the 'warm' target a little to save energy)
+// ; eg using an LDR, ie reasonable ambient light, as a proxy for occupancy.
+//
 #define CycleModeAndLearnButtonsAndPotActuatorPhysicalUI_DEFINED
 template <int BUTTON_MODE_L_pin>
 class CycleModeAndLearnButtonsAndPotActuatorPhysicalUI : public ModeButtonAndPotActuatorPhysicalUI
@@ -426,6 +486,18 @@ class CycleModeAndLearnButtonsAndPotActuatorPhysicalUI : public ModeButtonAndPot
     // Marks UI as used.
     // ISR-safe.
     virtual bool handleInterruptSimple() override final { markUIControlUsed();  return(true); }
+
+    //// Handle learn button(s).
+    //// First/primary button is 0, second is 1, etc.
+    //// In simple mode: if in frost mode clear simple schedule else set repeat for every 24h from now.
+    //// May be called from pushbutton or CLI UI components.
+    //static void handleLEARN(const uint8_t which)
+    //  {
+    //  // Set simple schedule starting every 24h from a little before now and running for an hour or so.
+    //  if(valveMode.inWarmMode()) { Scheduler.setSimpleSchedule(OTV0P2BASE::getMinutesSinceMidnightLT(), which); }
+    //  // Clear simple schedule.
+    //  else { Scheduler.clearSimpleSchedule(which); }
+    //  }
   };
 
 #endif // ARDUINO_ARCH_AVR

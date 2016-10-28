@@ -134,46 +134,6 @@ class ValveMode : public OTV0P2BASE::SimpleTSUint8Sensor
     // Should ideally be only be called once 'debounced' if coming from a button press for example.
     // Is thread-/ISR- safe (though may have no effect if warm is set false concurrently).
     void startBake() { isWarmMode = true; bakeCountdownM.store(DEFAULT_BAKE_MAX_M); }
-
-// Routines that probably stay outside ValveMode as part of application 'knitting'.
-
-// FIXME
-//    // Start/cancel WARM mode in one call, driven by manual UI input.
-//    static void setWarmModeFromManualUI(const bool warm)
-//      {
-//      // Give feedback when changing WARM mode.
-//      if(inWarmMode() != warm) { markUIControlUsedSignificant(); }
-//      // Now set/cancel WARM.
-//      setWarmModeDebounced(warm);
-//      }
-
-//FIXME
-//    #if defined(ENABLE_SIMPLIFIED_MODE_BAKE)
-//    // Start BAKE from manual UI interrupt; marks UI as used also.
-//    // Vetos switch to BAKE mode if a temp pot/dial is present and at the low end stop, ie in FROST position.
-//    // Is thread-/ISR- safe.
-//    static void startBakeFromInt()
-//      {
-//    #ifdef TEMP_POT_AVAILABLE
-//      // Veto if dial is at FROST position.
-//      const bool isLo = TempPot.isAtLoEndStop(); // ISR-safe.
-//      if(isLo) { markUIControlUsed(); return; }
-//    #endif
-//      startBake();
-//      markUIControlUsedSignificant();
-//      }
-//    #endif // defined(ENABLE_SIMPLIFIED_MODE_BAKE)
-
-// FIXME
-//    // Start/cancel BAKE mode in one call, driven by manual UI input.
-//    void setBakeModeFromManualUI(const bool start)
-//      {
-//      // Give feedback when changing BAKE mode.
-//      if(inBakeMode() != start) { markUIControlUsedSignificant(); }
-//      // Now set/cancel BAKE.
-//      if(start) { startBake(); } else { cancelBakeDebounced(); }
-//      }
-
   };
 
 
