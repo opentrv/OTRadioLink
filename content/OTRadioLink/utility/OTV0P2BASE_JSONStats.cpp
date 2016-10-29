@@ -23,8 +23,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014--2016
 #include <stddef.h>
 #include <string.h>
 
+#include "OTV0P2BASE_ArduinoCompat.h"
 #include "OTV0P2BASE_JSONStats.h"
-
 #include "OTV0P2BASE_CRC.h"
 #include "OTV0P2BASE_EEPROM.h"
 #include "OTV0P2BASE_QuickPRNG.h"
@@ -168,13 +168,12 @@ int8_t checkJSONMsgRXCRC(const uint8_t * const bptr, const uint8_t bufLen)
   return(checkJSONMsgRXCRC_ERR); // Bad (unterminated) message.
   }
 
-
-// Print a single char to a bounded buffer; returns 1 if successful, else 0 if full.
-size_t BufPrint::write(const uint8_t c)
-  {
-  if(size < capacity) { b[size++] = c; b[size] = '\0'; return(1); }
-  return(0);
-  }
+//// Print a single char to a bounded buffer; returns 1 if successful, else 0 if full.
+//size_t BufPrint::write(const uint8_t c)
+//  {
+//  if(size < capacity) { b[size++] = c; b[size] = '\0'; return(1); }
+//  return(0);
+//  }
 
 // Returns true iff if a valid key for OpenTRV subset of JSON.
 // Rejects keys containing " or \ or any chars outside the range [32,126]
