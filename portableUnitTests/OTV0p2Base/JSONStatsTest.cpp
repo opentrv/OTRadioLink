@@ -40,8 +40,11 @@ TEST(JSONStats,JSONStats)
     const uint8_t l1 = ss1.writeJSON((uint8_t*)buf, sizeof(buf), OTV0P2BASE::randRNG8(), OTV0P2BASE::randRNG8NextBoolean());
     EXPECT_EQ(12, l1) << buf;
     EXPECT_STREQ(buf, "{\"@\":\"1234\"}") << buf;
+    ss1.enableCount(false);
+    EXPECT_EQ(12, ss1.writeJSON((uint8_t*)buf, sizeof(buf), OTV0P2BASE::randRNG8(), OTV0P2BASE::randRNG8NextBoolean()));
+    EXPECT_STREQ(buf, "{\"@\":\"1234\"}") << buf;
 
-    // TODO
+    // TODO: complete tests below.
 }
 
 
