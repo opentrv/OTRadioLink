@@ -59,7 +59,7 @@ namespace OTV0P2BASE
 // Atomic uint8_t value object.
 #ifdef OTV0P2BASE_PLATFORM_HAS_atomic
     // Default is to use the std::atomic where it exists, eg for hosted test cases.
-    typedef std::atomic<std::uint8_t> Atomic_UInt8T;
+    typedef std::atomic<uint8_t> Atomic_UInt8T;
 #elif defined(ARDUINO_ARCH_AVR)
     // Expects to exist only in volatile forms, and to support common V0p2Base idioms.
     struct Atomic_UInt8T
