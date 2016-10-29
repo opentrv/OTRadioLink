@@ -185,10 +185,10 @@ class NULLValveSchedule : public SimpleValveScheduleBase
   public:
     virtual uint8_t maxSchedules() const override { return(0); }
     virtual uint8_t onTime() const override { return(1); }
-    virtual uint_least16_t getSimpleScheduleOff(uint8_t which) const override { return(~0); }
-    virtual uint_least16_t getSimpleScheduleOn(uint8_t which) const override { return(~0); }
-    virtual bool setSimpleSchedule(uint_least16_t startMinutesSinceMidnightLT, uint8_t which) override { return(false); }
-    virtual void clearSimpleSchedule(uint8_t which) override { }
+    virtual uint_least16_t getSimpleScheduleOff(uint8_t) const override { return(~0); }
+    virtual uint_least16_t getSimpleScheduleOn(uint8_t) const override { return(~0); }
+    virtual bool setSimpleSchedule(uint_least16_t, uint8_t) override { return(false); }
+    virtual void clearSimpleSchedule(uint8_t) override { }
     virtual bool isAnyScheduleOnWARMNow() const override { return(false); }
     virtual bool isAnyScheduleOnWARMSoon() const override { return(false); }
     virtual bool isAnySimpleScheduleSet() const override { return(false); }
