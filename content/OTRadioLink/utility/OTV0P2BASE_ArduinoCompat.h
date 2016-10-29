@@ -45,19 +45,22 @@ class Print
     public:
         virtual size_t write(uint8_t) = 0;
         virtual size_t write(const uint8_t *buf, size_t size) { size_t n = 0; while((size-- > 0) && (0 != write(*buf++))) { ++n; } return(n); }
-        size_t println() { return(write('\r') + write('\n')); }
+        size_t write(const char *buf, size_t size) { return write((const uint8_t *)buf, size); }
+        size_t println() { return(write("\r\n", 2)); }
         size_t print(char c) { return(write(c)); }
-        size_t println(char c) { return(print(c) + println()); }
-        size_t print(unsigned char, int = 10 /* DEC */) { return(0); }
-        size_t println(unsigned char c, int b = 10 /* DEC */) { return(print(c, b) + println()); }
-        size_t print(int, int = 10 /* DEC */) { return(0); }
-        size_t println(int i, int b = 10 /* DEC */) { return(print(i, b) + println()); }
-        size_t print(long, int = 10 /* DEC */) { return(0); }
-        size_t println(long l, int b = 10 /* DEC */) { return(print(l, b) + println()); }
-        size_t print(const char *s) { return(write((const uint8_t *)s, strlen(s))); }
-        size_t println(const char *s) { return(print(s) + println()); }
+        size_t println(char c) { const size_t n = print(c); return(n + println()); }
+        size_t print(unsigned char uc, int b = 10 /* DEC */) { return(print((unsigned long)uc, b)); }
+        size_t println(unsigned char uc, int b = 10 /* DEC */) { const size_t n = print(uc, b); return(n + println()); }
+        size_t print(int i, int b = 10 /* DEC */) { return(print((long) i, b)); }
+        size_t println(int i, int b = 10 /* DEC */) { const size_t n = print(i, b); return(n + println()); }
+size_t print(long, int = 10 /* DEC */) { return(0); }
+        size_t println(long l, int b = 10 /* DEC */) { const size_t n = print(l, b); return(n + println()); }
+size_t print(unsigned long, int = 10 /* DEC */) { return(0); }
+        size_t println(unsigned long ul, int b = 10 /* DEC */) { const size_t n = print(ul, b); return(n + println()); }
+        size_t print(const char *s) { return(write(s, strlen(s))); }
+        size_t println(const char *s) { const size_t n = print(s); return(n + println()); }
         size_t print(const __FlashStringHelper *f) { return(print(reinterpret_cast<const char *>(f))); }
-        size_t println(const __FlashStringHelper *f) { return(print(f) + println()); }
+        size_t println(const __FlashStringHelper *f) { const size_t n = print(f); return(n + println()); }
     };
 
 #endif // ARDUINO
