@@ -37,6 +37,23 @@ namespace OTV0P2BASE
 {
 
 
+#ifdef NVByHourByteStatsBase_DEFINED
+// Compute new linearly-smoothed value given old smoothed value and new value.
+// Guaranteed not to produce a value higher than the max of the old smoothed value and the new value.
+// Uses stochastic rounding to nearest to allow nominally sub-lsb values to have an effect over time.
+uint8_t NVByHourByteStatsBase::smoothStatsValue(const uint8_t oldSmoothed, const uint8_t newValue)
+  {
+  // Optimisation: smoothed value is unchanged if new value is the same as extant.
+  if(oldSmoothed == newValue) { return(oldSmoothed); }
+  // Compute and update with new stochastically-rounded exponentially-smoothed ("Brown's simple exponential smoothing") value.
+  // Stochastic rounding allows sub-lsb values to have an effect over time.
+  const uint8_t stocAdd = OTV0P2BASE::randRNG8() & ((1 << STATS_SMOOTH_SHIFT) - 1);
+  // Do arithmetic in 16 bits to avoid over-/under- flows.
+  return((uint8_t) (((((uint16_t) oldSmoothed) << STATS_SMOOTH_SHIFT) - ((uint16_t)oldSmoothed) + ((uint16_t)newValue) + stocAdd) >> STATS_SMOOTH_SHIFT));
+  }
+#endif
+
+
 #ifdef ARDUINO_ARCH_AVR
 
 // Updates an EEPROM byte iff not currently already at the specified target value.

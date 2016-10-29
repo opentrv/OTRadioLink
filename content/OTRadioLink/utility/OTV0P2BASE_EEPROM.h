@@ -34,6 +34,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #include <avr/eeprom.h>
 #endif
 
+#include "OTV0P2BASE_QuickPRNG.h"
+
 
 namespace OTV0P2BASE
 {
@@ -55,6 +57,7 @@ static const uint8_t STATS_SPECIAL_HOUR_NEXT_HOUR = ~0;
 // Unset raw values are indicated by 0xff, ie map nicely to EEPROM.
 // One implementation of this may map directly to underlying MCU EEPROM on some systems.
 // This may also have wear-reducing implementations for (say) Flash.
+#define NVByHourByteStatsBase_DEFINED
 class NVByHourByteStatsBase
   {
   public:
@@ -96,6 +99,17 @@ class NVByHourByteStatsBase
     // Compute the number of stats samples in specified set less than the specified value; returns -1 for invalid stats set.
     // (With the UNSET value specified, count will be of all samples that have been set, ie are not unset.)
     virtual int8_t countStatSamplesBelow(uint8_t statsSet, uint8_t value) const = 0;
+
+    ////// Utility values and routines.
+
+    // The default STATS_SMOOTH_SHIFT is chosen to retain some reasonable precision within a byte and smooth over a weekly cycle.
+    // Number of bits of shift for smoothed value: larger => larger time-constant; strictly positive.
+    static constexpr uint8_t STATS_SMOOTH_SHIFT = 3;
+
+    // Compute new linearly-smoothed value given old smoothed value and new value.
+    // Guaranteed not to produce a value higher than the max of the old smoothed value and the new value.
+    // Uses stochastic rounding to nearest to allow nominally sub-lsb values to have an effect over time.
+    static uint8_t smoothStatsValue(const uint8_t oldSmoothed, const uint8_t newValue);
   };
 
 
