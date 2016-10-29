@@ -34,7 +34,6 @@ TEST(SanityTest,SelfTest)
 }
 
 
-
 /**
  * @brief   Getting started with the gtest libraries.
  * @note    - Add the following to Project>Properties>C/C++ Build>Settings>GCC G++ linker>Libraries (-l):
