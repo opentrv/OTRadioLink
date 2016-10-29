@@ -43,58 +43,35 @@ TEST(JSONStats,JSONStats)
     ss1.enableCount(false);
     EXPECT_EQ(12, ss1.writeJSON((uint8_t*)buf, sizeof(buf), OTV0P2BASE::randRNG8(), OTV0P2BASE::randRNG8NextBoolean()));
     EXPECT_STREQ(buf, "{\"@\":\"1234\"}") << buf;
-
-    // TODO: complete tests below.
+    // Check that count works.
+    ss1.enableCount(true);
+    EXPECT_EQ(0, ss1.size());
+    EXPECT_EQ(18, ss1.writeJSON((uint8_t*)buf, sizeof(buf), OTV0P2BASE::randRNG8(), OTV0P2BASE::randRNG8NextBoolean()));
+    //OTV0P2BASE::serialPrintAndFlush(buf); OTV0P2BASE::serialPrintlnAndFlush();
+    EXPECT_STREQ(buf, "{\"@\":\"1234\",\"+\":2}");
+    // Turn count off for rest of tests.
+    ss1.enableCount(false);
+    EXPECT_EQ(12, ss1.writeJSON((uint8_t*)buf, sizeof(buf), OTV0P2BASE::randRNG8(), OTV0P2BASE::randRNG8NextBoolean()));
+    // Check that removal of absent entry does nothing.
+    EXPECT_TRUE(!ss1.remove("bogus"));
+    EXPECT_EQ(0, ss1.size());
+    // Check that new item can be added/put (with no/default properties).
+    ss1.put("f1", 0);
+    EXPECT_EQ(1, ss1.size());
+    EXPECT_EQ(19, ss1.writeJSON((uint8_t*)buf, sizeof(buf), 0, OTV0P2BASE::randRNG8NextBoolean()));
+    EXPECT_STREQ(buf, "{\"@\":\"1234\",\"f1\":0}");
+    ss1.put("f1", 42);
+    EXPECT_EQ(1, ss1.size());
+    EXPECT_EQ(20, ss1.writeJSON((uint8_t*)buf, sizeof(buf), 0, OTV0P2BASE::randRNG8NextBoolean()));
+    EXPECT_STREQ(buf, "{\"@\":\"1234\",\"f1\":42}");
+    ss1.put("f1", -111);
+    EXPECT_EQ(1, ss1.size());
+    EXPECT_EQ(22, ss1.writeJSON((uint8_t*)buf, sizeof(buf), 0, OTV0P2BASE::randRNG8NextBoolean()));
+    EXPECT_STREQ(buf, "{\"@\":\"1234\",\"f1\":-111}");
 }
 
 
 #if 0
-
-// Test handling of JSON stats.
-static void testJSONStats()
-  {
-#if defined(ENABLE_JSON_OUTPUT)
-  DEBUG_SERIAL_PRINTLN_FLASHSTRING("JSONStats");
-  SimpleStatsRotation<2> ss1;
-  ss1.setID("1234");
-  AssertIsEqual(0, ss1.size());
-  //AssertIsTrue(0 == ss1.writeJSON(NULL, randRNG8(), randRNG8(), randRNG8NextBoolean()));
-  char buf[MSG_JSON_MAX_LENGTH + 2]; // Allow for trailing '\0' and spare byte.
-  // Create minimal JSON message with no data content. just the (supplied) ID.
-  const uint8_t l1 = ss1.writeJSON((uint8_t*)buf, sizeof(buf), OTV0P2BASE::randRNG8(), OTV0P2BASE::randRNG8NextBoolean());
-//OTV0P2BASE::serialPrintAndFlush(buf); OTV0P2BASE::serialPrintlnAndFlush();
-  AssertIsEqual(12, l1);
-  const char PROGMEM *t1 = (const char PROGMEM *)F("{\"@\":\"1234\"}");
-  AssertIsTrue(0 == strcmp_P(buf, t1));
-  ss1.enableCount(false);
-  AssertIsEqual(12, ss1.writeJSON((uint8_t*)buf, sizeof(buf), OTV0P2BASE::randRNG8(), OTV0P2BASE::randRNG8NextBoolean()));
-  AssertIsTrue(0 == strcmp_P(buf, t1));
-  // Check that count works.
-  ss1.enableCount(true);
-  AssertIsEqual(0, ss1.size());
-  AssertIsEqual(18, ss1.writeJSON((uint8_t*)buf, sizeof(buf), OTV0P2BASE::randRNG8(), OTV0P2BASE::randRNG8NextBoolean()));
-//OTV0P2BASE::serialPrintAndFlush(buf); OTV0P2BASE::serialPrintlnAndFlush();
-  AssertIsTrue(0 == strcmp_P(buf, (const char PROGMEM *)F("{\"@\":\"1234\",\"+\":2}")));
-  // Turn count off for rest of tests.
-  ss1.enableCount(false);
-  AssertIsEqual(12, ss1.writeJSON((uint8_t*)buf, sizeof(buf), OTV0P2BASE::randRNG8(), OTV0P2BASE::randRNG8NextBoolean()));
-  // Check that removal of absent entry does nothing.
-  AssertIsTrue(!ss1.remove("bogus"));
-  AssertIsEqual(0, ss1.size());
-  // Check that new item can be added/put (with no/default properties).
-  ss1.put("f1", 42);
-  AssertIsEqual(1, ss1.size());
-  AssertIsEqual(20, ss1.writeJSON((uint8_t*)buf, sizeof(buf), 0, OTV0P2BASE::randRNG8NextBoolean()));
-#if 0 // Short of Flash space!
-//OTV0P2BASE::serialPrintAndFlush(buf); OTV0P2BASE::serialPrintlnAndFlush();
-  AssertIsTrue(0 == strcmp_P(buf, (const char PROGMEM *)F("{\"@\":\"1234\",\"f1\":42}")));
-#endif
-  ss1.put("f1", -111);
-  AssertIsEqual(1, ss1.size());
-  AssertIsEqual(22, ss1.writeJSON((uint8_t*)buf, sizeof(buf), 0, OTV0P2BASE::randRNG8NextBoolean()));
-  AssertIsTrue(0 == strcmp_P(buf, (const char PROGMEM *)F("{\"@\":\"1234\",\"f1\":-111}")));
-#endif
-  }
 
 // Test handling of JSON messages for transmission and reception.
 // Includes bit-twiddling, CRC computation, and other error checking.
