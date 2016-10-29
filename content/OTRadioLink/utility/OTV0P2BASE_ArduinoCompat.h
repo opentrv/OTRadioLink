@@ -40,6 +40,7 @@ class __FlashStringHelper;
 #endif
 
 // Minimal skeleton matching Print to permit at least compilation on non-Arduino platforms.
+// Implementation is not necessarily efficient as assumed to be for (unit) test.
 class Print
     {
     public:
