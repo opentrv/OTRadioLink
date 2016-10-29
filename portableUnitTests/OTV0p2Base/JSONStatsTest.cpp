@@ -72,7 +72,6 @@ TEST(JSONStats,JSONStats)
     EXPECT_TRUE(OTV0P2BASE::quickValidateRawSimpleJSONMessage(buf));
 }
 
-
 // Test handling of JSON messages for transmission and reception.
 // Includes bit-twiddling, CRC computation, and other error checking.
 //
@@ -143,7 +142,6 @@ TEST(JSONStats,JSONForTX)
   // Now a longer message...
   memset(buf, 0, sizeof(buf));
   strcpy(buf, longJSONMsg1);
-//  const int l2o = strlen(buf);
   const uint8_t crc2 = OTV0P2BASE::adjustJSONMsgForTXAndComputeCRC(buf);
   // Check that top bit is not set (ie CRC was computed OK).
   EXPECT_TRUE(!(crc2 & 0x80));
@@ -151,6 +149,7 @@ TEST(JSONStats,JSONForTX)
   EXPECT_TRUE(0x77 == crc2);
 // FIXME
 //  // Check that TX-format can be converted for RX.
+//  const int l2o = strlen(buf);
 //  buf[l2o] = crc2;
 //  buf[l2o+1] = 0xff;
 // FIXME
