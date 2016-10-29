@@ -35,14 +35,13 @@ TEST(JSONStats,JSONStats)
     EXPECT_EQ(0, ss1.size());
     EXPECT_EQ(0, ss1.writeJSON(NULL, OTV0P2BASE::randRNG8(), OTV0P2BASE::randRNG8(), OTV0P2BASE::randRNG8NextBoolean()));
 
-// FIXME: requires fuller impl of Print
-
     char buf[OTV0P2BASE::MSG_JSON_MAX_LENGTH + 2]; // Allow for trailing '\0' and spare byte.
     // Create minimal JSON message with no data content. just the (supplied) ID.
     const uint8_t l1 = ss1.writeJSON((uint8_t*)buf, sizeof(buf), OTV0P2BASE::randRNG8(), OTV0P2BASE::randRNG8NextBoolean());
     EXPECT_EQ(12, l1) << buf;
     EXPECT_STREQ(buf, "{\"@\":\"1234\"}") << buf;
 
+    // TODO
 }
 
 
