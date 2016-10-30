@@ -17,5 +17,6 @@
 <listEntry value="org.eclipse.debug.ui.launchGroup.debug"/>
 <listEntry value="org.eclipse.debug.ui.launchGroup.profile"/>
 </listAttribute>
+<stringAttribute key="process_factory_id" value="org.eclipse.cdt.dsf.gdb.GdbProcessFactory"/>
 <stringAttribute key="provider" value="org.eclipse.linuxtools.profiling.provider.coverage.gcov"/>
 </launchConfiguration>
