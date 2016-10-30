@@ -238,7 +238,7 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const Modelle
   }
 
 // Computes a new valve position given supplied input state including the current valve position; [0,100].
-// Uses no state other than that passed as the arguments (thus unit testable).
+// Uses no state other than that passed as the arguments (thus is unit testable).
 // Does not alter any of the input state.
 // Uses hysteresis and a proportional control and some other cleverness.
 // Is always willing to turn off quickly, but on slowly (AKA "slow start" algorithm),

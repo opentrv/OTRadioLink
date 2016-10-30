@@ -327,8 +327,8 @@ class ModelledRadValve final : public AbstractRadValve
     // Not intended for ISR/threaded access.
     uint8_t setbackC = 0;
 
-    // True if always in glacial mode, eg to minimise flow and overshoot.
-    const bool alwaysGlacial;
+    // True if by default in glacial mode, eg to minimise flow and overshoot.
+    const bool defaultGlacial;
 
     // True if in glacial mode.
     bool glacial;
@@ -382,7 +382,7 @@ class ModelledRadValve final : public AbstractRadValve
           , []{return(0xff != eeprom_read_byte((uint8_t *)OTV0P2BASE::V0P2BASE_EE_START_SETBACK_LOCKOUT_COUNTDOWN_D_INV));}
 #endif
           ),
-        alwaysGlacial(_alwaysGlacial), glacial(_alwaysGlacial),
+        defaultGlacial(_alwaysGlacial), glacial(_alwaysGlacial),
         maxPCOpen(OTV0P2BASE::fnmin(_maxPCOpen, (uint8_t)100U)),
         valveModeRW(_valveMode)
       { }
@@ -436,7 +436,7 @@ class ModelledRadValve final : public AbstractRadValve
     uint8_t getMaxPercentageOpenAllowed() const { return(maxPCOpen); }
 
     // Enable/disable 'glacial' mode (default false/off).
-    // For heat-pump, district-heating and similar slow-reponse and pay-by-volume environments.
+    // For heat-pump, district-heating and similar slow-response and pay-by-volume environments.
     // Also may help with over-powerful or unbalanced radiators
     // with a significant risk of overshoot.
     void setGlacialMode(bool glacialOn) { glacial = glacialOn; }
