@@ -374,10 +374,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
 
           // If smart setbacks are locked out then return WARM temperature as-is.  (TODO-786, TODO-906)
           if((NULL != setbackLockout) && (setbackLockout)())
-            {
-            OTV0P2BASE::serialPrintlnAndFlush("?SLO");
-            return(wt);
-            }
+            { return(wt); }
 
           // Set back target the temperature a little if the room seems to have been vacant for a long time (TODO-107)
           // or it is too dark for anyone to be active or the room is not likely occupied at this time
