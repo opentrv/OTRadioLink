@@ -195,7 +195,7 @@ uint8_t TempControlTempPot_computeWARMTargetC(const uint8_t pot, const uint8_t l
 #ifdef SensorTemperaturePot_DEFINED
 #define TempControlTempPot_DEFINED
 // All template parameters must be non-NULL except the humidity sensor.
-//   * rh  relative humidity sensor; NULL if none.
+//   * rh  (const pointer to) relative humidity sensor; NULL if none.
 template <const OTV0P2BASE::SensorTemperaturePot *const tempPot, class valveControlParams = DEFAULT_ValveControlParameters, class rh_t = OTV0P2BASE::HumiditySensorBase, const rh_t *rh = (const rh_t *)NULL>
 class TempControlTempPot final : public TempControlSimpleVCP<valveControlParams>
   {
