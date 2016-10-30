@@ -366,7 +366,7 @@ class ModelledRadValve final : public AbstractRadValve
         const ActuatorPhysicalUIBase *const _physicalUI,
         const OTV0P2BASE::SimpleValveScheduleBase *const _schedule,
         const OTV0P2BASE::NVByHourByteStatsBase *const _byHourStats,
-        const bool _alwaysGlacial = false, const uint8_t _maxPCOpen = 100)
+        const bool _defaultGlacial = false, const uint8_t _maxPCOpen = 100)
       : sensorCtrlStats(
           _vcp,
           _valveMode,
@@ -382,7 +382,7 @@ class ModelledRadValve final : public AbstractRadValve
           , []{return(0xff != eeprom_read_byte((uint8_t *)OTV0P2BASE::V0P2BASE_EE_START_SETBACK_LOCKOUT_COUNTDOWN_D_INV));}
 #endif
           ),
-        defaultGlacial(_alwaysGlacial), glacial(_alwaysGlacial),
+        defaultGlacial(_defaultGlacial), glacial(_defaultGlacial),
         maxPCOpen(OTV0P2BASE::fnmin(_maxPCOpen, (uint8_t)100U)),
         valveModeRW(_valveMode)
       { }
@@ -484,7 +484,7 @@ class ModelledRadValve final : public AbstractRadValve
     // Compute and return target (usually room) temperature (stateless).
     // Computes the target temperature based on various sensors, controls and stats.
     // Can be called as often as required though may be slow/expensive.
-    // Will be called by computeCallForHeat().
+    // Will be called by computeTargetTemperature().
     // One aim is to allow reasonable energy savings (10--30%+)
     // even if the device is left in WARM mode all the time,
     // using occupancy/light/etc to determine when temperature can be set back
