@@ -313,6 +313,7 @@ class ModelledRadValveComputeTargetTempBase
   };
 
 // Basic stateless implementation of computation of target temperature.
+// Templated with all the input instances for maximum speed and minimum code size.
 template<
   class valveControlParameters,
   const ValveMode *const valveMode,
