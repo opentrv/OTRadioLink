@@ -328,8 +328,12 @@ template<
   >
 class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComputeTargetTempBase
   {
-  private:
-    uint8_t _computeTargetTemp() const
+  public:
+//    ModelledRadValveComputeTargetTempBasic(const ModelledRadValveSensorCtrlStats &s)
+//      {
+//      // TODO validate arg types and that things aren't NULL.  static_assert()?
+//      }
+    virtual uint8_t computeTargetTemp() const override
         {
         // In FROST mode.
         if(!valveMode->inWarmMode())
@@ -451,12 +455,6 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
           return(wt);
           }
         }
-  public:
-//    ModelledRadValveComputeTargetTempBasic(const ModelledRadValveSensorCtrlStats &s)
-//      {
-//      // TODO validate arg types and that things aren't NULL.  static_assert()?
-//      }
-    virtual uint8_t computeTargetTemp() const override { return(_computeTargetTemp()); }
   };
 
 // Internal model of radiator valve position, embodying control logic.
