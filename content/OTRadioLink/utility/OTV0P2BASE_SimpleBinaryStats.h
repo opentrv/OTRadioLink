@@ -179,7 +179,7 @@ static const uint8_t MESSAGING_FULL_STATS_CRC_INIT = 0x7f; // Initialisation val
 // Flags indicate which fields are actually present.
 // All-zeros initialisation ensures no fields marked as present.
 // Designed to be reasonably compact in memory.
-typedef struct FullStatsMessageCore
+typedef struct FullStatsMessageCore final
   {
   bool containsID : 1; // Keep as first field.
 

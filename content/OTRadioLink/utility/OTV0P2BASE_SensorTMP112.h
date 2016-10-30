@@ -34,7 +34,7 @@ namespace OTV0P2BASE
 #ifdef ARDUINO_ARCH_AVR
 // TMP112 sensor for ambient/room temperature in 1/16th of one degree Celsius.
 #define RoomTemperatureC16_TMP112_DEFINED
-class RoomTemperatureC16_TMP112 : public OTV0P2BASE::TemperatureC16Base
+class RoomTemperatureC16_TMP112 final : public OTV0P2BASE::TemperatureC16Base
   { public: virtual int16_t read(); };
 #endif // ARDUINO_ARCH_AVR
 

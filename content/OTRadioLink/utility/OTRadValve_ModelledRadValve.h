@@ -243,7 +243,7 @@ struct ModelledRadValveState
 
 // Internal model of radiator valve position, embodying control logic.
 #define ModelledRadValve_DEFINED
-class ModelledRadValve : public AbstractRadValve
+class ModelledRadValve final : public AbstractRadValve
   {
   public:
     // Sensor, control and stats inputs for computations.

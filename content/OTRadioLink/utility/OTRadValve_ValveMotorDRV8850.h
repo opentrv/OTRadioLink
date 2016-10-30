@@ -176,7 +176,7 @@ OTV0P2BASE::serialPrintlnAndFlush();
 
 // Actuator/driver for direct local (radiator) valve motor control.
 template <uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t nSLEEP, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin, uint8_t MOTOR_DRIVE_MC_AIN_DigitalPin>
-class DRV8850Driver : public OTRadValve::AbstractRadValve
+class DRV8850Driver final : public OTRadValve::AbstractRadValve
   {
   private:
     // Driver for the V1/DORM1 hardware.

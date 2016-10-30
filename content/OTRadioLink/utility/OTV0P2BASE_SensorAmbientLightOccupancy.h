@@ -90,7 +90,7 @@ class SensorAmbientLightOccupancyDetectorInterface
 
 // Simple reference implementation.
 #define SensorAmbientLightOccupancyDetectorSimple_DEFINED
-class SensorAmbientLightOccupancyDetectorSimple : public SensorAmbientLightOccupancyDetectorInterface
+class SensorAmbientLightOccupancyDetectorSimple final : public SensorAmbientLightOccupancyDetectorInterface
   {
   public:
       // Minimum delta (rise) for occupancy to be detected; a simple noise floor.

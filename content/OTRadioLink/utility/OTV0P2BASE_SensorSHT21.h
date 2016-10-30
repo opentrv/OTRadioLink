@@ -79,19 +79,19 @@ class HumiditySensorBase : public OTV0P2BASE::SimpleTSUint8Sensor
 
 // Sensor for relative humidity percentage; 0 is dry, 100 is condensing humid, 255 for error.
 #define HumiditySensorSHT21_DEFINED
-class HumiditySensorSHT21 : public HumiditySensorBase
+class HumiditySensorSHT21 final : public HumiditySensorBase
   { public: virtual uint8_t read(); };
 
 // SHT21 sensor for ambient/room temperature in 1/16th of one degree Celsius.
 #define RoomTemperatureC16_SHT21_DEFINED
-class RoomTemperatureC16_SHT21 : public OTV0P2BASE::TemperatureC16Base
+class RoomTemperatureC16_SHT21 final : public OTV0P2BASE::TemperatureC16Base
   { public: virtual int16_t read(); };
 
 #endif // ARDUINO_ARCH_AVR
 
 
 // Placeholder namespace with dummy static status methods to reduce code complexity.
-class DummyHumiditySensorSHT21
+class DummyHumiditySensorSHT21 final
   {
   public:
     // Not available, so always returns false.

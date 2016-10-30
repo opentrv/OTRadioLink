@@ -55,7 +55,7 @@ namespace OTV0P2BASE
  */
 #define OTSoftSerial2_DEFINED
 template <uint8_t rxPin, uint8_t txPin, uint32_t baud>
-class OTSoftSerial2 : public Stream
+class OTSoftSerial2 final : public Stream
 {
 protected:
     // All these are compile time calculations and are automatically substituted as part of program code.

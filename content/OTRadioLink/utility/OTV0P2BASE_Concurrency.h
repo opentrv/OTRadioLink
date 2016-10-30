@@ -62,7 +62,7 @@ namespace OTV0P2BASE
     typedef std::atomic<uint8_t> Atomic_UInt8T;
 #elif defined(ARDUINO_ARCH_AVR)
     // Expects to exist only in volatile forms, and to support common V0p2Base idioms.
-    struct Atomic_UInt8T
+    struct Atomic_UInt8T final
         {
         public:
             // Direct access to value.

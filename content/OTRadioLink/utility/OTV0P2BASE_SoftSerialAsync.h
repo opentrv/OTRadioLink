@@ -45,7 +45,7 @@ static const uint8_t OTSOFTSERIALASYNC_BUFFER_SIZE = 32;  // size of buffer for 
  * @todo    Move everything back into source file without breaking templating.
  */
 template <uint8_t rxPin, uint8_t txPin, uint16_t baud>
-class OTSoftSerialAsync : public Stream
+class OTSoftSerialAsync final : public Stream
 {
 protected:
     // All these are compile time calculations and are automatically substituted as part of program code.

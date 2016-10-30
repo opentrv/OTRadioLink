@@ -93,7 +93,7 @@ class TempControlSimpleVCP : public TempControlBase
 // Typically selected if defined(ENABLE_SETTABLE_TARGET_TEMPERATURES)
 #define TempControlSimpleEEPROMBacked_DEFINED
 template <class valveControlParams = DEFAULT_ValveControlParameters>
-class TempControlSimpleEEPROMBacked : public TempControlSimpleVCP<valveControlParams>
+class TempControlSimpleEEPROMBacked final : public TempControlSimpleVCP<valveControlParams>
   {
   public:
     virtual uint8_t getWARMTargetC() const

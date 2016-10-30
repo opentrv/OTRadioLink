@@ -70,7 +70,7 @@ bool isValidSimpleStatsKey(SimpleStatsKey key);
 
 // Generic stats descriptor.
 // Includes last value transmitted (to allow changed items to be sent selectively).
-struct GenericStatsDescriptor
+struct GenericStatsDescriptor final
   {
     // Create generic (integer) stats instance.
     // The name must be a valid printable ASCII7 char [32,126] name
@@ -106,7 +106,7 @@ struct GenericStatsDescriptor
   };
 
 // Print to a bounded buffer.
-class BufPrint : public Print
+class BufPrint final : public Print
   {
   private:
     char * const b;
@@ -210,7 +210,7 @@ class SimpleStatsRotationBase
 //#endif
 
   protected:
-    struct DescValueTuple
+    struct DescValueTuple final
       {
       DescValueTuple() : descriptor(NULL), value(0) { }
 
@@ -295,7 +295,7 @@ class SimpleStatsRotationBase
   };
 
 template<uint8_t MaxStats>
-class SimpleStatsRotation : public SimpleStatsRotationBase
+class SimpleStatsRotation final : public SimpleStatsRotationBase
   {
   private:
     // Stats to be tracked and sent; mandatory/priority items must be first.

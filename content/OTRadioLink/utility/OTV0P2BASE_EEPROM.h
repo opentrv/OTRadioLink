@@ -384,7 +384,7 @@ int8_t countStatSamplesBelow(uint8_t statsSet, uint8_t value);
 // Wrapper for simple byte-wide non-volatile time-based (by hour) stats implementation in EEPROM.
 // Multiple instances can access the same EEPROM backing store.
 // Not thread-/ISR- safe.
-class EEPROMByHourByteStats : public NVByHourByteStatsBase
+class EEPROMByHourByteStats final : public NVByHourByteStatsBase
   {
   public:
     // Clear all collected statistics fronted by this.

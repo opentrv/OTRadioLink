@@ -68,7 +68,7 @@ class SensorAmbientLightBase : public SimpleTSUint8Sensor
 #ifdef ARDUINO_ARCH_AVR
 // Sensor for ambient light level; 0 is dark, 255 is bright.
 #define SensorAmbientLight_DEFINED
-class SensorAmbientLight : public SensorAmbientLightBase
+class SensorAmbientLight final : public SensorAmbientLightBase
   {
   public:
     // Default value for (default)LightThreshold.

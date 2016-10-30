@@ -357,7 +357,7 @@ namespace OTRFM23BLink
 #define OTRFM23BLink_DEFINED
     static const uint8_t DEFAULT_RFM23B_RX_QUEUE_CAPACITY = 3;
     template <uint8_t SPI_nSS_DigitalPin, int8_t RFM_nIRQ_DigitalPin = -1, uint8_t targetISRRXMinQueueCapacity = 3, bool allowRX = true>
-    class OTRFM23BLink : public OTRFM23BLinkBase
+    class OTRFM23BLink final : public OTRFM23BLinkBase
         {
         private:
             // Use some template meta-programming

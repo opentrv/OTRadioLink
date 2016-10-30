@@ -116,7 +116,7 @@ typedef struct OTRN2483LinkConfig {
  *          using the RN2483 radio module.
  */
 #define OTRN2483Link_DEFINED
-class OTRN2483Link : public OTRadioLink::OTRadioLink
+class OTRN2483Link final : public OTRadioLink::OTRadioLink
 {
 public:
 	// Public interface

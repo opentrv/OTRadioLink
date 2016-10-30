@@ -46,7 +46,7 @@ namespace OTV0P2BASE
  *             See OTV0P2BASE_SoftSerial_NOTES.txt for more details
  */
 #define OTSoftSerial_DEFINED
-class OTSoftSerial
+class OTSoftSerial final
 {
 public:
     // public interface:

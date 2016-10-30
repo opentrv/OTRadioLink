@@ -36,7 +36,7 @@ namespace OTV0P2BASE
 // 'Sensor' value is % confidence that the room/area controlled by this unit has active human occupants.
 // Occupancy is also available as more simple 3 (likely), 2 (possibly), 1 (not), 0 (unknown) scale.
 // The model is relatively simple based on time since last likely/possibly indication.
-class PseudoSensorOccupancyTracker : public OTV0P2BASE::SimpleTSUint8Sensor
+class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Sensor
   {
   public:
     // Number of minutes that room is regarded as occupied after markAsOccupied() in range [3,100].
@@ -181,25 +181,13 @@ class PseudoSensorOccupancyTracker : public OTV0P2BASE::SimpleTSUint8Sensor
     // Set apparent vacancy to maximum to make setting obvious and to hide further vacancy from snooping.
     // Code elsewhere may wish to put the system in FROST mode also.
     void setHolidayMode() { activityCountdownM = 0; value = 0; occupationCountdownM = 0; vacancyH = 255U; }
-
-//#ifdef UNIT_TESTS
-//    // If true then mark as occupied else mark as (just) unoccupied.
-//    // Hides basic _TEST_set_() which would not behave as expected.
-//    virtual void _TEST_set_(const bool occupied)
-//      { if(occupied) { markAsOccupied(); } else { activityCountdownM = 0; value = 0; occupationCountdownM = 0; } }
-////    // Set new value(s) for hours of vacancy, or marks as occupied is if zero vacancy.
-////    // If a non-zero value is set it clears the %-occupancy-confidence value for some consistency.
-////    // Makes this more usable as a mock for testing other components.
-////    virtual void _TEST_set_vacH_(const uint8_t newVacH)
-////      { vacancyM = 0; vacancyH = newVacH; if(0 != newVacH) { value = 0; occupationCountdownM = 0; } else { markAsOccupied(); } }
-//#endif
   };
 
 
 // Dummy placeholder occupancy 'sensor' class with always-false dummy static status methods.
 // These methods should be fully optimised away by the compiler in many/most cases.
 // Can be to reduce code complexity, by eliminating some need for preprocessing.
-class DummySensorOccupancyTracker
+class DummySensorOccupancyTracker final
   {
   public:
     static void markAsOccupied() {} // Defined as NO-OP for convenience when no general occupancy support.

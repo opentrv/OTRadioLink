@@ -46,7 +46,7 @@ namespace OTV0P2BASE
 //   * Cancel BAKE mode when dial/temperature turned down.
 //   * Force WARM mode when dial/temperature turned up.
 #define SensorTemperaturePot_DEFINED
-class SensorTemperaturePot : public OTV0P2BASE::SimpleTSUint8Sensor
+class SensorTemperaturePot final : public OTV0P2BASE::SimpleTSUint8Sensor
   {
   public:
     // Maximum 'raw' temperature pot/dial value.

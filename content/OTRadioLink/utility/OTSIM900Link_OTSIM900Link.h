@@ -161,7 +161,7 @@ enum OTSIM900LinkState {
  */
 #define OTSIM900Link_DEFINED
 template<uint8_t rxPin, uint8_t txPin>
-class OTSIM900Link : public OTRadioLink::OTRadioLink
+class OTSIM900Link final : public OTRadioLink::OTRadioLink
 {
   // Maximum number of significant chars in the SIM900 response.
   // Minimising this reduces stack and/or global space pressures.

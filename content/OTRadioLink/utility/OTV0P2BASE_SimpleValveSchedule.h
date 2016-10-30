@@ -180,7 +180,7 @@ class SimpleValveScheduleEEPROM : public SimpleValveScheduleBase
 // Empty type-correct substitute for SimpleValveScheduleBase
 // for when no Scheduler is require to simplify coding.
 // Never has schedules nor allows them to be set.
-class NULLValveSchedule : public SimpleValveScheduleBase
+class NULLValveSchedule final : public SimpleValveScheduleBase
   {
   public:
     virtual uint8_t maxSchedules() const override { return(0); }
@@ -197,7 +197,7 @@ class NULLValveSchedule : public SimpleValveScheduleBase
 // Dummy substitute for SimpleValveScheduleBase
 // for when no Scheduler is require to simplify coding.
 // Never has schedules nor allows them to be set.
-class DummyValveSchedule
+class DummyValveSchedule final
     {
     public:
         static uint_least16_t getSimpleScheduleOff(uint8_t) { return(~0); }

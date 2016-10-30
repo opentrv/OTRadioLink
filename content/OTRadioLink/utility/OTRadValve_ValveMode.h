@@ -44,7 +44,7 @@ namespace OTRadValve
 // since read() may take substantial time (hundreds of milliseconds).
 // Implementations must document when read() calls are critical,
 // and/or expose alternative API for the time-critical elements.
-class ValveMode : public OTV0P2BASE::SimpleTSUint8Sensor
+class ValveMode final : public OTV0P2BASE::SimpleTSUint8Sensor
   {
   private:
     // If true then is in WARM (or BAKE) mode; defaults to (starts as) false/FROST.

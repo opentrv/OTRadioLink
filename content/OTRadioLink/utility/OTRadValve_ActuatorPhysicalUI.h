@@ -356,7 +356,7 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
 //
 #define CycleModeAndLearnButtonsAndPotActuatorPhysicalUI_DEFINED
 template <int BUTTON_MODE_L_pin>
-class CycleModeAndLearnButtonsAndPotActuatorPhysicalUI : public ModeButtonAndPotActuatorPhysicalUI
+class CycleModeAndLearnButtonsAndPotActuatorPhysicalUI final : public ModeButtonAndPotActuatorPhysicalUI
   {
   private:
     // If true then is in WARM (or BAKE) mode; defaults to (starts as) false/FROST.

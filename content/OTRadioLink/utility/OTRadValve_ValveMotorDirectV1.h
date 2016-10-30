@@ -45,7 +45,7 @@ namespace OTRadValve
 // Creating multiple instances (trying to drive same motor) almost certainly a BAD IDEA.
 #define ValveMotorDirectV1HardwareDriver_DEFINED
 template <uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin, uint8_t MOTOR_DRIVE_MC_AIN_DigitalPin>
-class ValveMotorDirectV1HardwareDriver : public ValveMotorDirectV1HardwareDriverBase
+class ValveMotorDirectV1HardwareDriver final : public ValveMotorDirectV1HardwareDriverBase
   {
     // Last recorded direction.
     // Helpful to record shaft-encoder and other behaviour correctly around direction changes.

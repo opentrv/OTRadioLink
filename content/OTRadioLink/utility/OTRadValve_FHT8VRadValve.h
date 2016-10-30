@@ -485,7 +485,7 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve, public FHT8VRadVa
 // preambleByte specifies the (default) preamble byte value to use (defaults to RFM23-suitable value).
 #define FHT8VRadValve_DEFINED
 template <uint8_t maxTrailerBytes, uint8_t preambleBytes = FHT8VRadValveBase::RFM23_PREAMBLE_BYTES, uint8_t preambleByte = FHT8VRadValveBase::RFM23_PREAMBLE_BYTE>
-class FHT8VRadValve : public FHT8VRadValveBase
+class FHT8VRadValve final : public FHT8VRadValveBase
   {
   public:
     static const uint8_t FHT8V_MAX_EXTRA_PREAMBLE_BYTES = preambleBytes; // RFM22_PREAMBLE_BYTES
