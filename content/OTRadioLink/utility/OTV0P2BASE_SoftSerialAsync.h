@@ -21,6 +21,9 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
 #ifndef CONTENT_OTRADIOLINK_UTILITY_OTV0P2BASE_SOFTSERIALASYNC_H_
 #define CONTENT_OTRADIOLINK_UTILITY_OTV0P2BASE_SOFTSERIALASYNC_H_
 
+
+#ifdef ARDUINO_ARCH_AVR
+
 #include <stdint.h>
 #include "Arduino.h"
 #include <Stream.h>
@@ -272,7 +275,7 @@ public:
      * ------------------------ Unimplemented ------------------------------- *
      *************************************************************************/
     /**
-     * @brief   Destuctor for OTSoftSerial.
+     * @brief   Destructor for OTSoftSerial.
      * @note    Not implemented to reduce code size.
      */
     //    ~OTSoftSerial2() {};    // TODO Does this actually work?
@@ -292,5 +295,7 @@ public:
 
 
 }
+
+#endif // ARDUINO_ARCH_AVR
 
 #endif /* CONTENT_OTRADIOLINK_UTILITY_OTV0P2BASE_SOFTSERIALASYNC_H_ */
