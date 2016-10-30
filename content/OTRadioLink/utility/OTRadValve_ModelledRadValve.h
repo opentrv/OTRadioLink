@@ -329,7 +329,7 @@ template<
 class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComputeTargetTempBase
   {
   public:
-//    ModelledRadValveComputeTargetTempBasic(const ModelledRadValveSensorCtrlStats &s)
+//    ModelledRadValveComputeTargetTempBasic()
 //      {
 //      // TODO validate arg types and that things aren't NULL.  static_assert()?
 //      }
