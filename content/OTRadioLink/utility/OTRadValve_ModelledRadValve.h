@@ -513,7 +513,6 @@ class ModelledRadValve final : public AbstractRadValve
     // Create an instance.
     ModelledRadValve(
         const ModelledRadValveComputeTargetTempBase *const _ctt,
-        const ValveControlParametersRTBase *const _vcp,
         ValveMode *const _valveMode,
         const ModelledRadValveSensorCtrlStats *_sensorCtrlStats,
         const bool _defaultGlacial = false, const uint8_t _maxPCOpen = 100)
