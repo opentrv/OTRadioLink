@@ -79,13 +79,20 @@ template <class valveControlParams = DEFAULT_ValveControlParameters>
 class TempControlSimpleVCP : public TempControlBase
   {
   public:
+    // Get (possibly dynamically-set) thresholds/parameters.
+    // Get 'FROST' protection target in C; no higher than getWARMTargetC() returns, strictly positive, in range [MIN_TARGET_C,MAX_TARGET_C].
+    // Depends dynamically on current (last-read) temp-pot setting.
+    virtual uint8_t getFROSTTargetC() const override { return(valveControlParams::FROST); }
+    // Get 'WARM' target in C; no lower than getFROSTTargetC() returns, strictly positive, in range [MIN_TARGET_C,MAX_TARGET_C].
+    // Depends dynamically on current (last-read) temp-pot setting.
+    virtual uint8_t getWARMTargetC() const override { return(valveControlParams::WARM); }
     // True if WARM temperature at/below halfway mark between eco and comfort levels.
     // Midpoint should be just in eco part to provide a system bias toward eco.
-    virtual bool hasEcoBias() const { return(getWARMTargetC() <= valveControlParams::TEMP_SCALE_MID); }
+    virtual bool hasEcoBias() const override { return(getWARMTargetC() <= valveControlParams::TEMP_SCALE_MID); }
     // True if specified temperature is at or below 'eco' WARM target temperature, ie is eco-friendly.
-    virtual bool isEcoTemperature(const uint8_t tempC) const { return(tempC <= valveControlParams::WARM_ECO); }
+    virtual bool isEcoTemperature(const uint8_t tempC) const override { return(tempC <= valveControlParams::WARM_ECO); }
     // True if specified temperature is at or above 'comfort' WARM target temperature.
-    virtual bool isComfortTemperature(const uint8_t tempC) const { return(tempC >= valveControlParams::WARM_COM); }
+    virtual bool isComfortTemperature(const uint8_t tempC) const override { return(tempC >= valveControlParams::WARM_COM); }
   };
 
 #ifdef ARDUINO_ARCH_AVR
