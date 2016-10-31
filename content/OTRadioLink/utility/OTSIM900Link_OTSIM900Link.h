@@ -95,7 +95,7 @@ namespace OTSIM900Link
  */
 // If config is stored in SRAM...
 #define OTSIM900LinkConfig_DEFINED
-typedef struct OTSIM900LinkConfig {
+typedef struct OTSIM900LinkConfig final {
 //private:
     // Is in eeprom?
     const bool bEEPROM;
