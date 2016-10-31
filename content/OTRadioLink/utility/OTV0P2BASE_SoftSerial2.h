@@ -103,7 +103,7 @@ public:
 
             // Send start bit
             fastDigitalWrite(txPin, LOW);
-            _delay_x4cycles(writeDelay); // fixme delete -5s
+            _delay_x4cycles(writeDelay); // FIXME delete -5s
 
             // send byte. Loops until mask overflows back to 0
             while(mask != 0) {
