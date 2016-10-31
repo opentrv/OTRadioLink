@@ -179,7 +179,7 @@ public:
      * ------------------------ Unimplemented ------------------------------- *
      *************************************************************************/
     /**
-     * @brief   Destuctor for OTSoftSerial.
+     * @brief   Destructor for OTSoftSerial.
      * @note    Not implemented to reduce code size.
      */
     //    ~OTSoftSerial2() {};
