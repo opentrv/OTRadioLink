@@ -174,6 +174,37 @@ if(verbose) { fprintf(stderr, "@ %d %d\n", offset, valvePCOpen); }
         }
 }
 
+// Test of ModelledRadValveComputeTargetTempBasic algorithm for computing the target temperature.
+namespace MRVCTTB
+    {
+    // Instances with linkage to support the test.
+    static OTRadValve::ValveMode valveMode;
+    static OTV0P2BASE::TemperatureC16Mock roomTemp;
+    static OTRadValve::TempControlSimpleVCP<OTRadValve::DEFAULT_ValveControlParameters> tempControl;
+    static OTV0P2BASE::DummySensorOccupancyTracker occupancy;
+    static OTV0P2BASE::SensorAmbientLightMock ambLight;
+    static OTRadValve::NullActuatorPhysicalUI physicalUI;
+    static OTV0P2BASE::NULLValveSchedule schedule;
+    static OTV0P2BASE::NULLByHourByteStatsBase byHourStats;
+    }
+TEST(ModelledRadValve,ModelledRadValveComputeTargetTempBasic)
+{
+    // Simple-as-possible instance.
+    OTRadValve::ModelledRadValveComputeTargetTempBasic<
+        OTRadValve::DEFAULT_ValveControlParameters,
+        &MRVCTTB::valveMode,
+        decltype(MRVCTTB::roomTemp),                    &MRVCTTB::roomTemp,
+        decltype(MRVCTTB::tempControl),                 &MRVCTTB::tempControl,
+        decltype(MRVCTTB::occupancy),                   &MRVCTTB::occupancy,
+        decltype(MRVCTTB::ambLight),                    &MRVCTTB::ambLight,
+        decltype(MRVCTTB::physicalUI),                  &MRVCTTB::physicalUI,
+        decltype(MRVCTTB::schedule),                    &MRVCTTB::schedule,
+        decltype(MRVCTTB::byHourStats),                 &MRVCTTB::byHourStats,
+        ((bool(*)())NULL)
+        > cttb0;
+    EXPECT_EQ(OTRadValve::MIN_TARGET_C, cttb0.computeTargetTemp());
+}
+
 // Test the logic in ModelledRadValveState to open fast from well below target (TODO-593).
 // This is to cover the case where the use manually turns on/up the valve
 // and expects quick response from the valve

@@ -83,13 +83,13 @@ class NVByHourByteStatsBase
     //   * hour  hour of day to use, or ~0/0xff for current hour (default), or >23 for next hour.
     virtual uint8_t getByHourStat(uint8_t statsSet, uint8_t hour = 0xff) const = 0;
 
-    // Get minimum sample from given stats set ignoring all unset samples; STATS_UNSET_BYTE if all samples are unset.
+    // Get minimum sample from given stats set ignoring all unset samples; STATS_UNSET_BYTE if all samples are unset and for invalid stats set.
     virtual uint8_t getMinByHourStat(uint8_t statsSet) const = 0;
-    // Get maximum sample from given stats set ignoring all unset samples; STATS_UNSET_BYTE if all samples are unset.
+    // Get maximum sample from given stats set ignoring all unset samples; STATS_UNSET_BYTE if all samples are unset and for invalid stats set.
     virtual uint8_t getMaxByHourStat(uint8_t statsSet) const = 0;
 
     // Returns true if specified hour is (conservatively) in the specified outlier quartile for specified stats set.
-    // Returns false if at least a near-full set of stats not available, eg including the specified hour.
+    // Returns false if at least a near-full set of stats not available, eg including the specified hour, and for invalid stats set.
     // Always returns false if all samples are the same.
     //   * inTop  test for membership of the top quartile if true, bottom quartile if false
     //   * statsSet  stats set number to use.
@@ -110,6 +110,19 @@ class NVByHourByteStatsBase
     // Guaranteed not to produce a value higher than the max of the old smoothed value and the new value.
     // Uses stochastic rounding to nearest to allow nominally sub-lsb values to have an effect over time.
     static uint8_t smoothStatsValue(const uint8_t oldSmoothed, const uint8_t newValue);
+  };
+
+
+// Null implementation that does nothing.
+class NULLByHourByteStatsBase final : public NVByHourByteStatsBase
+  {
+  public:
+    virtual bool zapStats(uint16_t maxBytesToErase = 0) override { return(true); } // No stats to erase, so all done.
+    virtual uint8_t getByHourStat(uint8_t statsSet, uint8_t hour = 0xff) const override { return(UNSET_BYTE); }
+    virtual uint8_t getMinByHourStat(uint8_t statsSet) const override { return(UNSET_BYTE); }
+    virtual uint8_t getMaxByHourStat(uint8_t statsSet) const override { return(UNSET_BYTE); }
+    virtual bool inOutlierQuartile(bool inTop, uint8_t statsSet, uint8_t hour = STATS_SPECIAL_HOUR_CURRENT_HOUR) const override { return(false); }
+    virtual int8_t countStatSamplesBelow(uint8_t statsSet, uint8_t value) const override { return(-1); }
   };
 
 

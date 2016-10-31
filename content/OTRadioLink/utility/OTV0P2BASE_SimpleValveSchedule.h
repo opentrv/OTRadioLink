@@ -33,7 +33,6 @@ namespace OTV0P2BASE
 
 
 // Base for simple single-button (per programme) on-time scheduler, for individual TRVs.
-// Uses one EEPROM byte per program.
 // Has an on-time that may be varied by, for example, comfort level.
 #define SimpleValveScheduleBase_DEFINED
 class SimpleValveScheduleBase
