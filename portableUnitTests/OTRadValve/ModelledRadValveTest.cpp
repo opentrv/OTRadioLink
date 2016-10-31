@@ -202,7 +202,10 @@ TEST(ModelledRadValve,ModelledRadValveComputeTargetTempBasic)
         decltype(MRVCTTB::byHourStats),                 &MRVCTTB::byHourStats,
         ((bool(*)())NULL)
         > cttb0;
+    EXPECT_FALSE(MRVCTTB::valveMode.inWarmMode());
     EXPECT_EQ(OTRadValve::MIN_TARGET_C, cttb0.computeTargetTemp());
+    MRVCTTB::valveMode.setWarmModeDebounced(true);
+    EXPECT_EQ(OTRadValve::SAFE_ROOM_TEMPERATURE, cttb0.computeTargetTemp());
 }
 
 // Test the logic in ModelledRadValveState to open fast from well below target (TODO-593).
