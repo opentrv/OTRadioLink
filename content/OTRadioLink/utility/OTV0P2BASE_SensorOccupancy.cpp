@@ -87,7 +87,8 @@ uint8_t PseudoSensorOccupancyTracker::read()
     // Safely run down occupation timer (or run up vacancy time) if need be.
     // Note that vacancyM and vacancyH should never be directly touched by ISR/thread calls.
     if(ocM > 0) { safeDecIfNZWeak(occupationCountdownM); vacancyM = 0; vacancyH = 0; }
-    // Note that ISR call to mark as occupied after here can leave non-zero vacancy and non-zero value
+    // Note that ISR call to mark as occupied after here with ocM==0
+    // can leave non-zero vacancy and non-zero occupationCountdownM
     // (ie some inconsistency) until next read() call repairs it.
     else if(vacancyH < 0xffU) { if(++vacancyM >= 60) { vacancyM = 0; ++vacancyH; } }
     // Safely run down the 'recent activity' timer.
