@@ -528,7 +528,6 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
 // Return minimum valve percentage open to be considered actually/significantly open; [1,100].
 // At the boiler hub this is also the threshold percentage-open on eavesdropped requests that will call for heat.
 // If no override is set then OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN is used.
-// NOTE: raising this value temporarily (and shutting down the boiler immediately if possible) is one way to implement dynamic demand.
 uint8_t ModelledRadValve::getMinValvePcReallyOpen() const
   {
 #ifdef ARDUINO_ARCH_AVR
