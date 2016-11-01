@@ -20,7 +20,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015--2016
 /*
  * SIM900 Arduino (2G) GSM shield support.
  *
- * V0p2/AVR only.
+ * Fully operative for V0p2/AVR only.
  */
 
 #ifndef OTSIM900LINK_H_
@@ -64,7 +64,6 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015--2016
 #endif // OTSIM900LINK_DEBUG
 
 
-
 /**
  * @note    To use library:
  *             - create \0 terminated array containing pin, apn, and udp data
@@ -76,11 +75,10 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015--2016
  *             - queueToSend starts GPRS, opens UDP, sends message then deactivates GPRS. Process takes 5-10 seconds
  */
 
+
 namespace OTSIM900Link
 {
 
-
-//#ifdef ARDUINO_ARCH_AVR
 
 /**
  * @struct    OTSIM900LinkConfig_t
@@ -474,38 +472,14 @@ private:
     static const constexpr uint8_t duration = 10;  // DE20160703:Increased duration due to startup issues.
     static const constexpr uint8_t flushTimeOut = 10;
 
-//    // set AT commands here
-//    // These may not be supported by all sim modules so may need to move
-//    // to concrete implementation
-//    static const char AT_START[3];
-//    static const char AT_SIGNAL[5];
-//    static const char AT_NETWORK[6];
-//    static const char AT_REGISTRATION[6];
-//    static const char AT_GPRS_REGISTRATION0[7];
-//    static const char AT_GPRS_REGISTRATION[7];
-//    static const char AT_SET_APN[6];
-//    static const char AT_START_GPRS[7];
-//    static const char AT_SHUT_GPRS[9];
-//    static const char AT_GET_IP[7];
-//    static const char AT_PIN[6];
-//    static const char AT_STATUS[11];
-//    static const char AT_START_UDP[10];
-//    static const char AT_SEND_UDP[9];
-//    static const char AT_CLOSE_UDP[10];
-//    static const char AT_VERBOSE_ERRORS[6];
-//
-//    static const char AT_GET_MODULE = 'I';
-//    static const char AT_SET = '=';
-//    static const char AT_QUERY = '?';
-////    static const char AT_END = '\r';
-
     // Standard Responses
 
 //  // pins for software serial
 //  const uint8_t HARD_PWR_PIN;
 //  const uint8_t PWR_PIN;
-  //SoftwareSerial softSerial;
-//  OTV0P2BASE::OTSoftSerial2<rxPin, txPin, baud> ser;
+
+  // Software serial: for V0p2 boards (eg REV10) expected to be of type:
+  //     OTV0P2BASE::OTSoftSerial2<rxPin, txPin, baud>
   ser_t ser;
 
   // variables
@@ -1045,10 +1019,6 @@ virtual void preinit(const void *preconfig) {}    // not really relevant?
 virtual void panicShutdown() { preinit(NULL); }    // see above
 */
 };
-
-
-
-//#endif // ARDUINO_ARCH_AVR
 
 
 }    // namespace OTSIM900Link
