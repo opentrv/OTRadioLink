@@ -575,7 +575,7 @@ class ModelledRadValve final : public AbstractRadValve
 
     // Returns preferred poll interval (in seconds); non-zero.
     // Must be polled at near constant rate, about once per minute.
-    virtual uint8_t preferredPollInterval_s() const override{ return(60); }
+    virtual uint8_t preferredPollInterval_s() const override { return(60); }
 
     // Returns a suggested (JSON) tag/field/key name including units of get(); NULL means no recommended tag.
     // The lifetime of the pointed-to text must be at least that of the Sensor instance.
@@ -591,18 +591,18 @@ class ModelledRadValve final : public AbstractRadValve
     virtual void recalibrate();
 
     // True if the controlled physical valve is thought to be at least partially open right now.
-    // If multiple valves are controlled then is this true only if all are at least partially open.
+    // If multiple valves are controlled then is this should be true only if all are at least partially open.
     // Used to help avoid running boiler pump against closed valves.
     // The default is to use the check the current computed position
     // against the minimum open percentage.
     // True iff the valve(s) (if any) controlled by this unit are really open.
     //
     // When driving a remote wireless valve such as the FHT8V,
-    // this waits until at least the command has been sent.
+    // this should wait until at least the command has been sent.
     // This also implies open to OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN or equivalent.
     // Must be exactly one definition/implementation supplied at link time.
     // If more than one valve is being controlled by this unit,
-    // then this should return true if any of the valves are (significantly) open.
+    // then this should return true if all of the valves are (significantly) open.
     virtual bool isControlledValveReallyOpen() const override;
 
     // Get estimated minimum percentage open for significant flow [1,99] for this device.
