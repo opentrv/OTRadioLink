@@ -184,21 +184,21 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
   };
 
 
-// Dummy placeholder occupancy 'sensor' class with always-false dummy static status methods.
+// Dummy placeholder occupancy 'sensor' class with always-false/inactive dummy static status methods.
 // These methods should be fully optimised away by the compiler in many/most cases.
 // Can be to reduce code complexity, by eliminating some need for preprocessing.
 class DummySensorOccupancyTracker final
   {
   public:
-    static void markAsOccupied() {} // Defined as NO-OP for convenience when no general occupancy support.
-    static void markAsPossiblyOccupied() {} // Defined as NO-OP for convenience when no general occupancy support.
-    static bool isLikelyRecentlyOccupied() { return(false); } // Always false without ENABLE_OCCUPANCY_SUPPORT
-    static bool isLikelyOccupied() { return(false); } // Always false without ENABLE_OCCUPANCY_SUPPORT
-    static bool isLikelyUnoccupied() { return(false); } // Always false without ENABLE_OCCUPANCY_SUPPORT
-    static uint8_t twoBitOccValue() { return(0); } // Always 0 without ENABLE_OCCUPANCY_SUPPORT.
-    static uint16_t getVacancyH() { return(0); } // Always 0 without ENABLE_OCCUPANCY_SUPPORT.
-    static bool longVacant() { return(false); } // Always false without ENABLE_OCCUPANCY_SUPPORT.
-    static bool longLongVacant() { return(false); } // Always false without ENABLE_OCCUPANCY_SUPPORT.
+    static void markAsOccupied() {} // Defined as NO-OP for convenience.
+    static void markAsPossiblyOccupied() {} // Defined as NO-OP for convenience.
+    static bool isLikelyRecentlyOccupied() { return(false); }
+    static bool isLikelyOccupied() { return(false); }
+    static bool isLikelyUnoccupied() { return(false); }
+    static uint8_t twoBitOccValue() { return(0); }
+    static uint16_t getVacancyH() { return(0); }
+    static bool longVacant() { return(false); }
+    static bool longLongVacant() { return(false); }
   };
 
 
