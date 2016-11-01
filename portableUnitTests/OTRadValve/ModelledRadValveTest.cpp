@@ -208,6 +208,12 @@ TEST(ModelledRadValve,ModelledRadValveComputeTargetTempBasic)
     MRVCTTB::valveMode.setWarmModeDebounced(true);
     const uint8_t w = OTRadValve::DEFAULT_ValveControlParameters::WARM;
     EXPECT_EQ(w, cttb0.computeTargetTemp());
+    // Make the room dark (for a while).
+    MRVCTTB::ambLight.set(0, 255U, false);
+    MRVCTTB::ambLight.read();
+    EXPECT_TRUE(MRVCTTB::ambLight.isRoomDark());
+    EXPECT_EQ(255, MRVCTTB::ambLight.getDarkMinutes());
+    EXPECT_GT(w, cttb0.computeTargetTemp()) << "a dark room for a reasonable time should allow setback";
 }
 
 // Test the logic in ModelledRadValveState to open fast from well below target (TODO-593).

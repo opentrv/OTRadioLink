@@ -94,6 +94,10 @@ class SensorAmbientLightMock : public SensorAmbientLightBase
   public:
     // Set new value.
     virtual bool set(const uint8_t newValue) { value = newValue; return(true); }
+    // Set new non-dependent values immediately.
+    virtual bool set(const uint8_t newValue, const uint8_t newDarkTicks, const bool isUnusable = false)
+        { value = newValue; unusable = isUnusable; darkTicks = newDarkTicks; return(true); }
+
     // Returns the existing value: use set() to set a new one.
     // Simplistically updates other flags and outputs based on current value.
     uint8_t read() override
