@@ -26,7 +26,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 
 
 // Test for general sanity of OTSIM900Link.
-// In particular, simulate some nominal REV7/DORM1/TRV1 numbers.
+// Make sure than an instance can be created and does not die horribly.
 TEST(OTSIM900Link,basics)
 {
     class NULLSerialStream final : public Stream
