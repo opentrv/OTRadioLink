@@ -71,6 +71,7 @@ public:
      * @brief   Constructor for OTSoftSerial2
      */
     OTSoftSerial2() { }
+
     /**
      * @brief   Initialises OTSoftSerial2 and sets up pins.
      * @param   speed: Not used. Kept for compatibility with Arduino libraries.
@@ -201,12 +202,12 @@ public:
      * @note    This is not used for OTSoftSerial2 as all writes are synchronous.
      */
     virtual void flush() {}
-    /**
-     * @brief   Returns the number of elements in the Tx buffer.
-     * @retval  0 as no Tx buffer implemented.
-     * @note    This is not used for OTSoftSerial2 as all writes are synchronous.
-     */
-    int availableForWrite() { return 0; }
+//    /**
+//     * @brief   Returns the number of elements in the Tx buffer.
+//     * @retval  0 as no Tx buffer implemented.
+//     * @note    This is not used for OTSoftSerial2 as all writes are synchronous.
+//     */
+//    int availableForWrite() { return 0; }
 };
 #endif // ARDUINO_ARCH_AVR
 

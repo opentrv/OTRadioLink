@@ -76,6 +76,7 @@ class Print
         virtual size_t write(uint8_t) = 0;
         virtual size_t write(const uint8_t *buf, size_t size) { size_t n = 0; while((size-- > 0) && (0 != write(*buf++))) { ++n; } return(n); }
         size_t write(const char *buf, size_t size) { return write((const uint8_t *)buf, size); }
+        size_t write(const char *s) { return((NULL == s) ? 0 : write((const uint8_t *)s, (size_t)strlen(s))); }
         size_t println() { return(write("\r\n", 2)); }
         size_t print(char c) { return(write(c)); }
         size_t println(char c) { const size_t n = print(c); return(n + println()); }
@@ -99,6 +100,10 @@ class Stream : public Print
   protected:
     unsigned long _timeout = 1000; // Timeout in milliseconds before aborting read.
   public:
+    virtual int available() = 0;
+    virtual int read() = 0;
+    virtual int peek() = 0;
+    virtual void flush() = 0;
   };
 
 #endif // ARDUINO

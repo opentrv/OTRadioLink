@@ -250,7 +250,7 @@ public:
     /**
      * @brief    Starts software serial, checks for module and inits state machine.
      */
-    bool begin()
+    virtual bool begin() override
     {
 #ifdef ARDUINO_ARCH_AVR
         pinMode(PWR_PIN, OUTPUT);
@@ -260,10 +260,11 @@ public:
         state = GET_STATE;
         return true;
     }
+
     /**
      * @brief    close UDP connection and power down SIM module
      */
-    bool end()
+    virtual bool end() override
     {
         closeUDP();
     //    powerOff(); TODO fix this
@@ -279,7 +280,7 @@ public:
      * @retval  returns true if send process inited.
      * @note    requires calling of poll() to check if message sent successfully
      */
-    bool sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal, bool listenAfter = false)
+    virtual bool sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal, bool listenAfter = false) override
     {
         bool bSent = false;
         OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Send Raw")
@@ -295,7 +296,7 @@ public:
      * @retval  returns true if send process inited.
      * @note    requires calling of poll() to check if message sent successfully.
      */
-    bool queueToSend(const uint8_t *buf, uint8_t buflen, int8_t , TXpower )
+    virtual bool queueToSend(const uint8_t *buf, uint8_t buflen, int8_t , TXpower) override
     {
         if ((buf == NULL) || (buflen > sizeof(txQueue))) return false;    //
 //        if ((buf == NULL) || (buflen > sizeof(txQueue)) || (txMessageQueue >= maxTxQueueLength)) return false;    //
@@ -307,12 +308,13 @@ public:
         txMsgLen = buflen;
         return true;
     }
-    inline bool isAvailable() { return bAvailable; };     // checks radio is there independent of power state
 
-   /**
+    virtual bool isAvailable() const override { return bAvailable; };     // checks radio is there independent of power state
+
+    /**
      * @brief   Polling routine steps through 4 stage state machine
      */
-    void poll()
+    virtual void poll() override
     {
         if (bPowerLock == false) {
             if (nearStartOfMajorCycle()) {
@@ -464,7 +466,7 @@ public:
      * @brief    This will be called in interrupt while waiting for send prompt
      * @retval    returns true on successful exit
      */
-    bool handleInterruptSimple() {return true;}
+    virtual bool handleInterruptSimple() override {return true;}
 
 #ifndef OTSIM900LINK_DEBUG // This is included to ease unit testing.
 private:
@@ -967,7 +969,7 @@ private:
         ser.println(length);
     //    ser.print(AT_END);
         if (flushUntil('>')) {  // '>' indicates module is ready for UDP frame
-            ser.write(frame, length);
+            (static_cast<Print *>(&ser))->write(frame, length);
             OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*success")
             return true;
         } else {
@@ -1010,7 +1012,7 @@ private:
     * @brief     Assigns OTSIM900LinkConfig config. Must be called before begin()
     * @retval    returns true if assigned or false if config is NULL
     */
-    bool _doconfig()
+    virtual bool _doconfig() override
     {
        if (channelConfig->config == NULL) return false;
        else {
@@ -1027,18 +1029,18 @@ private:
 
 public:    // define abstract methods here
     // These are unused as no RX
-    virtual void _dolisten() {}
+    virtual void _dolisten() override {}
     /**
      * @todo    function to get maxTXMsgLen?
      */
-    virtual void getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen) const {
+    virtual void getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen) const override {
         queueRXMsgsMin = 0;
         maxRXMsgLen = 0;
         maxTXMsgLen = 64;
     };
-    virtual uint8_t getRXMsgsQueued() const {return 0;}
-    virtual const volatile uint8_t *peekRXMsg() const {return 0;}
-    virtual void removeRXMsg() {}
+    virtual uint8_t getRXMsgsQueued() const override {return 0;}
+    virtual const volatile uint8_t *peekRXMsg() const override {return 0;}
+    virtual void removeRXMsg() override {}
 
 /* other methods (copied from OTRadioLink as is)
 virtual void preinit(const void *preconfig) {}    // not really relevant?
