@@ -181,7 +181,7 @@ namespace MRVCTTB
     static OTRadValve::ValveMode valveMode;
     static OTV0P2BASE::TemperatureC16Mock roomTemp;
     static OTRadValve::TempControlSimpleVCP<OTRadValve::DEFAULT_ValveControlParameters> tempControl;
-    static OTV0P2BASE::DummySensorOccupancyTracker occupancy;
+    static OTV0P2BASE::PseudoSensorOccupancyTracker occupancy;
     static OTV0P2BASE::SensorAmbientLightMock ambLight;
     static OTRadValve::NullActuatorPhysicalUI physicalUI;
     static OTV0P2BASE::NULLValveSchedule schedule;
@@ -208,12 +208,28 @@ TEST(ModelledRadValve,ModelledRadValveComputeTargetTempBasic)
     MRVCTTB::valveMode.setWarmModeDebounced(true);
     const uint8_t w = OTRadValve::DEFAULT_ValveControlParameters::WARM;
     EXPECT_EQ(w, cttb0.computeTargetTemp());
-    // Make the room dark (for a while).
+    // Make the room dark (and marked as dark for a long time).
     MRVCTTB::ambLight.set(0, 255U, false);
     MRVCTTB::ambLight.read();
     EXPECT_TRUE(MRVCTTB::ambLight.isRoomDark());
     EXPECT_EQ(255, MRVCTTB::ambLight.getDarkMinutes());
-    EXPECT_GT(w, cttb0.computeTargetTemp()) << "a dark room for a reasonable time should allow setback";
+    EXPECT_GT(w, cttb0.computeTargetTemp()) << "room dark for a reasonable time should allow setback";
+    // Make the room light.
+    MRVCTTB::ambLight.set(255, 0, false);
+    MRVCTTB::ambLight.read();
+    EXPECT_FALSE(MRVCTTB::ambLight.isRoomDark());
+    EXPECT_EQ(0, MRVCTTB::ambLight.getDarkMinutes());
+    EXPECT_EQ(w, cttb0.computeTargetTemp());
+    // Mark long-term vacancy with holiday mode.
+    MRVCTTB::occupancy.setHolidayMode();
+    EXPECT_GT(w, cttb0.computeTargetTemp()) << "holiday mode should allow setback";
+    // Make the room dark (and marked as dark for a long time).
+    MRVCTTB::ambLight.set(0, 255U, false);
+    MRVCTTB::ambLight.read();
+    EXPECT_TRUE(MRVCTTB::ambLight.isRoomDark());
+    EXPECT_EQ(255, MRVCTTB::ambLight.getDarkMinutes());
+    const uint8_t sbFULL = OTRadValve::DEFAULT_ValveControlParameters::SETBACK_FULL;
+    EXPECT_EQ(w-sbFULL, cttb0.computeTargetTemp()) << "room dark for a reasonable time AND holiday mode should allow full setback";
 }
 
 // Test the logic in ModelledRadValveState to open fast from well below target (TODO-593).
