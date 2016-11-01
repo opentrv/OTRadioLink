@@ -225,6 +225,16 @@ namespace OTSIM900Link
                 }
 #endif
 
+#ifdef ARDUINO_ARCH_AVR
+            bool waitedLongEnoughForPower()
+                {
+                return OTV0P2BASE::getElapsedSecondsLT(powerTimer) > duration;
+                }
+#else
+            // Instant timeout for testing.
+            bool waitedLongEnoughForPower() { return(true); }
+#endif
+
         public:
             /**
              * @brief    Constructor. Initializes softSerial and sets PWR_PIN
@@ -504,7 +514,7 @@ namespace OTSIM900Link
                             }
                         }
                     }
-                else if (OTV0P2BASE::getElapsedSecondsLT(powerTimer) > duration)
+                else if (waitedLongEnoughForPower())
                     bPowerLock = false; // Check if ready to stop waiting after power toggled.
                 }
 
@@ -1043,7 +1053,7 @@ namespace OTSIM900Link
                 return false;
                 }
             }
-//    OTSIM900LinkState getInitState();
+
         /**
          * @brief   Checks module for response.
          * @retval  0 if correct response.
