@@ -183,7 +183,7 @@ namespace MRVCTTB
     static OTRadValve::TempControlSimpleVCP<OTRadValve::DEFAULT_ValveControlParameters> tempControl;
     static OTV0P2BASE::PseudoSensorOccupancyTracker occupancy;
     static OTV0P2BASE::SensorAmbientLightMock ambLight;
-    static OTRadValve::NullActuatorPhysicalUI physicalUI;
+    static OTRadValve::NULLActuatorPhysicalUI physicalUI;
     static OTV0P2BASE::NULLValveSchedule schedule;
     static OTV0P2BASE::NULLByHourByteStatsBase byHourStats;
     }
