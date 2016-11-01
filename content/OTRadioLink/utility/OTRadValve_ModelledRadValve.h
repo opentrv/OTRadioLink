@@ -47,13 +47,15 @@ namespace OTRadValve
 //
 // This uses int_fast16_t for C16 temperatures (ie Celsius * 16)
 // to be able to efficiently process signed values with sufficient range for room temperatures.
+//
+// All initial values set by the constructors are sane, but should not be relied on.
 struct ModelledRadValveInputState
   {
   // Offset from raw temperature to get reference temperature in C/16.
-  static const int_fast8_t refTempOffsetC16 = 8;
+  static constexpr int_fast8_t refTempOffsetC16 = 8;
 
   // All initial values set by the constructor are sane, but should not be relied on.
-  ModelledRadValveInputState(const int_fast16_t realTempC16 = 0);
+  ModelledRadValveInputState(const int_fast16_t realTempC16 = 0) { setReferenceTemperatures(realTempC16); }
 
   // Calculate and store reference temperature(s) from real temperature supplied.
   // Proportional temperature regulation is in a 1C band.
@@ -69,27 +71,27 @@ struct ModelledRadValveInputState
     }
 
   // Current target room temperature in C in range [MIN_TARGET_C,MAX_TARGET_C].
-  uint8_t targetTempC;
+  uint8_t targetTempC = DEFAULT_ValveControlParameters::FROST; // Start with a safe/sensible value.
   // Min % valve at which is considered to be actually open (allow the room to heat) [1,100].
-  uint8_t minPCOpen;
+  uint8_t minPCOpen = OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN;
   // Max % valve is allowed to be open [1,100].
-  uint8_t maxPCOpen;
+  uint8_t maxPCOpen = 100;
 
   // If true then allow a wider deadband (more temperature drift) to save energy and valve noise.
   // This is a strong hint that the system can work less strenuously to reach or stay on, target,
   // and/or that the user has not manually requested an adjustment recently
   // so this need not be ultra responsive.
-  bool widenDeadband;
+  bool widenDeadband = false;
   // True if in glacial mode.
-  bool glacial;
+  bool glacial = false;
   // True if an eco bias is to be applied.
-  bool hasEcoBias;
+  bool hasEcoBias = false;
   // True if in BAKE mode.
-  bool inBakeMode;
+  bool inBakeMode = false;
   // User just adjusted controls or other fast response needed.
   // (Should not be true at same time as widenDeadband.)
   // Indicates manual operation/override, so speedy response required (TODO-593).
-  bool fastResponseRequired;
+  bool fastResponseRequired = false;
 
   // Reference (room) temperature in C/16; must be set before each valve position recalc.
   // Proportional control is in the region where (refTempC16>>4) == targetTempC.
@@ -108,7 +110,8 @@ struct ModelledRadValveState
   {
   // Construct an instance, with sensible defaults, but no (room) temperature.
   // Defers its initialisation with room temperature until first tick().
-  ModelledRadValveState() :
+  ModelledRadValveState(bool _alwaysGlacial = false) :
+    alwaysGlacial(_alwaysGlacial),
     initialised(false),
     isFiltering(false),
     valveMoved(false),
@@ -118,13 +121,16 @@ struct ModelledRadValveState
 
   // Construct an instance, with sensible defaults, and current (room) temperature from the input state.
   // Does its initialisation with room temperature immediately.
-  ModelledRadValveState(const ModelledRadValveInputState &inputState);
+  ModelledRadValveState(const ModelledRadValveInputState &inputState, bool _defaultGlacial = false);
 
   // Perform per-minute tasks such as counter and filter updates then recompute valve position.
   // The input state must be complete including target and reference temperatures
   // before calling this including the first time whereupon some further lazy initialisation is done.
   //   * valvePCOpenRef  current valve position UPDATED BY THIS ROUTINE, in range [0,100]
   void tick(volatile uint8_t &valvePCOpenRef, const ModelledRadValveInputState &inputState);
+
+  // True if by default/always in glacial mode, eg to minimise flow and overshoot.
+  const bool alwaysGlacial;
 
   // True once all deferred initialisation done during the first tick().
   // This takes care of setting state that depends on run-time data
@@ -237,7 +243,7 @@ struct ModelledRadValveState
   // Nominally called at a regular rate, once per minute.
   // All inputState values should be set to sensible values before starting.
   // Usually called by tick() which does required state updates afterwards.
-  uint8_t computeRequiredTRVPercentOpen(const uint8_t currentValvePCOpen, const ModelledRadValveInputState &inputState) const;
+  uint8_t computeRequiredTRVPercentOpen(uint8_t currentValvePCOpen, const ModelledRadValveInputState &inputState) const;
   };
 
 // Sensor, control and stats inputs for computations.
@@ -310,6 +316,12 @@ class ModelledRadValveComputeTargetTempBase
     //
     // Stateless directly-testable version behind computeTargetTemperature().
     virtual uint8_t computeTargetTemp() const = 0;
+
+    // Set all fields of inputState from the target temperature and other args, and the sensor/control inputs.
+    // The target temperature will usually have just been computed by computeTargetTemp().
+    virtual void setupInputState(ModelledRadValveInputState &inputState,
+        const bool isFiltering,
+        const uint8_t newTarget, const uint8_t minPCOpen, const uint8_t maxPCOpen, const bool glacial) const = 0;
   };
 
 // Basic stateless implementation of computation of target temperature.
@@ -452,6 +464,46 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
           return(wt);
           }
         }
+
+    // Set all fields of inputState from the target temperature and other args, and the sensor/control inputs.
+    // The target temperature will usually have just been computed by computeTargetTemp().
+    virtual void setupInputState(ModelledRadValveInputState &inputState,
+        const bool isFiltering,
+        const uint8_t newTarget, const uint8_t minPCOpen, const uint8_t maxPCOpen, const bool glacial) const override
+        {
+        // Set up state for computeRequiredTRVPercentOpen().
+        inputState.targetTempC = newTarget;
+        inputState.minPCOpen = minPCOpen;
+        inputState.maxPCOpen = maxPCOpen;
+        inputState.glacial = glacial;
+        inputState.inBakeMode = valveMode->inBakeMode();
+        inputState.hasEcoBias =
+                tempControl->hasEcoBias();
+        // Request a fast response from the valve if user is manually adjusting controls.
+        const bool veryRecentUIUse =
+                physicalUI->veryRecentUIControlUse();
+        inputState.fastResponseRequired = veryRecentUIUse;
+        // Widen the allowed deadband significantly in an unlit/quiet/vacant room (TODO-383, TODO-593, TODO-786)
+        // (or in FROST mode, or if temperature is jittery eg changing fast and filtering has been engaged)
+        // to attempt to reduce the total number and size of adjustments and thus reduce noise/disturbance (and battery drain).
+        // The wider deadband (less good temperature regulation) might be noticeable/annoying to sensitive occupants.
+        // With a wider deadband may also simply suppress any movement/noise on some/most minutes while close to target temperature.
+        // For responsiveness, don't widen the deadband immediately after manual controls have been used (TODO-593).
+        //
+        // Minimum number of hours vacant to force wider deadband in ECO mode, else a full day ('long vacant') is the threshold.
+        // May still have to back this off if only automatic occupancy input is ambient light and day >> 6h, ie other than deep winter.
+        constexpr uint8_t minVacancyHoursForWideningECO = 3;
+        inputState.widenDeadband = (!veryRecentUIUse)
+            && (isFiltering
+                    || (!valveMode->inWarmMode())
+                    || ambLight->isRoomDark() // Must be false if light sensor not usable.
+                    || occupancy->longVacant()
+                    || (tempControl->hasEcoBias()
+                            && (occupancy->getVacancyH() >= minVacancyHoursForWideningECO)));
+        // Capture adjusted reference/room temperatures
+        // and set callingForHeat flag also using same outline logic as computeRequiredTRVPercentOpen() will use.
+        inputState.setReferenceTemperatures(temperatureC16->get());
+        }
   };
 
 // Internal model of radiator valve position, embodying control logic.
@@ -482,9 +534,6 @@ class ModelledRadValve final : public AbstractRadValve
     // Not intended for ISR/threaded access.
     uint8_t setbackC = 0;
 
-    // True if by default in glacial mode, eg to minimise flow and overshoot.
-    const bool defaultGlacial;
-
     // True if in glacial mode.
     bool glacial;
 
@@ -492,18 +541,18 @@ class ModelledRadValve final : public AbstractRadValve
     // Usually 100, but special circumstances may require otherwise.
     const uint8_t maxPCOpen;
 
+#ifdef ARDUINO_ARCH_AVR
     // Cache of minValvePcReallyOpen value [0,99] to save some EEPROM / nv-store access.
     // A value of 0 (eg at initialisation) means not yet loaded from EEPROM / nv-store.
     mutable uint8_t mVPRO_cache = 0;
+#endif // ARDUINO_ARCH_AVR
 
     // Compute target temperature and set heat demand for TRV and boiler; update state.
     // CALL REGULARLY APPROXIMATELY ONCE PER MINUTE TO ALLOW SIMPLE TIME-BASED CONTROLS.
     // Inputs are inWarmMode(), isRoomLit().
-    // The inputs must be valid (and recent).
-    // Values set are targetTempC, value (TRVPercentOpen).
-    // This may also prepare data such as TX command sequences for the TRV, boiler, etc.
     // This routine may take significant CPU time; no I/O is done, only internal state is updated.
-    // Returns true if valve target changed and thus messages may need to be recomputed/sent/etc.
+    //
+    // Will clear any BAKE mode if the newly-computed target temperature is already exceeded.
     void computeCallForHeat();
 
     // Read-write (non-const) access to valveMode instance; never NULL.
@@ -518,7 +567,8 @@ class ModelledRadValve final : public AbstractRadValve
         const bool _defaultGlacial = false, const uint8_t _maxPCOpen = 100)
       : ctt(_ctt),
         sensorCtrlStats(*_sensorCtrlStats),
-        defaultGlacial(_defaultGlacial), glacial(_defaultGlacial),
+        retainedState(_defaultGlacial),
+        glacial(_defaultGlacial),
         maxPCOpen(OTV0P2BASE::fnmin(_maxPCOpen, (uint8_t)100U)),
         valveModeRW(_valveMode)
       { }
@@ -617,30 +667,6 @@ class ModelledRadValve final : public AbstractRadValve
     // The lifetime of the pointed-to text must be at least that of this instance.
     const char *tagTSC() const { return("tS|C"); }
 
-    // Compute/update target temperature and set up state for computeRequiredTRVPercentOpen().
-    // Can be called as often as required though may be slowish/expensive.
-    // Can be called after any UI/CLI/etc operation
-    // that may cause the target temperature to change.
-    // (Will also be called by computeCallForHeat().)
-    // One aim is to allow reasonable energy savings (10--30%)
-    // even if the device is left in WARM mode all the time,
-    // using occupancy/light/etc to determine when temperature can be set back
-    // without annoying users.
-    //
-    // Will clear any BAKE mode if the newly-computed target temperature is already exceeded.
-    void computeTargetTemperature();
-
-    // Computes optimal valve position given supplied input state including current position; [0,100].
-    // Uses no state other than that passed as the arguments (thus unit testable).
-    // This supplied 'retained' state may be updated.
-    // Uses hysteresis and a proportional control and other cleverness.
-    // Is always willing to turn off quickly, but on slowly (AKA "slow start" algorithm),
-    // and tries to eliminate unnecessary 'hunting' which makes noise and uses actuator energy.
-    // Nominally called at a regular rate, once per minute.
-    // All inputState values should be set to sensible values before starting.
-    // Usually called by tick() which does required state updates afterwards.
-    static uint8_t computeRequiredTRVPercentOpen(uint8_t valvePCOpen, const struct ModelledRadValveInputState &inputState, struct ModelledRadValveState &retainedState);
-
     // Get cumulative valve movement %; rolls at 8192 in range [0,8191], ie non-negative.
     // It would often be appropriate to mark this as low priority since it can be computed from valve positions.
     uint16_t getCumulativeMovementPC() { return(retainedState.cumulativeMovementPC); }
@@ -653,12 +679,25 @@ class ModelledRadValve final : public AbstractRadValve
     // This is a value that has to mean all controlled valves are at least partially open if more than one valve.
     // At the boiler hub this is also the threshold percentage-open on eavesdropped requests that will call for heat.
     // If no override is set then OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN is used.
-    /*static*/ uint8_t getMinValvePcReallyOpen() const;
+    uint8_t getMinValvePcReallyOpen() const;
 
     // Set and cache minimum valve percentage open to be considered really open.
     // Applies to local valve and, at hub, to calls for remote calls for heat.
     // Any out-of-range value (eg >100) clears the override and OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN will be used.
-    /*static*/ void setMinValvePcReallyOpen(uint8_t percent);
+    void setMinValvePcReallyOpen(uint8_t percent);
+
+    // Compute/update target temperature immediately.
+    // Can be called as often as required though may be slowish/expensive.
+    // Can be called after any UI/CLI/etc operation
+    // that may cause the target temperature to change.
+    // (Will also be called by computeCallForHeat().)
+    // One aim is to allow reasonable energy savings (10--30%)
+    // even if the device is left in WARM mode all the time,
+    // using occupancy/light/etc to determine when temperature can be set back
+    // without annoying users.
+    //
+    // Will clear any BAKE mode if the newly-computed target temperature is already exceeded.
+    void computeTargetTemperature();
   };
 
 

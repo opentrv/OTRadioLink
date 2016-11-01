@@ -79,7 +79,7 @@ class TemperatureC16Base : public OTV0P2BASE::Sensor<int16_t>
   };
 
 // Extension of TemperatureC16Base primarily for mocking in unit tests.
-class TemperatureC16Mock : TemperatureC16Base
+class TemperatureC16Mock : public TemperatureC16Base
   {
   public:
     // Set new value.

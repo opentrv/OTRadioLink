@@ -117,12 +117,12 @@ class NVByHourByteStatsBase
 class NULLByHourByteStatsBase final : public NVByHourByteStatsBase
   {
   public:
-    virtual bool zapStats(uint16_t maxBytesToErase = 0) override { return(true); } // No stats to erase, so all done.
-    virtual uint8_t getByHourStat(uint8_t statsSet, uint8_t hour = 0xff) const override { return(UNSET_BYTE); }
-    virtual uint8_t getMinByHourStat(uint8_t statsSet) const override { return(UNSET_BYTE); }
-    virtual uint8_t getMaxByHourStat(uint8_t statsSet) const override { return(UNSET_BYTE); }
-    virtual bool inOutlierQuartile(bool inTop, uint8_t statsSet, uint8_t hour = STATS_SPECIAL_HOUR_CURRENT_HOUR) const override { return(false); }
-    virtual int8_t countStatSamplesBelow(uint8_t statsSet, uint8_t value) const override { return(-1); }
+    virtual bool zapStats(uint16_t = 0) override { return(true); } // No stats to erase, so all done.
+    virtual uint8_t getByHourStat(uint8_t, uint8_t = 0xff) const override { return(UNSET_BYTE); }
+    virtual uint8_t getMinByHourStat(uint8_t) const override { return(UNSET_BYTE); }
+    virtual uint8_t getMaxByHourStat(uint8_t) const override { return(UNSET_BYTE); }
+    virtual bool inOutlierQuartile(bool, uint8_t, uint8_t = STATS_SPECIAL_HOUR_CURRENT_HOUR) const override { return(false); }
+    virtual int8_t countStatSamplesBelow(uint8_t, uint8_t) const override { return(-1); }
   };
 
 

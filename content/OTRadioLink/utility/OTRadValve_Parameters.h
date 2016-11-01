@@ -38,8 +38,8 @@ namespace OTRadValve
     // Minimum is some way above 0C to avoid freezing pipework even with small measurement errors and non-uniform temperatures.
     // Maximum is set a little below boiling/100C for DHW applications for safety.
     // Setbacks and uplifts cannot move temperature targets outside this range for safety.
-    static const uint8_t MIN_TARGET_C = 5; // Minimum temperature setting allowed (to avoid freezing, allowing for offsets at temperature sensor, etc).
-    static const uint8_t MAX_TARGET_C = 95; // Maximum temperature setting allowed (eg for DHW).
+    static constexpr uint8_t MIN_TARGET_C = 5; // Minimum temperature setting allowed (to avoid freezing, allowing for offsets at temperature sensor, etc).
+    static constexpr uint8_t MAX_TARGET_C = 95; // Maximum temperature setting allowed (eg for DHW).
 
     // 18C is a safe room temperature even for the slightly infirm according to NHS England 2014:
     //    http://www.nhs.uk/Livewell/winterhealth/Pages/KeepWarmKeepWell.aspx
@@ -48,7 +48,7 @@ namespace OTRadValve
     // so could possibly be marked explicitly on the control.
     // 21C is recommended living temperature in retirement housing:
     //     http://ipc.brookes.ac.uk/publications/pdf/Identifying_the_health_gain_from_retirement_housing.pdf
-    static const uint8_t SAFE_ROOM_TEMPERATURE = 18; // Safe for most purposes.
+    static constexpr uint8_t SAFE_ROOM_TEMPERATURE = 18; // Safe for most purposes.
 
     // Templated set of constant parameters derived together from common arguments.
     // Can be tweaked to parameterise different products,
@@ -175,7 +175,7 @@ namespace OTRadValve
         > DEFAULT_DHW_ValveControlParameters;
 
     // Default 'BAKE' minutes, ie time to crank heating up to BAKE setting (minutes, strictly positive, <255).
-    static const uint8_t DEFAULT_BAKE_MAX_M = 30;
+    static constexpr uint8_t DEFAULT_BAKE_MAX_M = 30;
 
     // Default minimum valve percentage open to be considered actually/significantly open; [1,99].
     // Anything like this will usually be shut or very minimal flows.
@@ -193,7 +193,7 @@ namespace OTRadValve
     // ie a value at/above this is a definite call for heat.
     // so DO NOT CHANGE this value between boiler and valve code without good reason.
     // DHD20151030: with initial dead-reckoning direct drive impl valves may not be open until ~45%.
-    static const uint8_t DEFAULT_VALVE_PC_SAFER_OPEN = 50;
+    static constexpr uint8_t DEFAULT_VALVE_PC_SAFER_OPEN = 50;
 
     // Default valve percentage at which significant heating power is being provided [DEFAULT_VALVE_PC_SAFER_OPEN+1,99].
     // For many valves much of the time this may be effectively fully open,
@@ -202,7 +202,7 @@ namespace OTRadValve
     // so DO NOT CHANGE this value between boiler and valve code without good reason.
     // Should be significantly higher than DEFAULT_MIN_VALVE_PC_REALLY_OPEN.
     // DHD20151014: has been ~33% but ~66% more robust, eg for tricky all-in-one units.
-    static const uint8_t DEFAULT_VALVE_PC_MODERATELY_OPEN = 67;
+    static constexpr uint8_t DEFAULT_VALVE_PC_MODERATELY_OPEN = 67;
 
 
     // Default maximum time to allow the boiler to run on to allow for lost call-for-heat transmissions etc.
@@ -211,22 +211,22 @@ namespace OTRadValve
     // Valves may have to linger open at minimum of this plus maybe an extra minute or so for timing skew
     // for systems with poor/absent bypass to avoid overheating.
     // Having too high a linger time value may cause excessive temperature overshoot.
-    static const uint8_t DEFAULT_MAX_RUN_ON_TIME_M = 5;
+    static constexpr uint8_t DEFAULT_MAX_RUN_ON_TIME_M = 5;
 
     // Default delay in minutes after increasing flow before re-closing is allowed.
     // This is to avoid excessive seeking/noise in the presence of strong draughts for example.
     // Too large a value may cause significant temperature overshoots and possible energy wastage.
-    static const uint8_t DEFAULT_ANTISEEK_VALVE_RECLOSE_DELAY_M = 5;
+    static constexpr uint8_t DEFAULT_ANTISEEK_VALVE_RECLOSE_DELAY_M = 5;
     // Default delay in minutes after restricting flow before re-opening is allowed.
     // This is to avoid excessive seeking/noise in the presence of strong draughts for example.
     // Too large a value may cause significant temperature undershoots and discomfort/annoyance.
-    static const uint8_t DEFAULT_ANTISEEK_VALVE_REOPEN_DELAY_M = (DEFAULT_ANTISEEK_VALVE_RECLOSE_DELAY_M*2);
+    static constexpr uint8_t DEFAULT_ANTISEEK_VALVE_REOPEN_DELAY_M = (DEFAULT_ANTISEEK_VALVE_RECLOSE_DELAY_M*2);
 
     // Typical heat turn-down response time; in minutes, strictly positive.
-    static const uint8_t DEFAULT_TURN_DOWN_RESPONSE_TIME_M = (DEFAULT_ANTISEEK_VALVE_RECLOSE_DELAY_M + 3);
+    static constexpr uint8_t DEFAULT_TURN_DOWN_RESPONSE_TIME_M = (DEFAULT_ANTISEEK_VALVE_RECLOSE_DELAY_M + 3);
 
     // Assumed daily budget in cumulative (%) valve movement for battery-powered devices.
-    static const uint16_t DEFAULT_MAX_CUMULATIVE_PC_DAILY_VALVE_MOVEMENT = 400;
+    static constexpr uint16_t DEFAULT_MAX_CUMULATIVE_PC_DAILY_VALVE_MOVEMENT = 400;
 
 
     }
