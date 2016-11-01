@@ -23,8 +23,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #ifndef OTV0P2BASE_SENSOROCCUPANCY_H
 #define OTV0P2BASE_SENSOROCCUPANCY_H
 
-#include "OTV0P2BASE_Util.h"
+#include "OTV0P2BASE_Concurrency.h"
 #include "OTV0P2BASE_Sensor.h"
+#include "OTV0P2BASE_Util.h"
 
 
 namespace OTV0P2BASE
@@ -55,12 +56,12 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     // Time until room regarded as unoccupied, in minutes; initially zero (ie treated as unoccupied at power-up).
     // Marked volatile for thread-safe lock-free non-read-modify-write access to byte-wide value.
     // Compound operations must block interrupts.
-    volatile uint8_t occupationCountdownM;
+    volatile Atomic_UInt8T occupationCountdownM;
 
     // Non-zero if occupancy system recently notified of activity.
     // Marked volatile for thread-safe lock-free non-read-modify-write access to byte-wide value.
     // Compound operations must block interrupts.
-    volatile uint8_t activityCountdownM;
+    volatile Atomic_UInt8T activityCountdownM;
 
     // Hours and minutes since room became vacant (doesn't roll back to zero from max hours); zero when room occupied.
     uint8_t vacancyH;
