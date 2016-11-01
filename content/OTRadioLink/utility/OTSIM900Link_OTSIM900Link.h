@@ -192,6 +192,7 @@ constexpr uint16_t SIM900_MAX_baud = 9600; // max reliable baud
  */
 #define OTSIM900Link_DEFINED
 template<uint8_t rxPin, uint8_t txPin,
+  uint8_t PWR_PIN,
   class ser_t
     #ifdef OTSoftSerial2_DEFINED
       = OTV0P2BASE::OTSoftSerial2<rxPin, txPin, SIM900_MAX_baud>
@@ -207,18 +208,18 @@ class OTSIM900Link final : public OTSIM900LinkBase
 
 #ifdef ARDUINO_ARCH_AVR
   // Regard as true when within a few ticks of start of 2s major cycle.
-  bool nearStartOfMajorCycle() { return(OTV0P2BASE::getSubCycleTime() < 10); }
+  inline bool nearStartOfMajorCycle() { return(OTV0P2BASE::getSubCycleTime() < 10); }
 #else
   // Regard as always true when not running embedded.
-  bool nearStartOfMajorCycle() { return(true); }
+  inline bool nearStartOfMajorCycle() { return(true); }
 #endif
 
 #ifdef ARDUINO_ARCH_AVR
   // Sets power pin HIGH if true, LOW if false.
-  void setPwrPinHigh(const bool high) { fastDigitalWrite(PWR_PIN, high ? HIGH : LOW); }
+  inline void setPwrPinHigh(const bool high) { fastDigitalWrite(PWR_PIN, high ? HIGH : LOW); }
 #else
   // Does nothing when not running embedded.
-  void setPwrPinHigh(const bool) { }
+  inline void setPwrPinHigh(const bool) { }
 #endif
 
 
@@ -232,7 +233,7 @@ public:
 	* Cannot do anything with side-effects,
 	* as may be called before run-time fully initialised!
 	*/
-    OTSIM900Link(uint8_t hardPwrPin, uint8_t pwrPin) : HARD_PWR_PIN(hardPwrPin), PWR_PIN(pwrPin)
+    OTSIM900Link(/*uint8_t hardPwrPin, uint8_t pwrPin*/) /* : HARD_PWR_PIN(hardPwrPin), PWR_PIN(pwrPin) */
     {
         bAvailable = false;
         bPowered = false;
@@ -500,9 +501,9 @@ private:
 
     // Standard Responses
 
-  // pins for software serial
-  const uint8_t HARD_PWR_PIN;
-  const uint8_t PWR_PIN;
+//  // pins for software serial
+//  const uint8_t HARD_PWR_PIN;
+//  const uint8_t PWR_PIN;
   //SoftwareSerial softSerial;
 //  OTV0P2BASE::OTSoftSerial2<rxPin, txPin, baud> ser;
   ser_t ser;

@@ -96,6 +96,8 @@ class Print
 // Minimal skeleton matching Stream to permit at least compilation and test on non-Arduino platforms.
 class Stream : public Print
   {
+  protected:
+    unsigned long _timeout = 1000; // Timeout in milliseconds before aborting read.
   public:
   };
 
