@@ -541,12 +541,6 @@ class ModelledRadValve final : public AbstractRadValve
     // Usually 100, but special circumstances may require otherwise.
     const uint8_t maxPCOpen;
 
-#ifdef ARDUINO_ARCH_AVR
-    // Cache of minValvePcReallyOpen value [0,99] to save some EEPROM / nv-store access.
-    // A value of 0 (eg at initialisation) means not yet loaded from EEPROM / nv-store.
-    mutable uint8_t mVPRO_cache = 0;
-#endif // ARDUINO_ARCH_AVR
-
     // Compute target temperature and set heat demand for TRV and boiler; update state.
     // CALL REGULARLY APPROXIMATELY ONCE PER MINUTE TO ALLOW SIMPLE TIME-BASED CONTROLS.
     // Inputs are inWarmMode(), isRoomLit().

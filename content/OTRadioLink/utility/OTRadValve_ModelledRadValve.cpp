@@ -532,10 +532,8 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
 uint8_t ModelledRadValve::getMinValvePcReallyOpen() const
   {
 #ifdef ARDUINO_ARCH_AVR
-  if(0 != mVPRO_cache) { return(mVPRO_cache); } // Return cached value if possible.
   const uint8_t stored = eeprom_read_byte((uint8_t *)V0P2BASE_EE_START_MIN_VALVE_PC_REALLY_OPEN);
   const uint8_t result = ((stored > 0) && (stored <= 100)) ? stored : OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN;
-  mVPRO_cache = result; // Cache it.
   return(result);
 #else
   return(OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN);
@@ -550,16 +548,12 @@ void ModelledRadValve::setMinValvePcReallyOpen(const uint8_t percent)
 #ifdef ARDUINO_ARCH_AVR
   if((percent > 100) || (percent == 0) || (percent == OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN))
     {
-    // Bad / out-of-range / default value so erase stored value if not already so.
+    // Bad / out-of-range / default value so erase stored value if not already erased.
     OTV0P2BASE::eeprom_smart_erase_byte((uint8_t *)V0P2BASE_EE_START_MIN_VALVE_PC_REALLY_OPEN);
-    // Cache logical default value.
-    mVPRO_cache = OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN;
     return;
     }
   // Store specified value with as low wear as possible.
   OTV0P2BASE::eeprom_smart_update_byte((uint8_t *)V0P2BASE_EE_START_MIN_VALVE_PC_REALLY_OPEN, percent);
-  // Cache it.
-  mVPRO_cache = percent;
 #endif // ARDUINO_ARCH_AVR
   }
 
