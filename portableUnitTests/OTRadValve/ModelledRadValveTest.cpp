@@ -204,7 +204,7 @@ TEST(ModelledRadValve,ModelledRadValveComputeTargetTempBasic)
         > cttb0;
     EXPECT_FALSE(MRVCTTB::valveMode.inWarmMode());
     const uint8_t f = OTRadValve::DEFAULT_ValveControlParameters::FROST;
-    EXPECT_EQ(f, cttb0.computeTargetTemp());
+    EXPECT_EQ(f, cttb0.computeTargetTemp()) << "should start in FROST mode";
     MRVCTTB::valveMode.setWarmModeDebounced(true);
     const uint8_t w = OTRadValve::DEFAULT_ValveControlParameters::WARM;
     EXPECT_EQ(w, cttb0.computeTargetTemp());
