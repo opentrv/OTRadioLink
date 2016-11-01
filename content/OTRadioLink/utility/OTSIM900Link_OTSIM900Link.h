@@ -181,7 +181,7 @@ class OTSIM900LinkBase : public OTRadioLink::OTRadioLink
   };
 
 
-constexpr uint16_t SIM900_MAX_baud = 9600; // max reliable baud
+constexpr uint16_t SIM900_MAX_baud = 9600; // Max reliable baud to talk to SIM900 over OTSoftSerial2.
 
 /**
  * @note    To enable serial debug define 'OTSIM900LINK_DEBUG'
