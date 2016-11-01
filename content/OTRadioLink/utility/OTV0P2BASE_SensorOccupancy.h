@@ -88,21 +88,21 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
 
     // True if activity/occupancy recently reported (within last couple of minutes).
     // Activity includes weak and strong reports.
-    // Thread-safe.
-    bool reportedRecently() const { return(0 != activityCountdownM); }
+    // ISR-/thread- safe.
+    bool reportedRecently() const { return(0 != activityCountdownM.load()); }
 
     // Returns true if the room appears to be likely occupied (with active users) now.
     // Operates on a timeout; calling markAsOccupied() restarts the timer.
     // Defaults to false (and API still exists) when ENABLE_OCCUPANCY_SUPPORT not defined.
-    // Thread-safe.
-    bool isLikelyOccupied() const { return(0 != occupationCountdownM); }
+    // ISR-/thread- safe.
+    bool isLikelyOccupied() const { return(0 != occupationCountdownM.load()); }
 
     // Returns true if the room appears to be likely occupied (with active users) recently.
     // This uses the same timer as isOccupied() (restarted by markAsOccupied())
     // but returns to false somewhat sooner for example to allow ramping up more costly occupancy detection methods
     // and to allow some simple graduated occupancy responses.
-    // Thread-safe.
-    bool isLikelyRecentlyOccupied() const { return(occupationCountdownM > OCCUPATION_TIMEOUT_LIKELY_M); }
+    // ISR-/thread- safe.
+    bool isLikelyRecentlyOccupied() const { return(occupationCountdownM.load() > OCCUPATION_TIMEOUT_LIKELY_M); }
 
     // Returns true if room likely currently unoccupied (no active occupants).
     // Defaults to false (and API still exists) when ENABLE_OCCUPANCY_SUPPORT not defined.
@@ -117,7 +117,7 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     // Do not call from (for example) 'on' schedule change.
     // Makes occupation immediately visible.
     // Thread-safe and ISR-safe.
-    void markAsOccupied() { value = 100; occupationCountdownM = OCCUPATION_TIMEOUT_M; activityCountdownM = 2; }
+    void markAsOccupied() { value = 100; occupationCountdownM.store(OCCUPATION_TIMEOUT_M); activityCountdownM.store(2); }
 
     // Call when decent but not very strong evidence of active room occupation, such as a light being turned on, or voice heard.
     // Do not call based on internal/synthetic events.
@@ -181,7 +181,7 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     // Be careful of retriggering presence immediately if this is set locally.
     // Set apparent vacancy to maximum to make setting obvious and to hide further vacancy from snooping.
     // Code elsewhere may wish to put the system in FROST mode also.
-    void setHolidayMode() { activityCountdownM = 0; value = 0; occupationCountdownM = 0; vacancyH = 255U; }
+    void setHolidayMode() { value = 0; vacancyH = 255U; activityCountdownM.store(0); occupationCountdownM.store(0); }
   };
 
 

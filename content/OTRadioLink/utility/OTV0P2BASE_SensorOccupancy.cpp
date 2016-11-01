@@ -99,13 +99,9 @@ uint8_t PseudoSensorOccupancyTracker::read()
 // If the hardware allows this may immediately turn on the main GUI LED until normal GUI reverts it,
 // at least periodically.
 // Preferably do not call for manual control operation to avoid interfering with UI operation.
-// Thread-safe.
+// ISR-/thread- safe.
 void PseudoSensorOccupancyTracker::markAsPossiblyOccupied()
   {
-//  // TODO: set a user-clearable 'activity' flag, probably at first sign only of occupancy.
-////  if(0 == occupationCountdownM) // Flash at first sign only of occupancy after vacancy to limit annoyance.
-////    { LED_HEATCALL_ON_ISR_SAFE(); }
-
   // Update primary occupation metric in thread-safe way (needs lock, since read-modify-write).
 
 //  ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
@@ -126,13 +122,9 @@ void PseudoSensorOccupancyTracker::markAsPossiblyOccupied()
 // If the hardware allows this may immediately turn on the main GUI LED until normal GUI reverts it,
 // at least periodically.
 // Preferably do not call for manual control operation to avoid interfering with UI operation.
-// Thread-safe.
+// ISR-/thread- safe.
 void PseudoSensorOccupancyTracker::markAsJustPossiblyOccupied()
   {
-  // TODO: set a user-clearable 'activity' flag, probably at first sign only of occupancy.
-//  if(0 == occupationCountdownM) // Flash at first sign only of occupancy after vacancy to limit annoyance.
-//    { LED_HEATCALL_ON_ISR_SAFE(); }
-
   // Update primary occupation metric in thread-safe way (needs lock, since read-modify-write).
 
 //  ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
