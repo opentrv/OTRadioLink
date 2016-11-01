@@ -27,6 +27,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 
 #include "OTV0P2BASE_EEPROM.h"
 #include "OTV0P2BASE_Util.h"
+#include "OTV0P2BASE_SensorOccupancy.h"
+
 
 namespace OTV0P2BASE
 {
@@ -171,6 +173,38 @@ class SimpleValveScheduleEEPROM : public SimpleValveScheduleBase
         // Can be used to suppress all 'off' activity except for the final one.
         // Can be used to suppress set-backs during on times.
         virtual bool isAnySimpleScheduleSet() const override;
+    };
+
+// Customised scheduler implementation for OpenTRV V0p2 circa REV2.
+class SimpleValveSchedule_PseudoSensorOccupancyTracker final { public: bool longVacant(); };
+template<
+    uint8_t learnedOnM, uint8_t learnedOnComfortM,
+    class tempControl_t, const tempControl_t *tempControl,
+    class occupancy_t = SimpleValveSchedule_PseudoSensorOccupancyTracker, const occupancy_t *occupancy = NULL
+    >
+class SimpleValveSchedule final : public SimpleValveScheduleEEPROM
+    {
+    public:
+        // Allow scheduled on time to dynamically depend on comfort level.
+        virtual uint8_t onTime() const override
+            {
+            // Simplify the logic where no variation in on time is required.
+            if(learnedOnM == learnedOnComfortM) { return(learnedOnM); }
+            else
+                {
+                // Variable 'on' time depending on how 'eco' the settings are.
+                // Three-way split based on current WARM target temperature,
+                // for a relatively gentle change in behaviour along the valve dial for example.
+                const uint8_t wt = tempControl->getWARMTargetC();
+                if(tempControl->isEcoTemperature(wt)) { return(learnedOnM); }
+                else if(tempControl->isComfortTemperature(wt)) { return(learnedOnComfortM); }
+                // If occupancy detection is enabled
+                // and the area is vacant for a long time (>1d) and not at maximum comfort end of scale
+                // then truncate the on period to the minimum to attempt to save energy.
+                else if((NULL != occupancy) && occupancy->longVacant()) { return(learnedOnM); }
+                else { return((learnedOnM + learnedOnComfortM) / 2); }
+                }
+            }
     };
 
 #endif // ARDUINO_ARCH_AVR
