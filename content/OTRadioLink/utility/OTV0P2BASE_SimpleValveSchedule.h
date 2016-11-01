@@ -176,7 +176,7 @@ class SimpleValveScheduleEEPROM : public SimpleValveScheduleBase
     };
 
 // Customised scheduler implementation for OpenTRV V0p2 circa REV2.
-class SimpleValveSchedule_PseudoSensorOccupancyTracker final { public: bool longVacant(); };
+class SimpleValveSchedule_PseudoSensorOccupancyTracker final { public: bool longVacant() { return(false); } };
 template<
     uint8_t learnedOnM, uint8_t learnedOnComfortM,
     class tempControl_t, const tempControl_t *tempControl,
@@ -200,8 +200,9 @@ class SimpleValveSchedule final : public SimpleValveScheduleEEPROM
                 else if(tempControl->isComfortTemperature(wt)) { return(learnedOnComfortM); }
                 // If occupancy detection is enabled
                 // and the area is vacant for a long time (>1d) and not at maximum comfort end of scale
-                // then truncate the on period to the minimum to attempt to save energy.
+                // then truncate the on period to attempt to save energy.
                 else if((NULL != occupancy) && occupancy->longVacant()) { return(learnedOnM); }
+                // Intermediate on-time for middle of the eco/comfort scale.
                 else { return((learnedOnM + learnedOnComfortM) / 2); }
                 }
             }
