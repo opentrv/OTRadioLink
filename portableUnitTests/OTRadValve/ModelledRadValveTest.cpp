@@ -230,6 +230,9 @@ TEST(ModelledRadValve,ModelledRadValveComputeTargetTempBasic)
     EXPECT_EQ(255, MRVCTTB::ambLight.getDarkMinutes());
     const uint8_t sbFULL = OTRadValve::DEFAULT_ValveControlParameters::SETBACK_FULL;
     EXPECT_EQ(w-sbFULL, cttb0.computeTargetTemp()) << "room dark for a reasonable time AND holiday mode should allow full setback";
+    MRVCTTB::valveMode.startBake();
+    const uint8_t bu = OTRadValve::DEFAULT_ValveControlParameters::BAKE_UPLIFT;
+    EXPECT_EQ(w+bu, cttb0.computeTargetTemp()) << "BAKE should win and force full uplift from WARM";
 }
 
 // Test the logic in ModelledRadValveState to open fast from well below target (TODO-593).
