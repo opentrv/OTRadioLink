@@ -44,8 +44,10 @@ TEST(OTSIM900Link,basics)
       };
     OTSIM900Link::OTSIM900Link<0, 0, 0, NULLSerialStream> l0;
     EXPECT_TRUE(l0.begin());
+    EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
     // Try to hang just by calling poll() repeatedly.
     for(int i = 0; i < 1000; ++i) { l0.poll(); }
+    EXPECT_GE(OTSIM900Link::START_UP, l0._getState()) << "should keep trying to start with GET_STATE, RETRY_GET_STATE and START_UP";
     // ...
     l0.end();
 }
