@@ -49,7 +49,7 @@ namespace OTRadValve
 // to be able to efficiently process signed values with sufficient range for room temperatures.
 //
 // All initial values set by the constructors are sane, but should not be relied on.
-struct ModelledRadValveInputState
+struct ModelledRadValveInputState final
   {
   // Offset from raw temperature to get reference temperature in C/16.
   static constexpr int_fast8_t refTempOffsetC16 = 8;
@@ -106,7 +106,7 @@ struct ModelledRadValveInputState
 //
 // This uses int_fast16_t for C16 temperatures (ie Celsius * 16)
 // to be able to efficiently process signed values with sufficient range for room temperatures.
-struct ModelledRadValveState
+struct ModelledRadValveState final
   {
   // Construct an instance, with sensible defaults, but no (room) temperature.
   // Defers its initialisation with room temperature until first tick().
