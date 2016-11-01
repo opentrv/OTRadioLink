@@ -196,8 +196,6 @@ template<uint8_t rxPin, uint8_t txPin,
   class ser_t
     #ifdef OTSoftSerial2_DEFINED
       = OTV0P2BASE::OTSoftSerial2<rxPin, txPin, SIM900_MAX_baud>
-    #else
-      = Stream
     #endif
   >
 class OTSIM900Link final : public OTSIM900LinkBase
