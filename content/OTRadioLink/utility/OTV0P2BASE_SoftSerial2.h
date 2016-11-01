@@ -203,7 +203,7 @@ public:
      * @retval  0 as no Tx buffer implemented.
      * @note    This is not used for OTSoftSerial2 as all writes are synchronous.
      */
-    int availableForWrite() { return 0; }  //
+    int availableForWrite() { return 0; }
 };
 #endif // ARDUINO_ARCH_AVR
 

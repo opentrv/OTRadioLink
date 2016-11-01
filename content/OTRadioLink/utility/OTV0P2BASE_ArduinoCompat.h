@@ -40,7 +40,7 @@ class __FlashStringHelper;
 #define F(string_literal) (reinterpret_cast<const __FlashStringHelper *>(static_cast<const char *>(string_literal)))
 #endif
 
-// Minimal skeleton matching Print to permit at least compilation on non-Arduino platforms.
+// Minimal skeleton matching Print to permit at least compilation and test on non-Arduino platforms.
 // Implementation is not necessarily efficient as assumed to be for (unit) test.
 class Print
     {
@@ -92,6 +92,12 @@ class Print
         size_t print(const __FlashStringHelper *f) { return(print(reinterpret_cast<const char *>(f))); }
         size_t println(const __FlashStringHelper *f) { const size_t n = print(f); return(n + println()); }
     };
+
+// Minimal skeleton matching Stream to permit at least compilation and test on non-Arduino platforms.
+class Stream : public Print
+  {
+  public:
+  };
 
 #endif // ARDUINO
 
