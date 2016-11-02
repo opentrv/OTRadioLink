@@ -43,7 +43,7 @@
 
 // If DEFINED: Prints debug information to serial.
 //             !!! WARNING! THIS WILL CAUSE BLOCKING OF OVER 300 MS!!!
-#define OTSIM900LINK_DEBUG
+//#define OTSIM900LINK_DEBUG
 
 // OTSIM900Link macros for printing debug information to serial.
 #ifndef OTSIM900LINK_DEBUG
@@ -122,11 +122,15 @@ namespace OTSIM900Link
                 switch (bEEPROM)
                     {
                     case true:
-                    c = eeprom_read_byte(src);
-                    break;
+                        {
+                        c = eeprom_read_byte(src);
+                        break;
+                        }
                     case false:
-                    c = pgm_read_byte(src);
-                    break;
+                        {
+                        c = pgm_read_byte(src);
+                        break;
+                        }
                     }
 #endif // ARDUINO_ARCH_AVR
                 return c;
