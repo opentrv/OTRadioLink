@@ -65,6 +65,7 @@ namespace B1
 const bool verbose = true;
 
 // Does a trivial simulation of SIM900, responding to start of 'A' of AT command.
+// Exercises every major non-PANIC state of the OTSIM900Link implementation.
 class TrivialSimulator final : public Stream
   {
   public:
