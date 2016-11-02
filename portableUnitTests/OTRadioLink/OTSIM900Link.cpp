@@ -78,7 +78,7 @@ namespace B1
 {
 const bool verbose = true;
 
-// Does a trivial simulation of SIM900, responding to start of 'A' of AT command.
+// Does a simple simulation of SIM900, responding sensibly to all commands needed by the OTSIM900Link impl.
 // Exercises every major non-PANIC state of the OTSIM900Link implementation.
 // Is meant to mainly walk through all the normal expected SIM900 behaviour when all is well.
 // Other test can look at error handling including unexpected/garbage responses.
