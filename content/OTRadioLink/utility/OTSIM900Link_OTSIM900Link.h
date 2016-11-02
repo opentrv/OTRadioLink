@@ -138,7 +138,7 @@ namespace OTSIM900Link
      */
     enum OTSIM900LinkState
         {
-        GET_STATE,
+        GET_STATE = 0,
         RETRY_GET_STATE,
         START_UP,
         CHECK_PIN,
@@ -746,9 +746,9 @@ namespace OTSIM900Link
                 timedBlockingRead(data, sizeof(data));
 
                 // response stuff
-                const char *dataCut;
                 uint8_t dataCutLength = 0;
-                dataCut = getResponse(dataCutLength, data, sizeof(data), 0x0A); // unreliable
+                const char *dataCut = getResponse(dataCutLength, data, sizeof(data), 0x0A); // unreliable
+                if(NULL == dataCut) { return(-1); }
                 if ((dataCut[0] == 'O') & (dataCut[1] == 'K'))
                     return 0;
                 else
@@ -768,11 +768,12 @@ namespace OTSIM900Link
                 timedBlockingRead(data, sizeof(data));
 
                 // response stuff
-                const char *dataCut;
                 uint8_t dataCutLength = 0;
-                dataCut = getResponse(dataCutLength, data, sizeof(data), 0x0A);
+                const char *dataCut = getResponse(dataCutLength, data, sizeof(data), 0x0A);
+                if(NULL == dataCut) { return(-1); }
+                // Expected response 'SHUT OK'.
                 if (*dataCut == 'S')
-                    return 0;    // expected response 'SHUT OK'
+                    return 0;
                 else
                     return -1;
                 }
@@ -789,16 +790,14 @@ namespace OTSIM900Link
                 //  ser.print(AT_END);
                 timedBlockingRead(data, sizeof(data));
                 // response stuff
-                const char *dataCut;
                 uint8_t dataCutLength = 0;
-                dataCut = getResponse(dataCutLength, data, sizeof(data), 0x0A);
-
+                const char *dataCut = getResponse(dataCutLength, data, sizeof(data), 0x0A);
+                if(NULL == dataCut) { return(0); }
+                // All error messages will start with a '+'.
                 if (*dataCut == '+')
-                    return 0; // all error messages will start with a '+'
+                    { return(0); }
                 else
-                    {
-                    return dataCutLength;
-                    }
+                    { return(dataCutLength); }
                 }
             /**
              * @brief   Check if UDP open.
@@ -816,7 +815,8 @@ namespace OTSIM900Link
 
                 // response stuff
                 uint8_t dataCutLength = 0;
-                const char *dataCut = getResponse(dataCutLength, data, sizeof(data), ' '); // first ' ' appears right before useful part of message
+                // First ' ' appears right before useful part of message.
+                const char *dataCut = getResponse(dataCutLength, data, sizeof(data), ' ');
                 if(NULL == dataCut) { return(0); }
                 if (*dataCut == 'C')
                     return 1; // expected string is 'CONNECT OK'. no other possible string begins with C
@@ -890,9 +890,7 @@ namespace OTSIM900Link
             ser.print(AT_PIN);
             ser.println(ATc_QUERY);
             //    ser.print(AT_END);
-OTSIM900LINK_DEBUG_SERIAL_PRINTLN("before read")
             timedBlockingRead(data, sizeof(data));
-OTSIM900LINK_DEBUG_SERIAL_PRINTLN("after read")
 
             // response stuff
             uint8_t dataCutLength = 0;
