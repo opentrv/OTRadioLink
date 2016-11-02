@@ -109,7 +109,8 @@ class TrivialSimulator final : public Stream
           if(verbose) { fprintf(stderr, "command received: %s\n", command.c_str()); }
           // Respond to particular commands...
           if("AT" == command) { reply = "AT\r"; }
-          else if("AT+CPIN?" == command) { reply = "No PIN"; } // DHD20161101: results in SIGSEGV / Segmentation fault.
+          // DHD20161101: "No PIN" response (deliberately not typical SIM900 response) resulted in SIGSEGV from not checking getResponse() result for NULL.
+          else if("AT+CPIN?" == command) { reply = "No PIN"; }
           }
         else if(collectingCommand) { command += c; }
         }
