@@ -26,6 +26,13 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 
 #include "OTSIM900Link.h"
 
+// Test the getter function definitely does what it should.
+TEST(OTSIM900Link, getterFunction)
+{
+    const char SIM900_PIN[] = "1111";
+    const OTSIM900Link::OTSIM900LinkConfig_t SIM900Config(false, SIM900_PIN, NULL, NULL, NULL);
+    EXPECT_EQ(SIM900_PIN[0], SIM900Config.get((const uint8_t *)SIM900Config.PIN));
+}
 
 // Test for general sanity of OTSIM900Link.
 // Make sure that an instance can be created and does not die horribly.
@@ -110,11 +117,13 @@ class TrivialSimulator final : public Stream
           collectingCommand = false;
           if(verbose) { fprintf(stderr, "command received: %s\n", command.c_str()); }
           // Respond to particular commands...
-          if("AT" == command) { reply = "AT\r"; }
+          if("AT" == command) { reply = "AT\r"; }  // Relevant states: GET_STATE, RETRY_GET_STATE, START_UP
           // DHD20161101: "No PIN" response (deliberately not typical SIM900 response) resulted in SIGSEGV from not checking getResponse() result for NULL.
           // Should futz/vary the response to check sensitivity.
           // TODO: have at least one response be expected SIM900 answer for no-PIN SIM.
-          else if("AT+CPIN?" == command) { reply = (random() & 1) ? "No PIN" : "OK READY"; }
+          else if("AT+CPIN?" == command) { reply = (random() & 1) ? "No PIN\r" : "OK READY\r"; }  // Relevant states: CHECK_PIN
+          else if("AT+CREG?" == command) { reply = (random() & 1) ? "+CREG: 0,0\r" : "+CREG: 0,5\r"; } // Relevant states: WAIT_FOR_REGISTRATION
+          else if("AT+CSTT=apn" == command) { reply = (random() & 1) ? "gbfhs\r" : "AT+CSTT\r\n\r\nOK\r"; } // Relevant states: SET_APN
           }
         else if(collectingCommand) { command += c; }
         }
@@ -142,8 +151,17 @@ TEST(OTSIM900Link,basicsSimpleSimulator)
 
     srandom(::testing::UnitTest::GetInstance()->random_seed()); // Seed random() for use in simulator; --gtest_shuffle will force it to change.
 
+    const char SIM900_PIN[] = "1111";
+    const char SIM900_APN[] = "apn";
+    const char SIM900_UDP_ADDR[] = "0.0.0.0"; // ORS server
+    const char SIM900_UDP_PORT[] = "9999";
+    const OTSIM900Link::OTSIM900LinkConfig_t SIM900Config(false, SIM900_PIN, SIM900_APN, SIM900_UDP_ADDR, SIM900_UDP_PORT);
+    const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
+
+
     ASSERT_FALSE(B1::TrivialSimulator::haveSeenCommandStart);
     OTSIM900Link::OTSIM900Link<0, 0, 0, B1::TrivialSimulator> l0;
+    EXPECT_TRUE(l0.configure(1, &l0Config));
     EXPECT_TRUE(l0.begin());
     EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
     // Try to hang just by calling poll() repeatedly.

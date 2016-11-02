@@ -132,6 +132,8 @@ namespace OTSIM900Link
                         break;
                         }
                     }
+#else
+                c = *src;
 #endif // ARDUINO_ARCH_AVR
                 return c;
                 }
