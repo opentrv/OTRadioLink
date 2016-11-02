@@ -17,7 +17,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 */
 
 /*
- * OTRadValve TempControl tests.
+ * OTRadValve SIM900 tests.
  */
 
 #include <gtest/gtest.h>
