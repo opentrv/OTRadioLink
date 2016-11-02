@@ -127,7 +127,7 @@ class TrivialSimulator final : public Stream
     virtual int peek() override { return(-1); }
     virtual void flush() override { }
   };
-// Interal events recorded.
+// Internal events recorded.
 bool TrivialSimulator::haveSeenCommandStart;
 }
 TEST(OTSIM900Link,basics)
