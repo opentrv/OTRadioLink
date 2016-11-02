@@ -22,6 +22,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 
 #include <gtest/gtest.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "OTSIM900Link.h"
 
@@ -110,7 +111,9 @@ class TrivialSimulator final : public Stream
           // Respond to particular commands...
           if("AT" == command) { reply = "AT\r"; }
           // DHD20161101: "No PIN" response (deliberately not typical SIM900 response) resulted in SIGSEGV from not checking getResponse() result for NULL.
-          else if("AT+CPIN?" == command) { reply = "No PIN"; }
+          // Should futz/vary the response to check sensitivity.
+          // TODO: have at least one response be expected SIM900 answer for no-PIN SIM.
+          else if("AT+CPIN?" == command) { reply = (random() & 1) ? "No PIN" : "OK READY"; }
           }
         else if(collectingCommand) { command += c; }
         }
@@ -132,9 +135,11 @@ class TrivialSimulator final : public Stream
 // Events exposed.
 bool TrivialSimulator::haveSeenCommandStart;
 }
-TEST(OTSIM900Link,basics)
+TEST(OTSIM900Link,basicsSimpleSimulator)
 {
 //    const bool verbose = true;
+
+    srandomdev(); // Seed random() for use in simulator.
 
     ASSERT_FALSE(B1::TrivialSimulator::haveSeenCommandStart);
     OTSIM900Link::OTSIM900Link<0, 0, 0, B1::TrivialSimulator> l0;
