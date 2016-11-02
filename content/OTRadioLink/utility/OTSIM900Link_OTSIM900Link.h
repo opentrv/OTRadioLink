@@ -258,6 +258,8 @@ namespace OTSIM900Link
                 memset(txQueue, 0, sizeof(txQueue));
                 txMsgLen = 0;
                 txMessageQueue = 0;
+                messageCounter = 0;
+                retryCounter = 0;
                 }
 
             /************************* Public Methods *****************************/
