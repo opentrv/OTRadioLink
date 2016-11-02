@@ -152,7 +152,7 @@ bool GoodSimulator::haveSeenCommandStart;
 }
 TEST(OTSIM900Link,basicsSimpleSimulator)
 {
-//    const bool verbose = true;
+//    const bool verbose = B1::verbose;
 
     srandom(::testing::UnitTest::GetInstance()->random_seed()); // Seed random() for use in simulator; --gtest_shuffle will force it to change.
 
