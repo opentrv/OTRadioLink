@@ -394,7 +394,6 @@ namespace OTRadioLink
     static const uint8_t crc7_5B_update_nz_ALT = OTV0P2BASE::crc7_5B_update_nz_ALT;
     inline uint8_t crc7_5B_update_nz_final(uint8_t crc, uint8_t datum) { return(OTV0P2BASE::crc7_5B_update_nz_final(crc, datum)); }
 
-
     }
 
 

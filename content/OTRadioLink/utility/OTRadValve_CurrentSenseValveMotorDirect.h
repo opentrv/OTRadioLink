@@ -38,7 +38,7 @@ namespace OTRadValve
 // This is sensitive to sub-cycle position, ie will try to avoid causing a main loop overrun.
 // May report some key status on Serial, with any error line(s) starting with "!'.
 #define CurrentSenseValveMotorDirect_DEFINED
-class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInterfaceCallbackHandler
+class CurrentSenseValveMotorDirect final : public OTRadValve::HardwareMotorDriverInterfaceCallbackHandler
   {
   public:
     // Maximum time to move pin between fully retracted and extended and vv, seconds, strictly positive.
@@ -90,7 +90,7 @@ class CurrentSenseValveMotorDirect : public OTRadValve::HardwareMotorDriverInter
     // Data received during the calibration process,
     // and outputs derived from it.
     // Contains (unit-testable) computations.
-    class CalibrationParameters
+    class CalibrationParameters final
         {
         private:
           // Data gathered during calibration process.

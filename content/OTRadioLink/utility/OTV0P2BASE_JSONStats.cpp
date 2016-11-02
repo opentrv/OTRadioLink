@@ -23,8 +23,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014--2016
 #include <stddef.h>
 #include <string.h>
 
+#include "OTV0P2BASE_ArduinoCompat.h"
 #include "OTV0P2BASE_JSONStats.h"
-
 #include "OTV0P2BASE_CRC.h"
 #include "OTV0P2BASE_EEPROM.h"
 #include "OTV0P2BASE_QuickPRNG.h"
@@ -168,13 +168,12 @@ int8_t checkJSONMsgRXCRC(const uint8_t * const bptr, const uint8_t bufLen)
   return(checkJSONMsgRXCRC_ERR); // Bad (unterminated) message.
   }
 
-
-// Print a single char to a bounded buffer; returns 1 if successful, else 0 if full.
-size_t BufPrint::write(const uint8_t c)
-  {
-  if(size < capacity) { b[size++] = c; b[size] = '\0'; return(1); }
-  return(0);
-  }
+//// Print a single char to a bounded buffer; returns 1 if successful, else 0 if full.
+//size_t BufPrint::write(const uint8_t c)
+//  {
+//  if(size < capacity) { b[size++] = c; b[size] = '\0'; return(1); }
+//  return(0);
+//  }
 
 // Returns true iff if a valid key for OpenTRV subset of JSON.
 // Rejects keys containing " or \ or any chars outside the range [32,126]
@@ -337,10 +336,9 @@ bool SimpleStatsRotationBase::changedValue()
 uint8_t SimpleStatsRotationBase::writeJSON(uint8_t *const buf, const uint8_t bufSize, const uint8_t sensitivity,
                                            const bool maximise, const bool suppressClearChanged)
   {
-#ifdef DEBUG
-  if(NULL == buf) { panic(0); } // Should never happen.
-#endif
-  // Minimum size is for {"@":""} plus null plus extra padding char/byte to check for overrun.
+  if(NULL == buf) { return(0); } // Should never happen, but be graceful if given a NULL buffer.
+
+// Minimum size is for {"@":""} plus null plus extra padding char/byte to check for overrun.
   if(bufSize < 10) { return(0); } // Failed.
 
   // Write/print to buffer passed in.

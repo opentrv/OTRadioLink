@@ -17,52 +17,14 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 */
 
 #include <stdlib.h>
+#include "utility/OTRadValve_AbstractRadValve.h"
 
 #include "OTRadValve_ModelledRadValve.h"
 
-#include "utility/OTRadValve_AbstractRadValve.h"
 
 namespace OTRadValve
     {
 
-
-ModelledRadValveInputState::ModelledRadValveInputState(const int_fast16_t realTempC16) :
-    targetTempC(12 /* FROST */),
-    minPCOpen(OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN), maxPCOpen(100),
-    widenDeadband(false), glacial(false), hasEcoBias(false), inBakeMode(false), fastResponseRequired(false)
-    { setReferenceTemperatures(realTempC16); }
-
-
-// Minimum slew/error % distance in central range; should be larger than smallest temperature-sensor-driven step (6) to be effective; [1,100].
-// Note: keeping TRV_MIN_SLEW_PC sufficiently high largely avoids spurious hunting back and forth from single-ulp noise.
-#ifndef TRV_MIN_SLEW_PC
-#define TRV_MIN_SLEW_PC 7
-#endif
-// Set maximum valve slew rate (percent/minute) when close to target temperature.
-// Note: keeping TRV_MAX_SLEW_PC_PER_MIN small reduces noise and overshoot and surges of water
-// (eg for when additionally charged by the m^3 of flow in district heating systems)
-// and will likely work better with high-thermal-mass / slow-response systems such as UFH.
-// Should be << 100%/min, and probably << 30%/min, given that 30% may be the effective control range of many rad valves.
-#ifndef TRV_MAX_SLEW_PC_PER_MIN
-#define TRV_MIN_SLEW_PC_PER_MIN 1 // Minimal slew rate (%/min) to keep flow rates as low as possible.
-#ifndef TRV_SLEW_GLACIAL
-#define TRV_MAX_SLEW_PC_PER_MIN 5 // Maximum normal slew rate (%/min), eg to fully open from off when well under target; [1,100].
-#else
-#define TRV_MAX_SLEW_PC_PER_MIN TRV_MIN_SLEW_PC_PER_MIN
-#endif
-#endif
-
-// Derived from basic slew values.
-#ifndef TRV_SLEW_GLACIAL
-#define TRV_SLEW_PC_PER_MIN_VFAST (OTV0P2BASE::fnmin(34,(4*TRV_MAX_SLEW_PC_PER_MIN))) // Takes >= 3 minutes for full travel.
-#define TRV_SLEW_PC_PER_MIN_FAST (OTV0P2BASE::fnmin(20,(2*TRV_MAX_SLEW_PC_PER_MIN))) // Takes >= 5 minutes for full travel.
-#else
-#define TRV_SLEW_PC_PER_MIN_FAST TRV_MAX_SLEW_PC_PER_MIN
-#define TRV_SLEW_PC_PER_MIN_VFAST TRV_MAX_SLEW_PC_PER_MIN
-#endif
-
-// TODO-467: if defined then slow to glacial on when wide deadband has been specified implying reduced heating effort.
-#define GLACIAL_ON_WITH_WIDE_DEADBAND
 
 // Simple mean filter.
 // Find mean of group of ints where sum can be computed in an int without loss.
@@ -76,6 +38,7 @@ template<size_t N> int_fast16_t smallIntMean(const int_fast16_t data[N])
   // Compute rounded-up mean.
   return((sum + (int)(N/2)) / (int)N); // Avoid accidental computation as unsigned...
   }
+
 
 // Get smoothed raw/unadjusted temperature from the most recent samples.
 int_fast16_t ModelledRadValveState::getSmoothedRecent() const
@@ -163,7 +126,8 @@ static const uint8_t MIN_WINDOW_OPEN_TEMP_FALL_M = 13;
 
 // Construct an instance, with sensible defaults, and current (room) temperature from the input state.
 // Does its initialisation with room temperature immediately.
-ModelledRadValveState::ModelledRadValveState(const ModelledRadValveInputState &inputState) :
+ModelledRadValveState::ModelledRadValveState(const ModelledRadValveInputState &inputState, const bool _alwaysGlacial) :
+  alwaysGlacial(_alwaysGlacial),
   initialised(true),
   isFiltering(false),
   valveMoved(false),
@@ -202,11 +166,9 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const Modelle
   // if the raw value is close enough to the current filtered value
   // so that reverting to unfiltered will not of itself cause a big jump.
   if(isFiltering)
-    {
-    if(abs(getSmoothedRecent() - rawTempC16) <= MAX_TEMP_JUMP_C16) { isFiltering = false; }
-    }
+    { if(abs(getSmoothedRecent() - rawTempC16) <= MAX_TEMP_JUMP_C16) { isFiltering = false; } }
   // Force filtering (back) on if any adjacent past readings are wildly different.
-  if(!isFiltering)
+  else
     {
     for(unsigned int i = 1; i < filterLength; ++i) { if(abs(prevRawTempC16[i] - prevRawTempC16[i-1]) > MAX_TEMP_JUMP_C16) { isFiltering = true; break; } }
     }
@@ -238,7 +200,7 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const Modelle
   }
 
 // Computes a new valve position given supplied input state including the current valve position; [0,100].
-// Uses no state other than that passed as the arguments (thus unit testable).
+// Uses no state other than that passed as the arguments (thus is unit testable).
 // Does not alter any of the input state.
 // Uses hysteresis and a proportional control and some other cleverness.
 // Is always willing to turn off quickly, but on slowly (AKA "slow start" algorithm),
@@ -248,13 +210,19 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const Modelle
 // Usually called by tick() which does required state updates afterwards.
 uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valvePCOpen, const ModelledRadValveInputState &inputState) const
   {
-#if 0 && defined(V0P2BASE_DEBUG)
-V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("targ=");
-V0P2BASE_DEBUG_SERIAL_PRINT(inputState.targetTempC);
-V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING(" room=");
-V0P2BASE_DEBUG_SERIAL_PRINT(inputState.refTempC);
-V0P2BASE_DEBUG_SERIAL_PRINTLN();
-#endif
+  // Minimum slew/error % distance in central range; should be larger than smallest temperature-sensor-driven step (6) to be effective; [1,100].
+  // Note: keeping TRV_MIN_SLEW_PC sufficiently high largely avoids spurious hunting back and forth from single-ulp noise.
+  static constexpr uint8_t TRV_MIN_SLEW_PC = 7;
+  // Set maximum valve slew rate (percent/minute) when close to target temperature.
+  // Note: keeping TRV_MAX_SLEW_PC_PER_MIN small reduces noise and overshoot and surges of water
+  // (eg for when additionally charged by the m^3 of flow in district heating systems)
+  // and will likely work better with high-thermal-mass / slow-response systems such as UFH.
+  // Should be << 100%/min, and probably << 30%/min, given that 30% may be the effective control range of many rad valves.
+  static constexpr uint8_t TRV_MIN_SLEW_PC_PER_MIN = 1; // Minimal slew rate (%/min) to keep flow rates as low as possible.
+  static const uint8_t TRV_MAX_SLEW_PC_PER_MIN = alwaysGlacial ? TRV_MIN_SLEW_PC_PER_MIN : 5;
+  // Derived from basic slew values.
+  static const uint8_t TRV_SLEW_PC_PER_MIN_FAST = alwaysGlacial ? TRV_MAX_SLEW_PC_PER_MIN : (OTV0P2BASE::fnmin(20,(2*TRV_MAX_SLEW_PC_PER_MIN))); // Takes >= 5 minutes for full travel.
+  static const uint8_t TRV_SLEW_PC_PER_MIN_VFAST = alwaysGlacial ? TRV_MAX_SLEW_PC_PER_MIN : (OTV0P2BASE::fnmin(34,(4*TRV_MAX_SLEW_PC_PER_MIN))); // Takes >= 3 minutes for full travel.
 
   // Possibly-adjusted and/or smoothed temperature to use for targeting.
   const int_fast16_t adjustedTempC16 = isFiltering ? (getSmoothedRecent() + ModelledRadValveInputState::refTempOffsetC16) : inputState.refTempC16;
@@ -343,11 +311,11 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
       const bool beGlacial = inputState.glacial ||
           ((valvePCOpen >= inputState.minPCOpen) && inputState.widenDeadband && !inputState.fastResponseRequired &&
               (
-#if defined(GLACIAL_ON_WITH_WIDE_DEADBAND)
-               // Don't rush to open the valve
+//      #if defined(GLACIAL_ON_WITH_WIDE_DEADBAND)
+               // Don't rush to open the valve (GLACIAL_ON_WITH_WIDE_DEADBAND: TODO-467)
                // if neither in comfort mode nor massively below (possibly already setback) target temp.
                (inputState.hasEcoBias && !vBelowTarget) ||
-#endif
+//      #endif
                // Don't rush to open the valve
                // if temperature is jittery but is moving in the right direction.
                (isFiltering && (getRawDelta() > 0)))); // FIXME: maybe redundant w/ GLACIAL_ON_WITH_WIDE_DEADBAND and widenDeadband set when isFiltering is true
@@ -457,8 +425,13 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
     // Compute the minimum/epsilon slew adjustment allowed (the deadband).
     // Also increase effective deadband if temperature resolution is lower than 1/16th, eg 8ths => 1+2*ulpStep minimum.
 // FIXME //    const uint8_t realMinUlp = 1 + (inputState.isLowPrecision ? 2*ulpStep : ulpStep); // Assume precision no coarser than 1/8C.
-    const uint8_t realMinUlp = 1 + ulpStep;
-    const uint8_t _minAbsSlew = (uint8_t)(inputState.widenDeadband ? OTV0P2BASE::fnmax(OTV0P2BASE::fnmin(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN/2,OTV0P2BASE::fnmax(TRV_MAX_SLEW_PC_PER_MIN,2*TRV_MIN_SLEW_PC)), 2+TRV_MIN_SLEW_PC) : TRV_MIN_SLEW_PC);
+    // Compute real minimum unit in last place.
+    constexpr uint8_t realMinUlp = 1 + ulpStep;
+    // Compute minimum slew to use with a wider deadband.
+    const uint8_t ls = OTV0P2BASE::fnmax(TRV_MAX_SLEW_PC_PER_MIN, (uint8_t) (2 * TRV_MIN_SLEW_PC));
+    const uint8_t ls2 = OTV0P2BASE::fnmin(ls, (uint8_t) (OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN / 2));
+    const uint8_t ls3 = OTV0P2BASE::fnmax(ls2, (uint8_t) (2 + TRV_MIN_SLEW_PC));
+    const uint8_t _minAbsSlew = (uint8_t)(inputState.widenDeadband ? ls3 : TRV_MIN_SLEW_PC);
     const uint8_t minAbsSlew = OTV0P2BASE::fnmax(realMinUlp, _minAbsSlew);
     if(tooOpen) // Currently open more than required.  Still below target at top of proportional range.
       {
@@ -486,9 +459,10 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
       // This assumes that most valves more than about 1/3rd open can deliver significant power, esp if not statically balanced.
       // TODO-482: try to deal better with jittery temperature readings.
       const bool beGlacial = inputState.glacial ||
-#if defined(GLACIAL_ON_WITH_WIDE_DEADBAND)
+//      #if defined(GLACIAL_ON_WITH_WIDE_DEADBAND)
+          // (GLACIAL_ON_WITH_WIDE_DEADBAND: TODO-467)
           ((inputState.widenDeadband || isFiltering) && (valvePCOpen <= OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN)) ||
-#endif
+//      #endif
           (lsbits < 8);
       if(beGlacial) { return(valvePCOpen - 1); }
 
@@ -528,9 +502,10 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
     //   (TODO-451, TODO-467: have darkness only immediately trigger a 'soft setback' using wide deadband)
     // This assumes that most valves more than about 1/3rd open can deliver significant power, esp if not statically balanced.
     const bool beGlacial = inputState.glacial ||
-#if defined(GLACIAL_ON_WITH_WIDE_DEADBAND)
+//      #if defined(GLACIAL_ON_WITH_WIDE_DEADBAND)
+        // (GLACIAL_ON_WITH_WIDE_DEADBAND: TODO-467)
         inputState.widenDeadband ||
-#endif
+//      #endif
         (lsbits >= 8) || ((lsbits >= 4) && (valvePCOpen > OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN));
     if(beGlacial) { return(valvePCOpen + 1); }
 
@@ -547,11 +522,139 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
   }
 
 
+
+#ifdef ModelledRadValve_DEFINED
+
+// Return minimum valve percentage open to be considered actually/significantly open; [1,100].
+// At the boiler hub this is also the threshold percentage-open on eavesdropped requests that will call for heat.
+// If no override is set then OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN is used.
+uint8_t ModelledRadValve::getMinValvePcReallyOpen() const
+  {
+#ifdef ARDUINO_ARCH_AVR
+  const uint8_t stored = eeprom_read_byte((uint8_t *)V0P2BASE_EE_START_MIN_VALVE_PC_REALLY_OPEN);
+  const uint8_t result = ((stored > 0) && (stored <= 100)) ? stored : OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN;
+  return(result);
+#else
+  return(OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN);
+#endif // ARDUINO_ARCH_AVR
+  }
+
+// Set and cache minimum valve percentage open to be considered really open.
+// Applies to local valve and, at hub, to calls for remote calls for heat.
+// Any out-of-range value (eg >100) clears the override and OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN will be used.
+void ModelledRadValve::setMinValvePcReallyOpen(const uint8_t percent)
+  {
+#ifdef ARDUINO_ARCH_AVR
+  if((percent > 100) || (percent == 0) || (percent == OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN))
+    {
+    // Bad / out-of-range / default value so erase stored value if not already erased.
+    OTV0P2BASE::eeprom_smart_erase_byte((uint8_t *)V0P2BASE_EE_START_MIN_VALVE_PC_REALLY_OPEN);
+    return;
+    }
+  // Store specified value with as low wear as possible.
+  OTV0P2BASE::eeprom_smart_update_byte((uint8_t *)V0P2BASE_EE_START_MIN_VALVE_PC_REALLY_OPEN, percent);
+#endif // ARDUINO_ARCH_AVR
+  }
+
+// True if the controlled physical valve is thought to be at least partially open right now.
+// If multiple valves are controlled then is this true only if all are at least partially open.
+// Used to help avoid running boiler pump against closed valves.
+// The default is to use the check the current computed position
+// against the minimum open percentage.
+bool ModelledRadValve::isControlledValveReallyOpen() const
+  {
+  if(isRecalibrating()) { return(false); }
+//#ifdef ENABLE_FHT8VSIMPLE
+//  if(!FHT8V.isControlledValveReallyOpen()) { return(false); }
+//#endif
+  return(value >= getMinPercentOpen());
+  }
+
+// Returns true if (re)calibrating/(re)initialising/(re)syncing.
+// The target valve position is not lost while this is true.
+// By default there is no recalibration step.
+bool ModelledRadValve::isRecalibrating() const
+  {
+//#ifdef ENABLE_FHT8VSIMPLE
+//  if(!FHT8V.isInNormalRunState()) { return(true); }
+//#endif
+  return(false);
+  }
+
+// If possible exercise the valve to avoid pin sticking and recalibrate valve travel.
+// Default does nothing.
+void ModelledRadValve::recalibrate()
+  {
+//#ifdef ENABLE_FHT8VSIMPLE
+//  FHT8V.resyncWithValve(); // Should this be decalcinate instead/also/first?
+//#endif
+  }
+
+// Compute target temperature and set heat demand for TRV and boiler; update state.
+// CALL REGULARLY APPROXIMATELY ONCE PER MINUTE TO ALLOW SIMPLE TIME-BASED CONTROLS.
+// Inputs are inWarmMode(), isRoomLit().
+// This routine may take significant CPU time; no I/O is done, only internal state is updated.
+//
+// Will clear any BAKE mode if the newly-computed target temperature is already exceeded.
+void ModelledRadValve::computeCallForHeat()
+  {
+  valveModeRW->read();
+  // Compute target temperature and ensure that required input state is set for computeRequiredTRVPercentOpen().
+  computeTargetTemperature();
+  retainedState.tick(value, inputState);
+  }
+
+// Compute/update target temperature and set up state for computeRequiredTRVPercentOpen().
+// Can be called as often as required though may be slowish/expensive.
+// Can be called after any UI/CLI/etc operation
+// that may cause the target temperature to change.
+// (Will also be called by computeCallForHeat().)
+// One aim is to allow reasonable energy savings (10--30%)
+// even if the device is left in WARM mode all the time,
+// using occupancy/light/etc to determine when temperature can be set back
+// without annoying users.
+//
+// Will clear any BAKE mode if the newly-computed target temperature is already exceeded.
+void ModelledRadValve::computeTargetTemperature()
+  {
+  // Compute basic target temperature statelessly.
+  const uint8_t newTarget = ctt->computeTargetTemp();
+
+  // Set up state for computeRequiredTRVPercentOpen().
+  ctt->setupInputState(inputState,
+      retainedState.isFiltering,
+      newTarget, getMinPercentOpen(), getMaxPercentageOpenAllowed(), glacial);
+
+  // Explicitly compute the actual setback when in WARM mode for monitoring purposes.
+  // TODO: also consider showing full setback to FROST when a schedule is set but not on.
+  // By default, the setback is regarded as zero/off.
+  setbackC = 0;
+  if(sensorCtrlStats.valveMode->inWarmMode())
+    {
+    const uint8_t wt = sensorCtrlStats.tempControl->getWARMTargetC();
+    if(newTarget < wt) { setbackC = wt - newTarget; }
+    }
+
+  // True if the target temperature has not been met.
+  const bool targetNotReached = (newTarget >= (inputState.refTempC16 >> 4));
+  underTarget = targetNotReached;
+  // If the target temperature is already reached then cancel any BAKE mode in progress (TODO-648).
+  if(!targetNotReached) { valveModeRW->cancelBakeDebounced(); }
+  // Only report as calling for heat when actively doing so.
+  // (Eg opening the valve a little in case the boiler is already running does not count.)
+  callingForHeat = targetNotReached &&
+    (value >= OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN) &&
+    isControlledValveReallyOpen();
+  }
+
+#endif // ModelledRadValve_DEFINED
+
+
     }
 
 
 //// Median filter.
-//// Find mean of interquatile range of group of ints where sum can be computed in an int without loss.
+//// Find mean of interquartile range of group of ints where sum can be computed in an int without loss.
 //// FIXME: needs a unit test or three.
 //template<uint8_t N> int smallIntIQMean(const int data[N])
 //  {

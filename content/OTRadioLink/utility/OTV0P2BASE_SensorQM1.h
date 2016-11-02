@@ -50,7 +50,7 @@ namespace OTV0P2BASE
 #ifdef ARDUINO_ARCH_AVR
 
 #define VoiceDetectionQM1_DEFINED
-class VoiceDetectionQM1 : public OTV0P2BASE::SimpleTSUint8Sensor
+class VoiceDetectionQM1 final : public OTV0P2BASE::SimpleTSUint8Sensor
   {
   private:
     // Activity count.

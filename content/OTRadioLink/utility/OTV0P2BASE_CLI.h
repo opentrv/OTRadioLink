@@ -87,13 +87,13 @@ namespace CLI {
     // Set / clear node association(s) (nodes to accept frames from) (eg "A hh hh hh hh hh hh hh hh").
     // On writing a new association/entry all bytes after the ID must be erased to 0xff,
     // and/which will clear RX message counters.
-    class SetNodeAssoc : public CLIEntryBase { public: virtual bool doCommand(char *buf, uint8_t buflen); };
+    class SetNodeAssoc final : public CLIEntryBase { public: virtual bool doCommand(char *buf, uint8_t buflen); };
 
     // Dump (human-friendly) stats (eg "D N").
-    class DumpStats : public CLIEntryBase { public: virtual bool doCommand(char *buf, uint8_t buflen); };
+    class DumpStats final : public CLIEntryBase { public: virtual bool doCommand(char *buf, uint8_t buflen); };
 
     // Show/set generic parameter values (eg "G N [M]").
-    class GenericParam : public CLIEntryBase { public: virtual bool doCommand(char *buf, uint8_t buflen); };
+    class GenericParam final : public CLIEntryBase { public: virtual bool doCommand(char *buf, uint8_t buflen); };
 
     // Used to show or reset node ID (eg "I").
     //
@@ -125,7 +125,7 @@ namespace CLI {
     //=F0%@18C6;X0;T15 38 W255 0 F255 0 W255 0 F255 0;S6 6 16;{"@":"9f9c","L":146,"B|cV":333,"occ|%":0,"vC|%":0}
     //
     //>
-    class NodeID : public CLIEntryBase { public: virtual bool doCommand(char *buf, uint8_t buflen); };
+    class NodeID final : public CLIEntryBase { public: virtual bool doCommand(char *buf, uint8_t buflen); };
 
     // Set/clear secret key(s) ("K ...").
     // Will call the keysCleared() routine when keys have been cleared, eg to allow resetting of TX message counters.
@@ -140,7 +140,7 @@ namespace CLI {
      *          library level.
      *          FIXME - DHD should look over this and ammend/clarify as necessary.
      */
-    class SetSecretKey : public CLIEntryBase
+    class SetSecretKey final : public CLIEntryBase
         {
         bool (*const keysClearedFn)();
         public:
@@ -149,13 +149,13 @@ namespace CLI {
         };
 
     // Set local time (eg "T HH MM").
-    class SetTime : public CLIEntryBase { public: virtual bool doCommand(char *buf, uint8_t buflen); };
+    class SetTime final : public CLIEntryBase { public: virtual bool doCommand(char *buf, uint8_t buflen); };
 
     // Set TX privacy level (eg "X NN").
-    class SetTXPrivacy : public CLIEntryBase { public: virtual bool doCommand(char *buf, uint8_t buflen); };
+    class SetTXPrivacy final : public CLIEntryBase { public: virtual bool doCommand(char *buf, uint8_t buflen); };
 
     // Zap/erase learned statistics (eg "Z").
-    class ZapStats : public CLIEntryBase { public: virtual bool doCommand(char *buf, uint8_t buflen); };
+    class ZapStats final : public CLIEntryBase { public: virtual bool doCommand(char *buf, uint8_t buflen); };
 
 
 } }

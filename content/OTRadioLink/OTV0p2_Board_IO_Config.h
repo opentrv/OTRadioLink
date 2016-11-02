@@ -84,18 +84,19 @@ namespace OTV0P2BASE
 
 // Primary UI LED for 'heat call' in OpenTRV controller units, digital out.
 #if V0p2_REV == 1 // REV1 only
-#define LED_HEATCALL 13 // ATMega328P-PU PDIP pin 19, PB5. SHARED WITH SPI DUTIES as per Arduino UNO...
-#define LED_HEATCALL_ON() { fastDigitalWrite(LED_HEATCALL, HIGH); }
-#define LED_HEATCALL_OFF() { fastDigitalWrite(LED_HEATCALL, LOW); }
+static const uint8_t LED_HEATCALL = 13; // ATMega328P-PU PDIP pin 19, PB5. SHARED WITH SPI DUTIES as per Arduino UNO...
+inline void LED_HEATCALL_ON() { fastDigitalWrite(LED_HEATCALL, HIGH); }
+inline void LED_HEATCALL_OFF() { fastDigitalWrite(LED_HEATCALL, LOW); }
 // ISR-safe UI LED ON; does nothing if no ISR-safe version.
 inline void LED_HEATCALL_ON_ISR_SAFE() { }
 #else // REV0, REV2 dedicated output pin.
-#define LED_HEATCALL_L 4 // ATMega328P-PU PDIP pin 6, PD4.  PULL LOW TO ACTIVATE.  Not shared with SPI.
-#define LED_HEATCALL_ON() { fastDigitalWrite(LED_HEATCALL_L, LOW); }
-#define LED_HEATCALL_OFF() { fastDigitalWrite(LED_HEATCALL_L, HIGH); }
+#define V0P2BASE_LED_HEATCALL_IS_L
+static const uint8_t LED_HEATCALL_L = 4; // ATMega328P-PU PDIP pin 6, PD4.  PULL LOW TO ACTIVATE.  Not shared with SPI.
+inline void LED_HEATCALL_ON() { fastDigitalWrite(LED_HEATCALL_L, LOW); }
+inline void LED_HEATCALL_OFF() { fastDigitalWrite(LED_HEATCALL_L, HIGH); }
 #if 0  // Alternate definition to disable heatcall led. For debugging ISRs.
-#define LED_HEATCALL_ON()
-#define LED_HEATCALL_OFF()
+inline void LED_HEATCALL_ON() { }
+inline void LED_HEATCALL_OFF() { }
 #endif // 0
 // ISR-safe UI LED ON.
 inline void LED_HEATCALL_ON_ISR_SAFE() { LED_HEATCALL_ON(); }
@@ -104,12 +105,12 @@ inline void LED_HEATCALL_ON_ISR_SAFE() { LED_HEATCALL_ON(); }
 #if (V0p2_REV >= 7) && (V0p2_REV <= 9)
 #define LED_UI2_EXISTS
 #if (V0p2_REV == 7) || (V0p2_REV == 8)
-#define LED_UI2_L 13 // ATMega328P-PU PDIP pin 19, PB5. SHARED WITH SPI DUTIES as per Arduino UNO.
+static const uint8_t LED_UI2_L = 13; // ATMega328P-PU PDIP pin 19, PB5. SHARED WITH SPI DUTIES as per Arduino UNO.
 #elif (V0p2_REV == 9)
-#define LED_UI2_L 6 // ATMega328P-PU PDIP pin 6, PD4.  PULL LOW TO ACTIVATE.  Not shared with SPI.
+static const uint8_t LED_UI2_L = 6; // ATMega328P-PU PDIP pin 6, PD4.  PULL LOW TO ACTIVATE.  Not shared with SPI.
 #endif
-#define LED_UI2_ON() { fastDigitalWrite(LED_UI2_L, LOW); }
-#define LED_UI2_OFF() { fastDigitalWrite(LED_UI2_L, HIGH); }
+inline void LED_UI2_ON() { fastDigitalWrite(LED_UI2_L, LOW); }
+inline void LED_UI2_OFF() { fastDigitalWrite(LED_UI2_L, HIGH); }
 #endif
 #endif
 
@@ -228,23 +229,23 @@ static inline void IOSetup()
 
 #if !defined(ALT_MAIN_LOOP)
       // Switch main UI LED on for the rest of initialisation in non-ALT code...
-#ifdef LED_HEATCALL
+#ifndef V0P2BASE_LED_HEATCALL_IS_L
       case LED_HEATCALL: { pinMode(LED_HEATCALL, OUTPUT); digitalWrite(LED_HEATCALL, HIGH); break; }
-#endif // LED_HEATCALL
-#ifdef LED_HEATCALL_L
+#endif // V0P2BASE_LED_HEATCALL_IS_L
+#ifdef V0P2BASE_LED_HEATCALL_IS_L
       case LED_HEATCALL_L: { pinMode(LED_HEATCALL_L, OUTPUT); digitalWrite(LED_HEATCALL_L, LOW); break; }
-#endif // LED_HEATCALL_l
+#endif // V0P2BASE_LED_HEATCALL_IS_L
 #else // !defined(ALT_MAIN_LOOP)
-#ifdef LED_HEATCALL_L
+#ifdef V0P2BASE_LED_HEATCALL_IS_L
       // Leave main UI LED off in ALT-mode eg in case on minimal power from energy harvesting.
       case LED_HEATCALL_L: { pinMode(LED_HEATCALL_L, OUTPUT); digitalWrite(LED_HEATCALL_L, HIGH); break; }
 #endif // LED_HEATCALL_L
 #endif // !defined(ALT_MAIN_LOOP)
 
       // Switch secondary UI LED off during initialisation.
-#ifdef LED_UI2_L
+#ifdef LED_UI2_EXISTS
       case LED_UI2_L: { pinMode(LED_UI2_L, OUTPUT); digitalWrite(LED_UI2_L, HIGH); break; }
-#endif // LED_UI2_L
+#endif // LED_UI2_EXISTS
 #ifdef VOICE_NIRQ
       // Weak pull-up for external activation by pull-down.
       case VOICE_NIRQ: { pinMode(VOICE_NIRQ, INPUT); break; }

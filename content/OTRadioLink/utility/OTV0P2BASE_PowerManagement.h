@@ -224,7 +224,7 @@ void power_intermittent_peripherals_disable();
 // to save transmitting/logging an information-free final digit
 // even at the risk of some units confusion, though UCUM compliant.
 // To use this an instance should be defined (there is no overhead if not).
-class SupplyVoltageCentiVolts : public OTV0P2BASE::Sensor<uint16_t>
+class SupplyVoltageCentiVolts final : public OTV0P2BASE::Sensor<uint16_t>
   {
   private:
     // Internal bandgap (1.1V nominal, 1.0--1.2V) as fraction of Vcc [0,1023] for V0p2/AVR boards.

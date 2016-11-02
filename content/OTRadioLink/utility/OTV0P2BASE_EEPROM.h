@@ -34,16 +34,116 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #include <avr/eeprom.h>
 #endif
 
+#include "OTV0P2BASE_QuickPRNG.h"
+
 
 namespace OTV0P2BASE
 {
 
 
-// 'Unset'/invalid stats values for byte (eg raw EEPROM byte)
+// 'Unset'/invalid stats values for stats:
+// byte (eg raw EEPROM byte)
 // and 2-byte signed int (eg after decompression).
 // These are to be used where erased non-volatile (eg EEPROM) values are 0xff.
 static const uint8_t STATS_UNSET_BYTE = 0xff;
 static const int16_t STATS_UNSET_INT = 0x7fff;
+
+// Special values indicating the current hour and the next hour, for stats.
+static const uint8_t STATS_SPECIAL_HOUR_CURRENT_HOUR = ~0 - 1;
+static const uint8_t STATS_SPECIAL_HOUR_NEXT_HOUR = ~0;
+
+// Base for simple byte-wide non-volatile time-based (by hour) stats implementation.
+// It is possible to encode/compand wider values into single stats byte values.
+// Unset raw values are indicated by 0xff, ie map nicely to EEPROM.
+// One implementation of this may map directly to underlying MCU EEPROM on some systems.
+// This may also have wear-reducing implementations for (say) Flash.
+#define NVByHourByteStatsBase_DEFINED
+class NVByHourByteStatsBase
+  {
+  public:
+    // 'Unset'/invalid stats values for stats:
+    // byte (eg raw EEPROM byte)
+    // and 2-byte signed int (eg after decompression).
+    // These are to be used where erased non-volatile (eg EEPROM) values are 0xff.
+    static constexpr uint8_t UNSET_BYTE = STATS_UNSET_BYTE;
+
+    // Special values indicating the current hour and the next hour, for stats.
+    static constexpr uint8_t SPECIAL_HOUR_CURRENT_HOUR = STATS_SPECIAL_HOUR_CURRENT_HOUR;
+    static constexpr uint8_t SPECIAL_HOUR_NEXT_HOUR = STATS_SPECIAL_HOUR_NEXT_HOUR;
+
+    // Clear all collected statistics fronted by this.
+    // Use (eg) when moving device to a new room or at a major time change.
+    // Requires 1.8ms per byte for each byte that actually needs erasing.
+    //   * maxBytesToErase limit the number of bytes erased to this; strictly positive, else 0 to allow 65536
+    // Returns true if finished with all bytes erased.
+    virtual bool zapStats(uint16_t maxBytesToErase = 0) = 0;
+
+    // Get raw stats value for specified hour [0,23]/current/next from stats set N from non-volatile (EEPROM) store.
+    // A value of STATS_UNSET_BYTE (0xff (255)) means unset (or out of range); other values depend on which stats set is being used.
+    //   * hour  hour of day to use, or ~0/0xff for current hour (default), or >23 for next hour.
+    virtual uint8_t getByHourStat(uint8_t statsSet, uint8_t hour = 0xff) const = 0;
+
+    // Get minimum sample from given stats set ignoring all unset samples; STATS_UNSET_BYTE if all samples are unset and for invalid stats set.
+    virtual uint8_t getMinByHourStat(uint8_t statsSet) const = 0;
+    // Get maximum sample from given stats set ignoring all unset samples; STATS_UNSET_BYTE if all samples are unset and for invalid stats set.
+    virtual uint8_t getMaxByHourStat(uint8_t statsSet) const = 0;
+
+    // Returns true if specified hour is (conservatively) in the specified outlier quartile for specified stats set.
+    // Returns false if at least a near-full set of stats not available, eg including the specified hour, and for invalid stats set.
+    // Always returns false if all samples are the same.
+    //   * inTop  test for membership of the top quartile if true, bottom quartile if false
+    //   * statsSet  stats set number to use.
+    //   * hour  hour of day to use or STATS_SPECIAL_HOUR_CURRENT_HOUR for current hour or STATS_SPECIAL_HOUR_NEXT_HOUR for next hour
+    virtual bool inOutlierQuartile(bool inTop, uint8_t statsSet, uint8_t hour = STATS_SPECIAL_HOUR_CURRENT_HOUR) const = 0;
+
+    // Compute the number of stats samples in specified set less than the specified value; returns -1 for invalid stats set.
+    // (With the UNSET value specified, count will be of all samples that have been set, ie are not unset.)
+    virtual int8_t countStatSamplesBelow(uint8_t statsSet, uint8_t value) const = 0;
+
+    ////// Utility values and routines.
+
+    // The default STATS_SMOOTH_SHIFT is chosen to retain some reasonable precision within a byte and smooth over a weekly cycle.
+    // Number of bits of shift for smoothed value: larger => larger time-constant; strictly positive.
+    static constexpr uint8_t STATS_SMOOTH_SHIFT = 3;
+
+    // Compute new linearly-smoothed value given old smoothed value and new value.
+    // Guaranteed not to produce a value higher than the max of the old smoothed value and the new value.
+    // Uses stochastic rounding to nearest to allow nominally sub-lsb values to have an effect over time.
+    static uint8_t smoothStatsValue(const uint8_t oldSmoothed, const uint8_t newValue);
+  };
+
+
+// Null implementation that does nothing.
+class NULLByHourByteStatsBase final : public NVByHourByteStatsBase
+  {
+  public:
+    virtual bool zapStats(uint16_t = 0) override { return(true); } // No stats to erase, so all done.
+    virtual uint8_t getByHourStat(uint8_t, uint8_t = 0xff) const override { return(UNSET_BYTE); }
+    virtual uint8_t getMinByHourStat(uint8_t) const override { return(UNSET_BYTE); }
+    virtual uint8_t getMaxByHourStat(uint8_t) const override { return(UNSET_BYTE); }
+    virtual bool inOutlierQuartile(bool, uint8_t, uint8_t = STATS_SPECIAL_HOUR_CURRENT_HOUR) const override { return(false); }
+    virtual int8_t countStatSamplesBelow(uint8_t, uint8_t) const override { return(-1); }
+  };
+
+
+// Stats set numbers, 0 upwards, contiguous.
+// Generally even-numbered values are 'last' values and odd-numbered are 'smoothed' nominally over a week.
+#define V0P2BASE_EE_STATS_SET_TEMP_BY_HOUR               0  // Last companded temperature samples in each hour in range [0,248].
+#define V0P2BASE_EE_STATS_SET_TEMP_BY_HOUR_SMOOTHED      1  // Smoothed hourly companded temperature samples in range [0,248].
+#define V0P2BASE_EE_STATS_SET_AMBLIGHT_BY_HOUR           2  // Last ambient light level samples in each hour in range [0,254].
+#define V0P2BASE_EE_STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED  3  // Smoothed ambient light level samples in each hour in range [0,254].
+#define V0P2BASE_EE_STATS_SET_OCCPC_BY_HOUR              4  // Last hourly observed occupancy percentage [0,100].
+#define V0P2BASE_EE_STATS_SET_OCCPC_BY_HOUR_SMOOTHED     5  // Smoothed hourly observed occupancy percentage [0,100].
+#define V0P2BASE_EE_STATS_SET_RHPC_BY_HOUR               6  // Last hourly relative humidity % samples in range [0,100].
+#define V0P2BASE_EE_STATS_SET_RHPC_BY_HOUR_SMOOTHED      7  // Smoothed hourly relative humidity % samples in range [0,100].
+#define V0P2BASE_EE_STATS_SET_CO2_BY_HOUR                8  // Last hourly companded CO2 ppm samples in range [0,254].
+#define V0P2BASE_EE_STATS_SET_CO2_BY_HOUR_SMOOTHED       9  // Smoothed hourly companded CO2 ppm samples in range [0,254].
+#define V0P2BASE_EE_STATS_SET_USER1_BY_HOUR              10 // Last hourly user-defined stats value in range [0,254].
+#define V0P2BASE_EE_STATS_SET_USER1_BY_HOUR_SMOOTHED     11 // Smoothed hourly user-defined stats value in range [0,254].
+#define V0P2BASE_EE_STATS_SET_USER2_BY_HOUR              12 // Last hourly user-defined stats value in range [0,254].
+#define V0P2BASE_EE_STATS_SET_USER2_BY_HOUR_SMOOTHED     13 // Smoothed hourly user-defined stats value in range [0,254].
+
+#define V0P2BASE_EE_STATS_SETS 14 // Number of stats sets in range [0,V0P2BASE_EE_STATS_SETS-1].
 
 
 #ifdef ARDUINO_ARCH_AVR
@@ -219,26 +319,6 @@ static const intptr_t V0P2BASE_EE_END_RADIO = 255;
 #define V0P2BASE_EE_START_STATS 256 // INCLUSIVE START OF BULK STATS AREA.
 #define V0P2BASE_EE_STATS_SET_SIZE 24 // Size in entries/bytes of one normal EEPROM-resident hour-of-day stats set.
 
-// Stats set numbers, 0 upwards, contiguous.
-// Generally even-numbered values are 'last' values and odd-numbered are 'smoothed' nominally over a week.
-#define V0P2BASE_EE_STATS_SET_TEMP_BY_HOUR               0  // Last companded temperature samples in each hour in range [0,248].
-#define V0P2BASE_EE_STATS_SET_TEMP_BY_HOUR_SMOOTHED      1  // Smoothed hourly companded temperature samples in range [0,248].
-#define V0P2BASE_EE_STATS_SET_AMBLIGHT_BY_HOUR           2  // Last ambient light level samples in each hour in range [0,254].
-#define V0P2BASE_EE_STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED  3  // Smoothed ambient light level samples in each hour in range [0,254].
-#define V0P2BASE_EE_STATS_SET_OCCPC_BY_HOUR              4  // Last hourly observed occupancy percentage [0,100].
-#define V0P2BASE_EE_STATS_SET_OCCPC_BY_HOUR_SMOOTHED     5  // Smoothed hourly observed occupancy percentage [0,100].
-#define V0P2BASE_EE_STATS_SET_RHPC_BY_HOUR               6  // Last hourly relative humidity % samples in range [0,100].
-#define V0P2BASE_EE_STATS_SET_RHPC_BY_HOUR_SMOOTHED      7  // Smoothed hourly relative humidity % samples in range [0,100].
-#define V0P2BASE_EE_STATS_SET_CO2_BY_HOUR                8  // Last hourly companded CO2 ppm samples in range [0,254].
-#define V0P2BASE_EE_STATS_SET_CO2_BY_HOUR_SMOOTHED       9  // Smoothed hourly companded CO2 ppm samples in range [0,254].
-#define V0P2BASE_EE_STATS_SET_USER1_BY_HOUR              10 // Last hourly user-defined stats value in range [0,254].
-#define V0P2BASE_EE_STATS_SET_USER1_BY_HOUR_SMOOTHED     11 // Smoothed hourly user-defined stats value in range [0,254].
-#define V0P2BASE_EE_STATS_SET_USER2_BY_HOUR              12 // Last hourly user-defined stats value in range [0,254].
-#define V0P2BASE_EE_STATS_SET_USER2_BY_HOUR_SMOOTHED     13 // Smoothed hourly user-defined stats value in range [0,254].
-//#define V0P2BASE_EE_STATS_SET_WARMMODE_BY_HOUR_OF_WK    10  // Each sample is last 7 days' WARM mode bitset by hour. [0,127].
-
-#define V0P2BASE_EE_STATS_SETS 14 // Number of stats sets in range [0,V0P2BASE_EE_STATS_SETS-1].
-
 // Compute start of stats set n (in range [0,V0P2BASE_EE_STATS_SETS-1]) in EEPROM.
 // Eg use as V0P2BASE_EE_STATS_START_ADDR(V0P2BASE_EE_STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED) in
 //   const uint8_t smoothedAmbLight = eeprom_read_byte((uint8_t *)(V0P2BASE_EE_STATS_START_ADDR(V0P2BASE_EE_STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED) + hh));
@@ -286,10 +366,6 @@ static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS = 8;
 // INCLUSIVE END OF NODE ASSOCIATIONS AREA: must point to last byte used.
 static const intptr_t V0P2BASE_EE_END_NODE_ASSOCIATIONS = ((V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS * V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE)-1);
 
-// Special values indicating the current hour and the next hour, for stats.
-static const uint8_t STATS_SPECIAL_HOUR_CURRENT_HOUR = ~0 - 1;
-static const uint8_t STATS_SPECIAL_HOUR_NEXT_HOUR = ~0;
-
 // Clear all collected statistics, eg when moving device to a new room or at a major time change.
 // Requires 1.8ms per byte for each byte that actually needs erasing.
 //   * maxBytesToErase limit the number of bytes erased to this; strictly positive, else 0 to allow 65536
@@ -317,6 +393,42 @@ bool inOutlierQuartile(bool inTop, uint8_t statsSet, uint8_t hour = STATS_SPECIA
 // Compute the number of stats samples in specified set less than the specified value; returns -1 for invalid stats set.
 // (With the UNSET value specified, count will be of all samples that have been set, ie are not unset.)
 int8_t countStatSamplesBelow(uint8_t statsSet, uint8_t value);
+
+// Wrapper for simple byte-wide non-volatile time-based (by hour) stats implementation in EEPROM.
+// Multiple instances can access the same EEPROM backing store.
+// Not thread-/ISR- safe.
+class EEPROMByHourByteStats final : public NVByHourByteStatsBase
+  {
+  public:
+    // Clear all collected statistics fronted by this.
+    // Use (eg) when moving device to a new room or at a major time change.
+    // Requires 1.8ms per byte for each byte that actually needs erasing.
+    //   * maxBytesToErase limit the number of bytes erased to this; strictly positive, else 0 to allow 65536
+    // Returns true if finished with all bytes erased.
+    virtual bool zapStats(uint16_t maxBytesToErase = 0) override { return(OTV0P2BASE::zapStats(maxBytesToErase)); }
+
+    // Get raw stats value for specified hour [0,23]/current/next from stats set N from non-volatile (EEPROM) store.
+    // A value of STATS_UNSET_BYTE (0xff (255)) means unset (or out of range); other values depend on which stats set is being used.
+    //   * hour  hour of day to use, or ~0/0xff for current hour (default), or >23 for next hour.
+    virtual uint8_t getByHourStat(uint8_t statsSet, uint8_t hour = 0xff) const override { return(OTV0P2BASE::getByHourStat(statsSet, hour)); }
+
+    // Get minimum sample from given stats set ignoring all unset samples; STATS_UNSET_BYTE if all samples are unset.
+    virtual uint8_t getMinByHourStat(uint8_t statsSet) const override { return(OTV0P2BASE::getMinByHourStat(statsSet)); }
+    // Get maximum sample from given stats set ignoring all unset samples; STATS_UNSET_BYTE if all samples are unset.
+    virtual uint8_t getMaxByHourStat(uint8_t statsSet) const override { return(OTV0P2BASE::getMaxByHourStat(statsSet)); }
+
+    // Returns true if specified hour is (conservatively) in the specified outlier quartile for specified stats set.
+    // Returns false if at least a near-full set of stats not available, eg including the specified hour.
+    // Always returns false if all samples are the same.
+    //   * inTop  test for membership of the top quartile if true, bottom quartile if false
+    //   * statsSet  stats set number to use.
+    //   * hour  hour of day to use or STATS_SPECIAL_HOUR_CURRENT_HOUR for current hour or STATS_SPECIAL_HOUR_NEXT_HOUR for next hour
+    virtual bool inOutlierQuartile(bool inTop, uint8_t statsSet, uint8_t hour = STATS_SPECIAL_HOUR_CURRENT_HOUR) const override { return(OTV0P2BASE::inOutlierQuartile(inTop, statsSet, hour)); }
+
+    // Compute the number of stats samples in specified set less than the specified value; returns -1 for invalid stats set.
+    // (With the UNSET value specified, count will be of all samples that have been set, ie are not unset.)
+    virtual int8_t countStatSamplesBelow(uint8_t statsSet, uint8_t value) const override { return(OTV0P2BASE::countStatSamplesBelow(statsSet, value)); }
+  };
 
 #endif // ARDUINO_ARCH_AVR
 

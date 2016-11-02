@@ -38,25 +38,16 @@ namespace OTV0P2BASE
 {
 
 
-#ifdef SimpleValveScheduleBase_DEFINED
-
-//#if defined(UNIT_TESTS)
-//// Support for unit tests to force particular apparent schedule state.
-//// Current override state; 0 (default) means no override.
-//static _TEST_schedule_override _soUT_override;
-//// Set the override value (or remove the override).
-//void _TEST_set_schedule_override(const _TEST_schedule_override override)
-//  { _soUT_override = override; }
-//#endif
+#ifdef SimpleValveScheduleEEPROM_DEFINED
 
 // Maximum mins-after-midnight compacted value in one byte.
-static const uint8_t MAX_COMPRESSED_MINS_AFTER_MIDNIGHT = ((OTV0P2BASE::MINS_PER_DAY / SimpleValveScheduleBase::SIMPLE_SCHEDULE_GRANULARITY_MINS) - 1);
+static const uint8_t MAX_COMPRESSED_MINS_AFTER_MIDNIGHT = ((OTV0P2BASE::MINS_PER_DAY / SimpleValveScheduleEEPROM::SIMPLE_SCHEDULE_GRANULARITY_MINS) - 1);
 
 // Get the simple/primary schedule on time, as minutes after midnight [0,1439]; invalid (eg ~0) if none set.
 // Will usually include a pre-warm time before the actual time set.
 // Note that unprogrammed EEPROM value will result in invalid time, ie schedule not set.
 //   * which  schedule number, counting from 0
-uint_least16_t SimpleValveScheduleBase::getSimpleScheduleOn(const uint8_t which)
+uint_least16_t SimpleValveScheduleEEPROM::getSimpleScheduleOn(const uint8_t which) const
   {
   if(which >= MAX_SIMPLE_SCHEDULES) { return(~0); } // Invalid schedule number.
   uint8_t startMM;
@@ -77,7 +68,7 @@ uint_least16_t SimpleValveScheduleBase::getSimpleScheduleOn(const uint8_t which)
 // Get the simple/primary schedule off time, as minutes after midnight [0,1439]; invalid (eg ~0) if none set.
 // This is based on specified start time and some element of the current eco/comfort bias.
 //   * which  schedule number, counting from 0
-uint_least16_t SimpleValveScheduleBase::getSimpleScheduleOff(const uint8_t which)
+uint_least16_t SimpleValveScheduleEEPROM::getSimpleScheduleOff(const uint8_t which) const
   {
   const uint_least16_t startMins = getSimpleScheduleOn(which);
   if(startMins == (uint_least16_t)~0) { return(~0); }
@@ -93,7 +84,7 @@ uint_least16_t SimpleValveScheduleBase::getSimpleScheduleOff(const uint8_t which
 // Invalid parameters will be ignored and false returned,
 // else this will return true and isSimpleScheduleSet() will return true after this.
 // NOTE: over-use of this routine may prematurely wear out the EEPROM.
-bool SimpleValveScheduleBase::setSimpleSchedule(const uint_least16_t startMinutesSinceMidnightLT, const uint8_t which)
+bool SimpleValveScheduleEEPROM::setSimpleSchedule(const uint_least16_t startMinutesSinceMidnightLT, const uint8_t which)
   {
   if(which >= MAX_SIMPLE_SCHEDULES) { return(false); } // Invalid schedule number.
   if(startMinutesSinceMidnightLT >= OTV0P2BASE::MINS_PER_DAY) { return(false); } // Invalid time.
@@ -108,7 +99,7 @@ bool SimpleValveScheduleBase::setSimpleSchedule(const uint_least16_t startMinute
 // Clear a simple schedule.
 // There will be neither on nor off events from the selected simple schedule once this is called.
 //   * which  schedule number, counting from 0
-void SimpleValveScheduleBase::clearSimpleSchedule(const uint8_t which)
+void SimpleValveScheduleEEPROM::clearSimpleSchedule(const uint8_t which)
   {
   if(which >= MAX_SIMPLE_SCHEDULES) { return; } // Invalid schedule number.
   // Clear the schedule back to 'unprogrammed' values, minimising wear.
@@ -119,18 +110,8 @@ void SimpleValveScheduleBase::clearSimpleSchedule(const uint8_t which)
 // Returns true if any simple schedule is set, false otherwise.
 // This implementation just checks for any valid schedule 'on' time.
 // In unit-test override mode is true for soon/now, false for off.
-bool SimpleValveScheduleBase::isAnySimpleScheduleSet()
+bool SimpleValveScheduleEEPROM::isAnySimpleScheduleSet() const
   {
-//#if defined(UNIT_TESTS)
-//  // Special behaviour for unit tests.
-//  switch(_soUT_override)
-//    {
-//    case _soUT_off: return(false);
-//    case _soUT_soon: return(true);
-//    case _soUT_now: return(true);
-//    }
-//#endif
-
   ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
     {
     for(uint8_t which = 0; which < MAX_SIMPLE_SCHEDULES; ++which)
@@ -148,18 +129,8 @@ bool SimpleValveScheduleBase::isAnySimpleScheduleSet()
 // Can be used to suppress all 'off' activity except for the final one.
 // Can be used to suppress set-backs during on times.
 // In unit-test override mode is true for now, false for soon/off.
-bool SimpleValveScheduleBase::isAnyScheduleOnWARMNow()
+bool SimpleValveScheduleEEPROM::isAnyScheduleOnWARMNow() const
   {
-//#if defined(UNIT_TESTS)
-//  // Special behaviour for unit tests.
-//  switch(_soUT_override)
-//    {
-//    case _soUT_off: return(false);
-//    case _soUT_soon: return(false);
-//    case _soUT_now: return(true);
-//    }
-//#endif
-
   const uint_least16_t mm = OTV0P2BASE::getMinutesSinceMidnightLT();
 
   for(uint8_t which = 0; which < MAX_SIMPLE_SCHEDULES; ++which)
@@ -174,24 +145,13 @@ bool SimpleValveScheduleBase::isAnyScheduleOnWARMNow()
   return(false);
   }
 
-
 // True iff any schedule is due 'on'/'WARM' soon even when schedules overlap.
 // May be relatively slow/expensive.
 // Can be used to allow room to be brought up to at least a set-back temperature
 // if very cold when a WARM period is due soon (to help ensure that WARM target is met on time).
 // In unit-test override mode is true for soon, false for now/off.
-bool SimpleValveScheduleBase::isAnyScheduleOnWARMSoon()
+bool SimpleValveScheduleEEPROM::isAnyScheduleOnWARMSoon() const
   {
-#if defined(UNIT_TESTS)
-  // Special behaviour for unit tests.
-  switch(_soUT_override)
-    {
-    case _soUT_off: return(false);
-    case _soUT_soon: return(true);
-    case _soUT_now: return(false);
-    }
-#endif
-
   const uint_least16_t mm0 = OTV0P2BASE::getMinutesSinceMidnightLT() + PREPREWARM_MINS; // Look forward...
   const uint_least16_t mm = (mm0 >= OTV0P2BASE::MINS_PER_DAY) ? (mm0 - OTV0P2BASE::MINS_PER_DAY) : mm0;
 
@@ -207,57 +167,7 @@ bool SimpleValveScheduleBase::isAnyScheduleOnWARMSoon()
   return(false);
   }
 
-
-
-
-//#ifdef ENABLE_ANTICIPATION
-//// Returns true iff room likely to be occupied and need warming at the specified hour's sample point based on collected stats.
-//// Used for predictively warming a room in smart mode and for choosing setback depths.
-//// Returns false if no good evidence to warm the room at the given time based on past history over about one week.
-////   * hh hour to check for predictive warming [0,23]
-//bool shouldBeWarmedAtHour(const uint_least8_t hh)
-//  {
-//#ifdef ENABLE_OCCUPANCY_DETECTION_FROM_AMBLIGHT
-//  // Return false immediately if the sample hour's historic ambient light level falls in the bottom quartile (or is zero).
-//  // Thus aim to shave off 'smart' warming for at least 25% of the daily cycle.
-//  if(inOutlierQuartile(false, EE_STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, hh)) { return(false); }
-//#endif // ENABLE_OCCUPANCY_DETECTION_FROM_AMBLIGHT
-//
-//#ifdef
-//  // Return false immediately if the sample hour's historic occupancy level falls in the bottom quartile (or is zero).
-//  // Thus aim to shave off 'smart' warming for at least 25% of the daily cycle.
-//  if(inOutlierQuartile(false, EE_STATS_SET_OCCPC_BY_HOUR_SMOOTHED, hh)) { return(false); }
-//#endif // ENABLE_OCCUPANCY_SUPPORT
-//
-//  const uint8_t warmHistory = eeprom_read_byte((uint8_t *)(EE_STATS_START_ADDR(EE_STATS_SET_WARMMODE_BY_HOUR_OF_WK) + hh));
-//  if(0 == (0x80 & warmHistory)) // This hour has a history.
-//    {
-////    // Return false immediately if no WARM mode this hour for the last week (ie the unit needs reminding at least once per week).
-////    if(0 == warmHistory) // No explicit WARM for a week at this hour, prevents 'smart' warming.
-////      { return(false); }
-//    // Return true immediately if this hour was in WARM mode yesterday or a week ago, and at least one other day.
-//    if((0 != (0x41 & warmHistory)) && (0 != (0x3e & warmHistory)))
-//      { return(true); }
-//    }
-//
-//  // Return true if immediately the sample hour is usually warm, ie at or above WARM target.
-//  const int smoothedTempHHNext = expandTempC16(eeprom_read_byte((uint8_t *)(EE_STATS_START_ADDR(EE_STATS_SET_TEMP_BY_HOUR_SMOOTHED) + hh)));
-//#if 0 && defined(DEBUG)
-//  DEBUG_SERIAL_PRINT_FLASHSTRING("Smoothed C for ");
-//  DEBUG_SERIAL_PRINT(hh);
-//  DEBUG_SERIAL_PRINT_FLASHSTRING("h is ");
-//  DEBUG_SERIAL_PRINT(smoothedTempHHNext >> 4);
-//  DEBUG_SERIAL_PRINTLN();
-//#endif
-//  if((STATS_UNSET_INT != smoothedTempHHNext) && (((smoothedTempHHNext+8)>>4) >= getWARMTargetC()))
-//    { return(true); }
-//
-//  // No good evidence for room to be warmed for specified hour.
-//  return(false);
-//  }
-//#endif
-
-#endif // SimpleValveScheduleBase_DEFINED
+#endif // SimpleValveScheduleEEPROM_DEFINED
 
 
 }

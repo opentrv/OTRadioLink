@@ -78,6 +78,15 @@ class TemperatureC16Base : public OTV0P2BASE::Sensor<int16_t>
     virtual const char *tag() const { return("T|C16"); }
   };
 
+// Extension of TemperatureC16Base primarily for mocking in unit tests.
+class TemperatureC16Mock : public TemperatureC16Base
+  {
+  public:
+    // Set new value.
+    virtual bool set(const int16_t newValue) { value = newValue; return(true); }
+    // Returns the existing value: use set() to set a new one.
+    int16_t read() override { return(value); }
+  };
 
 }
 #endif

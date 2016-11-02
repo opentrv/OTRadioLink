@@ -59,10 +59,10 @@ namespace OTV0P2BASE
 // Atomic uint8_t value object.
 #ifdef OTV0P2BASE_PLATFORM_HAS_atomic
     // Default is to use the std::atomic where it exists, eg for hosted test cases.
-    typedef std::atomic<std::uint8_t> Atomic_UInt8T;
+    typedef std::atomic<uint8_t> Atomic_UInt8T;
 #elif defined(ARDUINO_ARCH_AVR)
     // Expects to exist only in volatile forms, and to support common V0p2Base idioms.
-    struct Atomic_UInt8T
+    struct Atomic_UInt8T final
         {
         public:
             // Direct access to value.
@@ -98,7 +98,7 @@ namespace OTV0P2BASE
         };
 #endif // OTV0P2BASE_PLATFORM_HAS_atomic ... defined(ARDUINO_ARCH_AVR)
 
-    // Helper method: decrements (volatile) Atomic_UInt8T arg if non-zero.
+    // Helper method: safely decrements (volatile) Atomic_UInt8T arg if non-zero, ie does not wrap around.
     // Does nothing if already zero.
     // May do nothing if interrupted by or interleaved with other activity.
     // Does not loop or spin or block; may shut out interrupts briefly or similar on some platforms.
@@ -110,6 +110,20 @@ namespace OTV0P2BASE
       if(0 == o) { return; }
       const uint8_t om1 = o - 1U;
       v.compare_exchange_strong(o, om1);
+      }
+
+    // Helper method: safely increments (volatile) Atomic_UInt8T arg if not maximum value, ie does not wrap around.
+    // Does nothing if already maximum (0xff).
+    // May do nothing if interrupted by or interleaved with other activity.
+    // Does not loop or spin or block; may shut out interrupts briefly or similar on some platforms.
+    // Safe because will never decrement value through zero, even in face of ISR/thread races.
+    // Typically used by foreground (non-ISR) routines to increment timers until max.
+    inline void safeIncIfNotMaxWeak(volatile Atomic_UInt8T &v)
+      {
+      uint8_t o = v.load();
+      if(0xff == o) { return; }
+      const uint8_t op1 = o + 1U;
+      v.compare_exchange_strong(o, op1);
       }
 
 }

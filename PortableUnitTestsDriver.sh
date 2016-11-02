@@ -27,7 +27,7 @@ TESTSRCDIR=portableUnitTests
 TESTSRCS="`find ${TESTSRCDIR} -name '*.cpp' -type f -print`"
 
 # GTest libs (including main()).
-GLIBS="-lgtest -lpthread -lgtest_main"
+GLIBS="-lpthread -lgtest_main"
 # Other libs.
 OTHERLIBS=
 
@@ -39,11 +39,11 @@ GINCLUDES="-I/usr/local/include"
 # Source includes (paths).
 INCLUDES="-I${PROJSRCROOT} -I${PROJSRCROOT}/utility"
 
-echo "Using test sources: $TESTSRCS"
-echo "Using project sources: $PROJSRCS"
+#echo "Using test sources: $TESTSRCS"
+#echo "Using project sources: $PROJSRCS"
 
 rm -f ${EXENAME}
-if g++ -o ${EXENAME} -std=c++0x -O0 -g3 -Wall -Werror ${INCLUDES} ${GINCLUDES} ${PROJSRCS} ${TESTSRCS} ${GLIBDIRS} ${GLIBS} ${OTHERLIBS} ; then
+if g++ -o ${EXENAME} -std=c++0x -O0 -Wall -Werror ${INCLUDES} ${GINCLUDES} ${PROJSRCS} ${TESTSRCS} ${GLIBDIRS} ${GLIBS} ${OTHERLIBS} ; then
     echo Compiled.
 else
     echo Failed to compile.

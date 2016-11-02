@@ -33,17 +33,6 @@ TEST(SanityTest,SelfTest)
 //    fputs("*** Tests built: " __DATE__ " " __TIME__ "\n", stderr);
 }
 
-//// Minimally test a real library function.
-//TEST(SanityTest,ShouldConvertFromHex)
-//{
-//    const char s[] = "0a";
-//    // This works. It's inline and only in the header.
-//    EXPECT_EQ(10, OTV0P2BASE::parseHexDigit(s[1]));
-//    // The compiler can't find this for some reason (function def in source file).
-//    EXPECT_EQ(10, OTV0P2BASE::parseHexByte(s));
-//}
-
-
 
 /**
  * @brief   Getting started with the gtest libraries.

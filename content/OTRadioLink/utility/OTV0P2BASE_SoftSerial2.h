@@ -55,7 +55,7 @@ namespace OTV0P2BASE
  */
 #define OTSoftSerial2_DEFINED
 template <uint8_t rxPin, uint8_t txPin, uint32_t baud>
-class OTSoftSerial2 : public Stream
+class OTSoftSerial2 final : public Stream
 {
 protected:
     // All these are compile time calculations and are automatically substituted as part of program code.
@@ -71,6 +71,7 @@ public:
      * @brief   Constructor for OTSoftSerial2
      */
     OTSoftSerial2() { }
+
     /**
      * @brief   Initialises OTSoftSerial2 and sets up pins.
      * @param   speed: Not used. Kept for compatibility with Arduino libraries.
@@ -103,7 +104,7 @@ public:
 
             // Send start bit
             fastDigitalWrite(txPin, LOW);
-            _delay_x4cycles(writeDelay); // fixme delete -5s
+            _delay_x4cycles(writeDelay); // FIXME delete -5s
 
             // send byte. Loops until mask overflows back to 0
             while(mask != 0) {
@@ -122,7 +123,7 @@ public:
 
     /**
      * @brief   Reads a byte from the serial and removes it from the buffer.
-     * @retval  Next character in input buffer.
+     * @retval  Next character in input buffer; -1 on timeout or error.
      * @note    This routine blocks interrupts until it receives a byte or times out.
      * @todo    Reorder loop to replace starting 'halfDelay and 'readDelay' with 'startDelay'
      */
@@ -132,20 +133,23 @@ public:
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
         {
             volatile uint16_t timer = timeOut;  // TODO find out if using an attribute will be useful.
-            // wait for line to go low
+
+            // Wait for start bit, ie wait for RX to go low.
             while (fastDigitalRead(rxPin)) {
                 if (--timer == 0) return -1;
             }
 
-            // wait for mid point of bit
+            // Wait for mid point of bit, ie 0.5 bit time,
+            // to centre the following reads in bit times.
             _delay_x4cycles(halfDelay);
 
-            // step through bits and read value    // FIXME better way of doing this?
+            // Step through bits and assemble bits into byte.    // FIXME better way of doing this?
             for(uint8_t i = 0; i < 8; i++) {
                 _delay_x4cycles(readDelay);
                 val |= fastDigitalRead(rxPin) << i;
             }
 
+            // Wait for stop bit, ie wait for RX to go high.
             timer = timeOut;
             while (!fastDigitalRead(rxPin)) {
                 if (--timer == 0) return -1;
@@ -179,7 +183,7 @@ public:
      * ------------------------ Unimplemented ------------------------------- *
      *************************************************************************/
     /**
-     * @brief   Destuctor for OTSoftSerial.
+     * @brief   Destructor for OTSoftSerial.
      * @note    Not implemented to reduce code size.
      */
     //    ~OTSoftSerial2() {};
@@ -198,12 +202,12 @@ public:
      * @note    This is not used for OTSoftSerial2 as all writes are synchronous.
      */
     virtual void flush() {}
-    /**
-     * @brief   Returns the number of elements in the Tx buffer.
-     * @retval  0 as no Tx buffer implemented.
-     * @note    This is not used for OTSoftSerial2 as all writes are synchronous.
-     */
-    int availableForWrite() { return 0; }  //
+//    /**
+//     * @brief   Returns the number of elements in the Tx buffer.
+//     * @retval  0 as no Tx buffer implemented.
+//     * @note    This is not used for OTSoftSerial2 as all writes are synchronous.
+//     */
+//    int availableForWrite() { return 0; }
 };
 #endif // ARDUINO_ARCH_AVR
 

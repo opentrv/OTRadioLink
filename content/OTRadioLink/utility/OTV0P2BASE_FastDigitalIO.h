@@ -83,8 +83,8 @@ namespace OTV0P2BASE
 #else
 #define fastDigitalRead(pin) digitalRead((pin)) // Don't know about other AVRs.
 #define fastDigitalWrite(pin, value) digitalWrite((pin), (value)) // Don't know about other AVRs.
-#endif
-#endif
+#endif // __AVR_ATmega328P__
+#endif // ARDUINO_ARCH_AVR
 
 }
 #endif

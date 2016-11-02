@@ -31,6 +31,10 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 #include <OTV0p2Base.h>
 #include "OTV0P2BASE_Util.h"
 #include "OTRadValve_Parameters.h"
+#include "OTRadValve_AbstractRadValve.h"
+#include "OTRadValve_ValveMode.h"
+#include "OTRadValve_TempControl.h"
+#include "OTRadValve_ActuatorPhysicalUI.h"
 
 
 // Use namespaces to help avoid collisions.
@@ -43,13 +47,15 @@ namespace OTRadValve
 //
 // This uses int_fast16_t for C16 temperatures (ie Celsius * 16)
 // to be able to efficiently process signed values with sufficient range for room temperatures.
-struct ModelledRadValveInputState
+//
+// All initial values set by the constructors are sane, but should not be relied on.
+struct ModelledRadValveInputState final
   {
   // Offset from raw temperature to get reference temperature in C/16.
-  static const int_fast8_t refTempOffsetC16 = 8;
+  static constexpr int_fast8_t refTempOffsetC16 = 8;
 
   // All initial values set by the constructor are sane, but should not be relied on.
-  ModelledRadValveInputState(const int_fast16_t realTempC16);
+  ModelledRadValveInputState(const int_fast16_t realTempC16 = 0) { setReferenceTemperatures(realTempC16); }
 
   // Calculate and store reference temperature(s) from real temperature supplied.
   // Proportional temperature regulation is in a 1C band.
@@ -65,27 +71,27 @@ struct ModelledRadValveInputState
     }
 
   // Current target room temperature in C in range [MIN_TARGET_C,MAX_TARGET_C].
-  uint8_t targetTempC;
+  uint8_t targetTempC = DEFAULT_ValveControlParameters::FROST; // Start with a safe/sensible value.
   // Min % valve at which is considered to be actually open (allow the room to heat) [1,100].
-  uint8_t minPCOpen;
+  uint8_t minPCOpen = OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN;
   // Max % valve is allowed to be open [1,100].
-  uint8_t maxPCOpen;
+  uint8_t maxPCOpen = 100;
 
   // If true then allow a wider deadband (more temperature drift) to save energy and valve noise.
   // This is a strong hint that the system can work less strenuously to reach or stay on, target,
   // and/or that the user has not manually requested an adjustment recently
   // so this need not be ultra responsive.
-  bool widenDeadband;
+  bool widenDeadband = false;
   // True if in glacial mode.
-  bool glacial;
+  bool glacial = false;
   // True if an eco bias is to be applied.
-  bool hasEcoBias;
+  bool hasEcoBias = false;
   // True if in BAKE mode.
-  bool inBakeMode;
+  bool inBakeMode = false;
   // User just adjusted controls or other fast response needed.
   // (Should not be true at same time as widenDeadband.)
   // Indicates manual operation/override, so speedy response required (TODO-593).
-  bool fastResponseRequired;
+  bool fastResponseRequired = false;
 
   // Reference (room) temperature in C/16; must be set before each valve position recalc.
   // Proportional control is in the region where (refTempC16>>4) == targetTempC.
@@ -100,11 +106,12 @@ struct ModelledRadValveInputState
 //
 // This uses int_fast16_t for C16 temperatures (ie Celsius * 16)
 // to be able to efficiently process signed values with sufficient range for room temperatures.
-struct ModelledRadValveState
+struct ModelledRadValveState final
   {
   // Construct an instance, with sensible defaults, but no (room) temperature.
   // Defers its initialisation with room temperature until first tick().
-  ModelledRadValveState() :
+  ModelledRadValveState(bool _alwaysGlacial = false) :
+    alwaysGlacial(_alwaysGlacial),
     initialised(false),
     isFiltering(false),
     valveMoved(false),
@@ -114,13 +121,16 @@ struct ModelledRadValveState
 
   // Construct an instance, with sensible defaults, and current (room) temperature from the input state.
   // Does its initialisation with room temperature immediately.
-  ModelledRadValveState(const ModelledRadValveInputState &inputState);
+  ModelledRadValveState(const ModelledRadValveInputState &inputState, bool _defaultGlacial = false);
 
   // Perform per-minute tasks such as counter and filter updates then recompute valve position.
   // The input state must be complete including target and reference temperatures
   // before calling this including the first time whereupon some further lazy initialisation is done.
   //   * valvePCOpenRef  current valve position UPDATED BY THIS ROUTINE, in range [0,100]
   void tick(volatile uint8_t &valvePCOpenRef, const ModelledRadValveInputState &inputState);
+
+  // True if by default/always in glacial mode, eg to minimise flow and overshoot.
+  const bool alwaysGlacial;
 
   // True once all deferred initialisation done during the first tick().
   // This takes care of setting state that depends on run-time data
@@ -233,7 +243,455 @@ struct ModelledRadValveState
   // Nominally called at a regular rate, once per minute.
   // All inputState values should be set to sensible values before starting.
   // Usually called by tick() which does required state updates afterwards.
-  uint8_t computeRequiredTRVPercentOpen(const uint8_t currentValvePCOpen, const ModelledRadValveInputState &inputState) const;
+  uint8_t computeRequiredTRVPercentOpen(uint8_t currentValvePCOpen, const ModelledRadValveInputState &inputState) const;
+  };
+
+// Sensor, control and stats inputs for computations.
+// Read access to all necessary underlying devices.
+struct ModelledRadValveSensorCtrlStats final
+    {
+    // Read-only access to user-selected valve mode; must not be NULL.
+    const ValveMode *const valveMode;
+
+    // Read-only access to ambient (eg room) temperature in C<<4; must not be NULL.
+    const OTV0P2BASE::TemperatureC16Base *const temperatureC16;
+
+    // Read-only access to temperature control for set-points; must not be NULL.
+    const TempControlBase *const tempControl;
+
+    // Read-only access to occupancy tracker; must not be NULL.
+    const OTV0P2BASE::PseudoSensorOccupancyTracker *const occupancy;
+
+    // Read-only access to ambient light sensor; must not be NULL.
+    const OTV0P2BASE::SensorAmbientLightBase *const ambLight;
+
+    // Read-only access to physical UI; must not be NULL.
+    const ActuatorPhysicalUIBase *const physicalUI;
+
+    // Read-only access to simple schedule; must not be NULL.
+    const OTV0P2BASE::SimpleValveScheduleBase *const schedule;
+
+    // Read-only access to by-hour stats; must not be NULL.
+    const OTV0P2BASE::NVByHourByteStatsBase *const byHourStats;
+
+    // Construct an instance wrapping read-only access to all input devices.
+    // All arguments must be non-NULL.
+    ModelledRadValveSensorCtrlStats(
+        const ValveMode *const _valveMode,
+        const OTV0P2BASE::TemperatureC16Base *const _temperatureC16,
+        const TempControlBase *const _tempControl,
+        const OTV0P2BASE::PseudoSensorOccupancyTracker *const _occupancy,
+        const OTV0P2BASE::SensorAmbientLightBase *const _ambLight,
+        const ActuatorPhysicalUIBase *const _physicalUI,
+        const OTV0P2BASE::SimpleValveScheduleBase *const _schedule,
+        const OTV0P2BASE::NVByHourByteStatsBase *const _byHourStats)
+       : valveMode(_valveMode),
+         temperatureC16(_temperatureC16),
+         tempControl(_tempControl),
+         occupancy(_occupancy),
+         ambLight(_ambLight),
+         physicalUI(_physicalUI),
+         schedule(_schedule),
+         byHourStats(_byHourStats)
+         { }
+    };
+
+// Base class for stateless computation of target temperature.
+// Implementations will capture parameters and sensor references, etc.
+class ModelledRadValveComputeTargetTempBase
+  {
+  public:
+    // Compute and return target (usually room) temperature (stateless).
+    // Computes the target temperature based on various sensors, controls and stats.
+    // Can be called as often as required though may be slow/expensive.
+    // Will be called by computeTargetTemperature().
+    // One aim is to allow reasonable energy savings (10--30%+)
+    // even if the device is left in WARM mode all the time,
+    // using occupancy/light/etc to determine when temperature can be set back
+    // without annoying users.
+    //
+    // Attempts in WARM mode to make the deepest reasonable cuts to maximise savings
+    // when the room is vacant and not likely to become occupied again soon,
+    // ie this looks ahead to give the room time to recover to target before occupancy.
+    //
+    // Stateless directly-testable version behind computeTargetTemperature().
+    virtual uint8_t computeTargetTemp() const = 0;
+
+    // Set all fields of inputState from the target temperature and other args, and the sensor/control inputs.
+    // The target temperature will usually have just been computed by computeTargetTemp().
+    virtual void setupInputState(ModelledRadValveInputState &inputState,
+        const bool isFiltering,
+        const uint8_t newTarget, const uint8_t minPCOpen, const uint8_t maxPCOpen, const bool glacial) const = 0;
+  };
+
+// Basic stateless implementation of computation of target temperature.
+// Templated with all the input instances for maximum speed and minimum code size.
+template<
+  class valveControlParameters,
+  const ValveMode *const valveMode,
+  class TemperatureC16Base,             const TemperatureC16Base *const temperatureC16,
+  class TempControlBase,                const TempControlBase *const tempControl,
+  class PseudoSensorOccupancyTracker,   const PseudoSensorOccupancyTracker *const occupancy,
+  class SensorAmbientLightBase,         const SensorAmbientLightBase *const ambLight,
+  class ActuatorPhysicalUIBase,         const ActuatorPhysicalUIBase *const physicalUI,
+  class SimpleValveScheduleBase,        const SimpleValveScheduleBase *const schedule,
+  class NVByHourByteStatsBase,          const NVByHourByteStatsBase *const byHourStats,
+  bool (*const setbackLockout)() = ((bool(*)())NULL)
+  >
+class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComputeTargetTempBase
+  {
+  public:
+//    ModelledRadValveComputeTargetTempBasic()
+//      {
+//      // TODO validate arg types and that things aren't NULL.  static_assert()?
+//      }
+    virtual uint8_t computeTargetTemp() const override
+        {
+        // In FROST mode.
+        if(!valveMode->inWarmMode())
+          {
+          const uint8_t frostC = tempControl->getFROSTTargetC();
+
+          // If scheduled WARM is due soon then ensure that room is at least at setback temperature
+          // to give room a chance to hit the target, and for furniture and surfaces to be warm, etc, on time.
+          // Don't do this if the room has been vacant for a long time (eg so as to avoid pre-warm being higher than WARM ever).
+          // Don't do this if there has been recent manual intervention, eg to allow manual 'cancellation' of pre-heat (TODO-464).
+          // Only do this if the target WARM temperature is NOT an 'eco' temperature (ie very near the bottom of the scale).
+          // If well into the 'eco' zone go for a larger-than-usual setback, else go for usual small setback.
+          // Note: when pre-warm and warm time for schedule is ~1.5h, and default setback 1C,
+          // this is assuming that the room temperature can be raised by ~1C/h.
+          // See the effect of going from 2C to 1C setback: http://www.earth.org.uk/img/20160110-vat-b.png
+          // (A very long pre-warm time may confuse or distress users, eg waking them in the morning.)
+          if(!occupancy->longVacant() && schedule->isAnyScheduleOnWARMSoon() && !physicalUI->recentUIControlUse())
+            {
+            const uint8_t warmTarget = tempControl->getWARMTargetC();
+            // Compute putative pre-warm temperature, usually only just below WARM target.
+            const uint8_t preWarmTempC = OTV0P2BASE::fnmax((uint8_t)(warmTarget - (tempControl->isEcoTemperature(warmTarget) ? valveControlParameters::SETBACK_ECO : valveControlParameters::SETBACK_DEFAULT)), frostC);
+            if(frostC < preWarmTempC) // && (!isEcoTemperature(warmTarget)))
+              { return(preWarmTempC); }
+            }
+
+          // Apply FROST safety target temperature by default in FROST mode.
+          return(frostC);
+          }
+
+        else if(valveMode->inBakeMode()) // If in BAKE mode then use elevated target.
+          {
+          return(OTV0P2BASE::fnmin((uint8_t)(tempControl->getWARMTargetC() + valveControlParameters::BAKE_UPLIFT), OTRadValve::MAX_TARGET_C)); // No setbacks apply in BAKE mode.
+          }
+
+        else // In 'WARM' mode with possible setback.
+          {
+          const uint8_t wt = tempControl->getWARMTargetC();
+
+          // If smart setbacks are locked out then return WARM temperature as-is.  (TODO-786, TODO-906)
+          if((NULL != setbackLockout) && (setbackLockout)())
+            { return(wt); }
+
+          // Set back target the temperature a little if the room seems to have been vacant for a long time (TODO-107)
+          // or it is too dark for anyone to be active or the room is not likely occupied at this time
+          // or the room was apparently not occupied at thus time yesterday (and is not now).
+          //   AND no WARM schedule is active now (TODO-111)
+          //   AND no recent manual interaction with the unit's local UI (TODO-464) indicating local settings override.
+          // The notion of "not likely occupied" is "not now"
+          // AND less likely than not at this hour of the day AND an hour ahead (TODO-758).
+          // Note that this mainly has to work in domestic settings in winter (with ~8h of daylight)
+          // but should ideally also work in artificially-lit offices (maybe ~12h continuous lighting).
+          // No 'lights-on' signal for a whole day is a fairly strong indication that the heat can be turned down.
+          // TODO-451: TODO-453: ignore a short lights-off, eg from someone briefly leaving room or a transient shadow.
+          // TODO: consider bottom quartile of ambient light as alternative setback trigger for near-continuously-lit spaces (aiming to spot daylight signature).
+          // Look ahead to next time period (as well as current) to determine notLikelyOccupiedSoon
+          // but suppress lookahead of occupancy when its been dark for many hours (eg overnight) to avoid disturbing/waking.  (TODO-792)
+          // Note that deeper setbacks likely offer more savings than faster (but shallower) setbacks.
+          const bool longLongVacant = occupancy->longLongVacant();
+          const bool longVacant = longLongVacant || occupancy->longVacant();
+          const bool likelyVacantNow = longVacant || occupancy->isLikelyUnoccupied();
+          const bool ecoBias = tempControl->hasEcoBias();
+          // True if the room has been dark long enough to indicate night. (TODO-792)
+          const uint8_t dm = ambLight->getDarkMinutes();
+          const bool darkForHours = dm > 245; // A little over 4h, not quite max 255.
+          // Be more ready to decide room not likely occupied soon if eco-biased.
+          // Note that this value is likely to be used +/- 1 so must be in range [1,23].
+          const uint8_t thisHourNLOThreshold = ecoBias ? 15 : 12;
+          const uint8_t hoursLessOccupiedThanThis = byHourStats->countStatSamplesBelow(V0P2BASE_EE_STATS_SET_OCCPC_BY_HOUR_SMOOTHED, byHourStats->getByHourStat(V0P2BASE_EE_STATS_SET_OCCPC_BY_HOUR_SMOOTHED, OTV0P2BASE::STATS_SPECIAL_HOUR_CURRENT_HOUR));
+          const uint8_t hoursLessOccupiedThanNext = byHourStats->countStatSamplesBelow(V0P2BASE_EE_STATS_SET_OCCPC_BY_HOUR_SMOOTHED, byHourStats->getByHourStat(V0P2BASE_EE_STATS_SET_OCCPC_BY_HOUR_SMOOTHED, OTV0P2BASE::STATS_SPECIAL_HOUR_NEXT_HOUR));
+          const bool notLikelyOccupiedSoon = longLongVacant ||
+              (likelyVacantNow &&
+              // No more than about half the hours to be less occupied than this hour to be considered unlikely to be occupied.
+              (hoursLessOccupiedThanThis < thisHourNLOThreshold) &&
+              // Allow to be a little bit more occupied for the next hour than the current hour.
+              // Suppress occupancy lookahead if room has been dark for several hours, eg overnight.  (TODO-792)
+              (darkForHours || (hoursLessOccupiedThanNext < (thisHourNLOThreshold+1))));
+          const uint8_t minLightsOffForSetbackMins = ecoBias ? 10 : 20;
+          if(longVacant ||
+             ((notLikelyOccupiedSoon || (dm > minLightsOffForSetbackMins) || (ecoBias && (occupancy->getVacancyH() > 0) && (0 == byHourStats->getByHourStat(V0P2BASE_EE_STATS_SET_OCCPC_BY_HOUR, OTV0P2BASE::STATS_SPECIAL_HOUR_CURRENT_HOUR)))) &&
+                 !schedule->isAnyScheduleOnWARMNow() && !physicalUI->recentUIControlUse()))
+            {
+            // Use a default minimal non-annoying setback if:
+            //   in upper part of comfort range
+            //   or if the room is likely occupied now
+            //   or if the room is not known to be dark and hasn't been vacant for a long time ie ~1d and not in the very bottom range occupancy (TODO-107, TODO-758)
+            //      TODO POSSIBLY: limit to (say) 3--4h light time for when someone out but room daylit, but note that detecting occupancy will be harder too in daylight.
+            //      TODO POSSIBLY: after ~3h vacancy AND apparent smoothed occupancy non-zero (so some can be detected) AND ambient light in top quartile or in middle of typical bright part of cycle (assume peak of daylight) then being lit is not enough to prevent a deeper setback.
+            //   or is fairly likely to be occupied in the next hour (to pre-warm) and the room hasn't been dark for hours and vacant for a long time
+            //   or if a scheduled WARM period is due soon and the room hasn't been vacant for a long time,
+            // else usually use a somewhat bigger 'eco' setback
+            // else use an even bigger 'full' setback for maximum savings if in the eco region and
+            //   the room has been vacant for a very long time
+            //   or is unlikely to be unoccupied at this time of day and
+            //     has been vacant and dark for a while or is in the lower part of the 'eco' range.
+            // This final dark/vacant timeout to enter FULL fallback while in mild eco mode
+            // should probably be longer than required to watch a typical movie or go to sleep (~2h) for example,
+            // but short enough to take effect overnight and to be in effect a reasonable fraction of a (~8h) night.
+            const uint8_t minVacantAndDarkForFULLSetbackH = 2; // Hours; strictly positive, typically 1--4.
+            const uint8_t setback = (tempControl->isComfortTemperature(wt) ||
+                                     occupancy->isLikelyOccupied() ||
+                                     (!longVacant && !ambLight->isRoomDark() && (hoursLessOccupiedThanThis > 4)) ||
+                                     (!longVacant && !darkForHours && (hoursLessOccupiedThanNext >= thisHourNLOThreshold-1)) ||
+                                     (!longVacant && schedule->isAnyScheduleOnWARMSoon())) ?
+                    valveControlParameters::SETBACK_DEFAULT :
+                ((ecoBias && (longLongVacant ||
+                    (notLikelyOccupiedSoon && (tempControl->isEcoTemperature(wt) ||
+                        ((dm > (uint8_t)OTV0P2BASE::fnmin(254, 60*minVacantAndDarkForFULLSetbackH)) && (occupancy->getVacancyH() >= minVacantAndDarkForFULLSetbackH)))))) ?
+                    valveControlParameters::SETBACK_FULL : valveControlParameters::SETBACK_ECO);
+
+            // Target must never be set low enough to create a frost/freeze hazard.
+            const uint8_t newTarget = OTV0P2BASE::fnmax((uint8_t)(wt - setback), tempControl->getFROSTTargetC());
+
+            return(newTarget);
+            }
+          // Else use WARM target as-is.
+          return(wt);
+          }
+        }
+
+    // Set all fields of inputState from the target temperature and other args, and the sensor/control inputs.
+    // The target temperature will usually have just been computed by computeTargetTemp().
+    virtual void setupInputState(ModelledRadValveInputState &inputState,
+        const bool isFiltering,
+        const uint8_t newTarget, const uint8_t minPCOpen, const uint8_t maxPCOpen, const bool glacial) const override
+        {
+        // Set up state for computeRequiredTRVPercentOpen().
+        inputState.targetTempC = newTarget;
+        inputState.minPCOpen = minPCOpen;
+        inputState.maxPCOpen = maxPCOpen;
+        inputState.glacial = glacial;
+        inputState.inBakeMode = valveMode->inBakeMode();
+        inputState.hasEcoBias =
+                tempControl->hasEcoBias();
+        // Request a fast response from the valve if user is manually adjusting controls.
+        const bool veryRecentUIUse =
+                physicalUI->veryRecentUIControlUse();
+        inputState.fastResponseRequired = veryRecentUIUse;
+        // Widen the allowed deadband significantly in an unlit/quiet/vacant room (TODO-383, TODO-593, TODO-786)
+        // (or in FROST mode, or if temperature is jittery eg changing fast and filtering has been engaged)
+        // to attempt to reduce the total number and size of adjustments and thus reduce noise/disturbance (and battery drain).
+        // The wider deadband (less good temperature regulation) might be noticeable/annoying to sensitive occupants.
+        // With a wider deadband may also simply suppress any movement/noise on some/most minutes while close to target temperature.
+        // For responsiveness, don't widen the deadband immediately after manual controls have been used (TODO-593).
+        //
+        // Minimum number of hours vacant to force wider deadband in ECO mode, else a full day ('long vacant') is the threshold.
+        // May still have to back this off if only automatic occupancy input is ambient light and day >> 6h, ie other than deep winter.
+        constexpr uint8_t minVacancyHoursForWideningECO = 3;
+        inputState.widenDeadband = (!veryRecentUIUse)
+            && (isFiltering
+                    || (!valveMode->inWarmMode())
+                    || ambLight->isRoomDark() // Must be false if light sensor not usable.
+                    || occupancy->longVacant()
+                    || (tempControl->hasEcoBias()
+                            && (occupancy->getVacancyH() >= minVacancyHoursForWideningECO)));
+        // Capture adjusted reference/room temperatures
+        // and set callingForHeat flag also using same outline logic as computeRequiredTRVPercentOpen() will use.
+        inputState.setReferenceTemperatures(temperatureC16->get());
+        }
+  };
+
+// Internal model of radiator valve position, embodying control logic.
+#define ModelledRadValve_DEFINED
+class ModelledRadValve final : public AbstractRadValve
+  {
+  private:
+    // Target temperature computation.
+    const ModelledRadValveComputeTargetTempBase *ctt;
+
+    // Sensor, control and stats inputs for computations.
+    const ModelledRadValveSensorCtrlStats &sensorCtrlStats;
+
+    // All input state for deciding where to set the radiator valve in normal operation.
+    struct ModelledRadValveInputState inputState;
+    // All retained state for deciding where to set the radiator valve in normal operation.
+    struct ModelledRadValveState retainedState;
+
+    // True if this node is calling for heat.
+    // Marked volatile for thread-safe lock-free access.
+    volatile bool callingForHeat = false;
+
+    // True if the room/ambient temperature is below target, enough to likely call for heat.
+    // Marked volatile for thread-safe lock-free access.
+    volatile bool underTarget = false;
+
+    // The current automated setback (if any) in the direction of energy saving in C; non-negative.
+    // Not intended for ISR/threaded access.
+    uint8_t setbackC = 0;
+
+    // True if in glacial mode.
+    bool glacial;
+
+    // Maximum percentage valve is allowed to be open [0,100].
+    // Usually 100, but special circumstances may require otherwise.
+    const uint8_t maxPCOpen;
+
+    // Compute target temperature and set heat demand for TRV and boiler; update state.
+    // CALL REGULARLY APPROXIMATELY ONCE PER MINUTE TO ALLOW SIMPLE TIME-BASED CONTROLS.
+    // Inputs are inWarmMode(), isRoomLit().
+    // This routine may take significant CPU time; no I/O is done, only internal state is updated.
+    //
+    // Will clear any BAKE mode if the newly-computed target temperature is already exceeded.
+    void computeCallForHeat();
+
+    // Read-write (non-const) access to valveMode instance; never NULL.
+    ValveMode *const valveModeRW;
+
+  public:
+    // Create an instance.
+    ModelledRadValve(
+        const ModelledRadValveComputeTargetTempBase *const _ctt,
+        ValveMode *const _valveMode,
+        const ModelledRadValveSensorCtrlStats *_sensorCtrlStats,
+        const bool _defaultGlacial = false, const uint8_t _maxPCOpen = 100)
+      : ctt(_ctt),
+        sensorCtrlStats(*_sensorCtrlStats),
+        retainedState(_defaultGlacial),
+        glacial(_defaultGlacial),
+        maxPCOpen(OTV0P2BASE::fnmin(_maxPCOpen, (uint8_t)100U)),
+        valveModeRW(_valveMode)
+      { }
+
+    // Force a read/poll/recomputation of the target position and call for heat.
+    // Sets/clears changed flag if computed valve position changed.
+    // Call at a fixed rate (1/60s).
+    // Potentially expensive/slow.
+    virtual uint8_t read() override { computeCallForHeat(); return(value); }
+
+    // Returns preferred poll interval (in seconds); non-zero.
+    // Must be polled at near constant rate, about once per minute.
+    virtual uint8_t preferredPollInterval_s() const override { return(60); }
+
+    // Returns a suggested (JSON) tag/field/key name including units of get(); NULL means no recommended tag.
+    // The lifetime of the pointed-to text must be at least that of the Sensor instance.
+    virtual const char *tag() const override { return("v|%"); }
+
+    // Returns true if (re)calibrating/(re)initialising/(re)syncing.
+    // The target valve position is not lost while this is true.
+    // By default there is no recalibration step.
+    virtual bool isRecalibrating() const;
+
+    // If possible exercise the valve to avoid pin sticking and recalibrate valve travel.
+    // Default does nothing.
+    virtual void recalibrate();
+
+    // True if the controlled physical valve is thought to be at least partially open right now.
+    // If multiple valves are controlled then is this should be true only if all are at least partially open.
+    // Used to help avoid running boiler pump against closed valves.
+    // The default is to use the check the current computed position
+    // against the minimum open percentage.
+    // True iff the valve(s) (if any) controlled by this unit are really open.
+    //
+    // When driving a remote wireless valve such as the FHT8V,
+    // this should wait until at least the command has been sent.
+    // This also implies open to OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN or equivalent.
+    // Must be exactly one definition/implementation supplied at link time.
+    // If more than one valve is being controlled by this unit,
+    // then this should return true if all of the valves are (significantly) open.
+    virtual bool isControlledValveReallyOpen() const override;
+
+    // Get estimated minimum percentage open for significant flow [1,99] for this device.
+    // Return global node value.
+    virtual uint8_t getMinPercentOpen() const override { return(getMinValvePcReallyOpen()); }
+
+    // Get maximum allowed percent open [1,100] to limit maximum flow rate.
+    // This may be important for systems such as district heat systems that charge by flow,
+    // and other systems that prefer return temperatures to be as low as possible,
+    // such as condensing boilers.
+    uint8_t getMaxPercentageOpenAllowed() const { return(maxPCOpen); }
+
+    // Enable/disable 'glacial' mode (default false/off).
+    // For heat-pump, district-heating and similar slow-response and pay-by-volume environments.
+    // Also may help with over-powerful or unbalanced radiators
+    // with a significant risk of overshoot.
+    void setGlacialMode(bool glacialOn) { glacial = glacialOn; }
+
+    // Returns true if this valve control is in glacial mode.
+    bool inGlacialMode() const { return(glacial); }
+
+    // True if the computed valve position was changed by read().
+    // Can be used to trigger rebuild of messages, force updates to actuators, etc.
+    bool isValveMoved() const { return(retainedState.valveMoved); }
+
+    // True if this unit is actively calling for heat.
+    // This implies that the temperature is (significantly) under target,
+    // the valve is really open,
+    // and this needs more heat than can be passively drawn from an already-running boiler.
+    // Thread-safe and ISR safe.
+    virtual bool isCallingForHeat() const override { return(callingForHeat); }
+
+    // True if the room/ambient temperature is below target, enough to likely call for heat.
+    // This implies that the temperature is (significantly) under target,
+    // the valve is really open,
+    // and this needs more heat than can be passively drawn from an already-running boiler.
+    // Thread-safe and ISR safe.
+    virtual bool isUnderTarget() const override { return(underTarget); }
+
+    // Get target temperature in C as computed by computeTargetTemperature().
+    uint8_t getTargetTempC() const { return(inputState.targetTempC); }
+
+    // Returns a suggested (JSON) tag/field/key name including units of getTargetTempC(); not NULL.
+    // The lifetime of the pointed-to text must be at least that of this instance.
+    const char *tagTTC() const { return("tT|C"); }
+
+    // Get the current automated setback (if any) in the direction of energy saving in C; non-negative.
+    // For heating this is the number of C below the nominal user-set target temperature
+    // that getTargetTempC() is; zero if no setback is in effect.
+    // Generally will be 0 in FROST or BAKE modes.
+    // Not ISR-/thread- safe.
+    uint8_t getSetbackC() const { return(setbackC); }
+
+    // Returns a suggested (JSON) tag/field/key name including units of getSetbackC(); not NULL.
+    // It would often be appropriate to mark this as low priority since depth of setback matters more than speed.
+    // The lifetime of the pointed-to text must be at least that of this instance.
+    const char *tagTSC() const { return("tS|C"); }
+
+    // Get cumulative valve movement %; rolls at 8192 in range [0,8191], ie non-negative.
+    // It would often be appropriate to mark this as low priority since it can be computed from valve positions.
+    uint16_t getCumulativeMovementPC() { return(retainedState.cumulativeMovementPC); }
+
+    // Returns a suggested (JSON) tag/field/key name including units of getCumulativeMovementPC(); not NULL.
+    // The lifetime of the pointed-to text must be at least that of this instance.
+    const char *tagCMPC() const { return("vC|%"); }
+
+    // Return minimum valve percentage open to be considered actually/significantly open; [1,100].
+    // This is a value that has to mean all controlled valves are at least partially open if more than one valve.
+    // At the boiler hub this is also the threshold percentage-open on eavesdropped requests that will call for heat.
+    // If no override is set then OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN is used.
+    uint8_t getMinValvePcReallyOpen() const;
+
+    // Set and cache minimum valve percentage open to be considered really open.
+    // Applies to local valve and, at hub, to calls for remote calls for heat.
+    // Any out-of-range value (eg >100) clears the override and OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN will be used.
+    void setMinValvePcReallyOpen(uint8_t percent);
+
+    // Compute/update target temperature immediately.
+    // Can be called as often as required though may be slowish/expensive.
+    // Can be called after any UI/CLI/etc operation
+    // that may cause the target temperature to change.
+    // (Will also be called by computeCallForHeat().)
+    // One aim is to allow reasonable energy savings (10--30%)
+    // even if the device is left in WARM mode all the time,
+    // using occupancy/light/etc to determine when temperature can be set back
+    // without annoying users.
+    //
+    // Will clear any BAKE mode if the newly-computed target temperature is already exceeded.
+    void computeTargetTemperature();
   };
 
 

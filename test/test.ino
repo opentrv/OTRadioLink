@@ -514,115 +514,6 @@ static void testISRRXQueueVarLenMsg()
   }
 
 
-// OTRadValve
-
-// Test calibration calculations in CurrentSenseValveMotorDirect.
-// Also check some of the use of those calculations.
-static void testCSVMDC()
-  {
-  Serial.println("CSVMDC");
-  OTRadValve::CurrentSenseValveMotorDirect::CalibrationParameters cp;
-  volatile uint16_t ticksFromOpen, ticksReverse;
-  // Test the calculations with one plausible calibration data set.
-  AssertIsTrue(cp.updateAndCompute(1601U, 1105U)); // Must not fail...
-  AssertIsEqual(4, cp.getApproxPrecisionPC());
-  AssertIsEqual(25, cp.getTfotcSmall());
-  AssertIsEqual(17, cp.getTfctoSmall());
-  // Check that a calibration instance can be reused correctly.
-  const uint16_t tfo2 = 1803U;
-  const uint16_t tfc2 = 1373U;
-  AssertIsTrue(cp.updateAndCompute(tfo2, tfc2)); // Must not fail...
-  AssertIsEqual(3, cp.getApproxPrecisionPC());
-  AssertIsEqual(28, cp.getTfotcSmall());
-  AssertIsEqual(21, cp.getTfctoSmall());
-  // Check that computing position works...
-  // Simple case: fully closed, no accumulated reverse ticks.
-  ticksFromOpen = tfo2;
-  ticksReverse = 0;
-  AssertIsEqual(0, cp.computePosition(ticksFromOpen, ticksReverse));
-  AssertIsEqual(tfo2, ticksFromOpen);
-  AssertIsEqual(0, ticksReverse);
-  // Simple case: fully open, no accumulated reverse ticks.
-  ticksFromOpen = 0;
-  ticksReverse = 0;
-  AssertIsEqual(100, cp.computePosition(ticksFromOpen, ticksReverse));
-  AssertIsEqual(0, ticksFromOpen);
-  AssertIsEqual(0, ticksReverse);
-  // Try at half-way mark, no reverse ticks.
-  ticksFromOpen = tfo2 / 2;
-  ticksReverse = 0;
-  AssertIsEqual(50, cp.computePosition(ticksFromOpen, ticksReverse));
-  AssertIsEqual(tfo2/2, ticksFromOpen);
-  AssertIsEqual(0, ticksReverse);
-  // Try at half-way mark with just one reverse tick (nothing should change).
-  ticksFromOpen = tfo2 / 2;
-  ticksReverse = 1;
-  AssertIsEqual(50, cp.computePosition(ticksFromOpen, ticksReverse));
-  AssertIsEqual(tfo2/2, ticksFromOpen);
-  AssertIsEqual(1, ticksReverse);
-  // Try at half-way mark with a big-enough block of reverse ticks to be significant.
-  ticksFromOpen = tfo2 / 2;
-  ticksReverse = cp.getTfctoSmall();
-  AssertIsEqual(51, cp.computePosition(ticksFromOpen, ticksReverse));
-  AssertIsEqual(tfo2/2 - cp.getTfotcSmall(), ticksFromOpen);
-  AssertIsEqual(0, ticksReverse);
-// DHD20151025: one set of actual measurements during calibration.
-//    ticksFromOpenToClosed: 1529
-//    ticksFromClosedToOpen: 1295
-  }
-
-
-class DummyHardwareDriver : public OTRadValve::HardwareMotorDriverInterface
-  {
-  public:
-    // Detect if end-stop is reached or motor current otherwise very high.
-    virtual bool isCurrentHigh(OTRadValve::HardwareMotorDriverInterface::motor_drive mdir = motorDriveOpening) const { return(currentHigh); }
-  public:
-    DummyHardwareDriver() : currentHigh(false) { }
-    virtual void motorRun(uint8_t maxRunTicks, motor_drive dir, OTRadValve::HardwareMotorDriverInterfaceCallbackHandler &callback)
-      { }
-    // isCurrentHigh() returns this value.
-    bool currentHigh;
-  };
-
-// Test that direct abstract motor drive logic is sane.
-// DHD20160206: possibly causing a crash periodically when run on an UNO.
-static void testCurrentSenseValveMotorDirect()
-  {
-  Serial.println("CurrentSenseValveMotorDirect");
-  DummyHardwareDriver dhw;
-  OTRadValve::CurrentSenseValveMotorDirect csvmd1(&dhw);
-  // POWER UP
-  // Whitebox test of internal state: should be init.
-  AssertIsEqual(OTRadValve::CurrentSenseValveMotorDirect::init, csvmd1.getState());
-  // Verify NOT marked as in normal run state immediately upon initialisation.
-  AssertIsTrue(!csvmd1.isInNormalRunState());
-  // Verify NOT marked as in error state immediately upon initialisation.
-  AssertIsTrue(!csvmd1.isInErrorState());
-  // Target % open must start off in a sensible state; fully-closed is good.
-  AssertIsEqual(0, csvmd1.getTargetPC());
-
-  // FIRST POLL(S) AFTER POWER_UP; RETRACTING THE PIN.
-  csvmd1.poll();
-//  // Whitebox test of internal state: should be valvePinWithdrawing.
-//  AssertIsEqual(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawing, csvmd1.getState());
-//  // More polls shouldn't make any difference initially.
-//  csvmd1.poll();
-//  // Whitebox test of internal state: should be valvePinWithdrawing.
-//  AssertIsEqual(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawing, csvmd1.getState());
-//  csvmd1.poll();
-//  // Whitebox test of internal state: should be valvePinWithdrawing.
-//  AssertIsEqual(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawing, csvmd1.getState());
-//  // Simulate hitting end-stop (high current).
-//  dhw.currentHigh = true;
-//  AssertIsTrue(dhw.isCurrentHigh());
-//  csvmd1.poll();
-//  // Whitebox test of internal state: should be valvePinWithdrawn.
-//  AssertIsEqual(CurrentSenseValveMotorDirect::valvePinWithdrawn, csvmd1.getState());
-//  dhw.currentHigh = false;
-  // TODO
-  }
-
 
 // BASE
 
@@ -823,34 +714,252 @@ void testEntropyGathering()
     }
   }
 
+
+// Test elements of encoding and decoding FullStatsMessageCore_t.
+// These are the routines primarily under test:
+//     uint8_t *encodeFullStatsMessageCore(uint8_t *buf, uint8_t buflen, stats_TX_level secLevel, bool secureChannel, const FullStatsMessageCore_t *content)
+//     const uint8_t *decodeFullStatsMessageCore(const uint8_t *buf, uint8_t buflen, stats_TX_level secLevel, bool secureChannel, FullStatsMessageCore_t *content)
+static void testFullStatsMessageCoreEncDec()
+  {
+  Serial.println("FullStatsMessageCoreEncDec");
+
+  // Ensure that with null buffer/content encode and decode fail regardless of other arguments.
+  uint8_t buf[OTV0P2BASE::FullStatsMessageCore_MAX_BYTES_ON_WIRE + 1];
+  OTV0P2BASE::FullStatsMessageCore_t content;
+  AssertIsTrue(NULL == OTV0P2BASE::encodeFullStatsMessageCore(NULL, OTV0P2BASE::randRNG8(), OTV0P2BASE::stTXalwaysAll, OTV0P2BASE::randRNG8NextBoolean(), NULL));
+  AssertIsTrue(NULL == OTV0P2BASE::decodeFullStatsMessageCore(NULL, OTV0P2BASE::randRNG8(), OTV0P2BASE::stTXalwaysAll, OTV0P2BASE::randRNG8NextBoolean(), NULL));
+  AssertIsTrue(NULL == OTV0P2BASE::encodeFullStatsMessageCore(NULL, OTV0P2BASE::FullStatsMessageCore_MAX_BYTES_ON_WIRE+1, OTV0P2BASE::stTXalwaysAll, OTV0P2BASE::randRNG8NextBoolean(), &content));
+  AssertIsTrue(NULL == OTV0P2BASE::encodeFullStatsMessageCore(buf, OTV0P2BASE::FullStatsMessageCore_MAX_BYTES_ON_WIRE+1, OTV0P2BASE::stTXalwaysAll, OTV0P2BASE::randRNG8NextBoolean(), NULL));
+  AssertIsTrue(NULL == OTV0P2BASE::decodeFullStatsMessageCore(NULL, OTV0P2BASE::FullStatsMessageCore_MIN_BYTES_ON_WIRE+1, OTV0P2BASE::stTXalwaysAll, OTV0P2BASE::randRNG8NextBoolean(), &content));
+  AssertIsTrue(NULL == OTV0P2BASE::decodeFullStatsMessageCore(buf, OTV0P2BASE::FullStatsMessageCore_MIN_BYTES_ON_WIRE+1, OTV0P2BASE::stTXalwaysAll, OTV0P2BASE::randRNG8NextBoolean(), NULL));
+
+  // Prepare a minimal (empty) non-secure message.
+  memset(buf, 0, sizeof(buf));
+  clearFullStatsMessageCore(&content);
+  const uint8_t *emptyMsg = OTV0P2BASE::encodeFullStatsMessageCore(buf, sizeof(buf), OTV0P2BASE::stTXalwaysAll, false, &content);
+  AssertIsTrue(NULL != emptyMsg); // Must succeed.
+  AssertIsTrueWithErr(emptyMsg - buf == OTV0P2BASE::FullStatsMessageCore_MIN_BYTES_ON_WIRE, emptyMsg - buf); // Must correspond to minimum size.
+  AssertIsTrueWithErr(OTRadioLink::V0P2_MESSAGING_LEADING_FULL_STATS_HEADER_MSBS == buf[0], buf[0]); // Header byte.
+  AssertIsTrueWithErr(0x60 /*OTRadioLink::V0P2_MESSAGING_LEADING_FULL_STATS_FLAGS_HEADER_MSBS*/ == buf[1], buf[1]); // Flags header byte.
+  AssertIsTrueWithErr(0x65 == buf[2], buf[2]); // CRC.
+  AssertIsTrue(((uint8_t)0xff) == *emptyMsg); // Must be correctly terminated.
+  // Decode the message just generated into a freshly-scrubbed content structure.
+  clearFullStatsMessageCore(&content);
+  const uint8_t *emptyMsgDE = OTV0P2BASE::decodeFullStatsMessageCore(buf, emptyMsg-buf, OTV0P2BASE::stTXalwaysAll, false, &content);
+  AssertIsTrue(NULL != emptyMsgDE); // Must succeed.
+  AssertIsTrue(emptyMsg == emptyMsgDE); // Must return correct end of message.
+  // Verify that there is no content.
+  AssertIsTrue(!content.containsID);
+  AssertIsTrue(!content.containsTempAndPower);
+  AssertIsTrue(!content.containsAmbL);
+
+  // Prepare a non-secure message with ID.
+  memset(buf, 0, sizeof(buf));
+  clearFullStatsMessageCore(&content);
+  content.id0 = 0x80;
+  content.id1 = 0x00;
+  content.containsID = true;
+  AssertIsTrue(NULL == OTV0P2BASE::encodeFullStatsMessageCore(buf, sizeof(buf), OTV0P2BASE::stTXalwaysAll, false, &content)); // Should reject ID bytes with differring msbits.
+  content.id1 = 0x81;
+  const uint8_t *onlyIDMsg = OTV0P2BASE::encodeFullStatsMessageCore(buf, sizeof(buf), OTV0P2BASE::stTXalwaysAll, false, &content);
+  AssertIsTrue(NULL != onlyIDMsg); // Must succeed.
+  AssertIsTrueWithErr(onlyIDMsg - buf == OTV0P2BASE::FullStatsMessageCore_MIN_BYTES_ON_WIRE + 2, onlyIDMsg - buf); // Must correspond to minimum size + 2 ID bytes.
+  AssertIsTrueWithErr((OTRadioLink::V0P2_MESSAGING_LEADING_FULL_STATS_HEADER_MSBS | OTRadioLink::V0P2_MESSAGING_LEADING_FULL_STATS_HEADER_BITS_ID_PRESENT | OTRadioLink::V0P2_MESSAGING_LEADING_FULL_STATS_HEADER_BITS_ID_HIGH) == buf[0], buf[0]); // Header byte.
+  AssertIsTrueWithErr(0x00 == buf[1], buf[1]); // ID0 without msbit.
+  AssertIsTrueWithErr(0x01 == buf[2], buf[2]); // ID1 without msbit.
+  AssertIsTrueWithErr(0x60 /* V0P2_MESSAGING_LEADING_FULL_STATS_FLAGS_HEADER_MSBS */ == buf[3], buf[3]); // Flags header byte.
+  AssertIsTrueWithErr(0x01 == buf[4], buf[4]); // CRC.
+  AssertIsTrue(((uint8_t)0xff) == *onlyIDMsg); // Must be correctly terminated.
+  // Decode the message just generated into a freshly-scrubbed content structure.
+  clearFullStatsMessageCore(&content);
+  const uint8_t *onlyIDMsgDE = OTV0P2BASE::decodeFullStatsMessageCore(buf, onlyIDMsg-buf, OTV0P2BASE::stTXalwaysAll, false, &content);
+  AssertIsTrue(NULL != onlyIDMsgDE); // Must succeed.
+  AssertIsTrue(onlyIDMsg == onlyIDMsgDE); // Must return correct end of message.
+  // Verify that there is only ID.
+  AssertIsTrue(content.containsID);
+  AssertIsTrueWithErr(content.id0 == (uint8_t)0x80, content.id0);
+  AssertIsTrueWithErr(content.id1 == (uint8_t)0x81, content.id1);
+  AssertIsTrue(!content.containsTempAndPower);
+  AssertIsTrue(!content.containsAmbL);
+
+  // Prepare a non-secure message with ID, temp/power, ambient light level and occupancy.
+  memset(buf, 0, sizeof(buf));
+  clearFullStatsMessageCore(&content);
+  content.id0 = 0x83;
+  content.id1 = 0x98;
+  content.containsID = true;
+  content.tempAndPower.tempC16 = (19 << 4) + 1; // (19 + 1/16)C.
+  content.tempAndPower.powerLow = false; // Normal power.
+  content.containsTempAndPower = true;
+  content.ambL = 42; // Allowed value in range [1,254].
+  content.containsAmbL = true;
+  content.occ = 3; // Not occupied recently.
+  const uint8_t *msg1 = OTV0P2BASE::encodeFullStatsMessageCore(buf, sizeof(buf), OTV0P2BASE::stTXalwaysAll, false, &content);
+  AssertIsTrue(NULL != msg1); // Must succeed.
+  AssertIsTrueWithErr(msg1 - buf == OTV0P2BASE::FullStatsMessageCore_MAX_BYTES_ON_WIRE, msg1 - buf); // Must correspond to minimum size + 2 ID bytes.
+  AssertIsTrueWithErr((OTRadioLink::V0P2_MESSAGING_LEADING_FULL_STATS_HEADER_MSBS | OTRadioLink::V0P2_MESSAGING_LEADING_FULL_STATS_HEADER_BITS_ID_PRESENT | OTRadioLink::V0P2_MESSAGING_LEADING_FULL_STATS_HEADER_BITS_ID_HIGH) == buf[0], buf[0]); // Header byte.
+  AssertIsTrueWithErr(0x03 == buf[1], buf[1]); // ID0 without msbit.
+  AssertIsTrueWithErr(0x18 == buf[2], buf[2]); // ID1 without msbit.
+  AssertIsTrueWithErr(0x60 /* (MESSAGING_TRAILING_MINIMAL_STATS_HEADER_MSBS + 1) */ == buf[3], buf[3]); // Temp/power first byte.
+  AssertIsTrueWithErr((19 + 20) == buf[4], buf[4]); // Temp second byte.
+  AssertIsTrueWithErr((0x60 /* OTRadioLink::V0P2_MESSAGING_LEADING_FULL_STATS_FLAGS_HEADER_MSBS */ | 8 /* OTRadioLink::V0P2_MESSAGING_LEADING_FULL_STATS_FLAGS_HEADER_AMBL */ | 3) == buf[5], buf[5]); // Flags header (no extension byte follows).
+  AssertIsTrueWithErr(42 == buf[6], buf[6]); // Ambient light.
+  AssertIsTrueWithErr(0x44 == buf[7], buf[7]); // CRC.
+  AssertIsTrue(((uint8_t)0xff) == *msg1); // Must be correctly terminated.
+  // Decode the message just generated into a freshly-scrubbed content structure.
+  clearFullStatsMessageCore(&content);
+  const uint8_t *msg1DE = OTV0P2BASE::decodeFullStatsMessageCore(buf, msg1-buf, OTV0P2BASE::stTXalwaysAll, false, &content);
+  AssertIsTrue(NULL != msg1DE); // Must succeed.
+  AssertIsTrue(msg1 == msg1DE); // Must return correct end of message.
+  AssertIsTrue(content.containsID);
+  AssertIsTrueWithErr(content.id0 == (uint8_t)0x83, content.id0);
+  AssertIsTrueWithErr(content.id1 == (uint8_t)0x98, content.id1);
+  AssertIsTrue(content.containsTempAndPower);
+  AssertIsTrue(!content.tempAndPower.powerLow);
+  AssertIsTrue((19 << 4) + 1 == content.tempAndPower.tempC16);
+  AssertIsTrue(content.containsAmbL);
+  AssertIsTrue(42 == content.ambL);
+  }
+
+
+
+// Test sleepUntilSubCycleTime() routine.
+void testSleepUntilSubCycleTime()
+  {
+#ifdef ENABLE_WAKEUP_32768HZ_XTAL
+  DEBUG_SERIAL_PRINTLN_FLASHSTRING("SleepUntilSubCycleTime");
+
+  const uint8_t start = OTV0P2BASE::getSubCycleTime();
+
+  // Check that this correctly notices/vetoes attempt to sleep until time already past.
+  if(start > 0) { AssertIsTrue(!sleepUntilSubCycleTime(start-1)); }
+
+  // Don't attempt rest of test if near the end of the current minor cycle...
+  if(start > (OTV0P2BASE::GSCT_MAX/2)) { return; }
+
+  // Set a random target significantly before the end of the current minor cycle.
+//#if 0x3f > GSCT_MAX/4
+//#error
+//#endif
+  AssertIsTrue(0x3f <= OTV0P2BASE::GSCT_MAX/4);
+  const uint8_t sleepTicks = 2 + (OTV0P2BASE::randRNG8() & 0x3f);
+  const uint8_t target = start + sleepTicks;
+  AssertIsTrue(target > start);
+  AssertIsTrue(target < OTV0P2BASE::GSCT_MAX);
+
+  // Call should succeed.
+  AssertIsTrue(sleepUntilSubCycleTime(target));
+
+  // Call should return with some of specified target tick still to run...
+  const uint8_t end = OTV0P2BASE::getSubCycleTime();
+  AssertIsTrueWithErr(target == end, end); // FIXME: DHD2014020: getting occasional failures.
+
+#if 0
+  DEBUG_SERIAL_PRINT_FLASHSTRING("Sleep ticks: ");
+  DEBUG_SERIAL_PRINT(sleepTicks);
+  DEBUG_SERIAL_PRINTLN();
+#endif
+#endif
+  }
+
+
+// Test some of the mask/port calculations.
+static void testFastDigitalIOCalcs()
+  {
+  Serial.println("FastDigitalIOCalcs");
+  AssertIsEqual(digitalPinToBitMask(0), fastDigitalMask(0));
+  AssertIsEqual(digitalPinToBitMask(2), fastDigitalMask(2));
+  AssertIsEqual(digitalPinToBitMask(13), fastDigitalMask(13));
+  AssertIsEqual(digitalPinToBitMask(19), fastDigitalMask(19));
+  AssertIsEqual((intptr_t)portInputRegister(digitalPinToPort(0)), (intptr_t)fastDigitalInputRegister(0));
+  AssertIsEqual((intptr_t)portInputRegister(digitalPinToPort(2)), (intptr_t)fastDigitalInputRegister(2));
+  AssertIsEqual((intptr_t)portInputRegister(digitalPinToPort(7)), (intptr_t)fastDigitalInputRegister(7));
+  AssertIsEqual((intptr_t)portInputRegister(digitalPinToPort(8)), (intptr_t)fastDigitalInputRegister(8));
+  AssertIsEqual((intptr_t)portInputRegister(digitalPinToPort(14)), (intptr_t)fastDigitalInputRegister(14));
+  AssertIsEqual((intptr_t)portInputRegister(digitalPinToPort(19)), (intptr_t)fastDigitalInputRegister(19));
+  }
+
+
+
+//#if !defined(DISABLE_SENSOR_UNIT_TESTS)
+//// Test temperature sensor returns value in reasonable bounds for a test environment.
+//// Attempts to test that the sensor is actually present.
+//static void testTempSensor()
+//  {
+//  Serial.println("TempSensor");
+//  const int temp = TemperatureC16.read();
+//#if 0
+//  OTV0P2BASE::serialPrintAndFlush("  temp: ");
+//  OTV0P2BASE::serialPrintAndFlush(temp >> 4, DEC);
+//  OTV0P2BASE::serialPrintAndFlush('C');
+//  OTV0P2BASE::serialPrintAndFlush(temp & 0xf, HEX);
+//  OTV0P2BASE::serialPrintlnAndFlush();
+//#endif
+//  // During testing temp should be above 0C (0C might indicate a missing/broken sensor) and below 50C.
+//  AssertIsTrueWithErr((temp > 0) && (temp < (50 << 4)), temp);
+//  }
+//#endif
+
 #if !defined(DISABLE_SENSOR_UNIT_TESTS)
-static OTV0P2BASE::SupplyVoltageCentiVolts Supply_cV;
+// Test that on-chip temperature sensor returns value in half-reasonable bounds for a test environment.
+// Internal sensor may be +/- 10C out.
+static void testInternalTempSensor()
+  {
+  Serial.println("InternalTempSensor");
+  const int temp = OTV0P2BASE::readInternalTemperatureC16();
+#if 0
+  OTV0P2BASE::serialPrintAndFlush("  int temp: ");
+  OTV0P2BASE::serialPrintAndFlush(temp >> 4, DEC);
+  OTV0P2BASE::serialPrintAndFlush('C');
+  OTV0P2BASE::serialPrintAndFlush(temp & 0xf, HEX);
+  OTV0P2BASE::serialPrintlnAndFlush();
+#endif
+  // During testing temp should be above 0C (0C might indicate a missing/broken sensor) and below 50C.
+  // Internal sensor may be +/- 10C out.
+  // DHD20141223: Just has a reading of ~17C from an otherwise-OK AVR with room temp ~20C.
+  AssertIsTrueWithErr((temp > (-20 << 4)) && (temp < (60 << 4)), temp);
+  }
+#endif
+
+#if !defined(DISABLE_SENSOR_UNIT_TESTS)
 static void testSupplyVoltageMonitor()
   {
-//  Serial.println("SupplyVoltageMonitor");
-//  const bool neededPowerUp = OTV0P2BASE::powerUpADCIfDisabled();
-//  const uint8_t cV = Supply_cV.read();
-//  const uint8_t ri = Supply_cV.getRawInv();
-//#if 1
-//  OTV0P2BASE::serialPrintAndFlush("  Battery cV: ");
-//  OTV0P2BASE::serialPrintAndFlush(cV);
-//  OTV0P2BASE::serialPrintlnAndFlush();
-//  OTV0P2BASE::serialPrintAndFlush("  Raw inverse: ");
-//  OTV0P2BASE::serialPrintAndFlush(ri);
+  Serial.println("SupplyVoltageMonitor");
+
+  //  const int mv = Supply_mV.read();
+//#if 0
+//  OTV0P2BASE::serialPrintAndFlush("  Battery mv: ");
+//  OTV0P2BASE::serialPrintAndFlush(mv, DEC);
 //  OTV0P2BASE::serialPrintlnAndFlush();
 //#endif
 //  // During testing power supply voltage should be above ~1.7V BOD limit,
 //  // and no higher than 3.6V for V0p2 boards which is RFM22 Vss limit.
 //  // Note that REV9 first boards are running at 3.6V nominal!
-//  // Also, this test may get run on UNO/5V hardware.
-//  AssertIsTrueWithErr((cV >= 170) && (cV < 510), cV);
-//  // Would expect raw inverse to be <= 1023 for Vcc >= 1.1V.
-//  // Should be ~512 at 2.2V, ~310 at 3.3V.
-//  AssertIsTrueWithErr((ri >= 200) && (ri < 1023), ri);
-//  if(neededPowerUp) { OTV0P2BASE::powerDownADC(); }
+//  AssertIsTrueWithErr((mv >= 1700) && (mv < 3700), mv);
+
+  const bool neededPowerUp = OTV0P2BASE::powerUpADCIfDisabled();
+  OTV0P2BASE::SupplyVoltageCentiVolts Supply_cV;
+  const uint8_t cV = Supply_cV.read();
+  const uint16_t ri = Supply_cV.getRawInv();
+#if 1
+  OTV0P2BASE::serialPrintAndFlush("  Battery cV: ");
+  OTV0P2BASE::serialPrintAndFlush(cV);
+  OTV0P2BASE::serialPrintlnAndFlush();
+  OTV0P2BASE::serialPrintAndFlush("  Raw inverse: ");
+  OTV0P2BASE::serialPrintAndFlush(ri);
+  OTV0P2BASE::serialPrintlnAndFlush();
+#endif
+  // During testing power supply voltage should be above ~1.7V BOD limit,
+  // and no higher than 3.6V for V0p2 boards which is RFM22 Vss limit.
+  // Note that REV9 first boards are running at 3.6V nominal!
+  // Also, this test may get run on UNO/5V hardware.
+  AssertIsTrueWithErr((cV >= 170) && (cV < 510), cV);
+  // Would expect raw inverse to be <= 1023 for Vcc >= 1.1V.
+  // Should be ~512 at 2.2V, ~310 at 3.3V.
+  AssertIsTrueWithErr((ri >= 200) && (ri < 1023), ri);
+  if(neededPowerUp) { OTV0P2BASE::powerDownADC(); }
   }
 #endif
-
 
 
 // Tests generally flag an error and stop the test cycle with a call to panic() or error().
@@ -887,8 +996,8 @@ void loop()
 #endif
 
   // OTRadValve
-  testCSVMDC();
-  testCurrentSenseValveMotorDirect();
+//  testCSVMDC();
+//  testCurrentSenseValveMotorDirect();
 
   // OTV0p2Base
   testParseHexVal();

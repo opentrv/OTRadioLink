@@ -519,7 +519,7 @@ bool SetTXPrivacy::doCommand(char *const buf, const uint8_t buflen)
 
 // Zap/erase learned statistics ('Z').
 // Avoid showing status afterwards as may already be rather a lot of output.
-bool ZapStats::doCommand(char *const buf, const uint8_t buflen)
+bool ZapStats::doCommand(char *const, const uint8_t)
     {
     // Try to avoid causing an overrun if near the end of the minor cycle (even allowing for the warning message if unfinished!).
     if(OTV0P2BASE::zapStats((uint16_t) OTV0P2BASE::fnmax(1, ((int)OTV0P2BASE::msRemainingThisBasicCycle()/2) - 20)))

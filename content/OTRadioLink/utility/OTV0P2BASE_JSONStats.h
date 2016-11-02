@@ -70,7 +70,7 @@ bool isValidSimpleStatsKey(SimpleStatsKey key);
 
 // Generic stats descriptor.
 // Includes last value transmitted (to allow changed items to be sent selectively).
-struct GenericStatsDescriptor
+struct GenericStatsDescriptor final
   {
     // Create generic (integer) stats instance.
     // The name must be a valid printable ASCII7 char [32,126] name
@@ -106,7 +106,7 @@ struct GenericStatsDescriptor
   };
 
 // Print to a bounded buffer.
-class BufPrint: public Print
+class BufPrint final : public Print
   {
   private:
     char * const b;
@@ -118,7 +118,9 @@ class BufPrint: public Print
     // The buffer must be of at least size 1.
     // A buffer of size n can accommodate n-1 characters.
     BufPrint(char *buf, uint8_t bufSize) : b(buf), capacity(bufSize-1), size(0), mark(0) { buf[0] = '\0'; }
-    virtual size_t write(uint8_t c);
+    // Print a single char to a bounded buffer; returns 1 if successful, else 0 if full.
+    virtual size_t write(uint8_t c) override
+        { if(size < capacity) { b[size++] = c; b[size] = '\0'; return(1); } else { return(0); } }
     // True if buffer is completely full.
     bool isFull() const { return(size == capacity); }
     // Get size/chars already in the buffer, not including trailing '\0'.
@@ -208,7 +210,7 @@ class SimpleStatsRotationBase
 //#endif
 
   protected:
-    struct DescValueTuple
+    struct DescValueTuple final
       {
       DescValueTuple() : descriptor(NULL), value(0) { }
 
@@ -293,7 +295,7 @@ class SimpleStatsRotationBase
   };
 
 template<uint8_t MaxStats>
-class SimpleStatsRotation : public SimpleStatsRotationBase
+class SimpleStatsRotation final : public SimpleStatsRotationBase
   {
   private:
     // Stats to be tracked and sent; mandatory/priority items must be first.

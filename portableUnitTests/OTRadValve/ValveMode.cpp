@@ -75,3 +75,30 @@ TEST(ValveMode,basics)
 }
 
 
+// Test basic behaviour of system mode setting and some basic parameters.
+//
+// Imported 2016/10/28 from UnitTests.cpp testModeControls().
+TEST(ValveMode,ModeControls)
+{
+  OTRadValve::ValveMode vm;
+  EXPECT_TRUE(!(vm.inBakeMode() && !vm.inWarmMode())); // Check not in initial illegal combination.
+  vm.setWarmModeDebounced(false);
+  EXPECT_TRUE(!vm.inWarmMode());
+  EXPECT_TRUE(!vm.inBakeMode());
+  vm.setWarmModeDebounced(true);
+  EXPECT_TRUE(vm.inWarmMode());
+  EXPECT_TRUE(!vm.inBakeMode());
+  vm.setWarmModeDebounced(false);
+  EXPECT_TRUE(!vm.inWarmMode());
+  EXPECT_TRUE(!vm.inBakeMode());
+  vm.startBake();
+  EXPECT_TRUE(vm.inWarmMode());
+  EXPECT_TRUE(vm.inBakeMode());
+  vm.cancelBakeDebounced();
+  EXPECT_TRUE(vm.inWarmMode());
+  EXPECT_TRUE(!vm.inBakeMode());
+  vm.setWarmModeDebounced(false);
+  EXPECT_TRUE(!vm.inWarmMode());
+  EXPECT_TRUE(!vm.inBakeMode());
+}
+

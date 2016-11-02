@@ -29,4 +29,23 @@ namespace OTSIM900Link
 {
 
 
+//const char *AT_ = "";
+const char *OTSIM900LinkBase::AT_START = "AT";
+const char *OTSIM900LinkBase::AT_SIGNAL = "+CSQ";
+const char *OTSIM900LinkBase::AT_NETWORK = "+COPS";
+const char *OTSIM900LinkBase::AT_REGISTRATION = "+CREG"; // GSM registration.
+const char *OTSIM900LinkBase::AT_GPRS_REGISTRATION0 = "+CGATT"; // GPRS registration.
+const char *OTSIM900LinkBase::AT_GPRS_REGISTRATION = "+CGREG"; // GPRS registration.
+const char *OTSIM900LinkBase::AT_SET_APN = "+CSTT";
+const char *OTSIM900LinkBase::AT_START_GPRS = "+CIICR";
+const char *OTSIM900LinkBase::AT_GET_IP = "+CIFSR";
+const char *OTSIM900LinkBase::AT_PIN = "+CPIN";
+const char *OTSIM900LinkBase::AT_STATUS = "+CIPSTATUS";
+const char *OTSIM900LinkBase::AT_START_UDP = "+CIPSTART";
+const char *OTSIM900LinkBase::AT_SEND_UDP = "+CIPSEND";
+const char *OTSIM900LinkBase::AT_CLOSE_UDP = "+CIPCLOSE";
+const char *OTSIM900LinkBase::AT_SHUT_GPRS = "+CIPSHUT";
+const char *OTSIM900LinkBase::AT_VERBOSE_ERRORS = "+CMEE";
+
+
 } // OTSIM900Link
