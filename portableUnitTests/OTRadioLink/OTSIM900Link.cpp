@@ -81,7 +81,7 @@ const bool verbose = true;
 
 // Does a simple simulation of SIM900, responding sensibly to all commands needed by the OTSIM900Link impl.
 // Allows for exercise of every major non-PANIC state of the OTSIM900Link implementation.
-class TrivialSimulator final : public Stream
+class GoodSimulator final : public Stream
   {
   public:
     // Events exposed.
@@ -126,12 +126,9 @@ class TrivialSimulator final : public Stream
           if(verbose) { fprintf(stderr, "command received: %s\n", command.c_str()); }
           // Respond to particular commands...
           if("AT" == command) { reply = "AT\r"; }  // Relevant states: GET_STATE, RETRY_GET_STATE, START_UP
-          // DHD20161101: "No PIN" response (deliberately not typical SIM900 response) resulted in SIGSEGV from not checking getResponse() result for NULL.
-          // Should futz/vary the response to check sensitivity.
-          // TODO: have at least one response be expected SIM900 answer for no-PIN SIM.
-          else if("AT+CPIN?" == command) { reply = (random() & 1) ? "No PIN\r" : "OK READY\r"; }  // Relevant states: CHECK_PIN
-          else if("AT+CREG?" == command) { reply = (random() & 1) ? "+CREG: 0,0\r" : "+CREG: 0,5\r"; } // Relevant states: WAIT_FOR_REGISTRATION
-          else if("AT+CSTT=apn" == command) { reply = (random() & 1) ? "gbfhs\r" : "AT+CSTT\r\n\r\nOK\r"; } // Relevant states: SET_APN
+          else if("AT+CPIN?" == command) { reply = /* (random() & 1) ? "No PIN\r" : */ "READY\r"; }  // Relevant states: CHECK_PIN
+          else if("AT+CREG?" == command) { reply = /* (random() & 1) ? "+CREG: 0,0\r" : */ "+CREG: 0,5\r"; } // Relevant states: WAIT_FOR_REGISTRATION
+          else if("AT+CSTT=apn" == command) { reply = /* (random() & 1) ? "gbfhs\r" : */ "AT+CSTT\r\n\r\nOK\r"; } // Relevant states: SET_APN
           }
         else if(collectingCommand) { command += c; }
         }
@@ -151,7 +148,7 @@ class TrivialSimulator final : public Stream
     virtual void flush() override { }
   };
 // Events exposed.
-bool TrivialSimulator::haveSeenCommandStart;
+bool GoodSimulator::haveSeenCommandStart;
 }
 TEST(OTSIM900Link,basicsSimpleSimulator)
 {
@@ -167,14 +164,14 @@ TEST(OTSIM900Link,basicsSimpleSimulator)
     const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
 
 
-    ASSERT_FALSE(B1::TrivialSimulator::haveSeenCommandStart);
-    OTSIM900Link::OTSIM900Link<0, 0, 0, B1::TrivialSimulator> l0;
+    ASSERT_FALSE(B1::GoodSimulator::haveSeenCommandStart);
+    OTSIM900Link::OTSIM900Link<0, 0, 0, B1::GoodSimulator> l0;
     EXPECT_TRUE(l0.configure(1, &l0Config));
     EXPECT_TRUE(l0.begin());
     EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
     // Try to hang just by calling poll() repeatedly.
     for(int i = 0; i < 100; ++i) { l0.poll(); }
-    EXPECT_TRUE(B1::TrivialSimulator::haveSeenCommandStart) << "should see some attempt to communicate with SIM900";
+    EXPECT_TRUE(B1::GoodSimulator::haveSeenCommandStart) << "should see some attempt to communicate with SIM900";
     EXPECT_LE(OTSIM900Link::WAIT_FOR_REGISTRATION, l0._getState()) << "should make it to at least WAIT_FOR_REGISTRATION";
     // ...
     l0.end();
