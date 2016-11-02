@@ -205,13 +205,10 @@ namespace OTSIM900Link
 #ifdef ARDUINO_ARCH_AVR
             // Regard as true when within a few ticks of start of 2s major cycle.
             inline bool nearStartOfMajorCycle()
-                {return(OTV0P2BASE::getSubCycleTime() < 10);}
+                { return(OTV0P2BASE::getSubCycleTime() < 10); }
 #else
             // Regard as always true when not running embedded.
-            inline bool nearStartOfMajorCycle()
-                {
-                return (true);
-                }
+            inline bool nearStartOfMajorCycle() { return(true); }
 #endif
 
 #ifdef ARDUINO_ARCH_AVR
@@ -220,16 +217,12 @@ namespace OTSIM900Link
                 {fastDigitalWrite(PWR_PIN, high ? HIGH : LOW);}
 #else
             // Does nothing when not running embedded.
-            inline void setPwrPinHigh(const bool)
-                {
-                }
+            inline void setPwrPinHigh(const bool) { }
 #endif
 
 #ifdef ARDUINO_ARCH_AVR
             bool waitedLongEnoughForPower()
-                {
-                return OTV0P2BASE::getElapsedSecondsLT(powerTimer) > duration;
-                }
+                { return OTV0P2BASE::getElapsedSecondsLT(powerTimer) > duration; }
 #else
             // Instant timeout for testing.
             bool waitedLongEnoughForPower() { return(true); }
