@@ -59,7 +59,7 @@ TEST(OTSIM900Link,basicsDeadCard)
     EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
     // Try to hang just by calling poll() repeatedly.
     for(int i = 0; i < 100; ++i) { l0.poll(); }
-    EXPECT_GE(OTSIM900Link::START_UP, l0._getState()) << "should keep trying to start with GET_STATE, RETRY_GET_STATE and START_UP";
+    EXPECT_EQ(OTSIM900Link::PANIC, l0._getState()) << "should keep trying to start with GET_STATE, RETRY_GET_STATE and START_UP";
     // ...
     l0.end();
 }
