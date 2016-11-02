@@ -26,6 +26,13 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 
 #include "OTSIM900Link.h"
 
+// Test the getter function definitely does what it should.
+TEST(OTSIM900Link, getterFunction)
+{
+    const char SIM900_PIN[] = "1111";
+    const OTSIM900Link::OTSIM900LinkConfig_t SIM900Config(false, SIM900_PIN, NULL, NULL, NULL);
+    EXPECT_EQ(SIM900_PIN[0], SIM900Config.get((const uint8_t *)SIM900Config.PIN));
+}
 
 // Test for general sanity of OTSIM900Link.
 // Make sure that an instance can be created and does not die horribly.
