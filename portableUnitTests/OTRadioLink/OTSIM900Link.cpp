@@ -140,7 +140,7 @@ TEST(OTSIM900Link,basicsSimpleSimulator)
 {
 //    const bool verbose = true;
 
-    //srandomdev(); // Seed random() for use in simulator.
+    srandom(::testing::UnitTest::GetInstance()->random_seed()); // Seed random() for use in simulator.
 
     ASSERT_FALSE(B1::TrivialSimulator::haveSeenCommandStart);
     OTSIM900Link::OTSIM900Link<0, 0, 0, B1::TrivialSimulator> l0;
