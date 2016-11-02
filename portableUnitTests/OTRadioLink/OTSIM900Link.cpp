@@ -80,6 +80,8 @@ const bool verbose = true;
 
 // Does a trivial simulation of SIM900, responding to start of 'A' of AT command.
 // Exercises every major non-PANIC state of the OTSIM900Link implementation.
+// Is meant to mainly walk through all the normal expected SIM900 behaviour when all is well.
+// Other test can look at error handling including unexpected/garbage responses.
 class TrivialSimulator final : public Stream
   {
   public:
