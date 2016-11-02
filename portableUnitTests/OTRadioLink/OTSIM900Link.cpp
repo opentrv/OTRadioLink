@@ -17,7 +17,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 */
 
 /*
- * OTRadValve TempControl tests.
+ * OTRadValve SIM900 tests.
  */
 
 #include <gtest/gtest.h>
@@ -54,7 +54,14 @@ TEST(OTSIM900Link,basicsDeadCard)
         virtual int peek() override { return(-1); }
         virtual void flush() override { }
       };
+    const char SIM900_PIN[] = "1111";
+    const char SIM900_APN[] = "apn";
+    const char SIM900_UDP_ADDR[] = "0.0.0.0"; // ORS server
+    const char SIM900_UDP_PORT[] = "9999";
+    const OTSIM900Link::OTSIM900LinkConfig_t SIM900Config(false, SIM900_PIN, SIM900_APN, SIM900_UDP_ADDR, SIM900_UDP_PORT);
+    const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
     OTSIM900Link::OTSIM900Link<0, 0, 0, NULLSerialStream> l0;
+    EXPECT_TRUE(l0.configure(1, &l0Config));
     EXPECT_TRUE(l0.begin());
     EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
     // Try to hang just by calling poll() repeatedly.
@@ -149,7 +156,7 @@ TEST(OTSIM900Link,basicsSimpleSimulator)
 {
 //    const bool verbose = true;
 
-    //srandomdev(); // Seed random() for use in simulator.
+    srandom(::testing::UnitTest::GetInstance()->random_seed()); // Seed random() for use in simulator; --gtest_shuffle will force it to change.
 
     const char SIM900_PIN[] = "1111";
     const char SIM900_APN[] = "apn";
