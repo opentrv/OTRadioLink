@@ -67,6 +67,7 @@ const bool verbose = true;
 class TrivialSimulator final : public Stream
   {
   public:
+    // Events exposed.
     static bool haveSeenCommandStart;
 
   private:
@@ -127,7 +128,7 @@ class TrivialSimulator final : public Stream
     virtual int peek() override { return(-1); }
     virtual void flush() override { }
   };
-// Internal events recorded.
+// Events exposed.
 bool TrivialSimulator::haveSeenCommandStart;
 }
 TEST(OTSIM900Link,basics)
