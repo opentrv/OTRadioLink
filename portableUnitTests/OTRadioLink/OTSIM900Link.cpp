@@ -110,11 +110,13 @@ class TrivialSimulator final : public Stream
           collectingCommand = false;
           if(verbose) { fprintf(stderr, "command received: %s\n", command.c_str()); }
           // Respond to particular commands...
-          if("AT" == command) { reply = "AT\r"; }
+          if("AT" == command) { reply = "AT\r"; }  // Relevant states: GET_STATE, RETRY_GET_STATE, START_UP
           // DHD20161101: "No PIN" response (deliberately not typical SIM900 response) resulted in SIGSEGV from not checking getResponse() result for NULL.
           // Should futz/vary the response to check sensitivity.
           // TODO: have at least one response be expected SIM900 answer for no-PIN SIM.
-          else if("AT+CPIN?" == command) { reply = (random() & 1) ? "No PIN" : "OK READY"; }
+          else if("AT+CPIN?" == command) { reply = (random() & 1) ? "No PIN\r" : "OK READY\r"; }  // Relevant states: CHECK_PIN
+          else if("AT+CREG?" == command) { reply = (random() & 1) ? "+CREG: 0,0\r" : "+CREG: 0,5\r"; } // Relevant states: WAIT_FOR_REGISTRATION
+//          else if("AT+CSTT=" == command) { reply = (random() & 1) ? "gbfhs\r" : "\n  OK\r"; } // Relevant states: SET_APN FIXME need to pass OTSIM900Link a config!
           }
         else if(collectingCommand) { command += c; }
         }
