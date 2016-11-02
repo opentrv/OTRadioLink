@@ -149,7 +149,7 @@ TEST(OTSIM900Link,basicsSimpleSimulator)
 {
 //    const bool verbose = true;
 
-    //srandomdev(); // Seed random() for use in simulator.
+    srandom(::testing::UnitTest::GetInstance()->random_seed()); // Seed random() for use in simulator; --gtest_shuffle will force it to change.
 
     const char SIM900_PIN[] = "1111";
     const char SIM900_APN[] = "apn";
