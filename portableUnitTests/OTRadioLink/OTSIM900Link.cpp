@@ -71,17 +71,16 @@ TEST(OTSIM900Link,basicsDeadCard)
     l0.end();
 }
 
-// Test for general sanity of OTSIM900Link.
+// Walk through state space of OTSIM900Link.
 // Make sure that an instance can be created and does not die horribly.
-// Underlying simulated serial/SIM900 accepts output, does not respond.
+// Is meant to mainly walk through all the normal expected SIM900 behaviour when all is well.
+// Other tests can look at error handling including unexpected/garbage responses.
 namespace B1
 {
 const bool verbose = true;
 
 // Does a simple simulation of SIM900, responding sensibly to all commands needed by the OTSIM900Link impl.
-// Exercises every major non-PANIC state of the OTSIM900Link implementation.
-// Is meant to mainly walk through all the normal expected SIM900 behaviour when all is well.
-// Other test can look at error handling including unexpected/garbage responses.
+// Allows for exercise of every major non-PANIC state of the OTSIM900Link implementation.
 class TrivialSimulator final : public Stream
   {
   public:
