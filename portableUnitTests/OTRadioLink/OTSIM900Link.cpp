@@ -123,7 +123,7 @@ class TrivialSimulator final : public Stream
           // TODO: have at least one response be expected SIM900 answer for no-PIN SIM.
           else if("AT+CPIN?" == command) { reply = (random() & 1) ? "No PIN\r" : "OK READY\r"; }  // Relevant states: CHECK_PIN
           else if("AT+CREG?" == command) { reply = (random() & 1) ? "+CREG: 0,0\r" : "+CREG: 0,5\r"; } // Relevant states: WAIT_FOR_REGISTRATION
-//          else if("AT+CSTT=apn" == command) { reply = (random() & 1) ? "gbfhs\r" : "\n  OK\r"; } // Relevant states: SET_APN
+          else if("AT+CSTT=apn" == command) { reply = (random() & 1) ? "gbfhs\r" : "AT+CSTT\r\n\r\nOK\r"; } // Relevant states: SET_APN
           }
         else if(collectingCommand) { command += c; }
         }
