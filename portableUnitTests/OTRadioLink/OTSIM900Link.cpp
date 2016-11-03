@@ -128,7 +128,15 @@ class GoodSimulator final : public Stream
           if("AT" == command) { reply = "AT\r"; }  // Relevant states: GET_STATE, RETRY_GET_STATE, START_UP
           else if("AT+CPIN?" == command) { reply = /* (random() & 1) ? "No PIN\r" : */ "READY\r"; }  // Relevant states: CHECK_PIN
           else if("AT+CREG?" == command) { reply = /* (random() & 1) ? "+CREG: 0,0\r" : */ "+CREG: 0,5\r"; } // Relevant states: WAIT_FOR_REGISTRATION
-          else if("AT+CSTT=apn" == command) { reply = /* (random() & 1) ? "gbfhs\r" : */ "AT+CSTT\r\n\r\nOK\r"; } // Relevant states: SET_APN
+          else if("AT+CSTT=apn" == command) { reply =  "AT+CSTT\r\n\r\nOK\r"; } // Relevant states: SET_APN
+          else if("AT+CIPSTATUS" == command) { reply = ""; }  // Relevant states: START_GPRS, WAIT_FOR_UDP
+          else if("AT+CIICR" == command) { reply = "AT+CIICR\r\n\r\nOK\r\n"; }  // Relevant states: START_GPRS
+          else if("AT+CIFSR" == command) { reply = "AT+CIFSR\r\n\r\n172.16.101.199\r\n"; }  // Relevant States: GET_IP
+          else if("AT+CIPSTART" == command) { reply = "AT+CIPSTART=\"UDP\",\"0.0.0.0\",\"9999\"\r\n\r\nOK\r\n\r\nCONNECT OK\r\n"; }  // Relevant states: OPEN_UDP fixme command probably wrong
+          else if("AT+CIPSEND=3" == command) { reply = "AT+CIPSEND=3\r\n\r\n>"; }  // Relevant states:  SENDING
+          else if("123" == command) { reply = "123\r\nSEND OK\r\n"; }  // Relevant states: SENDING
+          else if("" == command) { reply = ""; }  // Relevant states:
+          else if("" == command) { reply = ""; }  // Relevant states:
           }
         else if(collectingCommand) { command += c; }
         }
