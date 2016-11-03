@@ -997,7 +997,7 @@ namespace OTSIM900Link
          * @todo    Find better way of printing this (maybe combine as in APN).
          * @param   array containing server IP
          * @retval  Returns true if UDP opened
-         * @note    b'AT+CIPSTART="UDP","46.101.6.184","9999"\r\n\r\nOK\r\n\r\nCONNECT OK\r\n'
+         * @note    b'AT+CIPSTART="UDP","0.0.0.0","9999"\r\n\r\nOK\r\n\r\nCONNECT OK\r\n'
          */
         bool openUDP()
             {
