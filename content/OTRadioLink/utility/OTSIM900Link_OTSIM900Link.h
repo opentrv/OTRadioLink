@@ -666,6 +666,7 @@ namespace OTSIM900Link
              * @param   name:   pointer to array to compare name with.
              * @param   length: length of array name.
              * @retval  True if ID recovered successfully.
+             * @note 	b'AT\r\n\r\nOK\r\n'
              */
             bool checkModule()
                 {
@@ -684,6 +685,7 @@ namespace OTSIM900Link
              * @param   buffer: pointer to array to store network name in.
              * @param   length: length of buffer.
              * @param   True if connected to network.
+             * @note
              */
             bool checkNetwork()
                 {
@@ -698,6 +700,7 @@ namespace OTSIM900Link
             /**
              * @brief   Check if module connected and registered (GSM and GPRS).
              * @retval  True if registered.
+             * @note    b'AT+CREG?\r\n\r\n+CREG: 0,5\r\n\r\n'OK\r\n'
              */
             bool isRegistered()
                 {
@@ -721,6 +724,7 @@ namespace OTSIM900Link
              * @brief   Set Access Point Name and start task.
              * @retval  0 if APN set.
              * @retval  -1 if failed to set.
+             * @note    b'AT+CSTT="mobiledata"\r\n\r\nOK\r\n'
              */
             uint8_t setAPN()
                 {
@@ -744,6 +748,7 @@ namespace OTSIM900Link
              * @retval  0 if connected.
              *          -1 if failed.
              * @note    check power, check registered, check gprs active.
+             * @note    b'AT+CIICR\r\n\r\nOK\r\nAT+CIICR\r\n\r\nERROR\r\n' (not sure why OK then ERROR happens.)
              */
             uint8_t startGPRS()
                 {
@@ -789,6 +794,7 @@ namespace OTSIM900Link
              * @brief   Get IP address
              * @todo    How should I return the string?
              * @retval  return length of IP address. Return 0 if no connection
+             * @note    b'AT+CIFSR\r\n\r\n172.16.101.199\r\n'
              */
             uint8_t getIP()
                 {
@@ -812,6 +818,9 @@ namespace OTSIM900Link
              * @retval  0 if GPRS closed.
              * @retval  1 if UDP socket open.
              * @retval  2 if in dead end state.
+             * @note    After SET_APN:      b'AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP START\r\n'
+             * @note    After START_GPRS:   b'AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP GPRSACT\r\n'
+             * @note    After GET_IP:       b'AT+CIPSTATUS\r\n\r\nOK\r\nSTATE: CONNECT OK\r\n'
              */
             uint8_t isOpenUDP()
                 {
@@ -890,6 +899,7 @@ namespace OTSIM900Link
         /**
          * @brief   Check if PIN required
          * @retval  0 if SIM card unlocked.
+         * @note    b'AT+CPIN?\r\n\r\n+CPIN: READY\r\n\r\nOK\r\n'
          */
         bool checkPIN()
             {
@@ -987,6 +997,7 @@ namespace OTSIM900Link
          * @todo    Find better way of printing this (maybe combine as in APN).
          * @param   array containing server IP
          * @retval  Returns true if UDP opened
+         * @note    b'AT+CIPSTART="UDP","0.0.0.0","9999"\r\n\r\nOK\r\n\r\nCONNECT OK\r\n'
          */
         bool openUDP()
             {
@@ -1031,6 +1042,7 @@ namespace OTSIM900Link
          * @param   frame:  Pointer to array containing frame to send.
          * @param   length: Length of frame.
          * @retval  True if send successful.
+         * @note    On Success: b'AT+CIPSEND=62\r\n\r\n>' echos back input b'\r\nSEND OK\r\n'
          */
         bool sendUDP(const char *frame, uint8_t length)
             {
