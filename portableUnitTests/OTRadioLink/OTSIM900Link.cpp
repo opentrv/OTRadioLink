@@ -135,8 +135,6 @@ class GoodSimulator final : public Stream
           else if("AT+CIPSTART" == command) { reply = "AT+CIPSTART=\"UDP\",\"0.0.0.0\",\"9999\"\r\n\r\nOK\r\n\r\nCONNECT OK\r\n"; }  // Relevant states: OPEN_UDP fixme command probably wrong
           else if("AT+CIPSEND=3" == command) { reply = "AT+CIPSEND=3\r\n\r\n>"; }  // Relevant states:  SENDING
           else if("123" == command) { reply = "123\r\nSEND OK\r\n"; }  // Relevant states: SENDING
-          else if("" == command) { reply = ""; }  // Relevant states:
-          else if("" == command) { reply = ""; }  // Relevant states:
           }
         else if(collectingCommand) { command += c; }
         }
