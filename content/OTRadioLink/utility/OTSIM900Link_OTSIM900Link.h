@@ -382,8 +382,8 @@ namespace OTSIM900Link
                                     bPowered = true;
                                     state = START_UP;
                                     }
-                                else
-                                    state = PANIC;
+//                                else  // Removed to attempt SIM900 reset forever if not present.
+//                                    state = PANIC;
                                 powerToggle(); // Power down for START_UP
                                 break;
                             case START_UP: // takes up to 150 ticks
