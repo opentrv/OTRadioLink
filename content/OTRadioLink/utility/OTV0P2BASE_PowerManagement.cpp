@@ -257,7 +257,6 @@ void power_intermittent_peripherals_disable()
 //2016-11-04T14:43:45Z 240
 //2016-11-04T14:54:44Z 226
 //2016-11-04T14:55:28Z 226
-g
 //
 // Note typical 'good' values 2.5V--2.6V.
 
