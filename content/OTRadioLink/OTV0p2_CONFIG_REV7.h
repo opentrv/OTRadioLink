@@ -51,6 +51,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #define ENABLE_SIMPLIFIED_MODE_BAKE
 // IF DEFINED: fast temp pot/dial sampling to partly compensate for less good mechanics (at some energy cost).
 #define ENABLE_FAST_TEMP_POT_SAMPLING
+// IF DEFINED: basic FROST/WARM temperatures are settable and stored in EEPROM.
+#undef ENABLE_SETTABLE_TARGET_TEMPERATURES
 // IF DEFINED: support one on and one off time per day (possibly in conjunction with 'learn' button).
 #undef ENABLE_SINGLETON_SCHEDULE
 //// IF DEFINED: use active-low LEARN button(s).  Needs ENABLE_SINGLETON_SCHEDULE.

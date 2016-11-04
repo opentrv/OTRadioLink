@@ -83,7 +83,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 // IF DEFINED: physical UI use wakes CLI (not needed when CLI can auto-wake from serial).
 #undef ENABLE_UI_WAKES_CLI
 //////////////////////////////////////// DEVICE UI OPTIONS (and support for them)
-// IF DEFINED: basic FROST/WARM temperatures are settable.
+// IF DEFINED: basic FROST/WARM temperatures are settable and stored in EEPROM.
 #define ENABLE_SETTABLE_TARGET_TEMPERATURES
 // IF DEFINED: fast temp pot/dial sampling to partly compensate for less good mechanics (at some energy cost).
 #define ENABLE_FAST_TEMP_POT_SAMPLING
