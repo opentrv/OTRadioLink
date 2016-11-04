@@ -199,7 +199,7 @@ TEST(OTSIM900Link,basicsSimpleSimulator)
     // Try to hang just by calling poll() repeatedly.
     for(int i = 0; i < 100; ++i) { l0.poll(); }
     EXPECT_TRUE(B1::GoodSimulator::haveSeenCommandStart) << "should see some attempt to communicate with SIM900";
-    EXPECT_LE(OTSIM900Link::WAIT_FOR_REGISTRATION, l0._getState()) << "should make it to at least WAIT_FOR_REGISTRATION";
+    EXPECT_LE(OTSIM900Link::SENDING, l0._getState()) << "should make it to at least WAIT_FOR_REGISTRATION";
     // ...
     l0.end();
 }
