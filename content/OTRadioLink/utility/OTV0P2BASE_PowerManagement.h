@@ -237,6 +237,7 @@ class SupplyVoltageLow : public OTV0P2BASE::Sensor<uint16_t>
     // Returns true if the supply voltage is low/marginal.
     // The threshold depends on the AVR and other hardware components (eg sensors) in use.
     // Below this level actuators may not reliably operate or may cause brown-outs and restarts.
+    // Should always return true when isSupplyVoltageVeryLow() returns true.
     bool isSupplyVoltageLow() const { return(isLow); }
     // Returns true if the supply voltage is very low.
     // Below this level sensors may not reliably operate.
