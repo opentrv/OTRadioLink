@@ -139,6 +139,9 @@ namespace OTSIM900Link
                 }
         } OTSIM900LinkConfig_t;
 
+
+
+
     /**
      * @brief   Enum containing major states of SIM900.
      */
@@ -282,7 +285,7 @@ namespace OTSIM900Link
              */
             virtual bool end() override
                 {
-                closeUDP();
+                UDPClose();
                 //    powerOff(); TODO fix this
                 return false;
                 }
@@ -302,7 +305,7 @@ namespace OTSIM900Link
                 {
                 bool bSent = false;
                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Send Raw")
-                bSent = sendUDP((const char *) buf, buflen);
+                bSent = UDPSend((const char *) buf, buflen);
                 return bSent;
                 }
 
@@ -362,7 +365,7 @@ namespace OTSIM900Link
                                 txMessageQueue = 0;
                                 bAvailable = false;
                                 bPowered = false;
-                                if (!interrogateSIM900())
+                                if (isSIM900Replying())
                                     {
                                     bAvailable = true;
                                     bPowered = true;
@@ -376,7 +379,7 @@ namespace OTSIM900Link
                                 break;
                             case RETRY_GET_STATE:
                                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*RETRY_GET_STATE")
-                                if (!interrogateSIM900())
+                                if (isSIM900Replying())
                                     {
                                     bAvailable = true;
                                     bPowered = true;
@@ -390,7 +393,7 @@ namespace OTSIM900Link
                                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*START_UP")
                                 if (++retryCounter > maxRetries)
                                     state = RESET;
-                                else if (!interrogateSIM900())
+                                else if (isSIM900Replying())
                                     {
                                     state = CHECK_PIN;
                                     retryCounter = 0;
@@ -402,7 +405,7 @@ namespace OTSIM900Link
                                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*CHECK_PIN")
                                 if (++retryCounter > maxRetries)
                                     state = RESET;
-                                else if (!checkPIN())
+                                else if (isPINRequired())
                                     {
                                     state = WAIT_FOR_REGISTRATION;
                                     retryCounter = 0;
@@ -422,7 +425,7 @@ namespace OTSIM900Link
                                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*SET_APN")
                                 if (++retryCounter > maxRetries)
                                     state = RESET;
-                                else if (!setAPN())
+                                else if (setAPN())
                                     {
                                     messageCounter = 0;
                                     state = START_GPRS;
@@ -432,7 +435,7 @@ namespace OTSIM900Link
                                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN("*START_GPRS")
                                 if (++retryCounter > maxRetries)
                                     state = RESET;
-                                else if (isOpenUDP() == 3)
+                                else if (checkUDPStatus() == 3)
                                     {
                                     state = GET_IP;
                                     retryCounter = 0;
@@ -455,7 +458,7 @@ namespace OTSIM900Link
                                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*OPEN UDP")
                                 if (++retryCounter > maxRetries)
                                     state = RESET;
-                                else if (openUDP())
+                                else if (openUDPSocket())
                                     {
                                     state = IDLE;
                                     retryCounter = 0;
@@ -470,7 +473,7 @@ namespace OTSIM900Link
                             case WAIT_FOR_UDP: // Make sure UDP context is open. Takes up to 200 ticks to exit.
                             OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*WAIT_FOR_UDP")
                                 {
-                                uint8_t udpState = isOpenUDP();
+                                uint8_t udpState = checkUDPStatus();
                                 if (++retryCounter > maxRetries)
                                     state = RESET;
                                 if (udpState == 1)
@@ -498,7 +501,7 @@ namespace OTSIM900Link
                             case RESET:
                                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*RESET")
                                 retryCounter = 0; // reset retry counter.
-                                if (!interrogateSIM900())
+                                if (!isSIM900Replying())
                                     {
                                     bAvailable = true;
                                     bPowered = true;
@@ -662,13 +665,12 @@ namespace OTSIM900Link
             // write AT commands
             /**
              * @brief   Checks module ID.
-             * @todo    Implement check?
+             * @fixme    DOES NOT CHECK
              * @param   name:   pointer to array to compare name with.
              * @param   length: length of array name.
              * @retval  True if ID recovered successfully.
-             * @note 	b'AT\r\n\r\nOK\r\n'
              */
-            bool checkModule()
+            bool isModulePresent()
                 {
                 char data[OTV0P2BASE::fnmin(32, MAX_SIM900_RESPONSE_CHARS)];
                 ser.print(AT_START);
@@ -681,13 +683,13 @@ namespace OTSIM900Link
                 }
             /**
              * @brief   Checks connected network.
-             * @todo    implement check.
+             * @fixme   DOES NOT CHECK
              * @param   buffer: pointer to array to store network name in.
              * @param   length: length of buffer.
              * @param   True if connected to network.
              * @note
              */
-            bool checkNetwork()
+            bool isNetworkCorrect()
                 {
                 char data[MAX_SIM900_RESPONSE_CHARS];
                 ser.print(AT_START);
@@ -700,7 +702,7 @@ namespace OTSIM900Link
             /**
              * @brief   Check if module connected and registered (GSM and GPRS).
              * @retval  True if registered.
-             * @note    b'AT+CREG?\r\n\r\n+CREG: 0,5\r\n\r\n'OK\r\n'
+             * @note    reply: b'AT+CREG?\r\n\r\n+CREG: 0,5\r\n\r\n'OK\r\n'
              */
             bool isRegistered()
                 {
@@ -722,11 +724,10 @@ namespace OTSIM900Link
 
             /**
              * @brief   Set Access Point Name and start task.
-             * @retval  0 if APN set.
-             * @retval  -1 if failed to set.
-             * @note    b'AT+CSTT="mobiledata"\r\n\r\nOK\r\n'
+             * @retval  True if APN set.
+             * @note    reply: b'AT+CSTT="mobiledata"\r\n\r\nOK\r\n'
              */
-            uint8_t setAPN()
+            bool setAPN()
                 {
                 char data[MAX_SIM900_RESPONSE_CHARS]; // FIXME: was 96: that's a LOT of stack!
                 ser.print(AT_START);
@@ -745,12 +746,11 @@ namespace OTSIM900Link
                 }
             /**
              * @brief   Start GPRS connection.
-             * @retval  0 if connected.
-             *          -1 if failed.
+             * @retval  True if connected.
              * @note    check power, check registered, check gprs active.
-             * @note    b'AT+CIICR\r\n\r\nOK\r\nAT+CIICR\r\n\r\nERROR\r\n' (not sure why OK then ERROR happens.)
+             * @note    reply: b'AT+CIICR\r\n\r\nOK\r\nAT+CIICR\r\n\r\nERROR\r\n' (not sure why OK then ERROR happens.)
              */
-            uint8_t startGPRS()
+            bool startGPRS()
                 {
                 char data[OTV0P2BASE::fnmin(16, MAX_SIM900_RESPONSE_CHARS)];
                 ser.print(AT_START);
@@ -762,17 +762,13 @@ namespace OTSIM900Link
                 uint8_t dataCutLength = 0;
                 const char *dataCut = getResponse(dataCutLength, data, sizeof(data), 0x0A); // unreliable
                 if(NULL == dataCut) { return(-1); }
-                if ((dataCut[0] == 'O') & (dataCut[1] == 'K'))
-                    return 0;
-                else
-                    return -1;
+                return ((dataCut[0] == 'O') & (dataCut[1] == 'K'));
                 }
             /**
              * @brief   Shut GPRS connection.
-             * @retval  0 if shut.
-             * @retval  -1 if failed to shut.
+             * @retval  True if shut.
              */
-            uint8_t shutGPRS()
+            bool shutGPRS()
                 {
                 char data[MAX_SIM900_RESPONSE_CHARS]; // Was 96: that's a LOT of stack!
                 ser.print(AT_START);
@@ -785,16 +781,13 @@ namespace OTSIM900Link
                 const char *dataCut = getResponse(dataCutLength, data, sizeof(data), 0x0A);
                 if(NULL == dataCut) { return(-1); }
                 // Expected response 'SHUT OK'.
-                if (*dataCut == 'S')
-                    return 0;
-                else
-                    return -1;
+                return (*dataCut == 'S');
                 }
             /**
              * @brief   Get IP address
              * @todo    How should I return the string?
              * @retval  return length of IP address. Return 0 if no connection
-             * @note    b'AT+CIFSR\r\n\r\n172.16.101.199\r\n'
+             * @note    reply: b'AT+CIFSR\r\n\r\n172.16.101.199\r\n'
              */
             uint8_t getIP()
                 {
@@ -818,11 +811,12 @@ namespace OTSIM900Link
              * @retval  0 if GPRS closed.
              * @retval  1 if UDP socket open.
              * @retval  2 if in dead end state.
-             * @note    After SET_APN:      b'AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP START\r\n'
-             * @note    After START_GPRS:   b'AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP GPRSACT\r\n'
-             * @note    After GET_IP:       b'AT+CIPSTATUS\r\n\r\nOK\r\nSTATE: CONNECT OK\r\n'
+             * @retval  3 if GPRS is active but no UDP socket.
+             * @note    GPRS inactive:      b'AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP START\r\n'
+             * @note    GPRS active:   b'AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP GPRSACT\r\n'
+             * @note    UDP running:       b'AT+CIPSTATUS\r\n\r\nOK\r\nSTATE: CONNECT OK\r\n'
              */
-            uint8_t isOpenUDP()
+            uint8_t checkUDPStatus()
                 {
                 char data[MAX_SIM900_RESPONSE_CHARS];
                 ser.print(AT_START);
@@ -848,7 +842,7 @@ namespace OTSIM900Link
              * @brief   Get signal strength.
              * @todo    Return /print something?
              */
-            void getSignalStrength()
+            uint8_t getSignalStrength()
                 {
                 char data[OTV0P2BASE::fnmin(32, MAX_SIM900_RESPONSE_CHARS)];
                 ser.print(AT_START);
@@ -859,6 +853,7 @@ namespace OTSIM900Link
                 // response stuff
                 uint8_t dataCutLength = 0;
                 getResponse(dataCutLength, data, sizeof(data), ' '); // first ' ' appears right before useful part of message
+                return 0;
                 }
 
             /**
@@ -879,8 +874,9 @@ namespace OTSIM900Link
         /**
          * @brief   Enter PIN code
          * @todo    Check return value?
+         * @retval  True if pin set successfully.
          */
-        uint8_t setPIN()
+        bool setPIN()
             {
             if (NULL == config->PIN)
                 {
@@ -894,14 +890,14 @@ namespace OTSIM900Link
             ser.println();
 //        timedBlockingRead(data, sizeof(data));  // todo redundant until function properly implemented.
             OTSIM900LINK_DEBUG_SERIAL_PRINTLN(data)
-            return 0;
+            return true;
             }
         /**
          * @brief   Check if PIN required
-         * @retval  0 if SIM card unlocked.
-         * @note    b'AT+CPIN?\r\n\r\n+CPIN: READY\r\n\r\nOK\r\n'
+         * @retval  True if SIM card unlocked.
+         * @note    reply: b'AT+CPIN?\r\n\r\n+CPIN: READY\r\n\r\nOK\r\n'
          */
-        bool checkPIN()
+        bool isPINRequired()
             {
             char data[OTV0P2BASE::fnmin(40, MAX_SIM900_RESPONSE_CHARS)];
             ser.print(AT_START);
@@ -996,10 +992,10 @@ namespace OTSIM900Link
          * @brief   Open UDP socket.
          * @todo    Find better way of printing this (maybe combine as in APN).
          * @param   array containing server IP
-         * @retval  Returns true if UDP opened
-         * @note    b'AT+CIPSTART="UDP","0.0.0.0","9999"\r\n\r\nOK\r\n\r\nCONNECT OK\r\n'
+         * @retval  True if UDP opened
+         * @note    reply: b'AT+CIPSTART="UDP","0.0.0.0","9999"\r\n\r\nOK\r\n\r\nCONNECT OK\r\n'
          */
-        bool openUDP()
+        bool openUDPSocket()
             {
             char data[MAX_SIM900_RESPONSE_CHARS];
             memset(data, 0, sizeof(data));
@@ -1021,7 +1017,7 @@ namespace OTSIM900Link
             if(NULL == dataCut) { return(false); }
             OTSIM900LINK_DEBUG_SERIAL_PRINTLN(dataCut)
             // Returns ERROR on fail, else successfully opened UDP.
-            return('E' == *dataCut);
+            return ~('E' == *dataCut);
             }
         /**
          * @brief   Close UDP connection.
@@ -1029,12 +1025,12 @@ namespace OTSIM900Link
          * @retval  True if UDP closed.
          * @note    Check UDP open?
          */
-        bool closeUDP()
+        bool UDPClose()
             {
             ser.print(AT_START);
             ser.println(AT_CLOSE_UDP);
             //    ser.print(AT_END);
-            return false;
+            return true;
             }
         /**
          * @brief   Send a UDP frame.
@@ -1044,7 +1040,7 @@ namespace OTSIM900Link
          * @retval  True if send successful.
          * @note    On Success: b'AT+CIPSEND=62\r\n\r\n>' echos back input b'\r\nSEND OK\r\n'
          */
-        bool sendUDP(const char *frame, uint8_t length)
+        bool UDPSend(const char *frame, uint8_t length)
             {
             messageCounter++; // increment counter
             ser.print(AT_START);
@@ -1067,10 +1063,10 @@ namespace OTSIM900Link
 
         /**
          * @brief   Checks module for response.
-         * @retval  0 if correct response.
-         * @retval  -1 if unexpected response.
+         * @retval  True if correct response.
+         * @note     reply: b'AT\r\n\r\nOK\r\n'
          */
-        uint8_t interrogateSIM900()
+        bool isSIM900Replying()
             {
             ser.println(AT_START);
             //    ser.print(AT_END);
@@ -1087,16 +1083,8 @@ namespace OTSIM900Link
             //    OTSIM900LINK_DEBUG_SERIAL_PRINTFMT(c, HEX)
             //    OTSIM900LINK_DEBUG_SERIAL_PRINTLN()
             //    if (c == 'A') {
-            if (ser.read() == 'A')
-                {  // This is the expected response.
-                return 0;
-                }
-            else
-                {  // This means no response.
-                return -1;
-                }
+            return (ser.read() == 'A');
             }
-//    uint8_t checkInterrogationResponse();
 
         /**
          * @brief     Assigns OTSIM900LinkConfig config. Must be called before begin()

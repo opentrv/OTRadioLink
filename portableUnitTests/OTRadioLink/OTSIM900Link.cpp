@@ -97,7 +97,8 @@ class GoodSimulator final : public Stream
     // Reply (postfix) being returned to OTSIM900Link: empty if none.
     std::string reply;
 
-    OTSIM900Link::OTSIM900LinkState sim900LinkStates;
+    // Keep track (crudely) of state. Corresponds to OTSIM900LinkState values.
+    uint8_t sim900LinkState = 0;
 
   public:
     void begin(unsigned long) { }
@@ -127,25 +128,34 @@ class GoodSimulator final : public Stream
           collectingCommand = false;
           if(verbose) { fprintf(stderr, "command received: %s\n", command.c_str()); }
           // Respond to particular commands...
-          if("AT" == command) { reply = "AT\r"; }  // Relevant states: GET_STATE, RETRY_GET_STATE, START_UP
-          else if("AT+CPIN?" == command) { reply = /* (random() & 1) ? "No PIN\r" : */ "READY\r"; }  // Relevant states: CHECK_PIN
-          else if("AT+CREG?" == command) { reply = /* (random() & 1) ? "+CREG: 0,0\r" : */ "+CREG: 0,5\r"; } // Relevant states: WAIT_FOR_REGISTRATION
+          if("AT" == command) { // Relevant states: GET_STATE, RETRY_GET_STATE, START_UP
+              if(sim900LinkState == OTSIM900Link::GET_STATE) {
+                  reply = "vfd";  // garbage to force into RETRY_GET_STATE
+                  sim900LinkState = OTSIM900Link::RETRY_GET_STATE;
+              } else reply = "AT\r\n\r\nOK\r\n";
+          }
+          else if("AT+CPIN?" == command) { reply = /* (random() & 1) ? "No PIN\r" : */ "AT+CPIN?\r\n\r\n+CPIN: READY\r\n\r\nOK\r\n"; }  // Relevant states: CHECK_PIN
+          else if("AT+CREG?" == command) { reply = /* (random() & 1) ? "+CREG: 0,0\r" : */ "AT+CREG?\r\n\r\n+CREG: 0,5\r\n\r\n'OK\r\n"; } // Relevant states: WAIT_FOR_REGISTRATION
           else if("AT+CSTT=apn" == command) { reply =  "AT+CSTT\r\n\r\nOK\r"; } // Relevant states: SET_APN
           else if("AT+CIPSTATUS" == command) {
-//              switch (_getState()){
-//                  case sim900LinkStates.START_GPRS:
-//                  reply = "AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP START\r\n";
-//                  break;
-//                  case sim900LinkStates.WAIT_FOR_UDP:
-//                  reply = (random() & 1) ? "AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP GPRSACT\r\n" : "AT+CIPSTATUS\r\n\r\nOK\r\nSTATE: CONNECT OK\r\n";
-//                  break;
-//                  default:break;
-//              }
-
+              switch (sim900LinkState){
+                  case OTSIM900Link::RETRY_GET_STATE:  // GPRS inactive)
+                      sim900LinkState = OTSIM900Link::START_GPRS;
+                      reply = "AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP START\r\n";
+                      break;
+                  case OTSIM900Link::START_GPRS:          // GPRS is activated.
+                      sim900LinkState = OTSIM900Link::GET_IP;
+                      reply = "AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP GPRSACT\r\n";
+                      break;
+                  case OTSIM900Link::GET_IP:    // UDP connected.
+                      reply = "AT+CIPSTATUS\r\n\r\nOK\r\nSTATE: CONNECT OK\r\n";
+                      break;
+                  default: break;
+              }
           }  // Relevant states: START_GPRS, WAIT_FOR_UDP
           else if("AT+CIICR" == command) { reply = "AT+CIICR\r\n\r\nOK\r\n"; }  // Relevant states: START_GPRS
           else if("AT+CIFSR" == command) { reply = "AT+CIFSR\r\n\r\n172.16.101.199\r\n"; }  // Relevant States: GET_IP
-          else if("AT+CIPSTART" == command) { reply = "AT+CIPSTART=\"UDP\",\"0.0.0.0\",\"9999\"\r\n\r\nOK\r\n\r\nCONNECT OK\r\n"; }  // Relevant states: OPEN_UDP fixme command probably wrong
+          else if("AT+CIPSTART=\"UDP\",\"0.0.0.0\",\"9999\"" == command) { reply = "AT+CIPSTART=\"UDP\",\"0.0.0.0\",\"9999\"\r\n\r\nOK\r\n\r\nCONNECT OK\r\n"; }  // Relevant states: OPEN_UDP
           else if("AT+CIPSEND=3" == command) { reply = "AT+CIPSEND=3\r\n\r\n>"; }  // Relevant states:  SENDING
           else if("123" == command) { reply = "123\r\nSEND OK\r\n"; }  // Relevant states: SENDING
           }
@@ -175,6 +185,11 @@ TEST(OTSIM900Link,basicsSimpleSimulator)
 
     srandom(::testing::UnitTest::GetInstance()->random_seed()); // Seed random() for use in simulator; --gtest_shuffle will force it to change.
 
+    // Vector of bools containing states to check. This covers all states expected in normal use. RESET and PANIC are not covered.
+    std::vector<bool> statesChecked(OTSIM900Link::RESET, false);
+    // Message to send.
+    const char message[] = "123";
+
     const char SIM900_PIN[] = "1111";
     const char SIM900_APN[] = "apn";
     const char SIM900_UDP_ADDR[] = "0.0.0.0"; // ORS server
@@ -188,10 +203,14 @@ TEST(OTSIM900Link,basicsSimpleSimulator)
     EXPECT_TRUE(l0.configure(1, &l0Config));
     EXPECT_TRUE(l0.begin());
     EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
+
+    // Queue a message to send.
     // Try to hang just by calling poll() repeatedly.
-    for(int i = 0; i < 100; ++i) { l0.poll(); }
+    for(int i = 0; i < 100; ++i) { statesChecked[l0._getState()] = true; l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
+    l0.queueToSend((const uint8_t *)message, (uint8_t)sizeof(message)-1, (int8_t) 0, OTRadioLink::OTRadioLink::TXnormal);
+    for(int i = 0; i < 100; ++i) { statesChecked[l0._getState()] = true; l0.poll(); }
     EXPECT_TRUE(B1::GoodSimulator::haveSeenCommandStart) << "should see some attempt to communicate with SIM900";
-    EXPECT_LE(OTSIM900Link::WAIT_FOR_REGISTRATION, l0._getState()) << "should make it to at least WAIT_FOR_REGISTRATION";
+    for(int i = 0; i < OTSIM900Link::RESET; i++) EXPECT_TRUE(statesChecked[i]) << "state " << i << " not seen.";  // Check what states have been seen.
     // ...
     l0.end();
 }

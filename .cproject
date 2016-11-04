@@ -52,8 +52,9 @@
 							<tool id="cdt.managedbuild.tool.gnu.c.linker.exe.debug.1155613997" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.exe.debug"/>
 							<tool command="g++" commandLinePattern="${COMMAND} ${FLAGS} ${OUTPUT_FLAG} ${OUTPUT_PREFIX}${OUTPUT} ${INPUTS}" errorParsers="org.eclipse.cdt.core.GLDErrorParser" id="cdt.managedbuild.tool.gnu.cpp.linker.exe.debug.461796573" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.exe.debug">
 								<option id="gnu.cpp.link.option.libs.197863569" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" useByScannerDiscovery="false" valueType="libs">
-									<listOptionValue builtIn="false" value="pthread"/>
+									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="gtest"/>
 									<listOptionValue builtIn="false" value="gtest_main"/>
+									<listOptionValue builtIn="false" value="pthread"/>
 								</option>
 								<option id="gnu.cpp.link.option.paths.226454561" name="Library search path (-L)" superClass="gnu.cpp.link.option.paths" useByScannerDiscovery="false" valueType="libPaths">
 									<listOptionValue builtIn="false" value="/usr/local/lib"/>
@@ -238,9 +239,16 @@
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets"/>
 	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
+	<storageModule moduleId="org.eclipse.cdt.core.pathentry"/>
 	<storageModule moduleId="scannerConfiguration">
 		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.debug.1991014182;cdt.managedbuild.config.gnu.exe.debug.1991014182.;cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.1163094081;cdt.managedbuild.tool.gnu.cpp.compiler.input.1202281950">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.macosx.lib.debug.456123580;cdt.managedbuild.config.macosx.lib.debug.456123580.;cdt.managedbuild.tool.gnu.cpp.compiler.macosx.lib.debug.221090181;cdt.managedbuild.tool.gnu.cpp.compiler.input.46865693">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.debug.1991014182;cdt.managedbuild.config.gnu.exe.debug.1991014182.;cdt.managedbuild.tool.gnu.c.compiler.exe.debug.919037388;cdt.managedbuild.tool.gnu.c.compiler.input.783866445">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.cross.exe.debug.1956793571;cdt.managedbuild.config.gnu.cross.exe.debug.1956793571.;cdt.managedbuild.tool.gnu.cross.c.compiler.1951168710;cdt.managedbuild.tool.gnu.c.compiler.input.23766912">
@@ -265,5 +273,4 @@
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
 	</storageModule>
-	<storageModule moduleId="org.eclipse.cdt.core.pathentry"/>
 </cproject>
