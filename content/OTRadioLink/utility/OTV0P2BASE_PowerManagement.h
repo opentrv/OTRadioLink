@@ -255,9 +255,10 @@ class SupplyVoltageCentiVolts final : public SupplyVoltageLow
   {
   private:
     // Internal bandgap (1.1V nominal, 1.0--1.2V) as fraction of Vcc [0,1023] for V0p2/AVR boards.
-    uint16_t rawInv;
+    // Initialise to cautious value.
+    uint16_t rawInv = (uint16_t)~0U;
     // Last measured supply voltage (cV) (nominally 0V--3.6V abs max) [0,360] for V0p2 boards.
-    uint16_t cV = 0;
+    volatile uint16_t value = 0;
 
   public:
     // Force a read/poll of the supply voltage and return the value sensed.
@@ -268,7 +269,7 @@ class SupplyVoltageCentiVolts final : public SupplyVoltageLow
     // Return last value fetched by read(); undefined before first read()).
     // Fast.
     // NOT thread-safe nor usable within ISRs (Interrupt Service Routines).
-    virtual uint16_t get() const override { return(cV); }
+    virtual uint16_t get() const override { return(value); }
 
     // Returns a suggested (JSON) tag/field/key name including units of get(); NULL means no recommended tag.
     // The lifetime of the pointed-to text must be at least that of the Sensor instance.
@@ -281,7 +282,7 @@ class SupplyVoltageCentiVolts final : public SupplyVoltageLow
     // This assumes that anything at/above 3V is mains (for a V0p2 board)
     // or at least a long way from needing monitoring.
     // If true then the supply voltage is not low.
-    bool isMains() const { return(!isLow && (cV >= 300)); }
+    bool isMains() const { return(!isLow && (value >= 300)); }
   };
 
 

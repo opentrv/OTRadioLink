@@ -260,7 +260,7 @@ uint16_t SupplyVoltageCentiVolts::read()
 //  const uint16_t result = ((1023U<<6) / raw) * (1100U>>6); // For mV, without overflow.
   const uint16_t result = (((1023U<<6) / raw) * 55U) >> 5; // For cV, without overflow.
   rawInv = raw;
-  cV = result;
+  value = result;
   isVeryLow = (result <= BATTERY_VERY_LOW_cV);
   isLow = isVeryLow || (result <= BATTERY_LOW_cV);
 #if 0 && defined(DEBUG)
