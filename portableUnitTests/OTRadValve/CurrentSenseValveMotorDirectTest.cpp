@@ -141,4 +141,50 @@ TEST(CurrentSenseValveMotorDirect,bascis)
     ASSERT_FALSE(csvmd1.shouldDeferCalibration());
 }
 
+class SVL final : public OTV0P2BASE::SupplyVoltageLow
+    {
+    public:
+      SVL() { setAllLowFlags(false); }
+      void setAllLowFlags(const bool f) { isLow = f; isVeryLow = f; }
+      virtual uint16_t get() const override { return(0); }
+      virtual uint16_t read() override { return(0); }
+    };
+// State of ambient lighting.
+static bool _isDark;
+static bool isDark() { return(_isDark); }
+
+// Test that logic for potentially deferring (re)calibration is correct.
+TEST(CurrentSenseValveMotorDirect,calibrationDeferral)
+{
+    const uint8_t subcycleTicksRoundedDown_ms = 7; // For REV7: OTV0P2BASE::SUBCYCLE_TICK_MS_RD.
+    const uint8_t gsct_max = 255; // For REV7: OTV0P2BASE::GSCT_MAX.
+    const uint8_t minimumMotorRunupTicks = 4; // For REV7: OTRadValve::ValveMotorDirectV1HardwareDriverBase::minMotorRunupTicks.
+    DummyHardwareDriver dhw;
+    SVL svl;
+    _isDark = false;
+    OTRadValve::CurrentSenseValveMotorDirect csvmd1(&dhw, dummyGetSubCycleTime,
+        OTRadValve::CurrentSenseValveMotorDirect::computeMinMotorDRTicks(subcycleTicksRoundedDown_ms),
+        OTRadValve::CurrentSenseValveMotorDirect::computeSctAbsLimit(subcycleTicksRoundedDown_ms,
+                                                                     gsct_max,
+                                                                     minimumMotorRunupTicks),
+        &svl,
+        isDark);
+    // Nothing yet requires deferral of (re)calibration.
+    ASSERT_FALSE(csvmd1.shouldDeferCalibration());
+    svl.setAllLowFlags(true);
+    // Low supply voltage requires deferral of (re)calibration.
+    ASSERT_TRUE(csvmd1.shouldDeferCalibration());
+    svl.setAllLowFlags(false);
+    ASSERT_FALSE(csvmd1.shouldDeferCalibration());
+    _isDark = true;
+    // Low light level requires deferral of (re)calibration.
+    ASSERT_TRUE(csvmd1.shouldDeferCalibration());
+    svl.setAllLowFlags(true);
+    ASSERT_TRUE(csvmd1.shouldDeferCalibration());
+    _isDark = false;
+    svl.setAllLowFlags(false);
+    // Nothing requires deferral of (re)calibration.
+    ASSERT_FALSE(csvmd1.shouldDeferCalibration());
+}
+
 
