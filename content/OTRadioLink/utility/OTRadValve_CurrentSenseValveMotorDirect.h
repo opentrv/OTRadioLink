@@ -210,6 +210,8 @@ class CurrentSenseValveMotorDirect final : public OTRadValve::HardwareMotorDrive
     // This can be cleared to all zeros with clearPerState(), so starts each state zeroed.
     union
       {
+      // State used while waiting to withdraw pin.
+      struct { uint8_t ticksWaited; } initWaiting;
       // State used while calibrating.
       struct
         {

@@ -218,6 +218,12 @@ OTV0P2BASE::serialPrintAndFlush(hw->isOnShaftEncoderMark());
 OTV0P2BASE::serialPrintlnAndFlush();
 #endif
 
+#if 0
+OTV0P2BASE::serialPrintAndFlush("poll(): ");
+OTV0P2BASE::serialPrintAndFlush(state);
+OTV0P2BASE::serialPrintlnAndFlush();
+#endif
+
   // Run the state machine based on the major state.
   switch(state)
     {
@@ -244,9 +250,8 @@ OTV0P2BASE::serialPrintlnAndFlush();
       {
 //V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("  initWaiting");
 
-      static uint8_t ticksWaited;
       // Assume 2s between calls to poll().
-      if(ticksWaited < initialRetractDelay_s/2) { ++ticksWaited; break; } // Postpone pin withdraw after power-up.
+      if(perState.initWaiting.ticksWaited < initialRetractDelay_s/2) { ++perState.initWaiting.ticksWaited; break; } // Postpone pin withdraw after power-up.
 
       // Tactile feedback and ensure that the motor is left stopped.
       // Should also allow calibration of the shaft-encoder outputs, ie [min.max].
@@ -306,7 +311,7 @@ OTV0P2BASE::serialPrintlnAndFlush();
 //      V0P2BASE_DEBUG_SERIAL_PRINTLN();
 
       // Defer calibration if doing it now would be a bad idea, eg in a bedroom at night.
-      if(!shouldDeferCalibration())
+      if(shouldDeferCalibration())
         {
         changeState(valveNormal);
         break;
