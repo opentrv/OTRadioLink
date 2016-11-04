@@ -139,6 +139,9 @@ namespace OTSIM900Link
                 }
         } OTSIM900LinkConfig_t;
 
+
+
+
     /**
      * @brief   Enum containing major states of SIM900.
      */
@@ -808,9 +811,10 @@ namespace OTSIM900Link
              * @retval  0 if GPRS closed.
              * @retval  1 if UDP socket open.
              * @retval  2 if in dead end state.
-             * @note    After SET_APN:      b'AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP START\r\n'
-             * @note    After START_GPRS:   b'AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP GPRSACT\r\n'
-             * @note    After GET_IP:       b'AT+CIPSTATUS\r\n\r\nOK\r\nSTATE: CONNECT OK\r\n'
+             * @retval  3 if GPRS is active but no UDP socket.
+             * @note    GPRS inactive:      b'AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP START\r\n'
+             * @note    GPRS active:   b'AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP GPRSACT\r\n'
+             * @note    UDP running:       b'AT+CIPSTATUS\r\n\r\nOK\r\nSTATE: CONNECT OK\r\n'
              */
             uint8_t checkUDPStatus()
                 {
