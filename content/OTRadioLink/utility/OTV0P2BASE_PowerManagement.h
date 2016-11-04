@@ -280,6 +280,7 @@ class SupplyVoltageCentiVolts final : public SupplyVoltageLow
     // Returns true if the supply appears to be something that does not need monitoring.
     // This assumes that anything at/above 3V is mains (for a V0p2 board)
     // or at least a long way from needing monitoring.
+    // If true then the supply voltage is not low.
     bool isMains() const { return(!isLow && (cV >= 300)); }
   };
 
