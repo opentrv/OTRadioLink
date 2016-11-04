@@ -247,7 +247,7 @@ class SupplyVoltageLow : public OTV0P2BASE::Sensor<uint16_t>
   };
 
 // Sensor for supply (eg battery) voltage in centivolts.
-// Uses centivolts (cV) rather than millivolts (mv)
+// Uses centivolts (cV) rather than millivolts (mV)
 // to save transmitting/logging an information-free final digit
 // even at the risk of some units confusion, though UCUM compliant.
 // To use this an instance should be defined (there is no overhead if not).
@@ -286,4 +286,5 @@ class SupplyVoltageCentiVolts final : public SupplyVoltageLow
 
 
 } // OTV0P2BASE
+
 #endif // OTV0P2BASE_POWERMANAGEMENT_H
