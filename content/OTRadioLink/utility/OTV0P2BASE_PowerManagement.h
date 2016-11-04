@@ -263,16 +263,16 @@ class SupplyVoltageCentiVolts final : public SupplyVoltageLow
     // Force a read/poll of the supply voltage and return the value sensed.
     // Expensive/slow.
     // NOT thread-safe or usable within ISRs (Interrupt Service Routines).
-    virtual uint16_t read();
+    virtual uint16_t read() override;
 
     // Return last value fetched by read(); undefined before first read()).
     // Fast.
     // NOT thread-safe nor usable within ISRs (Interrupt Service Routines).
-    virtual uint16_t get() const { return(cV); }
+    virtual uint16_t get() const override { return(cV); }
 
     // Returns a suggested (JSON) tag/field/key name including units of get(); NULL means no recommended tag.
     // The lifetime of the pointed-to text must be at least that of the Sensor instance.
-    virtual const char *tag() const { return("B|cV"); }
+    virtual const char *tag() const override { return("B|cV"); }
 
     // Get internal bandgap (1.1V nominal, 1.0--1.2V) as fraction of Vcc on V0p2/AVR platform.
     uint16_t getRawInv() const { return(rawInv); }
