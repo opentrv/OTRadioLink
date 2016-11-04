@@ -629,9 +629,9 @@ void ModelledRadValve::computeTargetTemperature()
   // TODO: also consider showing full setback to FROST when a schedule is set but not on.
   // By default, the setback is regarded as zero/off.
   setbackC = 0;
-  if(sensorCtrlStats.valveMode->inWarmMode())
+  if(valveModeRW->inWarmMode())
     {
-    const uint8_t wt = sensorCtrlStats.tempControl->getWARMTargetC();
+    const uint8_t wt = tempControl->getWARMTargetC();
     if(newTarget < wt) { setbackC = wt - newTarget; }
     }
 
