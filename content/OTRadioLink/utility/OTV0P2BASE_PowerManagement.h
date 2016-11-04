@@ -219,52 +219,73 @@ void power_intermittent_peripherals_disable();
 #endif
 
 
+// Just the 'low battery' warning API for the battery/supply voltage sensor.
+// Note: read() can be called whenever battery voltage needs to be re-measured,
+// and derived classes should not rely on only regular calls to / polling of read(),
+// but measuring voltage is not free in terms of either time or energy.
+class SupplyVoltageLow : public OTV0P2BASE::Sensor<uint16_t>
+  {
+  protected:
+    // True if last-measured voltage was low.
+    // Initialise to cautious value.
+    bool isLow = true;
+    // True if last-measured voltage was very low.
+    // Initialise to cautious value.
+    bool isVeryLow = true;
+
+  public:
+    // Returns true if the supply voltage is low/marginal.
+    // The threshold depends on the AVR and other hardware components (eg sensors) in use.
+    // Below this level actuators may not reliably operate or may cause brown-outs and restarts.
+    // Should always return true when isSupplyVoltageVeryLow() returns true.
+    bool isSupplyVoltageLow() const { return(isLow); }
+    // Returns true if the supply voltage is very low.
+    // Below this level sensors may not reliably operate.
+    // Below this level actuators may not reliably operate or may cause brown-outs and restarts.
+    // The threshold depends on the AVR and other hardware components (eg sensors) in use.
+    bool isSupplyVoltageVeryLow() const { return(isVeryLow); }
+  };
+
 // Sensor for supply (eg battery) voltage in centivolts.
-// Uses centivolts (cV) rather than millivolts (mv)
+// Uses centivolts (cV) rather than millivolts (mV)
 // to save transmitting/logging an information-free final digit
 // even at the risk of some units confusion, though UCUM compliant.
 // To use this an instance should be defined (there is no overhead if not).
-class SupplyVoltageCentiVolts final : public OTV0P2BASE::Sensor<uint16_t>
+class SupplyVoltageCentiVolts final : public SupplyVoltageLow
   {
   private:
     // Internal bandgap (1.1V nominal, 1.0--1.2V) as fraction of Vcc [0,1023] for V0p2/AVR boards.
-    uint16_t rawInv;
+    // Initialise to cautious value.
+    uint16_t rawInv = (uint16_t)~0U;
     // Last measured supply voltage (cV) (nominally 0V--3.6V abs max) [0,360] for V0p2 boards.
-    uint16_t cV;
-    // True if last-measured voltage was low.
-    bool isLow;
+    volatile uint16_t value = 0;
 
   public:
-    // Initialise to cautious values.
-    SupplyVoltageCentiVolts() : cV(0), isLow(true) { }
-
     // Force a read/poll of the supply voltage and return the value sensed.
     // Expensive/slow.
     // NOT thread-safe or usable within ISRs (Interrupt Service Routines).
-    virtual uint16_t read();
+    virtual uint16_t read() override;
 
     // Return last value fetched by read(); undefined before first read()).
     // Fast.
     // NOT thread-safe nor usable within ISRs (Interrupt Service Routines).
-    virtual uint16_t get() const { return(cV); }
+    virtual uint16_t get() const override { return(value); }
 
     // Returns a suggested (JSON) tag/field/key name including units of get(); NULL means no recommended tag.
     // The lifetime of the pointed-to text must be at least that of the Sensor instance.
-    virtual const char *tag() const { return("B|cV"); }
+    virtual const char *tag() const override { return("B|cV"); }
 
     // Get internal bandgap (1.1V nominal, 1.0--1.2V) as fraction of Vcc on V0p2/AVR platform.
     uint16_t getRawInv() const { return(rawInv); }
 
-    // Returns true if the supply voltage is low/marginal.
-    // This depends on the AVR and other hardware components (eg sensors) in use.
-    bool isSupplyVoltageLow() const { return(isLow); }
-
     // Returns true if the supply appears to be something that does not need monitoring.
     // This assumes that anything at/above 3V is mains (for a V0p2 board)
     // or at least a long way from needing monitoring.
-    bool isMains() const { return(!isLow && (cV >= 300)); }
+    // If true then the supply voltage is not low.
+    bool isMains() const { return(!isLow && (value >= 300)); }
   };
 
 
 } // OTV0P2BASE
+
 #endif // OTV0P2BASE_POWERMANAGEMENT_H

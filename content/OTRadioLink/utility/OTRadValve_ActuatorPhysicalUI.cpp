@@ -39,31 +39,6 @@ namespace OTRadValve
 
 
 #if defined(ModeButtonAndPotActuatorPhysicalUI_DEFINED)
-//// Use WDT-based timer for xxxPause() routines.
-//// Very tiny low-power sleep.
-//static const uint8_t VERYTINY_PAUSE_MS = 5;
-//static void inline veryTinyPause() { OTV0P2BASE::sleepLowPowerMs(VERYTINY_PAUSE_MS); }
-//// Tiny low-power sleep to approximately match the PICAXE V0.09 routine of the same name.
-//static const uint8_t TINY_PAUSE_MS = 15;
-//static void inline tinyPause() { OTV0P2BASE::nap(WDTO_15MS); } // 15ms vs 18ms nominal for PICAXE V0.09 impl.
-//// Small low-power sleep.
-//static const uint8_t SMALL_PAUSE_MS = 30;
-//static void inline smallPause() { OTV0P2BASE::nap(WDTO_30MS); }
-//// Medium low-power sleep to approximately match the PICAXE V0.09 routine of the same name.
-//// Premature wakeups MAY be allowed to avoid blocking I/O polling for too long.
-//static const uint8_t MEDIUM_PAUSE_MS = 60;
-//static void inline mediumPause() { OTV0P2BASE::nap(WDTO_60MS); } // 60ms vs 144ms nominal for PICAXE V0.09 impl.
-//// Big low-power sleep to approximately match the PICAXE V0.09 routine of the same name.
-//// Premature wakeups MAY be allowed to avoid blocking I/O polling for too long.
-//static const uint8_t BIG_PAUSE_MS = 120;
-//static void inline bigPause() { OTV0P2BASE::nap(WDTO_120MS); } // 120ms vs 288ms nominal for PICAXE V0.09 impl.
-//
-//// Pause between flashes to allow them to be distinguished (>100ms); was mediumPause() for PICAXE V0.09 impl.
-//static void inline offPause()
-//  {
-//  bigPause(); // 120ms, was V0.09 144ms mediumPause() for PICAXE V0.09 impl.
-////  pollIO(); // Slip in an I/O poll.
-//  }
 
 // Record local manual operation of a physical UI control, eg not remote or via CLI.
 // Marks room as occupied amongst other things.
@@ -112,11 +87,12 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
     const bool sec0 = (0 == (tickCount & 0x1f));
     if(sec0)
       {
-      ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
-        {
-        // Run down UI interaction timer if need be, one tick per minute(ish).
-        if(uiTimeoutM > 0) { --uiTimeoutM; }
-        }
+      OTV0P2BASE::safeDecIfNZWeak(uiTimeoutM);
+//      ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
+//        {
+//        // Run down UI interaction timer if need be, one tick per minute(ish).
+//        if(uiTimeoutM > 0) { --uiTimeoutM; }
+//        }
       }
 
 //    const bool reportedRecently = occupancy->reportedRecently();
@@ -148,7 +124,7 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
           const bool isLo = tempPotOpt->isAtLoEndStop();
           if(isLo) { valveMode->setWarmModeDebounced(false); }
           // Feed back significant change in pot position, ie at temperature boundaries.
-          // Synthesise a 'warm' target temp that distinguishes the end stops...
+          // Synthesise a 'hot' target temperature that distinguishes the end stops...
           const uint8_t nominalWarmTarget = isLo ? 1 :
               (tempPotOpt->isAtHiEndStop() ? 99 :
               tempControl->getWARMTargetC());
@@ -178,6 +154,12 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
       // Keep reporting UI status if the user has just touched the unit in some way or UI feedback is enhanced.
       const bool justTouched = statusChange || enhancedUIFeedback;
 
+      // Capture battery state if available.
+      const bool batteryLow = (NULL != lowBattOpt) && lowBattOpt->isSupplyVoltageLow();
+
+      // Minimise LED on duration unless UI just touched, or if battery low (TODO-963).
+      const bool minimiseOnTime = (!justTouched) || batteryLow;
+
       // Mode button not pressed: indicate current mode with flash(es); more flashes if actually calling for heat.
       // Force display while UI controls are being used, eg to indicate temp pot position.
       if(justTouched || valveMode->inWarmMode()) // Generate flash(es) if in WARM mode or fiddling with UI other than Mode button.
@@ -199,7 +181,7 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
           const uint8_t wt = tempControl->getWARMTargetC();
           // Makes vtiny|tiny|medium flash for cool|OK|warm temperature target.
           // Stick to minimum length flashes to save energy unless just touched.
-          if(!justTouched || tempControl->isEcoTemperature(wt)) { veryTinyPause(); }
+          if(minimiseOnTime || tempControl->isEcoTemperature(wt)) { veryTinyPause(); }
           else if(!tempControl->isComfortTemperature(wt)) { tinyPause(); }
           else { mediumPause(); }
 
@@ -213,7 +195,7 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
             offPause(); // V0.09 was mediumPause().
             LEDon(); // flash
             // Stick to minimum length flashes to save energy unless just touched.
-            if(!justTouched || tempControl->isEcoTemperature(wt)) { veryTinyPause(); }
+            if(minimiseOnTime || tempControl->isEcoTemperature(wt)) { veryTinyPause(); }
             else if(!tempControl->isComfortTemperature(wt)) { OTV0P2BASE::sleepLowPowerMs((VERYTINY_PAUSE_MS + TINY_PAUSE_MS) / 2); }
             else { tinyPause(); }
 
@@ -225,7 +207,7 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
               LEDon();
               // Makes tiny|small|medium flash for eco|OK|comfort temperature target.
               // Stick to minimum length flashes to save energy unless just touched.
-              if(!justTouched || tempControl->isEcoTemperature(wt)) { veryTinyPause(); }
+              if(minimiseOnTime || tempControl->isEcoTemperature(wt)) { veryTinyPause(); }
               else if(!tempControl->isComfortTemperature(wt)) { smallPause(); }
               else { mediumPause(); }
               }
@@ -251,10 +233,9 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
         LEDon(); // flash
         veryTinyPause();
         }
-
       }
 
-    // Ensure that the LED forced off unconditionally at least once each cycle.
+    // Ensure that the main UI LED is forced off unconditionally at least once each cycle.
     LEDoff();
 
     // Handle LEARN buttons (etc) in derived classes.

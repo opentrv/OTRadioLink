@@ -143,7 +143,7 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // If non-zero then UI controls have been recently manually/locally operated; counts down to zero.
     // Marked volatile for thread-safe lock-free non-read-modify-write access to byte-wide value.
     // Compound operations on this value must block interrupts.
-    volatile uint8_t uiTimeoutM;
+    volatile OTV0P2BASE::Atomic_UInt8T uiTimeoutM;
 
     // Set true on significant local UI operation.
     // Should be cleared when feedback has been given.
@@ -174,21 +174,25 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // Valve mode; must not be NULL.
     ValveMode *const valveMode;
 
-    // Temperature control for set-points; must not be NULL.
+    // Read-only access to temperature control for set-points; must not be NULL.
     const TempControlBase *const tempControl;
 
     // Read-only access to valve controller state.
     const AbstractRadValve *const valveController;
 
-    // Occupancy tracker; must not be NULL.
+    // Occupancy tracker, r/w access; must not be NULL.
+    // May call methods to mark as occupied.
     OTV0P2BASE::PseudoSensorOccupancyTracker *const occupancy;
 
     // Read-only access to ambient light sensor; must not be NULL
-    const OTV0P2BASE::SensorAmbientLight *const ambLight;
+    const OTV0P2BASE::SensorAmbientLightBase *const ambLight;
 
-    // Temperature pot; may be NULL.
+    // Optional temperature pot, r/w access; may be NULL.
     // May have read() called to poll pot status and provoke occupancy callbacks.
     OTV0P2BASE::SensorTemperaturePot *const tempPotOpt;
+
+    // Read-only acces to optional low-battery sensor; may be NULL.
+    const OTV0P2BASE::SupplyVoltageLow *const lowBattOpt;
 
     // Callback used to provide UI-LED-on output, may not be thread-safe; never NULL.
     // Could be set to LED_HEATCALL_ON() or similar.
@@ -235,11 +239,13 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
       const TempControlBase *const _tempControl,
       const AbstractRadValve *const _valveController,
       OTV0P2BASE::PseudoSensorOccupancyTracker *const _occupancy,
-      const OTV0P2BASE::SensorAmbientLight *const _ambLight,
+      const OTV0P2BASE::SensorAmbientLightBase *const _ambLight,
       OTV0P2BASE::SensorTemperaturePot *const _tempPotOpt,
+      OTV0P2BASE::SupplyVoltageLow *const _lowBattOpt,
       void (*const _LEDon)(), void (*const _LEDoff)(), void (*const _safeISRLEDonOpt)())
       : valveMode(_valveMode), tempControl(_tempControl), valveController(_valveController),
-        occupancy(_occupancy), ambLight(_ambLight), tempPotOpt(_tempPotOpt),
+        occupancy(_occupancy), ambLight(_ambLight),
+        tempPotOpt(_tempPotOpt), lowBattOpt(_lowBattOpt),
         LEDon(_LEDon), LEDoff(_LEDoff), safeISRLEDonOpt(_safeISRLEDonOpt)
       {
 //      // Abort constructor if any bad args...
@@ -266,13 +272,13 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // True if a manual UI control has been very recently (minutes ago) operated.
     // The user may still be interacting with the control and the UI etc should probably be extra responsive.
     // Thread-safe.
-    virtual bool veryRecentUIControlUse() const override { return(uiTimeoutM >= (UI_DEFAULT_RECENT_USE_TIMEOUT_M - UI_DEFAULT_VERY_RECENT_USE_TIMEOUT_M)); }
+    virtual bool veryRecentUIControlUse() const override { return(uiTimeoutM.load() >= (UI_DEFAULT_RECENT_USE_TIMEOUT_M - UI_DEFAULT_VERY_RECENT_USE_TIMEOUT_M)); }
 
     // True if a manual UI control has been recently (tens of minutes ago) operated.
     // If true then local manual settings should 'win' in any conflict with programmed or remote ones.
     // For example, remote requests to override settings may be ignored while this is true.
     // Thread-safe.
-    virtual bool recentUIControlUse() const override { return(0 != uiTimeoutM); }
+    virtual bool recentUIControlUse() const override { return(0 != uiTimeoutM.load()); }
 
     // Call this nominally on even numbered seconds to allow the UI to operate.
     // In practice call early once per 2s major cycle.

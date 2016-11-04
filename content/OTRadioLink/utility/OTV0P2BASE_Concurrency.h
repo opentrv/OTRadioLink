@@ -125,7 +125,6 @@ namespace OTV0P2BASE
       const uint8_t op1 = o + 1U;
       v.compare_exchange_strong(o, op1);
       }
-
 }
 
 #endif

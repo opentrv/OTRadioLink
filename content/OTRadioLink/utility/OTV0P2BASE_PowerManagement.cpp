@@ -211,20 +211,42 @@ void power_intermittent_peripherals_disable()
   }
 
 
-// Default V0p2 low-battery threshold suitable for 2xAA NiMH, with AVR BOD at 1.8V.
-// Set to be high enough for common sensors such as SHT21, ie >= 2.1V.
-#define BATTERY_LOW_CV 210
-
-//// Using some sensors forces a higher voltage threshold for 'low battery'.
-//#if defined(SENSOR_SHT21_ENABLE)
-//#define SENSOR_SHT21_MINMV 2199 // Only specified down to 2.1V.
-//#if BATTERY_LOW_MV < SENSOR_SHT21_MINMV
-//#undef BATTERY_LOW_MV
-//#define BATTERY_LOW_MV SENSOR_SHT21_MINMV
-//#endif
-//#endif
-
 #ifdef ARDUINO_ARCH_AVR
+
+// DHD20161104: observed battery stats from a DORM1/TRV1 (5s) continually resetting with presumed low battery:
+//    http://www.earth.org.uk/img/20161104-16WWSensorPower.png
+//
+//2016-11-04T07:20:50Z 240
+//2016-11-04T07:31:55Z 228
+//2016-11-04T07:32:18Z 240
+//2016-11-04T07:32:39Z 228
+//2016-11-04T07:33:01Z 240
+//2016-11-04T07:37:07Z 240
+//2016-11-04T07:47:11Z 242
+//2016-11-04T07:48:08Z 230
+//2016-11-04T07:48:53Z 230
+//2016-11-04T07:52:53Z 240
+//2016-11-04T08:02:58Z 228
+//2016-11-04T08:03:28Z 240
+//2016-11-04T08:03:44Z 230
+//2016-11-04T08:04:54Z 240
+//2016-11-04T08:08:48Z 242
+//2016-11-04T08:19:51Z 228
+//2016-11-04T08:25:19Z 242
+//2016-11-04T08:32:21Z 228
+//2016-11-04T08:32:52Z 240
+//2016-11-04T08:33:07Z 232
+//
+// Note typical 'good' values 2.5V--2.6V.
+
+// Default V0p2 very low-battery threshold suitable for 2xAA NiMH, with AVR BOD at 1.8V.
+// Set to be high enough for common sensors such as SHT21, ie >= 2.1V.
+static const uint16_t BATTERY_VERY_LOW_cV = 210;
+
+// Default V0p2 low-battery threshold suitable for 2xAA NiMH, with AVR BOD at 1.8V.
+// Set to be high enough for safe motor operation without brownouts, etc.
+static const uint16_t BATTERY_LOW_cV = 245;
+
 // Force a read/poll of the supply voltage and return the value sensed.
 // Expensive/slow.
 // NOT thread-safe nor usable within ISRs (Interrupt Service Routines).
@@ -238,14 +260,15 @@ uint16_t SupplyVoltageCentiVolts::read()
 //  const uint16_t result = ((1023U<<6) / raw) * (1100U>>6); // For mV, without overflow.
   const uint16_t result = (((1023U<<6) / raw) * 55U) >> 5; // For cV, without overflow.
   rawInv = raw;
-  cV = result;
-  isLow = (result <= BATTERY_LOW_CV);
+  value = result;
+  isVeryLow = (result <= BATTERY_VERY_LOW_cV);
+  isLow = isVeryLow || (result <= BATTERY_LOW_cV);
 #if 0 && defined(DEBUG)
   DEBUG_SERIAL_PRINT_FLASHSTRING("Battery cV: ");
   DEBUG_SERIAL_PRINT(result);
   DEBUG_SERIAL_PRINT_FLASHSTRING(" raw ");
   DEBUG_SERIAL_PRINT(raw);
-  if(batteryLow) { DEBUG_SERIAL_PRINT_FLASHSTRING(" LOW"); }
+  if(isLow) { DEBUG_SERIAL_PRINT_FLASHSTRING(" LOW"); }
   DEBUG_SERIAL_PRINTLN();
 #endif
   return(result);

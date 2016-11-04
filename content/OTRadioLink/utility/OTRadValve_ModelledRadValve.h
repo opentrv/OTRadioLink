@@ -483,7 +483,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
         const bool veryRecentUIUse =
                 physicalUI->veryRecentUIControlUse();
         inputState.fastResponseRequired = veryRecentUIUse;
-        // Widen the allowed deadband significantly in an unlit/quiet/vacant room (TODO-383, TODO-593, TODO-786)
+        // Widen the allowed deadband significantly in an unlit/quiet/vacant room (TODO-383, TODO-593, TODO-786, TODO-1037)
         // (or in FROST mode, or if temperature is jittery eg changing fast and filtering has been engaged)
         // to attempt to reduce the total number and size of adjustments and thus reduce noise/disturbance (and battery drain).
         // The wider deadband (less good temperature regulation) might be noticeable/annoying to sensitive occupants.

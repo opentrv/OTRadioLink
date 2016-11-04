@@ -179,7 +179,14 @@ OTV0P2BASE::serialPrintlnAndFlush();
 
 // Actuator/driver for direct local (radiator) valve motor control.
 #define ValveMotorDirectV1_DEFINED
-template <uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin, uint8_t MOTOR_DRIVE_MC_AIN_DigitalPin>
+//   * lowBattOpt  allows monitoring of supply voltage to avoid some activities with low batteries; can be NULL
+//   * minimiseActivityOpt  callback returns true if unnecessary activity should be suppressed
+//     to avoid disturbing occupants, eg when room dark and occupants may be sleeping; can be NULL
+template
+    <
+    uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin, uint8_t MOTOR_DRIVE_MC_AIN_DigitalPin,
+    class LowBatt_t = OTV0P2BASE::SupplyVoltageLow, const LowBatt_t *lowBattOpt = NULL
+    >
 class ValveMotorDirectV1 : public OTRadValve::AbstractRadValve
   {
   private:
@@ -189,7 +196,8 @@ class ValveMotorDirectV1 : public OTRadValve::AbstractRadValve
     CurrentSenseValveMotorDirect logic;
 
   public:
-    ValveMotorDirectV1(uint8_t minOpenPC = OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN,
+    ValveMotorDirectV1(bool (*const minimiseActivityOpt)() = ((bool(*)())NULL),
+                       uint8_t minOpenPC = OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN,
                        uint8_t fairlyOpenPC = OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN)
       : logic(&driver, OTV0P2BASE::getSubCycleTime,
          OTRadValve::CurrentSenseValveMotorDirect::computeMinMotorDRTicks(OTV0P2BASE::SUBCYCLE_TICK_MS_RD),

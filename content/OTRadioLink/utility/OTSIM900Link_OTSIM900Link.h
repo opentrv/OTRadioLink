@@ -202,7 +202,7 @@ namespace OTSIM900Link
     template<uint8_t rxPin, uint8_t txPin, uint8_t PWR_PIN,
     class ser_t
 #ifdef OTSoftSerial2_DEFINED
-        = OTV0P2BASE::OTSoftSerial2<rxPin, txPin, SIM900_MAX_baud>
+        = OTV0P2BASE::OTSoftSerial2<rxPin, txPin, OTSIM900LinkBase::SIM900_MAX_baud>
 #endif
     >
     class OTSIM900Link final : public OTSIM900LinkBase
