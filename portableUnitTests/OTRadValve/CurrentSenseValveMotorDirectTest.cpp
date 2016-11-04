@@ -247,6 +247,7 @@ TEST(CurrentSenseValveMotorDirect,initStateWalkthrough)
         ASSERT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawn, csvmd1.getState());
         csvmd1.signalValveFitted();
         csvmd1.poll();
+        ASSERT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valveCalibrating, csvmd1.getState());
         csvmd1.poll();
         // Check deferral of (re)calibration.
         ASSERT_EQ(low, csvmd1.shouldDeferCalibration());
