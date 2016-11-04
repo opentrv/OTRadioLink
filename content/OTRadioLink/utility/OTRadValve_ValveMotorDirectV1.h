@@ -177,15 +177,16 @@ OTV0P2BASE::serialPrintlnAndFlush();
       }
   };
 
-// Actuator/driver for direct local (radiator) valve motor control.
 #define ValveMotorDirectV1_DEFINED
+// Actuator/driver for direct local (radiator) valve motor control.
 //   * lowBattOpt  allows monitoring of supply voltage to avoid some activities with low batteries; can be NULL
 //   * minimiseActivityOpt  callback returns true if unnecessary activity should be suppressed
 //     to avoid disturbing occupants, eg when room dark and occupants may be sleeping; can be NULL
+#define ValveMotorDirectV1_DEFINED
 template
     <
     uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin, uint8_t MOTOR_DRIVE_MC_AIN_DigitalPin,
-    class LowBatt_t = OTV0P2BASE::SupplyVoltageLow, const LowBatt_t *lowBattOpt = NULL
+    class LowBatt_t = OTV0P2BASE::SupplyVoltageLow, LowBatt_t *lowBattOpt = NULL
     >
 class ValveMotorDirectV1 : public OTRadValve::AbstractRadValve
   {
@@ -204,6 +205,7 @@ class ValveMotorDirectV1 : public OTRadValve::AbstractRadValve
          OTRadValve::CurrentSenseValveMotorDirect::computeSctAbsLimit(OTV0P2BASE::SUBCYCLE_TICK_MS_RD,
                                                                       OTV0P2BASE::GSCT_MAX,
                                                                       ValveMotorDirectV1HardwareDriverBase::minMotorRunupTicks),
+        lowBattOpt, minimiseActivityOpt,
         minOpenPC, fairlyOpenPC)
       { }
 
