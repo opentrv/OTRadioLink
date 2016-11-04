@@ -103,7 +103,7 @@ template <class valveControlParams = DEFAULT_ValveControlParameters>
 class TempControlSimpleEEPROMBacked final : public TempControlSimpleVCP<valveControlParams>
   {
   public:
-    virtual uint8_t getWARMTargetC() const
+    virtual uint8_t getWARMTargetC() const override
       {
       // Get persisted value, if any.
       const uint8_t stored = eeprom_read_byte((uint8_t *)V0P2BASE_EE_START_WARM_C);
@@ -113,7 +113,7 @@ class TempControlSimpleEEPROMBacked final : public TempControlSimpleVCP<valveCon
       return(OTV0P2BASE::fnmax(stored, getFROSTTargetC()));
       }
 
-    virtual uint8_t getFROSTTargetC() const
+    virtual uint8_t getFROSTTargetC() const override
       {
       // Get persisted value, if any.
       const uint8_t stored = eeprom_read_byte((uint8_t *)V0P2BASE_EE_START_FROST_C);
@@ -127,7 +127,7 @@ class TempControlSimpleEEPROMBacked final : public TempControlSimpleVCP<valveCon
     // Set (non-volatile) 'FROST' protection target in C; no higher than getWARMTargetC() returns, strictly positive, in range [MIN_TARGET_C,MAX_TARGET_C].
     // Can also be used, even when a temperature pot is present, to set a floor setback temperature.
     // Returns false if not set, eg because outside range [MIN_TARGET_C,MAX_TARGET_C], else returns true.
-    bool setFROSTTargetC(const uint8_t tempC)
+    bool setFROSTTargetC(const uint8_t tempC) override
       {
       if((tempC < OTRadValve::MIN_TARGET_C) || (tempC > OTRadValve::MAX_TARGET_C)) { return(false); } // Invalid temperature.
       if(tempC > getWARMTargetC()) { return(false); } // Cannot set above WARM target.
@@ -137,7 +137,7 @@ class TempControlSimpleEEPROMBacked final : public TempControlSimpleVCP<valveCon
 
     // Set 'WARM' target in C; no lower than getFROSTTargetC() returns, strictly positive, in range [MIN_TARGET_C,MAX_TARGET_C].
     // Returns false if not set, eg because below FROST setting or outside range [MIN_TARGET_C,MAX_TARGET_C], else returns true.
-    bool setWARMTargetC(const uint8_t tempC)
+    bool setWARMTargetC(const uint8_t tempC) override
       {
       if((tempC < OTRadValve::MIN_TARGET_C) || (tempC > OTRadValve::MAX_TARGET_C)) { return(false); } // Invalid temperature.
       if(tempC < getFROSTTargetC()) { return(false); } // Cannot set below FROST target.
@@ -203,6 +203,7 @@ uint8_t TempControlTempPot_computeWARMTargetC(const uint8_t pot, const uint8_t l
 #define TempControlTempPot_DEFINED
 // All template parameters must be non-NULL except the humidity sensor.
 //   * rh  (const pointer to) relative humidity sensor; NULL if none.
+// Does not use EEPROM.
 template <const OTV0P2BASE::SensorTemperaturePot *const tempPot, class valveControlParams = DEFAULT_ValveControlParameters, class rh_t = OTV0P2BASE::HumiditySensorBase, const rh_t *rh = (const rh_t *)NULL>
 class TempControlTempPot final : public TempControlSimpleVCP<valveControlParams>
   {
@@ -212,19 +213,14 @@ class TempControlTempPot final : public TempControlSimpleVCP<valveControlParams>
     mutable uint8_t resultLast = 0;
 
   public:
-    virtual uint8_t getFROSTTargetC() const
+    virtual uint8_t getFROSTTargetC() const override
       {
       // Prevent falling to lowest frost temperature if relative humidity is high (eg to avoid mould).
       const uint8_t result = (!this->hasEcoBias() || ((NULL != rh) && rh->isAvailable() && rh->isRHHighWithHyst())) ? valveControlParams::FROST_COM : valveControlParams::FROST_ECO;
-//    #if defined(ENABLE_SETTABLE_TARGET_TEMPERATURES)
-      const uint8_t stored = eeprom_read_byte((uint8_t *)V0P2BASE_EE_START_FROST_C);
-      // If stored value is set and in bounds and higher than computed value then use stored value instead.
-      if((stored >= OTRadValve::MIN_TARGET_C) && (stored <= OTRadValve::MAX_TARGET_C) && (stored > result)) { return(stored); }
-//    #endif
       return(result);
       }
 
-    virtual uint8_t getWARMTargetC() const
+    virtual uint8_t getWARMTargetC() const override
       {
       const uint8_t pot = tempPot->get();
       // Force recomputation if pot value changed
