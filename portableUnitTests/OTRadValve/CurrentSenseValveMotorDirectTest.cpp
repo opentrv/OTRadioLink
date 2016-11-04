@@ -213,8 +213,10 @@ TEST(CurrentSenseValveMotorDirect,initStateWalkthrough)
     // Verify NOT marked as in error state immediately upon initialisation.
     ASSERT_TRUE(!csvmd1.isInErrorState());
     csvmd1.poll();
-    // Whitebox test of internal state: should be init.
     ASSERT_EQ(OTRadValve::CurrentSenseValveMotorDirect::initWaiting, csvmd1.getState());
+    // Within a reasonable time to (10s of seconds) should move to new state.
+    for(int i = 100; --i > 0 && OTRadValve::CurrentSenseValveMotorDirect::initWaiting == csvmd1.getState(); ) { csvmd1.poll(); }
+    ASSERT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawing, csvmd1.getState());
 
 
     // TODO
