@@ -187,7 +187,7 @@ class DRV8850Driver final : public OTRadValve::AbstractRadValve
   public:
     DRV8850Driver(uint8_t minOpenPC = OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN,
                        uint8_t fairlyOpenPC = OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN)
-      : logic(&driver, minOpenPC, fairlyOpenPC) { }
+      : logic(&driver /* , lowBattOpt, minimiseActivityOpt, minOpenPC, fairlyOpenPC */ ) { } // FIXME: args wrong generally!
 
     // Regular poll/update.
     // This and get() return the actual estimated valve position.

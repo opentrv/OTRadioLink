@@ -184,11 +184,26 @@ bool CurrentSenseValveMotorDirect::runTowardsEndStop(const bool toOpen)
   }
 
 // Report an apparent serious tracking error that may need full recalibration.
-void CurrentSenseValveMotorDirect::trackingError()
+void CurrentSenseValveMotorDirect::reportTrackingError()
   {
-  // TODO: possibly ignore tracking errors for a minimum interval.
+  // Possibly ignore tracking errors for a minimum interval.
+  // May simply switch to 'binary' on/off mode if the calibration is off.
   needsRecalibrating = true;
   }
+
+// True if (re)calibration should be deferred.
+// Potentially an expensive call in time and energy.
+bool CurrentSenseValveMotorDirect::shouldDeferCalibration()
+    {
+    // Try to force measurement of supply voltage now.
+    const bool haveBattMonitor = (NULL != lowBattOpt);
+    if(haveBattMonitor) { lowBattOpt->read(); }
+    // Defer calibration if doing it now would be a bad idea, eg in a bedroom at night.
+    const bool deferRecalibration =
+        (haveBattMonitor && lowBattOpt->isSupplyVoltageLow()) ||
+        ((NULL != minimiseActivityOpt) && minimiseActivityOpt());
+    return(deferRecalibration);
+    }
 
 // Poll.
 // Regular poll every 1s or 2s,
@@ -200,6 +215,12 @@ void CurrentSenseValveMotorDirect::poll()
 #if 0 && defined(V0P2BASE_DEBUG)
 OTV0P2BASE::serialPrintAndFlush(F("    isOnShaftEncoderMark(): "));
 OTV0P2BASE::serialPrintAndFlush(hw->isOnShaftEncoderMark());
+OTV0P2BASE::serialPrintlnAndFlush();
+#endif
+
+#if 0
+OTV0P2BASE::serialPrintAndFlush("poll(): ");
+OTV0P2BASE::serialPrintAndFlush(state);
 OTV0P2BASE::serialPrintlnAndFlush();
 #endif
 
@@ -229,9 +250,8 @@ OTV0P2BASE::serialPrintlnAndFlush();
       {
 //V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("  initWaiting");
 
-      static uint8_t ticksWaited;
       // Assume 2s between calls to poll().
-      if(ticksWaited < initialRetractDelay_s/2) { ++ticksWaited; break; } // Postpone pin withdraw after power-up.
+      if(perState.initWaiting.ticksWaited < initialRetractDelay_s/2) { ++perState.initWaiting.ticksWaited; break; } // Postpone pin withdraw after power-up.
 
       // Tactile feedback and ensure that the motor is left stopped.
       // Should also allow calibration of the shaft-encoder outputs, ie [min.max].
@@ -273,7 +293,10 @@ OTV0P2BASE::serialPrintlnAndFlush();
       // TODO: alternative timeout allows for automatic recovery from crash/restart after say 10 mins.
       // From: void signalValveFitted() { perState.valvePinWithdrawn.valveFitted = true; }
 
-      // Once fitted, move to calibration.
+      // Note that (initial) calibration is needed.
+      needsRecalibrating = true;
+
+      // Once the valve has been fitted, move to calibration.
       if(perState.valvePinWithdrawn.valveFitted)
         { changeState(valveCalibrating); }
       break;
@@ -287,15 +310,22 @@ OTV0P2BASE::serialPrintlnAndFlush();
 //      V0P2BASE_DEBUG_SERIAL_PRINT(perState.calibrating.calibState);
 //      V0P2BASE_DEBUG_SERIAL_PRINTLN();
 
+      // Defer calibration if doing it now would be a bad idea, eg in a bedroom at night.
+      if(shouldDeferCalibration())
+        {
+        changeState(valveNormal);
+        break;
+        }
+
       // If taking stupidly long to calibrate
       // then assume a problem with the motor/mechanics and give up.
       // Don't panic() so that the unit can still (for example) transmit stats.
       if(++perState.valveCalibrating.wallclock2sTicks > MAX_TRAVEL_WALLCLOCK_2s_TICKS)
-          {
-          OTV0P2BASE::serialPrintlnAndFlush(F("!valve calibration fail"));
-          changeState(valveError);
-          break;
-          }
+        {
+        OTV0P2BASE::serialPrintlnAndFlush(F("!valve calibration fail"));
+        changeState(valveError);
+        break;
+        }
 
       // Select activity based on micro-state.
       switch(perState.valveCalibrating.calibState)
@@ -412,19 +442,24 @@ OTV0P2BASE::serialPrintlnAndFlush();
       {
 //V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("  valveNormal");
 
+      // If the current estimated position matches the target
+      // then there is usually nothing to do.
+      if(currentPC == targetPC) { break; }
+
       // Recalibrate if a serious tracking error was detected.
       if(needsRecalibrating)
         {
 #if 0 && defined(V0P2BASE_DEBUG)
 V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("!needsRecalibrating");
 #endif
-        changeState(valveCalibrating);
-        break;
-        }
 
-      // If the current estimated position matches the target
-      // then there is usually nothing to do.
-      if(currentPC == targetPC) { break; }
+        // Defer calibration if doing it now would be a bad idea, eg in a bedroom at night.
+        if(!shouldDeferCalibration())
+            {
+            changeState(valveCalibrating);
+            break;
+            }
+        }
 
       // If the current estimated position does NOT match the target
       // then (incrementally) try to adjust to match.
@@ -436,13 +471,19 @@ V0P2BASE_DEBUG_SERIAL_PRINT(targetPC);
 V0P2BASE_DEBUG_SERIAL_PRINTLN();
 #endif
 
+      // If true, running directly to end-stops and not doing any dead-reckoning.
+      const bool binaryMode = inNonProprtionalMode();
+      // If in binary mode, should the valve be fully open.
+      // Set to the same threshold value used to trigger boiler call for heat.
+      const bool binaryOpen = (targetPC >= OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN);
+
       // Special case where target is an end-point (or close to).
       // Run fast to the end-stop.
       // Be eager and pull to end stop if near for continuous auto-recalibration.
       // Must work when eps is zero (ie with sub-percent precision).
       const uint8_t eps = cp.getApproxPrecisionPC();
-      const bool toOpenFast = (targetPC >= (100 - 2*eps));
-      if(toOpenFast || (targetPC <= OTV0P2BASE::fnmax(2*eps, minOpenPC>>1)))
+      const bool toOpenFast = (binaryMode && binaryOpen) || (targetPC >= (100 - 2*eps));
+      if(binaryMode || toOpenFast || (targetPC <= OTV0P2BASE::fnmax(2*eps, minOpenPC>>1)))
         {
         // If not apparently yet at end-stop
         // (ie not at correct end stop or with spurious unreconciled ticks)
@@ -481,7 +522,7 @@ if(toOpenFast) { V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("-->"); } else { V0P2
           {
           // Report serious tracking error (well before 'fairly open' %).
           if(currentPC < OTV0P2BASE::fnmin(fairlyOpenPC, (uint8_t)(100 - 8*eps)))
-            { trackingError(); }
+            { reportTrackingError(); }
           // Silently auto-adjust when end-stop hit close to expected position.
           else
             {
@@ -507,7 +548,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("->");
           // Report serious tracking error.
 //          if(currentPC > max(min(DEFAULT_VALVE_PC_MODERATELY_OPEN-1, 2*DEFAULT_VALVE_PC_MODERATELY_OPEN), 8*eps))
           if(currentPC > OTV0P2BASE::fnmax(2*minOpenPC, 8*eps))
-            { trackingError(); }
+            { reportTrackingError(); }
           // Silently auto-adjust when end-stop hit close to expected position.
           else
             {

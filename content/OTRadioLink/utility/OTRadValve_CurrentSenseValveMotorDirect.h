@@ -166,6 +166,13 @@ class CurrentSenseValveMotorDirect final : public OTRadValve::HardwareMotorDrive
     // This should allow meaningful movement and no sub-cycle overrun.
     uint8_t computeSctAbsLimitDR() const { return(sctAbsLimit - cp.minMotorDRTicks); }
 
+    // Callback returns true if unnecessary activity should be suppressed to avoid disturbing occupants; can be NULL.
+    // Eg when room dark and occupants may be sleeping.
+    bool (*const minimiseActivityOpt)() = ((bool(*)())NULL);
+    // Allows monitoring of supply voltage to avoid some activities with low batteries; can be NULL.
+    // Non-const to allow call to read() to force re-measurement of supply.
+    OTV0P2BASE::SupplyVoltageLow *lowBattOpt = NULL;
+
   public:
     // Basic/coarse state of driver.
     // There may be microstates within most these basic states.
@@ -203,6 +210,8 @@ class CurrentSenseValveMotorDirect final : public OTRadValve::HardwareMotorDrive
     // This can be cleared to all zeros with clearPerState(), so starts each state zeroed.
     union
       {
+      // State used while waiting to withdraw pin.
+      struct { uint8_t ticksWaited; } initWaiting;
       // State used while calibrating.
       struct
         {
@@ -224,9 +233,9 @@ class CurrentSenseValveMotorDirect final : public OTRadValve::HardwareMotorDrive
     // Marked volatile for thread-safe lock-free access (with care).
     volatile bool endStopDetected;
 
-    // Set when valve needs recalibration, eg because dead-reckoning found to be significantly wrong.
+    // Set when valve needs (re)calibration, eg because dead-reckoning found to be significantly wrong.
     // May also need recalibrating after (say) a few weeks to allow for battery/speed droop.
-    bool needsRecalibrating;
+    bool needsRecalibrating = true;
 
     // Calibration parameters gathered/computed from the calibration step.
     // Logically read-only other than during (re)calibration.
@@ -278,7 +287,7 @@ class CurrentSenseValveMotorDirect final : public OTRadValve::HardwareMotorDrive
     void recomputePosition() { currentPC = cp.computePosition(ticksFromOpen, ticksReverse); }
 
     // Report an apparent serious tracking error that may need full recalibration.
-    void trackingError();
+    void reportTrackingError();
 
   public:
     // Create an instance, passing in a reference to the non-NULL hardware driver.
@@ -286,17 +295,23 @@ class CurrentSenseValveMotorDirect final : public OTRadValve::HardwareMotorDrive
     //   * _getSubCycleTimeFn  pointer to function to get current sub-cycle time; never NULL
     //   * _minMotorDRTicks  minimum sub-cycle ticks for dead reckoning; strictly positive
     //   * _sctAbsLimit  absolute limit in sub-cycle beyond which motor should not be started
+    //   * lowBattOpt  allows monitoring of supply voltage to avoid some activities with low batteries; can be NULL
+    //   * minimiseActivityOpt  callback returns true if unnecessary activity should be suppressed
+    //     to avoid disturbing occupants, eg when room dark and occupants may be sleeping; can be NULL
     // Keep all the potentially slow calculations in-line here to allow them to be done at compile-time .
     CurrentSenseValveMotorDirect(OTRadValve::HardwareMotorDriverInterface * const hwDriver,
                                  uint8_t (*_getSubCycleTimeFn)(),
                                  const uint8_t _minMotorDRTicks,
                                  const uint8_t _sctAbsLimit,
+                                 OTV0P2BASE::SupplyVoltageLow *_lowBattOpt = NULL,
+                                 bool (*const _minimiseActivityOpt)() = ((bool(*)())NULL),
                                  uint8_t _minOpenPC = OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN,
                                  uint8_t _fairlyOpenPC = OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN) :
         hw(hwDriver),
         getSubCycleTimeFn(_getSubCycleTimeFn),
         minOpenPC(_minOpenPC), fairlyOpenPC(_fairlyOpenPC),
         sctAbsLimit(_sctAbsLimit),
+        minimiseActivityOpt(_minimiseActivityOpt), lowBattOpt(_lowBattOpt),
         cp(_minMotorDRTicks),
         currentPC(0), targetPC(0)
         { changeState(init); }
@@ -311,10 +326,10 @@ class CurrentSenseValveMotorDirect final : public OTRadValve::HardwareMotorDrive
     driverState getState() const { return((driverState) state); }
 
     // Get current estimated actual % open in range [0,100].
-    uint8_t getCurrentPC() { return(currentPC); }
+    uint8_t getCurrentPC() const { return(currentPC); }
 
     // Get current target % open in range [0,100].
-    uint8_t getTargetPC() { return(targetPC); }
+    uint8_t getTargetPC() const { return(targetPC); }
 
     // Set current target % open in range [0,100].
     // Coerced into range.
@@ -331,31 +346,40 @@ class CurrentSenseValveMotorDirect final : public OTRadValve::HardwareMotorDrive
     // Called when end stop hit, eg by overcurrent detection.
     // Can be called while run() is in progress.
     // Is ISR-/thread- safe.
-    virtual void signalHittingEndStop(bool /*opening*/) { endStopDetected = true; }
+    virtual void signalHittingEndStop(bool /*opening*/) override { endStopDetected = true; }
 
     // Called when encountering leading edge of a mark in the shaft rotation in forward direction (falling edge in reverse).
     // Can be called while run() is in progress.
     // Is ISR-/thread- safe.
-    virtual void signalShaftEncoderMarkStart(bool /*opening*/) { /* TODO */ }
+    virtual void signalShaftEncoderMarkStart(bool /*opening*/) override { /* TODO */ }
 
     // Called with each motor run sub-cycle tick.
     // Is ISR-/thread- safe ***on AVR***.
-    virtual void signalRunSCTTick(bool opening);
+    virtual void signalRunSCTTick(bool opening) override;
 
     // Call when given user signal that valve has been fitted (ie is fully on).
     virtual void signalValveFitted() { if(isWaitingForValveToBeFitted()) { perState.valvePinWithdrawn.valveFitted = true; } }
 
     // Waiting for indication that the valvehead  has been fitted to the tail.
-    virtual bool isWaitingForValveToBeFitted() const { return(state == (uint8_t)valvePinWithdrawn); }
+    bool isWaitingForValveToBeFitted() const { return(state == (uint8_t)valvePinWithdrawn); }
 
     // Returns true iff in normal running state.
     // True means not in error state and not (re)calibrating/(re)initialising/(re)syncing.
     // May be false temporarily while decalcinating.
-    virtual bool isInNormalRunState() const { return(state == (uint8_t)valveNormal); }
+    bool isInNormalRunState() const { return(state == (uint8_t)valveNormal); }
 
     // Returns true if in an error state.
     // May be recoverable by forcing recalibration.
-    virtual bool isInErrorState() const { return(state >= (uint8_t)valveError); }
+    bool isInErrorState() const { return(state >= (uint8_t)valveError); }
+
+    // True if (re)calibration should be deferred.
+    // Potentially an expensive call in time and energy.
+    // Primarily public to allow whitebox unit testing.
+    bool shouldDeferCalibration();
+
+    // If true, proportional mode is not being used and the valve is run to end stops instead.
+    // Primarily public to allow whitebox unit testing.
+    bool inNonProprtionalMode() const { return(needsRecalibrating); }
   };
 
 

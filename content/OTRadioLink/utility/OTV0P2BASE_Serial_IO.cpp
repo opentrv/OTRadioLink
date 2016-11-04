@@ -73,7 +73,7 @@ void serialPrintAndFlush(__FlashStringHelper const * const text)
   _flush();
   if(neededWaking) { powerDownSerial(); }
 #else
-  puts((const char *)text);
+  printf("%s", ((const char *)text));
   _flush();
 #endif
   }
@@ -90,7 +90,7 @@ void serialPrintAndFlush(const char * const text)
   _flush();
   if(neededWaking) { powerDownSerial(); }
 #else
-  puts(text);
+  printf("%s", text);
   _flush();
 #endif
   }
