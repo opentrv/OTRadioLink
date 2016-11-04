@@ -467,7 +467,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
 #endif
 
       // If true, running directly to end-stops and not doing any dead-reckoning.
-      const bool binaryMode = inBinaryMode();
+      const bool binaryMode = inNonProprtionalMode();
       // If in binary mode, should the valve be fully open.
       // Set to the same threshold value used to trigger boiler call for heat.
       const bool binaryOpen = (targetPC >= OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN);

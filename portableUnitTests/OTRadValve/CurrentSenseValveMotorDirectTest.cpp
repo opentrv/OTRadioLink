@@ -111,7 +111,7 @@ class DummyHardwareDriver : public OTRadValve::HardwareMotorDriverInterface
 // Always claims to be at the start of a major cycle.
 static uint8_t dummyGetSubCycleTime() { return(0); }
 
-// Test that direct abstract motor drive logic is sane.
+// Test that direct abstract motor drive logic is constructable and minimally sane..
 //
 // Adapted 2016/10/18 from test_VALVEMODEL.ino testCurrentSenseValveMotorDirect().
 TEST(CurrentSenseValveMotorDirect,bascis)
@@ -135,6 +135,10 @@ TEST(CurrentSenseValveMotorDirect,bascis)
     ASSERT_TRUE(!csvmd1.isInErrorState());
     // Target % open must start off in a sensible state; fully-closed is good.
     ASSERT_EQ(0, csvmd1.getTargetPC());
+    // Until calibration has been successfully run, this should be in non-proportional mode.
+    ASSERT_TRUE(csvmd1.inNonProprtionalMode());
+    // Nothing passed in requires deferral of (re)calibration.
+    ASSERT_FALSE(csvmd1.shouldDeferCalibration());
 }
 
 

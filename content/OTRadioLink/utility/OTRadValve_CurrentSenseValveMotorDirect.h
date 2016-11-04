@@ -263,13 +263,6 @@ class CurrentSenseValveMotorDirect final : public OTRadValve::HardwareMotorDrive
     // Only defined once calibration is complete.
     bool usingPositionalEncoder() const { return(false); }
 
-    // True if (re)calibration should be deferred.
-    // Potentially an expensive call in time and energy.
-    bool shouldDeferCalibration();
-
-    // If true, proportional mode is not being used and the valve is run to end stops instead.
-    bool inBinaryMode() const { return(needsRecalibrating); }
-
     // Run fast towards/to end stop as far as possible in this call.
     // Terminates significantly before the end of the sub-cycle.
     // Possibly allows partial recalibration, or at least re-homing.
@@ -376,6 +369,15 @@ class CurrentSenseValveMotorDirect final : public OTRadValve::HardwareMotorDrive
     // Returns true if in an error state.
     // May be recoverable by forcing recalibration.
     bool isInErrorState() const { return(state >= (uint8_t)valveError); }
+
+    // True if (re)calibration should be deferred.
+    // Potentially an expensive call in time and energy.
+    // Primarily public to allow whitebox unit testing.
+    bool shouldDeferCalibration();
+
+    // If true, proportional mode is not being used and the valve is run to end stops instead.
+    // Primarily public to allow whitebox unit testing.
+    bool inNonProprtionalMode() const { return(needsRecalibrating); }
   };
 
 
