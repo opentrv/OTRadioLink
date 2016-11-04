@@ -281,10 +281,18 @@ class CurrentSenseValveMotorDirect final : public OTRadValve::HardwareMotorDrive
     // Returns true if end-stop has apparently been hit.
     bool runTowardsEndStop(bool toOpen);
 
+    // Run at 'normal' or speed or fast towards/to end for a fixed time/distance.
+    // Terminates significantly before the end of the sub-cycle.
+    // Runs at same speed as during calibration.
+    // Does the right thing with dead-reckoning and/or position detection.
+    // Returns true if end-stop has apparently been hit.
+    bool runTowardsEndStop(bool toOpen, bool normal) { return(normal ? runTowardsEndStop(toOpen) : runFastTowardsEndStop(toOpen)); }
+
     // Compute and apply reconciliation/adjustment of ticks and % position.
     // Uses computePosition() to adjust internal state.
     // Call after moving the valve in normal mode.
-    void recomputePosition() { currentPC = cp.computePosition(ticksFromOpen, ticksReverse); }
+    // Does nothing if calibration is not in place.
+    void recomputePosition() { if(!needsRecalibrating) { currentPC = cp.computePosition(ticksFromOpen, ticksReverse); } }
 
     // Report an apparent serious tracking error that may need full recalibration.
     void reportTrackingError();

@@ -122,7 +122,7 @@ uint8_t CurrentSenseValveMotorDirect::CalibrationParameters::computePosition(
 // Get estimated minimum percentage open for significant flow for this device; strictly positive in range [1,99].
 uint8_t CurrentSenseValveMotorDirect::getMinPercentOpen() const
     {
-    // If in dead-reckoning mode use a very safe estimate,
+    // If in dead-reckoning mode then use a very safe estimate,
     // else use a somewhat tighter one.
     // TODO: optimise, ie don't compute each time if frequently called.
     return(usingPositionalEncoder() ?
@@ -280,7 +280,11 @@ OTV0P2BASE::serialPrintlnAndFlush();
           }
 
       // Once end-stop has been hit, move to state to wait for user signal and then start calibration.
-      if(runFastTowardsEndStop(true)) { changeState(valvePinWithdrawn); }
+
+      // Run cautiously while supply voltage low to try to avoid browning out.
+      const bool low = ((NULL != lowBattOpt) && ((0 == lowBattOpt->read()) || lowBattOpt->isSupplyVoltageLow()));
+
+      if(runTowardsEndStop(true, low)) { changeState(valvePinWithdrawn); }
       break;
       }
 
@@ -477,6 +481,10 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
       // Set to the same threshold value used to trigger boiler call for heat.
       const bool binaryOpen = (targetPC >= OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN);
 
+      // Refuse to close the valve while supply voltage low to try to avoid browning out or leaving valve shut.
+      const bool low = ((NULL != lowBattOpt) && ((0 == lowBattOpt->read()) || lowBattOpt->isSupplyVoltageLow()));
+      if(low && (targetPC < currentPC)) { break; }
+
       // Special case where target is an end-point (or close to).
       // Run fast to the end-stop.
       // Be eager and pull to end stop if near for continuous auto-recalibration.
@@ -488,8 +496,8 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
         // If not apparently yet at end-stop
         // (ie not at correct end stop or with spurious unreconciled ticks)
         // then try again to run to end-stop.
-        if((0 == ticksReverse) && (currentPC == (toOpenFast ? 100 : 0))) { break; } // Done
-        else if(runFastTowardsEndStop(toOpenFast))
+        if(!binaryMode && (0 == ticksReverse) && (currentPC == (toOpenFast ? 100 : 0))) { break; } // Done
+        else if(runTowardsEndStop(toOpenFast, low))
             {
             // TODO: may need to protect against spurious stickiness before end...
             // Reset positional values.
