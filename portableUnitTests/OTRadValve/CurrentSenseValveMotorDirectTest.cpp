@@ -153,7 +153,7 @@ class SVL final : public OTV0P2BASE::SupplyVoltageLow
 static bool _isDark;
 static bool isDark() { return(_isDark); }
 
-// Test that logic for potentially deferring (re)calibration is correct.
+// Test logic for potentially deferring (re)calibration.
 TEST(CurrentSenseValveMotorDirect,calibrationDeferral)
 {
     const uint8_t subcycleTicksRoundedDown_ms = 7; // For REV7: OTV0P2BASE::SUBCYCLE_TICK_MS_RD.
@@ -188,4 +188,35 @@ TEST(CurrentSenseValveMotorDirect,calibrationDeferral)
     ASSERT_FALSE(csvmd1.shouldDeferCalibration());
 }
 
+// Test initial state walk-through without calibration deferral.
+TEST(CurrentSenseValveMotorDirect,initStateWalkthrough)
+{
+    const uint8_t subcycleTicksRoundedDown_ms = 7; // For REV7: OTV0P2BASE::SUBCYCLE_TICK_MS_RD.
+    const uint8_t gsct_max = 255; // For REV7: OTV0P2BASE::GSCT_MAX.
+    const uint8_t minimumMotorRunupTicks = 4; // For REV7: OTRadValve::ValveMotorDirectV1HardwareDriverBase::minMotorRunupTicks.
+    DummyHardwareDriver dhw;
+    SVL svl;
+    svl.setAllLowFlags(false);
+    OTRadValve::CurrentSenseValveMotorDirect csvmd1(&dhw, dummyGetSubCycleTime,
+        OTRadValve::CurrentSenseValveMotorDirect::computeMinMotorDRTicks(subcycleTicksRoundedDown_ms),
+        OTRadValve::CurrentSenseValveMotorDirect::computeSctAbsLimit(subcycleTicksRoundedDown_ms,
+                                                                     gsct_max,
+                                                                     minimumMotorRunupTicks),
+        &svl,
+        [](){return(false);});
+    // Whitebox test of internal state: should be init.
+    ASSERT_EQ(OTRadValve::CurrentSenseValveMotorDirect::init, csvmd1.getState());
+    // Nothing yet requires deferral of (re)calibration.
+    ASSERT_FALSE(csvmd1.shouldDeferCalibration());
+    // Verify NOT marked as in normal run state immediately upon initialisation.
+    ASSERT_TRUE(!csvmd1.isInNormalRunState());
+    // Verify NOT marked as in error state immediately upon initialisation.
+    ASSERT_TRUE(!csvmd1.isInErrorState());
+    csvmd1.poll();
+    // Whitebox test of internal state: should be init.
+    ASSERT_EQ(OTRadValve::CurrentSenseValveMotorDirect::initWaiting, csvmd1.getState());
 
+
+    // TODO
+
+}
