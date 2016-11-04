@@ -67,24 +67,24 @@ class SensorAmbientLightBase : public SimpleTSUint8Sensor
     static const uint8_t DEFAULT_LIGHT_THRESHOLD = 50;
 
     // Returns true if this sensor is apparently unusable.
-    virtual bool isUnavailable() const { return(unusable); }
+    virtual bool isUnavailable() const final { return(unusable); }
 
     // Returns true if room is probably lit enough for someone to be active, with some hysteresis.
     // False if unknown or sensor appears unusable.
     // Thread-safe and usable within ISRs (Interrupt Service Routines).
-    virtual bool isRoomLit() const { return(isRoomLitFlag && !unusable); }
+    bool isRoomLit() const { return(isRoomLitFlag && !unusable); }
 
     // Returns true if room is probably too dark for someone to be active, with some hysteresis.
     // False if unknown or sensor appears unusable,
     // thus it is possible for both isRoomLit() and isRoomDark() to be false.
     // Thread-safe and usable within ISRs (Interrupt Service Routines).
-    virtual bool isRoomDark() const { return(!isRoomLitFlag && !unusable); }
+    bool isRoomDark() const { return(!isRoomLitFlag && !unusable); }
 
     // Get number of minutes (read() calls) that the room has been continuously dark for [0,255].
     // Does not roll over from maximum value, ie stays at 255 until the room becomes light.
     // Reset to zero in light.
     // Stays at zero if the sensor decides that it is unusable.
-    virtual uint8_t getDarkMinutes() const { return(darkTicks); }
+    uint8_t getDarkMinutes() const { return(darkTicks); }
   };
 
 
@@ -204,13 +204,6 @@ class SensorAmbientLight final : public SensorAmbientLightBase
                    uint8_t recentMinimumOrFF, uint8_t recentMaximumOrFF,
                    uint8_t longerTermMinimumOrFF = 0xff, uint8_t longerTermMaximumOrFF = 0xff,
                    bool sensitive = true);
-
-//#ifdef UNIT_TESTS
-//    // Set new value(s) for unit test only.
-//    // Makes this more usable as a mock for testing other components.
-//    virtual void _TEST_set_multi_(uint16_t newRawValue, bool newRoomLitFlag, uint8_t newDarkTicks)
-//      { rawValue = newRawValue; value = newRawValue >> 2; isRoomLitFlag = newRoomLitFlag; darkTicks = newDarkTicks; }
-//#endif
   };
 #endif // ARDUINO_ARCH_AVR
 

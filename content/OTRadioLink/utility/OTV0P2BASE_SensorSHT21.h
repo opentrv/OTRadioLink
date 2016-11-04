@@ -59,7 +59,7 @@ class HumiditySensorBase : public OTV0P2BASE::SimpleTSUint8Sensor
       virtual uint8_t read() { return(value); }
 
       // Returns true if the sensor reading value passed is potentially valid, ie in range [0,100].
-      virtual bool isValid(const uint8_t value) const { return(value <= 100); }
+      virtual bool isValid(const uint8_t value) const final { return(value <= 100); }
 
       // Returns a suggested (JSON) tag/field/key name including units of get(); NULL means no recommended tag.
       // The lifetime of the pointed-to text must be at least that of the Sensor instance.
@@ -67,11 +67,11 @@ class HumiditySensorBase : public OTV0P2BASE::SimpleTSUint8Sensor
 
       // True if RH% high.
       // Thread-safe and usable within ISRs (Interrupt Service Routines).
-      virtual bool isRHHigh() const { return(get() > (HUMIDTY_HIGH_RHPC+HUMIDITY_EPSILON_RHPC)); }
+      bool isRHHigh() const { return(get() > (HUMIDTY_HIGH_RHPC+HUMIDITY_EPSILON_RHPC)); }
 
       // True if RH% high with a hysteresis band of 2 * HUMIDITY_EPSILON_RHPC.
       // Thread-safe and usable within ISRs (Interrupt Service Routines).
-      virtual bool isRHHighWithHyst() const { return(highWithHyst); }
+      bool isRHHighWithHyst() const { return(highWithHyst); }
     };
 
 

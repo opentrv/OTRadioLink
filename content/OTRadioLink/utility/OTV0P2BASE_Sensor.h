@@ -131,16 +131,7 @@ class SimpleTSUint8Sensor : public Sensor<uint8_t>
     // Usually fast.
     // Often likely to be thread-safe or usable within ISRs (Interrupt Service Routines),
     // BUT READ IMPLEMENTATION DOCUMENTATION BEFORE TREATING AS thread/ISR-safe.
-    virtual uint8_t get() const { return(value); }
-
-#ifdef UNIT_TESTS
-    // Set new value for unit test only.
-    // May be just enough to allow get() to see the value for unit tests,
-    // but will not deal with other aspects of sensor state.
-    // Any call to read() or other mutators may overwrite/clear state that this sets.
-    virtual void _TEST_set_(const uint8_t newValue)
-      { value = newValue; }
-#endif
+    virtual uint8_t get() const override { return(value); }
   };
 
 

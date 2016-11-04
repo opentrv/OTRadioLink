@@ -76,7 +76,7 @@ class SimpleTSUint8Actuator : public Actuator<uint8_t>
     // Usually fast.
     // Often likely to be thread-safe or usable within ISRs (Interrupt Service Routines),
     // BUT READ IMPLEMENTATION DOCUMENTATION BEFORE TREATING AS thread/ISR-safe.
-    virtual uint8_t get() const { return(value); }
+    virtual uint8_t get() const override { return(value); }
   };
 
 
