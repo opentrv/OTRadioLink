@@ -145,23 +145,23 @@ class HardwareMotorDriverInterfaceCallbackHandler
   };
 
 // Trivial do-nothing implementation of HardwareMotorDriverInterfaceCallbackHandler.
-class NullHardwareMotorDriverInterfaceCallbackHandler : public HardwareMotorDriverInterfaceCallbackHandler
+class NullHardwareMotorDriverInterfaceCallbackHandler final : public HardwareMotorDriverInterfaceCallbackHandler
   {
   public:
-    virtual void signalHittingEndStop(bool) { }
-    virtual void signalShaftEncoderMarkStart(bool) { }
-    virtual void signalRunSCTTick(bool) { }
+    virtual void signalHittingEndStop(bool) override { }
+    virtual void signalShaftEncoderMarkStart(bool) override { }
+    virtual void signalRunSCTTick(bool) override { }
   };
 
 // Minimal end-stop-noting implementation of HardwareMotorDriverInterfaceCallbackHandler.
 // The field endStopHit should be cleared before starting/running the motor.
-class EndStopHardwareMotorDriverInterfaceCallbackHandler : public HardwareMotorDriverInterfaceCallbackHandler
+class EndStopHardwareMotorDriverInterfaceCallbackHandler final : public HardwareMotorDriverInterfaceCallbackHandler
   {
   public:
     bool endStopHit;
-    virtual void signalHittingEndStop(bool) { endStopHit = true; }
-    virtual void signalShaftEncoderMarkStart(bool) { }
-    virtual void signalRunSCTTick(bool) { }
+    virtual void signalHittingEndStop(bool) override { endStopHit = true; }
+    virtual void signalShaftEncoderMarkStart(bool) override { }
+    virtual void signalRunSCTTick(bool) override { }
   };
 
 

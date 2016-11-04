@@ -77,7 +77,7 @@ TEST(OTSIM900Link,basicsDeadCard)
 // Other tests can look at error handling including unexpected/garbage responses.
 namespace B1
 {
-const bool verbose = true;
+const bool verbose = false;
 
 // Does a simple simulation of SIM900, responding sensibly to all commands needed by the OTSIM900Link impl.
 // Allows for exercise of every major non-PANIC state of the OTSIM900Link implementation.
