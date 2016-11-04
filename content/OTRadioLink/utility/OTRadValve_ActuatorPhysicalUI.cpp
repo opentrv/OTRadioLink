@@ -148,7 +148,7 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
           const bool isLo = tempPotOpt->isAtLoEndStop();
           if(isLo) { valveMode->setWarmModeDebounced(false); }
           // Feed back significant change in pot position, ie at temperature boundaries.
-          // Synthesise a 'warm' target temp that distinguishes the end stops...
+          // Synthesise a 'hot' target temperature that distinguishes the end stops...
           const uint8_t nominalWarmTarget = isLo ? 1 :
               (tempPotOpt->isAtHiEndStop() ? 99 :
               tempControl->getWARMTargetC());
@@ -251,10 +251,9 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
         LEDon(); // flash
         veryTinyPause();
         }
-
       }
 
-    // Ensure that the LED forced off unconditionally at least once each cycle.
+    // Ensure that the main UI LED is forced off unconditionally at least once each cycle.
     LEDoff();
 
     // Handle LEARN buttons (etc) in derived classes.
