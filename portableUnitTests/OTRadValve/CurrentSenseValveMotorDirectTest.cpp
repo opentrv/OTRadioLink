@@ -161,6 +161,7 @@ TEST(CurrentSenseValveMotorDirect,calibrationDeferral)
     const uint8_t minimumMotorRunupTicks = 4; // For REV7: OTRadValve::ValveMotorDirectV1HardwareDriverBase::minMotorRunupTicks.
     DummyHardwareDriver dhw;
     SVL svl;
+    svl.setAllLowFlags(false);
     _isDark = false;
     OTRadValve::CurrentSenseValveMotorDirect csvmd1(&dhw, dummyGetSubCycleTime,
         OTRadValve::CurrentSenseValveMotorDirect::computeMinMotorDRTicks(subcycleTicksRoundedDown_ms),
