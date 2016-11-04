@@ -63,8 +63,8 @@ class SensorAmbientLightBase : public SimpleTSUint8Sensor
 
   public:
     // Default value for (default)LightThreshold.
-    // Worked for normal REV2 LDR pointing forward.
-    static const uint8_t DEFAULT_LIGHT_THRESHOLD = 50;
+    // For REV2 LDR and REV7 phototransistor.
+    static const uint8_t DEFAULT_LIGHT_THRESHOLD = 16;
 
     // Returns true if this sensor is apparently unusable.
     virtual bool isUnavailable() const final { return(unusable); }
@@ -112,6 +112,20 @@ class SensorAmbientLightMock : public SensorAmbientLightBase
 
 #ifdef ARDUINO_ARCH_AVR
 // Sensor for ambient light level; 0 is dark, 255 is bright.
+//
+// The REV7 implementation expects a phototransitor TEPT4400 (50nA dark current, nominal 200uA@100lx@Vce=50V) from IO_POWER_UP to LDR_SENSOR_AIN and 220k to ground.
+// Measurement should be taken wrt to internal fixed 1.1V bandgap reference, since light indication is current flow across a fixed resistor.
+// Aiming for maximum reading at or above 100--300lx, ie decent domestic internal lighting.
+// Note that phototransistor is likely far more directionally-sensitive than REV2's LDR and its response nominally nearly linear.
+// This extends the dynamic range and switches to measurement vs supply when full-scale against bandgap ref, then scales by Vss/Vbandgap and compresses to fit.
+// http://home.wlv.ac.uk/~in6840/Lightinglevels.htm
+// http://www.engineeringtoolbox.com/light-level-rooms-d_708.html
+// http://www.pocklington-trust.org.uk/Resources/Thomas%20Pocklington/Documents/PDF/Research%20Publications/GPG5.pdf
+// http://www.vishay.com/docs/84154/appnotesensors.pdf
+//
+// The REV2 implementation expects an LDR (1M dark resistance) from IO_POWER_UP to LDR_SENSOR_AIN and 100k to ground.
+// Measurement should be taken wrt to supply voltage, since light indication is a fraction of that.
+// Values below from PICAXE V0.09 impl approx multiplied by 4+ to allow for scale change.
 #define SensorAmbientLight_DEFINED
 class SensorAmbientLight final : public SensorAmbientLightBase
   {
