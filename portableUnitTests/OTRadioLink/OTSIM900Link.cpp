@@ -131,9 +131,9 @@ class GoodSimulator final : public Stream
           collectingCommand = false;
           if(verbose) { fprintf(stderr, "command received: %s\n", command.c_str()); }
           // Respond to particular commands...
-          if("AT" == command) { reply = "AT\r"; }  // Relevant states: GET_STATE, RETRY_GET_STATE, START_UP
-          else if("AT+CPIN?" == command) { reply = /* (random() & 1) ? "No PIN\r" : */ "READY\r"; }  // Relevant states: CHECK_PIN
-          else if("AT+CREG?" == command) { reply = /* (random() & 1) ? "+CREG: 0,0\r" : */ "+CREG: 0,5\r"; } // Relevant states: WAIT_FOR_REGISTRATION
+          if("AT" == command) { reply = "AT\r\n\r\nOK\r\n"; }  // Relevant states: GET_STATE, RETRY_GET_STATE, START_UP
+          else if("AT+CPIN?" == command) { reply = /* (random() & 1) ? "No PIN\r" : */ "AT+CPIN?\r\n\r\n+CPIN: READY\r\n\r\nOK\r\n"; }  // Relevant states: CHECK_PIN
+          else if("AT+CREG?" == command) { reply = /* (random() & 1) ? "+CREG: 0,0\r" : */ "AT+CREG?\r\n\r\n+CREG: 0,5\r\n\r\n'OK\r\n"; } // Relevant states: WAIT_FOR_REGISTRATION
           else if("AT+CSTT=apn" == command) { reply =  "AT+CSTT\r\n\r\nOK\r"; } // Relevant states: SET_APN
           else if("AT+CIPSTATUS" == command) {
               switch (sim900LinkState){
