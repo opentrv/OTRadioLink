@@ -402,7 +402,7 @@ namespace OTSIM900Link
                                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*CHECK_PIN")
                                 if (++retryCounter > maxRetries)
                                     state = RESET;
-                                else if (!checkPIN())
+                                else if (checkPIN())
                                     {
                                     state = WAIT_FOR_REGISTRATION;
                                     retryCounter = 0;
@@ -898,7 +898,7 @@ namespace OTSIM900Link
             }
         /**
          * @brief   Check if PIN required
-         * @retval  0 if SIM card unlocked.
+         * @retval  True if SIM card unlocked.
          * @note    reply: b'AT+CPIN?\r\n\r\n+CPIN: READY\r\n\r\nOK\r\n'
          */
         bool checkPIN()
