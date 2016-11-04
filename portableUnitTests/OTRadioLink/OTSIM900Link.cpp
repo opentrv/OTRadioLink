@@ -97,7 +97,11 @@ class GoodSimulator final : public Stream
     // Reply (postfix) being returned to OTSIM900Link: empty if none.
     std::string reply;
 
-    OTSIM900Link::OTSIM900LinkState sim900LinkStates;
+    // Keep track (crudely) of state.
+    // 0: Default
+    // 1: CIPSTATUS asked for once.
+    // 2: CIPSTATUS asked for twice.
+    uint8_t sim900LinkState = 0;
 
   public:
     void begin(unsigned long) { }
@@ -132,16 +136,20 @@ class GoodSimulator final : public Stream
           else if("AT+CREG?" == command) { reply = /* (random() & 1) ? "+CREG: 0,0\r" : */ "+CREG: 0,5\r"; } // Relevant states: WAIT_FOR_REGISTRATION
           else if("AT+CSTT=apn" == command) { reply =  "AT+CSTT\r\n\r\nOK\r"; } // Relevant states: SET_APN
           else if("AT+CIPSTATUS" == command) {
-//              switch (_getState()){
-//                  case sim900LinkStates.START_GPRS:
-//                  reply = "AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP START\r\n";
-//                  break;
-//                  case sim900LinkStates.WAIT_FOR_UDP:
-//                  reply = (random() & 1) ? "AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP GPRSACT\r\n" : "AT+CIPSTATUS\r\n\r\nOK\r\nSTATE: CONNECT OK\r\n";
-//                  break;
-//                  default:break;
-//              }
-
+              switch (sim900LinkState){
+                  case 0:
+                      sim900LinkState = 1;
+                      reply = "AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP START\r\n";
+                      break;
+                  case 1:
+                      sim900LinkState = 2;
+                      reply = "AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP GPRSACT\r\n";
+                      break;
+                  case 2:
+                      reply = "AT+CIPSTATUS\r\n\r\nOK\r\nSTATE: CONNECT OK\r\n";
+                      break;
+                  default: break;
+              }
           }  // Relevant states: START_GPRS, WAIT_FOR_UDP
           else if("AT+CIICR" == command) { reply = "AT+CIICR\r\n\r\nOK\r\n"; }  // Relevant states: START_GPRS
           else if("AT+CIFSR" == command) { reply = "AT+CIFSR\r\n\r\n172.16.101.199\r\n"; }  // Relevant States: GET_IP
