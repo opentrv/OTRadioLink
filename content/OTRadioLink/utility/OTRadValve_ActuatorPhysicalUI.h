@@ -134,7 +134,7 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // Marked true if the physical UI controls are being used.
     // Cleared at end of read().
     // Marked volatile for thread-safe lock-free non-read-modify-write access to byte-wide value.
-    volatile bool statusChange;
+    volatile bool statusChange = false;
 
     // Minutes that freshly-touched controls are regarded as 'recently' used.
     static const uint8_t UI_DEFAULT_RECENT_USE_TIMEOUT_M = 31;
@@ -148,7 +148,7 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // Set true on significant local UI operation.
     // Should be cleared when feedback has been given.
     // Marked volatile for thread-safe lockless access;
-    volatile bool significantUIOp;
+    volatile bool significantUIOp = false;
 
     // UI feedback.
     // Provide low-key visual / audio / tactile feedback on a significant user action.
@@ -255,6 +255,8 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
 //         (NULL == _ambLight) ||
 //         (NULL == _LEDon) ||
 //         (NULL == _LEDoff)) { panic(); }
+      // Ensure UI starts up as not (recently) used.
+      uiTimeoutM.store(0);
       }
 
     // Record local manual operation of a physical UI control, eg not remote or via CLI.
