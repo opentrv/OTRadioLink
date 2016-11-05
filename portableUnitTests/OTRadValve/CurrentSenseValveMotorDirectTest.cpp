@@ -215,6 +215,42 @@ class DummyHardwareDriverHitEndstop : public OTRadValve::HardwareMotorDriverInte
   };
 
 // Test initial state walk-through without and with calibration deferral.
+static void initStateWalkthrough(OTRadValve::CurrentSenseValveMotorDirect *const csv, const bool batteryLow)
+    {
+    // Whitebox test of internal state: should be init.
+    EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirectBase::init, csv->getState());
+    // Check deferral of (re)calibration.
+    EXPECT_EQ(batteryLow, csv->shouldDeferCalibration());
+    // Verify NOT marked as in normal run state immediately upon initialisation.
+    EXPECT_TRUE(!csv->isInNormalRunState());
+    // Verify NOT marked as in error state immediately upon initialisation.
+    EXPECT_TRUE(!csv->isInErrorState());
+    csv->poll();
+    EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::initWaiting, csv->getState());
+    // Within a reasonable time to (10s of seconds) should move to new state, but not instantly.
+    csv->poll();
+    EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::initWaiting, csv->getState());
+    csv->poll();
+    EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::initWaiting, csv->getState());
+    for(int i = 100; --i > 0 && OTRadValve::CurrentSenseValveMotorDirect::initWaiting == csv->getState(); ) { csv->poll(); }
+    EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawing, csv->getState());
+    // Fake hardware hits end-stop immediate, so leaves 'withdrawing' state.
+    csv->poll();
+    EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawn, csv->getState());
+    EXPECT_EQ(100, csv->getCurrentPC()) << "valve must now be fully open";
+    // Waiting for value to be signalled that it has been fitted...
+    csv->poll();
+    EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawn, csv->getState());
+    csv->signalValveFitted();
+    csv->poll();
+    EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valveCalibrating, csv->getState());
+    csv->poll();
+    // Check deferral of (re)calibration.
+    EXPECT_EQ(batteryLow, csv->shouldDeferCalibration());
+    // Valve should now start calibrating, but calibration is skipped with low battery...
+    EXPECT_EQ(batteryLow ? OTRadValve::CurrentSenseValveMotorDirect::valveNormal :
+                           OTRadValve::CurrentSenseValveMotorDirect::valveCalibrating, csv->getState());
+    }
 TEST(CurrentSenseValveMotorDirect,initStateWalkthrough)
 {
     const bool verbose = false;
@@ -226,48 +262,18 @@ TEST(CurrentSenseValveMotorDirect,initStateWalkthrough)
         {
         const bool low = (1 == s); // Is battery low...
         if(verbose) { printf("Battery low %s...\n", low ? "true" : "false"); }
-        DummyHardwareDriverHitEndstop dhw;
         SVL svl;
         svl.setAllLowFlags(low);
-        OTRadValve::CurrentSenseValveMotorDirect csvmd1(&dhw, dummyGetSubCycleTime,
+
+        // Test full impl.
+        DummyHardwareDriverHitEndstop dhw2;
+        OTRadValve::CurrentSenseValveMotorDirect csvmd1(&dhw2, dummyGetSubCycleTime,
             OTRadValve::CurrentSenseValveMotorDirect::computeMinMotorDRTicks(subcycleTicksRoundedDown_ms),
             OTRadValve::CurrentSenseValveMotorDirect::computeSctAbsLimit(subcycleTicksRoundedDown_ms,
                                                                          gsct_max,
                                                                          minimumMotorRunupTicks),
             &svl,
             [](){return(false);});
-        // Whitebox test of internal state: should be init.
-        EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::init, csvmd1.getState());
-        // Check deferral of (re)calibration.
-        EXPECT_EQ(low, csvmd1.shouldDeferCalibration());
-        // Verify NOT marked as in normal run state immediately upon initialisation.
-        EXPECT_TRUE(!csvmd1.isInNormalRunState());
-        // Verify NOT marked as in error state immediately upon initialisation.
-        EXPECT_TRUE(!csvmd1.isInErrorState());
-        csvmd1.poll();
-        EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::initWaiting, csvmd1.getState());
-        // Within a reasonable time to (10s of seconds) should move to new state, but not instantly.
-        csvmd1.poll();
-        EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::initWaiting, csvmd1.getState());
-        csvmd1.poll();
-        EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::initWaiting, csvmd1.getState());
-        for(int i = 100; --i > 0 && OTRadValve::CurrentSenseValveMotorDirect::initWaiting == csvmd1.getState(); ) { csvmd1.poll(); }
-        EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawing, csvmd1.getState());
-        // Fake hardware hits end-stop immediate, so leaves 'withdrawing' state.
-        csvmd1.poll();
-        EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawn, csvmd1.getState());
-        EXPECT_EQ(100, csvmd1.getCurrentPC()) << "valve must now be fully open";
-        // Waiting for value to be signalled that it has been fitted...
-        csvmd1.poll();
-        EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawn, csvmd1.getState());
-        csvmd1.signalValveFitted();
-        csvmd1.poll();
-        EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valveCalibrating, csvmd1.getState());
-        csvmd1.poll();
-        // Check deferral of (re)calibration.
-        EXPECT_EQ(low, csvmd1.shouldDeferCalibration());
-        // Valve should now start calibrating, but calibration is skipped with low battery...
-        EXPECT_EQ(low ? OTRadValve::CurrentSenseValveMotorDirect::valveNormal :
-                        OTRadValve::CurrentSenseValveMotorDirect::valveCalibrating, csvmd1.getState());
+        initStateWalkthrough(&csvmd1, low);
         }
 }
