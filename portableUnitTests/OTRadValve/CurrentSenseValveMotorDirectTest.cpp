@@ -126,17 +126,19 @@ TEST(CurrentSenseValveMotorDirect,bascis)
 
     // POWER UP
     // Whitebox test of internal state: should be init.
-    ASSERT_EQ(OTRadValve::CurrentSenseValveMotorDirect::init, csvmd1.getState());
+    EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::init, csvmd1.getState());
     // Verify NOT marked as in normal run state immediately upon initialisation.
-    ASSERT_TRUE(!csvmd1.isInNormalRunState());
+    EXPECT_TRUE(!csvmd1.isInNormalRunState());
     // Verify NOT marked as in error state immediately upon initialisation.
-    ASSERT_TRUE(!csvmd1.isInErrorState());
-    // Target % open must start off in a sensible state; fully-closed is good.
-    ASSERT_EQ(0, csvmd1.getTargetPC());
+    EXPECT_TRUE(!csvmd1.isInErrorState());
+    // Target % open must start off in a sensible state.
+    EXPECT_GE(100, csvmd1.getTargetPC());
+    // Current % open must start off in a sensible state.
+    EXPECT_GE(100, csvmd1.getCurrentPC());
     // Until calibration has been successfully run, this should be in non-proportional mode.
-    ASSERT_TRUE(csvmd1.inNonProprtionalMode());
+    EXPECT_TRUE(csvmd1.inNonProprtionalMode());
     // Nothing passed in requires deferral of (re)calibration.
-    ASSERT_FALSE(csvmd1.shouldDeferCalibration());
+    EXPECT_FALSE(csvmd1.shouldDeferCalibration());
 }
 
 class SVL final : public OTV0P2BASE::SupplyVoltageLow
@@ -223,36 +225,37 @@ TEST(CurrentSenseValveMotorDirect,initStateWalkthrough)
             &svl,
             [](){return(false);});
         // Whitebox test of internal state: should be init.
-        ASSERT_EQ(OTRadValve::CurrentSenseValveMotorDirect::init, csvmd1.getState());
+        EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::init, csvmd1.getState());
         // Check deferral of (re)calibration.
-        ASSERT_EQ(low, csvmd1.shouldDeferCalibration());
+        EXPECT_EQ(low, csvmd1.shouldDeferCalibration());
         // Verify NOT marked as in normal run state immediately upon initialisation.
-        ASSERT_TRUE(!csvmd1.isInNormalRunState());
+        EXPECT_TRUE(!csvmd1.isInNormalRunState());
         // Verify NOT marked as in error state immediately upon initialisation.
-        ASSERT_TRUE(!csvmd1.isInErrorState());
+        EXPECT_TRUE(!csvmd1.isInErrorState());
         csvmd1.poll();
-        ASSERT_EQ(OTRadValve::CurrentSenseValveMotorDirect::initWaiting, csvmd1.getState());
+        EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::initWaiting, csvmd1.getState());
         // Within a reasonable time to (10s of seconds) should move to new state, but not instantly.
         csvmd1.poll();
-        ASSERT_EQ(OTRadValve::CurrentSenseValveMotorDirect::initWaiting, csvmd1.getState());
+        EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::initWaiting, csvmd1.getState());
         csvmd1.poll();
-        ASSERT_EQ(OTRadValve::CurrentSenseValveMotorDirect::initWaiting, csvmd1.getState());
+        EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::initWaiting, csvmd1.getState());
         for(int i = 100; --i > 0 && OTRadValve::CurrentSenseValveMotorDirect::initWaiting == csvmd1.getState(); ) { csvmd1.poll(); }
-        ASSERT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawing, csvmd1.getState());
+        EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawing, csvmd1.getState());
         // Fake hardware hits end-stop immediate, so leaves 'withdrawing' state.
         csvmd1.poll();
-        ASSERT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawn, csvmd1.getState());
+        EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawn, csvmd1.getState());
         // Waiting for value to be signalled that it has been fitted...
         csvmd1.poll();
-        ASSERT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawn, csvmd1.getState());
+        EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawn, csvmd1.getState());
+        EXPECT_EQ(100, csvmd1.getCurrentPC()) << "valve now fully open";
         csvmd1.signalValveFitted();
         csvmd1.poll();
-        ASSERT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valveCalibrating, csvmd1.getState());
+        EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valveCalibrating, csvmd1.getState());
         csvmd1.poll();
         // Check deferral of (re)calibration.
-        ASSERT_EQ(low, csvmd1.shouldDeferCalibration());
+        EXPECT_EQ(low, csvmd1.shouldDeferCalibration());
         // Valve should now start calibrating, but calibration is skipped with low battery...
-        ASSERT_EQ(low ? OTRadValve::CurrentSenseValveMotorDirect::valveNormal :
+        EXPECT_EQ(low ? OTRadValve::CurrentSenseValveMotorDirect::valveNormal :
                         OTRadValve::CurrentSenseValveMotorDirect::valveCalibrating, csvmd1.getState());
         }
 }

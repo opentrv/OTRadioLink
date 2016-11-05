@@ -297,6 +297,9 @@ OTV0P2BASE::serialPrintlnAndFlush();
       // TODO: alternative timeout allows for automatic recovery from crash/restart after say 10 mins.
       // From: void signalValveFitted() { perState.valvePinWithdrawn.valveFitted = true; }
 
+      // Note that the valve is now fully open.
+      currentPC = 100;
+
       // Note that (initial) calibration is needed.
       needsRecalibrating = true;
 

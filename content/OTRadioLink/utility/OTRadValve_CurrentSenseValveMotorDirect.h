@@ -255,11 +255,12 @@ class CurrentSenseValveMotorDirect final : public OTRadValve::HardwareMotorDrive
     static const uint16_t MAX_TICKS_FROM_OPEN = ~0;
 
     // Current nominal percent open in range [0,100].
-    uint8_t currentPC;
+    // Initialised to partly open to indicate 'unknown'.
+    uint8_t currentPC = 50;
 
     // Target % open in range [0,100].
-    // Maintained across all states; defaults to 'closed'/0.
-    uint8_t targetPC;
+    // Initialised to partly open (but below 'call-for-heat'), as a safe frost-protection state.
+    uint8_t targetPC = OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1;
 
     // True if using positional encoder, else using crude dead-reckoning.
     // Only defined once calibration is complete.
@@ -320,8 +321,7 @@ class CurrentSenseValveMotorDirect final : public OTRadValve::HardwareMotorDrive
         minOpenPC(_minOpenPC), fairlyOpenPC(_fairlyOpenPC),
         sctAbsLimit(_sctAbsLimit),
         minimiseActivityOpt(_minimiseActivityOpt), lowBattOpt(_lowBattOpt),
-        cp(_minMotorDRTicks),
-        currentPC(0), targetPC(0)
+        cp(_minMotorDRTicks)
         { changeState(init); }
 
     // Poll.
