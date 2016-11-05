@@ -284,7 +284,17 @@ OTV0P2BASE::serialPrintlnAndFlush();
       // Run cautiously while supply voltage low to try to avoid browning out.
       const bool low = ((NULL != lowBattOpt) && ((0 == lowBattOpt->read()) || lowBattOpt->isSupplyVoltageLow()));
 
-      if(runTowardsEndStop(true, low)) { changeState(valvePinWithdrawn); }
+      if(runTowardsEndStop(true, low))
+          {
+          // Note that the valve is now fully open.
+          currentPC = 100;
+          // Reset tick count.
+          ticksFromOpen = 0;
+          ticksReverse = 0;
+
+          changeState(valvePinWithdrawn);
+          }
+
       break;
       }
 
@@ -294,18 +304,10 @@ OTV0P2BASE::serialPrintlnAndFlush();
 //V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("  valvePinWithdrawn");
 
       // Wait for signal from user that valve has been fitted...
-      // TODO: alternative timeout allows for automatic recovery from crash/restart after say 10 mins.
-      // From: void signalValveFitted() { perState.valvePinWithdrawn.valveFitted = true; }
-
-      // Note that the valve is now fully open.
-      currentPC = 100;
-
-      // Note that (initial) calibration is needed.
-      needsRecalibrating = true;
-
       // Once the valve has been fitted, move to calibration.
       if(perState.valvePinWithdrawn.valveFitted)
         { changeState(valveCalibrating); }
+
       break;
       }
 
@@ -316,6 +318,9 @@ OTV0P2BASE::serialPrintlnAndFlush();
 //      V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("    calibState: ");
 //      V0P2BASE_DEBUG_SERIAL_PRINT(perState.calibrating.calibState);
 //      V0P2BASE_DEBUG_SERIAL_PRINTLN();
+
+      // Note that (re)calibration is needed / in progress.
+      needsRecalibrating = true;
 
       // Defer calibration if doing it now would be a bad idea, eg in a bedroom at night.
       if(shouldDeferCalibration())
