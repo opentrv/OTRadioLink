@@ -196,7 +196,7 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
             LEDon(); // flash
             // Stick to minimum length flashes to save energy unless just touched.
             if(minimiseOnTime || tempControl->isEcoTemperature(wt)) { veryTinyPause(); }
-            else if(!tempControl->isComfortTemperature(wt)) { OTV0P2BASE::sleepLowPowerMs((VERYTINY_PAUSE_MS + TINY_PAUSE_MS) / 2); }
+            else if(!tempControl->isComfortTemperature(wt)) { veryTinyPause(); veryTinyPause(); }
             else { tinyPause(); }
 
             if(valveMode->inBakeMode())

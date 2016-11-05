@@ -116,12 +116,13 @@ class AbstractRadValve : public OTV0P2BASE::SimpleTSUint8Actuator
 
 // Null radiator valve driver implementation.
 // Never in normal (nor error) state.
-class NullRadValve : public AbstractRadValve
+class NULLRadValve : public AbstractRadValve
   {
   public:
-    // Returns true iff not in error state and not (re)calibrating/(re)initialising/(re)syncing.
     // Always false for null implementation.
-    virtual bool isInNormalRunState() const { return(false); }
+    virtual bool isInNormalRunState() const override { return(false); }
+    // Does nothing.
+    virtual uint8_t read() override { return(0); }
   };
 
 
