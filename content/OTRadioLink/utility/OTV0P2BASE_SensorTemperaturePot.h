@@ -37,6 +37,51 @@ namespace OTV0P2BASE
 {
 
 
+// Base class for sensor for temperature potentiometer/dial; 0 is coldest, 255 is hottest.
+// Note that if the callbacks are enabled, the following are implemented:
+//   * Any operation of the pot calls the occupancy/"UI used" callback.
+//   * Force FROST mode when dial turned right down to bottom.
+//   * Start BAKE mode when dial turned right up to top.
+//   * Cancel BAKE mode when dial/temperature turned down.
+//   * Force WARM mode when dial/temperature turned up.
+#define SensorTemperaturePotBase_DEFINED
+class SensorTemperaturePotBase : public OTV0P2BASE::SimpleTSUint8Sensor
+  {
+  public:
+    // Minimum change (hysteresis) enforced in normalised/8-bit 'reduced noise' range value; strictly positive.
+    // Aim to provide reasonable noise immunity, even from an ageing carbon-track pot.
+    // Allow reasonable remaining granularity of response, at least 10s of distinct positions (>=5 bits).
+    // This is in terms of steps on the non-raw [0,255] nominal output scale.
+    // Note that some applications may only see a fraction of full scale movement (eg ~25% for DORM1),
+    // so allowing for reasonable end stops and tolerances that further constrains this value from above.
+    // DHD20160212: observed manual precision with base REV10 pot ~8--16 raw, so RN_HYST >= 2 is reasonable.
+    static constexpr uint8_t RN_HYST = 1;
+
+    // Bottom and top parts of normalised/8-bit reduced noise range reserved for end-stops (forcing FROST or BAKE).
+    // Should be big enough to hit easily (and should be larger than RN_HYST)
+    // but not so big as to really constrain the temperature range or cause confusion.
+    // This is in terms of steps on the non-raw [0,255] nominal output scale.
+    // Note that some applications may only see a fraction of full scale movement (eg ~25% for DORM1),
+    // so allowing for reasonable end stops and tolerances that further constrains this value from above.
+    // Note that absolute skew of pot in different devices units may be much larger than unit self-precision.
+    static constexpr uint8_t RN_FRBO = fnmax(2*RN_HYST, 8);
+
+    // A (scaled) value below this is deemed to be at the low end stop region (allowing for reversed movement).
+    const uint8_t loEndStop;
+    // Returns true if at the low end stop: ISR safe.
+    inline bool isAtLoEndStop() const { return(value < loEndStop); }
+    // A (scaled) value above this is deemed to be at the high end stop region (allowing for reversed movement).
+    const uint8_t hiEndStop;
+    // Returns true if at the high end stop: ISR safe.
+    inline bool isAtHiEndStop() const { return(value > hiEndStop); }
+
+    // Construct an instance.
+    SensorTemperaturePotBase(const uint8_t _loEndStop, const uint8_t _hiEndStop)
+      : loEndStop(_loEndStop), hiEndStop(_hiEndStop)
+      { }
+  };
+
+
 #ifdef ARDUINO_ARCH_AVR
 // Sensor for temperature potentiometer/dial; 0 is coldest, 255 is hottest.
 // Note that if the callbacks are enabled, the following are implemented:
@@ -46,29 +91,11 @@ namespace OTV0P2BASE
 //   * Cancel BAKE mode when dial/temperature turned down.
 //   * Force WARM mode when dial/temperature turned up.
 #define SensorTemperaturePot_DEFINED
-class SensorTemperaturePot final : public OTV0P2BASE::SimpleTSUint8Sensor
+class SensorTemperaturePot final : public SensorTemperaturePotBase
   {
   public:
     // Maximum 'raw' temperature pot/dial value.
     static const uint16_t TEMP_POT_RAW_MAX = 1023;
-
-    // Minimum change (hysteresis) enforced in normalised/8-bit 'reduced noise' range value; strictly positive.
-    // Aim to provide reasonable noise immunity, even from an ageing carbon-track pot.
-    // Allow reasonable remaining granularity of response, at least 10s of distinct positions (>=5 bits).
-    // This is in terms of steps on the non-raw [0,255] nominal output scale.
-    // Note that some applications may only see a fraction of full scale movement (eg ~25% for DORM1),
-    // so allowing for reasonable end stops and tolerances that further constrains this value from above.
-    // DHD20160212: observed manual precision with base REV10 pot ~8--16 raw, so RN_HYST >= 2 is reasonable.
-    static const uint8_t RN_HYST = 1;
-
-    // Bottom and top parts of normalised/8-bit reduced noise range reserved for end-stops (forcing FROST or BAKE).
-    // Should be big enough to hit easily (and should be larger than RN_HYST)
-    // but not so big as to really constrain the temperature range or cause confusion.
-    // This is in terms of steps on the non-raw [0,255] nominal output scale.
-    // Note that some applications may only see a fraction of full scale movement (eg ~25% for DORM1),
-    // so allowing for reasonable end stops and tolerances that further constrains this value from above.
-    // Note that absolute skew of pot in different devices units may be much larger than unit self-precision.
-    static const uint8_t RN_FRBO = fnmax(2*RN_HYST, 8);
 
   private:
     // Raw pot value [0,1023] if extra precision is required.
@@ -110,7 +137,7 @@ class SensorTemperaturePot final : public OTV0P2BASE::SimpleTSUint8Sensor
       : raw((uint16_t) ~0U),
         occCallback(NULL), warmModeCallback(NULL), bakeStartCallback(NULL),
         minExpected(minExpected_), maxExpected(maxExpected_),
-        loEndStop(_computeLoEndStop(minExpected_, maxExpected_)), hiEndStop(_computeHiEndStop(minExpected_, maxExpected_))
+        SensorTemperaturePotBase(_computeLoEndStop(minExpected_, maxExpected_), _computeHiEndStop(minExpected_, maxExpected_))
       { }
 
     // Lower and upper bounds of expected pot movement/output each in range [0,TEMP_POT_RAW_MAX].
@@ -124,15 +151,6 @@ class SensorTemperaturePot final : public OTV0P2BASE::SimpleTSUint8Sensor
     const uint16_t minExpected, maxExpected;
     // Returns true if the pot output is to be reversed from the natural direction.
     inline bool isReversed() const { return(minExpected > maxExpected); }
-
-    // A (scaled) value below this is deemed to be at the low end stop region (allowing for reversed movement).
-    const uint8_t loEndStop;
-    // Returns true if at the low end stop: ISR safe.
-    inline bool isAtLoEndStop() const { return(value < loEndStop); }
-    // A (scaled) value above this is deemed to be at the high end stop region (allowing for reversed movement).
-    const uint8_t hiEndStop;
-    // Returns true if at the high end stop: ISR safe.
-    inline bool isAtHiEndStop() const { return(value > hiEndStop); }
 
     // Force a read/poll of the temperature pot and return the value sensed [0,255] (cold to hot).
     // Potentially expensive/slow.
