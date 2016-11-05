@@ -208,6 +208,12 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     // Returns true if end-stop has apparently been hit.
     bool runTowardsEndStop(bool toOpen, bool normal) { return(normal ? runTowardsEndStop(toOpen) : runFastTowardsEndStop(toOpen)); }
 
+    // Support for major state only relevant in proportional mode.
+    // Do valveCalibrating for proportional drive; returns something other than valveCalibrating to change state.
+    // Returns state other than valveCalibrating to
+    // Does nothing in binary-only implementation.
+    virtual driverState do_valveCalibrating() { return(valveCalibrating); }
+
   public:
     // Create an instance, passing in a reference to the non-NULL hardware driver.
     // The hardware driver instance lifetime must be longer than this instance.
@@ -234,6 +240,12 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
         minMotorDRTicks(_minMotorDRTicks),
         minimiseActivityOpt(_minimiseActivityOpt), lowBattOpt(_lowBattOpt)
         { changeState(init); }
+
+    // Poll.
+    // Regular poll every 1s or 2s,
+    // though tolerates missed polls eg because of other time-critical activity.
+    // May block for hundreds of milliseconds.
+    void poll();
 
     // Get major state, mostly for testing.
     driverState getState() const { return((driverState) state); }
@@ -385,14 +397,15 @@ class CurrentSenseValveMotorDirect final : public CurrentSenseValveMotorDirectBi
     // Does nothing if calibration is not in place.
     void recomputePosition() { if(!needsRecalibrating) { currentPC = cp.computePosition(ticksFromOpen, ticksReverse); } }
 
+  protected:
+    // Support for major state only relevant in proportional mode.
+    // Do valveCalibrating for proportional drive; returns something other than valveCalibrating to change state.
+    // Returns state other than valveCalibrating to
+    // Does nothing in binary-only implementation.
+    virtual driverState do_valveCalibrating() override;
+
   public:
     using CurrentSenseValveMotorDirectBinaryOnly::CurrentSenseValveMotorDirectBinaryOnly;
-
-    // Poll.
-    // Regular poll every 1s or 2s,
-    // though tolerates missed polls eg because of other time-critical activity.
-    // May block for hundreds of milliseconds.
-    void poll();
 
     // Get estimated minimum percentage open for significant flow for this device; strictly positive in range [1,99].
     virtual uint8_t getMinPercentOpen() const override;

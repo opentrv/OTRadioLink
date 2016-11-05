@@ -266,8 +266,8 @@ TEST(CurrentSenseValveMotorDirect,initStateWalkthrough)
         svl.setAllLowFlags(low);
 
         // Test full impl.
-        DummyHardwareDriverHitEndstop dhw2;
-        OTRadValve::CurrentSenseValveMotorDirect csvmd1(&dhw2, dummyGetSubCycleTime,
+        DummyHardwareDriverHitEndstop dhw1;
+        OTRadValve::CurrentSenseValveMotorDirect csvmd1(&dhw1, dummyGetSubCycleTime,
             OTRadValve::CurrentSenseValveMotorDirect::computeMinMotorDRTicks(subcycleTicksRoundedDown_ms),
             OTRadValve::CurrentSenseValveMotorDirect::computeSctAbsLimit(subcycleTicksRoundedDown_ms,
                                                                          gsct_max,

@@ -204,7 +204,7 @@ bool CurrentSenseValveMotorDirect::shouldDeferCalibration()
 // Regular poll every 1s or 2s,
 // though tolerates missed polls eg because of other time-critical activity.
 // May block for hundreds of milliseconds.
-void CurrentSenseValveMotorDirect::poll()
+void CurrentSenseValveMotorDirectBinaryOnly::poll()
   {
 
 #if 0 && defined(V0P2BASE_DEBUG)
@@ -283,10 +283,9 @@ OTV0P2BASE::serialPrintlnAndFlush();
           {
           // Note that the valve is now fully open.
           currentPC = 100;
-          // Reset tick count.
-          ticksFromOpen = 0;
-          ticksReverse = 0;
-
+//          // Reset tick count.
+//          ticksFromOpen = 0;
+//          ticksReverse = 0;
           changeState(valvePinWithdrawn);
           }
 
@@ -304,7 +303,6 @@ OTV0P2BASE::serialPrintlnAndFlush();
         {
         // Wiggle to acknowledge signal from user.
         wiggle();
-
         changeState(valveCalibrating);
         }
 
@@ -319,133 +317,12 @@ OTV0P2BASE::serialPrintlnAndFlush();
 //      V0P2BASE_DEBUG_SERIAL_PRINT(perState.calibrating.calibState);
 //      V0P2BASE_DEBUG_SERIAL_PRINTLN();
 
-      // Note that (re)calibration is needed / in progress.
-      needsRecalibrating = true;
-
-      // Defer calibration if doing it now would be a bad idea, eg in a bedroom at night.
-      if(shouldDeferCalibration())
+      const driverState newState = do_valveCalibrating();
+      if(CurrentSenseValveMotorDirectBinaryOnly::valveCalibrating != newState)
         {
-        changeState(valveNormal);
-        break;
+        changeState(newState);
         }
 
-      // If taking stupidly long to calibrate
-      // then assume a problem with the motor/mechanics and give up.
-      // Don't panic() so that the unit can still (for example) transmit stats.
-      if(++perState.valveCalibrating.wallclock2sTicks > MAX_TRAVEL_WALLCLOCK_2s_TICKS)
-        {
-        OTV0P2BASE::serialPrintlnAndFlush(F("!valve calibration fail"));
-        changeState(valveError);
-        break;
-        }
-
-      // Select activity based on micro-state.
-      switch(perState.valveCalibrating.calibState)
-        {
-        case 0:
-          {
-#if 0 && defined(V0P2BASE_DEBUG)
-V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("+calibrating");
-#endif
-          ++perState.valveCalibrating.calibState; // Move to next micro state.
-          break;
-          }
-        case 1:
-          {
-          // Run fast to fully retracted (easy to fit, nomninally valve fully open).
-          if(runFastTowardsEndStop(true))
-            {
-            // Reset tick count.
-            ticksFromOpen = 0;
-            ticksReverse = 0;
-            perState.valveCalibrating.wallclock2sTicks = 0;
-            ++perState.valveCalibrating.calibState; // Move to next micro state.
-            }
-          break;
-          }
-        case 2:
-          {
-          // Run pin to fully extended (valve closed).
-          // Be prepared to run the (usually small) dead-reckoning pulse while lots of sub-cycle still available.
-          do
-            {
-            // Once end-stop has been hit, capture run length and prepare to run in opposite direction.
-            if(runTowardsEndStop(false))
-              {
-              const uint16_t tfotc = ticksFromOpen;
-              perState.valveCalibrating.ticksFromOpenToClosed = tfotc;
-              perState.valveCalibrating.wallclock2sTicks = 0;
-              ++perState.valveCalibrating.calibState; // Move to next micro state.
-              break;
-              }
-            } while(getSubCycleTimeFn() <= computeSctAbsLimitDR());
-          break;
-          }
-        case 3:
-          {
-          // Run pin to fully retracted again (valve open).
-          // Be prepared to run the (usually small) pulse while lots of sub-cycle still available.
-          do
-            {
-            // Once end-stop has been hit, capture run length and prepare to run in opposite direction.
-            if(runTowardsEndStop(true))
-              {
-              const uint16_t tfcto = ticksReverse;
-              // Help avoid premature termination of this direction
-              // by NOT terminating this run if much shorter than run in other direction.
-              if(tfcto >= (perState.valveCalibrating.ticksFromOpenToClosed >> 1))
-                {
-                perState.valveCalibrating.ticksFromClosedToOpen = tfcto;
-                // Reset tick count.
-                ticksFromOpen = 0;
-                ticksReverse = 0;
-                perState.valveCalibrating.wallclock2sTicks = 0;
-                ++perState.valveCalibrating.calibState; // Move to next micro state.
-                }
-              break; // In all cases when end-stop hit don't try to run further in this sub-cycle.
-              }
-            } while(getSubCycleTimeFn() <= computeSctAbsLimitDR());
-          break;
-          }
-        case 4:
-          {
-          // Set all measured calibration input parameters and current position.
-          cp.updateAndCompute(perState.valveCalibrating.ticksFromOpenToClosed, perState.valveCalibrating.ticksFromClosedToOpen, minMotorDRTicks);
-
-#if 0 && defined(V0P2BASE_DEBUG)
-//V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("    ticksFromOpenToClosed: ");
-//V0P2BASE_DEBUG_SERIAL_PRINT(cp.getTicksFromOpenToClosed());
-//V0P2BASE_DEBUG_SERIAL_PRINTLN();
-//V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("    ticksFromClosedToOpen: ");
-//V0P2BASE_DEBUG_SERIAL_PRINT(cp.getTicksFromClosedToOpen());
-//V0P2BASE_DEBUG_SERIAL_PRINTLN();
-//V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("    precision %: ");
-//V0P2BASE_DEBUG_SERIAL_PRINT(cp.getApproxPrecisionPC());
-//V0P2BASE_DEBUG_SERIAL_PRINTLN();
-
-OTV0P2BASE::serialPrintAndFlush(F("    ticksFromOpenToClosed: "));
-OTV0P2BASE::serialPrintAndFlush(cp.getTicksFromOpenToClosed());
-OTV0P2BASE::serialPrintlnAndFlush();
-OTV0P2BASE::serialPrintAndFlush(F("    ticksFromClosedToOpen: "));
-OTV0P2BASE::serialPrintAndFlush(cp.getTicksFromClosedToOpen());
-OTV0P2BASE::serialPrintlnAndFlush();
-OTV0P2BASE::serialPrintAndFlush(F("    precision %: "));
-OTV0P2BASE::serialPrintAndFlush(cp.getApproxPrecisionPC());
-OTV0P2BASE::serialPrintlnAndFlush();
-#endif
-
-          // Move to normal valve running state...
-          needsRecalibrating = false;
-          currentPC = 100; // Valve is currently fully open.
-          // Reset tick count.
-          ticksFromOpen = 0;
-          ticksReverse = 0;
-          changeState(valveNormal);
-          break;
-          }
-        // In case of unexpected microstate shut down gracefully.
-        default: { changeState(valveError); break; }
-        }
       break;
       }
 
@@ -587,14 +464,155 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("-<");
     // Unexpected: go to error state, stop motor and report error on serial.
     default:
       {
-      changeState(valveError);
       hw->motorRun(0, OTRadValve::HardwareMotorDriverInterface::motorOff, *this);
       OTV0P2BASE::serialPrintlnAndFlush(F("!valve error"));
+      changeState(valveError);
       //panic(); // FIXME // Not expected to return.
       return;
       }
     }
   }
+
+// Support for major state only relevant in proportional mode.
+// Do valveCalibrating for proportional drive; returns something other than valveCalibrating to change state.
+// Returns state other than valveCalibrating to
+// Does nothing in binary-only implementation.
+CurrentSenseValveMotorDirectBinaryOnly::driverState CurrentSenseValveMotorDirect::do_valveCalibrating()
+    {
+    // Note that (re)calibration is needed / in progress.
+    needsRecalibrating = true;
+
+    // Defer calibration if doing it now would be a bad idea, eg in a bedroom at night.
+    if(shouldDeferCalibration())
+      {
+      // Valve is currently fully open.
+      currentPC = 100;
+      // Reset tick count.
+      ticksFromOpen = 0;
+      ticksReverse = 0;
+      return(valveNormal);
+      }
+
+    // If taking stupidly long to calibrate
+    // then assume a problem with the motor/mechanics and give up.
+    // Don't panic() so that the unit can still (for example) transmit stats.
+    if(++perState.valveCalibrating.wallclock2sTicks > MAX_TRAVEL_WALLCLOCK_2s_TICKS)
+      {
+      OTV0P2BASE::serialPrintlnAndFlush(F("!valve calibration fail"));
+      return(valveError);
+      }
+
+    // Select activity based on micro-state.
+    switch(perState.valveCalibrating.calibState)
+      {
+      case 0:
+        {
+#if 0 && defined(V0P2BASE_DEBUG)
+V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("+calibrating");
+#endif
+        ++perState.valveCalibrating.calibState; // Move to next micro state.
+        break;
+        }
+      case 1:
+        {
+        // Run fast to fully retracted (easy to fit, nomninally valve fully open).
+        if(runFastTowardsEndStop(true))
+          {
+          // Reset tick count.
+          ticksFromOpen = 0;
+          ticksReverse = 0;
+          perState.valveCalibrating.wallclock2sTicks = 0;
+          ++perState.valveCalibrating.calibState; // Move to next micro state.
+          }
+        break;
+        }
+      case 2:
+        {
+        // Run pin to fully extended (valve closed).
+        // Be prepared to run the (usually small) dead-reckoning pulse while lots of sub-cycle still available.
+        do
+          {
+          // Once end-stop has been hit, capture run length and prepare to run in opposite direction.
+          if(runTowardsEndStop(false))
+            {
+            const uint16_t tfotc = ticksFromOpen;
+            perState.valveCalibrating.ticksFromOpenToClosed = tfotc;
+            perState.valveCalibrating.wallclock2sTicks = 0;
+            ++perState.valveCalibrating.calibState; // Move to next micro state.
+            break;
+            }
+          } while(getSubCycleTimeFn() <= computeSctAbsLimitDR());
+        break;
+        }
+      case 3:
+        {
+        // Run pin to fully retracted again (valve open).
+        // Be prepared to run the (usually small) pulse while lots of sub-cycle still available.
+        do
+          {
+          // Once end-stop has been hit, capture run length and prepare to run in opposite direction.
+          if(runTowardsEndStop(true))
+            {
+            const uint16_t tfcto = ticksReverse;
+            // Help avoid premature termination of this direction
+            // by NOT terminating this run if much shorter than run in other direction.
+            if(tfcto >= (perState.valveCalibrating.ticksFromOpenToClosed >> 1))
+              {
+              perState.valveCalibrating.ticksFromClosedToOpen = tfcto;
+              // Reset tick count.
+              ticksFromOpen = 0;
+              ticksReverse = 0;
+              perState.valveCalibrating.wallclock2sTicks = 0;
+              ++perState.valveCalibrating.calibState; // Move to next micro state.
+              }
+            break; // In all cases when end-stop hit don't try to run further in this sub-cycle.
+            }
+          } while(getSubCycleTimeFn() <= computeSctAbsLimitDR());
+        break;
+        }
+      case 4:
+        {
+        // Set all measured calibration input parameters and current position.
+        cp.updateAndCompute(perState.valveCalibrating.ticksFromOpenToClosed, perState.valveCalibrating.ticksFromClosedToOpen, minMotorDRTicks);
+
+#if 0 && defined(V0P2BASE_DEBUG)
+//V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("    ticksFromOpenToClosed: ");
+//V0P2BASE_DEBUG_SERIAL_PRINT(cp.getTicksFromOpenToClosed());
+//V0P2BASE_DEBUG_SERIAL_PRINTLN();
+//V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("    ticksFromClosedToOpen: ");
+//V0P2BASE_DEBUG_SERIAL_PRINT(cp.getTicksFromClosedToOpen());
+//V0P2BASE_DEBUG_SERIAL_PRINTLN();
+//V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("    precision %: ");
+//V0P2BASE_DEBUG_SERIAL_PRINT(cp.getApproxPrecisionPC());
+//V0P2BASE_DEBUG_SERIAL_PRINTLN();
+
+OTV0P2BASE::serialPrintAndFlush(F("    ticksFromOpenToClosed: "));
+OTV0P2BASE::serialPrintAndFlush(cp.getTicksFromOpenToClosed());
+OTV0P2BASE::serialPrintlnAndFlush();
+OTV0P2BASE::serialPrintAndFlush(F("    ticksFromClosedToOpen: "));
+OTV0P2BASE::serialPrintAndFlush(cp.getTicksFromClosedToOpen());
+OTV0P2BASE::serialPrintlnAndFlush();
+OTV0P2BASE::serialPrintAndFlush(F("    precision %: "));
+OTV0P2BASE::serialPrintAndFlush(cp.getApproxPrecisionPC());
+OTV0P2BASE::serialPrintlnAndFlush();
+#endif
+
+        // Move to normal valve running state...
+        needsRecalibrating = false;
+        currentPC = 100; // Valve is currently fully open.
+        // Reset tick count.
+        ticksFromOpen = 0;
+        ticksReverse = 0;
+        return(valveNormal);
+        }
+      // In case of unexpected microstate shut down gracefully.
+      default: { return(valveError); }
+      }
+
+  // Remain in valveCalibrating state,
+  return(valveCalibrating);
+  }
+
 
 #endif // CurrentSenseValveMotorDirect_DEFINED
 
