@@ -306,7 +306,12 @@ OTV0P2BASE::serialPrintlnAndFlush();
       // Wait for signal from user that valve has been fitted...
       // Once the valve has been fitted, move to calibration.
       if(perState.valvePinWithdrawn.valveFitted)
-        { changeState(valveCalibrating); }
+        {
+        // Wiggle to acknowledge signal from user.
+        wiggle();
+
+        changeState(valveCalibrating);
+        }
 
       break;
       }
