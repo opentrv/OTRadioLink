@@ -88,11 +88,7 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
     if(sec0)
       {
       OTV0P2BASE::safeDecIfNZWeak(uiTimeoutM);
-//      ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
-//        {
-//        // Run down UI interaction timer if need be, one tick per minute(ish).
-//        if(uiTimeoutM > 0) { --uiTimeoutM; }
-//        }
+
       }
 
 //    const bool reportedRecently = occupancy->reportedRecently();

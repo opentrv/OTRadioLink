@@ -37,6 +37,8 @@ void CurrentSenseValveMotorDirect::signalRunSCTTick(const bool opening)
   {
 #ifdef ARDUINO_ARCH_AVR
   ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
+#else
+  // FIXME: use portable concurrent mechanisms...
 #endif // ARDUINO_ARCH_AVR
     {
     // Crudely avoid/ignore underflow/overflow for now.
@@ -58,7 +60,8 @@ void CurrentSenseValveMotorDirect::signalRunSCTTick(const bool opening)
 // Returns true in case of success.
 // May return false and force error state if inputs unusable,
 // though will still try to compute all values.
-bool CurrentSenseValveMotorDirect::CalibrationParameters::updateAndCompute(const uint16_t _ticksFromOpenToClosed, const uint16_t _ticksFromClosedToOpen)
+bool CurrentSenseValveMotorDirect::CalibrationParameters::updateAndCompute(
+    const uint16_t _ticksFromOpenToClosed, const uint16_t _ticksFromClosedToOpen, const uint8_t minMotorDRTicks)
   {
   ticksFromOpenToClosed = _ticksFromOpenToClosed;
   ticksFromClosedToOpen = _ticksFromClosedToOpen;
@@ -135,7 +138,7 @@ uint8_t CurrentSenseValveMotorDirect::getMinPercentOpen() const
 // Finishes with the motor turned off, and a bias to closing the valve.
 // Should also have enough movement/play to allow calibration of the shaft encoder.
 // May also help set some bounds on stall current, eg if highly asymmetric at each end of travel.
-void CurrentSenseValveMotorDirect::wiggle()
+void CurrentSenseValveMotorDirectBinaryOnly::wiggle()
   {
   hw->motorRun(0, OTRadValve::HardwareMotorDriverInterface::motorOff, *this);
   hw->motorRun(0, OTRadValve::HardwareMotorDriverInterface::motorDriveOpening, *this);
@@ -150,7 +153,7 @@ void CurrentSenseValveMotorDirect::wiggle()
 // else will require one or more further calls in new sub-cycles
 // to hit the end-stop.
 // May attempt to ride through stiff mechanics.
-bool CurrentSenseValveMotorDirect::runFastTowardsEndStop(const bool toOpen)
+bool CurrentSenseValveMotorDirectBinaryOnly::runFastTowardsEndStop(const bool toOpen)
   {
   // Clear the end-stop detection flag ready.
   endStopDetected = false;
@@ -169,26 +172,18 @@ bool CurrentSenseValveMotorDirect::runFastTowardsEndStop(const bool toOpen)
 // Runs at same speed as during calibration.
 // Does the right thing with dead-reckoning and/or position detection.
 // Returns true if end-stop has apparently been hit.
-bool CurrentSenseValveMotorDirect::runTowardsEndStop(const bool toOpen)
+bool CurrentSenseValveMotorDirectBinaryOnly::runTowardsEndStop(const bool toOpen)
   {
   // Clear the end-stop detection flag ready.
   endStopDetected = false;
   // Run motor as far as possible on this sub-cycle.
-  hw->motorRun(cp.minMotorDRTicks, toOpen ?
+  hw->motorRun(minMotorDRTicks, toOpen ?
       OTRadValve::HardwareMotorDriverInterface::motorDriveOpening
     : OTRadValve::HardwareMotorDriverInterface::motorDriveClosing, *this);
   // Stop motor and ensure power off.
   hw->motorRun(0, OTRadValve::HardwareMotorDriverInterface::motorOff, *this);
   // Report if end-stop has apparently been hit.
   return(endStopDetected);
-  }
-
-// Report an apparent serious tracking error that may need full recalibration.
-void CurrentSenseValveMotorDirect::reportTrackingError()
-  {
-  // Possibly ignore tracking errors for a minimum interval.
-  // May simply switch to 'binary' on/off mode if the calibration is off.
-  needsRecalibrating = true;
   }
 
 // True if (re)calibration should be deferred.
@@ -415,7 +410,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("+calibrating");
         case 4:
           {
           // Set all measured calibration input parameters and current position.
-          cp.updateAndCompute(perState.valveCalibrating.ticksFromOpenToClosed, perState.valveCalibrating.ticksFromClosedToOpen);
+          cp.updateAndCompute(perState.valveCalibrating.ticksFromOpenToClosed, perState.valveCalibrating.ticksFromClosedToOpen, minMotorDRTicks);
 
 #if 0 && defined(V0P2BASE_DEBUG)
 //V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("    ticksFromOpenToClosed: ");

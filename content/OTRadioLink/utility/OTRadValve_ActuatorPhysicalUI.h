@@ -172,7 +172,6 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
       if(includeVisual) { LEDon(); }
       markUIControlUsed();
       // Sound and tactile feedback with local valve, like mobile phone vibrate mode.
-      // Only do this if in a normal state, eg not calibrating nor in error.
       if(valveController->isInNormalRunState()) { valveController->wiggle(); }
       // Were wiggle cannot be used pause briefly to let LED on be seen.
       else { if(includeVisual) { smallPause(); } }

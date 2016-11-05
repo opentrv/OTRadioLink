@@ -549,8 +549,11 @@ class ModelledRadValve final : public AbstractRadValve
     // Will clear any BAKE mode if the newly-computed target temperature is already exceeded.
     void computeCallForHeat();
 
-    // Read-write (non-const) access to valveMode instance; never NULL.
+    // Read/write (non-const) access to valveMode instance; never NULL.
     ValveMode *const valveModeRW;
+
+    // Read/write access the underlying physical device; NULL if none.
+    AbstractRadValve *const physicalDeviceOpt;
 
   public:
     // Create an instance.
@@ -558,17 +561,20 @@ class ModelledRadValve final : public AbstractRadValve
         const ModelledRadValveComputeTargetTempBase *const _ctt,
         ValveMode *const _valveMode,
         const TempControlBase *const _tempControl,
+        AbstractRadValve *const _physicalDeviceOpt,
         const bool _defaultGlacial = false, const uint8_t _maxPCOpen = 100)
       : ctt(_ctt),
         retainedState(_defaultGlacial),
         tempControl(_tempControl),
         glacial(_defaultGlacial),
         maxPCOpen(OTV0P2BASE::fnmin(_maxPCOpen, (uint8_t)100U)),
-        valveModeRW(_valveMode)
+        valveModeRW(_valveMode),
+        physicalDeviceOpt(_physicalDeviceOpt)
       { }
 
     // Force a read/poll/recomputation of the target position and call for heat.
     // Sets/clears changed flag if computed valve position changed.
+    // Pushes target to physical device if configured.
     // Call at a fixed rate (1/60s).
     // Potentially expensive/slow.
     virtual uint8_t read() override { computeCallForHeat(); return(value); }
@@ -581,14 +587,19 @@ class ModelledRadValve final : public AbstractRadValve
     // The lifetime of the pointed-to text must be at least that of the Sensor instance.
     virtual const char *tag() const override { return("v|%"); }
 
-    // Returns true if (re)calibrating/(re)initialising/(re)syncing.
-    // The target valve position is not lost while this is true.
-    // By default there is no recalibration step.
-    virtual bool isRecalibrating() const;
+    // Waiting for indication that the valve head has been fitted to the tail.
+    // Passes through to underlying physical valve if configured, else false.
+    virtual bool isWaitingForValveToBeFitted() const override { return((NULL == physicalDeviceOpt) ? false : physicalDeviceOpt->isWaitingForValveToBeFitted()); }
 
-    // If possible exercise the valve to avoid pin sticking and recalibrate valve travel.
-    // Default does nothing.
-    virtual void recalibrate();
+    // Returns true iff not in error state and not (re)calibrating/(re)initialising/(re)syncing.
+    // By default there is no recalibration step.
+    // Passes through to underlying physical valve if configured, else true.
+    virtual bool isInNormalRunState() const override { return((NULL == physicalDeviceOpt) ? true : physicalDeviceOpt->isInNormalRunState()); }
+
+    // Returns true if in an error state.
+    // May be recoverable by forcing recalibration.
+    // Passes through to underlying physical valve if configured, else false.
+    virtual bool isInErrorState() const override { return((NULL == physicalDeviceOpt) ? false : physicalDeviceOpt->isInErrorState()); }
 
     // True if the controlled physical valve is thought to be at least partially open right now.
     // If multiple valves are controlled then is this should be true only if all are at least partially open.
@@ -692,6 +703,9 @@ class ModelledRadValve final : public AbstractRadValve
     //
     // Will clear any BAKE mode if the newly-computed target temperature is already exceeded.
     void computeTargetTemperature();
+
+    // Pass through a wiggle request to the underlying device if specified.
+    virtual void wiggle() const override { if(NULL != physicalDeviceOpt) { physicalDeviceOpt->wiggle(); } }
   };
 
 

@@ -563,37 +563,18 @@ void ModelledRadValve::setMinValvePcReallyOpen(const uint8_t percent)
 // against the minimum open percentage.
 bool ModelledRadValve::isControlledValveReallyOpen() const
   {
-  if(isRecalibrating()) { return(false); }
-//#ifdef ENABLE_FHT8VSIMPLE
-//  if(!FHT8V.isControlledValveReallyOpen()) { return(false); }
-//#endif
+//  if(isRecalibrating()) { return(false); }
+  if(NULL != physicalDeviceOpt) { if(!physicalDeviceOpt->isControlledValveReallyOpen()) { return(false); } }
   return(value >= getMinPercentOpen());
-  }
-
-// Returns true if (re)calibrating/(re)initialising/(re)syncing.
-// The target valve position is not lost while this is true.
-// By default there is no recalibration step.
-bool ModelledRadValve::isRecalibrating() const
-  {
-//#ifdef ENABLE_FHT8VSIMPLE
-//  if(!FHT8V.isInNormalRunState()) { return(true); }
-//#endif
-  return(false);
-  }
-
-// If possible exercise the valve to avoid pin sticking and recalibrate valve travel.
-// Default does nothing.
-void ModelledRadValve::recalibrate()
-  {
-//#ifdef ENABLE_FHT8VSIMPLE
-//  FHT8V.resyncWithValve(); // Should this be decalcinate instead/also/first?
-//#endif
   }
 
 // Compute target temperature and set heat demand for TRV and boiler; update state.
 // CALL REGULARLY APPROXIMATELY ONCE PER MINUTE TO ALLOW SIMPLE TIME-BASED CONTROLS.
 // Inputs are inWarmMode(), isRoomLit().
-// This routine may take significant CPU time; no I/O is done, only internal state is updated.
+//
+// This routine may take significant CPU time.
+//
+// Internal state is updated, and the target updated on any attached physical valve.
 //
 // Will clear any BAKE mode if the newly-computed target temperature is already exceeded.
 void ModelledRadValve::computeCallForHeat()
@@ -602,6 +583,7 @@ void ModelledRadValve::computeCallForHeat()
   // Compute target temperature and ensure that required input state is set for computeRequiredTRVPercentOpen().
   computeTargetTemperature();
   retainedState.tick(value, inputState);
+  if(NULL != physicalDeviceOpt) { physicalDeviceOpt->set(value); }
   }
 
 // Compute/update target temperature and set up state for computeRequiredTRVPercentOpen().
@@ -619,6 +601,9 @@ void ModelledRadValve::computeTargetTemperature()
   {
   // Compute basic target temperature statelessly.
   const uint8_t newTarget = ctt->computeTargetTemp();
+
+  // Make new target available.
+  value = newTarget;
 
   // Set up state for computeRequiredTRVPercentOpen().
   ctt->setupInputState(inputState,
