@@ -189,7 +189,7 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
 
     // Optional temperature pot, r/w access; may be NULL.
     // May have read() called to poll pot status and provoke occupancy callbacks.
-    OTV0P2BASE::SensorTemperaturePot *const tempPotOpt;
+    OTV0P2BASE::SensorTemperaturePotBase *const tempPotOpt;
 
     // Read-only acces to optional low-battery sensor; may be NULL.
     const OTV0P2BASE::SupplyVoltageLow *const lowBattOpt;
@@ -240,7 +240,7 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
       const AbstractRadValve *const _valveController,
       OTV0P2BASE::PseudoSensorOccupancyTracker *const _occupancy,
       const OTV0P2BASE::SensorAmbientLightBase *const _ambLight,
-      OTV0P2BASE::SensorTemperaturePot *const _tempPotOpt,
+      OTV0P2BASE::SensorTemperaturePotBase *const _tempPotOpt,
       OTV0P2BASE::SupplyVoltageLow *const _lowBattOpt,
       void (*const _LEDon)(), void (*const _LEDoff)(), void (*const _safeISRLEDonOpt)())
       : valveMode(_valveMode), tempControl(_tempControl), valveController(_valveController),

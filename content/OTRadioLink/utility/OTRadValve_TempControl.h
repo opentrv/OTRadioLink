@@ -199,12 +199,17 @@ uint8_t TempControlTempPot_computeWARMTargetC(const uint8_t pot, const uint8_t l
   return((ppot / band) + valveControlParams::TEMP_SCALE_MIN);
   }
 
-#ifdef SensorTemperaturePot_DEFINED
-#define TempControlTempPot_DEFINED
 // All template parameters must be non-NULL except the humidity sensor.
+//   * tempPot  (const pointer to) temperature control potentiometer/dial; never NULL.
 //   * rh  (const pointer to) relative humidity sensor; NULL if none.
 // Does not use EEPROM.
-template <const OTV0P2BASE::SensorTemperaturePot *const tempPot, class valveControlParams = DEFAULT_ValveControlParameters, class rh_t = OTV0P2BASE::HumiditySensorBase, const rh_t *rh = (const rh_t *)NULL>
+#define TempControlTempPot_DEFINED
+template
+  <
+  class stpb_t /*= OTV0P2BASE::SensorTemperaturePotBase*/, const stpb_t *const tempPot,
+  class valveControlParams = DEFAULT_ValveControlParameters,
+  class rh_t = OTV0P2BASE::HumiditySensorBase, const rh_t *rh = (const rh_t *)NULL
+  >
 class TempControlTempPot final : public TempControlSimpleVCP<valveControlParams>
   {
   private:
@@ -237,7 +242,6 @@ class TempControlTempPot final : public TempControlSimpleVCP<valveControlParams>
       return(resultLast);
       }
   };
-#endif // SensorTemperaturePot_DEFINED
 
     }
 

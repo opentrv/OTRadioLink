@@ -25,7 +25,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 #include "OTV0P2BASE_Concurrency.h"
 #include "OTV0P2BASE_Sensor.h"
-#include "OTV0P2BASE_Util.h"
 
 
 namespace OTV0P2BASE
