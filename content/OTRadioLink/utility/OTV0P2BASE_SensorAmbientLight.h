@@ -67,7 +67,7 @@ class SensorAmbientLightBase : public SimpleTSUint8Sensor
     static const uint8_t DEFAULT_LIGHT_THRESHOLD = 16;
 
     // Returns true if this sensor is apparently unusable.
-    virtual bool isUnavailable() const final { return(unusable); }
+    virtual bool isAvailable() const final override { return(!unusable); }
 
     // Returns true if room is probably lit enough for someone to be active, with some hysteresis.
     // False if unknown or sensor appears unusable.
@@ -181,11 +181,11 @@ class SensorAmbientLight final : public SensorAmbientLightBase
     virtual uint8_t read();
 
     // Preferred poll interval (in seconds); should be called at constant rate, usually 1/60s.
-    virtual uint8_t preferredPollInterval_s() const { return(60); }
+    virtual uint8_t preferredPollInterval_s() const override { return(60); }
 
     // Returns a suggested (JSON) tag/field/key name including units of get(); NULL means no recommended tag.
     // The lifetime of the pointed-to text must be at least that of the Sensor instance.
-    virtual const char *tag() const { return("L"); }
+    virtual const char *tag() const override { return("L"); }
 
     // Get raw ambient light value in range [0,1023].
     // Undefined until first read().
@@ -231,8 +231,8 @@ class DummySensorAmbientLight
     // Not available, so always a 'dark' value.
     static uint8_t get() { return(0); }
 
-    // Not available, so always returns true.
-    static bool isUnavailable() { return(true); }
+    // Not available, so always returns false.
+    static bool isAvailable() { return(false); }
 
     // Unknown, so always false.
     // Thread-safe and usable within ISRs (Interrupt Service Routines).

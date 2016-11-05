@@ -472,7 +472,7 @@ void FHT8VRadValveBase::sleepUntilSubCycleTimeOptionalRX(const uint8_t sleepUnti
 bool FHT8VRadValveBase::doSync(const bool allowDoubleTX)
   {
   // Do not attempt sync at all (and thus do not attempt any other TX) if valve is disabled.
-  if(isUnavailable())
+  if(!isAvailable())
     { syncedWithFHT8V = false; return(false); }
 
   if(0 == syncStateFHT8V)

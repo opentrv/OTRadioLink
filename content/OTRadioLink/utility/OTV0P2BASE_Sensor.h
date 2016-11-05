@@ -58,10 +58,6 @@ class Sensor
     // Default is to always return true, ie all values potentially valid.
     virtual bool isValid(T /*value*/) const { return(true); }
 
-    // Returns true if this sensor is definitely unavailable or behaving incorrectly.
-    // The default case is to assume that if the code is wired in then the device will work.
-    virtual bool isUnavailable() const { return(false); }
- 
     // Returns non-zero if this implementation requires a regular call to read() to operate correctly.
     // Preferred poll interval (in seconds) or 0 if no regular poll() call required.
     // Default returns 0 indicating regular call to read() not required,

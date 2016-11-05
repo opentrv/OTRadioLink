@@ -354,9 +354,9 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve, public FHT8VRadVa
     inline uint8_t FHT8VTXGapHalfSeconds(const uint8_t hc2, const uint8_t halfSecondCountInMinorCycle)
       { return(FHT8VTXGapHalfSeconds(hc2) - (MAX_HSC - halfSecondCountInMinorCycle)); }
 
-    // Returns true if radio or house codes not set.
+    // Returns false if radio or house codes not set.
     // Remains false while syncing as that is only temporary unavailability.
-    virtual bool isUnavailable() const { return((NULL == radio) || !isValidHC()); }
+    virtual bool isAvailable() const override { return((NULL != radio) && !isValidHC()); }
 
     // Get estimated minimum percentage open for significant flow for this device; strictly positive in range [1,99].
     // Defaults to typical value from observation.

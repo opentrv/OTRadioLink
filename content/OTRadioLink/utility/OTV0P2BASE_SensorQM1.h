@@ -30,7 +30,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
  Functionality and code only enabled if ENABLE_VOICE_SENSOR is defined.
 
    @todo   Check functions:
-               - isUnavailable?
+               - isAvailable?
                - isVoiceDetected (should the sensors have a common api?)
 
  Only V0p2/AVR for now.

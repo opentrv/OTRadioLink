@@ -86,7 +86,7 @@ class TemperatureC16_DS18B20 final : public TemperatureC16Base
 
     // Returns true if this sensor is definitely unavailable or behaving incorrectly.
     // This is after an attempt to initialise has not found a DS18B20 on the bus.
-    virtual bool isUnavailable() const { return(initialised && (0 == sensorCount)); }
+    virtual bool isAvailable() const { return(initialised && (0 != sensorCount)); }
 
     // Create instance with given OneWire connection, bus ordinal and precision.
     // No two instances should attempt to target the same DS18B20,
