@@ -255,8 +255,8 @@ class CurrentSenseValveMotorDirect final : public OTRadValve::HardwareMotorDrive
     static const uint16_t MAX_TICKS_FROM_OPEN = ~0;
 
     // Current nominal percent open in range [0,100].
-    // Initialised to partly open to indicate 'unknown'.
-    uint8_t currentPC = 50;
+    // Initialised to 'closed'.
+    uint8_t currentPC = 0;
 
     // Target % open in range [0,100].
     // Initialised to partly open (but below 'call-for-heat'), as a safe frost-protection state.

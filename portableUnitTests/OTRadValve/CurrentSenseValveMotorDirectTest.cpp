@@ -244,10 +244,10 @@ TEST(CurrentSenseValveMotorDirect,initStateWalkthrough)
         // Fake hardware hits end-stop immediate, so leaves 'withdrawing' state.
         csvmd1.poll();
         EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawn, csvmd1.getState());
+        EXPECT_EQ(100, csvmd1.getCurrentPC()) << "valve must now be fully open";
         // Waiting for value to be signalled that it has been fitted...
         csvmd1.poll();
         EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawn, csvmd1.getState());
-        EXPECT_EQ(100, csvmd1.getCurrentPC()) << "valve now fully open";
         csvmd1.signalValveFitted();
         csvmd1.poll();
         EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valveCalibrating, csvmd1.getState());
