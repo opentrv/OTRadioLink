@@ -125,10 +125,10 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // Premature wakeups MAY be allowed to avoid blocking I/O polling for too long.
     static void inline bigPause() { OTV0P2BASE::nap(WDTO_120MS); } // 120ms vs 288ms nominal for PICAXE V0.09 impl.
 #else
-    // FIXME
+    // FIXME: work our suitable/alternative semantics and impl on non-AVR platform(s) including test.
     static void inline veryTinyPause() { }
     static void inline tinyPause() { }
-    static void inline smallPause() {  }
+    static void inline smallPause() { }
     static void inline mediumPause() { }
     static void inline bigPause() { }
 #endif
