@@ -587,10 +587,6 @@ class ModelledRadValve final : public AbstractRadValve
     // The lifetime of the pointed-to text must be at least that of the Sensor instance.
     virtual const char *tag() const override { return("v|%"); }
 
-    // Waiting for indication that the valve head has been fitted to the tail.
-    // Passes through to underlying physical valve if configured, else false.
-    virtual bool isWaitingForValveToBeFitted() const override { return((NULL == physicalDeviceOpt) ? false : physicalDeviceOpt->isWaitingForValveToBeFitted()); }
-
     // Returns true iff not in error state and not (re)calibrating/(re)initialising/(re)syncing.
     // By default there is no recalibration step.
     // Passes through to underlying physical valve if configured, else true.
