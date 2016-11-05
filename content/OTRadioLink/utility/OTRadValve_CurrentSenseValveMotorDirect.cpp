@@ -219,6 +219,9 @@ OTV0P2BASE::serialPrintAndFlush(state);
 OTV0P2BASE::serialPrintlnAndFlush();
 #endif
 
+  // If too late in the system cycle then exit immediately.
+  if(getSubCycleTimeFn() >= sctAbsLimit) { return; }
+
   // Run the state machine based on the major state.
   switch(state)
     {
@@ -282,10 +285,7 @@ OTV0P2BASE::serialPrintlnAndFlush();
       if(runTowardsEndStop(true, low))
           {
           // Note that the valve is now fully open.
-          currentPC = 100;
-//          // Reset tick count.
-//          ticksFromOpen = 0;
-//          ticksReverse = 0;
+          resetPosition(true);
           changeState(valvePinWithdrawn);
           }
 
@@ -317,11 +317,10 @@ OTV0P2BASE::serialPrintlnAndFlush();
 //      V0P2BASE_DEBUG_SERIAL_PRINT(perState.calibrating.calibState);
 //      V0P2BASE_DEBUG_SERIAL_PRINTLN();
 
-      const driverState newState = do_valveCalibrating();
-      if(CurrentSenseValveMotorDirectBinaryOnly::valveCalibrating != newState)
-        {
-        changeState(newState);
-        }
+      if(do_valveCalibrating_prop()) { return; }
+
+      // By default skip immediately to the normal state if not calibrating.
+      changeState(valveNormal);
 
       break;
       }
@@ -331,24 +330,11 @@ OTV0P2BASE::serialPrintlnAndFlush();
       {
 //V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("  valveNormal");
 
-      // If the current estimated position matches the target
-      // then there is usually nothing to do.
+      // If the current estimated position exactly matches the target
+      // then there is nothing to do.
       if(currentPC == targetPC) { break; }
 
-      // Recalibrate if a serious tracking error was detected.
-      if(needsRecalibrating)
-        {
-#if 0 && defined(V0P2BASE_DEBUG)
-V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("!needsRecalibrating");
-#endif
-
-        // Defer calibration if doing it now would be a bad idea, eg in a bedroom at night.
-        if(!shouldDeferCalibration())
-            {
-            changeState(valveCalibrating);
-            break;
-            }
-        }
+      if(do_valveNormal_prop()) { return; }
 
       // If the current estimated position does NOT match the target
       // then (incrementally) try to adjust to match.
@@ -360,103 +346,25 @@ V0P2BASE_DEBUG_SERIAL_PRINT(targetPC);
 V0P2BASE_DEBUG_SERIAL_PRINTLN();
 #endif
 
-      // If true, running directly to end-stops and not doing any dead-reckoning.
-      const bool binaryMode = inNonProprtionalMode();
-      // If in binary mode, should the valve be fully open.
+      // In binary mode, the valve is targeted to be fully open or fully closed.
       // Set to the same threshold value used to trigger boiler call for heat.
       const bool binaryOpen = (targetPC >= OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN);
+      const uint8_t binaryTarget = binaryOpen ? 100 : 0;
+
+      // If already at correct end-stop then nothing to do.
+      if(binaryTarget == currentPC) { break; }
 
       // Refuse to close the valve while supply voltage low to try to avoid browning out or leaving valve shut.
       const bool low = ((NULL != lowBattOpt) && ((0 == lowBattOpt->read()) || lowBattOpt->isSupplyVoltageLow()));
       if(low && (targetPC < currentPC)) { break; }
 
-      // Special case where target is an end-point (or close to).
-      // Run fast to the end-stop.
-      // Be eager and pull to end stop if near for continuous auto-recalibration.
-      // Must work when eps is zero (ie with sub-percent precision).
-      const uint8_t eps = cp.getApproxPrecisionPC();
-      const bool toOpenFast = (binaryMode && binaryOpen) || (targetPC >= (100 - 2*eps));
-      if(binaryMode || toOpenFast || (targetPC <= OTV0P2BASE::fnmax(2*eps, minOpenPC>>1)))
-        {
-        // If not apparently yet at end-stop
-        // (ie not at correct end stop or with spurious unreconciled ticks)
-        // then try again to run to end-stop.
-        if(!binaryMode && (0 == ticksReverse) && (currentPC == (toOpenFast ? 100 : 0))) { break; } // Done
-        else if(runTowardsEndStop(toOpenFast, low))
-            {
-            // TODO: may need to protect against spurious stickiness before end...
-            // Reset positional values.
-            currentPC = toOpenFast ? 100 : 0;
-            ticksReverse = 0;
-            ticksFromOpen = toOpenFast ? 0 : cp.getTicksFromOpenToClosed();
-            }
-        // Estimate intermediate position.
-        else { recomputePosition(); }
-#if 0 && defined(V0P2BASE_DEBUG)
-if(toOpenFast) { V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("-->"); } else { V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("--<"); }
-#endif
-        break;
-        }
-
-      // More general case where target position is somewhere between end-stops.
-      // Don't do anything if close enough, ie within computed precision (eps).
-      // Else move incrementally to reduce the error.
-      // (Incremental small moves may also help when absolute accuracy not that good,
-      // allowing closed-loop feedback time to work.)
-
-      // Not open enough.
-      if((targetPC > currentPC) && (targetPC >= currentPC + eps)) // Overflow not possible with eps addition.
-        {
-        // TODO: use shaft encoder positioning by preference, ie when available.
-        const bool hitEndStop = runTowardsEndStop(true);
-        recomputePosition();
-        // Hit the end-stop, possibly prematurely.
-        if(hitEndStop)
-          {
-          // Report serious tracking error (well before 'fairly open' %).
-          if(currentPC < OTV0P2BASE::fnmin(fairlyOpenPC, (uint8_t)(100 - 8*eps)))
-            { reportTrackingError(); }
-          // Silently auto-adjust when end-stop hit close to expected position.
-          else
-            {
-            currentPC = 100;
-            ticksReverse = 0;
-            ticksFromOpen = 0;
-            }
-          }
-#if 0 && defined(V0P2BASE_DEBUG)
-V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("->");
-#endif
-        break;
-        }
-      // Not closed enough.
-      else if((targetPC < currentPC) && (targetPC + eps <= currentPC)) // Overflow not possible with eps addition.
-        {
-        // TODO: use shaft encoder positioning by preference, ie when available.
-        const bool hitEndStop = runTowardsEndStop(false);
-        recomputePosition();
-        // Hit the end-stop, possibly prematurely.
-        if(hitEndStop)
-          {
-          // Report serious tracking error.
-//          if(currentPC > max(min(DEFAULT_VALVE_PC_MODERATELY_OPEN-1, 2*DEFAULT_VALVE_PC_MODERATELY_OPEN), 8*eps))
-          if(currentPC > OTV0P2BASE::fnmax(2*minOpenPC, 8*eps))
-            { reportTrackingError(); }
-          // Silently auto-adjust when end-stop hit close to expected position.
-          else
-            {
-            currentPC = 0;
-            ticksReverse = 0;
-            ticksFromOpen = cp.getTicksFromOpenToClosed();
-            }
-          }
-#if 0 && defined(V0P2BASE_DEBUG)
-V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("-<");
-#endif
-        break;
-        }
-
-      // Within eps; do nothing.
+      // If not apparently yet at end-stop
+      // (ie not at correct end stop or with spurious unreconciled ticks)
+      // then try again to run to end-stop.
+      // If end-stop is hit then reset positional values
+      if(runTowardsEndStop(binaryOpen, low)) { resetPosition(binaryOpen); }
+      // Re-estimate intermediate position.
+      else { recomputePosition(); }
 
       break;
       }
@@ -473,11 +381,10 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("-<");
     }
   }
 
-// Support for major state only relevant in proportional mode.
-// Do valveCalibrating for proportional drive; returns something other than valveCalibrating to change state.
-// Returns state other than valveCalibrating to
-// Does nothing in binary-only implementation.
-CurrentSenseValveMotorDirectBinaryOnly::driverState CurrentSenseValveMotorDirect::do_valveCalibrating()
+// Do valveCalibrating for proportional drive; returns true to return from poll() immediately.
+// Calls changeState() directly if it needs to change state.
+// If this returns false, processing falls through to that for the non-proportional case.
+bool CurrentSenseValveMotorDirect::do_valveCalibrating_prop()
     {
     // Note that (re)calibration is needed / in progress.
     needsRecalibrating = true;
@@ -485,12 +392,8 @@ CurrentSenseValveMotorDirectBinaryOnly::driverState CurrentSenseValveMotorDirect
     // Defer calibration if doing it now would be a bad idea, eg in a bedroom at night.
     if(shouldDeferCalibration())
       {
-      // Valve is currently fully open.
-      currentPC = 100;
-      // Reset tick count.
-      ticksFromOpen = 0;
-      ticksReverse = 0;
-      return(valveNormal);
+      changeState(valveNormal);
+      return(true);
       }
 
     // If taking stupidly long to calibrate
@@ -499,7 +402,8 @@ CurrentSenseValveMotorDirectBinaryOnly::driverState CurrentSenseValveMotorDirect
     if(++perState.valveCalibrating.wallclock2sTicks > MAX_TRAVEL_WALLCLOCK_2s_TICKS)
       {
       OTV0P2BASE::serialPrintlnAndFlush(F("!valve calibration fail"));
-      return(valveError);
+      changeState(valveError);
+      return(true);
       }
 
     // Select activity based on micro-state.
@@ -599,19 +503,98 @@ OTV0P2BASE::serialPrintlnAndFlush();
 
         // Move to normal valve running state...
         needsRecalibrating = false;
-        currentPC = 100; // Valve is currently fully open.
-        // Reset tick count.
-        ticksFromOpen = 0;
-        ticksReverse = 0;
-        return(valveNormal);
+        resetPosition(true); // Valve is currently fully open.
+        changeState(valveNormal);
+        return(true);
         }
       // In case of unexpected microstate shut down gracefully.
-      default: { return(valveError); }
+      default: { changeState(valveError); return(true); }
       }
 
-  // Remain in valveCalibrating state,
-  return(valveCalibrating);
+  // Remain in valveCalibrating state, but don't do any non-prop processing.
+  return(true);
   }
+
+// Do valveNormal start for proportional drive; returns true to return from poll() immediately.
+// Falls through to do drive to end stops or when in run-time binary-only mode.
+// Calls changeState() directly if it needs to change state.
+// If this returns false, processing falls through to that for the non-proportional case.
+bool CurrentSenseValveMotorDirect::do_valveNormal_prop()
+    {
+    // Recalibrate if a serious tracking error was detected.
+    if(needsRecalibrating)
+      {
+      // Defer calibration if doing it now would be a bad idea, eg in a bedroom at night.
+      if(!shouldDeferCalibration())
+          {
+          changeState(valveCalibrating);
+          return(true); // Leave poll().
+          }
+      }
+
+    // If in non-proportional mode
+    // then fall back to non-prop behaviour.
+    if(inNonProprtionalMode())
+        { return(false); } // Fall through.
+
+    // If the desired target is close to either end
+    // then fall back to non-prop behaviour and hit the end stops (fast) instead.
+    // Makes ends 'sticky' and allows for some light-weight recalibration to scale ends.
+    const uint8_t eps = cp.getApproxPrecisionPC();
+    if((targetPC >= (100 - 2*eps)) ||
+       (targetPC <= OTV0P2BASE::fnmax(2*eps, minOpenPC>>1)))
+        { return(false); } // Fall through.
+
+    // If close enough to the target position then stay as is and leave poll().
+    // Carefully avoid overflow/underflow in comparison.
+    if(((targetPC >= currentPC) && (targetPC <= currentPC + eps)) ||
+       ((currentPC >= targetPC) && (currentPC <= targetPC + eps)))
+        { return(true); } // Leave poll().
+
+    // Move incrementally as close as possible to the target position.
+    // Not open enough.
+    if(targetPC > currentPC)
+      {
+      // TODO: use shaft encoder positioning by preference, ie when available.
+      const bool hitEndStop = runTowardsEndStop(true);
+      recomputePosition();
+      // Hit the end-stop, possibly prematurely.
+      if(hitEndStop)
+        {
+        // Report serious tracking error (well before 'fairly open' %).
+        if(currentPC < OTV0P2BASE::fnmin(fairlyOpenPC, (uint8_t)(100 - 8*eps)))
+          { reportTrackingError(); }
+        // Silently auto-adjust when end-stop hit close to expected position.
+        else
+          { resetPosition(true); }
+        }
+#if 0 && defined(V0P2BASE_DEBUG)
+V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("->");
+#endif
+      }
+    // Not closed enough.
+    else
+      {
+      // TODO: use shaft encoder positioning by preference, ie when available.
+      const bool hitEndStop = runTowardsEndStop(false);
+      recomputePosition();
+      // Hit the end-stop, possibly prematurely.
+      if(hitEndStop)
+        {
+        // Report serious tracking error.
+        if(currentPC > OTV0P2BASE::fnmax(2*minOpenPC, 8*eps))
+          { reportTrackingError(); }
+        // Silently auto-adjust when end-stop hit close to expected position.
+        else { resetPosition(false); }
+        }
+#if 0 && defined(V0P2BASE_DEBUG)
+V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("-<");
+#endif
+      }
+
+    // Remain in valveNormal state, but do no non-prop processing.
+    return(true);
+    }
 
 
 #endif // CurrentSenseValveMotorDirect_DEFINED

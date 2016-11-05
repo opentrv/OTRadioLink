@@ -208,11 +208,28 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     // Returns true if end-stop has apparently been hit.
     bool runTowardsEndStop(bool toOpen, bool normal) { return(normal ? runTowardsEndStop(toOpen) : runFastTowardsEndStop(toOpen)); }
 
-    // Support for major state only relevant in proportional mode.
-    // Do valveCalibrating for proportional drive; returns something other than valveCalibrating to change state.
-    // Returns state other than valveCalibrating to
-    // Does nothing in binary-only implementation.
-    virtual driverState do_valveCalibrating() { return(valveCalibrating); }
+    // Compute and apply reconciliation/adjustment of ticks and % position.
+    // Uses computePosition() to adjust internal state.
+    // Call after moving the valve in normal mode.
+    // Does nothing for non-proportional implementation.
+    virtual void recomputePosition() { }
+
+    // Reset internal counters when an end-stop is hit.
+    // Just updates current % open valu for non-proportional implementation.
+    virtual void resetPosition(bool hitEndstopOpen) { currentPC = hitEndstopOpen ? 100 : 0; }
+
+    // Do valveCalibrating for proportional drive; returns true to return from poll() immediately.
+    // Calls changeState() directly if it needs to change state.
+    // If this returns false, processing falls through to that for the non-proportional case.
+    // Does nothing in the non-proportional-only implementation.
+    virtual bool do_valveCalibrating_prop() { return(false); }
+
+    // Do valveNormal start for proportional drive; returns true to return from poll() immediately.
+    // Falls through to do drive to end stops or when in run-time binary-only mode.
+    // Calls changeState() directly if it needs to change state.
+    // If this returns false, processing falls through to that for the non-proportional case.
+    // Does nothing in the non-proportional-only implementation.
+    virtual bool do_valveNormal_prop() { return(false); }
 
   public:
     // Create an instance, passing in a reference to the non-NULL hardware driver.
@@ -268,6 +285,11 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     // Finishes with the motor turned off.
     // May be ignored if not safe to do.
     virtual void wiggle();
+
+    // If true, proportional mode is never used and the valve is run to end stops instead.
+    // Primarily public to allow whitebox unit testing.
+    // Always true in this binary-only implementation.
+    virtual bool isNonProprtionalOnly() const { return(true); }
 
     // Called when end stop hit, eg by overcurrent detection.
     // Can be called while run() is in progress.
@@ -395,14 +417,29 @@ class CurrentSenseValveMotorDirect final : public CurrentSenseValveMotorDirectBi
     // Uses computePosition() to adjust internal state.
     // Call after moving the valve in normal mode.
     // Does nothing if calibration is not in place.
-    void recomputePosition() { if(!needsRecalibrating) { currentPC = cp.computePosition(ticksFromOpen, ticksReverse); } }
+    virtual void recomputePosition() override { if(!needsRecalibrating) { currentPC = cp.computePosition(ticksFromOpen, ticksReverse); } }
+
+    // Reset internal position markers when an end-stop is hit.
+    virtual void resetPosition(const bool hitEndstopOpen) override
+        {
+        currentPC = hitEndstopOpen ? 100 : 0;
+        ticksReverse = 0;
+        ticksFromOpen = hitEndstopOpen ? 0 : cp.getTicksFromOpenToClosed();
+        }
 
   protected:
-    // Support for major state only relevant in proportional mode.
-    // Do valveCalibrating for proportional drive; returns something other than valveCalibrating to change state.
-    // Returns state other than valveCalibrating to
-    // Does nothing in binary-only implementation.
-    virtual driverState do_valveCalibrating() override;
+    // Do valveCalibrating for proportional drive; returns true to return from poll() immediately.
+    // Calls changeState() directly if it needs to change state.
+    // If this returns false, processing falls through to that for the non-proportional case.
+    // Does nothing in the non-proportional-only implementation.
+    virtual bool do_valveCalibrating_prop() override;
+
+    // Do valveNormal start for proportional drive; returns true to return from poll() immediately.
+    // Falls through to do drive to end stops or when in run-time binary-only mode.
+    // Calls changeState() directly if it needs to change state.
+    // If this returns false, processing falls through to that for the non-proportional case.
+    // Does nothing in the non-proportional-only implementation.
+    virtual bool do_valveNormal_prop() override;
 
   public:
     using CurrentSenseValveMotorDirectBinaryOnly::CurrentSenseValveMotorDirectBinaryOnly;
@@ -423,6 +460,11 @@ class CurrentSenseValveMotorDirect final : public CurrentSenseValveMotorDirectBi
     // Potentially an expensive call in time and energy.
     // Primarily public to allow whitebox unit testing.
     bool shouldDeferCalibration();
+
+    // If true, proportional mode is never used and the valve is run to end stops instead.
+    // Primarily public to allow whitebox unit testing.
+    // Always false in this proportional implementation.
+    virtual bool isNonProprtionalOnly() const override { return(false); }
 
     // If true, proportional mode is not being used and the valve is run to end stops instead.
     // Primarily public to allow whitebox unit testing.

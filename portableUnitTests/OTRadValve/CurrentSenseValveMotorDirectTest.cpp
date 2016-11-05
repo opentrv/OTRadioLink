@@ -215,12 +215,12 @@ class DummyHardwareDriverHitEndstop : public OTRadValve::HardwareMotorDriverInte
   };
 
 // Test initial state walk-through without and with calibration deferral.
-static void initStateWalkthrough(OTRadValve::CurrentSenseValveMotorDirect *const csv, const bool batteryLow)
+static void initStateWalkthrough(OTRadValve::CurrentSenseValveMotorDirectBase *const csv, const bool batteryLow)
     {
     // Whitebox test of internal state: should be init.
     EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirectBase::init, csv->getState());
-    // Check deferral of (re)calibration.
-    EXPECT_EQ(batteryLow, csv->shouldDeferCalibration());
+//    // Check deferral of (re)calibration.
+//    EXPECT_EQ(batteryLow, csv->shouldDeferCalibration());
     // Verify NOT marked as in normal run state immediately upon initialisation.
     EXPECT_TRUE(!csv->isInNormalRunState());
     // Verify NOT marked as in error state immediately upon initialisation.
@@ -245,11 +245,12 @@ static void initStateWalkthrough(OTRadValve::CurrentSenseValveMotorDirect *const
     csv->poll();
     EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valveCalibrating, csv->getState());
     csv->poll();
-    // Check deferral of (re)calibration.
-    EXPECT_EQ(batteryLow, csv->shouldDeferCalibration());
+//    // Check deferral of (re)calibration.
+//    EXPECT_EQ(batteryLow, csv->shouldDeferCalibration());
     // Valve should now start calibrating, but calibration is skipped with low battery...
-    EXPECT_EQ(batteryLow ? OTRadValve::CurrentSenseValveMotorDirect::valveNormal :
-                           OTRadValve::CurrentSenseValveMotorDirect::valveCalibrating, csv->getState());
+    EXPECT_EQ((batteryLow || csv->isNonProprtionalOnly())
+        ? OTRadValve::CurrentSenseValveMotorDirect::valveNormal :
+          OTRadValve::CurrentSenseValveMotorDirect::valveCalibrating, csv->getState()) << (batteryLow ? "low" : "normal");
     }
 TEST(CurrentSenseValveMotorDirect,initStateWalkthrough)
 {
@@ -265,15 +266,30 @@ TEST(CurrentSenseValveMotorDirect,initStateWalkthrough)
         SVL svl;
         svl.setAllLowFlags(low);
 
-        // Test full impl.
-        DummyHardwareDriverHitEndstop dhw1;
-        OTRadValve::CurrentSenseValveMotorDirect csvmd1(&dhw1, dummyGetSubCycleTime,
-            OTRadValve::CurrentSenseValveMotorDirect::computeMinMotorDRTicks(subcycleTicksRoundedDown_ms),
-            OTRadValve::CurrentSenseValveMotorDirect::computeSctAbsLimit(subcycleTicksRoundedDown_ms,
+        // Test non-proportional impl.
+        DummyHardwareDriverHitEndstop dhw0;
+        OTRadValve::CurrentSenseValveMotorDirectBinaryOnly csvmdbo1(&dhw0, dummyGetSubCycleTime,
+            OTRadValve::CurrentSenseValveMotorDirectBinaryOnly::computeMinMotorDRTicks(subcycleTicksRoundedDown_ms),
+            OTRadValve::CurrentSenseValveMotorDirectBinaryOnly::computeSctAbsLimit(subcycleTicksRoundedDown_ms,
                                                                          gsct_max,
                                                                          minimumMotorRunupTicks),
             &svl,
             [](){return(false);});
+        initStateWalkthrough(&csvmdbo1, low);
+
+        // Test full impl.
+        DummyHardwareDriverHitEndstop dhw1;
+        OTRadValve::CurrentSenseValveMotorDirect csvmd1(&dhw1, dummyGetSubCycleTime,
+            OTRadValve::CurrentSenseValveMotorDirectBinaryOnly::computeMinMotorDRTicks(subcycleTicksRoundedDown_ms),
+            OTRadValve::CurrentSenseValveMotorDirectBinaryOnly::computeSctAbsLimit(subcycleTicksRoundedDown_ms,
+                                                                         gsct_max,
+                                                                         minimumMotorRunupTicks),
+            &svl,
+            [](){return(false);});
+        // Check deferral of (re)calibration.
+        EXPECT_EQ(low, csvmd1.shouldDeferCalibration());
         initStateWalkthrough(&csvmd1, low);
+        // Check deferral of (re)calibration.
+        EXPECT_EQ(low, csvmd1.shouldDeferCalibration());
         }
 }

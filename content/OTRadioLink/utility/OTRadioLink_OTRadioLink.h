@@ -326,7 +326,7 @@ namespace OTRadioLink
             //   * TXmin may for example be used to minimise the chance of being overheard during pairing.
             enum TXpower { TXmin, TXquiet, TXnormal, TXloud, TXmax };
 
-            // Send/TX a raw frame on the specified (default first/0) channel.
+            // Send/TX a raw frame on the specified (default first/0) channel; returns true in case of apparent success.
             // This does not add any pre- or post- amble (etc)
             // that particular receivers may require.
             // Revert afterwards to listen()ing if enabled,
@@ -342,7 +342,7 @@ namespace OTRadioLink
             // for as much as hundreds of milliseconds depending on the data, carrier, etc.
             virtual bool sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal, bool listenAfter = false) = 0;
 
-            // Add raw frame to send queue, to be sent when radio is ready.	// FIXME check over this
+            // Add raw frame to send queue, to be sent when radio is ready; returns true in case of apparent success.
             // This does not add any pre- or post- amble (etc)
             // that particular receivers may require.
             //   * power  hint to indicate transmission importance
