@@ -124,21 +124,22 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const Modelle
   if(valveTurnupCountdownM > 0) { --valveTurnupCountdownM; }
 
   // Update the modelled state including the valve position passed by reference.
+  const uint8_t oldValvePC = valvePCOpenRef;
   const uint8_t newValvePC = computeRequiredTRVPercentOpen(valvePCOpenRef, inputState);
   const bool changed = (newValvePC != valvePCOpenRef);
   if(changed)
     {
-    if(newValvePC > valvePCOpenRef)
+    if(newValvePC > oldValvePC)
       {
       // Defer reclosing valve to avoid excessive hunting.
       valveTurnup();
-      cumulativeMovementPC += (newValvePC - valvePCOpenRef);
+      cumulativeMovementPC += (newValvePC - oldValvePC);
       }
     else
       {
       // Defer opening valve to avoid excessive hunting.
       valveTurndown();
-      cumulativeMovementPC += (valvePCOpenRef - newValvePC);
+      cumulativeMovementPC += (oldValvePC - newValvePC);
       }
     valvePCOpenRef = newValvePC;
     }
