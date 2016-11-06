@@ -35,7 +35,8 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
 #include <Arduino.h>
 #endif
 
-#include "OTV0P2BASE_Sleep.h"
+//#include "OTV0P2BASE_Sleep.h"
+#include "OTV0P2BASE_Util.h"
 
 
 namespace OTV0P2BASE {
@@ -74,7 +75,9 @@ namespace CLI {
     //   * idlefn: if non-NULL this is called while waiting for input;
     //       it must not interfere with UART RX, eg by messing with CPU clock or interrupts
     //   * maxSCT maximum sub-cycle time to wait until
-    uint8_t promptAndReadCommandLine(uint8_t maxSCT, char *buf, uint8_t bufsize, void (*idlefn)() = NULL);
+    uint8_t promptAndReadCommandLine(uint8_t maxSCT, const ScratchSpace &s, void (*idlefn)() = NULL);
+    inline uint8_t promptAndReadCommandLine(uint8_t maxSCT, char *buf, uint8_t bufsize, void (*idlefn)() = NULL)
+        { ScratchSpace s((uint8_t*)(buf), bufsize); return(promptAndReadCommandLine(maxSCT, s, idlefn)); }
 
     // Prints warning to serial (that must be up and running) that invalid (CLI) input has been ignored.
     // Probably should not be inlined, to avoid creating duplicate strings in Flash.

@@ -81,6 +81,39 @@ inline int8_t parseHexDigit(const char hexchar)
 int parseHexByte(const char *s);
 
 
+// Class for scratch space that can be passed into callers to trim stack/auto usage.
+// Possible to create tail end for use by nested callers
+// where a routine needs to keep some state during those calls.
+// Scratch size is limited to 255 bytes.
+class ScratchSpace final
+  {
+  public:
+    // Buffer space; non-NULL except in case of error (when bufsize will also be 0).
+    const uint8_t *buf;
+    // Buffer size; strictly positive except in case of error (when buf will also be NULL).
+    const uint8_t bufsize;
+
+    // Create an instance.
+    //   * buf_  start of buffer space;
+    //     must be non-NULL except to indicate that the buffer is unusable.
+    //   * bufsize_  size of usable start of buffer;
+    //     must be positive except to indicate that the buffer is unusable.
+    ScratchSpace(uint8_t *const buf_, const uint8_t bufsize_)
+      : buf((0 == bufsize_) ? NULL : buf_), bufsize((NULL == buf_) ? 0 : bufsize_) { }
+
+    // Check if sub-spacw cannot be made (would not leave at least one byte available).
+    static constexpr bool subSpaceCannotBeMade(uint8_t oldSize, uint8_t reserveN)
+        { return((0 == reserveN) || (oldSize <= reserveN)); }
+    // Create a sub-space n bytes from the start of the current space.
+    // If the existing buffer is smaller than n (or null), or n is null,
+    // the the result will be NULL and zero-sized.
+    ScratchSpace(const ScratchSpace &parent, const uint8_t reserveN)
+      : buf(subSpaceCannotBeMade(parent.bufsize, reserveN) ? NULL : parent.buf + reserveN),
+        bufsize(subSpaceCannotBeMade(parent.bufsize, reserveN) ? 0 : parent.bufsize - reserveN)
+        { }
+  };
+
+
 #ifdef ARDUINO_ARCH_AVR
 // Diagnostic tools for memory problems.
 // Arduino AVR memory layout: DATA, BSS [_end, __bss_end], (HEAP,) [SP] STACK [RAMEND]

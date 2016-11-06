@@ -60,9 +60,12 @@ static const char CLIPromptChar = ((char) OTV0P2BASE::SERLINE_START_CHAR_CLI);
 //   * idlefn: if non-NULL this is called while waiting for input;
 //       it must not interfere with UART RX, eg by messing with CPU clock or interrupts
 //   * maxSCT maximum sub-cycle time to wait until
-uint8_t promptAndReadCommandLine(const uint8_t maxSCT, char *const buf, const uint8_t bufsize, void (*idlefn)())
+uint8_t promptAndReadCommandLine(const uint8_t maxSCT, const ScratchSpace &s, void (*idlefn)())
     {
-    if((NULL == buf) || (bufsize < 2)) { return(0); } // FAIL
+    if((NULL == s.buf) || (s.bufsize < 2)) { return(0); } // FAIL
+
+    char *const buf = (char *)s.buf;
+    const uint8_t bufsize = s.bufsize;
 
     // Compute safe limit time given granularity of sleep and buffer fill.
     const uint8_t targetMaxSCT = (maxSCT <= MIN_CLI_POLL_SCT) ? ((uint8_t) 0) : ((uint8_t) (maxSCT - 1 - MIN_CLI_POLL_SCT));
