@@ -255,6 +255,9 @@ void OTRFM23BLinkBase::_dolisten()
     // Unconditionally stop listening and go into low-power standby mode.
     _modeStandbyAndClearState_();
 
+    // Capture possible (near) peak of stack usage, eg when called from ISR,
+    OTV0P2BASE::MemoryChecks::recordIfMinSP();
+
     // Nothing further to do if RX not allowed.
     if(!allowRXOps) { return; }
 

@@ -83,6 +83,9 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf,
     // Make frame 'invalid' until everything is finished and checks out.
     fl = 0;
 
+    // Capture possible (near) peak of stack usage, eg when called from ISR,
+    OTV0P2BASE::MemoryChecks::recordIfMinSP();
+
     // Quick integrity checks from spec.
     //
     // (Because it the spec is primarily focused on checking received packets,
@@ -388,6 +391,10 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRaw(uint8_t *con
                                 void *const state, const uint8_t *const key)
     {
     if((NULL == e) || (NULL == key)) { return(0); } // ERROR
+
+    // Capture possible (near) peak of stack usage, eg when called from ISR,
+    OTV0P2BASE::MemoryChecks::recordIfMinSP();
+
     // Stop if unencrypted body is too big for this scheme.
     if(bl_ > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
     const uint8_t encryptedBodyLength = (0 == bl_) ? 0 : ENC_BODY_SMALL_FIXED_CTEXT_SIZE;
@@ -473,6 +480,10 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRaw(const Secura
     {
     if((NULL == sfh) || (NULL == buf) || (NULL == d) ||
         (NULL == key) || (NULL == iv)) { return(0); } // ERROR
+
+    // Capture possible (near) peak of stack usage, eg when called from ISR,
+    OTV0P2BASE::MemoryChecks::recordIfMinSP();
+
     // Abort if header was not decoded properly.
     if(sfh->isInvalid()) { return(0); } // ERROR
     // Abort if expected constraints for simple fixed-size secure frame are not met.

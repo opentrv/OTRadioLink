@@ -107,6 +107,7 @@ class MemoryChecks
     // Reset SP minimum: ISR-safe.
     static void resetMinSP() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { minSP = RAMEND; } }
     // Record current SP if minimum: ISR-safe.
+    // Can be buried in parts of code prone to deep recursion.
     static void recordIfMinSP() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { if(SP < minSP) { minSP = SP; } } }
     // Get SP minimum: ISR-safe.
     static SP_type getMinSP() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { return(minSP); } }
@@ -115,6 +116,14 @@ class MemoryChecks
     // Force restart if minimum space below SP has not remained strictly positive.
     static void forceResetIfStackOverflow() { if(getMinSPSpaceBelowStackToEnd() <= 0) { forceReset(); } }
 };
+#else
+// Dummy do-nothing version to allow test bugs to be harmlessly dropped into portable code.
+class MemoryChecks
+  {
+  public:
+    static void recordIfMinSP() { }
+    static void forceResetIfStackOverflow() { }
+  };
 #endif // ARDUINIO_ARCH_AVR
 
 
