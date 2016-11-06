@@ -84,6 +84,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #undef ENABLE_EXTENDED_CLI
 // IF DEFINED: physical UI use wakes CLI (not needed when CLI can auto-wake from serial).
 #undef ENABLE_UI_WAKES_CLI
+// IF DEFINED: allow setting of ID from CLI to replace devices in situ; not recommended by default to avoid confusion.
+#undef ENABLE_ID_SET_FROM_CLI
 //////////////////////////////////////// DEVICE UI OPTIONS (and support for them)
 // IF DEFINED: basic FROST/WARM temperatures are settable and stored in EEPROM.
 #define ENABLE_SETTABLE_TARGET_TEMPERATURES

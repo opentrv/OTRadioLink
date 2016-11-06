@@ -125,7 +125,11 @@ namespace CLI {
     //=F0%@18C6;X0;T15 38 W255 0 F255 0 W255 0 F255 0;S6 6 16;{"@":"9f9c","L":146,"B|cV":333,"occ|%":0,"vC|%":0}
     //
     //>
-    class NodeID final : public CLIEntryBase { public: virtual bool doCommand(char *buf, uint8_t buflen); };
+    class NodeID : public CLIEntryBase { public: virtual bool doCommand(char *buf, uint8_t buflen); };
+    // Identical to NodeID but also allows set of ID.
+    //>I 98 A4 F5 99 E3 94 A8 C2
+    //=F0%@18C6;X0;T15 38 W255 0 F255 0 W255 0 F255 0;S6 6 16;{"@":"98a4","L":146,"B|cV":333,"occ|%":0,"vC|%":0}
+    class NodeIDWithSet final : public NodeID { public: virtual bool doCommand(char *buf, uint8_t buflen); };
 
     // Set/clear secret key(s) ("K ...").
     // Will call the keysCleared() routine when keys have been cleared, eg to allow resetting of TX message counters.

@@ -147,6 +147,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 // IF DEFINED: always allow some kind of stats TX, whatever the privacy settings.
 // OK IN THIS CASE BECAUSE ALL COMMS SECURE.
 #define ENABLE_ALWAYS_TX_ALL_STATS
+// IF DEFINED: allow setting of ID from CLI to replace devices in situ; not recommended by default to avoid confusion.
+#define ENABLE_ID_SET_FROM_CLI
 // IF DEFINED: enable a CLI-settable setback lockout (hours/days) to establish a baseline before engaging energy saving setbacks.
 #define ENABLE_SETBACK_LOCKOUT_COUNTDOWN
 #endif

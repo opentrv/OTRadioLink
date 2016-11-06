@@ -246,11 +246,11 @@ bool SetNodeAssoc::doCommand(char *const buf, const uint8_t buflen)
             char *thisTok = tok1;
             for(uint8_t i = 0; i < sizeof(nodeID); i++, thisTok = strtok_r(NULL, " ", &last))
                 {
-                // if token is valid, parse hex to binary.
+                // If token is valid, parse hex to binary.
                 if(NULL != thisTok)
                     {
                     const int ib = OTV0P2BASE::parseHexByte(thisTok);
-                    if(-1 == ib) { InvalidIgnored(); return(false); } // ERROR: abrupt exit.
+                    if((-1 == ib) || !OTV0P2BASE::validIDByte(ib)) { InvalidIgnored(); return(false); } // ERROR: abrupt exit.
                     nodeID[i] = (uint8_t) ib;
                     }
                 }
@@ -402,6 +402,42 @@ bool NodeID::doCommand(char *const buf, const uint8_t buflen)
       }
     Serial.println();
     return(true);
+    }
+
+// Show / reset node ID ('I').
+bool NodeIDWithSet::doCommand(char *const buf, const uint8_t buflen)
+    {
+    char *last; // Used by strtok_r().
+    char *tok1;
+    // Allow set: I nn nn nn nn nn nn nn nn
+    if((buflen >= (1 + 3*OpenTRV_Node_ID_Bytes)) && (NULL != (tok1 = strtok_r(buf + 2, " ", &last))))
+        {
+        // TODO: merge with code for 'A' which also parses node IDs.
+        // Corresponds to "I " followed by 8 space-separated hex-byte tokens.
+        // Buffer to store node ID.
+        uint8_t nodeID[OpenTRV_Node_ID_Bytes];
+        // Loop through tokens setting nodeID.
+        // Check for invalid ID bytes (i.e. containing 0xFF or <0x80 or non-HEX)
+        char *thisTok = tok1;
+        for(uint8_t i = 0; i < sizeof(nodeID); i++, thisTok = strtok_r(NULL, " ", &last))
+            {
+            // If token is valid, parse hex to binary.
+            if(NULL != thisTok)
+                {
+                const int ib = OTV0P2BASE::parseHexByte(thisTok);
+                if((-1 == ib) || !OTV0P2BASE::validIDByte(ib)) { InvalidIgnored(); return(false); } // ERROR: abrupt exit.
+                nodeID[i] = (uint8_t) ib;
+                }
+            }
+        // Try to write the ID directly to EEPROM.
+        for(uint8_t i = 0; i < V0P2BASE_EE_LEN_ID; ++i)
+            { eeprom_smart_update_byte((uint8_t *)(V0P2BASE_EE_START_ID + i), nodeID[i]); }
+        Serial.println();
+        return(true);
+        }
+
+    // Fall back to base class for display and random-reset ('*') behaviour.
+    return(NodeID::doCommand(buf, buflen));
     }
 
 // Set secret key ("K ...").
