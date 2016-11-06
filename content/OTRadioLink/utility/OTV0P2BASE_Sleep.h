@@ -275,7 +275,7 @@ bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);
 // Forced MCU reset/restart as near full cold-reset as possible.
 // Turns off interrupts, sets the watchdog, and busy-spins until the watchdog forces a reset.
 // The watchdog timeout is long enough that a watchdog-oblivious bootloader
-// can successfully drop through to the main code which can the stop a further reset
+// can successfully drop through to the main code which can then stop a further reset,
 // else the main line code may never be reached.
 // Inline to give the compiler full visibility for efficient use in ISR code (eg avoid full register save).
 //

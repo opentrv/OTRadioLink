@@ -27,6 +27,13 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014--2016
 #include <stdint.h>
 #include <stddef.h>
 
+#ifdef ARDUINO
+#include <Arduino.h>
+#include <util/atomic.h>
+extern uint8_t _end;
+#include "OTV0P2BASE_Sleep.h""
+#endif
+
 
 namespace OTV0P2BASE
 {
@@ -72,6 +79,43 @@ inline int8_t parseHexDigit(const char hexchar)
  * @retval  byte containing converted value [0,255]; -1 in case of error
  */
 int parseHexByte(const char *s);
+
+
+#ifdef ARDUINO_ARCH_AVR
+// Diagnostic tools for memory problems.
+// Arduino AVR memory layout: DATA, BSS [_end, __bss_end], (HEAP,) [SP] STACK [RAMEND]
+// See: http://web-engineering.info/node/30
+#define MemoryChecks_DEFINED
+class MemoryChecks
+  {
+  public:
+     typedef uint16_t SP_type;
+
+  private:
+    // Minimum value recorded for SP.
+    // Marked volatile for safe access from ISRs.
+    // Initialised to be RAMEND.
+    static volatile SP_type minSP;
+
+  public:
+    // Compute stack space in use on ARDUINO/AVR; non-negative.
+    static uint16_t stackSpaceInUse() { return(RAMEND - SP); }
+    // Compute space after DATA and BSS (_end) and below STACK (ignoring HEAP) on ARDUINO/AVR; should be strictly +ve.
+    // If this becomes non-positive then variables are likely being corrupted.
+    static int16_t spaceBelowStackToEnd() { return(SP - (intptr_t)&_end); }
+
+    // Reset SP minimum: ISR-safe.
+    static void resetMinSP() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { minSP = RAMEND; } }
+    // Record current SP if minimum: ISR-safe.
+    static void recordIfMinSP() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { if(SP < minSP) { minSP = SP; } } }
+    // Get SP minimum: ISR-safe.
+    static SP_type getMinSP() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { return(minSP); } }
+    // Get minimum space below SP above _end: ISR-safe.
+    static int16_t getMinSPSpaceBelowStackToEnd() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { return(minSP - (intptr_t)&_end); } }
+    // Force restart if minimum space below SP has not remained strictly positive.
+    static void forceResetIfStackOverflow() { if(getMinSPSpaceBelowStackToEnd() <= 0) { forceReset(); } }
+};
+#endif // ARDUINIO_ARCH_AVR
 
 
 }

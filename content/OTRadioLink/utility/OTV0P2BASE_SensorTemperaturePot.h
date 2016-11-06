@@ -157,9 +157,9 @@ class SensorTemperaturePot final : public SensorTemperaturePotBase
   public:
     // Initialise raw to distinct/special value and all pointers to NULL.
     SensorTemperaturePot(/*const uint16_t minExpected_ = 0, const uint16_t maxExpected_ = TEMP_POT_RAW_MAX*/)
-      : raw((uint16_t) ~0U),
-        warmModeCallback(NULL), bakeStartCallback(NULL),
-        SensorTemperaturePotBase(_computeLoEndStop(minExpected, maxExpected), _computeHiEndStop(minExpected, maxExpected))
+      : SensorTemperaturePotBase(_computeLoEndStop(minExpected, maxExpected), _computeHiEndStop(minExpected, maxExpected)),
+        raw((uint16_t) ~0U),
+        warmModeCallback(NULL), bakeStartCallback(NULL)
       { }
 
     // Force a read/poll of the temperature pot and return the value sensed [0,255] (cold to hot).

@@ -309,7 +309,7 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     // Called with each motor run sub-cycle tick.
     // Not expected/needed, and is ignored.
     // Is ISR-/thread- safe.
-    virtual void signalRunSCTTick(bool opening) override { }
+    virtual void signalRunSCTTick(bool /*opening*/) override { }
 
     // Call when given user signal that valve has been fitted (ie is fully on).
     virtual void signalValveFitted() { if(isWaitingForValveToBeFitted()) { perState.valvePinWithdrawn.valveFitted = true; } }
