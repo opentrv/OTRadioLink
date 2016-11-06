@@ -364,7 +364,8 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
       // (ie not at correct end stop or with spurious unreconciled ticks)
       // then try again to run to end-stop.
       // If end-stop is hit then reset positional values.
-      const bool tentative = (currentPC == 1) || (currentPC == 99);
+      // Only really believe the end-stop hit when running slowly.
+      const bool tentative = binaryOpen ? (currentPC == 99) : (currentPC == 1);
       // Try running fast if not tentative from previous step, and end up tentative.
       if(!tentative && runTowardsEndStop(binaryOpen, low)) { resetPosition(binaryOpen, true); }
       // Else follow tentative by running slow to attempt to seat securely.

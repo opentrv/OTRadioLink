@@ -120,12 +120,12 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
           const bool isLo = tempPotOpt->isAtLoEndStop();
           if(isLo) { valveMode->setWarmModeDebounced(false); }
           // Feed back significant change in pot position, ie at temperature boundaries.
-          // Synthesise a 'hot' target temperature that distinguishes the end stops...
+          // Synthesise a 'hot' target temperature that distinguishes the end stops
+          // from all other valid temperatures and the initial '0' state.
           const uint8_t nominalWarmTarget = isLo ? 1 :
               (tempPotOpt->isAtHiEndStop() ? 99 :
               tempControl->getWARMTargetC());
           // Record of 'last' nominalWarmTarget; initially 0.
-          static uint8_t lastNominalWarmTarget;
           if(nominalWarmTarget != lastNominalWarmTarget)
             {
             // Note if a boundary was crossed, ignoring any false 'start-up' transient.

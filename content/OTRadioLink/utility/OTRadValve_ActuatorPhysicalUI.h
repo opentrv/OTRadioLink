@@ -173,8 +173,8 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
       markUIControlUsed();
       // Sound and tactile feedback with local valve, like mobile phone vibrate mode.
       if(valveController->isInNormalRunState()) { valveController->wiggle(); }
-      // Were wiggle cannot be used pause briefly to let LED on be seen.
-      else { if(includeVisual) { smallPause(); } }
+      // Where wiggle cannot be used then instead pause briefly to let LED be seen on.
+      else { if(includeVisual) { mediumPause(); } }
       if(includeVisual) { LEDoff(); }
       // Note that feedback for significant UI action has been given.
       significantUIOp = false;
@@ -239,6 +239,9 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
 
     // Counts calls to read() (was tickUI()).
     uint8_t tickCount = 0;
+
+    // Used to track changes in the temp pot setting to give feedback; initially 0.
+    uint8_t lastNominalWarmTarget = 0;
 
   public:
     // Construct a default instance.
