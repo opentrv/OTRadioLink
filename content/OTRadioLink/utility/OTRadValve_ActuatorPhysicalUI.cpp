@@ -47,7 +47,7 @@ namespace OTRadValve
 void ModeButtonAndPotActuatorPhysicalUI::markUIControlUsed()
     {
     statusChange = true; // Note user interaction with the system.
-    uiTimeoutM = UI_DEFAULT_RECENT_USE_TIMEOUT_M; // Ensure that UI controls are kept 'warm' for a little while.
+    uiTimeoutM.store(UI_DEFAULT_RECENT_USE_TIMEOUT_M); // Ensure that UI controls are kept 'warm' for a little while.
 // FIXME
 //  #if defined(ENABLE_UI_WAKES_CLI)
 //    // Make CLI active for a while (at some slight possibly-significant energy cost).
