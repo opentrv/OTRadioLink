@@ -229,6 +229,18 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
   // When reduced to whole Celsius then fewer bits are needed to cover expected temperatures.
   const int_fast8_t adjustedTempC = (int_fast8_t) (adjustedTempC16 >> 4);
 
+
+#if 0
+
+  // Absolutely minimal implementation.
+
+  // (Well) under temp target: open valve up.
+  if(adjustedTempC < inputState.targetTempC) { return(100); }
+  // (Well) over temp target: close valve down.
+  else if(adjustedTempC > inputState.targetTempC) { return(0); }
+
+#else
+
   // (Well) under temp target: open valve up.
   if(adjustedTempC < inputState.targetTempC)
     {
@@ -516,6 +528,8 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
     // Adjust directly to target.
     return(targetPO);
     }
+
+#endif // 0
 
   // Leave value position as was...
   return(valvePCOpen);
