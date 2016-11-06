@@ -182,7 +182,7 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     uint8_t currentPC = 0;
 
     // Target % open in range [0,100].
-    // Initialised to partly open (but below 'call-for-heat'), as a safe frost-protection state.
+    // Initialised to nominally partly open (but below 'call-for-heat'), as a safe frost-protection state.
     uint8_t targetPC = OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1;
 
     // Run fast towards/to end stop as far as possible in this call.
