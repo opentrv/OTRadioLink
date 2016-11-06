@@ -116,7 +116,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 // IF DEFINED: try to trim bandwidth as may be especially expensive/scarce.
 #undef ENABLE_TRIMMED_BANDWIDTH
 // If DEFINED: attempt proportional (rather than cruder, eg, on/off, control of TRV or other heat source).
-#undef ENABLE_PROPORTIONAL_VALVE_CONTROL
+#define ENABLE_PROPORTIONAL_VALVE_CONTROL
 // IF DEFINED: support one on and one off time per day (possibly in conjunction with 'learn' button).
 #undef ENABLE_SINGLETON_SCHEDULE
 // IF DEFINED: use active-low LEARN button(s).  Needs ENABLE_SINGLETON_SCHEDULE.
