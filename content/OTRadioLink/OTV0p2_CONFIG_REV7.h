@@ -110,10 +110,13 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 // Although LEARN buttons are provided, by default they are disabled as is the scheduler.
 // Fast temp dial sampling is forced on to help compensate for mechanical slop in early devices.
 // Delayed activation is enabled.  (TODO-786)
+// As of 2016/11/06 no DORM1/TRV1 was using shaft encoder so simple on/off valve control is appropriate.  (TODO-1038)
 // IF DEFINED: try to trim memory (primarily RAM, also code/Flash) space used.
 #define ENABLE_TRIMMED_MEMORY
 // IF DEFINED: try to trim bandwidth as may be especially expensive/scarce.
 #undef ENABLE_TRIMMED_BANDWIDTH
+// If DEFINED: attempt proportional (rather than cruder, eg, on/off, control of TRV or other heat source).
+#undef ENABLE_PROPORTIONAL_VALVE_CONTROL
 // IF DEFINED: support one on and one off time per day (possibly in conjunction with 'learn' button).
 #undef ENABLE_SINGLETON_SCHEDULE
 // IF DEFINED: use active-low LEARN button(s).  Needs ENABLE_SINGLETON_SCHEDULE.

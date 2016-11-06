@@ -163,8 +163,10 @@ bool CurrentSenseValveMotorDirectBinaryOnly::runFastTowardsEndStop(const bool to
     : OTRadValve::HardwareMotorDriverInterface::motorDriveClosing, *this);
   // Stop motor and ensure power off.
   hw->motorRun(0, OTRadValve::HardwareMotorDriverInterface::motorOff, *this);
-  // Report if end-stop has apparently been hit.
-  return(endStopDetected);
+  // If end-stop not hit, return false now.
+  if(!endStopDetected) { return(false); }
+  // Attempt another short pulse to finish the job if there is time.
+  return(runTowardsEndStop(toOpen));
   }
 
 // Run at 'normal' speed towards/to end for a fixed time/distance.
@@ -176,7 +178,7 @@ bool CurrentSenseValveMotorDirectBinaryOnly::runTowardsEndStop(const bool toOpen
   {
   // Clear the end-stop detection flag ready.
   endStopDetected = false;
-  // Run motor as far as possible on this sub-cycle.
+  // Run motor for fixed time.
   hw->motorRun(minMotorDRTicks, toOpen ?
       OTRadValve::HardwareMotorDriverInterface::motorDriveOpening
     : OTRadValve::HardwareMotorDriverInterface::motorDriveClosing, *this);
@@ -285,7 +287,7 @@ OTV0P2BASE::serialPrintlnAndFlush();
       if(runTowardsEndStop(true, low))
           {
           // Note that the valve is now fully open.
-          resetPosition(true);
+          resetPosition(true, true); // Regard as tentative.
           changeState(valvePinWithdrawn);
           }
 
@@ -361,8 +363,12 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
       // If not apparently yet at end-stop
       // (ie not at correct end stop or with spurious unreconciled ticks)
       // then try again to run to end-stop.
-      // If end-stop is hit then reset positional values
-      if(runTowardsEndStop(binaryOpen, low)) { resetPosition(binaryOpen); }
+      // If end-stop is hit then reset positional values.
+      const bool tentative = (currentPC == 1) || (currentPC == 99);
+      // Try running fast if not tentative from previous step, and end up tentative.
+      if(!tentative && runTowardsEndStop(binaryOpen, low)) { resetPosition(binaryOpen, true); }
+      // Else follow tentative by running slow to attempt to seat securely.
+      else if(runTowardsEndStop(binaryOpen)) { resetPosition(binaryOpen, false); }
       // Re-estimate intermediate position.
       else { recomputePosition(); }
 

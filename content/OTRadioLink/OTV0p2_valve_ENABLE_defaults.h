@@ -61,6 +61,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #define ENABLE_LOCAL_TRV
 // IF DEFINED: this unit controls a valve, but provides slave valve control only.
 #undef ENABLE_SLAVE_TRV
+// If DEFINED: attempt proportional (rather than cruder, eg, on/off, control of TRV or other heat source).
+#define ENABLE_PROPORTIONAL_VALVE_CONTROL
 // IF DEFINED: this unit *can* act as boiler-control hub listening to remote thermostats, possibly in addition to controlling a local TRV.
 #define ENABLE_BOILER_HUB
 //////////////////////////////////////// DEV/MAINT UI OPTIONS (and support for them)

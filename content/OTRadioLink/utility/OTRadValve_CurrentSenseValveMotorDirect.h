@@ -214,9 +214,14 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     // Does nothing for non-proportional implementation.
     virtual void recomputePosition() { }
 
-    // Reset internal counters when an end-stop is hit.
-    // Just updates current % open valu for non-proportional implementation.
-    virtual void resetPosition(bool hitEndstopOpen) { currentPC = hitEndstopOpen ? 100 : 0; }
+    // Reset just current percent-open value, with optional 'tentative' marker.
+    // If 'tentative' then current position may be recorded as adjacent to, but not at, the end-stops.
+    void resetCurrentPC(bool hitEndstopOpen, bool tentative = false)
+        { currentPC = hitEndstopOpen ? (tentative ? 99 : 100) : (tentative ? 1 : 0); }
+
+    // Reset internal positional record when an end-stop is hit.
+    // Updates current % open value for non-proportional implementation.
+    virtual void resetPosition(bool hitEndstopOpen, bool tentative = false) { resetCurrentPC(hitEndstopOpen, tentative); }
 
     // Do valveCalibrating for proportional drive; returns true to return from poll() immediately.
     // Calls changeState() directly if it needs to change state.
@@ -420,9 +425,9 @@ class CurrentSenseValveMotorDirect final : public CurrentSenseValveMotorDirectBi
     virtual void recomputePosition() override { if(!needsRecalibrating) { currentPC = cp.computePosition(ticksFromOpen, ticksReverse); } }
 
     // Reset internal position markers when an end-stop is hit.
-    virtual void resetPosition(const bool hitEndstopOpen) override
+    virtual void resetPosition(const bool hitEndstopOpen, bool tentative = false) override
         {
-        currentPC = hitEndstopOpen ? 100 : 0;
+        resetCurrentPC(hitEndstopOpen, tentative);
         ticksReverse = 0;
         ticksFromOpen = hitEndstopOpen ? 0 : cp.getTicksFromOpenToClosed();
         }

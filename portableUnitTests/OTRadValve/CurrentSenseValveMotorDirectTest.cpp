@@ -237,7 +237,7 @@ static void initStateWalkthrough(OTRadValve::CurrentSenseValveMotorDirectBase *c
     // Fake hardware hits end-stop immediate, so leaves 'withdrawing' state.
     csv->poll();
     EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawn, csv->getState());
-    EXPECT_EQ(100, csv->getCurrentPC()) << "valve must now be fully open";
+    EXPECT_LE(95, csv->getCurrentPC()) << "valve must now be fully open, or very nearly so";
     // Waiting for value to be signalled that it has been fitted...
     csv->poll();
     EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawn, csv->getState());
