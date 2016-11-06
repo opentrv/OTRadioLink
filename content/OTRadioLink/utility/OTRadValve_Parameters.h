@@ -148,7 +148,7 @@ namespace OTRadValve
         // Other parts of the room may be somewhat colder than where the sensor is, so aim a little over 5C.
         // 14C avoids risk of raised blood pressure and is a generally safe and comfortable sleeping temperature.
         // Note: BS EN 215:2004 S5.3.5 says maximum setting must be <= 32C, minimum in range [5C,12C].
-        // 15C+ may help mould/mold risk from condensation, see: http://www.nea.org.uk/Resources/NEA/Publications/2013/Resource%20-%20Dealing%20with%20damp%20and%20condensation%20%28lo%20res%29.pdf
+        // 15C+ may help avoid mould/mold risk from condensation, see: http://www.nea.org.uk/Resources/NEA/Publications/2013/Resource%20-%20Dealing%20with%20damp%20and%20condensation%20%28lo%20res%29.pdf
         6,  // Target FROST temperature for ECO bias.
         14, // Target FROST temperature for Comfort bias.
 
