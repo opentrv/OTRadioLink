@@ -75,8 +75,7 @@
 					</folderInfo>
 					<sourceEntries>
 						<entry excluding="OTV0p2Base|portableUnitTests|OTRadioLink" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
-						<entry excluding="OTV0p2Base" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="portableUnitTests"/>
-						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="portableUnitTests/OTV0p2Base"/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="portableUnitTests"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
