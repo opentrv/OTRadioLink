@@ -187,13 +187,14 @@ bool isValidSimpleStatsKey(const MSG_JSON_SimpleStatsKey_t key)
 #else
   const char *p = key;
 #endif
-  for(const char *s = p; '\0' != *s; ++s)
+  for(const char *s = p; ; ++s)
     {
 #ifdef V0p2_SENSOR_TAG_IS_FlashStringHelper
     const char c = pgm_read_byte(s);
 #else
     const char c = *s;
 #endif
+    if('\0' == c) { break; }
     if((c < 32) || (c > 126) || ('"' == c) || ('\\' == c)) { return(false); }
     }
   return(true);
