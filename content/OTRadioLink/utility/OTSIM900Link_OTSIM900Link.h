@@ -617,16 +617,18 @@ namespace OTSIM900Link
 
             // Serial functions
             /**
-             * @brief   Enter blocking read. Fills buffer or times out after 100 ms.
+             * @brief   Fills a buffer with characters from ser.read(). Exits when array filled, or if ser.read() times out..
              * @param   data:   Data buffer to write to.
              * @param   length: Length of data buffer.
              * @retval  Number of characters received before time out.
              */
-            uint8_t timedBlockingRead(char * const data, const uint8_t length)
+            uint8_t readMany(char * const data, const uint8_t length)
                 {
-                //
+                // pointer to write data too.
                 char *dp = data;
+                // Init array to 0.
                 memset(data, 0, length);
+                // Loop through array until full or ser.read() returns -1 (time out).
                 while ((dp-data) < length) {
                     const char c = ser.read();
                     if (c == -1) break;
@@ -634,9 +636,9 @@ namespace OTSIM900Link
                 }
 #if 0
                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("\n--Buffer Length: ")
-                OTSIM900LINK_DEBUG_SERIAL_PRINTLN(i)
+                OTSIM900LINK_DEBUG_SERIAL_PRINTLN(data-dp)
 #endif
-                return (data-dp);
+                return (data-dp);  // Return length of array.
                 }
             /**
              * @brief   Utility function for printing from config structure.
@@ -671,7 +673,7 @@ namespace OTSIM900Link
                 ser.print(AT_START);
                 ser.println(ATc_GET_MODULE);
                 //    ser.print(AT_END);
-                timedBlockingRead(data, sizeof(data));
+                readMany(data, sizeof(data));
                 OTSIM900LINK_DEBUG_SERIAL_PRINT(data)
                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN()
                 return true;
@@ -691,7 +693,7 @@ namespace OTSIM900Link
                 ser.print(AT_NETWORK);
                 ser.println(ATc_QUERY);
                 //    ser.print(AT_END);
-                timedBlockingRead(data, sizeof(data));
+                readMany(data, sizeof(data));
                 return true;
                 }
             /**
@@ -708,10 +710,9 @@ namespace OTSIM900Link
                 ser.print(AT_REGISTRATION);
                 ser.println(ATc_QUERY);
                 //    ser.print(AT_END);
-                timedBlockingRead(data, sizeof(data));
+                readMany(data, sizeof(data));
                 // response stuff
-                uint8_t dataCutLength = 0;
-                const char *dataCut = getResponse(dataCutLength, data, sizeof(data), ' '); // first ' ' appears right before useful part of message
+                const char *dataCut = getResponse(data, sizeof(data), ' '); // first ' ' appears right before useful part of message
                 if(NULL == dataCut) { return(false); }
                 // Expected response '1' or '5'.
                 return((dataCut[2] == '1') || (dataCut[2] == '5'));
@@ -730,10 +731,9 @@ namespace OTSIM900Link
                 ser.print(ATc_SET);
                 printConfig(config->APN);
                 ser.println();
-                timedBlockingRead(data, sizeof(data));
+                readMany(data, sizeof(data));
                 // response stuff
-                uint8_t dataCutLength = 0;
-                const char *dataCut = getResponse(dataCutLength, data, sizeof(data), 0x0A);
+                const char *dataCut = getResponse(data, sizeof(data), 0x0A);
                 if(NULL == dataCut) { return(-1); }
                 //    OTSIM900LINK_DEBUG_SERIAL_PRINTLN(dataCut)
                 // Expected response 'OK'.
@@ -751,11 +751,10 @@ namespace OTSIM900Link
                 ser.print(AT_START);
                 ser.println(AT_START_GPRS);
                 //    ser.print(AT_END);
-                timedBlockingRead(data, sizeof(data));
+                readMany(data, sizeof(data));
 
                 // response stuff
-                uint8_t dataCutLength = 0;
-                const char *dataCut = getResponse(dataCutLength, data, sizeof(data), 0x0A); // unreliable
+                const char *dataCut = getResponse(data, sizeof(data), 0x0A); // unreliable
                 if(NULL == dataCut) { return(-1); }
                 return ((dataCut[0] == 'O') & (dataCut[1] == 'K'));
                 }
@@ -769,12 +768,11 @@ namespace OTSIM900Link
                 ser.print(AT_START);
                 ser.println(AT_SHUT_GPRS);
                 //    ser.print(AT_END);
-                timedBlockingRead(data, sizeof(data));
+                readMany(data, sizeof(data));
 
                 // response stuff
-                uint8_t dataCutLength = 0;
-                const char *dataCut = getResponse(dataCutLength, data, sizeof(data), 0x0A);
-                if(NULL == dataCut) { return(-1); }
+                const char *dataCut = getResponse(data, sizeof(data), 0x0A);
+                if(NULL == dataCut) { return(false); }
                 // Expected response 'SHUT OK'.
                 return (*dataCut == 'S');
                 }
@@ -784,22 +782,21 @@ namespace OTSIM900Link
              * @retval  return length of IP address. Return 0 if no connection
              * @note    reply: b'AT+CIFSR\r\n\r\n172.16.101.199\r\n'
              */
-            uint8_t getIP()
+            bool getIP()
                 {
                 char data[MAX_SIM900_RESPONSE_CHARS];
                 ser.print(AT_START);
                 ser.println(AT_GET_IP);
                 //  ser.print(AT_END);
-                timedBlockingRead(data, sizeof(data));
+                readMany(data, sizeof(data));
                 // response stuff
-                uint8_t dataCutLength = 0;
-                const char *dataCut = getResponse(dataCutLength, data, sizeof(data), 0x0A);
-                if(NULL == dataCut) { return(0); }
+                const char *dataCut = getResponse(data, sizeof(data), 0x0A);
+                if(NULL == dataCut) { return(false); }
                 // All error messages will start with a '+'.
                 if (*dataCut == '+')
-                    { return(0); }
+                    { return(false); }
                 else
-                    { return(dataCutLength); }
+                    { return(true); }
                 }
             /**
              * @brief   Check if UDP open.
@@ -817,12 +814,10 @@ namespace OTSIM900Link
                 ser.print(AT_START);
                 ser.println(AT_STATUS);
                 //    ser.print(AT_END);
-                timedBlockingRead(data, sizeof(data));
+                readMany(data, sizeof(data));
 
-                // response stuff
-                uint8_t dataCutLength = 0;
                 // First ' ' appears right before useful part of message.
-                const char *dataCut = getResponse(dataCutLength, data, sizeof(data), ' ');
+                const char *dataCut = getResponse(data, sizeof(data), ' ');
                 if(NULL == dataCut) { return(0); }
                 if (*dataCut == 'C')
                     return 1; // expected string is 'CONNECT OK'. no other possible string begins with C
@@ -843,11 +838,10 @@ namespace OTSIM900Link
                 ser.print(AT_START);
                 ser.println(AT_SIGNAL);
                 //    ser.print(AT_END);
-                timedBlockingRead(data, sizeof(data));
+                readMany(data, sizeof(data));
                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN(data)
                 // response stuff
-                uint8_t dataCutLength = 0;
-                getResponse(dataCutLength, data, sizeof(data), ' '); // first ' ' appears right before useful part of message
+                getResponse(data, sizeof(data), ' '); // first ' ' appears right before useful part of message
                 return 0;
                 }
 
@@ -863,7 +857,7 @@ namespace OTSIM900Link
                 ser.print(ATc_SET);
                 ser.println((char) (level + '0'));
                 //    ser.print(AT_END);
-                timedBlockingRead(data, sizeof(data));
+                readMany(data, sizeof(data));
             OTSIM900LINK_DEBUG_SERIAL_PRINTLN(data)
             }
         /**
@@ -883,8 +877,8 @@ namespace OTSIM900Link
             ser.print(ATc_SET);
             printConfig(config->PIN);
             ser.println();
-//        timedBlockingRead(data, sizeof(data));  // todo redundant until function properly implemented.
-            OTSIM900LINK_DEBUG_SERIAL_PRINTLN(data)
+//        readMany(data, sizeof(data));  // todo redundant until function properly implemented.
+//            OTSIM900LINK_DEBUG_SERIAL_PRINTLN(data)
             return true;
             }
         /**
@@ -899,12 +893,11 @@ namespace OTSIM900Link
             ser.print(AT_PIN);
             ser.println(ATc_QUERY);
             //    ser.print(AT_END);
-            timedBlockingRead(data, sizeof(data));
+            readMany(data, sizeof(data));
 
             // response stuff
-            uint8_t dataCutLength = 0;
             // First ' ' appears right before useful part of message
-            const char *dataCut = getResponse(dataCutLength, data, sizeof(data), ' ');
+            const char *dataCut = getResponse(data, sizeof(data), ' ');
             if(NULL == dataCut) { return(false); }
             // Expected string is 'READY'. no other possible string begins with R.
             return('R' == *dataCut);
@@ -934,9 +927,7 @@ namespace OTSIM900Link
             }
 
         /**
-         * @brief   Returns a pointer to section of response containing important data
-         *          and sets its length to a variable
-         * @param   newLength:  length of useful data.
+         * @brief   Finds the first occurrence of a character within a buffer and returns a pointer to the next element.
          * @param   data:       pointer to array containing response from device.
          * @param   dataLength: length of array.
          * @param   startChar:  Ignores everything up to and including this character.
@@ -944,13 +935,9 @@ namespace OTSIM900Link
          *
          * MUST CHECK RESPONSE AGAINST NULL FIRST
          */
-        const char *getResponse(uint8_t &newLength, const char * const data,
-                const uint8_t dataLength, const char startChar)
-            {
+        const char *getResponse(const char * const data, const uint8_t dataLength, const char startChar)
+        {
             const char *dp = data;  // read only pointer to data buffer.
-
-            const char *newPtr = NULL;  // Pointer to store beginning of desired output.
-            newLength = 0;  // Length of desired output.
 
             // Ignore echo of command
             // dp will be pointing to the character after the match when the loop exits.
@@ -958,23 +945,8 @@ namespace OTSIM900Link
                 if ((dp - data) >= dataLength)
                     return NULL;
             }
-            // Set pointer to start of and index
-            newPtr = dp;
-            // Find end of response
-            while (*dp != 0x0D) {    // find end of response
-                dp++;
-                if ((dp-data) >= dataLength)
-                    return NULL;
-            }
-            newLength = dp-newPtr;
-#if 0 && defined(OTSIM900LINK_DEBUG)
-            char *stringEnd = (char *)data;
-            *stringEnd = '\0';
-            OTV0P2BASE::serialPrintAndFlush(newPtr);
-            OTV0P2BASE::serialPrintlnAndFlush();
-#endif // OTSIM900LINK_DEBUG
-            return newPtr;    // return length of new array
-            }
+            return dp;
+        }
 
         /**
          * @brief   Open UDP socket.
@@ -997,11 +969,10 @@ namespace OTSIM900Link
             ser.println('\"');
             //    ser.print(AT_END);
             // Implement check here
-            timedBlockingRead(data, sizeof(data));
+            readMany(data, sizeof(data));
 
             // response stuff
-            uint8_t dataCutLength = 0;
-            const char *dataCut = getResponse(dataCutLength, data, sizeof(data), 0x0A);
+            const char *dataCut = getResponse(data, sizeof(data), 0x0A);
             if(NULL == dataCut) { return(false); }
             OTSIM900LINK_DEBUG_SERIAL_PRINTLN(dataCut)
             // Returns ERROR on fail, else successfully opened UDP.
