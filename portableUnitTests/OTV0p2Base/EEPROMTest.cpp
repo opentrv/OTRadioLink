@@ -30,7 +30,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 // Test low-wear unary encoding.
 //
 // DHD20161107: imported from test_SECFRAME.ino testUnaryEncoding().
-TEST(OTAESGCMSecureFrame, UnaryEncoding)
+TEST(EEPROM, UnaryEncoding)
   {
   // Check for conversion back and forth of all allowed represented values.
   for(uint8_t i = 0; i <= 8; ++i) { EXPECT_EQ(i, OTV0P2BASE::eeprom_unary_1byte_decode(OTV0P2BASE::eeprom_unary_1byte_encode(i))); }
