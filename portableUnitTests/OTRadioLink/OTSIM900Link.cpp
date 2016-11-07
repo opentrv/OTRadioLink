@@ -181,7 +181,7 @@ class GoodSimulator final : public Stream
     virtual void flush() override { }
   };
 // Events exposed.
-bool GoodSimulator::haveSeenCommandStart;
+bool GoodSimulator::haveSeenCommandStart = false;
 }
 TEST(OTSIM900Link,basicsSimpleSimulator)
 {
@@ -219,39 +219,116 @@ TEST(OTSIM900Link,basicsSimpleSimulator)
     l0.end();
 }
 
-// Test workaround for SIM900 bug that unrecoverable GPRS failure after signal loss.
-TEST(OTSIM900Link, pdpDeactWorkaround)
-{
-//    const bool verbose = B1::verbose;
 
-    srandom(::testing::UnitTest::GetInstance()->random_seed()); // Seed random() for use in simulator; --gtest_shuffle will force it to change.
-
-    // Vector of bools containing states to check. This covers all states expected in normal use. RESET and PANIC are not covered.
-    std::vector<bool> statesChecked(OTSIM900Link::RESET, false);
-    // Message to send.
-    const char message[] = "123";
-
-    const char SIM900_PIN[] = "1111";
-    const char SIM900_APN[] = "apn";
-    const char SIM900_UDP_ADDR[] = "0.0.0.0"; // ORS server
-    const char SIM900_UDP_PORT[] = "9999";
-    const OTSIM900Link::OTSIM900LinkConfig_t SIM900Config(false, SIM900_PIN, SIM900_APN, SIM900_UDP_ADDR, SIM900_UDP_PORT);
-    const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
-
-
-    ASSERT_FALSE(B1::GoodSimulator::haveSeenCommandStart);
-    OTSIM900Link::OTSIM900Link<0, 0, 0, B1::GoodSimulator> l0;
-    EXPECT_TRUE(l0.configure(1, &l0Config));
-    EXPECT_TRUE(l0.begin());
-    EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
-
-    for(int i = 0; i < 20; ++i) { statesChecked[l0._getState()] = true; l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
-    EXPECT_TRUE(B1::GoodSimulator::haveSeenCommandStart) << "should see some attempt to communicate with SIM900";
-    // Queue a message to send.
-    l0.queueToSend((const uint8_t *)message, (uint8_t)sizeof(message)-1, (int8_t) 0, OTRadioLink::OTRadioLink::TXnormal);
-
-    // check we enter RESET state somehow.
-
-    // ...
-    l0.end();
-}
+//namespace B2 {
+//const bool verbose = false;
+//
+//// Does a simple simulation of SIM900, responding sensibly to all commands needed by the OTSIM900Link impl.
+//// Allows for exercise of every major non-PANIC state of the OTSIM900Link implementation.
+//class GarbageSimulator final : public Stream
+//  {
+//  public:
+//    // Events exposed.
+//    static bool haveSeenCommandStart;
+//    // Force PDP-DEACT message to test RESET state. TODO how am I going to make this settable?
+//    bool forceResetState = false;
+//
+//  private:
+//    // Command being collected from OTSIM900Link.
+//    bool waitingForCommand = true;
+//    bool collectingCommand = false;
+//    // Entire request starting "AT"; no trailing CR or LF stored.
+//    std::string command;
+//
+//    // Reply (postfix) being returned to OTSIM900Link: empty if none.
+//    std::string reply;
+//
+//    // Keep track (crudely) of state. Corresponds to OTSIM900LinkState values.
+//    uint8_t sim900LinkState = 0;
+//
+//  public:
+//    void begin(unsigned long) { }
+//    void begin(unsigned long, uint8_t);
+//    void end();
+//
+//    virtual size_t write(uint8_t uc) override
+//      {
+//      const char c = (char)uc;
+//      if(waitingForCommand)
+//        {
+//        // Look for leading 'A' of 'AT' to start a command.
+//        if('A' == c)
+//          {
+//          waitingForCommand = false;
+//          collectingCommand = true;
+//          command = 'A';
+//          haveSeenCommandStart = true; // Note at least one command start.
+//          }
+//        }
+//      else
+//        {
+//        // Look for CR (or LF) to terminate a command.
+//        if(('\r' == c) || ('\n' == c))
+//          {
+//          waitingForCommand = true;
+//          collectingCommand = false;
+//          if(verbose) { fprintf(stderr, "command received: %s\n", command.c_str()); }
+//          // Respond to particular commands...
+//
+//          }
+//        else if(collectingCommand) { command += c; }
+//        }
+//      if(verbose) { if(isprint(c)) { fprintf(stderr, "<%c\n", c); } else { fprintf(stderr, "< %d\n", (int)c); } }
+//      return(1);
+//      }
+//    virtual int read() override
+//        {
+//        if(0 == reply.size()) { return(-1); }
+//        const char c = reply[0];
+//        if(verbose) { if(isprint(c)) { fprintf(stderr, ">%c\n", c); } else { fprintf(stderr, "> %d\n", (int)c); } }
+//        reply.erase(0, 1);
+//        return(c);
+//        }
+//    virtual int available() override { return(-1); }
+//    virtual int peek() override { return(-1); }
+//    virtual void flush() override { }
+//  };
+//// Events exposed.
+//bool BadSimulator::haveSeenCommandStart = false;
+//}
+//
+//TEST(OTSIM900Link,inputTestSimulator)
+//{
+////    const bool verbose = B1::verbose;
+//
+//    srandom(::testing::UnitTest::GetInstance()->random_seed()); // Seed random() for use in simulator; --gtest_shuffle will force it to change.
+//
+//    // Vector of bools containing states to check. This covers all states expected in normal use. RESET and PANIC are not covered.
+//    std::vector<bool> statesChecked(OTSIM900Link::RESET, false);
+//    // Message to send.
+//    const char message[] = "123";
+//
+//    const char SIM900_PIN[] = "1111";
+//    const char SIM900_APN[] = "apn";
+//    const char SIM900_UDP_ADDR[] = "0.0.0.0"; // ORS server
+//    const char SIM900_UDP_PORT[] = "9999";
+//    const OTSIM900Link::OTSIM900LinkConfig_t SIM900Config(false, SIM900_PIN, SIM900_APN, SIM900_UDP_ADDR, SIM900_UDP_PORT);
+//    const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
+//
+//
+//    ASSERT_FALSE(B2::BadSimulator::haveSeenCommandStart);
+//    OTSIM900Link::OTSIM900Link<0, 0, 0, B2::BadSimulator> l0;
+//    EXPECT_TRUE(l0.configure(1, &l0Config));
+//    EXPECT_TRUE(l0.begin());
+//    EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
+//
+//    // Try to hang just by calling poll() repeatedly.
+//    for(int i = 0; i < 100; ++i) { statesChecked[l0._getState()] = true; l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
+//    // Queue a message to send.
+//    l0.queueToSend((const uint8_t *)message, (uint8_t)sizeof(message)-1, (int8_t) 0, OTRadioLink::OTRadioLink::TXnormal);
+//    for(int i = 0; i < 100; ++i) { statesChecked[l0._getState()] = true; l0.poll(); }
+//    EXPECT_TRUE(B2::BadSimulator::haveSeenCommandStart) << "should see some attempt to communicate with SIM900";
+//    for(int i = 0; i < OTSIM900Link::RESET; i++) EXPECT_TRUE(statesChecked[i]) << "state " << i << " not seen.";  // Check what states have been seen.
+//    // ...
+//    l0.end();
+//}
