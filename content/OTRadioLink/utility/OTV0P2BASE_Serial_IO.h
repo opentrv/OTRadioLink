@@ -56,7 +56,7 @@ namespace OTV0P2BASE
       " ")); \
   /* Rearrange date into sensible most-significant-first order, and make it (nearly) fully numeric. */ \
   /* FIXME: would be better to have this in PROGMEM (Flash) rather than RAM, eg as F() constant. */ \
-  const char _YYYYMmmDD[] = \
+  constexpr char _YYYYMmmDD[] = \
     { \
     __DATE__[7], __DATE__[8], __DATE__[9], __DATE__[10], \
     '/', \
