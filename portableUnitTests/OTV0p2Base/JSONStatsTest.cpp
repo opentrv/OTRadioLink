@@ -80,6 +80,11 @@ TEST(JSONStats,JSONStats)
     EXPECT_EQ(1, ss1.size());
     EXPECT_EQ(18, ss1.writeJSON((uint8_t*)buf, sizeof(buf), 0, OTV0P2BASE::randRNG8NextBoolean()));
     EXPECT_STREQ(buf, "{\"@\":\"1234\",\"L\":0}");
+
+    // Check ID suppression.
+    ss1.setID(V0p2_SENSOR_TAG_F(""));
+    EXPECT_EQ(7, ss1.writeJSON((uint8_t*)buf, sizeof(buf), 0, OTV0P2BASE::randRNG8NextBoolean()));
+    EXPECT_STREQ(buf, "{\"L\":0}");
 }
 
 // Test handling of JSON messages for transmission and reception.
