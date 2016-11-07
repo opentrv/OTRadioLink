@@ -3,6 +3,7 @@
 	<name>OTRadioLink</name>
 	<comment></comment>
 	<projects>
+		<project>OTAESGCM</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
