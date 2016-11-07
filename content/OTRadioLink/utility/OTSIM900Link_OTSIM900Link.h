@@ -617,7 +617,7 @@ namespace OTSIM900Link
 
             // Serial functions
             /**
-             * @brief   Fills a buffer with characters from ser.read(). Exits when array filled, or if ser.read() times out..
+             * @brief   Fills a buffer with characters from ser.read(). Exits when array filled, or if ser.read() times out.
              * @param   data:   Data buffer to write to.
              * @param   length: Length of data buffer.
              * @retval  Number of characters received before time out.
@@ -628,7 +628,7 @@ namespace OTSIM900Link
                 char *dp = data;
                 // Init array to 0.
                 memset(data, 0, length);
-                // Loop through array until full or ser.read() returns -1 (time out).
+                // Loop through filling array until full or ser.read() returns -1 (time out).
                 while ((dp-data) < length) {
                     const char c = ser.read();
                     if (c == -1) break;
@@ -778,8 +778,8 @@ namespace OTSIM900Link
                 }
             /**
              * @brief   Get IP address
-             * @todo    How should I return the string?
-             * @retval  return length of IP address. Return 0 if no connection
+             * @todo    How should I return the string
+             * @retval  True if no errors.
              * @note    reply: b'AT+CIFSR\r\n\r\n172.16.101.199\r\n'
              */
             bool getIP()
@@ -938,10 +938,9 @@ namespace OTSIM900Link
         const char *getResponse(const char * const data, const uint8_t dataLength, const char startChar)
         {
             const char *dp = data;  // read only pointer to data buffer.
-
             // Ignore echo of command
             // dp will be pointing to the character after the match when the loop exits.
-            while  (*dp++ != startChar) {
+            while  (*dp++ != startChar) { // check for match THEN increment.
                 if ((dp - data) >= dataLength)
                     return NULL;
             }
