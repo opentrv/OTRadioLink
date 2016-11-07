@@ -43,4 +43,3 @@ TEST(EEPROM, UnaryEncoding)
   EXPECT_EQ(-1, OTV0P2BASE::eeprom_unary_1byte_decode(0xef));
   EXPECT_EQ(-1, OTV0P2BASE::eeprom_unary_2byte_decode(0xccccU));
   }
-

@@ -20,8 +20,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
  * OTRadValve tests of secure frames dependent on OTASEGCM
  */
 
+// Only enable these tests if the OTAESGCM library is marked as available.
 #if defined(EXT_AVAILABLE_ARDUINO_LIB_OTAESGCM)
-// Only enable these tests if the OTAESGCM library is available.
 
 
 #include <gtest/gtest.h>
