@@ -42,14 +42,14 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 
 
 // Test something.
-TEST(SecureFrame,basics)
+TEST(OTAESGCMSecureFrame,basics)
 {
 }
 
 // Test quick integrity checks, for TX and RX.
 //
 // DHD20161107: imported from test_SECFRAME.ino testFramQIC().
-TEST(SecureFrame, FramQIC)
+TEST(OTAESGCMSecureFrame, FramQIC)
 {
     OTRadioLink::SecurableFrameHeader sfh;
     uint8_t id[OTRadioLink::SecurableFrameHeader::maxIDLength];
