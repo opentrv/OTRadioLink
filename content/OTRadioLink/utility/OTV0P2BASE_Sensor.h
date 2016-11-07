@@ -136,9 +136,9 @@ class SimpleTSUint8Sensor : public Sensor<uint8_t>
       volatile uint8_t value;
 
       // By default initialise the value to zero.
-      SimpleTSUint8Sensor() : value(0) { }
+      constexpr SimpleTSUint8Sensor() : value(0) { }
       // Can initialise to a chosen value.
-      SimpleTSUint8Sensor(const uint8_t v) : value(v) { }
+      constexpr SimpleTSUint8Sensor(const uint8_t v) : value(v) { }
 
   public:
     // Return last value fetched by read(); undefined before first read().

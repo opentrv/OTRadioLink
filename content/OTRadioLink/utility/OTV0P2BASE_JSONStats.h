@@ -79,7 +79,7 @@ struct GenericStatsDescriptor final
     // and all copies have been disposed of (so is probably best a static string).
     // By default the statistic is normal priority.
     // Sensitivity by default does not allow TX unless at minimal privacy level.
-    GenericStatsDescriptor(const MSG_JSON_SimpleStatsKey_t statKey,
+    constexpr GenericStatsDescriptor(const MSG_JSON_SimpleStatsKey_t statKey,
                            const bool statLowPriority = false)
                            // const uint8_t statSensitivity = 1)
       : key(statKey), lowPriority(statLowPriority) // , sensitivity(statSensitivity)
@@ -304,7 +304,7 @@ class SimpleStatsRotation final : public SimpleStatsRotationBase
     DescValueTuple stats[MaxStats];
 
   public:
-    SimpleStatsRotation() : SimpleStatsRotationBase(stats, MaxStats) { }
+    constexpr SimpleStatsRotation() : SimpleStatsRotationBase(stats, MaxStats) { }
 
     // Get capacity.
     uint8_t getCapacity() { return(MaxStats); }

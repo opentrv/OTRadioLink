@@ -276,7 +276,7 @@ struct ModelledRadValveSensorCtrlStats final
 
     // Construct an instance wrapping read-only access to all input devices.
     // All arguments must be non-NULL.
-    ModelledRadValveSensorCtrlStats(
+    constexpr ModelledRadValveSensorCtrlStats(
         const ValveMode *const _valveMode,
         const OTV0P2BASE::TemperatureC16Base *const _temperatureC16,
         const TempControlBase *const _tempControl,
@@ -341,7 +341,7 @@ template<
 class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComputeTargetTempBase
   {
   public:
-//    ModelledRadValveComputeTargetTempBasic()
+//   constexpr ModelledRadValveComputeTargetTempBasic()
 //      {
 //      // TODO validate arg types and that things aren't NULL.  static_assert()?
 //      }

@@ -86,7 +86,7 @@ class ActuatorPhysicalUIBase : public OTV0P2BASE::SimpleTSUint8Actuator
 
 // Null UI: always returns false for read() and does nothing with set().
 // Has no physical interactions with devices.
-class NULLActuatorPhysicalUI : public ActuatorPhysicalUIBase
+class NULLActuatorPhysicalUI final : public ActuatorPhysicalUIBase
   {
   public:
     // Does nothing and forces 'sensor' value to 0 and returns 0.

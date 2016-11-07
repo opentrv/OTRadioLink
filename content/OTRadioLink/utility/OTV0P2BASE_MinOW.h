@@ -153,7 +153,7 @@ class MinimalOneWireBase
 // Not intended to be thread-/ISR- safe.
 // Operations on separate instances (using different GPIOs) can be concurrent.
 template <uint8_t DigitalPin = V0p2_PIN_OW_DQ_DATA>
-class MinimalOneWire : public MinimalOneWireBase
+class MinimalOneWire final : public MinimalOneWireBase
   {
   private:
     // Compute the input/base register for the port.
