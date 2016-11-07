@@ -222,7 +222,7 @@ TEST(OTSIM900Link,basicsSimpleSimulator)
 
 
 namespace B2 {
-const bool verbose = true;
+const bool verbose = false;
 
 // Gets to CHECK_PIN state and then starts spewing random characters..
 // Allows for checking getResponse can deal with invalid input, and tests the RESET state.
