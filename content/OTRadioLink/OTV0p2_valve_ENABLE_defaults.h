@@ -61,6 +61,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #define ENABLE_LOCAL_TRV
 // IF DEFINED: this unit controls a valve, but provides slave valve control only.
 #undef ENABLE_SLAVE_TRV
+// If DEFINED: attempt proportional (rather than cruder, eg, on/off, control of TRV or other heat source).
+#define ENABLE_PROPORTIONAL_VALVE_CONTROL
 // IF DEFINED: this unit *can* act as boiler-control hub listening to remote thermostats, possibly in addition to controlling a local TRV.
 #define ENABLE_BOILER_HUB
 //////////////////////////////////////// DEV/MAINT UI OPTIONS (and support for them)
@@ -82,8 +84,10 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #undef ENABLE_EXTENDED_CLI
 // IF DEFINED: physical UI use wakes CLI (not needed when CLI can auto-wake from serial).
 #undef ENABLE_UI_WAKES_CLI
+// IF DEFINED: allow setting of ID from CLI to replace devices in situ; not recommended by default to avoid confusion.
+#undef ENABLE_ID_SET_FROM_CLI
 //////////////////////////////////////// DEVICE UI OPTIONS (and support for them)
-// IF DEFINED: basic FROST/WARM temperatures are settable.
+// IF DEFINED: basic FROST/WARM temperatures are settable and stored in EEPROM.
 #define ENABLE_SETTABLE_TARGET_TEMPERATURES
 // IF DEFINED: fast temp pot/dial sampling to partly compensate for less good mechanics (at some energy cost).
 #define ENABLE_FAST_TEMP_POT_SAMPLING

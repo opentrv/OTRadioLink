@@ -182,19 +182,29 @@ OTV0P2BASE::serialPrintlnAndFlush();
 //   * lowBattOpt  allows monitoring of supply voltage to avoid some activities with low batteries; can be NULL
 //   * minimiseActivityOpt  callback returns true if unnecessary activity should be suppressed
 //     to avoid disturbing occupants, eg when room dark and occupants may be sleeping; can be NULL
+//   * binaryOnly  if true, use simplified valve control logic that only aims for fully open or closed
 #define ValveMotorDirectV1_DEFINED
 template
     <
     uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin, uint8_t MOTOR_DRIVE_MC_AIN_DigitalPin,
-    class LowBatt_t = OTV0P2BASE::SupplyVoltageLow, LowBatt_t *lowBattOpt = NULL
+    class LowBatt_t = OTV0P2BASE::SupplyVoltageLow, LowBatt_t *lowBattOpt = NULL,
+    bool binaryOnly = false
     >
 class ValveMotorDirectV1 : public OTRadValve::AbstractRadValve
   {
   private:
     // Driver for the V1/DORM1 hardware.
     ValveMotorDirectV1HardwareDriver<MOTOR_DRIVE_ML_DigitalPin, MOTOR_DRIVE_MR_DigitalPin, MOTOR_DRIVE_MI_AIN_DigitalPin, MOTOR_DRIVE_MC_AIN_DigitalPin> driver;
-    // Logic to manage state, etc.
-    CurrentSenseValveMotorDirect logic;
+
+    // Logic to manage state.
+    // A simplified form of the driver is used if binaryOnly is true.
+    template <bool Condition, typename TypeTrue, typename TypeFalse>
+      class typeIf;
+    template <typename TypeTrue, typename TypeFalse>
+      struct typeIf<true, TypeTrue, TypeFalse> { typedef TypeTrue t; };
+    template <typename TypeTrue, typename TypeFalse>
+      struct typeIf<false, TypeTrue, TypeFalse> { typedef TypeFalse t; };
+    typename typeIf<binaryOnly, CurrentSenseValveMotorDirectBinaryOnly, CurrentSenseValveMotorDirect>::t logic;
 
   public:
     ValveMotorDirectV1(bool (*const minimiseActivityOpt)() = ((bool(*)())NULL),
@@ -211,7 +221,7 @@ class ValveMotorDirectV1 : public OTRadValve::AbstractRadValve
 
     // Regular poll/update.
     // This and get() return the actual estimated valve position.
-    virtual uint8_t read()
+    virtual uint8_t read() override
       {
       logic.poll();
       value = logic.getCurrentPC();
@@ -220,7 +230,7 @@ class ValveMotorDirectV1 : public OTRadValve::AbstractRadValve
 
     // Set new target %-open value (if in range).
     // Returns true if the specified value is accepted.
-    virtual bool set(const uint8_t newValue)
+    virtual bool set(const uint8_t newValue) override
       {
       if(newValue > 100) { return(false); }
       logic.setTargetPC(newValue);
@@ -228,24 +238,24 @@ class ValveMotorDirectV1 : public OTRadValve::AbstractRadValve
       }
 
     // Get estimated minimum percentage open for significant flow for this device; strictly positive in range [1,99].
-    virtual uint8_t getMinPercentOpen() const { return(logic.getMinPercentOpen()); }
+    virtual uint8_t getMinPercentOpen() const override { return(logic.getMinPercentOpen()); }
 
     // Call when given user signal that valve has been fitted (ie is fully on).
-    virtual void signalValveFitted() { logic.signalValveFitted(); }
+    virtual void signalValveFitted() override { logic.signalValveFitted(); }
 
     // Waiting for indication that the valve head has been fitted to the tail.
-    virtual bool isWaitingForValveToBeFitted() const { return(logic.isWaitingForValveToBeFitted()); }
+    virtual bool isWaitingForValveToBeFitted() const override { return(logic.isWaitingForValveToBeFitted()); }
 
     // Returns true iff not in error state and not (re)calibrating/(re)initialising/(re)syncing.
-    virtual bool isInNormalRunState() const { return(logic.isInNormalRunState()); }
+    virtual bool isInNormalRunState() const override { return(logic.isInNormalRunState()); }
 
     // Returns true if in an error state,
-    virtual bool isInErrorState() const { return(logic.isInErrorState()); }
+    virtual bool isInErrorState() const override { return(logic.isInErrorState()); }
 
     // Minimally wiggles the motor to give tactile feedback and/or show to be working.
     // May take a significant fraction of a second.
     // Finishes with the motor turned off, and a bias to closing the valve.
-    virtual void wiggle() { logic.wiggle(); }
+    virtual void wiggle() const override { logic.wiggle(); }
   };
 
 #endif // ARDUINO_ARCH_AVR

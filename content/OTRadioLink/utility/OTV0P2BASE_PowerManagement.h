@@ -35,12 +35,14 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 #ifdef ARDUINO
 #include <Arduino.h>
+#else
+#include "OTV0P2BASE_ArduinoCompat.h"
 #endif
 
 #include "OTV0P2BASE_BasicPinAssignments.h"
 #include "OTV0P2BASE_FastDigitalIO.h"
-
 #include "OTV0P2BASE_Sensor.h"
+
 
 namespace OTV0P2BASE
 {
@@ -273,7 +275,7 @@ class SupplyVoltageCentiVolts final : public SupplyVoltageLow
 
     // Returns a suggested (JSON) tag/field/key name including units of get(); NULL means no recommended tag.
     // The lifetime of the pointed-to text must be at least that of the Sensor instance.
-    virtual const char *tag() const override { return("B|cV"); }
+    virtual OTV0P2BASE::Sensor_tag_t tag() const override { return(V0p2_SENSOR_TAG_F("B|cV")); }
 
     // Get internal bandgap (1.1V nominal, 1.0--1.2V) as fraction of Vcc on V0p2/AVR platform.
     uint16_t getRawInv() const { return(rawInv); }

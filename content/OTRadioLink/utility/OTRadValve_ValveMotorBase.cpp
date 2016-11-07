@@ -41,7 +41,7 @@ namespace OTRadValve
 // Returns true if aborted early from too little time to start, or by high current (assumed end-stop hit).
 bool ValveMotorDirectV1HardwareDriverBase::spinSCTTicks(const uint8_t maxRunTicks, const uint8_t minTicksBeforeAbort, const OTRadValve::HardwareMotorDriverInterface::motor_drive dir, OTRadValve::HardwareMotorDriverInterfaceCallbackHandler &callback)
   {
-  static const constexpr uint8_t sctAbsLimit = CurrentSenseValveMotorDirect::computeSctAbsLimit(
+  static const constexpr uint8_t sctAbsLimit = CurrentSenseValveMotorDirectBase::computeSctAbsLimit(
           OTV0P2BASE::SUBCYCLE_TICK_MS_RD, OTV0P2BASE::GSCT_MAX, minMotorRunupTicks);
 
   // Sub-cycle time now.

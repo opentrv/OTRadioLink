@@ -63,28 +63,32 @@ class SensorAmbientLightBase : public SimpleTSUint8Sensor
 
   public:
     // Default value for (default)LightThreshold.
-    // Worked for normal REV2 LDR pointing forward.
-    static const uint8_t DEFAULT_LIGHT_THRESHOLD = 50;
+    // For REV2 LDR and REV7 phototransistor.
+    static const uint8_t DEFAULT_LIGHT_THRESHOLD = 16;
 
     // Returns true if this sensor is apparently unusable.
-    virtual bool isUnavailable() const { return(unusable); }
+    virtual bool isAvailable() const final override { return(!unusable); }
+
+    // Returns a suggested (JSON) tag/field/key name including units of get(); NULL means no recommended tag.
+    // The lifetime of the pointed-to text must be at least that of the Sensor instance.
+    virtual Sensor_tag_t tag() const override { return(V0p2_SENSOR_TAG_F("L")); }
 
     // Returns true if room is probably lit enough for someone to be active, with some hysteresis.
     // False if unknown or sensor appears unusable.
     // Thread-safe and usable within ISRs (Interrupt Service Routines).
-    virtual bool isRoomLit() const { return(isRoomLitFlag && !unusable); }
+    bool isRoomLit() const { return(isRoomLitFlag && !unusable); }
 
     // Returns true if room is probably too dark for someone to be active, with some hysteresis.
     // False if unknown or sensor appears unusable,
     // thus it is possible for both isRoomLit() and isRoomDark() to be false.
     // Thread-safe and usable within ISRs (Interrupt Service Routines).
-    virtual bool isRoomDark() const { return(!isRoomLitFlag && !unusable); }
+    bool isRoomDark() const { return(!isRoomLitFlag && !unusable); }
 
     // Get number of minutes (read() calls) that the room has been continuously dark for [0,255].
     // Does not roll over from maximum value, ie stays at 255 until the room becomes light.
     // Reset to zero in light.
     // Stays at zero if the sensor decides that it is unusable.
-    virtual uint8_t getDarkMinutes() const { return(darkTicks); }
+    uint8_t getDarkMinutes() const { return(darkTicks); }
   };
 
 
@@ -112,6 +116,20 @@ class SensorAmbientLightMock : public SensorAmbientLightBase
 
 #ifdef ARDUINO_ARCH_AVR
 // Sensor for ambient light level; 0 is dark, 255 is bright.
+//
+// The REV7 implementation expects a phototransitor TEPT4400 (50nA dark current, nominal 200uA@100lx@Vce=50V) from IO_POWER_UP to LDR_SENSOR_AIN and 220k to ground.
+// Measurement should be taken wrt to internal fixed 1.1V bandgap reference, since light indication is current flow across a fixed resistor.
+// Aiming for maximum reading at or above 100--300lx, ie decent domestic internal lighting.
+// Note that phototransistor is likely far more directionally-sensitive than REV2's LDR and its response nominally nearly linear.
+// This extends the dynamic range and switches to measurement vs supply when full-scale against bandgap ref, then scales by Vss/Vbandgap and compresses to fit.
+// http://home.wlv.ac.uk/~in6840/Lightinglevels.htm
+// http://www.engineeringtoolbox.com/light-level-rooms-d_708.html
+// http://www.pocklington-trust.org.uk/Resources/Thomas%20Pocklington/Documents/PDF/Research%20Publications/GPG5.pdf
+// http://www.vishay.com/docs/84154/appnotesensors.pdf
+//
+// The REV2 implementation expects an LDR (1M dark resistance) from IO_POWER_UP to LDR_SENSOR_AIN and 100k to ground.
+// Measurement should be taken wrt to supply voltage, since light indication is a fraction of that.
+// Values below from PICAXE V0.09 impl approx multiplied by 4+ to allow for scale change.
 #define SensorAmbientLight_DEFINED
 class SensorAmbientLight final : public SensorAmbientLightBase
   {
@@ -167,11 +185,7 @@ class SensorAmbientLight final : public SensorAmbientLightBase
     virtual uint8_t read();
 
     // Preferred poll interval (in seconds); should be called at constant rate, usually 1/60s.
-    virtual uint8_t preferredPollInterval_s() const { return(60); }
-
-    // Returns a suggested (JSON) tag/field/key name including units of get(); NULL means no recommended tag.
-    // The lifetime of the pointed-to text must be at least that of the Sensor instance.
-    virtual const char *tag() const { return("L"); }
+    virtual uint8_t preferredPollInterval_s() const override { return(60); }
 
     // Get raw ambient light value in range [0,1023].
     // Undefined until first read().
@@ -204,13 +218,6 @@ class SensorAmbientLight final : public SensorAmbientLightBase
                    uint8_t recentMinimumOrFF, uint8_t recentMaximumOrFF,
                    uint8_t longerTermMinimumOrFF = 0xff, uint8_t longerTermMaximumOrFF = 0xff,
                    bool sensitive = true);
-
-//#ifdef UNIT_TESTS
-//    // Set new value(s) for unit test only.
-//    // Makes this more usable as a mock for testing other components.
-//    virtual void _TEST_set_multi_(uint16_t newRawValue, bool newRoomLitFlag, uint8_t newDarkTicks)
-//      { rawValue = newRawValue; value = newRawValue >> 2; isRoomLitFlag = newRoomLitFlag; darkTicks = newDarkTicks; }
-//#endif
   };
 #endif // ARDUINO_ARCH_AVR
 
@@ -224,8 +231,8 @@ class DummySensorAmbientLight
     // Not available, so always a 'dark' value.
     static uint8_t get() { return(0); }
 
-    // Not available, so always returns true.
-    static bool isUnavailable() { return(true); }
+    // Not available, so always returns false.
+    static bool isAvailable() { return(false); }
 
     // Unknown, so always false.
     // Thread-safe and usable within ISRs (Interrupt Service Routines).

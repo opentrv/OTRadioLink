@@ -47,7 +47,7 @@ namespace OTRadValve
 void ModeButtonAndPotActuatorPhysicalUI::markUIControlUsed()
     {
     statusChange = true; // Note user interaction with the system.
-    uiTimeoutM = UI_DEFAULT_RECENT_USE_TIMEOUT_M; // Ensure that UI controls are kept 'warm' for a little while.
+    uiTimeoutM.store(UI_DEFAULT_RECENT_USE_TIMEOUT_M); // Ensure that UI controls are kept 'warm' for a little while.
 // FIXME
 //  #if defined(ENABLE_UI_WAKES_CLI)
 //    // Make CLI active for a while (at some slight possibly-significant energy cost).
@@ -55,6 +55,9 @@ void ModeButtonAndPotActuatorPhysicalUI::markUIControlUsed()
 //  #endif
     // User operation of physical controls is strong indication of presence.
     occupancy->markAsOccupied(); // Thread-safe.
+
+    // Capture possible (near) peak of stack usage, eg when called from ISR,
+    OTV0P2BASE::MemoryChecks::recordIfMinSP();
     }
 
 // Record significant local manual operation of a physical UI control, eg not remote or via CLI.
@@ -86,16 +89,7 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
     // Perform any once-per-minute-ish operations, every 32 ticks.
     const bool sec0 = (0 == (tickCount & 0x1f));
     if(sec0)
-      {
-      OTV0P2BASE::safeDecIfNZWeak(uiTimeoutM);
-//      ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
-//        {
-//        // Run down UI interaction timer if need be, one tick per minute(ish).
-//        if(uiTimeoutM > 0) { --uiTimeoutM; }
-//        }
-      }
-
-//    const bool reportedRecently = occupancy->reportedRecently();
+      { OTV0P2BASE::safeDecIfNZWeak(uiTimeoutM); }
 
     // Provide enhanced feedback when the has been very recent interaction with the UI,
     // since the user is still quite likely to be continuing.
@@ -124,12 +118,12 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
           const bool isLo = tempPotOpt->isAtLoEndStop();
           if(isLo) { valveMode->setWarmModeDebounced(false); }
           // Feed back significant change in pot position, ie at temperature boundaries.
-          // Synthesise a 'hot' target temperature that distinguishes the end stops...
+          // Synthesise a 'hot' target temperature that distinguishes the end stops
+          // from all other valid temperatures and the initial '0' state.
           const uint8_t nominalWarmTarget = isLo ? 1 :
               (tempPotOpt->isAtHiEndStop() ? 99 :
               tempControl->getWARMTargetC());
           // Record of 'last' nominalWarmTarget; initially 0.
-          static uint8_t lastNominalWarmTarget;
           if(nominalWarmTarget != lastNominalWarmTarget)
             {
             // Note if a boundary was crossed, ignoring any false 'start-up' transient.
@@ -196,7 +190,7 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
             LEDon(); // flash
             // Stick to minimum length flashes to save energy unless just touched.
             if(minimiseOnTime || tempControl->isEcoTemperature(wt)) { veryTinyPause(); }
-            else if(!tempControl->isComfortTemperature(wt)) { OTV0P2BASE::sleepLowPowerMs((VERYTINY_PAUSE_MS + TINY_PAUSE_MS) / 2); }
+            else if(!tempControl->isComfortTemperature(wt)) { veryTinyPause(); veryTinyPause(); }
             else { tinyPause(); }
 
             if(valveMode->inBakeMode())

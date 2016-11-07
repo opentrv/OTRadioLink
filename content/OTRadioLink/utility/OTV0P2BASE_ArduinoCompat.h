@@ -40,6 +40,11 @@ class __FlashStringHelper;
 #define F(string_literal) (reinterpret_cast<const __FlashStringHelper *>(static_cast<const char *>(string_literal)))
 #endif
 
+// pgm_read_byte() macro for Arduino reads one byte from Flash.
+#ifndef pgm_read_byte
+#define pgm_read_byte(p) (*reinterpret_cast<const char *>(p))
+#endif
+
 // Minimal skeleton matching Print to permit at least compilation and test on non-Arduino platforms.
 // Implementation is not necessarily efficient as assumed to be for (unit) test.
 class Print

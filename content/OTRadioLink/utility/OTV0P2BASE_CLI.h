@@ -35,7 +35,8 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
 #include <Arduino.h>
 #endif
 
-#include "OTV0P2BASE_Sleep.h"
+//#include "OTV0P2BASE_Sleep.h"
+#include "OTV0P2BASE_Util.h"
 
 
 namespace OTV0P2BASE {
@@ -74,7 +75,9 @@ namespace CLI {
     //   * idlefn: if non-NULL this is called while waiting for input;
     //       it must not interfere with UART RX, eg by messing with CPU clock or interrupts
     //   * maxSCT maximum sub-cycle time to wait until
-    uint8_t promptAndReadCommandLine(uint8_t maxSCT, char *buf, uint8_t bufsize, void (*idlefn)() = NULL);
+    uint8_t promptAndReadCommandLine(uint8_t maxSCT, const ScratchSpace &s, void (*idlefn)() = NULL);
+    inline uint8_t promptAndReadCommandLine(uint8_t maxSCT, char *buf, uint8_t bufsize, void (*idlefn)() = NULL)
+        { ScratchSpace s((uint8_t*)(buf), bufsize); return(promptAndReadCommandLine(maxSCT, s, idlefn)); }
 
     // Prints warning to serial (that must be up and running) that invalid (CLI) input has been ignored.
     // Probably should not be inlined, to avoid creating duplicate strings in Flash.
@@ -125,7 +128,11 @@ namespace CLI {
     //=F0%@18C6;X0;T15 38 W255 0 F255 0 W255 0 F255 0;S6 6 16;{"@":"9f9c","L":146,"B|cV":333,"occ|%":0,"vC|%":0}
     //
     //>
-    class NodeID final : public CLIEntryBase { public: virtual bool doCommand(char *buf, uint8_t buflen); };
+    class NodeID : public CLIEntryBase { public: virtual bool doCommand(char *buf, uint8_t buflen); };
+    // Identical to NodeID but also allows set of ID.
+    //>I 98 A4 F5 99 E3 94 A8 C2
+    //=F0%@18C6;X0;T15 38 W255 0 F255 0 W255 0 F255 0;S6 6 16;{"@":"98a4","L":146,"B|cV":333,"occ|%":0,"vC|%":0}
+    class NodeIDWithSet final : public NodeID { public: virtual bool doCommand(char *buf, uint8_t buflen); };
 
     // Set/clear secret key(s) ("K ...").
     // Will call the keysCleared() routine when keys have been cleared, eg to allow resetting of TX message counters.

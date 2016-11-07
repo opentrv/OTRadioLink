@@ -37,60 +37,60 @@ TEST(CurrentSenseValveMotorDirect,REV7CSVMDC)
     // Compute minimum dead-reckoning ticks as for V0p2/REV7 20161018.
     const uint8_t subcycleTicksRoundedDown_ms = 7;
     const uint8_t minTicks = OTRadValve::CurrentSenseValveMotorDirect::computeMinMotorDRTicks(subcycleTicksRoundedDown_ms);
-    ASSERT_EQ(35, minTicks);
+    EXPECT_EQ(35, minTicks);
     // Compute maximum sub-cycle time to start valve movement as for V0p2/REV7 20161018.
     const uint8_t gst_max = 255;
     const uint8_t minimumMotorRunupTicks = 4; // OTRadValve::ValveMotorDirectV1HardwareDriverBase::minMotorRunupTicks as at 20161018.
     const uint8_t sctAbsLimit = OTRadValve::CurrentSenseValveMotorDirect::computeSctAbsLimit(subcycleTicksRoundedDown_ms, gst_max, minimumMotorRunupTicks);
-    ASSERT_EQ(230, sctAbsLimit);
+    EXPECT_EQ(230, sctAbsLimit);
 
     // Create calibration parameters with values that happen to work for V0p2/REV7.
-    OTRadValve::CurrentSenseValveMotorDirect::CalibrationParameters cp(minTicks);
+    OTRadValve::CurrentSenseValveMotorDirect::CalibrationParameters cp;
     // Test the calculations with one plausible calibration data set.
-    ASSERT_TRUE(cp.updateAndCompute(1601U, 1105U)); // Must not fail...
-    ASSERT_EQ(4, cp.getApproxPrecisionPC());
-    ASSERT_EQ(25, cp.getTfotcSmall());
-    ASSERT_EQ(17, cp.getTfctoSmall());
+    EXPECT_TRUE(cp.updateAndCompute(1601U, 1105U, minTicks)); // Must not fail...
+    EXPECT_EQ(4, cp.getApproxPrecisionPC());
+    EXPECT_EQ(25, cp.getTfotcSmall());
+    EXPECT_EQ(17, cp.getTfctoSmall());
     // Check that a calibration instance can be reused correctly.
     const uint16_t tfo2 = 1803U;
     const uint16_t tfc2 = 1373U;
-    ASSERT_TRUE(cp.updateAndCompute(tfo2, tfc2)); // Must not fail...
-    ASSERT_EQ(3, cp.getApproxPrecisionPC());
-    ASSERT_EQ(28, cp.getTfotcSmall());
-    ASSERT_EQ(21, cp.getTfctoSmall());
+    EXPECT_TRUE(cp.updateAndCompute(tfo2, tfc2, minTicks)); // Must not fail...
+    EXPECT_EQ(3, cp.getApproxPrecisionPC());
+    EXPECT_EQ(28, cp.getTfotcSmall());
+    EXPECT_EQ(21, cp.getTfctoSmall());
 
     // Check that computing position works...
     // Simple case: fully closed, no accumulated reverse ticks.
     volatile uint16_t ticksFromOpen, ticksReverse;
     ticksFromOpen = tfo2;
     ticksReverse = 0;
-    ASSERT_EQ(0, cp.computePosition(ticksFromOpen, ticksReverse));
-    ASSERT_EQ(tfo2, ticksFromOpen);
-    ASSERT_EQ(0, ticksReverse);
+    EXPECT_EQ(0, cp.computePosition(ticksFromOpen, ticksReverse));
+    EXPECT_EQ(tfo2, ticksFromOpen);
+    EXPECT_EQ(0, ticksReverse);
     // Simple case: fully open, no accumulated reverse ticks.
     ticksFromOpen = 0;
     ticksReverse = 0;
-    ASSERT_EQ(100, cp.computePosition(ticksFromOpen, ticksReverse));
-    ASSERT_EQ(0, ticksFromOpen);
-    ASSERT_EQ(0, ticksReverse);
+    EXPECT_EQ(100, cp.computePosition(ticksFromOpen, ticksReverse));
+    EXPECT_EQ(0, ticksFromOpen);
+    EXPECT_EQ(0, ticksReverse);
     // Try at half-way mark, no reverse ticks.
     ticksFromOpen = tfo2 / 2;
     ticksReverse = 0;
-    ASSERT_EQ(50, cp.computePosition(ticksFromOpen, ticksReverse));
-    ASSERT_EQ(tfo2/2, ticksFromOpen);
-    ASSERT_EQ(0, ticksReverse);
+    EXPECT_EQ(50, cp.computePosition(ticksFromOpen, ticksReverse));
+    EXPECT_EQ(tfo2/2, ticksFromOpen);
+    EXPECT_EQ(0, ticksReverse);
     // Try at half-way mark with just one reverse tick (nothing should change).
     ticksFromOpen = tfo2 / 2;
     ticksReverse = 1;
-    ASSERT_EQ(50, cp.computePosition(ticksFromOpen, ticksReverse));
-    ASSERT_EQ(tfo2/2, ticksFromOpen);
-    ASSERT_EQ(1, ticksReverse);
+    EXPECT_EQ(50, cp.computePosition(ticksFromOpen, ticksReverse));
+    EXPECT_EQ(tfo2/2, ticksFromOpen);
+    EXPECT_EQ(1, ticksReverse);
     // Try at half-way mark with a big-enough block of reverse ticks to be significant.
     ticksFromOpen = tfo2 / 2;
     ticksReverse = cp.getTfctoSmall();
-    ASSERT_EQ(51, cp.computePosition(ticksFromOpen, ticksReverse));
-    ASSERT_EQ(tfo2/2 - cp.getTfotcSmall(), ticksFromOpen);
-    ASSERT_EQ(0, ticksReverse);
+    EXPECT_EQ(51, cp.computePosition(ticksFromOpen, ticksReverse));
+    EXPECT_EQ(tfo2/2 - cp.getTfotcSmall(), ticksFromOpen);
+    EXPECT_EQ(0, ticksReverse);
   // DHD20151025: one set of actual measurements during calibration.
   //    ticksFromOpenToClosed: 1529
   //    ticksFromClosedToOpen: 1295
@@ -112,31 +112,45 @@ static uint8_t dummyGetSubCycleTime() { return(0); }
 // Test that direct abstract motor drive logic is constructable and minimally sane..
 //
 // Adapted 2016/10/18 from test_VALVEMODEL.ino testCurrentSenseValveMotorDirect().
-TEST(CurrentSenseValveMotorDirect,bascis)
+static void basics(OTRadValve::CurrentSenseValveMotorDirectBase *const csbp)
+    {
+    // POWER UP
+    // Whitebox test of internal state: should be init.
+    EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirectBinaryOnly::init, csbp->getState());
+    // Verify NOT marked as in normal run state immediately upon initialisation.
+    EXPECT_TRUE(!csbp->isInNormalRunState());
+    // Verify NOT marked as in error state immediately upon initialisation.
+    EXPECT_TRUE(!csbp->isInErrorState());
+    // Target % open must start off in a sensible state.
+    EXPECT_GE(100, csbp->getTargetPC());
+    // Current % open must start off in a sensible state.
+    EXPECT_GE(100, csbp->getCurrentPC());
+    }
+TEST(CurrentSenseValveMotorDirect,basics)
 {
     const uint8_t subcycleTicksRoundedDown_ms = 7; // For REV7: OTV0P2BASE::SUBCYCLE_TICK_MS_RD.
     const uint8_t gsct_max = 255; // For REV7: OTV0P2BASE::GSCT_MAX.
     const uint8_t minimumMotorRunupTicks = 4; // For REV7: OTRadValve::ValveMotorDirectV1HardwareDriverBase::minMotorRunupTicks.
-    DummyHardwareDriver dhw;
-    OTRadValve::CurrentSenseValveMotorDirect csvmd1(&dhw, dummyGetSubCycleTime,
-        OTRadValve::CurrentSenseValveMotorDirect::computeMinMotorDRTicks(subcycleTicksRoundedDown_ms),
-        OTRadValve::CurrentSenseValveMotorDirect::computeSctAbsLimit(subcycleTicksRoundedDown_ms,
+
+    DummyHardwareDriver dhw0;
+    OTRadValve::CurrentSenseValveMotorDirectBinaryOnly csvmdbo1(&dhw0, dummyGetSubCycleTime,
+        OTRadValve::CurrentSenseValveMotorDirectBinaryOnly::computeMinMotorDRTicks(subcycleTicksRoundedDown_ms),
+        OTRadValve::CurrentSenseValveMotorDirectBinaryOnly::computeSctAbsLimit(subcycleTicksRoundedDown_ms,
                                                                      gsct_max,
                                                                      minimumMotorRunupTicks));
+    basics(&csvmdbo1);
 
-    // POWER UP
-    // Whitebox test of internal state: should be init.
-    ASSERT_EQ(OTRadValve::CurrentSenseValveMotorDirect::init, csvmd1.getState());
-    // Verify NOT marked as in normal run state immediately upon initialisation.
-    ASSERT_TRUE(!csvmd1.isInNormalRunState());
-    // Verify NOT marked as in error state immediately upon initialisation.
-    ASSERT_TRUE(!csvmd1.isInErrorState());
-    // Target % open must start off in a sensible state; fully-closed is good.
-    ASSERT_EQ(0, csvmd1.getTargetPC());
+    DummyHardwareDriver dhw1;
+    OTRadValve::CurrentSenseValveMotorDirect csvmd1(&dhw1, dummyGetSubCycleTime,
+        OTRadValve::CurrentSenseValveMotorDirectBinaryOnly::computeMinMotorDRTicks(subcycleTicksRoundedDown_ms),
+        OTRadValve::CurrentSenseValveMotorDirectBinaryOnly::computeSctAbsLimit(subcycleTicksRoundedDown_ms,
+                                                                     gsct_max,
+                                                                     minimumMotorRunupTicks));
+    basics(&csvmd1);
     // Until calibration has been successfully run, this should be in non-proportional mode.
-    ASSERT_TRUE(csvmd1.inNonProprtionalMode());
+    EXPECT_TRUE(csvmd1.inNonProprtionalMode());
     // Nothing passed in requires deferral of (re)calibration.
-    ASSERT_FALSE(csvmd1.shouldDeferCalibration());
+    EXPECT_FALSE(csvmd1.shouldDeferCalibration());
 }
 
 class SVL final : public OTV0P2BASE::SupplyVoltageLow
@@ -201,6 +215,43 @@ class DummyHardwareDriverHitEndstop : public OTRadValve::HardwareMotorDriverInte
   };
 
 // Test initial state walk-through without and with calibration deferral.
+static void initStateWalkthrough(OTRadValve::CurrentSenseValveMotorDirectBase *const csv, const bool batteryLow)
+    {
+    // Whitebox test of internal state: should be init.
+    EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirectBase::init, csv->getState());
+//    // Check deferral of (re)calibration.
+//    EXPECT_EQ(batteryLow, csv->shouldDeferCalibration());
+    // Verify NOT marked as in normal run state immediately upon initialisation.
+    EXPECT_TRUE(!csv->isInNormalRunState());
+    // Verify NOT marked as in error state immediately upon initialisation.
+    EXPECT_TRUE(!csv->isInErrorState());
+    csv->poll();
+    EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::initWaiting, csv->getState());
+    // Within a reasonable time to (10s of seconds) should move to new state, but not instantly.
+    csv->poll();
+    EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::initWaiting, csv->getState());
+    csv->poll();
+    EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::initWaiting, csv->getState());
+    for(int i = 100; --i > 0 && OTRadValve::CurrentSenseValveMotorDirect::initWaiting == csv->getState(); ) { csv->poll(); }
+    EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawing, csv->getState());
+    // Fake hardware hits end-stop immediate, so leaves 'withdrawing' state.
+    csv->poll();
+    EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawn, csv->getState());
+    EXPECT_LE(95, csv->getCurrentPC()) << "valve must now be fully open, or very nearly so";
+    // Waiting for value to be signalled that it has been fitted...
+    csv->poll();
+    EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawn, csv->getState());
+    csv->signalValveFitted();
+    csv->poll();
+    EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valveCalibrating, csv->getState());
+    csv->poll();
+//    // Check deferral of (re)calibration.
+//    EXPECT_EQ(batteryLow, csv->shouldDeferCalibration());
+    // Valve should now start calibrating, but calibration is skipped with low battery...
+    EXPECT_EQ((batteryLow || csv->isNonProprtionalOnly())
+        ? OTRadValve::CurrentSenseValveMotorDirect::valveNormal :
+          OTRadValve::CurrentSenseValveMotorDirect::valveCalibrating, csv->getState()) << (batteryLow ? "low" : "normal");
+    }
 TEST(CurrentSenseValveMotorDirect,initStateWalkthrough)
 {
     const bool verbose = false;
@@ -212,47 +263,33 @@ TEST(CurrentSenseValveMotorDirect,initStateWalkthrough)
         {
         const bool low = (1 == s); // Is battery low...
         if(verbose) { printf("Battery low %s...\n", low ? "true" : "false"); }
-        DummyHardwareDriverHitEndstop dhw;
         SVL svl;
         svl.setAllLowFlags(low);
-        OTRadValve::CurrentSenseValveMotorDirect csvmd1(&dhw, dummyGetSubCycleTime,
-            OTRadValve::CurrentSenseValveMotorDirect::computeMinMotorDRTicks(subcycleTicksRoundedDown_ms),
-            OTRadValve::CurrentSenseValveMotorDirect::computeSctAbsLimit(subcycleTicksRoundedDown_ms,
+
+        // Test non-proportional impl.
+        DummyHardwareDriverHitEndstop dhw0;
+        OTRadValve::CurrentSenseValveMotorDirectBinaryOnly csvmdbo1(&dhw0, dummyGetSubCycleTime,
+            OTRadValve::CurrentSenseValveMotorDirectBinaryOnly::computeMinMotorDRTicks(subcycleTicksRoundedDown_ms),
+            OTRadValve::CurrentSenseValveMotorDirectBinaryOnly::computeSctAbsLimit(subcycleTicksRoundedDown_ms,
                                                                          gsct_max,
                                                                          minimumMotorRunupTicks),
             &svl,
             [](){return(false);});
-        // Whitebox test of internal state: should be init.
-        ASSERT_EQ(OTRadValve::CurrentSenseValveMotorDirect::init, csvmd1.getState());
+        initStateWalkthrough(&csvmdbo1, low);
+
+        // Test full impl.
+        DummyHardwareDriverHitEndstop dhw1;
+        OTRadValve::CurrentSenseValveMotorDirect csvmd1(&dhw1, dummyGetSubCycleTime,
+            OTRadValve::CurrentSenseValveMotorDirectBinaryOnly::computeMinMotorDRTicks(subcycleTicksRoundedDown_ms),
+            OTRadValve::CurrentSenseValveMotorDirectBinaryOnly::computeSctAbsLimit(subcycleTicksRoundedDown_ms,
+                                                                         gsct_max,
+                                                                         minimumMotorRunupTicks),
+            &svl,
+            [](){return(false);});
         // Check deferral of (re)calibration.
-        ASSERT_EQ(low, csvmd1.shouldDeferCalibration());
-        // Verify NOT marked as in normal run state immediately upon initialisation.
-        ASSERT_TRUE(!csvmd1.isInNormalRunState());
-        // Verify NOT marked as in error state immediately upon initialisation.
-        ASSERT_TRUE(!csvmd1.isInErrorState());
-        csvmd1.poll();
-        ASSERT_EQ(OTRadValve::CurrentSenseValveMotorDirect::initWaiting, csvmd1.getState());
-        // Within a reasonable time to (10s of seconds) should move to new state, but not instantly.
-        csvmd1.poll();
-        ASSERT_EQ(OTRadValve::CurrentSenseValveMotorDirect::initWaiting, csvmd1.getState());
-        csvmd1.poll();
-        ASSERT_EQ(OTRadValve::CurrentSenseValveMotorDirect::initWaiting, csvmd1.getState());
-        for(int i = 100; --i > 0 && OTRadValve::CurrentSenseValveMotorDirect::initWaiting == csvmd1.getState(); ) { csvmd1.poll(); }
-        ASSERT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawing, csvmd1.getState());
-        // Fake hardware hits end-stop immediate, so leaves 'withdrawing' state.
-        csvmd1.poll();
-        ASSERT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawn, csvmd1.getState());
-        // Waiting for value to be signalled that it has been fitted...
-        csvmd1.poll();
-        ASSERT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawn, csvmd1.getState());
-        csvmd1.signalValveFitted();
-        csvmd1.poll();
-        ASSERT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valveCalibrating, csvmd1.getState());
-        csvmd1.poll();
+        EXPECT_EQ(low, csvmd1.shouldDeferCalibration());
+        initStateWalkthrough(&csvmd1, low);
         // Check deferral of (re)calibration.
-        ASSERT_EQ(low, csvmd1.shouldDeferCalibration());
-        // Valve should now start calibrating, but calibration is skipped with low battery...
-        ASSERT_EQ(low ? OTRadValve::CurrentSenseValveMotorDirect::valveNormal :
-                        OTRadValve::CurrentSenseValveMotorDirect::valveCalibrating, csvmd1.getState());
+        EXPECT_EQ(low, csvmd1.shouldDeferCalibration());
         }
 }

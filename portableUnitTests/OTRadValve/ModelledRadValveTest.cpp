@@ -71,7 +71,7 @@ TEST(ModelledRadValve,MRVSExtremes)
     ASSERT_EQ(100 - valvePCOpenInitial0, rs0.cumulativeMovementPC);
     // Equally test that if the temperature is much higher than any legit target
     // the valve will monotonically close to 0% in bounded time.
-    // Check for superficially correct linger behaviour:
+    // Check for superficially correct linger behaviour where supported:
     //   * minPCOpen-1 % must be hit (lingering close) if starting anywhere above that.
     //   * Once in linger all reductions should be by 1% until possible final jump to 0.
     //   * Check that linger was long enough (if linger threshold is higher enough to allow it).

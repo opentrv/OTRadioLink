@@ -66,16 +66,16 @@ class TemperatureC16Base : public OTV0P2BASE::Sensor<int16_t>
 
     // Preferred poll interval (in seconds).
     // This should be called at a regular rate, usually 1/60, so make stats such as velocity measurement easier.
-    virtual uint8_t preferredPollInterval_s() const { return(60); }
+    virtual uint8_t preferredPollInterval_s() const override { return(60); }
 
     // Return last value fetched by read(); undefined before first read().
     // Fast.
     // Not thread-safe nor usable within ISRs (Interrupt Service Routines).
-    virtual int16_t get() const { return(value); }
+    virtual int16_t get() const override { return(value); }
 
     // Returns a suggested (JSON) tag/field/key name including units of get(); NULL means no recommended tag.
     // The lifetime of the pointed-to text must be at least that of the Sensor instance.
-    virtual const char *tag() const { return("T|C16"); }
+    virtual OTV0P2BASE::Sensor_tag_t tag() const override { return(V0p2_SENSOR_TAG_F("T|C16")); }
   };
 
 // Extension of TemperatureC16Base primarily for mocking in unit tests.

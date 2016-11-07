@@ -47,4 +47,9 @@ int parseHexByte(const char *const s)
     }
 
 
+#ifdef MemoryChecks_DEFINED
+volatile MemoryChecks::SP_type MemoryChecks::minSP = RAMEND;
+#endif
+
+
 }

@@ -51,8 +51,10 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #define ENABLE_SIMPLIFIED_MODE_BAKE
 // IF DEFINED: fast temp pot/dial sampling to partly compensate for less good mechanics (at some energy cost).
 #define ENABLE_FAST_TEMP_POT_SAMPLING
-//// IF DEFINED: support one on and one off time per day (possibly in conjunction with 'learn' button).
-//#undef ENABLE_SINGLETON_SCHEDULE
+// IF DEFINED: basic FROST/WARM temperatures are settable and stored in EEPROM.
+#undef ENABLE_SETTABLE_TARGET_TEMPERATURES
+// IF DEFINED: support one on and one off time per day (possibly in conjunction with 'learn' button).
+#undef ENABLE_SINGLETON_SCHEDULE
 //// IF DEFINED: use active-low LEARN button(s).  Needs ENABLE_SINGLETON_SCHEDULE.
 //#undef ENABLE_LEARN_BUTTON // OPTIONAL ON V0.09 PCB1
 //// IF DEFINED: try to trim memory (primarily RAM, also code/Flash) space used.
@@ -108,10 +110,13 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 // Although LEARN buttons are provided, by default they are disabled as is the scheduler.
 // Fast temp dial sampling is forced on to help compensate for mechanical slop in early devices.
 // Delayed activation is enabled.  (TODO-786)
+// As of 2016/11/06 no DORM1/TRV1 was using shaft encoder so simple on/off valve control is appropriate.  (TODO-1038)
 // IF DEFINED: try to trim memory (primarily RAM, also code/Flash) space used.
 #define ENABLE_TRIMMED_MEMORY
 // IF DEFINED: try to trim bandwidth as may be especially expensive/scarce.
 #undef ENABLE_TRIMMED_BANDWIDTH
+// If DEFINED: attempt proportional (rather than cruder, eg, on/off, control of TRV or other heat source).
+#define ENABLE_PROPORTIONAL_VALVE_CONTROL
 // IF DEFINED: support one on and one off time per day (possibly in conjunction with 'learn' button).
 #undef ENABLE_SINGLETON_SCHEDULE
 // IF DEFINED: use active-low LEARN button(s).  Needs ENABLE_SINGLETON_SCHEDULE.
@@ -142,6 +147,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 // IF DEFINED: always allow some kind of stats TX, whatever the privacy settings.
 // OK IN THIS CASE BECAUSE ALL COMMS SECURE.
 #define ENABLE_ALWAYS_TX_ALL_STATS
+// IF DEFINED: allow setting of ID from CLI to replace devices in situ; not recommended by default to avoid confusion.
+#define ENABLE_ID_SET_FROM_CLI
 // IF DEFINED: enable a CLI-settable setback lockout (hours/days) to establish a baseline before engaging energy saving setbacks.
 #define ENABLE_SETBACK_LOCKOUT_COUNTDOWN
 #endif

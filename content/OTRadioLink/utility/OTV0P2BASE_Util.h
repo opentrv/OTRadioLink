@@ -27,6 +27,13 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014--2016
 #include <stdint.h>
 #include <stddef.h>
 
+#ifdef ARDUINO
+#include <Arduino.h>
+#include <util/atomic.h>
+extern uint8_t _end;
+#include "OTV0P2BASE_Sleep.h"
+#endif
+
 
 namespace OTV0P2BASE
 {
@@ -72,6 +79,85 @@ inline int8_t parseHexDigit(const char hexchar)
  * @retval  byte containing converted value [0,255]; -1 in case of error
  */
 int parseHexByte(const char *s);
+
+
+// Class for scratch space that can be passed into callers to trim stack/auto usage.
+// Possible to create tail end for use by nested callers
+// where a routine needs to keep some state during those calls.
+// Scratch size is limited to 255 bytes.
+class ScratchSpace final
+  {
+  public:
+    // Buffer space; non-NULL except in case of error (when bufsize will also be 0).
+    const uint8_t *buf;
+    // Buffer size; strictly positive except in case of error (when buf will also be NULL).
+    const uint8_t bufsize;
+
+    // Create an instance.
+    //   * buf_  start of buffer space;
+    //     must be non-NULL except to indicate that the buffer is unusable.
+    //   * bufsize_  size of usable start of buffer;
+    //     must be positive except to indicate that the buffer is unusable.
+    ScratchSpace(uint8_t *const buf_, const uint8_t bufsize_)
+      : buf((0 == bufsize_) ? NULL : buf_), bufsize((NULL == buf_) ? 0 : bufsize_) { }
+
+    // Check if sub-spacw cannot be made (would not leave at least one byte available).
+    static constexpr bool subSpaceCannotBeMade(uint8_t oldSize, uint8_t reserveN)
+        { return((0 == reserveN) || (oldSize <= reserveN)); }
+    // Create a sub-space n bytes from the start of the current space.
+    // If the existing buffer is smaller than n (or null), or n is null,
+    // the the result will be NULL and zero-sized.
+    ScratchSpace(const ScratchSpace &parent, const uint8_t reserveN)
+      : buf(subSpaceCannotBeMade(parent.bufsize, reserveN) ? NULL : parent.buf + reserveN),
+        bufsize(subSpaceCannotBeMade(parent.bufsize, reserveN) ? 0 : parent.bufsize - reserveN)
+        { }
+  };
+
+
+#ifdef ARDUINO_ARCH_AVR
+// Diagnostic tools for memory problems.
+// Arduino AVR memory layout: DATA, BSS [_end, __bss_end], (HEAP,) [SP] STACK [RAMEND]
+// See: http://web-engineering.info/node/30
+#define MemoryChecks_DEFINED
+class MemoryChecks
+  {
+  public:
+     typedef uint16_t SP_type;
+
+  private:
+    // Minimum value recorded for SP.
+    // Marked volatile for safe access from ISRs.
+    // Initialised to be RAMEND.
+    static volatile SP_type minSP;
+
+  public:
+    // Compute stack space in use on ARDUINO/AVR; non-negative.
+    static uint16_t stackSpaceInUse() { return(RAMEND - SP); }
+    // Compute space after DATA and BSS (_end) and below STACK (ignoring HEAP) on ARDUINO/AVR; should be strictly +ve.
+    // If this becomes non-positive then variables are likely being corrupted.
+    static int16_t spaceBelowStackToEnd() { return(SP - (intptr_t)&_end); }
+
+    // Reset SP minimum: ISR-safe.
+    static void resetMinSP() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { minSP = RAMEND; } }
+    // Record current SP if minimum: ISR-safe.
+    // Can be buried in parts of code prone to deep recursion.
+    static void recordIfMinSP() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { if(SP < minSP) { minSP = SP; } } }
+    // Get SP minimum: ISR-safe.
+    static SP_type getMinSP() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { return(minSP); } }
+    // Get minimum space below SP above _end: ISR-safe.
+    static int16_t getMinSPSpaceBelowStackToEnd() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { return(minSP - (intptr_t)&_end); } }
+    // Force restart if minimum space below SP has not remained strictly positive.
+    static void forceResetIfStackOverflow() { if(getMinSPSpaceBelowStackToEnd() <= 0) { forceReset(); } }
+};
+#else
+// Dummy do-nothing version to allow test bugs to be harmlessly dropped into portable code.
+class MemoryChecks
+  {
+  public:
+    static void recordIfMinSP() { }
+    static void forceResetIfStackOverflow() { }
+  };
+#endif // ARDUINIO_ARCH_AVR
 
 
 }

@@ -67,62 +67,8 @@ int_fast16_t ModelledRadValveState::getSmoothedRecent() const
 // Too large a value may fail to sufficiently help damp oscillations and overshoot.
 // As to be at least as large as the minimum temperature sensor precision to avoid false triggering of the filter.
 // Typical values range from 2 (for better-than 1/8C-precision temperature sensor) up to 4.
-static const uint8_t MAX_TEMP_JUMP_C16 = 3; // 3/16C.
+static constexpr uint8_t MAX_TEMP_JUMP_C16 = 3; // 3/16C.
 
-// Minimum drop in temperature over recent time to trigger 'window open' response; strictly +ve.
-// Nominally target up 0.25C--1C drop over a few minutes (limited by the filter length).
-// TODO-621: in case of very sharp drop in temperature,
-// assume that a window or door has been opened,
-// by accident or to ventilate the room,
-// so suppress heating to reduce waste.
-//
-// See one sample 'airing' data set:
-//     http://www.earth.org.uk/img/20160930-16WWmultisensortempL.README.txt
-//     http://www.earth.org.uk/img/20160930-16WWmultisensortempL.png
-//     http://www.earth.org.uk/img/20160930-16WWmultisensortempL.json.xz
-//
-// 7h (hall, A9B2F7C089EECD89) saw a sharp fall and recovery, possibly from an external door being opened:
-// 1C over 10 minutes then recovery by nearly 0.5C over next half hour.
-// Note that there is a potential 'sensitising' occupancy signal available,
-// ie sudden occupancy may allow triggering with a lower temperature drop.
-//[ "2016-09-30T06:45:18Z", "", {"@":"A9B2F7C089EECD89","+":15,"T|C16":319,"H|%":65,"O":1} ]
-//[ "2016-09-30T06:57:10Z", "", {"@":"A9B2F7C089EECD89","+":2,"L":101,"T|C16":302,"H|%":60} ]
-//[ "2016-09-30T07:05:10Z", "", {"@":"A9B2F7C089EECD89","+":4,"T|C16":303,"v|%":0} ]
-//[ "2016-09-30T07:09:08Z", "", {"@":"A9B2F7C089EECD89","+":5,"tT|C":16,"T|C16":305} ]
-//[ "2016-09-30T07:21:08Z", "", {"@":"A9B2F7C089EECD89","+":8,"O":2,"T|C16":308,"H|%":64} ]
-//[ "2016-09-30T07:33:12Z", "", {"@":"A9B2F7C089EECD89","+":11,"tS|C":0,"T|C16":310} ]
-//
-// 1g (bedroom, FEDA88A08188E083) saw a slower fall, assumed from airing:
-// initially of .25C in 12m, 0.75C over 1h, bottoming out ~2h later down ~2C.
-// Note that there is a potential 'sensitising' occupancy signal available,
-// ie sudden occupancy may allow triggering with a lower temperature drop.
-//[ "2016-09-30T06:27:30Z", "", {"@":"FEDA88A08188E083","+":8,"tT|C":17,"tS|C":0} ]
-//[ "2016-09-30T06:31:38Z", "", {"@":"FEDA88A08188E083","+":9,"gE":0,"T|C16":331,"H|%":67} ]
-//[ "2016-09-30T06:35:30Z", "", {"@":"FEDA88A08188E083","+":10,"T|C16":330,"O":2,"L":2} ]
-//[ "2016-09-30T06:43:30Z", "", {"@":"FEDA88A08188E083","+":12,"H|%":65,"T|C16":327,"O":2} ]
-//[ "2016-09-30T06:59:34Z", "", {"@":"FEDA88A08188E083","+":0,"T|C16":325,"H|%":64,"O":1} ]
-//[ "2016-09-30T07:07:34Z", "", {"@":"FEDA88A08188E083","+":2,"H|%":63,"T|C16":324,"O":1} ]
-//[ "2016-09-30T07:15:36Z", "", {"@":"FEDA88A08188E083","+":4,"L":95,"tT|C":13,"tS|C":4} ]
-//[ "2016-09-30T07:19:30Z", "", {"@":"FEDA88A08188E083","+":5,"vC|%":0,"gE":0,"T|C16":321} ]
-//[ "2016-09-30T07:23:29Z", "", {"@":"FEDA88A08188E083","+":6,"T|C16":320,"H|%":63,"O":1} ]
-//[ "2016-09-30T07:31:27Z", "", {"@":"FEDA88A08188E083","+":8,"L":102,"T|C16":319,"H|%":63} ]
-// ...
-//[ "2016-09-30T08:15:27Z", "", {"@":"FEDA88A08188E083","+":4,"T|C16":309,"H|%":61,"O":1} ]
-//[ "2016-09-30T08:27:41Z", "", {"@":"FEDA88A08188E083","+":7,"vC|%":0,"T|C16":307} ]
-//[ "2016-09-30T08:39:33Z", "", {"@":"FEDA88A08188E083","+":10,"T|C16":305,"H|%":61,"O":1} ]
-//[ "2016-09-30T08:55:29Z", "", {"@":"FEDA88A08188E083","+":14,"T|C16":303,"H|%":61,"O":1} ]
-//[ "2016-09-30T09:07:37Z", "", {"@":"FEDA88A08188E083","+":1,"gE":0,"T|C16":302,"H|%":61} ]
-//[ "2016-09-30T09:11:29Z", "", {"@":"FEDA88A08188E083","+":2,"T|C16":301,"O":1,"L":175} ]
-//[ "2016-09-30T09:19:41Z", "", {"@":"FEDA88A08188E083","+":4,"T|C16":301,"H|%":61,"O":1} ]
-//
-// Should probably be significantly larger than MAX_TEMP_JUMP_C16 to avoid triggering alongside any filtering.
-// Needs to be be a fast enough fall NOT to be triggered by normal temperature gyrations close to a radiator.
-static const uint8_t MIN_WINDOW_OPEN_TEMP_FALL_C16 = OTV0P2BASE::fnmax(MAX_TEMP_JUMP_C16+2, 5); // Just over 1/4C.
-// Minutes over which temperature should be falling to trigger 'window open' response; strictly +ve.
-// TODO-621.
-// Needs to be be a fast enough fall NOT to be triggered by normal temperature gyrations close to a radiator.
-// Is capped in practice at the filter length.
-static const uint8_t MIN_WINDOW_OPEN_TEMP_FALL_M = 13;
 
 // Construct an instance, with sensible defaults, and current (room) temperature from the input state.
 // Does its initialisation with room temperature immediately.
@@ -178,21 +124,22 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const Modelle
   if(valveTurnupCountdownM > 0) { --valveTurnupCountdownM; }
 
   // Update the modelled state including the valve position passed by reference.
+  const uint8_t oldValvePC = valvePCOpenRef;
   const uint8_t newValvePC = computeRequiredTRVPercentOpen(valvePCOpenRef, inputState);
   const bool changed = (newValvePC != valvePCOpenRef);
   if(changed)
     {
-    if(newValvePC > valvePCOpenRef)
+    if(newValvePC > oldValvePC)
       {
       // Defer reclosing valve to avoid excessive hunting.
       valveTurnup();
-      cumulativeMovementPC += (newValvePC - valvePCOpenRef);
+      cumulativeMovementPC += (newValvePC - oldValvePC);
       }
     else
       {
       // Defer opening valve to avoid excessive hunting.
       valveTurndown();
-      cumulativeMovementPC += (valvePCOpenRef - newValvePC);
+      cumulativeMovementPC += (oldValvePC - newValvePC);
       }
     valvePCOpenRef = newValvePC;
     }
@@ -210,6 +157,34 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const Modelle
 // Usually called by tick() which does required state updates afterwards.
 uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valvePCOpen, const ModelledRadValveInputState &inputState) const
   {
+  // Possibly-adjusted and/or smoothed temperature to use for targeting.
+  const int_fast16_t adjustedTempC16 = isFiltering ? (getSmoothedRecent() + ModelledRadValveInputState::refTempOffsetC16) : inputState.refTempC16;
+  // When reduced to whole Celsius then fewer bits are needed to cover expected temperatures.
+  const int_fast8_t adjustedTempC = (int_fast8_t) (adjustedTempC16 >> 4);
+
+#if 0
+
+  // Minimal implementation.
+
+  // (Well) under temp target: open valve up.
+  if(adjustedTempC < inputState.targetTempC)
+    {
+    // Don't open if recently turned down, and not in MAKE mode.
+    if(dontTurnup() && !inputState.inBakeMode) { return(valvePCOpen); }
+    // Usually open up to max.
+    return(inputState.maxPCOpen);
+    }
+  // (Well) over temp target: close valve down.
+  else if(adjustedTempC > inputState.targetTempC)
+    {
+    // Don't close if recently turned up.
+    if(dontTurndown()) { return(valvePCOpen); }
+    // Usually close up to min.
+    return(inputState.minPCOpen);
+    }
+
+#else
+
   // Minimum slew/error % distance in central range; should be larger than smallest temperature-sensor-driven step (6) to be effective; [1,100].
   // Note: keeping TRV_MIN_SLEW_PC sufficiently high largely avoids spurious hunting back and forth from single-ulp noise.
   static constexpr uint8_t TRV_MIN_SLEW_PC = 7;
@@ -224,11 +199,6 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
   static const uint8_t TRV_SLEW_PC_PER_MIN_FAST = alwaysGlacial ? TRV_MAX_SLEW_PC_PER_MIN : (OTV0P2BASE::fnmin(20,(2*TRV_MAX_SLEW_PC_PER_MIN))); // Takes >= 5 minutes for full travel.
   static const uint8_t TRV_SLEW_PC_PER_MIN_VFAST = alwaysGlacial ? TRV_MAX_SLEW_PC_PER_MIN : (OTV0P2BASE::fnmin(34,(4*TRV_MAX_SLEW_PC_PER_MIN))); // Takes >= 3 minutes for full travel.
 
-  // Possibly-adjusted and/or smoothed temperature to use for targeting.
-  const int_fast16_t adjustedTempC16 = isFiltering ? (getSmoothedRecent() + ModelledRadValveInputState::refTempOffsetC16) : inputState.refTempC16;
-  // When reduced to whole Celsius then fewer bits are needed to cover expected temperatures.
-  const int_fast8_t adjustedTempC = (int_fast8_t) (adjustedTempC16 >> 4);
-
   // (Well) under temp target: open valve up.
   if(adjustedTempC < inputState.targetTempC)
     {
@@ -237,6 +207,61 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
     // Need debounced bake mode value to avoid spurious slamming open of the valve as the user cycles through modes.
     if(inputState.inBakeMode) { return(inputState.maxPCOpen); }
 
+    // Minimum drop in temperature over recent time to trigger 'window open' response; strictly +ve.
+    // Nominally target up 0.25C--1C drop over a few minutes (limited by the filter length).
+    // TODO-621: in case of very sharp drop in temperature,
+    // assume that a window or door has been opened,
+    // by accident or to ventilate the room,
+    // so suppress heating to reduce waste.
+    //
+    // See one sample 'airing' data set:
+    //     http://www.earth.org.uk/img/20160930-16WWmultisensortempL.README.txt
+    //     http://www.earth.org.uk/img/20160930-16WWmultisensortempL.png
+    //     http://www.earth.org.uk/img/20160930-16WWmultisensortempL.json.xz
+    //
+    // 7h (hall, A9B2F7C089EECD89) saw a sharp fall and recovery, possibly from an external door being opened:
+    // 1C over 10 minutes then recovery by nearly 0.5C over next half hour.
+    // Note that there is a potential 'sensitising' occupancy signal available,
+    // ie sudden occupancy may allow triggering with a lower temperature drop.
+    //[ "2016-09-30T06:45:18Z", "", {"@":"A9B2F7C089EECD89","+":15,"T|C16":319,"H|%":65,"O":1} ]
+    //[ "2016-09-30T06:57:10Z", "", {"@":"A9B2F7C089EECD89","+":2,"L":101,"T|C16":302,"H|%":60} ]
+    //[ "2016-09-30T07:05:10Z", "", {"@":"A9B2F7C089EECD89","+":4,"T|C16":303,"v|%":0} ]
+    //[ "2016-09-30T07:09:08Z", "", {"@":"A9B2F7C089EECD89","+":5,"tT|C":16,"T|C16":305} ]
+    //[ "2016-09-30T07:21:08Z", "", {"@":"A9B2F7C089EECD89","+":8,"O":2,"T|C16":308,"H|%":64} ]
+    //[ "2016-09-30T07:33:12Z", "", {"@":"A9B2F7C089EECD89","+":11,"tS|C":0,"T|C16":310} ]
+    //
+    // 1g (bedroom, FEDA88A08188E083) saw a slower fall, assumed from airing:
+    // initially of .25C in 12m, 0.75C over 1h, bottoming out ~2h later down ~2C.
+    // Note that there is a potential 'sensitising' occupancy signal available,
+    // ie sudden occupancy may allow triggering with a lower temperature drop.
+    //[ "2016-09-30T06:27:30Z", "", {"@":"FEDA88A08188E083","+":8,"tT|C":17,"tS|C":0} ]
+    //[ "2016-09-30T06:31:38Z", "", {"@":"FEDA88A08188E083","+":9,"gE":0,"T|C16":331,"H|%":67} ]
+    //[ "2016-09-30T06:35:30Z", "", {"@":"FEDA88A08188E083","+":10,"T|C16":330,"O":2,"L":2} ]
+    //[ "2016-09-30T06:43:30Z", "", {"@":"FEDA88A08188E083","+":12,"H|%":65,"T|C16":327,"O":2} ]
+    //[ "2016-09-30T06:59:34Z", "", {"@":"FEDA88A08188E083","+":0,"T|C16":325,"H|%":64,"O":1} ]
+    //[ "2016-09-30T07:07:34Z", "", {"@":"FEDA88A08188E083","+":2,"H|%":63,"T|C16":324,"O":1} ]
+    //[ "2016-09-30T07:15:36Z", "", {"@":"FEDA88A08188E083","+":4,"L":95,"tT|C":13,"tS|C":4} ]
+    //[ "2016-09-30T07:19:30Z", "", {"@":"FEDA88A08188E083","+":5,"vC|%":0,"gE":0,"T|C16":321} ]
+    //[ "2016-09-30T07:23:29Z", "", {"@":"FEDA88A08188E083","+":6,"T|C16":320,"H|%":63,"O":1} ]
+    //[ "2016-09-30T07:31:27Z", "", {"@":"FEDA88A08188E083","+":8,"L":102,"T|C16":319,"H|%":63} ]
+    // ...
+    //[ "2016-09-30T08:15:27Z", "", {"@":"FEDA88A08188E083","+":4,"T|C16":309,"H|%":61,"O":1} ]
+    //[ "2016-09-30T08:27:41Z", "", {"@":"FEDA88A08188E083","+":7,"vC|%":0,"T|C16":307} ]
+    //[ "2016-09-30T08:39:33Z", "", {"@":"FEDA88A08188E083","+":10,"T|C16":305,"H|%":61,"O":1} ]
+    //[ "2016-09-30T08:55:29Z", "", {"@":"FEDA88A08188E083","+":14,"T|C16":303,"H|%":61,"O":1} ]
+    //[ "2016-09-30T09:07:37Z", "", {"@":"FEDA88A08188E083","+":1,"gE":0,"T|C16":302,"H|%":61} ]
+    //[ "2016-09-30T09:11:29Z", "", {"@":"FEDA88A08188E083","+":2,"T|C16":301,"O":1,"L":175} ]
+    //[ "2016-09-30T09:19:41Z", "", {"@":"FEDA88A08188E083","+":4,"T|C16":301,"H|%":61,"O":1} ]
+    //
+    // Should probably be significantly larger than MAX_TEMP_JUMP_C16 to avoid triggering alongside any filtering.
+    // Needs to be be a fast enough fall NOT to be triggered by normal temperature gyrations close to a radiator.
+    static constexpr uint8_t MIN_WINDOW_OPEN_TEMP_FALL_C16 = OTV0P2BASE::fnmax(MAX_TEMP_JUMP_C16+2, 5); // Just over 1/4C.
+    // Minutes over which temperature should be falling to trigger 'window open' response; strictly +ve.
+    // TODO-621.
+    // Needs to be be a fast enough fall NOT to be triggered by normal temperature gyrations close to a radiator.
+    // Is capped in practice at the filter length.
+    static constexpr uint8_t MIN_WINDOW_OPEN_TEMP_FALL_M = 13;
+    //
     // Avoid trying to heat the outside world when a window or door is opened (TODO-621).
     // This is a short-term tactical response to a persistent cold draught,
     // eg from a window being opened to ventilate a room manually,
@@ -517,6 +542,8 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
     return(targetPO);
     }
 
+#endif // 0
+
   // Leave value position as was...
   return(valvePCOpen);
   }
@@ -563,37 +590,18 @@ void ModelledRadValve::setMinValvePcReallyOpen(const uint8_t percent)
 // against the minimum open percentage.
 bool ModelledRadValve::isControlledValveReallyOpen() const
   {
-  if(isRecalibrating()) { return(false); }
-//#ifdef ENABLE_FHT8VSIMPLE
-//  if(!FHT8V.isControlledValveReallyOpen()) { return(false); }
-//#endif
+//  if(isRecalibrating()) { return(false); }
+  if(NULL != physicalDeviceOpt) { if(!physicalDeviceOpt->isControlledValveReallyOpen()) { return(false); } }
   return(value >= getMinPercentOpen());
-  }
-
-// Returns true if (re)calibrating/(re)initialising/(re)syncing.
-// The target valve position is not lost while this is true.
-// By default there is no recalibration step.
-bool ModelledRadValve::isRecalibrating() const
-  {
-//#ifdef ENABLE_FHT8VSIMPLE
-//  if(!FHT8V.isInNormalRunState()) { return(true); }
-//#endif
-  return(false);
-  }
-
-// If possible exercise the valve to avoid pin sticking and recalibrate valve travel.
-// Default does nothing.
-void ModelledRadValve::recalibrate()
-  {
-//#ifdef ENABLE_FHT8VSIMPLE
-//  FHT8V.resyncWithValve(); // Should this be decalcinate instead/also/first?
-//#endif
   }
 
 // Compute target temperature and set heat demand for TRV and boiler; update state.
 // CALL REGULARLY APPROXIMATELY ONCE PER MINUTE TO ALLOW SIMPLE TIME-BASED CONTROLS.
 // Inputs are inWarmMode(), isRoomLit().
-// This routine may take significant CPU time; no I/O is done, only internal state is updated.
+//
+// This routine may take significant CPU time.
+//
+// Internal state is updated, and the target updated on any attached physical valve.
 //
 // Will clear any BAKE mode if the newly-computed target temperature is already exceeded.
 void ModelledRadValve::computeCallForHeat()
@@ -602,6 +610,7 @@ void ModelledRadValve::computeCallForHeat()
   // Compute target temperature and ensure that required input state is set for computeRequiredTRVPercentOpen().
   computeTargetTemperature();
   retainedState.tick(value, inputState);
+  if(NULL != physicalDeviceOpt) { physicalDeviceOpt->set(value); }
   }
 
 // Compute/update target temperature and set up state for computeRequiredTRVPercentOpen().
@@ -620,6 +629,9 @@ void ModelledRadValve::computeTargetTemperature()
   // Compute basic target temperature statelessly.
   const uint8_t newTarget = ctt->computeTargetTemp();
 
+  // Make new target available.
+  value = newTarget;
+
   // Set up state for computeRequiredTRVPercentOpen().
   ctt->setupInputState(inputState,
       retainedState.isFiltering,
@@ -629,9 +641,9 @@ void ModelledRadValve::computeTargetTemperature()
   // TODO: also consider showing full setback to FROST when a schedule is set but not on.
   // By default, the setback is regarded as zero/off.
   setbackC = 0;
-  if(sensorCtrlStats.valveMode->inWarmMode())
+  if(valveModeRW->inWarmMode())
     {
-    const uint8_t wt = sensorCtrlStats.tempControl->getWARMTargetC();
+    const uint8_t wt = tempControl->getWARMTargetC();
     if(newTarget < wt) { setbackC = wt - newTarget; }
     }
 

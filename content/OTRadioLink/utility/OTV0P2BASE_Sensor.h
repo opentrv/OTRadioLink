@@ -28,6 +28,12 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014--2015
 #ifndef OTV0P2BASE_SENSOR_H
 #define OTV0P2BASE_SENSOR_H
 
+#ifdef ARDUINO
+#include <Arduino.h>
+#else
+#include "OTV0P2BASE_ArduinoCompat.h"
+#endif
+
 #include <stdint.h>
 #include <stddef.h>
 
@@ -35,6 +41,18 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014--2015
 namespace OTV0P2BASE
 {
 
+
+// Type used for Sensor tags items.
+// Generally const char * but may be special type to be placed in MCU code space eg on AVR.
+#if defined(ARDUINO)
+#define V0p2_SENSOR_TAG_NOT_SIMPLECHARPTR
+#define V0p2_SENSOR_TAG_IS_FlashStringHelper
+#define V0p2_SENSOR_TAG_F(literal) (F(literal))
+typedef const __FlashStringHelper *Sensor_tag_t;
+#else
+#define V0p2_SENSOR_TAG_F(literal) (literal)
+typedef const char *Sensor_tag_t;
+#endif
 
 // Base sensor type.
 // Templated on sensor value type, typically uint8_t or uint16_t or int.
@@ -58,10 +76,6 @@ class Sensor
     // Default is to always return true, ie all values potentially valid.
     virtual bool isValid(T /*value*/) const { return(true); }
 
-    // Returns true if this sensor is definitely unavailable or behaving incorrectly.
-    // The default case is to assume that if the code is wired in then the device will work.
-    virtual bool isUnavailable() const { return(false); }
- 
     // Returns non-zero if this implementation requires a regular call to read() to operate correctly.
     // Preferred poll interval (in seconds) or 0 if no regular poll() call required.
     // Default returns 0 indicating regular call to read() not required,
@@ -70,7 +84,7 @@ class Sensor
 
     // Returns a suggested (JSON) tag/field/key name including units of get(); NULL means no recommended tag.
     // The lifetime of the pointed-to text must be at least that of the Sensor instance.
-    virtual const char *tag() const { return(NULL); }
+    virtual Sensor_tag_t tag() const { return(NULL); }
 
 //    // Returns a suggested privacy/sensitivity level of the data from this sensor.
 //    // The default sensitivity is set to just forbid transmission at default (255) leaf settings.
@@ -131,16 +145,7 @@ class SimpleTSUint8Sensor : public Sensor<uint8_t>
     // Usually fast.
     // Often likely to be thread-safe or usable within ISRs (Interrupt Service Routines),
     // BUT READ IMPLEMENTATION DOCUMENTATION BEFORE TREATING AS thread/ISR-safe.
-    virtual uint8_t get() const { return(value); }
-
-#ifdef UNIT_TESTS
-    // Set new value for unit test only.
-    // May be just enough to allow get() to see the value for unit tests,
-    // but will not deal with other aspects of sensor state.
-    // Any call to read() or other mutators may overwrite/clear state that this sets.
-    virtual void _TEST_set_(const uint8_t newValue)
-      { value = newValue; }
-#endif
+    virtual uint8_t get() const override { return(value); }
   };
 
 

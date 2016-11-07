@@ -25,7 +25,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 #include "OTV0P2BASE_Concurrency.h"
 #include "OTV0P2BASE_Sensor.h"
-#include "OTV0P2BASE_Util.h"
 
 
 namespace OTV0P2BASE
@@ -84,7 +83,7 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     virtual uint8_t preferredPollInterval_s() const override { return(60); }
 
     // Recommended JSON tag for full value; not NULL.
-    virtual const char *tag() const override { return("occ|%"); }
+    virtual Sensor_tag_t tag() const override { return(V0p2_SENSOR_TAG_F("occ|%")); }
 
     // True if activity/occupancy recently reported (within last couple of minutes).
     // Activity includes weak and strong reports.
@@ -143,7 +142,7 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     uint8_t twoBitOccupancyValue() const { return(isLikelyRecentlyOccupied() ? 3 : (isLikelyOccupied() ? 2 : 1)); }
 
     // Recommended JSON tag for two-bit occupancy value; not NULL.
-    const char *twoBitTag() const { return("O"); }
+    OTV0P2BASE::Sensor_tag_t twoBitTag() const { return(V0p2_SENSOR_TAG_F("O")); }
 
     // Returns true if it is worth expending extra effort to check for occupancy.
     // This will happen when confidence in occupancy is not yet zero but is approaching,
@@ -156,7 +155,7 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     uint16_t getVacancyH() const { return((value != 0) ? 0 : vacancyH); }
 
     // Recommended JSON tag for vacancy hours; not NULL.
-    const char *vacHTag() const { return("vac|h"); }
+    OTV0P2BASE::Sensor_tag_t vacHTag() const { return(V0p2_SENSOR_TAG_F("vac|h")); }
 
     // Threshold hours above which room is considered long vacant.
     // At least 24h in order to allow once-daily room programmes (including pre-warm) to operate reliably.

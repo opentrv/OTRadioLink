@@ -514,13 +514,13 @@ class ModelledRadValve final : public AbstractRadValve
     // Target temperature computation.
     const ModelledRadValveComputeTargetTempBase *ctt;
 
-    // Sensor, control and stats inputs for computations.
-    const ModelledRadValveSensorCtrlStats &sensorCtrlStats;
-
     // All input state for deciding where to set the radiator valve in normal operation.
     struct ModelledRadValveInputState inputState;
     // All retained state for deciding where to set the radiator valve in normal operation.
     struct ModelledRadValveState retainedState;
+
+    // Read-only access to temperature control; never NULL.
+    const TempControlBase *const tempControl;
 
     // True if this node is calling for heat.
     // Marked volatile for thread-safe lock-free access.
@@ -549,26 +549,32 @@ class ModelledRadValve final : public AbstractRadValve
     // Will clear any BAKE mode if the newly-computed target temperature is already exceeded.
     void computeCallForHeat();
 
-    // Read-write (non-const) access to valveMode instance; never NULL.
+    // Read/write (non-const) access to valveMode instance; never NULL.
     ValveMode *const valveModeRW;
+
+    // Read/write access the underlying physical device; NULL if none.
+    AbstractRadValve *const physicalDeviceOpt;
 
   public:
     // Create an instance.
     ModelledRadValve(
         const ModelledRadValveComputeTargetTempBase *const _ctt,
         ValveMode *const _valveMode,
-        const ModelledRadValveSensorCtrlStats *_sensorCtrlStats,
+        const TempControlBase *const _tempControl,
+        AbstractRadValve *const _physicalDeviceOpt,
         const bool _defaultGlacial = false, const uint8_t _maxPCOpen = 100)
       : ctt(_ctt),
-        sensorCtrlStats(*_sensorCtrlStats),
         retainedState(_defaultGlacial),
+        tempControl(_tempControl),
         glacial(_defaultGlacial),
         maxPCOpen(OTV0P2BASE::fnmin(_maxPCOpen, (uint8_t)100U)),
-        valveModeRW(_valveMode)
+        valveModeRW(_valveMode),
+        physicalDeviceOpt(_physicalDeviceOpt)
       { }
 
     // Force a read/poll/recomputation of the target position and call for heat.
     // Sets/clears changed flag if computed valve position changed.
+    // Pushes target to physical device if configured.
     // Call at a fixed rate (1/60s).
     // Potentially expensive/slow.
     virtual uint8_t read() override { computeCallForHeat(); return(value); }
@@ -577,18 +583,15 @@ class ModelledRadValve final : public AbstractRadValve
     // Must be polled at near constant rate, about once per minute.
     virtual uint8_t preferredPollInterval_s() const override { return(60); }
 
-    // Returns a suggested (JSON) tag/field/key name including units of get(); NULL means no recommended tag.
-    // The lifetime of the pointed-to text must be at least that of the Sensor instance.
-    virtual const char *tag() const override { return("v|%"); }
-
-    // Returns true if (re)calibrating/(re)initialising/(re)syncing.
-    // The target valve position is not lost while this is true.
+    // Returns true iff not in error state and not (re)calibrating/(re)initialising/(re)syncing.
     // By default there is no recalibration step.
-    virtual bool isRecalibrating() const;
+    // Passes through to underlying physical valve if configured, else true.
+    virtual bool isInNormalRunState() const override { return((NULL == physicalDeviceOpt) ? true : physicalDeviceOpt->isInNormalRunState()); }
 
-    // If possible exercise the valve to avoid pin sticking and recalibrate valve travel.
-    // Default does nothing.
-    virtual void recalibrate();
+    // Returns true if in an error state.
+    // May be recoverable by forcing recalibration.
+    // Passes through to underlying physical valve if configured, else false.
+    virtual bool isInErrorState() const override { return((NULL == physicalDeviceOpt) ? false : physicalDeviceOpt->isInErrorState()); }
 
     // True if the controlled physical valve is thought to be at least partially open right now.
     // If multiple valves are controlled then is this should be true only if all are at least partially open.
@@ -647,7 +650,7 @@ class ModelledRadValve final : public AbstractRadValve
 
     // Returns a suggested (JSON) tag/field/key name including units of getTargetTempC(); not NULL.
     // The lifetime of the pointed-to text must be at least that of this instance.
-    const char *tagTTC() const { return("tT|C"); }
+    OTV0P2BASE::Sensor_tag_t tagTTC() const { return(V0p2_SENSOR_TAG_F("tT|C")); }
 
     // Get the current automated setback (if any) in the direction of energy saving in C; non-negative.
     // For heating this is the number of C below the nominal user-set target temperature
@@ -659,7 +662,7 @@ class ModelledRadValve final : public AbstractRadValve
     // Returns a suggested (JSON) tag/field/key name including units of getSetbackC(); not NULL.
     // It would often be appropriate to mark this as low priority since depth of setback matters more than speed.
     // The lifetime of the pointed-to text must be at least that of this instance.
-    const char *tagTSC() const { return("tS|C"); }
+    OTV0P2BASE::Sensor_tag_t tagTSC() const { return(V0p2_SENSOR_TAG_F("tS|C")); }
 
     // Get cumulative valve movement %; rolls at 8192 in range [0,8191], ie non-negative.
     // It would often be appropriate to mark this as low priority since it can be computed from valve positions.
@@ -667,7 +670,7 @@ class ModelledRadValve final : public AbstractRadValve
 
     // Returns a suggested (JSON) tag/field/key name including units of getCumulativeMovementPC(); not NULL.
     // The lifetime of the pointed-to text must be at least that of this instance.
-    const char *tagCMPC() const { return("vC|%"); }
+    OTV0P2BASE::Sensor_tag_t tagCMPC() const { return(V0p2_SENSOR_TAG_F("vC|%")); }
 
     // Return minimum valve percentage open to be considered actually/significantly open; [1,100].
     // This is a value that has to mean all controlled valves are at least partially open if more than one valve.
@@ -692,6 +695,9 @@ class ModelledRadValve final : public AbstractRadValve
     //
     // Will clear any BAKE mode if the newly-computed target temperature is already exceeded.
     void computeTargetTemperature();
+
+    // Pass through a wiggle request to the underlying device if specified.
+    virtual void wiggle() const override { if(NULL != physicalDeviceOpt) { physicalDeviceOpt->wiggle(); } }
   };
 
 

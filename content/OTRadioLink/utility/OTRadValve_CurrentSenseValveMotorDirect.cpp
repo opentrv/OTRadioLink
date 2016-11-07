@@ -37,6 +37,8 @@ void CurrentSenseValveMotorDirect::signalRunSCTTick(const bool opening)
   {
 #ifdef ARDUINO_ARCH_AVR
   ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
+#else
+  // FIXME: use portable concurrent mechanisms...
 #endif // ARDUINO_ARCH_AVR
     {
     // Crudely avoid/ignore underflow/overflow for now.
@@ -58,7 +60,8 @@ void CurrentSenseValveMotorDirect::signalRunSCTTick(const bool opening)
 // Returns true in case of success.
 // May return false and force error state if inputs unusable,
 // though will still try to compute all values.
-bool CurrentSenseValveMotorDirect::CalibrationParameters::updateAndCompute(const uint16_t _ticksFromOpenToClosed, const uint16_t _ticksFromClosedToOpen)
+bool CurrentSenseValveMotorDirect::CalibrationParameters::updateAndCompute(
+    const uint16_t _ticksFromOpenToClosed, const uint16_t _ticksFromClosedToOpen, const uint8_t minMotorDRTicks)
   {
   ticksFromOpenToClosed = _ticksFromOpenToClosed;
   ticksFromClosedToOpen = _ticksFromClosedToOpen;
@@ -122,7 +125,7 @@ uint8_t CurrentSenseValveMotorDirect::CalibrationParameters::computePosition(
 // Get estimated minimum percentage open for significant flow for this device; strictly positive in range [1,99].
 uint8_t CurrentSenseValveMotorDirect::getMinPercentOpen() const
     {
-    // If in dead-reckoning mode use a very safe estimate,
+    // If in dead-reckoning mode then use a very safe estimate,
     // else use a somewhat tighter one.
     // TODO: optimise, ie don't compute each time if frequently called.
     return(usingPositionalEncoder() ?
@@ -135,7 +138,7 @@ uint8_t CurrentSenseValveMotorDirect::getMinPercentOpen() const
 // Finishes with the motor turned off, and a bias to closing the valve.
 // Should also have enough movement/play to allow calibration of the shaft encoder.
 // May also help set some bounds on stall current, eg if highly asymmetric at each end of travel.
-void CurrentSenseValveMotorDirect::wiggle()
+void CurrentSenseValveMotorDirectBinaryOnly::wiggle()
   {
   hw->motorRun(0, OTRadValve::HardwareMotorDriverInterface::motorOff, *this);
   hw->motorRun(0, OTRadValve::HardwareMotorDriverInterface::motorDriveOpening, *this);
@@ -150,7 +153,7 @@ void CurrentSenseValveMotorDirect::wiggle()
 // else will require one or more further calls in new sub-cycles
 // to hit the end-stop.
 // May attempt to ride through stiff mechanics.
-bool CurrentSenseValveMotorDirect::runFastTowardsEndStop(const bool toOpen)
+bool CurrentSenseValveMotorDirectBinaryOnly::runFastTowardsEndStop(const bool toOpen)
   {
   // Clear the end-stop detection flag ready.
   endStopDetected = false;
@@ -160,8 +163,10 @@ bool CurrentSenseValveMotorDirect::runFastTowardsEndStop(const bool toOpen)
     : OTRadValve::HardwareMotorDriverInterface::motorDriveClosing, *this);
   // Stop motor and ensure power off.
   hw->motorRun(0, OTRadValve::HardwareMotorDriverInterface::motorOff, *this);
-  // Report if end-stop has apparently been hit.
-  return(endStopDetected);
+  // If end-stop not hit, return false now.
+  if(!endStopDetected) { return(false); }
+  // Attempt another short pulse to finish the job if there is time.
+  return(runTowardsEndStop(toOpen));
   }
 
 // Run at 'normal' speed towards/to end for a fixed time/distance.
@@ -169,26 +174,18 @@ bool CurrentSenseValveMotorDirect::runFastTowardsEndStop(const bool toOpen)
 // Runs at same speed as during calibration.
 // Does the right thing with dead-reckoning and/or position detection.
 // Returns true if end-stop has apparently been hit.
-bool CurrentSenseValveMotorDirect::runTowardsEndStop(const bool toOpen)
+bool CurrentSenseValveMotorDirectBinaryOnly::runTowardsEndStop(const bool toOpen)
   {
   // Clear the end-stop detection flag ready.
   endStopDetected = false;
-  // Run motor as far as possible on this sub-cycle.
-  hw->motorRun(cp.minMotorDRTicks, toOpen ?
+  // Run motor for fixed time.
+  hw->motorRun(minMotorDRTicks, toOpen ?
       OTRadValve::HardwareMotorDriverInterface::motorDriveOpening
     : OTRadValve::HardwareMotorDriverInterface::motorDriveClosing, *this);
   // Stop motor and ensure power off.
   hw->motorRun(0, OTRadValve::HardwareMotorDriverInterface::motorOff, *this);
   // Report if end-stop has apparently been hit.
   return(endStopDetected);
-  }
-
-// Report an apparent serious tracking error that may need full recalibration.
-void CurrentSenseValveMotorDirect::reportTrackingError()
-  {
-  // Possibly ignore tracking errors for a minimum interval.
-  // May simply switch to 'binary' on/off mode if the calibration is off.
-  needsRecalibrating = true;
   }
 
 // True if (re)calibration should be deferred.
@@ -209,7 +206,7 @@ bool CurrentSenseValveMotorDirect::shouldDeferCalibration()
 // Regular poll every 1s or 2s,
 // though tolerates missed polls eg because of other time-critical activity.
 // May block for hundreds of milliseconds.
-void CurrentSenseValveMotorDirect::poll()
+void CurrentSenseValveMotorDirectBinaryOnly::poll()
   {
 
 #if 0 && defined(V0P2BASE_DEBUG)
@@ -223,6 +220,9 @@ OTV0P2BASE::serialPrintAndFlush("poll(): ");
 OTV0P2BASE::serialPrintAndFlush(state);
 OTV0P2BASE::serialPrintlnAndFlush();
 #endif
+
+  // If too late in the system cycle then exit immediately.
+  if(getSubCycleTimeFn() >= sctAbsLimit) { return; }
 
   // Run the state machine based on the major state.
   switch(state)
@@ -280,7 +280,17 @@ OTV0P2BASE::serialPrintlnAndFlush();
           }
 
       // Once end-stop has been hit, move to state to wait for user signal and then start calibration.
-      if(runFastTowardsEndStop(true)) { changeState(valvePinWithdrawn); }
+
+      // Run cautiously while supply voltage low to try to avoid browning out.
+      const bool low = ((NULL != lowBattOpt) && ((0 == lowBattOpt->read()) || lowBattOpt->isSupplyVoltageLow()));
+
+      if(runTowardsEndStop(true, low))
+          {
+          // Note that the valve is now fully open.
+          resetPosition(true, true); // Regard as tentative.
+          changeState(valvePinWithdrawn);
+          }
+
       break;
       }
 
@@ -290,15 +300,14 @@ OTV0P2BASE::serialPrintlnAndFlush();
 //V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("  valvePinWithdrawn");
 
       // Wait for signal from user that valve has been fitted...
-      // TODO: alternative timeout allows for automatic recovery from crash/restart after say 10 mins.
-      // From: void signalValveFitted() { perState.valvePinWithdrawn.valveFitted = true; }
-
-      // Note that (initial) calibration is needed.
-      needsRecalibrating = true;
-
       // Once the valve has been fitted, move to calibration.
       if(perState.valvePinWithdrawn.valveFitted)
-        { changeState(valveCalibrating); }
+        {
+        // Wiggle to acknowledge signal from user.
+        wiggle();
+        changeState(valveCalibrating);
+        }
+
       break;
       }
 
@@ -310,95 +319,172 @@ OTV0P2BASE::serialPrintlnAndFlush();
 //      V0P2BASE_DEBUG_SERIAL_PRINT(perState.calibrating.calibState);
 //      V0P2BASE_DEBUG_SERIAL_PRINTLN();
 
-      // Defer calibration if doing it now would be a bad idea, eg in a bedroom at night.
-      if(shouldDeferCalibration())
-        {
-        changeState(valveNormal);
-        break;
-        }
+      if(do_valveCalibrating_prop()) { return; }
 
-      // If taking stupidly long to calibrate
-      // then assume a problem with the motor/mechanics and give up.
-      // Don't panic() so that the unit can still (for example) transmit stats.
-      if(++perState.valveCalibrating.wallclock2sTicks > MAX_TRAVEL_WALLCLOCK_2s_TICKS)
-        {
-        OTV0P2BASE::serialPrintlnAndFlush(F("!valve calibration fail"));
-        changeState(valveError);
-        break;
-        }
+      // By default skip immediately to the normal state if not calibrating.
+      changeState(valveNormal);
 
-      // Select activity based on micro-state.
-      switch(perState.valveCalibrating.calibState)
+      break;
+      }
+
+    // Normal running state: attempt to track the specified target valve open percentage.
+    case valveNormal:
+      {
+//V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("  valveNormal");
+
+      // If the current estimated position exactly matches the target
+      // then there is nothing to do.
+      if(currentPC == targetPC) { break; }
+
+      if(do_valveNormal_prop()) { return; }
+
+      // If the current estimated position does NOT match the target
+      // then (incrementally) try to adjust to match.
+#if 0 && defined(V0P2BASE_DEBUG)
+V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("  valve err: @");
+V0P2BASE_DEBUG_SERIAL_PRINT(currentPC);
+V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING(" vs target ");
+V0P2BASE_DEBUG_SERIAL_PRINT(targetPC);
+V0P2BASE_DEBUG_SERIAL_PRINTLN();
+#endif
+
+      // In binary mode, the valve is targeted to be fully open or fully closed.
+      // Set to the same threshold value used to trigger boiler call for heat.
+      const bool binaryOpen = (targetPC >= OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN);
+      const uint8_t binaryTarget = binaryOpen ? 100 : 0;
+
+      // If already at correct end-stop then nothing to do.
+      if(binaryTarget == currentPC) { break; }
+
+      // Refuse to close the valve while supply voltage low to try to avoid browning out or leaving valve shut.
+      const bool low = ((NULL != lowBattOpt) && ((0 == lowBattOpt->read()) || lowBattOpt->isSupplyVoltageLow()));
+      if(low && (targetPC < currentPC)) { break; }
+
+      // If not apparently yet at end-stop
+      // (ie not at correct end stop or with spurious unreconciled ticks)
+      // then try again to run to end-stop.
+      // If end-stop is hit then reset positional values.
+      // Only really believe the end-stop hit when running slowly.
+      const bool tentative = binaryOpen ? (currentPC == 99) : (currentPC == 1);
+      // Try running fast if not tentative from previous step, and end up tentative.
+      if(!tentative && runTowardsEndStop(binaryOpen, low)) { resetPosition(binaryOpen, true); }
+      // Else follow tentative by running slow to attempt to seat securely.
+      else if(runTowardsEndStop(binaryOpen)) { resetPosition(binaryOpen, false); }
+      // Re-estimate intermediate position.
+      else { recomputePosition(); }
+
+      break;
+      }
+
+    // Unexpected: go to error state, stop motor and report error on serial.
+    default:
+      {
+      hw->motorRun(0, OTRadValve::HardwareMotorDriverInterface::motorOff, *this);
+      OTV0P2BASE::serialPrintlnAndFlush(F("!valve error"));
+      changeState(valveError);
+      //panic(); // FIXME // Not expected to return.
+      return;
+      }
+    }
+  }
+
+// Do valveCalibrating for proportional drive; returns true to return from poll() immediately.
+// Calls changeState() directly if it needs to change state.
+// If this returns false, processing falls through to that for the non-proportional case.
+bool CurrentSenseValveMotorDirect::do_valveCalibrating_prop()
+    {
+    // Note that (re)calibration is needed / in progress.
+    needsRecalibrating = true;
+
+    // Defer calibration if doing it now would be a bad idea, eg in a bedroom at night.
+    if(shouldDeferCalibration())
+      {
+      changeState(valveNormal);
+      return(true);
+      }
+
+    // If taking stupidly long to calibrate
+    // then assume a problem with the motor/mechanics and give up.
+    // Don't panic() so that the unit can still (for example) transmit stats.
+    if(++perState.valveCalibrating.wallclock2sTicks > MAX_TRAVEL_WALLCLOCK_2s_TICKS)
+      {
+      OTV0P2BASE::serialPrintlnAndFlush(F("!valve calibration fail"));
+      changeState(valveError);
+      return(true);
+      }
+
+    // Select activity based on micro-state.
+    switch(perState.valveCalibrating.calibState)
+      {
+      case 0:
         {
-        case 0:
-          {
 #if 0 && defined(V0P2BASE_DEBUG)
 V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("+calibrating");
 #endif
-          ++perState.valveCalibrating.calibState; // Move to next micro state.
-          break;
-          }
-        case 1:
+        ++perState.valveCalibrating.calibState; // Move to next micro state.
+        break;
+        }
+      case 1:
+        {
+        // Run fast to fully retracted (easy to fit, nomninally valve fully open).
+        if(runFastTowardsEndStop(true))
           {
-          // Run fast to fully retracted (easy to fit, nomninally valve fully open).
-          if(runFastTowardsEndStop(true))
+          // Reset tick count.
+          ticksFromOpen = 0;
+          ticksReverse = 0;
+          perState.valveCalibrating.wallclock2sTicks = 0;
+          ++perState.valveCalibrating.calibState; // Move to next micro state.
+          }
+        break;
+        }
+      case 2:
+        {
+        // Run pin to fully extended (valve closed).
+        // Be prepared to run the (usually small) dead-reckoning pulse while lots of sub-cycle still available.
+        do
+          {
+          // Once end-stop has been hit, capture run length and prepare to run in opposite direction.
+          if(runTowardsEndStop(false))
             {
-            // Reset tick count.
-            ticksFromOpen = 0;
-            ticksReverse = 0;
+            const uint16_t tfotc = ticksFromOpen;
+            perState.valveCalibrating.ticksFromOpenToClosed = tfotc;
             perState.valveCalibrating.wallclock2sTicks = 0;
             ++perState.valveCalibrating.calibState; // Move to next micro state.
+            break;
             }
-          break;
-          }
-        case 2:
+          } while(getSubCycleTimeFn() <= computeSctAbsLimitDR());
+        break;
+        }
+      case 3:
+        {
+        // Run pin to fully retracted again (valve open).
+        // Be prepared to run the (usually small) pulse while lots of sub-cycle still available.
+        do
           {
-          // Run pin to fully extended (valve closed).
-          // Be prepared to run the (usually small) dead-reckoning pulse while lots of sub-cycle still available.
-          do
+          // Once end-stop has been hit, capture run length and prepare to run in opposite direction.
+          if(runTowardsEndStop(true))
             {
-            // Once end-stop has been hit, capture run length and prepare to run in opposite direction.
-            if(runTowardsEndStop(false))
+            const uint16_t tfcto = ticksReverse;
+            // Help avoid premature termination of this direction
+            // by NOT terminating this run if much shorter than run in other direction.
+            if(tfcto >= (perState.valveCalibrating.ticksFromOpenToClosed >> 1))
               {
-              const uint16_t tfotc = ticksFromOpen;
-              perState.valveCalibrating.ticksFromOpenToClosed = tfotc;
+              perState.valveCalibrating.ticksFromClosedToOpen = tfcto;
+              // Reset tick count.
+              ticksFromOpen = 0;
+              ticksReverse = 0;
               perState.valveCalibrating.wallclock2sTicks = 0;
               ++perState.valveCalibrating.calibState; // Move to next micro state.
-              break;
               }
-            } while(getSubCycleTimeFn() <= computeSctAbsLimitDR());
-          break;
-          }
-        case 3:
-          {
-          // Run pin to fully retracted again (valve open).
-          // Be prepared to run the (usually small) pulse while lots of sub-cycle still available.
-          do
-            {
-            // Once end-stop has been hit, capture run length and prepare to run in opposite direction.
-            if(runTowardsEndStop(true))
-              {
-              const uint16_t tfcto = ticksReverse;
-              // Help avoid premature termination of this direction
-              // by NOT terminating this run if much shorter than run in other direction.
-              if(tfcto >= (perState.valveCalibrating.ticksFromOpenToClosed >> 1))
-                {
-                perState.valveCalibrating.ticksFromClosedToOpen = tfcto;
-                // Reset tick count.
-                ticksFromOpen = 0;
-                ticksReverse = 0;
-                perState.valveCalibrating.wallclock2sTicks = 0;
-                ++perState.valveCalibrating.calibState; // Move to next micro state.
-                }
-              break; // In all cases when end-stop hit don't try to run further in this sub-cycle.
-              }
-            } while(getSubCycleTimeFn() <= computeSctAbsLimitDR());
-          break;
-          }
-        case 4:
-          {
-          // Set all measured calibration input parameters and current position.
-          cp.updateAndCompute(perState.valveCalibrating.ticksFromOpenToClosed, perState.valveCalibrating.ticksFromClosedToOpen);
+            break; // In all cases when end-stop hit don't try to run further in this sub-cycle.
+            }
+          } while(getSubCycleTimeFn() <= computeSctAbsLimitDR());
+        break;
+        }
+      case 4:
+        {
+        // Set all measured calibration input parameters and current position.
+        cp.updateAndCompute(perState.valveCalibrating.ticksFromOpenToClosed, perState.valveCalibrating.ticksFromClosedToOpen, minMotorDRTicks);
 
 #if 0 && defined(V0P2BASE_DEBUG)
 //V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("    ticksFromOpenToClosed: ");
@@ -422,163 +508,101 @@ OTV0P2BASE::serialPrintAndFlush(cp.getApproxPrecisionPC());
 OTV0P2BASE::serialPrintlnAndFlush();
 #endif
 
-          // Move to normal valve running state...
-          needsRecalibrating = false;
-          currentPC = 100; // Valve is currently fully open.
-          // Reset tick count.
-          ticksFromOpen = 0;
-          ticksReverse = 0;
-          changeState(valveNormal);
-          break;
-          }
-        // In case of unexpected microstate shut down gracefully.
-        default: { changeState(valveError); break; }
+        // Move to normal valve running state...
+        needsRecalibrating = false;
+        resetPosition(true); // Valve is currently fully open.
+        changeState(valveNormal);
+        return(true);
         }
-      break;
+      // In case of unexpected microstate shut down gracefully.
+      default: { changeState(valveError); return(true); }
       }
 
-    // Normal running state: attempt to track the specified target valve open percentage.
-    case valveNormal:
+  // Remain in valveCalibrating state, but don't do any non-prop processing.
+  return(true);
+  }
+
+// Do valveNormal start for proportional drive; returns true to return from poll() immediately.
+// Falls through to do drive to end stops or when in run-time binary-only mode.
+// Calls changeState() directly if it needs to change state.
+// If this returns false, processing falls through to that for the non-proportional case.
+bool CurrentSenseValveMotorDirect::do_valveNormal_prop()
+    {
+    // Recalibrate if a serious tracking error was detected.
+    if(needsRecalibrating)
       {
-//V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("  valveNormal");
-
-      // If the current estimated position matches the target
-      // then there is usually nothing to do.
-      if(currentPC == targetPC) { break; }
-
-      // Recalibrate if a serious tracking error was detected.
-      if(needsRecalibrating)
-        {
-#if 0 && defined(V0P2BASE_DEBUG)
-V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("!needsRecalibrating");
-#endif
-
-        // Defer calibration if doing it now would be a bad idea, eg in a bedroom at night.
-        if(!shouldDeferCalibration())
-            {
-            changeState(valveCalibrating);
-            break;
-            }
-        }
-
-      // If the current estimated position does NOT match the target
-      // then (incrementally) try to adjust to match.
-#if 0 && defined(V0P2BASE_DEBUG)
-V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("  valve err: @");
-V0P2BASE_DEBUG_SERIAL_PRINT(currentPC);
-V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING(" vs target ");
-V0P2BASE_DEBUG_SERIAL_PRINT(targetPC);
-V0P2BASE_DEBUG_SERIAL_PRINTLN();
-#endif
-
-      // If true, running directly to end-stops and not doing any dead-reckoning.
-      const bool binaryMode = inNonProprtionalMode();
-      // If in binary mode, should the valve be fully open.
-      // Set to the same threshold value used to trigger boiler call for heat.
-      const bool binaryOpen = (targetPC >= OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN);
-
-      // Special case where target is an end-point (or close to).
-      // Run fast to the end-stop.
-      // Be eager and pull to end stop if near for continuous auto-recalibration.
-      // Must work when eps is zero (ie with sub-percent precision).
-      const uint8_t eps = cp.getApproxPrecisionPC();
-      const bool toOpenFast = (binaryMode && binaryOpen) || (targetPC >= (100 - 2*eps));
-      if(binaryMode || toOpenFast || (targetPC <= OTV0P2BASE::fnmax(2*eps, minOpenPC>>1)))
-        {
-        // If not apparently yet at end-stop
-        // (ie not at correct end stop or with spurious unreconciled ticks)
-        // then try again to run to end-stop.
-        if((0 == ticksReverse) && (currentPC == (toOpenFast ? 100 : 0))) { break; } // Done
-        else if(runFastTowardsEndStop(toOpenFast))
-            {
-            // TODO: may need to protect against spurious stickiness before end...
-            // Reset positional values.
-            currentPC = toOpenFast ? 100 : 0;
-            ticksReverse = 0;
-            ticksFromOpen = toOpenFast ? 0 : cp.getTicksFromOpenToClosed();
-            }
-        // Estimate intermediate position.
-        else { recomputePosition(); }
-#if 0 && defined(V0P2BASE_DEBUG)
-if(toOpenFast) { V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("-->"); } else { V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("--<"); }
-#endif
-        break;
-        }
-
-      // More general case where target position is somewhere between end-stops.
-      // Don't do anything if close enough, ie within computed precision (eps).
-      // Else move incrementally to reduce the error.
-      // (Incremental small moves may also help when absolute accuracy not that good,
-      // allowing closed-loop feedback time to work.)
-
-      // Not open enough.
-      if((targetPC > currentPC) && (targetPC >= currentPC + eps)) // Overflow not possible with eps addition.
-        {
-        // TODO: use shaft encoder positioning by preference, ie when available.
-        const bool hitEndStop = runTowardsEndStop(true);
-        recomputePosition();
-        // Hit the end-stop, possibly prematurely.
-        if(hitEndStop)
+      // Defer calibration if doing it now would be a bad idea, eg in a bedroom at night.
+      if(!shouldDeferCalibration())
           {
-          // Report serious tracking error (well before 'fairly open' %).
-          if(currentPC < OTV0P2BASE::fnmin(fairlyOpenPC, (uint8_t)(100 - 8*eps)))
-            { reportTrackingError(); }
-          // Silently auto-adjust when end-stop hit close to expected position.
-          else
-            {
-            currentPC = 100;
-            ticksReverse = 0;
-            ticksFromOpen = 0;
-            }
+          changeState(valveCalibrating);
+          return(true); // Leave poll().
           }
+      }
+
+    // If in non-proportional mode
+    // then fall back to non-prop behaviour.
+    if(inNonProprtionalMode())
+        { return(false); } // Fall through.
+
+    // If the desired target is close to either end
+    // then fall back to non-prop behaviour and hit the end stops (fast) instead.
+    // Makes ends 'sticky' and allows for some light-weight recalibration to scale ends.
+    const uint8_t eps = cp.getApproxPrecisionPC();
+    if((targetPC >= (100 - 2*eps)) ||
+       (targetPC <= OTV0P2BASE::fnmax(2*eps, minOpenPC>>1)))
+        { return(false); } // Fall through.
+
+    // If close enough to the target position then stay as is and leave poll().
+    // Carefully avoid overflow/underflow in comparison.
+    if(((targetPC >= currentPC) && (targetPC <= currentPC + eps)) ||
+       ((currentPC >= targetPC) && (currentPC <= targetPC + eps)))
+        { return(true); } // Leave poll().
+
+    // Move incrementally as close as possible to the target position.
+    // Not open enough.
+    if(targetPC > currentPC)
+      {
+      // TODO: use shaft encoder positioning by preference, ie when available.
+      const bool hitEndStop = runTowardsEndStop(true);
+      recomputePosition();
+      // Hit the end-stop, possibly prematurely.
+      if(hitEndStop)
+        {
+        // Report serious tracking error (well before 'fairly open' %).
+        if(currentPC < OTV0P2BASE::fnmin(fairlyOpenPC, (uint8_t)(100 - 8*eps)))
+          { reportTrackingError(); }
+        // Silently auto-adjust when end-stop hit close to expected position.
+        else
+          { resetPosition(true); }
+        }
 #if 0 && defined(V0P2BASE_DEBUG)
 V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("->");
 #endif
-        break;
-        }
-      // Not closed enough.
-      else if((targetPC < currentPC) && (targetPC + eps <= currentPC)) // Overflow not possible with eps addition.
+      }
+    // Not closed enough.
+    else
+      {
+      // TODO: use shaft encoder positioning by preference, ie when available.
+      const bool hitEndStop = runTowardsEndStop(false);
+      recomputePosition();
+      // Hit the end-stop, possibly prematurely.
+      if(hitEndStop)
         {
-        // TODO: use shaft encoder positioning by preference, ie when available.
-        const bool hitEndStop = runTowardsEndStop(false);
-        recomputePosition();
-        // Hit the end-stop, possibly prematurely.
-        if(hitEndStop)
-          {
-          // Report serious tracking error.
-//          if(currentPC > max(min(DEFAULT_VALVE_PC_MODERATELY_OPEN-1, 2*DEFAULT_VALVE_PC_MODERATELY_OPEN), 8*eps))
-          if(currentPC > OTV0P2BASE::fnmax(2*minOpenPC, 8*eps))
-            { reportTrackingError(); }
-          // Silently auto-adjust when end-stop hit close to expected position.
-          else
-            {
-            currentPC = 0;
-            ticksReverse = 0;
-            ticksFromOpen = cp.getTicksFromOpenToClosed();
-            }
-          }
+        // Report serious tracking error.
+        if(currentPC > OTV0P2BASE::fnmax(2*minOpenPC, 8*eps))
+          { reportTrackingError(); }
+        // Silently auto-adjust when end-stop hit close to expected position.
+        else { resetPosition(false); }
+        }
 #if 0 && defined(V0P2BASE_DEBUG)
 V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("-<");
 #endif
-        break;
-        }
-
-      // Within eps; do nothing.
-
-      break;
       }
 
-    // Unexpected: go to error state, stop motor and report error on serial.
-    default:
-      {
-      changeState(valveError);
-      hw->motorRun(0, OTRadValve::HardwareMotorDriverInterface::motorOff, *this);
-      OTV0P2BASE::serialPrintlnAndFlush(F("!valve error"));
-      //panic(); // FIXME // Not expected to return.
-      return;
-      }
+    // Remain in valveNormal state, but do no non-prop processing.
+    return(true);
     }
-  }
+
 
 #endif // CurrentSenseValveMotorDirect_DEFINED
 

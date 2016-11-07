@@ -76,15 +76,13 @@ class SensorAmbientLightOccupancyDetectorInterface
     // Call regularly, roughly hourly, to drive other internal time-dependent adaptation.
     //   * meanNowOrFF  typical/mean light level around this time each 24h; 0xff if not known.
     //   * sensitive  if true then be more sensitive to possible occupancy changes, eg to improve comfort.
-    // By default does nothing.
     // Not thread-/ISR- safe.
     virtual void setTypMinMax(uint8_t /*meanNowOrFF*/,
                       uint8_t /*longTermMinimumOrFF = 0xff*/, uint8_t /*longTermMaximumOrFF = 0xff*/,
-                      bool /*sensitive = false*/) { }
+                      bool /*sensitive = false*/) = 0;
 
     // True if the detector is in 'sensitive' mode.
-    // Defaults to false.
-    virtual bool isSensitive() { return(false); }
+    virtual bool isSensitive() const = 0;
   };
 
 
@@ -118,7 +116,7 @@ class SensorAmbientLightOccupancyDetectorSimple final : public SensorAmbientLigh
       // Does not block.
       //   * newLightLevel in range [0,254]
       // Not thread-/ISR- safe.
-      virtual bool update(uint8_t newLightLevel);
+      virtual bool update(uint8_t newLightLevel) override;
 
       // Set mean, min and max ambient light levels from recent stats, to allow auto adjustment to room; ~0/0xff means not known.
       // Mean value is for the current time of day.
@@ -130,7 +128,7 @@ class SensorAmbientLightOccupancyDetectorSimple final : public SensorAmbientLigh
       // Not thread-/ISR- safe.
       virtual void setTypMinMax(uint8_t meanNowOrFF,
                         uint8_t longTermMinimumOrFF = 0xff, uint8_t longTermMaximumOrFF = 0xff,
-                        bool sensitive = false)
+                        bool sensitive = false) override
           {
           this->meanNowOrFF = meanNowOrFF;
           this->longTermMinimumOrFF = longTermMinimumOrFF;
@@ -139,7 +137,7 @@ class SensorAmbientLightOccupancyDetectorSimple final : public SensorAmbientLigh
           }
 
       // True if the detector is in 'sensitive' mode.
-      virtual bool isSensitive() { return(sensitive); }
+      virtual bool isSensitive() const override { return(sensitive); }
   };
 
 

@@ -59,14 +59,15 @@ static const uint8_t MSG_JSON_MAX_LENGTH_SECURE = 30;
 // First character of raw JSON object { ... } in frame or on serial.
 static const uint8_t MSG_JSON_LEADING_CHAR = ('{');
 
-
 // Key used for SimpleStatsRotation items.
-typedef const char *SimpleStatsKey;
+// Same as that used for Sensor tags.
+// Generally const char * but may be special type to be placed in MCU code space eg on AVR.
+typedef Sensor_tag_t MSG_JSON_SimpleStatsKey_t;
 
 // Returns true iff if a valid key for our subset of JSON.
 // Rejects keys containing " or \ or any chars outside the range [32,126]
 // to avoid having to escape anything.
-bool isValidSimpleStatsKey(SimpleStatsKey key);
+bool isValidSimpleStatsKey(MSG_JSON_SimpleStatsKey_t key);
 
 // Generic stats descriptor.
 // Includes last value transmitted (to allow changed items to be sent selectively).
@@ -78,7 +79,7 @@ struct GenericStatsDescriptor final
     // and all copies have been disposed of (so is probably best a static string).
     // By default the statistic is normal priority.
     // Sensitivity by default does not allow TX unless at minimal privacy level.
-    GenericStatsDescriptor(const char * const statKey,
+    GenericStatsDescriptor(const MSG_JSON_SimpleStatsKey_t statKey,
                            const bool statLowPriority = false)
                            // const uint8_t statSensitivity = 1)
       : key(statKey), lowPriority(statLowPriority) // , sensitivity(statSensitivity)
@@ -89,7 +90,7 @@ struct GenericStatsDescriptor final
     // or "x|u" where x is the name followed by a vertical bar and the units,
     // eg "B|cV" for battery voltage in centi-volts.
     // This pointer must be to static storage, eg does not need lifetime management.
-    SimpleStatsKey key;
+    MSG_JSON_SimpleStatsKey_t key;
 
     // If true, this statistic has low priority/importance and should be sent infrequently.
     // This is a way of saving TX bandwidth for more important stats.
@@ -146,7 +147,7 @@ class SimpleStatsRotationBase
     // If properties not already set and not supplied then stat will get defaults.
     // If descriptor is supplied then its key must match (and the descriptor will be copied).
     // True if successful, false otherwise (eg capacity already reached).
-    bool put(SimpleStatsKey key, int newValue, bool statLowPriority = false);
+    bool put(MSG_JSON_SimpleStatsKey_t key, int newValue, bool statLowPriority = false);
 
     // Create/update value for the given sensor.
     // True if successful, false otherwise (eg capacity already reached).
@@ -159,14 +160,14 @@ class SimpleStatsRotationBase
 
     // Remove given stat and properties.
     // True iff the item existed and was removed.
-    bool remove(SimpleStatsKey key);
+    bool remove(MSG_JSON_SimpleStatsKey_t key);
 
     // Set ID to given value, or NULL to use first 2 bytes of system ID; returns false if ID unsafe.
     // If NULL (the default) then dynamically generate the system ID,
     // eg house code as two bytes of hex if set, else first two bytes of binary ID as hex.
     // If ID is non-NULL but points to an empty string then no ID is inserted at all.
     // The lifetime of the pointed to string must exceed that of this instance.
-    bool setID(const char * const _id)
+    bool setID(const MSG_JSON_SimpleStatsKey_t _id)
       {
       if(isValidSimpleStatsKey(_id)) { id = _id; return(true); }
       return(false); // Unsafe value.
@@ -241,7 +242,7 @@ class SimpleStatsRotationBase
     const uint8_t capacity;
 
     // Returns pointer to stat tuple with given key if present, else NULL.
-    DescValueTuple *findByKey(SimpleStatsKey key) const;
+    DescValueTuple *findByKey(MSG_JSON_SimpleStatsKey_t key) const;
 
     // Initialise base with appropriate storage (non-NULL) and capacity knowledge.
     SimpleStatsRotationBase(DescValueTuple *_stats, const uint8_t _capacity)
@@ -274,7 +275,7 @@ class SimpleStatsRotationBase
     // Used as string value of compulsory leading "@" key/field.
     // If ID is non-NULL but points to an empty string then no ID is inserted at all.
     // Can be changed at run-time.
-    const char *id;
+    MSG_JSON_SimpleStatsKey_t id;
 
     // Small write counter (and flag to enable its display).
     // Helps to track lost transmissions of generated stats.
