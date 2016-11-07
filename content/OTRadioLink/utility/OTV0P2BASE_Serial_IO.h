@@ -47,11 +47,13 @@ namespace OTV0P2BASE
 // Version (code/board) information printed as one line to serial (with line-end, and flushed); machine- and human- parseable.
 // Format: "board VX.X REVY YYYY/Mmm/DD HH:MM:SS".
 // Built as a macro to ensure __DATE__ and __TIME__ expanded in the scope of the caller.
+#define V0p2Base_serialPrintlnBuildVersion_str_helper(x) #x
+#define V0p2Base_serialPrintlnBuildVersion_str(x) V0p2Base_serialPrintlnBuildVersion_str_helper(x)
 #define V0p2Base_serialPrintlnBuildVersion() \
   do { \
-  OTV0P2BASE::serialPrintAndFlush(F("board V0.2 REV")); \
-  OTV0P2BASE::serialPrintAndFlush(V0p2_REV); \
-  OTV0P2BASE::serialPrintAndFlush(' '); \
+  OTV0P2BASE::serialPrintAndFlush(F("board V0.2 REV" \
+      V0p2Base_serialPrintlnBuildVersion_str(V0p2_REV) \
+      " ")); \
   /* Rearrange date into sensible most-significant-first order, and make it (nearly) fully numeric. */ \
   /* FIXME: would be better to have this in PROGMEM (Flash) rather than RAM, eg as F() constant. */ \
   const char _YYYYMmmDD[] = \
