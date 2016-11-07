@@ -38,7 +38,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #ifndef ARDUINO_LIB_OTV0P2_VALVE_ENABLE_DEFAULTS_H
 #define ARDUINO_LIB_OTV0P2_VALVE_ENABLE_DEFAULTS_H
 
-// Defaults for V0.2; should be '#undef'ined if not required.
+// Defaults for V0p2 / V0.2; should be '#undef'ined if not required.
 //
 // Use sleep wakeup (2Hz by default) from external 32768Hz xtal and timer 2.
 #define ENABLE_WAKEUP_32768HZ_XTAL
@@ -49,6 +49,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #undef ENABLE_USE_OF_AVR_IDLE_MODE
 // IF DEFINED: use (slow, low energy) 32768Hz-clock-based watchdog to recover from some software hangups.
 #define ENABLE_WATCHDOG_SLOW
+// IF DEFINED: attempt to tune the internal fast (RC/resonator) clock from the RTC source.
+#define ENABLE_TUNE_FAST_OSC_TO_RTC_SOURCE
 // IF DEFINED: provide software RTC support by default.
 #define ENABLE_RTC_INTERNAL_SIMPLE
 // IF DEFINED: try to trim memory (primarily RAM, also code/Flash) space used.
