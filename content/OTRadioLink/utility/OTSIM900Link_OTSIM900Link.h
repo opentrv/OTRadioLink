@@ -949,36 +949,29 @@ namespace OTSIM900Link
          *
          * MUST CHECK RESPONSE AGAINST NULL FIRST
          */
-        const char *getResponse(uint8_t &newLength, const char *data,
-                uint8_t dataLength, char _startChar)
+        const char *getResponse(uint8_t &newLength, const char * const data,
+                const uint8_t dataLength, const char startChar)
             {
-            char startChar = _startChar;
-            const char *newPtr = NULL;
-            uint8_t i = 0;    // 'AT' + command + 0x0D
-            uint8_t i0 = 0; // start index
-            newLength = 0;
+            const char *dp = data;  // read only pointer to data buffer.
+
+            const char *newPtr = NULL;  // Pointer to store beginning of desired output.
+            newLength = 0;  // Length of desired output.
+
             // Ignore echo of command
-            while (*data != startChar)
-                {
-                data++;
-                i++;
-                if (i >= dataLength)
+            // dp will be pointing to the character after the match when the loop exits.
+            while  (*dp++ != startChar) {
+                if ((dp - data) >= dataLength)
                     return NULL;
-                }
-            data++;
-            i++;
+            }
             // Set pointer to start of and index
-            newPtr = data;
-            i0 = i;
+            newPtr = dp;
             // Find end of response
-            while (*data != 0x0D)
-                {    // find end of response
-                data++;
-                i++;
-                if (i >= dataLength)
+            while (*dp != 0x0D) {    // find end of response
+                dp++;
+                if ((dp-data) >= dataLength)
                     return NULL;
-                }
-            newLength = i - i0;
+            }
+            newLength = dp-newPtr;
 #if 0 && defined(OTSIM900LINK_DEBUG)
             char *stringEnd = (char *)data;
             *stringEnd = '\0';
