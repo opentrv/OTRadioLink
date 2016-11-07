@@ -31,7 +31,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 TEST(JSONStats,JSONStats)
 {
     OTV0P2BASE::SimpleStatsRotation<2> ss1;
-    ss1.setID("1234");
+    ss1.setID(V0p2_SENSOR_TAG_F("1234"));
     EXPECT_EQ(0, ss1.size());
     EXPECT_EQ(0, ss1.writeJSON(NULL, OTV0P2BASE::randRNG8(), OTV0P2BASE::randRNG8(), OTV0P2BASE::randRNG8NextBoolean()));
 
@@ -53,23 +53,33 @@ TEST(JSONStats,JSONStats)
     ss1.enableCount(false);
     EXPECT_EQ(12, ss1.writeJSON((uint8_t*)buf, sizeof(buf), OTV0P2BASE::randRNG8(), OTV0P2BASE::randRNG8NextBoolean()));
     // Check that removal of absent entry does nothing.
-    EXPECT_TRUE(!ss1.remove("bogus"));
+    EXPECT_FALSE(ss1.remove(V0p2_SENSOR_TAG_F("bogus")));
     EXPECT_EQ(0, ss1.size());
     // Check that new item can be added/put (with no/default properties).
-    ss1.put("f1", 0);
+    ss1.put(V0p2_SENSOR_TAG_F("f1"), 0);
     EXPECT_EQ(1, ss1.size());
     EXPECT_EQ(19, ss1.writeJSON((uint8_t*)buf, sizeof(buf), 0, OTV0P2BASE::randRNG8NextBoolean()));
     EXPECT_STREQ(buf, "{\"@\":\"1234\",\"f1\":0}");
-    ss1.put("f1", 42);
+    ss1.put(V0p2_SENSOR_TAG_F("f1"), 42);
     EXPECT_EQ(1, ss1.size());
     EXPECT_EQ(20, ss1.writeJSON((uint8_t*)buf, sizeof(buf), 0, OTV0P2BASE::randRNG8NextBoolean()));
     EXPECT_STREQ(buf, "{\"@\":\"1234\",\"f1\":42}");
-    ss1.put("f1", -111);
+    ss1.put(V0p2_SENSOR_TAG_F("f1"), -111);
     EXPECT_EQ(1, ss1.size());
     EXPECT_EQ(22, ss1.writeJSON((uint8_t*)buf, sizeof(buf), 0, OTV0P2BASE::randRNG8NextBoolean()));
     EXPECT_STREQ(buf, "{\"@\":\"1234\",\"f1\":-111}");
-
     EXPECT_TRUE(OTV0P2BASE::quickValidateRawSimpleJSONMessage(buf));
+
+    // Check that removal of absent entry does nothing.
+    EXPECT_TRUE(ss1.remove(V0p2_SENSOR_TAG_F("f1")));
+    EXPECT_EQ(0, ss1.size());
+
+    // Check setting direct with Sensor.
+    OTV0P2BASE::SensorAmbientLightMock alm;
+    ss1.put(alm);
+    EXPECT_EQ(1, ss1.size());
+    EXPECT_EQ(18, ss1.writeJSON((uint8_t*)buf, sizeof(buf), 0, OTV0P2BASE::randRNG8NextBoolean()));
+    EXPECT_STREQ(buf, "{\"@\":\"1234\",\"L\":0}");
 }
 
 // Test handling of JSON messages for transmission and reception.

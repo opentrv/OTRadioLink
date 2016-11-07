@@ -75,7 +75,6 @@ class VoiceDetectionQM1 final : public OTV0P2BASE::SimpleTSUint8Sensor
     // If not NULL, is called when this sensor detects indications of occupancy.
     void (*possOccCallback)();
 
-
   public:
     // Initialise to cautious values.
     VoiceDetectionQM1() : count(0), isDetected(false), possOccCallback(NULL) { }
@@ -98,7 +97,6 @@ class VoiceDetectionQM1 final : public OTV0P2BASE::SimpleTSUint8Sensor
     // Set 'possible occupancy' callback function (for moderate confidence of human presence); NULL for no callback.
     void setPossOccCallback(void (*possOccCallback_)()) { possOccCallback = possOccCallback_; }
 
-
     // Returns true if voice has been detected in this or previous poll period.
     bool isVoiceDetected() { return(isDetected); }
 
@@ -107,8 +105,7 @@ class VoiceDetectionQM1 final : public OTV0P2BASE::SimpleTSUint8Sensor
 
     // Returns a suggested (JSON) tag/field/key name including units of get(); NULL means no recommended tag.
     // The lifetime of the pointed-to text must be at least that of the Sensor instance.
-    virtual const char *tag() const { return("av"); }
-
+    virtual OTV0P2BASE::Sensor_tag_t tag() const override { return(V0p2_SENSOR_TAG_F("av")); }
   };
 
 #endif // ARDUINO_ARCH_AVR

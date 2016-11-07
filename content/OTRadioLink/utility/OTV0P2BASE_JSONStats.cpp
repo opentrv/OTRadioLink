@@ -28,6 +28,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014--2016
 #include "OTV0P2BASE_CRC.h"
 #include "OTV0P2BASE_EEPROM.h"
 #include "OTV0P2BASE_QuickPRNG.h"
+#include "OTV0P2BASE_Sensor.h"
 
 
 namespace OTV0P2BASE
@@ -178,12 +179,21 @@ int8_t checkJSONMsgRXCRC(const uint8_t * const bptr, const uint8_t bufLen)
 // Returns true iff if a valid key for OpenTRV subset of JSON.
 // Rejects keys containing " or \ or any chars outside the range [32,126]
 // to avoid having to escape anything.
-bool isValidSimpleStatsKey(const SimpleStatsKey key)
+bool isValidSimpleStatsKey(const MSG_JSON_SimpleStatsKey_t key)
   {
   if(NULL == key) { return(false); }
-  for(const char *s = key; '\0' != *s; ++s)
+#ifdef V0p2_SENSOR_TAG_IS_FlashStringHelper
+  const char *p = reinterpret_cast<const char *>(key);
+#else
+  const char *p = key;
+#endif
+  for(const char *s = p; '\0' != *s; ++s)
     {
+#ifdef V0p2_SENSOR_TAG_IS_FlashStringHelper
+    const char c = pgm_read_byte(s);
+#else
     const char c = *s;
+#endif
     if((c < 32) || (c > 126) || ('"' == c) || ('\\' == c)) { return(false); }
     }
   return(true);
@@ -191,19 +201,39 @@ bool isValidSimpleStatsKey(const SimpleStatsKey key)
 
 // Returns pointer to stats tuple with given (non-NULL) key if present, else NULL.
 // Does a simple linear search.
-SimpleStatsRotationBase::DescValueTuple * SimpleStatsRotationBase::findByKey(const SimpleStatsKey key) const
+SimpleStatsRotationBase::DescValueTuple * SimpleStatsRotationBase::findByKey(const MSG_JSON_SimpleStatsKey_t key) const
   {
   for(int i = 0; i < nStats; ++i)
     {
     DescValueTuple * const p = stats + i;
+#ifdef V0p2_SENSOR_TAG_NOT_SIMPLECHARPTR
+    #if defined(V0p2_SENSOR_TAG_IS_FlashStringHelper)
+    // Inline equivalent to strcmp() but between two Flash strings.
+
+    const char *p1 = reinterpret_cast<const char *>(p->descriptor.key);
+    const char *p2 = reinterpret_cast<const char *>(key);
+    for( ; ; ++p1, ++p2)
+      {
+      const char c1 = pgm_read_byte(p1);
+      const char c2 = pgm_read_byte(p2);
+      const bool end1 = ('\0' == c1);
+      const bool end2 = ('\0' == c2);
+      if(end1 && end2) { return(p); } // Keys match.
+      if(c1 != c2) { break; } // Keys don't match, fall through.
+      }
+    #else
+        #error "Needs specific implementation for MCU."
+    #endif
+#else // Simple const char * case.
     if(0 == strcmp(p->descriptor.key, key)) { return(p); }
+#endif
     }
   return(NULL); // Not found.
   }
 
 // Remove given stat and properties.
 // True iff the item existed and was removed.
-bool SimpleStatsRotationBase::remove(const SimpleStatsKey key)
+bool SimpleStatsRotationBase::remove(const MSG_JSON_SimpleStatsKey_t key)
   {
   DescValueTuple *p = findByKey(key);
   if(NULL == p) { return(false); }
@@ -242,7 +272,7 @@ bool SimpleStatsRotationBase::putDescriptor(const GenericStatsDescriptor &descri
 // If properties not already set and not supplied then stat will get defaults.
 // If descriptor is supplied then its key must match (and the descriptor will be copied).
 // True if successful, false otherwise (eg capacity already reached).
-bool SimpleStatsRotationBase::put(const SimpleStatsKey key, const int newValue, const bool statLowPriority)
+bool SimpleStatsRotationBase::put(const MSG_JSON_SimpleStatsKey_t key, const int newValue, const bool statLowPriority)
   {
   if(!isValidSimpleStatsKey(key))
     {
@@ -350,7 +380,13 @@ uint8_t SimpleStatsRotationBase::writeJSON(uint8_t *const buf, const uint8_t buf
   bp.print('{');
 
   // Write ID first unless disabled entirely by being set to an empty string.
-  if((NULL == id) || ('\0' != *id))
+  if((NULL == id) ||
+#ifdef V0p2_SENSOR_TAG_IS_FlashStringHelper
+     ('\0' != pgm_read_byte(id))
+#else
+     ('\0' != *id)
+#endif
+    )
     {
     // If an explicit ID is supplied then use it
     // else use the first two bytes of the node ID if accessible.

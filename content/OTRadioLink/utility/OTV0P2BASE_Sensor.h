@@ -28,6 +28,12 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014--2015
 #ifndef OTV0P2BASE_SENSOR_H
 #define OTV0P2BASE_SENSOR_H
 
+#ifdef ARDUINO
+#include <Arduino.h>
+#else
+#include "OTV0P2BASE_ArduinoCompat.h"
+#endif
+
 #include <stdint.h>
 #include <stddef.h>
 
@@ -35,6 +41,18 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014--2015
 namespace OTV0P2BASE
 {
 
+
+// Type used for Sensor tags items.
+// Generally const char * but may be special type to be placed in MCU code space eg on AVR.
+#if defined(ARDUINO)
+#define V0p2_SENSOR_TAG_NOT_SIMPLECHARPTR
+#define V0p2_SENSOR_TAG_IS_FlashStringHelper
+#define V0p2_SENSOR_TAG_F(literal) (F(literal))
+typedef const __FlashStringHelper *Sensor_tag_t;
+#else
+#define V0p2_SENSOR_TAG_F(literal) (literal)
+typedef const char *Sensor_tag_t;
+#endif
 
 // Base sensor type.
 // Templated on sensor value type, typically uint8_t or uint16_t or int.
@@ -66,7 +84,7 @@ class Sensor
 
     // Returns a suggested (JSON) tag/field/key name including units of get(); NULL means no recommended tag.
     // The lifetime of the pointed-to text must be at least that of the Sensor instance.
-    virtual const char *tag() const { return(NULL); }
+    virtual Sensor_tag_t tag() const { return(NULL); }
 
 //    // Returns a suggested privacy/sensitivity level of the data from this sensor.
 //    // The default sensitivity is set to just forbid transmission at default (255) leaf settings.

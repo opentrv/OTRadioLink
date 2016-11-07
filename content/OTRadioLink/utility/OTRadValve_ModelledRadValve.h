@@ -583,10 +583,6 @@ class ModelledRadValve final : public AbstractRadValve
     // Must be polled at near constant rate, about once per minute.
     virtual uint8_t preferredPollInterval_s() const override { return(60); }
 
-    // Returns a suggested (JSON) tag/field/key name including units of get(); NULL means no recommended tag.
-    // The lifetime of the pointed-to text must be at least that of the Sensor instance.
-    virtual const char *tag() const override { return("v|%"); }
-
     // Returns true iff not in error state and not (re)calibrating/(re)initialising/(re)syncing.
     // By default there is no recalibration step.
     // Passes through to underlying physical valve if configured, else true.
@@ -654,7 +650,7 @@ class ModelledRadValve final : public AbstractRadValve
 
     // Returns a suggested (JSON) tag/field/key name including units of getTargetTempC(); not NULL.
     // The lifetime of the pointed-to text must be at least that of this instance.
-    const char *tagTTC() const { return("tT|C"); }
+    OTV0P2BASE::Sensor_tag_t tagTTC() const { return(V0p2_SENSOR_TAG_F("tT|C")); }
 
     // Get the current automated setback (if any) in the direction of energy saving in C; non-negative.
     // For heating this is the number of C below the nominal user-set target temperature
@@ -666,7 +662,7 @@ class ModelledRadValve final : public AbstractRadValve
     // Returns a suggested (JSON) tag/field/key name including units of getSetbackC(); not NULL.
     // It would often be appropriate to mark this as low priority since depth of setback matters more than speed.
     // The lifetime of the pointed-to text must be at least that of this instance.
-    const char *tagTSC() const { return("tS|C"); }
+    OTV0P2BASE::Sensor_tag_t tagTSC() const { return(V0p2_SENSOR_TAG_F("tS|C")); }
 
     // Get cumulative valve movement %; rolls at 8192 in range [0,8191], ie non-negative.
     // It would often be appropriate to mark this as low priority since it can be computed from valve positions.
@@ -674,7 +670,7 @@ class ModelledRadValve final : public AbstractRadValve
 
     // Returns a suggested (JSON) tag/field/key name including units of getCumulativeMovementPC(); not NULL.
     // The lifetime of the pointed-to text must be at least that of this instance.
-    const char *tagCMPC() const { return("vC|%"); }
+    OTV0P2BASE::Sensor_tag_t tagCMPC() const { return(V0p2_SENSOR_TAG_F("vC|%")); }
 
     // Return minimum valve percentage open to be considered actually/significantly open; [1,100].
     // This is a value that has to mean all controlled valves are at least partially open if more than one valve.

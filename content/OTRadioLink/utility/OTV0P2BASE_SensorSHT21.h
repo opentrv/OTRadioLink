@@ -63,7 +63,7 @@ class HumiditySensorBase : public OTV0P2BASE::SimpleTSUint8Sensor
 
       // Returns a suggested (JSON) tag/field/key name including units of get(); NULL means no recommended tag.
       // The lifetime of the pointed-to text must be at least that of the Sensor instance.
-      virtual const char *tag() const override { return("H|%"); }
+      virtual OTV0P2BASE::Sensor_tag_t tag() const override { return(V0p2_SENSOR_TAG_F("H|%")); }
 
       // True if RH% high.
       // Thread-safe and usable within ISRs (Interrupt Service Routines).
