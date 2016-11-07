@@ -152,327 +152,327 @@ TEST(OTAESGCMSecureFrame, FramQIC)
 //
 // DHD20161107: imported from test_SECFRAME.ino testFrameHeaderEncoding().
 TEST(OTAESGCMSecureFrame, FrameHeaderEncoding)
-  {
-  OTRadioLink::SecurableFrameHeader sfh;
-  uint8_t id[OTRadioLink::SecurableFrameHeader::maxIDLength];
-  uint8_t buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize];
-  //
-  // Test vector 1 / example from the spec.
-  //Example insecure frame, valve unit 0% open, no call for heat/flags/stats.
-  //In this case the frame sequence number is zero, and ID is 0x80 0x81.
-  //
-  //08 4f 02 80 81 02 | 00 01 | 23
-  //
-  //08 length of header (8) after length byte 5 + body 2 + trailer 1
-  //4f 'O' insecure OpenTRV basic frame
-  //02 0 sequence number, ID length 2
-  //80 ID byte 1
-  //81 ID byte 2
-  //02 body length 2
-  //00 valve 0%, no call for heat
-  //01 no flags or stats, unreported occupancy
-  //23 CRC value
-  id[0] = 0x80;
-  id[1] = 0x81;
-  EXPECT_EQ(6, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
+{
+    OTRadioLink::SecurableFrameHeader sfh;
+    uint8_t id[OTRadioLink::SecurableFrameHeader::maxIDLength];
+    uint8_t buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize];
+    //
+    // Test vector 1 / example from the spec.
+    //Example insecure frame, valve unit 0% open, no call for heat/flags/stats.
+    //In this case the frame sequence number is zero, and ID is 0x80 0x81.
+    //
+    //08 4f 02 80 81 02 | 00 01 | 23
+    //
+    //08 length of header (8) after length byte 5 + body 2 + trailer 1
+    //4f 'O' insecure OpenTRV basic frame
+    //02 0 sequence number, ID length 2
+    //80 ID byte 1
+    //81 ID byte 2
+    //02 body length 2
+    //00 valve 0%, no call for heat
+    //01 no flags or stats, unreported occupancy
+    //23 CRC value
+    id[0] = 0x80;
+    id[1] = 0x81;
+    EXPECT_EQ(6, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
                                                false, OTRadioLink::FTS_BasicSensorOrValve,
                                                0,
                                                id, 2,
                                                2,
                                                1));
-  EXPECT_EQ(0x08, buf[0]);
-  EXPECT_EQ(0x4f, buf[1]);
-  EXPECT_EQ(0x02, buf[2]);
-  EXPECT_EQ(0x80, buf[3]);
-  EXPECT_EQ(0x81, buf[4]);
-  EXPECT_EQ(0x02, buf[5]);
-  // Check related parameters.
-  EXPECT_EQ(8, sfh.fl);
-  EXPECT_EQ(6, sfh.getBodyOffset());
-  EXPECT_EQ(8, sfh.getTrailerOffset());
-  //
-  // Test vector 2 / example from the spec.
-  //Example insecure frame, no valve, representative minimum stats {"b":1}
-  //In this case the frame sequence number is zero, and ID is 0x80 0x81.
-  //
-  //0e 4f 02 80 81 08 | 7f 11 7b 22 62 22 3a 31 | 61
-  //
-  //0e length of header (14) after length byte 5 + body 8 + trailer 1
-  //4f 'O' insecure OpenTRV basic frame
-  //02 0 sequence number, ID length 2
-  //80 ID byte 1
-  //81 ID byte 2
-  //08 body length 8
-  //7f no valve, no call for heat
-  //11 stats present flag only, unreported occupancy
-  //7b 22 62 22 3a 31  {"b":1  Stats: note that implicit trailing '}' is not sent.
-  //61 CRC value
-  id[0] = 0x80;
-  id[1] = 0x81;
-  EXPECT_EQ(6, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
+    EXPECT_EQ(0x08, buf[0]);
+    EXPECT_EQ(0x4f, buf[1]);
+    EXPECT_EQ(0x02, buf[2]);
+    EXPECT_EQ(0x80, buf[3]);
+    EXPECT_EQ(0x81, buf[4]);
+    EXPECT_EQ(0x02, buf[5]);
+    // Check related parameters.
+    EXPECT_EQ(8, sfh.fl);
+    EXPECT_EQ(6, sfh.getBodyOffset());
+    EXPECT_EQ(8, sfh.getTrailerOffset());
+    //
+    // Test vector 2 / example from the spec.
+    //Example insecure frame, no valve, representative minimum stats {"b":1}
+    //In this case the frame sequence number is zero, and ID is 0x80 0x81.
+    //
+    //0e 4f 02 80 81 08 | 7f 11 7b 22 62 22 3a 31 | 61
+    //
+    //0e length of header (14) after length byte 5 + body 8 + trailer 1
+    //4f 'O' insecure OpenTRV basic frame
+    //02 0 sequence number, ID length 2
+    //80 ID byte 1
+    //81 ID byte 2
+    //08 body length 8
+    //7f no valve, no call for heat
+    //11 stats present flag only, unreported occupancy
+    //7b 22 62 22 3a 31  {"b":1  Stats: note that implicit trailing '}' is not sent.
+    //61 CRC value
+    id[0] = 0x80;
+    id[1] = 0x81;
+    EXPECT_EQ(6, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
                                                false, OTRadioLink::FTS_BasicSensorOrValve,
                                                0,
                                                id, 2,
                                                8,
                                                1));
-  EXPECT_EQ(0x0e, buf[0]);
-  EXPECT_EQ(0x4f, buf[1]);
-  EXPECT_EQ(0x02, buf[2]);
-  EXPECT_EQ(0x80, buf[3]);
-  EXPECT_EQ(0x81, buf[4]);
-  EXPECT_EQ(0x08, buf[5]);
-  // Check related parameters.
-  EXPECT_EQ(14, sfh.fl);
-  EXPECT_EQ(6, sfh.getBodyOffset());
-  EXPECT_EQ(14, sfh.getTrailerOffset());
-  }
+    EXPECT_EQ(0x0e, buf[0]);
+    EXPECT_EQ(0x4f, buf[1]);
+    EXPECT_EQ(0x02, buf[2]);
+    EXPECT_EQ(0x80, buf[3]);
+    EXPECT_EQ(0x81, buf[4]);
+    EXPECT_EQ(0x08, buf[5]);
+    // Check related parameters.
+    EXPECT_EQ(14, sfh.fl);
+    EXPECT_EQ(6, sfh.getBodyOffset());
+    EXPECT_EQ(14, sfh.getTrailerOffset());
+}
 
 // Test decoding of header for RX.
 //
 // DHD20161107: imported from test_SECFRAME.ino testFrameHeaderDecoding().
 TEST(OTAESGCMSecureFrame, FrameHeaderDecoding)
-  {
-  OTRadioLink::SecurableFrameHeader sfh;
-  //
-  // Test vector 1 / example from the spec.
-  //Example insecure frame, valve unit 0% open, no call for heat/flags/stats.
-  //In this case the frame sequence number is zero, and ID is 0x80 0x81.
-  //
-  //08 4f 02 80 81 02 | 00 01 | 23
-  //
-  //08 length of header (8) after length byte 5 + body 2 + trailer 1
-  //4f 'O' insecure OpenTRV basic frame
-  //02 0 sequence number, ID length 2
-  //80 ID byte 1
-  //81 ID byte 2
-  //02 body length 2
-  //00 valve 0%, no call for heat
-  //01 no flags or stats, unreported occupancy
-  //23 CRC value
-  const uint8_t buf1[] = { 0x08, 0x4f, 0x02, 0x80, 0x81, 0x02, 0x00, 0x01, 0x23 };
-  EXPECT_EQ(6, sfh.checkAndDecodeSmallFrameHeader(buf1, sizeof(buf1)));
-  // Check decoded parameters.
-  EXPECT_EQ(8, sfh.fl);
-  EXPECT_EQ(2, sfh.getIl());
-  EXPECT_EQ(0x80, sfh.id[0]);
-  EXPECT_EQ(0x81, sfh.id[1]);
-  EXPECT_EQ(2, sfh.bl);
-  EXPECT_EQ(1, sfh.getTl());
-  EXPECT_EQ(6, sfh.getBodyOffset());
-  EXPECT_EQ(8, sfh.getTrailerOffset());
-  //
-  // Test vector 2 / example from the spec.
-  //Example insecure frame, no valve, representative minimum stats {"b":1}
-  //In this case the frame sequence number is zero, and ID is 0x80 0x81.
-  //
-  //0e 4f 02 80 81 08 | 7f 11 7b 22 62 22 3a 31 | 61
-  //
-  //0e length of header (14) after length byte 5 + body 8 + trailer 1
-  //4f 'O' insecure OpenTRV basic frame
-  //02 0 sequence number, ID length 2
-  //80 ID byte 1
-  //81 ID byte 2
-  //08 body length 8
-  //7f no valve, no call for heat
-  //11 stats present flag only, unreported occupancy
-  //7b 22 62 22 3a 31  {"b":1  Stats: note that implicit trailing '}' is not sent.
-  //61 CRC value
-  static const uint8_t buf2[] = { 0x0e, 0x4f, 0x02, 0x80, 0x81, 0x08, 0x7f, 0x11, 0x7b, 0x22, 0x62, 0x22, 0x3a, 0x31, 0x61 };
-  EXPECT_EQ(6, sfh.checkAndDecodeSmallFrameHeader(buf2, sizeof(buf2)));
-  // Check decoded parameters.
-  EXPECT_EQ(14, sfh.fl);
-  EXPECT_EQ(2, sfh.getIl());
-  EXPECT_EQ(0x80, sfh.id[0]);
-  EXPECT_EQ(0x81, sfh.id[1]);
-  EXPECT_EQ(8, sfh.bl);
-  EXPECT_EQ(1, sfh.getTl());
-  EXPECT_EQ(6, sfh.getBodyOffset());
-  EXPECT_EQ(14, sfh.getTrailerOffset());
-  }
+{
+    OTRadioLink::SecurableFrameHeader sfh;
+    //
+    // Test vector 1 / example from the spec.
+    //Example insecure frame, valve unit 0% open, no call for heat/flags/stats.
+    //In this case the frame sequence number is zero, and ID is 0x80 0x81.
+    //
+    //08 4f 02 80 81 02 | 00 01 | 23
+    //
+    //08 length of header (8) after length byte 5 + body 2 + trailer 1
+    //4f 'O' insecure OpenTRV basic frame
+    //02 0 sequence number, ID length 2
+    //80 ID byte 1
+    //81 ID byte 2
+    //02 body length 2
+    //00 valve 0%, no call for heat
+    //01 no flags or stats, unreported occupancy
+    //23 CRC value
+    const uint8_t buf1[] = { 0x08, 0x4f, 0x02, 0x80, 0x81, 0x02, 0x00, 0x01, 0x23 };
+    EXPECT_EQ(6, sfh.checkAndDecodeSmallFrameHeader(buf1, sizeof(buf1)));
+    // Check decoded parameters.
+    EXPECT_EQ(8, sfh.fl);
+    EXPECT_EQ(2, sfh.getIl());
+    EXPECT_EQ(0x80, sfh.id[0]);
+    EXPECT_EQ(0x81, sfh.id[1]);
+    EXPECT_EQ(2, sfh.bl);
+    EXPECT_EQ(1, sfh.getTl());
+    EXPECT_EQ(6, sfh.getBodyOffset());
+    EXPECT_EQ(8, sfh.getTrailerOffset());
+    //
+    // Test vector 2 / example from the spec.
+    //Example insecure frame, no valve, representative minimum stats {"b":1}
+    //In this case the frame sequence number is zero, and ID is 0x80 0x81.
+    //
+    //0e 4f 02 80 81 08 | 7f 11 7b 22 62 22 3a 31 | 61
+    //
+    //0e length of header (14) after length byte 5 + body 8 + trailer 1
+    //4f 'O' insecure OpenTRV basic frame
+    //02 0 sequence number, ID length 2
+    //80 ID byte 1
+    //81 ID byte 2
+    //08 body length 8
+    //7f no valve, no call for heat
+    //11 stats present flag only, unreported occupancy
+    //7b 22 62 22 3a 31  {"b":1  Stats: note that implicit trailing '}' is not sent.
+    //61 CRC value
+    static const uint8_t buf2[] = { 0x0e, 0x4f, 0x02, 0x80, 0x81, 0x08, 0x7f, 0x11, 0x7b, 0x22, 0x62, 0x22, 0x3a, 0x31, 0x61 };
+    EXPECT_EQ(6, sfh.checkAndDecodeSmallFrameHeader(buf2, sizeof(buf2)));
+    // Check decoded parameters.
+    EXPECT_EQ(14, sfh.fl);
+    EXPECT_EQ(2, sfh.getIl());
+    EXPECT_EQ(0x80, sfh.id[0]);
+    EXPECT_EQ(0x81, sfh.id[1]);
+    EXPECT_EQ(8, sfh.bl);
+    EXPECT_EQ(1, sfh.getTl());
+    EXPECT_EQ(6, sfh.getBodyOffset());
+    EXPECT_EQ(14, sfh.getTrailerOffset());
+}
 
 // Test CRC computation for insecure frames.
 //
 // DHD20161107: imported from test_SECFRAME.ino testNonsecureFrameCRC().
 TEST(OTAESGCMSecureFrame, NonsecureFrameCRC)
-  {
-  OTRadioLink::SecurableFrameHeader sfh;
-  //
-  // Test vector 1 / example from the spec.
-  //Example insecure frame, valve unit 0% open, no call for heat/flags/stats.
-  //In this case the frame sequence number is zero, and ID is 0x80 0x81.
-  //
-  //08 4f 02 80 81 02 | 00 01 | 23
-  //
-  //08 length of header (8) after length byte 5 + body 2 + trailer 1
-  //4f 'O' insecure OpenTRV basic frame
-  //02 0 sequence number, ID length 2
-  //80 ID byte 1
-  //81 ID byte 2
-  //02 body length 2
-  //00 valve 0%, no call for heat
-  //01 no flags or stats, unreported occupancy
-  //23 CRC value
-  const uint8_t buf1[] = { 0x08, 0x4f, 0x02, 0x80, 0x81, 0x02, 0x00, 0x01, 0x23 };
-  EXPECT_EQ(6, sfh.checkAndDecodeSmallFrameHeader(buf1, 6));
-  EXPECT_EQ(0x23, sfh.computeNonSecureFrameCRC(buf1, sizeof(buf1) - 1));
-  // Decode entire frame, emulating RX, structurally validating the header then checking the CRC.
-  EXPECT_TRUE(0 != sfh.checkAndDecodeSmallFrameHeader(buf1, sizeof(buf1)));
-  EXPECT_TRUE(0 != decodeNonsecureSmallFrameRaw(&sfh, buf1, sizeof(buf1)));
-  //
-  // Test vector 2 / example from the spec.
-  //Example insecure frame, no valve, representative minimum stats {"b":1}
-  //In this case the frame sequence number is zero, and ID is 0x80 0x81.
-  //
-  //0e 4f 02 80 81 08 | 7f 11 7b 22 62 22 3a 31 | 61
-  //
-  //0e length of header (14) after length byte 5 + body 8 + trailer 1
-  //4f 'O' insecure OpenTRV basic frame
-  //02 0 sequence number, ID length 2
-  //80 ID byte 1
-  //81 ID byte 2
-  //08 body length 8
-  //7f no valve, no call for heat
-  //11 stats present flag only, unreported occupancy
-  //7b 22 62 22 3a 31  {"b":1  Stats: note that implicit trailing '}' is not sent.
-  //61 CRC value
-  const uint8_t buf2[] = { 0x0e, 0x4f, 0x02, 0x80, 0x81, 0x08, 0x7f, 0x11, 0x7b, 0x22, 0x62, 0x22, 0x3a, 0x31, 0x61 };
-  // Just decode and check the frame header first
-  EXPECT_EQ(6, sfh.checkAndDecodeSmallFrameHeader(buf2, 6));
-  EXPECT_EQ(0x61, sfh.computeNonSecureFrameCRC(buf2, sizeof(buf2) - 1));
-  // Decode entire frame, emulating RX, structurally validating the header then checking the CRC.
-  EXPECT_TRUE(0 != sfh.checkAndDecodeSmallFrameHeader(buf2, sizeof(buf2)));
-  EXPECT_TRUE(0 != decodeNonsecureSmallFrameRaw(&sfh, buf2, sizeof(buf2)));
-  }
+{
+    OTRadioLink::SecurableFrameHeader sfh;
+    //
+    // Test vector 1 / example from the spec.
+    //Example insecure frame, valve unit 0% open, no call for heat/flags/stats.
+    //In this case the frame sequence number is zero, and ID is 0x80 0x81.
+    //
+    //08 4f 02 80 81 02 | 00 01 | 23
+    //
+    //08 length of header (8) after length byte 5 + body 2 + trailer 1
+    //4f 'O' insecure OpenTRV basic frame
+    //02 0 sequence number, ID length 2
+    //80 ID byte 1
+    //81 ID byte 2
+    //02 body length 2
+    //00 valve 0%, no call for heat
+    //01 no flags or stats, unreported occupancy
+    //23 CRC value
+    const uint8_t buf1[] = { 0x08, 0x4f, 0x02, 0x80, 0x81, 0x02, 0x00, 0x01, 0x23 };
+    EXPECT_EQ(6, sfh.checkAndDecodeSmallFrameHeader(buf1, 6));
+    EXPECT_EQ(0x23, sfh.computeNonSecureFrameCRC(buf1, sizeof(buf1) - 1));
+    // Decode entire frame, emulating RX, structurally validating the header then checking the CRC.
+    EXPECT_TRUE(0 != sfh.checkAndDecodeSmallFrameHeader(buf1, sizeof(buf1)));
+    EXPECT_TRUE(0 != decodeNonsecureSmallFrameRaw(&sfh, buf1, sizeof(buf1)));
+    //
+    // Test vector 2 / example from the spec.
+    //Example insecure frame, no valve, representative minimum stats {"b":1}
+    //In this case the frame sequence number is zero, and ID is 0x80 0x81.
+    //
+    //0e 4f 02 80 81 08 | 7f 11 7b 22 62 22 3a 31 | 61
+    //
+    //0e length of header (14) after length byte 5 + body 8 + trailer 1
+    //4f 'O' insecure OpenTRV basic frame
+    //02 0 sequence number, ID length 2
+    //80 ID byte 1
+    //81 ID byte 2
+    //08 body length 8
+    //7f no valve, no call for heat
+    //11 stats present flag only, unreported occupancy
+    //7b 22 62 22 3a 31  {"b":1  Stats: note that implicit trailing '}' is not sent.
+    //61 CRC value
+    const uint8_t buf2[] = { 0x0e, 0x4f, 0x02, 0x80, 0x81, 0x08, 0x7f, 0x11, 0x7b, 0x22, 0x62, 0x22, 0x3a, 0x31, 0x61 };
+    // Just decode and check the frame header first
+    EXPECT_EQ(6, sfh.checkAndDecodeSmallFrameHeader(buf2, 6));
+    EXPECT_EQ(0x61, sfh.computeNonSecureFrameCRC(buf2, sizeof(buf2) - 1));
+    // Decode entire frame, emulating RX, structurally validating the header then checking the CRC.
+    EXPECT_TRUE(0 != sfh.checkAndDecodeSmallFrameHeader(buf2, sizeof(buf2)));
+    EXPECT_TRUE(0 != decodeNonsecureSmallFrameRaw(&sfh, buf2, sizeof(buf2)));
+}
 
 // Test encoding of entire non-secure frame for TX.
 //
 // DHD20161107: imported from test_SECFRAME.ino testNonsecureSmallFrameEncoding().
 TEST(OTAESGCMSecureFrame, NonsecureSmallFrameEncoding)
-  {
-  uint8_t buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize];
-  //
-  // Test vector 1 / example from the spec.
-  //Example insecure frame, valve unit 0% open, no call for heat/flags/stats.
-  //In this case the frame sequence number is zero, and ID is 0x80 0x81.
-  //
-  //08 4f 02 80 81 02 | 00 01 | 23
-  //
-  //08 length of header (8) after length byte 5 + body 2 + trailer 1
-  //4f 'O' insecure OpenTRV basic frame
-  //02 0 sequence number, ID length 2
-  //80 ID byte 1
-  //81 ID byte 2
-  //02 body length 2
-  //00 valve 0%, no call for heat
-  //01 no flags or stats, unreported occupancy
-  //23 CRC value
-  const uint8_t id[] =  { 0x80, 0x81 };
-  const uint8_t body[] = { 0x00, 0x01 };
-  EXPECT_EQ(9, OTRadioLink::encodeNonsecureSmallFrame(buf, sizeof(buf),
+{
+    uint8_t buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize];
+    //
+    // Test vector 1 / example from the spec.
+    //Example insecure frame, valve unit 0% open, no call for heat/flags/stats.
+    //In this case the frame sequence number is zero, and ID is 0x80 0x81.
+    //
+    //08 4f 02 80 81 02 | 00 01 | 23
+    //
+    //08 length of header (8) after length byte 5 + body 2 + trailer 1
+    //4f 'O' insecure OpenTRV basic frame
+    //02 0 sequence number, ID length 2
+    //80 ID byte 1
+    //81 ID byte 2
+    //02 body length 2
+    //00 valve 0%, no call for heat
+    //01 no flags or stats, unreported occupancy
+    //23 CRC value
+    const uint8_t id[] =  { 0x80, 0x81 };
+    const uint8_t body[] = { 0x00, 0x01 };
+    EXPECT_EQ(9, OTRadioLink::encodeNonsecureSmallFrame(buf, sizeof(buf),
                                     OTRadioLink::FTS_BasicSensorOrValve,
                                     0,
                                     id, 2,
                                     body, 2));
-  EXPECT_EQ(0x08, buf[0]);
-  EXPECT_EQ(0x4f, buf[1]);
-  EXPECT_EQ(0x02, buf[2]);
-  EXPECT_EQ(0x80, buf[3]);
-  EXPECT_EQ(0x81, buf[4]);
-  EXPECT_EQ(0x02, buf[5]);
-  EXPECT_EQ(0x00, buf[6]);
-  EXPECT_EQ(0x01, buf[7]);
-  EXPECT_EQ(0x23, buf[8]);
-  }
+    EXPECT_EQ(0x08, buf[0]);
+    EXPECT_EQ(0x4f, buf[1]);
+    EXPECT_EQ(0x02, buf[2]);
+    EXPECT_EQ(0x80, buf[3]);
+    EXPECT_EQ(0x81, buf[4]);
+    EXPECT_EQ(0x02, buf[5]);
+    EXPECT_EQ(0x00, buf[6]);
+    EXPECT_EQ(0x01, buf[7]);
+    EXPECT_EQ(0x23, buf[8]);
+}
 
 // Test simple plain-text padding for encryption.
 //
 // DHD20161107: imported from test_SECFRAME.ino testSimplePadding().
 TEST(OTAESGCMSecureFrame, SimplePadding)
-  {
-  uint8_t buf[OTRadioLink::ENC_BODY_SMALL_FIXED_CTEXT_SIZE];
-  // Provoke failure with NULL buffer.
-  EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyTXBase::addPaddingTo32BTrailing0sAndPadCount(NULL, 0x1f & OTV0P2BASE::randRNG8()));
-  // Provoke failure with over-long unpadded plain-text.
-  EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyTXBase::addPaddingTo32BTrailing0sAndPadCount(buf, 1 + OTRadioLink::ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE));
-  // Check padding in case with single random data byte (and the rest of the buffer set differently).
-  // Check the entire padded result for correctness.
-  const uint8_t db0 = OTV0P2BASE::randRNG8();
-  buf[0] = db0;
-  memset(buf+1, ~db0, sizeof(buf)-1);
-  EXPECT_EQ(32, OTRadioLink::SimpleSecureFrame32or0BodyTXBase::addPaddingTo32BTrailing0sAndPadCount(buf, 1));
-  EXPECT_EQ(db0, buf[0]);
-  for(int i = 30; --i > 0; ) { EXPECT_EQ(0, buf[i]); }
-  EXPECT_EQ(30, buf[31]);
-  // Ensure that unpadding works.
-  EXPECT_EQ(1, OTRadioLink::SimpleSecureFrame32or0BodyRXBase::removePaddingTo32BTrailing0sAndPadCount(buf));
-  EXPECT_EQ(db0, buf[0]);
-  }
+{
+    uint8_t buf[OTRadioLink::ENC_BODY_SMALL_FIXED_CTEXT_SIZE];
+    // Provoke failure with NULL buffer.
+    EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyTXBase::addPaddingTo32BTrailing0sAndPadCount(NULL, 0x1f & OTV0P2BASE::randRNG8()));
+    // Provoke failure with over-long unpadded plain-text.
+    EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyTXBase::addPaddingTo32BTrailing0sAndPadCount(buf, 1 + OTRadioLink::ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE));
+    // Check padding in case with single random data byte (and the rest of the buffer set differently).
+    // Check the entire padded result for correctness.
+    const uint8_t db0 = OTV0P2BASE::randRNG8();
+    buf[0] = db0;
+    memset(buf+1, ~db0, sizeof(buf)-1);
+    EXPECT_EQ(32, OTRadioLink::SimpleSecureFrame32or0BodyTXBase::addPaddingTo32BTrailing0sAndPadCount(buf, 1));
+    EXPECT_EQ(db0, buf[0]);
+    for(int i = 30; --i > 0; ) { EXPECT_EQ(0, buf[i]); }
+    EXPECT_EQ(30, buf[31]);
+    // Ensure that unpadding works.
+    EXPECT_EQ(1, OTRadioLink::SimpleSecureFrame32or0BodyRXBase::removePaddingTo32BTrailing0sAndPadCount(buf));
+    EXPECT_EQ(db0, buf[0]);
+}
 
 // Test simple fixed-size NULL enc/dec behaviour.
 //
 // DHD20161107: imported from test_SECFRAME.ino testSimpleNULLEncDec().
 TEST(OTAESGCMSecureFrame, SimpleNULLEncDec)
-  {
-  const OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e = OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL;
-  const OTRadioLink::SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d = OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL;
-  // Check that calling the NULL enc routine with bad args fails.
-  EXPECT_TRUE(!e(NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL));
-  static const uint8_t plaintext1[32] = { 'a', 'b', 'c', 'd', 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4 };
-  static const uint8_t nonce1[12] = { 'q', 'u', 'i', 'c', 'k', ' ', 6, 5, 4, 3, 2, 1 };
-  static const uint8_t authtext1[2] = { 'H', 'i' };
-  // Output ciphertext and tag buffers.
-  uint8_t co1[32], to1[16];
-  EXPECT_TRUE(e(NULL, zeroBlock, nonce1, authtext1, sizeof(authtext1), plaintext1, co1, to1));
-  EXPECT_EQ(0, memcmp(plaintext1, co1, 32));
-  EXPECT_EQ(0, memcmp(nonce1, to1, 12));
-  EXPECT_EQ(0, to1[12]);
-  EXPECT_EQ(0, to1[15]);
-  // Check that calling the NULL decc routine with bad args fails.
-  EXPECT_TRUE(!d(NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL));
-  // Decode the ciphertext and tag from above and ensure that it 'works'.
-  uint8_t plaintext1Decoded[32];
-  EXPECT_TRUE(d(NULL, zeroBlock, nonce1, authtext1, sizeof(authtext1), co1, to1, plaintext1Decoded));
-  EXPECT_EQ(0, memcmp(plaintext1, plaintext1Decoded, 32));
-  }
+{
+    const OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e = OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL;
+    const OTRadioLink::SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d = OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL;
+    // Check that calling the NULL enc routine with bad args fails.
+    EXPECT_TRUE(!e(NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL));
+    static const uint8_t plaintext1[32] = { 'a', 'b', 'c', 'd', 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4 };
+    static const uint8_t nonce1[12] = { 'q', 'u', 'i', 'c', 'k', ' ', 6, 5, 4, 3, 2, 1 };
+    static const uint8_t authtext1[2] = { 'H', 'i' };
+    // Output ciphertext and tag buffers.
+    uint8_t co1[32], to1[16];
+    EXPECT_TRUE(e(NULL, zeroBlock, nonce1, authtext1, sizeof(authtext1), plaintext1, co1, to1));
+    EXPECT_EQ(0, memcmp(plaintext1, co1, 32));
+    EXPECT_EQ(0, memcmp(nonce1, to1, 12));
+    EXPECT_EQ(0, to1[12]);
+    EXPECT_EQ(0, to1[15]);
+    // Check that calling the NULL decc routine with bad args fails.
+    EXPECT_TRUE(!d(NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL));
+    // Decode the ciphertext and tag from above and ensure that it 'works'.
+    uint8_t plaintext1Decoded[32];
+    EXPECT_TRUE(d(NULL, zeroBlock, nonce1, authtext1, sizeof(authtext1), co1, to1, plaintext1Decoded));
+    EXPECT_EQ(0, memcmp(plaintext1, plaintext1Decoded, 32));
+}
 
 // Test a simple fixed-size enc/dec function pair.
 // Aborts with Assert...() in case of failure.
 static void runSimpleEncDec(const OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
                             const OTRadioLink::SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d)
-  {
-  // Check that calling the NULL enc routine with bad args fails.
-  EXPECT_TRUE(!e(NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL));
-  // Try with plaintext and authext...
-  static const uint8_t plaintext1[32] = { 'a', 'b', 'c', 'd', 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4 };
-  static const uint8_t nonce1[12] = { 'q', 'u', 'i', 'c', 'k', ' ', 6, 5, 4, 3, 2, 1 };
-  static const uint8_t authtext1[2] = { 'H', 'i' };
-  // Output ciphertext and tag buffers.
-  uint8_t co1[32], to1[16];
-  EXPECT_TRUE(e(NULL, zeroBlock, nonce1, authtext1, sizeof(authtext1), plaintext1, co1, to1));
-  // Check that calling the NULL dec routine with bad args fails.
-  EXPECT_TRUE(!d(NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL));
-  // Decode the ciphertext and tag from above and ensure that it 'works'.
-  uint8_t plaintext1Decoded[32];
-  EXPECT_TRUE(d(NULL, zeroBlock, nonce1, authtext1, sizeof(authtext1), co1, to1, plaintext1Decoded));
-  EXPECT_EQ(0, memcmp(plaintext1, plaintext1Decoded, 32));
-  // Try with authtext and no plaintext.
-  EXPECT_TRUE(e(NULL, zeroBlock, nonce1, authtext1, sizeof(authtext1), NULL, co1, to1));
-  EXPECT_TRUE(d(NULL, zeroBlock, nonce1, authtext1, sizeof(authtext1), NULL, to1, plaintext1Decoded));
-  }
+{
+    // Check that calling the NULL enc routine with bad args fails.
+    EXPECT_TRUE(!e(NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL));
+    // Try with plaintext and authext...
+    static const uint8_t plaintext1[32] = { 'a', 'b', 'c', 'd', 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4 };
+    static const uint8_t nonce1[12] = { 'q', 'u', 'i', 'c', 'k', ' ', 6, 5, 4, 3, 2, 1 };
+    static const uint8_t authtext1[2] = { 'H', 'i' };
+    // Output ciphertext and tag buffers.
+    uint8_t co1[32], to1[16];
+    EXPECT_TRUE(e(NULL, zeroBlock, nonce1, authtext1, sizeof(authtext1), plaintext1, co1, to1));
+    // Check that calling the NULL dec routine with bad args fails.
+    EXPECT_TRUE(!d(NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL));
+    // Decode the ciphertext and tag from above and ensure that it 'works'.
+    uint8_t plaintext1Decoded[32];
+    EXPECT_TRUE(d(NULL, zeroBlock, nonce1, authtext1, sizeof(authtext1), co1, to1, plaintext1Decoded));
+    EXPECT_EQ(0, memcmp(plaintext1, plaintext1Decoded, 32));
+    // Try with authtext and no plaintext.
+    EXPECT_TRUE(e(NULL, zeroBlock, nonce1, authtext1, sizeof(authtext1), NULL, co1, to1));
+    EXPECT_TRUE(d(NULL, zeroBlock, nonce1, authtext1, sizeof(authtext1), NULL, to1, plaintext1Decoded));
+}
 
 // Test basic access to crypto features.
 // Check basic operation of the simple fixed-sized encode/decode routines.
 //
 // DHD20161107: imported from test_SECFRAME.ino testCryptoAccess().
 TEST(OTAESGCMSecureFrame, CryptoAccess)
-  {
-  // NULL enc/dec.
-  runSimpleEncDec(OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL,
+{
+    // NULL enc/dec.
+    runSimpleEncDec(OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL,
                   OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL);
-  // AES-GCM 128-bit key enc/dec.
-  runSimpleEncDec(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS,
+    // AES-GCM 128-bit key enc/dec.
+    runSimpleEncDec(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS,
                   OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS);
-  }
+}
 
 // Check using NIST GCMVS test vector.
 // Test via fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS interface.
@@ -497,183 +497,183 @@ TEST(OTAESGCMSecureFrame, CryptoAccess)
 //
 // DHD20161107: imported from test_SECFRAME.ino testGCMVS1ViaFixed32BTextSize().
 TEST(OTAESGCMSecureFrame, GCMVS1ViaFixed32BTextSize)
-  {
-  // Inputs to encryption.
-  static const uint8_t input[32] = { 0xcc, 0x38, 0xbc, 0xcd, 0x6b, 0xc5, 0x36, 0xad, 0x91, 0x9b, 0x13, 0x95, 0xf5, 0xd6, 0x38, 0x01, 0xf9, 0x9f, 0x80, 0x68, 0xd6, 0x5c, 0xa5, 0xac, 0x63, 0x87, 0x2d, 0xaf, 0x16, 0xb9, 0x39, 0x01 };
-  static const uint8_t key[AES_KEY_SIZE/8] = { 0x29, 0x8e, 0xfa, 0x1c, 0xcf, 0x29, 0xcf, 0x62, 0xae, 0x68, 0x24, 0xbf, 0xc1, 0x95, 0x57, 0xfc };
-  static const uint8_t nonce[GCM_NONCE_LENGTH] = { 0x6f, 0x58, 0xa9, 0x3f, 0xe1, 0xd2, 0x07, 0xfa, 0xe4, 0xed, 0x2f, 0x6d };
-  static const uint8_t aad[16] = { 0x02, 0x1f, 0xaf, 0xd2, 0x38, 0x46, 0x39, 0x73, 0xff, 0xe8, 0x02, 0x56, 0xe5, 0xb1, 0xc6, 0xb1 };
-  // Space for outputs from encryption.
-  uint8_t tag[GCM_TAG_LENGTH]; // Space for tag.
-  uint8_t cipherText[OTV0P2BASE::fnmax(32, (int)sizeof(input))]; // Space for encrypted text.
-  // Instance to perform enc/dec.
-  // Do encryption via simplified interface.
-  EXPECT_TRUE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS(NULL,
+{
+    // Inputs to encryption.
+    static const uint8_t input[32] = { 0xcc, 0x38, 0xbc, 0xcd, 0x6b, 0xc5, 0x36, 0xad, 0x91, 0x9b, 0x13, 0x95, 0xf5, 0xd6, 0x38, 0x01, 0xf9, 0x9f, 0x80, 0x68, 0xd6, 0x5c, 0xa5, 0xac, 0x63, 0x87, 0x2d, 0xaf, 0x16, 0xb9, 0x39, 0x01 };
+    static const uint8_t key[AES_KEY_SIZE/8] = { 0x29, 0x8e, 0xfa, 0x1c, 0xcf, 0x29, 0xcf, 0x62, 0xae, 0x68, 0x24, 0xbf, 0xc1, 0x95, 0x57, 0xfc };
+    static const uint8_t nonce[GCM_NONCE_LENGTH] = { 0x6f, 0x58, 0xa9, 0x3f, 0xe1, 0xd2, 0x07, 0xfa, 0xe4, 0xed, 0x2f, 0x6d };
+    static const uint8_t aad[16] = { 0x02, 0x1f, 0xaf, 0xd2, 0x38, 0x46, 0x39, 0x73, 0xff, 0xe8, 0x02, 0x56, 0xe5, 0xb1, 0xc6, 0xb1 };
+    // Space for outputs from encryption.
+    uint8_t tag[GCM_TAG_LENGTH]; // Space for tag.
+    uint8_t cipherText[OTV0P2BASE::fnmax(32, (int)sizeof(input))]; // Space for encrypted text.
+    // Instance to perform enc/dec.
+    // Do encryption via simplified interface.
+    EXPECT_TRUE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS(NULL,
             key, nonce,
             aad, sizeof(aad),
             input,
             cipherText, tag));
-  // Check some of the cipher text and tag.
-//            "0388DACE60B6A392F328C2B971B2FE78F795AAAB494B5923F7FD89FF948B  61 47 72 C7 92 9C D0 DD 68 1B D8 A3 7A 65 6F 33" :
-  EXPECT_EQ(0xdf, cipherText[0]);
-  EXPECT_EQ(0x91, cipherText[5]);
-  EXPECT_EQ(0xdb, cipherText[sizeof(cipherText)-1]);
-  EXPECT_EQ(0x24, tag[1]);
-  EXPECT_EQ(0xd9, tag[14]);
-  // Decrypt via simplified interface...
-  uint8_t inputDecoded[32];
-  EXPECT_TRUE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS(NULL,
+    // Check some of the cipher text and tag.
+    //            "0388DACE60B6A392F328C2B971B2FE78F795AAAB494B5923F7FD89FF948B  61 47 72 C7 92 9C D0 DD 68 1B D8 A3 7A 65 6F 33" :
+    EXPECT_EQ(0xdf, cipherText[0]);
+    EXPECT_EQ(0x91, cipherText[5]);
+    EXPECT_EQ(0xdb, cipherText[sizeof(cipherText)-1]);
+    EXPECT_EQ(0x24, tag[1]);
+    EXPECT_EQ(0xd9, tag[14]);
+    // Decrypt via simplified interface...
+    uint8_t inputDecoded[32];
+    EXPECT_TRUE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS(NULL,
             key, nonce,
             aad, sizeof(aad),
             cipherText, tag,
             inputDecoded));
-  EXPECT_EQ(0, memcmp(input, inputDecoded, 32));
-  }
+    EXPECT_EQ(0, memcmp(input, inputDecoded, 32));
+}
 
 // Test encoding/encryption then decoding/decryption of entire secure frame.
 //
 // DHD20161107: imported from test_SECFRAME.ino testSecureSmallFrameEncoding().
 TEST(OTAESGCMSecureFrame, SecureSmallFrameEncoding)
-  {
-  uint8_t buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize];
-  //Example 3: secure, no valve, representative minimum stats {"b":1}).
-  //Note that the sequence number must match the 4 lsbs of the message count, ie from iv[11].
-  //and the ID is 0xaa 0xaa 0xaa 0xaa (transmitted) with the next ID bytes 0x55 0x55.
-  //ResetCounter = 42
-  //TxMsgCounter = 793
-  //(Thus nonce/IV: aa aa aa aa 55 55 00 00 2a 00 03 19)
-  //
-  //3e cf 94 aa aa aa aa 20 | b3 45 f9 29 69 57 0c b8 28 66 14 b4 f0 69 b0 08 71 da d8 fe 47 c1 c3 53 83 48 88 03 7d 58 75 75 | 00 00 2a 00 03 19 29 3b 31 52 c3 26 d2 6d d0 8d 70 1e 4b 68 0d cb 80
-  //
-  //3e  length of header (62) after length byte 5 + (encrypted) body 32 + trailer 32
-  //cf  'O' secure OpenTRV basic frame
-  //04  0 sequence number, ID length 4
-  //aa  ID byte 1
-  //aa  ID byte 2
-  //aa  ID byte 3
-  //aa  ID byte 4
-  //20  body length 32 (after padding and encryption)
-  //    Plaintext body (length 8): 0x7f 0x11 { " b " : 1 
-  //    Padded: 7f 11 7b 22 62 22 3a 31 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 17
-  //b3 45 f9 ... 58 75 75  32 bytes of encrypted body
-  //00 00 2a  reset counter
-  //00 03 19  message counter
-  //29 3b 31 ... 68 0d cb  16 bytes of authentication tag
-  //80  enc/auth type/format indicator.
-  // Preshared ID prefix; only an initial part/prefix of this goes on the wire in the header.
-  const uint8_t id[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55 };
-  // IV/nonce starting with first 6 bytes of preshared ID, then 6 bytes of counter.
-  const uint8_t iv[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55, 0x00, 0x00, 0x2a, 0x00, 0x03, 0x19 };
-  // 'O' frame body with some JSON stats.
-  const uint8_t body[] = { 0x7f, 0x11, 0x7b, 0x22, 0x62, 0x22, 0x3a, 0x31 };
-  const uint8_t encodedLength = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRaw(buf, sizeof(buf),
+{
+    uint8_t buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize];
+    //Example 3: secure, no valve, representative minimum stats {"b":1}).
+    //Note that the sequence number must match the 4 lsbs of the message count, ie from iv[11].
+    //and the ID is 0xaa 0xaa 0xaa 0xaa (transmitted) with the next ID bytes 0x55 0x55.
+    //ResetCounter = 42
+    //TxMsgCounter = 793
+    //(Thus nonce/IV: aa aa aa aa 55 55 00 00 2a 00 03 19)
+    //
+    //3e cf 94 aa aa aa aa 20 | b3 45 f9 29 69 57 0c b8 28 66 14 b4 f0 69 b0 08 71 da d8 fe 47 c1 c3 53 83 48 88 03 7d 58 75 75 | 00 00 2a 00 03 19 29 3b 31 52 c3 26 d2 6d d0 8d 70 1e 4b 68 0d cb 80
+    //
+    //3e  length of header (62) after length byte 5 + (encrypted) body 32 + trailer 32
+    //cf  'O' secure OpenTRV basic frame
+    //04  0 sequence number, ID length 4
+    //aa  ID byte 1
+    //aa  ID byte 2
+    //aa  ID byte 3
+    //aa  ID byte 4
+    //20  body length 32 (after padding and encryption)
+    //    Plaintext body (length 8): 0x7f 0x11 { " b " : 1 
+    //    Padded: 7f 11 7b 22 62 22 3a 31 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 17
+    //b3 45 f9 ... 58 75 75  32 bytes of encrypted body
+    //00 00 2a  reset counter
+    //00 03 19  message counter
+    //29 3b 31 ... 68 0d cb  16 bytes of authentication tag
+    //80  enc/auth type/format indicator.
+    // Preshared ID prefix; only an initial part/prefix of this goes on the wire in the header.
+    const uint8_t id[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55 };
+    // IV/nonce starting with first 6 bytes of preshared ID, then 6 bytes of counter.
+    const uint8_t iv[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55, 0x00, 0x00, 0x2a, 0x00, 0x03, 0x19 };
+    // 'O' frame body with some JSON stats.
+    const uint8_t body[] = { 0x7f, 0x11, 0x7b, 0x22, 0x62, 0x22, 0x3a, 0x31 };
+    const uint8_t encodedLength = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRaw(buf, sizeof(buf),
                                     OTRadioLink::FTS_BasicSensorOrValve,
                                     id, 4,
                                     body, sizeof(body),
                                     iv,
                                     OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS,
                                     NULL, zeroBlock);
-  EXPECT_EQ(63, encodedLength);
-  EXPECT_TRUE(encodedLength <= sizeof(buf));
-  //3e cf 04 aa aa aa aa 20 | ...
-  EXPECT_EQ(0x3e, buf[0]);
-  EXPECT_EQ(0xcf, buf[1]);
-  EXPECT_EQ(0x94, buf[2]); // Seq num is iv[11] & 0xf, ie 4 lsbs of message counter (and IV).
-  EXPECT_EQ(0xaa, buf[3]);
-  EXPECT_EQ(0xaa, buf[4]);
-  EXPECT_EQ(0xaa, buf[5]);
-  EXPECT_EQ(0xaa, buf[6]);
-  EXPECT_EQ(0x20, buf[7]);
-  //... b3 45 f9 29 69 57 0c b8 28 66 14 b4 f0 69 b0 08 71 da d8 fe 47 c1 c3 53 83 48 88 03 7d 58 75 75 | ...
-  EXPECT_EQ(0xb3, buf[8]); // 1st byte of encrypted body.
-  EXPECT_EQ(0x75, buf[39]); // 32nd/last byte of encrypted body.
-  //... 00 00 2a 00 03 19 29 3b 31 52 c3 26 d2 6d d0 8d 70 1e 4b 68 0d cb 80
-  EXPECT_EQ(0x00, buf[40]); // 1st byte of counters.
-  EXPECT_EQ(0x00, buf[41]);
-  EXPECT_EQ(0x2a, buf[42]);
-  EXPECT_EQ(0x00, buf[43]);
-  EXPECT_EQ(0x03, buf[44]);
-  EXPECT_EQ(0x19, buf[45]); // Last byte of counters.
-  EXPECT_EQ(0x29, buf[46]); // 1st byte of tag.
-  EXPECT_EQ(0xcb, buf[61]); // 16th/last byte of tag.
-  EXPECT_EQ(0x80, buf[62]); // enc format.
-  // To decode, emulating RX, structurally validate unpack the header and extract the ID.
-  OTRadioLink::SecurableFrameHeader sfhRX;
-  EXPECT_TRUE(0 != sfhRX.checkAndDecodeSmallFrameHeader(buf, encodedLength));
-  // (Nominally a longer ID and key is looked up with the ID in the header, and an iv built.)
-  uint8_t decodedBodyOutSize;
-  uint8_t decryptedBodyOut[OTRadioLink::ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE];
-  // Should decode and authenticate correctly.
-  EXPECT_TRUE(0 != OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRaw(&sfhRX,
+    EXPECT_EQ(63, encodedLength);
+    EXPECT_TRUE(encodedLength <= sizeof(buf));
+    //3e cf 04 aa aa aa aa 20 | ...
+    EXPECT_EQ(0x3e, buf[0]);
+    EXPECT_EQ(0xcf, buf[1]);
+    EXPECT_EQ(0x94, buf[2]); // Seq num is iv[11] & 0xf, ie 4 lsbs of message counter (and IV).
+    EXPECT_EQ(0xaa, buf[3]);
+    EXPECT_EQ(0xaa, buf[4]);
+    EXPECT_EQ(0xaa, buf[5]);
+    EXPECT_EQ(0xaa, buf[6]);
+    EXPECT_EQ(0x20, buf[7]);
+    //... b3 45 f9 29 69 57 0c b8 28 66 14 b4 f0 69 b0 08 71 da d8 fe 47 c1 c3 53 83 48 88 03 7d 58 75 75 | ...
+    EXPECT_EQ(0xb3, buf[8]); // 1st byte of encrypted body.
+    EXPECT_EQ(0x75, buf[39]); // 32nd/last byte of encrypted body.
+    //... 00 00 2a 00 03 19 29 3b 31 52 c3 26 d2 6d d0 8d 70 1e 4b 68 0d cb 80
+    EXPECT_EQ(0x00, buf[40]); // 1st byte of counters.
+    EXPECT_EQ(0x00, buf[41]);
+    EXPECT_EQ(0x2a, buf[42]);
+    EXPECT_EQ(0x00, buf[43]);
+    EXPECT_EQ(0x03, buf[44]);
+    EXPECT_EQ(0x19, buf[45]); // Last byte of counters.
+    EXPECT_EQ(0x29, buf[46]); // 1st byte of tag.
+    EXPECT_EQ(0xcb, buf[61]); // 16th/last byte of tag.
+    EXPECT_EQ(0x80, buf[62]); // enc format.
+    // To decode, emulating RX, structurally validate unpack the header and extract the ID.
+    OTRadioLink::SecurableFrameHeader sfhRX;
+    EXPECT_TRUE(0 != sfhRX.checkAndDecodeSmallFrameHeader(buf, encodedLength));
+    // (Nominally a longer ID and key is looked up with the ID in the header, and an iv built.)
+    uint8_t decodedBodyOutSize;
+    uint8_t decryptedBodyOut[OTRadioLink::ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE];
+    // Should decode and authenticate correctly.
+    EXPECT_TRUE(0 != OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRaw(&sfhRX,
                                         buf, encodedLength,
                                         OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
                                         NULL, zeroBlock, iv,
                                         decryptedBodyOut, sizeof(decryptedBodyOut), decodedBodyOutSize));
-  // Body content should be correctly decrypted and extracted.
-  EXPECT_EQ(sizeof(body), decodedBodyOutSize);
-  EXPECT_EQ(0, memcmp(body, decryptedBodyOut, sizeof(body)));
-  // Check that flipping any single bit should make the decode fail
-  // unless it leaves all info (seqNum, id, body) untouched.
-  const uint8_t loc = OTV0P2BASE::randRNG8() % encodedLength;
-  const uint8_t mask = (uint8_t) (0x100U >> (1+(OTV0P2BASE::randRNG8()&7)));
-  buf[loc] ^= mask;
-//  Serial.println(loc);
-//  Serial.println(mask);
-  EXPECT_TRUE((0 == sfhRX.checkAndDecodeSmallFrameHeader(buf, encodedLength)) ||
+    // Body content should be correctly decrypted and extracted.
+    EXPECT_EQ(sizeof(body), decodedBodyOutSize);
+    EXPECT_EQ(0, memcmp(body, decryptedBodyOut, sizeof(body)));
+    // Check that flipping any single bit should make the decode fail
+    // unless it leaves all info (seqNum, id, body) untouched.
+    const uint8_t loc = OTV0P2BASE::randRNG8() % encodedLength;
+    const uint8_t mask = (uint8_t) (0x100U >> (1+(OTV0P2BASE::randRNG8()&7)));
+    buf[loc] ^= mask;
+    //  Serial.println(loc);
+    //  Serial.println(mask);
+    EXPECT_TRUE((0 == sfhRX.checkAndDecodeSmallFrameHeader(buf, encodedLength)) ||
                (0 == OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRaw(&sfhRX,
                                         buf, encodedLength,
                                         OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
                                         NULL, zeroBlock, iv,
                                         decryptedBodyOut, sizeof(decryptedBodyOut), decodedBodyOutSize)) ||
                ((sizeof(body) == decodedBodyOutSize) && (0 == memcmp(body, decryptedBodyOut, sizeof(body))) && (0 == memcmp(id, sfhRX.id, 4))));
-  }
+}
 
 // Test encoding of beacon frames.
 //
 // DHD20161107: imported from test_SECFRAME.ino testBeaconEncoding().
 TEST(OTAESGCMSecureFrame, BeaconEncoding)
-  {
-  // Non-secure beacon.
-  uint8_t buf[OTV0P2BASE::fnmax(OTRadioLink::generateNonsecureBeaconMaxBufSize, OTRadioLink::SimpleSecureFrame32or0BodyTXBase::generateSecureBeaconMaxBufSize)];
-  // Generate zero-length-ID beacon.
-  const uint8_t b0 = OTRadioLink::generateNonsecureBeacon(buf, sizeof(buf), 0, NULL, 0);
-  EXPECT_EQ(5, b0);
-  EXPECT_EQ(0x04, buf[0]);
-  EXPECT_EQ(0x21, buf[1]);
-  EXPECT_EQ(0x00, buf[2]);
-  EXPECT_EQ(0x00, buf[3]); // Body length 0.
-  EXPECT_EQ(0x65, buf[4]);
-  // Generate maximum-length-zero-ID beacon automatically at non-zero seq.
-  const uint8_t b1 = OTRadioLink::generateNonsecureBeacon(buf, sizeof(buf), 4, zeroBlock, OTRadioLink::SecurableFrameHeader::maxIDLength);
-  EXPECT_EQ(13, b1);
-  EXPECT_EQ(0x0c, buf[0]);
-  EXPECT_EQ(0x21, buf[1]);
-  EXPECT_EQ(0x48, buf[2]);
-  EXPECT_EQ(0x00, buf[3]);
-  EXPECT_EQ(0x00, buf[4]);
-  EXPECT_EQ(0x00, buf[5]);
-  EXPECT_EQ(0x00, buf[6]);
-  EXPECT_EQ(0x00, buf[7]);
-  EXPECT_EQ(0x00, buf[8]);
-  EXPECT_EQ(0x00, buf[9]);
-  EXPECT_EQ(0x00, buf[10]);
-  EXPECT_EQ(0x00, buf[11]); // Body length 0.
-  EXPECT_EQ(0x29, buf[12]);
-#if 0
-  // Generate maximum-length-from-EEPROM-ID beacon automatically at non-zero seq.
-  const uint8_t b2 = OTRadioLink::generateNonsecureBeacon(buf, sizeof(buf), 5, NULL, OTRadioLink::SecurableFrameHeader::maxIDLength);
-  EXPECT_EQ(13, b2);
-  EXPECT_EQ(0x0c, buf[0]);
-  EXPECT_EQ(0x21, buf[1]);
-  EXPECT_EQ(0x58, buf[2]);
-  for(uint8_t i = 0; i < OTRadioLink::SecurableFrameHeader::maxIDLength; ++i)
+{
+    // Non-secure beacon.
+    uint8_t buf[OTV0P2BASE::fnmax(OTRadioLink::generateNonsecureBeaconMaxBufSize, OTRadioLink::SimpleSecureFrame32or0BodyTXBase::generateSecureBeaconMaxBufSize)];
+    // Generate zero-length-ID beacon.
+    const uint8_t b0 = OTRadioLink::generateNonsecureBeacon(buf, sizeof(buf), 0, NULL, 0);
+    EXPECT_EQ(5, b0);
+    EXPECT_EQ(0x04, buf[0]);
+    EXPECT_EQ(0x21, buf[1]);
+    EXPECT_EQ(0x00, buf[2]);
+    EXPECT_EQ(0x00, buf[3]); // Body length 0.
+    EXPECT_EQ(0x65, buf[4]);
+    // Generate maximum-length-zero-ID beacon automatically at non-zero seq.
+    const uint8_t b1 = OTRadioLink::generateNonsecureBeacon(buf, sizeof(buf), 4, zeroBlock, OTRadioLink::SecurableFrameHeader::maxIDLength);
+    EXPECT_EQ(13, b1);
+    EXPECT_EQ(0x0c, buf[0]);
+    EXPECT_EQ(0x21, buf[1]);
+    EXPECT_EQ(0x48, buf[2]);
+    EXPECT_EQ(0x00, buf[3]);
+    EXPECT_EQ(0x00, buf[4]);
+    EXPECT_EQ(0x00, buf[5]);
+    EXPECT_EQ(0x00, buf[6]);
+    EXPECT_EQ(0x00, buf[7]);
+    EXPECT_EQ(0x00, buf[8]);
+    EXPECT_EQ(0x00, buf[9]);
+    EXPECT_EQ(0x00, buf[10]);
+    EXPECT_EQ(0x00, buf[11]); // Body length 0.
+    EXPECT_EQ(0x29, buf[12]);
+    #if 0
+    // Generate maximum-length-from-EEPROM-ID beacon automatically at non-zero seq.
+    const uint8_t b2 = OTRadioLink::generateNonsecureBeacon(buf, sizeof(buf), 5, NULL, OTRadioLink::SecurableFrameHeader::maxIDLength);
+    EXPECT_EQ(13, b2);
+    EXPECT_EQ(0x0c, buf[0]);
+    EXPECT_EQ(0x21, buf[1]);
+    EXPECT_EQ(0x58, buf[2]);
+    for(uint8_t i = 0; i < OTRadioLink::SecurableFrameHeader::maxIDLength; ++i)
     { EXPECT_EQ(eeprom_read_byte((uint8_t *)(V0P2BASE_EE_START_ID + i)), buf[3 + i]); }
-  EXPECT_EQ(0x00, buf[11]); // Body length 0.
-#endif
-  //EXPECT_EQ(0xXX, buf[12]); // CRC will vary with ID.
-  //
-  //const unsigned long before = millis();
-  for(int idLen = 0; idLen <= 8; ++idLen)
+    EXPECT_EQ(0x00, buf[11]); // Body length 0.
+    #endif
+    //EXPECT_EQ(0xXX, buf[12]); // CRC will vary with ID.
+    //
+    //const unsigned long before = millis();
+    for(int idLen = 0; idLen <= 8; ++idLen)
     {
     // Secure beacon...  All zeros key; ID and IV as from spec Example 3 at 20160207.
     const uint8_t *const key = zeroBlock;
@@ -681,7 +681,7 @@ TEST(OTAESGCMSecureFrame, BeaconEncoding)
     const uint8_t id[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55 };
     // IV/nonce starting with first 6 bytes of preshared ID, then 6 bytes of counter.
     const uint8_t iv[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55, 0x00, 0x00, 0x2a, 0x00, 0x03, 0x19 };
-//    const uint8_t sb1 = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::generateSecureBeaconRaw(buf, sizeof(buf), id, idLen, iv, OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS, NULL, key);
+    //    const uint8_t sb1 = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::generateSecureBeaconRaw(buf, sizeof(buf), id, idLen, iv, OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS, NULL, key);
     const uint8_t sb1 = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRaw(buf, sizeof(buf),
                                     OTRadioLink::FTS_ALIVE, id, idLen,
                                     NULL, 0,
@@ -702,19 +702,19 @@ TEST(OTAESGCMSecureFrame, BeaconEncoding)
                                     NULL, 0, decryptedBodyOutSize);
     // Should be able to decode, ie pass authentication.
     EXPECT_EQ(27 + idLen, dlr);
-//    // Construct IV from ID and trailer.
-//    const uint8_t dlfi = OTRadioLink::SimpleSecureFrame32or0BodyRXV0p2::getInstance()._decodeSecureSmallFrameFromID(&sfh,
-//                                    buf, sizeof(buf),
-//                                    OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
-//                                    id, sizeof(id),
-//                                    NULL, key,
-//                                    NULL, 0, decryptedBodyOutSize);
-//    // Should be able to decode, ie pass authentication.
-//    EXPECT_EQ(27 + idLen, dlfi);
+    //    // Construct IV from ID and trailer.
+    //    const uint8_t dlfi = OTRadioLink::SimpleSecureFrame32or0BodyRXV0p2::getInstance()._decodeSecureSmallFrameFromID(&sfh,
+    //                                    buf, sizeof(buf),
+    //                                    OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
+    //                                    id, sizeof(id),
+    //                                    NULL, key,
+    //                                    NULL, 0, decryptedBodyOutSize);
+    //    // Should be able to decode, ie pass authentication.
+    //    EXPECT_EQ(27 + idLen, dlfi);
     }
-//  const unsigned long after = millis();
-//  Serial.println(after - before); // DHD20160207: 1442 for 8 rounds, or ~180ms per encryption.
-  }
+    //  const unsigned long after = millis();
+    //  Serial.println(after - before); // DHD20160207: 1442 for 8 rounds, or ~180ms per encryption.
+}
 
 #if 0
 // Test some basic parameters of node associations.
@@ -736,38 +736,38 @@ TEST(OTAESGCMSecureFrame, NodeAssoc)
 //
 // DHD20161107: imported from test_SECFRAME.ino testMsgCount().
 TEST(OTAESGCMSecureFrame, MsgCount)
-  {
-  // Two counter values to compare that should help spot overflow or wrong byte order operations.
-  const uint8_t count1[] = { 0, 0, 0x83, 0, 0, 0 };
-  const uint8_t count1plus1[] = { 0, 0, 0x83, 0, 0, 1 };
-  const uint8_t count1plus256[] = { 0, 0, 0x83, 0, 1, 0 };
-  const uint8_t count2[] = { 0, 0, 0x82, 0x88, 1, 1 };
-  const uint8_t countmax[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
-  // Check that identical values compare as identical.
-  EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(zeroBlock, zeroBlock));
-  EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count1, count1));
-  EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count2, count2));
-  EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count1, count2) > 0);
-  EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count2, count1) < 0);
-  // Test simple addition to counts.
-  uint8_t count1copy[sizeof(count1)];
-  memcpy(count1copy, count1, sizeof(count1copy));
-  EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcounteradd(count1copy, 0));
-  EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count1copy, count1));
-  EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcounteradd(count1copy, 1));
-  EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count1copy, count1plus1));
-  EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcounteradd(count1copy, 255));
-  EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count1copy, count1plus256));
-  // Test simple addition to counts.
-  uint8_t countmaxcopy[sizeof(countmax)];
-  memcpy(countmaxcopy, countmax, sizeof(countmaxcopy));
-  EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcounteradd(countmaxcopy, 0));
-  EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(countmaxcopy, countmax));
-  EXPECT_TRUE(!OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcounteradd(countmaxcopy, 1));
-  EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(countmaxcopy, countmax));
-  EXPECT_TRUE(!OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcounteradd(countmaxcopy, 42));
-  EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(countmaxcopy, countmax));
-  }
+{
+    // Two counter values to compare that should help spot overflow or wrong byte order operations.
+    const uint8_t count1[] = { 0, 0, 0x83, 0, 0, 0 };
+    const uint8_t count1plus1[] = { 0, 0, 0x83, 0, 0, 1 };
+    const uint8_t count1plus256[] = { 0, 0, 0x83, 0, 1, 0 };
+    const uint8_t count2[] = { 0, 0, 0x82, 0x88, 1, 1 };
+    const uint8_t countmax[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+    // Check that identical values compare as identical.
+    EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(zeroBlock, zeroBlock));
+    EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count1, count1));
+    EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count2, count2));
+    EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count1, count2) > 0);
+    EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count2, count1) < 0);
+    // Test simple addition to counts.
+    uint8_t count1copy[sizeof(count1)];
+    memcpy(count1copy, count1, sizeof(count1copy));
+    EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcounteradd(count1copy, 0));
+    EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count1copy, count1));
+    EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcounteradd(count1copy, 1));
+    EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count1copy, count1plus1));
+    EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcounteradd(count1copy, 255));
+    EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count1copy, count1plus256));
+    // Test simple addition to counts.
+    uint8_t countmaxcopy[sizeof(countmax)];
+    memcpy(countmaxcopy, countmax, sizeof(countmaxcopy));
+    EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcounteradd(countmaxcopy, 0));
+    EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(countmaxcopy, countmax));
+    EXPECT_TRUE(!OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcounteradd(countmaxcopy, 1));
+    EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(countmaxcopy, countmax));
+    EXPECT_TRUE(!OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcounteradd(countmaxcopy, 42));
+    EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(countmaxcopy, countmax));
+}
 
 #if 0
 // Test handling of persistent/reboot/restart part of primary message counter.
