@@ -55,6 +55,9 @@ void ModeButtonAndPotActuatorPhysicalUI::markUIControlUsed()
 //  #endif
     // User operation of physical controls is strong indication of presence.
     occupancy->markAsOccupied(); // Thread-safe.
+
+    // Capture possible (near) peak of stack usage, eg when called from ISR,
+    OTV0P2BASE::MemoryChecks::recordIfMinSP();
     }
 
 // Record significant local manual operation of a physical UI control, eg not remote or via CLI.
@@ -86,12 +89,7 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
     // Perform any once-per-minute-ish operations, every 32 ticks.
     const bool sec0 = (0 == (tickCount & 0x1f));
     if(sec0)
-      {
-      OTV0P2BASE::safeDecIfNZWeak(uiTimeoutM);
-
-      }
-
-//    const bool reportedRecently = occupancy->reportedRecently();
+      { OTV0P2BASE::safeDecIfNZWeak(uiTimeoutM); }
 
     // Provide enhanced feedback when the has been very recent interaction with the UI,
     // since the user is still quite likely to be continuing.

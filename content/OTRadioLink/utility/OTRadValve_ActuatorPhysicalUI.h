@@ -519,7 +519,7 @@ class CycleModeAndLearnButtonsAndPotActuatorPhysicalUI final : public ModeButton
     // Handle simple interrupt for from MODE button, edge triggered on button push.
     // Marks UI as used.
     // ISR-safe.
-    virtual bool handleInterruptSimple() override final { markUIControlUsed();  return(true); }
+    virtual bool handleInterruptSimple() override final { markUIControlUsed(); return(true); }
 
     //// Handle learn button(s).
     //// First/primary button is 0, second is 1, etc.
