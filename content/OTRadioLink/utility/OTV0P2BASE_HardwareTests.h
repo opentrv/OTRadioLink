@@ -65,7 +65,7 @@ bool check32768HzOscExtended();
 
 #ifdef ARDUINO_ARCH_AVR
 /**
- * @brief   Calibrate the internal RC oscillator against and external crystal oscillator or resonator.
+ * @brief   Calibrate the internal RC oscillator against and external 32786 Hz crystal oscillator or resonator. The target frequency is 1 MHz.
  * @param   todo do we want settable stuff, e.g. ext osc rate, internal osc rate, etc?
  * @retval  True on calibration success. False if Xtal not running or calibration fails.
  * @note    OSCCAL register is cleared on reset so changes are not persistent.
