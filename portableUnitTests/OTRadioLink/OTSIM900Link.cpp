@@ -221,7 +221,7 @@ TEST(OTSIM900Link,basicsSimpleSimulator)
 
 
 namespace B2 {
-const bool verbose = false;
+const bool verbose = true;
 
 // Gets to CHECK_PIN state and then starts spewing random characters..
 // Allows for checking getResponse can deal with invalid input, and tests the RESET state.
@@ -274,20 +274,21 @@ class GarbageSimulator final : public Stream
                     } else reply = "AT\r\n\r\nOK\r\n";
                 } else {
                     // spew out garbage...
-                    for(int i = 0; i < 40; i++) { // XXX seg fault if i > 42.
+                    reply.resize(500);
+                    for(int i = 0; i < 500; i++) { // XXX seg fault if i > 42.
                         reply[i] = random()&0xff;
                     }
                 }
             } else if(collectingCommand) { command += c; }
         }
-        if(verbose) { if(isprint(c)) { fprintf(stderr, "<%c\n", c); } else { fprintf(stderr, "< %d\n", (int)c); } }
+        if(verbose) { if(isprint(c)) { fprintf(stderr, "<%c\n", c); } else { fprintf(stderr, "< %d\n", (uint8_t)c); } }
         return(1);
     }
     virtual int read() override
     {
         if(0 == reply.size()) { return(-1); }
         const char c = reply[0];
-        if(verbose) { if(isprint(c)) { fprintf(stderr, ">%c\n", c); } else { fprintf(stderr, "> %d\n", (int)c); } }
+        if(verbose) { if(isprint(c)) { fprintf(stderr, ">%c\n", c); } else { fprintf(stderr, "> %d\n", (uint8_t)c); } }
         reply.erase(0, 1);
         return(c);
     }
@@ -301,7 +302,7 @@ bool GarbageSimulator::haveSeenCommandStart = false;
 
 TEST(OTSIM900Link,GarbageTestSimulator)
 {
-//    const bool verbose = B1::verbose;
+//    const bool verbose = B2::verbose;
 
     srandom(::testing::UnitTest::GetInstance()->random_seed()); // Seed random() for use in simulator; --gtest_shuffle will force it to change.
 
