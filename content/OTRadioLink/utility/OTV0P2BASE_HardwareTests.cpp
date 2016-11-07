@@ -145,7 +145,7 @@ bool check32768HzOscExtended()
 #ifdef ARDUINO_ARCH_AVR
 
 /**
- * @brief	Calibrate the internal RC oscillator against and external crystal oscillator or resonator.
+ * @brief	Calibrate the internal RC oscillator against and external 32786 Hz crystal oscillator or resonator. The target frequency is 1 MHz.
  * @param   todo do we want settable stuff, e.g. ext osc rate, internal osc rate, etc?
  * @retval  True on calibration success. False if Xtal not running or calibration fails.
  * @note    OSCCAL register is cleared on reset so changes are not persistent.
@@ -182,7 +182,7 @@ bool calibrateInternalOscWithExtOsc()
     if(!check32768HzOsc()) { return(false); }
 
     // Set initial calibration value and wait to settle.
-//    OSCCAL = initOscCal; // todo think about what happens if oscillator has previously been calibrated! unlikely to have wandered too much.
+//    OSCCAL = initOscCal;
     _delay_x4cycles(2); // > 8 us. max oscillator settling time is 5 us.
 
     // Calibration routine
@@ -200,10 +200,9 @@ bool calibrateInternalOscWithExtOsc()
 			const uint8_t t1 = TCNT2 + 1;
 			while(t0 == TCNT2) {}
 			// Start counting cycles.
-			// todo Count the number of cycles this loop takes! Assuming 40 for now.
 			do {
 				count++; // 2 cycles?
-				// 8*4 = 32 cycles per count. fixme (DE20161021) I don't think this takes register setup into account.
+				// 8*4 = 32 cycles per count.
 				_delay_x4cycles(8);
             // Repeat loop until TCNT2 increments.
 			} while (TCNT2 == t1); // 2 cycles?
@@ -222,15 +221,17 @@ bool calibrateInternalOscWithExtOsc()
         else if(count < targetCount) OSCCAL++;
         else {
             return true;
-//            while (true) {
-//                OTV0P2BASE::serialPrintAndFlush("\t count: ");
-//                OTV0P2BASE::serialPrintAndFlush(count);
-//                OTV0P2BASE::serialPrintAndFlush("\t OSCCAL: ");
-//                OTV0P2BASE::serialPrintAndFlush(OSCCAL, BIN);
-//                OTV0P2BASE::serialPrintAndFlush(F("\tUUUUU"));
-//                OTV0P2BASE::serialPrintlnAndFlush();
-//                delay(1000);
-//            }
+#if 0
+            while (true) {
+                OTV0P2BASE::serialPrintAndFlush("\t count: ");
+                OTV0P2BASE::serialPrintAndFlush(count);
+                OTV0P2BASE::serialPrintAndFlush("\t OSCCAL: ");
+                OTV0P2BASE::serialPrintAndFlush(OSCCAL, BIN);
+                OTV0P2BASE::serialPrintAndFlush(F("\tUUUUU"));
+                OTV0P2BASE::serialPrintlnAndFlush();
+                delay(1000);
+            }
+#endif // 0
         }
         // Wait for oscillator to settle.
         _delay_x4cycles(2);
