@@ -622,26 +622,21 @@ namespace OTSIM900Link
              * @param   length: Length of data buffer.
              * @retval  Number of characters received before time out.
              */
-            uint8_t timedBlockingRead(char *data, uint8_t length)
+            uint8_t timedBlockingRead(char * const data, const uint8_t length)
                 {
-                // clear buffer, get time and init i to 0
-                uint8_t counter = 0;
-                uint8_t len = length;
-                char *pdata = data;
+                //
+                char *dp = data;
                 memset(data, 0, length);
-                while (len--)
-                    {
-                    char c = ser.read();
-                    if (c == -1)
-                        break;
-                    *pdata++ = c;
-                    counter++;
-                    }
+                while ((dp-data) < length) {
+                    const char c = ser.read();
+                    if (c == -1) break;
+                    else *dp++ = c;
+                }
 #if 0
                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("\n--Buffer Length: ")
                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN(i)
 #endif
-                return counter;
+                return (data-dp);
                 }
             /**
              * @brief   Utility function for printing from config structure.
