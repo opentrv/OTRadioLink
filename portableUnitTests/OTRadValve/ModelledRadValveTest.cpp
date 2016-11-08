@@ -663,5 +663,7 @@ FIXME: tests pending...
 TODO: standard driver and test cases from data above!
 
 TODO: check that pauses between turn up and turn down are enforced.
+
+TODO: check that BAKE behaves as expected, in target raise and duration and reversion to WARM.
  */
 
