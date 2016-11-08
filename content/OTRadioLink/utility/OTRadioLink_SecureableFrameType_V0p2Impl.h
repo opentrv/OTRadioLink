@@ -55,7 +55,7 @@ namespace OTRadioLink
         protected:
             // Constructor is protected to force use of factory method to return singleton.
             // Else deriving class can construct some other way.
-            SimpleSecureFrame32or0BodyTXV0p2() { }
+            constexpr SimpleSecureFrame32or0BodyTXV0p2() { }
 
         public:
             // Factory method to get singleton instance.
@@ -190,7 +190,7 @@ namespace OTRadioLink
 
     // Variant that allows ID for TX to be fetched on demand, not directly using local node ID.
 #define SimpleSecureFrame32or0BodyTXV0p2SuppliedID_DEFINED
-    class SimpleSecureFrame32or0BodyTXV0p2SuppliedID : public SimpleSecureFrame32or0BodyTXV0p2
+    class SimpleSecureFrame32or0BodyTXV0p2SuppliedID final : public SimpleSecureFrame32or0BodyTXV0p2
         {
         public:
             // Type of pointer to function to fill in 8-byte ID for TX; returns false on failure.
@@ -256,11 +256,11 @@ namespace OTRadioLink
     //  2b) A 7-bit CRC of the message counter bytes, stored inverted,
     //      so that the all-1s erased state of counter and CRC is valid (counter value 0).
 #define SimpleSecureFrame32or0BodyRXV0p2_DEFINED
-    class SimpleSecureFrame32or0BodyRXV0p2 : public SimpleSecureFrame32or0BodyRXBase
+    class SimpleSecureFrame32or0BodyRXV0p2 final : public SimpleSecureFrame32or0BodyRXBase
         {
         private:
             // Constructor is private to force use of factory method to return singleton.
-            SimpleSecureFrame32or0BodyRXV0p2() { }
+            constexpr SimpleSecureFrame32or0BodyRXV0p2() { }
 
         public:
             // Factory method to get singleton instance.

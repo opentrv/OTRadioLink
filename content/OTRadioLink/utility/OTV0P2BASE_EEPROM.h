@@ -183,36 +183,6 @@ bool eeprom_smart_erase_byte(uint8_t *p);
 bool eeprom_smart_clear_bits(uint8_t *p, uint8_t mask);
 
 
-// EEPROM- (and Flash-) friendly single-byte unary incrementable encoding.
-// A single byte can be used to hold a single value [0,8]
-// such that increment requires only a write of one bit (no erase)
-// and in general increasing the value up to the maximum only requires a single write.
-// An erase is required only to decrease the value (eg back to zero).
-// An initial EEPROM (erased) value of 0xff is mapped to zero.
-// The two byte version can hold values in the range [0,16].
-// Corruption can be detected if an unexpected bit pattern is encountered on decode.
-// For the single byte versions, encodings are:
-//  0 -> 0xff
-//  1 -> 0xfe
-//  2 -> 0xfc
-//  3 -> 0xf8
-//  4 -> 0xf0
-//  5 -> 0xe0
-//  6 -> 0xc0
-//  7 -> 0x80
-//  8 -> 0x00
-static const uint8_t EEPROM_UNARY_1BYTE_MAX_VALUE = 8;
-static const uint8_t EEPROM_UNARY_2BYTE_MAX_VALUE = 16;
-inline uint8_t eeprom_unary_1byte_encode(uint8_t n) { return((n >= 8) ? 0 : (0xffU << n)); }
-inline uint16_t eeprom_unary_2byte_encode(uint8_t n) { return((n >= 16) ? 0 : (0xffffU << n)); }
-// Decode routines return -1 in case of unexpected/invalid input patterns.
-// All other (valid non-negative) return values can be safely cast to unit8_t.
-int8_t eeprom_unary_1byte_decode(uint8_t v);
-int8_t eeprom_unary_2byte_decode(uint8_t vm, uint8_t vl);
-// First arg is most significant byte.
-inline int8_t eeprom_unary_2byte_decode(uint16_t v) { return(eeprom_unary_2byte_decode((uint8_t)(v >> 8), (uint8_t)v)); }
-
-
 // Unit test location for erase/write.
 // Also may be more vulnerable to damage during resets/brown-outs.
 #define V0P2BASE_EE_START_TEST_LOC 0 // 1-byte test location.
@@ -431,6 +401,36 @@ class EEPROMByHourByteStats final : public NVByHourByteStatsBase
   };
 
 #endif // ARDUINO_ARCH_AVR
+
+
+// EEPROM- (and Flash-) friendly single-byte unary incrementable encoding.
+// A single byte can be used to hold a single value [0,8]
+// such that increment requires only a write of one bit (no erase)
+// and in general increasing the value up to the maximum only requires a single write.
+// An erase is required only to decrease the value (eg back to zero).
+// An initial EEPROM (erased) value of 0xff is mapped to zero.
+// The two byte version can hold values in the range [0,16].
+// Corruption can be detected if an unexpected bit pattern is encountered on decode.
+// For the single byte versions, encodings are:
+//  0 -> 0xff
+//  1 -> 0xfe
+//  2 -> 0xfc
+//  3 -> 0xf8
+//  4 -> 0xf0
+//  5 -> 0xe0
+//  6 -> 0xc0
+//  7 -> 0x80
+//  8 -> 0x00
+static const uint8_t EEPROM_UNARY_1BYTE_MAX_VALUE = 8;
+static const uint8_t EEPROM_UNARY_2BYTE_MAX_VALUE = 16;
+inline uint8_t eeprom_unary_1byte_encode(uint8_t n) { return((n >= 8) ? 0 : (0xffU << n)); }
+inline uint16_t eeprom_unary_2byte_encode(uint8_t n) { return((n >= 16) ? 0 : (0xffffU << n)); }
+// Decode routines return -1 in case of unexpected/invalid input patterns.
+// All other (valid non-negative) return values can be safely cast to unit8_t.
+int8_t eeprom_unary_1byte_decode(uint8_t v);
+int8_t eeprom_unary_2byte_decode(uint8_t vm, uint8_t vl);
+// First arg is most significant byte.
+inline int8_t eeprom_unary_2byte_decode(uint16_t v) { return(eeprom_unary_2byte_decode((uint8_t)(v >> 8), (uint8_t)v)); }
 
 
 // Range-compress an signed int 16ths-Celsius temperature to a unsigned single-byte value < 0xff.

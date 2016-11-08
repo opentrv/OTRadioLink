@@ -148,7 +148,7 @@ TEST(CurrentSenseValveMotorDirect,basics)
                                                                      minimumMotorRunupTicks));
     basics(&csvmd1);
     // Until calibration has been successfully run, this should be in non-proportional mode.
-    EXPECT_TRUE(csvmd1.inNonProprtionalMode());
+    EXPECT_TRUE(csvmd1.inNonProportionalMode());
     // Nothing passed in requires deferral of (re)calibration.
     EXPECT_FALSE(csvmd1.shouldDeferCalibration());
 }
@@ -248,7 +248,7 @@ static void initStateWalkthrough(OTRadValve::CurrentSenseValveMotorDirectBase *c
 //    // Check deferral of (re)calibration.
 //    EXPECT_EQ(batteryLow, csv->shouldDeferCalibration());
     // Valve should now start calibrating, but calibration is skipped with low battery...
-    EXPECT_EQ((batteryLow || csv->isNonProprtionalOnly())
+    EXPECT_EQ((batteryLow || csv->isNonProportionalOnly())
         ? OTRadValve::CurrentSenseValveMotorDirect::valveNormal :
           OTRadValve::CurrentSenseValveMotorDirect::valveCalibrating, csv->getState()) << (batteryLow ? "low" : "normal");
     }

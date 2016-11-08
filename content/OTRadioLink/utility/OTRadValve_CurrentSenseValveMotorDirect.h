@@ -294,7 +294,7 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     // If true, proportional mode is never used and the valve is run to end stops instead.
     // Primarily public to allow whitebox unit testing.
     // Always true in this binary-only implementation.
-    virtual bool isNonProprtionalOnly() const { return(true); }
+    virtual bool isNonProportionalOnly() const { return(true); }
 
     // Called when end stop hit, eg by overcurrent detection.
     // Can be called while run() is in progress.
@@ -469,11 +469,11 @@ class CurrentSenseValveMotorDirect final : public CurrentSenseValveMotorDirectBi
     // If true, proportional mode is never used and the valve is run to end stops instead.
     // Primarily public to allow whitebox unit testing.
     // Always false in this proportional implementation.
-    virtual bool isNonProprtionalOnly() const override { return(false); }
+    virtual bool isNonProportionalOnly() const override { return(false); }
 
     // If true, proportional mode is not being used and the valve is run to end stops instead.
     // Primarily public to allow whitebox unit testing.
-    bool inNonProprtionalMode() const { return(needsRecalibrating); }
+    bool inNonProportionalMode() const { return(needsRecalibrating); }
   };
 
 

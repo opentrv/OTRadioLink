@@ -173,7 +173,7 @@ namespace OTRadioLink
             virtual void _dolisten() = 0;
 
         public:
-            OTRadioLink()
+            constexpr OTRadioLink()
               : listenChannel(-1), nChannels(0), channelConfig(NULL),
                 droppedRXedMessageCountRecent(0), filteredRXedMessageCountRecent(0),
                 filterRXISR(NULL)

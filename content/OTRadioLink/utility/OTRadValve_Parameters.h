@@ -130,7 +130,7 @@ namespace OTRadValve
     class ValveControlParametersRT : public ValveControlParametersRTBase
       {
       public:
-        ValveControlParametersRT()
+        constexpr ValveControlParametersRT()
           : ValveControlParametersRTBase(
             VCP::BAKE_UPLIFT,
             VCP::SETBACK_DEFAULT,

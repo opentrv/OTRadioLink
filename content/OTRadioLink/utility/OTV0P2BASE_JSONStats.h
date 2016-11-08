@@ -79,7 +79,7 @@ struct GenericStatsDescriptor final
     // and all copies have been disposed of (so is probably best a static string).
     // By default the statistic is normal priority.
     // Sensitivity by default does not allow TX unless at minimal privacy level.
-    GenericStatsDescriptor(const MSG_JSON_SimpleStatsKey_t statKey,
+    constexpr GenericStatsDescriptor(const MSG_JSON_SimpleStatsKey_t statKey,
                            const bool statLowPriority = false)
                            // const uint8_t statSensitivity = 1)
       : key(statKey), lowPriority(statLowPriority) // , sensitivity(statSensitivity)
@@ -213,7 +213,7 @@ class SimpleStatsRotationBase
   protected:
     struct DescValueTuple final
       {
-      DescValueTuple() : descriptor(NULL), value(0) { }
+      constexpr DescValueTuple() : descriptor(NULL), value(0) { }
 
       // Descriptor of this stat.
       GenericStatsDescriptor descriptor;
@@ -222,9 +222,9 @@ class SimpleStatsRotationBase
       int value;
 
       // Various run-time flags.
-      struct Flags
+      struct Flags final
         {
-        Flags() : changed(false) { }
+        constexpr Flags() : changed(false) { }
 
         // Set true when the value is changed.
         // Set false when the value written out,
@@ -245,7 +245,7 @@ class SimpleStatsRotationBase
     DescValueTuple *findByKey(MSG_JSON_SimpleStatsKey_t key) const;
 
     // Initialise base with appropriate storage (non-NULL) and capacity knowledge.
-    SimpleStatsRotationBase(DescValueTuple *_stats, const uint8_t _capacity)
+    constexpr SimpleStatsRotationBase(DescValueTuple *_stats, const uint8_t _capacity)
       : capacity(_capacity), stats(_stats), nStats(0),
         lastTXed(~0), lastTXedLoPri(~0), lastTXedHiPri(~0), // Show the first item on the first pass...
         id(NULL)
@@ -284,9 +284,9 @@ class SimpleStatsRotationBase
     // is displayed immediately after the @/ID field when enabled,
     // and missing count values suggest a lost transmission somewhere.
     // Takes minimal space (1 byte).
-    struct WriteCount
+    struct WriteCount final
       {
-      WriteCount() : enabled(0), count(0) { }
+      constexpr WriteCount() : enabled(0), count(0) { }
       bool enabled /* : 1 */; // 1 if display of counter is enabled, else 0.
       uint8_t count : 3; // Increments on each successful write.
       } c;
@@ -304,7 +304,7 @@ class SimpleStatsRotation final : public SimpleStatsRotationBase
     DescValueTuple stats[MaxStats];
 
   public:
-    SimpleStatsRotation() : SimpleStatsRotationBase(stats, MaxStats) { }
+    constexpr SimpleStatsRotation() : SimpleStatsRotationBase(stats, MaxStats) { }
 
     // Get capacity.
     uint8_t getCapacity() { return(MaxStats); }

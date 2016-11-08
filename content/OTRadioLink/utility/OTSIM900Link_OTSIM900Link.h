@@ -163,8 +163,8 @@ namespace OTSIM900Link
         PANIC
         };
 
-// Includes string constants.
-    class OTSIM900LinkBase: public OTRadioLink::OTRadioLink
+    // Includes string constants.
+    class OTSIM900LinkBase : public OTRadioLink::OTRadioLink
         {
         protected:
             static const char *AT_START;

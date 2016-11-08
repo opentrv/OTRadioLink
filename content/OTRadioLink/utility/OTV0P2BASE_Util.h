@@ -42,8 +42,6 @@ namespace OTV0P2BASE
 // Templated function versions of min()/max() that do not evaluate the arguments twice.
 template <class T> constexpr const T& fnmin( const T& a, const T& b ) { return((a>b)?b:a); }
 template <class T> constexpr const T& fnmax( const T& a, const T& b ) { return((a<b)?b:a); }
-//template <class T> const T& fnmin(const T& a, const T& b) { return((a>b)?b:a); }
-//template <class T> const T& fnmax(const T& a, const T& b) { return((a<b)?b:a); }
 
 // Compatible non-macro constexpr fn replacement for Arduino constrain().
 // Constrains x to inclusive range [l,h].
@@ -98,7 +96,7 @@ class ScratchSpace final
     //     must be non-NULL except to indicate that the buffer is unusable.
     //   * bufsize_  size of usable start of buffer;
     //     must be positive except to indicate that the buffer is unusable.
-    ScratchSpace(uint8_t *const buf_, const uint8_t bufsize_)
+    constexpr ScratchSpace(uint8_t *const buf_, const uint8_t bufsize_)
       : buf((0 == bufsize_) ? NULL : buf_), bufsize((NULL == buf_) ? 0 : bufsize_) { }
 
     // Check if sub-spacw cannot be made (would not leave at least one byte available).
@@ -107,7 +105,7 @@ class ScratchSpace final
     // Create a sub-space n bytes from the start of the current space.
     // If the existing buffer is smaller than n (or null), or n is null,
     // the the result will be NULL and zero-sized.
-    ScratchSpace(const ScratchSpace &parent, const uint8_t reserveN)
+    constexpr ScratchSpace(const ScratchSpace &parent, const uint8_t reserveN)
       : buf(subSpaceCannotBeMade(parent.bufsize, reserveN) ? NULL : parent.buf + reserveN),
         bufsize(subSpaceCannotBeMade(parent.bufsize, reserveN) ? 0 : parent.bufsize - reserveN)
         { }
