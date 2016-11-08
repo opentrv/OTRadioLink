@@ -209,7 +209,7 @@ namespace OTRFM23BLink
             const bool allowRXOps;
 
             // Constructor only available to deriving class.
-            OTRFM23BLinkBase(bool _allowRX = true)
+            constexpr OTRFM23BLinkBase(bool _allowRX = true)
               : _currentChannel(0), lastRXErr(0), maxTypicalFrameBytes(MAX_RX_FRAME_DEFAULT), allowRXOps(_allowRX)
               { }
 
@@ -284,14 +284,6 @@ namespace OTRFM23BLink
             // listenChannel will have been set by time this is called.
             virtual void _dolisten();
 
-#if 0 // Defining the virtual destructor uses ~800+ bytes of Flash by forcing use of malloc()/free().
-            // Ensure safe instance destruction when derived from.
-            // by default attempts to shut down the sensor and otherwise free resources when done.
-            // This uses ~800+ bytes of Flash by forcing use of malloc()/free().
-            virtual ~OTRFM23BLinkBase() { }
-#else
-#define OTRFM23BLINK_NO_VIRT_DEST // Beware, no virtual destructor so be careful of use via base pointers.
-#endif
             // Configure radio for transmission via specified channel < nChannels; non-negative.
             void _setChannel(uint8_t channel);
    
@@ -340,6 +332,15 @@ namespace OTRFM23BLink
             // Returns true if it needed to be ended.
             // Shuts down radio in safe low-power state.
             virtual bool end();
+
+#if 0 // Defining the virtual destructor uses ~800+ bytes of Flash by forcing use of malloc()/free().
+            // Ensure safe instance destruction when derived from.
+            // by default attempts to shut down the sensor and otherwise free resources when done.
+            // This uses ~800+ bytes of Flash by forcing use of malloc()/free().
+            virtual ~OTRFM23BLinkBase() { }
+#else
+#define OTRFM23BLINK_NO_VIRT_DEST // Beware, no virtual destructor so be careful of use via base pointers.
+#endif
         };
 
     // Concrete impl class for RFM23B radio link hardware driver.
@@ -707,9 +708,9 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // True if there is hardware interrupt support.
             // This might be dedicated to the radio, or shared with other devices.
             // Should be a compile-time constant.
-            static const bool hasInterruptSupport = (RFM_nIRQ_DigitalPin >= 0);
+            static constexpr bool hasInterruptSupport = (RFM_nIRQ_DigitalPin >= 0);
 
-            OTRFM23BLink() : OTRFM23BLinkBase(allowRX) { }
+            constexpr OTRFM23BLink() : OTRFM23BLinkBase(allowRX) { }
 
             // Do very minimal pre-initialisation, eg at power up, to get radio to safe low-power mode.
             // Argument is read-only pre-configuration data;
