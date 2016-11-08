@@ -654,3 +654,14 @@ Starred items are tested.
 =W45%@18C9;X0;T15 22 W255 0 F255 0 W18 51 F20 36;S18 7 18;HC65 74;{"@":"414a","vC|%":559,"L":59,"B|mV":3315,"occ|%":0}
 ...
 */
+
+
+
+/*
+FIXME: tests pending...
+
+TODO: standard driver and test cases from data above!
+
+TODO: check that pauses between turn up and turn down are enforced.
+ */
+
