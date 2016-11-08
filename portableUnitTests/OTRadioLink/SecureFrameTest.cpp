@@ -1093,5 +1093,64 @@ TEST(OTAESGCMSecureFrame, NodeAssocRunOnce)
   }
 #endif
 
+// Mock TX base: all zeros fixed IV and counters, valid fixed ID.
+class TXBaseMock final : public OTRadioLink::SimpleSecureFrame32or0BodyTXBase
+  {
+  public:
+    // Get TX ID that will be used for transmission; returns false on failure.
+    // Argument must be buffer of (at least) OTV0P2BASE::OpenTRV_Node_ID_Bytes bytes.
+    virtual bool getTXID(uint8_t *id) const override { memset(id, 0x80, OTV0P2BASE::OpenTRV_Node_ID_Bytes); return(true); }
+    // Get the 3 bytes of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
+    virtual bool get3BytePersistentTXRestartCounter(uint8_t *buf) const override { memset(buf, 0, 3); return(true); }
+    // Reset the persistent reboot/restart message counter; returns false on failure.
+    virtual bool resetRaw3BytePersistentTXRestartCounter(bool allZeros = false) override { return(false); }
+    // Increment persistent reboot/restart message counter; returns false on failure.
+    virtual bool increment3BytePersistentTXRestartCounter() override { return(false); }
+    // Fills the supplied 6-byte array with the incremented monotonically-increasing primary TX counter.
+    virtual bool incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(uint8_t *buf) override { memset(buf, 0, 6); return(true); }
+  };
+
+// Test encoding of O frames through to final byte pattern.
+TEST(OTAESGCMSecureFrame, OFrameEncoding)
+{
+    TXBaseMock mockTX;
+
+    // All zeroes key.
+    const uint8_t *const key = zeroBlock;
+    // Size of buffer to receive encrypted frame.
+    constexpr uint8_t encBufSize = 64;
+    // Length of ID prefix for frame.
+    const uint8_t txIDLen =4;
+    // Distinguished 'invalid' valve position; never mistaken for a real valve.
+    constexpr uint8_t valvePC = 0x7f;
+
+    // Expected result.
+    const uint8_t expected[63] = {62,207,4,128,128,128,128,32,102,58,109,143,127,209,106,16,122,170,41,17,135,168,193,220,188,110,36,204,190,21,125,138,196,172,122,155,149,87,43,4,0,0,0,0,0,0,162,222,15,42,215,77,210,0,127,19,255,121,139,199,19,12,128};
+
+    // Encrypt empty (no-JSON) O frame via the on-stack workspace API.
+    uint8_t bufS[encBufSize];
+    const OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t eS =
+        OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS;
+    const uint8_t bodylenS = mockTX.generateSecureOFrameRawForTX(
+        bufS, encBufSize, txIDLen, valvePC, NULL, eS, NULL, key);
+    EXPECT_EQ(sizeof(expected), bodylenS);
+//    printf("{"); for(int i = 0; i < bodylenS; ++i) { printf("%d,", bufS[i]); } printf("}\n");
+    for(int i = 0; i < bodylenS; ++i) { ASSERT_EQ(expected[i], bufS[i]); }
+
+    // Encrypt empty (no-JSON) O frame via the explicit workspace API.
+    uint8_t bufW[encBufSize];
+    constexpr uint8_t workspaceSize = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0;
+    uint8_t workspace[workspaceSize];
+    OTV0P2BASE::ScratchSpace sW(workspace, workspaceSize);
+    const OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEncWithWorkspace_ptr_t eW = OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_WORKSPACE;
+    const uint8_t bodylenW = mockTX.generateSecureOFrameRawForTX(
+        bufW, encBufSize, txIDLen, valvePC, NULL, eW, sW, key);
+    EXPECT_EQ(63, bodylenW);
+    for(int i = 0; i < bodylenW; ++i) { ASSERT_EQ(expected[i], bufW[i]); }
+}
+
+
+
+
 
 #endif // ARDUINO_LIB_OTAESGCM

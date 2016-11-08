@@ -121,10 +121,10 @@ namespace OTRadioLink
     // More sophisticated padding schemes are allowed to pad to smaller than 32,
     // eg to 16 bytes for 16-byte-block encryption mechanisms,
     // to conserve bandwidth.
-    const static uint8_t ENC_BODY_SMALL_FIXED_CTEXT_SIZE = 32;
+    constexpr static uint8_t ENC_BODY_SMALL_FIXED_CTEXT_SIZE = 32;
 
     // For fixed-size default encrypted bodies the maximum plaintext size is one less.
-    const static uint8_t ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE =
+    constexpr static uint8_t ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE =
         ENC_BODY_SMALL_FIXED_CTEXT_SIZE - 1;
 
     // Standard length of ID to transmit in a secure frame.
@@ -375,7 +375,7 @@ namespace OTRadioLink
         public:
             // Get TX ID that will be used for transmission; returns false on failure.
             // Argument must be buffer of (at least) OTV0P2BASE::OpenTRV_Node_ID_Bytes bytes.
-            virtual bool getTXID(uint8_t *id) = 0;
+            virtual bool getTXID(uint8_t *id) const = 0;
 
             // Pads plain-text in place prior to encryption with 32-byte fixed length padded output.
             // Simple method that allows unpadding at receiver, does padding in place.
@@ -423,6 +423,7 @@ namespace OTRadioLink
             // A workspace is passed in (and cleared on exit);
             // this routine will fail (safely, returning false) if the workspace is NULL or too small.
             // The workspace requirement depends on the implementation used.
+            static constexpr uint8_t workspaceRequred_GCM32B16BWithWorkspace_OTAESGCM_2p0 = 176;
             // Returns true on success, false on failure.
             typedef bool (*fixed32BTextSize12BNonce16BTagSimpleEncWithWorkspace_ptr_t)(
                     uint8_t *workspace, uint8_t workspaceSize,
@@ -463,6 +464,46 @@ namespace OTRadioLink
                                             fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
                                             void *state, const uint8_t *key);
 
+            // Encode entire secure small frame from header params and body and crypto support.
+            // Buffer for body must be large enough to allow padding to be applied IN PLACE.
+            // This is a raw/partial impl that requires the IV/nonce to be supplied.
+            // This uses fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t style encryption/authentication.
+            // The matching decryption function should be used for decoding/verifying.
+            // The crypto method may need to vary based on frame type,
+            // and on negotiations between the participants in the communications.
+            // Returns the total number of bytes written out for the frame
+            // (including, and with a value one higher than the first 'fl' bytes).
+            // Returns zero in case of error.
+            // The supplied buffer may have to be up to 64 bytes long.
+            //
+            // Note that the sequence number is taken from the 4 least significant bits
+            // of the message counter (at byte 6 in the nonce).
+            //
+            // Parameters:
+            //  * buf  buffer to which is written the entire frame including trailer; never NULL
+            //  * buflen  available length in buf; if too small then this routine will fail (return 0)
+            //  * fType_  frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
+            //  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
+            //  * body / bl_  body data (and length), before padding/encryption, no larger than ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE
+            //  * iv  12-byte initialisation vector / nonce; never NULL
+            //  * e  encryption function; never NULL
+            //  * state  pointer to state for e, if required, else NULL
+            //  * key  secret key; never NULL
+            // Note: the body is passed non-const and must be
+            // (nominally a multiple of) 32 bytes large enough to contain the body
+            // and have padding applied *in situ*.
+            static constexpr uint8_t encodeSecureSmallFrameRawPadInPlace_scratch_usage = 0;
+            static constexpr uint8_t encodeSecureSmallFrameRawPadInPlace_total_scratch_usage_OTAESGCM_2p0 =
+                    workspaceRequred_GCM32B16BWithWorkspace_OTAESGCM_2p0
+                    + encodeSecureSmallFrameRawPadInPlace_scratch_usage;
+            static uint8_t encodeSecureSmallFrameRawPadInPlace(uint8_t *buf, uint8_t buflen,
+                                            FrameType_Secureable fType_,
+                                            const uint8_t *id_, uint8_t il_,
+                                            uint8_t *bodyToBePaddedInSitu, uint8_t bl_,
+                                            const uint8_t *iv,
+                                            fixed32BTextSize12BNonce16BTagSimpleEncWithWorkspace_ptr_t e,
+                                            const OTV0P2BASE::ScratchSpace &scratch, const uint8_t *key);
+
             // Get the 3 bytes of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
             // Combines results from primary and secondary as appropriate.
             // Deals with inversion and checksum checking.
@@ -489,6 +530,7 @@ namespace OTRadioLink
             // even in the face of hardware or software error.
             // When this counter reaches 0xffffffffffff then no more messages can be sent
             // until new keys are shared and the counter is reset.
+            // Get the 3 bytes of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
             virtual bool get3BytePersistentTXRestartCounter(uint8_t *buf) const = 0;
             // Reset the persistent reboot/restart message counter; returns false on failure.
             // TO BE USED WITH EXTREME CAUTION: reusing the message counts and resulting IVs
@@ -511,12 +553,19 @@ namespace OTRadioLink
             // Not ISR-safe.
             virtual bool incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(uint8_t *buf) = 0;
 
-            // Fill in 12-byte IV for 'O'-style (0x80) AESGCM security for a frame to TX.
+            // Fill in 12-byte IV for 'O'-style (0x80) AESGCM security for a frame to TX; returns false on failure.
             // This uses the local node ID as-is for the first 6 bytes by default,
             // but sub-classes may allow other IDs to be supplied.
             // This uses and increments the primary message counter for the last 6 bytes.
             // Returns true on success, false on failure eg due to message counter generation failure.
-            virtual bool compute12ByteIDAndCounterIVForTX(uint8_t *ivBuf) = 0;
+            virtual bool compute12ByteIDAndCounterIVForTX(uint8_t *ivBuf)
+                {
+                if(NULL == ivBuf) { return(false); }
+                // Fetch entire ID directly to ivBuf for simplicity; lsbytes will be overwritten with message counter.
+                if(!getTXID(ivBuf)) { return(false); } // ID fetch failed.
+                // Generate and fill in new message count at end of IV.
+                return(incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(ivBuf + (12-SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes)));
+                }
 
             // Create simple 'O'-style secure frame with an optional encrypted body for transmission.
             // Returns number of bytes written to buffer, or 0 in case of error.
@@ -565,7 +614,7 @@ namespace OTRadioLink
             //  * buflen  available length in buf; if too small then this routine will fail (return 0)
             //  * valvePC  percentage valve is open or 0x7f if no valve to report on
             //  * statsJSON  '\0'-terminated {} JSON stats, or NULL if none.
-            //  * il_  ID length for the header; ID is local node ID from EEPROM or other pre-supplied ID
+            //  * il_  ID length for the header; ID is local node ID from EEPROM or other pre-supplied ID, may be limited to a 6-byte prefix
             //  * key  16-byte secret key; never NULL
             // NOTE: THIS API IS LIABLE TO CHANGE
             uint8_t generateSecureOFrameRawForTX(uint8_t *buf, uint8_t buflen,
@@ -574,6 +623,32 @@ namespace OTRadioLink
                                             const char *statsJSON,
                                             fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
                                             void *state, const uint8_t *key);
+
+            // Create simple 'O' (FTS_BasicSensorOrValve) frame with an optional stats section for transmission.
+            // Returns number of bytes written to buffer, or 0 in case of error.
+            // The IV is constructed from the node ID (built-in from EEPROM or as supplied)
+            // and the primary TX message counter (which is incremented).
+            // Note that the frame will be 27 + ID-length (up to maxIDLength) + body-length bytes,
+            // so the buffer must be large enough to accommodate that.
+            //  * buf  buffer to which is written the entire frame including trailer; never NULL
+            //  * buflen  available length in buf; if too small then this routine will fail (return 0)
+            //  * valvePC  percentage valve is open or 0x7f if no valve to report on
+            //  * statsJSON  '\0'-terminated {} JSON stats, or NULL if none.
+            //  * il_  ID length for the header; ID is local node ID from EEPROM or other pre-supplied ID, may be limited to a 6-byte prefix
+            //  * key  16-byte secret key; never NULL
+            // NOTE: this leaves enough space in the scratch for the plain text to be padded in-situ
+            // thus avoiding any further copy or buffer space required.
+            // NOTE: THIS API IS LIABLE TO CHANGE
+            static constexpr uint8_t generateSecureOFrameRawForTX_scratch_usage = 12 + 32;
+            static constexpr uint8_t generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0 =
+                    encodeSecureSmallFrameRawPadInPlace_total_scratch_usage_OTAESGCM_2p0
+                    + generateSecureOFrameRawForTX_scratch_usage;
+            uint8_t generateSecureOFrameRawForTX(uint8_t *buf, uint8_t buflen,
+                                            uint8_t il_,
+                                            uint8_t valvePC,
+                                            const char *statsJSON,
+                                            fixed32BTextSize12BNonce16BTagSimpleEncWithWorkspace_ptr_t e,
+                                            const OTV0P2BASE::ScratchSpace &scratch, const uint8_t *key);
         };
 
     // RX Base class for simple implementations that supports 0 or 32 byte encrypted body sections.
@@ -638,6 +713,7 @@ namespace OTRadioLink
             // A workspace is passed in (and cleared on exit);
             // this routine will fail (safely, returning false) if the workspace is NULL or too small.
             // The workspace requirement depends on the implementation used.
+            static constexpr uint8_t workspaceRequred_GCM32B16BWithWorkspace_OTAESGCM_2p0 = SimpleSecureFrame32or0BodyTXBase::workspaceRequred_GCM32B16BWithWorkspace_OTAESGCM_2p0;
             // Returns true on success, false on failure.
             typedef bool (*fixed32BTextSize12BNonce16BTagSimpleDecWithWorkspace_ptr_t)(
                     uint8_t *workspace, uint8_t workspaceSize,

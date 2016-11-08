@@ -658,7 +658,7 @@ Starred items are tested.
 
 
 /*
-FIXME: tests pending...
+FIXME: tests pending...  See also TODO-1028.
 
 TODO: standard driver and test cases from data above!
 
