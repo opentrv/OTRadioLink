@@ -32,7 +32,6 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
 
 #ifdef ARDUINO
 #include "Arduino.h"
-#include <Stream.h>
 #endif
 
 #include "utility/OTV0P2BASE_FastDigitalIO.h"
@@ -67,11 +66,6 @@ protected:
 //    static const constexpr uint8_t startDelay = bitCycles + halfDelay;
 
 public:
-    /**
-     * @brief   Constructor for OTSoftSerial2
-     */
-    OTSoftSerial2() { }
-
     /**
      * @brief   Initialises OTSoftSerial2 and sets up pins.
      * @param   speed: Not used. Kept for compatibility with Arduino libraries.
