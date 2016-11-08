@@ -408,6 +408,29 @@ namespace OTRadioLink
                     const uint8_t *plaintext,
                     uint8_t *ciphertextOut, uint8_t *tagOut);
 
+            // Signature of pointer to basic fixed-size text encryption/authentication function with workspace supplied.
+            // (Suitable for type 'O' valve/sensor small frame for example.)
+            // Can be fulfilled by AES-128-GCM for example
+            // where:
+            //   * textSize is 32 (or zero if plaintext is NULL)
+            //   * keySize is 16
+            //   * nonceSize is 12
+            //   * tagSize is 16
+            // The plain-text (and identical cipher-text) size is picked to be
+            // a multiple of the cipher's block size, or zero,
+            // which implies likely requirement for padding of the plain text.
+            // Note that the authenticated text size is not fixed, ie is zero or more bytes.
+            // A workspace is passed in (and cleared on exit);
+            // this routine will fail (safely, returning false) if the workspace is NULL or too small.
+            // The workspace requirement depends on the implementation used.
+            // Returns true on success, false on failure.
+            typedef bool (*fixed32BTextSize12BNonce16BTagSimpleEncWithWorkspace_ptr_t)(
+                    uint8_t *workspace, uint8_t workspaceSize,
+                    const uint8_t *key, const uint8_t *iv,
+                    const uint8_t *authtext, uint8_t authtextSize,
+                    const uint8_t *plaintext,
+                    uint8_t *ciphertextOut, uint8_t *tagOut);
+
             // Encode entire secure small frame from header params and body and crypto support.
             // This is a raw/partial impl that requires the IV/nonce to be supplied.
             // This uses fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t style encryption/authentication.
@@ -594,6 +617,30 @@ namespace OTRadioLink
             // Decrypts/authenticates the output of a fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t function.)
             // Returns true on success, false on failure.
             typedef bool (*fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t)(void *state,
+                    const uint8_t *key, const uint8_t *iv,
+                    const uint8_t *authtext, uint8_t authtextSize,
+                    const uint8_t *ciphertext, const uint8_t *tag,
+                    uint8_t *plaintextOut);
+
+            // Signature of pointer to basic fixed-size text decryption/authentication function with workspace supplied.
+            // (Suitable for type 'O' valve/sensor small frame for example.)
+            // Can be fulfilled by AES-128-GCM for example
+            // where:
+            //   * textSize is 32 (or zero if ciphertext is NULL)
+            //   * keySize is 16
+            //   * nonceSize is 12
+            //   * tagSize is 16
+            // The plain-text (and identical cipher-text) size is picked to be
+            // a multiple of the cipher's block size, or zero,
+            // which implies likely requirement for padding of the plain text.
+            // Note that the authenticated text size is not fixed, ie is zero or more bytes.
+            // Decrypts/authenticates the output of a fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t function.)
+            // A workspace is passed in (and cleared on exit);
+            // this routine will fail (safely, returning false) if the workspace is NULL or too small.
+            // The workspace requirement depends on the implementation used.
+            // Returns true on success, false on failure.
+            typedef bool (*fixed32BTextSize12BNonce16BTagSimpleDecWithWorkspace_ptr_t)(
+                    uint8_t *workspace, uint8_t workspaceSize,
                     const uint8_t *key, const uint8_t *iv,
                     const uint8_t *authtext, uint8_t authtextSize,
                     const uint8_t *ciphertext, const uint8_t *tag,
