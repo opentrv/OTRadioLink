@@ -23,8 +23,6 @@ Author(s) / Copyright (s): Deniz Erbilgin 2015
 
 namespace OTRadioLink {
 
-OTNullRadioLink::OTNullRadioLink() {}
-
 
 void OTNullRadioLink::getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen) const
 {

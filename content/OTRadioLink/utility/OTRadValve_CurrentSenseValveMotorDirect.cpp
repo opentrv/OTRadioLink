@@ -541,7 +541,7 @@ bool CurrentSenseValveMotorDirect::do_valveNormal_prop()
 
     // If in non-proportional mode
     // then fall back to non-prop behaviour.
-    if(inNonProprtionalMode())
+    if(inNonProportionalMode())
         { return(false); } // Fall through.
 
     // If the desired target is close to either end

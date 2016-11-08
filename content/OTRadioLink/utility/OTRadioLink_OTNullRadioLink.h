@@ -31,11 +31,11 @@ namespace OTRadioLink{
 /**
  * @brief    This is a skeleton class that extends OTRadiolink and does nothing
  */
-class OTNullRadioLink : public OTRadioLink::OTRadioLink
+class OTNullRadioLink final : public OTRadioLink::OTRadioLink
 {
 /****************** Interface *******************/
 public:
-    OTNullRadioLink();
+    OTNullRadioLink() { }
     bool begin() { return(true); };
     void getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen) const;
     uint8_t getRXMsgsQueued() const;

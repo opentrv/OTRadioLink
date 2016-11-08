@@ -146,7 +146,7 @@ namespace OTRadioLink
     // With all of these routines it is important to check and act on error codes,
     // usually aborting immediately if an error value is returned.
     // MUDDLING ON WITHOUT CHECKING FOR ERRORS MAY SEVERELY DAMAGE SYSTEM SECURITY.
-    struct SecurableFrameHeader
+    struct SecurableFrameHeader final
         {
         // Create an instance as an invalid frame header ready to start with seqNum==0.
         // Make the frame length 0 (which is invalid).

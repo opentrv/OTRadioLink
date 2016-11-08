@@ -53,7 +53,7 @@ namespace OTRadioLink
             volatile uint8_t queuedRXedMessageCount;
 
             // Initialise state and only allow deriving classes to instantiate.
-            ISRRXQueue() : queuedRXedMessageCount(0) { }
+            constexpr ISRRXQueue() : queuedRXedMessageCount(0) { }
 
         public:
             // Fetches the current inbound RX minimum queue capacity and maximum RX raw message size.
@@ -128,7 +128,7 @@ namespace OTRadioLink
 
     // Dummy/null always-empty queue that can never hold a frame.
     // Use as a space-saving stub/placeholder
-    class ISRRXQueueNULL : public ISRRXQueue
+    class ISRRXQueueNULL final : public ISRRXQueue
         {
         public:
             virtual void getRXCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen) const
@@ -145,7 +145,7 @@ namespace OTRadioLink
     //   * maxRXBytes  a frame to be queued can be up to maxRXBytes bytes long; in the range [0,255]
     // Does minimal checking; all arguments must be sane.
     template<uint8_t maxRXBytes>
-    class ISRRXQueue1Deep : public ISRRXQueue
+    class ISRRXQueue1Deep final : public ISRRXQueue
         {
         private:
             // 1-deep RX queue and buffer used to accept data during RX.
@@ -348,7 +348,7 @@ namespace OTRadioLink
     //   * maxRXBytes  a frame to be queued can be up to maxRXBytes bytes long; in the range [1,255]
     //   * targetISRRXMinQueueCapacity  target number of max-sized frames queueable [1,255], usually [2,4]
     template<uint8_t maxRXBytes, uint8_t targetISRRXMinQueueCapacity = 2>
-    class ISRRXQueueVarLenMsg : public ISRRXQueueVarLenMsgBase
+    class ISRRXQueueVarLenMsg final : public ISRRXQueueVarLenMsgBase
         {
         private:
             /*Actual buffer size (bytes). */
@@ -359,7 +359,7 @@ namespace OTRadioLink
              */
             volatile uint8_t buf[ISRRX_BUFSIZ];
         public:
-            ISRRXQueueVarLenMsg() : ISRRXQueueVarLenMsgBase(maxRXBytes, buf, (uint8_t)(ISRRX_BUFSIZ-1)) { }
+            constexpr ISRRXQueueVarLenMsg() : ISRRXQueueVarLenMsgBase(maxRXBytes, buf, (uint8_t)(ISRRX_BUFSIZ-1)) { }
             /*Guaranteed minimum number of (full-length) messages that can be queued. */
             static const uint8_t MinQueueCapacityMsgs = ISRRX_BUFSIZ / (maxRXBytes + 1);
             // Fetches the current inbound RX minimum queue capacity and maximum RX raw message size.

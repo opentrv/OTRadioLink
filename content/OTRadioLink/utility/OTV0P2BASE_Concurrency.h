@@ -73,7 +73,7 @@ namespace OTV0P2BASE
             // Create uninitialised value.
             Atomic_UInt8T() { }
             // Create initialised value.
-            Atomic_UInt8T(uint8_t v) : value(v) { }
+            constexpr Atomic_UInt8T(uint8_t v) : value(v) { }
 
             // Atomically load current value.
             // Relies on load/store of single byte being atomic on AVR.
