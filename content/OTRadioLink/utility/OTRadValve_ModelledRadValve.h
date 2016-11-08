@@ -212,7 +212,7 @@ struct ModelledRadValveState final
 
   // Length of filter memory in ticks; strictly positive.
   // Must be at least 4, and may be more efficient at a power of 2.
-  static const size_t filterLength = 16;
+  static constexpr size_t filterLength = 16;
 
   // Previous unadjusted temperatures, 0 being the newest, and following ones successively older.
   // These values have any target bias removed.
