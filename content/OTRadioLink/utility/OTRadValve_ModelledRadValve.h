@@ -171,7 +171,7 @@ struct ModelledRadValveState final
   // This is a useful as a measure of battery consumption (slewing the valve)
   // and noise generated (and thus disturbance to humans) and of appropriate control damping.
   //
-  // Keep as an unsigned 12-bit field (uint16_t x : 12) to ensure that
+  // Keep as an unsigned 13-bit field (uint16_t x : 13) to ensure that
   // the value doesn't wrap round to -ve value
   // and can safely be sent/received in JSON by hosts with 16-bit signed ints,
   // and the maximum number of decimal digits used in its representation is limited to 4
@@ -180,7 +180,7 @@ struct ModelledRadValveState final
   // Daily allowance (in terms of battery/energy use) is assumed to be about 400% (DHD20141230),
   // so this should hold many times that value to avoid ambiguity from missed/infrequent readings,
   // especially given full slew (+100%) in nominally as little as 1 minute.
-  uint16_t cumulativeMovementPC : 12;
+  uint16_t cumulativeMovementPC : 13;
 
   // Set non-zero when valve flow is constricted, and then counts down to zero.
   // Some or all attempts to open the valve are deferred while this is non-zero
