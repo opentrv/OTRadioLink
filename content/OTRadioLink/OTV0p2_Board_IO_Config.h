@@ -30,6 +30,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #ifndef OTV0P2_BOARD_IO_CONFIG_H
 #define OTV0P2_BOARD_IO_CONFIG_H
 
+
+#ifdef ARDUINO
+
 #include <OTV0p2Base.h> // Underlying hardware support definitions.
 
 
@@ -304,6 +307,8 @@ static inline void IOSetup()
 
 
 }
+
+#endif // ARDUINO
 
 #endif
 
