@@ -71,9 +71,9 @@ namespace OTV0P2BASE
             volatile uint8_t value;
 
             // Create uninitialised value.
-            Atomic_UInt8T() { }
+            Atomic_UInt8T() = default;
             // Create initialised value.
-            constexpr Atomic_UInt8T(uint8_t v) : value(v) { }
+            constexpr Atomic_UInt8T(uint8_t v) noexcept : value(v) { }
 
             // Atomically load current value.
             // Relies on load/store of single byte being atomic on AVR.
