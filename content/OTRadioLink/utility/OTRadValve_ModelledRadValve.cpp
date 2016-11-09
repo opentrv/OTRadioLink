@@ -77,12 +77,12 @@ ModelledRadValveState::ModelledRadValveState(const ModelledRadValveInputState &i
   initialised(true),
   isFiltering(false),
   valveMoved(false),
-  cumulativeMovementPC(0),
-  valveTurndownCountdownM(0), valveTurnupCountdownM(0)
+  valveTurndownCountdownM(0), valveTurnupCountdownM(0),
+  cumulativeMovementPC(0)
   {
   // Fills array exactly as tick() would when !initialised.
-  const int_fast16_t rawTempC16 = inputState.refTempC16 - ModelledRadValveInputState::refTempOffsetC16; // Remove adjustment for target centre.
-  for(int i = filterLength; --i >= 0; ) { prevRawTempC16[i] = rawTempC16; }
+  const int_fast16_t rawTempC16 = computeRawTemp16(inputState);
+  _backfillTemperatures(rawTempC16);
   }
 
 // Perform per-minute tasks such as counter and filter updates then recompute valve position.
@@ -94,17 +94,17 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const Modelle
   // Forget last event if any.
   clearEvent();
 
-  const int_fast16_t rawTempC16 = inputState.refTempC16 - ModelledRadValveInputState::refTempOffsetC16; // Remove adjustment for target centre.
+  const int_fast16_t rawTempC16 = computeRawTemp16(inputState); // Remove adjustment for target centre.
   // Do some one-off work on first tick in new instance.
   if(!initialised)
     {
     // Fill the filter memory with the current room temperature.
-    for(int i = filterLength; --i >= 0; ) { prevRawTempC16[i] = rawTempC16; }
+    _backfillTemperatures(rawTempC16);
     initialised = true;
     }
 
   // Shift in the latest (raw) temperature.
-  for(int i = filterLength; --i > 0; ) { prevRawTempC16[i] = prevRawTempC16[i-1]; }
+  for(int_fast8_t i = filterLength; --i > 0; ) { prevRawTempC16[i] = prevRawTempC16[i-1]; }
   prevRawTempC16[0] = rawTempC16;
 
   // Disable/enable filtering.
@@ -116,7 +116,7 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const Modelle
   // Force filtering (back) on if any adjacent past readings are wildly different.
   else
     {
-    for(unsigned int i = 1; i < filterLength; ++i) { if(abs(prevRawTempC16[i] - prevRawTempC16[i-1]) > MAX_TEMP_JUMP_C16) { isFiltering = true; break; } }
+    for(int_fast8_t i = 1; i < filterLength; ++i) { if(abs(prevRawTempC16[i] - prevRawTempC16[i-1]) > MAX_TEMP_JUMP_C16) { isFiltering = true; break; } }
     }
 
   // Tick count down timers.
@@ -131,15 +131,17 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const Modelle
     {
     if(newValvePC > oldValvePC)
       {
-      // Defer reclosing valve to avoid excessive hunting.
+      // Defer re-closing valve to avoid excessive hunting.
       valveTurnup();
-      cumulativeMovementPC += (newValvePC - oldValvePC);
+      const uint8_t move = (newValvePC - oldValvePC);
+      cumulativeMovementPC += move;
       }
     else
       {
-      // Defer opening valve to avoid excessive hunting.
+      // Defer re-opening valve to avoid excessive hunting.
       valveTurndown();
-      cumulativeMovementPC += (oldValvePC - newValvePC);
+      const uint8_t move = (oldValvePC - newValvePC);
+      cumulativeMovementPC += move;
       }
     valvePCOpenRef = newValvePC;
     }
@@ -597,7 +599,6 @@ bool ModelledRadValve::isControlledValveReallyOpen() const
 
 // Compute target temperature and set heat demand for TRV and boiler; update state.
 // CALL REGULARLY APPROXIMATELY ONCE PER MINUTE TO ALLOW SIMPLE TIME-BASED CONTROLS.
-// Inputs are inWarmMode(), isRoomLit().
 //
 // This routine may take significant CPU time.
 //

@@ -39,6 +39,8 @@ TEST(ModelledRadValve,UpDownDelay)
 //    const static bool verbose = false;
 
     OTRadValve::ModelledRadValveInputState is(0);
+    OTRadValve::ModelledRadValveState rs;
+    ASSERT_FALSE(rs.isFiltering);
     // Attempt to cycle the valve back and forth between max open and max closed.
     // Ensure that (without BAKE) there is a pause, and sufficient
 
