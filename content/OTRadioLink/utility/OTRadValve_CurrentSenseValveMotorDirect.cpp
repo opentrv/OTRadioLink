@@ -150,7 +150,7 @@ uint8_t CurrentSenseValveMotorDirect::getMinPercentOpen() const
     // TODO: optimise, ie don't compute each time if frequently called.
     return(usingPositionalShaftEncoder() ?
             OTV0P2BASE::fnmax((uint8_t)(10 + cp.getApproxPrecisionPC()), (uint8_t)DEFAULT_VALVE_PC_MIN_REALLY_OPEN) :
-            OTV0P2BASE::fnmax((uint8_t)(50 + cp.getApproxPrecisionPC()), (uint8_t)DEFAULT_VALVE_PC_SAFER_OPEN));
+            CurrentSenseValveMotorDirectBinaryOnly::getMinPercentOpen());
     }
 
 // Minimally wiggle the motor to give tactile feedback and/or show to be working.
@@ -572,9 +572,10 @@ bool CurrentSenseValveMotorDirect::do_valveNormal_prop()
     // Allow wider epsilon for tracking errors.
     constexpr uint8_t aeps = absTolerancePC;
     const uint8_t weps = OTV0P2BASE::fnmax(aeps, uint8_t(2*eps)); // Cannot overflow since getApproxPrecisionPC() <= 100.
-    if((targetPC >= (100 - 2*eps)) ||
-       (targetPC <= OTV0P2BASE::fnmax(2*eps, minOpenPC>>1)))
-        { return(false); } // Fall through.
+    const uint8_t upperPropLimit = 100 - weps;
+    const uint8_t lowerPropLimit = weps;
+    if((targetPC >= upperPropLimit) || (targetPC <= lowerPropLimit))
+        { return(false); } // Fall through to 'binary' mode code..
 
     // If close enough to the target position then stay as is and leave poll().
     // Carefully avoid overflow/underflow in comparison.
@@ -589,15 +590,12 @@ bool CurrentSenseValveMotorDirect::do_valveNormal_prop()
       // TODO: use shaft encoder positioning by preference, ie when available.
       const bool hitEndStop = runTowardsEndStop(true);
       recomputePosition();
-      // Hit the end-stop, possibly prematurely.
+      // Hitting the end-stop is unexpected.
       if(hitEndStop)
         {
-        // Report serious tracking error (well before 'fairly open' %).
-        if(currentPC < OTV0P2BASE::fnmin(fairlyOpenPC, (uint8_t)(100 - weps)))
-          { reportTrackingError(); }
+        if(currentPC < upperPropLimit - weps) { reportTrackingError(); }
         // Silently auto-adjust when end-stop hit close to expected position.
-        else
-          { resetPosition(true); }
+        resetPosition(true);
         }
 #if 0 && defined(V0P2BASE_DEBUG)
 V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("->");
@@ -609,14 +607,12 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("->");
       // TODO: use shaft encoder positioning by preference, ie when available.
       const bool hitEndStop = runTowardsEndStop(false);
       recomputePosition();
-      // Hit the end-stop, possibly prematurely.
+      // Hitting the end-stop is unexpected.
       if(hitEndStop)
         {
-        // Report serious tracking error.
-        if(currentPC > OTV0P2BASE::fnmax(uint8_t(2*minOpenPC), weps))
-          { reportTrackingError(); }
+        if(currentPC > lowerPropLimit + weps) { reportTrackingError(); }
         // Silently auto-adjust when end-stop hit close to expected position.
-        else { resetPosition(false); }
+        resetPosition(false);
         }
 #if 0 && defined(V0P2BASE_DEBUG)
 V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("-<");

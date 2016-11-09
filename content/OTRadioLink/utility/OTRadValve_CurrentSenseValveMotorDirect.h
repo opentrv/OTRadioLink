@@ -141,10 +141,10 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     // Pointer to function to get current sub-cycle time; never NULL.
     uint8_t (*const getSubCycleTimeFn)();
 
-    // Minimum percent at which valve is usually open [1,00];
-    const uint8_t minOpenPC;
-    // Minimum percent at which valve is usually moderately open [minOpenPC+1,00];
-    const uint8_t fairlyOpenPC;
+//    // Minimum percent at which valve is usually open [1,00];
+//    const uint8_t minOpenPC;
+//    // Minimum percent at which valve is usually moderately open [minOpenPC+1,00];
+//    const uint8_t fairlyOpenPC;
 
     // Absolute limit in sub-cycle beyond which motor should not be started.
     // This should allow meaningful movement and stop and settle and no sub-cycle overrun.
@@ -280,12 +280,12 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
                                  const uint8_t _minMotorDRTicks,
                                  const uint8_t _sctAbsLimit,
                                  OTV0P2BASE::SupplyVoltageLow *_lowBattOpt = NULL,
-                                 bool (*const _minimiseActivityOpt)() = ((bool(*)())NULL),
-                                 uint8_t _minOpenPC = OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN,
-                                 uint8_t _fairlyOpenPC = OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN) :
-        hw(hwDriver),
+                                 bool (*const _minimiseActivityOpt)() = ((bool(*)())NULL))
+//                                 uint8_t _minOpenPC = OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN,
+//                                 uint8_t _fairlyOpenPC = OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN)
+      : hw(hwDriver),
         getSubCycleTimeFn(_getSubCycleTimeFn),
-        minOpenPC(_minOpenPC), fairlyOpenPC(_fairlyOpenPC),
+//        minOpenPC(_minOpenPC), fairlyOpenPC(_fairlyOpenPC),
         sctAbsLimit(_sctAbsLimit),
         minMotorDRTicks(_minMotorDRTicks),
         minimiseActivityOpt(_minimiseActivityOpt), lowBattOpt(_lowBattOpt)
