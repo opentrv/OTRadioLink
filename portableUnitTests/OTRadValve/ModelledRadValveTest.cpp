@@ -35,9 +35,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 // That is, check that pauses between turn up and turn down are enforced correctly.
 TEST(ModelledRadValve,UpDownDelay)
 {
-//    // If true then be more verbose.
-//    const static bool verbose = false;
-
     OTRadValve::ModelledRadValveState rs;
     ASSERT_FALSE(rs.isFiltering);
     EXPECT_FALSE(rs.dontTurndown());
