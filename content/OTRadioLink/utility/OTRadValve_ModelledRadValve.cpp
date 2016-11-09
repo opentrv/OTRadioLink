@@ -648,7 +648,7 @@ void ModelledRadValve::computeTargetTemperature()
     }
 
   // True if the target temperature has been reached or exceeded.
-  const bool targetReached = (newTarget < (inputState.refTempC16 >> 4));
+  const bool targetReached = (newTarget <= (inputState.refTempC16 >> 4));
   underTarget = !targetReached;
   // If the target temperature is already reached then cancel any BAKE mode in progress (TODO-648).
   if(targetReached) { valveModeRW->cancelBakeDebounced(); }
