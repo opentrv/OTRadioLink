@@ -342,7 +342,7 @@ static void normalStateWalkthrough(OTRadValve::CurrentSenseValveMotorDirectBase 
 
     // Target % values to try to reach.
     // Some are listed repeatedly to ensure no significant sticky state.
-    uint8_t targetValues[] = { 0, 100, /* 0, 100 */ };
+    uint8_t targetValues[] = { 0, 100, 0, 100, };
     for(int i = 0; i < sizeof(targetValues); ++i)
         {
         const uint8_t target = targetValues[i];
