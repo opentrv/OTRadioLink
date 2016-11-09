@@ -252,6 +252,9 @@ class ValveMotorDirectV1 : public OTRadValve::AbstractRadValve
     // Returns true if in an error state,
     virtual bool isInErrorState() const override { return(logic.isInErrorState()); }
 
+    // True if the controlled physical valve is thought to be at least partially open right now.
+    virtual bool isControlledValveReallyOpen() const override { return(logic.isControlledValveReallyOpen()); }
+
     // Minimally wiggles the motor to give tactile feedback and/or show to be working.
     // May take a significant fraction of a second.
     // Finishes with the motor turned off, and a bias to closing the valve.

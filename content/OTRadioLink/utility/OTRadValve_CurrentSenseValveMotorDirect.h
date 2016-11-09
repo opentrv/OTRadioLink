@@ -311,7 +311,15 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     void setTargetPC(uint8_t newPC) { targetPC = OTV0P2BASE::fnmin(newPC, (uint8_t)100); }
 
     // Get estimated minimum percentage open for significant flow for this device; strictly positive in range [1,99].
-    virtual uint8_t getMinPercentOpen() const { return(DEFAULT_VALVE_PC_SAFER_OPEN); }
+    virtual uint8_t getMinPercentOpen() const { return(DEFAULT_VALVE_PC_MODERATELY_OPEN); }
+
+    // True if the controlled physical valve is thought to be at least partially open right now.
+    // If multiple valves are controlled then is this true only if all are at least partially open.
+    // Used to help avoid running boiler pump against closed valves.
+    // Must not be true while (re)calibrating.
+    // The default is to use the check the current computed position
+    // against the minimum open percentage.
+    virtual bool isControlledValveReallyOpen() const { return(isInNormalRunState() && (currentPC >= getMinPercentOpen())); }
 
     // Minimally wiggle the motor to give tactile feedback and/or show to be working.
     // May take a significant fraction of a second.
