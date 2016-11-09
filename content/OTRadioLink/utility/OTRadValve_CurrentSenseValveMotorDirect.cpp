@@ -32,7 +32,7 @@ namespace OTRadValve
 #ifdef CurrentSenseValveMotorDirect_DEFINED
 
 // Called with each motor run sub-cycle tick.
-// Is ISR-/thread- safe ***on AVR***.
+// FIXME: is ISR-/thread- safe ***on AVR only*** currently.
 void CurrentSenseValveMotorDirect::signalRunSCTTick(const bool opening)
   {
 #ifdef ARDUINO_ARCH_AVR

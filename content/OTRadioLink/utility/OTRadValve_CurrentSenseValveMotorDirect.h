@@ -470,7 +470,7 @@ class CurrentSenseValveMotorDirect final : public CurrentSenseValveMotorDirectBi
     virtual void signalShaftEncoderMarkStart(bool /*opening*/) override { /* TODO */ }
 
     // Called with each motor run sub-cycle tick.
-    // Is ISR-/thread- safe ***on AVR***.
+    // FIXME: is ISR-/thread- safe ***on AVR only*** currently.
     virtual void signalRunSCTTick(bool opening) override;
 
     // True if (re)calibration should be deferred.
