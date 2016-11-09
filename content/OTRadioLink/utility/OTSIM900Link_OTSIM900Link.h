@@ -145,7 +145,7 @@ namespace OTSIM900Link
     /**
      * @brief   Enum containing major states of SIM900.
      */
-    enum OTSIM900LinkState
+    enum OTSIM900LinkState : uint8_t
         {
         GET_STATE = 0,
         RETRY_GET_STATE,

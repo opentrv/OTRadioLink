@@ -41,7 +41,7 @@ namespace OTV0P2BASE
 // eg an additional 'never transmit occupancy' flag may be set locally.
 // The values correspond to levels and intermediate values not explicitly enumerated are allowed.
 // Lower values mean less that security is required.
-enum stats_TX_level
+enum stats_TX_level : uint8_t
   {
   stTXalwaysAll = 0,    // Always be prepared to transmit all stats (zero privacy).
   stTXmostUnsec = 0x80, // Allow TX of all but most security-sensitive stats in plaintext, eg. occupancy status.

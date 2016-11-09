@@ -148,7 +148,7 @@ struct ModelledRadValveState final
   // Set as appropriate by computeRequiredTRVPercentOpen() to indicate
   // particular activity and paths taken.
   // May only be reported and accessible in debug mode; primarily to facilitate unit testing.
-  typedef enum
+  typedef enum event : uint8_t
     {
     MRVE_NONE,      // No event.
     MRVE_OPENFAST,  // Fast open as per TODO-593.

@@ -68,7 +68,7 @@ namespace OTRadioLink
     // With all of these routines it is important to check and act on error codes,
     // usually aborting immediately if an error value is returned.
     // MUDDLING ON WITHOUT CHECKING FOR ERRORS MAY SEVERELY DAMAGE SYSTEM SECURITY.
-    enum FrameType_Secureable
+    enum FrameType_Secureable : uint8_t
         {
         // No message should be type 0x00/0x01 (nor 0x7f/0xff).
         FTS_NONE                        = 0,

@@ -93,7 +93,7 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     //   * waiting for some user activation step such as pressing a button to indicate valve fitted
     //   * running an initial calibration for the valve.
     //   * entering a normal state tracking the target %-open and periodically recalibrating/decalcinating.
-    enum driverState
+    enum driverState : uint8_t
       {
       init = 0, // Power-up state.
       initWaiting, // Waiting to withdraw pin.
