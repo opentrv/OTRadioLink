@@ -674,8 +674,6 @@ Starred items are tested.
 /*
 FIXME: tests pending...  See also TODO-1028.
 
-TODO: standard driver and test cases from data above!
-
 TODO: check that pauses between turn up and turn down are enforced.
 
 TODO: check that BAKE behaves as expected, in target lift amount, and duration, and reversion to WARM.
@@ -683,5 +681,7 @@ TODO: check that BAKE behaves as expected, in target lift amount, and duration, 
 TODO: check correct response to sharp temp rise when rad comes on for all-in-one unit, eg with low-pass filtering.
 
 TODO: check that cumulative valve movement tracking/computations are correct.
+
+TODO: standard driver and test cases from data above!
  */
 
