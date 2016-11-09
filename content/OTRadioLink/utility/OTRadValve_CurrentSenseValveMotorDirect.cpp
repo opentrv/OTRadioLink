@@ -499,6 +499,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("+calibrating");
       case 4:
         {
         // Set all measured calibration input parameters and current position.
+        // TODO: log event if calibration fails.
         cp.updateAndCompute(perState.valveCalibrating.ticksFromOpenToClosed, perState.valveCalibrating.ticksFromClosedToOpen, minMotorDRTicks);
 
 #if 0 && defined(V0P2BASE_DEBUG)
@@ -523,7 +524,7 @@ OTV0P2BASE::serialPrintAndFlush(cp.getApproxPrecisionPC());
 OTV0P2BASE::serialPrintlnAndFlush();
 #endif
 
-        // Move to normal valve running state...
+        // Move to normal valve running state, even if calibration calculation failed.
         needsRecalibrating = false;
         resetPosition(true); // Valve is currently fully open.
         changeState(valveNormal);

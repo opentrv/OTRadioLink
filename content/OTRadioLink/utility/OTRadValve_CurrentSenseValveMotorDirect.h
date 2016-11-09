@@ -396,7 +396,7 @@ class CurrentSenseValveMotorDirect final : public CurrentSenseValveMotorDirectBi
           // Precision % used to indicate an error condition (legal but clearly no good).
           static constexpr uint8_t bad_precision = 100;
           // If true, device cannot be run in proportional mode.
-          bool cannotRunProportional() { return(approxPrecisionPC > max_usuable_precision); }
+          bool cannotRunProportional() const { return(approxPrecisionPC > max_usuable_precision); }
         };
 
   private:
@@ -484,8 +484,8 @@ class CurrentSenseValveMotorDirect final : public CurrentSenseValveMotorDirectBi
     virtual bool isNonProportionalOnly() const override { return(false); }
 
     // If true, proportional mode is not being used and the valve is run to end stops instead.
-    // Primarily public to allow whitebox unit testing.
-    bool inNonProportionalMode() const { return(needsRecalibrating); }
+    // Allows proportional-mode driver to fall back to simpler behaviour in case of difficulties.
+    bool inNonProportionalMode() const { return(needsRecalibrating || cp.cannotRunProportional()); }
   };
 
 
