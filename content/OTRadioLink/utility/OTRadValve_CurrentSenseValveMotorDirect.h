@@ -99,15 +99,18 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     //
     // "Close enough" means:
     //   * fully open and fully closed should always be achieved
-    //   * generally within an absolute tolerance of the target value (eg 10--25%)
-    //   * when target is below DEFAULT_VALVE_PC_SAFER_OPEN then any value down to 0 is acceptable
-    //   * when target is above DEFAULT_VALVE_PC_MODERATELY_OPEN then any value up to 100 is acceptable
+    //   * generally within an absolute tolerance (absTolerancePC) of the target value (eg 10--25%)
+    //   * when target is below DEFAULT_VALVE_PC_SAFER_OPEN then any value at/below target is acceptable
+    //   * when target is at or above DEFAULT_VALVE_PC_SAFER_OPEN then any value at/above target is acceptable
     // The absolute tolerance is partly guided by the fact that most TRV bases
     // are only anything like linear in throughput over a relatively small range.
     static constexpr uint8_t absTolerancePC = 16;
     static constexpr bool closeEnoughToTarget(const uint8_t targetPC, const uint8_t currentPC)
         {
-        return(targetPC == currentPC);
+        return((targetPC == currentPC) ||
+                (OTV0P2BASE::fnabs(targetPC, currentPC) <= absTolerancePC) ||
+                ((targetPC < OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN) && (currentPC <= targetPC)) ||
+                ((targetPC >= OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN) && (currentPC >= targetPC)));
         }
 
     // Basic/coarse states of driver, shared with derived classes.

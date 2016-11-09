@@ -342,7 +342,8 @@ static void normalStateWalkthrough(OTRadValve::CurrentSenseValveMotorDirectBase 
 
     // Target % values to try to reach.
     // Some are listed repeatedly to ensure no significant sticky state.
-    uint8_t targetValues[] = { 0, 100, 0, 100, };
+    const uint8_t randomTarget1 = uint8_t(((unsigned) random()) % 101);
+    uint8_t targetValues[] = { 0, 100, 1, 2, 25, 50, 75, randomTarget1, 0, 100, OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN, OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN, OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN };
     for(int i = 0; i < sizeof(targetValues); ++i)
         {
         const uint8_t target = targetValues[i];
@@ -351,9 +352,9 @@ static void normalStateWalkthrough(OTRadValve::CurrentSenseValveMotorDirectBase 
         for(int i = 100; --i > 0 && (target != csv->getCurrentPC()); ) { csv->poll(); }
         // Work out if we have got close enough:
         //   * fully open and fully closed should always be achieved
-        //   * generally within (say) +/- a small margin of the requested value
-        //   * when target is below DEFAULT_VALVE_PC_SAFER_OPEN then any value down to 0 is acceptable
-        //   * when target is above DEFAULT_VALVE_PC_MODERATELY_OPEN then any value up to 100 is acceptable
+        //   * generally within an absolute tolerance (absTolerancePC) of the target value (eg 10--25%)
+        //   * when target is below DEFAULT_VALVE_PC_SAFER_OPEN then any value at/below target is acceptable
+        //   * when target is at or above DEFAULT_VALVE_PC_SAFER_OPEN then any value at/above target is acceptable
         const uint8_t currentPC = csv->getCurrentPC();
         const bool isCloseEnough = OTRadValve::CurrentSenseValveMotorDirectBase::closeEnoughToTarget(target, currentPC);
         if(target == currentPC) { EXPECT_TRUE(isCloseEnough) << "should always be 'close enough' with values equal"; }
