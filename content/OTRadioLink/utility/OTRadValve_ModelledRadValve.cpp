@@ -126,7 +126,7 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const Modelle
   // Update the modelled state including the valve position passed by reference.
   const uint8_t oldValvePC = valvePCOpenRef;
   const uint8_t newValvePC = computeRequiredTRVPercentOpen(valvePCOpenRef, inputState);
-  const bool changed = (newValvePC != valvePCOpenRef);
+  const bool changed = (newValvePC != oldValvePC);
   if(changed)
     {
     if(newValvePC > oldValvePC)

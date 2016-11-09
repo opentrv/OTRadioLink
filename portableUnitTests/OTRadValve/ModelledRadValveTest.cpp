@@ -29,8 +29,22 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 #include "OTRadValve_ModelledRadValve.h"
 
 
-// Test for general sanity of computation of desired valve position.
-// In particular test the logic in ModelledRadValveState for starting from extreme positions.
+// Test for correct implementation of turn-up to/from turn-down delay to reduce valve hunting.
+// Except when trying to respond as quickly as possible to a BAKE request,
+// the valve should resist changing directions (between opening and closing) too quickly.
+// That is, check that pauses between turn up and turn down are enforced correctly.
+TEST(ModelledRadValve,UpDownDelay)
+{
+//    // If true then be more verbose.
+//    const static bool verbose = false;
+
+    OTRadValve::ModelledRadValveInputState is(0);
+    // Attempt to cycle the valve back and forth between max open and max closed.
+    // Ensure that (without BAKE) there is a pause, and sufficient
+
+}
+
+// Test the logic in ModelledRadValveState for starting from extreme positions.
 //
 // Adapted 2016/10/16 from test_VALVEMODEL.ino testMRVSExtremes().
 TEST(ModelledRadValve,MRVSExtremes)
@@ -664,8 +678,10 @@ TODO: standard driver and test cases from data above!
 
 TODO: check that pauses between turn up and turn down are enforced.
 
-TODO: check that BAKE behaves as expected, in target raise and duration and reversion to WARM.
+TODO: check that BAKE behaves as expected, in target lift amount, and duration, and reversion to WARM.
 
 TODO: check correct response to sharp temp rise when rad comes on for all-in-one unit, eg with low-pass filtering.
+
+TODO: check that cumulative valve movement tracking/computations are correct.
  */
 
