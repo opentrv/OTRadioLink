@@ -366,10 +366,6 @@ static void normalStateWalkthrough(OTRadValve::CurrentSenseValveMotorDirectBase 
         EXPECT_TRUE(!csv->isInErrorState());
         EXPECT_TRUE(csv->isInNormalRunState()) << csv->_getState();
         }
-
-    // TODO
-
-
     }
 TEST(CurrentSenseValveMotorDirect,normalStateWalkthrough)
 {
