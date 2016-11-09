@@ -195,6 +195,11 @@ class SVL final : public OTV0P2BASE::SupplyVoltageLow
     public:
       SVL() { setAllLowFlags(false); }
       void setAllLowFlags(const bool f) { isLow = f; isVeryLow = f; }
+      // Force a read/poll of the supply voltage and return the value sensed.
+      // When battery is not low, read()/get() will return a non-zero value.
+      // NOT thread-safe or usable within ISRs (Interrupt Service Routines).
+      virtual uint16_t read() override { return(get()); }
+      virtual uint16_t get() const override { return(isLow ? 0 : 1); }
     };
 // State of ambient lighting.
 static bool _isDark;
