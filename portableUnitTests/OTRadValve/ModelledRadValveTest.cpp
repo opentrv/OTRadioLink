@@ -794,8 +794,6 @@ TODO: check that BAKE behaves as expected, in target lift amount, and duration, 
 
 TODO: check correct response to sharp temp rise when rad comes on for all-in-one unit, eg with low-pass filtering.
 
-TODO: check that cumulative valve movement tracking/computations are correct.
-
 TODO: standard driver and test cases from data above!
  */
 
