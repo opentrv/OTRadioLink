@@ -55,7 +55,7 @@ struct ModelledRadValveInputState final
   static constexpr int_fast8_t refTempOffsetC16 = 8;
 
   // All initial values set by the constructor are sane, but should not be relied on.
-  ModelledRadValveInputState(const int_fast16_t realTempC16 = 0) { setReferenceTemperatures(realTempC16); }
+  explicit ModelledRadValveInputState(const int_fast16_t realTempC16 = 0) { setReferenceTemperatures(realTempC16); }
 
   // Calculate and store reference temperature(s) from real temperature supplied.
   // Proportional temperature regulation is in a 1C band.
