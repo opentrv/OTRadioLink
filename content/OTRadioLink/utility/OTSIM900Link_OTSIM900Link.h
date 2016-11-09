@@ -145,7 +145,7 @@ namespace OTSIM900Link
     /**
      * @brief   Enum containing major states of SIM900.
      */
-    enum OTSIM900LinkState
+    enum OTSIM900LinkState : uint8_t
         {
         GET_STATE = 0,
         RETRY_GET_STATE,
@@ -167,22 +167,37 @@ namespace OTSIM900Link
     class OTSIM900LinkBase : public OTRadioLink::OTRadioLink
         {
         protected:
-            static const char *AT_START;
-            static const char *AT_SIGNAL;
-            static const char *AT_NETWORK;
-            static const char *AT_REGISTRATION; // GSM registration.
-            static const char *AT_GPRS_REGISTRATION0; // GPRS registration.
-            static const char *AT_GPRS_REGISTRATION; // GPRS registration.
-            static const char *AT_SET_APN;
-            static const char *AT_START_GPRS;
-            static const char *AT_GET_IP;
-            static const char *AT_PIN;
-            static const char *AT_STATUS;
-            static const char *AT_START_UDP;
-            static const char *AT_SEND_UDP;
-            static const char *AT_CLOSE_UDP;
-            static const char *AT_SHUT_GPRS;
-            static const char *AT_VERBOSE_ERRORS;
+
+#if defined(ARDUINO)
+// Place strings in Flash on Arduino.
+#define V0p2_SIM900_AT_FlashStringHelper
+typedef const __FlashStringHelper *AT_t;
+// Static definition.
+#define V0p2_SIM900_AT_DEFN(v, s) \
+    static const char _f_##v[] PROGMEM = (s); \
+    OTSIM900LinkBase::AT_t OTSIM900LinkBase::v = reinterpret_cast<const __FlashStringHelper *>(_f_##v)
+#else
+// Static definition.
+typedef const char *AT_t;
+#define V0p2_SIM900_AT_DEFN(v, s) OTSIM900LinkBase::AT_t OTSIM900LinkBase::v = (s)
+#endif
+
+            static AT_t AT_START;
+            static AT_t AT_SIGNAL;
+            static AT_t AT_NETWORK;
+            static AT_t AT_REGISTRATION; // GSM registration.
+            static AT_t AT_GPRS_REGISTRATION0; // GPRS registration.
+            static AT_t AT_GPRS_REGISTRATION; // GPRS registration.
+            static AT_t AT_SET_APN;
+            static AT_t AT_START_GPRS;
+            static AT_t AT_GET_IP;
+            static AT_t AT_PIN;
+            static AT_t AT_STATUS;
+            static AT_t AT_START_UDP;
+            static AT_t AT_SEND_UDP;
+            static AT_t AT_CLOSE_UDP;
+            static AT_t AT_SHUT_GPRS;
+            static AT_t AT_VERBOSE_ERRORS;
 
             // Single characters.
             const char ATc_GET_MODULE = 'I';

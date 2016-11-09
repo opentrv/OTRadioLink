@@ -151,7 +151,7 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
             ((maxI >= 0) ? (uint8_t)maxI : 0xff);
     // Run simulation with different stats blending types
     // to ensure that occupancy detection is robust.
-    enum blending_t { NONE, HALFHOURMIN, HALFHOUR, BYMINUTE, END };
+    enum blending : uint8_t { NONE, HALFHOURMIN, HALFHOUR, BYMINUTE, END };
     for(int blending = NONE; blending < END; ++blending)
         {
 if(verbose) { fprintf(stderr, "blending = %d\n", blending); }

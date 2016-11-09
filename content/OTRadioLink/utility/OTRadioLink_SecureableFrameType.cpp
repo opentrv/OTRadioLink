@@ -83,9 +83,6 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf,
     // Make frame 'invalid' until everything is finished and checks out.
     fl = 0;
 
-    // Capture possible (near) peak of stack usage, eg when called from ISR,
-    OTV0P2BASE::MemoryChecks::recordIfMinSP();
-
     // Quick integrity checks from spec.
     //
     // (Because it the spec is primarily focused on checking received packets,
@@ -382,7 +379,8 @@ bool SimpleSecureFrame32or0BodyBase::msgcounteradd(uint8_t *const counter, const
 //  * e  encryption function; never NULL
 //  * state  pointer to state for e, if required, else NULL
 //  * key  secret key; never NULL
-uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRaw(uint8_t *const buf, const uint8_t buflen,
+uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRaw(
+                                uint8_t *const buf, const uint8_t buflen,
                                 const FrameType_Secureable fType_,
                                 const uint8_t *const id_, const uint8_t il_,
                                 const uint8_t *const body, const uint8_t bl_,
@@ -392,7 +390,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRaw(uint8_t *con
     {
     if((NULL == e) || (NULL == key)) { return(0); } // ERROR
 
-    // Capture possible (near) peak of stack usage, eg when called from ISR,
+    // Capture possible (near) peak of stack usage, eg when called from ISR.
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
 
     // Stop if unencrypted body is too big for this scheme.
@@ -424,6 +422,87 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRaw(uint8_t *con
     // Encrypt body (if any) from the padding buffer to the output buffer.
     // Insert the tag directly into the buffer (before the final byte).
     if(!e(state, key, iv, buf, hl, (0 == bl_) ? NULL : paddingBuf, buf + hl, buf + fl - 16)) { return(0); } // ERROR
+    // Copy the counters part (last 6 bytes of) the nonce/IV into the trailer...
+    memcpy(buf + fl - 22, iv + 6, 6);
+    // Set final trailer byte to indicate encryption type and format.
+    buf[fl] = 0x80;
+    // Done.
+    return(fl + 1);
+    }
+
+// Encode entire secure small frame from header params and body and crypto support.
+// Buffer for body must be large enough to allow padding to be applied IN PLACE.
+// This is a raw/partial impl that requires the IV/nonce to be supplied.
+// This uses fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t style encryption/authentication.
+// The matching decryption function should be used for decoding/verifying.
+// The crypto method may need to vary based on frame type,
+// and on negotiations between the participants in the communications.
+// Returns the total number of bytes written out for the frame
+// (including, and with a value one higher than the first 'fl' bytes).
+// Returns zero in case of error.
+// The supplied buffer may have to be up to 64 bytes long.
+//
+// Note that the sequence number is taken from the 4 least significant bits
+// of the message counter (at byte 6 in the nonce).
+//
+// Parameters:
+//  * buf  buffer to which is written the entire frame including trailer; never NULL
+//  * buflen  available length in buf; if too small then this routine will fail (return 0)
+//  * fType_  frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
+//  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
+//  * body / bl_  body data (and length), before padding/encryption, no larger than ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE
+//  * iv  12-byte initialisation vector / nonce; never NULL
+//  * e  encryption function; never NULL
+//  * state  pointer to state for e, if required, else NULL
+//  * key  secret key; never NULL
+// Note: the body is passed non-const and must be
+// (nominally a multiple of) 32 bytes large enough to contain the body
+// and have padding applied *in situ*.
+//static constexpr uint8_t encodeSecureSmallFrameRawPadInPlace_scratch_usage = 1;
+//static constexpr uint8_t encodeSecureSmallFrameRawPadInPlace_total_scratch_usage_OTAESGCM_2p0 =
+//        workspaceRequred_GCM32B16BWithWorkspace_OTAESGCM_2p0
+//        + encodeSecureSmallFrameRawPadInPlace_scratch_usage;
+uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRawPadInPlace(
+                                uint8_t *const buf, const uint8_t buflen,
+                                const FrameType_Secureable fType_,
+                                const uint8_t *const id_, const uint8_t il_,
+                                uint8_t *const bodyToBePaddedInSitu, const uint8_t bl_,
+                                const uint8_t *const iv,
+                                fixed32BTextSize12BNonce16BTagSimpleEncWithWorkspace_ptr_t e,
+                                const OTV0P2BASE::ScratchSpace &scratch, const uint8_t *key)
+    {
+    if((NULL == e) || (NULL == key)) { return(0); } // ERROR
+
+    // Capture possible (near) peak of stack usage, eg when called from ISR.
+    OTV0P2BASE::MemoryChecks::recordIfMinSP();
+
+    // Stop if unencrypted body is too big for this scheme.
+    if(bl_ > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
+    const uint8_t encryptedBodyLength = (0 == bl_) ? 0 : ENC_BODY_SMALL_FIXED_CTEXT_SIZE;
+    // Let checkAndEncodeSmallFrameHeader() validate buf and id_.
+    // If necessary (bl_ > 0) body is validated below.
+    const uint8_t seqNum_ = iv[11] & 0xf;
+    OTRadioLink::SecurableFrameHeader sfh;
+    const uint8_t hl = sfh.checkAndEncodeSmallFrameHeader(buf, buflen,
+                                               true, fType_,
+                                               seqNum_,
+                                               id_, il_,
+                                               encryptedBodyLength,
+                                               23); // 23-byte authentication trailer.
+    // Fail if header encoding fails.
+    if(0 == hl) { return(0); } // ERROR
+    // Fail if buffer is not large enough to accommodate full frame.
+    const uint8_t fl = sfh.fl;
+    if(fl >= buflen) { return(0); } // ERROR
+    // Pad body, if any, IN SITU.
+    if(0 != bl_)
+        {
+        if(NULL == bodyToBePaddedInSitu) { return(0); } // ERROR
+        if(0 == addPaddingTo32BTrailing0sAndPadCount(bodyToBePaddedInSitu, bl_)) { return(0); } // ERROR
+        }
+    // Encrypt body (if any) from its now-padded buffer to the output buffer.
+    // Insert the tag directly into the buffer (before the final byte).
+    if(!e(scratch.buf, scratch.bufsize, key, iv, buf, hl, (0 == bl_) ? NULL : bodyToBePaddedInSitu, buf + hl, buf + fl - 16)) { return(0); } // ERROR
     // Copy the counters part (last 6 bytes of) the nonce/IV into the trailer...
     memcpy(buf + fl - 22, iv + 6, 6);
     // Set final trailer byte to indicate encryption type and format.
@@ -481,7 +560,7 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRaw(const Secura
     if((NULL == sfh) || (NULL == buf) || (NULL == d) ||
         (NULL == key) || (NULL == iv)) { return(0); } // ERROR
 
-    // Capture possible (near) peak of stack usage, eg when called from ISR,
+    // Capture possible (near) peak of stack usage, eg when called from ISR.
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
 
     // Abort if header was not decoded properly.
@@ -689,7 +768,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOStyleFrameForTX(uint8_t
 //  * buflen  available length in buf; if too small then this routine will fail (return 0)
 //  * valvePC  percentage valve is open or 0x7f if no valve to report on
 //  * statsJSON  '\0'-terminated {} JSON stats, or NULL if none.
-//  * il_  ID length for the header; ID is local node ID from EEPROM or other pre-supplied ID
+//  * il_  ID length for the header; ID is local node ID from EEPROM or other pre-supplied ID, may be limited to a 6-byte prefix
 //  * key  16-byte secret key; never NULL
 // NOTE: THIS API IS LIABLE TO CHANGE
 uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX(uint8_t *const buf, const uint8_t buflen,
@@ -709,12 +788,59 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX(uint8_t *
     bbuf[0] = (valvePC <= 100) ? valvePC : 0x7f;
     bbuf[1] = hasStats ? 0x10 : 0; // Indicate presence of stats.
     if(hasStats) { memcpy(bbuf + 2, statsJSON, statslen); }
+    const uint8_t *ID = iv; // First 6 bytes of IV is the ID.
+    if(il_ > 6) { return(0); } // ERROR: cannot supply that much of ID easily.
     return(encodeSecureSmallFrameRaw(buf, buflen,
                                     OTRadioLink::FTS_BasicSensorOrValve,
-                                    NULL, il_,
+                                    ID, il_,
                                     bbuf, (hasStats ? 2+statslen : 2),
                                     iv, e, state, key));
     }
 
+// Create simple 'O' (FTS_BasicSensorOrValve) frame with an optional stats section for transmission.
+// Returns number of bytes written to buffer, or 0 in case of error.
+// The IV is constructed from the node ID (built-in from EEPROM or as supplied)
+// and the primary TX message counter (which is incremented).
+// Note that the frame will be 27 + ID-length (up to maxIDLength) + body-length bytes,
+// so the buffer must be large enough to accommodate that.
+//  * buf  buffer to which is written the entire frame including trailer; never NULL
+//  * buflen  available length in buf; if too small then this routine will fail (return 0)
+//  * valvePC  percentage valve is open or 0x7f if no valve to report on
+//  * statsJSON  '\0'-terminated {} JSON stats, or NULL if none.
+//  * il_  ID length for the header; ID is local node ID from EEPROM or other pre-supplied ID
+//  * key  16-byte secret key; never NULL
+// NOTE: THIS API IS LIABLE TO CHANGE
+uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX(uint8_t *const buf, const uint8_t buflen,
+                                const uint8_t il_,
+                                const uint8_t valvePC,
+                                const char *const statsJSON,
+                                const fixed32BTextSize12BNonce16BTagSimpleEncWithWorkspace_ptr_t e,
+                                const OTV0P2BASE::ScratchSpace &scratch, const uint8_t *const key)
+    {
+    constexpr uint8_t IV_size = 12;
+    constexpr uint8_t bodyLengthPlusPaddingSpace = OTV0P2BASE::fnmax((uint8_t)32, ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE);
+    static_assert(generateSecureOFrameRawForTX_scratch_usage == IV_size + bodyLengthPlusPaddingSpace, "self-use scratch size wrong");
+    static_assert(generateSecureOFrameRawForTX_scratch_usage < generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0, "scratch size calc wrong");
+    if(scratch.bufsize < generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0) { return(0); } // ERROR
+    uint8_t *const iv = scratch.buf; // uint8_t iv[IV_size];
+    if(!compute12ByteIDAndCounterIVForTX(iv)) { return(0); }
+    const bool hasStats = (NULL != statsJSON) && ('{' == statsJSON[0]);
+    const int slp1 = hasStats ? strlen(statsJSON) : 1; // Stats length including trailing '}' (not sent).
+    if(slp1 > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE-1) { return(0); } // ERROR
+    const uint8_t statslen = (uint8_t)(slp1 - 1); // Drop trailing '}' implicitly.
+    uint8_t *const bbuf = scratch.buf + IV_size; // uint8_t bbuf[ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE];
+    bbuf[0] = (valvePC <= 100) ? valvePC : 0x7f;
+    bbuf[1] = hasStats ? 0x10 : 0; // Indicate presence of stats.
+    if(hasStats) { memcpy(bbuf + 2, statsJSON, statslen); }
+    const OTV0P2BASE::ScratchSpace subscratch(scratch, generateSecureOFrameRawForTX_scratch_usage);
+    const uint8_t *ID = iv; // First 6 bytes of IV is the ID.
+    if(il_ > 6) { return(0); } // ERROR: cannot supply that much of ID easily.
+    return(encodeSecureSmallFrameRawPadInPlace(buf, buflen,
+                                    OTRadioLink::FTS_BasicSensorOrValve,
+                                    ID, il_,
+                                    bbuf, (hasStats ? 2+statslen : 2), // Note: callee will pad beyond this.
+                                    iv, e, subscratch, key));
+return(false); // FIXME
+    }
 
 }

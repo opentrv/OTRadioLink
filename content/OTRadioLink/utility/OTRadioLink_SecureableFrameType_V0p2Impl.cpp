@@ -54,7 +54,7 @@ SimpleSecureFrame32or0BodyTXV0p2 &SimpleSecureFrame32or0BodyTXV0p2::getInstance(
 // Factory method to get singleton RX instance.
 SimpleSecureFrame32or0BodyRXV0p2 &SimpleSecureFrame32or0BodyRXV0p2::getInstance()
     {
-    // Create/initialise on first use, NOT statically.
+    // Lazily create/initialise singleton on first use, NOT statically.
     static SimpleSecureFrame32or0BodyRXV0p2 instance;
     return(instance);
     }
@@ -627,7 +627,7 @@ uint8_t SimpleSecureFrame32or0BodyRXV0p2::decodeSecureSmallFrameSafely(const Sec
 
 // Get TX ID that will be used for transmission; returns false on failure.
 // Argument must be buffer of (at least) OTV0P2BASE::OpenTRV_Node_ID_Bytes bytes.
-bool SimpleSecureFrame32or0BodyTXV0p2::getTXID(uint8_t *const idOut)
+bool SimpleSecureFrame32or0BodyTXV0p2::getTXID(uint8_t *const idOut) const
     {
     if(NULL == idOut) { return(false); }
     // Copy ID from EEPROM.
@@ -635,23 +635,9 @@ bool SimpleSecureFrame32or0BodyTXV0p2::getTXID(uint8_t *const idOut)
     return(true);
     }
 
-// Fill in 12-byte IV for 'O'-style (0x80) AESGCM security for a frame to TX.
-// This dynamically fetches the built-in TX ID (eg from EEPROM or as supplied) for the first 6 bytes.
-// This uses and increments the primary message counter for the last 6 bytes.
-// Returns true on success, false on failure eg due to message counter generation failure.
-bool SimpleSecureFrame32or0BodyTXV0p2::compute12ByteIDAndCounterIVForTX(uint8_t *const ivBuf)
-    {
-    if(NULL == ivBuf) { return(false); }
-    // Fetch entire ID directly to ivBuf for simplicity; lsbytes will be overwritten with message counter.
-    if(!getTXID(ivBuf)) { return(false); } // ID fetch failed.
-    // Generate and fill in new message count at end of IV.
-    return(incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(ivBuf + (12-SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes)));
-    }
-
-
 // Get TX ID that will be used for transmission; returns false on failure.
 // Argument must be buffer of (at least) OTV0P2BASE::OpenTRV_Node_ID_Bytes bytes.
-bool SimpleSecureFrame32or0BodyTXV0p2SuppliedID::getTXID(uint8_t *const idOut)
+bool SimpleSecureFrame32or0BodyTXV0p2SuppliedID::getTXID(uint8_t *const idOut) const
     {
     if(NULL == idOut) { return(false); }
     // Without the fetch function, this copies from the internal ID buffer.

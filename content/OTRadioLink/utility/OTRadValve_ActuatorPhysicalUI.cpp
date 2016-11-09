@@ -56,7 +56,7 @@ void ModeButtonAndPotActuatorPhysicalUI::markUIControlUsed()
     // User operation of physical controls is strong indication of presence.
     occupancy->markAsOccupied(); // Thread-safe.
 
-    // Capture possible (near) peak of stack usage, eg when called from ISR,
+    // Capture possible (near) peak of stack usage, eg when called from ISR.
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
     }
 

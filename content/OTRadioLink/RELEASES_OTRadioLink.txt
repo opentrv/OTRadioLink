@@ -9,6 +9,7 @@ or release/freeze points.
 
 
 pending:
+    DHD20161108: ScratchSpace and new secure frame methods that use it, woth support from OTAESGCM V2.0.
     DE20160701:  Fixed key loss issue and updated documentation.
 
 

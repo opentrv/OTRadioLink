@@ -93,12 +93,12 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     //   * waiting for some user activation step such as pressing a button to indicate valve fitted
     //   * running an initial calibration for the valve.
     //   * entering a normal state tracking the target %-open and periodically recalibrating/decalcinating.
-    enum driverState
+    enum driverState : uint8_t
       {
       init = 0, // Power-up state.
       initWaiting, // Waiting to withdraw pin.
       valvePinWithdrawing, // Retracting pin at power-up.
-      valvePinWithdrawn, // Allows valve to be fitted; wait for user signal that valve has been fitted.
+      valvePinWithdrawn, // Waiting for user signal that valve has been fitted: allows valve to be fitted;
       valveCalibrating, // Calibrating full valve travel.
       valveNormal, // Normal operating state: values lower than this indicate that power-up is not complete.
       valveDecalcinating, // TODO: running decalcination cycle (and can recalibrate and mitigate valve seating issues).
@@ -144,9 +144,9 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     // Marked volatile so that individual reads are ISR-/thread- safe without a mutex.
     // Hold a mutex to perform compound operations such as read/modify/write.
     // Change state with changeState() which will do some other book-keeping.
-    volatile /*driverState*/ uint8_t state;
+    volatile driverState state;
     // Change state and perform some book-keeping.
-    inline void changeState(const driverState newState) { state = (uint8_t)newState; clearPerState(); }
+    inline void changeState(const driverState newState) { state = newState; clearPerState(); }
 
     // Data used only within one major state and not needing to be saved between states.
     // Thus it can be shared in a union to save space.
@@ -269,8 +269,8 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     // May block for hundreds of milliseconds.
     void poll();
 
-    // Get major state, mostly for testing.
-    driverState getState() const { return((driverState) state); }
+    // Get major state, mostly for testing, not part of the official run-time API.
+    driverState _getState() const { return(state); }
 
     // Get current estimated actual % open in range [0,100].
     uint8_t getCurrentPC() const { return(currentPC); }
@@ -315,16 +315,16 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     virtual void signalValveFitted() { if(isWaitingForValveToBeFitted()) { perState.valvePinWithdrawn.valveFitted = true; } }
 
     // Waiting for indication that the valvehead  has been fitted to the tail.
-    bool isWaitingForValveToBeFitted() const { return(state == (uint8_t)valvePinWithdrawn); }
+    bool isWaitingForValveToBeFitted() const { return(state == valvePinWithdrawn); }
 
     // Returns true iff in normal running state.
     // True means not in error state and not (re)calibrating/(re)initialising/(re)syncing.
     // May be false temporarily while decalcinating.
-    bool isInNormalRunState() const { return(state == (uint8_t)valveNormal); }
+    bool isInNormalRunState() const { return(state == valveNormal); }
 
     // Returns true if in an error state.
     // May be recoverable by forcing recalibration.
-    bool isInErrorState() const { return(state >= (uint8_t)valveError); }
+    bool isInErrorState() const { return(state >= valveError); }
   };
 
 // Base class for generic current-sensing (unit-testable) motor drivers.
@@ -356,7 +356,8 @@ class CurrentSenseValveMotorDirect final : public CurrentSenseValveMotorDirectBi
 
           // Computed parameters based on measurements during calibration process.
           // Approximate precision in % as min ticks / DR size in range [0,100].
-          uint8_t approxPrecisionPC = 0;
+          // Defaults to a value indicating that proportional mode is not possible.
+          uint8_t approxPrecisionPC = bad_precision;
           // A reduced ticks open/closed in ratio to allow small conversions.
           uint8_t tfotcSmall = 0, tfctoSmall = 0;
 
@@ -364,18 +365,22 @@ class CurrentSenseValveMotorDirect final : public CurrentSenseValveMotorDirectBi
           // (Re)populate structure and compute derived parameters.
           // Ensures that all necessary items are gathered at once and none forgotten!
           // Returns true in case of success.
-          // May return false and force error state if inputs unusable.
+          // If inputs unusable will return false and in which can will indicate not able to run proportional.
+          //   * ticksFromOpenToClosed  system ticks counted when running from fully open to fully closed; should be positive
+          //   * ticksFromClosedToOpen  system ticks counted when running from fully closed to fully open; should be positive
+          //   * minMotorDRTicks  minimum number of motor ticks it makes sense to run motor for (eg due to inertia); strictly positive
           bool updateAndCompute(uint16_t ticksFromOpenToClosed, uint16_t ticksFromClosedToOpen, uint8_t minMotorDRTicks);
 
-          // Get a ticks either way.
+          // Get system ticks counted when running from fully open to fully closed; should be positive.
           inline uint16_t getTicksFromOpenToClosed() const { return(ticksFromOpenToClosed); }
+          // Get system ticks counted when running from fully closed to fully open; should be positive.
           inline uint16_t getTicksFromClosedToOpen() const { return(ticksFromClosedToOpen); }
 
           // Approx precision in % as min ticks / DR size in range [0,100].
           // A return value of zero indicates that sub-percent precision is possible.
           inline uint8_t getApproxPrecisionPC() const { return(approxPrecisionPC); }
 
-          // Get a reduced ticks open/closed in ratio to allow small conversions; at least a few bits.
+          // Get a reduced ticks open/closed in ratio to allow small conversions; at least a few bits; should be positive.
           inline uint8_t getTfotcSmall() const { return(tfotcSmall); }
           inline uint8_t getTfctoSmall() const { return(tfctoSmall); }
 
@@ -385,6 +390,13 @@ class CurrentSenseValveMotorDirect final : public CurrentSenseValveMotorDirectBi
           // Unit testable.
           uint8_t computePosition(volatile uint16_t &ticksFromOpen,
                                   volatile uint16_t &ticksReverse) const;
+
+          // Precision % threshold above which proportional mode is not going to be possible.
+          static constexpr uint8_t max_usuable_precision = 25;
+          // Precision % used to indicate an error condition (legal but clearly no good).
+          static constexpr uint8_t bad_precision = 100;
+          // If true, device cannot be run in proportional mode.
+          bool cannotRunProportional() const { return(approxPrecisionPC > max_usuable_precision); }
         };
 
   private:
@@ -472,8 +484,8 @@ class CurrentSenseValveMotorDirect final : public CurrentSenseValveMotorDirectBi
     virtual bool isNonProportionalOnly() const override { return(false); }
 
     // If true, proportional mode is not being used and the valve is run to end stops instead.
-    // Primarily public to allow whitebox unit testing.
-    bool inNonProportionalMode() const { return(needsRecalibrating); }
+    // Allows proportional-mode driver to fall back to simpler behaviour in case of difficulties.
+    bool inNonProportionalMode() const { return(needsRecalibrating || cp.cannotRunProportional()); }
   };
 
 

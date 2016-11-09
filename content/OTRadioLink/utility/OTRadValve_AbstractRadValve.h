@@ -175,7 +175,7 @@ class HardwareMotorDriverInterface
   {
   public:
     // Legal motor drive states.
-    enum motor_drive
+    enum motor_drive : uint8_t
       {
       motorOff = 0, // Motor switched off (default).
       motorDriveClosing, // Drive towards the valve-closed position.

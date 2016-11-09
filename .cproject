@@ -34,11 +34,12 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/content/OTRadioLink}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/content/OTRadioLink}/utility&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/OTAESGCM/content/OTAESGCM}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/OTAESGCM/content/OTAESGCM/utility}&quot;"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.warnings.toerrors.522468824" name="Warnings as errors (-Werror)" superClass="gnu.cpp.compiler.option.warnings.toerrors" useByScannerDiscovery="false" value="true" valueType="boolean"/>
 								<option id="gnu.cpp.compiler.option.debugging.codecov.2007594292" name="Generate gcov information (-ftest-coverage -fprofile-arcs)" superClass="gnu.cpp.compiler.option.debugging.codecov" useByScannerDiscovery="false" value="false" valueType="boolean"/>
 								<option id="gnu.cpp.compiler.option.debugging.gprof.1089097277" name="Generate gprof information (-pg)" superClass="gnu.cpp.compiler.option.debugging.gprof" useByScannerDiscovery="false" value="false" valueType="boolean"/>
-								<option id="gnu.cpp.compiler.option.preprocessor.def.1513101510" superClass="gnu.cpp.compiler.option.preprocessor.def" valueType="definedSymbols">
+								<option id="gnu.cpp.compiler.option.preprocessor.def.1513101510" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" useByScannerDiscovery="false" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="EXT_AVAILABLE_ARDUINO_LIB_OTAESGCM"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1202281950" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
@@ -47,16 +48,17 @@
 								<option defaultValue="gnu.c.optimization.level.none" id="gnu.c.compiler.exe.debug.option.optimization.level.59801329" name="Optimization Level" superClass="gnu.c.compiler.exe.debug.option.optimization.level" useByScannerDiscovery="false" valueType="enumerated"/>
 								<option id="gnu.c.compiler.exe.debug.option.debugging.level.893045431" name="Debug Level" superClass="gnu.c.compiler.exe.debug.option.debugging.level" useByScannerDiscovery="false" value="gnu.c.debugging.level.max" valueType="enumerated"/>
 								<option id="gnu.c.compiler.option.include.paths.1732231959" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/OTAESGCM}&quot;"/>
 									<listOptionValue builtIn="false" value="/usr/local/include"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/content/OTRadioLink}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/content/OTRadioLink}/utility&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/OTAESGCM}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/OTAESGCM/content/OTAESGCM/utility}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/content/${ProjName}}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/content/${ProjName}/utility}&quot;"/>
 								</option>
 								<option id="gnu.c.compiler.option.dialect.std.975617891" name="Language standard" superClass="gnu.c.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.c.compiler.dialect.default" valueType="enumerated"/>
 								<option id="gnu.c.compiler.option.warnings.toerrors.611221778" name="Warnings as errors (-Werror)" superClass="gnu.c.compiler.option.warnings.toerrors" useByScannerDiscovery="false" value="true" valueType="boolean"/>
 								<option id="gnu.c.compiler.option.debugging.codecov.1298491940" name="Generate gcov information (-ftest-coverage -fprofile-arcs)" superClass="gnu.c.compiler.option.debugging.codecov" useByScannerDiscovery="false" value="false" valueType="boolean"/>
 								<option id="gnu.c.compiler.option.debugging.gprof.213567021" name="Generate gprof information (-pg)" superClass="gnu.c.compiler.option.debugging.gprof" useByScannerDiscovery="false" value="false" valueType="boolean"/>
-								<option id="gnu.c.compiler.option.preprocessor.def.symbols.737731444" superClass="gnu.c.compiler.option.preprocessor.def.symbols" valueType="definedSymbols">
+								<option id="gnu.c.compiler.option.preprocessor.def.symbols.737731444" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" useByScannerDiscovery="false" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="EXT_AVAILABLE_ARDUINO_LIB_OTAESGCM"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.783866445" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
@@ -85,7 +87,8 @@
 							</tool>
 							<tool command="as" commandLinePattern="${COMMAND} ${FLAGS} ${OUTPUT_FLAG} ${OUTPUT_PREFIX}${OUTPUT} ${INPUTS}" errorParsers="org.eclipse.cdt.core.GASErrorParser" id="cdt.managedbuild.tool.gnu.assembler.exe.debug.1930403914" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.exe.debug">
 								<option id="gnu.both.asm.option.include.paths.869007391" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/OTAESGCM}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/OTAESGCM/content/OTAESGCM}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/OTAESGCM/content/OTAESGCM/utility}&quot;"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.2032166192" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
@@ -132,6 +135,9 @@
 								<option id="gnu.cpp.compiler.exe.release.option.debugging.level.612843293" name="Debug Level" superClass="gnu.cpp.compiler.exe.release.option.debugging.level" useByScannerDiscovery="false" value="gnu.cpp.compiler.debugging.level.none" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.option.dialect.std.1852228529" name="Language standard" superClass="gnu.cpp.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.cpp.compiler.dialect.c++11" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.option.warnings.toerrors.107564609" name="Warnings as errors (-Werror)" superClass="gnu.cpp.compiler.option.warnings.toerrors" useByScannerDiscovery="false" value="true" valueType="boolean"/>
+								<option id="gnu.cpp.compiler.option.include.paths.55706092" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/OTAESGCM/content/OTAESGCM/utility}&quot;"/>
+								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1985260105" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.c.compiler.exe.release.783610395" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.exe.release">
@@ -139,6 +145,9 @@
 								<option id="gnu.c.compiler.exe.release.option.debugging.level.1071606635" name="Debug Level" superClass="gnu.c.compiler.exe.release.option.debugging.level" useByScannerDiscovery="false" value="gnu.c.debugging.level.none" valueType="enumerated"/>
 								<option id="gnu.c.compiler.option.warnings.toerrors.708441179" name="Warnings as errors (-Werror)" superClass="gnu.c.compiler.option.warnings.toerrors" useByScannerDiscovery="false" value="true" valueType="boolean"/>
 								<option id="gnu.c.compiler.option.dialect.std.424274528" name="Language standard" superClass="gnu.c.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.c.compiler.dialect.default" valueType="enumerated"/>
+								<option id="gnu.c.compiler.option.include.paths.267996899" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/OTAESGCM/content/OTAESGCM/utility}&quot;"/>
+								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1444224565" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.c.linker.exe.release.243280109" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.exe.release"/>
@@ -149,6 +158,9 @@
 								</inputType>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.assembler.exe.release.888600315" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.exe.release">
+								<option id="gnu.both.asm.option.include.paths.2082238513" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/OTAESGCM/content/OTAESGCM/utility}&quot;"/>
+								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.2082220161" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
 						</toolChain>
@@ -190,6 +202,7 @@
 									<listOptionValue builtIn="false" value="/usr/local/include"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/content/OTRadioLink}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/content/OTRadioLink}/utility&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/OTAESGCM/content/OTAESGCM/utility}&quot;"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.warnings.toerrors.1457390117" name="Warnings as errors (-Werror)" superClass="gnu.cpp.compiler.option.warnings.toerrors" useByScannerDiscovery="false" value="true" valueType="boolean"/>
 								<option id="gnu.cpp.compiler.option.debugging.codecov.2091681595" name="Generate gcov information (-ftest-coverage -fprofile-arcs)" superClass="gnu.cpp.compiler.option.debugging.codecov" useByScannerDiscovery="false" value="true" valueType="boolean"/>
@@ -203,6 +216,7 @@
 									<listOptionValue builtIn="false" value="/usr/local/include"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/content/OTRadioLink}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/content/OTRadioLink}/utility&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/OTAESGCM/content/OTAESGCM/utility}&quot;"/>
 								</option>
 								<option id="gnu.c.compiler.option.dialect.std.422040796" name="Language standard" superClass="gnu.c.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.c.compiler.dialect.default" valueType="enumerated"/>
 								<option id="gnu.c.compiler.option.warnings.toerrors.410415043" name="Warnings as errors (-Werror)" superClass="gnu.c.compiler.option.warnings.toerrors" useByScannerDiscovery="false" value="true" valueType="boolean"/>
@@ -229,6 +243,9 @@
 								</inputType>
 							</tool>
 							<tool command="as" commandLinePattern="${COMMAND} ${FLAGS} ${OUTPUT_FLAG} ${OUTPUT_PREFIX}${OUTPUT} ${INPUTS}" errorParsers="org.eclipse.cdt.core.GASErrorParser" id="cdt.managedbuild.tool.gnu.assembler.exe.debug.763422734" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.exe.debug">
+								<option id="gnu.both.asm.option.include.paths.890905507" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/OTAESGCM/content/OTAESGCM/utility}&quot;"/>
+								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.2095540779" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
 						</toolChain>
@@ -251,6 +268,9 @@
 		<configuration configurationName="Debug+Coverage">
 			<resource resourceType="PROJECT" workspacePath="/OTRadioLink"/>
 		</configuration>
+		<configuration configurationName="Debug-lib">
+			<resource resourceType="PROJECT" workspacePath="/OTRadioLink"/>
+		</configuration>
 		<configuration configurationName="Debug + Coverage">
 			<resource resourceType="PROJECT" workspacePath="/OTRadioLink"/>
 		</configuration>
@@ -270,13 +290,28 @@
 		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.debug.1991014182;cdt.managedbuild.config.gnu.exe.debug.1991014182.;cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.1163094081;cdt.managedbuild.tool.gnu.cpp.compiler.input.1202281950">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.debug.1991014182.691000551;cdt.managedbuild.config.gnu.exe.debug.1991014182.691000551.;cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.1495371823;cdt.managedbuild.tool.gnu.cpp.compiler.input.1910990142">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.debug.1991014182.691000551;cdt.managedbuild.config.gnu.exe.debug.1991014182.691000551.;cdt.managedbuild.tool.gnu.c.compiler.exe.debug.2057388806;cdt.managedbuild.tool.gnu.c.compiler.input.1284150098">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.cross.exe.debug.1956793571;cdt.managedbuild.config.gnu.cross.exe.debug.1956793571.;cdt.managedbuild.tool.gnu.cross.c.compiler.1951168710;cdt.managedbuild.tool.gnu.c.compiler.input.23766912">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.cross.exe.release.232466149;cdt.managedbuild.config.gnu.cross.exe.release.232466149.;cdt.managedbuild.tool.gnu.cross.cpp.compiler.493607210;cdt.managedbuild.tool.gnu.cpp.compiler.input.1818051603">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.cross.exe.release.232466149;cdt.managedbuild.config.gnu.cross.exe.release.232466149.;cdt.managedbuild.tool.gnu.cross.c.compiler.1964411378;cdt.managedbuild.tool.gnu.c.compiler.input.1140997116">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.macosx.lib.debug.456123580;cdt.managedbuild.config.macosx.lib.debug.456123580.;cdt.managedbuild.tool.gnu.cpp.compiler.macosx.lib.debug.221090181;cdt.managedbuild.tool.gnu.cpp.compiler.input.46865693">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.debug.1991014182;cdt.managedbuild.config.gnu.exe.debug.1991014182.;cdt.managedbuild.tool.gnu.c.compiler.exe.debug.919037388;cdt.managedbuild.tool.gnu.c.compiler.input.783866445">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.cross.exe.debug.1956793571;cdt.managedbuild.config.gnu.cross.exe.debug.1956793571.;cdt.managedbuild.tool.gnu.cross.c.compiler.1951168710;cdt.managedbuild.tool.gnu.c.compiler.input.23766912">
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.release.976694206;cdt.managedbuild.config.gnu.exe.release.976694206.;cdt.managedbuild.tool.gnu.cpp.compiler.exe.release.288425438;cdt.managedbuild.tool.gnu.cpp.compiler.input.1985260105">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.macosx.lib.debug.456123580;cdt.managedbuild.config.macosx.lib.debug.456123580.;cdt.managedbuild.tool.gnu.c.compiler.macosx.lib.debug.1930466352;cdt.managedbuild.tool.gnu.c.compiler.input.1397981107">
@@ -291,10 +326,7 @@
 		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.cross.exe.debug.1956793571;cdt.managedbuild.config.gnu.cross.exe.debug.1956793571.;cdt.managedbuild.tool.gnu.cross.cpp.compiler.968340235;cdt.managedbuild.tool.gnu.cpp.compiler.input.732190203">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.cross.exe.release.232466149;cdt.managedbuild.config.gnu.cross.exe.release.232466149.;cdt.managedbuild.tool.gnu.cross.cpp.compiler.493607210;cdt.managedbuild.tool.gnu.cpp.compiler.input.1818051603">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.cross.exe.release.232466149;cdt.managedbuild.config.gnu.cross.exe.release.232466149.;cdt.managedbuild.tool.gnu.cross.c.compiler.1964411378;cdt.managedbuild.tool.gnu.c.compiler.input.1140997116">
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.release.976694206;cdt.managedbuild.config.gnu.exe.release.976694206.;cdt.managedbuild.tool.gnu.c.compiler.exe.release.783610395;cdt.managedbuild.tool.gnu.c.compiler.input.1444224565">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
 	</storageModule>
