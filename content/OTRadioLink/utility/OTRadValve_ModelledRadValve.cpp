@@ -647,14 +647,14 @@ void ModelledRadValve::computeTargetTemperature()
     if(newTarget < wt) { setbackC = wt - newTarget; }
     }
 
-  // True if the target temperature has not been met.
-  const bool targetNotReached = (newTarget >= (inputState.refTempC16 >> 4));
-  underTarget = targetNotReached;
+  // True if the target temperature has not been reached or exceeded.
+  const bool targetReached = (newTarget >= (inputState.refTempC16 >> 4));
+  underTarget = !targetReached;
   // If the target temperature is already reached then cancel any BAKE mode in progress (TODO-648).
-  if(!targetNotReached) { valveModeRW->cancelBakeDebounced(); }
+  if(targetReached) { valveModeRW->cancelBakeDebounced(); }
   // Only report as calling for heat when actively doing so.
   // (Eg opening the valve a little in case the boiler is already running does not count.)
-  callingForHeat = targetNotReached &&
+  callingForHeat = !targetReached &&
     (value >= OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN) &&
     isControlledValveReallyOpen();
   }
