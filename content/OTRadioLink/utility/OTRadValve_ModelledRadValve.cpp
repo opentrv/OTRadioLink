@@ -628,15 +628,12 @@ void ModelledRadValve::computeCallForHeat()
 void ModelledRadValve::computeTargetTemperature()
   {
   // Compute basic target temperature statelessly.
-  const uint8_t newTarget = ctt->computeTargetTemp();
-
-  // Make new target available.
-  value = newTarget;
+  const uint8_t newTargetTemp = ctt->computeTargetTemp();
 
   // Set up state for computeRequiredTRVPercentOpen().
   ctt->setupInputState(inputState,
-      retainedState.isFiltering,
-      newTarget, getMinPercentOpen(), getMaxPercentageOpenAllowed(), glacial);
+    retainedState.isFiltering,
+    newTargetTemp, getMinPercentOpen(), getMaxPercentageOpenAllowed(), glacial);
 
   // Explicitly compute the actual setback when in WARM mode for monitoring purposes.
   // TODO: also consider showing full setback to FROST when a schedule is set but not on.
@@ -645,11 +642,11 @@ void ModelledRadValve::computeTargetTemperature()
   if(valveModeRW->inWarmMode())
     {
     const uint8_t wt = tempControl->getWARMTargetC();
-    if(newTarget < wt) { setbackC = wt - newTarget; }
+    if(newTargetTemp < wt) { setbackC = wt - newTargetTemp; }
     }
 
   // True if the target temperature has been reached or exceeded.
-  const bool targetReached = (newTarget <= (inputState.refTempC16 >> 4));
+  const bool targetReached = (newTargetTemp <= (inputState.refTempC16 >> 4));
   underTarget = !targetReached;
   // If the target temperature is already reached then cancel any BAKE mode in progress (TODO-648).
   if(targetReached) { valveModeRW->cancelBakeDebounced(); }

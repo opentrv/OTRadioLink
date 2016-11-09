@@ -44,6 +44,36 @@ TEST(ModelledRadValve,UpDownDelay)
     // Attempt to cycle the valve back and forth between max open and max closed.
     // Ensure that (without BAKE) there is a pause, and sufficient
 
+
+// TODO!
+
+}
+
+// Test the basic behaviour of the cumulative movement counter.
+TEST(ModelledRadValve,cumulativeMovementPC)
+{
+    // Start wit the valve fully open.
+    uint8_t valvePC = 100;
+    // Set sensible ambient room temperature (18C) and target of much higher.
+    OTRadValve::ModelledRadValveInputState is(18 << 4);
+    is.targetTempC = 25;
+    OTRadValve::ModelledRadValveState rs;
+    // Spin on the tick for many hours' worth; there is no need for the valve to move.
+    for(int i = 1000; --i > 0; ) { rs.tick(valvePC, is); }
+    EXPECT_EQ(100, valvePC);
+    EXPECT_EQ(0, rs.cumulativeMovementPC);
+    // Now set the target well below ambient, and spin again for a while.
+    // The valve should be closed and exactly 100% of cumulative travel recorded.
+    is.targetTempC = 14;
+    for(int i = 1000; --i > 0; ) { rs.tick(valvePC, is); }
+    EXPECT_EQ(0, valvePC);
+    EXPECT_EQ(100, rs.cumulativeMovementPC);
+    // Now set the target well above ambient again, and spin again for a while.
+    // The valve should be open and exactly 200% of cumulative travel recorded.
+    is.targetTempC = 21;
+    for(int i = 1000; --i > 0; ) { rs.tick(valvePC, is); }
+    EXPECT_EQ(100, valvePC);
+    EXPECT_EQ(200, rs.cumulativeMovementPC);
 }
 
 // Test the logic in ModelledRadValveState for starting from extreme positions.
