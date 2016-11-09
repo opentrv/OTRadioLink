@@ -58,18 +58,29 @@ void CurrentSenseValveMotorDirect::signalRunSCTTick(const bool opening)
 // (Re)populate structure and compute derived parameters.
 // Ensures that all necessary items are gathered at once and none forgotten!
 // Returns true in case of success.
-// May return false and force error state if inputs unusable,
-// though will still try to compute all values.
+// If inputs unusable will return false and in which can will indicate not able to run proportional.
+//   * ticksFromOpenToClosed  system ticks counted when running from fully open to fully closed; should be positive
+//   * ticksFromOpenToClosed  system ticks counted when running from fully open to fully closed; should be positive
+//   * minMotorDRTicks  minimum number of motor ticks it makes sense to run motor for (eg due to inertia); strictly positive
 bool CurrentSenseValveMotorDirect::CalibrationParameters::updateAndCompute(
     const uint16_t _ticksFromOpenToClosed, const uint16_t _ticksFromClosedToOpen, const uint8_t minMotorDRTicks)
   {
+  // Set up state to reflect inputs and/or be sane.
+  // Start with error state until shown good.
+  approxPrecisionPC = bad_precision;
   ticksFromOpenToClosed = _ticksFromOpenToClosed;
   ticksFromClosedToOpen = _ticksFromClosedToOpen;
+  tfotcSmall = 0;
+  tfctoSmall = 0;
 
-  // Compute approx precision in % as min ticks / DR size in range [0,100].
-  // Inflate estimate slightly to allow for inertia, etc.
+  if(0 == minMotorDRTicks) { return(false); } // Bad argument; should not be passed.
   const uint16_t minticks = OTV0P2BASE::fnmin(_ticksFromOpenToClosed, _ticksFromClosedToOpen);
-  approxPrecisionPC = (uint8_t) OTV0P2BASE::fnmin(100UL, (128UL*minMotorDRTicks) / minticks);
+  if(0 == minticks) { return(false); } // Stuck actuator?  Still should not cause a crash.
+
+  // If ticks counted in either direction hugely unbalanced (one > 2x the other)
+  // then assume proportional mode is not likely to work.
+  // The calculations are done carefully to avoid overflow, even with large values.
+  if(((_ticksFromOpenToClosed>>1) > _ticksFromClosedToOpen) || ((_ticksFromClosedToOpen>>1) > _ticksFromOpenToClosed)) { return(false); }
 
   // Compute a small conversion ratio back and forth
   // which does not add too much error but allows single dead-reckoning steps
@@ -83,11 +94,15 @@ bool CurrentSenseValveMotorDirect::CalibrationParameters::updateAndCompute(
     }
   tfotcSmall = tfotc;
   tfctoSmall = tfcto;
-
-  // Fail if precision far too poor to be usable.
-  if(approxPrecisionPC > 25) { return(false); }
   // Fail if lower ratio value so low (< 4 bits) as to introduce huge error.
   if(OTV0P2BASE::fnmin(tfotc, tfcto) < 8) { return(false); }
+
+  // Compute approx precision in % as min ticks / DR size in range [0,100].
+  // Inflate estimate slightly to allow for inertia, etc.
+  approxPrecisionPC = (uint8_t) OTV0P2BASE::fnmin(100UL, (128UL*minMotorDRTicks) / minticks);
+
+  // Fail if precision far too poor to be usable for proportional mode.
+  if(approxPrecisionPC > max_usuable_precision) { return(false); }
 
   // All OK.
   return(true);
@@ -484,6 +499,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("+calibrating");
       case 4:
         {
         // Set all measured calibration input parameters and current position.
+        // TODO: log event if calibration fails.
         cp.updateAndCompute(perState.valveCalibrating.ticksFromOpenToClosed, perState.valveCalibrating.ticksFromClosedToOpen, minMotorDRTicks);
 
 #if 0 && defined(V0P2BASE_DEBUG)
@@ -508,7 +524,7 @@ OTV0P2BASE::serialPrintAndFlush(cp.getApproxPrecisionPC());
 OTV0P2BASE::serialPrintlnAndFlush();
 #endif
 
-        // Move to normal valve running state...
+        // Move to normal valve running state, even if calibration calculation failed.
         needsRecalibrating = false;
         resetPosition(true); // Valve is currently fully open.
         changeState(valveNormal);

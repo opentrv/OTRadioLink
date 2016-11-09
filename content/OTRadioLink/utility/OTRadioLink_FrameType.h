@@ -36,7 +36,7 @@ namespace OTRadioLink
     // as it is necessary to load a full (RFM23B/64-byte) FIFO
     // and then see what is in it,
     // missing anything else right behind a short message.
-    enum FrameType_V0p2_FS20
+    enum FrameType_V0p2_FS20 : uint8_t
         {
         // An FS20 encoded (valve position) message is indicated by one or more leading 0xcc bytes.
         // (35--45 bytes + possible 3--8 byte trailing stats frame including trailing CRC7, plain-text.)

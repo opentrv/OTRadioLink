@@ -36,7 +36,7 @@ namespace OTRadioLink
     {
 
 
-#ifdef ARDUINO_ARCH_AVR
+#if defined(ARDUINO_ARCH_AVR)
 
     // V0p2 TX implementation for 0 or 32 byte encrypted body sections.
     //
@@ -63,7 +63,7 @@ namespace OTRadioLink
 
             // Get TX ID that will be used for transmission; returns false on failure.
             // Argument must be buffer of (at least) OTV0P2BASE::OpenTRV_Node_ID_Bytes bytes.
-            virtual bool getTXID(uint8_t *id);
+            virtual bool getTXID(uint8_t *id) const override;
 
             // Design notes on use of message counters vs non-volatile storage life, eg for ATMega328P.
             //
@@ -122,7 +122,7 @@ namespace OTRadioLink
             // Combines results from primary and secondary as appropriate.
             // Deals with inversion and checksum checking.
             // Output buffer (buf) must be 3 bytes long.
-            virtual bool get3BytePersistentTXRestartCounter(uint8_t *buf) const;
+            virtual bool get3BytePersistentTXRestartCounter(uint8_t *buf) const override;
             // Reset the persistent reboot/restart message counter in EEPROM; returns false on failure.
             // TO BE USED WITH EXTREME CAUTION: reusing the message counts and resulting IVs
             // destroys the security of the cipher.
@@ -132,7 +132,7 @@ namespace OTRadioLink
             // but inject entropy into the least significant bits to reduce risk value/IV reuse in error.
             // If called with false then interrupts should not be blocked to allow entropy gathering,
             // and counter is guaranteed to be non-zero.
-            virtual bool resetRaw3BytePersistentTXRestartCounter(bool allZeros = false)
+            virtual bool resetRaw3BytePersistentTXRestartCounter(bool allZeros = false) override
                 { return(resetRaw3BytePersistentTXRestartCounterInEEPROM(allZeros)); }
             // Conditional and statically callable version of resetRaw3BytePersistentTXRestartCounter(); returns false on failure.
             // Creates a new persistent/reboot counter and thus message counter, to reduce IV reuse risk.
@@ -152,7 +152,7 @@ namespace OTRadioLink
             // Increment persistent reboot/restart message counter; returns false on failure.
             // Will refuse to increment such that the top byte overflows, ie when already at 0xff.
             // TO BE USED WITH EXTREME CAUTION: calling this unnecessarily will shorten life before needing to change ID/key.
-            virtual bool increment3BytePersistentTXRestartCounter();
+            virtual bool increment3BytePersistentTXRestartCounter() override;
             // Get primary (semi-persistent) message counter for TX from an OpenTRV leaf under its own ID.
             // This counter increases monotonically
             // (and so may provide a sequence number)
@@ -178,13 +178,7 @@ namespace OTRadioLink
             // Returns true on success; false on failure for example because the counter has reached its maximum value.
             // Highest-index bytes in the array increment fastest.
             // Not ISR-safe.
-            virtual bool incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(uint8_t *buf);
-
-            // Fill in 12-byte IV for 'O'-style (0x80) AESGCM security for a frame to TX.
-            // This uses the local node ID as-is for the first 6 bytes if not overridden.
-            // This uses and increments the primary message counter for the last 6 bytes.
-            // Returns true on success, false on failure eg due to message counter generation failure.
-            virtual bool compute12ByteIDAndCounterIVForTX(uint8_t *ivBuf);
+            virtual bool incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(uint8_t *buf) override;
         };
 
 
@@ -219,7 +213,7 @@ namespace OTRadioLink
 
             // Get TX ID that will be used for transmission; returns false on failure.
             // Argument must be buffer of (at least) OTV0P2BASE::OpenTRV_Node_ID_Bytes bytes.
-            virtual bool getTXID(uint8_t *id);
+            virtual bool getTXID(uint8_t *id) const override;
 
             // Set ID to be used for TX ID for subsequent messages.
             // The supplied buffer must be OTV0P2BASE::OpenTRV_Node_ID_Bytes bytes.

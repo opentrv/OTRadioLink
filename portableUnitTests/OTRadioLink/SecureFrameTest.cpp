@@ -530,6 +530,139 @@ TEST(OTAESGCMSecureFrame, GCMVS1ViaFixed32BTextSize)
     EXPECT_EQ(0, memcmp(input, inputDecoded, 32));
 }
 
+// Check WITH_WORKSPACE methods using NIST GCMVS test vector.
+// Test via fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS interface.
+// See http://csrc.nist.gov/groups/STM/cavp/documents/mac/gcmvs.pdf
+// See http://csrc.nist.gov/groups/STM/cavp/documents/mac/gcmtestvectors.zip
+//
+//[Keylen = 128]
+//[IVlen = 96]
+//[PTlen = 256]
+//[AADlen = 128]
+//[Taglen = 128]
+//
+//Count = 0
+//Key = 298efa1ccf29cf62ae6824bfc19557fc
+//IV = 6f58a93fe1d207fae4ed2f6d
+//PT = cc38bccd6bc536ad919b1395f5d63801f99f8068d65ca5ac63872daf16b93901
+//AAD = 021fafd238463973ffe80256e5b1c6b1
+//CT = dfce4e9cd291103d7fe4e63351d9e79d3dfd391e3267104658212da96521b7db
+//Tag = 542465ef599316f73a7a560509a2d9f2
+//
+// keylen = 128, ivlen = 96, ptlen = 256, aadlen = 128, taglen = 128, count = 0
+TEST(Main,GCMVS1ViaFixed32BTextSizeWITHWORKSPACE)
+{
+    // Inputs to encryption.
+    static const uint8_t input[32] = { 0xcc, 0x38, 0xbc, 0xcd, 0x6b, 0xc5, 0x36, 0xad, 0x91, 0x9b, 0x13, 0x95, 0xf5, 0xd6, 0x38, 0x01, 0xf9, 0x9f, 0x80, 0x68, 0xd6, 0x5c, 0xa5, 0xac, 0x63, 0x87, 0x2d, 0xaf, 0x16, 0xb9, 0x39, 0x01 };
+    static const uint8_t key[AES_KEY_SIZE/8] = { 0x29, 0x8e, 0xfa, 0x1c, 0xcf, 0x29, 0xcf, 0x62, 0xae, 0x68, 0x24, 0xbf, 0xc1, 0x95, 0x57, 0xfc };
+    static const uint8_t nonce[GCM_NONCE_LENGTH] = { 0x6f, 0x58, 0xa9, 0x3f, 0xe1, 0xd2, 0x07, 0xfa, 0xe4, 0xed, 0x2f, 0x6d };
+    static const uint8_t aad[16] = { 0x02, 0x1f, 0xaf, 0xd2, 0x38, 0x46, 0x39, 0x73, 0xff, 0xe8, 0x02, 0x56, 0xe5, 0xb1, 0xc6, 0xb1 };
+    // Space for outputs from encryption.
+    uint8_t tag[GCM_TAG_LENGTH]; // Space for tag.
+    uint8_t cipherText[std::max(32, (int)sizeof(input))]; // Space for encrypted text.
+    // Do encryption via simplified interface.
+    constexpr uint8_t workspaceRequired = OTAESGCM::OTAES128GCMGenericWithWorkspace<>::workspaceRequired;
+    uint8_t workspace[workspaceRequired];
+    ASSERT_TRUE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_WORKSPACE(
+            workspace, workspaceRequired,
+            key, nonce,
+            aad, sizeof(aad),
+            input,
+            cipherText, tag));
+    // Ensure that the workspace is completely zeroed after the call for security.
+    for(int i = workspaceRequired; --i >= 0; ) { ASSERT_EQ(0, workspace[i]); }
+    // Check some of the cipher text and tag.
+    //            "0388DACE60B6A392F328C2B971B2FE78F795AAAB494B5923F7FD89FF948B  61 47 72 C7 92 9C D0 DD 68 1B D8 A3 7A 65 6F 33" :
+    ASSERT_EQ(0xdf, cipherText[0]);
+    ASSERT_EQ(0x91, cipherText[5]);
+    ASSERT_EQ(0xdb, cipherText[sizeof(cipherText)-1]);
+    ASSERT_EQ(0x24, tag[1]);
+    ASSERT_EQ(0xd9, tag[14]);
+    // Decrypt via simplified interface...
+    uint8_t inputDecoded[32];
+    ASSERT_TRUE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_WORKSPACE(
+            workspace, workspaceRequired,
+            key, nonce,
+            aad, sizeof(aad),
+            cipherText, tag,
+            inputDecoded));
+    // Ensure that the workspace is completely zeroed after the call for security.
+    for(int i = workspaceRequired; --i >= 0; ) { ASSERT_EQ(0, workspace[i]); }
+    ASSERT_EQ(0, memcmp(input, inputDecoded, 32));
+    // Try enc/auth with no (ie zero-length) plaintext.
+    ASSERT_TRUE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_WORKSPACE(
+            workspace, workspaceRequired,
+            key, nonce,
+            aad, sizeof(aad),
+            NULL,
+            cipherText, tag));
+    // Ensure that the workspace is completely zeroed after the call for security.
+    for(int i = workspaceRequired; --i >= 0; ) { ASSERT_EQ(0, workspace[i]); }
+    // Check some of the tag.
+    ASSERT_EQ(0x57, tag[1]);
+    ASSERT_EQ(0x25, tag[14]);
+    // Auth/decrypt (auth should still succeed).
+    ASSERT_TRUE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_WORKSPACE(
+            workspace, workspaceRequired,
+            key, nonce,
+            aad, sizeof(aad),
+            NULL, tag,
+            inputDecoded));
+    // Ensure that the workspace is completely zeroed after the call for security.
+    for(int i = workspaceRequired; --i >= 0; ) { ASSERT_EQ(0, workspace[i]); }
+    // Check that too-small or NULL workspaces are rejected, but oversize ones accepted.
+    // Encrypt...
+    ASSERT_FALSE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_WORKSPACE(
+            NULL, workspaceRequired,
+            key, nonce,
+            aad, sizeof(aad),
+            input,
+            cipherText, tag));
+    ASSERT_FALSE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_WORKSPACE(
+            workspace, workspaceRequired-1,
+            key, nonce,
+            aad, sizeof(aad),
+            input,
+            cipherText, tag));
+    ASSERT_FALSE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_WORKSPACE(
+            workspace, 0,
+            key, nonce,
+            aad, sizeof(aad),
+            input,
+            cipherText, tag));
+    ASSERT_TRUE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_WORKSPACE(
+            workspace, workspaceRequired+1,
+            key, nonce,
+            aad, sizeof(aad),
+            input,
+            cipherText, tag));
+    // Decrypt..
+    ASSERT_FALSE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_WORKSPACE(
+            NULL, workspaceRequired,
+            key, nonce,
+            aad, sizeof(aad),
+            cipherText, tag,
+            inputDecoded));
+    ASSERT_FALSE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_WORKSPACE(
+            workspace, workspaceRequired-1,
+            key, nonce,
+            aad, sizeof(aad),
+            cipherText, tag,
+            inputDecoded));
+    ASSERT_FALSE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_WORKSPACE(
+            workspace, 0,
+            key, nonce,
+            aad, sizeof(aad),
+            cipherText, tag,
+            inputDecoded));
+    ASSERT_TRUE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_WORKSPACE(
+            workspace, workspaceRequired+1,
+            key, nonce,
+            aad, sizeof(aad),
+            cipherText, tag,
+            inputDecoded));
+}
+
 // Test encoding/encryption then decoding/decryption of entire secure frame.
 //
 // DHD20161107: imported from test_SECFRAME.ino testSecureSmallFrameEncoding().
@@ -959,6 +1092,65 @@ TEST(OTAESGCMSecureFrame, NodeAssocRunOnce)
   EXPECT_EQ(0, memcmp(mcbuf, newCount9, sizeof(mcbuf)));
   }
 #endif
+
+// Mock TX base: all zeros fixed IV and counters, valid fixed ID.
+class TXBaseMock final : public OTRadioLink::SimpleSecureFrame32or0BodyTXBase
+  {
+  public:
+    // Get TX ID that will be used for transmission; returns false on failure.
+    // Argument must be buffer of (at least) OTV0P2BASE::OpenTRV_Node_ID_Bytes bytes.
+    virtual bool getTXID(uint8_t *id) const override { memset(id, 0x80, OTV0P2BASE::OpenTRV_Node_ID_Bytes); return(true); }
+    // Get the 3 bytes of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
+    virtual bool get3BytePersistentTXRestartCounter(uint8_t *buf) const override { memset(buf, 0, 3); return(true); }
+    // Reset the persistent reboot/restart message counter; returns false on failure.
+    virtual bool resetRaw3BytePersistentTXRestartCounter(bool allZeros = false) override { return(false); }
+    // Increment persistent reboot/restart message counter; returns false on failure.
+    virtual bool increment3BytePersistentTXRestartCounter() override { return(false); }
+    // Fills the supplied 6-byte array with the incremented monotonically-increasing primary TX counter.
+    virtual bool incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(uint8_t *buf) override { memset(buf, 0, 6); return(true); }
+  };
+
+// Test encoding of O frames through to final byte pattern.
+TEST(OTAESGCMSecureFrame, OFrameEncoding)
+{
+    TXBaseMock mockTX;
+
+    // All zeroes key.
+    const uint8_t *const key = zeroBlock;
+    // Size of buffer to receive encrypted frame.
+    constexpr uint8_t encBufSize = 64;
+    // Length of ID prefix for frame.
+    const uint8_t txIDLen =4;
+    // Distinguished 'invalid' valve position; never mistaken for a real valve.
+    constexpr uint8_t valvePC = 0x7f;
+
+    // Expected result.
+    const uint8_t expected[63] = {62,207,4,128,128,128,128,32,102,58,109,143,127,209,106,16,122,170,41,17,135,168,193,220,188,110,36,204,190,21,125,138,196,172,122,155,149,87,43,4,0,0,0,0,0,0,162,222,15,42,215,77,210,0,127,19,255,121,139,199,19,12,128};
+
+    // Encrypt empty (no-JSON) O frame via the on-stack workspace API.
+    uint8_t bufS[encBufSize];
+    const OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t eS =
+        OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS;
+    const uint8_t bodylenS = mockTX.generateSecureOFrameRawForTX(
+        bufS, encBufSize, txIDLen, valvePC, NULL, eS, NULL, key);
+    EXPECT_EQ(sizeof(expected), bodylenS);
+//    printf("{"); for(int i = 0; i < bodylenS; ++i) { printf("%d,", bufS[i]); } printf("}\n");
+    for(int i = 0; i < bodylenS; ++i) { ASSERT_EQ(expected[i], bufS[i]); }
+
+    // Encrypt empty (no-JSON) O frame via the explicit workspace API.
+    uint8_t bufW[encBufSize];
+    constexpr uint8_t workspaceSize = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0;
+    uint8_t workspace[workspaceSize];
+    OTV0P2BASE::ScratchSpace sW(workspace, workspaceSize);
+    const OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEncWithWorkspace_ptr_t eW = OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_WORKSPACE;
+    const uint8_t bodylenW = mockTX.generateSecureOFrameRawForTX(
+        bufW, encBufSize, txIDLen, valvePC, NULL, eW, sW, key);
+    EXPECT_EQ(63, bodylenW);
+    for(int i = 0; i < bodylenW; ++i) { ASSERT_EQ(expected[i], bufW[i]); }
+}
+
+
+
 
 
 #endif // ARDUINO_LIB_OTAESGCM

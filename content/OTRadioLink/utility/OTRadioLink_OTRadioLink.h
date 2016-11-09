@@ -305,7 +305,7 @@ namespace OTRadioLink
             // Implementations can provide more specific errors in range 128--255.
             // 0 (zero) means no error.
             // Higher numbers may mean worse or more specific errors.
-            enum BaseRXErr
+            enum BaseRXErr : uint8_t
                 {
                 RXErr_NONE = 0,         // NO ERROR.
                 RXErr_DupDropped,       // Duplicate RX frame dropped, eg from a double send. Not always reported as an error.
@@ -324,7 +324,7 @@ namespace OTRadioLink
             // As well as possibly dynamically adjusting power within allowed ranges:
             //   * TXmax may for example also do double transmissions to help frames get heard.
             //   * TXmin may for example be used to minimise the chance of being overheard during pairing.
-            enum TXpower { TXmin, TXquiet, TXnormal, TXloud, TXmax };
+            enum TXpower : uint8_t { TXmin, TXquiet, TXnormal, TXloud, TXmax };
 
             // Send/TX a raw frame on the specified (default first/0) channel; returns true in case of apparent success.
             // This does not add any pre- or post- amble (etc)

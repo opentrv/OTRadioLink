@@ -87,7 +87,7 @@ class ScratchSpace final
   {
   public:
     // Buffer space; non-NULL except in case of error (when bufsize will also be 0).
-    const uint8_t *buf;
+    uint8_t *const buf;
     // Buffer size; strictly positive except in case of error (when buf will also be NULL).
     const uint8_t bufsize;
 

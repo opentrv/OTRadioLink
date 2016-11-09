@@ -60,7 +60,7 @@ class ValveMode final : public OTV0P2BASE::SimpleTSUint8Sensor
   public:
     // Modes.
     // Starts in VMODE_FROST.
-    typedef enum { VMODE_FROST, VMODE_WARM, VMODE_BAKE } mode_t;
+    typedef enum mode : uint8_t { VMODE_FROST = 0, VMODE_WARM, VMODE_BAKE } mode_t;
 
     // Construct an instance.
     ValveMode() : bakeCountdownM(0) { }
