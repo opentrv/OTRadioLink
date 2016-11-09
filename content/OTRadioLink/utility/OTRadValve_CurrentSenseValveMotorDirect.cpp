@@ -24,6 +24,11 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 
 #include "OTRadValve_CurrentSenseValveMotorDirect.h"
 
+#ifndef ARDUINO
+// Extra debugging tools in unit tests!
+#include <stdio.h>
+#endif
+
 
 namespace OTRadValve
 {
@@ -143,7 +148,7 @@ uint8_t CurrentSenseValveMotorDirect::getMinPercentOpen() const
     // If in dead-reckoning mode then use a very safe estimate,
     // else use a somewhat tighter one.
     // TODO: optimise, ie don't compute each time if frequently called.
-    return(usingPositionalEncoder() ?
+    return(usingPositionalShaftEncoder() ?
             OTV0P2BASE::fnmax((uint8_t)(10 + cp.getApproxPrecisionPC()), (uint8_t)DEFAULT_VALVE_PC_MIN_REALLY_OPEN) :
             OTV0P2BASE::fnmax((uint8_t)(50 + cp.getApproxPrecisionPC()), (uint8_t)DEFAULT_VALVE_PC_SAFER_OPEN));
     }
@@ -380,10 +385,10 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
       // then try again to run to end-stop.
       // If end-stop is hit then reset positional values.
       // Only really believe the end-stop hit when running slowly.
-      const bool tentative = binaryOpen ? (currentPC == 99) : (currentPC == 1);
+      const bool tentative = binaryOpen ? (99 == currentPC) : (1 == currentPC);
       // Try running fast if not tentative from previous step, and end up tentative.
       if(!tentative && runTowardsEndStop(binaryOpen, low)) { resetPosition(binaryOpen, true); }
-      // Else follow tentative by running slow to attempt to seat securely.
+      // Else follow tentative by running slow to attempt to seat the valve securely.
       else if(runTowardsEndStop(binaryOpen)) { resetPosition(binaryOpen, false); }
       // Re-estimate intermediate position.
       else { recomputePosition(); }
@@ -564,6 +569,9 @@ bool CurrentSenseValveMotorDirect::do_valveNormal_prop()
     // then fall back to non-prop behaviour and hit the end stops (fast) instead.
     // Makes ends 'sticky' and allows for some light-weight recalibration to scale ends.
     const uint8_t eps = cp.getApproxPrecisionPC();
+    // Allow wider epsilon for tracking errors.
+    constexpr uint8_t aeps = absTolerancePC;
+    const uint8_t weps = OTV0P2BASE::fnmax(aeps, uint8_t(2*eps)); // Cannot overflow since getApproxPrecisionPC() <= 100.
     if((targetPC >= (100 - 2*eps)) ||
        (targetPC <= OTV0P2BASE::fnmax(2*eps, minOpenPC>>1)))
         { return(false); } // Fall through.
@@ -585,7 +593,7 @@ bool CurrentSenseValveMotorDirect::do_valveNormal_prop()
       if(hitEndStop)
         {
         // Report serious tracking error (well before 'fairly open' %).
-        if(currentPC < OTV0P2BASE::fnmin(fairlyOpenPC, (uint8_t)(100 - 8*eps)))
+        if(currentPC < OTV0P2BASE::fnmin(fairlyOpenPC, (uint8_t)(100 - weps)))
           { reportTrackingError(); }
         // Silently auto-adjust when end-stop hit close to expected position.
         else
@@ -605,7 +613,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("->");
       if(hitEndStop)
         {
         // Report serious tracking error.
-        if(currentPC > OTV0P2BASE::fnmax(2*minOpenPC, 8*eps))
+        if(currentPC > OTV0P2BASE::fnmax(uint8_t(2*minOpenPC), weps))
           { reportTrackingError(); }
         // Silently auto-adjust when end-stop hit close to expected position.
         else { resetPosition(false); }

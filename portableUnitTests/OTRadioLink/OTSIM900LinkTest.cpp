@@ -305,7 +305,8 @@ TEST(OTSIM900Link,GarbageTestSimulator)
 {
 //    const bool verbose = B2::verbose;
 
-    srandom(::testing::UnitTest::GetInstance()->random_seed()); // Seed random() for use in simulator; --gtest_shuffle will force it to change.
+    // Seed random() for use in simulator; --gtest_shuffle will force it to change.
+    srandom(::testing::UnitTest::GetInstance()->random_seed());
 
     // Vector of bools containing states to check. This covers all states expected in normal use. RESET and PANIC are not covered.
     std::vector<bool> statesChecked(OTSIM900Link::RESET, false);

@@ -225,6 +225,7 @@ void power_intermittent_peripherals_disable();
 // Note: read() can be called whenever battery voltage needs to be re-measured,
 // and derived classes should not rely on only regular calls to / polling of read(),
 // but measuring voltage is not free in terms of either time or energy.
+// When battery is not low, read()/get() will return a non-zero value.
 class SupplyVoltageLow : public OTV0P2BASE::Sensor<uint16_t>
   {
   protected:
@@ -246,6 +247,11 @@ class SupplyVoltageLow : public OTV0P2BASE::Sensor<uint16_t>
     // Below this level actuators may not reliably operate or may cause brown-outs and restarts.
     // The threshold depends on the AVR and other hardware components (eg sensors) in use.
     bool isSupplyVoltageVeryLow() const { return(isVeryLow); }
+    // Force a read/poll of the supply voltage and return the value sensed.
+    // When battery is not low, read()/get() will return a non-zero value.
+    // NOT thread-safe or usable within ISRs (Interrupt Service Routines).
+    virtual uint16_t read() override { return(get()); }
+    virtual uint16_t get() const override { return(isLow ? 0 : 1); }
   };
 
 // Sensor for supply (eg battery) voltage in centivolts.

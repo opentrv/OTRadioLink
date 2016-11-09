@@ -32,6 +32,16 @@ namespace OTRadValve
 {
 
 
+// This driver attempts to relatively quickly (within a minute or so at 30 poll()s per minute)
+// get the driven valve estimated as close enough to the requested percentage open,
+// after some initial housekeeping and (re)calibration.
+//
+// The definition of 'close enough' is designed to accommodate non-proportional drivers.
+//
+// See the closeEnoughToTarget() static method.
+//
+// Note that when the battery is low then attempts to close the valve may be ignored.
+
 // Generic (unit-testable) motor driver using end-stop detection only, and aims only for fully open or closed.
 // Designed to be embedded in a motor controller instance.
 // This uses the sub-cycle clock for timing.
@@ -83,6 +93,21 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
         {
         return(gcst_max -
                OTV0P2BASE::fnmax((uint8_t)1, (uint8_t)( ((gcst_max+1)/4) - minimumMotorRunupTicks - 1 - (240 / subcycleTicksRoundedDown_ms) )));
+        }
+
+    // Returns true when the current % open is 'close enough' to the target value.
+    //
+    // "Close enough" means:
+    //   * fully open and fully closed should always be achieved
+    //   * generally within an absolute tolerance of the target value (eg 10--25%)
+    //   * when target is below DEFAULT_VALVE_PC_SAFER_OPEN then any value down to 0 is acceptable
+    //   * when target is above DEFAULT_VALVE_PC_MODERATELY_OPEN then any value up to 100 is acceptable
+    // The absolute tolerance is partly guided by the fact that most TRV bases
+    // are only anything like linear in throughput over a relatively small range.
+    static constexpr uint8_t absTolerancePC = 16;
+    static constexpr bool closeEnoughToTarget(const uint8_t targetPC, const uint8_t currentPC)
+        {
+        return(targetPC == currentPC);
         }
 
     // Basic/coarse states of driver, shared with derived classes.
@@ -392,7 +417,7 @@ class CurrentSenseValveMotorDirect final : public CurrentSenseValveMotorDirectBi
                                   volatile uint16_t &ticksReverse) const;
 
           // Precision % threshold above which proportional mode is not going to be possible.
-          static constexpr uint8_t max_usuable_precision = 25;
+          static constexpr uint8_t max_usuable_precision = OTV0P2BASE::fnmin((uint8_t)25, absTolerancePC);
           // Precision % used to indicate an error condition (legal but clearly no good).
           static constexpr uint8_t bad_precision = 100;
           // If true, device cannot be run in proportional mode.
@@ -426,9 +451,9 @@ class CurrentSenseValveMotorDirect final : public CurrentSenseValveMotorDirectBi
     // Maximum permitted value of ticksFromOpen (and ticksReverse).
     static const uint16_t MAX_TICKS_FROM_OPEN = ~0;
 
-    // True if using positional encoder, else using crude dead-reckoning.
+    // True if using positional/shaft encoder, else using crude dead-reckoning.
     // Only defined once calibration is complete.
-    bool usingPositionalEncoder() const { return(false); }
+    bool usingPositionalShaftEncoder() const { return(false); }
 
     // Compute and apply reconciliation/adjustment of ticks and % position.
     // Uses computePosition() to adjust internal state.
