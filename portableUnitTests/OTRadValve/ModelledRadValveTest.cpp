@@ -665,5 +665,7 @@ TODO: standard driver and test cases from data above!
 TODO: check that pauses between turn up and turn down are enforced.
 
 TODO: check that BAKE behaves as expected, in target raise and duration and reversion to WARM.
+
+TODO: check correct response to sharp temp rise when rad comes on for all-in-one unit, eg with low-pass filtering.
  */
 
