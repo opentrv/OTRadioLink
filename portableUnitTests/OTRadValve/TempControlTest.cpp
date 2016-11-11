@@ -77,9 +77,6 @@ namespace FROSTRH
   }
 TEST(TempControl,FROSTRH)
 {
-    //    // If true then be more verbose.
-    //    const static bool verbose = false;
-
     // Parameters as for REV7/DORM1/TRV1 at 2016/10/27.
     typedef OTRadValve::ValveControlParameters<
         6,  // Target FROST temperature for ECO bias.
