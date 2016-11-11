@@ -74,6 +74,18 @@ class HumiditySensorBase : public OTV0P2BASE::SimpleTSUint8Sensor
       bool isRHHighWithHyst() const { return(highWithHyst); }
     };
 
+// Simple mock object for testing.
+class HumiditySensorMock final : public HumiditySensorBase
+  {
+  public:
+    // Set new value.
+    bool set(uint8_t newValue, bool _highWithHyst) { value = newValue; highWithHyst = _highWithHyst; return(true); }
+
+    // Returns the existing value: use set() to set a new one.
+    // Simplistically updates other flags and outputs based on current value.
+    uint8_t read() override { return(get()); }
+  };
+
 
 #ifdef ARDUINO_ARCH_AVR
 
