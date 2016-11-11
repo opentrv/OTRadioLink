@@ -138,9 +138,8 @@ class DummyHardwareDriver : public OTRadValve::HardwareMotorDriverInterface
   public:
     // Detect if end-stop is reached or motor current otherwise very high.
     bool currentHigh = false;
-    virtual bool isCurrentHigh(OTRadValve::HardwareMotorDriverInterface::motor_drive mdir = motorDriveOpening) const override { return(currentHigh); }
-    virtual void motorRun(uint8_t maxRunTicks, motor_drive dir, OTRadValve::HardwareMotorDriverInterfaceCallbackHandler &callback) override
-      { }
+    virtual bool isCurrentHigh(OTRadValve::HardwareMotorDriverInterface::motor_drive /*mdir*/ = motorDriveOpening) const override { return(currentHigh); }
+    virtual void motorRun(uint8_t /*maxRunTicks*/, motor_drive /*dir*/, OTRadValve::HardwareMotorDriverInterfaceCallbackHandler &/*callback*/) override { }
   };
 
 // Always claims to be at the start of a major cycle.
@@ -246,8 +245,8 @@ class DummyHardwareDriverHitEndstop : public OTRadValve::HardwareMotorDriverInte
     // Detect if end-stop is reached or motor current otherwise very high.
     bool currentHigh = false;
   public:
-    virtual bool isCurrentHigh(OTRadValve::HardwareMotorDriverInterface::motor_drive mdir = motorDriveOpening) const override { return(currentHigh); }
-    virtual void motorRun(uint8_t maxRunTicks, motor_drive dir, OTRadValve::HardwareMotorDriverInterfaceCallbackHandler &callback) override
+    virtual bool isCurrentHigh(OTRadValve::HardwareMotorDriverInterface::motor_drive /*mdir*/ = motorDriveOpening) const override { return(currentHigh); }
+    virtual void motorRun(uint8_t /*maxRunTicks*/, motor_drive dir, OTRadValve::HardwareMotorDriverInterfaceCallbackHandler &callback) override
       {
       currentHigh = (OTRadValve::HardwareMotorDriverInterface::motorOff != dir);
       callback.signalHittingEndStop(true);
@@ -349,7 +348,7 @@ static void normalStateWalkthrough(OTRadValve::CurrentSenseValveMotorDirectBase 
     // Some are listed repeatedly to ensure no significant sticky state.
     const uint8_t randomTarget1 = uint8_t(((unsigned) random()) % 101);
     uint8_t targetValues[] = { 0, 100, 1, 2, 25, 50, 75, randomTarget1, 0, 100, OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN, OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN, OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN };
-    for(int i = 0; i < sizeof(targetValues); ++i)
+    for(size_t i = 0; i < sizeof(targetValues); ++i)
         {
         const uint8_t target = targetValues[i];
         csv->setTargetPC(target);
@@ -377,7 +376,7 @@ TEST(CurrentSenseValveMotorDirect,normalStateWalkthrough)
     const bool verbose = false;
 
     // Seed random() for use in simulator; --gtest_shuffle will force it to change.
-    srandom(::testing::UnitTest::GetInstance()->random_seed());
+    srandom((unsigned) ::testing::UnitTest::GetInstance()->random_seed());
 
     const uint8_t subcycleTicksRoundedDown_ms = 7; // For REV7: OTV0P2BASE::SUBCYCLE_TICK_MS_RD.
     const uint8_t gsct_max = 255; // For REV7: OTV0P2BASE::GSCT_MAX.

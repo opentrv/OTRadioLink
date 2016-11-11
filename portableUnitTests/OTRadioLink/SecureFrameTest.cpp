@@ -804,7 +804,7 @@ TEST(OTAESGCMSecureFrame, BeaconEncoding)
     //EXPECT_EQ(0xXX, buf[12]); // CRC will vary with ID.
     //
     //const unsigned long before = millis();
-    for(int idLen = 0; idLen <= 8; ++idLen)
+    for(uint8_t idLen = 0; idLen <= 8; ++idLen)
     {
     // Secure beacon...  All zeros key; ID and IV as from spec Example 3 at 20160207.
     const uint8_t *const key = zeroBlock;
@@ -1101,7 +1101,7 @@ class TXBaseMock final : public OTRadioLink::SimpleSecureFrame32or0BodyTXBase
     // Get the 3 bytes of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
     virtual bool get3BytePersistentTXRestartCounter(uint8_t *buf) const override { memset(buf, 0, 3); return(true); }
     // Reset the persistent reboot/restart message counter; returns false on failure.
-    virtual bool resetRaw3BytePersistentTXRestartCounter(bool allZeros = false) override { return(false); }
+    virtual bool resetRaw3BytePersistentTXRestartCounter(bool /*allZeros*/ = false) override { return(false); }
     // Increment persistent reboot/restart message counter; returns false on failure.
     virtual bool increment3BytePersistentTXRestartCounter() override { return(false); }
     // Fills the supplied 6-byte array with the incremented monotonically-increasing primary TX counter.

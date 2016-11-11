@@ -460,7 +460,7 @@ class CurrentSenseValveMotorDirect final : public CurrentSenseValveMotorDirectBi
     // Reverse ticks not yet folded into ticksFromOpen;
     volatile uint16_t ticksReverse;
     // Maximum permitted value of ticksFromOpen (and ticksReverse).
-    static const uint16_t MAX_TICKS_FROM_OPEN = ~0;
+    static const uint16_t MAX_TICKS_FROM_OPEN = uint16_t(~0);
 
     // True if using positional/shaft encoder, else using crude dead-reckoning.
     // Only defined once calibration is complete.

@@ -174,7 +174,7 @@ class FHT8VRadValveUtil
         //     99     253               252     1       0.4%
         //    100     255               255     X       0       fully open: must be correct
         const uint8_t result = (valvePC >= 100) ? 255 :
-          ((valvePC<<1) + (valvePC>>1) + (valvePC>>4));
+          uint8_t((valvePC<<1) + (valvePC>>1) + (valvePC>>4));
 
         return(result);
         }

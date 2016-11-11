@@ -103,7 +103,7 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf,
     // A non-NULL pointer is a RAM source, else an EEPROM source.
     if(il_ > maxIDLength) { return(0); } // ERROR
     // Copy the ID length and bytes, and sequence number lsbs, to the header struct.
-    seqIl = il_ | (seqNum_ << 4);
+    seqIl = uint8_t(il_ | (seqNum_ << 4));
     if(il_ > 0)
       {
       // Copy in ID if not zero length, from RAM or EEPROM as appropriate.
@@ -657,9 +657,9 @@ bool SimpleSecureFrame32or0BodyRXBase::validateRXMessageCount(const uint8_t *ID,
 // Copies the plaintext to the ciphertext, unless plaintext is NULL.
 // Copies the nonce/IV to the tag and pads with trailing zeros.
 // The key is ignored (though one must be supplied).
-bool fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL(void * const state,
+bool fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL(void * const /*state*/,
         const uint8_t *const key, const uint8_t *const iv,
-        const uint8_t *const authtext, const uint8_t authtextSize,
+        const uint8_t *const authtext, const uint8_t /*authtextSize*/,
         const uint8_t *const plaintext,
         uint8_t *const ciphertextOut, uint8_t *const tagOut)
     {
@@ -684,9 +684,9 @@ bool fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL(void * const state,
 // Undoes/checks fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL().
 // Copies the ciphertext to the plaintext, unless ciphertext is NULL.
 // Verifies that the tag seems to have been constructed appropriately.
-bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(void *const state,
+bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(void *const /*state*/,
         const uint8_t *const key, const uint8_t *const iv,
-        const uint8_t *const authtext, const uint8_t authtextSize,
+        const uint8_t *const authtext, const uint8_t /*authtextSize*/,
         const uint8_t *const ciphertext, const uint8_t *const tag,
         uint8_t *const plaintextOut)
     {
@@ -781,7 +781,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX(uint8_t *
     uint8_t iv[12];
     if(!compute12ByteIDAndCounterIVForTX(iv)) { return(0); }
     const bool hasStats = (NULL != statsJSON) && ('{' == statsJSON[0]);
-    const int slp1 = hasStats ? strlen(statsJSON) : 1; // Stats length including trailing '}' (not sent).
+    const size_t slp1 = hasStats ? strlen(statsJSON) : 1; // Stats length including trailing '}' (not sent).
     if(slp1 > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE-1) { return(0); } // ERROR
     const uint8_t statslen = (uint8_t)(slp1 - 1); // Drop trailing '}' implicitly.
     uint8_t bbuf[ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE];
@@ -825,7 +825,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX(uint8_t *
     uint8_t *const iv = scratch.buf; // uint8_t iv[IV_size];
     if(!compute12ByteIDAndCounterIVForTX(iv)) { return(0); }
     const bool hasStats = (NULL != statsJSON) && ('{' == statsJSON[0]);
-    const int slp1 = hasStats ? strlen(statsJSON) : 1; // Stats length including trailing '}' (not sent).
+    const size_t slp1 = hasStats ? strlen(statsJSON) : 1; // Stats length including trailing '}' (not sent).
     if(slp1 > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE-1) { return(0); } // ERROR
     const uint8_t statslen = (uint8_t)(slp1 - 1); // Drop trailing '}' implicitly.
     uint8_t *const bbuf = scratch.buf + IV_size; // uint8_t bbuf[ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE];

@@ -30,7 +30,7 @@ bool TestValveMotor::runFastTowardsEndStop(bool toOpen)
 	// Clear the end-stop detection flag ready.
 	endStopDetected = false;
 	// Run motor as far as possible on this sub-cycle.
-	hw->motorRun(~0, toOpen ?
+	hw->motorRun(uint8_t(~0), toOpen ?
 		OTRadValve::HardwareMotorDriverInterface::motorDriveOpening
 		: OTRadValve::HardwareMotorDriverInterface::motorDriveClosing, *this);
 	// Stop motor and ensure power off.

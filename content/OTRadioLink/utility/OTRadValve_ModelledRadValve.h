@@ -255,7 +255,7 @@ struct ModelledRadValveState final
     { for(int_fast8_t i = filterLength; --i >= 0; ) { prevRawTempC16[i] = rawTempC16; } }
 
   // Compute the adjusted temperature as used within the class calculation, filter, etc.
-  static int computeRawTemp16(const ModelledRadValveInputState& inputState)
+  static int_fast16_t computeRawTemp16(const ModelledRadValveInputState& inputState)
     { return(inputState.refTempC16 - ModelledRadValveInputState::refTempOffsetC16); }
   };
 

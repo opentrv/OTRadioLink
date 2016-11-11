@@ -111,7 +111,7 @@ void extractTrailingMinimalStatsPayload(const uint8_t *const buf, trailingMinima
   if(NULL == payload) { panic(); }
 #endif
   payload->powerLow = (0 != (buf[0] & 0x10));
-  payload->tempC16 = ((((int16_t) buf[1]) << 4) | (buf[0] & 0xf)) + MESSAGING_TRAILING_MINIMAL_STATS_TEMP_BIAS;
+  payload->tempC16 = int16_t(((((int16_t) buf[1]) << 4) | (buf[0] & 0xf)) + MESSAGING_TRAILING_MINIMAL_STATS_TEMP_BIAS);
   }
 //#endif // ENABLE_FS20_ENCODING_SUPPORT
 
@@ -120,7 +120,7 @@ void extractTrailingMinimalStatsPayload(const uint8_t *const buf, trailingMinima
 // Send (valid) core binary stats to specified print channel, followed by "\r\n".
 // This does NOT attempt to flush output nor wait after writing.
 // Will only write stats with a source ID.
-void outputCoreStats(Print *p, bool secure, const FullStatsMessageCore_t *stats)
+void outputCoreStats(Print *p, bool /*secure*/, const FullStatsMessageCore_t *stats)
   {
   if(stats->containsID)
     {
@@ -277,7 +277,7 @@ uint8_t *encodeFullStatsMessageCore(uint8_t * const buf, const uint8_t buflen, c
 // Returns NULL if failed (eg because of corrupt/insufficient message data) and state of 'content' result is undefined.
 // This will avoid copying into the result data (possibly tainted) that has arrived at an inappropriate security level.
 //   * content will contain data decoded from the message; must be non-NULL
-const uint8_t *decodeFullStatsMessageCore(const uint8_t * const buf, const uint8_t buflen, const OTV0P2BASE::stats_TX_level secLevel, const bool secureChannel,
+const uint8_t *decodeFullStatsMessageCore(const uint8_t * const buf, const uint8_t buflen, const OTV0P2BASE::stats_TX_level /*secLevel*/, const bool /*secureChannel*/,
     FullStatsMessageCore_t * const content)
   {
 //DEBUG_SERIAL_PRINTLN_FLASHSTRING("dFSMC");

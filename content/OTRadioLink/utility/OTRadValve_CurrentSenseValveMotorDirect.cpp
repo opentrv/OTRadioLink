@@ -97,8 +97,8 @@ bool CurrentSenseValveMotorDirect::CalibrationParameters::updateAndCompute(
     tfotc >>= 1;
     tfcto >>= 1;
     }
-  tfotcSmall = tfotc;
-  tfctoSmall = tfcto;
+  tfotcSmall = uint8_t(tfotc);
+  tfctoSmall = uint8_t(tfcto);
   // Fail if lower ratio value so low (< 4 bits) as to introduce huge error.
   if(OTV0P2BASE::fnmin(tfotc, tfcto) < 8) { return(false); }
 
@@ -178,7 +178,7 @@ bool CurrentSenseValveMotorDirectBinaryOnly::runFastTowardsEndStop(const bool to
   // Clear the end-stop detection flag ready.
   endStopDetected = false;
   // Run motor as far as possible on this sub-cycle.
-  hw->motorRun(~0, toOpen ?
+  hw->motorRun(uint8_t(~0), toOpen ?
       OTRadValve::HardwareMotorDriverInterface::motorDriveOpening
     : OTRadValve::HardwareMotorDriverInterface::motorDriveClosing, *this);
   // Stop motor and ensure power off.

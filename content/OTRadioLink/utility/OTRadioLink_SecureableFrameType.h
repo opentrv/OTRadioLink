@@ -353,7 +353,7 @@ namespace OTRadioLink
             // Returns 0 if they are identical, +ve if the first counter is greater, -ve otherwise.
             // Logically like getting the sign of counter1 - counter2.
             static int16_t msgcountercmp(const uint8_t *counter1, const uint8_t *counter2)
-                { return(memcmp(counter1, counter2, fullMessageCounterBytes)); }
+                { return(int16_t(memcmp(counter1, counter2, fullMessageCounterBytes))); }
 
             // Add specified small unsigned value to supplied counter value in place; false if failed.
             // This will fail (returning false) if the counter would overflow, leaving it unchanged.

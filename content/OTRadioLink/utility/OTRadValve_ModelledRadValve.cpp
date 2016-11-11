@@ -33,10 +33,10 @@ template<size_t N> int_fast16_t smallIntMean(const int_fast16_t data[N])
   {
   // Extract mean.
   // Assume values and sum will be nowhere near the limits.
-  int sum = 0;
+  int_fast16_t sum = 0;
   for(int8_t i = N; --i >= 0; ) { sum += data[i]; }
   // Compute rounded-up mean.
-  return((sum + (int)(N/2)) / (int)N); // Avoid accidental computation as unsigned...
+  return((sum + (int_fast16_t)(N/2)) / (int_fast16_t)N); // Avoid accidental computation as unsigned...
   }
 
 
@@ -116,7 +116,8 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const Modelle
   // Force filtering (back) on if any adjacent past readings are wildly different.
   else
     {
-    for(int_fast8_t i = 1; i < filterLength; ++i) { if(abs(prevRawTempC16[i] - prevRawTempC16[i-1]) > MAX_TEMP_JUMP_C16) { isFiltering = true; break; } }
+    for(size_t i = 1; i < filterLength; ++i)
+        { if(abs(prevRawTempC16[i] - prevRawTempC16[i-1]) > MAX_TEMP_JUMP_C16) { isFiltering = true; break; } }
     }
 
   // Tick count down timers.
@@ -198,8 +199,8 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
   static constexpr uint8_t TRV_MIN_SLEW_PC_PER_MIN = 1; // Minimal slew rate (%/min) to keep flow rates as low as possible.
   static const uint8_t TRV_MAX_SLEW_PC_PER_MIN = alwaysGlacial ? TRV_MIN_SLEW_PC_PER_MIN : 5;
   // Derived from basic slew values.
-  static const uint8_t TRV_SLEW_PC_PER_MIN_FAST = alwaysGlacial ? TRV_MAX_SLEW_PC_PER_MIN : (OTV0P2BASE::fnmin(20,(2*TRV_MAX_SLEW_PC_PER_MIN))); // Takes >= 5 minutes for full travel.
-  static const uint8_t TRV_SLEW_PC_PER_MIN_VFAST = alwaysGlacial ? TRV_MAX_SLEW_PC_PER_MIN : (OTV0P2BASE::fnmin(34,(4*TRV_MAX_SLEW_PC_PER_MIN))); // Takes >= 3 minutes for full travel.
+  static const uint8_t TRV_SLEW_PC_PER_MIN_FAST = alwaysGlacial ? TRV_MAX_SLEW_PC_PER_MIN : uint8_t(OTV0P2BASE::fnmin(20,(2*TRV_MAX_SLEW_PC_PER_MIN))); // Takes >= 5 minutes for full travel.
+  static const uint8_t TRV_SLEW_PC_PER_MIN_VFAST = alwaysGlacial ? TRV_MAX_SLEW_PC_PER_MIN : uint8_t(OTV0P2BASE::fnmin(34,(4*TRV_MAX_SLEW_PC_PER_MIN))); // Takes >= 3 minutes for full travel.
 
   // (Well) under temp target: open valve up.
   if(adjustedTempC < inputState.targetTempC)
@@ -571,9 +572,9 @@ uint8_t ModelledRadValve::getMinValvePcReallyOpen() const
 // Set and cache minimum valve percentage open to be considered really open.
 // Applies to local valve and, at hub, to calls for remote calls for heat.
 // Any out-of-range value (eg >100) clears the override and OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN will be used.
+#ifdef ARDUINO_ARCH_AVR
 void ModelledRadValve::setMinValvePcReallyOpen(const uint8_t percent)
   {
-#ifdef ARDUINO_ARCH_AVR
   if((percent > 100) || (percent == 0) || (percent == OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN))
     {
     // Bad / out-of-range / default value so erase stored value if not already erased.
@@ -582,8 +583,10 @@ void ModelledRadValve::setMinValvePcReallyOpen(const uint8_t percent)
     }
   // Store specified value with as low wear as possible.
   OTV0P2BASE::eeprom_smart_update_byte((uint8_t *)V0P2BASE_EE_START_MIN_VALVE_PC_REALLY_OPEN, percent);
-#endif // ARDUINO_ARCH_AVR
   }
+#else
+void ModelledRadValve::setMinValvePcReallyOpen(const uint8_t /*percent*/) { }
+#endif // ARDUINO_ARCH_AVR
 
 // True if the controlled physical valve is thought to be at least partially open right now.
 // If multiple valves are controlled then is this true only if all are at least partially open.

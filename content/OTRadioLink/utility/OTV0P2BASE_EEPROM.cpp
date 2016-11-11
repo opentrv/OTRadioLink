@@ -198,11 +198,11 @@ uint8_t getByHourStat(const uint8_t statsSet, const uint8_t hour)
   return(eeprom_read_byte((uint8_t *)(V0P2BASE_EE_START_STATS + (statsSet * (int)V0P2BASE_EE_STATS_SET_SIZE) + (int)hh)));
   }
 
-// Compute the number of stats samples in specified set less than the specified value; returns -1 for invalid stats set.
+// Compute the number of stats samples in specified set less than the specified value; returns STATS_UNSET_BYTE for invalid stats set.
 // (With the UNSET value specified, count will be of all samples that have been set, ie are not unset.)
-int8_t countStatSamplesBelow(const uint8_t statsSet, const uint8_t value)
+uint8_t countStatSamplesBelow(const uint8_t statsSet, const uint8_t value)
   {
-  if(statsSet > (V0P2BASE_EE_END_STATS - V0P2BASE_EE_START_STATS) / V0P2BASE_EE_STATS_SET_SIZE) { return(-1); } // Invalid set.
+  if(statsSet > (V0P2BASE_EE_END_STATS - V0P2BASE_EE_START_STATS) / V0P2BASE_EE_STATS_SET_SIZE) { return(STATS_UNSET_BYTE); } // Invalid set.
   if(0 == value) { return(0); } // Optimisation for common value.
   const uint8_t *sE = (uint8_t *)(V0P2BASE_EE_STATS_START_ADDR(statsSet));
   int8_t result = 0;
@@ -391,11 +391,11 @@ int8_t eeprom_unary_2byte_decode(const uint8_t vm, const uint8_t vl)
 uint8_t compressTempC16(const int16_t tempC16)
   {
   if(tempC16 <= 0) { return(0); } // Clamp negative values to zero.
-  if(tempC16 < COMPRESSION_C16_LOW_THRESHOLD) { return(tempC16 >> 3); } // Preserve 1 bit after the binary point (0.5C precision).
+  if(tempC16 < COMPRESSION_C16_LOW_THRESHOLD) { return(uint8_t(tempC16 >> 3)); } // Preserve 1 bit after the binary point (0.5C precision).
   if(tempC16 < COMPRESSION_C16_HIGH_THRESHOLD)
-    { return(((tempC16 - COMPRESSION_C16_LOW_THRESHOLD) >> 1) + COMPRESSION_C16_LOW_THR_AFTER); }
+    { return(uint8_t(((tempC16 - COMPRESSION_C16_LOW_THRESHOLD) >> 1) + COMPRESSION_C16_LOW_THR_AFTER)); }
   if(tempC16 < COMPRESSION_C16_CEIL_VAL)
-    { return(((tempC16 - COMPRESSION_C16_HIGH_THRESHOLD) >> 3) + COMPRESSION_C16_HIGH_THR_AFTER); }
+    { return(uint8_t(((tempC16 - COMPRESSION_C16_HIGH_THRESHOLD) >> 3) + COMPRESSION_C16_HIGH_THR_AFTER)); }
   return(COMPRESSION_C16_CEIL_VAL_AFTER);
   }
 
@@ -403,11 +403,11 @@ uint8_t compressTempC16(const int16_t tempC16)
 // 0xff (or other invalid) input results in STATS_UNSET_INT.
 int16_t expandTempC16(const uint8_t cTemp)
   {
-  if(cTemp < COMPRESSION_C16_LOW_THR_AFTER) { return(cTemp << 3); }
+  if(cTemp < COMPRESSION_C16_LOW_THR_AFTER) { return(int16_t(cTemp << 3)); }
   if(cTemp < COMPRESSION_C16_HIGH_THR_AFTER)
-    { return(((cTemp - COMPRESSION_C16_LOW_THR_AFTER) << 1) + COMPRESSION_C16_LOW_THRESHOLD); }
+    { return(int16_t(((cTemp - COMPRESSION_C16_LOW_THR_AFTER) << 1) + COMPRESSION_C16_LOW_THRESHOLD)); }
   if(cTemp <= COMPRESSION_C16_CEIL_VAL_AFTER)
-    { return(((cTemp - COMPRESSION_C16_HIGH_THR_AFTER) << 3) + COMPRESSION_C16_HIGH_THRESHOLD); }
+    { return(int16_t(((cTemp - COMPRESSION_C16_HIGH_THR_AFTER) << 3) + COMPRESSION_C16_HIGH_THRESHOLD)); }
   return(OTV0P2BASE::STATS_UNSET_INT); // Invalid/unset input.
   }
 

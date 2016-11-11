@@ -50,7 +50,7 @@ class __FlashStringHelper;
 class Print
     {
     private:
-        size_t printUnsigned(unsigned long ul, int b)
+        size_t printUnsigned(unsigned long ul, uint_fast8_t b)
             {
             if(b < 2) { b = 2; }
             else if(b > 36) { b = 36; }
@@ -62,16 +62,16 @@ class Print
             // Digits are 0-9 and then A-Z.
             // Always generate lsd for 0.
             do {
-               const int digit = ul % b;
-               *p++ = (digit <= 9) ? ('0' + digit) : ('A' + digit - 10);
+               const uint_fast8_t digit = (uint_fast8_t)(ul % b);
+               *p++ = char((digit <= 9) ? ('0' + digit) : ('A' + digit - 10));
                ul /= b;
                } while(ul > 0);
             // Spit digits out in correct order.
             size_t n = 0;
-            while(--p >= buf) { n += write(*p); }
+            while(--p >= buf) { n += write(uint8_t(*p)); }
             return(n);
             }
-        size_t printSigned(long l, int b)
+        size_t printSigned(const long l, const uint_fast8_t b)
             {
             // Special case for base 10, deal with -ve.
             if((l < 0) && (10 == b)) { const size_t n = write('-'); return(n + printUnsigned((unsigned long)-l, b)); }
@@ -83,15 +83,15 @@ class Print
         size_t write(const char *buf, size_t size) { return write((const uint8_t *)buf, size); }
         size_t write(const char *s) { return((NULL == s) ? 0 : write((const uint8_t *)s, (size_t)strlen(s))); }
         size_t println() { return(write("\r\n", 2)); }
-        size_t print(char c) { return(write(c)); }
+        size_t print(char c) { return(write((uint8_t)c)); }
         size_t println(char c) { const size_t n = print(c); return(n + println()); }
         size_t print(unsigned char uc, int b = 10 /* DEC */) { return(print((unsigned long)uc, b)); }
         size_t println(unsigned char uc, int b = 10 /* DEC */) { const size_t n = print(uc, b); return(n + println()); }
         size_t print(int i, int b = 10 /* DEC */) { return(print((long) i, b)); }
         size_t println(int i, int b = 10 /* DEC */) { const size_t n = print(i, b); return(n + println()); }
-        size_t print(long l, int b = 10 /* DEC */) { return(printSigned(l, b)); }
+        size_t print(long l, int b = 10 /* DEC */) { return(printSigned(l, (uint_fast8_t)b)); }
         size_t println(long l, int b = 10 /* DEC */) { const size_t n = print(l, b); return(n + println()); }
-        size_t print(unsigned long ul, int b = 10 /* DEC */) { return(printUnsigned(ul, b)); }
+        size_t print(unsigned long ul, int b = 10 /* DEC */) { return(printUnsigned(ul, (uint_fast8_t)b)); }
         size_t println(unsigned long ul, int b = 10 /* DEC */) { const size_t n = print(ul, b); return(n + println()); }
         size_t print(const char *s) { return(write(s, strlen(s))); }
         size_t println(const char *s) { const size_t n = print(s); return(n + println()); }

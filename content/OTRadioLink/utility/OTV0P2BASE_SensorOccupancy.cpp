@@ -43,7 +43,7 @@ namespace OTV0P2BASE
 
 // Shift from minutes remaining to confidence.
 // Will not work correctly with timeout > 100.
-static constexpr uint8_t OCCCP_SHIFT =
+static constexpr int8_t OCCCP_SHIFT =
   ((PseudoSensorOccupancyTracker::OCCUPATION_TIMEOUT_M <= 3) ? 5 :
   ((PseudoSensorOccupancyTracker::OCCUPATION_TIMEOUT_M <= 6) ? 4 :
   ((PseudoSensorOccupancyTracker::OCCUPATION_TIMEOUT_M <= 12) ? 3 :

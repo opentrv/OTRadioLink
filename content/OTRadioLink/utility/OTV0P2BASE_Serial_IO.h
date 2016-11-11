@@ -132,15 +132,15 @@ void serialPrintAndFlush(char c);
 
 // Write a single (Flash-resident) number to serial and wait for transmission to complete.
 // This enables the serial if required and shuts it down afterwards if it wasn't enabled.
-void serialPrintAndFlush(int i, int fmt = 10); // Arduino print.h: #define DEC 10
+void serialPrintAndFlush(int i, uint8_t fmt = 10); // Arduino print.h: #define DEC 10
 
 // Write a single (Flash-resident) number to serial and wait for transmission to complete.
 // This enables the serial if required and shuts it down afterwards if it wasn't enabled.
-void serialPrintAndFlush(unsigned u, int fmt = 10); // Arduino print.h: #define DEC 10
+void serialPrintAndFlush(unsigned u, uint8_t fmt = 10); // Arduino print.h: #define DEC 10
 
 // Write a single (Flash-resident) number to serial and wait for transmission to complete.
 // This enables the serial if required and shuts it down afterwards if it wasn't enabled.
-void serialPrintAndFlush(unsigned long u, int fmt = 10); // Arduino print.h: #define DEC 10
+void serialPrintAndFlush(unsigned long u, uint8_t fmt = 10); // Arduino print.h: #define DEC 10
 
 // Write line-end to serial and wait for transmission to complete.
 // This enables the serial if required and shuts it down afterwards if it wasn't enabled.

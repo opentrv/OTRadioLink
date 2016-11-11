@@ -260,7 +260,7 @@ TEST(ModelledRadValve,MRVSExtremes)
             // Other than in the proportional range, valve should unconditionally be driven off/on by gross temperature error.
             if(0 != offset)
                 {
-                is3.setReferenceTemperatures((is3.targetTempC + offset) << 4);
+                is3.setReferenceTemperatures(int_fast16_t((is3.targetTempC + offset) << 4));
                 // Where adjusted reference temperature is (well) below target, valve should be driven on.
                 OTRadValve::ModelledRadValveState rs3a;
                 valvePCOpen = 0;
@@ -279,7 +279,7 @@ if(verbose) { fprintf(stderr, "@ %d %d\n", offset, valvePCOpen); }
 
                 // (Even well) below the half way mark the valve should only be closed
                 // with temperature moving in wrong direction and without soft setback.
-                is3.setReferenceTemperatures((is3.targetTempC << 4) + 0x1);
+                is3.setReferenceTemperatures(int_fast16_t((is3.targetTempC << 4) + 0x1));
                 OTRadValve::ModelledRadValveState rs3c;
                 valvePCOpen = 100;
                 rs3c.tick(valvePCOpen, is3);
@@ -290,7 +290,7 @@ if(verbose) { fprintf(stderr, "@ %d %d\n", offset, valvePCOpen); }
 
                 // (Even well) above the half way mark the valve should only be opened
                 // with temperature moving in wrong direction and without soft setback.
-                is3.setReferenceTemperatures((is3.targetTempC << 4) + 0xe);
+                is3.setReferenceTemperatures(int_fast16_t((is3.targetTempC << 4) + 0xe));
                 OTRadValve::ModelledRadValveState rs3d;
                 valvePCOpen = 0;
                 rs3d.tick(valvePCOpen, is3);

@@ -188,7 +188,7 @@ TEST(OTSIM900Link,basicsSimpleSimulator)
 {
 //    const bool verbose = B1::verbose;
 
-    srandom(::testing::UnitTest::GetInstance()->random_seed()); // Seed random() for use in simulator; --gtest_shuffle will force it to change.
+    srandom((unsigned)::testing::UnitTest::GetInstance()->random_seed()); // Seed random() for use in simulator; --gtest_shuffle will force it to change.
 
     // Vector of bools containing states to check. This covers all states expected in normal use. RESET and PANIC are not covered.
     std::vector<bool> statesChecked(OTSIM900Link::RESET, false);
@@ -215,7 +215,8 @@ TEST(OTSIM900Link,basicsSimpleSimulator)
     l0.queueToSend((const uint8_t *)message, (uint8_t)sizeof(message)-1, (int8_t) 0, OTRadioLink::OTRadioLink::TXnormal);
     for(int i = 0; i < 100; ++i) { statesChecked[l0._getState()] = true; l0.poll(); }
     EXPECT_TRUE(B1::GoodSimulator::haveSeenCommandStart) << "should see some attempt to communicate with SIM900";
-    for(int i = 0; i < OTSIM900Link::RESET; i++) EXPECT_TRUE(statesChecked[i]) << "state " << i << " not seen.";  // Check what states have been seen.
+    for(size_t i = 0; i < OTSIM900Link::RESET; i++)
+        { EXPECT_TRUE(statesChecked[i]) << "state " << i << " not seen."; } // Check what states have been seen.
     // ...
     l0.end();
 }
@@ -276,8 +277,8 @@ class GarbageSimulator final : public Stream
                 } else {
                     // spew out garbage...
                     reply.resize(500);
-                    for(int i = 0; i < 500; i++) { // XXX seg fault if i > 42.
-                        reply[i] = random()&0xff;
+                    for(size_t i = 0; i < 500; i++) {
+                        reply[i] = char(random() & 0xff);
                     }
                 }
             } else if(collectingCommand) { command += c; }
@@ -306,7 +307,7 @@ TEST(OTSIM900Link,GarbageTestSimulator)
 //    const bool verbose = B2::verbose;
 
     // Seed random() for use in simulator; --gtest_shuffle will force it to change.
-    srandom(::testing::UnitTest::GetInstance()->random_seed());
+    srandom((unsigned) ::testing::UnitTest::GetInstance()->random_seed());
 
     // Vector of bools containing states to check. This covers all states expected in normal use. RESET and PANIC are not covered.
     std::vector<bool> statesChecked(OTSIM900Link::RESET, false);

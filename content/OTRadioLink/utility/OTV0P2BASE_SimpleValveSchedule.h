@@ -219,8 +219,8 @@ class NULLValveSchedule final : public SimpleValveScheduleBase
   public:
     virtual uint8_t maxSchedules() const override { return(0); }
     virtual uint8_t onTime() const override { return(1); }
-    virtual uint_least16_t getSimpleScheduleOff(uint8_t) const override { return(~0); }
-    virtual uint_least16_t getSimpleScheduleOn(uint8_t) const override { return(~0); }
+    virtual uint_least16_t getSimpleScheduleOff(uint8_t) const override { return(uint_least16_t(~0)); }
+    virtual uint_least16_t getSimpleScheduleOn(uint8_t) const override { return(uint_least16_t(~0)); }
     virtual bool setSimpleSchedule(uint_least16_t, uint8_t) override { return(false); }
     virtual void clearSimpleSchedule(uint8_t) override { }
     virtual bool isAnyScheduleOnWARMNow() const override { return(false); }
@@ -234,8 +234,8 @@ class NULLValveSchedule final : public SimpleValveScheduleBase
 class DummyValveSchedule final
     {
     public:
-        static uint_least16_t getSimpleScheduleOff(uint8_t) { return(~0); }
-        static uint_least16_t getSimpleScheduleOn(uint8_t)  { return(~0); }
+        static uint_least16_t getSimpleScheduleOff(uint8_t) { return(uint_least16_t(~0)); }
+        static uint_least16_t getSimpleScheduleOn(uint8_t)  { return(uint_least16_t(~0)); }
         static bool isAnyScheduleOnWARMNow() { return(false); }
         static bool isAnyScheduleOnWARMSoon() { return(false); }
         static bool isAnySimpleScheduleSet() { return(false); }

@@ -265,7 +265,7 @@ static uint8_t readOneByteWithParity(decode_state_t *const state)
     {
     const uint8_t bit = readOneBit(state);
     parity ^= bit;
-    result = (result << 1) | bit;
+    result = uint8_t((result << 1) | bit);
     }
   // Then get parity bit and check.
   if(parity != readOneBit(state))

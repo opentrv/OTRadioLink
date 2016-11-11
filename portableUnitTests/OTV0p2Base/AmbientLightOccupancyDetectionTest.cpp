@@ -96,7 +96,7 @@ static const ALDataSample trivialSample1[] =
 // Will fail if an excessive amount of the time occupancy is predicted (more than ~25%).
 void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface *const detector,
                          const uint8_t minLevel = 0xff, const uint8_t maxLevel = 0xff,
-                         const uint8_t meanByHour[24] = NULL)
+                         const uint8_t * /*meanByHour[24]*/ = NULL)
     {
     static const bool verbose = false; // Set true for more verbose reporting.
     ASSERT_TRUE(NULL != data);
@@ -192,7 +192,7 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
                             {
                             const uint8_t thm = byHourMeanI[H];
                             const uint8_t nhm = byHourMeanI[(H+1)%24];
-                            int8_t m = thm; // Default to this hour's mean.
+                            uint8_t m = thm; // Default to this hour's mean.
                             if(M >= 30)
                                 {
                                 // In last half hour of each hour...
@@ -206,12 +206,12 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
                             {
                             const uint8_t thm = byHourMeanI[H];
                             const uint8_t nhm = byHourMeanI[(H+1)%24];
-                            int8_t m = thm; // Default to this hour's mean.
+                            uint8_t m = thm; // Default to this hour's mean.
                             if(M >= 30)
                                 {
                                 // In last half hour of each hour...
                                 if(0xff == thm) { m = nhm; } // Use next hour mean if none available for this hour.
-                                else if(0xff != nhm) { m = (thm + (int)nhm + 1) / 2; } // Take mean when both hours' means available.
+                                else if(0xff != nhm) { m = uint8_t((thm + (uint_fast16_t)nhm + 1) / 2); } // Take mean when both hours' means available.
                                 }
                             detector->setTypMinMax(m, minToUse, maxToUse, sensitive);
                             break;
@@ -220,12 +220,12 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
                             {
                             const uint8_t thm = byHourMeanI[H];
                             const uint8_t nhm = byHourMeanI[(H+1)%24];
-                            int8_t m = thm; // Default to this hour's mean.
+                            uint8_t m = thm; // Default to this hour's mean.
                             if(0xff == thm) { m = nhm; } // Use next hour's mean always if this one's not available.
                             else
                                 {
                                 // Continuous blend.
-                                m = ((((int)thm) * (60-M)) + (((int)nhm) * M) + 30) / 60;
+                                m = uint8_t(((((uint_fast16_t)thm) * (60-M)) + (((uint_fast16_t)nhm) * M) + 30) / 60);
                                 }
                             detector->setTypMinMax(m, minToUse, maxToUse, sensitive);
                             break;

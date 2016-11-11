@@ -132,54 +132,64 @@ void serialPrintAndFlush(const char c)
 
 // Write a single (Flash-resident) number to serial and wait for transmission to complete.
 // This enables the serial if required and shuts it down afterwards if it wasn't enabled.
-void serialPrintAndFlush(const int i, const int fmt)
-  {
 #ifdef ARDUINO
+void serialPrintAndFlush(const int i, const uint8_t fmt)
+  {
   const bool neededWaking = powerUpSerialIfDisabled<V0p2_DEFAULT_UART_BAUD>();
   // Send the character.
   Serial.print(i, fmt);
   // Ensure that all text is sent before this routine returns, in case any sleep/powerdown follows that kills the UART.
   _flush();
   if(neededWaking) { powerDownSerial(); }
-#else
-  printf("%d", i); // FOXME: ignores fmt
-  _flush();
-#endif
   }
+#else
+void serialPrintAndFlush(const int i, const uint8_t /*fmt*/)
+  {
+  printf("%d", i); // FIXME: ignores fmt
+  _flush();
+  }
+#endif
 
 // Write a single (Flash-resident) number to serial and wait for transmission to complete.
 // This enables the serial if required and shuts it down afterwards if it wasn't enabled.
-void serialPrintAndFlush(const unsigned u, const int fmt)
-  {
 #ifdef ARDUINO
+void serialPrintAndFlush(const unsigned u, const uint8_t fmt)
+  {
   const bool neededWaking = powerUpSerialIfDisabled<V0p2_DEFAULT_UART_BAUD>();
   // Send the character.
   Serial.print(u, fmt);
   // Ensure that all text is sent before this routine returns, in case any sleep/powerdown follows that kills the UART.
   _flush();
   if(neededWaking) { powerDownSerial(); }
-#else
-  printf("%u", u); // FOXME: ignores fmt
-  _flush();
-#endif
   }
+#else
+void serialPrintAndFlush(const unsigned u, const uint8_t /*fmt*/)
+  {
+  printf("%u", u); // FIXME: ignores fmt
+  _flush();
+  }
+#endif
 
 // Write a single (Flash-resident) number to serial and wait for transmission to complete.
 // This enables the serial if required and shuts it down afterwards if it wasn't enabled.
-void serialPrintAndFlush(const unsigned long u, const int fmt)
-  {
 #ifdef ARDUINO
+void serialPrintAndFlush(const unsigned long u, const uint8_t fmt)
+  {
   const bool neededWaking = powerUpSerialIfDisabled<V0p2_DEFAULT_UART_BAUD>();
   // Send the character.
   Serial.print(u, fmt);
   // Ensure that all text is sent before this routine returns, in case any sleep/powerdown follows that kills the UART.
   _flush();
   if(neededWaking) { powerDownSerial(); }
-#else
-  printf("%lu", u); // FOXME: ignores fmt
-  _flush();
-#endif
   }
+#else
+void serialPrintAndFlush(const unsigned long u, const uint8_t /*fmt*/)
+  {
+  printf("%lu", u); // FIXME: ignores fmt
+  _flush();
+  }
+#endif
+
 
 // Write line-end to serial and wait for transmission to complete.
 // This enables the serial if required and shuts it down afterwards if it wasn't enabled.

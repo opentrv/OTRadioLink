@@ -187,17 +187,20 @@ void powerDownSerial()
 // Switches the digital line to high then output (to avoid ever *discharging* the output cap).
 // Note that with 100nF cap, and 330R (or lower) resistor from the output pin,
 // then 1ms delay should be plenty for the voltage on the cap to settle.
+#ifdef ARDUINO_ARCH_AVR
 void power_intermittent_peripherals_enable(bool waitUntilStable)
   {
-#ifdef ARDUINO_ARCH_AVR
   // V0p2/AVR implementation.
   fastDigitalWrite(V0p2_PIN_DEFAULT_IO_POWER_UP, HIGH);
   pinMode(V0p2_PIN_DEFAULT_IO_POWER_UP, OUTPUT);
   // If requested, wait long enough that I/O peripheral power should be stable.
   // Wait in a relatively low-power way...
   if(waitUntilStable) { sleepLowPowerMs(1); }
-#endif // ARDUINO_ARCH_AVR
   }
+#else
+void power_intermittent_peripherals_enable(bool /*waitUntilStable*/) { }
+#endif // ARDUINO_ARCH_AVR
+
 
 // Disable/remove power to intermittent peripherals.
 // Switches the digital line to input with no pull-up (ie high-Z).
