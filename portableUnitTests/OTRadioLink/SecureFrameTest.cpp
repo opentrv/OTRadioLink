@@ -44,7 +44,7 @@ static const uint8_t zeroBlock[16] = { };
 // Test quick integrity checks, for TX and RX.
 //
 // DHD20161107: imported from test_SECFRAME.ino testFramQIC().
-TEST(OTAESGCMSecureFrame, FramQIC)
+TEST(OTAESGCMSecureFrame, FrameQIC)
 {
     OTRadioLink::SecurableFrameHeader sfh;
     uint8_t id[OTRadioLink::SecurableFrameHeader::maxIDLength];
@@ -143,8 +143,6 @@ TEST(OTAESGCMSecureFrame, FramQIC)
     // Should fail with bad trailer byte (illegal 0xff value).
     const uint8_t buf3[] = { 0x08, 0x4f, 0x02, 0x80, 0x81, 0x02, 0x00, 0x01, 0xff };
     EXPECT_EQ(0, sfh.checkAndDecodeSmallFrameHeader(buf3, sizeof(buf3)));
-    // TODO
-    // TODO
     // TODO
 }
 
@@ -559,7 +557,7 @@ TEST(Main,GCMVS1ViaFixed32BTextSizeWITHWORKSPACE)
     static const uint8_t aad[16] = { 0x02, 0x1f, 0xaf, 0xd2, 0x38, 0x46, 0x39, 0x73, 0xff, 0xe8, 0x02, 0x56, 0xe5, 0xb1, 0xc6, 0xb1 };
     // Space for outputs from encryption.
     uint8_t tag[GCM_TAG_LENGTH]; // Space for tag.
-    uint8_t cipherText[std::max(32, (int)sizeof(input))]; // Space for encrypted text.
+    uint8_t cipherText[OTV0P2BASE::fnmax(32, (int)sizeof(input))]; // Space for encrypted text.
     // Do encryption via simplified interface.
     constexpr uint8_t workspaceRequired = OTAESGCM::OTAES128GCMGenericWithWorkspace<>::workspaceRequired;
     uint8_t workspace[workspaceRequired];
@@ -806,7 +804,7 @@ TEST(OTAESGCMSecureFrame, BeaconEncoding)
     //EXPECT_EQ(0xXX, buf[12]); // CRC will vary with ID.
     //
     //const unsigned long before = millis();
-    for(int idLen = 0; idLen <= 8; ++idLen)
+    for(uint8_t idLen = 0; idLen <= 8; ++idLen)
     {
     // Secure beacon...  All zeros key; ID and IV as from spec Example 3 at 20160207.
     const uint8_t *const key = zeroBlock;
@@ -1103,7 +1101,7 @@ class TXBaseMock final : public OTRadioLink::SimpleSecureFrame32or0BodyTXBase
     // Get the 3 bytes of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
     virtual bool get3BytePersistentTXRestartCounter(uint8_t *buf) const override { memset(buf, 0, 3); return(true); }
     // Reset the persistent reboot/restart message counter; returns false on failure.
-    virtual bool resetRaw3BytePersistentTXRestartCounter(bool allZeros = false) override { return(false); }
+    virtual bool resetRaw3BytePersistentTXRestartCounter(bool /*allZeros*/ = false) override { return(false); }
     // Increment persistent reboot/restart message counter; returns false on failure.
     virtual bool increment3BytePersistentTXRestartCounter() override { return(false); }
     // Fills the supplied 6-byte array with the incremented monotonically-increasing primary TX counter.
@@ -1148,9 +1146,6 @@ TEST(OTAESGCMSecureFrame, OFrameEncoding)
     EXPECT_EQ(63, bodylenW);
     for(int i = 0; i < bodylenW; ++i) { ASSERT_EQ(expected[i], bufW[i]); }
 }
-
-
-
 
 
 #endif // ARDUINO_LIB_OTAESGCM

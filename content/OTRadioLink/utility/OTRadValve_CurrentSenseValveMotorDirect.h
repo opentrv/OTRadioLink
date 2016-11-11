@@ -32,6 +32,16 @@ namespace OTRadValve
 {
 
 
+// This driver attempts to relatively quickly (within a minute or so at 30 poll()s per minute)
+// get the driven valve estimated as close enough to the requested percentage open,
+// after some initial housekeeping and (re)calibration.
+//
+// The definition of 'close enough' is designed to accommodate non-proportional drivers.
+//
+// See the closeEnoughToTarget() static method.
+//
+// Note that when the battery is low then attempts to close the valve may be ignored.
+
 // Generic (unit-testable) motor driver using end-stop detection only, and aims only for fully open or closed.
 // Designed to be embedded in a motor controller instance.
 // This uses the sub-cycle clock for timing.
@@ -85,6 +95,24 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
                OTV0P2BASE::fnmax((uint8_t)1, (uint8_t)( ((gcst_max+1)/4) - minimumMotorRunupTicks - 1 - (240 / subcycleTicksRoundedDown_ms) )));
         }
 
+    // Returns true when the current % open is 'close enough' to the target value.
+    //
+    // "Close enough" means:
+    //   * fully open and fully closed should always be achieved
+    //   * generally within an absolute tolerance (absTolerancePC) of the target value (eg 10--25%)
+    //   * when target is below DEFAULT_VALVE_PC_SAFER_OPEN then any value at/below target is acceptable
+    //   * when target is at or above DEFAULT_VALVE_PC_SAFER_OPEN then any value at/above target is acceptable
+    // The absolute tolerance is partly guided by the fact that most TRV bases
+    // are only anything like linear in throughput over a relatively small range.
+    static constexpr uint8_t absTolerancePC = 16;
+    static constexpr bool closeEnoughToTarget(const uint8_t targetPC, const uint8_t currentPC)
+        {
+        return((targetPC == currentPC) ||
+                (OTV0P2BASE::fnabs(targetPC, currentPC) <= absTolerancePC) ||
+                ((targetPC < OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN) && (currentPC <= targetPC)) ||
+                ((targetPC >= OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN) && (currentPC >= targetPC)));
+        }
+
     // Basic/coarse states of driver, shared with derived classes.
     // There may be microstates within most these basic states.
     //
@@ -113,10 +141,10 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     // Pointer to function to get current sub-cycle time; never NULL.
     uint8_t (*const getSubCycleTimeFn)();
 
-    // Minimum percent at which valve is usually open [1,00];
-    const uint8_t minOpenPC;
-    // Minimum percent at which valve is usually moderately open [minOpenPC+1,00];
-    const uint8_t fairlyOpenPC;
+//    // Minimum percent at which valve is usually open [1,00];
+//    const uint8_t minOpenPC;
+//    // Minimum percent at which valve is usually moderately open [minOpenPC+1,00];
+//    const uint8_t fairlyOpenPC;
 
     // Absolute limit in sub-cycle beyond which motor should not be started.
     // This should allow meaningful movement and stop and settle and no sub-cycle overrun.
@@ -252,12 +280,12 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
                                  const uint8_t _minMotorDRTicks,
                                  const uint8_t _sctAbsLimit,
                                  OTV0P2BASE::SupplyVoltageLow *_lowBattOpt = NULL,
-                                 bool (*const _minimiseActivityOpt)() = ((bool(*)())NULL),
-                                 uint8_t _minOpenPC = OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN,
-                                 uint8_t _fairlyOpenPC = OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN) :
-        hw(hwDriver),
+                                 bool (*const _minimiseActivityOpt)() = ((bool(*)())NULL))
+//                                 uint8_t _minOpenPC = OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN,
+//                                 uint8_t _fairlyOpenPC = OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN)
+      : hw(hwDriver),
         getSubCycleTimeFn(_getSubCycleTimeFn),
-        minOpenPC(_minOpenPC), fairlyOpenPC(_fairlyOpenPC),
+//        minOpenPC(_minOpenPC), fairlyOpenPC(_fairlyOpenPC),
         sctAbsLimit(_sctAbsLimit),
         minMotorDRTicks(_minMotorDRTicks),
         minimiseActivityOpt(_minimiseActivityOpt), lowBattOpt(_lowBattOpt)
@@ -283,7 +311,15 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     void setTargetPC(uint8_t newPC) { targetPC = OTV0P2BASE::fnmin(newPC, (uint8_t)100); }
 
     // Get estimated minimum percentage open for significant flow for this device; strictly positive in range [1,99].
-    virtual uint8_t getMinPercentOpen() const { return(DEFAULT_VALVE_PC_SAFER_OPEN); }
+    virtual uint8_t getMinPercentOpen() const { return(DEFAULT_VALVE_PC_MODERATELY_OPEN); }
+
+    // True if the controlled physical valve is thought to be at least partially open right now.
+    // If multiple valves are controlled then is this true only if all are at least partially open.
+    // Used to help avoid running boiler pump against closed valves.
+    // Must not be true while (re)calibrating.
+    // The default is to use the check the current computed position
+    // against the minimum open percentage.
+    virtual bool isControlledValveReallyOpen() const { return(isInNormalRunState() && (currentPC >= getMinPercentOpen())); }
 
     // Minimally wiggle the motor to give tactile feedback and/or show to be working.
     // May take a significant fraction of a second.
@@ -392,7 +428,7 @@ class CurrentSenseValveMotorDirect final : public CurrentSenseValveMotorDirectBi
                                   volatile uint16_t &ticksReverse) const;
 
           // Precision % threshold above which proportional mode is not going to be possible.
-          static constexpr uint8_t max_usuable_precision = 25;
+          static constexpr uint8_t max_usuable_precision = OTV0P2BASE::fnmin((uint8_t)25, absTolerancePC);
           // Precision % used to indicate an error condition (legal but clearly no good).
           static constexpr uint8_t bad_precision = 100;
           // If true, device cannot be run in proportional mode.
@@ -424,11 +460,11 @@ class CurrentSenseValveMotorDirect final : public CurrentSenseValveMotorDirectBi
     // Reverse ticks not yet folded into ticksFromOpen;
     volatile uint16_t ticksReverse;
     // Maximum permitted value of ticksFromOpen (and ticksReverse).
-    static const uint16_t MAX_TICKS_FROM_OPEN = ~0;
+    static const uint16_t MAX_TICKS_FROM_OPEN = uint16_t(~0);
 
-    // True if using positional encoder, else using crude dead-reckoning.
+    // True if using positional/shaft encoder, else using crude dead-reckoning.
     // Only defined once calibration is complete.
-    bool usingPositionalEncoder() const { return(false); }
+    bool usingPositionalShaftEncoder() const { return(false); }
 
     // Compute and apply reconciliation/adjustment of ticks and % position.
     // Uses computePosition() to adjust internal state.
@@ -470,7 +506,7 @@ class CurrentSenseValveMotorDirect final : public CurrentSenseValveMotorDirectBi
     virtual void signalShaftEncoderMarkStart(bool /*opening*/) override { /* TODO */ }
 
     // Called with each motor run sub-cycle tick.
-    // Is ISR-/thread- safe ***on AVR***.
+    // FIXME: is ISR-/thread- safe ***on AVR only*** currently.
     virtual void signalRunSCTTick(bool opening) override;
 
     // True if (re)calibration should be deferred.

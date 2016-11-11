@@ -50,6 +50,7 @@ namespace OTV0P2BASE {
         public:
             // Run the command as selected by the command letter.
             // If this returns false then suppress the default status response and print "OK" instead.
+            // The buffer may be altered in place, eg using strtok_t().
             virtual bool doCommand(char *buf, uint8_t buflen) = 0;
         };
 

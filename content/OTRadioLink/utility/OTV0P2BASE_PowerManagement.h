@@ -225,6 +225,7 @@ void power_intermittent_peripherals_disable();
 // Note: read() can be called whenever battery voltage needs to be re-measured,
 // and derived classes should not rely on only regular calls to / polling of read(),
 // but measuring voltage is not free in terms of either time or energy.
+// When battery is not low, read()/get() must return a non-zero value in any concrete implementation.
 class SupplyVoltageLow : public OTV0P2BASE::Sensor<uint16_t>
   {
   protected:

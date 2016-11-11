@@ -49,8 +49,8 @@ static const uint8_t STATS_UNSET_BYTE = 0xff;
 static const int16_t STATS_UNSET_INT = 0x7fff;
 
 // Special values indicating the current hour and the next hour, for stats.
-static const uint8_t STATS_SPECIAL_HOUR_CURRENT_HOUR = ~0 - 1;
-static const uint8_t STATS_SPECIAL_HOUR_NEXT_HOUR = ~0;
+static const uint8_t STATS_SPECIAL_HOUR_CURRENT_HOUR = uint8_t(~0 - 1);
+static const uint8_t STATS_SPECIAL_HOUR_NEXT_HOUR = uint8_t(~0);
 
 // Base for simple byte-wide non-volatile time-based (by hour) stats implementation.
 // It is possible to encode/compand wider values into single stats byte values.
@@ -96,9 +96,9 @@ class NVByHourByteStatsBase
     //   * hour  hour of day to use or STATS_SPECIAL_HOUR_CURRENT_HOUR for current hour or STATS_SPECIAL_HOUR_NEXT_HOUR for next hour
     virtual bool inOutlierQuartile(bool inTop, uint8_t statsSet, uint8_t hour = STATS_SPECIAL_HOUR_CURRENT_HOUR) const = 0;
 
-    // Compute the number of stats samples in specified set less than the specified value; returns -1 for invalid stats set.
+    // Compute the number of stats samples in specified set less than the specified value; returns STATS_UNSET_BYTE for invalid stats set.
     // (With the UNSET value specified, count will be of all samples that have been set, ie are not unset.)
-    virtual int8_t countStatSamplesBelow(uint8_t statsSet, uint8_t value) const = 0;
+    virtual uint8_t countStatSamplesBelow(uint8_t statsSet, uint8_t value) const = 0;
 
     ////// Utility values and routines.
 
@@ -122,7 +122,7 @@ class NULLByHourByteStatsBase final : public NVByHourByteStatsBase
     virtual uint8_t getMinByHourStat(uint8_t) const override { return(UNSET_BYTE); }
     virtual uint8_t getMaxByHourStat(uint8_t) const override { return(UNSET_BYTE); }
     virtual bool inOutlierQuartile(bool, uint8_t, uint8_t = STATS_SPECIAL_HOUR_CURRENT_HOUR) const override { return(false); }
-    virtual int8_t countStatSamplesBelow(uint8_t, uint8_t) const override { return(-1); }
+    virtual uint8_t countStatSamplesBelow(uint8_t, uint8_t) const override { return(STATS_UNSET_BYTE); }
   };
 
 
@@ -360,9 +360,9 @@ uint8_t getMaxByHourStat(uint8_t statsSet);
 //   * hour  hour of day to use or STATS_SPECIAL_HOUR_CURRENT_HOUR for current hour or STATS_SPECIAL_HOUR_NEXT_HOUR for next hour
 bool inOutlierQuartile(bool inTop, uint8_t statsSet, uint8_t hour = STATS_SPECIAL_HOUR_CURRENT_HOUR);
 
-// Compute the number of stats samples in specified set less than the specified value; returns -1 for invalid stats set.
+// Compute the number of stats samples in specified set less than the specified value; returns STATS_UNSET_BYTE for invalid stats set.
 // (With the UNSET value specified, count will be of all samples that have been set, ie are not unset.)
-int8_t countStatSamplesBelow(uint8_t statsSet, uint8_t value);
+uint8_t countStatSamplesBelow(uint8_t statsSet, uint8_t value);
 
 // Wrapper for simple byte-wide non-volatile time-based (by hour) stats implementation in EEPROM.
 // Multiple instances can access the same EEPROM backing store.
@@ -395,9 +395,9 @@ class EEPROMByHourByteStats final : public NVByHourByteStatsBase
     //   * hour  hour of day to use or STATS_SPECIAL_HOUR_CURRENT_HOUR for current hour or STATS_SPECIAL_HOUR_NEXT_HOUR for next hour
     virtual bool inOutlierQuartile(bool inTop, uint8_t statsSet, uint8_t hour = STATS_SPECIAL_HOUR_CURRENT_HOUR) const override { return(OTV0P2BASE::inOutlierQuartile(inTop, statsSet, hour)); }
 
-    // Compute the number of stats samples in specified set less than the specified value; returns -1 for invalid stats set.
+    // Compute the number of stats samples in specified set less than the specified value; returns STATS_UNSET_BYTE for invalid stats set.
     // (With the UNSET value specified, count will be of all samples that have been set, ie are not unset.)
-    virtual int8_t countStatSamplesBelow(uint8_t statsSet, uint8_t value) const override { return(OTV0P2BASE::countStatSamplesBelow(statsSet, value)); }
+    virtual uint8_t countStatSamplesBelow(uint8_t statsSet, uint8_t value) const override { return(OTV0P2BASE::countStatSamplesBelow(statsSet, value)); }
   };
 
 #endif // ARDUINO_ARCH_AVR
@@ -423,8 +423,8 @@ class EEPROMByHourByteStats final : public NVByHourByteStatsBase
 //  8 -> 0x00
 static const uint8_t EEPROM_UNARY_1BYTE_MAX_VALUE = 8;
 static const uint8_t EEPROM_UNARY_2BYTE_MAX_VALUE = 16;
-inline uint8_t eeprom_unary_1byte_encode(uint8_t n) { return((n >= 8) ? 0 : (0xffU << n)); }
-inline uint16_t eeprom_unary_2byte_encode(uint8_t n) { return((n >= 16) ? 0 : (0xffffU << n)); }
+inline uint8_t eeprom_unary_1byte_encode(uint8_t n) { return((n >= 8) ? 0 : uint8_t(0xffU << n)); }
+inline uint16_t eeprom_unary_2byte_encode(uint8_t n) { return((n >= 16) ? 0 : uint16_t(0xffffU << n)); }
 // Decode routines return -1 in case of unexpected/invalid input patterns.
 // All other (valid non-negative) return values can be safely cast to unit8_t.
 int8_t eeprom_unary_1byte_decode(uint8_t v);

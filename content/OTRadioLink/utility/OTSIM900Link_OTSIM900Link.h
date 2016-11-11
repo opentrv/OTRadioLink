@@ -117,23 +117,23 @@ namespace OTSIM900Link
              */
             char get(const uint8_t *src) const
                 {
-                char c = 0;
+                char c = '\0';
 #ifdef ARDUINO_ARCH_AVR
                 switch (bEEPROM)
                     {
                     case true:
                         {
-                        c = eeprom_read_byte(src);
+                        c = char(eeprom_read_byte(src));
                         break;
                         }
                     case false:
                         {
-                        c = pgm_read_byte(src);
+                        c = char(pgm_read_byte(src));
                         break;
                         }
                     }
 #else
-                c = *src;
+                c = char(*src);
 #endif // ARDUINO_ARCH_AVR
                 return c;
                 }
@@ -315,8 +315,8 @@ typedef const char *AT_t;
              * @note    requires calling of poll() to check if message sent successfully
              */
             virtual bool sendRaw(const uint8_t *buf, uint8_t buflen,
-                    int8_t channel = 0, TXpower power = TXnormal,
-                    bool listenAfter = false) override
+                    int8_t /*channel*/ = 0, TXpower /*power*/ = TXnormal,
+                    bool /*listenAfter*/ = false) override
                 {
                 bool bSent = false;
                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Send Raw")
@@ -627,7 +627,7 @@ typedef const char *AT_t;
                 bPowered = !bPowered;
                 //    delay(3000);
                 bPowerLock = true;
-                powerTimer = OTV0P2BASE::getSecondsLT();
+                powerTimer = static_cast<int8_t>(OTV0P2BASE::getSecondsLT());
                 }
 
             // Serial functions
@@ -645,7 +645,7 @@ typedef const char *AT_t;
                 memset(data, 0, length);
                 // Loop through filling array until full or ser.read() returns -1 (time out).
                 while ((dp-data) < length) {
-                    const char c = ser.read();
+                    const char c = char(ser.read());
                     if (c == -1) break;
                     else *dp++ = c;
                 }
@@ -653,7 +653,7 @@ typedef const char *AT_t;
                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("\n--Buffer Length: ")
                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN(data-dp)
 #endif
-                return (data-dp);  // Return length of array.
+                return(uint8_t(data-dp));  // Return length of array.
                 }
             /**
              * @brief   Utility function for printing from config structure.
@@ -661,7 +661,7 @@ typedef const char *AT_t;
              */
             void printConfig(const void * src)
                 {
-                char c = 0xff; // to avoid exiting the while loop without \0 getting written
+                char c = char(0xff); // to avoid exiting the while loop without \0 getting written
                 const uint8_t *ptr = (const uint8_t *) src;
                 // loop through and print each value
                 while (1)
@@ -930,7 +930,7 @@ typedef const char *AT_t;
             const uint8_t endTime = OTV0P2BASE::getSecondsLT() + flushTimeOut;
             while (OTV0P2BASE::getSecondsLT() <= endTime)
                 { // FIXME Replace this logic
-                const uint8_t c = ser.read();
+                const uint8_t c = uint8_t(ser.read());
                 if (c == terminatingChar)
                     return true;
                 }

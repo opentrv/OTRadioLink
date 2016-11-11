@@ -55,7 +55,7 @@ struct ModelledRadValveInputState final
   static constexpr int_fast8_t refTempOffsetC16 = 8;
 
   // All initial values set by the constructor are sane, but should not be relied on.
-  ModelledRadValveInputState(const int_fast16_t realTempC16 = 0) { setReferenceTemperatures(realTempC16); }
+  explicit ModelledRadValveInputState(const int_fast16_t realTempC16 = 0) { setReferenceTemperatures(realTempC16); }
 
   // Calculate and store reference temperature(s) from real temperature supplied.
   // Proportional temperature regulation is in a 1C band.
@@ -115,8 +115,8 @@ struct ModelledRadValveState final
     initialised(false),
     isFiltering(false),
     valveMoved(false),
-    cumulativeMovementPC(0),
-    valveTurndownCountdownM(0), valveTurnupCountdownM(0)
+    valveTurndownCountdownM(0), valveTurnupCountdownM(0),
+    cumulativeMovementPC(0)
     { }
 
   // Construct an instance, with sensible defaults, and current (room) temperature from the input state.
@@ -167,21 +167,6 @@ struct ModelledRadValveState final
   void setEvent(event_t e) const { }
 #endif
 
-  // Cumulative valve movement count, as unsigned cumulative percent with rollover [0,8191].
-  // This is a useful as a measure of battery consumption (slewing the valve)
-  // and noise generated (and thus disturbance to humans) and of appropriate control damping.
-  //
-  // Keep as an unsigned 13-bit field (uint16_t x : 13) to ensure that
-  // the value doesn't wrap round to -ve value
-  // and can safely be sent/received in JSON by hosts with 16-bit signed ints,
-  // and the maximum number of decimal digits used in its representation is limited to 4
-  // and used efficiently (~80% use of the top digit).
-  //
-  // Daily allowance (in terms of battery/energy use) is assumed to be about 400% (DHD20141230),
-  // so this should hold many times that value to avoid ambiguity from missed/infrequent readings,
-  // especially given full slew (+100%) in nominally as little as 1 minute.
-  uint16_t cumulativeMovementPC : 13;
-
   // Set non-zero when valve flow is constricted, and then counts down to zero.
   // Some or all attempts to open the valve are deferred while this is non-zero
   // to reduce valve hunting if there is string turbulence from the radiator
@@ -209,6 +194,24 @@ struct ModelledRadValveState final
   void valveTurnup() { valveTurnupCountdownM = DEFAULT_ANTISEEK_VALVE_RECLOSE_DELAY_M; }
   // If true then avoid turning down the heat yet.
   bool dontTurndown() const { return(0 != valveTurnupCountdownM); }
+
+  // Cumulative valve movement count, as unsigned cumulative percent with rollover [0,8191].
+  // This is a useful as a measure of battery consumption (slewing the valve)
+  // and noise generated (and thus disturbance to humans) and of appropriate control damping.
+  //
+  // DHD20161109: due to possible g++ 4.9 bug,
+  // NOT kept as an unsigned 13-bit field (uint16_t x : 13),
+  // but as full unsigned 16-bit value anded with a make by the getter.
+  //
+  // The (masked) value doesn't wrap round to a negative value
+  // and can safely be sent/received in JSON by hosts with 16-bit signed ints,
+  // and the maximum number of decimal digits used in its representation is limited to 4
+  // and used efficiently (~80% use of the top digit).
+  //
+  // Daily allowance (in terms of battery/energy use) is assumed to be about 400% (DHD20141230),
+  // so this should hold many times that value to avoid ambiguity from missed/infrequent readings,
+  // especially given full slew (+100%) in nominally as little as 1 minute.
+  uint16_t cumulativeMovementPC = 0;
 
   // Length of filter memory in ticks; strictly positive.
   // Must be at least 4, and may be more efficient at a power of 2.
@@ -244,6 +247,16 @@ struct ModelledRadValveState final
   // All inputState values should be set to sensible values before starting.
   // Usually called by tick() which does required state updates afterwards.
   uint8_t computeRequiredTRVPercentOpen(uint8_t currentValvePCOpen, const ModelledRadValveInputState &inputState) const;
+
+  // Fill the filter memory with the current room temperature in its internal form, as during initialisation.
+  // Not intended for general use.
+  // Can be used when testing to avoid filtering being triggered with rapid simulated temperature swings.
+  inline void _backfillTemperatures(const int_fast16_t rawTempC16)
+    { for(int_fast8_t i = filterLength; --i >= 0; ) { prevRawTempC16[i] = rawTempC16; } }
+
+  // Compute the adjusted temperature as used within the class calculation, filter, etc.
+  static int_fast16_t computeRawTemp16(const ModelledRadValveInputState& inputState)
+    { return(inputState.refTempC16 - ModelledRadValveInputState::refTempOffsetC16); }
   };
 
 // Sensor, control and stats inputs for computations.
@@ -666,7 +679,7 @@ class ModelledRadValve final : public AbstractRadValve
 
     // Get cumulative valve movement %; rolls at 8192 in range [0,8191], ie non-negative.
     // It would often be appropriate to mark this as low priority since it can be computed from valve positions.
-    uint16_t getCumulativeMovementPC() { return(retainedState.cumulativeMovementPC); }
+    uint16_t getCumulativeMovementPC() { return(0x1fff & retainedState.cumulativeMovementPC); }
 
     // Returns a suggested (JSON) tag/field/key name including units of getCumulativeMovementPC(); not NULL.
     // The lifetime of the pointed-to text must be at least that of this instance.

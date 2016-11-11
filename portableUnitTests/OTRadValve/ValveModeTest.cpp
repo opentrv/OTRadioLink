@@ -40,7 +40,7 @@ TEST(ValveMode,basics)
     for(int i = OTRadValve::ValveMode::VMODE_BAKE; i >= OTRadValve::ValveMode::VMODE_FROST; --i)
         {
         OTRadValve::ValveMode vm;
-        vm.set(i);
+        vm.set(uint8_t(i));
         EXPECT_EQ(i, vm._get());
         }
 

@@ -46,10 +46,10 @@ TEST(OTV0p2Base,parseHex)
 TEST(OTV0p2Base,TempCompand)
 {
   // Ensure that all (whole) temperatures from 0C to 100C are correctly compressed and expanded.
-  for(int i = 0; i <= 100; ++i)
+  for(int16_t i = 0; i <= 100; ++i)
     {
     //DEBUG_SERIAL_PRINT(i<<4); DEBUG_SERIAL_PRINT(" => "); DEBUG_SERIAL_PRINT(compressTempC16(i<<4)); DEBUG_SERIAL_PRINT(" => "); DEBUG_SERIAL_PRINT(expandTempC16(compressTempC16(i<<4))); DEBUG_SERIAL_PRINTLN();
-    ASSERT_EQ(i<<4, OTV0P2BASE::expandTempC16(OTV0P2BASE::compressTempC16(i<<4)));
+    ASSERT_EQ(i<<4, OTV0P2BASE::expandTempC16(OTV0P2BASE::compressTempC16(int16_t(i<<4))));
     }
   // Ensure that out-of-range inputs are coerced to the limits.
   ASSERT_EQ(0, OTV0P2BASE::expandTempC16(OTV0P2BASE::compressTempC16(-1)));

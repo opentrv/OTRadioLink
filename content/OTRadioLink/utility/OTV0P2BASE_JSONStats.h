@@ -121,7 +121,7 @@ class BufPrint final : public Print
     BufPrint(char *buf, uint8_t bufSize) : b(buf), capacity(bufSize-1), size(0), mark(0) { buf[0] = '\0'; }
     // Print a single char to a bounded buffer; returns 1 if successful, else 0 if full.
     virtual size_t write(uint8_t c) override
-        { if(size < capacity) { b[size++] = c; b[size] = '\0'; return(1); } else { return(0); } }
+        { if(size < capacity) { b[size++] = char(c); b[size] = '\0'; return(1); } else { return(0); } }
     // True if buffer is completely full.
     bool isFull() const { return(size == capacity); }
     // Get size/chars already in the buffer, not including trailing '\0'.
@@ -247,7 +247,7 @@ class SimpleStatsRotationBase
     // Initialise base with appropriate storage (non-NULL) and capacity knowledge.
     constexpr SimpleStatsRotationBase(DescValueTuple *_stats, const uint8_t _capacity)
       : capacity(_capacity), stats(_stats), nStats(0),
-        lastTXed(~0), lastTXedLoPri(~0), lastTXedHiPri(~0), // Show the first item on the first pass...
+        lastTXed(uint8_t(~0)), lastTXedLoPri(uint8_t(~0)), lastTXedHiPri(uint8_t(~0)), // Show the first item on the first pass...
         id(NULL)
       { }
 

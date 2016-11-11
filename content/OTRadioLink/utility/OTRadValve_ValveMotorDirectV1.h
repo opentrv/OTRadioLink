@@ -207,16 +207,16 @@ class ValveMotorDirectV1 : public OTRadValve::AbstractRadValve
     typename typeIf<binaryOnly, CurrentSenseValveMotorDirectBinaryOnly, CurrentSenseValveMotorDirect>::t logic;
 
   public:
-    ValveMotorDirectV1(bool (*const minimiseActivityOpt)() = ((bool(*)())NULL),
-                       uint8_t minOpenPC = OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN,
-                       uint8_t fairlyOpenPC = OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN)
+    ValveMotorDirectV1(bool (*const minimiseActivityOpt)() = ((bool(*)())NULL))
+//                       uint8_t minOpenPC = OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN,
+//                       uint8_t fairlyOpenPC = OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN)
       : logic(&driver, OTV0P2BASE::getSubCycleTime,
          OTRadValve::CurrentSenseValveMotorDirect::computeMinMotorDRTicks(OTV0P2BASE::SUBCYCLE_TICK_MS_RD),
          OTRadValve::CurrentSenseValveMotorDirect::computeSctAbsLimit(OTV0P2BASE::SUBCYCLE_TICK_MS_RD,
                                                                       OTV0P2BASE::GSCT_MAX,
                                                                       ValveMotorDirectV1HardwareDriverBase::minMotorRunupTicks),
-        lowBattOpt, minimiseActivityOpt,
-        minOpenPC, fairlyOpenPC)
+        lowBattOpt, minimiseActivityOpt)
+//        minOpenPC, fairlyOpenPC)
       { }
 
     // Regular poll/update.
@@ -251,6 +251,9 @@ class ValveMotorDirectV1 : public OTRadValve::AbstractRadValve
 
     // Returns true if in an error state,
     virtual bool isInErrorState() const override { return(logic.isInErrorState()); }
+
+    // True if the controlled physical valve is thought to be at least partially open right now.
+    virtual bool isControlledValveReallyOpen() const override { return(logic.isControlledValveReallyOpen()); }
 
     // Minimally wiggles the motor to give tactile feedback and/or show to be working.
     // May take a significant fraction of a second.

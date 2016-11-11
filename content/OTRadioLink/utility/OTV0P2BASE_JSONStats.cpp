@@ -93,7 +93,7 @@ uint8_t adjustJSONMsgForTXAndComputeCRC(char * const bptr)
 
 // Send (valid) JSON to specified print channel, terminated with "}\0" or '}'|0x80, followed by "\r\n".
 // This does NOT attempt to flush output nor wait after writing.
-void outputJSONStats(Print *p, bool secure, const uint8_t * const json, const uint8_t bufsize)
+void outputJSONStats(Print *p, bool /*secure*/, const uint8_t * const json, const uint8_t bufsize)
   {
 #if 0 && defined(DEBUG)
   if(NULL == json) { panic(); }
@@ -127,9 +127,9 @@ int8_t checkJSONMsgRXCRC(const uint8_t * const bptr, const uint8_t bufLen)
   // Scan up to maximum length for terminating '}'-with-high-bit.
   const uint8_t ml = OTV0P2BASE::fnmin(MSG_JSON_ABS_MAX_LENGTH, bufLen);
   const uint8_t *p = bptr + 1;
-  for(int i = 1; i < ml; ++i)
+  for(int8_t i = 1; i < ml; ++i)
     {
-    const char c = *p++;
+    const char c = char(*p++);
     crc = crc7_5B_update(crc, (uint8_t)c); // Update CRC.
 //#ifdef ALLOW_RAW_JSON_RX
     if(('}' == c) && ('\0' == *p))
@@ -342,7 +342,7 @@ size_t SimpleStatsRotationBase::print(BufPrint &bp, const SimpleStatsRotationBas
 bool SimpleStatsRotationBase::changedValue()
   {
   DescValueTuple const *p = stats + nStats;
-  for(int8_t i = nStats; --i > 0; )
+  for(uint8_t i = nStats; --i > 0; )
     { if((--p)->flags.changed) { return(true); } }
   return(false);
   }
@@ -364,7 +364,7 @@ bool SimpleStatsRotationBase::changedValue()
 //       potentially at the cost of significant CPU time
 //   * suppressClearChanged  if true then 'changed' flag for included fields is not cleared by this
 //       allowing them to continue to be treated as higher priority
-uint8_t SimpleStatsRotationBase::writeJSON(uint8_t *const buf, const uint8_t bufSize, const uint8_t sensitivity,
+uint8_t SimpleStatsRotationBase::writeJSON(uint8_t *const buf, const uint8_t bufSize, const uint8_t /*sensitivity*/,
                                            const bool maximise, const bool suppressClearChanged)
   {
   if(NULL == buf) { return(0); } // Should never happen, but be graceful if given a NULL buffer.

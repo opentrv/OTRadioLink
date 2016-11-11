@@ -111,7 +111,7 @@ TEST(JSONStats,JSONForTX)
   EXPECT_TRUE(!OTV0P2BASE::quickValidateRawSimpleJSONMessage(buf));
   // Fail sanity check with already-adjusted (minimal) nessage.
   buf[0] = '{';
-  buf[1] = ('}' | 0x80);
+  buf[1] = char('}' | 0x80);
   EXPECT_TRUE(!OTV0P2BASE::quickValidateRawSimpleJSONMessage(buf));
   // Minimal correct messaage should pass.
   buf[0] = '{';
@@ -147,8 +147,8 @@ TEST(JSONStats,JSONForTX)
   // Check that trailing '\0' still present.
   EXPECT_TRUE(0 == buf[2]);
   // Check that TX-format can be converted for RX.
-  buf[2] = crc1;
-  buf[3] = 0xff; // As for normal TX...
+  buf[2] = char(crc1);
+  buf[3] = char(0xff); // As for normal TX...
 // FIXME
 //  const int8_t l1 = adjustJSONMsgForRXAndCheckCRC(buf, sizeof(buf));
 //  AssertIsTrueWithErr(2 == l1, l1);
