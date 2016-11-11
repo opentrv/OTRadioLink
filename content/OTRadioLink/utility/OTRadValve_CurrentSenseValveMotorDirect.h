@@ -108,7 +108,7 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     static constexpr bool closeEnoughToTarget(const uint8_t targetPC, const uint8_t currentPC)
         {
         return((targetPC == currentPC) ||
-                (OTV0P2BASE::fnabs(targetPC, currentPC) <= absTolerancePC) ||
+                (OTV0P2BASE::fnabsdiff(targetPC, currentPC) <= absTolerancePC) ||
                 ((targetPC < OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN) && (currentPC <= targetPC)) ||
                 ((targetPC >= OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN) && (currentPC >= targetPC)));
         }

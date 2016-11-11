@@ -139,7 +139,14 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
             DEBUG_SERIAL_PRINT(nominalWarmTarget);
             DEBUG_SERIAL_PRINTLN();
       #endif
-            lastNominalWarmTarget = nominalWarmTarget;
+            // Maximum number of clicks rather than collapsing them all to one.
+            const uint8_t maxClicks = 10;
+            if(OTV0P2BASE::fnabsdiff(lastNominalWarmTarget, nominalWarmTarget) > maxClicks)
+                { lastNominalWarmTarget = nominalWarmTarget; }
+            // If small difference show it in successive ticks of feedback to the user (TODO-1045),
+            // ie turning dial through xC of temperature change should produce x wiggles/flashes.
+            else if(lastNominalWarmTarget < nominalWarmTarget) { ++lastNominalWarmTarget; }
+            else { --lastNominalWarmTarget; }
             }
           }
       }
