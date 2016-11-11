@@ -143,6 +143,16 @@ inline void LED_UI2_OFF() { fastDigitalWrite(LED_UI2_L, HIGH); }
 // OPTIONAL SECOND UI 'learn' button  (active/pulled low by button, pref using weak internal pull-up), digital in.
 #define BUTTON_LEARN2_L 3 // ATMega328P-PU PDIP pin 5, PD3, PCINT19, no analogue input.
 #endif // ENABLE_VOICE_SENSOR
+#else
+// For boards that have the LEARN circuitry fitted, evenm if not used,
+// the lines must be pulled high anyway to avoid draining the battery.
+#if (V0p2_REV == 1) || (V0p2_REV == 2) || (V0p2_REV == 3) || (V0p2_REV == 7)
+#define BUTTON_LEARN_L_DUMMY 8 // ATMega328P-PU PDIP pin 14, PB0, PCINT0, no analogue input.
+#endif
+#if (V0p2_REV == 2) || (V0p2_REV == 3) || (V0p2_REV == 7)
+#define BUTTON_LEARN2_L_DUMMY 3 // ATMega328P-PU PDIP pin 5, PD3, PCINT19, no analogue input.
+#endif
+
 #endif
 
 // Setup voice NIRQ line
@@ -274,9 +284,13 @@ static inline void IOSetup()
 #endif
 #ifdef BUTTON_LEARN_L
       case BUTTON_LEARN_L: // Learn button is optional.
+#elif defined(BUTTON_LEARN_L_DUMMY)
+      case BUTTON_LEARN_L_DUMMY: // Learn button must still not be pulled low.
 #endif
 #ifdef BUTTON_LEARN2_L
       case BUTTON_LEARN2_L: // Learn button 2 is optional.
+#elif defined(BUTTON_LEARN2_L_DUMMY)
+      case BUTTON_LEARN2_L_DUMMY: // Learn button must still not be pulled low.
 #endif
 #ifdef V0P2_ENABLE_SPI//PIN_SPI_nSS // fixme temporary hack around IDE problems.
       // Do not leave/set SPI nSS as low output (or floating) to avoid waking up SPI slave(s).

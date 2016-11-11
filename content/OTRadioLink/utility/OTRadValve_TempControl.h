@@ -75,7 +75,7 @@ class TempControlBase
 
 // Intermediate templated abstract class that deals with some of the valve control parameters.
 #define TempControlSimpleVCP_DEFINED
-template <class valveControlParams = DEFAULT_ValveControlParameters>
+template <class valveControlParams /* = DEFAULT_ValveControlParameters */ >
 class TempControlSimpleVCP : public TempControlBase
   {
   public:
@@ -99,7 +99,7 @@ class TempControlSimpleVCP : public TempControlBase
 // Non-volatile (EEPROM) stored WARM threshold for some devices without physical controls, eg REV1.
 // Typically selected if defined(ENABLE_SETTABLE_TARGET_TEMPERATURES)
 #define TempControlSimpleEEPROMBacked_DEFINED
-template <class valveControlParams = DEFAULT_ValveControlParameters>
+template <class valveControlParams>
 class TempControlSimpleEEPROMBacked final : public TempControlSimpleVCP<valveControlParams>
   {
   public:
@@ -155,7 +155,7 @@ class TempControlSimpleEEPROMBacked final : public TempControlSimpleVCP<valveCon
 // Derived from temperature pot position, 0 for coldest (most eco), 255 for hottest (comfort).
 // Temp ranges from eco-1C to comfort+1C levels across full (reduced jitter) [0,255] pot range.
 // Everything beyond the lo/hi end-stop thresholds is forced to the appropriate end temperature.
-template <class valveControlParams = DEFAULT_ValveControlParameters>
+template <class valveControlParams>
 uint8_t TempControlTempPot_computeWARMTargetC(const uint8_t pot, const uint8_t loEndStop, const uint8_t hiEndStop)
   {
   // Everything in the end-stop regions is assigned to the appropriate end temperature.
@@ -207,7 +207,7 @@ uint8_t TempControlTempPot_computeWARMTargetC(const uint8_t pot, const uint8_t l
 template
   <
   class stpb_t /*= OTV0P2BASE::SensorTemperaturePotBase*/, const stpb_t *const tempPot,
-  class valveControlParams = DEFAULT_ValveControlParameters,
+  class valveControlParams,
   class rh_t = OTV0P2BASE::HumiditySensorBase, const rh_t *rh = (const rh_t *)NULL
   >
 class TempControlTempPot final : public TempControlSimpleVCP<valveControlParams>
