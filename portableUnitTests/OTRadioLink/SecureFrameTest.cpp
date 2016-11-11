@@ -557,7 +557,7 @@ TEST(Main,GCMVS1ViaFixed32BTextSizeWITHWORKSPACE)
     static const uint8_t aad[16] = { 0x02, 0x1f, 0xaf, 0xd2, 0x38, 0x46, 0x39, 0x73, 0xff, 0xe8, 0x02, 0x56, 0xe5, 0xb1, 0xc6, 0xb1 };
     // Space for outputs from encryption.
     uint8_t tag[GCM_TAG_LENGTH]; // Space for tag.
-    uint8_t cipherText[std::max(32, (int)sizeof(input))]; // Space for encrypted text.
+    uint8_t cipherText[OTV0P2BASE::fnmax(32, (int)sizeof(input))]; // Space for encrypted text.
     // Do encryption via simplified interface.
     constexpr uint8_t workspaceRequired = OTAESGCM::OTAES128GCMGenericWithWorkspace<>::workspaceRequired;
     uint8_t workspace[workspaceRequired];
