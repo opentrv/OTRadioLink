@@ -128,6 +128,12 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
             {
             // Note if a boundary was crossed, ignoring any false 'start-up' transient.
             if(0 != lastNominalWarmTarget) { significantUIOp = true; }
+            else
+              {
+              // On initialisation, if the dial is not at FROST,
+              // force the device straight to WARM mode (or vv)
+              if(!isLo) { valveMode->setWarmModeDebounced(!isLo); }
+              }
       #if 1 && defined(DEBUG)
             DEBUG_SERIAL_PRINT_FLASHSTRING("WT");
             DEBUG_SERIAL_PRINT(nominalWarmTarget);
