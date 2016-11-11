@@ -790,12 +790,14 @@ Starred items are tested.
 /*
 FIXME: tests pending...  See also TODO-1028.
 
+TODO: test DHW temperature range and restricted max-open (13%) and glacial as per Bo's setup.
+
 TODO: check that BAKE behaves as expected, in target lift amount, and duration, and reversion to WARM, and automatic cancellation on hitting raised target.
 
 TODO: check correct response to sharp temp rise when rad comes on for all-in-one unit, eg with low-pass filtering.
 
 TODO: standard driver and test cases from data above!
 
-TODO: test ModelledRad valve as a whole, integrated with sensor and valve mocks as required.
+TODO: test ModelledRad valve as a whole, including its glue logic that has been buggy before (eg overwriting valve % with temperature!), integrated with sensor and valve mocks as required.
  */
 
