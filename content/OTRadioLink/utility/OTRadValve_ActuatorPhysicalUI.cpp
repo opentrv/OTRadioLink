@@ -131,8 +131,8 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
             else
               {
               // On initialisation, if the dial is not at FROST,
-              // force the device straight to WARM mode (or vv)
-              if(!isLo) { valveMode->setWarmModeDebounced(!isLo); }
+              // force the device straight to WARM mode.
+              if(!isLo) { valveMode->setWarmModeDebounced(true); }
               }
       #if 1 && defined(DEBUG)
             DEBUG_SERIAL_PRINT_FLASHSTRING("WT");

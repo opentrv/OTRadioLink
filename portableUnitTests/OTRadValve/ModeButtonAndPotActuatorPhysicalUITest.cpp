@@ -29,7 +29,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 
 
 // Test for general sanity of ModeButtonAndPotActuatorPhysicalUI.
-// Test that an instance can be constructed and has sensible initial state.
+// Test that an instance can be constructed.
 TEST(ModeButtonAndPotActuatorPhysicalUI,basics)
 {
 //    // If true then be more verbose.
@@ -51,4 +51,55 @@ TEST(ModeButtonAndPotActuatorPhysicalUI,basics)
           [](){}, [](){}, NULL);
     ASSERT_FALSE(mbpUI.recentUIControlUse());
     ASSERT_FALSE(mbpUI.veryRecentUIControlUse());
+}
+
+
+// Test for general sanity of ModeButtonAndPotActuatorPhysicalUI.
+// Test that an instance can be constructed and has sensible initial state.
+namespace startState
+  {
+constexpr uint8_t usefulScale = 47; // hiEndStop - loEndStop + 1;
+constexpr uint8_t loEndStop = 200; // Arbitrary.
+constexpr uint8_t hiEndStop = loEndStop + usefulScale - 1;
+
+OTV0P2BASE::SensorTemperaturePotMock tp(loEndStop, hiEndStop);
+// Parameters as for REV7/DORM1/TRV1 at 2016/10/27.
+typedef OTRadValve::ValveControlParameters<
+    6,  // Target FROST temperature for ECO bias.
+    14, // Target FROST temperature for Comfort bias.
+    17, // Target WARM temperature for ECO bias.
+    21  // Target WARM temperature for Comfort bias.
+    > TRV1ValveControlParameters;
+OTRadValve::TempControlTempPot <decltype(tp), &tp, TRV1ValveControlParameters> tctp0;
+  }
+TEST(ModeButtonAndPotActuatorPhysicalUI,startState)
+{
+    // Simulate system boot with dial in low/mid/high positions.
+    const uint8_t potPositions[] = { 0, startState::loEndStop + startState::usefulScale/2, 255 };
+    for(unsigned i = 0; i < sizeof(potPositions); ++i)
+        {
+        const uint8_t pp = potPositions[i];
+        startState::tp.set(pp);
+        OTRadValve::ValveMode vm;
+        ASSERT_FALSE(vm.inWarmMode());
+        OTRadValve::TempControlBase tc;
+        OTRadValve::NULLRadValve rv;
+        OTV0P2BASE::PseudoSensorOccupancyTracker occupancy;
+        occupancy.read();
+        OTV0P2BASE::SensorAmbientLightMock ambLight;
+        ambLight.read();
+        OTRadValve::ModeButtonAndPotActuatorPhysicalUI mbpUI(
+              &vm,
+              &startState::tctp0,
+              &rv,
+              &occupancy,
+              &ambLight,
+              &startState::tp,
+              NULL,
+              [](){}, [](){}, NULL);
+        ASSERT_FALSE(mbpUI.recentUIControlUse());
+        ASSERT_FALSE(mbpUI.veryRecentUIControlUse());
+        for(int i = 10; --i > 0; ) { mbpUI.read(); } // Spin a few ticks to warm up...
+        EXPECT_EQ((0 != pp), vm.inWarmMode()) << "Should only boot to FROST mode if dial is in FROST position";
+    }
 }
