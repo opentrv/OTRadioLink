@@ -223,10 +223,10 @@ TEST(ModelledRadValve,MRVSExtremes)
         is1.widenDeadband = OTV0P2BASE::randRNG8NextBoolean();
         is1.hasEcoBias = OTV0P2BASE::randRNG8NextBoolean();
         const uint8_t oldValvePos = valvePCOpen;
-        ASSERT_TRUE(valvePCOpen >= 0); // Nominally never false because unsigned type.
+//        ASSERT_TRUE(valvePCOpen >= 0); // Nominally never false because unsigned type.
         rs1.tick(valvePCOpen, is1);
         const uint8_t newValvePos = valvePCOpen;
-        ASSERT_TRUE(valvePCOpen >= 0); // Nominally never false because unsigned type.
+//        ASSERT_TRUE(valvePCOpen >= 0); // Nominally never false because unsigned type.
         ASSERT_TRUE(rs1.initialised); // Initialisation must have completed.
         ASSERT_TRUE(newValvePos < 100);
         ASSERT_TRUE(newValvePos < oldValvePos);
