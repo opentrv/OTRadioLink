@@ -44,7 +44,7 @@ static const uint8_t zeroBlock[16] = { };
 // Test quick integrity checks, for TX and RX.
 //
 // DHD20161107: imported from test_SECFRAME.ino testFramQIC().
-TEST(OTAESGCMSecureFrame, FramQIC)
+TEST(OTAESGCMSecureFrame, FrameQIC)
 {
     OTRadioLink::SecurableFrameHeader sfh;
     uint8_t id[OTRadioLink::SecurableFrameHeader::maxIDLength];
@@ -143,8 +143,6 @@ TEST(OTAESGCMSecureFrame, FramQIC)
     // Should fail with bad trailer byte (illegal 0xff value).
     const uint8_t buf3[] = { 0x08, 0x4f, 0x02, 0x80, 0x81, 0x02, 0x00, 0x01, 0xff };
     EXPECT_EQ(0, sfh.checkAndDecodeSmallFrameHeader(buf3, sizeof(buf3)));
-    // TODO
-    // TODO
     // TODO
 }
 
@@ -1148,9 +1146,6 @@ TEST(OTAESGCMSecureFrame, OFrameEncoding)
     EXPECT_EQ(63, bodylenW);
     for(int i = 0; i < bodylenW; ++i) { ASSERT_EQ(expected[i], bufW[i]); }
 }
-
-
-
 
 
 #endif // ARDUINO_LIB_OTAESGCM
