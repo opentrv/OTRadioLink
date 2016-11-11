@@ -94,12 +94,12 @@ TEST(FHT8VRadValve,FHT8VCreate200usAppendEncBit)
     *buf = 0xff; // Mark buffer as empty.
     // Write a 0.
     ASSERT_EQ(buf, OTRadValve::FHT8VRadValveUtil::_FHT8VCreate200usAppendEncBit(buf, false));
-    EXPECT_EQ(0b11000000, 0xf0 & *buf);
+    EXPECT_EQ(0xc0 /*0b11000000*/, 0xf0 & *buf);
 
     *buf = 0xff; // Mark buffer as empty.
     // Write a 1.
     ASSERT_EQ(buf, OTRadValve::FHT8VRadValveUtil::_FHT8VCreate200usAppendEncBit(buf, true));
-    EXPECT_EQ(0b11100000, 0xfc & *buf);
+    EXPECT_EQ(0xe0 /*0b11100000*/, 0xfc & *buf);
 
     *buf = 0xff; // Mark buffer as empty.
     // Write 1, 0, 1, 0.
@@ -112,12 +112,12 @@ TEST(FHT8VRadValve,FHT8VCreate200usAppendEncBit)
     // and then starts with 1100.
     ASSERT_EQ(buf, OTRadValve::FHT8VRadValveUtil::_FHT8VCreate200usAppendEncBit(buf, true));
     ASSERT_EQ(buf+1, OTRadValve::FHT8VRadValveUtil::_FHT8VCreate200usAppendEncBit(buf, false));
-    EXPECT_EQ(0b11100011, buf[0]);
+    EXPECT_EQ(0xe3 /*0b11100011*/, buf[0]);
     ASSERT_EQ(buf+2, OTRadValve::FHT8VRadValveUtil::_FHT8VCreate200usAppendEncBit(buf+1, true));
-    EXPECT_EQ(0b00111000, buf[1]);
-    EXPECT_EQ(0b11111111, buf[2]);
+    EXPECT_EQ(0x38 /*0b00111000*/, buf[1]);
+    EXPECT_EQ(0xff /*0b11111111*/, buf[2]);
     ASSERT_EQ(buf+2, OTRadValve::FHT8VRadValveUtil::_FHT8VCreate200usAppendEncBit(buf+2, false));
-    EXPECT_EQ(0b11000000, 0xf0 & buf[2]);
+    EXPECT_EQ(0xc0 /*0b11000000*/, 0xf0 & buf[2]);
 }
 
 // Test of FHT8V bitstream encoding and decoding.
