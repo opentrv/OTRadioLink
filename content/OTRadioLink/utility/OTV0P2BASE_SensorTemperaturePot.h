@@ -82,6 +82,19 @@ class SensorTemperaturePotBase : public OTV0P2BASE::SimpleTSUint8Sensor
       { }
   };
 
+// Simple mock object for testing.
+class SensorTemperaturePotMock final : public SensorTemperaturePotBase
+  {
+  public:
+    using SensorTemperaturePotBase::SensorTemperaturePotBase;
+
+    // Set new value.
+    virtual bool set(const uint8_t newValue) { value = newValue; return(true); }
+
+    // Returns the existing value: use set() to set a new one.
+    // Simplistically updates other flags and outputs based on current value.
+    uint8_t read() override { return(get()); }
+  };
 
 #ifdef ARDUINO_ARCH_AVR
 // Sensor for temperature potentiometer/dial; 0 is coldest, 255 is hottest.

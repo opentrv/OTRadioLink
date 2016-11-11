@@ -65,4 +65,50 @@ TEST(TempControl,TRV1TempControlTempPotcomputeWARMTargetC)
     EXPECT_EQ(tsmid, OTRadValve::TempControlTempPot_computeWARMTargetC<TRV1ValveControlParameters>(approxMidPoint+1, loEndStop, hiEndStop));
 }
 
+// Test for frost temperature response to high relative humidity (eg for DORM1/TRV1).
+namespace FROSTRH
+  {
+  constexpr uint8_t usefulScale = 47; // hiEndStop - loEndStop + 1;
+  constexpr uint8_t loEndStop = 200; // Arbitrary.
+  constexpr uint8_t hiEndStop = loEndStop + usefulScale - 1;
 
+  OTV0P2BASE::SensorTemperaturePotMock tp(loEndStop, hiEndStop);
+  OTV0P2BASE::HumiditySensorMock rh;
+  }
+TEST(TempControl,FROSTRH)
+{
+    //    // If true then be more verbose.
+    //    const static bool verbose = false;
+
+    // Parameters as for REV7/DORM1/TRV1 at 2016/10/27.
+    typedef OTRadValve::ValveControlParameters<
+        6,  // Target FROST temperature for ECO bias.
+        14, // Target FROST temperature for Comfort bias.
+        17, // Target WARM temperature for ECO bias.
+        21  // Target WARM temperature for Comfort bias.
+        > TRV1ValveControlParameters;
+    OTRadValve::TempControlTempPot
+        <
+        decltype(FROSTRH::tp), &FROSTRH::tp,
+        TRV1ValveControlParameters // ,
+        // class rh_t = OTV0P2BASE::HumiditySensorBase, const rh_t *rh = (const rh_t *)NULL
+        > tctp0;
+    EXPECT_TRUE(tctp0.hasEcoBias());
+    // Normally frost temperature is fixed.
+    const uint8_t ft = TRV1ValveControlParameters::FROST_ECO;
+    EXPECT_EQ(ft, tctp0.getFROSTTargetC());
+
+    OTRadValve::TempControlTempPot
+        <
+        decltype(FROSTRH::tp), &FROSTRH::tp,
+        TRV1ValveControlParameters,
+        decltype(FROSTRH::rh), &FROSTRH::rh
+        > tctp;
+     FROSTRH::rh.set(0, false);
+     // Normally frost temperature is fixed.
+     EXPECT_EQ(ft, tctp.getFROSTTargetC());
+     FROSTRH::rh.set(100, true);
+     // Normally frost temperature is fixed.
+     const uint8_t hft = TRV1ValveControlParameters::FROST_COM;
+     EXPECT_EQ(hft, tctp.getFROSTTargetC());
+}
