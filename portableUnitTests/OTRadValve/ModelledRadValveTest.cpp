@@ -315,7 +315,7 @@ namespace MRVCTTB
     static OTV0P2BASE::SensorAmbientLightMock ambLight;
     static OTRadValve::NULLActuatorPhysicalUI physicalUI;
     static OTV0P2BASE::NULLValveSchedule schedule;
-    static OTV0P2BASE::NULLByHourByteStatsBase byHourStats;
+    static OTV0P2BASE::NULLByHourByteStats byHourStats;
     }
 TEST(ModelledRadValve,ModelledRadValveComputeTargetTempBasic)
 {
@@ -336,7 +336,13 @@ TEST(ModelledRadValve,ModelledRadValveComputeTargetTempBasic)
     const uint8_t f = OTRadValve::DEFAULT_ValveControlParameters::FROST;
     EXPECT_EQ(f, cttb0.computeTargetTemp()) << "should start in FROST mode";
     MRVCTTB::valveMode.setWarmModeDebounced(true);
+    EXPECT_TRUE(MRVCTTB::occupancy.isLikelyUnoccupied());
     const uint8_t w = OTRadValve::DEFAULT_ValveControlParameters::WARM;
+    EXPECT_GT(w, cttb0.computeTargetTemp()) << "no signs of activity";
+    // Signal some occupancy.
+    MRVCTTB::occupancy.markAsOccupied();
+    EXPECT_FALSE(MRVCTTB::occupancy.isLikelyUnoccupied());
+    // Should now be at WARM target.
     EXPECT_EQ(w, cttb0.computeTargetTemp());
     // Make the room dark (and marked as dark for a long time).
     MRVCTTB::ambLight.set(0, 255U, false);

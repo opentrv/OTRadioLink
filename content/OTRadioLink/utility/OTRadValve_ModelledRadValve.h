@@ -426,8 +426,8 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
           // Be more ready to decide room not likely occupied soon if eco-biased.
           // Note that this value is likely to be used +/- 1 so must be in range [1,23].
           const uint8_t thisHourNLOThreshold = ecoBias ? 15 : 12;
-          const uint8_t hoursLessOccupiedThanThis = byHourStats->countStatSamplesBelow(V0P2BASE_EE_STATS_SET_OCCPC_BY_HOUR_SMOOTHED, byHourStats->getByHourStat(V0P2BASE_EE_STATS_SET_OCCPC_BY_HOUR_SMOOTHED, OTV0P2BASE::STATS_SPECIAL_HOUR_CURRENT_HOUR));
-          const uint8_t hoursLessOccupiedThanNext = byHourStats->countStatSamplesBelow(V0P2BASE_EE_STATS_SET_OCCPC_BY_HOUR_SMOOTHED, byHourStats->getByHourStat(V0P2BASE_EE_STATS_SET_OCCPC_BY_HOUR_SMOOTHED, OTV0P2BASE::STATS_SPECIAL_HOUR_NEXT_HOUR));
+          const uint8_t hoursLessOccupiedThanThis = byHourStats->countStatSamplesBelow(V0P2BASE_EE_STATS_SET_OCCPC_BY_HOUR_SMOOTHED, byHourStats->getByHourStatRTC(V0P2BASE_EE_STATS_SET_OCCPC_BY_HOUR_SMOOTHED, OTV0P2BASE::STATS_SPECIAL_HOUR_CURRENT_HOUR));
+          const uint8_t hoursLessOccupiedThanNext = byHourStats->countStatSamplesBelow(V0P2BASE_EE_STATS_SET_OCCPC_BY_HOUR_SMOOTHED, byHourStats->getByHourStatRTC(V0P2BASE_EE_STATS_SET_OCCPC_BY_HOUR_SMOOTHED, OTV0P2BASE::STATS_SPECIAL_HOUR_NEXT_HOUR));
           const bool notLikelyOccupiedSoon = longLongVacant ||
               (likelyVacantNow &&
               // No more than about half the hours to be less occupied than this hour to be considered unlikely to be occupied.
@@ -437,7 +437,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
               (darkForHours || (hoursLessOccupiedThanNext < (thisHourNLOThreshold+1))));
           const uint8_t minLightsOffForSetbackMins = ecoBias ? 10 : 20;
           if(longVacant ||
-             ((notLikelyOccupiedSoon || (dm > minLightsOffForSetbackMins) || (ecoBias && (occupancy->getVacancyH() > 0) && (0 == byHourStats->getByHourStat(V0P2BASE_EE_STATS_SET_OCCPC_BY_HOUR, OTV0P2BASE::STATS_SPECIAL_HOUR_CURRENT_HOUR)))) &&
+             ((notLikelyOccupiedSoon || (dm > minLightsOffForSetbackMins) || (ecoBias && (occupancy->getVacancyH() > 0) && (0 == byHourStats->getByHourStatRTC(V0P2BASE_EE_STATS_SET_OCCPC_BY_HOUR, OTV0P2BASE::STATS_SPECIAL_HOUR_CURRENT_HOUR)))) &&
                  !schedule->isAnyScheduleOnWARMNow() && !physicalUI->recentUIControlUse()))
             {
             // Use a default minimal non-annoying setback if:

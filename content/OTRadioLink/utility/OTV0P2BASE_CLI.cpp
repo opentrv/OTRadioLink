@@ -324,7 +324,7 @@ bool DumpStats::doCommand(char *const buf, const uint8_t buflen)
       // Now print values.
       for(uint8_t hh = 0; hh < 24; ++hh)
         {
-        const uint8_t statRaw = OTV0P2BASE::EEPROMByHourByteStats::_getByHourStat(setN, hh);
+        const uint8_t statRaw = OTV0P2BASE::EEPROMByHourByteStats::_getByHourStatSimple(setN, hh);
         // For unset stat show '-'...
         if(OTV0P2BASE::STATS_UNSET_BYTE == statRaw) { Serial.print('-'); }
         // ...else print more human-friendly version of stat.
