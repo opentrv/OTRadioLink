@@ -77,7 +77,7 @@ class NVByHourByteStatsBase
     //   * maxBytesToErase limit the number of bytes erased to this; strictly positive, else 0 to allow 65536
     // Returns true if finished with all bytes erased.
     //
-    // Till not get called during most system executions,
+    // Optimisation note: this will not be called during most system executions,
     // and is not performance-critical (though must not cause overruns),
     // so may be usefully marked as "cold" or "optimise for space"
     // for most implementations/compilers.

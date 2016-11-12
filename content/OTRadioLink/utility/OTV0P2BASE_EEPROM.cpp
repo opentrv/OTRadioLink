@@ -303,7 +303,16 @@ bool inOutlierQuartile(const bool inTop, const uint8_t statsSet, const uint8_t h
 // Requires 1.8ms per byte for each byte that actually needs erasing.
 //   * maxBytesToErase limit the number of bytes erased to this; strictly positive, else 0 to allow 65536
 // Returns true if finished with all bytes erased.
-bool zapStats(uint16_t maxBytesToErase)
+//
+// Optimisation note: this will not be called during most system executions,
+// and is not performance-critical (though must not cause overruns),
+// so may be usefully marked as "cold" or "optimise for space"
+// for most implementations/compilers.
+bool
+#if defined(__GNUC__)
+    __attribute__((cold))
+#endif // defined(__GNUC__)
+zapStats(uint16_t maxBytesToErase)
   {
   for(uint8_t *p = (uint8_t *)V0P2BASE_EE_START_STATS; p <= (uint8_t *)V0P2BASE_EE_END_STATS; ++p)
     { if(OTV0P2BASE::eeprom_smart_erase_byte(p)) { if(--maxBytesToErase == 0) { return(false); } } } // Stop if out of time...
