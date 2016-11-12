@@ -73,6 +73,39 @@ TEST(Stats, empty)
         }
 }
 
+// Test some basic behaviour of the support/calc routines mock r/w stats containet.
+TEST(Stats, mockRW)
+{
+    // Seed random() for use in simulator; --gtest_shuffle will force it to change.
+    srandom((unsigned) ::testing::UnitTest::GetInstance()->random_seed());
+
+    // On a dummy (no-stats) impl, all support functions should give 'not-set' / error results.
+    OTV0P2BASE::NVByHourByteStatsMock ms;
+    const uint8_t statsSet = 0; // Should be arbitrary.
+    const uint8_t unset = OTV0P2BASE::NVByHourByteStatsBase::UNSET_BYTE;
+    EXPECT_FALSE(ms.inBottomQuartile(statsSet, 0));
+    EXPECT_FALSE(ms.inBottomQuartile(statsSet, 0xff & random()));
+    EXPECT_FALSE(ms.inBottomQuartile(statsSet, unset));
+    EXPECT_FALSE(ms.inTopQuartile(statsSet, 0));
+    EXPECT_FALSE(ms.inTopQuartile(statsSet, 0xff & random()));
+    EXPECT_FALSE(ms.inTopQuartile(statsSet, unset));
+    EXPECT_FALSE(ms.inOutlierQuartile(true, statsSet));
+    EXPECT_EQ(unset, ms.getMinByHourStat(statsSet));
+    EXPECT_EQ(unset, ms.getMaxByHourStat(statsSet));
+    EXPECT_EQ(0, ms.countStatSamplesBelow(statsSet, 0));
+    EXPECT_EQ(0, ms.countStatSamplesBelow(statsSet, 0xff & random()));
+    EXPECT_EQ(0, ms.countStatSamplesBelow(statsSet, unset));
+
+    // By-hour values.
+    for(uint8_t hh = 0; hh < 24; ++hh)
+        {
+        EXPECT_EQ(unset, ms.getByHourStatSimple(statsSet, hh));
+        EXPECT_EQ(unset, ms.getByHourStatRTC(statsSet, hh));
+        EXPECT_FALSE(ms.inOutlierQuartile(true, statsSet, hh));
+        EXPECT_FALSE(ms.inOutlierQuartile(false, statsSet, hh));
+        }
+}
+
 // Trivial read-only implementation that returns hour value in each slot with getByHourStatSimple().
 // Enough to test some stats against.
 class HByHourByteStats final : public OTV0P2BASE::NVByHourByteStatsBase
