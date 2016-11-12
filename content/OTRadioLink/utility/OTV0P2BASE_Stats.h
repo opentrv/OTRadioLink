@@ -25,6 +25,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #define OTV0P2BASE_STATS_H
 
 #include <stdint.h>
+#include <string.h>
 
 #include "OTV0P2BASE_Util.h"
 
@@ -156,18 +157,57 @@ class NULLByHourByteStats final : public NVByHourByteStatsBase
   public:
     virtual bool zapStats(uint16_t = 0) override { return(true); } // No stats to erase, so all done.
     virtual uint8_t getByHourStatSimple(uint8_t, uint8_t) const override { return(UNSET_BYTE); }
-    virtual void setByHourStatSimple(uint8_t, const uint8_t, uint8_t = UNSET_BYTE) override { }
+    virtual void setByHourStatSimple(uint8_t, uint8_t, uint8_t = UNSET_BYTE) override { }
     virtual uint8_t getByHourStatRTC(uint8_t, uint8_t = 0xff) const override { return(UNSET_BYTE); }
   };
 
+// Simple mock read-write stats container with a full internal ephemeral backing store.
+class NVByHourByteStatsMock final : public NVByHourByteStatsBase
+  {
+  private:
+      // Slots/bytes in a stats set.
+      static constexpr uint8_t setSlots = 24;
+
+      // Backing store for the stats.
+      uint8_t statsMemory[STATS_SETS_COUNT][setSlots];
+
+      // Current hour of day, for getByHourRTC().
+      uint8_t currentHour = 0;
+
+  public:
+      // Create instance will all stats 'erased' to UNSET_BYTE values.
+      NVByHourByteStatsMock() { zapStats(); }
+
+      // Set current hour of day for getByHourRTC(); invalid value is ignored.
+      void _setHour(const uint8_t hourNow) { if(hourNow < 24) { currentHour = hourNow; } }
+
+      // zapStats always succeeds in one pass in this implementation.
+      virtual bool zapStats(uint16_t = 0) override { memset(statsMemory, UNSET_BYTE, sizeof(statsMemory)); return(true); }
+
+      // Bounds-checked read access from backing store.
+      virtual uint8_t getByHourStatSimple(uint8_t statsSet, uint8_t hh) const override
+          { return(((statsSet >= STATS_SETS_COUNT) || (hh > setSlots)) ? UNSET_BYTE : statsMemory[statsSet][hh]); }
+
+      // Bounds-checked write access to backing store.
+      virtual void setByHourStatSimple(const uint8_t statsSet, const uint8_t hh, uint8_t value = UNSET_BYTE) override
+          { if(!((statsSet >= STATS_SETS_COUNT) || (hh > setSlots))) { statsMemory[statsSet][hh] = value; } }
+
+      // Hour-of-day (as set by _setHour()) based access for hh > 23.
+      virtual uint8_t getByHourStatRTC(const uint8_t statsSet, const uint8_t hh) const override
+          { return(getByHourStatSimple(statsSet, (SPECIAL_HOUR_CURRENT_HOUR == hh) ? currentHour : ((hh > 23) ? ((currentHour+1)%24) : hh))); }
+  };
+
+
 // Class to handle updating stats periodically, ie 1 or more times per hour.
+//   * stats  stats container; never NULL
+//   * ambLightOpt  optional ambient light (uint8_t) sensor; can be NULL
 //   * maxSubSamples  maximum number of samples to take per hour,
 //       1 or 2 are especially efficient and avoid overflow, 2 probably most robust;
 //       strictly positive
 template
   <
   class stats_t /* = NVByHourByteStatsBase */, stats_t *stats,
-  class ambLight_t /* = SensorAmbientLightBase */, const ambLight_t *ambLight,
+  class ambLight_t /* = SensorAmbientLightBase */, const ambLight_t *ambLightOpt,
   uint8_t maxSubSamples = 2
   >
 class ByHourSimpleStatsUpdaterSampleStats final
@@ -226,16 +266,21 @@ class ByHourSimpleStatsUpdaterSampleStats final
     //
     //   * fullSample  if true then this is the final (and full) sample for the hour
     //   * hh  is the hour of day; [0,23]
+    //
+    // Note that hh is only used when the final/full sample is taken,
+    // and is used to determine where (in which slot) to file the stats.
     static void sampleStats(const bool fullSample, const uint8_t hh)
       {
+      static_assert(NULL != stats, "must have non-NULL stats container");
+
       // (Sub-)sample processing.
       // In general, keep running total of sub-samples in a way that should not overflow
       // and use the mean to update the non-volatile EEPROM values on the fullSample call.
       static uint8_t sampleCount; // General sub-sample count; initially zero after boot, and zeroed after each full sample.
 
-      // Special case for where a maximum of two samples is being taken.
-      // Ensure maximum of two samples used: optional non-full sample then full/final one.
-      if((2 == maxSubSamples) && !fullSample && (sampleCount != 0)) { return; }
+      // Reject excess early sub-samples before full/final one.
+      static_assert(maxSubSamples > 0, "must allow at least one (ie final) sample!");
+      if(!fullSample && (sampleCount >= maxSubSamples-1)) { return; }
 
       const bool firstSample = (0 == sampleCount++);
       // Capture sample count to use below.
@@ -246,10 +291,10 @@ class ByHourSimpleStatsUpdaterSampleStats final
       // Since these are known at compile time,
       // unused/dead code should simply not be generated.
 
-      if(NULL != ambLight)
+      if(NULL != ambLightOpt)
         {
         // Ambient light.
-        const uint16_t ambLightV = OTV0P2BASE::fnmin(ambLight->get(), (uint8_t)254); // Constrain value at top end to avoid 'not set' value.
+        const uint16_t ambLightV = OTV0P2BASE::fnmin(ambLightOpt->get(), (uint8_t)254); // Constrain value at top end to avoid 'not set' value.
         static uint16_t ambLightTotal;
         ambLightTotal = firstSample ? ambLightV : (ambLightTotal + ambLightV);
         if(fullSample)
