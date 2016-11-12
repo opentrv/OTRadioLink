@@ -140,8 +140,8 @@ class NULLByHourByteStats final : public NVByHourByteStatsBase
   {
   public:
     virtual bool zapStats(uint16_t = 0) override { return(true); } // No stats to erase, so all done.
-    virtual uint8_t getByHourStatSimple(const uint8_t, const uint8_t) const override { return(UNSET_BYTE); }
-    virtual void setByHourStatSimple(const uint8_t, const uint8_t, const uint8_t = UNSET_BYTE) override { }
+    virtual uint8_t getByHourStatSimple(uint8_t, uint8_t) const override { return(UNSET_BYTE); }
+    virtual void setByHourStatSimple(uint8_t, const uint8_t, uint8_t = UNSET_BYTE) override { }
     virtual uint8_t getByHourStatRTC(uint8_t, uint8_t = 0xff) const override { return(UNSET_BYTE); }
   };
 
