@@ -24,6 +24,29 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 #include <gtest/gtest.h>
 #include <OTV0p2Base.h>
 
+
+// Test temperature companding for non-volatile storage.
+//
+// 20161016 moved from OpenTRV-Arduino-V0p2 Unit_Tests.cpp testTempCompand().
+TEST(Stats,TempCompand)
+{
+  // Ensure that all (whole) temperatures from 0C to 100C are correctly compressed and expanded.
+  for(int16_t i = 0; i <= 100; ++i)
+    {
+    //DEBUG_SERIAL_PRINT(i<<4); DEBUG_SERIAL_PRINT(" => "); DEBUG_SERIAL_PRINT(compressTempC16(i<<4)); DEBUG_SERIAL_PRINT(" => "); DEBUG_SERIAL_PRINT(expandTempC16(compressTempC16(i<<4))); DEBUG_SERIAL_PRINTLN();
+    ASSERT_EQ(i<<4, OTV0P2BASE::expandTempC16(OTV0P2BASE::compressTempC16(int16_t(i<<4))));
+    }
+  // Ensure that out-of-range inputs are coerced to the limits.
+  ASSERT_EQ(0, OTV0P2BASE::expandTempC16(OTV0P2BASE::compressTempC16(-1)));
+  ASSERT_EQ((100<<4), OTV0P2BASE::expandTempC16(OTV0P2BASE::compressTempC16(101<<4)));
+  ASSERT_EQ(OTV0P2BASE::COMPRESSION_C16_CEIL_VAL_AFTER, OTV0P2BASE::compressTempC16(102<<4)); // Verify ceiling.
+  ASSERT_LT(OTV0P2BASE::COMPRESSION_C16_CEIL_VAL_AFTER, 0xff);
+  // Ensure that 'unset' compressed value expands to 'unset' uncompressed value.
+  const int16_t ui = OTV0P2BASE::NVByHourByteStatsBase::UNSET_INT;
+  const uint8_t ub = OTV0P2BASE::NVByHourByteStatsBase::UNSET_BYTE;
+  ASSERT_EQ(ui, OTV0P2BASE::expandTempC16(ub));
+}
+
 // Test handling of ByHourByteStats stats.
 //
 // Verify that the simple smoothing function never generates an out of range value.
@@ -79,31 +102,49 @@ TEST(Stats, mockRW)
     // Seed random() for use in simulator; --gtest_shuffle will force it to change.
     srandom((unsigned) ::testing::UnitTest::GetInstance()->random_seed());
 
-    // On a dummy (no-stats) impl, all support functions should give 'not-set' / error results.
+    // New emoty container.
     OTV0P2BASE::NVByHourByteStatsMock ms;
-    const uint8_t statsSet = 0; // Should be arbitrary.
-    const uint8_t unset = OTV0P2BASE::NVByHourByteStatsBase::UNSET_BYTE;
-    EXPECT_FALSE(ms.inBottomQuartile(statsSet, 0));
-    EXPECT_FALSE(ms.inBottomQuartile(statsSet, 0xff & random()));
-    EXPECT_FALSE(ms.inBottomQuartile(statsSet, unset));
-    EXPECT_FALSE(ms.inTopQuartile(statsSet, 0));
-    EXPECT_FALSE(ms.inTopQuartile(statsSet, 0xff & random()));
-    EXPECT_FALSE(ms.inTopQuartile(statsSet, unset));
-    EXPECT_FALSE(ms.inOutlierQuartile(true, statsSet));
-    EXPECT_EQ(unset, ms.getMinByHourStat(statsSet));
-    EXPECT_EQ(unset, ms.getMaxByHourStat(statsSet));
-    EXPECT_EQ(0, ms.countStatSamplesBelow(statsSet, 0));
-    EXPECT_EQ(0, ms.countStatSamplesBelow(statsSet, 0xff & random()));
-    EXPECT_EQ(0, ms.countStatSamplesBelow(statsSet, unset));
 
-    // By-hour values.
-    for(uint8_t hh = 0; hh < 24; ++hh)
+    // Pick a random hour to treat as 'now'.
+    const uint8_t hourNow = ((unsigned) random()) % 24;
+    ms._setHour(hourNow);
+
+    const uint8_t unset = OTV0P2BASE::NVByHourByteStatsBase::UNSET_BYTE;
+
+    // On a fresh/empty stats container, all support functions should give 'not-set' / error results.
+    for(uint8_t statsSet = 0; statsSet < OTV0P2BASE::NVByHourByteStatsBase::STATS_SETS_COUNT; ++statsSet)
         {
-        EXPECT_EQ(unset, ms.getByHourStatSimple(statsSet, hh));
-        EXPECT_EQ(unset, ms.getByHourStatRTC(statsSet, hh));
-        EXPECT_FALSE(ms.inOutlierQuartile(true, statsSet, hh));
-        EXPECT_FALSE(ms.inOutlierQuartile(false, statsSet, hh));
+        EXPECT_FALSE(ms.inBottomQuartile(statsSet, 0));
+        EXPECT_FALSE(ms.inBottomQuartile(statsSet, 0xff & random()));
+        EXPECT_FALSE(ms.inBottomQuartile(statsSet, unset));
+        EXPECT_FALSE(ms.inTopQuartile(statsSet, 0));
+        EXPECT_FALSE(ms.inTopQuartile(statsSet, 0xff & random()));
+        EXPECT_FALSE(ms.inTopQuartile(statsSet, unset));
+        EXPECT_FALSE(ms.inOutlierQuartile(true, statsSet));
+        EXPECT_EQ(unset, ms.getMinByHourStat(statsSet));
+        EXPECT_EQ(unset, ms.getMaxByHourStat(statsSet));
+        EXPECT_EQ(0, ms.countStatSamplesBelow(statsSet, 0));
+        EXPECT_EQ(0, ms.countStatSamplesBelow(statsSet, 0xff & random()));
+        EXPECT_EQ(0, ms.countStatSamplesBelow(statsSet, unset));
+        // By-hour values.
+        for(uint8_t hh = 0; hh < 24; ++hh)
+            {
+            EXPECT_EQ(unset, ms.getByHourStatSimple(statsSet, hh));
+            EXPECT_EQ(unset, ms.getByHourStatRTC(statsSet, hh));
+            EXPECT_FALSE(ms.inOutlierQuartile(true, statsSet, hh));
+            EXPECT_FALSE(ms.inOutlierQuartile(false, statsSet, hh));
+            }
         }
+
+    // Pick a stats set to work on at random.
+    const uint8_t statsSet = ((unsigned) random()) % OTV0P2BASE::NVByHourByteStatsBase::STATS_SETS_COUNT;
+    // Check that when a single value is set,
+    // it is seen as expected by the simple accessors.
+    ms.setByHourStatSimple(statsSet, hourNow, 0);
+    EXPECT_EQ(0, ms.getByHourStatSimple(statsSet, hourNow));
+    EXPECT_EQ(0, ms.getByHourStatRTC(statsSet, hourNow));
+    EXPECT_EQ(0, ms.getByHourStatRTC(statsSet, OTV0P2BASE::NVByHourByteStatsBase::SPECIAL_HOUR_CURRENT_HOUR));
+    EXPECT_EQ(unset, ms.getByHourStatRTC(statsSet, OTV0P2BASE::NVByHourByteStatsBase::SPECIAL_HOUR_NEXT_HOUR));
 }
 
 // Trivial read-only implementation that returns hour value in each slot with getByHourStatSimple().
@@ -152,46 +193,105 @@ TEST(Stats, moreCalcs)
         }
 }
 
-// Test stats updater can be constructed and defaults as expected
-namespace BHSSU
+// Test that stats updater can be constructed and defaults as expected.
+namespace BHSSUBasics
     {
     HByHourByteStats hs;
     OTV0P2BASE::SensorAmbientLightMock ambLight;
     OTV0P2BASE::ByHourSimpleStatsUpdaterSampleStats <
-      decltype(BHSSU::hs), &BHSSU::hs,
-      decltype(BHSSU::ambLight), &BHSSU::ambLight
+      decltype(hs), &hs,
+      decltype(ambLight), &ambLight
+      > su;
+    }
+TEST(Stats, ByHourSimpleStatsUpdaterBasics)
+{
+      static_assert(2 == BHSSUBasics::su.maxSamplesPerHour, "constant must propagate correctly");
+      const uint8_t msph = BHSSUBasics::su.maxSamplesPerHour;
+      ASSERT_EQ(2, msph);
+      BHSSUBasics::su.sampleStats(false, 0);
+      BHSSUBasics::su.sampleStats(true, 0);
+}
+
+// Test that stats updater can be constructed and can be updated.
+namespace BHSSU
+    {
+    OTV0P2BASE::NVByHourByteStatsMock ms;
+    OTV0P2BASE::SensorAmbientLightMock ambLight;
+    OTV0P2BASE::ByHourSimpleStatsUpdaterSampleStats <
+      decltype(ms), &ms,
+      decltype(ambLight), &ambLight,
+      2
       > su;
     }
 TEST(Stats, ByHourSimpleStatsUpdater)
 {
-      static_assert(2 == BHSSU::su.maxSamplesPerHour, "constant must propagate correctly");
-      const uint8_t msph = BHSSU::su.maxSamplesPerHour;
-      ASSERT_EQ(2, msph);
-      BHSSU::su.sampleStats(false, 0);
-      BHSSU::su.sampleStats(true, 0);
-}
+    // Seed random() for use in simulator; --gtest_shuffle will force it to change.
+    srandom((unsigned) ::testing::UnitTest::GetInstance()->random_seed());
 
+    static_assert(2 == BHSSU::su.maxSamplesPerHour, "constant must propagate correctly");
+    const uint8_t msph = BHSSU::su.maxSamplesPerHour;
+    ASSERT_EQ(2, msph);
 
+    const uint8_t unset = OTV0P2BASE::NVByHourByteStatsBase::UNSET_BYTE;
 
+    // Set (arbitrary) initial time.
+    uint8_t hourNow = ((unsigned) random()) % 24;
+    BHSSU::ms._setHour(hourNow);
+    // Set initial sensor values.
+    const uint8_t al0 = 254;
+    BHSSU::ambLight.set(al0);
+    BHSSU::su.sampleStats(true, hourNow);
+    // Verify that after first full update sensor values set to specified values.
+    EXPECT_EQ(al0, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, hourNow));
+    EXPECT_EQ(al0, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, hourNow));
+    EXPECT_EQ(al0, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, hourNow));
+    EXPECT_EQ(al0, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, hourNow));
+    EXPECT_EQ(al0, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, BHSSU::ms.SPECIAL_HOUR_CURRENT_HOUR));
+    EXPECT_EQ(al0, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, BHSSU::ms.SPECIAL_HOUR_CURRENT_HOUR));
+    EXPECT_EQ(unset, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, BHSSU::ms.SPECIAL_HOUR_NEXT_HOUR));
+    EXPECT_EQ(unset, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, BHSSU::ms.SPECIAL_HOUR_NEXT_HOUR));
 
-// Test temperature companding for non-volatile storage.
-//
-// 20161016 moved from OpenTRV-Arduino-V0p2 Unit_Tests.cpp testTempCompand().
-TEST(Stats,TempCompand)
-{
-  // Ensure that all (whole) temperatures from 0C to 100C are correctly compressed and expanded.
-  for(int16_t i = 0; i <= 100; ++i)
-    {
-    //DEBUG_SERIAL_PRINT(i<<4); DEBUG_SERIAL_PRINT(" => "); DEBUG_SERIAL_PRINT(compressTempC16(i<<4)); DEBUG_SERIAL_PRINT(" => "); DEBUG_SERIAL_PRINT(expandTempC16(compressTempC16(i<<4))); DEBUG_SERIAL_PRINTLN();
-    ASSERT_EQ(i<<4, OTV0P2BASE::expandTempC16(OTV0P2BASE::compressTempC16(int16_t(i<<4))));
-    }
-  // Ensure that out-of-range inputs are coerced to the limits.
-  ASSERT_EQ(0, OTV0P2BASE::expandTempC16(OTV0P2BASE::compressTempC16(-1)));
-  ASSERT_EQ((100<<4), OTV0P2BASE::expandTempC16(OTV0P2BASE::compressTempC16(101<<4)));
-  ASSERT_EQ(OTV0P2BASE::COMPRESSION_C16_CEIL_VAL_AFTER, OTV0P2BASE::compressTempC16(102<<4)); // Verify ceiling.
-  ASSERT_LT(OTV0P2BASE::COMPRESSION_C16_CEIL_VAL_AFTER, 0xff);
-  // Ensure that 'unset' compressed value expands to 'unset' uncompressed value.
-  const int16_t ui = OTV0P2BASE::NVByHourByteStatsBase::UNSET_INT;
-  const uint8_t ub = OTV0P2BASE::NVByHourByteStatsBase::UNSET_BYTE;
-  ASSERT_EQ(ui, OTV0P2BASE::expandTempC16(ub));
+    // Nominally roll round a day and update the same slot for new sensor values.
+    const uint8_t al1 = 0;
+    BHSSU::ambLight.set(al1);
+    // Compute expected (approximate) smoothed value.
+    const uint8_t sm_al1 = OTV0P2BASE::NVByHourByteStatsBase::smoothStatsValue(al0, al1);
+    EXPECT_LT(al1, sm_al1);
+    EXPECT_GT(al0, sm_al1);
+    // Take single/final/full sample.
+    BHSSU::su.sampleStats(true, hourNow);
+    EXPECT_EQ(al1, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, hourNow));
+    EXPECT_NEAR(sm_al1, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, hourNow), 2);
+    EXPECT_EQ(al1, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, hourNow));
+    EXPECT_NEAR(sm_al1, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, hourNow), 2);
+    EXPECT_EQ(al1, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, BHSSU::ms.SPECIAL_HOUR_CURRENT_HOUR));
+    EXPECT_NEAR(sm_al1, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, BHSSU::ms.SPECIAL_HOUR_CURRENT_HOUR), 2);
+    EXPECT_EQ(unset, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, BHSSU::ms.SPECIAL_HOUR_NEXT_HOUR));
+    EXPECT_EQ(unset, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, BHSSU::ms.SPECIAL_HOUR_NEXT_HOUR));
+
+    // Move to next hour.
+    const uint8_t nextHour = (hourNow + 1) % 24;
+    BHSSU::ms._setHour(nextHour);
+    // Take a couple of samples for this hour.
+    BHSSU::ambLight.set(al0);
+    BHSSU::su.sampleStats(false, nextHour);
+    BHSSU::ambLight.set(al1);
+    BHSSU::su.sampleStats(true, nextHour);
+    // Expect to see mean as the stored value.
+    const uint8_t al01 = (al0 + al1) / 2;
+    EXPECT_EQ(al01, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, nextHour));
+    EXPECT_EQ(al01, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, nextHour));
+    EXPECT_EQ(al01, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, nextHour));
+    EXPECT_EQ(al01, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, nextHour));
+    EXPECT_EQ(al01, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, BHSSU::ms.SPECIAL_HOUR_CURRENT_HOUR));
+    EXPECT_EQ(al01, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, BHSSU::ms.SPECIAL_HOUR_CURRENT_HOUR));
+    EXPECT_EQ(unset, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, BHSSU::ms.SPECIAL_HOUR_NEXT_HOUR));
+    EXPECT_EQ(unset, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, BHSSU::ms.SPECIAL_HOUR_NEXT_HOUR));
+
+    // Nominally roll round a day and check the first slot's values vi athe RTC view.
+    BHSSU::ms._setHour(hourNow);
+    EXPECT_EQ(al1, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, BHSSU::ms.SPECIAL_HOUR_CURRENT_HOUR));
+    EXPECT_NEAR(sm_al1, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, BHSSU::ms.SPECIAL_HOUR_CURRENT_HOUR), 2);
+    EXPECT_EQ(al01, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, BHSSU::ms.SPECIAL_HOUR_NEXT_HOUR));
+    EXPECT_EQ(al01, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, BHSSU::ms.SPECIAL_HOUR_NEXT_HOUR));
 }
