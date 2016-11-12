@@ -595,7 +595,7 @@ bool CurrentSenseValveMotorDirect::do_valveNormal_prop()
         {
         if(currentPC < upperPropLimit - weps) { reportTrackingError(); }
         // Silently auto-adjust when end-stop hit close to expected position.
-        resetPosition(true);
+        resetPosition(true, true);
         }
 #if 0 && defined(V0P2BASE_DEBUG)
 V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("->");
@@ -612,7 +612,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("->");
         {
         if(currentPC > lowerPropLimit + weps) { reportTrackingError(); }
         // Silently auto-adjust when end-stop hit close to expected position.
-        resetPosition(false);
+        resetPosition(false, true);
         }
 #if 0 && defined(V0P2BASE_DEBUG)
 V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("-<");
