@@ -197,17 +197,24 @@ TEST(Stats, moreCalcs)
 namespace BHSSUBasics
     {
     HByHourByteStats hs;
+    OTV0P2BASE::PseudoSensorOccupancyTracker occupancy;
     OTV0P2BASE::SensorAmbientLightMock ambLight;
+    OTV0P2BASE::TemperatureC16Mock tempC16;
+    OTV0P2BASE::HumiditySensorMock rh;
     OTV0P2BASE::ByHourSimpleStatsUpdaterSampleStats <
       decltype(hs), &hs,
-      decltype(ambLight), &ambLight
+      decltype(occupancy), &occupancy,
+      decltype(ambLight), &ambLight,
+      decltype(tempC16), &tempC16,
+      decltype(rh), &rh,
+      1
       > su;
     }
 TEST(Stats, ByHourSimpleStatsUpdaterBasics)
 {
-      static_assert(2 == BHSSUBasics::su.maxSamplesPerHour, "constant must propagate correctly");
+      static_assert(1 == BHSSUBasics::su.maxSamplesPerHour, "constant must propagate correctly");
       const uint8_t msph = BHSSUBasics::su.maxSamplesPerHour;
-      ASSERT_EQ(2, msph);
+      ASSERT_EQ(1, msph);
       BHSSUBasics::su.sampleStats(false, 0);
       BHSSUBasics::su.sampleStats(true, 0);
 }
@@ -216,10 +223,16 @@ TEST(Stats, ByHourSimpleStatsUpdaterBasics)
 namespace BHSSU
     {
     OTV0P2BASE::NVByHourByteStatsMock ms;
+    OTV0P2BASE::PseudoSensorOccupancyTracker occupancy;
     OTV0P2BASE::SensorAmbientLightMock ambLight;
+    OTV0P2BASE::TemperatureC16Mock tempC16;
+    OTV0P2BASE::HumiditySensorMock rh;
     OTV0P2BASE::ByHourSimpleStatsUpdaterSampleStats <
       decltype(ms), &ms,
+      decltype(occupancy), &occupancy,
       decltype(ambLight), &ambLight,
+      decltype(tempC16), &tempC16,
+      decltype(rh), &rh,
       2
       > su;
     }
@@ -240,7 +253,16 @@ TEST(Stats, ByHourSimpleStatsUpdater)
     // Set initial sensor values.
     const uint8_t al0 = 254;
     BHSSU::ambLight.set(al0);
+    const int16_t t0 = 18 << 4;
+    const uint8_t t0c = OTV0P2BASE::compressTempC16(t0);
+    ASSERT_NEAR(t0, OTV0P2BASE::expandTempC16(t0c), 1);
+    BHSSU::tempC16.set(t0);
+    ASSERT_EQ(18<<4, BHSSU::tempC16.get());
+    const uint8_t rh0 = ((unsigned) random()) % 101;
+    BHSSU::rh.set(rh0);
     BHSSU::su.sampleStats(true, hourNow);
+    const uint8_t o0 = 0;
+    ASSERT_EQ(o0, BHSSU::occupancy.get());
     // Verify that after first full update sensor values set to specified values.
     EXPECT_EQ(al0, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, hourNow));
     EXPECT_EQ(al0, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, hourNow));
@@ -250,24 +272,40 @@ TEST(Stats, ByHourSimpleStatsUpdater)
     EXPECT_EQ(al0, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, BHSSU::ms.SPECIAL_HOUR_CURRENT_HOUR));
     EXPECT_EQ(unset, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, BHSSU::ms.SPECIAL_HOUR_NEXT_HOUR));
     EXPECT_EQ(unset, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, BHSSU::ms.SPECIAL_HOUR_NEXT_HOUR));
+    EXPECT_EQ(t0c, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_TEMP_BY_HOUR, hourNow));
+    EXPECT_EQ(t0c, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_TEMP_BY_HOUR_SMOOTHED, hourNow));
+    EXPECT_EQ(rh0, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_RHPC_BY_HOUR, hourNow));
+    EXPECT_EQ(rh0, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_RHPC_BY_HOUR_SMOOTHED, hourNow));
+    EXPECT_EQ(o0, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_OCCPC_BY_HOUR, hourNow));
+    EXPECT_EQ(o0, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_OCCPC_BY_HOUR_SMOOTHED, hourNow));
 
     // Nominally roll round a day and update the same slot for new sensor values.
     const uint8_t al1 = 0;
     BHSSU::ambLight.set(al1);
-    // Compute expected (approximate) smoothed value.
+    const uint8_t o1 = 100;
+    BHSSU::occupancy.markAsOccupied();
+    ASSERT_EQ(o1, BHSSU::occupancy.get());
+    // Compute expected (approximate) smoothed values.
     const uint8_t sm_al1 = OTV0P2BASE::NVByHourByteStatsBase::smoothStatsValue(al0, al1);
     EXPECT_LT(al1, sm_al1);
     EXPECT_GT(al0, sm_al1);
+    const uint8_t sm_o1 = OTV0P2BASE::NVByHourByteStatsBase::smoothStatsValue(o0, o1);
     // Take single/final/full sample.
     BHSSU::su.sampleStats(true, hourNow);
     EXPECT_EQ(al1, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, hourNow));
-    EXPECT_NEAR(sm_al1, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, hourNow), 2);
+    EXPECT_NEAR(sm_al1, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, hourNow), 1);
     EXPECT_EQ(al1, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, hourNow));
-    EXPECT_NEAR(sm_al1, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, hourNow), 2);
+    EXPECT_NEAR(sm_al1, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, hourNow), 1);
     EXPECT_EQ(al1, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, BHSSU::ms.SPECIAL_HOUR_CURRENT_HOUR));
-    EXPECT_NEAR(sm_al1, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, BHSSU::ms.SPECIAL_HOUR_CURRENT_HOUR), 2);
+    EXPECT_NEAR(sm_al1, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, BHSSU::ms.SPECIAL_HOUR_CURRENT_HOUR), 1);
     EXPECT_EQ(unset, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, BHSSU::ms.SPECIAL_HOUR_NEXT_HOUR));
     EXPECT_EQ(unset, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, BHSSU::ms.SPECIAL_HOUR_NEXT_HOUR));
+    EXPECT_EQ(t0c, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_TEMP_BY_HOUR, hourNow));
+    EXPECT_EQ(t0c, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_TEMP_BY_HOUR_SMOOTHED, hourNow));
+    EXPECT_EQ(rh0, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_RHPC_BY_HOUR, hourNow));
+    EXPECT_EQ(rh0, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_RHPC_BY_HOUR_SMOOTHED, hourNow));
+    EXPECT_EQ(o1, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_OCCPC_BY_HOUR, hourNow));
+    EXPECT_NEAR(sm_o1, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_OCCPC_BY_HOUR_SMOOTHED, hourNow), 1);
 
     // Move to next hour.
     const uint8_t nextHour = (hourNow + 1) % 24;
@@ -277,7 +315,7 @@ TEST(Stats, ByHourSimpleStatsUpdater)
     BHSSU::su.sampleStats(false, nextHour);
     BHSSU::ambLight.set(al1);
     BHSSU::su.sampleStats(true, nextHour);
-    // Expect to see mean as the stored value.
+    // Expect to see the mean of the first and second sample as the stored value.
     const uint8_t al01 = (al0 + al1) / 2;
     EXPECT_EQ(al01, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, nextHour));
     EXPECT_EQ(al01, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, nextHour));
@@ -287,8 +325,10 @@ TEST(Stats, ByHourSimpleStatsUpdater)
     EXPECT_EQ(al01, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, BHSSU::ms.SPECIAL_HOUR_CURRENT_HOUR));
     EXPECT_EQ(unset, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, BHSSU::ms.SPECIAL_HOUR_NEXT_HOUR));
     EXPECT_EQ(unset, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, BHSSU::ms.SPECIAL_HOUR_NEXT_HOUR));
+    EXPECT_EQ(t0c, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_TEMP_BY_HOUR, nextHour));
+    EXPECT_EQ(t0c, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_TEMP_BY_HOUR_SMOOTHED, nextHour));
 
-    // Nominally roll round a day and check the first slot's values vi athe RTC view.
+    // Nominally roll round a day and check the first slot's values via the RTC view.
     BHSSU::ms._setHour(hourNow);
     EXPECT_EQ(al1, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, BHSSU::ms.SPECIAL_HOUR_CURRENT_HOUR));
     EXPECT_NEAR(sm_al1, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, BHSSU::ms.SPECIAL_HOUR_CURRENT_HOUR), 2);

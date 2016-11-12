@@ -27,6 +27,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #include <stdint.h>
 #include <string.h>
 
+#include "OTV0P2BASE_Sensor.h"
 #include "OTV0P2BASE_Util.h"
 
 
@@ -150,7 +151,6 @@ STATS_SET_USER2_BY_HOUR_SMOOTHED    = 13, // Smoothed hourly user-defined stats 
     static uint8_t smoothStatsValue(const uint8_t oldSmoothed, const uint8_t newValue);
   };
 
-
 // Null read-only implementation that holds no stats.
 class NULLByHourByteStats final : public NVByHourByteStatsBase
   {
@@ -161,8 +161,9 @@ class NULLByHourByteStats final : public NVByHourByteStatsBase
     virtual uint8_t getByHourStatRTC(uint8_t, uint8_t = 0xff) const override { return(UNSET_BYTE); }
   };
 
-// Simple mock read-write stats container with a full internal ephemeral backing store.
-class NVByHourByteStatsMock final : public NVByHourByteStatsBase
+// Simple mock read-write stats container with a full internal ephemeral backing store for tests.
+// Can be extended for, for example, RTC callbacks.
+class NVByHourByteStatsMock : public NVByHourByteStatsBase
   {
   private:
       // Slots/bytes in a stats set.
@@ -198,16 +199,42 @@ class NVByHourByteStatsMock final : public NVByHourByteStatsBase
   };
 
 
+// Range-compress an signed int 16ths-Celsius temperature to a unsigned single-byte value < 0xff.
+// This preserves at least the first bit after the binary point for all values,
+// and three bits after binary point for values in the most interesting mid range around normal room temperatures,
+// with transitions at whole degrees Celsius.
+// Input values below 0C are treated as 0C, and above 100C as 100C, thus allowing air and DHW temperature values.
+static const int16_t COMPRESSION_C16_FLOOR_VAL = 0; // Floor input value to compression.
+static const int16_t COMPRESSION_C16_LOW_THRESHOLD = (16<<4); // Values in range [COMPRESSION_LOW_THRESHOLD_C16,COMPRESSION_HIGH_THRESHOLD_C16[ have maximum precision.
+static const uint8_t COMPRESSION_C16_LOW_THR_AFTER = (COMPRESSION_C16_LOW_THRESHOLD>>3); // Low threshold after compression.
+static const int16_t COMPRESSION_C16_HIGH_THRESHOLD = (24<<4);
+static const uint8_t COMPRESSION_C16_HIGH_THR_AFTER = (COMPRESSION_C16_LOW_THR_AFTER + ((COMPRESSION_C16_HIGH_THRESHOLD-COMPRESSION_C16_LOW_THRESHOLD)>>1)); // High threshold after compression.
+static const int16_t COMPRESSION_C16_CEIL_VAL = (100<<4); // Ceiling input value to compression.
+static const uint8_t COMPRESSION_C16_CEIL_VAL_AFTER = (COMPRESSION_C16_HIGH_THR_AFTER + ((COMPRESSION_C16_CEIL_VAL-COMPRESSION_C16_HIGH_THRESHOLD) >> 3)); // Ceiling input value after compression.
+uint8_t compressTempC16(int16_t tempC16);
+// Reverses range compression done by compressTempC16(); results in range [0,100], with varying precision based on original value.
+// 0xff (or other invalid) input results in STATS_UNSET_INT.
+int16_t expandTempC16(uint8_t cTemp);
+
+// Maximum valid encoded/compressed stats values.
+static const uint8_t MAX_STATS_TEMP = COMPRESSION_C16_CEIL_VAL_AFTER; // Maximum valid compressed temperature value in stats.
+static const uint8_t MAX_STATS_AMBLIGHT = 254; // Maximum valid ambient light value in stats (very top of range is compressed).
+
+
 // Class to handle updating stats periodically, ie 1 or more times per hour.
 //   * stats  stats container; never NULL
 //   * ambLightOpt  optional ambient light (uint8_t) sensor; can be NULL
+//   * tempC16Opt  optional ambient temperature (int16_t) sensor; can be NULL
 //   * maxSubSamples  maximum number of samples to take per hour,
 //       1 or 2 are especially efficient and avoid overflow, 2 probably most robust;
 //       strictly positive
 template
   <
   class stats_t /* = NVByHourByteStatsBase */, stats_t *stats,
-  class ambLight_t /* = SensorAmbientLightBase */, const ambLight_t *ambLightOpt,
+  class occupancy_t = SimpleTSUint8Sensor /*PseudoSensorOccupancyTracker*/, const occupancy_t *occupancyOpt = NULL,
+  class ambLight_t = SimpleTSUint8Sensor /*SensorAmbientLightBase*/, const ambLight_t *ambLightOpt = NULL,
+  class tempC16_t = OTV0P2BASE::Sensor<int16_t> /*TemperatureC16Base*/, const tempC16_t *tempC16Opt = NULL,
+  class humidity_t = SimpleTSUint8Sensor /*HumiditySensorBase*/, const humidity_t *humidityOpt = NULL,
   uint8_t maxSubSamples = 2
   >
 class ByHourSimpleStatsUpdaterSampleStats final
@@ -227,10 +254,11 @@ class ByHourSimpleStatsUpdaterSampleStats final
   if(0 == sampleCount) { panic(); }
   if(maxSubSamples < sampleCount) { panic(); }
 #endif
-      if(1 == sampleCount) { return(total); } // No division required.
+      if((1 == maxSubSamples) || (1 == sampleCount)) { return(total); } // No division required.
 
       // Handle arbitrary number of samples,
       // but likely inflates code size and run-time and overflow risk.
+      // Code should not be generated if maxSubSamples <= 2.
       if((maxSubSamples > 2) && (sampleCount > 2))
         { return((uint8_t) ((total + (sampleCount>>1)) / sampleCount)); }
 
@@ -301,66 +329,50 @@ class ByHourSimpleStatsUpdaterSampleStats final
             { simpleUpdateStatsPair(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_AMBLIGHT_BY_HOUR, hh, smartDivToU8(ambLightTotal, sc)); }
         }
 
-//    #if 0
-//      const int tempC16 = TemperatureC16.get();
-//      static int tempC16Total;
-//      tempC16Total = firstSample ? tempC16 : (tempC16Total + tempC16);
-//    #endif
-//    #if defined(ENABLE_OCCUPANCY_SUPPORT)
-//      const uint16_t occpc = Occupancy.get();
-//      static uint16_t occpcTotal;
-//      occpcTotal = firstSample ? occpc : (occpcTotal + occpc);
-//    #endif
-//    #if defined(HUMIDITY_SENSOR_SUPPORT)
-//      // Assume for now RH% always available (compile-time determined) or not; not intermittent.
-//      // TODO: allow this to work with at least start-up-time availability detection.
-//      const uint16_t rhpc = OTV0P2BASE::fnmin(RelHumidity.get(), (uint8_t)100); // Fail safe.
-//      static uint16_t rhpcTotal;
-//      rhpcTotal = firstSample ? rhpc : (rhpcTotal + rhpc);
-//    #endif
+      if(NULL != tempC16Opt)
+        {
+        // Ambient (eg room) temperature in C*16 units.
+        const int16_t tempC16 = tempC16Opt->get();
+        static int16_t tempC16Total;
+        tempC16Total = firstSample ? tempC16 : (tempC16Total + tempC16);
+        if(fullSample)
+            {
+            // Scale and constrain last-read temperature to valid range for stats.
+            const int16_t tempCTotal = (maxSamplesPerHour <= 2)
+              ? ((1==sc)?tempC16Total:((tempC16Total+1)>>1))
+              : ((1==sc)?tempC16Total:
+                      ((2==sc)?((tempC16Total+1)>>1):
+                               ((tempC16Total + (sc>>1)) / sc)));
+            const uint8_t temp = OTV0P2BASE::compressTempC16(tempCTotal);
+            simpleUpdateStatsPair(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_TEMP_BY_HOUR, hh, temp);
+            }
+        }
 
+      if(NULL != occupancyOpt)
+        {
+        // Occupancy percentage.
+        const uint8_t occpc = occupancyOpt->get();
+        static uint16_t occpcTotal;
+        occpcTotal = firstSample ? occpc : (occpcTotal + occpc);
+        if(fullSample)
+          { simpleUpdateStatsPair(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR, hh, smartDivToU8(occpcTotal, sc)); }
+        }
+
+      if(NULL != humidityOpt)
+        {
+        // Relative humidity (RH%).
+        const uint8_t rhpc = humidityOpt->get();
+        static uint16_t rhpcTotal;
+        rhpcTotal = firstSample ? rhpc : (rhpcTotal + rhpc);
+        if(fullSample)
+          { simpleUpdateStatsPair(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_RHPC_BY_HOUR, hh, smartDivToU8(rhpcTotal, sc)); }
+        }
+
+      // TODO: other stats measures...
 
       if(!fullSample) { return; } // Only accumulate values cached until a full sample.
       // Reset generic sub-sample count to initial state after fill sample.
       sampleCount = 0;
-
-
-//#if 0 // FIXME
-//      // Scale and constrain last-read temperature to valid range for stats.
-//    #if defined(STATS_MAX_2_SAMPLES)
-//      const int tempCTotal = (1==sc)?tempC16Total:((tempC16Total+1)>>1);
-//    #else
-//      const int tempCTotal = (1==sc)?tempC16Total:
-//                             ((2==sc)?((tempC16Total+1)>>1):
-//                                      ((tempC16Total + (sc>>1)) / sc));
-//    #endif
-//      const uint8_t temp = OTV0P2BASE::compressTempC16(tempCTotal);
-//    #if 0 && defined(DEBUG)
-//      DEBUG_SERIAL_PRINT_FLASHSTRING("SU tempC16Total=");
-//      DEBUG_SERIAL_PRINT(tempC16Total);
-//      DEBUG_SERIAL_PRINT_FLASHSTRING(", tempCTotal=");
-//      DEBUG_SERIAL_PRINT(tempCTotal);
-//      DEBUG_SERIAL_PRINT_FLASHSTRING(", temp=");
-//      DEBUG_SERIAL_PRINT(temp);
-//      DEBUG_SERIAL_PRINT_FLASHSTRING(", expanded=");
-//      DEBUG_SERIAL_PRINT(expandTempC16(temp));
-//      DEBUG_SERIAL_PRINTLN();
-//    #endif
-//      simpleUpdateStatsPair(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_TEMP_BY_HOUR, hh, temp);
-//#endif
-//
-//    #if defined(ENABLE_OCCUPANCY_SUPPORT)
-//      // Occupancy confidence percent, if supported; last and smoothed data sets,
-//      simpleUpdateStatsPair(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR, hh, smartDivToU8(occpcTotal, sc));
-//    #endif
-//
-//    #if defined(HUMIDITY_SENSOR_SUPPORT)
-//      // Relative humidity percent, if supported; last and smoothed data sets,
-//      simpleUpdateStatsPair(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_RHPC_BY_HOUR, hh, smartDivToU8(rhpcTotal, sc));
-//    #endif
-
-      // TODO: other stats measures...
-
       }
   };
 
@@ -392,28 +404,6 @@ int8_t eeprom_unary_1byte_decode(uint8_t v);
 int8_t eeprom_unary_2byte_decode(uint8_t vm, uint8_t vl);
 // First arg is most significant byte.
 inline int8_t eeprom_unary_2byte_decode(uint16_t v) { return(eeprom_unary_2byte_decode((uint8_t)(v >> 8), (uint8_t)v)); }
-
-
-// Range-compress an signed int 16ths-Celsius temperature to a unsigned single-byte value < 0xff.
-// This preserves at least the first bit after the binary point for all values,
-// and three bits after binary point for values in the most interesting mid range around normal room temperatures,
-// with transitions at whole degrees Celsius.
-// Input values below 0C are treated as 0C, and above 100C as 100C, thus allowing air and DHW temperature values.
-static const int16_t COMPRESSION_C16_FLOOR_VAL = 0; // Floor input value to compression.
-static const int16_t COMPRESSION_C16_LOW_THRESHOLD = (16<<4); // Values in range [COMPRESSION_LOW_THRESHOLD_C16,COMPRESSION_HIGH_THRESHOLD_C16[ have maximum precision.
-static const uint8_t COMPRESSION_C16_LOW_THR_AFTER = (COMPRESSION_C16_LOW_THRESHOLD>>3); // Low threshold after compression.
-static const int16_t COMPRESSION_C16_HIGH_THRESHOLD = (24<<4);
-static const uint8_t COMPRESSION_C16_HIGH_THR_AFTER = (COMPRESSION_C16_LOW_THR_AFTER + ((COMPRESSION_C16_HIGH_THRESHOLD-COMPRESSION_C16_LOW_THRESHOLD)>>1)); // High threshold after compression.
-static const int16_t COMPRESSION_C16_CEIL_VAL = (100<<4); // Ceiling input value to compression.
-static const uint8_t COMPRESSION_C16_CEIL_VAL_AFTER = (COMPRESSION_C16_HIGH_THR_AFTER + ((COMPRESSION_C16_CEIL_VAL-COMPRESSION_C16_HIGH_THRESHOLD) >> 3)); // Ceiling input value after compression.
-uint8_t compressTempC16(int16_t tempC16);
-// Reverses range compression done by compressTempC16(); results in range [0,100], with varying precision based on original value.
-// 0xff (or other invalid) input results in STATS_UNSET_INT.
-int16_t expandTempC16(uint8_t cTemp);
-
-// Maximum valid encoded/compressed stats values.
-static const uint8_t MAX_STATS_TEMP = COMPRESSION_C16_CEIL_VAL_AFTER; // Maximum valid compressed temperature value in stats.
-static const uint8_t MAX_STATS_AMBLIGHT = 254; // Maximum valid ambient light value in stats (very top of range is compressed).
 
 
 }

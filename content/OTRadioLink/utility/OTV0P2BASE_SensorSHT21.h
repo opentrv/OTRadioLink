@@ -79,6 +79,7 @@ class HumiditySensorMock final : public HumiditySensorBase
   {
   public:
     // Set new value.
+    bool set(uint8_t newValue) { value = newValue; highWithHyst = (newValue > HUMIDTY_HIGH_RHPC); return(true); }
     bool set(uint8_t newValue, bool _highWithHyst) { value = newValue; highWithHyst = _highWithHyst; return(true); }
 
     // Returns the existing value: use set() to set a new one.
