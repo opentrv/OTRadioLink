@@ -181,7 +181,7 @@ class NVByHourByteStatsMock final : public NVByHourByteStatsBase
       // Set current hour of day for getByHourRTC(); invalid value is ignored.
       void _setHour(const uint8_t hourNow) { if(hourNow < 24) { currentHour = hourNow; } }
 
-      // zapStats always succeeds in one pass in this implementation.
+      // Always succeeds in one pass in this implementation.
       virtual bool zapStats(uint16_t = 0) override { memset(statsMemory, UNSET_BYTE, sizeof(statsMemory)); return(true); }
 
       // Bounds-checked read access from backing store.
