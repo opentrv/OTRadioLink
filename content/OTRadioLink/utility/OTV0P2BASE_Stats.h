@@ -233,7 +233,7 @@ template
   class stats_t /* = NVByHourByteStatsBase */, stats_t *stats,
   class occupancy_t = SimpleTSUint8Sensor /*PseudoSensorOccupancyTracker*/, const occupancy_t *occupancyOpt = NULL,
   class ambLight_t = SimpleTSUint8Sensor /*SensorAmbientLightBase*/, const ambLight_t *ambLightOpt = NULL,
-  class tempC16_t = OTV0P2BASE::Sensor<int16_t> /*TemperatureC16Base*/, const tempC16_t *tempC16Opt = NULL,
+  class tempC16_t = Sensor<int16_t> /*TemperatureC16Base*/, const tempC16_t *tempC16Opt = NULL,
   class humidity_t = SimpleTSUint8Sensor /*HumiditySensorBase*/, const humidity_t *humidityOpt = NULL,
   uint8_t maxSubSamples = 2
   >
@@ -299,7 +299,7 @@ class ByHourSimpleStatsUpdaterSampleStats final
     // and is used to determine where (in which slot) to file the stats.
     static void sampleStats(const bool fullSample, const uint8_t hh)
       {
-      static_assert(NULL != stats, "must have non-NULL stats container");
+//      static_assert(NULL != stats, "must have non-NULL stats container");
 
       // (Sub-)sample processing.
       // In general, keep running total of sub-samples in a way that should not overflow
