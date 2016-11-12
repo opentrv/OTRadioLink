@@ -298,25 +298,21 @@ bool DumpStats::doCommand(char *const buf, const uint8_t buflen)
       switch(setN)
         {
         default: { Serial.print('?'); break; }
-        case V0P2BASE_EE_STATS_SET_TEMP_BY_HOUR:
-        case V0P2BASE_EE_STATS_SET_TEMP_BY_HOUR_SMOOTHED:
+        case OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_TEMP_BY_HOUR:
+        case OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_TEMP_BY_HOUR_SMOOTHED:
             { Serial.print('C'); break; }
-        case V0P2BASE_EE_STATS_SET_AMBLIGHT_BY_HOUR:
-        case V0P2BASE_EE_STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED:
+        case OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_AMBLIGHT_BY_HOUR:
+        case OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED:
             { Serial.print(F("ambl")); break; }
-        case V0P2BASE_EE_STATS_SET_OCCPC_BY_HOUR:
-        case V0P2BASE_EE_STATS_SET_OCCPC_BY_HOUR_SMOOTHED:
+        case OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR:
+        case OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED:
             { Serial.print(F("occ%")); break; }
-        case V0P2BASE_EE_STATS_SET_RHPC_BY_HOUR:
-        case V0P2BASE_EE_STATS_SET_RHPC_BY_HOUR_SMOOTHED:
+        case OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_RHPC_BY_HOUR:
+        case OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_RHPC_BY_HOUR_SMOOTHED:
             { Serial.print(F("RH%")); break; }
-        case V0P2BASE_EE_STATS_SET_USER1_BY_HOUR:
-        case V0P2BASE_EE_STATS_SET_USER1_BY_HOUR_SMOOTHED:
+        case OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_USER1_BY_HOUR:
+        case OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_USER1_BY_HOUR_SMOOTHED:
             { Serial.print('u'); break; }
-#if defined(V0P2BASE_EE_STATS_SET_WARMMODE_BY_HOUR_OF_WK)
-        case V0P2BASE_EE_STATS_SET_WARMMODE_BY_HOUR_OF_WK:
-            { Serial.print('W'); break; }
-#endif
         }
       Serial.print(' ');
       if(setN & 1) { Serial.print(F("smoothed")); } else { Serial.print(F("last")); }
@@ -326,22 +322,17 @@ bool DumpStats::doCommand(char *const buf, const uint8_t buflen)
         {
         const uint8_t statRaw = OTV0P2BASE::EEPROMByHourByteStats::_getByHourStatSimple(setN, hh);
         // For unset stat show '-'...
-        if(OTV0P2BASE::STATS_UNSET_BYTE == statRaw) { Serial.print('-'); }
+        if(OTV0P2BASE::NVByHourByteStatsBase::UNSET_BYTE == statRaw) { Serial.print('-'); }
         // ...else print more human-friendly version of stat.
         else switch(setN)
           {
           default: { Serial.print(statRaw); break; } // Generic decimal stats.
 
           // Special formatting cases.
-          case V0P2BASE_EE_STATS_SET_TEMP_BY_HOUR:
-          case V0P2BASE_EE_STATS_SET_TEMP_BY_HOUR_SMOOTHED:
+          case OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_TEMP_BY_HOUR:
+          case OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_TEMP_BY_HOUR_SMOOTHED:
             // Uncompanded temperature, rounded.
             { Serial.print((expandTempC16(statRaw)+8) >> 4); break; }
-#if defined(V0P2BASE_EE_STATS_SET_WARMMODE_BY_HOUR_OF_WK)
-          case V0P2BASE_EE_STATS_SET_WARMMODE_BY_HOUR_OF_WK:
-            // Warm mode usage bitmap by hour over week.
-            { Serial.print(statRaw, HEX); break; }
-#endif
           }
 #if 0 && defined(DEBUG)
         // Show how many values are lower than the current one.

@@ -20,8 +20,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
  Simple rolling stats management.
  */
 
-
 #include "OTV0P2BASE_Stats.h"
+
+#include "OTV0P2BASE_QuickPRNG.h"
 
 
 namespace OTV0P2BASE
@@ -60,7 +61,7 @@ uint8_t NVByHourByteStatsBase::countStatSamplesBelow(const uint8_t statsSet, con
 // Get minimum sample from given stats set ignoring all unset samples; STATS_UNSET_BYTE if all samples are unset.
 uint8_t NVByHourByteStatsBase::getMinByHourStat(const uint8_t statsSet) const
   {
-  uint8_t result = STATS_UNSET_BYTE;
+  uint8_t result = UNSET_BYTE;
   for(int8_t hh = 24; --hh >= 0; )
     {
     const uint8_t v = getByHourStatSimple(statsSet, hh);
@@ -73,12 +74,12 @@ uint8_t NVByHourByteStatsBase::getMinByHourStat(const uint8_t statsSet) const
 // Get maximum sample from given stats set ignoring all unset samples; STATS_UNSET_BYTE if all samples are unset.
 uint8_t NVByHourByteStatsBase::getMaxByHourStat(const uint8_t statsSet) const
   {
-  uint8_t result = STATS_UNSET_BYTE;
+  uint8_t result = UNSET_BYTE;
   for(int8_t hh = 24; --hh >= 0; )
     {
     const uint8_t v = getByHourStatSimple(statsSet, hh);
-    if((STATS_UNSET_BYTE != v) &&
-       ((STATS_UNSET_BYTE == result) || (v > result)))
+    if((UNSET_BYTE != v) &&
+       ((UNSET_BYTE == result) || (v > result)))
       { result = v; }
     }
   return(result);
@@ -86,14 +87,15 @@ uint8_t NVByHourByteStatsBase::getMaxByHourStat(const uint8_t statsSet) const
 
 // Returns true iff there is a near-full set of stats (none unset) and 3/4s of the values are higher than the supplied sample.
 // Always returns false if all samples are the same or unset (or the stats set is invalid).
-//   * sample to be tested for being in lower quartile
+//   * sample to be tested for being in lower quartile; if UNSET_BYTE routine returns false
 bool NVByHourByteStatsBase::inBottomQuartile(const uint8_t statsSet, const uint8_t sample) const
   {
+  // Optimisation for size: explicit test not needed // if(UNSET_BYTE == sample) { return(false); }
   uint8_t valuesHigher = 0;
   for(int8_t hh = 24; --hh >= 0; )
     {
     const uint8_t v = getByHourStatSimple(statsSet, hh); // const uint8_t v = eeprom_read_byte(sE);
-    if(OTV0P2BASE::STATS_UNSET_BYTE == v) { return(false); } // Abort if not a full set of stats (eg at least one full day's worth).
+    if(UNSET_BYTE == v) { return(false); } // Abort if not a full set of stats (eg at least one full day's worth).
     if(v > sample) { if(++valuesHigher >= 18) { return(true); } } // Stop as soon as known to be in lower quartile.
     }
   return(false); // Not in lower quartile.
@@ -101,14 +103,15 @@ bool NVByHourByteStatsBase::inBottomQuartile(const uint8_t statsSet, const uint8
 
 // Returns true iff there is a near-full set of stats (none unset) and 3/4s of the values are lower than the supplied sample.
 // Always returns false if all samples are the same or unset (or the stats set is invalid).
-//   * sample to be tested for being in lower quartile
+//   * sample to be tested for being in lower quartile;  if UNSET_BYTE routine returns false
 bool NVByHourByteStatsBase::inTopQuartile(const uint8_t statsSet, const uint8_t sample) const
   {
+  if(UNSET_BYTE == sample) { return(false); }
   uint8_t valuesLower = 0;
   for(int8_t hh = 24; --hh >= 0; )
     {
     const uint8_t v = getByHourStatSimple(statsSet, hh); // const uint8_t v = eeprom_read_byte(sE);
-    if(OTV0P2BASE::STATS_UNSET_BYTE == v) { return(false); } // Abort if not a full set of stats (eg at least one full day's worth).
+    if(UNSET_BYTE == v) { return(false); } // Abort if not a full set of stats (eg at least one full day's worth).
     if(v < sample) { if(++valuesLower >= 18) { return(true); } } // Stop as soon as known to be in upper quartile.
     }
   return(false); // Not in upper quartile.
@@ -120,16 +123,15 @@ bool NVByHourByteStatsBase::inTopQuartile(const uint8_t statsSet, const uint8_t 
 //   * inTop  test for membership of the top quartile if true, bottom quartile if false
 //   * statsSet  stats set number to use.
 //   * hour  hour of day to use, or ~0 for current hour, or >23 for next hour.
-bool NVByHourByteStatsBase::inOutlierQuartile(const bool inTop, const uint8_t statsSet, const uint8_t hour) const
+bool NVByHourByteStatsBase::inOutlierQuartile(const bool inTop, const uint8_t statsSet, const uint8_t hh) const
   {
-  // Rely on getByHourStatSimple() to validate statsSet, returning UNSET if invalid,
-  // and to deal with current/next hour if specified.
-  const uint8_t sample = getByHourStatRTC(statsSet, hour);
-  if(OTV0P2BASE::STATS_UNSET_BYTE == sample) { return(false); }
+  // Rely on getByHourStatXXX() to validate statsSet,
+  // returning UNSET if invalid or if the sample is unset.
+  const uint8_t sample = (hh > 23) ? getByHourStatRTC(statsSet, hh) : getByHourStatSimple(statsSet, hh);
+  if(UNSET_BYTE == sample) { return(false); } // Abort if not a valid/set sample.
   if(inTop) { return(inTopQuartile(statsSet, sample)); }
   return(inBottomQuartile(statsSet, sample));
   }
-
 
 
 // Stats-, EEPROM- (and Flash-) friendly single-byte unary incrementable encoding.
@@ -227,7 +229,7 @@ int16_t expandTempC16(const uint8_t cTemp)
     { return(int16_t(((cTemp - COMPRESSION_C16_LOW_THR_AFTER) << 1) + COMPRESSION_C16_LOW_THRESHOLD)); }
   if(cTemp <= COMPRESSION_C16_CEIL_VAL_AFTER)
     { return(int16_t(((cTemp - COMPRESSION_C16_HIGH_THR_AFTER) << 3) + COMPRESSION_C16_HIGH_THRESHOLD)); }
-  return(OTV0P2BASE::STATS_UNSET_INT); // Invalid/unset input.
+  return(OTV0P2BASE::NVByHourByteStatsBase::UNSET_INT); // Invalid/unset input.
   }
 
 

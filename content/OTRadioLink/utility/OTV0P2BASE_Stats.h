@@ -26,23 +26,12 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 #include <stdint.h>
 
-#include "OTV0P2BASE_QuickPRNG.h"
+#include "OTV0P2BASE_Util.h"
 
 
 namespace OTV0P2BASE
 {
 
-
-// 'Unset'/invalid stats values for stats:
-// byte (eg raw EEPROM byte)
-// and 2-byte signed int (eg after decompression).
-// These are to be used where erased non-volatile (eg EEPROM) values are 0xff.
-static const uint8_t STATS_UNSET_BYTE = 0xff;
-static const int16_t STATS_UNSET_INT = 0x7fff;
-
-// Special values indicating the current hour and the next hour, for stats.
-static const uint8_t STATS_SPECIAL_HOUR_CURRENT_HOUR = uint8_t(~0 - 1);
-static const uint8_t STATS_SPECIAL_HOUR_NEXT_HOUR = uint8_t(~0);
 
 // Base for simple byte-wide non-volatile time-based (by hour) stats implementation.
 // It is possible to encode/compand wider values into single stats byte values.
@@ -57,11 +46,37 @@ class NVByHourByteStatsBase
     // byte (eg raw EEPROM byte)
     // and 2-byte signed int (eg after decompression).
     // These are to be used where erased non-volatile (eg EEPROM) values are 0xff.
-    static constexpr uint8_t UNSET_BYTE = STATS_UNSET_BYTE;
+    static constexpr uint8_t UNSET_BYTE = 0xff;
+    static constexpr int16_t UNSET_INT = 0x7fff;
 
     // Special values indicating the current hour and the next hour, for stats.
-    static constexpr uint8_t SPECIAL_HOUR_CURRENT_HOUR = STATS_SPECIAL_HOUR_CURRENT_HOUR;
-    static constexpr uint8_t SPECIAL_HOUR_NEXT_HOUR = STATS_SPECIAL_HOUR_NEXT_HOUR;
+    static constexpr uint8_t SPECIAL_HOUR_CURRENT_HOUR = uint8_t(~0 - 1);
+    static constexpr uint8_t SPECIAL_HOUR_NEXT_HOUR = uint8_t(~0);
+
+    // Standard stats sets (and count).
+    // Implementations are not necessarily obliged to provide this exact set.
+    // Note that by convention the even-numbered sets are raw
+    // and the following set is the smoothed (eg over one week) version.
+    enum CommonStatsSets : uint8_t
+      {
+STATS_SET_TEMP_BY_HOUR              = 0,  // Last companded temperature samples in each hour in range [0,248].
+STATS_SET_TEMP_BY_HOUR_SMOOTHED     = 1,  // Smoothed hourly companded temperature samples in range [0,248].
+STATS_SET_AMBLIGHT_BY_HOUR          = 2,  // Last ambient light level samples in each hour in range [0,254].
+STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED = 3,  // Smoothed ambient light level samples in each hour in range [0,254].
+STATS_SET_OCCPC_BY_HOUR             = 4,  // Last hourly observed occupancy percentage [0,100].
+STATS_SET_OCCPC_BY_HOUR_SMOOTHED    = 5,  // Smoothed hourly observed occupancy percentage [0,100].
+STATS_SET_RHPC_BY_HOUR              = 6,  // Last hourly relative humidity % samples in range [0,100].
+STATS_SET_RHPC_BY_HOUR_SMOOTHED     = 7,  // Smoothed hourly relative humidity % samples in range [0,100].
+STATS_SET_CO2_BY_HOUR               = 8,  // Last hourly companded CO2 ppm samples in range [0,254].
+STATS_SET_CO2_BY_HOUR_SMOOTHED      = 9,  // Smoothed hourly companded CO2 ppm samples in range [0,254].
+STATS_SET_USER1_BY_HOUR             = 10, // Last hourly user-defined stats value in range [0,254].
+STATS_SET_USER1_BY_HOUR_SMOOTHED    = 11, // Smoothed hourly user-defined stats value in range [0,254].
+STATS_SET_USER2_BY_HOUR             = 12, // Last hourly user-defined stats value in range [0,254].
+STATS_SET_USER2_BY_HOUR_SMOOTHED    = 13, // Smoothed hourly user-defined stats value in range [0,254].
+
+      // Number of default stats sets.
+      STATS_SETS_COUNT
+      };
 
     // Clear all collected statistics fronted by this.
     // Use (eg) when moving device to a new room or at a major time change.
@@ -145,6 +160,164 @@ class NULLByHourByteStats final : public NVByHourByteStatsBase
     virtual uint8_t getByHourStatRTC(uint8_t, uint8_t = 0xff) const override { return(UNSET_BYTE); }
   };
 
+// Class to handle updating stats periodically, ie 1 or more times per hour.
+//   * maxSubSamples  maximum number of samples to take per hour,
+//       1 or 2 are especially efficient and avoid overflow, 2 probably most robust;
+//       strictly positive
+template
+  <
+  class stats_t /* = NVByHourByteStatsBase */, stats_t *stats,
+  class ambLight_t /* = SensorAmbientLightBase */, const ambLight_t *ambLight,
+  uint8_t maxSubSamples = 2
+  >
+class ByHourSimpleStatsUpdaterSampleStats final
+  {
+  public:
+    // Maximum number of (sub-) samples to take per hour; strictly positive.
+    static constexpr uint8_t maxSamplesPerHour = maxSubSamples;
+
+  protected:
+    // Do an efficient division of an int total by small positive count to give a uint8_t mean.
+    //  * total running total, no higher than 255*sampleCount
+    //  * sampleCount small (<128) strictly positive number, no larger than maxSamplesPerHour
+    static uint8_t smartDivToU8(const uint16_t total, const uint8_t sampleCount)
+      {
+      static_assert(maxSubSamples > 0, "maxSamplesPerHour must be strictly positive");
+#if 0 && defined(DEBUG) // Extra arg validation during dev.
+  if(0 == sampleCount) { panic(); }
+  if(maxSubSamples < sampleCount) { panic(); }
+#endif
+      if(1 == sampleCount) { return(total); } // No division required.
+
+      // Handle arbitrary number of samples,
+      // but likely inflates code size and run-time and overflow risk.
+      if((maxSubSamples > 2) && (sampleCount > 2))
+        { return((uint8_t) ((total + (sampleCount>>1)) / sampleCount)); }
+
+      // Exactly 2 samples.
+      return((uint8_t) ((total+1) >> 1)); // Fast shift for 2 samples instead of slow divide.
+      }
+
+    // Do simple update of last and smoothed stats numeric values.
+    // This assumes that the 'last' set is followed by the smoothed set.
+    // This autodetects unset values in the smoothed set and replaces them completely.
+    //   * statsSet for raw/'last' value, with 'smoothed' set one higher
+    //   * hh  hour of data; [0,23]
+    //   * value  new stats value in range [0,254]
+    static void simpleUpdateStatsPair(const uint8_t statsSet, const uint8_t hh, const uint8_t value)
+      {
+      // Update the last-sample slot using the mean samples value.
+      stats->setByHourStatSimple(statsSet, hh, value);
+      // If existing smoothed value unset or invalid, use new one as is, else fold in.
+      const uint8_t smoothedStatsSet = statsSet + 1;
+      const uint8_t smoothed = stats->getByHourStatSimple(smoothedStatsSet, hh);
+      if(OTV0P2BASE::NVByHourByteStatsBase::UNSET_BYTE == smoothed) { stats->setByHourStatSimple(smoothedStatsSet, hh, value); }
+      else { stats->setByHourStatSimple(smoothedStatsSet, hh, OTV0P2BASE::NVByHourByteStatsBase::smoothStatsValue(smoothed, value)); }
+      }
+
+  public:
+    // Sample statistics fully once per hour as background to simple monitoring and adaptive behaviour.
+    // Call this once per hour with fullSample==true, as near the end of the hour as possible;
+    // this will update the non-volatile stats record for the current hour.
+    // Optionally call this at up to maxSubSamples evenly-spaced number times thoughout the hour
+    // with fullSample=false for all but the last to sub-sample
+    // (and these may receive lower weighting or be ignored).
+    // (EEPROM wear in backing store should not be an issue at this update rate in normal use.)
+    //
+    //   * fullSample  if true then this is the final (and full) sample for the hour
+    //   * hh  is the hour of day; [0,23]
+    static void sampleStats(const bool fullSample, const uint8_t hh)
+      {
+      // (Sub-)sample processing.
+      // In general, keep running total of sub-samples in a way that should not overflow
+      // and use the mean to update the non-volatile EEPROM values on the fullSample call.
+      static uint8_t sampleCount; // General sub-sample count; initially zero after boot, and zeroed after each full sample.
+
+      // Special case for where a maximum of two samples is being taken.
+      // Ensure maximum of two samples used: optional non-full sample then full/final one.
+      if((2 == maxSubSamples) && !fullSample && (sampleCount != 0)) { return; }
+
+      const bool firstSample = (0 == sampleCount++);
+      // Capture sample count to use below.
+      const uint8_t sc = sampleCount;
+
+      // Update all the different stats in turn
+      // if the relevant sensor objects are non NULL.
+      // Since these are known at compile time,
+      // unused/dead code should simply not be generated.
+
+      if(NULL != ambLight)
+        {
+        // Ambient light.
+        const uint16_t ambLightV = OTV0P2BASE::fnmin(ambLight->get(), (uint8_t)254); // Constrain value at top end to avoid 'not set' value.
+        static uint16_t ambLightTotal;
+        ambLightTotal = firstSample ? ambLightV : (ambLightTotal + ambLightV);
+        if(fullSample)
+            { simpleUpdateStatsPair(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_AMBLIGHT_BY_HOUR, hh, smartDivToU8(ambLightTotal, sc)); }
+        }
+
+//    #if 0
+//      const int tempC16 = TemperatureC16.get();
+//      static int tempC16Total;
+//      tempC16Total = firstSample ? tempC16 : (tempC16Total + tempC16);
+//    #endif
+//    #if defined(ENABLE_OCCUPANCY_SUPPORT)
+//      const uint16_t occpc = Occupancy.get();
+//      static uint16_t occpcTotal;
+//      occpcTotal = firstSample ? occpc : (occpcTotal + occpc);
+//    #endif
+//    #if defined(HUMIDITY_SENSOR_SUPPORT)
+//      // Assume for now RH% always available (compile-time determined) or not; not intermittent.
+//      // TODO: allow this to work with at least start-up-time availability detection.
+//      const uint16_t rhpc = OTV0P2BASE::fnmin(RelHumidity.get(), (uint8_t)100); // Fail safe.
+//      static uint16_t rhpcTotal;
+//      rhpcTotal = firstSample ? rhpc : (rhpcTotal + rhpc);
+//    #endif
+
+
+      if(!fullSample) { return; } // Only accumulate values cached until a full sample.
+      // Reset generic sub-sample count to initial state after fill sample.
+      sampleCount = 0;
+
+
+//#if 0 // FIXME
+//      // Scale and constrain last-read temperature to valid range for stats.
+//    #if defined(STATS_MAX_2_SAMPLES)
+//      const int tempCTotal = (1==sc)?tempC16Total:((tempC16Total+1)>>1);
+//    #else
+//      const int tempCTotal = (1==sc)?tempC16Total:
+//                             ((2==sc)?((tempC16Total+1)>>1):
+//                                      ((tempC16Total + (sc>>1)) / sc));
+//    #endif
+//      const uint8_t temp = OTV0P2BASE::compressTempC16(tempCTotal);
+//    #if 0 && defined(DEBUG)
+//      DEBUG_SERIAL_PRINT_FLASHSTRING("SU tempC16Total=");
+//      DEBUG_SERIAL_PRINT(tempC16Total);
+//      DEBUG_SERIAL_PRINT_FLASHSTRING(", tempCTotal=");
+//      DEBUG_SERIAL_PRINT(tempCTotal);
+//      DEBUG_SERIAL_PRINT_FLASHSTRING(", temp=");
+//      DEBUG_SERIAL_PRINT(temp);
+//      DEBUG_SERIAL_PRINT_FLASHSTRING(", expanded=");
+//      DEBUG_SERIAL_PRINT(expandTempC16(temp));
+//      DEBUG_SERIAL_PRINTLN();
+//    #endif
+//      simpleUpdateStatsPair(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_TEMP_BY_HOUR, hh, temp);
+//#endif
+//
+//    #if defined(ENABLE_OCCUPANCY_SUPPORT)
+//      // Occupancy confidence percent, if supported; last and smoothed data sets,
+//      simpleUpdateStatsPair(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR, hh, smartDivToU8(occpcTotal, sc));
+//    #endif
+//
+//    #if defined(HUMIDITY_SENSOR_SUPPORT)
+//      // Relative humidity percent, if supported; last and smoothed data sets,
+//      simpleUpdateStatsPair(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_RHPC_BY_HOUR, hh, smartDivToU8(rhpcTotal, sc));
+//    #endif
+
+      // TODO: other stats measures...
+
+      }
+  };
 
 // Stats-, EEPROM- (and Flash-) friendly single-byte unary incrementable encoding.
 // A single byte can be used to hold a single value [0,8]

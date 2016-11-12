@@ -42,23 +42,6 @@ namespace OTV0P2BASE
 {
 
 
-// Stats set numbers, 0 upwards, contiguous, in EEPROM.
-// Generally even-numbered values are 'last' values and odd-numbered are 'smoothed' nominally over a week.
-#define V0P2BASE_EE_STATS_SET_TEMP_BY_HOUR               0  // Last companded temperature samples in each hour in range [0,248].
-#define V0P2BASE_EE_STATS_SET_TEMP_BY_HOUR_SMOOTHED      1  // Smoothed hourly companded temperature samples in range [0,248].
-#define V0P2BASE_EE_STATS_SET_AMBLIGHT_BY_HOUR           2  // Last ambient light level samples in each hour in range [0,254].
-#define V0P2BASE_EE_STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED  3  // Smoothed ambient light level samples in each hour in range [0,254].
-#define V0P2BASE_EE_STATS_SET_OCCPC_BY_HOUR              4  // Last hourly observed occupancy percentage [0,100].
-#define V0P2BASE_EE_STATS_SET_OCCPC_BY_HOUR_SMOOTHED     5  // Smoothed hourly observed occupancy percentage [0,100].
-#define V0P2BASE_EE_STATS_SET_RHPC_BY_HOUR               6  // Last hourly relative humidity % samples in range [0,100].
-#define V0P2BASE_EE_STATS_SET_RHPC_BY_HOUR_SMOOTHED      7  // Smoothed hourly relative humidity % samples in range [0,100].
-#define V0P2BASE_EE_STATS_SET_CO2_BY_HOUR                8  // Last hourly companded CO2 ppm samples in range [0,254].
-#define V0P2BASE_EE_STATS_SET_CO2_BY_HOUR_SMOOTHED       9  // Smoothed hourly companded CO2 ppm samples in range [0,254].
-#define V0P2BASE_EE_STATS_SET_USER1_BY_HOUR              10 // Last hourly user-defined stats value in range [0,254].
-#define V0P2BASE_EE_STATS_SET_USER1_BY_HOUR_SMOOTHED     11 // Smoothed hourly user-defined stats value in range [0,254].
-#define V0P2BASE_EE_STATS_SET_USER2_BY_HOUR              12 // Last hourly user-defined stats value in range [0,254].
-#define V0P2BASE_EE_STATS_SET_USER2_BY_HOUR_SMOOTHED     13 // Smoothed hourly user-defined stats value in range [0,254].
-
 #define V0P2BASE_EE_STATS_SETS 14 // Number of stats sets in range [0,V0P2BASE_EE_STATS_SETS-1].
 
 
@@ -255,6 +238,7 @@ static const intptr_t V0P2BASE_EE_END_NODE_ASSOCIATIONS = ((V0P2BASE_EE_NODE_ASS
 
 // Wrapper for simple byte-wide non-volatile time-based (by hour) stats implementation in EEPROM.
 // Multiple instances can access the same EEPROM backing store.
+// Implements the 'standard' stats sets.
 // Not thread-/ISR- safe.
 class EEPROMByHourByteStats final : public NVByHourByteStatsBase
   {
@@ -307,7 +291,7 @@ class EEPROMByHourByteStats final : public NVByHourByteStatsBase
     //   * hour  hour of day to use, or ~0/0xff for current hour (default), or >23 for next hour.
     virtual uint8_t getByHourStatRTC(uint8_t statsSet, uint8_t hour = 0xff) const override
       {
-      const uint8_t hh = (STATS_SPECIAL_HOUR_CURRENT_HOUR == hour) ? OTV0P2BASE::getHoursLT() :
+      const uint8_t hh = (SPECIAL_HOUR_CURRENT_HOUR == hour) ? OTV0P2BASE::getHoursLT() :
         ((hour > 23) ? OTV0P2BASE::getNextHourLT() : hour);
       return(getByHourStatSimple(statsSet, hh));
       }
