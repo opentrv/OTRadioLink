@@ -51,8 +51,11 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 // Some basic utility functions and definitions.
 #include "utility/OTV0P2BASE_Util.h"
 
-// EEPROM space allocation and utilities including some of the simple rolling stats management.
+// EEPROM space allocation and utilities.
 #include "utility/OTV0P2BASE_EEPROM.h"
+
+// Simple rolling stats management.
+#include "utility/OTV0P2BASE_Stats.h"
 
 // Quick/simple PRNG (Pseudo-Random Number Generator).
 #include "utility/OTV0P2BASE_QuickPRNG.h"

@@ -324,7 +324,7 @@ bool DumpStats::doCommand(char *const buf, const uint8_t buflen)
       // Now print values.
       for(uint8_t hh = 0; hh < 24; ++hh)
         {
-        const uint8_t statRaw = OTV0P2BASE::getByHourStat(setN, hh);
+        const uint8_t statRaw = OTV0P2BASE::EEPROMByHourByteStats::_getByHourStat(setN, hh);
         // For unset stat show '-'...
         if(OTV0P2BASE::STATS_UNSET_BYTE == statRaw) { Serial.print('-'); }
         // ...else print more human-friendly version of stat.
@@ -561,7 +561,7 @@ bool SetTXPrivacy::doCommand(char *const buf, const uint8_t buflen)
 bool ZapStats::doCommand(char *const, const uint8_t)
     {
     // Try to avoid causing an overrun if near the end of the minor cycle (even allowing for the warning message if unfinished!).
-    if(OTV0P2BASE::zapStats((uint16_t) OTV0P2BASE::fnmax(1, ((int)OTV0P2BASE::msRemainingThisBasicCycle()/2) - 20)))
+    if(OTV0P2BASE::EEPROMByHourByteStats::_zapStats((uint16_t) OTV0P2BASE::fnmax(1, ((int)OTV0P2BASE::msRemainingThisBasicCycle()/2) - 20)))
       { Serial.println(F("Zapped.")); }
     else
       { Serial.println(F("Not finished.")); }
