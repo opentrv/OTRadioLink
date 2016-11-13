@@ -244,10 +244,11 @@ class ByHourSimpleStatsUpdaterSampleStats final
     static constexpr uint8_t maxSamplesPerHour = maxSubSamples;
 
   protected:
-    // Do an efficient division of an int total by small positive count to give a uint8_t mean.
+    // Efficient division of an uint16_t or uint8_t total by a small positive count to give a uint8_t mean.
     //  * total running total, no higher than 255*sampleCount
     //  * sampleCount small (<128) strictly positive number, no larger than maxSamplesPerHour
-    static uint8_t smartDivToU8(const uint16_t total, const uint8_t sampleCount)
+    template <class T = uint16_t>
+    static uint8_t smartDivToU8(const T total, const uint8_t sampleCount)
       {
       static_assert(maxSubSamples > 0, "maxSamplesPerHour must be strictly positive");
 #if 0 && defined(DEBUG) // Extra arg validation during dev.
