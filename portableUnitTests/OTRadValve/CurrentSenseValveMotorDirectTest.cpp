@@ -415,31 +415,108 @@ TEST(CurrentSenseValveMotorDirect,normalStateWalkthrough)
 
 
 // This aims to simulate a real valve to a small degree.
-class DummyHardwareDriverSim : public OTRadValve::HardwareMotorDriverInterface
+// TODO:
+// In particular this emulates the fact that pushing the pin closed is harder and slower than withdrawing.
+// This also emulates random spikes/noise, eg premature current rise when moving valve fast.
+//
+// DHD20151025: one set of actual measurements during calibration:
+//    ticksFromOpenToClosed: 1529
+//    ticksFromClosedToOpen: 1295
+//
+// Another set of real measurements:
+// Check that a calibration instance can be reused correctly.
+//const uint16_t tfo2 = 1803U;
+//const uint16_t tfc2 = 1373U;
+class HardwareDriverSim : public OTRadValve::HardwareMotorDriverInterface
   {
   public:
     enum simType : uint8_t
       {
-      SYMMETRIC_LOSSLESS, // Perfect behaviour.
+      SYMMETRIC_LOSSLESS, // Unrealistically good behaviour.
       ASYMMETRIC_LOSSLESS, // Allows that running in each direction gives different results.
-      ASYMMETRIC_LOSSY // Grotty lossy valve!
+      ASYMMETRIC_LOSSY // Grotty lossy valve with occasional random current spikes!
       };
     // Nominal ticks for dead-reckoning full travel.
-    static constexpr uint16_t nominalFullTravelTicks = 1000;
+    static constexpr uint16_t nominalFullTravelTicks = 1500;
 
   private:
-    // Detect if end-stop is reached or motor current otherwise very high.
-    bool currentHigh = false;
-  public:
-    virtual bool isCurrentHigh(OTRadValve::HardwareMotorDriverInterface::motor_drive /*mdir*/ = motorDriveOpening) const override { return(currentHigh); }
-    virtual void motorRun(uint8_t /*maxRunTicks*/, motor_drive dir, OTRadValve::HardwareMotorDriverInterfaceCallbackHandler &callback) override
+    // Simulation mode.
+    simType mode = SYMMETRIC_LOSSLESS;
+
+    // Nominal percent open; initially zero (ie valve closed).
+    uint8_t nominalPercentOpen = 0;
+
+    // True when driving into an end stop.
+    bool isDrivingIntoEndStop(const OTRadValve::HardwareMotorDriverInterface::motor_drive mdir) const
       {
-      currentHigh = (OTRadValve::HardwareMotorDriverInterface::motorOff != dir);
-      callback.signalHittingEndStop(true);
+      if((motorDriveOpening == mdir) && (100 == nominalPercentOpen)) { return(true); }
+      if((motorDriveClosing == mdir) && (0 == nominalPercentOpen)) { return(true); }
+      return(false);
+      }
+
+  public:
+    // Reset device simulation to starting position and specified mode.
+    void reset(const simType mode_) { mode = mode_; nominalPercentOpen = 0; }
+
+    // Get device mode.
+    simType getMode() { return(mode); }
+
+    // Get nominal percentage open to see how well valve driver is tracking the simulation.
+    uint8_t getNominalPercentOpen() const { return(nominalPercentOpen); }
+
+    // Current will be high when driving into an end-stop.
+    virtual bool isCurrentHigh(OTRadValve::HardwareMotorDriverInterface::motor_drive mdir) const override
+      {
+      return(isDrivingIntoEndStop(mdir));
+      }
+
+    // Run the motor (or turn it off).
+    virtual void motorRun(const uint8_t /*maxRunTicks*/, const motor_drive dir, OTRadValve::HardwareMotorDriverInterfaceCallbackHandler &callback) override
+      {
+      const bool currentHigh = (OTRadValve::HardwareMotorDriverInterface::motorOff != dir);
+      if(currentHigh) { callback.signalHittingEndStop(true); }
       }
   };
 
+// Dummy callbackc class: does nothing.
+class DummyCallback final : public OTRadValve::HardwareMotorDriverInterfaceCallbackHandler
+  {
+  public:
+    // Called when end stop hit, eg by overcurrent detection.
+    // Can be called while run() is in progress.
+    // Is ISR-/thread- safe.
+    virtual void signalHittingEndStop(bool) override { }
+
+    // Called when encountering leading edge of a mark in the shaft rotation in forward direction (falling edge in reverse).
+    // Can be called while run() is in progress.
+    // Is ISR-/thread- safe.
+    virtual void signalShaftEncoderMarkStart(bool) override { }
+
+    // Called with each motor run sub-cycle tick.
+    // Is ISR-/thread- safe.
+    virtual void signalRunSCTTick(bool) override { }
+  };
+
+// Test the simulator.
+TEST(CurrentSenseValveMotorDirect,deadReckoningRobustnessSim)
+{
+    HardwareDriverSim s0;
+    EXPECT_EQ(0, s0.getNominalPercentOpen());
+    EXPECT_EQ(s0.SYMMETRIC_LOSSLESS, s0.getMode());
+    s0.reset(s0.SYMMETRIC_LOSSLESS);
+    EXPECT_EQ(0, s0.getNominalPercentOpen());
+    EXPECT_EQ(s0.SYMMETRIC_LOSSLESS, s0.getMode());
+
+    DummyCallback dcb;
+
+    // Drive valve as far open as possible in one go.
+    s0.motorRun(0xff, OTRadValve::HardwareMotorDriverInterface::motorDriveOpening, dcb);
+}
+
+
+
+// TODO
 // Tests for reasonable robustness of dead-reckoning in fact of asymmetric travel, lossiness, and other usual trials.
-TEST(CurrentSenseValveMotorDirect,deadReckiingRobustness)
+TEST(CurrentSenseValveMotorDirect,deadReckoningRobustness)
 {
 }
