@@ -385,7 +385,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
       // then try again to run to end-stop.
       // If end-stop is hit then reset positional values.
       // Only really believe the end-stop hit when running slowly.
-      const bool tentative = binaryOpen ? (99 == currentPC) : (1 == currentPC);
+      const bool tentative = tentativelyAtEndstop(binaryOpen, currentPC);
       // Try running fast if not tentative from previous step, and end up tentative.
       if(!tentative && runTowardsEndStop(binaryOpen, low)) { resetPosition(binaryOpen, true); }
       // Else follow tentative by running slow to attempt to seat the valve securely.

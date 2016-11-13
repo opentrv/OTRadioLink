@@ -335,7 +335,7 @@ TEST(CurrentSenseValveMotorDirect,initStateWalkthrough)
 // Check that eventually valve gets to requested % open or close enough to it.
 // This allows for binary-mode (ie non-proportional) drivers.
 // This is more of a black box test,
-// ie laregly blind to the internal implementation/state like a normal human being would be.
+// ie largely blind to the internal implementation/state like a normal human being would be.
 static void normalStateWalkthrough(OTRadValve::CurrentSenseValveMotorDirectBase *const csv, const bool batteryLow)
     {
     // Run up driver/valve into 'normal' state by signalling the valve is fitted until good things happen.
@@ -347,7 +347,7 @@ static void normalStateWalkthrough(OTRadValve::CurrentSenseValveMotorDirectBase 
     // Target % values to try to reach.
     // Some are listed repeatedly to ensure no significant sticky state.
     const uint8_t randomTarget1 = uint8_t(((unsigned) random()) % 101);
-    uint8_t targetValues[] = { 0, 100, 1, 2, 25, 50, 75, randomTarget1, 0, 100, OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN, OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN, OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN };
+    uint8_t targetValues[] = { 0, 100, 99, 1, 95, 2, 25, 94, 50, 75, randomTarget1, 100, 0, 100, OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN, OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN, OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, 99, 98, 97, 96, 95, 94, 93, 1 };
     for(size_t i = 0; i < sizeof(targetValues); ++i)
         {
         const uint8_t target = targetValues[i];

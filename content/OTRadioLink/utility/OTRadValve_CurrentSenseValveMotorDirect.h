@@ -242,10 +242,22 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     // Does nothing for non-proportional implementation.
     virtual void recomputePosition() { }
 
+    // 'Tentative' end-stop distance from end-stop in percent; strictly positive.
+    static constexpr uint8_t tenativeDistance = 1;
+
+    // Returns true if valve is at an end stop.
+    static constexpr bool isAtEndstop(const uint8_t valvePC) { return((0 == valvePC) || (100 == valvePC)); }
+    // Returns true if close enough to end stop to be 'tentative', but not at an end-stop.
+    static constexpr bool tentativelyAtEndstop(const uint8_t valvePC)
+        { return(!isAtEndstop(valvePC) && ((valvePC >= (100-tenativeDistance) || (valvePC <= tenativeDistance)))); }
+    // Returns true if tentatively at specified end-stop.
+    static constexpr bool tentativelyAtEndstop(const bool isOpen, const uint8_t valvePC)
+        { return(isOpen ? ((valvePC >= (100-tenativeDistance)) && (100 != valvePC)) : ((valvePC <= tenativeDistance) && (0 != valvePC))); }
+
     // Reset just current percent-open value, with optional 'tentative' marker.
     // If 'tentative' then current position may be recorded as adjacent to, but not at, the end-stops.
     void resetCurrentPC(bool hitEndstopOpen, bool tentative = false)
-        { currentPC = hitEndstopOpen ? (tentative ? 99 : 100) : (tentative ? 1 : 0); }
+        { currentPC = hitEndstopOpen ? (tentative ? (100-tenativeDistance) : 100) : (tentative ? tenativeDistance : 0); }
 
     // Reset internal positional record when an end-stop is hit.
     // Updates current % open value for non-proportional implementation.
