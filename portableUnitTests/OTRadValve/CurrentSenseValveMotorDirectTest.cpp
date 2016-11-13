@@ -412,3 +412,34 @@ TEST(CurrentSenseValveMotorDirect,normalStateWalkthrough)
         EXPECT_TRUE(csvmd1.inNonProportionalMode()) << "with instant-end-stop driver, should be in non-prop mode";
         }
 }
+
+
+// This aims to simulate a real valve to a small degree.
+class DummyHardwareDriverSim : public OTRadValve::HardwareMotorDriverInterface
+  {
+  public:
+    enum simType : uint8_t
+      {
+      SYMMETRIC_LOSSLESS, // Perfect behaviour.
+      ASYMMETRIC_LOSSLESS, // Allows that running in each direction gives different results.
+      ASYMMETRIC_LOSSY // Grotty lossy valve!
+      };
+    // Nominal ticks for dead-reckoning full travel.
+    static constexpr uint16_t nominalFullTravelTicks = 1000;
+
+  private:
+    // Detect if end-stop is reached or motor current otherwise very high.
+    bool currentHigh = false;
+  public:
+    virtual bool isCurrentHigh(OTRadValve::HardwareMotorDriverInterface::motor_drive /*mdir*/ = motorDriveOpening) const override { return(currentHigh); }
+    virtual void motorRun(uint8_t /*maxRunTicks*/, motor_drive dir, OTRadValve::HardwareMotorDriverInterfaceCallbackHandler &callback) override
+      {
+      currentHigh = (OTRadValve::HardwareMotorDriverInterface::motorOff != dir);
+      callback.signalHittingEndStop(true);
+      }
+  };
+
+// Tests for reasonable robustness of dead-reckoning in fact of asymmetric travel, lossiness, and other usual trials.
+TEST(CurrentSenseValveMotorDirect,deadReckiingRobustness)
+{
+}
