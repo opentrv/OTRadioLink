@@ -352,7 +352,7 @@ class ByHourSimpleStatsUpdaterSampleStats final
         {
         // Occupancy percentage.
         const uint8_t occpc = occupancyOpt->get();
-        static uint16_t occpcTotal;
+        static uint16_t occpcTotal; // TODO: as range is [0,100], up to 2 samples could fit a uint8_t instead.
         occpcTotal = firstSample ? occpc : (occpcTotal + occpc);
         if(fullSample)
           { simpleUpdateStatsPair(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR, hh, smartDivToU8(occpcTotal, sc)); }
@@ -362,7 +362,7 @@ class ByHourSimpleStatsUpdaterSampleStats final
         {
         // Relative humidity (RH%).
         const uint8_t rhpc = humidityOpt->get();
-        static uint16_t rhpcTotal;
+        static uint16_t rhpcTotal; // TODO: as range is [0,100], up to 2 samples could fit a uint8_t instead.
         rhpcTotal = firstSample ? rhpc : (rhpcTotal + rhpc);
         if(fullSample)
           { simpleUpdateStatsPair(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_RHPC_BY_HOUR, hh, smartDivToU8(rhpcTotal, sc)); }
