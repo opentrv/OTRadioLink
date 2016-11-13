@@ -354,7 +354,7 @@ static void normalStateWalkthrough(OTRadValve::CurrentSenseValveMotorDirectBase 
         csv->setTargetPC(target);
         // Allow at most a minute or three (at 30 ticks/s) to reach the target (or close enough).
         for(int i = 100; --i > 0 && (target != csv->getCurrentPC()); ) { csv->poll(); }
-        // Work out if we have got close enough:
+        // Work out if close enough:
         //   * fully open and fully closed should always be achieved
         //   * generally within an absolute tolerance (absTolerancePC) of the target value (eg 10--25%)
         //   * when target is below DEFAULT_VALVE_PC_SAFER_OPEN then any value at/below target is acceptable
