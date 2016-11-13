@@ -365,7 +365,7 @@ namespace OTRFM23BLink
             // to replace the RX queue with a dummy if RX is not allowed/required.
             // Eg see https://en.wikibooks.org/wiki/C%2B%2B_Programming/Templates/Template_Meta-Programming#Compile-time_programming
             template <bool Condition, typename TypeTrue, typename TypeFalse>
-              class typeIf;
+              struct typeIf;
             template <typename TypeTrue, typename TypeFalse>
               struct typeIf<true, TypeTrue, TypeFalse> { typedef TypeTrue t; };
             template <typename TypeTrue, typename TypeFalse>

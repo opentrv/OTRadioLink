@@ -283,6 +283,17 @@ class ByHourSimpleStatsUpdaterSampleStats final
       else { stats->setByHourStatSimple(smoothedStatsSet, hh, OTV0P2BASE::NVByHourByteStatsBase::smoothStatsValue(smoothed, value)); }
       }
 
+    // Select the type of the accumulator for percentage-value stats [0,100].
+    // Where there are no ore than two samples being accumulated
+    // the sum can be held in a uint8_t without possibility of overflow.
+    template <bool Condition, typename TypeTrue, typename TypeFalse>
+      struct typeIf;
+    template <typename TypeTrue, typename TypeFalse>
+      struct typeIf<true, TypeTrue, TypeFalse> { typedef TypeTrue t; };
+    template <typename TypeTrue, typename TypeFalse>
+      struct typeIf<false, TypeTrue, TypeFalse> { typedef TypeFalse t; };
+    typedef typename typeIf<maxSubSamples <= 2, uint8_t, uint16_t>::t percentageStatsAccumulator_t;
+
   public:
     // Sample statistics fully once per hour as background to simple monitoring and adaptive behaviour.
     // Call this once per hour with fullSample==true, as near the end of the hour as possible;
@@ -352,7 +363,7 @@ class ByHourSimpleStatsUpdaterSampleStats final
         {
         // Occupancy percentage.
         const uint8_t occpc = occupancyOpt->get();
-        static uint16_t occpcTotal; // TODO: as range is [0,100], up to 2 samples could fit a uint8_t instead.
+        static percentageStatsAccumulator_t occpcTotal; // TODO: as range is [0,100], up to 2 samples could fit a uint8_t instead.
         occpcTotal = firstSample ? occpc : (occpcTotal + occpc);
         if(fullSample)
           { simpleUpdateStatsPair(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR, hh, smartDivToU8(occpcTotal, sc)); }
@@ -362,7 +373,7 @@ class ByHourSimpleStatsUpdaterSampleStats final
         {
         // Relative humidity (RH%).
         const uint8_t rhpc = humidityOpt->get();
-        static uint16_t rhpcTotal; // TODO: as range is [0,100], up to 2 samples could fit a uint8_t instead.
+        static percentageStatsAccumulator_t rhpcTotal; // TODO: as range is [0,100], up to 2 samples could fit a uint8_t instead.
         rhpcTotal = firstSample ? rhpc : (rhpcTotal + rhpc);
         if(fullSample)
           { simpleUpdateStatsPair(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_RHPC_BY_HOUR, hh, smartDivToU8(rhpcTotal, sc)); }
