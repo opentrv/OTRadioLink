@@ -534,6 +534,9 @@ class CurrentSenseValveMotorDirect final : public CurrentSenseValveMotorDirectBi
     // If true, proportional mode is not being used and the valve is run to end stops instead.
     // Allows proportional-mode driver to fall back to simpler behaviour in case of difficulties.
     bool inNonProportionalMode() const { return(needsRecalibrating || cp.cannotRunProportional()); }
+
+    // Get (read-only) calibration parameters, primarily for testing.
+    CalibrationParameters const &_getCP() const { return(cp); }
   };
 
 
