@@ -337,10 +337,10 @@ class HardwareDriverSim : public OTRadValve::HardwareMotorDriverInterface
 
 //        if(ASYMMETRIC_NOISY == mode)
 //          {
-//          // In lossy mode, once in a while
-//          // randomly produce a spurious high-current condition
+//          // In lossy mode, once in a while randomly,
+//          // produce a spurious high-current condition
 //          // and stop.
-//          if(0 == (random() & 0xff)) { callback.signalHittingEndStop(true); return; }
+//          if(0 == (random() & 0x3f)) { callback.signalHittingEndStop(true); return; }
 //          }
 
         // Simulate ticks for callback object.
@@ -478,6 +478,12 @@ static void normalStateWalkthrough(OTRadValve::CurrentSenseValveMotorDirectBase 
     EXPECT_TRUE(!csv->isInErrorState());
     EXPECT_TRUE(csv->isInNormalRunState()) << csv->_getState();
 
+
+
+// TODO: check logic's estimate of ticks here, eg from errors in calibration.
+
+
+
     // Target % values to try to reach.
     // Some are listed repeatedly to ensure no significant sticky state.
     const uint8_t randomTarget1 = uint8_t(((unsigned) random()) % 101);
@@ -505,7 +511,10 @@ static void normalStateWalkthrough(OTRadValve::CurrentSenseValveMotorDirectBase 
         const bool isSimCloseEnoughOrNotSim = (NULL == simulator) ||
             OTRadValve::CurrentSenseValveMotorDirectBase::closeEnoughToTarget(target, simulator->getNominalPercentOpen());
         if((!batteryLow) || (target == 100))
-            { EXPECT_TRUE(isSimCloseEnoughOrNotSim) << "target%="<<((int)target) << ", current%="<<((int)currentPC) << ", batteryLow="<<batteryLow << ", sim%="<<((int)(simulator->getNominalPercentOpen())); }
+            {
+            EXPECT_TRUE(isSimCloseEnoughOrNotSim) << "target%="<<((int)target) << ", current%="<<((int)currentPC) << ", batteryLow="<<batteryLow <<
+                ", sim%="<<((int)(simulator->getNominalPercentOpen()));
+            }
         // Ensure that driver has not reached an error (or other strange) state.
         EXPECT_TRUE(!csv->isInErrorState());
         EXPECT_TRUE(csv->isInNormalRunState()) << csv->_getState();
