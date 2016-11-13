@@ -276,7 +276,8 @@ class HardwareDriverSim : public OTRadValve::HardwareMotorDriverInterface
       {
       SYMMETRIC_LOSSLESS, // Unrealistically good behaviour.
       ASYMMETRIC_LOSSLESS, // Allows that running in each direction gives different results.
-      ASYMMETRIC_LOSSY // Grotty lossy valve with occasional random current spikes!
+      ASYMMETRIC_LOSSY, // Grotty lossy valve with occasional random current spikes!
+      INVALID // Larger than any valid mode.
       };
     // Nominal ticks for dead-reckoning full travel; strictly positive and >> 100.
     static constexpr uint16_t nominalFullTravelTicks = 1500;
@@ -517,9 +518,9 @@ TEST(CurrentSenseValveMotorDirect,normalStateWalkthrough)
     const uint8_t subcycleTicksRoundedDown_ms = 7; // For REV7: OTV0P2BASE::SUBCYCLE_TICK_MS_RD.
     const uint8_t gsct_max = 255; // For REV7: OTV0P2BASE::GSCT_MAX.
     const uint8_t minimumMotorRunupTicks = 4; // For REV7: OTRadValve::ValveMotorDirectV1HardwareDriverBase::minMotorRunupTicks.
-    for(int d = 0; d < 2; ++d) // Which driver.
+    for(int d = -1; d < shw.INVALID; ++d) // Which driver / simulation version.
         {
-        const bool alwaysEndStop = (0 == d);
+        const bool alwaysEndStop = (-1 == d);
         for(int l = 0; l < 2; ++l) // Low battery or not.
             {
             const bool low = (1 == l); // Is battery low...
@@ -531,7 +532,7 @@ TEST(CurrentSenseValveMotorDirect,normalStateWalkthrough)
                 static_cast<OTRadValve::HardwareMotorDriverInterface *>(&dhw) : static_cast<OTRadValve::HardwareMotorDriverInterface *>(&shw);
 
             dhw.reset();
-            shw.reset(shw.SYMMETRIC_LOSSLESS);
+            shw.reset((HardwareDriverSim::simType) d);
 
             // Test non-proportional impl.
             OTRadValve::CurrentSenseValveMotorDirectBinaryOnly csvmdbo1(hw, dummyGetSubCycleTime,
@@ -558,17 +559,4 @@ TEST(CurrentSenseValveMotorDirect,normalStateWalkthrough)
             if(alwaysEndStop) { EXPECT_TRUE(csvmd1.inNonProportionalMode()) << "with instant-end-stop driver, should be in non-prop mode"; }
             }
         }
-}
-
-
-
-// TODO
-// Tests for reasonable robustness of dead-reckoning in face of asymmetric travel, lossiness, and other usual trials.
-TEST(CurrentSenseValveMotorDirect,deadReckoningRobustness)
-{
-
-
-
-    // TODO
-
 }
