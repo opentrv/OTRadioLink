@@ -14,6 +14,7 @@ specific language governing permissions and limitations
 under the Licence.
 
 Author(s) / Copyright (s):  Deniz Erbilgin 2016
+                            Damon Hart-Davis 2016
 */
 
 #ifndef ARDUINO_LIB_OTRADVALVE_VALVEMOTORDRV8850_H_
@@ -70,6 +71,7 @@ public:
     const uint16_t miHigh = (OTRadValve::HardwareMotorDriverInterface::motorDriveClosing == mdir) ?
             maxDevCurrentReadingClosing : maxDevCurrentReadingOpening;
     const bool currentSense = (mi > miHigh); // &&
+    // TODO: capture some entropy from motor current lsbs.
       // Recheck the value read in case spiky.
       // (OTV0P2BASE::analogueNoiseReducedRead(MOTOR_DRIVE_MI_AIN_DigitalPin, INTERNAL) > miHigh) &&
       // (OTV0P2BASE::analogueNoiseReducedRead(MOTOR_DRIVE_MI_AIN_DigitalPin, INTERNAL) > miHigh);

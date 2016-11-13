@@ -70,6 +70,7 @@ class ValveMotorDirectV1HardwareDriver final : public ValveMotorDirectV1Hardware
       const uint16_t miHigh = (OTRadValve::HardwareMotorDriverInterface::motorDriveClosing == mdir) ?
           maxCurrentReadingClosing : maxCurrentReadingOpening;
       const bool currentSense = (mi > miHigh); // &&
+      // TODO: capture some entropy from motor current lsbs.
         // Recheck the value read in case spiky.
         // (OTV0P2BASE::analogueNoiseReducedRead(MOTOR_DRIVE_MI_AIN_DigitalPin, INTERNAL) > miHigh) &&
         // (OTV0P2BASE::analogueNoiseReducedRead(MOTOR_DRIVE_MI_AIN_DigitalPin, INTERNAL) > miHigh);
