@@ -91,7 +91,7 @@ TEST(TempControl,MidSane)
         decltype(MidSane::tp), &MidSane::tp,
         TRV1ValveControlParameters
         > tctp0;
-    EXPECT_TRUE(tctp0.hasEcoBias()) << "mid point should by default be have an ECO bias";
+    EXPECT_TRUE(tctp0.hasEcoBias()) << "mid point should by default have an ECO bias";
     EXPECT_FALSE(tctp0.isComfortTemperature(tsm)) << "mid point should be neither strongly ECO nor comfort";
     EXPECT_FALSE(tctp0.isEcoTemperature(tsm)) << "mid point should be neither strongly ECO nor comfort";
 
@@ -104,7 +104,7 @@ TEST(TempControl,MidSane)
         decltype(MidSane::tp), &MidSane::tp,
         currentDefaults
         > tctp1;
-    EXPECT_TRUE(tctp1.hasEcoBias()) << "mid point should by default be have an ECO bias";
+    EXPECT_TRUE(tctp1.hasEcoBias()) << "mid point should by default have an ECO bias";
     EXPECT_FALSE(tctp1.isComfortTemperature(tsm)) << "mid point should be neither strongly ECO nor comfort";
     EXPECT_FALSE(tctp1.isEcoTemperature(tsm)) << "mid point should be neither strongly ECO nor comfort";
 }
