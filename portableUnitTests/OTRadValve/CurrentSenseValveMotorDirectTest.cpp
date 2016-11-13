@@ -272,11 +272,12 @@ class DummyHardwareDriverHitEndstop : public OTRadValve::HardwareMotorDriverInte
 class HardwareDriverSim : public OTRadValve::HardwareMotorDriverInterface
   {
   public:
+    // Simulation modes: higher value indicate crankier hardware.
     enum simType : uint8_t
       {
       SYMMETRIC_LOSSLESS, // Unrealistically good behaviour.
       ASYMMETRIC_LOSSLESS, // Allows that running in each direction gives different results.
-      ASYMMETRIC_LOSSY, // Grotty lossy valve with occasional random current spikes!
+      ASYMMETRIC_NOISY, // Grotty lossy valve with occasional random current spikes!
       INVALID // Larger than any valid mode.
       };
     // Nominal ticks for dead-reckoning full travel; strictly positive and >> 100.
@@ -334,6 +335,14 @@ class HardwareDriverSim : public OTRadValve::HardwareMotorDriverInterface
           return;
           }
 
+//        if(ASYMMETRIC_NOISY == mode)
+//          {
+//          // In lossy mode, once in a while
+//          // randomly produce a spurious high-current condition
+//          // and stop.
+//          if(0 == (random() & 0xff)) { callback.signalHittingEndStop(true); return; }
+//          }
+
         // Simulate ticks for callback object.
         for(int i = ticksPerPercent; --i >= 0; ) { callback.signalRunSCTTick(isOpening); }
 
@@ -354,7 +363,7 @@ class MiniCallback final : public OTRadValve::HardwareMotorDriverInterfaceCallba
     virtual void signalRunSCTTick(bool) override { }
   };
 
-// Test the simulator.
+// Test the simulator itself.
 TEST(CurrentSenseValveMotorDirect,deadReckoningRobustnessSim)
 {
     HardwareDriverSim s0;
@@ -490,13 +499,13 @@ static void normalStateWalkthrough(OTRadValve::CurrentSenseValveMotorDirectBase 
         // Attempts to close the valve may be legitimately ignored when the battery is low.
         // But attempts to open fully should always be accepted, eg as anti-frost protection.
         if((!batteryLow) || (target == 100))
-            { EXPECT_TRUE(isCloseEnough) << "target="<<((int)target) << ", current="<<((int)currentPC) << ", batteryLow="<<batteryLow; }
+            { EXPECT_TRUE(isCloseEnough) << "target%="<<((int)target) << ", current%="<<((int)currentPC) << ", batteryLow="<<batteryLow; }
         // If using a simulator, check if its internal position measure is close enough.
         // Always true if not running a full simulator.
         const bool isSimCloseEnoughOrNotSim = (NULL == simulator) ||
             OTRadValve::CurrentSenseValveMotorDirectBase::closeEnoughToTarget(target, simulator->getNominalPercentOpen());
         if((!batteryLow) || (target == 100))
-            { EXPECT_TRUE(isSimCloseEnoughOrNotSim) << "target="<<((int)target) << ", current="<<((int)currentPC) << ", batteryLow="<<batteryLow; }
+            { EXPECT_TRUE(isSimCloseEnoughOrNotSim) << "target%="<<((int)target) << ", current%="<<((int)currentPC) << ", batteryLow="<<batteryLow << ", sim%="<<((int)(simulator->getNominalPercentOpen())); }
         // Ensure that driver has not reached an error (or other strange) state.
         EXPECT_TRUE(!csv->isInErrorState());
         EXPECT_TRUE(csv->isInNormalRunState()) << csv->_getState();
