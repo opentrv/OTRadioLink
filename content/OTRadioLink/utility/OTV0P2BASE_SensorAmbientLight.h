@@ -67,8 +67,9 @@ class SensorAmbientLightBase : public SimpleTSUint8Sensor
     static const uint8_t DEFAULT_LIGHT_THRESHOLD = 16;
 
     // Default 'very dark' threshold; at or below this a room is pitch black.
-    // Not all light sensors may reliably get this low,
+    // Not all light sensors and thus devices may reliably get this low,
     // though many may get down to 1 or even 0.
+    // Some *very* poorly-lit locations may get this low even when occupied.
     // For REV2 LDR and REV7 phototransistor.
     static const uint8_t DEFAULT_PITCH_DARK_THRESHOLD = 4;
 
@@ -91,6 +92,9 @@ class SensorAmbientLightBase : public SimpleTSUint8Sensor
     bool isRoomDark() const { return(!isRoomLitFlag && !unusable); }
 
     // Returns true if room is probably pitch dark dark; no hysteresis.
+    // Not all light sensors and thus devices may reliably get this low,
+    // and some devices may be jammed down the back of a sofa in the pitch dark with this true,
+    // thus this should only be treated as an extra hint when true.
     bool isRoomVeryDark() const { return(!unusable && (get() <= DEFAULT_PITCH_DARK_THRESHOLD)); }
 
     // Get number of minutes (read() calls) that the room has been continuously dark for [0,255].
