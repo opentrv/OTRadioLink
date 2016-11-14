@@ -49,7 +49,7 @@ class TemperatureC16Base : public OTV0P2BASE::Sensor<int16_t>
 
     // Prevent instantiation of a naked instance.
     // Starts off with a detectably-invalid value, eg for before read() is called first.
-    TemperatureC16Base() : value(DEFAULT_INVALID_TEMP) { }
+    constexpr TemperatureC16Base() : value(DEFAULT_INVALID_TEMP) { }
 
   public:
     // Returns true if the given value indicates, or may indicate, an error.

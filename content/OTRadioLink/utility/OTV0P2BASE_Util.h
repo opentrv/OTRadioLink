@@ -47,9 +47,9 @@ template <class T> constexpr const T& fnmax(const T& a, const T& b) { return((a<
 // Constrains x to inclusive range [l,h].
 template <class T> constexpr const T& fnconstrain(const T& x, const T& l, const T& h) { return((x<l)?l:((x>h)?h:x)); }
 
-// Absolute difference replacement for abs() macro.
-// Requires < and - to work.
-template <class T> constexpr const T fnabs(const T& a, const T& b) { return((a<b)?(b-a):(a-b)); }
+// Absolute difference.
+// Requires < and - in order to work.
+template <class T> constexpr const T fnabsdiff(const T& a, const T& b) { return((a<b)?(b-a):(a-b)); }
 
 
 // Extract ASCII hex digit in range [0-9][a-f] (ie lowercase) from bottom 4 bits of argument.

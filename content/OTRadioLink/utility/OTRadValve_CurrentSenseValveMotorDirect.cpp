@@ -385,7 +385,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
       // then try again to run to end-stop.
       // If end-stop is hit then reset positional values.
       // Only really believe the end-stop hit when running slowly.
-      const bool tentative = binaryOpen ? (99 == currentPC) : (1 == currentPC);
+      const bool tentative = tentativelyAtEndstop(binaryOpen, currentPC);
       // Try running fast if not tentative from previous step, and end up tentative.
       if(!tentative && runTowardsEndStop(binaryOpen, low)) { resetPosition(binaryOpen, true); }
       // Else follow tentative by running slow to attempt to seat the valve securely.
@@ -423,7 +423,7 @@ bool CurrentSenseValveMotorDirect::do_valveCalibrating_prop()
       return(true);
       }
 
-    // If taking stupidly long to calibrate
+    // If taking stupidly long to calibrate (in any micro-state)
     // then assume a problem with the motor/mechanics and give up.
     // Don't panic() so that the unit can still (for example) transmit stats.
     if(++perState.valveCalibrating.wallclock2sTicks > MAX_TRAVEL_WALLCLOCK_2s_TICKS)
@@ -433,6 +433,9 @@ bool CurrentSenseValveMotorDirect::do_valveCalibrating_prop()
       return(true);
       }
 
+//    // Maximum number of consecutive end-stop hits to trust that stop has really been hit...
+//    static constexpr uint8_t maxEndStopHitsToBelieveIt = 3;
+
     // Select activity based on micro-state.
     switch(perState.valveCalibrating.calibState)
       {
@@ -441,18 +444,21 @@ bool CurrentSenseValveMotorDirect::do_valveCalibrating_prop()
 #if 0 && defined(V0P2BASE_DEBUG)
 V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("+calibrating");
 #endif
+        perState.valveCalibrating.wallclock2sTicks = 0;
+        perState.valveCalibrating.endStopHitCount = 0;
         ++perState.valveCalibrating.calibState; // Move to next micro state.
         break;
         }
       case 1:
         {
-        // Run fast to fully retracted (easy to fit, nomninally valve fully open).
+        // Run fast to fully retracted (easy to fit, nominally valve fully open).
         if(runFastTowardsEndStop(true))
           {
           // Reset tick count.
           ticksFromOpen = 0;
           ticksReverse = 0;
           perState.valveCalibrating.wallclock2sTicks = 0;
+          perState.valveCalibrating.endStopHitCount = 0;
           ++perState.valveCalibrating.calibState; // Move to next micro state.
           }
         break;
@@ -464,11 +470,13 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("+calibrating");
         do
           {
           // Once end-stop has been hit, capture run length and prepare to run in opposite direction.
+          // Try to be robust in face of transient current spikes.
           if(runTowardsEndStop(false))
             {
             const uint16_t tfotc = ticksFromOpen;
             perState.valveCalibrating.ticksFromOpenToClosed = tfotc;
             perState.valveCalibrating.wallclock2sTicks = 0;
+            perState.valveCalibrating.endStopHitCount = 0;
             ++perState.valveCalibrating.calibState; // Move to next micro state.
             break;
             }
@@ -482,6 +490,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("+calibrating");
         do
           {
           // Once end-stop has been hit, capture run length and prepare to run in opposite direction.
+          // Try to be robust in face of transient current spikes.
           if(runTowardsEndStop(true))
             {
             const uint16_t tfcto = ticksReverse;
@@ -595,7 +604,7 @@ bool CurrentSenseValveMotorDirect::do_valveNormal_prop()
         {
         if(currentPC < upperPropLimit - weps) { reportTrackingError(); }
         // Silently auto-adjust when end-stop hit close to expected position.
-        resetPosition(true);
+        resetPosition(true, true);
         }
 #if 0 && defined(V0P2BASE_DEBUG)
 V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("->");
@@ -612,7 +621,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("->");
         {
         if(currentPC > lowerPropLimit + weps) { reportTrackingError(); }
         // Silently auto-adjust when end-stop hit close to expected position.
-        resetPosition(false);
+        resetPosition(false, true);
         }
 #if 0 && defined(V0P2BASE_DEBUG)
 V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("-<");

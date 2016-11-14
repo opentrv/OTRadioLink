@@ -128,12 +128,25 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
             {
             // Note if a boundary was crossed, ignoring any false 'start-up' transient.
             if(0 != lastNominalWarmTarget) { significantUIOp = true; }
+            else
+              {
+              // On initialisation, if the dial is not at FROST,
+              // force the device straight to WARM mode.
+              if(!isLo) { valveMode->setWarmModeDebounced(true); }
+              }
       #if 1 && defined(DEBUG)
             DEBUG_SERIAL_PRINT_FLASHSTRING("WT");
             DEBUG_SERIAL_PRINT(nominalWarmTarget);
             DEBUG_SERIAL_PRINTLN();
       #endif
-            lastNominalWarmTarget = nominalWarmTarget;
+            // Maximum number of clicks rather than collapsing them all to one.
+            const uint8_t maxClicks = 10;
+            if(OTV0P2BASE::fnabsdiff(lastNominalWarmTarget, nominalWarmTarget) > maxClicks)
+                { lastNominalWarmTarget = nominalWarmTarget; }
+            // If small difference show it in successive ticks of feedback to the user (TODO-1045),
+            // ie turning dial through xC of temperature change should produce x wiggles/flashes.
+            else if(lastNominalWarmTarget < nominalWarmTarget) { ++lastNominalWarmTarget; }
+            else { --lastNominalWarmTarget; }
             }
           }
       }

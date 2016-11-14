@@ -108,7 +108,7 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     static constexpr bool closeEnoughToTarget(const uint8_t targetPC, const uint8_t currentPC)
         {
         return((targetPC == currentPC) ||
-                (OTV0P2BASE::fnabs(targetPC, currentPC) <= absTolerancePC) ||
+                (OTV0P2BASE::fnabsdiff(targetPC, currentPC) <= absTolerancePC) ||
                 ((targetPC < OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN) && (currentPC <= targetPC)) ||
                 ((targetPC >= OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN) && (currentPC >= targetPC)));
         }
@@ -187,12 +187,16 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
       // State used while calibrating.
       struct
         {
-        uint8_t calibState; // Current micro-state, starting at zero.
-//        uint8_t runCount; // Completed round-trip calibration runs.
+        // Put largest items first to allow for good struct packing.
         uint16_t ticksFromOpenToClosed;
         uint16_t ticksFromClosedToOpen;
-        // Measure of real time spent trying in current microstate.
+        // Current micro-state, starting at zero.
+        uint8_t calibState;
+        // Measure of real time spent in current microstate.
         uint8_t wallclock2sTicks; // read() calls counted at ~2s intervals.
+        // Number of times that end-stop has apparently been hit in this direction this time.
+        uint8_t endStopHitCount;
+        //        uint8_t runCount; // Completed round-trip calibration runs.
         } valveCalibrating;
       // State used while valve pin is initially fully withdrawing.
       struct { uint8_t wallclock2sTicks; } valvePinWithdrawing;
@@ -242,10 +246,22 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     // Does nothing for non-proportional implementation.
     virtual void recomputePosition() { }
 
+    // 'Tentative' end-stop distance from end-stop in percent; strictly positive.
+    static constexpr uint8_t tenativeDistance = 1;
+
+    // Returns true if valve is at an end stop.
+    static constexpr bool isAtEndstop(const uint8_t valvePC) { return((0 == valvePC) || (100 == valvePC)); }
+    // Returns true if close enough to end stop to be 'tentative', but not at an end-stop.
+    static constexpr bool tentativelyAtEndstop(const uint8_t valvePC)
+        { return(!isAtEndstop(valvePC) && ((valvePC >= (100-tenativeDistance) || (valvePC <= tenativeDistance)))); }
+    // Returns true if tentatively at specified end-stop.
+    static constexpr bool tentativelyAtEndstop(const bool isOpen, const uint8_t valvePC)
+        { return(isOpen ? ((valvePC >= (100-tenativeDistance)) && (100 != valvePC)) : ((valvePC <= tenativeDistance) && (0 != valvePC))); }
+
     // Reset just current percent-open value, with optional 'tentative' marker.
     // If 'tentative' then current position may be recorded as adjacent to, but not at, the end-stops.
     void resetCurrentPC(bool hitEndstopOpen, bool tentative = false)
-        { currentPC = hitEndstopOpen ? (tentative ? 99 : 100) : (tentative ? 1 : 0); }
+        { currentPC = hitEndstopOpen ? (tentative ? (100-tenativeDistance) : 100) : (tentative ? tenativeDistance : 0); }
 
     // Reset internal positional record when an end-stop is hit.
     // Updates current % open value for non-proportional implementation.
@@ -522,6 +538,9 @@ class CurrentSenseValveMotorDirect final : public CurrentSenseValveMotorDirectBi
     // If true, proportional mode is not being used and the valve is run to end stops instead.
     // Allows proportional-mode driver to fall back to simpler behaviour in case of difficulties.
     bool inNonProportionalMode() const { return(needsRecalibrating || cp.cannotRunProportional()); }
+
+    // Get (read-only) calibration parameters, primarily for testing.
+    CalibrationParameters const &_getCP() const { return(cp); }
   };
 
 

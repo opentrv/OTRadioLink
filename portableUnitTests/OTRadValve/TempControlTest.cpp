@@ -65,6 +65,51 @@ TEST(TempControl,TRV1TempControlTempPotcomputeWARMTargetC)
     EXPECT_EQ(tsmid, OTRadValve::TempControlTempPot_computeWARMTargetC<TRV1ValveControlParameters>(approxMidPoint+1, loEndStop, hiEndStop));
 }
 
+
+// Test that temp-pot mid-point (eg for DORM1/TRV1) is sane.
+namespace MidSane
+  {
+  constexpr uint8_t usefulScale = 47; // hiEndStop - loEndStop + 1;
+  constexpr uint8_t loEndStop = 200; // Arbitrary.
+  constexpr uint8_t hiEndStop = loEndStop + usefulScale - 1;
+
+  OTV0P2BASE::SensorTemperaturePotMock tp(loEndStop, hiEndStop);
+  }
+TEST(TempControl,MidSane)
+{
+    // Parameters as for REV7/DORM1/TRV1 at 2016/10/27.
+    typedef OTRadValve::ValveControlParameters<
+        6,  // Target FROST temperature for ECO bias.
+        14, // Target FROST temperature for Comfort bias.
+        17, // Target WARM temperature for ECO bias.
+        21  // Target WARM temperature for Comfort bias.
+        > TRV1ValveControlParameters;
+    const uint8_t tsm = TRV1ValveControlParameters::TEMP_SCALE_MID;
+    ASSERT_EQ(19, tsm);
+    OTRadValve::TempControlTempPot
+        <
+        decltype(MidSane::tp), &MidSane::tp,
+        TRV1ValveControlParameters
+        > tctp0;
+    EXPECT_TRUE(tctp0.hasEcoBias()) << "mid point should by default have an ECO bias";
+    EXPECT_FALSE(tctp0.isComfortTemperature(tsm)) << "mid point should be neither strongly ECO nor comfort";
+    EXPECT_FALSE(tctp0.isEcoTemperature(tsm)) << "mid point should be neither strongly ECO nor comfort";
+
+    // Test again with current default parameter set, which may have changed from TRV1.5 glory days.
+    typedef OTRadValve::DEFAULT_ValveControlParameters currentDefaults;
+    const uint8_t tsmc = currentDefaults::TEMP_SCALE_MID;
+    EXPECT_NEAR(19, tsmc, 2);
+    OTRadValve::TempControlTempPot
+        <
+        decltype(MidSane::tp), &MidSane::tp,
+        currentDefaults
+        > tctp1;
+    EXPECT_TRUE(tctp1.hasEcoBias()) << "mid point should by default have an ECO bias";
+    EXPECT_FALSE(tctp1.isComfortTemperature(tsm)) << "mid point should be neither strongly ECO nor comfort";
+    EXPECT_FALSE(tctp1.isEcoTemperature(tsm)) << "mid point should be neither strongly ECO nor comfort";
+}
+
+
 // Test for frost temperature response to high relative humidity (eg for DORM1/TRV1).
 namespace FROSTRH
   {

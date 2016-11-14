@@ -245,6 +245,7 @@ class DummyHardwareDriverHitEndstop : public OTRadValve::HardwareMotorDriverInte
     // Detect if end-stop is reached or motor current otherwise very high.
     bool currentHigh = false;
   public:
+    void reset() { currentHigh = false; }
     virtual bool isCurrentHigh(OTRadValve::HardwareMotorDriverInterface::motor_drive /*mdir*/ = motorDriveOpening) const override { return(currentHigh); }
     virtual void motorRun(uint8_t /*maxRunTicks*/, motor_drive dir, OTRadValve::HardwareMotorDriverInterfaceCallbackHandler &callback) override
       {
@@ -252,6 +253,138 @@ class DummyHardwareDriverHitEndstop : public OTRadValve::HardwareMotorDriverInte
       callback.signalHittingEndStop(true);
       }
   };
+
+
+
+// This aims to simulate a real valve to a small degree.
+//
+// TODO: In particular this emulates the fact that pushing the pin closed is harder and slower than withdrawing.
+// TODO: This also emulates random spikes/noise, eg premature current rise when moving valve fast.
+//
+// DHD20151025: one set of actual measurements during calibration:
+//    ticksFromOpenToClosed: 1529
+//    ticksFromClosedToOpen: 1295
+//
+// Another set of real measurements:
+// Check that a calibration instance can be reused correctly.
+//const uint16_t tfo2 = 1803U;
+//const uint16_t tfc2 = 1373U;
+class HardwareDriverSim : public OTRadValve::HardwareMotorDriverInterface
+  {
+  public:
+    // Simulation modes: higher values indicate crankier (or more realistic) hardware.
+    enum simType : uint8_t
+      {
+      SYMMETRIC_LOSSLESS, // Unrealistically good behaviour.
+      ASYMMETRIC_LOSSLESS, // Allows that running in each direction gives different results.
+      ASYMMETRIC_NOISY, // Grotty lossy valve with occasional random current spikes!
+      INVALID // Larger than any valid mode.
+      };
+
+    // Nominal ticks for dead-reckoning full travel; strictly positive and >> 100.
+    static constexpr uint16_t nominalFullTravelTicks = 1500;
+
+  private:
+    // Approx ticks per percent; strictly positive.
+    static constexpr uint16_t ticksPerPercent = nominalFullTravelTicks / 100;
+
+    // Simulation mode.
+    simType mode = SYMMETRIC_LOSSLESS;
+
+    // Nominal percent open; initially zero (ie valve closed).
+    uint8_t nominalPercentOpen = 0;
+
+    // True when driving into an end stop.
+    bool isDrivingIntoEndStop(const OTRadValve::HardwareMotorDriverInterface::motor_drive mdir) const
+      {
+      if((motorDriveOpening == mdir) && (100 == nominalPercentOpen)) { return(true); }
+      if((motorDriveClosing == mdir) && (0 == nominalPercentOpen)) { return(true); }
+      return(false);
+      }
+
+  public:
+    // Reset device simulation to starting position and specified mode.
+    void reset(const simType mode_) { mode = mode_; nominalPercentOpen = 0; }
+
+    // Get device mode.
+    simType getMode() { return(mode); }
+
+    // Get nominal percentage open to see how well valve driver is tracking the simulation.
+    uint8_t getNominalPercentOpen() const { return(nominalPercentOpen); }
+
+    // Current will be high when driving into an end-stop.
+    virtual bool isCurrentHigh(OTRadValve::HardwareMotorDriverInterface::motor_drive mdir) const override
+      {
+      return(isDrivingIntoEndStop(mdir));
+      }
+
+    // Run the motor (or turn it off).
+    virtual void motorRun(const uint8_t maxRunTicks, const motor_drive dir, OTRadValve::HardwareMotorDriverInterfaceCallbackHandler &callback) override
+      {
+      // Nothing to do in simulation if motor is being turned off, for now.
+      // TODO: allow for some inertia / run-on.
+      if(OTRadValve::HardwareMotorDriverInterface::motorOff == dir) { return; }
+
+      const bool isOpening = (OTRadValve::HardwareMotorDriverInterface::motorDriveOpening == dir);
+
+      // Spin until hitting end-stop.
+      for(int remainingTicks = maxRunTicks; remainingTicks > 0; remainingTicks -= ticksPerPercent)
+        {
+        // Stop when driving into either end-stop.
+        if(isDrivingIntoEndStop(dir))
+          {
+          callback.signalHittingEndStop(isOpening);
+          return;
+          }
+
+        if(ASYMMETRIC_NOISY == mode)
+          {
+          // In lossy mode, once in a while randomly,
+          // produce a spurious high-current condition
+          // and stop.
+          if(0 == (random() & 0x3f)) { callback.signalHittingEndStop(isOpening); return; }
+          }
+
+        // Simulate ticks for callback object.
+// TODO: inject some noise in ticks here in noisy modes.
+        for(int i = ticksPerPercent; --i >= 0; ) { callback.signalRunSCTTick(isOpening); }
+
+        // Update motor position.
+        if(isOpening) { if(nominalPercentOpen < 100) { ++nominalPercentOpen; } }
+        else { if(nominalPercentOpen > 0)  { --nominalPercentOpen; } }
+        }
+      }
+  };
+
+// Mini callback class: records high current only.
+class MiniCallback final : public OTRadValve::HardwareMotorDriverInterfaceCallbackHandler
+  {
+  public:
+    bool hitEndStop = false;
+    virtual void signalHittingEndStop(bool) override { hitEndStop = true; }
+    virtual void signalShaftEncoderMarkStart(bool) override { }
+    virtual void signalRunSCTTick(bool) override { }
+  };
+
+// Test the simulator itself.
+TEST(CurrentSenseValveMotorDirect,deadReckoningRobustnessSim)
+{
+    HardwareDriverSim s0;
+    EXPECT_EQ(0, s0.getNominalPercentOpen());
+    EXPECT_EQ(s0.SYMMETRIC_LOSSLESS, s0.getMode());
+    s0.reset(s0.SYMMETRIC_LOSSLESS);
+    EXPECT_EQ(0, s0.getNominalPercentOpen());
+    EXPECT_EQ(s0.SYMMETRIC_LOSSLESS, s0.getMode());
+
+    MiniCallback mcb;
+
+    // Drive valve as far open as possible in one go.
+    s0.motorRun(0xff, OTRadValve::HardwareMotorDriverInterface::motorDriveOpening, mcb);
+    EXPECT_LT(0, s0.getNominalPercentOpen()) << "valve should have opened somewhat";
+    EXPECT_FALSE(mcb.hitEndStop) << "should not hit end-stop in one go";
+
+    // TODO
+}
 
 // Test initial state walk-through without and with calibration deferral.
 static void initStateWalkthrough(OTRadValve::CurrentSenseValveMotorDirectBase *const csv, const bool batteryLow)
@@ -263,7 +396,7 @@ static void initStateWalkthrough(OTRadValve::CurrentSenseValveMotorDirectBase *c
     // Verify NOT marked as in normal run state immediately upon initialisation.
     EXPECT_TRUE(!csv->isInNormalRunState());
     // Verify NOT marked as in error state immediately upon initialisation.
-    EXPECT_TRUE(!csv->isInErrorState());
+    EXPECT_FALSE(csv->isInErrorState());
     csv->poll();
     EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::initWaiting, csv->_getState());
     // Within a reasonable time to (10s of seconds) should move to new state, but not instantly.
@@ -293,6 +426,9 @@ TEST(CurrentSenseValveMotorDirect,initStateWalkthrough)
 {
     const bool verbose = false;
 
+    // Very simplistic driver.
+    DummyHardwareDriverHitEndstop dhw;
+
     const uint8_t subcycleTicksRoundedDown_ms = 7; // For REV7: OTV0P2BASE::SUBCYCLE_TICK_MS_RD.
     const uint8_t gsct_max = 255; // For REV7: OTV0P2BASE::GSCT_MAX.
     const uint8_t minimumMotorRunupTicks = 4; // For REV7: OTRadValve::ValveMotorDirectV1HardwareDriverBase::minMotorRunupTicks.
@@ -304,8 +440,8 @@ TEST(CurrentSenseValveMotorDirect,initStateWalkthrough)
         svl.setAllLowFlags(low);
 
         // Test non-proportional impl.
-        DummyHardwareDriverHitEndstop dhw0;
-        OTRadValve::CurrentSenseValveMotorDirectBinaryOnly csvmdbo1(&dhw0, dummyGetSubCycleTime,
+        dhw.reset();
+        OTRadValve::CurrentSenseValveMotorDirectBinaryOnly csvmdbo1(&dhw, dummyGetSubCycleTime,
             OTRadValve::CurrentSenseValveMotorDirectBinaryOnly::computeMinMotorDRTicks(subcycleTicksRoundedDown_ms),
             OTRadValve::CurrentSenseValveMotorDirectBinaryOnly::computeSctAbsLimit(subcycleTicksRoundedDown_ms,
                                                                          gsct_max,
@@ -315,8 +451,8 @@ TEST(CurrentSenseValveMotorDirect,initStateWalkthrough)
         initStateWalkthrough(&csvmdbo1, low);
 
         // Test full impl.
-        DummyHardwareDriverHitEndstop dhw1;
-        OTRadValve::CurrentSenseValveMotorDirect csvmd1(&dhw1, dummyGetSubCycleTime,
+        dhw.reset();
+        OTRadValve::CurrentSenseValveMotorDirect csvmd1(&dhw, dummyGetSubCycleTime,
             OTRadValve::CurrentSenseValveMotorDirectBinaryOnly::computeMinMotorDRTicks(subcycleTicksRoundedDown_ms),
             OTRadValve::CurrentSenseValveMotorDirectBinaryOnly::computeSctAbsLimit(subcycleTicksRoundedDown_ms,
                                                                          gsct_max,
@@ -331,30 +467,38 @@ TEST(CurrentSenseValveMotorDirect,initStateWalkthrough)
         }
 }
 
-// Test walk-through for normal state space.
+// A good selection of imporant and boundary target radiator percernt-open values.
+static const uint8_t targetValues[] = {
+    0, 100, 99, 1, 95, 2, 25, 94, 50, 75, 100, 0, 100,
+    OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN, OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN, OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN,
+    OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN-1, OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN-1, OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1,
+    OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN+1, OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN+1, OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN+1,
+    99, 98, 97, 96, 95, 94, 93, 1
+    };
+
+// Test walk-through for normal state space with simplistic drivers/simulators.
 // Check that eventually valve gets to requested % open or close enough to it.
 // This allows for binary-mode (ie non-proportional) drivers.
 // This is more of a black box test,
-// ie laregly blind to the internal implementation/state like a normal human being would be.
-static void normalStateWalkthrough(OTRadValve::CurrentSenseValveMotorDirectBase *const csv, const bool batteryLow)
+// ie largely blind to the internal implementation/state like a normal human being would be.
+static void normalStateWalkthrough(OTRadValve::CurrentSenseValveMotorDirectBase *const csv,
+        const bool batteryLow, const HardwareDriverSim *const simulator)
     {
     // Run up driver/valve into 'normal' state by signalling the valve is fitted until good things happen.
     // May take a few minutes but no more (at 30 polls/ticks per minute, 100 polls should be enough).
     for(int i = 100; --i > 0 && !csv->isInNormalRunState(); ) { csv->signalValveFitted(); csv->poll(); }
-    EXPECT_TRUE(!csv->isInErrorState());
+    EXPECT_FALSE(csv->isInErrorState());
     EXPECT_TRUE(csv->isInNormalRunState()) << csv->_getState();
 
     // Target % values to try to reach.
     // Some are listed repeatedly to ensure no significant sticky state.
-    const uint8_t randomTarget1 = uint8_t(((unsigned) random()) % 101);
-    uint8_t targetValues[] = { 0, 100, 1, 2, 25, 50, 75, randomTarget1, 0, 100, OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN, OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN, OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN };
     for(size_t i = 0; i < sizeof(targetValues); ++i)
         {
         const uint8_t target = targetValues[i];
         csv->setTargetPC(target);
         // Allow at most a minute or three (at 30 ticks/s) to reach the target (or close enough).
         for(int i = 100; --i > 0 && (target != csv->getCurrentPC()); ) { csv->poll(); }
-        // Work out if we have got close enough:
+        // Work out if close enough:
         //   * fully open and fully closed should always be achieved
         //   * generally within an absolute tolerance (absTolerancePC) of the target value (eg 10--25%)
         //   * when target is below DEFAULT_VALVE_PC_SAFER_OPEN then any value at/below target is acceptable
@@ -365,9 +509,18 @@ static void normalStateWalkthrough(OTRadValve::CurrentSenseValveMotorDirectBase 
         // Attempts to close the valve may be legitimately ignored when the battery is low.
         // But attempts to open fully should always be accepted, eg as anti-frost protection.
         if((!batteryLow) || (target == 100))
-            { EXPECT_TRUE(isCloseEnough) << "target="<<((int)target) << ", current="<<((int)currentPC) << ", batteryLow="<<batteryLow; }
+            { EXPECT_TRUE(isCloseEnough) << "target%="<<((int)target) << ", current%="<<((int)currentPC) << ", batteryLow="<<batteryLow; }
+        // If using a simulator, check if its internal position measure is close enough.
+        // Always true if not running a full simulator.
+        const bool isSimCloseEnoughOrNotSim = (NULL == simulator) ||
+            OTRadValve::CurrentSenseValveMotorDirectBase::closeEnoughToTarget(target, simulator->getNominalPercentOpen());
+        if((!batteryLow) || (target == 100))
+            {
+            EXPECT_TRUE(isSimCloseEnoughOrNotSim) << "target%="<<((int)target) << ", current%="<<((int)currentPC) << ", batteryLow="<<batteryLow <<
+                ", sim%="<<((int)(simulator->getNominalPercentOpen()));
+            }
         // Ensure that driver has not reached an error (or other strange) state.
-        EXPECT_TRUE(!csv->isInErrorState());
+        EXPECT_FALSE(csv->isInErrorState());
         EXPECT_TRUE(csv->isInNormalRunState()) << csv->_getState();
         }
     }
@@ -378,37 +531,133 @@ TEST(CurrentSenseValveMotorDirect,normalStateWalkthrough)
     // Seed random() for use in simulator; --gtest_shuffle will force it to change.
     srandom((unsigned) ::testing::UnitTest::GetInstance()->random_seed());
 
+    // Very simplistic driver.
+    DummyHardwareDriverHitEndstop dhw;
+
+    // More realistic simulator.
+    HardwareDriverSim shw;
+
     const uint8_t subcycleTicksRoundedDown_ms = 7; // For REV7: OTV0P2BASE::SUBCYCLE_TICK_MS_RD.
     const uint8_t gsct_max = 255; // For REV7: OTV0P2BASE::GSCT_MAX.
     const uint8_t minimumMotorRunupTicks = 4; // For REV7: OTRadValve::ValveMotorDirectV1HardwareDriverBase::minMotorRunupTicks.
-    for(int s = 0; s < 2; ++s)
+    for(int d = 0; d < 2; ++d) // Which driver.
         {
-        const bool low = (1 == s); // Is battery low...
-        if(verbose) { printf("Battery low %s...\n", low ? "true" : "false"); }
-        SVL svl;
-        svl.setAllLowFlags(low);
+        const bool alwaysEndStop = (-1 == d);
+        for(int l = 0; l < 2; ++l) // Low battery or not.
+            {
+            const bool low = (1 == l); // Is battery low...
+            if(verbose) { printf("Battery low %s...\n", low ? "true" : "false"); }
+            SVL svl;
+            svl.setAllLowFlags(low);
 
-        // Test non-proportional impl.
-        DummyHardwareDriverHitEndstop dhw0;
-        OTRadValve::CurrentSenseValveMotorDirectBinaryOnly csvmdbo1(&dhw0, dummyGetSubCycleTime,
-            OTRadValve::CurrentSenseValveMotorDirectBinaryOnly::computeMinMotorDRTicks(subcycleTicksRoundedDown_ms),
-            OTRadValve::CurrentSenseValveMotorDirectBinaryOnly::computeSctAbsLimit(subcycleTicksRoundedDown_ms,
-                                                                         gsct_max,
-                                                                         minimumMotorRunupTicks),
-            &svl,
-            [](){return(false);});
-        normalStateWalkthrough(&csvmdbo1, low);
+            OTRadValve::HardwareMotorDriverInterface *const hw = alwaysEndStop ?
+                static_cast<OTRadValve::HardwareMotorDriverInterface *>(&dhw) : static_cast<OTRadValve::HardwareMotorDriverInterface *>(&shw);
+
+            dhw.reset();
+            shw.reset(shw.SYMMETRIC_LOSSLESS);
+
+            // Test non-proportional impl.
+            OTRadValve::CurrentSenseValveMotorDirectBinaryOnly csvmdbo1(hw, dummyGetSubCycleTime,
+                OTRadValve::CurrentSenseValveMotorDirectBinaryOnly::computeMinMotorDRTicks(subcycleTicksRoundedDown_ms),
+                OTRadValve::CurrentSenseValveMotorDirectBinaryOnly::computeSctAbsLimit(subcycleTicksRoundedDown_ms,
+                                                                             gsct_max,
+                                                                             minimumMotorRunupTicks),
+                &svl,
+                [](){return(false);});
+            normalStateWalkthrough(&csvmdbo1, low, alwaysEndStop ? NULL : &shw);
+
+            dhw.reset();
+            shw.reset(shw.SYMMETRIC_LOSSLESS);
+
+            // Test full impl.
+            OTRadValve::CurrentSenseValveMotorDirect csvmd1(hw, dummyGetSubCycleTime,
+                OTRadValve::CurrentSenseValveMotorDirectBinaryOnly::computeMinMotorDRTicks(subcycleTicksRoundedDown_ms),
+                OTRadValve::CurrentSenseValveMotorDirectBinaryOnly::computeSctAbsLimit(subcycleTicksRoundedDown_ms,
+                                                                             gsct_max,
+                                                                             minimumMotorRunupTicks),
+                &svl,
+                [](){return(false);});
+            normalStateWalkthrough(&csvmd1, low, alwaysEndStop ? NULL : &shw);
+            if(alwaysEndStop) { EXPECT_TRUE(csvmd1.inNonProportionalMode()) << "with instant-end-stop driver, should be in non-prop mode"; }
+            }
+        }
+}
+
+// Test walk-through for normal state space with semi-realistic simulators and proportional dead-reckoning controllers.
+// Check that eventually valve gets to requested % open or close enough to it.
+// This allows for binary-mode (ie non-proportional) drivers.
+// This is more of a black box test,
+// ie largely blind to the internal implementation/state like a normal human being would be.
+static void propControllerRobustness(OTRadValve::CurrentSenseValveMotorDirect *const csv, const HardwareDriverSim *const simulator)
+    {
+    // Run up driver/valve into 'normal' state by signalling the valve is fitted until good things happen.
+    // May take a few minutes but no more (at 30 polls/ticks per minute, 100 polls should be enough).
+    for(int i = 100; --i > 0 && !csv->isInNormalRunState(); ) { csv->signalValveFitted(); csv->poll(); }
+    EXPECT_FALSE(csv->isInErrorState());
+    EXPECT_TRUE(csv->isInNormalRunState()) << csv->_getState();
+
+    // Check logic's estimate of ticks here, eg from errors in calibration.
+    // Note that asymmetric behaviour complicated things a little.
+    EXPECT_NEAR(csv->_getCP().getTicksFromOpenToClosed(), simulator->nominalFullTravelTicks, simulator->nominalFullTravelTicks / 4);
+    EXPECT_NEAR(csv->_getCP().getTicksFromClosedToOpen(), simulator->nominalFullTravelTicks, simulator->nominalFullTravelTicks / 4);
+
+    // Target % values to try to reach.
+    // Some are listed repeatedly to ensure no significant sticky state.
+    for(size_t i = 0; i < sizeof(targetValues); ++i)
+        {
+        const uint8_t target = targetValues[i];
+        csv->setTargetPC(target);
+        // Allow at most a minute or three (at 30 ticks/s) to reach the target (or close enough).
+        for(int i = 100; --i > 0 && (target != csv->getCurrentPC()); ) { csv->poll(); }
+        // Work out if close enough:
+        //   * fully open and fully closed should always be achieved
+        //   * generally within an absolute tolerance (absTolerancePC) of the target value (eg 10--25%)
+        //   * when target is below DEFAULT_VALVE_PC_SAFER_OPEN then any value at/below target is acceptable
+        //   * when target is at or above DEFAULT_VALVE_PC_SAFER_OPEN then any value at/above target is acceptable
+        const uint8_t currentPC = csv->getCurrentPC();
+        const bool isCloseEnough = OTRadValve::CurrentSenseValveMotorDirectBase::closeEnoughToTarget(target, currentPC);
+        if(target == currentPC) { EXPECT_TRUE(isCloseEnough) << "should always be 'close enough' with values equal"; }
+        // Attempts to close the valve may be legitimately ignored when the battery is low.
+        // But attempts to open fully should always be accepted, eg as anti-frost protection.
+        EXPECT_TRUE(isCloseEnough) << "target%="<<((int)target) << ", current%="<<((int)currentPC);
+        // Check if simulator's internal position measure is close enough.
+        const bool isSimCloseEnoughOrNotSim =
+            OTRadValve::CurrentSenseValveMotorDirectBase::closeEnoughToTarget(target, simulator->getNominalPercentOpen());
+        EXPECT_TRUE(isSimCloseEnoughOrNotSim) << "target%="<<((int)target) << ", current%="<<((int)currentPC) <<
+            ", sim%="<<((int)(simulator->getNominalPercentOpen()));
+        // Ensure that driver has not reached an error (or other strange) state.
+        EXPECT_FALSE(csv->isInErrorState());
+        EXPECT_TRUE(csv->isInNormalRunState()) << csv->_getState();
+        }
+    }
+TEST(CurrentSenseValveMotorDirect,propControllerRobustness)
+{
+//    const bool verbose = false;
+
+    // Seed random() for use in simulator; --gtest_shuffle will force it to change.
+    srandom((unsigned) ::testing::UnitTest::GetInstance()->random_seed());
+
+    SVL svl;
+    svl.setAllLowFlags(false);
+
+    const uint8_t subcycleTicksRoundedDown_ms = 7; // For REV7: OTV0P2BASE::SUBCYCLE_TICK_MS_RD.
+    const uint8_t gsct_max = 255; // For REV7: OTV0P2BASE::GSCT_MAX.
+    const uint8_t minimumMotorRunupTicks = 4; // For REV7: OTRadValve::ValveMotorDirectV1HardwareDriverBase::minMotorRunupTicks.
+const HardwareDriverSim::simType maxSupported = HardwareDriverSim::SYMMETRIC_LOSSLESS; // FIXME
+    for(int d = 0; d <= maxSupported; ++d) // Which simulation mode.
+        {
+        // More realistic simulator.
+        HardwareDriverSim shw;
+        shw.reset((HardwareDriverSim::simType) d);
 
         // Test full impl.
-        DummyHardwareDriverHitEndstop dhw1;
-        OTRadValve::CurrentSenseValveMotorDirect csvmd1(&dhw1, dummyGetSubCycleTime,
+        OTRadValve::CurrentSenseValveMotorDirect csvmd1(&shw, dummyGetSubCycleTime,
             OTRadValve::CurrentSenseValveMotorDirectBinaryOnly::computeMinMotorDRTicks(subcycleTicksRoundedDown_ms),
             OTRadValve::CurrentSenseValveMotorDirectBinaryOnly::computeSctAbsLimit(subcycleTicksRoundedDown_ms,
                                                                          gsct_max,
                                                                          minimumMotorRunupTicks),
             &svl,
             [](){return(false);});
-        normalStateWalkthrough(&csvmd1, low);
-        EXPECT_TRUE(csvmd1.inNonProportionalMode()) << "with instant-end-stop driver, should be in non-prop mode";
+        propControllerRobustness(&csvmd1, &shw);
         }
 }
