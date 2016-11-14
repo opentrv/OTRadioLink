@@ -342,12 +342,14 @@ class HardwareDriverSim : public OTRadValve::HardwareMotorDriverInterface
           // In lossy mode, once in a while randomly,
           // produce a spurious high-current condition
           // and stop.
-          if(0 == (random() & 0x3f)) { callback.signalHittingEndStop(isOpening); return; }
+          if(0 == (random() & 0xff)) { callback.signalHittingEndStop(isOpening); return; }
           }
 
         // Simulate ticks for callback object.
-// TODO: inject some noise in ticks here in noisy modes.
-        for(int i = ticksPerPercent; --i >= 0; ) { callback.signalRunSCTTick(isOpening); }
+        // Inject some noise in ticks here in noisy modes.
+        const int8_t noise = (random() % (OTV0P2BASE::fnmax(1, ticksPerPercent/10))) * ((0 == (random() & 1)) ? +1 : -1);
+        const uint8_t ticksToSimulate = ticksPerPercent + (mode >= ASYMMETRIC_NOISY ? noise : 0);
+        for(int i = ticksToSimulate; --i >= 0; ) { callback.signalRunSCTTick(isOpening); }
 
         // Update motor position.
         if(isOpening) { if(nominalPercentOpen < 100) { ++nominalPercentOpen; } }
@@ -643,7 +645,7 @@ TEST(CurrentSenseValveMotorDirect,propControllerRobustness)
     const uint8_t subcycleTicksRoundedDown_ms = 7; // For REV7: OTV0P2BASE::SUBCYCLE_TICK_MS_RD.
     const uint8_t gsct_max = 255; // For REV7: OTV0P2BASE::GSCT_MAX.
     const uint8_t minimumMotorRunupTicks = 4; // For REV7: OTRadValve::ValveMotorDirectV1HardwareDriverBase::minMotorRunupTicks.
-const HardwareDriverSim::simType maxSupported = HardwareDriverSim::SYMMETRIC_LOSSLESS; // FIXME
+const HardwareDriverSim::simType maxSupported = HardwareDriverSim::SYMMETRIC_LOSSLESS; // FIXME // HardwareDriverSim::ASYMMETRIC_NOISY;
     for(int d = 0; d <= maxSupported; ++d) // Which simulation mode.
         {
         // More realistic simulator.
