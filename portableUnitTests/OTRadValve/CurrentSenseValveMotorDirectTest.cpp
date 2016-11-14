@@ -408,8 +408,8 @@ static void initStateWalkthrough(OTRadValve::CurrentSenseValveMotorDirectBase *c
     EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::initWaiting, csv->_getState());
     for(int i = 100; --i > 0 && OTRadValve::CurrentSenseValveMotorDirect::initWaiting == csv->_getState(); ) { csv->poll(); }
     EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawing, csv->_getState());
-    // Fake hardware hits end-stop immediate, so leaves 'withdrawing' state.
-    csv->poll();
+    // Fake hardware hits end-stop immediate, so leaves 'withdrawing' state quickly.
+    for(int i = 100; --i > 0 && OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawing == csv->_getState(); ) { csv->poll(); }
     EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawn, csv->_getState());
     EXPECT_LE(95, csv->getCurrentPC()) << "valve must now be fully open, or very nearly so";
     // Wait indefinitely for valve to be signalled that it has been fitted before starting operation...
@@ -469,7 +469,7 @@ TEST(CurrentSenseValveMotorDirect,initStateWalkthrough)
         }
 }
 
-// A good selection of imporant and boundary target radiator percernt-open values.
+// A good selection of important and boundary target radiator percent-open values.
 static const uint8_t targetValues[] = {
     0, 100, 99, 1, 95, 2, 25, 94, 50, 75, 100, 0, 100,
     OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN, OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN, OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN,
@@ -656,7 +656,7 @@ TEST(CurrentSenseValveMotorDirect,propControllerRobustness)
     const uint8_t subcycleTicksRoundedDown_ms = 7; // For REV7: OTV0P2BASE::SUBCYCLE_TICK_MS_RD.
     const uint8_t gsct_max = 255; // For REV7: OTV0P2BASE::GSCT_MAX.
     const uint8_t minimumMotorRunupTicks = 4; // For REV7: OTRadValve::ValveMotorDirectV1HardwareDriverBase::minMotorRunupTicks.
-const HardwareDriverSim::simType maxSupported = HardwareDriverSim::SYMMETRIC_LOSSLESS; // FIXME // HardwareDriverSim::ASYMMETRIC_NOISY;
+const HardwareDriverSim::simType maxSupported = HardwareDriverSim::SYMMETRIC_LOSSLESS; // FIXME // /**/ HardwareDriverSim::ASYMMETRIC_NOISY;
     for(int d = 0; d <= maxSupported; ++d) // Which simulation mode.
         {
         // More realistic simulator.

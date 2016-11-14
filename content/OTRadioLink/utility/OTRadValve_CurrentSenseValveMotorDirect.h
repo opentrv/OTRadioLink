@@ -186,7 +186,7 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     // Accommodates microstate needed by derived classes also.
     union
       {
-      // State used while waiting to withdraw pin.
+      // State used while waiting to initially withdraw pin.
       struct { uint8_t ticksWaited; } initWaiting;
       // State used while calibrating.
       struct
@@ -202,8 +202,14 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
         uint8_t endStopHitCount;
         //        uint8_t runCount; // Completed round-trip calibration runs.
         } valveCalibrating;
-      // State used while valve pin is initially fully withdrawing.
-      struct { uint8_t wallclock2sTicks; } valvePinWithdrawing;
+        // State used while initially withdrawing pin.
+      struct
+        {
+        // Measure of real time spent in current microstate.
+        uint8_t wallclock2sTicks; // read() calls counted at ~2s intervals.
+        // Number of times that end-stop has apparently been hit in this direction this time.
+        uint8_t endStopHitCount;
+        } valvePinWithdrawing;
       // State used while waiting for the valve to be fitted.
       struct { volatile bool valveFitted; } valvePinWithdrawn;
       } perState;

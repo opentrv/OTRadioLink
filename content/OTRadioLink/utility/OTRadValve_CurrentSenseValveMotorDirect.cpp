@@ -305,7 +305,8 @@ OTV0P2BASE::serialPrintlnAndFlush();
       // Run cautiously while supply voltage low to try to avoid browning out.
       const bool low = ((NULL != lowBattOpt) && ((0 == lowBattOpt->read()) || lowBattOpt->isSupplyVoltageLow()));
 
-      if(runTowardsEndStop(true, low))
+      if(!runTowardsEndStop(true, low)) { perState.valvePinWithdrawing.endStopHitCount = 0; }
+      else if(++perState.valvePinWithdrawing.endStopHitCount >= maxEndStopHitsToBeConfident)
           {
           // Note that the valve is now fully open.
           resetPosition(true, true); // Regard as tentative.
