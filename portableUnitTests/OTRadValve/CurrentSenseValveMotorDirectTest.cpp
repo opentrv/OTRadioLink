@@ -395,7 +395,7 @@ static void initStateWalkthrough(OTRadValve::CurrentSenseValveMotorDirectBase *c
     // Verify NOT marked as in normal run state immediately upon initialisation.
     EXPECT_TRUE(!csv->isInNormalRunState());
     // Verify NOT marked as in error state immediately upon initialisation.
-    EXPECT_TRUE(!csv->isInErrorState());
+    EXPECT_FALSE(csv->isInErrorState());
     csv->poll();
     EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::initWaiting, csv->_getState());
     // Within a reasonable time to (10s of seconds) should move to new state, but not instantly.
@@ -486,7 +486,7 @@ static void normalStateWalkthrough(OTRadValve::CurrentSenseValveMotorDirectBase 
     // Run up driver/valve into 'normal' state by signalling the valve is fitted until good things happen.
     // May take a few minutes but no more (at 30 polls/ticks per minute, 100 polls should be enough).
     for(int i = 100; --i > 0 && !csv->isInNormalRunState(); ) { csv->signalValveFitted(); csv->poll(); }
-    EXPECT_TRUE(!csv->isInErrorState());
+    EXPECT_FALSE(csv->isInErrorState());
     EXPECT_TRUE(csv->isInNormalRunState()) << csv->_getState();
 
     // Target % values to try to reach.
@@ -519,7 +519,7 @@ static void normalStateWalkthrough(OTRadValve::CurrentSenseValveMotorDirectBase 
                 ", sim%="<<((int)(simulator->getNominalPercentOpen()));
             }
         // Ensure that driver has not reached an error (or other strange) state.
-        EXPECT_TRUE(!csv->isInErrorState());
+        EXPECT_FALSE(csv->isInErrorState());
         EXPECT_TRUE(csv->isInNormalRunState()) << csv->_getState();
         }
     }
@@ -625,7 +625,7 @@ static void propControllerRobustness(OTRadValve::CurrentSenseValveMotorDirect *c
         EXPECT_TRUE(isSimCloseEnoughOrNotSim) << "target%="<<((int)target) << ", current%="<<((int)currentPC) <<
             ", sim%="<<((int)(simulator->getNominalPercentOpen()));
         // Ensure that driver has not reached an error (or other strange) state.
-        EXPECT_TRUE(!csv->isInErrorState());
+        EXPECT_FALSE(csv->isInErrorState());
         EXPECT_TRUE(csv->isInNormalRunState()) << csv->_getState();
         }
     }
@@ -643,7 +643,7 @@ TEST(CurrentSenseValveMotorDirect,propControllerRobustness)
     const uint8_t gsct_max = 255; // For REV7: OTV0P2BASE::GSCT_MAX.
     const uint8_t minimumMotorRunupTicks = 4; // For REV7: OTRadValve::ValveMotorDirectV1HardwareDriverBase::minMotorRunupTicks.
 const HardwareDriverSim::simType maxSupported = HardwareDriverSim::SYMMETRIC_LOSSLESS; // FIXME
-    for(int d = 0; d <= maxSupported; ++d) // Which simulation version.
+    for(int d = 0; d <= maxSupported; ++d) // Which simulation mode.
         {
         // More realistic simulator.
         HardwareDriverSim shw;
