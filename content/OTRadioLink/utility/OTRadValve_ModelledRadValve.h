@@ -457,8 +457,11 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
             // This final dark/vacant timeout to enter FULL fallback while in mild eco mode
             // should probably be longer than required to watch a typical movie or go to sleep (~2h) for example,
             // but short enough to take effect overnight and to be in effect a reasonable fraction of a (~8h) night.
+            //
+            // Note: the FULL setback can only happen with an ECO bias.
+            // Note: the setback is usually limited to minimu/default when at the top/comfort end of the range.
             const uint8_t minVacantAndDarkForFULLSetbackH = 2; // Hours; strictly positive, typically 1--4.
-            const uint8_t setback = (tempControl->isComfortTemperature(wt) ||
+            const uint8_t setback = ((tempControl->isComfortTemperature(wt) && !ambLight->isRoomVeryDark()) ||
                                      occupancy->isLikelyOccupied() ||
                                      (!longVacant && !ambLight->isRoomDark() && (hoursLessOccupiedThanThis > 4)) ||
                                      (!longVacant && !darkForHours && (hoursLessOccupiedThanNext >= thisHourNLOThreshold-1)) ||
