@@ -594,7 +594,18 @@ static void propControllerRobustness(OTRadValve::CurrentSenseValveMotorDirect *c
     {
     // Run up driver/valve into 'normal' state by signalling the valve is fitted until good things happen.
     // May take a few minutes but no more (at 30 polls/ticks per minute, 100 polls should be enough).
-    for(int i = 100; --i > 0 && !csv->isInNormalRunState(); ) { csv->signalValveFitted(); csv->poll(); }
+    for(int i = 100; --i > 0 && !csv->isInNormalRunState(); )
+        {
+        // When in 'withdrawn' state:
+        //   * Check that pain is actually fully withdrawn.
+        //   * Signal that the valve is fitted.
+        if(OTRadValve::CurrentSenseValveMotorDirectBase::valvePinWithdrawn == csv->_getState())
+            {
+            EXPECT_LE(100 - OTRadValve::CurrentSenseValveMotorDirectBase::absTolerancePC, simulator->getNominalPercentOpen());
+            csv->signalValveFitted();
+            }
+        csv->poll();
+        }
     EXPECT_FALSE(csv->isInErrorState());
     EXPECT_TRUE(csv->isInNormalRunState()) << csv->_getState();
 
