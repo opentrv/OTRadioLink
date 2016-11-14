@@ -300,6 +300,7 @@ OTV0P2BASE::serialPrintlnAndFlush();
           }
 
       // Once end-stop has been hit, move to state to wait for user signal and then start calibration.
+      // TODO: possibly require multiple attempts, as elsewhere, to be sure of full withdraw, and better set up for calibration.
 
       // Run cautiously while supply voltage low to try to avoid browning out.
       const bool low = ((NULL != lowBattOpt) && ((0 == lowBattOpt->read()) || lowBattOpt->isSupplyVoltageLow()));
@@ -435,7 +436,7 @@ bool CurrentSenseValveMotorDirect::do_valveCalibrating_prop()
 
     // Maximum number of consecutive end-stop hits to trust that the stop has really been hit; strictly positive.
     // Spurious apparent stalls may be caused by dirt, etc.
-    // This can be a higher figure/confidence than we'd require during normal running.
+    // This can be a higher figure/confidence than required during normal running.
     static constexpr uint8_t maxEndStopHitsToBeConfident = 4;
 
     // Select activity based on micro-state.
