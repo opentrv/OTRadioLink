@@ -333,7 +333,7 @@ class HardwareDriverSim : public OTRadValve::HardwareMotorDriverInterface
         // Stop when driving into either end-stop.
         if(isDrivingIntoEndStop(dir))
           {
-          callback.signalHittingEndStop(true);
+          callback.signalHittingEndStop(isOpening);
           return;
           }
 
@@ -342,7 +342,7 @@ class HardwareDriverSim : public OTRadValve::HardwareMotorDriverInterface
           // In lossy mode, once in a while randomly,
           // produce a spurious high-current condition
           // and stop.
-          if(0 == (random() & 0x3f)) { callback.signalHittingEndStop(true); return; }
+          if(0 == (random() & 0x3f)) { callback.signalHittingEndStop(isOpening); return; }
           }
 
         // Simulate ticks for callback object.
