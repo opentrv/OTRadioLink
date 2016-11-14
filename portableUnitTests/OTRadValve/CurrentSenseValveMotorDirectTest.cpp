@@ -346,6 +346,7 @@ class HardwareDriverSim : public OTRadValve::HardwareMotorDriverInterface
           }
 
         // Simulate ticks for callback object.
+// TODO: inject some noise in ticks here in noisy modes.
         for(int i = ticksPerPercent; --i >= 0; ) { callback.signalRunSCTTick(isOpening); }
 
         // Update motor position.
