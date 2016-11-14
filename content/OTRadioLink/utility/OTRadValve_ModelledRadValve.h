@@ -441,13 +441,12 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
                  !schedule->isAnyScheduleOnWARMNow() && !physicalUI->recentUIControlUse()))
             {
             // Use a default minimal non-annoying setback if:
-            //   in upper part of comfort range
+            //   in upper part of comfort range (and the room isn't very dark, eg in the dead of night)
             //   or if the room is likely occupied now
             //   or if the room is not known to be dark and hasn't been vacant for a long time ie ~1d and is not in the very bottom range of occupancy (TODO-107, TODO-758)
             //      TODO POSSIBLY: limit to (say) 3--4h light time for when someone out but room daylit, but note that detecting occupancy will be harder too in daylight.
             //      TODO POSSIBLY: after ~3h vacancy AND apparent smoothed occupancy non-zero (so some can be detected) AND ambient light in top quartile or in middle of typical bright part of cycle (assume peak of daylight) then being lit is not enough to prevent a deeper setback.
             //   or if the room has not been dark for hours and is not in the very bottom range of occupancy (TODO-107, TODO-758)
-            //   or is fairly likely to be occupied in the next hour (to pre-warm) and the room hasn't been dark for hours and vacant for a long time
             //   or if a scheduled WARM period is due soon and the room hasn't been vacant for a long time,
             // else usually use a somewhat bigger 'eco' setback
             // else use an even bigger 'full' setback for maximum savings if in the eco region and
@@ -459,7 +458,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
             // but short enough to take effect overnight and to be in effect a reasonable fraction of a (~8h) night.
             //
             // Note: the FULL setback can only happen with an ECO bias.
-            // Note: the setback is usually limited to minimu/default when at the top/comfort end of the range.
+            // Note: the setback is usually limited to minimum/default when at the top/comfort end of the range.
             const uint8_t minVacantAndDarkForFULLSetbackH = 2; // Hours; strictly positive, typically 1--4.
             const uint8_t setback = ((tempControl->isComfortTemperature(wt) && !ambLight->isRoomVeryDark()) ||
                                      occupancy->isLikelyOccupied() ||
@@ -477,6 +476,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
 
             return(newTarget);
             }
+
           // Else use WARM target as-is.
           return(wt);
           }
