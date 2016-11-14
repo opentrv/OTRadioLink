@@ -497,21 +497,18 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("+calibrating");
           {
           // Once end-stop has been hit, capture run length and prepare to run in opposite direction.
           // Try to be robust in face of transient current spikes.
-          if(runTowardsEndStop(true))
+          if(!runTowardsEndStop(true)) { perState.valveCalibrating.endStopHitCount = 0; }
+          else if(++perState.valveCalibrating.endStopHitCount >= maxEndStopHitsToBeConfidentWhenCalibrating)
             {
             const uint16_t tfcto = ticksReverse;
-            // Help avoid premature termination of this direction
-            // by NOT terminating this run if much shorter than run in other direction.
-            if(tfcto >= (perState.valveCalibrating.ticksFromOpenToClosed >> 1))
-              {
-              perState.valveCalibrating.ticksFromClosedToOpen = tfcto;
-              // Reset tick count.
-              ticksFromOpen = 0;
-              ticksReverse = 0;
-              perState.valveCalibrating.wallclock2sTicks = 0;
-              ++perState.valveCalibrating.calibState; // Move to next micro state.
-              }
-            break; // In all cases when end-stop hit don't try to run further in this sub-cycle.
+            perState.valveCalibrating.ticksFromClosedToOpen = tfcto;
+            // Reset tick count.
+            ticksFromOpen = 0;
+            ticksReverse = 0;
+//            perState.valveCalibrating.wallclock2sTicks = 0;
+//            perState.valveCalibrating.endStopHitCount = 0;
+            ++perState.valveCalibrating.calibState; // Move to next micro state.
+            break;
             }
           } while(getSubCycleTimeFn() <= computeSctAbsLimitDR());
         break;

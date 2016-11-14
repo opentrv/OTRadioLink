@@ -601,7 +601,7 @@ static void propControllerRobustness(OTRadValve::CurrentSenseValveMotorDirect *c
         //   * Signal that the valve is fitted.
         if(OTRadValve::CurrentSenseValveMotorDirectBase::valvePinWithdrawn == csv->_getState())
             {
-            EXPECT_LE(100 - OTRadValve::CurrentSenseValveMotorDirectBase::absTolerancePC, simulator->getNominalPercentOpen());
+            EXPECT_LE(100 - OTRadValve::CurrentSenseValveMotorDirectBase::absTolerancePC/2, simulator->getNominalPercentOpen());
             csv->signalValveFitted();
             }
         csv->poll();
@@ -656,7 +656,7 @@ TEST(CurrentSenseValveMotorDirect,propControllerRobustness)
     const uint8_t subcycleTicksRoundedDown_ms = 7; // For REV7: OTV0P2BASE::SUBCYCLE_TICK_MS_RD.
     const uint8_t gsct_max = 255; // For REV7: OTV0P2BASE::GSCT_MAX.
     const uint8_t minimumMotorRunupTicks = 4; // For REV7: OTRadValve::ValveMotorDirectV1HardwareDriverBase::minMotorRunupTicks.
-const HardwareDriverSim::simType maxSupported = HardwareDriverSim::SYMMETRIC_LOSSLESS; // FIXME // /**/ HardwareDriverSim::ASYMMETRIC_NOISY;
+const HardwareDriverSim::simType maxSupported = HardwareDriverSim::SYMMETRIC_LOSSLESS; // FIXME // /* */ HardwareDriverSim::ASYMMETRIC_NOISY;
     for(int d = 0; d <= maxSupported; ++d) // Which simulation mode.
         {
         // More realistic simulator.
