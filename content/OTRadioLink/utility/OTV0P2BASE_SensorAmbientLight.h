@@ -70,6 +70,7 @@ class SensorAmbientLightBase : public SimpleTSUint8Sensor
     // Not all light sensors and thus devices may reliably get this low,
     // though many may get down to 1 or even 0.
     // Some *very* poorly-lit locations may get this low even when occupied.
+    // Some locations may be prevented from getting this dark by night-lights.
     // For REV2 LDR and REV7 phototransistor.
     static const uint8_t DEFAULT_PITCH_DARK_THRESHOLD = 4;
 
