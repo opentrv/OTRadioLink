@@ -187,12 +187,16 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
       // State used while calibrating.
       struct
         {
-        uint8_t calibState; // Current micro-state, starting at zero.
-//        uint8_t runCount; // Completed round-trip calibration runs.
+        // Put largest items first to allow for good struct packing.
         uint16_t ticksFromOpenToClosed;
         uint16_t ticksFromClosedToOpen;
-        // Measure of real time spent trying in current microstate.
+        // Current micro-state, starting at zero.
+        uint8_t calibState;
+        // Measure of real time spent in current microstate.
         uint8_t wallclock2sTicks; // read() calls counted at ~2s intervals.
+        // Number of times that end-stop has apparently been hit in this direction this time.
+        uint8_t endStopHitCount;
+        //        uint8_t runCount; // Completed round-trip calibration runs.
         } valveCalibrating;
       // State used while valve pin is initially fully withdrawing.
       struct { uint8_t wallclock2sTicks; } valvePinWithdrawing;

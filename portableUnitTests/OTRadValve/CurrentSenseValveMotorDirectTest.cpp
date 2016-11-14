@@ -647,7 +647,6 @@ const HardwareDriverSim::simType maxSupported = HardwareDriverSim::SYMMETRIC_LOS
         {
         // More realistic simulator.
         HardwareDriverSim shw;
-
         shw.reset((HardwareDriverSim::simType) d);
 
         // Test full impl.

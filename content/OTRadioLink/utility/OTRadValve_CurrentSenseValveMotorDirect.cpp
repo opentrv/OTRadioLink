@@ -423,7 +423,7 @@ bool CurrentSenseValveMotorDirect::do_valveCalibrating_prop()
       return(true);
       }
 
-    // If taking stupidly long to calibrate
+    // If taking stupidly long to calibrate (in any micro-state)
     // then assume a problem with the motor/mechanics and give up.
     // Don't panic() so that the unit can still (for example) transmit stats.
     if(++perState.valveCalibrating.wallclock2sTicks > MAX_TRAVEL_WALLCLOCK_2s_TICKS)
@@ -433,6 +433,9 @@ bool CurrentSenseValveMotorDirect::do_valveCalibrating_prop()
       return(true);
       }
 
+//    // Maximum number of consecutive end-stop hits to trust that stop has really been hit...
+//    static constexpr uint8_t maxEndStopHitsToBelieveIt = 3;
+
     // Select activity based on micro-state.
     switch(perState.valveCalibrating.calibState)
       {
@@ -441,18 +444,21 @@ bool CurrentSenseValveMotorDirect::do_valveCalibrating_prop()
 #if 0 && defined(V0P2BASE_DEBUG)
 V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("+calibrating");
 #endif
+        perState.valveCalibrating.wallclock2sTicks = 0;
+        perState.valveCalibrating.endStopHitCount = 0;
         ++perState.valveCalibrating.calibState; // Move to next micro state.
         break;
         }
       case 1:
         {
-        // Run fast to fully retracted (easy to fit, nomninally valve fully open).
+        // Run fast to fully retracted (easy to fit, nominally valve fully open).
         if(runFastTowardsEndStop(true))
           {
           // Reset tick count.
           ticksFromOpen = 0;
           ticksReverse = 0;
           perState.valveCalibrating.wallclock2sTicks = 0;
+          perState.valveCalibrating.endStopHitCount = 0;
           ++perState.valveCalibrating.calibState; // Move to next micro state.
           }
         break;
@@ -464,11 +470,13 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("+calibrating");
         do
           {
           // Once end-stop has been hit, capture run length and prepare to run in opposite direction.
+          // Try to be robust in face of transient current spikes.
           if(runTowardsEndStop(false))
             {
             const uint16_t tfotc = ticksFromOpen;
             perState.valveCalibrating.ticksFromOpenToClosed = tfotc;
             perState.valveCalibrating.wallclock2sTicks = 0;
+            perState.valveCalibrating.endStopHitCount = 0;
             ++perState.valveCalibrating.calibState; // Move to next micro state.
             break;
             }
@@ -482,6 +490,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("+calibrating");
         do
           {
           // Once end-stop has been hit, capture run length and prepare to run in opposite direction.
+          // Try to be robust in face of transient current spikes.
           if(runTowardsEndStop(true))
             {
             const uint16_t tfcto = ticksReverse;
