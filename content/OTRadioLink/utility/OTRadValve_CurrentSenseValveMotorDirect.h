@@ -70,6 +70,10 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     // Based on DHD20151020 DORM1 prototype rig-up and NiMH battery; 250ms+ seems good.
     static const constexpr uint8_t minMotorDRMS = 250;
 
+    // Maximum number of consecutive end-stop hits to trust that the stop has really been hit; strictly positive.
+    // Spurious apparent stalls may be caused by dirt, etc.
+    static const constexpr uint8_t maxEndStopHitsToBeConfident = 3;
+
     // Computes minimum motor dead reckoning ticks given approx ms per tick (pref rounded down).
     // Keep inline in the header to allow compile-time computation.
     //

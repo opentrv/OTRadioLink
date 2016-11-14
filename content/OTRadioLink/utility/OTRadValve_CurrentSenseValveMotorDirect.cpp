@@ -437,7 +437,7 @@ bool CurrentSenseValveMotorDirect::do_valveCalibrating_prop()
     // Maximum number of consecutive end-stop hits to trust that the stop has really been hit; strictly positive.
     // Spurious apparent stalls may be caused by dirt, etc.
     // This can be a higher figure/confidence than required during normal running.
-    static constexpr uint8_t maxEndStopHitsToBeConfident = 4;
+    static constexpr uint8_t maxEndStopHitsToBeConfidentWhenCalibrating = maxEndStopHitsToBeConfident + 1;
 
     // Select activity based on micro-state.
     switch(perState.valveCalibrating.calibState)
@@ -456,7 +456,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("+calibrating");
         {
         // Run fast to fully retracted (easy to fit, nominally valve fully open).
         if(!runFastTowardsEndStop(true)) { perState.valveCalibrating.endStopHitCount = 0; }
-        else if(++perState.valveCalibrating.endStopHitCount >= maxEndStopHitsToBeConfident)
+        else if(++perState.valveCalibrating.endStopHitCount >= maxEndStopHitsToBeConfidentWhenCalibrating)
           {
           // Reset tick count.
           ticksFromOpen = 0;
@@ -476,7 +476,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("+calibrating");
           // Once end-stop has been hit, capture run length and prepare to run in opposite direction.
           // Try to be robust in face of transient current spikes.
           if(!runTowardsEndStop(false)) { perState.valveCalibrating.endStopHitCount = 0; }
-          else if(++perState.valveCalibrating.endStopHitCount >= maxEndStopHitsToBeConfident)
+          else if(++perState.valveCalibrating.endStopHitCount >= maxEndStopHitsToBeConfidentWhenCalibrating)
             {
             const uint16_t tfotc = ticksFromOpen;
             perState.valveCalibrating.ticksFromOpenToClosed = tfotc;
