@@ -319,6 +319,12 @@ namespace MRVCTTB
     }
 TEST(ModelledRadValve,ModelledRadValveComputeTargetTempBasic)
 {
+    // Reset static state to make tests re-runnable.
+    MRVCTTB::valveMode.setWarmModeDebounced(false);
+    MRVCTTB::roomTemp.set(OTV0P2BASE::TemperatureC16Mock::DEFAULT_INVALID_TEMP);
+    MRVCTTB::occupancy.reset();
+    MRVCTTB::ambLight.set(0, 0, false);
+
     // Simple-as-possible instance.
     OTRadValve::ModelledRadValveComputeTargetTempBasic<
         OTRadValve::DEFAULT_ValveControlParameters,

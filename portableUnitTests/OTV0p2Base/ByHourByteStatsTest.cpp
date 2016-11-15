@@ -245,7 +245,7 @@ TEST(Stats, ByHourSimpleStatsUpdater)
     const uint8_t msph = BHSSU::su.maxSamplesPerHour;
     ASSERT_EQ(2, msph);
 
-    // Clear existing state.
+    // Reset static state to make tests re-runnable.
 //    BHSSU::su.sampleStats(true, 0);
     BHSSU::ms.zapStats();
     BHSSU::occupancy.reset();
