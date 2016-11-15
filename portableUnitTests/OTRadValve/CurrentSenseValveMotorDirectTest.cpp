@@ -261,11 +261,13 @@ class DummyHardwareDriverHitEndstop : public OTRadValve::HardwareMotorDriverInte
 // In particular this emulates the fact that extending the pin,
 // thus pushing the valve closed, is harder and slower than withdrawing/opening,
 // as during closure the pin starts to work against the spring in the valve base.
-// This emulate withdrawing/opening at a constant maximal speed (thus distance per tick),
-// and that speed (ie distance per tick) starts to fall part-way during valve closure
+// This emulates withdrawing/opening at a constant maximal speed (thus distance per tick),
+// and that speed (ie distance per tick) starts to fall during valve closure
 // and is noticeably lower by the end of travel,
 // giving about a 20%--40% difference in run time in the two directions,
 // given some real data points from real TRV1 heads on real valve bases.
+//
+// Note: for real valves the drop-off in speed does not necessarily happen until pin engages some way towards closed.
 //
 // DHD20151025: one set of actual measurements during calibration:
 //    ticksFromOpenToClosed: 1529
@@ -291,11 +293,19 @@ class HardwareDriverSim : public OTRadValve::HardwareMotorDriverInterface
       };
 
     // Nominal ticks for dead-reckoning full travel; strictly positive and >> 100.
-    // Does not apply in both directions if assymetric, for example.
+    // Does not apply in both directions if asymmetric, for example.
     static constexpr uint16_t nominalFullTravelTicks = 1500;
 
+    bool isAsymmetric() const { return(mode >= ASYMMETRIC_LOSSLESS); }
+
+    // Approximate (fixed) number of ticks to open when showing asymmetry, always nominalFullTravelTicks.
+    uint16_t getNominalTicksToOpen() const { return(nominalFullTravelTicks); }
+
+    // Approximate inflated number of ticks to close when showing asymmetry, else nominalFullTravelTicks.
+    uint16_t getNominalTicksToClosed() const { return(nominalFullTravelTicks + (isAsymmetric() ? ((nominalFullTravelTicks*asymPC)/100) : 0)); }
+
   private:
-    // Approx ticks per percent; strictly positive.
+    // Approx ticks per percent (in the fixed direction); strictly positive.
     static constexpr uint16_t nominalTicksPerPercent = nominalFullTravelTicks / 100;
 
     // Simulation mode.
@@ -309,8 +319,8 @@ class HardwareDriverSim : public OTRadValve::HardwareMotorDriverInterface
     // Minimum asymmetry to apply as percentage reduction to smaller travel direction [0,maxAsymPC[.
     static constexpr uint8_t minAsymPC = 10;
 
-//    // Asymmetry to apply this run, if emulating asymmetry.
-//    uint8_t asymPC = (minAsymPC + maxAsymPC) / 2;
+    // Asymmetry to apply this run, if emulating asymmetry.
+    uint8_t asymPC = (minAsymPC + maxAsymPC) / 2;
 
     // True when driving into an end stop.
     bool isDrivingIntoEndStop(const OTRadValve::HardwareMotorDriverInterface::motor_drive mdir) const
@@ -365,11 +375,10 @@ class HardwareDriverSim : public OTRadValve::HardwareMotorDriverInterface
 
         // Actual ticks per percent.
         // The nominal amount for full travel in the open direction.
-        // The nominal amount for first half of close direction (>50% open).
-        // FIXME: higher ticks per percent (ie lower speed) for last half of closure.
-//        const uint8_t actualTicksPerPercent = (isOpening || (nominalPercentOpen > 50)) ? nominalTicksPerPercent
-//            : nominalTicksPerPercent + ((nominalTicksPerPercent*2*asymPC)/100);
-        const uint8_t actualTicksPerPercent = nominalTicksPerPercent;
+        // The nominal amount rises linearly as full close approaches (ie nominalPercentOpen approaches 0).
+        const uint8_t actualTicksPerPercent = (isOpening || !isAsymmetric()) ? nominalTicksPerPercent
+            : (nominalTicksPerPercent + ((2UL*(100UL-nominalPercentOpen)*nominalTicksPerPercent*asymPC)/(100U*100U)));
+//        const uint8_t actualTicksPerPercent = nominalTicksPerPercent;
 
         // Simulate ticks for callback object.
         // Inject some noise in ticks here in noisy modes.
@@ -640,8 +649,8 @@ static void propControllerRobustness(OTRadValve::CurrentSenseValveMotorDirect *c
 
     // Check logic's estimate of ticks here, eg from errors in calibration.
     // Note that asymmetric behaviour complicated things a little.
-    EXPECT_NEAR(csv->_getCP().getTicksFromOpenToClosed(), simulator->nominalFullTravelTicks, simulator->nominalFullTravelTicks / 4);
-    EXPECT_NEAR(csv->_getCP().getTicksFromClosedToOpen(), simulator->nominalFullTravelTicks, simulator->nominalFullTravelTicks / 4);
+    EXPECT_NEAR(csv->_getCP().getTicksFromOpenToClosed(), simulator->getNominalTicksToClosed(), simulator->nominalFullTravelTicks / 4);
+    EXPECT_NEAR(csv->_getCP().getTicksFromClosedToOpen(), simulator->getNominalTicksToOpen(), simulator->nominalFullTravelTicks / 4);
 
     // Target % values to try to reach.
     // Some are listed repeatedly to ensure no significant sticky state.
@@ -685,7 +694,7 @@ TEST(CurrentSenseValveMotorDirect,propControllerRobustness)
     const uint8_t subcycleTicksRoundedDown_ms = 7; // For REV7: OTV0P2BASE::SUBCYCLE_TICK_MS_RD.
     const uint8_t gsct_max = 255; // For REV7: OTV0P2BASE::GSCT_MAX.
     const uint8_t minimumMotorRunupTicks = 4; // For REV7: OTRadValve::ValveMotorDirectV1HardwareDriverBase::minMotorRunupTicks.
-const HardwareDriverSim::simType maxSupported = /* HardwareDriverSim::SYMMETRIC_LOSSLESS; // FIXME // */ HardwareDriverSim::ASYMMETRIC_NOISY;
+    const HardwareDriverSim::simType maxSupported = /* HardwareDriverSim::SYMMETRIC_LOSSLESS; // FIXME // */ HardwareDriverSim::ASYMMETRIC_NOISY;
     for(int d = 0; d <= maxSupported; ++d) // Which simulation mode.
         {
         // More realistic simulator.
