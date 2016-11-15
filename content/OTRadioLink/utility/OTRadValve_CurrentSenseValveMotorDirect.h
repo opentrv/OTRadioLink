@@ -249,39 +249,33 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     // Returns true if end-stop has apparently been hit.
     bool runTowardsEndStop(bool toOpen);
 
-    // Run at 'normal' or speed or fast towards/to end for a fixed time/distance.
+    // Run at 'normal' or speed, else fast, towards/to end for a fixed time/distance.
     // Terminates significantly before the end of the sub-cycle.
     // Runs at same speed as during calibration.
     // Does the right thing with dead-reckoning and/or position detection.
     // Returns true if end-stop has apparently been hit.
     bool runTowardsEndStop(bool toOpen, bool normal) { return(normal ? runTowardsEndStop(toOpen) : runFastTowardsEndStop(toOpen)); }
 
-    // Compute and apply reconciliation/adjustment of ticks and % position.
-    // Uses computePosition() to adjust internal state.
-    // Call after moving the valve in normal mode.
+    // Compute and apply reconciliation/adjustment of ticks and intermediate position.
+    // Uses computePosition() to compute new internal position.
+    // Call after moving the valve in normal mode, eg by dead reckoning.
+    // Does not ever move logically right to the end-stops: use hitEndStop() for that,
     // Does nothing for non-proportional implementation.
-    virtual void recomputePosition() { }
+    virtual void recomputeIntermediatePosition() { }
 
     // 'Tentative' end-stop distance from end-stop in percent; strictly positive.
     static constexpr uint8_t tenativeDistance = 1;
 
     // Returns true if valve is at an end stop.
     static constexpr bool isAtEndstop(const uint8_t valvePC) { return((0 == valvePC) || (100 == valvePC)); }
-    // Returns true if close enough to end stop to be 'tentative', but not at an end-stop.
-    static constexpr bool tentativelyAtEndstop(const uint8_t valvePC)
-        { return(!isAtEndstop(valvePC) && ((valvePC >= (100-tenativeDistance) || (valvePC <= tenativeDistance)))); }
-    // Returns true if tentatively at specified end-stop.
-    static constexpr bool tentativelyAtEndstop(const bool isOpen, const uint8_t valvePC)
-        { return(isOpen ? ((valvePC >= (100-tenativeDistance)) && (100 != valvePC)) : ((valvePC <= tenativeDistance) && (0 != valvePC))); }
 
     // Reset just current percent-open value, with optional 'tentative' marker.
     // If 'tentative' then current position may be recorded as adjacent to, but not at, the end-stops.
-    void resetCurrentPC(bool hitEndstopOpen, bool tentative = false)
-        { currentPC = hitEndstopOpen ? (tentative ? (100-tenativeDistance) : 100) : (tentative ? tenativeDistance : 0); }
+    void resetCurrentPC(bool hitEndstopOpen) { currentPC = hitEndstopOpen ? 100 : 0; }
 
     // Reset internal positional record when an end-stop is hit.
     // Updates current % open value for non-proportional implementation.
-    virtual void resetPosition(bool hitEndstopOpen, bool tentative = false) { resetCurrentPC(hitEndstopOpen, tentative); }
+    virtual void hitEndstop(bool hitEndstopOpen) { resetCurrentPC(hitEndstopOpen); }
 
     // Do valveCalibrating for proportional drive; returns true to return from poll() immediately.
     // Calls changeState() directly if it needs to change state.
@@ -498,16 +492,21 @@ class CurrentSenseValveMotorDirect final : public CurrentSenseValveMotorDirectBi
     // Only defined once calibration is complete.
     bool usingPositionalShaftEncoder() const { return(false); }
 
-    // Compute and apply reconciliation/adjustment of ticks and % position.
-    // Uses computePosition() to adjust internal state.
-    // Call after moving the valve in normal mode.
+    // Compute and apply reconciliation/adjustment of ticks and intermediate position.
+    // Uses computePosition() to compute new internal position.
+    // Call after moving the valve in normal mode, eg by dead reckoning.
+    // Does not ever move logically right to the end-stops: use hitEndStop() for that,
     // Does nothing if calibration is not in place.
-    virtual void recomputePosition() override { if(!needsRecalibrating) { currentPC = cp.computePosition(ticksFromOpen, ticksReverse); } }
+    virtual void recomputeIntermediatePosition() override
+        {
+        if(!needsRecalibrating)
+            { currentPC = OTV0P2BASE::fnconstrain(cp.computePosition(ticksFromOpen, ticksReverse), uint8_t(1), uint8_t(99)); }
+        }
 
     // Reset internal position markers when an end-stop is hit.
-    virtual void resetPosition(const bool hitEndstopOpen, bool tentative = false) override
+    virtual void hitEndstop(const bool hitEndstopOpen) override
         {
-        resetCurrentPC(hitEndstopOpen, tentative);
+        resetCurrentPC(hitEndstopOpen);
         ticksReverse = 0;
         ticksFromOpen = hitEndstopOpen ? 0 : cp.getTicksFromOpenToClosed();
         }
