@@ -441,7 +441,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
                  !schedule->isAnyScheduleOnWARMNow() && !physicalUI->recentUIControlUse()))
             {
             // Restrict to a DEFAULT/minimal non-annoying setback if:
-            //   in upper part of comfort range (and the room isn't very dark, eg in the dead of night)
+            //   in upper part of comfort range (and the room isn't very dark, eg in the dead of night TODO-1027)
             //   or if the room is likely occupied now
             //   or if the room is not known to be dark and hasn't been vacant for a long time ie ~1d and is not in the very bottom range of occupancy (TODO-107, TODO-758)
             //      TODO POSSIBLY: limit to (say) 3--4h light time for when someone out but room daylit, but note that detecting occupancy will be harder too in daylight.
