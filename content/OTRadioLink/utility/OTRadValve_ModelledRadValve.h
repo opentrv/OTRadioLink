@@ -440,7 +440,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
              ((notLikelyOccupiedSoon || (dm > minLightsOffForSetbackMins) || (ecoBias && (occupancy->getVacancyH() > 0) && (0 == byHourStats->getByHourStatRTC(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR, OTV0P2BASE::NVByHourByteStatsBase::SPECIAL_HOUR_CURRENT_HOUR)))) &&
                  !schedule->isAnyScheduleOnWARMNow() && !physicalUI->recentUIControlUse()))
             {
-            // Use a default minimal non-annoying setback if:
+            // Restrict to a DEFAULT/minimal non-annoying setback if:
             //   in upper part of comfort range (and the room isn't very dark, eg in the dead of night)
             //   or if the room is likely occupied now
             //   or if the room is not known to be dark and hasn't been vacant for a long time ie ~1d and is not in the very bottom range of occupancy (TODO-107, TODO-758)
@@ -448,12 +448,12 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
             //      TODO POSSIBLY: after ~3h vacancy AND apparent smoothed occupancy non-zero (so some can be detected) AND ambient light in top quartile or in middle of typical bright part of cycle (assume peak of daylight) then being lit is not enough to prevent a deeper setback.
             //   or if the room has not been dark for hours and is not in the very bottom range of occupancy (TODO-107, TODO-758)
             //   or if a scheduled WARM period is due soon and the room hasn't been vacant for a long time,
-            // else usually use a somewhat bigger 'eco' setback
-            // else use an even bigger 'full' setback for maximum savings if in the eco region and
+            // else usually use a somewhat bigger 'ECO' setback
+            // else use an even bigger 'FULL' setback for maximum savings if in the eco region and
             //   the room has been vacant for a very long time
             //   or is unlikely to be unoccupied at this time of day and
-            //     has been vacant and dark for a while or is in the lower part of the 'eco' range.
-            // This final dark/vacant timeout to enter FULL fallback while in mild eco mode
+            //     has been vacant and dark for a while or is in the lower part of the 'ECO' range.
+            // This final dark/vacant timeout to enter FULL setback while in mild ECO mode
             // should probably be longer than required to watch a typical movie or go to sleep (~2h) for example,
             // but short enough to take effect overnight and to be in effect a reasonable fraction of a (~8h) night.
             //
