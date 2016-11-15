@@ -258,8 +258,14 @@ class DummyHardwareDriverHitEndstop : public OTRadValve::HardwareMotorDriverInte
 
 // This aims to simulate a real valve to a small degree.
 //
-// TODO: In particular this emulates the fact that pushing the pin closed is harder and slower than withdrawing.
-// TODO: This also emulates random spikes/noise, eg premature current rise when moving valve fast.
+// In particular this emulates the fact that extending the pin,
+// thus pushing the valve closed, is harder and slower than withdrawing/opening,
+// as during closure the pin starts to work against the spring in the valve base.
+// This emulate withdrawing/opening at a constant maximal speed (thus distance per tick),
+// and that speed (ie distance per tick) starts to fall part-way during valve closure
+// and is noticeably lower by the end of travel,
+// giving about a 20%--40% difference in run time in the two directions,
+// given some real data points from real TRV1 heads on real valve bases.
 //
 // DHD20151025: one set of actual measurements during calibration:
 //    ticksFromOpenToClosed: 1529
@@ -269,6 +275,9 @@ class DummyHardwareDriverHitEndstop : public OTRadValve::HardwareMotorDriverInte
 // Check that a calibration instance can be reused correctly.
 //const uint16_t tfo2 = 1803U;
 //const uint16_t tfc2 = 1373U;
+//
+// This also emulates random spikes/noise, eg premature current rise when moving valve fast,
+// leading to spurious end-stop detections.
 class HardwareDriverSim : public OTRadValve::HardwareMotorDriverInterface
   {
   public:
