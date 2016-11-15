@@ -291,17 +291,26 @@ class HardwareDriverSim : public OTRadValve::HardwareMotorDriverInterface
       };
 
     // Nominal ticks for dead-reckoning full travel; strictly positive and >> 100.
+    // Does not apply in both directions if assymetric, for example.
     static constexpr uint16_t nominalFullTravelTicks = 1500;
 
   private:
     // Approx ticks per percent; strictly positive.
-    static constexpr uint16_t ticksPerPercent = nominalFullTravelTicks / 100;
+    static constexpr uint16_t nominalTicksPerPercent = nominalFullTravelTicks / 100;
 
     // Simulation mode.
     simType mode = SYMMETRIC_LOSSLESS;
 
     // Nominal percent open; initially zero (ie valve closed).
     uint8_t nominalPercentOpen = 0;
+
+    // Maximum asymmetry to apply as percentage reduction to smaller travel direction [0,50[.
+    static constexpr uint8_t maxAsymPC = 49;
+    // Minimum asymmetry to apply as percentage reduction to smaller travel direction [0,maxAsymPC[.
+    static constexpr uint8_t minAsymPC = 10;
+
+//    // Asymmetry to apply this run, if emulating asymmetry.
+//    uint8_t asymPC = (minAsymPC + maxAsymPC) / 2;
 
     // True when driving into an end stop.
     bool isDrivingIntoEndStop(const OTRadValve::HardwareMotorDriverInterface::motor_drive mdir) const
@@ -337,7 +346,7 @@ class HardwareDriverSim : public OTRadValve::HardwareMotorDriverInterface
       const bool isOpening = (OTRadValve::HardwareMotorDriverInterface::motorDriveOpening == dir);
 
       // Spin until hitting end-stop.
-      for(int remainingTicks = maxRunTicks; remainingTicks > 0; remainingTicks -= ticksPerPercent)
+      for(int remainingTicks = maxRunTicks; remainingTicks > 0; )
         {
         // Stop when driving into either end-stop.
         if(isDrivingIntoEndStop(dir))
@@ -346,7 +355,7 @@ class HardwareDriverSim : public OTRadValve::HardwareMotorDriverInterface
           return;
           }
 
-        if(ASYMMETRIC_NOISY == mode)
+        if(mode >= ASYMMETRIC_NOISY)
           {
           // In lossy mode, once in a while randomly,
           // produce a spurious high-current condition
@@ -354,15 +363,26 @@ class HardwareDriverSim : public OTRadValve::HardwareMotorDriverInterface
           if(0 == (random() & 0xff)) { callback.signalHittingEndStop(isOpening); return; }
           }
 
+        // Actual ticks per percent.
+        // The nominal amount for full travel in the open direction.
+        // The nominal amount for first half of close direction (>50% open).
+        // FIXME: higher ticks per percent (ie lower speed) for last half of closure.
+//        const uint8_t actualTicksPerPercent = (isOpening || (nominalPercentOpen > 50)) ? nominalTicksPerPercent
+//            : nominalTicksPerPercent + ((nominalTicksPerPercent*2*asymPC)/100);
+        const uint8_t actualTicksPerPercent = nominalTicksPerPercent;
+
         // Simulate ticks for callback object.
         // Inject some noise in ticks here in noisy modes.
-        const int8_t noise = (random() % (OTV0P2BASE::fnmax(1, ticksPerPercent/10))) * ((0 == (random() & 1)) ? +1 : -1);
-        const uint8_t ticksToSimulate = ticksPerPercent + (mode >= ASYMMETRIC_NOISY ? noise : 0);
+        const int8_t noise = ((0 == (random() & 1)) ? +1 : -1);
+        const uint8_t ticksToSimulate = actualTicksPerPercent + (mode >= ASYMMETRIC_NOISY ? noise : 0);
         for(int i = ticksToSimulate; --i >= 0; ) { callback.signalRunSCTTick(isOpening); }
 
         // Update motor position.
         if(isOpening) { if(nominalPercentOpen < 100) { ++nominalPercentOpen; } }
         else { if(nominalPercentOpen > 0)  { --nominalPercentOpen; } }
+
+        // Stop when ticks have run out.
+        remainingTicks -= actualTicksPerPercent;
         }
       }
   };
