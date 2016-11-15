@@ -516,7 +516,7 @@ typedef const char *AT_t;
                             case RESET:
                                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*RESET")
                                 retryCounter = 0; // reset retry counter.
-                                if (!isSIM900Replying())
+                                if (isSIM900Replying())
                                     {
                                     bAvailable = true;
                                     bPowered = true;
@@ -582,6 +582,10 @@ typedef const char *AT_t;
             volatile uint8_t txMessageQueue; // Number of frames currently queued for TX.
             const OTSIM900LinkConfig_t *config;
             /************************* Private Methods *******************************/
+
+#ifndef ARDUINO_ARCH_AVR
+        public:
+#endif // ARDUINO_ARCH_AVR
             // Power up/down
             /**
              * @brief    check if module has power
@@ -591,8 +595,9 @@ typedef const char *AT_t;
                 {
                 return bPowered;
                 }
-            ;
-
+#ifndef ARDUINO_ARCH_AVR
+        private:
+#endif // ARDUINO_ARCH_AVR
             /**
              * @brief     Power up module
              */
