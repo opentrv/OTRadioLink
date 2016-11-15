@@ -87,9 +87,6 @@ class GoodSimulator final : public Stream
   public:
     // Events exposed.
     static bool haveSeenCommandStart;
-    // Force PDP-DEACT message to test RESET state. TODO how am I going to make this settable?
-    bool forceResetState = false;
-
   private:
     // Command being collected from OTSIM900Link.
     bool waitingForCommand = true;
@@ -141,22 +138,20 @@ class GoodSimulator final : public Stream
           else if("AT+CREG?" == command) { reply = /* (random() & 1) ? "+CREG: 0,0\r" : */ "AT+CREG?\r\n\r\n+CREG: 0,5\r\n\r\n'OK\r\n"; } // Relevant states: WAIT_FOR_REGISTRATION
           else if("AT+CSTT=apn" == command) { reply =  "AT+CSTT\r\n\r\nOK\r"; } // Relevant states: SET_APN
           else if("AT+CIPSTATUS" == command) {
-              if(!forceResetState) {
-                  switch (sim900LinkState){
-                      case OTSIM900Link::RETRY_GET_STATE:  // GPRS inactive)
-                          sim900LinkState = OTSIM900Link::START_GPRS;
-                          reply = "AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP START\r\n";
-                          break;
-                      case OTSIM900Link::START_GPRS:          // GPRS is activated.
-                          sim900LinkState = OTSIM900Link::GET_IP;
-                          reply = "AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP GPRSACT\r\n";
-                          break;
-                      case OTSIM900Link::GET_IP:    // UDP connected.
-                          reply = "AT+CIPSTATUS\r\n\r\nOK\r\nSTATE: CONNECT OK\r\n";
-                          break;
-                      default: break;
-                  }
-              } else {reply = "AT+CIPSTATUS\r\n\r\nOK\r\nSTATE: PDP DEACT\r\n"; }
+              switch (sim900LinkState){
+                  case OTSIM900Link::RETRY_GET_STATE:  // GPRS inactive)
+                      sim900LinkState = OTSIM900Link::START_GPRS;
+                      reply = "AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP START\r\n";
+                      break;
+                  case OTSIM900Link::START_GPRS:          // GPRS is activated.
+                      sim900LinkState = OTSIM900Link::GET_IP;
+                      reply = "AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP GPRSACT\r\n";
+                      break;
+                  case OTSIM900Link::GET_IP:    // UDP connected.
+                      reply = "AT+CIPSTATUS\r\n\r\nOK\r\nSTATE: CONNECT OK\r\n";
+                      break;
+                  default: break;
+              }
           }  // Relevant states: START_GPRS, WAIT_FOR_UDP
           else if("AT+CIICR" == command) { reply = "AT+CIICR\r\n\r\nOK\r\n"; }  // Relevant states: START_GPRS
           else if("AT+CIFSR" == command) { reply = "AT+CIFSR\r\n\r\n172.16.101.199\r\n"; }  // Relevant States: GET_IP
@@ -343,6 +338,124 @@ TEST(OTSIM900Link,GarbageTestSimulator)
 
     // ...
     l0.end();
+}
+
+
+// Simulate resetting the SIM900.
+namespace B3
+{
+const bool verbose = false;
+
+// Gets the SIM900 to a ready to send state and then forces a reset.
+// First will stop responding, then will start up again and do sends.
+class ResetSimulator final : public Stream
+  {
+  public:
+    // Events exposed.
+    static bool haveSeenCommandStart;
+    // Force PDP-DEACT message to test RESET state.
+    bool pdpDeact = true;
+
+  private:
+    // Command being collected from OTSIM900Link.
+    bool waitingForCommand = true;
+    bool collectingCommand = false;
+    // Entire request starting "AT"; no trailing CR or LF stored.
+    std::string command;
+
+    // Reply (postfix) being returned to OTSIM900Link: empty if none.
+    std::string reply;
+
+    // Keep track (crudely) of state. Corresponds to OTSIM900LinkState values.
+    uint8_t sim900LinkState = 0;
+
+    // Prepare the SIM900 for testing by bringing it into a ready-to-send state.
+    bool isSIM900Prepared = false;
+    void prepareSIM900() {
+        // Respond to particular commands...
+        if("AT+CPIN?" == command) { reply = /* (random() & 1) ? "No PIN\r" : */ "AT+CPIN?\r\n\r\n+CPIN: READY\r\n\r\nOK\r\n"; }  // Relevant states: CHECK_PIN
+        else if("AT+CREG?" == command) { reply = /* (random() & 1) ? "+CREG: 0,0\r" : */ "AT+CREG?\r\n\r\n+CREG: 0,5\r\n\r\n'OK\r\n"; } // Relevant states: WAIT_FOR_REGISTRATION
+        else if("AT+CSTT=apn" == command) { reply =  "AT+CSTT\r\n\r\nOK\r"; } // Relevant states: SET_APN
+        else if("AT+CIPSTATUS" == command) {
+            switch (sim900LinkState){
+                case OTSIM900Link::RETRY_GET_STATE:  // GPRS inactive)
+                    sim900LinkState = OTSIM900Link::START_GPRS;
+                    reply = "AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP START\r\n";
+                    break;
+                case OTSIM900Link::START_GPRS:          // GPRS is activated.
+                    sim900LinkState = OTSIM900Link::GET_IP;
+                    reply = "AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP GPRSACT\r\n";
+                    break;
+                case OTSIM900Link::GET_IP:    // UDP connected.
+                    sim900LinkState = OTSIM900Link::IDLE;
+                    reply = "AT+CIPSTATUS\r\n\r\nOK\r\nSTATE: CONNECT OK\r\n";
+                    break;
+                default: break;
+            }
+        }  // Relevant states: START_GPRS, WAIT_FOR_UDP
+        else if("AT+CIICR" == command) { reply = "AT+CIICR\r\n\r\nOK\r\n"; }  // Relevant states: START_GPRS
+        else if("AT+CIFSR" == command) { reply = "AT+CIFSR\r\n\r\n172.16.101.199\r\n"; }  // Relevant States: GET_IP
+        else if("AT+CIPSTART=\"UDP\",\"0.0.0.0\",\"9999\"" == command) { reply = "AT+CIPSTART=\"UDP\",\"0.0.0.0\",\"9999\"\r\n\r\nOK\r\n\r\nCONNECT OK\r\n"; }  // Relevant states: OPEN_UDP
+    }
+
+  public:
+    void begin(unsigned long) { }
+    void begin(unsigned long, uint8_t);
+    void end();
+
+    virtual size_t write(uint8_t uc) override
+      {
+      const char c = (char)uc;
+      if(waitingForCommand)
+        {
+        // Look for leading 'A' of 'AT' to start a command.
+        if('A' == c)
+          {
+          waitingForCommand = false;
+          collectingCommand = true;
+          command = 'A';
+          haveSeenCommandStart = true; // Note at least one command start.
+          }
+        }
+      else
+        {
+        // Look for CR (or LF) to terminate a command.
+        if(('\r' == c) || ('\n' == c))
+          {
+            waitingForCommand = true;
+            collectingCommand = false;
+            if(verbose) { fprintf(stderr, "command received: %s\n", command.c_str()); }
+            if("AT" == command) { reply = "AT\r\n\r\nOK\r\n"; }// Relevant states: GET_STATE, RETRY_GET_STATE, START_UP
+            else if (sim900LinkState < OTSIM900Link::IDLE)  { prepareSIM900(); } // 9 corresponds to IDLE
+            else if(!pdpDeact) {
+                    if("AT+CIPSTATUS" == command) { reply = "AT+CIPSTATUS\r\n\r\nOK\r\nSTATE: CONNECT OK\r\n"; }
+                    else if("AT+CIPSEND=3" == command) { reply = "AT+CIPSEND=3\r\n\r\n>"; }  // Relevant states:  SENDING
+                    else if("123" == command) { reply = "123\r\nSEND OK\r\n"; }  // Relevant states: SENDING
+            } else if ( "AT+CIPSTATUS" == command ){reply = "AT+CIPSTATUS\r\n\r\nOK\r\nSTATE: PDP DEACT\r\n"; }
+          }
+        else if(collectingCommand) { command += c; }
+        }
+      if(verbose) { if(isprint(c)) { fprintf(stderr, "<%c\n", c); } else { fprintf(stderr, "< %d\n", (int)c); } }
+      return(1);
+      }
+    virtual int read() override
+        {
+        if(0 == reply.size()) { return(-1); }
+        const char c = reply[0];
+        if(verbose) { if(isprint(c)) { fprintf(stderr, ">%c\n", c); } else { fprintf(stderr, "> %d\n", (int)c); } }
+        reply.erase(0, 1);
+        return(c);
+        }
+    virtual int available() override { return(-1); }
+    virtual int peek() override { return(-1); }
+    virtual void flush() override { }
+  };
+// Events exposed.
+bool ResetSimulator::haveSeenCommandStart = false;
+}
+TEST(OTSIM900Link, ResetCardTest)
+{
+
 }
 
 
