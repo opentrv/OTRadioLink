@@ -245,6 +245,14 @@ TEST(Stats, ByHourSimpleStatsUpdater)
     const uint8_t msph = BHSSU::su.maxSamplesPerHour;
     ASSERT_EQ(2, msph);
 
+    // Reset static state to make tests re-runnable.
+//    BHSSU::su.sampleStats(true, 0);
+    BHSSU::ms.zapStats();
+    BHSSU::occupancy.reset();
+    BHSSU::ambLight.set(0, 0, false);
+    BHSSU::tempC16.set(OTV0P2BASE::TemperatureC16Mock::DEFAULT_INVALID_TEMP);
+    BHSSU::rh.set(0, false);
+
     const uint8_t unset = OTV0P2BASE::NVByHourByteStatsBase::UNSET_BYTE;
 
     // Set (arbitrary) initial time.

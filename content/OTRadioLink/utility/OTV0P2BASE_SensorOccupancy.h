@@ -69,6 +69,10 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
   public:
     PseudoSensorOccupancyTracker() : occupationCountdownM(0), activityCountdownM(0), vacancyH(0), vacancyM(0) { }
 
+    // Clears current occupancy and activity measures.
+    // Primarily for testing.
+    void reset() { value = 0; occupationCountdownM = 0; activityCountdownM = 0; vacancyH = 0; vacancyM = 0; }
+
     // Force a read/poll of the occupancy and return the % likely occupied [0,100].
     // Potentially expensive/slow.
     // Not thread-safe nor usable within ISRs (Interrupt Service Routines).

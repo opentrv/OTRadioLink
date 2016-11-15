@@ -270,8 +270,9 @@ OTV0P2BASE::serialPrintlnAndFlush();
       {
 //V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("  initWaiting");
 
+      // Postpone pin withdraw after power-up.
       // Assume 2s between calls to poll().
-      if(perState.initWaiting.ticksWaited < initialRetractDelay_s/2) { ++perState.initWaiting.ticksWaited; break; } // Postpone pin withdraw after power-up.
+      if(perState.initWaiting.ticksWaited < initialRetractDelay_s/2) { ++perState.initWaiting.ticksWaited; break; }
 
       // Tactile feedback and ensure that the motor is left stopped.
       // Should also allow calibration of the shaft-encoder outputs, ie [min.max].
@@ -300,14 +301,16 @@ OTV0P2BASE::serialPrintlnAndFlush();
           }
 
       // Once end-stop has been hit, move to state to wait for user signal and then start calibration.
+      // TODO: possibly require multiple attempts, as elsewhere, to be sure of full withdraw, and better set up for calibration.
 
       // Run cautiously while supply voltage low to try to avoid browning out.
       const bool low = ((NULL != lowBattOpt) && ((0 == lowBattOpt->read()) || lowBattOpt->isSupplyVoltageLow()));
 
-      if(runTowardsEndStop(true, low))
+      if(!runTowardsEndStop(true, low)) { perState.valvePinWithdrawing.endStopHitCount = 0; }
+      else if(++perState.valvePinWithdrawing.endStopHitCount >= maxEndStopHitsToBeConfident)
           {
           // Note that the valve is now fully open.
-          resetPosition(true, true); // Regard as tentative.
+          hitEndstop(true);
           changeState(valvePinWithdrawn);
           }
 
@@ -383,15 +386,21 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
       // If not apparently yet at end-stop
       // (ie not at correct end stop or with spurious unreconciled ticks)
       // then try again to run to end-stop.
-      // If end-stop is hit then reset positional values.
-      // Only really believe the end-stop hit when running slowly.
-      const bool tentative = tentativelyAtEndstop(binaryOpen, currentPC);
-      // Try running fast if not tentative from previous step, and end up tentative.
-      if(!tentative && runTowardsEndStop(binaryOpen, low)) { resetPosition(binaryOpen, true); }
-      // Else follow tentative by running slow to attempt to seat the valve securely.
-      else if(runTowardsEndStop(binaryOpen)) { resetPosition(binaryOpen, false); }
-      // Re-estimate intermediate position.
-      else { recomputePosition(); }
+      // If end-stop is (really) hit then reset positional values.
+      if(!runTowardsEndStop(binaryOpen, low))
+          {
+          // Definitely not at end-stop.
+          perState.valveNormal.endStopHitCount = 0;
+          // Re-estimate intermediate position; does not ever move right to end-stops.
+          recomputeIntermediatePosition();
+          }
+      else if(++perState.valveNormal.endStopHitCount >= maxEndStopHitsToBeConfident)
+          {
+          // Note that end-stop is now really hit.
+          hitEndstop(binaryOpen);
+          // Reset for next time.
+          perState.valveNormal.endStopHitCount = 0;
+          }
 
       break;
       }
@@ -433,8 +442,10 @@ bool CurrentSenseValveMotorDirect::do_valveCalibrating_prop()
       return(true);
       }
 
-//    // Maximum number of consecutive end-stop hits to trust that stop has really been hit...
-//    static constexpr uint8_t maxEndStopHitsToBelieveIt = 3;
+    // Maximum number of consecutive end-stop hits to trust that the stop has really been hit; strictly positive.
+    // Spurious apparent stalls may be caused by dirt, etc.
+    // This can be a higher figure/confidence than required during normal running.
+    static constexpr uint8_t maxEndStopHitsToBeConfidentWhenCalibrating = maxEndStopHitsToBeConfident + 1;
 
     // Select activity based on micro-state.
     switch(perState.valveCalibrating.calibState)
@@ -452,7 +463,8 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("+calibrating");
       case 1:
         {
         // Run fast to fully retracted (easy to fit, nominally valve fully open).
-        if(runFastTowardsEndStop(true))
+        if(!runFastTowardsEndStop(true)) { perState.valveCalibrating.endStopHitCount = 0; }
+        else if(++perState.valveCalibrating.endStopHitCount >= maxEndStopHitsToBeConfidentWhenCalibrating)
           {
           // Reset tick count.
           ticksFromOpen = 0;
@@ -471,7 +483,8 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("+calibrating");
           {
           // Once end-stop has been hit, capture run length and prepare to run in opposite direction.
           // Try to be robust in face of transient current spikes.
-          if(runTowardsEndStop(false))
+          if(!runTowardsEndStop(false)) { perState.valveCalibrating.endStopHitCount = 0; }
+          else if(++perState.valveCalibrating.endStopHitCount >= maxEndStopHitsToBeConfidentWhenCalibrating)
             {
             const uint16_t tfotc = ticksFromOpen;
             perState.valveCalibrating.ticksFromOpenToClosed = tfotc;
@@ -491,21 +504,18 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("+calibrating");
           {
           // Once end-stop has been hit, capture run length and prepare to run in opposite direction.
           // Try to be robust in face of transient current spikes.
-          if(runTowardsEndStop(true))
+          if(!runTowardsEndStop(true)) { perState.valveCalibrating.endStopHitCount = 0; }
+          else if(++perState.valveCalibrating.endStopHitCount >= maxEndStopHitsToBeConfidentWhenCalibrating)
             {
             const uint16_t tfcto = ticksReverse;
-            // Help avoid premature termination of this direction
-            // by NOT terminating this run if much shorter than run in other direction.
-            if(tfcto >= (perState.valveCalibrating.ticksFromOpenToClosed >> 1))
-              {
-              perState.valveCalibrating.ticksFromClosedToOpen = tfcto;
-              // Reset tick count.
-              ticksFromOpen = 0;
-              ticksReverse = 0;
-              perState.valveCalibrating.wallclock2sTicks = 0;
-              ++perState.valveCalibrating.calibState; // Move to next micro state.
-              }
-            break; // In all cases when end-stop hit don't try to run further in this sub-cycle.
+            perState.valveCalibrating.ticksFromClosedToOpen = tfcto;
+            // Reset tick count.
+            ticksFromOpen = 0;
+            ticksReverse = 0;
+//            perState.valveCalibrating.wallclock2sTicks = 0;
+//            perState.valveCalibrating.endStopHitCount = 0;
+            ++perState.valveCalibrating.calibState; // Move to next micro state.
+            break;
             }
           } while(getSubCycleTimeFn() <= computeSctAbsLimitDR());
         break;
@@ -540,7 +550,7 @@ OTV0P2BASE::serialPrintlnAndFlush();
 
         // Move to normal valve running state, even if calibration calculation failed.
         needsRecalibrating = false;
-        resetPosition(true); // Valve is currently fully open.
+        hitEndstop(true); // Valve is currently fully open.
         changeState(valveNormal);
         return(true);
         }
@@ -570,9 +580,8 @@ bool CurrentSenseValveMotorDirect::do_valveNormal_prop()
       }
 
     // If in non-proportional mode
-    // then fall back to non-prop behaviour.
-    if(inNonProportionalMode())
-        { return(false); } // Fall through.
+    // then fall through to non-prop behaviour.
+    if(inNonProportionalMode()) { return(false); }
 
     // If the desired target is close to either end
     // then fall back to non-prop behaviour and hit the end stops (fast) instead.
@@ -586,7 +595,8 @@ bool CurrentSenseValveMotorDirect::do_valveNormal_prop()
     if((targetPC >= upperPropLimit) || (targetPC <= lowerPropLimit))
         { return(false); } // Fall through to 'binary' mode code..
 
-    // If close enough to the target position then stay as is and leave poll().
+    // If close enough to the target position (and not since targeting end-stops)
+    // then stay as is and leave poll().
     // Carefully avoid overflow/underflow in comparison.
     if(((targetPC >= currentPC) && (targetPC <= currentPC + eps)) ||
        ((currentPC >= targetPC) && (currentPC <= targetPC + eps)))
@@ -598,13 +608,19 @@ bool CurrentSenseValveMotorDirect::do_valveNormal_prop()
       {
       // TODO: use shaft encoder positioning by preference, ie when available.
       const bool hitEndStop = runTowardsEndStop(true);
-      recomputePosition();
+      recomputeIntermediatePosition();
       // Hitting the end-stop is unexpected.
       if(hitEndStop)
         {
         if(currentPC < upperPropLimit - weps) { reportTrackingError(); }
         // Silently auto-adjust when end-stop hit close to expected position.
-        resetPosition(true, true);
+        if(++perState.valveNormal.endStopHitCount >= maxEndStopHitsToBeConfident)
+            {
+            // Record really at end-stop.
+            hitEndstop(true);
+            // Zero count for next time.
+            perState.valveNormal.endStopHitCount = 0;
+            }
         }
 #if 0 && defined(V0P2BASE_DEBUG)
 V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("->");
@@ -615,13 +631,19 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("->");
       {
       // TODO: use shaft encoder positioning by preference, ie when available.
       const bool hitEndStop = runTowardsEndStop(false);
-      recomputePosition();
+      recomputeIntermediatePosition();
       // Hitting the end-stop is unexpected.
       if(hitEndStop)
         {
         if(currentPC > lowerPropLimit + weps) { reportTrackingError(); }
         // Silently auto-adjust when end-stop hit close to expected position.
-        resetPosition(false, true);
+        if(++perState.valveNormal.endStopHitCount >= maxEndStopHitsToBeConfident)
+            {
+            // Record really at end-stop.
+            hitEndstop(false);
+            // Zero count for next time.
+            perState.valveNormal.endStopHitCount = 0;
+            }
         }
 #if 0 && defined(V0P2BASE_DEBUG)
 V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("-<");

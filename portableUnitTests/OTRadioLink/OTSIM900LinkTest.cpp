@@ -190,6 +190,9 @@ TEST(OTSIM900Link,basicsSimpleSimulator)
 
     srandom((unsigned)::testing::UnitTest::GetInstance()->random_seed()); // Seed random() for use in simulator; --gtest_shuffle will force it to change.
 
+    // Reset static state to make tests re-runnable.
+    B1::GoodSimulator::haveSeenCommandStart = false;
+
     // Vector of bools containing states to check. This covers all states expected in normal use. RESET and PANIC are not covered.
     std::vector<bool> statesChecked(OTSIM900Link::RESET, false);
     // Message to send.
@@ -309,6 +312,9 @@ TEST(OTSIM900Link,GarbageTestSimulator)
     // Seed random() for use in simulator; --gtest_shuffle will force it to change.
     srandom((unsigned) ::testing::UnitTest::GetInstance()->random_seed());
 
+    // Reset static state to make tests re-runnable.
+    B2::GarbageSimulator::haveSeenCommandStart = false;
+
     // Vector of bools containing states to check. This covers all states expected in normal use. RESET and PANIC are not covered.
     std::vector<bool> statesChecked(OTSIM900Link::RESET, false);
     // Message to send.
@@ -319,7 +325,6 @@ TEST(OTSIM900Link,GarbageTestSimulator)
     const char SIM900_UDP_PORT[] = "9999";
     const OTSIM900Link::OTSIM900LinkConfig_t SIM900Config(false, SIM900_PIN, SIM900_APN, SIM900_UDP_ADDR, SIM900_UDP_PORT);
     const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
-
 
     ASSERT_FALSE(B2::GarbageSimulator::haveSeenCommandStart);
     OTSIM900Link::OTSIM900Link<0, 0, 0, B2::GarbageSimulator> l0;

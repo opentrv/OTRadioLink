@@ -255,11 +255,18 @@ class DummyHardwareDriverHitEndstop : public OTRadValve::HardwareMotorDriverInte
   };
 
 
-
-// This aims to simulate a real valve to a small degree.
+// This aims to simulate a real imperfect valve and driver to a small degree.
 //
-// TODO: In particular this emulates the fact that pushing the pin closed is harder and slower than withdrawing.
-// TODO: This also emulates random spikes/noise, eg premature current rise when moving valve fast.
+// In particular this emulates the fact that extending the pin,
+// thus pushing the valve closed, is harder and slower than withdrawing/opening,
+// as during closure the pin starts to work against the spring in the valve base.
+// This emulates withdrawing/opening at a constant maximal speed (thus distance per tick),
+// and that speed (ie distance per tick) starts to fall during valve closure
+// and is noticeably lower by the end of travel,
+// giving about a 20%--40% difference in run time in the two directions,
+// given some real data points from real TRV1 heads on real valve bases.
+//
+// Note: for real valves the drop-off in speed does not necessarily happen until pin engages some way towards closed.
 //
 // DHD20151025: one set of actual measurements during calibration:
 //    ticksFromOpenToClosed: 1529
@@ -269,6 +276,10 @@ class DummyHardwareDriverHitEndstop : public OTRadValve::HardwareMotorDriverInte
 // Check that a calibration instance can be reused correctly.
 //const uint16_t tfo2 = 1803U;
 //const uint16_t tfc2 = 1373U;
+//
+// This also emulates random spikes/noise,
+// eg premature current rise when moving valve fast,
+// leading to spurious end-stop detections.
 class HardwareDriverSim : public OTRadValve::HardwareMotorDriverInterface
   {
   public:
@@ -282,17 +293,34 @@ class HardwareDriverSim : public OTRadValve::HardwareMotorDriverInterface
       };
 
     // Nominal ticks for dead-reckoning full travel; strictly positive and >> 100.
+    // Does not apply in both directions if asymmetric, for example.
     static constexpr uint16_t nominalFullTravelTicks = 1500;
 
+    bool isAsymmetric() const { return(mode >= ASYMMETRIC_LOSSLESS); }
+
+    // Approximate (fixed) number of ticks to open when showing asymmetry, always nominalFullTravelTicks.
+    uint16_t getNominalTicksToOpen() const { return(nominalFullTravelTicks); }
+
+    // Approximate inflated number of ticks to close when showing asymmetry, else nominalFullTravelTicks.
+    uint16_t getNominalTicksToClosed() const { return(nominalFullTravelTicks + (isAsymmetric() ? ((nominalFullTravelTicks*asymPC)/100) : 0)); }
+
   private:
-    // Approx ticks per percent; strictly positive.
-    static constexpr uint16_t ticksPerPercent = nominalFullTravelTicks / 100;
+    // Approx ticks per percent (in the fixed direction); strictly positive.
+    static constexpr uint16_t nominalTicksPerPercent = nominalFullTravelTicks / 100;
 
     // Simulation mode.
     simType mode = SYMMETRIC_LOSSLESS;
 
     // Nominal percent open; initially zero (ie valve closed).
     uint8_t nominalPercentOpen = 0;
+
+    // Maximum asymmetry to apply as percentage reduction to smaller travel direction [0,50[.
+    static constexpr uint8_t maxAsymPC = 49;
+    // Minimum asymmetry to apply as percentage reduction to smaller travel direction [0,maxAsymPC[.
+    static constexpr uint8_t minAsymPC = 10;
+
+    // Asymmetry to apply this run, if emulating asymmetry.
+    uint8_t asymPC = (minAsymPC + maxAsymPC) / 2;
 
     // True when driving into an end stop.
     bool isDrivingIntoEndStop(const OTRadValve::HardwareMotorDriverInterface::motor_drive mdir) const
@@ -328,7 +356,7 @@ class HardwareDriverSim : public OTRadValve::HardwareMotorDriverInterface
       const bool isOpening = (OTRadValve::HardwareMotorDriverInterface::motorDriveOpening == dir);
 
       // Spin until hitting end-stop.
-      for(int remainingTicks = maxRunTicks; remainingTicks > 0; remainingTicks -= ticksPerPercent)
+      for(int remainingTicks = maxRunTicks; remainingTicks > 0; )
         {
         // Stop when driving into either end-stop.
         if(isDrivingIntoEndStop(dir))
@@ -337,21 +365,33 @@ class HardwareDriverSim : public OTRadValve::HardwareMotorDriverInterface
           return;
           }
 
-        if(ASYMMETRIC_NOISY == mode)
+        if(mode >= ASYMMETRIC_NOISY)
           {
           // In lossy mode, once in a while randomly,
           // produce a spurious high-current condition
           // and stop.
-          if(0 == (random() & 0x3f)) { callback.signalHittingEndStop(isOpening); return; }
+          if(0 == (random() & 0xff)) { callback.signalHittingEndStop(isOpening); return; }
           }
 
+        // Actual ticks per percent.
+        // The nominal amount for full travel in the open direction.
+        // The nominal amount rises linearly as full close approaches (ie nominalPercentOpen approaches 0).
+        const uint8_t actualTicksPerPercent = (isOpening || !isAsymmetric()) ? nominalTicksPerPercent
+            : (nominalTicksPerPercent + ((2UL*(100UL-nominalPercentOpen)*nominalTicksPerPercent*asymPC)/(100U*100U)));
+//        const uint8_t actualTicksPerPercent = nominalTicksPerPercent;
+
         // Simulate ticks for callback object.
-// TODO: inject some noise in ticks here in noisy modes.
-        for(int i = ticksPerPercent; --i >= 0; ) { callback.signalRunSCTTick(isOpening); }
+        // Inject some noise in ticks here in noisy modes.
+        const int8_t noise = ((0 == (random() & 1)) ? +1 : -1);
+        const uint8_t ticksToSimulate = actualTicksPerPercent + (mode >= ASYMMETRIC_NOISY ? noise : 0);
+        for(int i = ticksToSimulate; --i >= 0; ) { callback.signalRunSCTTick(isOpening); }
 
         // Update motor position.
         if(isOpening) { if(nominalPercentOpen < 100) { ++nominalPercentOpen; } }
         else { if(nominalPercentOpen > 0)  { --nominalPercentOpen; } }
+
+        // Stop when ticks have run out.
+        remainingTicks -= actualTicksPerPercent;
         }
       }
   };
@@ -406,8 +446,8 @@ static void initStateWalkthrough(OTRadValve::CurrentSenseValveMotorDirectBase *c
     EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::initWaiting, csv->_getState());
     for(int i = 100; --i > 0 && OTRadValve::CurrentSenseValveMotorDirect::initWaiting == csv->_getState(); ) { csv->poll(); }
     EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawing, csv->_getState());
-    // Fake hardware hits end-stop immediate, so leaves 'withdrawing' state.
-    csv->poll();
+    // Fake hardware hits end-stop immediate, so leaves 'withdrawing' state quickly.
+    for(int i = 100; --i > 0 && OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawing == csv->_getState(); ) { csv->poll(); }
     EXPECT_EQ(OTRadValve::CurrentSenseValveMotorDirect::valvePinWithdrawn, csv->_getState());
     EXPECT_LE(95, csv->getCurrentPC()) << "valve must now be fully open, or very nearly so";
     // Wait indefinitely for valve to be signalled that it has been fitted before starting operation...
@@ -467,7 +507,7 @@ TEST(CurrentSenseValveMotorDirect,initStateWalkthrough)
         }
 }
 
-// A good selection of imporant and boundary target radiator percernt-open values.
+// A good selection of important and boundary target radiator percent-open values.
 static const uint8_t targetValues[] = {
     0, 100, 99, 1, 95, 2, 25, 94, 50, 75, 100, 0, 100,
     OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN, OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN, OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN,
@@ -592,14 +632,25 @@ static void propControllerRobustness(OTRadValve::CurrentSenseValveMotorDirect *c
     {
     // Run up driver/valve into 'normal' state by signalling the valve is fitted until good things happen.
     // May take a few minutes but no more (at 30 polls/ticks per minute, 100 polls should be enough).
-    for(int i = 100; --i > 0 && !csv->isInNormalRunState(); ) { csv->signalValveFitted(); csv->poll(); }
+    for(int i = 100; --i > 0 && !csv->isInNormalRunState(); )
+        {
+        // When in 'withdrawn' state:
+        //   * Check that pain is actually fully withdrawn.
+        //   * Signal that the valve is fitted.
+        if(OTRadValve::CurrentSenseValveMotorDirectBase::valvePinWithdrawn == csv->_getState())
+            {
+            EXPECT_LE(100 - OTRadValve::CurrentSenseValveMotorDirectBase::absTolerancePC/2, simulator->getNominalPercentOpen());
+            csv->signalValveFitted();
+            }
+        csv->poll();
+        }
     EXPECT_FALSE(csv->isInErrorState());
     EXPECT_TRUE(csv->isInNormalRunState()) << csv->_getState();
 
     // Check logic's estimate of ticks here, eg from errors in calibration.
     // Note that asymmetric behaviour complicated things a little.
-    EXPECT_NEAR(csv->_getCP().getTicksFromOpenToClosed(), simulator->nominalFullTravelTicks, simulator->nominalFullTravelTicks / 4);
-    EXPECT_NEAR(csv->_getCP().getTicksFromClosedToOpen(), simulator->nominalFullTravelTicks, simulator->nominalFullTravelTicks / 4);
+    EXPECT_NEAR(csv->_getCP().getTicksFromOpenToClosed(), simulator->getNominalTicksToClosed(), simulator->nominalFullTravelTicks / 4);
+    EXPECT_NEAR(csv->_getCP().getTicksFromClosedToOpen(), simulator->getNominalTicksToOpen(), simulator->nominalFullTravelTicks / 4);
 
     // Target % values to try to reach.
     // Some are listed repeatedly to ensure no significant sticky state.
@@ -643,7 +694,7 @@ TEST(CurrentSenseValveMotorDirect,propControllerRobustness)
     const uint8_t subcycleTicksRoundedDown_ms = 7; // For REV7: OTV0P2BASE::SUBCYCLE_TICK_MS_RD.
     const uint8_t gsct_max = 255; // For REV7: OTV0P2BASE::GSCT_MAX.
     const uint8_t minimumMotorRunupTicks = 4; // For REV7: OTRadValve::ValveMotorDirectV1HardwareDriverBase::minMotorRunupTicks.
-const HardwareDriverSim::simType maxSupported = HardwareDriverSim::SYMMETRIC_LOSSLESS; // FIXME
+    const HardwareDriverSim::simType maxSupported = /* HardwareDriverSim::SYMMETRIC_LOSSLESS; // FIXME // */ HardwareDriverSim::ASYMMETRIC_NOISY;
     for(int d = 0; d <= maxSupported; ++d) // Which simulation mode.
         {
         // More realistic simulator.
