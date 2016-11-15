@@ -256,7 +256,7 @@ class DummyHardwareDriverHitEndstop : public OTRadValve::HardwareMotorDriverInte
 
 
 
-// This aims to simulate a real valve to a small degree.
+// This aims to simulate a real imperfect valve and driver to a small degree.
 //
 // In particular this emulates the fact that extending the pin,
 // thus pushing the valve closed, is harder and slower than withdrawing/opening,
@@ -278,7 +278,8 @@ class DummyHardwareDriverHitEndstop : public OTRadValve::HardwareMotorDriverInte
 //const uint16_t tfo2 = 1803U;
 //const uint16_t tfc2 = 1373U;
 //
-// This also emulates random spikes/noise, eg premature current rise when moving valve fast,
+// This also emulates random spikes/noise,
+// eg premature current rise when moving valve fast,
 // leading to spurious end-stop detections.
 class HardwareDriverSim : public OTRadValve::HardwareMotorDriverInterface
   {
