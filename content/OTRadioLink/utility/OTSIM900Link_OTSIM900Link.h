@@ -516,7 +516,7 @@ typedef const char *AT_t;
                             case RESET:
                                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*RESET")
                                 retryCounter = 0; // reset retry counter.
-                                if (!isSIM900Replying())
+                                if (isSIM900Replying())
                                     {
                                     bAvailable = true;
                                     bPowered = true;
