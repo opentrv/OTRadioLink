@@ -269,8 +269,7 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     // Returns true if valve is at an end stop.
     static constexpr bool isAtEndstop(const uint8_t valvePC) { return((0 == valvePC) || (100 == valvePC)); }
 
-    // Reset just current percent-open value, with optional 'tentative' marker.
-    // If 'tentative' then current position may be recorded as adjacent to, but not at, the end-stops.
+    // Reset just current percent-open value.
     void resetCurrentPC(bool hitEndstopOpen) { currentPC = hitEndstopOpen ? 100 : 0; }
 
     // Reset internal positional record when an end-stop is hit.
