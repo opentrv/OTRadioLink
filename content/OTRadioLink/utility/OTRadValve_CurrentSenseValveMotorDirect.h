@@ -200,18 +200,24 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
         uint8_t wallclock2sTicks; // read() calls counted at ~2s intervals.
         // Number of times that end-stop has apparently been hit in this direction this time.
         uint8_t endStopHitCount;
-        //        uint8_t runCount; // Completed round-trip calibration runs.
+        // uint8_t runCount; // Completed round-trip calibration runs.
         } valveCalibrating;
-        // State used while initially withdrawing pin.
+      // State used while initially withdrawing pin.
       struct
         {
-        // Measure of real time spent in current microstate.
+        // Measure of real time spent in current state.
         uint8_t wallclock2sTicks; // read() calls counted at ~2s intervals.
         // Number of times that end-stop has apparently been hit in this direction this time.
         uint8_t endStopHitCount;
         } valvePinWithdrawing;
       // State used while waiting for the valve to be fitted.
       struct { volatile bool valveFitted; } valvePinWithdrawn;
+      // State used in normal state.
+      struct
+        {
+        // Number of times that end-stop has apparently been hit in this direction this time.
+        uint8_t endStopHitCount;
+        } valveNormal;
       } perState;
     inline void clearPerState() { if(sizeof(perState) > 0) { memset(&perState, 0, sizeof(perState)); } }
 
