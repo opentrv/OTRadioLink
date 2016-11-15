@@ -255,7 +255,6 @@ class DummyHardwareDriverHitEndstop : public OTRadValve::HardwareMotorDriverInte
   };
 
 
-
 // This aims to simulate a real imperfect valve and driver to a small degree.
 //
 // In particular this emulates the fact that extending the pin,
