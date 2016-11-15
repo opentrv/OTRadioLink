@@ -427,7 +427,7 @@ class ResetSimulator final : public Stream
             if(verbose) { fprintf(stderr, "command received: %s\n", command.c_str()); }
             if("AT" == command) { reply = "AT\r\n\r\nOK\r\n"; }// Relevant states: GET_STATE, RETRY_GET_STATE, START_UP
             else if (sim900LinkState < OTSIM900Link::IDLE)  { prepareSIM900(); } // 9 corresponds to IDLE
-            else if(!pdpDeact) {
+            else if(pdpDeact) {  // todo get pdpDeact working properly.
                     if("AT+CIPSTATUS" == command) { reply = "AT+CIPSTATUS\r\n\r\nOK\r\nSTATE: CONNECT OK\r\n"; }
                     else if("AT+CIPSEND=3" == command) { reply = "AT+CIPSEND=3\r\n\r\n>"; }  // Relevant states:  SENDING
                     else if("123" == command) { reply = "123\r\nSEND OK\r\n"; }  // Relevant states: SENDING
@@ -489,8 +489,15 @@ TEST(OTSIM900Link, ResetCardTest)
         // Queue a message to send. ResetSimulator should reply PDP DEACT which should trigger a reset.
         for( int i = 0; i < 300; i++) {
             l0.queueToSend((const uint8_t *)message, (uint8_t)sizeof(message)-1, (int8_t) 0, OTRadioLink::OTRadioLink::TXnormal);
-            for(int j = 0; j < 10; ++j) { statesChecked[l0._getState()] = true; l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
+            for(int j = 0; j < 10; ++j) { l0.poll(); if (!l0.isPowered()) break; }
+            if (!l0.isPowered()) break;
         }
+        // XXX (DE20161115) Can't get test to work properly as can't change the internal state of ResetSimulator
+        // I think it does successfully test one of the reset conditions though.
+        EXPECT_FALSE(l0.isPowered());
+        for(int i = 0; i < 20; ++i) { l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
+        EXPECT_TRUE(l0.isPowered());
+
 
 //        for(size_t i = 0; i <= OTSIM900Link::RESET; i++)
 //            { EXPECT_TRUE(statesChecked[i]) << "state " << i << " not seen."; } // Check what states have been seen.
