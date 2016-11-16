@@ -31,7 +31,7 @@ TEST(RadValveParams,paramBasics)
 {
     typedef OTRadValve::DEFAULT_ValveControlParameters defaultParams;
     const int F = defaultParams::FROST;
-    EXPECT_LT(0, F);
+    EXPECT_LE(4, F); // To avoid cold spots dipping below 0 and being frost-damaged.
     EXPECT_LE(OTRadValve::MIN_TARGET_C, F);
     EXPECT_GE(OTRadValve::MAX_TARGET_C, F);
     const int W = defaultParams::WARM;
@@ -43,7 +43,7 @@ TEST(RadValveParams,paramBasics)
 
     typedef OTRadValve::DEFAULT_DHW_ValveControlParameters DHWParams;
     const int DF = DHWParams::FROST;
-    EXPECT_LT(0, DF);
+    EXPECT_LE(4, DF); // To avoid cold spots dipping below 0 and being frost-damaged.
     EXPECT_LE(OTRadValve::MIN_TARGET_C, DF);
     EXPECT_GE(OTRadValve::MAX_TARGET_C, DF);
     const int DW = DHWParams::WARM;
@@ -51,5 +51,5 @@ TEST(RadValveParams,paramBasics)
     EXPECT_GE(OTRadValve::MAX_TARGET_C, DW);
     EXPECT_LE(DF, DW);
     EXPECT_LE(40, DW); // To be more than tepid.
-    EXPECT_GE(90, DW); // For safety.
+    EXPECT_GE(90, DW); // For safety, to avoid scalding.
 }
