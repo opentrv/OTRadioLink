@@ -26,7 +26,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 #include "OTRadValve_Parameters.h"
 
 
-// Some basic tests of sanity of parameter block.
+// Some basic tests of sanity of (room and DHW temperature) parameter block.
 TEST(RadValveParams,paramBasics)
 {
     typedef OTRadValve::DEFAULT_ValveControlParameters defaultParams;
@@ -35,6 +35,7 @@ TEST(RadValveParams,paramBasics)
     EXPECT_LE(OTRadValve::MIN_TARGET_C, F);
     EXPECT_GE(OTRadValve::MAX_TARGET_C, F);
     const int W = defaultParams::WARM;
+    EXPECT_NEAR(OTRadValve::SAFE_ROOM_TEMPERATURE, W, 3) << "default WARM must be 'safe'";
     EXPECT_LE(OTRadValve::MIN_TARGET_C, W);
     EXPECT_GE(OTRadValve::MAX_TARGET_C, W);
     EXPECT_LE(F, W);
@@ -49,5 +50,6 @@ TEST(RadValveParams,paramBasics)
     EXPECT_LE(OTRadValve::MIN_TARGET_C, DW);
     EXPECT_GE(OTRadValve::MAX_TARGET_C, DW);
     EXPECT_LE(DF, DW);
-    EXPECT_GE(90, W); // For safety.
+    EXPECT_LE(40, DW); // To be more than tepid.
+    EXPECT_GE(90, DW); // For safety.
 }
