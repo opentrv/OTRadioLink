@@ -54,7 +54,6 @@ def powerCycle(dev, post):
     line2 = dev.readline()
     print ("REV7: " + str(line2))
 
-    #if line1 == post or line2 == post:
     if line1.startswith(post) or line2.startswith(post):
         print ("REV7 found OK: " + repr(line2))
         return 1
@@ -158,7 +157,6 @@ def main(argv):
     id_REV7   = ''
     serNo_REV7 = argv[0] ## gets serial number form CLI argument
     post_REV11 = b'OpenTRV: board V0.2 REV11'
-    #post_REV7 = b'OpenTRV: board V0.2 REV7 2016/Mar/12 14:36:06\r\n'  ## standard REV7 post
     post_REV7 = b'OpenTRV: board V0.2 REV7'  ## standard REV7 post
     
 
@@ -166,8 +164,9 @@ def main(argv):
     #   This will probably involve sys and getopt
 
     # get key from csv
+    print("config_rev7_v2\n\n")
+    
     print ("--------------------------------Getting key")
-    #key_REV7 = 'K B '+getKey(KEYFILE, serNo_REV7)
     key_REV7 = getKey(KEYFILE, serNo_REV7)
     print(key_REV7) ## todo should be deleted to prevent people seeing key?
     
@@ -251,8 +250,6 @@ def main(argv):
     print("=======================power cycle REV7")
     powerCycle(rev7, post_REV7)
     # 3. wait for receive
-    #rev11.readlines(5)
-    #print(rev11.readlines(5))h
     print("=======================waiting for 7 lines/15 seconds REV11")
     start_time = time.time()
     lines_received = 0
@@ -266,23 +263,7 @@ def main(argv):
             match_found = True
             print ("<<<<match found>>>> " + line)
         lines_received += 1
-        
-    #rxString = rev11.readlines(10)
-    #for l in rxString:
-    #    print ('received from REV11: ' + repr(l))
-    #rxString = [x.decode() for x in rxString]
-    # 4. compare received strings
-    #rxString = next(x for x in rxString if x[0] == '{')
-    #rxIDmatches = rxString[6:22]
-    #rev7ID = id_REV7.replace(' ', '')
-    #rxIDmatches = [x for x in rxString if x[6:22] == rev7ID]
-    #print("rxID: ", end='')
-    #print(rxIDmatches)
-    #print(rev7ID)
-    #if rxID == rev7ID:  ## Hacked to force true as serial receive not implemented
-    #if len(rxIDmatches) >= 1:
-    #if True:
-    if match_found:
+            if match_found:
         print("*****************Success!" + "   " + serNo_REV7)
         # output csv stuff
         writeOut(OUTPUTFILE, serNo_REV7, key_REV7, id_REV7)
