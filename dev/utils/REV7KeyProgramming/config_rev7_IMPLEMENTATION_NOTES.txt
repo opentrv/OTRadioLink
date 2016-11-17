@@ -1,3 +1,5 @@
+**THE SCRIPT IS OUTDATED!!!**
+
 Program usage:
 - Can call directly from bash (ie no need for 'python3 '): ./config_rev7.py <serialno>
 - Input csv should not include 'K B ' in front of keys
@@ -29,6 +31,7 @@ RPi.GPIO with relay module:
 - GPIO.cleanup() to avoid error messages
 
 TODO:
+- Was originally written for a fixed .hex file. The check for the REV7 now fails.
 - Proper command line options when calling
 - Fix receiving serial from REV11 so that verification can be done automatically
 - Make more robust
