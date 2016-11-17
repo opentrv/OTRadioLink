@@ -65,7 +65,6 @@ TEST(TempControl,TRV1TempControlTempPotcomputeWARMTargetC)
     EXPECT_EQ(tsmid, OTRadValve::TempControlTempPot_computeWARMTargetC<TRV1ValveControlParameters>(approxMidPoint+1, loEndStop, hiEndStop));
 }
 
-
 // Test that temp-pot mid-point (eg for DORM1/TRV1) is sane.
 namespace MidSane
   {
@@ -108,7 +107,6 @@ TEST(TempControl,MidSane)
     EXPECT_FALSE(tctp1.isComfortTemperature(tsm)) << "mid point should be neither strongly ECO nor comfort";
     EXPECT_FALSE(tctp1.isEcoTemperature(tsm)) << "mid point should be neither strongly ECO nor comfort";
 }
-
 
 // Test for frost temperature response to high relative humidity (eg for DORM1/TRV1).
 namespace FROSTRH
