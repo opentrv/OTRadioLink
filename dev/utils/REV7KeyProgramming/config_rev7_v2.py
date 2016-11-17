@@ -164,7 +164,7 @@ def main(argv):
     #   This will probably involve sys and getopt
 
     # get key from csv
-    print("config_rev7_v2\n\n")
+    print("config_rev7_v3\n\n")
     
     print ("--------------------------------Getting key")
     key_REV7 = getKey(KEYFILE, serNo_REV7)
@@ -263,7 +263,7 @@ def main(argv):
             match_found = True
             print ("<<<<match found>>>> " + line)
         lines_received += 1
-            if match_found:
+    if match_found:
         print("*****************Success!" + "   " + serNo_REV7)
         # output csv stuff
         writeOut(OUTPUTFILE, serNo_REV7, key_REV7, id_REV7)
