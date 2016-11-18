@@ -6,7 +6,13 @@ import serial as ser
 import csv
 import sys
 
-pin_REV7  = 11             ## REV7 power pin
+### VERSION NUMBER.
+CONFIG_REV7_VERSION = 4
+
+
+### CONSTANTS
+pin_REV7  = 11             ## REV7 power pin. Uses GPIO in board mode (i.e. the Pi header pin number rather than the chip pin number)
+RESET_TIME = 9             ## Number of seconds to keep REV7 unpowered when resetting.
 
 # power on REV7
 def powerOn():
@@ -29,8 +35,15 @@ def waitForCLI(dev):
         counter = counter + 1
 
 def detect_USB0_is_REV7(dev, post):
+    """ Find out what serial device the REV7 is connected to.
+    Restarts REV7 and checks if POST is as expected.
+    
+    :param dev: pyserial instance to check for REV7.
+    :param post: String containing the POST.
+    :return: False if posts match, else True.
+    """
     powerOff()
-    time.sleep(0.5)
+    time.sleep(RESET_TIME)  # (DE20161118) Increased to ensure REV7 shuts down correctly.
     dev.flushInput()
     powerOn()
     time.sleep(0.5)
@@ -45,7 +58,7 @@ def detect_USB0_is_REV7(dev, post):
 # power cycle REV7
 def powerCycle(dev, post):
     powerOff()
-    time.sleep(1.5)
+    time.sleep(RESET_TIME)  # (DE20161118) Increased to ensure REV7 shuts down correctly.
     dev.flushInput()
     powerOn()
     time.sleep(0.5)
@@ -164,7 +177,7 @@ def main(argv):
     #   This will probably involve sys and getopt
 
     # get key from csv
-    print("config_rev7_v3\n\n")
+    print("config_rev7_v%d\n\n" % CONFIG_REV7_VERSION)
     
     print ("--------------------------------Getting key")
     key_REV7 = getKey(KEYFILE, serNo_REV7)
