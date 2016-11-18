@@ -344,7 +344,7 @@ TEST(OTSIM900Link,GarbageTestSimulator)
 // Simulate resetting the SIM900 due sending the maximum allowed value of message counter.
 namespace B3
 {
-const bool verbose = true;
+const bool verbose = false;
 
 // Gets the SIM900 to a ready to send state and then forces a reset.
 // First will stop responding, then will start up again and do sends.
@@ -659,7 +659,6 @@ TEST(OTSIM900Link, PDPDeactResetTest)
             for(int j = 0; j < 10; ++j) { if (!l0.isPowered()) break; l0.poll(); }
         }
         EXPECT_FALSE(l0.isPowered()) << "Expected l0.isPowered to be false.";
-        EXPECT_EQ(255, sendCounter)  << "Expected 255 messages sent.";
         l0.poll();
         EXPECT_EQ(OTSIM900Link::START_UP, l0._getState()) << "Expected state to be START_UP.";
         l0.poll();
