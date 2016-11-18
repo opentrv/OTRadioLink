@@ -30,7 +30,7 @@ def waitForCLI(dev):
 
 def detect_USB0_is_REV7(dev, post):
     powerOff()
-    time.sleep(0.5)
+    time.sleep(5)  # (DE20161118) Increased to ensure REV7 shuts down correctly.
     dev.flushInput()
     powerOn()
     time.sleep(0.5)
@@ -45,7 +45,7 @@ def detect_USB0_is_REV7(dev, post):
 # power cycle REV7
 def powerCycle(dev, post):
     powerOff()
-    time.sleep(1.5)
+    time.sleep(5)  # (DE20161118) Increased to ensure REV7 shuts down correctly.
     dev.flushInput()
     powerOn()
     time.sleep(0.5)
