@@ -9,7 +9,10 @@ import sys
 ### VERSION NUMBER.
 CONFIG_REV7_VERSION = 4
 
-pin_REV7  = 11             ## REV7 power pin
+
+### CONSTANTS
+pin_REV7  = 11             ## REV7 power pin. Uses GPIO in board mode (i.e. the Pi header pin number rather than the chip pin number)
+RESET_TIME = 9             ## Number of seconds to keep REV7 unpowered when resetting.
 
 # power on REV7
 def powerOn():
@@ -40,7 +43,7 @@ def detect_USB0_is_REV7(dev, post):
     :return: False if posts match, else True.
     """
     powerOff()
-    time.sleep(5)  # (DE20161118) Increased to ensure REV7 shuts down correctly.
+    time.sleep(RESET_TIME)  # (DE20161118) Increased to ensure REV7 shuts down correctly.
     dev.flushInput()
     powerOn()
     time.sleep(0.5)
@@ -55,7 +58,7 @@ def detect_USB0_is_REV7(dev, post):
 # power cycle REV7
 def powerCycle(dev, post):
     powerOff()
-    time.sleep(9)  # (DE20161118) Increased to ensure REV7 shuts down correctly.
+    time.sleep(RESET_TIME)  # (DE20161118) Increased to ensure REV7 shuts down correctly.
     dev.flushInput()
     powerOn()
     time.sleep(0.5)
