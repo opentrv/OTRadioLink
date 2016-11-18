@@ -264,7 +264,7 @@ TEST(ModelledRadValve,MRVSExtremes)
     //  AssertIsEqual(0, rs1.getVelocityC16PerTick());
     ASSERT_TRUE(!rs1.isFiltering);
 
-    // Test that soft setback works as expected to support dark-based quick setback.
+    // Test that soft setback (wide deadband) works as expected to support dark-based quick setback.
     // ENERGY SAVING RULE TEST (TODO-442 2a: "Setback in WARM mode must happen in dark (quick response) or long vacant room.")
     // Try a range of (whole-degree) offsets...
     for(int offset = -2; offset <= +2; ++offset)
@@ -296,7 +296,7 @@ if(verbose) { fprintf(stderr, "@ %d %d\n", offset, valvePCOpen); }
                 // In proportional range, ie fairly close to target.
 
                 // (Even well) below the half way mark the valve should only be closed
-                // with temperature moving in wrong direction and without soft setback.
+                // with temperature moving in wrong direction and without a wide deadband.
                 is3.setReferenceTemperatures(int_fast16_t((is3.targetTempC << 4) + 0x1));
                 OTRadValve::ModelledRadValveState rs3c;
                 valvePCOpen = 100;
@@ -307,13 +307,13 @@ if(verbose) { fprintf(stderr, "@ %d %d\n", offset, valvePCOpen); }
                 if(is3.widenDeadband) { EXPECT_EQ(100, valvePCOpen); } else { EXPECT_GT(100, valvePCOpen); }
 
                 // (Even well) above the half way mark the valve should only be opened
-                // with temperature moving in wrong direction and without soft setback.
+                // with temperature moving in wrong direction and without a wide deadband.
                 is3.setReferenceTemperatures(int_fast16_t((is3.targetTempC << 4) + 0xe));
                 OTRadValve::ModelledRadValveState rs3d;
                 valvePCOpen = 0;
                 rs3d.tick(valvePCOpen, is3);
                 EXPECT_EQ(0, valvePCOpen);
-// FIXME
+//// FIXME
 //                ++is3.refTempC16;
 //                rs3c.tick(valvePCOpen, is3);
 //                if(is3.widenDeadband) { EXPECT_EQ(0, valvePCOpen); } else { EXPECT_LT(0, valvePCOpen); }
