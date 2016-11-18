@@ -35,102 +35,120 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 // That is, check that pauses between turn up and turn down are enforced correctly.
 TEST(ModelledRadValve,UpDownDelay)
 {
-    OTRadValve::ModelledRadValveState rs;
-    ASSERT_FALSE(rs.isFiltering);
-    EXPECT_FALSE(rs.dontTurndown());
-    EXPECT_FALSE(rs.dontTurnup());
+    for(int ub = 0; ub <= 1; ++ub)
+        {
+        const bool useBAKE = (0 != ub);
 
-    // Attempt to cycle the valve back and forth between max open and max closed.
-    // Ensure that (without BAKE) there is a pause, and sufficient
+        OTRadValve::ModelledRadValveState rs;
+        ASSERT_FALSE(rs.isFiltering);
+        EXPECT_FALSE(rs.dontTurndown());
+        EXPECT_FALSE(rs.dontTurnup());
 
-    // Start with the valve fully open.
-    uint8_t valvePC = 100;
-    // Set sensible ambient room temperature (18C) and target of much higher.
-    OTRadValve::ModelledRadValveInputState is(18 << 4);
-    is.targetTempC = 25;
-    // Backfill entire temperature history to avoid filtering coming on.
-    rs._backfillTemperatures(rs.computeRawTemp16(is));
-    rs.tick(valvePC, is);
-    ASSERT_FALSE(rs.isFiltering);
-    // Valve should still be open fully.
-    EXPECT_EQ(100, valvePC);
-    // No turn up or turn down should yet be prohibited.
-    EXPECT_FALSE(rs.dontTurndown());
-    EXPECT_FALSE(rs.dontTurnup());
-    // Now set the target well below ambient, and spin again for a while.
-    // The valve should be closed and exactly 100% of cumulative travel recorded.
-    is.targetTempC = 14;
-    // Backfill entire temperature history to avoid filtering coming on.
-    rs._backfillTemperatures(rs.computeRawTemp16(is));
-    rs.tick(valvePC, is);
-    ASSERT_FALSE(rs.isFiltering);
-    // The valve should have started to close.
-    const uint8_t vPC1 = valvePC;
-    EXPECT_GT(100, valvePC);
-    // Immediate open (turn up) should be prohibited.
-    EXPECT_FALSE(rs.dontTurndown());
-    EXPECT_TRUE(rs.dontTurnup());
-    // Temporarily set the target well above ambient, and spin again for a while.
-    is.targetTempC = 32;
-    rs._backfillTemperatures(rs.computeRawTemp16(is));
-    rs.tick(valvePC, is);
-    // The valve should not open, because turn-up is prohibited.
-    EXPECT_EQ(vPC1, valvePC);
-    // Immediate open (turn up) should still be prohibited.
-    EXPECT_FALSE(rs.dontTurndown());
-    EXPECT_TRUE(rs.dontTurnup());
-    // Resume lower temperature and valve close.
-    is.targetTempC = 14;
-    rs._backfillTemperatures(rs.computeRawTemp16(is));
-    rs.tick(valvePC, is);
-    ASSERT_FALSE(rs.isFiltering);
-    // The valve should have resumed closing.
-    EXPECT_GT(vPC1, valvePC);
-    for(int i = 20; (--i > 0) && (valvePC > 0); ) { rs.tick(valvePC, is); ASSERT_FALSE(rs.isFiltering); }
-    EXPECT_EQ(0, valvePC);
-    // Immediate open (turn up) should still be prohibited.
-    EXPECT_FALSE(rs.dontTurndown());
-    EXPECT_TRUE(rs.dontTurnup());
-    for(int i = OTRadValve::DEFAULT_ANTISEEK_VALVE_REOPEN_DELAY_M+2; --i > 0; ) { rs.tick(valvePC, is); ASSERT_FALSE(rs.isFiltering); }
-    // No turn up or turn down should now be prohibited.
-    EXPECT_FALSE(rs.dontTurndown());
-    EXPECT_FALSE(rs.dontTurnup());
-    // Now set the target well above ambient again, and spin again for a while.
-    // The valve should be open and exactly 200% of cumulative travel recorded.
-    is.targetTempC = 21;
-    // Backfill entire temperature history to avoid filtering coming on.
-    rs._backfillTemperatures(rs.computeRawTemp16(is));
-    rs.tick(valvePC, is);
-    // The valve should have started to close.
-    const uint8_t vPC2 = valvePC;
-    EXPECT_LT(0, valvePC);
-    ASSERT_FALSE(rs.isFiltering);
-    // Temporarily set the target well below ambient, and spin again for a while.
-    is.targetTempC = 10;
-    rs._backfillTemperatures(rs.computeRawTemp16(is));
-    rs.tick(valvePC, is);
-    // The valve should not close, because turn-down is prohibited.
-    EXPECT_EQ(vPC2, valvePC);
-    // Immediate close (turn down) should still be prohibited.
-    EXPECT_TRUE(rs.dontTurndown());
-    EXPECT_FALSE(rs.dontTurnup());
-    // Resume higher temperature and valve close.
-    is.targetTempC = 22;
-    rs._backfillTemperatures(rs.computeRawTemp16(is));
-    rs.tick(valvePC, is);
-    ASSERT_FALSE(rs.isFiltering);
-    // The valve should have resumed opening.
-    EXPECT_LT(vPC2, valvePC);
-    for(int i = 20; (--i > 0) && (valvePC < 100); ) { rs.tick(valvePC, is); ASSERT_FALSE(rs.isFiltering); }
-    EXPECT_EQ(100, valvePC);
-    // Immediate close (turn down) should now be prohibited.
-    EXPECT_TRUE(rs.dontTurndown());
-    EXPECT_FALSE(rs.dontTurnup());
-    for(int i = OTRadValve::DEFAULT_ANTISEEK_VALVE_RECLOSE_DELAY_M+2; --i > 0; ) { rs.tick(valvePC, is); ASSERT_FALSE(rs.isFiltering); }
-    // No turn up or turn down should now be prohibited.
-    EXPECT_FALSE(rs.dontTurndown());
-    EXPECT_FALSE(rs.dontTurnup());
-// TODO: verify that BAKE can override turn-up prohibition.
+        // Attempt to cycle the valve back and forth between max open and max closed.
+        // Ensure that (without BAKE) there is a pause, and sufficient
+
+        // Start with the valve fully open.
+        uint8_t valvePC = 100;
+        // Set sensible ambient room temperature (18C) and target of much higher.
+        OTRadValve::ModelledRadValveInputState is(18 << 4);
+        is.targetTempC = 25;
+        // Backfill entire temperature history to avoid filtering coming on.
+        rs._backfillTemperatures(rs.computeRawTemp16(is));
+        rs.tick(valvePC, is);
+        ASSERT_FALSE(rs.isFiltering);
+        // Valve should still be open fully.
+        EXPECT_EQ(100, valvePC);
+        // No turn up or turn down should yet be prohibited.
+        EXPECT_FALSE(rs.dontTurndown());
+        EXPECT_FALSE(rs.dontTurnup());
+        // Now set the target well below ambient, and spin again for a while.
+        // The valve should be closed and exactly 100% of cumulative travel recorded.
+        is.targetTempC = 14;
+        // Backfill entire temperature history to avoid filtering coming on.
+        rs._backfillTemperatures(rs.computeRawTemp16(is));
+        rs.tick(valvePC, is);
+        ASSERT_FALSE(rs.isFiltering);
+        // The valve should have started to close.
+        const uint8_t vPC1 = valvePC;
+        EXPECT_GT(100, valvePC);
+        // Immediate open (turn up) should be prohibited.
+        EXPECT_FALSE(rs.dontTurndown());
+        EXPECT_TRUE(rs.dontTurnup());
+        // Temporarily set the target well above ambient, and spin again for a while.
+        is.targetTempC = 32;
+        rs._backfillTemperatures(rs.computeRawTemp16(is));
+        rs.tick(valvePC, is);
+        // The valve should not open, because turn-up is prohibited.
+        EXPECT_EQ(vPC1, valvePC);
+        // Immediate open (turn up) should still be prohibited.
+        EXPECT_FALSE(rs.dontTurndown());
+        EXPECT_TRUE(rs.dontTurnup());
+        EXPECT_TRUE(rs.dontTurnup());
+
+        if(useBAKE)
+            {
+            // Verify that BAKE can override turn-up prohibition.
+            is.inBakeMode = true;
+            rs.tick(valvePC, is);
+            EXPECT_EQ(100, valvePC) << " valve should have fully opened for BAKE regardless of dontTurnup()";
+            // Immediate open (turn up) should still nominally be prohibited.
+            EXPECT_TRUE(rs.dontTurnup());
+            // Turn down should now simultaneously be prohibited.
+            EXPECT_TRUE(rs.dontTurndown());
+            break;
+            }
+
+        // Resume lower temperature and valve close.
+        is.targetTempC = 14;
+        rs._backfillTemperatures(rs.computeRawTemp16(is));
+        rs.tick(valvePC, is);
+        ASSERT_FALSE(rs.isFiltering);
+        // The valve should have resumed closing.
+        EXPECT_GT(vPC1, valvePC);
+        for(int i = 20; (--i > 0) && (valvePC > 0); ) { rs.tick(valvePC, is); ASSERT_FALSE(rs.isFiltering); }
+        EXPECT_EQ(0, valvePC);
+        // Immediate open (turn up) should still be prohibited.
+        EXPECT_FALSE(rs.dontTurndown());
+        for(int i = OTRadValve::DEFAULT_ANTISEEK_VALVE_REOPEN_DELAY_M+2; --i > 0; ) { rs.tick(valvePC, is); ASSERT_FALSE(rs.isFiltering); }
+        // No turn up or turn down should now be prohibited.
+        EXPECT_FALSE(rs.dontTurndown());
+        EXPECT_FALSE(rs.dontTurnup());
+        // Now set the target well above ambient again, and spin again for a while.
+        // The valve should be open and exactly 200% of cumulative travel recorded.
+        is.targetTempC = 21;
+        // Backfill entire temperature history to avoid filtering coming on.
+        rs._backfillTemperatures(rs.computeRawTemp16(is));
+        rs.tick(valvePC, is);
+        // The valve should have started to close.
+        const uint8_t vPC2 = valvePC;
+        EXPECT_LT(0, valvePC);
+        ASSERT_FALSE(rs.isFiltering);
+        // Temporarily set the target well below ambient, and spin again for a while.
+        is.targetTempC = 10;
+        rs._backfillTemperatures(rs.computeRawTemp16(is));
+        rs.tick(valvePC, is);
+        // The valve should not close, because turn-down is prohibited.
+        EXPECT_EQ(vPC2, valvePC);
+        // Immediate close (turn down) should still be prohibited.
+        EXPECT_TRUE(rs.dontTurndown());
+        EXPECT_FALSE(rs.dontTurnup());
+        // Resume higher temperature and valve close.
+        is.targetTempC = 22;
+        rs._backfillTemperatures(rs.computeRawTemp16(is));
+        rs.tick(valvePC, is);
+        ASSERT_FALSE(rs.isFiltering);
+        // The valve should have resumed opening.
+        EXPECT_LT(vPC2, valvePC);
+        for(int i = 20; (--i > 0) && (valvePC < 100); ) { rs.tick(valvePC, is); ASSERT_FALSE(rs.isFiltering); }
+        EXPECT_EQ(100, valvePC);
+        // Immediate close (turn down) should now be prohibited.
+        EXPECT_TRUE(rs.dontTurndown());
+        EXPECT_FALSE(rs.dontTurnup());
+        for(int i = OTRadValve::DEFAULT_ANTISEEK_VALVE_RECLOSE_DELAY_M+2; --i > 0; ) { rs.tick(valvePC, is); ASSERT_FALSE(rs.isFiltering); }
+        // No turn up or turn down should now be prohibited.
+        EXPECT_FALSE(rs.dontTurndown());
+        EXPECT_FALSE(rs.dontTurnup());
+        }
 }
 
 // Test the basic behaviour of the cumulative movement counter.
