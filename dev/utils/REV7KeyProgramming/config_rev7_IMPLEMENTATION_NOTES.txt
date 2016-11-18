@@ -1,5 +1,3 @@
-**THE SCRIPT IS OUTDATED!!!**
-
 Program usage:
 - Can call directly from bash (ie no need for 'python3 '): ./config_rev7.py <serialno>
 - Input csv should not include 'K B ' in front of keys
@@ -11,10 +9,6 @@ Program usage:
 - Will eventually add support for proper options (e.g. set serial devices, input and output files).
     - Will use getopts module for this
 - Forces double write of key
-- Not verified as had trouble working out how to check properly:
-    - Comparison routine in place but forced to work.
-    - Having trouble reliably catching RXed messages on serial lines. Might be better with async serial io or longer timeouts?
-    - REV11 serial occasionally hangs, causing problems (I think this is due to REV11 UART going to sleep)
 - REQUIRES PYTHON 3.x
 
 PySerial:
@@ -31,14 +25,10 @@ RPi.GPIO with relay module:
 - GPIO.cleanup() to avoid error messages
 
 TODO:
-- Was originally written for a fixed .hex file. The check for the REV7 now fails.
 - Proper command line options when calling
-- Fix receiving serial from REV11 so that verification can be done automatically
-- Make more robust
-    - Check for exceptions
-    - Make sure inputs and received serial messages are in correct format
 - Unit tests?
-- Autodetect REV7s
 - Check if serial number/node id previously used?
-- Work out why I can't wake up the REV11 when its UART go to sleep
-- Uncomment bit that clears node association every time
+
+CHANGELOG
+    DE20161117: Added version numbering and changed to v2.
+    AB20161117: Fixed REV7 POST check to only read start (i.e. not date/time part of string)
