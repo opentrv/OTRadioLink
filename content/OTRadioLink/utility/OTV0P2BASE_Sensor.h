@@ -133,6 +133,7 @@ class Sensor
 class SimpleTSUint8Sensor : public Sensor<uint8_t>
   {
   protected:
+      // The current sensor value, as fetched/computed by read().
       volatile uint8_t value;
 
       // By default initialise the value to zero.
@@ -143,7 +144,7 @@ class SimpleTSUint8Sensor : public Sensor<uint8_t>
   public:
     // Return last value fetched by read(); undefined before first read().
     // Usually fast.
-    // Often likely to be thread-safe or usable within ISRs (Interrupt Service Routines),
+    // Likely to be thread-safe or usable within ISRs (Interrupt Service Routines),
     // BUT READ IMPLEMENTATION DOCUMENTATION BEFORE TREATING AS thread/ISR-safe.
     virtual uint8_t get() const override { return(value); }
   };
