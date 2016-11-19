@@ -444,6 +444,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
             // Restrict to a DEFAULT/minimal non-annoying setback if:
             //   in upper part of comfort range (and the room isn't very dark, eg in the dead of night TODO-1027)
             //   or if the room is likely occupied now
+            //   or if not lower part of ECO range and not dark and relative humidity is high with hysteresis (TODO-586)
             //   or if the room is not known to be dark and hasn't been vacant for a long time ie ~1d and is not in the very bottom range of occupancy (TODO-107, TODO-758)
             //      TODO POSSIBLY: limit to (say) 3--4h light time for when someone out but room daylit, but note that detecting occupancy will be harder too in daylight.
             //      TODO POSSIBLY: after ~3h vacancy AND apparent smoothed occupancy non-zero (so some can be detected) AND ambient light in top quartile or in middle of typical bright part of cycle (assume peak of daylight) then being lit is not enough to prevent a deeper setback.
@@ -463,6 +464,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
             const uint8_t minVacantAndDarkForFULLSetbackH = 2; // Hours; strictly positive, typically 1--4.
             const uint8_t setback = ((tempControl->isComfortTemperature(wt) && !ambLight->isRoomVeryDark()) ||
                                      occupancy->isLikelyOccupied() ||
+                                     ((NULL != relHumidityOpt) && !tempControl->isEcoTemperature(wt) && !ambLight->isRoomDark() && relHumidityOpt->isAvailable() && relHumidityOpt->isRHHighWithHyst()) ||
                                      (!longVacant && !ambLight->isRoomDark() && (hoursLessOccupiedThanThis > 4)) ||
                                      (!longVacant && !darkForHours && (hoursLessOccupiedThanNext >= thisHourNLOThreshold-1)) ||
                                      (!longVacant && schedule->isAnyScheduleOnWARMSoon())) ?
