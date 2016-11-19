@@ -161,6 +161,30 @@ namespace OTRadValve
         21  // Target WARM temperature for Comfort bias.
         > DEFAULT_ValveControlParameters;
 
+    // Slightly raised upper threshold compared to default so that range [18,21]
+    // (which includes recommended bedroom and living room temperatures)
+    // is in the central (non-ECO, non-confort) part of the range (TODO-1059).
+    // Proposed default radiator valve control parameters from TRV2.
+    typedef ValveControlParameters<
+        // Default frost-protection (minimum) temperatures in degrees C, strictly positive, in range [MIN_TARGET_C,MAX_TARGET_C].
+        // Setting frost temperatures at a level likely to protect (eg) fridge/freezers as well as water pipes.
+        // Note that 5C or below carries a risk of hypothermia: http://ipc.brookes.ac.uk/publications/pdf/Identifying_the_health_gain_from_retirement_housing.pdf
+        // Other parts of the room may be somewhat colder than where the sensor is, so aim a little over 5C.
+        // 14C avoids risk of raised blood pressure and is a generally safe and comfortable sleeping temperature.
+        // Note: BS EN 215:2004 S5.3.5 says maximum setting must be <= 32C, minimum in range [5C,12C].
+        // 15C+ may help avoid mould/mold risk from condensation, see: http://www.nea.org.uk/Resources/NEA/Publications/2013/Resource%20-%20Dealing%20with%20damp%20and%20condensation%20%28lo%20res%29.pdf
+        6,  // Target FROST temperature for ECO bias.
+        14, // Target FROST temperature for Comfort bias.
+
+        // Target 'warm' temperatures, strictly positive, in range [<frost+1>,MAX_TARGET_C].
+        // Set so that mid-point is close to 19C (BRE and others regard 19C as minimum comfort temperature)
+        // and half the scale will be below 19C and thus save ('eco') compared to typical UK room temperatures.
+        // (17/18 good for energy saving at ~1C below typical UK room temperatures of ~19C in 2012).
+        // Note: BS EN 215:2004 S5.3.5 says maximum setting must be <= 32C, minimum in range [5C,12C].
+        17, // Target WARM temperature for ECO bias.
+        22  // Target WARM temperature for Comfort bias.
+        > Proposed_DEFAULT_ValveControlParameters;
+
     // Typical DHW (Domestic Hot Water) valve control parameters.
     typedef ValveControlParameters<
         // Default frost-protection (minimum) temperatures in degrees C, strictly positive, in range [MIN_TARGET_C,MAX_TARGET_C].
