@@ -181,6 +181,8 @@ TEST(ModelledRadValve,cumulativeMovementPC)
 
 // Test the logic in ModelledRadValve as a whole for starting from extreme positions.
 // This is a mini-integration test as much to look for glue-logic issues as anything else.
+// In particular this would have caught the prior serious bug where something inappropriate
+// (the temperature target) was overwriting the % open value, and may catch other similar gross errors.
 // Test of ModelledRadValveComputeTargetTempBasic algorithm for computing the target temperature.
 namespace MRVEI
     {
