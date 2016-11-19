@@ -342,13 +342,14 @@ class ModelledRadValveComputeTargetTempBase
 template<
   class valveControlParameters,
   const ValveMode *const valveMode,
-  class TemperatureC16Base,             const TemperatureC16Base *const temperatureC16,
-  class TempControlBase,                const TempControlBase *const tempControl,
-  class PseudoSensorOccupancyTracker,   const PseudoSensorOccupancyTracker *const occupancy,
-  class SensorAmbientLightBase,         const SensorAmbientLightBase *const ambLight,
-  class ActuatorPhysicalUIBase,         const ActuatorPhysicalUIBase *const physicalUI,
-  class SimpleValveScheduleBase,        const SimpleValveScheduleBase *const schedule,
-  class NVByHourByteStatsBase,          const NVByHourByteStatsBase *const byHourStats,
+  class TemperatureC16Base,                     const TemperatureC16Base *const temperatureC16,
+  class TempControlBase,                        const TempControlBase *const tempControl,
+  class PseudoSensorOccupancyTracker,           const PseudoSensorOccupancyTracker *const occupancy,
+  class SensorAmbientLightBase,                 const SensorAmbientLightBase *const ambLight,
+  class ActuatorPhysicalUIBase,                 const ActuatorPhysicalUIBase *const physicalUI,
+  class SimpleValveScheduleBase,                const SimpleValveScheduleBase *const schedule,
+  class NVByHourByteStatsBase,                  const NVByHourByteStatsBase *const byHourStats,
+  class rh_t = OTV0P2BASE::HumiditySensorBase,  const rh_t *const relHumidityOpt = static_cast<const rh_t *>(NULL),
   bool (*const setbackLockout)() = ((bool(*)())NULL)
   >
 class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComputeTargetTempBase

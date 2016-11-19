@@ -331,7 +331,7 @@ class ByHourSimpleStatsUpdaterSampleStats final
       // Since these are known at compile time,
       // unused/dead code should simply not be generated.
 
-      if(NULL != ambLightOpt)
+      if((NULL != ambLightOpt) && ambLightOpt->isAvailable())
         {
         // Ambient light.
         const uint16_t ambLightV = OTV0P2BASE::fnmin(ambLightOpt->get(), (uint8_t)254); // Constrain value at top end to avoid 'not set' value.
@@ -341,7 +341,7 @@ class ByHourSimpleStatsUpdaterSampleStats final
             { simpleUpdateStatsPair(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_AMBLIGHT_BY_HOUR, hh, smartDivToU8(ambLightTotal, sc)); }
         }
 
-      if(NULL != tempC16Opt)
+      if((NULL != tempC16Opt) && tempC16Opt->isAvailable())
         {
         // Ambient (eg room) temperature in C*16 units.
         const int16_t tempC16 = tempC16Opt->get();
@@ -360,7 +360,7 @@ class ByHourSimpleStatsUpdaterSampleStats final
             }
         }
 
-      if(NULL != occupancyOpt)
+      if((NULL != occupancyOpt) && occupancyOpt->isAvailable())
         {
         // Occupancy percentage.
         const uint8_t occpc = occupancyOpt->get();
@@ -370,7 +370,7 @@ class ByHourSimpleStatsUpdaterSampleStats final
           { simpleUpdateStatsPair(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR, hh, smartDivToU8(occpcTotal, sc)); }
         }
 
-      if(NULL != humidityOpt)
+      if((NULL != humidityOpt) && (humidityOpt->isAvailable()))
         {
         // Relative humidity (RH%).
         const uint8_t rhpc = humidityOpt->get();

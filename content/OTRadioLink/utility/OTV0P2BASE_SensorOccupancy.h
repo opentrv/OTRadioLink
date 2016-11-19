@@ -44,13 +44,13 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     // Should probably be at least as long as, or a little longer than, the BAKE timeout.
     // Should probably be significantly shorter than normal 'learn' on time to allow savings from that in empty rooms.
     // Vales of 25, 50, 100 work well for the internal arithmetic.
-    static const uint8_t OCCUPATION_TIMEOUT_M = 50;
+    static constexpr uint8_t OCCUPATION_TIMEOUT_M = 50;
 
   private:
     // Threshold from 'likely' to 'probably'.  Not part of official API.
-    static const uint8_t OCCUPATION_TIMEOUT_LIKELY_M = ((OCCUPATION_TIMEOUT_M*2)/3);
+    static constexpr uint8_t OCCUPATION_TIMEOUT_LIKELY_M = ((OCCUPATION_TIMEOUT_M*2)/3);
     // Threshold from 'probably' to 'maybe'.  Not part of official API.
-    static const uint8_t OCCUPATION_TIMEOUT_MAYBE_M = OCCUPATION_TIMEOUT_LIKELY_M/2;
+    static constexpr uint8_t OCCUPATION_TIMEOUT_MAYBE_M = OCCUPATION_TIMEOUT_LIKELY_M/2;
 
     // Time until room regarded as unoccupied, in minutes; initially zero (ie treated as unoccupied at power-up).
     // Marked volatile for thread-safe lock-free non-read-modify-write access to byte-wide value.
@@ -71,7 +71,7 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
 
     // Clears current occupancy and activity measures.
     // Primarily for testing.
-    void reset() { value = 0; occupationCountdownM = 0; activityCountdownM = 0; vacancyH = 0; vacancyM = 0; }
+    void reset() { value = 0; occupationCountdownM.store(0); activityCountdownM.store(0); vacancyH = 0; vacancyM = 0; }
 
     // Force a read/poll of the occupancy and return the % likely occupied [0,100].
     // Potentially expensive/slow.
@@ -163,12 +163,12 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
 
     // Threshold hours above which room is considered long vacant.
     // At least 24h in order to allow once-daily room programmes (including pre-warm) to operate reliably.
-    static const uint8_t longVacantHThrH = 24;
+    static constexpr uint8_t longVacantHThrH = 24;
     // Threshold hours above which room is considered long long vacant.
     // Longer than longVacantHThrH but much less than 3 days to try to capture some weekend-absence savings.
     // ~8h less than 2d may capture full office energy savings for the whole day of Sunday
     // counting from from last occupancy at end of (working) day Friday for example.
-    static const uint8_t longLongVacantHThrH = 39;
+    static constexpr uint8_t longLongVacantHThrH = 39;
 
     // Returns true if room appears to have been vacant for over a day.
     // For a home or an office no sign of activity for this long suggests a weekend or a holiday for example.
@@ -196,13 +196,13 @@ class DummySensorOccupancyTracker final
   public:
     static void markAsOccupied() {} // Defined as NO-OP for convenience.
     static void markAsPossiblyOccupied() {} // Defined as NO-OP for convenience.
-    static bool isLikelyRecentlyOccupied() { return(false); }
-    static bool isLikelyOccupied() { return(false); }
-    static bool isLikelyUnoccupied() { return(false); }
-    static uint8_t twoBitOccValue() { return(0); }
-    static uint16_t getVacancyH() { return(0); }
-    static bool longVacant() { return(false); }
-    static bool longLongVacant() { return(false); }
+    constexpr static bool isLikelyRecentlyOccupied() { return(false); }
+    constexpr static bool isLikelyOccupied() { return(false); }
+    constexpr static bool isLikelyUnoccupied() { return(false); }
+    constexpr static uint8_t twoBitOccValue() { return(0); }
+    constexpr static uint16_t getVacancyH() { return(0); }
+    constexpr static bool longVacant() { return(false); }
+    constexpr static bool longLongVacant() { return(false); }
   };
 
 

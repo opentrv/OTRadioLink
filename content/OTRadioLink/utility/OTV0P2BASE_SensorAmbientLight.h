@@ -243,21 +243,21 @@ class DummySensorAmbientLight
   {
   public:
     // Not available, so always a 'dark' value.
-    static uint8_t get() { return(0); }
+    constexpr static uint8_t get() { return(0); }
 
     // Not available, so always returns false.
-    static bool isAvailable() { return(false); }
+    constexpr static bool isAvailable() { return(false); }
 
     // Unknown, so always false.
     // Thread-safe and usable within ISRs (Interrupt Service Routines).
-    static bool isRoomLit() { return(false); }
+    constexpr static bool isRoomLit() { return(false); }
 
     // Unknown, so always false.
     // Thread-safe and usable within ISRs (Interrupt Service Routines).
-    static bool isRoomDark() { return(false); }
+    constexpr static bool isRoomDark() { return(false); }
 
     // No sensor, so always zero.
-    static uint8_t getDarkMinutes() { return(0); }
+    constexpr static uint8_t getDarkMinutes() { return(0); }
   };
 
 

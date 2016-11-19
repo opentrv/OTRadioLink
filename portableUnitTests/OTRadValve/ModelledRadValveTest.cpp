@@ -214,10 +214,10 @@ TEST(ModelledRadValve,MRVExtremesInt)
         decltype(MRVEI::ambLight),                    &MRVEI::ambLight,
         decltype(MRVEI::physicalUI),                  &MRVEI::physicalUI,
         decltype(MRVEI::schedule),                    &MRVEI::schedule,
-        decltype(MRVEI::byHourStats),                 &MRVEI::byHourStats,
-        ((bool(*)())NULL)
+        decltype(MRVEI::byHourStats),                 &MRVEI::byHourStats
         > cttb;
-    OTRadValve::ModelledRadValve mrv(
+    OTRadValve::ModelledRadValve mrv
+      (
       &cttb,
       &MRVEI::valveMode,
       &MRVEI::tempControl,
@@ -428,8 +428,7 @@ TEST(ModelledRadValve,ModelledRadValveComputeTargetTempBasic)
         decltype(MRVCTTB::ambLight),                    &MRVCTTB::ambLight,
         decltype(MRVCTTB::physicalUI),                  &MRVCTTB::physicalUI,
         decltype(MRVCTTB::schedule),                    &MRVCTTB::schedule,
-        decltype(MRVCTTB::byHourStats),                 &MRVCTTB::byHourStats,
-        ((bool(*)())NULL)
+        decltype(MRVCTTB::byHourStats),                 &MRVCTTB::byHourStats
         > cttb0;
     EXPECT_FALSE(MRVCTTB::valveMode.inWarmMode());
     const uint8_t f = OTRadValve::DEFAULT_ValveControlParameters::FROST;

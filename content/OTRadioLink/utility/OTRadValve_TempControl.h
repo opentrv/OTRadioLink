@@ -208,7 +208,7 @@ template
   <
   class stpb_t /*= OTV0P2BASE::SensorTemperaturePotBase*/, const stpb_t *const tempPot,
   class valveControlParams,
-  class rh_t = OTV0P2BASE::HumiditySensorBase, const rh_t *rh = (const rh_t *)NULL
+  class rh_t = OTV0P2BASE::HumiditySensorBase, const rh_t *rh = static_cast<const rh_t *>(NULL)
   >
 class TempControlTempPot final : public TempControlSimpleVCP<valveControlParams>
   {
