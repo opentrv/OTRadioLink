@@ -172,3 +172,87 @@ TEST(JSONStats,JSONForTX)
 //  AssertIsTrueWithErr(l2o == l2, l2);
 //  AssertIsTrue(quickValidateRawSimpleJSONMessage(buf));
   }
+
+
+// This is used to size the stats generator and consistently extract values for it.
+// At least one sensor must be supplied.
+template<typename T1, typename ... Ts>
+class JSONStatsHolder final
+  {
+  private:
+    std::tuple<T1, Ts...> args;
+
+  public:
+    // Number of arguments/stats.
+    static constexpr size_t argCount = 1 + sizeof...(Ts);
+
+    // JSON generator.
+    typedef OTV0P2BASE::SimpleStatsRotation<OTV0P2BASE::fnmax((size_t)1,argCount)> ss_t;
+    ss_t ss;
+
+    // Construct an instance; though the template helper function is usually easier.
+    template <typename... Args>
+    JSONStatsHolder(Args&&... args) : args(std::forward<Args>(args)...)
+      {
+      static_assert(sizeof...(Args) > 0, "must take at least one arg");
+      }
+
+  private:
+    // Big thanks for template wrangling example to David Godfrey:
+    //     http://stackoverflow.com/questions/16868129/how-to-store-variadic-template-arguments
+    template <int... Ints>        struct index {};
+    template <int N, int... Ints> struct seq : seq<N - 1, N - 1, Ints...> {};
+    template <int... Ints>        struct seq<0, Ints...> : index<Ints...> {};
+    // Put...
+    template<typename T> void put(T s) { ss.put(s); }
+    template <typename... Args, int... Ints>
+    void putAllJSONArgs(std::tuple<Args...>& tup, index<Ints...>)
+        { put(std::get<Ints>(tup)...); }
+    template <typename... Args>
+    void putAllJSONArgs(std::tuple<Args...>& tup)
+        { putAllJSONArgs(tup, seq<sizeof...(Args)>{});  }
+    // Read...
+    template<typename T> void read(T s) { s.read(); }
+    template <typename... Args, int... Ints>
+    void readAllSensors(std::tuple<Args...>& tup, index<Ints...>)
+        { read(std::get<Ints>(tup)...); }
+    template <typename... Args>
+    void readAllSensors(std::tuple<Args...>& tup)
+        { readAllSensors(tup, seq<sizeof...(Args)>{});  }
+
+  public:
+    // Call read() on all sensors (usually done once, at initialisation.
+    void readAll() { readAllSensors(args); }
+    // Put all the attached sensor values into the stats object.
+    void putAll() { putAllJSONArgs(args); }
+  };
+
+// Helper to avoid having to spell out the types explicitly.
+template <typename... Args>
+constexpr JSONStatsHolder<Args...> makeJSONStatsHolder(Args&&... args)
+    { return(JSONStatsHolder<Args...>(std::forward<Args>(args)...)); }
+
+// Testing simplified argument passing and stats object sizing.
+namespace VJ
+  {
+  static OTV0P2BASE::HumiditySensorMock RelHumidity;
+  static auto ssh1 = makeJSONStatsHolder(RelHumidity);
+  }
+TEST(JSONStats,VariadicJSON)
+{
+    auto &ss1 = VJ::ssh1.ss;
+    const uint8_t c1 = ss1.getCapacity();
+    EXPECT_EQ(1, c1);
+    // Suppression the ID.
+    ss1.setID(V0p2_SENSOR_TAG_F(""));
+    // Disable the counter.
+    ss1.enableCount(false);
+    // Set the sensor to a known value.
+    VJ::RelHumidity.set(0);
+    VJ::ssh1.putAll();
+    char buf[OTV0P2BASE::MSG_JSON_MAX_LENGTH + 2]; // Allow for trailing '\0' and spare byte.
+    // Create minimal JSON message with no data content. just the (supplied) ID.
+    const uint8_t l1 = ss1.writeJSON((uint8_t*)buf, sizeof(buf), OTV0P2BASE::randRNG8());
+    EXPECT_EQ(9, l1) << buf;
+    EXPECT_STREQ(buf, "{\"H|%\":0}") << buf;
+}
