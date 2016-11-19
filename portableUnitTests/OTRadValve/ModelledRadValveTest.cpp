@@ -435,6 +435,7 @@ TEST(ModelledRadValve,MRVSOpenFastFromCold593)
 // Check that a sufficiently sharp drop in temperature
 // (when already below target temperature)
 // inhibits further heating at least partly for a while.
+// Note: in future there may exist variants with and without this detector.
 TEST(ModelledRadValve,DraughtDetectorSimple)
 {
     // If true then be more verbose.
@@ -443,14 +444,15 @@ TEST(ModelledRadValve,DraughtDetectorSimple)
     // Run the test a few times to help ensure no dependency on state of random generator, etc.
     for(int i = 8; --i >= 0; )
         {
-        // Test that if the real temperature is moderately-to-much below the target
-        // (allowing for any internal offsetting)
-        // and the initial valve position is anywhere [0,100]
-        // but the final temperature measurement shows a large drop
-        // (and ECO mode is enabled, and no fast response)
-        // after one tick
-        // the valve is open to less than DEFAULT_VALVE_PC_SAFER_OPEN
-        // to try to ensure no call for heat from the boiler.
+        // Test that:
+        // IF the real temperature is moderately-to-much below the target
+        //   (allowing for any internal offsetting)
+        //   and the initial valve position is anywhere [0,100]
+        //   but the final temperature measurement shows a large drop
+        //   (and ECO mode is enabled, and no fast response)
+        // THEN after one tick
+        //   the valve is open to less than DEFAULT_VALVE_PC_SAFER_OPEN
+        //   to try to ensure no call for heat from the boiler.
         //
         // Starting temp as a little below target.
         const uint8_t targetC = OTRadValve::SAFE_ROOM_TEMPERATURE;
