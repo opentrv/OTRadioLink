@@ -105,7 +105,7 @@ class RoomTemperatureC16_SHT21 final : public OTV0P2BASE::TemperatureC16Base
 #endif // ARDUINO_ARCH_AVR
 
 
-// Placeholder namespace with dummy static status methods to reduce code complexity.
+// Placeholder with dummy static status methods to reduce conditional-compilation complexity.
 class DummyHumiditySensorSHT21 final
   {
   public:
