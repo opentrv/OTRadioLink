@@ -178,6 +178,61 @@ TEST(ModelledRadValve,cumulativeMovementPC)
     EXPECT_EQ(200, rs.cumulativeMovementPC);
 }
 
+
+// Test the logic in ModelledRadValve as a whole for starting from extreme positions.
+// This is a mini-integration test as much to look for glue-logic issues as anything else.
+// Test of ModelledRadValveComputeTargetTempBasic algorithm for computing the target temperature.
+namespace MRVEI
+    {
+    // Instances with linkage to support the test.
+    static OTRadValve::ValveMode valveMode;
+    static OTV0P2BASE::TemperatureC16Mock roomTemp;
+    static OTRadValve::TempControlSimpleVCP<OTRadValve::DEFAULT_ValveControlParameters> tempControl;
+    static OTV0P2BASE::PseudoSensorOccupancyTracker occupancy;
+    static OTV0P2BASE::SensorAmbientLightMock ambLight;
+    static OTRadValve::NULLActuatorPhysicalUI physicalUI;
+    static OTV0P2BASE::NULLValveSchedule schedule;
+    static OTV0P2BASE::NULLByHourByteStats byHourStats;
+    }
+TEST(ModelledRadValve,MRVExtremesInt)
+{
+//    // If true then be more verbose.
+//    const static bool verbose = false;
+
+    // Reset static state to make tests re-runnable.
+    MRVEI::valveMode.setWarmModeDebounced(false);
+    MRVEI::roomTemp.set(OTV0P2BASE::TemperatureC16Mock::DEFAULT_INVALID_TEMP);
+    MRVEI::occupancy.reset();
+    MRVEI::ambLight.set(0, 0, false);
+
+    // Simple-as-possible instance.
+    OTRadValve::ModelledRadValveComputeTargetTempBasic<
+        OTRadValve::DEFAULT_ValveControlParameters,
+        &MRVEI::valveMode,
+        decltype(MRVEI::roomTemp),                    &MRVEI::roomTemp,
+        decltype(MRVEI::tempControl),                 &MRVEI::tempControl,
+        decltype(MRVEI::occupancy),                   &MRVEI::occupancy,
+        decltype(MRVEI::ambLight),                    &MRVEI::ambLight,
+        decltype(MRVEI::physicalUI),                  &MRVEI::physicalUI,
+        decltype(MRVEI::schedule),                    &MRVEI::schedule,
+        decltype(MRVEI::byHourStats),                 &MRVEI::byHourStats,
+        ((bool(*)())NULL)
+        > cttb;
+    OTRadValve::ModelledRadValve mrv(
+      &cttb,
+      &MRVEI::valveMode,
+      &MRVEI::tempControl,
+      NULL // No physical valve behind this test.
+      );
+
+    // Check a few parameters for sanity before the tests proper.
+    EXPECT_FALSE(mrv.inGlacialMode());
+    EXPECT_FALSE(mrv.isInErrorState());
+    EXPECT_TRUE(mrv.isInNormalRunState());
+
+}
+
+
 // Test the logic in ModelledRadValveState for starting from extreme positions.
 //
 // Adapted 2016/10/16 from test_VALVEMODEL.ino testMRVSExtremes().
