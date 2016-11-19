@@ -178,7 +178,6 @@ TEST(ModelledRadValve,cumulativeMovementPC)
     EXPECT_EQ(200, rs.cumulativeMovementPC);
 }
 
-
 // Test the logic in ModelledRadValve as a whole for starting from extreme positions.
 // This is a mini-integration test as much to look for glue-logic issues as anything else.
 // In particular this would have caught the prior serious bug where something inappropriate
@@ -198,9 +197,6 @@ namespace MRVEI
     }
 TEST(ModelledRadValve,MRVExtremesInt)
 {
-//    // If true then be more verbose.
-//    const static bool verbose = false;
-
     // Reset static state to make tests re-runnable.
     MRVEI::valveMode.setWarmModeDebounced(false);
     MRVEI::roomTemp.set(OTV0P2BASE::TemperatureC16Mock::DEFAULT_INVALID_TEMP);
@@ -249,7 +245,6 @@ TEST(ModelledRadValve,MRVExtremesInt)
     for(int i = 30; --i > 0; ) { mrv.read(); }
     EXPECT_EQ(0, mrv.get());
 }
-
 
 // Test the logic in ModelledRadValveState for starting from extreme positions.
 //
