@@ -206,8 +206,9 @@ TEST(ModelledRadValve,MRVExtremesInt)
     MRVEI::ambLight.set(0, 0, false);
 
     // Simple-as-possible instance.
+    typedef OTRadValve::DEFAULT_ValveControlParameters parameters;
     OTRadValve::ModelledRadValveComputeTargetTempBasic<
-        OTRadValve::DEFAULT_ValveControlParameters,
+       parameters,
         &MRVEI::valveMode,
         decltype(MRVEI::roomTemp),                    &MRVEI::roomTemp,
         decltype(MRVEI::tempControl),                 &MRVEI::tempControl,
@@ -230,6 +231,21 @@ TEST(ModelledRadValve,MRVExtremesInt)
     EXPECT_FALSE(mrv.isInErrorState());
     EXPECT_TRUE(mrv.isInNormalRunState());
 
+    // Set up a room well below temperature, but occupied and light, with the device in WARM mode.
+    MRVEI::valveMode.setWarmModeDebounced(true);
+    MRVEI::roomTemp.set(parameters::FROST << 4);
+    MRVEI::occupancy.markAsOccupied();
+    MRVEI::ambLight.set(255, 0, false);
+    // Spin for at most a few minutes (at one tick per minute) and the valve should be fully open.
+    for(int i = 10; --i > 0; ) { mrv.read(); }
+    EXPECT_EQ(100, mrv.get());
+
+    // Bring the room well over temperature, still occupied and light, and still in WARM mode.
+    MRVEI::roomTemp.set((parameters::TEMP_SCALE_MAX + 1) << 4);
+    // Spin for some minutes (at one tick per minute) and the valve should be fully closed.
+    // This may take longer than the previous response because of filtering and movement reduction algorithms.
+    for(int i = 30; --i > 0; ) { mrv.read(); }
+    EXPECT_EQ(0, mrv.get());
 }
 
 
