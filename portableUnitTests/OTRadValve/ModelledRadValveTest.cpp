@@ -241,9 +241,16 @@ TEST(ModelledRadValve,MRVExtremesInt)
     // Bring the room well over temperature, still occupied and light, and still in WARM mode.
     MRVEI::roomTemp.set((parameters::TEMP_SCALE_MAX + 1) << 4);
     // Spin for some minutes (at one tick per minute) and the valve should be fully closed.
-    // This may take longer than the previous response because of filtering and movement reduction algorithms.
+    // This may take longer than the first response because of filtering and movement reduction algorithms.
     for(int i = 30; --i > 0; ) { mrv.read(); }
     EXPECT_EQ(0, mrv.get());
+
+    // Bring the room well below temperature, still occupied and light, and still in WARM mode.
+    MRVEI::roomTemp.set(parameters::FROST << 4);
+    // Spin for some minutes (at one tick per minute) and the valve should be fully open.
+    // This may take longer than the first response because of filtering and movement reduction algorithms.
+    for(int i = 30; --i > 0; ) { mrv.read(); }
+    EXPECT_EQ(100, mrv.get());
 }
 
 // Test the logic in ModelledRadValveState for starting from extreme positions.
