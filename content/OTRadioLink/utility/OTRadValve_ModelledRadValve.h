@@ -451,18 +451,18 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
             //      TODO POSSIBLY: after ~3h vacancy AND apparent smoothed occupancy non-zero (so some can be detected) AND ambient light in top quartile or in middle of typical bright part of cycle (assume peak of daylight) then being lit is not enough to prevent a deeper setback.
             //   or if the room has not been dark for hours and is not in the very bottom range of occupancy (TODO-107, TODO-758)
             //   or if a scheduled WARM period is due soon and the room hasn't been vacant for a long time,
-            // else usually use a somewhat bigger 'ECO' setback
-            // else use an even bigger 'FULL' setback for maximum savings if in the eco region and
+            // else usually use a somewhat bigger ECO setback
+            // else use an even bigger FULL setback for maximum savings if in the ECO region and
             //   the room has been vacant for a very long time
             //   or is unlikely to be unoccupied at this time of day and
-            //     has been vacant and dark for a while or is in the lower part of the 'ECO' range.
+            //     has been vacant and dark for a while or is in the lower part of the ECO range.
             // This final dark/vacant timeout to enter FULL setback while in mild ECO mode
             // should probably be longer than required to watch a typical movie or go to sleep (~2h) for example,
             // but short enough to take effect overnight and to be in effect a reasonable fraction of a (~8h) night.
             //
             // Note: the FULL setback can only happen with an ECO bias.
             // Note: the setback is usually limited to minimum/default when at the top/comfort end of the range.
-            const uint8_t minVacantAndDarkForFULLSetbackH = 2; // Hours; strictly positive, typically 1--4.
+            constexpr uint8_t minVacantAndDarkForFULLSetbackH = 2; // Hours; strictly positive, typically 1--4.
             const uint8_t setback = ((tempControl->isComfortTemperature(wt) && !ambLight->isRoomVeryDark()) ||
                                      occupancy->isLikelyOccupied() ||
                                      (!longVacant && !isDark && !tempControl->isEcoTemperature(wt) && (NULL != relHumidityOpt) && relHumidityOpt->isAvailable() && relHumidityOpt->isRHHighWithHyst()) ||
