@@ -233,14 +233,11 @@ constexpr JSONStatsHolder<Args...> makeJSONStatsHolder(Args&&... args)
     { return(JSONStatsHolder<Args...>(std::forward<Args>(args)...)); }
 
 // Testing simplified argument passing and stats object sizing.
-namespace VJ
-  {
-  static OTV0P2BASE::HumiditySensorMock RelHumidity;
-  static auto ssh1 = makeJSONStatsHolder(RelHumidity);
-  }
 TEST(JSONStats,VariadicJSON)
 {
-    auto &ss1 = VJ::ssh1.ss;
+    static OTV0P2BASE::HumiditySensorMock RelHumidity;
+    static auto ssh1 = makeJSONStatsHolder(RelHumidity);
+    auto &ss1 = ssh1.ss;
     const uint8_t c1 = ss1.getCapacity();
     EXPECT_EQ(1, c1);
     // Suppression the ID.
@@ -248,8 +245,8 @@ TEST(JSONStats,VariadicJSON)
     // Disable the counter.
     ss1.enableCount(false);
     // Set the sensor to a known value.
-    VJ::RelHumidity.set(0);
-    VJ::ssh1.putAll();
+    RelHumidity.set(0);
+    ssh1.putAll();
     char buf[OTV0P2BASE::MSG_JSON_MAX_LENGTH + 2]; // Allow for trailing '\0' and spare byte.
     // Create minimal JSON message with no data content. just the (supplied) ID.
     const uint8_t l1 = ss1.writeJSON((uint8_t*)buf, sizeof(buf), OTV0P2BASE::randRNG8());
