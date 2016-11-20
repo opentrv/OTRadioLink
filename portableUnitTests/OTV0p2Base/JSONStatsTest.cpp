@@ -268,7 +268,7 @@ TEST(JSONStats,VariadicJSON2)
     ss2.enableCount(false);
     // Set the sensor to a known value.
     RelHumidity.set(0);
-    AmbLight.set(0);
+    AmbLight.set(42);
     char buf[OTV0P2BASE::MSG_JSON_MAX_LENGTH + 2]; // Allow for trailing '\0' and spare byte.
     // No sensor data so stats should be empty.
     const uint8_t l0 = ss2.writeJSON((uint8_t*)buf, sizeof(buf), OTV0P2BASE::randRNG8());
@@ -281,6 +281,17 @@ TEST(JSONStats,VariadicJSON2)
     EXPECT_EQ(2, ss2.size());
     // Create minimal JSON message with just the sensor data.
     const uint8_t l1 = ss2.writeJSON((uint8_t*)buf, sizeof(buf), OTV0P2BASE::randRNG8(), true);
-    EXPECT_EQ(15, l1) << buf;
-    EXPECT_TRUE((0 == strcmp(buf, "{\"H|%\":0,\"L\":0}")) || (0 == strcmp(buf, "{\"L\":0,\"H|%\":0}")));
+    EXPECT_EQ(16, l1) << buf;
+    EXPECT_TRUE((0 == strcmp(buf, "{\"H|%\":0,\"L\":42}")) || (0 == strcmp(buf, "{\"L\":42,\"H|%\":0}")));
+    // Ensure that updated values are visible after putOrRemoveAll().
+    RelHumidity.set(9);
+    AmbLight.set(41);
+    ASSERT_TRUE(ssh2.putOrRemoveAll()) << "all operations must succeed";
+    EXPECT_EQ(2, ss2.size());
+    const uint8_t l2 = ss2.writeJSON((uint8_t*)buf, sizeof(buf), OTV0P2BASE::randRNG8(), true);
+    EXPECT_EQ(16, l2) << buf;
+    EXPECT_TRUE((0 == strcmp(buf, "{\"H|%\":9,\"L\":41}")) || (0 == strcmp(buf, "{\"L\":41,\"H|%\":9}")));
+
+
+
 }
