@@ -55,11 +55,14 @@ typedef const char *Sensor_tag_t;
 #endif
 
 // Base sensor type.
-// Templated on sensor value type, typically uint8_t or uint16_t or int.
+// Templated on sensor value type, typically uint8_t or uint16_t or int16_t.
 template <class T>
 class Sensor
   {
   public:
+    // Type of sensed data.
+    typedef T data_t;
+
     // Force a read/poll of this sensor and return the value sensed.
     // May be expensive/slow.
     // Unlikely to be thread-safe or usable within ISRs (Interrupt Service Routines).
