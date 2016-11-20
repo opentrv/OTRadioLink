@@ -23,6 +23,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 #include <stdint.h>
 #include <gtest/gtest.h>
 #include <OTV0p2Base.h>
+#include <OTRadValve.h>
 
 
 // Test handling of JSON stats.
@@ -174,60 +175,29 @@ TEST(JSONStats,JSONForTX)
   }
 
 
-// This is used to size the stats generator and consistently extract values for it.
-// At least one sensor must be provided.
-template<typename T1, typename ... Ts>
-class JSONStatsHolder final
-  {
-  private:
-    std::tuple<T1, Ts...> args;
-
-  public:
-    // Number of arguments/stats.
-    static constexpr size_t argCount = 1 + sizeof...(Ts);
-
-    // JSON generator.
-    typedef OTV0P2BASE::SimpleStatsRotation<argCount> ss_t;
-    ss_t ss;
-
-    // Construct an instance; though the template helper function is usually easier.
-    template <typename... Args>
-    constexpr JSONStatsHolder(Args&&... args) : args(std::forward<Args>(args)...)
-      { static_assert(sizeof...(Args) > 0, "must take at least one arg"); }
-
-  private:
-    // Many thanks for template wrangling examples to David Godfrey and others:
-    //     http://stackoverflow.com/questions/16868129/how-to-store-variadic-template-arguments
-    //     http://stackoverflow.com/questions/8992853/terminating-function-template-recursion
-    template<std::size_t> struct Int2Type { };
-    // Put...
-    template<typename ... Args> bool putOrRemove(Int2Type<0>, std::tuple<Args...>& tup)
-        { return(ss.putOrRemove(std::get<0>(tup))); }
-    template<size_t I, typename ... Args> bool putOrRemove(Int2Type<I>, std::tuple<Args...>& tup)
-        { return(putOrRemove(Int2Type<I-1>(), tup) && ss.putOrRemove(std::get<I>(tup))); }
-    // Read...
-    template<typename ... Args> void read(Int2Type<0>, std::tuple<Args...>& tup)
-        { return((std::get<0>(tup)).read()); }
-    template<size_t I, typename ... Args> void read(Int2Type<I>, std::tuple<Args...>& tup)
-        { read(Int2Type<I-1>(), tup); (std::get<I>(tup)).read(); }
-
-  public:
-    // Call read() on all sensors; usually done once, at initialisation.
-    void readAll() { read(args); }
-    // Put all the attached isAvailable() sensor values into the stats object; remove those !isAvailable().
-    bool putOrRemoveAll() { return(putOrRemove(Int2Type<argCount-1>(), args)); }
-  };
-
-// Helper to avoid having to spell out the types explicitly.
-template <typename... Args>
-constexpr JSONStatsHolder<Args...> makeJSONStatsHolder(Args&&... args)
-    { return(JSONStatsHolder<Args...>(std::forward<Args>(args)...)); }
+// Testing stats object sizing with placeholders.
+TEST(JSONStats,VariadicJSON0)
+{
+    auto ssh0 = OTV0P2BASE::makeJSONStatsHolder(V0p2_SENSOR_TAG_F("mine"), 0);
+    auto &ss0 = ssh0.ss;
+    const uint8_t c0 = ss0.getCapacity();
+    EXPECT_EQ(2, c0);
+    EXPECT_FALSE(ss0.containsKey(V0p2_SENSOR_TAG_F("mine"))) << "not expected to be visible yet";
+    EXPECT_FALSE(ss0.containsKey(V0p2_SENSOR_TAG_F("O")));
+    EXPECT_FALSE(ss0.containsKey(V0p2_SENSOR_TAG_F("funky")));
+    EXPECT_EQ(0, ss0.size());
+    ASSERT_TRUE(ssh0.putOrRemoveAll()) << "all operations must succeed";
+    EXPECT_EQ(0, ss0.size()) << "placeholder should not get registered";
+    EXPECT_FALSE(ss0.containsKey(V0p2_SENSOR_TAG_F("mine"))) << "not expected to be visible even after put";
+    EXPECT_FALSE(ss0.containsKey(V0p2_SENSOR_TAG_F("O")));
+    EXPECT_FALSE(ss0.containsKey(V0p2_SENSOR_TAG_F("funky")));
+}
 
 // Testing simplified argument passing and stats object sizing.
 TEST(JSONStats,VariadicJSON1)
 {
-    static OTV0P2BASE::HumiditySensorMock RelHumidity;
-    static auto ssh1 = makeJSONStatsHolder(RelHumidity);
+    OTV0P2BASE::HumiditySensorMock RelHumidity;
+    auto ssh1 = OTV0P2BASE::makeJSONStatsHolder(RelHumidity);
     auto &ss1 = ssh1.ss;
     const uint8_t c1 = ss1.getCapacity();
     EXPECT_EQ(1, c1);
@@ -264,9 +234,9 @@ TEST(JSONStats,VariadicJSON1)
 // Testing simplified argument passing and stats object sizing.
 TEST(JSONStats,VariadicJSON2)
 {
-    static OTV0P2BASE::HumiditySensorMock RelHumidity;
-    static OTV0P2BASE::SensorAmbientLightMock AmbLight;
-    static auto ssh2 = makeJSONStatsHolder(AmbLight, RelHumidity);
+    OTV0P2BASE::HumiditySensorMock RelHumidity;
+    OTV0P2BASE::SensorAmbientLightMock AmbLight;
+    auto ssh2 = OTV0P2BASE::makeJSONStatsHolder(AmbLight, RelHumidity);
     auto &ss2 = ssh2.ss;
     const uint8_t c1 = ss2.getCapacity();
     EXPECT_EQ(2, c1);
@@ -302,25 +272,99 @@ TEST(JSONStats,VariadicJSON2)
 }
 
 //// Testing simplified argument passing with SubSensors.
-//TEST(JSONStats,SubSensors)
+//TEST(JSONStats,SubSensorsOcc)
 //{
 //    static OTV0P2BASE::PseudoSensorOccupancyTracker occupancy;
-//    static OTV0P2BASE::SensorAmbientLightMock AmbLight;
 //    static auto ssh3 = makeJSONStatsHolder(occupancy, occupancy.twoBitSubSensor, occupancy.vacHSubSensor);
-//    auto &ss3 = ssh3.ss;
-//    const uint8_t c3 = ss3.getCapacity();
+//    auto &ss = ssh3.ss;
+//    const uint8_t c3 = ss.getCapacity();
 //    EXPECT_EQ(3, c3);
 //    // Suppress the ID.
-//    ss3.setID(V0p2_SENSOR_TAG_F(""));
+//    ss.setID(V0p2_SENSOR_TAG_F(""));
 //    // Disable the counter.
-//    ss3.enableCount(false);
-//    // Check what is yet visible
-//    EXPECT_FALSE(ss3.containsKey(V0p2_SENSOR_TAG_F("occ|%"))) << "not expected to be visible yet";
-//    EXPECT_FALSE(ss3.containsKey(V0p2_SENSOR_TAG_F("O")));
-//    EXPECT_FALSE(ss3.containsKey(V0p2_SENSOR_TAG_F("vac|h")));
-//    EXPECT_FALSE(ss3.containsKey(V0p2_SENSOR_TAG_F("funky")));
-//    EXPECT_FALSE(ss3.containsKey(V0p2_SENSOR_TAG_F("")));
-//    EXPECT_EQ(0, ss3.size());
+//    ss.enableCount(false);
+//    // Check what is so far visible.
+//    EXPECT_FALSE(ss.containsKey(V0p2_SENSOR_TAG_F("occ|%"))) << "not expected to be visible yet";
+//    EXPECT_FALSE(ss.containsKey(V0p2_SENSOR_TAG_F("O")));
+//    EXPECT_FALSE(ss.containsKey(V0p2_SENSOR_TAG_F("vac|h")));
+//    EXPECT_FALSE(ss.containsKey(V0p2_SENSOR_TAG_F("funky")));
+//    EXPECT_FALSE(ss.containsKey(V0p2_SENSOR_TAG_F("")));
+//    EXPECT_EQ(0, ss.size());
 //    ASSERT_TRUE(ssh3.putOrRemoveAll()) << "all operations must succeed";
-//    EXPECT_EQ(3, ss3.size());
+//    EXPECT_EQ(3, ss.size());
 // }
+
+// Testing simplified argument passing with SubSensors.
+namespace SSMRV
+    {
+    // Instances with linkage to support the test.
+    static OTRadValve::ValveMode valveMode;
+    static OTV0P2BASE::TemperatureC16Mock roomTemp;
+    static OTRadValve::TempControlSimpleVCP<OTRadValve::DEFAULT_ValveControlParameters> tempControl;
+    static OTV0P2BASE::PseudoSensorOccupancyTracker occupancy;
+    static OTV0P2BASE::SensorAmbientLightMock ambLight;
+    static OTRadValve::NULLActuatorPhysicalUI physicalUI;
+    static OTV0P2BASE::NULLValveSchedule schedule;
+    static OTV0P2BASE::NULLByHourByteStats byHourStats;
+    }
+TEST(JSONStats,SubSensorsMRV)
+{
+    // Reset static state to make tests re-runnable.
+    SSMRV::valveMode.setWarmModeDebounced(false);
+    SSMRV::roomTemp.set(OTV0P2BASE::TemperatureC16Mock::DEFAULT_INVALID_TEMP);
+    SSMRV::occupancy.reset();
+    SSMRV::ambLight.set(0, 0, false);
+
+    // Simple-as-possible instance.
+    typedef OTRadValve::DEFAULT_ValveControlParameters parameters;
+    OTRadValve::ModelledRadValveComputeTargetTempBasic<
+       parameters,
+        &SSMRV::valveMode,
+        decltype(SSMRV::roomTemp),                    &SSMRV::roomTemp,
+        decltype(SSMRV::tempControl),                 &SSMRV::tempControl,
+        decltype(SSMRV::occupancy),                   &SSMRV::occupancy,
+        decltype(SSMRV::ambLight),                    &SSMRV::ambLight,
+        decltype(SSMRV::physicalUI),                  &SSMRV::physicalUI,
+        decltype(SSMRV::schedule),                    &SSMRV::schedule,
+        decltype(SSMRV::byHourStats),                 &SSMRV::byHourStats
+        > cttb;
+    OTRadValve::ModelledRadValve mrv
+      (
+      &cttb,
+      &SSMRV::valveMode,
+      &SSMRV::tempControl,
+      NULL // No physical valve behind this test.
+      );
+
+    auto ssh = OTV0P2BASE::makeJSONStatsHolder(
+        mrv, mrv.setbackSubSensor, mrv.targetTemperatureSubSensor, mrv.cumulativeMovementSubSensor);
+    auto &ss = ssh.ss;
+    const uint8_t c = ss.getCapacity();
+    EXPECT_EQ(4, c);
+    // Suppress the ID.
+    ss.setID(V0p2_SENSOR_TAG_F(""));
+    // Disable the counter.
+    ss.enableCount(false);
+    // Check what is so far visible.
+    EXPECT_FALSE(ss.containsKey(V0p2_SENSOR_TAG_F("funky")));
+    EXPECT_FALSE(ss.containsKey(V0p2_SENSOR_TAG_F("")));
+    EXPECT_FALSE(ss.containsKey(V0p2_SENSOR_TAG_F("v|%"))) << "not expected to be visible yet";
+    EXPECT_FALSE(ss.containsKey(V0p2_SENSOR_TAG_F("tS|C")));
+    EXPECT_FALSE(ss.containsKey(V0p2_SENSOR_TAG_F("tT|C")));
+    EXPECT_FALSE(ss.containsKey(V0p2_SENSOR_TAG_F("vC|%")));
+    EXPECT_EQ(0, ss.size());
+    ASSERT_TRUE(ssh.putOrRemoveAll()) << "all operations must succeed";
+    EXPECT_EQ(4, ss.size());
+    EXPECT_FALSE(ss.containsKey(V0p2_SENSOR_TAG_F("funky")));
+    EXPECT_FALSE(ss.containsKey(V0p2_SENSOR_TAG_F("")));
+    EXPECT_TRUE(ss.containsKey(V0p2_SENSOR_TAG_F("v|%"))) << "now expected to be visible";
+    EXPECT_TRUE(ss.containsKey(V0p2_SENSOR_TAG_F("tS|C")));
+    EXPECT_TRUE(ss.containsKey(V0p2_SENSOR_TAG_F("tT|C")));
+    EXPECT_TRUE(ss.containsKey(V0p2_SENSOR_TAG_F("vC|%")));
+
+    // Check priority of some of the stats.
+    EXPECT_FALSE(ss.isLowPriority(V0p2_SENSOR_TAG_F("v|%")));
+    EXPECT_TRUE(ss.isLowPriority(V0p2_SENSOR_TAG_F("tS|C")));
+    EXPECT_FALSE(ss.isLowPriority(V0p2_SENSOR_TAG_F("tT|C")));
+    EXPECT_TRUE(ss.isLowPriority(V0p2_SENSOR_TAG_F("vC|%")));
+ }

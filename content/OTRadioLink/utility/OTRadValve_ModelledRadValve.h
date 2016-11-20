@@ -199,9 +199,9 @@ struct ModelledRadValveState final
   // This is a useful as a measure of battery consumption (slewing the valve)
   // and noise generated (and thus disturbance to humans) and of appropriate control damping.
   //
-  // DHD20161109: due to possible g++ 4.9 bug,
+  // DHD20161109: due to possible g++ 4.9.x bug,
   // NOT kept as an unsigned 13-bit field (uint16_t x : 13),
-  // but as full unsigned 16-bit value anded with a make by the getter.
+  // but as full unsigned 16-bit value coerced to range after each update.
   //
   // The (masked) value doesn't wrap round to a negative value
   // and can safely be sent/received in JSON by hosts with 16-bit signed ints,
@@ -589,7 +589,10 @@ class ModelledRadValve final : public AbstractRadValve
         glacial(_defaultGlacial),
         maxPCOpen(OTV0P2BASE::fnmin(_maxPCOpen, (uint8_t)100U)),
         valveModeRW(_valveMode),
-        physicalDeviceOpt(_physicalDeviceOpt)
+        physicalDeviceOpt(_physicalDeviceOpt),
+        targetTemperatureSubSensor(inputState.targetTempC, V0p2_SENSOR_TAG_F("tT|C")),
+        setbackSubSensor(setbackC, V0p2_SENSOR_TAG_F("tS|C")),
+        cumulativeMovementSubSensor(retainedState.cumulativeMovementPC, V0p2_SENSOR_TAG_F("vC|%"))
       { }
 
     // Force a read/poll/recomputation of the target position and call for heat.
@@ -668,9 +671,13 @@ class ModelledRadValve final : public AbstractRadValve
     // Get target temperature in C as computed by computeTargetTemperature().
     uint8_t getTargetTempC() const { return(inputState.targetTempC); }
 
+    // DEPRECATED IN FAVOUR OF targetTemperatureSubSensor.tag().
     // Returns a suggested (JSON) tag/field/key name including units of getTargetTempC(); not NULL.
     // The lifetime of the pointed-to text must be at least that of this instance.
-    OTV0P2BASE::Sensor_tag_t tagTTC() const { return(V0p2_SENSOR_TAG_F("tT|C")); }
+    OTV0P2BASE::Sensor_tag_t tagTTC() const { return(targetTemperatureSubSensor.tag()); }
+
+    // Facade/sub-sensor for target temperature (in C), at normal priority.
+    const OTV0P2BASE::SubSensorSimpleRef<uint8_t, false> targetTemperatureSubSensor;
 
     // Get the current automated setback (if any) in the direction of energy saving in C; non-negative.
     // For heating this is the number of C below the nominal user-set target temperature
@@ -679,18 +686,26 @@ class ModelledRadValve final : public AbstractRadValve
     // Not ISR-/thread- safe.
     uint8_t getSetbackC() const { return(setbackC); }
 
+    // DEPRECATED IN FAVOUR OF setbackSubSensor.tag().
     // Returns a suggested (JSON) tag/field/key name including units of getSetbackC(); not NULL.
     // It would often be appropriate to mark this as low priority since depth of setback matters more than speed.
     // The lifetime of the pointed-to text must be at least that of this instance.
-    OTV0P2BASE::Sensor_tag_t tagTSC() const { return(V0p2_SENSOR_TAG_F("tS|C")); }
+    OTV0P2BASE::Sensor_tag_t tagTSC() const { return(setbackSubSensor.tag()); } // { return(V0p2_SENSOR_TAG_F("tS|C")); }
+
+    // Facade/sub-sensor for setback level (in C), at low priority.
+    const OTV0P2BASE::SubSensorSimpleRef<uint8_t> setbackSubSensor;
 
     // Get cumulative valve movement %; rolls at 8192 in range [0,8191], ie non-negative.
     // It would often be appropriate to mark this as low priority since it can be computed from valve positions.
-    uint16_t getCumulativeMovementPC() { return(0x1fff & retainedState.cumulativeMovementPC); }
+    uint16_t getCumulativeMovementPC() { return(retainedState.cumulativeMovementPC); }
 
+    // DEPRECATED IN FAVOUR OF cumulativeMovementSubSensor.tag().
     // Returns a suggested (JSON) tag/field/key name including units of getCumulativeMovementPC(); not NULL.
     // The lifetime of the pointed-to text must be at least that of this instance.
-    OTV0P2BASE::Sensor_tag_t tagCMPC() const { return(V0p2_SENSOR_TAG_F("vC|%")); }
+    OTV0P2BASE::Sensor_tag_t tagCMPC() const { return(cumulativeMovementSubSensor.tag()); }
+
+    // Facade/sub-sensor cumulative valve movement (in %), at low priority.
+    const OTV0P2BASE::SubSensorSimpleRef<uint16_t> cumulativeMovementSubSensor;
 
     // Return minimum valve percentage open to be considered actually/significantly open; [1,100].
     // This is a value that has to mean all controlled valves are at least partially open if more than one valve.

@@ -32,6 +32,23 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014--2016
 #include "OTV0P2BASE_Sensor.h"
 #include "OTV0P2BASE_Util.h"
 
+#if defined(ARDUINO) && (ARDUINO <= 10609)
+//// Kludge: minimal local definitions of some key STL that Arduino (up to 1.6.9) does not support.
+//// Amongst others thanks to:
+////    https://voidnish.wordpress.com/2013/07/13/tuple-implementation-via-variadic-templates/
+////    http://mitchnull.blogspot.co.uk/2012/06/c11-tuple-implementation-details-part-1.html
+//namespace std
+//    {
+//    typedef ::size_t size_t;
+//    // forward
+//    template<typename T> struct identity { typedef T type; };
+////    template<typename T> T&& forward(typename identity<T>::type& param) noexcept { return(static_cast<typename identity<T>::type&&>(param)); }
+//    template<typename T> T&& forward(typename identity<T>::type&& param) noexcept { return(static_cast<typename identity<T>::type&&>(param)); }
+//    }
+#else
+#include <utility>
+#endif // ARDUINO
+
 
 namespace OTV0P2BASE
 {
@@ -142,11 +159,6 @@ class BufPrint final : public Print
 class SimpleStatsRotationBase
   {
   public:
-    // Returns true if a stat with the specified key is currently in the stats set.
-    // Mainly for unit testing.
-    bool containsKey(const MSG_JSON_SimpleStatsKey_t key) const
-      { return(NULL != findByKey(key)); }
-
     // Create/update value for given stat/key.
     // If properties not already set and not supplied then stat will get defaults.
     // If descriptor is supplied then its key must match (and the descriptor will be copied).
@@ -222,6 +234,20 @@ class SimpleStatsRotationBase
     //       allowing them to continue to be treated as higher priority
     uint8_t writeJSON(uint8_t * const buf, const uint8_t bufSize, const uint8_t sensitivity,
                       const bool maximise = false, const bool suppressClearChanged = false);
+
+    // Returns true if a stat with the specified key is currently in the stats set.
+    // Mainly for unit testing.
+    bool containsKey(const MSG_JSON_SimpleStatsKey_t key) const
+      { return(NULL != findByKey(key)); }
+
+    // Returns true if the item exists and is marked as being low priority.
+    // Mainly for unit testing.
+    bool isLowPriority(const MSG_JSON_SimpleStatsKey_t key) const
+      {
+      DescValueTuple *const p = findByKey(key);
+      if(NULL == p) { return(false); }
+      return(p->descriptor.lowPriority);
+      }
 
   protected:
     struct DescValueTuple final
@@ -322,6 +348,68 @@ class SimpleStatsRotation final : public SimpleStatsRotationBase
     // Get capacity.
     uint8_t getCapacity() const { return(MaxStats); }
   };
+
+
+#if !defined(ARDUINO)
+// Helper class used to size the stats generator and easily extract sensor values for it.
+// At least one sensor must be provided.
+template<typename T1, typename ... Ts>
+class JSONStatsHolder final
+  {
+  private:
+    std::tuple<T1, Ts...> args;
+
+  public:
+    // Number of arguments/stats.
+    static constexpr size_t argCount = 1 + sizeof...(Ts);
+
+    // JSON generator.
+    typedef OTV0P2BASE::SimpleStatsRotation<argCount> ss_t;
+    ss_t ss;
+
+    // Construct an instance; though the template helper function is usually easier.
+    template <typename... Args>
+    constexpr JSONStatsHolder(Args&&... args) : args(std::forward<Args>(args)...)
+      { static_assert(sizeof...(Args) > 0, "must take at least one arg"); }
+
+  private:
+    // Many thanks for template wrangling examples to David Godfrey and others:
+    //     http://stackoverflow.com/questions/16868129/how-to-store-variadic-template-arguments
+    //     http://stackoverflow.com/questions/8992853/terminating-function-template-recursion
+    template<std::size_t> struct Int2Type { };
+    // Put...
+    // Ignore placeholder key or int entry.
+    bool _putOrRemove(int) { return(true); }
+    bool _putOrRemove(OTV0P2BASE::MSG_JSON_SimpleStatsKey_t) { return(true); }
+    // Accept/put Sensor (don't over-constrain the arg type else SubSensor etc may not be handled correctly).
+    template <class T> bool _putOrRemove(T &s) { return(ss.putOrRemove(s)); }
+    template<typename ... Args> bool putOrRemove(Int2Type<0>, std::tuple<Args...>& tup)
+        { return(_putOrRemove(std::get<0>(tup))); }
+    template<size_t I, typename ... Args> bool putOrRemove(Int2Type<I>, std::tuple<Args...>& tup)
+        { return(putOrRemove(Int2Type<I-1>(), tup) && _putOrRemove(std::get<I>(tup))); }
+    // Read...
+    template<typename ... Args> void read(Int2Type<0>, std::tuple<Args...>& tup)
+        { return((std::get<0>(tup)).read()); }
+    template<size_t I, typename ... Args> void read(Int2Type<I>, std::tuple<Args...>& tup)
+        { read(Int2Type<I-1>(), tup); (std::get<I>(tup)).read(); }
+
+  public:
+    // Call read() on all sensors; usually done once, at initialisation.
+    void readAll() { read(args); }
+    // Put all the attached isAvailable() sensor values into the stats object; remove those !isAvailable().
+    bool putOrRemoveAll() { return(putOrRemove(Int2Type<argCount-1>(), args)); }
+  };
+
+// Helper function to avoid having to spell out the types explicitly.
+// Pass a list of Sensors to makeJSONStatsHolder() to create a stats holder for them.
+// (Key names of type MSG_JSON_SimpleStatsKey_t, or ints such as 0, can be used instead as placeholders,
+// and will leave free space in the stats object, eg to manually put values of that name.)
+// Use putOrRemoveAll() to put current values for all stats into the stats holder.
+// Use readAll() to force a read() of all sensors, eg at start-up.
+template <typename... Args>
+constexpr JSONStatsHolder<Args...> makeJSONStatsHolder(Args&&... args)
+    { return(JSONStatsHolder<Args...>(std::forward<Args>(args)...)); }
+#endif // !defined(ARDUINO)
 
 
 // Returns true unless the buffer clearly does not contain a possible valid raw JSON message.

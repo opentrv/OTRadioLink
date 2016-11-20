@@ -158,6 +158,22 @@ class SubSensor : public Sensor<T>
     virtual T read() override { return(this->get()); }
   };
 
+// Sub-sensor / facade wrapping direct reference to the underlying (non-volatile) variables.
+// This should be efficient and simple but is not always usable based on parent sensor implementation.
+// This holds the tag directly.
+// This version does not override isAvailable() and so it returns true.
+template <class T, bool lowPri = true>
+class SubSensorSimpleRef final : public SubSensor<T, lowPri>
+  {
+  private:
+    const T &v;
+    const Sensor_tag_t t;
+  public:
+    constexpr SubSensorSimpleRef(const T &valueByRef, const Sensor_tag_t tag) : v(valueByRef), t(tag) { }
+    virtual T get() const override { return(v); }
+    virtual Sensor_tag_t tag() const override { return(t); }
+  };
+
 // Sub-sensor / facade wrapping calls for the key methods in the specified parent class.
 //   * T  sensor data type
 //   * P  parent Sensor object type
@@ -166,7 +182,7 @@ class SubSensor : public Sensor<T>
 //   * getFn  pointer to member function of P to get the sensor value; never NULL
 //   * isAvailableFnOpt  pointer to member function of P to get the isAvailable() value; if NULL then isAvailable() always returns true
 //
-// NOTE: DO NOT USE: g++ 4.9.x seems to generate hideously inefficient code; >100 bytes for a single call via membe function pointer.
+// NOTE: DO NOT USE: g++ 4.9.x seems to generate hideously inefficient code; >100 bytes for a single call via member function pointer.
 template <class P, class T, bool lowPri = true>
 class SubSensorByCallback final : public SubSensor<T, lowPri>
   {
@@ -176,7 +192,7 @@ class SubSensorByCallback final : public SubSensor<T, lowPri>
       T (P::*const g)() const;
       bool (P::*const a)() const;
   public:
-    SubSensorByCallback
+    constexpr SubSensorByCallback
       (
       const P *parent,
       Sensor_tag_t (P::*const tagFn)() const,

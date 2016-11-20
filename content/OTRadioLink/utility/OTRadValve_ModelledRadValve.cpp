@@ -144,6 +144,7 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const Modelle
       const uint8_t move = (oldValvePC - newValvePC);
       cumulativeMovementPC += move;
       }
+    cumulativeMovementPC &= 0x1fff; // Keep to 13 bits.
     valvePCOpenRef = newValvePC;
     }
   valveMoved = changed;
