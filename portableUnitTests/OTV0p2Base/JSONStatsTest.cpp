@@ -199,36 +199,21 @@ class JSONStatsHolder final
     // Many thanks for template wrangling examples to David Godfrey and others:
     //     http://stackoverflow.com/questions/16868129/how-to-store-variadic-template-arguments
     //     http://stackoverflow.com/questions/8992853/terminating-function-template-recursion
-//    template <int... Ints>        struct index {};
-//    template <int N, int... Ints> struct seq : seq<N - 1, N - 1, Ints...> {};
-//    template <int... Ints>        struct seq<0, Ints...> : index<Ints...> {};
     template<std::size_t> struct Int2Type { };
     // Put...
     template<typename ... Args> bool put(Int2Type<0>, std::tuple<Args...>& tup)
         { return(ss.put(std::get<0>(tup))); }
     template<size_t I, typename ... Args> bool put(Int2Type<I>, std::tuple<Args...>& tup)
         { return(put(Int2Type<I-1>(), tup) && ss.put(std::get<I>(tup))); }
-
-//    template<typename T> void put(T s) { ss.put(s); }
-//    template <typename... Args, int... Ints>
-//    void putAllJSONArgs(std::tuple<Args...>& tup, index<Ints...>)
-//        { put(std::get<Ints>(tup)...); }
-//    template <typename... Args>
-//    void putAllJSONArgs(std::tuple<Args...>& tup)
-//        { putAllJSONArgs(tup, seq<sizeof...(Args)>{});  }
-
-//    // Read...
-//    template<typename T> void read(T s) { s.read(); }
-//    template <typename... Args, int... Ints>
-//    void readAllSensors(std::tuple<Args...>& tup, index<Ints...>)
-//        { read(std::get<Ints>(tup)...); }
-//    template <typename... Args>
-//    void readAllSensors(std::tuple<Args...>& tup)
-//        { readAllSensors(tup, seq<sizeof...(Args)>{});  }
+    // Read...
+    template<typename ... Args> void read(Int2Type<0>, std::tuple<Args...>& tup)
+        { return((std::get<0>(tup)).read()); }
+    template<size_t I, typename ... Args> void read(Int2Type<I>, std::tuple<Args...>& tup)
+        { read(Int2Type<I-1>(), tup); (std::get<I>(tup)).read(); }
 
   public:
-//    // Call read() on all sensors (usually done once, at initialisation.
-//    void readAll() { readAllSensors(args); }
+    // Call read() on all sensors; usually done once, at initialisation.
+    void readAll() { read(args); }
     // Put all the attached sensor values into the stats object.
     bool putAll() { return(put(Int2Type<argCount-1>(), args)); }
   };
@@ -268,36 +253,34 @@ TEST(JSONStats,VariadicJSON1)
     EXPECT_STREQ(buf, "{\"H|%\":0}") << buf;
 }
 
-//// Testing simplified argument passing and stats object sizing.
-//TEST(JSONStats,VariadicJSON2)
-//{
-//    static OTV0P2BASE::HumiditySensorMock RelHumidity;
-//    static OTV0P2BASE::SensorAmbientLightMock AmbLight;
-//    static auto ssh2 = makeJSONStatsHolder(AmbLight, RelHumidity);
-//    auto &ss2 = ssh2.ss;
-//    const uint8_t c1 = ss2.getCapacity();
-//    EXPECT_EQ(2, c1);
-//    // Suppression the ID.
-//    ss2.setID(V0p2_SENSOR_TAG_F(""));
-//    // Disable the counter.
-//    ss2.enableCount(false);
-//    // Set the sensor to a known value.
-//    RelHumidity.set(0);
-//    AmbLight.set(0);
-//    char buf[OTV0P2BASE::MSG_JSON_MAX_LENGTH + 2]; // Allow for trailing '\0' and spare byte.
-//    // No sensor data so stats should be empty.
-//    const uint8_t l0 = ss2.writeJSON((uint8_t*)buf, sizeof(buf), OTV0P2BASE::randRNG8());
-//    EXPECT_EQ(2, l0) << buf;
-//    EXPECT_STREQ(buf, "{}") << buf;
-//    // Write sensor values to the stats.
-//    EXPECT_TRUE(ss2.isEmpty());
-//    EXPECT_EQ(0, ss2.size());
-//    ASSERT_TRUE(ssh2.putAll());
-//    EXPECT_EQ(2, ss2.size());
-//    // Create minimal JSON message with just the sensor data.
-//    const uint8_t l1 = ss2.writeJSON((uint8_t*)buf, sizeof(buf), OTV0P2BASE::randRNG8());
-//    EXPECT_LT(9, l1) << buf;
-//
-////    EXPECT_EQ(9, l1) << buf;
-////    EXPECT_STREQ(buf, "{\"H|%\":0}") << buf;
-//}
+// Testing simplified argument passing and stats object sizing.
+TEST(JSONStats,VariadicJSON2)
+{
+    static OTV0P2BASE::HumiditySensorMock RelHumidity;
+    static OTV0P2BASE::SensorAmbientLightMock AmbLight;
+    static auto ssh2 = makeJSONStatsHolder(AmbLight, RelHumidity);
+    auto &ss2 = ssh2.ss;
+    const uint8_t c1 = ss2.getCapacity();
+    EXPECT_EQ(2, c1);
+    // Suppression the ID.
+    ss2.setID(V0p2_SENSOR_TAG_F(""));
+    // Disable the counter.
+    ss2.enableCount(false);
+    // Set the sensor to a known value.
+    RelHumidity.set(0);
+    AmbLight.set(0);
+    char buf[OTV0P2BASE::MSG_JSON_MAX_LENGTH + 2]; // Allow for trailing '\0' and spare byte.
+    // No sensor data so stats should be empty.
+    const uint8_t l0 = ss2.writeJSON((uint8_t*)buf, sizeof(buf), OTV0P2BASE::randRNG8());
+    EXPECT_EQ(2, l0) << buf;
+    EXPECT_STREQ(buf, "{}") << buf;
+    // Write sensor values to the stats.
+    EXPECT_TRUE(ss2.isEmpty());
+    EXPECT_EQ(0, ss2.size());
+    ASSERT_TRUE(ssh2.putAll());
+    EXPECT_EQ(2, ss2.size());
+    // Create minimal JSON message with just the sensor data.
+    const uint8_t l1 = ss2.writeJSON((uint8_t*)buf, sizeof(buf), OTV0P2BASE::randRNG8(), true);
+    EXPECT_EQ(15, l1) << buf;
+    EXPECT_TRUE((0 == strcmp(buf, "{\"H|%\":0,\"L\":0}")) || (0 == strcmp(buf, "{\"L\":0,\"H|%\":0}")));
+}

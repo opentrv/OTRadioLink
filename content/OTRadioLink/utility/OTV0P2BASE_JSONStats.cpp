@@ -503,8 +503,6 @@ uint8_t SimpleStatsRotationBase::writeJSON(uint8_t *const buf, const uint8_t buf
       }
     }
 
-  // TODO: maximise.
-
   // Terminate object.
   bp.print('}');
 #if 0
