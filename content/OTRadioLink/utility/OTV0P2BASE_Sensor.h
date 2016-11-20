@@ -54,15 +54,47 @@ typedef const __FlashStringHelper *Sensor_tag_t;
 typedef const char *Sensor_tag_t;
 #endif
 
-// Base sensor type.
-// Templated on sensor value type, typically uint8_t or uint16_t or int16_t.
+
+// Minimal lightweight sensor subset.
+// Contains just enough to check availability and to name and get the latest value.
 template <class T>
-class Sensor
+class SensorCore
   {
   public:
     // Type of sensed data.
     typedef T data_t;
 
+    // Return last value fetched by read(); undefined before first read().
+    // Usually fast.
+    // Often likely to be thread-safe or usable within ISRs (Interrupt Service Routines),
+    // BUT READ IMPLEMENTATION DOCUMENTATION BEFORE TREATING AS thread/ISR-safe.
+    virtual T get() const = 0;
+
+    // Returns true if this sensor is currently available.
+    // True by default unless implementation overrides.
+    // For those sensors that need starting this will be false before begin().
+    virtual bool isAvailable() const { return(true); }
+
+    // Returns a suggested (JSON) tag/field/key name including units of get(); NULL means no recommended tag.
+    // The lifetime of the pointed-to text must be at least that of the Sensor instance.
+    virtual Sensor_tag_t tag() const { return(NULL); }
+
+#if 0 // Defining the virtual destructor uses ~800+ bytes of Flash by forcing use of malloc()/free().
+    // Ensure safe instance destruction when derived from.
+    // by default attempts to shut down the sensor and otherwise free resources when done.
+    // This uses ~800+ bytes of Flash by forcing use of malloc()/free().
+    virtual ~SensorCore() { end(); }
+#else
+#define SENSORCORE_NO_VIRT_DEST // Beware, no virtual destructor so be careful of use via base pointers.
+#endif
+  };
+
+// Base sensor type.
+// Templated on sensor value type, typically uint8_t or uint16_t or int16_t.
+template <class T>
+class Sensor : public SensorCore<T>
+  {
+  public:
     // Force a read/poll of this sensor and return the value sensed.
     // May be expensive/slow.
     // For many implementations read() should be called at a reasonably steady rate,
@@ -70,12 +102,6 @@ class Sensor
     // Unlikely to be thread-safe or usable within ISRs (Interrupt Service Routines).
     // Individual implementations can document alternative behaviour.
     virtual T read() = 0;
- 
-    // Return last value fetched by read(); undefined before first read().
-    // Usually fast.
-    // Often likely to be thread-safe or usable within ISRs (Interrupt Service Routines),
-    // BUT READ IMPLEMENTATION DOCUMENTATION BEFORE TREATING AS thread/ISR-safe.
-    virtual T get() const = 0;
 
     // Returns true if this sensor reading value passed is potentially valid, eg in-range.
     // Default is to always return true, ie all values potentially valid.
@@ -86,10 +112,6 @@ class Sensor
     // Default returns 0 indicating regular call to read() not required,
     // only as required to fetch new values from the underlying sensor.
     virtual uint8_t preferredPollInterval_s() const { return(0); }
-
-    // Returns a suggested (JSON) tag/field/key name including units of get(); NULL means no recommended tag.
-    // The lifetime of the pointed-to text must be at least that of the Sensor instance.
-    virtual Sensor_tag_t tag() const { return(NULL); }
 
 //    // Returns a suggested privacy/sensitivity level of the data from this sensor.
 //    // The default sensitivity is set to just forbid transmission at default (255) leaf settings.
@@ -102,11 +124,6 @@ class Sensor
     // to attempt to clear the interrupt.
     // By default does nothing (and returns false).
     virtual bool handleInterruptSimple() { return(false); }
-
-    // Returns true if this sensor is currently available.
-    // True by default unless implementation overrides.
-    // For those sensors that need starting this will be false before begin().
-    virtual bool isAvailable() const { return(true); }
 
 #if 0 // Defining the virtual destructor uses ~800+ bytes of Flash by forcing use of malloc()/free().
     // Ensure safe instance destruction when derived from.
@@ -147,15 +164,12 @@ class SimpleTSUint8Sensor : public Sensor<uint8_t>
 // Sub-sensor / facade.
 // This sub-sensor's value is derived from another sensor value,
 // and so can be considered low priority by default.
-// Read is redirected to get() and does no other work;
-// in particular it does not call through to any underlying Sensor's read().
 template <class T, bool lowPri = true>
-class SubSensor : public Sensor<T>
+class SubSensor : public SensorCore<T>
   {
   public:
     // True if this stat is to be treated as low priority / low information by default
     static constexpr bool lowPriority = lowPri;
-    virtual T read() override { return(this->get()); }
   };
 
 // Sub-sensor / facade wrapping direct reference to the underlying (non-volatile) variables.

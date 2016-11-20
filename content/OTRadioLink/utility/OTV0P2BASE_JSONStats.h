@@ -167,7 +167,7 @@ class SimpleStatsRotationBase
 
     // Create/update value for the given sensor.
     // True if successful, false otherwise (eg capacity already reached).
-    template <class T> bool put(const OTV0P2BASE::Sensor<T> &s, bool statLowPriority = false)
+    template <class T> bool put(const OTV0P2BASE::SensorCore<T> &s, bool statLowPriority = false)
         { return(put(s.tag(), s.get(), statLowPriority)); }
 
     // Create/update stat/key with specified descriptor/properties.
@@ -180,7 +180,7 @@ class SimpleStatsRotationBase
 
     // Create/update value for the given sensor if isAvailable(); remove otherwise.
     // True if put() succeeds or a remove() was requested; false if a put() was request and failed.
-    template <class T> bool putOrRemove(const OTV0P2BASE::Sensor<T> &s)
+    template <class T> bool putOrRemove(const OTV0P2BASE::SensorCore<T> &s)
         { if(s.isAvailable()) { return(put(s.tag(), s.get(), false)); } remove(s.tag()); return(true); }
 
     // Create/update value for the given sub-sensor if isAvailable(); remove otherwise.
