@@ -231,7 +231,11 @@ TEST(JSONStats,VariadicJSON1)
     auto &ss1 = ssh1.ss;
     const uint8_t c1 = ss1.getCapacity();
     EXPECT_EQ(1, c1);
-    // Suppression the ID.
+    EXPECT_FALSE(ss1.containsKey(V0p2_SENSOR_TAG_F("H|%"))) << "not expected to be visible yet";
+    EXPECT_FALSE(ss1.containsKey(V0p2_SENSOR_TAG_F("O")));
+    EXPECT_FALSE(ss1.containsKey(V0p2_SENSOR_TAG_F("funky")));
+    EXPECT_FALSE(ss1.containsKey(V0p2_SENSOR_TAG_F("")));
+    // Suppress the ID.
     ss1.setID(V0p2_SENSOR_TAG_F(""));
     // Disable the counter.
     ss1.enableCount(false);
@@ -247,6 +251,10 @@ TEST(JSONStats,VariadicJSON1)
     EXPECT_EQ(0, ss1.size());
     ASSERT_TRUE(ssh1.putOrRemoveAll()) << "all operations must succeed";
     EXPECT_EQ(1, ss1.size());
+    EXPECT_TRUE(ss1.containsKey(V0p2_SENSOR_TAG_F("H|%"))) << "expected to be visible now";
+    EXPECT_FALSE(ss1.containsKey(V0p2_SENSOR_TAG_F("O")));
+    EXPECT_FALSE(ss1.containsKey(V0p2_SENSOR_TAG_F("funky")));
+    EXPECT_FALSE(ss1.containsKey(V0p2_SENSOR_TAG_F("")));
     // Create minimal JSON message with just the sensor data.
     const uint8_t l1 = ss1.writeJSON((uint8_t*)buf, sizeof(buf), OTV0P2BASE::randRNG8());
     EXPECT_EQ(9, l1) << buf;
@@ -262,7 +270,7 @@ TEST(JSONStats,VariadicJSON2)
     auto &ss2 = ssh2.ss;
     const uint8_t c1 = ss2.getCapacity();
     EXPECT_EQ(2, c1);
-    // Suppression the ID.
+    // Suppress the ID.
     ss2.setID(V0p2_SENSOR_TAG_F(""));
     // Disable the counter.
     ss2.enableCount(false);
@@ -291,7 +299,31 @@ TEST(JSONStats,VariadicJSON2)
     const uint8_t l2 = ss2.writeJSON((uint8_t*)buf, sizeof(buf), OTV0P2BASE::randRNG8(), true);
     EXPECT_EQ(16, l2) << buf;
     EXPECT_TRUE((0 == strcmp(buf, "{\"H|%\":9,\"L\":41}")) || (0 == strcmp(buf, "{\"L\":41,\"H|%\":9}")));
-
-
-
 }
+
+// Testing simplified argument passing with SubSensors.
+TEST(JSONStats,SubSensors)
+{
+    static OTV0P2BASE::PseudoSensorOccupancyTracker occupancy;
+    static OTV0P2BASE::SensorAmbientLightMock AmbLight;
+    static auto ssh3 = makeJSONStatsHolder(occupancy, occupancy.twoBitSubSensor, occupancy.vacHSubSensor);
+    auto &ss3 = ssh3.ss;
+    const uint8_t c3 = ss3.getCapacity();
+    EXPECT_EQ(3, c3);
+    // Suppress the ID.
+    ss3.setID(V0p2_SENSOR_TAG_F(""));
+    // Disable the counter.
+    ss3.enableCount(false);
+    // Check what is yet visible
+    EXPECT_FALSE(ss3.containsKey(V0p2_SENSOR_TAG_F("occ|%"))) << "not expected to be visible yet";
+    EXPECT_FALSE(ss3.containsKey(V0p2_SENSOR_TAG_F("O")));
+    EXPECT_FALSE(ss3.containsKey(V0p2_SENSOR_TAG_F("vac|h")));
+    EXPECT_FALSE(ss3.containsKey(V0p2_SENSOR_TAG_F("funky")));
+    EXPECT_FALSE(ss3.containsKey(V0p2_SENSOR_TAG_F("")));
+    EXPECT_EQ(0, ss3.size());
+    ASSERT_TRUE(ssh3.putOrRemoveAll()) << "all operations must succeed";
+    EXPECT_EQ(3, ss3.size());
+
+
+
+ }

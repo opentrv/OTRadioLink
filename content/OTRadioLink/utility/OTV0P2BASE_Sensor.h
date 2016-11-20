@@ -144,6 +144,50 @@ class SimpleTSUint8Sensor : public Sensor<uint8_t>
   };
 
 
+// Sub-sensor / facade.
+// This sub-sensor's value is derived from another sensor value,
+// and so can be considered low priority by default.
+// Read is redirected to get() and does no other work;
+// in particular it does not call through to any underlying Sensor's read().
+template <class T, bool lowPri = true>
+class SubSensor : public Sensor<T>
+  {
+  public:
+    // True if this stat is to be treated as low priority / low information by default
+    static constexpr bool lowPriority = lowPri;
+    virtual T read() override { return(this->get()); }
+  };
+
+// Sub-sensor / facade wrapping calls for the key methods in the specified parent class.
+//   * T  sensor data type
+//   * P  parent Sensor object type
+// Constructor parameters:
+//   * tagFn  pointer to member function of P to get the tag value; never NULL
+//   * getFn  pointer to member function of P to get the sensor value; never NULL
+//   * isAvailableFnOpt  pointer to member function of P to get the isAvailable() value; if NULL then isAvailable() always returns true
+template <class P, class T, bool lowPri = true>
+class SubSensorByCallback final : public SubSensor<T, lowPri>
+  {
+  private:
+      const P &p;
+      Sensor_tag_t (P::*const t)() const;
+      T (P::*const g)() const;
+      bool (P::*const a)() const;
+  public:
+    SubSensorByCallback
+      (
+      const P &parent,
+      Sensor_tag_t (P::*const tagFn)() const,
+      T (P::*const getFn)() const,
+      bool (P::*const isAvailableFnOpt)() const = NULL
+      )
+      : p(parent), t(tagFn), g(getFn), a(isAvailableFnOpt) { }
+    virtual Sensor_tag_t tag() const override { return((p.*t)()); }
+    virtual T get() const override { return((p.*g)()); }
+    virtual bool isAvailable() const override { if(NULL == a) { return(true); } return((p.*a)()); }
+  };
+
+
 }
 
 #endif

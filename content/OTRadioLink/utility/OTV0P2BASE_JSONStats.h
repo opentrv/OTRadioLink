@@ -142,6 +142,11 @@ class BufPrint final : public Print
 class SimpleStatsRotationBase
   {
   public:
+    // Returns true if a stat with the specified key is currently in the stats set.
+    // Mainly for unit testing.
+    bool containsKey(const MSG_JSON_SimpleStatsKey_t key) const
+      { return(NULL != findByKey(key)); }
+
     // Create/update value for given stat/key.
     // If properties not already set and not supplied then stat will get defaults.
     // If descriptor is supplied then its key must match (and the descriptor will be copied).
@@ -163,8 +168,14 @@ class SimpleStatsRotationBase
 
     // Create/update value for the given sensor if isAvailable(); remove otherwise.
     // True if put() succeeds or a remove() was requested; false if a put() was request and failed.
-    template <class T> bool putOrRemove(const OTV0P2BASE::Sensor<T> &s, bool statLowPriority = false)
-        { if(s.isAvailable()) { return(put(s.tag(), s.get(), statLowPriority)); } remove(s.tag()); return(true); }
+    template <class T> bool putOrRemove(const OTV0P2BASE::Sensor<T> &s)
+        { if(s.isAvailable()) { return(put(s.tag(), s.get(), false)); } remove(s.tag()); return(true); }
+
+    // Create/update value for the given sub-sensor if isAvailable(); remove otherwise.
+    // True if put() succeeds or a remove() was requested; false if a put() was request and failed.
+    // As a sub-sensor this is treated as low priority by default.
+    template <class T> bool putOrRemove(const OTV0P2BASE::SubSensor<T> &s)
+        { if(s.isAvailable()) { return(put(s.tag(), s.get(), s.lowPriority)); } remove(s.tag()); return(true); }
 
     // Set ID to given value, or NULL to use first 2 bytes of system ID; returns false if ID unsafe.
     // If NULL (the default) then dynamically generate the system ID,
@@ -178,21 +189,20 @@ class SimpleStatsRotationBase
       }
 
     // Get number of distinct fields/keys held.
-    uint8_t size() { return(nStats); }
+    uint8_t size() const { return(nStats); }
 
     // True if no stats items being managed.
     // May usefully indicate that the structure needs to be populated.
-    bool isEmpty() { return(0 == nStats); }
+    bool isEmpty() const { return(0 == nStats); }
 
     // True if any changed values are pending (not yet written out).
-    bool changedValue();
+    bool changedValue() const;
 
     // Iff true enable the count ("+") field and display immediately after the "@"/ID field.
     // The unsigned count increments as a successful write() operation completes,
     // and wraps after 63 (to limit space), potentially allowing easy detection of lost stats/transmissions.
     void enableCount(bool enable) { c.enabled = enable; }
 
-//#if defined(ALLOW_JSON_OUTPUT)
     // Write stats in JSON format to provided buffer; returns the non-zero JSON length if successful.
     // Output starts with an "@" (ID) string field,
     // then and optional count (if enabled),
@@ -212,7 +222,6 @@ class SimpleStatsRotationBase
     //       allowing them to continue to be treated as higher priority
     uint8_t writeJSON(uint8_t * const buf, const uint8_t bufSize, const uint8_t sensitivity,
                       const bool maximise = false, const bool suppressClearChanged = false);
-//#endif
 
   protected:
     struct DescValueTuple final
@@ -245,7 +254,7 @@ class SimpleStatsRotationBase
     // Maximum capacity including overheads.
     const uint8_t capacity;
 
-    // Returns pointer to stat tuple with given key if present, else NULL.
+    // Returns read/write pointer to stat tuple with given key if present, else NULL.
     DescValueTuple *findByKey(MSG_JSON_SimpleStatsKey_t key) const;
 
     // Initialise base with appropriate storage (non-NULL) and capacity knowledge.
@@ -311,7 +320,7 @@ class SimpleStatsRotation final : public SimpleStatsRotationBase
     constexpr SimpleStatsRotation() : SimpleStatsRotationBase(stats, MaxStats) { }
 
     // Get capacity.
-    uint8_t getCapacity() { return(MaxStats); }
+    uint8_t getCapacity() const { return(MaxStats); }
   };
 
 

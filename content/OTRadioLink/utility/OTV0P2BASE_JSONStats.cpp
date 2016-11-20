@@ -169,13 +169,6 @@ int8_t checkJSONMsgRXCRC(const uint8_t * const bptr, const uint8_t bufLen)
   return(checkJSONMsgRXCRC_ERR); // Bad (unterminated) message.
   }
 
-//// Print a single char to a bounded buffer; returns 1 if successful, else 0 if full.
-//size_t BufPrint::write(const uint8_t c)
-//  {
-//  if(size < capacity) { b[size++] = c; b[size] = '\0'; return(1); }
-//  return(0);
-//  }
-
 // Returns true iff if a valid key for OpenTRV subset of JSON.
 // Rejects keys containing " or \ or any chars outside the range [32,126]
 // to avoid having to escape anything.
@@ -200,7 +193,7 @@ bool isValidSimpleStatsKey(const MSG_JSON_SimpleStatsKey_t key)
   return(true);
   }
 
-// Returns pointer to stats tuple with given (non-NULL) key if present, else NULL.
+// Returns read/write pointer to stats tuple with given (non-NULL) key if present, else NULL.
 // Does a simple linear search.
 SimpleStatsRotationBase::DescValueTuple * SimpleStatsRotationBase::findByKey(const MSG_JSON_SimpleStatsKey_t key) const
   {
@@ -210,7 +203,6 @@ SimpleStatsRotationBase::DescValueTuple * SimpleStatsRotationBase::findByKey(con
 #ifdef V0p2_SENSOR_TAG_NOT_SIMPLECHARPTR
     #if defined(V0p2_SENSOR_TAG_IS_FlashStringHelper)
     // Inline equivalent to strcmp() but between two Flash strings.
-
     const char *p1 = reinterpret_cast<const char *>(p->descriptor.key);
     const char *p2 = reinterpret_cast<const char *>(key);
     for( ; ; ++p1, ++p2)
@@ -220,7 +212,7 @@ SimpleStatsRotationBase::DescValueTuple * SimpleStatsRotationBase::findByKey(con
       const bool end1 = ('\0' == c1);
       const bool end2 = ('\0' == c2);
       if(end1 && end2) { return(p); } // Keys match.
-      if(c1 != c2) { break; } // Keys don't match, fall through.
+      if(c1 != c2) { break; } // Keys don't match, fall through to fail.
       }
     #else
         #error "Needs specific implementation for MCU."
@@ -339,7 +331,7 @@ size_t SimpleStatsRotationBase::print(BufPrint &bp, const SimpleStatsRotationBas
 
 
 // True if any changed values are pending (not yet written out).
-bool SimpleStatsRotationBase::changedValue()
+bool SimpleStatsRotationBase::changedValue() const
   {
   DescValueTuple const *p = stats + nStats;
   for(uint8_t i = nStats; --i > 0; )
