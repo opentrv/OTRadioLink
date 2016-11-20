@@ -65,6 +65,8 @@ class Sensor
 
     // Force a read/poll of this sensor and return the value sensed.
     // May be expensive/slow.
+    // For many implementations read() should be called at a reasonably steady rate,
+    // see preferredPollInterval_s().
     // Unlikely to be thread-safe or usable within ISRs (Interrupt Service Routines).
     // Individual implementations can document alternative behaviour.
     virtual T read() = 0;
