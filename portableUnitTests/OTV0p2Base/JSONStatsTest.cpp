@@ -201,10 +201,10 @@ class JSONStatsHolder final
     //     http://stackoverflow.com/questions/8992853/terminating-function-template-recursion
     template<std::size_t> struct Int2Type { };
     // Put...
-    template<typename ... Args> bool put(Int2Type<0>, std::tuple<Args...>& tup)
-        { return(ss.put(std::get<0>(tup))); }
-    template<size_t I, typename ... Args> bool put(Int2Type<I>, std::tuple<Args...>& tup)
-        { return(put(Int2Type<I-1>(), tup) && ss.put(std::get<I>(tup))); }
+    template<typename ... Args> bool putOrRemove(Int2Type<0>, std::tuple<Args...>& tup)
+        { return(ss.putOrRemove(std::get<0>(tup))); }
+    template<size_t I, typename ... Args> bool putOrRemove(Int2Type<I>, std::tuple<Args...>& tup)
+        { return(putOrRemove(Int2Type<I-1>(), tup) && ss.putOrRemove(std::get<I>(tup))); }
     // Read...
     template<typename ... Args> void read(Int2Type<0>, std::tuple<Args...>& tup)
         { return((std::get<0>(tup)).read()); }
@@ -214,8 +214,8 @@ class JSONStatsHolder final
   public:
     // Call read() on all sensors; usually done once, at initialisation.
     void readAll() { read(args); }
-    // Put all the attached sensor values into the stats object.
-    bool putAll() { return(put(Int2Type<argCount-1>(), args)); }
+    // Put all the attached isAvailable() sensor values into the stats object; remove those !isAvailable().
+    bool putOrRemoveAll() { return(putOrRemove(Int2Type<argCount-1>(), args)); }
   };
 
 // Helper to avoid having to spell out the types explicitly.
@@ -245,7 +245,7 @@ TEST(JSONStats,VariadicJSON1)
     EXPECT_TRUE(ss1.isEmpty());
     // Write sensor values to the stats.
     EXPECT_EQ(0, ss1.size());
-    ASSERT_TRUE(ssh1.putAll());
+    ASSERT_TRUE(ssh1.putOrRemoveAll()) << "all operations must succeed";
     EXPECT_EQ(1, ss1.size());
     // Create minimal JSON message with just the sensor data.
     const uint8_t l1 = ss1.writeJSON((uint8_t*)buf, sizeof(buf), OTV0P2BASE::randRNG8());
@@ -277,7 +277,7 @@ TEST(JSONStats,VariadicJSON2)
     // Write sensor values to the stats.
     EXPECT_TRUE(ss2.isEmpty());
     EXPECT_EQ(0, ss2.size());
-    ASSERT_TRUE(ssh2.putAll());
+    ASSERT_TRUE(ssh2.putOrRemoveAll()) << "all operations must succeed";
     EXPECT_EQ(2, ss2.size());
     // Create minimal JSON message with just the sensor data.
     const uint8_t l1 = ss2.writeJSON((uint8_t*)buf, sizeof(buf), OTV0P2BASE::randRNG8(), true);

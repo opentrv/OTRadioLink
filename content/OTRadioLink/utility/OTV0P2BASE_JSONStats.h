@@ -70,7 +70,6 @@ typedef Sensor_tag_t MSG_JSON_SimpleStatsKey_t;
 bool isValidSimpleStatsKey(MSG_JSON_SimpleStatsKey_t key);
 
 // Generic stats descriptor.
-// Includes last value transmitted (to allow changed items to be sent selectively).
 struct GenericStatsDescriptor final
   {
     // Create generic (integer) stats instance.
@@ -161,6 +160,11 @@ class SimpleStatsRotationBase
     // Remove given stat and properties.
     // True iff the item existed and was removed.
     bool remove(MSG_JSON_SimpleStatsKey_t key);
+
+    // Create/update value for the given sensor if isAvailable(); remove otherwise.
+    // True if put() succeeds or a remove() was requested; false if a put() was request and failed.
+    template <class T> bool putOrRemove(const OTV0P2BASE::Sensor<T> &s, bool statLowPriority = false)
+        { if(s.isAvailable()) { return(put(s.tag(), s.get(), statLowPriority)); } remove(s.tag()); return(true); }
 
     // Set ID to given value, or NULL to use first 2 bytes of system ID; returns false if ID unsafe.
     // If NULL (the default) then dynamically generate the system ID,
