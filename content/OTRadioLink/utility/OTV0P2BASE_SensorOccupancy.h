@@ -68,9 +68,9 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
 
   public:
     PseudoSensorOccupancyTracker()
-      : occupationCountdownM(0), activityCountdownM(0),
-        twoBitSubSensor(*this, &PseudoSensorOccupancyTracker::twoBitTag, &PseudoSensorOccupancyTracker::twoBitOccupancyValue),
-        vacHSubSensor(*this, &PseudoSensorOccupancyTracker::vacHTag, &PseudoSensorOccupancyTracker::getVacancyH)
+      : occupationCountdownM(0), activityCountdownM(0)
+//        twoBitSubSensor(this, &PseudoSensorOccupancyTracker::twoBitTag, &PseudoSensorOccupancyTracker::twoBitOccupancyValue),
+//        vacHSubSensor(this, &PseudoSensorOccupancyTracker::vacHTag, &PseudoSensorOccupancyTracker::getVacancyH)
       { }
 
     // Clears current occupancy and activity measures.
@@ -152,9 +152,9 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     // Recommended JSON tag for two-bit occupancy value; not NULL.
     OTV0P2BASE::Sensor_tag_t twoBitTag() const { return(V0p2_SENSOR_TAG_F("O")); }
 
-    // Provide facade for access to two-bit occupancy value and tag.
-    // Marked as NOT low priority as this value may be the primary stable occupancy measure.
-    const SubSensorByCallback<PseudoSensorOccupancyTracker, uint8_t, false> twoBitSubSensor;
+//    // Provide facade for access to two-bit occupancy value and tag.
+//    // Marked as NOT low priority as this value may be the primary stable occupancy measure.
+//    const SubSensorByCallback<PseudoSensorOccupancyTracker, uint8_t, false> twoBitSubSensor;
 
     // Returns true if it is worth expending extra effort to check for occupancy.
     // This will happen when confidence in occupancy is not yet zero but is approaching,
@@ -169,9 +169,9 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     // Recommended JSON tag for vacancy hours; not NULL.
     OTV0P2BASE::Sensor_tag_t vacHTag() const { return(V0p2_SENSOR_TAG_F("vac|h")); }
 
-    // Provide facade for access to vacancy-hours value and tag.
-    // Being a SubSensor it is by default low priority.
-    const SubSensorByCallback<PseudoSensorOccupancyTracker, uint16_t> vacHSubSensor;
+//    // Provide facade for access to vacancy-hours value and tag.
+//    // Being a SubSensor it is by default low priority.
+//    const SubSensorByCallback<PseudoSensorOccupancyTracker, uint16_t> vacHSubSensor;
 
     // Threshold hours above which room is considered long vacant.
     // At least 24h in order to allow once-daily room programmes (including pre-warm) to operate reliably.

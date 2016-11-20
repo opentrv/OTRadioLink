@@ -165,26 +165,28 @@ class SubSensor : public Sensor<T>
 //   * tagFn  pointer to member function of P to get the tag value; never NULL
 //   * getFn  pointer to member function of P to get the sensor value; never NULL
 //   * isAvailableFnOpt  pointer to member function of P to get the isAvailable() value; if NULL then isAvailable() always returns true
+//
+// NOTE: DO NOT USE: g++ 4.9.x seems to generate hideously inefficient code; >100 bytes for a single call via membe function pointer.
 template <class P, class T, bool lowPri = true>
 class SubSensorByCallback final : public SubSensor<T, lowPri>
   {
   private:
-      const P &p;
+      const P *const p;
       Sensor_tag_t (P::*const t)() const;
       T (P::*const g)() const;
       bool (P::*const a)() const;
   public:
     SubSensorByCallback
       (
-      const P &parent,
+      const P *parent,
       Sensor_tag_t (P::*const tagFn)() const,
       T (P::*const getFn)() const,
       bool (P::*const isAvailableFnOpt)() const = NULL
       )
       : p(parent), t(tagFn), g(getFn), a(isAvailableFnOpt) { }
-    virtual Sensor_tag_t tag() const override { return((p.*t)()); }
-    virtual T get() const override { return((p.*g)()); }
-    virtual bool isAvailable() const override { if(NULL == a) { return(true); } return((p.*a)()); }
+    virtual T get() const override { return((p->*g)()); }
+    virtual Sensor_tag_t tag() const override { return((p->*t)()); }
+    virtual bool isAvailable() const override { if(NULL == a) { return(true); } return((p->*a)()); }
   };
 
 

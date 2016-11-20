@@ -301,29 +301,26 @@ TEST(JSONStats,VariadicJSON2)
     EXPECT_TRUE((0 == strcmp(buf, "{\"H|%\":9,\"L\":41}")) || (0 == strcmp(buf, "{\"L\":41,\"H|%\":9}")));
 }
 
-// Testing simplified argument passing with SubSensors.
-TEST(JSONStats,SubSensors)
-{
-    static OTV0P2BASE::PseudoSensorOccupancyTracker occupancy;
-    static OTV0P2BASE::SensorAmbientLightMock AmbLight;
-    static auto ssh3 = makeJSONStatsHolder(occupancy, occupancy.twoBitSubSensor, occupancy.vacHSubSensor);
-    auto &ss3 = ssh3.ss;
-    const uint8_t c3 = ss3.getCapacity();
-    EXPECT_EQ(3, c3);
-    // Suppress the ID.
-    ss3.setID(V0p2_SENSOR_TAG_F(""));
-    // Disable the counter.
-    ss3.enableCount(false);
-    // Check what is yet visible
-    EXPECT_FALSE(ss3.containsKey(V0p2_SENSOR_TAG_F("occ|%"))) << "not expected to be visible yet";
-    EXPECT_FALSE(ss3.containsKey(V0p2_SENSOR_TAG_F("O")));
-    EXPECT_FALSE(ss3.containsKey(V0p2_SENSOR_TAG_F("vac|h")));
-    EXPECT_FALSE(ss3.containsKey(V0p2_SENSOR_TAG_F("funky")));
-    EXPECT_FALSE(ss3.containsKey(V0p2_SENSOR_TAG_F("")));
-    EXPECT_EQ(0, ss3.size());
-    ASSERT_TRUE(ssh3.putOrRemoveAll()) << "all operations must succeed";
-    EXPECT_EQ(3, ss3.size());
-
-
-
- }
+//// Testing simplified argument passing with SubSensors.
+//TEST(JSONStats,SubSensors)
+//{
+//    static OTV0P2BASE::PseudoSensorOccupancyTracker occupancy;
+//    static OTV0P2BASE::SensorAmbientLightMock AmbLight;
+//    static auto ssh3 = makeJSONStatsHolder(occupancy, occupancy.twoBitSubSensor, occupancy.vacHSubSensor);
+//    auto &ss3 = ssh3.ss;
+//    const uint8_t c3 = ss3.getCapacity();
+//    EXPECT_EQ(3, c3);
+//    // Suppress the ID.
+//    ss3.setID(V0p2_SENSOR_TAG_F(""));
+//    // Disable the counter.
+//    ss3.enableCount(false);
+//    // Check what is yet visible
+//    EXPECT_FALSE(ss3.containsKey(V0p2_SENSOR_TAG_F("occ|%"))) << "not expected to be visible yet";
+//    EXPECT_FALSE(ss3.containsKey(V0p2_SENSOR_TAG_F("O")));
+//    EXPECT_FALSE(ss3.containsKey(V0p2_SENSOR_TAG_F("vac|h")));
+//    EXPECT_FALSE(ss3.containsKey(V0p2_SENSOR_TAG_F("funky")));
+//    EXPECT_FALSE(ss3.containsKey(V0p2_SENSOR_TAG_F("")));
+//    EXPECT_EQ(0, ss3.size());
+//    ASSERT_TRUE(ssh3.putOrRemoveAll()) << "all operations must succeed";
+//    EXPECT_EQ(3, ss3.size());
+// }
