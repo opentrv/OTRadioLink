@@ -101,21 +101,10 @@ class Sensor
     // By default does nothing (and returns false).
     virtual bool handleInterruptSimple() { return(false); }
 
-    // Begin access to this sensor if applicable and not already begun.
-    // Returns true if it needed to be begun.
-    // Allows logic to end() if required at the end of a block, etc.
-    // Defaults to do nothing (and return false).
-    virtual bool begin() { return(false); }
-
     // Returns true if this sensor is currently available.
     // True by default unless implementation overrides.
     // For those sensors that need starting this will be false before begin().
     virtual bool isAvailable() const { return(true); }
-
-    // End access to this sensor if applicable and not already ended.
-    // Returns true if it needed to be ended.
-    // Defaults to do nothing (and return false).
-    virtual bool end() { return(false); }
 
 #if 0 // Defining the virtual destructor uses ~800+ bytes of Flash by forcing use of malloc()/free().
     // Ensure safe instance destruction when derived from.
