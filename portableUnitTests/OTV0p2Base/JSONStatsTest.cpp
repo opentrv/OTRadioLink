@@ -175,7 +175,7 @@ TEST(JSONStats,JSONForTX)
 
 
 // This is used to size the stats generator and consistently extract values for it.
-// At least one sensor must be supplied.
+// At least one sensor must be provided.
 template<typename T1, typename ... Ts>
 class JSONStatsHolder final
   {
@@ -187,15 +187,13 @@ class JSONStatsHolder final
     static constexpr size_t argCount = 1 + sizeof...(Ts);
 
     // JSON generator.
-    typedef OTV0P2BASE::SimpleStatsRotation<OTV0P2BASE::fnmax((size_t)1,argCount)> ss_t;
+    typedef OTV0P2BASE::SimpleStatsRotation<argCount> ss_t;
     ss_t ss;
 
     // Construct an instance; though the template helper function is usually easier.
     template <typename... Args>
-    JSONStatsHolder(Args&&... args) : args(std::forward<Args>(args)...)
-      {
-      static_assert(sizeof...(Args) > 0, "must take at least one arg");
-      }
+    constexpr JSONStatsHolder(Args&&... args) : args(std::forward<Args>(args)...)
+      { static_assert(sizeof...(Args) > 0, "must take at least one arg"); }
 
   private:
     // Big thanks for template wrangling example to David Godfrey:
@@ -246,9 +244,14 @@ TEST(JSONStats,VariadicJSON)
     ss1.enableCount(false);
     // Set the sensor to a known value.
     RelHumidity.set(0);
-    ssh1.putAll();
     char buf[OTV0P2BASE::MSG_JSON_MAX_LENGTH + 2]; // Allow for trailing '\0' and spare byte.
-    // Create minimal JSON message with no data content. just the (supplied) ID.
+    // No sensor data so stats should be empty.
+    const uint8_t l0 = ss1.writeJSON((uint8_t*)buf, sizeof(buf), OTV0P2BASE::randRNG8());
+    EXPECT_EQ(2, l0) << buf;
+    EXPECT_STREQ(buf, "{}") << buf;
+    // Write sensor values to the stats.
+    ssh1.putAll();
+    // Create minimal JSON message with just the sensor data.
     const uint8_t l1 = ss1.writeJSON((uint8_t*)buf, sizeof(buf), OTV0P2BASE::randRNG8());
     EXPECT_EQ(9, l1) << buf;
     EXPECT_STREQ(buf, "{\"H|%\":0}") << buf;
