@@ -45,11 +45,12 @@ class TemperatureC16Base : public OTV0P2BASE::Sensor<int16_t>
 
   protected:
     // Room temperature in 16*C, eg 1 is 1/16 C, 32 is 2C, -64 is -4C.
-    int16_t value;
+    // Never expected to be updated or used in an ISR, so not marked volatile.
+    int16_t value = DEFAULT_INVALID_TEMP;
 
     // Prevent instantiation of a naked instance.
     // Starts off with a detectably-invalid value, eg for before read() is called first.
-    constexpr TemperatureC16Base() : value(DEFAULT_INVALID_TEMP) { }
+    constexpr TemperatureC16Base() { }
 
   public:
     // Returns true if the given value indicates, or may indicate, an error.
