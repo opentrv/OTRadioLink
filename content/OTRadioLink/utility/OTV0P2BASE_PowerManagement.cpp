@@ -272,9 +272,9 @@ uint16_t SupplyVoltageCentiVolts::read()
   const uint16_t raw = OTV0P2BASE::_analogueNoiseReducedReadM(_BV(REFS0) | 14);
 
   // At around the 2.6V mark, it takes a change of ~3ulp in rawInv to make 1ulp (1cV) result change; strictly +ve.
-  // 430 raw maps to 261, 431--433 to 259, 434--436 to 257, 436 to 256.
+  // Note: 430 raw maps to 261, 431--433 to 259, 434--436 to 257, 436 to 256.
   // This epsilon is as much about ADC measurement stability as the conversion function.
-  static constexpr uint8_t rawEpsilon = 3;
+  static constexpr uint8_t rawEpsilon = 5;
 
   // Optimisation: if raw value is unchanged or very close then don't re-do the expensive calculation.
   // For this to work the initial value of rawInv has to be 'impossible',
