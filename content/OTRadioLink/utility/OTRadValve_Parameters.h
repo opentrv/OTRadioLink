@@ -104,7 +104,7 @@ namespace OTRadValve
             // Deeper setbacks increase energy savings at the cost of longer times to return to target temperatures.
             // See also (recommending 13F/7C setback to 55F/12C): https://www.mge.com/images/pdf/brochures/residential/setbackthermostat.pdf
             // See also (suggesting for an 8hr setback, 1F set-back = 1% energy savings): http://joneakes.com/jons-fixit-database/1270-How-far-back-should-a-set-back-thermostat-be-set
-            // See comments on savings, comfort and condensation with setbacks > ~4C: https://www.cmhc-schl.gc.ca/en/co/grho/grho_002.cfm
+            // See comments on savings, comfort and condensation with setbacks > ~4C (eg ~15% saving for 6C setback overnight): https://www.cmhc-schl.gc.ca/en/co/grho/grho_002.cfm
             // This must set back to no more than than MIN_TARGET_C to avoid problems with unsigned arithmetic.
             static constexpr uint8_t SETBACK_FULL = 4;
         };
