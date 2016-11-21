@@ -496,7 +496,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
         inputState.targetTempC = newTarget;
         inputState.minPCOpen = minPCOpen;
         inputState.maxPCOpen = maxPCOpen;
-        inputState.glacial = glacial;
+        inputState.glacial = glacial; // Note: may also wish to force glacial if room very dark to minimise noise (TODO-1027).
         inputState.inBakeMode = valveMode->inBakeMode();
         inputState.hasEcoBias =
                 tempControl->hasEcoBias();
