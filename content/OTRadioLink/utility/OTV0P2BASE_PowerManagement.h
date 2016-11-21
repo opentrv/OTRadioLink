@@ -256,10 +256,22 @@ class SupplyVoltageLow : public OTV0P2BASE::Sensor<uint16_t>
 // To use this an instance should be defined (there is no overhead if not).
 class SupplyVoltageCentiVolts final : public SupplyVoltageLow
   {
+  public:
+    // Default V0p2 very low-battery threshold suitable for 2xAA NiMH, with AVR BOD at 1.8V.
+    // Set to be high enough for common sensors such as SHT21, ie >= 2.1V.
+    static constexpr uint16_t BATTERY_VERY_LOW_cV = 210;
+
+    // Default V0p2 low-battery threshold suitable for 2xAA NiMH, with AVR BOD at 1.8V.
+    // Set to be high enough for safe motor operation without brownouts, etc.
+    static constexpr uint16_t BATTERY_LOW_cV = 245;
+
+    // Initial 'impossible' (and implying low supply voltage) rawInv.
+    static constexpr uint16_t INITIAL_RAWINV = uint16_t(~0U);
+
   private:
     // Internal bandgap (1.1V nominal, 1.0--1.2V) as fraction of Vcc [0,1023] for V0p2/AVR boards.
     // Initialise to cautious (impossibly low supply) value.
-    uint16_t rawInv = (uint16_t)~0U;
+    uint16_t rawInv = INITIAL_RAWINV;
     // Last measured supply voltage (cV) (nominally 0V--3.6V abs max) [0,360] for V0p2 boards.
     // Initialise to cautious (impossibly low supply) value.
     volatile uint16_t value = 0;

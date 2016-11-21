@@ -263,14 +263,6 @@ void power_intermittent_peripherals_disable()
 //
 // Note typical 'good' values 2.5V--2.6V.
 
-// Default V0p2 very low-battery threshold suitable for 2xAA NiMH, with AVR BOD at 1.8V.
-// Set to be high enough for common sensors such as SHT21, ie >= 2.1V.
-static const uint16_t BATTERY_VERY_LOW_cV = 210;
-
-// Default V0p2 low-battery threshold suitable for 2xAA NiMH, with AVR BOD at 1.8V.
-// Set to be high enough for safe motor operation without brownouts, etc.
-static const uint16_t BATTERY_LOW_cV = 245;
-
 // Force a read/poll of the supply voltage and return the value sensed.
 // Expensive/slow.
 // NOT thread-safe nor usable within ISRs (Interrupt Service Routines).
@@ -278,6 +270,10 @@ uint16_t SupplyVoltageCentiVolts::read()
   {
   // Measure internal bandgap (1.1V nominal, 1.0--1.2V) as fraction of Vcc [0,1023].
   const uint16_t raw = OTV0P2BASE::_analogueNoiseReducedReadM(_BV(REFS0) | 14);
+
+  // Optimisation: if raw value is unchanged then don't recalculate the rest.
+  // For this to work the initial value of rawInv has to be 'impossible'.
+  if(raw == rawInv) { return(value); }
 
   // To be conservative, reduce noise and spurious stats transmissions, for example,
   // only allow the reported voltage to move up (and thus the raw value to move down)
