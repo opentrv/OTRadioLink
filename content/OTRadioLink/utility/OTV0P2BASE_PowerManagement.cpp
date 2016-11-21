@@ -278,7 +278,8 @@ uint16_t SupplyVoltageCentiVolts::read()
   // To be conservative, reduce noise and spurious stats transmissions, for example,
   // only allow the reported voltage to move up (and thus the raw value to move down)
   // if by more than 1 ulp from the previous value, else ignore the change for now.
-  // Graphing the V0p2 (eg REV1 and REV7) data shows dithering between effectively-adjacent levels.
+  // Graphing the V0p2 (eg REV1 and REV7) data shows dithering between effectively-adjacent levels;
+  // this should prevent dithering back and forth across a boundary, sticking at the lower level.
   // Note that rawInv in real life can never get near to either end of the range.
   // An initial impossibly-high rawInv value will ensure that value is computed on first call.
   if(raw == rawInv - 1) { return(value); }
