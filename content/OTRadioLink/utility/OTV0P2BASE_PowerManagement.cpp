@@ -288,7 +288,7 @@ uint16_t SupplyVoltageCentiVolts::read()
   // Note that rawInv in real life can never get near to either end of the range.
   // An initial impossibly-high rawInv value will ensure that value is computed on first call.
   static_assert((0 == INITIAL_RAWINV) || (~0U == INITIAL_RAWINV), "initial rawInv should be one that ADC result never gets close to");
-  if((raw <= rawInv) && ((rawInv - raw) < rawEpsilon)) { return(value); }
+  if((raw <= rawInv) && ((rawInv - raw) <= rawEpsilon)) { return(value); }
 
   // If Vcc was 1.1V then raw ADC would be 1023, so (1023<<6)/raw = 1<<6, target output 110.
   // If Vcc was 2.2V then raw ADC would be 511, so (1023<<6)/raw = 2<<6, target output 220.
