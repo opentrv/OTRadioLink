@@ -265,6 +265,9 @@ class SupplyVoltageCentiVolts final : public SupplyVoltageLow
     // Set to be high enough for safe motor operation without brownouts, etc.
     static constexpr uint16_t BATTERY_LOW_cV = 245;
 
+    // Default V0p2 threshold above which assumed to be on mains power.
+    static constexpr uint16_t MAINS_MIN_cV = 300;
+
     // Initial 'impossible' (and implying low supply voltage) rawInv.
     static constexpr uint16_t INITIAL_RAWINV = uint16_t(~0U);
 
@@ -274,7 +277,8 @@ class SupplyVoltageCentiVolts final : public SupplyVoltageLow
     uint16_t rawInv = INITIAL_RAWINV;
     // Last measured supply voltage (cV) (nominally 0V--3.6V abs max) [0,360] for V0p2 boards.
     // Initialise to cautious (impossibly low supply) value.
-    volatile uint16_t value = 0;
+    // Never expected to be updated or used in an ISR, so not marked volatile.
+    uint16_t value = 0;
 
   public:
     // Force a read/poll of the supply voltage and return the value sensed.
@@ -297,8 +301,8 @@ class SupplyVoltageCentiVolts final : public SupplyVoltageLow
     // Returns true if the supply appears to be something that does not need monitoring.
     // This assumes that anything at/above 3V is mains (for a V0p2 board)
     // or at least a long way from needing monitoring.
-    // If true then the supply voltage is not low.
-    bool isMains() const { return(!isLow && (value >= 300)); }
+    // If true then the supply voltage is not low either.
+    bool isMains() const { return(value >= MAINS_MIN_cV); }
   };
 
 

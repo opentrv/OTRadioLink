@@ -273,6 +273,7 @@ uint16_t SupplyVoltageCentiVolts::read()
 
   // Optimisation: if raw value is unchanged then don't recalculate the rest.
   // For this to work the initial value of rawInv has to be 'impossible'.
+  static_assert((0 == INITIAL_RAWINV) || (~0U == INITIAL_RAWINV), "initial rawInv should be one that ADC never returns");
   if(raw == rawInv) { return(value); }
 
   // To be conservative, reduce noise and spurious stats transmissions, for example,
@@ -293,6 +294,8 @@ uint16_t SupplyVoltageCentiVolts::read()
   value = result;
   isVeryLow = (result <= BATTERY_VERY_LOW_cV);
   isLow = isVeryLow || (result <= BATTERY_LOW_cV);
+  static_assert(BATTERY_LOW_cV > BATTERY_VERY_LOW_cV, "thresholds should be such that 'not low' entails 'not very low'");
+  static_assert(MAINS_MIN_cV > BATTERY_LOW_cV, "thresholds should be such that 'on mains' entails 'not low'");
 #if 0 && defined(DEBUG)
   DEBUG_SERIAL_PRINT_FLASHSTRING("Battery cV: ");
   DEBUG_SERIAL_PRINT(result);
