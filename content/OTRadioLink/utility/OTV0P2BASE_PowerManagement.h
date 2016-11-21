@@ -258,9 +258,10 @@ class SupplyVoltageCentiVolts final : public SupplyVoltageLow
   {
   private:
     // Internal bandgap (1.1V nominal, 1.0--1.2V) as fraction of Vcc [0,1023] for V0p2/AVR boards.
-    // Initialise to cautious value.
+    // Initialise to cautious (impossibly low supply) value.
     uint16_t rawInv = (uint16_t)~0U;
     // Last measured supply voltage (cV) (nominally 0V--3.6V abs max) [0,360] for V0p2 boards.
+    // Initialise to cautious (impossibly low supply) value.
     volatile uint16_t value = 0;
 
   public:

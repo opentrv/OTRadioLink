@@ -278,6 +278,15 @@ uint16_t SupplyVoltageCentiVolts::read()
   {
   // Measure internal bandgap (1.1V nominal, 1.0--1.2V) as fraction of Vcc [0,1023].
   const uint16_t raw = OTV0P2BASE::_analogueNoiseReducedReadM(_BV(REFS0) | 14);
+
+  // To be conservative, reduce noise and spurious stats transmissions, for example,
+  // only allow the reported voltage to move up (and thus the raw value to move down)
+  // if by more than 1 ulp from the previous value, else ignore the change for now.
+  // Graphing the V0p2 (eg REV1 and REV7) data shows dithering between effectively-adjacent levels.
+  // Note that rawInv in real life can never get near to either end of the range.
+  // An initial impossibly-high rawInv value will ensure that value is computed on first call.
+  if(raw == rawInv - 1) { return(value); }
+
   // If Vcc was 1.1V then raw ADC would be 1023, so (1023<<6)/raw = 1<<6, target output 110.
   // If Vcc was 2.2V then raw ADC would be 511, so (1023<<6)/raw = 2<<6, target output 220.
   // (Raw ADC output of 0, which would cause a divide-by-zero, is effectively impossible.)
