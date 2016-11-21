@@ -271,19 +271,23 @@ uint16_t SupplyVoltageCentiVolts::read()
   // Measure internal bandgap (1.1V nominal, 1.0--1.2V) as fraction of Vcc [0,1023].
   const uint16_t raw = OTV0P2BASE::_analogueNoiseReducedReadM(_BV(REFS0) | 14);
 
-  // Optimisation: if raw value is unchanged then don't recalculate the rest.
-  // For this to work the initial value of rawInv has to be 'impossible'.
-  static_assert((0 == INITIAL_RAWINV) || (~0U == INITIAL_RAWINV), "initial rawInv should be one that ADC never returns");
-  if(raw == rawInv) { return(value); }
+  // At around the 2.6V mark, it takes a change of ~3ulp in rawInv to make 1ulp (1cV) result change; strictly +ve.
+  // 430 raw maps to 261, 431--433 to 259, 434--436 to 257, 436 to 256.
+  static constexpr uint8_t rawEpsilon = 3;
 
+  // Optimisation: if raw value is unchanged or very close then don't re-do the expensive calculation.
+  // For this to work the initial value of rawInv has to be 'impossible',
+  // and the difference should less than than rawEpsilon to avoid missing a significant change.
+  //
   // To be conservative, reduce noise and spurious stats transmissions, for example,
   // only allow the reported voltage to move up (and thus the raw value to move down)
-  // if by more than 1 ulp from the previous value, else ignore the change for now.
+  // if by at least rawEpsilon ulp from the previous value, else ignore the change for now.
   // Graphing the V0p2 (eg REV1 and REV7) data shows dithering between effectively-adjacent levels;
   // this should prevent dithering back and forth across a boundary, sticking at the lower level.
   // Note that rawInv in real life can never get near to either end of the range.
   // An initial impossibly-high rawInv value will ensure that value is computed on first call.
-  if(raw == rawInv - 1) { return(value); }
+  static_assert((0 == INITIAL_RAWINV) || (~0U == INITIAL_RAWINV), "initial rawInv should be one that ADC result never gets close to");
+  if((raw <= rawInv) && ((rawInv - raw) < rawEpsilon)) { return(value); }
 
   // If Vcc was 1.1V then raw ADC would be 1023, so (1023<<6)/raw = 1<<6, target output 110.
   // If Vcc was 2.2V then raw ADC would be 511, so (1023<<6)/raw = 2<<6, target output 220.
