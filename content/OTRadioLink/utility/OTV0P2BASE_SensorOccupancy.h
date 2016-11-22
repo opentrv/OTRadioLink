@@ -94,7 +94,8 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     virtual Sensor_tag_t tag() const override { return(V0p2_SENSOR_TAG_F("occ|%")); }
 
     // True if activity/occupancy recently reported (within last couple of minutes).
-    // Activity includes weak and strong reports.
+    // Activity includes strong and weak reports (eg from manual controls or lights on),
+    // but not very weak reports such as from (say) some humidity or CO2 based measures.
     // ISR-/thread- safe.
     bool reportedRecently() const { return(0 != activityCountdownM.load()); }
 
@@ -105,9 +106,10 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     bool isLikelyOccupied() const { return(0 != occupationCountdownM.load()); }
 
     // Returns true if the room appears to be likely occupied (with active users) recently.
-    // This uses the same timer as isOccupied() (restarted by markAsOccupied())
+    // This uses the same timer as isLikelyOccupied() (restarted by markAsOccupied())
     // but returns to false somewhat sooner for example to allow ramping up more costly occupancy detection methods
     // and to allow some simple graduated occupancy responses.
+    // Use of markAsPossiblyOccupied() will not make this true.
     // ISR-/thread- safe.
     bool isLikelyRecentlyOccupied() const { return(occupationCountdownM.load() > OCCUPATION_TIMEOUT_LIKELY_M); }
 

@@ -500,10 +500,12 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
         inputState.inBakeMode = valveMode->inBakeMode();
         inputState.hasEcoBias =
                 tempControl->hasEcoBias();
-        // Request a fast response from the valve if user is manually adjusting controls.
-        const bool veryRecentUIUse =
-                physicalUI->veryRecentUIControlUse();
-        inputState.fastResponseRequired = veryRecentUIUse;
+        // Request a fast response from the valve if user is currently manually adjusting the controls
+        // or there is a very recent (and reasonably strong) occupancy signal such as lights on (TODO-1069).
+        // This may provide enough feedback to have the user resist adjusting things!
+        const bool fastResponseRequired =
+                physicalUI->veryRecentUIControlUse() || occupancy->reportedRecently();
+        inputState.fastResponseRequired = fastResponseRequired;
         // Widen the allowed deadband significantly in an unlit/quiet/vacant room (TODO-383, TODO-593, TODO-786, TODO-1037)
         // (or in FROST mode, or if temperature is jittery eg changing fast and filtering has been engaged)
         // to attempt to reduce the total number and size of adjustments and thus reduce noise/disturbance (and battery drain).
@@ -514,7 +516,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
         // Minimum number of hours vacant to force wider deadband in ECO mode, else a full day ('long vacant') is the threshold.
         // May still have to back this off if only automatic occupancy input is ambient light and day >> 6h, ie other than deep winter.
         constexpr uint8_t minVacancyHoursForWideningECO = 3;
-        inputState.widenDeadband = (!veryRecentUIUse) &&
+        inputState.widenDeadband = (!fastResponseRequired) &&
             (isFiltering
                 || (!valveMode->inWarmMode())
                 || ambLight->isRoomDark() // Must be false if light sensor not usable.
