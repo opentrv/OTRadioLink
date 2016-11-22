@@ -201,14 +201,14 @@ uint8_t TempControlTempPot_computeWARMTargetC(const uint8_t pot, const uint8_t l
 
 // All template parameters must be non-NULL except the humidity sensor.
 //   * tempPot  (const pointer to) temperature control potentiometer/dial; never NULL.
-//   * rh  (const pointer to) relative humidity sensor; NULL if none.
+//   * rhOpt  (const pointer to) relative humidity sensor; NULL if none.
 // Does not use EEPROM.
 #define TempControlTempPot_DEFINED
 template
   <
   class stpb_t /*= OTV0P2BASE::SensorTemperaturePotBase*/, const stpb_t *const tempPot,
   class valveControlParams,
-  class rh_t = OTV0P2BASE::HumiditySensorBase, const rh_t *rh = static_cast<const rh_t *>(NULL)
+  class rh_t = OTV0P2BASE::HumiditySensorBase, const rh_t *rhOpt = static_cast<const rh_t *>(NULL)
   >
 class TempControlTempPot final : public TempControlSimpleVCP<valveControlParams>
   {
@@ -221,7 +221,7 @@ class TempControlTempPot final : public TempControlSimpleVCP<valveControlParams>
     virtual uint8_t getFROSTTargetC() const override
       {
       // Prevent falling to lowest frost temperature if relative humidity is high (eg to avoid mould).
-      const uint8_t result = (!this->hasEcoBias() || ((NULL != rh) && rh->isAvailable() && rh->isRHHighWithHyst())) ? valveControlParams::FROST_COM : valveControlParams::FROST_ECO;
+      const uint8_t result = (!this->hasEcoBias() || ((NULL != rhOpt) && rhOpt->isAvailable() && rhOpt->isRHHighWithHyst())) ? valveControlParams::FROST_COM : valveControlParams::FROST_ECO;
       return(result);
       }
 
