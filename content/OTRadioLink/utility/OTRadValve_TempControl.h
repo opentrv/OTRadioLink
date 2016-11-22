@@ -38,19 +38,19 @@ namespace OTRadValve
 
 
 // Base class for temperature control.
-// Default as provided by this base is a single fixed safe room temperature.
-// Derived classes support such items as non-volatile CLI-configurable temperatures (eg REV1)
+// Derived classes support such items as persistent CLI-configurable temperatures (eg REV1)
 // and analogue temperature potentiometers (such as the REV2 and REV7/DORM1/TRV1).
+// Not very useful stand-alone other than as a NULL class for testing.
 class TempControlBase
   {
   public:
     // Get (possibly dynamically-set) thresholds/parameters.
     // Get 'FROST' protection target in C; no higher than getWARMTargetC() returns, strictly positive, in range [MIN_TARGET_C,MAX_TARGET_C].
     // Depends dynamically on current (last-read) temp-pot setting.
-    virtual uint8_t getFROSTTargetC() const { return(MIN_TARGET_C); }
+    virtual uint8_t getFROSTTargetC() const = 0;
     // Get 'WARM' target in C; no lower than getFROSTTargetC() returns, strictly positive, in range [MIN_TARGET_C,MAX_TARGET_C].
     // Depends dynamically on current (last-read) temp-pot setting.
-    virtual uint8_t getWARMTargetC() const { return(SAFE_ROOM_TEMPERATURE); }
+    virtual uint8_t getWARMTargetC() const = 0;
 
     // Some systems allow FROST and WARM targets to be set and stored, eg REV1.
     // Set (non-volatile) 'FROST' protection target in C; no higher than getWARMTargetC() returns, strictly positive, in range [MIN_TARGET_C,MAX_TARGET_C].
@@ -61,17 +61,48 @@ class TempControlBase
     // Returns false if not set, eg because below FROST setting or outside range [MIN_TARGET_C,MAX_TARGET_C], else returns true.
     virtual bool setWARMTargetC(uint8_t /*tempC*/) { return(false); }  // Does nothing by default.
 
+    // If true then the system has an 'Eco' energy-saving bias, else it has a 'comfort' bias.
+    // Several system parameters are adjusted depending on the bias,
+    // with 'eco' slanted toward saving energy, eg with lower target temperatures and shorter on-times.
+    // This is determined from user-settable temperature values.
+    virtual bool hasEcoBias() const = 0;
+    // True if specified temperature is at or below 'eco' WARM target temperature, ie is eco-friendly.
+    virtual bool isEcoTemperature(uint8_t tempC) const = 0;
+    // True if specified temperature is at or above 'comfort' WARM target temperature.
+    virtual bool isComfortTemperature(uint8_t tempC) const = 0;
+
+    // Minimum WARM temperature, ignoring setbacks and BAKE; strictly positive.
+    virtual uint8_t getMinWARMTargetC() const = 0;
+    // Minimum WARM temperature, ignoring setbacks and BAKE; strictly positive and greater than getMinWARMTargetC().
+    virtual uint8_t getMaxWARMTargetC() const = 0;
+};
+
+// NULL temperature control for testing.
+// This provides a single fixed safe room temperature.
+class NULLTempControl : public TempControlBase
+  {
+  public:
     // If true (the default) then the system has an 'Eco' energy-saving bias, else it has a 'comfort' bias.
     // Several system parameters are adjusted depending on the bias,
     // with 'eco' slanted toward saving energy, eg with lower target temperatures and shorter on-times.
     // This is determined from user-settable temperature values.
-    virtual bool hasEcoBias() const { return(true); }
+    virtual bool hasEcoBias() const override { return(true); }
+    // Get (possibly dynamically-set) thresholds/parameters.
+    // Get 'FROST' protection target in C; no higher than getWARMTargetC() returns, strictly positive, in range [MIN_TARGET_C,MAX_TARGET_C].
+    // Depends dynamically on current (last-read) temp-pot setting.
+    virtual uint8_t getFROSTTargetC() const override { return(MIN_TARGET_C); }
+    // Get 'WARM' target in C; no lower than getFROSTTargetC() returns, strictly positive, in range [MIN_TARGET_C,MAX_TARGET_C].
+    // Depends dynamically on current (last-read) temp-pot setting.
+    virtual uint8_t getWARMTargetC() const override { return(SAFE_ROOM_TEMPERATURE); }
     // True if specified temperature is at or below 'eco' WARM target temperature, ie is eco-friendly.
-    virtual bool isEcoTemperature(uint8_t tempC) const { return(tempC < SAFE_ROOM_TEMPERATURE); } // ((tempC) <= PARAMS::WARM_ECO)
+    virtual bool isEcoTemperature(uint8_t tempC) const override { return(tempC < SAFE_ROOM_TEMPERATURE); } // ((tempC) <= PARAMS::WARM_ECO)
     // True if specified temperature is at or above 'comfort' WARM target temperature.
-    virtual bool isComfortTemperature(uint8_t tempC) const { return(tempC > SAFE_ROOM_TEMPERATURE); } // ((tempC) >= PARAMS::WARM_COM)
+    virtual bool isComfortTemperature(uint8_t tempC) const override { return(tempC > SAFE_ROOM_TEMPERATURE); } // ((tempC) >= PARAMS::WARM_COM)
+    // Minimum WARM temperature, ignoring setbacks and BAKE; strictly positive.
+    virtual uint8_t getMinWARMTargetC() const override final { return(SAFE_ROOM_TEMPERATURE); }
+    // Minimum WARM temperature, ignoring setbacks and BAKE; strictly positive and greater than getMinWARMTargetC().
+    virtual uint8_t getMaxWARMTargetC() const override final { return(SAFE_ROOM_TEMPERATURE); }
   };
-
 
 // Intermediate templated abstract class that deals with some of the valve control parameters.
 #define TempControlSimpleVCP_DEFINED
@@ -93,6 +124,10 @@ class TempControlSimpleVCP : public TempControlBase
     virtual bool isEcoTemperature(const uint8_t tempC) const override { return(tempC <= valveControlParams::WARM_ECO); }
     // True if specified temperature is at or above 'comfort' WARM target temperature.
     virtual bool isComfortTemperature(const uint8_t tempC) const override { return(tempC >= valveControlParams::WARM_COM); }
+    // Minimum WARM temperature, ignoring setbacks and BAKE; strictly positive.
+    virtual uint8_t getMinWARMTargetC() const override final { return(valveControlParams::TEMP_SCALE_MIN); }
+    // Minimum WARM temperature, ignoring setbacks and BAKE; strictly positive and greater than getMinWARMTargetC().
+    virtual uint8_t getMaxWARMTargetC() const override final { return(valveControlParams::TEMP_SCALE_MAX); }
   };
 
 #ifdef ARDUINO_ARCH_AVR
@@ -108,7 +143,7 @@ class TempControlSimpleEEPROMBacked final : public TempControlSimpleVCP<valveCon
       // Get persisted value, if any.
       const uint8_t stored = eeprom_read_byte((uint8_t *)V0P2BASE_EE_START_WARM_C);
       // If out of bounds or no stored value then use default (or frost value if set and higher).
-      if((stored < OTRadValve::MIN_TARGET_C) || (stored > OTRadValve::MAX_TARGET_C)) { return(OTV0P2BASE::fnmax(valveControlParams::WARM, getFROSTTargetC())); }
+      if((stored < valveControlParams::TEMP_SCALE_MIN) || (stored > valveControlParams::TEMP_SCALE_MAX)) { return(OTV0P2BASE::fnmax(valveControlParams::WARM, getFROSTTargetC())); }
       // Return valid persisted value (or frost value if set and higher).
       return(OTV0P2BASE::fnmax(stored, getFROSTTargetC()));
       }
@@ -118,8 +153,7 @@ class TempControlSimpleEEPROMBacked final : public TempControlSimpleVCP<valveCon
       // Get persisted value, if any.
       const uint8_t stored = eeprom_read_byte((uint8_t *)V0P2BASE_EE_START_FROST_C);
       // If out of bounds or no stored value then use default.
-      if((stored < OTRadValve::MIN_TARGET_C) || (stored > OTRadValve::MAX_TARGET_C)) { return(valveControlParams::FROST); }
-      // TODO-403: cannot use hasEcoBias() with RH% as that would cause infinite recursion!
+      if((stored < valveControlParams::TEMP_SCALE_MIN) || (stored > valveControlParams::TEMP_SCALE_MAX)) { return(valveControlParams::FROST); }
       // Return valid persisted value.
       return(stored);
       }
@@ -129,7 +163,7 @@ class TempControlSimpleEEPROMBacked final : public TempControlSimpleVCP<valveCon
     // Returns false if not set, eg because outside range [MIN_TARGET_C,MAX_TARGET_C], else returns true.
     bool setFROSTTargetC(const uint8_t tempC) override
       {
-      if((tempC < OTRadValve::MIN_TARGET_C) || (tempC > OTRadValve::MAX_TARGET_C)) { return(false); } // Invalid temperature.
+      if((tempC < valveControlParams::TEMP_SCALE_MIN) || (tempC > valveControlParams::TEMP_SCALE_MAX)) { return(false); } // Invalid temperature.
       if(tempC > getWARMTargetC()) { return(false); } // Cannot set above WARM target.
       OTV0P2BASE::eeprom_smart_update_byte((uint8_t *)V0P2BASE_EE_START_FROST_C, tempC); // Update in EEPROM if necessary.
       return(true); // Assume value correctly written.
@@ -139,7 +173,7 @@ class TempControlSimpleEEPROMBacked final : public TempControlSimpleVCP<valveCon
     // Returns false if not set, eg because below FROST setting or outside range [MIN_TARGET_C,MAX_TARGET_C], else returns true.
     bool setWARMTargetC(const uint8_t tempC) override
       {
-      if((tempC < OTRadValve::MIN_TARGET_C) || (tempC > OTRadValve::MAX_TARGET_C)) { return(false); } // Invalid temperature.
+      if((tempC < valveControlParams::TEMP_SCALE_MIN) || (tempC > valveControlParams::TEMP_SCALE_MAX)) { return(false); } // Invalid temperature.
       if(tempC < getFROSTTargetC()) { return(false); } // Cannot set below FROST target.
       OTV0P2BASE::eeprom_smart_update_byte((uint8_t *)V0P2BASE_EE_START_WARM_C, tempC); // Update in EEPROM if necessary.
       return(true); // Assume value correctly written.
