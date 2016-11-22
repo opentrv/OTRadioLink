@@ -125,7 +125,7 @@ class SensorTemperaturePotMock final : public SensorTemperaturePotBase
 #define SensorTemperaturePot_DEFINED
 template
     <
-    class occ_t /*= OTV0P2BASE::PseudoSensorOccupancyTracker*/, occ_t *const occupancy = NULL,
+    class occ_t /* = OTV0P2BASE::PseudoSensorOccupancyTracker */, occ_t *const occupancyOpt = NULL,
     const uint16_t minExpected = 0, const uint16_t maxExpected = 1023 /* TEMP_POT_RAW_MAX */,
     bool needsPeriphEnable = true
     >
@@ -137,13 +137,14 @@ class SensorTemperaturePot final : public SensorTemperaturePotBase
 
   private:
     // Raw pot value [0,1023] if extra precision is required.
-    uint16_t raw;
+    // Initialised to distinct/special value.
+    uint16_t raw = uint16_t(~0U);
 
     // WARM/FROST and BAKE start/cancel callbacks.
     // If not NULL, are called when the pot is adjusted appropriately.
     // Typically at most one of these callbacks would be made on any appropriate pot adjustment.
-    void (*warmModeCallback)(bool);
-    void (*bakeStartCallback)(bool);
+    void (*warmModeCallback)(bool) = NULL;
+    void (*bakeStartCallback)(bool) = NULL;
 
     // Compute the real scaled minimum, allowing for reversals.
     inline constexpr uint8_t _computeRealMinScaled(uint16_t minExpected_, uint16_t maxExpected_)
@@ -168,11 +169,9 @@ class SensorTemperaturePot final : public SensorTemperaturePotBase
     inline bool isReversed() const { return(minExpected > maxExpected); }
 
   public:
-    // Initialise raw to distinct/special value and all pointers to NULL.
-    constexpr SensorTemperaturePot(/*const uint16_t minExpected_ = 0, const uint16_t maxExpected_ = TEMP_POT_RAW_MAX*/)
-      : SensorTemperaturePotBase(_computeLoEndStop(minExpected, maxExpected), _computeHiEndStop(minExpected, maxExpected)),
-        raw((uint16_t) ~0U),
-        warmModeCallback(NULL), bakeStartCallback(NULL)
+    // Create an instance with no callbacks in place.
+    constexpr SensorTemperaturePot()
+      : SensorTemperaturePotBase(_computeLoEndStop(minExpected, maxExpected), _computeHiEndStop(minExpected, maxExpected))
       { }
 
     // Force a read/poll of the temperature pot and return the value sensed [0,255] (cold to hot).
@@ -230,7 +229,7 @@ class SensorTemperaturePot final : public SensorTemperaturePotBase
 
           // Report that the user operated the pot, ie part of the manual UI.
           // Do this regardless of whether a specific mode change was invoked.
-          if(NULL != occupancy) { occupancy->markAsOccupied(); }
+          if(NULL != occupancyOpt) { occupancyOpt->markAsOccupied(); }
           }
         }
 
