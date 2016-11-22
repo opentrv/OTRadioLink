@@ -37,7 +37,7 @@ namespace OTRadValve
     {
 
 
-// Base class for temperature control.
+// Base class for temperature control without persistent backing store.
 // Derived classes support such items as persistent CLI-configurable temperatures (eg REV1)
 // and analogue temperature potentiometers (such as the REV2 and REV7/DORM1/TRV1).
 // Not very useful stand-alone other than as a NULL class for testing.
@@ -51,15 +51,6 @@ class TempControlBase
     // Get 'WARM' target in C; no lower than getFROSTTargetC() returns, strictly positive, in range [MIN_TARGET_C,MAX_TARGET_C].
     // Depends dynamically on current (last-read) temp-pot setting.
     virtual uint8_t getWARMTargetC() const = 0;
-
-    // Some systems allow FROST and WARM targets to be set and stored, eg REV1.
-    // Set (non-volatile) 'FROST' protection target in C; no higher than getWARMTargetC() returns, strictly positive, in range [MIN_TARGET_C,MAX_TARGET_C].
-    // Can also be used, even when a temperature pot is present, to set a floor setback temperature.
-    // Returns false if not set, eg because outside range [MIN_TARGET_C,MAX_TARGET_C], else returns true.
-    virtual bool setFROSTTargetC(uint8_t /*tempC*/) { return(false); } // Does nothing by default.
-    // Set 'WARM' target in C; no lower than getFROSTTargetC() returns, strictly positive, in range [MIN_TARGET_C,MAX_TARGET_C].
-    // Returns false if not set, eg because below FROST setting or outside range [MIN_TARGET_C,MAX_TARGET_C], else returns true.
-    virtual bool setWARMTargetC(uint8_t /*tempC*/) { return(false); }  // Does nothing by default.
 
     // If true then the system has an 'Eco' energy-saving bias, else it has a 'comfort' bias.
     // Several system parameters are adjusted depending on the bias,
@@ -76,6 +67,22 @@ class TempControlBase
     // Minimum WARM temperature, ignoring setbacks and BAKE; strictly positive and greater than getMinWARMTargetC().
     virtual uint8_t getMaxWARMTargetC() const = 0;
 };
+
+// Interface for settable temperature control.
+// Adds in methods for setting non-volatile backing store.
+// Not used in most implementations, so saves space for them by making even the virtual methods optional.
+class TempControlSettableInterface
+  {
+  public:
+    // Some systems allow FROST and WARM targets to be set and stored, eg REV1.
+    // Set (non-volatile) 'FROST' protection target in C; no higher than getWARMTargetC() returns, strictly positive, in range [MIN_TARGET_C,MAX_TARGET_C].
+    // Can also be used, even when a temperature pot is present, to set a floor setback temperature.
+    // Returns false if not set, eg because outside range [MIN_TARGET_C,MAX_TARGET_C], else returns true.
+    virtual bool setFROSTTargetC(uint8_t /*tempC*/) = 0; // { return(false); } // Does nothing by default.
+    // Set 'WARM' target in C; no lower than getFROSTTargetC() returns, strictly positive, in range [MIN_TARGET_C,MAX_TARGET_C].
+    // Returns false if not set, eg because below FROST setting or outside range [MIN_TARGET_C,MAX_TARGET_C], else returns true.
+    virtual bool setWARMTargetC(uint8_t /*tempC*/) = 0; // { return(false); }  // Does nothing by default.
+  };
 
 // NULL temperature control for testing.
 // This provides a single fixed safe room temperature.
@@ -135,7 +142,7 @@ class TempControlSimpleVCP : public TempControlBase
 // Typically selected if defined(ENABLE_SETTABLE_TARGET_TEMPERATURES)
 #define TempControlSimpleEEPROMBacked_DEFINED
 template <class valveControlParams>
-class TempControlSimpleEEPROMBacked final : public TempControlSimpleVCP<valveControlParams>
+class TempControlSimpleEEPROMBacked final : public TempControlSimpleVCP<valveControlParams>, TempControlSettableInterface
   {
   public:
     virtual uint8_t getWARMTargetC() const override
