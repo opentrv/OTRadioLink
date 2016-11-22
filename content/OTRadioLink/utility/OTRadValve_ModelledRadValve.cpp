@@ -538,8 +538,8 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
         (lsbits >= 8) || ((lsbits >= 4) && (valvePCOpen > OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN));
     if(beGlacial) { return(valvePCOpen + 1); }
 
-    // Slew open faster with comfort bias.  (Or with explicit request? inputState.fastResponseRequired TODO-593)
-    const uint8_t maxSlew = (!inputState.hasEcoBias) ? TRV_SLEW_PC_PER_MIN_FAST : TRV_MAX_SLEW_PC_PER_MIN;
+    // Slew open faster with comfort bias, or when fastResponseRequired (TODO-593, TODO-1069)
+    const uint8_t maxSlew = (!inputState.hasEcoBias || inputState.fastResponseRequired) ? TRV_SLEW_PC_PER_MIN_FAST : TRV_MAX_SLEW_PC_PER_MIN;
     if(slew > maxSlew)
         { return(valvePCOpen + maxSlew); } // Cap slew rate towards open.
     // Adjust directly to target.
