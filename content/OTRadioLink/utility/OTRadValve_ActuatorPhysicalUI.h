@@ -96,8 +96,6 @@ class NULLActuatorPhysicalUI final : public ActuatorPhysicalUIBase
   };
 
 
-//#ifdef ARDUINO_ARCH_AVR
-
 // Supports boost/MODE button, temperature pot, and a single HEATCALL LED.
 // This does not support LEARN buttons; a derived class does.
 #define ModeButtonAndPotActuatorPhysicalUI_DEFINED
@@ -533,8 +531,6 @@ class CycleModeAndLearnButtonsAndPotActuatorPhysicalUI final : public ModeButton
     //  else { Scheduler.clearSimpleSchedule(which); }
     //  }
   };
-
-//#endif // ARDUINO_ARCH_AVR
 
 
     }
