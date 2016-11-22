@@ -502,7 +502,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
                 tempControl->hasEcoBias();
         // Request a fast response from the valve if user is currently manually adjusting the controls
         // or there is a very recent (and reasonably strong) occupancy signal such as lights on (TODO-1069).
-        // This may provide enough feedback to have the user resist adjusting things!
+        // This may provide enough feedback to have the user resist adjusting things prematurely!
         const bool fastResponseRequired =
                 physicalUI->veryRecentUIControlUse() || occupancy->reportedRecently();
         inputState.fastResponseRequired = fastResponseRequired;
