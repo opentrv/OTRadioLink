@@ -498,13 +498,12 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
         inputState.maxPCOpen = maxPCOpen;
         inputState.glacial = glacial; // Note: may also wish to force glacial if room very dark to minimise noise (TODO-1027).
         inputState.inBakeMode = valveMode->inBakeMode();
-        inputState.hasEcoBias =
-                tempControl->hasEcoBias();
-        // Request a fast response from the valve if user is currently manually adjusting the controls
+        inputState.hasEcoBias = tempControl->hasEcoBias();
+        // Request a fast response from the valve if the user is currently manually adjusting the controls
         // or there is a very recent (and reasonably strong) occupancy signal such as lights on (TODO-1069).
         // This may provide enough feedback to have the user resist adjusting things prematurely!
         const bool fastResponseRequired =
-                physicalUI->veryRecentUIControlUse() || occupancy->reportedRecently();
+            physicalUI->veryRecentUIControlUse() || (occupancy->reportedRecently() && occupancy->isLikelyOccupied());
         inputState.fastResponseRequired = fastResponseRequired;
         // Widen the allowed deadband significantly in an unlit/quiet/vacant room (TODO-383, TODO-593, TODO-786, TODO-1037)
         // (or in FROST mode, or if temperature is jittery eg changing fast and filtering has been engaged)
