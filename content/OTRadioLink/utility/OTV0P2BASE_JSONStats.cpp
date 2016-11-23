@@ -323,7 +323,9 @@ size_t SimpleStatsRotationBase::print(BufPrint &bp, const SimpleStatsRotationBas
   w += bp.print(s.descriptor.key); // Assumed not to need escaping in any way.
   w += bp.print('"');
   w += bp.print(':');
-  w += bp.print(s.value);
+  const int16_t v = s.value;
+  // Optimisation here for the common small non-negative values, eg zero.
+  w += ((v >= 0) && (v <= 9)) ? bp.print((char)('0' + v)) : bp.print(v);
   commaPending = true;
   return(w);
   }
