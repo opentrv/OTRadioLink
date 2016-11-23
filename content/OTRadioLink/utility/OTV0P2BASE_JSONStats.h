@@ -123,7 +123,8 @@ struct GenericStatsDescriptor final
   };
 
 // Print to a bounded buffer.
-class BufPrint final : public Print
+template<class Printer = Print>
+class BufPrintT final : public Printer
   {
   private:
     char * const b;
@@ -134,7 +135,7 @@ class BufPrint final : public Print
     // Wrap around a buffer of size bufSize-1 chars and a trailing '\0'.
     // The buffer must be of at least size 1.
     // A buffer of size n can accommodate n-1 characters.
-    BufPrint(char *buf, uint8_t bufSize) : b(buf), capacity(bufSize-1), size(0), mark(0) { buf[0] = '\0'; }
+    BufPrintT(char *buf, uint8_t bufSize) : b(buf), capacity(bufSize-1), size(0), mark(0) { buf[0] = '\0'; }
     // Print a single char to a bounded buffer; returns 1 if successful, else 0 if full.
     virtual size_t write(uint8_t c) override
         { if(size < capacity) { b[size++] = char(c); b[size] = '\0'; return(1); } else { return(0); } }
@@ -147,6 +148,8 @@ class BufPrint final : public Print
     // Rewind to previous good position, clearing newer text.
     void rewind() { size = mark; b[size] = '\0'; }
   };
+// Version of class depending on Arduino Print class.
+typedef BufPrintT<Print> BufPrint;
 
 // Manage sending of stats, possibly by rotation to keep frame sizes small.
 // This will try to prioritise sending of changed and important values.
@@ -163,7 +166,7 @@ class SimpleStatsRotationBase
     // If properties not already set and not supplied then stat will get defaults.
     // If descriptor is supplied then its key must match (and the descriptor will be copied).
     // True if successful, false otherwise (eg capacity already reached).
-    bool put(MSG_JSON_SimpleStatsKey_t key, int newValue, bool statLowPriority = false);
+    bool put(MSG_JSON_SimpleStatsKey_t key, int16_t newValue, bool statLowPriority = false);
 
     // Create/update value for the given sensor.
     // True if successful, false otherwise (eg capacity already reached).
@@ -258,7 +261,7 @@ class SimpleStatsRotationBase
       GenericStatsDescriptor descriptor;
 
       // Value.
-      int value;
+      int16_t value;
 
       // Various run-time flags.
       struct Flags final

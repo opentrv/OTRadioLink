@@ -265,7 +265,7 @@ bool SimpleStatsRotationBase::putDescriptor(const GenericStatsDescriptor &descri
 // If properties not already set and not supplied then stat will get defaults.
 // If descriptor is supplied then its key must match (and the descriptor will be copied).
 // True if successful, false otherwise (eg capacity already reached).
-bool SimpleStatsRotationBase::put(const MSG_JSON_SimpleStatsKey_t key, const int newValue, const bool statLowPriority)
+bool SimpleStatsRotationBase::put(const MSG_JSON_SimpleStatsKey_t key, const int16_t newValue, const bool statLowPriority)
   {
   if(!isValidSimpleStatsKey(key))
     {
