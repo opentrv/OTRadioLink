@@ -313,7 +313,6 @@ DEBUG_SERIAL_PRINTLN();
   return(false); // FAILED: full.
   }
 
-//#if defined(ALLOW_JSON_OUTPUT)
 // Print an object field "name":value to the given buffer.
 size_t SimpleStatsRotationBase::print(BufPrint &bp, const SimpleStatsRotationBase::DescValueTuple &s, bool &commaPending) const
   {
@@ -324,13 +323,11 @@ size_t SimpleStatsRotationBase::print(BufPrint &bp, const SimpleStatsRotationBas
   w += bp.print('"');
   w += bp.print(':');
   const int16_t v = s.value;
-  // Optimisation here for the common small non-negative values, eg zero.
+  // Optimisation here for common small non-negative values, eg zero.
   w += ((v >= 0) && (v <= 9)) ? bp.print((char)('0' + v)) : bp.print(v);
   commaPending = true;
   return(w);
   }
-//#endif
-
 
 // True if any changed values are pending (not yet written out).
 bool SimpleStatsRotationBase::changedValue() const
