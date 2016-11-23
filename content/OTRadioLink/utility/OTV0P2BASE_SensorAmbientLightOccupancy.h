@@ -92,24 +92,34 @@ class SensorAmbientLightOccupancyDetectorSimple final : public SensorAmbientLigh
   {
   public:
       // Minimum delta (rise) for occupancy to be detected; a simple noise floor.
-      static const uint8_t epsilon = 4;
+      static constexpr uint8_t epsilon = 4;
 
   private:
       // Previous ambient light level [0,254]; 0 means dark.
       // Starts at max so that no initial light level can imply occupancy.
-      uint8_t prevLightLevel;
+      uint8_t prevLightLevel = 254;
 
       // Parameters from setTypMinMax().
-      uint8_t meanNowOrFF;
-	  uint8_t longTermMinimumOrFF;
-	  uint8_t longTermMaximumOrFF;
-	  bool sensitive;
+      uint8_t meanNowOrFF = 0xff;
+	  uint8_t longTermMinimumOrFF = 0xff;
+	  uint8_t longTermMaximumOrFF = 0xff;
+	  bool sensitive = false;
+
+//      // Flicker detector from watching TV or otherwise moving around the room.
+//      // Possibly not to be used unless device is in sensitive mode, eg driven by comfort,
+//      // and light is well away from daily maximum and minimum.
+//      // Minimum delta (rise) for (eg TV) flicker to be detected; a simple noise floor.
+//      // Picked to try to eliminate spurious triggers from quantisation noise.
+//      static constexpr uint8_t flickerEpsilon = 2;
+//	  // Long-term smoothed ticks to overflow flicker delta sum.
+//	  uint16_t filterDeltaOverflowTicks = 0;
+//	  // Current flicker delta sum.
+//	  uint8_t currentFlickerDeltaSum = 0;
+//	  // Current ticks in while accumulating flicker delta sum;
+//	  uint8_t currentFlickerDeltaTicks = 0;
 
   public:
-      SensorAmbientLightOccupancyDetectorSimple()
-        : prevLightLevel(254),
-		  meanNowOrFF(0xff), longTermMinimumOrFF(0xff), longTermMaximumOrFF(0xff), sensitive(false)
-          { }
+      constexpr SensorAmbientLightOccupancyDetectorSimple() { }
 
       // Call regularly (~1/60s) with the current ambient light level [0,254].
       // Returns true if probable occupancy is detected.
