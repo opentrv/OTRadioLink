@@ -950,9 +950,9 @@ TEST(AmbientLightOccupancyDetection,sample6k)
     simpleDataSampleRun(sample6k, &ds1);
 }
 
-
+//-----------------------------------------------------------------------------------------------------------------
 // "3l" fortnight to 2016/11/24 looking for habitual artificial lighting to watch TV, etc.
-static const ALDataSample sample3llomg[] =
+static const ALDataSample sample3llong[] =
     {
 {10,0,7,1},
 {10,0,27,1},
@@ -3036,3 +3036,10 @@ static const ALDataSample sample3llomg[] =
 {24,22,15,3},
     { }
     };
+// "3l" fortnight to 2016/11/24 looking for habitual artificial lighting to watch TV, etc.
+TEST(AmbientLightOccupancyDetection,sample3llong)
+{
+//    OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds1;
+//    simpleDataSampleRun(sample3llong, &ds1);
+}
+
