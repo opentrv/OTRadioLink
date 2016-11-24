@@ -43,7 +43,7 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     // DHD20130528: no activity for ~30 minutes usually enough to declare room empty; an hour is conservative.
     // Should probably be at least as long as, or a little longer than, the BAKE timeout.
     // Should probably be significantly shorter than normal 'learn' on time to allow savings from that in empty rooms.
-    // Vales of 25, 50, 100 work well for the internal arithmetic.
+    // Values of 25, 50, 100 work well for the internal arithmetic.
     static constexpr uint8_t OCCUPATION_TIMEOUT_M = 50;
 
   private:
