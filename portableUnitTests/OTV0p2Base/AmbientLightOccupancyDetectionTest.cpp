@@ -47,7 +47,9 @@ TEST(AmbientLightOccupancyDetection,updateBasics)
 }
 
 // Ambient light data samples, along with optional expected result of occupancy detector.
-// Can be directly created from OpenTRV log files.
+// Can be directly created from OpenTRV log files into day hour minute value columns,
+// eg from log lines of the form "2016-11-24T22:07:39Z 96F0CED3B4E690E8 47"
+// with awk '{ print "{"(0+substr($1,9,2))","(0+substr($1, 12, 2))","(0+substr($1, 15, 2))","$3"},"; }'
 class ALDataSample
     {
     public:
@@ -947,3 +949,11 @@ TEST(AmbientLightOccupancyDetection,sample6k)
     OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds1;
     simpleDataSampleRun(sample6k, &ds1);
 }
+
+
+// "3l" fortnight to 2016/11/24 looking for habitual artificial lighting to watch TV, etc.
+static const ALDataSample sample3llomg[] =
+    {
+
+    { }
+    };
