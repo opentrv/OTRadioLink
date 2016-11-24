@@ -52,6 +52,10 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     // Threshold from 'probably' to 'maybe'.  Not part of official API.
     static constexpr uint8_t OCCUPATION_TIMEOUT_MAYBE_M = OCCUPATION_TIMEOUT_LIKELY_M/2;
 
+    // Nominal (recent) activity timeout in minutes; strictly positive.
+    // Because of the way the countdown is done, has to be >= 2 to guarantee to be visible.
+    static constexpr uint8_t ACTIVITY_TIMEOUT_M = 3;
+
     // Time until room regarded as unoccupied, in minutes; initially zero (ie treated as unoccupied at power-up).
     // Marked volatile for thread-safe lock-free non-read-modify-write access to byte-wide value.
     // Compound operations must block interrupts.
@@ -126,7 +130,7 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     // Do not call from (for example) 'on' schedule change.
     // Makes occupation immediately visible.
     // Thread-safe and ISR-safe.
-    void markAsOccupied() { value = 100; occupationCountdownM.store(OCCUPATION_TIMEOUT_M); activityCountdownM.store(2); }
+    void markAsOccupied() { value = 100; occupationCountdownM.store(OCCUPATION_TIMEOUT_M); activityCountdownM.store(ACTIVITY_TIMEOUT_M); }
 
     // Call when decent but not very strong evidence of active room occupation, such as a light being turned on, or voice heard.
     // Do not call based on internal/synthetic events.

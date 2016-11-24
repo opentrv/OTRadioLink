@@ -110,7 +110,7 @@ void PseudoSensorOccupancyTracker::markAsPossiblyOccupied()
   const uint8_t oNew = OTV0P2BASE::fnmax((uint8_t)ocM, (uint8_t)(OCCUPATION_TIMEOUT_LIKELY_M));
   // Update may silently fail if other activity on occupationCountdownM while executing.
   occupationCountdownM.compare_exchange_strong(ocM, oNew);
-  activityCountdownM.store(2); // Atomic byte write.
+  activityCountdownM.store(ACTIVITY_TIMEOUT_M); // Atomic byte write.
   }
 
 // Call when weak evidence of active room occupation, such rising RH% or CO2 or mobile phone RF levels while not dark.
@@ -133,6 +133,6 @@ void PseudoSensorOccupancyTracker::markAsJustPossiblyOccupied()
   uint8_t ocM = occupationCountdownM.load();
   const uint8_t oNew = OTV0P2BASE::fnmax((uint8_t)ocM, (uint8_t)(OCCUPATION_TIMEOUT_MAYBE_M));
   occupationCountdownM.compare_exchange_strong(ocM, oNew); // May silently fail if other activity on occupationCountdownM while executing.
-  activityCountdownM.store(2); // Atomic byte write.
+  activityCountdownM.store(ACTIVITY_TIMEOUT_M); // Atomic byte write.
   }
 }
