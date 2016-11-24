@@ -123,13 +123,6 @@ void PseudoSensorOccupancyTracker::markAsPossiblyOccupied()
 void PseudoSensorOccupancyTracker::markAsJustPossiblyOccupied()
   {
   // Update primary occupation metric in thread-safe way (needs lock, since read-modify-write).
-
-//  ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
-//    {
-//    occupationCountdownM = OTV0P2BASE::fnmax((uint8_t)occupationCountdownM, (uint8_t)(OCCUPATION_TIMEOUT_MAYBE_M));
-//    activityCountdownM = 2; // Probably thread-/ISR- safe anyway, as atomic byte write.
-//    }
-
   uint8_t ocM = occupationCountdownM.load();
   const uint8_t oNew = OTV0P2BASE::fnmax((uint8_t)ocM, (uint8_t)(OCCUPATION_TIMEOUT_MAYBE_M));
   occupationCountdownM.compare_exchange_strong(ocM, oNew); // May silently fail if other activity on occupationCountdownM while executing.

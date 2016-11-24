@@ -500,13 +500,13 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
         inputState.glacial = glacial; // Note: may also wish to force glacial if room very dark to minimise noise (TODO-1027).
         inputState.inBakeMode = valveMode->inBakeMode();
         inputState.hasEcoBias = tempControl->hasEcoBias();
-        // Request a fast response from the valve if the user is currently manually adjusting the controls
+        // Request a fast response from the valve if the user is currently manually adjusting the controls (TODO-593)
         // or there is a very recent (and reasonably strong) occupancy signal such as lights on (TODO-1069).
         // This may provide enough feedback to have the user resist adjusting things prematurely!
         const bool fastResponseRequired =
             physicalUI->veryRecentUIControlUse() || (occupancy->reportedRecently() && occupancy->isLikelyOccupied());
         inputState.fastResponseRequired = fastResponseRequired;
-        // Widen the allowed deadband significantly in an unlit/quiet/vacant room (TODO-383, TODO-593, TODO-786, TODO-1037)
+        // Widen the allowed deadband significantly in a dark room (TODO-383, TODO-1037)
         // (or if temperature is jittery eg changing fast and filtering has been engaged,
         // or if any setback is in place or is in FROST mode ie anything below the WARM target)
         // to attempt to reduce the total number and size of adjustments and thus reduce noise/disturbance (and battery drain).
@@ -515,7 +515,6 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
         // For responsiveness, don't widen the deadband immediately after manual controls have been used (TODO-593).
         inputState.widenDeadband = (!fastResponseRequired) &&
             (isFiltering
-                || occupancy->longVacant()
                 || ambLight->isRoomDark() // Must be false if light sensor not usable.
                 || (newTarget < tempControl->getWARMTargetC())); // There is a setback in place, or not WARM mode.
         // Capture adjusted reference/room temperatures
