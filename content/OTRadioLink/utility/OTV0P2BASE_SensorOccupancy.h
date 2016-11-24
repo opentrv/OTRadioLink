@@ -47,13 +47,13 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     static constexpr uint8_t OCCUPATION_TIMEOUT_M = 50;
 
   private:
-    // Threshold from 'likely' to 'probably'.  Not part of official API.
-    static constexpr uint8_t OCCUPATION_TIMEOUT_LIKELY_M = ((OCCUPATION_TIMEOUT_M*2)/3);
-    // Threshold from 'probably' to 'maybe'.  Not part of official API.
-    static constexpr uint8_t OCCUPATION_TIMEOUT_MAYBE_M = OCCUPATION_TIMEOUT_LIKELY_M/2;
+    // Threshold from 'likely' to 'probably'; strictly positive.  Not part of official API.
+    static constexpr uint8_t OCCUPATION_TIMEOUT_LIKELY_M = ((OCCUPATION_TIMEOUT_M*3)/4);
+    // Threshold from 'probably' to 'maybe'; strictly positive and less than OCCUPATION_TIMEOUT_LIKELY_M.  Not part of official API.
+    static constexpr uint8_t OCCUPATION_TIMEOUT_MAYBE_M = fnmax(OCCUPATION_TIMEOUT_LIKELY_M/3, 1);
 
     // Nominal (recent) activity timeout in minutes; strictly positive.
-    // Because of the way the countdown is done, has to be >= 2 to guarantee to be visible.
+    // Because of the way the countdown is done, has to be >= 2 to guarantee to be visible at least one whole tick.
     static constexpr uint8_t ACTIVITY_TIMEOUT_M = 3;
 
     // Time until room regarded as unoccupied, in minutes; initially zero (ie treated as unoccupied at power-up).

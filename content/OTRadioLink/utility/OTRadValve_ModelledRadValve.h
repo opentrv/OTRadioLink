@@ -488,6 +488,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
 
     // Set all fields of inputState from the target temperature and other args, and the sensor/control inputs.
     // The target temperature will usually have just been computed by computeTargetTemp().
+    // This should not second-guess computeTargetTemp() in terms of setbacks, etc.
     virtual void setupInputState(ModelledRadValveInputState &inputState,
         const bool isFiltering,
         const uint8_t newTarget, const uint8_t minPCOpen, const uint8_t maxPCOpen, const bool glacial) const override
@@ -506,21 +507,17 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
             physicalUI->veryRecentUIControlUse() || (occupancy->reportedRecently() && occupancy->isLikelyOccupied());
         inputState.fastResponseRequired = fastResponseRequired;
         // Widen the allowed deadband significantly in an unlit/quiet/vacant room (TODO-383, TODO-593, TODO-786, TODO-1037)
-        // (or in FROST mode, or if temperature is jittery eg changing fast and filtering has been engaged)
+        // (or if temperature is jittery eg changing fast and filtering has been engaged,
+        // or if any setback is in place or is in FROST mode ie anything below the WARM target)
         // to attempt to reduce the total number and size of adjustments and thus reduce noise/disturbance (and battery drain).
         // The wider deadband (less good temperature regulation) might be noticeable/annoying to sensitive occupants.
         // With a wider deadband may also simply suppress any movement/noise on some/most minutes while close to target temperature.
         // For responsiveness, don't widen the deadband immediately after manual controls have been used (TODO-593).
-        //
-        // Minimum number of hours vacant to force wider deadband in ECO mode, else a full day ('long vacant') is the threshold.
-        // May still have to back this off if only automatic occupancy input is ambient light and day >> 6h, ie other than deep winter.
-        constexpr uint8_t minVacancyHoursForWideningECO = 3;
         inputState.widenDeadband = (!fastResponseRequired) &&
             (isFiltering
-                || (!valveMode->inWarmMode())
-                || ambLight->isRoomDark() // Must be false if light sensor not usable.
                 || occupancy->longVacant()
-                || (tempControl->hasEcoBias() && (occupancy->getVacancyH() >= minVacancyHoursForWideningECO)));
+                || ambLight->isRoomDark() // Must be false if light sensor not usable.
+                || (newTarget < tempControl->getWARMTargetC())); // There is a setback in place, or not WARM mode.
         // Capture adjusted reference/room temperatures
         // and set callingForHeat flag also using same outline logic as computeRequiredTRVPercentOpen() will use.
         inputState.setReferenceTemperatures(temperatureC16->get());
