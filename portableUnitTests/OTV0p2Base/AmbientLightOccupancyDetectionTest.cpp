@@ -234,7 +234,7 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
                         }
                     oldH = H;
                     const OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType prediction = detector->update(dp->L);
-                    if(prediction >= OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::OCC_PROBABLE) { ++nOccupancyReports; }
+                    if(prediction > 0) { ++nOccupancyReports; }
                     // Note that for all synthetic ticks the expectation is removed (since there is no level change).
                     // TODO: may need revising for weak occupancy predictions.
                     const int8_t expected = (currentMinute != dp->currentMinute()) ? ALDataSample::NO_EXPECTATION : dp->expected;
