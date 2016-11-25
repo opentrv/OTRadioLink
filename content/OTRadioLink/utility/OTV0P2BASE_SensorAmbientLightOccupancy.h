@@ -59,23 +59,20 @@ class SensorAmbientLightOccupancyDetectorInterface
   {
   public:
     // Occupancy detected from 0 (none) nominally rising to OCC_STRONG.
-    // The OCC_STRONG level is beyond this detector's ability to detect.
+    // The OCC_STRONG level is (currently) beyond this detector's ability to detect.
     enum occType : uint8_t
       {
         OCC_NONE = 0, // No occupancy detected.
         OCC_WEAK, // From constant habitual artificial lighting.
         OCC_PROBABLE, // From light flicked on.
-        OCC_STRONG // Very strong confidence; NOT RETURNED BY THIS SENSOR
+        OCC_STRONG // Very strong confidence; NOT RETURNED BY THIS METHOD YET.
       };
 
     // Call regularly with the current ambient light level [0,254].
+    // Should be called maybe once a minute or on whatever regular basis ambient light level is sampled.
     // Returns OCC_NONE if no occupancy is detected.
     // Returns OCC_WEAK if weak occupancy is detected, eg from TV watching.
-    // Returns OCC_PROBABLE if probable occupancy is detected, eg from lights on.
-    // Does not block.
-    // Not thread-/ISR- safe.
-    // Call regularly (~1/60s) with the current ambient light level [0,254].
-    // Returns true if probable occupancy is detected.
+    // Returns OCC_PROBABLE if probable occupancy is detected, eg from lights flicked on.
     // Does not block.
     //   * newLightLevel in range [0,254]
     // Not thread-/ISR- safe.
@@ -92,7 +89,7 @@ class SensorAmbientLightOccupancyDetectorInterface
     virtual void setTypMinMax(uint8_t /*meanNowOrFF*/,
                       uint8_t /*longTermMinimumOrFF = 0xff*/, uint8_t /*longTermMaximumOrFF = 0xff*/,
                       bool /*sensitive = false*/) = 0;
-//
+
 //    // True if the detector is in 'sensitive' mode.
 //    virtual bool isSensitive() const = 0;
   };
@@ -103,7 +100,7 @@ class SensorAmbientLightOccupancyDetectorInterface
 class SensorAmbientLightOccupancyDetectorSimple final : public SensorAmbientLightOccupancyDetectorInterface
   {
   public:
-      // Minimum delta (rise) for occupancy to be detected; a simple noise floor.
+      // Minimum delta (rise) for probable occupancy to be detected; a simple noise floor.
       static constexpr uint8_t epsilon = 4;
 
   private:
