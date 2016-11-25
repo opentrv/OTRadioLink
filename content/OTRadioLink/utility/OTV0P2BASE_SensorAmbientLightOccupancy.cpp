@@ -34,6 +34,17 @@ namespace OTV0P2BASE
 // Does not block.
 //   * newLightLevel in range [0,254]
 // Not thread-/ISR- safe.
+//
+// Probable occupancy is detected by a rise in ambient light level in one tick/update:
+//   * at least the hard-wired floor noise epsilon
+//   * at least a fraction of the mean ambient light level expected in this interval
+//
+// Weak occupancy [will be!] detected by previous and current levels being:
+//   * similar (ie not much change, and downward changes may be ignored to reduce processing and on principle)
+//   * close-ish to expected mean for this interval
+//   * significantly above long term minimum and below long term maximum (and not saturated/dark)
+//     thus reflecting a deliberately-maintained light level other than max or dark,
+//     and in particular not dark, saturated daylight nor completely constant lighting.
 SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupancyDetectorSimple::update(const uint8_t newLightLevel)
     {
     bool probableOccupancy = false;
