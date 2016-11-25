@@ -50,7 +50,11 @@ SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupanc
     bool probableOccupancy = false;
     // Only predict occupancy if no reason can be found NOT to.
     do  {
-        // Minimum/first condition for occupancy is a rising light level.
+        // If new light level lower than previous
+        // do not detect any level of occupancy and save some CPU time.
+        if(newLightLevel < prevLightLevel) { break; }
+
+        // Minimum/first condition for probable occupancy is a rising light level.
         if(newLightLevel <= prevLightLevel) { break; }
         const uint8_t rise = newLightLevel - prevLightLevel;
         // Any rise must be more than the fixed floor/noise threshold epsilon.
