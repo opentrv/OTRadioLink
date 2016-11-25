@@ -39,13 +39,13 @@ class HumiditySensorBase : public OTV0P2BASE::SimpleTSUint8Sensor
     public:
       // Default high and low bounds on relative humidity for comfort and (eg) mite/mould growth.
       // See http://www.cdc.gov/niosh/topics/indoorenv/temperature.html: "The EPA recommends maintaining indoor relative humidity between 30 and 60% to reduce mold growth [EPA 2012]."
-      static const uint8_t HUMIDTY_HIGH_RHPC = 70;
-      static const uint8_t HUMIDTY_LOW_RHPC = 30;
+      static constexpr uint8_t HUMIDTY_HIGH_RHPC = 70;
+      static constexpr uint8_t HUMIDTY_LOW_RHPC = 30;
       // Default epsilon bounds (absolute % +/- around thresholds) for accuracy and hysteresis.
-      static const uint8_t HUMIDITY_EPSILON_RHPC = 5;
+      static constexpr uint8_t HUMIDITY_EPSILON_RHPC = 5;
 
       // If RH% rises by at least this per hour, then it may indicate occupancy.
-      static const uint8_t HUMIDITY_OCCUPANCY_PC_MIN_RISE_PER_H = 3;
+      static constexpr uint8_t HUMIDITY_OCCUPANCY_PC_MIN_RISE_PER_H = 3;
 
     protected:
       // True if RH% is high, with hysteresis.
@@ -91,11 +91,13 @@ class HumiditySensorMock final : public HumiditySensorBase
 #ifdef ARDUINO_ARCH_AVR
 
 // Sensor for relative humidity percentage; 0 is dry, 100 is condensing humid, 255 for error.
+// TODO: detect low supply voltage with user reg, and make isAvailable() return false if too low to be reliable.
 #define HumiditySensorSHT21_DEFINED
 class HumiditySensorSHT21 final : public HumiditySensorBase
   { public: virtual uint8_t read(); };
 
 // SHT21 sensor for ambient/room temperature in 1/16th of one degree Celsius.
+// TODO: detect low supply voltage with user reg, and make isAvailable() return false if too low to be reliable.
 #define RoomTemperatureC16_SHT21_DEFINED
 class RoomTemperatureC16_SHT21 final : public OTV0P2BASE::TemperatureC16Base
   { public: virtual int16_t read(); };
@@ -103,21 +105,14 @@ class RoomTemperatureC16_SHT21 final : public OTV0P2BASE::TemperatureC16Base
 #endif // ARDUINO_ARCH_AVR
 
 
-// Placeholder namespace with dummy static status methods to reduce code complexity.
+// Placeholder with dummy static status methods to reduce conditional-compilation complexity.
 class DummyHumiditySensorSHT21 final
   {
   public:
-    // Not available, so always returns false.
-    // Thread-safe and usable within ISRs (Interrupt Service Routines).
-    static bool isAvailable() { return(false); }
-
-    // Unknown, so always false.
-    // Thread-safe and usable within ISRs (Interrupt Service Routines).
-    static bool isRHHigh() { return(false); }
-
-    // Unknown, so always false.
-    // Thread-safe and usable within ISRs (Interrupt Service Routines).
-    static bool isRHHighWithHyst() { return(false); }
+    constexpr static bool isAvailable() { return(false); } // Not available, so always returns false.
+    constexpr static bool isRHHigh() { return(false); } // Unknown, so always false.
+    constexpr static bool isRHHighWithHyst() { return(false); } // Unknown, so always false.
+    constexpr static uint8_t get() { return(0); }
   };
 
 

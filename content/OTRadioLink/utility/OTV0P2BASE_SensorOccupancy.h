@@ -43,14 +43,18 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     // DHD20130528: no activity for ~30 minutes usually enough to declare room empty; an hour is conservative.
     // Should probably be at least as long as, or a little longer than, the BAKE timeout.
     // Should probably be significantly shorter than normal 'learn' on time to allow savings from that in empty rooms.
-    // Vales of 25, 50, 100 work well for the internal arithmetic.
-    static const uint8_t OCCUPATION_TIMEOUT_M = 50;
+    // Values of 25, 50, 100 work well for the internal arithmetic.
+    static constexpr uint8_t OCCUPATION_TIMEOUT_M = 50;
 
   private:
-    // Threshold from 'likely' to 'probably'.  Not part of official API.
-    static const uint8_t OCCUPATION_TIMEOUT_LIKELY_M = ((OCCUPATION_TIMEOUT_M*2)/3);
-    // Threshold from 'probably' to 'maybe'.  Not part of official API.
-    static const uint8_t OCCUPATION_TIMEOUT_MAYBE_M = OCCUPATION_TIMEOUT_LIKELY_M/2;
+    // Threshold from 'likely' to 'probably'; strictly positive.  Not part of official API.
+    static constexpr uint8_t OCCUPATION_TIMEOUT_LIKELY_M = ((OCCUPATION_TIMEOUT_M*3)/4);
+    // Threshold from 'probably' to 'maybe'; strictly positive and less than OCCUPATION_TIMEOUT_LIKELY_M.  Not part of official API.
+    static constexpr uint8_t OCCUPATION_TIMEOUT_MAYBE_M = fnmax(OCCUPATION_TIMEOUT_LIKELY_M/3, 1);
+
+    // Nominal (recent) activity timeout in minutes; strictly positive.
+    // Because of the way the countdown is done, has to be >= 2 to guarantee to be visible at least one whole tick.
+    static constexpr uint8_t ACTIVITY_TIMEOUT_M = 3;
 
     // Time until room regarded as unoccupied, in minutes; initially zero (ie treated as unoccupied at power-up).
     // Marked volatile for thread-safe lock-free non-read-modify-write access to byte-wide value.
@@ -63,15 +67,19 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     volatile Atomic_UInt8T activityCountdownM;
 
     // Hours and minutes since room became vacant (doesn't roll back to zero from max hours); zero when room occupied.
-    uint8_t vacancyH;
-    uint8_t vacancyM;
+    uint8_t vacancyH = 0;
+    uint8_t vacancyM = 0;
 
   public:
-    PseudoSensorOccupancyTracker() : occupationCountdownM(0), activityCountdownM(0), vacancyH(0), vacancyM(0) { }
+    PseudoSensorOccupancyTracker()
+      : occupationCountdownM(0), activityCountdownM(0),
+//        twoBitSubSensor(this, &PseudoSensorOccupancyTracker::twoBitTag, &PseudoSensorOccupancyTracker::twoBitOccupancyValue),
+      vacHSubSensor(vacancyH, V0p2_SENSOR_TAG_F("vac|h"))
+      { }
 
     // Clears current occupancy and activity measures.
     // Primarily for testing.
-    void reset() { value = 0; occupationCountdownM = 0; activityCountdownM = 0; vacancyH = 0; vacancyM = 0; }
+    void reset() { value = 0; occupationCountdownM.store(0); activityCountdownM.store(0); vacancyH = 0; vacancyM = 0; }
 
     // Force a read/poll of the occupancy and return the % likely occupied [0,100].
     // Potentially expensive/slow.
@@ -90,7 +98,8 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     virtual Sensor_tag_t tag() const override { return(V0p2_SENSOR_TAG_F("occ|%")); }
 
     // True if activity/occupancy recently reported (within last couple of minutes).
-    // Activity includes weak and strong reports.
+    // Activity includes strong and weak reports (eg from manual controls or lights on),
+    // but not very weak reports such as from (say) some humidity or CO2 based measures.
     // ISR-/thread- safe.
     bool reportedRecently() const { return(0 != activityCountdownM.load()); }
 
@@ -101,9 +110,10 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     bool isLikelyOccupied() const { return(0 != occupationCountdownM.load()); }
 
     // Returns true if the room appears to be likely occupied (with active users) recently.
-    // This uses the same timer as isOccupied() (restarted by markAsOccupied())
+    // This uses the same timer as isLikelyOccupied() (restarted by markAsOccupied())
     // but returns to false somewhat sooner for example to allow ramping up more costly occupancy detection methods
     // and to allow some simple graduated occupancy responses.
+    // Use of markAsPossiblyOccupied() will not make this true.
     // ISR-/thread- safe.
     bool isLikelyRecentlyOccupied() const { return(occupationCountdownM.load() > OCCUPATION_TIMEOUT_LIKELY_M); }
 
@@ -120,7 +130,7 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     // Do not call from (for example) 'on' schedule change.
     // Makes occupation immediately visible.
     // Thread-safe and ISR-safe.
-    void markAsOccupied() { value = 100; occupationCountdownM.store(OCCUPATION_TIMEOUT_M); activityCountdownM.store(2); }
+    void markAsOccupied() { value = 100; occupationCountdownM.store(OCCUPATION_TIMEOUT_M); activityCountdownM.store(ACTIVITY_TIMEOUT_M); }
 
     // Call when decent but not very strong evidence of active room occupation, such as a light being turned on, or voice heard.
     // Do not call based on internal/synthetic events.
@@ -148,6 +158,10 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     // Recommended JSON tag for two-bit occupancy value; not NULL.
     OTV0P2BASE::Sensor_tag_t twoBitTag() const { return(V0p2_SENSOR_TAG_F("O")); }
 
+//    // Provide facade for access to two-bit occupancy value and tag.
+//    // Marked as NOT low priority as this value may be the primary stable occupancy measure.
+//    const SubSensorByCallback<PseudoSensorOccupancyTracker, uint8_t, false> twoBitSubSensor;
+
     // Returns true if it is worth expending extra effort to check for occupancy.
     // This will happen when confidence in occupancy is not yet zero but is approaching,
     // so checking more thoroughly now can help maintain non-zero value if someone is present and active.
@@ -156,19 +170,24 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
 
     // Get number of hours room vacant, zero when room occupied; does not wrap.
     // Is forced to zero as soon as occupancy is detected.
-    uint16_t getVacancyH() const { return((value != 0) ? 0 : vacancyH); }
+    uint8_t getVacancyH() const { return((value != 0) ? 0 : vacancyH); }
 
+    // DEPRECATED in favor of vacHSubSensor.tag().
     // Recommended JSON tag for vacancy hours; not NULL.
-    OTV0P2BASE::Sensor_tag_t vacHTag() const { return(V0p2_SENSOR_TAG_F("vac|h")); }
+    OTV0P2BASE::Sensor_tag_t vacHTag() const { return(vacHSubSensor.tag()); }
+
+    // Provide facade for access to vacancy-hours value and tag, at low priority.
+    // This value will only change at read(), and will not instantly be forced to 0 when activity happens.
+    const SubSensorSimpleRef<uint8_t> vacHSubSensor;
 
     // Threshold hours above which room is considered long vacant.
     // At least 24h in order to allow once-daily room programmes (including pre-warm) to operate reliably.
-    static const uint8_t longVacantHThrH = 24;
+    static constexpr uint8_t longVacantHThrH = 24;
     // Threshold hours above which room is considered long long vacant.
     // Longer than longVacantHThrH but much less than 3 days to try to capture some weekend-absence savings.
     // ~8h less than 2d may capture full office energy savings for the whole day of Sunday
     // counting from from last occupancy at end of (working) day Friday for example.
-    static const uint8_t longLongVacantHThrH = 39;
+    static constexpr uint8_t longLongVacantHThrH = 39;
 
     // Returns true if room appears to have been vacant for over a day.
     // For a home or an office no sign of activity for this long suggests a weekend or a holiday for example.
@@ -196,13 +215,13 @@ class DummySensorOccupancyTracker final
   public:
     static void markAsOccupied() {} // Defined as NO-OP for convenience.
     static void markAsPossiblyOccupied() {} // Defined as NO-OP for convenience.
-    static bool isLikelyRecentlyOccupied() { return(false); }
-    static bool isLikelyOccupied() { return(false); }
-    static bool isLikelyUnoccupied() { return(false); }
-    static uint8_t twoBitOccValue() { return(0); }
-    static uint16_t getVacancyH() { return(0); }
-    static bool longVacant() { return(false); }
-    static bool longLongVacant() { return(false); }
+    constexpr static bool isLikelyRecentlyOccupied() { return(false); }
+    constexpr static bool isLikelyOccupied() { return(false); }
+    constexpr static bool isLikelyUnoccupied() { return(false); }
+    constexpr static uint8_t twoBitOccValue() { return(0); }
+    constexpr static uint16_t getVacancyH() { return(0); }
+    constexpr static bool longVacant() { return(false); }
+    constexpr static bool longLongVacant() { return(false); }
   };
 
 

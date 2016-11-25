@@ -106,17 +106,11 @@ uint8_t PseudoSensorOccupancyTracker::read()
 void PseudoSensorOccupancyTracker::markAsPossiblyOccupied()
   {
   // Update primary occupation metric in thread-safe way (needs lock, since read-modify-write).
-
-//  ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
-//    {
-//    occupationCountdownM = OTV0P2BASE::fnmax((uint8_t)occupationCountdownM, (uint8_t)(OCCUPATION_TIMEOUT_LIKELY_M));
-//    activityCountdownM = 2; // Probably thread-/ISR- safe anyway, as atomic byte write.
-//    }
-
   uint8_t ocM = occupationCountdownM.load();
   const uint8_t oNew = OTV0P2BASE::fnmax((uint8_t)ocM, (uint8_t)(OCCUPATION_TIMEOUT_LIKELY_M));
-  occupationCountdownM.compare_exchange_strong(ocM, oNew); // May silently fail if other activity on occupationCountdownM while executing.
-  activityCountdownM.store(2); // Atomic byte write.
+  // Update may silently fail if other activity on occupationCountdownM while executing.
+  occupationCountdownM.compare_exchange_strong(ocM, oNew);
+  activityCountdownM.store(ACTIVITY_TIMEOUT_M); // Atomic byte write.
   }
 
 // Call when weak evidence of active room occupation, such rising RH% or CO2 or mobile phone RF levels while not dark.
@@ -129,16 +123,9 @@ void PseudoSensorOccupancyTracker::markAsPossiblyOccupied()
 void PseudoSensorOccupancyTracker::markAsJustPossiblyOccupied()
   {
   // Update primary occupation metric in thread-safe way (needs lock, since read-modify-write).
-
-//  ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
-//    {
-//    occupationCountdownM = OTV0P2BASE::fnmax((uint8_t)occupationCountdownM, (uint8_t)(OCCUPATION_TIMEOUT_MAYBE_M));
-//    activityCountdownM = 2; // Probably thread-/ISR- safe anyway, as atomic byte write.
-//    }
-
   uint8_t ocM = occupationCountdownM.load();
   const uint8_t oNew = OTV0P2BASE::fnmax((uint8_t)ocM, (uint8_t)(OCCUPATION_TIMEOUT_MAYBE_M));
   occupationCountdownM.compare_exchange_strong(ocM, oNew); // May silently fail if other activity on occupationCountdownM while executing.
-  activityCountdownM.store(2); // Atomic byte write.
+  activityCountdownM.store(ACTIVITY_TIMEOUT_M); // Atomic byte write.
   }
 }

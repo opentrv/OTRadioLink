@@ -199,9 +199,9 @@ struct ModelledRadValveState final
   // This is a useful as a measure of battery consumption (slewing the valve)
   // and noise generated (and thus disturbance to humans) and of appropriate control damping.
   //
-  // DHD20161109: due to possible g++ 4.9 bug,
+  // DHD20161109: due to possible g++ 4.9.x bug,
   // NOT kept as an unsigned 13-bit field (uint16_t x : 13),
-  // but as full unsigned 16-bit value anded with a make by the getter.
+  // but as full unsigned 16-bit value coerced to range after each update.
   //
   // The (masked) value doesn't wrap round to a negative value
   // and can safely be sent/received in JSON by hosts with 16-bit signed ints,
@@ -342,13 +342,14 @@ class ModelledRadValveComputeTargetTempBase
 template<
   class valveControlParameters,
   const ValveMode *const valveMode,
-  class TemperatureC16Base,             const TemperatureC16Base *const temperatureC16,
-  class TempControlBase,                const TempControlBase *const tempControl,
-  class PseudoSensorOccupancyTracker,   const PseudoSensorOccupancyTracker *const occupancy,
-  class SensorAmbientLightBase,         const SensorAmbientLightBase *const ambLight,
-  class ActuatorPhysicalUIBase,         const ActuatorPhysicalUIBase *const physicalUI,
-  class SimpleValveScheduleBase,        const SimpleValveScheduleBase *const schedule,
-  class NVByHourByteStatsBase,          const NVByHourByteStatsBase *const byHourStats,
+  class TemperatureC16Base,                     const TemperatureC16Base *const temperatureC16,
+  class TempControlBase,                        const TempControlBase *const tempControl,
+  class PseudoSensorOccupancyTracker,           const PseudoSensorOccupancyTracker *const occupancy,
+  class SensorAmbientLightBase,                 const SensorAmbientLightBase *const ambLight,
+  class ActuatorPhysicalUIBase,                 const ActuatorPhysicalUIBase *const physicalUI,
+  class SimpleValveScheduleBase,                const SimpleValveScheduleBase *const schedule,
+  class NVByHourByteStatsBase,                  const NVByHourByteStatsBase *const byHourStats,
+  class rh_t = OTV0P2BASE::HumiditySensorBase,  const rh_t *const relHumidityOpt = static_cast<const rh_t *>(NULL),
   bool (*const setbackLockout)() = ((bool(*)())NULL)
   >
 class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComputeTargetTempBase
@@ -421,6 +422,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
           const bool likelyVacantNow = longVacant || occupancy->isLikelyUnoccupied();
           const bool ecoBias = tempControl->hasEcoBias();
           // True if the room has been dark long enough to indicate night. (TODO-792)
+          const bool isDark = ambLight->isRoomDark();
           const uint8_t dm = ambLight->getDarkMinutes();
           const bool darkForHours = dm > 245; // A little over 4h, not quite max 255.
           // Be more ready to decide room not likely occupied soon if eco-biased.
@@ -443,27 +445,29 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
             // Restrict to a DEFAULT/minimal non-annoying setback if:
             //   in upper part of comfort range (and the room isn't very dark, eg in the dead of night TODO-1027)
             //   or if the room is likely occupied now
+            //   or if not lower part of ECO range and not dark and not vacant for a while and relative humidity is high with hysteresis (TODO-586)
             //   or if the room is not known to be dark and hasn't been vacant for a long time ie ~1d and is not in the very bottom range of occupancy (TODO-107, TODO-758)
             //      TODO POSSIBLY: limit to (say) 3--4h light time for when someone out but room daylit, but note that detecting occupancy will be harder too in daylight.
             //      TODO POSSIBLY: after ~3h vacancy AND apparent smoothed occupancy non-zero (so some can be detected) AND ambient light in top quartile or in middle of typical bright part of cycle (assume peak of daylight) then being lit is not enough to prevent a deeper setback.
             //   or if the room has not been dark for hours and is not in the very bottom range of occupancy (TODO-107, TODO-758)
             //   or if a scheduled WARM period is due soon and the room hasn't been vacant for a long time,
-            // else usually use a somewhat bigger 'ECO' setback
-            // else use an even bigger 'FULL' setback for maximum savings if in the eco region and
+            // else usually use a somewhat bigger ECO setback
+            // else use an even bigger FULL setback for maximum savings if in the ECO region and
             //   the room has been vacant for a very long time
             //   or is unlikely to be unoccupied at this time of day and
-            //     has been vacant and dark for a while or is in the lower part of the 'ECO' range.
+            //     has been vacant and dark for a while or is in the lower part of the ECO range.
             // This final dark/vacant timeout to enter FULL setback while in mild ECO mode
             // should probably be longer than required to watch a typical movie or go to sleep (~2h) for example,
             // but short enough to take effect overnight and to be in effect a reasonable fraction of a (~8h) night.
             //
             // Note: the FULL setback can only happen with an ECO bias.
             // Note: the setback is usually limited to minimum/default when at the top/comfort end of the range.
-            const uint8_t minVacantAndDarkForFULLSetbackH = 2; // Hours; strictly positive, typically 1--4.
+            constexpr uint8_t minVacantAndDarkForFULLSetbackH = 2; // Hours; strictly positive, typically 1--4.
             const uint8_t setback = ((tempControl->isComfortTemperature(wt) && !ambLight->isRoomVeryDark()) ||
                                      occupancy->isLikelyOccupied() ||
-                                     (!longVacant && !ambLight->isRoomDark() && (hoursLessOccupiedThanThis > 4)) ||
-                                     (!longVacant && !darkForHours && (hoursLessOccupiedThanNext >= thisHourNLOThreshold-1)) ||
+                                     (!longVacant && !isDark && !tempControl->isEcoTemperature(wt) && (NULL != relHumidityOpt) && relHumidityOpt->isAvailable() && relHumidityOpt->isRHHighWithHyst()) ||
+                                     (!longVacant && !isDark && (hoursLessOccupiedThanThis > 4)) ||
+                                     (!longVacant && !isDark && !darkForHours && (hoursLessOccupiedThanNext >= thisHourNLOThreshold-1)) ||
                                      (!longVacant && schedule->isAnyScheduleOnWARMSoon())) ?
                     valveControlParameters::SETBACK_DEFAULT :
                 ((ecoBias && (longLongVacant ||
@@ -484,6 +488,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
 
     // Set all fields of inputState from the target temperature and other args, and the sensor/control inputs.
     // The target temperature will usually have just been computed by computeTargetTemp().
+    // This should not second-guess computeTargetTemp() in terms of setbacks, etc.
     virtual void setupInputState(ModelledRadValveInputState &inputState,
         const bool isFiltering,
         const uint8_t newTarget, const uint8_t minPCOpen, const uint8_t maxPCOpen, const bool glacial) const override
@@ -492,30 +497,26 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
         inputState.targetTempC = newTarget;
         inputState.minPCOpen = minPCOpen;
         inputState.maxPCOpen = maxPCOpen;
-        inputState.glacial = glacial;
+        inputState.glacial = glacial; // Note: may also wish to force glacial if room very dark to minimise noise (TODO-1027).
         inputState.inBakeMode = valveMode->inBakeMode();
-        inputState.hasEcoBias =
-                tempControl->hasEcoBias();
-        // Request a fast response from the valve if user is manually adjusting controls.
-        const bool veryRecentUIUse =
-                physicalUI->veryRecentUIControlUse();
-        inputState.fastResponseRequired = veryRecentUIUse;
-        // Widen the allowed deadband significantly in an unlit/quiet/vacant room (TODO-383, TODO-593, TODO-786, TODO-1037)
-        // (or in FROST mode, or if temperature is jittery eg changing fast and filtering has been engaged)
+        inputState.hasEcoBias = tempControl->hasEcoBias();
+        // Request a fast response from the valve if the user is currently manually adjusting the controls (TODO-593)
+        // or there is a very recent (and reasonably strong) occupancy signal such as lights on (TODO-1069).
+        // This may provide enough feedback to have the user resist adjusting things prematurely!
+        const bool fastResponseRequired =
+            physicalUI->veryRecentUIControlUse() || (occupancy->reportedRecently() && occupancy->isLikelyOccupied());
+        inputState.fastResponseRequired = fastResponseRequired;
+        // Widen the allowed deadband significantly in a dark room (TODO-383, TODO-1037)
+        // (or if temperature is jittery eg changing fast and filtering has been engaged,
+        // or if any setback is in place or is in FROST mode ie anything below the WARM target)
         // to attempt to reduce the total number and size of adjustments and thus reduce noise/disturbance (and battery drain).
         // The wider deadband (less good temperature regulation) might be noticeable/annoying to sensitive occupants.
         // With a wider deadband may also simply suppress any movement/noise on some/most minutes while close to target temperature.
         // For responsiveness, don't widen the deadband immediately after manual controls have been used (TODO-593).
-        //
-        // Minimum number of hours vacant to force wider deadband in ECO mode, else a full day ('long vacant') is the threshold.
-        // May still have to back this off if only automatic occupancy input is ambient light and day >> 6h, ie other than deep winter.
-        constexpr uint8_t minVacancyHoursForWideningECO = 3;
-        inputState.widenDeadband = (!veryRecentUIUse) &&
+        inputState.widenDeadband = (!fastResponseRequired) &&
             (isFiltering
-                || (!valveMode->inWarmMode())
                 || ambLight->isRoomDark() // Must be false if light sensor not usable.
-                || occupancy->longVacant()
-                || (tempControl->hasEcoBias() && (occupancy->getVacancyH() >= minVacancyHoursForWideningECO)));
+                || (newTarget < tempControl->getWARMTargetC())); // There is a setback in place, or not WARM mode.
         // Capture adjusted reference/room temperatures
         // and set callingForHeat flag also using same outline logic as computeRequiredTRVPercentOpen() will use.
         inputState.setReferenceTemperatures(temperatureC16->get());
@@ -585,7 +586,10 @@ class ModelledRadValve final : public AbstractRadValve
         glacial(_defaultGlacial),
         maxPCOpen(OTV0P2BASE::fnmin(_maxPCOpen, (uint8_t)100U)),
         valveModeRW(_valveMode),
-        physicalDeviceOpt(_physicalDeviceOpt)
+        physicalDeviceOpt(_physicalDeviceOpt),
+        targetTemperatureSubSensor(inputState.targetTempC, V0p2_SENSOR_TAG_F("tT|C")),
+        setbackSubSensor(setbackC, V0p2_SENSOR_TAG_F("tS|C")),
+        cumulativeMovementSubSensor(retainedState.cumulativeMovementPC, V0p2_SENSOR_TAG_F("vC|%"))
       { }
 
     // Force a read/poll/recomputation of the target position and call for heat.
@@ -664,9 +668,13 @@ class ModelledRadValve final : public AbstractRadValve
     // Get target temperature in C as computed by computeTargetTemperature().
     uint8_t getTargetTempC() const { return(inputState.targetTempC); }
 
+    // DEPRECATED IN FAVOUR OF targetTemperatureSubSensor.tag().
     // Returns a suggested (JSON) tag/field/key name including units of getTargetTempC(); not NULL.
     // The lifetime of the pointed-to text must be at least that of this instance.
-    OTV0P2BASE::Sensor_tag_t tagTTC() const { return(V0p2_SENSOR_TAG_F("tT|C")); }
+    OTV0P2BASE::Sensor_tag_t tagTTC() const { return(targetTemperatureSubSensor.tag()); }
+
+    // Facade/sub-sensor for target temperature (in C), at normal priority.
+    const OTV0P2BASE::SubSensorSimpleRef<uint8_t, false> targetTemperatureSubSensor;
 
     // Get the current automated setback (if any) in the direction of energy saving in C; non-negative.
     // For heating this is the number of C below the nominal user-set target temperature
@@ -675,18 +683,26 @@ class ModelledRadValve final : public AbstractRadValve
     // Not ISR-/thread- safe.
     uint8_t getSetbackC() const { return(setbackC); }
 
+    // DEPRECATED IN FAVOUR OF setbackSubSensor.tag().
     // Returns a suggested (JSON) tag/field/key name including units of getSetbackC(); not NULL.
     // It would often be appropriate to mark this as low priority since depth of setback matters more than speed.
     // The lifetime of the pointed-to text must be at least that of this instance.
-    OTV0P2BASE::Sensor_tag_t tagTSC() const { return(V0p2_SENSOR_TAG_F("tS|C")); }
+    OTV0P2BASE::Sensor_tag_t tagTSC() const { return(setbackSubSensor.tag()); } // { return(V0p2_SENSOR_TAG_F("tS|C")); }
+
+    // Facade/sub-sensor for setback level (in C), at low priority.
+    const OTV0P2BASE::SubSensorSimpleRef<uint8_t> setbackSubSensor;
 
     // Get cumulative valve movement %; rolls at 8192 in range [0,8191], ie non-negative.
     // It would often be appropriate to mark this as low priority since it can be computed from valve positions.
-    uint16_t getCumulativeMovementPC() { return(0x1fff & retainedState.cumulativeMovementPC); }
+    uint16_t getCumulativeMovementPC() { return(retainedState.cumulativeMovementPC); }
 
+    // DEPRECATED IN FAVOUR OF cumulativeMovementSubSensor.tag().
     // Returns a suggested (JSON) tag/field/key name including units of getCumulativeMovementPC(); not NULL.
     // The lifetime of the pointed-to text must be at least that of this instance.
-    OTV0P2BASE::Sensor_tag_t tagCMPC() const { return(V0p2_SENSOR_TAG_F("vC|%")); }
+    OTV0P2BASE::Sensor_tag_t tagCMPC() const { return(cumulativeMovementSubSensor.tag()); }
+
+    // Facade/sub-sensor cumulative valve movement (in %), at low priority.
+    const OTV0P2BASE::SubSensorSimpleRef<uint16_t> cumulativeMovementSubSensor;
 
     // Return minimum valve percentage open to be considered actually/significantly open; [1,100].
     // This is a value that has to mean all controlled valves are at least partially open if more than one valve.

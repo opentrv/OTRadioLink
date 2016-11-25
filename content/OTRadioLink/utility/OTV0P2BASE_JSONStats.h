@@ -32,6 +32,23 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014--2016
 #include "OTV0P2BASE_Sensor.h"
 #include "OTV0P2BASE_Util.h"
 
+#if defined(ARDUINO) && (ARDUINO <= 10609)
+//// Kludge: minimal local definitions of some key STL that Arduino (up to 1.6.9) does not support.
+//// Amongst others thanks to:
+////    https://voidnish.wordpress.com/2013/07/13/tuple-implementation-via-variadic-templates/
+////    http://mitchnull.blogspot.co.uk/2012/06/c11-tuple-implementation-details-part-1.html
+//namespace std
+//    {
+//    typedef ::size_t size_t;
+//    // forward
+//    template<typename T> struct identity { typedef T type; };
+////    template<typename T> T&& forward(typename identity<T>::type& param) noexcept { return(static_cast<typename identity<T>::type&&>(param)); }
+//    template<typename T> T&& forward(typename identity<T>::type&& param) noexcept { return(static_cast<typename identity<T>::type&&>(param)); }
+//    }
+#else
+#include <utility>
+#endif // ARDUINO
+
 
 namespace OTV0P2BASE
 {
@@ -70,7 +87,6 @@ typedef Sensor_tag_t MSG_JSON_SimpleStatsKey_t;
 bool isValidSimpleStatsKey(MSG_JSON_SimpleStatsKey_t key);
 
 // Generic stats descriptor.
-// Includes last value transmitted (to allow changed items to be sent selectively).
 struct GenericStatsDescriptor final
   {
     // Create generic (integer) stats instance.
@@ -107,7 +123,8 @@ struct GenericStatsDescriptor final
   };
 
 // Print to a bounded buffer.
-class BufPrint final : public Print
+template<class Printer = Print>
+class BufPrintT final : public Printer
   {
   private:
     char * const b;
@@ -118,7 +135,7 @@ class BufPrint final : public Print
     // Wrap around a buffer of size bufSize-1 chars and a trailing '\0'.
     // The buffer must be of at least size 1.
     // A buffer of size n can accommodate n-1 characters.
-    BufPrint(char *buf, uint8_t bufSize) : b(buf), capacity(bufSize-1), size(0), mark(0) { buf[0] = '\0'; }
+    BufPrintT(char *buf, uint8_t bufSize) : b(buf), capacity(bufSize-1), size(0), mark(0) { buf[0] = '\0'; }
     // Print a single char to a bounded buffer; returns 1 if successful, else 0 if full.
     virtual size_t write(uint8_t c) override
         { if(size < capacity) { b[size++] = char(c); b[size] = '\0'; return(1); } else { return(0); } }
@@ -131,6 +148,8 @@ class BufPrint final : public Print
     // Rewind to previous good position, clearing newer text.
     void rewind() { size = mark; b[size] = '\0'; }
   };
+// Version of class depending on Arduino Print class.
+typedef BufPrintT<Print> BufPrint;
 
 // Manage sending of stats, possibly by rotation to keep frame sizes small.
 // This will try to prioritise sending of changed and important values.
@@ -147,11 +166,11 @@ class SimpleStatsRotationBase
     // If properties not already set and not supplied then stat will get defaults.
     // If descriptor is supplied then its key must match (and the descriptor will be copied).
     // True if successful, false otherwise (eg capacity already reached).
-    bool put(MSG_JSON_SimpleStatsKey_t key, int newValue, bool statLowPriority = false);
+    bool put(MSG_JSON_SimpleStatsKey_t key, int16_t newValue, bool statLowPriority = false);
 
     // Create/update value for the given sensor.
     // True if successful, false otherwise (eg capacity already reached).
-    template <class T> bool put(const OTV0P2BASE::Sensor<T> &s, bool statLowPriority = false)
+    template <class T> bool put(const OTV0P2BASE::SensorCore<T> &s, bool statLowPriority = false)
         { return(put(s.tag(), s.get(), statLowPriority)); }
 
     // Create/update stat/key with specified descriptor/properties.
@@ -161,6 +180,17 @@ class SimpleStatsRotationBase
     // Remove given stat and properties.
     // True iff the item existed and was removed.
     bool remove(MSG_JSON_SimpleStatsKey_t key);
+
+    // Create/update value for the given sensor if isAvailable(); remove otherwise.
+    // True if put() succeeds or a remove() was requested; false if a put() was request and failed.
+    template <class T> bool putOrRemove(const OTV0P2BASE::SensorCore<T> &s)
+        { if(s.isAvailable()) { return(put(s.tag(), s.get(), false)); } remove(s.tag()); return(true); }
+
+    // Create/update value for the given sub-sensor if isAvailable(); remove otherwise.
+    // True if put() succeeds or a remove() was requested; false if a put() was request and failed.
+    // As a sub-sensor this is treated as low priority by default.
+    template <class T> bool putOrRemove(const OTV0P2BASE::SubSensor<T> &s)
+        { if(s.isAvailable()) { return(put(s.tag(), s.get(), s.lowPriority)); } remove(s.tag()); return(true); }
 
     // Set ID to given value, or NULL to use first 2 bytes of system ID; returns false if ID unsafe.
     // If NULL (the default) then dynamically generate the system ID,
@@ -174,21 +204,20 @@ class SimpleStatsRotationBase
       }
 
     // Get number of distinct fields/keys held.
-    uint8_t size() { return(nStats); }
+    uint8_t size() const { return(nStats); }
 
     // True if no stats items being managed.
     // May usefully indicate that the structure needs to be populated.
-    bool isEmpty() { return(0 == nStats); }
+    bool isEmpty() const { return(0 == nStats); }
 
     // True if any changed values are pending (not yet written out).
-    bool changedValue();
+    bool changedValue() const;
 
     // Iff true enable the count ("+") field and display immediately after the "@"/ID field.
     // The unsigned count increments as a successful write() operation completes,
     // and wraps after 63 (to limit space), potentially allowing easy detection of lost stats/transmissions.
     void enableCount(bool enable) { c.enabled = enable; }
 
-//#if defined(ALLOW_JSON_OUTPUT)
     // Write stats in JSON format to provided buffer; returns the non-zero JSON length if successful.
     // Output starts with an "@" (ID) string field,
     // then and optional count (if enabled),
@@ -208,7 +237,20 @@ class SimpleStatsRotationBase
     //       allowing them to continue to be treated as higher priority
     uint8_t writeJSON(uint8_t * const buf, const uint8_t bufSize, const uint8_t sensitivity,
                       const bool maximise = false, const bool suppressClearChanged = false);
-//#endif
+
+    // Returns true if a stat with the specified key is currently in the stats set.
+    // Mainly for unit testing.
+    bool containsKey(const MSG_JSON_SimpleStatsKey_t key) const
+      { return(NULL != findByKey(key)); }
+
+    // Returns true if the item exists and is marked as being low priority.
+    // Mainly for unit testing.
+    bool isLowPriority(const MSG_JSON_SimpleStatsKey_t key) const
+      {
+      DescValueTuple *const p = findByKey(key);
+      if(NULL == p) { return(false); }
+      return(p->descriptor.lowPriority);
+      }
 
   protected:
     struct DescValueTuple final
@@ -219,7 +261,7 @@ class SimpleStatsRotationBase
       GenericStatsDescriptor descriptor;
 
       // Value.
-      int value;
+      int16_t value;
 
       // Various run-time flags.
       struct Flags final
@@ -241,7 +283,7 @@ class SimpleStatsRotationBase
     // Maximum capacity including overheads.
     const uint8_t capacity;
 
-    // Returns pointer to stat tuple with given key if present, else NULL.
+    // Returns read/write pointer to stat tuple with given key if present, else NULL.
     DescValueTuple *findByKey(MSG_JSON_SimpleStatsKey_t key) const;
 
     // Initialise base with appropriate storage (non-NULL) and capacity knowledge.
@@ -307,8 +349,70 @@ class SimpleStatsRotation final : public SimpleStatsRotationBase
     constexpr SimpleStatsRotation() : SimpleStatsRotationBase(stats, MaxStats) { }
 
     // Get capacity.
-    uint8_t getCapacity() { return(MaxStats); }
+    uint8_t getCapacity() const { return(MaxStats); }
   };
+
+
+#if !defined(ARDUINO)
+// Helper class used to size the stats generator and easily extract sensor values for it.
+// At least one sensor must be provided.
+template<typename T1, typename ... Ts>
+class JSONStatsHolder final
+  {
+  private:
+    std::tuple<T1, Ts...> args;
+
+  public:
+    // Number of arguments/stats.
+    static constexpr size_t argCount = 1 + sizeof...(Ts);
+
+    // JSON generator.
+    typedef OTV0P2BASE::SimpleStatsRotation<argCount> ss_t;
+    ss_t ss;
+
+    // Construct an instance; though the template helper function is usually easier.
+    template <typename... Args>
+    constexpr JSONStatsHolder(Args&&... args) : args(std::forward<Args>(args)...)
+      { static_assert(sizeof...(Args) > 0, "must take at least one arg"); }
+
+  private:
+    // Many thanks for template wrangling examples to David Godfrey and others:
+    //     http://stackoverflow.com/questions/16868129/how-to-store-variadic-template-arguments
+    //     http://stackoverflow.com/questions/8992853/terminating-function-template-recursion
+    template<std::size_t> struct Int2Type { };
+    // Put...
+    // Ignore placeholder key or int entry.
+    bool _putOrRemove(int) { return(true); }
+    bool _putOrRemove(OTV0P2BASE::MSG_JSON_SimpleStatsKey_t) { return(true); }
+    // Accept/put Sensor (don't over-constrain the arg type else SubSensor etc may not be handled correctly).
+    template <class T> bool _putOrRemove(T &s) { return(ss.putOrRemove(s)); }
+    template<typename ... Args> bool putOrRemove(Int2Type<0>, std::tuple<Args...>& tup)
+        { return(_putOrRemove(std::get<0>(tup))); }
+    template<size_t I, typename ... Args> bool putOrRemove(Int2Type<I>, std::tuple<Args...>& tup)
+        { return(putOrRemove(Int2Type<I-1>(), tup) && _putOrRemove(std::get<I>(tup))); }
+    // Read...
+    template<typename ... Args> void read(Int2Type<0>, std::tuple<Args...>& tup)
+        { return((std::get<0>(tup)).read()); }
+    template<size_t I, typename ... Args> void read(Int2Type<I>, std::tuple<Args...>& tup)
+        { read(Int2Type<I-1>(), tup); (std::get<I>(tup)).read(); }
+
+  public:
+    // Call read() on all sensors; usually done once, at initialisation.
+    void readAll() { read(args); }
+    // Put all the attached isAvailable() sensor values into the stats object; remove those !isAvailable().
+    bool putOrRemoveAll() { return(putOrRemove(Int2Type<argCount-1>(), args)); }
+  };
+
+// Helper function to avoid having to spell out the types explicitly.
+// Pass a list of Sensors to makeJSONStatsHolder() to create a stats holder for them.
+// (Key names of type MSG_JSON_SimpleStatsKey_t, or ints such as 0, can be used instead as placeholders,
+// and will leave free space in the stats object, eg to manually put values of that name.)
+// Use putOrRemoveAll() to put current values for all stats into the stats holder.
+// Use readAll() to force a read() of all sensors, eg at start-up.
+template <typename... Args>
+constexpr JSONStatsHolder<Args...> makeJSONStatsHolder(Args&&... args)
+    { return(JSONStatsHolder<Args...>(std::forward<Args>(args)...)); }
+#endif // !defined(ARDUINO)
 
 
 // Returns true unless the buffer clearly does not contain a possible valid raw JSON message.

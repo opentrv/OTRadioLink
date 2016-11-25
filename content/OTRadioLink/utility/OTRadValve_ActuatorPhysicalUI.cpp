@@ -118,10 +118,11 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
           const bool isLo = tempPotOpt->isAtLoEndStop();
           if(isLo) { valveMode->setWarmModeDebounced(false); }
           // Feed back significant change in pot position, ie at temperature boundaries.
-          // Synthesise a 'hot' target temperature that distinguishes the end stops
+          // Synthesise a target temperature that distinguishes the end stops
+          // (FROST as one below minimum, BAKE as one above maximum)
           // from all other valid temperatures and the initial '0' state.
-          const uint8_t nominalWarmTarget = isLo ? 1 :
-              (tempPotOpt->isAtHiEndStop() ? 99 :
+          const uint8_t nominalWarmTarget = isLo ? (tempControl->getMinWARMTargetC() - 1) :
+              (tempPotOpt->isAtHiEndStop() ? (tempControl->getMaxWARMTargetC() + 1) :
               tempControl->getWARMTargetC());
           // Record of 'last' nominalWarmTarget; initially 0.
           if(nominalWarmTarget != lastNominalWarmTarget)
@@ -140,7 +141,7 @@ uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
             DEBUG_SERIAL_PRINTLN();
       #endif
             // Maximum number of clicks rather than collapsing them all to one.
-            const uint8_t maxClicks = 10;
+            constexpr uint8_t maxClicks = 10;
             if(OTV0P2BASE::fnabsdiff(lastNominalWarmTarget, nominalWarmTarget) > maxClicks)
                 { lastNominalWarmTarget = nominalWarmTarget; }
             // If small difference show it in successive ticks of feedback to the user (TODO-1045),

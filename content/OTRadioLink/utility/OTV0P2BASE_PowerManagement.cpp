@@ -263,14 +263,6 @@ void power_intermittent_peripherals_disable()
 //
 // Note typical 'good' values 2.5V--2.6V.
 
-// Default V0p2 very low-battery threshold suitable for 2xAA NiMH, with AVR BOD at 1.8V.
-// Set to be high enough for common sensors such as SHT21, ie >= 2.1V.
-static const uint16_t BATTERY_VERY_LOW_cV = 210;
-
-// Default V0p2 low-battery threshold suitable for 2xAA NiMH, with AVR BOD at 1.8V.
-// Set to be high enough for safe motor operation without brownouts, etc.
-static const uint16_t BATTERY_LOW_cV = 245;
-
 // Force a read/poll of the supply voltage and return the value sensed.
 // Expensive/slow.
 // NOT thread-safe nor usable within ISRs (Interrupt Service Routines).
@@ -278,6 +270,26 @@ uint16_t SupplyVoltageCentiVolts::read()
   {
   // Measure internal bandgap (1.1V nominal, 1.0--1.2V) as fraction of Vcc [0,1023].
   const uint16_t raw = OTV0P2BASE::_analogueNoiseReducedReadM(_BV(REFS0) | 14);
+
+  // At around the 2.6V mark, it takes a change of ~3ulp in rawInv to make 1ulp (1cV) result change; strictly +ve.
+  // Note: 430 raw maps to 261, 431--433 to 259, 434--436 to 257, 436 to 256.
+  // This epsilon is as much about ADC measurement stability as the conversion function.
+  static constexpr uint8_t rawEpsilon = 6;
+
+  // Optimisation: if raw value is unchanged or very close then don't re-do the expensive calculation.
+  // For this to work the initial value of rawInv has to be 'impossible',
+  // and the difference should less than than rawEpsilon to avoid missing a significant change.
+  //
+  // To be conservative, reduce noise and spurious stats transmissions, for example,
+  // only allow the reported voltage to move up (and thus the raw value to move down)
+  // if by at least rawEpsilon ulp from the previous value, else ignore the change for now.
+  // Graphing the V0p2 (eg REV1 and REV7) data shows dithering between effectively-adjacent levels;
+  // this should prevent dithering back and forth across a boundary, sticking at the lower level.
+  // Note that rawInv in real life can never get near to either end of the range.
+  // An initial impossibly-high rawInv value will ensure that value is computed on first call.
+  static_assert((0 == INITIAL_RAWINV) || (~0U == INITIAL_RAWINV), "initial rawInv should be one that ADC result never gets close to");
+  if((raw <= rawInv) && ((rawInv - raw) <= rawEpsilon)) { return(value); }
+
   // If Vcc was 1.1V then raw ADC would be 1023, so (1023<<6)/raw = 1<<6, target output 110.
   // If Vcc was 2.2V then raw ADC would be 511, so (1023<<6)/raw = 2<<6, target output 220.
   // (Raw ADC output of 0, which would cause a divide-by-zero, is effectively impossible.)
@@ -287,6 +299,8 @@ uint16_t SupplyVoltageCentiVolts::read()
   value = result;
   isVeryLow = (result <= BATTERY_VERY_LOW_cV);
   isLow = isVeryLow || (result <= BATTERY_LOW_cV);
+  static_assert(BATTERY_LOW_cV > BATTERY_VERY_LOW_cV, "thresholds should be such that 'not low' entails 'not very low'");
+  static_assert(MAINS_MIN_cV > BATTERY_LOW_cV, "thresholds should be such that 'on mains' entails 'not low'");
 #if 0 && defined(DEBUG)
   DEBUG_SERIAL_PRINT_FLASHSTRING("Battery cV: ");
   DEBUG_SERIAL_PRINT(result);

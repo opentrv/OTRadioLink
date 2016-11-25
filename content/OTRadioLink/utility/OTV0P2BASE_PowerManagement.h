@@ -256,12 +256,29 @@ class SupplyVoltageLow : public OTV0P2BASE::Sensor<uint16_t>
 // To use this an instance should be defined (there is no overhead if not).
 class SupplyVoltageCentiVolts final : public SupplyVoltageLow
   {
+  public:
+    // Default V0p2 very low-battery threshold suitable for 2xAA NiMH, with AVR BOD at 1.8V.
+    // Set to be high enough for common sensors such as SHT21, ie >= 2.1V.
+    static constexpr uint16_t BATTERY_VERY_LOW_cV = 210;
+
+    // Default V0p2 low-battery threshold suitable for 2xAA NiMH, with AVR BOD at 1.8V.
+    // Set to be high enough for safe motor operation without brownouts, etc.
+    static constexpr uint16_t BATTERY_LOW_cV = 245;
+
+    // Default V0p2 threshold above which assumed to be on mains power.
+    static constexpr uint16_t MAINS_MIN_cV = 300;
+
+    // Initial 'impossible' (and implying low supply voltage) rawInv.
+    static constexpr uint16_t INITIAL_RAWINV = uint16_t(~0U);
+
   private:
     // Internal bandgap (1.1V nominal, 1.0--1.2V) as fraction of Vcc [0,1023] for V0p2/AVR boards.
-    // Initialise to cautious value.
-    uint16_t rawInv = (uint16_t)~0U;
+    // Initialise to cautious (impossibly low supply) value.
+    uint16_t rawInv = INITIAL_RAWINV;
     // Last measured supply voltage (cV) (nominally 0V--3.6V abs max) [0,360] for V0p2 boards.
-    volatile uint16_t value = 0;
+    // Initialise to cautious (impossibly low supply) value.
+    // Never expected to be updated or used in an ISR, so not marked volatile.
+    uint16_t value = 0;
 
   public:
     // Force a read/poll of the supply voltage and return the value sensed.
@@ -284,8 +301,8 @@ class SupplyVoltageCentiVolts final : public SupplyVoltageLow
     // Returns true if the supply appears to be something that does not need monitoring.
     // This assumes that anything at/above 3V is mains (for a V0p2 board)
     // or at least a long way from needing monitoring.
-    // If true then the supply voltage is not low.
-    bool isMains() const { return(!isLow && (value >= 300)); }
+    // If true then the supply voltage is not low either.
+    bool isMains() const { return(value >= MAINS_MIN_cV); }
   };
 
 

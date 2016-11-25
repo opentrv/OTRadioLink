@@ -30,16 +30,33 @@ namespace OTV0P2BASE
 
 
 // Call regularly (~1/60s) with the current ambient light level [0,254].
-// Returns true if probable occupancy is detected.
+// Returns > 0 if occupancy is detected.
 // Does not block.
 //   * newLightLevel in range [0,254]
 // Not thread-/ISR- safe.
-bool SensorAmbientLightOccupancyDetectorSimple::update(const uint8_t newLightLevel)
+//
+// Probable occupancy is detected by a rise in ambient light level in one tick/update:
+//   * at least the hard-wired floor noise epsilon
+//   * at least a fraction of the mean ambient light level expected in this interval
+//
+// Weak occupancy [will be!] detected by previous and current levels being:
+//   * similar (ie not much change, and downward changes may be ignored to reduce processing and on principle)
+//   * close-ish to expected mean for this interval
+//   * significantly above long term minimum and below long term maximum (and not saturated/dark)
+//     thus reflecting a deliberately-maintained light level other than max or dark,
+//     and in particular not dark, saturated daylight nor completely constant lighting.
+SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupancyDetectorSimple::update(const uint8_t newLightLevel)
     {
-    bool result = false;
+    // Default to no occupancy detected.
+    occType occLevel = OCC_NONE;
+
     // Only predict occupancy if no reason can be found NOT to.
     do  {
-        // Minimum/first condition for occupancy is a rising light level.
+        // If new light level lower than previous
+        // do not detect any level of occupancy and save some CPU time.
+        if(newLightLevel < prevLightLevel) { break; }
+
+        // Minimum/first condition for probable occupancy is a rising light level.
         if(newLightLevel <= prevLightLevel) { break; }
         const uint8_t rise = newLightLevel - prevLightLevel;
         // Any rise must be more than the fixed floor/noise threshold epsilon.
@@ -63,29 +80,11 @@ bool SensorAmbientLightOccupancyDetectorSimple::update(const uint8_t newLightLev
 //            if(rise < maxRiseThreshold) { break; }
 //            }
 
-        result = true;
+        occLevel = OCC_PROBABLE;
         } while(false);
+
 	prevLightLevel = newLightLevel;
-    return(result);
+    return(occLevel);
 	}
-
-//// Set mean, min and max ambient light levels from recent stats, to allow auto adjustment to room; ~0/0xff means not known.
-//// Mean value is for the current time of day.
-//// Short term stats are typically over the last day,
-//// longer term typically over the last week or so (eg rolling exponential decays).
-//// Call regularly, roughly hourly, to drive other internal time-dependent adaptation.
-////   * meanNowOrFF  typical/mean light level around this time each 24h; 0xff if not known.
-////   * sensitive  if true then be more sensitive to possible occupancy changes, eg to improve comfort.
-//// Not thread-/ISR- safe.
-//void SensorAmbientLightOccupancyDetectorSimple::setTypMinMax(const uint8_t meanNowOrFF,
-//                  const uint8_t longTermMinimumOrFF, const uint8_t longTermMaximumOrFF,
-//                  const bool sensitive)
-//    {
-//    this->meanNowOrFF = meanNowOrFF;
-//    this->longTermMinimumOrFF = longTermMinimumOrFF;
-//    this->longTermMaximumOrFF = longTermMaximumOrFF;
-//    this->sensitive = sensitive;
-//    }
-
 
 }

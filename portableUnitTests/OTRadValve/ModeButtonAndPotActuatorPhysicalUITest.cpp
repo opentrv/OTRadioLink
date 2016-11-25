@@ -36,7 +36,7 @@ TEST(ModeButtonAndPotActuatorPhysicalUI,basics)
 //    const static bool verbose = false;
 
     OTRadValve::ValveMode vm;
-    OTRadValve::TempControlBase tc;
+    OTRadValve::NULLTempControl tc;
     OTRadValve::NULLRadValve rv;
     OTV0P2BASE::PseudoSensorOccupancyTracker occupancy;
     OTV0P2BASE::SensorAmbientLightMock ambLight;
@@ -84,7 +84,7 @@ TEST(ModeButtonAndPotActuatorPhysicalUI,startState)
         startState::tp.set(pp);
         OTRadValve::ValveMode vm;
         ASSERT_FALSE(vm.inWarmMode());
-        OTRadValve::TempControlBase tc;
+        OTRadValve::NULLTempControl tc;
         OTRadValve::NULLRadValve rv;
         OTV0P2BASE::PseudoSensorOccupancyTracker occupancy;
         occupancy.read();
