@@ -77,7 +77,7 @@ static const ALDataSample trivialSample1[] =
 { 0, 0, 0, 254, occType::OCC_NONE }, // Should NOT predict occupancy on first tick.
 { 0, 0, 1, 0, occType::OCC_NONE }, // Should NOT predict occupancy on falling level.
 { 0, 0, 5, 0 }, // Should NOT predict occupancy on steady level, but have no expectation.
-{ 0, 0, 5, 0, occType::OCC_NONE }, // Should NOT predict occupancy on steady level.
+{ 0, 0, 6, 0, occType::OCC_NONE }, // Should NOT predict occupancy on steady level.
 { 0, 0, 9, 254, occType::OCC_PROBABLE }, // Should predict occupancy on level rising to (near) max.
 { }
     };
