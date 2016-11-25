@@ -26,12 +26,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 #include "OTV0P2BASE_SensorAmbientLightOccupancy.h"
 
 
-// Sanity test.
-TEST(AmbientLightOccupancyDetection,SanityTest)
-{
-    EXPECT_EQ(42, 42);
-}
-
+// Import occType enum values.
+typedef OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType occType;
 
 // Basic test of update() behaviour.
 TEST(AmbientLightOccupancyDetection,updateBasics)
@@ -50,21 +46,23 @@ TEST(AmbientLightOccupancyDetection,updateBasics)
 // Can be directly created from OpenTRV log files into day hour minute value columns,
 // eg from log lines of the form "2016-11-24T22:07:39Z 96F0CED3B4E690E8 47"
 // with awk '{ print "{"(0+substr($1,9,2))","(0+substr($1, 12, 2))","(0+substr($1, 15, 2))","$3"},"; }'
-class ALDataSample
+class ALDataSample final
     {
     public:
-        const uint8_t d, H, M, L, expected;
+        // Time/data values.
+        const uint8_t d, H, M, L;
 
-        // Day/hour/minute and light level and expected result.
-        // An expected result of 0 means no particular result expected from this (anything is acceptable).
-        // An expected result of 1 means occupancy should NOT be reported for this sample.
-        // An expected result of 2+ means occupancy should be reported for this sample.
-        ALDataSample(uint8_t dayOfMonth, uint8_t hour24, uint8_t minute, uint8_t lightLevel, uint8_t expectedResult = 0)
-            : d(dayOfMonth), H(hour24), M(minute), L(lightLevel), expected(expectedResult)
-            { }
+        static constexpr int8_t NO_EXPECTATION = -1; // -1 implies no prediction, distinct from all occType values.
+        const int8_t expected = NO_EXPECTATION;
+
+        // Day/hour/minute and light level and expected results.
+        // An expected result of -1 means no particular result expected from this (anything is acceptable).
+        // Else the given occType value is expected.
+        constexpr ALDataSample(uint8_t dayOfMonth, uint8_t hour24, uint8_t minute, uint8_t lightLevel, int8_t expectedResult = NO_EXPECTATION)
+            : d(dayOfMonth), H(hour24), M(minute), L(lightLevel), expected(expectedResult) { }
 
         // Create/mark a terminating entry; all input values invalid.
-        ALDataSample() : d(255), H(255), M(255), L(255), expected(0) { }
+        constexpr ALDataSample() : d(255), H(255), M(255), L(255) { }
 
         // Compute current minute for this record.
         long currentMinute() const { return((((d * 24L) + H) * 60L) + M); }
@@ -76,10 +74,10 @@ class ALDataSample
 // Trivial sample, testing initial reaction to start transient.
 static const ALDataSample trivialSample1[] =
     {
-{ 0, 0, 0, 254, 1 }, // Should NOT predict occupancy on first tick.
-{ 0, 0, 1, 0, 1 }, // Should NOT predict occupancy on falling level.
-{ 0, 0, 5, 0 }, // Should NOT predict occupancy on falling level.
-{ 0, 0, 9, 254, 2 }, // Should predict occupancy on level rising to (near) max.
+{ 0, 0, 0, 254, occType::OCC_NONE }, // Should NOT predict occupancy on first tick.
+{ 0, 0, 1, 0, occType::OCC_NONE }, // Should NOT predict occupancy on falling level.
+{ 0, 0, 5, 0 }, // Should NOT predict occupancy on falling level, but have no expectation.
+{ 0, 0, 9, 254, occType::OCC_PROBABLE }, // Should predict occupancy on level rising to (near) max.
 { }
     };
 
@@ -106,7 +104,7 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
     ASSERT_FALSE(data->isEnd()) << "do not pass in empty data set";
     // Count of number of records.
     int nRecords = 0;
-    // COunt number of records with explicit expected response assertion.
+    // Count number of records with explicit expected response assertion.
     int nExpectation = 0;
     // Compute own values for min, max, etc.
     int minI = 256;
@@ -186,7 +184,7 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
                                 // eg by blending prev/current/next periods linearly.
 //fprintf(stderr, "mean = %d\n", byHourMeanI[H]);
                                 detector->setTypMinMax(byHourMeanI[H], minToUse, maxToUse, sensitive);
-                                ASSERT_EQ(sensitive, detector->isSensitive());
+//                                ASSERT_EQ(sensitive, detector->isSensitive());
                                 }
                             break;
                             }
@@ -234,17 +232,14 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
                             }
                         }
                     oldH = H;
-                    const bool prediction = detector->update(dp->L);
-                    if(prediction) { ++nOccupancyReports; }
+                    const OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType prediction = detector->update(dp->L);
+                    if(prediction >= OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::OCC_PROBABLE) { ++nOccupancyReports; }
                     // Note that for all synthetic ticks the expectation is removed (since there is no level change).
-                    const uint8_t expected = (currentMinute != dp->currentMinute()) ? 0 : dp->expected;
+                    // TODO: may need revising for weak occupancy predictions.
+                    const int8_t expected = (currentMinute != dp->currentMinute()) ? ALDataSample::NO_EXPECTATION : dp->expected;
 if(verbose && prediction) { fprintf(stderr, "@ %d:%d L = %d e = %d\n", H, M, dp->L, expected); }
-                    if(0 != expected)
-                        {
-                        // If a particular outcome was expected, test against it.
-                        const bool expectedOccupancy = (expected > 1);
-                        EXPECT_EQ(expectedOccupancy, prediction) << " @ " << ((int)H) << ":" << ((int)M);
-                        }
+                    if(ALDataSample::NO_EXPECTATION != expected)
+                        { EXPECT_EQ(expected, prediction) << " @ " << ((int)H) << ":" << ((int)M); }
                     ++currentMinute;
                     } while((!(dp+1)->isEnd()) && (currentMinute < (dp+1)->currentMinute()));
                 }
@@ -268,22 +263,22 @@ TEST(AmbientLightOccupancyDetection,simpleDataSampleRun)
 // "3l" 2016/10/08+09 test set with tough occupancy to detect in the evening up to 21:00Z and in the morning from 07:09Z then  06:37Z.
 static const ALDataSample sample3lHard[] =
     {
-{8,0,1,1, 1}, // Definitely not occupied.
-{8,0,17,1, 1}, // Definitely not occupied.
+{8,0,1,1, occType::OCC_NONE}, // Definitely not occupied.
+{8,0,17,1, occType::OCC_NONE}, // Definitely not occupied.
 //...
 {8,6,21,1},
-{8,6,29,2, 1}, // Not enough rise to indicate occupation.
+{8,6,29,2, occType::OCC_NONE}, // Not enough rise to indicate occupation.
 {8,6,33,2},
 {8,6,45,2},
 {8,6,57,2},
 {8,7,9,14},  // OCCUPIED: curtains drawn?
 {8,7,17,35},
 {8,7,21,38},
-{8,7,33,84, 2}, // Lights on or more curtains drawn?  Possibly occupied.
+{8,7,33,84, occType::OCC_PROBABLE}, // Lights on or more curtains drawn?  Possibly occupied.
 {8,7,37,95},
-{8,7,49,97, 1}, // Not enough rise to be occupation.
-{8,7,57,93, 1}, // Fall is not indicative of occupation.
-{8,8,5,98, 1}, // Sun coming up: not enough rise to indicate occupation.
+{8,7,49,97, occType::OCC_NONE}, // Not enough rise to be occupation.
+{8,7,57,93, occType::OCC_NONE}, // Fall is not indicative of occupation.
+{8,8,5,98, occType::OCC_NONE}, // Sun coming up: not enough rise to indicate occupation.
 {8,8,13,98},
 {8,8,17,93},
 {8,8,25,79},
@@ -354,11 +349,11 @@ static const ALDataSample sample3lHard[] =
 {8,17,5,20},
 {8,17,13,7},
 {8,17,25,4},
-{8,17,37,44, 2}, // OCCUPIED (light on?).
+{8,17,37,44, occType::OCC_PROBABLE}, // OCCUPIED (light on?).
 {8,17,49,42},
 {8,18,1,42},
 {8,18,9,40},
-{8,18,13,42, 1}, // Not enough rise to be occupation.
+{8,18,13,42, occType::OCC_NONE}, // Not enough rise to be occupation.
 {8,18,25,40},
 {8,18,37,40},
 {8,18,41,42},
@@ -380,22 +375,22 @@ static const ALDataSample sample3lHard[] =
 {8,20,37,41},
 {8,20,41,42},
 {8,20,49,40},
-{8,21,5,1, 1}, // Definitely not occupied.
-{8,21,13,1, 1}, // Definitely not occupied.
+{8,21,5,1, occType::OCC_NONE}, // Definitely not occupied.
+{8,21,13,1, occType::OCC_NONE}, // Definitely not occupied.
 // ...
-{9,5,57,1, 1}, // Definitely not occupied.
-{9,6,13,1, 1}, // Definitely not occupied.
-{9,6,21,2, 1}, // Not enough rise to indicate occupation.
+{9,5,57,1, occType::OCC_NONE}, // Definitely not occupied.
+{9,6,13,1, occType::OCC_NONE}, // Definitely not occupied.
+{9,6,21,2, occType::OCC_NONE}, // Not enough rise to indicate occupation.
 {9,6,33,2},
-{9,6,37,24, 2}, // Curtains drawn: OCCUPIED.
+{9,6,37,24, occType::OCC_PROBABLE}, // Curtains drawn: OCCUPIED.
 {9,6,45,32},
 {9,6,53,31},
 {9,7,5,30},
 {9,7,17,41},
 {9,7,25,54},
-{9,7,33,63, 1}, // Sun coming up; not a sign of occupancy.
-{9,7,41,73, 1}, // Sun coming up; not a sign of occupancy.
-{9,7,45,77, 1}, // Sun coming up: not enough rise to indicate occupation.
+{9,7,33,63, occType::OCC_NONE}, // Sun coming up; not a sign of occupancy.
+{9,7,41,73, occType::OCC_NONE}, // Sun coming up; not a sign of occupancy.
+{9,7,45,77, occType::OCC_NONE}, // Sun coming up: not enough rise to indicate occupation.
 { }
     };
 
@@ -409,12 +404,12 @@ TEST(AmbientLightOccupancyDetection,sample3lHard)
 // "5s" 2016/10/08+09 test set with tough occupancy to detect in the evening 21:00Z.
 static const ALDataSample sample5sHard[] =
     {
-{8,0,3,2, 1}, // Not occupied actively.
-{8,0,19,2, 1}, // Not occupied actively.
+{8,0,3,2, occType::OCC_NONE}, // Not occupied actively.
+{8,0,19,2, occType::OCC_NONE}, // Not occupied actively.
 // ...
-{8,5,19,2, 1}, // Not occupied actively.
-{8,5,31,1, 1}, // Not occupied actively.
-{8,5,43,2, 1}, // Not occupied actively.
+{8,5,19,2, occType::OCC_NONE}, // Not occupied actively.
+{8,5,31,1, occType::OCC_NONE}, // Not occupied actively.
+{8,5,43,2, occType::OCC_NONE}, // Not occupied actively.
 // ...
 {8,6,23,4},
 {8,6,35,6},
@@ -510,12 +505,12 @@ static const ALDataSample sample5sHard[] =
 {8,19,55,2},
 {8,20,11,2},
 {8,20,23,2},
-{8,20,35,16, 2}, // Light turned on, OCCUPANCY.
+{8,20,35,16, occType::OCC_PROBABLE}, // Light turned on, OCCUPANCY.
 {8,20,46,16},
 {8,20,55,13},
 {8,20,58,14},
-{8,21,7,3, 1}, // Light turned off, no occupancy.
-{8,21,23,2, 1}, // Light turned off, no occupancy.
+{8,21,7,3, occType::OCC_NONE}, // Light turned off, no occupancy.
+{8,21,23,2, occType::OCC_NONE}, // Light turned off, no occupancy.
 {8,21,39,2},
 {8,21,55,2},
 {8,22,11,2},
@@ -566,9 +561,9 @@ static const ALDataSample sample5sHard[] =
 {9,6,39,19},
 {9,6,43,26},
 {9,6,59,24},
-{9,7,7,28, 1}, // Not yet up and about.
+{9,7,7,28, occType::OCC_NONE}, // Not yet up and about.
 {9,7,15,66},
-{9,7,27,181, 2}, // Curtains drawn: OCCUPANCY.
+{9,7,27,181, occType::OCC_PROBABLE}, // Curtains drawn: OCCUPANCY.
 {9,7,43,181},
 {9,7,51,181},
 {9,7,59,181},
@@ -589,7 +584,7 @@ static const ALDataSample sample2bHard[] =
 {8,0,24,3},
 // ...
 {8,7,28,3},
-{8,7,40,180, 2}, // Curtains drawn, OCCUPANCY.
+{8,7,40,180, occType::OCC_PROBABLE}, // Curtains drawn, OCCUPANCY.
 {8,7,44,179},
 {8,7,52,180},
 {8,8,0,182},
@@ -683,7 +678,7 @@ static const ALDataSample sample2bHard[] =
 {8,19,52,4},
 {8,20,0,7},
 {8,20,16,6},
-{8,20,20,10, 2}, // Light on, OCCUPANCY.
+{8,20,20,10, occType::OCC_PROBABLE}, // Light on, OCCUPANCY.
 {8,20,28,6},
 {8,20,36,3},
 {8,20,42,3},
@@ -691,7 +686,7 @@ static const ALDataSample sample2bHard[] =
 {9,7,40,3},
 {9,7,48,3},
 {9,7,52,4},
-{9,8,8,176, 2}, // Curtains drawn, OCCUPANCY.
+{9,8,8,176, occType::OCC_PROBABLE}, // Curtains drawn, OCCUPANCY.
 {9,8,20,177},
 {9,8,32,177},
 {9,8,44,178},
@@ -775,14 +770,14 @@ static const ALDataSample sample2bHard[] =
 {9,18,28,3},
 {9,18,40,3},
 {9,18,56,3},
-{9,19,8,10, 2}, // Light on, OCCUPANCY.
+{9,19,8,10, occType::OCC_PROBABLE}, // Light on, OCCUPANCY.
 {9,19,16,9},
 {9,19,28,10},
 {9,19,44,6},
-{9,19,48,11, 2}, // Small light on?  Possible occupancy.
+{9,19,48,11, occType::OCC_PROBABLE}, // Small light on?  Possible occupancy.
 {9,19,56,8},
 {9,20,4,8},
-{9,20,8,3, 1}, // Light off, no qctive occupancy.
+{9,20,8,3, occType::OCC_NONE}, // Light off, no qctive occupancy.
 {9,20,20,3},
 {9,20,36,3},
     { }
@@ -798,12 +793,12 @@ TEST(AmbientLightOccupancyDetection,sample2bHard)
 // "6k" 2016/10/08+09 test set relatively easy to detect daytime occupancy in busy room.
 static const ALDataSample sample6k[] =
     {
-{8,0,7,1, 1}, // Not occupied.
+{8,0,7,1, occType::OCC_NONE}, // Not occupied.
 {8,0,19,1},
 {8,0,35,1},
 {8,0,47,1},
 {8,1,3,1},
-{8,1,19,2, 1}, // Not occupied.
+{8,1,19,2, occType::OCC_NONE}, // Not occupied.
 {8,1,35,2},
 {8,1,39,2},
 // ...
@@ -817,7 +812,7 @@ static const ALDataSample sample6k[] =
 {8,7,7,20},
 {8,7,15,25},
 {8,7,19,33},
-{8,7,31,121, 2}, // Light on: OCCUPIED.
+{8,7,31,121, occType::OCC_PROBABLE}, // Light on: OCCUPIED.
 {8,7,40,35},
 {8,7,52,62},
 {8,8,7,168},
@@ -889,14 +884,14 @@ static const ALDataSample sample6k[] =
 {8,16,3,23},
 {8,16,19,27},
 {8,16,27,18},
-{8,16,35,164, 2}, // Light on: OCCUPIED.
+{8,16,35,164, occType::OCC_PROBABLE}, // Light on: OCCUPIED.
 {8,16,39,151},
 {8,16,51,153},
 {8,17,3,151},
 {8,17,11,122},
 {8,17,15,131},
 {8,17,31,138},
-{8,17,35,1, 1}, // Light off: not occupied.
+{8,17,35,1, occType::OCC_NONE}, // Light off: not occupied.
 {8,17,43,1},
 {8,17,55,1},
 {8,18,3,1},
@@ -918,11 +913,11 @@ static const ALDataSample sample6k[] =
 {8,20,51,1},
 {8,20,59,1},
 {8,21,11,1},
-{8,21,27,90, 2}, // Light on: OCCUPIED.
+{8,21,27,90, occType::OCC_PROBABLE}, // Light on: OCCUPIED.
 {8,21,43,82},
 {8,21,47,80},
 {8,21,51,79},
-{8,22,7,1, 1}, // Light off: not occupied.
+{8,22,7,1, occType::OCC_NONE}, // Light off: not occupied.
 {8,22,19,1},
 // ...
 {9,5,59,1},
@@ -932,7 +927,7 @@ static const ALDataSample sample6k[] =
 {9,6,23,4},
 {9,6,31,6},
 {9,6,35,8},
-{9,6,47,50, 2}, // Light on or blinds open: OCCUPIED.
+{9,6,47,50, occType::OCC_PROBABLE}, // Light on or blinds open: OCCUPIED.
 {9,6,51,53},
 {9,7,7,48},
 {9,7,11,57},
@@ -951,7 +946,8 @@ TEST(AmbientLightOccupancyDetection,sample6k)
 }
 
 //-----------------------------------------------------------------------------------------------------------------
-// "3l" fortnight to 2016/11/24 looking for habitual artificial lighting to watch TV, etc.
+// "3l" fortnight to 2016/11/24 looking for habitual evening artificial lighting to watch TV, etc.
+// See http://www.earth.org.uk/img/20161124-16WWal.png
 static const ALDataSample sample3llong[] =
     {
 {10,0,7,1},
@@ -1325,7 +1321,7 @@ static const ALDataSample sample3llong[] =
 {12,15,15,18},
 {12,15,19,15},
 {12,15,31,11},
-{12,15,35,46},
+{12,15,35,46, occType::OCC_PROBABLE}, // Light on?
 {12,15,47,49},
 {12,15,51,47},
 {12,15,59,43},
@@ -3039,7 +3035,7 @@ static const ALDataSample sample3llong[] =
 // "3l" fortnight to 2016/11/24 looking for habitual artificial lighting to watch TV, etc.
 TEST(AmbientLightOccupancyDetection,sample3llong)
 {
-//    OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds1;
-//    simpleDataSampleRun(sample3llong, &ds1);
+    OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds1;
+    simpleDataSampleRun(sample3llong, &ds1);
 }
 

@@ -167,9 +167,16 @@ uint8_t SensorAmbientLight::read()
 //      }
 //    }
 
+//  // If a callback is set then use the occupancy detector.
+//  if((NULL != possOccCallback) && occupancyDetector.update(newValue))
+//    { possOccCallback(); } // Ping the callback!
   // If a callback is set then use the occupancy detector.
-  if((NULL != possOccCallback) && occupancyDetector.update(newValue))
-    { possOccCallback(); } // Ping the callback!
+  if(NULL != possOccCallback)
+    {
+    const OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType occ = occupancyDetector.update(newValue);
+    if(occ >= OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::OCC_PROBABLE) { possOccCallback(); } // Ping the callback!
+    }
+
 
 #if 0 && defined(DEBUG)
   DEBUG_SERIAL_PRINT_FLASHSTRING("Ambient light (/1023): ");

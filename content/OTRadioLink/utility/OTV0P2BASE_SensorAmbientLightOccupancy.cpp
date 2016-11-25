@@ -30,13 +30,13 @@ namespace OTV0P2BASE
 
 
 // Call regularly (~1/60s) with the current ambient light level [0,254].
-// Returns true if probable occupancy is detected.
+// Returns > 0 if occupancy is detected.
 // Does not block.
 //   * newLightLevel in range [0,254]
 // Not thread-/ISR- safe.
-bool SensorAmbientLightOccupancyDetectorSimple::update(const uint8_t newLightLevel)
+SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupancyDetectorSimple::update(const uint8_t newLightLevel)
     {
-    bool result = false;
+    bool probableOccupancy = false;
     // Only predict occupancy if no reason can be found NOT to.
     do  {
         // Minimum/first condition for occupancy is a rising light level.
@@ -63,29 +63,10 @@ bool SensorAmbientLightOccupancyDetectorSimple::update(const uint8_t newLightLev
 //            if(rise < maxRiseThreshold) { break; }
 //            }
 
-        result = true;
+        probableOccupancy = true;
         } while(false);
 	prevLightLevel = newLightLevel;
-    return(result);
+    return(probableOccupancy ? OCC_PROBABLE : OCC_NONE);
 	}
-
-//// Set mean, min and max ambient light levels from recent stats, to allow auto adjustment to room; ~0/0xff means not known.
-//// Mean value is for the current time of day.
-//// Short term stats are typically over the last day,
-//// longer term typically over the last week or so (eg rolling exponential decays).
-//// Call regularly, roughly hourly, to drive other internal time-dependent adaptation.
-////   * meanNowOrFF  typical/mean light level around this time each 24h; 0xff if not known.
-////   * sensitive  if true then be more sensitive to possible occupancy changes, eg to improve comfort.
-//// Not thread-/ISR- safe.
-//void SensorAmbientLightOccupancyDetectorSimple::setTypMinMax(const uint8_t meanNowOrFF,
-//                  const uint8_t longTermMinimumOrFF, const uint8_t longTermMaximumOrFF,
-//                  const bool sensitive)
-//    {
-//    this->meanNowOrFF = meanNowOrFF;
-//    this->longTermMinimumOrFF = longTermMinimumOrFF;
-//    this->longTermMaximumOrFF = longTermMaximumOrFF;
-//    this->sensitive = sensitive;
-//    }
-
 
 }

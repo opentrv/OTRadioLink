@@ -58,8 +58,20 @@ namespace OTV0P2BASE
 class SensorAmbientLightOccupancyDetectorInterface
   {
   public:
+    // Occupancy detected from 0 (none) nominally rising to OCC_STRONG.
+    // The OCC_STRONG level is beyond this detector's ability to detect.
+    enum occType : uint8_t
+      {
+        OCC_NONE = 0, // No occupancy detected.
+        OCC_WEAK, // From constant habitual artificial lighting.
+        OCC_PROBABLE, // From light flicked on.
+        OCC_STRONG // Very strong confidence; NOT RETURNED BY THIS SENSOR
+      };
+
     // Call regularly with the current ambient light level [0,254].
-    // Returns true if probable occupancy is detected.
+    // Returns OCC_NONE if no occupancy is detected.
+    // Returns OCC_WEAK if weak occupancy is detected, eg from TV watching.
+    // Returns OCC_PROBABLE if probable occupancy is detected, eg from lights on.
     // Does not block.
     // Not thread-/ISR- safe.
     // Call regularly (~1/60s) with the current ambient light level [0,254].
@@ -67,7 +79,7 @@ class SensorAmbientLightOccupancyDetectorInterface
     // Does not block.
     //   * newLightLevel in range [0,254]
     // Not thread-/ISR- safe.
-    virtual bool update(uint8_t newLightLevel) = 0;
+    virtual occType update(uint8_t newLightLevel) = 0;
 
     // Set mean, min and max ambient light levels from recent stats, to allow auto adjustment to room; ~0/0xff means not known.
     // Mean value is for the current time of day.
@@ -80,9 +92,9 @@ class SensorAmbientLightOccupancyDetectorInterface
     virtual void setTypMinMax(uint8_t /*meanNowOrFF*/,
                       uint8_t /*longTermMinimumOrFF = 0xff*/, uint8_t /*longTermMaximumOrFF = 0xff*/,
                       bool /*sensitive = false*/) = 0;
-
-    // True if the detector is in 'sensitive' mode.
-    virtual bool isSensitive() const = 0;
+//
+//    // True if the detector is in 'sensitive' mode.
+//    virtual bool isSensitive() const = 0;
   };
 
 
@@ -105,28 +117,15 @@ class SensorAmbientLightOccupancyDetectorSimple final : public SensorAmbientLigh
 	  uint8_t longTermMaximumOrFF = 0xff;
 	  bool sensitive = false;
 
-//      // Flicker detector from watching TV or otherwise moving around the room.
-//      // Possibly not to be used unless device is in sensitive mode, eg driven by comfort,
-//      // and light is well away from daily maximum and minimum.
-//      // Minimum delta (rise) for (eg TV) flicker to be detected; a simple noise floor.
-//      // Picked to try to eliminate spurious triggers from quantisation noise.
-//      static constexpr uint8_t flickerEpsilon = 2;
-//	  // Long-term smoothed ticks to overflow flicker delta sum.
-//	  uint16_t filterDeltaOverflowTicks = 0;
-//	  // Current flicker delta sum.
-//	  uint8_t currentFlickerDeltaSum = 0;
-//	  // Current ticks in while accumulating flicker delta sum;
-//	  uint8_t currentFlickerDeltaTicks = 0;
-
   public:
       constexpr SensorAmbientLightOccupancyDetectorSimple() { }
 
       // Call regularly (~1/60s) with the current ambient light level [0,254].
-      // Returns true if probable occupancy is detected.
+      // Returns value > 0 if occupancy is detected.
       // Does not block.
       //   * newLightLevel in range [0,254]
       // Not thread-/ISR- safe.
-      virtual bool update(uint8_t newLightLevel) override;
+      virtual occType update(uint8_t newLightLevel) override;
 
       // Set mean, min and max ambient light levels from recent stats, to allow auto adjustment to room; ~0/0xff means not known.
       // Mean value is for the current time of day.
@@ -146,8 +145,8 @@ class SensorAmbientLightOccupancyDetectorSimple final : public SensorAmbientLigh
           this->sensitive = sensitive;
           }
 
-      // True if the detector is in 'sensitive' mode.
-      virtual bool isSensitive() const override { return(sensitive); }
+//      // True if the detector is in 'sensitive' mode.
+//      virtual bool isSensitive() const override { return(sensitive); }
   };
 
 
