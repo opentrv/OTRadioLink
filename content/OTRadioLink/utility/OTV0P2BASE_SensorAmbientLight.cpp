@@ -167,9 +167,6 @@ uint8_t SensorAmbientLight::read()
 //      }
 //    }
 
-//  // If a callback is set then use the occupancy detector.
-//  if((NULL != possOccCallback) && occupancyDetector.update(newValue))
-//    { possOccCallback(); } // Ping the callback!
   // If a callback is set then use the occupancy detector.
   if(NULL != possOccCallback)
     {
