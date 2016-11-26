@@ -94,11 +94,11 @@ SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupanc
         // The levels must also be close to the mean for the time of day.
         const uint8_t range = maxToUse - minToUse;
         constexpr uint8_t marginWshift = 1;
-        const uint8_t marginW = fnmax(uint8_t(2), uint8_t(range >> (/*sensitive ? (1+marginWshift) :*/ marginWshift)));
-        const uint8_t margin = fnmax(uint8_t(2), uint8_t(marginW >> 2));
+        const uint8_t marginW = range >> (/*sensitive ? (1+marginWshift) :*/ marginWshift);
+        const uint8_t margin = uint8_t(marginW >> 2);
         const uint8_t thrL = minToUse + margin;
         const uint8_t thrH = maxToUse - marginW;
-        const uint8_t maxDistanceFromMean = fnmin(meanNowOrFF-minToUse, maxToUse-meanNowOrFF) >> 2; // (sensitive ? 2 : 3);
+        const uint8_t maxDistanceFromMean = fnmin(meanNowOrFF-minToUse, maxToUse-meanNowOrFF) >> (sensitive ? 2 : 3);
 
 #if 0 && !defined(ARDUINO)
         serialPrintAndFlush("  newLightLevel=");
