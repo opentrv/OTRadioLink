@@ -520,7 +520,7 @@ static const ALDataSample sample5sHard[] =
 {8,20,35,16, occType::OCC_PROBABLE}, // Light turned on, OCCUPANCY.
 {8,20,46,16},
 {8,20,55,13},
-{8,20,58,14},
+{8,20,58,14}, // occType::OCC_WEAK}, // Light still on.
 {8,21,7,3, occType::OCC_NONE}, // Light turned off, no occupancy.
 {8,21,23,2, occType::OCC_NONE}, // Light turned off, no occupancy.
 {8,21,39,2},
@@ -877,7 +877,7 @@ static const ALDataSample sample6k[] =
 {8,14,3,27},
 {8,14,11,41},
 {8,14,15,50},
-{8,14,19,53},
+{8,14,19,53}, // occType::OCC_WEAK}, // Light still on?
 {8,14,27,58},
 {8,14,31,59},
 {8,14,35,52},

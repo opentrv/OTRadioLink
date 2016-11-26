@@ -54,7 +54,7 @@ SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupanc
     if(newLightLevel < prevLightLevel) { prevLightLevel = newLightLevel; return(OCC_NONE); }
 
 #if 0 && !defined(ARDUINO)
-    serialPrintlnAndFlush("update(=^)");
+    serialPrintlnAndFlush("update(>=)");
 #endif
 
     // Default to no occupancy detected.
@@ -89,16 +89,15 @@ SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupanc
     else if((rise < epsilon) && (meanNowOrFF > minToUse) && (meanNowOrFF < maxToUse)) // Implicitly 0xff != meanNowOrFF.
         {
         // Previous and current light levels should ideally be well away from maximum/minimum
-        // (and asymmetrically much further below maximum)
+        // (and asymmetrically much further below maximum, ie a wider margin on the high side)
         // to avoid being triggered in continuously dark/lit areas, and when daylit.
         // The levels must also be close to the mean for the time of day.
         const uint8_t range = maxToUse - minToUse;
-        constexpr uint8_t e = epsilon;
         constexpr uint8_t marginWshift = 1;
-        const uint8_t marginW = fnmax(fnmin(e,range), uint8_t(range >> (sensitive ? (1+marginWshift) : marginWshift)));
-        const uint8_t margin = fnmax(fnmin(e,range), uint8_t(range >> (sensitive ? (3+marginWshift) : (2+marginWshift))));
+        const uint8_t marginW = fnmax(uint8_t(2), uint8_t(range >> (sensitive ? (1+marginWshift) : marginWshift)));
+        const uint8_t margin = fnmax(uint8_t(2), uint8_t(marginW >> 2));
         const uint8_t thrL = minToUse + margin;
-        const uint8_t thrH = maxToUse - marginW; // Wider margin at high side.
+        const uint8_t thrH = maxToUse - marginW;
         const uint8_t maxDistanceFromMean = fnmin(meanNowOrFF-minToUse, maxToUse-meanNowOrFF) >> (sensitive ? 2 : 3);
 
 #if 0 && !defined(ARDUINO)
