@@ -83,6 +83,7 @@ SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupanc
         occLevel = OCC_PROBABLE;
         }
     // Else look for weak occupancy indications.
+    // Look for habitual use of artificial lighting at set times, eg for TV watching or reading.
     // This must have a long-term non-extreme sane mean for the current time of day available,
     // and sane correctly-ordered min and max bounds.
     // and any rise must be small eg to guard against (eg) sunlight-driven flicker.
