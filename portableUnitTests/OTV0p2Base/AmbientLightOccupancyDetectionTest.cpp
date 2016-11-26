@@ -2013,8 +2013,8 @@ static const ALDataSample sample3leveningTV[] =
 {19,20,36,45},
 {19,20,48,44},
 {19,20,59,44},
-{19,21,12,3},
-{19,21,28,16},
+{19,21,12,3, occType::OCC_NONE},
+{19,21,28,16}, // Unusual lighting, ie not the 'habitual' level.
 {19,21,40,14},
 {19,21,44,15},
 {19,21,52,15},
