@@ -72,7 +72,7 @@ TEST(PseudoSensorOccupancyTracker,basics)
     ASSERT_FALSE(o1.isLikelyRecentlyOccupied());
     ASSERT_FALSE(o1.isLikelyOccupied());
     ASSERT_TRUE(o1.isLikelyUnoccupied());
-    // Show that markAsJustPossiblyOccupied() DOES NOT status back to occupied.
+    // Show that markAsJustPossiblyOccupied() DOES NOT move status to occupied.
     o1.markAsJustPossiblyOccupied();
     ASSERT_FALSE(o1.isLikelyRecentlyOccupied());
     ASSERT_FALSE(o1.isLikelyOccupied());
