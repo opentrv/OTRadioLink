@@ -127,7 +127,7 @@ SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupanc
         serialPrintlnAndFlush();
 #endif
 
-        if((prevLightLevel > thrL) && (newLightLevel > thrL) && (newLightLevel < thrH) &&
+        if((newLightLevel > thrL) && (newLightLevel < thrH) &&
            (fnabsdiff(newLightLevel, meanNowOrFF) <= maxDistanceFromMean))
             {
             // Steady artificial lighting now near usual levels for this time of day.
