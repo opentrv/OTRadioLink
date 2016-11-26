@@ -22,6 +22,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
  Provides an interface and a reference implementation.
  */
 
+#include "OTV0P2BASE_Serial_IO.h"
+
 #include "OTV0P2BASE_SensorAmbientLightOccupancy.h"
 
 
@@ -48,43 +50,93 @@ namespace OTV0P2BASE
 SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupancyDetectorSimple::update(const uint8_t newLightLevel)
     {
     // If new light level lower than previous
-    // do not detect any level of occupancy and save some CPU time.
+    // then do not detect any level of occupancy and save some CPU time.
     if(newLightLevel < prevLightLevel) { prevLightLevel = newLightLevel; return(OCC_NONE); }
+
+#if 0 && !defined(ARDUINO)
+    serialPrintlnAndFlush("update(=^)");
+#endif
 
     // Default to no occupancy detected.
     occType occLevel = OCC_NONE;
 
-    // Only predict occupancy if no reason can be found NOT to.
-    do  {
-        // Minimum/first condition for probable occupancy is a rising light level.
-        if(newLightLevel <= prevLightLevel) { break; }
-        const uint8_t rise = newLightLevel - prevLightLevel;
-        // Any rise must be more than the fixed floor/noise threshold epsilon.
-        if(rise < epsilon) { break; }
+    // For probable occupancy, and rise must be
+    // a decent fraction of min to mean (or min to max) distance.
+    // For weak occupancy being within a small distance of mean is a big clue.
 
-        // Any rise must be a decent fraction of min to mean (or min to max) distance.
-        // Amount to right-shift mean (-min) and max (-min) to generate thresholds.
-        const uint8_t meanShift = sensitive ? 2 : 1;
-        // Assume minimum of 0 if none set.
-        const uint8_t minToUse = (0xff == longTermMinimumOrFF) ? 0 : longTermMinimumOrFF;
-        // If a typical/mean value is available then screen current rise against it.
-        if((0xff != meanNowOrFF) && (meanNowOrFF >= minToUse))
-			{
-            const uint8_t meanRiseThreshold = (meanNowOrFF - minToUse) >> meanShift;
-            if(rise < meanRiseThreshold) { break; }
-			}
-//        else if((0xff != longTermMaximumOrFF) && (longTermMaximumOrFF >= minToUse))
-//            {
-//            const int maxShift = meanShift + 1;
-//            const uint8_t maxRiseThreshold = (longTermMaximumOrFF - minToUse) >> maxShift;
-//            if(rise < maxRiseThreshold) { break; }
-//            }
+    // Assume minimum of the noise floor if none set.
+    const uint8_t minToUse = (0xff == longTermMinimumOrFF) ? epsilon : longTermMinimumOrFF;
+    // Assume maximum of max dropped by the noise floor if none set.
+    const uint8_t maxToUse = (0xff == longTermMaximumOrFF) ? (0xff-epsilon) : longTermMaximumOrFF;
 
+    const uint8_t rise = newLightLevel - prevLightLevel;
+
+    // Precondition for probable occupancy is a rising light level.
+    // Any rise must be more than the fixed floor/noise threshold epsilon.
+    // Also, IF a long-term mean for this time slot is available and above the lower floor,
+    // then the rise must also be more than a fraction of the mean's distance above that floor.
+    if((rise >= epsilon) &&
+        (((0xff == meanNowOrFF) || (meanNowOrFF <= minToUse)) ||
+            (rise >= ((meanNowOrFF - minToUse) >> (sensitive ? 2 : 1)))))
+        {
+        // Lights flicked on or curtains drawn maybe: room occupied.
         occLevel = OCC_PROBABLE;
-        } while(false);
+        }
+    // Else look for weak occupancy indications.
+    // This must have a long-term non-extreme sane mean for the current time of day available,
+    // and sane correctly-ordered min and max bounds.
+    // and any rise must be small eg to guard against (eg) sunlight-driven flicker.
+    else if((rise < epsilon) && (meanNowOrFF > minToUse) && (meanNowOrFF < maxToUse)) // Implicitly 0xff != meanNowOrFF.
+        {
+        // Previous and current light levels should ideally be well away from maximum/minimum
+        // (and asymmetrically much further below maximum)
+        // to avoid being triggered in continuously dark/lit areas, and when daylit.
+        // The levels must also be close to the mean for the time of day.
+        const uint8_t range = maxToUse - minToUse;
+        constexpr uint8_t e = epsilon;
+        constexpr uint8_t marginWshift = 1;
+        const uint8_t marginW = fnmax(fnmin(e,range), uint8_t(range >> (sensitive ? (1+marginWshift) : marginWshift)));
+        const uint8_t margin = fnmax(fnmin(e,range), uint8_t(range >> (sensitive ? (3+marginWshift) : (2+marginWshift))));
+        const uint8_t thrL = minToUse + margin;
+        const uint8_t thrH = maxToUse - marginW; // Wider margin at high side.
+        const uint8_t maxDistanceFromMean = fnmin(meanNowOrFF-minToUse, maxToUse-meanNowOrFF) >> (sensitive ? 2 : 3);
+
+#if 0 && !defined(ARDUINO)
+        serialPrintAndFlush("  newLightLevel=");
+        serialPrintAndFlush(newLightLevel);
+        serialPrintlnAndFlush();
+        serialPrintAndFlush("  prevLightLevel=");
+        serialPrintAndFlush(prevLightLevel);
+        serialPrintlnAndFlush();
+        serialPrintAndFlush("  meanNowOrFF=");
+        serialPrintAndFlush(meanNowOrFF);
+        serialPrintlnAndFlush();
+        serialPrintAndFlush("  range=");
+        serialPrintAndFlush(range);
+        serialPrintlnAndFlush();
+        serialPrintAndFlush("  margin=");
+        serialPrintAndFlush(margin);
+        serialPrintlnAndFlush();
+        serialPrintAndFlush("  thrL=");
+        serialPrintAndFlush(thrL);
+        serialPrintlnAndFlush();
+        serialPrintAndFlush("  thrH=");
+        serialPrintAndFlush(thrH);
+        serialPrintlnAndFlush();
+        serialPrintAndFlush("  maxDistanceFromMean=");
+        serialPrintAndFlush(maxDistanceFromMean);
+        serialPrintlnAndFlush();
+#endif
+
+        if((prevLightLevel > thrL) && (newLightLevel > thrL) && (newLightLevel < thrH) &&
+           (fnabsdiff(newLightLevel, meanNowOrFF) <= maxDistanceFromMean))
+            {
+            // Steady artificial lighting now near usual levels for this time of day.
+            occLevel = OCC_WEAK;
+            }
+        }
 
 	prevLightLevel = newLightLevel;
     return(occLevel);
 	}
-
 }
