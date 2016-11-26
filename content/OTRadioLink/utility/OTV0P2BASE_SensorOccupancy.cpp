@@ -107,7 +107,7 @@ void PseudoSensorOccupancyTracker::markAsPossiblyOccupied()
   {
   // Update primary occupation metric in thread-safe way (needs lock, since read-modify-write).
   uint8_t ocM = occupationCountdownM.load();
-  const uint8_t oNew = OTV0P2BASE::fnmax((uint8_t)ocM, (uint8_t)(OCCUPATION_TIMEOUT_LIKELY_M));
+  const uint8_t oNew = OTV0P2BASE::fnmax(ocM, (uint8_t)(OCCUPATION_TIMEOUT_LIKELY_M));
   // Update may silently fail if other activity on occupationCountdownM while executing.
   occupationCountdownM.compare_exchange_strong(ocM, oNew);
   activityCountdownM.store(ACTIVITY_TIMEOUT_M); // Atomic byte write.
@@ -122,10 +122,10 @@ void PseudoSensorOccupancyTracker::markAsPossiblyOccupied()
 // ISR-/thread- safe.
 void PseudoSensorOccupancyTracker::markAsJustPossiblyOccupied()
   {
-  if(longVacant()) { return; }
+  if(vacancyH > longVacantHThrH) { return; }
   // Update primary occupation metric in thread-safe way (needs lock, since read-modify-write).
   uint8_t ocM = occupationCountdownM.load();
-  const uint8_t oNew = OTV0P2BASE::fnmax((uint8_t)ocM, (uint8_t)(OCCUPATION_TIMEOUT_MAYBE_M));
+  const uint8_t oNew = OTV0P2BASE::fnmax(ocM, (uint8_t)(OCCUPATION_TIMEOUT_MAYBE_M));
   occupationCountdownM.compare_exchange_strong(ocM, oNew); // May silently fail if other activity on occupationCountdownM while executing.
   }
 }
