@@ -170,7 +170,8 @@ class SensorAmbientLight final : public SensorAmbientLightBase
 
     // 'Possible occupancy' callback function (for moderate confidence of human presence).
     // If not NULL, is called when this sensor detects indications of occupancy.
-    void (*possOccCallback)();
+    // A true argument indicates probable occupancy, false weak occupancy.
+    void (*occCallbackOpt)(bool) = NULL;
 
     // Recomputes thresholds and 'unusable' based on current state.
     // WARNING: called from (static) constructors so do not attempt (eg) use of Serial.
@@ -187,8 +188,7 @@ class SensorAmbientLight final : public SensorAmbientLightBase
     SensorAmbientLight(const uint8_t defaultLightThreshold_ = DEFAULT_LIGHT_THRESHOLD)
       : rawValue((uint16_t) ~0U), // Initial value is distinct.
         recentMin(~0), recentMax(~0),
-        defaultLightThreshold(fnmin((uint8_t)254, fnmax((uint8_t)1, defaultLightThreshold_))),
-        possOccCallback(NULL)
+        defaultLightThreshold(fnmin((uint8_t)254, fnmax((uint8_t)1, defaultLightThreshold_)))
       { _recomputeThresholds(); }
 
     // Force a read/poll of the ambient light level and return the value sensed [0,255] (dark to light).
@@ -205,8 +205,8 @@ class SensorAmbientLight final : public SensorAmbientLightBase
     // Undefined until first read().
     uint16_t getRaw() const { return(rawValue); }
 
-    // Set 'possible occupancy' callback function (for moderate confidence of human presence); NULL for no callback.
-    void setPossOccCallback(void (*possOccCallback_)()) { possOccCallback = possOccCallback_; }
+    // Set 'possible'/weak occupancy callback function; NULL for no callback.
+    void setOccCallbackOpt(void (*occCallbackOpt_)(bool)) { occCallbackOpt = occCallbackOpt_; }
 
     // Get light threshold, above which room is considered light enough for activity [1,254].
     uint8_t getLightThreshold() const { return(lightThreshold); }
