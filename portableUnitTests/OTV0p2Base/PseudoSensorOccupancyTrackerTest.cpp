@@ -78,7 +78,7 @@ TEST(PseudoSensorOccupancyTracker,basics)
     ASSERT_FALSE(o1.isLikelyOccupied());
     ASSERT_TRUE(o1.isLikelyUnoccupied());
 
-    // Show that markAsJustPossiblyOccupied() does indicate occupancy when not very torpid.
+    // Show that markAsJustPossiblyOccupied() does indicate occupancy when system not very torpid.
     o1.reset();
     ASSERT_FALSE(o1.isLikelyRecentlyOccupied());
     ASSERT_FALSE(o1.isLikelyOccupied());
