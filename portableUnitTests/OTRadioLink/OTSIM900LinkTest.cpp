@@ -511,7 +511,7 @@ TEST(OTSIM900Link, MessageCountResetTest)
 // Simulate resetting the SIM900.
 namespace B4
 {
-const bool verbose = true;
+const bool verbose = false;
 
 // Gets the SIM900 to a ready to send state and then forces a reset.
 // First will stop responding, then will start up again and do sends.
