@@ -31,8 +31,8 @@ TEST(PseudoSensorOccupancyTracker,basics)
 {
     // Set up default occupancy tracker.
     OTV0P2BASE::PseudoSensorOccupancyTracker o1;
-    ASSERT_FALSE(o1.isLikelyOccupied());
     ASSERT_FALSE(o1.isLikelyRecentlyOccupied());
+    ASSERT_FALSE(o1.isLikelyOccupied());
     ASSERT_TRUE(o1.isLikelyUnoccupied());
     o1.markAsOccupied();
     ASSERT_TRUE(o1.isLikelyRecentlyOccupied());
@@ -47,8 +47,8 @@ TEST(PseudoSensorOccupancyTracker,basics)
 
     // Put in holiday mode; show marked very vacant.
     o1.setHolidayMode();
-    ASSERT_FALSE(o1.isLikelyOccupied());
     ASSERT_FALSE(o1.isLikelyRecentlyOccupied());
+    ASSERT_FALSE(o1.isLikelyOccupied());
     ASSERT_TRUE(o1.isLikelyUnoccupied());
     // Show that markAsOccupied() brings status back to occupied.
     o1.markAsOccupied();
@@ -58,13 +58,33 @@ TEST(PseudoSensorOccupancyTracker,basics)
 
     // Put in holiday mode; show marked very vacant.
     o1.setHolidayMode();
-    ASSERT_FALSE(o1.isLikelyOccupied());
     ASSERT_FALSE(o1.isLikelyRecentlyOccupied());
+    ASSERT_FALSE(o1.isLikelyOccupied());
     ASSERT_TRUE(o1.isLikelyUnoccupied());
-    // Show that markAsOccupied() brings status back to occupied.
+    // Show that markAsPossiblyOccupied() brings status back to occupied.
     o1.markAsPossiblyOccupied();
     ASSERT_FALSE(o1.isLikelyRecentlyOccupied());
     ASSERT_TRUE(o1.isLikelyOccupied());
     ASSERT_FALSE(o1.isLikelyUnoccupied());
 
+    // Put in holiday mode; show marked very vacant.
+    o1.setHolidayMode();
+    ASSERT_FALSE(o1.isLikelyRecentlyOccupied());
+    ASSERT_FALSE(o1.isLikelyOccupied());
+    ASSERT_TRUE(o1.isLikelyUnoccupied());
+    // Show that markAsJustPossiblyOccupied() DOES NOT status back to occupied.
+    o1.markAsJustPossiblyOccupied();
+    ASSERT_FALSE(o1.isLikelyRecentlyOccupied());
+    ASSERT_FALSE(o1.isLikelyOccupied());
+    ASSERT_TRUE(o1.isLikelyUnoccupied());
+
+    // Show that markAsJustPossiblyOccupied() does indicate occupancy when not very torpid.
+    o1.reset();
+    ASSERT_FALSE(o1.isLikelyRecentlyOccupied());
+    ASSERT_FALSE(o1.isLikelyOccupied());
+    ASSERT_TRUE(o1.isLikelyUnoccupied());
+    o1.markAsJustPossiblyOccupied();
+    ASSERT_FALSE(o1.isLikelyRecentlyOccupied());
+    ASSERT_TRUE(o1.isLikelyOccupied());
+    ASSERT_FALSE(o1.isLikelyUnoccupied());
 }

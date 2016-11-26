@@ -114,18 +114,18 @@ void PseudoSensorOccupancyTracker::markAsPossiblyOccupied()
   }
 
 // Call when weak evidence of active room occupation, such rising RH% or CO2 or mobile phone RF levels while not dark.
-// Do not call based on internal/synthetic events.
+// Do not call this based on internal/synthetic events.
+// Is ignored if the room has been vacant for a while,
+// so for example a weak indication of presence is not enough to cancel holiday mode.
 // Doesn't force the room to appear recently occupied.
-// If the hardware allows this may immediately turn on the main GUI LED until normal GUI reverts it,
-// at least periodically.
-// Preferably do not call for manual control operation to avoid interfering with UI operation.
+// Doesn't activate the recent-activity status.
 // ISR-/thread- safe.
 void PseudoSensorOccupancyTracker::markAsJustPossiblyOccupied()
   {
+  if(longVacant()) { return; }
   // Update primary occupation metric in thread-safe way (needs lock, since read-modify-write).
   uint8_t ocM = occupationCountdownM.load();
   const uint8_t oNew = OTV0P2BASE::fnmax((uint8_t)ocM, (uint8_t)(OCCUPATION_TIMEOUT_MAYBE_M));
   occupationCountdownM.compare_exchange_strong(ocM, oNew); // May silently fail if other activity on occupationCountdownM while executing.
-  activityCountdownM.store(ACTIVITY_TIMEOUT_M); // Atomic byte write.
   }
 }
