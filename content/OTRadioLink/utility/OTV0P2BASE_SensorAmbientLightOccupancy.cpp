@@ -47,15 +47,15 @@ namespace OTV0P2BASE
 //     and in particular not dark, saturated daylight nor completely constant lighting.
 SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupancyDetectorSimple::update(const uint8_t newLightLevel)
     {
+    // If new light level lower than previous
+    // do not detect any level of occupancy and save some CPU time.
+    if(newLightLevel < prevLightLevel) { prevLightLevel = newLightLevel; return(OCC_NONE); }
+
     // Default to no occupancy detected.
     occType occLevel = OCC_NONE;
 
     // Only predict occupancy if no reason can be found NOT to.
     do  {
-        // If new light level lower than previous
-        // do not detect any level of occupancy and save some CPU time.
-        if(newLightLevel < prevLightLevel) { break; }
-
         // Minimum/first condition for probable occupancy is a rising light level.
         if(newLightLevel <= prevLightLevel) { break; }
         const uint8_t rise = newLightLevel - prevLightLevel;
