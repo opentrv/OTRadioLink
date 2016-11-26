@@ -50,29 +50,34 @@ TEST(PseudoSensorOccupancyTracker,basics)
     ASSERT_FALSE(o1.isLikelyRecentlyOccupied());
     ASSERT_FALSE(o1.isLikelyOccupied());
     ASSERT_TRUE(o1.isLikelyUnoccupied());
-    // Show that markAsOccupied() brings status back to occupied.
+    ASSERT_TRUE(o1.longVacant());
+    ASSERT_TRUE(o1.longLongVacant());
+
+    // Put in holiday mode; show that markAsOccupied() brings status back to occupied.
+    o1.setHolidayMode();
+    ASSERT_FALSE(o1.isLikelyRecentlyOccupied());
+    ASSERT_FALSE(o1.isLikelyOccupied());
+    ASSERT_TRUE(o1.isLikelyUnoccupied());
     o1.markAsOccupied();
     ASSERT_TRUE(o1.isLikelyRecentlyOccupied());
     ASSERT_TRUE(o1.isLikelyOccupied());
     ASSERT_FALSE(o1.isLikelyUnoccupied());
 
-    // Put in holiday mode; show marked very vacant.
+    // Put in holiday mode; show that markAsPossiblyOccupied() brings status back to occupied.
     o1.setHolidayMode();
     ASSERT_FALSE(o1.isLikelyRecentlyOccupied());
     ASSERT_FALSE(o1.isLikelyOccupied());
     ASSERT_TRUE(o1.isLikelyUnoccupied());
-    // Show that markAsPossiblyOccupied() brings status back to occupied.
     o1.markAsPossiblyOccupied();
     ASSERT_FALSE(o1.isLikelyRecentlyOccupied());
     ASSERT_TRUE(o1.isLikelyOccupied());
     ASSERT_FALSE(o1.isLikelyUnoccupied());
 
-    // Put in holiday mode; show marked very vacant.
+    // Put in holiday mode; show that markAsJustPossiblyOccupied() DOES NOT move status to occupied.
     o1.setHolidayMode();
     ASSERT_FALSE(o1.isLikelyRecentlyOccupied());
     ASSERT_FALSE(o1.isLikelyOccupied());
     ASSERT_TRUE(o1.isLikelyUnoccupied());
-    // Show that markAsJustPossiblyOccupied() DOES NOT move status to occupied.
     o1.markAsJustPossiblyOccupied();
     ASSERT_FALSE(o1.isLikelyRecentlyOccupied());
     ASSERT_FALSE(o1.isLikelyOccupied());
