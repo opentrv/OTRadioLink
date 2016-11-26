@@ -137,11 +137,11 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     // Doesn't force the room to appear recently occupied.
     // If the hardware allows this may immediately turn on the main GUI LED until normal GUI reverts it,
     // at least periodically.
-    // Preferably do not call for manual control operation to avoid interfering with UI operation.
+    // Preferably do not call for manual control operations to avoid interfering with UI operation.
     // Thread-safe.
     void markAsPossiblyOccupied();
 
-    // Call when weak evidence of active room occupation, such rising RH% or CO2 or mobile phone RF levels while not dark.
+    // Call when weak evidence of active room occupation, such as rising RH% or CO2 or mobile phone RF levels while not dark.
     // Do not call this based on internal/synthetic events.
     // Is ignored if the room has been vacant for a while,
     // so for example a weak indication of presence is not enough to cancel holiday mode.
