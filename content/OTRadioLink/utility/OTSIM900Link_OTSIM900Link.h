@@ -216,7 +216,7 @@ typedef const char *AT_t;
      */
 #define OTSIM900Link_DEFINED
     template<uint8_t rxPin, uint8_t txPin, uint8_t PWR_PIN,
-    uint_fast8_t (*const getCurrentSeconds)(),
+    uint_fast8_t (*const getCurrentSeconds)(), // Fetches clock time in seconds; never NULL
     class ser_t
 #ifdef OTSoftSerial2_DEFINED
         = OTV0P2BASE::OTSoftSerial2<rxPin, txPin, OTSIM900LinkBase::SIM900_MAX_baud>
@@ -226,7 +226,7 @@ typedef const char *AT_t;
         {
             // Maximum number of significant chars in the SIM900 response.
             // Minimising this reduces stack and/or global space pressures.
-            static const int MAX_SIM900_RESPONSE_CHARS = 64;
+            static constexpr int MAX_SIM900_RESPONSE_CHARS = 64;
 
 #ifdef ARDUINO_ARCH_AVR
             // Regard as true when within a few ticks of start of 2s major cycle.
