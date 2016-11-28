@@ -124,11 +124,8 @@ uint_least8_t getNextHourLT();
 // Simple short-term (<60s) elapsed-time computations for wall-clock seconds.
 // Will give unhelpful results if called more than 60s after the original sample.
 // Takes a value of 'now' as returned by getSecondsLT().
-inline uint_fast8_t getElapsedSecondsLT(const uint_fast8_t startSecondsLT, const uint8_t now)
-  {
-  if(now >= startSecondsLT) { return(now - startSecondsLT); }
-  return(60 + now - startSecondsLT);
-  }
+inline constexpr uint_fast8_t getElapsedSecondsLT(const uint_fast8_t startSecondsLT, const uint_fast8_t now)
+  { return((now >= startSecondsLT) ? (now - startSecondsLT) : (60 + now - startSecondsLT)); }
 
 // Simple short-term (<60s) elapsed-time computations for wall-clock seconds.
 // Will give unhelpful results if called more than 60s after the original sample.

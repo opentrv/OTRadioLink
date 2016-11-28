@@ -14,7 +14,7 @@
  under the Licence.
 
  Author(s) / Copyright (s): Deniz Erbilgin 2015--2016
- Damon Hart-Davis 2015--2016
+                            Damon Hart-Davis 2015--2016
  */
 
 /*
@@ -92,18 +92,18 @@ namespace OTSIM900Link
     typedef struct OTSIM900LinkConfig final
         {
 //private:
-            // Is in eeprom?
+            // True if the text is in EEPROM.
             const bool bEEPROM;
+
             const void * const PIN;
             const void * const APN;
             const void * const UDP_Address;
             const void * const UDP_Port;
 
-            OTSIM900LinkConfig(bool e, const void *p, const void *a,
+            constexpr OTSIM900LinkConfig(bool e, const void *p, const void *a,
                     const void *ua, const void *up) :
                     bEEPROM(e), PIN(p), APN(a), UDP_Address(ua), UDP_Port(up)
-                {
-                }
+                { }
 //public:
             /**
              * @brief    Copies radio config data from EEPROM to an array
