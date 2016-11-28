@@ -242,7 +242,7 @@ typedef const char *AT_t;
 #ifdef ARDUINO_ARCH_AVR
             // Sets power pin HIGH if true, LOW if false.
             inline void setPwrPinHigh(const bool high)
-                {fastDigitalWrite(PWR_PIN, high ? HIGH : LOW);}
+                { fastDigitalWrite(PWR_PIN, high ? HIGH : LOW); }
 #else
             // Reflect pin state in bool for unit testing..
             bool pinHigh = false;
@@ -254,13 +254,13 @@ typedef const char *AT_t;
 
         public:
             /**
-             * @brief    Constructor. Initializes softSerial and sets PWR_PIN
-             * @param    pwrPin        SIM900 power on/off pin
+             * @brief    Constructor. Initializes softSerial and sets PWR_PIN.
+             * @param    pwrPin       SIM900 power on/off pin
              * @param    rxPin        Rx pin for software serial
              * @param    txPin        Tx pin for software serial
              *
              * Cannot do anything with side-effects,
-             * as may be called before run-time fully initialised!
+             * as may be called before run-time is fully initialised.
              */
             constexpr OTSIM900Link() { /* memset(txQueue, 0, sizeof(txQueue)); */ }
 
@@ -332,11 +332,8 @@ typedef const char *AT_t;
                 return true;
                 }
 
-            virtual bool isAvailable() const override
-                {
-                return bAvailable;
-                }
-            ;     // checks radio is there independent of power state
+            // Returns true if radio is present, independent of its power state.
+            virtual bool isAvailable() const override { return(bAvailable); }
 
             /**
              * @brief   Polling routine steps through 4 stage state machine
@@ -519,10 +516,6 @@ typedef const char *AT_t;
 
             // Standard Responses
 
-//  // pins for software serial
-//  const uint8_t HARD_PWR_PIN;
-//  const uint8_t PWR_PIN;
-
             // Software serial: for V0p2 boards (eg REV10) expected to be of type:
             //     OTV0P2BASE::OTSoftSerial2<rxPin, txPin, baud>
             ser_t ser;
@@ -543,21 +536,17 @@ typedef const char *AT_t;
             const OTSIM900LinkConfig_t *config = NULL;
             /************************* Private Methods *******************************/
 
-#ifndef ARDUINO_ARCH_AVR
         public:
-#endif // ARDUINO_ARCH_AVR
             // Power up/down
             /**
-             * @brief    check if module has power
+             * @brief    check if this thinks that the SIM900 module has power
              * @retval    true if module is powered up
+             *
+             * Mainly exposed for unit testing.
              */
-            inline bool isPowered()
-                {
-                return bPowered;
-                }
-#ifndef ARDUINO_ARCH_AVR
+            bool isPowered() const { return(bPowered); }
+
         private:
-#endif // ARDUINO_ARCH_AVR
             /**
              * @brief     Power up module
              */
@@ -1040,7 +1029,7 @@ typedef const char *AT_t;
 
         volatile OTSIM900LinkState state = INIT;
         uint8_t txMsgLen = 0; // This stores the length of the tx message. will have to be redone for multiple txQueue
-        static const uint8_t maxTxQueueLength = 1; // TODO Could this be moved out into OTRadioLink.
+        static constexpr uint8_t maxTxQueueLength = 1; // TODO Could this be moved out into OTRadioLink.
 
         // Putting this last in the structure.
         uint8_t txQueue[64]; // 64 is maxTxMsgLen (from OTRadioLink)
