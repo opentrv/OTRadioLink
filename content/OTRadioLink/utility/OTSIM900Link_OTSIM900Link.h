@@ -244,8 +244,9 @@ typedef const char *AT_t;
             inline void setPwrPinHigh(const bool high)
                 {fastDigitalWrite(PWR_PIN, high ? HIGH : LOW);}
 #else
-            // Does nothing when not running embedded.
-            inline void setPwrPinHigh(const bool) { }
+            // Reflect pin state in bool for unit testing..
+            bool pinHigh = false;
+            inline void setPwrPinHigh(const bool high) { pinHigh = high; }
 #endif
 
             bool waitedLongEnoughForPower()
@@ -1114,8 +1115,12 @@ typedef const char *AT_t;
          virtual void panicShutdown() { preinit(NULL); }    // see above
          */
 
+#ifndef ARDUINO_ARCH_AVR
         // Provided to assist with "white-box" unit testing.
         OTSIM900LinkState _getState() { return(state); }
+        bool _isPinHigh() {return pinHigh;}
+#endif // ARDUINO_ARCH_AVR
+
     };
 
 }    // namespace OTSIM900Link
