@@ -70,10 +70,10 @@ static const uint8_t shiftRawScaleTo8Bit = 2;
 // If possible turn off all heavy current drains on supply before calling.
 uint8_t SensorAmbientLight::read()
   {
-  // Power on to top of LDR/phototransistor.
-//  power_intermittent_peripherals_enable(false); // No need to wait for anything to stablise as direct of IO_POWER_UP.
-  OTV0P2BASE::power_intermittent_peripherals_enable(false); // Will take a nap() below to allow supply to quieten.
-  OTV0P2BASE::nap(WDTO_30MS); // Give supply a moment to settle, eg from heavy current draw elsewhere.
+  // Power on to top of LDR/phototransistor, directly connected to IO_POWER_UP.
+  OTV0P2BASE::power_intermittent_peripherals_enable(false);
+  // Give supply a moment to settle, eg from heavy current draw elsewhere.
+  OTV0P2BASE::nap(WDTO_30MS);
   // Photosensor vs Vsupply [0,1023].  // May allow against Vbandgap again for some variants.
   const uint16_t al0 = OTV0P2BASE::analogueNoiseReducedRead(V0p2_PIN_LDR_SENSOR_AIN, DEFAULT); // ALREFERENCE);
   const uint16_t al = al0; // Use raw value as-is.
@@ -142,38 +142,13 @@ uint8_t SensorAmbientLight::read()
     darkTicks = 0;
     }
 
-//  // If a callback is set
-//  // then treat a sharp brightening as a possible/weak indication of occupancy, eg light flicked on.
-//  if((NULL != possOccCallback) && (newValue > oldValue))
-//    {
-//    // Ignore false trigger at start-up,
-//    // and only respond to a large-enough jump in light levels.
-//    if((((uint16_t)~0U) != rawValue) && ((newValue - oldValue) >= upDelta))
-//      {
-//#if 0 && defined(DEBUG)
-//DEBUG_SERIAL_PRINT_FLASHSTRING("  UP: ambient light rise/upDelta/newval/dt/lt: ");
-//DEBUG_SERIAL_PRINT((newValue - value));
-//DEBUG_SERIAL_PRINT(' ');
-//DEBUG_SERIAL_PRINT(upDelta);
-//DEBUG_SERIAL_PRINT(' ');
-//DEBUG_SERIAL_PRINT(newValue);
-//DEBUG_SERIAL_PRINT(' ');
-//DEBUG_SERIAL_PRINT(darkThreshold);
-//DEBUG_SERIAL_PRINT(' ');
-//DEBUG_SERIAL_PRINT(lightThreshold);
-//DEBUG_SERIAL_PRINTLN();
-//#endif
-//      possOccCallback(); // Ping the callback!
-//      }
-//    }
-
   // If a callback is set then use the occupancy detector.
-  if(NULL != possOccCallback)
+  if(NULL != occCallbackOpt)
     {
     const OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType occ = occupancyDetector.update(newValue);
-    if(occ >= OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::OCC_PROBABLE) { possOccCallback(); } // Ping the callback!
+    if(occ >= OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::OCC_WEAK)
+        { occCallbackOpt(occ >= OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::OCC_PROBABLE); } // Ping the callback!
     }
-
 
 #if 0 && defined(DEBUG)
   DEBUG_SERIAL_PRINT_FLASHSTRING("Ambient light (/1023): ");

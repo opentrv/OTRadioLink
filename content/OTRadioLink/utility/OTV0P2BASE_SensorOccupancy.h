@@ -47,10 +47,10 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     static constexpr uint8_t OCCUPATION_TIMEOUT_M = 50;
 
   private:
-    // Threshold from 'likely' to 'probably'; strictly positive.  Not part of official API.
-    static constexpr uint8_t OCCUPATION_TIMEOUT_LIKELY_M = ((OCCUPATION_TIMEOUT_M*3)/4);
-    // Threshold from 'probably' to 'maybe'; strictly positive and less than OCCUPATION_TIMEOUT_LIKELY_M.  Not part of official API.
-    static constexpr uint8_t OCCUPATION_TIMEOUT_MAYBE_M = fnmax(OCCUPATION_TIMEOUT_LIKELY_M/3, 1);
+    // Threshold from 'likely' to 'probably'; strictly positive.  Not part of the official API.
+    static constexpr uint8_t OCCUPATION_TIMEOUT_LIKELY_M = fnmax(((OCCUPATION_TIMEOUT_M*3)/4), 3);
+    // Threshold from 'probably' to 'maybe'; strictly positive and less than OCCUPATION_TIMEOUT_LIKELY_M.  Not part of the official API.
+    static constexpr uint8_t OCCUPATION_TIMEOUT_MAYBE_M = fnmax(OCCUPATION_TIMEOUT_LIKELY_M/3, 2);
 
     // Nominal (recent) activity timeout in minutes; strictly positive.
     // Because of the way the countdown is done, has to be >= 2 to guarantee to be visible at least one whole tick.
@@ -137,17 +137,17 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     // Doesn't force the room to appear recently occupied.
     // If the hardware allows this may immediately turn on the main GUI LED until normal GUI reverts it,
     // at least periodically.
-    // Preferably do not call for manual control operation to avoid interfering with UI operation.
+    // Preferably do not call for manual control operations to avoid interfering with UI operation.
     // Thread-safe.
     void markAsPossiblyOccupied();
 
-    // Call when weak evidence of active room occupation, such rising RH% or CO2 or mobile phone RF levels while not dark.
-    // Do not call based on internal/synthetic events.
+    // Call when weak evidence of active room occupation, such as rising RH% or CO2 or mobile phone RF levels while not dark.
+    // Do not call this based on internal/synthetic events.
+    // Is ignored if the room has been vacant for a while,
+    // so for example a weak indication of presence is not enough to cancel holiday mode.
     // Doesn't force the room to appear recently occupied.
-    // If the hardware allows this may immediately turn on the main GUI LED until normal GUI reverts it,
-    // at least periodically.
-    // Preferably do not call for manual control operation to avoid interfering with UI operation.
-    // Thread-safe.
+    // Doesn't activate the recent-activity status.
+    // ISR-/thread- safe, though not recommended for calls from such.
     void markAsJustPossiblyOccupied();
 
     // Two-bit occupancy: 0 not known/disclosed, 1 not occupied, 2 possibly occupied, 3 probably occupied.

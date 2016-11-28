@@ -303,10 +303,12 @@ OTV0P2BASE::serialPrintlnAndFlush();
       // Once end-stop has been hit, move to state to wait for user signal and then start calibration.
       // TODO: possibly require multiple attempts, as elsewhere, to be sure of full withdraw, and better set up for calibration.
 
-      // Run cautiously while supply voltage low to try to avoid browning out.
-      const bool low = ((NULL != lowBattOpt) && ((0 == lowBattOpt->read()) || lowBattOpt->isSupplyVoltageLow()));
+      // Run slowly when requested to minimise noise
+      // and while supply voltage is low to try to avoid browning out.
+      const bool slow = ((NULL != minimiseActivityOpt) && minimiseActivityOpt()) ||
+          ((NULL != lowBattOpt) && ((0 == lowBattOpt->read()) || lowBattOpt->isSupplyVoltageLow()));
 
-      if(!runTowardsEndStop(true, low)) { perState.valvePinWithdrawing.endStopHitCount = 0; }
+      if(!runTowardsEndStop(true, slow)) { perState.valvePinWithdrawing.endStopHitCount = 0; }
       else if(++perState.valvePinWithdrawing.endStopHitCount >= maxEndStopHitsToBeConfident)
           {
           // Note that the valve is now fully open.
@@ -383,11 +385,14 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
       const bool low = ((NULL != lowBattOpt) && ((0 == lowBattOpt->read()) || lowBattOpt->isSupplyVoltageLow()));
       if(low && (targetPC < currentPC)) { break; }
 
+      // Run slow if battery low or minimal noise requested.
+      const bool slow = low || ((NULL != minimiseActivityOpt) && minimiseActivityOpt());
+
       // If not apparently yet at end-stop
       // (ie not at correct end stop or with spurious unreconciled ticks)
       // then try again to run to end-stop.
       // If end-stop is (really) hit then reset positional values.
-      if(!runTowardsEndStop(binaryOpen, low))
+      if(!runTowardsEndStop(binaryOpen, slow))
           {
           // Definitely not at end-stop.
           perState.valveNormal.endStopHitCount = 0;

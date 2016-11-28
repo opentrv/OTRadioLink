@@ -115,10 +115,10 @@ namespace OTSIM900Link
              * @param    field    memory location
              * @retval    length of data copied to buffer
              */
-            char get(const uint8_t *src) const
+            char get(const uint8_t *const src) const
                 {
-                char c = '\0';
 #ifdef ARDUINO_ARCH_AVR
+                char c = '\0';
                 switch (bEEPROM)
                     {
                     case true:
@@ -133,7 +133,7 @@ namespace OTSIM900Link
                         }
                     }
 #else
-                c = char(*src);
+                const char c = char(*src);
 #endif // ARDUINO_ARCH_AVR
                 return c;
                 }

@@ -296,7 +296,7 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     //   * _minMotorDRTicks  minimum sub-cycle ticks for dead reckoning; strictly positive
     //   * _sctAbsLimit  absolute limit in sub-cycle beyond which motor should not be started
     //   * lowBattOpt  allows monitoring of supply voltage to avoid some activities with low batteries; can be NULL
-    //   * minimiseActivityOpt  callback returns true if unnecessary activity should be suppressed
+    //   * minimiseActivityOpt  callback returns true if unnecessary activity and noise should be suppressed
     //     to avoid disturbing occupants, eg when room dark and occupants may be sleeping; can be NULL
     // Keep all the potentially slow calculations in-line here to allow them to be done at compile-time .
     CurrentSenseValveMotorDirectBinaryOnly(

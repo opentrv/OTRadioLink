@@ -89,9 +89,6 @@ class SensorAmbientLightOccupancyDetectorInterface
     virtual void setTypMinMax(uint8_t /*meanNowOrFF*/,
                       uint8_t /*longTermMinimumOrFF = 0xff*/, uint8_t /*longTermMaximumOrFF = 0xff*/,
                       bool /*sensitive = false*/) = 0;
-
-//    // True if the detector is in 'sensitive' mode.
-//    virtual bool isSensitive() const = 0;
   };
 
 
@@ -141,9 +138,6 @@ class SensorAmbientLightOccupancyDetectorSimple final : public SensorAmbientLigh
           this->longTermMaximumOrFF = longTermMaximumOrFF;
           this->sensitive = sensitive;
           }
-
-//      // True if the detector is in 'sensitive' mode.
-//      virtual bool isSensitive() const override { return(sensitive); }
   };
 
 
