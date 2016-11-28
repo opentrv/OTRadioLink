@@ -222,6 +222,7 @@ typedef const char *AT_t;
 #ifdef OTSoftSerial2_DEFINED
         = OTV0P2BASE::OTSoftSerial2<rxPin, txPin, OTSIM900LinkBase::SIM900_MAX_baud>
 #endif
+        , uint_fast8_t (*const getCurrentSeconds)()
     >
     class OTSIM900Link final : public OTSIM900LinkBase
         {
@@ -247,13 +248,8 @@ typedef const char *AT_t;
             inline void setPwrPinHigh(const bool) { }
 #endif
 
-#ifdef ARDUINO_ARCH_AVR
             bool waitedLongEnoughForPower()
-                { return OTV0P2BASE::getElapsedSecondsLT(powerTimer) > duration; }
-#else
-            // Instant timeout for testing.
-            bool waitedLongEnoughForPower() { return(true); }
-#endif
+                { return OTV0P2BASE::getElapsedSecondsLT(powerTimer, getCurrentSeconds()) > duration; }
 
         public:
             /**
@@ -632,7 +628,7 @@ typedef const char *AT_t;
                 bPowered = !bPowered;
                 //    delay(3000);
                 bPowerLock = true;
-                powerTimer = static_cast<int8_t>(OTV0P2BASE::getSecondsLT());
+                powerTimer = static_cast<int8_t>(getCurrentSeconds());
                 }
 
             // Serial functions
@@ -932,8 +928,8 @@ typedef const char *AT_t;
         bool flushUntil(uint8_t _terminatingChar)
             {
             const uint8_t terminatingChar = _terminatingChar;
-            const uint8_t endTime = OTV0P2BASE::getSecondsLT() + flushTimeOut;
-            while (OTV0P2BASE::getSecondsLT() <= endTime)
+            const uint8_t endTime = getCurrentSeconds() + flushTimeOut;
+            while (getCurrentSeconds() <= endTime)
                 { // FIXME Replace this logic
                 const uint8_t c = uint8_t(ser.read());
                 if (c == terminatingChar)
@@ -941,7 +937,7 @@ typedef const char *AT_t;
                 }
 #if 0
             OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING(" Timeout")
-            OTSIM900LINK_DEBUG_SERIAL_PRINTLN(OTV0P2BASE::getSecondsLT())
+            OTSIM900LINK_DEBUG_SERIAL_PRINTLN(getCurrentSeconds())
 #endif
             return false;
             }
@@ -1050,9 +1046,9 @@ typedef const char *AT_t;
             //    ser.print(AT_END);
             //    uint8_t c = 0;
             // Debug code...
-            //    uint8_t startTime = OTV0P2BASE::getSecondsLT();
+            //    uint8_t startTime = getCurrentSeconds();
             //    c = ser.read();
-            //    uint8_t endTime = OTV0P2BASE::getSecondsLT();
+            //    uint8_t endTime = getCurrentSeconds();
             //    OTSIM900LINK_DEBUG_SERIAL_PRINT("T: ")
             //    OTSIM900LINK_DEBUG_SERIAL_PRINT(startTime)
             //  OTSIM900LINK_DEBUG_SERIAL_PRINT("\t")
