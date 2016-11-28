@@ -262,20 +262,7 @@ typedef const char *AT_t;
              * Cannot do anything with side-effects,
              * as may be called before run-time fully initialised!
              */
-            OTSIM900Link(/*uint8_t hardPwrPin, uint8_t pwrPin*/) /* : HARD_PWR_PIN(hardPwrPin), PWR_PIN(pwrPin) */
-                {
-                bAvailable = false;
-                bPowered = false;
-                bPowerLock = false;
-                powerTimer = 0;
-                config = NULL;
-                state = IDLE;
-                memset(txQueue, 0, sizeof(txQueue));
-                txMsgLen = 0;
-                txMessageQueue = 0;
-                messageCounter = 0;
-                retryCounter = 0;
-                }
+            constexpr OTSIM900Link() { /* memset(txQueue, 0, sizeof(txQueue)); */ }
 
             /************************* Public Methods *****************************/
             /**
@@ -541,19 +528,19 @@ typedef const char *AT_t;
             ser_t ser;
 
             // variables
-            bool bAvailable;
-            bool bPowered;
-            bool bPowerLock;
-            int8_t powerTimer;
-            uint8_t messageCounter; // number of frames sent. Used to schedule a reset.
+            bool bAvailable = false;
+            bool bPowered = false;
+            bool bPowerLock = false;
+            int8_t powerTimer = 0;
+            uint8_t messageCounter = 0; // Number of frames sent. Used to schedule a reset.
             // maximum number of times SIM900 can spend in a state before being reset.
             // This only applies to the following states:
             // - CHECK_PIN
             // -SET_APN
-            uint8_t retryCounter;
+            uint8_t retryCounter = 0;
             static constexpr uint8_t maxRetries = 10;
-            volatile uint8_t txMessageQueue; // Number of frames currently queued for TX.
-            const OTSIM900LinkConfig_t *config;
+            volatile uint8_t txMessageQueue = 0; // Number of frames currently queued for TX.
+            const OTSIM900LinkConfig_t *config = NULL;
             /************************* Private Methods *******************************/
 
 #ifndef ARDUINO_ARCH_AVR
@@ -1051,10 +1038,12 @@ typedef const char *AT_t;
                 }
             }
 
-        volatile OTSIM900LinkState state = INIT; // TODO check this is in correct place
+        volatile OTSIM900LinkState state = INIT;
+        uint8_t txMsgLen = 0; // This stores the length of the tx message. will have to be redone for multiple txQueue
+        static const uint8_t maxTxQueueLength = 1; // TODO Could this be moved out into OTRadioLink.
+
+        // Putting this last in the structure.
         uint8_t txQueue[64]; // 64 is maxTxMsgLen (from OTRadioLink)
-        uint8_t txMsgLen; // This stores the length of the tx message. will have to be redone for multiple txQueue
-        static const uint8_t maxTxQueueLength = 1; // TODO Could this be moved out into OTRadioLink
 
     public:
         // define abstract methods here
