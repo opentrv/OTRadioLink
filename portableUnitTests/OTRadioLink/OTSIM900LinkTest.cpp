@@ -746,24 +746,10 @@ class PowerStateSimulator final : public Stream
         else if("AT+CIPSTART=\"UDP\",\"0.0.0.0\",\"9999\"" == command) { reply = "AT+CIPSTART=\"UDP\",\"0.0.0.0\",\"9999\"\r\n\r\nOK\r\n\r\nCONNECT OK\r\n"; }  // Relevant states: OPEN_UDP
     }
 
-    /**
-     * @brief   Keep track of whether SIM900 is powered.
-     * @note    powered should only flip state if the power pin is held high for longer than 2 seconds VT.
-     */
-    bool powered = false;
-    static constexpr uint_fast8_t minPowerToggleTime = 2;
-    static uint_fast8_t pinSetHighTime;
-
   public:
     void begin(unsigned long) { }
     void begin(unsigned long, uint8_t);
     void end();
-
-    /**
-     * @brief   Flip power state if pin state is high for longer than 2 seconds.
-     */
-    void updateSIM900Powered(const bool pinstate) { if((pinstate) && ((getSecondsVT() - pinSetHighTime) > 2)) powered = ~powered; }
-    bool isPowered() {return powered;}
 
     virtual size_t write(uint8_t uc) override
       {
@@ -815,6 +801,19 @@ class PowerStateSimulator final : public Stream
   };
 // Events exposed.
 bool PowerStateSimulator::haveSeenCommandStart = false;
+
+/**
+ * @brief   Keep track of whether SIM900 is powered.
+ * @note    powered should only flip state if the power pin is held high for longer than 2 seconds VT.
+ */
+bool powered = false;
+static constexpr uint_fast8_t minPowerToggleTime = 2;
+uint_fast8_t pinSetHighTime;
+/**
+ * @brief   Flip power state if pin state is high for longer than 2 seconds.
+ */
+void updateSIM900Powered(const bool pinstate) { if((pinstate) && ((getSecondsVT() - pinSetHighTime) > minPowerToggleTime)) powered = ~powered; }
+
 }
 TEST(OTSIM900Link, PowerStateTest)
 {
@@ -823,13 +822,15 @@ TEST(OTSIM900Link, PowerStateTest)
         srandom((unsigned)::testing::UnitTest::GetInstance()->random_seed()); // Seed random() for use in simulator; --gtest_shuffle will force it to change.
 
         // Reset static state to make tests re-runnable.
-        B4::PDPDeactResetSimulator::haveSeenCommandStart = false;
+        B5::PowerStateSimulator::haveSeenCommandStart = false;
 
         // Vector of bools containing states to check. This covers all states expected in normal use. RESET and PANIC are not covered.
         std::vector<bool> statesChecked(OTSIM900Link::RESET, false);
+
         // Message to send.
         const char message[] = "123";
 
+        // SIM900 Config data
         const char SIM900_PIN[] = "1111";
         const char SIM900_APN[] = "apn";
         const char SIM900_UDP_ADDR[] = "0.0.0.0"; // ORS server
@@ -837,17 +838,44 @@ TEST(OTSIM900Link, PowerStateTest)
         const OTSIM900Link::OTSIM900LinkConfig_t SIM900Config(false, SIM900_PIN, SIM900_APN, SIM900_UDP_ADDR, SIM900_UDP_PORT);
         const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
 
-
-        ASSERT_FALSE(B4::PDPDeactResetSimulator::haveSeenCommandStart);
+        // OTSIM900Link instantiation & init.
+        ASSERT_FALSE(B5::PowerStateSimulator::haveSeenCommandStart);
         OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, B5::PowerStateSimulator> l0;
         EXPECT_TRUE(l0.configure(1, &l0Config));
         EXPECT_TRUE(l0.begin());
         EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
 
-        // Get to IDLE state
+        // Test power up.
         EXPECT_FALSE(l0.isPowered());
-        for(int i = 0; i < 20; ++i) { incrementVTOneCycle(); statesChecked[l0._getState()] = true; l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
+        EXPECT_FALSE()
+        EXPECT_FALSE(l0._isPinHigh());
+        l0.poll();
+        EXPECT_FALSE(l0.isPowered());
+        EXPECT_TRUE(l0._isPinHigh());
+        secondsVT++;
+        l0.poll();
+        EXPECT_FALSE(l0.isPowered());
+        EXPECT_TRUE(l0._isPinHigh()) ;
+        secondsVT++;
+        l0.poll();
+        EXPECT_FALSE(l0.isPowered());
+        EXPECT_TRUE(l0._isPinHigh());
+        secondsVT++;
+        l0.poll();
+        EXPECT_TRUE(l0.isPowered());  // SIM900 should be powered by now.
+        EXPECT_FALSE(l0._isPinHigh()); // Pin should be set low.
+
+        for(int i = 0; i < 20; ++i) {
+            secondsVT++;
+            statesChecked[l0._getState()] = true;
+            l0.poll();
+            if(l0._getState() == OTSIM900Link::IDLE) break;
+        }
         EXPECT_TRUE(l0.isPowered());
+
+
+
+
 
         // Queue a message to send. ResetSimulator should reply PDP DEACT which should trigger a reset.
         for( int i = 0; i < 300; i++) {
