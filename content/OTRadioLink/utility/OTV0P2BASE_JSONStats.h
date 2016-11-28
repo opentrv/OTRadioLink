@@ -32,7 +32,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014--2016
 #include "OTV0P2BASE_Sensor.h"
 #include "OTV0P2BASE_Util.h"
 
-#if defined(ARDUINO) && (ARDUINO <= 10609)
+#if defined(ARDUINO) // && (ARDUINO <= 10612)
 //// Kludge: minimal local definitions of some key STL that Arduino (up to 1.6.9) does not support.
 //// Amongst others thanks to:
 ////    https://voidnish.wordpress.com/2013/07/13/tuple-implementation-via-variadic-templates/
