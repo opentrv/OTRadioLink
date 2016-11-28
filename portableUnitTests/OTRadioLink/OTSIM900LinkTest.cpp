@@ -33,11 +33,11 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
  * @retval  Number of seconds this minute in range [0,59].
  */
 static uint_fast8_t secondsVT = 0;
-uint_fast8_t getSecondsVT() { return (secondsVT % 60); }
+uint_fast8_t getSecondsVT() { return(secondsVT % 60); }
 /**
  * @brief   Increment secondsVT by 1 minor cycle.
  */
-static const uint_fast8_t minorCycleTimeSecs = 2;
+static constexpr uint_fast8_t minorCycleTimeSecs = 2;
 static void incrementVTOneCycle() { secondsVT += minorCycleTimeSecs; }
 
 
