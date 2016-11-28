@@ -147,8 +147,8 @@ namespace OTSIM900Link
      */
     enum OTSIM900LinkState : uint8_t
         {
-        GET_STATE = 0,
-        RETRY_GET_STATE,
+        INIT = 0,
+        GET_STATE,
         START_UP,
         CHECK_PIN,
         WAIT_FOR_REGISTRATION,
@@ -288,7 +288,7 @@ typedef const char *AT_t;
 #endif
                 setPwrPinHigh(false);
                 ser.begin(0);
-                state = GET_STATE;
+                state = INIT;
                 return true;
                 }
 
@@ -368,37 +368,24 @@ typedef const char *AT_t;
                             }
                         switch (state)
                             {
-                            case GET_STATE: // Check SIM900 is present and can be talked to. Takes up to 220 ticks?
-                                OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*GET_STATE")
+                            case INIT: // Check SIM900 is present and can be talked to. Takes up to 220 ticks?
+                                OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*INIT")
                                 memset(txQueue, 0, sizeof(txQueue));
                                 messageCounter = 0;
                                 retryCounter = 0;
                                 txMsgLen = 0;
                                 txMessageQueue = 0;
-                                bAvailable = false;
                                 bPowered = false;
-                                if (isSIM900Replying())
-                                    {
-                                    bAvailable = true;
-                                    bPowered = true;
-                                    state = START_UP;
-                                    }
-                                else
-                                    {
-                                    state = RETRY_GET_STATE;
-                                    }
-                                powerToggle(); // Power down for START_UP/toggle for RETRY_GET_STATE.
+                                state = GET_STATE;
                                 break;
-                            case RETRY_GET_STATE:
-                                OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*RETRY_GET_STATE")
+                            case GET_STATE:
+                                OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*GET_STATE")
                                 if (isSIM900Replying())
                                     {
                                     bAvailable = true;
                                     bPowered = true;
                                     state = START_UP;
                                     }
-//                                else  // Removed to attempt SIM900 reset forever if not present.
-//                                    state = PANIC;
                                 powerToggle(); // Power down for START_UP
                                 break;
                             case START_UP: // takes up to 150 ticks
@@ -513,17 +500,7 @@ typedef const char *AT_t;
                             case RESET:
                                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*RESET")
                                 retryCounter = 0; // reset retry counter.
-                                if (isSIM900Replying())
-                                    {
-                                    bAvailable = true;
-                                    bPowered = true;
-                                    }
-                                else
-                                    {
-                                    bPowered = false;
-                                    }
-                                state = START_UP;
-                                powerOff(); // Power down for START_UP.
+                                state = GET_STATE;
                                 break;
                             case PANIC:
                                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("SIM900_PANIC!");
@@ -627,7 +604,6 @@ typedef const char *AT_t;
 #endif // ARDUINO_ARCH_AVR
                 setPwrPinHigh(false);
                 bPowered = !bPowered;
-                //    delay(3000);
                 bPowerLock = true;
                 powerTimer = static_cast<int8_t>(getCurrentSeconds());
                 }
@@ -1076,7 +1052,7 @@ typedef const char *AT_t;
                 }
             }
 
-        volatile OTSIM900LinkState state = GET_STATE; // TODO check this is in correct place
+        volatile OTSIM900LinkState state = INIT; // TODO check this is in correct place
         uint8_t txQueue[64]; // 64 is maxTxMsgLen (from OTRadioLink)
         uint8_t txMsgLen; // This stores the length of the tx message. will have to be redone for multiple txQueue
         static const uint8_t maxTxQueueLength = 1; // TODO Could this be moved out into OTRadioLink
