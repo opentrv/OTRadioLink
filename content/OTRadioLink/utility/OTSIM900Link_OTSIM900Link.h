@@ -375,28 +375,29 @@ typedef const char *AT_t;
                                 retryCounter = 0;
                                 txMsgLen = 0;
                                 txMessageQueue = 0;
+                                bAvailable = false;
                                 bPowered = false;
                                 state = GET_STATE;
                                 break;
                             case GET_STATE: // Check SIM900 is present and can be talked to. Takes up to 220 ticks?
                                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*GET_STATE")
-                                if (isSIM900Replying())
-                                    {
+                                if (isSIM900Replying()) {
                                     bAvailable = true;
                                     bPowered = true;
-                                    state = START_UP;
-                                    }
+//                                    state = START_UP;
+                                } else bPowered = false;
+                                state = START_UP;
                                 powerToggle(); // Power down for START_UP
                                 break;
                             case START_UP: // takes up to 150 ticks
                                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*START_UP")
-                                powerOn();
-                                if (++retryCounter > maxRetries)
-                                    state = RESET;
-                                else if (isSIM900Replying()) {
+//                                if (++retryCounter > maxRetries)
+//                                    state = RESET;
+//                                else if (isSIM900Replying()) {
+                                if (isSIM900Replying()) {
                                     state = CHECK_PIN;
-                                    retryCounter = 0;
-                                }
+//                                    retryCounter = 0;
+                                } else state = GET_STATE;
                                 break;
                             case CHECK_PIN: // Set pin if required. Takes ~100 ticks to exit.
                                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*CHECK_PIN")
