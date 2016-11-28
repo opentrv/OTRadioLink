@@ -27,6 +27,20 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 
 #include "OTSIM900Link.h"
 
+
+/**
+ * @brief   dummy callback function to pass a time value to OTSIM900Link
+ * @retval  Number of seconds this minute in range [0,59].
+ */
+static uint_fast8_t secondsVT = 0;
+uint_fast8_t getSecondsVT() { return (secondsVT % 60); }
+/**
+ * @brief   Increment secondsVT by 1 minor cycle.
+ */
+static const uint_fast8_t minorCycleTimeSecs = 2;
+static void incrementVTOneCycle() { secondsVT += minorCycleTimeSecs; }
+
+
 // Test the getter function definitely does what it should.
 TEST(OTSIM900Link, getterFunction)
 {
@@ -61,7 +75,7 @@ TEST(OTSIM900Link,basicsDeadCard)
     const char SIM900_UDP_PORT[] = "9999";
     const OTSIM900Link::OTSIM900LinkConfig_t SIM900Config(false, SIM900_PIN, SIM900_APN, SIM900_UDP_ADDR, SIM900_UDP_PORT);
     const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
-    OTSIM900Link::OTSIM900Link<0, 0, 0, NULLSerialStream> l0;
+    OTSIM900Link::OTSIM900Link<0, 0, 0, NULLSerialStream, getSecondsVT> l0;
     EXPECT_TRUE(l0.configure(1, &l0Config));
     EXPECT_TRUE(l0.begin());
     EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
@@ -202,16 +216,16 @@ TEST(OTSIM900Link,basicsSimpleSimulator)
 
 
     ASSERT_FALSE(B1::GoodSimulator::haveSeenCommandStart);
-    OTSIM900Link::OTSIM900Link<0, 0, 0, B1::GoodSimulator> l0;
+    OTSIM900Link::OTSIM900Link<0, 0, 0, B1::GoodSimulator, getSecondsVT> l0;
     EXPECT_TRUE(l0.configure(1, &l0Config));
     EXPECT_TRUE(l0.begin());
     EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
 
     // Try to hang just by calling poll() repeatedly.
-    for(int i = 0; i < 100; ++i) { statesChecked[l0._getState()] = true; l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
+    for(int i = 0; i < 100; ++i) { incrementVTOneCycle(); statesChecked[l0._getState()] = true; l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
     // Queue a message to send.
     l0.queueToSend((const uint8_t *)message, (uint8_t)sizeof(message)-1, (int8_t) 0, OTRadioLink::OTRadioLink::TXnormal);
-    for(int i = 0; i < 100; ++i) { statesChecked[l0._getState()] = true; l0.poll(); }
+    for(int i = 0; i < 100; ++i) { incrementVTOneCycle(); statesChecked[l0._getState()] = true; l0.poll(); }
     EXPECT_TRUE(B1::GoodSimulator::haveSeenCommandStart) << "should see some attempt to communicate with SIM900";
     for(size_t i = 0; i < OTSIM900Link::RESET; i++)
         { EXPECT_TRUE(statesChecked[i]) << "state " << i << " not seen."; } // Check what states have been seen.
@@ -322,13 +336,13 @@ TEST(OTSIM900Link,GarbageTestSimulator)
     const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
 
     ASSERT_FALSE(B2::GarbageSimulator::haveSeenCommandStart);
-    OTSIM900Link::OTSIM900Link<0, 0, 0, B2::GarbageSimulator> l0;
+    OTSIM900Link::OTSIM900Link<0, 0, 0, B2::GarbageSimulator, getSecondsVT> l0;
     EXPECT_TRUE(l0.configure(1, &l0Config));
     EXPECT_TRUE(l0.begin());
     EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
 
     // Try to hang just by calling poll() repeatedly.
-    for(int i = 0; i < 100; ++i) { statesChecked[l0._getState()] = true; l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
+    for(int i = 0; i < 100; ++i) { incrementVTOneCycle(); statesChecked[l0._getState()] = true; l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
     EXPECT_TRUE(B2::GarbageSimulator::haveSeenCommandStart) << "should see some attempt to communicate with SIM900";
     EXPECT_TRUE(statesChecked[OTSIM900Link::GET_STATE]) << "state GET_STATE not seen.";  // Check what states have been seen.
     EXPECT_TRUE(statesChecked[OTSIM900Link::RETRY_GET_STATE]) << "state RETRY_GET_STATE not seen.";  // Check what states have been seen.
@@ -475,14 +489,14 @@ TEST(OTSIM900Link, MessageCountResetTest)
 
 
         ASSERT_FALSE(B3::MessageCountResetSimulator::haveSeenCommandStart);
-        OTSIM900Link::OTSIM900Link<0, 0, 0, B3::MessageCountResetSimulator> l0;
+        OTSIM900Link::OTSIM900Link<0, 0, 0, B3::MessageCountResetSimulator, getSecondsVT> l0;
         EXPECT_TRUE(l0.configure(1, &l0Config));
         EXPECT_TRUE(l0.begin());
         EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
 
         // Get to IDLE state
         EXPECT_FALSE(l0.isPowered());
-        for(int i = 0; i < 20; ++i) { statesChecked[l0._getState()] = true; l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
+        for(int i = 0; i < 20; ++i) { incrementVTOneCycle(); statesChecked[l0._getState()] = true; l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
         EXPECT_TRUE(l0.isPowered());
 
         // Queue a message to send. ResetSimulator should reply PDP DEACT which should trigger a reset.
@@ -490,7 +504,7 @@ TEST(OTSIM900Link, MessageCountResetTest)
         for( sendCounter = 0; sendCounter < 300; sendCounter++) {
             if (!l0.isPowered()) break;
             l0.queueToSend((const uint8_t *)message, (uint8_t)sizeof(message)-1, (int8_t) 0, OTRadioLink::OTRadioLink::TXnormal);
-            for(int j = 0; j < 10; ++j) { if (!l0.isPowered()) break; l0.poll(); }
+            for(int j = 0; j < 10; ++j) { incrementVTOneCycle(); if (!l0.isPowered()) break; l0.poll(); }
         }
         EXPECT_FALSE(l0.isPowered()) << "Expected l0.isPowered to be false.";
         EXPECT_EQ(255, sendCounter)  << "Expected 255 messages sent.";
@@ -642,29 +656,33 @@ TEST(OTSIM900Link, PDPDeactResetTest)
 
 
         ASSERT_FALSE(B4::PDPDeactResetSimulator::haveSeenCommandStart);
-        OTSIM900Link::OTSIM900Link<0, 0, 0, B4::PDPDeactResetSimulator> l0;
+        OTSIM900Link::OTSIM900Link<0, 0, 0, B4::PDPDeactResetSimulator, getSecondsVT> l0;
         EXPECT_TRUE(l0.configure(1, &l0Config));
         EXPECT_TRUE(l0.begin());
         EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
 
         // Get to IDLE state
         EXPECT_FALSE(l0.isPowered());
-        for(int i = 0; i < 20; ++i) { statesChecked[l0._getState()] = true; l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
+        for(int i = 0; i < 20; ++i) { incrementVTOneCycle(); statesChecked[l0._getState()] = true; l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
         EXPECT_TRUE(l0.isPowered());
 
         // Queue a message to send. ResetSimulator should reply PDP DEACT which should trigger a reset.
         for( int i = 0; i < 300; i++) {
             if (!l0.isPowered()) break;
             l0.queueToSend((const uint8_t *)message, (uint8_t)sizeof(message)-1, (int8_t) 0, OTRadioLink::OTRadioLink::TXnormal);
-            for(int j = 0; j < 10; ++j) { if (!l0.isPowered()) break; l0.poll(); }
+            for(int j = 0; j < 10; ++j) { incrementVTOneCycle(); if (!l0.isPowered()) break; l0.poll(); }
         }
         EXPECT_FALSE(l0.isPowered()) << "Expected l0.isPowered to be false.";
+        incrementVTOneCycle();
+        incrementVTOneCycle();
         l0.poll();
         EXPECT_EQ(OTSIM900Link::START_UP, l0._getState()) << "Expected state to be START_UP.";
+        incrementVTOneCycle();
+        incrementVTOneCycle();
         l0.poll();
         EXPECT_TRUE(l0.isPowered())  << "Expected l0.isPowered to be true.";
 
-        for(int i = 0; i < 20; ++i) { l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
+        for(int i = 0; i < 20; ++i) { incrementVTOneCycle(); l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
 
         EXPECT_EQ(OTSIM900Link::IDLE, l0._getState()) << "Expected state to be IDLE.";
 
