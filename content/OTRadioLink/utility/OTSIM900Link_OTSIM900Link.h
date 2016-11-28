@@ -140,8 +140,6 @@ namespace OTSIM900Link
         } OTSIM900LinkConfig_t;
 
 
-
-
     /**
      * @brief   Enum containing major states of SIM900.
      */
@@ -232,11 +230,11 @@ typedef const char *AT_t;
 
 #ifdef ARDUINO_ARCH_AVR
             // Regard as true when within a few ticks of start of 2s major cycle.
-            inline bool nearStartOfMajorCycle()
+            inline bool nearStartOfMajorCycle() const
                 { return(OTV0P2BASE::getSubCycleTime() < 10); }
 #else
             // Regard as always true when not running embedded.
-            inline bool nearStartOfMajorCycle() { return(true); }
+            inline bool nearStartOfMajorCycle() const { return(true); }
 #endif
 
 #ifdef ARDUINO_ARCH_AVR
@@ -249,7 +247,7 @@ typedef const char *AT_t;
             inline void setPwrPinHigh(const bool high) { pinHigh = high; }
 #endif
 
-            bool waitedLongEnoughForPower()
+            bool waitedLongEnoughForPower() const
                 { return OTV0P2BASE::getElapsedSecondsLT(powerTimer, getCurrentSeconds()) > duration; }
 
         public:
@@ -495,15 +493,6 @@ typedef const char *AT_t;
                     }
                 else if (waitedLongEnoughForPower())
                     bPowerLock = false; // Check if ready to stop waiting after power toggled.
-                }
-
-            /**
-             * @brief    This will be called in interrupt while waiting for send prompt
-             * @retval    returns true on successful exit
-             */
-            virtual bool handleInterruptSimple() override
-                {
-                return true;
                 }
 
 #ifndef OTSIM900LINK_DEBUG // This is included to ease unit testing.
