@@ -75,7 +75,7 @@ TEST(OTSIM900Link,basicsDeadCard)
     const char SIM900_UDP_PORT[] = "9999";
     const OTSIM900Link::OTSIM900LinkConfig_t SIM900Config(false, SIM900_PIN, SIM900_APN, SIM900_UDP_ADDR, SIM900_UDP_PORT);
     const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
-    OTSIM900Link::OTSIM900Link<0, 0, 0, NULLSerialStream, getSecondsVT> l0;
+    OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, NULLSerialStream> l0;
     EXPECT_TRUE(l0.configure(1, &l0Config));
     EXPECT_TRUE(l0.begin());
     EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
@@ -216,7 +216,7 @@ TEST(OTSIM900Link,basicsSimpleSimulator)
 
 
     ASSERT_FALSE(B1::GoodSimulator::haveSeenCommandStart);
-    OTSIM900Link::OTSIM900Link<0, 0, 0, B1::GoodSimulator, getSecondsVT> l0;
+    OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, B1::GoodSimulator> l0;
     EXPECT_TRUE(l0.configure(1, &l0Config));
     EXPECT_TRUE(l0.begin());
     EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
@@ -336,7 +336,7 @@ TEST(OTSIM900Link,GarbageTestSimulator)
     const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
 
     ASSERT_FALSE(B2::GarbageSimulator::haveSeenCommandStart);
-    OTSIM900Link::OTSIM900Link<0, 0, 0, B2::GarbageSimulator, getSecondsVT> l0;
+    OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, B2::GarbageSimulator> l0;
     EXPECT_TRUE(l0.configure(1, &l0Config));
     EXPECT_TRUE(l0.begin());
     EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
@@ -489,7 +489,7 @@ TEST(OTSIM900Link, MessageCountResetTest)
 
 
         ASSERT_FALSE(B3::MessageCountResetSimulator::haveSeenCommandStart);
-        OTSIM900Link::OTSIM900Link<0, 0, 0, B3::MessageCountResetSimulator, getSecondsVT> l0;
+        OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, B3::MessageCountResetSimulator> l0;
         EXPECT_TRUE(l0.configure(1, &l0Config));
         EXPECT_TRUE(l0.begin());
         EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
@@ -656,7 +656,7 @@ TEST(OTSIM900Link, PDPDeactResetTest)
 
 
         ASSERT_FALSE(B4::PDPDeactResetSimulator::haveSeenCommandStart);
-        OTSIM900Link::OTSIM900Link<0, 0, 0, B4::PDPDeactResetSimulator, getSecondsVT> l0;
+        OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, B4::PDPDeactResetSimulator> l0;
         EXPECT_TRUE(l0.configure(1, &l0Config));
         EXPECT_TRUE(l0.begin());
         EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
