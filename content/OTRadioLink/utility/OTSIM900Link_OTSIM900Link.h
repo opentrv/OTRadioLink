@@ -550,8 +550,8 @@ typedef const char *AT_t;
 #endif // OTSIM900LINK_DEBUG
 
             /***************** AT Commands and Private Constants and variables ******************/
-            static const constexpr uint8_t duration = 10; // DE20160703:Increased duration due to startup issues.
-            static const constexpr uint8_t flushTimeOut = 10;
+            static constexpr uint8_t duration = 10; // DE20160703:Increased duration due to startup issues.
+            static constexpr uint8_t flushTimeOut = 10;
 
             // Standard Responses
 
@@ -574,7 +574,7 @@ typedef const char *AT_t;
             // - CHECK_PIN
             // -SET_APN
             uint8_t retryCounter;
-            static const constexpr uint8_t maxRetries = 10;
+            static constexpr uint8_t maxRetries = 10;
             volatile uint8_t txMessageQueue; // Number of frames currently queued for TX.
             const OTSIM900LinkConfig_t *config;
             /************************* Private Methods *******************************/
