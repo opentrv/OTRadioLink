@@ -78,7 +78,7 @@ TEST(OTSIM900Link,basicsDeadCard)
     OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, NULLSerialStream> l0;
     EXPECT_TRUE(l0.configure(1, &l0Config));
     EXPECT_TRUE(l0.begin());
-    EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
+    EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
     // Try to hang just by calling poll() repeatedly.
     for(int i = 0; i < 100; ++i) { l0.poll(); }
     EXPECT_GE(OTSIM900Link::START_UP, l0._getState()) << "should keep trying to start with GET_STATE, RETRY_GET_STATE";
@@ -143,9 +143,9 @@ class GoodSimulator final : public Stream
           if(verbose) { fprintf(stderr, "command received: %s\n", command.c_str()); }
           // Respond to particular commands...
           if("AT" == command) { // Relevant states: GET_STATE, RETRY_GET_STATE, START_UP
-              if(sim900LinkState == OTSIM900Link::GET_STATE) {
+              if(sim900LinkState == OTSIM900Link::INIT) {
                   reply = "vfd";  // garbage to force into RETRY_GET_STATE
-                  sim900LinkState = OTSIM900Link::RETRY_GET_STATE;
+                  sim900LinkState = OTSIM900Link::GET_STATE;
               } else reply = "AT\r\n\r\nOK\r\n";
           }
           else if("AT+CPIN?" == command) { reply = /* (random() & 1) ? "No PIN\r" : */ "AT+CPIN?\r\n\r\n+CPIN: READY\r\n\r\nOK\r\n"; }  // Relevant states: CHECK_PIN
@@ -153,7 +153,7 @@ class GoodSimulator final : public Stream
           else if("AT+CSTT=apn" == command) { reply =  "AT+CSTT\r\n\r\nOK\r"; } // Relevant states: SET_APN
           else if("AT+CIPSTATUS" == command) {
               switch (sim900LinkState){
-                  case OTSIM900Link::RETRY_GET_STATE:  // GPRS inactive)
+                  case OTSIM900Link::GET_STATE:  // GPRS inactive)
                       sim900LinkState = OTSIM900Link::START_GPRS;
                       reply = "AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP START\r\n";
                       break;
@@ -219,7 +219,7 @@ TEST(OTSIM900Link,basicsSimpleSimulator)
     OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, B1::GoodSimulator> l0;
     EXPECT_TRUE(l0.configure(1, &l0Config));
     EXPECT_TRUE(l0.begin());
-    EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
+    EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
 
     // Try to hang just by calling poll() repeatedly.
     for(int i = 0; i < 100; ++i) { incrementVTOneCycle(); statesChecked[l0._getState()] = true; l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
@@ -282,9 +282,9 @@ class GarbageSimulator final : public Stream
                 collectingCommand = false;
                 if(verbose) { fprintf(stderr, "command received: %s\n", command.c_str()); }
                 if("AT" == command) { // Relevant states: GET_STATE, RETRY_GET_STATE, START_UP
-                    if(sim900LinkState == OTSIM900Link::GET_STATE) {
+                    if(sim900LinkState == OTSIM900Link::INIT) {
                         reply = "vfd";  // garbage to force into RETRY_GET_STATE
-                        sim900LinkState = OTSIM900Link::RETRY_GET_STATE;
+                        sim900LinkState = OTSIM900Link::GET_STATE;
                     } else reply = "AT\r\n\r\nOK\r\n";
                 } else {
                     // spew out garbage...
@@ -339,13 +339,13 @@ TEST(OTSIM900Link,GarbageTestSimulator)
     OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, B2::GarbageSimulator> l0;
     EXPECT_TRUE(l0.configure(1, &l0Config));
     EXPECT_TRUE(l0.begin());
-    EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
+    EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
 
     // Try to hang just by calling poll() repeatedly.
     for(int i = 0; i < 100; ++i) { incrementVTOneCycle(); statesChecked[l0._getState()] = true; l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
     EXPECT_TRUE(B2::GarbageSimulator::haveSeenCommandStart) << "should see some attempt to communicate with SIM900";
-    EXPECT_TRUE(statesChecked[OTSIM900Link::GET_STATE]) << "state GET_STATE not seen.";  // Check what states have been seen.
-    EXPECT_TRUE(statesChecked[OTSIM900Link::RETRY_GET_STATE]) << "state RETRY_GET_STATE not seen.";  // Check what states have been seen.
+    EXPECT_TRUE(statesChecked[OTSIM900Link::INIT]) << "state GET_STATE not seen.";  // Check what states have been seen.
+    EXPECT_TRUE(statesChecked[OTSIM900Link::GET_STATE]) << "state RETRY_GET_STATE not seen.";  // Check what states have been seen.
     EXPECT_TRUE(statesChecked[OTSIM900Link::START_UP]) << "state START_UP not seen.";  // Check what states have been seen.
     EXPECT_TRUE(statesChecked[OTSIM900Link::CHECK_PIN]) << "state CHECK_PIN not seen.";  // Check what states have been seen.
     EXPECT_TRUE(statesChecked[OTSIM900Link::RESET]) << "state RESET not seen.";  // Check what states have been seen.
@@ -492,7 +492,7 @@ TEST(OTSIM900Link, MessageCountResetTest)
         OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, B3::MessageCountResetSimulator> l0;
         EXPECT_TRUE(l0.configure(1, &l0Config));
         EXPECT_TRUE(l0.begin());
-        EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
+        EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
 
         // Get to IDLE state
         EXPECT_FALSE(l0.isPowered());
@@ -661,7 +661,7 @@ TEST(OTSIM900Link, PDPDeactResetTest)
         OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, B4::PDPDeactResetSimulator> l0;
         EXPECT_TRUE(l0.configure(1, &l0Config));
         EXPECT_TRUE(l0.begin());
-        EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
+        EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
 
         // Get to IDLE state
         EXPECT_FALSE(l0.isPowered());
@@ -834,7 +834,7 @@ TEST(OTSIM900Link, PowerStateTest)
         std::vector<bool> statesChecked(OTSIM900Link::RESET, false);
 
         // Message to send.
-        const char message[] = "123";
+//        const char message[] = "123";
 
         // SIM900 Config data
         const char SIM900_PIN[] = "1111";
@@ -849,7 +849,7 @@ TEST(OTSIM900Link, PowerStateTest)
         OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, B5::PowerStateSimulator> l0;
         EXPECT_TRUE(l0.configure(1, &l0Config));
         EXPECT_TRUE(l0.begin());
-        EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
+        EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
 
         // Test power up.
         B5::updateSIM900Powered(l0._isPinHigh());
@@ -880,18 +880,14 @@ TEST(OTSIM900Link, PowerStateTest)
         EXPECT_TRUE(B5::PowerStateSimulator::powered);
         EXPECT_FALSE(l0._isPinHigh()); // Pin should be set low.
 
-        for(int i = 0; i < 20; ++i) {
-            secondsVT++;
-            statesChecked[l0._getState()] = true;
-            l0.poll();
-            if(l0._getState() == OTSIM900Link::IDLE) break;
-        }
-        EXPECT_TRUE(l0.isPowered());
-
-
-
-
-
+//        for(int i = 0; i < 20; ++i) {
+//            secondsVT++;
+//            statesChecked[l0._getState()] = true;
+//            l0.poll();
+//            if(l0._getState() == OTSIM900Link::IDLE) break;
+//        }
+//        EXPECT_TRUE(l0.isPowered());
+//
 //        // Queue a message to send. ResetSimulator should reply PDP DEACT which should trigger a reset.
 //        for( int i = 0; i < 300; i++) {
 //            if (!l0.isPowered()) break;
