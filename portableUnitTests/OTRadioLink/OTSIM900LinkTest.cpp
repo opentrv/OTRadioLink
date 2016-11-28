@@ -508,12 +508,14 @@ TEST(OTSIM900Link, MessageCountResetTest)
         }
         EXPECT_FALSE(l0.isPowered()) << "Expected l0.isPowered to be false.";
         EXPECT_EQ(255, sendCounter)  << "Expected 255 messages sent.";
+        secondsVT += 12;
         l0.poll();
         EXPECT_EQ(OTSIM900Link::START_UP, l0._getState()) << "Expected state to be START_UP.";
+        incrementVTOneCycle();
         l0.poll();
         EXPECT_TRUE(l0.isPowered())  << "Expected l0.isPowered to be true.";
 
-        for(int i = 0; i < 20; ++i) { l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
+        for(int i = 0; i < 20; ++i) { incrementVTOneCycle(); l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
 
         EXPECT_EQ(OTSIM900Link::IDLE, l0._getState()) << "Expected state to be IDLE.";
 
@@ -525,7 +527,7 @@ TEST(OTSIM900Link, MessageCountResetTest)
 // Simulate resetting the SIM900.
 namespace B4
 {
-const bool verbose = false;
+const bool verbose = true;
 
 // Gets the SIM900 to a ready to send state and then forces a reset.
 // First will stop responding, then will start up again and do sends.
@@ -673,11 +675,9 @@ TEST(OTSIM900Link, PDPDeactResetTest)
             for(int j = 0; j < 10; ++j) { incrementVTOneCycle(); if (!l0.isPowered()) break; l0.poll(); }
         }
         EXPECT_FALSE(l0.isPowered()) << "Expected l0.isPowered to be false.";
-        incrementVTOneCycle();
-        incrementVTOneCycle();
+        secondsVT += 12;
         l0.poll();
         EXPECT_EQ(OTSIM900Link::START_UP, l0._getState()) << "Expected state to be START_UP.";
-        incrementVTOneCycle();
         incrementVTOneCycle();
         l0.poll();
         EXPECT_TRUE(l0.isPowered())  << "Expected l0.isPowered to be true.";
