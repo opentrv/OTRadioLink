@@ -703,6 +703,7 @@ class PowerStateSimulator final : public Stream
   public:
     // Events exposed.
     static bool haveSeenCommandStart;
+    static bool powered;
 
   private:
     // Command being collected from OTSIM900Link.
@@ -754,7 +755,7 @@ class PowerStateSimulator final : public Stream
     virtual size_t write(uint8_t uc) override
       {
       const char c = (char)uc;
-      if(waitingForCommand)
+      if(powered && waitingForCommand)
         {
         // Look for leading 'A' of 'AT' to start a command.
         if('A' == c)
@@ -801,19 +802,23 @@ class PowerStateSimulator final : public Stream
   };
 // Events exposed.
 bool PowerStateSimulator::haveSeenCommandStart = false;
-
 /**
  * @brief   Keep track of whether SIM900 is powered.
  * @note    powered should only flip state if the power pin is held high for longer than 2 seconds VT.
  */
-bool powered = false;
+bool PowerStateSimulator::powered = false; // expose this one
 static constexpr uint_fast8_t minPowerToggleTime = 2;
 uint_fast8_t pinSetHighTime;
 /**
  * @brief   Flip power state if pin state is high for longer than 2 seconds.
  */
-void updateSIM900Powered(const bool pinstate) { if((pinstate) && ((getSecondsVT() - pinSetHighTime) > minPowerToggleTime)) powered = ~powered; }
-
+void updateSIM900Powered(const bool pinstate) {
+    static bool oldPinState = false;
+    if (pinstate) {
+        if(!oldPinState) pinSetHighTime = secondsVT;
+        if((getSecondsVT() - pinSetHighTime) > minPowerToggleTime) PowerStateSimulator::powered = ~PowerStateSimulator::powered;
+    }
+}
 }
 TEST(OTSIM900Link, PowerStateTest)
 {
@@ -823,6 +828,7 @@ TEST(OTSIM900Link, PowerStateTest)
 
         // Reset static state to make tests re-runnable.
         B5::PowerStateSimulator::haveSeenCommandStart = false;
+        B5::PowerStateSimulator::powered = false;
 
         // Vector of bools containing states to check. This covers all states expected in normal use. RESET and PANIC are not covered.
         std::vector<bool> statesChecked(OTSIM900Link::RESET, false);
@@ -846,23 +852,32 @@ TEST(OTSIM900Link, PowerStateTest)
         EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
 
         // Test power up.
+        B5::updateSIM900Powered(l0._isPinHigh());
         EXPECT_FALSE(l0.isPowered());
-        EXPECT_FALSE()
+        EXPECT_FALSE(B5::PowerStateSimulator::powered);
         EXPECT_FALSE(l0._isPinHigh());
-        l0.poll();
+        l0.poll();  // 0 seconds
+        B5::updateSIM900Powered(l0._isPinHigh());
         EXPECT_FALSE(l0.isPowered());
+        EXPECT_FALSE(B5::PowerStateSimulator::powered);
         EXPECT_TRUE(l0._isPinHigh());
         secondsVT++;
-        l0.poll();
+        l0.poll();  // 1 seconds
+        B5::updateSIM900Powered(l0._isPinHigh());
         EXPECT_FALSE(l0.isPowered());
+        EXPECT_FALSE(B5::PowerStateSimulator::powered);
         EXPECT_TRUE(l0._isPinHigh()) ;
         secondsVT++;
-        l0.poll();
+        l0.poll();  // 2 seconds
+        B5::updateSIM900Powered(l0._isPinHigh());
         EXPECT_FALSE(l0.isPowered());
+        EXPECT_FALSE(B5::PowerStateSimulator::powered);
         EXPECT_TRUE(l0._isPinHigh());
         secondsVT++;
-        l0.poll();
+        l0.poll();  // 3 seconds . SIM900 should be powered by now.
+        B5::updateSIM900Powered(l0._isPinHigh());
         EXPECT_TRUE(l0.isPowered());  // SIM900 should be powered by now.
+        EXPECT_TRUE(B5::PowerStateSimulator::powered);
         EXPECT_FALSE(l0._isPinHigh()); // Pin should be set low.
 
         for(int i = 0; i < 20; ++i) {
@@ -877,23 +892,23 @@ TEST(OTSIM900Link, PowerStateTest)
 
 
 
-        // Queue a message to send. ResetSimulator should reply PDP DEACT which should trigger a reset.
-        for( int i = 0; i < 300; i++) {
-            if (!l0.isPowered()) break;
-            l0.queueToSend((const uint8_t *)message, (uint8_t)sizeof(message)-1, (int8_t) 0, OTRadioLink::OTRadioLink::TXnormal);
-            for(int j = 0; j < 10; ++j) { incrementVTOneCycle(); if (!l0.isPowered()) break; l0.poll(); }
-        }
-        EXPECT_FALSE(l0.isPowered()) << "Expected l0.isPowered to be false.";
-        secondsVT += 12;
-        l0.poll();
-        EXPECT_EQ(OTSIM900Link::START_UP, l0._getState()) << "Expected state to be START_UP.";
-        incrementVTOneCycle();
-        l0.poll();
-        EXPECT_TRUE(l0.isPowered())  << "Expected l0.isPowered to be true.";
-
-        for(int i = 0; i < 20; ++i) { incrementVTOneCycle(); l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
-
-        EXPECT_EQ(OTSIM900Link::IDLE, l0._getState()) << "Expected state to be IDLE.";
+//        // Queue a message to send. ResetSimulator should reply PDP DEACT which should trigger a reset.
+//        for( int i = 0; i < 300; i++) {
+//            if (!l0.isPowered()) break;
+//            l0.queueToSend((const uint8_t *)message, (uint8_t)sizeof(message)-1, (int8_t) 0, OTRadioLink::OTRadioLink::TXnormal);
+//            for(int j = 0; j < 10; ++j) { incrementVTOneCycle(); if (!l0.isPowered()) break; l0.poll(); }
+//        }
+//        EXPECT_FALSE(l0.isPowered()) << "Expected l0.isPowered to be false.";
+//        secondsVT += 12;
+//        l0.poll();
+//        EXPECT_EQ(OTSIM900Link::START_UP, l0._getState()) << "Expected state to be START_UP.";
+//        incrementVTOneCycle();
+//        l0.poll();
+//        EXPECT_TRUE(l0.isPowered())  << "Expected l0.isPowered to be true.";
+//
+//        for(int i = 0; i < 20; ++i) { incrementVTOneCycle(); l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
+//
+//        EXPECT_EQ(OTSIM900Link::IDLE, l0._getState()) << "Expected state to be IDLE.";
 
         // ...
         l0.end();
