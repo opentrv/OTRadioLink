@@ -44,12 +44,56 @@ static void incrementVTOneCycle() { secondsVT += minorCycleTimeSecs; }
 namespace SIM900Emu {
 /**
  * @brief   Simple emulator for stepping through SIM900 states, including fail states.
+ * @todo    state machine
+ * @todo    emulate time
  */
 class SIM900Emulator {
 public:
     // constructor
     SIM900Emulator();
 
+    /**
+     * @brief   Work through the state machine, replying as appropriate.
+     * @param   command:    String containing the command.
+     * @param   reply:      String to contain the response. Must be big enough to fit the full response!
+     * @todo    add state machine updates
+     */
+    void _poll(const std::string &command, std::string &reply) {
+        if (myState > POWER_OFF) {
+            // Respond to particular commands when not powered down...
+            if("AT" == command) {
+                if(myState == POWERING_UP) reply = "vfd";   // garbage when not fully powered.
+                else reply = "AT\r\n\r\nOK\r\n";            // Normal response.
+            }
+            else if("AT+CPIN?" == command) { reply = /* (random() & 1) ? "No PIN\r" : */ "AT+CPIN?\r\n\r\n+CPIN: READY\r\n\r\nOK\r\n"; }  // Relevant states: CHECK_PIN
+            else if("AT+CREG?" == command) { reply = /* (random() & 1) ? "+CREG: 0,0\r" : */ "AT+CREG?\r\n\r\n+CREG: 0,5\r\n\r\n'OK\r\n"; } // Relevant states: WAIT_FOR_REGISTRATION
+            else if("AT+CSTT=apn" == command) { reply =  "AT+CSTT\r\n\r\nOK\r"; } // Relevant states: SET_APN
+            else if("AT+CIPSTATUS" == command) {
+                switch (sim900LinkState){
+                    case OTSIM900Link::GET_STATE:  // GPRS inactive)
+                        sim900LinkState = OTSIM900Link::START_GPRS;
+                        reply = "AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP START\r\n";
+                        break;
+                    case OTSIM900Link::START_GPRS:          // GPRS is activated.
+                        sim900LinkState = OTSIM900Link::GET_IP;
+                        reply = "AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP GPRSACT\r\n";
+                        break;
+                    case OTSIM900Link::GET_IP:    // UDP connected.
+                        reply = "AT+CIPSTATUS\r\n\r\nOK\r\nSTATE: CONNECT OK\r\n";
+                        break;
+                    default: break;
+                }
+            }  // Relevant states: START_GPRS, WAIT_FOR_UDP
+            else if("AT+CIICR" == command) { reply = "AT+CIICR\r\n\r\nOK\r\n"; }  // Relevant states: START_GPRS
+            else if("AT+CIFSR" == command) { reply = "AT+CIFSR\r\n\r\n172.16.101.199\r\n"; }  // Relevant States: GET_IP
+            else if("AT+CIPSTART=\"UDP\",\"0.0.0.0\",\"9999\"" == command) { reply = "AT+CIPSTART=\"UDP\",\"0.0.0.0\",\"9999\"\r\n\r\nOK\r\n\r\nCONNECT OK\r\n"; }  // Relevant states: OPEN_UDP
+            else if("AT+CIPSEND=3" == command) { reply = "AT+CIPSEND=3\r\n\r\n>"; }  // Relevant states:  SENDING
+            else if("123" == command) { reply = "123\r\nSEND OK\r\n"; }  // Relevant states: SENDING
+        }
+    }
+
+    // emulate pin toggle:
+    void setPinHigh(bool high) { /* todo add timing logic */ if(high) myState = POWERING_UP; };
     // Trigger fail states:
     // This triggers a dead-end state caused by signal loss during UDP connection
     void triggerPDPDeactFail() { myState = PDP_FAIL; }
@@ -77,6 +121,69 @@ private:
         PDP_FAIL,       // Registration lost during GPRS connection. Unrecoverable.
         INVISIBLE_FAIL  // SIM900 responding as normal but not sending. Unrecoverable, undetectable by device.
     } myState;
+
+    /**
+     * @brief   Work through the states as appropriate.
+     * @todo    Add support for passing in strings.
+     */
+    void updateState(const std::string command) {
+        switch (myState) {
+        case POWER_OFF:
+            // do nothing
+            break;
+        case POWERING_UP:
+            // send some garbage.
+            // wait for several seconds to pass.
+            // go to REGISTERING
+            myState = REGISTERING;
+            break;
+        case REGISTERING:
+            // Wait for some time to pass.
+            myState = IP_INITIAL;
+            break;
+        case IP_INITIAL:
+            // Need APN to be set. (CSTT=...)
+            myState = IP_START;
+            break;
+        case IP_START:
+            // Need to start GPRS (CIICR)
+            myState = IP_CONFIGURING;
+            break;
+        case IP_CONFIGURING:
+            // Wait a bit
+            myState = IP_GPRSACT;
+            break;
+        case IP_GPRSACT:
+            // Need to check IP address (CIFSR)
+            myState = IP_STATUS;
+            break;
+        case IP_STATUS:
+            // Need to open UDP connection
+            myState = UDP_CONNECTING;
+            break;
+        case UDP_CONNECTING:
+            // Wait a bit
+            break;
+        case UDP_CONNECT_OK:
+            // This should correspond to IDLE. Waiting to send stuff.
+            myState = UDP_CONNECT_OK;
+            break;
+        case UDP_CLOSING:
+            // Wait a bit
+            myState = UDP_CLOSED;
+            break;
+        case UDP_CLOSED:
+            // Need to open UDP or close GPRS.
+            break;
+        case PDP_DEACTIVATING:
+            myState = IP_INITIAL;
+            break;
+        case PDP_FAIL:
+            // Everything has died.
+            break;
+        default: break;
+        }
+    }
 };
 
 }
