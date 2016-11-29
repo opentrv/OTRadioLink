@@ -140,8 +140,6 @@ namespace OTSIM900Link
         } OTSIM900LinkConfig_t;
 
 
-
-
     /**
      * @brief   Enum containing major states of SIM900.
      */
@@ -218,7 +216,7 @@ typedef const char *AT_t;
      */
 #define OTSIM900Link_DEFINED
     template<uint8_t rxPin, uint8_t txPin, uint8_t PWR_PIN,
-    uint_fast8_t (*const getCurrentSeconds)(),
+    uint_fast8_t (*const getCurrentSeconds)(), // Fetches clock time in seconds; never NULL
     class ser_t
 #ifdef OTSoftSerial2_DEFINED
         = OTV0P2BASE::OTSoftSerial2<rxPin, txPin, OTSIM900LinkBase::SIM900_MAX_baud>
@@ -228,54 +226,41 @@ typedef const char *AT_t;
         {
             // Maximum number of significant chars in the SIM900 response.
             // Minimising this reduces stack and/or global space pressures.
-            static const int MAX_SIM900_RESPONSE_CHARS = 64;
+            static constexpr int MAX_SIM900_RESPONSE_CHARS = 64;
 
 #ifdef ARDUINO_ARCH_AVR
             // Regard as true when within a few ticks of start of 2s major cycle.
-            inline bool nearStartOfMajorCycle()
+            inline bool nearStartOfMajorCycle() const
                 { return(OTV0P2BASE::getSubCycleTime() < 10); }
 #else
             // Regard as always true when not running embedded.
-            inline bool nearStartOfMajorCycle() { return(true); }
+            inline bool nearStartOfMajorCycle() const { return(true); }
 #endif
 
 #ifdef ARDUINO_ARCH_AVR
             // Sets power pin HIGH if true, LOW if false.
             inline void setPwrPinHigh(const bool high)
-                {fastDigitalWrite(PWR_PIN, high ? HIGH : LOW);}
+                { fastDigitalWrite(PWR_PIN, high ? HIGH : LOW); }
 #else
             // Reflect pin state in bool for unit testing..
             bool pinHigh = false;
             inline void setPwrPinHigh(const bool high) { pinHigh = high; }
 #endif
 
-            bool waitedLongEnoughForPower()
+            bool waitedLongEnoughForPower() const
                 { return OTV0P2BASE::getElapsedSecondsLT(powerTimer, getCurrentSeconds()) > duration; }
 
         public:
             /**
-             * @brief    Constructor. Initializes softSerial and sets PWR_PIN
-             * @param    pwrPin        SIM900 power on/off pin
+             * @brief    Constructor. Initializes softSerial and sets PWR_PIN.
+             * @param    pwrPin       SIM900 power on/off pin
              * @param    rxPin        Rx pin for software serial
              * @param    txPin        Tx pin for software serial
              *
              * Cannot do anything with side-effects,
-             * as may be called before run-time fully initialised!
+             * as may be called before run-time is fully initialised.
              */
-            OTSIM900Link(/*uint8_t hardPwrPin, uint8_t pwrPin*/) /* : HARD_PWR_PIN(hardPwrPin), PWR_PIN(pwrPin) */
-                {
-                bAvailable = false;
-                bPowered = false;
-                bPowerLock = false;
-                powerTimer = 0;
-                config = NULL;
-                state = IDLE;
-                memset(txQueue, 0, sizeof(txQueue));
-                txMsgLen = 0;
-                txMessageQueue = 0;
-                messageCounter = 0;
-                retryCounter = 0;
-                }
+            constexpr OTSIM900Link() { /* memset(txQueue, 0, sizeof(txQueue)); */ }
 
             /************************* Public Methods *****************************/
             /**
@@ -345,11 +330,8 @@ typedef const char *AT_t;
                 return true;
                 }
 
-            virtual bool isAvailable() const override
-                {
-                return bAvailable;
-                }
-            ;     // checks radio is there independent of power state
+            // Returns true if radio is present, independent of its power state.
+            virtual bool isAvailable() const override { return(bAvailable); }
 
             /**
              * @brief   Polling routine steps through 4 stage state machine
@@ -513,15 +495,6 @@ typedef const char *AT_t;
                     bPowerLock = false; // Check if ready to stop waiting after power toggled.
                 }
 
-            /**
-             * @brief    This will be called in interrupt while waiting for send prompt
-             * @retval    returns true on successful exit
-             */
-            virtual bool handleInterruptSimple() override
-                {
-                return true;
-                }
-
 #ifndef OTSIM900LINK_DEBUG // This is included to ease unit testing.
         private:
 #endif // OTSIM900LINK_DEBUG
@@ -532,45 +505,37 @@ typedef const char *AT_t;
 
             // Standard Responses
 
-//  // pins for software serial
-//  const uint8_t HARD_PWR_PIN;
-//  const uint8_t PWR_PIN;
-
             // Software serial: for V0p2 boards (eg REV10) expected to be of type:
             //     OTV0P2BASE::OTSoftSerial2<rxPin, txPin, baud>
             ser_t ser;
 
             // variables
-            bool bAvailable;
-            bool bPowered;
-            bool bPowerLock;
-            int8_t powerTimer;
-            uint8_t messageCounter; // number of frames sent. Used to schedule a reset.
+            bool bAvailable = false;
+            bool bPowered = false;
+            bool bPowerLock = false;
+            int8_t powerTimer = 0;
+            uint8_t messageCounter = 0; // Number of frames sent. Used to schedule a reset.
             // maximum number of times SIM900 can spend in a state before being reset.
             // This only applies to the following states:
             // - CHECK_PIN
             // -SET_APN
-            uint8_t retryCounter;
+            uint8_t retryCounter = 0;
             static constexpr uint8_t maxRetries = 10;
-            volatile uint8_t txMessageQueue; // Number of frames currently queued for TX.
-            const OTSIM900LinkConfig_t *config;
+            volatile uint8_t txMessageQueue = 0; // Number of frames currently queued for TX.
+            const OTSIM900LinkConfig_t *config = NULL;
             /************************* Private Methods *******************************/
 
-#ifndef ARDUINO_ARCH_AVR
         public:
-#endif // ARDUINO_ARCH_AVR
             // Power up/down
             /**
-             * @brief    check if module has power
+             * @brief    check if this thinks that the SIM900 module has power
              * @retval    true if module is powered up
+             *
+             * Mainly exposed for unit testing.
              */
-            inline bool isPowered()
-                {
-                return bPowered;
-                }
-#ifndef ARDUINO_ARCH_AVR
+            bool isPowered() const { return(bPowered); }
+
         private:
-#endif // ARDUINO_ARCH_AVR
             /**
              * @brief     Power up module
              */
@@ -1051,10 +1016,12 @@ typedef const char *AT_t;
                 }
             }
 
-        volatile OTSIM900LinkState state = INIT; // TODO check this is in correct place
+        volatile OTSIM900LinkState state = INIT;
+        uint8_t txMsgLen = 0; // This stores the length of the tx message. will have to be redone for multiple txQueue
+        static constexpr uint8_t maxTxQueueLength = 1; // TODO Could this be moved out into OTRadioLink.
+
+        // Putting this last in the structure.
         uint8_t txQueue[64]; // 64 is maxTxMsgLen (from OTRadioLink)
-        uint8_t txMsgLen; // This stores the length of the tx message. will have to be redone for multiple txQueue
-        static const uint8_t maxTxQueueLength = 1; // TODO Could this be moved out into OTRadioLink
 
     public:
         // define abstract methods here
