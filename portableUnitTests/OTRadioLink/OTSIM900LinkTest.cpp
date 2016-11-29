@@ -755,7 +755,7 @@ class PowerStateSimulator final : public Stream
     virtual size_t write(uint8_t uc) override
       {
       const char c = (char)uc;
-      if(powered && waitingForCommand)
+      if(/*powered && XXX */ waitingForCommand)
         {
         // Look for leading 'A' of 'AT' to start a command.
         if('A' == c)
@@ -806,7 +806,7 @@ bool PowerStateSimulator::haveSeenCommandStart = false;
  * @brief   Keep track of whether SIM900 is powered.
  * @note    powered should only flip state if the power pin is held high for longer than 2 seconds VT.
  */
-bool PowerStateSimulator::powered = false; // expose this one
+bool PowerStateSimulator::powered = true; // expose this one XXX
 static constexpr uint_fast8_t minPowerToggleTime = 2;
 uint_fast8_t pinSetHighTime;
 /**
@@ -821,37 +821,59 @@ void updateSIM900Powered(const bool pinstate) {
 }
 }
 // Commented as not currently implemented (DE20161128)
-//TEST(OTSIM900Link, PowerStateTest)
-//{
-////        const bool verbose = B3::verbose;
-//
-//        srandom((unsigned)::testing::UnitTest::GetInstance()->random_seed()); // Seed random() for use in simulator; --gtest_shuffle will force it to change.
-//
-//        // Reset static state to make tests re-runnable.
-//        B5::PowerStateSimulator::haveSeenCommandStart = false;
-//        B5::PowerStateSimulator::powered = false;
-//
-//        // Vector of bools containing states to check. This covers all states expected in normal use. RESET and PANIC are not covered.
-//        std::vector<bool> statesChecked(OTSIM900Link::RESET, false);
-//
-//        // Message to send.
-////        const char message[] = "123";
-//
-//        // SIM900 Config data
-//        const char SIM900_PIN[] = "1111";
-//        const char SIM900_APN[] = "apn";
-//        const char SIM900_UDP_ADDR[] = "0.0.0.0"; // ORS server
-//        const char SIM900_UDP_PORT[] = "9999";
-//        const OTSIM900Link::OTSIM900LinkConfig_t SIM900Config(false, SIM900_PIN, SIM900_APN, SIM900_UDP_ADDR, SIM900_UDP_PORT);
-//        const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
-//
-//        // OTSIM900Link instantiation & init.
-//        ASSERT_FALSE(B5::PowerStateSimulator::haveSeenCommandStart);
-//        OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, B5::PowerStateSimulator> l0;
-//        EXPECT_TRUE(l0.configure(1, &l0Config));
-//        EXPECT_TRUE(l0.begin());
-//        EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
-//
+TEST(OTSIM900Link, PowerStateTest)
+{
+//        const bool verbose = B3::verbose;
+
+
+        srandom((unsigned)::testing::UnitTest::GetInstance()->random_seed()); // Seed random() for use in simulator; --gtest_shuffle will force it to change.
+
+        // Reset static state to make tests re-runnable.
+        B5::PowerStateSimulator::haveSeenCommandStart = false;
+        B5::PowerStateSimulator::powered = false;
+
+        // Vector of bools containing states to check. This covers all states expected in normal use. RESET and PANIC are not covered.
+        std::vector<bool> statesChecked(OTSIM900Link::RESET, false);
+
+        // Message to send.
+//        const char message[] = "123";
+
+        // SIM900 Config data
+        const char SIM900_PIN[] = "1111";
+        const char SIM900_APN[] = "apn";
+        const char SIM900_UDP_ADDR[] = "0.0.0.0"; // ORS server
+        const char SIM900_UDP_PORT[] = "9999";
+        const OTSIM900Link::OTSIM900LinkConfig_t SIM900Config(false, SIM900_PIN, SIM900_APN, SIM900_UDP_ADDR, SIM900_UDP_PORT);
+        const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
+
+        // OTSIM900Link instantiation & init.
+        ASSERT_FALSE(B5::PowerStateSimulator::haveSeenCommandStart);
+        OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, B5::PowerStateSimulator> l0;
+        EXPECT_TRUE(l0.configure(1, &l0Config));
+        EXPECT_TRUE(l0.begin());
+        EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
+
+        // Walk through startup behaviour in detail.
+//        incrementVTOneCycle();
+        l0.poll();
+        EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
+        secondsVT += 12;
+        l0.poll(); // This poll clears the bPowerLock flag
+        l0.poll(); // Allowing this to carry on with the program flow.
+        EXPECT_EQ(OTSIM900Link::START_UP, l0._getState());
+        incrementVTOneCycle();
+//        incrementVTOneCycle();
+//        l0.poll();
+//        EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
+//        secondsVT += 12;
+//        l0.poll();
+//        EXPECT_EQ(OTSIM900Link::START_UP, l0._getState());
+//        incrementVTOneCycle();
+        l0.poll();
+        EXPECT_EQ(OTSIM900Link::CHECK_PIN, l0._getState());
+        incrementVTOneCycle();
+        for (int i = 0; i < 10; i++) { l0.poll(); incrementVTOneCycle(); }
+
 //        // Test power up.
 //        B5::updateSIM900Powered(l0._isPinHigh());
 //        EXPECT_FALSE(l0.isPowered());
@@ -880,9 +902,9 @@ void updateSIM900Powered(const bool pinstate) {
 //        EXPECT_TRUE(l0.isPowered());  // SIM900 should be powered by now.
 //        EXPECT_TRUE(B5::PowerStateSimulator::powered);
 //        EXPECT_FALSE(l0._isPinHigh()); // Pin should be set low.
-//
-//        // ...
-//        l0.end();
-//}
+
+        // ...
+        l0.end();
+}
 
 
