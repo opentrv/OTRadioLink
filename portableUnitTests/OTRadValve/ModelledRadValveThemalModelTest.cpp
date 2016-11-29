@@ -37,11 +37,14 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 #include "OTRadValve_ModelledRadValve.h"
 
 
+// Holds references to a valve and temperature sensor
+// and models the how the former drives the latter
+// given the characteristics of the room, boiler, etc.
 class ThermalModelBase
     {
-    private:
+    protected:
         // Simulated valve, internal.
-        OTRadValve::NULLRadValve radValveInternal;
+        OTRadValve::RadValveMock radValveInternal;
         
         // Simulated room temperature, internal.
         OTV0P2BASE::TemperatureC16Mock roomTemperatureInternal;
