@@ -41,6 +41,38 @@ static constexpr uint_fast8_t minorCycleTimeSecs = 2;
 static void incrementVTOneCycle() { secondsVT += minorCycleTimeSecs; }
 
 
+namespace SIM900Emu {
+/**
+ * @brief   Simple emulator for stepping through SIM900 states, including fail states.
+ */
+class SIM900Emulator {
+public:
+    // constructor
+    SIM900Emulator();
+
+    // Trigger fail states:
+    // This triggers a dead-end state caused by signal loss during UDP connection
+    void triggerPDPDeactFail() { myState = PDP_FAIL; }
+    // This triggers a fail state where the SIM900 carries on responding normally.
+    void triggerInvisibleFail() { myState = INVISIBLE_FAIL; }
+private:
+    enum state_t{
+        POWER_OFF,
+
+        PDP_FAIL,
+        INVISIBLE_FAIL
+    } myState;
+};
+
+}
+
+
+
+
+
+
+
+
 // Test the getter function definitely does what it should.
 TEST(OTSIM900Link, getterFunction)
 {
