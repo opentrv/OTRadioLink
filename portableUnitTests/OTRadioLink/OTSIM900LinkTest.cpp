@@ -66,14 +66,13 @@ public:
         case POWERING_UP:
             // send some garbage.
             reply = "vfd";   // garbage when not fully powered. todo replace with random characters
-            // todo wait some time and power up
-
+            updateState();
             break;
         case REGISTERING:
             // Wait for some time to pass.
             if(commands.AT == command) { reply = replies.AT; }           // Normal response
             else if(commands.CPIN == command) { reply = replies.CPIN_READY; }   // No need to set a PIN.
-            else if(commands.CREG == command) { reply = replies.CREG_FALSE; } // not registered
+            else if(commands.CREG == command) { reply = replies.CREG_FALSE; updateState(); }
             else if(commands.CSTT == command) { reply = replies.CSTT_FALSE; }
             else if(commands.CIICR == command) { reply = replies.CIICR_FALSE; }
             else if(commands.CIFSR == command) { reply = replies.CIFSR_FALSE; }
@@ -85,9 +84,9 @@ public:
         case IP_INITIAL:
             // Need APN to be set. (CSTT=...)
             if(commands.AT == command) { reply = replies.AT; }           // Normal response
-            else if(commands.CPIN == command) { reply = replies.CPIN_READY; }   // No need to set a PIN.
-            else if(commands.CREG == command) { reply = replies.CREG_READY; }
-            else if(commands.CSTT == command) { reply =  replies.CSTT_READY; } // Relevant states: SET_APN
+            else if(commands.CPIN == command) { reply = replies.CPIN_READY; }
+            else if(commands.CREG == command) { reply = replies.CREG_READY; }  // Now registered.
+            else if(commands.CSTT == command) { reply =  replies.CSTT_READY; updateState(); }
             else if(commands.CIICR == command) { reply = replies.CIICR_FALSE; }
             else if(commands.CIFSR == command) { reply = replies.CIFSR_FALSE; }
             else if(commands.CIPSTATUS == command) { reply = replies.CIPSTATUS_FALSE; }
@@ -97,11 +96,11 @@ public:
             break;
         case IP_START:
             // Need to start GPRS (CIICR)
-            if(commands.AT == command) { reply = replies.AT; }           // Normal response
-            else if(commands.CPIN == command) { reply = replies.CPIN_READY; }   // No need to set a PIN.
+            if(commands.AT == command) { reply = replies.AT; }
+            else if(commands.CPIN == command) { reply = replies.CPIN_READY; }
             else if(commands.CREG == command) { reply = replies.CREG_READY; }
-            else if(commands.CSTT == command) { reply = replies.CSTT_FALSE; }
-            else if(commands.CIICR == command) { reply = replies.CIICR_READY; }
+            else if(commands.CSTT == command) { reply = replies.CSTT_FALSE; }    // Can not set APN again!
+            else if(commands.CIICR == command) { reply = replies.CIICR_READY; updateState();}  // Can start GPRS
             else if(commands.CIFSR == command) { reply = replies.CIFSR_FALSE; }
             else if(commands.CIPSTATUS == command) { reply = replies.CIPSTATUS_START; }
             else if(commands.CIPSTART == command) { reply = replies.CIPSTART_FALSE; }
@@ -110,15 +109,16 @@ public:
             break;
         case IP_CONFIGURING:
             // Wait a bit
+            updateState();
             break;
         case IP_GPRSACT:
             // Need to check IP address (CIFSR)
-            if(commands.AT == command) { reply = replies.AT; }           // Normal response
-            else if(commands.CPIN == command) { reply = replies.CPIN_READY; }   // No need to set a PIN.
+            if(commands.AT == command) { reply = replies.AT; }
+            else if(commands.CPIN == command) { reply = replies.CPIN_READY; }
             else if(commands.CREG == command) { reply = replies.CREG_READY; }
             else if(commands.CSTT == command) { reply = replies.CSTT_FALSE; }
-            else if(commands.CIICR == command) { reply = replies.CIICR_FALSE; }
-            else if(commands.CIFSR == command) { reply = replies.CIFSR_READY; }
+            else if(commands.CIICR == command) { reply = replies.CIICR_FALSE; }  // GPRS already started...
+            else if(commands.CIFSR == command) { reply = replies.CIFSR_READY; updateState(); }  // Check IP address
             else if(commands.CIPSTATUS == command) { reply = replies.CIPSTATUS_GPRSACT; }
             else if(commands.CIPSTART == command) { reply = replies.CIPSTART_FALSE; }
             else if(commands.CIPSEND == command) { reply = replies.CIPSEND_FALSE; }
@@ -126,48 +126,50 @@ public:
             break;
         case IP_STATUS:
             // Need to open UDP connection
-            if(commands.AT == command) { reply = replies.AT; }           // Normal response
-            else if(commands.CPIN == command) { reply = replies.CPIN_READY; }   // No need to set a PIN.
+            if(commands.AT == command) { reply = replies.AT; }
+            else if(commands.CPIN == command) { reply = replies.CPIN_READY; }
             else if(commands.CREG == command) { reply = replies.CREG_READY; }
             else if(commands.CSTT == command) { reply = replies.CSTT_FALSE; }
             else if(commands.CIICR == command) { reply = replies.CIICR_FALSE; }
             else if(commands.CIFSR == command) { reply = replies.CIFSR_READY; }
             else if(commands.CIPSTATUS == command) { reply = replies.CIPSTATUS_GPRSACT; }
-            else if(commands.CIPSTART == command) { reply = replies.CIPSTART_TRUE; }
+            else if(commands.CIPSTART == command) { reply = replies.CIPSTART_TRUE; updateState(); }  // Open UDP
             else if(commands.CIPSEND == command) { reply = replies.CIPSEND_FALSE; }
             else if("123" == command) { reply = "123\r\nERROR\r\n"; }  // Relevant states: SENDING TODO CHECK
             break;
         case UDP_CONNECTING:
             // Wait a bit
+            updateState();
             break;
         case UDP_CONNECT_OK:
             // This should correspond to IDLE. Waiting to send stuff.
-            if(commands.AT == command) { reply = replies.AT; }           // Normal response
-            else if(commands.CPIN == command) { reply = replies.CPIN_READY; }   // No need to set a PIN.
+            if(commands.AT == command) { reply = replies.AT; }
+            else if(commands.CPIN == command) { reply = replies.CPIN_READY; }
             else if(commands.CREG == command) { reply = replies.CREG_READY; }
             else if(commands.CSTT == command) { reply = replies.CSTT_FALSE; }
             else if(commands.CIICR == command) { reply = replies.CIICR_FALSE; }
             else if(commands.CIFSR == command) { reply = replies.CIFSR_READY; }
             else if(commands.CIPSTATUS == command) { reply = replies.CIPSTATUS_CONNECTED; }
             else if(commands.CIPSTART == command) { reply = replies.CIPSTART_FALSE; }
-            else if(commands.CIPSEND == command) { reply = replies.CIPSEND_TRUE; }  // Relevant states:  SENDING
-            else if("123" == command) { reply = "123\r\nSEND OK\r\n"; }  // Relevant states: SENDING
+            else if(commands.CIPSEND == command) { reply = replies.CIPSEND_TRUE; }
+            else if("123" == command) { reply = "123\r\nSEND OK\r\n"; }  // todo this must depend on the cipsend being asked.
             break;
         case UDP_CLOSING:
             // Wait a bit
+            updateState();
             break;
         case UDP_CLOSED:
             // Need to open UDP or close GPRS.
-            if(commands.AT == command) { reply = replies.AT; }           // Normal response
-            else if(commands.CPIN == command) { reply = replies.CPIN_READY; }   // No need to set a PIN.
+            if(commands.AT == command) { reply = replies.AT; }
+            else if(commands.CPIN == command) { reply = replies.CPIN_READY; }
             else if(commands.CREG == command) { reply = replies.CREG_READY; }
             else if(commands.CSTT == command) { reply = replies.CSTT_FALSE; }
             else if(commands.CIICR == command) { reply = replies.CIICR_FALSE; }
             else if(commands.CIFSR == command) { reply = replies.CIFSR_READY; }
             else if(commands.CIPSTATUS == command) { reply = replies.CIPSTATUS_START; } // todo check
-            else if(commands.CIPSTART == command) { reply = replies.CIPSTART_TRUE; }
+            else if(commands.CIPSTART == command) { reply = replies.CIPSTART_TRUE; updateState();}
             else if(commands.CIPSEND == command) { reply = replies.CIPSEND_FALSE; }
-            else if("123" == command) { reply = "123\r\nERROR\r\n"; }  // Relevant states: SENDING TODO CHECK
+            else if("123" == command) { reply = "123\r\nERROR\r\n"; }
             break;
         case PDP_DEACTIVATING:
             if(commands.AT == command) { reply = replies.AT; }           // Normal response
@@ -180,6 +182,7 @@ public:
             else if(commands.CIPSTART == command) { reply = replies.CIPSTART_FALSE; }
             else if(commands.CIPSEND == command) { reply = replies.CIPSEND_FALSE; }
             else if("123" == command) { reply = "123\r\nERROR\r\n"; }  // Relevant states: SENDING TODO CHECK
+            updateState();
             break;
         case PDP_FAIL:
             // Everything has died.
@@ -199,13 +202,18 @@ public:
     }
 
     // emulate pin toggle:
-    void setPinHigh(bool high) { /* todo add timing logic */ if(high) myState = POWERING_UP; };
+    void setPinHigh(bool high) {
+        /* todo add timing logic */
+        if(high) {
+            if (myState == POWER_OFF) myState = POWERING_UP;
+            else myState = POWER_OFF;
+        }
+    }
     // Trigger fail states:
     // This triggers a dead-end state caused by signal loss during UDP connection
     void triggerPDPDeactFail() { myState = PDP_FAIL; }
     // This triggers a fail state where the SIM900 carries on responding normally.
     void triggerInvisibleFail() { myState = INVISIBLE_FAIL; }
-private:
     /**
      * @brief   Non-exhaustive list of states we go through using OTSIM900Link.
      * @note    States with a verb are transitory and can only be exited by the SIM900.
@@ -226,13 +234,14 @@ private:
         PDP_DEACTIVATING,
         PDP_FAIL,       // Registration lost during GPRS connection. Unrecoverable.
         INVISIBLE_FAIL  // SIM900 responding as normal but not sending. Unrecoverable, undetectable by device. todo take this out of enum.
-    } myState;
+    } myState = POWER_OFF;
 
     /**
      * @brief   Work through the states as appropriate.
-     * @todo    Add support for passing in strings.
+     * @note    ONLY COVERS NORMAL FLOW! POWER ON OFF ETC DONE USING PUBLIC INTERFACE!
+     * @note    Add timing information.
      */
-    void updateState(const std::string &command) {
+    void updateState() {
         switch (myState) {
         case POWER_OFF:
             // do nothing
@@ -280,6 +289,7 @@ private:
             break;
         case UDP_CLOSED:
             // Need to open UDP or close GPRS.
+            myState = UDP_CONNECTING;
             break;
         case PDP_DEACTIVATING:
             myState = IP_INITIAL;
@@ -386,7 +396,7 @@ TEST(OTSIM900Link,basicsDeadCard)
 // Other tests can look at error handling including unexpected/garbage responses.
 namespace B1
 {
-const bool verbose = false;
+const bool verbose = true;
 
 // Does a simple simulation of SIM900, responding sensibly to all commands needed by the OTSIM900Link impl.
 // Allows for exercise of every major non-PANIC state of the OTSIM900Link implementation.
@@ -406,7 +416,7 @@ class GoodSimulator final : public Stream
     std::string reply;
 
     // Keep track (crudely) of state. Corresponds to OTSIM900LinkState values.
-    uint8_t sim900LinkState = 0;
+    SIM900Emu::SIM900Emulator sim900;
 
   public:
     void begin(unsigned long) { }
