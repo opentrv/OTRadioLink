@@ -983,7 +983,9 @@ typedef const char *AT_t;
          */
         bool isSIM900Replying()
             {
+            char data[OTV0P2BASE::fnmin(16, MAX_SIM900_RESPONSE_CHARS)];
             ser.println(AT_START);
+            readMany(data, sizeof(data));
             //    ser.print(AT_END);
             //    uint8_t c = 0;
             // Debug code...
@@ -998,7 +1000,7 @@ typedef const char *AT_t;
             //    OTSIM900LINK_DEBUG_SERIAL_PRINTFMT(c, HEX)
             //    OTSIM900LINK_DEBUG_SERIAL_PRINTLN()
             //    if (c == 'A') {
-            return (ser.read() == 'A');
+            return ('A' == *data);
             }
 
         /**
