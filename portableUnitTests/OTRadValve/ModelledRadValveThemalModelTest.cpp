@@ -19,10 +19,13 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 /*
  * OTRadValve ModelledRadValve thermal model tests.
  *
- * Aim is to, for example, model different radiator efficacies, boiler speeds, radio loss,
- * and make sure that responsiveness, temperature regulation and valve movement/noise/energy are OK.
+ * Aim is to, for example, model different
+ * radiator efficacies, valve behaviours, boiler speeds, radio loss, etc;
+ * to ensure that responsiveness, temperature regulation
+ * and valve movement/noise/energy are OK.
  *
  * Model for all-in-one and split unit configurations.
+
  */
 
 #include <gtest/gtest.h>
