@@ -120,7 +120,7 @@ class AbstractRadValve : public OTV0P2BASE::SimpleTSUint8Actuator
 
 // Null radiator valve driver implementation.
 // Never in normal (nor error) state.
-class NULLRadValve : public AbstractRadValve
+class NULLRadValve final : public AbstractRadValve
   {
   public:
     // Always false for null implementation.
