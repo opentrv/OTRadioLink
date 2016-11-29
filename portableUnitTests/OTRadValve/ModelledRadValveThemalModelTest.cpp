@@ -25,7 +25,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
  * and valve movement/noise/energy are OK.
  *
  * Model for all-in-one and split unit configurations.
-
+ *
+ * This can even be extended to DHW tests.
  */
 
 #include <gtest/gtest.h>
@@ -34,6 +35,24 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 
 #include "OTRadValve_AbstractRadValve.h"
 #include "OTRadValve_ModelledRadValve.h"
+
+
+class ThermalModelBase
+    {
+    private:
+        // Simulated valve, internal.
+        OTRadValve::NULLRadValve radValveInternal;
+        
+        // Simulated room temperature, internal.
+        OTV0P2BASE::TemperatureC16Mock roomTemperatureInternal;
+
+    public:
+        // Read-only view of simulated room temperature.
+        const OTV0P2BASE::TemperatureC16Base &roomTemperature = roomTemperatureInternal;
+
+        // Read-only view of simulated radiator valve.
+        const OTRadValve::AbstractRadValve &radValve = radValveInternal;
+    };
 
 
 // Basic tests against thermal model.
