@@ -72,16 +72,16 @@ namespace OTRFM23BLink
 
         public:
             // Maximum raw RX message size in bytes.
-            static const int MaxRXMsgLen = 64;
+            static constexpr int MaxRXMsgLen = 64;
             // Maximum rawTX message size in bytes.
-            static const int MaxTXMsgLen = 64;
+            static constexpr int MaxTXMsgLen = 64;
 
             // Maximum allowed TX time, milliseconds.
             // Attempting a longer TX will result in a timeout.
-            static const int MAX_TX_ms = 1000;
+            static constexpr int MAX_TX_ms = 1000;
 
             // Typical maximum size of encoded FHT8V/FS20 frame for OpenTRV as at 2015/07.
-            static const uint8_t MAX_RX_FRAME_FHT8V = 45;
+            static constexpr uint8_t MAX_RX_FRAME_FHT8V = 45;
             // Default expected maximum size of mixed data (eg including JSON frames).
             // Too large a value may mean some frames are lost due to overrun/wrap-around.
             // To small a value may truncate long inbound frames and waste space.
@@ -90,14 +90,14 @@ namespace OTRFM23BLink
             // So set this to 52 or less if not able to service RX with an interrupt
             // when receiving FTH8V/FS20 and JSON frames by polling at ~15ms intervals.
             // The RFM23B default is 55.
-            static const uint8_t MAX_RX_FRAME_FHT8V_POLL_15ms = 52;
+            static constexpr uint8_t MAX_RX_FRAME_FHT8V_POLL_15ms = 52;
             // If the RX is serviced with an interrupt
             // then much nearer the whole 64-byte frame / RXFIFO is usable
             // how much depending on data rate and interrupt response time
             // especially from low-power sleep.
             // Previous (before 2015/07/22) max JSON frame length was preamble + 55 + 1-byte CRC,
             // so attempt to be higher than that.
-            static const uint8_t MAX_RX_FRAME_DEFAULT = 60;
+            static constexpr uint8_t MAX_RX_FRAME_DEFAULT = 60;
 
             // Type of the config information that this radio expects passed
             // as the config field of the OTRadioChannelConfig object.
@@ -108,110 +108,108 @@ namespace OTRFM23BLink
 
         protected:
             // Currently configured channel; starts at default 0.
-            uint8_t _currentChannel;
+            uint8_t _currentChannel = 0;
 
             // RFM23B_REG_03_INTERRUPT_STATUS1
-            static const uint16_t RFM23B_IFFERROR   = 0x80<<8;
-            static const uint16_t RFM23B_ITXFFAFULL = 0x40<<8;
-            static const uint16_t RFM23B_ITXFFAEM   = 0x20<<8;
-            static const uint16_t RFM23B_IRXFFAFULL = 0x10<<8;
-            static const uint16_t RFM23B_IEXT       = 0x08<<8;
-            static const uint16_t RFM23B_IPKSENT    = 0x04<<8;
-            static const uint16_t RFM23B_IPKVALID   = 0x02<<8;
-            static const uint16_t RFM23B_ICRCERROR  = 0x01<<8;
+            static constexpr uint16_t RFM23B_IFFERROR   = 0x80<<8;
+            static constexpr uint16_t RFM23B_ITXFFAFULL = 0x40<<8;
+            static constexpr uint16_t RFM23B_ITXFFAEM   = 0x20<<8;
+            static constexpr uint16_t RFM23B_IRXFFAFULL = 0x10<<8;
+            static constexpr uint16_t RFM23B_IEXT       = 0x08<<8;
+            static constexpr uint16_t RFM23B_IPKSENT    = 0x04<<8;
+            static constexpr uint16_t RFM23B_IPKVALID   = 0x02<<8;
+            static constexpr uint16_t RFM23B_ICRCERROR  = 0x01<<8;
 
             // RFM23B_REG_04_INTERRUPT_STATUS2
-            static const uint8_t RFM23B_ISWDET     =    0x80;
-            static const uint8_t RFM23B_IPREAVAL   =    0x40;
-            static const uint8_t RFM23B_IPREAINVAL =    0x20;
-            static const uint8_t RFM23B_IRSSI      =    0x10;
-            static const uint8_t RFM23B_IWUT       =    0x08;
-            static const uint8_t RFM23B_ILBD       =    0x04;
-            static const uint8_t RFM23B_ICHIPRDY   =    0x02;
-            static const uint8_t RFM23B_IPOR       =    0x01;
+            static constexpr uint8_t RFM23B_ISWDET     =    0x80;
+            static constexpr uint8_t RFM23B_IPREAVAL   =    0x40;
+            static constexpr uint8_t RFM23B_IPREAINVAL =    0x20;
+            static constexpr uint8_t RFM23B_IRSSI      =    0x10;
+            static constexpr uint8_t RFM23B_IWUT       =    0x08;
+            static constexpr uint8_t RFM23B_ILBD       =    0x04;
+            static constexpr uint8_t RFM23B_ICHIPRDY   =    0x02;
+            static constexpr uint8_t RFM23B_IPOR       =    0x01;
 
             // RFM23B_REG_05_INTERRUPT_ENABLE1
-            static const uint8_t RFM23B_ENFFERR    =    0x80;
-            static const uint8_t RFM23B_ENTXFFAFUL =    0x40;
-            static const uint8_t RFM23B_ENTXFFAEM  =    0x20;
-            static const uint8_t RFM23B_ENRXFFAFUL =    0x10;
-            static const uint8_t RFM23B_ENEXT      =    0x08;
-            static const uint8_t RFM23B_ENPKSENT   =    0x04;
-            static const uint8_t RFM23B_ENPKVALID  =    0x02;
-            static const uint8_t RFM23B_ENCRCERROR =    0x01;
+            static constexpr uint8_t RFM23B_ENFFERR    =    0x80;
+            static constexpr uint8_t RFM23B_ENTXFFAFUL =    0x40;
+            static constexpr uint8_t RFM23B_ENTXFFAEM  =    0x20;
+            static constexpr uint8_t RFM23B_ENRXFFAFUL =    0x10;
+            static constexpr uint8_t RFM23B_ENEXT      =    0x08;
+            static constexpr uint8_t RFM23B_ENPKSENT   =    0x04;
+            static constexpr uint8_t RFM23B_ENPKVALID  =    0x02;
+            static constexpr uint8_t RFM23B_ENCRCERROR =    0x01;
 
             // RFM23B_REG_06_INTERRUPT_ENABLE2
-            static const uint8_t RFM23B_ENSWDET    =    0x80;
-            static const uint8_t RFM23B_ENPREAVAL  =    0x40;
-            static const uint8_t RFM23B_ENPREAINVAL=    0x20;
-            static const uint8_t RFM23B_ENRSSI     =    0x10;
-            static const uint8_t RFM23B_ENWUT      =    0x08;
-            static const uint8_t RFM23B_ENLBDI     =    0x04;
-            static const uint8_t RFM23B_ENCHIPRDY  =    0x02;
-            static const uint8_t RFM23B_ENPOR      =    0x01;
+            static constexpr uint8_t RFM23B_ENSWDET    =    0x80;
+            static constexpr uint8_t RFM23B_ENPREAVAL  =    0x40;
+            static constexpr uint8_t RFM23B_ENPREAINVAL=    0x20;
+            static constexpr uint8_t RFM23B_ENRSSI     =    0x10;
+            static constexpr uint8_t RFM23B_ENWUT      =    0x08;
+            static constexpr uint8_t RFM23B_ENLBDI     =    0x04;
+            static constexpr uint8_t RFM23B_ENCHIPRDY  =    0x02;
+            static constexpr uint8_t RFM23B_ENPOR      =    0x01;
 
             // RFM23B_REG_30_DATA_ACCESS_CONTROL
-            static const uint8_t RFM23B_ENPACRX    =    0x80;
-            static const uint8_t RFM23B_ENPACTX    =    0x08;
+            static constexpr uint8_t RFM23B_ENPACRX    =    0x80;
+            static constexpr uint8_t RFM23B_ENPACTX    =    0x08;
 
 // RH_RF22_REG_33_HEADER_CONTROL2               
-            static const uint8_t RFM23B_HDLEN      =    0x70;
-            static const uint8_t RFM23B_HDLEN_0    =    0x00;
-            static const uint8_t RFM23B_HDLEN_1    =    0x10;
-            static const uint8_t RFM23B_HDLEN_2    =    0x20;
-            static const uint8_t RFM23B_HDLEN_3    =    0x30;
-            static const uint8_t RFM23B_HDLEN_4    =    0x40;
-            static const uint8_t RFM23B_VARPKLEN   =    0x00;
-            static const uint8_t RFM23B_FIXPKLEN   =    0x08;
-            static const uint8_t RFM23B_SYNCLEN    =    0x06;
-            static const uint8_t RFM23B_SYNCLEN_1  =    0x00;
-            static const uint8_t RFM23B_SYNCLEN_2  =    0x02;
-            static const uint8_t RFM23B_SYNCLEN_3  =    0x04;
-            static const uint8_t RFM23B_SYNCLEN_4  =    0x06;
-            static const uint8_t RFM23B_PREALEN8   =    0x01;
+            static constexpr uint8_t RFM23B_HDLEN      =    0x70;
+            static constexpr uint8_t RFM23B_HDLEN_0    =    0x00;
+            static constexpr uint8_t RFM23B_HDLEN_1    =    0x10;
+            static constexpr uint8_t RFM23B_HDLEN_2    =    0x20;
+            static constexpr uint8_t RFM23B_HDLEN_3    =    0x30;
+            static constexpr uint8_t RFM23B_HDLEN_4    =    0x40;
+            static constexpr uint8_t RFM23B_VARPKLEN   =    0x00;
+            static constexpr uint8_t RFM23B_FIXPKLEN   =    0x08;
+            static constexpr uint8_t RFM23B_SYNCLEN    =    0x06;
+            static constexpr uint8_t RFM23B_SYNCLEN_1  =    0x00;
+            static constexpr uint8_t RFM23B_SYNCLEN_2  =    0x02;
+            static constexpr uint8_t RFM23B_SYNCLEN_3  =    0x04;
+            static constexpr uint8_t RFM23B_SYNCLEN_4  =    0x06;
+            static constexpr uint8_t RFM23B_PREALEN8   =    0x01;
 
 
-            static const uint8_t REG_INT_STATUS1 = 3; // Interrupt status register 1.
-            static const uint8_t REG_INT_STATUS2 = 4; // Interrupt status register 2.
-            static const uint8_t REG_INT_ENABLE1 = 5; // Interrupt enable register 1.
-            static const uint8_t REG_INT_ENABLE2 = 6; // Interrupt enable register 2.
-            static const uint8_t REG_OP_CTRL1 = 7; // Operation and control register 1.
-            static const uint8_t REG_OP_CTRL1_SWRES = 0x80u; // Software reset (at write) in OP_CTRL1.
-            static const uint8_t REG_OP_CTRL2 = 8; // Operation and control register 2.
-            static const uint8_t REG_RSSI = 0x26; // RSSI.
-            static const uint8_t REG_RSSI1 = 0x28; // Antenna 1 diversity / RSSI.
-            static const uint8_t REG_RSSI2 = 0x29; // Antenna 2 diversity / RSSI.
-            static const uint8_t REG_30_DATA_ACCESS_CONTROL = 0x30; 
-            static const uint8_t REG_33_HEADER_CONTROL2  = 0x33; 
-            static const uint8_t REG_3E_PACKET_LENGTH    = 0x3e; 
-            static const uint8_t REG_3A_TRANSMIT_HEADER3 = 0x3a; 
-            static const uint8_t REG_47_RECEIVED_HEADER3 = 0x47; 
-            static const uint8_t REG_4B_RECEIVED_PACKET_LENGTH = 0x4b; 
-            static const uint8_t REG_TX_POWER = 0x6d; // Transmit power.
-            static const uint8_t REG_RX_FIFO_CTRL = 0x7e; // RX FIFO control.
-            static const uint8_t REG_FIFO = 0x7f; // TX FIFO on write, RX FIFO on read.
+            static constexpr uint8_t REG_INT_STATUS1 = 3; // Interrupt status register 1.
+            static constexpr uint8_t REG_INT_STATUS2 = 4; // Interrupt status register 2.
+            static constexpr uint8_t REG_INT_ENABLE1 = 5; // Interrupt enable register 1.
+            static constexpr uint8_t REG_INT_ENABLE2 = 6; // Interrupt enable register 2.
+            static constexpr uint8_t REG_OP_CTRL1 = 7; // Operation and control register 1.
+            static constexpr uint8_t REG_OP_CTRL1_SWRES = 0x80u; // Software reset (at write) in OP_CTRL1.
+            static constexpr uint8_t REG_OP_CTRL2 = 8; // Operation and control register 2.
+            static constexpr uint8_t REG_RSSI = 0x26; // RSSI.
+            static constexpr uint8_t REG_RSSI1 = 0x28; // Antenna 1 diversity / RSSI.
+            static constexpr uint8_t REG_RSSI2 = 0x29; // Antenna 2 diversity / RSSI.
+            static constexpr uint8_t REG_30_DATA_ACCESS_CONTROL = 0x30;
+            static constexpr uint8_t REG_33_HEADER_CONTROL2  = 0x33;
+            static constexpr uint8_t REG_3E_PACKET_LENGTH    = 0x3e;
+            static constexpr uint8_t REG_3A_TRANSMIT_HEADER3 = 0x3a;
+            static constexpr uint8_t REG_47_RECEIVED_HEADER3 = 0x47;
+            static constexpr uint8_t REG_4B_RECEIVED_PACKET_LENGTH = 0x4b;
+            static constexpr uint8_t REG_TX_POWER = 0x6d; // Transmit power.
+            static constexpr uint8_t REG_RX_FIFO_CTRL = 0x7e; // RX FIFO control.
+            static constexpr uint8_t REG_FIFO = 0x7f; // TX FIFO on write, RX FIFO on read.
             // Allow validation of RFM22/RFM23 device and SPI connection to it.
-            static const uint8_t SUPPORTED_DEVICE_TYPE = 0x08; // Read from register 0.
-            static const uint8_t SUPPORTED_DEVICE_VERSION = 0x06; // Read from register 1.
+            static constexpr uint8_t SUPPORTED_DEVICE_TYPE = 0x08; // Read from register 0.
+            static constexpr uint8_t SUPPORTED_DEVICE_VERSION = 0x06; // Read from register 1.
 
             // Iff true then attempt to wake up as the start of a frame arrives, eg on sync.
-            static const bool WAKE_ON_SYNC_RX = false;
+            static constexpr bool WAKE_ON_SYNC_RX = false;
 
             // Last RX error, as 1-deep queue; 0 if no error.
             // Marked as volatile for ISR-/thread- safe (sometimes lock-free) access.
-            volatile uint8_t lastRXErr;
+            volatile uint8_t lastRXErr = 0;
 
             // Typical maximum frame length in bytes [1,63] to optimise radio behaviour.
             // Too long may allow overruns, too short may make long-frame reception hard.
-            volatile uint8_t maxTypicalFrameBytes;
+            volatile uint8_t maxTypicalFrameBytes = MAX_RX_FRAME_DEFAULT;
 
-            // If true then allow RX operations.
-            const bool allowRXOps;
+            // If true (the default) then allow RX operations.
+            const bool allowRXOps = true;
 
             // Constructor only available to deriving class.
-            constexpr OTRFM23BLinkBase(bool _allowRX = true)
-              : _currentChannel(0), lastRXErr(0), maxTypicalFrameBytes(MAX_RX_FRAME_DEFAULT), allowRXOps(_allowRX)
-              { }
+            constexpr OTRFM23BLinkBase(bool _allowRX = true) : allowRXOps(_allowRX) { }
 
             // Write/read one byte over SPI...
             // SPI must already be configured and running.
@@ -356,7 +354,7 @@ namespace OTRFM23BLink
     // Set the targetISRRXMinQueueCapacity to at least 2, or 3 if RAM space permits, for busy RF channels.
     // With allowRX == false as much as possible of the receive side is disabled.
 #define OTRFM23BLink_DEFINED
-    static const uint8_t DEFAULT_RFM23B_RX_QUEUE_CAPACITY = 3;
+    static constexpr uint8_t DEFAULT_RFM23B_RX_QUEUE_CAPACITY = 3;
     template <uint8_t SPI_nSS_DigitalPin, int8_t RFM_nIRQ_DigitalPin = -1, uint8_t targetISRRXMinQueueCapacity = 3, bool allowRX = true>
     class OTRFM23BLink final : public OTRFM23BLinkBase
         {
@@ -372,20 +370,12 @@ namespace OTRFM23BLink
               struct typeIf<false, TypeTrue, TypeFalse> { typedef TypeFalse t; };
             typename typeIf<allowRX, ::OTRadioLink::ISRRXQueueVarLenMsg<MaxRXMsgLen, targetISRRXMinQueueCapacity>, ::OTRadioLink::ISRRXQueueNULL>::t queueRX;
 
-//#if 0
-//            // Simple and fast 1-deep queue.
-//            ::OTRadioLink::ISRRXQueue1Deep<MaxRXMsgLen> queueRX;
-//#else
-//            // Queue that can make good use of space for variable-length messages.
-//            ::OTRadioLink::ISRRXQueueVarLenMsg<MaxRXMsgLen, targetISRRXMinQueueCapacity> queueRX;
-//#endif
-
             // Internal routines to enable/disable RFM23B on the the SPI bus.
             // These depend only on the (constant) SPI_nSS_DigitalPin template parameter
             // so these should turn into single assembler instructions in principle.
             // Introduce some delays to allow signals to stabilise if running slow.
             // From the RFM23B datasheet (S3/p14) tEN & tSS are 20ns so waits shouldn't be necessary for AVR CPU speeds!
-            static const bool runSPISlow = ::OTV0P2BASE::DEFAULT_RUN_SPI_SLOW;
+            static constexpr bool runSPISlow = ::OTV0P2BASE::DEFAULT_RUN_SPI_SLOW;
             inline void _nSSWait() const { OTV0P2BASE_busy_spin_delay(runSPISlow?4:0); }
             // Wait from SPI select to op, and after op to deselect, and after deselect.
             inline void _SELECT() const { fastDigitalWrite(SPI_nSS_DigitalPin, LOW); _nSSWait(); } // Select/enable RFM23B.
@@ -539,7 +529,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Rx");
             // Status register 1 is returned in the top 8 bits, register 2 in the bottom 8 bits.
             // Zero indicates no pending interrupts or other status flags set.
             // POWERS UP SPI IF NECESSARY.
-            uint16_t _readStatusBoth()
+            uint16_t _readStatusBoth() const
                 {
                 const bool neededEnable = _upSPI();
                 const uint16_t result = _readReg16Bit(REG_INT_STATUS1);
