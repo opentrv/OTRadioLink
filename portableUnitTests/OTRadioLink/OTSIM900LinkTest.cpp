@@ -56,11 +56,26 @@ public:
     // This triggers a fail state where the SIM900 carries on responding normally.
     void triggerInvisibleFail() { myState = INVISIBLE_FAIL; }
 private:
+    /**
+     * @brief   Non-exhaustive list of states we go through using OTSIM900Link.
+     * @note    States with a verb are transitory and can only be exited by the SIM900.
+     */
     enum state_t{
-        POWER_OFF,
-
-        PDP_FAIL,
-        INVISIBLE_FAIL
+        POWER_OFF,      // SIM900 is powered down.
+        POWERING_UP,       // power pin has been toggled, but sim900 not on yet.
+        REGISTERING,    // Trying to connect to a cell mast.
+        IP_INITIAL,     // Registered to a cell mast.
+        IP_START,       // APN set, IP stack started.
+        IP_CONFIGURING, // GPRS connection being started.
+        IP_GPRSACT,     // GPRS ready.
+        IP_STATUS,      // IP address has bee checked.
+        UDP_CONNECTING, // Opening UDP connection.
+        UDP_CONNECT_OK, // UDP connection ready..
+        UDP_CLOSING,
+        UDP_CLOSED,     // UDP connection closed but GPRS still active.
+        PDP_DEACTIVATING,
+        PDP_FAIL,       // Registration lost during GPRS connection. Unrecoverable.
+        INVISIBLE_FAIL  // SIM900 responding as normal but not sending. Unrecoverable, undetectable by device.
     } myState;
 };
 
