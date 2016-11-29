@@ -57,38 +57,144 @@ public:
      * @param   command:    String containing the command.
      * @param   reply:      String to contain the response. Must be big enough to fit the full response!
      * @todo    add state machine updates
+     * @note    APN must be set to "apn" with no quotes to be accepted.
      */
     void _poll(const std::string &command, std::string &reply) {
-        if (myState > POWER_OFF) {
             // Respond to particular commands when not powered down...
-            if("AT" == command) {
-                if(myState == POWERING_UP) reply = "vfd";   // garbage when not fully powered.
-                else reply = "AT\r\n\r\nOK\r\n";            // Normal response.
-            }
-            else if("AT+CPIN?" == command) { reply = /* (random() & 1) ? "No PIN\r" : */ "AT+CPIN?\r\n\r\n+CPIN: READY\r\n\r\nOK\r\n"; }  // Relevant states: CHECK_PIN
-            else if("AT+CREG?" == command) { reply = /* (random() & 1) ? "+CREG: 0,0\r" : */ "AT+CREG?\r\n\r\n+CREG: 0,5\r\n\r\n'OK\r\n"; } // Relevant states: WAIT_FOR_REGISTRATION
-            else if("AT+CSTT=apn" == command) { reply =  "AT+CSTT\r\n\r\nOK\r"; } // Relevant states: SET_APN
-            else if("AT+CIPSTATUS" == command) {
-                switch (sim900LinkState){
-                    case OTSIM900Link::GET_STATE:  // GPRS inactive)
-                        sim900LinkState = OTSIM900Link::START_GPRS;
-                        reply = "AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP START\r\n";
-                        break;
-                    case OTSIM900Link::START_GPRS:          // GPRS is activated.
-                        sim900LinkState = OTSIM900Link::GET_IP;
-                        reply = "AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP GPRSACT\r\n";
-                        break;
-                    case OTSIM900Link::GET_IP:    // UDP connected.
-                        reply = "AT+CIPSTATUS\r\n\r\nOK\r\nSTATE: CONNECT OK\r\n";
-                        break;
-                    default: break;
-                }
-            }  // Relevant states: START_GPRS, WAIT_FOR_UDP
-            else if("AT+CIICR" == command) { reply = "AT+CIICR\r\n\r\nOK\r\n"; }  // Relevant states: START_GPRS
-            else if("AT+CIFSR" == command) { reply = "AT+CIFSR\r\n\r\n172.16.101.199\r\n"; }  // Relevant States: GET_IP
-            else if("AT+CIPSTART=\"UDP\",\"0.0.0.0\",\"9999\"" == command) { reply = "AT+CIPSTART=\"UDP\",\"0.0.0.0\",\"9999\"\r\n\r\nOK\r\n\r\nCONNECT OK\r\n"; }  // Relevant states: OPEN_UDP
-            else if("AT+CIPSEND=3" == command) { reply = "AT+CIPSEND=3\r\n\r\n>"; }  // Relevant states:  SENDING
+        switch (myState) {
+        case POWER_OFF: break;  // do nothing
+        case POWERING_UP:
+            // send some garbage.
+            reply = "vfd";   // garbage when not fully powered. todo replace with random characters
+            // todo wait some time and power up
+
+            break;
+        case REGISTERING:
+            // Wait for some time to pass.
+            if(commands.AT == command) { reply = replies.AT; }           // Normal response
+            else if(commands.CPIN == command) { reply = replies.CPIN_READY; }   // No need to set a PIN.
+            else if(commands.CREG == command) { reply = replies.CREG_FALSE; } // not registered
+            else if(commands.CSTT == command) { reply = replies.CSTT_FALSE; }
+            else if(commands.CIICR == command) { reply = replies.CIICR_FALSE; }
+            else if(commands.CIFSR == command) { reply = replies.CIFSR_FALSE; }
+            else if(commands.CIPSTATUS == command) { reply = replies.CIPSTATUS_FALSE; }
+            else if(commands.CIPSTART == command) { reply = replies.CIPSTART_FALSE; }
+            else if(commands.CIPSEND == command) { reply = replies.CIPSEND_FALSE; }
+            else if("123" == command) { reply = "123\r\nERROR\r\n"; }  // Relevant states: SENDING TODO CHECK
+            break;
+        case IP_INITIAL:
+            // Need APN to be set. (CSTT=...)
+            if(commands.AT == command) { reply = replies.AT; }           // Normal response
+            else if(commands.CPIN == command) { reply = replies.CPIN_READY; }   // No need to set a PIN.
+            else if(commands.CREG == command) { reply = replies.CREG_READY; }
+            else if(commands.CSTT == command) { reply =  replies.CSTT_READY; } // Relevant states: SET_APN
+            else if(commands.CIICR == command) { reply = replies.CIICR_FALSE; }
+            else if(commands.CIFSR == command) { reply = replies.CIFSR_FALSE; }
+            else if(commands.CIPSTATUS == command) { reply = replies.CIPSTATUS_FALSE; }
+            else if(commands.CIPSTART == command) { reply = replies.CIPSTART_FALSE; }
+            else if(commands.CIPSEND == command) { reply = replies.CIPSEND_FALSE; }
+            else if("123" == command) { reply = "123\r\nERROR\r\n"; }  // Relevant states: SENDING TODO CHECK
+            break;
+        case IP_START:
+            // Need to start GPRS (CIICR)
+            if(commands.AT == command) { reply = replies.AT; }           // Normal response
+            else if(commands.CPIN == command) { reply = replies.CPIN_READY; }   // No need to set a PIN.
+            else if(commands.CREG == command) { reply = replies.CREG_READY; }
+            else if(commands.CSTT == command) { reply = replies.CSTT_FALSE; }
+            else if(commands.CIICR == command) { reply = replies.CIICR_READY; }
+            else if(commands.CIFSR == command) { reply = replies.CIFSR_FALSE; }
+            else if(commands.CIPSTATUS == command) { reply = replies.CIPSTATUS_START; }
+            else if(commands.CIPSTART == command) { reply = replies.CIPSTART_FALSE; }
+            else if(commands.CIPSEND == command) { reply = replies.CIPSEND_FALSE; }
+            else if("123" == command) { reply = "123\r\nERROR\r\n"; }  // Relevant states: SENDING TODO CHECK
+            break;
+        case IP_CONFIGURING:
+            // Wait a bit
+            break;
+        case IP_GPRSACT:
+            // Need to check IP address (CIFSR)
+            if(commands.AT == command) { reply = replies.AT; }           // Normal response
+            else if(commands.CPIN == command) { reply = replies.CPIN_READY; }   // No need to set a PIN.
+            else if(commands.CREG == command) { reply = replies.CREG_READY; }
+            else if(commands.CSTT == command) { reply = replies.CSTT_FALSE; }
+            else if(commands.CIICR == command) { reply = replies.CIICR_FALSE; }
+            else if(commands.CIFSR == command) { reply = replies.CIFSR_READY; }
+            else if(commands.CIPSTATUS == command) { reply = replies.CIPSTATUS_GPRSACT; }
+            else if(commands.CIPSTART == command) { reply = replies.CIPSTART_FALSE; }
+            else if(commands.CIPSEND == command) { reply = replies.CIPSEND_FALSE; }
+            else if("123" == command) { reply = "123\r\nERROR\r\n"; }  // Relevant states: SENDING TODO CHECK
+            break;
+        case IP_STATUS:
+            // Need to open UDP connection
+            if(commands.AT == command) { reply = replies.AT; }           // Normal response
+            else if(commands.CPIN == command) { reply = replies.CPIN_READY; }   // No need to set a PIN.
+            else if(commands.CREG == command) { reply = replies.CREG_READY; }
+            else if(commands.CSTT == command) { reply = replies.CSTT_FALSE; }
+            else if(commands.CIICR == command) { reply = replies.CIICR_FALSE; }
+            else if(commands.CIFSR == command) { reply = replies.CIFSR_READY; }
+            else if(commands.CIPSTATUS == command) { reply = replies.CIPSTATUS_GPRSACT; }
+            else if(commands.CIPSTART == command) { reply = replies.CIPSTART_TRUE; }
+            else if(commands.CIPSEND == command) { reply = replies.CIPSEND_FALSE; }
+            else if("123" == command) { reply = "123\r\nERROR\r\n"; }  // Relevant states: SENDING TODO CHECK
+            break;
+        case UDP_CONNECTING:
+            // Wait a bit
+            break;
+        case UDP_CONNECT_OK:
+            // This should correspond to IDLE. Waiting to send stuff.
+            if(commands.AT == command) { reply = replies.AT; }           // Normal response
+            else if(commands.CPIN == command) { reply = replies.CPIN_READY; }   // No need to set a PIN.
+            else if(commands.CREG == command) { reply = replies.CREG_READY; }
+            else if(commands.CSTT == command) { reply = replies.CSTT_FALSE; }
+            else if(commands.CIICR == command) { reply = replies.CIICR_FALSE; }
+            else if(commands.CIFSR == command) { reply = replies.CIFSR_READY; }
+            else if(commands.CIPSTATUS == command) { reply = replies.CIPSTATUS_CONNECTED; }
+            else if(commands.CIPSTART == command) { reply = replies.CIPSTART_FALSE; }
+            else if(commands.CIPSEND == command) { reply = replies.CIPSEND_TRUE; }  // Relevant states:  SENDING
             else if("123" == command) { reply = "123\r\nSEND OK\r\n"; }  // Relevant states: SENDING
+            break;
+        case UDP_CLOSING:
+            // Wait a bit
+            break;
+        case UDP_CLOSED:
+            // Need to open UDP or close GPRS.
+            if(commands.AT == command) { reply = replies.AT; }           // Normal response
+            else if(commands.CPIN == command) { reply = replies.CPIN_READY; }   // No need to set a PIN.
+            else if(commands.CREG == command) { reply = replies.CREG_READY; }
+            else if(commands.CSTT == command) { reply = replies.CSTT_FALSE; }
+            else if(commands.CIICR == command) { reply = replies.CIICR_FALSE; }
+            else if(commands.CIFSR == command) { reply = replies.CIFSR_READY; }
+            else if(commands.CIPSTATUS == command) { reply = replies.CIPSTATUS_START; } // todo check
+            else if(commands.CIPSTART == command) { reply = replies.CIPSTART_TRUE; }
+            else if(commands.CIPSEND == command) { reply = replies.CIPSEND_FALSE; }
+            else if("123" == command) { reply = "123\r\nERROR\r\n"; }  // Relevant states: SENDING TODO CHECK
+            break;
+        case PDP_DEACTIVATING:
+            if(commands.AT == command) { reply = replies.AT; }           // Normal response
+            else if(commands.CPIN == command) { reply = replies.CPIN_READY; }   // No need to set a PIN.
+            else if(commands.CREG == command) { reply = replies.CREG_READY; }
+            else if(commands.CSTT == command) { reply = replies.CSTT_FALSE; }
+            else if(commands.CIICR == command) { reply = replies.CIICR_FALSE; }
+            else if(commands.CIFSR == command) { reply = replies.CIFSR_FALSE; }
+            else if(commands.CIPSTATUS == command) { reply = replies.CIPSTATUS_PDPDEACT; }
+            else if(commands.CIPSTART == command) { reply = replies.CIPSTART_FALSE; }
+            else if(commands.CIPSEND == command) { reply = replies.CIPSEND_FALSE; }
+            else if("123" == command) { reply = "123\r\nERROR\r\n"; }  // Relevant states: SENDING TODO CHECK
+            break;
+        case PDP_FAIL:
+            // Everything has died.
+            if(commands.AT == command) { reply = replies.AT; }           // Normal response
+            else if(commands.CPIN == command) { reply = replies.CPIN_READY; }   // No need to set a PIN.
+            else if(commands.CREG == command) { reply = replies.CREG_READY; }
+            else if(commands.CSTT == command) { reply = replies.CSTT_FALSE; }
+            else if(commands.CIICR == command) { reply = replies.CIICR_FALSE; }
+            else if(commands.CIFSR == command) { reply = replies.CIFSR_FALSE; }
+            else if(commands.CIPSTATUS == command) { reply = replies.CIPSTATUS_PDPDEACT; }
+            else if(commands.CIPSTART == command) { reply = replies.CIPSTART_FALSE; }
+            else if(commands.CIPSEND == command) { reply = replies.CIPSEND_FALSE; }
+            else if("123" == command) { reply = "123\r\nERROR\r\n"; }  // Relevant states: SENDING TODO CHECK
+            break;
+        default: break;
         }
     }
 
@@ -119,14 +225,14 @@ private:
         UDP_CLOSED,     // UDP connection closed but GPRS still active.
         PDP_DEACTIVATING,
         PDP_FAIL,       // Registration lost during GPRS connection. Unrecoverable.
-        INVISIBLE_FAIL  // SIM900 responding as normal but not sending. Unrecoverable, undetectable by device.
+        INVISIBLE_FAIL  // SIM900 responding as normal but not sending. Unrecoverable, undetectable by device. todo take this out of enum.
     } myState;
 
     /**
      * @brief   Work through the states as appropriate.
      * @todo    Add support for passing in strings.
      */
-    void updateState(const std::string command) {
+    void updateState(const std::string &command) {
         switch (myState) {
         case POWER_OFF:
             // do nothing
@@ -184,6 +290,40 @@ private:
         default: break;
         }
     }
+
+    struct SIM900Commands {
+        constexpr std::string AT = "AT";
+        constexpr std::string CPIN = "AT+CPIN?";
+        constexpr std::string CREG = "AT+CREG?";
+        constexpr std::string CSTT = "AT+CSTT=apn";
+        constexpr std::string CIICR = "AT+CIICR";
+        constexpr std::string CIFSR = "AT+CIFSR";
+        constexpr std::string CIPSTATUS = "AT+CIPSTATUS";
+        constexpr std::string CIPSTART = "AT+CIPSTART=\"UDP\",\"0.0.0.0\",\"9999\"";
+        constexpr std::string CIPSEND = "AT+CIPSEND=3";
+    } commands;
+
+    struct SIM900Replies {
+        constexpr std::string AT = "AT\r\n\r\nOK\r\n";
+        constexpr std::string CPIN_READY = "AT+CPIN?\r\n\r\n+CPIN: READY\r\n\r\nOK\r\n";
+        constexpr std::string CREG_FALSE = "AT+CREG?\r\n\r\n+CREG: 0,0\r\n\r\n'OK\r\n";
+        constexpr std::string CREG_READY = "AT+CREG?\r\n\r\n+CREG: 0,5\r\n\r\n'OK\r\n";
+        constexpr std::string CSTT_FALSE = "AT+CSTT\r\n\r\nERROR\r";
+        constexpr std::string CSTT_READY = "AT+CSTT\r\n\r\nOK\r";
+        constexpr std::string CIICR_FALSE = "AT+CIICR\r\n\r\nERROR\r\n"; // todo check
+        constexpr std::string CIICR_READY = "AT+CIICR\r\n\r\nOK\r\n";
+        constexpr std::string CIFSR_FALSE = "AT+CIFSR\r\n\r\nERRORr\n";
+        constexpr std::string CIFSR_READY = "AT+CIFSR\r\n\r\n172.16.101.199\r\n";
+        constexpr std::string CIPSTATUS_FALSE = "AT+CIPSTATUS\r\n\r\nOK\r\n\r\nERROR\r\n" ; // TODO CHECK
+        constexpr std::string CIPSTATUS_START = "AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP START\r\n" ;
+        constexpr std::string CIPSTATUS_GPRSACT = "AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP GPRSACT\r\n" ;
+        constexpr std::string CIPSTATUS_CONNECTED = "AT+CIPSTATUS\r\n\r\nOK\r\nSTATE: CONNECT OK\r\n" ;
+        constexpr std::string CIPSTATUS_PDPDEACT = "AT+CIPSTATUS\r\n\r\nOK\r\nSTATE: PDP-DEACT" ;
+        constexpr std::string CIPSTART_FALSE = "AT+CIPSTART=\"UDP\",\"0.0.0.0\",\"9999\"\r\n\r\nERROR\r\n" ;
+        constexpr std::string CIPSTART_TRUE = "AT+CIPSTART=\"UDP\",\"0.0.0.0\",\"9999\"\r\n\r\nOK\r\n\r\nCONNECT OK\r\n" ;
+        constexpr std::string CIPSEND_FALSE = "AT+CIPSEND=3\r\n\r\nERROR" ; // TODO CHECK
+        constexpr std::string CIPSEND_TRUE = "AT+CIPSEND=3\r\n\r\n>" ;
+    } replies;
 };
 
 }
