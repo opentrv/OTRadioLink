@@ -393,7 +393,9 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
       if(dontTurndown()) { return(valvePCOpen); }
 
       // True if just above the the proportional range.
-      const bool justOverTemp = (adjustedTempC == inputState.targetTempC+1);
+      // Extend that 'just over' with a widened deadband to reduce movement and noise at night for example (TODO-1027).
+      const bool justOverTemp = (adjustedTempC == inputState.targetTempC+1) ||
+          (inputState.widenDeadband && (adjustedTempC == inputState.targetTempC+2));
 
       // TODO-453: avoid closing the valve at all when the temperature error is small and falling, and there is a widened deadband.
       if(justOverTemp && inputState.widenDeadband && (getRawDelta() < 0)) { return(valvePCOpen); }
