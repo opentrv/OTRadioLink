@@ -300,13 +300,13 @@ namespace OTRFM23BLink
             // Returns true if it successfully began, false otherwise.
             // Allows logic to end() if required at the end of a block, etc.
             // Defaults to do nothing (and return false).
-            virtual bool begin();
+            virtual bool begin() override;
 
             // Returns the current receive error state; 0 indicates no error, +ve is the error value.
             // RX errors may be queued with depth greater than one,
             // or only the last RX error may be retained.
             // Higher-numbered error states may be more severe or more specific.
-            virtual uint8_t getRXErr() { ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { const uint8_t r = (uint8_t)lastRXErr; lastRXErr = 0; return(r); } return 0;} // FIXME Added return 0 to fix warning
+            virtual uint8_t getRXErr() override { ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { const uint8_t r = (uint8_t)lastRXErr; lastRXErr = 0; return(r); } return 0;} // FIXME Added return 0 to fix warning
 
             // Send/TX a raw frame on the specified (default first/0) channel.
             // This does not add any pre- or post- amble (etc)
@@ -324,12 +324,12 @@ namespace OTRFM23BLink
             //
             // Implementation specifics:
             //   * at TXmax will do double TX with 15ms sleep/IDLE mode between.
-            virtual bool sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal, bool listenAfter = false);
+            virtual bool sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal, bool listenAfter = false) override;
 
             // End access to this radio link if applicable and not already ended.
             // Returns true if it needed to be ended.
             // Shuts down radio in safe low-power state.
-            virtual bool end();
+            virtual bool end() override;
 
 #if 0 // Defining the virtual destructor uses ~800+ bytes of Flash by forcing use of malloc()/free().
             // Ensure safe instance destruction when derived from.
@@ -381,8 +381,8 @@ namespace OTRFM23BLink
             inline void _SELECT() const { fastDigitalWrite(SPI_nSS_DigitalPin, LOW); _nSSWait(); } // Select/enable RFM23B.
             inline void _DESELECT() const { _nSSWait(); fastDigitalWrite(SPI_nSS_DigitalPin, HIGH); _nSSWait(); } // Deselect/disable RFM23B.
             // Versions accessible to the base class...
-            virtual void _SELECT_() const { _SELECT(); }
-            virtual void _DESELECT_() const { _DESELECT(); }
+            virtual void _SELECT_() const override { _SELECT(); }
+            virtual void _DESELECT_() const override { _DESELECT(); }
 
             // Power SPI up and down given this particular SPI/RFM23B select line.
             // Use all other default values.
@@ -390,8 +390,8 @@ namespace OTRFM23BLink
             inline bool _upSPI() const { return(OTV0P2BASE::t_powerUpSPIIfDisabled<SPI_nSS_DigitalPin, runSPISlow>()); }
             inline void _downSPI() const { OTV0P2BASE::t_powerDownSPI<SPI_nSS_DigitalPin, OTV0P2BASE::V0p2_PIN_SPI_SCK, OTV0P2BASE::V0p2_PIN_SPI_MOSI, OTV0P2BASE::V0p2_PIN_SPI_MISO, runSPISlow>(); }
             // Versions accessible to the base class...
-            virtual bool _upSPI_() const { return(_upSPI()); }
-            virtual void _downSPI_() const { _downSPI(); }
+            virtual bool _upSPI_() const override { return(_upSPI()); }
+            virtual void _downSPI_() const override { _downSPI(); }
 
             // True if interrupt line is inactive (or doesn't exist).
             // A poll or interrupt service routine can terminate immediately if this is true.
@@ -407,7 +407,7 @@ namespace OTRFM23BLink
                 _DESELECT();
                 }
             // Version accessible to the base class...
-            virtual void _writeReg8Bit_(const uint8_t addr, const uint8_t val) { _writeReg8Bit(addr, val); }
+            virtual void _writeReg8Bit_(const uint8_t addr, const uint8_t val) override { _writeReg8Bit(addr, val); }
 
             // Write 0 to 16-bit register on RFM23B as burst.
             // SPI must already be configured and running.
@@ -432,7 +432,7 @@ namespace OTRFM23BLink
                 return(result);
                 }
             // Version accessible to the base class...
-            virtual uint8_t _readReg8Bit_(const uint8_t addr) const { return(_readReg8Bit(addr)); }
+            virtual uint8_t _readReg8Bit_(const uint8_t addr) const override { return(_readReg8Bit(addr)); }
 
             // Read from 16-bit big-endian register pair.
             // The result has the first (lower-numbered) register in the most significant byte.
@@ -457,7 +457,7 @@ V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("Sb");
 #endif
                 }
             // Version accessible to the base class...
-            virtual void _modeStandby_() { _modeStandby(); }
+            virtual void _modeStandby_() override { _modeStandby(); }
 
             // Enter transmit mode (and send any packet queued up in the TX FIFO).
             // SPI must already be configured and running.
@@ -469,7 +469,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Tx");
 #endif
                 }
             // Version accessible to the base class...
-            virtual void _modeTX_() { _modeTX(); }
+            virtual void _modeTX_() override { _modeTX(); }
 
             // Enter receive mode.
             // SPI must already be configured and running.
@@ -481,7 +481,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Rx");
 #endif
                 }
             // Version accessible to the base class...
-            virtual void _modeRX_() { _modeRX(); }
+            virtual void _modeRX_() override { _modeRX(); }
 
             // Read/discard status (both registers) to clear interrupts.
             // SPI must already be configured and running.
@@ -496,7 +496,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Rx");
                 _DESELECT();
                 }
             // Version accessible to the base class...
-            virtual void _clearInterrupts_() { _clearInterrupts(); }
+            virtual void _clearInterrupts_() override { _clearInterrupts(); }
 
             // Enter standby mode (consume least possible power but retain register contents).
             // FIFO state and pending interrupts are cleared.
@@ -523,7 +523,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Rx");
 // V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("SCS");
                 }
             // Version accessible to the base class...
-            virtual void _modeStandbyAndClearState_() { _modeStandbyAndClearState(); }
+            virtual void _modeStandbyAndClearState_() override { _modeStandbyAndClearState(); }
 
             // Read status (both registers) and clear interrupts.
             // Status register 1 is returned in the top 8 bits, register 2 in the bottom 8 bits.
@@ -710,7 +710,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // This routine must not lock up if radio is not actually available/fitted.
             // Argument is ignored for this implementation.
             // NOT INTERRUPT SAFE and should not be called concurrently with any other RFM23B/SPI operation.
-            virtual void preinit(const void */*preconfig*/) { _powerOnInit(); }
+            virtual void preinit(const void */*preconfig*/) override { _powerOnInit(); }
 
             // Poll for incoming messages (eg where interrupts are not available) and other processing.
             // Can be used safely in addition to handling inbound/outbound interrupts.
@@ -719,7 +719,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // May also be used for output processing,
             // eg to run a transmit state machine.
             // May be called very frequently and should not take more than a few 100ms per call.
-            virtual void poll() { if(!interruptLineIsEnabledAndInactive()) { ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { _poll(); } } }
+            virtual void poll() override { if(!interruptLineIsEnabledAndInactive()) { ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { _poll(); } } }
 
             // Handle simple interrupt for this radio link.
             // Must be fast and ISR (Interrupt Service Routine) safe.
@@ -729,7 +729,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // Loosely has the effect of calling poll(),
             // but may respond to and deal with things other than inbound messages.
             // Initiating interrupt assumed blocked until this returns.
-            virtual bool handleInterruptSimple()
+            virtual bool handleInterruptSimple() override
                 {
                 if(!allowRX) { return(false); }
                 if(interruptLineIsEnabledAndInactive()) { return(false); }
@@ -774,7 +774,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                 }
 
             // Fetches the current inbound RX minimum queue capacity and maximum RX (and TX) raw message size.
-            virtual void getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen) const
+            virtual void getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen) const override
                 {
                 queueRX.getRXCapacity(queueRXMsgsMin, maxRXMsgLen);
                 maxTXMsgLen = MaxTXMsgLen;
@@ -782,7 +782,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
 
             // Fetches the current count of queued messages for RX.
             // ISR-/thread- safe.
-            virtual uint8_t getRXMsgsQueued() const { return(queueRX.getRXMsgsQueued()); }
+            virtual uint8_t getRXMsgsQueued() const override { return(queueRX.getRXMsgsQueued()); }
 
             // Peek at first (oldest) queued RX message, returning a pointer or NULL if no message waiting.
             // The pointer returned is NULL if there is no message,
@@ -795,13 +795,13 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // This does not remove the message or alter the queue.
             // The buffer pointed to MUST NOT be altered.
             // Not intended to be called from an ISR.
-            virtual const volatile uint8_t *peekRXMsg() const { return(queueRX.peekRXMsg()); }
+            virtual const volatile uint8_t *peekRXMsg() const override { return(queueRX.peekRXMsg()); }
 
             // Remove the first (oldest) queued RX message.
             // Typically used after peekRXMessage().
             // Does nothing if the queue is empty.
             // Not intended to be called from an ISR.
-            virtual void removeRXMsg() { queueRX.removeRXMsg(); }
+            virtual void removeRXMsg() override { queueRX.removeRXMsg(); }
 
 #if 0 // Defining the virtual destructor uses ~800+ bytes of Flash by forcing use of malloc()/free().
             // Ensure safe instance destruction when derived from.
