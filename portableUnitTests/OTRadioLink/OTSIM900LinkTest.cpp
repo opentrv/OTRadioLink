@@ -1214,9 +1214,13 @@ class SoftSerialSimulator final : public Stream
         virtual int peek() override { return(-1); }
         // Method from Stream.
         virtual void flush() override { }
+        // Method from Stream.
+        void begin(unsigned long) { }
     };
 // Singleton instance.
 static SoftSerialSimulator serialConnection;
+std::string SoftSerialSimulator::toBeRead;
+std::string SoftSerialSimulator::written;
 
 // Test usability of SoftSerialSimulator, eg can it compile.
 TEST(OTSIM900Link, SoftSerialSimulatorTest)
