@@ -81,7 +81,8 @@ static constexpr uint8_t ABS_MIN_AMBLIGHT_HYST_UINT8 = 2;
 
 // Recomputes thresholds and 'unusable' based on current state.
 //   * sensitive  if true be more sensitive to possible occupancy changes, else less so.
-void SensorAmbientLightAdaptive::recomputeThresholds(const bool sensitive)
+void SensorAmbientLightAdaptive::recomputeThresholds(
+        const uint8_t meanNowOrFF, const bool sensitive)
   {
   // If either recent max or min is unset then assume device usable.
   // Use default threshold(s).
@@ -116,15 +117,20 @@ void SensorAmbientLightAdaptive::recomputeThresholds(const bool sensitive)
   // Some areas may have background flicker eg from trees moving or cars passing, so units there may need desensitising.
   // Could (say) increment an additional margin (up to ~25%) on each non-zero-trigger last hour, else decrement.
   //
-  // Take upwards delta indicative of lights on, and hysteresis, as ~12.5% of FSD if 'sensitive'/default,
-  // else 25% if less sensitive.
+  // Default upwards delta indicative of lights on, and hysteresis, is ~12.5% of FSD if default,
+  // else half that if sensitive.
   //
   // TODO: possibly allow a small adjustment on top of this to allow >= 1 each trigger and trigger-free hours each day.
   // Some areas may have background flicker eg from trees moving or cars passing, so units there may need desensitising.
   // Could (say) increment an additional margin (up to half) on each non-zero-trigger last hour, else decrement.
-  const uint8_t upDelta = OTV0P2BASE::fnmax((uint8_t)((rollingMax - rollingMin) >> (sensitive ? 3 : 2)), ABS_MIN_AMBLIGHT_HYST_UINT8);
+
+  // If mean is available (and bounded by min and max) then use blend of max and mean.
+  const uint8_t upperBound = ((rollingMin < meanNowOrFF) && (meanNowOrFF < rollingMax)) ?
+      (((meanNowOrFF + rollingMax) + 1) >> 1) : rollingMax;
+
+  // Compute hysteresis.
+  const uint8_t upDelta = OTV0P2BASE::fnmax((uint8_t)((upperBound - rollingMin) >> (sensitive ? 4 : 3)), ABS_MIN_AMBLIGHT_HYST_UINT8);
   // Provide some noise elbow-room above the observed minimum.
-  // Set the hysteresis values to be the same as the upDelta.
   darkThreshold = (uint8_t) OTV0P2BASE::fnmin(254, rollingMin+1 + (upDelta>>1));
   lightThreshold = (uint8_t) OTV0P2BASE::fnmin(rollingMax-1, darkThreshold + upDelta);
 
@@ -144,7 +150,7 @@ void SensorAmbientLightAdaptive::setTypMinMax(const uint8_t meanNowOrFF,
   rollingMin = longerTermMinimumOrFF;
   rollingMax = longerTermMaximumOrFF;
 
-  recomputeThresholds(sensitive);
+  recomputeThresholds(meanNowOrFF, sensitive);
 
   // Pass on appropriate properties to the occupancy detector.
   occupancyDetector.setTypMinMax(meanNowOrFF,

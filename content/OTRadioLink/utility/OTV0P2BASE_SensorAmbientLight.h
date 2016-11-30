@@ -134,7 +134,7 @@ class SensorAmbientLightAdaptive : public SensorAmbientLightBase
 
     // Recomputes thresholds and 'unusable' based on current state.
     //   * sensitive  if true be more sensitive to possible occupancy changes, else less so.
-    void recomputeThresholds(bool sensitive = true);
+    void recomputeThresholds(uint8_t meanNowOrFF, bool sensitive);
 
   public:
     // Get light threshold, above which room is considered light enough for activity [1,254].
@@ -181,7 +181,7 @@ class SensorAmbientLightAdaptiveMock : public SensorAmbientLightAdaptive
 #ifdef ARDUINO_ARCH_AVR
 // Sensor for ambient light level; 0 is dark, 255 is bright.
 //
-// The REV7 implementation expects a phototransitor TEPT4400 (50nA dark current, nominal 200uA@100lx@Vce=50V) from IO_POWER_UP to LDR_SENSOR_AIN and 220k to ground.
+// The REV7 implementation expects a phototransistor TEPT4400 (50nA dark current, nominal 200uA@100lx@Vce=50V) from IO_POWER_UP to LDR_SENSOR_AIN and 220k to ground.
 // Measurement should be taken wrt to internal fixed 1.1V bandgap reference, since light indication is current flow across a fixed resistor.
 // Aiming for maximum reading at or above 100--300lx, ie decent domestic internal lighting.
 // Note that phototransistor is likely far more directionally-sensitive than REV2's LDR and its response nominally nearly linear.
