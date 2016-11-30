@@ -413,10 +413,11 @@ public:
 class SoftSerialSimulator final : public Stream
     {
     private:
-        // Data available to be read().
-        static std::string toBeRead;
+
 
     public:
+    // Data available to be read().
+    static std::string toBeRead; // XXX make private
         bool verbose = false;
 
         // Reset to clear state before a new test.
@@ -442,7 +443,7 @@ class SoftSerialSimulator final : public Stream
         virtual int read() override
         {
             if(0 == toBeRead.size()) { return(-1); }
-            const char c = -1;//toBeRead[0];
+            const char c = toBeRead.front();
             if(verbose) { if(isprint(c)) { fprintf(stderr, ">%c\n", c); } else { fprintf(stderr, "> %d\n", (int)c); } }
             toBeRead.erase(0, 1);
             return(c);
@@ -554,11 +555,12 @@ TEST(OTSIM900Link, SoftSerialSimulatorTest)
 // Test usability of SIM900 emulator, eg can it compile.
 TEST(OTSIM900Link, SIM900EmulatorTest)
 {
-    SIM900Emu::serialConnection.verbose = true;
     // Clear out any serial state.
     SIM900Emu::serialConnection.reset();
     SIM900Emu::SIM900 sim900;
-    sim900.setVerbose(true); // verbose debug.
+
+//    SIM900Emu::serialConnection.verbose = true;
+//    sim900.setVerbose(true); // verbose debug.
 
     const char SIM900_PIN[] = "1111";
     const char SIM900_APN[] = "apn";
@@ -576,9 +578,10 @@ TEST(OTSIM900Link, SIM900EmulatorTest)
         std::string replyBuffer = "";
         incrementVTOneCycle();
         l0.poll();
+        incrementVTOneCycle();
         sim900.poll(SIM900Emu::serialConnection.written, replyBuffer, l0._isPinHigh());
-//        if(replyBuffer.size()) fprintf(stderr, "reply:\n%s\n", replyBuffer.c_str()); // confirmed reply received.
         SIM900Emu::serialConnection.addCharToRead(replyBuffer);
+        if(replyBuffer.size()) fprintf(stderr, "toBeRead:\n%s\n", SIM900Emu::serialConnection.toBeRead.c_str());
     }
 
     // ...
