@@ -77,54 +77,19 @@ uint8_t SensorAmbientLight::read()
   // Photosensor vs Vsupply [0,1023].  // May allow against Vbandgap again for some variants.
   const uint16_t al0 = OTV0P2BASE::analogueNoiseReducedRead(V0p2_PIN_LDR_SENSOR_AIN, DEFAULT); // ALREFERENCE);
   const uint16_t al = al0; // Use raw value as-is.
-//#if !defined(EXTEND_OPTO_SENSOR_RANGE)
-//  const uint16_t al = al0; // Use raw value as-is.
-//#else // defined(EXTEND_OPTO_SENSOR_RANGE)
-//  uint16_t al; // Ambient light.
-//  // Default shift of raw value to extend effective scale.
-//  al = al0 >> shiftExtendedToRawScale;
-//  // If simple reading against bandgap at full scale then compute extended range.
-//  // Two extra ADC measurements take extra time and introduce noise.
-//  if(al0 >= rawScale-1)
-//    {
-//    // Photosensor vs Vsupply reference, [0,1023].
-//    const uint16_t al1 = OTV0P2BASE::analogueNoiseReducedRead(LDR_SENSOR_AIN, DEFAULT);
-//    const uint16_t vcc = Supply_cV.read();
-//    const uint16_t vbg = Supply_cV.getRawInv(); // Vbandgap wrt Vsupply, [0,1023].
-//    // Compute value in extended range up to ~1024 * Vsupply/Vbandgap.
-//    // Faster overflow-free uint16_t-only approximation to (uint16_t)((al1 * 1024L) / vbg)).
-//    const uint16_t ale = fnmin(4095U, ((al1 << 6) / vbg)) << 4;
-//    if(ale > al0) // Keep output scale monotonic...
-//      { al = fnmin(1023U, ale >> shiftExtendedToRawScale); }
-//#if 1 && defined(DEBUG)
-//    DEBUG_SERIAL_PRINT_FLASHSTRING("Ambient raw: ");
-//    DEBUG_SERIAL_PRINT(al0);
-//    DEBUG_SERIAL_PRINT_FLASHSTRING(", against Vcc: ");
-//    DEBUG_SERIAL_PRINT(al1);
-//    DEBUG_SERIAL_PRINT_FLASHSTRING(", extended scale value: ");
-//    DEBUG_SERIAL_PRINT(ale);
-//    DEBUG_SERIAL_PRINT_FLASHSTRING(", Vref against Vcc: ");
-//    DEBUG_SERIAL_PRINT(vbg);
-//    DEBUG_SERIAL_PRINT_FLASHSTRING(", Vcc: ");
-//    DEBUG_SERIAL_PRINT(vcc);
-////    DEBUG_SERIAL_PRINT_FLASHSTRING(", es threshold: ");
-////    DEBUG_SERIAL_PRINT(aleThreshold);
-//    DEBUG_SERIAL_PRINT_FLASHSTRING(", compressed: ");
-//    DEBUG_SERIAL_PRINT(al);
-//    DEBUG_SERIAL_PRINTLN();
-//#endif
-//    }
-//#endif // defined(EXTEND_OPTO_SENSOR_RANGE)
   // Power off to top of LDR/phototransistor.
   OTV0P2BASE::power_intermittent_peripherals_disable();
 
-  // Capture entropy from changed LS bits.
-  if((uint8_t)al != (uint8_t)rawValue) { ::OTV0P2BASE::addEntropyToPool((uint8_t)al, 0); } // Claim zero entropy as may be forced by Eve.
+//  // Capture entropy from changed LS bits.
+//  if((uint8_t)al != (uint8_t)rawValue) { ::OTV0P2BASE::addEntropyToPool((uint8_t)al, 0); } // Claim zero entropy as may be forced by Eve.
 
 //  // Hold the existing/old value for comparison.
 //  const uint8_t oldValue = value;
   // Compute the new normalised value.
   const uint8_t newValue = (uint8_t)(al >> shiftRawScaleTo8Bit);
+
+  // Capture entropy from changed LS bits.
+  if(newValue != value) { ::OTV0P2BASE::addEntropyToPool((uint8_t)al, 0); } // Claim zero entropy as may be forced by Eve.
 
   // Adjust room-lit flag, with hysteresis.
   // Should be able to detect dark when darkThreshold is zero and newValue is zero.
@@ -173,31 +138,30 @@ uint8_t SensorAmbientLight::read()
 #endif
 
   // Store new value, in its various forms.
-  rawValue = al;
+//  rawValue = al;
   value = newValue;
   return(value);
   }
 
 // Maximum value in the uint8_t range.
-static const uint8_t MAX_AMBLIGHT_VALUE_UINT8 = 254;
+static constexpr uint8_t MAX_AMBLIGHT_VALUE_UINT8 = 254;
 // Minimum viable range (on [0,254] scale) to be usable.
-static const uint8_t ABS_MIN_AMBLIGHT_RANGE_UINT8 = 3;
+static constexpr uint8_t ABS_MIN_AMBLIGHT_RANGE_UINT8 = 3;
 // Minimum hysteresis (on [0,254] scale) to be usable and avoid noise triggers.
-static const uint8_t ABS_MIN_AMBLIGHT_HYST_UINT8 = 2;
+static constexpr uint8_t ABS_MIN_AMBLIGHT_HYST_UINT8 = 2;
 
 // Recomputes thresholds and 'unusable' based on current state.
-// WARNING: called from (static) constructors so do not attempt (eg) use of Serial.
+// WARNING: may be called from (static) constructors so do not attempt (eg) use of Serial.
 //   * sensitive  if true be more sensitive to possible occupancy changes, else less so.
 void SensorAmbientLight::_recomputeThresholds(const bool sensitive)
   {
-  // If either recent max or min is unset then assume device usable by default.
+  // If either recent max or min is unset then assume device usable.
   // Use default threshold(s).
   if((0xff == recentMin) || (0xff == recentMax))
     {
     // Use the supplied default light threshold and derive the rest from it.
-    lightThreshold = defaultLightThreshold;
-    upDelta = OTV0P2BASE::fnmax(1, lightThreshold >> 2); // Delta ~25% of light threshold.
-    darkThreshold = lightThreshold - upDelta;
+    lightThreshold = DEFAULT_LIGHT_THRESHOLD;
+    darkThreshold = DEFAULT_LIGHT_THRESHOLD - DEFAULT_upDelta;
     // Assume OK for now.
     unusable = false;
     return;
@@ -209,9 +173,8 @@ void SensorAmbientLight::_recomputeThresholds(const bool sensitive)
      (recentMax - recentMin <= ABS_MIN_AMBLIGHT_RANGE_UINT8))
     {
     // Use the supplied default light threshold and derive the rest from it.
-    lightThreshold = defaultLightThreshold;
-    upDelta = OTV0P2BASE::fnmax(1, lightThreshold >> 2); // Delta ~25% of light threshold.
-    darkThreshold = lightThreshold - upDelta;
+    lightThreshold = DEFAULT_LIGHT_THRESHOLD;
+    darkThreshold = DEFAULT_LIGHT_THRESHOLD - DEFAULT_upDelta;
     // Assume unusable.
     darkTicks = 0; // Scrub any previous possibly-misleading value.
     unusable = true;
@@ -231,7 +194,7 @@ void SensorAmbientLight::_recomputeThresholds(const bool sensitive)
   // TODO: possibly allow a small adjustment on top of this to allow >= 1 each trigger and trigger-free hours each day.
   // Some areas may have background flicker eg from trees moving or cars passing, so units there may need desensitising.
   // Could (say) increment an additional margin (up to half) on each non-zero-trigger last hour, else decrement.
-  upDelta = OTV0P2BASE::fnmax((uint8_t)((recentMax - recentMin) >> (sensitive ? 3 : 2)), ABS_MIN_AMBLIGHT_HYST_UINT8);
+  const uint8_t upDelta = OTV0P2BASE::fnmax((uint8_t)((recentMax - recentMin) >> (sensitive ? 3 : 2)), ABS_MIN_AMBLIGHT_HYST_UINT8);
   // Provide some noise elbow-room above the observed minimum.
   // Set the hysteresis values to be the same as the upDelta.
   darkThreshold = (uint8_t) OTV0P2BASE::fnmin(254, recentMin+1 + (upDelta>>1));

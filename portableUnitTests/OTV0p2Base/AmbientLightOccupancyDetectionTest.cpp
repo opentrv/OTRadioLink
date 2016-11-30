@@ -18,6 +18,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 
 /*
  * Driver for OTV0P2BASE_SensorAmbientLightOccupancy tests.
+ *
+ * These data sets can also be used to test key related and derived behaviours
+ * such as basic ambient light level sensing and temperature setback levels.
  */
 
 #include <stdint.h>
@@ -52,14 +55,32 @@ class ALDataSample final
         // Time/data values.
         const uint8_t d, H, M, L;
 
-        static constexpr int8_t NO_EXPECTATION = -1; // -1 implies no prediction, distinct from all occType values.
-        const int8_t expected = NO_EXPECTATION;
+        // -1 implies no occupancy prediction, distinct from all occType values.
+        static constexpr int8_t NO_OCC_EXPECTATION = -1;
+        // Occupancy prediction OCC_XXX; -1 for no prediction.
+        const int8_t expectedOcc = NO_OCC_EXPECTATION;
+
+        // -1 implies no setback prediction, distinct from all occType values.
+        static constexpr int8_t NO_SB_EXPECTATION = -1;
+        // Scale mid-point setback prediction (C); -1 for no prediction.
+        // This is for a conventional/default set of valve parameters,
+        // mainly intended to ensure sane behaviour under normal circumstances.
+        // Useful setback predictions will probably need at least 24h of data.
+        const int8_t expectedSb = NO_SB_EXPECTATION;
 
         // Day/hour/minute and light level and expected results.
         // An expected result of -1 means no particular result expected from this (anything is acceptable).
         // Else the given occType value is expected.
-        constexpr ALDataSample(uint8_t dayOfMonth, uint8_t hour24, uint8_t minute, uint8_t lightLevel, int8_t expectedResult = NO_EXPECTATION)
-            : d(dayOfMonth), H(hour24), M(minute), L(lightLevel), expected(expectedResult) { }
+        constexpr ALDataSample(uint8_t dayOfMonth, uint8_t hour24, uint8_t minute,
+                               uint8_t lightLevel,
+                               int8_t expectedOcc_ = NO_OCC_EXPECTATION,
+                               int8_t expectedSb_ = NO_SB_EXPECTATION)
+            :
+            d(dayOfMonth), H(hour24), M(minute),
+            L(lightLevel),
+            expectedOcc(expectedOcc_),
+            expectedSb(expectedSb_)
+            { }
 
         // Create/mark a terminating entry; all input values invalid.
         constexpr ALDataSample() : d(255), H(255), M(255), L(255) { }
@@ -105,8 +126,8 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
     ASSERT_FALSE(data->isEnd()) << "do not pass in empty data set";
     // Count of number of records.
     int nRecords = 0;
-    // Count number of records with explicit expected response assertion.
-    int nExpectation = 0;
+    // Count number of records with explicit expected occupancy response assertion.
+    int nOccExpectation = 0;
     // Compute own values for min, max, etc.
     int minI = 256;
     int maxI = -1;
@@ -116,7 +137,8 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
     for(const ALDataSample *dp = data; !dp->isEnd(); ++dp)
         {
         ++nRecords;
-        if(0 != dp->expected) { ++nExpectation; }
+        const int8_t neo = ALDataSample::NO_OCC_EXPECTATION;
+        if(neo != dp->expectedOcc) { ++nOccExpectation; }
         long currentMinute = dp->currentMinute();
         do  {
             const uint8_t level = dp->L;
@@ -129,7 +151,7 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
             ++currentMinute;
             } while((!(dp+1)->isEnd()) && (currentMinute < (dp+1)->currentMinute()));
         }
-    ASSERT_LT(0, nExpectation) << "must assert some expected predictions";
+    ASSERT_LT(0, nOccExpectation) << "must assert some expected predictions";
 //    fprintf(stderr, "minI: %d, maxI %d\n", minI, maxI);
     for(int i = 24; --i >= 0; )
         {
@@ -240,15 +262,15 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
                         }
                     oldH = H;
                     ++updateCalls; // Note the new update() call about to be made.
-                    const OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType prediction = detector->update(dp->L);
-                    if(occType::OCC_NONE != prediction) { ++nOccupancyReports; }
+                    const OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType predictionOcc = detector->update(dp->L);
+                    if(occType::OCC_NONE != predictionOcc) { ++nOccupancyReports; }
                     // Note that for all synthetic ticks the expectation is removed (since there is no level change).
-                    const int8_t expected = (currentMinute != dp->currentMinute()) ? ALDataSample::NO_EXPECTATION : dp->expected;
-if(verbose && (currentMinute == dp->currentMinute()) && (0 != prediction)) { fprintf(stderr, "  prediction=%d @ %dT%d:%0.2d L=%d mean=%d\n", prediction, D, H, M, dp->L, meanUsed); }
-                    if(ALDataSample::NO_EXPECTATION != expected)
+                    const int8_t expected = (currentMinute != dp->currentMinute()) ? ALDataSample::NO_OCC_EXPECTATION : dp->expectedOcc;
+if(verbose && (currentMinute == dp->currentMinute()) && (0 != predictionOcc)) { fprintf(stderr, "  prediction=%d @ %dT%d:%0.2d L=%d mean=%d\n", predictionOcc, D, H, M, dp->L, meanUsed); }
+                    if(ALDataSample::NO_OCC_EXPECTATION != expected)
                         {
-if(verbose && (0 != prediction)) { fprintf(stderr, " expected=%d @ %dT%d:%0.2d L=%d mean=%d\n", expected, D, H, M, dp->L, meanUsed); }
-                        EXPECT_EQ(expected, prediction) << " @ " << ((int)D) << "T" << ((int)H) << ":" << ((int)M) <<
+if(verbose && (0 != predictionOcc)) { fprintf(stderr, " expected=%d @ %dT%d:%0.2d L=%d mean=%d\n", expected, D, H, M, dp->L, meanUsed); }
+                        EXPECT_EQ(expected, predictionOcc) << " @ " << ((int)D) << "T" << ((int)H) << ":" << ((int)M) <<
                             " L="<< ((int)(dp->L)) << " mean="<<((int)meanUsed) << " min="<<((int)minToUse) << " max="<<((int)maxToUse);
                         }
                     ++currentMinute;
@@ -794,12 +816,173 @@ static const ALDataSample sample2bHard[] =
 {9,20,36,3},
     { }
     };
-
 // Test with real data set.
 TEST(AmbientLightOccupancyDetection,sample2bHard)
 {
     OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds1;
     simpleDataSampleRun(sample2bHard, &ds1);
+}
+
+// "2b" 2016/11/28+29 test set with tough occupancy to detect in the evening ~20:00Z to 21:00Z.
+static const ALDataSample sample2bHard2[] =
+    {
+{28,0,8,8},
+{28,0,16,8},
+// ...
+{28,7,21,8},
+{28,7,33,8},
+{28,7,40,35}, // FIXME: should be able to detect curtains drawn here.
+{28,7,53,54},
+{28,8,0,69},
+{28,8,12,85},
+{28,8,16,90},
+{28,8,24,103},
+{28,8,37,115},
+{28,8,41,120},
+{28,8,53,133},
+{28,8,54,134},
+{28,9,0,140},
+{28,9,9,148},
+{28,9,13,152},
+{28,9,25,164},
+{28,9,29,167},
+{28,9,40,173},
+{28,9,44,174},
+{28,9,56,176},
+{28,10,4,176},
+{28,10,10,177},
+{28,10,17,177},
+{28,10,23,178},
+{28,10,24,178},
+{28,10,45,179},
+{28,10,50,179},
+{28,11,0,179},
+{28,11,17,179},
+{28,11,28,179},
+{28,11,37,180},
+{28,11,41,180},
+{28,11,57,180},
+{28,12,4,180},
+{28,12,20,181},
+{28,12,33,181},
+{28,12,44,182},
+{28,12,57,182},
+{28,13,8,183},
+{28,13,21,183},
+{28,13,25,184},
+{28,13,28,184},
+{28,13,45,184},
+{28,13,48,185},
+{28,13,52,185},
+{28,14,8,185},
+{28,14,21,185},
+{28,14,25,185},
+{28,14,32,185},
+{28,14,41,183},
+{28,14,56,184},
+{28,15,5,183},
+{28,15,8,182},
+{28,15,20,176},
+{28,15,24,174},
+{28,15,25,172},
+{28,15,32,151},
+{28,15,40,118},
+{28,15,45,111},
+{28,15,52,68},
+{28,16,1,42},
+{28,16,4,34},
+{28,16,9,8},
+{28,16,16,8},
+// ....
+{28,19,13,8},
+{28,19,28,8},
+{28,19,44,14, occType::OCC_PROBABLE}, // Light on: OCCUPIED.
+{28,19,48,13},
+{28,20,1,16},
+{28,20,16,13},
+{28,20,28,12},
+{28,20,36,15},
+{28,20,40,8},
+{28,20,48,8},
+// ...
+{29,7,20,8},
+{29,7,32,8},
+{29,7,48,34}, // FIXME: should be able to detect curtains drawn here.
+{29,8,1,30},
+{29,8,12,77},
+{29,8,16,82},
+{29,8,36,107},
+{29,8,44,118},
+{29,8,48,122},
+{29,9,0,134},
+{29,9,8,142},
+{29,9,20,153},
+{29,9,24,158},
+{29,9,40,171},
+{29,9,52,175},
+{29,10,4,176},
+{29,10,20,177},
+{29,10,36,178},
+{29,10,52,179},
+{29,11,0,179},
+{29,11,12,179},
+{29,11,28,179},
+{29,11,48,180},
+{29,12,0,180},
+{29,12,8,180},
+{29,12,24,180},
+{29,12,36,181},
+{29,12,40,181},
+{29,12,52,182},
+{29,12,56,182},
+{29,13,8,183},
+{29,13,24,183},
+{29,13,36,184},
+{29,13,44,184},
+{29,13,48,185},
+{29,13,56,185},
+{29,14,8,185},
+{29,14,24,185},
+{29,14,32,184},
+{29,14,44,181},
+{29,14,48,183},
+{29,14,52,184},
+{29,15,4,183},
+{29,15,8,181},
+{29,15,12,174},
+{29,15,24,130},
+{29,15,28,121},
+{29,15,40,89},
+{29,15,44,78},
+{29,15,48,67},
+{29,16,0,38},
+{29,16,8,24},
+{29,16,12,20},
+{29,16,20,13},
+{29,16,29,10},
+{29,16,32,9},
+{29,16,36,9},
+{29,16,48,8},
+{29,16,52,8},
+// ...
+{29,19,28,8},
+{29,19,40,8},
+{29,19,56,16, occType::OCC_PROBABLE}, // Light on: OCCUPIED.
+{29,20,4,12},
+{29,20,8,11},
+{29,20,16,10},
+{29,20,32,8},
+{29,20,44,8},
+// ...
+{29,23,44,8},
+{29,23,56,8},
+     { }
+    };
+// Test with real data set.
+TEST(AmbientLightOccupancyDetection,sample2bHard2)
+{
+    OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds1;
+    simpleDataSampleRun(sample2bHard2, &ds1);
 }
 
 // "6k" 2016/10/08+09 test set relatively easy to detect daytime occupancy in busy room.
@@ -2518,3 +2701,4 @@ TEST(AmbientLightOccupancyDetection,sample3leveningTV)
     OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds1;
     simpleDataSampleRun(sample3leveningTV, &ds1);
 }
+

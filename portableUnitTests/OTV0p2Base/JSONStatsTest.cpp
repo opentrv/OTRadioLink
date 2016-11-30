@@ -76,7 +76,7 @@ TEST(JSONStats,JSONStats)
     EXPECT_EQ(0, ss1.size());
 
     // Check setting direct with Sensor.
-    OTV0P2BASE::SensorAmbientLightMock alm;
+    OTV0P2BASE::SensorAmbientLightSimpleMock alm;
     ss1.put(alm);
     EXPECT_EQ(1, ss1.size());
     EXPECT_EQ(18, ss1.writeJSON((uint8_t*)buf, sizeof(buf), 0, OTV0P2BASE::randRNG8NextBoolean()));
@@ -235,7 +235,7 @@ TEST(JSONStats,VariadicJSON1)
 TEST(JSONStats,VariadicJSON2)
 {
     OTV0P2BASE::HumiditySensorMock RelHumidity;
-    OTV0P2BASE::SensorAmbientLightMock AmbLight;
+    OTV0P2BASE::SensorAmbientLightSimpleMock AmbLight;
     auto ssh2 = OTV0P2BASE::makeJSONStatsHolder(AmbLight, RelHumidity);
     auto &ss2 = ssh2.ss;
     const uint8_t c1 = ss2.getCapacity();
@@ -302,7 +302,7 @@ namespace SSMRV
     static OTV0P2BASE::TemperatureC16Mock roomTemp;
     static OTRadValve::TempControlSimpleVCP<OTRadValve::DEFAULT_ValveControlParameters> tempControl;
     static OTV0P2BASE::PseudoSensorOccupancyTracker occupancy;
-    static OTV0P2BASE::SensorAmbientLightMock ambLight;
+    static OTV0P2BASE::SensorAmbientLightSimpleMock ambLight;
     static OTRadValve::NULLActuatorPhysicalUI physicalUI;
     static OTV0P2BASE::NULLValveSchedule schedule;
     static OTV0P2BASE::NULLByHourByteStats byHourStats;
