@@ -100,8 +100,7 @@ TEST(AmbientLight,basics)
 }
 
 
-
-// Test setting of mean/max/min/sensitive and resulting values.
+// Test setting of mean/max/min/sensitive, and the resulting thresholds.
 TEST(AmbientLight,setTypMinMax)
 {
     OTV0P2BASE::SensorAmbientLightAdaptiveMock alm;
@@ -125,4 +124,3 @@ TEST(AmbientLight,setTypMinMax)
     EXPECT_NEAR(12, alm.getLightThreshold(), 2);
     EXPECT_NEAR(5, alm.getDarkThreshold(), 2);
 }
-
