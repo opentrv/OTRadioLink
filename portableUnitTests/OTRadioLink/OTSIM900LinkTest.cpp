@@ -110,13 +110,12 @@ const char * SIM900Replies::CIPSEND_FALSE = "AT+CIPSEND=3\r\n\r\nERROR" ; // TOD
 const char * SIM900Replies::CIPSEND_TRUE = "AT+CIPSEND=3\r\n\r\n>" ;
 
 /**
- * @brief   Simple emulator for stepping through SIM900 states, including fail states.
- * @todo    state machine
+ * @brief   Simple emulator for keeping track of SIM900 state and providing appropriate responses.
  * @todo    emulate time
  */
-class SIM900Emulator {
+class SIM900StateEmulator {
 public:
-    SIM900Emulator() : oldPinState(false), startTime(0) {};
+    SIM900StateEmulator() : oldPinState(false), startTime(0) {};
 
     /**
      * @brief   Non-exhaustive list of states we go through using OTSIM900Link.
@@ -212,6 +211,29 @@ public:
         }
     }
 
+
+    /**
+     * @brief   Ensure serial command valid and delete trailing '\r\n'
+     */
+    bool verbose = false;
+    bool parseCommand(std::string &command) {
+        bool valid = false;  // Bool to store whether command is valid.
+        // Check starts with A
+        if (0 < command.size()) {
+            if((command.front() == 'A') && (command.back() == '\n')) {
+                valid = true;
+                command.pop_back();
+                command.pop_back();
+            }
+            // Print command
+            if (verbose) {
+                std::string error = "";
+                if (!valid) error += " INVALID";
+                fprintf(stderr, "command received: \"%s\"%s\n", command.c_str(), error.c_str());
+            }
+        }
+        return valid;
+    }
     /**
      * @brief   Work through the state machine, replying as appropriate.
      * @param   command:    String containing the command.
@@ -220,7 +242,7 @@ public:
      * @note    APN must be set to "apn" with no quotes to be accepted.
      */
     void poll(std::string const &command, std::string &reply) {
-            // Respond to particular commands when not powered down...
+        // Respond to particular commands when not powered down...
         switch (myState) {
         case POWER_OFF: break;  // do nothing
         case POWERING_UP:
@@ -361,10 +383,20 @@ public:
         }
     }
 
+    // Trigger fail states:
+    // This triggers a dead-end state caused by signal loss during UDP connection
+    void triggerPDPDeactFail() { myState = PDP_FAIL; }
+    // This triggers a fail state where the SIM900 carries on responding normally.
+    void triggerInvisibleFail() { myState = INVISIBLE_FAIL; }
+
     // emulate pin toggle:
     bool oldPinState;
     uint_fast8_t startTime;
     static constexpr uint_fast8_t minPowerPinToggleVT = 2; // Pin must be set high for at least 2 seconds to register.
+
+    /**
+     * @brief keep track of power pin
+     */
     void pollPowerPin(bool high) {
         if(high) {
             if (!oldPinState)startTime = getSecondsVT();
@@ -375,14 +407,85 @@ public:
         }
         oldPinState = high;
     }
-    // Trigger fail states:
-    // This triggers a dead-end state caused by signal loss during UDP connection
-    void triggerPDPDeactFail() { myState = PDP_FAIL; }
-    // This triggers a fail state where the SIM900 carries on responding normally.
-    void triggerInvisibleFail() { myState = INVISIBLE_FAIL; }
 };
 
+// Emulates blocking soft serial class.
+class SoftSerialSimulator final : public Stream
+    {
+    private:
 
+
+    public:
+    // Data available to be read().
+    static std::string toBeRead; // XXX make private
+        bool verbose = false;
+
+        // Reset to clear state before a new test.
+        static void reset() { written = ""; toBeRead = ""; }
+
+        // Data written (with the write() call) to this Stream, outbound.
+        static std::string written;
+
+        // Add another char for read() to pick up.
+        static void addCharToRead(const char c) { toBeRead += c; }
+        // Add a whole string for read() to pick up.
+        static void addCharToRead(const std::string &s) { toBeRead += s; }
+
+        // Method from Stream.
+        virtual size_t write(uint8_t uc) override
+        {
+            const char c = (char)uc;
+            if(verbose) { if(isprint(c)) { fprintf(stderr, "<%c\n", c); } else { fprintf(stderr, "< %d\n", (int)c); } }
+            written += c;
+            return(1);
+        }
+        // Method from Stream.
+        virtual int read() override
+        {
+            if(0 == toBeRead.size()) { return(-1); }
+            const char c = toBeRead.front();
+            if(verbose) { if(isprint(c)) { fprintf(stderr, ">%c\n", c); } else { fprintf(stderr, "> %d\n", (int)c); } }
+            toBeRead.erase(0, 1);
+            return(c);
+        }
+        // Method from Stream.
+        virtual int available() override { return(-1); }
+        // Method from Stream.
+        virtual int peek() override { return(-1); }
+        // Method from Stream.
+        virtual void flush() override { }
+        // Method from Serial.
+        void begin(unsigned long) { }
+        void end();
+    };
+std::string SoftSerialSimulator::toBeRead = "";
+std::string SoftSerialSimulator::written = "";
+// Singleton instance.
+static SoftSerialSimulator serialConnection;
+
+/**
+ * @brief class that holds emulator and serial object.
+ */
+class SIM900 {
+private:
+
+public:
+    // actual emulator
+    SIM900StateEmulator emu;
+
+    /**
+     * @brief   update emulator state
+     * @param   written: buffer written to by OTSIM900Link. WARNING! This must contain a full and valid command
+     *          and is cleared after it is read from!
+     * @param   toBeRead: buffer to be read by OTSIM900Link. WARNING! This is must be cleared by OTSIM900Link!
+     */
+    void poll(std::string &written, std::string&toBeRead, bool powerPin) {
+        emu.pollPowerPin(powerPin);
+        if(emu.parseCommand(written)) emu.poll(written, toBeRead);
+        written.clear();
+    }
+    void setVerbose(bool verbose) { serialConnection.verbose = verbose; emu.verbose = verbose; }
+};
 }
 
 
@@ -431,6 +534,60 @@ TEST(OTSIM900Link,basicsDeadCard)
     l0.end();
 }
 
+// Test usability of SoftSerialSimulator, eg can it compile.
+TEST(OTSIM900Link, SoftSerialSimulatorTest)
+{
+    // Clear out any serial state.
+    SIM900Emu::serialConnection.reset();
+
+    const char SIM900_PIN[] = "1111";
+    const char SIM900_APN[] = "apn";
+    const char SIM900_UDP_ADDR[] = "0.0.0.0"; // ORS server
+    const char SIM900_UDP_PORT[] = "9999";
+    const OTSIM900Link::OTSIM900LinkConfig_t SIM900Config(false, SIM900_PIN, SIM900_APN, SIM900_UDP_ADDR, SIM900_UDP_PORT);
+    const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
+    OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, SIM900Emu::SoftSerialSimulator> l0;
+    EXPECT_TRUE(l0.configure(1, &l0Config));
+    EXPECT_TRUE(l0.begin());
+    EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
+}
+
+// Test usability of SIM900 emulator, eg can it compile.
+TEST(OTSIM900Link, SIM900EmulatorTest)
+{
+    // Clear out any serial state.
+    SIM900Emu::serialConnection.reset();
+    SIM900Emu::SIM900 sim900;
+
+//    SIM900Emu::serialConnection.verbose = true;
+//    sim900.setVerbose(true); // verbose debug.
+
+    const char SIM900_PIN[] = "1111";
+    const char SIM900_APN[] = "apn";
+    const char SIM900_UDP_ADDR[] = "0.0.0.0"; // ORS server
+    const char SIM900_UDP_PORT[] = "9999";
+    const OTSIM900Link::OTSIM900LinkConfig_t SIM900Config(false, SIM900_PIN, SIM900_APN, SIM900_UDP_ADDR, SIM900_UDP_PORT);
+    const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
+    OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, SIM900Emu::SoftSerialSimulator> l0;
+    EXPECT_TRUE(l0.configure(1, &l0Config));
+    EXPECT_TRUE(l0.begin());
+    EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
+
+    // Try to hang just by calling poll() repeatedly.
+    for(int i = 0; i < 100; ++i) {
+        std::string replyBuffer = "";
+        incrementVTOneCycle();
+        l0.poll();
+        incrementVTOneCycle();
+        sim900.poll(SIM900Emu::serialConnection.written, replyBuffer, l0._isPinHigh());
+        SIM900Emu::serialConnection.addCharToRead(replyBuffer);
+//        if(replyBuffer.size()) fprintf(stderr, "toBeRead:\n%s\n", SIM900Emu::serialConnection.toBeRead.c_str());
+    }
+
+    // ...
+    l0.end();
+}
+
 // Walk through state space of OTSIM900Link.
 // Make sure that an instance can be created and does not die horribly.
 // Is meant to mainly walk through all the normal expected SIM900 behaviour when all is well.
@@ -446,7 +603,6 @@ class GoodSimulator final : public Stream
 public:
     // Events exposed.
     static bool haveSeenCommandStart;
-    static bool pinState;
 
 private:
     // Command being collected from OTSIM900Link.
@@ -458,7 +614,7 @@ private:
     // Reply (postfix) being returned to OTSIM900Link: empty if none.
     std::string reply;
     // Keep track (crudely) of state. Corresponds to OTSIM900LinkState values.
-    SIM900Emu::SIM900Emulator sim900;
+    SIM900Emu::SIM900StateEmulator sim900;
 
 public:
     void begin(unsigned long) { }
@@ -504,7 +660,6 @@ public:
 };
 // Events exposed.
 bool GoodSimulator::haveSeenCommandStart = false;
-bool GoodSimulator::pinState = false;
 }
 TEST(OTSIM900Link,basicsSimpleSimulator)
 {
@@ -533,12 +688,6 @@ TEST(OTSIM900Link,basicsSimpleSimulator)
     EXPECT_TRUE(l0.configure(1, &l0Config));
     EXPECT_TRUE(l0.begin());
     EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
-
-    // power up stuff
-    EXPECT_FALSE(B1::GoodSimulator::pinState);;
-    B1::GoodSimulator::pinState = true;
-    EXPECT_TRUE(B1::GoodSimulator::pinState);
-
 
     // Try to hang just by calling poll() repeatedly.
     for(int i = 0; i < 100; ++i) { incrementVTOneCycle(); statesChecked[l0._getState()] = true; l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
@@ -677,7 +826,7 @@ TEST(OTSIM900Link,GarbageTestSimulator)
 // Simulate resetting the SIM900 due sending the maximum allowed value of message counter.
 namespace B3
 {
-const bool verbose = true;
+const bool verbose = false;
 
 // Gets the SIM900 to a ready to send state and then forces a reset.
 // First will stop responding, then will start up again and do sends.
@@ -698,7 +847,7 @@ class MessageCountResetSimulator final : public Stream
     std::string reply;
 
     // Keep track (crudely) of state. Corresponds to OTSIM900LinkState values.
-    SIM900Emu::SIM900Emulator sim900;
+    SIM900Emu::SIM900StateEmulator sim900;
 
   public:
     void begin(unsigned long) { }
@@ -1190,73 +1339,3 @@ TEST(OTSIM900Link, PDPDeactResetTest)
 //        l0.end();
 //}
 
-
-// Emulates blocking soft serial class.
-class SoftSerialSimulator final : public Stream
-    {
-    private:
-        // Data available to be read().
-        static std::string toBeRead;
-
-    public:
-        bool verbose = false;
-
-        // Reset to clear state before a new test.
-        static void reset() { written = ""; toBeRead = ""; }
-
-        // Data written (with the write() call) to this Stream, outbound.
-        static std::string written;
-
-        // Add another char for read() to pick up.
-        static void addCharToRead(const char c) { toBeRead += c; }
-        // Add a whole string for read() to pick up.
-        static void addCharToRead(const std::string &s) { toBeRead += s; }
-
-        // Method from Stream.
-        virtual size_t write(uint8_t uc) override
-        {
-            const char c = (char)uc;
-            if(verbose) { if(isprint(c)) { fprintf(stderr, "<%c\n", c); } else { fprintf(stderr, "< %d\n", (int)c); } }
-            written += c;
-            return(1);
-        }
-        // Method from Stream.
-        virtual int read() override
-        {
-            if(0 == toBeRead.size()) { return(-1); }
-            const char c = toBeRead[0];
-            if(verbose) { if(isprint(c)) { fprintf(stderr, ">%c\n", c); } else { fprintf(stderr, "> %d\n", (int)c); } }
-            toBeRead.erase(0, 1);
-            return(c);
-        }
-        // Method from Stream.
-        virtual int available() override { return(-1); }
-        // Method from Stream.
-        virtual int peek() override { return(-1); }
-        // Method from Stream.
-        virtual void flush() override { }
-        // Method from Stream.
-        void begin(unsigned long) { }
-    };
-// Singleton instance.
-static SoftSerialSimulator serialConnection;
-std::string SoftSerialSimulator::toBeRead;
-std::string SoftSerialSimulator::written;
-
-// Test usability of SoftSerialSimulator, eg can it compile.
-TEST(OTSIM900Link, SoftSerialSimulatorTest)
-    {
-    // Clear out any serial state.
-    serialConnection.reset();
-
-    const char SIM900_PIN[] = "1111";
-    const char SIM900_APN[] = "apn";
-    const char SIM900_UDP_ADDR[] = "0.0.0.0"; // ORS server
-    const char SIM900_UDP_PORT[] = "9999";
-    const OTSIM900Link::OTSIM900LinkConfig_t SIM900Config(false, SIM900_PIN, SIM900_APN, SIM900_UDP_ADDR, SIM900_UDP_PORT);
-    const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
-    OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, SoftSerialSimulator> l0;
-    EXPECT_TRUE(l0.configure(1, &l0Config));
-    EXPECT_TRUE(l0.begin());
-    EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
-    }
