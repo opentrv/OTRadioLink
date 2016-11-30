@@ -133,14 +133,15 @@ class SensorAmbientLightAdaptive : public SensorAmbientLightBase
     void (*occCallbackOpt)(bool) = NULL;
 
     // Recomputes thresholds and 'unusable' based on current state.
+    //   * meanNowOrFF  mean ambient light level in this time interval; 0xff if none.
     //   * sensitive  if true be more sensitive to possible occupancy changes, else less so.
     void recomputeThresholds(uint8_t meanNowOrFF, bool sensitive);
 
   public:
-    // Get light threshold, above which room is considered light enough for activity [1,254].
+    // Get light threshold, above which the room is considered light enough for activity [1,254].
     uint8_t getLightThreshold() const { return(lightThreshold); }
 
-    // Get dark threshold, at or below which room is considered too dark for activity [0,253].
+    // Get dark threshold, at or below which the room is considered too dark for activity [0,253].
     uint8_t getDarkThreshold() const { return(darkThreshold); }
 
     // Preferred poll interval (in seconds); should be called at constant rate, usually 1/60s.

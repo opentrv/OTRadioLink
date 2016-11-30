@@ -80,6 +80,7 @@ static constexpr uint8_t ABS_MIN_AMBLIGHT_RANGE_UINT8 = 3;
 static constexpr uint8_t ABS_MIN_AMBLIGHT_HYST_UINT8 = 2;
 
 // Recomputes thresholds and 'unusable' based on current state.
+//   * meanNowOrFF  mean ambient light level in this time interval; 0xff if none.
 //   * sensitive  if true be more sensitive to possible occupancy changes, else less so.
 void SensorAmbientLightAdaptive::recomputeThresholds(
         const uint8_t meanNowOrFF, const bool sensitive)
