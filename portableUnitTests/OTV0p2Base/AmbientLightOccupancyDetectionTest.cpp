@@ -124,6 +124,21 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
     ASSERT_TRUE(NULL != data);
     ASSERT_TRUE(NULL != detector);
     ASSERT_FALSE(data->isEnd()) << "do not pass in empty data set";
+
+    OTV0P2BASE::SensorAmbientLightAdaptive ala;
+    OTV0P2BASE::SensorAmbientLightAdaptive *const alap = &ala;
+
+    // Occupancy callback.
+    static int8_t cbProbable;
+    cbProbable = -1;
+    ASSERT_EQ(-1, cbProbable);
+    void (*const callback)(bool) = [](bool p){cbProbable = p;};
+    callback(false);
+    ASSERT_EQ(0, cbProbable);
+    callback(true);
+    ASSERT_EQ(1, cbProbable);
+    alap->setOccCallbackOpt(callback);
+
     // Count of number of records.
     int nRecords = 0;
     // Count number of records with explicit expected occupancy response assertion.
