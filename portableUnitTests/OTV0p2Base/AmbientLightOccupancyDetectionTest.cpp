@@ -359,15 +359,15 @@ TEST(AmbientLightOccupancyDetection,simpleDataSampleRun)
 // "3l" 2016/10/08+09 test set with tough occupancy to detect in the evening up to 21:00Z and in the morning from 07:09Z then  06:37Z.
 static const ALDataSample sample3lHard[] =
     {
-{8,0,1,1, occType::OCC_NONE}, // Definitely not occupied.
-{8,0,17,1, occType::OCC_NONE}, // Definitely not occupied.
+{8,0,1,1, occType::OCC_NONE, true}, // Definitely not occupied.
+{8,0,17,1, occType::OCC_NONE, true}, // Definitely not occupied.
 //...
 {8,6,21,1},
 {8,6,29,2, occType::OCC_NONE, true}, // Not enough rise to indicate occupation, still dark.
 {8,6,33,2},
 {8,6,45,2},
 {8,6,57,2},
-{8,7,9,14, ALDataSample::NO_OCC_EXPECTATION},  // OCCUPIED: curtains drawn?  Borederline dark?
+{8,7,9,14, ALDataSample::NO_OCC_EXPECTATION},  // OCCUPIED: curtains drawn?  Borderline dark?
 {8,7,17,35},
 {8,7,21,38},
 {8,7,33,84, occType::OCC_PROBABLE, false}, // Lights on or more curtains drawn?  Possibly occupied.
@@ -449,11 +449,11 @@ static const ALDataSample sample3lHard[] =
 {8,17,49,42},
 {8,18,1,42, occType::OCC_WEAK, false}, // Light on, watching TV?
 {8,18,9,40},
-{8,18,13,42, occType::OCC_WEAK}, // Light on, watching TV?
+{8,18,13,42, occType::OCC_WEAK, false}, // Light on, watching TV?
 {8,18,25,40},
-{8,18,37,40, occType::OCC_WEAK}, // Light on, watching TV?
-{8,18,41,42, occType::OCC_WEAK}, // Light on, watching TV?
-{8,18,49,42, occType::OCC_WEAK}, // Light on, watching TV?
+{8,18,37,40, occType::OCC_WEAK, false}, // Light on, watching TV?
+{8,18,41,42, occType::OCC_WEAK, false}, // Light on, watching TV?
+{8,18,49,42, occType::OCC_WEAK, false}, // Light on, watching TV?
 {8,18,57,41},
 {8,19,1,40},
 {8,19,13,41, occType::OCC_WEAK, false}, // Light on, watching TV?
@@ -466,19 +466,19 @@ static const ALDataSample sample3lHard[] =
 {8,20,9,42},
 {8,20,17,42},
 {8,20,23,40},
-{8,20,29,40}, // Ideally, on bigger data set... occType::OCC_WEAK}, // Light on, watching TV?
+{8,20,29,40, ALDataSample::NO_OCC_EXPECTATION, false}, // Ideally, on bigger data set... occType::OCC_WEAK}, // Light on, watching TV?
 {8,20,33,40},
 {8,20,37,41},
-{8,20,41,42}, // Ideally, on bigger data set... occType::OCC_WEAK}, // Light on, watching TV?
+{8,20,41,42, ALDataSample::NO_OCC_EXPECTATION, false}, // Ideally, on bigger data set... occType::OCC_WEAK}, // Light on, watching TV?
 {8,20,49,40},
 {8,21,5,1, occType::OCC_NONE, true}, // Definitely not occupied, dark.
-{8,21,13,1, occType::OCC_NONE}, // Definitely not occupied.
+{8,21,13,1, occType::OCC_NONE, true}, // Definitely not occupied.
 // ...
-{9,5,57,1, occType::OCC_NONE}, // Definitely not occupied.
-{9,6,13,1, occType::OCC_NONE}, // Definitely not occupied.
+{9,5,57,1, occType::OCC_NONE, true}, // Definitely not occupied.
+{9,6,13,1, occType::OCC_NONE, true}, // Definitely not occupied.
 {9,6,21,2, occType::OCC_NONE, true}, // Not enough rise to indicate occupation, dark.
 {9,6,33,2},
-{9,6,37,24, occType::OCC_PROBABLE}, // Curtains drawn: OCCUPIED.
+{9,6,37,24, occType::OCC_PROBABLE, false}, // Curtains drawn: OCCUPIED.
 {9,6,45,32},
 {9,6,53,31},
 {9,7,5,30},
@@ -499,11 +499,11 @@ TEST(AmbientLightOccupancyDetection,sample3lHard)
 static const ALDataSample sample5sHard[] =
     {
 {8,0,3,2, occType::OCC_NONE, true}, // Not occupied actively.
-{8,0,19,2, occType::OCC_NONE}, // Not occupied actively.
+{8,0,19,2, occType::OCC_NONE, true}, // Not occupied actively.
 // ...
-{8,5,19,2, occType::OCC_NONE}, // Not occupied actively.
-{8,5,31,1, occType::OCC_NONE}, // Not occupied actively.
-{8,5,43,2, occType::OCC_NONE}, // Not occupied actively.
+{8,5,19,2, occType::OCC_NONE, true}, // Not occupied actively.
+{8,5,31,1, occType::OCC_NONE, true}, // Not occupied actively.
+{8,5,43,2, occType::OCC_NONE, true}, // Not occupied actively.
 // ...
 {8,6,23,4},
 {8,6,35,6},
@@ -551,7 +551,7 @@ static const ALDataSample sample5sHard[] =
 {8,11,39,78},
 {8,11,55,136},
 {8,11,59,132},
-{8,12,7,132},
+{8,12,7,132, ALDataSample::NO_OCC_EXPECTATION, false}, // Broad daylight.
 {8,12,19,147},
 {8,12,23,114},
 {8,12,35,91},
@@ -708,7 +708,7 @@ static const ALDataSample sample2bHard[] =
 {8,11,36,185},
 {8,11,44,186},
 {8,11,48,186},
-{8,12,4,186},
+{8,12,4,186, ALDataSample::NO_OCC_EXPECTATION, false}, // Broad daylight.
 {8,12,16,187},
 {8,12,20,187},
 {8,12,32,184},
@@ -1098,7 +1098,7 @@ static const ALDataSample sample6k[] =
 {8,11,43,143},
 {8,11,51,162},
 {8,11,55,178},
-{8,12,7,155},
+{8,12,7,155, ALDataSample::NO_OCC_EXPECTATION, false}, // Broad daylight.
 {8,12,15,179},
 {8,12,17,172},
 {8,12,19,84},
