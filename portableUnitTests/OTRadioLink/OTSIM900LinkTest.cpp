@@ -581,7 +581,7 @@ TEST(OTSIM900Link, SIM900EmulatorTest)
         incrementVTOneCycle();
         sim900.poll(SIM900Emu::serialConnection.written, replyBuffer, l0._isPinHigh());
         SIM900Emu::serialConnection.addCharToRead(replyBuffer);
-        if(replyBuffer.size()) fprintf(stderr, "toBeRead:\n%s\n", SIM900Emu::serialConnection.toBeRead.c_str());
+//        if(replyBuffer.size()) fprintf(stderr, "toBeRead:\n%s\n", SIM900Emu::serialConnection.toBeRead.c_str());
     }
 
     // ...
