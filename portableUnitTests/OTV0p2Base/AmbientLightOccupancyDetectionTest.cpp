@@ -266,10 +266,10 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
                     if(occType::OCC_NONE != predictionOcc) { ++nOccupancyReports; }
                     // Note that for all synthetic ticks the expectation is removed (since there is no level change).
                     const int8_t expected = (currentMinute != dp->currentMinute()) ? ALDataSample::NO_OCC_EXPECTATION : dp->expectedOcc;
-if(verbose && (currentMinute == dp->currentMinute()) && (0 != predictionOcc)) { fprintf(stderr, "  prediction=%d @ %dT%d:%0.2d L=%d mean=%d\n", predictionOcc, D, H, M, dp->L, meanUsed); }
+if(verbose && (currentMinute == dp->currentMinute()) && (0 != predictionOcc)) { fprintf(stderr, "  prediction=%d @ %dT%d:%.2d L=%d mean=%d\n", predictionOcc, D, H, M, dp->L, meanUsed); }
                     if(ALDataSample::NO_OCC_EXPECTATION != expected)
                         {
-if(verbose && (0 != predictionOcc)) { fprintf(stderr, " expected=%d @ %dT%d:%0.2d L=%d mean=%d\n", expected, D, H, M, dp->L, meanUsed); }
+if(verbose && (0 != predictionOcc)) { fprintf(stderr, " expected=%d @ %dT%d:%.2d L=%d mean=%d\n", expected, D, H, M, dp->L, meanUsed); }
                         EXPECT_EQ(expected, predictionOcc) << " @ " << ((int)D) << "T" << ((int)H) << ":" << ((int)M) <<
                             " L="<< ((int)(dp->L)) << " mean="<<((int)meanUsed) << " min="<<((int)minToUse) << " max="<<((int)maxToUse);
                         }
