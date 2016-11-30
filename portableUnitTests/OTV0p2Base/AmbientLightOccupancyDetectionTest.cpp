@@ -116,17 +116,14 @@ static const ALDataSample trivialSample1[] =
 // Uses the setTypMinMax() call as the hour rolls or in more complex blended-stats modes;
 // runs with 'sensitive' in both states to verify algorithm's robustness.
 // Will fail if an excessive amount of the time occupancy is predicted (more than ~25%).
-void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface *const detector,
-                         const uint8_t minLevel = 0xff, const uint8_t maxLevel = 0xff,
-                         const uint8_t * /*meanByHour[24]*/ = NULL)
+void simpleDataSampleRun(const ALDataSample *const data)
     {
     static const bool verbose = false; // Set true for more verbose reporting.
     ASSERT_TRUE(NULL != data);
-    ASSERT_TRUE(NULL != detector);
     ASSERT_FALSE(data->isEnd()) << "do not pass in empty data set";
 
-    OTV0P2BASE::SensorAmbientLightAdaptive ala;
-    OTV0P2BASE::SensorAmbientLightAdaptive *const alap = &ala;
+    // Instance under test.
+    OTV0P2BASE::SensorAmbientLightAdaptiveMock ala;
 
     // Occupancy callback.
     static int8_t cbProbable;
@@ -137,7 +134,7 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
     ASSERT_EQ(0, cbProbable);
     callback(true);
     ASSERT_EQ(1, cbProbable);
-    alap->setOccCallbackOpt(callback);
+    ala.setOccCallbackOpt(callback);
 
     // Count of number of records.
     int nRecords = 0;
@@ -183,10 +180,8 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
 //        }
 //    fprintf(stderr, "\n");
     // Select which params to use.
-    const uint8_t minToUse = (0xff != minLevel) ? minLevel :
-            ((minI < 255) ? (uint8_t)minI : 0xff);
-    const uint8_t maxToUse = (0xff != maxLevel) ? maxLevel :
-            ((maxI >= 0) ? (uint8_t)maxI : 0xff);
+    const uint8_t minToUse = minI;
+    const uint8_t maxToUse = maxI;
     // Run simulation with different stats blending types
     // to ensure that occupancy detection is robust.
     enum blending : uint8_t { NONE, HALFHOURMIN, HALFHOUR, BYMINUTE, END };
@@ -224,7 +219,7 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
                                 // and other times.
                                 // The detector and caller should aim not to be hugely sensitive to the exact timing,
                                 // eg by blending prev/current/next periods linearly.
-                                detector->setTypMinMax(byHourMeanI[H], minToUse, maxToUse, sensitive);
+                                ala.setTypMinMax(byHourMeanI[H], minToUse, maxToUse, sensitive);
                                 }
                             break;
                             }
@@ -240,7 +235,7 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
                                 else if(0xff != nhm) { m = OTV0P2BASE::fnmin(nhm, thm); } // Take min when both hours' means available.
                                 }
                             meanUsed = m;
-                            detector->setTypMinMax(m, minToUse, maxToUse, sensitive);
+                            ala.setTypMinMax(m, minToUse, maxToUse, sensitive);
                             break;
                             }
                         case HALFHOUR: // Use blended mean for final half hour hour.
@@ -255,7 +250,7 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
                                 else if(0xff != nhm) { m = uint8_t((thm + (uint_fast16_t)nhm + 1) / 2); } // Take mean when both hours' means available.
                                 }
                             meanUsed = m;
-                            detector->setTypMinMax(m, minToUse, maxToUse, sensitive);
+                            ala.setTypMinMax(m, minToUse, maxToUse, sensitive);
                             break;
                             }
                         case BYMINUTE: // Adjust blend by minute.
@@ -270,15 +265,21 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
                                 m = uint8_t(((((uint_fast16_t)thm) * (60-M)) + (((uint_fast16_t)nhm) * M) + 30) / 60);
                                 }
                             meanUsed = m;
-                            detector->setTypMinMax(m, minToUse, maxToUse, sensitive);
+                            ala.setTypMinMax(m, minToUse, maxToUse, sensitive);
                             break;
                             }
                         default: FAIL();
                         }
                     oldH = H;
                     ++updateCalls; // Note the new update() call about to be made.
-                    const OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType predictionOcc = detector->update(dp->L);
-                    if(occType::OCC_NONE != predictionOcc) { ++nOccupancyReports; }
+                    cbProbable = -1;
+                    ala.set(dp->L);
+                    ala.read();
+//                    const OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType predictionOcc = detector->update(dp->L);
+//                    if(occType::OCC_NONE != predictionOcc) { ++nOccupancyReports; }
+                    const OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType predictionOcc =
+                        (-1 == cbProbable) ? occType::OCC_NONE :
+                            ((0 == cbProbable) ? occType::OCC_WEAK : occType::OCC_PROBABLE);
                     // Note that for all synthetic ticks the expectation is removed (since there is no level change).
                     const int8_t expected = (currentMinute != dp->currentMinute()) ? ALDataSample::NO_OCC_EXPECTATION : dp->expectedOcc;
 if(verbose && (currentMinute == dp->currentMinute()) && (0 != predictionOcc)) { fprintf(stderr, "  prediction=%d @ %dT%d:%.2d L=%d mean=%d\n", predictionOcc, D, H, M, dp->L, meanUsed); }
@@ -296,7 +297,7 @@ if(verbose && (0 != predictionOcc)) { fprintf(stderr, " expected=%d @ %dT%d:%.2d
             ASSERT_TRUE(nOccupancyReports <= ((updateCalls*2)/3)) << "far too many occupancy indications; at most 16h/day occupancy signals: " << (nOccupancyReports/(double)updateCalls);
             if(sensitive) { nOccupancyReportsSensitive = nOccupancyReports; }
             else { nOccupancyReportsNotSensitive = nOccupancyReports; }
-            detector->update(254); // Force detector to 'initial'-like state ready for re-run.
+            ala.set(254); ala.read(); // Force detector to 'initial'-like state ready for re-run.
             }
         EXPECT_LE(nOccupancyReportsNotSensitive, nOccupancyReportsSensitive) << "expect sensitive never to generate fewer reports";
         }
@@ -305,8 +306,7 @@ if(verbose && (0 != predictionOcc)) { fprintf(stderr, " expected=%d @ %dT%d:%.2d
 // Basic test of update() behaviour.
 TEST(AmbientLightOccupancyDetection,simpleDataSampleRun)
 {
-    OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds1;
-    simpleDataSampleRun(trivialSample1, &ds1);
+    simpleDataSampleRun(trivialSample1);
 }
 
 // "3l" 2016/10/08+09 test set with tough occupancy to detect in the evening up to 21:00Z and in the morning from 07:09Z then  06:37Z.
@@ -446,8 +446,7 @@ static const ALDataSample sample3lHard[] =
 // Test with real data set.
 TEST(AmbientLightOccupancyDetection,sample3lHard)
 {
-    OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds1;
-    simpleDataSampleRun(sample3lHard, &ds1);
+    simpleDataSampleRun(sample3lHard);
 }
 
 // "5s" 2016/10/08+09 test set with tough occupancy to detect in the evening 21:00Z.
@@ -622,8 +621,7 @@ static const ALDataSample sample5sHard[] =
 // Test with real data set.
 TEST(AmbientLightOccupancyDetection,sample5sHard)
 {
-    OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds1;
-    simpleDataSampleRun(sample5sHard, &ds1);
+    simpleDataSampleRun(sample5sHard);
 }
 
 // "2b" 2016/10/08+09 test set with tough occupancy to detect in the evening ~19:00Z to 20:00Z.
@@ -834,8 +832,7 @@ static const ALDataSample sample2bHard[] =
 // Test with real data set.
 TEST(AmbientLightOccupancyDetection,sample2bHard)
 {
-    OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds1;
-    simpleDataSampleRun(sample2bHard, &ds1);
+    simpleDataSampleRun(sample2bHard);
 }
 
 // "2b" 2016/11/28+29 test set with tough occupancy to detect in the evening ~20:00Z to 21:00Z.
@@ -996,8 +993,7 @@ static const ALDataSample sample2bHard2[] =
 // Test with real data set.
 TEST(AmbientLightOccupancyDetection,sample2bHard2)
 {
-    OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds1;
-    simpleDataSampleRun(sample2bHard2, &ds1);
+    simpleDataSampleRun(sample2bHard2);
 }
 
 // "6k" 2016/10/08+09 test set relatively easy to detect daytime occupancy in busy room.
@@ -1151,8 +1147,7 @@ static const ALDataSample sample6k[] =
 // Test with real data set.
 TEST(AmbientLightOccupancyDetection,sample6k)
 {
-    OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds1;
-    simpleDataSampleRun(sample6k, &ds1);
+    simpleDataSampleRun(sample6k);
 }
 
 //-----------------------------------------------------------------------------------------------------------------
@@ -2713,7 +2708,6 @@ static const ALDataSample sample3leveningTV[] =
 // This is not especially intended to check response to other events, though will verify some key ones.
 TEST(AmbientLightOccupancyDetection,sample3leveningTV)
 {
-    OTV0P2BASE::SensorAmbientLightOccupancyDetectorSimple ds1;
-    simpleDataSampleRun(sample3leveningTV, &ds1);
+    simpleDataSampleRun(sample3leveningTV);
 }
 

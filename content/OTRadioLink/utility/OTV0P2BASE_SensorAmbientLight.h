@@ -165,6 +165,7 @@ class SensorAmbientLightAdaptive : public SensorAmbientLightBase
 
 
 // Class primarily to support simple mocking for unit tests.
+// Also allows testing of common algorithms in the base classes.
 // Set desired raw light value with set() then call read().
 class SensorAmbientLightAdaptiveMock : public SensorAmbientLightAdaptive
   {
