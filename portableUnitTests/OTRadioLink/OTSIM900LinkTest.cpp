@@ -34,12 +34,16 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
  */
 static uint_fast8_t secondsVT = 0;
 uint_fast8_t getSecondsVT() { return(secondsVT % 60); }
+// Simple short-term (<60s) elapsed-time computations for wall-clock seconds.
+// Will give unhelpful results if called more than 60s after the original sample.
+// Takes a value of 'now' as returned by getSecondsLT().
+inline constexpr uint_fast8_t getElapsedSecondsVT(const uint_fast8_t startSecondsLT, const uint_fast8_t now)
+  { return((now >= startSecondsLT) ? (now - startSecondsLT) : (60 + now - startSecondsLT)); }
 /**
  * @brief   Increment secondsVT by 1 minor cycle.
  */
 static constexpr uint_fast8_t minorCycleTimeSecs = 2;
 static void incrementVTOneCycle() { secondsVT += minorCycleTimeSecs; }
-
 
 namespace SIM900Emu {
 
@@ -354,13 +358,20 @@ public:
         default: break;
         }
     }
+
     // emulate pin toggle:
+    static bool oldPinState = false;
+    static uint_fast8_t startTime = 0;
+    static constexpr uint_fast8_t minPowerPinToggleVT = 2; // Pin must be set high for at least 2 seconds to register.
     void setPinHigh(bool high) {
-        /* todo add timing logic */
         if(high) {
-            if (myState == POWER_OFF) myState = POWERING_UP;
-            else myState = POWER_OFF;
+            if (!oldPinState)startTime = getSecondsVT();
+            else  if (minPowerPinToggleVT >= getElapsedSecondsVT(startTime, getSecondsVT())) {  // XXX
+                if (myState == POWER_OFF) myState = POWERING_UP;
+                else myState = POWER_OFF;
+            }
         }
+        oldPinState = high;
     }
     // Trigger fail states:
     // This triggers a dead-end state caused by signal loss during UDP connection
