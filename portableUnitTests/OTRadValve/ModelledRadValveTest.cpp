@@ -190,7 +190,7 @@ namespace MRVEI
     static OTV0P2BASE::TemperatureC16Mock roomTemp;
     static OTRadValve::TempControlSimpleVCP<OTRadValve::DEFAULT_ValveControlParameters> tempControl;
     static OTV0P2BASE::PseudoSensorOccupancyTracker occupancy;
-    static OTV0P2BASE::SensorAmbientLightMock ambLight;
+    static OTV0P2BASE::SensorAmbientLightSimpleMock ambLight;
     static OTRadValve::NULLActuatorPhysicalUI physicalUI;
     static OTV0P2BASE::NULLValveSchedule schedule;
     static OTV0P2BASE::NULLByHourByteStats byHourStats;
@@ -405,7 +405,7 @@ namespace MRVCTTB
     static OTV0P2BASE::TemperatureC16Mock roomTemp;
     static OTRadValve::TempControlSimpleVCP<OTRadValve::DEFAULT_ValveControlParameters> tempControl;
     static OTV0P2BASE::PseudoSensorOccupancyTracker occupancy;
-    static OTV0P2BASE::SensorAmbientLightMock ambLight;
+    static OTV0P2BASE::SensorAmbientLightSimpleMock ambLight;
     static OTRadValve::NULLActuatorPhysicalUI physicalUI;
     static OTV0P2BASE::NULLValveSchedule schedule;
     static OTV0P2BASE::NULLByHourByteStats byHourStats;

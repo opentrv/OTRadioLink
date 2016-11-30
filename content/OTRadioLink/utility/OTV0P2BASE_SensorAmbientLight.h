@@ -106,8 +106,8 @@ class SensorAmbientLightBase : public SimpleTSUint8Sensor
   };
 
 
-// Class primarily to support mocking and unit tests.
-class SensorAmbientLightMock : public SensorAmbientLightBase
+// Class primarily to support simple mocking for unit tests.
+class SensorAmbientLightSimpleMock : public SensorAmbientLightBase
   {
   public:
     // Set new value.
@@ -148,25 +148,16 @@ class SensorAmbientLightMock : public SensorAmbientLightBase
 class SensorAmbientLight final : public SensorAmbientLightBase
   {
   private:
-    // Raw ambient light value [0,1023] dark--light, possibly companded.
-    uint16_t rawValue;
-
     // Minimum eg from recent stats, to allow auto adjustment to dark; ~0/0xff means no min available.
-    uint8_t recentMin;
+    uint8_t recentMin = 0xff;
     // Maximum eg from recent stats, to allow auto adjustment to dark; ~0/0xff means no max available.
-    uint8_t recentMax;
-
-    // Upwards delta used for "lights switched on" occupancy hint; strictly positive.
-    uint8_t upDelta;
+    uint8_t recentMax = 0xff;
 
     // Dark/light thresholds (on [0,254] scale) incorporating hysteresis.
     // So lightThreshold is strictly greater than darkThreshold.
-    uint8_t darkThreshold, lightThreshold;
-
-    // Default light threshold (from which dark will be deduced as ~25% lower).
-    // Set in constructor.
-    // This is used if setMinMax() is not used.
-    const uint8_t defaultLightThreshold;
+    uint8_t lightThreshold = DEFAULT_LIGHT_THRESHOLD;
+    static constexpr uint8_t DEFAULT_upDelta = OTV0P2BASE::fnmax(1, DEFAULT_LIGHT_THRESHOLD >> 2); // Delta ~25% of light threshold.
+    uint8_t darkThreshold = DEFAULT_LIGHT_THRESHOLD - DEFAULT_upDelta;
 
     // 'Possible occupancy' callback function (for moderate confidence of human presence).
     // If not NULL, is called when this sensor detects indications of occupancy.
@@ -174,7 +165,7 @@ class SensorAmbientLight final : public SensorAmbientLightBase
     void (*occCallbackOpt)(bool) = NULL;
 
     // Recomputes thresholds and 'unusable' based on current state.
-    // WARNING: called from (static) constructors so do not attempt (eg) use of Serial.
+    // WARNING: may be called from (static) constructors so do not attempt (eg) use of Serial.
     //   * sensitive  if true be more sensitive to possible occupancy changes, else less so.
     void _recomputeThresholds(bool sensitive = true);
 
@@ -185,11 +176,7 @@ class SensorAmbientLight final : public SensorAmbientLightBase
     SensorAmbientLightOccupancyDetectorSimple occupancyDetector;
 
   public:
-    SensorAmbientLight(const uint8_t defaultLightThreshold_ = DEFAULT_LIGHT_THRESHOLD)
-      : rawValue((uint16_t) ~0U), // Initial value is distinct.
-        recentMin(~0), recentMax(~0),
-        defaultLightThreshold(fnmin((uint8_t)254, fnmax((uint8_t)1, defaultLightThreshold_)))
-      { _recomputeThresholds(); }
+    constexpr SensorAmbientLight() { }
 
     // Force a read/poll of the ambient light level and return the value sensed [0,255] (dark to light).
     // Potentially expensive/slow.
@@ -201,15 +188,14 @@ class SensorAmbientLight final : public SensorAmbientLightBase
     // Preferred poll interval (in seconds); should be called at constant rate, usually 1/60s.
     virtual uint8_t preferredPollInterval_s() const override { return(60); }
 
-    // Get raw ambient light value in range [0,1023].
-    // Undefined until first read().
-    uint16_t getRaw() const { return(rawValue); }
-
     // Set 'possible'/weak occupancy callback function; NULL for no callback.
     void setOccCallbackOpt(void (*occCallbackOpt_)(bool)) { occCallbackOpt = occCallbackOpt_; }
 
     // Get light threshold, above which room is considered light enough for activity [1,254].
     uint8_t getLightThreshold() const { return(lightThreshold); }
+
+    // Get dark threshold, above which room is considered too dark for activity [0,253].
+    uint8_t getDarkThreshold() const { return(darkThreshold); }
 
     // Set recent min and max ambient light levels from recent stats, to allow auto adjustment to dark; ~0/0xff means no min/max available.
     // Short term stats are typically over the last day,
