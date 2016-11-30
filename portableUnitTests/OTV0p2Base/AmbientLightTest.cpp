@@ -13,20 +13,22 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Deniz Erbilgin 2016
-                           Damon Hart-Davis 2016
+Author(s) / Copyright (s): Damon Hart-Davis 2016
 */
 
 /*
- * Software-based serial/UART V2.
- *
- * V0p2/AVR only.
+ * Driver for OTV0P2BASE_SensorAmbientLight tests.
  */
 
-#include "OTV0P2BASE_SoftSerial2.h"
+#include <stdint.h>
+#include <gtest/gtest.h>
+#include <OTV0p2Base.h>
+#include "OTV0P2BASE_SensorAmbientLight.h"
 
-namespace OTV0P2BASE
+
+// Test some basics of the basic (non-occupancy parts) of the ambient light sensor.
+TEST(AmbientLight,basics)
 {
 
-
 }
+
