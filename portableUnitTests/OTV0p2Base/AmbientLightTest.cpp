@@ -99,3 +99,30 @@ TEST(AmbientLight,basics)
     EXPECT_EQ(0, alm.getDarkMinutes());
 }
 
+
+
+// Test setting of mean/max/min/sensitive and resulting values.
+TEST(AmbientLight,setTypMinMax)
+{
+    OTV0P2BASE::SensorAmbientLightAdaptiveMock alm;
+    const uint8_t dlt = OTV0P2BASE::SensorAmbientLightBase::DEFAULT_LIGHT_THRESHOLD;
+    EXPECT_EQ(dlt, alm.getLightThreshold());
+    EXPECT_GT(dlt, alm.getDarkThreshold());
+
+    // If all stats values are 0xff then default thresholds are used.
+    alm.setTypMinMax(0xff, 0xff, 0xff, false);
+    EXPECT_EQ(dlt, alm.getLightThreshold());
+    EXPECT_GT(dlt, alm.getDarkThreshold());
+    alm.setTypMinMax(0xff, 0xff, 0xff, true);
+    EXPECT_EQ(dlt, alm.getLightThreshold());
+    EXPECT_GT(dlt, alm.getDarkThreshold());
+
+    // Test with some realistic stats values.
+    alm.setTypMinMax(64, 1, 183, false);
+    EXPECT_NEAR(24, alm.getLightThreshold(), 4);
+    EXPECT_NEAR(9, alm.getDarkThreshold(), 4);
+    alm.setTypMinMax(64, 1, 183, true);
+    EXPECT_NEAR(12, alm.getLightThreshold(), 2);
+    EXPECT_NEAR(5, alm.getDarkThreshold(), 2);
+}
+
