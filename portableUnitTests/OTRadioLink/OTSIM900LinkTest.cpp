@@ -70,15 +70,15 @@ const char * SIM900Commands::CIPSEND = "AT+CIPSEND=3";
 
 struct SIM900Replies {
     static const char * AT;
-    static const char * CPIN_READY;
+    static const char * CPIN_TRUE;
     static const char * CREG_FALSE;
-    static const char * CREG_READY;
+    static const char * CREG_TRUE;
     static const char * CSTT_FALSE;
-    static const char * CSTT_READY;
+    static const char * CSTT_TRUE;
     static const char * CIICR_FALSE; // todo check
-    static const char * CIICR_READY;
+    static const char * CIICR_TRUE;
     static const char * CIFSR_FALSE;
-    static const char * CIFSR_READY;
+    static const char * CIFSR_TRUE;
     static const char * CIPSTATUS_FALSE;
     static const char * CIPSTATUS_START;
     static const char * CIPSTATUS_GPRSACT;
@@ -90,15 +90,15 @@ struct SIM900Replies {
     static const char * CIPSEND_TRUE;
 };
 const char * SIM900Replies::AT = "AT\r\n\r\nOK\r\n";
-const char * SIM900Replies::CPIN_READY = "AT+CPIN?\r\n\r\n+CPIN: READY\r\n\r\nOK\r\n";
+const char * SIM900Replies::CPIN_TRUE = "AT+CPIN?\r\n\r\n+CPIN: READY\r\n\r\nOK\r\n";
 const char * SIM900Replies::CREG_FALSE = "AT+CREG?\r\n\r\n+CREG: 0,0\r\n\r\n'OK\r\n";
-const char * SIM900Replies::CREG_READY = "AT+CREG?\r\n\r\n+CREG: 0,5\r\n\r\n'OK\r\n";
+const char * SIM900Replies::CREG_TRUE = "AT+CREG?\r\n\r\n+CREG: 0,5\r\n\r\n'OK\r\n";
 const char * SIM900Replies::CSTT_FALSE = "AT+CSTT\r\n\r\nERROR\r";
-const char * SIM900Replies::CSTT_READY = "AT+CSTT\r\n\r\nOK\r";
+const char * SIM900Replies::CSTT_TRUE = "AT+CSTT\r\n\r\nOK\r";
 const char * SIM900Replies::CIICR_FALSE = "AT+CIICR\r\n\r\nERROR\r\n"; // todo check
-const char * SIM900Replies::CIICR_READY = "AT+CIICR\r\n\r\nOK\r\n";
+const char * SIM900Replies::CIICR_TRUE = "AT+CIICR\r\n\r\nOK\r\n";
 const char * SIM900Replies::CIFSR_FALSE = "AT+CIFSR\r\n\r\nERRORr\n";
-const char * SIM900Replies::CIFSR_READY = "AT+CIFSR\r\n\r\n172.16.101.199\r\n";
+const char * SIM900Replies::CIFSR_TRUE = "AT+CIFSR\r\n\r\n172.16.101.199\r\n";
 const char * SIM900Replies::CIPSTATUS_FALSE = "AT+CIPSTATUS\r\n\r\nOK\r\n\r\nERROR\r\n" ; // TODO CHECK
 const char * SIM900Replies::CIPSTATUS_START = "AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP START\r\n" ;
 const char * SIM900Replies::CIPSTATUS_GPRSACT = "AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP GPRSACT\r\n" ;
@@ -116,6 +116,8 @@ const char * SIM900Replies::CIPSEND_TRUE = "AT+CIPSEND=3\r\n\r\n>" ;
  */
 class SIM900Emulator {
 public:
+    SIM900Emulator() : oldPinState(false), startTime(0) {};
+
     /**
      * @brief   Non-exhaustive list of states we go through using OTSIM900Link.
      * @note    States with a verb are transitory and can only be exited by the SIM900.
@@ -217,7 +219,7 @@ public:
      * @todo    add state machine updates
      * @note    APN must be set to "apn" with no quotes to be accepted.
      */
-    void _poll(std::string const &command, std::string &reply) {
+    void poll(std::string const &command, std::string &reply) {
             // Respond to particular commands when not powered down...
         switch (myState) {
         case POWER_OFF: break;  // do nothing
@@ -229,7 +231,7 @@ public:
         case REGISTERING:
             // Wait for some time to pass.
             if(commands.AT == command) { reply.append(replies.AT); }           // Normal response
-            else if(commands.CPIN == command) { reply.append(replies.CPIN_READY); }   // No need to set a PIN.
+            else if(commands.CPIN == command) { reply.append(replies.CPIN_TRUE); }   // No need to set a PIN.
             else if(commands.CREG == command) { reply.append(replies.CREG_FALSE); updateState(); }
             else if(commands.CSTT == command) { reply.append(replies.CSTT_FALSE); }
             else if(commands.CIICR == command) { reply.append(replies.CIICR_FALSE); }
@@ -242,9 +244,9 @@ public:
         case IP_INITIAL:
             // Need APN to be set. (CSTT=...)
             if(commands.AT == command) { reply.append(replies.AT); }           // Normal response
-            else if(commands.CPIN == command) { reply.append(replies.CPIN_READY); }
-            else if(commands.CREG == command) { reply.append(replies.CREG_READY); }  // Now registered.
-            else if(commands.CSTT == command) { reply.append(replies.CSTT_READY); updateState(); }
+            else if(commands.CPIN == command) { reply.append(replies.CPIN_TRUE); }
+            else if(commands.CREG == command) { reply.append(replies.CREG_TRUE); }  // Now registered.
+            else if(commands.CSTT == command) { reply.append(replies.CSTT_TRUE); updateState(); }
             else if(commands.CIICR == command) { reply.append(replies.CIICR_FALSE); }
             else if(commands.CIFSR == command) { reply.append(replies.CIFSR_FALSE); }
             else if(commands.CIPSTATUS == command) { reply.append(replies.CIPSTATUS_FALSE); }
@@ -255,10 +257,10 @@ public:
         case IP_START:
             // Need to start GPRS (CIICR)
             if(commands.AT == command) { reply.append(replies.AT); }
-            else if(commands.CPIN == command) { reply.append(replies.CPIN_READY); }
-            else if(commands.CREG == command) { reply.append(replies.CREG_READY); }
+            else if(commands.CPIN == command) { reply.append(replies.CPIN_TRUE); }
+            else if(commands.CREG == command) { reply.append(replies.CREG_TRUE); }
             else if(commands.CSTT == command) { reply.append(replies.CSTT_FALSE); }    // Can not set APN again!
-            else if(commands.CIICR == command) { reply.append(replies.CIICR_READY); updateState();}  // Can start GPRS
+            else if(commands.CIICR == command) { reply.append(replies.CIICR_TRUE); updateState();}  // Can start GPRS
             else if(commands.CIFSR == command) { reply.append(replies.CIFSR_FALSE); }
             else if(commands.CIPSTATUS == command) { reply.append(replies.CIPSTATUS_START); }
             else if(commands.CIPSTART == command) { reply.append(replies.CIPSTART_FALSE); }
@@ -272,11 +274,11 @@ public:
         case IP_GPRSACT:
             // Need to check IP address (CIFSR)
             if(commands.AT == command) { reply.append(replies.AT); }
-            else if(commands.CPIN == command) { reply.append(replies.CPIN_READY); }
-            else if(commands.CREG == command) { reply.append(replies.CREG_READY); }
+            else if(commands.CPIN == command) { reply.append(replies.CPIN_TRUE); }
+            else if(commands.CREG == command) { reply.append(replies.CREG_TRUE); }
             else if(commands.CSTT == command) { reply.append(replies.CSTT_FALSE); }
             else if(commands.CIICR == command) { reply.append(replies.CIICR_FALSE); }  // GPRS already started...
-            else if(commands.CIFSR == command) { reply.append(replies.CIFSR_READY); updateState(); }  // Check IP address
+            else if(commands.CIFSR == command) { reply.append(replies.CIFSR_TRUE); updateState(); }  // Check IP address
             else if(commands.CIPSTATUS == command) { reply.append(replies.CIPSTATUS_GPRSACT); }
             else if(commands.CIPSTART == command) { reply.append(replies.CIPSTART_FALSE); }
             else if(commands.CIPSEND == command) { reply.append(replies.CIPSEND_FALSE); }
@@ -285,11 +287,11 @@ public:
         case IP_STATUS:
             // Need to open UDP connection
             if(commands.AT == command) { reply.append(replies.AT); }
-            else if(commands.CPIN == command) { reply.append(replies.CPIN_READY); }
-            else if(commands.CREG == command) { reply.append(replies.CREG_READY); }
+            else if(commands.CPIN == command) { reply.append(replies.CPIN_TRUE); }
+            else if(commands.CREG == command) { reply.append(replies.CREG_TRUE); }
             else if(commands.CSTT == command) { reply.append(replies.CSTT_FALSE); }
             else if(commands.CIICR == command) { reply.append(replies.CIICR_FALSE); }
-            else if(commands.CIFSR == command) { reply.append(replies.CIFSR_READY); }
+            else if(commands.CIFSR == command) { reply.append(replies.CIFSR_TRUE); }
             else if(commands.CIPSTATUS == command) { reply.append(replies.CIPSTATUS_GPRSACT); }
             else if(commands.CIPSTART == command) { reply.append(replies.CIPSTART_TRUE); updateState(); }  // Open UDP
             else if(commands.CIPSEND == command) { reply.append(replies.CIPSEND_FALSE); }
@@ -302,11 +304,11 @@ public:
         case UDP_CONNECT_OK:
             // This should correspond to IDLE. Waiting to send stuff.
             if(commands.AT == command) { reply.append(replies.AT); }
-            else if(commands.CPIN == command) { reply.append(replies.CPIN_READY); }
-            else if(commands.CREG == command) { reply.append(replies.CREG_READY); }
+            else if(commands.CPIN == command) { reply.append(replies.CPIN_TRUE); }
+            else if(commands.CREG == command) { reply.append(replies.CREG_TRUE); }
             else if(commands.CSTT == command) { reply.append(replies.CSTT_FALSE); }
             else if(commands.CIICR == command) { reply.append(replies.CIICR_FALSE); }
-            else if(commands.CIFSR == command) { reply.append(replies.CIFSR_READY); }
+            else if(commands.CIFSR == command) { reply.append(replies.CIFSR_TRUE); }
             else if(commands.CIPSTATUS == command) { reply.append(replies.CIPSTATUS_CONNECTED); }
             else if(commands.CIPSTART == command) { reply.append(replies.CIPSTART_FALSE); }
             else if(commands.CIPSEND == command) { reply.append(replies.CIPSEND_TRUE); }
@@ -319,11 +321,11 @@ public:
         case UDP_CLOSED:
             // Need to open UDP or close GPRS.
             if(commands.AT == command) { reply.append(replies.AT); }
-            else if(commands.CPIN == command) { reply.append(replies.CPIN_READY); }
-            else if(commands.CREG == command) { reply.append(replies.CREG_READY); }
+            else if(commands.CPIN == command) { reply.append(replies.CPIN_TRUE); }
+            else if(commands.CREG == command) { reply.append(replies.CREG_TRUE); }
             else if(commands.CSTT == command) { reply.append(replies.CSTT_FALSE); }
             else if(commands.CIICR == command) { reply.append(replies.CIICR_FALSE); }
-            else if(commands.CIFSR == command) { reply.append(replies.CIFSR_READY); }
+            else if(commands.CIFSR == command) { reply.append(replies.CIFSR_TRUE); }
             else if(commands.CIPSTATUS == command) { reply.append(replies.CIPSTATUS_START); } // todo check
             else if(commands.CIPSTART == command) { reply.append(replies.CIPSTART_TRUE); updateState();}
             else if(commands.CIPSEND == command) { reply.append(replies.CIPSEND_FALSE); }
@@ -331,8 +333,8 @@ public:
             break;
         case PDP_DEACTIVATING:
             if(commands.AT == command) { reply.append(replies.AT); }           // Normal response
-            else if(commands.CPIN == command) { reply.append(replies.CPIN_READY); }   // No need to set a PIN.
-            else if(commands.CREG == command) { reply.append(replies.CREG_READY); }
+            else if(commands.CPIN == command) { reply.append(replies.CPIN_TRUE); }   // No need to set a PIN.
+            else if(commands.CREG == command) { reply.append(replies.CREG_TRUE); }
             else if(commands.CSTT == command) { reply.append(replies.CSTT_FALSE); }
             else if(commands.CIICR == command) { reply.append(replies.CIICR_FALSE); }
             else if(commands.CIFSR == command) { reply.append(replies.CIFSR_FALSE); }
@@ -345,8 +347,8 @@ public:
         case PDP_FAIL:
             // Everything has died.
             if(commands.AT == command) { reply.append(replies.AT); }           // Normal response
-            else if(commands.CPIN == command) { reply.append(replies.CPIN_READY); }   // No need to set a PIN.
-            else if(commands.CREG == command) { reply.append(replies.CREG_READY); }
+            else if(commands.CPIN == command) { reply.append(replies.CPIN_TRUE); }   // No need to set a PIN.
+            else if(commands.CREG == command) { reply.append(replies.CREG_TRUE); }
             else if(commands.CSTT == command) { reply.append(replies.CSTT_FALSE); }
             else if(commands.CIICR == command) { reply.append(replies.CIICR_FALSE); }
             else if(commands.CIFSR == command) { reply.append(replies.CIFSR_FALSE); }
@@ -360,10 +362,10 @@ public:
     }
 
     // emulate pin toggle:
-    static bool oldPinState = false;
-    static uint_fast8_t startTime = 0;
+    bool oldPinState;
+    uint_fast8_t startTime;
     static constexpr uint_fast8_t minPowerPinToggleVT = 2; // Pin must be set high for at least 2 seconds to register.
-    void setPinHigh(bool high) {
+    void pollPowerPin(bool high) {
         if(high) {
             if (!oldPinState)startTime = getSecondsVT();
             else  if (minPowerPinToggleVT >= getElapsedSecondsVT(startTime, getSecondsVT())) {  // XXX
@@ -444,6 +446,8 @@ class GoodSimulator final : public Stream
 public:
     // Events exposed.
     static bool haveSeenCommandStart;
+    static bool pinState;
+
 private:
     // Command being collected from OTSIM900Link.
     bool waitingForCommand = true;
@@ -453,7 +457,6 @@ private:
 
     // Reply (postfix) being returned to OTSIM900Link: empty if none.
     std::string reply;
-
     // Keep track (crudely) of state. Corresponds to OTSIM900LinkState values.
     SIM900Emu::SIM900Emulator sim900;
 
@@ -480,7 +483,7 @@ public:
                 collectingCommand = false;
                 if(verbose) { fprintf(stderr, "command received: %s\n", command.c_str()); }
                 // Respond to particular commands...
-                sim900._poll(command, reply);
+                sim900.poll(command, reply);
             }
             else if(collectingCommand) { command += c; }
         }
@@ -501,6 +504,7 @@ public:
 };
 // Events exposed.
 bool GoodSimulator::haveSeenCommandStart = false;
+bool GoodSimulator::pinState = false;
 }
 TEST(OTSIM900Link,basicsSimpleSimulator)
 {
@@ -529,6 +533,12 @@ TEST(OTSIM900Link,basicsSimpleSimulator)
     EXPECT_TRUE(l0.configure(1, &l0Config));
     EXPECT_TRUE(l0.begin());
     EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
+
+    // power up stuff
+    EXPECT_FALSE(B1::GoodSimulator::pinState);;
+    B1::GoodSimulator::pinState = true;
+    EXPECT_TRUE(B1::GoodSimulator::pinState);
+
 
     // Try to hang just by calling poll() repeatedly.
     for(int i = 0; i < 100; ++i) { incrementVTOneCycle(); statesChecked[l0._getState()] = true; l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
@@ -717,7 +727,7 @@ class MessageCountResetSimulator final : public Stream
             waitingForCommand = true;
             collectingCommand = false;
             if(verbose) { fprintf(stderr, "command received: %s\n", command.c_str()); }
-                sim900._poll(command, reply);
+                sim900.poll(command, reply);
           }
         else if(collectingCommand) { command += c; }
         }
