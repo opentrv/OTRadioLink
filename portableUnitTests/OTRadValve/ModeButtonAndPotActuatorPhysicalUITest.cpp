@@ -39,7 +39,7 @@ TEST(ModeButtonAndPotActuatorPhysicalUI,basics)
     OTRadValve::NULLTempControl tc;
     OTRadValve::NULLRadValve rv;
     OTV0P2BASE::PseudoSensorOccupancyTracker occupancy;
-    OTV0P2BASE::SensorAmbientLightMock ambLight;
+    OTV0P2BASE::SensorAmbientLightSimpleMock ambLight;
     OTRadValve::ModeButtonAndPotActuatorPhysicalUI mbpUI(
           &vm,
           &tc,
@@ -88,7 +88,7 @@ TEST(ModeButtonAndPotActuatorPhysicalUI,startState)
         OTRadValve::NULLRadValve rv;
         OTV0P2BASE::PseudoSensorOccupancyTracker occupancy;
         occupancy.read();
-        OTV0P2BASE::SensorAmbientLightMock ambLight;
+        OTV0P2BASE::SensorAmbientLightSimpleMock ambLight;
         ambLight.read();
         OTRadValve::ModeButtonAndPotActuatorPhysicalUI mbpUI(
               &vm,

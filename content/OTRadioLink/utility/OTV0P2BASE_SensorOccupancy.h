@@ -180,16 +180,16 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     // This value will only change at read(), and will not instantly be forced to 0 when activity happens.
     const SubSensorSimpleRef<uint8_t> vacHSubSensor;
 
-    // Threshold hours above which room is considered long vacant.
+    // Threshold hours ABOVE which room is considered long vacant.
     // At least 24h in order to allow once-daily room programmes (including pre-warm) to operate reliably.
     static constexpr uint8_t longVacantHThrH = 24;
-    // Threshold hours above which room is considered long long vacant.
+    // Threshold hours ABOVE which room is considered long long vacant.
     // Longer than longVacantHThrH but much less than 3 days to try to capture some weekend-absence savings.
     // ~8h less than 2d may capture full office energy savings for the whole day of Sunday
     // counting from from last occupancy at end of (working) day Friday for example.
     static constexpr uint8_t longLongVacantHThrH = 39;
 
-    // Returns true if room appears to have been vacant for over a day.
+    // Returns true if room appears to have been vacant for more than a day.
     // For a home or an office no sign of activity for this long suggests a weekend or a holiday for example.
     // At least 24h in order to allow once-daily room programmes (including pre-warm) to operate reliably.
     bool longVacant() const { return(getVacancyH() > longVacantHThrH); }
@@ -199,7 +199,7 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     // Longer than longVacant() but much less than 3 days to try to capture some weekend-absence savings.
     bool longLongVacant() const { return(getVacancyH() > longLongVacantHThrH); }
 
-    // Put directly into energy-conserving 'holiday mode' by making room appear to be 'long vacant'.
+    // Put directly into energy-conserving 'holiday mode' by making room appear to be 'long long vacant'.
     // Be careful of retriggering presence immediately if this is set locally.
     // Set apparent vacancy to maximum to make setting obvious and to hide further vacancy from snooping.
     // Code elsewhere may wish to put the system in FROST mode also.
