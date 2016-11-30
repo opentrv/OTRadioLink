@@ -2255,7 +2255,7 @@ static const ALDataSample sample3leveningTV[] =
 {19,21,12,3, occType::OCC_NONE, true},
 {19,21,28,16}, // Unusual lighting, ie not the 'habitual' level.
 {19,21,40,14},
-{19,21,44,15},
+{19,21,44,15}, // FIXME  // Lights on, TV watching.
 {19,21,52,15},
 {19,22,4,15},
 {19,22,16,15},
@@ -2617,14 +2617,14 @@ static const ALDataSample sample3leveningTV[] =
 {23,16,3,6},
 {23,16,11,5},
 {23,16,27,3},
-{23,16,39,45},
+{23,16,39,45, occType::OCC_PROBABLE, false}, // Lights on, TV watching.
 {23,16,53,46},
 {23,16,59,47},
 {23,17,7,47},
 {23,17,12,46},
 {23,17,28,47},
 {23,17,39,46},
-{23,17,55,47},
+{23,17,55,47, ALDataSample::NO_OCC_EXPECTATION, false}, // Lights on, TV watching.  FIXME: should be see WEAK occupancy.
 {23,18,8,45},
 {23,18,15,47},
 {23,18,19,44},
@@ -2707,7 +2707,7 @@ static const ALDataSample sample3leveningTV[] =
 {24,15,23,39},
 {24,15,43,22},
 {24,15,55,11},
-{24,16,3,48, occType::OCC_PROBABLE, false}, // Lights on.
+{24,16,3,48, occType::OCC_PROBABLE, false}, // Lights on, TV watching.
 {24,16,15,47},
 {24,16,23,46},
 {24,16,31,43},
