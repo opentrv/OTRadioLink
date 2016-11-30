@@ -127,7 +127,7 @@ void SensorAmbientLightAdaptive::recomputeThresholds(
 
   // If mean is available (and bounded by min and max) then use blend of max and mean.
   const uint8_t upperBound = ((rollingMin < meanNowOrFF) && (meanNowOrFF < rollingMax)) ?
-      (((meanNowOrFF + rollingMax) + 1) >> 1) : rollingMax;
+      uint8_t(((meanNowOrFF + (uint16_t)rollingMax) + 1) >> 1) : rollingMax;
 
   // Compute hysteresis.
   const uint8_t upDelta = OTV0P2BASE::fnmax((uint8_t)((upperBound - rollingMin) >> (sensitive ? 4 : 3)), ABS_MIN_AMBLIGHT_HYST_UINT8);
