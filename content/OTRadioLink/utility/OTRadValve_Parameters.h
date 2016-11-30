@@ -95,18 +95,30 @@ namespace OTRadValve
             // DHD20160927 TODO-980 raised from 5 to 10 to ensure very rarely fails to trigger in in shoulder season.
             static constexpr uint8_t BAKE_UPLIFT = bakeLiftC;
 
-            // Initial minor setback degrees C (strictly positive).  Note that 1C heating setback may result in ~8% saving in the UK.
-            // This may be the maximum setback applied with a comfort bias for example.
+            // Initial minor setback degrees C (strictly positive).
+            // Note that 1C heating setback may result in ~8% saving in the UK.
+            // This may be the maximum setback generally applied
+            // with a comfort bias for example.
             static constexpr uint8_t SETBACK_DEFAULT = 1;
-            // Enhanced setback, eg in eco mode, for extra energy savings.  Not more than SETBACK_FULL.
+            // Enhanced setback, eg in eco mode, for extra energy savings.
+            // Less than SETBACK_FULL.
             static constexpr uint8_t SETBACK_ECO = 1+SETBACK_DEFAULT;
-            // Full setback degrees C (strictly positive and significantly, ie several degrees, greater than SETBACK_DEFAULT, less than MIN_TARGET_C).
-            // Deeper setbacks increase energy savings at the cost of longer times to return to target temperatures.
-            // See also (recommending 13F/7C setback to 55F/12C): https://www.mge.com/images/pdf/brochures/residential/setbackthermostat.pdf
-            // See also (suggesting for an 8hr setback, 1F set-back = 1% energy savings): http://joneakes.com/jons-fixit-database/1270-How-far-back-should-a-set-back-thermostat-be-set
-            // See comments on savings, comfort and condensation with setbacks > ~4C (eg ~15% saving for 6C setback overnight): https://www.cmhc-schl.gc.ca/en/co/grho/grho_002.cfm
-            // This must set back to no more than than MIN_TARGET_C to avoid problems with unsigned arithmetic.
-            static constexpr uint8_t SETBACK_FULL = 4;
+            // Full setback degrees C (strictly positive and significantly,
+            // ie several degrees, greater than SETBACK_DEFAULT,
+            // no more than MIN_TARGET_C).
+            // Deeper setbacks increase potential energy savings
+            // at the cost of a longer time to return to target temperature.
+            // Deeper setbacks at night help avoid noisy/unwanted heating then.
+            // See (recommending 13F/7C setback to 55F/12C):
+            //     https://www.mge.com/images/pdf/brochures/residential/setbackthermostat.pdf
+            // See (suggesting an 8hr setback, 1F set-back = 1% energy savings):
+            //     http://joneakes.com/jons-fixit-database/1270-How-far-back-should-a-set-back-thermostat-be-set
+            // See savings, comfort and condensation with setbacks > ~4C
+            // (eg ~15% saving for 6C setback overnight):
+            //     https://www.cmhc-schl.gc.ca/en/co/grho/grho_002.cfm
+            // This must set back no more than than MIN_TARGET_C
+            // to avoid problems with unsigned arithmetic.
+            static constexpr uint8_t SETBACK_FULL = 5;
         };
 
     // Mechanism to make ValveControlParameters available at run-time.

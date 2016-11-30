@@ -460,17 +460,19 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
             // should probably be longer than required to watch a typical movie or go to sleep (~2h) for example,
             // but short enough to take effect overnight and to be in effect a reasonable fraction of a (~8h) night.
             //
-            // Note: the FULL setback can only happen with an ECO bias.
-            // Note: the setback is usually limited to minimum/default when at the top/comfort end of the range.
+            // Note: a FULL setback is prevented when at the the top end
+            // of the scale, ie at a comfort temperature,
+            // and is usually limited to minimum/default.
             constexpr uint8_t minVacantAndDarkForFULLSetbackH = 2; // Hours; strictly positive, typically 1--4.
-            const uint8_t setback = ((tempControl->isComfortTemperature(wt) && !ambLight->isRoomVeryDark()) ||
+            const bool comfortTemperature = tempControl->isComfortTemperature(wt);
+            const uint8_t setback = ((comfortTemperature && !ambLight->isRoomVeryDark()) ||
                                      occupancy->isLikelyOccupied() ||
                                      (!longVacant && !isDark && !tempControl->isEcoTemperature(wt) && (NULL != relHumidityOpt) && relHumidityOpt->isAvailable() && relHumidityOpt->isRHHighWithHyst()) ||
                                      (!longVacant && !isDark && (hoursLessOccupiedThanThis > 4)) ||
                                      (!longVacant && !isDark && !darkForHours && (hoursLessOccupiedThanNext >= thisHourNLOThreshold-1)) ||
                                      (!longVacant && schedule->isAnyScheduleOnWARMSoon())) ?
                     valveControlParameters::SETBACK_DEFAULT :
-                ((ecoBias && (longLongVacant ||
+                ((!comfortTemperature && (longLongVacant ||
                     (notLikelyOccupiedSoon && (tempControl->isEcoTemperature(wt) ||
                         ((dm > (uint8_t)OTV0P2BASE::fnmin(254, 60*minVacantAndDarkForFULLSetbackH)) && (occupancy->getVacancyH() >= minVacantAndDarkForFULLSetbackH)))))) ?
                     valveControlParameters::SETBACK_FULL : valveControlParameters::SETBACK_ECO);
