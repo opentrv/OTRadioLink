@@ -130,6 +130,22 @@ class NULLRadValve final : public AbstractRadValve
   };
 
 
+// Mock/settable radiator valve driver implementation.
+// Never in normal (nor error) state.
+class RadValveMock final : public AbstractRadValve
+  {
+  public:
+    // Returns % open value; no calculation/work is done.
+    virtual uint8_t read() override { return(get()); }
+    // Set new target valve percent open.
+    // Ignores invalid values.
+    // Some implementations may ignore/reject all attempts to directly set the values.
+    // If this returns true then the new target value was accepted.
+    virtual bool set(const uint8_t newValue) override
+      { if(!isValid(newValue)) { return(false); } value = newValue; return(true); }
+  };
+
+
 // Generic callback handler for hardware valve motor driver.
 class HardwareMotorDriverInterfaceCallbackHandler
   {
