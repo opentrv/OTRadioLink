@@ -18,6 +18,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 
 /*
  * Driver for OTV0P2BASE_SensorAmbientLightOccupancy tests.
+ *
+ * These data sets can also be used to test key related and derived behaviours
+ * such as basic ambient light level sensing and temperature setback levels.
  */
 
 #include <stdint.h>
@@ -52,14 +55,32 @@ class ALDataSample final
         // Time/data values.
         const uint8_t d, H, M, L;
 
-        static constexpr int8_t NO_EXPECTATION = -1; // -1 implies no prediction, distinct from all occType values.
-        const int8_t expected = NO_EXPECTATION;
+        // -1 implies no occupancy prediction, distinct from all occType values.
+        static constexpr int8_t NO_OCC_EXPECTATION = -1;
+        // Occupancy prediction OCC_XXX; -1 for no prediction.
+        const int8_t expectedOcc = NO_OCC_EXPECTATION;
+
+        // -1 implies no setback prediction, distinct from all occType values.
+        static constexpr int8_t NO_SB_EXPECTATION = -1;
+        // Scale mid-point setback prediction (C); -1 for no prediction.
+        // This is for a conventional/default set of valve parameters,
+        // mainly intended to ensure sane behaviour under normal circumstances.
+        // Useful setback predictions will probably need at least 24h of data.
+        const int8_t expectedSb = NO_SB_EXPECTATION;
 
         // Day/hour/minute and light level and expected results.
         // An expected result of -1 means no particular result expected from this (anything is acceptable).
         // Else the given occType value is expected.
-        constexpr ALDataSample(uint8_t dayOfMonth, uint8_t hour24, uint8_t minute, uint8_t lightLevel, int8_t expectedResult = NO_EXPECTATION)
-            : d(dayOfMonth), H(hour24), M(minute), L(lightLevel), expected(expectedResult) { }
+        constexpr ALDataSample(uint8_t dayOfMonth, uint8_t hour24, uint8_t minute,
+                               uint8_t lightLevel,
+                               int8_t expectedOcc_ = NO_OCC_EXPECTATION,
+                               int8_t expectedSb_ = NO_SB_EXPECTATION)
+            :
+            d(dayOfMonth), H(hour24), M(minute),
+            L(lightLevel),
+            expectedOcc(expectedOcc_),
+            expectedSb(expectedSb_)
+            { }
 
         // Create/mark a terminating entry; all input values invalid.
         constexpr ALDataSample() : d(255), H(255), M(255), L(255) { }
@@ -105,8 +126,8 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
     ASSERT_FALSE(data->isEnd()) << "do not pass in empty data set";
     // Count of number of records.
     int nRecords = 0;
-    // Count number of records with explicit expected response assertion.
-    int nExpectation = 0;
+    // Count number of records with explicit expected occupancy response assertion.
+    int nOccExpectation = 0;
     // Compute own values for min, max, etc.
     int minI = 256;
     int maxI = -1;
@@ -116,8 +137,8 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
     for(const ALDataSample *dp = data; !dp->isEnd(); ++dp)
         {
         ++nRecords;
-        const int8_t ne = ALDataSample::NO_EXPECTATION;
-        if(ne != dp->expected) { ++nExpectation; }
+        const int8_t neo = ALDataSample::NO_OCC_EXPECTATION;
+        if(neo != dp->expectedOcc) { ++nOccExpectation; }
         long currentMinute = dp->currentMinute();
         do  {
             const uint8_t level = dp->L;
@@ -130,7 +151,7 @@ void simpleDataSampleRun(const ALDataSample *const data, OTV0P2BASE::SensorAmbie
             ++currentMinute;
             } while((!(dp+1)->isEnd()) && (currentMinute < (dp+1)->currentMinute()));
         }
-    ASSERT_LT(0, nExpectation) << "must assert some expected predictions";
+    ASSERT_LT(0, nOccExpectation) << "must assert some expected predictions";
 //    fprintf(stderr, "minI: %d, maxI %d\n", minI, maxI);
     for(int i = 24; --i >= 0; )
         {
@@ -241,15 +262,15 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
                         }
                     oldH = H;
                     ++updateCalls; // Note the new update() call about to be made.
-                    const OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType prediction = detector->update(dp->L);
-                    if(occType::OCC_NONE != prediction) { ++nOccupancyReports; }
+                    const OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType predictionOcc = detector->update(dp->L);
+                    if(occType::OCC_NONE != predictionOcc) { ++nOccupancyReports; }
                     // Note that for all synthetic ticks the expectation is removed (since there is no level change).
-                    const int8_t expected = (currentMinute != dp->currentMinute()) ? ALDataSample::NO_EXPECTATION : dp->expected;
-if(verbose && (currentMinute == dp->currentMinute()) && (0 != prediction)) { fprintf(stderr, "  prediction=%d @ %dT%d:%0.2d L=%d mean=%d\n", prediction, D, H, M, dp->L, meanUsed); }
-                    if(ALDataSample::NO_EXPECTATION != expected)
+                    const int8_t expected = (currentMinute != dp->currentMinute()) ? ALDataSample::NO_OCC_EXPECTATION : dp->expectedOcc;
+if(verbose && (currentMinute == dp->currentMinute()) && (0 != predictionOcc)) { fprintf(stderr, "  prediction=%d @ %dT%d:%0.2d L=%d mean=%d\n", predictionOcc, D, H, M, dp->L, meanUsed); }
+                    if(ALDataSample::NO_OCC_EXPECTATION != expected)
                         {
-if(verbose && (0 != prediction)) { fprintf(stderr, " expected=%d @ %dT%d:%0.2d L=%d mean=%d\n", expected, D, H, M, dp->L, meanUsed); }
-                        EXPECT_EQ(expected, prediction) << " @ " << ((int)D) << "T" << ((int)H) << ":" << ((int)M) <<
+if(verbose && (0 != predictionOcc)) { fprintf(stderr, " expected=%d @ %dT%d:%0.2d L=%d mean=%d\n", expected, D, H, M, dp->L, meanUsed); }
+                        EXPECT_EQ(expected, predictionOcc) << " @ " << ((int)D) << "T" << ((int)H) << ":" << ((int)M) <<
                             " L="<< ((int)(dp->L)) << " mean="<<((int)meanUsed) << " min="<<((int)minToUse) << " max="<<((int)maxToUse);
                         }
                     ++currentMinute;
