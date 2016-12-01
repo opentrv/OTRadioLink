@@ -1280,9 +1280,9 @@ static const ALDataSample sample3leveningTV[] =
 {10,20,11,39},
 {10,20,23,41, occType::OCC_WEAK, false}, // TV watching?
 {10,20,31,39},
-{10,20,43,40},
+{10,20,43,40, occType::OCC_WEAK, false}, // TV watching?
 {10,20,47,39},
-{10,20,51,40},
+{10,20,51,40, occType::OCC_WEAK, false}, // TV watching?
 {10,21,7,40},
 {10,21,9,41},
 {10,21,15,41},
