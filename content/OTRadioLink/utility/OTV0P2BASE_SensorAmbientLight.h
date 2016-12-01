@@ -109,6 +109,10 @@ class SensorAmbientLightBase : public SimpleTSUint8Sensor
 // Also supports occupancy sensing and callbacks for reporting it.
 class SensorAmbientLightAdaptive : public SensorAmbientLightBase
   {
+  public:
+    // Minimum hysteresis; a simple noise floor.
+    static constexpr uint8_t epsilon = 4;
+
   protected:
     // Minimum eg from rolling stats, to allow auto adjustment to dark; ~0/0xff means no min available.
     uint8_t rollingMin = 0xff;
@@ -133,7 +137,7 @@ class SensorAmbientLightAdaptive : public SensorAmbientLightBase
     void (*occCallbackOpt)(bool) = NULL;
 
     // Recomputes thresholds and 'unusable' based on current state.
-    //   * meanNowOrFF  mean ambient light level in this time interval; 0xff if none.
+    //   * meanNowOrFF  typical/mean light level around this time each 24h; 0xff if not known.
     //   * sensitive  if true be more sensitive to possible occupancy changes, else less so.
     void recomputeThresholds(uint8_t meanNowOrFF, bool sensitive);
 

@@ -228,8 +228,11 @@ if(verbose) { fprintf(stderr, "blending = %d\n", blending); }
             {
             const bool sensitive = (0 != s);
 if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
-            // Count of number of occupancy signals.
+            // Count of number of occupancy signals, real records only.
             int nOccupancyReports = 0;
+            // Number of 'room dark' results, real records only.
+            int nRoomDarkReports = 0;
+            // Number of update()/read() calls made.
             long updateCalls = 0;
             uint8_t oldH = 0xff; // Used to detect hour rollover.
             for(const ALDataSample *dp = data; !dp->isEnd(); ++dp)
@@ -314,13 +317,15 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
                     // True if real non-interpolated record.
                     const bool isRealRecord = (currentMinute == dp->currentMinute());
                     const bool predictedRoomDark = ala.isRoomDark();
-                    const int8_t expectedRoomDark = dp->expectedRd;
+                    if(isRealRecord && predictedRoomDark) { ++nRoomDarkReports; }
+                    const int8_t expectedRoomDark = (!isRealRecord) ? ALDataSample::NO_RD_EXPECTATION : dp->expectedRd;
                     // Collect occupancy prediction (if any) from call-back.
                     const OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType predictionOcc =
                         (-1 == cbProbable) ? occType::OCC_NONE :
                             ((0 == cbProbable) ? occType::OCC_WEAK : occType::OCC_PROBABLE);
+                    if(isRealRecord && (-1 != cbProbable)) { ++nOccupancyReports; }
                     // Note that for all synthetic ticks the expectation is removed (since there is no level change).
-                    const int8_t expectedOcc = (currentMinute != dp->currentMinute()) ? ALDataSample::NO_OCC_EXPECTATION : dp->expectedOcc;
+                    const int8_t expectedOcc = (!isRealRecord) ? ALDataSample::NO_OCC_EXPECTATION : dp->expectedOcc;
 if(verbose && isRealRecord && (0 != predictionOcc)) { fprintf(stderr, "  predictionOcc=%d @ %dT%d:%.2d L=%d mean=%d\n", predictionOcc, D, H, M, dp->L, meanUsed); }
                     if(ALDataSample::NO_OCC_EXPECTATION != expectedOcc)
                         {
@@ -331,15 +336,17 @@ if(verbose && (0 != predictionOcc)) { fprintf(stderr, " expectedOcc=%d @ %dT%d:%
                     if(ALDataSample::NO_RD_EXPECTATION != expectedRoomDark)
                         {
                         EXPECT_EQ((bool)expectedRoomDark, predictedRoomDark) << " @ " << ((int)D) << "T" << ((int)H) << ":" << ((int)M) <<
-                                " L="<< ((int)(dp->L)) << " mean="<<((int)meanUsed) << " min="<<((int)minToUse) << " max="<<((int)maxToUse);
+                                " L="<< ((int)(dp->L)) << " mean="<<((int)meanUsed) << " min="<<((int)minToUse) << " max="<<((int)maxToUse) <<
+                                " lT="<<((int)(ala.getLightThreshold())) << " dT="<<((int)(ala.getDarkThreshold()));
                         }
 
                     ++currentMinute;
                     } while((!(dp+1)->isEnd()) && (currentMinute < (dp+1)->currentMinute()));
                 }
             // Check that there are not huge numbers of (false) positives.
-            ASSERT_TRUE(nOccupancyReports <= updateCalls) << "impossible!";
-            ASSERT_TRUE(nOccupancyReports <= ((updateCalls*2)/3)) << "far too many occupancy indications; at most 16h/day occupancy signals: " << (nOccupancyReports/(double)updateCalls);
+            EXPECT_TRUE(nOccupancyReports <= nRecords) << "impossible!";
+            EXPECT_TRUE(nOccupancyReports <= ((nRecords*2)/3)) << "far too many occupancy indications; at most 16h/day occupancy signals: " << (nOccupancyReports/(double)nRecords);
+            EXPECT_TRUE((nRoomDarkReports <= ((nRecords*7)/8)) && (nRoomDarkReports >= (nRecords/8))) << "room dark/lit reports too skewed: " << (nRoomDarkReports/(double)nRecords);
             if(sensitive) { nOccupancyReportsSensitive = nOccupancyReports; }
             else { nOccupancyReportsNotSensitive = nOccupancyReports; }
             ala.set(254); ala.read(); // Force detector to 'initial'-like state ready for re-run.
@@ -478,7 +485,7 @@ static const ALDataSample sample3lHard[] =
 {9,6,13,1, occType::OCC_NONE, true}, // Definitely not occupied.
 {9,6,21,2, occType::OCC_NONE, true}, // Not enough rise to indicate occupation, dark.
 {9,6,33,2},
-{9,6,37,24, occType::OCC_PROBABLE, false}, // Curtains drawn: OCCUPIED.
+{9,6,37,24, occType::OCC_PROBABLE, false}, // Curtains drawn: OCCUPIED. Should appear light.
 {9,6,45,32},
 {9,6,53,31},
 {9,7,5,30},
@@ -513,7 +520,7 @@ static const ALDataSample sample5sHard[] =
 {8,7,11,12},
 {8,7,15,13},
 {8,7,19,17},
-{8,7,27,42, ALDataSample::NO_OCC_EXPECTATION, false}, // FIXME: ? Curtains drawn?
+{8,7,27,42, ALDataSample::NO_OCC_EXPECTATION, false}, // FIXME: should detect curtains drawn?
 {8,7,31,68, ALDataSample::NO_OCC_EXPECTATION, false},
 {8,7,43,38},
 {8,7,51,55},
@@ -956,7 +963,7 @@ static const ALDataSample sample2bHard2[] =
 {28,19,28,8},
 {28,19,44,14, occType::OCC_PROBABLE}, // Light on: OCCUPIED.  FIXME: should not be dark.
 {28,19,48,13},
-{28,20,1,16},
+{28,20,1,16}, // occType::OCC_NONE, false}, // Light on: OCCUPIED.  FIXME: should not be dark.
 {28,20,16,13},
 {28,20,28,12},
 {28,20,36,15},
@@ -965,7 +972,7 @@ static const ALDataSample sample2bHard2[] =
 // ...
 {29,7,20,8},
 {29,7,32,8},
-{29,7,48,34, ALDataSample::NO_OCC_EXPECTATION, false}, // FIXME: should be able to detect curtains drawn here.
+{29,7,48,34, ALDataSample::NO_OCC_EXPECTATION, false}, // Should be able to detect curtains drawn here.
 {29,8,1,30},
 {29,8,12,77},
 {29,8,16,82},

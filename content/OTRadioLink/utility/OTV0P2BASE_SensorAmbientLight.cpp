@@ -74,13 +74,13 @@ uint8_t SensorAmbientLightAdaptive::read()
 
 // Maximum value in the uint8_t range.
 static constexpr uint8_t MAX_AMBLIGHT_VALUE_UINT8 = 254;
-// Minimum viable range (on [0,254] scale) to be usable.
-static constexpr uint8_t ABS_MIN_AMBLIGHT_RANGE_UINT8 = 3;
-// Minimum hysteresis (on [0,254] scale) to be usable and avoid noise triggers.
-static constexpr uint8_t ABS_MIN_AMBLIGHT_HYST_UINT8 = 2;
+//// Minimum viable range (on [0,254] scale) to be usable.
+//static constexpr uint8_t ABS_MIN_AMBLIGHT_RANGE_UINT8 = 3;
+//// Minimum hysteresis (on [0,254] scale) to be usable and avoid noise triggers.
+//static constexpr uint8_t ABS_MIN_AMBLIGHT_HYST_UINT8 = 2;
 
 // Recomputes thresholds and 'unusable' based on current state.
-//   * meanNowOrFF  mean ambient light level in this time interval; 0xff if none.
+//   * meanNowOrFF  typical/mean light level around this time each 24h; 0xff if not known.
 //   * sensitive  if true be more sensitive to possible occupancy changes, else less so.
 void SensorAmbientLightAdaptive::recomputeThresholds(
         const uint8_t meanNowOrFF, const bool sensitive)
@@ -98,9 +98,9 @@ void SensorAmbientLightAdaptive::recomputeThresholds(
     }
 
   // If the range between recent max and min too narrow then assume unusable.
-  if((rollingMin >= MAX_AMBLIGHT_VALUE_UINT8 - ABS_MIN_AMBLIGHT_RANGE_UINT8) ||
+  if((rollingMin >= MAX_AMBLIGHT_VALUE_UINT8 - epsilon) ||
      (rollingMax <= rollingMin) ||
-     (rollingMax - rollingMin <= ABS_MIN_AMBLIGHT_RANGE_UINT8))
+     (rollingMax - rollingMin <= epsilon))
     {
     // Use the supplied default light threshold and derive the rest from it.
     lightThreshold = DEFAULT_LIGHT_THRESHOLD;
@@ -120,19 +120,16 @@ void SensorAmbientLightAdaptive::recomputeThresholds(
   //
   // Default upwards delta indicative of lights on, and hysteresis, is ~12.5% of FSD if default,
   // else half that if sensitive.
-  //
-  // TODO: possibly allow a small adjustment on top of this to allow >= 1 each trigger and trigger-free hours each day.
-  // Some areas may have background flicker eg from trees moving or cars passing, so units there may need desensitising.
-  // Could (say) increment an additional margin (up to half) on each non-zero-trigger last hour, else decrement.
 
-  // If mean is available (and bounded by min and max) then use blend of max and mean.
-  const uint8_t upperBound = ((rollingMin < meanNowOrFF) && (meanNowOrFF < rollingMax)) ?
-      uint8_t(((meanNowOrFF + (uint16_t)rollingMax) + 1) >> 1) : rollingMax;
+  // If current mean is low compared to max then become extra sensitive
+  // to try to be able to detect (eg) artificial illumination.
+  const bool isLow = meanNowOrFF < (rollingMax>>1);
 
   // Compute hysteresis.
-  const uint8_t upDelta = OTV0P2BASE::fnmax((uint8_t)((upperBound - rollingMin) >> (sensitive ? 4 : 3)), ABS_MIN_AMBLIGHT_HYST_UINT8);
+  const uint8_t e = epsilon;
+  const uint8_t upDelta = OTV0P2BASE::fnmax((uint8_t)((rollingMax - rollingMin) >> ((sensitive||isLow) ? 4 : 3)), e);
   // Provide some noise elbow-room above the observed minimum.
-  darkThreshold = (uint8_t) OTV0P2BASE::fnmin(254, rollingMin+1 + (upDelta>>1));
+  darkThreshold = (uint8_t) OTV0P2BASE::fnmin(254, rollingMin + OTV0P2BASE::fnmax(1, (upDelta>>1)));
   lightThreshold = (uint8_t) OTV0P2BASE::fnmin(rollingMax-1, darkThreshold + upDelta);
 
   // All seems OK.
@@ -143,7 +140,8 @@ void SensorAmbientLightAdaptive::recomputeThresholds(
 // Short term stats are typically over the last day,
 // longer term typically over the last week or so (eg rolling exponential decays).
 // Call regularly, roughly hourly, to drive other internal time-dependent adaptation.
-//   * sensitive if true be more sensitive to possible occupancy changes, else less so.
+//   * meanNowOrFF  typical/mean light level around this time each 24h; 0xff if not known.
+//   * sensitive  if true be more sensitive to possible occupancy changes, else less so.
 void SensorAmbientLightAdaptive::setTypMinMax(const uint8_t meanNowOrFF,
                              const uint8_t longerTermMinimumOrFF, const uint8_t longerTermMaximumOrFF,
                              const bool sensitive)
@@ -200,44 +198,17 @@ uint8_t SensorAmbientLight::read()
   // Power off to top of LDR/phototransistor.
   OTV0P2BASE::power_intermittent_peripherals_disable();
 
-//  // Capture entropy from changed LS bits.
-//  if((uint8_t)al != (uint8_t)rawValue) { ::OTV0P2BASE::addEntropyToPool((uint8_t)al, 0); } // Claim zero entropy as may be forced by Eve.
-
-//  // Hold the existing/old value for comparison.
-//  const uint8_t oldValue = value;
   // Compute the new normalised value.
   const uint8_t newValue = (uint8_t)(al >> shiftRawScaleTo8Bit);
 
   // Capture entropy from changed LS bits.
   if(newValue != value) { ::OTV0P2BASE::addEntropyToPool((uint8_t)al, 0); } // Claim zero entropy as may be forced by Eve.
 
-//  // Adjust room-lit flag, with hysteresis.
-//  // Should be able to detect dark when darkThreshold is zero and newValue is zero.
-//  if(newValue <= darkThreshold)
-//    {
-//    isRoomLitFlag = false;
-//    // If dark enough to set isRoomLitFlag false then increment counter.
-//    // Do not do increment the count if the sensor seems to be unusable / dubiously usable.
-//    if(!unusable && (darkTicks < 255)) { ++darkTicks; }
-//    }
-//  else if(newValue > lightThreshold)
-//    {
-//    isRoomLitFlag = true;
-//    // If light enough to set isRoomLitFlag true then reset darkTicks counter.
-//    darkTicks = 0;
-//    }
-//
-//  // If a callback is set then use the occupancy detector.
-//  if(NULL != occCallbackOpt)
-//    {
-//    const OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType occ = occupancyDetector.update(newValue);
-//    if(occ >= OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::OCC_WEAK)
-//        { occCallbackOpt(occ >= OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::OCC_PROBABLE); } // Ping the callback!
-//    }
+  // Store new value.
+  value = newValue;
 
-   // Store new value.
-   value = newValue;
-   SensorAmbientLightAdaptive::read();
+  // Have base class update other/derived values.
+  SensorAmbientLightAdaptive::read();
 
 #if 0 && defined(DEBUG)
   DEBUG_SERIAL_PRINT_FLASHSTRING("Ambient light (/1023): ");

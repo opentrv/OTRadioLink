@@ -118,9 +118,17 @@ TEST(AmbientLight,setTypMinMax)
 
     // Test with some realistic stats values.
     alm.setTypMinMax(64, 1, 183, false);
-    EXPECT_NEAR(24, alm.getLightThreshold(), 4);
-    EXPECT_NEAR(9, alm.getDarkThreshold(), 4);
+    EXPECT_NEAR(17, alm.getLightThreshold(), 0);
+    EXPECT_NEAR(6, alm.getDarkThreshold(), 0);
     alm.setTypMinMax(64, 1, 183, true);
-    EXPECT_NEAR(12, alm.getLightThreshold(), 2);
-    EXPECT_NEAR(5, alm.getDarkThreshold(), 2);
+    EXPECT_NEAR(17, alm.getLightThreshold(), 0);
+    EXPECT_NEAR(6, alm.getDarkThreshold(), 0);
+
+    // Some values from 2b (hard to detect reading light in evening).
+    alm.setTypMinMax(11, 8, 185, false);
+    EXPECT_NEAR(24, alm.getLightThreshold(), 0);
+    EXPECT_NEAR(13, alm.getDarkThreshold(), 0);
+    alm.setTypMinMax(11, 8, 185, true);
+    EXPECT_NEAR(24, alm.getLightThreshold(), 0);
+    EXPECT_NEAR(13, alm.getDarkThreshold(), 0);
 }
