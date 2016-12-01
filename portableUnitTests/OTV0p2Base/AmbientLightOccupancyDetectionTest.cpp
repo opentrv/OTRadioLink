@@ -346,7 +346,8 @@ if(verbose && (0 != predictionOcc)) { fprintf(stderr, " expectedOcc=%d @ %dT%d:%
             // Check that there are not huge numbers of (false) positives.
             EXPECT_TRUE(nOccupancyReports <= nRecords) << "impossible!";
             EXPECT_TRUE(nOccupancyReports <= ((nRecords*2)/3)) << "far too many occupancy indications; at most 16h/day occupancy signals: " << (nOccupancyReports/(double)nRecords);
-            EXPECT_TRUE((nRoomDarkReports <= ((nRecords*7)/8)) && (nRoomDarkReports >= (nRecords/8))) << "room dark/lit reports too skewed: " << (nRoomDarkReports/(double)nRecords);
+            const uint8_t maxFractionRD = 8;
+            EXPECT_TRUE((nRoomDarkReports <= ((nRecords*(maxFractionRD-1))/maxFractionRD)) && (nRoomDarkReports >= (nRecords/maxFractionRD))) << "room dark/lit reports too skewed: " << (nRoomDarkReports/(double)nRecords);
             if(sensitive) { nOccupancyReportsSensitive = nOccupancyReports; }
             else { nOccupancyReportsNotSensitive = nOccupancyReports; }
             ala.set(254); ala.read(); // Force detector to 'initial'-like state ready for re-run.
