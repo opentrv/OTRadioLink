@@ -177,6 +177,8 @@ void simpleDataSampleRun(const ALDataSample *const data)
     uint8_t byHourMeanI[24];
     int byHourMeanSumI[24]; memset(byHourMeanSumI, 0, sizeof(byHourMeanSumI));
     int byHourMeanCountI[24]; memset(byHourMeanCountI, 0, sizeof(byHourMeanCountI));
+    const long startMinute = data->currentMinute();
+    long lm = startMinute;
     for(const ALDataSample *dp = data; !dp->isEnd(); ++dp)
         {
         ++nRecords;
@@ -194,8 +196,11 @@ void simpleDataSampleRun(const ALDataSample *const data)
             byHourMeanSumI[H] += level;
             ++byHourMeanCountI[H];
             ++currentMinute;
+            lm = currentMinute;
             } while((!(dp+1)->isEnd()) && (currentMinute < (dp+1)->currentMinute()));
         }
+    const long lastMinute = lm;
+    const long totalMinutes = lastMinute - startMinute;
     ASSERT_TRUE((nOccExpectation > 0) || (nRdExpectation > 0)) << "must assert some expected predictions";
 //    fprintf(stderr, "minI: %d, maxI %d\n", minI, maxI);
     for(int i = 24; --i >= 0; )
@@ -230,8 +235,8 @@ if(verbose) { fprintf(stderr, "blending = %d\n", blending); }
 if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
             // Count of number of occupancy signals, real records only.
             int nOccupancyReports = 0;
-            // Number of 'room dark' results, real records only.
-            int nRoomDarkReports = 0;
+            // Number of 'room dark' results, all ticks.
+            int nRoomDarkReportsAll = 0;
             // Number of update()/read() calls made.
             long updateCalls = 0;
             uint8_t oldH = 0xff; // Used to detect hour rollover.
@@ -317,7 +322,7 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
                     // True if real non-interpolated record.
                     const bool isRealRecord = (currentMinute == dp->currentMinute());
                     const bool predictedRoomDark = ala.isRoomDark();
-                    if(isRealRecord && predictedRoomDark) { ++nRoomDarkReports; }
+                    if(predictedRoomDark) { ++nRoomDarkReportsAll; }
                     const int8_t expectedRoomDark = (!isRealRecord) ? ALDataSample::NO_RD_EXPECTATION : dp->expectedRd;
                     // Collect occupancy prediction (if any) from call-back.
                     const OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType predictionOcc =
@@ -346,8 +351,8 @@ if(verbose && (0 != predictionOcc)) { fprintf(stderr, " expectedOcc=%d @ %dT%d:%
             // Check that there are not huge numbers of (false) positives.
             EXPECT_TRUE(nOccupancyReports <= nRecords) << "impossible!";
             EXPECT_TRUE(nOccupancyReports <= ((nRecords*2)/3)) << "far too many occupancy indications; at most 16h/day occupancy signals: " << (nOccupancyReports/(double)nRecords);
-            const uint8_t maxFractionRD = 8;
-            EXPECT_TRUE((nRoomDarkReports <= ((nRecords*(maxFractionRD-1))/maxFractionRD)) && (nRoomDarkReports >= (nRecords/maxFractionRD))) << "room dark/lit reports too skewed: " << (nRoomDarkReports/(double)nRecords);
+            const uint8_t maxFractionRD = 5;
+            EXPECT_TRUE((nRoomDarkReportsAll <= ((totalMinutes*(maxFractionRD-1))/maxFractionRD)) && (nRoomDarkReportsAll >= (totalMinutes/maxFractionRD))) << "room dark/lit reports too skewed: " << (nRoomDarkReportsAll/(double)totalMinutes);
             if(sensitive) { nOccupancyReportsSensitive = nOccupancyReports; }
             else { nOccupancyReportsNotSensitive = nOccupancyReports; }
             ala.set(254); ala.read(); // Force detector to 'initial'-like state ready for re-run.
