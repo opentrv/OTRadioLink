@@ -75,7 +75,11 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
       : occupationCountdownM(0), activityCountdownM(0),
 //        twoBitSubSensor(this, &PseudoSensorOccupancyTracker::twoBitTag, &PseudoSensorOccupancyTracker::twoBitOccupancyValue),
       vacHSubSensor(vacancyH, V0p2_SENSOR_TAG_F("vac|h"))
-      { }
+      {
+      static_assert(OCCUPATION_TIMEOUT_M > OCCUPATION_TIMEOUT_LIKELY_M, "thresholds should be correct ordered");
+      static_assert(OCCUPATION_TIMEOUT_LIKELY_M > OCCUPATION_TIMEOUT_MAYBE_M, "thresholds should be correct ordered");
+      static_assert(OCCUPATION_TIMEOUT_MAYBE_M > 0, "thresholds should be correct ordered");
+      }
 
     // Clears current occupancy and activity measures.
     // Primarily for testing.

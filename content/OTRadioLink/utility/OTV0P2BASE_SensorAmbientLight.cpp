@@ -40,6 +40,124 @@ namespace OTV0P2BASE
 {
 
 
+uint8_t SensorAmbientLightAdaptive::read()
+    {
+    // Adjust room-lit flag, with hysteresis.
+    // Should be able to detect dark when darkThreshold is zero and newValue is zero.
+    if(value <= darkThreshold)
+        {
+        isRoomLitFlag = false;
+        // If dark enough to set isRoomLitFlag false then increment counter.
+        // Do not do increment the count if the sensor seems to be unusable / dubiously usable.
+        if(!unusable && (darkTicks < 255))
+            { ++darkTicks; }
+        }
+    else if(value > lightThreshold)
+        {
+        isRoomLitFlag = true;
+        // If light enough to set isRoomLitFlag true then reset darkTicks counter.
+        darkTicks = 0;
+        }
+
+    // If a callback is set then use the occupancy detector.
+    if(NULL != occCallbackOpt)
+        {
+        const OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType occ = occupancyDetector.update(value);
+        // Ping the callback!
+        if(occ >= OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::OCC_WEAK)
+            { occCallbackOpt(occ >= OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::OCC_PROBABLE); }
+        }
+
+    return(value);
+    }
+
+
+// Maximum value in the uint8_t range.
+static constexpr uint8_t MAX_AMBLIGHT_VALUE_UINT8 = 254;
+//// Minimum viable range (on [0,254] scale) to be usable.
+//static constexpr uint8_t ABS_MIN_AMBLIGHT_RANGE_UINT8 = 3;
+//// Minimum hysteresis (on [0,254] scale) to be usable and avoid noise triggers.
+//static constexpr uint8_t ABS_MIN_AMBLIGHT_HYST_UINT8 = 2;
+
+// Recomputes thresholds and 'unusable' based on current state.
+//   * meanNowOrFF  typical/mean light level around this time each 24h; 0xff if not known.
+//   * sensitive  if true be more sensitive to possible occupancy changes, else less so.
+void SensorAmbientLightAdaptive::recomputeThresholds(
+        const uint8_t meanNowOrFF, const bool sensitive)
+  {
+  // If either recent max or min is unset then assume device usable.
+  // Use default threshold(s).
+  if((0xff == rollingMin) || (0xff == rollingMax))
+    {
+    // Use the supplied default light threshold and derive the rest from it.
+    lightThreshold = DEFAULT_LIGHT_THRESHOLD;
+    darkThreshold = DEFAULT_LIGHT_THRESHOLD - DEFAULT_upDelta;
+    // Assume OK for now.
+    unusable = false;
+    return;
+    }
+
+  // If the range between recent max and min too narrow then assume unusable.
+  if((rollingMin >= MAX_AMBLIGHT_VALUE_UINT8 - epsilon) ||
+     (rollingMax <= rollingMin) ||
+     (rollingMax - rollingMin <= epsilon))
+    {
+    // Use the supplied default light threshold and derive the rest from it.
+    lightThreshold = DEFAULT_LIGHT_THRESHOLD;
+    darkThreshold = DEFAULT_LIGHT_THRESHOLD - DEFAULT_upDelta;
+    // Assume unusable.
+    darkTicks = 0; // Scrub any previous possibly-misleading value.
+    unusable = true;
+    return;
+    }
+
+  // Compute thresholds to fit within the observed sensed value range.
+  //
+  // TODO: a more sophisticated notion of distribution of values may be needed, esp for non-linear scale.
+  // TODO: possibly allow a small adjustment on top of this to allow at least one trigger-free hour each day.
+  // Some areas may have background flicker eg from trees moving or cars passing, so units there may need desensitising.
+  // Could (say) increment an additional margin (up to ~25%) on each non-zero-trigger last hour, else decrement.
+  //
+  // Default upwards delta indicative of lights on, and hysteresis, is ~12.5% of FSD if default,
+  // else half that if sensitive.
+
+  // If current mean is low compared to max then become extra sensitive
+  // to try to be able to detect (eg) artificial illumination.
+  const bool isLow = meanNowOrFF < (rollingMax>>1);
+
+  // Compute hysteresis.
+  const uint8_t e = epsilon;
+  const uint8_t upDelta = OTV0P2BASE::fnmax((uint8_t)((rollingMax - rollingMin) >> ((sensitive||isLow) ? 4 : 3)), e);
+  // Provide some noise elbow-room above the observed minimum.
+  darkThreshold = (uint8_t) OTV0P2BASE::fnmin(254, rollingMin + OTV0P2BASE::fnmax(1, (upDelta>>1)));
+  lightThreshold = (uint8_t) OTV0P2BASE::fnmin(rollingMax-1, darkThreshold + upDelta);
+
+  // All seems OK.
+  unusable = false;
+  }
+
+// Set recent min and max ambient light levels from recent stats, to allow auto adjustment to dark; ~0/0xff means no min/max available.
+// Short term stats are typically over the last day,
+// longer term typically over the last week or so (eg rolling exponential decays).
+// Call regularly, roughly hourly, to drive other internal time-dependent adaptation.
+//   * meanNowOrFF  typical/mean light level around this time each 24h; 0xff if not known.
+//   * sensitive  if true be more sensitive to possible occupancy changes, else less so.
+void SensorAmbientLightAdaptive::setTypMinMax(const uint8_t meanNowOrFF,
+                             const uint8_t longerTermMinimumOrFF, const uint8_t longerTermMaximumOrFF,
+                             const bool sensitive)
+  {
+  rollingMin = longerTermMinimumOrFF;
+  rollingMax = longerTermMaximumOrFF;
+
+  recomputeThresholds(meanNowOrFF, sensitive);
+
+  // Pass on appropriate properties to the occupancy detector.
+  occupancyDetector.setTypMinMax(meanNowOrFF,
+          longerTermMinimumOrFF, longerTermMaximumOrFF,
+          sensitive);
+  }
+
+
 #ifdef SensorAmbientLight_DEFINED
 
 // Normal raw scale internally is 10 bits [0,1023].
@@ -80,40 +198,17 @@ uint8_t SensorAmbientLight::read()
   // Power off to top of LDR/phototransistor.
   OTV0P2BASE::power_intermittent_peripherals_disable();
 
-//  // Capture entropy from changed LS bits.
-//  if((uint8_t)al != (uint8_t)rawValue) { ::OTV0P2BASE::addEntropyToPool((uint8_t)al, 0); } // Claim zero entropy as may be forced by Eve.
-
-//  // Hold the existing/old value for comparison.
-//  const uint8_t oldValue = value;
   // Compute the new normalised value.
   const uint8_t newValue = (uint8_t)(al >> shiftRawScaleTo8Bit);
 
   // Capture entropy from changed LS bits.
   if(newValue != value) { ::OTV0P2BASE::addEntropyToPool((uint8_t)al, 0); } // Claim zero entropy as may be forced by Eve.
 
-  // Adjust room-lit flag, with hysteresis.
-  // Should be able to detect dark when darkThreshold is zero and newValue is zero.
-  if(newValue <= darkThreshold)
-    {
-    isRoomLitFlag = false;
-    // If dark enough to set isRoomLitFlag false then increment counter.
-    // Do not do increment the count if the sensor seems to be unusable / dubiously usable.
-    if(!unusable && (darkTicks < 255)) { ++darkTicks; }
-    }
-  else if(newValue > lightThreshold)
-    {
-    isRoomLitFlag = true;
-    // If light enough to set isRoomLitFlag true then reset darkTicks counter.
-    darkTicks = 0;
-    }
+  // Store new value.
+  value = newValue;
 
-  // If a callback is set then use the occupancy detector.
-  if(NULL != occCallbackOpt)
-    {
-    const OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType occ = occupancyDetector.update(newValue);
-    if(occ >= OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::OCC_WEAK)
-        { occCallbackOpt(occ >= OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::OCC_PROBABLE); } // Ping the callback!
-    }
+  // Have base class update other/derived values.
+  SensorAmbientLightAdaptive::read();
 
 #if 0 && defined(DEBUG)
   DEBUG_SERIAL_PRINT_FLASHSTRING("Ambient light (/1023): ");
@@ -137,111 +232,8 @@ uint8_t SensorAmbientLight::read()
   DEBUG_SERIAL_PRINTLN();
 #endif
 
-  // Store new value, in its various forms.
-//  rawValue = al;
-  value = newValue;
-  return(value);
+   return(value);
   }
-
-// Maximum value in the uint8_t range.
-static constexpr uint8_t MAX_AMBLIGHT_VALUE_UINT8 = 254;
-// Minimum viable range (on [0,254] scale) to be usable.
-static constexpr uint8_t ABS_MIN_AMBLIGHT_RANGE_UINT8 = 3;
-// Minimum hysteresis (on [0,254] scale) to be usable and avoid noise triggers.
-static constexpr uint8_t ABS_MIN_AMBLIGHT_HYST_UINT8 = 2;
-
-// Recomputes thresholds and 'unusable' based on current state.
-// WARNING: may be called from (static) constructors so do not attempt (eg) use of Serial.
-//   * sensitive  if true be more sensitive to possible occupancy changes, else less so.
-void SensorAmbientLight::_recomputeThresholds(const bool sensitive)
-  {
-  // If either recent max or min is unset then assume device usable.
-  // Use default threshold(s).
-  if((0xff == recentMin) || (0xff == recentMax))
-    {
-    // Use the supplied default light threshold and derive the rest from it.
-    lightThreshold = DEFAULT_LIGHT_THRESHOLD;
-    darkThreshold = DEFAULT_LIGHT_THRESHOLD - DEFAULT_upDelta;
-    // Assume OK for now.
-    unusable = false;
-    return;
-    }
-
-  // If the range between recent max and min too narrow then assume unusable.
-  if((recentMin >= MAX_AMBLIGHT_VALUE_UINT8 - ABS_MIN_AMBLIGHT_RANGE_UINT8) ||
-     (recentMax <= recentMin) ||
-     (recentMax - recentMin <= ABS_MIN_AMBLIGHT_RANGE_UINT8))
-    {
-    // Use the supplied default light threshold and derive the rest from it.
-    lightThreshold = DEFAULT_LIGHT_THRESHOLD;
-    darkThreshold = DEFAULT_LIGHT_THRESHOLD - DEFAULT_upDelta;
-    // Assume unusable.
-    darkTicks = 0; // Scrub any previous possibly-misleading value.
-    unusable = true;
-    return;
-    }
-
-  // Compute thresholds to fit within the observed sensed value range.
-  //
-  // TODO: a more sophisticated notion of distribution of values may be needed, esp for non-linear scale.
-  // TODO: possibly allow a small adjustment on top of this to allow at least one trigger-free hour each day.
-  // Some areas may have background flicker eg from trees moving or cars passing, so units there may need desensitising.
-  // Could (say) increment an additional margin (up to ~25%) on each non-zero-trigger last hour, else decrement.
-  //
-  // Take upwards delta indicative of lights on, and hysteresis, as ~12.5% of FSD if 'sensitive'/default,
-  // else 25% if less sensitive.
-  //
-  // TODO: possibly allow a small adjustment on top of this to allow >= 1 each trigger and trigger-free hours each day.
-  // Some areas may have background flicker eg from trees moving or cars passing, so units there may need desensitising.
-  // Could (say) increment an additional margin (up to half) on each non-zero-trigger last hour, else decrement.
-  const uint8_t upDelta = OTV0P2BASE::fnmax((uint8_t)((recentMax - recentMin) >> (sensitive ? 3 : 2)), ABS_MIN_AMBLIGHT_HYST_UINT8);
-  // Provide some noise elbow-room above the observed minimum.
-  // Set the hysteresis values to be the same as the upDelta.
-  darkThreshold = (uint8_t) OTV0P2BASE::fnmin(254, recentMin+1 + (upDelta>>1));
-  lightThreshold = (uint8_t) OTV0P2BASE::fnmin(recentMax-1, darkThreshold + upDelta);
-
-  // All seems OK.
-  unusable = false;
-  }
-
-// Set recent min and max ambient light levels from recent stats, to allow auto adjustment to dark; ~0/0xff means no min/max available.
-// Short term stats are typically over the last day,
-// longer term typically over the last week or so (eg rolling exponential decays).
-// Call regularly, roughly hourly, to drive other internal time-dependent adaptation.
-//   * sensitive if true be more sensitive to possible occupancy changes, else less so.
-void SensorAmbientLight::setTypMinMax(const uint8_t meanNowOrFF,
-                             const uint8_t recentMinimumOrFF, const uint8_t recentMaximumOrFF,
-                             const uint8_t longerTermMinimumOrFF, const uint8_t longerTermMaximumOrFF,
-                             const bool sensitive)
-  {
-  // Simple approach: will ignore an 'unset'/0xff value if the other is good.
-  recentMin = OTV0P2BASE::fnmin(recentMinimumOrFF, longerTermMinimumOrFF);
-
-  if(0xff == recentMaximumOrFF) { recentMin = longerTermMaximumOrFF; }
-  else if(0xff == longerTermMaximumOrFF) { recentMin = recentMaximumOrFF; }
-  else
-    {
-    // Both values available; weight towards the more recent one for quick adaptation.
-    recentMax = (uint8_t) (((3*(uint16_t)recentMaximumOrFF) + (uint16_t)longerTermMaximumOrFF) >> 2);
-    }
-
-  _recomputeThresholds(sensitive);
-
-  // Pass on appropriate properties to the occupancy detector.
-  occupancyDetector.setTypMinMax(meanNowOrFF,
-          longerTermMinimumOrFF, longerTermMaximumOrFF,
-          sensitive);
-
-#if 0 && defined(DEBUG)
-  DEBUG_SERIAL_PRINT_FLASHSTRING("Ambient recent min/max: ");
-  DEBUG_SERIAL_PRINT(recentMin);
-  DEBUG_SERIAL_PRINT(' ');
-  DEBUG_SERIAL_PRINT(recentMax);
-  if(unusable) { DEBUG_SERIAL_PRINT_FLASHSTRING(" UNUSABLE"); }
-  DEBUG_SERIAL_PRINTLN();
-#endif
-  }
-
 
 // DHD20161104: impl removed from main app.
 //
@@ -278,8 +270,6 @@ void SensorAmbientLight::setTypMinMax(const uint8_t meanNowOrFF,
 //#endif // ENABLE_AMBLIGHT_EXTRA_SENSITIVE
 //#endif // ENABLE_AMBIENT_LIGHT_SENSOR_PHOTOTRANS_TEPT4400
 //AmbientLight AmbLight(LDR_THR_HIGH >> shiftRawScaleTo8Bit);
-
-
 
 #endif // SensorAmbientLight_DEFINED
 

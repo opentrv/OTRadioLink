@@ -62,7 +62,7 @@ class SensorAmbientLightBase : public SimpleTSUint8Sensor
     uint8_t darkTicks = 0;
 
   public:
-    // Default value for (default)LightThreshold; a dimly light room at night may be above this.
+    // Default value for lightThreshold; a dimly light room at night may be brighter.
     // For REV2 LDR and REV7 phototransistor.
     static const uint8_t DEFAULT_LIGHT_THRESHOLD = 16;
 
@@ -105,9 +105,74 @@ class SensorAmbientLightBase : public SimpleTSUint8Sensor
     uint8_t getDarkMinutes() const { return(darkTicks); }
   };
 
+// Accepts stats updates to adapt better to the location fitted.
+// Also supports occupancy sensing and callbacks for reporting it.
+class SensorAmbientLightAdaptive : public SensorAmbientLightBase
+  {
+  public:
+    // Minimum hysteresis; a simple noise floor.
+    static constexpr uint8_t epsilon = 4;
+
+  protected:
+    // Minimum eg from rolling stats, to allow auto adjustment to dark; ~0/0xff means no min available.
+    uint8_t rollingMin = 0xff;
+    // Maximum eg from rolling stats, to allow auto adjustment to dark; ~0/0xff means no max available.
+    uint8_t rollingMax = 0xff;
+
+    // Dark/light thresholds (on [0,254] scale) incorporating hysteresis.
+    // So lightThreshold is strictly greater than darkThreshold.
+    uint8_t lightThreshold = DEFAULT_LIGHT_THRESHOLD;
+    static constexpr uint8_t DEFAULT_upDelta = OTV0P2BASE::fnmax(1, DEFAULT_LIGHT_THRESHOLD >> 2); // Delta ~25% of light threshold.
+    uint8_t darkThreshold = DEFAULT_LIGHT_THRESHOLD - DEFAULT_upDelta;
+
+    // Embedded occupancy detection object.
+    // May be moved out of here to stand alone,
+    // or could be parameterised at compile time with a template,
+    // or at run time by being constructed with a pointer to the base type.
+    SensorAmbientLightOccupancyDetectorSimple occupancyDetector;
+
+    // 'Possible occupancy' callback function (for moderate confidence of human presence).
+    // If not NULL, is called when this sensor detects indications of occupancy.
+    // A true argument indicates probable occupancy, false weak occupancy.
+    void (*occCallbackOpt)(bool) = NULL;
+
+    // Recomputes thresholds and 'unusable' based on current state.
+    //   * meanNowOrFF  typical/mean light level around this time each 24h; 0xff if not known.
+    //   * sensitive  if true be more sensitive to possible occupancy changes, else less so.
+    void recomputeThresholds(uint8_t meanNowOrFF, bool sensitive);
+
+  public:
+    // Get light threshold, above which the room is considered light enough for activity [1,254].
+    uint8_t getLightThreshold() const { return(lightThreshold); }
+
+    // Get dark threshold, at or below which the room is considered too dark for activity [0,253].
+    uint8_t getDarkThreshold() const { return(darkThreshold); }
+
+    // Preferred poll interval (in seconds); should be called at constant rate, usually 1/60s.
+    virtual uint8_t preferredPollInterval_s() const override { return(60); }
+
+    // Set 'possible'/weak occupancy callback function; NULL for no callback.
+    void setOccCallbackOpt(void (*occCallbackOpt_)(bool)) { occCallbackOpt = occCallbackOpt_; }
+
+    // Set recent min and max ambient light levels from stats, to allow auto adjustment to dark; ~0/0xff means no min/max available.
+    // Longer term typically over the last week or so (eg rolling exponential decay).
+    // Call regularly, at least roughly hourly, to drive other internal time-dependent adaptation.
+    //   * meanNowOrFF  typical/mean light level around this time each 24h; 0xff if not known.
+    //   * sensitive  if true be more sensitive to possible occupancy changes, else less so.
+    void setTypMinMax(uint8_t meanNowOrFF,
+                   uint8_t longerTermMinimumOrFF = 0xff, uint8_t longerTermMaximumOrFF = 0xff,
+                   bool sensitive = true);
+
+    // Updates other values based on what is in value.
+    // Derived classes may wish to set value first, then call this.
+    virtual uint8_t read() override;
+  };
+
 
 // Class primarily to support simple mocking for unit tests.
-class SensorAmbientLightSimpleMock : public SensorAmbientLightBase
+// Also allows testing of common algorithms in the base classes.
+// Set desired raw light value with set() then call read().
+class SensorAmbientLightAdaptiveMock : public SensorAmbientLightAdaptive
   {
   public:
     // Set new value.
@@ -115,23 +180,13 @@ class SensorAmbientLightSimpleMock : public SensorAmbientLightBase
     // Set new non-dependent values immediately.
     virtual bool set(const uint8_t newValue, const uint8_t newDarkTicks, const bool isUnusable = false)
         { value = newValue; unusable = isUnusable; darkTicks = newDarkTicks; return(true); }
-
-    // Returns the existing value: use set() to set a new one.
-    // Simplistically updates other flags and outputs based on current value.
-    uint8_t read() override
-        {
-        const bool light = (value >= DEFAULT_LIGHT_THRESHOLD);
-        isRoomLitFlag = light;
-        if(light) { darkTicks = 0; } else if(darkTicks < 255) { ++darkTicks; }
-        return(value);
-        }
   };
 
 
 #ifdef ARDUINO_ARCH_AVR
 // Sensor for ambient light level; 0 is dark, 255 is bright.
 //
-// The REV7 implementation expects a phototransitor TEPT4400 (50nA dark current, nominal 200uA@100lx@Vce=50V) from IO_POWER_UP to LDR_SENSOR_AIN and 220k to ground.
+// The REV7 implementation expects a phototransistor TEPT4400 (50nA dark current, nominal 200uA@100lx@Vce=50V) from IO_POWER_UP to LDR_SENSOR_AIN and 220k to ground.
 // Measurement should be taken wrt to internal fixed 1.1V bandgap reference, since light indication is current flow across a fixed resistor.
 // Aiming for maximum reading at or above 100--300lx, ie decent domestic internal lighting.
 // Note that phototransistor is likely far more directionally-sensitive than REV2's LDR and its response nominally nearly linear.
@@ -145,36 +200,9 @@ class SensorAmbientLightSimpleMock : public SensorAmbientLightBase
 // Measurement should be taken wrt to supply voltage, since light indication is a fraction of that.
 // Values below from PICAXE V0.09 impl approx multiplied by 4+ to allow for scale change.
 #define SensorAmbientLight_DEFINED
-class SensorAmbientLight final : public SensorAmbientLightBase
+class SensorAmbientLight final : public SensorAmbientLightAdaptive
   {
   private:
-    // Minimum eg from recent stats, to allow auto adjustment to dark; ~0/0xff means no min available.
-    uint8_t recentMin = 0xff;
-    // Maximum eg from recent stats, to allow auto adjustment to dark; ~0/0xff means no max available.
-    uint8_t recentMax = 0xff;
-
-    // Dark/light thresholds (on [0,254] scale) incorporating hysteresis.
-    // So lightThreshold is strictly greater than darkThreshold.
-    uint8_t lightThreshold = DEFAULT_LIGHT_THRESHOLD;
-    static constexpr uint8_t DEFAULT_upDelta = OTV0P2BASE::fnmax(1, DEFAULT_LIGHT_THRESHOLD >> 2); // Delta ~25% of light threshold.
-    uint8_t darkThreshold = DEFAULT_LIGHT_THRESHOLD - DEFAULT_upDelta;
-
-    // 'Possible occupancy' callback function (for moderate confidence of human presence).
-    // If not NULL, is called when this sensor detects indications of occupancy.
-    // A true argument indicates probable occupancy, false weak occupancy.
-    void (*occCallbackOpt)(bool) = NULL;
-
-    // Recomputes thresholds and 'unusable' based on current state.
-    // WARNING: may be called from (static) constructors so do not attempt (eg) use of Serial.
-    //   * sensitive  if true be more sensitive to possible occupancy changes, else less so.
-    void _recomputeThresholds(bool sensitive = true);
-
-    // Embedded occupancy detection object.
-    // May be moved out of here to stand alone,
-    // or could be parameterised at compile time with a template,
-    // or at run time by being constructed with a pointer to the base type.
-    SensorAmbientLightOccupancyDetectorSimple occupancyDetector;
-
   public:
     constexpr SensorAmbientLight() { }
 
@@ -184,40 +212,6 @@ class SensorAmbientLight final : public SensorAmbientLightBase
     // If possible turn off all local light sources (eg UI LEDs) before calling.
     // If possible turn off all heavy current drains on supply before calling.
     virtual uint8_t read();
-
-    // Preferred poll interval (in seconds); should be called at constant rate, usually 1/60s.
-    virtual uint8_t preferredPollInterval_s() const override { return(60); }
-
-    // Set 'possible'/weak occupancy callback function; NULL for no callback.
-    void setOccCallbackOpt(void (*occCallbackOpt_)(bool)) { occCallbackOpt = occCallbackOpt_; }
-
-    // Get light threshold, above which room is considered light enough for activity [1,254].
-    uint8_t getLightThreshold() const { return(lightThreshold); }
-
-    // Get dark threshold, above which room is considered too dark for activity [0,253].
-    uint8_t getDarkThreshold() const { return(darkThreshold); }
-
-    // Set recent min and max ambient light levels from recent stats, to allow auto adjustment to dark; ~0/0xff means no min/max available.
-    // Short term stats are typically over the last day,
-    // longer term typically over the last week or so (eg rolling exponential decays).
-    // Call regularly, at least roughly hourly, to drive other internal time-dependent adaptation.
-    //   * sensitive  if true be more sensitive to possible occupancy changes, else less so.
-    // DEPRECATED: use setTypMinMax() with the extra typical/mean parameter.
-    void setMinMax(uint8_t recentMinimumOrFF, uint8_t recentMaximumOrFF,
-                   uint8_t longerTermMinimumOrFF = 0xff, uint8_t longerTermMaximumOrFF = 0xff,
-                   bool sensitive = true)
-        { setTypMinMax(0xff, recentMinimumOrFF, recentMaximumOrFF, longerTermMinimumOrFF,longerTermMaximumOrFF, sensitive); }
-
-    // Set recent min and max ambient light levels from recent stats, to allow auto adjustment to dark; ~0/0xff means no min/max available.
-    // Short term stats are typically over the last day,
-    // longer term typically over the last week or so (eg rolling exponential decays).
-    // Call regularly, at least roughly hourly, to drive other internal time-dependent adaptation.
-    //   * meanNowOrFF  typical/mean light level around this time each 24h; 0xff if not known.
-    //   * sensitive  if true be more sensitive to possible occupancy changes, else less so.
-    void setTypMinMax(uint8_t meanNowOrFF,
-                   uint8_t recentMinimumOrFF, uint8_t recentMaximumOrFF,
-                   uint8_t longerTermMinimumOrFF = 0xff, uint8_t longerTermMaximumOrFF = 0xff,
-                   bool sensitive = true);
   };
 #endif // ARDUINO_ARCH_AVR
 

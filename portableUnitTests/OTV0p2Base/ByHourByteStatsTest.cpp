@@ -198,7 +198,7 @@ namespace BHSSUBasics
     {
     HByHourByteStats hs;
     OTV0P2BASE::PseudoSensorOccupancyTracker occupancy;
-    OTV0P2BASE::SensorAmbientLightSimpleMock ambLight;
+    OTV0P2BASE::SensorAmbientLightAdaptiveMock ambLight;
     OTV0P2BASE::TemperatureC16Mock tempC16;
     OTV0P2BASE::HumiditySensorMock rh;
     OTV0P2BASE::ByHourSimpleStatsUpdaterSampleStats <
@@ -224,7 +224,7 @@ namespace BHSSU
     {
     OTV0P2BASE::NVByHourByteStatsMock ms;
     OTV0P2BASE::PseudoSensorOccupancyTracker occupancy;
-    OTV0P2BASE::SensorAmbientLightSimpleMock ambLight;
+    OTV0P2BASE::SensorAmbientLightAdaptiveMock ambLight;
     OTV0P2BASE::TemperatureC16Mock tempC16;
     OTV0P2BASE::HumiditySensorMock rh;
     OTV0P2BASE::ByHourSimpleStatsUpdaterSampleStats <
