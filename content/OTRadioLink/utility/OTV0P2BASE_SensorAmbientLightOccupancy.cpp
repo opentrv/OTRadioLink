@@ -87,6 +87,9 @@ SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupanc
     // This must have a long-term non-extreme sane mean for the current time of day available,
     // and sane correctly-ordered min and max bounds.
     // and any rise must be small eg to guard against (eg) sunlight-driven flicker.
+    //
+    // See evening levels for trace 3l here for example:
+    //     http://www.earth.org.uk/img/20161124-16WWal.png
     else if((rise < epsilon) && (meanNowOrFF > minToUse) && (meanNowOrFF < maxToUse)) // Implicitly 0xff != meanNowOrFF.
         {
         // Previous and current light levels should ideally be well away from maximum/minimum
