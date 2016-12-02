@@ -510,7 +510,6 @@ TEST(AmbientLightOccupancyDetection,sample3lHard)
 
 // "3l" 2016/12/01+02 test for dark/light detection overnight.
 // (Full setback was not achieved; verify that night sensed as dark.)
-// "5s" 2016/10/08+09 test set with tough occupancy to detect in the evening 21:00Z.
 static const ALDataSample sample3lLevels[] =
     {
 {1,0,7,2, ALDataSample::NO_OCC_EXPECTATION, true}, // Dark.
@@ -639,7 +638,7 @@ static const ALDataSample sample3lLevels[] =
 {2,7,5,2},
 {2,7,17,3},
 {2,7,21,3},
-{2,7,29,3},
+{2,7,29,3, ALDataSample::NO_OCC_EXPECTATION, true}, // Dark.
 {2,7,37,4},
 {2,7,45,6},
 {2,8,1,13},
