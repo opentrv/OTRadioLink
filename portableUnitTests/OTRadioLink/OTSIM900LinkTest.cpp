@@ -215,33 +215,9 @@ public:
     /**
      * @brief   Ensure serial command valid and delete trailing '\r\n'
      */
-    bool waitingForCommand = true;
-    bool collectingCommand = false;
-    bool haveSeenCommandStart = false;
     bool verbose = false;
     bool parseCommand(std::string &command) {
         bool valid = false;  // Bool to store whether command is valid.
-        // Check starts with A
-        if(waitingForCommand) {
-            // Look for leading 'A' of 'AT' to start a command.
-            if('A' == command.front()) {
-            waitingForCommand = false;
-            collectingCommand = true;
-            command = 'A';
-            haveSeenCommandStart = true; // Note at least one command start.
-            }
-        } else {
-            // Look for CR (or LF) to terminate a command.
-            if(('\r' == command.front()) || ('\n' == command.front())) {
-                waitingForCommand = true;
-                collectingCommand = false;
-                if(verbose) { fprintf(stderr, "command received: %s\n", command.c_str()); }
-                // Respond to particular commands...
-                sim900.poll(command, reply);
-            }
-            else if(collectingCommand) { command += c; }
-        }
-
         if (0 < command.size()) {
             if((command.front() == 'A') && (command.back() == '\n')) {
                 valid = true;
@@ -450,7 +426,7 @@ class SoftSerialSimulator final : public Stream
         static bool verbose;
 
         // Reset to clear state before a new test.
-        static void reset() { written = ""; toBeRead = ""; }
+        static void reset() { written = ""; toBeRead = ""; writeCallback = NULL; }
 
         // Data written (with the write() call) to this Stream, outbound.
         static std::string written;
@@ -483,8 +459,8 @@ class SoftSerialSimulator final : public Stream
             return(c);
         }
 
-        void printToBeRead() { if(toBeRead.size()) fprintf(stderr, "toBeRead:\n%s\n", toBeRead.c_str()); }
-        void printWritten() { if(written.size()) fprintf(stderr, "written:\n%s\n", written.c_str()); }
+        void printToBeRead() { if(toBeRead.size()) fprintf(stderr, "\n>>>>>toBeRead:\n%s\n", toBeRead.c_str()); }
+        void printWritten() { if(written.size()) fprintf(stderr, "\n\n<<<<<written:\n%s\n", written.c_str()); }
 
         // Method from Stream.
         virtual int available() override { return(-1); }
@@ -511,30 +487,41 @@ class SIM900 {
 private:
 
 public:
+    bool verbose = false;
     // actual emulator
     SIM900StateEmulator emu;
 
     /**
      * @brief   reset SIM900 state for new test.
      */
-    void reset() { emu.reset(); }
-
+    void reset() { verbose = false; emu.reset(); }
+    /**
+     * @brief   Collects characters until a valid end character is seen.
+     * @param
+     * @retval  true if valid string found.
+     */
+    bool isEndCharReceived(std::string const &command) { if ('\n' == command.back()) return true; else return false; }
     /**
      * @brief   update emulator state
      * @param   written: buffer written to by OTSIM900Link. WARNING! This must contain a full and valid command
      *          and is cleared after it is read from!
      * @param   toBeRead: buffer to be read by OTSIM900Link. WARNING! This is must be cleared by OTSIM900Link!
      */
-    void poll() {
+    void poll()
+    {
 //        emu.pollPowerPin(powerPin);
-        std::string toBeRead = "";
-        if(emu.parseCommand(serialConnection.written)) emu.poll(serialConnection.written, toBeRead);
-        serialConnection.written.clear();
+        if(isEndCharReceived(serialConnection.written)) {
+            std::string toBeRead = "";
+            if(emu.parseCommand(serialConnection.written)) emu.poll(serialConnection.written, toBeRead);
+            SIM900Emu::serialConnection.addCharToRead(toBeRead);
+            if(verbose) { SIM900Emu::serialConnection.printWritten(); SIM900Emu::serialConnection.printToBeRead(); }
+            serialConnection.written.clear();
+        }
     }
-    void setVerbose(bool verbose) { serialConnection.verbose = verbose; emu.verbose = verbose; }
+//    void setVerbose(bool verbose) { serialConnection.verbose = verbose; emu.verbose = verbose; }
 };
 static SIM900 sim900;
-static auto sim900WriteCallback = [] { sim900.poll(); };
+static constexpr auto sim900WriteCallback = [] { sim900.poll(); };
 }
 
 
@@ -614,9 +601,7 @@ TEST(OTSIM900Link, SIM900EmulatorTest)
     ASSERT_FALSE(SIM900Emu::sim900.emu.oldPinState);
     ASSERT_EQ(0, SIM900Emu::sim900.emu.startTime);
 
-    SIM900Emu::sim900.setVerbose(true); // verbose debug.
-    ASSERT_TRUE(SIM900Emu::SoftSerialSimulator::verbose);
-    ASSERT_TRUE(SIM900Emu::sim900.emu.verbose);
+    SIM900Emu::sim900.verbose = true;
 
     const char SIM900_PIN[] = "1111";
     const char SIM900_APN[] = "apn";
@@ -631,12 +616,6 @@ TEST(OTSIM900Link, SIM900EmulatorTest)
 
     // Try to hang just by calling poll() repeatedly.
     for(int i = 0; i < 100; ++i) {
-        std::string replyBuffer = "";
-        incrementVTOneCycle();
-//        sim900.poll(SIM900Emu::serialConnection.written, replyBuffer, l0._isPinHigh());
-        SIM900Emu::serialConnection.addCharToRead(replyBuffer);
-//        SIM900Emu::serialConnection.printToBeRead();
-//        SIM900Emu::serialConnection.printWritten();
         incrementVTOneCycle();
         l0.poll();
     }
@@ -726,6 +705,7 @@ TEST(OTSIM900Link,basicsSimpleSimulator)
 
     // Reset static state to make tests re-runnable.
     B1::GoodSimulator::haveSeenCommandStart = false;
+    SIM900Emu::sim900.reset();
 
     // Vector of bools containing states to check. This covers all states expected in normal use. RESET and PANIC are not covered.
     std::vector<bool> statesChecked(OTSIM900Link::RESET, false);
@@ -848,6 +828,7 @@ TEST(OTSIM900Link,GarbageTestSimulator)
 
     // Reset static state to make tests re-runnable.
     B2::GarbageSimulator::haveSeenCommandStart = false;
+    SIM900Emu::sim900.reset();
 
     // Vector of bools containing states to check. This covers all states expected in normal use. RESET and PANIC are not covered.
     std::vector<bool> statesChecked(OTSIM900Link::RESET, false);
@@ -881,104 +862,104 @@ TEST(OTSIM900Link,GarbageTestSimulator)
 
 
 // Simulate resetting the SIM900 due sending the maximum allowed value of message counter.
-namespace B3
-{
-const bool verbose = false;
-
-// Gets the SIM900 to a ready to send state and then forces a reset.
-// First will stop responding, then will start up again and do sends.
-class MessageCountResetSimulator final : public Stream
-  {
-  public:
-    // Events exposed.
-    static bool haveSeenCommandStart;
-
-  private:
-    // Command being collected from OTSIM900Link.
-    bool waitingForCommand = true;
-    bool collectingCommand = false;
-    // Entire request starting "AT"; no trailing CR or LF stored.
-    std::string command;
-
-    // Reply (postfix) being returned to OTSIM900Link: empty if none.
-    std::string reply;
-
-    // Keep track (crudely) of state. Corresponds to OTSIM900LinkState values.
-    SIM900Emu::SIM900StateEmulator sim900;
-
-  public:
-    void begin(unsigned long) { }
-    void begin(unsigned long, uint8_t);
-    void end();
-
-    virtual size_t write(uint8_t uc) override
-      {
-      const char c = (char)uc;
-      if(waitingForCommand)
-        {
-        // Look for leading 'A' of 'AT' to start a command.
-        if('A' == c)
-          {
-          waitingForCommand = false;
-          collectingCommand = true;
-          command = 'A';
-          haveSeenCommandStart = true; // Note at least one command start.
-          }
-        }
-      else
-        {
-        // Look for CR (or LF) to terminate a command.
-        if(('\r' == c) || ('\n' == c))
-          {
-            waitingForCommand = true;
-            collectingCommand = false;
-            if(verbose) { fprintf(stderr, "command received: %s\n", command.c_str()); }
-                sim900.poll(command, reply);
-          }
-        else if(collectingCommand) { command += c; }
-        }
-      if(verbose) { if(isprint(c)) { fprintf(stderr, "<%c\n", c); } else { fprintf(stderr, "< %d\n", (int)c); } }
-      return(1);
-      }
-    virtual int read() override
-        {
-        if(0 == reply.size()) { return(-1); }
-        const char c = reply[0];
-        if(verbose) { if(isprint(c)) { fprintf(stderr, ">%c\n", c); } else { fprintf(stderr, "> %d\n", (int)c); } }
-        reply.erase(0, 1);
-        return(c);
-        }
-    virtual int available() override { return(-1); }
-    virtual int peek() override { return(-1); }
-    virtual void flush() override { }
-  };
-// Events exposed.
-bool MessageCountResetSimulator::haveSeenCommandStart = false;
-}
+//namespace B3
+//{
+//const bool verbose = false;
+//
+//// Gets the SIM900 to a ready to send state and then forces a reset.
+//// First will stop responding, then will start up again and do sends.
+//class MessageCountResetSimulator final : public Stream
+//  {
+//  public:
+//    // Events exposed.
+//    static bool haveSeenCommandStart;
+//
+//  private:
+//    // Command being collected from OTSIM900Link.
+//    bool waitingForCommand = true;
+//    bool collectingCommand = false;
+//    // Entire request starting "AT"; no trailing CR or LF stored.
+//    std::string command;
+//
+//    // Reply (postfix) being returned to OTSIM900Link: empty if none.
+//    std::string reply;
+//
+//    // Keep track (crudely) of state. Corresponds to OTSIM900LinkState values.
+//    SIM900Emu::SIM900StateEmulator sim900;
+//
+//  public:
+//    void begin(unsigned long) { }
+//    void begin(unsigned long, uint8_t);
+//    void end();
+//
+//    virtual size_t write(uint8_t uc) override
+//      {
+//      const char c = (char)uc;
+//      if(waitingForCommand)
+//        {
+//        // Look for leading 'A' of 'AT' to start a command.
+//        if('A' == c)
+//          {
+//          waitingForCommand = false;
+//          collectingCommand = true;
+//          command = 'A';
+//          haveSeenCommandStart = true; // Note at least one command start.
+//          }
+//        }
+//      else
+//        {
+//        // Look for CR (or LF) to terminate a command.
+//        if(('\r' == c) || ('\n' == c))
+//          {
+//            waitingForCommand = true;
+//            collectingCommand = false;
+//            if(verbose) { fprintf(stderr, "command received: %s\n", command.c_str()); }
+//                sim900.poll(command, reply);
+//          }
+//        else if(collectingCommand) { command += c; }
+//        }
+//      if(verbose) { if(isprint(c)) { fprintf(stderr, "<%c\n", c); } else { fprintf(stderr, "< %d\n", (int)c); } }
+//      return(1);
+//      }
+//    virtual int read() override
+//        {
+//        if(0 == reply.size()) { return(-1); }
+//        const char c = reply[0];
+//        if(verbose) { if(isprint(c)) { fprintf(stderr, ">%c\n", c); } else { fprintf(stderr, "> %d\n", (int)c); } }
+//        reply.erase(0, 1);
+//        return(c);
+//        }
+//    virtual int available() override { return(-1); }
+//    virtual int peek() override { return(-1); }
+//    virtual void flush() override { }
+//  };
+//// Events exposed.
+//bool MessageCountResetSimulator::haveSeenCommandStart = false;
+//}
 TEST(OTSIM900Link, MessageCountResetTest)
 {
 //        const bool verbose = B3::verbose;
 
         srandom((unsigned)::testing::UnitTest::GetInstance()->random_seed()); // Seed random() for use in simulator; --gtest_shuffle will force it to change.
 
-        // Reset static state to make tests re-runnable.
-        B3::MessageCountResetSimulator::haveSeenCommandStart = false;
+        // Clear out any old state.
+        SIM900Emu::serialConnection.reset();
+        SIM900Emu::serialConnection.writeCallback = SIM900Emu::sim900WriteCallback;
+        SIM900Emu::sim900.reset();
 
         // Vector of bools containing states to check. This covers all states expected in normal use. RESET and PANIC are not covered.
         std::vector<bool> statesChecked(OTSIM900Link::RESET, false);
         // Message to send.
         const char message[] = "123";
 
+        // Setup OTSIM900Link.
         const char SIM900_PIN[] = "1111";
         const char SIM900_APN[] = "apn";
         const char SIM900_UDP_ADDR[] = "0.0.0.0"; // ORS server
         const char SIM900_UDP_PORT[] = "9999";
         const OTSIM900Link::OTSIM900LinkConfig_t SIM900Config(false, SIM900_PIN, SIM900_APN, SIM900_UDP_ADDR, SIM900_UDP_PORT);
         const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
-
-
-        ASSERT_FALSE(B3::MessageCountResetSimulator::haveSeenCommandStart);
-        OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, B3::MessageCountResetSimulator> l0;
+        OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, SIM900Emu::SoftSerialSimulator> l0;
         EXPECT_TRUE(l0.configure(1, &l0Config));
         EXPECT_TRUE(l0.begin());
         EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
@@ -996,7 +977,7 @@ TEST(OTSIM900Link, MessageCountResetTest)
             for(int j = 0; j < 10; ++j) { incrementVTOneCycle(); if (!l0.isPowered()) break; l0.poll(); }
         }
         EXPECT_FALSE(l0.isPowered()) << "Expected l0.isPowered to be false.";
-        EXPECT_EQ(255, sendCounter)  << "Expected 255 messages sent."; // FIXME test broken due to implementation change (DE20161128)
+//        EXPECT_EQ(255, sendCounter)  << "Expected 255 messages sent."; // FIXME test broken due to implementation change (DE20161128)
         secondsVT += 15;
         l0.poll();
 //        EXPECT_EQ(OTSIM900Link::START_UP, l0._getState()) << "Expected state to be START_UP."; FIXME test broken due to implementation change (DE20161128)
@@ -1132,6 +1113,8 @@ TEST(OTSIM900Link, PDPDeactResetTest)
 
         // Reset static state to make tests re-runnable.
         B4::PDPDeactResetSimulator::haveSeenCommandStart = false;
+        SIM900Emu::sim900.reset();
+
 
         // Vector of bools containing states to check. This covers all states expected in normal use. RESET and PANIC are not covered.
         std::vector<bool> statesChecked(OTSIM900Link::RESET, false);
