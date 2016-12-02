@@ -332,7 +332,7 @@ TEST(ModelledRadValve,MRVSExtremes)
     ASSERT_EQ(0, valvePCOpen);
     ASSERT_EQ(valvePCOpenInitial1, rs1.cumulativeMovementPC);
     ASSERT_TRUE(hitLinger == lookForLinger);
-    if(lookForLinger) { ASSERT_TRUE(lingerMins >= OTV0P2BASE::fnmin(is1.minPCOpen, OTRadValve::DEFAULT_MAX_RUN_ON_TIME_M)); }
+    if(lookForLinger) { EXPECT_GE(lingerMins, OTV0P2BASE::fnmin(is1.minPCOpen, OTRadValve::DEFAULT_MAX_RUN_ON_TIME_M)) << ((int)is1.minPCOpen); }
     // Filtering should not have been engaged and velocity should be zero (temperature is flat).
     for(int i = OTRadValve::ModelledRadValveState::filterLength; --i >= 0; ) { ASSERT_EQ(100<<4, rs1.prevRawTempC16[i]); }
     ASSERT_EQ(100<<4, rs1.getSmoothedRecent());
