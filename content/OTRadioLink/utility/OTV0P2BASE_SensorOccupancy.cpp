@@ -122,7 +122,7 @@ void PseudoSensorOccupancyTracker::markAsPossiblyOccupied()
 // ISR-/thread- safe, though not recommended for calls from such.
 void PseudoSensorOccupancyTracker::markAsJustPossiblyOccupied()
   {
-  if(vacancyH > longVacantHThrH) { return; } // ISR may theoretically see a stale value for vacancyH; optimised for non-ISR use.
+  if(vacancyH > weakVacantHThrH) { return; } // ISR may theoretically see a stale value for vacancyH; optimised for non-ISR use.
   // Update primary occupation metric in thread-safe way (needs lock, since read-modify-write).
   uint8_t ocM = occupationCountdownM.load();
   const uint8_t oNew = OTV0P2BASE::fnmax(ocM, (uint8_t)(OCCUPATION_TIMEOUT_MAYBE_M));
