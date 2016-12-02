@@ -47,8 +47,8 @@ TEST(AmbientLightOccupancyDetection,updateBasics)
 
 // Ambient light data samples, along with optional expected result of occupancy detector.
 // Can be directly created from OpenTRV log files into day hour minute value columns,
-// eg from log lines of the form "2016-11-24T22:07:39Z 96F0CED3B4E690E8 47"
-// with awk '{ print "{"(0+substr($1,9,2))","(0+substr($1, 12, 2))","(0+substr($1, 15, 2))","$3"},"; }'
+// eg from log lines of such as "2016-11-24T22:07:39Z 96F0CED3B4E690E8 47" with:
+//    awk '{ print "{"(0+substr($1,9,2))","(0+substr($1, 12, 2))","(0+substr($1, 15, 2))","$3"},"; }'
 class ALDataSample final
     {
     public:
@@ -506,6 +506,168 @@ static const ALDataSample sample3lHard[] =
 TEST(AmbientLightOccupancyDetection,sample3lHard)
 {
     simpleDataSampleRun(sample3lHard);
+}
+
+// "3l" 2016/12/01+02 test for dark/light detection overnight.
+// (Full setback was not achieved; verify that night sensed as dark.)
+// "5s" 2016/10/08+09 test set with tough occupancy to detect in the evening 21:00Z.
+static const ALDataSample sample3lLevels[] =
+    {
+{1,0,7,2, ALDataSample::NO_OCC_EXPECTATION, true}, // Dark.
+{1,0,19,2},
+// ...
+{1,5,39,2, ALDataSample::NO_OCC_EXPECTATION, true}, // Dark.
+{1,5,55,2},
+{1,6,11,3},
+{1,6,24,2},
+{1,6,39,2},
+{1,6,55,2},
+{1,7,11,3, ALDataSample::NO_OCC_EXPECTATION, true}, // Dark.
+{1,7,31,5},
+{1,7,47,13},
+{1,7,55,19},
+{1,8,3,26},
+{1,8,19,35},
+{1,8,27,39},
+{1,8,35,46},
+{1,8,51,58},
+{1,9,7,73},
+{1,9,18,51},
+{1,9,20,49},
+{1,9,24,43},
+{1,9,29,116},
+{1,9,45,129},
+{1,9,48,130},
+{1,9,57,133},
+{1,10,9,138},
+{1,10,17,142},
+{1,10,29,147},
+{1,10,45,163},
+{1,10,49,167},
+{1,11,5,167},
+{1,11,21,168},
+{1,11,41,173},
+{1,11,48,174},
+{1,11,53,175},
+{1,12,9,176},
+{1,12,13,176},
+{1,12,29,177},
+{1,12,45,178},
+{1,13,5,179},
+{1,13,21,179},
+{1,13,35,181},
+{1,13,45,182},
+{1,13,49,182},
+{1,14,1,182},
+{1,14,13,183},
+{1,14,17,180},
+{1,14,28,154},
+{1,14,41,142},
+{1,14,45,138},
+{1,15,1,125},
+{1,15,17,95},
+{1,15,21,87},
+{1,15,33,67},
+{1,15,45,44},
+{1,15,49,32},
+{1,16,1,25},
+{1,16,13,43},
+{1,16,25,52},
+{1,16,28,51},
+{1,16,45,41},
+{1,16,53,41},
+{1,17,5,41},
+{1,17,17,39},
+{1,17,29,40},
+{1,17,33,38},
+{1,17,45,12},
+{1,17,57,42},
+{1,18,1,3},
+{1,18,9,41, occType::OCC_PROBABLE, false}, // TV watching
+{1,18,29,40},
+{1,18,49,39},
+{1,18,57,39},
+{1,19,5,39},
+{1,19,21,37},
+{1,19,33,40, occType::OCC_WEAK, false},
+{1,19,53,39},
+{1,19,57,38},
+{1,20,9,38},
+{1,20,21,40},
+{1,20,23,40},
+{1,20,41,39},
+{1,20,45,39, occType::OCC_WEAK, false},
+{1,21,1,38},
+{1,21,21,40},
+{1,21,25,39},
+{1,21,41,39},
+{1,21,45,40},
+{1,21,53,39},
+{1,22,9,2, ALDataSample::NO_OCC_EXPECTATION, true}, // Dark.
+{1,22,29,2},
+{1,22,49,2},
+{1,23,5,2},
+{1,23,18,2},
+{1,23,27,2},
+{1,23,48,2},
+{2,0,1,2, ALDataSample::NO_OCC_EXPECTATION, true}, // Dark.
+{2,0,17,2},
+{2,0,33,2},
+{2,0,49,2},
+{2,1,1,2},
+{2,1,17,2},
+{2,1,33,2},
+{2,1,57,2},
+{2,2,9,2},
+{2,2,29,2, ALDataSample::NO_OCC_EXPECTATION, true}, // Dark.
+{2,2,49,2},
+{2,3,5,2},
+{2,3,25,2},
+{2,3,41,2},
+{2,3,57,2},
+{2,4,9,2},
+{2,4,25,2},
+{2,4,41,2},
+{2,4,57,2, ALDataSample::NO_OCC_EXPECTATION, true}, // Dark.
+{2,5,13,2},
+{2,5,33,2},
+{2,5,49,2},
+{2,6,1,2},
+{2,6,17,2},
+{2,6,33,2},
+{2,6,49,2},
+{2,7,5,2},
+{2,7,17,3},
+{2,7,21,3},
+{2,7,29,3},
+{2,7,37,4},
+{2,7,45,6},
+{2,8,1,13},
+{2,8,2,14},
+{2,8,21,25},
+{2,8,33,28},
+{2,8,49,24},
+{2,8,53,29},
+{2,9,4,35},
+{2,9,13,49},
+{2,9,17,51},
+{2,9,33,70},
+{2,9,37,73},
+{2,9,45,184},
+{2,9,45,183},
+{2,9,49,45},
+{2,9,55,85},
+{2,10,11,95},
+{2,10,15,96},
+{2,10,24,103},
+{2,10,39,113},
+{2,10,43,114},
+{ }
+    };
+// Test with real data set.
+TEST(AmbientLightOccupancyDetection,sample3lLevels)
+{
+    simpleDataSampleRun(sample3lLevels);
 }
 
 // "5s" 2016/10/08+09 test set with tough occupancy to detect in the evening 21:00Z.
