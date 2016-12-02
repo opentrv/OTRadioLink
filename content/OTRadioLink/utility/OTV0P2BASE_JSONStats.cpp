@@ -438,9 +438,10 @@ uint8_t SimpleStatsRotationBase::writeJSON(uint8_t *const buf, const uint8_t buf
         gotHiPri = true;
         // Add to JSON output.
         print(bp, s, commaPending);
-        // If successful, ie still space for the closing "}\0" without running over-length,
+        // If successful, ie still space for the closing "}\0" within length,
         // then mark this as a fall-back, else rewind and discard this item.
-        if(bp.getSize() > bufSize - 3) { bp.rewind(); break; }
+        // If this is over-length rewind but try for the next (TODO-1079).
+        if(bp.getSize() > bufSize - 3) { bp.rewind(); continue; }
         else
           {
           bp.setMark();
@@ -465,7 +466,7 @@ uint8_t SimpleStatsRotationBase::writeJSON(uint8_t *const buf, const uint8_t buf
         if(++next >= nStats) { next = 0; }
         // Avoid re-transmitting the very last thing TXed unless there in only one item!
         if((lastTXed == next) && (nStats > 1)) { continue; }
-        // Avoid transmitting the hi-pri item just sent if any.
+        // Avoid re-transmitting the hi-pri item just sent if any.
         if(gotHiPri && (hiPriIndex == next)) { continue; }
         DescValueTuple &s = stats[next];
 //        // Skip stat if too sensitive to include in this output.

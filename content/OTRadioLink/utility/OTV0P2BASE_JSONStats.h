@@ -231,8 +231,11 @@ class SimpleStatsRotationBase
     //       should be two (2) greater than the largest JSON output to be generated
     //       to allow for a trailing null and one extra byte/char to ensure that the message is not over-large
     //   * sensitivity  CURRENTLY IGNORED threshold below which (sensitive) stats will not be included; 0 means include everything
-    //   * maximise  if true attempt to maximise the number of stats squeezed into each frame,
-    //       potentially at the cost of significant CPU time
+    //   * maximise  if true then attempt to maximise the number of stats
+    //       squeezed into each generated frame,
+    //       potentially at the cost of significant CPU time and bandwidth,
+    //       though where frame is padded anyway, eg before encryption,
+    //       overall bandwidth efficiency may be increased
     //   * suppressClearChanged  if true then 'changed' flag for included fields is not cleared by this
     //       allowing them to continue to be treated as higher priority
     uint8_t writeJSON(uint8_t * const buf, const uint8_t bufSize, const uint8_t sensitivity,
