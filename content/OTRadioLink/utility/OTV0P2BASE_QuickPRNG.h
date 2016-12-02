@@ -38,8 +38,8 @@ extern void seedRNG8(uint8_t s1, uint8_t s2, uint8_t s3); // Originally called '
 // Get 1 byte of uniformly-distributed unsigned values.
 extern uint8_t randRNG8(); // Originally called 'randomize()'.
 
-// Reset to known state; not recommended in normal use as this destroys any residual entropy.
-extern void resetRNG8();
+// Reset to known state; only for tests as this destroys any residual entropy.
+extern void _resetRNG8();
 
 // Get a boolean from RNG8.
 // Avoids suspect low-order bit(s).

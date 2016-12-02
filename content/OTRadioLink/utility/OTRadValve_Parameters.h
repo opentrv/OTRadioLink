@@ -98,11 +98,11 @@ namespace OTRadValve
             // Initial minor setback degrees C (strictly positive).
             // Note that 1C heating setback may result in ~8% saving in the UK.
             // This may be the maximum setback generally applied
-            // with a comfort bias for example.
+            // with a comfort temperature setting for example.
             static constexpr uint8_t SETBACK_DEFAULT = 1;
             // Enhanced setback, eg in eco mode, for extra energy savings.
-            // Less than SETBACK_FULL.
-            static constexpr uint8_t SETBACK_ECO = 1+SETBACK_DEFAULT;
+            // More than SETBACK_DEFAULT, less than SETBACK_FULL.
+            static constexpr uint8_t SETBACK_ECO = 2;
             // Full setback degrees C (strictly positive and significantly,
             // ie several degrees, greater than SETBACK_DEFAULT,
             // no more than MIN_TARGET_C).
@@ -243,26 +243,44 @@ namespace OTRadValve
 
 
     // Default maximum time to allow the boiler to run on to allow for lost call-for-heat transmissions etc.
-    // Should be (much) greater than the gap between transmissions (eg ~2m for FHT8V/FS20).
-    // Should be greater than the run-on time at the OpenTRV boiler unit and any further pump run-on time.
-    // Valves may have to linger open at minimum of this plus maybe an extra minute or so for timing skew
-    // for systems with poor/absent bypass to avoid overheating.
+    // This is also the default minimum-off time to avoid short cycling.
+    // Should be (much) greater than the gap between transmissions
+    // (eg ~2m for FHT8V/FS20, 4m for the TRV1 secure protocol).
+    // Should be greater than the run-on time at the OpenTRV boiler unit
+    // and any further pump run-on time.
+    // Valves should possibly linger open at least this
+    // plus maybe an extra minute or so for timing skew
+    // for systems with poor/absent bypass to help avoid overheating.
     // Having too high a linger time value may cause excessive temperature overshoot.
     static constexpr uint8_t DEFAULT_MAX_RUN_ON_TIME_M = 5;
 
     // Default delay in minutes after increasing flow before re-closing is allowed.
-    // This is to avoid excessive seeking/noise in the presence of strong draughts for example.
-    // Too large a value may cause significant temperature overshoots and possible energy wastage.
-    static constexpr uint8_t DEFAULT_ANTISEEK_VALVE_RECLOSE_DELAY_M = 5;
+    // This is to avoid excessive seeking/noise
+    // in the presence of strong draughts for example.
+    // Too large a value may cause significant temperature overshoots
+    // and possible energy wastage.
+    // Attempting to run rads less than the typical boiler minimum-on time
+    // is probably nugatory.
+    // There's probably little value in running most rads less than 10 minutes.
+    static constexpr uint8_t DEFAULT_ANTISEEK_VALVE_RECLOSE_DELAY_M =
+        OTV0P2BASE::fnmax(uint8_t(10), DEFAULT_MAX_RUN_ON_TIME_M);
     // Default delay in minutes after restricting flow before re-opening is allowed.
-    // This is to avoid excessive seeking/noise in the presence of strong draughts for example.
-    // Too large a value may cause significant temperature undershoots and discomfort/annoyance.
-    static constexpr uint8_t DEFAULT_ANTISEEK_VALVE_REOPEN_DELAY_M = (DEFAULT_ANTISEEK_VALVE_RECLOSE_DELAY_M*2);
-
+    // This is to avoid excessive seeking/noise
+    // in the presence of strong draughts for example.
+    // Attempting turn rads off for less than the typical boiler minimum-off time
+    // is probably nugatory.
+    // A value larger than DEFAULT_ANTISEEK_VALVE_RECLOSE_DELAY_M helps savings
+    // but may prevent a poorly-functioning radiator providing enough heat.
+    // Too large a value may cause significant temperature undershoots
+    // and discomfort/annoyance.
+    static constexpr uint8_t DEFAULT_ANTISEEK_VALVE_REOPEN_DELAY_M =
+        OTV0P2BASE::fnmax(DEFAULT_ANTISEEK_VALVE_RECLOSE_DELAY_M+1, 2*DEFAULT_MAX_RUN_ON_TIME_M);
     // Typical heat turn-down response time; in minutes, strictly positive.
-    static constexpr uint8_t DEFAULT_TURN_DOWN_RESPONSE_TIME_M = (DEFAULT_ANTISEEK_VALVE_RECLOSE_DELAY_M + 3);
+    static constexpr uint8_t DEFAULT_TURN_DOWN_RESPONSE_TIME_M =
+        (DEFAULT_ANTISEEK_VALVE_RECLOSE_DELAY_M + 3);
 
     // Assumed daily budget in cumulative (%) valve movement for battery-powered devices.
+    // A run from one end-stop to the other is 100%; a full round-trip 200%.
     static constexpr uint16_t DEFAULT_MAX_CUMULATIVE_PC_DAILY_VALVE_MOVEMENT = 400;
 
 
