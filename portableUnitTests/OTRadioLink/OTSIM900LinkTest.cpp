@@ -137,7 +137,7 @@ public:
         PDP_DEACTIVATING,
         PDP_FAIL,       // Registration lost during GPRS connection. Unrecoverable.
         INVISIBLE_FAIL  // SIM900 responding as normal but not sending. Unrecoverable, undetectable by device. todo take this out of enum.
-    } myState = POWERING_UP;  // FIXME fudge until we have a good way of powering up emulator.
+    } myState = POWER_OFF;
 
     SIM900Replies replies;
     SIM900Commands commands;
@@ -395,6 +395,13 @@ public:
     static constexpr uint_fast8_t minPowerPinToggleVT = 2; // Pin must be set high for at least 2 seconds to register.
 
     /**
+     * @brief   Set all state back to defaults.
+     * fixme POWERING_UP is a fudge until we have a good way of powering up emulator.
+     */
+    void reset() { myState = POWERING_UP; verbose = false; oldPinState = false, startTime = 0; }
+
+
+    /**
      * @brief keep track of power pin
      */
     void pollPowerPin(bool high) {
@@ -426,7 +433,7 @@ class SoftSerialSimulator final : public Stream
         static std::string written;
 
         // Callback to be made on write (if callback not NULL).
-        static void (*const writeCallback)();
+        static void (*writeCallback)();
         static void _doCallBackOnWrite() { if(NULL != writeCallback) { writeCallback(); } }
 
         // Add another char for read() to pick up.
@@ -468,7 +475,7 @@ class SoftSerialSimulator final : public Stream
     };
 std::string SoftSerialSimulator::toBeRead = "";
 std::string SoftSerialSimulator::written = "";
-void (*const SoftSerialSimulator::writeCallback)() = NULL;
+void (*SoftSerialSimulator::writeCallback)() = NULL;
 
 bool SoftSerialSimulator::verbose = false;
 // Singleton instance.
@@ -485,18 +492,25 @@ public:
     SIM900StateEmulator emu;
 
     /**
+     * @brief   reset SIM900 state for new test.
+     */
+    void reset() { emu.reset(); }
+
+    /**
      * @brief   update emulator state
      * @param   written: buffer written to by OTSIM900Link. WARNING! This must contain a full and valid command
      *          and is cleared after it is read from!
      * @param   toBeRead: buffer to be read by OTSIM900Link. WARNING! This is must be cleared by OTSIM900Link!
      */
-    void poll(std::string &written, std::string&toBeRead, bool powerPin) {
-        emu.pollPowerPin(powerPin);
-        if(emu.parseCommand(written)) emu.poll(written, toBeRead);
-        written.clear();
+    void poll() {
+//        emu.pollPowerPin(powerPin);
+        std::string toBeRead = "";
+        if(emu.parseCommand(serialConnection.written)) emu.poll(serialConnection.written, toBeRead);
+        serialConnection.written.clear();
     }
     void setVerbose(bool verbose) { serialConnection.verbose = verbose; emu.verbose = verbose; }
 };
+static SIM900 sim900;
 }
 
 
@@ -568,11 +582,16 @@ TEST(OTSIM900Link, SIM900EmulatorTest)
 {
     // Clear out any serial state.
     SIM900Emu::serialConnection.reset();
-    SIM900Emu::SIM900 sim900;
+    SIM900Emu::serialConnection.writeCallback = [] { SIM900Emu::sim900.poll(); };
 
-    sim900.setVerbose(true); // verbose debug.
+    SIM900Emu::sim900.reset();
+    ASSERT_EQ(SIM900Emu::SIM900StateEmulator::POWERING_UP, SIM900Emu::sim900.emu.myState);
+    ASSERT_FALSE(SIM900Emu::sim900.emu.verbose);
+    ASSERT_FALSE(SIM900Emu::sim900.emu.oldPinState);
+    ASSERT_EQ(0, SIM900Emu::sim900.emu.startTime);
+    SIM900Emu::sim900.setVerbose(true); // verbose debug.
     ASSERT_TRUE(SIM900Emu::SoftSerialSimulator::verbose);
-    ASSERT_TRUE(sim900.emu.verbose);
+    ASSERT_TRUE(SIM900Emu::sim900.emu.verbose);
 
     const char SIM900_PIN[] = "1111";
     const char SIM900_APN[] = "apn";
@@ -589,7 +608,7 @@ TEST(OTSIM900Link, SIM900EmulatorTest)
     for(int i = 0; i < 100; ++i) {
         std::string replyBuffer = "";
         incrementVTOneCycle();
-        sim900.poll(SIM900Emu::serialConnection.written, replyBuffer, l0._isPinHigh());
+//        sim900.poll(SIM900Emu::serialConnection.written, replyBuffer, l0._isPinHigh());
         SIM900Emu::serialConnection.addCharToRead(replyBuffer);
 //        SIM900Emu::serialConnection.printToBeRead();
 //        SIM900Emu::serialConnection.printWritten();
