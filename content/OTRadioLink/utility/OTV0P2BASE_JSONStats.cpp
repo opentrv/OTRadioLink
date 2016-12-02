@@ -466,8 +466,7 @@ uint8_t SimpleStatsRotationBase::writeJSON(uint8_t *const buf, const uint8_t buf
         {
         // Wrap around the end of the stats.
         if(++next >= nStats) { next = 0; }
-        // Avoid re-transmitting the very last thing TXed unless there in only one item!
-        // Avoid re-transmitting the hi-pri item just sent if any.
+        // Avoid re-transmitting the changed item just sent if any.
         if(hiPriIndex == next) { continue; }
         DescValueTuple &s = stats[next];
 //        // Skip stat if too sensitive to include in this output.
