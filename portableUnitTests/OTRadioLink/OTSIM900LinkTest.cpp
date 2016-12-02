@@ -414,7 +414,8 @@ class SoftSerialSimulator final : public Stream
     {
     private:
 		// Data available to be read().
-		static std::string toBeRead; // XXX make private
+		static std::string toBeRead;
+
     public:
         static bool verbose;
 
@@ -423,6 +424,10 @@ class SoftSerialSimulator final : public Stream
 
         // Data written (with the write() call) to this Stream, outbound.
         static std::string written;
+
+        // Callback to be made on write (if callback not NULL).
+        static void (*const writeCallback)();
+        static void _doCallBackOnWrite() { if(NULL != writeCallback) { writeCallback(); } }
 
         // Add another char for read() to pick up.
         static void addCharToRead(const char c) { toBeRead += c; }
@@ -435,6 +440,7 @@ class SoftSerialSimulator final : public Stream
             const char c = (char)uc;
             if(verbose) { if(isprint(c)) { fprintf(stderr, "<%c\n", c); } else { fprintf(stderr, "< %d\n", (int)c); } }
             written += c;
+            _doCallBackOnWrite();
             return(1);
         }
         // Method from Stream.
@@ -462,6 +468,8 @@ class SoftSerialSimulator final : public Stream
     };
 std::string SoftSerialSimulator::toBeRead = "";
 std::string SoftSerialSimulator::written = "";
+void (*const SoftSerialSimulator::writeCallback)() = NULL;
+
 bool SoftSerialSimulator::verbose = false;
 // Singleton instance.
 static SoftSerialSimulator serialConnection;

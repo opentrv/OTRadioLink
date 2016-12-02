@@ -45,7 +45,8 @@ static uint8_t a, b, c;
 // DHD20130603: avoid the hidden counter always starting at zero c/o some per-build state.
 // Derived from linker-driven pointer base plus hash of compilation timestamp, with little run-time cost.
 // DHD20161202: always non-zero to ensure in DATA (not BSS) and this code size constant (TODO-1078).
-static uint8_t x = OTV0P2BASE::fnmax(uint8_t(1), uint8_t((intptr_t) ((&c) + (uint8_t)((__TIME__[7] * 17) ^ (__TIME__[6]) + (__TIME__[4] << 3)))));
+static constexpr uint8_t xStart = OTV0P2BASE::fnmax(uint8_t(1), uint8_t((intptr_t) (/*(&c) + */ ((__TIME__[7] * 17) ^ (__TIME__[6]) + (__TIME__[4] << 3)))));
+static uint8_t x = xStart;
 
 // Original code as provided, with minor renaming/reformatting/editing as required.
 
