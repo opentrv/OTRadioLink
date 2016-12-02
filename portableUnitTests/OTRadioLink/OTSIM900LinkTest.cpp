@@ -511,6 +511,7 @@ public:
     void setVerbose(bool verbose) { serialConnection.verbose = verbose; emu.verbose = verbose; }
 };
 static SIM900 sim900;
+static auto sim900WriteCallback = [] { sim900.poll(); };
 }
 
 
@@ -589,6 +590,7 @@ TEST(OTSIM900Link, SIM900EmulatorTest)
     ASSERT_FALSE(SIM900Emu::sim900.emu.verbose);
     ASSERT_FALSE(SIM900Emu::sim900.emu.oldPinState);
     ASSERT_EQ(0, SIM900Emu::sim900.emu.startTime);
+
     SIM900Emu::sim900.setVerbose(true); // verbose debug.
     ASSERT_TRUE(SIM900Emu::SoftSerialSimulator::verbose);
     ASSERT_TRUE(SIM900Emu::sim900.emu.verbose);
