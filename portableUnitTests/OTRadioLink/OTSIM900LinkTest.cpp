@@ -215,10 +215,33 @@ public:
     /**
      * @brief   Ensure serial command valid and delete trailing '\r\n'
      */
+    bool waitingForCommand = true;
+    bool collectingCommand = false;
+    bool haveSeenCommandStart = false;
     bool verbose = false;
     bool parseCommand(std::string &command) {
         bool valid = false;  // Bool to store whether command is valid.
         // Check starts with A
+        if(waitingForCommand) {
+            // Look for leading 'A' of 'AT' to start a command.
+            if('A' == command.front()) {
+            waitingForCommand = false;
+            collectingCommand = true;
+            command = 'A';
+            haveSeenCommandStart = true; // Note at least one command start.
+            }
+        } else {
+            // Look for CR (or LF) to terminate a command.
+            if(('\r' == command.front()) || ('\n' == command.front())) {
+                waitingForCommand = true;
+                collectingCommand = false;
+                if(verbose) { fprintf(stderr, "command received: %s\n", command.c_str()); }
+                // Respond to particular commands...
+                sim900.poll(command, reply);
+            }
+            else if(collectingCommand) { command += c; }
+        }
+
         if (0 < command.size()) {
             if((command.front() == 'A') && (command.back() == '\n')) {
                 valid = true;
@@ -583,7 +606,7 @@ TEST(OTSIM900Link, SIM900EmulatorTest)
 {
     // Clear out any serial state.
     SIM900Emu::serialConnection.reset();
-    SIM900Emu::serialConnection.writeCallback = [] { SIM900Emu::sim900.poll(); };
+    SIM900Emu::serialConnection.writeCallback = SIM900Emu::sim900WriteCallback;
 
     SIM900Emu::sim900.reset();
     ASSERT_EQ(SIM900Emu::SIM900StateEmulator::POWERING_UP, SIM900Emu::sim900.emu.myState);
