@@ -98,11 +98,11 @@ namespace OTRadValve
             // Initial minor setback degrees C (strictly positive).
             // Note that 1C heating setback may result in ~8% saving in the UK.
             // This may be the maximum setback generally applied
-            // with a comfort bias for example.
+            // with a comfort temperature setting for example.
             static constexpr uint8_t SETBACK_DEFAULT = 1;
             // Enhanced setback, eg in eco mode, for extra energy savings.
-            // Less than SETBACK_FULL.
-            static constexpr uint8_t SETBACK_ECO = 1+SETBACK_DEFAULT;
+            // More than SETBACK_DEFAULT, less than SETBACK_FULL.
+            static constexpr uint8_t SETBACK_ECO = 2;
             // Full setback degrees C (strictly positive and significantly,
             // ie several degrees, greater than SETBACK_DEFAULT,
             // no more than MIN_TARGET_C).
