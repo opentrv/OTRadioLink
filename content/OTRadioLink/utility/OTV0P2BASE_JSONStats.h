@@ -290,11 +290,8 @@ class SimpleStatsRotationBase
     DescValueTuple *findByKey(MSG_JSON_SimpleStatsKey_t key) const;
 
     // Initialise base with appropriate storage (non-NULL) and capacity knowledge.
-    constexpr SimpleStatsRotationBase(DescValueTuple *_stats, const uint8_t _capacity)
-      : capacity(_capacity), stats(_stats), nStats(0),
-        lastTXed(uint8_t(~0)), lastTXedLoPri(uint8_t(~0)), lastTXedHiPri(uint8_t(~0)), // Show the first item on the first pass...
-        id(NULL)
-      { }
+    constexpr SimpleStatsRotationBase(DescValueTuple *_stats, uint8_t _capacity)
+      : capacity(_capacity), stats(_stats) { }
 
   private:
     // Stats to be tracked and sent; never NULL.
@@ -302,25 +299,21 @@ class SimpleStatsRotationBase
     DescValueTuple * const stats;
 
     // Number of stats being managed (packed at the start of the stats[] array).
-    uint8_t nStats;
+    uint8_t nStats = 0;
 
     // Last stat index TXed; used to avoid resending very last item redundantly.
+    // This is nominally the last 'normal' stat sent,
+    // so values that jump the rotation such as changed values
+    // and/or extra values squeezed in at the end of the buffer
+    // don't perturb this.
     // Coerced into range if necessary.
-    uint8_t lastTXed;
-
-    // Last normal stat index TXed.
-    // Coerced into range if necessary.
-    uint8_t lastTXedLoPri;
-
-    // Last high-priority/changed stat index TXed.
-    // Coerced into range if necessary.
-    uint8_t lastTXedHiPri;
+    uint8_t lastTXed = uint8_t(~0);
 
     // ID as null terminated string, or NULL to use first 2 bytes of system ID.
     // Used as string value of compulsory leading "@" key/field.
     // If ID is non-NULL but points to an empty string then no ID is inserted at all.
     // Can be changed at run-time.
-    MSG_JSON_SimpleStatsKey_t id;
+    MSG_JSON_SimpleStatsKey_t id = NULL;
 
     // Small write counter (and flag to enable its display).
     // Helps to track lost transmissions of generated stats.
