@@ -83,8 +83,12 @@ TEST(TempControl,MidSane)
         17, // Target WARM temperature for ECO bias.
         21  // Target WARM temperature for Comfort bias.
         > TRV1ValveControlParameters;
+    const uint8_t tsmin = TRV1ValveControlParameters::TEMP_SCALE_MIN;
     const uint8_t tsm = TRV1ValveControlParameters::TEMP_SCALE_MID;
+    const uint8_t tsmax = TRV1ValveControlParameters::TEMP_SCALE_MAX;
+    ASSERT_EQ(16, tsmin);
     ASSERT_EQ(19, tsm);
+    ASSERT_EQ(22, tsmax);
     OTRadValve::TempControlTempPot
         <
         decltype(MidSane::tp), &MidSane::tp,
@@ -93,10 +97,20 @@ TEST(TempControl,MidSane)
     EXPECT_TRUE(tctp0.hasEcoBias()) << "mid point should by default have an ECO bias";
     EXPECT_FALSE(tctp0.isComfortTemperature(tsm)) << "mid point should be neither strongly ECO nor comfort";
     EXPECT_FALSE(tctp0.isEcoTemperature(tsm)) << "mid point should be neither strongly ECO nor comfort";
-    // Normal bedroom/safe (18) and living room (~21) temperatures should not be regarded as 'comfort'.
+    // Normal bedroom/safe (18) and living room (~21) temperatures should not be regarded as extreme 'comfort'.
     EXPECT_FALSE(tctp0.isComfortTemperature(OTRadValve::SAFE_ROOM_TEMPERATURE));
+    EXPECT_FALSE(tctp0.isComfortTemperature(16));
     EXPECT_FALSE(tctp0.isComfortTemperature(18));
     EXPECT_FALSE(tctp0.isComfortTemperature(20));
+    EXPECT_TRUE(tctp0.isComfortTemperature(21));
+    EXPECT_TRUE(tctp0.isComfortTemperature(22));
+    // Normal bedroom/safe (18) and living room (~21) temperatures should not be regarded as extreme 'eco'.
+    EXPECT_TRUE(tctp0.isEcoTemperature(16));
+    EXPECT_TRUE(tctp0.isEcoTemperature(17));
+    EXPECT_FALSE(tctp0.isEcoTemperature(18));
+    EXPECT_FALSE(tctp0.isEcoTemperature(20));
+    EXPECT_FALSE(tctp0.isEcoTemperature(21));
+    EXPECT_FALSE(tctp0.isEcoTemperature(22));
 
     // Test again with current default parameter set, which may have changed from TRV1.5 glory days.
     typedef OTRadValve::DEFAULT_ValveControlParameters currentDefaults;
