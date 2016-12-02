@@ -416,7 +416,7 @@ class SoftSerialSimulator final : public Stream
 		// Data available to be read().
 		static std::string toBeRead; // XXX make private
     public:
-        bool verbose = false;
+        static bool verbose;
 
         // Reset to clear state before a new test.
         static void reset() { written = ""; toBeRead = ""; }
@@ -448,7 +448,7 @@ class SoftSerialSimulator final : public Stream
         }
 
         void printToBeRead() { if(toBeRead.size()) fprintf(stderr, "toBeRead:\n%s\n", toBeRead.c_str()); }
-        void printWritten() {}
+        void printWritten() { if(written.size()) fprintf(stderr, "written:\n%s\n", written.c_str()); }
 
         // Method from Stream.
         virtual int available() override { return(-1); }
@@ -462,6 +462,7 @@ class SoftSerialSimulator final : public Stream
     };
 std::string SoftSerialSimulator::toBeRead = "";
 std::string SoftSerialSimulator::written = "";
+bool SoftSerialSimulator::verbose = false;
 // Singleton instance.
 static SoftSerialSimulator serialConnection;
 
@@ -561,8 +562,9 @@ TEST(OTSIM900Link, SIM900EmulatorTest)
     SIM900Emu::serialConnection.reset();
     SIM900Emu::SIM900 sim900;
 
-    SIM900Emu::serialConnection.verbose = true;
     sim900.setVerbose(true); // verbose debug.
+    ASSERT_TRUE(SIM900Emu::SoftSerialSimulator::verbose);
+    ASSERT_TRUE(sim900.emu.verbose);
 
     const char SIM900_PIN[] = "1111";
     const char SIM900_APN[] = "apn";
@@ -576,32 +578,16 @@ TEST(OTSIM900Link, SIM900EmulatorTest)
     EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
 
     // Try to hang just by calling poll() repeatedly.
-    std::string replyBuffer = "";
-    incrementVTOneCycle();
-    EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWERING_UP, sim900.emu.myState);
-    l0.poll();
-    incrementVTOneCycle();
-    sim900.poll(SIM900Emu::serialConnection.written, replyBuffer, l0._isPinHigh());
-    SIM900Emu::serialConnection.addCharToRead(replyBuffer);
-    SIM900Emu::serialConnection.printToBeRead();
-    replyBuffer.clear();
-    EXPECT_EQ(SIM900Emu::SIM900StateEmulator::REGISTERING, sim900.emu.myState);
-    l0.poll();
-    incrementVTOneCycle();
-    sim900.poll(SIM900Emu::serialConnection.written, replyBuffer, l0._isPinHigh());
-    SIM900Emu::serialConnection.addCharToRead(replyBuffer);
-    SIM900Emu::serialConnection.printToBeRead();
-    replyBuffer.clear();
-
-//    for(int i = 0; i < 100; ++i) {
-//        std::string replyBuffer = "";
-//        incrementVTOneCycle();
-//        l0.poll();
-//        incrementVTOneCycle();
-//        sim900.poll(SIM900Emu::serialConnection.written, replyBuffer, l0._isPinHigh());
-//        SIM900Emu::serialConnection.addCharToRead(replyBuffer);
+    for(int i = 0; i < 100; ++i) {
+        std::string replyBuffer = "";
+        incrementVTOneCycle();
+        sim900.poll(SIM900Emu::serialConnection.written, replyBuffer, l0._isPinHigh());
+        SIM900Emu::serialConnection.addCharToRead(replyBuffer);
 //        SIM900Emu::serialConnection.printToBeRead();
-//    }
+//        SIM900Emu::serialConnection.printWritten();
+        incrementVTOneCycle();
+        l0.poll();
+    }
 
     // ...
     l0.end();
