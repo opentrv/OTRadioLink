@@ -121,7 +121,7 @@ public:
      * @brief   Non-exhaustive list of states we go through using OTSIM900Link.
      * @note    States with a verb are transitory and can only be exited by the SIM900.
      */
-    enum state_t{
+    enum state_t {
         POWER_OFF,      // SIM900 is powered down.
         POWERING_UP,       // power pin has been toggled, but sim900 not on yet.
         REGISTERING,    // Trying to connect to a cell mast.
@@ -413,12 +413,10 @@ public:
 class SoftSerialSimulator final : public Stream
     {
     private:
-
-
+		// Data available to be read().
+		static std::string toBeRead; // XXX make private
     public:
-    // Data available to be read().
-    static std::string toBeRead; // XXX make private
-        bool verbose = false;
+        static bool verbose;
 
         // Reset to clear state before a new test.
         static void reset() { written = ""; toBeRead = ""; }
@@ -448,6 +446,10 @@ class SoftSerialSimulator final : public Stream
             toBeRead.erase(0, 1);
             return(c);
         }
+
+        void printToBeRead() { if(toBeRead.size()) fprintf(stderr, "toBeRead:\n%s\n", toBeRead.c_str()); }
+        void printWritten() { if(written.size()) fprintf(stderr, "written:\n%s\n", written.c_str()); }
+
         // Method from Stream.
         virtual int available() override { return(-1); }
         // Method from Stream.
@@ -460,6 +462,7 @@ class SoftSerialSimulator final : public Stream
     };
 std::string SoftSerialSimulator::toBeRead = "";
 std::string SoftSerialSimulator::written = "";
+bool SoftSerialSimulator::verbose = false;
 // Singleton instance.
 static SoftSerialSimulator serialConnection;
 
@@ -559,8 +562,9 @@ TEST(OTSIM900Link, SIM900EmulatorTest)
     SIM900Emu::serialConnection.reset();
     SIM900Emu::SIM900 sim900;
 
-//    SIM900Emu::serialConnection.verbose = true;
-//    sim900.setVerbose(true); // verbose debug.
+    sim900.setVerbose(true); // verbose debug.
+    ASSERT_TRUE(SIM900Emu::SoftSerialSimulator::verbose);
+    ASSERT_TRUE(sim900.emu.verbose);
 
     const char SIM900_PIN[] = "1111";
     const char SIM900_APN[] = "apn";
@@ -577,11 +581,12 @@ TEST(OTSIM900Link, SIM900EmulatorTest)
     for(int i = 0; i < 100; ++i) {
         std::string replyBuffer = "";
         incrementVTOneCycle();
-        l0.poll();
-        incrementVTOneCycle();
         sim900.poll(SIM900Emu::serialConnection.written, replyBuffer, l0._isPinHigh());
         SIM900Emu::serialConnection.addCharToRead(replyBuffer);
-//        if(replyBuffer.size()) fprintf(stderr, "toBeRead:\n%s\n", SIM900Emu::serialConnection.toBeRead.c_str());
+//        SIM900Emu::serialConnection.printToBeRead();
+//        SIM900Emu::serialConnection.printWritten();
+        incrementVTOneCycle();
+        l0.poll();
     }
 
     // ...
