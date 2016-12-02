@@ -151,20 +151,6 @@ void simpleDataSampleRun(const ALDataSample *const data)
     ASSERT_TRUE(NULL != data);
     ASSERT_FALSE(data->isEnd()) << "do not pass in empty data set";
 
-    // Instance under test.
-    OTV0P2BASE::SensorAmbientLightAdaptiveMock ala;
-
-    // Occupancy callback.
-    static int8_t cbProbable;
-    cbProbable = -1;
-    ASSERT_EQ(-1, cbProbable);
-    void (*const callback)(bool) = [](bool p){cbProbable = p;};
-    callback(false);
-    ASSERT_EQ(0, cbProbable);
-    callback(true);
-    ASSERT_EQ(1, cbProbable);
-    ala.setOccCallbackOpt(callback);
-
     // Count of number of records.
     int nRecords = 0;
     // Count number of records with explicit expected occupancy response assertion.
@@ -231,6 +217,20 @@ if(verbose) { fprintf(stderr, "blending = %d\n", blending); }
         int nOccupancyReportsNotSensitive = 0;
         for(int s = 0; s <= 1; ++s)
             {
+            // New instance under test.
+            OTV0P2BASE::SensorAmbientLightAdaptiveMock ala;
+
+            // Occupancy callback.
+            static int8_t cbProbable;
+            cbProbable = -1;
+            ASSERT_EQ(-1, cbProbable);
+            void (*const callback)(bool) = [](bool p){cbProbable = p;};
+            callback(false);
+            ASSERT_EQ(0, cbProbable);
+            callback(true);
+            ASSERT_EQ(1, cbProbable);
+            ala.setOccCallbackOpt(callback);
+
             const bool sensitive = (0 != s);
 if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
             // Count of number of occupancy signals, real records only.
@@ -355,7 +355,6 @@ if(verbose && (0 != predictionOcc)) { fprintf(stderr, " expectedOcc=%d @ %dT%d:%
             EXPECT_TRUE((nRoomDarkReportsAll <= ((totalMinutes*(maxFractionRD-1))/maxFractionRD)) && (nRoomDarkReportsAll >= (totalMinutes/maxFractionRD))) << "room dark/lit reports too skewed: " << (nRoomDarkReportsAll/(double)totalMinutes);
             if(sensitive) { nOccupancyReportsSensitive = nOccupancyReports; }
             else { nOccupancyReportsNotSensitive = nOccupancyReports; }
-            ala.set(254); ala.read(); // Force detector to 'initial'-like state ready for re-run.
             }
         EXPECT_LE(nOccupancyReportsNotSensitive, nOccupancyReportsSensitive) << "expect sensitive never to generate fewer reports";
         }
