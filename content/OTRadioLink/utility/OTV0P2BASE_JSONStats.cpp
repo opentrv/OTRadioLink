@@ -414,20 +414,22 @@ uint8_t SimpleStatsRotationBase::writeJSON(uint8_t *const buf, const uint8_t buf
   // Be prepared to rewind back to logical start of buffer.
   bp.setMark();
 
-  uint8_t hiPriIndex = ~0; // Cannot realistically be any real index value.
-//  bool gotLoPri = false;  // (DE20161010) Commented to fix 'unused variable' warning. Goes out of scope without anything ever reading it.
-//  uint8_t loPriIndex = 0;
   if(nStats != 0)
     {
+    // If true then try to insert one changed item first.
+    // On alternate runs AND where there is at least one changed item pending.
+    const bool doChangedFirst = (0 == (c.count & 1)) && changedValue();
+
     // Deal with changed stats which are important to send quickly.
     // Only do this on a portion of runs to avoiding starving 'normal' stats.
     // This happens on even-numbered runs (eg including the first, typically).
     // TX at most ONE high-priority item first in the buffer this way.
     // Don't reset the 'lastTXed' value for any such changed item sent
     // so as try try to let the 'normal' stats rotation proceed undisturbed.
-    if(0 == (c.count & 1))
+    uint8_t hiPriIndex = ~0; // Cannot realistically be any real index value.
+    if(doChangedFirst)
       {
-      uint8_t next = lastTXed/*HiPri*/;
+      uint8_t next = lastTXed;
       for(int i = nStats; --i >= 0; )
         {
         // Wrap around the end of the stats.
@@ -470,9 +472,10 @@ uint8_t SimpleStatsRotationBase::writeJSON(uint8_t *const buf, const uint8_t buf
         DescValueTuple &s = stats[next];
 //        // Skip stat if too sensitive to include in this output.
 //        if(sensitivity > s.descriptor.sensitivity) { continue; }
-        // If low priority and unchanged then skip TX some of the time.
-        // Could be if space is at a premium for example.
-        if(s.descriptor.lowPriority && !s.flags.changed && randRNG8NextBoolean()) { continue; }
+        // If low priority and unchanged then skip TX some of the time,
+        // when this value has not changed, and doing changed values first,
+        // so reduced space is available.
+        if(s.descriptor.lowPriority && !s.flags.changed && doChangedFirst) { continue; }
         // Found suitable stat to include in output.
         // Add to JSON output.
         print(bp, s, commaPending);
