@@ -426,7 +426,7 @@ class SoftSerialSimulator final : public Stream
         static std::string written;
 
         // Callback to be made on write (if callback not NULL).
-        static void (*writeCallback)();
+        static void (*const writeCallback)();
         static void _doCallBackOnWrite() { if(NULL != writeCallback) { writeCallback(); } }
 
         // Add another char for read() to pick up.
@@ -468,7 +468,7 @@ class SoftSerialSimulator final : public Stream
     };
 std::string SoftSerialSimulator::toBeRead = "";
 std::string SoftSerialSimulator::written = "";
-void (*SoftSerialSimulator::writeCallback)() = NULL;
+void (*const SoftSerialSimulator::writeCallback)() = NULL;
 
 bool SoftSerialSimulator::verbose = false;
 // Singleton instance.
@@ -567,9 +567,8 @@ TEST(OTSIM900Link, SoftSerialSimulatorTest)
 TEST(OTSIM900Link, SIM900EmulatorTest)
 {
     // Clear out any serial state.
-    static SIM900Emu::SIM900 sim900;
     SIM900Emu::serialConnection.reset();
-    SIM900Emu::serialConnection.writeCallback = []{sim900.setVerbose(true);};
+    SIM900Emu::SIM900 sim900;
 
     sim900.setVerbose(true); // verbose debug.
     ASSERT_TRUE(SIM900Emu::SoftSerialSimulator::verbose);
