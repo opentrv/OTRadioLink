@@ -491,8 +491,7 @@ typedef const char *AT_t;
                             }
                         }
                     }
-                else if (waitedLongEnoughForPower())
-                    bPowerLock = false; // Check if ready to stop waiting after power toggled.
+                else if (waitedLongEnoughForPower()) bPowerLock = false; // Check if ready to stop waiting after power toggled.
                 }
 
 #ifndef OTSIM900LINK_DEBUG // This is included to ease unit testing.
@@ -591,6 +590,10 @@ typedef const char *AT_t;
                     if (c == -1) break;
                     else *dp++ = c;
                 }
+
+#ifndef ARDUINO_ARCH_AVR
+                while (-1 != char(ser.read())) {};
+#endif // ARDUINO_ARCH_AVR
 #if 0
                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("\n--Buffer Length: ")
                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN(data-dp)
