@@ -25,8 +25,11 @@ Note: original XABC code from "EternityForest" appears to be in the public domai
 
 #include "OTV0P2BASE_QuickPRNG.h"
 
+#include "OTV0P2BASE_Util.h"
+
 namespace OTV0P2BASE
 {
+
 
 // "RNG8" 8-bit 'ultra fast' PRNG suitable for 8-bit microcontrollers: low bits probably least good.
 // NOT in any way suitable for crypto, but may be good to help avoid TX collisions, etc.
@@ -41,7 +44,8 @@ extern uint8_t randRNG8(); // Originally called 'randomize()'.
 static uint8_t a, b, c;
 // DHD20130603: avoid the hidden counter always starting at zero c/o some per-build state.
 // Derived from linker-driven pointer base plus hash of compilation timestamp, with little run-time cost.
-static uint8_t x = (uint8_t)(intptr_t) ((&c) + (uint8_t)((__TIME__[7] * 17) ^ (__TIME__[6]) ^ (__TIME__[4] << 11)));
+// DHD20161202: always non-zero to ensure in DATA (not BSS) and this code size constant (TODO-1078).
+static uint8_t x = OTV0P2BASE::fnmax(uint8_t(1), uint8_t((intptr_t) ((&c) + (uint8_t)((__TIME__[7] * 17) ^ (__TIME__[6]) + (__TIME__[4] << 3)))));
 
 // Original code as provided, with minor renaming/reformatting/editing as required.
 
@@ -76,7 +80,7 @@ void seedRNG8(uint8_t s1, uint8_t s2, uint8_t s3) // Originally init_rng(s1,s2,s
   b = (b+a);
   c = ((c+(b>>1))^a);
   }
-//
+
 uint8_t randRNG8() // Originally unsigned char randomize().
   {
   x++;               //x is incremented every round and is not affected by any other variable
@@ -85,14 +89,15 @@ uint8_t randRNG8() // Originally unsigned char randomize().
   c = ((c+(b>>1))^a);  //the right shift is to ensure that high-order bits from b can affect  
   return(c);         //low order bits of other variables
   }
-//
-// Reset to known state; not recommended in normal use as this destroys any residual entropy.
-void resetRNG8()
+
+// Reset to known state; only for tests as this destroys any residual entropy.
+void _resetRNG8()
   {
   x = 0;
   a = 0;
   b = 0;
   c = 0;
   }
+
 
 }
