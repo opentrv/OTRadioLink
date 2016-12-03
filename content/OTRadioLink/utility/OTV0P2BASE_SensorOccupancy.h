@@ -151,7 +151,7 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     // so for example a weak indication of presence is not enough to cancel holiday mode.
     // Doesn't force the room to appear recently occupied.
     // Doesn't activate the recent-activity status.
-    // ISR-/thread- safe, though not recommended for calls from such.
+    // Not ISR-/thread- safe.
     void markAsJustPossiblyOccupied();
 
     // Two-bit occupancy: 0 not known/disclosed, 1 not occupied, 2 possibly occupied, 3 probably occupied.

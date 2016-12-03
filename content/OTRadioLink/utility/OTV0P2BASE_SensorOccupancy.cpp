@@ -119,7 +119,7 @@ void PseudoSensorOccupancyTracker::markAsPossiblyOccupied()
 // so for example a weak indication of presence is not enough to cancel holiday mode.
 // Doesn't force the room to appear recently occupied.
 // Doesn't activate the recent-activity status.
-// ISR-/thread- safe, though not recommended for calls from such.
+// Not ISR-/thread- safe.
 void PseudoSensorOccupancyTracker::markAsJustPossiblyOccupied()
   {
   if(vacancyH > weakVacantHThrH) { return; } // ISR may theoretically see a stale value for vacancyH; optimised for non-ISR use.
