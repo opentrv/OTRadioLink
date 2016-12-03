@@ -106,7 +106,7 @@ class RoomTemperatureC16_SHT21 final : public OTV0P2BASE::TemperatureC16Base
 
 
 // Placeholder with dummy static status methods to reduce conditional-compilation complexity.
-class DummyHumiditySensorSHT21 final
+class DummyHumiditySensor final
   {
   public:
     constexpr static bool isAvailable() { return(false); } // Not available, so always returns false.
@@ -114,6 +114,8 @@ class DummyHumiditySensorSHT21 final
     constexpr static bool isRHHighWithHyst() { return(false); } // Unknown, so always false.
     constexpr static uint8_t get() { return(0); }
   };
+// Previous name as used in V0p2_Main.
+typedef DummyHumiditySensor DummyHumiditySensorSHT21;
 
 
 }

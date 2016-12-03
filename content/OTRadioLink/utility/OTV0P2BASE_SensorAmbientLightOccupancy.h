@@ -103,7 +103,8 @@ class SensorAmbientLightOccupancyDetectorSimple final : public SensorAmbientLigh
   private:
       // Previous ambient light level [0,254]; 0 means dark.
       // Starts at max so that no initial light level can imply occupancy.
-      uint8_t prevLightLevel = 254;
+      static constexpr uint8_t startingLL = 254;
+      uint8_t prevLightLevel = startingLL;
 
       // Parameters from setTypMinMax().
       uint8_t meanNowOrFF = 0xff;
@@ -113,6 +114,9 @@ class SensorAmbientLightOccupancyDetectorSimple final : public SensorAmbientLigh
 
   public:
       constexpr SensorAmbientLightOccupancyDetectorSimple() { }
+
+      // Reset to starting state; primarily for unit tests.
+      void reset() { setTypMinMax(0xff, 0xff, 0xff, false); prevLightLevel = startingLL; }
 
       // Call regularly (~1/60s) with the current ambient light level [0,254].
       // Returns value > 0 if occupancy is detected.

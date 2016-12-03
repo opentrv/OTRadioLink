@@ -72,13 +72,18 @@ class ALDataSample final
         // Errors in known vs predicted will be counted against a threshold.
         const int8_t actOcc = UNKNOWN_ACT_OCC;
 
-        // -1 implies no setback prediction, distinct from all real (+ve) values.
-        static constexpr int8_t NO_SB_EXPECTATION = -1;
         // Scale mid-point setback prediction (C); -1 for no prediction.
         // This is for a conventional/default set of valve parameters,
         // mainly intended to ensure sane behaviour under normal circumstances.
         // Useful setback predictions will probably need at least 24h of data.
-        const int8_t expectedSb = NO_SB_EXPECTATION;
+        enum expectedSb_t : int8_t
+            {
+            NO_SB_EXPECTATION = -1, // -1 indicates no setback prediction.
+            SB_NONE, // Setback of zero, ie no setback.
+            SB_ECO, // ECO/medium setback.
+            SB_MAX, // Maximum setback.
+            };
+        const expectedSb_t expectedSb = NO_SB_EXPECTATION;
 
         // Day/hour/minute and light level and expected results.
         // An expected result of -1 means no particular result expected from this (anything is acceptable).
@@ -88,7 +93,7 @@ class ALDataSample final
                                int8_t expectedOcc_ = NO_OCC_EXPECTATION,
                                int8_t expectedRd_ = NO_RD_EXPECTATION,
                                int8_t actOcc_ = UNKNOWN_ACT_OCC,
-                               int8_t expectedSb_ = NO_SB_EXPECTATION)
+                               expectedSb_t expectedSb_ = NO_SB_EXPECTATION)
             :
             d(dayOfMonth), H(hour24), M(minute),
             L(lightLevel),
@@ -141,6 +146,36 @@ static const ALDataSample trivialSample3[] =
 { }
     };
 
+// Support state for simpleDataSampleRun().
+namespace SDSR
+    {
+    OTV0P2BASE::PseudoSensorOccupancyTracker occupancy;
+    OTV0P2BASE::SensorAmbientLightAdaptiveMock ambLight;
+    // In-memory stats set.
+    OTV0P2BASE::NVByHourByteStatsMock hs;
+    // Dummy (non-functioning) temperature and relative humidity sensors.
+    OTV0P2BASE::TemperatureC16Mock tempC16;
+    OTV0P2BASE::DummyHumiditySensor rh;
+    // Two-subsamples per hour stats sampling.
+    OTV0P2BASE::ByHourSimpleStatsUpdaterSampleStats <
+      decltype(hs), &hs,
+      decltype(occupancy), &occupancy,
+      decltype(ambLight), &ambLight,
+      decltype(tempC16), &tempC16,
+      decltype(rh), &rh,
+      2
+      > su;
+    // Reset all these static entities.
+    static void resetAll()
+        {
+        ambLight.resetAdaptive();
+        occupancy.reset();
+        // Flush any partial samples.
+        su.sampleStats(true, 0);
+        // Erase all stats.
+        hs.zapStats();
+        }
+    }
 // Do a simple run over the supplied data, one call per simulated minute until the terminating record is found.
 // Must be called with 1 or more data rows in ascending time with a terminating (empty) entry.
 // Repeated rows with the same light value and expected result can be omitted
@@ -226,14 +261,16 @@ if(verbose) { fprintf(stderr, "blending = %d\n", blending); }
         int nOccupancyReportsNotSensitive = 0;
         for(int s = 0; s <= 1; ++s)
             {
-            // New instance under test.
-            OTV0P2BASE::SensorAmbientLightAdaptiveMock ala;
+            // Clear all state in static instances.
+            SDSR::resetAll();
 
-            // Occupancy tracker instance, to check overall behaviour.
-            static OTV0P2BASE::PseudoSensorOccupancyTracker tracker;
-            tracker.reset();
-            ASSERT_FALSE(tracker.isLikelyOccupied());
+            // Ambient light sensor instance under test.
+            OTV0P2BASE::SensorAmbientLightAdaptiveMock &ala = SDSR::ambLight;
+
+            // Occupancy tracker instance under test, to check system behaviour.
+            OTV0P2BASE::PseudoSensorOccupancyTracker &tracker = SDSR::occupancy;
             ASSERT_EQ(0, tracker.get());
+            ASSERT_FALSE(tracker.isLikelyOccupied());
 
             // Occupancy callback.
             static int8_t cbProbable;
