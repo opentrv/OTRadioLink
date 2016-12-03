@@ -296,11 +296,15 @@ class ByHourSimpleStatsUpdaterSampleStats final
     typedef typename typeIf<maxSubSamples <= 2, uint8_t, uint16_t>::t percentageStatsAccumulator_t;
 
   public:
+    // Clear any partial internal state; primarily for unit tests.
+    // Does no write to the backing stats store.
+    static void reset() { sampleStats(false, 0xff); }
+
     // Sample statistics fully once per hour as background to simple monitoring and adaptive behaviour.
     // Call this once per hour with fullSample==true, as near the end of the hour as possible;
     // this will update the non-volatile stats record for the current hour.
-    // Optionally call this at up to maxSubSamples evenly-spaced number times thoughout the hour
-    // with fullSample=false for all but the last to sub-sample
+    // Optionally call this at up to maxSubSamples evenly-spaced times throughout the hour
+    // with fullSample==false for all but the last to sub-sample
     // (and these may receive lower weighting or be ignored).
     // (EEPROM wear in backing store should not be an issue at this update rate in normal use.)
     //
@@ -309,6 +313,8 @@ class ByHourSimpleStatsUpdaterSampleStats final
     //
     // Note that hh is only used when the final/full sample is taken,
     // and is used to determine where (in which slot) to file the stats.
+    //
+    // Call with out-of-range hh to effectively discard any partial samples.
     static void sampleStats(const bool fullSample, const uint8_t hh)
       {
 //      static_assert(NULL != stats, "must have non-NULL stats container");
@@ -316,7 +322,10 @@ class ByHourSimpleStatsUpdaterSampleStats final
       // (Sub-)sample processing.
       // In general, keep running total of sub-samples in a way that should not overflow
       // and use the mean to update the non-volatile EEPROM values on the fullSample call.
-      static uint8_t sampleCount; // General sub-sample count; initially zero after boot, and zeroed after each full sample.
+      // General sub-sample count; initially zero after boot,
+      // and zeroed after each full sample or when explicitly reset.
+      static uint8_t sampleCount;
+      if(hh > 23) { sampleCount = 0; return; }
 
       // Reject excess early sub-samples before full/final one.
       static_assert(maxSubSamples > 0, "must allow at least one (ie final) sample!");

@@ -165,15 +165,13 @@ namespace SDSR
       decltype(rh), &rh,
       2
       > su;
-    // Reset all these static entities.
+    // Reset all these static entities but does not clear stats.
     static void resetAll()
         {
         ambLight.resetAdaptive();
         occupancy.reset();
         // Flush any partial samples.
-        su.sampleStats(true, 0);
-        // Erase all stats.
-        hs.zapStats();
+        su.reset();
         }
     }
 // Do a simple run over the supplied data, one call per simulated minute until the terminating record is found.
@@ -195,6 +193,22 @@ void simpleDataSampleRun(const ALDataSample *const data)
     ASSERT_TRUE(NULL != data);
     ASSERT_FALSE(data->isEnd()) << "do not pass in empty data set";
 
+    // Clear stats backing store.
+    SDSR::hs.zapStats();
+
+    // First count records and set up testing state.
+    // Clear all state in static instances.
+    SDSR::resetAll();
+    // Ambient light sensor instance under test.
+    OTV0P2BASE::SensorAmbientLightAdaptiveMock &ala = SDSR::ambLight;
+    // Occupancy tracker instance under test, to check system behaviour.
+    OTV0P2BASE::PseudoSensorOccupancyTracker &tracker = SDSR::occupancy;
+    ASSERT_EQ(0, tracker.get());
+    ASSERT_FALSE(tracker.isLikelyOccupied());
+    // Occupancy callback during setup.
+    void (*const callbackI)(bool) = [](bool p)
+        { if(p) { tracker.markAsPossiblyOccupied(); } else { tracker.markAsJustPossiblyOccupied(); } };
+    ala.setOccCallbackOpt(callbackI);
     // Count of number of records.
     int nRecords = 0;
     // Count number of records with explicit expected occupancy response assertion.
@@ -222,7 +236,9 @@ void simpleDataSampleRun(const ALDataSample *const data)
             if((int)level < minI) { minI = level; }
             if((int)level > maxI) { maxI = level; }
             const uint8_t H = (currentMinute % 1440) / 60;
-            ASSERT_TRUE(H < 24) << "bad hour";
+            const uint8_t M = (currentMinute % 60);
+            if(29 == M) { SDSR::su.sampleStats(false, H); }
+            if(59 == M) { SDSR::su.sampleStats(true, H); }
             byHourMeanSumI[H] += level;
             ++byHourMeanCountI[H];
             ++currentMinute;
@@ -263,15 +279,12 @@ if(verbose) { fprintf(stderr, "blending = %d\n", blending); }
             {
             // Clear all state in static instances.
             SDSR::resetAll();
-
             // Ambient light sensor instance under test.
             OTV0P2BASE::SensorAmbientLightAdaptiveMock &ala = SDSR::ambLight;
-
             // Occupancy tracker instance under test, to check system behaviour.
             OTV0P2BASE::PseudoSensorOccupancyTracker &tracker = SDSR::occupancy;
             ASSERT_EQ(0, tracker.get());
             ASSERT_FALSE(tracker.isLikelyOccupied());
-
             // Occupancy callback.
             static int8_t cbProbable;
             cbProbable = -1;
