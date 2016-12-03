@@ -317,8 +317,6 @@ class ByHourSimpleStatsUpdaterSampleStats final
     // Call with out-of-range hh to effectively discard any partial samples.
     static void sampleStats(const bool fullSample, const uint8_t hh)
       {
-//      static_assert(NULL != stats, "must have non-NULL stats container");
-
       // (Sub-)sample processing.
       // In general, keep running total of sub-samples in a way that should not overflow
       // and use the mean to update the non-volatile EEPROM values on the fullSample call.
