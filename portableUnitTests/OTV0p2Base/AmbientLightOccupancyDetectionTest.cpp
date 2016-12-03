@@ -423,14 +423,14 @@ TEST(AmbientLightOccupancyDetection,simpleDataSampleRun)
 // "3l" 2016/10/08+09 test set with tough occupancy to detect in the evening up to 21:00Z and in the morning from 07:09Z then  06:37Z.
 static const ALDataSample sample3lHard[] =
     {
-{8,0,1,1, occType::OCC_NONE, true, false}, // Definitely not occupied.
+{8,0,1,1, occType::OCC_NONE, true}, // Definitely not occupied.
 {8,0,17,1, occType::OCC_NONE, true, false}, // Definitely not occupied.
 //...
 {8,6,21,1},
 {8,6,29,2, occType::OCC_NONE, true, false}, // Not enough rise to indicate occupation, still dark.
 {8,6,33,2},
 {8,6,45,2},
-{8,6,57,2},
+{8,6,57,2, occType::OCC_NONE, true, false}, // Not enough light to indicate occupation, dark.
 {8,7,9,14, ALDataSample::NO_OCC_EXPECTATION, ALDataSample::NO_RD_EXPECTATION},  // Temporarily occupied: curtains drawn?  Borderline dark?
 {8,7,17,35},
 {8,7,21,38},
@@ -541,7 +541,7 @@ static const ALDataSample sample3lHard[] =
 {9,5,57,1, occType::OCC_NONE, true, false}, // Definitely not occupied.
 {9,6,13,1, occType::OCC_NONE, true, false}, // Definitely not occupied.
 {9,6,21,2, occType::OCC_NONE, true, false}, // Not enough rise to indicate occupation, dark.
-{9,6,33,2},
+{9,6,33,2, occType::OCC_NONE, true, false}, // Not enough light to indicate occupation, dark.
 {9,6,37,24, occType::OCC_PROBABLE, false, true}, // Curtains drawn: OCCUPIED. Should appear light.
 {9,6,45,32},
 {9,6,53,31},
