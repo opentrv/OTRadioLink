@@ -124,7 +124,7 @@ class SimpleFlavourStats final
         void takeSample(bool isFlavoured) { ++n; if(isFlavoured) { ++flavoured; } }
         unsigned getSampleCount() const { return(n); }
         unsigned getFlavouredCount() const { return(flavoured); }
-        float getFractionFlavoured() const { return(flavoured / (float) n); }
+        float getFractionFlavoured() const { return(flavoured / (float) OTV0P2BASE::fnmax(1U, n)); }
     };
 
 // Collection of 'flavoured' events in one run.
@@ -136,11 +136,28 @@ class SimpleFlavourStatCollection final
         const bool sensitive;
         const uint8_t blending;
 
-        SimpleFlavourStats RoomDarkCount;
-        SimpleFlavourStats AmbientLightLevelFalsePositives;
-        SimpleFlavourStats AmbientLightLevelFalseNegatives;
+        // Count of number of samples counted as dark.
+        // Checking for gross under- or over- reporting.
+        SimpleFlavourStats RoomDarkSamples;
+
+        // Count of ambient light occupancy callbaks.
+        // Checking for gross over- reporting.
+        SimpleFlavourStats AmbLightOccupancyCallbacks;
+
+//        // Checking ambient light level actual vs reported.
+//        SimpleFlavourStats AmbientLightLevelFalsePositives;
+//        SimpleFlavourStats AmbientLightLevelFalseNegatives;
+        //        SimpleFlavourStats RoomDarkPredictions;
+
+        // Checking occupancy tracking accuracy vs actual occupation/vacancy.
         SimpleFlavourStats OccupancyTrackingFalsePositives;
         SimpleFlavourStats OccupancyTrackingFalseNegatives;
+
+        // Counting failures to meet specific occupancy callback expectations.
+        SimpleFlavourStats AmbLightOccupancyCallbackPredictionErrors;
+
+        // Counting failures to meet specific room dark/light expectations.
+        SimpleFlavourStats RoomDarkPredictionErrors;
     };
 
 // Trivial sample, testing initial occupancy detector reaction to start transient.
@@ -441,7 +458,7 @@ void simpleDataSampleRun(const ALDataSample *const data)
     for(uint8_t blending = NONE; blending < END; ++blending)
         {
 if(verbose) { fprintf(stderr, "blending = %d\n", blending); }
-        SCOPED_TRACE(testing::Message() << "blending " << blending);
+        SCOPED_TRACE(testing::Message() << "blending " << (int)blending);
 
         // Run simulation at both sensitivities.
         int nOccupancyReportsSensitive = 0;
@@ -466,11 +483,6 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
             ASSERT_EQ(0, tracker.get());
             ASSERT_FALSE(tracker.isLikelyOccupied());
 
-            // Count of number of occupancy signals, real records only.
-            int nOccupancyReports = 0;
-            // Number of update()/read() calls made.
-            long updateCalls = 0;
-            // Known occupancy count and error.
             uint8_t oldH = 0xff; // Used to detect hour rollover.
             for(const ALDataSample *dp = data; !dp->isEnd(); ++dp)
                 {
@@ -490,7 +502,6 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
                             meanUsed);
 
                     // About to perform another virtual minute 'tick' update/
-                    ++updateCalls;
                     SDSR::cbProbable = -1; // Collect occupancy prediction (if any) from call-back.
                     ala.set(dp->L);
                     ala.read();
@@ -500,62 +511,65 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
                     // True if real non-interpolated record.
                     const bool isRealRecord = (currentMinute == dp->currentMinute());
                     const bool predictedRoomDark = ala.isRoomDark();
-                    flavourStats.RoomDarkCount.takeSample(predictedRoomDark);
-//                    if(predictedRoomDark) { ++nRoomDarkReportsAll; }
+                    flavourStats.RoomDarkSamples.takeSample(predictedRoomDark);
                     const int8_t expectedRoomDark = (!isRealRecord) ? ALDataSample::NO_RD_EXPECTATION : dp->expectedRd;
                     // Collect occupancy prediction (if any) from call-back.
                     const OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType predictionOcc =
                         (-1 == SDSR::cbProbable) ? occType::OCC_NONE :
                             ((0 == SDSR::cbProbable) ? occType::OCC_WEAK : occType::OCC_PROBABLE);
 //if(verbose && (-1 != cbProbable)) { fprintf(stderr, "  occupancy callback=%d @ %dT%d:%.2d\n", cbProbable, D, H, M); }
-                    if(isRealRecord && (-1 != SDSR::cbProbable)) { ++nOccupancyReports; }
+                    if(isRealRecord) { flavourStats.AmbLightOccupancyCallbacks.takeSample((-1 != SDSR::cbProbable)); }
                     // Collect occupancy tracker prediction and error.
                     if(isRealRecord && (ALDataSample::UNKNOWN_ACT_OCC != dp->actOcc))
                         {
-//                        ++nKnownOccupancyCount;
                         const bool trackedLikelyOccupancy = tracker.isLikelyOccupied();
                         const bool actOcc = bool(dp->actOcc);
-                        if(trackedLikelyOccupancy != actOcc)
-                            {
-if(verbose) { fprintf(stderr, " !actual occupancy=%d @ %dT%d:%.2d L=%d tracker=%d\n", dp->actOcc, D, H, M, dp->L, (int)tracker.get()); }
-//                            if(actOcc) { ++nOccupancyTrackerFalseNegative; }
-//                            else { ++nOccupancyTrackerFalsePositive; }
-                            }
+if(verbose && (trackedLikelyOccupancy != actOcc)) { fprintf(stderr, " !actual occupancy=%d @ %dT%d:%.2d L=%d tracker=%d\n", dp->actOcc, D, H, M, dp->L, (int)tracker.get()); }
                         flavourStats.OccupancyTrackingFalseNegatives.takeSample(actOcc && !trackedLikelyOccupancy);
                         flavourStats.OccupancyTrackingFalsePositives.takeSample(!actOcc && trackedLikelyOccupancy);
                         }
                     // Note that for all synthetic ticks the expectation is removed (since there is no level change).
                     const int8_t expectedOcc = (!isRealRecord) ? ALDataSample::NO_OCC_EXPECTATION : dp->expectedOcc;
-if(verbose && isRealRecord && (0 != predictionOcc)) { fprintf(stderr, "  predictionOcc=%d @ %dT%d:%.2d L=%d mean=%d\n", predictionOcc, D, H, M, dp->L, meanUsed); }
+if(verbose && isRealRecord && (occType::OCC_NONE != predictionOcc)) { fprintf(stderr, "  predictionOcc=%d @ %dT%d:%.2d L=%d mean=%d\n", predictionOcc, D, H, M, dp->L, meanUsed); }
                     if(ALDataSample::NO_OCC_EXPECTATION != expectedOcc)
                         {
-if(verbose && (0 != predictionOcc)) { fprintf(stderr, " expectedOcc=%d @ %dT%d:%.2d L=%d mean=%d\n", expectedOcc, D, H, M, dp->L, meanUsed); }
-                        EXPECT_EQ(expectedOcc, predictionOcc) << " @ " << ((int)D) << "T" << ((int)H) << ":" << ((int)M) <<
-                            " L="<< ((int)(dp->L)) << " mean="<<((int)meanUsed) << " min="<<((int)minToUse) << " max="<<((int)maxToUse);
+                        flavourStats.AmbLightOccupancyCallbackPredictionErrors.takeSample(expectedOcc != predictionOcc);
+if(verbose && (expectedOcc != predictionOcc)) { fprintf(stderr, " expectedOcc=%d @ %dT%d:%.2d L=%d mean=%d\n", expectedOcc, D, H, M, dp->L, meanUsed); }
+//                        EXPECT_EQ(expectedOcc, predictionOcc) << " @ " << ((int)D) << "T" << ((int)H) << ":" << ((int)M) <<
+//                            " L="<< ((int)(dp->L)) << " mean="<<((int)meanUsed) << " min="<<((int)minToUse) << " max="<<((int)maxToUse);
                         }
                     if(ALDataSample::NO_RD_EXPECTATION != expectedRoomDark)
                         {
-                        EXPECT_EQ((bool)expectedRoomDark, predictedRoomDark) << " @ " << ((int)D) << "T" << ((int)H) << ":" << ((int)M) <<
-                                " L="<< ((int)(dp->L)) << " mean="<<((int)meanUsed) << " min="<<((int)minToUse) << " max="<<((int)maxToUse) <<
-                                " lT="<<((int)(ala.getLightThreshold())) << " dT="<<((int)(ala.getDarkThreshold()));
+                        flavourStats.RoomDarkPredictionErrors.takeSample((bool)expectedRoomDark != predictedRoomDark);
+if(verbose && ((bool)expectedRoomDark != predictedRoomDark)) { fprintf(stderr, " expectedDark=%d @ %dT%d:%.2d L=%d mean=%d\n", expectedRoomDark, D, H, M, dp->L, meanUsed); }
+//                        EXPECT_EQ((bool)expectedRoomDark, predictedRoomDark) << " @ " << ((int)D) << "T" << ((int)H) << ":" << ((int)M) <<
+//                                " L="<< ((int)(dp->L)) << " mean="<<((int)meanUsed) << " min="<<((int)minToUse) << " max="<<((int)maxToUse) <<
+//                                " lT="<<((int)(ala.getLightThreshold())) << " dT="<<((int)(ala.getDarkThreshold()));
                         }
 
                     ++currentMinute;
                     } while((!(dp+1)->isEnd()) && (currentMinute < (dp+1)->currentMinute()));
                 }
+            // Check that at least some expectations have been set.
+//            ASSERT_NE(0U, flavourStats.AmbLightOccupancyCallbackPredictionErrors.getSampleCount()) << "some expected occupancy callbacks should be provided";
+            ASSERT_NE(0U, flavourStats.RoomDarkPredictionErrors.getSampleCount()) << "some known room dark values should be provided";
+            ASSERT_NE(0U, flavourStats.OccupancyTrackingFalseNegatives.getSampleCount()) << "some known occupancy values should be provided";
             // Check that there are not huge numbers of (false) positive occupancy reports.
-            EXPECT_TRUE(nOccupancyReports <= ((nRecords*2)/3)) << "far too many occupancy indications; at most 16h/day occupancy signals: " << (nOccupancyReports/(double)nRecords);
+            EXPECT_GE(0.3f, flavourStats.AmbLightOccupancyCallbacks.getFractionFlavoured());
+            // Check that there are not huge numbers of failed callback expectations.
+            EXPECT_GE(0.1f, flavourStats.AmbLightOccupancyCallbackPredictionErrors.getFractionFlavoured());
+            // Check that there are not huge numbers of failed dark expectations.
+            EXPECT_GE(0.15f, flavourStats.RoomDarkPredictionErrors.getFractionFlavoured()) << flavourStats.RoomDarkPredictionErrors.getSampleCount();
             // Check that there is a reasonable balance between room dark/light.
-            const float rdFraction = flavourStats.RoomDarkCount.getFractionFlavoured();
+            const float rdFraction = flavourStats.RoomDarkSamples.getFractionFlavoured();
             EXPECT_LE(0.2f, rdFraction);
             EXPECT_GE(0.8f, rdFraction);
             // Allow check in outer loop that sensitive mode generates
             // at least as many reports as non-sensitive mode.
-            if(sensitive) { nOccupancyReportsSensitive = nOccupancyReports; }
-            else { nOccupancyReportsNotSensitive = nOccupancyReports; }
+            if(sensitive) { nOccupancyReportsSensitive = flavourStats.AmbLightOccupancyCallbacks.getFlavouredCount(); }
+            else { nOccupancyReportsNotSensitive = flavourStats.AmbLightOccupancyCallbacks.getFlavouredCount(); }
             // Check that number of false positives and negatives
             // from occupancy tracked fed from ambient light reports is OK.
-            ASSERT_LT(0U, flavourStats.OccupancyTrackingFalseNegatives.getSampleCount()) << "some known occupancy should be provided";
             if(flavourStats.OccupancyTrackingFalseNegatives.getSampleCount() > 0)
                 {
                 // When 'sensitive', eg in comfort mode,
@@ -565,7 +579,6 @@ if(verbose && (0 != predictionOcc)) { fprintf(stderr, " expectedOcc=%d @ %dT%d:%
                 // Excess false negatives may cause discomfort.
                 EXPECT_GT((sensitive ? 0.15f : 0.25f), flavourStats.OccupancyTrackingFalseNegatives.getFractionFlavoured());
                 }
-
             }
         // Check that sensitive mode generates at least as many reports as non.
         EXPECT_LE(nOccupancyReportsNotSensitive, nOccupancyReportsSensitive) << "expect sensitive never to generate fewer reports";
@@ -975,7 +988,7 @@ static const ALDataSample sample5sHard[] =
 // ...
 {8,20,11,2},
 {8,20,23,2},
-{8,20,35,16, occType::OCC_PROBABLE, ALDataSample::NO_RD_EXPECTATION, true}, // Light turned on, OCCUPANCY.  FIXME: should be light?
+{8,20,35,16, occType::OCC_PROBABLE, false, true}, // Light turned on, OCCUPANCY.  FIXME: should be light?
 {8,20,46,16},
 {8,20,55,13},
 {8,20,58,14}, // occType::OCC_WEAK}, // Light still on.
@@ -1022,9 +1035,9 @@ static const ALDataSample sample2bHard[] =
 {8,0,12,3},
 {8,0,24,3, occType::OCC_NONE, true, false}, // Dark, vacant.
 // ...
-{8,7,28,3},
+{8,7,28,3, occType::OCC_NONE, true, false}, // Dark, vacant.
 {8,7,40,180, occType::OCC_PROBABLE, false, true}, // Curtains drawn, OCCUPANCY.
-{8,7,44,179},
+{8,7,44,179, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Curtains drawn, OCCUPANCY.
 {8,7,52,180},
 {8,8,0,182},
 {8,8,8,183},
@@ -1114,12 +1127,12 @@ static const ALDataSample sample2bHard[] =
 {8,19,20,3},
 {8,19,32,4},
 {8,19,39,4},
-{8,19,52,4},
+{8,19,52,4, occType::OCC_NONE, true, false},  // Dark, vacant.
 {8,20,0,7},
 {8,20,16,6},
 {8,20,20,10, occType::OCC_PROBABLE, ALDataSample::NO_RD_EXPECTATION, true}, // Light on, OCCUPANCY.  FIXME: should be light.
 {8,20,28,6},
-{8,20,36,3},
+{8,20,36,3, occType::OCC_NONE, true, true},  // Dark, vacant.
 {8,20,42,3},
 // ...
 {9,7,40,3},
@@ -1152,7 +1165,7 @@ static const ALDataSample sample2bHard[] =
 {9,11,28,183},
 {9,11,40,186},
 {9,11,44,186},
-{9,12,4,184},
+{9,12,4,184, ALDataSample::NO_OCC_EXPECTATION, false}, // Broad daylight.
 {9,12,16,184},
 {9,12,24,186},
 {9,12,32,187},
@@ -1200,25 +1213,25 @@ static const ALDataSample sample2bHard[] =
 {9,17,4,40},
 {9,17,12,32},
 {9,17,16,25},
-{9,17,32,7},
+{9,17,32,7, occType::OCC_NONE, ALDataSample::NO_RD_EXPECTATION, false}, // No active occupancy.
 {9,17,36,5},
 {9,17,41,4},
 {9,17,48,3},
 {9,18,0,3},
-{9,18,12,3},
+{9,18,12,3, occType::OCC_NONE, true, false}, // Light off, no active occupancy.
 {9,18,28,3},
 {9,18,40,3},
 {9,18,56,3},
-{9,19,8,10, occType::OCC_PROBABLE, ALDataSample::NO_RD_EXPECTATION, true}, // Light on, OCCUPANCY.  FIXME: should be light.
+{9,19,8,10, occType::OCC_PROBABLE, false, true}, // Light on, OCCUPANCY.  FIXME: should be light.
 {9,19,16,9},
 {9,19,28,10},
 {9,19,44,6},
-{9,19,48,11, occType::OCC_PROBABLE, ALDataSample::NO_RD_EXPECTATION, true}, // Small light on?  Possible occupancy.  FIXME: should be light.
+{9,19,48,11, occType::OCC_PROBABLE, false, true}, // Small light on?  Possible occupancy.  FIXME: should be light.
 {9,19,56,8},
 {9,20,4,8},
-{9,20,8,3, occType::OCC_NONE, true, false}, // Light off, no qctive occupancy.
-{9,20,20,3},
-{9,20,36,3, occType::OCC_NONE, true, false}, // Dark, no qctive occupancy.
+{9,20,8,3, occType::OCC_NONE, true}, // Light off.
+{9,20,20,3, occType::OCC_NONE, true}, // Dark.
+{9,20,36,3, occType::OCC_NONE, true, false}, // Dark, no active occupancy.
     { }
     };
 // Test with real data set.
@@ -1629,7 +1642,7 @@ static const ALDataSample sample3leveningTV[] =
 {10,16,23,44},
 {10,16,35,36},
 {10,16,47,33},
-{10,16,51,35, ALDataSample::NO_OCC_EXPECTATION, false, true}, // FIXME: occType::OCC_WEAK}, // TV watching?
+{10,16,51,35, occType::OCC_WEAK, false, true}, // FIXME: occType::OCC_WEAK}, // TV watching?
 {10,17,3,34},
 {10,17,7,35},
 {10,17,19,36},
@@ -1637,7 +1650,7 @@ static const ALDataSample sample3leveningTV[] =
 {10,17,39,35},
 {10,17,51,34},
 {10,17,59,30},
-{10,18,3,31, ALDataSample::NO_OCC_EXPECTATION, false, true}, // FIXME: occType::OCC_WEAK}, // TV watching?
+{10,18,3,31, occType::OCC_WEAK, false, true}, // FIXME: occType::OCC_WEAK}, // TV watching?
 {10,18,15,31},
 {10,18,27,31},
 {10,18,31,30},
@@ -2970,7 +2983,7 @@ static const ALDataSample sample3leveningTV[] =
 {23,17,12,46},
 {23,17,28,47},
 {23,17,39,46},
-{23,17,55,47, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Lights on, TV watching.  FIXME: should be see WEAK occupancy.
+{23,17,55,47, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Lights on, TV watching.  FIXME: should be seen as WEAK occupancy.
 {23,18,8,45},
 {23,18,15,47},
 {23,18,19,44},
