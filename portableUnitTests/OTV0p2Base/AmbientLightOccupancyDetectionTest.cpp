@@ -29,6 +29,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 #include "OTV0P2BASE_SensorAmbientLightOccupancy.h"
 
 
+static constexpr bool verbose = false; // Set true for more verbose reporting.
+
 // Import occType enum values.
 typedef OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType occType;
 
@@ -218,7 +220,7 @@ namespace SDSR
         {
         cbProbable = p;
         if(p) { occupancy.markAsPossiblyOccupied(); } else { occupancy.markAsJustPossiblyOccupied(); }
-//fprintf(stderr, "*Callback: %d\n", p);
+if(verbose) { fprintf(stderr, "*Callback: %d\n", p); }
         };
     // Reset all these static entities but does not clear stats.
     static void resetAll()
@@ -342,7 +344,6 @@ void setTypeMinMax(OTV0P2BASE::SensorAmbientLightAdaptiveMock &ala,
 // Will fail if an excessive amount of the time occupancy is predicted (more than ~25%).
 void simpleDataSampleRun(const ALDataSample *const data)
     {
-    static const bool verbose = true; // Set true for more verbose reporting.
     ASSERT_TRUE(NULL != data);
     ASSERT_FALSE(data->isEnd()) << "do not pass in empty data set";
 
