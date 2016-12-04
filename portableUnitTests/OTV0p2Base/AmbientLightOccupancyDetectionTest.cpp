@@ -218,6 +218,7 @@ namespace SDSR
         {
         cbProbable = p;
         if(p) { occupancy.markAsPossiblyOccupied(); } else { occupancy.markAsJustPossiblyOccupied(); }
+//fprintf(stderr, "*Callback: %d\n", p);
         };
     // Reset all these static entities but does not clear stats.
     static void resetAll()
@@ -234,7 +235,7 @@ namespace SDSR
 // Assumes that it is called in strictly monotonic increasing time
 // incrementing one minute each time, wrapping as 23:59.
 // Before the first call on one run of data oldH should be set to 0xff.
-enum blending_t : uint8_t { NONE, HALFHOURMIN, HALFHOUR, BYMINUTE, FROMSTATS, END };
+enum blending_t : uint8_t { BL_FROMSTATS, BL_NONE, BL_HALFHOURMIN, BL_HALFHOUR, BL_BYMINUTE, BL_END };
 void setTypeMinMax(OTV0P2BASE::SensorAmbientLightAdaptiveMock &ala,
         const blending_t blending,
         const uint8_t H, const uint8_t M,
@@ -247,7 +248,7 @@ void setTypeMinMax(OTV0P2BASE::SensorAmbientLightAdaptiveMock &ala,
     meanUsed = 0xff;
     switch(blending)
         {
-        case NONE: // Use unblended mean for this hour.
+        case BL_NONE: // Use unblended mean for this hour.
             {
             meanUsed = byHourMeanI[H];
             if(H != oldH)
@@ -261,7 +262,7 @@ void setTypeMinMax(OTV0P2BASE::SensorAmbientLightAdaptiveMock &ala,
                 }
             break;
             }
-        case HALFHOURMIN: // Use blended (min) mean for final half hour hour.
+        case BL_HALFHOURMIN: // Use blended (min) mean for final half hour hour.
             {
             const uint8_t thm = byHourMeanI[H];
             const uint8_t nhm = byHourMeanI[(H+1)%24];
@@ -276,7 +277,7 @@ void setTypeMinMax(OTV0P2BASE::SensorAmbientLightAdaptiveMock &ala,
             ala.setTypMinMax(m, minToUse, maxToUse, sensitive);
             break;
             }
-        case HALFHOUR: // Use blended mean for final half hour hour.
+        case BL_HALFHOUR: // Use blended mean for final half hour hour.
             {
             const uint8_t thm = byHourMeanI[H];
             const uint8_t nhm = byHourMeanI[(H+1)%24];
@@ -291,7 +292,7 @@ void setTypeMinMax(OTV0P2BASE::SensorAmbientLightAdaptiveMock &ala,
             ala.setTypMinMax(m, minToUse, maxToUse, sensitive);
             break;
             }
-        case BYMINUTE: // Adjust blend by minute.
+        case BL_BYMINUTE: // Adjust blend by minute.
             {
             const uint8_t thm = byHourMeanI[H];
             const uint8_t nhm = byHourMeanI[(H+1)%24];
@@ -306,7 +307,7 @@ void setTypeMinMax(OTV0P2BASE::SensorAmbientLightAdaptiveMock &ala,
             ala.setTypMinMax(m, minToUse, maxToUse, sensitive);
             break;
             }
-        case FROMSTATS: // From the smoothed rolling stats.
+        case BL_FROMSTATS: // From the smoothed rolling stats.
             {
             const uint8_t m = hs.getByHourStatSimple(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, H);
             meanUsed = m;
@@ -413,10 +414,20 @@ void simpleDataSampleRun(const ALDataSample *const data)
     // Take an initial copy of the stats.
     const OTV0P2BASE::NVByHourByteStatsMock hsInitCopy = SDSR::hs;
 
+    const uint8_t minToUse = hsInitCopy.getMinByHourStat(hsInitCopy.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED);
+    const uint8_t maxToUse = hsInitCopy.getMaxByHourStat(hsInitCopy.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED);
+
     // Dump some of the data collected.
     if(verbose)
         {
         fprintf(stderr, "STATS:\n");
+
+        fprintf(stderr, "  min: %d\n", minI);
+        fprintf(stderr, "  max: %d\n", maxI);
+
+        fprintf(stderr, "  min from stats: %d\n", minI);
+        fprintf(stderr, "  max from stats: %d\n", maxI);
+
         fprintf(stderr, "  mean ambient light level by hour:");
         for(int i = 0; i < 24; ++i)
             {
@@ -449,16 +460,14 @@ void simpleDataSampleRun(const ALDataSample *const data)
         }
 
     // Now run through all the data checking responses.
-    //
-    // Select which params to use.
-    const uint8_t minToUse = minI;
-    const uint8_t maxToUse = maxI;
     // Run simulation with different stats blending types
     // to ensure that occupancy detection is robust.
-    for(uint8_t blending = NONE; blending < END; ++blending)
+    for(uint8_t blending = 0; blending < BL_END; ++blending)
         {
 if(verbose) { fprintf(stderr, "blending = %d\n", blending); }
         SCOPED_TRACE(testing::Message() << "blending " << (int)blending);
+        // The preferred blend (most like a real deployment) is FROMSTATS.
+        const bool oddBlend = (blending != BL_FROMSTATS);
 
         // Run simulation at both sensitivities.
         int nOccupancyReportsSensitive = 0;
@@ -507,6 +516,8 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
                     ala.read();
                     tracker.read();
 
+//if(verbose && tracker.isLikelyOccupied()) { fprintf(stderr, "O=%d @ %dT%d:%.2d\n", (int)tracker.get(), D, H, M); }
+
                     // Check predictions/calculations against explicit expectations.
                     // True if real non-interpolated record.
                     const bool isRealRecord = (currentMinute == dp->currentMinute());
@@ -524,7 +535,7 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
                         {
                         const bool trackedLikelyOccupancy = tracker.isLikelyOccupied();
                         const bool actOcc = bool(dp->actOcc);
-if(verbose && (trackedLikelyOccupancy != actOcc)) { fprintf(stderr, " !actual occupancy=%d @ %dT%d:%.2d L=%d tracker=%d\n", dp->actOcc, D, H, M, dp->L, (int)tracker.get()); }
+if(verbose && (trackedLikelyOccupancy != actOcc)) { fprintf(stderr, "!!!actual occupancy=%d @ %dT%d:%.2d L=%d mean=%d tracker=%d\n", dp->actOcc, D, H, M, dp->L, meanUsed, (int)tracker.get()); }
                         flavourStats.OccupancyTrackingFalseNegatives.takeSample(actOcc && !trackedLikelyOccupancy);
                         flavourStats.OccupancyTrackingFalsePositives.takeSample(!actOcc && trackedLikelyOccupancy);
                         }
@@ -557,7 +568,7 @@ if(verbose && ((bool)expectedRoomDark != predictedRoomDark)) { fprintf(stderr, "
             // Check that there are not huge numbers of (false) positive occupancy reports.
             EXPECT_GE(0.3f, flavourStats.AmbLightOccupancyCallbacks.getFractionFlavoured());
             // Check that there are not huge numbers of failed callback expectations.
-            EXPECT_GE(0.1f, flavourStats.AmbLightOccupancyCallbackPredictionErrors.getFractionFlavoured());
+            EXPECT_GE((oddBlend ? 0.2f : 0.15f), flavourStats.AmbLightOccupancyCallbackPredictionErrors.getFractionFlavoured());
             // Check that there are not huge numbers of failed dark expectations.
             EXPECT_GE(0.15f, flavourStats.RoomDarkPredictionErrors.getFractionFlavoured()) << flavourStats.RoomDarkPredictionErrors.getSampleCount();
             // Check that there is a reasonable balance between room dark/light.
@@ -574,10 +585,11 @@ if(verbose && ((bool)expectedRoomDark != predictedRoomDark)) { fprintf(stderr, "
                 {
                 // When 'sensitive', eg in comfort mode,
                 // more false positives and fewer false negatives are OK.
+                // But accept more errors generally with non-preferred blending.
                 // Excess false positives likely inhibit energy saving.
-                EXPECT_GT((sensitive ? 0.25f : 0.15f), flavourStats.OccupancyTrackingFalsePositives.getFractionFlavoured());
+                EXPECT_GT(((sensitive||oddBlend) ? 0.25f : 0.15f), flavourStats.OccupancyTrackingFalsePositives.getFractionFlavoured());
                 // Excess false negatives may cause discomfort.
-                EXPECT_GT((sensitive ? 0.15f : 0.25f), flavourStats.OccupancyTrackingFalseNegatives.getFractionFlavoured());
+                EXPECT_GT(((sensitive&&!oddBlend) ? 0.15f : 0.25f), flavourStats.OccupancyTrackingFalseNegatives.getFractionFlavoured());
                 }
             }
         // Check that sensitive mode generates at least as many reports as non.
@@ -988,10 +1000,10 @@ static const ALDataSample sample5sHard[] =
 // ...
 {8,20,11,2},
 {8,20,23,2},
-{8,20,35,16, occType::OCC_PROBABLE, false, true}, // Light turned on, OCCUPANCY.  FIXME: should be light?
-{8,20,46,16},
-{8,20,55,13},
-{8,20,58,14}, // occType::OCC_WEAK}, // Light still on.
+{8,20,35,16, occType::OCC_PROBABLE, false, true}, // Light turned on, OCCUPANCY.
+{8,20,46,16, ALDataSample::NO_OCC_EXPECTATION,false, true}, // Light, occupied.
+{8,20,55,13, ALDataSample::NO_OCC_EXPECTATION,false, true}, // Light, occupied.
+{8,20,58,14, ALDataSample::NO_OCC_EXPECTATION,false, true}, // Light, occupied.
 {8,21,7,3, occType::OCC_NONE, true}, // Light turned off, no active occupancy.
 {8,21,23,2, occType::OCC_NONE, true, false}, // Light turned off, no active occupancy.
 {8,21,39,2, occType::OCC_NONE, true, false}, // Light turned off, no active occupancy.
@@ -1022,11 +1034,743 @@ static const ALDataSample sample5sHard[] =
 {9,7,59,181},
     { }
     };
-
 // Test with real data set.
 TEST(AmbientLightOccupancyDetection,sample5sHard)
 {
     simpleDataSampleRun(sample5sHard);
+}
+
+
+// "5s" 2016/12/01--04 test set with some fine-grained data in the second half.
+// 2016/12/03 all of 3l, 5s, 6k, 7h: vacant from 11:00Z to 14:00Z but wrongly seen as occupied.
+// 5s also probably occupied 16:00--16:30 and 18:14--19:16 and 19:29--21:07.
+static const ALDataSample sample5sHard2[] =
+    {
+{1,0,1,1, occType::OCC_NONE, true, false},
+{1,0,22,1, occType::OCC_NONE, true, false},
+// ...
+{1,6,29,1},
+{1,6,47,1},
+{1,7,5,2},
+{1,7,17,1, occType::OCC_NONE, true, false},
+{1,7,37,6},
+{1,7,46,9},
+{1,7,50,11},
+{1,8,5,19},
+{1,8,18,25},
+{1,8,22,26},
+{1,8,33,37},
+{1,8,41,45},
+{1,8,49,86},
+{1,8,52,83},
+{1,8,53,82},
+{1,8,57,86},
+{1,9,12,115},
+{1,9,21,103},
+{1,9,25,114},
+{1,9,37,108},
+{1,9,41,74},
+{1,9,53,60},
+{1,10,3,82},
+{1,10,5,100},
+{1,10,13,78},
+{1,10,17,76},
+{1,10,29,89},
+{1,10,39,79},
+{1,10,45,92},
+{1,10,57,125},
+{1,11,1,106},
+{1,11,9,87},
+{1,11,25,78},
+{1,11,33,75},
+{1,11,37,73},
+{1,11,53,69},
+{1,12,5,64},
+{1,12,9,62},
+{1,12,19,58},
+{1,12,21,57},
+{1,12,33,53},
+{1,12,41,50},
+{1,12,45,49},
+{1,13,1,46},
+{1,13,19,44},
+{1,13,29,43},
+{1,13,45,42},
+{1,14,1,39},
+{1,14,15,36},
+{1,14,21,35},
+{1,14,29,33},
+{1,14,45,29},
+{1,14,58,26},
+{1,15,13,21},
+{1,15,21,19},
+{1,15,28,15},
+{1,15,41,11},
+{1,15,53,7},
+{1,16,5,4},
+{1,16,16,2},
+{1,16,17,2},
+{1,16,29,2},
+{1,16,45,2},
+{1,16,57,2},
+{1,17,5,7},
+{1,17,13,1},
+{1,17,21,1},
+{1,17,33,1},
+{1,17,49,24},
+{1,17,53,24},
+{1,18,3,2},
+{1,18,13,26},
+{1,18,29,40},
+{1,18,33,2},
+{1,18,45,2},
+{1,19,1,2},
+{1,19,17,2},
+{1,19,33,2},
+{1,19,53,2},
+{1,20,9,2},
+{1,20,10,1},
+{1,20,25,1},
+{1,20,49,1},
+{1,21,1,1},
+{1,21,15,1},
+{1,21,29,2},
+{1,21,41,1},
+{1,21,57,1},
+{1,22,13,2},
+{1,22,29,2},
+{1,22,45,2},
+{1,23,1,2},
+{1,23,17,2},
+{1,23,25,1},
+{1,23,29,1, occType::OCC_NONE, true, false},
+// ...
+{2,6,49,1, occType::OCC_NONE, true, false},
+{2,7,1,1},
+{2,7,17,2},
+{2,7,21,2},
+{2,7,33,2},
+{2,7,49,3},
+{2,7,53,4},
+{2,7,59,6},
+{2,8,1,19},
+{2,8,13,11},
+{2,8,17,12},
+{2,8,33,15},
+{2,8,45,17},
+{2,9,1,20},
+{2,9,5,19},
+{2,9,17,25},
+{2,9,21,28},
+{2,9,37,37},
+{2,9,38,38},
+{2,9,49,40},
+{2,10,5,44},
+{2,10,13,43},
+{2,10,25,47},
+{2,10,37,50},
+{2,10,41,50},
+{2,10,57,50},
+{2,11,9,54},
+{2,11,13,54},
+{2,11,29,50},
+{2,11,41,50},
+{2,12,1,53},
+{2,12,11,51},
+{2,12,13,50},
+{2,12,22,48},
+{2,12,25,46},
+{2,12,37,44},
+{2,12,54,41},
+{2,13,5,39},
+{2,13,9,38},
+{2,13,21,32},
+{2,13,29,29},
+{2,13,31,28},
+{2,13,45,27},
+{2,14,5,22},
+{2,14,21,20},
+{2,14,25,20},
+{2,14,41,17},
+{2,14,45,15},
+{2,15,17,8},
+{2,15,33,5},
+{2,15,37,4},
+{2,15,45,3},
+{2,16,10,30, occType::OCC_PROBABLE, false, true}, // Light on, occupied.
+{2,16,14,25},
+{2,16,25,25},
+{2,16,41,25},
+{2,16,45,34, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Light, occupied.
+{2,16,46,25},
+{2,16,50,25},
+{2,16,55,25},
+{2,16,59,25},
+{2,17,0,24, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Light, occupied.
+{2,17,3,25},
+{2,17,4,24},
+{2,17,6,25},
+{2,17,6,25},
+{2,17,9,24},
+{2,17,14,24},
+{2,17,17,24},
+{2,17,20,24},
+{2,17,22,25},
+{2,17,24,24},
+{2,17,25,24},
+{2,17,27,25},
+{2,17,29,24},
+{2,17,33,25, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Light, occupied.
+{2,17,34,24},
+{2,17,37,24},
+{2,17,38,25},
+{2,17,40,25},
+{2,17,42,24},
+{2,17,45,25},
+{2,17,49,25},
+{2,17,52,25},
+{2,17,54,24},
+{2,17,55,25},
+{2,18,0,24, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Light, occupied.
+{2,18,2,25},
+{2,18,6,24},
+{2,18,9,24},
+{2,18,9,25},
+{2,18,13,25},
+{2,18,13,24},
+{2,18,16,24},
+{2,18,20,33},
+{2,18,21,24},
+{2,18,22,25},
+{2,18,23,24},
+{2,18,23,24},
+{2,18,23,24},
+{2,18,23,24},
+{2,18,24,25},
+{2,18,25,24},
+{2,18,29,24},
+{2,18,32,24, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Light, occupied.
+{2,18,33,25},
+{2,18,36,24},
+{2,18,40,24},
+{2,18,43,25},
+{2,18,46,33},
+{2,18,47,25, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Light, occupied.
+{2,18,50,1, occType::OCC_NONE, true},
+{2,18,51,1},
+{2,18,55,1},
+{2,18,58,1},
+{2,19,1,1, occType::OCC_NONE, true},
+{2,19,2,26, occType::OCC_PROBABLE, false, true}, // Light on, occupied.
+{2,19,5,25},
+{2,19,6,26},
+{2,19,9,25},
+{2,19,13,25},
+{2,19,17,25},
+{2,19,20,25},
+{2,19,24,25},
+{2,19,28,25},
+{2,19,31,25},
+{2,19,35,25, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Light, occupied.
+{2,19,38,25},
+{2,19,42,25},
+{2,19,45,25},
+{2,19,49,25},
+{2,19,53,25},
+{2,19,56,25},
+{2,20,0,25, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Light, occupied.
+{2,20,3,24},
+{2,20,7,24},
+{2,20,11,24},
+{2,20,15,24},
+{2,20,19,24},
+{2,20,22,24},
+{2,20,26,24},
+{2,20,29,24},
+{2,20,33,24}, // FIXME ALDataSample::NO_OCC_EXPECTATION, false, true}, // Light, occupied.
+{2,20,37,24},
+{2,20,40,24},
+{2,20,42,2},
+{2,20,44,2},
+{2,20,48,2},
+{2,20,51,2},
+{2,20,55,2},
+{2,20,59,2},
+{2,21,2,2},
+{2,21,6,26, occType::OCC_PROBABLE, false, true}, // Light on, occupied.
+{2,21,9,25},
+{2,21,13,25},
+{2,21,17,25},
+{2,21,21,25},
+{2,21,24,24},
+{2,21,25,24},
+{2,21,29,24},
+{2,21,33,24, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Light, occupied.
+{2,21,37,24},
+{2,21,41,24},
+{2,21,45,24},
+{2,21,49,24},
+{2,21,52,24},
+{2,21,56,24},
+{2,21,59,24},
+{2,22,3,24, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Light, occupied.
+{2,22,7,24},
+{2,22,10,24},
+{2,22,14,24},
+{2,22,18,24},
+{2,22,21,24},
+{2,22,24,25},
+{2,22,25,24},
+{2,22,28,25},
+{2,22,29,25},
+{2,22,30,24, ALDataSample::NO_OCC_EXPECTATION, false}, // Light, occupied.  // FIXME, unusual time.
+{2,22,33,25},
+{2,22,34,24},
+{2,22,36,25, ALDataSample::NO_OCC_EXPECTATION, false}, // Light, occupied.  // FIXME, unusual time.
+{2,22,38,2, occType::OCC_NONE, true},
+{2,22,41,2},
+{2,22,45,2},
+{2,22,49,2},
+{2,22,53,2},
+{2,22,57,2},
+{2,23,1,2},
+{2,23,3,1},
+{2,23,5,1, occType::OCC_NONE, true},
+// ...
+{3,7,38,1, occType::OCC_NONE, true},
+{3,7,42,1},
+{3,7,46,2},
+{3,7,50,2},
+{3,7,54,2},
+{3,7,56,3},
+{3,7,58,3},
+{3,8,2,3},
+{3,8,4,4},
+{3,8,6,4},
+{3,8,10,4},
+{3,8,14,10},
+{3,8,18,11},
+{3,8,20,12},
+{3,8,22,12},
+{3,8,25,12},
+{3,8,30,12},
+{3,8,33,15},
+{3,8,37,17},
+{3,8,41,21},
+{3,8,45,22},
+{3,8,50,21},
+{3,8,51,21},
+{3,8,52,22},
+{3,8,55,22},
+{3,8,59,24},
+{3,9,1,26},
+{3,9,3,28},
+{3,9,5,33},
+{3,9,7,34},
+{3,9,8,36},
+{3,9,9,38},
+{3,9,12,41},
+{3,9,13,43},
+{3,9,14,47},
+{3,9,17,47},
+{3,9,18,46},
+{3,9,22,63},
+{3,9,23,67},
+{3,9,24,70},
+{3,9,27,78},
+{3,9,28,75},
+{3,9,32,80},
+{3,9,33,149}, // Cloud passing?  Mean ~ 81.
+{3,9,37,98},
+{3,9,38,120},
+{3,9,39,101},
+{3,9,42,141},
+{3,9,43,145},
+{3,9,47,120},
+{3,9,48,117},
+{3,9,49,110},
+{3,9,52,88},
+{3,9,53,87},
+{3,9,54,77},
+{3,9,56,73},
+{3,9,58,82},
+{3,10,1,92},
+{3,10,2,94},
+{3,10,5,115},
+{3,10,6,138},
+{3,10,7,98},
+{3,10,10,81},
+{3,10,14,88},
+{3,10,15,84},
+{3,10,16,75},
+{3,10,19,90},
+{3,10,23,78},
+{3,10,24,91},
+{3,10,27,96},
+{3,10,28,103},
+{3,10,31,113},
+{3,10,32,111},
+{3,10,35,109},
+{3,10,36,113},
+{3,10,39,92},
+{3,10,40,66},
+{3,10,41,67},
+{3,10,44,86},
+{3,10,45,87},
+{3,10,48,102},
+{3,10,49,135},
+{3,10,50,81},
+{3,10,53,90},
+{3,10,56,143}, // Cloud passing?  Mean ~ 98.
+{3,10,58,154},
+{3,11,1,149, ALDataSample::NO_OCC_EXPECTATION, false, false}, // Light, vacant.
+{3,11,2,140},
+{3,11,6,126},
+{3,11,7,131},
+{3,11,11,135},
+{3,11,15,145},
+{3,11,19,145},
+{3,11,23,148},
+{3,11,27,107},
+{3,11,31,103, ALDataSample::NO_OCC_EXPECTATION, false, false}, // Light, vacant.
+{3,11,35,154},
+{3,11,40,132},
+{3,11,41,130},
+{3,11,45,131},
+{3,11,46,126},
+{3,11,50,88},
+{3,11,51,90},
+{3,11,52,99},
+{3,11,55,70},
+{3,11,56,78},
+{3,11,57,77},
+{3,12,0,82, ALDataSample::NO_OCC_EXPECTATION, false, false}, // Light, vacant.
+{3,12,1,108},
+{3,12,5,79},
+{3,12,6,99},
+{3,12,7,75},
+{3,12,10,71},
+{3,12,11,74},
+{3,12,12,85},
+{3,12,13,71},
+{3,12,15,70},
+{3,12,16,91},
+{3,12,17,100},
+{3,12,20,101},
+{3,12,24,88},
+{3,12,25,87},
+{3,12,28,87},
+{3,12,32,85, ALDataSample::NO_OCC_EXPECTATION, false, false}, // Light, vacant.
+{3,12,33,77},
+{3,12,34,76},
+{3,12,37,77},
+{3,12,39,75},
+{3,12,41,67},
+{3,12,45,67},
+{3,12,46,65},
+{3,12,50,64},
+{3,12,51,64},
+{3,12,55,59},
+{3,12,56,58},
+{3,12,57,57},
+{3,13,0,56, ALDataSample::NO_OCC_EXPECTATION, false, false}, // Light, vacant.
+{3,13,1,57},
+{3,13,2,56},
+{3,13,5,56},
+{3,13,9,53},
+{3,13,10,50},
+{3,13,14,41},
+{3,13,18,40},
+{3,13,21,54},
+{3,13,23,55},
+{3,13,25,57},
+{3,13,27,46},
+{3,13,29,50},
+{3,13,30,51, ALDataSample::NO_OCC_EXPECTATION, false, false}, // Light, vacant.
+{3,13,31,60},
+{3,13,32,61},
+{3,13,34,61},
+{3,13,35,58},
+{3,13,36,48},
+{3,13,39,41},
+{3,13,40,48},
+{3,13,42,47},
+{3,13,44,43},
+{3,13,47,47},
+{3,13,49,46},
+{3,13,53,45},
+{3,13,55,43},
+{3,13,59,43, ALDataSample::NO_OCC_EXPECTATION, false, false}, // Light, vacant.
+{3,14,3,43},
+{3,14,8,46},
+{3,14,11,49},
+{3,14,15,51},
+{3,14,19,48},
+{3,14,21,46},
+{3,14,23,45},
+{3,14,27,44},
+{3,14,29,43},
+{3,14,31,42},
+{3,14,36,40},
+{3,14,40,39},
+{3,14,41,39},
+{3,14,42,38},
+{3,14,45,36},
+{3,14,49,34},
+{3,14,53,33},
+{3,14,57,33},
+{3,14,59,32},
+{3,15,1,30},
+{3,15,6,28},
+{3,15,7,28},
+{3,15,8,27},
+{3,15,11,26},
+{3,15,13,25},
+{3,15,16,24},
+{3,15,17,23},
+{3,15,20,23},
+{3,15,21,22},
+{3,15,24,21},
+{3,15,28,19},
+{3,15,29,18},
+{3,15,30,17},
+{3,15,33,16},
+{3,15,34,15},
+{3,15,37,14},
+{3,15,39,13},
+{3,15,41,12},
+{3,15,42,11},
+{3,15,46,9},
+{3,15,47,9},
+{3,15,49,8},
+{3,15,51,8},
+{3,15,52,7},
+{3,15,56,6},
+{3,16,0,24},
+{3,16,3,23},
+{3,16,7,22},
+{3,16,11,22},
+{3,16,13,20},
+{3,16,16,26},
+{3,16,19,25},
+{3,16,23,26},
+{3,16,27,25},
+{3,16,28,26},
+{3,16,32,25},
+{3,16,36,1},
+{3,16,37,2},
+{3,16,38,1},
+{3,16,41,1},
+{3,16,45,1},
+{3,16,49,44},
+{3,16,53,37},
+{3,16,55,46},
+{3,16,57,46},
+{3,16,58,37},
+{3,17,0,2},
+{3,17,3,2},
+{3,17,6,2},
+{3,17,10,2},
+{3,17,15,2},
+{3,17,18,2},
+{3,17,23,2},
+{3,17,26,2},
+{3,17,31,2},
+{3,17,34,2},
+{3,17,39,2},
+{3,17,42,2},
+{3,17,44,1},
+{3,17,46,2},
+{3,17,49,2},
+{3,17,53,2},
+{3,17,57,2},
+{3,18,1,2},
+{3,18,6,2},
+{3,18,10,9, occType::OCC_PROBABLE, false, true}, // Light on, occupied.
+{3,18,14,19, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Light, occupied.
+{3,18,15,16},
+{3,18,16,14},
+{3,18,19,14},
+{3,18,21,22},
+{3,18,24,22},
+{3,18,25,14},
+{3,18,28,22},
+{3,18,29,17},
+{3,18,30,19, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Light, occupied.
+{3,18,32,16},
+{3,18,34,21},
+{3,18,37,16},
+{3,18,38,22},
+{3,18,40,14},
+{3,18,42,22},
+{3,18,43,16},
+{3,18,44,18},
+{3,18,47,14},
+{3,18,49,16},
+{3,18,52,13},
+{3,18,55,12},
+{3,18,57,19},
+{3,18,59,12},
+{3,19,1,12},
+{3,19,3,14},
+{3,19,5,21},
+{3,19,7,18},
+{3,19,11,18},
+{3,19,13,12},
+{3,19,15,13},
+{3,19,16,18, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Light, occupied.
+{3,19,20,6},
+{3,19,21,2, ALDataSample::NO_OCC_EXPECTATION, false}, // Dark, temporarily vacant.
+{3,19,25,2},
+{3,19,29,17, occType::OCC_PROBABLE, false, true}, // Light, occupied.
+{3,19,33,22},
+{3,19,37,13},
+{3,19,41,19},
+{3,19,43,22},
+{3,19,46,22},
+{3,19,50,21},
+{3,19,51,22},
+{3,19,52,21},
+{3,19,55,22},
+{3,19,57,18},
+{3,20,0,20, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Light, occupied.
+{3,20,1,21},
+{3,20,2,14},
+{3,20,5,22},
+{3,20,6,21},
+{3,20,7,22},
+{3,20,10,16},
+{3,20,11,17},
+{3,20,15,13},
+{3,20,16,16},
+{3,20,17,21},
+{3,20,20,22},
+{3,20,21,19},
+{3,20,22,13},
+{3,20,25,22},
+{3,20,27,14},
+{3,20,29,15},
+{3,20,31,13},
+{3,20,33,21, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Light, occupied.
+{3,20,35,12},
+{3,20,38,16},
+{3,20,39,17},
+{3,20,40,15},
+{3,20,43,22},
+{3,20,45,18},
+{3,20,48,18},
+{3,20,49,16},
+{3,20,50,13},
+{3,20,53,13},
+{3,20,55,18},
+{3,20,58,20},
+{3,20,59,16},
+{3,21,2,13},
+{3,21,3,20},
+{3,21,4,13},
+{3,21,7,21, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Light, occupied.
+{3,21,8,7},
+{3,21,9,2},
+{3,21,12,2},
+{3,21,16,2},
+{3,21,20,2},
+{3,21,24,2},
+{3,21,28,2},
+{3,21,32,2},
+{3,21,36,2},
+{3,21,40,2},
+{3,21,44,2},
+{3,21,48,2},
+{3,21,52,2},
+{3,21,57,2},
+{3,22,0,2},
+{3,22,4,2},
+{3,22,8,14},
+{3,22,10,2},
+{3,22,12,2},
+{3,22,15,2},
+{3,22,19,2},
+{3,22,23,2},
+{3,22,27,2},
+{3,22,31,2},
+{3,22,35,2},
+{3,22,39,3},
+{3,22,43,2},
+{3,22,47,2},
+{3,22,51,1},
+{3,22,52,2},
+{3,22,55,2},
+{3,22,57,1},
+{3,22,58,2},
+{3,23,0,1},
+{3,23,3,1, occType::OCC_NONE, true, false}, // Dark, no active occpancy.
+// ...
+{4,7,4,1},
+{4,7,7,1},
+{4,7,11,2},
+{4,7,15,2},
+{4,7,21,2},
+{4,7,25,2},
+{4,7,29,2},
+{4,7,33,3},
+{4,7,37,4},
+{4,7,41,5},
+{4,7,45,6},
+{4,7,49,7},
+{4,7,50,6},
+{4,7,51,7},
+{4,7,54,8},
+{4,7,58,9},
+{4,7,58,10},
+{4,8,2,11},
+{4,8,6,13},
+{4,8,7,13},
+{4,8,9,14},
+{4,8,11,14},
+{4,8,13,15},
+{4,8,16,16},
+{4,8,19,24},
+{4,8,21,24},
+{4,8,25,27},
+{4,8,27,30},
+{4,8,28,31},
+{4,8,30,35},
+{4,8,33,38},
+{4,8,35,46},
+{4,8,37,43},
+{4,8,39,38},
+{4,8,41,43},
+{4,8,45,47},
+{4,8,46,63},
+{4,8,49,105},
+{4,8,51,91},
+{4,8,51,96},
+{4,8,54,94},
+{4,8,58,119},
+{4,9,3,133},
+{4,9,5,119},
+{4,9,7,125},
+{4,9,9,142},
+{4,9,9,135},
+{4,9,12,104},
+{4,9,15,111},
+{4,9,16,92},
+{4,9,16,86},
+{4,9,20,132},
+{4,9,21,140},
+{4,9,24,101},
+{4,9,28,175},
+{4,9,31,175},
+{4,9,34,134},
+{4,9,34,114},
+{4,9,35,133},
+{4,9,37,141},
+    { }
+    };
+// Test with real data set.
+TEST(AmbientLightOccupancyDetection,sample5sHard2)
+{
+    simpleDataSampleRun(sample5sHard2);
 }
 
 // "2b" 2016/10/08+09 test set with tough occupancy to detect in the evening ~19:00Z to 20:00Z.
@@ -1131,8 +1875,8 @@ static const ALDataSample sample2bHard[] =
 {8,20,0,7},
 {8,20,16,6},
 {8,20,20,10, occType::OCC_PROBABLE, ALDataSample::NO_RD_EXPECTATION, true}, // Light on, OCCUPANCY.  FIXME: should be light.
-{8,20,28,6},
-{8,20,36,3, occType::OCC_NONE, true, true},  // Dark, vacant.
+{8,20,28,6, ALDataSample::NO_OCC_EXPECTATION, ALDataSample::NO_RD_EXPECTATION, true}, // Occupied.
+{8,20,36,3, occType::OCC_NONE, true},  // Dark, becoming vacant.
 {8,20,42,3},
 // ...
 {9,7,40,3},
@@ -1223,9 +1967,9 @@ static const ALDataSample sample2bHard[] =
 {9,18,40,3},
 {9,18,56,3},
 {9,19,8,10, occType::OCC_PROBABLE, false, true}, // Light on, OCCUPANCY.  FIXME: should be light.
-{9,19,16,9},
-{9,19,28,10},
-{9,19,44,6},
+{9,19,16,9, ALDataSample::NO_OCC_EXPECTATION, ALDataSample::NO_RD_EXPECTATION, true}, // Occupied.
+{9,19,28,10, ALDataSample::NO_OCC_EXPECTATION, ALDataSample::NO_RD_EXPECTATION, true}, // Occupied.
+{9,19,44,6, ALDataSample::NO_OCC_EXPECTATION, ALDataSample::NO_RD_EXPECTATION, true}, // Occupied.
 {9,19,48,11, occType::OCC_PROBABLE, false, true}, // Small light on?  Possible occupancy.  FIXME: should be light.
 {9,19,56,8},
 {9,20,4,8},
@@ -1639,28 +2383,28 @@ static const ALDataSample sample3leveningTV[] =
 {10,15,59,44, ALDataSample::NO_OCC_EXPECTATION, false}, // TV watching?  FIXME: occupied?
 {10,16,3,39},
 {10,16,15,19},
-{10,16,23,44},
+{10,16,23,44, occType::OCC_PROBABLE, false, true},
 {10,16,35,36},
 {10,16,47,33},
-{10,16,51,35, occType::OCC_WEAK, false, true}, // FIXME: occType::OCC_WEAK}, // TV watching?
+{10,16,51,35, ALDataSample::NO_OCC_EXPECTATION, false, true}, // FIXME: occType::OCC_WEAK}, // TV watching?
 {10,17,3,34},
 {10,17,7,35},
 {10,17,19,36},
 {10,17,23,35},
-{10,17,39,35},
+{10,17,39,35, ALDataSample::NO_OCC_EXPECTATION, false, true}, // TV watching.
 {10,17,51,34},
 {10,17,59,30},
-{10,18,3,31, occType::OCC_WEAK, false, true}, // FIXME: occType::OCC_WEAK}, // TV watching?
+{10,18,3,31, ALDataSample::NO_OCC_EXPECTATION, false, true}, // TV watching.
 {10,18,15,31},
 {10,18,27,31},
 {10,18,31,30},
-{10,18,39,30},
+{10,18,39,30, ALDataSample::NO_OCC_EXPECTATION, false, true}, // TV watching.
 {10,18,51,30},
 {10,19,7,31},
 {10,19,15,40},
-{10,19,27,40, occType::OCC_WEAK, false, true}, // TV watching?
+{10,19,27,40, ALDataSample::NO_OCC_EXPECTATION, false, true}, // TV watching?
 {10,19,43,39},
-{10,19,55,41},
+{10,19,55,41, occType::OCC_WEAK, false, true}, // TV watching?
 {10,19,59,42},
 {10,20,11,39},
 {10,20,23,41, occType::OCC_WEAK, false, true}, // TV watching?
@@ -1856,12 +2600,12 @@ static const ALDataSample sample3leveningTV[] =
 {12,18,39,44},
 {12,18,51,41},
 {12,18,55,41},
-{12,19,11,37},
+{12,19,11,37, ALDataSample::NO_OCC_EXPECTATION, false, true}, // TV watching.
 {12,19,15,35},
 {12,19,19,35},
 {12,19,35,34},
 {12,19,47,35},
-{12,19,59,42},
+{12,19,59,42, ALDataSample::NO_OCC_EXPECTATION, false, true}, // TV watching.
 {12,20,15,42},
 {12,20,26,44},
 {12,20,27,43},
@@ -1872,7 +2616,7 @@ static const ALDataSample sample3leveningTV[] =
 {12,21,11,45},
 {12,21,21,43},
 {12,21,23,44},
-{12,21,39,42},
+{12,21,39,42, ALDataSample::NO_OCC_EXPECTATION, false, true}, // TV watching.
 {12,21,40,44},
 {12,21,51,42},
 {12,21,55,44},
@@ -1894,7 +2638,7 @@ static const ALDataSample sample3leveningTV[] =
 {13,0,31,14},
 {13,0,35,13},
 {13,0,47,14},
-{13,0,51,1},
+{13,0,51,1, occType::OCC_NONE, true, false}, // Dake, vacant.
 {13,1,3,1},
 {13,1,19,1},
 // ...
@@ -3012,7 +3756,7 @@ static const ALDataSample sample3leveningTV[] =
 {23,22,35,3},
 // ...
 {24,6,59,3},
-{24,7,15,3},
+{24,7,15,3, ALDataSample::NO_OCC_EXPECTATION, true, false}, // Dark, vacant.
 {24,7,23,4},
 {24,7,43,8},
 {24,7,53,15},
@@ -3023,25 +3767,25 @@ static const ALDataSample sample3leveningTV[] =
 {24,8,29,56},
 {24,8,35,67},
 {24,8,51,74},
-{24,9,1,80},
+{24,9,1,80, ALDataSample::NO_OCC_EXPECTATION, false, false}, // Light but vacant.
 {24,9,11,103},
 {24,9,15,113},
 {24,9,35,137},
 {24,9,50,147},
 {24,9,55,129},
 {24,9,59,117},
-{24,10,15,109},
+{24,10,15,109, ALDataSample::NO_OCC_EXPECTATION, false, false}, // Light but vacant.
 {24,10,35,113},
 {24,10,47,104},
 {24,10,59,154},
-{24,11,7,159},
+{24,11,7,159, ALDataSample::NO_OCC_EXPECTATION, false, false}, // Light but vacant.
 {24,11,19,174},
 {24,11,23,173},
 {24,11,27,175},
 {24,11,39,177},
 {24,11,50,179},
 {24,11,55,177},
-{24,12,11,153},
+{24,12,11,153, ALDataSample::NO_OCC_EXPECTATION, false, false}, // Light but vacant.
 {24,12,19,166},
 {24,12,23,175},
 {24,12,31,173},
@@ -3049,17 +3793,17 @@ static const ALDataSample sample3leveningTV[] =
 {24,12,47,175},
 {24,12,55,137},
 {24,12,59,139},
-{24,13,3,109},
+{24,13,3,109, ALDataSample::NO_OCC_EXPECTATION, false, false}, // Light but vacant.
 {24,13,11,112},
 {24,13,23,67},
 {24,13,35,51},
 {24,13,39,90},
 {24,13,47,92},
-{24,14,3,134},
+{24,14,3,134, ALDataSample::NO_OCC_EXPECTATION, false, false}, // Light but vacant.
 {24,14,19,96},
 {24,14,35,62},
 {24,14,51,89},
-{24,15,3,59},
+{24,15,3,59, ALDataSample::NO_OCC_EXPECTATION, false, false}, // Light but vacant.
 {24,15,7,60},
 {24,15,16,29},
 {24,15,19,28},
@@ -3068,45 +3812,45 @@ static const ALDataSample sample3leveningTV[] =
 {24,15,55,11},
 {24,16,3,48, occType::OCC_PROBABLE, false, true}, // Lights on, TV watching.
 {24,16,15,47},
-{24,16,23,46},
+{24,16,23,46, ALDataSample::NO_OCC_EXPECTATION, false, true},
 {24,16,31,43},
 {24,16,43,46},
 {24,16,51,46},
-{24,17,3,43},
+{24,17,3,43, ALDataSample::NO_OCC_EXPECTATION, false, true},
 {24,17,19,44},
 {24,17,27,46},
 {24,17,39,45},
-{24,17,43,44}, // FIXME: lights on, TV watching.
+{24,17,43,44, ALDataSample::NO_OCC_EXPECTATION, false, true},
 {24,17,47,46},
 {24,17,59,46},
 {24,18,15,46},
-{24,18,27,45},
+{24,18,27,45, ALDataSample::NO_OCC_EXPECTATION, false, true},
 {24,18,43,47},
 {24,18,55,47},
 {24,18,59,46},
-{24,19,3,47},
+{24,19,3,47, ALDataSample::NO_OCC_EXPECTATION, false, true},
 {24,19,15,44},
 {24,19,19,46},
 {24,19,23,46, occType::OCC_WEAK, false, true}, // TV watching?
 {24,19,39,44},
 {24,19,55,46},
-{24,20,3,45},
+{24,20,3,45, ALDataSample::NO_OCC_EXPECTATION, false, true},
 {24,20,7,47},
-{24,20,23,45},
+{24,20,23,45, ALDataSample::NO_OCC_EXPECTATION, false, true},
 {24,20,27,44},
-{24,20,39,46},
+{24,20,39,46, ALDataSample::NO_OCC_EXPECTATION, false, true},
 {24,20,43,45},
 {24,20,55,46, ALDataSample::NO_OCC_EXPECTATION, false, true}, // occType::OCC_WEAK}, // TV watching?
 {24,21,3,44},
 {24,21,7,46},
 {24,21,15,44},
-{24,21,29,47},
+{24,21,29,47, ALDataSample::NO_OCC_EXPECTATION, false, true},
 {24,21,35,46},
 {24,21,47,46},
 {24,21,55,46, ALDataSample::NO_OCC_EXPECTATION, false}, // occType::OCC_WEAK}, // TV watching?  FIXME: should show occupancy.
 {24,22,7,47, ALDataSample::NO_OCC_EXPECTATION, false}, // occType::OCC_WEAK}, // TV watching?  FIXME: should show occupancy.
 {24,22,11,46},
-{24,22,15,3},
+{24,22,15,3, ALDataSample::NO_OCC_EXPECTATION, true}, // Dark.
     { }
     };
 // "3l" fortnight to 2016/11/24 looking for habitual artificial lighting to watch TV, etc.
@@ -3115,6 +3859,3 @@ TEST(AmbientLightOccupancyDetection,sample3leveningTV)
 {
     simpleDataSampleRun(sample3leveningTV);
 }
-
-
-// TODO: data set: 3l, 5s, 6k, 7h: 2016/12/03 out from 11:00Z to 14:00Z but wrongly seen as in.

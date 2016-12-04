@@ -106,6 +106,14 @@ class SensorAmbientLightOccupancyDetectorSimple final : public SensorAmbientLigh
       static constexpr uint8_t startingLL = 254;
       uint8_t prevLightLevel = startingLL;
 
+      // Minimum steady time for detecting artificial light (ticks/minutes).
+      static constexpr uint8_t steadyTicksMinForArtificialLight = 30;
+      // Minimum steady time for detecting light on (ticks/minutes).
+      static constexpr uint8_t steadyTicksMinBeforeLightOn = 7;
+      // Number of ticks (minutes) levels have been steady for.
+      // Steady means a less-than-epsilon change per tick.
+      uint8_t steadyTicks = 0;
+
       // Parameters from setTypMinMax().
       uint8_t meanNowOrFF = 0xff;
 	  uint8_t longTermMinimumOrFF = 0xff;
@@ -116,7 +124,7 @@ class SensorAmbientLightOccupancyDetectorSimple final : public SensorAmbientLigh
       constexpr SensorAmbientLightOccupancyDetectorSimple() { }
 
       // Reset to starting state; primarily for unit tests.
-      void reset() { setTypMinMax(0xff, 0xff, 0xff, false); prevLightLevel = startingLL; }
+      void reset() { setTypMinMax(0xff, 0xff, 0xff, false); prevLightLevel = startingLL; steadyTicks = 0; }
 
       // Call regularly (~1/60s) with the current ambient light level [0,254].
       // Returns value > 0 if occupancy is detected.
