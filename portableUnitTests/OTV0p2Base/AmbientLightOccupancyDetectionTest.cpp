@@ -1313,7 +1313,7 @@ static const ALDataSample sample5sHard2[] =
 {2,21,52,24},
 {2,21,56,24},
 {2,21,59,24},
-{2,22,3,24, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Light, occupied.
+{2,22,3,24, ALDataSample::NO_OCC_EXPECTATION, false}, // Light, occupied.  // FIXME, unusual time.
 {2,22,7,24},
 {2,22,10,24},
 {2,22,14,24},
