@@ -476,7 +476,7 @@ typedef const char *AT_t;
 //                    bPowerLock = false; // Check if ready to stop waiting after power toggled.
 //                }
                 } else {  // Deal with special case of power up/down
-                    powerToggle();
+                    powerLockOut();
                 }
             }
 
@@ -555,32 +555,31 @@ typedef const char *AT_t;
                 //    - set pin low once time > 2 seconds.
                 // - If locked and pin low.
                 //    - unlock once time > 12 seconds.
-                if (!bPowerLock) {
-                    if (!_isPinHigh()) {
-                        setPwrPinHigh(true);
-                        powerTimer = static_cast<int8_t>(getCurrentSeconds());
-                        bPowerLock = true;
-                    } else {
-                        setPwrPinHigh(false); // This is an error condition!
-                        state = RESET;
-                        OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Err: SIM900 Bad powerToggle")
+                if (!_isPinHigh()) {
+                    setPwrPinHigh(true);
+                    powerTimer = static_cast<int8_t>(getCurrentSeconds());
+                    bPowerLock = true;
+                } else {
+                    setPwrPinHigh(false); // This is an error condition!
+                    state = RESET;
+                    OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Err: SIM900 Bad powerToggle")
+                }
+            }
+
+            /**
+             * @brief manages power lockout.
+             */
+            void powerLockOut()
+            {
+                if (_isPinHigh()) {
+                    // check time > 2
+                    if (waitedLongEnough(2)) {
+                        setPwrPinHigh(false);
+                        bPowered = !bPowered;
                     }
                 } else {
-                    if (_isPinHigh()) {
-                        // check time > 2
-                        if (waitedLongEnough(2)) setPwrPinHigh(false);
-                    } else {
-                        if (waitedLongEnough(powerLockOutDuration)) bPowerLock = false;
-                    }
+                    if (waitedLongEnough(powerLockOutDuration)) bPowerLock = false;
                 }
-//                setPwrPinHigh(true);
-//#ifdef ARDUINO_ARCH_AVR
-//                delay(1500); // This is the minimum value that worked reliably.
-//#endif // ARDUINO_ARCH_AVR
-//                setPwrPinHigh(false);
-//                bPowered = !bPowered;
-//                bPowerLock = true;
-//                powerTimer = static_cast<int8_t>(getCurrentSeconds());
             }
 
             // Serial functions
@@ -1080,6 +1079,7 @@ typedef const char *AT_t;
         // Provided to assist with "white-box" unit testing.
         OTSIM900LinkState _getState() { return(state); }
         bool _isPinHigh() {return pinHigh;}
+        bool _isLockedOut() {return bPowerLock;}
 #endif // ARDUINO_ARCH_AVR
 
     };
