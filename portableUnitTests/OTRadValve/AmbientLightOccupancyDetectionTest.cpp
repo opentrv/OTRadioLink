@@ -212,26 +212,15 @@ static const ALDataSample trivialSample3[] =
 // Support state for simpleDataSampleRun().
 namespace SDSR
     {
-//// Instances with linkage to support the test.
-    OTRadValve::ValveMode valveMode;
-//static OTV0P2BASE::TemperatureC16Mock roomTemp;
-//static OTRadValve::TempControlSimpleVCP<OTRadValve::DEFAULT_ValveControlParameters> tempControl;
-//static OTV0P2BASE::PseudoSensorOccupancyTracker occupancy;
-//static OTV0P2BASE::SensorAmbientLightAdaptiveMock ambLight;
-//static OTRadValve::NULLActuatorPhysicalUI physicalUI;
-//static OTV0P2BASE::NULLValveSchedule schedule;
-//static OTV0P2BASE::NULLByHourByteStats byHourStats;
-
-
-    OTV0P2BASE::PseudoSensorOccupancyTracker occupancy;
-    OTV0P2BASE::SensorAmbientLightAdaptiveMock ambLight;
+    static OTV0P2BASE::PseudoSensorOccupancyTracker occupancy;
+    static OTV0P2BASE::SensorAmbientLightAdaptiveMock ambLight;
     // In-memory stats set.
-    OTV0P2BASE::NVByHourByteStatsMock hs;
+    static OTV0P2BASE::NVByHourByteStatsMock hs;
     // Dummy (non-functioning) temperature and relative humidity sensors.
-    OTV0P2BASE::TemperatureC16Mock tempC16;
-    OTV0P2BASE::DummyHumiditySensor rh;
+    static OTV0P2BASE::TemperatureC16Mock tempC16;
+    static OTV0P2BASE::DummyHumiditySensor rh;
     // Two-subsamples per hour stats sampling.
-    OTV0P2BASE::ByHourSimpleStatsUpdaterSampleStats <
+    static OTV0P2BASE::ByHourSimpleStatsUpdaterSampleStats <
       decltype(hs), &hs,
       decltype(occupancy), &occupancy,
       decltype(ambLight), &ambLight,
@@ -239,19 +228,24 @@ namespace SDSR
       decltype(rh), &rh,
       2
       > su;
-    // Simple-as-possible instance.
+    // Support for cttb instance.
+    static OTRadValve::ValveMode valveMode;
     typedef OTRadValve::DEFAULT_ValveControlParameters parameters;
-//    OTRadValve::ModelledRadValveComputeTargetTempBasic<
-//       parameters,
-//        valveMode,
-//        decltype(tempC16),                            tempC16,
-//        decltype(MRVEI::tempControl),                 &MRVEI::tempControl,
-//        decltype(occupancy),                          occupancy,
-//        decltype(ambLight),                           ambLight,
-//        decltype(MRVEI::physicalUI),                  &MRVEI::physicalUI,
-//        decltype(MRVEI::schedule),                    &MRVEI::schedule,
-//        decltype(hs),                                 hs
-//        > cttb;
+    static OTRadValve::TempControlSimpleVCP<parameters> tempControl;
+    static OTRadValve::NULLActuatorPhysicalUI physicalUI;
+    static OTV0P2BASE::NULLValveSchedule schedule;
+    // Simple-as-possible instance.
+    static OTRadValve::ModelledRadValveComputeTargetTempBasic<
+       parameters,
+        &valveMode,
+        decltype(tempC16),                            &tempC16,
+        decltype(tempControl),                        &tempControl,
+        decltype(occupancy),                          &occupancy,
+        decltype(ambLight),                           &ambLight,
+        decltype(physicalUI),                         &physicalUI,
+        decltype(schedule),                           &schedule,
+        decltype(hs),                                 &hs
+        > cttb;
     // Occupancy callback.
     static int8_t cbProbable;
     static void (*const callback)(bool) = [](bool p)
@@ -263,11 +257,14 @@ if(verbose) { fprintf(stderr, "*Callback: %d\n", p); }
     // Reset all these static entities but does not clear stats.
     static void resetAll()
         {
-        valveMode.setWarmModeDebounced(true);
+        // Set up room to be dark and vacant.
         ambLight.resetAdaptive();
         occupancy.reset();
         // Flush any partial samples.
         su.reset();
+        // Reset valve-level controls.
+        valveMode.setWarmModeDebounced(true);
+        physicalUI.read();
         // Install the occupancy tracker callback from the ambient light sensor.
         ambLight.setOccCallbackOpt(callback);
         }
@@ -399,12 +396,20 @@ void simpleDataSampleRun(const ALDataSample *const data)
     OTV0P2BASE::SensorAmbientLightAdaptiveMock &ala = SDSR::ambLight;
     // Occupancy tracker instance under test, to check system behaviour.
     OTV0P2BASE::PseudoSensorOccupancyTracker &tracker = SDSR::occupancy;
-    ASSERT_EQ(0, tracker.get());
-    ASSERT_FALSE(tracker.isLikelyOccupied());
     // Occupancy callback during setup.
     void (*const callbackI)(bool) = [](bool p)
         { if(p) { tracker.markAsPossiblyOccupied(); } else { tracker.markAsJustPossiblyOccupied(); } };
     ala.setOccCallbackOpt(callbackI);
+
+    // Some basic sense-checking of the set-up state.
+    ASSERT_EQ(0, tracker.get());
+    ASSERT_FALSE(tracker.isLikelyOccupied());
+    // As room starts dark and vacant, expect a setback initially.
+    static constexpr uint8_t WARM = SDSR::parameters::WARM;
+    static constexpr uint8_t FROST = SDSR::parameters::FROST;
+    ASSERT_GE(WARM, SDSR::cttb.computeTargetTemp());
+    ASSERT_LE(FROST, SDSR::cttb.computeTargetTemp());
+
     // Count of number of records.
     int nRecords = 0;
     // Count number of records with explicit expected occupancy response assertion.
