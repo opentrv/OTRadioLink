@@ -545,16 +545,36 @@ typedef const char *AT_t;
              * @fixme   proper ovf testing not implemented so the SIM900 may not power on/off near the end of a 60 second cycle.
              */
             void powerToggle()
-                {
-                setPwrPinHigh(true);
-#ifdef ARDUINO_ARCH_AVR
-                delay(1500); // This is the minimum value that worked reliably.
-#endif // ARDUINO_ARCH_AVR
-                setPwrPinHigh(false);
-                bPowered = !bPowered;
-                bPowerLock = true;
-                powerTimer = static_cast<int8_t>(getCurrentSeconds());
+            {
+                // trigger process
+                // - If not locked and pin low.
+                //    - Set pin High, get time and set lock.
+                // - If locked and pin high.
+                //    - set pin low once time > 2 seconds.
+                // - If locked and pin low.
+                //    - unlock once time > 12 seconds.
+                if (!bPowerLock) {
+                    if (!_isPinHigh()) {
+                        setPwrPinHigh(true);
+                        powerTimer = static_cast<int8_t>(getCurrentSeconds());
+                        bPowerLock = true;
+                    }
+                } else {
+                    if (_isPinHigh()) {
+                        // check time > 10
+                    } else {
+                        // check time > 12
+                    }
                 }
+//                setPwrPinHigh(true);
+//#ifdef ARDUINO_ARCH_AVR
+//                delay(1500); // This is the minimum value that worked reliably.
+//#endif // ARDUINO_ARCH_AVR
+//                setPwrPinHigh(false);
+//                bPowered = !bPowered;
+//                bPowerLock = true;
+//                powerTimer = static_cast<int8_t>(getCurrentSeconds());
+            }
 
             // Serial functions
             /**
