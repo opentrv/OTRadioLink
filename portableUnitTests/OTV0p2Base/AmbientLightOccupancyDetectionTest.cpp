@@ -105,6 +105,17 @@ class ALDataSample final
             expectedSb(expectedSb_)
             { }
 
+//        // Alternative constructor with expected setback only.
+//        // This cuts to the chase and the final desired outcome.
+//        constexpr ALDataSample(uint8_t dayOfMonth, uint8_t hour24, uint8_t minute,
+//                               uint8_t lightLevel,
+//                               expectedSb_t expectedSb_ = NO_SB_EXPECTATION)
+//            :
+//            d(dayOfMonth), H(hour24), M(minute),
+//            L(lightLevel),
+//            expectedSb(expectedSb_)
+//            { }
+
         // Create/mark a terminating entry; all input values invalid.
         constexpr ALDataSample() : d(255), H(255), M(255), L(255) { }
 
