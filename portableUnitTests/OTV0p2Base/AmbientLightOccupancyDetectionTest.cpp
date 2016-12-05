@@ -82,7 +82,9 @@ class ALDataSample final
             {
             NO_SB_EXPECTATION = -1, // -1 indicates no setback prediction.
             SB_NONE, // Setback of zero, ie no setback.
+            SB_MINECO, // Some mixture of MIN and ECO.
             SB_ECO, // ECO/medium setback.
+            SB_ECOMAX, // Some mixture of ECO and MAX.
             SB_MAX, // Maximum setback.
             };
         const expectedSb_t expectedSb = NO_SB_EXPECTATION;
