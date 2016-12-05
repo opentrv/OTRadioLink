@@ -246,9 +246,13 @@ typedef const char *AT_t;
             bool pinHigh = false;
             inline void setPwrPinHigh(const bool high) { pinHigh = high; }
 #endif
-
-            bool waitedLongEnoughForPower() const
-                { return OTV0P2BASE::getElapsedSecondsLT(powerTimer, getCurrentSeconds()) > powerLockOutduration; }
+            /**
+             * @brief   Check if waited long enough using RTC.
+             * @param   duration: number of seconds we need to wait. Strictly positive.
+             * @reval   True if waited enough, else false.
+             */
+            bool waitedLongEnough(uint_fast8_t duration) const
+                { return OTV0P2BASE::getElapsedSecondsLT(powerTimer, getCurrentSeconds()) > duration; }
 
         public:
             /**
@@ -472,10 +476,7 @@ typedef const char *AT_t;
 //                    bPowerLock = false; // Check if ready to stop waiting after power toggled.
 //                }
                 } else {  // Deal with special case of power up/down
-                    // Power pin handling
-
-                    // Power toggle lockout
-
+                    powerToggle();
                 }
             }
 
@@ -484,7 +485,8 @@ typedef const char *AT_t;
 #endif // OTSIM900LINK_DEBUG
 
             /***************** AT Commands and Private Constants and variables ******************/
-            static constexpr uint8_t powerLockOutduration = 10; // DE20160703:Increased duration due to startup issues.
+            static constexpr uint8_t powerPinToggleDuration = 2;
+            static constexpr uint8_t powerLockOutDuration = 10 + powerPinToggleDuration; // DE20160703:Increased duration due to startup issues.
             static constexpr uint8_t flushTimeOut = 10;
 
             // Standard Responses
@@ -558,12 +560,17 @@ typedef const char *AT_t;
                         setPwrPinHigh(true);
                         powerTimer = static_cast<int8_t>(getCurrentSeconds());
                         bPowerLock = true;
+                    } else {
+                        setPwrPinHigh(false); // This is an error condition!
+                        state = RESET;
+                        OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Err: SIM900 Bad powerToggle")
                     }
                 } else {
                     if (_isPinHigh()) {
-                        // check time > 10
+                        // check time > 2
+                        if (waitedLongEnough(2)) setPwrPinHigh(false);
                     } else {
-                        // check time > 12
+                        if (waitedLongEnough(powerLockOutDuration)) bPowerLock = false;
                     }
                 }
 //                setPwrPinHigh(true);
@@ -1067,7 +1074,9 @@ typedef const char *AT_t;
          virtual void panicShutdown() { preinit(NULL); }    // see above
          */
 
-#ifndef ARDUINO_ARCH_AVR
+#ifdef ARDUINO_ARCH_AVR
+        bool _isPinHigh( return fastDigitalRead(PWR_PIN) );
+#else
         // Provided to assist with "white-box" unit testing.
         OTSIM900LinkState _getState() { return(state); }
         bool _isPinHigh() {return pinHigh;}
