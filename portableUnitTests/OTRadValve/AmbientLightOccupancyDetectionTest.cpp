@@ -613,7 +613,7 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
 
                 if(!warmup)
                     {
-                    // Don't exaime stats on wormup run.
+                    // Don't test results for wormup run.
                     // Check that at least some expectations have been set.
         //            ASSERT_NE(0U, flavourStats.AmbLightOccupancyCallbackPredictionErrors.getSampleCount()) << "some expected occupancy callbacks should be provided";
                     ASSERT_NE(0U, flavourStats.RoomDarkPredictionErrors.getSampleCount()) << "some known room dark values should be provided";
