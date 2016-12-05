@@ -395,9 +395,8 @@ public:
 
     /**
      * @brief   Set all state back to defaults.
-     * fixme POWERING_UP is a fudge until we have a good way of powering up emulator.
      */
-    void reset() { myState = POWERING_UP; verbose = false; oldPinState = false, startTime = 0; }
+    void reset() { myState = POWER_OFF; verbose = false; oldPinState = false, startTime = 0; }
 
 
     /**
@@ -491,10 +490,12 @@ public:
     // actual emulator
     SIM900StateEmulator emu;
 
+    bool (*getPinState)() = NULL;
+
     /**
      * @brief   reset SIM900 state for new test.
      */
-    void reset() { verbose = false; emu.reset(); }
+    void reset() { verbose = false; getPinState = NULL; emu.reset(); }
     /**
      * @brief   Collects characters until a valid end character is seen.
      * @param
@@ -509,7 +510,6 @@ public:
      */
     void poll()
     {
-//        emu.pollPowerPin(powerPin);
         if(isEndCharReceived(serialConnection.written)) {
             std::string toBeRead = "";
             if(emu.parseCommand(serialConnection.written)) emu.poll(serialConnection.written, toBeRead);
@@ -518,6 +518,7 @@ public:
             serialConnection.written.clear();
         }
     }
+
     /**
      * @brief   Trigger PDP-DEACT state
      */
@@ -600,7 +601,7 @@ TEST(OTSIM900Link, SIM900EmulatorTest)
     SIM900Emu::serialConnection.writeCallback = SIM900Emu::sim900WriteCallback;
     // reset emulator state
     SIM900Emu::sim900.reset();
-    ASSERT_EQ(SIM900Emu::SIM900StateEmulator::POWERING_UP, SIM900Emu::sim900.emu.myState);
+    ASSERT_EQ(SIM900Emu::SIM900StateEmulator::POWER_OFF, SIM900Emu::sim900.emu.myState);
     ASSERT_FALSE(SIM900Emu::sim900.emu.verbose);
     ASSERT_FALSE(SIM900Emu::sim900.emu.oldPinState);
     ASSERT_EQ(0, SIM900Emu::sim900.emu.startTime);
@@ -642,7 +643,87 @@ TEST(OTSIM900Link, StartupFromOffTest)
         SIM900Emu::serialConnection.writeCallback = SIM900Emu::sim900WriteCallback;
         // reset emulator state
         SIM900Emu::sim900.reset();
-        ASSERT_EQ(SIM900Emu::SIM900StateEmulator::POWERING_UP, SIM900Emu::sim900.emu.myState);
+        ASSERT_EQ(SIM900Emu::SIM900StateEmulator::POWER_OFF, SIM900Emu::sim900.emu.myState);
+        ASSERT_FALSE(SIM900Emu::sim900.emu.verbose);
+        ASSERT_FALSE(SIM900Emu::sim900.emu.oldPinState);
+        ASSERT_EQ(0, SIM900Emu::sim900.emu.startTime);
+        SIM900Emu::sim900.verbose = true;
+
+        // SIM900 Config data
+        const char SIM900_PIN[] = "1111";
+        const char SIM900_APN[] = "apn";
+        const char SIM900_UDP_ADDR[] = "0.0.0.0"; // ORS server
+        const char SIM900_UDP_PORT[] = "9999";
+        const OTSIM900Link::OTSIM900LinkConfig_t SIM900Config(false, SIM900_PIN, SIM900_APN, SIM900_UDP_ADDR, SIM900_UDP_PORT);
+        const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
+
+        // OTSIM900Link instantiation & init.
+        OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, SIM900Emu::SoftSerialSimulator> l0;
+        EXPECT_TRUE(l0.configure(1, &l0Config));
+        EXPECT_TRUE(l0.begin());
+        EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
+
+        // Walk through startup behaviour in detail.
+        // - Starts in INIT, Moves on to GET_STATE: GET_STATE, PIN LOW
+        l0.poll();
+        EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
+        EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWER_OFF , SIM900Emu::sim900.emu.myState);
+        EXPECT_FALSE(l0._isLockedOut());
+        EXPECT_FALSE(l0._isPinHigh());
+        // - If no reply, toggle pin:               START_UP, PIN HIGH
+        l0.poll();
+        EXPECT_TRUE(l0._isLockedOut());  // pin set high and locked out
+        EXPECT_EQ(OTSIM900Link::START_UP, l0._getState());
+        EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWER_OFF , SIM900Emu::sim900.emu.myState);
+        // Pin should be high for 2 seconds.
+        EXPECT_TRUE(l0._isPinHigh());
+        secondsVT++;
+        l0.poll();
+        EXPECT_TRUE(l0._isLockedOut());
+        EXPECT_TRUE(l0._isPinHigh());
+        secondsVT++;
+        l0.poll();
+        EXPECT_TRUE(l0._isLockedOut());
+        EXPECT_TRUE(l0._isPinHigh());
+        secondsVT++;
+        l0.poll();
+        EXPECT_TRUE(l0._isLockedOut());
+        EXPECT_FALSE(l0._isPinHigh());
+        EXPECT_EQ(OTSIM900Link::START_UP, l0._getState());
+        EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWERING_UP , SIM900Emu::sim900.emu.myState);
+
+        // Locked out for a further 10 seconds, waiting for lockout to finish.
+//        for (int i = secondsVT + 10; secondsVT < i; secondsVT++) EXPECT_EQ(OTSIM900Link::START_UP, l0._getState());
+//        for (int i = 0; i < 10; i++) {
+//            secondsVT++;
+//            l0.poll();
+//            EXPECT_EQ(OTSIM900Link::START_UP, l0._getState());
+//        }
+//        EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWERING_UP , SIM900Emu::sim900.emu.myState);
+//        // - Replied so should move on:             CHECK_PIN, PIN LOW
+//        l0.poll();
+//        EXPECT_EQ(OTSIM900Link::CHECK_PIN, l0._getState());
+//        EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWERING_UP , SIM900Emu::sim900.emu.myState);
+//        EXPECT_FALSE(l0._isPinHigh());
+        // ...
+        l0.end();
+}
+
+/**
+ * @brief   Simulate starting up a SIM900 that is powered down.
+ */
+TEST(OTSIM900Link, StartupFromOnTest)
+{
+
+        srandom((unsigned)::testing::UnitTest::GetInstance()->random_seed()); // Seed random() for use in simulator; --gtest_shuffle will force it to change.
+
+        // Clear out any serial state.
+        SIM900Emu::serialConnection.reset();
+        SIM900Emu::serialConnection.writeCallback = SIM900Emu::sim900WriteCallback;
+        // reset emulator state
+        SIM900Emu::sim900.reset();
+        SIM900Emu::sim900.emu.myState = SIM900Emu::SIM900StateEmulator::UDP_CONNECT_OK;
+        ASSERT_EQ(SIM900Emu::SIM900StateEmulator::UDP_CONNECT_OK, SIM900Emu::sim900.emu.myState);  // Start from a fully inited state.
         ASSERT_FALSE(SIM900Emu::sim900.emu.verbose);
         ASSERT_FALSE(SIM900Emu::sim900.emu.oldPinState);
         ASSERT_EQ(0, SIM900Emu::sim900.emu.startTime);
@@ -695,6 +776,7 @@ TEST(OTSIM900Link, StartupFromOffTest)
         // ...
         l0.end();
 }
+
 
 // Walk through state space of OTSIM900Link.
 // Make sure that an instance can be created and does not die horribly.
@@ -782,7 +864,7 @@ TEST(OTSIM900Link,basicsSimpleSimulator)
     SIM900Emu::serialConnection.writeCallback = SIM900Emu::sim900WriteCallback;
     // reset emulator state
     SIM900Emu::sim900.reset();
-    ASSERT_EQ(SIM900Emu::SIM900StateEmulator::POWERING_UP, SIM900Emu::sim900.emu.myState);
+    ASSERT_EQ(SIM900Emu::SIM900StateEmulator::POWER_OFF, SIM900Emu::sim900.emu.myState);
     ASSERT_FALSE(SIM900Emu::sim900.emu.verbose);
     ASSERT_FALSE(SIM900Emu::sim900.emu.oldPinState);
     ASSERT_EQ(0, SIM900Emu::sim900.emu.startTime);
@@ -1015,7 +1097,7 @@ TEST(OTSIM900Link, PDPDeactResetTest)
         SIM900Emu::serialConnection.reset();
         SIM900Emu::serialConnection.writeCallback = SIM900Emu::sim900WriteCallback;
         SIM900Emu::sim900.reset();
-        ASSERT_EQ(SIM900Emu::SIM900StateEmulator::POWERING_UP, SIM900Emu::sim900.emu.myState);
+        ASSERT_EQ(SIM900Emu::SIM900StateEmulator::POWER_OFF, SIM900Emu::sim900.emu.myState);
         ASSERT_FALSE(SIM900Emu::sim900.emu.verbose);
         ASSERT_FALSE(SIM900Emu::sim900.emu.oldPinState);
         ASSERT_EQ(0, SIM900Emu::sim900.emu.startTime);
