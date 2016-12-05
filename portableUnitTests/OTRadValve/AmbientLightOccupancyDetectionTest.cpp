@@ -365,6 +365,39 @@ void setTypeMinMax(OTV0P2BASE::SensorAmbientLightAdaptiveMock &ala,
     oldH = H;
 
     }
+// Check that the occupancy/setback/etc results are acceptable for the data.
+// Makes the test fail via EXPECT_XX() etc if not.
+static void checkAccuracyAcceptableAgainstData(
+        const SimpleFlavourStatCollection &flavourStats)
+    {
+    const bool oddBlend = (flavourStats.blending != BL_FROMSTATS);
+    // Check that at least some expectations have been set.
+//            ASSERT_NE(0U, flavourStats.AmbLightOccupancyCallbackPredictionErrors.getSampleCount()) << "some expected occupancy callbacks should be provided";
+    ASSERT_NE(0U, flavourStats.RoomDarkPredictionErrors.getSampleCount()) << "some known room dark values should be provided";
+    ASSERT_NE(0U, flavourStats.OccupancyTrackingFalseNegatives.getSampleCount()) << "some known occupancy values should be provided";
+    // Check that there are not huge numbers of (false) positive occupancy reports.
+    EXPECT_GE(0.25f, flavourStats.AmbLightOccupancyCallbacks.getFractionFlavoured());
+    // Check that there are not huge numbers of failed callback expectations.
+    EXPECT_GE((oddBlend ? 0.15f : 0.1f), flavourStats.AmbLightOccupancyCallbackPredictionErrors.getFractionFlavoured());
+    // Check that there are not huge numbers of failed dark expectations.
+    EXPECT_GE(0.15f, flavourStats.RoomDarkPredictionErrors.getFractionFlavoured()) << flavourStats.RoomDarkPredictionErrors.getSampleCount();
+    // Check that there is a reasonable balance between room dark/light.
+    const float rdFraction = flavourStats.RoomDarkSamples.getFractionFlavoured();
+    EXPECT_LE(0.2f, rdFraction);
+    EXPECT_GE(0.8f, rdFraction);
+    // Check that number of false positives and negatives
+    // from occupancy tracked fed from ambient light reports is OK.
+    if(flavourStats.OccupancyTrackingFalseNegatives.getSampleCount() > 0)
+        {
+        // When 'sensitive', eg in comfort mode,
+        // more false positives and fewer false negatives are OK.
+        // But accept more errors generally with non-preferred blending.
+        // Excess false positives likely inhibit energy saving.
+        EXPECT_GT(((flavourStats.sensitive||oddBlend) ? 0.2f : 0.1f), flavourStats.OccupancyTrackingFalsePositives.getFractionFlavoured());
+        // Excess false negatives may cause discomfort.
+        EXPECT_GT(((flavourStats.sensitive&&!oddBlend) ? 0.13f : 0.23f), flavourStats.OccupancyTrackingFalseNegatives.getFractionFlavoured());
+        }
+    }
 // Do a simple run over the supplied data, one call per simulated minute until the terminating record is found.
 // Must be called with 1 or more data rows in ascending time with a terminating (empty) entry.
 // Repeated rows with the same light value and expected result can be omitted
@@ -508,7 +541,7 @@ void simpleDataSampleRun(const ALDataSample *const data)
 if(verbose) { fprintf(stderr, "blending = %d\n", blending); }
         SCOPED_TRACE(testing::Message() << "blending " << (int)blending);
         // The preferred blend (most like a real deployment) is FROMSTATS.
-        const bool oddBlend = (blending != BL_FROMSTATS);
+//        const bool oddBlend = (blending != BL_FROMSTATS);
 
         // Run simulation at both sensitivities.
         int nOccupancyReportsSensitive = 0;
@@ -611,39 +644,14 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
                         } while((!(dp+1)->isEnd()) && (currentMinute < (dp+1)->currentMinute()));
                     }
 
+                // Don't test results in wormup run.
                 if(!warmup)
                     {
-                    // Don't test results for wormup run.
-                    // Check that at least some expectations have been set.
-        //            ASSERT_NE(0U, flavourStats.AmbLightOccupancyCallbackPredictionErrors.getSampleCount()) << "some expected occupancy callbacks should be provided";
-                    ASSERT_NE(0U, flavourStats.RoomDarkPredictionErrors.getSampleCount()) << "some known room dark values should be provided";
-                    ASSERT_NE(0U, flavourStats.OccupancyTrackingFalseNegatives.getSampleCount()) << "some known occupancy values should be provided";
-                    // Check that there are not huge numbers of (false) positive occupancy reports.
-                    EXPECT_GE(0.25f, flavourStats.AmbLightOccupancyCallbacks.getFractionFlavoured());
-                    // Check that there are not huge numbers of failed callback expectations.
-                    EXPECT_GE((oddBlend ? 0.15f : 0.1f), flavourStats.AmbLightOccupancyCallbackPredictionErrors.getFractionFlavoured());
-                    // Check that there are not huge numbers of failed dark expectations.
-                    EXPECT_GE(0.15f, flavourStats.RoomDarkPredictionErrors.getFractionFlavoured()) << flavourStats.RoomDarkPredictionErrors.getSampleCount();
-                    // Check that there is a reasonable balance between room dark/light.
-                    const float rdFraction = flavourStats.RoomDarkSamples.getFractionFlavoured();
-                    EXPECT_LE(0.2f, rdFraction);
-                    EXPECT_GE(0.8f, rdFraction);
+                    checkAccuracyAcceptableAgainstData(flavourStats);
                     // Allow check in outer loop that sensitive mode generates
                     // at least as many reports as non-sensitive mode.
                     if(sensitive) { nOccupancyReportsSensitive = flavourStats.AmbLightOccupancyCallbacks.getFlavouredCount(); }
                     else { nOccupancyReportsNotSensitive = flavourStats.AmbLightOccupancyCallbacks.getFlavouredCount(); }
-                    // Check that number of false positives and negatives
-                    // from occupancy tracked fed from ambient light reports is OK.
-                    if(flavourStats.OccupancyTrackingFalseNegatives.getSampleCount() > 0)
-                        {
-                        // When 'sensitive', eg in comfort mode,
-                        // more false positives and fewer false negatives are OK.
-                        // But accept more errors generally with non-preferred blending.
-                        // Excess false positives likely inhibit energy saving.
-                        EXPECT_GT(((sensitive||oddBlend) ? 0.2f : 0.1f), flavourStats.OccupancyTrackingFalsePositives.getFractionFlavoured());
-                        // Excess false negatives may cause discomfort.
-                        EXPECT_GT(((sensitive&&!oddBlend) ? 0.13f : 0.23f), flavourStats.OccupancyTrackingFalseNegatives.getFractionFlavoured());
-                        }
                     }
                 }
             }
