@@ -110,14 +110,8 @@ struct ModelledRadValveState final
   {
   // Construct an instance, with sensible defaults, but no (room) temperature.
   // Defers its initialisation with room temperature until first tick().
-  ModelledRadValveState(bool _alwaysGlacial = false) :
-    alwaysGlacial(_alwaysGlacial),
-    initialised(false),
-    isFiltering(false),
-    valveMoved(false),
-    valveTurndownCountdownM(0), valveTurnupCountdownM(0),
-    cumulativeMovementPC(0)
-    { }
+  ModelledRadValveState(bool _alwaysGlacial = false)
+    : alwaysGlacial(_alwaysGlacial) { }
 
   // Construct an instance, with sensible defaults, and current (room) temperature from the input state.
   // Does its initialisation with room temperature immediately.
@@ -135,13 +129,13 @@ struct ModelledRadValveState final
   // True once all deferred initialisation done during the first tick().
   // This takes care of setting state that depends on run-time data
   // such as real temperatures to propagate into all the filters.
-  bool initialised;
+  bool initialised = false;
 
   // If true then filtering is being applied to temperatures since they are fast-changing.
-  bool isFiltering;
+  bool isFiltering = false;
 
   // True if the computed valve position was changed by tick().
-  bool valveMoved;
+  bool valveMoved = false;
 
   // Testable/reportable events.
   // Cleared at the start of each tick().
@@ -174,7 +168,7 @@ struct ModelledRadValveState final
   // causing measured temperatures to veer up and down.
   // This attempts to reduce excessive valve noise and energy use
   // and help to avoid boiler short-cycling.
-  uint8_t valveTurndownCountdownM;
+  uint8_t valveTurndownCountdownM = 0;
   // Mark flow as having been reduced.
   // TODO: possibly decrease reopen delay in comfort mode and increase in filtering/wide-deadband/eco mode.
   void valveTurndown() { valveTurndownCountdownM = DEFAULT_ANTISEEK_VALVE_REOPEN_DELAY_M; }
@@ -188,7 +182,7 @@ struct ModelledRadValveState final
   // causing measured temperatures to veer up and down.
   // This attempts to reduce excessive valve noise and energy use
   // and help to avoid boiler short-cycling.
-  uint8_t valveTurnupCountdownM;
+  uint8_t valveTurnupCountdownM = 0;
   // Mark flow as having been increased.
   // TODO: possibly increase reclose delay in filtering/wide-deadband mode.
   void valveTurnup() { valveTurnupCountdownM = DEFAULT_ANTISEEK_VALVE_RECLOSE_DELAY_M; }

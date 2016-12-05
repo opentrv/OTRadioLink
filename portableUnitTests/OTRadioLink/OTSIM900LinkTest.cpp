@@ -521,7 +521,7 @@ public:
 //    void setVerbose(bool verbose) { serialConnection.verbose = verbose; emu.verbose = verbose; }
 };
 static SIM900 sim900;
-static constexpr auto sim900WriteCallback = [] { sim900.poll(); };
+static const auto sim900WriteCallback = [] { sim900.poll(); };
 }
 
 

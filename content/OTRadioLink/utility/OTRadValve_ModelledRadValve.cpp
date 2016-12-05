@@ -74,11 +74,7 @@ static constexpr uint8_t MAX_TEMP_JUMP_C16 = 3; // 3/16C.
 // Does its initialisation with room temperature immediately.
 ModelledRadValveState::ModelledRadValveState(const ModelledRadValveInputState &inputState, const bool _alwaysGlacial) :
   alwaysGlacial(_alwaysGlacial),
-  initialised(true),
-  isFiltering(false),
-  valveMoved(false),
-  valveTurndownCountdownM(0), valveTurnupCountdownM(0),
-  cumulativeMovementPC(0)
+  initialised(true)
   {
   // Fills array exactly as tick() would when !initialised.
   const int_fast16_t rawTempC16 = computeRawTemp16(inputState);

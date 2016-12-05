@@ -51,7 +51,13 @@ SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupanc
     {
     // If new light level lower than previous
     // then do not detect any level of occupancy and save some CPU time.
-    if(newLightLevel < prevLightLevel) { prevLightLevel = newLightLevel; return(OCC_NONE); }
+    if(newLightLevel < prevLightLevel)
+        {
+        if((prevLightLevel - newLightLevel) >= epsilon) { steadyTicks = 0; }
+        else if(steadyTicks < 255) { ++steadyTicks; }
+        prevLightLevel = newLightLevel;
+        return(OCC_NONE);
+        }
 
 #if 0 && !defined(ARDUINO)
     serialPrintlnAndFlush("update(>=)");
@@ -69,28 +75,43 @@ SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupanc
     // Assume maximum of max dropped by the noise floor if none set.
     const uint8_t maxToUse = (0xff == longTermMaximumOrFF) ? (0xff-epsilon) : longTermMaximumOrFF;
 
+    // Compute delta/rise.
     const uint8_t rise = newLightLevel - prevLightLevel;
+    const bool steady = (rise < epsilon);
+
+    // Reset 'steady' timer if significant delta.
+    const uint8_t oldSteadyTicks = steadyTicks;
+    if(!steady) { steadyTicks = 0; }
+    else if(steadyTicks < 255) { ++steadyTicks; }
 
     // Precondition for probable occupancy is a rising light level.
     // Any rise must be more than the fixed floor/noise threshold epsilon.
     // Also, IF a long-term mean for this time slot is available and above the lower floor,
-    // then the rise must also be more than a fraction of the mean's distance above that floor.
-    if((rise >= epsilon) &&
+    // then the rise must also be more than a fraction of the mean's distance above that floor,
+    // AND the rise must not start from above the mean
+    // (to reduce false triggering from clouds in bright sunshine).
+    //
+    // An alternative damper is to insist on the rise starting at/below the mean.
+    if((!steady) &&
         (((0xff == meanNowOrFF) || (meanNowOrFF <= minToUse)) ||
-            (rise >= ((meanNowOrFF - minToUse) >> (sensitive ? 2 : 1)))))
+            ((rise >= ((meanNowOrFF - minToUse) >> (sensitive ? 2 : 1))) &&
+                (oldSteadyTicks >= steadyTicksMinBeforeLightOn))))
         {
         // Lights flicked on or curtains drawn maybe: room occupied.
         occLevel = OCC_PROBABLE;
         }
     // Else look for weak occupancy indications.
-    // Look for habitual use of artificial lighting at set times, eg for TV watching or reading.
-    // This must have a long-term non-extreme sane mean for the current time of day available,
+    // Look for habitual use of artificial lighting at set times,
+    // eg for TV watching or reading.
+    // This must have a non-extreme sane mean for the current time of day,
     // and sane correctly-ordered min and max bounds.
-    // and any rise must be small eg to guard against (eg) sunlight-driven flicker.
+    // and any rise must be small
+    // and levels must be fairly steady for a while (> ~30 minutes)
+    // eg to guard against (eg) sunlight-driven flicker.
     //
     // See evening levels for trace 3l here for example:
     //     http://www.earth.org.uk/img/20161124-16WWal.png
-    else if((rise < epsilon) && (meanNowOrFF > minToUse) && (meanNowOrFF < maxToUse)) // Implicitly 0xff != meanNowOrFF.
+    else if((steadyTicks >= steadyTicksMinForArtificialLight) && (meanNowOrFF > minToUse) && (meanNowOrFF < maxToUse)) // Implicitly 0xff != meanNowOrFF.
         {
         // Previous and current light levels should ideally be well away from maximum/minimum
         // (and asymmetrically much further below maximum, ie a wider margin on the high side)
@@ -102,7 +123,7 @@ SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupanc
         const uint8_t margin = uint8_t(marginW >> 2);
         const uint8_t thrL = minToUse + margin;
         const uint8_t thrH = maxToUse - marginW;
-        const uint8_t maxDistanceFromMean = fnmin(meanNowOrFF-minToUse, maxToUse-meanNowOrFF) >> (sensitive ? 2 : 3);
+        const uint8_t maxDistanceFromMean = fnmin(meanNowOrFF-minToUse, maxToUse-meanNowOrFF) >> (sensitive ? 1 : 2);
 
 #if 0 && !defined(ARDUINO)
         serialPrintAndFlush("  newLightLevel=");

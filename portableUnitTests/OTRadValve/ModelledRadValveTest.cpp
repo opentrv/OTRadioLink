@@ -896,6 +896,8 @@ Starred items are tested.
 /*
 FIXME: tests pending...  See also TODO-1028.
 
+TODO: test fast response to manual UI use AND to probable occupancy, eg lights on, to be responsive.
+
 TODO: test DHW temperature range and restricted max-open (13%) and glacial as per Bo's setup.
 
 TODO: check that BAKE behaves as expected, in target lift amount, and duration, and reversion to WARM, and automatic cancellation on hitting raised target.

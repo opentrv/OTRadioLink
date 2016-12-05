@@ -39,16 +39,18 @@ namespace OTV0P2BASE
 class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Sensor
   {
   public:
-    // Number of minutes that room is regarded as occupied after markAsOccupied() in range [3,100].
-    // DHD20130528: no activity for ~30 minutes usually enough to declare room empty; an hour is conservative.
-    // Should probably be at least as long as, or a little longer than, the BAKE timeout.
-    // Should probably be significantly shorter than normal 'learn' on time to allow savings from that in empty rooms.
+    // Number of minutes that room is regarded as occupied after markAsOccupied() in range [4,200].
+    // No activity for ~30 minutes usually enough to declare room empty;
+    // an hour or more would be conservative.
+    // Should probably be at least as long as the BAKE timeout.
+    // Should probably be significantly shorter than normal 'LEARN' on time
+    // to allow savings from that in empty rooms.
     // Values of 25, 50, 100 work well for the internal arithmetic.
     static constexpr uint8_t OCCUPATION_TIMEOUT_M = 50;
 
   private:
     // Threshold from 'likely' to 'probably'; strictly positive.  Not part of the official API.
-    static constexpr uint8_t OCCUPATION_TIMEOUT_LIKELY_M = fnmax(((OCCUPATION_TIMEOUT_M*3)/4), 3);
+    static constexpr uint8_t OCCUPATION_TIMEOUT_LIKELY_M = fnmax(((OCCUPATION_TIMEOUT_M*4)/5), 3);
     // Threshold from 'probably' to 'maybe'; strictly positive and less than OCCUPATION_TIMEOUT_LIKELY_M.  Not part of the official API.
     static constexpr uint8_t OCCUPATION_TIMEOUT_MAYBE_M = fnmax(OCCUPATION_TIMEOUT_LIKELY_M/3, 2);
 
@@ -58,12 +60,12 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
 
     // Time until room regarded as unoccupied, in minutes; initially zero (ie treated as unoccupied at power-up).
     // Marked volatile for thread-safe lock-free non-read-modify-write access to byte-wide value.
-    // Compound operations must block interrupts.
+    // Compound operations must be thread-/interrupt- safe.
     volatile Atomic_UInt8T occupationCountdownM;
 
     // Non-zero if occupancy system recently notified of activity.
     // Marked volatile for thread-safe lock-free non-read-modify-write access to byte-wide value.
-    // Compound operations must block interrupts.
+    // Compound operations must be thread-/interrupt- safe.
     volatile Atomic_UInt8T activityCountdownM;
 
     // Hours and minutes since room became vacant (doesn't roll back to zero from max hours); zero when room occupied.
@@ -151,7 +153,7 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     // so for example a weak indication of presence is not enough to cancel holiday mode.
     // Doesn't force the room to appear recently occupied.
     // Doesn't activate the recent-activity status.
-    // ISR-/thread- safe, though not recommended for calls from such.
+    // Not ISR-/thread- safe.
     void markAsJustPossiblyOccupied();
 
     // Two-bit occupancy: 0 not known/disclosed, 1 not occupied, 2 possibly occupied, 3 probably occupied.
@@ -184,6 +186,11 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     // This value will only change at read(), and will not instantly be forced to 0 when activity happens.
     const SubSensorSimpleRef<uint8_t> vacHSubSensor;
 
+    // Threshold hours ABOVE which weak occupancy signals are ignored.
+    // Since these signals may arise infrequently this should not be too low,
+    // but too high a value allows false positives to prevent energy savings.
+    // No more than (say) 6 hours to allow night to kill weak signal input.
+    static constexpr uint8_t weakVacantHThrH = 3;
     // Threshold hours ABOVE which room is considered long vacant.
     // At least 24h in order to allow once-daily room programmes (including pre-warm) to operate reliably.
     static constexpr uint8_t longVacantHThrH = 24;
