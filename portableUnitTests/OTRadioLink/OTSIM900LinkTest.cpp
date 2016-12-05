@@ -672,11 +672,21 @@ TEST(OTSIM900Link, StartupFromOffTest)
         // Pin should be high for 2 seconds.
         EXPECT_TRUE(l0._isPinHigh());
         secondsVT++;
+        l0.poll();
         EXPECT_TRUE(l0._isPinHigh());
         secondsVT++;
+        l0.poll();
+        EXPECT_TRUE(l0._isPinHigh());
+        secondsVT++;
+        l0.poll();
         EXPECT_FALSE(l0._isPinHigh());
         // Locked out for a further 10 seconds, waiting for lockout to finish.
-        for (int i = secondsVT + 10; secondsVT < i; secondsVT++) EXPECT_EQ(OTSIM900Link::START_UP, l0._getState());
+//        for (int i = secondsVT + 10; secondsVT < i; secondsVT++) EXPECT_EQ(OTSIM900Link::START_UP, l0._getState());
+        for (int i = 0; i < 10; i++) {
+            secondsVT++;
+            l0.poll();
+            EXPECT_EQ(OTSIM900Link::START_UP, l0._getState());
+        }
         // - Replied so should move on:             CHECK_PIN, PIN LOW
         l0.poll();
         EXPECT_EQ(OTSIM900Link::CHECK_PIN, l0._getState());
