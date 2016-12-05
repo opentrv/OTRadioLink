@@ -1075,7 +1075,7 @@ typedef const char *AT_t;
          */
 
 #ifdef ARDUINO_ARCH_AVR
-        bool _isPinHigh( return fastDigitalRead(PWR_PIN) );
+        bool _isPinHigh() { return fastDigitalRead(PWR_PIN); }
 #else
         // Provided to assist with "white-box" unit testing.
         OTSIM900LinkState _getState() { return(state); }
