@@ -376,14 +376,15 @@ static void checkAccuracyAcceptableAgainstData(
     ASSERT_NE(0U, flavourStats.RoomDarkPredictionErrors.getSampleCount()) << "some known room dark values should be provided";
     ASSERT_NE(0U, flavourStats.OccupancyTrackingFalseNegatives.getSampleCount()) << "some known occupancy values should be provided";
     // Check that there are not huge numbers of (false) positive occupancy reports.
-    EXPECT_GE(0.25f, flavourStats.AmbLightOccupancyCallbacks.getFractionFlavoured());
+    EXPECT_GE(0.24f, flavourStats.AmbLightOccupancyCallbacks.getFractionFlavoured());
     // Check that there are not huge numbers of failed callback expectations.
-    EXPECT_GE((oddBlend ? 0.15f : 0.1f), flavourStats.AmbLightOccupancyCallbackPredictionErrors.getFractionFlavoured());
+    // We could allow more errors with an odd (non-deployment) blending.
+    EXPECT_GE(0.07f, flavourStats.AmbLightOccupancyCallbackPredictionErrors.getFractionFlavoured());
     // Check that there are not huge numbers of failed dark expectations.
     EXPECT_GE(0.15f, flavourStats.RoomDarkPredictionErrors.getFractionFlavoured()) << flavourStats.RoomDarkPredictionErrors.getSampleCount();
     // Check that there is a reasonable balance between room dark/light.
     const float rdFraction = flavourStats.RoomDarkSamples.getFractionFlavoured();
-    EXPECT_LE(0.2f, rdFraction);
+    EXPECT_LE(0.4f, rdFraction);
     EXPECT_GE(0.8f, rdFraction);
     // Check that number of false positives and negatives
     // from occupancy tracked fed from ambient light reports is OK.
@@ -536,12 +537,12 @@ void simpleDataSampleRun(const ALDataSample *const data)
     // Now run through all the data checking responses.
     // Run simulation with different stats blending types
     // to ensure that occupancy detection is robust.
+    // The BL_FROMSTATS case is most like the real embedded code.
     for(uint8_t blending = 0; blending < BL_END; ++blending)
         {
 if(verbose) { fprintf(stderr, "blending = %d\n", blending); }
         SCOPED_TRACE(testing::Message() << "blending " << (int)blending);
         // The preferred blend (most like a real deployment) is FROMSTATS.
-//        const bool oddBlend = (blending != BL_FROMSTATS);
 
         // Run simulation at both sensitivities.
         int nOccupancyReportsSensitive = 0;
@@ -597,6 +598,10 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
                         ala.set(dp->L);
                         ala.read();
                         tracker.read();
+
+                        // Get stats updated.
+                        if(29 == M) { SDSR::su.sampleStats(false, H); }
+                        if(59 == M) { SDSR::su.sampleStats(true, H); }
 
     //if(verbose && tracker.isLikelyOccupied()) { fprintf(stderr, "O=%d @ %dT%d:%.2d\n", (int)tracker.get(), D, H, M); }
 
