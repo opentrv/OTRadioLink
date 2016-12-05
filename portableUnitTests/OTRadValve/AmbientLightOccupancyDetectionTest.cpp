@@ -396,10 +396,6 @@ void simpleDataSampleRun(const ALDataSample *const data)
     OTV0P2BASE::SensorAmbientLightAdaptiveMock &ala = SDSR::ambLight;
     // Occupancy tracker instance under test, to check system behaviour.
     OTV0P2BASE::PseudoSensorOccupancyTracker &tracker = SDSR::occupancy;
-    // Occupancy callback during setup.
-    void (*const callbackI)(bool) = [](bool p)
-        { if(p) { tracker.markAsPossiblyOccupied(); } else { tracker.markAsJustPossiblyOccupied(); } };
-    ala.setOccCallbackOpt(callbackI);
 
     // Some basic sense-checking of the set-up state.
     ASSERT_EQ(0, tracker.get());
