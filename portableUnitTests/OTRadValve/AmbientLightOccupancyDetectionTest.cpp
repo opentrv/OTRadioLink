@@ -26,6 +26,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 #include <stdint.h>
 #include <gtest/gtest.h>
 #include <OTV0p2Base.h>
+#include <OTRadValve.h>
 #include "OTV0P2BASE_SensorAmbientLightOccupancy.h"
 
 
@@ -211,6 +212,17 @@ static const ALDataSample trivialSample3[] =
 // Support state for simpleDataSampleRun().
 namespace SDSR
     {
+//// Instances with linkage to support the test.
+    OTRadValve::ValveMode valveMode;
+//static OTV0P2BASE::TemperatureC16Mock roomTemp;
+//static OTRadValve::TempControlSimpleVCP<OTRadValve::DEFAULT_ValveControlParameters> tempControl;
+//static OTV0P2BASE::PseudoSensorOccupancyTracker occupancy;
+//static OTV0P2BASE::SensorAmbientLightAdaptiveMock ambLight;
+//static OTRadValve::NULLActuatorPhysicalUI physicalUI;
+//static OTV0P2BASE::NULLValveSchedule schedule;
+//static OTV0P2BASE::NULLByHourByteStats byHourStats;
+
+
     OTV0P2BASE::PseudoSensorOccupancyTracker occupancy;
     OTV0P2BASE::SensorAmbientLightAdaptiveMock ambLight;
     // In-memory stats set.
@@ -227,6 +239,19 @@ namespace SDSR
       decltype(rh), &rh,
       2
       > su;
+    // Simple-as-possible instance.
+    typedef OTRadValve::DEFAULT_ValveControlParameters parameters;
+//    OTRadValve::ModelledRadValveComputeTargetTempBasic<
+//       parameters,
+//        valveMode,
+//        decltype(tempC16),                            tempC16,
+//        decltype(MRVEI::tempControl),                 &MRVEI::tempControl,
+//        decltype(occupancy),                          occupancy,
+//        decltype(ambLight),                           ambLight,
+//        decltype(MRVEI::physicalUI),                  &MRVEI::physicalUI,
+//        decltype(MRVEI::schedule),                    &MRVEI::schedule,
+//        decltype(hs),                                 hs
+//        > cttb;
     // Occupancy callback.
     static int8_t cbProbable;
     static void (*const callback)(bool) = [](bool p)
@@ -238,6 +263,7 @@ if(verbose) { fprintf(stderr, "*Callback: %d\n", p); }
     // Reset all these static entities but does not clear stats.
     static void resetAll()
         {
+        valveMode.setWarmModeDebounced(true);
         ambLight.resetAdaptive();
         occupancy.reset();
         // Flush any partial samples.
