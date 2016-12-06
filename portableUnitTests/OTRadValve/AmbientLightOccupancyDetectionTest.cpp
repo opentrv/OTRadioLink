@@ -501,7 +501,7 @@ static void checkAccuracyAcceptableAgainstData(
     // Excess false positives likely inhibit energy saving.
     EXPECT_GT(((flavourStats.sensitive||oddBlend) ? 0.115f : 0.1f), flavourStats.occupancyTrackingFalsePositives.getFractionFlavoured());
     // Excess false negatives may cause discomfort.
-    EXPECT_GT(((flavourStats.sensitive&&!oddBlend) ? 0.125f : 0.228f), flavourStats.occupancyTrackingFalseNegatives.getFractionFlavoured());
+    EXPECT_GT(((flavourStats.sensitive&&!oddBlend) ? 0.125f : 0.24f), flavourStats.occupancyTrackingFalseNegatives.getFractionFlavoured());
 
     // Check that setback accuracy is OK.
     // Aim for a low error rate in either direction.
@@ -2579,30 +2579,30 @@ static const ALDataSample sample3leveningTV[] =
 {10,18,15,31},
 {10,18,27,31},
 {10,18,31,30},
-{10,18,39,30, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEECO}, // TV watching, occupied, borderline dark, maybe small setback.
+{10,18,39,30, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEECO}, // TV watching, borderline occupied, dark, maybe small setback.
 {10,18,51,30},
 {10,19,7,31},
 {10,19,15,40},
-{10,19,27,40, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEECO}, // TV watching, occupied, borderline dark, maybe small setback.
+{10,19,27,40, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEECO}, // TV watching, borderline occupied, borderline dark, maybe small setback.
 {10,19,43,39},
-{10,19,55,41, occType::OCC_WEAK, false, true}, // TV watching?
+{10,19,55,41, occType::OCC_WEAK, false, true, ALDataSample::SB_NONEECO}, // TV watching, borderline occupied, borderline dark, maybe small setback.
 {10,19,59,42},
 {10,20,11,39},
-{10,20,23,41, occType::OCC_WEAK, false, true}, // TV watching?
+{10,20,23,41, occType::OCC_WEAK, false, true, ALDataSample::SB_NONEECO}, // TV watching, borderline occupied, borderline dark, maybe small setback.
 {10,20,31,39},
-{10,20,43,40, occType::OCC_WEAK, false, true}, // TV watching?
+{10,20,43,40, occType::OCC_WEAK, false, true, ALDataSample::SB_NONEECO}, // TV watching, borderline occupied, borderline dark, maybe small setback.
 {10,20,47,39},
-{10,20,51,40, occType::OCC_WEAK, false, true}, // TV watching?
+{10,20,51,40, occType::OCC_WEAK, false, true, ALDataSample::SB_NONEECO}, // TV watching, borderline occupied, borderline dark, maybe small setback.
 {10,21,7,40},
 {10,21,9,41},
 {10,21,15,41},
 {10,21,35,40},
 {10,21,47,40},
-{10,21,55,39},
+{10,21,55,39, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEECO}, // TV watching, borderline occupied, borderline dark, maybe small setback.
 {10,22,7,1},
-{10,22,15,1},
+{10,22,15,1, occType::OCC_NONE, true, false, ALDataSample::SB_ECOMAX}, // Vacant, dark.
 // ...
-{11,6,27,1},
+{11,6,27,1, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Vacant, dark, dark long enough for full setback.
 {11,6,43,1},
 {11,6,55,2},
 {11,7,7,5},
