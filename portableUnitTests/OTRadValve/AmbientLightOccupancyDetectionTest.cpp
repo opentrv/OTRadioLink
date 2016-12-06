@@ -503,7 +503,7 @@ static void checkAccuracyAcceptableAgainstData(
 
     // Check that setback accuracy is OK.
     // Aim for a low error rate in either direction.
-    EXPECT_GE((flavourStats.sensitive ? 0.14f : 0.11f), flavourStats.setbackInsufficient.getFractionFlavoured());
+    EXPECT_GE((flavourStats.sensitive ? 0.12f : 0.1f), flavourStats.setbackInsufficient.getFractionFlavoured());
     EXPECT_GE(0.1f, flavourStats.setbackTooFar.getFractionFlavoured());
     }
 // Do a simple run over the supplied data, one call per simulated minute until the terminating record is found.
