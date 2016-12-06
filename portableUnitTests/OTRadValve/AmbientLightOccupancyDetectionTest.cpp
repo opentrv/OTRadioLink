@@ -83,6 +83,9 @@ class ALDataSample final
             {
             NO_SB_EXPECTATION = -1, // -1 indicates no setback prediction.
             SB_NONE, // Setback of zero, ie no setback.
+            SB_NONEMIN, // Some mixture of NONE and MIN.
+            SB_MIN, // MIN setback.
+              SB_NONEECO, // Some mixture of NONE, MIN and ECO.
             SB_MINECO, // Some mixture of MIN and ECO.
             SB_ECO, // ECO/medium setback.
             SB_ECOMAX, // Some mixture of ECO and MAX.
@@ -296,13 +299,39 @@ static void scoreSetback(
            break;
            }
 
-        // Some mixture of MIN and ECO.
-        // A setback up to ECO is OK; there is no 'insufficient'.
-        case ALDataSample::SB_MINECO:
-            {
-            tooFar = (setback > Valve_parameters::SETBACK_ECO);
-            break;
-            }
+       // NINE/minimum setback micture.
+       // Up to MIN setback is acceptable.
+       case ALDataSample::SB_NONEMIN:
+           {
+           tooFar = (setback > Valve_parameters::SETBACK_DEFAULT);
+           break;
+           }
+
+       // Minimum setback.
+       // Exactly ECO setback is acceptable.
+       case ALDataSample::SB_MIN:
+           {
+           insufficient = (setback < Valve_parameters::SETBACK_DEFAULT);
+           tooFar = (setback > Valve_parameters::SETBACK_DEFAULT);
+           break;
+           }
+
+       // Some mixture of NONE (and MIN) and ECO.
+       // A setback up to ECO inclusive is OK.
+       case ALDataSample::SB_NONEECO:
+           {
+           tooFar = (setback > Valve_parameters::SETBACK_ECO);
+           break;
+           }
+
+       // Some mixture of MIN and ECO.
+       // A setback from MIN up to ECO inclusive is OK.
+       case ALDataSample::SB_MINECO:
+           {
+           insufficient = (setback < Valve_parameters::SETBACK_DEFAULT);
+           tooFar = (setback > Valve_parameters::SETBACK_ECO);
+           break;
+           }
 
         // ECO/medium setback.
         // Exactly ECO setback is acceptable.
@@ -1062,16 +1091,16 @@ TEST(AmbientLightOccupancyDetection,sample3lLevels)
 static const ALDataSample sample5sHard[] =
     {
 {8,0,3,2, occType::OCC_NONE, true}, // Not occupied actively.
-{8,0,19,2, occType::OCC_NONE, true, false, ALDataSample::SB_ECOMAX}, // Not occupied actively, good setback (may be too soon after data set start to hit max).
+{8,0,19,2, occType::OCC_NONE, true, false, ALDataSample::SB_ECOMAX}, // Not occupied actively, sleeping, good setback (may be too soon after data set start to hit max).
 // ...
 {8,5,19,2, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Not occupied actively, sleeping, max setback.
 {8,5,31,1, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Not occupied actively, sleeping, max setback.
 {8,5,43,2, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Not occupied actively, sleeping, max setback.
 // ...
-{8,6,23,4},
-{8,6,35,6},
-{8,6,39,5},
-{8,6,51,6},
+{8,6,23,4, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Not occupied actively, sleeping, max setback.
+{8,6,35,6, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Not occupied actively, sleeping, max setback.
+{8,6,39,5, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Not occupied actively, sleeping, max setback.
+{8,6,51,6, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Not occupied actively, sleeping, max setback.
 {8,7,3,9, occType::OCC_NONE, ALDataSample::NO_RD_EXPECTATION, false}, // Not occupied actively.
 {8,7,11,12},
 {8,7,15,13},
@@ -1162,17 +1191,17 @@ static const ALDataSample sample5sHard[] =
 {8,21,39,2, occType::OCC_NONE, true, false}, // Light turned off, no active occupancy.
 {8,21,55,2},
 // ...
-{9,0,55,2},
-{9,1,7,2},
-{9,1,15,1},
-{9,1,19,1, occType::OCC_NONE, true, false}, // Light turned off, no active occupancy.
+{9,0,55,2, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Not occupied actively, sleeping, max setback.
+{9,1,7,2, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Not occupied actively, sleeping, max setback.
+{9,1,15,1, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Not occupied actively, sleeping, max setback.
+{9,1,19,1, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Not occupied actively, sleeping, max setback.
 // ...
-{9,5,31,1},
-{9,5,36,1},
-{9,5,47,2},
-{9,5,51,2, occType::OCC_NONE, true, false}, // Light turned off, no active occupancy.
+{9,5,31,1, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Not occupied actively, sleeping, max setback.
+{9,5,36,1, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Not occupied actively, sleeping, max setback.
+{9,5,47,2, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Not occupied actively, sleeping, max setback.
+{9,5,51,2, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Not occupied actively, sleeping, max setback.
 {9,6,3,3},
-{9,6,15,5},
+{9,6,15,5, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Not occupied actively, sleeping, max setback.
 {9,6,27,10},
 {9,6,31,12},
 {9,6,35,15},
@@ -1181,10 +1210,10 @@ static const ALDataSample sample5sHard[] =
 {9,6,59,24},
 {9,7,7,28, occType::OCC_NONE}, // Not yet up and about.  But not actually dark.
 {9,7,15,66},
-{9,7,27,181, occType::OCC_PROBABLE, false, true}, // Curtains drawn: temporary occupancy.
+{9,7,27,181, occType::OCC_PROBABLE, false, true, ALDataSample::SB_NONEECO}, // Curtains drawn: temporary occupancy, some setback OK.
 {9,7,43,181},
 {9,7,51,181},
-{9,7,59,181},
+{9,7,59,181, ALDataSample::NO_OCC_EXPECTATION, false, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEECO}, // Not dark, occupancy unknown, some setback OK.
     { }
     };
 // Test with real data set.
