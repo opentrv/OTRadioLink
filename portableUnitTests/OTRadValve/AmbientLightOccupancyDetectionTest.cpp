@@ -559,8 +559,6 @@ void simpleDataSampleRun(const ALDataSample *const data)
     uint8_t byHourMeanI[24];
     int byHourMeanSumI[24]; memset(byHourMeanSumI, 0, sizeof(byHourMeanSumI));
     int byHourMeanCountI[24]; memset(byHourMeanCountI, 0, sizeof(byHourMeanCountI));
-//    const long startMinute = data->currentMinute();
-//    long lm = startMinute;
     for(const ALDataSample *dp = data; !dp->isEnd(); ++dp)
         {
         ++nRecords;
@@ -581,7 +579,6 @@ void simpleDataSampleRun(const ALDataSample *const data)
             ++byHourMeanCountI[H];
             ++currentMinute;
             ala.set(dp->L); ala.read(); tracker.read();
-//            lm = currentMinute;
             } while((!(dp+1)->isEnd()) && (currentMinute < (dp+1)->currentMinute()));
         }
     ASSERT_TRUE((nOccExpectation > 0) || (nRdExpectation > 0)) << "must assert some expected predictions";
