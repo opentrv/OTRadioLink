@@ -1145,7 +1145,7 @@ static const ALDataSample sample5sHard[] =
 {8,11,59,132},
 {8,12,7,132},
 {8,12,19,147},
-{8,12,23,114, ALDataSample::NO_OCC_EXPECTATION, false, false}, // Broad daylight, vacant.
+{8,12,23,114, ALDataSample::NO_OCC_EXPECTATION, false, false, ALDataSample::SB_MINECO}, // Broad daylight, vacant, some setback should be in place.
 {8,12,35,91}, // Cloud passing over.
 {8,12,47,89},
 {8,12,55,85},
