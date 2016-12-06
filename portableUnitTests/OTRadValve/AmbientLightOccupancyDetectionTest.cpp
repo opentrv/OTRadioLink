@@ -31,7 +31,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 
 
 // Set true for verbose reporting.
-static constexpr bool verbose = true;
+static constexpr bool verbose = false;
+// Lots of extra detail, generally should not be needed.
+static constexpr bool veryVerbose = false;
 
 // Import occType enum values.
 typedef OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType occType;
@@ -258,7 +260,7 @@ namespace SDSR
         {
         cbProbable = p;
         if(p) { occupancy.markAsPossiblyOccupied(); } else { occupancy.markAsJustPossiblyOccupied(); }
-if(verbose) { fprintf(stderr, " *Callback: %d\n", p); }
+if(veryVerbose) { fprintf(stderr, " *Callback: %d\n", p); }
         };
     // Reset all these static entities but does not clear stats.
     static void resetAll()
@@ -646,6 +648,10 @@ void simpleDataSampleRun(const ALDataSample *const data)
 if(verbose) { fprintf(stderr, "blending = %d\n", blending); }
         SCOPED_TRACE(testing::Message() << "blending " << (int)blending);
         // The preferred blend (most like a real deployment) is FROMSTATS.
+        const bool oddBlend = (BL_FROMSTATS != blending);
+
+        // Suppress most reporting for odd blends.
+const bool verboseOutput = veryVerbose || (verbose && !oddBlend);
 
         // Run simulation at both sensitivities.
         int nOccupancyReportsSensitive = 0;
@@ -706,7 +712,7 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
                         if(29 == M) { SDSR::su.sampleStats(false, H); }
                         if(59 == M) { SDSR::su.sampleStats(true, H); }
 
-//if(verbose && tracker.isLikelyOccupied()) { fprintf(stderr, "O=%d @ %dT%d:%.2d\n", (int)tracker.get(), D, H, M); }
+//if(veryVerbose && tracker.isLikelyOccupied()) { fprintf(stderr, "O=%d @ %dT%d:%.2d\n", (int)tracker.get(), D, H, M); }
 
                         // Check predictions/calculations against explicit expectations.
                         // True if real non-interpolated record.
@@ -718,19 +724,19 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
                         const OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType predictionOcc =
                             (-1 == SDSR::cbProbable) ? occType::OCC_NONE :
                                 ((0 == SDSR::cbProbable) ? occType::OCC_WEAK : occType::OCC_PROBABLE);
-    //if(verbose && (-1 != cbProbable)) { fprintf(stderr, "  occupancy callback=%d @ %dT%d:%.2d\n", cbProbable, D, H, M); }
+//if(veryVerbose && (-1 != cbProbable)) { fprintf(stderr, "  occupancy callback=%d @ %dT%d:%.2d\n", cbProbable, D, H, M); }
                         if(isRealRecord) { flavourStats.ambLightOccupancyCallbacks.takeSample((-1 != SDSR::cbProbable)); }
                         // Collect occupancy tracker prediction and error.
                         if(isRealRecord && (ALDataSample::UNKNOWN_ACT_OCC != dp->actOcc))
                             {
                             const bool trackedLikelyOccupancy = tracker.isLikelyOccupied();
                             const bool actOcc = bool(dp->actOcc);
-    if(verbose && (trackedLikelyOccupancy != actOcc)) { fprintf(stderr, "!!!actual occupancy=%d @ %dT%d:%.2d L=%d mean=%d tracker=%d\n", dp->actOcc, D, H, M, dp->L, meanUsed, (int)tracker.get()); }
+if(verbose && (trackedLikelyOccupancy != actOcc)) { fprintf(stderr, "!!!actual occupancy=%d @ %dT%d:%.2d L=%d mean=%d tracker=%d\n", dp->actOcc, D, H, M, dp->L, meanUsed, (int)tracker.get()); }
                             flavourStats.occupancyTrackingFalseNegatives.takeSample(actOcc && !trackedLikelyOccupancy);
                             flavourStats.occupancyTrackingFalsePositives.takeSample(!actOcc && trackedLikelyOccupancy);
                             }
 
-    if(verbose && isRealRecord) { fprintf(stderr, "  tS=%d @ %dT%d:%.2d\n", SDSR::tempControl.getWARMTargetC() - SDSR::cttb.computeTargetTemp(), D, H, M); }
+if(veryVerbose && verboseOutput && isRealRecord) { fprintf(stderr, "  tS=%d @ %dT%d:%.2d\n", SDSR::tempControl.getWARMTargetC() - SDSR::cttb.computeTargetTemp(), D, H, M); }
                         if(isRealRecord && (ALDataSample::NO_SB_EXPECTATION != dp->expectedSb))
                             {
                             const int8_t setback = SDSR::tempControl.getWARMTargetC() - SDSR::cttb.computeTargetTemp();
@@ -740,21 +746,16 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
 
                         // Note that for all synthetic ticks the expectation is removed (since there is no level change).
                         const int8_t expectedOcc = (!isRealRecord) ? ALDataSample::NO_OCC_EXPECTATION : dp->expectedOcc;
-    if(verbose && isRealRecord && (occType::OCC_NONE != predictionOcc)) { fprintf(stderr, "  predictionOcc=%d @ %dT%d:%.2d L=%d mean=%d\n", predictionOcc, D, H, M, dp->L, meanUsed); }
+if(veryVerbose && verboseOutput && isRealRecord && (occType::OCC_NONE != predictionOcc)) { fprintf(stderr, "  predictionOcc=%d @ %dT%d:%.2d L=%d mean=%d\n", predictionOcc, D, H, M, dp->L, meanUsed); }
                         if(ALDataSample::NO_OCC_EXPECTATION != expectedOcc)
                             {
                             flavourStats.ambLightOccupancyCallbackPredictionErrors.takeSample(expectedOcc != predictionOcc);
-    if(verbose && (expectedOcc != predictionOcc)) { fprintf(stderr, " expectedOcc=%d @ %dT%d:%.2d L=%d mean=%d\n", expectedOcc, D, H, M, dp->L, meanUsed); }
-    //                        EXPECT_EQ(expectedOcc, predictionOcc) << " @ " << ((int)D) << "T" << ((int)H) << ":" << ((int)M) <<
-    //                            " L="<< ((int)(dp->L)) << " mean="<<((int)meanUsed) << " min="<<((int)minToUse) << " max="<<((int)maxToUse);
+if(verbose && (expectedOcc != predictionOcc)) { fprintf(stderr, "!!!expectedOcc=%d @ %dT%d:%.2d L=%d mean=%d\n", expectedOcc, D, H, M, dp->L, meanUsed); }
                             }
                         if(ALDataSample::NO_RD_EXPECTATION != expectedRoomDark)
                             {
                             flavourStats.roomDarkPredictionErrors.takeSample((bool)expectedRoomDark != predictedRoomDark);
-    if(verbose && ((bool)expectedRoomDark != predictedRoomDark)) { fprintf(stderr, " expectedDark=%d @ %dT%d:%.2d L=%d mean=%d\n", expectedRoomDark, D, H, M, dp->L, meanUsed); }
-    //                        EXPECT_EQ((bool)expectedRoomDark, predictedRoomDark) << " @ " << ((int)D) << "T" << ((int)H) << ":" << ((int)M) <<
-    //                                " L="<< ((int)(dp->L)) << " mean="<<((int)meanUsed) << " min="<<((int)minToUse) << " max="<<((int)maxToUse) <<
-    //                                " lT="<<((int)(ala.getLightThreshold())) << " dT="<<((int)(ala.getDarkThreshold()));
+if(verboseOutput && ((bool)expectedRoomDark != predictedRoomDark)) { fprintf(stderr, " expectedDark=%d @ %dT%d:%.2d L=%d mean=%d\n", expectedRoomDark, D, H, M, dp->L, meanUsed); }
                             }
 
                         ++currentMinute;
