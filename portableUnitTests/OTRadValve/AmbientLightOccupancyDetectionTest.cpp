@@ -31,7 +31,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 
 
 // Set true for verbose reporting.
-static constexpr bool verbose = false;
+static constexpr bool verbose = true;
 
 // Import occType enum values.
 typedef OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType occType;
@@ -503,7 +503,7 @@ static void checkAccuracyAcceptableAgainstData(
 
     // Check that setback accuracy is OK.
     // Aim for a low error rate in either direction.
-    EXPECT_GE(0.1f, flavourStats.setbackInsufficient.getFractionFlavoured());
+    EXPECT_GE((flavourStats.sensitive ? 0.14f : 0.11f), flavourStats.setbackInsufficient.getFractionFlavoured());
     EXPECT_GE(0.1f, flavourStats.setbackTooFar.getFractionFlavoured());
     }
 // Do a simple run over the supplied data, one call per simulated minute until the terminating record is found.
@@ -603,8 +603,8 @@ void simpleDataSampleRun(const ALDataSample *const data)
         fprintf(stderr, "  min: %d\n", minI);
         fprintf(stderr, "  max: %d\n", maxI);
 
-        fprintf(stderr, "  min from stats: %d\n", minI);
-        fprintf(stderr, "  max from stats: %d\n", maxI);
+        fprintf(stderr, "  min from stats: %d\n", minToUse);
+        fprintf(stderr, "  max from stats: %d\n", maxToUse);
 
         fprintf(stderr, "  mean ambient light level by hour:");
         for(int i = 0; i < 24; ++i)
@@ -1134,20 +1134,20 @@ static const ALDataSample sample5sHard[] =
 {8,10,46,146},
 {8,10,51,79},
 {8,10,56,46},
-{8,11,3,54},
+{8,11,3,54, ALDataSample::NO_OCC_EXPECTATION, false, false, ALDataSample::SB_MINECO}, // Broad daylight, vacant, some setback should be in place.
 {8,11,7,63},
 {8,11,23,132},
 {8,11,27,125},
 {8,11,39,78}, // Cloud passing over.
 {8,11,55,136},
 {8,11,59,132},
-{8,12,7,132},
+{8,12,7,132, ALDataSample::NO_OCC_EXPECTATION, false, false, ALDataSample::SB_MINECO}, // Broad daylight, vacant, some setback should be in place.
 {8,12,19,147},
 {8,12,23,114, ALDataSample::NO_OCC_EXPECTATION, false, false, ALDataSample::SB_MINECO}, // Broad daylight, vacant, some setback should be in place.
 {8,12,35,91}, // Cloud passing over.
 {8,12,47,89},
 {8,12,55,85},
-{8,13,3,98},
+{8,13,3,98, ALDataSample::NO_OCC_EXPECTATION, false, false, ALDataSample::SB_MINECO}, // Broad daylight, vacant, some setback should be in place.
 {8,13,11,105},
 {8,13,19,106},
 {8,13,31,32},
@@ -1155,25 +1155,25 @@ static const ALDataSample sample5sHard[] =
 {8,13,51,45},
 {8,13,55,37},
 {8,13,59,31},
-{8,14,7,42},
+{8,14,7,42, ALDataSample::NO_OCC_EXPECTATION, false, false, ALDataSample::SB_MINECO}, // Broad daylight, vacant, some setback should be in place.
 {8,14,27,69},
 {8,14,31,70},
 {8,14,35,63},
 {8,14,55,40},
-{8,15,7,47},
+{8,15,7,47, ALDataSample::NO_OCC_EXPECTATION, false, false, ALDataSample::SB_MINECO}, // Daylight, vacant, some setback should be in place.
 {8,15,11,48},
 {8,15,19,66},
 {8,15,27,48},
 {8,15,35,46},
 {8,15,43,40},
 {8,15,51,33},
-{8,16,3,24},
+{8,16,3,24, ALDataSample::NO_OCC_EXPECTATION, false, false, ALDataSample::SB_MINECO}, // Daylight, vacant, some setback should be in place.
 {8,16,11,26},
 {8,16,27,20},
 {8,16,39,14},
 {8,16,54,8},
 {8,16,59,6},
-{8,17,3,5},
+{8,17,3,5, ALDataSample::NO_OCC_EXPECTATION, true, false, ALDataSample::SB_MINECO}, // Dark, vacant, some setback should be in place.
 {8,17,19,3},
 {8,17,31,2},
 {8,17,47,2, occType::OCC_NONE, true, false}, // Light turned off, no active occupancy.
