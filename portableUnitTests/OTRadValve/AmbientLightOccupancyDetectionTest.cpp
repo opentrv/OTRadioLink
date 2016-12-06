@@ -650,9 +650,6 @@ if(verbose) { fprintf(stderr, "blending = %d\n", blending); }
         // The preferred blend (most like a real deployment) is FROMSTATS.
         const bool oddBlend = (BL_FROMSTATS != blending);
 
-        // Suppress most reporting for odd blends.
-const bool verboseOutput = veryVerbose || (verbose && !oddBlend);
-
         // Run simulation at both sensitivities.
         int nOccupancyReportsSensitive = 0;
         int nOccupancyReportsNotSensitive = 0;
@@ -672,6 +669,9 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
             for(int w = 0; w < 2; ++w)
                 {
                 const bool warmup = (0 == w);
+
+                // Suppress most reporting for odd blends and in warmup.
+const bool verboseOutput = !warmup && (veryVerbose || (verbose && !oddBlend));
 
                 SimpleFlavourStatCollection flavourStats(sensitive, blending);
 
@@ -731,7 +731,7 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
                             {
                             const bool trackedLikelyOccupancy = tracker.isLikelyOccupied();
                             const bool actOcc = bool(dp->actOcc);
-if(verbose && (trackedLikelyOccupancy != actOcc)) { fprintf(stderr, "!!!actual occupancy=%d @ %dT%d:%.2d L=%d mean=%d tracker=%d\n", dp->actOcc, D, H, M, dp->L, meanUsed, (int)tracker.get()); }
+if(verbose && !warmup && (trackedLikelyOccupancy != actOcc)) { fprintf(stderr, "!!!actual occupancy=%d @ %dT%d:%.2d L=%d mean=%d tracker=%d\n", dp->actOcc, D, H, M, dp->L, meanUsed, (int)tracker.get()); }
                             flavourStats.occupancyTrackingFalseNegatives.takeSample(actOcc && !trackedLikelyOccupancy);
                             flavourStats.occupancyTrackingFalsePositives.takeSample(!actOcc && trackedLikelyOccupancy);
                             }
@@ -750,12 +750,12 @@ if(veryVerbose && verboseOutput && isRealRecord && (occType::OCC_NONE != predict
                         if(ALDataSample::NO_OCC_EXPECTATION != expectedOcc)
                             {
                             flavourStats.ambLightOccupancyCallbackPredictionErrors.takeSample(expectedOcc != predictionOcc);
-if(verbose && (expectedOcc != predictionOcc)) { fprintf(stderr, "!!!expectedOcc=%d @ %dT%d:%.2d L=%d mean=%d\n", expectedOcc, D, H, M, dp->L, meanUsed); }
+if(verbose && !warmup && (expectedOcc != predictionOcc)) { fprintf(stderr, "!!!expectedOcc=%d @ %dT%d:%.2d L=%d mean=%d\n", expectedOcc, D, H, M, dp->L, meanUsed); }
                             }
                         if(ALDataSample::NO_RD_EXPECTATION != expectedRoomDark)
                             {
                             flavourStats.roomDarkPredictionErrors.takeSample((bool)expectedRoomDark != predictedRoomDark);
-if(verboseOutput && ((bool)expectedRoomDark != predictedRoomDark)) { fprintf(stderr, " expectedDark=%d @ %dT%d:%.2d L=%d mean=%d\n", expectedRoomDark, D, H, M, dp->L, meanUsed); }
+if(verbose && !warmup && ((bool)expectedRoomDark != predictedRoomDark)) { fprintf(stderr, "!!!expectedDark=%d @ %dT%d:%.2d L=%d mean=%d\n", expectedRoomDark, D, H, M, dp->L, meanUsed); }
                             }
 
                         ++currentMinute;
