@@ -258,7 +258,7 @@ namespace SDSR
         {
         cbProbable = p;
         if(p) { occupancy.markAsPossiblyOccupied(); } else { occupancy.markAsJustPossiblyOccupied(); }
-if(verbose) { fprintf(stderr, "*Callback: %d\n", p); }
+if(verbose) { fprintf(stderr, " *Callback: %d\n", p); }
         };
     // Reset all these static entities but does not clear stats.
     static void resetAll()
@@ -1103,20 +1103,20 @@ static const ALDataSample sample5sHard[] =
 {8,7,11,12},
 {8,7,15,13},
 {8,7,19,17},
-{8,7,27,42, ALDataSample::NO_OCC_EXPECTATION, false, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEECO}, // FIXME: should detect curtains drawn?  Temporary occupancy.  Should at least be anticipating occupancy.
+{8,7,27,42, occType::OCC_PROBABLE, false, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEECO}, // FIXME: should detect curtains drawn?  Temporary occupancy.  Should at least be anticipating occupancy.
 {8,7,31,68, ALDataSample::NO_OCC_EXPECTATION, false, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEECO}, // Should at least be anticipating occupancy.
 {8,7,43,38},
 {8,7,51,55},
 {8,7,55,63},
 {8,7,59,69},
-{8,8,11,68},
+{8,8,11,68, ALDataSample::NO_OCC_EXPECTATION, false, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEECO}, // Daylight, setback should be limited.
 {8,8,15,74},
 {8,8,27,72},
 {8,8,43,59},
 {8,8,51,38},
 {8,8,55,37},
 {8,8,59,34},
-{8,9,3,43},
+{8,9,3,43, ALDataSample::NO_OCC_EXPECTATION, false, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEECO}, // Daylight, setback should be limited.
 {8,9,19,79},
 {8,9,23,84},
 {8,9,35,92},
@@ -1124,7 +1124,7 @@ static const ALDataSample sample5sHard[] =
 {8,9,43,78},
 {8,9,55,68},
 {8,9,59,60},
-{8,10,3,62},
+{8,10,3,62, ALDataSample::NO_OCC_EXPECTATION, false, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEECO}, // Daylight, setback should be limited.
 {8,10,11,41},
 {8,10,15,40},
 {8,10,16,42},
@@ -1181,9 +1181,9 @@ static const ALDataSample sample5sHard[] =
 {8,20,11,2},
 {8,20,23,2},
 {8,20,35,16, occType::OCC_PROBABLE, false, true}, // Light turned on, OCCUPANCY.
-{8,20,46,16, ALDataSample::NO_OCC_EXPECTATION,false, true}, // Light, occupied.
-{8,20,55,13, ALDataSample::NO_OCC_EXPECTATION,false, true}, // Light, occupied.
-{8,20,58,14, ALDataSample::NO_OCC_EXPECTATION,false, true}, // Light, occupied.
+{8,20,46,16, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Light, occupied.
+{8,20,55,13, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Light, occupied.
+{8,20,58,14, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Light, occupied.
 {8,21,7,3, occType::OCC_NONE, true}, // Light turned off, no active occupancy.
 {8,21,23,2, occType::OCC_NONE, true, false}, // Light turned off, no active occupancy.
 {8,21,39,2, occType::OCC_NONE, true, false}, // Light turned off, no active occupancy.
@@ -1200,12 +1200,12 @@ static const ALDataSample sample5sHard[] =
 {9,5,51,2, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Not occupied actively, sleeping, max setback.
 {9,6,3,3},
 {9,6,15,5, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Not occupied actively, sleeping, max setback.
-{9,6,27,10},
+{9,6,27,10, ALDataSample::NO_OCC_EXPECTATION, ALDataSample::NO_RD_EXPECTATION, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEECO}, // Should be anticipating occupancy; at most small setback.
 {9,6,31,12},
 {9,6,35,15},
 {9,6,39,19},
 {9,6,43,26},
-{9,6,59,24},
+{9,6,59,24, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEECO}, // Occupied but may be applying a limited setback.
 {9,7,7,28, occType::OCC_NONE}, // Not yet up and about.  But not actually dark.
 {9,7,15,66},
 {9,7,27,181, occType::OCC_PROBABLE, false, true, ALDataSample::SB_NONEECO}, // Curtains drawn: temporary occupancy, some setback OK.
