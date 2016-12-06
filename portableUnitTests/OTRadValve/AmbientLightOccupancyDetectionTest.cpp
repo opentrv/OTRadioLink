@@ -483,7 +483,7 @@ static void checkAccuracyAcceptableAgainstData(
 
     // Check that there are not huge numbers of failed callback expectations.
     // We could allow more errors with an odd (non-deployment) blending.
-    EXPECT_GE(0.07f, flavourStats.ambLightOccupancyCallbackPredictionErrors.getFractionFlavoured());
+    EXPECT_GE(0.067f, flavourStats.ambLightOccupancyCallbackPredictionErrors.getFractionFlavoured());
 
     // Check that there are not huge numbers of failed dark expectations.
     EXPECT_GE(0.15f, flavourStats.roomDarkPredictionErrors.getFractionFlavoured()) << flavourStats.roomDarkPredictionErrors.getSampleCount();
@@ -499,9 +499,9 @@ static void checkAccuracyAcceptableAgainstData(
     // more false positives and fewer false negatives are OK.
     // But accept more errors generally with non-preferred blending.
     // Excess false positives likely inhibit energy saving.
-    EXPECT_GT(((flavourStats.sensitive||oddBlend) ? 0.2f : 0.1f), flavourStats.occupancyTrackingFalsePositives.getFractionFlavoured());
+    EXPECT_GT(((flavourStats.sensitive||oddBlend) ? 0.115f : 0.1f), flavourStats.occupancyTrackingFalsePositives.getFractionFlavoured());
     // Excess false negatives may cause discomfort.
-    EXPECT_GT(((flavourStats.sensitive&&!oddBlend) ? 0.13f : 0.23f), flavourStats.occupancyTrackingFalseNegatives.getFractionFlavoured());
+    EXPECT_GT(((flavourStats.sensitive&&!oddBlend) ? 0.125f : 0.225f), flavourStats.occupancyTrackingFalseNegatives.getFractionFlavoured());
 
     // Check that setback accuracy is OK.
     // Aim for a low error rate in either direction.
