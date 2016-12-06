@@ -2605,7 +2605,7 @@ static const ALDataSample sample3leveningTV[] =
 {11,6,27,1, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Vacant, dark, dark long enough for full setback.
 {11,6,43,1},
 {11,6,55,2},
-{11,7,7,5},
+{11,7,7,5, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Vacant, dark, dark long enough for full setback.
 {11,7,19,11},
 {11,7,23,13},
 {11,7,31,19},
