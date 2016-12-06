@@ -31,7 +31,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 
 
 // Set true for verbose reporting.
-static constexpr bool verbose = false;
+static constexpr bool verbose = true;
 // Lots of extra detail, generally should not be needed.
 static constexpr bool veryVerbose = false;
 
@@ -789,11 +789,11 @@ TEST(AmbientLightOccupancyDetection,simpleDataSampleRun)
 // "3l" 2016/10/08+09 test set with tough occupancy to detect in the evening up to 21:00Z and in the morning from 07:09Z then  06:37Z.
 static const ALDataSample sample3lHard[] =
     {
-{8,0,1,1, occType::OCC_NONE, true}, // Definitely not occupied.
-{8,0,17,1, occType::OCC_NONE, true, false}, // Definitely not occupied.
+{8,0,1,1, occType::OCC_NONE, true, false, ALDataSample::SB_MINECO}, // Definitely not occupied; should be at least somewhat setback immediately.
+{8,0,17,1, occType::OCC_NONE, true, false, ALDataSample::SB_MINECO}, // Definitely not occupied; should be at least somewhat setback immediately.
 //...
 {8,6,21,1},
-{8,6,29,2, occType::OCC_NONE, true, false}, // Not enough rise to indicate occupation, still dark.
+{8,6,29,2, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Not enough rise to indicate occupation, still dark, running long enough for max setback.
 {8,6,33,2},
 {8,6,45,2},
 {8,6,57,2, occType::OCC_NONE, true, false}, // Not enough light to indicate occupation, dark.
@@ -2486,9 +2486,9 @@ TEST(AmbientLightOccupancyDetection,sample6k)
 // See http://www.earth.org.uk/img/20161124-16WWal.png
 static const ALDataSample sample3leveningTV[] =
     {
-{10,0,7,1, occType::OCC_NONE, true},
+{10,0,7,1, occType::OCC_NONE, true, false, ALDataSample::SB_MINECO}, // Definitely not occupied; should be at least somewhat setback immediately.
 // ...
-{10,6,31,1, occType::OCC_NONE, true, false}, // Dark, vacant.
+{10,6,31,1, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, vacant, running long enough for max setback.
 {10,6,47,1},
 {10,6,59,2},
 {10,7,3,2},
