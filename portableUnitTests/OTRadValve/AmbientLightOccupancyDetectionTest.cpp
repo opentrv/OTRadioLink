@@ -31,7 +31,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 
 
 // Set true for verbose reporting.
-static constexpr bool verbose = false;
+static constexpr bool verbose = true;
+// Lots of extra detail, generally should not be needed.
+static constexpr bool veryVerbose = false && verbose;
 
 // Import occType enum values.
 typedef OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType occType;
@@ -258,7 +260,7 @@ namespace SDSR
         {
         cbProbable = p;
         if(p) { occupancy.markAsPossiblyOccupied(); } else { occupancy.markAsJustPossiblyOccupied(); }
-if(verbose) { fprintf(stderr, "*Callback: %d\n", p); }
+if(veryVerbose) { fprintf(stderr, " *Callback: %d\n", p); }
         };
     // Reset all these static entities but does not clear stats.
     static void resetAll()
@@ -481,7 +483,7 @@ static void checkAccuracyAcceptableAgainstData(
 
     // Check that there are not huge numbers of failed callback expectations.
     // We could allow more errors with an odd (non-deployment) blending.
-    EXPECT_GE(0.07f, flavourStats.ambLightOccupancyCallbackPredictionErrors.getFractionFlavoured());
+    EXPECT_GE(0.067f, flavourStats.ambLightOccupancyCallbackPredictionErrors.getFractionFlavoured());
 
     // Check that there are not huge numbers of failed dark expectations.
     EXPECT_GE(0.15f, flavourStats.roomDarkPredictionErrors.getFractionFlavoured()) << flavourStats.roomDarkPredictionErrors.getSampleCount();
@@ -497,14 +499,14 @@ static void checkAccuracyAcceptableAgainstData(
     // more false positives and fewer false negatives are OK.
     // But accept more errors generally with non-preferred blending.
     // Excess false positives likely inhibit energy saving.
-    EXPECT_GT(((flavourStats.sensitive||oddBlend) ? 0.2f : 0.1f), flavourStats.occupancyTrackingFalsePositives.getFractionFlavoured());
+    EXPECT_GT(((flavourStats.sensitive||oddBlend) ? 0.115f : 0.1f), flavourStats.occupancyTrackingFalsePositives.getFractionFlavoured());
     // Excess false negatives may cause discomfort.
-    EXPECT_GT(((flavourStats.sensitive&&!oddBlend) ? 0.13f : 0.23f), flavourStats.occupancyTrackingFalseNegatives.getFractionFlavoured());
+    EXPECT_GT(((flavourStats.sensitive&&!oddBlend) ? 0.125f : 0.24f), flavourStats.occupancyTrackingFalseNegatives.getFractionFlavoured());
 
     // Check that setback accuracy is OK.
     // Aim for a low error rate in either direction.
-    EXPECT_GE(0.1f, flavourStats.setbackInsufficient.getFractionFlavoured());
-    EXPECT_GE(0.1f, flavourStats.setbackTooFar.getFractionFlavoured());
+    EXPECT_GE((flavourStats.sensitive ? 0.12f : 0.1f), flavourStats.setbackInsufficient.getFractionFlavoured());
+    EXPECT_GE((oddBlend ? 0.145f : 0.1f), flavourStats.setbackTooFar.getFractionFlavoured());
     }
 // Do a simple run over the supplied data, one call per simulated minute until the terminating record is found.
 // Must be called with 1 or more data rows in ascending time with a terminating (empty) entry.
@@ -603,8 +605,8 @@ void simpleDataSampleRun(const ALDataSample *const data)
         fprintf(stderr, "  min: %d\n", minI);
         fprintf(stderr, "  max: %d\n", maxI);
 
-        fprintf(stderr, "  min from stats: %d\n", minI);
-        fprintf(stderr, "  max from stats: %d\n", maxI);
+        fprintf(stderr, "  min from stats: %d\n", minToUse);
+        fprintf(stderr, "  max from stats: %d\n", maxToUse);
 
         fprintf(stderr, "  mean ambient light level by hour:");
         for(int i = 0; i < 24; ++i)
@@ -646,6 +648,7 @@ void simpleDataSampleRun(const ALDataSample *const data)
 if(verbose) { fprintf(stderr, "blending = %d\n", blending); }
         SCOPED_TRACE(testing::Message() << "blending " << (int)blending);
         // The preferred blend (most like a real deployment) is FROMSTATS.
+        const bool oddBlend = (BL_FROMSTATS != blending);
 
         // Run simulation at both sensitivities.
         int nOccupancyReportsSensitive = 0;
@@ -666,6 +669,9 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
             for(int w = 0; w < 2; ++w)
                 {
                 const bool warmup = (0 == w);
+
+                // Suppress most reporting for odd blends and in warmup.
+const bool verboseOutput = !warmup && (veryVerbose || (verbose && !oddBlend));
 
                 SimpleFlavourStatCollection flavourStats(sensitive, blending);
 
@@ -706,7 +712,7 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
                         if(29 == M) { SDSR::su.sampleStats(false, H); }
                         if(59 == M) { SDSR::su.sampleStats(true, H); }
 
-//if(verbose && tracker.isLikelyOccupied()) { fprintf(stderr, "O=%d @ %dT%d:%.2d\n", (int)tracker.get(), D, H, M); }
+//if(veryVerbose && tracker.isLikelyOccupied()) { fprintf(stderr, "O=%d @ %dT%d:%.2d\n", (int)tracker.get(), D, H, M); }
 
                         // Check predictions/calculations against explicit expectations.
                         // True if real non-interpolated record.
@@ -718,19 +724,19 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
                         const OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType predictionOcc =
                             (-1 == SDSR::cbProbable) ? occType::OCC_NONE :
                                 ((0 == SDSR::cbProbable) ? occType::OCC_WEAK : occType::OCC_PROBABLE);
-    //if(verbose && (-1 != cbProbable)) { fprintf(stderr, "  occupancy callback=%d @ %dT%d:%.2d\n", cbProbable, D, H, M); }
+//if(veryVerbose && (-1 != cbProbable)) { fprintf(stderr, "  occupancy callback=%d @ %dT%d:%.2d\n", cbProbable, D, H, M); }
                         if(isRealRecord) { flavourStats.ambLightOccupancyCallbacks.takeSample((-1 != SDSR::cbProbable)); }
                         // Collect occupancy tracker prediction and error.
                         if(isRealRecord && (ALDataSample::UNKNOWN_ACT_OCC != dp->actOcc))
                             {
                             const bool trackedLikelyOccupancy = tracker.isLikelyOccupied();
                             const bool actOcc = bool(dp->actOcc);
-    if(verbose && (trackedLikelyOccupancy != actOcc)) { fprintf(stderr, "!!!actual occupancy=%d @ %dT%d:%.2d L=%d mean=%d tracker=%d\n", dp->actOcc, D, H, M, dp->L, meanUsed, (int)tracker.get()); }
+if(verbose && !warmup && (trackedLikelyOccupancy != actOcc)) { fprintf(stderr, "!!!actual occupancy=%d @ %dT%d:%.2d L=%d mean=%d tracker=%d\n", dp->actOcc, D, H, M, dp->L, meanUsed, (int)tracker.get()); }
                             flavourStats.occupancyTrackingFalseNegatives.takeSample(actOcc && !trackedLikelyOccupancy);
                             flavourStats.occupancyTrackingFalsePositives.takeSample(!actOcc && trackedLikelyOccupancy);
                             }
 
-    if(verbose && isRealRecord) { fprintf(stderr, "  tS=%d @ %dT%d:%.2d\n", SDSR::tempControl.getWARMTargetC() - SDSR::cttb.computeTargetTemp(), D, H, M); }
+if(veryVerbose && verboseOutput && isRealRecord) { fprintf(stderr, "  tS=%d @ %dT%d:%.2d\n", SDSR::tempControl.getWARMTargetC() - SDSR::cttb.computeTargetTemp(), D, H, M); }
                         if(isRealRecord && (ALDataSample::NO_SB_EXPECTATION != dp->expectedSb))
                             {
                             const int8_t setback = SDSR::tempControl.getWARMTargetC() - SDSR::cttb.computeTargetTemp();
@@ -740,21 +746,16 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
 
                         // Note that for all synthetic ticks the expectation is removed (since there is no level change).
                         const int8_t expectedOcc = (!isRealRecord) ? ALDataSample::NO_OCC_EXPECTATION : dp->expectedOcc;
-    if(verbose && isRealRecord && (occType::OCC_NONE != predictionOcc)) { fprintf(stderr, "  predictionOcc=%d @ %dT%d:%.2d L=%d mean=%d\n", predictionOcc, D, H, M, dp->L, meanUsed); }
+if(veryVerbose && verboseOutput && isRealRecord && (occType::OCC_NONE != predictionOcc)) { fprintf(stderr, "  predictionOcc=%d @ %dT%d:%.2d L=%d mean=%d\n", predictionOcc, D, H, M, dp->L, meanUsed); }
                         if(ALDataSample::NO_OCC_EXPECTATION != expectedOcc)
                             {
                             flavourStats.ambLightOccupancyCallbackPredictionErrors.takeSample(expectedOcc != predictionOcc);
-    if(verbose && (expectedOcc != predictionOcc)) { fprintf(stderr, " expectedOcc=%d @ %dT%d:%.2d L=%d mean=%d\n", expectedOcc, D, H, M, dp->L, meanUsed); }
-    //                        EXPECT_EQ(expectedOcc, predictionOcc) << " @ " << ((int)D) << "T" << ((int)H) << ":" << ((int)M) <<
-    //                            " L="<< ((int)(dp->L)) << " mean="<<((int)meanUsed) << " min="<<((int)minToUse) << " max="<<((int)maxToUse);
+if(verbose && !warmup && (expectedOcc != predictionOcc)) { fprintf(stderr, "!!!expectedOcc=%d @ %dT%d:%.2d L=%d mean=%d\n", expectedOcc, D, H, M, dp->L, meanUsed); }
                             }
                         if(ALDataSample::NO_RD_EXPECTATION != expectedRoomDark)
                             {
                             flavourStats.roomDarkPredictionErrors.takeSample((bool)expectedRoomDark != predictedRoomDark);
-    if(verbose && ((bool)expectedRoomDark != predictedRoomDark)) { fprintf(stderr, " expectedDark=%d @ %dT%d:%.2d L=%d mean=%d\n", expectedRoomDark, D, H, M, dp->L, meanUsed); }
-    //                        EXPECT_EQ((bool)expectedRoomDark, predictedRoomDark) << " @ " << ((int)D) << "T" << ((int)H) << ":" << ((int)M) <<
-    //                                " L="<< ((int)(dp->L)) << " mean="<<((int)meanUsed) << " min="<<((int)minToUse) << " max="<<((int)maxToUse) <<
-    //                                " lT="<<((int)(ala.getLightThreshold())) << " dT="<<((int)(ala.getDarkThreshold()));
+if(verbose && !warmup && ((bool)expectedRoomDark != predictedRoomDark)) { fprintf(stderr, "!!!expectedDark=%d @ %dT%d:%.2d L=%d mean=%d\n", expectedRoomDark, D, H, M, dp->L, meanUsed); }
                             }
 
                         ++currentMinute;
@@ -788,11 +789,11 @@ TEST(AmbientLightOccupancyDetection,simpleDataSampleRun)
 // "3l" 2016/10/08+09 test set with tough occupancy to detect in the evening up to 21:00Z and in the morning from 07:09Z then  06:37Z.
 static const ALDataSample sample3lHard[] =
     {
-{8,0,1,1, occType::OCC_NONE, true}, // Definitely not occupied.
-{8,0,17,1, occType::OCC_NONE, true, false}, // Definitely not occupied.
+{8,0,1,1, occType::OCC_NONE, true, false, ALDataSample::SB_MINECO}, // Definitely not occupied; should be at least somewhat setback immediately.
+{8,0,17,1, occType::OCC_NONE, true, false, ALDataSample::SB_MINECO}, // Definitely not occupied; should be at least somewhat setback immediately.
 //...
 {8,6,21,1},
-{8,6,29,2, occType::OCC_NONE, true, false}, // Not enough rise to indicate occupation, still dark.
+{8,6,29,2, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Not enough rise to indicate occupation, still dark, running long enough for max setback.
 {8,6,33,2},
 {8,6,45,2},
 {8,6,57,2, occType::OCC_NONE, true, false}, // Not enough light to indicate occupation, dark.
@@ -1103,20 +1104,20 @@ static const ALDataSample sample5sHard[] =
 {8,7,11,12},
 {8,7,15,13},
 {8,7,19,17},
-{8,7,27,42, ALDataSample::NO_OCC_EXPECTATION, false, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEECO}, // FIXME: should detect curtains drawn?  Temporary occupancy.  Should at least be anticipating occupancy.
+{8,7,27,42, occType::OCC_PROBABLE, false, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEECO}, // FIXME: should detect curtains drawn?  Temporary occupancy.  Should at least be anticipating occupancy.
 {8,7,31,68, ALDataSample::NO_OCC_EXPECTATION, false, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEECO}, // Should at least be anticipating occupancy.
 {8,7,43,38},
 {8,7,51,55},
 {8,7,55,63},
 {8,7,59,69},
-{8,8,11,68},
+{8,8,11,68, ALDataSample::NO_OCC_EXPECTATION, false, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEECO}, // Daylight, setback should be limited.
 {8,8,15,74},
 {8,8,27,72},
 {8,8,43,59},
 {8,8,51,38},
 {8,8,55,37},
 {8,8,59,34},
-{8,9,3,43},
+{8,9,3,43, ALDataSample::NO_OCC_EXPECTATION, false, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEECO}, // Daylight, setback should be limited.
 {8,9,19,79},
 {8,9,23,84},
 {8,9,35,92},
@@ -1124,7 +1125,7 @@ static const ALDataSample sample5sHard[] =
 {8,9,43,78},
 {8,9,55,68},
 {8,9,59,60},
-{8,10,3,62},
+{8,10,3,62, ALDataSample::NO_OCC_EXPECTATION, false, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEECO}, // Daylight, setback should be limited.
 {8,10,11,41},
 {8,10,15,40},
 {8,10,16,42},
@@ -1134,20 +1135,20 @@ static const ALDataSample sample5sHard[] =
 {8,10,46,146},
 {8,10,51,79},
 {8,10,56,46},
-{8,11,3,54},
+{8,11,3,54, ALDataSample::NO_OCC_EXPECTATION, false, false, ALDataSample::SB_MINECO}, // Broad daylight, vacant, some setback should be in place.
 {8,11,7,63},
 {8,11,23,132},
 {8,11,27,125},
 {8,11,39,78}, // Cloud passing over.
 {8,11,55,136},
 {8,11,59,132},
-{8,12,7,132},
+{8,12,7,132, ALDataSample::NO_OCC_EXPECTATION, false, false, ALDataSample::SB_MINECO}, // Broad daylight, vacant, some setback should be in place.
 {8,12,19,147},
 {8,12,23,114, ALDataSample::NO_OCC_EXPECTATION, false, false, ALDataSample::SB_MINECO}, // Broad daylight, vacant, some setback should be in place.
 {8,12,35,91}, // Cloud passing over.
 {8,12,47,89},
 {8,12,55,85},
-{8,13,3,98},
+{8,13,3,98, ALDataSample::NO_OCC_EXPECTATION, false, false, ALDataSample::SB_MINECO}, // Broad daylight, vacant, some setback should be in place.
 {8,13,11,105},
 {8,13,19,106},
 {8,13,31,32},
@@ -1155,25 +1156,25 @@ static const ALDataSample sample5sHard[] =
 {8,13,51,45},
 {8,13,55,37},
 {8,13,59,31},
-{8,14,7,42},
+{8,14,7,42, ALDataSample::NO_OCC_EXPECTATION, false, false, ALDataSample::SB_MINECO}, // Broad daylight, vacant, some setback should be in place.
 {8,14,27,69},
 {8,14,31,70},
 {8,14,35,63},
 {8,14,55,40},
-{8,15,7,47},
+{8,15,7,47, ALDataSample::NO_OCC_EXPECTATION, false, false, ALDataSample::SB_MINECO}, // Daylight, vacant, some setback should be in place.
 {8,15,11,48},
 {8,15,19,66},
 {8,15,27,48},
 {8,15,35,46},
 {8,15,43,40},
 {8,15,51,33},
-{8,16,3,24},
+{8,16,3,24, ALDataSample::NO_OCC_EXPECTATION, false, false, ALDataSample::SB_MINECO}, // Daylight, vacant, some setback should be in place.
 {8,16,11,26},
 {8,16,27,20},
 {8,16,39,14},
 {8,16,54,8},
 {8,16,59,6},
-{8,17,3,5},
+{8,17,3,5, ALDataSample::NO_OCC_EXPECTATION, true, false, ALDataSample::SB_MINECO}, // Dark, vacant, some setback should be in place.
 {8,17,19,3},
 {8,17,31,2},
 {8,17,47,2, occType::OCC_NONE, true, false}, // Light turned off, no active occupancy.
@@ -1181,9 +1182,9 @@ static const ALDataSample sample5sHard[] =
 {8,20,11,2},
 {8,20,23,2},
 {8,20,35,16, occType::OCC_PROBABLE, false, true}, // Light turned on, OCCUPANCY.
-{8,20,46,16, ALDataSample::NO_OCC_EXPECTATION,false, true}, // Light, occupied.
-{8,20,55,13, ALDataSample::NO_OCC_EXPECTATION,false, true}, // Light, occupied.
-{8,20,58,14, ALDataSample::NO_OCC_EXPECTATION,false, true}, // Light, occupied.
+{8,20,46,16, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Light, occupied.
+{8,20,55,13, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Light, occupied.
+{8,20,58,14, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Light, occupied.
 {8,21,7,3, occType::OCC_NONE, true}, // Light turned off, no active occupancy.
 {8,21,23,2, occType::OCC_NONE, true, false}, // Light turned off, no active occupancy.
 {8,21,39,2, occType::OCC_NONE, true, false}, // Light turned off, no active occupancy.
@@ -1200,12 +1201,12 @@ static const ALDataSample sample5sHard[] =
 {9,5,51,2, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Not occupied actively, sleeping, max setback.
 {9,6,3,3},
 {9,6,15,5, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Not occupied actively, sleeping, max setback.
-{9,6,27,10},
+{9,6,27,10, ALDataSample::NO_OCC_EXPECTATION, ALDataSample::NO_RD_EXPECTATION, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEECO}, // Should be anticipating occupancy; at most small setback.
 {9,6,31,12},
 {9,6,35,15},
 {9,6,39,19},
 {9,6,43,26},
-{9,6,59,24},
+{9,6,59,24, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEECO}, // Occupied but may be applying a limited setback.
 {9,7,7,28, occType::OCC_NONE}, // Not yet up and about.  But not actually dark.
 {9,7,15,66},
 {9,7,27,181, occType::OCC_PROBABLE, false, true, ALDataSample::SB_NONEECO}, // Curtains drawn: temporary occupancy, some setback OK.
@@ -2485,42 +2486,42 @@ TEST(AmbientLightOccupancyDetection,sample6k)
 // See http://www.earth.org.uk/img/20161124-16WWal.png
 static const ALDataSample sample3leveningTV[] =
     {
-{10,0,7,1, occType::OCC_NONE, true},
+{10,0,7,1, occType::OCC_NONE, true, false}, // Definitely not occupied.
 // ...
-{10,6,31,1, occType::OCC_NONE, true, false}, // Dark, vacant.
+{10,6,31,1, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, vacant, running long enough for max setback.
 {10,6,47,1},
 {10,6,59,2},
 {10,7,3,2},
-{10,7,23,9, ALDataSample::NO_OCC_EXPECTATION, ALDataSample::NO_RD_EXPECTATION, true}, // Curtains drawn, temporarily occupied.  FIXME: should not be clasified as dark.
+{10,7,23,9, ALDataSample::NO_OCC_EXPECTATION, ALDataSample::NO_RD_EXPECTATION, true, ALDataSample::SB_NONEECO}, // Curtains drawn, temporarily occupied, small setback still possible.  FIXME: should not be classified as dark.
 {10,7,31,12},
 {10,7,39,17},
 {10,7,47,23},
 {10,7,59,27},
-{10,8,3,29},
+{10,8,3,29, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEECO}, // Light, may be occupied, should only have at most ECO setback because light.
 {10,8,19,45},
 {10,8,31,61},
 {10,8,47,61},
 {10,8,59,94},
-{10,9,15,78},
+{10,9,15,78, ALDataSample::NO_OCC_EXPECTATION, false, ALDataSample::NO_RD_EXPECTATION, ALDataSample::SB_NONEECO}, // Light, probably not occupied, should only have at most ECO setback because light.
 {10,9,19,76},
 {10,9,27,74},
 {10,9,39,73},
 {10,9,43,76},
 {10,9,55,83},
-{10,10,11,116},
+{10,10,11,116, ALDataSample::NO_OCC_EXPECTATION, false, ALDataSample::NO_RD_EXPECTATION, ALDataSample::SB_NONEECO}, // Light, probably not occupied, should only have at most ECO setback because light.
 {10,10,23,143},
 {10,10,27,138},
 {10,10,39,154},
 {10,10,51,155},
 {10,10,59,173},
-{10,11,11,173},
+{10,11,11,173, ALDataSample::NO_OCC_EXPECTATION, false, ALDataSample::NO_RD_EXPECTATION, ALDataSample::SB_NONEECO}, // Light, probably not occupied, should only have at most ECO setback because light.
 {10,11,15,177},
 {10,11,23,176},
 {10,11,39,164},
 {10,11,51,152},
 {10,11,55,159},
 {10,11,59,156},
-{10,12,3,171, ALDataSample::NO_OCC_EXPECTATION, false, false}, // Broad daylight, vacant.
+{10,12,3,171, ALDataSample::NO_OCC_EXPECTATION, false, false, ALDataSample::SB_NONEECO}, // Broad daylight, vacant, should only have at most ECO setback because light.
 {10,12,11,181},
 {10,12,15,180},
 {10,12,23,125},
@@ -2529,7 +2530,7 @@ static const ALDataSample sample3leveningTV[] =
 {10,12,39,111},
 {10,12,47,118},
 {10,12,51,125},
-{10,13,3,164},
+{10,13,3,164, ALDataSample::NO_OCC_EXPECTATION, false, ALDataSample::NO_RD_EXPECTATION, ALDataSample::SB_NONEECO}, // Light, probably not occupied, should only have at most ECO setback because light.
 {10,13,11,110},
 {10,13,15,96},
 {10,13,17,95},
@@ -2540,7 +2541,7 @@ static const ALDataSample sample3leveningTV[] =
 {10,13,43,57},
 {10,13,51,67},
 {10,13,55,100},
-{10,14,3,140},
+{10,14,3,140, ALDataSample::NO_OCC_EXPECTATION, false, ALDataSample::NO_RD_EXPECTATION, ALDataSample::SB_NONEECO}, // Light, probably not occupied, should only have at most ECO setback because light.
 {10,14,7,137},
 {10,14,11,129},
 {10,14,19,178},
@@ -2551,7 +2552,7 @@ static const ALDataSample sample3leveningTV[] =
 {10,14,43,178},
 {10,14,55,153},
 {10,14,59,142},
-{10,15,3,163},
+{10,15,3,163, ALDataSample::NO_OCC_EXPECTATION, false, ALDataSample::NO_RD_EXPECTATION, ALDataSample::SB_NONEECO}, // Light, probably not occupied, should only have at most ECO setback because light.
 {10,15,7,177},
 {10,15,15,178},
 {10,15,23,152},
@@ -2560,48 +2561,48 @@ static const ALDataSample sample3leveningTV[] =
 {10,15,39,83},
 {10,15,43,56},
 {10,15,51,41},
-{10,15,59,44, ALDataSample::NO_OCC_EXPECTATION, false}, // TV watching?  FIXME: occupied?
+{10,15,59,44, ALDataSample::NO_OCC_EXPECTATION, false, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEECO}, // TV watching, occupied, no setback.
 {10,16,3,39},
 {10,16,15,19},
-{10,16,23,44, occType::OCC_PROBABLE, false, true},
+{10,16,23,44, occType::OCC_PROBABLE, false, true, ALDataSample::SB_NONE}, // TV watching, occupied, no setback.
 {10,16,35,36},
 {10,16,47,33},
-{10,16,51,35, ALDataSample::NO_OCC_EXPECTATION, false, true}, // FIXME: occType::OCC_WEAK}, // TV watching?
+{10,16,51,35, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONE}, // FIXME: occType::OCC_WEAK}, // TV watching, occupied, no setback.
 {10,17,3,34},
 {10,17,7,35},
 {10,17,19,36},
 {10,17,23,35},
-{10,17,39,35, ALDataSample::NO_OCC_EXPECTATION, false, true}, // TV watching.
+{10,17,39,35, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONE}, // TV watching, occupied, no setback.
 {10,17,51,34},
 {10,17,59,30},
-{10,18,3,31, ALDataSample::NO_OCC_EXPECTATION, false, true}, // TV watching.
+{10,18,3,31, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONE}, // TV watching, occupied, no setback.
 {10,18,15,31},
 {10,18,27,31},
 {10,18,31,30},
-{10,18,39,30, ALDataSample::NO_OCC_EXPECTATION, false, true}, // TV watching.
+{10,18,39,30, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEECO}, // TV watching, borderline occupied, dark, maybe small setback.
 {10,18,51,30},
 {10,19,7,31},
 {10,19,15,40},
-{10,19,27,40, ALDataSample::NO_OCC_EXPECTATION, false, true}, // TV watching?
+{10,19,27,40, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEECO}, // TV watching, borderline occupied, borderline dark, maybe small setback.
 {10,19,43,39},
-{10,19,55,41, occType::OCC_WEAK, false, true}, // TV watching?
+{10,19,55,41, occType::OCC_WEAK, false, true, ALDataSample::SB_NONEECO}, // TV watching, borderline occupied, borderline dark, maybe small setback.
 {10,19,59,42},
 {10,20,11,39},
-{10,20,23,41, occType::OCC_WEAK, false, true}, // TV watching?
+{10,20,23,41, occType::OCC_WEAK, false, true, ALDataSample::SB_NONEECO}, // TV watching, borderline occupied, borderline dark, maybe small setback.
 {10,20,31,39},
-{10,20,43,40, occType::OCC_WEAK, false, true}, // TV watching?
+{10,20,43,40, occType::OCC_WEAK, false, true, ALDataSample::SB_NONEECO}, // TV watching, borderline occupied, borderline dark, maybe small setback.
 {10,20,47,39},
-{10,20,51,40, occType::OCC_WEAK, false, true}, // TV watching?
+{10,20,51,40, occType::OCC_WEAK, false, true, ALDataSample::SB_NONEECO}, // TV watching, borderline occupied, borderline dark, maybe small setback.
 {10,21,7,40},
 {10,21,9,41},
 {10,21,15,41},
 {10,21,35,40},
 {10,21,47,40},
-{10,21,55,39},
+{10,21,55,39, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEECO}, // TV watching, borderline occupied, borderline dark, maybe small setback.
 {10,22,7,1},
-{10,22,15,1},
+{10,22,15,1, occType::OCC_NONE, true, false, ALDataSample::SB_ECOMAX}, // Vacant, dark.
 // ...
-{11,6,27,1},
+{11,6,27,1, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Vacant, dark, dark long enough for full setback.
 {11,6,43,1},
 {11,6,55,2},
 {11,7,7,5},

@@ -109,7 +109,8 @@ class SensorAmbientLightOccupancyDetectorSimple final : public SensorAmbientLigh
       // Minimum steady time for detecting artificial light (ticks/minutes).
       static constexpr uint8_t steadyTicksMinForArtificialLight = 30;
       // Minimum steady time for detecting light on (ticks/minutes).
-      static constexpr uint8_t steadyTicksMinBeforeLightOn = 7;
+      // Should be short enough to notice someone going to make a cuppa.
+      static constexpr uint8_t steadyTicksMinBeforeLightOn = 5;
       // Number of ticks (minutes) levels have been steady for.
       // Steady means a less-than-epsilon change per tick.
       uint8_t steadyTicks = 0;
