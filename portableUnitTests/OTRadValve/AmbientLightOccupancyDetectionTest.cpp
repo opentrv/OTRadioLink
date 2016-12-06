@@ -30,7 +30,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 #include "OTV0P2BASE_SensorAmbientLightOccupancy.h"
 
 
-static constexpr bool verbose = true; // Set true for more verbose reporting.
+// Set true for verbose reporting.
+static constexpr bool verbose = false;
 
 // Import occType enum values.
 typedef OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType occType;
@@ -732,10 +733,10 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
                             flavourStats.occupancyTrackingFalsePositives.takeSample(!actOcc && trackedLikelyOccupancy);
                             }
 
+    if(verbose && isRealRecord) { fprintf(stderr, "  tS=%d @ %dT%d:%.2d\n", SDSR::tempControl.getWARMTargetC() - SDSR::cttb.computeTargetTemp(), D, H, M); }
                         if(isRealRecord && (ALDataSample::NO_SB_EXPECTATION != dp->expectedSb))
                             {
                             const int8_t setback = SDSR::tempControl.getWARMTargetC() - SDSR::cttb.computeTargetTemp();
-    if(verbose) { fprintf(stderr, "  tS=%d @ %dT%d:%.2d\n", setback, D, H, M); }
                             scoreSetback<SDSR::parameters>(setback, dp->expectedSb,
                                 flavourStats.setbackInsufficient, flavourStats.setbackTooFar);
                             }
@@ -1105,8 +1106,8 @@ static const ALDataSample sample5sHard[] =
 {8,7,11,12},
 {8,7,15,13},
 {8,7,19,17},
-{8,7,27,42, ALDataSample::NO_OCC_EXPECTATION, false}, // FIXME: should detect curtains drawn?  Temporary occupancy.
-{8,7,31,68, ALDataSample::NO_OCC_EXPECTATION, false},
+{8,7,27,42, ALDataSample::NO_OCC_EXPECTATION, false, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEECO}, // FIXME: should detect curtains drawn?  Temporary occupancy.  Should at least be anticipating occupancy.
+{8,7,31,68, ALDataSample::NO_OCC_EXPECTATION, false, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEECO}, // Should at least be anticipating occupancy.
 {8,7,43,38},
 {8,7,51,55},
 {8,7,55,63},
