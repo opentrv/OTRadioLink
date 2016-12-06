@@ -43,7 +43,7 @@
 
 // If DEFINED: Prints debug information to serial.
 //             !!! WARNING! THIS WILL CAUSE BLOCKING OF OVER 300 MS!!!
-//#define OTSIM900LINK_DEBUG
+#undef OTSIM900LINK_DEBUG
 
 // OTSIM900Link macros for printing debug information to serial.
 #ifndef OTSIM900LINK_DEBUG
@@ -79,7 +79,6 @@ namespace OTSIM900Link
     /**
      * @struct    OTSIM900LinkConfig_t
      * @brief    Structure containing config data for OTSIM900Link
-     * @todo    This is a bit weird - take pointer from struct and pass to helper function in struct
      * @note    Struct and internal pointers must last as long as OTSIM900Link object
      * @param    bEEPROM    true if strings stored in EEPROM, else held in FLASH
      * @param    PIN        Pointer to \0 terminated array containing SIM pin code
@@ -212,7 +211,6 @@ typedef const char *AT_t;
      * @todo    SIM900 has a low power state which stays connected to network
      *             - Not sure how much power reduced
      *             - If not sending often may be more efficient to power up and wait for connect each time
-     *             Make OTSIM900LinkBase to abstract serial interface and allow templating?
      */
 #define OTSIM900Link_DEFINED
     template<uint8_t rxPin, uint8_t txPin, uint8_t PWR_PIN,
@@ -424,13 +422,13 @@ typedef const char *AT_t;
                             uint8_t udpState = checkUDPStatus();
                             if (3 == udpState) {  // GPRS active, UDP shut.
                                 state = GET_IP;
-                            } else if(0 == udpState) {
+                            } else if(0 == udpState) {  // GPRS shut.
                                 startGPRS();
                             } else {
                                 setRetryLock();
                             }
                         }
-                        //                if(!startGPRS()) state = GET_IP;  // TODO: Add retries, Option to shut GPRS here (probably needs a new state)
+//                          if(!startGPRS()) state = GET_IP;  // TODO: Add retries, Option to shut GPRS here (probably needs a new state)
                         // FIXME 20160505: Need to work out how to handle this. If signal is marginal this will fail.
                         break;
                     case GET_IP: // Takes up to 200 ticks to exit.
@@ -456,16 +454,16 @@ typedef const char *AT_t;
                             retryCounter = maxRetriesDefault;
                         }
                         break;
-                    case WAIT_FOR_UDP: // Make sure UDP context is open. Takes up to 200 ticks to exit.   // XXX
+                    case WAIT_FOR_UDP: // Make sure UDP context is open. Takes up to 200 ticks to exit.
                         OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*WAIT_FOR_UDP")
                         {
                             uint8_t udpState = checkUDPStatus();
-                            if (udpState == 1) {
+                            if (udpState == 1) {  // UDP connected
                                 state = SENDING;
                                 retryCounter = 0;
                             }
-                            //                        else if (udpState == 0) state = GET_STATE; // START_GPRS; // TODO needed for optional wake GPRS to send. FIXME normally commented, set to get_state for testing reset.
-                            else if (udpState == 2) {
+//                            else if (udpState == 0) state = GET_STATE; // START_GPRS; // TODO needed for optional wake GPRS to send.
+                            else if (udpState == 2) {  // Dead end. SIM900 needs resetting.
                                 state = RESET;
                             } else {
                                 setRetryLock();
@@ -542,7 +540,7 @@ typedef const char *AT_t;
              */
             inline void powerOn()
                 {
-                setPwrPinHigh(false); // fastDigitalWrite(PWR_PIN, LOW);
+                setPwrPinHigh(false);
                 if (!isPowered())
                     powerToggle();
                 }
@@ -738,7 +736,7 @@ typedef const char *AT_t;
              */
             bool setAPN()
                 {
-                char data[MAX_SIM900_RESPONSE_CHARS]; // FIXME: was 96: that's a LOT of stack!
+                char data[MAX_SIM900_RESPONSE_CHARS];
                 ser.print(AT_START);
                 ser.print(AT_SET_APN);
                 ser.print(ATc_SET);
@@ -748,9 +746,7 @@ typedef const char *AT_t;
                 // response stuff
                 const char *dataCut = getResponse(data, sizeof(data), 0x0A);
                 if(NULL == dataCut) { return(-1); }
-                //    OTSIM900LINK_DEBUG_SERIAL_PRINTLN(dataCut)
-                // Expected response 'OK'.
-                return(dataCut[2] == 'O');
+                return(dataCut[2] == 'O'); // Expected response 'OK'.
                 }
             /**
              * @brief   Start GPRS connection.
@@ -790,8 +786,8 @@ typedef const char *AT_t;
                 return (*dataCut == 'S');
                 }
             /**
-             * @brief   Get IP address
-             * @todo    How should I return the string
+             * @brief   Get IP address from SIM900. Note that the function just returns a bool
+             *          as we currently have no need to know our IP address.
              * @retval  True if no errors.
              * @note    reply: b'AT+CIFSR\r\n\r\n172.16.101.199\r\n'
              */
@@ -912,14 +908,12 @@ typedef const char *AT_t;
             // First ' ' appears right before useful part of message
             const char *dataCut = getResponse(data, sizeof(data), ' ');
             if(NULL == dataCut) { return(false); }
-            // Expected string is 'READY'. no other possible string begins with R.
-            return('R' == *dataCut);
+            return('R' == *dataCut);  // Expected string is 'READY'. no other possible string begins with R.
             }
 
         /**
          * @brief   Blocks process until terminatingChar received.
          * @param   terminatingChar:    Character to block until.
-         * @todo    Make sure this doesn't block longer than 250 ms.
          * @retval  True if character found, or false on 1000ms timeout
          */
         bool flushUntil(uint8_t _terminatingChar)
@@ -927,7 +921,7 @@ typedef const char *AT_t;
             const uint8_t terminatingChar = _terminatingChar;
             const uint8_t endTime = getCurrentSeconds() + flushTimeOut;
             while (getCurrentSeconds() <= endTime)
-                { // FIXME Replace this logic
+                {
                 const uint8_t c = uint8_t(ser.read());
                 if (c == terminatingChar)
                     return true;
@@ -962,7 +956,6 @@ typedef const char *AT_t;
 
         /**
          * @brief   Open UDP socket.
-         * @todo    Find better way of printing this (maybe combine as in APN).
          * @param   array containing server IP
          * @retval  True if UDP opened
          * @note    reply: b'AT+CIPSTART="UDP","0.0.0.0","9999"\r\n\r\nOK\r\n\r\nCONNECT OK\r\n'
@@ -979,16 +972,13 @@ typedef const char *AT_t;
             ser.print("\",\"");
             printConfig(config->UDP_Port);
             ser.println('\"');
-            //    ser.print(AT_END);
             // Implement check here
             readMany(data, sizeof(data));
-
             // response stuff
             const char *dataCut = getResponse(data, sizeof(data), 0x0A);
             if(NULL == dataCut) { return(false); }
             OTSIM900LINK_DEBUG_SERIAL_PRINTLN(dataCut)
-            // Returns ERROR on fail, else successfully opened UDP.
-            return ~('E' == *dataCut);
+            return ~('E' == *dataCut);  // Returns ERROR on fail, else successfully opened UDP.
             }
         /**
          * @brief   Close UDP connection.
@@ -1000,12 +990,10 @@ typedef const char *AT_t;
             {
             ser.print(AT_START);
             ser.println(AT_CLOSE_UDP);
-            //    ser.print(AT_END);
             return true;
             }
         /**
          * @brief   Send a UDP frame.
-         * @todo    Split this into init sending and write message? Need to check how long it blocks.
          * @param   frame:  Pointer to array containing frame to send.
          * @param   length: Length of frame.
          * @retval  True if send successful.
@@ -1042,20 +1030,6 @@ typedef const char *AT_t;
             char data[OTV0P2BASE::fnmin(16, MAX_SIM900_RESPONSE_CHARS)];
             ser.println(AT_START);
             readMany(data, sizeof(data));
-            //    ser.print(AT_END);
-            //    uint8_t c = 0;
-            // Debug code...
-            //    uint8_t startTime = getCurrentSeconds();
-            //    c = ser.read();
-            //    uint8_t endTime = getCurrentSeconds();
-            //    OTSIM900LINK_DEBUG_SERIAL_PRINT("T: ")
-            //    OTSIM900LINK_DEBUG_SERIAL_PRINT(startTime)
-            //  OTSIM900LINK_DEBUG_SERIAL_PRINT("\t")
-            //    OTSIM900LINK_DEBUG_SERIAL_PRINT(endTime)
-            //  OTSIM900LINK_DEBUG_SERIAL_PRINT("\t")
-            //    OTSIM900LINK_DEBUG_SERIAL_PRINTFMT(c, HEX)
-            //    OTSIM900LINK_DEBUG_SERIAL_PRINTLN()
-            //    if (c == 'A') {
             return ('A' == *data);
             }
 
@@ -1076,7 +1050,7 @@ typedef const char *AT_t;
 
         volatile OTSIM900LinkState state = INIT;
         uint8_t txMsgLen = 0; // This stores the length of the tx message. will have to be redone for multiple txQueue
-        static constexpr uint8_t maxTxQueueLength = 1; // TODO Could this be moved out into OTRadioLink.
+        static constexpr uint8_t maxTxQueueLength = 1;
 
         // Putting this last in the structure.
         uint8_t txQueue[64]; // 64 is maxTxMsgLen (from OTRadioLink)
@@ -1087,9 +1061,6 @@ typedef const char *AT_t;
         virtual void _dolisten() override
             {
             }
-        /**
-         * @todo    function to get maxTXMsgLen?
-         */
         virtual void getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen,
                 uint8_t &maxTXMsgLen) const override
             {
