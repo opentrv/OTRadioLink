@@ -31,9 +31,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 
 
 // Set true for verbose reporting.
-static constexpr bool verbose = true;
+static constexpr bool verbose = false;
 // Lots of extra detail, generally should not be needed.
-static constexpr bool veryVerbose = true && verbose;
+static constexpr bool veryVerbose = false && verbose;
 
 // Import occType enum values.
 typedef OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType occType;
@@ -511,8 +511,8 @@ static void checkAccuracyAcceptableAgainstData(
 
     // Check that setback accuracy is OK.
     // Aim for a low error rate in either direction.
-    EXPECT_GE((normalOperation ? 0.03f : 0.12f), flavourStats.setbackInsufficient.getFractionFlavoured());
-    EXPECT_GE((normalOperation ? 0.03f : 0.1f), flavourStats.setbackTooFar.getFractionFlavoured());
+    EXPECT_GE((normalOperation ? 0.05f : 0.12f), flavourStats.setbackInsufficient.getFractionFlavoured());
+    EXPECT_GE((normalOperation ? 0.05f : 0.1f), flavourStats.setbackTooFar.getFractionFlavoured());
     }
 // Do a simple run over the supplied data, one call per simulated minute until the terminating record is found.
 // Must be called with 1 or more data rows in ascending time with a terminating (empty) entry.
