@@ -1142,7 +1142,7 @@ TEST(OTSIM900Link, MessageCountResetTest)
         EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
 
         // Get to IDLE state
-        for(int i = 0; i < 100; ++i) { l0.poll(); ++secondsVT; if(l0._getState() == OTSIM900Link::IDLE) break;}
+        for(int i = 0; i < 100; ++i) { l0.poll(); incrementVTOneCycle(); if(l0._getState() == OTSIM900Link::IDLE) break;}
         EXPECT_EQ(SIM900Emu::SIM900StateEmulator::UDP_CONNECT_OK,  SIM900Emu::sim900.emu.myState);
 
         // Queue a message to send. ResetSimulator should reply PDP DEACT which should trigger a reset.
@@ -1153,17 +1153,7 @@ TEST(OTSIM900Link, MessageCountResetTest)
             for(int j = 0; j < 10; ++j) { incrementVTOneCycle(); if (OTSIM900Link::IDLE > l0._getState()) break; l0.poll(); }
         }
         EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
-        secondsVT += 15;
-        l0.poll();
-//        EXPECT_EQ(OTSIM900Link::START_UP, l0._getState()) << "Expected state to be START_UP."; FIXME test broken due to implementation change (DE20161128)
-        incrementVTOneCycle();
-        l0.poll();
-//        EXPECT_TRUE(l0.isPowered())  << "Expected l0.isPowered to be true."; FIXME test broken due to implementation change (DE20161128)
-
-        for(int i = 0; i < 20; ++i) { incrementVTOneCycle(); l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
-
-//        EXPECT_EQ(OTSIM900Link::IDLE, l0._getState()) << "Expected state to be IDLE."; FIXME resetting not yet implemented in emulator! (DE20161128)
-
+        EXPECT_EQ(255, sendCounter);
         // ...
         l0.end();
 }
@@ -1172,19 +1162,12 @@ TEST(OTSIM900Link, MessageCountResetTest)
 TEST(OTSIM900Link, PDPDeactResetTest)
 {
 //        const bool verbose = B3::verbose;
-
         srandom((unsigned)::testing::UnitTest::GetInstance()->random_seed()); // Seed random() for use in simulator; --gtest_shuffle will force it to change.
-
         // Reset static state to make tests re-runnable.
         SIM900Emu::serialConnection.reset();
         SIM900Emu::serialConnection.writeCallback = SIM900Emu::sim900WriteCallback;
         SIM900Emu::sim900.reset();
-//        ASSERT_EQ(SIM900Emu::SIM900StateEmulator::POWER_OFF, SIM900Emu::sim900.emu.myState); // FIXME!!!
         SIM900Emu::sim900.emu.myState = SIM900Emu::SIM900StateEmulator::POWERING_UP;
-
-        ASSERT_FALSE(SIM900Emu::sim900.emu.verbose);
-        ASSERT_FALSE(SIM900Emu::sim900.emu.oldPinState);
-        ASSERT_EQ(0, SIM900Emu::sim900.emu.startTime);
 
         // Message to send.
         const char message[] = "123";
