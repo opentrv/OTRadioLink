@@ -569,6 +569,7 @@ void simpleDataSampleRun(const ALDataSample *const data)
     int byHourMeanCountI[24]; memset(byHourMeanCountI, 0, sizeof(byHourMeanCountI));
     for(const ALDataSample *dp = data; !dp->isEnd(); ++dp)
         {
+        if(dp > data) { ASSERT_LT((dp-1)->currentMinute(), dp->currentMinute()) << "record times must increase strictly monotonically in time: prev " <<int((dp-1)->d)<<"T"<<int((dp-1)->H)<<":"<<int((dp-1)->M) << " vs current "<<int(dp->d)<<"T"<<int(dp->H)<<":"<<int(dp->M); }
         ++nRecords;
         const int8_t neo = ALDataSample::NO_OCC_EXPECTATION;
         if(neo != dp->expectedOcc) { ++nOccExpectation; }
@@ -1083,7 +1084,7 @@ static const ALDataSample sample3lLevels[] =
 {2,9,33,70},
 {2,9,37,73},
 {2,9,45,184},
-{2,9,45,183},
+//{2,9,45,183},
 {2,9,49,45},
 {2,9,55,85},
 {2,10,11,95},
@@ -1404,7 +1405,6 @@ static const ALDataSample sample5sHard2[] =
 {2,17,3,25},
 {2,17,4,24},
 {2,17,6,25},
-{2,17,6,25},
 {2,17,9,24},
 {2,17,14,24},
 {2,17,17,24},
@@ -1429,17 +1429,17 @@ static const ALDataSample sample5sHard2[] =
 {2,18,2,25},
 {2,18,6,24},
 {2,18,9,24},
-{2,18,9,25},
+//{2,18,9,25},
 {2,18,13,25},
-{2,18,13,24},
+//{2,18,13,24},
 {2,18,16,24},
 {2,18,20,33},
 {2,18,21,24},
 {2,18,22,25},
 {2,18,23,24},
-{2,18,23,24},
-{2,18,23,24},
-{2,18,23,24},
+//{2,18,23,24},
+//{2,18,23,24},
+//{2,18,23,24},
 {2,18,24,25},
 {2,18,25,24},
 {2,18,29,24},
@@ -1915,7 +1915,7 @@ static const ALDataSample sample5sHard2[] =
 {4,7,51,7},
 {4,7,54,8},
 {4,7,58,9},
-{4,7,58,10},
+//{4,7,58,10},
 {4,8,2,11},
 {4,8,6,13},
 {4,8,7,13},
@@ -1938,25 +1938,25 @@ static const ALDataSample sample5sHard2[] =
 {4,8,46,63},
 {4,8,49,105},
 {4,8,51,91},
-{4,8,51,96},
+//{4,8,51,96},
 {4,8,54,94},
 {4,8,58,119},
 {4,9,3,133},
 {4,9,5,119},
 {4,9,7,125},
 {4,9,9,142},
-{4,9,9,135},
+//{4,9,9,135},
 {4,9,12,104},
 {4,9,15,111},
 {4,9,16,92},
-{4,9,16,86},
+//{4,9,16,86},
 {4,9,20,132},
 {4,9,21,140},
 {4,9,24,101},
 {4,9,28,175},
 {4,9,31,175},
 {4,9,34,134},
-{4,9,34,114},
+//{4,9,34,114},
 {4,9,35,133},
 {4,9,37,141},
     { }
@@ -2110,9 +2110,6 @@ static const ALDataSample sample2bHard[] =
 {9,12,40,186},
 {9,12,44,187},
 {9,12,56,187},
-{9,13,8,186},
-{9,13,12,185},
-{9,13,13,185},
 {9,13,8,186},
 {9,13,12,185},
 {9,13,13,185},
@@ -2719,6 +2716,8 @@ static const ALDataSample sample3leveningTV[] =
 {11,22,7,1},
 {11,22,11,1},
 // ...
+{12,6,7,1, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, vacant, running long enough for max setback.
+// ...
 {12,7,7,1},
 {12,7,19,1},
 {12,7,35,5},
@@ -2938,6 +2937,8 @@ static const ALDataSample sample3leveningTV[] =
 {13,21,32,46},
 {13,21,49,3},
 {13,22,1,3},
+//
+{14,5,44,3, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, vacant, running long enough for max setback.
 // ...
 {14,6,52,3},
 {14,7,8,3},
@@ -3042,6 +3043,8 @@ static const ALDataSample sample3leveningTV[] =
 {14,22,0,16},
 {14,22,4,3},
 {14,22,20,3},
+//
+{15,5,0,3, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, vacant, running long enough for max setback.
 // ...
 {15,6,48,3},
 {15,7,0,3},
@@ -3119,7 +3122,7 @@ static const ALDataSample sample3leveningTV[] =
 {15,16,16,69},
 {15,16,17,27},
 {15,16,20,15},
-{15,16,20,15},
+//{15,16,20,15},
 {15,16,32,48},
 {15,16,43,48},
 {15,16,48,49},
@@ -3150,6 +3153,8 @@ static const ALDataSample sample3leveningTV[] =
 {15,20,28,46},
 {15,20,44,3},
 {15,20,56,3},
+// ...
+{16,5,12,3, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, vacant, running long enough for max setback.
 // ...
 {16,6,48,3},
 {16,7,0,3},
@@ -3276,6 +3281,8 @@ static const ALDataSample sample3leveningTV[] =
 {16,22,24,3},
 {16,22,40,3},
 // ...
+{17,4,8,3, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, vacant, running long enough for max setback.
+// ...
 {17,6,56,3},
 {17,7,8,3},
 {17,7,20,5},
@@ -3380,6 +3387,8 @@ static const ALDataSample sample3leveningTV[] =
 {17,22,8,45},
 {17,22,20,3},
 {17,22,32,3},
+//
+{18,4,40,3, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, vacant, running long enough for max setback.
 // ...
 {18,6,40,3},
 {18,6,56,3},
@@ -3475,6 +3484,8 @@ static const ALDataSample sample3leveningTV[] =
 {18,21,48,43},
 {18,22,0,3},
 {18,22,12,3},
+// ...
+{19,5,24,3, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, vacant, running long enough for max setback.
 // ...
 {19,7,24,3},
 {19,7,40,3},
@@ -3588,6 +3599,8 @@ static const ALDataSample sample3leveningTV[] =
 {20,2,4,3},
 {20,2,16,3},
 // ...
+{20,5,52,3, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, vacant, running long enough for max setback.
+// ...
 {20,7,28,3},
 {20,7,40,3},
 {20,7,52,17},
@@ -3682,6 +3695,8 @@ static const ALDataSample sample3leveningTV[] =
 {20,22,24,3},
 {20,22,36,3},
 // ...
+{21,4,12,3, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, vacant, running long enough for max setback.
+// ...
 {21,7,4,3},
 {21,7,23,3},
 {21,7,32,4},
@@ -3768,6 +3783,8 @@ static const ALDataSample sample3leveningTV[] =
 {21,21,56,46},
 {21,22,4,3},
 {21,22,16,3},
+// ...
+{22,5,24,3, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, vacant, running long enough for max setback.
 // ...
 {22,6,56,3},
 {22,7,8,3},
@@ -3865,7 +3882,7 @@ static const ALDataSample sample3leveningTV[] =
 {22,22,19,3},
 {22,22,28,3},
 // ...
-{23,4,59,3},
+{23,4,59,3, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, vacant, running long enough for max setback.
 {23,5,7,3},
 {23,5,11,2},
 {23,5,20,3},
@@ -3956,6 +3973,8 @@ static const ALDataSample sample3leveningTV[] =
 {23,22,7,46},
 {23,22,19,3},
 {23,22,35,3},
+// ...
+{24,5,11,3, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, vacant, running long enough for max setback.
 // ...
 {24,6,59,3, ALDataSample::NO_OCC_EXPECTATION, true, false, ALDataSample::SB_MAX}, // Dark, vacant, max setback.
 {24,7,15,3, ALDataSample::NO_OCC_EXPECTATION, true, false}, // Dark, vacant.
