@@ -519,18 +519,25 @@ typedef const char *AT_t;
             bool bAvailable = false;
             int8_t powerTimer = 0;
             uint8_t messageCounter = 0; // Number of frames sent. Used to schedule a reset.
-            // maximum number of times SIM900 can spend in a state before being reset.
-            // This only applies to the following states:
-            // - CHECK_PIN
-            // -SET_APN
             uint8_t retryCounter = 0;   // Count the number of retries attempted
             int8_t retryTimer = -1;     // Store the retry lockout time. This takes a value in range [0,60] and is set to (-1) when no lockout is desired.
             static constexpr uint8_t maxRetriesDefault = 10;  // Default number of retries.
             volatile uint8_t txMessageQueue = 0; // Number of frames currently queued for TX.
             const OTSIM900LinkConfig_t *config = NULL;
+            OTSIM900LinkState oldState;
             /************************* Private Methods *******************************/
 
         private:
+            /**
+             * @brief   If a state has changed, make sure things like retries are reset.
+             */
+            void onStateChange(const OTSIM900LinkState newState)
+            {
+                if (newState != oldState) {
+                    oldState = newState;
+                    retryCounter = maxRetriesDefault;
+                }
+            }
             /**
              * @brief   Check if enough time has passed to retry again and update the retry counter.
              * @note    retryCounter must be set by the caller.
@@ -974,15 +981,18 @@ typedef const char *AT_t;
          * @retval    returns true if assigned or false if config is NULL
          */
         virtual bool _doconfig() override
-            {
+        {
             if (channelConfig->config == NULL)
                 return false;
-            else
-                {
+            else {
                 config = (const OTSIM900LinkConfig_t *) channelConfig->config;
-                return true;
-                }
+                if ("\0" == config->PIN) return false;
+                else if ("\0" == config->APN) return false;
+                else if ("\0" == config->UDP_Address) return false;
+                else if ("\0" == config->UDP_Port) return false;
+                else return true;
             }
+        }
 
         volatile OTSIM900LinkState state = INIT;
         uint8_t txMsgLen = 0; // This stores the length of the tx message. will have to be redone for multiple txQueue
