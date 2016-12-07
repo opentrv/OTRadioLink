@@ -347,7 +347,7 @@ typedef const char *AT_t;
                 if (-1 != retryTimer) {  // not locked out when retryTimer is -1.
                     retryLockOut();
                     return;
-                } else if (messageCounter == 4) { // Force a hard restart every 255 messages. XXX
+                } else if (messageCounter == 255) { // Force a hard restart every 255 messages.
                     messageCounter = 0;  // reset counter.
                     state = RESET;
                     return;
