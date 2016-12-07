@@ -33,7 +33,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 // Set true for verbose reporting.
 static constexpr bool verbose = true;
 // Lots of extra detail, generally should not be needed.
-static constexpr bool veryVerbose = false && verbose;
+static constexpr bool veryVerbose = true && verbose;
 
 // Import occType enum values.
 typedef OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType occType;
@@ -1973,9 +1973,11 @@ static const ALDataSample sample2bHard[] =
 {8,0,12,3},
 {8,0,24,3, occType::OCC_NONE, true, false}, // Dark, vacant.
 // ...
+{8,5,28,3, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, vacant, maximum setback.
+// ...
 {8,7,28,3, occType::OCC_NONE, true, false}, // Dark, vacant.
-{8,7,40,180, occType::OCC_PROBABLE, false, true}, // Curtains drawn, OCCUPANCY.
-{8,7,44,179, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Curtains drawn, OCCUPANCY.
+{8,7,40,180, occType::OCC_PROBABLE, false, true, ALDataSample::SB_NONE}, // Curtains drawn, OCCUPANCY.  NO setback.
+{8,7,44,179, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONE}, // Curtains drawn, OCCUPANCY.
 {8,7,52,180},
 {8,8,0,182},
 {8,8,8,183},
@@ -2005,7 +2007,7 @@ static const ALDataSample sample2bHard[] =
 {8,11,36,185},
 {8,11,44,186},
 {8,11,48,186},
-{8,12,4,186, ALDataSample::NO_OCC_EXPECTATION, false, false}, // Broad daylight, vacant.
+{8,12,4,186, ALDataSample::NO_OCC_EXPECTATION, false, false, ALDataSample::SB_NONEECO}, // Broad daylight, vacant. Small setback allowed.
 {8,12,16,187},
 {8,12,20,187},
 {8,12,32,184},
@@ -2057,7 +2059,7 @@ static const ALDataSample sample2bHard[] =
 {8,17,44,4},
 {8,17,52,3},
 {8,18,0,3},
-{8,18,12,3, occType::OCC_NONE, true, false},  // Dark, vacant.
+{8,18,12,3, occType::OCC_NONE, true, false, ALDataSample::SB_MINECO},  // Dark, vacant.  Small setback expected.
 {8,18,24,3},
 {8,18,40,3},
 {8,18,52,3},
@@ -2068,15 +2070,17 @@ static const ALDataSample sample2bHard[] =
 {8,19,52,4, occType::OCC_NONE, true, false},  // Dark, vacant.
 {8,20,0,7},
 {8,20,16,6},
-{8,20,20,10, occType::OCC_PROBABLE, ALDataSample::NO_RD_EXPECTATION, true}, // Light on, OCCUPANCY.  FIXME: should be light.
-{8,20,28,6, ALDataSample::NO_OCC_EXPECTATION, ALDataSample::NO_RD_EXPECTATION, true}, // Occupied.
+{8,20,20,10, occType::OCC_PROBABLE, ALDataSample::NO_RD_EXPECTATION, true, ALDataSample::SB_NONEMIN}, // Light on, OCCUPANCY.  FIXME: should be no setback.  FIXME: should be light.
+{8,20,28,6, ALDataSample::NO_OCC_EXPECTATION, ALDataSample::NO_RD_EXPECTATION, true, ALDataSample::SB_NONEMIN}, // Occupied.
 {8,20,36,3, occType::OCC_NONE, true},  // Dark, becoming vacant.
 {8,20,42,3},
+// ...
+{9,5,32,3, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, vacant, maximum setback.
 // ...
 {9,7,40,3},
 {9,7,48,3},
 {9,7,52,4},
-{9,8,8,176, occType::OCC_PROBABLE, false, true}, // Curtains drawn, OCCUPANCY.
+{9,8,8,176, occType::OCC_PROBABLE, false, true, ALDataSample::SB_NONE}, // Curtains drawn, OCCUPANCY.  No setback.
 {9,8,20,177},
 {9,8,32,177},
 {9,8,44,178},
@@ -2103,7 +2107,7 @@ static const ALDataSample sample2bHard[] =
 {9,11,28,183},
 {9,11,40,186},
 {9,11,44,186},
-{9,12,4,184, ALDataSample::NO_OCC_EXPECTATION, false}, // Broad daylight.
+{9,12,4,184, ALDataSample::NO_OCC_EXPECTATION, false, false, ALDataSample::SB_NONEECO}, // Broad daylight.  Some setback allowed.
 {9,12,16,184},
 {9,12,24,186},
 {9,12,32,187},
@@ -2153,14 +2157,14 @@ static const ALDataSample sample2bHard[] =
 {9,17,41,4},
 {9,17,48,3},
 {9,18,0,3},
-{9,18,12,3, occType::OCC_NONE, true, false}, // Light off, no active occupancy.
+{9,18,12,3, occType::OCC_NONE, true, false, ALDataSample::SB_MINECO}, // Light off, no active occupancy.  Some setback should happen.
 {9,18,28,3},
 {9,18,40,3},
 {9,18,56,3},
 {9,19,8,10, occType::OCC_PROBABLE, false, true}, // Light on, OCCUPANCY.  FIXME: should be light.
-{9,19,16,9, ALDataSample::NO_OCC_EXPECTATION, ALDataSample::NO_RD_EXPECTATION, true}, // Occupied.
-{9,19,28,10, ALDataSample::NO_OCC_EXPECTATION, ALDataSample::NO_RD_EXPECTATION, true}, // Occupied.
-{9,19,44,6, ALDataSample::NO_OCC_EXPECTATION, ALDataSample::NO_RD_EXPECTATION, true}, // Occupied.
+{9,19,16,9, ALDataSample::NO_OCC_EXPECTATION, ALDataSample::NO_RD_EXPECTATION, true, ALDataSample::SB_NONEMIN}, // Occupied.  // FIXME: should be not dark and no setback.
+{9,19,28,10, ALDataSample::NO_OCC_EXPECTATION, ALDataSample::NO_RD_EXPECTATION, true, ALDataSample::SB_NONEMIN}, // Occupied.  // FIXME: should be not dark and no setback.
+{9,19,44,6, ALDataSample::NO_OCC_EXPECTATION, ALDataSample::NO_RD_EXPECTATION, true, ALDataSample::SB_NONEMIN}, // Occupied.  // FIXME: should be not dark and no setback.
 {9,19,48,11, occType::OCC_PROBABLE, false, true}, // Small light on?  Possible occupancy.  FIXME: should be light.
 {9,19,56,8},
 {9,20,4,8},
