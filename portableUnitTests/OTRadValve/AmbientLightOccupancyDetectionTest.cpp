@@ -483,18 +483,19 @@ static void checkAccuracyAcceptableAgainstData(
     ASSERT_NE(0U, flavourStats.occupancyTrackingFalseNegatives.getSampleCount()) << "some known occupancy values should be provided";
 
     // Check that there are not huge numbers of (false) positive occupancy reports.
-    EXPECT_GE(0.24f, flavourStats.ambLightOccupancyCallbacks.getFractionFlavoured());
+    EXPECT_GE(0.231f, flavourStats.ambLightOccupancyCallbacks.getFractionFlavoured());
 
     // Check that there are not huge numbers of failed callback expectations.
     // We could allow more errors with an odd (non-deployment) blending.
-    EXPECT_GE(0.067f, flavourStats.ambLightOccupancyCallbackPredictionErrors.getFractionFlavoured());
+    EXPECT_GE(0.04f, flavourStats.ambLightOccupancyCallbackPredictionErrors.getFractionFlavoured());
 
     // Check that there are not huge numbers of failed dark expectations.
-    EXPECT_GE(0.15f, flavourStats.roomDarkPredictionErrors.getFractionFlavoured()) << flavourStats.roomDarkPredictionErrors.getSampleCount();
+    EXPECT_GE(0.125f, flavourStats.roomDarkPredictionErrors.getFractionFlavoured()) << flavourStats.roomDarkPredictionErrors.getSampleCount();
 
     // Check that there is a reasonable balance between room dark/light.
+    // Should be between ~33% and ~67% for UK depending on time of year.
     const float rdFraction = flavourStats.roomDarkSamples.getFractionFlavoured();
-    EXPECT_LE(0.4f, rdFraction);
+    EXPECT_LE(0.41f, rdFraction);
     EXPECT_GE(0.8f, rdFraction);
 
     // Check that number of false positives and negatives
@@ -510,8 +511,8 @@ static void checkAccuracyAcceptableAgainstData(
 
     // Check that setback accuracy is OK.
     // Aim for a low error rate in either direction.
-    EXPECT_GE((flavourStats.sensitive ? 0.12f : 0.1f), flavourStats.setbackInsufficient.getFractionFlavoured());
-    EXPECT_GE((oddBlend ? 0.145f : 0.1f), flavourStats.setbackTooFar.getFractionFlavoured());
+    EXPECT_GE((normalOperation ? 0.03f : 0.12f), flavourStats.setbackInsufficient.getFractionFlavoured());
+    EXPECT_GE((normalOperation ? 0.03f : 0.1f), flavourStats.setbackTooFar.getFractionFlavoured());
     }
 // Do a simple run over the supplied data, one call per simulated minute until the terminating record is found.
 // Must be called with 1 or more data rows in ascending time with a terminating (empty) entry.
