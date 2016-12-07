@@ -146,6 +146,8 @@ namespace OTSIM900Link
         {
         INIT = 0,
         GET_STATE,
+        WAIT_PWR_HIGH,
+        WAIT_PWR_LOW,
         START_UP,
         CHECK_PIN,
         WAIT_FOR_REGISTRATION,
@@ -342,9 +344,7 @@ typedef const char *AT_t;
              */
             virtual void poll() override
             {
-                if (bPowerLock) {
-                    powerLockOut();
-                } else if (-1 != retryTimer) {  // not locked out when retryTimer is -1.
+                if (-1 != retryTimer) {  // not locked out when retryTimer is -1.
                     retryLockOut();
                     return;
                 } else if (messageCounter == 255) { // Force a hard restart every 255 messages.
@@ -364,19 +364,27 @@ typedef const char *AT_t;
                         txMsgLen = 0;
                         txMessageQueue = 0;
                         bAvailable = false;
-                        bPowered = false;
                         state = GET_STATE;
                         break;
                     case GET_STATE: // Check SIM900 is present and can be talked to. Takes up to 220 ticks?
                         OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*GET_STATE")
                         if (isSIM900Replying()) {
                             bAvailable = true;
-                            bPowered = true;
-                        } else {
-                            bPowered = false;
                         }
-                        state = START_UP;
-                        powerToggle(); // Power down for START_UP
+                        setPwrPinHigh(true);
+                        powerTimer = static_cast<int8_t>(getCurrentSeconds());
+                        state = WAIT_PWR_HIGH;
+                        break;
+                    case WAIT_PWR_HIGH:  // Toggle the pin.
+                        OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*WAIT_PWR_HIGH")
+                        if (waitedLongEnough(powerTimer, 2)) {  // check more than 2 seconds have passed.
+                            setPwrPinHigh(false);
+                            state = WAIT_PWR_LOW;
+                        }
+                        break;
+                    case WAIT_PWR_LOW:
+                        OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*START_UP")
+                        if (waitedLongEnough(powerTimer, powerLockOutDuration)) state = START_UP;
                         break;
                     case START_UP: // takes up to 150 ticks
                         OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*START_UP")
@@ -509,8 +517,6 @@ typedef const char *AT_t;
 
             // variables
             bool bAvailable = false;
-            bool bPowered = false;
-            bool bPowerLock = false;
             int8_t powerTimer = 0;
             uint8_t messageCounter = 0; // Number of frames sent. Used to schedule a reset.
             // maximum number of times SIM900 can spend in a state before being reset.
@@ -524,77 +530,7 @@ typedef const char *AT_t;
             const OTSIM900LinkConfig_t *config = NULL;
             /************************* Private Methods *******************************/
 
-        public:
-            // Power up/down
-            /**
-             * @brief    check if this thinks that the SIM900 module has power
-             * @retval    true if module is powered up
-             *
-             * Mainly exposed for unit testing.
-             */
-            bool isPowered() const { return(bPowered); }
-
         private:
-            /**
-             * @brief     Power up module
-             */
-            inline void powerOn()
-                {
-                setPwrPinHigh(false);
-                if (!isPowered())
-                    powerToggle();
-                }
-
-            /**
-             * @brief     Close UDP if necessary and power down module.
-             */
-            inline void powerOff()
-                {
-                setPwrPinHigh(false);
-                if (isPowered())
-                    powerToggle();
-                }
-
-            /**
-             * @brief   toggles power and sets power lock.
-             * @fixme   proper ovf testing not implemented so the SIM900 may not power on/off near the end of a 60 second cycle.
-             */
-            void powerToggle()
-            {
-                // trigger process
-                // - If not locked and pin low.
-                //    - Set pin High, get time and set lock.
-                // - If locked and pin high.
-                //    - set pin low once time > 2 seconds.
-                // - If locked and pin low.
-                //    - unlock once time > 12 seconds.
-                if (!_isPinHigh()) {
-                    setPwrPinHigh(true);
-                    powerTimer = static_cast<int8_t>(getCurrentSeconds());
-                    bPowerLock = true;
-                } else {
-                    setPwrPinHigh(false); // This is an error condition!
-                    state = RESET;
-                    OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Err: SIM900 Bad powerToggle")
-                }
-            }
-
-            /**
-             * @brief   Manage power lockout.
-             */
-            void powerLockOut()
-            {
-                if (_isPinHigh()) {
-                    // check time > 2
-                    if (waitedLongEnough(powerTimer, 2)) {
-                        setPwrPinHigh(false);
-                        bPowered = !bPowered;
-                    }
-                } else {
-                    if (waitedLongEnough(powerTimer, powerLockOutDuration)) bPowerLock = false;
-                }
-            }
-
             /**
              * @brief   Check if enough time has passed to retry again and update the retry counter.
              * @note    retryCounter must be set by the caller.
@@ -1092,7 +1028,6 @@ typedef const char *AT_t;
         // Provided to assist with "white-box" unit testing.
         OTSIM900LinkState _getState() { return(state); }
         bool _isPinHigh() {return pinHigh;}
-        bool _isLockedOut() {return bPowerLock;}
 #endif // ARDUINO_ARCH_AVR
 
     };
