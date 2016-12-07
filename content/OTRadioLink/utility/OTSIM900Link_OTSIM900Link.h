@@ -986,10 +986,10 @@ typedef const char *AT_t;
                 return false;
             else {
                 config = (const OTSIM900LinkConfig_t *) channelConfig->config;
-                if ("\0" == config->PIN) return false;
-                else if ("\0" == config->APN) return false;
-                else if ("\0" == config->UDP_Address) return false;
-                else if ("\0" == config->UDP_Port) return false;
+                if ("\0" == config->get((const uint8_t *) config->PIN)) return false;
+                else if ("\0" == config->get((const uint8_t *) config->APN)) return false;
+                else if ("\0" == config->get((const uint8_t *) config->UDP_Address)) return false;
+                else if ("\0" == config->get((const uint8_t *) config->UDP_Port)) return false;
                 else return true;
             }
         }
