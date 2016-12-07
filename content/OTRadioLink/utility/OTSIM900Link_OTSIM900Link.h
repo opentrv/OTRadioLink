@@ -520,6 +520,7 @@ typedef const char *AT_t;
             int8_t powerTimer = 0;
             uint8_t messageCounter = 0; // Number of frames sent. Used to schedule a reset.
             uint8_t retryCounter = 0;   // Count the number of retries attempted
+//            uint8_t retriesRemaining = 0;   // Count the number of retries attempted
             int8_t retryTimer = -1;     // Store the retry lockout time. This takes a value in range [0,60] and is set to (-1) when no lockout is desired.
             static constexpr uint8_t maxRetriesDefault = 10;  // Default number of retries.
             volatile uint8_t txMessageQueue = 0; // Number of frames currently queued for TX.
@@ -528,16 +529,16 @@ typedef const char *AT_t;
             /************************* Private Methods *******************************/
 
         private:
-            /**
-             * @brief   If a state has changed, make sure things like retries are reset.
-             */
-            void onStateChange(const OTSIM900LinkState newState)
-            {
-                if (newState != oldState) {
-                    oldState = newState;
-                    retryCounter = maxRetriesDefault;
-                }
-            }
+//            /**
+//             * @brief   If a state has changed, make sure things like retries are reset.
+//             */
+//            void onStateChange(const OTSIM900LinkState newState)
+//            {
+//                if (newState != oldState) {
+//                    oldState = newState;
+//                    retriesRemaining = maxRetriesDefault;
+//                }
+//            }
             /**
              * @brief   Check if enough time has passed to retry again and update the retry counter.
              * @note    retryCounter must be set by the caller.
