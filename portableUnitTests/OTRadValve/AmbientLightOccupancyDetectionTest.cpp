@@ -31,7 +31,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 
 
 // Set true for verbose reporting.
-static constexpr bool verbose = true;
+static constexpr bool verbose = false;
 // Lots of extra detail, generally should not be needed.
 static constexpr bool veryVerbose = false && verbose;
 
@@ -265,6 +265,10 @@ if(veryVerbose) { fprintf(stderr, " *Callback: %d\n", p); }
     // Reset all these static entities but does not clear stats.
     static void resetAll()
         {
+        // Seed PRNG for use in simulator; --gtest_shuffle will force it to change.
+        srandom((unsigned) ::testing::UnitTest::GetInstance()->random_seed());
+        OTV0P2BASE::seedRNG8(random() & 0xff, random() & 0xff, random() & 0xff);
+
         // Set up room to be dark and vacant.
         ambLight.resetAdaptive();
         occupancy.reset();
@@ -511,8 +515,8 @@ static void checkAccuracyAcceptableAgainstData(
 
     // Check that setback accuracy is OK.
     // Aim for a low error rate in either direction.
-    EXPECT_GE((normalOperation ? 0.03f : 0.12f), flavourStats.setbackInsufficient.getFractionFlavoured());
-    EXPECT_GE((normalOperation ? 0.03f : 0.1f), flavourStats.setbackTooFar.getFractionFlavoured());
+    EXPECT_GE((normalOperation ? 0.05f : 0.12f), flavourStats.setbackInsufficient.getFractionFlavoured());
+    EXPECT_GE((normalOperation ? 0.05f : 0.1f), flavourStats.setbackTooFar.getFractionFlavoured());
     }
 // Do a simple run over the supplied data, one call per simulated minute until the terminating record is found.
 // Must be called with 1 or more data rows in ascending time with a terminating (empty) entry.
@@ -569,6 +573,7 @@ void simpleDataSampleRun(const ALDataSample *const data)
     int byHourMeanCountI[24]; memset(byHourMeanCountI, 0, sizeof(byHourMeanCountI));
     for(const ALDataSample *dp = data; !dp->isEnd(); ++dp)
         {
+        if(dp > data) { ASSERT_LT((dp-1)->currentMinute(), dp->currentMinute()) << "record times must increase strictly monotonically in time: prev " <<int((dp-1)->d)<<"T"<<int((dp-1)->H)<<":"<<int((dp-1)->M) << " vs current "<<int(dp->d)<<"T"<<int(dp->H)<<":"<<int(dp->M); }
         ++nRecords;
         const int8_t neo = ALDataSample::NO_OCC_EXPECTATION;
         if(neo != dp->expectedOcc) { ++nOccExpectation; }
@@ -1083,7 +1088,7 @@ static const ALDataSample sample3lLevels[] =
 {2,9,33,70},
 {2,9,37,73},
 {2,9,45,184},
-{2,9,45,183},
+//{2,9,45,183},
 {2,9,49,45},
 {2,9,55,85},
 {2,10,11,95},
@@ -1404,7 +1409,6 @@ static const ALDataSample sample5sHard2[] =
 {2,17,3,25},
 {2,17,4,24},
 {2,17,6,25},
-{2,17,6,25},
 {2,17,9,24},
 {2,17,14,24},
 {2,17,17,24},
@@ -1429,17 +1433,17 @@ static const ALDataSample sample5sHard2[] =
 {2,18,2,25},
 {2,18,6,24},
 {2,18,9,24},
-{2,18,9,25},
+//{2,18,9,25},
 {2,18,13,25},
-{2,18,13,24},
+//{2,18,13,24},
 {2,18,16,24},
 {2,18,20,33},
 {2,18,21,24},
 {2,18,22,25},
 {2,18,23,24},
-{2,18,23,24},
-{2,18,23,24},
-{2,18,23,24},
+//{2,18,23,24},
+//{2,18,23,24},
+//{2,18,23,24},
 {2,18,24,25},
 {2,18,25,24},
 {2,18,29,24},
@@ -1915,7 +1919,7 @@ static const ALDataSample sample5sHard2[] =
 {4,7,51,7},
 {4,7,54,8},
 {4,7,58,9},
-{4,7,58,10},
+//{4,7,58,10},
 {4,8,2,11},
 {4,8,6,13},
 {4,8,7,13},
@@ -1938,25 +1942,25 @@ static const ALDataSample sample5sHard2[] =
 {4,8,46,63},
 {4,8,49,105},
 {4,8,51,91},
-{4,8,51,96},
+//{4,8,51,96},
 {4,8,54,94},
 {4,8,58,119},
 {4,9,3,133},
 {4,9,5,119},
 {4,9,7,125},
 {4,9,9,142},
-{4,9,9,135},
+//{4,9,9,135},
 {4,9,12,104},
 {4,9,15,111},
 {4,9,16,92},
-{4,9,16,86},
+//{4,9,16,86},
 {4,9,20,132},
 {4,9,21,140},
 {4,9,24,101},
 {4,9,28,175},
 {4,9,31,175},
 {4,9,34,134},
-{4,9,34,114},
+//{4,9,34,114},
 {4,9,35,133},
 {4,9,37,141},
     { }
@@ -1973,9 +1977,11 @@ static const ALDataSample sample2bHard[] =
 {8,0,12,3},
 {8,0,24,3, occType::OCC_NONE, true, false}, // Dark, vacant.
 // ...
+{8,5,28,3, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, vacant, maximum setback.
+// ...
 {8,7,28,3, occType::OCC_NONE, true, false}, // Dark, vacant.
-{8,7,40,180, occType::OCC_PROBABLE, false, true}, // Curtains drawn, OCCUPANCY.
-{8,7,44,179, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Curtains drawn, OCCUPANCY.
+{8,7,40,180, occType::OCC_PROBABLE, false, true, ALDataSample::SB_NONE}, // Curtains drawn, OCCUPANCY.  NO setback.
+{8,7,44,179, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONE}, // Curtains drawn, OCCUPANCY.
 {8,7,52,180},
 {8,8,0,182},
 {8,8,8,183},
@@ -2005,7 +2011,7 @@ static const ALDataSample sample2bHard[] =
 {8,11,36,185},
 {8,11,44,186},
 {8,11,48,186},
-{8,12,4,186, ALDataSample::NO_OCC_EXPECTATION, false, false}, // Broad daylight, vacant.
+{8,12,4,186, ALDataSample::NO_OCC_EXPECTATION, false, false, ALDataSample::SB_NONEECO}, // Broad daylight, vacant. Small setback allowed.
 {8,12,16,187},
 {8,12,20,187},
 {8,12,32,184},
@@ -2057,7 +2063,7 @@ static const ALDataSample sample2bHard[] =
 {8,17,44,4},
 {8,17,52,3},
 {8,18,0,3},
-{8,18,12,3, occType::OCC_NONE, true, false},  // Dark, vacant.
+{8,18,12,3, occType::OCC_NONE, true, false, ALDataSample::SB_MINECO},  // Dark, vacant.  Small setback expected.
 {8,18,24,3},
 {8,18,40,3},
 {8,18,52,3},
@@ -2068,15 +2074,17 @@ static const ALDataSample sample2bHard[] =
 {8,19,52,4, occType::OCC_NONE, true, false},  // Dark, vacant.
 {8,20,0,7},
 {8,20,16,6},
-{8,20,20,10, occType::OCC_PROBABLE, ALDataSample::NO_RD_EXPECTATION, true}, // Light on, OCCUPANCY.  FIXME: should be light.
-{8,20,28,6, ALDataSample::NO_OCC_EXPECTATION, ALDataSample::NO_RD_EXPECTATION, true}, // Occupied.
+{8,20,20,10, occType::OCC_PROBABLE, ALDataSample::NO_RD_EXPECTATION, true, ALDataSample::SB_NONEMIN}, // Light on, OCCUPANCY.  FIXME: should be no setback.  FIXME: should be light.
+{8,20,28,6, ALDataSample::NO_OCC_EXPECTATION, ALDataSample::NO_RD_EXPECTATION, true, ALDataSample::SB_NONEMIN}, // Occupied.
 {8,20,36,3, occType::OCC_NONE, true},  // Dark, becoming vacant.
 {8,20,42,3},
+// ...
+{9,5,32,3, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, vacant, maximum setback.
 // ...
 {9,7,40,3},
 {9,7,48,3},
 {9,7,52,4},
-{9,8,8,176, occType::OCC_PROBABLE, false, true}, // Curtains drawn, OCCUPANCY.
+{9,8,8,176, occType::OCC_PROBABLE, false, true, ALDataSample::SB_NONE}, // Curtains drawn, OCCUPANCY.  No setback.
 {9,8,20,177},
 {9,8,32,177},
 {9,8,44,178},
@@ -2103,16 +2111,13 @@ static const ALDataSample sample2bHard[] =
 {9,11,28,183},
 {9,11,40,186},
 {9,11,44,186},
-{9,12,4,184, ALDataSample::NO_OCC_EXPECTATION, false}, // Broad daylight.
+{9,12,4,184, ALDataSample::NO_OCC_EXPECTATION, false, false, ALDataSample::SB_NONEECO}, // Broad daylight.  Some setback allowed.
 {9,12,16,184},
 {9,12,24,186},
 {9,12,32,187},
 {9,12,40,186},
 {9,12,44,187},
 {9,12,56,187},
-{9,13,8,186},
-{9,13,12,185},
-{9,13,13,185},
 {9,13,8,186},
 {9,13,12,185},
 {9,13,13,185},
@@ -2156,14 +2161,14 @@ static const ALDataSample sample2bHard[] =
 {9,17,41,4},
 {9,17,48,3},
 {9,18,0,3},
-{9,18,12,3, occType::OCC_NONE, true, false}, // Light off, no active occupancy.
+{9,18,12,3, occType::OCC_NONE, true, false, ALDataSample::SB_MINECO}, // Light off, no active occupancy.  Some setback should happen.
 {9,18,28,3},
 {9,18,40,3},
 {9,18,56,3},
 {9,19,8,10, occType::OCC_PROBABLE, false, true}, // Light on, OCCUPANCY.  FIXME: should be light.
-{9,19,16,9, ALDataSample::NO_OCC_EXPECTATION, ALDataSample::NO_RD_EXPECTATION, true}, // Occupied.
-{9,19,28,10, ALDataSample::NO_OCC_EXPECTATION, ALDataSample::NO_RD_EXPECTATION, true}, // Occupied.
-{9,19,44,6, ALDataSample::NO_OCC_EXPECTATION, ALDataSample::NO_RD_EXPECTATION, true}, // Occupied.
+{9,19,16,9, ALDataSample::NO_OCC_EXPECTATION, ALDataSample::NO_RD_EXPECTATION, true, ALDataSample::SB_NONEMIN}, // Occupied.  // FIXME: should be not dark and no setback.
+{9,19,28,10, ALDataSample::NO_OCC_EXPECTATION, ALDataSample::NO_RD_EXPECTATION, true, ALDataSample::SB_NONEMIN}, // Occupied.  // FIXME: should be not dark and no setback.
+{9,19,44,6, ALDataSample::NO_OCC_EXPECTATION, ALDataSample::NO_RD_EXPECTATION, true, ALDataSample::SB_NONEMIN}, // Occupied.  // FIXME: should be not dark and no setback.
 {9,19,48,11, occType::OCC_PROBABLE, false, true}, // Small light on?  Possible occupancy.  FIXME: should be light.
 {9,19,56,8},
 {9,20,4,8},
@@ -2719,6 +2724,8 @@ static const ALDataSample sample3leveningTV[] =
 {11,22,7,1},
 {11,22,11,1},
 // ...
+{12,6,7,1, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, vacant, running long enough for max setback.
+// ...
 {12,7,7,1},
 {12,7,19,1},
 {12,7,35,5},
@@ -2938,6 +2945,8 @@ static const ALDataSample sample3leveningTV[] =
 {13,21,32,46},
 {13,21,49,3},
 {13,22,1,3},
+//
+{14,5,44,3, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, vacant, running long enough for max setback.
 // ...
 {14,6,52,3},
 {14,7,8,3},
@@ -3042,6 +3051,8 @@ static const ALDataSample sample3leveningTV[] =
 {14,22,0,16},
 {14,22,4,3},
 {14,22,20,3},
+//
+{15,5,0,3, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, vacant, running long enough for max setback.
 // ...
 {15,6,48,3},
 {15,7,0,3},
@@ -3119,7 +3130,7 @@ static const ALDataSample sample3leveningTV[] =
 {15,16,16,69},
 {15,16,17,27},
 {15,16,20,15},
-{15,16,20,15},
+//{15,16,20,15},
 {15,16,32,48},
 {15,16,43,48},
 {15,16,48,49},
@@ -3150,6 +3161,8 @@ static const ALDataSample sample3leveningTV[] =
 {15,20,28,46},
 {15,20,44,3},
 {15,20,56,3},
+// ...
+{16,5,12,3, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, vacant, running long enough for max setback.
 // ...
 {16,6,48,3},
 {16,7,0,3},
@@ -3276,6 +3289,8 @@ static const ALDataSample sample3leveningTV[] =
 {16,22,24,3},
 {16,22,40,3},
 // ...
+{17,4,8,3, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, vacant, running long enough for max setback.
+// ...
 {17,6,56,3},
 {17,7,8,3},
 {17,7,20,5},
@@ -3380,6 +3395,8 @@ static const ALDataSample sample3leveningTV[] =
 {17,22,8,45},
 {17,22,20,3},
 {17,22,32,3},
+//
+{18,4,40,3, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, vacant, running long enough for max setback.
 // ...
 {18,6,40,3},
 {18,6,56,3},
@@ -3475,6 +3492,8 @@ static const ALDataSample sample3leveningTV[] =
 {18,21,48,43},
 {18,22,0,3},
 {18,22,12,3},
+// ...
+{19,5,24,3, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, vacant, running long enough for max setback.
 // ...
 {19,7,24,3},
 {19,7,40,3},
@@ -3588,6 +3607,8 @@ static const ALDataSample sample3leveningTV[] =
 {20,2,4,3},
 {20,2,16,3},
 // ...
+{20,5,52,3, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, vacant, running long enough for max setback.
+// ...
 {20,7,28,3},
 {20,7,40,3},
 {20,7,52,17},
@@ -3682,6 +3703,8 @@ static const ALDataSample sample3leveningTV[] =
 {20,22,24,3},
 {20,22,36,3},
 // ...
+{21,4,12,3, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, vacant, running long enough for max setback.
+// ...
 {21,7,4,3},
 {21,7,23,3},
 {21,7,32,4},
@@ -3768,6 +3791,8 @@ static const ALDataSample sample3leveningTV[] =
 {21,21,56,46},
 {21,22,4,3},
 {21,22,16,3},
+// ...
+{22,5,24,3, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, vacant, running long enough for max setback.
 // ...
 {22,6,56,3},
 {22,7,8,3},
@@ -3865,7 +3890,7 @@ static const ALDataSample sample3leveningTV[] =
 {22,22,19,3},
 {22,22,28,3},
 // ...
-{23,4,59,3},
+{23,4,59,3, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, vacant, running long enough for max setback.
 {23,5,7,3},
 {23,5,11,2},
 {23,5,20,3},
@@ -3956,6 +3981,8 @@ static const ALDataSample sample3leveningTV[] =
 {23,22,7,46},
 {23,22,19,3},
 {23,22,35,3},
+// ...
+{24,5,11,3, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, vacant, running long enough for max setback.
 // ...
 {24,6,59,3, ALDataSample::NO_OCC_EXPECTATION, true, false, ALDataSample::SB_MAX}, // Dark, vacant, max setback.
 {24,7,15,3, ALDataSample::NO_OCC_EXPECTATION, true, false}, // Dark, vacant.
