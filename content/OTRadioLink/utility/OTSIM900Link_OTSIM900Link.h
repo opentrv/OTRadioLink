@@ -146,6 +146,8 @@ namespace OTSIM900Link
         {
         INIT = 0,
         GET_STATE,
+        WAIT_PWR_HIGH,
+        WAIT_PWR_LOW,
         START_UP,
         CHECK_PIN,
         WAIT_FOR_REGISTRATION,
@@ -342,9 +344,7 @@ typedef const char *AT_t;
              */
             virtual void poll() override
             {
-                if (bPowerLock) {
-                    powerLockOut();
-                } else if (-1 != retryTimer) {  // not locked out when retryTimer is -1.
+                if (-1 != retryTimer) {  // not locked out when retryTimer is -1.
                     retryLockOut();
                     return;
                 } else if (messageCounter == 255) { // Force a hard restart every 255 messages.
@@ -375,8 +375,20 @@ typedef const char *AT_t;
                         } else {
                             bPowered = false;
                         }
-                        state = START_UP;
-                        powerToggle(); // Power down for START_UP
+                        setPwrPinHigh(true);
+                        powerTimer = static_cast<int8_t>(getCurrentSeconds());
+                        state = WAIT_PWR_HIGH;
+                        break;
+                    case WAIT_PWR_HIGH:  // Toggle the pin.
+                        OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*WAIT_PWR_HIGH")
+                        if (waitedLongEnough(powerTimer, 2)) {  // check more than 2 seconds have passed.
+                            setPwrPinHigh(false);
+                            state = WAIT_PWR_LOW;
+                        }
+                        break;
+                    case WAIT_PWR_LOW:
+                        OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*START_UP")
+                        if (waitedLongEnough(powerTimer, powerLockOutDuration)) state = START_UP;
                         break;
                     case START_UP: // takes up to 150 ticks
                         OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*START_UP")
@@ -535,66 +547,6 @@ typedef const char *AT_t;
             bool isPowered() const { return(bPowered); }
 
         private:
-            /**
-             * @brief     Power up module
-             */
-            inline void powerOn()
-                {
-                setPwrPinHigh(false);
-                if (!isPowered())
-                    powerToggle();
-                }
-
-            /**
-             * @brief     Close UDP if necessary and power down module.
-             */
-            inline void powerOff()
-                {
-                setPwrPinHigh(false);
-                if (isPowered())
-                    powerToggle();
-                }
-
-            /**
-             * @brief   toggles power and sets power lock.
-             * @fixme   proper ovf testing not implemented so the SIM900 may not power on/off near the end of a 60 second cycle.
-             */
-            void powerToggle()
-            {
-                // trigger process
-                // - If not locked and pin low.
-                //    - Set pin High, get time and set lock.
-                // - If locked and pin high.
-                //    - set pin low once time > 2 seconds.
-                // - If locked and pin low.
-                //    - unlock once time > 12 seconds.
-                if (!_isPinHigh()) {
-                    setPwrPinHigh(true);
-                    powerTimer = static_cast<int8_t>(getCurrentSeconds());
-                    bPowerLock = true;
-                } else {
-                    setPwrPinHigh(false); // This is an error condition!
-                    state = RESET;
-                    OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Err: SIM900 Bad powerToggle")
-                }
-            }
-
-            /**
-             * @brief   Manage power lockout.
-             */
-            void powerLockOut()
-            {
-                if (_isPinHigh()) {
-                    // check time > 2
-                    if (waitedLongEnough(powerTimer, 2)) {
-                        setPwrPinHigh(false);
-                        bPowered = !bPowered;
-                    }
-                } else {
-                    if (waitedLongEnough(powerTimer, powerLockOutDuration)) bPowerLock = false;
-                }
-            }
-
             /**
              * @brief   Check if enough time has passed to retry again and update the retry counter.
              * @note    retryCounter must be set by the caller.
