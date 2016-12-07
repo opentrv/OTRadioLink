@@ -473,7 +473,9 @@ void setTypeMinMax(OTV0P2BASE::SensorAmbientLightAdaptiveMock &ala,
 static void checkAccuracyAcceptableAgainstData(
         const SimpleFlavourStatCollection &flavourStats)
     {
+    const bool sensitive = flavourStats.sensitive;
     const bool oddBlend = (flavourStats.blending != BL_FROMSTATS);
+    const bool normalOperation = !sensitive && !oddBlend;
 
     // Check that at least some expectations have been set.
 //            ASSERT_NE(0U, flavourStats.AmbLightOccupancyCallbackPredictionErrors.getSampleCount()) << "some expected occupancy callbacks should be provided";
@@ -501,9 +503,10 @@ static void checkAccuracyAcceptableAgainstData(
     // more false positives and fewer false negatives are OK.
     // But accept more errors generally with non-preferred blending.
     // Excess false positives likely inhibit energy saving.
-    EXPECT_GE(((flavourStats.sensitive||oddBlend) ? 0.125f : 0.1f), flavourStats.occupancyTrackingFalsePositives.getFractionFlavoured());
+    // The FIRST (tighter) limit is the more critical one for normal operation.
+    EXPECT_GE((normalOperation ? 0.1f : 0.122f), flavourStats.occupancyTrackingFalsePositives.getFractionFlavoured());
     // Excess false negatives may cause discomfort.
-    EXPECT_GE(((flavourStats.sensitive&&!oddBlend) ? 0.125f : 0.25f), flavourStats.occupancyTrackingFalseNegatives.getFractionFlavoured());
+    EXPECT_GE((normalOperation ? 0.1f : 0.23f), flavourStats.occupancyTrackingFalseNegatives.getFractionFlavoured());
 
     // Check that setback accuracy is OK.
     // Aim for a low error rate in either direction.
@@ -2342,10 +2345,12 @@ static const ALDataSample sample6k[] =
 {8,0,19,1},
 {8,0,35,1},
 {8,0,47,1},
-{8,1,3,1},
-{8,1,19,2, occType::OCC_NONE, true, false}, // Not occupied.
+{8,1,3,1, occType::OCC_NONE, true, false, ALDataSample::SB_ECOMAX}, // Dark, vacant, signficant setback.
+{8,1,19,2},
 {8,1,35,2},
 {8,1,39,2},
+// ...
+{8,4,3,2, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, vacant, max setback.
 // ...
 {8,6,11,2},
 {8,6,23,3},
@@ -2357,7 +2362,7 @@ static const ALDataSample sample6k[] =
 {8,7,7,20},
 {8,7,15,25},
 {8,7,19,33},
-{8,7,31,121, occType::OCC_PROBABLE, false, true}, // Light on: OCCUPIED.
+{8,7,31,121, occType::OCC_PROBABLE, false, true, ALDataSample::SB_NONE}, // Light on: OCCUPIED, no setback.
 {8,7,40,35},
 {8,7,52,62},
 {8,8,7,168},
@@ -2391,7 +2396,7 @@ static const ALDataSample sample6k[] =
 {8,11,43,143},
 {8,11,51,162},
 {8,11,55,178},
-{8,12,7,155, ALDataSample::NO_OCC_EXPECTATION, false}, // Broad daylight.
+{8,12,7,155, ALDataSample::NO_OCC_EXPECTATION, false, false, ALDataSample::SB_NONEECO}, // Broad daylight, limited setback possible.
 {8,12,15,179},
 {8,12,17,172},
 {8,12,19,84},
@@ -2410,7 +2415,7 @@ static const ALDataSample sample6k[] =
 {8,14,3,27},
 {8,14,11,41},
 {8,14,15,50},
-{8,14,19,53, ALDataSample::NO_OCC_EXPECTATION, false, true}, // occType::OCC_WEAK}, // Light still on?
+{8,14,19,53, ALDataSample::NO_OCC_EXPECTATION, false, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEECO}, // occType::OCC_WEAK}, // Light still on?  Occupied? Possible small setback.
 {8,14,27,58},
 {8,14,31,59},
 {8,14,35,52},
@@ -2429,7 +2434,7 @@ static const ALDataSample sample6k[] =
 {8,16,3,23},
 {8,16,19,27},
 {8,16,27,18},
-{8,16,35,164, occType::OCC_PROBABLE, false, true}, // Light on: OCCUPIED.
+{8,16,35,164, occType::OCC_PROBABLE, false, true, ALDataSample::SB_NONE}, // Light on: OCCUPIED.  No setback.
 {8,16,39,151},
 {8,16,51,153},
 {8,17,3,151},
@@ -2442,7 +2447,7 @@ static const ALDataSample sample6k[] =
 {8,18,3,1},
 {8,18,15,1},
 {8,18,23,1},
-{8,18,35,1, occType::OCC_NONE, true, false}, // Light off: not occupied.
+{8,18,35,1, occType::OCC_NONE, true, false, ALDataSample::SB_NONEECO}, // Light off: not occupied, small setback possible.
 {8,18,47,1},
 {8,18,59,1},
 {8,19,11,1},
@@ -2458,12 +2463,14 @@ static const ALDataSample sample6k[] =
 {8,20,51,1},
 {8,20,59,1},
 {8,21,11,1},
-{8,21,27,90, occType::OCC_PROBABLE, false, true}, // Light on: OCCUPIED.
+{8,21,27,90, occType::OCC_PROBABLE, false, true, ALDataSample::SB_NONE}, // Light on: OCCUPIED.  No setback.
 {8,21,43,82},
 {8,21,47,80},
 {8,21,51,79},
-{8,22,7,1, occType::OCC_NONE, true, false}, // Light off: not occupied.
+{8,22,7,1, occType::OCC_NONE, true, false, ALDataSample::SB_NONEECO}, // Light off: not occupied.  Small setback possible.
 {8,22,19,1},
+// ...
+{9,5,15,1, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, vacant, max setback.
 // ...
 {9,5,59,1},
 {9,6,7,2},
@@ -2472,7 +2479,7 @@ static const ALDataSample sample6k[] =
 {9,6,23,4},
 {9,6,31,6},
 {9,6,35,8},
-{9,6,47,50, occType::OCC_PROBABLE, false, true}, // Light on or blinds open: OCCUPIED.
+{9,6,47,50, occType::OCC_PROBABLE, false, true, ALDataSample::SB_NONE}, // Light on or blinds open: OCCUPIED. No setback.
 {9,6,51,53},
 {9,7,7,48},
 {9,7,11,57},
