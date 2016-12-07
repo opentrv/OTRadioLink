@@ -44,6 +44,7 @@ inline constexpr uint_fast8_t getElapsedSecondsVT(const uint_fast8_t startSecond
  */
 static constexpr uint_fast8_t minorCycleTimeSecs = 2;
 static void incrementVTOneCycle() { secondsVT += minorCycleTimeSecs; }
+static void incrementVTOneSecondAndPrint() { secondsVT += 1; fprintf(stderr, "!SECONDS VT = %u\n", secondsVT); }
 
 namespace SIM900Emu {
 
@@ -639,6 +640,72 @@ TEST(OTSIM900Link, SIM900EmulatorTest)
     l0.end();
 }
 
+/**
+ * @brief   Simulate starting up a SIM900 that is powered down.
+ */
+TEST(OTSIM900Link, PinTogglingTest)
+{
+
+        srandom((unsigned)::testing::UnitTest::GetInstance()->random_seed()); // Seed random() for use in simulator; --gtest_shuffle will force it to change.
+
+        // Clear out any serial state.
+        SIM900Emu::serialConnection.reset();
+        SIM900Emu::serialConnection.writeCallback = SIM900Emu::sim900WriteCallback;
+        // reset emulator state
+        SIM900Emu::sim900.reset();
+        ASSERT_EQ(SIM900Emu::SIM900StateEmulator::POWER_OFF, SIM900Emu::sim900.emu.myState);
+        ASSERT_FALSE(SIM900Emu::sim900.emu.verbose);
+        ASSERT_FALSE(SIM900Emu::sim900.emu.oldPinState);
+        ASSERT_EQ(0, SIM900Emu::sim900.emu.startTime);
+//        SIM900Emu::sim900.verbose = true;
+
+        // SIM900 Config data
+        const char SIM900_PIN[] = "1111";
+        const char SIM900_APN[] = "apn";
+        const char SIM900_UDP_ADDR[] = "0.0.0.0"; // ORS server
+        const char SIM900_UDP_PORT[] = "9999";
+        const OTSIM900Link::OTSIM900LinkConfig_t SIM900Config(false, SIM900_PIN, SIM900_APN, SIM900_UDP_ADDR, SIM900_UDP_PORT);
+        const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
+
+        // OTSIM900Link instantiation & init.
+        OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, SIM900Emu::SoftSerialSimulator> l0;
+        EXPECT_TRUE(l0.configure(1, &l0Config));
+        EXPECT_TRUE(l0.begin());
+        EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
+
+        // Walk pin toggling behaviour
+        l0.poll();
+        EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
+        EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWER_OFF , SIM900Emu::sim900.emu.myState);
+        EXPECT_FALSE(l0._isPinHigh());
+        // - If no reply, toggle pin:               START_UP, PIN HIGH
+        l0.poll();
+        EXPECT_EQ(OTSIM900Link::WAIT_PWR_HIGH, l0._getState());
+        EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWER_OFF , SIM900Emu::sim900.emu.myState);
+        EXPECT_TRUE(l0._isPinHigh()); // Pin should be high for 2 seconds.
+        SIM900Emu::sim900.pollPowerPin(l0._isPinHigh());
+        secondsVT++;
+//        incrementVTOneSecondAndPrint();
+        l0.poll();
+        SIM900Emu::sim900.pollPowerPin(l0._isPinHigh());
+        EXPECT_EQ(OTSIM900Link::WAIT_PWR_HIGH, l0._getState());
+        EXPECT_TRUE(l0._isPinHigh());
+        secondsVT++;
+//        incrementVTOneSecondAndPrint();
+        l0.poll();
+        SIM900Emu::sim900.pollPowerPin(l0._isPinHigh());
+        EXPECT_EQ(OTSIM900Link::WAIT_PWR_HIGH, l0._getState());
+        EXPECT_TRUE(l0._isPinHigh());
+        secondsVT++;
+//        incrementVTOneSecondAndPrint();
+        l0.poll();
+        SIM900Emu::sim900.pollPowerPin(l0._isPinHigh());
+        EXPECT_EQ(OTSIM900Link::WAIT_PWR_LOW, l0._getState());
+        EXPECT_FALSE(l0._isPinHigh());
+        EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWERING_UP , SIM900Emu::sim900.emu.myState);
+        // ...
+        l0.end();
+}
 
 /**
  * @brief   Simulate starting up a SIM900 that is powered down.
@@ -658,6 +725,7 @@ TEST(OTSIM900Link, StartupFromOffTest)
         ASSERT_FALSE(SIM900Emu::sim900.emu.oldPinState);
         ASSERT_EQ(0, SIM900Emu::sim900.emu.startTime);
         SIM900Emu::sim900.verbose = true;
+        secondsVT = 0; // reset seconds
 
         // SIM900 Config data
         const char SIM900_PIN[] = "1111";
@@ -674,7 +742,6 @@ TEST(OTSIM900Link, StartupFromOffTest)
         EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
 
         // Walk through startup behaviour in detail.
-        // - Starts in INIT, Moves on to GET_STATE: GET_STATE, PIN LOW
         l0.poll();
         EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
         EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWER_OFF , SIM900Emu::sim900.emu.myState);
@@ -703,18 +770,22 @@ TEST(OTSIM900Link, StartupFromOffTest)
         EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWERING_UP , SIM900Emu::sim900.emu.myState);
 
         // Locked out for a further 10 seconds, waiting for lockout to finish.
-//        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 9; i++) {
 //            secondsVT++;
-//            l0.poll();
-//            EXPECT_EQ(OTSIM900Link::START_UP, l0._getState()) << "attempt " << i;
-//        }
-        secondsVT += 12;
+            incrementVTOneSecondAndPrint();
+            l0.poll();
+            EXPECT_EQ(OTSIM900Link::WAIT_PWR_LOW, l0._getState()) << "attempt " << i;
+        }
+//        secondsVT += 12;
         EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWERING_UP , SIM900Emu::sim900.emu.myState);
+        EXPECT_EQ(OTSIM900Link::WAIT_PWR_LOW, l0._getState());
         // - Replied so should move on:             CHECK_PIN, PIN LOW
         l0.poll();
+        EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWERING_UP , SIM900Emu::sim900.emu.myState);
+        EXPECT_EQ(OTSIM900Link::WAIT_PWR_LOW, l0._getState());
         l0.poll();
-//        EXPECT_EQ(OTSIM900Link::CHECK_PIN, l0._getState()); // FIXME disabled as can't start up.
-//        EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWERING_UP , SIM900Emu::sim900.emu.myState);   // FIXME disabled as can't start up.
+        EXPECT_EQ(OTSIM900Link::CHECK_PIN, l0._getState()); // FIXME disabled as can't start up.
+        EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWERING_UP , SIM900Emu::sim900.emu.myState);   // FIXME disabled as can't start up.
         EXPECT_FALSE(l0._isPinHigh());
         // ...
         l0.end();
