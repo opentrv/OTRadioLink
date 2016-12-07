@@ -157,8 +157,7 @@ public:
             // send some garbage.
             // wait for several seconds to pass.
             // go to REGISTERING
-//            if(getElapsedSecondsVT(startUpTime, 9))
-                myState = REGISTERING;
+            if (10 < getElapsedSecondsVT(startUpTime, getSecondsVT())) myState = REGISTERING;
             break;
         case REGISTERING:
             // Wait for some time to pass.
@@ -743,13 +742,13 @@ TEST(OTSIM900Link, StartupFromOffTest)
 
         // Walk through startup behaviour in detail.
         l0.poll();
-        EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
         EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWER_OFF , SIM900Emu::sim900.emu.myState);
+        EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
         EXPECT_FALSE(l0._isPinHigh());
         // - If no reply, toggle pin:               START_UP, PIN HIGH
         l0.poll();
-        EXPECT_EQ(OTSIM900Link::WAIT_PWR_HIGH, l0._getState());
         EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWER_OFF , SIM900Emu::sim900.emu.myState);
+        EXPECT_EQ(OTSIM900Link::WAIT_PWR_HIGH, l0._getState());
         EXPECT_TRUE(l0._isPinHigh()); // Pin should be high for 2 seconds.
         SIM900Emu::sim900.pollPowerPin(l0._isPinHigh());
         secondsVT++;
@@ -765,27 +764,41 @@ TEST(OTSIM900Link, StartupFromOffTest)
         secondsVT++;
         l0.poll();
         SIM900Emu::sim900.pollPowerPin(l0._isPinHigh());
+        EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWERING_UP , SIM900Emu::sim900.emu.myState);
         EXPECT_EQ(OTSIM900Link::WAIT_PWR_LOW, l0._getState());
         EXPECT_FALSE(l0._isPinHigh());
-        EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWERING_UP , SIM900Emu::sim900.emu.myState);
+        fprintf(stderr, "SIM900 Startup Time: %u\n", SIM900Emu::sim900.emu.startUpTime);
 
         // Locked out for a further 10 seconds, waiting for lockout to finish.
-        for (int i = 0; i < 9; i++) {
+        for (int i = 0; i < 9; i++) { // SIM900 awake and ready by 9 seconds
+            l0.poll();
+            std::string temp = "";
+            SIM900Emu::sim900.emu.poll(temp, temp);
+            EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWERING_UP , SIM900Emu::sim900.emu.myState) << "attempt " << i;
+            EXPECT_EQ(OTSIM900Link::WAIT_PWR_LOW, l0._getState()) << "attempt " << i;
 //            secondsVT++;
             incrementVTOneSecondAndPrint();
-            l0.poll();
-            EXPECT_EQ(OTSIM900Link::WAIT_PWR_LOW, l0._getState()) << "attempt " << i;
         }
-//        secondsVT += 12;
-        EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWERING_UP , SIM900Emu::sim900.emu.myState);
-        EXPECT_EQ(OTSIM900Link::WAIT_PWR_LOW, l0._getState());
+        // One more second to wait for lockout to end
+        {
+            l0.poll();
+            std::string temp = "";
+            SIM900Emu::sim900.emu.poll(temp, temp);
+            EXPECT_EQ(SIM900Emu::SIM900StateEmulator::REGISTERING , SIM900Emu::sim900.emu.myState);
+            EXPECT_EQ(OTSIM900Link::WAIT_PWR_LOW, l0._getState());
+//            secondsVT++;
+            incrementVTOneSecondAndPrint();
+        }
+        l0.poll();
+        EXPECT_EQ(SIM900Emu::SIM900StateEmulator::REGISTERING , SIM900Emu::sim900.emu.myState);
+        EXPECT_EQ(OTSIM900Link::START_UP, l0._getState());
         // - Replied so should move on:             CHECK_PIN, PIN LOW
         l0.poll();
-        EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWERING_UP , SIM900Emu::sim900.emu.myState);
-        EXPECT_EQ(OTSIM900Link::WAIT_PWR_LOW, l0._getState());
+        EXPECT_EQ(SIM900Emu::SIM900StateEmulator::REGISTERING , SIM900Emu::sim900.emu.myState);
+        EXPECT_EQ(OTSIM900Link::CHECK_PIN, l0._getState());
         l0.poll();
-        EXPECT_EQ(OTSIM900Link::CHECK_PIN, l0._getState()); // FIXME disabled as can't start up.
-        EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWERING_UP , SIM900Emu::sim900.emu.myState);   // FIXME disabled as can't start up.
+        EXPECT_EQ(OTSIM900Link::WAIT_FOR_REGISTRATION, l0._getState()); // FIXME disabled as can't start up.
+        EXPECT_EQ(SIM900Emu::SIM900StateEmulator::REGISTERING , SIM900Emu::sim900.emu.myState);   // FIXME disabled as can't start up.
         EXPECT_FALSE(l0._isPinHigh());
         // ...
         l0.end();
