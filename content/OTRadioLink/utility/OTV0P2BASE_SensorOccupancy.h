@@ -88,6 +88,8 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     void reset() { value = 0; occupationCountdownM.store(0); activityCountdownM.store(0); vacancyH = 0; vacancyM = 0; }
 
     // Force a read/poll of the occupancy and return the % likely occupied [0,100].
+    // Full consistency of all views/actuators, especially shprt-term ones,
+    // may only be enforced directly after read().
     // Potentially expensive/slow.
     // Not thread-safe nor usable within ISRs (Interrupt Service Routines).
     // Poll at a fixed rate.

@@ -52,40 +52,21 @@ static constexpr int8_t OCCCP_SHIFT =
   ((PseudoSensorOccupancyTracker::OCCUPATION_TIMEOUT_M <= 100) ? 0 :
   ((PseudoSensorOccupancyTracker::OCCUPATION_TIMEOUT_M <= 200) ? -1 : -2)))))));
 
-// Update notion of occupancy confidence.
-// Protects against serious race conditions from ISRs (threads).
+// Force a read/poll of the occupancy and return the % likely occupied [0,100].
+// Full consistency of all views/actuators, especially shprt-term ones,
+// may only be enforced directly after read().
+// Potentially expensive/slow.
+// Not thread-safe nor usable within ISRs (Interrupt Service Routines).
+// Poll at a fixed rate.
 uint8_t PseudoSensorOccupancyTracker::read()
   {
-//  ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
-//    {
-//    // Compute as percentage.
-//    const uint8_t newValue = (0 == occupationCountdownM) ? 0 :
-//        OTV0P2BASE::fnmin((uint8_t)((uint8_t)100 - (uint8_t)((((uint8_t)OCCUPATION_TIMEOUT_M) - occupationCountdownM) << OCCCP_SHIFT)), (uint8_t)100);
-//    value = newValue;
-//    // Update the various metrics in a thread-/ISR- safe way (needs lock, since read-modify-write).
-//    ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
-//      {
-//      // Run down occupation timer (or run up vacancy time) if need be.
-//      if(occupationCountdownM > 0) { --occupationCountdownM; vacancyM = 0; vacancyH = 0; }
-//      else if(vacancyH < 0xffU) { if(++vacancyM >= 60) { vacancyM = 0; ++vacancyH; } }
-//      // Run down 'recent activity' timer.
-//      if(activityCountdownM > 0) { --activityCountdownM; }
-//      }
-//    return(newValue);
-//    }
-
-    // Compute as percentage.
-    // Use snapshot of occupationCountdownM for consistency in calculation.
-    const uint8_t ocM = occupationCountdownM.load();
-    const uint8_t newValue = (0 == ocM) ? 0 :
-        OTV0P2BASE::fnmin((uint8_t)((uint8_t)100 - (uint8_t)((((uint8_t)OCCUPATION_TIMEOUT_M) - ocM) << OCCCP_SHIFT)), (uint8_t)100);
-    value = newValue;
     // Update the various metrics in a thread-/ISR- safe way (nominally needs lock, since read-modify-write).
     // These are updated independently and each in a safe way.
     // Some races may remain but should be relatively harmless.
     //
     // Safely run down occupation timer (or run up vacancy time) if need be.
     // Note that vacancyM and vacancyH should never be directly touched by ISR/thread calls.
+    const uint8_t ocM = occupationCountdownM.load();
     if(ocM > 0) { safeDecIfNZWeak(occupationCountdownM); vacancyM = 0; vacancyH = 0; }
     // Note that ISR call to mark as occupied after here with ocM==0
     // can leave non-zero vacancy and non-zero occupationCountdownM
@@ -93,6 +74,12 @@ uint8_t PseudoSensorOccupancyTracker::read()
     else if(vacancyH < 0xffU) { if(++vacancyM >= 60) { vacancyM = 0; ++vacancyH; } }
     // Safely run down the 'recent activity' timer.
     safeDecIfNZWeak(activityCountdownM);
+    // Compute as percentage.
+    // Use snapshot of occupationCountdownM for consistency in calculation.
+    const uint8_t ocM2 = occupationCountdownM.load();
+    const uint8_t newValue = (0 == ocM2) ? 0 :
+        OTV0P2BASE::fnmin((uint8_t)((uint8_t)100 - (uint8_t)((((uint8_t)OCCUPATION_TIMEOUT_M) - ocM2) << OCCCP_SHIFT)), (uint8_t)100);
+    value = newValue;
     return(newValue);
   }
 
