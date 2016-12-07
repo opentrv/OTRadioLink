@@ -45,6 +45,36 @@ TEST(PseudoSensorOccupancyTracker,basics)
     ASSERT_FALSE(o1.isLikelyOccupied());
     ASSERT_TRUE(o1.isLikelyUnoccupied());
 
+    // Run down from max and show that various (short-term) views are consistent.
+    // Full consistency may only be enforced directly after read().
+    o1.markAsOccupied();
+    for(int i = 0; i < o1.OCCUPATION_TIMEOUT_M + 1; ++i)
+        {
+        const uint8_t v = o1.read();
+        ASSERT_EQ(v, o1.get());
+        EXPECT_EQ((0 != v), o1.isLikelyOccupied());
+        if(o1.isLikelyRecentlyOccupied())
+            {
+            EXPECT_TRUE(o1.isLikelyOccupied());
+            EXPECT_FALSE(o1.isLikelyUnoccupied());
+            EXPECT_LT(0, o1.get());
+            EXPECT_EQ(3, o1.twoBitOccupancyValue());
+            }
+        if(o1.isLikelyOccupied())
+            {
+            EXPECT_FALSE(o1.isLikelyUnoccupied());
+            EXPECT_LT(0, o1.get());
+            EXPECT_LE(2, o1.twoBitOccupancyValue());
+            }
+        if(o1.isLikelyUnoccupied())
+            {
+            EXPECT_EQ(0, o1.get());
+            EXPECT_EQ(1, o1.twoBitOccupancyValue());
+            }
+        }
+    ASSERT_FALSE(o1.isLikelyOccupied());
+    ASSERT_TRUE(o1.isLikelyUnoccupied());
+
     // Put in holiday mode; show marked very vacant.
     o1.setHolidayMode();
     ASSERT_FALSE(o1.isLikelyRecentlyOccupied());
