@@ -1161,7 +1161,6 @@ TEST(OTSIM900Link, MessageCountResetTest)
 
 TEST(OTSIM900Link, PDPDeactResetTest)
 {
-//        const bool verbose = B3::verbose;
         srandom((unsigned)::testing::UnitTest::GetInstance()->random_seed()); // Seed random() for use in simulator; --gtest_shuffle will force it to change.
         // Reset static state to make tests re-runnable.
         SIM900Emu::serialConnection.reset();
@@ -1186,31 +1185,19 @@ TEST(OTSIM900Link, PDPDeactResetTest)
         EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
 
         // Get to IDLE state
-        for(int i = 0; i < 20; ++i) { incrementVTOneCycle(); l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
-//        EXPECT_TRUE(l0.isPowered()); FIXME test broken due to implementation change (DE20161128)
-        EXPECT_EQ(OTSIM900Link::IDLE, l0._getState()) << "OTSIM900Link NOT IDLE!";
-        EXPECT_EQ(SIM900Emu::SIM900StateEmulator::UDP_CONNECT_OK, SIM900Emu::sim900.emu.myState);
+        for(int i = 0; i < 100; ++i) { l0.poll(); incrementVTOneCycle(); if(l0._getState() == OTSIM900Link::IDLE) break;}
+        EXPECT_EQ(SIM900Emu::SIM900StateEmulator::UDP_CONNECT_OK,  SIM900Emu::sim900.emu.myState);
 
         SIM900Emu::sim900.triggerPDPDeactFail();
 
         EXPECT_EQ(SIM900Emu::SIM900StateEmulator::PDP_FAIL, SIM900Emu::sim900.emu.myState);
-
         // Queue a message to send. ResetSimulator should reply PDP DEACT which should trigger a reset.
         for( int i = 0; i < 300; i++) {
-//            if (!l0.isPowered()) break;
+            if (OTSIM900Link::IDLE > l0._getState()) break;
             l0.queueToSend((const uint8_t *)message, (uint8_t)sizeof(message)-1, (int8_t) 0, OTRadioLink::OTRadioLink::TXnormal);
-//            for(int j = 0; j < 10; ++j) { incrementVTOneCycle(); if (!l0.isPowered()) break; l0.poll(); }
+            for(int j = 0; j < 10; ++j) { incrementVTOneCycle(); if (OTSIM900Link::IDLE > l0._getState()) break; l0.poll(); }
         }
-//        EXPECT_FALSE(l0.isPowered()) << "Expected l0.isPowered to be false.";
-        secondsVT += 12;
-        l0.poll();
-//        EXPECT_EQ(OTSIM900Link::START_UP, l0._getState()) << "Expected state to be START_UP."; FIXME test broken due to implementation change (DE20161128)
-        incrementVTOneCycle();
-        l0.poll();
-//        EXPECT_TRUE(l0.isPowered())  << "Expected l0.isPowered to be true."; FIXME test broken due to implementation change (DE20161128)
-
-//        EXPECT_EQ(OTSIM900Link::IDLE, l0._getState()) << "Expected state to be IDLE.";
-
+        EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
         // ...
         l0.end();
 }
