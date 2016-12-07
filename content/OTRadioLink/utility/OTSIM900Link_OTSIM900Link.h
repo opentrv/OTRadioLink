@@ -978,7 +978,7 @@ typedef const char *AT_t;
             }
 
         /**
-         * @brief     Assigns OTSIM900LinkConfig config. Must be called before begin()
+         * @brief     Assigns OTSIM900LinkConfig config and does some basic validation. Must be called before begin()
          * @retval    returns true if assigned or false if config is NULL
          */
         virtual bool _doconfig() override
@@ -987,20 +987,12 @@ typedef const char *AT_t;
                 return false;
             else {
                 config = (const OTSIM900LinkConfig_t *) channelConfig->config;
-                OTSIM900LINK_DEBUG_SERIAL_PRINTFMT(config->get((const uint8_t *) config->PIN), HEX)
-                OTSIM900LINK_DEBUG_SERIAL_PRINT("\t")
-                OTSIM900LINK_DEBUG_SERIAL_PRINTFMT(config->get((const uint8_t *) config->PIN), HEX)
-                OTSIM900LINK_DEBUG_SERIAL_PRINT("\t")
-                OTSIM900LINK_DEBUG_SERIAL_PRINTFMT(config->get((const uint8_t *) config->PIN), HEX)
-                OTSIM900LINK_DEBUG_SERIAL_PRINT("\t")
-                OTSIM900LINK_DEBUG_SERIAL_PRINTFMT(config->get((const uint8_t *) config->PIN), HEX)
-                OTSIM900LINK_DEBUG_SERIAL_PRINTLN()
-
-                if ('\0' == config->get((const uint8_t *) config->PIN)) return false;
-                else if ('\0' == config->get((const uint8_t *) config->APN)) return false;
-                else if ('\0' == config->get((const uint8_t *) config->UDP_Address)) return false;
-                else if ('\0' == config->get((const uint8_t *) config->UDP_Port)) return false;
-                else return true;
+                // config->get((const uint8_t *) config->...) returns a CHAR from flash or EEPROM, not a pointer!
+                // PIN not checked as it is not always necessary.
+                if ('\0' == config->get((const uint8_t *) config->APN)) return false;
+                if ('\0' == config->get((const uint8_t *) config->UDP_Address)) return false;
+                if ('\0' == config->get((const uint8_t *) config->UDP_Port)) return false;
+                return true;
             }
         }
 
