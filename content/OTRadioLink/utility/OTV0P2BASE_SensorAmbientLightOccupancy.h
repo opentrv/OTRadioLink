@@ -110,7 +110,10 @@ class SensorAmbientLightOccupancyDetectorSimple final : public SensorAmbientLigh
       static constexpr uint8_t steadyTicksMinForArtificialLight = 30;
       // Minimum steady time for detecting light on (ticks/minutes).
       // Should be short enough to notice someone going to make a cuppa.
-      static constexpr uint8_t steadyTicksMinBeforeLightOn = 5;
+      // Note that an interval <= TX interval may make it harder to validate
+      // algorithms from routinely collected data,
+      // eg <= 4 minutes with typical secure frame rate of 1 per ~4 minutes.
+      static constexpr uint8_t steadyTicksMinBeforeLightOn = 3;
       // Number of ticks (minutes) levels have been steady for.
       // Steady means a less-than-epsilon change per tick.
       uint8_t steadyTicks = 0;
@@ -151,6 +154,9 @@ class SensorAmbientLightOccupancyDetectorSimple final : public SensorAmbientLigh
           this->longTermMaximumOrFF = longTermMaximumOrFF;
           this->sensitive = sensitive;
           }
+
+       // NOT OFFICAL API: expose steadyTicks for unit tests.
+       uint8_t _getSteadyTicks() const { return(steadyTicks); }
   };
 
 

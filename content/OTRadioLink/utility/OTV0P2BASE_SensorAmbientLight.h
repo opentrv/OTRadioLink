@@ -186,6 +186,9 @@ class SensorAmbientLightAdaptiveMock : public SensorAmbientLightAdaptive
     // Set new non-dependent values immediately.
     virtual bool set(const uint8_t newValue, const uint8_t newDarkTicks, const bool isUnusable = false)
         { value = newValue; unusable = isUnusable; darkTicks = newDarkTicks; return(true); }
+
+    // Expose the occupancy detector read-only for tests.
+    const SensorAmbientLightOccupancyDetectorSimple &_occDet = occupancyDetector;
   };
 
 
