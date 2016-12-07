@@ -2757,7 +2757,7 @@ static const ALDataSample sample3leveningTV[] =
 {12,15,15,18},
 {12,15,19,15},
 {12,15,31,11},
-{12,15,35,46, occType::OCC_PROBABLE, false, true}, // Light on?
+{12,15,35,46, occType::OCC_PROBABLE, false, true, ALDataSample::SB_NONE}, // Light on?  Occupied, no setback.
 {12,15,47,49},
 {12,15,51,47},
 {12,15,59,43},
@@ -2781,12 +2781,12 @@ static const ALDataSample sample3leveningTV[] =
 {12,18,39,44},
 {12,18,51,41},
 {12,18,55,41},
-{12,19,11,37, ALDataSample::NO_OCC_EXPECTATION, false, true}, // TV watching.
+{12,19,11,37, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEECO}, // TV watching, small or no setback.
 {12,19,15,35},
 {12,19,19,35},
 {12,19,35,34},
 {12,19,47,35},
-{12,19,59,42, ALDataSample::NO_OCC_EXPECTATION, false, true}, // TV watching.
+{12,19,59,42, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEECO}, // TV watching, small or no setback.
 {12,20,15,42},
 {12,20,26,44},
 {12,20,27,43},
@@ -2797,7 +2797,7 @@ static const ALDataSample sample3leveningTV[] =
 {12,21,11,45},
 {12,21,21,43},
 {12,21,23,44},
-{12,21,39,42, ALDataSample::NO_OCC_EXPECTATION, false, true}, // TV watching.
+{12,21,39,42, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEECO}, // TV watching, small or no setback.
 {12,21,40,44},
 {12,21,51,42},
 {12,21,55,44},
@@ -2819,13 +2819,17 @@ static const ALDataSample sample3leveningTV[] =
 {13,0,31,14},
 {13,0,35,13},
 {13,0,47,14},
-{13,0,51,1, occType::OCC_NONE, true, false}, // Dake, vacant.
+{13,0,51,1, occType::OCC_NONE, true, false}, // Dark, vacant.
 {13,1,3,1},
-{13,1,19,1},
+{13,1,19,1, occType::OCC_NONE, true, false, ALDataSample::SB_MINECO}, // Dark, vacant, some setback should be in place.
+// ...
+{13,4,11,1, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark and vacant long enough for max setback.
+// ...
+{13,5,7,1, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark and vacant long enough for max setback.
 // ...
 {13,7,23,1},
 {13,7,35,1},
-{13,7,51,52},
+{13,7,51,52, occType::OCC_PROBABLE, false, true, ALDataSample::SB_NONEMIN}, // Dark, vacant, some setback possible.
 {13,8,7,71},
 {13,8,19,73},
 {13,8,27,85},
