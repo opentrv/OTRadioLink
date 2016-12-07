@@ -265,6 +265,10 @@ if(veryVerbose) { fprintf(stderr, " *Callback: %d\n", p); }
     // Reset all these static entities but does not clear stats.
     static void resetAll()
         {
+        // Seed PRNG for use in simulator; --gtest_shuffle will force it to change.
+        srandom((unsigned) ::testing::UnitTest::GetInstance()->random_seed());
+        OTV0P2BASE::seedRNG8(random() & 0xff, random() & 0xff, random() & 0xff);
+
         // Set up room to be dark and vacant.
         ambLight.resetAdaptive();
         occupancy.reset();
