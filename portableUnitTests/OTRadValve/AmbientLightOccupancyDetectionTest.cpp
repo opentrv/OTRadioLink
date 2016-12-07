@@ -31,7 +31,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 
 
 // Set true for verbose reporting.
-static constexpr bool verbose = true;
+static constexpr bool verbose = false;
 // Lots of extra detail, generally should not be needed.
 static constexpr bool veryVerbose = false && verbose;
 
@@ -279,11 +279,13 @@ if(veryVerbose) { fprintf(stderr, " *Callback: %d\n", p); }
     }
 // Score actual setback against expected setback.
 // This is arguably the key metric, ie closest to the desired outcone,
-// of energy savings and comfort being achived.
+// of energy savings and comfort being achieved.
+// Sets 'failed' to true if at least one matric was a fail for this point.
 template<class Valve_parameters>
 static void scoreSetback(
     const uint8_t setback, const ALDataSample::expectedSb_t expectedSb,
-    SimpleFlavourStats &setbackInsufficient, SimpleFlavourStats &setbackTooFar)
+    SimpleFlavourStats &setbackInsufficient, SimpleFlavourStats &setbackTooFar,
+    bool &failed)
     {
     bool tooFar = false;
     bool insufficient = false;
@@ -367,7 +369,7 @@ static void scoreSetback(
     setbackTooFar.takeSample(tooFar);
     setbackInsufficient.takeSample(insufficient);
 
-if(verbose && (tooFar || insufficient)) { fprintf(stderr, "!!!tS=%d expectation=%d\n", setback, expectedSb); }
+    if(tooFar || insufficient) { failed = true; }
     }
 
 // Compute and when appropriate set stats parameters to the ambient light sensor.
@@ -740,8 +742,11 @@ if(veryVerbose && verboseOutput && isRealRecord) { fprintf(stderr, "  tS=%d @ %d
                         if(isRealRecord && (ALDataSample::NO_SB_EXPECTATION != dp->expectedSb))
                             {
                             const int8_t setback = SDSR::tempControl.getWARMTargetC() - SDSR::cttb.computeTargetTemp();
+                            bool failed = false;
                             scoreSetback<SDSR::parameters>(setback, dp->expectedSb,
-                                flavourStats.setbackInsufficient, flavourStats.setbackTooFar);
+                                flavourStats.setbackInsufficient, flavourStats.setbackTooFar,
+                                failed);
+if(verbose && !warmup && failed) { fprintf(stderr, "!!!tS=%d @ %dT%d:%.2d expectation=%d\n", setback, D, H, M, dp->expectedSb); }
                             }
 
                         // Note that for all synthetic ticks the expectation is removed (since there is no level change).
@@ -2756,8 +2761,8 @@ static const ALDataSample sample3leveningTV[] =
 {12,14,59,29},
 {12,15,15,18},
 {12,15,19,15},
-{12,15,31,11},
-{12,15,35,46, occType::OCC_PROBABLE, false, true, ALDataSample::SB_NONE}, // Light on?  Occupied, no setback.
+{12,15,31,11}, // KEY/SENSITIVE DATA POINT BELOW...
+{12,15,35,46}, // FIXME FIXME occType::OCC_PROBABLE, false, true, ALDataSample::SB_NONE}, // Light on?  Occupied, no setback.
 {12,15,47,49},
 {12,15,51,47},
 {12,15,59,43},
@@ -2765,17 +2770,17 @@ static const ALDataSample sample3leveningTV[] =
 {12,16,11,43},
 {12,16,23,41},
 {12,16,27,43},
-{12,16,35,41},
+{12,16,35,41, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEECO}, // TV watching, small or no setback.
 {12,16,47,42},
 {12,16,51,43},
 {12,17,0,43},
-{12,17,11,42},
+{12,17,11,42, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEECO}, // TV watching, small or no setback.
 {12,17,23,1},
 {12,17,39,13},
 {12,17,40,14},
 {12,17,47,13},
 {12,17,59,14},
-{12,18,11,44},
+{12,18,11,44, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEECO}, // TV watching, small or no setback.
 {12,18,19,43},
 {12,18,23,45},
 {12,18,39,44},
@@ -2804,7 +2809,7 @@ static const ALDataSample sample3leveningTV[] =
 {12,22,3,43},
 {12,22,19,43},
 {12,22,31,43},
-{12,22,35,44},
+{12,22,35,44, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEECO}, // TV watching, small or no setback.
 {12,22,51,14},
 {12,22,59,14},
 {12,23,3,14},
