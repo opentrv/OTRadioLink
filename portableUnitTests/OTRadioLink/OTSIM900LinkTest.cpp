@@ -678,31 +678,28 @@ TEST(OTSIM900Link, StartupFromOffTest)
         l0.poll();
         EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
         EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWER_OFF , SIM900Emu::sim900.emu.myState);
-        EXPECT_FALSE(l0._isLockedOut());
         EXPECT_FALSE(l0._isPinHigh());
         // - If no reply, toggle pin:               START_UP, PIN HIGH
         l0.poll();
-        EXPECT_TRUE(l0._isLockedOut());  // pin set high and locked out
-        EXPECT_EQ(OTSIM900Link::START_UP, l0._getState());
+        EXPECT_EQ(OTSIM900Link::WAIT_PWR_HIGH, l0._getState());
         EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWER_OFF , SIM900Emu::sim900.emu.myState);
         EXPECT_TRUE(l0._isPinHigh()); // Pin should be high for 2 seconds.
         SIM900Emu::sim900.pollPowerPin(l0._isPinHigh());
         secondsVT++;
         l0.poll();
         SIM900Emu::sim900.pollPowerPin(l0._isPinHigh());
-        EXPECT_TRUE(l0._isLockedOut());
+        EXPECT_EQ(OTSIM900Link::WAIT_PWR_HIGH, l0._getState());
         EXPECT_TRUE(l0._isPinHigh());
         secondsVT++;
         l0.poll();
         SIM900Emu::sim900.pollPowerPin(l0._isPinHigh());
-        EXPECT_TRUE(l0._isLockedOut());
+        EXPECT_EQ(OTSIM900Link::WAIT_PWR_HIGH, l0._getState());
         EXPECT_TRUE(l0._isPinHigh());
         secondsVT++;
         l0.poll();
         SIM900Emu::sim900.pollPowerPin(l0._isPinHigh());
-        EXPECT_TRUE(l0._isLockedOut());
+        EXPECT_EQ(OTSIM900Link::WAIT_PWR_LOW, l0._getState());
         EXPECT_FALSE(l0._isPinHigh());
-        EXPECT_EQ(OTSIM900Link::START_UP, l0._getState());
         EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWERING_UP , SIM900Emu::sim900.emu.myState);
 
         // Locked out for a further 10 seconds, waiting for lockout to finish.
