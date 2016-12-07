@@ -117,7 +117,6 @@ const char * SIM900Replies::CIPSEND_TRUE = "AT+CIPSEND=3\r\n\r\n>" ;
 class SIM900StateEmulator {
 public:
     SIM900StateEmulator() : oldPinState(false), startTime(0) {};
-
     /**
      * @brief   Non-exhaustive list of states we go through using OTSIM900Link.
      * @note    States with a verb are transitory and can only be exited by the SIM900.
@@ -615,9 +614,7 @@ TEST(OTSIM900Link, SIM900EmulatorTest)
     ASSERT_FALSE(SIM900Emu::sim900.emu.verbose);
     ASSERT_FALSE(SIM900Emu::sim900.emu.oldPinState);
     ASSERT_EQ(0, SIM900Emu::sim900.emu.startTime);
-
 //    SIM900Emu::sim900.verbose = true;
-
     const char SIM900_PIN[] = "1111";
     const char SIM900_APN[] = "apn";
     const char SIM900_UDP_ADDR[] = "0.0.0.0"; // ORS server
@@ -628,13 +625,8 @@ TEST(OTSIM900Link, SIM900EmulatorTest)
     EXPECT_TRUE(l0.configure(1, &l0Config));
     EXPECT_TRUE(l0.begin());
     EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
-
     // Try to hang just by calling poll() repeatedly.
-    for(int i = 0; i < 100; ++i) {
-        incrementVTOneCycle();
-        l0.poll();
-    }
-
+    for(int i = 0; i < 100; ++i) { incrementVTOneCycle(); l0.poll(); }
     // ...
     l0.end();
 }
@@ -644,9 +636,7 @@ TEST(OTSIM900Link, SIM900EmulatorTest)
  */
 TEST(OTSIM900Link, PinTogglingTest)
 {
-
         srandom((unsigned)::testing::UnitTest::GetInstance()->random_seed()); // Seed random() for use in simulator; --gtest_shuffle will force it to change.
-
         // Clear out any serial state.
         SIM900Emu::serialConnection.reset();
         SIM900Emu::serialConnection.writeCallback = SIM900Emu::sim900WriteCallback;
@@ -657,7 +647,6 @@ TEST(OTSIM900Link, PinTogglingTest)
         ASSERT_FALSE(SIM900Emu::sim900.emu.oldPinState);
         ASSERT_EQ(0, SIM900Emu::sim900.emu.startTime);
 //        SIM900Emu::sim900.verbose = true;
-
         // SIM900 Config data
         const char SIM900_PIN[] = "1111";
         const char SIM900_APN[] = "apn";
@@ -665,43 +654,40 @@ TEST(OTSIM900Link, PinTogglingTest)
         const char SIM900_UDP_PORT[] = "9999";
         const OTSIM900Link::OTSIM900LinkConfig_t SIM900Config(false, SIM900_PIN, SIM900_APN, SIM900_UDP_ADDR, SIM900_UDP_PORT);
         const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
-
         // OTSIM900Link instantiation & init.
         OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, SIM900Emu::SoftSerialSimulator> l0;
         EXPECT_TRUE(l0.configure(1, &l0Config));
         EXPECT_TRUE(l0.begin());
         EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
-
         // Walk pin toggling behaviour
         l0.poll();
-        EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
         EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWER_OFF , SIM900Emu::sim900.emu.myState);
+        EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
         EXPECT_FALSE(l0._isPinHigh());
         // - If no reply, toggle pin:               START_UP, PIN HIGH
         l0.poll();
-        EXPECT_EQ(OTSIM900Link::WAIT_PWR_HIGH, l0._getState());
         EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWER_OFF , SIM900Emu::sim900.emu.myState);
+        EXPECT_EQ(OTSIM900Link::WAIT_PWR_HIGH, l0._getState());
         EXPECT_TRUE(l0._isPinHigh()); // Pin should be high for 2 seconds.
         SIM900Emu::sim900.pollPowerPin(l0._isPinHigh());
         secondsVT++;
-//        incrementVTOneSecondAndPrint();
         l0.poll();
         SIM900Emu::sim900.pollPowerPin(l0._isPinHigh());
+        EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWERING_UP , SIM900Emu::sim900.emu.myState); // Should take 1.5 seconds to register pin high, but our resolution isn't high enough.
         EXPECT_EQ(OTSIM900Link::WAIT_PWR_HIGH, l0._getState());
         EXPECT_TRUE(l0._isPinHigh());
         secondsVT++;
-//        incrementVTOneSecondAndPrint();
         l0.poll();
         SIM900Emu::sim900.pollPowerPin(l0._isPinHigh());
+        EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWERING_UP , SIM900Emu::sim900.emu.myState);
         EXPECT_EQ(OTSIM900Link::WAIT_PWR_HIGH, l0._getState());
         EXPECT_TRUE(l0._isPinHigh());
         secondsVT++;
-//        incrementVTOneSecondAndPrint();
-        l0.poll();
+        l0.poll(); // At this point pin should be low and SIM900 should be powering up.
         SIM900Emu::sim900.pollPowerPin(l0._isPinHigh());
+        EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWERING_UP , SIM900Emu::sim900.emu.myState);
         EXPECT_EQ(OTSIM900Link::WAIT_PWR_LOW, l0._getState());
         EXPECT_FALSE(l0._isPinHigh());
-        EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWERING_UP , SIM900Emu::sim900.emu.myState);
         // ...
         l0.end();
 }
@@ -889,7 +875,6 @@ TEST(OTSIM900Link, StartupFromOnTest)
     l0.end();
 }
 
-
 // Walk through state space of OTSIM900Link.
 // Make sure that an instance can be created and does not die horribly.
 // Is meant to mainly walk through all the normal expected SIM900 behaviour when all is well.
@@ -970,14 +955,12 @@ TEST(OTSIM900Link,basicsSimpleSimulator)
     srandom((unsigned)::testing::UnitTest::GetInstance()->random_seed()); // Seed random() for use in simulator; --gtest_shuffle will force it to change.
 
     // Reset static state to make tests re-runnable.
-//    B1::GoodSimulator::haveSeenCommandStart = false;
     // Clear out any serial state.
     SIM900Emu::serialConnection.reset();
     SIM900Emu::serialConnection.writeCallback = SIM900Emu::sim900WriteCallback;
     // reset emulator state
     SIM900Emu::sim900.reset();
-//    ASSERT_EQ(SIM900Emu::SIM900StateEmulator::POWER_OFF, SIM900Emu::sim900.emu.myState);  // FIXME!!!
-    SIM900Emu::sim900.emu.myState = SIM900Emu::SIM900StateEmulator::POWERING_UP;
+    SIM900Emu::sim900.emu.myState = SIM900Emu::SIM900StateEmulator::POWERING_UP; // Start from here to simplify startup process.
 
     ASSERT_FALSE(SIM900Emu::sim900.emu.verbose);
     ASSERT_FALSE(SIM900Emu::sim900.emu.oldPinState);
@@ -995,30 +978,20 @@ TEST(OTSIM900Link,basicsSimpleSimulator)
     const OTSIM900Link::OTSIM900LinkConfig_t SIM900Config(false, SIM900_PIN, SIM900_APN, SIM900_UDP_ADDR, SIM900_UDP_PORT);
     const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
 
-
-//    ASSERT_FALSE(B1::GoodSimulator::haveSeenCommandStart);
-//    OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, B1::GoodSimulator> l0;
-//    EXPECT_TRUE(l0.configure(1, &l0Config));
-//    EXPECT_TRUE(l0.begin());
-//    EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
     OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, SIM900Emu::SoftSerialSimulator> l0;
     EXPECT_TRUE(l0.configure(1, &l0Config));
     EXPECT_TRUE(l0.begin());
     EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
-
 
     // Try to get to IDLE state.
     for(int i = 0; i < 100; ++i) { incrementVTOneCycle(); statesChecked[l0._getState()] = true; l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
     // Queue a message to send.
     l0.queueToSend((const uint8_t *)message, (uint8_t)sizeof(message)-1, (int8_t) 0, OTRadioLink::OTRadioLink::TXnormal);
     for(int i = 0; i < 100; ++i) { incrementVTOneCycle(); statesChecked[l0._getState()] = true; l0.poll(); }
-//    EXPECT_TRUE(B1::GoodSimulator::haveSeenCommandStart) << "should see some attempt to communicate with SIM900";
-    for(size_t i = 0; i < OTSIM900Link::RESET; i++)
-        { EXPECT_TRUE(statesChecked[i]) << "state " << i << " not seen."; } // Check what states have been seen.
+    for(size_t i = 0; i < OTSIM900Link::RESET; i++) { EXPECT_TRUE(statesChecked[i]) << "state " << i << " not seen."; } // Check what states have been seen.
     // ...
     l0.end();
 }
-
 
 namespace B2 {
 const bool verbose = false;
@@ -1141,18 +1114,15 @@ TEST(OTSIM900Link,GarbageTestSimulator)
     l0.end();
 }
 
-
-
 TEST(OTSIM900Link, MessageCountResetTest)
 {
-//        const bool verbose = B3::verbose;
-
         srandom((unsigned)::testing::UnitTest::GetInstance()->random_seed()); // Seed random() for use in simulator; --gtest_shuffle will force it to change.
 
         // Clear out any old state.
         SIM900Emu::serialConnection.reset();
         SIM900Emu::serialConnection.writeCallback = SIM900Emu::sim900WriteCallback;
         SIM900Emu::sim900.reset();
+        SIM900Emu::sim900.emu.myState = SIM900Emu::SIM900StateEmulator::POWERING_UP; // Start from here to simplify startup process.
 
         // Vector of bools containing states to check. This covers all states expected in normal use. RESET and PANIC are not covered.
         std::vector<bool> statesChecked(OTSIM900Link::RESET, false);
@@ -1172,18 +1142,17 @@ TEST(OTSIM900Link, MessageCountResetTest)
         EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
 
         // Get to IDLE state
-        for(int i = 0; i < 20; ++i) { l0.poll(); ++secondsVT; if(l0._getState() == OTSIM900Link::IDLE) break;}
-//        EXPECT_TRUE(l0.isPowered()); //FIXME test broken due to implementation change (DE20161128)
+        for(int i = 0; i < 100; ++i) { l0.poll(); ++secondsVT; if(l0._getState() == OTSIM900Link::IDLE) break;}
+        EXPECT_EQ(SIM900Emu::SIM900StateEmulator::UDP_CONNECT_OK,  SIM900Emu::sim900.emu.myState);
 
         // Queue a message to send. ResetSimulator should reply PDP DEACT which should trigger a reset.
         int sendCounter = 0;
         for( sendCounter = 0; sendCounter < 300; sendCounter++) {
-//            if (!l0.isPowered()) break;
+            if (OTSIM900Link::IDLE > l0._getState()) break;
             l0.queueToSend((const uint8_t *)message, (uint8_t)sizeof(message)-1, (int8_t) 0, OTRadioLink::OTRadioLink::TXnormal);
-//            for(int j = 0; j < 10; ++j) { incrementVTOneCycle(); if (!l0.isPowered()) break; l0.poll(); }
+            for(int j = 0; j < 10; ++j) { incrementVTOneCycle(); if (OTSIM900Link::IDLE > l0._getState()) break; l0.poll(); }
         }
-//        EXPECT_FALSE(l0.isPowered()) << "Expected l0.isPowered to be false.";
-//        EXPECT_EQ(255, sendCounter)  << "Expected 255 messages sent."; // FIXME test broken due to implementation change (DE20161128)
+        EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
         secondsVT += 15;
         l0.poll();
 //        EXPECT_EQ(OTSIM900Link::START_UP, l0._getState()) << "Expected state to be START_UP."; FIXME test broken due to implementation change (DE20161128)
