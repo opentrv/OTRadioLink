@@ -584,6 +584,67 @@ TEST(OTSIM900Link,basicsDeadCard)
     l0.end();
 }
 
+// Test that config validation works
+TEST(OTSIM900Link, basicsNullConfig)
+{
+    const bool verbose = false;
+
+    class NULLSerialStream final : public Stream
+      {
+      public:
+        void begin(unsigned long) { }
+        void begin(unsigned long, uint8_t);
+        void end();
+
+        virtual size_t write(uint8_t c) override { if(verbose) { fprintf(stderr, "%c\n", (char) c); } return(0); }
+        virtual int available() override { return(-1); }
+        virtual int read() override { return(-1); }
+        virtual int peek() override { return(-1); }
+        virtual void flush() override { }
+      };
+
+    const char SIM900_PIN[] = "1111";
+    const char SIM900_APN[] = "apn";
+    const char SIM900_UDP_ADDR[] = "0.0.0.0"; // ORS server
+    const char SIM900_UDP_PORT[] = "9999";
+    const OTSIM900Link::OTSIM900LinkConfig_t SIM900Config(false, SIM900_PIN, SIM900_APN, SIM900_UDP_ADDR, SIM900_UDP_PORT);
+    const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
+    OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, NULLSerialStream> l0;
+    EXPECT_FALSE(l0.configure(1, NULL));
+    // ...
+    l0.end();
+}
+
+TEST(OTSIM900Link, basicsEmptyConfig)
+{
+    const bool verbose = false;
+
+    class NULLSerialStream final : public Stream
+      {
+      public:
+        void begin(unsigned long) { }
+        void begin(unsigned long, uint8_t);
+        void end();
+
+        virtual size_t write(uint8_t c) override { if(verbose) { fprintf(stderr, "%c\n", (char) c); } return(0); }
+        virtual int available() override { return(-1); }
+        virtual int read() override { return(-1); }
+        virtual int peek() override { return(-1); }
+        virtual void flush() override { }
+      };
+
+    const char SIM900_PIN[] = "1111";
+    const char SIM900_APN[] = "apn";
+    const char SIM900_UDP_ADDR[] = ""; // ORS server
+    const char SIM900_UDP_PORT[] = "9999";
+    const OTSIM900Link::OTSIM900LinkConfig_t SIM900Config(false, SIM900_PIN, SIM900_APN, SIM900_UDP_ADDR, SIM900_UDP_PORT);
+    const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
+    OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, NULLSerialStream> l0;
+    EXPECT_FALSE(l0.configure(1, &l0Config));
+    // ...
+    l0.end();
+}
+
 // Test usability of SoftSerialSimulator, eg can it compile.
 TEST(OTSIM900Link, SoftSerialSimulatorTest)
 {
