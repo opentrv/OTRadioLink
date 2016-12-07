@@ -347,7 +347,7 @@ typedef const char *AT_t;
                 if (-1 != retryTimer) {  // not locked out when retryTimer is -1.
                     retryLockOut();
                     return;
-                } else if (messageCounter == 255) { // Force a hard restart every 255 messages.
+                } else if (messageCounter == 4) { // Force a hard restart every 255 messages. XXX
                     messageCounter = 0;  // reset counter.
                     state = RESET;
                     return;
@@ -364,16 +364,12 @@ typedef const char *AT_t;
                         txMsgLen = 0;
                         txMessageQueue = 0;
                         bAvailable = false;
-                        bPowered = false;
                         state = GET_STATE;
                         break;
                     case GET_STATE: // Check SIM900 is present and can be talked to. Takes up to 220 ticks?
                         OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*GET_STATE")
                         if (isSIM900Replying()) {
                             bAvailable = true;
-                            bPowered = true;
-                        } else {
-                            bPowered = false;
                         }
                         setPwrPinHigh(true);
                         powerTimer = static_cast<int8_t>(getCurrentSeconds());
@@ -521,8 +517,6 @@ typedef const char *AT_t;
 
             // variables
             bool bAvailable = false;
-            bool bPowered = false;
-            bool bPowerLock = false;
             int8_t powerTimer = 0;
             uint8_t messageCounter = 0; // Number of frames sent. Used to schedule a reset.
             // maximum number of times SIM900 can spend in a state before being reset.
@@ -535,16 +529,6 @@ typedef const char *AT_t;
             volatile uint8_t txMessageQueue = 0; // Number of frames currently queued for TX.
             const OTSIM900LinkConfig_t *config = NULL;
             /************************* Private Methods *******************************/
-
-        public:
-            // Power up/down
-            /**
-             * @brief    check if this thinks that the SIM900 module has power
-             * @retval    true if module is powered up
-             *
-             * Mainly exposed for unit testing.
-             */
-            bool isPowered() const { return(bPowered); }
 
         private:
             /**
@@ -1044,7 +1028,6 @@ typedef const char *AT_t;
         // Provided to assist with "white-box" unit testing.
         OTSIM900LinkState _getState() { return(state); }
         bool _isPinHigh() {return pinHigh;}
-        bool _isLockedOut() {return bPowerLock;}
 #endif // ARDUINO_ARCH_AVR
 
     };
