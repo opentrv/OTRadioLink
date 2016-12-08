@@ -2354,7 +2354,7 @@ TEST(AmbientLightOccupancyDetection,sample2bHard2)
     simpleDataSampleRun(sample2bHard2);
 }
 
-// "6k" 2016/10/08+09 test set relatively easy to detect daytime occupancy in busy room.
+// "6k" 2016/10/08+09 (Sat+Sun) test set relatively easy to detect daytime occupancy in busy room.
 static const ALDataSample sample6k[] =
     {
 {8,0,7,1, occType::OCC_NONE, true, false}, // Not occupied.
@@ -2421,7 +2421,7 @@ static const ALDataSample sample6k[] =
 {8,12,43,90},
 {8,12,55,89},
 {8,12,59,100},
-{8,13,11,106},
+{8,13,11,106, ALDataSample::NO_OCC_EXPECTATION, false, false, ALDataSample::SB_MINECO}, // Vacant, should be set back at least a little.
 {8,13,15,102},
 {8,13,23,101},
 {8,13,35,14},
