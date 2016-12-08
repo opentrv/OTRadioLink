@@ -31,7 +31,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 
 
 // Set true for verbose reporting.
-static constexpr bool verbose = false;
+static constexpr bool verbose = true;
 // Lots of extra detail, generally should not be needed.
 static constexpr bool veryVerbose = false && verbose;
 
@@ -479,7 +479,10 @@ static void checkAccuracyAcceptableAgainstData(
     {
     const bool sensitive = flavourStats.sensitive;
     const bool oddBlend = (flavourStats.blending != BL_FROMSTATS);
+    // Normal core operation.
     const bool normalOperation = !sensitive && !oddBlend;
+    // Normal operation but a bit more sensitive, eg at comfort end of range.
+    const bool normalSensitiveOperation = sensitive && !oddBlend;
 
     // Check that at least some expectations have been set.
 //            ASSERT_NE(0U, flavourStats.AmbLightOccupancyCallbackPredictionErrors.getSampleCount()) << "some expected occupancy callbacks should be provided";
@@ -507,11 +510,18 @@ static void checkAccuracyAcceptableAgainstData(
     // When 'sensitive', eg in comfort mode,
     // more false positives and fewer false negatives are OK.
     // But accept more errors generally with non-preferred blending.
-    // Excess false positives likely inhibit energy saving.
     // The FIRST (tighter) limit is the more critical one for normal operation.
+    // Excess false positives likely inhibit energy saving.
     EXPECT_GE((normalOperation ? 0.1f : 0.122f), flavourStats.occupancyTrackingFalsePositives.getFractionFlavoured());
     // Excess false negatives may cause discomfort.
     EXPECT_GE((normalOperation ? 0.1f : 0.23f), flavourStats.occupancyTrackingFalseNegatives.getFractionFlavoured());
+    if(normalSensitiveOperation)
+        {
+        // Excess false positives likely inhibit energy saving.
+        EXPECT_GE(0.1f, flavourStats.occupancyTrackingFalsePositives.getFractionFlavoured());
+        // Excess false negatives may cause discomfort.
+        EXPECT_GE(0.1f, flavourStats.occupancyTrackingFalseNegatives.getFractionFlavoured());
+        }
 
     // Check that setback accuracy is OK.
     // Aim for a low error rate in either direction.
