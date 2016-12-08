@@ -2361,7 +2361,7 @@ static const ALDataSample sample6k[] =
 {8,0,19,1},
 {8,0,35,1},
 {8,0,47,1},
-{8,1,3,1, occType::OCC_NONE, true, false, ALDataSample::SB_ECOMAX}, // Dark, vacant, signficant setback.
+{8,1,3,1, occType::OCC_NONE, true, false, ALDataSample::SB_ECOMAX}, // Dark, vacant, significant setback.
 {8,1,19,2},
 {8,1,35,2},
 {8,1,39,2},
