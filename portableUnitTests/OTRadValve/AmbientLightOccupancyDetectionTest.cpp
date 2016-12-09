@@ -491,7 +491,7 @@ void setTypeMinMax(OTV0P2BASE::SensorAmbientLightAdaptiveMock &ala,
 template<class Valve_parameters>
 static void checkPerformanceAcceptableAgainstData(
         const SimpleFlavourStatCollection &flavourStats,
-        const bool /*exemptFromNormalSetbackRatios*/)
+        const bool exemptFromNormalSetbackRatios)
     {
     const bool sensitive = flavourStats.sensitive;
     const bool oddBlend = (flavourStats.blending != BL_FROMSTATS);
@@ -561,14 +561,23 @@ static void checkPerformanceAcceptableAgainstData(
     const float potentialSavingsFromSetbackAtLeastECO =
         potentialSavingsFromSetbackFULL + potentialSavingsFromSetbackECO;
 
-    // If data sample is >> 1 day,
-    // check that minimum an acceptable savings target is met
-    // from only significant setbacks.
-    // Target is 30% for lone rad valve;
-    // insist on over least half that not in sensitive mode,
-    // a little lower in sensitive mode.
+    // Enough ticks/minutes for a day of data and then some
+    // to allow vacancy and dark periods and so on to operate.
+    static constexpr unsigned ticksForMoreThan24h = 1500;
     const unsigned minutes = flavourStats.setbackAtMAX.getFlavouredCount();
-    if(minutes > 1500)
+
+    // When data sample is >> 1 day,
+    // check that FULL setback is achieved for a reasonable fraction.
+    if((minutes > ticksForMoreThan24h) && !exemptFromNormalSetbackRatios)
+        { EXPECT_LE(0.1f, flavourStats.setbackAtMAX.getFractionFlavoured()); }
+
+    // When data sample is >> 1 day,
+    // check that a minimum acceptable potential savings target is met
+    // counting only the more significant setbacks.
+    // Target is 30% for lone radiator valve without boiler control;
+    // insist on over half that when not in sensitive mode,
+    // and a little lower in sensitive mode.
+    if((minutes > ticksForMoreThan24h) && !exemptFromNormalSetbackRatios)
         { EXPECT_LE(!sensitive ? 0.19f : 0.15f, potentialSavingsFromSetbackAtLeastECO); }
 
     // In verbose mode, and if not an odd blend,
