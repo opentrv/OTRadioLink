@@ -488,7 +488,7 @@ void setTypeMinMax(OTV0P2BASE::SensorAmbientLightAdaptiveMock &ala,
     }
 // Check that the occupancy/setback/etc results are acceptable for the data.
 // Makes the test fail via EXPECT_XX() etc if not.
-static void checkAccuracyAcceptableAgainstData(
+static void checkPerformanceAcceptableAgainstData(
         const SimpleFlavourStatCollection &flavourStats)
     {
     const bool sensitive = flavourStats.sensitive;
@@ -812,7 +812,7 @@ if(verbose && !warmup && ((bool)expectedRoomDark != predictedRoomDark)) { fprint
                 // Don't test results in wormup run.
                 if(!warmup)
                     {
-                    checkAccuracyAcceptableAgainstData(flavourStats);
+                    checkPerformanceAcceptableAgainstData(flavourStats);
                     // Allow check in outer loop that sensitive mode generates
                     // at least as many reports as non-sensitive mode.
                     if(sensitive) { nOccupancyReportsSensitive = flavourStats.ambLightOccupancyCallbacks.getFlavouredCount(); }
