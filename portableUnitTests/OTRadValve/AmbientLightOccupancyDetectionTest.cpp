@@ -31,7 +31,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 
 
 // Set true for verbose reporting.
-static constexpr bool verbose = true;
+static constexpr bool verbose = false;
 // Lots of extra detail, generally should not be needed.
 static constexpr bool veryVerbose = false && verbose;
 
@@ -581,24 +581,28 @@ static void checkPerformanceAcceptableAgainstData(
     if((minutes > ticksForMoreThan24h) && !exemptFromNormalSetbackRatios)
         { EXPECT_LE(!sensitive ? 0.19f : 0.15f, potentialSavingsFromSetbackAtLeastECO); }
 
-    // In verbose mode, and if not an odd blend,
-    // print a summary of key stats to eyeball.
+    // Print a summary of key stats to eyeball (ff not an odd blend).
     // These should be subject to more automated numerical analysis elsewhere.
-    if(verbose && !oddBlend)
+    // Always print the potential-savings single-line summary.
+    if(!oddBlend)
         {
-        fprintf(stderr, "Performance stats summary:\n");
-        if(sensitive) { fprintf(stderr, " (sensitive)\n"); }
-        fprintf(stderr, " Fraction of ticks with occupancy callbacks: %f\n",
-            flavourStats.ambLightOccupancyCallbacks.getFractionFlavoured());
-        fprintf(stderr, " Fraction setback at FULL (potential savings): %f ie %fh/d (%f)\n",
-            flavourStats.setbackAtMAX.getFractionFlavoured(),
-            24 * flavourStats.setbackAtMAX.getFractionFlavoured(),
-            potentialSavingsFromSetbackFULL);
-        fprintf(stderr, " Fraction setback at ECO or more (potential savings at ECO only): %f ie %fh/d (%f)\n",
-            flavourStats.setbackAtLeastECO.getFractionFlavoured(),
-            24 * flavourStats.setbackAtLeastECO.getFractionFlavoured(),
-            potentialSavingsFromSetbackECO);
-        fprintf(stderr, " Potential savings from non-trivial setbacks: %f%%\n",
+        if(verbose)
+            {
+            fprintf(stderr, "Performance stats summary:\n");
+            if(sensitive) { fprintf(stderr, " (sensitive)\n"); }
+            fprintf(stderr, " Fraction of ticks with occupancy callbacks: %f\n",
+                flavourStats.ambLightOccupancyCallbacks.getFractionFlavoured());
+            fprintf(stderr, " Fraction setback at FULL (potential savings): %f ie %fh/d (%f)\n",
+                flavourStats.setbackAtMAX.getFractionFlavoured(),
+                24 * flavourStats.setbackAtMAX.getFractionFlavoured(),
+                potentialSavingsFromSetbackFULL);
+            fprintf(stderr, " Fraction setback at ECO or more (potential savings at ECO only): %f ie %fh/d (%f)\n",
+                flavourStats.setbackAtLeastECO.getFractionFlavoured(),
+                24 * flavourStats.setbackAtLeastECO.getFractionFlavoured(),
+                potentialSavingsFromSetbackECO);
+            }
+        fprintf(stderr, " Potential savings from non-trivial setbacks %s: %f%%\n",
+            (sensitive ? "(sensitive)" : ""),
             100 * potentialSavingsFromSetbackAtLeastECO);
         }
     }
