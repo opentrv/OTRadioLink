@@ -484,12 +484,14 @@ void setTypeMinMax(OTV0P2BASE::SensorAmbientLightAdaptiveMock &ala,
         default: FAIL();
         }
     oldH = H;
-
     }
+
 // Check that the occupancy/setback/etc results are acceptable for the data.
 // Makes the test fail via EXPECT_XX() etc if not.
+template<class Valve_parameters>
 static void checkPerformanceAcceptableAgainstData(
-        const SimpleFlavourStatCollection &flavourStats)
+        const SimpleFlavourStatCollection &flavourStats,
+        const bool /*exemptFromNormalSetbackRatios*/)
     {
     const bool sensitive = flavourStats.sensitive;
     const bool oddBlend = (flavourStats.blending != BL_FROMSTATS);
@@ -503,8 +505,9 @@ static void checkPerformanceAcceptableAgainstData(
     ASSERT_NE(0U, flavourStats.roomDarkPredictionErrors.getSampleCount()) << "some known room dark values should be provided";
     ASSERT_NE(0U, flavourStats.occupancyTrackingFalseNegatives.getSampleCount()) << "some known occupancy values should be provided";
 
-    // Check that there are not huge numbers of (false) positive occupancy reports.
-    EXPECT_GE(0.231f, flavourStats.ambLightOccupancyCallbacks.getFractionFlavoured());
+    // Check that there are not huge numbers of positive occupancy callbacks.
+    // Anything over ~25% is an indication of something broken..
+    EXPECT_GE(0.25f, flavourStats.ambLightOccupancyCallbacks.getFractionFlavoured());
 
     // Check that there are not huge numbers of failed callback expectations.
     // We could allow more errors with an odd (non-deployment) blending.
@@ -542,20 +545,23 @@ static void checkPerformanceAcceptableAgainstData(
     EXPECT_GE((normalOperation ? 0.05f : 0.12f), flavourStats.setbackInsufficient.getFractionFlavoured());
     EXPECT_GE((normalOperation ? 0.05f : 0.1f), flavourStats.setbackTooFar.getFractionFlavoured());
 
+    // Compute nominal available savings
+    // assuming typical values per degree of setback in UK.
+//        static constexpr float typicalSavingsPerDegreeUK = 0.08f;
+
     // In verbose mode, and if not an odd blend,
-    // print a summary to eyeball.
+    // print a summary of key stats to eyeball.
     // These should be subject to more automated numerical analysis elsewhere.
     if(verbose && !oddBlend)
         {
         fprintf(stderr, "Performance stats summary:\n");
         if(sensitive) { fprintf(stderr, " (sensitive)\n"); }
+        fprintf(stderr, " Fraction of ticks with occupancy callbacks: %f\n", flavourStats.ambLightOccupancyCallbacks.getFractionFlavoured());
         fprintf(stderr, " Fraction setback at ECO or more: %f\n", flavourStats.setbackAtLeastECO.getFractionFlavoured());
         fprintf(stderr, " Fraction setback at FULL: %f\n", flavourStats.setbackAtMAX.getFractionFlavoured());
-        // Compute nominal available savings
-        // assuming typical values per degree of setback in UK.
-//        static constexpr float typicalSavingsPerDegreeUK = 0.08f;
         }
     }
+
 // Do a simple run over the supplied data, one call per simulated minute until the terminating record is found.
 // Must be called with 1 or more data rows in ascending time with a terminating (empty) entry.
 // Repeated rows with the same light value and expected result can be omitted
@@ -564,18 +570,20 @@ static void checkPerformanceAcceptableAgainstData(
 // Can be supplied with nominal long-term rolling min and max
 // or they can be computed from the data supplied (0xff implies no data).
 // Can be supplied with nominal long-term rolling mean levels by hour,
-// or they can be computed from the data supplied (NULL means none supplied, 0xff entry means none for given hour).
+// or they can be computed from the data supplied
+// (NULL means none supplied, 0xff entry means none for given hour).
 // Uses the update() call for the main simulation.
-// Uses the setTypMinMax() call as the hour rolls or in more complex blended-stats modes;
+// Uses the setTypMinMax() call as the hour rolls
+// or in more complex blended-stats modes to test fragility;
 // runs with 'sensitive' in both states to verify algorithm's robustness.
-// Will fail if an excessive amount of the time occupancy is predicted (more than ~25%).
+// Will fail if an excessive amount of the time occupancy is predicted.
 //   * data  {}=terminated in-time-order real data set
 //         annotated with expected values; never NULL
 //   * exemptFromNotmalSetbackRatios  minimum times at significant setbacks
 //         (to enable significant energy savings) will be enabled
 //         unless this is true
 void simpleDataSampleRun(const ALDataSample *const data,
-                         const bool /*exemptFromNormalSetbackRatios*/ = false)
+                         const bool exemptFromNormalSetbackRatios = false)
     {
     ASSERT_TRUE(NULL != data);
     ASSERT_FALSE(data->isEnd()) << "do not pass in empty data set";
@@ -785,7 +793,7 @@ const bool verboseOutput = !warmup && (veryVerbose || (verbose && !oddBlend));
                             (-1 == SDSR::cbProbable) ? occType::OCC_NONE :
                                 ((0 == SDSR::cbProbable) ? occType::OCC_WEAK : occType::OCC_PROBABLE);
 //if(veryVerbose && (-1 != cbProbable)) { fprintf(stderr, "  occupancy callback=%d @ %dT%d:%.2d\n", cbProbable, D, H, M); }
-                        if(isRealRecord) { flavourStats.ambLightOccupancyCallbacks.takeSample((-1 != SDSR::cbProbable)); }
+                        flavourStats.ambLightOccupancyCallbacks.takeSample((-1 != SDSR::cbProbable));
                         // Collect occupancy tracker prediction and error.
                         if(isRealRecord && (ALDataSample::UNKNOWN_ACT_OCC != dp->actOcc))
                             {
@@ -824,14 +832,18 @@ if(verbose && !warmup && ((bool)expectedRoomDark != predictedRoomDark)) { fprint
                         } while((!(dp+1)->isEnd()) && (currentMinute < (dp+1)->currentMinute()));
                     }
 
-                // Don't test results in wormup run.
+                // Don't test results in warmup run.
                 if(!warmup)
                     {
-                    checkPerformanceAcceptableAgainstData(flavourStats);
+                    checkPerformanceAcceptableAgainstData<SDSR::parameters>(
+                        flavourStats,
+                        exemptFromNormalSetbackRatios);
                     // Allow check in outer loop that sensitive mode generates
                     // at least as many reports as non-sensitive mode.
-                    if(sensitive) { nOccupancyReportsSensitive = flavourStats.ambLightOccupancyCallbacks.getFlavouredCount(); }
-                    else { nOccupancyReportsNotSensitive = flavourStats.ambLightOccupancyCallbacks.getFlavouredCount(); }
+                    if(sensitive)
+                        { nOccupancyReportsSensitive = flavourStats.ambLightOccupancyCallbacks.getFlavouredCount(); }
+                    else
+                        { nOccupancyReportsNotSensitive = flavourStats.ambLightOccupancyCallbacks.getFlavouredCount(); }
                     }
                 }
             }
