@@ -567,9 +567,10 @@ static void checkPerformanceAcceptableAgainstData(
     const unsigned minutes = flavourStats.setbackAtMAX.getFlavouredCount();
 
     // When data sample is >> 1 day,
-    // check that FULL setback is achieved for a reasonable fraction.
+    // check that FULL setback is achieved for a reasonable fraction,
+    // eg at least 4h/day.
     if((minutes > ticksForMoreThan24h) && !exemptFromNormalSetbackRatios)
-        { EXPECT_LE(0.1f, flavourStats.setbackAtMAX.getFractionFlavoured()); }
+        { EXPECT_LE(4.0f/24, flavourStats.setbackAtMAX.getFractionFlavoured()); }
 
     // When data sample is >> 1 day,
     // check that a minimum acceptable potential savings target is met
