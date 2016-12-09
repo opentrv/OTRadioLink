@@ -184,6 +184,7 @@ class SimpleFlavourStatCollection final
         SimpleFlavourStats setbackInsufficient; // Insufficient setback.
 
         // Checking time at various significant energy-saving setback levels.
+        SimpleFlavourStats setbackAtLeastDEFAULT;
         SimpleFlavourStats setbackAtLeastECO;
         SimpleFlavourStats setbackAtMAX;
     };
@@ -294,10 +295,13 @@ static void scoreSetback(
     const uint8_t setback, const ALDataSample::expectedSb_t expectedSb,
     const bool isRealRecord,
     SimpleFlavourStats &setbackInsufficient, SimpleFlavourStats &setbackTooFar,
-    SimpleFlavourStats &setbackAtLeastECO, SimpleFlavourStats &setbackAtMAX,
+    SimpleFlavourStats &setbackAtLeastDEFAULT,
+    SimpleFlavourStats &setbackAtLeastECO,
+    SimpleFlavourStats &setbackAtMAX,
     bool &failed)
     {
     // Note overall time/ticks/minutes spent at significant setbacks.
+    setbackAtLeastDEFAULT.takeSample(setback >= Valve_parameters::SETBACK_DEFAULT);
     setbackAtLeastECO.takeSample(setback >= Valve_parameters::SETBACK_ECO);
     setbackAtMAX.takeSample(setback >= Valve_parameters::SETBACK_FULL);
 
@@ -557,9 +561,17 @@ static void checkPerformanceAcceptableAgainstData(
     const float potentialSavingsFromSetbackECO =
         (flavourStats.setbackAtLeastECO.getFractionFlavoured() - flavourStats.setbackAtMAX.getFractionFlavoured()) *
         Valve_parameters::SETBACK_ECO * typicalSavingsPerDegreeUK;
-    // Potential savings form significant (not minimum setback).
+    // Potential savings from significant (not minimum) setbacks.
     const float potentialSavingsFromSetbackAtLeastECO =
         potentialSavingsFromSetbackFULL + potentialSavingsFromSetbackECO;
+    // Potential savings from ECO setback (out of entire day).
+    // Excludes time at ECO or FULL.
+    const float potentialSavingsFromSetbackDEFAULT =
+        (flavourStats.setbackAtLeastDEFAULT.getFractionFlavoured() - flavourStats.setbackAtLeastECO.getFractionFlavoured()) *
+        Valve_parameters::SETBACK_DEFAULT * typicalSavingsPerDegreeUK;
+    // Potential savings from significant (not minimum) setbacks.
+    const float potentialSavingsFromSetbackAtLeastDEFAULT =
+        potentialSavingsFromSetbackAtLeastECO + potentialSavingsFromSetbackDEFAULT;
 
     // Enough ticks/minutes for a day of data and then some
     // to allow vacancy and dark periods and so on to operate.
@@ -574,12 +586,12 @@ static void checkPerformanceAcceptableAgainstData(
 
     // When data sample is >> 1 day,
     // check that a minimum acceptable potential savings target is met
-    // counting only the more significant setbacks.
+    // counting all setbacks.
     // Target is 30% for lone radiator valve without boiler control;
     // insist on over half that when not in sensitive mode,
     // and a little lower in sensitive mode.
     if((minutes > ticksForMoreThan24h) && !exemptFromNormalSetbackRatios)
-        { EXPECT_LE(!sensitive ? 0.19f : 0.15f, potentialSavingsFromSetbackAtLeastECO); }
+        { EXPECT_LE(!sensitive ? 0.19f : 0.15f, potentialSavingsFromSetbackAtLeastDEFAULT); }
 
     // Print a summary of key stats to eyeball (ff not an odd blend).
     // These should be subject to more automated numerical analysis elsewhere.
@@ -600,10 +612,14 @@ static void checkPerformanceAcceptableAgainstData(
                 flavourStats.setbackAtLeastECO.getFractionFlavoured(),
                 24 * flavourStats.setbackAtLeastECO.getFractionFlavoured(),
                 potentialSavingsFromSetbackECO);
+            fprintf(stderr, " Fraction setback at DEFAULT or more (potential savings at DEFAULT only): %f ie %fh/d (%f)\n",
+                flavourStats.setbackAtLeastDEFAULT.getFractionFlavoured(),
+                24 * flavourStats.setbackAtLeastDEFAULT.getFractionFlavoured(),
+                potentialSavingsFromSetbackDEFAULT);
             }
         fprintf(stderr, " Potential savings from non-trivial setbacks %s: %f%%\n",
             (sensitive ? "(sensitive)" : ""),
-            100 * potentialSavingsFromSetbackAtLeastECO);
+            100 * potentialSavingsFromSetbackAtLeastDEFAULT);
         }
     }
 
@@ -855,7 +871,9 @@ if(veryVerbose && verboseOutput && !warmup && isRealRecord) { fprintf(stderr, " 
                         scoreSetback<SDSR::parameters>(setback, dp->expectedSb,
                             isRealRecord,
                             flavourStats.setbackInsufficient, flavourStats.setbackTooFar,
-                            flavourStats.setbackAtLeastECO, flavourStats.setbackAtMAX,
+                            flavourStats.setbackAtLeastDEFAULT,
+                            flavourStats.setbackAtLeastECO,
+                            flavourStats.setbackAtMAX,
                             failedSetbackExpectations);
 if(verbose && !warmup && failedSetbackExpectations) { fprintf(stderr, "!!!tS=%d @ %dT%d:%.2d expectation=%d\n", setback, D, H, M, dp->expectedSb); }
 
