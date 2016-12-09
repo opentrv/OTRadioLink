@@ -761,8 +761,8 @@ if(verbose && !warmup && (trackedLikelyOccupancy != actOcc)) { fprintf(stderr, "
                             flavourStats.occupancyTrackingFalsePositives.takeSample(!actOcc && trackedLikelyOccupancy);
                             }
 
-if(veryVerbose && verboseOutput && isRealRecord) { fprintf(stderr, "  tS=%d @ %dT%d:%.2d\n", SDSR::tempControl.getWARMTargetC() - SDSR::cttb.computeTargetTemp(), D, H, M); }
-                        if(isRealRecord && (ALDataSample::NO_SB_EXPECTATION != dp->expectedSb))
+if(veryVerbose && verboseOutput && !warmup && isRealRecord) { fprintf(stderr, "  tS=%d @ %dT%d:%.2d\n", SDSR::tempControl.getWARMTargetC() - SDSR::cttb.computeTargetTemp(), D, H, M); }
+                        if(isRealRecord /* && (ALDataSample::NO_SB_EXPECTATION != dp->expectedSb) */)
                             {
                             const int8_t setback = SDSR::tempControl.getWARMTargetC() - SDSR::cttb.computeTargetTemp();
                             bool failed = false;
@@ -774,7 +774,7 @@ if(verbose && !warmup && failed) { fprintf(stderr, "!!!tS=%d @ %dT%d:%.2d expect
 
                         // Note that for all synthetic ticks the expectation is removed (since there is no level change).
                         const int8_t expectedOcc = (!isRealRecord) ? ALDataSample::NO_OCC_EXPECTATION : dp->expectedOcc;
-if(veryVerbose && verboseOutput && isRealRecord && (occType::OCC_NONE != predictionOcc)) { fprintf(stderr, "  predictionOcc=%d @ %dT%d:%.2d L=%d mean=%d\n", predictionOcc, D, H, M, dp->L, meanUsed); }
+if(veryVerbose && verboseOutput && !warmup && isRealRecord && (occType::OCC_NONE != predictionOcc)) { fprintf(stderr, "  predictionOcc=%d @ %dT%d:%.2d L=%d mean=%d\n", predictionOcc, D, H, M, dp->L, meanUsed); }
                         if(ALDataSample::NO_OCC_EXPECTATION != expectedOcc)
                             {
                             flavourStats.ambLightOccupancyCallbackPredictionErrors.takeSample(expectedOcc != predictionOcc);
