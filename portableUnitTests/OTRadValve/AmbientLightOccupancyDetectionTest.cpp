@@ -182,6 +182,10 @@ class SimpleFlavourStatCollection final
         // Checking setback accuracy vs actual occupation/vacancy.
         SimpleFlavourStats setbackTooFar; // Excessive setback.
         SimpleFlavourStats setbackInsufficient; // Insufficient setback.
+
+        // Checking time at various significant energy-saving setback levels.
+        SimpleFlavourStats setbackAtLeastECO;
+        SimpleFlavourStats setbackMAX;
     };
 
 // Trivial sample, testing initial occupancy detector reaction to start transient.
@@ -288,9 +292,16 @@ if(veryVerbose) { fprintf(stderr, " *Callback: %d\n", p); }
 template<class Valve_parameters>
 static void scoreSetback(
     const uint8_t setback, const ALDataSample::expectedSb_t expectedSb,
+    const bool isRealRecord,
     SimpleFlavourStats &setbackInsufficient, SimpleFlavourStats &setbackTooFar,
     bool &failed)
     {
+
+
+    // The following processing only applies to
+    // real records with specific predictions.
+    if(!isRealRecord) { return; }
+
     bool tooFar = false;
     bool insufficient = false;
 
@@ -541,7 +552,13 @@ static void checkAccuracyAcceptableAgainstData(
 // Uses the setTypMinMax() call as the hour rolls or in more complex blended-stats modes;
 // runs with 'sensitive' in both states to verify algorithm's robustness.
 // Will fail if an excessive amount of the time occupancy is predicted (more than ~25%).
-void simpleDataSampleRun(const ALDataSample *const data)
+//   * data  {}=terminated in-time-order real data set
+//         annotated with expected values; never NULL
+//   * exemptFromNotmalSetbackRatios  minimum times at significant setbacks
+//         (to enable significant energy savings) will be enabled
+//         unless this is true
+void simpleDataSampleRun(const ALDataSample *const data,
+                         const bool /*exemptFromNormalSetbackRatios*/ = false)
     {
     ASSERT_TRUE(NULL != data);
     ASSERT_FALSE(data->isEnd()) << "do not pass in empty data set";
@@ -761,16 +778,13 @@ if(verbose && !warmup && (trackedLikelyOccupancy != actOcc)) { fprintf(stderr, "
                             flavourStats.occupancyTrackingFalsePositives.takeSample(!actOcc && trackedLikelyOccupancy);
                             }
 
-if(veryVerbose && verboseOutput && !warmup && isRealRecord) { fprintf(stderr, "  tS=%d @ %dT%d:%.2d\n", SDSR::tempControl.getWARMTargetC() - SDSR::cttb.computeTargetTemp(), D, H, M); }
-                        if(isRealRecord /* && (ALDataSample::NO_SB_EXPECTATION != dp->expectedSb) */)
-                            {
-                            const int8_t setback = SDSR::tempControl.getWARMTargetC() - SDSR::cttb.computeTargetTemp();
-                            bool failed = false;
-                            scoreSetback<SDSR::parameters>(setback, dp->expectedSb,
-                                flavourStats.setbackInsufficient, flavourStats.setbackTooFar,
-                                failed);
-if(verbose && !warmup && failed) { fprintf(stderr, "!!!tS=%d @ %dT%d:%.2d expectation=%d\n", setback, D, H, M, dp->expectedSb); }
-                            }
+                        const int8_t setback = SDSR::tempControl.getWARMTargetC() - SDSR::cttb.computeTargetTemp();
+if(veryVerbose && verboseOutput && !warmup && isRealRecord) { fprintf(stderr, "  tS=%d @ %dT%d:%.2d\n", setback, D, H, M); }
+                        bool failedSetbackExpectations = false;
+                        scoreSetback<SDSR::parameters>(setback, dp->expectedSb, isRealRecord,
+                            flavourStats.setbackInsufficient, flavourStats.setbackTooFar,
+                            failedSetbackExpectations);
+if(verbose && !warmup && failedSetbackExpectations) { fprintf(stderr, "!!!tS=%d @ %dT%d:%.2d expectation=%d\n", setback, D, H, M, dp->expectedSb); }
 
                         // Note that for all synthetic ticks the expectation is removed (since there is no level change).
                         const int8_t expectedOcc = (!isRealRecord) ? ALDataSample::NO_OCC_EXPECTATION : dp->expectedOcc;
