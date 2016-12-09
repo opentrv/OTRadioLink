@@ -57,8 +57,14 @@ namespace OTRadValve
     //   * comMin  minimum temperature in comfort mode at any time, even for frost protection (C).
     //   * ecoWarm  'warm' in ECO mode.
     //   * comWarm  'warm' in comfort mode.
+    //   * bakeLiftC  defaults to 10C (TODO-980) to ensure that very rarely
+    //     BAKE will fail to trigger even in in shoulder seasons.
+    //   * setbackECO  usual 'ECO' temperature setback defaults to 3C
+    //     for ~30% potential savings eg in UK winter.
+    //   * setbackFULL  'FULL' temperature setback defaults to 6C
+    //     to minimise night-time triggering of heating where no central clock.
     template<uint8_t ecoMinC, uint8_t comMinC, uint8_t ecoWarmC, uint8_t comWarmC,
-             uint8_t bakeLiftC = 10>
+             uint8_t bakeLiftC = 10, uint8_t setbackECO = 3, uint8_t setbackFULL = 6>
     class ValveControlParameters
         {
         public:
@@ -92,7 +98,8 @@ namespace OTRadValve
             static constexpr uint8_t TEMP_SCALE_MAX = (WARM_COM+1);
 
             // Raise target by this many degrees in 'BAKE' mode (strictly positive).
-            // DHD20160927 TODO-980 raised from 5 to 10 to ensure very rarely fails to trigger in in shoulder season.
+            // DHD20160927 (TODO-980) default lift raised from 5C to 10C
+            // so as to ensure reliable trigger even in in shoulder seasons.
             static constexpr uint8_t BAKE_UPLIFT = bakeLiftC;
 
             // Initial minor setback degrees C (strictly positive).
@@ -101,8 +108,11 @@ namespace OTRadValve
             // with a comfort temperature setting for example.
             static constexpr uint8_t SETBACK_DEFAULT = 1;
             // Enhanced setback, eg in eco mode, for extra energy savings.
+            // This may be the most-used setback and thus
+            // the key determinant of ptential savings.
             // More than SETBACK_DEFAULT, less than SETBACK_FULL.
-            static constexpr uint8_t SETBACK_ECO = 2;
+            static constexpr uint8_t SETBACK_ECO =
+                OTV0P2BASE::fnmax(setbackECO, uint8_t(SETBACK_DEFAULT+1));
             // Full setback degrees C (strictly positive and significantly,
             // ie several degrees, greater than SETBACK_DEFAULT,
             // no more than MIN_TARGET_C).
@@ -116,9 +126,10 @@ namespace OTRadValve
             // See savings, comfort and condensation with setbacks > ~4C
             // (eg ~15% saving for 6C setback overnight):
             //     https://www.cmhc-schl.gc.ca/en/co/grho/grho_002.cfm
-            // This must set back no more than than MIN_TARGET_C
+            // Preferably no more than than MIN_TARGET_C
             // to avoid problems with unsigned arithmetic.
-            static constexpr uint8_t SETBACK_FULL = 5;
+            static constexpr uint8_t SETBACK_FULL =
+                OTV0P2BASE::fnmax(setbackFULL, uint8_t(SETBACK_ECO+1));
         };
 
     // Mechanism to make ValveControlParameters available at run-time.
@@ -176,7 +187,7 @@ namespace OTRadValve
 
     // Slightly raised upper threshold compared to default so that range [18,21]
     // (which includes recommended bedroom and living room temperatures)
-    // is in the central (non-ECO, non-confort) part of the range (TODO-1059).
+    // is in the central (non-ECO, non-comfort) part of the range (TODO-1059).
     // Proposed default radiator valve control parameters from TRV2.
     typedef ValveControlParameters<
         // Default frost-protection (minimum) temperatures in degrees C, strictly positive, in range [MIN_TARGET_C,MAX_TARGET_C].
