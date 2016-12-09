@@ -578,14 +578,17 @@ static void checkPerformanceAcceptableAgainstData(
         {
         fprintf(stderr, "Performance stats summary:\n");
         if(sensitive) { fprintf(stderr, " (sensitive)\n"); }
-        fprintf(stderr, " Fraction of ticks with occupancy callbacks: %f\n", flavourStats.ambLightOccupancyCallbacks.getFractionFlavoured());
-        fprintf(stderr, " Fraction setback at FULL: %f (%f)\n",
+        fprintf(stderr, " Fraction of ticks with occupancy callbacks: %f\n",
+            flavourStats.ambLightOccupancyCallbacks.getFractionFlavoured());
+        fprintf(stderr, " Fraction setback at FULL (potential savings): %f ie %fh/d (%f)\n",
             flavourStats.setbackAtMAX.getFractionFlavoured(),
+            24 * flavourStats.setbackAtMAX.getFractionFlavoured(),
             potentialSavingsFromSetbackFULL);
-        fprintf(stderr, " Fraction setback at ECO or more (and potential savings at ECO only): %f (%f)\n",
+        fprintf(stderr, " Fraction setback at ECO or more (potential savings at ECO only): %f ie %fh/d (%f)\n",
             flavourStats.setbackAtLeastECO.getFractionFlavoured(),
+            24 * flavourStats.setbackAtLeastECO.getFractionFlavoured(),
             potentialSavingsFromSetbackECO);
-        fprintf(stderr, " Potential savings from non-trivial setbacks: %f%%,\n",
+        fprintf(stderr, " Potential savings from non-trivial setbacks: %f%%\n",
             100 * potentialSavingsFromSetbackAtLeastECO);
         }
     }
