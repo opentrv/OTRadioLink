@@ -31,7 +31,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 
 
 // Set true for verbose reporting.
-static constexpr bool verbose = false;
+static constexpr bool verbose = true;
 // Lots of extra detail, generally should not be needed.
 static constexpr bool veryVerbose = false && verbose;
 
@@ -488,7 +488,7 @@ void setTypeMinMax(OTV0P2BASE::SensorAmbientLightAdaptiveMock &ala,
     }
 // Check that the occupancy/setback/etc results are acceptable for the data.
 // Makes the test fail via EXPECT_XX() etc if not.
-static void checkAccuracyAcceptableAgainstData(
+static void checkPerformanceAcceptableAgainstData(
         const SimpleFlavourStatCollection &flavourStats)
     {
     const bool sensitive = flavourStats.sensitive;
@@ -541,6 +541,20 @@ static void checkAccuracyAcceptableAgainstData(
     // Aim for a low error rate in either direction.
     EXPECT_GE((normalOperation ? 0.05f : 0.12f), flavourStats.setbackInsufficient.getFractionFlavoured());
     EXPECT_GE((normalOperation ? 0.05f : 0.1f), flavourStats.setbackTooFar.getFractionFlavoured());
+
+    // In verbose mode, and if not an odd blend,
+    // print a summary to eyeball.
+    // These should be subject to more automated numerical analysis elsewhere.
+    if(verbose && !oddBlend)
+        {
+        fprintf(stderr, "Performance stats summary:\n");
+        if(sensitive) { fprintf(stderr, " (sensitive)\n"); }
+        fprintf(stderr, " Fraction setback at ECO or more: %f\n", flavourStats.setbackAtLeastECO.getFractionFlavoured());
+        fprintf(stderr, " Fraction setback at FULL: %f\n", flavourStats.setbackAtMAX.getFractionFlavoured());
+        // Compute nominal available savings
+        // assuming typical values per degree of setback in UK.
+//        static constexpr float typicalSavingsPerDegreeUK = 0.08f;
+        }
     }
 // Do a simple run over the supplied data, one call per simulated minute until the terminating record is found.
 // Must be called with 1 or more data rows in ascending time with a terminating (empty) entry.
@@ -714,6 +728,7 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
                 // Suppress most reporting for odd blends and in warmup.
 const bool verboseOutput = !warmup && (veryVerbose || (verbose && !oddBlend));
 
+                // Fresh behaviour stats each run, esp non-warmup run.
                 SimpleFlavourStatCollection flavourStats(sensitive, blending);
 
                 // Clear all state in static instances (except stats).
@@ -812,7 +827,7 @@ if(verbose && !warmup && ((bool)expectedRoomDark != predictedRoomDark)) { fprint
                 // Don't test results in wormup run.
                 if(!warmup)
                     {
-                    checkAccuracyAcceptableAgainstData(flavourStats);
+                    checkPerformanceAcceptableAgainstData(flavourStats);
                     // Allow check in outer loop that sensitive mode generates
                     // at least as many reports as non-sensitive mode.
                     if(sensitive) { nOccupancyReportsSensitive = flavourStats.ambLightOccupancyCallbacks.getFlavouredCount(); }
