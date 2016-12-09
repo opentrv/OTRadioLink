@@ -500,8 +500,7 @@ static void checkPerformanceAcceptableAgainstData(
     // Normal operation but a bit more sensitive, eg at comfort end of range.
     const bool normalSensitiveOperation = sensitive && !oddBlend;
 
-    // Check that at least some expectations have been set.
-//            ASSERT_NE(0U, flavourStats.AmbLightOccupancyCallbackPredictionErrors.getSampleCount()) << "some expected occupancy callbacks should be provided";
+    // Check that at least some sensor expectations have been set.
     ASSERT_NE(0U, flavourStats.roomDarkPredictionErrors.getSampleCount()) << "some known room dark values should be provided";
     ASSERT_NE(0U, flavourStats.occupancyTrackingFalseNegatives.getSampleCount()) << "some known occupancy values should be provided";
 
@@ -547,7 +546,30 @@ static void checkPerformanceAcceptableAgainstData(
 
     // Compute nominal available savings
     // assuming typical values per degree of setback in UK.
-//        static constexpr float typicalSavingsPerDegreeUK = 0.08f;
+    static constexpr float typicalSavingsPerDegreeUK = 0.08f;
+    // Potential savings from FULL setback (out of entire day).
+    // These savings can only materialise if the day is cold and heat is needed.
+    const float potentialSavingsFromSetbackFULL =
+        flavourStats.setbackAtMAX.getFractionFlavoured() *
+        Valve_parameters::SETBACK_FULL * typicalSavingsPerDegreeUK;
+    // Potential savings from ECO setback (out of entire day).
+    // Excludes time at FULL.
+    const float potentialSavingsFromSetbackECO =
+        (flavourStats.setbackAtLeastECO.getFractionFlavoured() - flavourStats.setbackAtMAX.getFractionFlavoured()) *
+        Valve_parameters::SETBACK_ECO * typicalSavingsPerDegreeUK;
+    // Potential savings form significant (not minimum setback).
+    const float potentialSavingsFromSetbackAtLeastECO =
+        potentialSavingsFromSetbackFULL + potentialSavingsFromSetbackECO;
+
+    // If data sample is >> 1 day,
+    // check that minimum an acceptable savings target is met
+    // from only significant setbacks.
+    // Target is 30% for lone rad valve;
+    // insist on over least half that not in sensitive mode,
+    // a little lower in sensitive mode.
+    const unsigned minutes = flavourStats.setbackAtMAX.getFlavouredCount();
+    if(minutes > 1500)
+        { EXPECT_LE(!sensitive ? 0.19f : 0.15f, potentialSavingsFromSetbackAtLeastECO); }
 
     // In verbose mode, and if not an odd blend,
     // print a summary of key stats to eyeball.
@@ -557,8 +579,14 @@ static void checkPerformanceAcceptableAgainstData(
         fprintf(stderr, "Performance stats summary:\n");
         if(sensitive) { fprintf(stderr, " (sensitive)\n"); }
         fprintf(stderr, " Fraction of ticks with occupancy callbacks: %f\n", flavourStats.ambLightOccupancyCallbacks.getFractionFlavoured());
-        fprintf(stderr, " Fraction setback at ECO or more: %f\n", flavourStats.setbackAtLeastECO.getFractionFlavoured());
-        fprintf(stderr, " Fraction setback at FULL: %f\n", flavourStats.setbackAtMAX.getFractionFlavoured());
+        fprintf(stderr, " Fraction setback at FULL: %f (%f)\n",
+            flavourStats.setbackAtMAX.getFractionFlavoured(),
+            potentialSavingsFromSetbackFULL);
+        fprintf(stderr, " Fraction setback at ECO or more (and potential savings at ECO only): %f (%f)\n",
+            flavourStats.setbackAtLeastECO.getFractionFlavoured(),
+            potentialSavingsFromSetbackECO);
+        fprintf(stderr, " Potential savings from non-trivial setbacks: %f%%,\n",
+            100 * potentialSavingsFromSetbackAtLeastECO);
         }
     }
 
