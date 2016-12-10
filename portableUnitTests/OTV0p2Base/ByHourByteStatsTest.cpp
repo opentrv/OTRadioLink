@@ -96,13 +96,13 @@ TEST(Stats, empty)
         }
 }
 
-// Test some basic behaviour of the support/calc routines mock r/w stats containet.
+// Test some basic behaviour of the support/calc routines mock r/w stats container.
 TEST(Stats, mockRW)
 {
     // Seed random() for use in simulator; --gtest_shuffle will force it to change.
     srandom((unsigned) ::testing::UnitTest::GetInstance()->random_seed());
 
-    // New emoty container.
+    // New empty container.
     OTV0P2BASE::NVByHourByteStatsMock ms;
 
     // Pick a random hour to treat as 'now'.
@@ -145,6 +145,36 @@ TEST(Stats, mockRW)
     EXPECT_EQ(0, ms.getByHourStatRTC(statsSet, hourNow));
     EXPECT_EQ(0, ms.getByHourStatRTC(statsSet, OTV0P2BASE::NVByHourByteStatsBase::SPECIAL_HOUR_CURRENT_HOUR));
     EXPECT_EQ(unset, ms.getByHourStatRTC(statsSet, OTV0P2BASE::NVByHourByteStatsBase::SPECIAL_HOUR_NEXT_HOUR));
+}
+
+// Test behaviour of getByHourStatRTC(), albeit against the mock.
+TEST(Stats, getByHourStatRTC)
+{
+    // Seed random() for use in simulator; --gtest_shuffle will force it to change.
+    srandom((unsigned) ::testing::UnitTest::GetInstance()->random_seed());
+
+    // New empty container.
+    OTV0P2BASE::NVByHourByteStatsMock ms;
+
+    // Write a distinct value into each hour for one of the stats.
+    // Ensure that the appropriate value is read back via getByHourStatRTC().
+    const uint8_t offset = random() & 0x3f;
+    // Pick a stats set to work on at random.
+    const uint8_t statsSet = ((unsigned) random()) % OTV0P2BASE::NVByHourByteStatsBase::STATS_SETS_COUNT;
+    for(uint8_t hh = 0; hh < 24; ++hh) { ms.setByHourStatSimple(statsSet, hh, hh + offset); }
+
+    // Read with normal and special hours and 'default' args.
+    for(uint8_t hh = 0; hh < 24; ++hh)
+        {
+        const uint8_t expectedValue = hh + offset;
+        EXPECT_EQ(expectedValue, ms.getByHourStatSimple(statsSet, hh));
+        EXPECT_EQ(expectedValue, ms.getByHourStatRTC(statsSet, hh));
+
+        ms._setHour(hh);
+        EXPECT_EQ(expectedValue, ms.getByHourStatRTC(statsSet));
+        EXPECT_EQ(expectedValue, ms.getByHourStatRTC(statsSet, ms.SPECIAL_HOUR_CURRENT_HOUR));
+        EXPECT_EQ((hh != 23) ? (1 + expectedValue) : offset, ms.getByHourStatRTC(statsSet, ms.SPECIAL_HOUR_NEXT_HOUR));
+        }
 }
 
 // Trivial read-only implementation that returns hour value in each slot with getByHourStatSimple().
