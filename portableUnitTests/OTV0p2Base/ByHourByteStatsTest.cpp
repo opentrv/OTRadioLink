@@ -288,6 +288,21 @@ TEST(Stats, ByHourSimpleStatsUpdater)
     // Set (arbitrary) initial time.
     uint8_t hourNow = ((unsigned) random()) % 24;
     BHSSU::ms._setHour(hourNow);
+    // Verify that before first full update stats values unset.
+    EXPECT_EQ(unset, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, hourNow));
+    EXPECT_EQ(unset, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, hourNow));
+    EXPECT_EQ(unset, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, hourNow));
+    EXPECT_EQ(unset, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, hourNow));
+    EXPECT_EQ(unset, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, BHSSU::ms.SPECIAL_HOUR_CURRENT_HOUR));
+    EXPECT_EQ(unset, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, BHSSU::ms.SPECIAL_HOUR_CURRENT_HOUR));
+    EXPECT_EQ(unset, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, BHSSU::ms.SPECIAL_HOUR_NEXT_HOUR));
+    EXPECT_EQ(unset, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, BHSSU::ms.SPECIAL_HOUR_NEXT_HOUR));
+    EXPECT_EQ(unset, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_TEMP_BY_HOUR, hourNow));
+    EXPECT_EQ(unset, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_TEMP_BY_HOUR_SMOOTHED, hourNow));
+    EXPECT_EQ(unset, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_RHPC_BY_HOUR, hourNow));
+    EXPECT_EQ(unset, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_RHPC_BY_HOUR_SMOOTHED, hourNow));
+    EXPECT_EQ(unset, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_OCCPC_BY_HOUR, hourNow));
+    EXPECT_EQ(unset, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_OCCPC_BY_HOUR_SMOOTHED, hourNow));
     // Set initial sensor values.
     const uint8_t al0 = 254;
     BHSSU::ambLight.set(al0);
@@ -301,7 +316,7 @@ TEST(Stats, ByHourSimpleStatsUpdater)
     BHSSU::su.sampleStats(true, hourNow);
     const uint8_t o0 = 0;
     ASSERT_EQ(o0, BHSSU::occupancy.get());
-    // Verify that after first full update sensor values set to specified values.
+    // Verify that after first full update stats values set to specified values.
     EXPECT_EQ(al0, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, hourNow));
     EXPECT_EQ(al0, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, hourNow));
     EXPECT_EQ(al0, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, hourNow));
