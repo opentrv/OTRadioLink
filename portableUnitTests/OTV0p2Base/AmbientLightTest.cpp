@@ -134,7 +134,7 @@ TEST(AmbientLight,setTypMinMax)
     EXPECT_NEAR(24, alm.getLightThreshold(), 0);
     EXPECT_NEAR(13, alm.getDarkThreshold(), 0);
 
-    // Ensure that even bad/unfortunate historic value
+    // Ensure that even bad/unfortunate historic values
     // don't have the sensor mark itself as unavilable
     // since that can prevent further stats being collected
     // and is no-recoverable.
