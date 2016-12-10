@@ -390,7 +390,7 @@ class ByHourSimpleStatsUpdaterSampleStats final
       // TODO: other stats measures...
 
       if(!fullSample) { return; } // Only accumulate values cached until a full sample.
-      // Reset generic sub-sample count to initial state after fill sample.
+      // Reset generic sub-sample count to initial state after full sample.
       sampleCount = 0;
       }
   };
