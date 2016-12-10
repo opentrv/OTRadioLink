@@ -31,7 +31,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 
 
 // Set true for verbose reporting.
-static constexpr bool verbose = false;
+static constexpr bool verbose = true;
 // Lots of extra detail, generally should not be needed.
 static constexpr bool veryVerbose = false && verbose;
 
