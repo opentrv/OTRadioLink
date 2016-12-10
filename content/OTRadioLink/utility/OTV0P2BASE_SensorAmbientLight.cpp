@@ -48,8 +48,8 @@ uint8_t SensorAmbientLightAdaptive::read()
         {
         isRoomLitFlag = false;
         // If dark enough to set isRoomLitFlag false then increment counter.
-        // Do not do increment the count if the sensor seems to be unusable / dubiously usable.
-        if(!unusable && (darkTicks < 255))
+        // Do not increment the count if the sensor seems to be unusable / dubiously usable.
+        if(!rangeTooNarrow && (darkTicks < 255))
             { ++darkTicks; }
         }
     else if(value > lightThreshold)
@@ -74,12 +74,8 @@ uint8_t SensorAmbientLightAdaptive::read()
 
 // Maximum value in the uint8_t range.
 static constexpr uint8_t MAX_AMBLIGHT_VALUE_UINT8 = 254;
-//// Minimum viable range (on [0,254] scale) to be usable.
-//static constexpr uint8_t ABS_MIN_AMBLIGHT_RANGE_UINT8 = 3;
-//// Minimum hysteresis (on [0,254] scale) to be usable and avoid noise triggers.
-//static constexpr uint8_t ABS_MIN_AMBLIGHT_HYST_UINT8 = 2;
 
-// Recomputes thresholds and 'unusable' based on current state.
+// Recomputes thresholds and 'rangeTooNarrow' based on current state.
 //   * meanNowOrFF  typical/mean light level around this time each 24h; 0xff if not known.
 //   * sensitive  if true be more sensitive to possible occupancy changes, else less so.
 void SensorAmbientLightAdaptive::recomputeThresholds(
@@ -93,11 +89,12 @@ void SensorAmbientLightAdaptive::recomputeThresholds(
     lightThreshold = DEFAULT_LIGHT_THRESHOLD;
     darkThreshold = DEFAULT_LIGHT_THRESHOLD - DEFAULT_upDelta;
     // Assume OK for now.
-    unusable = false;
+    rangeTooNarrow = false;
     return;
     }
 
-  // If the range between recent max and min too narrow then assume unusable.
+  // If the range between recent max and min too narrow then maybe unusable
+  // but that may prevent the stats mechanism collecting further values.
   if((rollingMin >= MAX_AMBLIGHT_VALUE_UINT8 - epsilon) ||
      (rollingMax <= rollingMin) ||
      (rollingMax - rollingMin <= epsilon))
@@ -107,7 +104,7 @@ void SensorAmbientLightAdaptive::recomputeThresholds(
     darkThreshold = DEFAULT_LIGHT_THRESHOLD - DEFAULT_upDelta;
     // Assume unusable.
     darkTicks = 0; // Scrub any previous possibly-misleading value.
-    unusable = true;
+    rangeTooNarrow = true;
     return;
     }
 
@@ -133,7 +130,7 @@ void SensorAmbientLightAdaptive::recomputeThresholds(
   lightThreshold = (uint8_t) OTV0P2BASE::fnmin(rollingMax-1, darkThreshold + upDelta);
 
   // All seems OK.
-  unusable = false;
+  rangeTooNarrow = false;
   }
 
 // Set recent min and max ambient light levels from recent stats, to allow auto adjustment to dark; ~0/0xff means no min/max available.
