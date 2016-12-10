@@ -135,9 +135,9 @@ TEST(AmbientLight,setTypMinMax)
     EXPECT_NEAR(13, alm.getDarkThreshold(), 0);
 
     // Ensure that even bad/unfortunate historic values
-    // don't have the sensor mark itself as unavilable
+    // don't have the sensor mark itself as unavailable
     // since that can prevent further stats being collected
-    // and is no-recoverable.
+    // and is non-recoverable.
     alm.setTypMinMax(123, 123, 123, true);
     EXPECT_TRUE(alm.isAvailable());
     EXPECT_TRUE(alm.isRangeTooNarrow());
