@@ -434,8 +434,8 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
 
                 // Inhibit FULL setback if at top end of comfort range.
                 const bool comfortTemperature = tempControl->isComfortTemperature(wt);
-                // High likelihood of occupancy soon inhibits FULL setback
-                // unless dark for hours, to avoid waking users early,
+                // High likelihood of occupancy soon inhibits FULL setback,
+                // unless dark for hours to avoid waking users early,
                 // but to allow getting warm ready for return from work/school.
                 const uint8_t hoursLessOccupiedThanNext = byHourStats->countStatSamplesBelow(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED, byHourStats->getByHourStatRTC(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED, OTV0P2BASE::NVByHourByteStatsBase::SPECIAL_HOUR_NEXT_HOUR));
                 const bool relativelyActiveSoon = (hoursLessOccupiedThanNext > 1+thisHourNLOThreshold);
