@@ -2422,7 +2422,7 @@ TEST(AmbientLightOccupancyDetection,sample3lSetback)
 }
 
 // "5s" 2016/10/08+09 test set with tough occupancy to detect in the evening 21:00Z.
-// Note: the simulation shows smoothed occupancy:
+// Note: as of 2016/12/10 the simulation shows smoothed occupancy:
 //     0 0 0 0 0 0 8 71 26 58 65 70 30 54 46 30 0 0 0 0 16 0 0 0
 // At 2016/12/10 ~11:00Z a dump from the unit showed:
 //     occ% last 0 0 31 0 0 0 0 20 0 0 0 0 0 0 0 0 38 0 0 0< 0 0 0 0
@@ -2567,6 +2567,13 @@ TEST(AmbientLightOccupancyDetection,sample5sHard)
 // "5s" 2016/12/01--04 test set with some fine-grained data in the second half.
 // 2016/12/03 all of 3l, 5s, 6k, 7h: vacant from 11:00Z to 14:00Z but wrongly seen as occupied.
 // 5s also probably occupied 16:00--16:30 and 18:14--19:16 and 19:29--21:07.
+// Note: as of 2016/12/10 the simulation shows smoothed occupancy:
+//     0 0 0 0 0 0 0 13 59 48 56 16 4 8 0 0 13 36 42 7 9 5 2 0
+// At 2016/12/10 ~11:00Z a dump from the unit showed:
+//     occ% last 0 0 31 0 0 0 0 20 0 0 0 0 0 0 0 0 38 0 0 0< 0 0 0 0
+//     occ% smoothed 13 15 29 22 31 26 15 4 3 0 0 0 0 0 0 19 23 12 5 5< 2 2 8 4
+// so therefore smoothed occupancy to match the test something like:
+//     3 0 0 0 0 0 0 19 23 12 5 5< 2 2 8 4 13 15 29 22 31 26 15 4
 static const ALDataSample sample5sHard2[] =
     {
 {1,0,1,1, occType::OCC_NONE, true, false},
