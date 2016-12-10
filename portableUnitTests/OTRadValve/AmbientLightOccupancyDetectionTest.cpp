@@ -1273,6 +1273,18 @@ TEST(AmbientLightOccupancyDetection,sample3lLevels)
 // A full/maximum setback must be achieved overnight.
 // Possibly look for anticipation also.
 // Finer-grained data than usual.
+//
+// 2016/12/10 12:00Z: dumped light and occupancy stats from 3l valve:
+//    C last 19 19< 19 19 19 20 20 20 23 22 23 23 22 23 24 21 19 19 19 18 18 18 23 21
+//    C smoothed 20 20< 20 20 20 21 20 19 21 20 21 21 20 20 19 19 18 18 18 18 18 20 21 20
+//    ambl last 127 -< - - - - - - - - - - - - - - - - - - - - - -
+//    ambl smoothed 127 -< - - - - - - - - - - - - - - - - - - - - - -
+//    occ% last 28 39< 67 73 6 0 0 25 49 0 0 0 0 0 92 14 0 0 0 0 0 34 28 0
+//    occ% smoothed 37 39< 43 43 21 23 12 13 30 7 19 7 12 1 12 2 0 0 0 0 3 11 15 18
+//    RH% last 68 68< 68 69 69 67 66 66 61 62 60 62 62 60 59 65 68 69 70 70 71 72 58 65
+//    RH% smoothed 59 58< 59 60 59 59 60 62 59 62 59 61 61 62 62 61 63 63 63 61 62 58 56 59
+//
+// Note the missing ambient light values.
 static const ALDataSample sample3lSetback[] =
     {
 {5,0,3,2, ALDataSample::NO_OCC_EXPECTATION, true, false}, // Dark.
