@@ -188,11 +188,12 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     // This value will only change at read(), and will not instantly be forced to 0 when activity happens.
     const SubSensorSimpleRef<uint8_t> vacHSubSensor;
 
+    // Threshold hours ABOVE which there is strong confidence in vacancy.
     // Threshold hours ABOVE which weak occupancy signals are ignored.
     // Since these signals may arise infrequently this should not be too low,
     // but too high a value allows false positives to prevent energy savings.
     // No more than (say) 6 hours to allow night to kill weak signal input.
-    static constexpr uint8_t weakVacantHThrH = 3;
+    static constexpr uint8_t weakVacantHThrH = 1;
     // Threshold hours ABOVE which room is considered long vacant.
     // At least 24h in order to allow once-daily room programmes (including pre-warm) to operate reliably.
     static constexpr uint8_t longVacantHThrH = 24;
@@ -201,6 +202,9 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     // ~8h less than 2d may capture full office energy savings for the whole day of Sunday
     // counting from from last occupancy at end of (working) day Friday for example.
     static constexpr uint8_t longLongVacantHThrH = 39;
+
+    // Returns true if vacant long enough to be confident not actively occupied.
+    bool confidentlyVacant() const { return(getVacancyH() > weakVacantHThrH); }
 
     // Returns true if room appears to have been vacant for more than a day.
     // For a home or an office no sign of activity for this long suggests a weekend or a holiday for example.

@@ -31,7 +31,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 
 
 // Set true for verbose reporting.
-static constexpr bool verbose = false;
+static constexpr bool verbose = true;
 // Lots of extra detail, generally should not be needed.
 static constexpr bool veryVerbose = false && verbose;
 
@@ -91,6 +91,7 @@ class ALDataSample final
               SB_NONEECO, // Some mixture of NONE, MIN and ECO.
             SB_MINECO, // Some mixture of MIN and ECO.
             SB_ECO, // ECO/medium setback.
+            SB_MINMAX, // Some setback from MIN to MAX.
             SB_ECOMAX, // Some mixture of ECO and MAX.
             SB_MAX, // Maximum setback.
             };
@@ -182,6 +183,11 @@ class SimpleFlavourStatCollection final
         // Checking setback accuracy vs actual occupation/vacancy.
         SimpleFlavourStats setbackTooFar; // Excessive setback.
         SimpleFlavourStats setbackInsufficient; // Insufficient setback.
+
+        // Checking time at various significant energy-saving setback levels.
+        SimpleFlavourStats setbackAtLeastDEFAULT;
+        SimpleFlavourStats setbackAtLeastECO;
+        SimpleFlavourStats setbackAtMAX;
     };
 
 // Trivial sample, testing initial occupancy detector reaction to start transient.
@@ -255,12 +261,13 @@ namespace SDSR
         decltype(hs),                                 &hs
         > cttb;
     // Occupancy callback.
+    static bool logCallback;
     static int8_t cbProbable;
     static void (*const callback)(bool) = [](bool p)
         {
         cbProbable = p;
         if(p) { occupancy.markAsPossiblyOccupied(); } else { occupancy.markAsJustPossiblyOccupied(); }
-if(veryVerbose) { fprintf(stderr, " *Callback: %d\n", p); }
+if(veryVerbose && logCallback) { fprintf(stderr, " *Callback: %d\n", p); }
         };
     // Reset all these static entities but does not clear stats.
     static void resetAll()
@@ -288,9 +295,22 @@ if(veryVerbose) { fprintf(stderr, " *Callback: %d\n", p); }
 template<class Valve_parameters>
 static void scoreSetback(
     const uint8_t setback, const ALDataSample::expectedSb_t expectedSb,
+    const bool isRealRecord,
     SimpleFlavourStats &setbackInsufficient, SimpleFlavourStats &setbackTooFar,
+    SimpleFlavourStats &setbackAtLeastDEFAULT,
+    SimpleFlavourStats &setbackAtLeastECO,
+    SimpleFlavourStats &setbackAtMAX,
     bool &failed)
     {
+    // Note overall time/ticks/minutes spent at significant setbacks.
+    setbackAtLeastDEFAULT.takeSample(setback >= Valve_parameters::SETBACK_DEFAULT);
+    setbackAtLeastECO.takeSample(setback >= Valve_parameters::SETBACK_ECO);
+    setbackAtMAX.takeSample(setback >= Valve_parameters::SETBACK_FULL);
+
+    // The following processing only applies to
+    // real records with specific predictions.
+    if(!isRealRecord) { return; }
+
     bool tooFar = false;
     bool insufficient = false;
 
@@ -308,7 +328,7 @@ static void scoreSetback(
            break;
            }
 
-       // NINE/minimum setback micture.
+       // NONE/MIN setback mixture.
        // Up to MIN setback is acceptable.
        case ALDataSample::SB_NONEMIN:
            {
@@ -317,7 +337,7 @@ static void scoreSetback(
            }
 
        // Minimum setback.
-       // Exactly ECO setback is acceptable.
+       // Exactly MIN setback is acceptable.
        case ALDataSample::SB_MIN:
            {
            insufficient = (setback < Valve_parameters::SETBACK_DEFAULT);
@@ -325,7 +345,7 @@ static void scoreSetback(
            break;
            }
 
-       // Some mixture of NONE (and MIN) and ECO.
+       // Some mixture of NONE to ECO.
        // A setback up to ECO inclusive is OK.
        case ALDataSample::SB_NONEECO:
            {
@@ -356,6 +376,14 @@ static void scoreSetback(
         case ALDataSample::SB_ECOMAX:
             {
             insufficient = (setback < Valve_parameters::SETBACK_ECO);
+            break;
+            }
+
+        // Some setback; anywhere from MIN to MAX, but not zero.
+        // A setback less than MIN is insufficient'.
+        case ALDataSample::SB_MINMAX:
+            {
+            insufficient = (setback < Valve_parameters::SETBACK_DEFAULT);
             break;
             }
 
@@ -470,24 +498,29 @@ void setTypeMinMax(OTV0P2BASE::SensorAmbientLightAdaptiveMock &ala,
         default: FAIL();
         }
     oldH = H;
-
     }
+
 // Check that the occupancy/setback/etc results are acceptable for the data.
 // Makes the test fail via EXPECT_XX() etc if not.
-static void checkAccuracyAcceptableAgainstData(
-        const SimpleFlavourStatCollection &flavourStats)
+template<class Valve_parameters>
+static void checkPerformanceAcceptableAgainstData(
+        const SimpleFlavourStatCollection &flavourStats,
+        const bool exemptFromNormalSetbackRatios)
     {
     const bool sensitive = flavourStats.sensitive;
     const bool oddBlend = (flavourStats.blending != BL_FROMSTATS);
+    // Normal core operation.
     const bool normalOperation = !sensitive && !oddBlend;
+    // Normal operation but a bit more sensitive, eg at comfort end of range.
+    const bool normalSensitiveOperation = sensitive && !oddBlend;
 
-    // Check that at least some expectations have been set.
-//            ASSERT_NE(0U, flavourStats.AmbLightOccupancyCallbackPredictionErrors.getSampleCount()) << "some expected occupancy callbacks should be provided";
+    // Check that at least some sensor expectations have been set.
     ASSERT_NE(0U, flavourStats.roomDarkPredictionErrors.getSampleCount()) << "some known room dark values should be provided";
     ASSERT_NE(0U, flavourStats.occupancyTrackingFalseNegatives.getSampleCount()) << "some known occupancy values should be provided";
 
-    // Check that there are not huge numbers of (false) positive occupancy reports.
-    EXPECT_GE(0.231f, flavourStats.ambLightOccupancyCallbacks.getFractionFlavoured());
+    // Check that there are not huge numbers of positive occupancy callbacks.
+    // Anything over ~25% is an indication of something broken..
+    EXPECT_GE(0.25f, flavourStats.ambLightOccupancyCallbacks.getFractionFlavoured());
 
     // Check that there are not huge numbers of failed callback expectations.
     // We could allow more errors with an odd (non-deployment) blending.
@@ -507,17 +540,101 @@ static void checkAccuracyAcceptableAgainstData(
     // When 'sensitive', eg in comfort mode,
     // more false positives and fewer false negatives are OK.
     // But accept more errors generally with non-preferred blending.
-    // Excess false positives likely inhibit energy saving.
     // The FIRST (tighter) limit is the more critical one for normal operation.
+    // Excess false positives likely inhibit energy saving.
     EXPECT_GE((normalOperation ? 0.1f : 0.122f), flavourStats.occupancyTrackingFalsePositives.getFractionFlavoured());
     // Excess false negatives may cause discomfort.
     EXPECT_GE((normalOperation ? 0.1f : 0.23f), flavourStats.occupancyTrackingFalseNegatives.getFractionFlavoured());
+    if(normalSensitiveOperation)
+        {
+        // Excess false positives likely inhibit energy saving.
+        EXPECT_GE(0.1f, flavourStats.occupancyTrackingFalsePositives.getFractionFlavoured());
+        // Excess false negatives may cause discomfort.
+        EXPECT_GE(0.1f, flavourStats.occupancyTrackingFalseNegatives.getFractionFlavoured());
+        }
 
     // Check that setback accuracy is OK.
     // Aim for a low error rate in either direction.
-    EXPECT_GE((normalOperation ? 0.05f : 0.12f), flavourStats.setbackInsufficient.getFractionFlavoured());
-    EXPECT_GE((normalOperation ? 0.05f : 0.1f), flavourStats.setbackTooFar.getFractionFlavoured());
+    // But err on the side of energy saving.
+    EXPECT_GE((normalOperation ? 0.09f : 0.2f), flavourStats.setbackInsufficient.getFractionFlavoured());
+    EXPECT_GE((normalOperation ? 0.1f : 0.1f), flavourStats.setbackTooFar.getFractionFlavoured());
+
+    // Compute nominal available savings
+    // assuming typical values per degree of setback in UK.
+    static constexpr float typicalSavingsPerDegreeUK = 0.08f;
+    // Potential savings from FULL setback (out of entire day).
+    // These savings can only materialise if the day is cold and heat is needed.
+    const float potentialSavingsFromSetbackFULL =
+        flavourStats.setbackAtMAX.getFractionFlavoured() *
+        Valve_parameters::SETBACK_FULL * typicalSavingsPerDegreeUK;
+    // Potential savings from ECO setback (out of entire day).
+    // Excludes time at FULL.
+    const float potentialSavingsFromSetbackECO =
+        (flavourStats.setbackAtLeastECO.getFractionFlavoured() - flavourStats.setbackAtMAX.getFractionFlavoured()) *
+        Valve_parameters::SETBACK_ECO * typicalSavingsPerDegreeUK;
+    // Potential savings from significant (not minimum) setbacks.
+    const float potentialSavingsFromSetbackAtLeastECO =
+        potentialSavingsFromSetbackFULL + potentialSavingsFromSetbackECO;
+    // Potential savings from ECO setback (out of entire day).
+    // Excludes time at ECO or FULL.
+    const float potentialSavingsFromSetbackDEFAULT =
+        (flavourStats.setbackAtLeastDEFAULT.getFractionFlavoured() - flavourStats.setbackAtLeastECO.getFractionFlavoured()) *
+        Valve_parameters::SETBACK_DEFAULT * typicalSavingsPerDegreeUK;
+    // Potential savings from significant (not minimum) setbacks.
+    const float potentialSavingsFromSetbackAtLeastDEFAULT =
+        potentialSavingsFromSetbackAtLeastECO + potentialSavingsFromSetbackDEFAULT;
+
+    // Enough ticks/minutes for a day of data and then some
+    // to allow vacancy and dark periods and so on to operate.
+    static constexpr unsigned ticksForMoreThan24h = 1500;
+    const unsigned minutes = flavourStats.setbackAtMAX.getFlavouredCount();
+
+    // When data sample is >> 1 day,
+    // check that FULL setback is achieved for a reasonable fraction,
+    // eg at least 4h/day.
+    if((minutes > ticksForMoreThan24h) && !exemptFromNormalSetbackRatios)
+        { EXPECT_LE(4.0f/24, flavourStats.setbackAtMAX.getFractionFlavoured()); }
+
+    // When data sample is >> 1 day,
+    // check that a minimum acceptable potential savings target is met
+    // counting all setbacks.
+    // Target is 30% for lone radiator valve without boiler control;
+    // insist on most of that when not in sensitive mode,
+    // and a little lower ambition in sensitive mode (eg comfort-driven).
+// FIXME: >=25% primary target.
+    if((minutes > ticksForMoreThan24h) && !exemptFromNormalSetbackRatios)
+        { EXPECT_LE(!sensitive ? 0.21f : 0.15f, potentialSavingsFromSetbackAtLeastDEFAULT); }
+
+    // Print a summary of key stats to eyeball (if not an odd blend).
+    // These should be subject to more automated numerical analysis elsewhere.
+    // Always print the potential-savings single-line summary.
+    if(!oddBlend)
+        {
+        if(verbose)
+            {
+            fprintf(stderr, "Performance stats summary:\n");
+            if(sensitive) { fprintf(stderr, " (sensitive)\n"); }
+            fprintf(stderr, " Fraction of ticks with occupancy callbacks: %f\n",
+                flavourStats.ambLightOccupancyCallbacks.getFractionFlavoured());
+            fprintf(stderr, " Fraction setback at FULL (potential savings): %f ie %fh/d (%f)\n",
+                flavourStats.setbackAtMAX.getFractionFlavoured(),
+                24 * flavourStats.setbackAtMAX.getFractionFlavoured(),
+                potentialSavingsFromSetbackFULL);
+            fprintf(stderr, " Fraction setback at ECO or more (potential savings at ECO only): %f ie %fh/d (%f)\n",
+                flavourStats.setbackAtLeastECO.getFractionFlavoured(),
+                24 * flavourStats.setbackAtLeastECO.getFractionFlavoured(),
+                potentialSavingsFromSetbackECO);
+            fprintf(stderr, " Fraction setback at DEFAULT or more (potential savings at DEFAULT only): %f ie %fh/d (%f)\n",
+                flavourStats.setbackAtLeastDEFAULT.getFractionFlavoured(),
+                24 * flavourStats.setbackAtLeastDEFAULT.getFractionFlavoured(),
+                potentialSavingsFromSetbackDEFAULT);
+            }
+        fprintf(stderr, " Potential savings from setbacks %s: %.1f%%\n",
+            (sensitive ? "(sensitive)" : ""),
+            100 * potentialSavingsFromSetbackAtLeastDEFAULT);
+        }
     }
+
 // Do a simple run over the supplied data, one call per simulated minute until the terminating record is found.
 // Must be called with 1 or more data rows in ascending time with a terminating (empty) entry.
 // Repeated rows with the same light value and expected result can be omitted
@@ -526,18 +643,28 @@ static void checkAccuracyAcceptableAgainstData(
 // Can be supplied with nominal long-term rolling min and max
 // or they can be computed from the data supplied (0xff implies no data).
 // Can be supplied with nominal long-term rolling mean levels by hour,
-// or they can be computed from the data supplied (NULL means none supplied, 0xff entry means none for given hour).
+// or they can be computed from the data supplied
+// (NULL means none supplied, 0xff entry means none for given hour).
 // Uses the update() call for the main simulation.
-// Uses the setTypMinMax() call as the hour rolls or in more complex blended-stats modes;
+// Uses the setTypMinMax() call as the hour rolls
+// or in more complex blended-stats modes to test fragility;
 // runs with 'sensitive' in both states to verify algorithm's robustness.
-// Will fail if an excessive amount of the time occupancy is predicted (more than ~25%).
-void simpleDataSampleRun(const ALDataSample *const data)
+// Will fail if an excessive amount of the time occupancy is predicted.
+//   * data  {}=terminated in-time-order real data set
+//         annotated with expected values; never NULL
+//   * exemptFromNotmalSetbackRatios  minimum times at significant setbacks
+//         (to enable significant energy savings) will be enabled
+//         unless this is true
+void simpleDataSampleRun(const ALDataSample *const data,
+                         const bool exemptFromNormalSetbackRatios = false)
     {
     ASSERT_TRUE(NULL != data);
     ASSERT_FALSE(data->isEnd()) << "do not pass in empty data set";
 
     // Clear stats backing store.
     SDSR::hs.zapStats();
+
+    SDSR::logCallback = false;
 
     // First count records and set up testing state.
     // The ambient light sensor is not being fed back stats
@@ -586,6 +713,7 @@ void simpleDataSampleRun(const ALDataSample *const data)
             if((int)level > maxI) { maxI = level; }
             const uint8_t H = (currentMinute % 1440) / 60;
             const uint8_t M = (currentMinute % 60);
+            SDSR::hs._setHour(H);
             if(29 == M) { SDSR::su.sampleStats(false, H); }
             if(59 == M) { SDSR::su.sampleStats(true, H); }
             byHourMeanSumI[H] += level;
@@ -629,25 +757,25 @@ void simpleDataSampleRun(const ALDataSample *const data)
             }
         fprintf(stderr, "\n");
 
-        fprintf(stderr, " smoothed ambient light level: ");
-        for(int i = 0; i < 24; ++i)
-            {
-            fputc(' ', stderr);
-            const uint8_t v = hsInitCopy.getByHourStatSimple(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, i);
-            if(0xff == v) { fputc('-', stderr); }
-            else { fprintf(stderr, "%d", v); }
-            }
-        fprintf(stderr, "\n");
-
-        fprintf(stderr, " smoothed occupancy: ");
-        for(int i = 0; i < 24; ++i)
-            {
-            fputc(' ', stderr);
-            const uint8_t v = hsInitCopy.getByHourStatSimple(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED, i);
-            if(0xff == v) { fputc('-', stderr); }
-            else { fprintf(stderr, "%d", v); }
-            }
-        fprintf(stderr, "\n");
+//        fprintf(stderr, " smoothed ambient light level: ");
+//        for(int i = 0; i < 24; ++i)
+//            {
+//            fputc(' ', stderr);
+//            const uint8_t v = hsInitCopy.getByHourStatSimple(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, i);
+//            if(0xff == v) { fputc('-', stderr); }
+//            else { fprintf(stderr, "%d", v); }
+//            }
+//        fprintf(stderr, "\n");
+//
+//        fprintf(stderr, " smoothed occupancy: ");
+//        for(int i = 0; i < 24; ++i)
+//            {
+//            fputc(' ', stderr);
+//            const uint8_t v = hsInitCopy.getByHourStatSimple(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED, i);
+//            if(0xff == v) { fputc('-', stderr); }
+//            else { fprintf(stderr, "%d", v); }
+//            }
+//        fprintf(stderr, "\n");
         }
 
     // Now run through all the data checking responses.
@@ -684,6 +812,35 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
                 // Suppress most reporting for odd blends and in warmup.
 const bool verboseOutput = !warmup && (veryVerbose || (verbose && !oddBlend));
 
+SDSR::logCallback = verboseOutput;
+
+// Dump some of the data collected.
+if(verboseOutput)
+    {
+    fprintf(stderr, " Post-warmup stats:\n");
+
+    fprintf(stderr, " smoothed ambient light level: ");
+    for(int i = 0; i < 24; ++i)
+        {
+        fputc(' ', stderr);
+        const uint8_t v = hsInitCopy.getByHourStatSimple(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, i);
+        if(0xff == v) { fputc('-', stderr); }
+        else { fprintf(stderr, "%d", v); }
+        }
+    fprintf(stderr, "\n");
+
+    fprintf(stderr, " smoothed occupancy: ");
+    for(int i = 0; i < 24; ++i)
+        {
+        fputc(' ', stderr);
+        const uint8_t v = hsInitCopy.getByHourStatSimple(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED, i);
+        if(0xff == v) { fputc('-', stderr); }
+        else { fprintf(stderr, "%d", v); }
+        }
+    fprintf(stderr, "\n");
+    }
+
+                // Fresh behaviour stats each run, esp non-warmup run.
                 SimpleFlavourStatCollection flavourStats(sensitive, blending);
 
                 // Clear all state in static instances (except stats).
@@ -703,6 +860,7 @@ const bool verboseOutput = !warmup && (veryVerbose || (verbose && !oddBlend));
                         const uint8_t D = (currentMinute / 1440);
                         const uint8_t H = (currentMinute % 1440) / 60;
                         const uint8_t M = (currentMinute % 60);
+                        SDSR::hs._setHour(H);
                         uint8_t meanUsed = 0xff;
                         setTypeMinMax(ala,
                                 (blending_t)blending,
@@ -740,7 +898,7 @@ const bool verboseOutput = !warmup && (veryVerbose || (verbose && !oddBlend));
                             (-1 == SDSR::cbProbable) ? occType::OCC_NONE :
                                 ((0 == SDSR::cbProbable) ? occType::OCC_WEAK : occType::OCC_PROBABLE);
 //if(veryVerbose && (-1 != cbProbable)) { fprintf(stderr, "  occupancy callback=%d @ %dT%d:%.2d\n", cbProbable, D, H, M); }
-                        if(isRealRecord) { flavourStats.ambLightOccupancyCallbacks.takeSample((-1 != SDSR::cbProbable)); }
+                        flavourStats.ambLightOccupancyCallbacks.takeSample((-1 != SDSR::cbProbable));
                         // Collect occupancy tracker prediction and error.
                         if(isRealRecord && (ALDataSample::UNKNOWN_ACT_OCC != dp->actOcc))
                             {
@@ -751,20 +909,21 @@ if(verbose && !warmup && (trackedLikelyOccupancy != actOcc)) { fprintf(stderr, "
                             flavourStats.occupancyTrackingFalsePositives.takeSample(!actOcc && trackedLikelyOccupancy);
                             }
 
-if(veryVerbose && verboseOutput && isRealRecord) { fprintf(stderr, "  tS=%d @ %dT%d:%.2d\n", SDSR::tempControl.getWARMTargetC() - SDSR::cttb.computeTargetTemp(), D, H, M); }
-                        if(isRealRecord && (ALDataSample::NO_SB_EXPECTATION != dp->expectedSb))
-                            {
-                            const int8_t setback = SDSR::tempControl.getWARMTargetC() - SDSR::cttb.computeTargetTemp();
-                            bool failed = false;
-                            scoreSetback<SDSR::parameters>(setback, dp->expectedSb,
-                                flavourStats.setbackInsufficient, flavourStats.setbackTooFar,
-                                failed);
-if(verbose && !warmup && failed) { fprintf(stderr, "!!!tS=%d @ %dT%d:%.2d expectation=%d\n", setback, D, H, M, dp->expectedSb); }
-                            }
+                        const int8_t setback = SDSR::tempControl.getWARMTargetC() - SDSR::cttb.computeTargetTemp();
+if(veryVerbose && verboseOutput && !warmup /*&& isRealRecord*/) { fprintf(stderr, "  tS=%d @ %dT%d:%.2d\n", setback, D, H, M); }
+                        bool failedSetbackExpectations = false;
+                        scoreSetback<SDSR::parameters>(setback, dp->expectedSb,
+                            isRealRecord,
+                            flavourStats.setbackInsufficient, flavourStats.setbackTooFar,
+                            flavourStats.setbackAtLeastDEFAULT,
+                            flavourStats.setbackAtLeastECO,
+                            flavourStats.setbackAtMAX,
+                            failedSetbackExpectations);
+if(verbose && !warmup && failedSetbackExpectations) { fprintf(stderr, "!!!tS=%d @ %dT%d:%.2d expectation=%d\n", setback, D, H, M, dp->expectedSb); }
 
                         // Note that for all synthetic ticks the expectation is removed (since there is no level change).
                         const int8_t expectedOcc = (!isRealRecord) ? ALDataSample::NO_OCC_EXPECTATION : dp->expectedOcc;
-if(veryVerbose && verboseOutput && isRealRecord && (occType::OCC_NONE != predictionOcc)) { fprintf(stderr, "  predictionOcc=%d @ %dT%d:%.2d L=%d mean=%d\n", predictionOcc, D, H, M, dp->L, meanUsed); }
+if(veryVerbose && verboseOutput && !warmup && isRealRecord && (occType::OCC_NONE != predictionOcc)) { fprintf(stderr, "  predictionOcc=%d @ %dT%d:%.2d L=%d mean=%d\n", predictionOcc, D, H, M, dp->L, meanUsed); }
                         if(ALDataSample::NO_OCC_EXPECTATION != expectedOcc)
                             {
                             flavourStats.ambLightOccupancyCallbackPredictionErrors.takeSample(expectedOcc != predictionOcc);
@@ -780,14 +939,18 @@ if(verbose && !warmup && ((bool)expectedRoomDark != predictedRoomDark)) { fprint
                         } while((!(dp+1)->isEnd()) && (currentMinute < (dp+1)->currentMinute()));
                     }
 
-                // Don't test results in wormup run.
+                // Don't test results in warmup run.
                 if(!warmup)
                     {
-                    checkAccuracyAcceptableAgainstData(flavourStats);
+                    checkPerformanceAcceptableAgainstData<SDSR::parameters>(
+                        flavourStats,
+                        exemptFromNormalSetbackRatios);
                     // Allow check in outer loop that sensitive mode generates
                     // at least as many reports as non-sensitive mode.
-                    if(sensitive) { nOccupancyReportsSensitive = flavourStats.ambLightOccupancyCallbacks.getFlavouredCount(); }
-                    else { nOccupancyReportsNotSensitive = flavourStats.ambLightOccupancyCallbacks.getFlavouredCount(); }
+                    if(sensitive)
+                        { nOccupancyReportsSensitive = flavourStats.ambLightOccupancyCallbacks.getFlavouredCount(); }
+                    else
+                        { nOccupancyReportsNotSensitive = flavourStats.ambLightOccupancyCallbacks.getFlavouredCount(); }
                     }
                 }
             }
@@ -1104,7 +1267,1180 @@ TEST(AmbientLightOccupancyDetection,sample3lLevels)
     simpleDataSampleRun(sample3lLevels);
 }
 
+// "3l" 2016/12/05--09 thorough test for setbacks and occupancy on Thu 8th.
+// on Thu 8th: curtains drawn ~06:50, occupancy ~13:40--14:40 and ~16:30--21:00.
+// Check that occupancy and setbacks acceptable for whole of 8th.
+// A full/maximum setback must be achieved overnight.
+// Possibly look for anticipation also.
+// Finer-grained data than usual.
+//
+// 2016/12/10 12:00Z: dumped light and occupancy stats from 3l valve:
+//    C last 19 19< 19 19 19 20 20 20 23 22 23 23 22 23 24 21 19 19 19 18 18 18 23 21
+//    C smoothed 20 20< 20 20 20 21 20 19 21 20 21 21 20 20 19 19 18 18 18 18 18 20 21 20
+//    ambl last 127 -< - - - - - - - - - - - - - - - - - - - - - -
+//    ambl smoothed 127 -< - - - - - - - - - - - - - - - - - - - - - -
+//    occ% last 28 39< 67 73 6 0 0 25 49 0 0 0 0 0 92 14 0 0 0 0 0 34 28 0
+//    occ% smoothed 37 39< 43 43 21 23 12 13 30 7 19 7 12 1 12 2 0 0 0 0 3 11 15 18
+//    RH% last 68 68< 68 69 69 67 66 66 61 62 60 62 62 60 59 65 68 69 70 70 71 72 58 65
+//    RH% smoothed 59 58< 59 60 59 59 60 62 59 62 59 61 61 62 62 61 63 63 63 61 62 58 56 59
+//
+// Note the missing ambient light values.
+static const ALDataSample sample3lSetback[] =
+    {
+{5,0,3,2, ALDataSample::NO_OCC_EXPECTATION, true, false}, // Dark.
+{5,0,23,2},
+{5,0,39,2},
+{5,0,59,2},
+{5,1,15,2},
+{5,1,35,2},
+{5,1,51,2},
+{5,2,15,2},
+{5,2,31,2},
+{5,2,47,2},
+{5,2,59,2},
+{5,3,17,2},
+{5,3,31,2},
+{5,3,47,2},
+{5,4,3,2},
+{5,4,19,2},
+{5,4,35,2},
+{5,4,51,2},
+{5,5,3,2},
+{5,5,19,2},
+{5,5,27,2},
+{5,5,40,2},
+{5,5,55,2},
+{5,6,7,2},
+{5,6,23,2},
+{5,6,39,2},
+{5,6,59,2},
+{5,7,19,3},
+{5,7,31,4},
+{5,7,36,5},
+{5,7,47,8},
+{5,8,3,14},
+{5,8,15,19},
+{5,8,23,23},
+{5,8,35,28},
+{5,8,47,33},
+{5,8,55,37},
+{5,9,11,45},
+{5,9,23,48},
+{5,9,35,59},
+{5,9,43,61},
+{5,9,51,64},
+{5,10,7,73},
+{5,10,11,74},
+{5,10,23,81},
+{5,10,43,92},
+{5,10,55,98},
+{5,10,59,99},
+{5,11,15,92},
+{5,11,19,88},
+{5,11,31,97},
+{5,11,39,111},
+{5,11,43,114},
+{5,11,59,126},
+{5,12,15,145},
+{5,12,19,151},
+{5,12,35,137},
+{5,12,47,134},
+{5,12,50,129},
+{5,12,59,131},
+{5,13,11,136},
+{5,13,15,127},
+{5,13,29,130},
+{5,13,31,131},
+{5,13,47,129},
+{5,13,51,137},
+{5,14,3,153},
+{5,14,19,138},
+{5,14,23,129},
+{5,14,31,123},
+{5,14,43,108},
+{5,14,55,94},
+{5,15,4,79},
+{5,15,7,74},
+{5,15,23,51},
+{5,15,43,21},
+{5,15,59,47},
+{5,16,3,43},
+{5,16,15,41},
+{5,16,31,39},
+{5,16,43,39},
+{5,16,51,39},
+{5,17,7,40},
+{5,17,19,2},
+{5,17,39,40},
+{5,17,59,40},
+{5,18,15,38},
+{5,18,19,39},
+{5,18,31,37},
+{5,18,43,2},
+{5,18,47,2},
+{5,19,7,43},
+{5,19,15,39},
+{5,19,22,39},
+{5,19,35,39},
+{5,19,39,40},
+{5,19,55,40},
+{5,20,7,38},
+{5,20,11,38},
+{5,20,31,2},
+{5,20,43,2},
+{5,20,55,2},
+{5,21,3,40},
+{5,21,19,43},
+{5,21,22,41},
+{5,21,39,42},
+{5,21,51,40},
+{5,21,55,41},
+{5,22,6,42},
+{5,22,27,2},
+{5,22,40,2},
+{5,22,55,2},
+{5,23,9,2},
+{5,23,23,2},
+{5,23,39,2},
+{5,23,51,2},
+{6,0,6,2},
+{6,0,19,2},
+{6,0,35,2},
+{6,0,43,2},
+{6,0,59,2},
+{6,1,19,2},
+{6,1,34,2},
+{6,1,55,2},
+{6,2,11,2},
+{6,2,23,2},
+{6,2,42,2},
+{6,2,59,2},
+{6,3,14,2},
+{6,3,30,2},
+{6,3,51,2},
+{6,4,10,2},
+{6,4,26,2},
+{6,4,39,2},
+{6,4,52,2},
+{6,5,11,2},
+{6,5,31,2},
+{6,5,43,2},
+{6,5,59,2},
+{6,6,10,2},
+{6,6,22,2},
+{6,6,43,2},
+{6,6,58,2},
+{6,7,11,2},
+{6,7,24,2},
+{6,7,35,3},
+{6,7,47,4},
+{6,8,0,5},
+{6,8,10,8},
+{6,8,26,12},
+{6,8,47,12},
+{6,9,12,18},
+{6,9,27,19},
+{6,9,39,25},
+{6,9,42,24},
+{6,9,50,22},
+{6,10,7,26},
+{6,10,16,27},
+{6,10,18,28},
+{6,10,31,26},
+{6,10,47,27},
+{6,10,57,33},
+{6,10,58,32},
+{6,11,15,34},
+{6,11,19,25},
+{6,11,31,42},
+{6,11,34,45},
+{6,11,44,49},
+{6,11,46,48},
+{6,11,59,38},
+{6,12,18,36},
+{6,12,35,36},
+{6,12,51,45},
+{6,12,59,41},
+{6,13,10,47},
+{6,13,27,43},
+{6,13,30,47},
+{6,13,36,42},
+{6,13,51,42},
+{6,13,55,35},
+{6,14,6,25},
+{6,14,10,22},
+{6,14,19,21},
+{6,14,38,13},
+{6,14,47,11},
+{6,14,55,10},
+{6,15,6,7},
+{6,15,27,5},
+{6,15,38,4},
+{6,15,49,3},
+{6,15,54,11},
+{6,16,10,43},
+{6,16,14,42},
+{6,16,33,40},
+{6,16,46,39},
+{6,16,55,41},
+{6,17,15,41},
+{6,17,30,42},
+{6,17,46,41},
+{6,17,59,41},
+{6,18,14,13},
+{6,18,26,42},
+{6,18,31,41},
+{6,18,40,42},
+{6,18,50,43},
+{6,18,54,43},
+{6,19,14,41},
+{6,19,31,40},
+{6,19,48,42},
+{6,20,2,40},
+{6,20,14,41},
+{6,20,17,40},
+{6,20,26,41},
+{6,20,31,41},
+{6,20,47,39},
+{6,20,50,40},
+{6,20,58,39},
+{6,21,2,40},
+{6,21,14,40},
+{6,21,26,39},
+{6,21,34,40},
+{6,21,46,39},
+{6,22,3,12},
+{6,22,10,12},
+{6,22,23,2},
+{6,22,31,2},
+{6,22,47,2},
+{6,22,55,2},
+{6,23,10,2},
+{6,23,26,2},
+{6,23,46,2},
+{7,0,3,2},
+{7,0,22,2},
+{7,0,38,2},
+{7,0,54,2},
+{7,1,11,2},
+{7,1,34,2},
+{7,1,51,2},
+{7,2,10,2},
+{7,2,26,2},
+{7,2,46,2},
+{7,3,2,2},
+{7,3,18,2},
+{7,3,38,2},
+{7,3,55,2},
+{7,4,6,2},
+{7,4,18,2},
+{7,4,34,2},
+{7,4,58,2},
+{7,5,14,2},
+{7,5,30,2},
+{7,5,47,2},
+{7,6,3,2},
+{7,6,18,2},
+{7,6,34,2},
+{7,6,59,2},
+{7,7,10,2},
+{7,7,21,2},
+{7,7,38,3},
+{7,7,55,4},
+{7,7,58,5},
+{7,8,10,9},
+{7,8,14,11},
+{7,8,26,18},
+{7,8,38,25},
+{7,8,42,30},
+{7,9,2,37},
+{7,9,10,42},
+{7,9,22,44},
+{7,9,26,45},
+{7,9,35,46},
+{7,9,54,54},
+{7,10,2,58},
+{7,10,14,70},
+{7,10,24,88},
+{7,10,35,108},
+{7,10,42,112},
+{7,10,58,80},
+{7,11,14,76},
+{7,11,26,75},
+{7,11,42,74},
+{7,11,49,75},
+{7,11,58,79},
+{7,12,6,84},
+{7,12,14,86},
+{7,12,30,91},
+{7,12,33,92},
+{7,12,46,105},
+{7,13,2,82},
+{7,13,4,74},
+{7,13,13,52},
+{7,13,22,42},
+{7,13,34,34},
+{7,13,38,32},
+{7,13,50,29},
+{7,14,10,31},
+{7,14,26,27},
+{7,14,42,27},
+{7,14,51,23},
+{7,14,54,20},
+{7,15,9,16},
+{7,15,18,12},
+{7,15,30,9},
+{7,15,31,8},
+{7,15,46,44},
+{7,16,2,39},
+{7,16,18,41},
+{7,16,22,39},
+{7,16,34,41},
+{7,16,50,40},
+{7,17,10,40},
+{7,17,13,41},
+{7,17,26,40},
+{7,17,46,2},
+{7,17,50,12},
+{7,18,6,42},
+{7,18,26,41},
+{7,18,42,39},
+{7,18,50,40},
+{7,18,58,38},
+{7,19,10,40},
+{7,19,18,40},
+{7,19,26,40},
+{7,19,46,39},
+{7,19,58,39},
+{7,20,2,40},
+{7,20,14,39},
+{7,20,18,38},
+{7,20,27,135},
+{7,20,28,29},
+{7,20,33,18},
+{7,20,34,18},
+{7,20,37,39},
+{7,20,38,40},
+{7,20,41,39},
+{7,20,42,39},
+{7,20,46,40},
+{7,20,50,40},
+{7,20,53,39},
+{7,20,54,38},
+{7,20,55,39},
+{7,20,58,38},
+{7,21,2,39},
+{7,21,6,2},
+{7,21,10,2},
+{7,21,16,2},
+{7,21,19,2},
+{7,21,24,2},
+{7,21,27,2},
+{7,21,31,2},
+{7,21,35,2},
+{7,21,39,2},
+{7,21,43,2},
+{7,21,48,2},
+{7,21,51,2},
+{7,21,55,2},
+{7,22,0,2},
+{7,22,3,2},
+{7,22,7,10},
+{7,22,11,12},
+{7,22,12,12},
+{7,22,16,12},
+{7,22,20,12},
+{7,22,21,2},
+{7,22,25,2},
+{7,22,29,2},
+{7,22,33,2},
+{7,22,38,2},
+{7,22,41,2},
+{7,22,45,2},
+{7,22,50,2},
+{7,22,53,2},
+{7,22,57,2},
+{7,23,1,2},
+{7,23,5,2},
+{7,23,9,2},
+{7,23,13,2},
+{7,23,17,2},
+{7,23,21,2},
+{7,23,26,2},
+{7,23,29,2},
+{7,23,33,2},
+{7,23,37,2},
+{7,23,41,2},
+{7,23,45,2},
+{7,23,49,2},
+{7,23,53,2},
+{7,23,57,2},
+{8,0,1,2, occType::OCC_NONE, true, false, ALDataSample::SB_ECOMAX}, // Should be on way to full setback.
+{8,0,5,2},
+{8,0,9,2},
+{8,0,14,2},
+{8,0,17,2},
+{8,0,21,2},
+{8,0,25,2},
+{8,0,29,2},
+{8,0,33,2},
+{8,0,37,2},
+{8,0,41,2},
+{8,0,45,2},
+{8,0,49,2},
+{8,0,53,2},
+{8,0,57,2},
+{8,1,1,2, occType::OCC_NONE, true, false, ALDataSample::SB_ECOMAX}, // Should be on way to full setback.
+{8,1,5,2},
+{8,1,9,2},
+{8,1,14,2},
+{8,1,18,2},
+{8,1,22,2},
+{8,1,26,2},
+{8,1,30,2},
+{8,1,34,2},
+{8,1,38,2},
+{8,1,42,2},
+{8,1,46,2},
+{8,1,50,2},
+{8,1,54,2},
+{8,1,58,2},
+{8,2,2,2, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Should be full setback.
+{8,2,6,2},
+{8,2,10,2},
+{8,2,14,2},
+{8,2,18,2},
+{8,2,22,2},
+{8,2,26,2},
+{8,2,30,2},
+{8,2,34,2},
+{8,2,38,2},
+{8,2,42,2},
+{8,2,46,2},
+{8,2,50,2},
+{8,2,54,2},
+{8,2,58,2},
+{8,3,2,2, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Should be full setback.
+{8,3,6,2},
+{8,3,10,2},
+{8,3,14,2},
+{8,3,18,2},
+{8,3,22,2},
+{8,3,26,2},
+{8,3,30,2},
+{8,3,34,2},
+{8,3,38,2},
+{8,3,42,2},
+{8,3,46,2},
+{8,3,50,2},
+{8,3,54,2},
+{8,3,58,2},
+{8,4,2,2, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Should be full setback.
+{8,4,6,2},
+{8,4,10,2},
+{8,4,14,2},
+{8,4,18,2},
+{8,4,22,2},
+{8,4,26,2},
+{8,4,30,2},
+{8,4,34,2},
+{8,4,38,2},
+{8,4,42,2},
+{8,4,46,2},
+{8,4,50,2},
+{8,4,54,2},
+{8,4,58,2},
+{8,5,2,2, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Should be full setback.
+{8,5,6,2},
+{8,5,10,2},
+{8,5,14,2},
+{8,5,18,2},
+{8,5,22,2},
+{8,5,26,2},
+{8,5,30,2},
+{8,5,34,2},
+{8,5,38,2},
+{8,5,42,2},
+{8,5,46,2},
+{8,5,50,2},
+{8,5,54,2},
+{8,5,58,2},
+{8,6,2,2},
+{8,6,6,2},
+{8,6,10,2},
+{8,6,14,2},
+{8,6,18,2},
+{8,6,22,2},
+{8,6,26,2},
+{8,6,30,2},
+{8,6,34,2},
+{8,6,38,2},
+{8,6,42,2},
+{8,6,46,2},
+{8,6,50,2}, // Curtains drawn, but still dark outside.
+{8,6,54,2},
+{8,6,58,2},
+{8,7,2,2},
+{8,7,6,2},
+{8,7,10,2},
+{8,7,14,2},
+{8,7,18,2},
+{8,7,22,2},
+{8,7,26,2},
+{8,7,31,2},
+{8,7,34,2},
+{8,7,39,2},
+{8,7,43,3},
+{8,7,47,3},
+{8,7,51,3},
+{8,7,54,3},
+{8,7,58,3},
+{8,8,2,3},
+{8,8,4,4},
+{8,8,6,4},
+{8,8,10,4},
+{8,8,14,5},
+{8,8,18,14},
+{8,8,22,15},
+{8,8,23,16},
+{8,8,25,6},
+{8,8,28,7},
+{8,8,32,7},
+{8,8,36,7},
+{8,8,40,7},
+{8,8,44,7},
+{8,8,48,7},
+{8,8,49,8},
+{8,8,52,11},
+{8,8,56,11},
+{8,9,0,11},
+{8,9,2,12},
+{8,9,4,13},
+{8,9,9,17},
+{8,9,10,18},
+{8,9,11,19},
+{8,9,14,18},
+{8,9,16,17},
+{8,9,18,17},
+{8,9,20,16},
+{8,9,23,17},
+{8,9,24,17},
+{8,9,28,20},
+{8,9,32,21},
+{8,9,34,24},
+{8,9,37,27},
+{8,9,41,23},
+{8,9,42,23},
+{8,9,43,22},
+{8,9,46,24},
+{8,9,47,27},
+{8,9,48,29},
+{8,9,51,28},
+{8,9,52,26},
+{8,9,54,25},
+{8,9,56,26},
+{8,10,0,35},
+{8,10,1,39},
+{8,10,2,47},
+{8,10,3,49},
+{8,10,5,45},
+{8,10,6,47},
+{8,10,7,46},
+{8,10,10,46},
+{8,10,12,54},
+{8,10,15,64},
+{8,10,16,54},
+{8,10,19,44},
+{8,10,22,33},
+{8,10,24,41},
+{8,10,26,36},
+{8,10,30,30},
+{8,10,32,29},
+{8,10,34,30},
+{8,10,36,27},
+{8,10,38,25},
+{8,10,40,27},
+{8,10,42,30},
+{8,10,46,32},
+{8,10,47,35},
+{8,10,48,38},
+{8,10,51,33},
+{8,10,52,34},
+{8,10,53,36},
+{8,10,56,40},
+{8,11,0,50},
+{8,11,4,58},
+{8,11,5,55},
+{8,11,9,38},
+{8,11,10,39},
+{8,11,11,38},
+{8,11,14,36},
+{8,11,15,37},
+{8,11,17,36},
+{8,11,19,36},
+{8,11,21,32},
+{8,11,23,33},
+{8,11,26,37},
+{8,11,27,31},
+{8,11,29,28},
+{8,11,31,24},
+{8,11,32,20},
+{8,11,36,18},
+{8,11,37,19},
+{8,11,41,17},
+{8,11,42,16},
+{8,11,43,18},
+{8,11,46,16},
+{8,11,48,20},
+{8,11,50,27},
+{8,11,52,23},
+{8,11,55,17},
+{8,11,56,16},
+{8,11,57,14},
+{8,12,0,11},
+{8,12,1,12},
+{8,12,5,15},
+{8,12,6,17},
+{8,12,7,19},
+{8,12,8,25},
+{8,12,10,32},
+{8,12,11,26},
+{8,12,12,23},
+{8,12,15,25},
+{8,12,16,21},
+{8,12,17,19},
+{8,12,19,16},
+{8,12,21,14},
+{8,12,24,17},
+{8,12,25,19},
+{8,12,27,18},
+{8,12,29,25},
+{8,12,30,26},
+{8,12,31,24},
+{8,12,33,25},
+{8,12,35,27},
+{8,12,38,28},
+{8,12,40,36},
+{8,12,42,33},
+{8,12,44,26},
+{8,12,46,22},
+{8,12,48,21},
+{8,12,50,18},
+{8,12,52,17},
+{8,12,54,19},
+{8,12,56,18},
+{8,12,58,24},
+{8,13,0,25},
+{8,13,2,29},
+{8,13,5,28},
+{8,13,7,27},
+{8,13,10,31},
+{8,13,11,33},
+{8,13,13,32},
+{8,13,15,34},
+{8,13,18,23},
+{8,13,20,28},
+{8,13,22,28},
+{8,13,24,48},
+{8,13,26,47},
+{8,13,28,33},
+{8,13,30,27},
+{8,13,32,23},
+{8,13,34,29},
+{8,13,36,33},
+{8,13,38,42},
+{8,13,40,50}, // OCC START but lights not turned on.
+{8,13,42,43},
+{8,13,43,42},
+{8,13,46,33},
+{8,13,48,32},
+{8,13,49,31},
+{8,13,51,34},
+{8,13,54,36},
+{8,13,55,26},
+{8,13,57,30},
+{8,13,59,34},
+{8,14,2,39},
+{8,14,3,40},
+{8,14,5,33},
+{8,14,7,28},
+{8,14,9,32},
+{8,14,11,32},
+{8,14,14,36},
+{8,14,15,37},
+{8,14,18,38},
+{8,14,19,66},
+{8,14,21,99},
+{8,14,23,67},
+{8,14,26,63},
+{8,14,28,73},
+{8,14,30,54},
+{8,14,32,85},
+{8,14,33,89},
+{8,14,35,89},
+{8,14,38,24},
+{8,14,40,27}, // OCC END
+{8,14,41,28},
+{8,14,43,31},
+{8,14,45,34},
+{8,14,47,26},
+{8,14,49,22},
+{8,14,51,28},
+{8,14,54,22},
+{8,14,56,22},
+{8,14,58,24},
+{8,14,59,22},
+{8,15,2,12},
+{8,15,4,10},
+{8,15,5,11},
+{8,15,7,8},
+{8,15,10,8},
+{8,15,12,8},
+{8,15,13,9},
+{8,15,15,8},
+{8,15,18,6},
+{8,15,20,8},
+{8,15,22,8},
+{8,15,24,7},
+{8,15,26,5},
+{8,15,27,6},
+{8,15,30,4},
+{8,15,32,5},
+{8,15,35,5},
+{8,15,38,5},
+{8,15,42,5},
+{8,15,46,4},
+{8,15,50,4},
+{8,15,55,3},
+{8,15,59,3},
+{8,16,4,3},
+{8,16,7,3},
+{8,16,11,3},
+{8,16,15,2},
+{8,16,19,2},
+{8,16,23,2},
+{8,16,27,2},
+{8,16,31,33, occType::OCC_PROBABLE, false, true, ALDataSample::SB_NONE}, // OCC START
+{8,16,35,40},
+{8,16,36,41},
+{8,16,37,44},
+{8,16,39,43},
+{8,16,41,42},
+{8,16,44,43},
+{8,16,48,41},
+{8,16,51,39},
+{8,16,53,39},
+{8,16,56,41},
+{8,16,57,39},
+{8,16,59,41},
+{8,17,1,39, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONE},
+{8,17,2,40},
+{8,17,6,39},
+{8,17,7,40},
+{8,17,8,41},
+{8,17,9,40},
+{8,17,11,39},
+{8,17,15,39},
+{8,17,16,41},
+{8,17,17,39},
+{8,17,19,40},
+{8,17,21,40},
+{8,17,24,39},
+{8,17,26,39},
+{8,17,28,40},
+{8,17,32,3, ALDataSample::NO_OCC_EXPECTATION, true, false, ALDataSample::SB_NONE}, // Temporarily left the room, lights off.
+{8,17,37,3},
+{8,17,40,3},
+{8,17,44,13},
+{8,17,47,14},
+{8,17,49,2},
+{8,17,51,3},
+{8,17,53,40, occType::OCC_PROBABLE, false, true, ALDataSample::SB_NONE}, // Re-entered room, lights on.
+{8,17,56,42},
+{8,18,0,44, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONE},
+{8,18,2,43},
+{8,18,4,41},
+{8,18,5,40},
+{8,18,7,42},
+{8,18,9,41},
+{8,18,11,39},
+{8,18,13,40},
+{8,18,15,39},
+{8,18,17,39},
+{8,18,20,41},
+{8,18,21,39},
+{8,18,24,39},
+{8,18,26,39},
+{8,18,27,41},
+{8,18,29,41},
+{8,18,31,39, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONE},
+{8,18,33,39},
+{8,18,36,40},
+{8,18,37,38},
+{8,18,39,40},
+{8,18,41,39},
+{8,18,43,40},
+{8,18,45,40},
+{8,18,47,40},
+{8,18,49,39},
+{8,18,52,38},
+{8,18,53,40},
+{8,18,55,40},
+{8,18,57,39},
+{8,18,59,41},
+{8,19,1,40, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONE},
+{8,19,4,40},
+{8,19,7,41},
+{8,19,9,38},
+{8,19,11,39},
+{8,19,13,39},
+{8,19,15,39},
+{8,19,17,39},
+{8,19,19,39},
+{8,19,21,39},
+{8,19,24,40},
+{8,19,28,38},
+{8,19,30,39, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONE},
+{8,19,33,39},
+{8,19,36,41},
+{8,19,41,38},
+{8,19,44,40},
+{8,19,45,41},
+{8,19,49,41},
+{8,19,53,41},
+{8,19,54,41},
+{8,19,55,40},
+{8,19,58,41},
+{8,19,59,39},
+{8,20,3,40, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONE},
+{8,20,7,42},
+{8,20,11,41},
+{8,20,14,42},
+{8,20,18,40},
+{8,20,22,39},
+{8,20,26,39},
+{8,20,27,41},
+{8,20,29,40},
+{8,20,31,40, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONE},
+{8,20,32,39},
+{8,20,33,38},
+{8,20,36,40},
+{8,20,38,39},
+{8,20,41,38},
+{8,20,42,40},
+{8,20,46,39},
+{8,20,47,40},
+{8,20,51,40},
+{8,20,55,40},
+{8,20,56,40},
+{8,20,58,39}, // OCC END
+{8,21,0,2},
+{8,21,5,2},
+{8,21,9,2},
+{8,21,14,2},
+{8,21,18,2},
+{8,21,22,2},
+{8,21,26,2},
+{8,21,31,2},
+{8,21,35,2},
+{8,21,40,2},
+{8,21,43,2},
+{8,21,47,2},
+{8,21,52,2},
+{8,21,55,2},
+{8,21,59,2},
+{8,22,3,2},
+{8,22,8,2},
+{8,22,11,2},
+{8,22,15,2},
+{8,22,19,2},
+{8,22,23,2},
+{8,22,27,2},
+{8,22,31,2},
+{8,22,35,2},
+{8,22,39,2},
+{8,22,43,2},
+{8,22,47,2},
+{8,22,51,2},
+{8,22,55,2},
+{8,22,59,2},
+{8,23,3,2},
+{8,23,6,2},
+{8,23,11,2},
+{8,23,14,2},
+{8,23,18,2},
+{8,23,22,2},
+{8,23,26,2},
+{8,23,31,2},
+{8,23,34,2},
+{8,23,38,2},
+{8,23,43,2},
+{8,23,47,2},
+{8,23,51,2},
+{8,23,55,2},
+{8,23,59,2},
+{9,0,3,2},
+{9,0,7,2},
+{9,0,11,2},
+{9,0,15,2},
+{9,0,19,2},
+{9,0,23,2},
+{9,0,27,2},
+{9,0,31,2},
+{9,0,35,2},
+{9,0,39,2},
+{9,0,43,2},
+{9,0,47,2},
+{9,0,51,2},
+{9,0,55,2},
+{9,0,59,2},
+{9,1,3,2},
+{9,1,7,2},
+{9,1,11,2},
+{9,1,15,2},
+{9,1,19,2},
+{9,1,23,2},
+{9,1,27,2},
+{9,1,31,2},
+{9,1,35,2},
+{9,1,39,2},
+{9,1,43,2},
+{9,1,47,2},
+{9,1,51,2},
+{9,1,55,2},
+{9,1,59,2},
+{9,2,3,2, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Should be full setback.
+{9,2,7,2},
+{9,2,11,2},
+{9,2,15,2},
+{9,2,19,2},
+{9,2,23,2},
+{9,2,27,2},
+{9,2,31,2},
+{9,2,35,2},
+{9,2,39,2},
+{9,2,43,2},
+{9,2,47,2},
+{9,2,51,2},
+{9,2,55,2},
+{9,2,59,2},
+{9,3,3,2, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Should be full setback.
+{9,3,7,2},
+{9,3,11,2},
+{9,3,15,2},
+{9,3,19,2},
+{9,3,23,2},
+{9,3,27,2},
+{9,3,31,2},
+{9,3,35,2},
+{9,3,39,2},
+{9,3,43,2},
+{9,3,47,2},
+{9,3,51,2},
+{9,3,55,2},
+{9,3,59,2},
+{9,4,3,2, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Should be full setback.
+{9,4,7,2},
+{9,4,11,2},
+{9,4,15,2},
+{9,4,19,2},
+{9,4,23,2},
+{9,4,27,2},
+{9,4,31,2},
+{9,4,35,2},
+{9,4,39,2},
+{9,4,43,2},
+{9,4,47,2},
+{9,4,51,2},
+{9,4,55,2},
+{9,4,59,2},
+{9,5,3,2, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Should be full setback.
+{9,5,7,2},
+{9,5,11,2},
+{9,5,15,2},
+{9,5,19,2},
+{9,5,23,2},
+{9,5,27,2},
+{9,5,31,2},
+{9,5,35,2},
+{9,5,39,2},
+{9,5,43,2},
+{9,5,47,2},
+{9,5,51,2},
+{9,5,55,2},
+{9,5,59,2},
+{9,6,3,2},
+{9,6,7,2},
+{9,6,11,2},
+{9,6,15,2},
+{9,6,19,2},
+{9,6,23,2},
+{9,6,27,2},
+{9,6,31,2},
+{9,6,36,2},
+{9,6,39,2},
+{9,6,44,2},
+{9,6,47,2},
+{9,6,51,2},
+{9,6,55,2},
+{9,6,59,12},
+{9,7,2,2},
+{9,7,6,2},
+{9,7,12,2},
+{9,7,16,2},
+{9,7,20,2},
+{9,7,24,2},
+{9,7,28,2},
+{9,7,32,2},
+{9,7,36,2},
+{9,7,40,2},
+{9,7,44,2},
+{9,7,48,3},
+{9,7,52,3},
+{9,7,56,3},
+{9,7,58,4},
+{9,8,0,4},
+{9,8,4,5},
+{9,8,6,7},
+{9,8,8,8},
+{9,8,12,9},
+{9,8,16,11},
+{9,8,18,12},
+{9,8,21,14},
+{9,8,22,13},
+{9,8,25,16},
+{9,8,26,16},
+{9,8,27,17},
+{9,8,30,19},
+{9,8,34,21},
+{9,8,38,23},
+{9,8,39,24},
+{9,8,40,25},
+{9,8,43,29},
+{9,8,44,29},
+{9,8,45,30},
+{9,8,48,33},
+{9,8,49,34},
+{9,8,50,35},
+{9,8,53,38},
+{9,8,54,39},
+{9,8,55,41},
+{9,8,58,44},
+{9,8,59,43},
+{9,9,2,44},
+{9,9,4,45},
+{9,9,6,48},
+{9,9,8,51},
+{9,9,11,52},
+{9,9,12,52},
+{9,9,13,51},
+{9,9,16,42},
+{9,9,17,40},
+{9,9,19,39},
+{9,9,21,41},
+{9,9,22,41},
+{9,9,23,42},
+{9,9,26,39},
+{9,9,28,43},
+{9,9,30,39},
+{9,9,32,36},
+{9,9,34,37},
+{9,9,36,38},
+{9,9,38,38},
+{9,9,40,39},
+{9,9,42,41},
+{9,9,45,42},
+{9,9,47,43},
+{9,9,50,43},
+{9,9,52,44},
+{9,9,54,44},
+{9,9,56,45},
+{9,9,58,45},
+{9,10,0,44},
+{9,10,2,44},
+{9,10,6,44},
+{9,10,10,45},
+{9,10,14,45},
+{9,10,16,44},
+{9,10,18,44},
+{9,10,22,48},
+{9,10,26,48},
+{9,10,28,49},
+{9,10,30,49},
+{9,10,34,48},
+{9,10,36,49},
+{9,10,38,48},
+{9,10,42,48},
+{9,10,46,48},
+{9,10,47,49},
+{9,10,50,50},
+{9,10,51,51},
+{9,10,55,52},
+{9,10,59,54},
+{9,11,3,52},
+{9,11,4,58},
+{9,11,6,59},
+{9,11,7,60},
+{9,11,9,62},
+{9,11,12,65},
+{9,11,13,66},
+{9,11,15,67},
+{9,11,17,68},
+{9,11,18,67},
+{9,11,22,67},
+{9,11,26,68},
+{9,11,28,69},
+{9,11,30,70},
+{9,11,34,71},
+{9,11,37,72},
+{9,11,39,72},
+{9,11,42,78},
+{9,11,46,71},
+{9,11,50,71},
+{9,11,54,72},
+{9,11,56,73},
+{9,11,58,74},
+{9,12,0,76},
+{9,12,2,79},
+{9,12,5,104},
+{9,12,7,97},
+{9,12,10,89},
+{9,12,12,91},
+{9,12,13,100},
+{9,12,15,104},
+{9,12,18,112},
+{9,12,22,110},
+{9,12,24,121},
+{9,12,26,127},
+{9,12,30,135},
+{9,12,32,128},
+{9,12,34,128},
+{9,12,36,129},
+{9,12,38,128},
+{9,12,39,127},
+{9,12,41,133},
+{9,12,43,136},
+{9,12,45,139},
+{9,12,47,125},
+{9,12,49,129},
+{9,12,51,129},
+{9,12,53,130},
+{ }
+    };
+// Test with real data set.
+TEST(AmbientLightOccupancyDetection,sample3lSetback)
+{
+    simpleDataSampleRun(sample3lSetback);
+}
+
 // "5s" 2016/10/08+09 test set with tough occupancy to detect in the evening 21:00Z.
+// Note: as of 2016/12/10 the simulation shows smoothed occupancy:
+//     0 0 0 0 0 0 8 71 26 58 65 70 30 54 46 30 0 0 0 0 16 0 0 0
+// At 2016/12/10 ~11:00Z a dump from the unit showed:
+//     occ% last 0 0 31 0 0 0 0 20 0 0 0 0 0 0 0 0 38 0 0 0< 0 0 0 0
+//     occ% smoothed 13 15 29 22 31 26 15 4 3 0 0 0 0 0 0 19 23 12 5 5< 2 2 8 4
+// so therefore smoothed occupancy to match the test something like:
+//     3 0 0 0 0 0 0 19 23 12 5 5< 2 2 8 4 13 15 29 22 31 26 15 4
 static const ALDataSample sample5sHard[] =
     {
 {8,0,3,2, occType::OCC_NONE, true}, // Not occupied actively.
@@ -1243,6 +2579,13 @@ TEST(AmbientLightOccupancyDetection,sample5sHard)
 // "5s" 2016/12/01--04 test set with some fine-grained data in the second half.
 // 2016/12/03 all of 3l, 5s, 6k, 7h: vacant from 11:00Z to 14:00Z but wrongly seen as occupied.
 // 5s also probably occupied 16:00--16:30 and 18:14--19:16 and 19:29--21:07.
+// Note: as of 2016/12/10 the simulation shows smoothed occupancy:
+//     0 0 0 0 0 0 0 13 59 48 56 16 4 8 0 0 13 36 42 7 9 5 2 0
+// At 2016/12/10 ~11:00Z a dump from the unit showed:
+//     occ% last 0 0 31 0 0 0 0 20 0 0 0 0 0 0 0 0 38 0 0 0< 0 0 0 0
+//     occ% smoothed 13 15 29 22 31 26 15 4 3 0 0 0 0 0 0 19 23 12 5 5< 2 2 8 4
+// so therefore smoothed occupancy to match the test something like:
+//     3 0 0 0 0 0 0 19 23 12 5 5< 2 2 8 4 13 15 29 22 31 26 15 4
 static const ALDataSample sample5sHard2[] =
     {
 {1,0,1,1, occType::OCC_NONE, true, false},
@@ -2344,14 +3687,14 @@ TEST(AmbientLightOccupancyDetection,sample2bHard2)
     simpleDataSampleRun(sample2bHard2);
 }
 
-// "6k" 2016/10/08+09 test set relatively easy to detect daytime occupancy in busy room.
+// "6k" 2016/10/08+09 (Sat+Sun) test set relatively easy to detect daytime occupancy in busy room.
 static const ALDataSample sample6k[] =
     {
 {8,0,7,1, occType::OCC_NONE, true, false}, // Not occupied.
 {8,0,19,1},
 {8,0,35,1},
 {8,0,47,1},
-{8,1,3,1, occType::OCC_NONE, true, false, ALDataSample::SB_ECOMAX}, // Dark, vacant, signficant setback.
+{8,1,3,1, occType::OCC_NONE, true, false, ALDataSample::SB_ECOMAX}, // Dark, vacant, significant setback.
 {8,1,19,2},
 {8,1,35,2},
 {8,1,39,2},
@@ -2411,7 +3754,7 @@ static const ALDataSample sample6k[] =
 {8,12,43,90},
 {8,12,55,89},
 {8,12,59,100},
-{8,13,11,106},
+{8,13,11,106, ALDataSample::NO_OCC_EXPECTATION, false, false, ALDataSample::SB_MINECO}, // Vacant, should be set back at least a little.
 {8,13,15,102},
 {8,13,23,101},
 {8,13,35,14},
@@ -2601,33 +3944,33 @@ static const ALDataSample sample3leveningTV[] =
 {10,18,15,31},
 {10,18,27,31},
 {10,18,31,30},
-{10,18,39,30, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEECO}, // TV watching, borderline occupied, dark, maybe small setback.
+{10,18,39,30, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEMIN}, // TV watching, borderline occupied, dark, maybe small setback.
 {10,18,51,30},
 {10,19,7,31},
 {10,19,15,40},
-{10,19,27,40, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEECO}, // TV watching, borderline occupied, borderline dark, maybe small setback.
+{10,19,27,40, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEMIN}, // TV watching, borderline occupied, borderline dark, maybe small setback.
 {10,19,43,39},
-{10,19,55,41, occType::OCC_WEAK, false, true, ALDataSample::SB_NONEECO}, // TV watching, borderline occupied, borderline dark, maybe small setback.
+{10,19,55,41, occType::OCC_WEAK, false, true, ALDataSample::SB_NONEMIN}, // TV watching, borderline occupied, borderline dark, maybe small setback.
 {10,19,59,42},
 {10,20,11,39},
-{10,20,23,41, occType::OCC_WEAK, false, true, ALDataSample::SB_NONEECO}, // TV watching, borderline occupied, borderline dark, maybe small setback.
+{10,20,23,41, occType::OCC_WEAK, false, true, ALDataSample::SB_NONEMIN}, // TV watching, borderline occupied, borderline dark, maybe small setback.
 {10,20,31,39},
-{10,20,43,40, occType::OCC_WEAK, false, true, ALDataSample::SB_NONEECO}, // TV watching, borderline occupied, borderline dark, maybe small setback.
+{10,20,43,40, occType::OCC_WEAK, false, true, ALDataSample::SB_NONEMIN}, // TV watching, borderline occupied, borderline dark, maybe small setback.
 {10,20,47,39},
-{10,20,51,40, occType::OCC_WEAK, false, true, ALDataSample::SB_NONEECO}, // TV watching, borderline occupied, borderline dark, maybe small setback.
+{10,20,51,40, occType::OCC_WEAK, false, true, ALDataSample::SB_NONEMIN}, // TV watching, borderline occupied, borderline dark, maybe small setback.
 {10,21,7,40},
 {10,21,9,41},
 {10,21,15,41},
 {10,21,35,40},
 {10,21,47,40},
-{10,21,55,39, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEECO}, // TV watching, borderline occupied, borderline dark, maybe small setback.
+{10,21,55,39, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEMIN}, // TV watching, borderline occupied, borderline dark, maybe small setback.
 {10,22,7,1},
 {10,22,15,1, occType::OCC_NONE, true, false, ALDataSample::SB_ECOMAX}, // Vacant, dark.
 // ...
 {11,6,27,1, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Vacant, dark, dark long enough for full setback.
 {11,6,43,1},
 {11,6,55,2},
-{11,7,7,5, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Vacant, dark, dark long enough for full setback.
+{11,7,7,5, occType::OCC_NONE, true, false, ALDataSample::SB_MINMAX}, // Vacant, dark, may be anticipating occupancy.
 {11,7,19,11},
 {11,7,23,13},
 {11,7,31,19},
@@ -2726,7 +4069,7 @@ static const ALDataSample sample3leveningTV[] =
 // ...
 {12,6,7,1, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, vacant, running long enough for max setback.
 // ...
-{12,7,7,1},
+{12,7,7,1, occType::OCC_NONE, true, false, ALDataSample::SB_MINMAX}, // Vacant, dark, may be anticipating occupancy.
 {12,7,19,1},
 {12,7,35,5},
 {12,7,38,6},
@@ -2789,46 +4132,46 @@ static const ALDataSample sample3leveningTV[] =
 {12,16,11,43},
 {12,16,23,41},
 {12,16,27,43},
-{12,16,35,41, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEECO}, // TV watching, small or no setback.
+{12,16,35,41, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEMIN}, // TV watching, small or no setback.
 {12,16,47,42},
 {12,16,51,43},
 {12,17,0,43},
-{12,17,11,42, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEECO}, // TV watching, small or no setback.
+{12,17,11,42, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEMIN}, // TV watching, small or no setback.
 {12,17,23,1},
 {12,17,39,13},
 {12,17,40,14},
 {12,17,47,13},
 {12,17,59,14},
-{12,18,11,44, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEECO}, // TV watching, small or no setback.
+{12,18,11,44, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEMIN}, // TV watching, small or no setback.
 {12,18,19,43},
 {12,18,23,45},
 {12,18,39,44},
 {12,18,51,41},
 {12,18,55,41},
-{12,19,11,37, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEECO}, // TV watching, small or no setback.
+{12,19,11,37, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEMIN}, // TV watching, small or no setback.
 {12,19,15,35},
 {12,19,19,35},
 {12,19,35,34},
 {12,19,47,35},
-{12,19,59,42, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEECO}, // TV watching, small or no setback.
+{12,19,59,42, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEMIN}, // TV watching, small or no setback.
 {12,20,15,42},
 {12,20,26,44},
 {12,20,27,43},
 {12,20,31,42},
 {12,20,43,43},
 {12,20,59,43},
-{12,21,7,43, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEECO}, // TV watching, small or no setback.
+{12,21,7,43, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEMIN}, // TV watching, small or no setback.
 {12,21,11,45},
 {12,21,21,43},
 {12,21,23,44},
-{12,21,39,42, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEECO}, // TV watching, small or no setback.
+{12,21,39,42, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEMIN}, // TV watching, small or no setback.
 {12,21,40,44},
 {12,21,51,42},
 {12,21,55,44},
 {12,22,3,43},
 {12,22,19,43},
 {12,22,31,43},
-{12,22,35,44, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEECO}, // TV watching, small or no setback.
+{12,22,35,44, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEMIN}, // TV watching, small or no setback.
 {12,22,51,14},
 {12,22,59,14},
 {12,23,3,14},
@@ -2845,9 +4188,9 @@ static const ALDataSample sample3leveningTV[] =
 {13,0,47,14},
 {13,0,51,1, occType::OCC_NONE, true, false}, // Dark, vacant.
 {13,1,3,1},
-{13,1,19,1, occType::OCC_NONE, true, false, ALDataSample::SB_MINECO}, // Dark, vacant, some setback should be in place.
+{13,1,19,1, occType::OCC_NONE, true, false, ALDataSample::SB_ECOMAX}, // Dark, vacant, some setback should be in place.
 // ...
-{13,4,11,1, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark and vacant long enough for max setback.
+{13,4,11,1, occType::OCC_NONE, true, false, ALDataSample::SB_ECOMAX}, // Dark, vacant, some setback should be in place.
 // ...
 {13,5,7,1, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark and vacant long enough for max setback.
 // ...

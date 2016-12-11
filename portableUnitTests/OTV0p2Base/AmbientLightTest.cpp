@@ -104,6 +104,8 @@ TEST(AmbientLight,basics)
 TEST(AmbientLight,setTypMinMax)
 {
     OTV0P2BASE::SensorAmbientLightAdaptiveMock alm;
+    ASSERT_TRUE(alm.isAvailable());
+    EXPECT_FALSE(alm.isRangeTooNarrow());
     const uint8_t dlt = OTV0P2BASE::SensorAmbientLightBase::DEFAULT_LIGHT_THRESHOLD;
     EXPECT_EQ(dlt, alm.getLightThreshold());
     EXPECT_GT(dlt, alm.getDarkThreshold());
@@ -131,4 +133,16 @@ TEST(AmbientLight,setTypMinMax)
     alm.setTypMinMax(11, 8, 185, true);
     EXPECT_NEAR(24, alm.getLightThreshold(), 0);
     EXPECT_NEAR(13, alm.getDarkThreshold(), 0);
+
+    // Ensure that even bad/unfortunate historic value
+    // don't have the sensor mark itself as unavilable
+    // since that can prevent further stats being collected
+    // and is no-recoverable.
+    alm.setTypMinMax(123, 123, 123, true);
+    EXPECT_TRUE(alm.isAvailable());
+    EXPECT_TRUE(alm.isRangeTooNarrow());
+    EXPECT_FALSE(alm.isRoomDark());
+    EXPECT_FALSE(alm.isRoomLit());
+    EXPECT_FALSE(alm.isRoomVeryDark());
+    EXPECT_EQ(0, alm.getDarkMinutes());
 }

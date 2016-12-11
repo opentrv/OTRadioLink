@@ -52,8 +52,8 @@ class NVByHourByteStatsBase
     static constexpr int16_t UNSET_INT = 0x7fff;
 
     // Special values indicating the current hour and the next hour, for stats.
-    static constexpr uint8_t SPECIAL_HOUR_CURRENT_HOUR = uint8_t(~0 - 1);
-    static constexpr uint8_t SPECIAL_HOUR_NEXT_HOUR = uint8_t(~0);
+    static constexpr uint8_t SPECIAL_HOUR_CURRENT_HOUR = 0xff;
+    static constexpr uint8_t SPECIAL_HOUR_NEXT_HOUR = 0xfe;
 
     // Standard stats sets (and count).
     // Implementations are not necessarily obliged to provide this exact set.
@@ -108,7 +108,7 @@ STATS_SET_USER2_BY_HOUR_SMOOTHED    = 13, // Smoothed hourly user-defined stats 
     //   * hour  hour of day to use, or ~0/0xff for current hour (default), or >23 for next hour.
     // Note the two special values that implicitly make use of the RTC to select the hour to read.
     // The implementation will have to have a way of fetching hour of day.
-    virtual uint8_t getByHourStatRTC(uint8_t statsSet, uint8_t hour = 0xff) const = 0;
+    virtual uint8_t getByHourStatRTC(uint8_t statsSet, uint8_t hour = SPECIAL_HOUR_CURRENT_HOUR) const = 0;
 
     ////// Utility values and routines.
 
@@ -158,7 +158,7 @@ class NULLByHourByteStats final : public NVByHourByteStatsBase
     virtual bool zapStats(uint16_t = 0) override { return(true); } // No stats to erase, so all done.
     virtual uint8_t getByHourStatSimple(uint8_t, uint8_t) const override { return(UNSET_BYTE); }
     virtual void setByHourStatSimple(uint8_t, uint8_t, uint8_t = UNSET_BYTE) override { }
-    virtual uint8_t getByHourStatRTC(uint8_t, uint8_t = 0xff) const override { return(UNSET_BYTE); }
+    virtual uint8_t getByHourStatRTC(uint8_t, uint8_t = SPECIAL_HOUR_CURRENT_HOUR) const override { return(UNSET_BYTE); }
   };
 
 // Simple mock read-write stats container with a full internal ephemeral backing store for tests.
@@ -194,7 +194,7 @@ class NVByHourByteStatsMock : public NVByHourByteStatsBase
           { if(!((statsSet >= STATS_SETS_COUNT) || (hh > setSlots))) { statsMemory[statsSet][hh] = value; } }
 
       // Hour-of-day (as set by _setHour()) based access for hh > 23.
-      virtual uint8_t getByHourStatRTC(const uint8_t statsSet, const uint8_t hh) const override
+      virtual uint8_t getByHourStatRTC(const uint8_t statsSet, const uint8_t hh = SPECIAL_HOUR_CURRENT_HOUR) const override
           { return(getByHourStatSimple(statsSet, (SPECIAL_HOUR_CURRENT_HOUR == hh) ? currentHour : ((hh > 23) ? ((currentHour+1)%24) : hh))); }
   };
 
@@ -390,7 +390,7 @@ class ByHourSimpleStatsUpdaterSampleStats final
       // TODO: other stats measures...
 
       if(!fullSample) { return; } // Only accumulate values cached until a full sample.
-      // Reset generic sub-sample count to initial state after fill sample.
+      // Reset generic sub-sample count to initial state after full sample.
       sampleCount = 0;
       }
   };

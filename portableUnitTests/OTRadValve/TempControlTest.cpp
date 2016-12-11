@@ -125,10 +125,16 @@ TEST(TempControl,MidSane)
     EXPECT_FALSE(tctp1.isComfortTemperature(tsm)) << "mid point should be neither strongly ECO nor comfort";
     EXPECT_FALSE(tctp1.isEcoTemperature(tsm)) << "mid point should be neither strongly ECO nor comfort";
 
-    // Normal bedroom/safe (18) and living room (~21) temperatures should not be regarded as 'comfort' (TODO-1059).
+    // Normal bedroom/safe (18) and living room (~21) temperatures should not be regarded as (extreme) 'comfort' (TODO-1059).
     EXPECT_FALSE(tctp1.isComfortTemperature(OTRadValve::SAFE_ROOM_TEMPERATURE));
     EXPECT_FALSE(tctp1.isComfortTemperature(18));
+    EXPECT_FALSE(tctp1.isComfortTemperature(19));
     EXPECT_FALSE(tctp1.isComfortTemperature(20));
+    // Normal bedroom/safe (18) and living room (~21) temperatures should not be regarded as (extreme) 'ECO'.
+    EXPECT_FALSE(tctp1.isEcoTemperature(OTRadValve::SAFE_ROOM_TEMPERATURE));
+    EXPECT_FALSE(tctp1.isEcoTemperature(18));
+    EXPECT_FALSE(tctp1.isEcoTemperature(19));
+    EXPECT_FALSE(tctp1.isEcoTemperature(20));
 
     // Test again with proposed default parameter set, which may have changed from TRV1.5 glory days.
     typedef OTRadValve::Proposed_DEFAULT_ValveControlParameters proposedDefaults;
@@ -143,10 +149,17 @@ TEST(TempControl,MidSane)
     EXPECT_FALSE(tctp2.isComfortTemperature(tsm)) << "mid point should be neither strongly ECO nor comfort";
     EXPECT_FALSE(tctp2.isEcoTemperature(tsm)) << "mid point should be neither strongly ECO nor comfort";
 
-    // Normal bedroom/safe (18) and living room (~21) temperatures should not be regarded as 'comfort' (TODO-1059).
+    // Normal bedroom/safe (18) and living room (~21) temperatures should not be regarded as (extreme) 'comfort' (TODO-1059).
     EXPECT_FALSE(tctp2.isComfortTemperature(OTRadValve::SAFE_ROOM_TEMPERATURE));
     EXPECT_FALSE(tctp2.isComfortTemperature(18));
+    EXPECT_FALSE(tctp2.isComfortTemperature(19));
     EXPECT_FALSE(tctp2.isComfortTemperature(21)); // 21 actually excluded.
+    // Normal bedroom/safe (18) and living room (~21) temperatures should not be regarded as (extreme) 'ECO'.
+    EXPECT_FALSE(tctp2.isEcoTemperature(OTRadValve::SAFE_ROOM_TEMPERATURE));
+    EXPECT_FALSE(tctp2.isEcoTemperature(18));
+    EXPECT_FALSE(tctp2.isEcoTemperature(19));
+    EXPECT_FALSE(tctp2.isEcoTemperature(20));
+
 }
 
 // Test for frost temperature response to high relative humidity (eg for DORM1/TRV1).

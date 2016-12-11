@@ -289,7 +289,7 @@ class EEPROMByHourByteStats final : public NVByHourByteStatsBase
     // Get raw stats value for specified hour [0,23]/current/next from stats set N from non-volatile (EEPROM) store.
     // A value of STATS_UNSET_BYTE (0xff (255)) means unset (or out of range); other values depend on which stats set is being used.
     //   * hour  hour of day to use, or ~0/0xff for current hour (default), or >23 for next hour.
-    virtual uint8_t getByHourStatRTC(uint8_t statsSet, uint8_t hour = 0xff) const override
+    virtual uint8_t getByHourStatRTC(const uint8_t statsSet, const uint8_t hour = SPECIAL_HOUR_CURRENT_HOUR) const override
       {
       const uint8_t hh = (SPECIAL_HOUR_CURRENT_HOUR == hour) ? OTV0P2BASE::getHoursLT() :
         ((hour > 23) ? OTV0P2BASE::getNextHourLT() : hour);
