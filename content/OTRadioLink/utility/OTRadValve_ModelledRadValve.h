@@ -426,9 +426,8 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
 
             // ECO setback possible; bulk of energy saving opportunities.
             // If dark and room not usually occupied around now.
-            const bool isDark = ambLight->isRoomDark();
             if(!inhibitECOSetback &&
-               (isDark || confidentlyVacant))
+               (confidentlyVacant || ambLight->isRoomDark()))
                 {
                 setback = valveControlParameters::SETBACK_ECO;
 
@@ -441,14 +440,14 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
                 const bool relativelyActiveSoon = (hoursLessOccupiedThanNext > 1+thisHourNLOThreshold);
                 const uint8_t dm = ambLight->getDarkMinutes();
                 const bool inhibitFULLSetback =
-                    ((dm < 240) && relativelyActiveSoon) || comfortTemperature;
+                    comfortTemperature || ((dm < 240) && relativelyActiveSoon);
 
                 // FULL setback possible; saving energy/noise for night/holiday.
                 // If long vacant (no sign of activity for around a day)
                 // OR dark for a while AND return not strongly anticipated
                 // then allow a maximum night setback and minimise noise (TODO-792, TODO-1027)
                 if(!inhibitFULLSetback &&
-                   ((dm > 60) || longVacant))
+                   (longVacant || (dm > 60)))
                     { setback = valveControlParameters::SETBACK_FULL; }
                 }
 
