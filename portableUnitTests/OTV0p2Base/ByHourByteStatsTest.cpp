@@ -96,13 +96,13 @@ TEST(Stats, empty)
         }
 }
 
-// Test some basic behaviour of the support/calc routines mock r/w stats containet.
+// Test some basic behaviour of the support/calc routines mock r/w stats container.
 TEST(Stats, mockRW)
 {
     // Seed random() for use in simulator; --gtest_shuffle will force it to change.
     srandom((unsigned) ::testing::UnitTest::GetInstance()->random_seed());
 
-    // New emoty container.
+    // New empty container.
     OTV0P2BASE::NVByHourByteStatsMock ms;
 
     // Pick a random hour to treat as 'now'.
@@ -145,6 +145,36 @@ TEST(Stats, mockRW)
     EXPECT_EQ(0, ms.getByHourStatRTC(statsSet, hourNow));
     EXPECT_EQ(0, ms.getByHourStatRTC(statsSet, OTV0P2BASE::NVByHourByteStatsBase::SPECIAL_HOUR_CURRENT_HOUR));
     EXPECT_EQ(unset, ms.getByHourStatRTC(statsSet, OTV0P2BASE::NVByHourByteStatsBase::SPECIAL_HOUR_NEXT_HOUR));
+}
+
+// Test behaviour of getByHourStatRTC(), albeit against the mock.
+TEST(Stats, getByHourStatRTC)
+{
+    // Seed random() for use in simulator; --gtest_shuffle will force it to change.
+    srandom((unsigned) ::testing::UnitTest::GetInstance()->random_seed());
+
+    // New empty container.
+    OTV0P2BASE::NVByHourByteStatsMock ms;
+
+    // Write a distinct value into each hour for one of the stats.
+    // Ensure that the appropriate value is read back via getByHourStatRTC().
+    const uint8_t offset = random() & 0x3f;
+    // Pick a stats set to work on at random.
+    const uint8_t statsSet = ((unsigned) random()) % OTV0P2BASE::NVByHourByteStatsBase::STATS_SETS_COUNT;
+    for(uint8_t hh = 0; hh < 24; ++hh) { ms.setByHourStatSimple(statsSet, hh, hh + offset); }
+
+    // Read with normal and special hours and 'default' args.
+    for(uint8_t hh = 0; hh < 24; ++hh)
+        {
+        const uint8_t expectedValue = hh + offset;
+        EXPECT_EQ(expectedValue, ms.getByHourStatSimple(statsSet, hh));
+        EXPECT_EQ(expectedValue, ms.getByHourStatRTC(statsSet, hh));
+
+        ms._setHour(hh);
+        EXPECT_EQ(expectedValue, ms.getByHourStatRTC(statsSet));
+        EXPECT_EQ(expectedValue, ms.getByHourStatRTC(statsSet, ms.SPECIAL_HOUR_CURRENT_HOUR));
+        EXPECT_EQ((hh != 23) ? (1 + expectedValue) : offset, ms.getByHourStatRTC(statsSet, ms.SPECIAL_HOUR_NEXT_HOUR));
+        }
 }
 
 // Trivial read-only implementation that returns hour value in each slot with getByHourStatSimple().
@@ -258,6 +288,21 @@ TEST(Stats, ByHourSimpleStatsUpdater)
     // Set (arbitrary) initial time.
     uint8_t hourNow = ((unsigned) random()) % 24;
     BHSSU::ms._setHour(hourNow);
+    // Verify that before first full update stats values unset.
+    EXPECT_EQ(unset, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, hourNow));
+    EXPECT_EQ(unset, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, hourNow));
+    EXPECT_EQ(unset, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, hourNow));
+    EXPECT_EQ(unset, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, hourNow));
+    EXPECT_EQ(unset, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, BHSSU::ms.SPECIAL_HOUR_CURRENT_HOUR));
+    EXPECT_EQ(unset, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, BHSSU::ms.SPECIAL_HOUR_CURRENT_HOUR));
+    EXPECT_EQ(unset, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, BHSSU::ms.SPECIAL_HOUR_NEXT_HOUR));
+    EXPECT_EQ(unset, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, BHSSU::ms.SPECIAL_HOUR_NEXT_HOUR));
+    EXPECT_EQ(unset, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_TEMP_BY_HOUR, hourNow));
+    EXPECT_EQ(unset, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_TEMP_BY_HOUR_SMOOTHED, hourNow));
+    EXPECT_EQ(unset, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_RHPC_BY_HOUR, hourNow));
+    EXPECT_EQ(unset, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_RHPC_BY_HOUR_SMOOTHED, hourNow));
+    EXPECT_EQ(unset, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_OCCPC_BY_HOUR, hourNow));
+    EXPECT_EQ(unset, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_OCCPC_BY_HOUR_SMOOTHED, hourNow));
     // Set initial sensor values.
     const uint8_t al0 = 254;
     BHSSU::ambLight.set(al0);
@@ -271,7 +316,7 @@ TEST(Stats, ByHourSimpleStatsUpdater)
     BHSSU::su.sampleStats(true, hourNow);
     const uint8_t o0 = 0;
     ASSERT_EQ(o0, BHSSU::occupancy.get());
-    // Verify that after first full update sensor values set to specified values.
+    // Verify that after first full update stats values set to specified values.
     EXPECT_EQ(al0, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, hourNow));
     EXPECT_EQ(al0, BHSSU::ms.getByHourStatSimple(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, hourNow));
     EXPECT_EQ(al0, BHSSU::ms.getByHourStatRTC(BHSSU::ms.STATS_SET_AMBLIGHT_BY_HOUR, hourNow));

@@ -51,10 +51,13 @@ class SensorAmbientLightBase : public SimpleTSUint8Sensor
     // Marked volatile for ISR-/thread- safe (simple) lock-free access.
     volatile bool isRoomLitFlag = false;
 
-    // Set true if ambient light sensor may be unusable or unreliable.
+    // Set true if ambient light sensor range may be too small to use.
     // This will be where (for example) there are historic values
     // but in a very narrow range which implies a broken sensor or shadowed location.
-    bool unusable = false;
+    // This does not mark the entire sensor/device as unavailable,
+    // eg so that stats can go on being collected in case things improve,
+    // but it does disable all the assertions about dark/light/ticks.
+    bool rangeTooNarrow = false;
 
     // Number of minutes (read() calls) that the room has been continuously dark for [0,255].
     // Does not roll over from maximum value.
@@ -63,7 +66,7 @@ class SensorAmbientLightBase : public SimpleTSUint8Sensor
 
   public:
     // Reset to starting state; primarily for unit tests.
-    void reset() { value = 0; isRoomLitFlag = false; unusable = false; darkTicks = 0; }
+    void reset() { value = 0; isRoomLitFlag = false; rangeTooNarrow = false; darkTicks = 0; }
 
     // Default value for lightThreshold; a dimly light room at night may be brighter.
     // For REV2 LDR and REV7 phototransistor.
@@ -77,35 +80,36 @@ class SensorAmbientLightBase : public SimpleTSUint8Sensor
     // For REV2 LDR and REV7 phototransistor.
     static const uint8_t DEFAULT_PITCH_DARK_THRESHOLD = 4;
 
-    // Returns true if this sensor is apparently unusable.
-    virtual bool isAvailable() const final override { return(!unusable); }
-
     // Returns a suggested (JSON) tag/field/key name including units of get(); NULL means no recommended tag.
     // The lifetime of the pointed-to text must be at least that of the Sensor instance.
     virtual Sensor_tag_t tag() const override { return(V0p2_SENSOR_TAG_F("L")); }
 
     // Returns true if room is probably lit enough for someone to be active, with some hysteresis.
-    // False if unknown or sensor appears unusable.
+    // False if unknown or sensor range appears too narrow.
     // Thread-safe and usable within ISRs (Interrupt Service Routines).
-    bool isRoomLit() const { return(isRoomLitFlag && !unusable); }
+    bool isRoomLit() const { return(isRoomLitFlag && !rangeTooNarrow); }
 
     // Returns true if room is probably too dark for someone to be active, with some hysteresis.
-    // False if unknown or sensor appears unusable,
+    // False if unknown or sensor range appears too narrow.
     // thus it is possible for both isRoomLit() and isRoomDark() to be false.
     // Thread-safe and usable within ISRs (Interrupt Service Routines).
-    bool isRoomDark() const { return(!isRoomLitFlag && !unusable); }
+    bool isRoomDark() const { return(!isRoomLitFlag && !rangeTooNarrow); }
 
     // Returns true if room is probably pitch dark dark; no hysteresis.
     // Not all light sensors and thus devices may reliably get this low,
-    // and some devices may be jammed down the back of a sofa in the pitch dark with this true,
+    // and some devices may be jammed down the back of a sofa
+    // in the pitch dark with this almost permanently true,
     // thus this should only be treated as an extra hint when true.
-    bool isRoomVeryDark() const { return(!unusable && (get() <= DEFAULT_PITCH_DARK_THRESHOLD)); }
+    bool isRoomVeryDark() const { return((get() <= DEFAULT_PITCH_DARK_THRESHOLD) && !rangeTooNarrow); }
 
     // Get number of minutes (read() calls) that the room has been continuously dark for [0,255].
     // Does not roll over from maximum value, ie stays at 255 until the room becomes light.
     // Reset to zero in light.
-    // Stays at zero if the sensor decides that it is unusable.
+    // Stays at zero if the sensor decides that its range is too narrow.
     uint8_t getDarkMinutes() const { return(darkTicks); }
+
+    // Returns true if ambient light range seems to be too narrow to be reliable.
+    bool isRangeTooNarrow() const { return(rangeTooNarrow); }
   };
 
 // Accepts stats updates to adapt better to the location fitted.
@@ -139,7 +143,7 @@ class SensorAmbientLightAdaptive : public SensorAmbientLightBase
     // A true argument indicates probable occupancy, false weak occupancy.
     void (*occCallbackOpt)(bool) = NULL;
 
-    // Recomputes thresholds and 'unusable' based on current state.
+    // Recomputes thresholds and 'rangeTooNarrow' based on current state.
     //   * meanNowOrFF  typical/mean light level around this time each 24h; 0xff if not known.
     //   * sensitive  if true be more sensitive to possible occupancy changes, else less so.
     void recomputeThresholds(uint8_t meanNowOrFF, bool sensitive);
@@ -184,8 +188,8 @@ class SensorAmbientLightAdaptiveMock : public SensorAmbientLightAdaptive
     // Set new value.
     virtual bool set(const uint8_t newValue) { value = newValue; return(true); }
     // Set new non-dependent values immediately.
-    virtual bool set(const uint8_t newValue, const uint8_t newDarkTicks, const bool isUnusable = false)
-        { value = newValue; unusable = isUnusable; darkTicks = newDarkTicks; return(true); }
+    virtual bool set(const uint8_t newValue, const uint8_t newDarkTicks, const bool isRangeTooNarrow = false)
+        { value = newValue; rangeTooNarrow = isRangeTooNarrow; darkTicks = newDarkTicks; return(true); }
 
     // Expose the occupancy detector read-only for tests.
     const SensorAmbientLightOccupancyDetectorSimple &_occDet = occupancyDetector;

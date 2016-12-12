@@ -442,12 +442,12 @@ TEST(ModelledRadValve,ModelledRadValveComputeTargetTempBasic)
     EXPECT_FALSE(MRVCTTB::occupancy.isLikelyUnoccupied());
     // Should now be at WARM target.
     EXPECT_EQ(w, cttb0.computeTargetTemp());
-    // Make the room dark (and marked as dark for a long time).
-    MRVCTTB::ambLight.set(0, 255U, false);
-    MRVCTTB::ambLight.read();
-    EXPECT_TRUE(MRVCTTB::ambLight.isRoomDark());
-    EXPECT_EQ(255, MRVCTTB::ambLight.getDarkMinutes());
-    EXPECT_GT(w, cttb0.computeTargetTemp()) << "room dark for a reasonable time should allow setback";
+//    // Make the room dark (and marked as dark for a long time).
+//    MRVCTTB::ambLight.set(0, 255U, false);
+//    MRVCTTB::ambLight.read();
+//    EXPECT_TRUE(MRVCTTB::ambLight.isRoomDark());
+//    EXPECT_EQ(255, MRVCTTB::ambLight.getDarkMinutes());
+//    EXPECT_GT(w, cttb0.computeTargetTemp()) << "room dark for a reasonable time should allow setback";
     // Make the room light.
     MRVCTTB::ambLight.set(255, 0, false);
     MRVCTTB::ambLight.read();
