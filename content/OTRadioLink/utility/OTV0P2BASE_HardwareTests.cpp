@@ -166,6 +166,16 @@ bool check32768HzOscExtended()
              d18:   98 17           cp  r25, r24                                         1
              d1a:   b9 f3           breq    .-18        ; 0xd0a <main+0x166>             2
              I make this 7 + 4 * <no delay cycles>
+ * @note    Final OSCCAL register values for all the REV7s I have that I could get working. (DE20161209)
+ *          hh
+            81
+            91
+            9E
+            A1
+            9E
+            8D
+            96
+            92
  */
 bool calibrateInternalOscWithExtOsc()
 {
@@ -191,7 +201,7 @@ bool calibrateInternalOscWithExtOsc()
     	uint8_t count = 0;
 #if 0
         OTV0P2BASE::serialPrintAndFlush("OSCCAL: "); // 10000001 on my test version
-        OTV0P2BASE::serialPrintAndFlush(OSCCAL, BIN);
+        OTV0P2BASE::serialPrintAndFlush(OSCCAL, HEX);
 #endif // 1
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 		{
@@ -217,6 +227,7 @@ bool calibrateInternalOscWithExtOsc()
 //        delay(1000);
 #endif // 1
         // Set new calibration value.
+        if ((OSCCAL == 0x80) || (OSCCAL == 0xFF)) return false;  // Return false if OSCCAL is at limits.
         if(count > targetCount) OSCCAL--;
         else if(count < targetCount) OSCCAL++;
         else {
@@ -226,7 +237,7 @@ bool calibrateInternalOscWithExtOsc()
                 OTV0P2BASE::serialPrintAndFlush("\t count: ");
                 OTV0P2BASE::serialPrintAndFlush(count);
                 OTV0P2BASE::serialPrintAndFlush("\t OSCCAL: ");
-                OTV0P2BASE::serialPrintAndFlush(OSCCAL, BIN);
+                OTV0P2BASE::serialPrintAndFlush(OSCCAL, HEX);
                 OTV0P2BASE::serialPrintAndFlush(F("\tUUUUU"));
                 OTV0P2BASE::serialPrintlnAndFlush();
                 delay(1000);
