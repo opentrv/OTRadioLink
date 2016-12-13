@@ -12643,7 +12643,7 @@ static const ALDataSample samplea3b[] =
 TEST(AmbientLightOccupancyDetection,samplea0)
 {
     ASSERT_FALSE(NULL == samplea0);
-//    simpleDataSampleRun(samplea0, true); // FIXME: too hard at the moment/
+//    simpleDataSampleRun(samplea0, true); // FIXME: too hard at the moment. TODO-1087.
 }
 TEST(AmbientLightOccupancyDetection,samplea0b)
 {
@@ -12668,7 +12668,7 @@ TEST(AmbientLightOccupancyDetection,samplea2b)
 TEST(AmbientLightOccupancyDetection,samplea3)
 {
     ASSERT_FALSE(NULL == samplea3);
-//    simpleDataSampleRun(samplea3, true); // FIXME: too hard at the moment.
+//    simpleDataSampleRun(samplea3, true); // FIXME: too hard at the moment.  TODO-1087.
 }
 TEST(AmbientLightOccupancyDetection,samplea3b)
 {
