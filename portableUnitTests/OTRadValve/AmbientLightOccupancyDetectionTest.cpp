@@ -12668,7 +12668,7 @@ TEST(AmbientLightOccupancyDetection,samplea2b)
 TEST(AmbientLightOccupancyDetection,samplea3)
 {
     ASSERT_FALSE(NULL == samplea3);
-//    simpleDataSampleRun(samplea3, true); // FIXME: too hard at the moment.  TODO-1087.
+//    simpleDataSampleRun(samplea3, true); // FIXME: much too hard at the moment.  TODO-1087.
 }
 TEST(AmbientLightOccupancyDetection,samplea3b)
 {
