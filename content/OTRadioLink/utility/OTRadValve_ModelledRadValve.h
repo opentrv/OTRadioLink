@@ -436,6 +436,8 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
                 // High likelihood of occupancy soon inhibits FULL setback,
                 // (unless dark for hours so as to avoid waking users early)
                 // to allow getting warm ready for return from work/school.
+                // TODO: other signals such as manual control use and
+                // typical temperature at this time could inhibit FULL setback.
                 const uint8_t hoursLessOccupiedThanNext = byHourStats->countStatSamplesBelow(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED, byHourStats->getByHourStatRTC(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED, OTV0P2BASE::NVByHourByteStatsBase::SPECIAL_HOUR_NEXT_HOUR));
                 const bool relativelyActiveSoon = (hoursLessOccupiedThanNext > 1+thisHourNLOThreshold);
                 const uint8_t dm = ambLight->getDarkMinutes();

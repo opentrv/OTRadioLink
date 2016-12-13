@@ -2044,7 +2044,7 @@ static const ALDataSample sample3lSetback[] =
 {8,17,24,39},
 {8,17,26,39},
 {8,17,28,40},
-{8,17,32,3, ALDataSample::NO_OCC_EXPECTATION, true, false, ALDataSample::SB_NONE}, // Temporarily left the room, lights off.
+{8,17,32,3, ALDataSample::NO_OCC_EXPECTATION, true, false, ALDataSample::SB_NONEMIN}, // Temporarily left the room, lights off; small setback may be OK.
 {8,17,37,3},
 {8,17,40,3},
 {8,17,44,13},
@@ -2129,7 +2129,7 @@ static const ALDataSample sample3lSetback[] =
 {8,20,51,40},
 {8,20,55,40},
 {8,20,56,40},
-{8,20,58,39}, // OCC END
+{8,20,58,39, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONE}, // OCC END
 {8,21,0,2},
 {8,21,5,2},
 {8,21,9,2},
