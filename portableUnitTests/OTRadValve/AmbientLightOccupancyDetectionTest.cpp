@@ -31,9 +31,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 
 
 // Set true for verbose reporting.
-static constexpr bool verbose = true;
+static constexpr bool verbose = false;
 // Lots of extra detail, generally should not be needed.
-static constexpr bool veryVerbose = true && verbose;
+static constexpr bool veryVerbose = false && verbose;
 
 // Import occType enum values.
 typedef OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType occType;
@@ -10855,7 +10855,7 @@ static const ALDataSample samplea3[] =
 {15,3,38,6},
 {15,3,50,6},
 {15,3,58,6},
-{15,4,10,6, ALDataSample::NO_OCC_EXPECTATION, true, false},
+{15,4,10,6, ALDataSample::NO_OCC_EXPECTATION, true, false, ALDataSample::SB_ECOMAX}, // Should try and achieve some sort of setback.
 {15,4,22,6},
 {15,4,34,6},
 {15,4,42,6},
@@ -12174,10 +12174,10 @@ static const ALDataSample samplea3[] =
 {25,3,33,5},
 {25,3,41,5},
 {25,3,57,5},
-{25,4,9,5, ALDataSample::NO_OCC_EXPECTATION, true, false},
+{25,4,9,5, ALDataSample::NO_OCC_EXPECTATION, true, false, ALDataSample::SB_ECOMAX}, // Should try and achieve some sort of setback.
 {25,4,21,5},
 {25,4,33,5},
-{25,4,45,5, ALDataSample::NO_OCC_EXPECTATION, true, false},
+{25,4,45,5, ALDataSample::NO_OCC_EXPECTATION, true, false, ALDataSample::SB_ECOMAX}, // Should try and achieve some sort of setback.
 { },
     };
 static const ALDataSample samplea3b[] =
@@ -12667,7 +12667,7 @@ TEST(AmbientLightOccupancyDetection,samplea2b)
 TEST(AmbientLightOccupancyDetection,samplea3)
 {
     ASSERT_FALSE(NULL == samplea3);
-//    simpleDataSampleRun(samplea3, true); // FIXME: much too hard at the moment.  TODO-1087.
+//    simpleDataSampleRun(samplea3); // FIXME: much too hard at the moment.  TODO-1087.
 }
 TEST(AmbientLightOccupancyDetection,samplea3b)
 {
