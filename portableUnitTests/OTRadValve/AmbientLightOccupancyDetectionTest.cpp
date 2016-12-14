@@ -31,9 +31,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 
 
 // Set true for verbose reporting.
-static constexpr bool verbose = false;
+static constexpr bool verbose = true;
 // Lots of extra detail, generally should not be needed.
-static constexpr bool veryVerbose = false && verbose;
+static constexpr bool veryVerbose = true && verbose;
 
 // Import occType enum values.
 typedef OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType occType;
@@ -5520,10 +5520,10 @@ static const ALDataSample samplea0[] =
 {15,2,50,4},
 {15,3,13,4},
 {15,3,22,4},
-{15,3,37,4},
+{15,3,37,4, ALDataSample::NO_OCC_EXPECTATION, true, false, ALDataSample::SB_MAX},
 {15,3,59,26},
 {15,4,9,14},
-{15,4,26,4, ALDataSample::NO_OCC_EXPECTATION, true, false, ALDataSample::SB_MAX},
+{15,4,26,4},
 {15,4,34,4},
 {15,4,45,4},
 {15,4,58,4},
@@ -5533,7 +5533,7 @@ static const ALDataSample samplea0[] =
 {15,5,42,4},
 {15,5,58,4},
 {15,6,5,4},
-{15,6,14,5, ALDataSample::NO_OCC_EXPECTATION, true, false, ALDataSample::SB_MAX},
+{15,6,14,5, ALDataSample::NO_OCC_EXPECTATION, true, false, ALDataSample::SB_MINMAX},
 {15,6,21,8},
 {15,6,25,11},
 {15,6,30,16},
@@ -12642,8 +12642,7 @@ static const ALDataSample samplea3b[] =
     };
 TEST(AmbientLightOccupancyDetection,samplea0)
 {
-    ASSERT_FALSE(NULL == samplea0);
-//    simpleDataSampleRun(samplea0, true); // FIXME: too hard at the moment. TODO-1087.
+    simpleDataSampleRun(samplea0);
 }
 TEST(AmbientLightOccupancyDetection,samplea0b)
 {
