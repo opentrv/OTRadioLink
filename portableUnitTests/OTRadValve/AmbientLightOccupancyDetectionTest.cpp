@@ -519,7 +519,7 @@ static void checkPerformanceAcceptableAgainstData(
     ASSERT_NE(0U, flavourStats.occupancyTrackingFalseNegatives.getSampleCount()) << "some known occupancy values should be provided";
 
     // Check that there are not huge numbers of positive occupancy callbacks.
-    // Anything over ~15% is an indication of something broken..
+    // Anything over ~10%--25% is an indication of something broken..
     EXPECT_GE(0.15f, flavourStats.ambLightOccupancyCallbacks.getFractionFlavoured());
 
     // Check that there are not huge numbers of failed callback expectations.
