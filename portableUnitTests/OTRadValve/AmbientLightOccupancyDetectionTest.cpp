@@ -556,8 +556,8 @@ static void checkPerformanceAcceptableAgainstData(
     // Check that setback accuracy is OK.
     // Aim for a low error rate in either direction.
     // But err on the side of energy saving.
-    EXPECT_GE((normalOperation ? 0.09f : 0.2f), flavourStats.setbackInsufficient.getFractionFlavoured());
-    EXPECT_GE((normalOperation ? 0.1f : 0.1f), flavourStats.setbackTooFar.getFractionFlavoured());
+    EXPECT_GE((normalOperation ? 0.09f : 0.12f), flavourStats.setbackInsufficient.getFractionFlavoured()) << flavourStats.setbackInsufficient.getSampleCount();
+    EXPECT_GE((normalOperation ? 0.09f : 0.1f), flavourStats.setbackTooFar.getFractionFlavoured()) << flavourStats.setbackTooFar.getSampleCount();
 
     // Compute nominal available savings
     // assuming typical values per degree of setback in UK.
@@ -1297,7 +1297,7 @@ static const ALDataSample sample3lSetback[] =
 {5,3,17,2},
 {5,3,31,2},
 {5,3,47,2},
-{5,4,3,2},
+{5,4,3,2, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Should achieve full setback.
 {5,4,19,2},
 {5,4,35,2},
 {5,4,51,2},
@@ -2069,7 +2069,7 @@ static const ALDataSample sample3lSetback[] =
 {8,18,26,39},
 {8,18,27,41},
 {8,18,29,41},
-{8,18,31,39, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONE},
+{8,18,31,39, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEMIN}, // TV watching?  Tricky to detect.
 {8,18,33,39},
 {8,18,36,40},
 {8,18,37,38},
@@ -2084,7 +2084,7 @@ static const ALDataSample sample3lSetback[] =
 {8,18,55,40},
 {8,18,57,39},
 {8,18,59,41},
-{8,19,1,40, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONE},
+{8,19,1,40, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEMIN}, // TV watching?  Tricky to detect.
 {8,19,4,40},
 {8,19,7,41},
 {8,19,9,38},
@@ -2096,7 +2096,7 @@ static const ALDataSample sample3lSetback[] =
 {8,19,21,39},
 {8,19,24,40},
 {8,19,28,38},
-{8,19,30,39, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONE},
+{8,19,30,39, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEMIN}, // TV watching?  Tricky to detect.
 {8,19,33,39},
 {8,19,36,41},
 {8,19,41,38},
@@ -2108,7 +2108,7 @@ static const ALDataSample sample3lSetback[] =
 {8,19,55,40},
 {8,19,58,41},
 {8,19,59,39},
-{8,20,3,40, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONE},
+{8,20,3,40, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEMIN}, // TV watching?  Tricky to detect.
 {8,20,7,42},
 {8,20,11,41},
 {8,20,14,42},
@@ -2117,7 +2117,7 @@ static const ALDataSample sample3lSetback[] =
 {8,20,26,39},
 {8,20,27,41},
 {8,20,29,40},
-{8,20,31,40, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONE},
+{8,20,31,40, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEMIN}, // TV watching?  Tricky to detect.
 {8,20,32,39},
 {8,20,33,38},
 {8,20,36,40},
@@ -2129,7 +2129,7 @@ static const ALDataSample sample3lSetback[] =
 {8,20,51,40},
 {8,20,55,40},
 {8,20,56,40},
-{8,20,58,39, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONE}, // OCC END
+{8,20,58,39, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEMIN}, // OCC END
 {8,21,0,2},
 {8,21,5,2},
 {8,21,9,2},
@@ -2396,7 +2396,7 @@ static const ALDataSample sample3lSetback[] =
 {9,11,54,72},
 {9,11,56,73},
 {9,11,58,74},
-{9,12,0,76},
+{9,12,0,76, ALDataSample::NO_OCC_EXPECTATION, false, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_MINMAX}, // Some setback expected.
 {9,12,2,79},
 {9,12,5,104},
 {9,12,7,97},
