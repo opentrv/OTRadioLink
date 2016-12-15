@@ -118,12 +118,17 @@ SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupanc
         // to avoid being triggered in continuously dark/lit areas, and when daylit.
         // The levels must also be close to the mean for the time of day.
         const uint8_t range = maxToUse - minToUse;
-        constexpr uint8_t marginWshift = 1;
-        const uint8_t marginW = range >> (/*sensitive ? (1+marginWshift) : */ marginWshift);
-        const uint8_t margin = uint8_t(marginW >> 2);
-        const uint8_t thrL = minToUse + margin;
-        const uint8_t thrH = maxToUse - marginW;
-        const uint8_t maxDistanceFromMean = fnmin(meanNowOrFF-minToUse, maxToUse-meanNowOrFF) >> 1; // (sensitive ? 1 : 2);
+        if(range > 2*epsilon)
+            {
+            // This measure only makes sense if there is normally
+            // a reasonably dynamic ambient light range
+            // so that all the time lights levels are not trivially 'steady'.
+            constexpr uint8_t marginWshift = 1;
+            const uint8_t marginW = range >> (/*sensitive ? (1+marginWshift) : */ marginWshift);
+            const uint8_t margin = uint8_t(marginW >> 2);
+            const uint8_t thrL = minToUse + margin;
+            const uint8_t thrH = maxToUse - marginW;
+            const uint8_t maxDistanceFromMean = fnmin(meanNowOrFF-minToUse, maxToUse-meanNowOrFF) >> 1; // (sensitive ? 1 : 2);
 
 #if 0 && !defined(ARDUINO)
         serialPrintAndFlush("  newLightLevel=");
@@ -152,11 +157,12 @@ SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupanc
         serialPrintlnAndFlush();
 #endif
 
-        if((newLightLevel > thrL) && (newLightLevel < thrH) &&
-           (fnabsdiff(newLightLevel, meanNowOrFF) <= maxDistanceFromMean))
-            {
-            // Steady artificial lighting now near usual levels for this time of day.
-            occLevel = OCC_WEAK;
+            if((newLightLevel > thrL) && (newLightLevel < thrH) &&
+               (fnabsdiff(newLightLevel, meanNowOrFF) <= maxDistanceFromMean))
+                {
+                // Steady artificial lighting now near usual levels for this time of day.
+                occLevel = OCC_WEAK;
+                }
             }
         }
 

@@ -505,7 +505,7 @@ void setTypeMinMax(OTV0P2BASE::SensorAmbientLightAdaptiveMock &ala,
 template<class Valve_parameters>
 static void checkPerformanceAcceptableAgainstData(
         const SimpleFlavourStatCollection &flavourStats,
-        const bool exemptFromNormalSetbackRatios)
+        const bool exemptFromNormalRatios)
     {
     const bool sensitive = flavourStats.sensitive;
     const bool oddBlend = (flavourStats.blending != BL_FROMSTATS);
@@ -519,8 +519,8 @@ static void checkPerformanceAcceptableAgainstData(
     ASSERT_NE(0U, flavourStats.occupancyTrackingFalseNegatives.getSampleCount()) << "some known occupancy values should be provided";
 
     // Check that there are not huge numbers of positive occupancy callbacks.
-    // Anything over ~25% is an indication of something broken..
-    EXPECT_GE(0.25f, flavourStats.ambLightOccupancyCallbacks.getFractionFlavoured());
+    // Anything over ~15% is an indication of something broken..
+    EXPECT_GE(0.15f, flavourStats.ambLightOccupancyCallbacks.getFractionFlavoured());
 
     // Check that there are not huge numbers of failed callback expectations.
     // We could allow more errors with an odd (non-deployment) blending.
@@ -531,9 +531,12 @@ static void checkPerformanceAcceptableAgainstData(
 
     // Check that there is a reasonable balance between room dark/light.
     // Should be between ~33% and ~67% for UK depending on time of year.
-    const float rdFraction = flavourStats.roomDarkSamples.getFractionFlavoured();
-    EXPECT_LE(0.2f, rdFraction);
-    EXPECT_GE(0.8f, rdFraction);
+    if(exemptFromNormalRatios)
+        {
+        const float rdFraction = flavourStats.roomDarkSamples.getFractionFlavoured();
+        EXPECT_LE(0.2f, rdFraction);
+        EXPECT_GE(0.8f, rdFraction);
+        }
 
     // Check that number of false positives and negatives
     // from occupancy tracked fed from ambient light reports is OK.
@@ -592,7 +595,7 @@ static void checkPerformanceAcceptableAgainstData(
     // When data sample is >> 1 day,
     // check that FULL setback is achieved for a reasonable fraction,
     // eg at least 4h/day.
-    if((minutes > ticksForMoreThan24h) && !exemptFromNormalSetbackRatios)
+    if((minutes > ticksForMoreThan24h) && !exemptFromNormalRatios)
         { EXPECT_LE(4.0f/24, flavourStats.setbackAtMAX.getFractionFlavoured()); }
 
     // When data sample is >> 1 day,
@@ -602,7 +605,7 @@ static void checkPerformanceAcceptableAgainstData(
     // insist on most of that when not in sensitive mode,
     // and a little lower ambition in sensitive mode (eg comfort-driven).
 // FIXME: >=25% primary target.
-    if((minutes > ticksForMoreThan24h) && !exemptFromNormalSetbackRatios)
+    if((minutes > ticksForMoreThan24h) && !exemptFromNormalRatios)
         { EXPECT_LE(!sensitive ? 0.21f : 0.15f, potentialSavingsFromSetbackAtLeastDEFAULT); }
 
     // Print a summary of key stats to eyeball (if not an odd blend).
@@ -652,11 +655,11 @@ static void checkPerformanceAcceptableAgainstData(
 // Will fail if an excessive amount of the time occupancy is predicted.
 //   * data  {}=terminated in-time-order real data set
 //         annotated with expected values; never NULL
-//   * exemptFromNotmalSetbackRatios  minimum times at significant setbacks
+//   * exemptFromNormalRatios  minimum times at significant setbacks/levels
 //         (to enable significant energy savings) will be enabled
 //         unless this is true
 void simpleDataSampleRun(const ALDataSample *const data,
-                         const bool exemptFromNormalSetbackRatios = false)
+                         const bool exemptFromNormalRatios = false)
     {
     ASSERT_TRUE(NULL != data);
     ASSERT_FALSE(data->isEnd()) << "do not pass in empty data set";
@@ -923,11 +926,11 @@ if(verbose && !warmup && failedSetbackExpectations) { fprintf(stderr, "!!!tS=%d 
 
                         // Note that for all synthetic ticks the expectation is removed (since there is no level change).
                         const int8_t expectedOcc = (!isRealRecord) ? ALDataSample::NO_OCC_EXPECTATION : dp->expectedOcc;
-if(veryVerbose && verboseOutput && !warmup && isRealRecord && (occType::OCC_NONE != predictionOcc)) { fprintf(stderr, "  predictionOcc=%d @ %dT%d:%.2d L=%d mean=%d\n", predictionOcc, D, H, M, dp->L, meanUsed); }
+if(veryVerbose && verboseOutput && !warmup && isRealRecord && (occType::OCC_NONE != predictionOcc)) { fprintf(stderr, "  predictionOcc=%d @ %dT%d:%.2d L=%d mean=%d min=%d max=%d beforeSteadyTicks=%d\n", predictionOcc, D, H, M, dp->L, meanUsed, minToUse, maxToUse, beforeSteadyTicks); }
                         if(ALDataSample::NO_OCC_EXPECTATION != expectedOcc)
                             {
                             flavourStats.ambLightOccupancyCallbackPredictionErrors.takeSample(expectedOcc != predictionOcc);
-if(verbose && !warmup && (expectedOcc != predictionOcc)) { fprintf(stderr, "!!!expectedOcc=%d @ %dT%d:%.2d L=%d mean=%d beforeSteadyTicks=%d\n", expectedOcc, D, H, M, dp->L, meanUsed, beforeSteadyTicks); }
+if(verbose && !warmup && (expectedOcc != predictionOcc)) { fprintf(stderr, "!!!expectedOcc=%d @ %dT%d:%.2d L=%d mean=%d min=%d max=%d beforeSteadyTicks=%d\n", expectedOcc, D, H, M, dp->L, meanUsed, minToUse, maxToUse, beforeSteadyTicks); }
                             }
                         if(ALDataSample::NO_RD_EXPECTATION != expectedRoomDark)
                             {
@@ -944,7 +947,7 @@ if(verbose && !warmup && ((bool)expectedRoomDark != predictedRoomDark)) { fprint
                     {
                     checkPerformanceAcceptableAgainstData<SDSR::parameters>(
                         flavourStats,
-                        exemptFromNormalSetbackRatios);
+                        exemptFromNormalRatios);
                     // Allow check in outer loop that sensitive mode generates
                     // at least as many reports as non-sensitive mode.
                     if(sensitive)
@@ -10772,13 +10775,13 @@ static const ALDataSample samplea2b[] =
 // Light sensor seems to be rarely getting adequate light.
 static const ALDataSample samplea3[] =
     {
-{14,11,2,31},
+{14,11,2,31, ALDataSample::NO_OCC_EXPECTATION, false, ALDataSample::UNKNOWN_ACT_OCC},
 {14,11,14,33},
 {14,11,18,8},
 {14,11,26,8},
 {14,11,42,10},
 {14,11,54,9},
-{14,12,6,9, ALDataSample::NO_OCC_EXPECTATION, false, ALDataSample::UNKNOWN_ACT_OCC},
+{14,12,6,9},
 {14,12,14,9},
 {14,12,26,10},
 {14,12,30,9},
@@ -10855,7 +10858,7 @@ static const ALDataSample samplea3[] =
 {15,3,38,6},
 {15,3,50,6},
 {15,3,58,6},
-{15,4,10,6, ALDataSample::NO_OCC_EXPECTATION, true, false, ALDataSample::SB_ECOMAX}, // Should try and achieve some sort of setback.
+{15,4,10,6, ALDataSample::NO_OCC_EXPECTATION, ALDataSample::NO_RD_EXPECTATION, false, ALDataSample::SB_ECOMAX}, // Should try and achieve some sort of setback.
 {15,4,22,6},
 {15,4,34,6},
 {15,4,42,6},
@@ -12174,10 +12177,10 @@ static const ALDataSample samplea3[] =
 {25,3,33,5},
 {25,3,41,5},
 {25,3,57,5},
-{25,4,9,5, ALDataSample::NO_OCC_EXPECTATION, true, false, ALDataSample::SB_ECOMAX}, // Should try and achieve some sort of setback.
+{25,4,9,5, ALDataSample::NO_OCC_EXPECTATION, ALDataSample::NO_RD_EXPECTATION, false, ALDataSample::SB_ECOMAX}, // Should try and achieve some sort of setback.
 {25,4,21,5},
 {25,4,33,5},
-{25,4,45,5, ALDataSample::NO_OCC_EXPECTATION, true, false, ALDataSample::SB_ECOMAX}, // Should try and achieve some sort of setback.
+{25,4,45,5, ALDataSample::NO_OCC_EXPECTATION, ALDataSample::NO_RD_EXPECTATION, false, ALDataSample::SB_ECOMAX}, // Should try and achieve some sort of setback.
 { },
     };
 static const ALDataSample samplea3b[] =
@@ -12666,8 +12669,8 @@ TEST(AmbientLightOccupancyDetection,samplea2b)
 }
 TEST(AmbientLightOccupancyDetection,samplea3)
 {
-    ASSERT_FALSE(NULL == samplea3);
-//    simpleDataSampleRun(samplea3); // FIXME: much too hard at the moment.  TODO-1087.
+    // Very difficult data set; poor lighting.   TODO-1087
+    simpleDataSampleRun(samplea3, false);
 }
 TEST(AmbientLightOccupancyDetection,samplea3b)
 {
