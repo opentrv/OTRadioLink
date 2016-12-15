@@ -109,9 +109,13 @@ SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupanc
     // and levels must be fairly steady for a while (> ~30 minutes)
     // eg to guard against (eg) sunlight-driven flicker.
     //
+    // TODO: this could avoid providing weak occupancy signals indefinitely,
+    // eg with an upper limit on steadyTicksMinForArtificialLight.
+    //
     // See evening levels for trace 3l here for example:
     //     http://www.earth.org.uk/img/20161124-16WWal.png
-    else if((steadyTicks >= steadyTicksMinForArtificialLight) && (meanNowOrFF > minToUse) && (meanNowOrFF < maxToUse)) // Implicitly 0xff != meanNowOrFF.
+    else if((steadyTicks >= steadyTicksMinForArtificialLight) &&
+            (minToUse < meanNowOrFF) && (meanNowOrFF < maxToUse)) // Implicitly 0xff != meanNowOrFF.
         {
         // Previous and current light levels should ideally be well away from maximum/minimum
         // (and asymmetrically much further below maximum, ie a wider margin on the high side)
