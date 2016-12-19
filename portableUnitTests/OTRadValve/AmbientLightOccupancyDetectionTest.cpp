@@ -760,26 +760,6 @@ void simpleDataSampleRun(const ALDataSample *const data,
             else { fprintf(stderr, "%d", (int)v); }
             }
         fprintf(stderr, "\n");
-
-//        fprintf(stderr, " smoothed ambient light level: ");
-//        for(int i = 0; i < 24; ++i)
-//            {
-//            fputc(' ', stderr);
-//            const uint8_t v = hsInitCopy.getByHourStatSimple(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, i);
-//            if(0xff == v) { fputc('-', stderr); }
-//            else { fprintf(stderr, "%d", v); }
-//            }
-//        fprintf(stderr, "\n");
-//
-//        fprintf(stderr, " smoothed occupancy: ");
-//        for(int i = 0; i < 24; ++i)
-//            {
-//            fputc(' ', stderr);
-//            const uint8_t v = hsInitCopy.getByHourStatSimple(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED, i);
-//            if(0xff == v) { fputc('-', stderr); }
-//            else { fprintf(stderr, "%d", v); }
-//            }
-//        fprintf(stderr, "\n");
         }
 
     // Now run through all the data checking responses.
@@ -801,6 +781,16 @@ if(verbose) { fprintf(stderr, "blending = %d\n", blending); }
             const bool sensitive = (0 != s);
 if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
             SCOPED_TRACE(testing::Message() << "sensitive " << sensitive);
+
+            // Since many algorithms may reduce sensitivity with ECO bias,
+            // may that here.
+            if(sensitive) { SDSR::tempControl._setWarmTarget(SDSR::parameters::TEMP_SCALE_MID+1); }
+            else { SDSR::tempControl._setWarmTarget(); }
+            ASSERT_TRUE(sensitive != SDSR::tempControl.hasEcoBias());
+
+            // The temperatures used should not be at unrepresentative extremes.
+            ASSERT_FALSE(SDSR::tempControl.isComfortTemperature(SDSR::tempControl.getWARMTargetC()));
+            ASSERT_FALSE(SDSR::tempControl.isEcoTemperature(SDSR::tempControl.getWARMTargetC()));
 
             // Reset stats to end of main warm-up run.
             SDSR::hs = hsInitCopy;
