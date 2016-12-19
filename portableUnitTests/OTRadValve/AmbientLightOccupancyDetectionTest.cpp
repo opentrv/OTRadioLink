@@ -245,7 +245,7 @@ namespace SDSR
     // Support for cttb instance.
     static OTRadValve::ValveMode valveMode;
     typedef OTRadValve::DEFAULT_ValveControlParameters parameters;
-    static OTRadValve::TempControlSimpleVCP<parameters> tempControl;
+    static OTRadValve::TempControlSimpleVCPMock<parameters> tempControl;
     static OTRadValve::NULLActuatorPhysicalUI physicalUI;
     static OTV0P2BASE::NULLValveSchedule schedule;
     // Simple-as-possible instance.
@@ -281,9 +281,10 @@ if(veryVerbose && logCallback) { fprintf(stderr, " *Callback: %d\n", p); }
         occupancy.reset();
         // Flush any partial samples.
         su.reset();
-        // Reset valve-level controls.
+        // Reset valve-level manual controls.
         valveMode.setWarmModeDebounced(true);
         physicalUI.read();
+        tempControl._setWarmTarget();
         // Install the occupancy tracker callback from the ambient light sensor.
         ambLight.setOccCallbackOpt(callback);
         }

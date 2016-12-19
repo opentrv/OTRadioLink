@@ -154,6 +154,7 @@ class TempControlSimpleVCPMock : public TempControlSimpleVCP<valveControlParams>
          (newWT > valveControlParams::TEMP_SCALE_MAX))
         { return(false); }
       warmTarget = newWT;
+      return(true);
       }
   };
 
