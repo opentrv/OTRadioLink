@@ -119,10 +119,8 @@ class TempControlSimpleVCP : public TempControlBase
   public:
     // Get (possibly dynamically-set) thresholds/parameters.
     // Get 'FROST' protection target in C; no higher than getWARMTargetC() returns, strictly positive, in range [MIN_TARGET_C,MAX_TARGET_C].
-    // Depends dynamically on current (last-read) temp-pot setting.
     virtual uint8_t getFROSTTargetC() const override { return(valveControlParams::FROST); }
     // Get 'WARM' target in C; no lower than getFROSTTargetC() returns, strictly positive, in range [MIN_TARGET_C,MAX_TARGET_C].
-    // Depends dynamically on current (last-read) temp-pot setting.
     virtual uint8_t getWARMTargetC() const override { return(valveControlParams::WARM); }
     // True if WARM temperature at/below halfway mark between eco and comfort levels.
     // Midpoint should be just in eco part to provide a system bias toward eco.
@@ -136,6 +134,29 @@ class TempControlSimpleVCP : public TempControlBase
     // Minimum WARM temperature, ignoring setbacks and BAKE; strictly positive and greater than getMinWARMTargetC().
     virtual uint8_t getMaxWARMTargetC() const override final { return(valveControlParams::TEMP_SCALE_MAX); }
   };
+
+// Mock implementation with settable temperature for unit tests.
+template <class valveControlParams /* = DEFAULT_ValveControlParameters */ >
+class TempControlSimpleVCPMock : public TempControlSimpleVCP<valveControlParams>
+  {
+  private:
+    // Settable warm target; initially WARM and always within bounds.
+    uint8_t warmTarget = valveControlParams::WARM;
+  public:
+    // Get 'WARM' target in C; no lower than getFROSTTargetC() returns, strictly positive, in range [MIN_TARGET_C,MAX_TARGET_C].
+    virtual uint8_t getWARMTargetC() const override { return(warmTarget); }
+
+    // Set warm target (default to WARM); returns true on success.
+    // Ignores attempts to set outside [TEMP_SCALE_MIN,TEMP_SCALE_MAX].
+    bool _setWarmTarget(const uint8_t newWT = valveControlParams::WARM)
+      {
+      if((newWT < valveControlParams::TEMP_SCALE_MIN) ||
+         (newWT > valveControlParams::TEMP_SCALE_MAX))
+        { return(false); }
+      warmTarget = newWT;
+      }
+  };
+
 
 #ifdef ARDUINO_ARCH_AVR
 // Non-volatile (EEPROM) stored WARM threshold for some devices without physical controls, eg REV1.
