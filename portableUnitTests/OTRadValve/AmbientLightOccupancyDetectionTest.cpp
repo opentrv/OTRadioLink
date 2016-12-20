@@ -31,11 +31,11 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 
 
 // Set true for verbose reporting.
-static constexpr bool verbose = false;
+static constexpr bool verbose = true;
 // Lots of extra detail, generally should not be needed.
 static constexpr bool veryVerbose = false && verbose;
 // Generate output for graphing, eg with gnuplot.
-static constexpr bool graphOutput = false && verbose;
+static constexpr bool graphOutput = true && verbose;
 
 // Import occType enum values.
 typedef OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType occType;
@@ -836,9 +836,11 @@ if(verboseOutput)
     fprintf(stderr, "\n");
     }
 
-if(graphOutput)
+if(graphOutput && !warmup)
     {
-    fprintf(stdout, "GraphColumns light occ setback\n");
+    // All lines for graphing start with "G" and a space.
+    // May add other diagnostic columns such as callback events.
+    fprintf(stdout, "G ddThh:mm light%% occ%% setback%%\n");
     }
 
                 // Fresh behaviour stats each run, esp non-warmup run.
@@ -875,12 +877,18 @@ if(graphOutput)
                         // Capture some 'before' values for failure analysis.
                         const uint8_t beforeSteadyTicks = ala._occDet._getSteadyTicks();
 
-//fprintf(stderr, "L=%d @ %dT%d:%.2d\n", dp->L, D, H, M);
                         // About to perform another virtual minute 'tick' update.
                         SDSR::cbProbable = -1; // Collect occupancy prediction (if any) from call-back.
                         ala.set(dp->L);
                         ala.read();
                         tracker.read();
+
+//fprintf(stderr, "L=%d @ %dT%d:%.2d\n", dp->L, D, H, M);
+const int8_t setback = SDSR::tempControl.getWARMTargetC() - SDSR::cttb.computeTargetTemp();
+if(graphOutput && !warmup)
+{
+fprintf(stdout, "G %dT%d:%.2d %f %f %f\n", D, H, M, dp->L/255.0f, tracker.get()/100.0f, setback/(float)SDSR::parameters::SETBACK_FULL);
+}
 
                         // Get hourly stats sampled and updated.
                         if(29 == M) { SDSR::su.sampleStats(false, H); }
@@ -910,7 +918,6 @@ if(verbose && !warmup && (trackedLikelyOccupancy != actOcc)) { fprintf(stderr, "
                             flavourStats.occupancyTrackingFalsePositives.takeSample(!actOcc && trackedLikelyOccupancy);
                             }
 
-                        const int8_t setback = SDSR::tempControl.getWARMTargetC() - SDSR::cttb.computeTargetTemp();
 if(veryVerbose && verboseOutput && !warmup /*&& isRealRecord*/) { fprintf(stderr, "  tS=%d @ %dT%d:%.2d\n", setback, D, H, M); }
                         bool failedSetbackExpectations = false;
                         scoreSetback<SDSR::parameters>(setback, dp->expectedSb,
