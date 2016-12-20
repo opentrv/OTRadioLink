@@ -34,6 +34,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 static constexpr bool verbose = false;
 // Lots of extra detail, generally should not be needed.
 static constexpr bool veryVerbose = false && verbose;
+// Generate output for graphing, eg with gnuplot.
+static constexpr bool graphOutput = false && verbose;
 
 // Import occType enum values.
 typedef OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType occType;
@@ -832,6 +834,11 @@ if(verboseOutput)
         else { fprintf(stderr, "%d", v); }
         }
     fprintf(stderr, "\n");
+    }
+
+if(graphOutput)
+    {
+    fprintf(stdout, "GraphColumns light occ setback\n");
     }
 
                 // Fresh behaviour stats each run, esp non-warmup run.
