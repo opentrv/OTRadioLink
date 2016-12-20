@@ -4733,7 +4733,7 @@ static const ALDataSample sample3leveningTV[] =
 {15,8,28,48},
 {15,8,32,55},
 {15,8,48,76},
-{15,9,0,63},
+{15,9,0,63}, // Apparently rather fast-changing sunlight all morning, eg from clouds passing...
 {15,9,4,108},
 {15,9,16,92},
 {15,9,20,112},
