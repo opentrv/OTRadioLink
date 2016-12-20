@@ -548,7 +548,7 @@ static void checkPerformanceAcceptableAgainstData(
     // Excess false positives likely inhibit energy saving.
     EXPECT_GE((normalOperation ? 0.1f : 0.122f), flavourStats.occupancyTrackingFalsePositives.getFractionFlavoured());
     // Excess false negatives may cause discomfort.
-    EXPECT_GE((normalOperation ? 0.1f : 0.23f), flavourStats.occupancyTrackingFalseNegatives.getFractionFlavoured());
+    EXPECT_GE((normalOperation ? 0.1f : 0.25f), flavourStats.occupancyTrackingFalseNegatives.getFractionFlavoured());
     if(normalSensitiveOperation)
         {
         // Excess false positives likely inhibit energy saving.
@@ -607,7 +607,7 @@ static void checkPerformanceAcceptableAgainstData(
     // and a little lower ambition in sensitive mode (eg comfort-driven).
 // FIXME: >=25% primary target.
     if((minutes > ticksForMoreThan24h) && !exemptFromNormalRatios)
-        { EXPECT_LE(!sensitive ? 0.21f : 0.15f, potentialSavingsFromSetbackAtLeastDEFAULT); }
+        { EXPECT_LE(!sensitive ? 0.22f : 0.19f, potentialSavingsFromSetbackAtLeastDEFAULT); }
 
     // Print a summary of key stats to eyeball (if not an odd blend).
     // These should be subject to more automated numerical analysis elsewhere.
@@ -4265,7 +4265,10 @@ static const ALDataSample sample3leveningTV[] =
 {10,21,47,40},
 {10,21,55,39, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEMIN}, // TV watching, borderline occupied, borderline dark, maybe small setback.
 {10,22,7,1},
-{10,22,15,1, occType::OCC_NONE, true, false, ALDataSample::SB_ECOMAX}, // Vacant, dark.
+{10,22,15,1}, // Vacant, dark.
+{10,22,27,1}, // Vacant, dark.
+{10,22,43,1}, // Vacant, dark.
+{10,22,59,1, occType::OCC_NONE, true, false, ALDataSample::SB_ECOMAX}, // Vacant, dark.
 // ...
 {11,6,27,1, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Vacant, dark, dark long enough for full setback.
 {11,6,43,1},
