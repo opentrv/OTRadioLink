@@ -888,6 +888,8 @@ if(doGraph)
 const int8_t setback = SDSR::tempControl.getWARMTargetC() - SDSR::cttb.computeTargetTemp();
 if(doGraph)
 {
+//const uint8_t lmean = SDSR::hs.getByHourStatSimple(SDSR::hs.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, H);
+//const uint8_t omean = SDSR::hs.getByHourStatSimple(SDSR::hs.STATS_SET_OCCPC_BY_HOUR_SMOOTHED, H);
 fprintf(stdout, "G %dT%d:%.2d %.3g %.3g %.3g\n", D, H, M, dp->L/2.55f, tracker.get()/1.0f, setback/(0.01f * SDSR::parameters::SETBACK_FULL));
 }
 
@@ -4164,6 +4166,9 @@ TEST(AmbientLightOccupancyDetection,sample6k)
 // "3l" fortnight to 2016/11/24 looking for habitual evening artificial lighting to watch TV, etc.
 // This is not especially intended to check response to other events, though will verify some key ones.
 // See http://www.earth.org.uk/img/20161124-16WWal.png
+// Also for some snapshot analysis 2016/12/20:
+// See http://www.earth.org.uk/img/20161115-amblight-occ-analysis-3l-evening.dat
+// See http://www.earth.org.uk/img/20161115-amblight-occ-analysis-3l-evening.svg
 static const ALDataSample sample3leveningTV[] =
     {
 {10,0,7,1, occType::OCC_NONE, true, false}, // Definitely not occupied.

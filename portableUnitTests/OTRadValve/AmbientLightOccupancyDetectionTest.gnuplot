@@ -23,7 +23,7 @@ if (!exists("title")) title="AmbLight"
 #     gnuplot -e "filename='foo.dat'"
 # Output filename is the input filename with .svg appended.
 if (!exists("filename")) filename='amblightinput.dat'
-# Columns of data to to expect to show (will default to 3).
+# Columns of data to to expect to show (will default to 5).
 #     gnuplot -e "ncol=3"
 if (!exists("ncol")) ncol=3
 finalcol = ncol + 2
@@ -79,5 +79,6 @@ set key right
 #set format y "%gV"
 if (exists("unit")) set format y "%g".unit
 #set tics scale 3
+set style line 1 lc 3
 plot for [i=3:finalcol] filename \
         using 2:(column(i)) title columnheader(i) with lines
