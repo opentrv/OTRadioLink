@@ -836,11 +836,12 @@ if(verboseOutput)
     fprintf(stderr, "\n");
     }
 
-if(graphOutput && !warmup)
+const bool doGraph = graphOutput && !warmup && !oddBlend && !sensitive;
+if(doGraph)
     {
     // All lines for graphing start with "G" and a space.
     // May add other diagnostic columns such as callback events.
-    fprintf(stdout, "G ddThh:mm light%% occ%% setback%%\n");
+    fprintf(stdout, "G - light%% occ%% setback%%\n");
     }
 
                 // Fresh behaviour stats each run, esp non-warmup run.
@@ -885,9 +886,9 @@ if(graphOutput && !warmup)
 
 //fprintf(stderr, "L=%d @ %dT%d:%.2d\n", dp->L, D, H, M);
 const int8_t setback = SDSR::tempControl.getWARMTargetC() - SDSR::cttb.computeTargetTemp();
-if(graphOutput && !warmup)
+if(doGraph)
 {
-fprintf(stdout, "G %dT%d:%.2d %f %f %f\n", D, H, M, dp->L/255.0f, tracker.get()/100.0f, setback/(float)SDSR::parameters::SETBACK_FULL);
+fprintf(stdout, "G %dT%d:%.2d %.3g %.3g %.3g\n", D, H, M, dp->L/2.55f, tracker.get()/1.0f, setback/(0.01f * SDSR::parameters::SETBACK_FULL));
 }
 
                         // Get hourly stats sampled and updated.
