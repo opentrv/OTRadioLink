@@ -51,7 +51,7 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
   private:
     // Threshold from 'likely' to 'probably'; strictly positive.  Not part of the official API.
     static constexpr uint8_t OCCUPATION_TIMEOUT_LIKELY_M = fnmax(((OCCUPATION_TIMEOUT_M*4)/5), 3);
-    // Threshold from 'probably' to 'maybe'; strictly positive and less than OCCUPATION_TIMEOUT_LIKELY_M.  Not part of the official API.
+    // Threshold from 'probably' to 'maybe'/'weak'; strictly positive and less than OCCUPATION_TIMEOUT_LIKELY_M.  Not part of the official API.
     static constexpr uint8_t OCCUPATION_TIMEOUT_MAYBE_M = fnmax(OCCUPATION_TIMEOUT_LIKELY_M/3, 2);
 
     // Nominal (recent) activity timeout in minutes; strictly positive.
