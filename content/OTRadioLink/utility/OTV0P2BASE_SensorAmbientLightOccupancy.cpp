@@ -49,12 +49,31 @@ namespace OTV0P2BASE
 //     and in particular not dark, saturated daylight nor completely constant lighting.
 SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupancyDetectorSimple::update(const uint8_t newLightLevel)
     {
+    // Minimum steady time for detecting artificial light (ticks/minutes).
+    static constexpr uint8_t steadyTicksMinForArtificialLight = 30;
+    // Minimum steady time for detecting light on (ticks/minutes).
+    // Should be short enough to notice someone going to make a cuppa.
+    // Note that an interval <= TX interval may make it harder to validate
+    // algorithms from routinely collected data,
+    // eg <= 4 minutes with typical secure frame rate of 1 per ~4 minutes.
+    static constexpr uint8_t steadyTicksMinBeforeLightOn = 3;
+//    // Minimum steady time after lights on to confirm 'probable' occupancy.
+//    // Intended to prevent  a brief flash of light,
+//    // or very quickly turning on lights in the night to find something,
+//    // from firing up the entire heating system.
+//    // This threshold may be applied conditionally, eg when previously v dark.
+//    static constexpr uint8_t steadyTicksMinWithLightOn = 1;
+
     // If new light level lower than previous
     // then do not detect any level of occupancy and save some CPU time.
     if(newLightLevel < prevLightLevel)
         {
-        if((prevLightLevel - newLightLevel) >= epsilon) { steadyTicks = 0; }
-        else if(steadyTicks < 255) { ++steadyTicks; }
+        // If a significant fall then levels are not steady,
+        // and clear any pending activity.
+        if((prevLightLevel - newLightLevel) >= epsilon)
+            { steadyTicks = 0; probablePending = false; }
+        else if(steadyTicks < 255)
+            { ++steadyTicks; }
         prevLightLevel = newLightLevel;
         return(OCC_NONE);
         }
@@ -79,28 +98,50 @@ SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupanc
     const uint8_t rise = newLightLevel - prevLightLevel;
     const bool steady = (rise < epsilon);
 
-    // Reset 'steady' timer if significant delta.
+    // Reset 'steady' timer if significant (upward) delta.
+    // (Rise does not clear pending probable.)
     const uint8_t oldSteadyTicks = steadyTicks;
     if(!steady) { steadyTicks = 0; }
     else if(steadyTicks < 255) { ++steadyTicks; }
 
     // Precondition for probable occupancy is a rising light level.
+    // Activate pending probable occupancy if light level didn't fall (much).
+    if(probablePending)
+        {
+        // Lights have been on and stayed on.
+        occLevel = OCC_PROBABLE;
+        probablePending = false;
+        }
     // Any rise must be more than the fixed floor/noise threshold epsilon.
-    // Also, IF a long-term mean for this time slot is available and above the lower floor,
-    // then the rise must also be more than a fraction of the mean's distance above that floor,
-    // AND the rise must not start from above the mean
-    // (to reduce false triggering from clouds in bright sunshine).
+    // Also, IF a long-term mean for this time slot is available
+    // and that mean is above the lower floor,
+    // then the rise must also be more than a fraction of the mean's distance
+    // above that floor.
     //
-    // An alternative damper is to insist on the rise starting at/below the mean.
-    if((!steady) &&
+    // An alternative damper would be the rise starting at/below the mean.
+    else if((!steady) &&
         (((0xff == meanNowOrFF) || (meanNowOrFF <= minToUse)) ||
-            ((rise >= ((meanNowOrFF - minToUse) >> (sensitive ? 2 : 1))) &&
+            ((rise >= ((meanNowOrFF - minToUse) >> (1 /* sensitive ? 2 : 1 */ ))) &&
                 (oldSteadyTicks >= steadyTicksMinBeforeLightOn))))
         {
-        // Lights flicked on or curtains drawn maybe: room occupied.
-        occLevel = OCC_PROBABLE;
+        if((prevLightLevel > minToUse) || (oldSteadyTicks < 0xff))
+            {
+            // Room was NOT pitch black,
+            // or has not been steady (eg dark) for a long time.
+            // Lights flicked on or curtains drawn maybe: room occupied.
+            occLevel = OCC_PROBABLE;
+            probablePending = false;
+            }
+        else
+            {
+            // Room was pitch black; defer until light is left on.
+            // Note weak occupancy in the interim,
+            // which should not wake anything up.
+            occLevel = OCC_WEAK;
+            probablePending = true;
+            }
         }
-    // Else look for weak occupancy indications.
+    // Else if steady long enough look for weak occupancy indications.
     // Look for habitual use of artificial lighting at set times,
     // eg for TV watching or reading.
     // This must have a non-extreme sane mean for the current time of day,
