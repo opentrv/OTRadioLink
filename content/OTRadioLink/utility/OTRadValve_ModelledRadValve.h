@@ -417,7 +417,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
             const bool scheduleOnSoon = schedule->isAnyScheduleOnWARMSoon();
             // High likelihood of occupancy now inhibits ECO setback.
             const uint8_t hoursLessOccupiedThanThis = byHourStats->countStatSamplesBelow(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED, byHourStats->getByHourStatRTC(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED, OTV0P2BASE::NVByHourByteStatsBase::SPECIAL_HOUR_CURRENT_HOUR));
-            const uint8_t thisHourNLOThreshold = tempControl->hasEcoBias() ? 15 : 13;
+            const uint8_t thisHourNLOThreshold = tempControl->hasEcoBias() ? 17 : 13;
             const bool relativelyActive = (hoursLessOccupiedThanThis > thisHourNLOThreshold);
             // Inhibit ECO (or more) setback (unless long vacant)
             // for scheduled-on or where this hour is relatively busy
@@ -449,7 +449,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
                 // OR dark for a while AND return not strongly anticipated
                 // then allow a maximum night setback and minimise noise (TODO-792, TODO-1027)
                 if(!inhibitFULLSetback &&
-                   (longVacant || (dm > 60)))
+                   (longVacant || (dm > 30)))
                     { setback = valveControlParameters::SETBACK_FULL; }
                 }
 
