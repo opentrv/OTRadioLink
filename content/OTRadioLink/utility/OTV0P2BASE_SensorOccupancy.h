@@ -51,8 +51,8 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
   private:
     // Threshold from 'likely' to 'probably'; strictly positive.  Not part of the official API.
     static constexpr uint8_t OCCUPATION_TIMEOUT_LIKELY_M = fnmax(((OCCUPATION_TIMEOUT_M*4)/5), 3);
-    // Threshold from 'probably' to 'maybe'; strictly positive and less than OCCUPATION_TIMEOUT_LIKELY_M.  Not part of the official API.
-    static constexpr uint8_t OCCUPATION_TIMEOUT_MAYBE_M = fnmax(OCCUPATION_TIMEOUT_LIKELY_M/3, 2);
+    // Threshold from 'probably' to 'maybe'/'weak'; strictly positive and less than OCCUPATION_TIMEOUT_LIKELY_M.  Not part of the official API.
+    static constexpr uint8_t OCCUPATION_TIMEOUT_MAYBE_M = fnmax(OCCUPATION_TIMEOUT_LIKELY_M/2, 2);
 
     // Nominal (recent) activity timeout in minutes; strictly positive.
     // Because of the way the countdown is done, has to be >= 2 to guarantee to be visible at least one whole tick.
@@ -193,7 +193,7 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     // Since these signals may arise infrequently this should not be too low,
     // but too high a value allows false positives to prevent energy savings.
     // No more than (say) 6 hours to allow night to kill weak signal input.
-    static constexpr uint8_t weakVacantHThrH = 1;
+    static constexpr uint8_t weakVacantHThrH = 0;
     // Threshold hours ABOVE which room is considered long vacant.
     // At least 24h in order to allow once-daily room programmes (including pre-warm) to operate reliably.
     static constexpr uint8_t longVacantHThrH = 24;

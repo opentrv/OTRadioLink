@@ -109,21 +109,30 @@ SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupanc
     // and levels must be fairly steady for a while (> ~30 minutes)
     // eg to guard against (eg) sunlight-driven flicker.
     //
+    // TODO: this could avoid providing weak occupancy signals indefinitely,
+    // eg with an upper limit on steadyTicksMinForArtificialLight.
+    //
     // See evening levels for trace 3l here for example:
     //     http://www.earth.org.uk/img/20161124-16WWal.png
-    else if((steadyTicks >= steadyTicksMinForArtificialLight) && (meanNowOrFF > minToUse) && (meanNowOrFF < maxToUse)) // Implicitly 0xff != meanNowOrFF.
+    else if((steadyTicks >= steadyTicksMinForArtificialLight) &&
+            (minToUse < meanNowOrFF) && (meanNowOrFF < maxToUse)) // Implicitly 0xff != meanNowOrFF.
         {
         // Previous and current light levels should ideally be well away from maximum/minimum
         // (and asymmetrically much further below maximum, ie a wider margin on the high side)
         // to avoid being triggered in continuously dark/lit areas, and when daylit.
         // The levels must also be close to the mean for the time of day.
         const uint8_t range = maxToUse - minToUse;
-        constexpr uint8_t marginWshift = 1;
-        const uint8_t marginW = range >> (/*sensitive ? (1+marginWshift) : */ marginWshift);
-        const uint8_t margin = uint8_t(marginW >> 2);
-        const uint8_t thrL = minToUse + margin;
-        const uint8_t thrH = maxToUse - marginW;
-        const uint8_t maxDistanceFromMean = fnmin(meanNowOrFF-minToUse, maxToUse-meanNowOrFF) >> 1; // (sensitive ? 1 : 2);
+        if(range > 2*epsilon)
+            {
+            // This measure only makes sense if there is normally
+            // a reasonably dynamic ambient light range
+            // so that all the time lights levels are not trivially 'steady'.
+            constexpr uint8_t marginWshift = 1;
+            const uint8_t marginW = range >> (/*sensitive ? (1+marginWshift) : */ marginWshift);
+            const uint8_t margin = uint8_t(marginW >> 2);
+            const uint8_t thrL = minToUse + margin;
+            const uint8_t thrH = maxToUse - marginW;
+            const uint8_t maxDistanceFromMean = fnmin(meanNowOrFF-minToUse, maxToUse-meanNowOrFF) >> 1; // (sensitive ? 1 : 2);
 
 #if 0 && !defined(ARDUINO)
         serialPrintAndFlush("  newLightLevel=");
@@ -152,11 +161,12 @@ SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupanc
         serialPrintlnAndFlush();
 #endif
 
-        if((newLightLevel > thrL) && (newLightLevel < thrH) &&
-           (fnabsdiff(newLightLevel, meanNowOrFF) <= maxDistanceFromMean))
-            {
-            // Steady artificial lighting now near usual levels for this time of day.
-            occLevel = OCC_WEAK;
+            if((newLightLevel > thrL) && (newLightLevel < thrH) &&
+               (fnabsdiff(newLightLevel, meanNowOrFF) <= maxDistanceFromMean))
+                {
+                // Steady artificial lighting now near usual levels for this time of day.
+                occLevel = OCC_WEAK;
+                }
             }
         }
 
