@@ -72,7 +72,8 @@ class SensorAmbientLightOccupancyDetectorInterface
       };
 
     // Call regularly with the current ambient light level [0,254].
-    // Should be called maybe once a minute or on whatever regular basis ambient light level is sampled.
+    // Should be called maybe once a minute
+    // (or on whatever regular basis ambient light level is sampled).
     // Returns OCC_NONE if no occupancy is detected.
     // Returns OCC_WEAK if weak occupancy is detected, eg from TV watching.
     // Returns OCC_PROBABLE if probable occupancy is detected, eg from lights flicked on.
@@ -119,7 +120,6 @@ class SensorAmbientLightOccupancyDetectorSimple final : public SensorAmbientLigh
 	  uint8_t longTermMaximumOrFF = 0xff;
 //	  // If true, the ambient light system has been requested to be
 //	  // more sensitive to signs of occupancy.
-//	  // FIXME: may be able to do without 'sensitive'.
 //	  bool sensitive = false;
 
       // If true then a OCC_PROBABLE is pending

@@ -31,11 +31,11 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 
 
 // Set true for verbose reporting.
-static constexpr bool verbose = true;
+static constexpr bool verbose = false;
 // Lots of extra detail, generally should not be needed.
 static constexpr bool veryVerbose = false && verbose;
 // Generate output for graphing, eg with gnuplot.
-static constexpr bool graphOutput = true && verbose;
+static constexpr bool graphOutput = false && verbose;
 
 // Import occType enum values.
 typedef OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType occType;

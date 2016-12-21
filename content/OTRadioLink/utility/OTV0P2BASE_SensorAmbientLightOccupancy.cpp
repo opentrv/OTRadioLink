@@ -57,12 +57,13 @@ SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupanc
     // algorithms from routinely collected data,
     // eg <= 4 minutes with typical secure frame rate of 1 per ~4 minutes.
     static constexpr uint8_t steadyTicksMinBeforeLightOn = 3;
-//    // Minimum steady time after lights on to confirm 'probable' occupancy.
-//    // Intended to prevent  a brief flash of light,
-//    // or very quickly turning on lights in the night to find something,
-//    // from firing up the entire heating system.
-//    // This threshold may be applied conditionally, eg when previously v dark.
-//    static constexpr uint8_t steadyTicksMinWithLightOn = 1;
+    // Minimum steady time after lights on to confirm 'probable' occupancy.
+    // Intended to prevent  a brief flash of light,
+    // or very quickly turning on lights in the night to find something,
+    // from firing up the entire heating system.
+    // This threshold may be applied conditionally, eg when previously v dark.
+    // Not so long as to fail to respond to genuine occupancy.
+    static constexpr uint8_t steadyTicksMinWithLightOn = 3;
 
     // If new light level lower than previous
     // then do not detect any level of occupancy and save some CPU time.
@@ -104,14 +105,15 @@ SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupanc
     if(!steady) { steadyTicks = 0; }
     else if(steadyTicks < 255) { ++steadyTicks; }
 
-    // Precondition for probable occupancy is a rising light level.
-    // Activate pending probable occupancy if light level didn't fall (much).
-    if(probablePending)
+    // Activate pending probable occupancy if steady long enough
+    // ie without (much) light level fall.
+    if((probablePending) && (steadyTicks >= steadyTicksMinWithLightOn))
         {
         // Lights have been on and stayed on.
         occLevel = OCC_PROBABLE;
         probablePending = false;
         }
+    // Precondition for probable occupancy is a rising light level.
     // Any rise must be more than the fixed floor/noise threshold epsilon.
     // Also, IF a long-term mean for this time slot is available
     // and that mean is above the lower floor,
