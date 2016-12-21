@@ -611,7 +611,7 @@ static void checkPerformanceAcceptableAgainstData(
     // and a little lower ambition in sensitive mode (eg comfort-driven).
 // FIXME: >=25% primary target.
     if((minutes > ticksForMoreThan24h) && !exemptFromNormalRatios)
-        { EXPECT_LE(!sensitive ? 0.23f : 0.23f, potentialSavingsFromSetbackAtLeastDEFAULT); }
+        { EXPECT_LE(!sensitive ? 0.225f : 0.225f, potentialSavingsFromSetbackAtLeastDEFAULT); }
 
     // Print a summary of key stats to eyeball (if not an odd blend).
     // These should be subject to more automated numerical analysis elsewhere.
@@ -1413,10 +1413,10 @@ static const ALDataSample sample1gBriefLightOn[] =
 {20,20,20,2},
 {20,20,26,2},
 {20,20,27,3},
-{20,20,30,3},
+{20,20,30,3, occType::OCC_NONE, true, false, ALDataSample::SB_MINECO}, // Setback reducing in anticipation of occupancy.
 {20,20,34,3},
 {20,20,38,3},
-{20,20,40,145, occType::OCC_PROBABLE, false, true, ALDataSample::SB_NONE},
+{20,20,40,145, occType::OCC_PROBABLE, false, true, ALDataSample::SB_NONE}, // Occupancy.
 {20,20,42,151},
 {20,20,43,103},
 {20,20,44,134},
