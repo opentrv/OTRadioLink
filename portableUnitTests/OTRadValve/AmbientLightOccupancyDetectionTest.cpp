@@ -134,7 +134,7 @@ class ALDataSample final
         constexpr ALDataSample() : d(255), H(255), M(255), L(255) { }
 
         // Compute current minute for this record.
-        long currentMinute() const { return((((d * 24L) + H) * 60L) + M); }
+        unsigned long currentMinute() const { return((((d * 24L) + H) * 60L) + M); }
 
         // True for empty/termination data record.
         bool isEnd() const { return(d > 31); }
@@ -288,6 +288,7 @@ if(veryVerbose && logCallback) { fprintf(stderr, " *Callback: %d\n", p); }
         // Reset valve-level manual controls.
         valveMode.setWarmModeDebounced(true);
         physicalUI.read();
+        // Turn off eco-bias.
         tempControl._setWarmTarget();
         // Install the occupancy tracker callback from the ambient light sensor.
         ambLight.setOccCallbackOpt(callback);
@@ -564,8 +565,13 @@ static void checkPerformanceAcceptableAgainstData(
     // Check that setback accuracy is OK.
     // Aim for a low error rate in either direction.
     // But err on the side of energy saving.
-    EXPECT_GE((normalOperation ? 0.09f : 0.12f), flavourStats.setbackInsufficient.getFractionFlavoured()) << flavourStats.setbackInsufficient.getSampleCount();
-    EXPECT_GE((normalOperation ? 0.09f : 0.1f), flavourStats.setbackTooFar.getFractionFlavoured()) << flavourStats.setbackTooFar.getSampleCount();
+    EXPECT_GE((normalOperation ? 0.09f : 0.25f), flavourStats.setbackInsufficient.getFractionFlavoured()) << flavourStats.setbackInsufficient.getSampleCount();
+    EXPECT_GE((normalOperation ? 0.09f : 0.25f), flavourStats.setbackTooFar.getFractionFlavoured()) << flavourStats.setbackTooFar.getSampleCount();
+    if(normalSensitiveOperation)
+        {
+        EXPECT_GE(0.1f, flavourStats.setbackInsufficient.getFractionFlavoured()) << flavourStats.setbackInsufficient.getSampleCount();
+        EXPECT_GE(0.1f, flavourStats.setbackTooFar.getFractionFlavoured()) << flavourStats.setbackTooFar.getSampleCount();
+        }
 
     // Compute nominal available savings
     // assuming typical values per degree of setback in UK.
@@ -693,6 +699,8 @@ void simpleDataSampleRun(const ALDataSample *const data,
     static constexpr uint8_t FROST = SDSR::parameters::FROST;
     ASSERT_GE(WARM, SDSR::cttb.computeTargetTemp());
     ASSERT_LE(FROST, SDSR::cttb.computeTargetTemp());
+    // Check system in non-sensitive mode, usually with ecoBias() off.
+    ASSERT_TRUE(SDSR::tempControl.hasEcoBias());
 
     // Count of number of records.
     int nRecords = 0;
@@ -706,6 +714,8 @@ void simpleDataSampleRun(const ALDataSample *const data,
     uint8_t byHourMeanI[24];
     int byHourMeanSumI[24]; memset(byHourMeanSumI, 0, sizeof(byHourMeanSumI));
     int byHourMeanCountI[24]; memset(byHourMeanCountI, 0, sizeof(byHourMeanCountI));
+    const unsigned long firstMinute = data->currentMinute();
+    unsigned long lastMinute = firstMinute;
     for(const ALDataSample *dp = data; !dp->isEnd(); ++dp)
         {
         if(dp > data) { ASSERT_LT((dp-1)->currentMinute(), dp->currentMinute()) << "record times must increase strictly monotonically in time: prev " <<int((dp-1)->d)<<"T"<<int((dp-1)->H)<<":"<<int((dp-1)->M) << " vs current "<<int(dp->d)<<"T"<<int(dp->H)<<":"<<int(dp->M); }
@@ -714,7 +724,7 @@ void simpleDataSampleRun(const ALDataSample *const data,
         if(neo != dp->expectedOcc) { ++nOccExpectation; }
         const int8_t ner = ALDataSample::NO_RD_EXPECTATION;
         if(ner != dp->expectedRd) { ++nRdExpectation; }
-        long currentMinute = dp->currentMinute();
+        unsigned long currentMinute = dp->currentMinute();
         do  {
             const uint8_t level = dp->L;
             if((int)level < minI) { minI = level; }
@@ -722,14 +732,20 @@ void simpleDataSampleRun(const ALDataSample *const data,
             const uint8_t H = (currentMinute % 1440) / 60;
             const uint8_t M = (currentMinute % 60);
             SDSR::hs._setHour(H);
-            if(29 == M) { SDSR::su.sampleStats(false, H); }
-            if(59 == M) { SDSR::su.sampleStats(true, H); }
             byHourMeanSumI[H] += level;
             ++byHourMeanCountI[H];
             ++currentMinute;
             ala.set(dp->L); ala.read(); tracker.read();
+            if(29 == M) { SDSR::su.sampleStats(false, H); }
+            if(59 == M) { SDSR::su.sampleStats(true, H); }
+            lastMinute = currentMinute;
+//if(29 == M) { fprintf(stderr, " >occ=%d (%d)\n", SDSR::hs.getByHourStatRTC(SDSR::hs.STATS_SET_OCCPC_BY_HOUR_SMOOTHED), tracker.get()); }
+//if(59 == M) { fprintf(stderr, ">>occ=%d (%d)\n", SDSR::hs.getByHourStatRTC(SDSR::hs.STATS_SET_OCCPC_BY_HOUR_SMOOTHED), tracker.get()); }
             } while((!(dp+1)->isEnd()) && (currentMinute < (dp+1)->currentMinute()));
         }
+//    const unsigned long totalMinutes = lastMinute - firstMinute + 1;
+    // Days spanned; strictly positive.
+    const unsigned long totalDaysSpanned = (lastMinute / 1440) - (firstMinute / 1440) + 1;
     ASSERT_TRUE((nOccExpectation > 0) || (nRdExpectation > 0)) << "must assert some expected predictions";
     for(int i = 24; --i >= 0; )
         {
@@ -768,14 +784,19 @@ void simpleDataSampleRun(const ALDataSample *const data,
 
     // Now run through all the data checking responses.
     // Run simulation with different stats blending types
-    // to ensure that occupancy detection is robust.
+    // (preferred and one non-standard one each time)
+    // to ensure that occupancy detection, etc, is robust.
     // The BL_FROMSTATS case is most like the real embedded code.
-    for(uint8_t blending = 0; blending < BL_END; ++blending)
+    static_assert(0 == BL_FROMSTATS, "BL_FROMSTATS must be 0");
+    const uint8_t nonStdBlend = uint8_t(1 + unsigned(random()) % (BL_END-1));
+//    for(uint8_t blending = 0; blending < BL_END; ++blending)
+    for(int b = 0; b < 2; ++b)
         {
+        const uint8_t blending = (0 == b) ? BL_FROMSTATS : nonStdBlend;
+        const bool oddBlend = (BL_FROMSTATS != blending);
 if(verbose) { fprintf(stderr, "blending = %d\n", blending); }
         SCOPED_TRACE(testing::Message() << "blending " << (int)blending);
         // The preferred blend (most like a real deployment) is FROMSTATS.
-        const bool oddBlend = (BL_FROMSTATS != blending);
 
         // Run simulation at both sensitivities.
         int nOccupancyReportsSensitive = 0;
@@ -799,13 +820,17 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
             // Reset stats to end of main warm-up run.
             SDSR::hs = hsInitCopy;
 
-            // Now run a warmup to get stats into correct state.
-            // Stats are rolled over from the warmpup to the final run.
+            // Now run one or more warmups to get stats into correct state.
+            // More than one warm-up run may be required for stats to settle.
+            // A certain number of days' stats setting is required.
+            // Stats are rolled over from the warmup(s) to the final run.
             // Results will be ignored during this warmup.
-
-            for(int w = 0; w < 2; ++w)
+            static constexpr int minDaysWarmup = 15;
+            const int warmupRuns = (totalDaysSpanned<2) ? int(minDaysWarmup) :
+                OTV0P2BASE::fnmax(1, int(minDaysWarmup / (totalDaysSpanned-1)));
+            for(int w = -warmupRuns; w <= 0; ++w)
                 {
-                const bool warmup = (0 == w);
+                const bool warmup = (w < 0);
 
                 // Suppress most reporting for odd blends and in warmup.
 const bool verboseOutput = !warmup && (veryVerbose || (verbose && !oddBlend));
@@ -843,7 +868,7 @@ if(doGraph)
     {
     // All lines for graphing start with "G" and a space.
     // May add other diagnostic columns such as callback events.
-    fprintf(stdout, "G - light%% occ%% setback%%\n");
+    fprintf(stdout, "G - light%% occ%% setback%% omean%%\n");
     }
 
                 // Fresh behaviour stats each run, esp non-warmup run.
@@ -861,7 +886,7 @@ if(doGraph)
                 uint8_t oldH = 0xff; // Used to detect hour rollover.
                 for(const ALDataSample *dp = data; !dp->isEnd(); ++dp)
                     {
-                    long currentMinute = dp->currentMinute();
+                    unsigned long currentMinute = dp->currentMinute();
                     do  {
                         const uint8_t D = (currentMinute / 1440);
                         const uint8_t H = (currentMinute % 1440) / 60;
@@ -891,8 +916,8 @@ const int8_t setback = SDSR::tempControl.getWARMTargetC() - SDSR::cttb.computeTa
 if(doGraph)
 {
 //const uint8_t lmean = SDSR::hs.getByHourStatSimple(SDSR::hs.STATS_SET_AMBLIGHT_BY_HOUR_SMOOTHED, H);
-//const uint8_t omean = SDSR::hs.getByHourStatSimple(SDSR::hs.STATS_SET_OCCPC_BY_HOUR_SMOOTHED, H);
-fprintf(stdout, "G %dT%d:%.2d %.3g %.3g %.3g\n", D, H, M, dp->L/2.55f, tracker.get()/1.0f, setback/(0.01f * SDSR::parameters::SETBACK_FULL));
+const uint8_t omean = SDSR::hs.getByHourStatSimple(SDSR::hs.STATS_SET_OCCPC_BY_HOUR_SMOOTHED, H);
+fprintf(stdout, "G %dT%d:%.2d %.3g %.3g %.3g %.3g\n", D, H, M, dp->L/2.55f, tracker.get()/1.0f, setback/(0.01f * SDSR::parameters::SETBACK_FULL), omean/1.0f);
 }
 
                         // Get hourly stats sampled and updated.
@@ -1684,11 +1709,14 @@ static const ALDataSample sample3lHard[] =
 {8,0,1,1, occType::OCC_NONE, true, false, ALDataSample::SB_MINECO}, // Definitely not occupied; should be at least somewhat setback immediately.
 {8,0,17,1, occType::OCC_NONE, true, false, ALDataSample::SB_MINECO}, // Definitely not occupied; should be at least somewhat setback immediately.
 //...
+{8,4,57,2, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Not enough rise to indicate occupation, still dark, running long enough for max setback.
+{8,5,9,2, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Still dark, running long enough for max setback.
+//...
 {8,6,21,1},
-{8,6,29,2, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Not enough rise to indicate occupation, still dark, running long enough for max setback.
+{8,6,29,2, occType::OCC_NONE, true, false, ALDataSample::SB_MIN}, // Small setback, anticipating occupancy.
 {8,6,33,2},
 {8,6,45,2},
-{8,6,57,2, occType::OCC_NONE, true, false}, // Not enough light to indicate occupation, dark.
+{8,6,57,2, occType::OCC_NONE, true, false, ALDataSample::SB_MIN}, // Not enough light to indicate occupation, dark.  Small setback, anticipating occupancy.
 {8,7,9,14, ALDataSample::NO_OCC_EXPECTATION, ALDataSample::NO_RD_EXPECTATION},  // Temporarily occupied: curtains drawn?  Borderline dark?
 {8,7,17,35},
 {8,7,21,38},
@@ -1765,41 +1793,41 @@ static const ALDataSample sample3lHard[] =
 {8,16,49,34},
 {8,16,57,28},
 {8,17,5,20},
-{8,17,13,7},
+{8,17,13,7, occType::OCC_NONE, ALDataSample::NO_RD_EXPECTATION, false, ALDataSample::SB_MIN}, // Anticipating (re)occupancy.
 {8,17,25,4},
-{8,17,37,44, occType::OCC_PROBABLE, false, true}, // OCCUPIED (light on?).
+{8,17,37,44, occType::OCC_PROBABLE, false, true, ALDataSample::SB_NONE}, // OCCUPIED (light on?).
 {8,17,49,42},
-{8,18,1,42, occType::OCC_WEAK, false, true}, // Light on, watching TV?
+{8,18,1,42, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONE}, // Light on, watching TV?
 {8,18,9,40},
-{8,18,13,42, occType::OCC_WEAK, false, true}, // Light on, watching TV?
+{8,18,13,42, occType::OCC_WEAK, false, true, ALDataSample::SB_NONE}, // Light on, watching TV?
 {8,18,25,40},
-{8,18,37,40, occType::OCC_WEAK, false, true}, // Light on, watching TV?
-{8,18,41,42, occType::OCC_WEAK, false, true}, // Light on, watching TV?
-{8,18,49,42, occType::OCC_WEAK, false, true}, // Light on, watching TV?
+{8,18,37,40, occType::OCC_WEAK, false, true, ALDataSample::SB_NONE}, // Light on, watching TV?
+{8,18,41,42, occType::OCC_WEAK, false, true, ALDataSample::SB_NONE}, // Light on, watching TV?
+{8,18,49,42, occType::OCC_WEAK, false, true, ALDataSample::SB_NONE}, // Light on, watching TV?
 {8,18,57,41},
 {8,19,1,40},
-{8,19,13,41, occType::OCC_WEAK, false, true}, // Light on, watching TV?
+{8,19,13,41, occType::OCC_WEAK, false, true, ALDataSample::SB_NONE}, // Light on, watching TV?
 {8,19,21,39},
 {8,19,25,41}, // ... more WEAK signals should follow...
 {8,19,41,41},
 {8,19,52,42},
 {8,19,57,40},
 {8,20,5,40},
-{8,20,9,42, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Ideally, on bigger data set... occType::OCC_WEAK}, // Light on, watching TV?
+{8,20,9,42, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONE}, // Light on, watching TV?
 {8,20,17,42},
 {8,20,23,40},
-{8,20,29,40, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Ideally, on bigger data set... occType::OCC_WEAK}, // Light on, watching TV?
+{8,20,29,40, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONE}, // Light on, watching TV?
 {8,20,33,40},
 {8,20,37,41},
-{8,20,41,42, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Ideally, on bigger data set... occType::OCC_WEAK}, // Light on, watching TV?
+{8,20,41,42, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONE}, // Light on, watching TV?
 {8,20,49,40},
 {8,21,5,1, occType::OCC_NONE, true}, // Just vacated, dark.
-{8,21,13,1, occType::OCC_NONE, true, false}, // Definitely not occupied.
+{8,21,13,1},
 // ...
-{9,5,57,1, occType::OCC_NONE, true, false}, // Definitely not occupied.
+{9,5,57,1, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Definitely not occupied.  Max setback.
 {9,6,13,1, occType::OCC_NONE, true, false}, // Definitely not occupied.
 {9,6,21,2, occType::OCC_NONE, true, false}, // Not enough rise to indicate occupation, dark.
-{9,6,33,2, occType::OCC_NONE, true, false}, // Not enough light to indicate occupation, dark.
+{9,6,33,2, occType::OCC_NONE, true, false, ALDataSample::SB_MIN}, // Not enough light to indicate occupation, dark.  Small setback anticipting occupancy.
 {9,6,37,24, occType::OCC_PROBABLE, false, true}, // Curtains drawn: OCCUPIED. Should appear light.
 {9,6,45,32},
 {9,6,53,31},
@@ -2077,7 +2105,7 @@ static const ALDataSample sample3lSetback[] =
 {5,16,43,39},
 {5,16,51,39},
 {5,17,7,40},
-{5,17,19,2},
+{5,17,19,2, occType::OCC_NONE, true, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEMIN}, // Should have minimal setback, anticipating (re)occupancy.
 {5,17,39,40},
 {5,17,59,40},
 {5,18,15,38},
@@ -2180,7 +2208,7 @@ static const ALDataSample sample3lSetback[] =
 {6,14,38,13},
 {6,14,47,11},
 {6,14,55,10},
-{6,15,6,7},
+{6,15,6,7, occType::OCC_NONE, ALDataSample::NO_RD_EXPECTATION, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEMIN}, // Should have minimal setback, anticipating (re)occupancy.
 {6,15,27,5},
 {6,15,38,4},
 {6,15,49,3, occType::OCC_NONE, true, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEECO}, // Should have minimal setback, anticipating (re)occupancy.
@@ -2297,7 +2325,7 @@ static const ALDataSample sample3lSetback[] =
 {7,15,9,16},
 {7,15,18,12},
 {7,15,30,9},
-{7,15,31,8},
+{7,15,31,8, occType::OCC_NONE, ALDataSample::NO_RD_EXPECTATION, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEMIN}, // Should have minimal setback, anticipating (re)occupancy.
 {7,15,46,44},
 {7,16,2,39},
 {7,16,18,41},
@@ -2726,7 +2754,7 @@ static const ALDataSample sample3lSetback[] =
 {8,16,15,2},
 {8,16,19,2},
 {8,16,23,2},
-{8,16,27,2},
+{8,16,27,2, occType::OCC_NONE, true, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEMIN}, // Should have minimal setback, anticipating (re)occupancy.
 {8,16,31,33, occType::OCC_PROBABLE, false, true, ALDataSample::SB_NONE}, // OCC START
 {8,16,35,40},
 {8,16,36,41},
@@ -3468,10 +3496,10 @@ static const ALDataSample sample5sHard[] =
 {8,5,31,1, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Not occupied actively, sleeping, max setback.
 {8,5,43,2, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Not occupied actively, sleeping, max setback.
 // ...
-{8,6,23,4, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Not occupied actively, sleeping, max setback.
-{8,6,35,6, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Not occupied actively, sleeping, max setback.
-{8,6,39,5, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Not occupied actively, sleeping, max setback.
-{8,6,51,6, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Not occupied actively, sleeping, max setback.
+{8,6,23,4, occType::OCC_NONE, true, false}, // Not occupied actively, sleeping.
+{8,6,35,6, occType::OCC_NONE, true, false}, // Not occupied actively, sleeping.
+{8,6,39,5, occType::OCC_NONE, true, false}, // Not occupied actively, sleeping.
+{8,6,51,6, occType::OCC_NONE, true, false}, // Not occupied actively, sleeping.
 {8,7,3,9, occType::OCC_NONE, ALDataSample::NO_RD_EXPECTATION, false}, // Not occupied actively.
 {8,7,11,12},
 {8,7,15,13, ALDataSample::NO_OCC_EXPECTATION, ALDataSample::NO_RD_EXPECTATION, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEMIN}, // Should at least be anticipating occupancy.
@@ -3489,7 +3517,7 @@ static const ALDataSample sample5sHard[] =
 {8,8,51,38},
 {8,8,55,37},
 {8,8,59,34},
-{8,9,3,43, ALDataSample::NO_OCC_EXPECTATION, false, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEECO}, // Daylight, setback should be limited.
+{8,9,3,43, ALDataSample::NO_OCC_EXPECTATION, false, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_MIN}, // Daylight, setback should be minimal anticipating occupation.
 {8,9,19,79},
 {8,9,23,84},
 {8,9,35,92},
@@ -3572,8 +3600,8 @@ static const ALDataSample sample5sHard[] =
 {9,5,47,2, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Not occupied actively, sleeping, max setback.
 {9,5,51,2, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Not occupied actively, sleeping, max setback.
 {9,6,3,3},
-{9,6,15,5, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Not occupied actively, sleeping, max setback.
-{9,6,27,10, ALDataSample::NO_OCC_EXPECTATION, ALDataSample::NO_RD_EXPECTATION, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEECO}, // Should be anticipating occupancy; at most small setback.
+{9,6,15,5, occType::OCC_NONE, true, false, ALDataSample::SB_MIN}, // Not occupied actively, sleeping, min setback in anticipation of occupation.
+{9,6,27,10, ALDataSample::NO_OCC_EXPECTATION, ALDataSample::NO_RD_EXPECTATION, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEMIN}, // Should be anticipating occupancy; at most small setback.
 {9,6,31,12},
 {9,6,35,15},
 {9,6,39,19},
@@ -3680,7 +3708,7 @@ static const ALDataSample sample5sHard2[] =
 {1,17,53,24},
 {1,18,3,2},
 {1,18,13,26},
-{1,18,29,40},
+{1,18,29,40, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONE}, // (Second) light on, occupied, no setback.
 {1,18,33,2},
 {1,18,45,2},
 {1,19,1,2},
@@ -3702,9 +3730,9 @@ static const ALDataSample sample5sHard2[] =
 {1,23,1,2},
 {1,23,17,2},
 {1,23,25,1},
-{1,23,29,1, occType::OCC_NONE, true, false},
+{1,23,29,1, occType::OCC_NONE, true, false, ALDataSample::SB_MAX},
 // ...
-{2,6,49,1, occType::OCC_NONE, true, false},
+{2,6,49,1, occType::OCC_NONE, true, false, ALDataSample::SB_MAX},
 {2,7,1,1},
 {2,7,17,2},
 {2,7,21,2},
@@ -4144,8 +4172,8 @@ static const ALDataSample sample5sHard2[] =
 {3,17,57,2},
 {3,18,1,2},
 {3,18,6,2},
-{3,18,10,9, occType::OCC_PROBABLE, false, true}, // Light on, occupied.
-{3,18,14,19, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Light, occupied.
+{3,18,10,9}, // Light on?.
+{3,18,14,19, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONE}, // Light, occupied.
 {3,18,15,16},
 {3,18,16,14},
 {3,18,19,14},
@@ -4263,7 +4291,8 @@ static const ALDataSample sample5sHard2[] =
 {3,23,0,1},
 {3,23,3,1, occType::OCC_NONE, true, false}, // Dark, no active occpancy.
 // ...
-{4,7,4,1},
+// ...
+{4,7,4,1, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, no active occpancy, max setback.
 {4,7,7,1},
 {4,7,11,2},
 {4,7,15,2},
@@ -4295,7 +4324,7 @@ static const ALDataSample sample5sHard2[] =
 {4,8,30,35},
 {4,8,33,38},
 {4,8,35,46},
-{4,8,37,43},
+{4,8,37,43, occType::OCC_NONE, false, false, ALDataSample::SB_MIN}, // Min setback anticipating occupancy.
 {4,8,39,38},
 {4,8,41,43},
 {4,8,45,47},
@@ -4641,7 +4670,7 @@ static const ALDataSample sample2bHard2[] =
 {29,7,20,8},
 {29,7,32,8, occType::OCC_NONE, true, false, ALDataSample::SB_MINECO}, // Reduced setabck anticipating occupancy.
 {29,7,48,34, ALDataSample::NO_OCC_EXPECTATION, false}, // FIXME: Should be able to detect curtains drawn here; occupancy detection may be deferred.
-{29,8,1,30, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONE}, // Occupancy, no setback by now.
+{29,8,1,30, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEMIN}, // Light, occupancy, no.min setback by now.
 {29,8,12,77},
 {29,8,16,82},
 {29,8,36,107},
