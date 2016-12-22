@@ -1091,7 +1091,7 @@ static const ALDataSample sample1gBriefLightOn[] =
 {20,7,4,2},
 {20,7,8,2},
 {20,7,12,2},
-{20,7,17,2},
+{20,7,17,2, occType::OCC_NONE, true, false, ALDataSample::SB_MIN}, // Should have minimal setback, anticipating occupancy.
 {20,7,21,139},
 {20,7,25,139},
 {20,7,29,112},
@@ -1581,7 +1581,7 @@ static const ALDataSample sample1gBriefLightOn[] =
 {21,7,5,2},
 {21,7,9,2},
 {21,7,13,2},
-{21,7,17,2},
+{21,7,17,2, occType::OCC_NONE, true, false, ALDataSample::SB_MIN}, // Should have minimal setback, anticipating occupancy.
 {21,7,20,128},
 {21,7,24,143},
 {21,7,28,138},
@@ -1671,7 +1671,6 @@ static const ALDataSample sample1gBriefLightOn[] =
 {21,10,26,41},
 { }
     };
-
 // Test of suppression of response with brief light on in middle of night.
 // Partly synthetic data since light was not on long enough to be TXed!
 TEST(AmbientLightOccupancyDetection,sample1gBriefLightOn)
@@ -2085,7 +2084,7 @@ static const ALDataSample sample3lSetback[] =
 {5,18,19,39},
 {5,18,31,37},
 {5,18,43,2},
-{5,18,47,2},
+{5,18,47,2, occType::OCC_NONE, true, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEMIN}, // Should have minimal setback, anticipating (re)occupancy.
 {5,19,7,43},
 {5,19,15,39},
 {5,19,22,39},
@@ -2184,7 +2183,7 @@ static const ALDataSample sample3lSetback[] =
 {6,15,6,7},
 {6,15,27,5},
 {6,15,38,4},
-{6,15,49,3},
+{6,15,49,3, occType::OCC_NONE, true, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEECO}, // Should have minimal setback, anticipating (re)occupancy.
 {6,15,54,11},
 {6,16,10,43},
 {6,16,14,42},
@@ -2756,13 +2755,13 @@ static const ALDataSample sample3lSetback[] =
 {8,17,24,39},
 {8,17,26,39},
 {8,17,28,40},
-{8,17,32,3, ALDataSample::NO_OCC_EXPECTATION, true, false, ALDataSample::SB_NONEMIN}, // Temporarily left the room, lights off; small setback may be OK.
+{8,17,32,3, occType::OCC_NONE, true, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEECO}, // Should have minimal setback, anticipating (re)occupancy.
 {8,17,37,3},
 {8,17,40,3},
 {8,17,44,13},
 {8,17,47,14},
 {8,17,49,2},
-{8,17,51,3},
+{8,17,51,3, occType::OCC_NONE, true, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEECO}, // Should have minimal setback, anticipating (re)occupancy.
 {8,17,53,40, occType::OCC_PROBABLE, false, true, ALDataSample::SB_NONE}, // Re-entered room, lights on.
 {8,17,56,42},
 {8,18,0,44, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONE},
@@ -3475,10 +3474,10 @@ static const ALDataSample sample5sHard[] =
 {8,6,51,6, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Not occupied actively, sleeping, max setback.
 {8,7,3,9, occType::OCC_NONE, ALDataSample::NO_RD_EXPECTATION, false}, // Not occupied actively.
 {8,7,11,12},
-{8,7,15,13},
+{8,7,15,13, ALDataSample::NO_OCC_EXPECTATION, ALDataSample::NO_RD_EXPECTATION, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEMIN}, // Should at least be anticipating occupancy.
 {8,7,19,17},
-{8,7,27,42, occType::OCC_PROBABLE, false, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEECO}, // FIXME: should detect curtains drawn?  Temporary occupancy.  Should at least be anticipating occupancy.
-{8,7,31,68, ALDataSample::NO_OCC_EXPECTATION, false, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEECO}, // Should at least be anticipating occupancy.
+{8,7,27,42, ALDataSample::NO_OCC_EXPECTATION, false, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEMIN}, // FIXME: should detect curtains drawn?  Temporary occupancy.  Should at least be anticipating occupancy.
+{8,7,31,68, ALDataSample::NO_OCC_EXPECTATION, false, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEMIN}, // Should at least be anticipating occupancy.
 {8,7,43,38},
 {8,7,51,55},
 {8,7,55,63},
@@ -3553,7 +3552,7 @@ static const ALDataSample sample5sHard[] =
 {8,17,47,2, occType::OCC_NONE, true, false}, // Light turned off, no active occupancy.
 // ...
 {8,20,11,2},
-{8,20,23,2},
+{8,20,23,2, occType::OCC_NONE, true, false, ALDataSample::SB_MIN}, // Should at least be anticipating occupancy.
 {8,20,35,16, occType::OCC_PROBABLE, false, true}, // Light turned on, OCCUPANCY.
 {8,20,46,16, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Light, occupied.
 {8,20,55,13, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Light, occupied.
@@ -3676,7 +3675,7 @@ static const ALDataSample sample5sHard2[] =
 {1,17,5,7},
 {1,17,13,1},
 {1,17,21,1},
-{1,17,33,1},
+{1,17,33,1, occType::OCC_NONE, true, false, ALDataSample::SB_NONEMIN}, // Small setback anticipating occupancy.
 {1,17,49,24},
 {1,17,53,24},
 {1,18,3,2},
@@ -3779,7 +3778,7 @@ static const ALDataSample sample5sHard2[] =
 {2,17,25,24},
 {2,17,27,25},
 {2,17,29,24},
-{2,17,33,25, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Light, occupied.
+{2,17,33,25, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONEMIN}, // Light, occupied.
 {2,17,34,24},
 {2,17,37,24},
 {2,17,38,25},
