@@ -107,11 +107,17 @@ SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupanc
 
     // Activate pending probable occupancy if steady long enough
     // ie without (much) light level fall.
-    if((probablePending) && (steadyTicks >= steadyTicksMinWithLightOn))
+    if(probablePending)
         {
-        // Lights have been on and stayed on.
-        occLevel = OCC_PROBABLE;
-        probablePending = false;
+        // This could get postponed indefinitely if light levels
+        // continue to rise strongly;
+        // Eg with a slow-warmup CFL, or sunrise.
+        if(steadyTicks >= steadyTicksMinWithLightOn)
+            {
+            // Lights have been on and stayed on and steady.
+            occLevel = OCC_PROBABLE;
+            probablePending = false;
+            }
         }
     // Precondition for probable occupancy is a rising light level.
     // Any rise must be more than the fixed floor/noise threshold epsilon.
