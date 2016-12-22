@@ -565,12 +565,20 @@ static void checkPerformanceAcceptableAgainstData(
     // Check that setback accuracy is OK.
     // Aim for a low error rate in either direction.
     // But err on the side of energy saving.
-    EXPECT_GE((normalOperation ? 0.09f : 0.25f), flavourStats.setbackInsufficient.getFractionFlavoured()) << flavourStats.setbackInsufficient.getSampleCount();
-    EXPECT_GE((normalOperation ? 0.09f : 0.25f), flavourStats.setbackTooFar.getFractionFlavoured()) << flavourStats.setbackTooFar.getSampleCount();
-    if(normalSensitiveOperation)
+    if(normalOperation)
+        {
+        EXPECT_GE(0.09f, flavourStats.setbackInsufficient.getFractionFlavoured()) << flavourStats.setbackInsufficient.getSampleCount();
+        EXPECT_GE(0.09f, flavourStats.setbackTooFar.getFractionFlavoured()) << flavourStats.setbackTooFar.getSampleCount();
+        }
+    else if(normalSensitiveOperation)
         {
         EXPECT_GE(0.1f, flavourStats.setbackInsufficient.getFractionFlavoured()) << flavourStats.setbackInsufficient.getSampleCount();
         EXPECT_GE(0.1f, flavourStats.setbackTooFar.getFractionFlavoured()) << flavourStats.setbackTooFar.getSampleCount();
+        }
+    else
+        {
+        EXPECT_GE(0.28f, flavourStats.setbackInsufficient.getFractionFlavoured()) << flavourStats.setbackInsufficient.getSampleCount();
+        EXPECT_GE(0.28f, flavourStats.setbackTooFar.getFractionFlavoured()) << flavourStats.setbackTooFar.getSampleCount();
         }
 
     // Compute nominal available savings
