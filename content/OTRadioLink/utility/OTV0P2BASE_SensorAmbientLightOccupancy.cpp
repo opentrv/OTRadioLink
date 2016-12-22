@@ -111,7 +111,7 @@ SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupanc
         {
         // This could get postponed indefinitely if light levels
         // continue to rise strongly;
-        // Eg with a slow-warmup CFL, or sunrise.
+        // eg with a slow warm-up CFL, or sunrise.
         if(steadyTicks >= steadyTicksMinWithLightOn)
             {
             // Lights have been on and stayed on and steady.
