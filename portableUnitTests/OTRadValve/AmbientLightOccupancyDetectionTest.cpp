@@ -4774,7 +4774,7 @@ static const ALDataSample sample6k[] =
 {8,6,39,4},
 {8,6,42,4},
 {8,6,47,4},
-{8,6,55,5},
+{8,6,55,5, occType::OCC_NONE, true, false, ALDataSample::SB_MIN}, // Dark, but small setback anticipating occupancy.
 {8,7,7,20},
 {8,7,15,25},
 {8,7,19,33},
@@ -4849,7 +4849,7 @@ static const ALDataSample sample6k[] =
 {8,15,59,28},
 {8,16,3,23},
 {8,16,19,27},
-{8,16,27,18},
+{8,16,27,18, occType::OCC_NONE, ALDataSample::NO_OCC_EXPECTATION, ALDataSample::NO_RD_EXPECTATION, ALDataSample::SB_MIN}, // Dark, but small setback anticipating occupancy.
 {8,16,35,164, occType::OCC_PROBABLE, false, true, ALDataSample::SB_NONE}, // Light on: OCCUPIED.  No setback.
 {8,16,39,151},
 {8,16,51,153},
@@ -4894,7 +4894,7 @@ static const ALDataSample sample6k[] =
 {9,6,15,3},
 {9,6,23,4},
 {9,6,31,6},
-{9,6,35,8},
+{9,6,35,8, occType::OCC_NONE, true, false, ALDataSample::SB_MIN}, // Dark, but small setback anticipating occupancy.
 {9,6,47,50, occType::OCC_PROBABLE, false, true, ALDataSample::SB_NONE}, // Light on or blinds open: OCCUPIED. No setback.
 {9,6,51,53},
 {9,7,7,48},
