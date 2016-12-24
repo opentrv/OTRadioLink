@@ -836,8 +836,8 @@ if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
             // A certain number of days' stats setting is required.
             // Stats are rolled over from the warmup(s) to the final run.
             // Results will be ignored during this warmup.
-            // FIXME: should be no more than ~1 week.
-            static constexpr int minDaysWarmup = 11;
+            // Should be no more than ~1 week.
+            static constexpr int minDaysWarmup = 7;
             const int warmupRuns = (totalDaysSpanned<2) ? int(minDaysWarmup) :
                 OTV0P2BASE::fnmax(1, int(minDaysWarmup / (totalDaysSpanned-1)));
             for(int w = -warmupRuns; w <= 0; ++w)
