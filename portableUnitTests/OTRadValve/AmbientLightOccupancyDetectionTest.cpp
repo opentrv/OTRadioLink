@@ -19,8 +19,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 /*
  * Driver for OTV0P2BASE_SensorAmbientLightOccupancy tests.
  *
- * These data sets can also be used to test key related and derived behaviours
- * such as basic ambient light level sensing and temperature setback levels.
+ * These data sets are used to test key related and derived behaviours
+ * from basic ambient light level sensing though to temperature setback levels,
+ * thus providing an integration test for these components, and roling stats.
  */
 
 #include <stdint.h>
@@ -4910,8 +4911,6 @@ static const ALDataSample sample6k[] =
 {9,7,51,184},
     { }
     };
-
-// Test with real data set.
 TEST(AmbientLightOccupancyDetection,sample6k)
 {
     simpleDataSampleRun(sample6k);
