@@ -628,7 +628,7 @@ static void checkPerformanceAcceptableAgainstData(
     // and a little lower ambition in sensitive mode (eg comfort-driven).
 // FIXME: >=25% primary target.
     if((minutes > ticksForMoreThan24h) && !exemptFromNormalRatios)
-        { EXPECT_LE(!sensitive ? 0.225f : 0.225f, potentialSavingsFromSetbackAtLeastDEFAULT); }
+        { EXPECT_LE(!sensitive ? 0.23f : 0.225f, potentialSavingsFromSetbackAtLeastDEFAULT); }
 
     // Print a summary of key stats to eyeball (if not an odd blend).
     // These should be subject to more automated numerical analysis elsewhere.
