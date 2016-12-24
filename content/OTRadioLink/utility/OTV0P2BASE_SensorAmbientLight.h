@@ -166,12 +166,15 @@ class SensorAmbientLightAdaptive : public SensorAmbientLightBase
 
     // Set recent min and max ambient light levels from stats, to allow auto adjustment to dark; ~0/0xff means no min/max available.
     // Longer term typically over the last week or so (eg rolling exponential decay).
-    // Call regularly, at least roughly hourly, to drive other internal time-dependent adaptation.
-    //   * meanNowOrFF  typical/mean light level around this time each 24h; 0xff if not known.
-    //   * sensitive  if true be more sensitive to possible occupancy changes, else less so.
+    // Call typically hourly with updated stats,
+    // to set other internal time-dependent adaptation.
+    //   * meanNowOrFF  typical/mean light level around this time each 24h;
+    //         0xff if not known.
+    //   * sensitive  if true be more sensitive to possible occupancy changes,
+    //         which may mean more false positives and less energy saving
     void setTypMinMax(uint8_t meanNowOrFF,
                    uint8_t longerTermMinimumOrFF = 0xff, uint8_t longerTermMaximumOrFF = 0xff,
-                   bool sensitive = true);
+                   bool sensitive = false);
 
     // Updates other values based on what is in value.
     // Derived classes may wish to set value first, then call this.

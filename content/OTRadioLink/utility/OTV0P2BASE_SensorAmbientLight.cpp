@@ -44,28 +44,32 @@ uint8_t SensorAmbientLightAdaptive::read()
     {
     // Adjust room-lit flag, with hysteresis.
     // Should be able to detect dark when darkThreshold is zero and newValue is zero.
-    if(value <= darkThreshold)
-        {
-        isRoomLitFlag = false;
-        // If dark enough to set isRoomLitFlag false then increment counter.
-        // Do not increment the count if the sensor seems to be unusable / dubiously usable.
-        if(!rangeTooNarrow && (darkTicks < 255))
-            { ++darkTicks; }
-        }
-    else if(value > lightThreshold)
+    const bool definitelyLit = (value > lightThreshold);
+    if(definitelyLit)
         {
         isRoomLitFlag = true;
         // If light enough to set isRoomLitFlag true then reset darkTicks counter.
         darkTicks = 0;
         }
+    else if(value <= darkThreshold)
+        {
+        isRoomLitFlag = false;
+        // If dark enough to set isRoomLitFlag false then increment counter.
+        // Do not increment the count if the sensor seems only dubiously usable.
+        if(!rangeTooNarrow && (darkTicks < 255))
+            { ++darkTicks; }
+        }
 
     // If a callback is set then use the occupancy detector.
+    // Suppress WEAK callbacks if the room is not definitely lit.
     if(NULL != occCallbackOpt)
         {
         const OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType occ = occupancyDetector.update(value);
         // Ping the callback!
-        if(occ >= OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::OCC_WEAK)
-            { occCallbackOpt(occ >= OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::OCC_PROBABLE); }
+        if(occ >= OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::OCC_PROBABLE)
+            { occCallbackOpt(true); }
+        else if(definitelyLit && (occ >= OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::OCC_WEAK))
+            { occCallbackOpt(false); }
         }
 
     return(value);

@@ -86,13 +86,16 @@ class SensorAmbientLightOccupancyDetectorInterface
     // Mean value is for the current time of day.
     // Short term stats are typically over the last day,
     // longer term typically over the last week or so (eg rolling exponential decays).
-    // Call regularly, roughly hourly, to drive other internal time-dependent adaptation.
-    //   * meanNowOrFF  typical/mean light level around this time each 24h; 0xff if not known.
-    //   * sensitive  if true then be more sensitive to possible occupancy changes, eg to improve comfort.
+    // Call typically hourly with updated stats,
+    // to set other internal time-dependent adaptation.
+    //   * meanNowOrFF  typical/mean light level around this time each 24h;
+    //         0xff if not known.
+    //   * sensitive  if true be more sensitive to possible occupancy changes,
+    //         which may mean more false positives and less energy saving
     // Not thread-/ISR- safe.
     virtual void setTypMinMax(uint8_t /*meanNowOrFF*/,
                       uint8_t /*longTermMinimumOrFF = 0xff*/, uint8_t /*longTermMaximumOrFF = 0xff*/,
-                      bool /*sensitive = false*/) = 0;
+                      bool /*sensitive*/ = false) = 0;
   };
 
 
