@@ -3712,10 +3712,10 @@ static const ALDataSample sample5sHard2[] =
 {1,16,29,2},
 {1,16,45,2},
 {1,16,57,2},
-{1,17,5,7},
+{1,17,5,7}, // Possible temp occupancy.
 {1,17,13,1},
 {1,17,21,1},
-{1,17,33,1, occType::OCC_NONE, true, false, ALDataSample::SB_NONEMIN}, // Small setback anticipating occupancy.
+{1,17,33,1, occType::OCC_NONE, true, ALDataSample::UNKNOWN_ACT_OCC, ALDataSample::SB_NONEECO}, // Possible reduced setback anticipating occupancy.
 {1,17,49,24},
 {1,17,53,24},
 {1,18,3,2},
@@ -3805,7 +3805,7 @@ static const ALDataSample sample5sHard2[] =
 {2,16,50,25},
 {2,16,55,25},
 {2,16,59,25},
-{2,17,0,24, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Light, occupied.
+{2,17,0,24, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONE}, // Light, occupied.
 {2,17,3,25},
 {2,17,4,24},
 {2,17,6,25},
@@ -3829,8 +3829,8 @@ static const ALDataSample sample5sHard2[] =
 {2,17,52,25},
 {2,17,54,24},
 {2,17,55,25},
-{2,18,0,24, ALDataSample::NO_OCC_EXPECTATION, false, true}, // Light, occupied.
-{2,18,2,25},
+{2,18,0,24, ALDataSample::NO_OCC_EXPECTATION, false}, // Light, occupied.
+{2,18,2,25, ALDataSample::NO_OCC_EXPECTATION, false, true, ALDataSample::SB_NONE}, // Light, occupied, no steback.
 {2,18,6,24},
 {2,18,9,24},
 //{2,18,9,25},

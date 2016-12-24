@@ -417,7 +417,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
             const bool scheduleOnSoon = schedule->isAnyScheduleOnWARMSoon();
             // High likelihood of occupancy now inhibits ECO setback.
             const uint8_t hoursLessOccupiedThanThis = byHourStats->countStatSamplesBelow(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED, byHourStats->getByHourStatRTC(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED, OTV0P2BASE::NVByHourByteStatsBase::SPECIAL_HOUR_CURRENT_HOUR));
-            const uint8_t thisHourNLOThreshold = tempControl->hasEcoBias() ? 16 : 14;
+            const uint8_t thisHourNLOThreshold = tempControl->hasEcoBias() ? 17 : 14;
             const bool relativelyActive = (hoursLessOccupiedThanThis > thisHourNLOThreshold);
             // Inhibit ECO (or more) setback (unless long vacant)
             // for scheduled-on or where this hour is relatively busy
