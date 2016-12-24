@@ -623,12 +623,13 @@ static void checkPerformanceAcceptableAgainstData(
     // When data sample is >> 1 day,
     // check that a minimum acceptable potential savings target is met
     // counting all setbacks.
+    // This is the saving over a simple TRV and without a central heating timer.
     // Target is 30% for lone radiator valve without boiler control;
     // insist on most of that when not in sensitive mode,
     // and a little lower ambition in sensitive mode (eg comfort-driven).
 // FIXME: >=25% primary target.
     if((minutes > ticksForMoreThan24h) && !exemptFromNormalRatios)
-        { EXPECT_LE(!sensitive ? 0.23f : 0.225f, potentialSavingsFromSetbackAtLeastDEFAULT); }
+        { EXPECT_LE(!sensitive ? 0.23f : 0.23f, potentialSavingsFromSetbackAtLeastDEFAULT); }
 
     // Print a summary of key stats to eyeball (if not an odd blend).
     // These should be subject to more automated numerical analysis elsewhere.
