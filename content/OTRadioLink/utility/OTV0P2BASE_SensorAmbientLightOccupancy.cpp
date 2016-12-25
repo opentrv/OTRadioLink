@@ -142,16 +142,17 @@ SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupanc
             if((prevLightLevel > minToUse) || (oldSteadyTicks < 0xff))
                 {
                 // Room was NOT very dark,
-                // or has not been steady (eg dark) for a long time.
+                // or has not been steady (ie dark) for a long time.
                 // Lights flicked on or curtains drawn maybe: room occupied.
                 occLevel = OCC_PROBABLE;
                 probablePending = false;
                 }
             else
                 {
-                // Room was very dark; defer until light is left on.
+                // Room was very dark for a long time;
+                // defer 'probable' occupancy signal until light on a while.
                 // Note weak occupancy in the interim,
-                // which should not wake anything up.
+                // which should not of itself wake anything up.
                 occLevel = OCC_WEAK;
                 probablePending = true;
                 }
