@@ -400,7 +400,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
 //          const bool longLongVacant = occupancy->longLongVacant();
           const bool longVacant = /*longLongVacant || */ occupancy->longVacant();
           const bool confidentlyVacant = longVacant || occupancy->confidentlyVacant();
-          const bool likelyVacantNow = longVacant || occupancy->isLikelyUnoccupied();
+          const bool likelyVacantNow = confidentlyVacant || occupancy->isLikelyUnoccupied();
 
           // No setback unless apparently vacant.
           // TODO: or dark and weakly occupied in case room only briefly occupied.
