@@ -149,7 +149,7 @@ SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupanc
                 }
             else
                 {
-                // Room was pitch black; defer until light is left on.
+                // Room was very dark; defer until light is left on.
                 // Note weak occupancy in the interim,
                 // which should not wake anything up.
                 occLevel = OCC_WEAK;
