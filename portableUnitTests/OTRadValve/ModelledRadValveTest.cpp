@@ -458,10 +458,10 @@ TEST(ModelledRadValve,ModelledRadValveComputeTargetTempBasic)
     MRVCTTB::occupancy.setHolidayMode();
     EXPECT_GT(w, cttb0.computeTargetTemp()) << "holiday mode should allow setback";
     // Make the room dark (and marked as dark for a long time).
-    MRVCTTB::ambLight.set(0, 255U, false);
+    MRVCTTB::ambLight.set(0, 12*60U, false);
     MRVCTTB::ambLight.read();
     EXPECT_TRUE(MRVCTTB::ambLight.isRoomDark());
-    EXPECT_EQ(255, MRVCTTB::ambLight.getDarkMinutes());
+    EXPECT_NEAR(12*60U, MRVCTTB::ambLight.getDarkMinutes(), 1);
     const uint8_t sbFULL = OTRadValve::DEFAULT_ValveControlParameters::SETBACK_FULL;
     EXPECT_EQ(w-sbFULL, cttb0.computeTargetTemp()) << "room dark for a reasonable time AND holiday mode should allow full setback";
     MRVCTTB::valveMode.startBake();

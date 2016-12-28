@@ -59,10 +59,12 @@ class SensorAmbientLightBase : public SimpleTSUint8Sensor
     // but it does disable all the assertions about dark/light/ticks.
     bool rangeTooNarrow = false;
 
-    // Number of minutes (read() calls) that the room has been continuously dark for [0,255].
+    // Number of minutes (read() calls) that the room has been continuously dark for.
     // Does not roll over from maximum value.
     // Reset to zero in light.
-    uint8_t darkTicks = 0;
+    // Stays at zero if the sensor decides that its range is too narrow.
+    // May not count up while in hysteresis range.
+    uint16_t darkTicks = 0;
 
   public:
     // Reset to starting state; primarily for unit tests.
@@ -102,11 +104,12 @@ class SensorAmbientLightBase : public SimpleTSUint8Sensor
     // thus this should only be treated as an extra hint when true.
     bool isRoomVeryDark() const { return((get() <= DEFAULT_PITCH_DARK_THRESHOLD) && !rangeTooNarrow); }
 
-    // Get number of minutes (read() calls) that the room has been continuously dark for [0,255].
-    // Does not roll over from maximum value, ie stays at 255 until the room becomes light.
+    // Get number of minutes (read() calls) that the room has been continuously dark for.
+    // Does not roll over from maximum value.
     // Reset to zero in light.
     // Stays at zero if the sensor decides that its range is too narrow.
-    uint8_t getDarkMinutes() const { return(darkTicks); }
+    // May not count up while in hysteresis range.
+    uint16_t getDarkMinutes() const { return(darkTicks); }
 
     // Returns true if ambient light range seems to be too narrow to be reliable.
     bool isRangeTooNarrow() const { return(rangeTooNarrow); }
@@ -191,7 +194,7 @@ class SensorAmbientLightAdaptiveMock : public SensorAmbientLightAdaptive
     // Set new value.
     virtual bool set(const uint8_t newValue) { value = newValue; return(true); }
     // Set new non-dependent values immediately.
-    virtual bool set(const uint8_t newValue, const uint8_t newDarkTicks, const bool isRangeTooNarrow = false)
+    virtual bool set(const uint8_t newValue, const uint16_t newDarkTicks, const bool isRangeTooNarrow = false)
         { value = newValue; rangeTooNarrow = isRangeTooNarrow; darkTicks = newDarkTicks; return(true); }
 
     // Expose the occupancy detector read-only for tests.
@@ -253,7 +256,7 @@ class DummySensorAmbientLight
     constexpr static bool isRoomDark() { return(false); }
 
     // No sensor, so always zero.
-    constexpr static uint8_t getDarkMinutes() { return(0); }
+    constexpr static uint16_t getDarkMinutes() { return(0); }
   };
 
 

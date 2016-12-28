@@ -413,18 +413,32 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
             // This default should not be annoying, but saves little energy.
             uint8_t setback = valveControlParameters::SETBACK_DEFAULT;
 
+            // Note when it has been dark for many hours, overnight in winter.
+            // This should be long enough to almost never be true
+            // in the afternoon or early evening even in long winter days.
+            const uint16_t dm = ambLight->getDarkMinutes();
+            static constexpr bool longDarkM = 8*60U; // 8h
+
             // Any scheduled on soon usually inhibits all but minimum setback.
             const bool scheduleOnSoon = schedule->isAnyScheduleOnWARMSoon();
             // High likelihood of occupancy now inhibits ECO setback.
             const uint8_t hoursLessOccupiedThanThis = byHourStats->countStatSamplesBelow(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED, byHourStats->getByHourStatRTC(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED, OTV0P2BASE::NVByHourByteStatsBase::SPECIAL_HOUR_CURRENT_HOUR));
             const uint8_t thisHourNLOThreshold = tempControl->hasEcoBias() ? 17 : 14;
             const bool relativelyActive = (hoursLessOccupiedThanThis > thisHourNLOThreshold);
-            // Inhibit ECO (or more) setback (unless already long vacant)
-            // for scheduled-on or where this hour is typically relatively busy.
-            const bool inhibitECOSetback = (!longVacant) &&
-                (scheduleOnSoon || relativelyActive);
+//            // Inhibit ECO (or more) setback (unless already long vacant)
+//            // for scheduled-on or where this hour is typically relatively busy.
+//            const bool inhibitECOSetback = (!longVacant) &&
+//                (scheduleOnSoon || relativelyActive);
+            // Inhibit ECO (or more) setback
+            // for scheduled-on (unless long vacant, eg a day or more)
+            // or where this hour is typically relatively busy
+            // (unless 'vacant' for the equivalent of a decent night's sleep).
+            // Avoid inhibiting warm-up before return from work/school.
+            const bool inhibitECOSetback =
+                (!longVacant && scheduleOnSoon) ||
+                (!(dm >= longDarkM) && relativelyActive);
 
-            // ECO setback possible; bulk of energy saving opportunities.
+            // ECO setback is possible: bulk of energy saving opportunities.
             // If dark and room not usually occupied around now.
             if(!inhibitECOSetback &&
                (confidentlyVacant || ambLight->isRoomDark()))
@@ -440,9 +454,9 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
                 // typical temperature at this time could inhibit FULL setback.
                 const uint8_t hoursLessOccupiedThanNext = byHourStats->countStatSamplesBelow(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED, byHourStats->getByHourStatRTC(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED, OTV0P2BASE::NVByHourByteStatsBase::SPECIAL_HOUR_NEXT_HOUR));
                 const bool relativelyActiveSoon = (hoursLessOccupiedThanNext > 1+thisHourNLOThreshold);
-                const uint8_t dm = ambLight->getDarkMinutes();
                 const bool inhibitFULLSetback =
-                    comfortTemperature || ((dm < 239) && relativelyActiveSoon);
+                    comfortTemperature ||
+                    (!(dm > longDarkM) && relativelyActiveSoon);
 
                 // FULL setback possible; saving energy/noise for night/holiday.
                 // If long vacant (no sign of activity for around a day)
@@ -588,8 +602,8 @@ class ModelledRadValveComputeTargetTempFull final : public ModelledRadValveCompu
           const bool ecoBias = tempControl->hasEcoBias();
           // True if the room has been dark long enough to indicate night. (TODO-792)
           const bool isDark = ambLight->isRoomDark();
-          const uint8_t dm = ambLight->getDarkMinutes();
-          const bool darkForHours = dm > 245; // A little over 4h, not quite max 255.
+          const uint16_t dm = ambLight->getDarkMinutes();
+          const bool darkForHours = dm > 245; // A little over 4h.
           // Be more ready to decide room not likely occupied soon if eco-biased.
           // Note that this value is likely to be used +/- 1 so must be in range [1,23].
           const uint8_t thisHourNLOThreshold = ecoBias ? 15 : 12;

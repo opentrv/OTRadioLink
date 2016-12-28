@@ -54,9 +54,10 @@ uint8_t SensorAmbientLightAdaptive::read()
     else if(value <= darkThreshold)
         {
         isRoomLitFlag = false;
-        // If dark enough to set isRoomLitFlag false then increment counter.
+        // If dark enough to set isRoomLitFlag false then increment counter
+        // (but don't let it wrap around back to zero).
         // Do not increment the count if the sensor seems only dubiously usable.
-        if(!rangeTooNarrow && (darkTicks < 255))
+        if(!rangeTooNarrow && (darkTicks < uint16_t(~0U)))
             { ++darkTicks; }
         }
 
