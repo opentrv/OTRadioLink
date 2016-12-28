@@ -193,7 +193,7 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     // Since these signals may arise infrequently this should not be too low,
     // but too high a value allows false positives to prevent energy savings.
     // No more than (say) 6 hours to allow night to kill weak signal input.
-    static constexpr uint8_t weakVacantHThrH = 0;
+    static constexpr uint8_t weakVacantHThrH = 2;
     // Threshold hours ABOVE which room is considered long vacant.
     // At least 24h in order to allow once-daily room programmes (including pre-warm) to operate reliably.
     static constexpr uint8_t longVacantHThrH = 24;

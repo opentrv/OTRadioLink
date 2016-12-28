@@ -349,10 +349,18 @@ template<
 class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComputeTargetTempBase
   {
   public:
-//   constexpr ModelledRadValveComputeTargetTempBasic()
-//      {
-//      // TODO validate arg types and that things aren't NULL.  static_assert()?
-//      }
+//    constexpr ModelledRadValveComputeTargetTempBasic()
+//        {
+//        // Validate (non-optional) args.  Doesn't work with g++ 4.9.2 in Arduino IDE.
+//        static_assert(NULL != valveMode, "non-optional parameter must not be NULL");
+//        static_assert(NULL != temperatureC16, "non-optional parameter must not be NULL");
+//        static_assert(NULL != tempControl, "non-optional parameter must not be NULL");
+//        static_assert(NULL != occupancy, "non-optional parameter must not be NULL");
+//        static_assert(NULL != ambLight, "non-optional parameter must not be NULL");
+//        static_assert(NULL != physicalUI, "non-optional parameter must not be NULL");
+//        static_assert(NULL != schedule, "non-optional parameter must not be NULL");
+//        static_assert(NULL != byHourStats, "non-optional parameter must not be NULL");
+//        }
     virtual uint8_t computeTargetTemp() const override
         {
         // In FROST mode.
@@ -402,10 +410,11 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
           const bool confidentlyVacant = longVacant || occupancy->confidentlyVacant();
           const bool likelyVacantNow = confidentlyVacant || occupancy->isLikelyUnoccupied();
 
-          // No setback unless apparently vacant.
+          // No setback unless apparently vacant and no scheduled WARM.
           // TODO: or dark and weakly occupied in case room only briefly occupied.
           // TODO: or set back on anticipated vacancy.
-          const bool allowSetback = likelyVacantNow;
+          const bool allowSetback = likelyVacantNow &&
+              (/*long*/longVacant || !schedule->isAnyScheduleOnWARMNow());
 
           if(allowSetback)
             {
@@ -417,9 +426,9 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
             // This should be long enough to almost never be true
             // in the afternoon or early evening even in long winter days.
             const uint16_t dm = ambLight->getDarkMinutes();
-            static constexpr bool longDarkM = 8*60U; // 8h
+            static constexpr uint16_t longDarkM = 7*60U; // 7h
 
-            // Any scheduled on soon usually inhibits all but minimum setback.
+            // Any imminent scheduled on may inhibit all but minimum setback.
             const bool scheduleOnSoon = schedule->isAnyScheduleOnWARMSoon();
             // High likelihood of occupancy now inhibits ECO setback.
             const uint8_t hoursLessOccupiedThanThis = byHourStats->countStatSamplesBelow(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED, byHourStats->getByHourStatRTC(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED, OTV0P2BASE::NVByHourByteStatsBase::SPECIAL_HOUR_CURRENT_HOUR));
@@ -434,36 +443,42 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
             // or where this hour is typically relatively busy
             // (unless 'vacant' for the equivalent of a decent night's sleep).
             // Avoid inhibiting warm-up before return from work/school.
-            const bool inhibitECOSetback =
-                (!longVacant && scheduleOnSoon) ||
-                (!(dm >= longDarkM) && relativelyActive);
+            const bool inhibitECOSetback = !longVacant &&
+                (scheduleOnSoon ||
+                ((dm < longDarkM) && (relativelyActive)));
 
             // ECO setback is possible: bulk of energy saving opportunities.
-            // If dark and room not usually occupied around now.
+            // Go for ECO if dark or likely vacant now,
+            // and not usually relatively occupied now or in the next hour.
             if(!inhibitECOSetback &&
-               (confidentlyVacant || ambLight->isRoomDark()))
+               (confidentlyVacant || (0 != dm)))
                 {
                 setback = valveControlParameters::SETBACK_ECO;
 
-                // Inhibit FULL setback if at top end of comfort range.
-                const bool comfortTemperature = tempControl->isComfortTemperature(wt);
                 // High likelihood of occupancy soon inhibits FULL setback,
                 // (unless dark for hours so as to avoid waking users early)
                 // to allow getting warm ready for return from work/school.
                 // TODO: other signals such as manual control use and
                 // typical temperature at this time could inhibit FULL setback.
                 const uint8_t hoursLessOccupiedThanNext = byHourStats->countStatSamplesBelow(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED, byHourStats->getByHourStatRTC(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED, OTV0P2BASE::NVByHourByteStatsBase::SPECIAL_HOUR_NEXT_HOUR));
-                const bool relativelyActiveSoon = (hoursLessOccupiedThanNext > 1+thisHourNLOThreshold);
-                const bool inhibitFULLSetback =
-                    comfortTemperature ||
-                    (!(dm > longDarkM) && relativelyActiveSoon);
+                const bool relativelyActiveSoon = (hoursLessOccupiedThanNext > 2+thisHourNLOThreshold);
+
+                // Set a much lower occupancy threshold to prevent FULL setback.
+                const uint8_t thisHourNLOThresholdF = thisHourNLOThreshold >> 1;
+                const bool notInactive =
+                    (hoursLessOccupiedThanThis > thisHourNLOThresholdF);
+
+                // Inhibit FULL setback if at top end of comfort range.
+                const bool comfortTemperature = tempControl->isComfortTemperature(wt);
+                const bool inhibitFULLSetback = comfortTemperature ||
+                    ((dm < longDarkM) && (notInactive || relativelyActiveSoon));
 
                 // FULL setback possible; saving energy/noise for night/holiday.
                 // If long vacant (no sign of activity for around a day)
                 // OR dark for a while AND return not strongly anticipated
                 // then allow a maximum night setback and minimise noise (TODO-792, TODO-1027)
                 if(!inhibitFULLSetback &&
-                   (longVacant || (dm > 30)))
+                   (longVacant || (dm > 10)))
                     { setback = valveControlParameters::SETBACK_FULL; }
                 }
 
