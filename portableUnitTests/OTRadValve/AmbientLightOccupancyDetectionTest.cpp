@@ -32,14 +32,14 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 
 
 // Set true for verbose reporting.
-static constexpr bool verbose = true;
+static constexpr bool verbose = false;
 // Lots of extra detail, generally should not be needed.
 static constexpr bool veryVerbose = false && verbose;
 // Generate output for graphing, eg with gnuplot, eg:
 //     gnuplot ~/git/OTRadioLink/portableUnitTests/OTRadValve/AmbientLightOccupancyDetectionTest.gnuplot
 // or to show extra columns of data for diagnostic purposes:
 //     gnuplot -e "ncol=4" ~/git/OTRadioLink/portableUnitTests/OTRadValve/AmbientLightOccupancyDetectionTest.gnuplot
-static constexpr bool graphOutput = true && verbose;
+static constexpr bool graphOutput = false && verbose;
 
 // Import occType enum values.
 typedef OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType occType;
@@ -680,6 +680,8 @@ static void checkPerformanceAcceptableAgainstData(
         fprintf(stderr, " Potential savings from setbacks %s: %.1f%%\n",
             (sensitive ? "(sensitive)" : ""),
             100 * potentialSavingsFromSetbackAtLeastDEFAULT);
+        fprintf(stderr, "  Correct anticipatory reduced setbacks %.1f%%\n",
+            100 * (1 - flavourStats.occupancyAnticipationFailureNotAfterSleep.getFractionFlavoured()));
         }
     }
 
@@ -9523,7 +9525,7 @@ static const ALDataSample sample3leveningTV[] =
     {
 {10,0,7,1, occType::OCC_NONE, true, false}, // Definitely not occupied.
 // ...
-{10,6,31,1, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Dark, vacant, running long enough for max setback.
+{10,6,31,1, occType::OCC_NONE, true, false, ALDataSample::SB_ECOMAX}, // Dark, vacant, running long enough for max setback but may be anticipating occupancy.
 {10,6,47,1},
 {10,6,59,2},
 {10,7,3,2},
