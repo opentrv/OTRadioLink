@@ -400,8 +400,10 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
       if(justOverTemp && isFiltering) { return(valvePCOpen - 1); }
 
       // Continue shutting valve slowly as not yet fully closed.
-      // TODO-117: allow very slow final turn off to help systems with poor bypass, ~1% per minute.
-      // Special slow-turn-off rules for final part of travel at/below "min % really open" floor.
+      // TODO-117: allow very slow final turn off
+      // to help systems with poor bypass, ~1% per minute.
+      // Special slow-turn-off rules for final part of travel at/below
+      // "min % really open" floor.
       const uint8_t minReallyOpen = inputState.minPCOpen;
       const uint8_t lingerThreshold = (minReallyOpen > 0) ? (minReallyOpen-1) : 0;
       if(valvePCOpen < minReallyOpen)
@@ -412,16 +414,21 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
         return(valvePCOpen - 1); // Turn down as slowly as reasonably possible to help boiler cool.
         }
 
-      // TODO-109: with comfort bias close relatively slowly to reduce wasted effort from minor overshoots.
-      // TODO-453: close relatively slowly when temperature error is small (<1C) to reduce wasted effort from minor overshoots.
-      // TODO-593: if user is manually adjusting device then attempt to respond quickly.
+      // TODO-109: with comfort bias close relatively slowly
+      //     to reduce wasted effort from minor overshoots.
+      // TODO-453: close relatively slowly when temperature error is small
+      //     (<1C) to reduce wasted effort from minor overshoots.
+      // TODO-593: if user is manually adjusting device
+      //     then attempt to respond quickly.
       if(((!inputState.hasEcoBias) || justOverTemp || isFiltering) &&
          (!inputState.fastResponseRequired) &&
          (valvePCOpen > OTV0P2BASE::fnconstrain((uint8_t)(lingerThreshold + TRV_SLEW_PC_PER_MIN_FAST), (uint8_t)TRV_SLEW_PC_PER_MIN_FAST, inputState.maxPCOpen)))
         { return(valvePCOpen - TRV_SLEW_PC_PER_MIN_FAST); }
 
-      // Else (by default) force to (nearly) off immediately when requested, ie eagerly stop heating to conserve energy.
-      // In any case percentage open should now be low enough to stop calling for heat immediately.
+      // Else (by default) force to (nearly) off immediately when requested,
+      // ie eagerly stop heating to conserve energy.
+      // In any case percentage open should now be low enough
+      // to stop calling for heat immediately.
       return(lingerThreshold);
       }
 
@@ -432,19 +439,26 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
   // Close to (or at) temp target: set valve partly open to try to tightly regulate.
   //
   // Use currentTempC16 lsbits to set valve percentage for proportional feedback
-  // to provide more efficient and quieter TRV drive and probably more stable room temperature.
-  // Bigger lsbits value means closer to target from below, so closer to valve off.
+  // to provide more efficient and quieter TRV drive
+  // and probably more stable room temperature.
+  // Bigger lsbits value means closer to target from below,
+  // so closer to valve off.
   const uint8_t lsbits = (uint8_t) (adjustedTempC16 & 0xf); // LSbits of temperature above base of proportional adjustment range.
-//    uint8_t tmp = (uint8_t) (refTempC16 & 0xf); // Only interested in lsbits.
-  const uint8_t tmp = 16 - lsbits; // Now in range 1 (at warmest end of 'correct' temperature) to 16 (coolest).
-  const uint8_t ulpStep = 6;
-  // Get to nominal range 6 to 96, eg valve nearly shut just below top of 'correct' temperature window.
+  // 'tmp' in range 1 (at warmest end of 'correct' temperature) to 16 (coolest).
+  const uint8_t tmp = 16 - lsbits;
+  static constexpr uint8_t ulpStep = 6;
+  // Get to nominal range 6 to 96, eg valve nearly shut
+  // just below top of 'correct' temperature window.
   const uint8_t targetPORaw = tmp * ulpStep;
-  // Constrain from below to likely minimum-open value, in part to deal with TODO-117 'linger open' in lieu of boiler bypass.
-  // Constrain from above by maximum percentage open allowed, eg for pay-by-volume systems.
-  const uint8_t targetPO = OTV0P2BASE::fnconstrain(targetPORaw, inputState.minPCOpen, inputState.maxPCOpen);
+  // Constrain from below to likely minimum-open value,
+  // in part to deal with TODO-117 'linger open' in lieu of boiler bypass.
+  // Constrain from above by maximum percentage open allowed,
+  // eg for pay-by-volume systems.
+  const uint8_t targetPO = OTV0P2BASE::fnconstrain(targetPORaw,
+      inputState.minPCOpen, inputState.maxPCOpen);
 
-  // Reduce spurious valve/boiler adjustment by avoiding movement at all unless current temperature error is significant.
+  // Reduce spurious valve/boiler adjustment by avoiding movement at all
+  // unless current temperature error is significant.
   if(targetPO != valvePCOpen)
     {
     // True iff valve needs to be closed somewhat.
@@ -460,36 +474,55 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
     const uint8_t ls3 = OTV0P2BASE::fnmax(ls2, (uint8_t) (2 + TRV_MIN_SLEW_PC));
     const uint8_t _minAbsSlew = (uint8_t)(inputState.widenDeadband ? ls3 : TRV_MIN_SLEW_PC);
     const uint8_t minAbsSlew = OTV0P2BASE::fnmax(realMinUlp, _minAbsSlew);
+    // Note if not calling for heat from the boiler currently.
+    const bool notCallingForHeat =
+        (valvePCOpen < OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN);
     if(tooOpen) // Currently open more than required.  Still below target at top of proportional range.
       {
 //V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("slightly too open");
-      const uint8_t slew = valvePCOpen - targetPO;
-      // Ensure no hunting for ~1ulp temperature wobble.
-      if(slew < minAbsSlew) { return(valvePCOpen); }
-
       // Reduce valve hunting: defer re-closing if recently opened.
       if(dontTurndown()) { return(valvePCOpen); }
 
-      // TODO-453: avoid closing the valve at all when the (raw) temperature is not rising, so as to minimise valve movement.
-      // Since the target is the top of the proportional range than nothing within it requires the temperature to be *forced* down.
-      // Possibly don't apply this rule at the very top of the range in case filtering is on and the filtered value moves differently to the raw.
+      // True if recent temp movement, possibly in right direction.
+      // Whole system not just static/stuck/jammed.
+      const bool recentMovement =
+          isFiltering || (getRawDelta(filterLength-1) < 0);
+
+      const uint8_t slew = valvePCOpen - targetPO;
+      // Ensure no hunting for ~1ulp temperature wobble.
+      if((notCallingForHeat || recentMovement) && (slew < minAbsSlew))
+          { return(valvePCOpen); }
+
+      // TODO-453: avoid closing the valve at all when the (raw) temperature
+      // is falling, so as to minimise valve movement.
+      // Since the target is the top of the proportional range
+      // then nothing within it requires the temperature to be *forced* down.
+      // Possibly don't apply this rule at the very top of the range in case
+      // filtering is on and the filtered value moves differently to the raw.
+      // Also avoid forcing the boiler to run continuously.
       const int rise = getRawDelta();
       if(rise < 0) { return(valvePCOpen); }
-      if((0 == rise) && inputState.widenDeadband) { return(valvePCOpen); }
+      // Allow indefinite hovering (avoiding valve movement)
+      // when in wide-deadband mode
+      // AND when not forcing the boiler to run continuously.  (TODO-1096)
+      const bool canHover = inputState.widenDeadband && notCallingForHeat;
+      // Avoid closing the valve when temperature steady
+      // and not calling for heat from the boiler.  (TODO-453, TODO-1096)
+      if((0 == rise) && canHover) { return(valvePCOpen); }
 
-      // TODO-1026: minimise movement in dark to avoid disturbing sleep (darkness indicated with wide deadband).
-      if(inputState.widenDeadband && lsbits < 14) { return(valvePCOpen); }
+      // TODO-1026: minimise movement in dark to avoid disturbing sleep
+      // (darkness generally forces wide deadband).  (TODO-1096)
+      if(canHover && (lsbits < 14)) { return(valvePCOpen); }
 
-      // Close glacially if explicitly requested or if temperature undershoot has happened or is a danger.
-      // Also be glacial if in soft setback which aims to allow temperatures to drift passively down a little.
-      //   (TODO-451, TODO-467: have darkness only immediately trigger a 'soft setback' using wide deadband)
-      // This assumes that most valves more than about 1/3rd open can deliver significant power, esp if not statically balanced.
+      // Close glacially if explicitly requested or if temperature undershoot
+      // has happened or is a danger.
+      // Also be glacial if in soft setback which aims to allow temperatures
+      // to drift passively down a little.
+      //   (TODO-451, TODO-467: have darkness only immediately trigger
+      //    a 'soft setback' using wide deadband)
       // TODO-482: try to deal better with jittery temperature readings.
       const bool beGlacial = inputState.glacial ||
-//      #if defined(GLACIAL_ON_WITH_WIDE_DEADBAND)
-          // (GLACIAL_ON_WITH_WIDE_DEADBAND: TODO-467)
           ((inputState.widenDeadband || isFiltering) && (valvePCOpen <= OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN)) ||
-//      #endif
           (lsbits < 8);
       if(beGlacial) { return(valvePCOpen - 1); }
 
@@ -501,39 +534,61 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
 
     // if(targetPO > TRVPercentOpen) // Currently open less than required.  Still below target at top of proportional range.
 //V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("slightly too closed");
-    // If room is well below target and in BAKE mode then immediately open to maximum.
-    // Needs debounced bake mode value to avoid spuriously slamming open the valve as the user cycles through modes.
+    // If room is well below target and the valve is in BAKE mode
+    // then immediately open to maximum.
+    // Needs 'debounced' BAKE mode value to avoid spuriously
+    // slamming open the valve while a user cycles through modes.
     if(inputState.inBakeMode) { return(inputState.maxPCOpen); }
-
-    const uint8_t slew = targetPO - valvePCOpen;
-    // To to avoid hunting around boundaries of a ~1ulp temperature step.
-    if(slew < minAbsSlew) { return(valvePCOpen); }
 
     // Reduce valve hunting: defer re-opening if recently closed.
     if(dontTurnup()) { return(valvePCOpen); }
 
+    // True if recent temp movement, possibly in right direction.
+    // Whole system not just static/stuck/jammed.
+    const bool recentMovement =
+        isFiltering || (getRawDelta(filterLength-1) > 0);
+
+    const uint8_t slew = targetPO - valvePCOpen;
+    // To to avoid hunting around boundaries of a ~1ulp temperature step.
+    if((notCallingForHeat || recentMovement) && (slew < minAbsSlew))
+        { return(valvePCOpen); }
+
     // TODO-453: minimise valve movement (and thus noise and battery use).
     // Keeping the temperature steady anywhere in the target proportional range
     // while minimising valve movement/noise/etc is a good goal,
-    // so if raw temperatures are rising (oer steady) at the moment then leave the valve as-is.
-    // If fairly near the final target then also leave the valve as-is (TODO-453 & TODO-451).
-    // TODO-1026: minimise movement in dark to avoid disturbing sleep (dark indicated with wide deadband).
-    // DHD20161020: reduced lower threshold with wide deadband from 8 to 2 (cf 12 without).
+    // so if raw temperatures are rising (or steady) at the moment
+    // then leave the valve as-is.
+    // If fairly near the final target
+    // then also leave the valve as-is (TODO-453 & TODO-451).
+    // TODO-1026: minimise movement in dark to avoid disturbing sleep
+    // (dark indicated with wide deadband).
+    // DHD20161020: reduced lower threshold with wide deadband
+    // from 8 to 2 (cf 12 without).
     const int rise = getRawDelta();
     if(rise > 0) { return(valvePCOpen); }
-    if((0 == rise) && inputState.widenDeadband) { return(valvePCOpen); }
-    if((lsbits >= (inputState.widenDeadband ? 2 : 12))) { return(valvePCOpen); }
+    // Allow indefinite hovering (avoiding valve movement)
+    // when in wide-deadband mode AND
+    // not calling for heat or some sign of recent temperature rise/movement
+    // so as to avoid forcing the boiler to run continuously
+    // and probably inefficiently and noisily.  (TODO-1096)
+    // In case of (eg) a sticky valve and very stable room temperature,
+    // try to force a small overshoot by slowly allowing valve to drift open,
+    // allowing the valve to shut and the valve/boiler to close/stop.
+    const bool canHover = inputState.widenDeadband &&
+        (notCallingForHeat || recentMovement);
+    if((0 == rise) && canHover) { return(valvePCOpen); }
+    if(canHover && (lsbits > 1)) { return(valvePCOpen); }
 
-    // Open glacially if explicitly requested or if temperature overshoot has happened or is a danger.
-    // Also be glacial if in soft setback which aims to allow temperatures to drift passively down a little.
-    //   (TODO-451, TODO-467: have darkness only immediately trigger a 'soft setback' using wide deadband)
-    // This assumes that most valves more than about 1/3rd open can deliver significant power, esp if not statically balanced.
+    // Open glacially if explicitly requested or if temperature overshoot
+    // has happened or is a danger.
+    // Also be glacial if in soft setback which aims to allow temperatures
+    // to drift passively down a little.
+    //   (TODO-451, TODO-467: have darkness only immediately trigger
+    //    a 'soft setback' using wide deadband)
     const bool beGlacial = inputState.glacial ||
-//      #if defined(GLACIAL_ON_WITH_WIDE_DEADBAND)
-        // (GLACIAL_ON_WITH_WIDE_DEADBAND: TODO-467)
         inputState.widenDeadband ||
-//      #endif
-        (lsbits >= 8) || ((lsbits >= 4) && (valvePCOpen > OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN));
+        (lsbits >= 8) ||
+        ((lsbits >= 4) && (valvePCOpen > OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN));
     if(beGlacial) { return(valvePCOpen + 1); }
 
     // Slew open faster with comfort bias, or when fastResponseRequired (TODO-593, TODO-1069)

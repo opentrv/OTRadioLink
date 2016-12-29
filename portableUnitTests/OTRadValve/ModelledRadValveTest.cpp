@@ -370,16 +370,29 @@ if(verbose) { fprintf(stderr, "@ %d %d\n", offset, valvePCOpen); }
                 {
                 // In proportional range, ie fairly close to target.
 
-                // (Even well) below the half way mark the valve should only be closed
-                // with temperature moving in wrong direction and without a wide deadband.
+                // (Even well) below the half way mark the valve should only be
+                // fully closed with temperature moving in wrong direction
+                // and without a wide deadband.
+                // It is good to avoid the boiler running continuously though,
+                // from hovering indefinitely above the
+                // 'call for heat' threshold.  (TODO-1092)
                 is3.setReferenceTemperatures(int_fast16_t((is3.targetTempC << 4) + 0x1));
                 OTRadValve::ModelledRadValveState rs3c;
                 valvePCOpen = 100;
                 rs3c.tick(valvePCOpen, is3);
-                if(is3.widenDeadband) { EXPECT_EQ(100, valvePCOpen); } else { EXPECT_GT(100, valvePCOpen); }
+                EXPECT_GT(100, valvePCOpen);
                 --is3.refTempC16;
                 rs3c.tick(valvePCOpen, is3);
-                if(is3.widenDeadband) { EXPECT_EQ(100, valvePCOpen); } else { EXPECT_GT(100, valvePCOpen); }
+                EXPECT_GT(100, valvePCOpen);
+                is3.setReferenceTemperatures(int_fast16_t((is3.targetTempC << 4) + 0x1));
+                valvePCOpen = OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1;
+                rs3c.tick(valvePCOpen, is3);
+                if(is3.widenDeadband) { EXPECT_EQ(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1, valvePCOpen); }
+                else { EXPECT_GT(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1, valvePCOpen); }
+                --is3.refTempC16;
+                rs3c.tick(valvePCOpen, is3);
+                if(is3.widenDeadband) { EXPECT_EQ(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1, valvePCOpen); }
+                else { EXPECT_GT(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1, valvePCOpen); }
 
                 // (Even well) above the half way mark the valve should only be opened
                 // with temperature moving in wrong direction and without a wide deadband.
