@@ -432,7 +432,10 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
             const bool scheduleOnSoon = schedule->isAnyScheduleOnWARMSoon();
             // High likelihood of occupancy now inhibits ECO setback.
             const uint8_t hoursLessOccupiedThanThis = byHourStats->countStatSamplesBelow(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED, byHourStats->getByHourStatRTC(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED, OTV0P2BASE::NVByHourByteStatsBase::SPECIAL_HOUR_CURRENT_HOUR));
-            const uint8_t thisHourNLOThreshold = tempControl->hasEcoBias() ? 17 : 14;
+            static constexpr uint8_t maxThr = 17;
+            static constexpr uint8_t minThr = 14;
+            static_assert(maxThr >= minThr, "sensitivity must not decrease with temp");
+            const uint8_t thisHourNLOThreshold = tempControl->hasEcoBias() ? maxThr : minThr;
             const bool relativelyActive = (hoursLessOccupiedThanThis > thisHourNLOThreshold);
 //            // Inhibit ECO (or more) setback (unless already long vacant)
 //            // for scheduled-on or where this hour is typically relatively busy.
@@ -465,9 +468,12 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
 
                 // Set a lower occupancy threshold to prevent FULL setback.
                 // Much lower if not dark for too long.
-                const uint8_t thisHourNLOThresholdF = (dm < (longDarkM>>1))
-                    ? (thisHourNLOThreshold >> 1)
-                    : (thisHourNLOThreshold - 1);
+                static constexpr uint8_t linReduction = 4;
+                static_assert(linReduction < minThr, "ensure new threshold is sane/+ve");
+                // Note: ignoring nominal overflow of dm>>5 in uint8_t since other factors should make it irrelevant.
+                const uint8_t thisHourNLOThresholdF =
+                    OTV0P2BASE::fnmin(thisHourNLOThreshold - linReduction,
+                                      (thisHourNLOThreshold >> 2) + (dm>>5));
                 const bool notInactive =
                     (hoursLessOccupiedThanThis > thisHourNLOThresholdF);
 
