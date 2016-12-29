@@ -473,7 +473,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
                 // Note: ignoring nominal overflow of dm>>5 in uint8_t since other factors should make it irrelevant.
                 const uint8_t thisHourNLOThresholdF =
                     OTV0P2BASE::fnmin(thisHourNLOThreshold - linReduction,
-                                      (thisHourNLOThreshold >> 2) + (dm>>5));
+                                      (thisHourNLOThreshold >> 2) + uint8_t(dm>>5));
                 const bool notInactive =
                     (hoursLessOccupiedThanThis > thisHourNLOThresholdF);
 
