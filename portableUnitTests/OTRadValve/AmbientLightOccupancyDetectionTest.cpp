@@ -21,7 +21,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
  *
  * These data sets are used to test key related and derived behaviours
  * from basic ambient light level sensing though to temperature setback levels,
- * thus providing an integration test for these components, and roling stats.
+ * thus providing an integration test for these components, and rolling stats.
  */
 
 #include <stdint.h>
@@ -161,14 +161,22 @@ class SimpleFlavourStats final
         float getFractionFlavoured() const { return(flavoured / (float) OTV0P2BASE::fnmax(1U, n)); }
     };
 
+// Stats bending type: BL_FROMSTATS (0) is closest to embedded use.
+enum blending_t : uint8_t { BL_FROMSTATS = 0, BL_NONE, BL_HALFHOURMIN, BL_HALFHOUR, BL_BYMINUTE, BL_END };
+
 // Collection of 'flavoured' events in one run.
 class SimpleFlavourStatCollection final
     {
+    private:
+        bool sensitive;
+        blending_t blending;
+
     public:
-        constexpr SimpleFlavourStatCollection(bool sensitive_, uint8_t blending_)
+        constexpr SimpleFlavourStatCollection(bool sensitive_ = false, blending_t blending_ = BL_FROMSTATS)
             : sensitive(sensitive_), blending(blending_) { }
-        const bool sensitive;
-        const uint8_t blending;
+
+        bool getSensitive() const { return(sensitive); }
+        blending_t getBlending() const { return(blending); }
 
         // Count of number of samples counted as dark.
         // Checking for gross under- or over- reporting.
@@ -428,7 +436,6 @@ static void scoreSetback(
 // Assumes that it is called in strictly monotonic increasing time
 // incrementing one minute each time, wrapping as 23:59.
 // Before the first call on one run of data oldH should be set to 0xff.
-enum blending_t : uint8_t { BL_FROMSTATS, BL_NONE, BL_HALFHOURMIN, BL_HALFHOUR, BL_BYMINUTE, BL_END };
 void setTypeMinMax(OTV0P2BASE::SensorAmbientLightAdaptiveMock &ala,
         const blending_t blending,
         const uint8_t H, const uint8_t M,
@@ -527,8 +534,8 @@ static void checkPerformanceAcceptableAgainstData(
         const SimpleFlavourStatCollection &flavourStats,
         const bool exemptFromNormalRatios)
     {
-    const bool sensitive = flavourStats.sensitive;
-    const bool oddBlend = (flavourStats.blending != BL_FROMSTATS);
+    const bool sensitive = flavourStats.getSensitive();
+    const bool oddBlend = (flavourStats.getBlending() != BL_FROMSTATS);
     // Normal core operation.
     const bool normalOperation = !sensitive && !oddBlend;
     // Normal operation but a bit more sensitive, eg at comfort end of range.
@@ -705,11 +712,17 @@ static void checkPerformanceAcceptableAgainstData(
 //   * exemptFromNormalRatios  minimum times at significant setbacks/levels
 //         (to enable significant energy savings) will be enabled
 //         unless this is true
+//   * nonSensitive  if non-NULL, has normal run results written to it
+//         and may suppress computation of any other stats sets
 void simpleDataSampleRun(const ALDataSample *const data,
-                         const bool exemptFromNormalRatios = false)
+                         const bool exemptFromNormalRatios = false,
+                         SimpleFlavourStatCollection *const nonSensitive = NULL)
     {
     ASSERT_TRUE(NULL != data);
     ASSERT_FALSE(data->isEnd()) << "do not pass in empty data set";
+
+    // If true then only compute main (non-sensitive, normal blending) result.
+    const bool nonSensitiveOnly = (NULL != nonSensitive);
 
     // Clear stats backing store.
     SDSR::hs.zapStats();
@@ -836,7 +849,7 @@ if(veryVerbose) { fprintf(stderr, "Skipping non-initial samples in %dT%.2d:%.2d\
     static_assert(0 == BL_FROMSTATS, "BL_FROMSTATS must be 0");
     const uint8_t nonStdBlend = uint8_t(1 + unsigned(random()) % (BL_END-1));
 //    for(uint8_t blending = 0; blending < BL_END; ++blending)
-    for(int b = 0; b < 2; ++b)
+    for(int b = 0; b <= (!nonSensitiveOnly ? 1 : 0); ++b)
         {
         const uint8_t blending = (0 == b) ? BL_FROMSTATS : nonStdBlend;
         const bool oddBlend = (BL_FROMSTATS != blending);
@@ -847,7 +860,7 @@ if(verbose) { fprintf(stderr, "blending = %d\n", blending); }
         // Run simulation at both sensitivities.
         int nOccupancyReportsSensitive = 0;
         int nOccupancyReportsNotSensitive = 0;
-        for(int s = 0; s <= 1; ++s)
+        for(int s = 0; s <= (!nonSensitiveOnly ? 1 : 0); ++s)
             {
             const bool sensitive = (0 != s);
 if(verbose) { fputs(sensitive ? "sensitive\n" : "not sensitive\n", stderr); }
@@ -919,7 +932,7 @@ if(doGraph)
     }
 
                 // Fresh behaviour stats each run, esp non-warmup run.
-                SimpleFlavourStatCollection flavourStats(sensitive, blending);
+                SimpleFlavourStatCollection flavourStats(sensitive, (blending_t)blending);
 
                 // Clear all state in static instances (except stats).
                 SDSR::resetAll();
@@ -1042,7 +1055,7 @@ if(verbose && !warmup && ((bool)expectedRoomDark != predictedRoomDark)) { fprint
                         } while((!(dp+1)->isEnd()) && (currentMinute < (dp+1)->currentMinute()));
                     }
 
-                // Don't test results in warmup run.
+                // Don't test/save results in warmup run.
                 if(!warmup)
                     {
                     checkPerformanceAcceptableAgainstData<SDSR::parameters>(
@@ -1054,11 +1067,13 @@ if(verbose && !warmup && ((bool)expectedRoomDark != predictedRoomDark)) { fprint
                         { nOccupancyReportsSensitive = flavourStats.ambLightOccupancyCallbacks.getFlavouredCount(); }
                     else
                         { nOccupancyReportsNotSensitive = flavourStats.ambLightOccupancyCallbacks.getFlavouredCount(); }
+                    if(NULL != nonSensitive) { *nonSensitive = flavourStats; }
                     }
                 }
             }
         // Check that sensitive mode generates at least as many reports as non.
-        EXPECT_LE(nOccupancyReportsNotSensitive, nOccupancyReportsSensitive) << "expect sensitive never to generate fewer reports";
+        if(!nonSensitiveOnly)
+            { EXPECT_LE(nOccupancyReportsNotSensitive, nOccupancyReportsSensitive) << "expect sensitive never to generate fewer reports"; }
         }
     }
 
@@ -18938,10 +18953,10 @@ TEST(AmbientLightOccupancyDetection,samplea0b)
 {
     simpleDataSampleRun(samplea0b);
 }
-TEST(AmbientLightOccupancyDetection,samplea1)
-{
-    simpleDataSampleRun(samplea1, true);
-}
+//TEST(AmbientLightOccupancyDetection,samplea1)
+//{
+//    simpleDataSampleRun(samplea1, true);
+//}
 TEST(AmbientLightOccupancyDetection,samplea1b)
 {
     simpleDataSampleRun(samplea1b);
@@ -18954,13 +18969,33 @@ TEST(AmbientLightOccupancyDetection,samplea2b)
 {
     simpleDataSampleRun(samplea2b);
 }
-TEST(AmbientLightOccupancyDetection,samplea3)
-{
-    // Very difficult data set; poor lighting.   TODO-1087
-    simpleDataSampleRun(samplea3, true);
-}
+//TEST(AmbientLightOccupancyDetection,samplea3)
+//{
+//    // Very difficult data set; poor lighting.   TODO-1087
+//    simpleDataSampleRun(samplea3, true);
+//}
 TEST(AmbientLightOccupancyDetection,samplea3b)
 {
     simpleDataSampleRun(samplea3b);
 }
 
+
+
+// Test combined weighted results to help minimise overall error.
+// This can be used for data sets that would fail some tests stand-alone.
+// Weight by importance eg how representantive of target households.
+// (Re)computes core non-sensitive values only for now.
+// Weights are nominally [0.0,1.0] but can be any small non-negative value.
+TEST(AmbientLightOccupancyDetection,weightedResults)
+{
+    SimpleFlavourStatCollection samplea3FSC;
+    simpleDataSampleRun(samplea3, true, &samplea3FSC);
+    ASSERT_FALSE(samplea3FSC.getSensitive());
+    ASSERT_EQ(BL_FROMSTATS, samplea3FSC.getBlending());
+
+    SimpleFlavourStatCollection samplea1FSC;
+    simpleDataSampleRun(samplea1, true, &samplea1FSC);
+    ASSERT_FALSE(samplea1FSC.getSensitive());
+    ASSERT_EQ(BL_FROMSTATS, samplea1FSC.getBlending());
+
+}
