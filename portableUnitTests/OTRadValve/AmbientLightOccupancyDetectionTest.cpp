@@ -18983,19 +18983,29 @@ TEST(AmbientLightOccupancyDetection,samplea3b)
 
 // Test combined weighted results to help minimise overall error.
 // This can be used for data sets that would fail some tests stand-alone.
-// Weight by importance eg how representantive of target households.
+// Generally only used on data sets covering several days.
+// Weight by relative importance eg how representantive of target households.
 // (Re)computes core non-sensitive values only for now.
 // Weights are nominally [0.0,1.0] but can be any small non-negative value.
 TEST(AmbientLightOccupancyDetection,weightedResults)
 {
+    std::vector<std::pair<float, SimpleFlavourStatCollection>> results;
+
     SimpleFlavourStatCollection samplea3FSC;
     simpleDataSampleRun(samplea3, true, &samplea3FSC);
-    ASSERT_FALSE(samplea3FSC.getSensitive());
-    ASSERT_EQ(BL_FROMSTATS, samplea3FSC.getBlending());
+    results.push_back(std::make_pair(0.3f, samplea3FSC));
 
     SimpleFlavourStatCollection samplea1FSC;
     simpleDataSampleRun(samplea1, true, &samplea1FSC);
-    ASSERT_FALSE(samplea1FSC.getSensitive());
-    ASSERT_EQ(BL_FROMSTATS, samplea1FSC.getBlending());
+    results.push_back(std::make_pair(0.3f, samplea1FSC));
 
+    // Validate collected results.
+    for(auto const& p: results)
+        {
+        // Ensure 'vanilla' results have been computed.
+        ASSERT_FALSE(p.second.getSensitive());
+        ASSERT_EQ(BL_FROMSTATS, p.second.getBlending());
+        // Ensure that weighting is non-negative (and non-NaN).
+        ASSERT_TRUE(0.0f <= p.first);
+        }
 }
