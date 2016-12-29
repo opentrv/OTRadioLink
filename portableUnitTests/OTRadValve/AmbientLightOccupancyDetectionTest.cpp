@@ -18984,9 +18984,14 @@ TEST(AmbientLightOccupancyDetection,samplea3b)
 // Test combined weighted results to help minimise overall error.
 // This can be used for data sets that would fail some tests stand-alone.
 // Generally only used on data sets covering several days.
-// Weight by relative importance eg how representantive of target households.
-// (Re)computes core non-sensitive values only for now.
+// Weight by relative importance eg how representative of target households.
+// Computes core non-sensitive values only for now.
 // Weights are nominally [0.0,1.0] but can be any small non-negative value.
+//
+// Key stats to test/combine:
+//   * Available savings percentage.
+//   * Amount setback is too high (discomfort).
+//   * Amount anticipation is missed (discomfort).
 TEST(AmbientLightOccupancyDetection,weightedResults)
 {
     std::vector<std::pair<float, SimpleFlavourStatCollection>> results;
