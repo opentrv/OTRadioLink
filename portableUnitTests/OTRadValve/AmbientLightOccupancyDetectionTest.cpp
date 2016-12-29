@@ -7641,7 +7641,7 @@ static const ALDataSample sample5sHard3[] =
 {26,5,50,2},
 {26,5,54,2},
 {26,5,58,2},
-{26,6,2,2},
+{26,6,2,2, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Let us lie in please!
 {26,6,7,2},
 {26,6,10,2},
 {26,6,14,2},
@@ -7656,7 +7656,7 @@ static const ALDataSample sample5sHard3[] =
 {26,6,50,2},
 {26,6,54,2},
 {26,6,58,2},
-{26,7,2,2},
+{26,7,2,2, occType::OCC_NONE, true, false, ALDataSample::SB_MAX}, // Let us lie in please!
 {26,7,6,1},
 {26,7,7,2},
 {26,7,11,2},

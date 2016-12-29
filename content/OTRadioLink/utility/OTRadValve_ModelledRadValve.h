@@ -463,8 +463,11 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
                 const uint8_t hoursLessOccupiedThanNext = byHourStats->countStatSamplesBelow(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED, byHourStats->getByHourStatRTC(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED, OTV0P2BASE::NVByHourByteStatsBase::SPECIAL_HOUR_NEXT_HOUR));
                 const bool relativelyActiveSoon = (hoursLessOccupiedThanNext > 2+thisHourNLOThreshold);
 
-                // Set a much lower occupancy threshold to prevent FULL setback.
-                const uint8_t thisHourNLOThresholdF = thisHourNLOThreshold >> 1;
+                // Set a lower occupancy threshold to prevent FULL setback.
+                // Much lower if not dark for too long.
+                const uint8_t thisHourNLOThresholdF = (dm < (longDarkM>>1))
+                    ? (thisHourNLOThreshold >> 1)
+                    : (thisHourNLOThreshold - 1);
                 const bool notInactive =
                     (hoursLessOccupiedThanThis > thisHourNLOThresholdF);
 
