@@ -166,28 +166,32 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
   // When reduced to whole Celsius then fewer bits are needed to cover expected temperatures.
   const int_fast8_t adjustedTempC = (int_fast8_t) (adjustedTempC16 >> 4);
 
-#if 0
+if(MINIMAL_BINARY_IMPL)
+  {
 
-  // Minimal implementation.
-
-  // (Well) under temp target: open valve up.
-  if(adjustedTempC < inputState.targetTempC)
+  // Minimal/binary implementation, supporting widened deadband on demand.
+  // (Well) under temperature target: open valve up.
+  if(adjustedTempC + (inputState.widenDeadband ? 1 : 0) < inputState.targetTempC)
     {
     // Don't open if recently turned down, and not in MAKE mode.
     if(dontTurnup() && !inputState.inBakeMode) { return(valvePCOpen); }
-    // Usually open up to max.
+    // Usually open up to max (fast).
+    setEvent(MRVE_OPENFAST);
     return(inputState.maxPCOpen);
     }
-  // (Well) over temp target: close valve down.
-  else if(adjustedTempC > inputState.targetTempC)
+  // (Well) over temperature target: close valve down.
+  else if(adjustedTempC > inputState.targetTempC + (inputState.widenDeadband ? 1 : 0) )
     {
     // Don't close if recently turned up.
     if(dontTurndown()) { return(valvePCOpen); }
-    // Usually close up to min.
-    return(inputState.minPCOpen);
+    // Usually close up to min (fast).
+    return(0);
     }
+  // Else leave valve position as-is.
 
-#else
+} else {
+
+  // Non-binary implementation.
 
   // Minimum slew/error % distance in central range;
   // should be larger than smallest temperature-sensor-driven step (6)
@@ -306,8 +310,10 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
     // so only do this in 'eco' mode where permission has been given
     // to try harder to save energy.
     //
-    // TODO: could restrict this to when (valvePCOpen >= inputState.minPCOpen) to save some thrashing and allow lingering.
-    // TODO: could explicitly avoid applying this when valve has recently been closed to avoid unwanted feedback loop.
+    // TODO: could restrict this to when (valvePCOpen >= inputState.minPCOpen)
+    // to save some thrashing and allow lingering.
+    // TODO: could explicitly avoid applying this when valve has recently been
+    // closed to avoid unwanted feedback loop.
     if(SUPPORTS_MRVE_DRAUGHT &&
        inputState.hasEcoBias &&
        (!inputState.fastResponseRequired) && // Avoid subverting recent manual call for heat.
@@ -361,7 +367,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
       // THEN force glacial mode to try to damp oscillations and avoid overshoot
       // and excessive valve movement (TODO-453).
       const bool beGlacial = inputState.glacial ||
-          ((valvePCOpen >= inputState.minPCOpen) && inputState.widenDeadband && !inputState.fastResponseRequired &&
+          ((valvePCOpen >= inputState.minPCReallyOpen) && inputState.widenDeadband && !inputState.fastResponseRequired &&
               (
                // Don't rush to open the valve (GLACIAL_ON_WITH_WIDE_DEADBAND: TODO-467)
                // if neither in comfort mode nor massively below (possibly already setback) target temp.
@@ -374,7 +380,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
 
       // If well below target (and without a wide deadband),
       // or needing a fast response to manual input to be responsive (TODO-593),
-      // then jump straight to (just over*) 'moderately open' if less open currently,
+      // then jump straight to (just over*) 'moderately open' if less currently,
       // which should allow flow and turn the boiler on ASAP,
       // a little like a mini-BAKE.
       // For this to work, don't set a wide deadband when, eg,
@@ -398,7 +404,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
       const uint8_t slewRate =
           ((valvePCOpen > OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN) || !inputState.widenDeadband) ?
               TRV_MAX_SLEW_PC_PER_MIN : TRV_SLEW_PC_PER_MIN_VFAST;
-      const uint8_t minOpenFromCold = OTV0P2BASE::fnmax(slewRate, inputState.minPCOpen);
+      const uint8_t minOpenFromCold = OTV0P2BASE::fnmax(slewRate, inputState.minPCReallyOpen);
       // Open to 'minimum' likely open state immediately if less open currently.
       if(valvePCOpen < minOpenFromCold) { return(minOpenFromCold); }
       // Slew open relatively gently...
@@ -436,9 +442,9 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
       // to help systems with poor bypass, ~1% per minute.
       // Special slow-turn-off rules for final part of travel at/below
       // "min % really open" floor.
-      const uint8_t minReallyOpen = inputState.minPCOpen;
-      const uint8_t lingerThreshold = (minReallyOpen > 0) ? (minReallyOpen-1) : 0;
-      if(valvePCOpen < minReallyOpen)
+      const uint8_t minReallyOpen = inputState.minPCReallyOpen;
+      const uint8_t lingerThreshold = SUPPORTS_LINGER && (minReallyOpen > 0) ? (minReallyOpen-1) : 0;
+      if(SUPPORTS_LINGER && (valvePCOpen <= lingerThreshold))
         {
         // If lingered long enough then do final chunk in one burst to help avoid valve hiss and temperature overshoot.
         if((DEFAULT_MAX_RUN_ON_TIME_M < minReallyOpen) && (valvePCOpen < minReallyOpen - DEFAULT_MAX_RUN_ON_TIME_M))
@@ -470,7 +476,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
     }
 
 
-#if 1
+#if 1 // Within target 1C range.
   // Close to (or at) target: set valve partly open to try to tightly regulate.
   //
   // Use currentTempC16 lsbits to set valve percentage for proportional feedback
@@ -491,7 +497,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
   // Constrain from above by maximum percentage open allowed,
   // eg for pay-by-volume systems.
   const uint8_t targetPO = OTV0P2BASE::fnconstrain(targetPORaw,
-      inputState.minPCOpen, inputState.maxPCOpen);
+      inputState.minPCReallyOpen, inputState.maxPCOpen);
 
   // Reduce spurious valve/boiler adjustment by avoiding movement at all
   // unless current temperature error is significant.
@@ -642,7 +648,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
 #endif // Within target 1C.
 
 
-#endif // 0
+} // if(!SUPPOPT_PROPORTIONAL)
 
   // Leave value position as was...
   return(valvePCOpen);

@@ -73,7 +73,7 @@ struct ModelledRadValveInputState final
   // Current target room temperature in C in range [MIN_TARGET_C,MAX_TARGET_C].
   uint8_t targetTempC = DEFAULT_ValveControlParameters::FROST; // Start with a safe/sensible value.
   // Min % valve at which is considered to be actually open (allow the room to heat) [1,100].
-  uint8_t minPCOpen = OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN;
+  uint8_t minPCReallyOpen = OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN;
   // Max % valve is allowed to be open [1,100].
   uint8_t maxPCOpen = 100;
 
@@ -100,16 +100,24 @@ struct ModelledRadValveInputState final
   };
 
 
-// All retained state for computing valve movement, eg containing time-based state.
+// All retained state for computing valve movement, eg time-based state.
 // Exposed to allow easier unit testing.
 // All initial values set by the constructor are sane.
 //
 // This uses int_fast16_t for C16 temperatures (ie Celsius * 16)
-// to be able to efficiently process signed values with sufficient range for room temperatures.
+// to be able to efficiently process signed values with sufficient range
+// for room temperatures.
 struct ModelledRadValveState final
   {
+  // If true then support a minimal/binary valve implementation.
+  static constexpr bool MINIMAL_BINARY_IMPL = false;
+
   // If true then attempts to detect draughts from open windows and doors.
   static constexpr bool SUPPORTS_MRVE_DRAUGHT = false;
+  // If true then do lingering close to help boilers with poor bypass.
+  static constexpr bool SUPPORTS_LINGER = false;
+  // If true then support proportional response in target 1C range.
+  static constexpr bool SUPPORT_PROPORTIONAL = !MINIMAL_BINARY_IMPL;
 
   // Construct an instance, with sensible defaults, but no (room) temperature.
   // Defers its initialisation with room temperature until first tick().
@@ -514,7 +522,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
         {
         // Set up state for computeRequiredTRVPercentOpen().
         inputState.targetTempC = newTarget;
-        inputState.minPCOpen = minPCOpen;
+        inputState.minPCReallyOpen = minPCOpen;
         inputState.maxPCOpen = maxPCOpen;
         inputState.glacial = glacial; // Note: may also wish to force glacial if room very dark to minimise noise (TODO-1027).
         inputState.inBakeMode = valveMode->inBakeMode();
@@ -703,7 +711,7 @@ class ModelledRadValveComputeTargetTempFull final : public ModelledRadValveCompu
         {
         // Set up state for computeRequiredTRVPercentOpen().
         inputState.targetTempC = newTarget;
-        inputState.minPCOpen = minPCOpen;
+        inputState.minPCReallyOpen = minPCOpen;
         inputState.maxPCOpen = maxPCOpen;
         inputState.glacial = glacial; // Note: may also wish to force glacial if room very dark to minimise noise (TODO-1027).
         inputState.inBakeMode = valveMode->inBakeMode();

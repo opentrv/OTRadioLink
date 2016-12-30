@@ -51,6 +51,10 @@ template <class T> constexpr const T& fnconstrain(const T& x, const T& l, const 
 // Requires < and - in order to work.
 template <class T> constexpr const T fnabsdiff(const T& a, const T& b) { return((a<b)?(b-a):(a-b)); }
 
+// Absolute value.
+// Requires < and unary - in order to work.
+template <class T> constexpr const T fnabs(const T& a) { return((a<0)?(-a):(a)); }
+
 
 // Extract ASCII hex digit in range [0-9][a-f] (ie lowercase) from bottom 4 bits of argument.
 // Eg, passing in 0xa (10) returns 'a'.

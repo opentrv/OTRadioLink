@@ -104,7 +104,7 @@ TEST(ModelledRadValve,UpDownDelay)
         rs.tick(valvePC, is);
         ASSERT_FALSE(rs.isFiltering);
         // The valve should have resumed closing.
-        EXPECT_GT(vPC1, valvePC);
+        if(vPC1 > 0) { EXPECT_GT(vPC1, valvePC); }
         for(int i = 20; (--i > 0) && (valvePC > 0); ) { rs.tick(valvePC, is); ASSERT_FALSE(rs.isFiltering); }
         EXPECT_EQ(0, valvePC);
         // Immediate open (turn up) should still be prohibited.
@@ -138,7 +138,7 @@ TEST(ModelledRadValve,UpDownDelay)
         rs.tick(valvePC, is);
         ASSERT_FALSE(rs.isFiltering);
         // The valve should have resumed opening.
-        EXPECT_LT(vPC2, valvePC);
+        if(vPC2 < 100) { EXPECT_LT(vPC2, valvePC); }
         for(int i = 20; (--i > 0) && (valvePC < 100); ) { rs.tick(valvePC, is); ASSERT_FALSE(rs.isFiltering); }
         EXPECT_EQ(100, valvePC);
         // Immediate close (turn down) should now be prohibited.
@@ -286,7 +286,7 @@ TEST(ModelledRadValve,MRVSExtremes)
         ASSERT_TRUE(newValvePos > 0);
         ASSERT_TRUE(newValvePos <= 100);
         ASSERT_TRUE(newValvePos > oldValvePos);
-        if(oldValvePos < is0.minPCOpen) { ASSERT_TRUE(is0.minPCOpen <= newValvePos); } // Should open to at least minimum-really-open-% on first step.
+        if(oldValvePos < is0.minPCReallyOpen) { ASSERT_TRUE(is0.minPCReallyOpen <= newValvePos); } // Should open to at least minimum-really-open-% on first step.
         ASSERT_TRUE(rs0.valveMoved == (oldValvePos != newValvePos));
         if(100 == newValvePos) { break; }
         }
@@ -306,7 +306,8 @@ TEST(ModelledRadValve,MRVSExtremes)
     ASSERT_TRUE(!rs1.initialised); // Initialisation not yet complete.
     const uint8_t valvePCOpenInitial1 = 1 + (OTV0P2BASE::randRNG8() % 100);
     valvePCOpen = valvePCOpenInitial1;
-    const bool lookForLinger = (valvePCOpenInitial1 >= is1.minPCOpen);
+    const bool lookForLinger = rs1.SUPPORTS_LINGER &&
+        (valvePCOpenInitial1 >= is1.minPCReallyOpen);
     bool hitLinger = false; // True if the linger value was hit.
     uint8_t lingerMins = 0; // Approx mins spent in linger.
     for(int i = maxFullTravelMins; --i >= 0; ) // Must fully close in reasonable time.
@@ -316,42 +317,46 @@ TEST(ModelledRadValve,MRVSExtremes)
         is1.widenDeadband = OTV0P2BASE::randRNG8NextBoolean();
         is1.hasEcoBias = OTV0P2BASE::randRNG8NextBoolean();
         const uint8_t oldValvePos = valvePCOpen;
-//        ASSERT_TRUE(valvePCOpen >= 0); // Nominally never false because unsigned type.
         rs1.tick(valvePCOpen, is1);
         const uint8_t newValvePos = valvePCOpen;
-//        ASSERT_TRUE(valvePCOpen >= 0); // Nominally never false because unsigned type.
-        ASSERT_TRUE(rs1.initialised); // Initialisation must have completed.
-        ASSERT_TRUE(newValvePos < 100);
-        ASSERT_TRUE(newValvePos < oldValvePos);
+        EXPECT_TRUE(rs1.initialised); // Initialisation must have completed.
+        EXPECT_TRUE(newValvePos < 100);
+        EXPECT_TRUE(newValvePos < oldValvePos);
         if(hitLinger) { ++lingerMins; }
         if(hitLinger && (0 != newValvePos)) { ASSERT_EQ(oldValvePos - 1, newValvePos); }
-        if(newValvePos == is1.minPCOpen-1) { hitLinger = true; }
+        if(newValvePos == is1.minPCReallyOpen-1) { hitLinger = true; }
         ASSERT_TRUE(rs1.valveMoved == (oldValvePos != newValvePos));
         if(0 == newValvePos) { break; }
         }
-    ASSERT_EQ(0, valvePCOpen);
-    ASSERT_EQ(valvePCOpenInitial1, rs1.cumulativeMovementPC);
-    ASSERT_TRUE(hitLinger == lookForLinger);
-    if(lookForLinger) { EXPECT_GE(lingerMins, OTV0P2BASE::fnmin(is1.minPCOpen, OTRadValve::DEFAULT_MAX_RUN_ON_TIME_M)) << ((int)is1.minPCOpen); }
+    EXPECT_EQ(0, valvePCOpen);
+    EXPECT_EQ(valvePCOpenInitial1, rs1.cumulativeMovementPC);
+    EXPECT_TRUE(hitLinger == lookForLinger);
+    if(lookForLinger) { EXPECT_GE(lingerMins, OTV0P2BASE::fnmin(is1.minPCReallyOpen, OTRadValve::DEFAULT_MAX_RUN_ON_TIME_M)) << ((int)is1.minPCReallyOpen); }
     // Filtering should not have been engaged and velocity should be zero (temperature is flat).
     for(int i = OTRadValve::ModelledRadValveState::filterLength; --i >= 0; ) { ASSERT_EQ(100<<4, rs1.prevRawTempC16[i]); }
-    ASSERT_EQ(100<<4, rs1.getSmoothedRecent());
+    EXPECT_EQ(100<<4, rs1.getSmoothedRecent());
     //  AssertIsEqual(0, rs1.getVelocityC16PerTick());
-    ASSERT_TRUE(!rs1.isFiltering);
+    EXPECT_TRUE(!rs1.isFiltering);
 
-    // Test that soft setback (wide deadband) works as expected to support dark-based quick setback.
+    // Test that soft setback (wide deadband) works as expected
+    // to support dark-based quick setback.
     // ENERGY SAVING RULE TEST (TODO-442 2a: "Setback in WARM mode must happen in dark (quick response) or long vacant room.")
     // Try a range of (whole-degree) offsets...
-    for(int offset = -2; offset <= +2; ++offset)
+    for(int offset = -3; offset <= +3; ++offset)
         {
+SCOPED_TRACE(testing::Message() << "offset " << offset);
         // Try soft setback off and on.
         for(int s = 0; s < 2; ++s)
             {
+            const bool wd = (s == 1);
+SCOPED_TRACE(testing::Message() << "widenDeadband " << wd);
             OTRadValve::ModelledRadValveInputState is3(100<<4);
             is3.targetTempC = 25;
-            is3.widenDeadband = (s == 1);
-            // Other than in the proportional range, valve should unconditionally be driven off/on by gross temperature error.
-            if(0 != offset)
+            is3.widenDeadband = wd;
+            // Other than in the potentially-proportional range,
+            // valve should unconditionally be driven off/on
+            // by gross temperature error.
+            if(OTV0P2BASE::fnabs(offset) > (wd ? 1 : 0))
                 {
                 is3.setReferenceTemperatures(int_fast16_t((is3.targetTempC + offset) << 4));
                 // Where adjusted reference temperature is (well) below target, valve should be driven on.
@@ -366,7 +371,7 @@ if(verbose) { fprintf(stderr, "@ %d %d\n", offset, valvePCOpen); }
                 rs3b.tick(valvePCOpen, is3);
                 EXPECT_TRUE((offset < 0) ? (100 == valvePCOpen) : (valvePCOpen < 100)) << (int)valvePCOpen;
                 }
-            else
+            else if(OTRadValve::ModelledRadValveState::SUPPORT_PROPORTIONAL)
                 {
                 // In proportional range, ie fairly close to target.
 
@@ -511,10 +516,10 @@ TEST(ModelledRadValve,MRVSOpenFastFromCold593)
     // Run the algorithm one tick.
     rs0.tick(valvePCOpen, is0);
     const uint8_t newValvePos = valvePCOpen;
-    ASSERT_TRUE(newValvePos >= OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN);
-    ASSERT_TRUE(newValvePos <= 100);
-    ASSERT_TRUE(rs0.valveMoved);
-    ASSERT_EQ(OTRadValve::ModelledRadValveState::MRVE_OPENFAST, rs0.lastEvent);
+    EXPECT_TRUE(newValvePos >= OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN);
+    EXPECT_TRUE(newValvePos <= 100);
+    EXPECT_TRUE(rs0.valveMoved);
+    EXPECT_EQ(OTRadValve::ModelledRadValveState::MRVE_OPENFAST, rs0.lastEvent);
 }
 
 
