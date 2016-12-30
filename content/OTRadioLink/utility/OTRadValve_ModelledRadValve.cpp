@@ -166,6 +166,21 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
   // When reduced to whole Celsius then fewer bits are needed to cover expected temperatures.
   const int_fast8_t adjustedTempC = (int_fast8_t) (adjustedTempC16 >> 4);
 
+  // Maximum valve slew rate (percent/minute) when close to target temperature.
+  // Note: keeping TRV_MAX_SLEW_PC_PER_MIN small reduces noise and overshoot
+  // and surges of water
+  // (eg for when additionally charged by volume in district heating systems)
+  // and will likely work better with high-thermal-mass / slow-response systems
+  // such as UFH.
+  // Should be << 100%/min, and probably << 30%/min,
+  // given that 30% may be the effective control range of many rad valves.
+  static const uint8_t TRV_MAX_SLEW_PC_PER_MIN = alwaysGlacial ? 1 : 5;
+  // Derived from basic slew values.
+  // Takes <= fastResponseTicksTarget minutes for full travel.
+  static const uint8_t TRV_SLEW_PC_PER_MIN_FAST = alwaysGlacial ? 1 : uint8_t(1+OTV0P2BASE::fnmax(100/fastResponseTicksTarget,1+TRV_MAX_SLEW_PC_PER_MIN));
+  // Takes <= vFastResponseTicksTarget minutes for full travel.
+  static const uint8_t TRV_SLEW_PC_PER_MIN_VFAST = alwaysGlacial ? 1 : uint8_t(1+OTV0P2BASE::fnmax(100/vFastResponseTicksTarget,1+TRV_SLEW_PC_PER_MIN_FAST));
+
 static constexpr bool oldProportionalAlg = true;
 
 if(MINIMAL_BINARY_IMPL) {
@@ -175,8 +190,10 @@ if(MINIMAL_BINARY_IMPL) {
     // (Well) under temperature target: open valve up.
     if(adjustedTempC + (inputState.widenDeadband ? 1 : 0) < inputState.targetTempC)
         {
-        // Don't open if recently turned down, and not in MAKE mode.
+        // Don't open if recently turned down, and not in BAKE mode.
         if(dontTurnup() && !inputState.inBakeMode) { return(valvePCOpen); }
+        // Honour glacial restriction for opening.
+        if(inputState.glacial) { if(valvePCOpen < inputState.maxPCOpen) { return(valvePCOpen + 1); } }
         // Usually open up to max (fast).
         setEvent(MRVE_OPENFAST);
         return(inputState.maxPCOpen);
@@ -211,8 +228,10 @@ if(MINIMAL_BINARY_IMPL) {
     // (Well) under temperature target: open valve up.
     if(adjustedTempC + (inputState.widenDeadband ? 1 : 0) < inputState.targetTempC)
         {
-        // Don't open if recently turned down, and not in MAKE mode.
+        // Don't open if recently turned down, and not in BAKE mode.
         if(dontTurnup() && !inputState.inBakeMode) { return(valvePCOpen); }
+        // Honour glacial restriction for opening.
+        if(inputState.glacial) { if(valvePCOpen < inputState.maxPCOpen) { return(valvePCOpen + 1); } }
         // Usually open up to max (fast).
         setEvent(MRVE_OPENFAST);
         return(inputState.maxPCOpen);
@@ -232,69 +251,77 @@ if(MINIMAL_BINARY_IMPL) {
     // With a wide deadband far more over-/under- shoot is tolerated.
     else
         {
+        // In BAKE mode open immediately to maximum.
+        if(inputState.inBakeMode) { return(inputState.maxPCOpen); }
+
         // Nominally aiming for top of 1C range where
         // adjustedTempC == inputState.targetTempC
         // ie while adjustedTempC is just below inputState.targetTempC.
 
-        // Simple boolean to dispose valve to opening or closing.
-        const bool nominallyBelowTarget =
-           (adjustedTempC <= inputState.targetTempC);
+        // Slow down as the target is approached from below,
+        // with the aim of avoiding overshoot.
+        // Lower target/threshold near bottom of middle 1C with wide deadband,
+        // else about half-way up the middle 1C.
+        const bool belowLowerTargetInMiddle1C =
+           (adjustedTempC == inputState.targetTempC) &&
+           ((adjustedTempC16 & 0xf) < (inputState.widenDeadband ? 1 : 8));
+        // True when below lower target.
+        const bool belowLowerTarget = belowLowerTargetInMiddle1C ||
+           (adjustedTempC < inputState.targetTempC);
 
         // Leave valve as-is if blocked from moving in appropriate direction.
-        if(nominallyBelowTarget)
+        if(belowLowerTarget)
             { if(dontTurnup()) { return(valvePCOpen); } }
         else
             { if(dontTurndown()) { return(valvePCOpen); } }
 
         // Leave valve as-is if already at limit in appropriate direction.
-        if(nominallyBelowTarget)
+        if(belowLowerTarget)
             { if(valvePCOpen >= inputState.maxPCOpen) { return(valvePCOpen); } }
         else
             { if(0 == valvePCOpen) { return(valvePCOpen); } }
 
-//        // Slow down as the target is approached from below,
-//        // with the aim of stopping before actually hitting the target.
-//        // Take entire target 1C with wide deadband, top half otherwise.
-//        const bool slightlyBelowTarget =
-//           (adjustedTempC == inputState.targetTempC) &&
-//           (inputState.widenDeadband || (uint8_t(adjustedTempC16 & 0xf) >= 8));
+        // Move quickly when requested, eg responding to manual control use.
+        // Try to get right side of call-for-heat threshold in first step
+        // to have boiler respond appropriately ASAP also.
+        if(inputState.fastResponseRequired)
+            {
+            // Useful threshold for immediate boiler AND valve response.
+            static_assert(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN > 0, "so that minThreshold-1 >= 0");
+            const uint8_t minThreshold =
+                OTV0P2BASE::fnmax(inputState.minPCReallyOpen,
+                                  OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN);
+            if(belowLowerTarget)
+                { return(OTV0P2BASE::fnconstrain(uint8_t(valvePCOpen + TRV_SLEW_PC_PER_MIN_VFAST), minThreshold, inputState.maxPCOpen)); }
+            else
+                { return(uint8_t(OTV0P2BASE::fnconstrain(int(valvePCOpen) - int(TRV_SLEW_PC_PER_MIN_VFAST), 0, int(minThreshold-1)))); }
+            }
 
-    // TODO
+        // Avoid any movement if to save valve energy and noise if ALL of:
+        //   * not calling for heat (since that avoid boiler energy and noise)
+        //   * close enough to temperature
+        //   * not moving in the wrong direction
+        if(valvePCOpen < OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN)
+            {
+            // TODO
 
 
-        // By default, move valve glacially to full or closed.
-        // The valve is known not to be at the limit if this is reached.
-        // Unless pre-empted the valve does not stay static.
-        if(nominallyBelowTarget)
-            { return(valvePCOpen + 1); }
+            }
+
+        // By default, move valve glacially all the way to full or to closed.
+        // This is based on hitting and sticking to the lower target,
+        // with the aim of avoiding either hard limit.
+        // Unless pre-empted the valve does not stay static mid-travel.
+        if(belowLowerTarget)
+            { if(valvePCOpen < inputState.maxPCOpen) { return(valvePCOpen + 1); } }
         else
-            { return(valvePCOpen - 1); }
+            { if(valvePCOpen > 0) { return(valvePCOpen - 1); } }
         }
 
 
 } else {
 
   // Non-binary implementation, circa 2013--2016.
-
-  // Minimum slew/error % distance in central range;
-  // should be larger than smallest temperature-sensor-driven step (6)
-  // to be effective; [1,100].
-  // Note: keeping TRV_MIN_SLEW_PC sufficiently high largely avoids
-  // spurious hunting back and forth from single-ulp noise.
-  static constexpr uint8_t TRV_MIN_SLEW_PC = 7;
-  // Set maximum valve slew rate (percent/minute) when close to target temperature.
-  // Note: keeping TRV_MAX_SLEW_PC_PER_MIN small reduces noise and overshoot
-  // and surges of water
-  // (eg for when additionally charged by volume in district heating systems)
-  // and will likely work better with high-thermal-mass / slow-response systems
-  // such as UFH.
-  // Should be << 100%/min, and probably << 30%/min,
-  // given that 30% may be the effective control range of many rad valves.
-  static constexpr uint8_t TRV_MIN_SLEW_PC_PER_MIN = 1; // Minimal slew rate (%/min) to keep flow rates as low as possible.
-  static const uint8_t TRV_MAX_SLEW_PC_PER_MIN = alwaysGlacial ? TRV_MIN_SLEW_PC_PER_MIN : 5;
-  // Derived from basic slew values.
-  static const uint8_t TRV_SLEW_PC_PER_MIN_FAST = alwaysGlacial ? TRV_MAX_SLEW_PC_PER_MIN : uint8_t(OTV0P2BASE::fnmin(20,(2*TRV_MAX_SLEW_PC_PER_MIN))); // Takes >= 5 minutes for full travel.
-  static const uint8_t TRV_SLEW_PC_PER_MIN_VFAST = alwaysGlacial ? TRV_MAX_SLEW_PC_PER_MIN : uint8_t(OTV0P2BASE::fnmin(34,(4*TRV_MAX_SLEW_PC_PER_MIN))); // Takes >= 3 minutes for full travel.
 
   // (Well) under temp target: open valve up.
   if(adjustedTempC < inputState.targetTempC)
@@ -591,7 +618,13 @@ if(MINIMAL_BINARY_IMPL) {
     // Compute the minimum/epsilon slew adjustment allowed (the deadband).
     // Also increase effective deadband if temperature resolution is lower than 1/16th, eg 8ths => 1+2*ulpStep minimum.
     // Compute real minimum unit in last place.
-    constexpr uint8_t realMinUlp = 1 + ulpStep;
+    static constexpr uint8_t realMinUlp = 1 + ulpStep;
+    // Minimum slew/error % distance in central range;
+    // should be larger than smallest temperature-sensor-driven step (6)
+    // to be effective; [1,100].
+    // Note: keeping TRV_MIN_SLEW_PC sufficiently high largely avoids
+    // spurious hunting back and forth from single-ulp noise.
+    static constexpr uint8_t TRV_MIN_SLEW_PC = 7;
     // Compute minimum slew to use with a wider deadband.
     const uint8_t ls = OTV0P2BASE::fnmax(TRV_MAX_SLEW_PC_PER_MIN, (uint8_t) (2 * TRV_MIN_SLEW_PC));
     const uint8_t ls2 = OTV0P2BASE::fnmin(ls, (uint8_t) (OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN / 2));

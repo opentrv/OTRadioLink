@@ -31,8 +31,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 
 // Test for basic implementation of turn-up to/from turn-down delay to reduce valve hunting.
 // Except when trying to respond as quickly as possible to a BAKE request,
-// the valve should resist changing directions (between opening and closing) too quickly.
-// That is, check that pauses between turn up and turn down are enforced correctly.
+// the valve should resist changing directions (between open/close) too quickly.
+// That is, check that pauses between turn up and turn down are enforced.
 TEST(ModelledRadValve,UpDownDelay)
 {
     for(int ub = 0; ub <= 1; ++ub)
@@ -44,8 +44,8 @@ TEST(ModelledRadValve,UpDownDelay)
         EXPECT_FALSE(rs.dontTurndown());
         EXPECT_FALSE(rs.dontTurnup());
 
-        // Attempt to cycle the valve back and forth between max open and max closed.
-        // Ensure that (without BAKE) there is a pause, and sufficient
+        // Attempt to cycle the valve back and forth between max open/closed.
+        // Ensure that (without BAKE) there is a pause before reversing.
 
         // Start with the valve fully open.
         uint8_t valvePC = 100;
@@ -62,7 +62,7 @@ TEST(ModelledRadValve,UpDownDelay)
         EXPECT_FALSE(rs.dontTurndown());
         EXPECT_FALSE(rs.dontTurnup());
         // Now set the target well below ambient, and spin again for a while.
-        // The valve should be closed and exactly 100% of cumulative travel recorded.
+        // The valve should be closed and exactly 100% of cumulative travel.
         is.targetTempC = 14;
         // Backfill entire temperature history to avoid filtering coming on.
         rs._backfillTemperatures(rs.computeRawTemp16(is));
@@ -74,7 +74,7 @@ TEST(ModelledRadValve,UpDownDelay)
         // Immediate open (turn up) should be prohibited.
         EXPECT_FALSE(rs.dontTurndown());
         EXPECT_TRUE(rs.dontTurnup());
-        // Temporarily set the target well above ambient, and spin again for a while.
+        // Temporarily set the target well above ambient, and spin for a while.
         is.targetTempC = 32;
         rs._backfillTemperatures(rs.computeRawTemp16(is));
         rs.tick(valvePC, is);
@@ -105,16 +105,18 @@ TEST(ModelledRadValve,UpDownDelay)
         ASSERT_FALSE(rs.isFiltering);
         // The valve should have resumed closing.
         if(vPC1 > 0) { EXPECT_GT(vPC1, valvePC); }
-        for(int i = 20; (--i > 0) && (valvePC > 0); ) { rs.tick(valvePC, is); ASSERT_FALSE(rs.isFiltering); }
+        for(int i = 20; (--i > 0) && (valvePC > 0); )
+            { rs.tick(valvePC, is); ASSERT_FALSE(rs.isFiltering); }
         EXPECT_EQ(0, valvePC);
         // Immediate open (turn up) should still be prohibited.
         EXPECT_FALSE(rs.dontTurndown());
-        for(int i = OTRadValve::DEFAULT_ANTISEEK_VALVE_REOPEN_DELAY_M+2; --i > 0; ) { rs.tick(valvePC, is); ASSERT_FALSE(rs.isFiltering); }
+        for(int i = OTRadValve::DEFAULT_ANTISEEK_VALVE_REOPEN_DELAY_M+2; --i > 0; )
+            { rs.tick(valvePC, is); ASSERT_FALSE(rs.isFiltering); }
         // No turn up or turn down should now be prohibited.
         EXPECT_FALSE(rs.dontTurndown());
         EXPECT_FALSE(rs.dontTurnup());
-        // Now set the target well above ambient again, and spin again for a while.
-        // The valve should be open and exactly 200% of cumulative travel recorded.
+        // Now set the target well above ambient again, and spin for a while.
+        // The valve should be open and exactly 200% of cumulative travel.
         is.targetTempC = 21;
         // Backfill entire temperature history to avoid filtering coming on.
         rs._backfillTemperatures(rs.computeRawTemp16(is));
@@ -123,7 +125,7 @@ TEST(ModelledRadValve,UpDownDelay)
         const uint8_t vPC2 = valvePC;
         EXPECT_LT(0, valvePC);
         ASSERT_FALSE(rs.isFiltering);
-        // Temporarily set the target well below ambient, and spin again for a while.
+        // Temporarily set the target well below ambient, and spin for a while.
         is.targetTempC = 10;
         rs._backfillTemperatures(rs.computeRawTemp16(is));
         rs.tick(valvePC, is);
@@ -139,12 +141,14 @@ TEST(ModelledRadValve,UpDownDelay)
         ASSERT_FALSE(rs.isFiltering);
         // The valve should have resumed opening.
         if(vPC2 < 100) { EXPECT_LT(vPC2, valvePC); }
-        for(int i = 20; (--i > 0) && (valvePC < 100); ) { rs.tick(valvePC, is); ASSERT_FALSE(rs.isFiltering); }
+        for(int i = 20; (--i > 0) && (valvePC < 100); )
+            { rs.tick(valvePC, is); ASSERT_FALSE(rs.isFiltering); }
         EXPECT_EQ(100, valvePC);
         // Immediate close (turn down) should now be prohibited.
         EXPECT_TRUE(rs.dontTurndown());
         EXPECT_FALSE(rs.dontTurnup());
-        for(int i = OTRadValve::DEFAULT_ANTISEEK_VALVE_RECLOSE_DELAY_M+2; --i > 0; ) { rs.tick(valvePC, is); ASSERT_FALSE(rs.isFiltering); }
+        for(int i = OTRadValve::DEFAULT_ANTISEEK_VALVE_RECLOSE_DELAY_M+2; --i > 0; )
+            { rs.tick(valvePC, is); ASSERT_FALSE(rs.isFiltering); }
         // No turn up or turn down should now be prohibited.
         EXPECT_FALSE(rs.dontTurndown());
         EXPECT_FALSE(rs.dontTurnup());
@@ -156,21 +160,22 @@ TEST(ModelledRadValve,cumulativeMovementPC)
 {
     // Start with the valve fully open.
     uint8_t valvePC = 100;
-    // Set sensible ambient room temperature (18C) and target of much higher.
+    // Set sensible ambient room temperature (18C), with the target much higher.
     OTRadValve::ModelledRadValveInputState is(18 << 4);
     is.targetTempC = 25;
     OTRadValve::ModelledRadValveState rs;
-    // Spin on the tick for many hours' worth; there is no need for the valve to move.
+    // Spin on the tick for many hours' worth;
+    // there is no need for the valve to move.
     for(int i = 1000; --i > 0; ) { rs.tick(valvePC, is); }
     EXPECT_EQ(100, valvePC);
     EXPECT_EQ(0, rs.cumulativeMovementPC);
-    // Now set the target well below ambient, and spin again for a while.
+    // Now set the target well below ambient, and spin for a while.
     // The valve should be closed and exactly 100% of cumulative travel recorded.
     is.targetTempC = 14;
     for(int i = 1000; --i > 0; ) { rs.tick(valvePC, is); }
     EXPECT_EQ(0, valvePC);
     EXPECT_EQ(100, rs.cumulativeMovementPC);
-    // Now set the target well above ambient again, and spin again for a while.
+    // Now set the target well above ambient again, and spin for a while.
     // The valve should be open and exactly 200% of cumulative travel recorded.
     is.targetTempC = 21;
     for(int i = 1000; --i > 0; ) { rs.tick(valvePC, is); }
@@ -178,11 +183,11 @@ TEST(ModelledRadValve,cumulativeMovementPC)
     EXPECT_EQ(200, rs.cumulativeMovementPC);
 }
 
-// Test the logic in ModelledRadValve as a whole for starting from extreme positions.
-// This is a mini-integration test as much to look for glue-logic issues as anything else.
-// In particular this would have caught the prior serious bug where something inappropriate
-// (the temperature target) was overwriting the % open value, and may catch other similar gross errors.
-// Test of ModelledRadValveComputeTargetTempBasic algorithm for computing the target temperature.
+// Simple test of integration of ModelledRadValve and underlying components.
+// This is a mini-integration test to look for eg glue-logic issues.
+// In particular this would have caught a prior serious bug where
+// something inappropriate (the temperature target) was overwriting
+// the % open value, and may catch other similar gross errors.
 namespace MRVEI
     {
     // Instances with linkage to support the test.
@@ -229,26 +234,34 @@ TEST(ModelledRadValve,MRVExtremesInt)
     EXPECT_FALSE(mrv.isInErrorState());
     EXPECT_TRUE(mrv.isInNormalRunState());
 
-    // Set up a room well below temperature, but occupied and light, with the device in WARM mode.
+    // Set up a room well below temperature, but occupied and light,
+    // with the device in WARM mode.
     MRVEI::valveMode.setWarmModeDebounced(true);
     MRVEI::roomTemp.set(parameters::FROST << 4);
     MRVEI::occupancy.markAsOccupied();
     MRVEI::ambLight.set(255, 0, false);
-    // Spin for at most a few minutes (at one tick per minute) and the valve should be fully open.
+    // Spin for at most a few minutes (at one tick per minute)
+    // and the valve should be fully open.
     for(int i = 10; --i > 0; ) { mrv.read(); }
     EXPECT_EQ(100, mrv.get());
 
-    // Bring the room well over temperature, still occupied and light, and still in WARM mode.
+    // Bring the room well over temperature, still occupied and light,
+    // and still in WARM mode.
     MRVEI::roomTemp.set((parameters::TEMP_SCALE_MAX + 1) << 4);
-    // Spin for some minutes (at one tick per minute) and the valve should be fully closed.
-    // This may take longer than the first response because of filtering and movement reduction algorithms.
+    // Spin for some minutes (at one tick per minute)
+    // and the valve should be fully closed.
+    // This may take longer than the first response
+    // because of filtering and movement reduction algorithms.
     for(int i = 30; --i > 0; ) { mrv.read(); }
     EXPECT_EQ(0, mrv.get());
 
-    // Bring the room well below temperature, still occupied and light, and still in WARM mode.
+    // Bring the room well below temperature, still occupied and light,
+    // and still in WARM mode.
     MRVEI::roomTemp.set((parameters::TEMP_SCALE_MIN - 1) << 4);
-    // Spin for some minutes (at one tick per minute) and the valve should be fully open.
-    // This may take longer than the first response because of filtering and movement reduction algorithms.
+    // Spin for some minutes (at one tick per minute)
+    // and the valve should be fully open.
+    // This may take longer than the first response
+    // because of filtering and movement reduction algorithms.
     for(int i = 30; --i > 0; ) { mrv.read(); }
     EXPECT_EQ(100, mrv.get());
 }
@@ -265,8 +278,10 @@ TEST(ModelledRadValve,MRVSExtremes)
     // and the initial valve position is anything less than 100%
     // that after one tick (with mainly defaults)
     // that the valve is being opened (and more than glacially),
-    // ie that when below any possible legal target FROST/WARM/BAKE temperature the valve will open monotonically,
-    // and also test that the fully-open state is reached in a bounded number of ticks ie bounded time.
+    // ie that when below any possible legal target FROST/WARM/BAKE temperature
+    // the valve will open monotonically,
+    // and also test that the fully-open state is reached
+    // in a bounded number of ticks ie in bounded time.
     static const int maxFullTravelMins = 25;
     if(verbose) { fprintf(stderr, "open...\n"); }
     OTRadValve::ModelledRadValveInputState is0(0);
@@ -329,17 +344,21 @@ TEST(ModelledRadValve,MRVSExtremes)
         if(0 == newValvePos) { break; }
         }
     EXPECT_EQ(0, valvePCOpen);
-    if(rs1.SUPPORTS_LINGER) { EXPECT_EQ(valvePCOpenInitial1, rs1.cumulativeMovementPC); }
-    EXPECT_TRUE(hitLinger == lookForLinger);
-    if(lookForLinger) { EXPECT_GE(lingerMins, OTV0P2BASE::fnmin(is1.minPCReallyOpen, OTRadValve::DEFAULT_MAX_RUN_ON_TIME_M)) << ((int)is1.minPCReallyOpen); }
-    // Filtering should not have been engaged and velocity should be zero (temperature is flat).
-    for(int i = OTRadValve::ModelledRadValveState::filterLength; --i >= 0; ) { ASSERT_EQ(100<<4, rs1.prevRawTempC16[i]); }
+    EXPECT_EQ(valvePCOpenInitial1, rs1.cumulativeMovementPC);
+    if(rs1.SUPPORTS_LINGER)
+        { EXPECT_TRUE(hitLinger == lookForLinger); }
+    if(lookForLinger)
+        { EXPECT_GE(lingerMins, OTV0P2BASE::fnmin(is1.minPCReallyOpen, OTRadValve::DEFAULT_MAX_RUN_ON_TIME_M)) << ((int)is1.minPCReallyOpen); }
+    // Filtering should not have been engaged
+    // and velocity should be zero (temperature is flat).
+    for(int i = OTRadValve::ModelledRadValveState::filterLength; --i >= 0; )
+        { ASSERT_EQ(100<<4, rs1.prevRawTempC16[i]); }
     EXPECT_EQ(100<<4, rs1.getSmoothedRecent());
     //  AssertIsEqual(0, rs1.getVelocityC16PerTick());
     EXPECT_TRUE(!rs1.isFiltering);
 
     // Test that soft setback (wide deadband) works as expected
-    // to support dark-based quick setback.
+    // eg to support dark-based quick setback.
     // ENERGY SAVING RULE TEST (TODO-442 2a: "Setback in WARM mode must happen in dark (quick response) or long vacant room.")
     // Try a range of (whole-degree) offsets...
     for(int offset = -3; offset <= +3; ++offset)
@@ -351,10 +370,10 @@ SCOPED_TRACE(testing::Message() << "offset " << offset);
             const bool wd = (s == 1);
 SCOPED_TRACE(testing::Message() << "widenDeadband " << wd);
             OTRadValve::ModelledRadValveInputState is3(100<<4);
-            is3.targetTempC = 25;
+            is3.targetTempC = 19;
             is3.widenDeadband = wd;
             // Other than in the potentially-proportional range,
-            // valve should unconditionally be driven off/on
+            // valve should unconditionally be driven immediately off/on
             // by gross temperature error.
             if(OTV0P2BASE::fnabs(offset) > (wd ? 1 : 0))
                 {
@@ -375,41 +394,39 @@ if(verbose) { fprintf(stderr, "@ %d %d\n", offset, valvePCOpen); }
                 {
                 // In proportional range, ie fairly close to target.
 
-                // (Even well) below the half way mark the valve should only be
-                // fully closed with temperature moving in wrong direction
-                // and without a wide deadband.
-                // It is good to avoid the boiler running continuously though,
-                // from hovering indefinitely above the
-                // 'call for heat' threshold.  (TODO-1092)
-                is3.setReferenceTemperatures(int_fast16_t((is3.targetTempC << 4) + 0x1));
-                OTRadValve::ModelledRadValveState rs3c;
-                valvePCOpen = 100;
-                rs3c.tick(valvePCOpen, is3);
-                EXPECT_GT(100, valvePCOpen);
-                --is3.refTempC16;
-                rs3c.tick(valvePCOpen, is3);
-                EXPECT_GT(100, valvePCOpen);
-                is3.setReferenceTemperatures(int_fast16_t((is3.targetTempC << 4) + 0x1));
-                valvePCOpen = OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1;
-                rs3c.tick(valvePCOpen, is3);
-                if(is3.widenDeadband) { EXPECT_EQ(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1, valvePCOpen); }
-                else { EXPECT_GT(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1, valvePCOpen); }
-                --is3.refTempC16;
-                rs3c.tick(valvePCOpen, is3);
-                if(is3.widenDeadband) { EXPECT_EQ(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1, valvePCOpen); }
-                else { EXPECT_GT(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1, valvePCOpen); }
+                // TODO
 
-                // (Even well) above the half way mark the valve should only be opened
-                // with temperature moving in wrong direction and without a wide deadband.
-                is3.setReferenceTemperatures(int_fast16_t((is3.targetTempC << 4) + 0xe));
-                OTRadValve::ModelledRadValveState rs3d;
-                valvePCOpen = 0;
-                rs3d.tick(valvePCOpen, is3);
-                EXPECT_EQ(0, valvePCOpen);
-//// FIXME
-//                ++is3.refTempC16;
+//                // (Even well) below the half way mark the valve should only be
+//                // fully closed with temperature moving in wrong direction
+//                // and without a wide deadband.
+//                // It is good to avoid the boiler running continuously though,
+//                // from hovering indefinitely above the
+//                // 'call for heat' threshold.  (TODO-1092)
+//                is3.setReferenceTemperatures(int_fast16_t((is3.targetTempC << 4) + 0x1));
+//                OTRadValve::ModelledRadValveState rs3c;
+//                valvePCOpen = 100;
 //                rs3c.tick(valvePCOpen, is3);
-//                if(is3.widenDeadband) { EXPECT_EQ(0, valvePCOpen); } else { EXPECT_LT(0, valvePCOpen); }
+//                EXPECT_GT(100, valvePCOpen);
+//                --is3.refTempC16;
+//                rs3c.tick(valvePCOpen, is3);
+//                EXPECT_GT(100, valvePCOpen);
+//                is3.setReferenceTemperatures(int_fast16_t((is3.targetTempC << 4) + 0x1));
+//                valvePCOpen = OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1;
+//                rs3c.tick(valvePCOpen, is3);
+//                if(is3.widenDeadband) { EXPECT_EQ(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1, valvePCOpen); }
+//                else { EXPECT_GT(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1, valvePCOpen); }
+//                --is3.refTempC16;
+//                rs3c.tick(valvePCOpen, is3);
+//                if(is3.widenDeadband) { EXPECT_EQ(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1, valvePCOpen); }
+//                else { EXPECT_GT(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1, valvePCOpen); }
+//
+//                // (Even well) above the half way mark the valve should only be opened
+//                // with temperature moving in wrong direction and without a wide deadband.
+//                is3.setReferenceTemperatures(int_fast16_t((is3.targetTempC << 4) + 0xe));
+//                OTRadValve::ModelledRadValveState rs3d;
+//                valvePCOpen = 0;
+//                rs3d.tick(valvePCOpen, is3);
+//                EXPECT_EQ(0, valvePCOpen);
                 }
             }
         }
@@ -460,12 +477,6 @@ TEST(ModelledRadValve,ModelledRadValveComputeTargetTempBasic)
     EXPECT_FALSE(MRVCTTB::occupancy.isLikelyUnoccupied());
     // Should now be at WARM target.
     EXPECT_EQ(w, cttb0.computeTargetTemp());
-//    // Make the room dark (and marked as dark for a long time).
-//    MRVCTTB::ambLight.set(0, 255U, false);
-//    MRVCTTB::ambLight.read();
-//    EXPECT_TRUE(MRVCTTB::ambLight.isRoomDark());
-//    EXPECT_EQ(255, MRVCTTB::ambLight.getDarkMinutes());
-//    EXPECT_GT(w, cttb0.computeTargetTemp()) << "room dark for a reasonable time should allow setback";
     // Make the room light.
     MRVCTTB::ambLight.set(255, 0, false);
     MRVCTTB::ambLight.read();
@@ -504,7 +515,7 @@ TEST(ModelledRadValve,MRVSOpenFastFromCold593)
     // (and filtering is not switched on)
     // after one tick
     // that the valve is open to at least DEFAULT_VALVE_PC_MODERATELY_OPEN.
-    // Starting temp >2C below target, even with 0.5 offset.
+    // Starting temp >2C below target, even with 0.5C offset.
     OTRadValve::ModelledRadValveInputState is0(OTV0P2BASE::randRNG8() & 0xf8);
     is0.targetTempC = 18; // Modest target temperature.
     OTRadValve::ModelledRadValveState rs0;
@@ -520,6 +531,55 @@ TEST(ModelledRadValve,MRVSOpenFastFromCold593)
     EXPECT_TRUE(newValvePos <= 100);
     EXPECT_TRUE(rs0.valveMoved);
     EXPECT_EQ(OTRadValve::ModelledRadValveState::MRVE_OPENFAST, rs0.lastEvent);
+}
+
+// Test normal speed to open/close when already reasonably close to target.
+// Test with and without explicit request for fast response.
+TEST(ModelledRadValve,MRVSNormalResponseTime)
+{
+    for(int d = 0; d <= 1; ++d)
+        {
+        const bool below = (0 != d);
+SCOPED_TRACE(testing::Message() << "below " << below);
+        for(int fr = 0; fr <= 1; ++fr)
+            {
+            const bool fastResponseRequired = (0 != fr);
+SCOPED_TRACE(testing::Message() << "fastResponseRequired " << fastResponseRequired);
+            // Modest target temperature.
+            const uint8_t targetTempC = 18;
+            // Have ambient temperature a little way from target.
+            const int16_t oC16 = OTRadValve::ModelledRadValveInputState::refTempOffsetC16;
+            const int16_t ambientTempC16 = (targetTempC << 4) +
+                (below ? -(oC16-1) : +(oC16-1));
+            OTRadValve::ModelledRadValveInputState is0(ambientTempC16);
+            OTRadValve::ModelledRadValveState rs0;
+            is0.targetTempC = targetTempC;
+            is0.glacial = false;
+            is0.widenDeadband = false;
+            is0.fastResponseRequired = fastResponseRequired;
+            // Start in some non-extreme position
+            // too far to meet fast response goals if glacial.
+            const uint8_t valvePCOpenInitial = 30 + (OTV0P2BASE::randRNG8() % 40);
+            volatile uint8_t valvePCOpen = valvePCOpenInitial;
+            // Futz some input parameters that should not matter.
+            rs0.isFiltering = OTV0P2BASE::randRNG8NextBoolean();
+            is0.hasEcoBias = OTV0P2BASE::randRNG8NextBoolean();
+            // Check that target is not reached in a single tick.
+            rs0.tick(valvePCOpen, is0);
+            EXPECT_NE(below ? 100 : 0, valvePCOpen);
+            // Ensure that after a bounded time valve is fully open.
+            // Time limit is much lower when a fast response is requested.
+            // Units are nominally minutes.
+            // This should never take longer than 'glacial' 1% per tick.
+            const uint8_t timeLimit = fastResponseRequired ?
+                rs0.vFastResponseTicksTarget : 100;
+            for(int i = 0; i < timeLimit; ++i)
+                { rs0.tick(valvePCOpen, is0); }
+            // Nominally expect valve to be completely open,
+            // but allow for nearly-fully open for some algorithm variants.
+            EXPECT_NEAR(below ? 100 : 0, valvePCOpen, 20) << "moved " << (valvePCOpen - valvePCOpenInitial);
+            }
+        }
 }
 
 
@@ -559,13 +619,14 @@ if(verbose) { fprintf(stderr, "Start\n"); }
         volatile uint8_t valvePCOpen = OTV0P2BASE::randRNG8() % 100;
 if(verbose) { fprintf(stderr, "Valve %d%%.\n", valvePCOpen); }
         // Set necessary conditions to allow draught-detector.
-        // (Not allowed to activate in comfort mode, or when user has just adjusted the controls.)
+        // (Not allowed to activate in comfort mode,
+        // nor when user has just adjusted the controls.)
         is0.hasEcoBias = true;
         is0.fastResponseRequired = false;
         // Futz some input parameters that should not matter.
         is0.widenDeadband = OTV0P2BASE::randRNG8NextBoolean();
         rs0.isFiltering = OTV0P2BASE::randRNG8NextBoolean();
-        // Set a new significantly lower room temp (drop >=0.5C), as from a draught.
+        // Set a new significantly lower room temp (drop >=0.5C), as if draught.
         const int_fast16_t droppedRoomTemp = roomTemp - 8 - (OTV0P2BASE::randRNG8() % 32);
         is0.setReferenceTemperatures(droppedRoomTemp);
         // Run the algorithm one tick.

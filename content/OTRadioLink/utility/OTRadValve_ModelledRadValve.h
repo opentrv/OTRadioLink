@@ -52,7 +52,7 @@ namespace OTRadValve
 struct ModelledRadValveInputState final
   {
   // Offset from raw temperature to get reference temperature in C/16.
-  static constexpr int_fast8_t refTempOffsetC16 = 8;
+  static constexpr uint8_t refTempOffsetC16 = 8;
 
   // All initial values set by the constructor are sane, but should not be relied on.
   explicit ModelledRadValveInputState(const int_fast16_t realTempC16 = 0) { setReferenceTemperatures(realTempC16); }
@@ -119,14 +119,23 @@ struct ModelledRadValveState final
   // If true then support proportional response in target 1C range.
   static constexpr bool SUPPORT_PROPORTIONAL = !MINIMAL_BINARY_IMPL;
 
+  // Target minutes/ticks for full valve movement when fast response requested.
+  static constexpr uint8_t fastResponseTicksTarget = 5;
+  // Target minutes/ticks for full valve movement for very fast response.
+  // Gives quick feedback and warming, eg in response to manual control use.
+  static constexpr uint8_t vFastResponseTicksTarget = 3;
+
   // Construct an instance, with sensible defaults, but no (room) temperature.
   // Defers its initialisation with room temperature until first tick().
-  ModelledRadValveState(bool _alwaysGlacial = false)
-    : alwaysGlacial(_alwaysGlacial) { }
+  ModelledRadValveState() { }
+
+  // Construct an instance, with sensible defaults, but no (room) temperature.
+  // Defers its initialisation with room temperature until first tick().
+  ModelledRadValveState(bool _alwaysGlacial) : alwaysGlacial(_alwaysGlacial) { }
 
   // Construct an instance, with sensible defaults, and current (room) temperature from the input state.
   // Does its initialisation with room temperature immediately.
-  ModelledRadValveState(const ModelledRadValveInputState &inputState, bool _defaultGlacial = false);
+  ModelledRadValveState(const ModelledRadValveInputState &inputState, bool _alwaysGlacial = false);
 
   // Perform per-minute tasks such as counter and filter updates then recompute valve position.
   // The input state must be complete including target and reference temperatures
@@ -135,7 +144,7 @@ struct ModelledRadValveState final
   void tick(volatile uint8_t &valvePCOpenRef, const ModelledRadValveInputState &inputState);
 
   // True if by default/always in glacial mode, eg to minimise flow and overshoot.
-  const bool alwaysGlacial;
+  const bool alwaysGlacial = false;
 
   // True once all deferred initialisation done during the first tick().
   // This takes care of setting state that depends on run-time data
