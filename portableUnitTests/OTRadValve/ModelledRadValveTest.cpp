@@ -329,7 +329,7 @@ TEST(ModelledRadValve,MRVSExtremes)
         if(0 == newValvePos) { break; }
         }
     EXPECT_EQ(0, valvePCOpen);
-    EXPECT_EQ(valvePCOpenInitial1, rs1.cumulativeMovementPC);
+    if(rs1.SUPPORTS_LINGER) { EXPECT_EQ(valvePCOpenInitial1, rs1.cumulativeMovementPC); }
     EXPECT_TRUE(hitLinger == lookForLinger);
     if(lookForLinger) { EXPECT_GE(lingerMins, OTV0P2BASE::fnmin(is1.minPCReallyOpen, OTRadValve::DEFAULT_MAX_RUN_ON_TIME_M)) << ((int)is1.minPCReallyOpen); }
     // Filtering should not have been engaged and velocity should be zero (temperature is flat).
