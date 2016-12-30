@@ -276,19 +276,29 @@ uint16_t SupplyVoltageCentiVolts::read()
   // This epsilon is as much about ADC measurement stability as the conversion function.
   static constexpr uint8_t rawEpsilon = 6;
 
-  // Optimisation: if raw value is unchanged or very close then don't re-do the expensive calculation.
+  // Optimisation: if raw value is unchanged or very close
+  // then don't re-do the expensive calculation.
   // For this to work the initial value of rawInv has to be 'impossible',
-  // and the difference should less than than rawEpsilon to avoid missing a significant change.
+  // and the difference should less than than rawEpsilon
+  // to avoid missing a significant change.
   //
-  // To be conservative, reduce noise and spurious stats transmissions, for example,
-  // only allow the reported voltage to move up (and thus the raw value to move down)
-  // if by at least rawEpsilon ulp from the previous value, else ignore the change for now.
-  // Graphing the V0p2 (eg REV1 and REV7) data shows dithering between effectively-adjacent levels;
-  // this should prevent dithering back and forth across a boundary, sticking at the lower level.
-  // Note that rawInv in real life can never get near to either end of the range.
-  // An initial impossibly-high rawInv value will ensure that value is computed on first call.
+  // To be conservative, reduce noise and spurious stats transmissions,
+  // eg only allow the reported voltage to move up
+  // (and thus the raw value to move down)
+  // if by at least rawEpsilon ulp from the previous value,
+  // else ignore the change for now.
+  // Graphing the V0p2 (eg REV1 and REV7) data shows dithering between
+  // effectively-adjacent levels;
+  // this should prevent dithering back and forth across a boundary,
+  // sticking at the lower level.
+  // Note that rawInv in real life can never get to either end of the range.
+  // An initial impossibly-high rawInv value will ensure that the value
+  // is computed on the first call.
   static_assert((0 == INITIAL_RAWINV) || (~0U == INITIAL_RAWINV), "initial rawInv should be one that ADC result never gets close to");
   if((raw <= rawInv) && ((rawInv - raw) <= rawEpsilon)) { return(value); }
+
+  // Capture entropy from changed LS bits.
+  addEntropyToPool((uint8_t)rawInv, 1); // Claim a single bit of entropy.
 
   // If Vcc was 1.1V then raw ADC would be 1023, so (1023<<6)/raw = 1<<6, target output 110.
   // If Vcc was 2.2V then raw ADC would be 511, so (1023<<6)/raw = 2<<6, target output 220.
