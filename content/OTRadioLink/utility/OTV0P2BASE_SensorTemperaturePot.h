@@ -187,7 +187,8 @@ class SensorTemperaturePot final : public SensorTemperaturePotBase
       // Capture the old raw value early.
       const uint16_t oldRaw = raw;
 
-      // No need to wait for voltage to stabilise as pot top end directly driven by IO_POWER_UP.
+      // No need to wait for voltage to stabilise as pot top end
+      // directly driven by IO_POWER_UP (or to Vcc, due to REV7 error!).
       if(needsPeriphEnable) { OTV0P2BASE::power_intermittent_peripherals_enable(false); }
       const uint16_t tpRaw = OTV0P2BASE::analogueNoiseReducedRead(V0p2_PIN_TEMP_POT_AIN, DEFAULT); // Vcc reference.
       if(needsPeriphEnable) { OTV0P2BASE::power_intermittent_peripherals_disable(); }
@@ -195,8 +196,9 @@ class SensorTemperaturePot final : public SensorTemperaturePotBase
       const bool reverse = isReversed();
       const uint16_t newRaw = reverse ? (TEMP_POT_RAW_MAX - tpRaw) : tpRaw;
 
-      // Capture entropy from changed LS bits.
-      if((uint8_t)newRaw != (uint8_t)oldRaw) { ::OTV0P2BASE::addEntropyToPool((uint8_t)newRaw, 0); } // Claim zero entropy as may be forced by Eve.
+      // Capture entropy from changed LS bits, eg noise.
+      // The LSB is probably difficult to force, so 1 bit can be counted.
+      if((uint8_t)newRaw != (uint8_t)oldRaw) { addEntropyToPool((uint8_t)newRaw, 1); }
 
       // Capture reduced-noise value with a little hysteresis.
       // Only update the value if changed significantly so as to reduce noise.
