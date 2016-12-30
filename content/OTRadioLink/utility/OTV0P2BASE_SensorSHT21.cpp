@@ -136,7 +136,8 @@ int16_t RoomTemperatureC16_SHT21::read()
 
   // Capture entropy if (transformed) value has changed.
   // Claim one bit of noise in the raw value if the full value has changed,
-  // though it is possible that this might be manipulatable by Eve.
+  // though it is possible that this might be manipulatable by Eve,
+  // and nearly all of the raw info is visible in the result.
   if(c16 != value) { addEntropyToPool((uint8_t)rawTemp, 1); }
 
   value = c16;
@@ -192,7 +193,7 @@ uint8_t HumiditySensorSHT21::read()
   const uint8_t result = uint8_t(-6 + ((125 * uint_fast32_t(raw)) >> 16));
 
   // Capture entropy from raw status bits iff (transformed) reading has changed.
-  // Claim no entropy since values may not have changed since last read().
+  // Claim no entropy since only a fraction of a bit is not in the result.
   if(value != result) { OTV0P2BASE::addEntropyToPool(rawRL ^ rawRH, 0); }
 
   value = result;
