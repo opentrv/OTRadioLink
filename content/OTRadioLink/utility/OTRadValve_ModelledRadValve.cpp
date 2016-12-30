@@ -65,7 +65,8 @@ int_fast16_t ModelledRadValveState::getSmoothedRecent() const
 // Maximum jump between adjacent readings before forcing filtering; strictly +ve.
 // Too small a value may in some circumstances cap room rate rise to this per minute.
 // Too large a value may fail to sufficiently help damp oscillations and overshoot.
-// As to be at least as large as the minimum temperature sensor precision to avoid false triggering of the filter.
+// As to be at least as large as the minimum temperature sensor precision
+// to avoid false triggering of the filter.
 // Typical values range from 2 (for better-than 1/8C-precision temperature sensor) up to 4.
 static constexpr uint8_t MAX_TEMP_JUMP_C16 = 3; // 3/16C.
 
@@ -146,12 +147,15 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const Modelle
   valveMoved = changed;
   }
 
-// Computes a new valve position given supplied input state including the current valve position; [0,100].
+// Computes a new valve position given supplied input state
+// including the current valve position; [0,100].
 // Uses no state other than that passed as the arguments (thus is unit testable).
 // Does not alter any of the input state.
 // Uses hysteresis and a proportional control and some other cleverness.
-// Is always willing to turn off quickly, but on slowly (AKA "slow start" algorithm),
-// and tries to eliminate unnecessary 'hunting' which makes noise and uses actuator energy.
+// Is always willing to turn off quickly,
+// but on slowly (AKA "slow start" algorithm),
+// and tries to eliminate unnecessary 'hunting'
+// which makes noise and uses actuator energy.
 // Nominally called at a regular rate, once per minute.
 // All inputState values should be set to sensible values before starting.
 // Usually called by tick() which does required state updates afterwards.
@@ -185,14 +189,20 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
 
 #else
 
-  // Minimum slew/error % distance in central range; should be larger than smallest temperature-sensor-driven step (6) to be effective; [1,100].
-  // Note: keeping TRV_MIN_SLEW_PC sufficiently high largely avoids spurious hunting back and forth from single-ulp noise.
+  // Minimum slew/error % distance in central range;
+  // should be larger than smallest temperature-sensor-driven step (6)
+  // to be effective; [1,100].
+  // Note: keeping TRV_MIN_SLEW_PC sufficiently high largely avoids
+  // spurious hunting back and forth from single-ulp noise.
   static constexpr uint8_t TRV_MIN_SLEW_PC = 7;
   // Set maximum valve slew rate (percent/minute) when close to target temperature.
-  // Note: keeping TRV_MAX_SLEW_PC_PER_MIN small reduces noise and overshoot and surges of water
-  // (eg for when additionally charged by the m^3 of flow in district heating systems)
-  // and will likely work better with high-thermal-mass / slow-response systems such as UFH.
-  // Should be << 100%/min, and probably << 30%/min, given that 30% may be the effective control range of many rad valves.
+  // Note: keeping TRV_MAX_SLEW_PC_PER_MIN small reduces noise and overshoot
+  // and surges of water
+  // (eg for when additionally charged by volume in district heating systems)
+  // and will likely work better with high-thermal-mass / slow-response systems
+  // such as UFH.
+  // Should be << 100%/min, and probably << 30%/min,
+  // given that 30% may be the effective control range of many rad valves.
   static constexpr uint8_t TRV_MIN_SLEW_PC_PER_MIN = 1; // Minimal slew rate (%/min) to keep flow rates as low as possible.
   static const uint8_t TRV_MAX_SLEW_PC_PER_MIN = alwaysGlacial ? TRV_MIN_SLEW_PC_PER_MIN : 5;
   // Derived from basic slew values.
@@ -204,11 +214,13 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
     {
 //V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("under temp");
     // Force to fully open in BAKE mode.
-    // Need debounced bake mode value to avoid spurious slamming open of the valve as the user cycles through modes.
+    // Need debounced bake mode value to avoid spurious slamming open
+    // of the valve as the user cycles through modes.
     if(inputState.inBakeMode) { return(inputState.maxPCOpen); }
 
     // Minimum drop in temperature over recent time to trigger 'window open' response; strictly +ve.
-    // Nominally target up 0.25C--1C drop over a few minutes (limited by the filter length).
+    // Nominally target up 0.25C--1C drop over a few minutes
+    // (limited by the filter length).
     // TODO-621: in case of very sharp drop in temperature,
     // assume that a window or door has been opened,
     // by accident or to ventilate the room,
@@ -270,23 +282,29 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
     // BECAUSE not currently very close to target
     // (possibly because of sudden temperature drop already from near target)
     // AND IF system has 'eco' bias (so tries harder to save energy)
-    // and no fast response has been requested (eg by recent user operation of the controls)
+    // and no fast response has been requested
+    // (eg by recent user operation of the controls)
     // and the temperature is at/above a minimum frost safety threshold
-    // and the temperature is currently falling (over the last measurement period)
+    // and the temperature is currently falling (over last measurement period)
     // and the temperature fall over the last few minutes is large
-    // THEN attempt to stop calling for heat immediately and continue to turn down
-    // (though if inhibited from turning down yet*, then instead avoid opening any further).
-    // Turning the valve down should also inhibit reopening it for a little while,
+    // THEN attempt to stop calling for heat immediately and continue to close
+    // (though if inhibited from turning down yet*,
+    // then instead avoid opening any further).
+    // Turning the valve down should also inhibit reopening for a little while,
     // even once the temperature has stopped falling.
     //
     // *This may be because the valve has just recently been closed
     // in which case some sort of a temperature drop is not astonishing.
     //
-    // It seems sensible to stop calling for heat immediately if one of these events seems to be happening,
-    // though that (a) may not stop the boiler and heat delivery if other rooms are still calling for heat
-    // and (b) may prevent the boiler being started again for a while even if this was a false alarm,
+    // It seems sensible to stop calling for heat immediately
+    // if one of these events seems to be happening,
+    // though that (a) may not stop the boiler and heat delivery
+    // if other rooms are still calling for heat
+    // and (b) may prevent the boiler being started again for a while
+    // even if this was a false alarm,
     // so may annoy users and make heating control seem erratic,
-    // so only do this in 'eco' mode where permission has been given to try harder to save energy.
+    // so only do this in 'eco' mode where permission has been given
+    // to try harder to save energy.
     //
     // TODO: could restrict this to when (valvePCOpen >= inputState.minPCOpen) to save some thrashing and allow lingering.
     // TODO: could explicitly avoid applying this when valve has recently been closed to avoid unwanted feedback loop.
@@ -313,9 +331,11 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
         }
 
     // Limit valve open slew to help minimise overshoot and actuator noise.
-    // This should also reduce nugatory setting changes when occupancy (etc) is fluctuating.
+    // This should also reduce nugatory setting changes when occupancy (etc)
+    // is fluctuating.
     // Thus it may take several minutes to turn the radiator fully on,
-    // though probably opening the first third or so will allow near-maximum heat output in practice.
+    // though probably opening the first third or so will allow near-maximum
+    // heat output in practice.
     if(valvePCOpen < inputState.maxPCOpen)
       {
       // Reduce valve hunting: defer re-opening if recently closed.
@@ -324,26 +344,31 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
       // True if a long way below target (more than 1C below target).
       const bool vBelowTarget = (adjustedTempC < inputState.targetTempC-1);
 
-      // Open glacially if explicitly requested or if temperature overshoot has happened or is a danger,
-      // or if there's likely no one going to care about getting on target particularly quickly (or would prefer reduced noise).
+      // Open glacially if explicitly requested
+      // or if temperature overshoot has happened or is a danger,
+      // or if there's likely no one going to care about getting on target
+      // particularly quickly (or would prefer reduced noise).
       //
       // If already at least at the expected minimum % open for significant flow,
-      // AND a wide deadband has been allowed by the caller (eg room dark or filtering is on or doing pre-warm)
-      //   if not way below target to avoid over-eager pre-warm / anticipation for example (TODO-467)
+      // AND a wide deadband has been allowed by the caller
+      // (eg room dark or filtering is on or doing pre-warm)
+      //   if not way below target to avoid over-eager pre-warm / anticipation
+      //   for example (TODO-467)
       //     OR
-      //   if filtering is on indicating rapid recent changes or jitter, and the last raw change was upwards,
-      // THEN force glacial mode to try to damp oscillations and avoid overshoot and excessive valve movement (TODO-453).
+      //   if filtering is on indicating rapid recent changes or jitter,
+      //   and the last raw change was upwards,
+      // THEN force glacial mode to try to damp oscillations and avoid overshoot
+      // and excessive valve movement (TODO-453).
       const bool beGlacial = inputState.glacial ||
           ((valvePCOpen >= inputState.minPCOpen) && inputState.widenDeadband && !inputState.fastResponseRequired &&
               (
-//      #if defined(GLACIAL_ON_WITH_WIDE_DEADBAND)
                // Don't rush to open the valve (GLACIAL_ON_WITH_WIDE_DEADBAND: TODO-467)
                // if neither in comfort mode nor massively below (possibly already setback) target temp.
                (inputState.hasEcoBias && !vBelowTarget) ||
-//      #endif
                // Don't rush to open the valve
                // if temperature is jittery but is moving in the right direction.
-               (isFiltering && (getRawDelta() > 0)))); // FIXME: maybe redundant w/ GLACIAL_ON_WITH_WIDE_DEADBAND and widenDeadband set when isFiltering is true
+               // FIXME: maybe redundant w/ GLACIAL_ON_WITH_WIDE_DEADBAND and widenDeadband set when isFiltering is true
+               (isFiltering && (getRawDelta() > 0))));
       if(beGlacial) { return(valvePCOpen + 1); }
 
       // If well below target (and without a wide deadband),
@@ -351,9 +376,12 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
       // then jump straight to (just over*) 'moderately open' if less open currently,
       // which should allow flow and turn the boiler on ASAP,
       // a little like a mini-BAKE.
-      // For this to work, don't set a wide deadband when, eg, user has just touched the controls.
-      // *Jump to just over moderately-open threshold to defeat any small rounding errors in the data path, etc,
-      // since boiler is likely to regard this threshold as a trigger to immediate action.
+      // For this to work, don't set a wide deadband when, eg,
+      // user has just touched the controls.
+      // *Jump to just over moderately-open threshold
+      // to defeat any small rounding errors in the data path, etc,
+      // since boiler is likely to regard this threshold as a trigger
+      // to immediate action.
       const uint8_t cappedModeratelyOpen = OTV0P2BASE::fnmin(inputState.maxPCOpen, OTV0P2BASE::fnmin((uint8_t)99, (uint8_t)(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN+TRV_SLEW_PC_PER_MIN_FAST)));
       if((valvePCOpen < cappedModeratelyOpen) &&
          (inputState.fastResponseRequired || (vBelowTarget && !inputState.widenDeadband)))
@@ -363,7 +391,8 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
           }
 
       // Ensure that the valve opens quickly from cold for acceptable response (TODO-593)
-      // both locally in terms of valve position and also in terms of the boiler responding.
+      // both locally in terms of valve position
+      // and also in terms of the boiler responding.
       // Less fast if already moderately open or with a wide deadband.
       const uint8_t slewRate =
           ((valvePCOpen > OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN) || !inputState.widenDeadband) ?
@@ -393,10 +422,12 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
       const bool justOverTemp = (adjustedTempC == inputState.targetTempC+1) ||
           (inputState.widenDeadband && (adjustedTempC == inputState.targetTempC+2));
 
-      // TODO-453: avoid closing the valve at all when the temperature error is small and falling, and there is a widened deadband.
+      // TODO-453: avoid closing the valve at all
+      // when the temperature error is small and falling,
+      // and there is a widened deadband.
       if(justOverTemp && inputState.widenDeadband && (getRawDelta() < 0)) { return(valvePCOpen); }
 
-      // TODO-482: glacial close if temperature is jittery and not too far above target.
+      // TODO-482: glacial close if temperature is jittery and just over target.
       if(justOverTemp && isFiltering) { return(valvePCOpen - 1); }
 
       // Continue shutting valve slowly as not yet fully closed.
@@ -411,7 +442,8 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
         // If lingered long enough then do final chunk in one burst to help avoid valve hiss and temperature overshoot.
         if((DEFAULT_MAX_RUN_ON_TIME_M < minReallyOpen) && (valvePCOpen < minReallyOpen - DEFAULT_MAX_RUN_ON_TIME_M))
           { return(0); } // Shut valve completely.
-        return(valvePCOpen - 1); // Turn down as slowly as reasonably possible to help boiler cool.
+        // Turn down as slowly as reasonably possible to help boiler cool.
+        return(valvePCOpen - 1);
         }
 
       // TODO-109: with comfort bias close relatively slowly
@@ -436,14 +468,15 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
     return(0);
     }
 
-  // Close to (or at) temp target: set valve partly open to try to tightly regulate.
+  // Close to (or at) target: set valve partly open to try to tightly regulate.
   //
   // Use currentTempC16 lsbits to set valve percentage for proportional feedback
   // to provide more efficient and quieter TRV drive
   // and probably more stable room temperature.
   // Bigger lsbits value means closer to target from below,
   // so closer to valve off.
-  const uint8_t lsbits = (uint8_t) (adjustedTempC16 & 0xf); // LSbits of temperature above base of proportional adjustment range.
+  // LSbits of temperature above base of proportional adjustment range.
+  const uint8_t lsbits = (uint8_t) (adjustedTempC16 & 0xf);
   // 'tmp' in range 1 (at warmest end of 'correct' temperature) to 16 (coolest).
   const uint8_t tmp = 16 - lsbits;
   static constexpr uint8_t ulpStep = 6;
@@ -465,7 +498,6 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
     const bool tooOpen = (targetPO < valvePCOpen);
     // Compute the minimum/epsilon slew adjustment allowed (the deadband).
     // Also increase effective deadband if temperature resolution is lower than 1/16th, eg 8ths => 1+2*ulpStep minimum.
-// FIXME //    const uint8_t realMinUlp = 1 + (inputState.isLowPrecision ? 2*ulpStep : ulpStep); // Assume precision no coarser than 1/8C.
     // Compute real minimum unit in last place.
     constexpr uint8_t realMinUlp = 1 + ulpStep;
     // Compute minimum slew to use with a wider deadband.
