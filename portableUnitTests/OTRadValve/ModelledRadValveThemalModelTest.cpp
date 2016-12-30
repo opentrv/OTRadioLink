@@ -62,3 +62,10 @@ class ThermalModelBase
 TEST(ModelledRadValveThermalModel,basic)
 {
 }
+
+
+/* TODO
+
+Test for sticky / jammed / closed value calling for heat in stable temp room running boiler continually: TODO-1096
+
+ */
