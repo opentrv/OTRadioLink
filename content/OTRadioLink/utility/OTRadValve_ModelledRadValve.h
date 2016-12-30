@@ -77,8 +77,10 @@ struct ModelledRadValveInputState final
   // Max % valve is allowed to be open [1,100].
   uint8_t maxPCOpen = 100;
 
-  // If true then allow a wider deadband (more temperature drift) to save energy and valve noise.
-  // This is a strong hint that the system can work less strenuously to reach or stay on, target,
+  // If true then allow a wider deadband (more temperature drift)
+  // to save energy and valve noise.
+  // This is a strong hint that the system can work less strenuously
+  // to reach or stay on, target,
   // and/or that the user has not manually requested an adjustment recently
   // so this need not be ultra responsive.
   bool widenDeadband = false;
@@ -88,9 +90,8 @@ struct ModelledRadValveInputState final
   bool hasEcoBias = false;
   // True if in BAKE mode.
   bool inBakeMode = false;
-  // User just adjusted controls or other fast response needed.
+  // User just adjusted controls or is expecting rapid feedback. (TODO-593)
   // (Should not be true at same time as widenDeadband.)
-  // Indicates manual operation/override, so speedy response required (TODO-593).
   bool fastResponseRequired = false;
 
   // Reference (room) temperature in C/16; must be set before each valve position recalc.

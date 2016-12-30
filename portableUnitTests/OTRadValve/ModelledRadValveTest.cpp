@@ -559,7 +559,7 @@ SCOPED_TRACE(testing::Message() << "fastResponseRequired " << fastResponseRequir
             is0.fastResponseRequired = fastResponseRequired;
             // Start in some non-extreme position
             // too far to meet fast response goals if glacial.
-            const uint8_t valvePCOpenInitial = 30 + (OTV0P2BASE::randRNG8() % 40);
+            const uint8_t valvePCOpenInitial = 50;
             volatile uint8_t valvePCOpen = valvePCOpenInitial;
             // Futz some input parameters that should not matter.
             rs0.isFiltering = OTV0P2BASE::randRNG8NextBoolean();
