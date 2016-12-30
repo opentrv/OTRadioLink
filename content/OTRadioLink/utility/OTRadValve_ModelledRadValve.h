@@ -108,6 +108,9 @@ struct ModelledRadValveInputState final
 // to be able to efficiently process signed values with sufficient range for room temperatures.
 struct ModelledRadValveState final
   {
+  // If true then attempts to detect draughts from open windows and doors.
+  static constexpr bool SUPPORTS_MRVE_DRAUGHT = false;
+
   // Construct an instance, with sensible defaults, but no (room) temperature.
   // Defers its initialisation with room temperature until first tick().
   ModelledRadValveState(bool _alwaysGlacial = false)

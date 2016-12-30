@@ -308,7 +308,8 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
     //
     // TODO: could restrict this to when (valvePCOpen >= inputState.minPCOpen) to save some thrashing and allow lingering.
     // TODO: could explicitly avoid applying this when valve has recently been closed to avoid unwanted feedback loop.
-    if(inputState.hasEcoBias &&
+    if(SUPPORTS_MRVE_DRAUGHT &&
+       inputState.hasEcoBias &&
        (!inputState.fastResponseRequired) && // Avoid subverting recent manual call for heat.
        (adjustedTempC >= MIN_TARGET_C) &&
        (getRawDelta() < 0) &&
@@ -468,6 +469,8 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
     return(0);
     }
 
+
+#if 1
   // Close to (or at) target: set valve partly open to try to tightly regulate.
   //
   // Use currentTempC16 lsbits to set valve percentage for proportional feedback
@@ -636,6 +639,8 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
     // Adjust directly to target.
     return(targetPO);
     }
+#endif // Within target 1C.
+
 
 #endif // 0
 

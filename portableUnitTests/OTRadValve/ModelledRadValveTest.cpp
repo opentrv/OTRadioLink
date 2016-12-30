@@ -528,6 +528,9 @@ TEST(ModelledRadValve,DraughtDetectorSimple)
     // If true then be more verbose.
     const static bool verbose = false;
 
+    // Don't run the test if the option is not supported.
+    if(!OTRadValve::ModelledRadValveState::SUPPORTS_MRVE_DRAUGHT) { return; }
+
     // Run the test a few times to help ensure no dependency on state of random generator, etc.
     for(int i = 8; --i >= 0; )
         {
