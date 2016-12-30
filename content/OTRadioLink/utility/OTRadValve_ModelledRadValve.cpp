@@ -195,13 +195,13 @@ if(MINIMAL_BINARY_IMPL) {
 } else if(!oldProportionalAlg) {
 
 
-    // New non-binary implementation, 2017.
+    // New non-binary implementation as of 2017Q1.
     // Does not make any particular assumptions about
-    // at what % ages flow will happen.
+    // at what percentage open significant/any water flow will happen.
     //
-    // Tries to avoid calling for heat,
+    // Tries to avoid calling for heat longer than necessary,
     // ie with a valve open at/above OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN,
-    // for a long time unless at max open so as to avoid futile/noisy/wasteful
+    // unless at max open so as to avoid futile/noisy/wasteful
     // continuous running of the boiler with the room temperature static
     // eg from a stuck valve; bursty is better for example.  (TODO-1096).
     //
@@ -262,7 +262,13 @@ if(MINIMAL_BINARY_IMPL) {
     // TODO
 
 
-
+        // By default, move valve glacially to full or closed.
+        // The valve is known not to be at the limit if this is reached.
+        // Unless pre-empted the valve does not stay static.
+        if(nominallyBelowTarget)
+            { return(valvePCOpen + 1); }
+        else
+            { return(valvePCOpen - 1); }
         }
 
 
