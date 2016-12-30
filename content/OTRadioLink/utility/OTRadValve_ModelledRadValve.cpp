@@ -166,32 +166,109 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
   // When reduced to whole Celsius then fewer bits are needed to cover expected temperatures.
   const int_fast8_t adjustedTempC = (int_fast8_t) (adjustedTempC16 >> 4);
 
-if(MINIMAL_BINARY_IMPL)
-  {
+static constexpr bool oldProportionalAlg = true;
 
-  // Minimal/binary implementation, supporting widened deadband on demand.
-  // (Well) under temperature target: open valve up.
-  if(adjustedTempC + (inputState.widenDeadband ? 1 : 0) < inputState.targetTempC)
-    {
-    // Don't open if recently turned down, and not in MAKE mode.
-    if(dontTurnup() && !inputState.inBakeMode) { return(valvePCOpen); }
-    // Usually open up to max (fast).
-    setEvent(MRVE_OPENFAST);
-    return(inputState.maxPCOpen);
-    }
-  // (Well) over temperature target: close valve down.
-  else if(adjustedTempC > inputState.targetTempC + (inputState.widenDeadband ? 1 : 0) )
-    {
-    // Don't close if recently turned up.
-    if(dontTurndown()) { return(valvePCOpen); }
-    // Usually close up to min (fast).
-    return(0);
-    }
-  // Else leave valve position as-is.
+if(MINIMAL_BINARY_IMPL) {
+
+
+    // Minimal/binary implementation, supporting widened deadband on demand.
+    // (Well) under temperature target: open valve up.
+    if(adjustedTempC + (inputState.widenDeadband ? 1 : 0) < inputState.targetTempC)
+        {
+        // Don't open if recently turned down, and not in MAKE mode.
+        if(dontTurnup() && !inputState.inBakeMode) { return(valvePCOpen); }
+        // Usually open up to max (fast).
+        setEvent(MRVE_OPENFAST);
+        return(inputState.maxPCOpen);
+        }
+    // (Well) over temperature target: close valve down.
+    else if(adjustedTempC > inputState.targetTempC + (inputState.widenDeadband ? 1 : 0) )
+        {
+        // Don't close if recently turned up.
+        if(dontTurndown()) { return(valvePCOpen); }
+        // Usually close up to min (fast).
+        return(0);
+        }
+    // Else leave valve position as-is.
+
+
+} else if(!oldProportionalAlg) {
+
+
+    // New non-binary implementation, 2017.
+    // Does not make any particular assumptions about
+    // at what % ages flow will happen.
+    //
+    // Tries to avoid calling for heat,
+    // ie with a valve open at/above OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN,
+    // for a long time unless at max open so as to avoid futile/noisy/wasteful
+    // continuous running of the boiler with the room temperature static
+    // eg from a stuck valve; bursty is better for example.  (TODO-1096).
+    //
+    // Valve % does not correspond to temperature shortfall below target.
+
+    // Minimal/binary implementation, supporting widened deadband on demand.
+    // (Well) under temperature target: open valve up.
+    if(adjustedTempC + (inputState.widenDeadband ? 1 : 0) < inputState.targetTempC)
+        {
+        // Don't open if recently turned down, and not in MAKE mode.
+        if(dontTurnup() && !inputState.inBakeMode) { return(valvePCOpen); }
+        // Usually open up to max (fast).
+        setEvent(MRVE_OPENFAST);
+        return(inputState.maxPCOpen);
+        }
+    // (Well) over temperature target: close valve down.
+    else if(adjustedTempC > inputState.targetTempC + (inputState.widenDeadband ? 1 : 0) )
+        {
+        // Don't close if recently turned up.
+        if(dontTurndown()) { return(valvePCOpen); }
+        // Usually close up to min (fast).
+        return(0);
+        }
+    // Else move the valve towards open/closed
+    // modulating the speed of response depending on
+    // wide deadband, etc.
+    //
+    // With a wide deadband far more over-/under- shoot is tolerated.
+    else
+        {
+        // Nominally aiming for top of 1C range where
+        // adjustedTempC == inputState.targetTempC
+        // ie while adjustedTempC is just below inputState.targetTempC.
+
+        // Simple boolean to dispose valve to opening or closing.
+        const bool nominallyBelowTarget =
+           (adjustedTempC <= inputState.targetTempC);
+
+        // Leave valve as-is if blocked from moving in appropriate direction.
+        if(nominallyBelowTarget)
+            { if(dontTurnup()) { return(valvePCOpen); } }
+        else
+            { if(dontTurndown()) { return(valvePCOpen); } }
+
+        // Leave valve as-is if already at limit in appropriate direction.
+        if(nominallyBelowTarget)
+            { if(valvePCOpen >= inputState.maxPCOpen) { return(valvePCOpen); } }
+        else
+            { if(0 == valvePCOpen) { return(valvePCOpen); } }
+
+//        // Slow down as the target is approached from below,
+//        // with the aim of stopping before actually hitting the target.
+//        // Take entire target 1C with wide deadband, top half otherwise.
+//        const bool slightlyBelowTarget =
+//           (adjustedTempC == inputState.targetTempC) &&
+//           (inputState.widenDeadband || (uint8_t(adjustedTempC16 & 0xf) >= 8));
+
+    // TODO
+
+
+
+        }
+
 
 } else {
 
-  // Non-binary implementation.
+  // Non-binary implementation, circa 2013--2016.
 
   // Minimum slew/error % distance in central range;
   // should be larger than smallest temperature-sensor-driven step (6)
@@ -475,8 +552,8 @@ if(MINIMAL_BINARY_IMPL)
     return(0);
     }
 
+  // Within target 1C range.
 
-#if 1 // Within target 1C range.
   // Close to (or at) target: set valve partly open to try to tightly regulate.
   //
   // Use currentTempC16 lsbits to set valve percentage for proportional feedback
@@ -645,8 +722,6 @@ if(MINIMAL_BINARY_IMPL)
     // Adjust directly to target.
     return(targetPO);
     }
-#endif // Within target 1C.
-
 
 } // if(!SUPPOPT_PROPORTIONAL)
 
