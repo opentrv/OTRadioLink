@@ -503,9 +503,15 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
       const int rise = getRawDelta();
       if(rise < 0) { return(valvePCOpen); }
       // Allow indefinite hovering (avoiding valve movement)
-      // when in wide-deadband mode
-      // AND when not forcing the boiler to run continuously.  (TODO-1096)
-      const bool canHover = inputState.widenDeadband && notCallingForHeat;
+      // when in wide-deadband mode AND
+      // not calling for heat or some sign of recent temperature fall/movement
+      // so as to avoid forcing the boiler to run continuously
+      // and probably inefficiently and noisily.  (TODO-1096)
+      // In case of (eg) a sticky valve and very stable room temperature,
+      // try to force a small undershoot by slowly allowing valve to drift shut,
+      // allowing the valve to shut and the valve/boiler to close/stop.
+      const bool canHover = inputState.widenDeadband &&
+          (notCallingForHeat || recentMovement);
       // Avoid closing the valve when temperature steady
       // and not calling for heat from the boiler.  (TODO-453, TODO-1096)
       if((0 == rise) && canHover) { return(valvePCOpen); }
