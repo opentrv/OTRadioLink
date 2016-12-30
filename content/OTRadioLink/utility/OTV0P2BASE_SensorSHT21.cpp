@@ -132,6 +132,8 @@ int16_t RoomTemperatureC16_SHT21::read()
 
   // Nominal formula: C = -46.85 + ((175.72*raw) / (1L << 16));
   // FIXME: find a good but faster approximation...
+  // FIXME: should the shift/division be rounded to nearest?
+  // FIXME: break out calculation and unit test against example in datasheet.
   const int16_t c16 = -750 + int16_t((5623 * int_fast32_t(rawTemp)) >> 17);
 
   // Capture entropy if (transformed) value has changed.
@@ -190,6 +192,8 @@ uint8_t HumiditySensorSHT21::read()
 
   // Assemble raw value, clearing status ls bits.
   const uint16_t raw = (((uint16_t)rawRH) << 8) | (rawRL & 0xfc);
+  // FIXME: should the shift/division be rounded to nearest?
+  // FIXME: break out calculation and unit test against example in datasheet.
   const uint8_t result = uint8_t(-6 + ((125 * uint_fast32_t(raw)) >> 16));
 
   // Capture entropy from raw status bits iff (transformed) reading has changed.
