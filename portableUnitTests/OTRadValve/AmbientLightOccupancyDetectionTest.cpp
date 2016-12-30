@@ -605,12 +605,13 @@ static void checkPerformanceAcceptableAgainstData(
     // Ensuring the room is at or close to temperature before actual occupancy
     // will make users happy (if it does not eat into savings too much).
     // Ideally anticipation should fail only rarely
-    // ie most of the time setbacks should be nothing/minimal before occupancy.
+    // ie most of the time setbacks should be nothing/minimal before occupancy,
+    // assuming that the household has a regular routine that can be learnt.
     if(!exemptFromNormalRatios &&
        (flavourStats.occupancyAnticipationFailureNotAfterSleep.getSampleCount() >= 10))
         {
-        EXPECT_GE((normalOperation ? 0.4f : 0.5f), flavourStats.occupancyAnticipationFailureNotAfterSleep.getFractionFlavoured()) << flavourStats.occupancyAnticipationFailureNotAfterSleep.getSampleCount();
-        EXPECT_GE((normalOperation ? 0.1f : 0.4f), flavourStats.occupancyAnticipationFailureLargeNotAfterSleep.getFractionFlavoured()) << flavourStats.occupancyAnticipationFailureLargeNotAfterSleep.getSampleCount();
+        EXPECT_GE((normalOperation ? 0.45f : 0.5f), flavourStats.occupancyAnticipationFailureNotAfterSleep.getFractionFlavoured()) << flavourStats.occupancyAnticipationFailureNotAfterSleep.getSampleCount();
+        EXPECT_GE((normalOperation ? 0.12f : 0.4f), flavourStats.occupancyAnticipationFailureLargeNotAfterSleep.getFractionFlavoured()) << flavourStats.occupancyAnticipationFailureLargeNotAfterSleep.getSampleCount();
         }
 
     // Compute nominal available savings
