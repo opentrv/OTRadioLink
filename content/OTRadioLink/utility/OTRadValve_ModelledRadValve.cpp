@@ -349,10 +349,10 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
             }
 
         // By default, move valve glacially all the way to full or to closed.
-        // The guard above ensures that these glacial movements are safe.
+        // The guards above ensure that these glacial movements are safe.
         // This is based on hitting and sticking at the lower target,
         // with the aim of avoiding either hard limit.
-        // Unless preempted the valve does not hover static mid-travel.  (TODO-1096)
+        // Unless preempted the valve does not hover mid-travel.  (TODO-1096)
         // Only adjust if the temperature is not moving in the right direction.
         if(belowLowerTarget)
             { if(rise <= 0) { return(valvePCOpen + 1); } }
@@ -366,8 +366,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
     return(valvePCOpen);
     }
 
-//} else {
-//
+
 //  // Non-binary implementation, circa 2013--2016.
 //
 //  // (Well) under temp target: open valve up.
@@ -809,8 +808,6 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
 //    // Adjust directly to target.
 //    return(targetPO);
 //    }
-//
-//} // if(!SUPPOPT_PROPORTIONAL)
 
 
 #ifdef ModelledRadValve_DEFINED
