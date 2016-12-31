@@ -128,12 +128,17 @@ struct ModelledRadValveState final
 
   // Max jump between adjacent readings before forcing filtering; strictly +ve.
   // Too small a value may cap room rate rise to this per minute.
-  // Too large a value may fail to sufficiently help damp oscillations/overshoot.
+  // Too large a value may fail to sufficiently damp oscillations/overshoot.
   // Has to be at least as large as the minimum temperature sensor precision
   // to avoid false triggering of the filter.
   // Typical values range from 2
   // (for better-than 1/8C-precision temperature sensor) up to 4.
   static constexpr uint8_t MAX_TEMP_JUMP_C16 = 3; // 3/16C.
+  // Min ticks for a 1C delta before forcing filtering; strictly +ve.
+  // Too small a value may cap room rate rise to this per minute.
+  // Too large a value may fail to sufficiently damp oscillations/overshoot.
+  // A value of 10 would imply a maximum expected rise of 6C/h for example.
+  static constexpr uint8_t MIN_TICKS_1C_DELTA = 10;
 
   // Construct an instance, with sensible defaults, but no (room) temperature.
   // Defers its initialisation with room temperature until first tick().

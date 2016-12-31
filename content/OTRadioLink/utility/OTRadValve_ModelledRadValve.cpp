@@ -107,12 +107,21 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const Modelle
   // so that reverting to unfiltered will not of itself cause a big jump.
   if(isFiltering)
     { if(OTV0P2BASE::fnabsdiff(getSmoothedRecent(), rawTempC16) <= MAX_TEMP_JUMP_C16) { isFiltering = false; } }
-  // Force filtering (back) on if any adjacent readings are wildly different.
+  // Force filtering (back) on if big delta over recent minutes
+  // of if any adjacent readings in the filter window are wildly different.
   // This is NOT an else clause from the above so as to avoid flapping
   // filtering on and off if the current temp happens to be close to the mean,
   // which would produce more valve movement and noise than necessary.  (TODO-1027)
+  static_assert(MIN_TICKS_1C_DELTA < filterLength, "filter must be long enough to detect delta over specified window");
   if(!isFiltering)
     {
+    // Quick test for needing filtering.
+    if(OTV0P2BASE::fnabs(getRawDelta(MIN_TICKS_1C_DELTA)) > 16)
+        { isFiltering = true; }
+    }
+  if(!isFiltering)
+    {
+    // Slower test if filtering not yet triggered.
     for(size_t i = 1; i < filterLength; ++i)
       { if(OTV0P2BASE::fnabsdiff(prevRawTempC16[i], prevRawTempC16[i-1]) > MAX_TEMP_JUMP_C16) { isFiltering = true; break; } }
     }

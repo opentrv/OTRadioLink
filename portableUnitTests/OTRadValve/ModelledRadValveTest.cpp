@@ -361,7 +361,7 @@ TEST(ModelledRadValve,MRVSExtremes)
     // eg to support dark-based quick setback.
     // ENERGY SAVING RULE TEST (TODO-442 2a: "Setback in WARM mode must happen in dark (quick response) or long vacant room.")
     // Try a range of (whole-degree) offsets...
-    for(int offset = -3; offset <= +3; ++offset)
+    for(int offset = -4; offset <= +4; ++offset)
         {
 SCOPED_TRACE(testing::Message() << "offset " << offset);
         // Try soft setback off and on.
@@ -372,7 +372,7 @@ SCOPED_TRACE(testing::Message() << "widenDeadband " << wd);
             OTRadValve::ModelledRadValveInputState is3(100<<4);
             is3.targetTempC = 19;
             is3.widenDeadband = wd;
-            // Other than in the potentially-proportional range,
+            // Outside the potentially-proportional range,
             // valve should unconditionally be driven immediately off/on
             // by gross temperature error.
             if(OTV0P2BASE::fnabs(offset) > (wd ? 1 : 0))
@@ -390,44 +390,10 @@ if(verbose) { fprintf(stderr, "@ %d %d\n", offset, valvePCOpen); }
                 rs3b.tick(valvePCOpen, is3);
                 EXPECT_TRUE((offset < 0) ? (100 == valvePCOpen) : (valvePCOpen < 100)) << (int)valvePCOpen;
                 }
-            else if(OTRadValve::ModelledRadValveState::SUPPORT_PROPORTIONAL)
-                {
-                // In proportional range, ie fairly close to target.
-
-                // TODO
-
-//                // (Even well) below the half way mark the valve should only be
-//                // fully closed with temperature moving in wrong direction
-//                // and without a wide deadband.
-//                // It is good to avoid the boiler running continuously though,
-//                // from hovering indefinitely above the
-//                // 'call for heat' threshold.  (TODO-1092)
-//                is3.setReferenceTemperatures(int_fast16_t((is3.targetTempC << 4) + 0x1));
-//                OTRadValve::ModelledRadValveState rs3c;
-//                valvePCOpen = 100;
-//                rs3c.tick(valvePCOpen, is3);
-//                EXPECT_GT(100, valvePCOpen);
-//                --is3.refTempC16;
-//                rs3c.tick(valvePCOpen, is3);
-//                EXPECT_GT(100, valvePCOpen);
-//                is3.setReferenceTemperatures(int_fast16_t((is3.targetTempC << 4) + 0x1));
-//                valvePCOpen = OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1;
-//                rs3c.tick(valvePCOpen, is3);
-//                if(is3.widenDeadband) { EXPECT_EQ(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1, valvePCOpen); }
-//                else { EXPECT_GT(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1, valvePCOpen); }
-//                --is3.refTempC16;
-//                rs3c.tick(valvePCOpen, is3);
-//                if(is3.widenDeadband) { EXPECT_EQ(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1, valvePCOpen); }
-//                else { EXPECT_GT(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1, valvePCOpen); }
-//
-//                // (Even well) above the half way mark the valve should only be opened
-//                // with temperature moving in wrong direction and without a wide deadband.
-//                is3.setReferenceTemperatures(int_fast16_t((is3.targetTempC << 4) + 0xe));
-//                OTRadValve::ModelledRadValveState rs3d;
-//                valvePCOpen = 0;
-//                rs3d.tick(valvePCOpen, is3);
-//                EXPECT_EQ(0, valvePCOpen);
-                }
+//            else if(OTRadValve::ModelledRadValveState::SUPPORT_PROPORTIONAL)
+//                {
+//                // In proportional range, ie fairly close to target.
+//                }
             }
         }
 }
@@ -757,6 +723,228 @@ if(verbose) { fprintf(stderr, "Valve %d%%.\n", valvePCOpen); }
         ASSERT_EQ(OTRadValve::ModelledRadValveState::MRVE_DRAUGHT, rs0.lastEvent);
         }
 }
+
+// Check expected valve response to one very small set of data points.
+// These are manually interpolated from real world data (5s, ~20161231T1230).
+/*
+{"@":"E091B7DC8FEDC7A9","gE":0,"T|C16":281,"H|%":65}
+{"@":"E091B7DC8FEDC7A9","O":1,"vac|h":0,"B|cV":254}
+{"@":"E091B7DC8FEDC7A9","L":37,"v|%":0,"tT|C":18}
+{"@":"E091B7DC8FEDC7A9","tS|C":1,"vC|%":0,"gE":0}
+{"@":"E091B7DC8FEDC7A9","vac|h":0,"B|cV":254,"L":39}
+{"@":"E091B7DC8FEDC7A9","v|%":100,"tT|C":19,"tS|C":0}
+{"@":"E091B7DC8FEDC7A9","vC|%":100,"gE":0,"O":2}
+{"@":"E091B7DC8FEDC7A9","H|%":67,"T|C16":280,"O":2}
+{"@":"E091B7DC8FEDC7A9","vac|h":0,"B|cV":254,"L":52}
+{"@":"E091B7DC8FEDC7A9","T|C16":284,"v|%":100,"L":49}
+{"@":"E091B7DC8FEDC7A9","tT|C":19,"tS|C":0,"H|%":67}
+{"@":"E091B7DC8FEDC7A9","T|C16":289,"vC|%":100}
+{"@":"E091B7DC8FEDC7A9","gE":0,"T|C16":293,"H|%":67}
+{"@":"E091B7DC8FEDC7A9","L":52,"O":2,"vac|h":0}
+{"@":"E091B7DC8FEDC7A9","B|cV":254,"L":54,"v|%":100}
+{"@":"E091B7DC8FEDC7A9","T|C16":302,"tT|C":19,"L":56}
+{"@":"E091B7DC8FEDC7A9","tS|C":0,"vC|%":100,"gE":0}
+{"@":"E091B7DC8FEDC7A9","T|C16":308,"H|%":65,"O":2}
+{"@":"E091B7DC8FEDC7A9","vac|h":0,"B|cV":254,"L":60}
+{"@":"E091B7DC8FEDC7A9","T|C16":314,"v|%":100,"L":66}
+{"@":"E091B7DC8FEDC7A9","tT|C":19,"tS|C":0,"H|%":63}
+{"@":"E091B7DC8FEDC7A9","T|C16":320,"vC|%":100}
+{"@":"E091B7DC8FEDC7A9","gE":0,"T|C16":323,"H|%":62}
+{"@":"E091B7DC8FEDC7A9","L":67,"O":2,"vac|h":0}
+{"@":"E091B7DC8FEDC7A9","B|cV":254,"L":66,"v|%":100}
+{"@":"E091B7DC8FEDC7A9","vC|%":151,"tT|C":19,"L":67}
+{"@":"E091B7DC8FEDC7A9","tS|C":0,"vC|%":156,"gE":0}
+{"@":"E091B7DC8FEDC7A9","T|C16":336,"H|%":60,"O":2}
+{"@":"E091B7DC8FEDC7A9","vac|h":0,"B|cV":254,"L":115}
+{"@":"E091B7DC8FEDC7A9","v|%":29,"tT|C":19,"tS|C":0}
+{"@":"E091B7DC8FEDC7A9","vC|%":176,"gE":0,"H|%":59}
+{"@":"E091B7DC8FEDC7A9","T|C16":344,"H|%":59,"O":2}
+{"@":"E091B7DC8FEDC7A9","vac|h":0,"B|cV":254,"L":86}
+{"@":"E091B7DC8FEDC7A9","v|%":0,"tT|C":19,"tS|C":0}
+{"@":"E091B7DC8FEDC7A9","vC|%":200,"gE":0,"H|%":58}
+{"@":"E091B7DC8FEDC7A9","T|C16":346,"H|%":58,"O":2}
+ */
+TEST(ModelledRadValve,SampleValveResponse1)
+{
+    // Seed PRNG for use in simulator; --gtest_shuffle will force it to change.
+    srandom((unsigned) ::testing::UnitTest::GetInstance()->random_seed());
+    OTV0P2BASE::seedRNG8(random() & 0xff, random() & 0xff, random() & 0xff);
+
+    // Target temperature without setback.
+    const uint8_t targetTempC = 19;
+
+    // Valve starts fully shut.
+    uint8_t valvePCOpen = 0;
+
+    // Assume flat temperature before the sample started.
+    //{"@":"E091B7DC8FEDC7A9","gE":0,"T|C16":281,"H|%":65}
+    //{"@":"E091B7DC8FEDC7A9","O":1,"vac|h":0,"B|cV":254}
+    //{"@":"E091B7DC8FEDC7A9","L":37,"v|%":0,"tT|C":18}
+    //{"@":"E091B7DC8FEDC7A9","tS|C":1,"vC|%":0,"gE":0}
+    //{"@":"E091B7DC8FEDC7A9","vac|h":0,"B|cV":254,"L":39}
+    OTRadValve::ModelledRadValveInputState is0(281); // 281 ~ 17.6C.
+    OTRadValve::ModelledRadValveState rs0;
+    ASSERT_FALSE(rs0.isFiltering) << "filtering must be off before first tick";
+    is0.fastResponseRequired = false;
+    is0.hasEcoBias = true;
+
+    // Do one tick in quiescent state, set back one degree.
+    is0.targetTempC = targetTempC - 1;
+    is0.widenDeadband = true;
+    is0.fastResponseRequired = false;
+    // After tick, filtering should be off, valve still shut.
+    rs0.tick(valvePCOpen, is0);
+    EXPECT_FALSE(rs0.isFiltering);
+    EXPECT_EQ(0, valvePCOpen);
+
+    // Turn light on, room occupied, setback goes, fast response required.
+    is0.targetTempC = targetTempC;
+    is0.widenDeadband = false;
+    is0.fastResponseRequired = true;
+    // After tick, filtering should be off.
+    // Valve starting to open or possibly fully open.
+    rs0.tick(valvePCOpen, is0);
+    EXPECT_FALSE(rs0.isFiltering);
+    EXPECT_LT(0, valvePCOpen) << int(valvePCOpen);
+    // After a couple more ticks at most, filtering still off, valve fully open.
+    rs0.tick(valvePCOpen, is0);
+    rs0.tick(valvePCOpen, is0);
+    EXPECT_FALSE(rs0.isFiltering);
+    EXPECT_EQ(100, valvePCOpen);
+
+    // Now respond to continuing occupancy, room below target temperature.
+    // Valve not yet closing by the end of this phase.
+    is0.targetTempC = targetTempC;
+    is0.widenDeadband = false;
+    is0.fastResponseRequired = false;
+
+    //{"@":"E091B7DC8FEDC7A9","v|%":100,"tT|C":19,"tS|C":0}
+    // ... carried temp from {"@":"E091B7DC8FEDC7A9","gE":0,"T|C16":281,"H|%":65}
+    // Temperatures below will be linearly interpolated where necessary.
+    is0.setReferenceTemperatures(281);
+    rs0.tick(valvePCOpen, is0);
+    EXPECT_FALSE(rs0.isFiltering);
+    EXPECT_EQ(100, valvePCOpen);
+    //{"@":"E091B7DC8FEDC7A9","vC|%":100,"gE":0,"O":2}
+    is0.setReferenceTemperatures(281);
+    rs0.tick(valvePCOpen, is0);
+    //{"@":"E091B7DC8FEDC7A9","H|%":67,"T|C16":280,"O":2}
+    is0.setReferenceTemperatures(282);
+    rs0.tick(valvePCOpen, is0);
+    //{"@":"E091B7DC8FEDC7A9","vac|h":0,"B|cV":254,"L":52}
+    is0.setReferenceTemperatures(283);
+    rs0.tick(valvePCOpen, is0);
+    //{"@":"E091B7DC8FEDC7A9","T|C16":284,"v|%":100,"L":49}
+    is0.setReferenceTemperatures(284);
+    rs0.tick(valvePCOpen, is0);
+    EXPECT_EQ(100, valvePCOpen);
+    //{"@":"E091B7DC8FEDC7A9","tT|C":19,"tS|C":0,"H|%":67}
+    is0.setReferenceTemperatures(287);
+    rs0.tick(valvePCOpen, is0);
+    //{"@":"E091B7DC8FEDC7A9","T|C16":289,"vC|%":100}
+    is0.setReferenceTemperatures(290);
+    rs0.tick(valvePCOpen, is0);
+    EXPECT_EQ(100, valvePCOpen);
+    //{"@":"E091B7DC8FEDC7A9","gE":0,"T|C16":293,"H|%":67}
+    is0.setReferenceTemperatures(293);
+    rs0.tick(valvePCOpen, is0);
+    //{"@":"E091B7DC8FEDC7A9","L":52,"O":2,"vac|h":0}
+    is0.setReferenceTemperatures(296);
+    rs0.tick(valvePCOpen, is0);
+    //{"@":"E091B7DC8FEDC7A9","B|cV":254,"L":54,"v|%":100}
+    // Sometimes pretend that temp jumped enough here to trigger filtering,
+    // else interpolate perfectly smooth rise harder to detect.
+    is0.setReferenceTemperatures(OTV0P2BASE::randRNG8NextBoolean() ? 299 : 301);
+    rs0.tick(valvePCOpen, is0);
+    EXPECT_EQ(100, valvePCOpen);
+    EXPECT_TRUE(rs0.isFiltering);
+    //{"@":"E091B7DC8FEDC7A9","T|C16":302,"tT|C":19,"L":56}
+    is0.setReferenceTemperatures(302);
+    rs0.tick(valvePCOpen, is0);
+    //{"@":"E091B7DC8FEDC7A9","tS|C":0,"vC|%":100,"gE":0}
+    is0.setReferenceTemperatures(305);
+    rs0.tick(valvePCOpen, is0);
+    EXPECT_EQ(100, valvePCOpen);
+    //{"@":"E091B7DC8FEDC7A9","T|C16":308,"H|%":65,"O":2}
+    is0.setReferenceTemperatures(308);
+    rs0.tick(valvePCOpen, is0);
+    //{"@":"E091B7DC8FEDC7A9","vac|h":0,"B|cV":254,"L":60}
+    is0.setReferenceTemperatures(311);
+    rs0.tick(valvePCOpen, is0);
+    //{"@":"E091B7DC8FEDC7A9","T|C16":314,"v|%":100,"L":66}
+    is0.setReferenceTemperatures(314);
+    rs0.tick(valvePCOpen, is0);
+    EXPECT_EQ(100, valvePCOpen);
+    //{"@":"E091B7DC8FEDC7A9","tT|C":19,"tS|C":0,"H|%":63}
+    is0.setReferenceTemperatures(317);
+    rs0.tick(valvePCOpen, is0);
+    //{"@":"E091B7DC8FEDC7A9","T|C16":320,"vC|%":100}
+    is0.setReferenceTemperatures(320);
+    rs0.tick(valvePCOpen, is0);
+    EXPECT_EQ(100, valvePCOpen);
+    //{"@":"E091B7DC8FEDC7A9","gE":0,"T|C16":323,"H|%":62}
+    is0.setReferenceTemperatures(323);
+    rs0.tick(valvePCOpen, is0);
+    //{"@":"E091B7DC8FEDC7A9","L":67,"O":2,"vac|h":0}
+    is0.setReferenceTemperatures(326);
+    rs0.tick(valvePCOpen, is0);
+    //{"@":"E091B7DC8FEDC7A9","B|cV":254,"L":66,"v|%":100}
+    is0.setReferenceTemperatures(329); // ~20.6C
+    rs0.tick(valvePCOpen, is0);
+    // Valve still fully open.
+    EXPECT_EQ(100, valvePCOpen);
+    EXPECT_NEAR(307, rs0.getSmoothedRecent(), 5); // 307 ~ 19.2C.
+    // Filtering now on, and should be propagated to widenDeadband.
+    EXPECT_TRUE(rs0.isFiltering);
+    is0.widenDeadband = true;
+
+    // Valve is about to start closing...
+
+    //{"@":"E091B7DC8FEDC7A9","vC|%":151,"tT|C":19,"L":67}
+    is0.setReferenceTemperatures(332);
+    rs0.tick(valvePCOpen, is0);
+    // Should drop below call-for-heat threshold.
+    EXPECT_GT(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, valvePCOpen);
+    //{"@":"E091B7DC8FEDC7A9","tS|C":0,"vC|%":156,"gE":0}
+    is0.setReferenceTemperatures(334); // 334 ~ 20.9C.
+    rs0.tick(valvePCOpen, is0);
+    EXPECT_NEAR(312, rs0.getSmoothedRecent(), 5); // 3012 ~ 19.5C.
+    EXPECT_NEAR(44, valvePCOpen, 5);
+    //{"@":"E091B7DC8FEDC7A9","T|C16":336,"H|%":60,"O":2}
+    is0.setReferenceTemperatures(336);
+    rs0.tick(valvePCOpen, is0);
+    //{"@":"E091B7DC8FEDC7A9","vac|h":0,"B|cV":254,"L":115}
+    is0.setReferenceTemperatures(338);
+    rs0.tick(valvePCOpen, is0);
+    //{"@":"E091B7DC8FEDC7A9","v|%":29,"tT|C":19,"tS|C":0}
+    is0.setReferenceTemperatures(340);
+    rs0.tick(valvePCOpen, is0);
+    EXPECT_NEAR(29, valvePCOpen, 5);
+    //{"@":"E091B7DC8FEDC7A9","vC|%":176,"gE":0,"H|%":59}
+    is0.setReferenceTemperatures(342);
+    rs0.tick(valvePCOpen, is0);
+    //{"@":"E091B7DC8FEDC7A9","T|C16":344,"H|%":59,"O":2}
+    is0.setReferenceTemperatures(344); // 344 ~ 21.5C.
+    rs0.tick(valvePCOpen, is0);
+    //{"@":"E091B7DC8FEDC7A9","vac|h":0,"B|cV":254,"L":86}
+    is0.setReferenceTemperatures(345);
+    rs0.tick(valvePCOpen, is0);
+    //{"@":"E091B7DC8FEDC7A9","v|%":0,"tT|C":19,"tS|C":0}
+    is0.setReferenceTemperatures(345);
+    rs0.tick(valvePCOpen, is0);
+    EXPECT_NEAR(0, valvePCOpen, 5);
+    //{"@":"E091B7DC8FEDC7A9","vC|%":200,"gE":0,"H|%":58}
+    is0.setReferenceTemperatures(346);
+    rs0.tick(valvePCOpen, is0);
+    EXPECT_EQ(0, valvePCOpen);
+    //{"@":"E091B7DC8FEDC7A9","T|C16":346,"H|%":58,"O":2}
+    is0.setReferenceTemperatures(346); // 344 ~ 21.6C.
+    rs0.tick(valvePCOpen, is0);
+    // Valve fully closed, filtering still on.
+    EXPECT_TRUE(rs0.isFiltering);
+    EXPECT_EQ(0, valvePCOpen);
+}
+
 
 // C16 (Celsius*16) room Temperature and target data samples, along with optional expected event from ModelledRadValve.
 // Can be directly created from OpenTRV log files.
