@@ -190,7 +190,6 @@ static constexpr bool originalProportionalAlg = false;
 
 if(MINIMAL_BINARY_IMPL) {
 
-
     // Minimal/binary implementation, supporting widened deadband on demand.
     // (Well) under temperature target: open valve up.
     if(adjustedTempC + (inputState.widenDeadband ? 1 : 0) < inputState.targetTempC)
@@ -213,9 +212,7 @@ if(MINIMAL_BINARY_IMPL) {
         }
     // Else leave valve position as-is.
 
-
 } else if(!originalProportionalAlg) {
-
 
     // New non-binary implementation as of 2017Q1.
     // Does not make any particular assumptions about
@@ -355,9 +352,8 @@ if(MINIMAL_BINARY_IMPL) {
         else
             { if(rise >= 0) { return(valvePCOpen - 1); } }
 
-        // Fall through to return valve position unchanged,
+        // Fall through to return valve position unchanged.
         }
-
 
 } else {
 
@@ -808,7 +804,6 @@ if(MINIMAL_BINARY_IMPL) {
   // Leave value position as was...
   return(valvePCOpen);
   }
-
 
 
 #ifdef ModelledRadValve_DEFINED
