@@ -178,7 +178,7 @@ namespace OTRadValve
 
         // Target 'warm' temperatures, strictly positive, in range [<frost+1>,MAX_TARGET_C].
         // Set so that mid-point is at ~19C (BRE and others regard this as minimum comfort temperature)
-        // and half the scale will be below 19C and thus save ('eco') compared to typical UK room temperatures.
+        // and half the scale will be below 19C and thus save ('ECO') compared to typical UK room temperatures.
         // (17/18 good for energy saving at ~1C below typical UK room temperatures of ~19C in 2012).
         // Note: BS EN 215:2004 S5.3.5 says maximum setting must be <= 32C, minimum in range [5C,12C].
         17, // Target WARM temperature for ECO bias.
@@ -202,10 +202,11 @@ namespace OTRadValve
 
         // Target 'warm' temperatures, strictly positive, in range [<frost+1>,MAX_TARGET_C].
         // Set so that mid-point is close to 19C (BRE and others regard 19C as minimum comfort temperature)
-        // and half the scale will be below 19C and thus save ('eco') compared to typical UK room temperatures.
+        // and half the scale will be below 19C and thus save ('ECO') compared to typical UK room temperatures.
         // (17/18 good for energy saving at ~1C below typical UK room temperatures of ~19C in 2012).
         // Note: BS EN 215:2004 S5.3.5 says maximum setting must be <= 32C, minimum in range [5C,12C].
-        17, // Target WARM temperature for ECO bias.
+        // As low as 12C recommended for cellar/stairs, and as high as 22C for bathrooms: http://www.energie-environnement.ch/conseils-de-saison/97-bien-utiliser-la-vanne-thermostatique
+        16, // Target WARM temperature for ECO bias.
         22  // Target WARM temperature for Comfort bias.
         > Proposed_DEFAULT_ValveControlParameters;
 
