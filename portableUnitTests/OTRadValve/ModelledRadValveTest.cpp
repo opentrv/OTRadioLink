@@ -582,6 +582,50 @@ SCOPED_TRACE(testing::Message() << "fastResponseRequired " << fastResponseRequir
         }
 }
 
+// Test that valve does not hover indefinitely with boiler on unless full open.
+// This is to avoid futile/expensive/noisy running of boiler indefinitely
+// with the valve at a steady temperature (close to target),
+// possibly not actually letting water through or getting any heat.
+// This tests the valve at a range of temperatures around target
+// to ensure that with steady temperatures the call for heat stops,
+// or that the call for heat continues with valve is fully on.  (TODO-1096)
+// Tested with and without wide deadband.
+// The legacy algorithm pre 2016/12/30 fails this test and can hover.
+TEST(ModelledRadValve,MRVSNoHoverWithBoilerOn)
+{
+    // Seed PRNG for use in simulator; --gtest_shuffle will force it to change.
+    srandom((unsigned) ::testing::UnitTest::GetInstance()->random_seed());
+    OTV0P2BASE::seedRNG8(random() & 0xff, random() & 0xff, random() & 0xff);
+
+    // Modest target temperature.
+    const uint8_t targetTempC = 18;
+    // Test temperature max offset in each direction in C.
+    const uint8_t tempMaxOffsetC = 3;
+    for(int16_t ambientTempC16 = (targetTempC - (int)tempMaxOffsetC) << 4;
+        ambientTempC16 <= (targetTempC + (int)tempMaxOffsetC) << 4;
+        ++ambientTempC16)
+        {
+        OTRadValve::ModelledRadValveInputState is0(ambientTempC16);
+        OTRadValve::ModelledRadValveState rs0;
+        is0.targetTempC = targetTempC;
+        is0.glacial = false;
+        is0.widenDeadband = false;
+        is0.fastResponseRequired = false;
+        // Futz some input parameters that should not matter.
+        rs0.isFiltering = OTV0P2BASE::randRNG8NextBoolean();
+        is0.hasEcoBias = OTV0P2BASE::randRNG8NextBoolean();
+        // Randomly try with/out wide deadband; may matter, though should not.
+        is0.widenDeadband = OTV0P2BASE::randRNG8NextBoolean();
+        // Start in a random position.
+        const uint8_t valvePCOpenInitial = unsigned(random()) % 101;
+        volatile uint8_t valvePCOpen = valvePCOpenInitial;
+        // Run for long enough even for glacial traverse of valve range.
+        for(int i = 0; i < 100; ++i) { rs0.tick(valvePCOpen, is0); }
+        // Make sure either fully open, or not calling for heat.
+        const uint8_t p = valvePCOpen;
+        EXPECT_TRUE((100 == p) || (p < OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN)) << int(p);
+        }
+}
 
 // Test that the cold draught detector works, with simple synthetic case.
 // Check that a sufficiently sharp drop in temperature
