@@ -62,14 +62,6 @@ int_fast16_t ModelledRadValveState::getSmoothedRecent() const
 //  return(velocity);
 //  }
 
-// Maximum jump between adjacent readings before forcing filtering; strictly +ve.
-// Too small a value may in some circumstances cap room rate rise to this per minute.
-// Too large a value may fail to sufficiently help damp oscillations and overshoot.
-// As to be at least as large as the minimum temperature sensor precision
-// to avoid false triggering of the filter.
-// Typical values range from 2 (for better-than 1/8C-precision temperature sensor) up to 4.
-static constexpr uint8_t MAX_TEMP_JUMP_C16 = 3; // 3/16C.
-
 
 // Construct an instance, with sensible defaults, and current (room) temperature from the input state.
 // Does its initialisation with room temperature immediately.
@@ -92,7 +84,7 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const Modelle
   clearEvent();
 
   // Ensure that the filter is longer than turn-about delays
-  // to try to ensure that there is come chance of smooth control.
+  // to try to ensure that there is some chance of smooth control.
   static_assert(DEFAULT_ANTISEEK_VALVE_REOPEN_DELAY_M < filterLength, "reduce overshoot/whiplash");
   static_assert(DEFAULT_ANTISEEK_VALVE_RECLOSE_DELAY_M < filterLength, "reduce overshoot/whiplash");
 
@@ -114,12 +106,15 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const Modelle
   // if the raw value is close enough to the current filtered value
   // so that reverting to unfiltered will not of itself cause a big jump.
   if(isFiltering)
-    { if(abs(getSmoothedRecent() - rawTempC16) <= MAX_TEMP_JUMP_C16) { isFiltering = false; } }
-  // Force filtering (back) on if any adjacent past readings are wildly different.
-  else
+    { if(OTV0P2BASE::fnabsdiff(getSmoothedRecent(), rawTempC16) <= MAX_TEMP_JUMP_C16) { isFiltering = false; } }
+  // Force filtering (back) on if any adjacent readings are wildly different.
+  // This is NOT an else clause from the above so as to avoid flapping
+  // filtering on and off if the current temp happens to be close to the mean,
+  // which would produce more valve movement and noise than necessary.  (TODO-1027)
+  if(!isFiltering)
     {
     for(size_t i = 1; i < filterLength; ++i)
-        { if(abs(prevRawTempC16[i] - prevRawTempC16[i-1]) > MAX_TEMP_JUMP_C16) { isFiltering = true; break; } }
+      { if(OTV0P2BASE::fnabsdiff(prevRawTempC16[i], prevRawTempC16[i-1]) > MAX_TEMP_JUMP_C16) { isFiltering = true; break; } }
     }
 
   // Tick count down timers.

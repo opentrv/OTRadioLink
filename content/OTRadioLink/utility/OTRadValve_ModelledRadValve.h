@@ -126,6 +126,15 @@ struct ModelledRadValveState final
   // Gives quick feedback and warming, eg in response to manual control use.
   static constexpr uint8_t vFastResponseTicksTarget = 3;
 
+  // Max jump between adjacent readings before forcing filtering; strictly +ve.
+  // Too small a value may cap room rate rise to this per minute.
+  // Too large a value may fail to sufficiently help damp oscillations/overshoot.
+  // Has to be at least as large as the minimum temperature sensor precision
+  // to avoid false triggering of the filter.
+  // Typical values range from 2
+  // (for better-than 1/8C-precision temperature sensor) up to 4.
+  static constexpr uint8_t MAX_TEMP_JUMP_C16 = 3; // 3/16C.
+
   // Construct an instance, with sensible defaults, but no (room) temperature.
   // Defers its initialisation with room temperature until first tick().
   ModelledRadValveState() { }
