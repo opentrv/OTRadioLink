@@ -171,28 +171,36 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const Modelle
 uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valvePCOpen, const ModelledRadValveInputState &inputState) const
   {
   // Possibly-adjusted and/or smoothed temperature to use for targeting.
-  const int_fast16_t adjustedTempC16 = isFiltering ? (getSmoothedRecent() + ModelledRadValveInputState::refTempOffsetC16) : inputState.refTempC16;
-  // When reduced to whole Celsius then fewer bits are needed to cover expected temperatures.
+  const int_fast16_t adjustedTempC16 = isFiltering ?
+      (getSmoothedRecent() + ModelledRadValveInputState::refTempOffsetC16) :
+      inputState.refTempC16;
+  // When reduced to whole Celsius then fewer bits are needed
+  // to cover expected temperature range.
   const int_fast8_t adjustedTempC = (int_fast8_t) (adjustedTempC16 >> 4);
 
   const bool beGlacial = alwaysGlacial || inputState.glacial;
 
   // Typical valve slew rate (percent/minute) when close to target temperature.
-  // Note: keeping TRV_MAX_SLEW_PC_PER_MIN small reduces noise and overshoot
-  // and surges of water
+  // Keeping the slew small reduces noise and overshoot and surges of water
   // (eg for when additionally charged by volume in district heating systems)
   // and will likely work better with high-thermal-mass / slow-response systems
-  // such as UFH.
-  // Should be << 100%/min, and probably << 30%/min,
-  // given that 30% may be the effective control range of many rad valves.
+  // such as UFH,
+  // but if too small then users will not get the quick-enough response.
+  // Should be << 50%/min, and probably << 10%/min,
+  // given that <30% may be the effective control range of many rad valves.
+  // Typical mechanical TRVs have response times of ~20 minutes,
+  // so aping that probably matches infrastructure and expectations best.
   static constexpr uint8_t TRV_SLEW_PC_PER_MIN = 5; // 20 mins full travel.
-  // Derived from basic slew value
-  // Slow slew.
-  static constexpr uint8_t TRV_SLEW_PC_PER_MIN_SLOW = OTV0P2BASE::fnmax(1, TRV_SLEW_PC_PER_MIN/2);
-  // Takes <= fastResponseTicksTarget minutes for full travel.
-  static constexpr uint8_t TRV_SLEW_PC_PER_MIN_FAST = uint8_t(1+OTV0P2BASE::fnmax(100/fastResponseTicksTarget,1+TRV_SLEW_PC_PER_MIN));
-  // Takes <= vFastResponseTicksTarget minutes for full travel.
-  static constexpr uint8_t TRV_SLEW_PC_PER_MIN_VFAST = uint8_t(1+OTV0P2BASE::fnmax(100/vFastResponseTicksTarget,1+TRV_SLEW_PC_PER_MIN_FAST));
+  // Derived from basic slew value...
+  // Slow.
+  static constexpr uint8_t TRV_SLEW_PC_PER_MIN_SLOW =
+      OTV0P2BASE::fnmax(1, TRV_SLEW_PC_PER_MIN/2);
+  // Fast: takes <= fastResponseTicksTarget minutes for full travel.
+  static constexpr uint8_t TRV_SLEW_PC_PER_MIN_FAST =
+      uint8_t(1+OTV0P2BASE::fnmax(100/fastResponseTicksTarget,1+TRV_SLEW_PC_PER_MIN));
+  // Very fast: takes <= vFastResponseTicksTarget minutes for full travel.
+  static constexpr uint8_t TRV_SLEW_PC_PER_MIN_VFAST =
+      uint8_t(1+OTV0P2BASE::fnmax(100/vFastResponseTicksTarget,1+TRV_SLEW_PC_PER_MIN_FAST));
 
     // New non-binary implementation as of 2017Q1.
     // Does not make any particular assumptions about
@@ -213,7 +221,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
         // Don't open if recently turned down, and not in BAKE mode.
         if(dontTurnup() && !inputState.inBakeMode) { return(valvePCOpen); }
         // Honour glacial restriction for opening.
-        if(inputState.glacial) { if(valvePCOpen < inputState.maxPCOpen) { return(valvePCOpen + 1); } }
+        if(beGlacial) { if(valvePCOpen < inputState.maxPCOpen) { return(valvePCOpen + 1); } }
         // Usually open up to max (fast).
         setEvent(MRVE_OPENFAST);
         return(inputState.maxPCOpen);
