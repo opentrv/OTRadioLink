@@ -315,6 +315,9 @@ if(MINIMAL_BINARY_IMPL) {
            inCentralSweetSpot)
             { return(valvePCOpen); }
 
+        // Check direction of travel, if any.
+        const int_fast16_t rise = getRawDelta();
+
         // Avoid fast movements if glacial.
         if(!inputState.glacial)
             {
@@ -326,12 +329,13 @@ if(MINIMAL_BINARY_IMPL) {
             // fixed magic percentages for valve or boiler
             // except that this immediately stops calling for heat
             // on the way down.
+            // Only move if the temperature is not moving in the right direction.
             if(!inCentralSweetSpot)
                 {
                 if(belowLowerTarget)
-                    { return(OTV0P2BASE::fnconstrain(uint8_t(valvePCOpen + TRV_MAX_SLEW_PC_PER_MIN), uint8_t(0), inputState.maxPCOpen)); }
+                    { if(rise <= 0) { return(OTV0P2BASE::fnconstrain(uint8_t(valvePCOpen + TRV_MAX_SLEW_PC_PER_MIN), uint8_t(0), inputState.maxPCOpen)); } }
                 else
-                    { return(uint8_t(OTV0P2BASE::fnconstrain(int(valvePCOpen) - int(TRV_MAX_SLEW_PC_PER_MIN), 0, int(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1)))); }
+                    { if(rise >= 0) { return(uint8_t(OTV0P2BASE::fnconstrain(int(valvePCOpen) - int(TRV_MAX_SLEW_PC_PER_MIN), 0, int(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1)))); } }
                 }
             }
 
@@ -340,10 +344,13 @@ if(MINIMAL_BINARY_IMPL) {
         // This is based on hitting and sticking at the lower target,
         // with the aim of avoiding either hard limit.
         // Unless pre-empted the valve does not stay static mid-travel.
+        // Only move if the temperature is not moving in the right direction.
         if(belowLowerTarget)
-            { return(valvePCOpen + 1); }
+            { if(rise <= 0) { return(valvePCOpen + 1); } }
         else
-            { return(valvePCOpen - 1); }
+            { if(rise >= 0) { return(valvePCOpen - 1); } }
+
+        // Fall through to return valve position unchanged,
         }
 
 
