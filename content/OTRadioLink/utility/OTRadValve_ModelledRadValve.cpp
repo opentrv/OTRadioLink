@@ -287,7 +287,7 @@ if(MINIMAL_BINARY_IMPL) {
         else
             { if(0 == valvePCOpen) { return(valvePCOpen); } }
 
-        // Avoid fast movements, even to user adjustments, if glacial.
+        // Avoid fast movements, even for user responsiveness, if glacial.
         if(!inputState.glacial)
             {
             // Move quickly when requested, eg responding to manual control use.
@@ -336,8 +336,8 @@ if(MINIMAL_BINARY_IMPL) {
             }
 
         // By default, move valve glacially all the way to full or to closed.
-        // Guard above ensures that these glacial movements are safe.
-        // This is based on hitting and sticking to the lower target,
+        // The guard above ensures that these glacial movements are safe.
+        // This is based on hitting and sticking at the lower target,
         // with the aim of avoiding either hard limit.
         // Unless pre-empted the valve does not stay static mid-travel.
         if(belowLowerTarget)
