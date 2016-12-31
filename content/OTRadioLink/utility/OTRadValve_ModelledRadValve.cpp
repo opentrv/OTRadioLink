@@ -80,9 +80,8 @@ ModelledRadValveState::ModelledRadValveState(const ModelledRadValveInputState &i
 //   * valvePCOpenRef  current valve position UPDATED BY THIS ROUTINE, in range [0,100]
 void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const ModelledRadValveInputState &inputState)
   {
-  // Currently not using events.
-//  // Forget last event if any.
-//  clearEvent();
+  // Forget last event if any.
+  clearEvent();
 
   // Ensure that the filter is longer than turn-about delays
   // to try to ensure that there is some chance of smooth control.
