@@ -501,6 +501,8 @@ TEST(ModelledRadValve,MRVSOpenFastFromCold593)
 
 // Test normal speed to open/close when already reasonably close to target.
 // Test with and without explicit request for fast response.
+// Note that full close may not be needed once not calling for heat,
+// which may in principle save as much as 50% of movement.
 TEST(ModelledRadValve,MRVSNormalResponseTime)
 {
     for(int d = 0; d <= 1; ++d)
@@ -533,7 +535,7 @@ SCOPED_TRACE(testing::Message() << "fastResponseRequired " << fastResponseRequir
             // Check that target is not reached in a single tick.
             rs0.tick(valvePCOpen, is0);
             EXPECT_NE(below ? 100 : 0, valvePCOpen);
-            // Ensure that after a bounded time valve is fully open.
+            // Ensure that after a bounded time valve is fully open/closed.
             // Time limit is much lower when a fast response is requested.
             // Units are nominally minutes.
             // This should never take longer than 'glacial' 1% per tick.
@@ -541,9 +543,14 @@ SCOPED_TRACE(testing::Message() << "fastResponseRequired " << fastResponseRequir
                 rs0.vFastResponseTicksTarget : 100;
             for(int i = 0; i < timeLimit; ++i)
                 { rs0.tick(valvePCOpen, is0); }
-            // Nominally expect valve to be completely open,
-            // but allow for nearly-fully open for some algorithm variants.
-            EXPECT_NEAR(below ? 100 : 0, valvePCOpen, 20) << "moved " << (valvePCOpen - valvePCOpenInitial);
+            // Nominally expect valve to be completely open/closed,
+            // but allow for nearly-fully open
+            // and 'below call-for-heat'
+            // for some algorithm variants.
+            if(below)
+                { EXPECT_NEAR(100, valvePCOpen, 20) << "moved " << (valvePCOpen - valvePCOpenInitial); }
+            else
+                { EXPECT_GE(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, valvePCOpen) << "moved " << (valvePCOpen - valvePCOpenInitial); }
             }
         }
 }
@@ -894,9 +901,9 @@ TEST(ModelledRadValve,SampleValveResponse1)
     // Valve still fully open.
     EXPECT_EQ(100, valvePCOpen);
     EXPECT_NEAR(307, rs0.getSmoothedRecent(), 5); // 307 ~ 19.2C.
-    // Filtering now on, and should be propagated to widenDeadband.
+    // Filtering should now be on, and should be propagated to widenDeadband.
     EXPECT_TRUE(rs0.isFiltering);
-    is0.widenDeadband = true;
+    is0.widenDeadband = rs0.isFiltering;
 
     // Valve is about to start closing...
 
@@ -919,7 +926,8 @@ TEST(ModelledRadValve,SampleValveResponse1)
     //{"@":"E091B7DC8FEDC7A9","v|%":29,"tT|C":19,"tS|C":0}
     is0.setReferenceTemperatures(340);
     rs0.tick(valvePCOpen, is0);
-    EXPECT_NEAR(29, valvePCOpen, 5);
+    // Note that newer algorithms may result in slower/less closing.
+    EXPECT_NEAR(29, valvePCOpen, 15);
     //{"@":"E091B7DC8FEDC7A9","vC|%":176,"gE":0,"H|%":59}
     is0.setReferenceTemperatures(342);
     rs0.tick(valvePCOpen, is0);

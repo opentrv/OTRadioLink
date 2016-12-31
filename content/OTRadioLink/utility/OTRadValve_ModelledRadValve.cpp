@@ -175,7 +175,9 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
   // When reduced to whole Celsius then fewer bits are needed to cover expected temperatures.
   const int_fast8_t adjustedTempC = (int_fast8_t) (adjustedTempC16 >> 4);
 
-  // Maximum valve slew rate (percent/minute) when close to target temperature.
+  const bool beGlacial = alwaysGlacial || inputState.glacial;
+
+  // Typical valve slew rate (percent/minute) when close to target temperature.
   // Note: keeping TRV_MAX_SLEW_PC_PER_MIN small reduces noise and overshoot
   // and surges of water
   // (eg for when additionally charged by volume in district heating systems)
@@ -183,12 +185,14 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
   // such as UFH.
   // Should be << 100%/min, and probably << 30%/min,
   // given that 30% may be the effective control range of many rad valves.
-  static const uint8_t TRV_MAX_SLEW_PC_PER_MIN = alwaysGlacial ? 1 : 5;
-  // Derived from basic slew values.
+  static constexpr uint8_t TRV_SLEW_PC_PER_MIN = 5; // 20 mins full travel.
+  // Derived from basic slew value
+  // Slow slew.
+  static constexpr uint8_t TRV_SLEW_PC_PER_MIN_SLOW = OTV0P2BASE::fnmax(1, TRV_SLEW_PC_PER_MIN/2);
   // Takes <= fastResponseTicksTarget minutes for full travel.
-  static const uint8_t TRV_SLEW_PC_PER_MIN_FAST = alwaysGlacial ? 1 : uint8_t(1+OTV0P2BASE::fnmax(100/fastResponseTicksTarget,1+TRV_MAX_SLEW_PC_PER_MIN));
+  static constexpr uint8_t TRV_SLEW_PC_PER_MIN_FAST = uint8_t(1+OTV0P2BASE::fnmax(100/fastResponseTicksTarget,1+TRV_SLEW_PC_PER_MIN));
   // Takes <= vFastResponseTicksTarget minutes for full travel.
-  static const uint8_t TRV_SLEW_PC_PER_MIN_VFAST = alwaysGlacial ? 1 : uint8_t(1+OTV0P2BASE::fnmax(100/vFastResponseTicksTarget,1+TRV_SLEW_PC_PER_MIN_FAST));
+  static constexpr uint8_t TRV_SLEW_PC_PER_MIN_VFAST = uint8_t(1+OTV0P2BASE::fnmax(100/vFastResponseTicksTarget,1+TRV_SLEW_PC_PER_MIN_FAST));
 
 static constexpr bool originalProportionalAlg = false;
 
@@ -293,8 +297,11 @@ if(MINIMAL_BINARY_IMPL) {
         else
             { if(0 == valvePCOpen) { return(valvePCOpen); } }
 
+        // Check direction of temperature movement, if any.
+        const int_fast16_t rise = getRawDelta();
+
         // Avoid fast movements, even for user responsiveness, if glacial.
-        if(!inputState.glacial)
+        if(!beGlacial)
             {
             // Move quickly when requested, eg responding to manual control use.
             // Try to get right side of call-for-heat threshold in first step
@@ -308,24 +315,35 @@ if(MINIMAL_BINARY_IMPL) {
                                       OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN);
                 if(belowLowerTarget)
                     { return(OTV0P2BASE::fnconstrain(uint8_t(valvePCOpen + TRV_SLEW_PC_PER_MIN_VFAST), minThreshold, inputState.maxPCOpen)); }
-                else // Immediately get below call-for-heat threshold on way down.
-                    { return(uint8_t(OTV0P2BASE::fnconstrain(int(valvePCOpen) - int(TRV_SLEW_PC_PER_MIN_VFAST), 0, int(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1)))); }
+                // Iff temperatures not falling then
+                // immediately get below call-for-heat threshold on way down
+                // but then be slower after that, in hope that full close
+                // may not even be necessary.
+                // Users likely to be less demanding about forcing temp down.
+                else
+                    { if(rise >= 0) { return(uint8_t(OTV0P2BASE::fnconstrain(int(valvePCOpen) - int(TRV_SLEW_PC_PER_MIN_FAST), 0, int(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1)))); } }
                 }
             }
 
         // Avoid movement to save valve energy and noise if ALL of:
         //   * not calling for heat (which also avoids boiler energy and noise)
-        //   * close enough to desired temperature
-        // TODO: also maybe not moving in the wrong direction.
-        if((valvePCOpen < OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN) &&
-           inCentralSweetSpot)
-            { return(valvePCOpen); }
-
-        // Check direction of temperature movement, if any.
-        const int_fast16_t rise = getRawDelta();
+        //   * close enough to target OR not moving in the wrong direction.
+        if(valvePCOpen < OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN)
+            {
+            if(inCentralSweetSpot) { return(valvePCOpen); }
+            else
+                {
+                // When below sweet spot and not actually falling, hold steady.
+                if(belowLowerTarget)
+                    { if(rise >= 0) { return(valvePCOpen); } }
+                // When above sweet spot and not actually rising, hold steady.
+                else
+                    { if(rise <= 0) { return(valvePCOpen); } }
+                }
+            }
 
         // Avoid fast movements if glacial.
-        if(!inputState.glacial)
+        if(!beGlacial)
             {
             // When temperature is not within target central region
             // adjust valve with reasonable pace
@@ -339,9 +357,12 @@ if(MINIMAL_BINARY_IMPL) {
             if(!inCentralSweetSpot)
                 {
                 if(belowLowerTarget)
-                    { if(rise <= 0) { return(OTV0P2BASE::fnconstrain(uint8_t(valvePCOpen + TRV_MAX_SLEW_PC_PER_MIN), uint8_t(0), inputState.maxPCOpen)); } }
+                    { if(rise <= 0) { return(OTV0P2BASE::fnconstrain(uint8_t(valvePCOpen + TRV_SLEW_PC_PER_MIN), uint8_t(0), inputState.maxPCOpen)); } }
+                // Immediately get below call-for-heat threshold on way down
+                // but then be slower after that in hope that full close
+                // may not even be necessary.
                 else
-                    { if(rise >= 0) { return(uint8_t(OTV0P2BASE::fnconstrain(int(valvePCOpen) - int(TRV_MAX_SLEW_PC_PER_MIN), 0, int(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1)))); } }
+                    { if(rise >= 0) { return(uint8_t(OTV0P2BASE::fnconstrain(int(valvePCOpen) - int(TRV_SLEW_PC_PER_MIN_SLOW), 0, int(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1)))); } }
                 }
             }
 
@@ -478,8 +499,8 @@ if(MINIMAL_BINARY_IMPL) {
           if(valvePCOpen >= OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN)
             { return(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN - 1); }
           // Else continue to close at a reasonable pace.
-          if(valvePCOpen > TRV_MAX_SLEW_PC_PER_MIN)
-            { return(valvePCOpen - TRV_MAX_SLEW_PC_PER_MIN); }
+          if(valvePCOpen > TRV_SLEW_PC_PER_MIN)
+            { return(valvePCOpen - TRV_SLEW_PC_PER_MIN); }
           // Else close it.
           return(0);
           }
@@ -553,7 +574,7 @@ if(MINIMAL_BINARY_IMPL) {
       // Less fast if already moderately open or with a wide deadband.
       const uint8_t slewRate =
           ((valvePCOpen > OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN) || !inputState.widenDeadband) ?
-              TRV_MAX_SLEW_PC_PER_MIN : TRV_SLEW_PC_PER_MIN_VFAST;
+              TRV_SLEW_PC_PER_MIN : TRV_SLEW_PC_PER_MIN_VFAST;
       const uint8_t minOpenFromCold = OTV0P2BASE::fnmax(slewRate, inputState.minPCReallyOpen);
       // Open to 'minimum' likely open state immediately if less open currently.
       if(valvePCOpen < minOpenFromCold) { return(minOpenFromCold); }
@@ -667,7 +688,7 @@ if(MINIMAL_BINARY_IMPL) {
     // spurious hunting back and forth from single-ulp noise.
     static constexpr uint8_t TRV_MIN_SLEW_PC = 7;
     // Compute minimum slew to use with a wider deadband.
-    const uint8_t ls = OTV0P2BASE::fnmax(TRV_MAX_SLEW_PC_PER_MIN, (uint8_t) (2 * TRV_MIN_SLEW_PC));
+    const uint8_t ls = OTV0P2BASE::fnmax(TRV_SLEW_PC_PER_MIN, (uint8_t) (2 * TRV_MIN_SLEW_PC));
     const uint8_t ls2 = OTV0P2BASE::fnmin(ls, (uint8_t) (OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN / 2));
     const uint8_t ls3 = OTV0P2BASE::fnmax(ls2, (uint8_t) (2 + TRV_MIN_SLEW_PC));
     const uint8_t _minAbsSlew = (uint8_t)(inputState.widenDeadband ? ls3 : TRV_MIN_SLEW_PC);
@@ -796,7 +817,7 @@ if(MINIMAL_BINARY_IMPL) {
     if(beGlacial) { return(valvePCOpen + 1); }
 
     // Slew open faster with comfort bias, or when fastResponseRequired (TODO-593, TODO-1069)
-    const uint8_t maxSlew = (!inputState.hasEcoBias || inputState.fastResponseRequired) ? TRV_SLEW_PC_PER_MIN_FAST : TRV_MAX_SLEW_PC_PER_MIN;
+    const uint8_t maxSlew = (!inputState.hasEcoBias || inputState.fastResponseRequired) ? TRV_SLEW_PC_PER_MIN_FAST : TRV_SLEW_PC_PER_MIN;
     if(slew > maxSlew)
         { return(valvePCOpen + maxSlew); } // Cap slew rate towards open.
     // Adjust directly to target.
