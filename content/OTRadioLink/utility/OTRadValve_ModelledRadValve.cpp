@@ -80,8 +80,9 @@ ModelledRadValveState::ModelledRadValveState(const ModelledRadValveInputState &i
 //   * valvePCOpenRef  current valve position UPDATED BY THIS ROUTINE, in range [0,100]
 void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const ModelledRadValveInputState &inputState)
   {
-  // Forget last event if any.
-  clearEvent();
+  // Currently not using events.
+//  // Forget last event if any.
+//  clearEvent();
 
   // Ensure that the filter is longer than turn-about delays
   // to try to ensure that there is some chance of smooth control.
@@ -261,10 +262,6 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
         // True when below lower target.
         const bool belowLowerTarget = belowLowerTargetInMiddle1C ||
            (adjustedTempC < inputState.targetTempC);
-        // True when in central sweet-spot.
-        // Extends right down to bottom of central 1C with wide deadband.
-        const bool inCentralSweetSpot = belowLowerTargetInMiddle1C &&
-            ((adjustedTempC16 & 0xf) >= (inputState.widenDeadband ? 0 : lowerBoundNormalLSBs));
 
         // Leave valve as-is if blocked from moving in appropriate direction.
         if(belowLowerTarget)
@@ -281,31 +278,33 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
         // Check direction of temperature movement, if any.
         const int_fast16_t rise = getRawDelta();
 
-        // Avoid fast movements, even for user responsiveness, if glacial.
-        if(!beGlacial)
+        // Move quickly when requested, eg responding to manual control use.
+        // Try to get right side of call-for-heat threshold in first step
+        // to have boiler respond appropriately ASAP also.
+        // Overrides 'glacial'.
+        if(inputState.fastResponseRequired)
             {
-            // Move quickly when requested, eg responding to manual control use.
-            // Try to get right side of call-for-heat threshold in first step
-            // to have boiler respond appropriately ASAP also.
-            if(inputState.fastResponseRequired)
-                {
-                // Always open immediately to at least larger of
-                // calling-for-heat and minimum-really-on percentages.
-                static_assert(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN > 0, "so that minThreshold-1 >= 0");
-                const uint8_t minThreshold =
-                    OTV0P2BASE::fnmax(inputState.minPCReallyOpen,
-                                      OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN);
-                if(belowLowerTarget)
-                    { return(OTV0P2BASE::fnconstrain(uint8_t(valvePCOpen + TRV_SLEW_PC_PER_MIN_VFAST), minThreshold, inputState.maxPCOpen)); }
-                // Iff temperatures not falling then
-                // immediately get below call-for-heat threshold on way down
-                // but then be slower after that, in hope that full close
-                // may not even be necessary.
-                // Users likely to be less demanding about forcing temp down.
-                else
-                    { if(rise >= 0) { return(uint8_t(OTV0P2BASE::fnconstrain(int(valvePCOpen) - int(TRV_SLEW_PC_PER_MIN_FAST), 0, int(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1)))); } }
-                }
+            // Always open immediately to at least larger of
+            // calling-for-heat and minimum-really-on percentages.
+            static_assert(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN > 0, "so that minThreshold-1 >= 0");
+            const uint8_t minThreshold =
+                OTV0P2BASE::fnmax(inputState.minPCReallyOpen,
+                                  OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN);
+            if(belowLowerTarget)
+                { return(OTV0P2BASE::fnconstrain(uint8_t(valvePCOpen + TRV_SLEW_PC_PER_MIN_VFAST), minThreshold, inputState.maxPCOpen)); }
+            // Iff temperatures not falling then
+            // immediately get below call-for-heat threshold on way down
+            // but then be slower after that, in hope that full close
+            // may not even be necessary.
+            // Users likely to be less demanding about forcing temp down.
+            else
+                { if(rise >= 0) { return(uint8_t(OTV0P2BASE::fnconstrain(int(valvePCOpen) - int(TRV_SLEW_PC_PER_MIN_FAST), 0, int(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1)))); } }
             }
+
+        // True when in central sweet-spot.
+        // Extends right down to bottom of central 1C with wide deadband.
+        const bool inCentralSweetSpot = belowLowerTargetInMiddle1C &&
+            ((adjustedTempC16 & 0xf) >= (inputState.widenDeadband ? 0 : lowerBoundNormalLSBs));
 
         // Avoid movement to save valve energy and noise if ALL of:
         //   * not calling for heat (which also avoids boiler energy and noise)

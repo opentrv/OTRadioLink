@@ -496,7 +496,7 @@ TEST(ModelledRadValve,MRVSOpenFastFromCold593)
     EXPECT_TRUE(newValvePos >= OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN);
     EXPECT_TRUE(newValvePos <= 100);
     EXPECT_TRUE(rs0.valveMoved);
-    EXPECT_EQ(OTRadValve::ModelledRadValveState::MRVE_OPENFAST, rs0.lastEvent);
+    if(rs0.eventsSupported) { EXPECT_EQ(OTRadValve::ModelledRadValveState::MRVE_OPENFAST, rs0.getLastEvent()); }
 }
 
 // Test normal speed to open/close when already reasonably close to target.
@@ -727,7 +727,7 @@ if(verbose) { fprintf(stderr, "Valve %d%%.\n", valvePCOpen); }
 if(verbose) { fprintf(stderr, "Valve %d%%.\n", valvePCOpen); }
         const uint8_t newValvePos = valvePCOpen;
         EXPECT_LT(newValvePos, OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN);
-        ASSERT_EQ(OTRadValve::ModelledRadValveState::MRVE_DRAUGHT, rs0.lastEvent);
+        ASSERT_EQ(OTRadValve::ModelledRadValveState::MRVE_DRAUGHT, rs0.getLastEvent());
         }
 }
 
