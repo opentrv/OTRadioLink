@@ -91,6 +91,11 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const Modelle
   // Forget last event if any.
   clearEvent();
 
+  // Ensure that the filter is longer than turn-about delays
+  // to try to ensure that there is come chance of smooth control.
+  static_assert(DEFAULT_ANTISEEK_VALVE_REOPEN_DELAY_M < filterLength, "reduce overshoot/whiplash");
+  static_assert(DEFAULT_ANTISEEK_VALVE_RECLOSE_DELAY_M < filterLength, "reduce overshoot/whiplash");
+
   const int_fast16_t rawTempC16 = computeRawTemp16(inputState); // Remove adjustment for target centre.
   // Do some one-off work on first tick in new instance.
   if(!initialised)
@@ -315,7 +320,7 @@ if(MINIMAL_BINARY_IMPL) {
            inCentralSweetSpot)
             { return(valvePCOpen); }
 
-        // Check direction of travel, if any.
+        // Check direction of temperature movement, if any.
         const int_fast16_t rise = getRawDelta();
 
         // Avoid fast movements if glacial.
