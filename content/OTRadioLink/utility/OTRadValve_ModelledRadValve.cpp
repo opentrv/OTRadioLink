@@ -302,8 +302,8 @@ if(MINIMAL_BINARY_IMPL) {
                                       OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN);
                 if(belowLowerTarget)
                     { return(OTV0P2BASE::fnconstrain(uint8_t(valvePCOpen + TRV_SLEW_PC_PER_MIN_VFAST), minThreshold, inputState.maxPCOpen)); }
-                else
-                    { return(uint8_t(OTV0P2BASE::fnconstrain(int(valvePCOpen) - int(TRV_SLEW_PC_PER_MIN_VFAST), 0, int(minThreshold-1)))); }
+                else // Immediately get below call-for-heat threshold on way down.
+                    { return(uint8_t(OTV0P2BASE::fnconstrain(int(valvePCOpen) - int(TRV_SLEW_PC_PER_MIN_VFAST), 0, int(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1)))); }
                 }
             }
 
@@ -315,21 +315,23 @@ if(MINIMAL_BINARY_IMPL) {
            inCentralSweetSpot)
             { return(valvePCOpen); }
 
-        // Avoid fast movements if glacial or filtering wild temperature swings.
-        if(!inputState.glacial && !isFiltering)
+        // Avoid fast movements if glacial.
+        if(!inputState.glacial)
             {
             // When temperature is not within target central region
             // adjust valve with reasonable pace
             // but with some chance of fine control
             // and of getting thermal response before entire range is traversed.
             // In particular this does not make assumptions about
-            // fixed magic percentages for valve or boiler.
+            // fixed magic percentages for valve or boiler
+            // except that this immediately stops calling for heat
+            // on the way down.
             if(!inCentralSweetSpot)
                 {
                 if(belowLowerTarget)
                     { return(OTV0P2BASE::fnconstrain(uint8_t(valvePCOpen + TRV_MAX_SLEW_PC_PER_MIN), uint8_t(0), inputState.maxPCOpen)); }
                 else
-                    { return(uint8_t(OTV0P2BASE::fnconstrain(int(valvePCOpen) - int(TRV_MAX_SLEW_PC_PER_MIN), 0, int(inputState.maxPCOpen)))); }
+                    { return(uint8_t(OTV0P2BASE::fnconstrain(int(valvePCOpen) - int(TRV_MAX_SLEW_PC_PER_MIN), 0, int(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1)))); }
                 }
             }
 
