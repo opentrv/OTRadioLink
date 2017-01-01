@@ -260,8 +260,8 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
         // else a little over half-way up the middle 1C.
         static constexpr uint8_t upperBoundNormalLSBs = 12;
         static constexpr uint8_t lowerBoundNormalLSBs = 16-upperBoundNormalLSBs;
-        const bool belowLowerTargetInMiddle1C =
-           (adjustedTempC == inputState.targetTempC) &&
+        const bool inMiddle1C = (adjustedTempC == inputState.targetTempC);
+        const bool belowLowerTargetInMiddle1C = inMiddle1C &&
            ((adjustedTempC16 & 0xf) < upperBoundNormalLSBs);
         // True when below lower target.
         const bool belowLowerTarget = belowLowerTargetInMiddle1C ||
@@ -279,7 +279,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
         else
             { if(0 == valvePCOpen) { return(valvePCOpen); } }
 
-        // Check direction of temperature movement, if any.
+        // Check direction of latest raw temperature movement, if any.
         const int_fast16_t rise = getRawDelta();
 
         // Move quickly when requested, eg responding to manual control use.
@@ -354,16 +354,18 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
             // This does attempt to get below the boiler call-for-heat threshold
             // immediately on the way down to save energy,
             // and to get above it relatively fast on the way up
-            // to improve speed of response
-            // since there is relatively low probability of
-            // being able to take advantage of an already-running boiler.
+            // to reduce response time / latency
+            // since there is relatively low (but not zero) probability
+            // of being able to take advantage of an already-running boiler.
             if(!inCentralSweetSpot)
                 {
                 if(belowLowerTarget)
                     {
                     if(rise <= 0)
                         {
-                        const bool moveSlow = inputState.widenDeadband ||
+                        const bool moveSlow =
+                            inMiddle1C ||
+                            inputState.widenDeadband ||
                             (valvePCOpen >= OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN);
                         const uint8_t slew = moveSlow ?
                             TRV_SLEW_PC_PER_MIN : TRV_SLEW_PC_PER_MIN_FAST;
@@ -373,8 +375,8 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
                             inputState.maxPCOpen));
                         }
                     }
-                // Immediately get below call-for-heat threshold on way down
-                // but then be slower after that in hope that full close
+                // Immediately get below call-for-heat threshold on way down,
+                // but then move slower after that in hope that full close
                 // may not even be necessary.
                 else
                     {
