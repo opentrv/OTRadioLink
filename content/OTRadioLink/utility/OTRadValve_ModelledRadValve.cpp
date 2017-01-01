@@ -290,16 +290,15 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
         const int_fast16_t rise = getRawDelta();
 
         // Move quickly when requested, eg responding to manual control use.
-        // Try to get right side of call-for-heat threshold in first step
+        // Try to get to right side of call-for-heat threshold in first move
         // to have boiler respond appropriately ASAP also.
-        // Overrides 'glacial'.
+        // Ignores 'glacial'.
         if(inputState.fastResponseRequired)
             {
             if(belowLowerTarget)
                 {
                 // Always open immediately to at least larger of
                 // calling-for-heat and minimum-really-on percentages.
-                static_assert(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN > 0, "so that minThreshold-1 >= 0");
                 const uint8_t minThreshold =
                     OTV0P2BASE::fnmax(inputState.minPCReallyOpen,
                                       OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN);
@@ -308,13 +307,14 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
                     minThreshold,
                     inputState.maxPCOpen));
                 }
-            // Iff temperatures not falling then
-            // immediately get below call-for-heat threshold on way down
-            // but then be slower after that, in hope that full close
-            // may not even be necessary.
-            // Users likely to be less demanding about forcing temp down.
             else
                 {
+                // Iff temperatures not falling then
+                // immediately get below call-for-heat threshold on way down
+                // but then be slower after that, in hope that full close
+                // may not even be necessary.
+                // Users likely to be less demanding about forcing temp down.
+                static_assert(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN > 0, "so that minThreshold-1 >= 0");
                 if(rise >= 0)
                     {
                     return(uint8_t(OTV0P2BASE::fnconstrain(
