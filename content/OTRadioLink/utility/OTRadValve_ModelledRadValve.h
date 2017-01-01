@@ -185,23 +185,23 @@ struct ModelledRadValveState final
     } event_t;
 #if 0
   private:
-    mutable event_t lastEvent = MRVE_NONE;
+  mutable event_t lastEvent = MRVE_NONE;
   public:
   static constexpr bool eventsSupported = true;
   // Clear the last event, ie event state becomes MRVE_NONE.
-  void clearEvent() const { lastEvent = MRVE_NONE; }
+  void clearEvent() { lastEvent = MRVE_NONE; }
   // Set the event to be as passed.
   void setEvent(event_t event) const { lastEvent = event; }
   // Get the last event; MRVE_NONE if none.
-  event_t getLastEvent() { return(lastEvent); }
+  event_t getLastEvent() const { return(lastEvent); }
 #else
   static constexpr bool eventsSupported = false;
   // Dummy placeholders where event state not held.
-  void clearEvent() const { }
+  void clearEvent() { }
   // Set the event to be as passed.
   void setEvent(event_t) const { }
   // Get the last event always MRVE_NONE.
-  event_t getLastEvent() { return(MRVE_NONE); }
+  event_t getLastEvent() const { return(MRVE_NONE); }
 #endif
 
   // Set non-zero when valve flow is constricted, and then counts down to zero.
