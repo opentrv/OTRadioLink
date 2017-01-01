@@ -245,14 +245,22 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
     // wide deadband, etc.
     //
     // With a wide deadband far more over-/under- shoot is tolerated.
+    // (The wider deadband should probably be enabled automatically
+    // at a higher level when filtering has been engaged,
+    // to deal more gracefully with wild temp swings fir all-in-one design.)
+    //
+    // Managing to avoid having to run the valve entirely the end stops,
+    // especially fully-closed with spring-loaded TRV bases,
+    // may save significant energy, noise and time.
     else if(!MINIMAL_BINARY_IMPL)
         {
         // In BAKE mode open immediately to maximum.
         if(inputState.inBakeMode) { return(inputState.maxPCOpen); }
 
-        // Nominally aiming for top of 1C range where
+        // Nominally aiming for top part of central 1C range where
         // adjustedTempC == inputState.targetTempC
         // ie while adjustedTempC is just below inputState.targetTempC.
+        const bool inMiddle1C = (adjustedTempC == inputState.targetTempC);
 
         // Slow down as the target is approached, from below in particular,
         // with the aim of avoiding overshoot.
@@ -260,7 +268,6 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
         // else a little over half-way up the middle 1C.
         static constexpr uint8_t upperBoundNormalLSBs = 12;
         static constexpr uint8_t lowerBoundNormalLSBs = 16-upperBoundNormalLSBs;
-        const bool inMiddle1C = (adjustedTempC == inputState.targetTempC);
         const bool belowLowerTargetInMiddle1C = inMiddle1C &&
            ((adjustedTempC16 & 0xf) < upperBoundNormalLSBs);
         // True when below lower target.
