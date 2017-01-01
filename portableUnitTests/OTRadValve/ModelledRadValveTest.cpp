@@ -940,17 +940,20 @@ TEST(ModelledRadValve,SampleValveResponse1)
     //{"@":"E091B7DC8FEDC7A9","v|%":0,"tT|C":19,"tS|C":0}
     is0.setReferenceTemperatures(345);
     rs0.tick(valvePCOpen, is0);
-    EXPECT_NEAR(0, valvePCOpen, 5);
+    // Valve fully closed in trace; must be below call for heat theeshold.
+    EXPECT_GT(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, valvePCOpen);
     //{"@":"E091B7DC8FEDC7A9","vC|%":200,"gE":0,"H|%":58}
     is0.setReferenceTemperatures(346);
     rs0.tick(valvePCOpen, is0);
-    EXPECT_EQ(0, valvePCOpen);
+    // Valve fully closed in trace; must be below call for heat theeshold.
+    EXPECT_GT(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, valvePCOpen);
     //{"@":"E091B7DC8FEDC7A9","T|C16":346,"H|%":58,"O":2}
     is0.setReferenceTemperatures(346); // 344 ~ 21.6C.
     rs0.tick(valvePCOpen, is0);
-    // Valve fully closed, filtering still on.
+    // Valve fully closed in trace; must be below call for heat theeshold.
+    EXPECT_GT(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, valvePCOpen);
+    // Filtering still on.
     EXPECT_TRUE(rs0.isFiltering);
-    EXPECT_EQ(0, valvePCOpen);
 }
 
 
