@@ -304,7 +304,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
                 // and the valve to actually physically open,
                 // and then possibly be able to avoid having to open fully,
                 // saving some valve noise and battery life.
-                static_assert(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN > OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, "");
+                static_assert(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN > OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, "stronger than paint call-for-heat");
                 const uint8_t minThreshold =
                     OTV0P2BASE::fnmax(inputState.minPCReallyOpen,
                                       OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN);
