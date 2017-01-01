@@ -610,7 +610,7 @@ static void checkPerformanceAcceptableAgainstData(
     if(!exemptFromNormalRatios &&
        (flavourStats.occupancyAnticipationFailureNotAfterSleep.getSampleCount() >= 10))
         {
-        EXPECT_GE((normalOperation ? 0.45f : 0.5f), flavourStats.occupancyAnticipationFailureNotAfterSleep.getFractionFlavoured()) << flavourStats.occupancyAnticipationFailureNotAfterSleep.getSampleCount();
+        EXPECT_GE((normalOperation ? 0.48f : 0.6f), flavourStats.occupancyAnticipationFailureNotAfterSleep.getFractionFlavoured()) << flavourStats.occupancyAnticipationFailureNotAfterSleep.getSampleCount();
         EXPECT_GE((normalOperation ? 0.12f : 0.4f), flavourStats.occupancyAnticipationFailureLargeNotAfterSleep.getFractionFlavoured()) << flavourStats.occupancyAnticipationFailureLargeNotAfterSleep.getSampleCount();
         }
 
@@ -659,7 +659,7 @@ static void checkPerformanceAcceptableAgainstData(
     // and a little lower ambition in sensitive mode (eg comfort-driven).
 // FIXME: >=25% primary target.
     if((minutes > ticksForMoreThan24h) && !exemptFromNormalRatios)
-        { EXPECT_LE(normalOperation ? 0.225f : 0.22f, potentialSavingsFromSetbackAtLeastDEFAULT); }
+        { EXPECT_LE(normalOperation ? 0.23f : 0.22f, potentialSavingsFromSetbackAtLeastDEFAULT); }
 
     // Print a summary of key stats to eyeball (if not an odd blend).
     // These should be subject to more automated numerical analysis elsewhere.

@@ -499,7 +499,9 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
             // Go for ECO if dark or likely vacant now,
             // and not usually relatively occupied now or in the next hour.
             if(!inhibitECOSetback &&
-               (confidentlyVacant || (0 != dm)))
+               (confidentlyVacant ||
+                (likelyVacantNow && (hoursLessOccupiedThanThis <= 1)) ||
+                (0 != dm)))
                 {
                 setback = valveControlParameters::SETBACK_ECO;
 
@@ -531,8 +533,15 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
                 // If long vacant (no sign of activity for around a day)
                 // OR dark for a while AND return not strongly anticipated
                 // then allow a maximum night setback and minimise noise (TODO-792, TODO-1027)
+                // Drop through quicker in darkness when current/next hours
+                // are rarely occupied (ie anticipatory turn down);
+                // also help avoid revving up heating for brief lights-on
+                // in the middle of the night.  (TODO-1092)
+                const bool veryQuiet =
+                    (hoursLessOccupiedThanThis <= 1) ||
+                    (hoursLessOccupiedThanNext <= 1);
                 if(!inhibitFULLSetback &&
-                   (longVacant || (dm > 10)))
+                   (longVacant || (dm >= (veryQuiet ? 1 : 11))))
                     { setback = valveControlParameters::SETBACK_FULL; }
                 }
 
