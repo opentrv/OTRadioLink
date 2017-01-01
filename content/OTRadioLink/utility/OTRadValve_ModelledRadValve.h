@@ -584,8 +584,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
         }
   };
 
-// Full stateless implementation of computation of target temperature.
-// Has more complex algorithms than Basic version.
+// Pre-2017 stateless implementation of computation of target temperature.
 // Templated with all the input instances for maximum speed and minimum code size.
 template<
   class valveControlParameters,
@@ -600,13 +599,9 @@ template<
   class rh_t = OTV0P2BASE::HumiditySensorBase,  const rh_t *const relHumidityOpt = static_cast<const rh_t *>(NULL),
   bool (*const setbackLockout)() = ((bool(*)())NULL)
   >
-class ModelledRadValveComputeTargetTempFull final : public ModelledRadValveComputeTargetTempBase
+class ModelledRadValveComputeTargetTemp2016 final : public ModelledRadValveComputeTargetTempBase
   {
   public:
-//   constexpr ModelledRadValveComputeTargetTempBasic()
-//      {
-//      // TODO validate arg types and that things aren't NULL.  static_assert()?
-//      }
     virtual uint8_t computeTargetTemp() const override
         {
         // In FROST mode.
