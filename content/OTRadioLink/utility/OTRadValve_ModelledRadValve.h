@@ -139,6 +139,10 @@ struct ModelledRadValveState final
   // Too large a value may fail to sufficiently damp oscillations/overshoot.
   // A value of 10 would imply a maximum expected rise of 6C/h for example.
   static constexpr uint8_t MIN_TICKS_1C_DELTA = 10;
+  // Min ticks for a 0.5C delta before forcing filtering; strictly +ve.
+  // As the rise is well under 1C this may be useful
+  // to avoid wandering too far from a target temperature.
+  static constexpr uint8_t MIN_TICKS_0p5C_DELTA = (MIN_TICKS_1C_DELTA/2);
 
   // Construct an instance, with sensible defaults, but no (room) temperature.
   // Defers its initialisation with room temperature until first tick().

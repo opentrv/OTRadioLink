@@ -112,11 +112,11 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const Modelle
   // This is NOT an else clause from the above so as to avoid flapping
   // filtering on and off if the current temp happens to be close to the mean,
   // which would produce more valve movement and noise than necessary.  (TODO-1027)
-  static_assert(MIN_TICKS_1C_DELTA < filterLength, "filter must be long enough to detect delta over specified window");
+  static_assert(MIN_TICKS_0p5C_DELTA < filterLength, "filter must be long enough to detect delta over specified window");
   if(!isFiltering)
     {
-    // Quick test for needing filtering.
-    if(OTV0P2BASE::fnabs(getRawDelta(MIN_TICKS_1C_DELTA)) > 16)
+    // Quick test for needing filtering turned on.
+    if(OTV0P2BASE::fnabs(getRawDelta(MIN_TICKS_0p5C_DELTA)) > 8)
         { isFiltering = true; }
     }
   if(!isFiltering)
@@ -126,7 +126,7 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const Modelle
       { if(OTV0P2BASE::fnabsdiff(prevRawTempC16[i], prevRawTempC16[i-1]) > MAX_TEMP_JUMP_C16) { isFiltering = true; break; } }
     }
 
-  // Tick count down timers.
+  // Count down timers.
   if(valveTurndownCountdownM > 0) { --valveTurndownCountdownM; }
   if(valveTurnupCountdownM > 0) { --valveTurnupCountdownM; }
 
@@ -158,7 +158,7 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const Modelle
 
 // Computes a new valve position given supplied input state
 // including the current valve position; [0,100].
-// Uses no state other than that passed as the arguments (thus is unit testable).
+// Uses no state other than that passed as arguments (thus is unit testable).
 // Does not alter any of the input state.
 // Uses hysteresis and a proportional control and some other cleverness.
 // Is always willing to turn off quickly,
