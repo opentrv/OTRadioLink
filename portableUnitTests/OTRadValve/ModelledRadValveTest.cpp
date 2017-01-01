@@ -809,11 +809,12 @@ TEST(ModelledRadValve,SampleValveResponse1)
     is0.widenDeadband = false;
     is0.fastResponseRequired = true;
     // After tick, filtering should be off.
-    // Valve starting to open or possibly fully open.
+    // Valve at least at/above call-for-heat threshold.
     rs0.tick(valvePCOpen, is0);
     EXPECT_FALSE(rs0.isFiltering);
-    EXPECT_LT(0, valvePCOpen) << int(valvePCOpen);
-    // After a couple more ticks at most, filtering still off, valve fully open.
+    EXPECT_LE(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, valvePCOpen) << int(valvePCOpen);
+    // After a remaining ticks, filtering still off, valve fully open.
+    rs0.tick(valvePCOpen, is0);
     rs0.tick(valvePCOpen, is0);
     rs0.tick(valvePCOpen, is0);
     EXPECT_FALSE(rs0.isFiltering);
@@ -940,17 +941,17 @@ TEST(ModelledRadValve,SampleValveResponse1)
     //{"@":"E091B7DC8FEDC7A9","v|%":0,"tT|C":19,"tS|C":0}
     is0.setReferenceTemperatures(345);
     rs0.tick(valvePCOpen, is0);
-    // Valve fully closed in trace; must be below call for heat theeshold.
+    // Valve fully closed in trace; must be below call for heat threshold.
     EXPECT_GT(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, valvePCOpen);
     //{"@":"E091B7DC8FEDC7A9","vC|%":200,"gE":0,"H|%":58}
     is0.setReferenceTemperatures(346);
     rs0.tick(valvePCOpen, is0);
-    // Valve fully closed in trace; must be below call for heat theeshold.
+    // Valve fully closed in trace; must be below call for heat threshold.
     EXPECT_GT(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, valvePCOpen);
     //{"@":"E091B7DC8FEDC7A9","T|C16":346,"H|%":58,"O":2}
     is0.setReferenceTemperatures(346); // 344 ~ 21.6C.
     rs0.tick(valvePCOpen, is0);
-    // Valve fully closed in trace; must be below call for heat theeshold.
+    // Valve fully closed in trace; must be below call for heat threshold.
     EXPECT_GT(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, valvePCOpen);
     // Filtering still on.
     EXPECT_TRUE(rs0.isFiltering);

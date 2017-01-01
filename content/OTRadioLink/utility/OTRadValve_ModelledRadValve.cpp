@@ -198,9 +198,9 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
   // Fast: takes <= fastResponseTicksTarget minutes for full travel.
   static constexpr uint8_t TRV_SLEW_PC_PER_MIN_FAST =
       uint8_t(1+OTV0P2BASE::fnmax(100/fastResponseTicksTarget,1+TRV_SLEW_PC_PER_MIN));
-  // Very fast: takes <= vFastResponseTicksTarget minutes for full travel.
-  static constexpr uint8_t TRV_SLEW_PC_PER_MIN_VFAST =
-      uint8_t(1+OTV0P2BASE::fnmax(100/vFastResponseTicksTarget,1+TRV_SLEW_PC_PER_MIN_FAST));
+//  // Very fast: takes <= vFastResponseTicksTarget minutes for full travel.
+//  static constexpr uint8_t TRV_SLEW_PC_PER_MIN_VFAST =
+//      uint8_t(1+OTV0P2BASE::fnmax(100/vFastResponseTicksTarget,1+TRV_SLEW_PC_PER_MIN_FAST));
 
     // New non-binary implementation as of 2017Q1.
     // Does not make any particular assumptions about
@@ -298,12 +298,18 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
             if(belowLowerTarget)
                 {
                 // Always open immediately to at least larger of
-                // calling-for-heat and minimum-really-on percentages.
+                // minimum-really-on and (more than) calling-for-heat.
+                // Thereafter open at a more normal pace to allow
+                // the boiler to start if not already running,
+                // and the valve to actually physically open,
+                // and then possibly be able to avoid having to open fully,
+                // saving some valve noise and battery life.
+                static_assert(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN > OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, "");
                 const uint8_t minThreshold =
                     OTV0P2BASE::fnmax(inputState.minPCReallyOpen,
-                                      OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN);
+                                      OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN);
                 return(OTV0P2BASE::fnconstrain(
-                    uint8_t(valvePCOpen + TRV_SLEW_PC_PER_MIN_VFAST),
+                    uint8_t(valvePCOpen + TRV_SLEW_PC_PER_MIN),
                     minThreshold,
                     inputState.maxPCOpen));
                 }
