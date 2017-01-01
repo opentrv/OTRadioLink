@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
+Author(s) / Copyright (s): Damon Hart-Davis 2013--2017
 */
 
 #include <stdlib.h>
@@ -313,10 +313,10 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
             if(inCentralSweetSpot) { return(valvePCOpen); }
             else
                 {
-                // When below sweet spot and not actually falling, hold steady.
+                // When below sweet-spot and not actually falling, hold steady.
                 if(belowLowerTarget)
                     { if(rise >= 0) { return(valvePCOpen); } }
-                // When above sweet spot and not actually rising, hold steady.
+                // When above sweet-spot and not actually rising, hold steady.
                 else
                     { if(rise <= 0) { return(valvePCOpen); } }
                 }
