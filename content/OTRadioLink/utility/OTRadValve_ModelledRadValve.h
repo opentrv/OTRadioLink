@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
+Author(s) / Copyright (s): Damon Hart-Davis 2015--2017
 */
 
 /*
@@ -183,7 +183,7 @@ struct ModelledRadValveState final
     MRVE_OPENFAST,  // Fast open as per TODO-593.
     MRVE_DRAUGHT    // Cold draught detected.
     } event_t;
-#if 0 || defined(DEBUG)
+#if 0
   private:
     mutable event_t lastEvent = MRVE_NONE;
   public:
