@@ -393,8 +393,8 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
 
         // By default, move valve glacially all the way to full or to closed.
         // The guards above ensure that these glacial movements are safe.
-        // This is based on hitting and sticking at the lower target,
-        // with the aim of avoiding either hard limit.
+        // This is based on hitting and sticking at the lower central target,
+        // with the aim of avoiding running into either hard limit.
         // Unless preempted the valve does not hover mid-travel.  (TODO-1096)
         // Only adjust if the temperature is not moving in the right direction.
         if(belowLowerTarget)
