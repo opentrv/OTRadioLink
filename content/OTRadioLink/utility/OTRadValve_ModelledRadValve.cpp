@@ -371,7 +371,6 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
                     if(rise <= 0)
                         {
                         const bool moveSlow =
-                            inMiddle1C ||
                             inputState.widenDeadband ||
                             (valvePCOpen >= OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN);
                         const uint8_t slew = moveSlow ?
