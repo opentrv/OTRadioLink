@@ -173,10 +173,12 @@ struct ModelledRadValveState final
   bool valveMoved = false;
 
   // Testable/reportable events.
+  // Logically not part of this struct's state, so all ops are const.
   // Cleared at the start of each tick().
   // Set as appropriate by computeRequiredTRVPercentOpen() to indicate
   // particular activity and paths taken.
-  // May only be reported and accessible in debug mode; primarily to facilitate unit testing.
+  // May only be reported and accessible in debug mode;
+  // primarily to facilitate unit testing.
   typedef enum event : uint8_t
     {
     MRVE_NONE,      // No event.
@@ -189,7 +191,7 @@ struct ModelledRadValveState final
   public:
   static constexpr bool eventsSupported = true;
   // Clear the last event, ie event state becomes MRVE_NONE.
-  void clearEvent() { lastEvent = MRVE_NONE; }
+  void clearEvent() const { lastEvent = MRVE_NONE; }
   // Set the event to be as passed.
   void setEvent(event_t event) const { lastEvent = event; }
   // Get the last event; MRVE_NONE if none.
@@ -197,7 +199,7 @@ struct ModelledRadValveState final
 #else
   static constexpr bool eventsSupported = false;
   // Dummy placeholders where event state not held.
-  void clearEvent() { }
+  void clearEvent() const { }
   // Set the event to be as passed.
   void setEvent(event_t) const { }
   // Get the last event always MRVE_NONE.
