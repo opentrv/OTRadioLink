@@ -107,6 +107,17 @@ class SensorAmbientLightOccupancyDetectorSimple final : public SensorAmbientLigh
       // Minimum delta (rise) for probable occupancy to be detected; a simple noise floor.
       static constexpr uint8_t epsilon = 4;
 
+      // Min steady/grace time after lights on to confirm 'probable' occupancy.
+      // Intended to prevent a brief flash of light,
+      // or very quickly turning on lights in the night to find something,
+      // from firing up the entire heating system.
+      // This threshold may be applied conditionally, eg when previously v dark.
+      // Not so long as to fail to respond to genuine occupancy.
+      //
+      // This threshold may be useful elsewhere to suppress hasty response
+      // to a very brief lights-on, eg in the middle of the night.
+      static constexpr uint8_t steadyTicksMinWithLightOn = 3;
+
   private:
       // Previous ambient light level [0,254]; 0 means dark.
       // Starts at max so that no initial light level can imply occupancy.
