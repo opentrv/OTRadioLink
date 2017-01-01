@@ -562,7 +562,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
                     (hoursLessOccupiedThanThis <= 1) ||
                     (hoursLessOccupiedThanNext <= 1);
                 if(!inhibitFULLSetback &&
-                   (longVacant || (dm >= (veryQuiet ? 1 : 11))))
+                   (longVacant || (dm >= (veryQuiet ? 2 : 10))))
                     { setback = valveControlParameters::SETBACK_FULL; }
                 }
 

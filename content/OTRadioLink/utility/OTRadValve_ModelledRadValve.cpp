@@ -102,29 +102,38 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const Modelle
   prevRawTempC16[0] = rawTempC16;
 
   // Disable/enable filtering.
-  // Allow possible exit from filtering for next time
+  // Exit from filtering:
   // if the raw value is close enough to the current filtered value
-  // so that reverting to unfiltered will not of itself cause a big jump.
+  // that reverting to unfiltered would not itself cause a big jump.
   if(isFiltering)
     { if(OTV0P2BASE::fnabsdiff(getSmoothedRecent(), rawTempC16) <= MAX_TEMP_JUMP_C16) { isFiltering = false; } }
-  // Force filtering (back) on if big delta over recent minutes
-  // of if any adjacent readings in the filter window are wildly different.
+  // Force filtering (back) on if big delta(s) over recent minutes.
   // This is NOT an else clause from the above so as to avoid flapping
   // filtering on and off if the current temp happens to be close to the mean,
   // which would produce more valve movement and noise than necessary.  (TODO-1027)
-  static_assert(MIN_TICKS_0p5C_DELTA < filterLength, "filter must be long enough to detect delta over specified window");
   if(!isFiltering)
     {
+    static_assert(MIN_TICKS_0p5C_DELTA < filterLength, "filter must be long enough to detect delta over specified window");
+    static_assert(MIN_TICKS_1C_DELTA < filterLength, "filter must be long enough to detect delta over specified window");
+    static constexpr uint8_t fullFilterMaxDelta = ((filterLength-1) * 16) / MIN_TICKS_1C_DELTA;
     // Quick test for needing filtering turned on.
-    if(OTV0P2BASE::fnabs(getRawDelta(MIN_TICKS_0p5C_DELTA)) > 8)
-        { isFiltering = true; }
+    // Switches on filtering if excessive delta over recent intervals.
+    if((OTV0P2BASE::fnabs(getRawDelta()) > MAX_TEMP_JUMP_C16) ||
+       (OTV0P2BASE::fnabs(getRawDelta(MIN_TICKS_0p5C_DELTA)) > 8) ||
+       (OTV0P2BASE::fnabs(getRawDelta(MIN_TICKS_1C_DELTA)) > 16) ||
+       (OTV0P2BASE::fnabs(getRawDelta(filterLength-1)) > fullFilterMaxDelta))
+      { isFiltering = true; }
     }
-  if(!isFiltering)
-    {
-    // Slower test if filtering not yet triggered.
-    for(size_t i = 1; i < filterLength; ++i)
-      { if(OTV0P2BASE::fnabsdiff(prevRawTempC16[i], prevRawTempC16[i-1]) > MAX_TEMP_JUMP_C16) { isFiltering = true; break; } }
-    }
+//  // Force filtering (back) on if adjacent readings are wildly different.
+//  if(!isFiltering)
+//    {
+//    // Slow/expensive test for needing filtering turned on.
+//    // Switches on filtering if adjacent values have large deltas,
+//    // ie if temperature readings are jittery.
+//    // It is not clear how often this will be the case with good sensors.
+//    for(size_t i = 1; i < filterLength; ++i)
+//      { if(OTV0P2BASE::fnabsdiff(prevRawTempC16[i], prevRawTempC16[i-1]) > MAX_TEMP_JUMP_C16) { isFiltering = true; break; } }
+//    }
 
   // Count down timers.
   if(valveTurndownCountdownM > 0) { --valveTurndownCountdownM; }

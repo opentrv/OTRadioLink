@@ -634,46 +634,102 @@ TEST(ModelledRadValve,MRVSFilteringOnOff)
     // Set the temperature values flat and tick again; filtering still off.
     rs0.isFiltering = OTV0P2BASE::randRNG8NextBoolean(); // Futz it.
     rs0._backfillTemperatures(ambientTempC16);
+    is0.setReferenceTemperatures(ambientTempC16);
     rs0.tick(valvePCOpen, is0);
     EXPECT_FALSE(rs0.isFiltering);
 
-    // Set hugely-off point near one end; filtering should come on.
-    const int16_t bigOffsetC16 = 5 << 4; // 5C perturbation.
+    // Check filtering NOT triggered by slowly rising or falling temperatures.
+    // Rising...
     rs0.isFiltering = OTV0P2BASE::randRNG8NextBoolean(); // Futz it.
     rs0._backfillTemperatures(ambientTempC16);
-    rs0.prevRawTempC16[2] += bigOffsetC16;
+    is0.setReferenceTemperatures(ambientTempC16);
     rs0.tick(valvePCOpen, is0);
-    // Should be able to see that mean is now very different to current temp.
-    const uint8_t mtj = rs0.MAX_TEMP_JUMP_C16;
-    EXPECT_GT(OTV0P2BASE::fnabsdiff(rs0.getSmoothedRecent(), ambientTempC16), mtj);
+    EXPECT_FALSE(rs0.isFiltering);
+    for(size_t i = 0; i < rs0.filterLength; ++i)
+        {
+        is0.setReferenceTemperatures(ambientTempC16 + i);
+        rs0.tick(valvePCOpen, is0);
+        EXPECT_FALSE(rs0.isFiltering);
+        }
+    // Falling...
+    rs0.isFiltering = OTV0P2BASE::randRNG8NextBoolean(); // Futz it.
+    rs0._backfillTemperatures(ambientTempC16);
+    is0.setReferenceTemperatures(ambientTempC16);
+    rs0.tick(valvePCOpen, is0);
+    EXPECT_FALSE(rs0.isFiltering);
+    for(size_t i = 0; i < rs0.filterLength; ++i)
+        {
+        is0.setReferenceTemperatures(ambientTempC16 - i);
+        rs0.tick(valvePCOpen, is0);
+        EXPECT_FALSE(rs0.isFiltering);
+        }
+
+    // Check filtering triggered by fast rising or falling temperatures.
+    // Pick delta just above chosen threshold.
+    // Several ticks may be needed to engage the filtering.
+    const uint8_t deltaH = (16 + (rs0.MIN_TICKS_1C_DELTA-1)) / rs0.MIN_TICKS_1C_DELTA;
+    // Rising...
+    rs0.isFiltering = OTV0P2BASE::randRNG8NextBoolean(); // Futz it.
+    rs0._backfillTemperatures(ambientTempC16);
+    is0.setReferenceTemperatures(ambientTempC16);
+    rs0.tick(valvePCOpen, is0);
+    EXPECT_FALSE(rs0.isFiltering);
+    for(size_t i = 0; i < rs0.filterLength; ++i)
+        {
+        is0.setReferenceTemperatures(ambientTempC16 + i*deltaH);
+        rs0.tick(valvePCOpen, is0);
+        }
     EXPECT_TRUE(rs0.isFiltering);
-    // Set hugely-off point near one end other way; filtering should come on.
+    // Falling...
     rs0.isFiltering = OTV0P2BASE::randRNG8NextBoolean(); // Futz it.
     rs0._backfillTemperatures(ambientTempC16);
-    rs0.prevRawTempC16[2] -= bigOffsetC16;
+    is0.setReferenceTemperatures(ambientTempC16);
     rs0.tick(valvePCOpen, is0);
-    // Should be able to see that mean is now very different to current temp.
-    EXPECT_GT(OTV0P2BASE::fnabsdiff(rs0.getSmoothedRecent(), ambientTempC16), mtj);
+    EXPECT_FALSE(rs0.isFiltering);
+    for(size_t i = 0; i < rs0.filterLength; ++i)
+        {
+        is0.setReferenceTemperatures(ambientTempC16 - i*deltaH);
+        rs0.tick(valvePCOpen, is0);
+        }
     EXPECT_TRUE(rs0.isFiltering);
 
-    // Now set two hugely-off but opposite points.
-    // Mean should barely be affected but filtering should stay on.
-    rs0.isFiltering = OTV0P2BASE::randRNG8NextBoolean(); // Futz it.
-    rs0._backfillTemperatures(ambientTempC16);
-    rs0.prevRawTempC16[rs0.filterLength - 2] += bigOffsetC16;
-    rs0.prevRawTempC16[2] -= bigOffsetC16;
-    rs0.tick(valvePCOpen, is0);
-    // Should be able to see that mean is unchanged.
-    EXPECT_EQ(OTV0P2BASE::fnabsdiff(rs0.getSmoothedRecent(), ambientTempC16), 0);
-    EXPECT_TRUE(rs0.isFiltering);
-    // Reversing the direction should make no difference.
-    rs0.isFiltering = OTV0P2BASE::randRNG8NextBoolean(); // Futz it.
-    rs0._backfillTemperatures(ambientTempC16);
-    rs0.prevRawTempC16[rs0.filterLength - 2] -= bigOffsetC16;
-    rs0.prevRawTempC16[2] += bigOffsetC16;
-    rs0.tick(valvePCOpen, is0);
-    // Should be able to see that mean is unchanged.
-    EXPECT_EQ(OTV0P2BASE::fnabsdiff(rs0.getSmoothedRecent(), ambientTempC16), 0);
+//    // Check for filtering triggered by jittery temperature readings.
+//    // Set hugely-off point near one end; filtering should come on.
+//    const int16_t bigOffsetC16 = 5 << 4; // 5C perturbation.
+//    rs0.isFiltering = OTV0P2BASE::randRNG8NextBoolean(); // Futz it.
+//    rs0._backfillTemperatures(ambientTempC16);
+//    rs0.prevRawTempC16[2] += bigOffsetC16;
+//    rs0.tick(valvePCOpen, is0);
+//    // Should be able to see that mean is now very different to current temp.
+//    const uint8_t mtj = rs0.MAX_TEMP_JUMP_C16;
+//    EXPECT_GT(OTV0P2BASE::fnabsdiff(rs0.getSmoothedRecent(), ambientTempC16), mtj);
+//    EXPECT_TRUE(rs0.isFiltering);
+//    // Set hugely-off point near one end other way; filtering should come on.
+//    rs0.isFiltering = OTV0P2BASE::randRNG8NextBoolean(); // Futz it.
+//    rs0._backfillTemperatures(ambientTempC16);
+//    rs0.prevRawTempC16[2] -= bigOffsetC16;
+//    rs0.tick(valvePCOpen, is0);
+//    // Should be able to see that mean is now very different to current temp.
+//    EXPECT_GT(OTV0P2BASE::fnabsdiff(rs0.getSmoothedRecent(), ambientTempC16), mtj);
+//    EXPECT_TRUE(rs0.isFiltering);
+//    // Now set two hugely-off but opposite points.
+//    // Mean should barely be affected but filtering should stay on.
+//    rs0.isFiltering = OTV0P2BASE::randRNG8NextBoolean(); // Futz it.
+//    rs0._backfillTemperatures(ambientTempC16);
+//    rs0.prevRawTempC16[rs0.filterLength - 2] += bigOffsetC16;
+//    rs0.prevRawTempC16[2] -= bigOffsetC16;
+//    rs0.tick(valvePCOpen, is0);
+//    // Should be able to see that mean is unchanged.
+//    EXPECT_EQ(OTV0P2BASE::fnabsdiff(rs0.getSmoothedRecent(), ambientTempC16), 0);
+//    EXPECT_TRUE(rs0.isFiltering);
+//    // Reversing the direction should make no difference.
+//    rs0.isFiltering = OTV0P2BASE::randRNG8NextBoolean(); // Futz it.
+//    rs0._backfillTemperatures(ambientTempC16);
+//    rs0.prevRawTempC16[rs0.filterLength - 2] -= bigOffsetC16;
+//    rs0.prevRawTempC16[2] += bigOffsetC16;
+//    rs0.tick(valvePCOpen, is0);
+//    // Should be able to see that mean is unchanged.
+//    EXPECT_EQ(OTV0P2BASE::fnabsdiff(rs0.getSmoothedRecent(), ambientTempC16), 0);
 }
 
 // Test that the cold draught detector works, with simple synthetic case.
