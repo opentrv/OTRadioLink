@@ -413,33 +413,48 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
           {
           const uint8_t frostC = tempControl->getFROSTTargetC();
 
-          // If scheduled WARM is due soon then ensure that room is at least at setback temperature
-          // to give room a chance to hit the target, and for furniture and surfaces to be warm, etc, on time.
-          // Don't do this if the room has been vacant for a long time (eg so as to avoid pre-warm being higher than WARM ever).
-          // Don't do this if there has been recent manual intervention, eg to allow manual 'cancellation' of pre-heat (TODO-464).
-          // Only do this if the target WARM temperature is NOT an 'eco' temperature (ie very near the bottom of the scale).
-          // If well into the 'eco' zone go for a larger-than-usual setback, else go for usual small setback.
-          // Note: when pre-warm and warm time for schedule is ~1.5h, and default setback 1C,
+          // If a scheduled WARM is due soon then ensure
+          // that room is at least at a smallish setback temperature
+          // to give room a chance to hit the WARM target,
+          // and for furniture and surfaces to be warm, etc, on time.
+          // Don't do this if the room has been vacant for a long time
+          // (eg so as to avoid pre-warm ever being higher than WARM).
+          // Don't do this if there has been recent manual intervention,
+          // eg to allow manual 'cancellation' of pre-heat.  (TODO-464)
+          // Only do this if the target WARM temperature is
+          // NOT an 'ECO' temperature (ie very near the bottom of the scale).
+          // If well into the 'ECO' zone go for a larger-than-usual setback,
+          // else set minimal/default setback.
+          // Note: when pre-warm and warm time for schedule is ~1.5h,
+          // and the default setback is 1C,
           // this is assuming that the room temperature can be raised by ~1C/h.
-          // See the effect of going from 2C to 1C setback: http://www.earth.org.uk/img/20160110-vat-b.png
-          // (A very long pre-warm time may confuse or distress users, eg waking them in the morning.)
-          if(!occupancy->longVacant() && schedule->isAnyScheduleOnWARMSoon() && !physicalUI->recentUIControlUse())
+          // See the effect of going from 2C to 1C setback:
+          //     http://www.earth.org.uk/img/20160110-vat-b.png
+          // (A very long pre-warm time may confuse or distress users,
+          // eg waking them in the morning.)
+          if(!occupancy->longVacant() &&
+             schedule->isAnyScheduleOnWARMSoon() &&
+             !physicalUI->recentUIControlUse())
             {
             const uint8_t warmTarget = tempControl->getWARMTargetC();
-            // Compute putative pre-warm temperature, usually only just below WARM target.
-            const uint8_t preWarmTempC = OTV0P2BASE::fnmax((uint8_t)(warmTarget - (tempControl->isEcoTemperature(warmTarget) ? valveControlParameters::SETBACK_ECO : valveControlParameters::SETBACK_DEFAULT)), frostC);
-            if(frostC < preWarmTempC) // && (!isEcoTemperature(warmTarget)))
-              { return(preWarmTempC); }
+            // Compute putative pre-warm temperature, usually just below WARM.
+            const uint8_t preWarmTempC = OTV0P2BASE::fnmax(frostC,
+                uint8_t(warmTarget -
+                    (tempControl->isEcoTemperature(warmTarget) ?
+                        valveControlParameters::SETBACK_ECO :
+                        valveControlParameters::SETBACK_DEFAULT)));
+            return(preWarmTempC);
             }
 
           // Apply FROST safety target temperature by default in FROST mode.
           return(frostC);
           }
 
-        // If in BAKE mode then use elevated target, an no setbacks.
+        // If in BAKE mode then use elevated target, with no setbacks.
         else if(valveMode->inBakeMode())
           {
-          return(OTV0P2BASE::fnmin((uint8_t)(tempControl->getWARMTargetC() + valveControlParameters::BAKE_UPLIFT), OTRadValve::MAX_TARGET_C)); // No setbacks apply in BAKE mode.
+          return(OTV0P2BASE::fnmin((uint8_t)(tempControl->getWARMTargetC() +
+              valveControlParameters::BAKE_UPLIFT), OTRadValve::MAX_TARGET_C));
           }
 
         else // In 'WARM' mode with possible setback.
@@ -482,10 +497,6 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
             static_assert(maxThr >= minThr, "sensitivity must not decrease with temp");
             const uint8_t thisHourNLOThreshold = tempControl->hasEcoBias() ? maxThr : minThr;
             const bool relativelyActive = (hoursLessOccupiedThanThis > thisHourNLOThreshold);
-//            // Inhibit ECO (or more) setback (unless already long vacant)
-//            // for scheduled-on or where this hour is typically relatively busy.
-//            const bool inhibitECOSetback = (!longVacant) &&
-//                (scheduleOnSoon || relativelyActive);
             // Inhibit ECO (or more) setback
             // for scheduled-on (unless long vacant, eg a day or more)
             // or where this hour is typically relatively busy
@@ -510,8 +521,14 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
                 // to allow getting warm ready for return from work/school.
                 // TODO: other signals such as manual control use and
                 // typical temperature at this time could inhibit FULL setback.
-                const uint8_t hoursLessOccupiedThanNext = byHourStats->countStatSamplesBelow(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED, byHourStats->getByHourStatRTC(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED, OTV0P2BASE::NVByHourByteStatsBase::SPECIAL_HOUR_NEXT_HOUR));
-                const bool relativelyActiveSoon = (hoursLessOccupiedThanNext > 2+thisHourNLOThreshold);
+                const uint8_t hoursLessOccupiedThanNext =
+                    byHourStats->countStatSamplesBelow(
+                        OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED,
+                        byHourStats->getByHourStatRTC(
+                            OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED,
+                            OTV0P2BASE::NVByHourByteStatsBase::SPECIAL_HOUR_NEXT_HOUR));
+                const bool relativelyActiveSoon =
+                    (hoursLessOccupiedThanNext > 2 + thisHourNLOThreshold);
 
                 // Set a lower occupancy threshold to prevent FULL setback.
                 // Much lower if not dark for too long.
@@ -556,39 +573,53 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
           }
         }
 
-    // Set all fields of inputState from the target temperature and other args, and the sensor/control inputs.
-    // The target temperature will usually have just been computed by computeTargetTemp().
-    // This should not second-guess computeTargetTemp() in terms of setbacks, etc.
+    // Set all fields of inputState from the target temperature etc.
+    // Usually target temp will just have been computed by computeTargetTemp().
+    // This should not second-guess computeTargetTemp() in terms of setbacks.
     virtual void setupInputState(ModelledRadValveInputState &inputState,
         const bool isFiltering,
-        const uint8_t newTarget, const uint8_t minPCOpen, const uint8_t maxPCOpen, const bool glacial) const override
+        const uint8_t newTarget,
+        const uint8_t minPCOpen, const uint8_t maxPCOpen,
+        const bool glacial) const override
         {
         // Set up state for computeRequiredTRVPercentOpen().
         inputState.targetTempC = newTarget;
         inputState.minPCReallyOpen = minPCOpen;
         inputState.maxPCOpen = maxPCOpen;
-        inputState.glacial = glacial; // Note: may also wish to force glacial if room very dark to minimise noise (TODO-1027).
+        // Note: may also wish to force glacial if room very dark
+        // to minimise noise.  (TODO-1027)
+        inputState.glacial = glacial;
         inputState.inBakeMode = valveMode->inBakeMode();
         inputState.hasEcoBias = tempControl->hasEcoBias();
-        // Request a fast response from the valve if the user is currently manually adjusting the controls (TODO-593)
-        // or there is a very recent (and reasonably strong) occupancy signal such as lights on (TODO-1069).
-        // This may provide enough feedback to have the user resist adjusting things prematurely!
+        // Request a fast response from the valve
+        // if the user is currently manually adjusting the controls (TODO-593)
+        // or there is a very recent (and reasonably strong) occupancy signal
+        // such as lights on.  (TODO-1069)
+        // This may provide enough feedback to have the user resist adjusting
+        // controls prematurely!
         const bool fastResponseRequired =
-            physicalUI->veryRecentUIControlUse() || (occupancy->reportedRecently() && occupancy->isLikelyOccupied());
+            physicalUI->veryRecentUIControlUse() ||
+            (occupancy->reportedRecently() && occupancy->isLikelyOccupied());
         inputState.fastResponseRequired = fastResponseRequired;
-        // Widen the allowed deadband significantly in a dark room (TODO-383, TODO-1037)
-        // (or if temperature is jittery eg changing fast and filtering has been engaged,
-        // or if any setback is in place or is in FROST mode ie anything below the WARM target)
-        // to attempt to reduce the total number and size of adjustments and thus reduce noise/disturbance (and battery drain).
-        // The wider deadband (less good temperature regulation) might be noticeable/annoying to sensitive occupants.
-        // With a wider deadband may also simply suppress any movement/noise on some/most minutes while close to target temperature.
-        // For responsiveness, don't widen the deadband immediately after manual controls have been used (TODO-593).
+        // Widen the allowed deadband significantly in a dark room
+        // to save (heating/battery) energy and noise (TODO-383, TODO-1037)
+        // (OR if temperature is jittery eg changing fast and filtering is on,
+        // OR if any setback is in place or in FROST ie anything below WARM)
+        // to attempt to reduce the total number and size of adjustments and
+        // thus reduce noise/disturbance (and battery drain).
+        // The wider deadband (less good temperature regulation) may be
+        // noticeable/annoying to sensitive occupants.
+        // A wider deadband may also simply suppress any movement/noise on
+        // some/most minutes while close to target temperature.
+        // For responsiveness, don't widen the deadband immediately
+        // after manual controls have been used.  (TODO-593)
         inputState.widenDeadband = (!fastResponseRequired) &&
             (isFiltering
-                || ambLight->isRoomDark() // Must be false if light sensor not usable.
-                || (newTarget < tempControl->getWARMTargetC())); // There is a setback in place, or not WARM mode.
+                || ambLight->isRoomDark() // Must be false if sensor not usable.
+                || (newTarget < tempControl->getWARMTargetC()));
         // Capture adjusted reference/room temperatures
-        // and set callingForHeat flag also using same outline logic as computeRequiredTRVPercentOpen() will use.
+        // and set callingForHeat flag also using same outline logic as
+        // computeRequiredTRVPercentOpen().
         inputState.setReferenceTemperatures(temperatureC16->get());
         }
   };
