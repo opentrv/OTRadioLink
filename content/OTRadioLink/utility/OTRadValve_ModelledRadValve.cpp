@@ -232,7 +232,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
     // (eg where TRV on rad sees larger temperature swings, vs split unit),
     // though central temperature target remains the same.
     else if(adjustedTempC > inputState.targetTempC +
-        (inputState.widenDeadband ? (MINIMAL_BINARY_IMPL ? 1 : 2) : 0) )
+        (!MINIMAL_BINARY_IMPL && inputState.widenDeadband ? 2 : 0) )
         {
         // Don't close if recently turned up.
         if(dontTurndown()) { return(valvePCOpen); }
@@ -247,7 +247,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
     // With a wide deadband far more over-/under- shoot is tolerated.
     // (The wider deadband should probably be enabled automatically
     // at a higher level when filtering has been engaged,
-    // to deal more gracefully with wild temp swings fir all-in-one design.)
+    // to deal more gracefully with wild temp swings for all-in-one design.)
     //
     // Managing to avoid having to run the valve entirely the end stops,
     // especially fully-closed with spring-loaded TRV bases,
