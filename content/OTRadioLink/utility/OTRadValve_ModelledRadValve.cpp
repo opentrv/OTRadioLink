@@ -312,7 +312,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
                 // Iff temperatures not falling then
                 // immediately get below call-for-heat threshold on way down
                 // but then be slower after that, in hope that full close
-                // may not even be necessary.
+                // may not even be necessary after likely temporary overshoot.
                 // Users likely to be less demanding about forcing temp down.
                 static_assert(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN > 0, "so that minThreshold-1 >= 0");
                 if(rise >= 0)
