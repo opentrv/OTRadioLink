@@ -304,12 +304,14 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
                 // and the valve to actually physically open,
                 // and then possibly be able to avoid having to open fully,
                 // saving some valve noise and battery life.
+                static constexpr uint8_t slew = TRV_SLEW_PC_PER_MIN;
                 static_assert(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN > OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, "stronger than paint call-for-heat");
+                static_assert(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN + (OTRadValve::BOILER_RESPONSE_TIME_FROM_OFF * slew) < 100, "time for boiler to have started before valve fully open");
                 const uint8_t minThreshold =
                     OTV0P2BASE::fnmax(inputState.minPCReallyOpen,
                                       OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN);
                 return(OTV0P2BASE::fnconstrain(
-                    uint8_t(valvePCOpen + TRV_SLEW_PC_PER_MIN),
+                    uint8_t(valvePCOpen + slew),
                     minThreshold,
                     inputState.maxPCOpen));
                 }

@@ -254,7 +254,7 @@ namespace OTRadValve
     static constexpr uint8_t DEFAULT_VALVE_PC_MODERATELY_OPEN = 67;
 
 
-    // Default maximum time to allow the boiler to run on to allow for lost call-for-heat transmissions etc.
+    // Default maximum time to allow boiler to run on to allow for lost TXs etc (min).
     // This is also the default minimum-off time to avoid short cycling.
     // Should be (much) greater than the gap between transmissions
     // (eg ~2m for FHT8V/FS20, 4m for the TRV1 secure protocol).
@@ -265,6 +265,10 @@ namespace OTRadValve
     // for systems with poor/absent bypass to help avoid overheating.
     // Having too high a linger time value may cause excessive temperature overshoot.
     static constexpr uint8_t DEFAULT_MAX_RUN_ON_TIME_M = 5;
+
+    // Typical time for boiler to start pumping hot water to rads from off (min).
+    // This includes an allowance for TX time/interval from valves.
+    static constexpr uint8_t BOILER_RESPONSE_TIME_FROM_OFF = 5;
 
     // Default delay in minutes after increasing flow before re-closing is allowed.
     // This is to avoid excessive seeking/noise
