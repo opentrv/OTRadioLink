@@ -70,9 +70,17 @@ struct ModelledRadValveInputState final
     refTempC16 = referenceTempC16;
     }
 
-  // Current target room temperature in C in range [MIN_TARGET_C,MAX_TARGET_C].
+  // Current target room temperature in C; in range [MIN_TARGET_C,MAX_TARGET_C].
   // Start with a safe/sensible value.
   uint8_t targetTempC = DEFAULT_ValveControlParameters::FROST;
+  // Non-setback target in C; 0 if unused else in range [targetTempC,MAX_TARGET_C].
+  // Used to provide a higher ceiling for temporary overshoots,
+  // or at least for not needing to close the valve fully
+  // if the temperature is not moving in the wrong direction
+  // when setbacks have been applied, to reduce movement.  (TODO-1099)
+  // If non-zero should not be lower than targetTempC
+  // nor higher than targetTempC plus the maximum allowed setback.
+  uint8_t maxTargetTempC = 0;
 
   // Min % valve at which is considered to be actually open (allow the room to heat) [1,100].
   uint8_t minPCReallyOpen = OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN;
@@ -601,6 +609,8 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
         {
         // Set up state for computeRequiredTRVPercentOpen().
         inputState.targetTempC = newTarget;
+        const uint8_t wt = tempControl->getWARMTargetC();
+        inputState.maxTargetTempC = wt;
         inputState.minPCReallyOpen = minPCOpen;
         inputState.maxPCOpen = maxPCOpen;
         // Note: may also wish to force glacial if room very dark
@@ -632,8 +642,8 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
         // after manual controls have been used.  (TODO-593)
         inputState.widenDeadband = (!fastResponseRequired) &&
             (isFiltering
-                || ambLight->isRoomDark() // Must be false if sensor not usable.
-                || (newTarget < tempControl->getWARMTargetC()));
+                || (newTarget < wt)
+                || ambLight->isRoomDark()); // Must be false if not usable.
         // Capture adjusted reference/room temperatures
         // and set callingForHeat flag also using same outline logic as
         // computeRequiredTRVPercentOpen().
