@@ -1099,13 +1099,13 @@ TEST(ModelledRadValve,SampleValveResponse1)
 
     // Set back temperature significantly (a FULL setback)
     // and verify that valve is not immediately fully closed,
-    // though should close a little while the ambient stays steady.
+    // though could close a little while the ambient stays steady.
     const uint8_t valveOpenBeforeSetback = valvePCOpen;
     const uint8_t setbackTarget = targetTempC - OTRadValve::DEFAULT_ValveControlParameters::SETBACK_FULL;
     is0.targetTempC = setbackTarget;
     rs0.tick(valvePCOpen, is0);
     const uint8_t valveOpenAfterSetback = valvePCOpen;
-    EXPECT_GT(valveOpenBeforeSetback, valveOpenAfterSetback);
+    EXPECT_GE(valveOpenBeforeSetback, valveOpenAfterSetback);
     EXPECT_LT(0, valveOpenAfterSetback);
 
     // Synthetically run ambient temperature steadily down to new target.

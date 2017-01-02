@@ -362,7 +362,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
 
         // Avoid movement to save valve energy and noise if ALL of:
         //   * not calling for heat (which also avoids boiler energy and noise)
-        //   * very close enough target OR not moving in the wrong direction.
+        //   * in sweet-spot OR not moving in the wrong direction.
         if(valvePCOpen < OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN)
             {
             if(inCentralSweetSpot) { return(valvePCOpen); }
@@ -371,11 +371,23 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
                 // When below sweet-spot and not falling, hold valve steady.
                 if(belowLowerTarget)
                     { if(rise >= 0) { return(valvePCOpen); } }
-                // Bias to energy saving, ie temperature fall towards target:
-                // when above sweet-spot and falling, hold valve steady.
-                // Implies fall >= 60/16C ~ 4C per hour to avoid closing.
+                // When above sweet-spot and not rising, hold valve steady.
+                // (Any rise will fall through and valve will close a little,
+                // ie this will at least act to prevent temperature rise
+                // and should help ratchet the temperature down.)
+                // This could prevent the temperature falling to setback target,
+                // eg because something else is keeping the boiler running
+                // and this valve is still allowing some water through,
+                // but the alternative is to allow intermittent valve creep,
+                // eg all night, which might annoy users.  (TODO-1027)
+                // Note that a noisy temperature sensor,
+                // or a very draughty location, may force the valve to shut.
+                // Generally temperatures will drop steadily
+                // if heat input is needed but no one else is calling for heat.
+                // Thus the valve can stay put without significant risk
+                // of failing to save the expected energy.
                 else
-                    { if(rise < 0) { return(valvePCOpen); } }
+                    { if(rise <= 0) { return(valvePCOpen); } }
                 }
             }
 
