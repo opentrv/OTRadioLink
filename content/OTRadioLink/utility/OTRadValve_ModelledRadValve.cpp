@@ -182,10 +182,11 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
       (getSmoothedRecent() + ModelledRadValveInputState::refTempOffsetC16) :
       inputState.refTempC16;
   // When reduced to whole Celsius then fewer bits are needed
-  // to cover expected temperature range.
+  // to cover the expected temperature range
+  // and operations may be faster eg on 8-bit MCUs.
   const int_fast8_t adjustedTempC = (int_fast8_t) (adjustedTempC16 >> 4);
 
-  // Be glacial if always so or temporarily requested so.
+  // Be glacial if always so or temporarily requested to be so.
   const bool beGlacial = alwaysGlacial || inputState.glacial;
 
   // Heavily used fields broken out to potentially save read costs.
@@ -370,9 +371,9 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
                 // When below sweet-spot and not falling, hold valve steady.
                 if(belowLowerTarget)
                     { if(rise >= 0) { return(valvePCOpen); } }
-                // Bias to energy saving, ie temperature fall towards target.
-                // Above sweet-spot and falling, hold valve steady.
-                // Implies fall >= 60/16C ~ 4C per hour to avoid closing valve.
+                // Bias to energy saving, ie temperature fall towards target:
+                // when above sweet-spot and falling, hold valve steady.
+                // Implies fall >= 60/16C ~ 4C per hour to avoid closing.
                 else
                     { if(rise < 0) { return(valvePCOpen); } }
                 }
@@ -385,7 +386,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
         const bool shouldOpen = belowLowerTarget && (rise <= 0);
         const bool shouldClose = !belowLowerTarget && (rise >= 0);
 
-        // Avoid fast movements if glacial.
+        // Avoid fast movements if being glacial.
         if(!beGlacial)
             {
             // When temperature is not within target central region
@@ -427,24 +428,24 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
                 }
             }
 
-        // By default, move valve glacially all the way to full or to closed.
-        // The guards above ensure that these glacial movements are safe.
-        // This is based on hitting and sticking at the lower central target,
-        // with the aim of avoiding running into either hard limit.
+        // By default, move valve glacially all the way to full open or closed.
+        // Guards above ensure that these glacial movements are safe here.
+        // Aim to (efficiently) dither about the lower central target,
+        // with the aim of avoiding leaving the proportional range.
         // Unless preempted the valve does not hover mid-travel.  (TODO-1096)
-        // Only adjust if the temperature is not moving in the right direction.
+        // Only move if the temperature is not moving in the right direction.
         if(shouldOpen) { return(valvePCOpen + 1); }
         else if(shouldClose) { return(valvePCOpen - 1); }
 
         // Fall through to return valve position unchanged.
         }
 
-    // Leave valve position.
+    // Leave valve position unchanged.
     return(valvePCOpen);
     }
 
 
-//  // Non-binary implementation, circa 2013--2016.
+//  // Proportional implementation, circa 2013--2016.
 //
 //  // (Well) under temp target: open valve up.
 //  if(adjustedTempC < inputState.targetTempC)
