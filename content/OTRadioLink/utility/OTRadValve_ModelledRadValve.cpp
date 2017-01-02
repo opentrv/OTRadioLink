@@ -115,13 +115,11 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const Modelle
     {
     static_assert(MIN_TICKS_0p5C_DELTA < filterLength, "filter must be long enough to detect delta over specified window");
     static_assert(MIN_TICKS_1C_DELTA < filterLength, "filter must be long enough to detect delta over specified window");
-    static constexpr uint8_t fullFilterMaxDelta = ((filterLength-1) * 16) / MIN_TICKS_1C_DELTA;
     // Quick test for needing filtering turned on.
-    // Switches on filtering if excessive delta over recent intervals.
-    if((OTV0P2BASE::fnabs(getRawDelta()) > MAX_TEMP_JUMP_C16) ||
-       (OTV0P2BASE::fnabs(getRawDelta(MIN_TICKS_0p5C_DELTA)) > 8) ||
-       (OTV0P2BASE::fnabs(getRawDelta(MIN_TICKS_1C_DELTA)) > 16) ||
-       (OTV0P2BASE::fnabs(getRawDelta(filterLength-1)) > fullFilterMaxDelta))
+    // Switches on filtering if excessive delta over recent interval(s).
+    if((OTV0P2BASE::fnabs(getRawDelta(MIN_TICKS_0p5C_DELTA)) > 8))
+//       (OTV0P2BASE::fnabs(getRawDelta(MIN_TICKS_1C_DELTA)) > 16) ||
+//       (OTV0P2BASE::fnabs(getRawDelta(filterLength-1)) > (((filterLength-1) * 16) / MIN_TICKS_1C_DELTA)))
       { isFiltering = true; }
     }
 //  // Force filtering (back) on if adjacent readings are wildly different.
@@ -236,12 +234,12 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
         return(inputState.maxPCOpen);
         }
     // (Well) over temperature target: close valve down.
-    // Allow more headroom at the top than below with wide deadband
+    // Allow more temporary headroom at the top than below with wide deadband
     // in proportional mode to try to allow graceful handling of overshoot
     // (eg where TRV on rad sees larger temperature swings, vs split unit),
     // though central temperature target remains the same.
     else if(adjustedTempC > inputState.targetTempC +
-        (!MINIMAL_BINARY_IMPL && inputState.widenDeadband ? 2 : 0) )
+        (!MINIMAL_BINARY_IMPL && inputState.widenDeadband ? 4 : 0) )
         {
         // Don't close if recently turned up.
         if(dontTurndown()) { return(valvePCOpen); }

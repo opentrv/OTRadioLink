@@ -826,6 +826,22 @@ if(verbose) { fprintf(stderr, "Valve %d%%.\n", valvePCOpen); }
 {"@":"E091B7DC8FEDC7A9","v|%":0,"tT|C":19,"tS|C":0}
 {"@":"E091B7DC8FEDC7A9","vC|%":200,"gE":0,"H|%":58}
 {"@":"E091B7DC8FEDC7A9","T|C16":346,"H|%":58,"O":2}
+{"@":"E091B7DC8FEDC7A9","vac|h":0,"B|cV":254,"L":81}
+{"@":"E091B7DC8FEDC7A9","L":68,"v|%":0,"tT|C":19}
+{"@":"E091B7DC8FEDC7A9","tS|C":0,"vC|%":200,"gE":0}
+{"@":"E091B7DC8FEDC7A9","L":57,"T|C16":346,"H|%":58}
+{"@":"E091B7DC8FEDC7A9","O":2,"vac|h":0,"B|cV":254}
+{"@":"E091B7DC8FEDC7A9","L":50,"v|%":0,"tT|C":19}
+{"@":"E091B7DC8FEDC7A9","tS|C":0,"vC|%":200,"gE":0}
+{"@":"E091B7DC8FEDC7A9","T|C16":344,"H|%":58,"O":2}
+{"@":"E091B7DC8FEDC7A9","vac|h":0,"B|cV":254,"L":56}
+{"@":"E091B7DC8FEDC7A9","tT|C":18,"v|%":0,"tS|C":1}
+{"@":"E091B7DC8FEDC7A9","vC|%":200,"gE":0,"O":1}
+{"@":"E091B7DC8FEDC7A9","T|C16":342,"H|%":58,"O":1}
+{"@":"E091B7DC8FEDC7A9","vac|h":0,"B|cV":254,"L":50}
+{"@":"E091B7DC8FEDC7A9","v|%":0,"tT|C":18,"tS|C":1}
+{"@":"E091B7DC8FEDC7A9","vC|%":200,"gE":0,"L":47}
+{"@":"E091B7DC8FEDC7A9","T|C16":339,"H|%":58,"O":1}
  */
 TEST(ModelledRadValve,SampleValveResponse1)
 {
@@ -983,7 +999,7 @@ TEST(ModelledRadValve,SampleValveResponse1)
     //{"@":"E091B7DC8FEDC7A9","v|%":29,"tT|C":19,"tS|C":0}
     is0.setReferenceTemperatures(340);
     rs0.tick(valvePCOpen, is0);
-    // Note that newer algorithms may result in slower/less closing.
+    // Note that newer algorithms may result in slower/less closing by now.
     EXPECT_NEAR(29, valvePCOpen, 15);
     //{"@":"E091B7DC8FEDC7A9","vC|%":176,"gE":0,"H|%":59}
     is0.setReferenceTemperatures(342);
@@ -997,20 +1013,77 @@ TEST(ModelledRadValve,SampleValveResponse1)
     //{"@":"E091B7DC8FEDC7A9","v|%":0,"tT|C":19,"tS|C":0}
     is0.setReferenceTemperatures(345);
     rs0.tick(valvePCOpen, is0);
-    // Valve fully closed in trace; must be below call for heat threshold.
+    // Valve fully closed in original; must be below call-for-heat threshold.
     EXPECT_GT(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, valvePCOpen);
     //{"@":"E091B7DC8FEDC7A9","vC|%":200,"gE":0,"H|%":58}
-    is0.setReferenceTemperatures(346);
+    is0.setReferenceTemperatures(346); // 346 ~ 21.6C.
     rs0.tick(valvePCOpen, is0);
-    // Valve fully closed in trace; must be below call for heat threshold.
+    // Valve fully closed in original; must be below call-for-heat threshold.
     EXPECT_GT(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, valvePCOpen);
     //{"@":"E091B7DC8FEDC7A9","T|C16":346,"H|%":58,"O":2}
-    is0.setReferenceTemperatures(346); // 344 ~ 21.6C.
+    is0.setReferenceTemperatures(346);
     rs0.tick(valvePCOpen, is0);
-    // Valve fully closed in trace; must be below call for heat threshold.
+    // Valve fully closed in original; must be below call-for-heat threshold.
     EXPECT_GT(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, valvePCOpen);
     // Filtering still on.
     EXPECT_TRUE(rs0.isFiltering);
+
+    // For algorithms improved since that involved in this trace (20161231)
+    // the valve should not yet be fully closed.  (TODO-1099)
+    EXPECT_LT(0, valvePCOpen);
+
+    //{"@":"E091B7DC8FEDC7A9","vac|h":0,"B|cV":254,"L":81}
+    is0.setReferenceTemperatures(346);
+    rs0.tick(valvePCOpen, is0);
+    //{"@":"E091B7DC8FEDC7A9","L":68,"v|%":0,"tT|C":19}
+    is0.setReferenceTemperatures(346);
+    rs0.tick(valvePCOpen, is0);
+    //{"@":"E091B7DC8FEDC7A9","tS|C":0,"vC|%":200,"gE":0}
+    is0.setReferenceTemperatures(346);
+    rs0.tick(valvePCOpen, is0);
+    //{"@":"E091B7DC8FEDC7A9","L":57,"T|C16":346,"H|%":58}
+    is0.setReferenceTemperatures(346);
+    rs0.tick(valvePCOpen, is0);
+    //{"@":"E091B7DC8FEDC7A9","O":2,"vac|h":0,"B|cV":254}
+    is0.setReferenceTemperatures(346);
+    rs0.tick(valvePCOpen, is0);
+    //{"@":"E091B7DC8FEDC7A9","L":50,"v|%":0,"tT|C":19}
+    is0.setReferenceTemperatures(345);
+    rs0.tick(valvePCOpen, is0);
+    //{"@":"E091B7DC8FEDC7A9","tS|C":0,"vC|%":200,"gE":0}
+    is0.setReferenceTemperatures(345);
+    rs0.tick(valvePCOpen, is0);
+    //{"@":"E091B7DC8FEDC7A9","T|C16":344,"H|%":58,"O":2}
+    is0.setReferenceTemperatures(344);
+    rs0.tick(valvePCOpen, is0);
+    //{"@":"E091B7DC8FEDC7A9","vac|h":0,"B|cV":254,"L":56}
+    is0.setReferenceTemperatures(344); // 344 ~ 21.6C.
+    rs0.tick(valvePCOpen, is0);
+    //{"@":"E091B7DC8FEDC7A9","tT|C":18,"v|%":0,"tS|C":1}
+    is0.setReferenceTemperatures(343);
+    rs0.tick(valvePCOpen, is0);
+    //{"@":"E091B7DC8FEDC7A9","vC|%":200,"gE":0,"O":1}
+    is0.setReferenceTemperatures(343);
+    rs0.tick(valvePCOpen, is0);
+    //{"@":"E091B7DC8FEDC7A9","T|C16":342,"H|%":58,"O":1}
+    is0.setReferenceTemperatures(342);
+    rs0.tick(valvePCOpen, is0);
+    //{"@":"E091B7DC8FEDC7A9","vac|h":0,"B|cV":254,"L":50}
+    is0.setReferenceTemperatures(342);
+    rs0.tick(valvePCOpen, is0);
+    //{"@":"E091B7DC8FEDC7A9","v|%":0,"tT|C":18,"tS|C":1}
+    is0.setReferenceTemperatures(341);
+    rs0.tick(valvePCOpen, is0);
+    //{"@":"E091B7DC8FEDC7A9","vC|%":200,"gE":0,"L":47}
+    is0.setReferenceTemperatures(340);
+    rs0.tick(valvePCOpen, is0);
+    //{"@":"E091B7DC8FEDC7A9","T|C16":339,"H|%":58,"O":1}
+    is0.setReferenceTemperatures(339);
+    rs0.tick(valvePCOpen, is0);
+
+    // For algorithms improved since that involved in this trace (20161231)
+    // the valve should not yet be fully closed.  (TODO-1099)
+    EXPECT_LT(0, valvePCOpen);
 }
 
 

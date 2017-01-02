@@ -495,12 +495,19 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
             // Any imminent scheduled on may inhibit all but minimum setback.
             const bool scheduleOnSoon = schedule->isAnyScheduleOnWARMSoon();
             // High likelihood of occupancy now inhibits ECO setback.
-            const uint8_t hoursLessOccupiedThanThis = byHourStats->countStatSamplesBelow(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED, byHourStats->getByHourStatRTC(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED, OTV0P2BASE::NVByHourByteStatsBase::SPECIAL_HOUR_CURRENT_HOUR));
+            const uint8_t hoursLessOccupiedThanThis =
+                byHourStats->countStatSamplesBelow(
+                    OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED,
+                    byHourStats->getByHourStatRTC(
+                        OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED,
+                        OTV0P2BASE::NVByHourByteStatsBase::SPECIAL_HOUR_CURRENT_HOUR));
             static constexpr uint8_t maxThr = 17;
             static constexpr uint8_t minThr = 14;
             static_assert(maxThr >= minThr, "sensitivity must not decrease with temp");
-            const uint8_t thisHourNLOThreshold = tempControl->hasEcoBias() ? maxThr : minThr;
-            const bool relativelyActive = (hoursLessOccupiedThanThis > thisHourNLOThreshold);
+            const uint8_t thisHourNLOThreshold =
+                tempControl->hasEcoBias() ? maxThr : minThr;
+            const bool relativelyActive =
+                (hoursLessOccupiedThanThis > thisHourNLOThreshold);
             // Inhibit ECO (or more) setback
             // for scheduled-on (unless long vacant, eg a day or more)
             // or where this hour is typically relatively busy
