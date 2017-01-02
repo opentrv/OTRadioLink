@@ -296,16 +296,25 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
         // Check direction of latest raw temperature movement, if any.
         const int_fast16_t rise = getRawDelta();
 
+        // True when in central sweet-spot.
+        // Extends right down to bottom of central 1C with wide deadband.
+        const bool inCentralSweetSpot = belowLowerTargetInMiddle1C &&
+            ((adjustedTempC16 & 0xf) >=
+                (inputState.widenDeadband ? 0 : lowerBoundNormalLSBs));
+
         // Move quickly when requested, eg responding to manual control use.
-        // Try to get to right side of call-for-heat threshold in first move
+        // Try to get to right side of call-for-heat threshold in first tick
+        // if not in central sweet-spot already  (TODO-1099)
         // to have boiler respond appropriately ASAP also.
+        // Note that a manual adjustment of the temperature set-point
+        // is very likely to force this unit out of the sweet-spot.
         // Ignores 'glacial'.
-        if(inputState.fastResponseRequired)
+        if(inputState.fastResponseRequired && !inCentralSweetSpot)
             {
             if(belowLowerTarget)
                 {
-                // Always open immediately to at least larger of
-                // minimum-really-on and (more than) calling-for-heat.
+                // Always open immediately to at more open of
+                // minimum-really-on and (more than) calling-for-heat levels.
                 // Thereafter open at a more normal pace to allow
                 // the boiler to start if not already running,
                 // and the valve to actually physically open,
@@ -339,12 +348,6 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
                     }
                 }
             }
-
-        // True when in central sweet-spot.
-        // Extends right down to bottom of central 1C with wide deadband.
-        const bool inCentralSweetSpot = belowLowerTargetInMiddle1C &&
-            ((adjustedTempC16 & 0xf) >=
-                (inputState.widenDeadband ? 0 : lowerBoundNormalLSBs));
 
         // Avoid movement to save valve energy and noise if ALL of:
         //   * not calling for heat (which also avoids boiler energy and noise)
