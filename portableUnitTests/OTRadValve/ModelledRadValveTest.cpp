@@ -540,7 +540,7 @@ SCOPED_TRACE(testing::Message() << "fastResponseRequired " << fastResponseRequir
             // Units are nominally minutes.
             // This should never take longer than 'glacial' 1% per tick.
             const uint8_t timeLimit = fastResponseRequired ?
-                rs0.vFastResponseTicksTarget : 100;
+                rs0.fastResponseTicksTarget-1 : 100;
             for(int i = 0; i < timeLimit; ++i)
                 { rs0.tick(valvePCOpen, is0); }
             // Nominally expect valve to be completely open/closed,
@@ -996,7 +996,7 @@ TEST(ModelledRadValve,SampleValveResponse1)
     //{"@":"E091B7DC8FEDC7A9","tS|C":0,"vC|%":156,"gE":0}
     is0.setReferenceTemperatures(334); // 334 ~ 20.9C.
     rs0.tick(valvePCOpen, is0);
-    EXPECT_NEAR(312, rs0.getSmoothedRecent(), 5); // 3012 ~ 19.5C.
+    EXPECT_NEAR(312, rs0.getSmoothedRecent(), 5); // 334 ~ 19.5C.
     EXPECT_NEAR(44, valvePCOpen, 5);
     //{"@":"E091B7DC8FEDC7A9","T|C16":336,"H|%":60,"O":2}
     is0.setReferenceTemperatures(336);
@@ -1019,8 +1019,9 @@ TEST(ModelledRadValve,SampleValveResponse1)
     is0.setReferenceTemperatures(345);
     rs0.tick(valvePCOpen, is0);
     //{"@":"E091B7DC8FEDC7A9","v|%":0,"tT|C":19,"tS|C":0}
-    is0.setReferenceTemperatures(345);
+    is0.setReferenceTemperatures(345); // 345 ~ 21.6C.
     rs0.tick(valvePCOpen, is0);
+    EXPECT_NEAR(331, rs0.getSmoothedRecent(), 5); // 312 ~ 20.7C.
     // Valve fully closed in original; must be below call-for-heat threshold.
     EXPECT_GT(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, valvePCOpen);
     //{"@":"E091B7DC8FEDC7A9","vC|%":200,"gE":0,"H|%":58}

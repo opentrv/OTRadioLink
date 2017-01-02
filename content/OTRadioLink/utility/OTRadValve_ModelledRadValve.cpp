@@ -299,8 +299,10 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
         // True when in central sweet-spot.
         // Extends right down to bottom of central 1C with wide deadband.
         const bool inCentralSweetSpot = belowLowerTargetInMiddle1C &&
-            ((adjustedTempC16 & 0xf) >=
-                (inputState.widenDeadband ? 0 : lowerBoundNormalLSBs));
+            (inputState.widenDeadband ||
+                ((adjustedTempC16 & 0xf) >= lowerBoundNormalLSBs));
+//            ((adjustedTempC16 & 0xf) >=
+//                (inputState.widenDeadband ? 0 : lowerBoundNormalLSBs));
 
         // Move quickly when requested, eg responding to manual control use.
         // Try to get to right side of call-for-heat threshold in first tick
@@ -335,9 +337,13 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
                 {
                 // Iff temperatures are not currently falling then
                 // immediately get below call-for-heat threshold on way down
-                // but close at a rate afterwards such that full close
+                // but usually close at a rate afterwards such that full close
                 // may not even be necessary after likely temporary overshoot.
                 // Users likely to be less demanding about forcing temp down.
+                // If temperature is well over target then shut immediately
+                // so as to not leave the user sweating for whatever reason.
+                if(adjustedTempC > inputState.targetTempC + 2)
+                    { return(0); }
                 static constexpr uint8_t slew = TRV_SLEW_PC_PER_MIN;
                 static_assert(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN > (OTRadValve::DEFAULT_MAX_RUN_ON_TIME_M * slew), "time for boiler to have stopped before valve fully closes");
                 if(rise >= 0)
