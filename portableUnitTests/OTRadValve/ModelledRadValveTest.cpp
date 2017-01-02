@@ -597,7 +597,11 @@ TEST(ModelledRadValve,MRVSNoHoverWithBoilerOn)
         for(int i = 0; i < 100; ++i) { rs0.tick(valvePCOpen, is0); }
         // Make sure either fully open, or not calling for heat.
         const uint8_t p = valvePCOpen;
-        EXPECT_TRUE((100 == p) || (p < OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN)) << int(p);
+        const bool callForHeat = (p >= OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN);
+        EXPECT_TRUE((100 == p) || !callForHeat) << int(p);
+        // If ambient is (well) above target then there must be no call for heat.
+        if(ambientTempC16 > ((targetTempC + 1) << 4))
+            { EXPECT_FALSE(callForHeat) << int(p); }
         }
 }
 
