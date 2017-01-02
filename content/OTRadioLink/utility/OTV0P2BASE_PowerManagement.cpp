@@ -271,6 +271,13 @@ uint16_t SupplyVoltageCentiVolts::read()
   // Measure internal bandgap (1.1V nominal, 1.0--1.2V) as fraction of Vcc [0,1023].
   const uint16_t raw = OTV0P2BASE::_analogueNoiseReducedReadM(_BV(REFS0) | 14);
 
+  // Capture entropy from changed least-significant bit(s).
+  // Only capture on change to save CPU time.
+  // Capture even when the published battery voltage (and rawInv) not changed
+  // to be able to better gather entropy unobserved by, eg, stats TXes.
+  // Claim a single bit of entropy.
+  if(raw != rawInv) { addEntropyToPool(uint8_t(raw), 1); }
+
   // At around the 2.6V mark, it takes a change of ~3ulp in rawInv to make 1ulp (1cV) result change; strictly +ve.
   // Note: 430 raw maps to 261, 431--433 to 259, 434--436 to 257, 436 to 256.
   // This epsilon is as much about ADC measurement stability as the conversion function.
@@ -296,9 +303,6 @@ uint16_t SupplyVoltageCentiVolts::read()
   // is computed on the first call.
   static_assert((0 == INITIAL_RAWINV) || (~0U == INITIAL_RAWINV), "initial rawInv should be one that ADC result never gets close to");
   if((raw <= rawInv) && ((rawInv - raw) <= rawEpsilon)) { return(value); }
-
-  // Capture entropy from changed LS bits.
-  addEntropyToPool((uint8_t)rawInv, 1); // Claim a single bit of entropy.
 
   // If Vcc was 1.1V then raw ADC would be 1023, so (1023<<6)/raw = 1<<6, target output 110.
   // If Vcc was 2.2V then raw ADC would be 511, so (1023<<6)/raw = 2<<6, target output 220.
