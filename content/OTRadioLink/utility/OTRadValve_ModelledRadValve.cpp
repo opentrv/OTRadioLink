@@ -364,7 +364,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
         const int_fast16_t rise = getRawDelta();
 
         // Avoid movement to save valve energy and noise if ALL of:
-        //   * not calling for heat (which also avoids boiler energy and noise)
+        //   * not calling for heat (which also saves boiler energy and noise)
         //   * in sweet-spot OR not moving in the wrong direction.
         if(valvePCOpen < OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN)
             {
