@@ -122,16 +122,14 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const Modelle
 //       (OTV0P2BASE::fnabs(getRawDelta(filterLength-1)) > (((filterLength-1) * 16) / MIN_TICKS_1C_DELTA)))
       { isFiltering = true; }
     }
-//  // Force filtering (back) on if adjacent readings are wildly different.
-//  if(!isFiltering)
-//    {
-//    // Slow/expensive test for needing filtering turned on.
-//    // Switches on filtering if adjacent values have large deltas,
-//    // ie if temperature readings are jittery.
-//    // It is not clear how often this will be the case with good sensors.
-//    for(size_t i = 1; i < filterLength; ++i)
-//      { if(OTV0P2BASE::fnabsdiff(prevRawTempC16[i], prevRawTempC16[i-1]) > MAX_TEMP_JUMP_C16) { isFiltering = true; break; } }
-//    }
+  if(FILTER_DETECT_JITTER && !isFiltering)
+    {
+    // Force filtering (back) on if adjacent readings are wildly different.
+    // Slow/expensive test if temperature readings are jittery.
+    // It is not clear how often this will be the case with good sensors.
+    for(size_t i = 1; i < filterLength; ++i)
+      { if(OTV0P2BASE::fnabsdiff(prevRawTempC16[i], prevRawTempC16[i-1]) > MAX_TEMP_JUMP_C16) { isFiltering = true; break; } }
+    }
 
   // Count down timers.
   if(valveTurndownCountdownM > 0) { --valveTurndownCountdownM; }

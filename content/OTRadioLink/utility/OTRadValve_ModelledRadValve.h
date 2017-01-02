@@ -266,6 +266,10 @@ struct ModelledRadValveState final
   // Note that full response time of a typical mechanical wax-based TRV is ~20mins.
   int_fast16_t prevRawTempC16[filterLength];
 
+  // If true, detect jitter between adjacent samples to turn filter on.
+  // Whether or not true, other detection mechanisms may be used.
+  static constexpr bool FILTER_DETECT_JITTER = false;
+
   // Get smoothed raw/unadjusted temperature from the most recent samples.
   int_fast16_t getSmoothedRecent() const;
 
