@@ -71,7 +71,9 @@ struct ModelledRadValveInputState final
     }
 
   // Current target room temperature in C in range [MIN_TARGET_C,MAX_TARGET_C].
-  uint8_t targetTempC = DEFAULT_ValveControlParameters::FROST; // Start with a safe/sensible value.
+  // Start with a safe/sensible value.
+  uint8_t targetTempC = DEFAULT_ValveControlParameters::FROST;
+
   // Min % valve at which is considered to be actually open (allow the room to heat) [1,100].
   uint8_t minPCReallyOpen = OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN;
   // Max % valve is allowed to be open [1,100].
