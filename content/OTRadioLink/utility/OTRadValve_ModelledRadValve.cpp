@@ -117,7 +117,8 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const Modelle
     static_assert(MIN_TICKS_1C_DELTA < filterLength, "filter must be long enough to detect delta over specified window");
     // Quick test for needing filtering turned on.
     // Switches on filtering if large delta over recent interval(s).
-    // This will happen for all-in-one TRV on rad, as rad warms up, for example.
+    // This will happen for all-in-one TRV on rad, as rad warms up, for example,
+    // and forces on low-pass filter to better estimate real room temperature.
     if((OTV0P2BASE::fnabs(getRawDelta(MIN_TICKS_0p5C_DELTA)) > 8))
 //       (OTV0P2BASE::fnabs(getRawDelta(MIN_TICKS_1C_DELTA)) > 16) ||
 //       (OTV0P2BASE::fnabs(getRawDelta(filterLength-1)) > (((filterLength-1) * 16) / MIN_TICKS_1C_DELTA)))
