@@ -381,8 +381,9 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
 
         // Compute general need to open or close valve.
         // Both cannot be true at once.
-        // Both can be false at once only if the temperature is changing,
-        // which prevents unwelcome hovering by default.  (TODO-1096)
+        // Both can be false at once only when the temperature is changing,
+        // which prevents unwelcome indefinite hovering by default.  (TODO-1096)
+        // Implies delta T >= 60/16C ~ 4C per hour to avoid moving.
         const bool shouldOpen = belowLowerTarget && (rise <= 0);
         const bool shouldClose = !belowLowerTarget && (rise >= 0);
 
