@@ -222,6 +222,9 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
     // Valve % does not correspond to temperature shortfall below target.
 
     // Minimal/binary implementation, supporting widened deadband on demand.
+    // The wide deadband is at least 1 below and more above
+    // to allow for brief overshoot esp when sensor is close to heat source.
+    static constexpr uint8_t maxTempOvershoot = 4;
     // (Well) under temperature target: open valve up.
     if(adjustedTempC + (inputState.widenDeadband ? 1 : 0) < inputState.targetTempC)
         {
@@ -239,7 +242,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
     // (eg where TRV on rad sees larger temperature swings, vs split unit),
     // though central temperature target remains the same.
     else if(adjustedTempC > inputState.targetTempC +
-        (!MINIMAL_BINARY_IMPL && inputState.widenDeadband ? 4 : 0) )
+        (!MINIMAL_BINARY_IMPL && inputState.widenDeadband ? maxTempOvershoot : 0))
         {
         // Don't close if recently turned up.
         if(dontTurndown()) { return(valvePCOpen); }
