@@ -309,6 +309,9 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
         const bool inCentralSweetSpot = belowLowerTargetInMiddle1C &&
             (wide || ((adjustedTempC16 & 0xf) >= lowerBoundNormalLSBs));
 
+        // If well above target then valve closing may be faster than usual.
+        const bool wellAboveTarget = adjustedTempC > tTC + 2;
+
         // Move quickly when requested, eg responding to manual control use.
         // Try to get to right side of call-for-heat threshold in first tick
         // if not in central sweet-spot already  (TODO-1099)
@@ -346,7 +349,6 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
                 // Users are unlikely to mind cooling more slowly...
                 // If temperature is well over target then shut immediately
                 // so as to not leave the user sweating for whatever reason.
-                const bool wellAboveTarget = adjustedTempC > tTC + 2;
                 if(wellAboveTarget) { return(0); }
                 static constexpr uint8_t slew = TRV_SLEW_PC_PER_MIN;
                 static_assert(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN > (OTRadValve::DEFAULT_MAX_RUN_ON_TIME_M * slew), "time for boiler to have stopped before valve fully closes");
@@ -431,10 +433,14 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
                     }
                 // Immediately get below call-for-heat threshold on way down,
                 // then move slowly enough to potentially avoid full close.
+                // Close a bit faster if well over target.
                 else if(shouldClose)
                     {
+                    const bool moveSlow = !wellAboveTarget;
+                    const uint8_t slew = moveSlow ?
+                            TRV_SLEW_PC_PER_MIN_SLOW : TRV_SLEW_PC_PER_MIN;
                     return(uint8_t(OTV0P2BASE::fnconstrain(
-                        int(valvePCOpen) - int(TRV_SLEW_PC_PER_MIN_SLOW),
+                        int(valvePCOpen) - int(slew),
                         0,
                         int(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1))));
                     }
