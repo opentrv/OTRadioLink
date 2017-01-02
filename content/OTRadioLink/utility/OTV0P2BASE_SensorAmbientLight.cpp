@@ -203,8 +203,9 @@ uint8_t SensorAmbientLight::read()
   // Compute the new normalised value.
   const uint8_t newValue = (uint8_t)(al >> shiftRawScaleTo8Bit);
 
-  // Capture entropy from changed LS bits.
-  if(newValue != value) { ::OTV0P2BASE::addEntropyToPool((uint8_t)al, 0); } // Claim zero entropy as may be forced by Eve.
+  // Capture entropy from changed ls bits.
+  // Claim zero entropy as value may be partly directly forced by Eve.
+  if(newValue != value) { addEntropyToPool((uint8_t)al, 0); }
 
   // Store new value.
   value = newValue;

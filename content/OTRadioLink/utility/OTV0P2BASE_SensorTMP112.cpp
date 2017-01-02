@@ -109,7 +109,8 @@ int16_t RoomTemperatureC16_TMP112::read()
 
   if(neededPowerUp) { OTV0P2BASE::powerDownTWI(); }
 
-  // Builds 12-bit value (assumes not in extended mode) and sign-extends if necessary for sub-zero temps.
+  // Builds 12-bit value (assumes not in extended mode)
+  // and sign-extends if necessary for sub-zero temps.
   const int t16 = (b1 << 4) | (b2 >> 4) | ((b1 & 0x80) ? 0xf000 : 0);
 
 #if 0 && defined(DEBUG)
@@ -120,8 +121,11 @@ int16_t RoomTemperatureC16_TMP112::read()
   DEBUG_SERIAL_PRINTLN();
 #endif
 
-  // Capture entropy if (transformed) value has changed.
-  if((uint8_t)t16 != (uint8_t)value) { ::OTV0P2BASE::addEntropyToPool(b1 ^ b2, 0); } // Claim zero entropy as may be forced by Eve.
+  // Capture entropy from ls bits if (transformed) value has changed.
+  // Claim one bit of noise in the raw value if the full value has changed,
+  // though it is possible that this might be directly manipulatable by Eve,
+  // and nearly all of the raw info is visible in the result.
+  if(t16 != value) { addEntropyToPool(b1 ^ b2, 1); }
 
   value = t16;
   return(t16);
