@@ -559,11 +559,11 @@ SCOPED_TRACE(testing::Message() << "fastResponseRequired " << fastResponseRequir
 // This is to avoid futile/expensive/noisy running of boiler indefinitely
 // with the valve at a steady temperature (close to target),
 // possibly not actually letting water through or getting any heat.
-// This tests the valve at a range of temperatures around target
-// to ensure that with steady temperatures the call for heat stops,
-// or that the call for heat continues with valve is fully on.  (TODO-1096)
+// This tests the valve at a range of temperatures around the target
+// to ensure that with steady temperatures the call for heat eventually stops,
+// or that the call for heat continues but with valve fully open.  (TODO-1096)
 // Tested with and without wide deadband.
-// The legacy algorithm pre 2016/12/30 fails this test and can hover.
+// The legacy algorithm pre 2016/12/30 fails this test and can hover badly.
 TEST(ModelledRadValve,MRVSNoHoverWithBoilerOn)
 {
     // Seed PRNG for use in simulator; --gtest_shuffle will force it to change.
@@ -572,8 +572,8 @@ TEST(ModelledRadValve,MRVSNoHoverWithBoilerOn)
 
     // Modest target temperature.
     const uint8_t targetTempC = 18;
-    // Test temperature max offset in each direction in C.
-    const uint8_t tempMaxOffsetC = 3;
+    // Temperature range / max offset in each direction in C.
+    const uint8_t tempMaxOffsetC = 5;
     for(int16_t ambientTempC16 = (targetTempC - (int)tempMaxOffsetC) << 4;
         ambientTempC16 <= (targetTempC + (int)tempMaxOffsetC) << 4;
         ++ambientTempC16)
@@ -581,15 +581,16 @@ TEST(ModelledRadValve,MRVSNoHoverWithBoilerOn)
         OTRadValve::ModelledRadValveInputState is0(ambientTempC16);
         OTRadValve::ModelledRadValveState rs0;
         is0.targetTempC = targetTempC;
-        is0.glacial = false;
-        is0.fastResponseRequired = false;
         // Futz some input parameters that should not matter.
         is0.hasEcoBias = OTV0P2BASE::randRNG8NextBoolean();
+        is0.fastResponseRequired = OTV0P2BASE::randRNG8NextBoolean();
         // Randomly try with/out wide deadband; may matter, though should not.
         is0.widenDeadband = OTV0P2BASE::randRNG8NextBoolean();
+        // Randomly try with/out glacial; may matter, though should not.
+        is0.glacial =  OTV0P2BASE::randRNG8NextBoolean();
         // Shouldn't be sensitive to initial filtering state.
         rs0.isFiltering = OTV0P2BASE::randRNG8NextBoolean();
-        // Start in a random position.
+        // Start valve in a random position.
         const uint8_t valvePCOpenInitial = unsigned(random()) % 101;
         volatile uint8_t valvePCOpen = valvePCOpenInitial;
         // Run for long enough even for glacial traverse of valve range.
