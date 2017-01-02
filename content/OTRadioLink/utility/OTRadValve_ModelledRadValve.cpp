@@ -310,7 +310,8 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
             (wide || ((adjustedTempC16 & 0xf) >= lowerBoundNormalLSBs));
 
         // If well above target then valve closing may be faster than usual.
-        const bool wellAboveTarget = adjustedTempC > tTC + 2;
+        static constexpr uint8_t wAT = OTV0P2BASE::fnmax(maxTmpOvershoot/2, 1);
+        const bool wellAboveTarget = adjustedTempC > tTC + wAT;
 
         // Move quickly when requested, eg responding to manual control use.
         // Try to get to right side of call-for-heat threshold in first tick
