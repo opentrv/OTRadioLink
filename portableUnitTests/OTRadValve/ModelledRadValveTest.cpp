@@ -875,6 +875,9 @@ TEST(ModelledRadValve,SampleValveResponse1)
     is0.fastResponseRequired = false;
     is0.hasEcoBias = true;
 
+    // Non-set-back temperature.
+    is0.maxTargetTempC = targetTempC;
+
     // Do one tick in quiescent state, set back one degree.
     is0.targetTempC = targetTempC - 1;
     is0.widenDeadband = true;
@@ -1093,6 +1096,26 @@ TEST(ModelledRadValve,SampleValveResponse1)
     // For algorithms improved since that involved in this trace (20161231)
     // the valve should not yet be fully closed.  (TODO-1099)
     EXPECT_LT(0, valvePCOpen);
+
+    // Set back temperature significantly (a FULL setback)
+    // and verify that valve is not immediately fully closed,
+    // though should close a little while the ambient stays steady.
+    const uint8_t valveOpenBeforeSetback = valvePCOpen;
+    const uint8_t setbackTarget = targetTempC - OTRadValve::DEFAULT_ValveControlParameters::SETBACK_FULL;
+    is0.targetTempC = setbackTarget;
+    rs0.tick(valvePCOpen, is0);
+    const uint8_t valveOpenAfterSetback = valvePCOpen;
+    EXPECT_GT(valveOpenBeforeSetback, valveOpenAfterSetback);
+    EXPECT_LT(0, valveOpenAfterSetback);
+
+    // Synthetically run ambient temperature steadily down to new target.
+    // Valve should not need to close any further.
+    for(int16_t ambientC16 = 338; ambientC16 >= (setbackTarget << 4); --ambientC16)
+        {
+        is0.setReferenceTemperatures(ambientC16);
+        rs0.tick(valvePCOpen, is0);
+        EXPECT_EQ(valveOpenAfterSetback, valvePCOpen);
+        }
 }
 
 

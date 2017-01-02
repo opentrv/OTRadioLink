@@ -66,7 +66,9 @@ struct ModelledRadValveInputState final
   // Suggestion c/o GG ~2014/10 code, and generally less misleading anyway!
   void setReferenceTemperatures(const int_fast16_t currentTempC16)
     {
-    const int_fast16_t referenceTempC16 = currentTempC16 + refTempOffsetC16; // TODO-386: push targeted temperature down by 0.5C to middle of degree.
+    // Push targeted temperature down so that
+    // the target is the middle of nominal set-point degree.  (TODO-386)
+    const int_fast16_t referenceTempC16 = currentTempC16 + refTempOffsetC16;
     refTempC16 = referenceTempC16;
     }
 
