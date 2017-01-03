@@ -876,15 +876,17 @@ class ModelledRadValve final : public AbstractRadValve
     // Compute target temperature and set heat demand for TRV and boiler; update state.
     // CALL REGULARLY APPROXIMATELY ONCE PER MINUTE TO ALLOW SIMPLE TIME-BASED CONTROLS.
     // Inputs are inWarmMode(), isRoomLit().
-    // This routine may take significant CPU time; no I/O is done, only internal state is updated.
+    // This routine may take significant CPU time; no I/O is done,
+    // only internal state is updated.
     //
-    // Will clear any BAKE mode if the newly-computed target temperature is already exceeded.
+    // Will clear any BAKE mode if the newly-computed target temperature
+    // is already exceeded.
     void computeCallForHeat();
 
     // Read/write (non-const) access to valveMode instance; never NULL.
     ValveMode *const valveModeRW;
 
-    // Read/write access the underlying physical device; NULL if none.
+    // Read/write access to the underlying physical device; NULL if none.
     AbstractRadValve *const physicalDeviceOpt;
 
   public:
@@ -906,6 +908,14 @@ class ModelledRadValve final : public AbstractRadValve
         setbackSubSensor(setbackC, V0p2_SENSOR_TAG_F("tS|C")),
         cumulativeMovementSubSensor(retainedState.cumulativeMovementPC, V0p2_SENSOR_TAG_F("vC|%"))
       { }
+
+    // Read-only access to physical device if any, else this; never NULL.
+    // Used to make available get() for underlying if required, eg for stats.
+    // This should NOT be used to get() valve position to send to the boiler,
+    // since the logical position, eg wrt call-for-heat threshold, is critical,
+    // not where the physical valve happens to be, dependent on other factors.
+    const AbstractRadValve *getPhysicalDevice() const
+        { return((NULL != physicalDeviceOpt) ? physicalDeviceOpt : this); }
 
     // Force a read/poll/recomputation of the target position and call for heat.
     // Sets/clears changed flag if computed valve position changed.
