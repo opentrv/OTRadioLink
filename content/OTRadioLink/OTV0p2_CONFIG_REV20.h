@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Deniz Erbilgin 2016
+Author(s) / Copyright (s): Deniz Erbilgin 2016-2017
 */
 
 /*
