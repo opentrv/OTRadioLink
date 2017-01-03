@@ -51,9 +51,9 @@ class AbstractRadValve : public OTV0P2BASE::SimpleTSUint8Actuator
     AbstractRadValve() { }
 
   public:
-    // Returns a suggested (JSON) tag/field/key name including units of the sensor value; NULL means no recommended tag.
-    // The lifetime of the pointed-to text/object must be at least that of the Sensor instance.
-    virtual OTV0P2BASE::Sensor_tag_t tag() const override { return(V0p2_SENSOR_TAG_F("v|%")); }
+    // Returns (JSON) tag/field/key name including units (%); never NULL.
+    // Overriding this is not permitted, to save confusion later.
+    virtual OTV0P2BASE::Sensor_tag_t tag() const override final { return(V0p2_SENSOR_TAG_F("v|%")); }
 
     // Returns true if this target valve open % value passed is valid, ie in range [0,100].
     virtual bool isValid(const uint8_t value) const override { return(value <= 100); }
