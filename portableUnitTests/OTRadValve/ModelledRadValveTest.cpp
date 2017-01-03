@@ -615,7 +615,7 @@ TEST(ModelledRadValve,MRVSFilteringOnOff)
 
     // Modest target temperature.
     const uint8_t targetTempC = 18;
-    const int16_t ambientTempC16 = targetTempC << 4;
+    const int_fast16_t ambientTempC16 = targetTempC << 4;
 
     // Start in a random position.
     const uint8_t valvePCOpenInitial = unsigned(random()) % 101;
