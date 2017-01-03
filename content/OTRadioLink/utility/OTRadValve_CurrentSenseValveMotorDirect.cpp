@@ -374,7 +374,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
 #endif
 
       // In binary mode, the valve is targeted to be fully open or fully closed.
-      // Set to the same threshold value used to trigger boiler call for heat.
+      // Set to the same threshold value used to trigger a boiler call for heat.
       const bool binaryOpen = (targetPC >= OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN);
       const uint8_t binaryTarget = binaryOpen ? 100 : 0;
 

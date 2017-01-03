@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2016
+Author(s) / Copyright (s): Damon Hart-Davis 2016--2017
 */
 
 /*
@@ -178,7 +178,7 @@ namespace OTRadValve
 
         // Target 'warm' temperatures, strictly positive, in range [<frost+1>,MAX_TARGET_C].
         // Set so that mid-point is at ~19C (BRE and others regard this as minimum comfort temperature)
-        // and half the scale will be below 19C and thus save ('eco') compared to typical UK room temperatures.
+        // and half the scale will be below 19C and thus save ('ECO') compared to typical UK room temperatures.
         // (17/18 good for energy saving at ~1C below typical UK room temperatures of ~19C in 2012).
         // Note: BS EN 215:2004 S5.3.5 says maximum setting must be <= 32C, minimum in range [5C,12C].
         17, // Target WARM temperature for ECO bias.
@@ -202,10 +202,11 @@ namespace OTRadValve
 
         // Target 'warm' temperatures, strictly positive, in range [<frost+1>,MAX_TARGET_C].
         // Set so that mid-point is close to 19C (BRE and others regard 19C as minimum comfort temperature)
-        // and half the scale will be below 19C and thus save ('eco') compared to typical UK room temperatures.
+        // and half the scale will be below 19C and thus save ('ECO') compared to typical UK room temperatures.
         // (17/18 good for energy saving at ~1C below typical UK room temperatures of ~19C in 2012).
         // Note: BS EN 215:2004 S5.3.5 says maximum setting must be <= 32C, minimum in range [5C,12C].
-        17, // Target WARM temperature for ECO bias.
+        // As low as 12C recommended for cellar/stairs, and as high as 22C for bathrooms: http://www.energie-environnement.ch/conseils-de-saison/97-bien-utiliser-la-vanne-thermostatique
+        16, // Target WARM temperature for ECO bias.
         22  // Target WARM temperature for Comfort bias.
         > Proposed_DEFAULT_ValveControlParameters;
 
@@ -253,7 +254,7 @@ namespace OTRadValve
     static constexpr uint8_t DEFAULT_VALVE_PC_MODERATELY_OPEN = 67;
 
 
-    // Default maximum time to allow the boiler to run on to allow for lost call-for-heat transmissions etc.
+    // Default maximum time to allow boiler to run on to allow for lost TXs etc (min).
     // This is also the default minimum-off time to avoid short cycling.
     // Should be (much) greater than the gap between transmissions
     // (eg ~2m for FHT8V/FS20, 4m for the TRV1 secure protocol).
@@ -264,6 +265,10 @@ namespace OTRadValve
     // for systems with poor/absent bypass to help avoid overheating.
     // Having too high a linger time value may cause excessive temperature overshoot.
     static constexpr uint8_t DEFAULT_MAX_RUN_ON_TIME_M = 5;
+
+    // Typical time for boiler to start pumping hot water to rads from off (min).
+    // This includes an allowance for TX time/interval from valves.
+    static constexpr uint8_t BOILER_RESPONSE_TIME_FROM_OFF = 5;
 
     // Default delay in minutes after increasing flow before re-closing is allowed.
     // This is to avoid excessive seeking/noise

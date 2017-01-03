@@ -48,18 +48,21 @@ namespace OTV0P2BASE
 //
 // A light level of 0 indicates dark.
 //
-// A light level of 254 (or over) indicates bright illumination.
+// A light level of 254 (or over) indicates bright/full illumination.
 //
 // Light levels should be monotonic with lux.
 //
 // The more linear relationship between lux and the light level
-// in the typical region of operation the better.
+// in the typical region of operation nominally the better,
+// but in practice covering the range if illuminations in a typical
+// home probably requires a fair amount of non-linearity,
+// so a pure log response may also work well.
 #define SensorAmbientLightOccupancyDetectorInterface_DEFINED
 class SensorAmbientLightOccupancyDetectorInterface
   {
   public:
     // Occupancy detected from 0 (none) nominally rising to OCC_STRONG.
-    // The OCC_STRONG level is (currently) beyond this detector's ability to detect.
+    // The OCC_STRONG level is (currently) beyond this detector's ability.
     enum occType : uint8_t
       {
         OCC_NONE = 0, // No occupancy detected.
@@ -69,7 +72,8 @@ class SensorAmbientLightOccupancyDetectorInterface
       };
 
     // Call regularly with the current ambient light level [0,254].
-    // Should be called maybe once a minute or on whatever regular basis ambient light level is sampled.
+    // Should be called maybe once a minute
+    // (or on whatever regular basis ambient light level is sampled).
     // Returns OCC_NONE if no occupancy is detected.
     // Returns OCC_WEAK if weak occupancy is detected, eg from TV watching.
     // Returns OCC_PROBABLE if probable occupancy is detected, eg from lights flicked on.
@@ -82,13 +86,16 @@ class SensorAmbientLightOccupancyDetectorInterface
     // Mean value is for the current time of day.
     // Short term stats are typically over the last day,
     // longer term typically over the last week or so (eg rolling exponential decays).
-    // Call regularly, roughly hourly, to drive other internal time-dependent adaptation.
-    //   * meanNowOrFF  typical/mean light level around this time each 24h; 0xff if not known.
-    //   * sensitive  if true then be more sensitive to possible occupancy changes, eg to improve comfort.
+    // Call typically hourly with updated stats,
+    // to set other internal time-dependent adaptation.
+    //   * meanNowOrFF  typical/mean light level around this time each 24h;
+    //         0xff if not known.
+    //   * sensitive  if true be more sensitive to possible occupancy changes,
+    //         which may mean more false positives and less energy saving
     // Not thread-/ISR- safe.
     virtual void setTypMinMax(uint8_t /*meanNowOrFF*/,
                       uint8_t /*longTermMinimumOrFF = 0xff*/, uint8_t /*longTermMaximumOrFF = 0xff*/,
-                      bool /*sensitive = false*/) = 0;
+                      bool /*sensitive*/ = false) = 0;
   };
 
 
@@ -100,20 +107,23 @@ class SensorAmbientLightOccupancyDetectorSimple final : public SensorAmbientLigh
       // Minimum delta (rise) for probable occupancy to be detected; a simple noise floor.
       static constexpr uint8_t epsilon = 4;
 
+      // Min steady/grace time after lights on to confirm 'probable' occupancy.
+      // Intended to prevent a brief flash of light,
+      // or very quickly turning on lights in the night to find something,
+      // from firing up the entire heating system.
+      // This threshold may be applied conditionally, eg when previously v dark.
+      // Not so long as to fail to respond to genuine occupancy.
+      //
+      // This threshold may be useful elsewhere to suppress hasty response
+      // to a very brief lights-on, eg in the middle of the night.
+      static constexpr uint8_t steadyTicksMinWithLightOn = 3;
+
   private:
       // Previous ambient light level [0,254]; 0 means dark.
       // Starts at max so that no initial light level can imply occupancy.
       static constexpr uint8_t startingLL = 254;
       uint8_t prevLightLevel = startingLL;
 
-      // Minimum steady time for detecting artificial light (ticks/minutes).
-      static constexpr uint8_t steadyTicksMinForArtificialLight = 30;
-      // Minimum steady time for detecting light on (ticks/minutes).
-      // Should be short enough to notice someone going to make a cuppa.
-      // Note that an interval <= TX interval may make it harder to validate
-      // algorithms from routinely collected data,
-      // eg <= 4 minutes with typical secure frame rate of 1 per ~4 minutes.
-      static constexpr uint8_t steadyTicksMinBeforeLightOn = 3;
       // Number of ticks (minutes) levels have been steady for.
       // Steady means a less-than-epsilon change per tick.
       uint8_t steadyTicks = 0;
@@ -122,13 +132,19 @@ class SensorAmbientLightOccupancyDetectorSimple final : public SensorAmbientLigh
       uint8_t meanNowOrFF = 0xff;
 	  uint8_t longTermMinimumOrFF = 0xff;
 	  uint8_t longTermMaximumOrFF = 0xff;
-	  bool sensitive = false;
+//	  // If true, the ambient light system has been requested to be
+//	  // more sensitive to signs of occupancy.
+//	  bool sensitive = false;
+
+      // If true then a OCC_PROBABLE is pending
+      // as long as light levels stay up/steady long enough.
+      bool probablePending = false;
 
   public:
       constexpr SensorAmbientLightOccupancyDetectorSimple() { }
 
       // Reset to starting state; primarily for unit tests.
-      void reset() { setTypMinMax(0xff, 0xff, 0xff, false); prevLightLevel = startingLL; steadyTicks = 0; }
+      void reset() { setTypMinMax(0xff, 0xff, 0xff, false); prevLightLevel = startingLL; steadyTicks = 0; probablePending = false; }
 
       // Call regularly (~1/60s) with the current ambient light level [0,254].
       // Returns value > 0 if occupancy is detected.
@@ -147,12 +163,12 @@ class SensorAmbientLightOccupancyDetectorSimple final : public SensorAmbientLigh
       // Not thread-/ISR- safe.
       virtual void setTypMinMax(uint8_t meanNowOrFF,
                         uint8_t longTermMinimumOrFF = 0xff, uint8_t longTermMaximumOrFF = 0xff,
-                        bool sensitive = false) override
+                        bool /* sensitive */ = false) override
           {
           this->meanNowOrFF = meanNowOrFF;
           this->longTermMinimumOrFF = longTermMinimumOrFF;
           this->longTermMaximumOrFF = longTermMaximumOrFF;
-          this->sensitive = sensitive;
+          //this->sensitive = sensitive;
           }
 
        // NOT OFFICAL API: expose steadyTicks for unit tests.

@@ -41,16 +41,16 @@ namespace OTV0P2BASE
 
 #if defined(RoomTemperatureC16_SHT21_DEFINED) || defined(HumiditySensorSHT21_DEFINED)
 
-static const uint8_t SHT21_I2C_ADDR = 0x40;
-static const uint8_t SHT21_I2C_CMD_TEMP_HOLD   = 0xe3;
-static const uint8_t SHT21_I2C_CMD_TEMP_NOHOLD = 0xf3;
-static const uint8_t SHT21_I2C_CMD_RH_HOLD     = 0xe5;
-static const uint8_t SHT21_I2C_CMD_RH_NOHOLD   = 0xf5;
-static const uint8_t SHT21_I2C_CMD_USERREG     = 0xe7; // User register...
+static constexpr uint8_t SHT21_I2C_ADDR = 0x40;
+static constexpr uint8_t SHT21_I2C_CMD_TEMP_HOLD   = 0xe3;
+static constexpr uint8_t SHT21_I2C_CMD_TEMP_NOHOLD = 0xf3;
+static constexpr uint8_t SHT21_I2C_CMD_RH_HOLD     = 0xe5;
+static constexpr uint8_t SHT21_I2C_CMD_RH_NOHOLD   = 0xf5;
+static constexpr uint8_t SHT21_I2C_CMD_USERREG     = 0xe7; // User register...
 
-// If defined, sample 8-bit RH (for for 1%) and 12-bit temp (for 1/16C).
-// This should save time and energy.
-static const bool SHT21_USE_REDUCED_PRECISION = true;
+// If defined, sample 8-bit RH (for 1%) and 12-bit temp (for 1/16C).
+// Reduced precision should save time and energy.
+static constexpr bool SHT21_USE_REDUCED_PRECISION = true;
 
 // Set true once SHT21 has been initialised.
 static volatile bool SHT21_initialised;
@@ -91,11 +91,12 @@ static void SHT21_init()
 
 #ifdef RoomTemperatureC16_SHT21_DEFINED
 // Measure and return the current ambient temperature in units of 1/16th C.
-// This may contain up to 4 bits of information to the right of the fixed binary point.
+// This may contain up to 4 bits of information to RHS of the fixed binary point.
 // This may consume significant power and time.
 // Probably no need to do this more than (say) once per minute.
-// The first read will initialise the device as necessary and leave it in a low-power mode afterwards.
-int RoomTemperatureC16_SHT21::read()
+// The first read will initialise the device as necessary
+// and leave it in a low-power mode afterwards.
+int16_t RoomTemperatureC16_SHT21::read()
   {
   const bool neededPowerUp = OTV0P2BASE::powerUpTWIIfDisabled();
 
@@ -109,12 +110,12 @@ int RoomTemperatureC16_SHT21::read()
   // Use blocking data fetch for now.
   Wire.beginTransmission(SHT21_I2C_ADDR);
   Wire.write((byte) SHT21_I2C_CMD_TEMP_HOLD); // Select control register.
-#if defined(SHT21_USE_REDUCED_PRECISION)
-  OTV0P2BASE::nap(WDTO_30MS); // Should cover 12-bit conversion (22ms).
-#else
-  OTV0P2BASE::sleepLowPowerMs(90); // Should be plenty for slowest (14-bit) conversion (85ms).
-#endif
-  //delay(100);
+  if(SHT21_USE_REDUCED_PRECISION)
+    // Should cover 12-bit conversion (22ms).
+    { OTV0P2BASE::nap(WDTO_30MS); }
+  else
+    // Should be plenty for slowest (14-bit) conversion (85ms).
+    { OTV0P2BASE::sleepLowPowerMs(90); }
   Wire.endTransmission();
   Wire.requestFrom(SHT21_I2C_ADDR, 3U);
   while(Wire.available() < 3)
@@ -130,10 +131,16 @@ int RoomTemperatureC16_SHT21::read()
   if(neededPowerUp) { OTV0P2BASE::powerDownTWI(); }
 
   // Nominal formula: C = -46.85 + ((175.72*raw) / (1L << 16));
-  const int c16 = -750 + ((5623L * rawTemp) >> 17); // FIXME: find a faster approximation...
+  // FIXME: find a good but faster approximation...
+  // FIXME: should the shift/division be rounded to nearest?
+  // FIXME: break out calculation and unit test against example in datasheet.
+  const int16_t c16 = -750 + int16_t((5623 * int_fast32_t(rawTemp)) >> 17);
 
   // Capture entropy if (transformed) value has changed.
-  if((uint8_t)c16 != (uint8_t)value) { ::OTV0P2BASE::addEntropyToPool((uint8_t)rawTemp, 0); } // Claim zero entropy as may be forced by Eve.
+  // Claim one bit of noise in the raw value if the full value has changed,
+  // though it is possible that this might be manipulatable by Eve,
+  // and nearly all of the raw info is visible in the result.
+  if(c16 != value) { addEntropyToPool((uint8_t)rawTemp, 1); }
 
   value = c16;
   return(c16);
@@ -160,17 +167,18 @@ uint8_t HumiditySensorSHT21::read()
   // Use blocking data fetch for now.
   Wire.beginTransmission(SHT21_I2C_ADDR);
   Wire.write((byte) SHT21_I2C_CMD_RH_HOLD); // Select control register.
-#if defined(SHT21_USE_REDUCED_PRECISION)
-  OTV0P2BASE::sleepLowPowerMs(5); // Should cover 8-bit conversion (4ms).
-#else
-  OTV0P2BASE::nap(WDTO_30MS); // Should cover even 12-bit conversion (29ms).
-#endif
+  if(SHT21_USE_REDUCED_PRECISION)
+    // Should cover 8-bit conversion (4ms).
+    { OTV0P2BASE::sleepLowPowerMs(5); }
+  else
+    // Should cover even 12-bit conversion (29ms).
+    { OTV0P2BASE::nap(WDTO_30MS); }
   Wire.endTransmission();
   Wire.requestFrom(SHT21_I2C_ADDR, 3U);
   while(Wire.available() < 3)
     {
     // Wait for data, but avoid rolling over the end of a minor cycle...
-    if(OTV0P2BASE::getSubCycleTime() >= OTV0P2BASE::GSCT_MAX)
+    if(OTV0P2BASE::getSubCycleTime() >= OTV0P2BASE::GSCT_MAX - 2)
       {
       //      DEBUG_SERIAL_PRINTLN_FLASHSTRING("giving up");
       return(~0);
@@ -182,11 +190,15 @@ uint8_t HumiditySensorSHT21::read()
   // Power down TWI ASAP.
   if(neededPowerUp) { OTV0P2BASE::powerDownTWI(); }
 
-  const uint16_t raw = (((uint16_t)rawRH) << 8) | (rawRL & 0xfc); // Clear status ls bits.
-  const uint8_t result = -6 + ((125L * raw) >> 16);
+  // Assemble raw value, clearing status ls bits.
+  const uint16_t raw = (((uint16_t)rawRH) << 8) | (rawRL & 0xfc);
+  // FIXME: should the shift/division be rounded to nearest?
+  // FIXME: break out calculation and unit test against example in datasheet.
+  const uint8_t result = uint8_t(-6 + ((125 * uint_fast32_t(raw)) >> 16));
 
   // Capture entropy from raw status bits iff (transformed) reading has changed.
-  if(value != result) { OTV0P2BASE::addEntropyToPool(rawRL ^ rawRH, 0); } // Claim zero entropy as may be forced by Eve.
+  // Claim no entropy since only a fraction of a bit is not in the result.
+  if(value != result) { OTV0P2BASE::addEntropyToPool(rawRL ^ rawRH, 0); }
 
   value = result;
   if(result > (HUMIDTY_HIGH_RHPC + HUMIDITY_EPSILON_RHPC)) { highWithHyst = true; }

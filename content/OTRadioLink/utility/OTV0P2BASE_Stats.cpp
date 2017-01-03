@@ -34,7 +34,7 @@ namespace OTV0P2BASE
 // Uses stochastic rounding to nearest to allow nominally sub-lsb values to have an effect over time.
 uint8_t NVByHourByteStatsBase::smoothStatsValue(const uint8_t oldSmoothed, const uint8_t newValue)
   {
-  // Optimisation: smoothed value is unchanged if new value is the same as extant.
+  // Optimisation: smoothed value is unchanged if new value is same as extant.
   if(oldSmoothed == newValue) { return(oldSmoothed); }
   // Compute and update with new stochastically-rounded exponentially-smoothed ("Brown's simple exponential smoothing") value.
   // Stochastic rounding allows sub-lsb values to have an effect over time.

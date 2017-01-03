@@ -49,12 +49,25 @@ namespace OTV0P2BASE
 //     and in particular not dark, saturated daylight nor completely constant lighting.
 SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupancyDetectorSimple::update(const uint8_t newLightLevel)
     {
+    // Minimum steady time for detecting artificial light (ticks/minutes).
+    static constexpr uint8_t steadyTicksMinForArtificialLight = 30;
+    // Minimum steady time for detecting light on (ticks/minutes).
+    // Should be short enough to notice someone going to make a cuppa.
+    // Note that an interval <= TX interval may make it harder to validate
+    // algorithms from routinely collected data,
+    // eg <= 4 minutes with typical secure frame rate of 1 per ~4 minutes.
+    static constexpr uint8_t steadyTicksMinBeforeLightOn = 3;
+
     // If new light level lower than previous
     // then do not detect any level of occupancy and save some CPU time.
     if(newLightLevel < prevLightLevel)
         {
-        if((prevLightLevel - newLightLevel) >= epsilon) { steadyTicks = 0; }
-        else if(steadyTicks < 255) { ++steadyTicks; }
+        // If a significant fall then levels are not steady,
+        // and also clear any pending 'probable' occupancy indication.
+        if((prevLightLevel - newLightLevel) >= epsilon)
+            { steadyTicks = 0; probablePending = false; }
+        else if(steadyTicks < 255)
+            { ++steadyTicks; }
         prevLightLevel = newLightLevel;
         return(OCC_NONE);
         }
@@ -72,35 +85,73 @@ SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupanc
 
     // Assume minimum of the noise floor if none set.
     const uint8_t minToUse = (0xff == longTermMinimumOrFF) ? epsilon : longTermMinimumOrFF;
-    // Assume maximum of max dropped by the noise floor if none set.
+    // Assume maximum of full-scale minus the noise floor if none set.
     const uint8_t maxToUse = (0xff == longTermMaximumOrFF) ? (0xff-epsilon) : longTermMaximumOrFF;
 
     // Compute delta/rise.
     const uint8_t rise = newLightLevel - prevLightLevel;
     const bool steady = (rise < epsilon);
 
-    // Reset 'steady' timer if significant delta.
+    // Reset 'steady' timer if significant (upward) delta.
+    // (Rise does not clear pending probable.)
     const uint8_t oldSteadyTicks = steadyTicks;
     if(!steady) { steadyTicks = 0; }
     else if(steadyTicks < 255) { ++steadyTicks; }
 
+    // Activate pending probable occupancy if steady long enough
+    // ie without (much) light level fall.
+    if(probablePending)
+        {
+        // This could get postponed indefinitely if light levels
+        // continue to rise strongly;
+        // eg with a slow warm-up CFL, or sunrise.
+        if(steadyTicks >= steadyTicksMinWithLightOn)
+            {
+            // Lights have been on and stayed on and steady.
+            occLevel = OCC_PROBABLE;
+            probablePending = false;
+            }
+        }
     // Precondition for probable occupancy is a rising light level.
     // Any rise must be more than the fixed floor/noise threshold epsilon.
-    // Also, IF a long-term mean for this time slot is available and above the lower floor,
-    // then the rise must also be more than a fraction of the mean's distance above that floor,
-    // AND the rise must not start from above the mean
-    // (to reduce false triggering from clouds in bright sunshine).
+    // Also, IF a long-term mean for this time slot is available
+    // and that mean is above the lower floor,
+    // then the rise must also be more than a fraction of the mean's distance
+    // above that floor.
     //
-    // An alternative damper is to insist on the rise starting at/below the mean.
-    if((!steady) &&
-        (((0xff == meanNowOrFF) || (meanNowOrFF <= minToUse)) ||
-            ((rise >= ((meanNowOrFF - minToUse) >> (sensitive ? 2 : 1))) &&
-                (oldSteadyTicks >= steadyTicksMinBeforeLightOn))))
+    // An alternative damper would be the rise starting at/below the mean.
+    else if((!steady) && (oldSteadyTicks >= steadyTicksMinBeforeLightOn))
         {
-        // Lights flicked on or curtains drawn maybe: room occupied.
-        occLevel = OCC_PROBABLE;
+        // Is the mean value for this slot usable?
+        const bool usableMean = (0xff != meanNowOrFF) && (meanNowOrFF > minToUse);
+        // Compute the minimum rise to trigger probable occupancy.
+        // With no usable mean use a sensible default minimum rise
+        // to improve initial stability while unit is learning typical levels.
+        const uint8_t minRise = usableMean
+          ? ((meanNowOrFF - minToUse) >> (1 /* sensitive ? 2 : 1 */ ))
+          : (SensorAmbientLightBase::DEFAULT_LIGHT_THRESHOLD/2);
+        if(rise >= minRise)
+            {
+            if((prevLightLevel > minToUse) || (oldSteadyTicks < 0xff))
+                {
+                // Room was NOT very dark,
+                // or has not been steady (ie dark) for a long time.
+                // Lights flicked on or curtains drawn maybe: room occupied.
+                occLevel = OCC_PROBABLE;
+                probablePending = false;
+                }
+            else
+                {
+                // Room was very dark for a long time;
+                // defer 'probable' occupancy signal until light on a while.
+                // Note weak occupancy in the interim,
+                // which should not of itself wake anything up.
+                occLevel = OCC_WEAK;
+                probablePending = true;
+                }
+            }
         }
-    // Else look for weak occupancy indications.
+    // Else if steady long enough look for weak occupancy indications.
     // Look for habitual use of artificial lighting at set times,
     // eg for TV watching or reading.
     // This must have a non-extreme sane mean for the current time of day,
@@ -117,10 +168,13 @@ SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupanc
     else if((steadyTicks >= steadyTicksMinForArtificialLight) &&
             (minToUse < meanNowOrFF) && (meanNowOrFF < maxToUse)) // Implicitly 0xff != meanNowOrFF.
         {
-        // Previous and current light levels should ideally be well away from maximum/minimum
-        // (and asymmetrically much further below maximum, ie a wider margin on the high side)
-        // to avoid being triggered in continuously dark/lit areas, and when daylit.
-        // The levels must also be close to the mean for the time of day.
+        // Previous and current light levels should ideally be
+        // well away from maximum/minimum
+        // (and asymmetrically much further below maximum,
+        // ie a wider margin on the high side)
+        // to avoid being triggered in continuously dark/lit areas,
+        // and when daylit.
+        // The level must also be close to the mean for the time of day.
         const uint8_t range = maxToUse - minToUse;
         if(range > 2*epsilon)
             {

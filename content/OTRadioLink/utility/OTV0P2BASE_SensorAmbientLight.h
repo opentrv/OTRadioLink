@@ -59,10 +59,12 @@ class SensorAmbientLightBase : public SimpleTSUint8Sensor
     // but it does disable all the assertions about dark/light/ticks.
     bool rangeTooNarrow = false;
 
-    // Number of minutes (read() calls) that the room has been continuously dark for [0,255].
+    // Number of minutes (read() calls) that the room has been continuously dark for.
     // Does not roll over from maximum value.
     // Reset to zero in light.
-    uint8_t darkTicks = 0;
+    // Stays at zero if the sensor decides that its range is too narrow.
+    // May not count up while in hysteresis range.
+    uint16_t darkTicks = 0;
 
   public:
     // Reset to starting state; primarily for unit tests.
@@ -102,11 +104,12 @@ class SensorAmbientLightBase : public SimpleTSUint8Sensor
     // thus this should only be treated as an extra hint when true.
     bool isRoomVeryDark() const { return((get() <= DEFAULT_PITCH_DARK_THRESHOLD) && !rangeTooNarrow); }
 
-    // Get number of minutes (read() calls) that the room has been continuously dark for [0,255].
-    // Does not roll over from maximum value, ie stays at 255 until the room becomes light.
+    // Get number of minutes (read() calls) that the room has been continuously dark for.
+    // Does not roll over from maximum value.
     // Reset to zero in light.
     // Stays at zero if the sensor decides that its range is too narrow.
-    uint8_t getDarkMinutes() const { return(darkTicks); }
+    // May not count up while in hysteresis range.
+    uint16_t getDarkMinutes() const { return(darkTicks); }
 
     // Returns true if ambient light range seems to be too narrow to be reliable.
     bool isRangeTooNarrow() const { return(rangeTooNarrow); }
@@ -166,12 +169,15 @@ class SensorAmbientLightAdaptive : public SensorAmbientLightBase
 
     // Set recent min and max ambient light levels from stats, to allow auto adjustment to dark; ~0/0xff means no min/max available.
     // Longer term typically over the last week or so (eg rolling exponential decay).
-    // Call regularly, at least roughly hourly, to drive other internal time-dependent adaptation.
-    //   * meanNowOrFF  typical/mean light level around this time each 24h; 0xff if not known.
-    //   * sensitive  if true be more sensitive to possible occupancy changes, else less so.
+    // Call typically hourly with updated stats,
+    // to set other internal time-dependent adaptation.
+    //   * meanNowOrFF  typical/mean light level around this time each 24h;
+    //         0xff if not known.
+    //   * sensitive  if true be more sensitive to possible occupancy changes,
+    //         which may mean more false positives and less energy saving
     void setTypMinMax(uint8_t meanNowOrFF,
                    uint8_t longerTermMinimumOrFF = 0xff, uint8_t longerTermMaximumOrFF = 0xff,
-                   bool sensitive = true);
+                   bool sensitive = false);
 
     // Updates other values based on what is in value.
     // Derived classes may wish to set value first, then call this.
@@ -188,7 +194,7 @@ class SensorAmbientLightAdaptiveMock : public SensorAmbientLightAdaptive
     // Set new value.
     virtual bool set(const uint8_t newValue) { value = newValue; return(true); }
     // Set new non-dependent values immediately.
-    virtual bool set(const uint8_t newValue, const uint8_t newDarkTicks, const bool isRangeTooNarrow = false)
+    virtual bool set(const uint8_t newValue, const uint16_t newDarkTicks, const bool isRangeTooNarrow = false)
         { value = newValue; rangeTooNarrow = isRangeTooNarrow; darkTicks = newDarkTicks; return(true); }
 
     // Expose the occupancy detector read-only for tests.
@@ -250,7 +256,7 @@ class DummySensorAmbientLight
     constexpr static bool isRoomDark() { return(false); }
 
     // No sensor, so always zero.
-    constexpr static uint8_t getDarkMinutes() { return(0); }
+    constexpr static uint16_t getDarkMinutes() { return(0); }
   };
 
 
