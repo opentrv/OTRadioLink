@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Deniz Erbilgin 2016
+Author(s) / Copyright (s): Deniz Erbilgin 2016-2017
 */
 
 /*
@@ -63,7 +63,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016
 // IF DEFINED: initial direct motor drive design.
 #define ENABLE_V1_DIRECT_MOTOR_DRIVE
 // IF DEFINED: enable use of on-board SHT21 RH and temp sensor (in lieu of TMP112).
-#define ENABLE_PRIMARY_TEMP_SENSOR_SHT21
+#undef ENABLE_PRIMARY_TEMP_SENSOR_SHT21
 // Using RoHS-compliant phototransistor in place of LDR.
 #define ENABLE_AMBIENT_LIGHT_SENSOR_PHOTOTRANS_TEPT4400
 // IF DEFINED: detect occupancy based on relative humidity, if available.
