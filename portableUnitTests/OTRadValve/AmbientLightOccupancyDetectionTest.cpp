@@ -852,7 +852,7 @@ if(veryVerbose) { fprintf(stderr, "Skipping non-initial samples in %dT%.2d:%.2d\
 //    for(uint8_t blending = 0; blending < BL_END; ++blending)
     for(int b = 0; b <= (!nonSensitiveOnly ? 1 : 0); ++b)
         {
-        const uint8_t blending = (0 == b) ? BL_FROMSTATS : nonStdBlend;
+        const uint8_t blending = (0 == b) ? (uint8_t) BL_FROMSTATS : nonStdBlend;
         const bool oddBlend = (BL_FROMSTATS != blending);
 if(verbose) { fprintf(stderr, "blending = %d\n", blending); }
         SCOPED_TRACE(testing::Message() << "blending " << (int)blending);
