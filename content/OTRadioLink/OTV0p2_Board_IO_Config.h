@@ -48,7 +48,7 @@ namespace OTV0P2BASE
 #if !defined(V0p2_REV)
 #error Board revision not defined.
 #endif
-#if (V0p2_REV < 0) || (V0p2_REV > 14)
+#if (V0p2_REV < 0) || (V0p2_REV > 20)
 #error Board revision not defined correctly (out of range).
 #endif
 
@@ -192,7 +192,7 @@ inline void LED_UI2_OFF() { fastDigitalWrite(LED_UI2_L, HIGH); }
 #endif
 
 // REV7 motor connections.
-#if (V0p2_REV == 7)
+#if (V0p2_REV == 7) || (V0p2_REV == 20)
 // MI: Motor Indicator (stalled current sensor) ADC6
 // MC: Motor Count from shaft encoder optical ADC7
 #define MOTOR_DRIVE_MI_AIN 6
