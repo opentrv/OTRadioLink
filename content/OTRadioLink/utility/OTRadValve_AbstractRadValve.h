@@ -60,8 +60,10 @@ class AbstractRadValve : public OTV0P2BASE::SimpleTSUint8Actuator
 
     // Set new target valve percent open.
     // Ignores invalid values.
-    // Some implementations may ignore/reject all attempts to directly set the values.
+    // Some implementations may reject attempts to directly set the value.
     // If this returns true then the new target value was accepted.
+    // Even if accepted this remains a target,
+    // and the value returned by get() may never (exactly) match it.
     virtual bool set(const uint8_t /*newValue*/) { return(false); }
 
     // Call when given user signal that valve has been fitted (ie is fully on).
