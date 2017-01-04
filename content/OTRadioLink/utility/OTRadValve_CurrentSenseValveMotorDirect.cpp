@@ -648,6 +648,8 @@ bool CurrentSenseValveMotorDirect::do_valveNormal_prop()
             perState.valveNormal.endStopHitCount = 0;
             }
         }
+     // Didn't hit end-stop; clear down counter.
+     else { perState.valveNormal.endStopHitCount = 0; }
 #if 0 && defined(V0P2BASE_DEBUG)
 V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("->");
 #endif
@@ -671,6 +673,8 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("->");
             perState.valveNormal.endStopHitCount = 0;
             }
         }
+      // Didn't hit end-stop; clear down counter.
+      else { perState.valveNormal.endStopHitCount = 0; }
 #if 0 && defined(V0P2BASE_DEBUG)
 V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("-<");
 #endif
