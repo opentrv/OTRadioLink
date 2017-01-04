@@ -176,8 +176,8 @@ class SensorAmbientLightAdaptive : public SensorAmbientLightBase
     //   * sensitive  if true be more sensitive to possible occupancy changes,
     //         which may mean more false positives and less energy saving
     void setTypMinMax(uint8_t meanNowOrFF,
-                   uint8_t longerTermMinimumOrFF = 0xff, uint8_t longerTermMaximumOrFF = 0xff,
-                   bool sensitive = false);
+       uint8_t longerTermMinimumOrFF=0xff, uint8_t longerTermMaximumOrFF=0xff,
+       bool sensitive = false);
 
     // Updates other values based on what is in value.
     // Derived classes may wish to set value first, then call this.

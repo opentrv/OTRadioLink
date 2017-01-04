@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2016
+Author(s) / Copyright (s): Damon Hart-Davis 2016--2017
 */
 
 /*
@@ -38,7 +38,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 #define OTV0P2BASE_CONCURRENCY_H
 
 #include <stdint.h>
-#include <OTV0p2Base.h>
+#include "OTV0P2BASE_Util.h"
 
 #ifdef ARDUINO
 
@@ -50,7 +50,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 // Non-Arduino platforms may have grown-up concurrency support.
 #include <atomic>
 #define OTV0P2BASE_PLATFORM_HAS_atomic
+
 #endif
+
 
 namespace OTV0P2BASE
 {
@@ -64,39 +66,38 @@ namespace OTV0P2BASE
     // Expects to exist only in volatile forms, and to support common V0p2Base idioms.
     struct Atomic_UInt8T final
         {
-        public:
-            // Direct access to value.
-            // Use sparingly, eg where concurrency is not an issue on an MCU, eg with interrupts locked out.
-            // Marked volatile for ISR safely, ie to prevent cacheing of the value or re-ordering of access.
-            volatile uint8_t value;
+        // Direct access to value.
+        // Use sparingly, eg where concurrency is not an issue on an MCU, eg with interrupts locked out.
+        // Marked volatile for ISR safely, ie to prevent cacheing of the value or re-ordering of access.
+        volatile uint8_t value;
 
-            // Create uninitialised value.
-            Atomic_UInt8T() = default;
-            // Create initialised value.
-            constexpr Atomic_UInt8T(uint8_t v) noexcept : value(v) { }
+        // Create uninitialised value.
+        Atomic_UInt8T() = default;
+        // Create initialised value.
+        constexpr Atomic_UInt8T(uint8_t v) noexcept : value(v) { }
 
-            // Atomically load current value.
-            // Relies on load/store of single byte being atomic on AVR.
-            uint8_t load() const volatile noexcept { return(value); }
+        // Atomically load current value.
+        // Relies on load/store of single byte being atomic on AVR.
+        uint8_t load() const volatile noexcept { return(value); }
 
-            // Atomically load current value.
-            // Relies on load/store of single byte being atomic on AVR.
-            void store(uint8_t desired) volatile noexcept { value = desired; }
+        // Atomically load current value.
+        // Relies on load/store of single byte being atomic on AVR.
+        void store(uint8_t desired) volatile noexcept { value = desired; }
 
-            // Strong compare-and-exchange.
-            // Atomically, if value == expected then replace value with desired and return true,
-            // else load expected with value and return false.
-            bool compare_exchange_strong(uint8_t& expected, uint8_t desired) volatile noexcept
+        // Strong compare-and-exchange.
+        // Atomically, if value == expected then replace value with desired and return true,
+        // else load expected with value and return false.
+        bool compare_exchange_strong(uint8_t& expected, uint8_t desired) volatile noexcept
+            {
+            // Lock out interrupts for a compound operation.
+            ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
                 {
-                // Lock out interrupts for a compound operation.
-                ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
-                    {
-                    if(value == expected) { value = desired; return(true); }
-                    else { expected = value; return(false); }
-                    }
+                if(value == expected) { value = desired; return(true); }
+                else { expected = value; return(false); }
                 }
+            }
         };
-#endif // OTV0P2BASE_PLATFORM_HAS_atomic ... defined(ARDUINO_ARCH_AVR)
+#endif // OTV0P2BASE_PLATFORM_HAS_atomic ...
 
     // Helper method: safely decrements (volatile) Atomic_UInt8T arg if non-zero, ie does not wrap around.
     // Does nothing if already zero.
@@ -125,6 +126,8 @@ namespace OTV0P2BASE
       const uint8_t op1 = o + 1U;
       v.compare_exchange_strong(o, op1);
       }
+
+
 }
 
 #endif

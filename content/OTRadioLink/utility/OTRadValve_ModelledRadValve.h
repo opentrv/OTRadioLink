@@ -169,10 +169,19 @@ struct ModelledRadValveState final
   ModelledRadValveState(const ModelledRadValveInputState &inputState, bool _alwaysGlacial = false);
 
   // Perform per-minute tasks such as counter and filter updates then recompute valve position.
-  // The input state must be complete including target and reference temperatures
-  // before calling this including the first time whereupon some further lazy initialisation is done.
-  //   * valvePCOpenRef  current valve position UPDATED BY THIS ROUTINE, in range [0,100]
-  void tick(volatile uint8_t &valvePCOpenRef, const ModelledRadValveInputState &inputState);
+  // The input state must be complete including target/reference temperatures
+  // before calling this including the first time
+  // whereupon some further lazy initialisation is done.
+  //   * valvePCOpenRef  current valve position UPDATED BY THIS ROUTINE;
+  //         in range [0,100]
+  //   * inputState  immutable input state reference
+  //   * physical device to set with new target if non-NULL
+  // If the physical device is provided then its target will be updated
+  // and its actual value will be monitored for cumulative movement,
+  // else if not provided the movement in valvePCOpenRef will be monitored.
+  void tick(volatile uint8_t &valvePCOpenRef,
+            const ModelledRadValveInputState &inputState,
+            AbstractRadValve *const physicalDeviceOpt = NULL);
 
   // True if by default/always in glacial mode, eg to minimise flow and overshoot.
   const bool alwaysGlacial = false;
@@ -185,7 +194,8 @@ struct ModelledRadValveState final
   // If true then filtering is being applied to temperatures since they are fast-changing.
   bool isFiltering = false;
 
-  // True if the computed valve position was changed by tick().
+  // True if the computed modelled valve position was changed by tick().
+  // This is not an indication if any underlying valve position has changed.
   bool valveMoved = false;
 
   // Testable/reportable events.
@@ -252,21 +262,28 @@ struct ModelledRadValveState final
 
   // Cumulative valve movement count, as unsigned cumulative percent with rollover [0,8191].
   // This is a useful as a measure of battery consumption (slewing the valve)
-  // and noise generated (and thus disturbance to humans) and of appropriate control damping.
+  // and noise generated (and thus disturbance to humans)
+  // and of appropriate control damping.
   //
   // DHD20161109: due to possible g++ 4.9.x bug,
-  // NOT kept as an unsigned 13-bit field (uint16_t x : 13),
-  // but as full unsigned 16-bit value coerced to range after each update.
+  // NOT kept as an unsigned 10-bit field (uint16_t x : 10),
+  // but is coerced to range after each change.
+  static constexpr uint16_t MAX_CUMULATIVE_MOVEMENT_VALUE = 0x3ff;
   //
   // The (masked) value doesn't wrap round to a negative value
   // and can safely be sent/received in JSON by hosts with 16-bit signed ints,
-  // and the maximum number of decimal digits used in its representation is limited to 4
+  // and the maximum number of decimal digits used in its representation is 4
+  // but is almost always 3 (or fewer)
   // and used efficiently (~80% use of the top digit).
   //
-  // Daily allowance (in terms of battery/energy use) is assumed to be about 400% (DHD20141230),
-  // so this should hold many times that value to avoid ambiguity from missed/infrequent readings,
-  // especially given full slew (+100%) in nominally as little as 1 minute.
+  // Daily allowance (in terms of battery/energy use) is assumed to be ~400% (DHD20141230),
+  // so this should hold much more than that to avoid ambiguity
+  // from missed/infrequent readings,
+  // especially given full slew (+100%) can sometimes happen in 1 minute/tick.
   uint16_t cumulativeMovementPC = 0;
+
+  // Previous valve position (%), used to compute cumulativeMovementPC.
+  uint8_t prevValvePC = 0;
 
   // Length of filter memory in ticks; strictly positive.
   // Must be at least 4, and may be more efficient at a power of 2.
@@ -871,20 +888,22 @@ class ModelledRadValve final : public AbstractRadValve
 
     // Maximum percentage valve is allowed to be open [0,100].
     // Usually 100, but special circumstances may require otherwise.
-    const uint8_t maxPCOpen;
+    const uint8_t maxPCOpen = 100;
 
     // Compute target temperature and set heat demand for TRV and boiler; update state.
     // CALL REGULARLY APPROXIMATELY ONCE PER MINUTE TO ALLOW SIMPLE TIME-BASED CONTROLS.
     // Inputs are inWarmMode(), isRoomLit().
-    // This routine may take significant CPU time; no I/O is done, only internal state is updated.
+    // This routine may take significant CPU time; no I/O is done,
+    // only internal state is updated.
     //
-    // Will clear any BAKE mode if the newly-computed target temperature is already exceeded.
+    // Will clear any BAKE mode if the newly-computed target temperature
+    // is already exceeded.
     void computeCallForHeat();
 
     // Read/write (non-const) access to valveMode instance; never NULL.
     ValveMode *const valveModeRW;
 
-    // Read/write access the underlying physical device; NULL if none.
+    // Read/write access to the underlying physical device; NULL if none.
     AbstractRadValve *const physicalDeviceOpt;
 
   public:
@@ -906,6 +925,14 @@ class ModelledRadValve final : public AbstractRadValve
         setbackSubSensor(setbackC, V0p2_SENSOR_TAG_F("tS|C")),
         cumulativeMovementSubSensor(retainedState.cumulativeMovementPC, V0p2_SENSOR_TAG_F("vC|%"))
       { }
+
+    // Read-only access to physical device if any, else this; never NULL.
+    // Used to make available get() for underlying if required, eg for stats.
+    // This should NOT be used to get() valve position to send to the boiler,
+    // since the logical position, eg wrt call-for-heat threshold, is critical,
+    // not where the physical valve happens to be, dependent on other factors.
+    const AbstractRadValve *getPhysicalDevice() const
+        { return((NULL != physicalDeviceOpt) ? physicalDeviceOpt : this); }
 
     // Force a read/poll/recomputation of the target position and call for heat.
     // Sets/clears changed flag if computed valve position changed.
@@ -1007,8 +1034,10 @@ class ModelledRadValve final : public AbstractRadValve
     // Facade/sub-sensor for setback level (in C), at low priority.
     const OTV0P2BASE::SubSensorSimpleRef<uint8_t> setbackSubSensor;
 
-    // Get cumulative valve movement %; rolls at 8192 in range [0,8191], ie non-negative.
-    // It would often be appropriate to mark this as low priority since it can be computed from valve positions.
+    // Get cumulative valve movement %; rolls at 1024 in range [0,1023].
+    // Most of the time JSON value is 3 digits or fewer, conserving bandwidth.
+    // It would often be appropriate to mark this as low priority
+    // since it can be computed from valve positions.
     uint16_t getCumulativeMovementPC() { return(retainedState.cumulativeMovementPC); }
 
     // DEPRECATED IN FAVOUR OF cumulativeMovementSubSensor.tag().
@@ -1040,7 +1069,8 @@ class ModelledRadValve final : public AbstractRadValve
     // using occupancy/light/etc to determine when temperature can be set back
     // without annoying users.
     //
-    // Will clear any BAKE mode if the newly-computed target temperature is already exceeded.
+    // Will clear any BAKE mode if the newly-computed target temperature
+    // is already exceeded.
     void computeTargetTemperature();
 
     // Pass through a wiggle request to the underlying device if specified.

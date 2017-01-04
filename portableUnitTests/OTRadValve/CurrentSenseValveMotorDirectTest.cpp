@@ -260,13 +260,14 @@ class DummyHardwareDriverHitEndstop : public OTRadValve::HardwareMotorDriverInte
 // In particular this emulates the fact that extending the pin,
 // thus pushing the valve closed, is harder and slower than withdrawing/opening,
 // as during closure the pin starts to work against the spring in the valve base.
-// This emulates withdrawing/opening at a constant maximal speed (thus distance per tick),
+// This withdraws/opens at constant max speed (and thus distance per tick),
 // and that speed (ie distance per tick) starts to fall during valve closure
 // and is noticeably lower by the end of travel,
 // giving about a 20%--40% difference in run time in the two directions,
 // given some real data points from real TRV1 heads on real valve bases.
 //
-// Note: for real valves the drop-off in speed does not necessarily happen until pin engages some way towards closed.
+// Note: for real valves the drop-off in speed does not necessarily happen
+// until pin engages some way towards closed.
 //
 // DHD20151025: one set of actual measurements during calibration:
 //    ticksFromOpenToClosed: 1529
@@ -287,7 +288,7 @@ class HardwareDriverSim : public OTRadValve::HardwareMotorDriverInterface
     enum simType : uint8_t
       {
       SYMMETRIC_LOSSLESS, // Unrealistically good behaviour.
-      ASYMMETRIC_LOSSLESS, // Allows that running in each direction gives different results.
+      ASYMMETRIC_LOSSLESS, // Running in each direction gives different results.
       ASYMMETRIC_NOISY, // Grotty lossy valve with occasional random current spikes!
       INVALID // Larger than any valid mode.
       };
@@ -520,12 +521,15 @@ static const uint8_t targetValues[] = {
 // Check that eventually valve gets to requested % open or close enough to it.
 // This allows for binary-mode (ie non-proportional) drivers.
 // This is more of a black box test,
-// ie largely blind to the internal implementation/state like a normal human being would be.
+// ie largely blind to the internal implementation/state
+// like a normal human being would be.
 static void normalStateWalkthrough(OTRadValve::CurrentSenseValveMotorDirectBase *const csv,
         const bool batteryLow, const HardwareDriverSim *const simulator)
     {
-    // Run up driver/valve into 'normal' state by signalling the valve is fitted until good things happen.
-    // May take a few minutes but no more (at 30 polls/ticks per minute, 100 polls should be enough).
+    // Run up driver/valve into 'normal' state by signalling that
+    // the valve is fitted until good things happen.
+    // May take a few minutes but no more
+    // (at 30 polls/ticks per minute, 100 polls should be enough).
     for(int i = 100; --i > 0 && !csv->isInNormalRunState(); ) { csv->signalValveFitted(); csv->poll(); }
     EXPECT_FALSE(csv->isInErrorState());
     EXPECT_TRUE(csv->isInNormalRunState()) << csv->_getState();
@@ -536,13 +540,17 @@ static void normalStateWalkthrough(OTRadValve::CurrentSenseValveMotorDirectBase 
         {
         const uint8_t target = targetValues[i];
         csv->setTargetPC(target);
-        // Allow at most a minute or three (at 30 ticks/s) to reach the target (or close enough).
+        // Allow at most a minute or three (at 30 ticks/s) to reach the target
+        // (or close enough).
         for(int i = 100; --i > 0 && (target != csv->getCurrentPC()); ) { csv->poll(); }
         // Work out if close enough:
         //   * fully open and fully closed should always be achieved
-        //   * generally within an absolute tolerance (absTolerancePC) of the target value (eg 10--25%)
-        //   * when target is below DEFAULT_VALVE_PC_SAFER_OPEN then any value at/below target is acceptable
-        //   * when target is at or above DEFAULT_VALVE_PC_SAFER_OPEN then any value at/above target is acceptable
+        //   * generally within an absolute tolerance (absTolerancePC)
+        //     of the target value (eg 10--25%)
+        //   * when target is below DEFAULT_VALVE_PC_SAFER_OPEN
+        //     then any value at/below target is acceptable
+        //   * when target is at or above DEFAULT_VALVE_PC_SAFER_OPEN
+        //     then any value at/above target is acceptable
         const uint8_t currentPC = csv->getCurrentPC();
         const bool isCloseEnough = OTRadValve::CurrentSenseValveMotorDirectBase::closeEnoughToTarget(target, currentPC);
         if(target == currentPC) { EXPECT_TRUE(isCloseEnough) << "should always be 'close enough' with values equal"; }
@@ -627,11 +635,14 @@ TEST(CurrentSenseValveMotorDirect,normalStateWalkthrough)
 // Check that eventually valve gets to requested % open or close enough to it.
 // This allows for binary-mode (ie non-proportional) drivers.
 // This is more of a black box test,
-// ie largely blind to the internal implementation/state like a normal human being would be.
+// ie largely blind to the internal implementation/state
+// like a normal human being would be.
 static void propControllerRobustness(OTRadValve::CurrentSenseValveMotorDirect *const csv, const HardwareDriverSim *const simulator)
     {
-    // Run up driver/valve into 'normal' state by signalling the valve is fitted until good things happen.
-    // May take a few minutes but no more (at 30 polls/ticks per minute, 100 polls should be enough).
+    // Run up driver/valve into 'normal' state by signalling
+    // that the valve is fitted until good things happen.
+    // May take a few minutes but no more
+    // (at 30 polls/ticks per minute, 100 polls should be enough).
     for(int i = 100; --i > 0 && !csv->isInNormalRunState(); )
         {
         // When in 'withdrawn' state:
@@ -662,9 +673,12 @@ static void propControllerRobustness(OTRadValve::CurrentSenseValveMotorDirect *c
         for(int i = 100; --i > 0 && (target != csv->getCurrentPC()); ) { csv->poll(); }
         // Work out if close enough:
         //   * fully open and fully closed should always be achieved
-        //   * generally within an absolute tolerance (absTolerancePC) of the target value (eg 10--25%)
-        //   * when target is below DEFAULT_VALVE_PC_SAFER_OPEN then any value at/below target is acceptable
-        //   * when target is at or above DEFAULT_VALVE_PC_SAFER_OPEN then any value at/above target is acceptable
+        //   * generally within an absolute tolerance (absTolerancePC)
+        //     of the target value (eg 10--25%)
+        //   * when target is below DEFAULT_VALVE_PC_SAFER_OPEN
+        //     then any value at/below target is acceptable
+        //   * when target is at or above DEFAULT_VALVE_PC_SAFER_OPEN
+        //     then any value at/above target is acceptable
         const uint8_t currentPC = csv->getCurrentPC();
         const bool isCloseEnough = OTRadValve::CurrentSenseValveMotorDirectBase::closeEnoughToTarget(target, currentPC);
         if(target == currentPC) { EXPECT_TRUE(isCloseEnough) << "should always be 'close enough' with values equal"; }
@@ -694,7 +708,7 @@ TEST(CurrentSenseValveMotorDirect,propControllerRobustness)
     const uint8_t subcycleTicksRoundedDown_ms = 7; // For REV7: OTV0P2BASE::SUBCYCLE_TICK_MS_RD.
     const uint8_t gsct_max = 255; // For REV7: OTV0P2BASE::GSCT_MAX.
     const uint8_t minimumMotorRunupTicks = 4; // For REV7: OTRadValve::ValveMotorDirectV1HardwareDriverBase::minMotorRunupTicks.
-    const HardwareDriverSim::simType maxSupported = /* HardwareDriverSim::SYMMETRIC_LOSSLESS; // FIXME // */ HardwareDriverSim::ASYMMETRIC_NOISY;
+    const HardwareDriverSim::simType maxSupported = HardwareDriverSim::ASYMMETRIC_NOISY;
     for(int d = 0; d <= maxSupported; ++d) // Which simulation mode.
         {
         // More realistic simulator.
@@ -711,4 +725,126 @@ TEST(CurrentSenseValveMotorDirect,propControllerRobustness)
             [](){return(false);});
         propControllerRobustness(&csvmd1, &shw);
         }
+}
+
+
+// Ensure that dithering back and forth 1% does not accumulate lots of movement.
+// This is trying to ensure that where there is course-grained movement,
+// eg as typical 201701 TRV1.5 with ~10--30 steps full-scale movement,
+// that a minimum movement does not cause flapping across a large unit,
+// or at least that a following minimal move in reverse does not.
+// This does not need to run in noisy mode.
+static void noFlappingOn1PercentDither(
+    OTRadValve::CurrentSenseValveMotorDirectBase *const csv,
+    const HardwareDriverSim *const simulator)
+    {
+    // Run up driver/valve into 'normal' state by signalling
+    // that the valve is fitted until good things happen.
+    // May take a few minutes but no more
+    // (at 30 polls/ticks per minute, 100 polls should be enough).
+    for(int i = 100; --i > 0 && !csv->isInNormalRunState(); )
+        {
+        // When in 'withdrawn' state:
+        //   * Check that pain is actually fully withdrawn.
+        //   * Signal that the valve is fitted.
+        if(OTRadValve::CurrentSenseValveMotorDirectBase::valvePinWithdrawn == csv->_getState())
+            {
+            EXPECT_LE(100 - OTRadValve::CurrentSenseValveMotorDirectBase::absTolerancePC/2, simulator->getNominalPercentOpen());
+            csv->signalValveFitted();
+            }
+        csv->poll();
+        }
+    EXPECT_FALSE(csv->isInErrorState());
+    EXPECT_TRUE(csv->isInNormalRunState()) << csv->_getState();
+
+    // Run from low to high first.
+    // First get valve into position in capped time.
+    csv->setTargetPC(0);
+    for(int i = 0; i < 50; ++i) { csv->poll(); }
+    EXPECT_EQ(0, csv->getCurrentPC());
+    // At each increment in target a big change in actual position may happen,
+    // but no change should occur on decrementing or on incrementing again.
+    for(int p = 1; p <= 100; ++p)
+        {
+        const uint8_t posBefore = csv->getCurrentPC();
+        csv->setTargetPC(p);
+        for(int i = 0; i < 10; ++i) { csv->poll(); }
+        const uint8_t posAfter = csv->getCurrentPC();
+        EXPECT_LE(posBefore, posAfter) << "any change must be +ve";
+        csv->setTargetPC(p-1);
+        for(int i = 0; i < 10; ++i) { csv->poll(); }
+        const uint8_t pd = csv->getCurrentPC();
+        EXPECT_EQ(posAfter, pd);
+        csv->setTargetPC(p);
+        for(int i = 0; i < 10; ++i) { csv->poll(); }
+        const uint8_t pu = csv->getCurrentPC();
+        EXPECT_EQ(posAfter, pu);
+//fprintf(stderr, " %d: %d %d %d %d\n", p, posBefore, posAfter, pd, pu);
+        }
+
+    // Run from high to low.
+    csv->setTargetPC(100);
+    for(int i = 0; i < 50; ++i) { csv->poll(); }
+    EXPECT_EQ(100, csv->getCurrentPC());
+    // At each increment in target a big change in actual position may happen,
+    // but no change should occur on decrementing or on incrementing again.
+    for(int p = 99; p >= 0; --p)
+        {
+        const uint8_t posBefore = csv->getCurrentPC();
+        csv->setTargetPC(p);
+        for(int i = 0; i < 10; ++i) { csv->poll(); }
+        const uint8_t posAfter = csv->getCurrentPC();
+        EXPECT_GE(posBefore, posAfter) << "any change must be -ve";
+        csv->setTargetPC(p+1);
+        for(int i = 0; i < 10; ++i) { csv->poll(); }
+        const uint8_t pd = csv->getCurrentPC();
+        EXPECT_EQ(posAfter, pd);
+        csv->setTargetPC(p);
+        for(int i = 0; i < 10; ++i) { csv->poll(); }
+        const uint8_t pu = csv->getCurrentPC();
+        EXPECT_EQ(posAfter, pu);
+//fprintf(stderr, " %d: %d %d %d %d\n", p, posBefore, posAfter, pd, pu);
+        }
+    }
+TEST(CurrentSenseValveMotorDirect,noFlappingOn1PercentDither)
+{
+    // Seed random() for use in simulator; --gtest_shuffle will force it to change.
+    srandom((unsigned) ::testing::UnitTest::GetInstance()->random_seed());
+
+    SVL svl;
+    svl.setAllLowFlags(false);
+
+    const uint8_t subcycleTicksRoundedDown_ms = 7; // For REV7: OTV0P2BASE::SUBCYCLE_TICK_MS_RD.
+    const uint8_t gsct_max = 255; // For REV7: OTV0P2BASE::GSCT_MAX.
+    const uint8_t minimumMotorRunupTicks = 4; // For REV7: OTRadValve::ValveMotorDirectV1HardwareDriverBase::minMotorRunupTicks.
+    const HardwareDriverSim::simType maxSupported = HardwareDriverSim::ASYMMETRIC_LOSSLESS;
+    for(int d = 0; d <= maxSupported; ++d) // Which simulation mode.
+        {
+        HardwareDriverSim shw;
+
+//        // Test full impl binary only.
+//        // Check for possible flap around 50% / call-for-heat.
+//        shw.reset((HardwareDriverSim::simType) d);
+//        OTRadValve::CurrentSenseValveMotorDirectBinaryOnly csvmd0(&shw, dummyGetSubCycleTime,
+//            OTRadValve::CurrentSenseValveMotorDirectBinaryOnly::computeMinMotorDRTicks(subcycleTicksRoundedDown_ms),
+//            OTRadValve::CurrentSenseValveMotorDirectBinaryOnly::computeSctAbsLimit(subcycleTicksRoundedDown_ms,
+//                                                                         gsct_max,
+//                                                                         minimumMotorRunupTicks),
+//            &svl,
+//            [](){return(false);});
+//        noFlappingOn1PercentDither(&csvmd0, &shw);
+
+        // Test full impl proportional.
+        shw.reset((HardwareDriverSim::simType) d);
+        OTRadValve::CurrentSenseValveMotorDirect csvmd1(&shw, dummyGetSubCycleTime,
+            OTRadValve::CurrentSenseValveMotorDirectBinaryOnly::computeMinMotorDRTicks(subcycleTicksRoundedDown_ms),
+            OTRadValve::CurrentSenseValveMotorDirectBinaryOnly::computeSctAbsLimit(subcycleTicksRoundedDown_ms,
+                                                                         gsct_max,
+                                                                         minimumMotorRunupTicks),
+            &svl,
+            [](){return(false);});
+        noFlappingOn1PercentDither(&csvmd1, &shw);
+
+        }
+
 }

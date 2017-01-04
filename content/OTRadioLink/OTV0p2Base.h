@@ -45,6 +45,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 // Portable concurrency/atomicity support that should work for small MCUs and bigger platforms.
 #include "utility/OTV0P2BASE_Concurrency.h"
 
+// Simple low-frequency error reporting.
+#include "utility/OTV0P2BASE_ErrorReport.h"
+
 // Hardware tests, eg as used in POST (Power On Self Test).
 #include "utility/OTV0P2BASE_HardwareTests.h"
 
