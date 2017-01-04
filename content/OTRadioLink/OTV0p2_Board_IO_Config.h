@@ -174,12 +174,12 @@ inline void LED_UI2_OFF() { fastDigitalWrite(LED_UI2_L, HIGH); }
 // Ambient light sensor (eg LDR) analogue input: higher voltage means more light.
 #define LDR_SENSOR_AIN (::OTV0P2BASE::V0p2_PIN_LDR_SENSOR_AIN) // 0: ATMega328P-PU PDIP pin 23, PC0.
 
-// Temperature potentiometer is present in REV 2/3/4/7.
-#if ((V0p2_REV >= 2) && (V0p2_REV <= 4)) || (V0p2_REV == 7)
+// Temperature potentiometer is present in REV 2/3/4/7/20.
+#if ((V0p2_REV >= 2) && (V0p2_REV <= 4)) || (V0p2_REV == 7) || (V0p2_REV == 20)
 // Analogue input from pot.
 #define TEMP_POT_AIN (::OTV0P2BASE::V0p2_PIN_TEMP_POT_AIN) // AI1: ATMega328P-PU PDIP pin 24, PC1.
 // IF DEFINED: reverse the direction of temperature pot polarity.
-#if (V0p2_REV != 7) // For DORM1/REV7 natural direction for temp dial pot is correct.
+#if (V0p2_REV != 7) && (V0p2_REV != 20) // For DORM1/REV7 natural direction for temp dial pot is correct.
 #define TEMP_POT_REVERSE
 #endif
 #endif
@@ -192,7 +192,7 @@ inline void LED_UI2_OFF() { fastDigitalWrite(LED_UI2_L, HIGH); }
 #define PIN_RFM_NIRQ_DUMMY 9 // ATMega328P-PU PDIP pin 15, PB1, PCINT1.
 #endif
 
-// REV7 motor connections.
+// REV7/20 motor connections.
 #if (V0p2_REV == 7) || (V0p2_REV == 20)
 // MI: Motor Indicator (stalled current sensor) ADC6
 // MC: Motor Count from shaft encoder optical ADC7
@@ -210,6 +210,9 @@ inline void LED_UI2_OFF() { fastDigitalWrite(LED_UI2_L, HIGH); }
 // MR AND ML MUST NOT BE PULLED LOW AT THE SAME TIME
 // ELSE THERE IS A SHORT THROUGH THE H-BRIDGE ACROSS THE SUPPLY.
 // WARNING WARNING WARNING
+//
+// FIXME On boards with DRV8850 H-Bridge (i.e. REV20), pins should both be pulled low to reduce power consumption.
+//		 As of REV21 the motor drive pins will be changed to prevent accidentally killing REV7s.
 //
 // Addressed as digital I/O.
 #ifndef __AVR_ATmega328P__
