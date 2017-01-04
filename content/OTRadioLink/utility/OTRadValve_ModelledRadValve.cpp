@@ -462,7 +462,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
                     const bool moveSlow = !wellAboveTarget ||
                         (valvePCOpen < OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN/2);
                     const uint8_t slew = moveSlow ?
-                            TRV_SLEW_PC_PER_MIN_SLOW : TRV_SLEW_PC_PER_MIN;
+                        TRV_SLEW_PC_PER_MIN_SLOW : TRV_SLEW_PC_PER_MIN;
                     return(uint8_t(OTV0P2BASE::fnconstrain(
                         int(valvePCOpen) - int(slew),
                         0,
