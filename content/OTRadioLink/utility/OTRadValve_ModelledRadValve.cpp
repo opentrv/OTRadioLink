@@ -454,9 +454,13 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
                 // Immediately get below call-for-heat threshold on way down,
                 // then move slowly enough to potentially avoid full close.
                 // Close a bit faster if well over target.
+                // Else close slowly if in the bottom half of the range
+                // to try to capture any bottom-end proportional behaviour
+                // and give chance for rad/room to start cooling.
                 else if(shouldClose)
                     {
-                    const bool moveSlow = !wellAboveTarget;
+                    const bool moveSlow = !wellAboveTarget ||
+                        (valvePCOpen < OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN/2);
                     const uint8_t slew = moveSlow ?
                             TRV_SLEW_PC_PER_MIN_SLOW : TRV_SLEW_PC_PER_MIN;
                     return(uint8_t(OTV0P2BASE::fnconstrain(
