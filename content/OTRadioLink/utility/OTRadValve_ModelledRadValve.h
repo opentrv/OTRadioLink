@@ -262,11 +262,13 @@ struct ModelledRadValveState final
 
   // Cumulative valve movement count, as unsigned cumulative percent with rollover [0,8191].
   // This is a useful as a measure of battery consumption (slewing the valve)
-  // and noise generated (and thus disturbance to humans) and of appropriate control damping.
+  // and noise generated (and thus disturbance to humans)
+  // and of appropriate control damping.
   //
   // DHD20161109: due to possible g++ 4.9.x bug,
   // NOT kept as an unsigned 10-bit field (uint16_t x : 10),
-  // but as full unsigned 16-bit value coerced to range before return for stats.
+  // but is coerced to range after each change.
+  static constexpr uint16_t MAX_CUMULATIVE_MOVEMENT_VALUE = 0x3ff;
   //
   // The (masked) value doesn't wrap round to a negative value
   // and can safely be sent/received in JSON by hosts with 16-bit signed ints,
@@ -1036,11 +1038,7 @@ class ModelledRadValve final : public AbstractRadValve
     // Most of the time JSON value is 3 digits or fewer, conserving bandwidth.
     // It would often be appropriate to mark this as low priority
     // since it can be computed from valve positions.
-    uint16_t getCumulativeMovementPC() { return(retainedState.cumulativeMovementPC & 0x3ff); }
-    // Get cumulative valve movement %; rolls at 65536 in range [0,65535].
-    // It would often be appropriate to mark this as low priority
-    // since it can be computed from valve positions.
-    uint16_t getCumulativeMovementPCFull() { return(retainedState.cumulativeMovementPC); }
+    uint16_t getCumulativeMovementPC() { return(retainedState.cumulativeMovementPC); }
 
     // DEPRECATED IN FAVOUR OF cumulativeMovementSubSensor.tag().
     // Returns a suggested (JSON) tag/field/key name including units of getCumulativeMovementPC(); not NULL.

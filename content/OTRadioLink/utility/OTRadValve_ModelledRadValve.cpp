@@ -175,7 +175,9 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef,
       // though change will probably need one or more read()s elsewhere.
       prevValvePC = physicalDeviceOpt->get();
       }
-  cumulativeMovementPC += OTV0P2BASE::fnabsdiff(oldValvePC, newValvePC);
+  cumulativeMovementPC =
+      (cumulativeMovementPC + OTV0P2BASE::fnabsdiff(oldValvePC, newValvePC))
+      & MAX_CUMULATIVE_MOVEMENT_VALUE;
   prevValvePC = newValvePC;
   valveMoved = modelledValveChanged;
   }
