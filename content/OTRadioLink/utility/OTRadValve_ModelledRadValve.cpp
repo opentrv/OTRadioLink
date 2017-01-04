@@ -75,10 +75,19 @@ ModelledRadValveState::ModelledRadValveState(const ModelledRadValveInputState &i
   }
 
 // Perform per-minute tasks such as counter and filter updates then recompute valve position.
-// The input state must be complete including target and reference temperatures
-// before calling this including the first time whereupon some further lazy initialisation is done.
-//   * valvePCOpenRef  current valve position UPDATED BY THIS ROUTINE, in range [0,100]
-void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const ModelledRadValveInputState &inputState)
+// The input state must be complete including target/reference temperatures
+// before calling this including the first time
+// whereupon some further lazy initialisation is done.
+//   * valvePCOpenRef  current valve position UPDATED BY THIS ROUTINE;
+//         in range [0,100]
+//   * inputState  immutable input state reference
+//   * physical device to set with new target if non-NULL
+// If the physical device is provided then its target will be updated
+// and its actual value will be monitored for cumulative movement,
+// else if not provided the movement in valvePCOpenRef will be monitored.
+void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef,
+                                 const ModelledRadValveInputState &inputState,
+                                 AbstractRadValve *const physicalDeviceOpt)
   {
   // Forget last event if any.
   clearEvent();
@@ -94,6 +103,9 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const Modelle
     {
     // Fill the filter memory with the current room temperature.
     _backfillTemperatures(rawTempC16);
+    // Also capture the current/initial valve position as passed in.
+    prevValvePC = (NULL == physicalDeviceOpt) ? valvePCOpenRef :
+        physicalDeviceOpt->get();
     initialised = true;
     }
 
@@ -138,29 +150,34 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef, const Modelle
   if(valveTurnupCountdownM > 0) { --valveTurnupCountdownM; }
 
   // Update the modelled state including the valve position passed by reference.
-  const uint8_t oldValvePC = valvePCOpenRef;
-  const uint8_t newValvePC = computeRequiredTRVPercentOpen(valvePCOpenRef, inputState);
-  const bool changed = (newValvePC != oldValvePC);
-  if(changed)
+  const uint8_t oldValvePC = prevValvePC;
+  const uint8_t oldModelledValvePC = valvePCOpenRef;
+  const uint8_t newModelledValvePC =
+      computeRequiredTRVPercentOpen(valvePCOpenRef, inputState);
+  const bool modelledValveChanged = (newModelledValvePC != oldModelledValvePC);
+  if(modelledValveChanged)
     {
-    if(newValvePC > oldValvePC)
-      {
-      // Defer re-closing valve to avoid excessive hunting.
-      valveTurnup();
-      const uint8_t move = (newValvePC - oldValvePC);
-      cumulativeMovementPC += move;
-      }
-    else
-      {
-      // Defer re-opening valve to avoid excessive hunting.
-      valveTurndown();
-      const uint8_t move = (oldValvePC - newValvePC);
-      cumulativeMovementPC += move;
-      }
-    cumulativeMovementPC &= 0x1fff; // Keep to 13 bits.
-    valvePCOpenRef = newValvePC;
+    // Defer re-closing valve to avoid excessive hunting.
+    if(newModelledValvePC > oldModelledValvePC) { valveTurnup(); }
+    // Defer re-opening valve to avoid excessive hunting.
+    else { valveTurndown(); }
+    valvePCOpenRef = newModelledValvePC;
     }
-  valveMoved = changed;
+  // Use the modelled value by default, eg if no physical device available.
+  uint8_t newValvePC = newModelledValvePC;
+  if(NULL != physicalDeviceOpt)
+      {
+      // Set the target for the physical device unconditionally
+      // to ensure that the driver/device sees the first such request
+      // even if the modelled value does not change.
+      physicalDeviceOpt->set(newModelledValvePC);
+      // Nominally look for a change in the physical device immediately
+      // though change will probably need one or more read()s elsewhere.
+      prevValvePC = physicalDeviceOpt->get();
+      }
+  cumulativeMovementPC += OTV0P2BASE::fnabsdiff(oldValvePC, newValvePC);
+  prevValvePC = newValvePC;
+  valveMoved = modelledValveChanged;
   }
 
 // Computes a new valve position given supplied input state
