@@ -61,12 +61,12 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     // Time until room regarded as unoccupied, in minutes; initially zero (ie treated as unoccupied at power-up).
     // Marked volatile for thread-safe lock-free non-read-modify-write access to byte-wide value.
     // Compound operations must be thread-/interrupt- safe.
-    volatile Atomic_UInt8T occupationCountdownM;
+    volatile OTV0P2BASE::Atomic_UInt8T occupationCountdownM;
 
     // Non-zero if occupancy system recently notified of activity.
     // Marked volatile for thread-safe lock-free non-read-modify-write access to byte-wide value.
     // Compound operations must be thread-/interrupt- safe.
-    volatile Atomic_UInt8T activityCountdownM;
+    volatile OTV0P2BASE::Atomic_UInt8T activityCountdownM;
 
     // Hours and minutes since room became vacant (doesn't roll back to zero from max hours); zero when room occupied.
     uint8_t vacancyH = 0;

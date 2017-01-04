@@ -25,7 +25,10 @@ Author(s) / Copyright (s): Damon Hart-Davis 2017
 
 #include <stdint.h>
 
+//#include "OTV0P2BASE_Concurrency.h"
+
 #include "OTV0P2BASE_Actuator.h"
+
 
 namespace OTV0P2BASE
 {
@@ -62,22 +65,38 @@ namespace OTV0P2BASE
 
  TODO: will have ISR-/thread- safe entry-point for reporting from such routines.
  */
-class ErrorReport final : public OTV0P2BASE::Sensor<int8_t>
-    {
-    private:
-        // The current error value; zero means none, +ve error, -ve warning.
-        volatile int8_t value = 0;
+//class ErrorReport final : public OTV0P2BASE::Sensor<int8_t>
+//    {
+//    private:
+//        // The current error value; zero means none, +ve error, -ve warning.
+//        volatile int8_t value = 0;
+//
+//        // Ticks (minutes) that freshly-set error/warning takes to expire.
+//        // Kept long enough to eg make a successful stats transmission likely.
+//        static constexpr uint8_t DEFAULT_TIMEOUT = 10;
+//        // If non-zero then UI controls have been recently manually/locally operated; counts down to zero.
+//        // Marked volatile for thread-safe lock-free non-read-modify-write access to byte-wide value.
+//        // Compound operations on this value must block interrupts.
+//        volatile OTV0P2BASE::Atomic_UInt8T timeoutTicks;
+//
+//    public:
+//        // Returns (JSON) tag/field/key name, no units, never NULL.
+//        // The lifetime of the pointed-to text must be at least that of the Sensor instance.
+//        virtual Sensor_tag_t tag() const override { return(V0p2_SENSOR_TAG_F("err")); }
+//
+//        // Return last value fetched by read(); undefined before first read().
+//        // Usually fast.
+//        // Likely to be thread-safe or usable within ISRs (Interrupt Service Routines),
+//        // BUT READ IMPLEMENTATION DOCUMENTATION BEFORE TREATING AS thread/ISR-safe.
+//        virtual int8_t get() const override { return(value); }
+//
+//        // Typically called once per minute to age error.
+//        virtual uint8_t preferredPollInterval_s() const override { return(60); }
+//
+//        virtual int8_t read() override
+//            { OTV0P2BASE::safeDecIfNZWeak(timeoutTicks); return(get()); }
+//    };
 
-    public:
-        // Return last value fetched by read(); undefined before first read().
-        // Usually fast.
-        // Likely to be thread-safe or usable within ISRs (Interrupt Service Routines),
-        // BUT READ IMPLEMENTATION DOCUMENTATION BEFORE TREATING AS thread/ISR-safe.
-        virtual int8_t get() const override { return(value); }
-
-    public:
-        virtual int8_t read() override { return(get()); }
-    };
 
 }
 
