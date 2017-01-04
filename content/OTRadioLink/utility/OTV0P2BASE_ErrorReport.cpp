@@ -27,5 +27,10 @@ namespace OTV0P2BASE
 {
 
 
+#ifdef OTV0P2BASE_ErrorReport_DEFINED
+// Global instance.
+ErrorReport ErrorReporter;
+#endif // ErrorReport_DEFINED
+
 
 }

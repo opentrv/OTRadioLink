@@ -25,7 +25,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2017
 
 #include <stdint.h>
 
-//#include "OTV0P2BASE_Concurrency.h"
+#include "OTV0P2BASE_Concurrency.h"
 
 #include "OTV0P2BASE_Actuator.h"
 
@@ -65,38 +65,76 @@ namespace OTV0P2BASE
 
  TODO: will have ISR-/thread- safe entry-point for reporting from such routines.
  */
-//class ErrorReport final : public OTV0P2BASE::Sensor<int8_t>
-//    {
-//    private:
-//        // The current error value; zero means none, +ve error, -ve warning.
-//        volatile int8_t value = 0;
-//
-//        // Ticks (minutes) that freshly-set error/warning takes to expire.
-//        // Kept long enough to eg make a successful stats transmission likely.
-//        static constexpr uint8_t DEFAULT_TIMEOUT = 10;
-//        // If non-zero then UI controls have been recently manually/locally operated; counts down to zero.
-//        // Marked volatile for thread-safe lock-free non-read-modify-write access to byte-wide value.
-//        // Compound operations on this value must block interrupts.
-//        volatile OTV0P2BASE::Atomic_UInt8T timeoutTicks;
-//
-//    public:
-//        // Returns (JSON) tag/field/key name, no units, never NULL.
-//        // The lifetime of the pointed-to text must be at least that of the Sensor instance.
-//        virtual Sensor_tag_t tag() const override { return(V0p2_SENSOR_TAG_F("err")); }
-//
-//        // Return last value fetched by read(); undefined before first read().
-//        // Usually fast.
-//        // Likely to be thread-safe or usable within ISRs (Interrupt Service Routines),
-//        // BUT READ IMPLEMENTATION DOCUMENTATION BEFORE TREATING AS thread/ISR-safe.
-//        virtual int8_t get() const override { return(value); }
-//
-//        // Typically called once per minute to age error.
-//        virtual uint8_t preferredPollInterval_s() const override { return(60); }
-//
-//        virtual int8_t read() override
-//            { OTV0P2BASE::safeDecIfNZWeak(timeoutTicks); return(get()); }
-//    };
+#define OTV0P2BASE_ErrorReport_DEFINED
+class ErrorReport final : public OTV0P2BASE::Actuator<int8_t>
+    {
+    public:
+        // Error (and warning) catalogue.
+        // Errors are positive.
+        // Warnings are negative.
+        // Zero is not an error nor a warning.
+        enum errorCatalogue : int8_t
+            {
+            WARN_UNSPECIFIED = -1, // Unspecified warning.
+            ERR_NONE = 0, // Not an error.
+            ERR_UNSPECIFIED = 1, // Unspecified error.
+            };
 
+    private:
+        // The current error value; zero means none, +ve error, -ve warning.
+        volatile int8_t value = 0;
+
+        // Ticks (minutes) that freshly-set error/warning takes to expire.
+        // Kept long enough to eg make a successful stats transmission likely.
+        static constexpr uint8_t DEFAULT_TIMEOUT = 10;
+        // If non-zero then error/warning has recently been set; counts to zero.
+        // Marked volatile for thread-safe lock-free non-read-modify-write
+        // access to byte-wide value.
+        // Compound operations on this value must block interrupts.
+        volatile OTV0P2BASE::Atomic_UInt8T timeoutTicks;
+
+        // True if any extant warning/error has aged out.
+        bool isAged() const { return(0 == timeoutTicks.load()); }
+
+    public:
+        // Set new error (+ve) / warning (-ve), or zero to clear.
+        // Errors cannot be overwritten by anything other than another error
+        // unless the error is aged.
+        // NOT thread-/ISR- safe.
+        virtual bool set(const int8_t newValue)
+          {
+          if((newValue > 0) || isAged())
+              {
+              value = newValue;
+              timeoutTicks.store(DEFAULT_TIMEOUT);
+              return(true);
+              }
+          // Cannot override current value.
+          return(false);
+          }
+        // Convenience method to set directly with the enum value.
+        bool set(const errorCatalogue err) { return(set(int8_t(err))); }
+
+        // Returns (JSON) tag/field/key name, no units, never NULL.
+        virtual Sensor_tag_t tag() const override { return(V0p2_SENSOR_TAG_F("err")); }
+
+        // Return last error/warning, or 0 if none.
+        // Thread/ISR-safe.
+        virtual int8_t get() const override { return(value); }
+
+        // Typically called once per minute to age error.
+        virtual uint8_t preferredPollInterval_s() const override { return(60); }
+
+        // Age any live error/warning and return it; 0 if nothing set.
+        virtual int8_t read() override
+            { OTV0P2BASE::safeDecIfNZWeak(timeoutTicks); return(get()); }
+
+        // Returns true if there is a non-aged error or warning set.
+        virtual bool isAvailable() const override { return(!isAged()); }
+    };
+
+// Global instance.
+extern ErrorReport ErrorReporter;
 
 }
 

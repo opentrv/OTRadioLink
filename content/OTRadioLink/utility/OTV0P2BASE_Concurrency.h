@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2016
+Author(s) / Copyright (s): Damon Hart-Davis 2016--2017
 */
 
 /*
@@ -38,7 +38,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 #define OTV0P2BASE_CONCURRENCY_H
 
 #include <stdint.h>
-#include <OTV0p2Base.h>
+#include "OTV0P2BASE_Util.h"
 
 #ifdef ARDUINO
 
@@ -126,6 +126,8 @@ namespace OTV0P2BASE
       const uint8_t op1 = o + 1U;
       v.compare_exchange_strong(o, op1);
       }
+
+
 }
 
 #endif
