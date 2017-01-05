@@ -329,7 +329,10 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
             (wide || ((adjustedTempC16 & 0xf) >= lowerBoundNormalLSBs));
 
         // If well above target then valve closing may be faster than usual.
-        static constexpr uint8_t wAT = OTV0P2BASE::fnmax(maxTmpOvershoot/2, 1);
+        // Have a higher ceiling if filtering, eg because sensor near heater.
+        const uint8_t wAT = isFiltering ?
+            OTV0P2BASE::fnmax(maxTmpOvershoot-1, 1) :
+            OTV0P2BASE::fnmax(maxTmpOvershoot/2, 1);
         const bool wellAboveTarget = adjustedTempC > tTC + wAT;
 
         // Check direction of latest raw temperature movement, if any.
