@@ -105,7 +105,7 @@ class ErrorReport final : public OTV0P2BASE::Actuator<int8_t>
 
     public:
         // Create instance already aged and with no error/warning set.
-        constexpr ErrorReport() : timeoutTicks(0) { }
+        ErrorReport() : timeoutTicks(0) { }
 
         // Set new error (+ve) / warning (-ve), or zero to clear.
         // Errors cannot be overwritten by anything other than another error
