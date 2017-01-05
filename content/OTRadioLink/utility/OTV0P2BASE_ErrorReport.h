@@ -75,9 +75,19 @@ class ErrorReport final : public OTV0P2BASE::Actuator<int8_t>
         // Zero is not an error nor a warning.
         enum errorCatalogue : int8_t
             {
-            WARN_UNSPECIFIED = -1, // Unspecified warning.
-            ERR_NONE = 0, // Not an error.
-            ERR_UNSPECIFIED = 1, // Unspecified error.
+            // Automatically recoverable tracking error,
+            // eg in valve drive dead reckoning,
+            // likely to need an recalibration run.
+            WARN_VALVE_TRACKING = -10,
+
+            // Unspecified warning.
+            WARN_UNSPECIFIED = -1,
+
+            // Not an error.
+            ERR_NONE = 0,
+
+            // Unspecified error.
+            ERR_UNSPECIFIED = 1,
             };
 
     private:

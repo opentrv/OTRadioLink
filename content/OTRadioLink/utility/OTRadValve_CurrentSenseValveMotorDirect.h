@@ -28,6 +28,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 #include <stdint.h>
 #include "OTRadValve_AbstractRadValve.h"
 
+#include "OTV0P2BASE_ErrorReport.h"
+
+
 namespace OTRadValve
 {
 
@@ -472,8 +475,18 @@ class CurrentSenseValveMotorDirect final : public CurrentSenseValveMotorDirectBi
     // May simply switch to 'binary' on/off mode if the calibration is off.
     bool needsRecalibrating = true;
 
-    // Report an apparent serious tracking error that may need full recalibration.
-    void reportTrackingError() { needsRecalibrating = true; }
+    // Report an apparent serious tracking error that will force recalibration.
+    // Such a recalibration may not happen immediately.
+    void reportTrackingError()
+        {
+        needsRecalibrating = true;
+#ifdef OTV0P2BASE_ErrorReport_DEFINED
+        // Report a warning since indicates problem with valve or algo,
+        // and implies excess valve noise and energy consumption.
+        // Report a warning rather than an error since recoverable.
+        OTV0P2BASE::ErrorReporter.set(OTV0P2BASE::ErrorReport::WARN_VALVE_TRACKING);
+#endif
+        }
 
     // Current sub-cycle ticks from fully-open (reference) end of travel, towards fully closed.
     // This is nominally ticks in the open-to-closed direction
