@@ -1,6 +1,6 @@
 dist: trusty
 sudo: required
-
+language: cpp
 before_install:
  - sudo apt-get -qq update
  - sudo apt-get install -y libgtest-dev
@@ -11,10 +11,7 @@ before_install:
  - sudo make
  - sudo cp -a include/gtest /usr/include
  - sudo cp -a libgtest_main.so libgtest.so /usr/lib/
-- cd "${TRAVIS_BUILD_DIR}"
-
-language: cpp
-
+ - cd "${TRAVIS_BUILD_DIR}"
 script: ./PortableUnitTestsDriver.sh
 notifications:
   email:
