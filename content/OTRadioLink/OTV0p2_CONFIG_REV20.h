@@ -42,8 +42,8 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016-2017
 
 #if defined(CONFIG_TRV20_PROTO) // Generic all-in-one (REV7).
 // GENERIC
-// Revision REV7 of V0.2 board, all-in-one valve unit with local motor drive.
-// Does not ever need to act as a boiler hub nor to receive stats.
+// Revision REV20 of V0.2 board, all-in-one valve unit with local motor drive.
+// Has no onboarfd radio.
 // GENERIC
 #define V0p2_REV 20
 // IF DEFINED: simplified mode button behaviour: tapping button invokes BAKE, not mode cycling.
@@ -65,7 +65,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2016-2017
 // IF DEFINED: enable use of on-board SHT21 RH and temp sensor (in lieu of TMP112).
 #undef ENABLE_PRIMARY_TEMP_SENSOR_SHT21
 // Using RoHS-compliant phototransistor in place of LDR.
-#define ENABLE_AMBIENT_LIGHT_SENSOR_PHOTOTRANS_TEPT4400
+#define ENABLE_AMBIENT_LIGHT_SENSOR_PHOTOTRANS_TEPT4400  // FIXME Has alternative light sensor.
 // IF DEFINED: detect occupancy based on relative humidity, if available.
 // DHD20160101: seems to still be set off spuriously by fast drop in temp when rad turns off (TODO-696).
 #undef ENABLE_OCCUPANCY_DETECTION_FROM_RH

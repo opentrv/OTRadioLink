@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2014--2015
+Author(s) / Copyright (s): Damon Hart-Davis 2014--2017
 */
 
 /*
@@ -144,13 +144,13 @@ class Sensor : public SensorCore<T>
 class SimpleTSUint8Sensor : public Sensor<uint8_t>
   {
   protected:
-      // The current sensor value, as fetched/computed by read().
-      volatile uint8_t value;
+    // The current sensor value, as fetched/computed by read().
+    volatile uint8_t value;
 
-      // By default initialise the value to zero.
-      constexpr SimpleTSUint8Sensor() : value(0) { }
-      // Can initialise to a chosen value.
-      constexpr SimpleTSUint8Sensor(const uint8_t v) : value(v) { }
+    // By default initialise the value to zero.
+    constexpr SimpleTSUint8Sensor() : value(0) { }
+    // Can initialise to a chosen value.
+    constexpr SimpleTSUint8Sensor(const uint8_t v) : value(v) { }
 
   public:
     // Return last value fetched by read(); undefined before first read().

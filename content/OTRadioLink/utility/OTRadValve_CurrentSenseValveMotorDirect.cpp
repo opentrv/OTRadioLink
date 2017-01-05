@@ -102,9 +102,10 @@ bool CurrentSenseValveMotorDirect::CalibrationParameters::updateAndCompute(
   // Fail if lower ratio value so low (< 4 bits) as to introduce huge error.
   if(OTV0P2BASE::fnmin(tfotc, tfcto) < 8) { return(false); }
 
-  // Compute approx precision in % as min ticks / DR size in range [0,100].
+  // Compute approx precision in % as min ticks / DR size in range [1,100].
   // Inflate estimate slightly to allow for inertia, etc.
-  approxPrecisionPC = (uint8_t) OTV0P2BASE::fnmin(100UL, (128UL*minMotorDRTicks) / minticks);
+  // FIXME: optimise!
+  approxPrecisionPC = (uint8_t) OTV0P2BASE::fnconstrain((128UL*minMotorDRTicks) / minticks, 1UL, 100UL);
 
   // Fail if precision far too poor to be usable for proportional mode.
   if(approxPrecisionPC > max_usuable_precision) { return(false); }
@@ -138,7 +139,7 @@ uint8_t CurrentSenseValveMotorDirect::CalibrationParameters::computePosition(
   if(0 == ticksFromOpen) { return(100); }
   if(ticksFromOpen >= ticksFromOpenToClosed) { return(0); }
   // Compute percentage open for intermediate position, based on dead-reckoning.
-  // TODO: optimise!
+  // FIXME: optimise!
   return((uint8_t) (((ticksFromOpenToClosed - ticksFromOpen) * 100UL) / ticksFromOpenToClosed));
   }
 
@@ -375,6 +376,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
 
       // In binary mode, the valve is targeted to be fully open or fully closed.
       // Set to the same threshold value used to trigger a boiler call for heat.
+      // TODO: create some hysteresis to prevent flapping on small changes.
       const bool binaryOpen = (targetPC >= OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN);
       const uint8_t binaryTarget = binaryOpen ? 100 : 0;
 
@@ -568,9 +570,10 @@ OTV0P2BASE::serialPrintlnAndFlush();
   }
 
 // Do valveNormal start for proportional drive; returns true to return from poll() immediately.
-// Falls through to do drive to end stops or when in run-time binary-only mode.
+// Falls through to do drive to end stops, or when in run-time binary-only mode.
 // Calls changeState() directly if it needs to change state.
-// If this returns false, processing falls through to that for the non-proportional case.
+// If this returns false, processing should fall through to
+// that for the non-proportional case.
 bool CurrentSenseValveMotorDirect::do_valveNormal_prop()
     {
     // Recalibrate if a serious tracking error was detected.
@@ -590,18 +593,36 @@ bool CurrentSenseValveMotorDirect::do_valveNormal_prop()
 
     // If the desired target is close to either end
     // then fall back to non-prop behaviour and hit the end stops (fast) instead.
-    // Makes ends 'sticky' and allows for some light-weight recalibration to scale ends.
+    // Makes ends 'sticky' and performs on-the-fly light-weight
+    // recalibration to scale ends.
+    // This must however provide some hysteresis
+    // to prevent flapping back at forth at the boundaries on 1% target changes.
     const uint8_t eps = cp.getApproxPrecisionPC();
     // Allow wider epsilon for tracking errors.
     constexpr uint8_t aeps = absTolerancePC;
-    const uint8_t weps = OTV0P2BASE::fnmax(aeps, uint8_t(2*eps)); // Cannot overflow since getApproxPrecisionPC() <= 100.
+    // Cannot overflow since getApproxPrecisionPC() <= 100.
+    const uint8_t weps = OTV0P2BASE::fnmax(aeps, uint8_t(2*eps));
     const uint8_t upperPropLimit = 100 - weps;
     const uint8_t lowerPropLimit = weps;
-    if((targetPC >= upperPropLimit) || (targetPC <= lowerPropLimit))
+    // Hysteresis limits slightly closer to the end-stops.
+    const uint8_t upperPropLimitH = upperPropLimit + eps;
+    const uint8_t lowerPropLimitH = lowerPropLimit - eps;
+    // Unconditionally run to the end stops if at/outside the wider limits.
+    if((targetPC >= upperPropLimitH) ||
+       (targetPC <= lowerPropLimitH))
+        { return(false); } // Fall through to 'binary' mode code..
+    // If the current value is at an end-stop
+    // then keep there if the target is outside the narrower limits
+    // to provide hysteresis.
+    if(((targetPC >= upperPropLimit) && (100 == currentPC)) ||
+       ((targetPC <= lowerPropLimit) && (0 == currentPC)))
         { return(false); } // Fall through to 'binary' mode code..
 
-    // If close enough to the target position (and not since targeting end-stops)
-    // then stay as is and leave poll().
+    // If close enough to the target position
+    // (and since not targeting the end-stops)
+    // then leave valve as is and leave poll().
+    // This must provide hysteresis
+    // to prevent flapping back at forth at the boundaries on 1% target changes.
     // Carefully avoid overflow/underflow in comparison.
     if(((targetPC >= currentPC) && (targetPC <= currentPC + eps)) ||
        ((currentPC >= targetPC) && (currentPC <= targetPC + eps)))
@@ -627,6 +648,8 @@ bool CurrentSenseValveMotorDirect::do_valveNormal_prop()
             perState.valveNormal.endStopHitCount = 0;
             }
         }
+     // Didn't hit end-stop; clear down counter.
+     else { perState.valveNormal.endStopHitCount = 0; }
 #if 0 && defined(V0P2BASE_DEBUG)
 V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("->");
 #endif
@@ -650,6 +673,8 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("->");
             perState.valveNormal.endStopHitCount = 0;
             }
         }
+      // Didn't hit end-stop; clear down counter.
+      else { perState.valveNormal.endStopHitCount = 0; }
 #if 0 && defined(V0P2BASE_DEBUG)
 V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("-<");
 #endif

@@ -416,8 +416,9 @@ class CurrentSenseValveMotorDirect final : public CurrentSenseValveMotorDirectBi
           uint16_t ticksFromClosedToOpen = 0;
 
           // Computed parameters based on measurements during calibration process.
-          // Approximate precision in % as min ticks / DR size in range [0,100].
-          // Defaults to a value indicating that proportional mode is not possible.
+          //
+          // Approximate precision in % as min ticks / DR size in range [1,100].
+          // Defaults to large value indicating proportional mode not possible.
           uint8_t approxPrecisionPC = bad_precision;
           // A reduced ticks open/closed in ratio to allow small conversions.
           uint8_t tfotcSmall = 0, tfctoSmall = 0;
@@ -518,10 +519,10 @@ class CurrentSenseValveMotorDirect final : public CurrentSenseValveMotorDirectBi
     virtual bool do_valveCalibrating_prop() override;
 
     // Do valveNormal start for proportional drive; returns true to return from poll() immediately.
-    // Falls through to do drive to end stops or when in run-time binary-only mode.
+    // Falls through to do drive to end stops, or when in run-time binary-only mode.
     // Calls changeState() directly if it needs to change state.
-    // If this returns false, processing falls through to that for the non-proportional case.
-    // Does nothing in the non-proportional-only implementation.
+    // If this returns false, processing should fall through to
+    // that for the non-proportional case.
     virtual bool do_valveNormal_prop() override;
 
   public:
