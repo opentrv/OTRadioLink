@@ -62,15 +62,17 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     // so it is appropriate to use a 2s ticks approximation.
     static const constexpr uint8_t MAX_TRAVEL_WALLCLOCK_2s_TICKS = OTV0P2BASE::fnmax(4, MAX_TRAVEL_S / 2);
 
-    // Time before starting to retract pint during initialisation, in seconds.
-    // Long enough for to leave the CLI some time for setting things like setting secret keys.
-    // Short enough not to be annoying waiting for the pin to retract before fitting a valve.
+    // Time before starting to retract pin during initialisation, in seconds.
+    // Long enough for to leave the CLI some time for setting things
+    // such as setting secret keys.
+    // Short enough not to be annoying waiting for the pin to retract
+    // before fitting a valve.
     static const constexpr uint8_t initialRetractDelay_s = 30;
 
     // Runtime for dead-reckoning adjustments (from stopped) (ms).
     // Smaller values nominally allow greater precision when dead-reckoning,
     // but may force the calibration to take longer.
-    // Based on DHD20151020 DORM1 prototype rig-up and NiMH battery; 250ms+ seems good.
+    // For TRV1.x 250ms+ seems good.
     static const constexpr uint8_t minMotorDRMS = 250;
 
     // Maximum number of consecutive end-stop hits to trust that the stop has really been hit; strictly positive.
@@ -88,7 +90,8 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     // Computes absolute limit in sub-cycle beyond which motor should not be started.
     // This should allow meaningful movement and stop and settle and no sub-cycle overrun.
     // Allows for up to 120ms enforced sleep either side of motor run for example.
-    // This should not be so greedy as to (eg) make the CLI unusable: 90% is pushing it.
+    // This should not be so greedy as to (eg) make the CLI unusable:
+    // 90% is pushing it.
     // Keep inline in the header to allow compile-time computation.
     //
     // Was:
@@ -106,12 +109,16 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     //
     // "Close enough" means:
     //   * fully open and fully closed should always be achieved
-    //   * generally within an absolute tolerance (absTolerancePC) of the target value (eg 10--25%)
-    //   * when target is below DEFAULT_VALVE_PC_SAFER_OPEN then any value at/below target is acceptable
-    //   * when target is at or above DEFAULT_VALVE_PC_SAFER_OPEN then any value at/above target is acceptable
+    //   * generally within an absolute tolerance (absTolerancePC)
+    //     of the target value (eg 10--25%)
+    //   * when target is below DEFAULT_VALVE_PC_SAFER_OPEN then any value
+    //     at/below target is acceptable
+    //   * when target is at or above DEFAULT_VALVE_PC_SAFER_OPEN then any value
+    //     at/above target is acceptable
     // The absolute tolerance is partly guided by the fact that most TRV bases
     // are only anything like linear in throughput over a relatively small range.
-    static constexpr uint8_t absTolerancePC = 16;
+    static constexpr uint8_t absTolerancePC = 16; // 16 up to 20170104.
+//    static constexpr uint8_t absTolerancePC = 10;
     static constexpr bool closeEnoughToTarget(const uint8_t targetPC, const uint8_t currentPC)
         {
         return((targetPC == currentPC) ||
