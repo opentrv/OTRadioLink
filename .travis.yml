@@ -1,0 +1,9 @@
+language: cpp
+script: ./PortableUnitTestsDriver.sh
+notifications:
+  email:
+    recipients:
+      - ci@opentrv.uk
+    on_success: change
+    on_failure: always
+
