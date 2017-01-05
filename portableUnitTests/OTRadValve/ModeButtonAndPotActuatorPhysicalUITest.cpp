@@ -52,7 +52,7 @@ TEST(ModeButtonAndPotActuatorPhysicalUI,basics)
     ASSERT_FALSE(mbpUI.recentUIControlUse());
     ASSERT_FALSE(mbpUI.veryRecentUIControlUse());
     ASSERT_FALSE(occupancy.isLikelyOccupied());
-    ASSERT_FALSE(occupancy.reportedRecently());
+    ASSERT_FALSE(occupancy.reportedNewOccupancyRecently());
 }
 
 
@@ -104,6 +104,6 @@ TEST(ModeButtonAndPotActuatorPhysicalUI,startState)
         for(int i = 10; --i > 0; ) { mbpUI.read(); } // Spin a few ticks to warm up...
         EXPECT_EQ((0 != pp), vm.inWarmMode()) << "Should only boot to FROST mode if dial is in FROST position";
         ASSERT_FALSE(occupancy.isLikelyOccupied()) << "Forcing WARM mode should not trigger any occupancy indication";
-        ASSERT_FALSE(occupancy.reportedRecently()) << "Forcing WARM mode should not trigger any occupancy indication";
+        ASSERT_FALSE(occupancy.reportedNewOccupancyRecently()) << "Forcing WARM mode should not trigger any occupancy indication";
     }
 }

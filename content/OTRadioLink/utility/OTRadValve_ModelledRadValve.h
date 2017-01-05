@@ -645,7 +645,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
         // controls prematurely!
         const bool fastResponseRequired =
             physicalUI->veryRecentUIControlUse() ||
-            (occupancy->reportedRecently() && occupancy->isLikelyOccupied());
+            (occupancy->reportedNewOccupancyRecently());
         inputState.fastResponseRequired = fastResponseRequired;
         // Widen the allowed deadband significantly in a dark room
         // to save (heating/battery) energy and noise (TODO-383, TODO-1037)
