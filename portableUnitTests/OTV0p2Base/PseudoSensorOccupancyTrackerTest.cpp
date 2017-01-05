@@ -84,7 +84,8 @@ TEST(PseudoSensorOccupancyTracker,basics)
     ASSERT_TRUE(o1.longVacant());
     ASSERT_TRUE(o1.longLongVacant());
 
-    // Put in holiday mode; show that markAsOccupied() brings status back to occupied.
+    // Put in holiday mode; show that markAsOccupied()
+    // brings status back to occupied.
     o1.setHolidayMode();
     ASSERT_FALSE(o1.isLikelyRecentlyOccupied());
     ASSERT_FALSE(o1.isLikelyOccupied());
@@ -93,10 +94,11 @@ TEST(PseudoSensorOccupancyTracker,basics)
     ASSERT_TRUE(o1.isLikelyRecentlyOccupied());
     ASSERT_TRUE(o1.isLikelyOccupied());
     ASSERT_FALSE(o1.isLikelyUnoccupied());
-    ASSERT_TRUE(o1.reportedRecently());
+    ASSERT_TRUE(o1.reportedNewOccupancyRecently());
     EXPECT_EQ(3, o1.twoBitOccupancyValue());
 
-    // Put in holiday mode; show that markAsPossiblyOccupied() brings status back to occupied.
+    // Put in holiday mode; show that markAsPossiblyOccupied()
+    // brings status back to occupied.
     o1.setHolidayMode();
     ASSERT_FALSE(o1.isLikelyRecentlyOccupied());
     ASSERT_FALSE(o1.isLikelyOccupied());
@@ -105,10 +107,11 @@ TEST(PseudoSensorOccupancyTracker,basics)
     ASSERT_FALSE(o1.isLikelyRecentlyOccupied());
     ASSERT_TRUE(o1.isLikelyOccupied());
     ASSERT_FALSE(o1.isLikelyUnoccupied());
-    ASSERT_TRUE(o1.reportedRecently());
+    ASSERT_TRUE(o1.reportedNewOccupancyRecently());
     EXPECT_EQ(2, o1.twoBitOccupancyValue());
 
-    // Put in holiday mode; show that markAsJustPossiblyOccupied() DOES NOT move status to occupied.
+    // Put in holiday mode; show that markAsJustPossiblyOccupied()
+    // DOES NOT move status to occupied.
     o1.setHolidayMode();
     ASSERT_FALSE(o1.isLikelyRecentlyOccupied());
     ASSERT_FALSE(o1.isLikelyOccupied());
@@ -117,10 +120,11 @@ TEST(PseudoSensorOccupancyTracker,basics)
     ASSERT_FALSE(o1.isLikelyRecentlyOccupied());
     ASSERT_FALSE(o1.isLikelyOccupied());
     ASSERT_TRUE(o1.isLikelyUnoccupied());
-    ASSERT_FALSE(o1.reportedRecently());
+    ASSERT_FALSE(o1.reportedNewOccupancyRecently());
     EXPECT_EQ(1, o1.twoBitOccupancyValue());
 
-    // Show that markAsJustPossiblyOccupied() does indicate some occupancy when system not very torpid.
+    // Show that markAsJustPossiblyOccupied()
+    // does indicate some occupancy when system not very torpid.
     o1.reset();
     ASSERT_FALSE(o1.isLikelyRecentlyOccupied());
     ASSERT_FALSE(o1.isLikelyOccupied());
@@ -129,6 +133,6 @@ TEST(PseudoSensorOccupancyTracker,basics)
     ASSERT_FALSE(o1.isLikelyRecentlyOccupied());
     ASSERT_TRUE(o1.isLikelyOccupied());
     ASSERT_FALSE(o1.isLikelyUnoccupied());
-    ASSERT_FALSE(o1.reportedRecently());
+    ASSERT_FALSE(o1.reportedNewOccupancyRecently());
     EXPECT_EQ(2, o1.twoBitOccupancyValue());
 }

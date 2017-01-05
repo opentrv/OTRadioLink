@@ -75,9 +75,19 @@ class ErrorReport final : public OTV0P2BASE::Actuator<int8_t>
         // Zero is not an error nor a warning.
         enum errorCatalogue : int8_t
             {
-            WARN_UNSPECIFIED = -1, // Unspecified warning.
-            ERR_NONE = 0, // Not an error.
-            ERR_UNSPECIFIED = 1, // Unspecified error.
+            // Automatically recoverable tracking error,
+            // eg in valve drive dead reckoning,
+            // likely to need an recalibration run.
+            WARN_VALVE_TRACKING = -10,
+
+            // Unspecified warning.
+            WARN_UNSPECIFIED = -1,
+
+            // Not an error.
+            ERR_NONE = 0,
+
+            // Unspecified error.
+            ERR_UNSPECIFIED = 1,
             };
 
     private:
@@ -93,13 +103,13 @@ class ErrorReport final : public OTV0P2BASE::Actuator<int8_t>
         // Compound operations on this value must block interrupts.
         volatile OTV0P2BASE::Atomic_UInt8T timeoutTicks;
 
-        // True if any extant warning/error has aged out.
-        bool isAged() const { return(0 == timeoutTicks.load()); }
-
     public:
+        // Create instance already aged and with no error/warning set.
+        constexpr ErrorReport() : timeoutTicks(0) { }
+
         // Set new error (+ve) / warning (-ve), or zero to clear.
         // Errors cannot be overwritten by anything other than another error
-        // unless the error is aged.
+        // unless the extant error/warning is aged.
         // NOT thread-/ISR- safe.
         virtual bool set(const int8_t newValue)
           {
@@ -128,6 +138,9 @@ class ErrorReport final : public OTV0P2BASE::Actuator<int8_t>
         // Age any live error/warning and return it; 0 if nothing set.
         virtual int8_t read() override
             { OTV0P2BASE::safeDecIfNZWeak(timeoutTicks); return(get()); }
+
+        // True if any extant warning/error has aged out.
+        bool isAged() const { return(0 == timeoutTicks.load()); }
 
         // Returns true if there is a non-aged error or warning set.
         virtual bool isAvailable() const override { return(!isAged()); }

@@ -35,11 +35,16 @@ namespace OTRadValve
 
 
     // Minimum and maximum bounds target temperatures; degrees C/Celsius/centigrade, strictly positive.
-    // Minimum is some way above 0C to avoid freezing pipework even with small measurement errors and non-uniform temperatures.
-    // Maximum is set a little below boiling/100C for DHW applications for safety.
-    // Setbacks and uplifts cannot move temperature targets outside this range for safety.
-    static constexpr uint8_t MIN_TARGET_C = 5; // Minimum temperature setting allowed (to avoid freezing, allowing for offsets at temperature sensor, etc).
-    static constexpr uint8_t MAX_TARGET_C = 95; // Maximum temperature setting allowed (eg for DHW).
+    // Minimum is some way above 0C to avoid freezing pipework
+    // allowing for small measurement errors and non-uniform temperatures.
+    // Maximum is set a little below boiling/100C for DHW for safety.
+    // Setbacks and uplifts cannot move temperature targets outside this range
+    // for safety.
+    //
+    // Minimum temperature setting allowed (to avoid freezing, allowing for offsets at temperature sensor, etc).
+    static constexpr uint8_t MIN_TARGET_C = 5;
+    // Maximum temperature setting allowed (eg for DHW).
+    static constexpr uint8_t MAX_TARGET_C = 95;
 
     // 18C is a safe room temperature even for the slightly infirm according to NHS England 2014:
     //    http://www.nhs.uk/Livewell/winterhealth/Pages/KeepWarmKeepWell.aspx
@@ -226,44 +231,50 @@ namespace OTRadValve
     // Default 'BAKE' minutes, ie time to crank heating up to BAKE setting (minutes, strictly positive, <255).
     static constexpr uint8_t DEFAULT_BAKE_MAX_M = 30;
 
-    // Default minimum valve percentage open to be considered actually/significantly open; [1,99].
+    // Default typical minimum valve percentage open to be considered actually/significantly open; [1,99].
     // Anything like this will usually be shut or very minimal flows.
-    // Setting this above 0 delays calling for heat from a central boiler until water is likely able to flow.
-    // (It may however be possible to scavenge some heat if a particular valve opens below this and the circulation pump is already running, for example.)
-    // DHD20130522: FHT8V + valve heads in use have not typically been open until around 6%; at least one opens at ~20%.
+    // Setting this above 0 delays calling for heat from a central boiler
+    // until water is likely able to flow.
+    // (It may however be possible to scavenge some heat if a particular valve
+    // opens below this and the circulation pump is already running, for example.)
+    // DHD20130522: FHT8V + valve heads in use have not typically been open
+    //     until ~6%; at least one opens at ~20%.
     // DHD20151014: may need reduction to <5 for use in high-pressure systems.
-    // DHD20151030: with initial dead-reckoning direct drive impl valves may not be open until ~45%.
-    // Allowing valve to linger at just below this level without calling for heat when shutting
-    // may allow comfortable boiler pump overrun in older systems with no/poor bypass to avoid overheating.
+    // DHD20151030: with TRV1.x dead reckoning, valves may not open until ~45%.
+    // Allowing valve to linger at just below this level
+    // without calling for heat when shutting
+    // may allow comfortable boiler pump overrun in older systems
+    // with no/poor bypass to avoid overheating.
     static const uint8_t DEFAULT_VALVE_PC_MIN_REALLY_OPEN = 15;
 
     // Safer value for valves to very likely be significantly open, in range [DEFAULT_VALVE_PC_MIN_REALLY_OPEN+1,DEFAULT_VALVE_PC_MODERATELY_OPEN-1].
-    // NOTE: below this value is likely to let a boiler switch off also,
-    // ie a value at/above this is a definite call for heat.
-    // so DO NOT CHANGE this value between boiler and valve code without good reason.
-    // DHD20151030: with initial dead-reckoning direct drive impl valves may not be open until ~45%.
+    // NOTE: below this value is will let a boiler switch off,
+    // ie a value at/above this is a call for heat from the boiler also.
+    // so DO NOT CHANGE this value between boiler and valve code lightly.
+    // DHD20151030: with TRV1.x dead reckoning, valves may not open until ~45%.
     static constexpr uint8_t DEFAULT_VALVE_PC_SAFER_OPEN = 50;
 
     // Default valve percentage at which significant heating power is being provided [DEFAULT_VALVE_PC_SAFER_OPEN+1,99].
     // For many valves much of the time this may be effectively fully open,
     // ie no change beyond this makes significant difference to heat delivery.
-    // NOTE: at/above this value is likely to force a boiler on also,
-    // so DO NOT CHANGE this value between boiler and valve code without good reason.
+    // NOTE: at/above this value a strong call for heat from the boiler also,
+    // so DO NOT CHANGE this value between boiler and valve code lightly.
     // Should be significantly higher than DEFAULT_MIN_VALVE_PC_REALLY_OPEN.
-    // DHD20151014: has been ~33% but ~66% more robust, eg for tricky all-in-one units.
+    // DHD20151014: has been ~33% but ~67% more robust, eg for all-in-one units.
     static constexpr uint8_t DEFAULT_VALVE_PC_MODERATELY_OPEN = 67;
 
 
     // Default maximum time to allow boiler to run on to allow for lost TXs etc (min).
     // This is also the default minimum-off time to avoid short cycling.
     // Should be (much) greater than the gap between transmissions
-    // (eg ~2m for FHT8V/FS20, 4m for the TRV1 secure protocol).
+    // (eg ~2m for FHT8V/FS20, 4m for the TRV1 secure protocol circa 2016).
     // Should be greater than the run-on time at the OpenTRV boiler unit
     // and any further pump run-on time.
     // Valves should possibly linger open at least this
     // plus maybe an extra minute or so for timing skew
     // for systems with poor/absent bypass to help avoid overheating.
-    // Having too high a linger time value may cause excessive temperature overshoot.
+    // Having too high a linger time value may cause excessive
+    // temperature overshoot.
     static constexpr uint8_t DEFAULT_MAX_RUN_ON_TIME_M = 5;
 
     // Typical time for boiler to start pumping hot water to rads from off (min).
@@ -283,7 +294,7 @@ namespace OTRadValve
     // Default delay in minutes after restricting flow before re-opening is allowed.
     // This is to avoid excessive seeking/noise
     // in the presence of strong draughts for example.
-    // Attempting turn rads off for less than the typical boiler minimum-off time
+    // Attempting turn rads off for less than typical boiler minimum-off time
     // is probably nugatory.
     // A value larger than DEFAULT_ANTISEEK_VALVE_RECLOSE_DELAY_M helps savings
     // but may prevent a poorly-functioning radiator providing enough heat.
