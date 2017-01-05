@@ -103,9 +103,6 @@ class ErrorReport final : public OTV0P2BASE::Actuator<int8_t>
         // Compound operations on this value must block interrupts.
         volatile OTV0P2BASE::Atomic_UInt8T timeoutTicks;
 
-        // True if any extant warning/error has aged out.
-        bool isAged() const { return(0 == timeoutTicks.load()); }
-
     public:
         // Create instance already aged and with no error/warning set.
         constexpr ErrorReport() : timeoutTicks(0) { }
@@ -141,6 +138,9 @@ class ErrorReport final : public OTV0P2BASE::Actuator<int8_t>
         // Age any live error/warning and return it; 0 if nothing set.
         virtual int8_t read() override
             { OTV0P2BASE::safeDecIfNZWeak(timeoutTicks); return(get()); }
+
+        // True if any extant warning/error has aged out.
+        bool isAged() const { return(0 == timeoutTicks.load()); }
 
         // Returns true if there is a non-aged error or warning set.
         virtual bool isAvailable() const override { return(!isAged()); }
