@@ -260,7 +260,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
     // and should allow a little extra energy saving.
     //
     // Note that this is likely to get invoked when a big temperature setback
-    // is suddenly removed, including but only, upon occupancy.
+    // is suddenly removed, including but not only, upon occupancy.
     if(adjustedTempC <
         OTV0P2BASE::fnmax(int(tTC) - (wide ? 2 : 0), int(OTRadValve::MIN_TARGET_C)))
         {
