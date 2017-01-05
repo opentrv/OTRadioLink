@@ -552,7 +552,7 @@ static void normalStateWalkthrough(OTRadValve::CurrentSenseValveMotorDirectBase 
         //   * when target is at or above DEFAULT_VALVE_PC_SAFER_OPEN
         //     then any value at/above target is acceptable
         const uint8_t currentPC = csv->getCurrentPC();
-        const bool isCloseEnough = OTRadValve::CurrentSenseValveMotorDirectBase::closeEnoughToTarget(target, currentPC);
+        const bool isCloseEnough = OTRadValve::CurrentSenseValveMotorDirect::closeEnoughToTarget(target, currentPC);
         if(target == currentPC) { EXPECT_TRUE(isCloseEnough) << "should always be 'close enough' with values equal"; }
         // Attempts to close the valve may be legitimately ignored when the battery is low.
         // But attempts to open fully should always be accepted, eg as anti-frost protection.
@@ -561,7 +561,7 @@ static void normalStateWalkthrough(OTRadValve::CurrentSenseValveMotorDirectBase 
         // If using a simulator, check if its internal position measure is close enough.
         // Always true if not running a full simulator.
         const bool isSimCloseEnoughOrNotSim = (NULL == simulator) ||
-            OTRadValve::CurrentSenseValveMotorDirectBase::closeEnoughToTarget(target, simulator->getNominalPercentOpen());
+            OTRadValve::CurrentSenseValveMotorDirect::closeEnoughToTarget(target, simulator->getNominalPercentOpen());
         if((!batteryLow) || (target == 100))
             {
             EXPECT_TRUE(isSimCloseEnoughOrNotSim) << "target%="<<((int)target) << ", current%="<<((int)currentPC) << ", batteryLow="<<batteryLow <<
@@ -650,7 +650,7 @@ static void propControllerRobustness(OTRadValve::CurrentSenseValveMotorDirect *c
         //   * Signal that the valve is fitted.
         if(OTRadValve::CurrentSenseValveMotorDirectBase::valvePinWithdrawn == csv->_getState())
             {
-            EXPECT_LE(100 - OTRadValve::CurrentSenseValveMotorDirectBase::absTolerancePC/2, simulator->getNominalPercentOpen());
+            EXPECT_LE(100 - OTRadValve::CurrentSenseValveMotorDirect::absTolerancePC/2, simulator->getNominalPercentOpen());
             csv->signalValveFitted();
             }
         csv->poll();
@@ -680,14 +680,14 @@ static void propControllerRobustness(OTRadValve::CurrentSenseValveMotorDirect *c
         //   * when target is at or above DEFAULT_VALVE_PC_SAFER_OPEN
         //     then any value at/above target is acceptable
         const uint8_t currentPC = csv->getCurrentPC();
-        const bool isCloseEnough = OTRadValve::CurrentSenseValveMotorDirectBase::closeEnoughToTarget(target, currentPC);
+        const bool isCloseEnough = OTRadValve::CurrentSenseValveMotorDirect::closeEnoughToTarget(target, currentPC);
         if(target == currentPC) { EXPECT_TRUE(isCloseEnough) << "should always be 'close enough' with values equal"; }
         // Attempts to close the valve may be legitimately ignored when the battery is low.
         // But attempts to open fully should always be accepted, eg as anti-frost protection.
         EXPECT_TRUE(isCloseEnough) << "target%="<<((int)target) << ", current%="<<((int)currentPC);
         // Check if simulator's internal position measure is close enough.
         const bool isSimCloseEnoughOrNotSim =
-            OTRadValve::CurrentSenseValveMotorDirectBase::closeEnoughToTarget(target, simulator->getNominalPercentOpen());
+            OTRadValve::CurrentSenseValveMotorDirect::closeEnoughToTarget(target, simulator->getNominalPercentOpen());
         EXPECT_TRUE(isSimCloseEnoughOrNotSim) << "target%="<<((int)target) << ", current%="<<((int)currentPC) <<
             ", sim%="<<((int)(simulator->getNominalPercentOpen()));
         // Ensure that driver has not reached an error (or other strange) state.
@@ -749,7 +749,7 @@ static void noFlappingOn1PercentDither(
         //   * Signal that the valve is fitted.
         if(OTRadValve::CurrentSenseValveMotorDirectBase::valvePinWithdrawn == csv->_getState())
             {
-            EXPECT_LE(100 - OTRadValve::CurrentSenseValveMotorDirectBase::absTolerancePC/2, simulator->getNominalPercentOpen());
+            EXPECT_LE(100 - OTRadValve::CurrentSenseValveMotorDirect::absTolerancePC/2, simulator->getNominalPercentOpen());
             csv->signalValveFitted();
             }
         csv->poll();

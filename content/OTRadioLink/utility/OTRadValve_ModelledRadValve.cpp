@@ -253,13 +253,24 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
     // and/or slow drift down/closed as setbacks are applied.
     static constexpr uint8_t maxTmpOvershoot = 4;
     // (Well) under temperature target: open valve up.
-    // Always allow an extra degree of drift down with a wide deadband.
-    if(adjustedTempC + (wide ? 1 : 0) < tTC)
+    // Always allow an extra degree or two of drift down with a wide deadband.
+    // When not in binary mode the temperature will be pushed up gently
+    // within this range but below the central degree.
+    // This limited extra downward drift is unlikely to affect frost protection,
+    // and should allow a little extra energy saving.
+    //
+    // Note that this is likely to get invoked when a big temperature setback
+    // is suddenly removed, including but only, upon occupancy.
+    if(adjustedTempC <
+        OTV0P2BASE::fnmax(int(tTC) - (wide ? 2 : 0), int(OTRadValve::MIN_TARGET_C)))
         {
         // Don't open if recently turned down, and not in BAKE mode.
         if(dontTurnup() && !inputState.inBakeMode) { return(valvePCOpen); }
-        // Honour glacial restriction for opening.
-        if(beGlacial) { if(valvePCOpen < inputState.maxPCOpen) { return(valvePCOpen + 1); } }
+        if(!MINIMAL_BINARY_IMPL)
+            {
+            // Honour glacial restriction for opening if not binary.
+            if(beGlacial) { if(valvePCOpen < inputState.maxPCOpen) { return(valvePCOpen + 1); } }
+            }
         // Fully open immediately.
         setEvent(MRVE_OPENFAST);
         return(inputState.maxPCOpen);
@@ -269,10 +280,13 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
     // in proportional mode to try to allow graceful handling of overshoot
     // (eg where TRV on rad sees larger temperature swings vs eg split unit),
     // though central temperature target remains the same.
+    //
+    // When not in binary mode the temperature will be pushed down gently
+    // even without a wide deadband but just above the central degree.
     else if(MINIMAL_BINARY_IMPL ? (adjustedTempC > tTC) :
             (adjustedTempC >
                 (OTV0P2BASE::fnmax(tTC, inputState.maxTargetTempC) +
-                    (wide ? maxTmpOvershoot : 0))))
+                    (wide ? maxTmpOvershoot : 1))))
         {
         // Don't close if recently turned up.
         if(dontTurndown()) { return(valvePCOpen); }
