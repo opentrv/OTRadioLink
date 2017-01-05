@@ -105,28 +105,6 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
                OTV0P2BASE::fnmax((uint8_t)1, (uint8_t)( ((gcst_max+1)/4) - minimumMotorRunupTicks - 1 - (240 / subcycleTicksRoundedDown_ms) )));
         }
 
-    // Returns true when the current % open is 'close enough' to the target value.
-    //
-    // "Close enough" means:
-    //   * fully open and fully closed should always be achieved
-    //   * generally within an absolute tolerance (absTolerancePC)
-    //     of the target value (eg 10--25%)
-    //   * when target is below DEFAULT_VALVE_PC_SAFER_OPEN then any value
-    //     at/below target is acceptable
-    //   * when target is at or above DEFAULT_VALVE_PC_SAFER_OPEN then any value
-    //     at/above target is acceptable
-    // The absolute tolerance is partly guided by the fact that most TRV bases
-    // are only anything like linear in throughput over a relatively small range.
-    static constexpr uint8_t absTolerancePC = 16; // 16 up to 20170104.
-//    static constexpr uint8_t absTolerancePC = 10;
-    static constexpr bool closeEnoughToTarget(const uint8_t targetPC, const uint8_t currentPC)
-        {
-        return((targetPC == currentPC) ||
-                (OTV0P2BASE::fnabsdiff(targetPC, currentPC) <= absTolerancePC) ||
-                ((targetPC < OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN) && (currentPC <= targetPC)) ||
-                ((targetPC >= OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN) && (currentPC >= targetPC)));
-        }
-
     // Basic/coarse states of driver, shared with derived classes.
     // There may be microstates within most these basic states.
     //
@@ -412,6 +390,33 @@ typedef CurrentSenseValveMotorDirectBinaryOnly CurrentSenseValveMotorDirectBase;
 class CurrentSenseValveMotorDirect final : public CurrentSenseValveMotorDirectBinaryOnly
   {
   public:
+    // Returns true when the current % open is 'close enough' to the target value.
+    //
+    // "Close enough" means:
+    //   * fully open and fully closed should always be achieved
+    //   * generally within an absolute tolerance (absTolerancePC)
+    //     of the target value (eg 10--25%)
+    //   * when target is below DEFAULT_VALVE_PC_SAFER_OPEN then any value
+    //     at/below target is acceptable
+    //   * when target is at or above DEFAULT_VALVE_PC_SAFER_OPEN then any value
+    //     at/above target is acceptable
+    // The absolute tolerance is partly guided by the fact that most TRV bases
+    // are only anything like linear in throughput over a relatively small range.
+    //
+    // Too low a tolerance may result in many tracking errors / recalibrations.
+    //
+    // Too high a tolerance may result in excess valve movement
+    // from the valve being pulled to end stops more than necessary.
+//    static constexpr uint8_t absTolerancePC = 16; // 16 up to 20170104.
+    static constexpr uint8_t absTolerancePC = 10;
+    static constexpr bool closeEnoughToTarget(const uint8_t targetPC, const uint8_t currentPC)
+        {
+        return((targetPC == currentPC) ||
+                (OTV0P2BASE::fnabsdiff(targetPC, currentPC) <= absTolerancePC) ||
+                ((targetPC < OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN) && (currentPC <= targetPC)) ||
+                ((targetPC >= OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN) && (currentPC >= targetPC)));
+        }
+
     // Calibration parameters.
     // Data received during the calibration process,
     // and outputs derived from it.
