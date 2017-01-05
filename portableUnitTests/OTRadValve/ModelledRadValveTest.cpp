@@ -361,7 +361,7 @@ TEST(ModelledRadValve,MRVSExtremes)
     // eg to support dark-based quick setback.
     // ENERGY SAVING RULE TEST (TODO-442 2a: "Setback in WARM mode must happen in dark (quick response) or long vacant room.")
     // Try a range of (whole-degree) offsets...
-    for(int offset = -4; offset <= +4; ++offset)
+    for(int offset = -10; offset <= +10; ++offset)
         {
 SCOPED_TRACE(testing::Message() << "offset " << offset);
         // Try soft setback off and on.
@@ -375,7 +375,7 @@ SCOPED_TRACE(testing::Message() << "widenDeadband " << wd);
             // Outside the potentially-proportional range,
             // valve should unconditionally be driven immediately off/on
             // by gross temperature error.
-            if(OTV0P2BASE::fnabs(offset) > (wd ? 1 : 0))
+            if(OTV0P2BASE::fnabs(offset) > (wd ? 2 : 0))
                 {
                 is3.setReferenceTemperatures(int_fast16_t((is3.targetTempC + offset) << 4));
                 // Where adjusted reference temperature is (well) below target, valve should be driven on.
