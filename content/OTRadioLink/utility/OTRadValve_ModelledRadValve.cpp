@@ -373,10 +373,10 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
                 // but close at a rate afterwards such that full close
                 // may not even be necessary after likely temporary overshoot.
                 // Users are unlikely to mind cooling more slowly...
-                // If temperature is well over target and temp is rising
-                // then shut completely immediately
+                // If temperature is well over target and temp not falling
+                // then shut completely
                 // so as to not leave the user sweating for whatever reason.
-                if(wellAboveTarget && (rise > 0)) { return(0); }
+                if(wellAboveTarget && (rise >= 0)) { return(0); }
                 static constexpr uint8_t slew = TRV_SLEW_PC_PER_MIN;
                 static_assert(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN > (OTRadValve::DEFAULT_MAX_RUN_ON_TIME_M * slew), "time for boiler to have stopped before valve fully closes");
                 return(uint8_t(OTV0P2BASE::fnconstrain(
