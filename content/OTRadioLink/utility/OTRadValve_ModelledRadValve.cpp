@@ -332,6 +332,9 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
         static constexpr uint8_t wAT = OTV0P2BASE::fnmax(maxTmpOvershoot/2, 1);
         const bool wellAboveTarget = adjustedTempC > tTC + wAT;
 
+        // Check direction of latest raw temperature movement, if any.
+        const int_fast16_t rise = getRawDelta();
+
         // Move quickly when requested, eg responding to manual control use.
         // Try to get to right side of call-for-heat threshold in first tick
         // if not in central sweet-spot already  (TODO-1099)
@@ -367,9 +370,10 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
                 // but close at a rate afterwards such that full close
                 // may not even be necessary after likely temporary overshoot.
                 // Users are unlikely to mind cooling more slowly...
-                // If temperature is well over target then shut immediately
+                // If temperature is well over target and temp is rising
+                // then shut completely immediately
                 // so as to not leave the user sweating for whatever reason.
-                if(wellAboveTarget) { return(0); }
+                if(wellAboveTarget && (rise > 0)) { return(0); }
                 static constexpr uint8_t slew = TRV_SLEW_PC_PER_MIN;
                 static_assert(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN > (OTRadValve::DEFAULT_MAX_RUN_ON_TIME_M * slew), "time for boiler to have stopped before valve fully closes");
                 return(uint8_t(OTV0P2BASE::fnconstrain(
@@ -378,9 +382,6 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
                     int(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1))));
                 }
             }
-
-        // Check direction of latest raw temperature movement, if any.
-        const int_fast16_t rise = getRawDelta();
 
         // Avoid movement to save valve energy and noise if ALL of:
         //   * not calling for heat (which also saves boiler energy and noise)
@@ -457,10 +458,12 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
                 // Else close slowly if in the bottom half of the range
                 // to try to capture any bottom-end proportional behaviour
                 // and give chance for rad/room to start cooling.
+                // Else close slowly if there has been no recent temp rise.
                 else if(shouldClose)
                     {
                     const bool moveSlow = !wellAboveTarget ||
-                        (valvePCOpen < OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN/2);
+                        (valvePCOpen < OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN/2) ||
+                        (0 == rise);
                     const uint8_t slew = moveSlow ?
                         TRV_SLEW_PC_PER_MIN_SLOW : TRV_SLEW_PC_PER_MIN;
                     return(uint8_t(OTV0P2BASE::fnconstrain(
