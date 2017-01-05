@@ -60,7 +60,9 @@ static constexpr int8_t OCCCP_SHIFT =
 // Poll at a fixed rate.
 uint8_t PseudoSensorOccupancyTracker::read()
   {
-    // Update the various metrics in a thread-/ISR- safe way (nominally needs lock, since read-modify-write).
+    // Update the various metrics in a thread-/ISR- safe way
+    // (needs specific concurrency management, since read-modify-write).
+    //
     // These are updated independently and each in a safe way.
     // Some races may remain but should be relatively harmless.
     // Eg an ill-timed ISR call to mark as occupied
@@ -68,10 +70,11 @@ uint8_t PseudoSensorOccupancyTracker::read()
     // (ie some inconsistency) until next read() call repairs it.
     //
     // Safely run down occupation timer (or run up vacancy time) if need be.
-    // Note that vacancyM and vacancyH should never be directly touched by ISR/thread calls.
+    // Note that vacancyM and vacancyH should never be directly touched
+    // by ISR/thread calls.
     safeDecIfNZWeak(occupationCountdownM);
-    // Safely run down the 'recent activity' timer.
-    safeDecIfNZWeak(activityCountdownM);
+    // Safely run down the 'noew occupancy' timer.
+    safeDecIfNZWeak(newOccupancyCountdownM);
     // Compute as percentage.
     // Use snapshot of occupationCountdownM for consistency in calculation.
     const uint8_t ocM = occupationCountdownM.load();
@@ -83,29 +86,52 @@ uint8_t PseudoSensorOccupancyTracker::read()
     return(newValue);
   }
 
+// Call when very strong evidence of active room occupation has occurred.
+// Do not call based on internal/synthetic events.
+// Such evidence may include operation of buttons (etc) on the unit or PIR.
+// Do not call from (for example) 'on' schedule change.
+// Makes occupation immediately visible.
+// Thread-safe and ISR-safe.
+void PseudoSensorOccupancyTracker::markAsOccupied()
+    {
+    value = 100;
+    // Mark new occupancy if was vacant.
+    if(0 == occupationCountdownM.load())
+       { newOccupancyCountdownM.store(NEW_OCCUPANCY_TIMEOUT_M); }
+    // Mark with maximum occupancy confidence.
+    occupationCountdownM.store(OCCUPATION_TIMEOUT_M);
+    }
+
 // Call when decent but not very strong evidence of active room occupation, such as a light being turned on, or voice heard.
 // Do not call based on internal/synthetic events.
 // Doesn't force the room to appear recently occupied.
-// If the hardware allows this may immediately turn on the main GUI LED until normal GUI reverts it,
+// If the hardware allows this may immediately turn on the main GUI LED
+// until normal GUI reverts it,
 // at least periodically.
-// Preferably do not call for manual control operation to avoid interfering with UI operation.
+// Preferably do not call for manual control operation
+// to avoid interfering with UI operation.
 // ISR-/thread- safe.
 void PseudoSensorOccupancyTracker::markAsPossiblyOccupied()
   {
-  // Update primary occupation metric in thread-safe way (needs lock, since read-modify-write).
+  // Update primary occupation metric in thread-safe way
+  // (needs specific concurrency management, since read-modify-write).
   uint8_t ocM = occupationCountdownM.load();
+  // Mark new occupancy if was vacant.
+  if(0 == ocM)
+     { newOccupancyCountdownM.store(NEW_OCCUPANCY_TIMEOUT_M); }
+  // Mark with maximum occupancy confidence.
   const uint8_t oNew = OTV0P2BASE::fnmax(ocM, (uint8_t)(OCCUPATION_TIMEOUT_LIKELY_M));
   // Update may silently fail if other activity on occupationCountdownM while executing.
   occupationCountdownM.compare_exchange_strong(ocM, oNew);
-  activityCountdownM.store(ACTIVITY_TIMEOUT_M); // Atomic byte write.
   }
 
 // Call when weak evidence of active room occupation, such rising RH% or CO2 or mobile phone RF levels while not dark.
 // Do not call this based on internal/synthetic events.
 // Is ignored if the room has been vacant for a while,
-// so for example a weak indication of presence is not enough to cancel holiday mode.
+// so for example a weak indication of presence
+// is not enough to cancel holiday mode.
 // Doesn't force the room to appear recently occupied.
-// Doesn't activate the recent-activity status.
+// Doesn't activate the new-occupation status.
 // Not ISR-/thread- safe.
 void PseudoSensorOccupancyTracker::markAsJustPossiblyOccupied()
   {
