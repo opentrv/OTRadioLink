@@ -252,6 +252,9 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
     // to allow for brief overshoot esp when sensor is close to heat source
     // and/or slow drift down/closed as setbacks are applied.
     static constexpr uint8_t maxTmpOvershoot = 4;
+    // Possibly-higher upper limit, eg non-set-back temperature.
+    const uint8_t higherTargetC =
+        OTV0P2BASE::fnmax(tTC, inputState.maxTargetTempC);
     // (Well) under temperature target: open valve up.
     // Always allow an extra degree or two of drift down with a wide deadband.
     // When not in binary mode the temperature will be pushed up gently
@@ -284,9 +287,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
     // When not in binary mode the temperature will be pushed down gently
     // even without a wide deadband when just above the central degree.
     else if(MINIMAL_BINARY_IMPL ? (adjustedTempC > tTC) :
-            (adjustedTempC >
-                (OTV0P2BASE::fnmax(tTC, inputState.maxTargetTempC) +
-                    (wide ? maxTmpOvershoot : 1))))
+            (adjustedTempC > (higherTargetC + (wide ? maxTmpOvershoot : 1))))
         {
         // Don't close if recently turned up.
         if(dontTurndown()) { return(valvePCOpen); }
@@ -347,10 +348,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
         const uint8_t wAT = isFiltering ?
             OTV0P2BASE::fnmax(maxTmpOvershoot-1, 1) :
             OTV0P2BASE::fnmax(maxTmpOvershoot/2, 1);
-        const bool wellAboveTarget = adjustedTempC > tTC + wAT;
-
-        // Check direction of latest raw temperature movement, if any.
-        const int_fast16_t rise = getRawDelta();
+        const bool wellAboveTarget = adjustedTempC > higherTargetC + wAT;
 
         // Move quickly when requested, eg responding to manual control use.
         // Try to get to right side of call-for-heat threshold in first tick
@@ -387,10 +385,9 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
                 // but close at a rate afterwards such that full close
                 // may not even be necessary after likely temporary overshoot.
                 // Users are unlikely to mind cooling more slowly...
-                // If temperature is well over target and temp not falling
-                // then shut completely
+                // If temperature is well above target then shut completely
                 // so as to not leave the user sweating for whatever reason.
-                if(wellAboveTarget && (rise >= 0)) { return(0); }
+                if(wellAboveTarget) { return(0); }
                 static constexpr uint8_t slew = TRV_SLEW_PC_PER_MIN;
                 static_assert(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN > (OTRadValve::DEFAULT_MAX_RUN_ON_TIME_M * slew), "time for boiler to have stopped before valve fully closes");
                 return(uint8_t(OTV0P2BASE::fnconstrain(
@@ -399,6 +396,9 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
                     int(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1))));
                 }
             }
+
+        // Check direction of latest raw temperature movement, if any.
+        const int_fast16_t rise = getRawDelta();
 
         // Avoid movement to save valve energy and noise if ALL of:
         //   * not calling for heat (which also saves boiler energy and noise)
