@@ -349,8 +349,8 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
             {
             if(belowLowerTarget)
                 {
-                // Always open immediately to at more open of
-                // minimum-really-on and (more than) calling-for-heat levels.
+                // Always open immediately to more open of
+                // minimum-really-on and strongly-calling-for-heat levels.
                 // Thereafter open at a more normal pace to allow
                 // the boiler to start if not already running,
                 // and the valve to actually physically open,

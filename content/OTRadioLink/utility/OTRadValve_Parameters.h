@@ -238,26 +238,26 @@ namespace OTRadValve
     static const uint8_t DEFAULT_VALVE_PC_MIN_REALLY_OPEN = 15;
 
     // Safer value for valves to very likely be significantly open, in range [DEFAULT_VALVE_PC_MIN_REALLY_OPEN+1,DEFAULT_VALVE_PC_MODERATELY_OPEN-1].
-    // NOTE: below this value is likely to let a boiler switch off also,
-    // ie a value at/above this is a definite call for heat.
+    // NOTE: below this value is will let a boiler switch off,
+    // ie a value at/above this is a call for heat from the boiler also.
     // so DO NOT CHANGE this value between boiler and valve code without good reason.
-    // DHD20151030: with initial dead-reckoning direct drive impl valves may not be open until ~45%.
+    // DHD20151030: with TRV1.x dead reckoning, valves may not open until ~45%.
     static constexpr uint8_t DEFAULT_VALVE_PC_SAFER_OPEN = 50;
 
     // Default valve percentage at which significant heating power is being provided [DEFAULT_VALVE_PC_SAFER_OPEN+1,99].
     // For many valves much of the time this may be effectively fully open,
     // ie no change beyond this makes significant difference to heat delivery.
-    // NOTE: at/above this value is likely to force a boiler on also,
-    // so DO NOT CHANGE this value between boiler and valve code without good reason.
+    // NOTE: at/above this value a strong call for heat from the boiler also,
+    // so DO NOT CHANGE this value between boiler and valve code lightly.
     // Should be significantly higher than DEFAULT_MIN_VALVE_PC_REALLY_OPEN.
-    // DHD20151014: has been ~33% but ~66% more robust, eg for tricky all-in-one units.
+    // DHD20151014: has been ~33% but ~67% more robust, eg for all-in-one units.
     static constexpr uint8_t DEFAULT_VALVE_PC_MODERATELY_OPEN = 67;
 
 
     // Default maximum time to allow boiler to run on to allow for lost TXs etc (min).
     // This is also the default minimum-off time to avoid short cycling.
     // Should be (much) greater than the gap between transmissions
-    // (eg ~2m for FHT8V/FS20, 4m for the TRV1 secure protocol).
+    // (eg ~2m for FHT8V/FS20, 4m for the TRV1 secure protocol circa 2016).
     // Should be greater than the run-on time at the OpenTRV boiler unit
     // and any further pump run-on time.
     // Valves should possibly linger open at least this
