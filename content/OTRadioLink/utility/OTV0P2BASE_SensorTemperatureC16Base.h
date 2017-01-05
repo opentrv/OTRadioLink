@@ -41,7 +41,7 @@ class TemperatureC16Base : public OTV0P2BASE::Sensor<int16_t>
   public:
     // Error value returned if device unavailable or not yet read.
     // Negative and below minimum value that DS18B20 can return legitimately (-55C).
-    static const int16_t DEFAULT_INVALID_TEMP = -128 * 16; // Nominally -128C.
+    static constexpr int16_t DEFAULT_INVALID_TEMP = -128 * 16; // Nominally -128C.
 
   protected:
     // Room temperature in 16*C, eg 1 is 1/16 C, 32 is 2C, -64 is -4C.
