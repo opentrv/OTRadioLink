@@ -255,7 +255,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
     // (Well) under temperature target: open valve up.
     // Always allow an extra degree or two of drift down with a wide deadband.
     // When not in binary mode the temperature will be pushed up gently
-    // within this range but below the central degree.
+    // within this range when below the central degree.
     // This limited extra downward drift is unlikely to affect frost protection,
     // and should allow a little extra energy saving.
     //
@@ -282,7 +282,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
     // though central temperature target remains the same.
     //
     // When not in binary mode the temperature will be pushed down gently
-    // even without a wide deadband but just above the central degree.
+    // even without a wide deadband when just above the central degree.
     else if(MINIMAL_BINARY_IMPL ? (adjustedTempC > tTC) :
             (adjustedTempC >
                 (OTV0P2BASE::fnmax(tTC, inputState.maxTargetTempC) +
