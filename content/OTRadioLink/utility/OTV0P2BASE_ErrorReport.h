@@ -107,9 +107,12 @@ class ErrorReport final : public OTV0P2BASE::Actuator<int8_t>
         bool isAged() const { return(0 == timeoutTicks.load()); }
 
     public:
+        // Create instance already aged and with no error/warning set.
+        constexpr ErrorReport() : timeoutTicks(0) { }
+
         // Set new error (+ve) / warning (-ve), or zero to clear.
         // Errors cannot be overwritten by anything other than another error
-        // unless the error is aged.
+        // unless the extant error/warning is aged.
         // NOT thread-/ISR- safe.
         virtual bool set(const int8_t newValue)
           {
