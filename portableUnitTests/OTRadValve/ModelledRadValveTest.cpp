@@ -482,7 +482,7 @@ TEST(ModelledRadValve,ModelledRadValveComputeTargetTempBasic)
 // Adapted 2016/10/16 from test_VALVEMODEL.ino testMRVSOpenFastFromCold593().
 TEST(ModelledRadValve,MRVSOpenFastFromCold593)
 {
-    // Test that if the real temperature is several degrees below the target
+    // Test that if the ambient temperature is several degrees below target
     // and the initial valve position is 0/closed
     // (or any below OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN)
     // then after one tick
