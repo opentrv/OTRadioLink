@@ -668,11 +668,12 @@ static void propControllerRobustness(OTRadValve::CurrentSenseValveMotorDirect *c
     for(size_t i = 0; i < sizeof(targetValues); ++i)
         {
         const uint8_t target = targetValues[i];
-SCOPED_TRACE(testing::Message() << " iteration i " << i << ", value " << (int)target);
+SCOPED_TRACE(testing::Message() << " iteration i " << i << ", target " << (int)target);
 
         csv->setTargetPC(target);
-        // Allow at most a minute or three (at 30 ticks/s) to reach the target (or close enough).
-        for(int i = 100; --i > 0 && (target != csv->getCurrentPC()); ) { csv->poll(); }
+        // Allow at most a minute or three (at 30 ticks/min)
+        // to reach the target (or close enough).
+        for(int i = 200; --i > 0 && (target != csv->getCurrentPC()); ) { csv->poll(); }
         // Work out if close enough:
         //   * fully open and fully closed should always be achieved
         //   * generally within an absolute tolerance (absTolerancePC)
@@ -683,9 +684,11 @@ SCOPED_TRACE(testing::Message() << " iteration i " << i << ", value " << (int)ta
         //     then any value at/above target is acceptable
         const uint8_t currentPC = csv->getCurrentPC();
         const bool isCloseEnough = OTRadValve::CurrentSenseValveMotorDirect::closeEnoughToTarget(target, currentPC);
-        if(target == currentPC) { EXPECT_TRUE(isCloseEnough) << "should always be 'close enough' with values equal"; }
-        // Attempts to close the valve may be legitimately ignored when the battery is low.
-        // But attempts to open fully should always be accepted, eg as anti-frost protection.
+        if(target == currentPC) { ASSERT_TRUE(isCloseEnough) << "should always be 'close enough' with values equal"; }
+        // Attempts to close the valve may be legitimately ignored
+        // when the battery is low.
+        // But attempts to open fully should always be accepted,
+        // eg as anti-frost protection.
         EXPECT_TRUE(isCloseEnough) << "target%="<<((int)target) << ", current%="<<((int)currentPC);
         // Check if simulator's internal position measure is close enough.
         const bool isSimCloseEnoughOrNotSim =
@@ -713,6 +716,8 @@ TEST(CurrentSenseValveMotorDirect,propControllerRobustness)
     const HardwareDriverSim::simType maxSupported = HardwareDriverSim::ASYMMETRIC_NOISY;
     for(int d = 0; d <= maxSupported; ++d) // Which simulation mode.
         {
+SCOPED_TRACE(testing::Message() << " mode " << d);
+
         // More realistic simulator.
         HardwareDriverSim shw;
         shw.reset((HardwareDriverSim::simType) d);
