@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
+Author(s) / Copyright (s): Damon Hart-Davis 2015--2017
                            Deniz Erbilgin 2016
 */
 
@@ -77,7 +77,7 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
 
     // Maximum number of consecutive end-stop hits to trust that the stop has really been hit; strictly positive.
     // Spurious apparent stalls may be caused by dirt, etc.
-    static const constexpr uint8_t maxEndStopHitsToBeConfident = 3;
+    static const constexpr uint8_t maxEndStopHitsToBeConfident = 5;
 
     // Computes minimum motor dead reckoning ticks given approx ms per tick (pref rounded down).
     // Keep inline in the header to allow compile-time computation.
