@@ -191,10 +191,22 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef,
 // All inputState values should be set to sensible values before starting.
 // Usually called by tick() which does required state updates afterwards.
 //
-// Basic strategy:
+// In a basic binary "bang-bang" mode the valve is operated fully on or off.
+// This may make sense where, for example, the radiator is instant electric.
+// The top of the central range is as for proportional,
+// and the bottom of the central range is 1C or 2C below.
+//
+// Basic strategy for proportional control:
 //   * The aim is to stay within and at the top end of the 'target' 1C band.
 //   * The target 1C band is offset so that at a nominal XC.
 //     temperature should be held somewhere between X.0C and X.5C.
+//   * There is an outer band which when left has the valve immediately
+//     completely opens or shuts as in binary mode, as an end stop on behaviour.
+//   * The outer band is wide, even without a wide deadband,
+//     to allow the valve not necessarily to be immediately pushed to end stops
+//     even when switching between setback levels,
+//     and to allow temporary overshoot when the temperature sensor
+//     is close to the heater for all-in-one TRVs for example.
 //   * When dark or unoccupied or otherwise needing to be quiet
 //     the temperature is allowed to drift in a somewhat wider band
 //     to reduce valve movement and noise (and battery consumption)
@@ -214,14 +226,22 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef,
 //   * The valve will attempt to respond rapidly to (eg) manual controls
 //     and new room occupancy.
 //
-// In a basic binary "bang-bang" mode the valve is operated fully on or off.
-// This may make sense where, for example, the radiator is instant electric.
-//
 // More detail:
 //   * There is a 'sweet-spot' in the middle of the target 1C,
-//     running from 0.25C to 0.75C. wider wit a wide deadband.
+//     running from 0.25C to 0.75C, further with a wide deadband.
+//   * Providing there is no call for heat
+//     the valve can rest indefinitely at the sweet-spot, ie avoid movement.
+//   * Outside the sweet-spot the valve will always try to seek back to it,
+//     either passively if the temperature is moving in the right direction,
+//     or actively by adjusting the valve.
+//   * Valve movement may be faster the further from the target/sweet-spot.
+//   * The valve can be run in a glacial mode,
+//     where the valve will always adjust at minimum speed,
+//     to minimise flow eg where there is a charge by volume.
 //
-uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valvePCOpen, const ModelledRadValveInputState &inputState) const
+uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
+    const uint8_t valvePCOpen,
+    const ModelledRadValveInputState &inputState) const
   {
   // Possibly-adjusted and/or smoothed temperature to use for targeting.
   const int_fast16_t adjustedTempC16 = isFiltering ?
@@ -263,7 +283,8 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valve
 
     // New non-binary implementation as of 2017Q1.
     // Does not make any particular assumptions about
-    // at what percentage open significant/any water flow will happen.
+    // at what percentage open significant/any water flow will happen,
+    // but does take account of the main call-for-heat level for the boiler.
     //
     // Tries to avoid calling for heat longer than necessary,
     // ie with a valve open at/above OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN,
