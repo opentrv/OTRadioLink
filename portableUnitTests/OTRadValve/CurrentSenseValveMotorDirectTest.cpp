@@ -668,7 +668,7 @@ static void propControllerRobustness(OTRadValve::CurrentSenseValveMotorDirect *c
     for(size_t i = 0; i < sizeof(targetValues); ++i)
         {
         const uint8_t target = targetValues[i];
-SCOPED_TRACE(testing::Message() << "value i " << i << ", value " << (int)target);
+SCOPED_TRACE(testing::Message() << " iteration i " << i << ", value " << (int)target);
 
         csv->setTargetPC(target);
         // Allow at most a minute or three (at 30 ticks/s) to reach the target (or close enough).
