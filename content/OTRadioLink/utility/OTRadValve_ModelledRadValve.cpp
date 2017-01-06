@@ -187,13 +187,40 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef,
 // Uses no state other than that passed as arguments (thus is unit testable).
 // Does not alter any of the input state.
 // Uses hysteresis and a proportional control and some other cleverness.
-// Is always willing to turn off quickly,
-// but on slowly (AKA "slow start" algorithm),
-// and tries to eliminate unnecessary 'hunting'
-// which makes noise and uses actuator energy.
-// Nominally called at a regular rate, once per minute.
+// Should be called at a regular rate, once per minute.
 // All inputState values should be set to sensible values before starting.
 // Usually called by tick() which does required state updates afterwards.
+//
+// Basic strategy:
+//   * The aim is to stay within and at the top end of the 'target' 1C band.
+//   * The target 1C band is offset so that at a nominal XC.
+//     temperature should be held somewhere between X.0C and X.5C.
+//   * When dark or unoccupied or otherwise needing to be quiet
+//     the temperature is allowed to drift in a somewhat wider band
+//     to reduce valve movement and noise (and battery consumption)
+//     and boiler running and energy consumption and noise.
+//   * When the device sees rapid temperature movements,
+//     eg for an all-in-one TRV mounted on the radiator,
+//     temporarily larger excursions are allowed.
+//   * To save noise and battery life, and help avoid valve sticking,
+//     the valve will lazily try to avoid unnecessary movement,
+//     and avoid running further or faster than necessary.
+//   * The valve will try to avoid calling for heat from the boiler
+//     without being open enough to allow decent flow.
+//   * The valve will try to avoid calling for heat indefinitely
+//     with the valve static.  (TODO-1096)
+//   * The valve may be held open without calling for heat
+//     to help quietly scavenge heat if the boiler is already running.
+//   * The valve will attempt to respond rapidly to (eg) manual controls
+//     and new room occupancy.
+//
+// In a basic binary "bang-bang" mode the valve is operated fully on or off.
+// This may make sense where, for example, the radiator is instant electric.
+//
+// More detail:
+//   * There is a 'sweet-spot' in the middle of the target 1C,
+//     running from 0.25C to 0.75C. wider wit a wide deadband.
+//
 uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(const uint8_t valvePCOpen, const ModelledRadValveInputState &inputState) const
   {
   // Possibly-adjusted and/or smoothed temperature to use for targeting.
