@@ -1119,7 +1119,7 @@ TEST(ModelledRadValve,SampleValveResponse1)
 }
 
 
-// C16 (Celsius*16) room Temperature and target data samples, along with optional expected event from ModelledRadValve.
+// C16 (Celsius*16) room temperature and target data samples, along with optional expected event from ModelledRadValve.
 // Can be directly created from OpenTRV log files.
 class C16DataSample
     {
