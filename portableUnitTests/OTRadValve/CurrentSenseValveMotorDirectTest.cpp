@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2016
+Author(s) / Copyright (s): Damon Hart-Davis 2016--2017
 */
 
 /*
@@ -659,7 +659,7 @@ static void propControllerRobustness(OTRadValve::CurrentSenseValveMotorDirect *c
     EXPECT_TRUE(csv->isInNormalRunState()) << csv->_getState();
 
     // Check logic's estimate of ticks here, eg from errors in calibration.
-    // Note that asymmetric behaviour complicated things a little.
+    // Note that asymmetric behaviour complicates things a little.
     EXPECT_NEAR(csv->_getCP().getTicksFromOpenToClosed(), simulator->getNominalTicksToClosed(), simulator->nominalFullTravelTicks / 4);
     EXPECT_NEAR(csv->_getCP().getTicksFromClosedToOpen(), simulator->getNominalTicksToOpen(), simulator->nominalFullTravelTicks / 4);
 
@@ -668,6 +668,8 @@ static void propControllerRobustness(OTRadValve::CurrentSenseValveMotorDirect *c
     for(size_t i = 0; i < sizeof(targetValues); ++i)
         {
         const uint8_t target = targetValues[i];
+SCOPED_TRACE(testing::Message() << "value i " << i << ", value " << (int)target);
+
         csv->setTargetPC(target);
         // Allow at most a minute or three (at 30 ticks/s) to reach the target (or close enough).
         for(int i = 100; --i > 0 && (target != csv->getCurrentPC()); ) { csv->poll(); }
