@@ -482,15 +482,13 @@ TEST(ModelledRadValve,ModelledRadValveComputeTargetTempBasic)
 // Adapted 2016/10/16 from test_VALVEMODEL.ino testMRVSOpenFastFromCold593().
 TEST(ModelledRadValve,MRVSOpenFastFromCold593)
 {
-    // Test that if the real temperature is at least 2 degrees below the target
+    // Test that if the real temperature is several degrees below the target
     // and the initial valve position is 0/closed
     // (or any below OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN)
-    // and a widened deadband has not been requested
-    // (and filtering is not switched on)
-    // after one tick
+    // then after one tick
     // that the valve is open to at least DEFAULT_VALVE_PC_MODERATELY_OPEN.
-    // Starting temp >2C below target, even with 0.5C offset.
-    OTRadValve::ModelledRadValveInputState is0(OTV0P2BASE::randRNG8() & 0xf8);
+    // Starting temp >5C below target.
+    OTRadValve::ModelledRadValveInputState is0(10 << 4);
     is0.targetTempC = 18; // Modest target temperature.
     OTRadValve::ModelledRadValveState rs0;
     is0.widenDeadband = false;
