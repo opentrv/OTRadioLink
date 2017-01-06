@@ -299,7 +299,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         OTV0P2BASE::fnmax(tTC, inputState.maxTargetTempC);
     // (Well) under temperature target: open valve up.
     if(MINIMAL_BINARY_IMPL ? (adjustedTempC < tTC) :
-        (adjustedTempC < OTV0P2BASE::fnmax(int(tTC) - _proportionalRange,
+        (adjustedTempC < OTV0P2BASE::fnmax(int(tTC) - int(_proportionalRange),
                                            int(OTRadValve::MIN_TARGET_C))))
         {
         // Don't open if recently turned down, and not in BAKE mode.
