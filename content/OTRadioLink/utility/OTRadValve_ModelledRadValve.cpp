@@ -322,7 +322,8 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
     // When not in binary mode the temperature will be pushed down gently
     // even without a wide deadband when just above the central degree.
     else if(MINIMAL_BINARY_IMPL ? (adjustedTempC > tTC) :
-            (adjustedTempC > (higherTargetC + _proportionalRange)))
+        (adjustedTempC > OTV0P2BASE::fnmin(uint8_t(higherTargetC + _proportionalRange),
+                                           OTRadValve::MAX_TARGET_C)))
         {
         // Don't close if recently turned up.
         if(dontTurndown()) { return(valvePCOpen); }
@@ -378,12 +379,15 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         const bool inCentralSweetSpot = belowLowerTargetInMiddle1C &&
             (wide || ((adjustedTempC16 & 0xf) >= lowerBoundNormalLSBs));
 
-        // If well above target then valve closing may be faster than usual.
-        // Have a higher ceiling if filtering, eg because sensor near heater.
-        const uint8_t wAT = isFiltering ?
+        // If well away from target then valve closing may be faster than usual.
+        // Have a higher ceiling if filtering, eg because sensor near heater,
+        // or if a wide deadband is requested.
+        // Note that the upper limit is driven by the non-set-back temp.
+        const uint8_t wAT = (wide || isFiltering) ?
             OTV0P2BASE::fnmax(_proportionalRange-1, 1) :
             OTV0P2BASE::fnmax(_proportionalRange/2, 1);
         const bool wellAboveTarget = adjustedTempC > higherTargetC + wAT;
+        const bool wellBelowTarget = adjustedTempC + wAT < tTC;
 
         // Move quickly when requested, eg responding to manual control use.
         // Try to get to right side of call-for-heat threshold in first tick
@@ -420,11 +424,12 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
                 // but close at a rate afterwards such that full close
                 // may not even be necessary after likely temporary overshoot.
                 // Users are unlikely to mind cooling more slowly...
-                // If temperature is well above target then shut completely
+                // If temperature is well above target then shut fast
                 // so as to not leave the user sweating for whatever reason.
-                if(wellAboveTarget) { return(0); }
-                static constexpr uint8_t slew = TRV_SLEW_PC_PER_MIN;
-                static_assert(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN > (OTRadValve::DEFAULT_MAX_RUN_ON_TIME_M * slew), "time for boiler to have stopped before valve fully closes");
+                static constexpr uint8_t normalSlew = TRV_SLEW_PC_PER_MIN;
+                static_assert(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN > (OTRadValve::DEFAULT_MAX_RUN_ON_TIME_M * normalSlew), "time for boiler to have stopped before valve fully closes");
+                const uint8_t slew = wellAboveTarget ?
+                        normalSlew : TRV_SLEW_PC_PER_MIN_FAST;
                 return(uint8_t(OTV0P2BASE::fnconstrain(
                     int(valvePCOpen) - int(slew),
                     0,
@@ -438,15 +443,21 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         // Avoid movement to save valve energy and noise if ALL of:
         //   * not calling for heat (which also saves boiler energy and noise)
         //   * in sweet-spot OR not moving in the wrong direction.
+        //   * not very far away from target
         if(valvePCOpen < OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN)
             {
             if(inCentralSweetSpot) { return(valvePCOpen); }
             else
                 {
                 // When below sweet-spot and not falling, hold valve steady.
+                // If well below then hold steady only if temperature rising.
                 if(belowLowerTarget)
-                    { if(rise >= 0) { return(valvePCOpen); } }
+                    {
+                    if(wellBelowTarget ? (rise > 0) : (rise >= 0))
+                        { return(valvePCOpen); }
+                    }
                 // When above sweet-spot and not rising, hold valve steady.
+                // If well above then hold steady only if temperature falling.
                 // (Any rise will fall through and valve will close a little,
                 // ie this will at least act to prevent temperature rise
                 // and should help ratchet the temperature down.)
@@ -462,7 +473,10 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
                 // Thus the valve can stay put without significant risk
                 // of failing to save the expected energy.
                 else
-                    { if(rise <= 0) { return(valvePCOpen); } }
+                    {
+                    if(wellAboveTarget ? (rise < 0) : (rise <= 0))
+                        { return(valvePCOpen); }
+                    }
                 }
             }
 
@@ -494,8 +508,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
                 {
                 if(shouldOpen)
                     {
-                    const bool moveSlow =
-                        wide ||
+                    const bool moveSlow = !wellBelowTarget ||
                         (valvePCOpen >= OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN);
                     const uint8_t slew = moveSlow ?
                         TRV_SLEW_PC_PER_MIN : TRV_SLEW_PC_PER_MIN_FAST;
@@ -510,12 +523,10 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
                 // Else close slowly if in the bottom half of the range
                 // to try to capture any bottom-end proportional behaviour
                 // and give chance for rad/room to start cooling.
-                // Else close slowly if there has been no recent temp rise.
                 else if(shouldClose)
                     {
                     const bool moveSlow = !wellAboveTarget ||
-                        (valvePCOpen < OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN/2) ||
-                        (0 == rise);
+                        (valvePCOpen < OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN/2);
                     const uint8_t slew = moveSlow ?
                         TRV_SLEW_PC_PER_MIN_SLOW : TRV_SLEW_PC_PER_MIN;
                     return(uint8_t(OTV0P2BASE::fnconstrain(
