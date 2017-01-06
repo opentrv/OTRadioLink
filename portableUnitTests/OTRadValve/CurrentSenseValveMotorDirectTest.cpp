@@ -673,6 +673,7 @@ SCOPED_TRACE(testing::Message() << " iteration i " << i << ", target " << (int)t
         csv->setTargetPC(target);
         // Allow at most a minute or three (at 30 ticks/min)
         // to reach the target (or close enough).
+        // Plus maybe some to deal with noise-induced recalibrations.
         for(int i = 200; --i > 0 && (target != csv->getCurrentPC()); ) { csv->poll(); }
         // Work out if close enough:
         //   * fully open and fully closed should always be achieved
