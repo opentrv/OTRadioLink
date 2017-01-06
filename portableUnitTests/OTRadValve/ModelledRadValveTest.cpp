@@ -1162,7 +1162,7 @@ TEST(ModelledRadValve,SampleValveResponse2)
     uint8_t valvePCOpen = 19;
 
     // Assume flat temperature before the sample started.
-    OTRadValve::ModelledRadValveInputState is0(295); // 281 ~ 18.4C.
+    OTRadValve::ModelledRadValveInputState is0(295); // 295 ~ 18.4C.
     OTRadValve::ModelledRadValveState rs0;
     ASSERT_FALSE(rs0.isFiltering) << "filtering must be off before first tick";
     is0.fastResponseRequired = false;
@@ -1235,8 +1235,7 @@ TEST(ModelledRadValve,SampleValveResponse2)
     EXPECT_GT(100, valvePCOpen);
 }
 
-
-// Valve closing all the way on transition to full setback; should hover.
+// Valve closing all the way after transition to full setback; should hover.
 // Room 1g, code tag: 20170105-valve-movement-reduction-2
 //[ "2017-01-05T22:30:54Z", "", {"@":"FEDA88A08188E083","+":11,"L":2,"v|%":31,"tT|C":17} ]
 //[ "2017-01-05T22:31:54Z", "", {"@":"FEDA88A08188E083","+":12,"tS|C":1,"vC|%":2211,"gE":0} ]
@@ -1266,10 +1265,114 @@ TEST(ModelledRadValve,SampleValveResponse2)
 //[ "2017-01-05T22:56:01Z", "", {"@":"FEDA88A08188E083","+":4,"v|%":0,"tT|C":12,"tS|C":6} ]
 //[ "2017-01-05T22:56:58Z", "", {"@":"FEDA88A08188E083","+":5,"vC|%":2242,"gE":0} ]
 //[ "2017-01-05T22:57:47Z", "", {"@":"FEDA88A08188E083","+":6,"T|C16":284,"H|%":71,"O":1} ]
+TEST(ModelledRadValve,SampleValveResponse3)
+{
+    // Seed PRNG for use in simulator; --gtest_shuffle will force it to change.
+    srandom((unsigned) ::testing::UnitTest::GetInstance()->random_seed());
+    OTV0P2BASE::seedRNG8(random() & 0xff, random() & 0xff, random() & 0xff);
 
+    // Target temperature without setback.
+    const uint8_t targetTempC = 18;
 
+    // Valve starts partly open.
+    uint8_t valvePCOpen = 31;
 
+    // Assume flat temperature before the sample started.
+    OTRadValve::ModelledRadValveInputState is0(295); // 295 ~ 18.4C.
+    OTRadValve::ModelledRadValveState rs0;
+    ASSERT_FALSE(rs0.isFiltering) << "filtering must be off before first tick";
+    is0.fastResponseRequired = false;
+    is0.hasEcoBias = true;
 
+    // Non-set-back temperature.
+    is0.maxTargetTempC = targetTempC;
+    // Initially set back 1C.
+    is0.targetTempC = targetTempC - 1;
+    // Wide deadband because set back.
+    is0.widenDeadband = true;
+
+    //[ "2017-01-05T22:30:54Z", "", {"@":"FEDA88A08188E083","+":11,"L":2,"v|%":31,"tT|C":17} ]
+    //[ "2017-01-05T22:31:54Z", "", {"@":"FEDA88A08188E083","+":12,"tS|C":1,"vC|%":2211,"gE":0} ]
+    //[ "2017-01-05T22:33:02Z", "", {"@":"FEDA88A08188E083","+":13,"T|C16":295,"H|%":69,"O":1} ]
+    //[ "2017-01-05T22:33:54Z", "", {"@":"FEDA88A08188E083","+":14,"vac|h":0,"B|cV":262,"L":2} ]
+    // Do one tick in quiescent state, set back one degree.
+    // After tick, filtering should be off, valve not much moved.
+    rs0.tick(valvePCOpen, is0);
+    EXPECT_FALSE(rs0.isFiltering);
+    EXPECT_NEAR(31, valvePCOpen, 2);
+    //[ "2017-01-05T22:35:00Z", "", {"@":"FEDA88A08188E083","+":15,"v|%":31,"tT|C":17,"tS|C":1} ]
+    is0.setReferenceTemperatures(294); // Interpolated.
+    rs0.tick(valvePCOpen, is0);
+    //[ "2017-01-05T22:35:48Z", "", {"@":"FEDA88A08188E083","+":0,"vC|%":2211,"gE":0} ]
+    rs0.tick(valvePCOpen, is0);
+    //[ "2017-01-05T22:36:50Z", "", {"@":"FEDA88A08188E083","+":1,"T|C16":293,"H|%":69,"O":1} ]
+    is0.setReferenceTemperatures(293);
+    rs0.tick(valvePCOpen, is0);
+    //[ "2017-01-05T22:37:50Z", "", {"@":"FEDA88A08188E083","+":2,"T|C16":292,"vac|h":0,"L":2} ]
+    is0.setReferenceTemperatures(292);
+    rs0.tick(valvePCOpen, is0);
+    //[ "2017-01-05T22:38:56Z", "", {"@":"FEDA88A08188E083","+":3,"v|%":31,"tT|C":17,"tS|C":1} ]
+    rs0.tick(valvePCOpen, is0);
+    //[ "2017-01-05T22:39:52Z", "", {"@":"FEDA88A08188E083","+":4,"H|%":70,"vC|%":2211} ]
+    rs0.tick(valvePCOpen, is0);
+    //[ "2017-01-05T22:40:48Z", "", {"@":"FEDA88A08188E083","+":5,"gE":0,"T|C16":291,"H|%":70} ]
+    is0.setReferenceTemperatures(291);
+    rs0.tick(valvePCOpen, is0);
+    //[ "2017-01-05T22:42:02Z", "", {"@":"FEDA88A08188E083","+":6,"O":1,"vac|h":0,"B|cV":262} ]
+    rs0.tick(valvePCOpen, is0);
+    //[ "2017-01-05T22:42:58Z", "", {"@":"FEDA88A08188E083","+":7,"L":2,"v|%":31,"tT|C":17} ]
+    rs0.tick(valvePCOpen, is0);
+    //[ "2017-01-05T22:43:56Z", "", {"@":"FEDA88A08188E083","+":8,"T|C16":290,"tS|C":1} ]
+    is0.setReferenceTemperatures(290);
+    rs0.tick(valvePCOpen, is0);
+    //[ "2017-01-05T22:44:54Z", "", {"@":"FEDA88A08188E083","+":9,"vC|%":2211,"gE":0,"vac|h":1} ]
+    rs0.tick(valvePCOpen, is0);
+    //[ "2017-01-05T22:45:56Z", "", {"@":"FEDA88A08188E083","+":10,"T|C16":289,"H|%":70,"O":1} ]
+    is0.setReferenceTemperatures(289);
+    rs0.tick(valvePCOpen, is0);
+    //[ "2017-01-05T22:46:48Z", "", {"@":"FEDA88A08188E083","+":11,"vac|h":1,"B|cV":262,"L":2} ]
+    rs0.tick(valvePCOpen, is0);
+    //[ "2017-01-05T22:47:48Z", "", {"@":"FEDA88A08188E083","+":12,"v|%":31,"tT|C":17,"tS|C":1} ]
+    // The valve should not have moved much or at all.
+    EXPECT_FALSE(rs0.isFiltering);
+    EXPECT_NEAR(31, valvePCOpen, 2);
+
+    // In original trace, large setback is applied, and valve fully closes.
+    // The valve should at most slowly close so as to reduce movement/noise.
+    // Now set back 6C.
+    is0.targetTempC = targetTempC - 6;
+    // Wide deadband because set back.
+    is0.widenDeadband = true;
+
+    //[ "2017-01-05T22:48:52Z", "", {"@":"FEDA88A08188E083","+":13,"vC|%":2242,"gE":0,"H|%":71} ]
+    is0.setReferenceTemperatures(288); // Interpolated.
+    rs0.tick(valvePCOpen, is0);
+    //[ "2017-01-05T22:50:02Z", "", {"@":"FEDA88A08188E083","+":14,"T|C16":287,"H|%":71,"O":1} ]
+    is0.setReferenceTemperatures(287);
+    rs0.tick(valvePCOpen, is0);
+    //[ "2017-01-05T22:50:48Z", "", {"@":"FEDA88A08188E083","+":15,"vac|h":1,"B|cV":262,"L":2} ]
+    rs0.tick(valvePCOpen, is0);
+    //[ "2017-01-05T22:51:54Z", "", {"@":"FEDA88A08188E083","+":0,"v|%":0,"tT|C":12,"tS|C":6} ]
+    rs0.tick(valvePCOpen, is0);
+    //[ "2017-01-05T22:52:54Z", "", {"@":"FEDA88A08188E083","+":1,"vC|%":2242,"gE":0} ]
+    rs0.tick(valvePCOpen, is0);
+    //[ "2017-01-05T22:53:52Z", "", {"@":"FEDA88A08188E083","+":2,"T|C16":286,"H|%":71,"O":1} ]
+    is0.setReferenceTemperatures(286);
+    rs0.tick(valvePCOpen, is0);
+    //[ "2017-01-05T22:54:50Z", "", {"@":"FEDA88A08188E083","+":3,"vac|h":1,"B|cV":262,"L":2} ]
+    rs0.tick(valvePCOpen, is0);
+    //[ "2017-01-05T22:56:01Z", "", {"@":"FEDA88A08188E083","+":4,"v|%":0,"tT|C":12,"tS|C":6} ]
+    is0.setReferenceTemperatures(285); // Interpolated.
+    rs0.tick(valvePCOpen, is0);
+    //[ "2017-01-05T22:56:58Z", "", {"@":"FEDA88A08188E083","+":5,"vC|%":2242,"gE":0} ]
+    rs0.tick(valvePCOpen, is0);
+    //[ "2017-01-05T22:57:47Z", "", {"@":"FEDA88A08188E083","+":6,"T|C16":284,"H|%":71,"O":1} ]
+    is0.setReferenceTemperatures(284);
+    rs0.tick(valvePCOpen, is0);
+    // Still no filtering, valve still not closed.
+    EXPECT_FALSE(rs0.isFiltering);
+    EXPECT_NEAR(31, valvePCOpen, 2);
+}
 
 
 // C16 (Celsius*16) room temperature and target data samples, along with optional expected event from ModelledRadValve.
