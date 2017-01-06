@@ -294,26 +294,13 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
     //
     // Valve % does not correspond to temperature shortfall below target.
 
-    // Minimal/binary implementation, supporting widened deadband on demand.
-    // The wide deadband is at least 1 below
-    // and can be significantly more above in proportional mode
-    // to allow for brief overshoot esp when sensor is close to heat source
-    // and/or slow drift down/closed as setbacks are applied.
-    static constexpr uint8_t maxTmpOvershoot = 4;
     // Possibly-higher upper limit, eg non-set-back temperature.
     const uint8_t higherTargetC =
         OTV0P2BASE::fnmax(tTC, inputState.maxTargetTempC);
     // (Well) under temperature target: open valve up.
-    // Always allow an extra degree or two of drift down with a wide deadband.
-    // When not in binary mode the temperature will be pushed up gently
-    // within this range when below the central degree.
-    // This limited extra downward drift is unlikely to affect frost protection,
-    // and should allow a little extra energy saving.
-    //
-    // Note that this is likely to get invoked when a big temperature setback
-    // is suddenly removed, including but not only, upon occupancy.
-    if(adjustedTempC <
-        OTV0P2BASE::fnmax(int(tTC) - (wide ? 2 : 0), int(OTRadValve::MIN_TARGET_C)))
+    if(MINIMAL_BINARY_IMPL ? (adjustedTempC < tTC) :
+        (adjustedTempC < OTV0P2BASE::fnmax(int(tTC) - _proportionalRange,
+                                           int(OTRadValve::MIN_TARGET_C))))
         {
         // Don't open if recently turned down, and not in BAKE mode.
         if(dontTurnup() && !inputState.inBakeMode) { return(valvePCOpen); }
@@ -335,7 +322,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
     // When not in binary mode the temperature will be pushed down gently
     // even without a wide deadband when just above the central degree.
     else if(MINIMAL_BINARY_IMPL ? (adjustedTempC > tTC) :
-            (adjustedTempC > (higherTargetC + (wide ? maxTmpOvershoot : 1))))
+            (adjustedTempC > (higherTargetC + _proportionalRange)))
         {
         // Don't close if recently turned up.
         if(dontTurndown()) { return(valvePCOpen); }
@@ -394,8 +381,8 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         // If well above target then valve closing may be faster than usual.
         // Have a higher ceiling if filtering, eg because sensor near heater.
         const uint8_t wAT = isFiltering ?
-            OTV0P2BASE::fnmax(maxTmpOvershoot-1, 1) :
-            OTV0P2BASE::fnmax(maxTmpOvershoot/2, 1);
+            OTV0P2BASE::fnmax(_proportionalRange-1, 1) :
+            OTV0P2BASE::fnmax(_proportionalRange/2, 1);
         const bool wellAboveTarget = adjustedTempC > higherTargetC + wAT;
 
         // Move quickly when requested, eg responding to manual control use.
