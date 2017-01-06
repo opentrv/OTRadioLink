@@ -77,7 +77,7 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
 
     // Maximum number of consecutive end-stop hits to trust that the stop has really been hit; strictly positive.
     // Spurious apparent stalls may be caused by dirt, etc.
-    static const constexpr uint8_t maxEndStopHitsToBeConfident = 5;
+    static const constexpr uint8_t maxEndStopHitsToBeConfident = 10;
 
     // Computes minimum motor dead reckoning ticks given approx ms per tick (pref rounded down).
     // Keep inline in the header to allow compile-time computation.
