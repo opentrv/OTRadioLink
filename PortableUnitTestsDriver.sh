@@ -51,8 +51,9 @@ else
 fi
 
 # Run the tests, repeatedly, shuffled (except first run to make diffs easier).
-# Run in increasingly large blocks
+# Run in increasingly large blocks.
 ./${EXENAME} --gtest_repeat=1 \
-  && ./${EXENAME} --gtest_shuffle --gtest_repeat=10 \
-  && ./${EXENAME} --gtest_shuffle --gtest_repeat=100 \
-  && echo OK
+  && ./${EXENAME} --gtest_shuffle --gtest_repeat=10
+  
+#  && ./${EXENAME} --gtest_shuffle --gtest_repeat=100 \
+#  && echo OK
