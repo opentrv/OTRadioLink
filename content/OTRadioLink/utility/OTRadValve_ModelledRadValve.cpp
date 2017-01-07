@@ -384,8 +384,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         // or if a wide deadband is requested.
         // Note that the upper limit is driven by the non-set-back temp.
         const uint8_t wAT = (wide || isFiltering) ?
-            OTV0P2BASE::fnmax(_proportionalRange-1, 1) :
-            OTV0P2BASE::fnmax(_proportionalRange/2, 1);
+            OTV0P2BASE::fnmax(_proportionalRange/2, 1) : 1;
         const bool wellAboveTarget = adjustedTempC > higherTargetC + wAT;
         const bool wellBelowTarget = adjustedTempC + wAT < tTC;
 
@@ -393,6 +392,8 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         // Try to get to right side of call-for-heat threshold in first tick
         // if not in central sweet-spot already  (TODO-1099)
         // to have boiler respond appropriately ASAP also.
+        // As well as responding quickly thermally to requested changes,
+        // this is about giving rapid confidence-building feedback to the user.
         // Note that a manual adjustment of the temperature set-point
         // is very likely to force this unit out of the sweet-spot.
         // Ignores 'glacial'.
@@ -407,12 +408,14 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
                 // and the valve to actually physically open,
                 // and then possibly be able to avoid having to open fully,
                 // saving some valve noise and battery life.
-                static constexpr uint8_t slew = TRV_SLEW_PC_PER_MIN;
+                static constexpr uint8_t normalSlew = TRV_SLEW_PC_PER_MIN;
                 static_assert(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN > OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, "stronger than plain call-for-heat");
-                static_assert(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN + (OTRadValve::BOILER_RESPONSE_TIME_FROM_OFF * slew) < 100, "time for boiler to have started before valve fully open");
+                static_assert(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN + (OTRadValve::BOILER_RESPONSE_TIME_FROM_OFF * normalSlew) < 100, "time for boiler to have started before valve fully open");
                 const uint8_t minThreshold =
                     OTV0P2BASE::fnmax(inputState.minPCReallyOpen,
                                       OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN);
+                const uint8_t slew = wellBelowTarget ?
+                    TRV_SLEW_PC_PER_MIN_FAST : normalSlew;
                 return(OTV0P2BASE::fnconstrain(
                     uint8_t(valvePCOpen + slew),
                     minThreshold,
@@ -429,7 +432,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
                 static constexpr uint8_t normalSlew = TRV_SLEW_PC_PER_MIN;
                 static_assert(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN > (OTRadValve::DEFAULT_MAX_RUN_ON_TIME_M * normalSlew), "time for boiler to have stopped before valve fully closes");
                 const uint8_t slew = wellAboveTarget ?
-                        normalSlew : TRV_SLEW_PC_PER_MIN_FAST;
+                    normalSlew : TRV_SLEW_PC_PER_MIN_FAST;
                 return(uint8_t(OTV0P2BASE::fnconstrain(
                     int(valvePCOpen) - int(slew),
                     0,
@@ -469,9 +472,10 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
                 // Note that a noisy temperature sensor,
                 // or a very draughty location, may force the valve to shut.
                 // Generally temperatures will drop steadily
-                // if heat input is needed but no one else is calling for heat.
+                // if heat input is needed but nothing else is calling for heat.
                 // Thus the valve can stay put without significant risk
-                // of failing to save the expected energy.
+                // of failing to save expected energy
+                // or (say) keeping users from sleeping by being too warm.
                 else
                     {
                     if(wellAboveTarget ? (rise < 0) : (rise <= 0))
