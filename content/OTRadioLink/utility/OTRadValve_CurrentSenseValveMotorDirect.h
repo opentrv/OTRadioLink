@@ -124,14 +124,24 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     //     and periodically recalibrating/decalcinating.
     enum driverState : uint8_t
       {
-      init = 0, // Power-up state.
-      initWaiting, // Waiting to withdraw pin.
-      valvePinWithdrawing, // Retracting pin at power-up.
-      valvePinWithdrawn, // Waiting for user signal that valve has been fitted: allows valve to be fitted;
-      valveCalibrating, // Calibrating full valve travel.
-      valveNormal, // Normal operating state: values lower than this indicate that power-up is not complete.
-      valveDecalcinating, // TODO: running decalcination cycle (and can recalibrate and mitigate valve seating issues).
-      valveError // Error state can only normally be cleared by power-cycling.
+      // Power-up state.
+      init = 0,
+      // Waiting to withdraw pin.
+      initWaiting,
+      // Retracting pin at power-up.
+      valvePinWithdrawing,
+      // Waiting for user signal that valve has been fitted.
+      valvePinWithdrawn,
+      // Calibrating full valve travel.
+      valveCalibrating,
+      // Normal operating state:
+      // values lower than this indicate that power-up is not complete.
+      valveNormal,
+      // TODO: running decalcination cycle
+      // (and can recalibrate and mitigate valve seating issues).
+      valveDecalcinating,
+      // Error state: can only normally be cleared by power-cycling.
+      valveError
       };
 
   protected:
