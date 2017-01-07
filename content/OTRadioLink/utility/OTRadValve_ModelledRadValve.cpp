@@ -163,23 +163,24 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef,
     else { valveTurndown(); }
     valvePCOpenRef = newModelledValvePC;
     }
-  // Use the modelled value by default, eg if no physical device available.
+  // For cumulative movement tracking
+  // use the modelled value by default, ie if no physical device available.
   uint8_t newValvePC = newModelledValvePC;
   if(NULL != physicalDeviceOpt)
       {
       // Set the target for the physical device unconditionally
-      // to ensure that the driver/device sees the first such request
+      // to ensure that the driver/device sees eg the first such request
       // even if the modelled value does not change.
       physicalDeviceOpt->set(newModelledValvePC);
-      // Nominally look for a change in the physical device immediately
-      // though change will probably need one or more read()s elsewhere.
-      prevValvePC = physicalDeviceOpt->get();
+      // Llook for a change in the physical device immediately,
+      // though change will probably need one or more ticks elsewhere.
+      newValvePC = physicalDeviceOpt->get();
       }
   cumulativeMovementPC =
       (cumulativeMovementPC + OTV0P2BASE::fnabsdiff(oldValvePC, newValvePC))
       & MAX_CUMULATIVE_MOVEMENT_VALUE;
   prevValvePC = newValvePC;
-  valveMoved = modelledValveChanged;
+//  valveMoved = modelledValveChanged;
   }
 
 // Computes a new valve position given supplied input state
@@ -1059,10 +1060,13 @@ bool ModelledRadValve::isControlledValveReallyOpen() const
 void ModelledRadValve::computeCallForHeat()
   {
   valveModeRW->read();
-  // Compute target temperature and ensure that required input state is set for computeRequiredTRVPercentOpen().
+  // Compute target temperature,
+  // ensure that input state is set for computeRequiredTRVPercentOpen().
   computeTargetTemperature();
+  // Invoke computeRequiredTRVPercentOpen()
+  // and convey new target to the backing valve if any,
+  // while tracking any cumulative movement.
   retainedState.tick(value, inputState);
-  if(NULL != physicalDeviceOpt) { physicalDeviceOpt->set(value); }
   }
 
 // Compute/update target temperature and set up state for computeRequiredTRVPercentOpen().

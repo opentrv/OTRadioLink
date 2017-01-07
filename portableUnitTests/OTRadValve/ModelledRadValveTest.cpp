@@ -156,32 +156,51 @@ TEST(ModelledRadValve,UpDownDelay)
 }
 
 // Test the basic behaviour of the cumulative movement counter.
+// Try without backing valve (eg using built-in estimate)
+// and backing valve(s) to test tracking of backing valve itself.
 TEST(ModelledRadValve,cumulativeMovementPC)
 {
-    // Start with the valve fully open.
-    uint8_t valvePC = 100;
-    // Set sensible ambient room temperature (18C), with the target much higher.
-    OTRadValve::ModelledRadValveInputState is(18 << 4);
-    is.targetTempC = 25;
-    OTRadValve::ModelledRadValveState rs;
-    // Spin on the tick for many hours' worth;
-    // there is no need for the valve to move.
-    for(int i = 1000; --i > 0; ) { rs.tick(valvePC, is); }
-    EXPECT_EQ(100, valvePC);
-    EXPECT_EQ(0, rs.cumulativeMovementPC);
-    // Now set the target well below ambient, and spin for a while.
-    // The valve should be closed and exactly 100% of cumulative travel recorded.
-    is.targetTempC = 10;
-    for(int i = 1000; --i > 0; ) { rs.tick(valvePC, is); }
-    EXPECT_EQ(0, valvePC);
-    EXPECT_EQ(100, rs.cumulativeMovementPC);
-    // Now set the target well above ambient again, and spin for a while.
-    // The valve should be open and exactly 200% of cumulative travel recorded.
-    is.targetTempC = 26;
-    for(int i = 1000; --i > 0; ) { rs.tick(valvePC, is); }
-    EXPECT_EQ(100, valvePC);
-    EXPECT_EQ(200, rs.cumulativeMovementPC);
-}
+    for(int v = 0; v < 2; ++v)
+        {
+        const bool noBackingValve = (0 == v);
+SCOPED_TRACE(testing::Message() << "no backing valve " << noBackingValve);
+        // Trivial mock valve.
+        OTRadValve::RadValveMock rvm;
+        // Select backing valve to use if any.
+        OTRadValve::AbstractRadValve * const arv = noBackingValve ? NULL : &rvm;
+
+        // Start with the valve fully open.
+        const uint8_t initialValvePC = 100;
+        uint8_t valvePC = initialValvePC;
+        if(NULL != arv) { arv->set(initialValvePC); }
+
+        // Set sensible ambient room temperature (18C), with target much higher.
+        OTRadValve::ModelledRadValveInputState is(18 << 4);
+        is.targetTempC = 25;
+        OTRadValve::ModelledRadValveState rs;
+        rs.prevValvePC = initialValvePC;
+        // Spin on the tick for many hours' worth;
+        // there is no need for the valve to move.
+        for(int i = 1000; --i > 0; ) { rs.tick(valvePC, is, arv); }
+        EXPECT_EQ(100, valvePC);
+        EXPECT_EQ(0, rs.cumulativeMovementPC);
+        if(NULL != arv) { EXPECT_NEAR(valvePC, arv->get(), 1) << "backing valve should be close"; }
+        // Now set the target well below ambient, and spin for a while.
+        // The valve should be closed, with exactly 100% of cumulative travel.
+        is.targetTempC = 10;
+        for(int i = 1000; --i > 0; ) { rs.tick(valvePC, is, arv); }
+        EXPECT_EQ(0, valvePC);
+        EXPECT_EQ(100, rs.cumulativeMovementPC);
+        if(NULL != arv) { EXPECT_NEAR(valvePC, arv->get(), 1) << "backing valve should be close"; }
+        // Now set the target well above ambient again, and spin for a while.
+        // The valve should be open. with exactly 200% of cumulative travel.
+        is.targetTempC = 26;
+        for(int i = 1000; --i > 0; ) { rs.tick(valvePC, is, arv); }
+        EXPECT_EQ(100, valvePC);
+        EXPECT_EQ(200, rs.cumulativeMovementPC);
+        if(NULL != arv) { EXPECT_NEAR(valvePC, arv->get(), 1) << "backing valve should be close"; }
+        }
+    }
 
 // Simple test of integration of ModelledRadValve and underlying components.
 // This is a mini-integration test to look for eg glue-logic issues.
@@ -302,7 +321,7 @@ TEST(ModelledRadValve,MRVSExtremes)
         ASSERT_TRUE(newValvePos <= 100);
         ASSERT_TRUE(newValvePos > oldValvePos);
         if(oldValvePos < is0.minPCReallyOpen) { ASSERT_TRUE(is0.minPCReallyOpen <= newValvePos); } // Should open to at least minimum-really-open-% on first step.
-        ASSERT_TRUE(rs0.valveMoved == (oldValvePos != newValvePos));
+//        ASSERT_TRUE(rs0.valveMoved == (oldValvePos != newValvePos));
         if(100 == newValvePos) { break; }
         }
     ASSERT_EQ(100, valvePCOpen);
@@ -340,7 +359,7 @@ TEST(ModelledRadValve,MRVSExtremes)
         if(hitLinger) { ++lingerMins; }
         if(hitLinger && (0 != newValvePos)) { ASSERT_EQ(oldValvePos - 1, newValvePos); }
         if(newValvePos == is1.minPCReallyOpen-1) { hitLinger = true; }
-        ASSERT_TRUE(rs1.valveMoved == (oldValvePos != newValvePos));
+//        ASSERT_TRUE(rs1.valveMoved == (oldValvePos != newValvePos));
         if(0 == newValvePos) { break; }
         }
     EXPECT_EQ(0, valvePCOpen);
@@ -501,7 +520,7 @@ TEST(ModelledRadValve,MRVSOpenFastFromCold593)
     const uint8_t newValvePos = valvePCOpen;
     EXPECT_TRUE(newValvePos >= OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN);
     EXPECT_TRUE(newValvePos <= 100);
-    EXPECT_TRUE(rs0.valveMoved);
+//    EXPECT_TRUE(rs0.valveMoved);
     if(rs0.eventsSupported) { EXPECT_EQ(OTRadValve::ModelledRadValveState::MRVE_OPENFAST, rs0.getLastEvent()); }
 }
 
