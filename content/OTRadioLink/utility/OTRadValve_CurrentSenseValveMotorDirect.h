@@ -134,7 +134,7 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     // Pointer to function to get current sub-cycle time; never NULL.
     uint8_t (*const getSubCycleTimeFn)();
 
-//    // Minimum percent at which valve is usually open [1,00];
+//    // Minimum percent at which valve is usually open [1,100];
 //    const uint8_t minOpenPC;
 //    // Minimum percent at which valve is usually moderately open [minOpenPC+1,00];
 //    const uint8_t fairlyOpenPC;
@@ -208,18 +208,20 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
         uint8_t endStopHitCount;
         } valveNormal;
       } perState;
-    inline void clearPerState() { if(sizeof(perState) > 0) { memset(&perState, 0, sizeof(perState)); } }
+    inline void clearPerState()
+        { if(sizeof(perState) > 0) { memset(&perState, 0, sizeof(perState)); } }
 
     // Flag set on signalHittingEndStop() callback from end-top / stall / high-current input.
     // Marked volatile for thread-safe lock-free access (with care).
     volatile bool endStopDetected = false;
 
     // Current nominal percent open in range [0,100].
-    // Initialised to 'closed'.
-    uint8_t currentPC = 0;
+    // Initialised to fully open because valve will be at end of initialisation.
+    uint8_t currentPC = 100;
 
     // Target % open in range [0,100].
-    // Initialised to nominally partly open (but below 'call-for-heat'), as a safe frost-protection state.
+    // Initialised to nominally partly open (but below 'call-for-heat'),
+    // as a default safe frost-protection state.
     uint8_t targetPC = OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1;
 
     // Run fast towards/to end stop as far as possible in this call.
