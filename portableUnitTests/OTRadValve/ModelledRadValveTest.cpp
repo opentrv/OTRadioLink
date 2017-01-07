@@ -178,7 +178,6 @@ SCOPED_TRACE(testing::Message() << "no backing valve " << noBackingValve);
         OTRadValve::ModelledRadValveInputState is(18 << 4);
         is.targetTempC = 25;
         OTRadValve::ModelledRadValveState rs;
-        rs.prevValvePC = initialValvePC;
         // Spin on the tick for many hours' worth;
         // there is no need for the valve to move.
         for(int i = 1000; --i > 0; ) { rs.tick(valvePC, is, arv); }
