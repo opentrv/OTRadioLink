@@ -228,12 +228,12 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     volatile bool endStopDetected = false;
 
     // Current nominal percent open in range [0,100].
-    // Initialised to closed, partly to avoid calling for heat at start-up.
-    uint8_t currentPC = 0;
+    // Initialised to open, reflecting initial state eg when valve fitted.
+    uint8_t currentPC = 100;
 
     // Target % open in range [0,100].
-    // Initialised to closed, partly to avoid calling for heat at start-up.
-    uint8_t targetPC = 0;
+    // Target just below call-for-heat threshold for passive frost protection.
+    uint8_t targetPC = DEFAULT_VALVE_PC_SAFER_OPEN - 1;
 
     // Run fast towards/to end stop as far as possible in this call.
     // Terminates significantly before the end of the sub-cycle.
