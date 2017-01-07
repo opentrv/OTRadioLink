@@ -180,13 +180,13 @@ struct ModelledRadValveState final
   //   * valvePCOpenRef  current valve position UPDATED BY THIS ROUTINE;
   //         in range [0,100]
   //   * inputState  immutable input state reference
-  //   * physical device to set with new target if non-NULL
+  //   * physicalDeviceOpt  physical device to set with new target if non-NULL
   // If the physical device is provided then its target will be updated
   // and its actual value will be monitored for cumulative movement,
   // else if not provided the movement in valvePCOpenRef will be monitored.
   void tick(volatile uint8_t &valvePCOpenRef,
             const ModelledRadValveInputState &inputState,
-            AbstractRadValve *const physicalDeviceOpt = NULL);
+            AbstractRadValve *const physicalDeviceOpt);
 
   // True if by default/always in glacial mode, eg to minimise flow and overshoot.
   const bool alwaysGlacial = false;

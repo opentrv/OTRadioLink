@@ -81,7 +81,7 @@ ModelledRadValveState::ModelledRadValveState(const ModelledRadValveInputState &i
 //   * valvePCOpenRef  current valve position UPDATED BY THIS ROUTINE;
 //         in range [0,100]
 //   * inputState  immutable input state reference
-//   * physical device to set with new target if non-NULL
+//   * physicalDeviceOpt  physical device to set with new target if non-NULL
 // If the physical device is provided then its target will be updated
 // and its actual value will be monitored for cumulative movement,
 // else if not provided the movement in valvePCOpenRef will be monitored.
@@ -1068,7 +1068,7 @@ void ModelledRadValve::computeCallForHeat()
   // Invoke computeRequiredTRVPercentOpen()
   // and convey new target to the backing valve if any,
   // while tracking any cumulative movement.
-  retainedState.tick(value, inputState);
+  retainedState.tick(value, inputState, physicalDeviceOpt);
   }
 
 // Compute/update target temperature and set up state for computeRequiredTRVPercentOpen().
