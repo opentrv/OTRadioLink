@@ -624,6 +624,13 @@ bool CurrentSenseValveMotorDirect::do_valveNormal_prop()
        ((currentPC >= targetPC) && (currentPC <= targetPC + eps)))
         { return(true); } // Leave poll().
 
+    // If the end-stop is encountered earlier than expected
+    // then recalibration may be needed if far too early.
+    // This is the maximum % early before forcing a recalibration.
+    // This value is intended to leave a decent nominal proportional range.
+    static constexpr uint8_t maxEarlyEndstopHitPC =
+        OTV0P2BASE::fnmax(20, (absTolerancePC*3)/2);
+
     // Move incrementally as close as possible to the target position.
     // Not open enough.
     if(targetPC > currentPC)
@@ -634,7 +641,12 @@ bool CurrentSenseValveMotorDirect::do_valveNormal_prop()
       // Hitting the end-stop is unexpected.
       if(hitEndStop)
         {
-        if(currentPC < upperPropLimit - weps) { reportTrackingError(); }
+        // Report major tracking error.
+        if(currentPC < 100 - maxEarlyEndstopHitPC) { reportTrackingError(); }
+#ifdef OTV0P2BASE_ErrorReport_DEFINED
+        // Report minor tracking warning.
+        else { OTV0P2BASE::ErrorReporter.set(OTV0P2BASE::ErrorReport::WARN_VALVE_TRACKING_MINOR); }
+#endif
         // Silently auto-adjust when end-stop hit close to expected position.
         if(++perState.valveNormal.endStopHitCount >= maxEndStopHitsToBeConfident)
             {
@@ -659,7 +671,12 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("->");
       // Hitting the end-stop is unexpected.
       if(hitEndStop)
         {
-        if(currentPC > lowerPropLimit + weps) { reportTrackingError(); }
+        // Report major tracking error.
+        if(currentPC > maxEarlyEndstopHitPC) { reportTrackingError(); }
+#ifdef OTV0P2BASE_ErrorReport_DEFINED
+        // Report minor tracking warning.
+        else { OTV0P2BASE::ErrorReporter.set(OTV0P2BASE::ErrorReport::WARN_VALVE_TRACKING_MINOR); }
+#endif
         // Silently auto-adjust when end-stop hit close to expected position.
         if(++perState.valveNormal.endStopHitCount >= maxEndStopHitsToBeConfident)
             {

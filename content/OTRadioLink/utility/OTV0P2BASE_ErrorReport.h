@@ -75,7 +75,11 @@ class ErrorReport final : public OTV0P2BASE::Actuator<int8_t>
         // Zero is not an error nor a warning.
         enum errorCatalogue : int8_t
             {
-            // Automatically recoverable tracking error,
+            // Automatically recoverable minor tracking error,
+            // eg in valve drive dead reckoning,
+            // likely to need an recalibration run.
+            WARN_VALVE_TRACKING_MINOR = -11,
+            // Automatically recoverable significant tracking error,
             // eg in valve drive dead reckoning,
             // likely to need an recalibration run.
             WARN_VALVE_TRACKING = -10,

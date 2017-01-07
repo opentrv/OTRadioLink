@@ -423,6 +423,14 @@ class ModelledRadValveComputeTargetTempBase
 
 // Basic/simple stateless implementation of computation of target temperature.
 // Templated with all the input instances for maximum speed and minimum code size.
+//
+// TODO: incorporate condensation protection by keeping above the dew point:
+//
+//     Td = T - ((100 - RH)/5.)
+//
+// taken from: https://iridl.ldeo.columbia.edu/dochelp/QA/Basic/dewpoint.html
+//
+// where T and RH are the current temperature and relative humidity.
 template<
   class valveControlParameters,
   const ValveMode *const valveMode,
