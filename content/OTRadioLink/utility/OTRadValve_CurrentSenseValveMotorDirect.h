@@ -262,7 +262,8 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     // Compute and apply reconciliation/adjustment of ticks and intermediate position.
     // Uses computePosition() to compute new internal position.
     // Call after moving the valve in normal mode, eg by dead reckoning.
-    // Does not ever move logically right to the end-stops: use hitEndStop() for that,
+    // Does not ever move logically right to the end-stops:
+    // use hitEndStop() for that,
     // Does nothing for non-proportional implementation.
     virtual void recomputeIntermediatePosition() { }
 
@@ -528,19 +529,24 @@ class CurrentSenseValveMotorDirect final : public CurrentSenseValveMotorDirectBi
     // Maximum permitted value of ticksFromOpen (and ticksReverse).
     static const uint16_t MAX_TICKS_FROM_OPEN = uint16_t(~0);
 
-    // True if using positional/shaft encoder, else using crude dead-reckoning.
-    // Only defined once calibration is complete.
-    bool usingPositionalShaftEncoder() const { return(false); }
+//    // True if using positional/shaft encoder, else using crude dead-reckoning.
+//    // Only defined once calibration is complete.
+//    bool usingPositionalShaftEncoder() const { return(false); }
 
     // Compute and apply reconciliation/adjustment of ticks and intermediate position.
     // Uses computePosition() to compute new internal position.
     // Call after moving the valve in normal mode, eg by dead reckoning.
-    // Does not ever move logically right to the end-stops: use hitEndStop() for that,
+    // Does not ever move logically right to the end-stops:
+    // use hitEndStop() for that,
     // Does nothing if calibration is not in place.
     virtual void recomputeIntermediatePosition() override
         {
         if(!needsRecalibrating)
-            { currentPC = OTV0P2BASE::fnconstrain(cp.computePosition(ticksFromOpen, ticksReverse), uint8_t(1), uint8_t(99)); }
+            {
+            currentPC = OTV0P2BASE::fnconstrain(
+                cp.computePosition(ticksFromOpen, ticksReverse),
+                    uint8_t(1), uint8_t(99));
+            }
         }
 
     // Reset internal position markers when an end-stop is hit.
