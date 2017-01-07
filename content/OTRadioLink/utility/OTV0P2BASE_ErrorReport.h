@@ -73,6 +73,7 @@ class ErrorReport final : public OTV0P2BASE::Actuator<int8_t>
         // Errors are positive.
         // Warnings are negative.
         // Zero is not an error nor a warning.
+        // Values in the range [-99,99] will save space in JSON representations.
         enum errorCatalogue : int8_t
             {
             // Automatically recoverable minor tracking error,

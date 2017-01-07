@@ -399,30 +399,34 @@ class ModelledRadValveComputeTargetTempBase
   {
   public:
     // Compute and return target (usually room) temperature (stateless).
-    // Computes the target temperature based on various sensors, controls and stats.
+    // Computes the target temperature based on various sensors,
+    // controls and stats.
     // Can be called as often as required though may be slow/expensive.
     // Will be called by computeTargetTemperature().
-    // One aim is to allow reasonable energy savings (10--30%+)
-    // even if the device is left in WARM mode all the time,
+    // A prime aim is to allow reasonable energy savings (10--30%+)
+    // even if the device is left untouched and in WARM mode all the time,
     // using occupancy/light/etc to determine when temperature can be set back
     // without annoying users.
     //
-    // Attempts in WARM mode to make the deepest reasonable cuts to maximise savings
-    // when the room is vacant and not likely to become occupied again soon,
-    // ie this looks ahead to give the room time to recover to target before occupancy.
+    // Attempts in WARM mode to make the deepest reasonable cuts
+    // to maximise savings when the room is vacant
+    // and not likely to become occupied again soon,
+    // ie this looks ahead to give the room time
+    // to get to or close to target before occupancy.
     //
     // Stateless directly-testable version behind computeTargetTemperature().
     virtual uint8_t computeTargetTemp() const = 0;
 
     // Set all fields of inputState from the target temperature and other args, and the sensor/control inputs.
-    // The target temperature will usually have just been computed by computeTargetTemp().
+    // The target temperature will usually have just been computed by
+    // computeTargetTemp().
     virtual void setupInputState(ModelledRadValveInputState &inputState,
         const bool isFiltering,
         const uint8_t newTarget, const uint8_t minPCOpen, const uint8_t maxPCOpen, const bool glacial) const = 0;
   };
 
 // Basic/simple stateless implementation of computation of target temperature.
-// Templated with all the input instances for maximum speed and minimum code size.
+// Templated with all input instances for maximum speed and minimum code size.
 //
 // TODO: incorporate condensation protection by keeping above the dew point:
 //
