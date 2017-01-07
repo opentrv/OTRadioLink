@@ -484,8 +484,13 @@ class CurrentSenseValveMotorDirect final : public CurrentSenseValveMotorDirectBi
           uint8_t computePosition(volatile uint16_t &ticksFromOpen,
                                   volatile uint16_t &ticksReverse) const;
 
-          // Precision % threshold above which proportional mode is not going to be possible.
-          static constexpr uint8_t max_usuable_precision = OTV0P2BASE::fnmin((uint8_t)25, absTolerancePC);
+          // Precision % threshold above which proportional mode is not possible.
+          // This is partly determined by some of the calculations and
+          // tolerances in the dead reckoning.
+          // Should be high enough to allow as low as 8 or 9 pulses
+          // from one end of travel to the other (in the quickest direction).
+          static constexpr uint8_t max_usuable_precision =
+              OTV0P2BASE::fnmin((uint8_t)16, absTolerancePC);
           // Precision % used to indicate an error condition (legal but clearly no good).
           static constexpr uint8_t bad_precision = 100;
           // If true, device cannot be run in proportional mode.
