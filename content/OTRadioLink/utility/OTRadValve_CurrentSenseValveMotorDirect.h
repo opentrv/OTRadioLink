@@ -135,7 +135,7 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
       };
 
   protected:
-    // Hardware interface instance, passed by reference.
+    // Hardware interface instance, passed by reference; never NULL.
     // Must have a lifetime exceeding that of this enclosing object.
     OTRadValve::HardwareMotorDriverInterface * const hw;
 
@@ -228,13 +228,12 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     volatile bool endStopDetected = false;
 
     // Current nominal percent open in range [0,100].
-    // Initialised to fully open because valve will be at end of initialisation.
-    uint8_t currentPC = 100;
+    // Initialised to closed, partly to avoid calling for heat at start-up.
+    uint8_t currentPC = 0;
 
     // Target % open in range [0,100].
-    // Initialised to nominally partly open (but below 'call-for-heat'),
-    // as a default safe frost-protection state.
-    uint8_t targetPC = OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1;
+    // Initialised to closed, partly to avoid calling for heat at start-up.
+    uint8_t targetPC = 0;
 
     // Run fast towards/to end stop as far as possible in this call.
     // Terminates significantly before the end of the sub-cycle.
