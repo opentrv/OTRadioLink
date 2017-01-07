@@ -46,23 +46,26 @@ namespace OTRadValve
 // Exposed to allow easier unit testing.
 //
 // This uses int_fast16_t for C16 temperatures (ie Celsius * 16)
-// to be able to efficiently process signed values with sufficient range for room temperatures.
+// to be able to efficiently process signed values with sufficient range
+// for room temperatures.
 //
-// All initial values set by the constructors are sane, but should not be relied on.
+// All initial values set by the constructors are sane,
+// but cannot be relied on to be sane for all uses.
 struct ModelledRadValveInputState final
   {
   // Offset from raw temperature to get reference temperature in C/16.
   static constexpr uint8_t refTempOffsetC16 = 8;
 
-  // All initial values set by the constructor are sane, but should not be relied on.
+  // All initial values set by the constructor are sane, for some uses.
   explicit ModelledRadValveInputState(const int_fast16_t realTempC16 = 0) { setReferenceTemperatures(realTempC16); }
 
   // Calculate and store reference temperature(s) from real temperature supplied.
   // Proportional temperature regulation is in a 1C band.
-  // By default, for a given target XC the rad is off at (X+1)C so temperature oscillates around that point.
+  // By default, for a given target XC the rad is off at (X+1)C
+  // so that the controlled temperature oscillates around that point.
   // This routine shifts the reference point at which the rad is off to (X+0.5C)
   // ie to the middle of the specified degree, which is more intuitive,
-  // and which may save a little energy if users target the specified temperatures.
+  // and which may save a little energy if users focus on temperatures.
   // Suggestion c/o GG ~2014/10 code, and generally less misleading anyway!
   void setReferenceTemperatures(const int_fast16_t currentTempC16)
     {
@@ -188,7 +191,7 @@ struct ModelledRadValveState final
             const ModelledRadValveInputState &inputState,
             AbstractRadValve *const physicalDeviceOpt);
 
-  // True if by default/always in glacial mode, eg to minimise flow and overshoot.
+  // True if by default/always in glacial mode, eg to minimise flow / overshoot.
   const bool alwaysGlacial = false;
 
   // True once all deferred initialisation done during the first tick().
@@ -196,7 +199,7 @@ struct ModelledRadValveState final
   // such as real temperatures to propagate into all the filters.
   bool initialised = false;
 
-  // If true then filtering is being applied to temperatures since they are fast-changing.
+  // If true then filtering is being applied since temperatures fast-changing.
   bool isFiltering = false;
 
 //  // True if the computed modelled valve position was changed by tick().
@@ -1008,7 +1011,8 @@ class ModelledRadValve final : public AbstractRadValve
     // True if the room/ambient temperature is below target, enough to likely call for heat.
     // This implies that the temperature is (significantly) under target,
     // the valve is really open,
-    // and this needs more heat than can be passively drawn from an already-running boiler.
+    // and this needs more heat than can be passively drawn from
+    // an already-running boiler.
     // Thread-safe and ISR safe.
     virtual bool isUnderTarget() const override { return(underTarget); }
 
@@ -1024,17 +1028,19 @@ class ModelledRadValve final : public AbstractRadValve
     const OTV0P2BASE::SubSensorSimpleRef<uint8_t, false> targetTemperatureSubSensor;
 
     // Get the current automated setback (if any) in the direction of energy saving in C; non-negative.
-    // For heating this is the number of C below the nominal user-set target temperature
-    // that getTargetTempC() is; zero if no setback is in effect.
+    // For heating this is the number of C below the nominal user-set
+    // target temperature that getTargetTempC() is;
+    // zero if no setback is in effect.
     // Generally will be 0 in FROST or BAKE modes.
     // Not ISR-/thread- safe.
     uint8_t getSetbackC() const { return(setbackC); }
 
     // DEPRECATED IN FAVOUR OF setbackSubSensor.tag().
-    // Returns a suggested (JSON) tag/field/key name including units of getSetbackC(); not NULL.
-    // It would often be appropriate to mark this as low priority since depth of setback matters more than speed.
-    // The lifetime of the pointed-to text must be at least that of this instance.
-    OTV0P2BASE::Sensor_tag_t tagTSC() const { return(setbackSubSensor.tag()); } // { return(V0p2_SENSOR_TAG_F("tS|C")); }
+    // Returns a (JSON) tag/field/key name including units of getSetbackC(); not NULL.
+    // It would often be appropriate to mark this as low priority
+    // since depth of setback matters more than speed.
+    // The lifetime of the pointed-to text is at least that of this instance.
+    OTV0P2BASE::Sensor_tag_t tagTSC() const { return(setbackSubSensor.tag()); }
 
     // Facade/sub-sensor for setback level (in C), at low priority.
     const OTV0P2BASE::SubSensorSimpleRef<uint8_t> setbackSubSensor;
@@ -1046,8 +1052,8 @@ class ModelledRadValve final : public AbstractRadValve
     uint16_t getCumulativeMovementPC() { return(retainedState.cumulativeMovementPC); }
 
     // DEPRECATED IN FAVOUR OF cumulativeMovementSubSensor.tag().
-    // Returns a suggested (JSON) tag/field/key name including units of getCumulativeMovementPC(); not NULL.
-    // The lifetime of the pointed-to text must be at least that of this instance.
+    // Returns a (JSON) tag/field/key name including units of getCumulativeMovementPC(); not NULL.
+    // The lifetime of the pointed-to text is at least that of this instance.
     OTV0P2BASE::Sensor_tag_t tagCMPC() const { return(cumulativeMovementSubSensor.tag()); }
 
     // Facade/sub-sensor cumulative valve movement (in %), at low priority.
