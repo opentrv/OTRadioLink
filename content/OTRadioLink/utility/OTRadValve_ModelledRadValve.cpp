@@ -164,7 +164,7 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef,
     valvePCOpenRef = newModelledValvePC;
     }
   // For cumulative movement tracking
-  // use the modelled value by default, ie if no physical device available.
+  // use the modelled value by default if no physical device available.
   uint8_t newValvePC = newModelledValvePC;
   if(NULL != physicalDeviceOpt)
       {
@@ -172,8 +172,10 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef,
       // to ensure that the driver/device sees eg the first such request
       // even if the modelled value does not change.
       physicalDeviceOpt->set(newModelledValvePC);
-      // Llook for a change in the physical device immediately,
-      // though change will probably need one or more ticks elsewhere.
+      // Look for a change in the physical device position immediately,
+      // though visible change will usually require some time
+      // eg for asynchronous motor activity,
+      // so this is typically capturing movements up to just before the set().
       newValvePC = physicalDeviceOpt->get();
       }
   cumulativeMovementPC =
