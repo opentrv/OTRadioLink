@@ -683,9 +683,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
             (isFiltering
                 || (newTarget < wt)
                 || ambLight->isRoomDark()); // Must be false if not usable.
-        // Capture adjusted reference/room temperatures
-        // and set callingForHeat flag also using same outline logic as
-        // computeRequiredTRVPercentOpen().
+        // Capture adjusted reference/room temperature.
         inputState.setReferenceTemperatures(temperatureC16->get());
         }
   };
