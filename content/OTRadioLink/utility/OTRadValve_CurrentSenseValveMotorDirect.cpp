@@ -627,9 +627,10 @@ bool CurrentSenseValveMotorDirect::do_valveNormal_prop()
     // If the end-stop is encountered earlier than expected
     // then recalibration may be needed if far too early.
     // This is the maximum % early before forcing a recalibration.
-    // This value is intended to leave a decent nominal proportional range.
+    // This value is intended to leave a decent central proportional range.
+    // Somewhere below 20--25% and above absTolerancePC is likely best.
     static constexpr uint8_t maxEarlyEndstopHitPC =
-        OTV0P2BASE::fnmax(20, (absTolerancePC*3)/2);
+        OTV0P2BASE::fnmax(19, (absTolerancePC*3)/2);
 
     // Move incrementally as close as possible to the target position.
     // Not open enough.
