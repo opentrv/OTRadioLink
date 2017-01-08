@@ -9,6 +9,60 @@ or release/freeze points.
 
 
 pending:
+    DHD20170108: summary of activity up TRV1.5-rc1 to TRV1.5-rc4.
+        20161107-RC-clock-tune,2016/11/07,REV7,"Seems relatively stable, decent valve control, has ID setting.",,,,,
+        20161109-cumulatvePC-fix,2016/11/09,REV7,Fixes issues with BAKE and vC|% amongst others.,,,,,
+        20161111-post-warnings-fixes,2016/11/11,REV7,After compiler warning fixes; should be same as 20161109-cumulatvePC-fix.,,,,,
+        20161111-current-drain-fix,2016/11/11,REV7,Fixed 1mA constant drain.,,,,,
+        20161111-current-drain-fix+,2016/11/11,REV7,Ensures that valve starts in WARM mode unless dial is at FROST.,,,,,
+        20161111-fixes-roundup,2016/11/11,REV7,RC for REV7 code. Includes TODO-1045 UI tweak also.,,,,,
+        20161113-valve-reseat,2016/11/13,REV7,Putative fix for TODO-1050.,,,,,
+        TRV1.5-rc2,2016/11/13,BRANCH,Branch for REV7 + REV10 aiming for ES+SA release.,,,,,
+        20131113-REV10-fix,2016/11/13,REV10,Compilation fix for new stats stuff.,,On TRV1.5-rc2 branch.,,,
+        20161113-REV7-RC2a-2,2016/11/13,REV7,Tag for REV7 fixes on this branch.,,On TRV1.5-rc2 branch.,,,
+        20161115-16WW-REV7-RC,2016/11/15,REV7,REV7 valve driver rework against simulator.,,On TRV1.5-rc2 branch.,,,
+        20161115-REV10ResetFix,2016/11/15,REV10,Should now be more reliable...,,,,,
+        20161115-RC2b,2016/11/15,both,,,On TRV1.5-rc2 branch.,,,THIS IS THE ES 2ND RELEASE.
+        20161119-16WW-RH-568,2016/11/19,REV7,Testing reduced setback with high RH during the day.,,,Flash: 31678,,
+        20161121-steady-BcV-4,2016/11/21,REV7,Reduced noise in battery voltage B|cV stats.,,,Flash: 31844,,
+        20161122-dial-feedback-1067,2016/11/22,REV7,Feedback per dial 'click' even to end stops.,,,Flash: 31888,,
+        20161123-lights-on-feedback,2016/11/23,REV7,Quick feedback on occupancy.,,,Flash: 31906,,
+        20161124-occupancy-adj,2016/11/24,REV7,Further tweaking of occupancy behaviour and simplification of deadband widening.,,,Flash: 31890,,
+        20161126-weak-occ,2016/11/26,REV7,"Weak occupancy signalling, eg from evening TV watching.",,,Flash: 32122,,
+        20161129-wider-deadband-at-top,2016/11/29,REV7,Attempting to reduce travel/noise especially at night and when setback is applied by widening the deadband by a degree at the top providing temperature not moving in the wrong direction.,,,Flash: 32074,,
+        20161130-amblight-tweaks,2016/11/30,REV7,Unit testing and simplifying/improving ambient light sensing.,,,Flash: 31848,,
+        20161201-amblight-tweaks,2016/12/01,REV7,Further tweaking and tests for AmbLight and reduced activity at night.,,,Flash: 31828,,
+        20161202-min-rad-on-time,2016/12/02,REV7,Extending min rad on-time.,,,Flash: 31820,,
+        TRV1.5-rc3,2016/12/07,BRANCH,Branch for REV7 + REV10 aiming for ES+SA release.,,,,,
+        ,,REV7,Lots of extra testing for setback behaviour against real data.,,,Flash: 31926,,
+        ,,REV10,Thorough rework and more testing of SIM900 module.,,,Flash: 28860,,
+        20161210-tuned-setbacks,2016/12/10,REV7,Thorough rework and testing of setbacks.,,,Flash: 31682,,
+        20161210-getByHourStatRTC-bugfix,2016/12/10,REV7,Fix confusion between current and next hour.,,,Flash: 31682,,
+        20161210-AmbLight-stats-isAvail-fix,2016/12/10,REV7,Fix confusion over isAvailable() semantics that prevented AmbLight stats from being gathered.,,,Flash: 31664,,Will be RC3b
+        20161211-RC3b,2016/12/11,both,Branch for REV7 + REV10 aiming for ES+SA release.,,On TRV1.5-rc3 branch.,,,THIS IS THE ES 3RD RELEASE.
+        ,,REV7,"Fix to ambient light handing, anticipation and deepened setbacks.",,,Flash: 31664,,
+        ,,REV10,No change from TRV1.5-rc3,,,Flash: 28860,,
+        20161224-savings-tweaks,2016/12/24,REV7,"More tweaks to improve energy savings, including use of new data sets.",,,Flash: 31658,,
+        20161229-anticipation-tweaks,2016/12/29,REV7,Reducing unwanted am wakeups while improving anticipation otherwise.,,,Flash: 31738,,
+        20161230-avoiding-continual-boiler-run-2,2016/12/30,REV7,Avoid valve hovering above 50% too long (while not actually open) forcing boiler to run pointlessly.,,,Flash: 31800,,
+        20161231-new-valve-movement-alg-2,2016/12/31,REV7,Simplified new valve position algorithm.,,,Flash: 31244,,
+        20161231-new-valve-movement-alg-4,2016/12/31,REV7,Tweaked new valve position algorithm.,,,Flash: 31358,,
+        20161231-new-valve-movement-alg-5,2016/12/31,REV7,Made temperature slew detection more robust.,,,Flash: 31400,,
+        20161231-new-valve-movement-alg-6,2016/12/31,REV7,Bug fixes and reduced valve movement.,,,Flash: 31244,,
+        20170101-reduced-valve-movement-2,2017/01/01,REV7,Trying very hard to avoid having to run fully to end stops.,,,Flash: 31202,,
+        20170101-anticipatory-early-turn-down-2,2017/01/01,REV7,Setting back sooner in normally-vacant hours.,,,Flash: 31236,,
+        20170101-tweaks-2,2017/01/01,REV7,Small tweaks and tidyup.,,,Flash: 31292,,
+        20170102-reduced-valve-movement,2017/01/02,REV7,Much wider (temporary) deadband at top to reduce valve travel.,,,Flash: 31202,,
+        20170103-wider-deadband-at-top,2017/01/03,REV7,Much wider (temporary) deadband at top to reduce valve travel.,,,Flash: 31332,,
+        20170104-real-valve-position,2017/01/04,REV7,Showing physical valve position and cumulative movement.,,,Flash: 31534,,
+        20170104-real-valve-position-2,2017/01/04,REV7,Fixing possible failure to fully recover from unexpected endstop hit.,,,Flash: 31776,,
+        20170105-ErrorReporter-2,2017/01/05,REV7,ErrorReporter deployed; more valve close speed trimming.,,,Flash: 31860,,
+        20170105-valve-movement-reduction,2017/01/05,REV7,Further efforts to moderate valve movement.,,,Flash: 31924,,
+        20170105-valve-movement-reduction-2,2017/01/05,REV7,Further efforts to moderate valve movement.,,,Flash: 31888,,
+        20170107-valve-movement-reduction-3,2017/01/07,REV7,Bug fixes.,,,Flash: 31920,,
+        20170107-valve-movement-reduction-4,2017/01/07,REV7,"Reporting more warnings, and adjusted forced-calibration threshold.",,,Flash: 31894,,
+        20170108-valve-movement-reduction,2017/01/08,REV7,Small tweaks.,,,Flash: 31900,,
+        TRV1.5-rc4,2016/12/11,both,"Branch for REV7 primarily, improved valve movement (+ REV10).",,On TRV1.5-rc4 branch.,,,
     DHD20161231: TODO-1096: new simplified valve computeRequiredTRVPercentOpen().
     DHD20161024: TODO-970: Introduced TempControl.
     DHD20161023: TODO-970: ActuatorPhysicalUIBase now in OTRadValve.
@@ -16,7 +70,6 @@ pending:
     DHD20161020: TODO-1026: Pushed out thresholds for movement out when using wide deadband
     DHD20161015: TODO-970: Created OTRadValve_Parameters.h.
     DHD20161002: TODO-621: tuning 'door opened' algorithm to fit some observed data.
-
 
 
 20160505:
