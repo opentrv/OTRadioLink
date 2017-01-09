@@ -1070,6 +1070,8 @@ TEST(ModelledRadValve,SampleValveResponse1)
     rs0.tick(valvePCOpen, is0, NULL);
     // Valve fully closed in original; must be below call-for-heat threshold.
     EXPECT_GT(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, valvePCOpen);
+    const uint8_t v4 = valvePCOpen;
+    EXPECT_GE(v3, v4) << "valve should not be re-opening";
     // Filtering still on.
     EXPECT_TRUE(rs0.isFiltering);
 
@@ -1129,6 +1131,8 @@ TEST(ModelledRadValve,SampleValveResponse1)
     // For algorithms improved since that involved in this trace (20161231)
     // the valve should not yet be fully closed.  (TODO-1099)
     EXPECT_LT(0, valvePCOpen);
+    const uint8_t v5 = valvePCOpen;
+    EXPECT_GE(v4, v5) << "valve should not be re-opening";
 
     // Set back temperature significantly (a FULL setback)
     // and verify that valve is not immediately fully closed,
