@@ -1133,6 +1133,7 @@ TEST(ModelledRadValve,SampleValveResponse1)
     EXPECT_LT(0, valvePCOpen);
     const uint8_t v5 = valvePCOpen;
     EXPECT_GE(v4, v5) << "valve should not be re-opening";
+    EXPECT_NEAR(344, rs0.getSmoothedRecent(), 5); // 344 ~ 21.5C.
 
     // Set back temperature significantly (a FULL setback)
     // and verify that valve is not immediately fully closed,
