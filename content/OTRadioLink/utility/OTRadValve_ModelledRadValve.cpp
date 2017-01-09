@@ -352,19 +352,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         // In BAKE mode open immediately to maximum.
         if(inputState.inBakeMode) { return(inputState.maxPCOpen); }
 
-        // Nominally aiming for near top of central/target 1C range where
-        // adjustedTempC == inputState.targetTempC
-        // ie while adjustedTempC is just below inputState.targetTempC.
-        const bool inMiddle1C = (adjustedTempC == tTC);
-        // True when in central sweet-spot.
-        // Normally top-half of central 1C,
-        // ie aiming to keep temperature within a 0.5C band.
-        // Extends down to bottom of central 1C with wide deadband of filtering,
-        // ie aiming to keep temperature within a 1C band.
-        const bool inCentralSweetSpot = inMiddle1C &&
-            (worf || ((adjustedTempC16 & 0xf) >= 8));
-
-        // Raw error temperature: amount ambient is above target (1/16C).
+        // Raw temperature error: amount ambient is above target (1/16C).
         const int_fast16_t errorC16 = adjustedTempC16 - (tTC << 4) - 12;
         // True when below target, ie the error is negative.
         const bool belowTarget = (errorC16 < 0);
@@ -382,11 +370,12 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
             { if(0 == valvePCOpen) { return(valvePCOpen); } }
 
         // Compute proportional slew rates to fix temperature errors.
+        // Note that slewF == 0 in central sweet spot.
         const uint8_t errShift = worf ? 3 : 2;
         // Fast slew when responding to manual control or similar.
         const uint8_t slewF = OTV0P2BASE::fnmin(TRV_SLEW_PC_PER_MIN_FAST,
             uint8_t((errorC16 < 0) ? ((-errorC16) >> errShift) : (errorC16 >> errShift)));
-        // Slower slew for use when not responding to human input.
+        // Slower slew for use when not responding to human input, eg in dark.
         const uint8_t slew = slewF >> 1;
 
         // Move quickly when requested, eg responding to manual control use.
@@ -398,7 +387,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         // Note that a manual adjustment of the temperature set-point
         // is very likely to force this unit out of the sweet-spot.
         // Ignores 'glacial'.
-        if(inputState.fastResponseRequired && !inCentralSweetSpot && (slewF > 0))
+        if(inputState.fastResponseRequired && (slewF > 0))
             {
             if(belowTarget)
                 {
@@ -431,25 +420,33 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         //   * not very far away from target
         if(valvePCOpen < OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN)
             {
-            if(inCentralSweetSpot) { return(valvePCOpen); }
+            if(0 == slew) { return(valvePCOpen); }
             else
                 {
-                // If well off target then valve closing may be sped up.
-                // Have a higher ceiling if filtering,
-                // eg because sensor near heater,
-                // or if a wide deadband is requested.
-                // Note that the upper limit may be driven by
-                // the non-set-back temperature target.
-                const uint8_t wOT = worf ?
-                    OTV0P2BASE::fnmax(_proportionalRange-1, 1) : 1;
-                const bool wellAboveTarget = adjustedTempC > higherTargetC + wOT;
-                const bool wellBelowTarget = adjustedTempC + wOT < tTC;
+//                // If well off target then valve closing may be sped up.
+//                // Have a higher ceiling if filtering,
+//                // eg because sensor near heater,
+//                // or if a wide deadband is requested.
+//                // Note that the upper limit may be driven by
+//                // the non-set-back temperature target.
+//                const uint8_t wOT = worf ?
+//                    OTV0P2BASE::fnmax(_proportionalRange-1, 1) : 1;
+//                const bool wellAboveTarget = adjustedTempC > higherTargetC + wOT;
+//                const bool wellBelowTarget = adjustedTempC + wOT < tTC;
+
+                // Regard a large error/slew as suggesting that
+                // hovering is not acceptable unless the temperature
+                // is actively moving in the right direction.
+                // Use the gentler of the slew metrics
+                // and regard significant slew as one that is
+                // higher than the 'normal' rate that is responsive.
+                const bool significantTempError = (slew > TRV_SLEW_PC_PER_MIN);
 
                 // When below sweet-spot and not falling, hold valve steady.
                 // If well below then hold steady only if temperature rising.
                 if(belowTarget)
                     {
-                    if(wellBelowTarget ? (rise > 0) : (rise >= 0))
+                    if(significantTempError ? (rise > 0) : (rise >= 0))
                         { return(valvePCOpen); }
                     }
                 // When above sweet-spot and not rising, hold valve steady.
@@ -471,7 +468,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
                 // or (say) keeping users from sleeping by being too warm.
                 else
                     {
-                    if(wellAboveTarget ? (rise < 0) : (rise <= 0))
+                    if(significantTempError ? (rise < 0) : (rise <= 0))
                         { return(valvePCOpen); }
                     }
                 }
@@ -486,7 +483,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         const bool shouldClose = !belowTarget && (rise >= 0);
 
         // Avoid fast movements if being glacial or in central sweet-spot.
-        if(!beGlacial && /* !inCentralSweetSpot && */ (slew > 0))
+        if(!beGlacial && (slew > 0))
             {
             // When the temperature error is significant
             // then adjust valve with reasonable pace proportional to error
