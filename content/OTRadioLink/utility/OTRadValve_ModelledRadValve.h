@@ -643,7 +643,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
     // Usually target temp will just have been computed by computeTargetTemp().
     // This should not second-guess computeTargetTemp() in terms of setbacks.
     virtual void setupInputState(ModelledRadValveInputState &inputState,
-        const bool isFiltering,
+        const bool /*isFiltering*/,
         const uint8_t newTarget,
         const uint8_t minPCOpen, const uint8_t maxPCOpen,
         const bool glacial) const override
@@ -681,9 +681,9 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
         // some/most minutes while close to target temperature.
         // For responsiveness, don't widen the deadband immediately
         // after manual controls have been used.  (TODO-593)
+        // DHD20170109: filtering effectively forces wide in computation now.
         inputState.widenDeadband = (!fastResponseRequired) &&
-            (isFiltering
-                || (newTarget < wt)
+            ((newTarget < wt)
                 || ambLight->isRoomDark()); // Must be false if not usable.
         // Capture adjusted reference/room temperature.
         inputState.setReferenceTemperatures(temperatureC16->get());

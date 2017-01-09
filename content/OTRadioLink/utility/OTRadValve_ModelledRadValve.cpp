@@ -359,10 +359,10 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         // True when in central sweet-spot.
         // Normally top-half of central 1C,
         // ie aiming to keep temperature within a 0.5C band.
-        // Extends right down to bottom of central 1C with wide deadband,
+        // Extends down to bottom of central 1C with wide deadband of filtering,
         // ie aiming to keep temperature within a 1C band.
         const bool inCentralSweetSpot = inMiddle1C &&
-            (wide || ((adjustedTempC16 & 0xf) >= 8));
+            (worf || ((adjustedTempC16 & 0xf) >= 8));
 
         // Raw error temperature: amount ambient is above target (1/16C).
         const int_fast16_t errorC16 = adjustedTempC16 - (tTC << 4) - 12;
@@ -397,14 +397,14 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         else
             { if(0 == valvePCOpen) { return(valvePCOpen); } }
 
-        // If well away from target then valve closing may be faster than usual.
+        // If well off target then valve closing may be faster than usual.
         // Have a higher ceiling if filtering, eg because sensor near heater,
         // or if a wide deadband is requested.
         // Note that the upper limit may be driven by the non-set-back temp.
-        const uint8_t wAT = worf ?
+        const uint8_t wOT = worf ?
             OTV0P2BASE::fnmax(_proportionalRange/2, 1) : 1;
-        const bool wellAboveTarget = adjustedTempC > higherTargetC + wAT;
-        const bool wellBelowTarget = adjustedTempC + wAT < tTC;
+        const bool wellAboveTarget = adjustedTempC > higherTargetC + wOT;
+        const bool wellBelowTarget = adjustedTempC + wOT < tTC;
 
         // Move quickly when requested, eg responding to manual control use.
         // Try to get to right side of call-for-heat threshold in first tick
@@ -526,28 +526,32 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
             // to reduce response time / latency
             // since there is relatively low (but not zero) probability
             // of being able to take advantage of an already-running boiler.
+            // The err calculations here should line up with wOT boundaries.
             const uint8_t errShift = worf ? 4 : 3;
-            const uint8_t slew = 1 + OTV0P2BASE::fnmin(TRV_SLEW_PC_PER_MIN_FAST,
+            const uint8_t slew = OTV0P2BASE::fnmin(TRV_SLEW_PC_PER_MIN_FAST,
                 uint8_t((errorC16 < 0) ? ((-errorC16) >> errShift) : (errorC16 >> errShift)));
-            if(shouldOpen)
+            if(slew > 0)
                 {
-                return(OTV0P2BASE::fnconstrain(
-                    uint8_t(valvePCOpen + slew),
-                    uint8_t(0),
-                    inputState.maxPCOpen));
-                }
-            // Immediately get below call-for-heat threshold on way down,
-            // then move slowly enough to potentially avoid full close.
-            // Close a bit faster if well over target.
-            // Else close slowly if in the bottom half of the range
-            // to try to capture any bottom-end proportional behaviour
-            // and give chance for rad/room to start cooling.
-            else if(shouldClose)
-                {
-                return(uint8_t(OTV0P2BASE::fnconstrain(
-                    int(valvePCOpen) - int(slew),
-                    0,
-                    int(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1))));
+                if(shouldOpen)
+                    {
+                    return(OTV0P2BASE::fnconstrain(
+                        uint8_t(valvePCOpen + slew),
+                        uint8_t(0),
+                        inputState.maxPCOpen));
+                    }
+                // Immediately get below call-for-heat threshold on way down,
+                // then move slowly enough to potentially avoid full close.
+                // Close a bit faster if well over target.
+                // Else close slowly if in the bottom half of the range
+                // to try to capture any bottom-end proportional behaviour
+                // and give chance for rad/room to start cooling.
+                else if(shouldClose)
+                    {
+                    return(uint8_t(OTV0P2BASE::fnconstrain(
+                        int(valvePCOpen) - int(slew),
+                        0,
+                        int(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1))));
+                    }
                 }
             }
 
