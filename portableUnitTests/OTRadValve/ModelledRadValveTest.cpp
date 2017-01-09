@@ -1366,7 +1366,7 @@ TEST(ModelledRadValve,SampleValveResponse3)
     //[ "2017-01-05T22:47:48Z", "", {"@":"FEDA88A08188E083","+":12,"v|%":31,"tT|C":17,"tS|C":1} ]
     // The valve should not have moved much or at all.
     EXPECT_FALSE(rs0.isFiltering);
-    EXPECT_NEAR(31, valvePCOpen, 2);
+    EXPECT_NEAR(31, valvePCOpen, 5);
 
     // In original trace, large setback is applied, and valve fully closes.
     // The valve should at most slowly close so as to reduce movement/noise.
@@ -1402,7 +1402,7 @@ TEST(ModelledRadValve,SampleValveResponse3)
     rs0.tick(valvePCOpen, is0, NULL);
     // Still no filtering, valve still not closed.
     EXPECT_FALSE(rs0.isFiltering);
-    EXPECT_NEAR(31, valvePCOpen, 2);
+    EXPECT_NEAR(31, valvePCOpen, 5);
 }
 
 

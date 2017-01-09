@@ -423,30 +423,30 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
             if(0 == slew) { return(valvePCOpen); }
             else
                 {
-//                // If well off target then valve closing may be sped up.
-//                // Have a higher ceiling if filtering,
-//                // eg because sensor near heater,
-//                // or if a wide deadband is requested.
-//                // Note that the upper limit may be driven by
-//                // the non-set-back temperature target.
-//                const uint8_t wOT = worf ?
-//                    OTV0P2BASE::fnmax(_proportionalRange-1, 1) : 1;
-//                const bool wellAboveTarget = adjustedTempC > higherTargetC + wOT;
-//                const bool wellBelowTarget = adjustedTempC + wOT < tTC;
+                // If well off target then valve closing may be sped up.
+                // Have a higher ceiling if filtering,
+                // eg because sensor near heater,
+                // or if a wide deadband is requested.
+                // Note that the upper limit may be driven by
+                // the non-set-back temperature target.
+                const uint8_t wOT = worf ?
+                     OTV0P2BASE::fnmax(_proportionalRange/2, 1) : 1;
+                const bool wellAboveTarget = adjustedTempC > higherTargetC + wOT;
+                const bool wellBelowTarget = adjustedTempC + wOT < tTC;
 
-                // Regard a large error/slew as suggesting that
-                // hovering is not acceptable unless the temperature
-                // is actively moving in the right direction.
-                // Use the gentler of the slew metrics
-                // and regard significant slew as one that is
-                // higher than the 'normal' rate that is responsive.
-                const bool significantTempError = (slew > TRV_SLEW_PC_PER_MIN);
+//                // Regard a large error/slew as suggesting that
+//                // hovering is not acceptable unless the temperature
+//                // is actively moving in the right direction.
+//                // Use the gentler of the slew metrics
+//                // and regard significant slew as one that is
+//                // higher than the 'normal' rate that is responsive.
+//                const bool significantTempError = (slew > 4);
 
                 // When below sweet-spot and not falling, hold valve steady.
                 // If well below then hold steady only if temperature rising.
                 if(belowTarget)
                     {
-                    if(significantTempError ? (rise > 0) : (rise >= 0))
+                    if(wellBelowTarget ? (rise > 0) : (rise >= 0))
                         { return(valvePCOpen); }
                     }
                 // When above sweet-spot and not rising, hold valve steady.
@@ -468,7 +468,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
                 // or (say) keeping users from sleeping by being too warm.
                 else
                     {
-                    if(significantTempError ? (rise < 0) : (rise <= 0))
+                    if(wellAboveTarget ? (rise < 0) : (rise <= 0))
                         { return(valvePCOpen); }
                     }
                 }
