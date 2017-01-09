@@ -397,14 +397,13 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         else
             { if(0 == valvePCOpen) { return(valvePCOpen); } }
 
-        // If well off target then valve closing may be faster than usual.
-        // Have a higher ceiling if filtering, eg because sensor near heater,
-        // or if a wide deadband is requested.
-        // Note that the upper limit may be driven by the non-set-back temp.
-        const uint8_t wOT = worf ?
-            OTV0P2BASE::fnmax(_proportionalRange/2, 1) : 1;
-        const bool wellAboveTarget = adjustedTempC > higherTargetC + wOT;
-        const bool wellBelowTarget = adjustedTempC + wOT < tTC;
+        // Compute proportional slew rates to fix temperature errors.
+        const uint8_t errShift = worf ? 3 : 2;
+        // Fast slew when responding to manual control or similar.
+        const uint8_t slewF = OTV0P2BASE::fnmin(TRV_SLEW_PC_PER_MIN_FAST,
+            uint8_t((errorC16 < 0) ? ((-errorC16) >> errShift) : (errorC16 >> errShift)));
+        // Slower slew for use when not responding to human input.
+        const uint8_t slew = slewF >> 1;
 
         // Move quickly when requested, eg responding to manual control use.
         // Try to get to right side of call-for-heat threshold in first tick
@@ -415,28 +414,28 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         // Note that a manual adjustment of the temperature set-point
         // is very likely to force this unit out of the sweet-spot.
         // Ignores 'glacial'.
-        if(inputState.fastResponseRequired && !inCentralSweetSpot)
+        if(inputState.fastResponseRequired && !inCentralSweetSpot && (slewF > 0))
             {
             if(belowTarget)
                 {
-                // Always open immediately to more open of
-                // minimum-really-on and strongly-calling-for-heat levels.
-                // Thereafter open at a more normal pace to allow
-                // the boiler to start if not already running,
-                // and the valve to actually physically open,
-                // and then possibly be able to avoid having to open fully,
-                // saving some valve noise and battery life.
-                static constexpr uint8_t normalSlew = TRV_SLEW_PC_PER_MIN;
-                static_assert(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN > OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, "stronger than plain call-for-heat");
-                static_assert(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN + (OTRadValve::BOILER_RESPONSE_TIME_FROM_OFF * normalSlew) < 100, "time for boiler to have started before valve fully open");
-                const uint8_t minThreshold =
-                    OTV0P2BASE::fnmax(inputState.minPCReallyOpen,
-                                      OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN);
-                const uint8_t slew = wellBelowTarget ?
-                    TRV_SLEW_PC_PER_MIN_FAST : normalSlew;
+//                // Always open immediately to more open of
+//                // minimum-really-on and strongly-calling-for-heat levels.
+//                // Thereafter open at a more normal pace to allow
+//                // the boiler to start if not already running,
+//                // and the valve to actually physically open,
+//                // and then possibly be able to avoid having to open fully,
+//                // saving some valve noise and battery life.
+//                static constexpr uint8_t normalSlew = TRV_SLEW_PC_PER_MIN;
+//                static_assert(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN > OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, "stronger than plain call-for-heat");
+//                static_assert(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN + (OTRadValve::BOILER_RESPONSE_TIME_FROM_OFF * normalSlew) < 100, "time for boiler to have started before valve fully open");
+//                const uint8_t minThreshold =
+//                    OTV0P2BASE::fnmax(inputState.minPCReallyOpen,
+//                                      OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN);
+//                const uint8_t slew = wellBelowTarget ?
+//                    TRV_SLEW_PC_PER_MIN_FAST : normalSlew;
                 return(OTV0P2BASE::fnconstrain(
-                    uint8_t(valvePCOpen + slew),
-                    minThreshold,
+                    uint8_t(valvePCOpen + slewF),
+                    OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN,
                     inputState.maxPCOpen));
                 }
             else
@@ -447,12 +446,12 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
                 // Users are unlikely to mind cooling more slowly...
                 // If temperature is well above target then shut fast
                 // so as to not leave the user sweating for whatever reason.
-                static constexpr uint8_t normalSlew = TRV_SLEW_PC_PER_MIN;
-                static_assert(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN > (OTRadValve::DEFAULT_MAX_RUN_ON_TIME_M * normalSlew), "time for boiler to have stopped before valve fully closes");
-                const uint8_t slew = wellAboveTarget ?
-                    normalSlew : TRV_SLEW_PC_PER_MIN_FAST;
+//                static constexpr uint8_t normalSlew = TRV_SLEW_PC_PER_MIN;
+//                static_assert(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN > (OTRadValve::DEFAULT_MAX_RUN_ON_TIME_M * normalSlew), "time for boiler to have stopped before valve fully closes");
+//                const uint8_t slew = wellAboveTarget ?
+//                    normalSlew : TRV_SLEW_PC_PER_MIN_FAST;
                 return(uint8_t(OTV0P2BASE::fnconstrain(
-                    int(valvePCOpen) - int(slew),
+                    int(valvePCOpen) - int(slewF),
                     0,
                     int(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1))));
                 }
@@ -470,6 +469,17 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
             if(inCentralSweetSpot) { return(valvePCOpen); }
             else
                 {
+                // If well off target then valve closing may be sped up.
+                // Have a higher ceiling if filtering,
+                // eg because sensor near heater,
+                // or if a wide deadband is requested.
+                // Note that the upper limit may be driven by
+                // the non-set-back temperature target.
+                const uint8_t wOT = worf ?
+                    OTV0P2BASE::fnmax(_proportionalRange-1, 1) : 1;
+                const bool wellAboveTarget = adjustedTempC > higherTargetC + wOT;
+                const bool wellBelowTarget = adjustedTempC + wOT < tTC;
+
                 // When below sweet-spot and not falling, hold valve steady.
                 // If well below then hold steady only if temperature rising.
                 if(belowTarget)
@@ -527,9 +537,9 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
             // since there is relatively low (but not zero) probability
             // of being able to take advantage of an already-running boiler.
             // The err calculations here should line up with wOT boundaries.
-            const uint8_t errShift = worf ? 4 : 3;
-            const uint8_t slew = OTV0P2BASE::fnmin(TRV_SLEW_PC_PER_MIN_FAST,
-                uint8_t((errorC16 < 0) ? ((-errorC16) >> errShift) : (errorC16 >> errShift)));
+//            const uint8_t errShift = worf ? 4 : 3;
+//            const uint8_t slew = OTV0P2BASE::fnmin(TRV_SLEW_PC_PER_MIN_FAST,
+//                uint8_t((errorC16 < 0) ? ((-errorC16) >> errShift) : (errorC16 >> errShift)));
             if(slew > 0)
                 {
                 if(shouldOpen)

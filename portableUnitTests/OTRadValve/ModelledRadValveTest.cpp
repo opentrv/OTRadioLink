@@ -568,11 +568,11 @@ SCOPED_TRACE(testing::Message() << "fastResponseRequired " << fastResponseRequir
             for(int i = 0; i < timeLimit; ++i)
                 { rs0.tick(valvePCOpen, is0, NULL); }
             // Nominally expect valve to be completely open/closed,
-            // but allow for nearly-fully open
+            // but allow for nearly-fully open (strong-call-for-heat_
             // and 'below call-for-heat'
             // for some algorithm variants.
             if(below)
-                { EXPECT_NEAR(100, valvePCOpen, 20) << "moved " << (valvePCOpen - valvePCOpenInitial); }
+                { EXPECT_LE(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN, valvePCOpen) << "moved " << (valvePCOpen - valvePCOpenInitial); }
             else
                 { EXPECT_GE(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, valvePCOpen) << "moved " << (valvePCOpen - valvePCOpenInitial); }
             }
