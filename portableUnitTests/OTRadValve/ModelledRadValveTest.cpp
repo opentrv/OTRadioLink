@@ -1145,7 +1145,7 @@ TEST(ModelledRadValve,SampleValveResponse1)
     EXPECT_GE(valveOpenBeforeSetback, valveOpenAfterSetback);
     EXPECT_LT(0, valveOpenAfterSetback);
 
-    // Synthetically steadily run ambient temperature steadily down to target.
+    // Synthetically steadily run ambient temperature down to target.
     // Valve should not need to close any further.
     for(int16_t ambientC16 = 338; ambientC16 >= (setbackTarget << 4); --ambientC16)
         {
