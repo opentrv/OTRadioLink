@@ -343,6 +343,7 @@ struct ModelledRadValveState final
   // Compute the adjusted temperature as used within the class calculation, filter, etc.
   static int_fast16_t computeRawTemp16(const ModelledRadValveInputState& inputState)
     { return(inputState.refTempC16 - ModelledRadValveInputState::refTempOffsetC16); }
+
   };
 
 // Sensor, control and stats inputs for computations.
@@ -684,7 +685,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
         // DHD20170109: filtering effectively forces wide in computation now.
         inputState.widenDeadband = (!fastResponseRequired) &&
             ((newTarget < wt)
-                || ambLight->isRoomDark()); // Must be false if not usable.
+                || ambLight->isRoomDark()); // Must return false if not usable.
         // Capture adjusted reference/room temperature.
         inputState.setReferenceTemperatures(temperatureC16->get());
         }

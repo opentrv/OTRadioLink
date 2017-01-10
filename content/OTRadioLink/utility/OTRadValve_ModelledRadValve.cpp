@@ -369,14 +369,48 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         else
             { if(0 == valvePCOpen) { return(valvePCOpen); } }
 
+        // When well off target then valve closing may be sped up.
+        // Have a significantly higher ceiling if filtering,
+        // eg because sensor near heater,
+        // (Note that the upper limit may be driven by
+        // a non-set-back temperature target when set.)
+        // Else a somewhat wider deadband is allowed when requested.
+        // This calculation needs to be careful to avoid underflow.
+        const uint8_t wOTC = isFiltering ?
+             OTV0P2BASE::fnmax(_proportionalRange-1, 1) :
+             (wide ? 1 : 0);
+        const bool wellAboveTarget = adjustedTempC > higherTargetC + wOTC;
+        const bool wellBelowTarget = adjustedTempC + wOTC < tTC;
+        const bool wOT = wellAboveTarget || wellBelowTarget;
+
         // Compute proportional slew rates to fix temperature errors.
         // Note that slewF == 0 in central sweet spot.
+        // Note that non-rounded shifts effectively set the deadband also.
         const uint8_t errShift = worf ? 3 : 2;
         // Fast slew when responding to manual control or similar.
         const uint8_t slewF = OTV0P2BASE::fnmin(TRV_SLEW_PC_PER_MIN_FAST,
             uint8_t((errorC16 < 0) ? ((-errorC16) >> errShift) : (errorC16 >> errShift)));
         // Slower slew for use when not responding to human input, eg in dark.
-        const uint8_t slew = slewF >> 1;
+        // Reduce still further if not well off target;
+        // but will not go to zero if the the non-reduced one would not have
+        // to avoid widening the deadband as a side-effect.
+        //
+        //         wOT     close to target
+        // slewF   slew    slew
+        // 0       0       0
+        // 1       0       0
+        // 2       1       1
+        // 3       1       1
+        // 4       2       1
+        // 5       2       1
+        // 6       3       1
+        // 7       3       1
+        // 8       4       2
+        // 9       4       2
+        // 10      5       2
+        // ...
+        const bool slew = (wOT || (slewF < 4)) ?
+            (slewF >> 1) : (slewF >> 2);
 
         // Move quickly when requested, eg responding to manual control use.
         // Try to get to right side of call-for-heat threshold in first tick
@@ -423,17 +457,6 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
             if(0 == slew) { return(valvePCOpen); }
             else
                 {
-                // If well off target then valve closing may be sped up.
-                // Have a higher ceiling if filtering,
-                // eg because sensor near heater,
-                // or if a wide deadband is requested.
-                // Note that the upper limit may be driven by
-                // the non-set-back temperature target.
-                const uint8_t wOT = worf ?
-                     OTV0P2BASE::fnmax(_proportionalRange/2, 1) : 1;
-                const bool wellAboveTarget = adjustedTempC > higherTargetC + wOT;
-                const bool wellBelowTarget = adjustedTempC + wOT < tTC;
-
 //                // Regard a large error/slew as suggesting that
 //                // hovering is not acceptable unless the temperature
 //                // is actively moving in the right direction.

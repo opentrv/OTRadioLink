@@ -294,20 +294,23 @@ TEST(ModelledRadValve,MRVSExtremes)
 
     // Test that if the real temperature is zero
     // and the initial valve position is anything less than 100%
-    // that after one tick (with mainly defaults)
+    // then after one tick (with mainly defaults)
     // that the valve is being opened (and more than glacially),
     // ie that when below any possible legal target FROST/WARM/BAKE temperature
     // the valve will open monotonically,
     // and also test that the fully-open state is reached
-    // in a bounded number of ticks ie in bounded time.
-    static const int maxFullTravelMins = 25;
+    // in a bounded number of ticks ie in bounded (and reasonable) time.
+    // 'Reasonable' being about the defaulr same minimum on time.
+    static constexpr uint8_t maxNormalFullResponseMins =
+        OTRadValve::DEFAULT_ANTISEEK_VALVE_REOPEN_DELAY_M;
     if(verbose) { fprintf(stderr, "open...\n"); }
     OTRadValve::ModelledRadValveInputState is0(0);
     is0.targetTempC = OTV0P2BASE::randRNG8NextBoolean() ? 5 : 25;
     OTRadValve::ModelledRadValveState rs0;
     const uint8_t valvePCOpenInitial0 = OTV0P2BASE::randRNG8() % 100;
     volatile uint8_t valvePCOpen = valvePCOpenInitial0;
-    for(int i = maxFullTravelMins; --i >= 0; ) // Must fully open in reasonable time.
+    // Must fully open in reasonable time.
+    for(int i = maxNormalFullResponseMins; --i >= 0; )
         {
         // Simulates one minute on each iteration.
         // Futz some input parameters that should not matter.
@@ -319,19 +322,26 @@ TEST(ModelledRadValve,MRVSExtremes)
         ASSERT_TRUE(newValvePos > 0);
         ASSERT_TRUE(newValvePos <= 100);
         ASSERT_TRUE(newValvePos > oldValvePos);
-        if(oldValvePos < is0.minPCReallyOpen) { ASSERT_TRUE(is0.minPCReallyOpen <= newValvePos); } // Should open to at least minimum-really-open-% on first step.
+        // Should open to at least minimum-really-open-% on first step.
+        if(oldValvePos < is0.minPCReallyOpen)
+            { ASSERT_TRUE(is0.minPCReallyOpen <= newValvePos); }
 //        ASSERT_TRUE(rs0.valveMoved == (oldValvePos != newValvePos));
         if(100 == newValvePos) { break; }
         }
     ASSERT_EQ(100, valvePCOpen);
     ASSERT_EQ(100 - valvePCOpenInitial0, rs0.cumulativeMovementPC);
+
     // Equally test that if the temperature is much higher than any legit target
     // the valve will monotonically close to 0% in bounded time.
     // Check for superficially correct linger behaviour where supported:
-    //   * minPCOpen-1 % must be hit (lingering close) if starting anywhere above that.
-    //   * Once in linger all reductions should be by 1% until possible final jump to 0.
-    //   * Check that linger was long enough (if linger threshold is higher enough to allow it).
-    // Also check for some correct initialisation and 'velocity'/smoothing behaviour.
+    //   * minPCOpen-1 % must be hit (lingering close)
+    //     if starting anywhere above that.
+    //   * Once in linger all reductions should be by 1%
+    //     until possible final jump to 0.
+    //   * Check that linger was long enough
+    //     (if linger threshold is higher enough to allow it).
+    // Also check for some correct initialisation
+    // and 'velocity'/smoothing behaviour.
     if(verbose) { fprintf(stderr, "close...\n"); }
     OTRadValve::ModelledRadValveInputState is1(100<<4);
     is1.targetTempC = OTV0P2BASE::randRNG8NextBoolean() ? 5 : 25;
@@ -343,7 +353,8 @@ TEST(ModelledRadValve,MRVSExtremes)
         (valvePCOpenInitial1 >= is1.minPCReallyOpen);
     bool hitLinger = false; // True if the linger value was hit.
     uint8_t lingerMins = 0; // Approx mins spent in linger.
-    for(int i = maxFullTravelMins; --i >= 0; ) // Must fully close in reasonable time.
+    // Must fully close in reasonable time.
+    for(int i = maxNormalFullResponseMins; --i >= 0; )
         {
         // Simulates one minute on each iteration.
         // Futz some input parameters that should not matter.
@@ -386,40 +397,53 @@ TEST(ModelledRadValve,MRVSExtremes2)
         // If true then be more verbose.
         const static bool verbose = false;
 
-    // Test that soft setback (wide deadband) works as expected
-    // eg to support dark-based quick setback.
-    // ENERGY SAVING RULE TEST (TODO-442 2a: "Setback in WARM mode must happen in dark (quick response) or long vacant room.")
     // Try a range of (whole-degree) offsets...
     static constexpr uint8_t maxOffset = OTV0P2BASE::fnmax(10, 2*OTRadValve::ModelledRadValveState::_proportionalRange);
     for(int offset = -maxOffset; offset <= +maxOffset; ++offset)
         {
 SCOPED_TRACE(testing::Message() << "offset " << offset);
-        // Try soft setback off and on.
-        for(int s = 0; s < 2; ++s)
+        OTRadValve::ModelledRadValveInputState is3(100<<4);
+        is3.targetTempC = 19;
+        is3.setReferenceTemperatures(int_fast16_t((is3.targetTempC + offset) << 4));
+        is3.widenDeadband = OTV0P2BASE::randRNG8NextBoolean();
+        // Well outside the potentially-proportional range,
+        // valve should unconditionally be driven immediately off/on
+        // by gross temperature error.
+        if(OTV0P2BASE::fnabs(offset) > OTRadValve::ModelledRadValveState::_proportionalRange)
             {
-            const bool wd = (s == 1);
-SCOPED_TRACE(testing::Message() << "widenDeadband " << wd);
-            OTRadValve::ModelledRadValveInputState is3(100<<4);
-            is3.targetTempC = 19;
-            is3.widenDeadband = wd;
-            // Outside the potentially-proportional range,
-            // valve should unconditionally be driven immediately off/on
-            // by gross temperature error.
-            if(OTV0P2BASE::fnabs(offset) <= OTRadValve::ModelledRadValveState::_proportionalRange)
-                { continue; }
-
-            is3.setReferenceTemperatures(int_fast16_t((is3.targetTempC + offset) << 4));
             // Where adjusted reference temperature is (well) below target, valve should be driven on.
             OTRadValve::ModelledRadValveState rs3a;
             uint8_t valvePCOpen = 0;
             rs3a.tick(valvePCOpen, is3, NULL);
 if(verbose) { fprintf(stderr, "@ %d %d\n", offset, valvePCOpen); }
-            EXPECT_TRUE((offset < 0) ? (valvePCOpen > 0) : (0 == valvePCOpen)) << (int)valvePCOpen;
+            EXPECT_NEAR((offset < 0) ? 100 : 0, valvePCOpen, 1);
             // Where adjusted reference temperature is (well) above target, valve should be driven off.
             OTRadValve::ModelledRadValveState rs3b;
             valvePCOpen = 100;
             rs3b.tick(valvePCOpen, is3, NULL);
-            EXPECT_TRUE((offset < 0) ? (100 == valvePCOpen) : (valvePCOpen < 100)) << (int)valvePCOpen;
+            EXPECT_NEAR((offset < 0) ? 100 : 0, valvePCOpen, 1);
+            continue;
+            }
+
+        // Slightly outside the normal expected deadband (<= 1C)
+        // valve should (eventually) be driven fully on/off
+        // if no filtering / nor wide deadband.
+        if(OTV0P2BASE::fnabs(offset) > 1)
+            {
+            is3.widenDeadband = false;
+            static constexpr uint8_t maxResponseMins = 100;
+            OTRadValve::ModelledRadValveState rs3a;
+            uint8_t valvePCOpen = 0;
+            for(int i = maxResponseMins; --i >= 0; )
+                { rs3a.tick(valvePCOpen, is3, NULL); }
+            EXPECT_NEAR((offset < 0) ? 100 : 0, valvePCOpen, 2);
+            // Where adjusted reference temperature is (well) above target, valve should be driven off.
+            OTRadValve::ModelledRadValveState rs3b;
+            valvePCOpen = 100;
+            for(int i = maxResponseMins; --i >= 0; )
+                { rs3b.tick(valvePCOpen, is3, NULL); }
+            EXPECT_NEAR((offset < 0) ? 100 : 0, valvePCOpen, 2);
+            continue;
             }
         }
 }
@@ -492,8 +516,8 @@ TEST(ModelledRadValve,ModelledRadValveComputeTargetTempBasic)
 
 // Test the logic in ModelledRadValveState to open fast from well below target (TODO-593).
 // This is to cover the case where the use manually turns on/up the valve
-// and expects quick response from the valve
-// and the remote boiler (which may require >= DEFAULT_VALVE_PC_MODERATELY_OPEN to start).
+// and expects quick response from the valve and the remote boiler
+// (which may require >= DEFAULT_VALVE_PC_MODERATELY_OPEN to start).
 // This relies on no widened deadband being set.
 // It may also require filtering (from gyrating temperatures) not to have been invoked.
 //
@@ -1146,13 +1170,14 @@ TEST(ModelledRadValve,SampleValveResponse1)
     EXPECT_GE(valveOpenBeforeSetback, valveOpenAfterSetback);
     EXPECT_LT(0, valveOpenAfterSetback);
 
-    // Synthetically steadily run ambient temperature down to target.
+    // Synthetically steadily run ambient temperature down towards target.
     // Valve should not need to close any further.
+    // (It could even start to open again if target is overshot.)
     for(int16_t ambientC16 = 338; ambientC16 >= (setbackTarget << 4); --ambientC16)
         {
         is0.setReferenceTemperatures(ambientC16);
         rs0.tick(valvePCOpen, is0, NULL);
-        EXPECT_EQ(valveOpenAfterSetback, valvePCOpen);
+        EXPECT_LE(valveOpenAfterSetback, valvePCOpen);
         }
 }
 
