@@ -447,7 +447,7 @@ class CurrentSenseValveMotorDirect final : public CurrentSenseValveMotorDirectBi
     // Too high a tolerance may result in excess valve movement
     // from the valve being pulled to end stops more than necessary.
 //    static constexpr uint8_t absTolerancePC = 16; // 16 up to 20170104.
-    static constexpr uint8_t absTolerancePC = 10;
+    static constexpr uint8_t absTolerancePC = 8;
     static constexpr bool closeEnoughToTarget(const uint8_t targetPC, const uint8_t currentPC)
         {
         return((targetPC == currentPC) ||

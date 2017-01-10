@@ -383,14 +383,15 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
       const bool low = ((NULL != lowBattOpt) && ((0 == lowBattOpt->read()) || lowBattOpt->isSupplyVoltageLow()));
       if(low && (targetPC < currentPC)) { break; }
 
-      // Run slow if battery low or minimal noise requested.
-      const bool slow = low || ((NULL != minimiseActivityOpt) && minimiseActivityOpt());
+//      // Run slow if battery low or minimal noise requested.
+//      const bool slow = low || ((NULL != minimiseActivityOpt) && minimiseActivityOpt());
 
       // If not apparently yet at end-stop
       // (ie not at correct end stop or with spurious unreconciled ticks)
       // then try again to run to end-stop.
       // If end-stop is (really) hit then reset positional values.
-      if(!runTowardsEndStop(binaryOpen, slow))
+      // Always run slow to minimise mis-calibration issues.
+      if(!runTowardsEndStop(binaryOpen))
           {
           // Definitely not at end-stop.
           perState.valveNormal.endStopHitCount = 0;
