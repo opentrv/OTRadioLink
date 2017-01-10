@@ -57,6 +57,11 @@ SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupanc
     // algorithms from routinely collected data,
     // eg <= 4 minutes with typical secure frame rate of 1 per ~4 minutes.
     static constexpr uint8_t steadyTicksMinBeforeLightOn = 3;
+//
+//    // True if detection of PROBABLE events is responds to 'sensitive'.
+//    static constexpr bool sensitiveProbable = false;
+//    // True if detection of WEAK events is responds to 'sensitive'.
+//    static constexpr bool sensitiveWeak = false;
 
     // If new light level lower than previous
     // then do not detect any level of occupancy and save some CPU time.
@@ -128,7 +133,8 @@ SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupanc
         // With no usable mean use a sensible default minimum rise
         // to improve initial stability while unit is learning typical levels.
         const uint8_t minRise = usableMean
-          ? ((meanNowOrFF - minToUse) >> (1 /* sensitive ? 2 : 1 */ ))
+          ? ((meanNowOrFF - minToUse) >>
+              (/*(sensitiveProbable && sensitive) ? 2 : */ 1))
           : (SensorAmbientLightBase::DEFAULT_LIGHT_THRESHOLD/2);
         if(rise >= minRise)
             {
@@ -182,7 +188,8 @@ SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupanc
             // a reasonably dynamic ambient light range
             // so that all the time lights levels are not trivially 'steady'.
             constexpr uint8_t marginWshift = 1;
-            const uint8_t marginW = range >> (/*sensitive ? (1+marginWshift) : */ marginWshift);
+            const uint8_t marginW = range >>
+                (/*(sensitiveWeak && sensitive) ? (1+marginWshift) : */ marginWshift);
             const uint8_t margin = uint8_t(marginW >> 2);
             const uint8_t thrL = minToUse + margin;
             const uint8_t thrH = maxToUse - marginW;
