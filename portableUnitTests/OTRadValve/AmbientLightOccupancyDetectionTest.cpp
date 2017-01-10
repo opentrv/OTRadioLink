@@ -620,7 +620,7 @@ static void checkPerformanceAcceptableAgainstData(
             // Reduce failures to anticipate when in sensitive mode.
             // The aim is to reduce instances of discomfort.
             EXPECT_GE(0.45f, flavourStats.occupancyAnticipationFailureNotAfterSleep.getFractionFlavoured()) << flavourStats.occupancyAnticipationFailureNotAfterSleep.getSampleCount();
-            EXPECT_GE(0.1f, flavourStats.occupancyAnticipationFailureLargeNotAfterSleep.getFractionFlavoured()) << flavourStats.occupancyAnticipationFailureLargeNotAfterSleep.getSampleCount();
+            EXPECT_GE(0.11f, flavourStats.occupancyAnticipationFailureLargeNotAfterSleep.getFractionFlavoured()) << flavourStats.occupancyAnticipationFailureLargeNotAfterSleep.getSampleCount();
             }
         }
 

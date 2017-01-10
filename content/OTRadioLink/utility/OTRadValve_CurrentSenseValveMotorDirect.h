@@ -256,7 +256,7 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     // Returns true if end-stop has apparently been hit.
     bool runTowardsEndStop(bool toOpen);
 
-    // Run at 'normal' or speed, else fast, towards/to end for a fixed time/distance.
+    // Run at 'normal' speed, else fast, towards/to end.
     // Terminates significantly before the end of the sub-cycle.
     // Runs at same speed as during calibration.
     // Does the right thing with dead-reckoning and/or position detection.
