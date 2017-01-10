@@ -427,10 +427,10 @@ if(verbose) { fprintf(stderr, "@ %d %d\n", offset, valvePCOpen); }
 
         // Slightly outside the normal expected deadband (<= 1C)
         // valve should (eventually) be driven fully on/off
-        // if no filtering / nor wide deadband.
+        // wide deadband or not.
         if(OTV0P2BASE::fnabs(offset) > 1)
             {
-            is3.widenDeadband = false;
+            is3.widenDeadband = OTV0P2BASE::randRNG8NextBoolean();
             static constexpr uint8_t maxResponseMins = 100;
             OTRadValve::ModelledRadValveState rs3a;
             uint8_t valvePCOpen = 0;
