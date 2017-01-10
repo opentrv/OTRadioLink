@@ -669,10 +669,10 @@ static void checkPerformanceAcceptableAgainstData(
     // and a little lower ambition in sensitive mode (eg comfort-driven).
     // This target is a mean over reprepsentative scenarios;
     // the threshold all !exemptFromNormalRatios must pass is a little lower.
-// FIXME: >=25% primary target.
+// FIXME: >=25% primary target for all individual test cases.
     if((minutes > ticksForMoreThan24h) && !exemptFromNormalRatios)
         {
-        EXPECT_LE(normalOperation ? 0.235f : 0.19f, potentialSavingsFromSetbackAtLeastDEFAULT);
+        EXPECT_LE(normalOperation ? 0.23f : 0.19f, potentialSavingsFromSetbackAtLeastDEFAULT);
         if(normalSensitiveOperation)
             { EXPECT_LE(0.205f, potentialSavingsFromSetbackAtLeastDEFAULT); }
         }
