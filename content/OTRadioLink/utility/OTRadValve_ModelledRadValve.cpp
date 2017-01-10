@@ -378,7 +378,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         // This calculation needs to be careful to avoid underflow.
         const uint8_t wOTC = isFiltering ?
              OTV0P2BASE::fnmax(_proportionalRange-1, 1) :
-             (wide ? 1 : 0);
+             (wide ? _proportionalRange/2 : 0);
         const bool wellAboveTarget = adjustedTempC > higherTargetC + wOTC;
         const bool wellBelowTarget = adjustedTempC + wOTC < tTC;
         const bool wOT = wellAboveTarget || wellBelowTarget;
