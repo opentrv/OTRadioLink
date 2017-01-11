@@ -394,9 +394,6 @@ TEST(ModelledRadValve,MRVSExtremes)
 // Adapted 2016/10/16 from test_VALVEMODEL.ino testMRVSExtremes().
 TEST(ModelledRadValve,MRVSExtremes2)
 {
-        // If true then be more verbose.
-        const static bool verbose = false;
-
     // Try a range of (whole-degree) offsets...
     static constexpr uint8_t maxOffset = OTV0P2BASE::fnmax(10, 2*OTRadValve::ModelledRadValveState::_proportionalRange);
     for(int offset = -maxOffset; offset <= +maxOffset; ++offset)
@@ -416,7 +413,6 @@ SCOPED_TRACE(testing::Message() << "offset " << offset);
             OTRadValve::ModelledRadValveState rs3a;
             uint8_t valvePCOpen = 0;
             rs3a.tick(valvePCOpen, is, NULL);
-if(verbose) { fprintf(stderr, "@ %d %d\n", offset, valvePCOpen); }
             EXPECT_NEAR((offset < 0) ? 100 : 0, valvePCOpen, 1);
             // Where adjusted reference temperature is (well) above target, valve should be driven off.
             OTRadValve::ModelledRadValveState rs3b;
