@@ -374,9 +374,11 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
 
         // When well off target then valve closing may be sped up.
         // Have a significantly higher ceiling if wide deadband or filtering,
-        // eg because sensor near heater,
+        // eg because sensor near heater.
         // (Note that the upper limit may be driven by
         // a non-set-back temperature target when set.)
+        // Note that this very large band applies for the wide deadband case
+        // in order to let the valve rest even while setbacks are applied.
         // Else a somewhat wider band (1.5C) is allowed when requested.
         // Else a 0.75C 'way off target' default band is used,
         // to surround the 0.5C sweet-spot.
