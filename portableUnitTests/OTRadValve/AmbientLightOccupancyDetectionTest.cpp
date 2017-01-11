@@ -18978,10 +18978,10 @@ TEST(AmbientLightOccupancyDetection,samplea1b)
 {
     simpleDataSampleRun(samplea1b);
 }
-TEST(AmbientLightOccupancyDetection,samplea2)
-{
-    simpleDataSampleRun(samplea2);
-}
+//TEST(AmbientLightOccupancyDetection,samplea2)
+//{
+//    simpleDataSampleRun(samplea2);
+//}
 TEST(AmbientLightOccupancyDetection,samplea2b)
 {
     simpleDataSampleRun(samplea2b);
@@ -19020,6 +19020,10 @@ TEST(AmbientLightOccupancyDetection,weightedResults)
     SimpleFlavourStatCollection samplea1FSC;
     simpleDataSampleRun(samplea1, true, &samplea1FSC);
     results.push_back(std::make_pair(0.3f, samplea1FSC));
+
+    SimpleFlavourStatCollection samplea2FSC;
+    simpleDataSampleRun(samplea2, true, &samplea2FSC);
+    results.push_back(std::make_pair(0.3f, samplea2FSC));
 
     // Validate collected results.
     for(auto const& p: results)
