@@ -375,23 +375,24 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         // When well off target then valve closing may be sped up.
         // Have a significantly higher ceiling if filtering,
         // eg because sensor near heater;
-        // also a higher non set-back temperature is supplied too,
-        // then a wide deadband is based on it.
-        // Note that this very large band applies for the wide deadband case
+        // also when a higher non set-back temperature is supplied
+        // then any wide deadband is pushed up based on it.
+        // Note that this very large band also applies for the wide deadband
         // in order to let the valve rest even while setbacks are applied.
-        // Else a somewhat wider band (1.5C) is allowed when requested.
-        // Else a 0.75C 'way off target' default band is used,
+        // Else a somewhat wider band (~1.5C) is allowed when requested.
+        // Else a ~0.75C 'way off target' default band is used,
         // to surround the 0.5C sweet-spot.
         static constexpr uint8_t halfNormalBand = 6;
-        const uint8_t wOTC16 = (isFiltering ||
-            ((higherTargetC > tTC) && (wide))) ?
-             ((_proportionalRange << 4) - 15) : halfNormalBand;
+        // Basic behaviour is to double the deadband with wide or filtering.
+        const int wOTC16basic = (worf ? (2*halfNormalBand) : halfNormalBand);
+        const uint8_t wOTC16highSide = (isFiltering ||
+                                        ((higherTargetC > tTC) && wide)) ?
+            ((_proportionalRange << 4) - 15) : wOTC16basic;
         // herrorC16 is same calc as errorC16 but with the higherTargetC.
         const int_fast16_t herrorC16 =
             adjustedTempC16 - (int_fast16_t(higherTargetC) << 4) - centreOffsetC16;
-        const bool wellAboveTarget = herrorC16 > wOTC16;
-        const int wOTC16l = (worf ? (2*halfNormalBand) : halfNormalBand);
-        const bool wellBelowTarget = errorC16 < -wOTC16l;
+        const bool wellAboveTarget = herrorC16 > wOTC16highSide;
+        const bool wellBelowTarget = errorC16 < -wOTC16basic;
         const bool wOT = wellAboveTarget || wellBelowTarget;
 
         // Compute proportional slew rates to fix temperature errors.

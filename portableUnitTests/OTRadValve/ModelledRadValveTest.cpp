@@ -409,12 +409,14 @@ SCOPED_TRACE(testing::Message() << "offset " << offset);
         // by gross temperature error.
         if(OTV0P2BASE::fnabs(offset) > OTRadValve::ModelledRadValveState::_proportionalRange)
             {
-            // Where adjusted reference temperature is (well) below target, valve should be driven on.
+            // Where adjusted reference temperature is (well) below target,
+            // valve should be driven open.
             OTRadValve::ModelledRadValveState rs3a;
             uint8_t valvePCOpen = 0;
             rs3a.tick(valvePCOpen, is, NULL);
             EXPECT_NEAR((offset < 0) ? 100 : 0, valvePCOpen, 1);
-            // Where adjusted reference temperature is (well) above target, valve should be driven off.
+            // Where adjusted reference temperature is (well) above target,
+            // valve should be driven closed.
             OTRadValve::ModelledRadValveState rs3b;
             valvePCOpen = 100;
             rs3b.tick(valvePCOpen, is, NULL);
@@ -427,7 +429,7 @@ SCOPED_TRACE(testing::Message() << "offset " << offset);
         // regardless of wide deadband setting,
         // as long as not filtering (which would push up the top end)
         // and as long as no non-setback temperature is set (likewise).
-        if(OTV0P2BASE::fnabs(offset) > 0)
+        if(OTV0P2BASE::fnabs(offset) > 1)
             {
             static constexpr uint8_t maxResponseMins = 100;
             OTRadValve::ModelledRadValveState rs3a;
@@ -435,7 +437,8 @@ SCOPED_TRACE(testing::Message() << "offset " << offset);
             for(int i = maxResponseMins; --i >= 0; )
                 { rs3a.tick(valvePCOpen, is, NULL); }
             EXPECT_NEAR((offset < 0) ? 100 : 0, valvePCOpen, 2);
-            // Where adjusted reference temperature is (well) above target, valve should be driven off.
+            // Where adjusted reference temperature is (well) above target,
+            // valve should be driven closed.
             OTRadValve::ModelledRadValveState rs3b;
             valvePCOpen = 100;
             for(int i = maxResponseMins; --i >= 0; )
@@ -443,6 +446,31 @@ SCOPED_TRACE(testing::Message() << "offset " << offset);
             EXPECT_NEAR((offset < 0) ? 100 : 0, valvePCOpen, 2);
             continue;
             }
+
+        // Just outside the normal expected deadband (<= 1C)
+        // valve should (eventually) be driven fully on/off,
+        // if not set for wide deadband,
+        // as long as not filtering (which would push up the top end)
+        // and as long as no non-setback temperature is set (likewise).
+        if(OTV0P2BASE::fnabs(offset) > 0)
+            {
+            is.widenDeadband = false;
+            static constexpr uint8_t maxResponseMins = 100;
+            OTRadValve::ModelledRadValveState rs3a;
+            uint8_t valvePCOpen = 0;
+            for(int i = maxResponseMins; --i >= 0; )
+                { rs3a.tick(valvePCOpen, is, NULL); }
+            EXPECT_NEAR((offset < 0) ? 100 : 0, valvePCOpen, 2);
+            // Where adjusted reference temperature is (well) above target,
+            // valve should be driven closed.
+            OTRadValve::ModelledRadValveState rs3b;
+            valvePCOpen = 100;
+            for(int i = maxResponseMins; --i >= 0; )
+                { rs3b.tick(valvePCOpen, is, NULL); }
+            EXPECT_NEAR((offset < 0) ? 100 : 0, valvePCOpen, 2);
+            continue;
+            }
+
         }
 }
 
