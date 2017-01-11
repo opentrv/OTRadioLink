@@ -230,10 +230,11 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef,
 //     and new room occupancy.
 //
 // More detail:
-//   * There is a 'sweet-spot' in the middle of the target 1C,
-//     running from 0.25C to 0.75C, further with a wide deadband.
-//   * Providing there is no call for heat
-//     the valve can rest indefinitely at the sweet-spot, ie avoid movement.
+//   * There is a 'sweet-spot' 0.5C wide in the target 1C,
+//     wider but at the same centre with a wide deadband.
+//   * Providing that there is no call for heat
+//     then the valve can rest indefinitely at or close to the sweet-spot
+//     ie avoid movement.
 //   * Outside the sweet-spot the valve will always try to seek back to it,
 //     either passively if the temperature is moving in the right direction,
 //     or actively by adjusting the valve.
@@ -353,7 +354,9 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         if(inputState.inBakeMode) { return(inputState.maxPCOpen); }
 
         // Raw temperature error: amount ambient is above target (1/16C).
-        const int_fast16_t errorC16 = adjustedTempC16 - (tTC << 4) - 12;
+        static constexpr int8_t centreOffsetC16 = 12;
+        const int_fast16_t errorC16 =
+            adjustedTempC16 - (int_fast16_t(tTC) << 4) - centreOffsetC16;
         // True when below target, ie the error is negative.
         const bool belowTarget = (errorC16 < 0);
 
@@ -370,17 +373,22 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
             { if(0 == valvePCOpen) { return(valvePCOpen); } }
 
         // When well off target then valve closing may be sped up.
-        // Have a significantly higher ceiling if filtering,
+        // Have a significantly higher ceiling if wide deadband or filtering,
         // eg because sensor near heater,
         // (Note that the upper limit may be driven by
         // a non-set-back temperature target when set.)
-        // Else a somewhat wider deadband is allowed when requested.
-        // This calculation needs to be careful to avoid underflow.
-        const uint8_t wOTC = isFiltering ?
-             OTV0P2BASE::fnmax(_proportionalRange-1, 1) :
-             (wide ? _proportionalRange/2 : 0);
-        const bool wellAboveTarget = adjustedTempC > higherTargetC + wOTC;
-        const bool wellBelowTarget = adjustedTempC + wOTC < tTC;
+        // Else a somewhat wider band (1.5C) is allowed when requested.
+        // Else a 0.75C 'way off target' default band is used,
+        // to surround the 0.5C sweet-spot.
+        static constexpr uint8_t halfNormalBand = 6;
+        const uint8_t wOTC16 = worf ?
+             ((_proportionalRange << 4) - 15) : halfNormalBand;
+        // herrorC16 is same calc as errorC16 but with the higherTargetC.
+        const int_fast16_t herrorC16 =
+            adjustedTempC16 - (int_fast16_t(higherTargetC) << 4) - centreOffsetC16;
+        const bool wellAboveTarget = herrorC16 > wOTC16;
+        const int wOTC16l = (worf ? (2*halfNormalBand) : halfNormalBand);
+        const bool wellBelowTarget = errorC16 < -wOTC16l;
         const bool wOT = wellAboveTarget || wellBelowTarget;
 
         // Compute proportional slew rates to fix temperature errors.
@@ -409,8 +417,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         // 9       4       2
         // 10      5       2
         // ...
-        const bool slew = (wOT || (slewF < 4)) ?
-            (slewF >> 1) : (slewF >> 2);
+        const bool slew = (wOT || (slewF < 4)) ? (slewF >> 1) : (slewF >> 2);
 
         // Move quickly when requested, eg responding to manual control use.
         // Try to get to right side of call-for-heat threshold in first tick
