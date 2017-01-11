@@ -449,12 +449,11 @@ SCOPED_TRACE(testing::Message() << "offset " << offset);
 
         // Just outside the normal expected deadband (<= 1C)
         // valve should (eventually) be driven fully on/off,
-        // if not set for wide deadband,
+        // regardless of wide deadband setting,
         // as long as not filtering (which would push up the top end)
         // and as long as no non-setback temperature is set (likewise).
         if(OTV0P2BASE::fnabs(offset) > 0)
             {
-            is.widenDeadband = false;
             static constexpr uint8_t maxResponseMins = 100;
             OTRadValve::ModelledRadValveState rs3a;
             uint8_t valvePCOpen = 0;
