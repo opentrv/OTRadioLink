@@ -405,6 +405,7 @@ SCOPED_TRACE(testing::Message() << "offset " << offset);
         OTRadValve::ModelledRadValveInputState is(100<<4);
         is.targetTempC = 19;
         is.setReferenceTemperatures(int_fast16_t((is.targetTempC + offset) << 4));
+        // Futz the wide deadband parameter by default.
         is.widenDeadband = OTV0P2BASE::randRNG8NextBoolean();
         // Well outside the potentially-proportional range,
         // valve should unconditionally be driven immediately off/on
@@ -430,30 +431,8 @@ if(verbose) { fprintf(stderr, "@ %d %d\n", offset, valvePCOpen); }
         // regardless of wide deadband setting,
         // as long as not filtering (which would push up the top end)
         // and as long as no non-setback temperature is set (likewise).
-        if(OTV0P2BASE::fnabs(offset) > 1)
-            {
-            is.widenDeadband = OTV0P2BASE::randRNG8NextBoolean();
-            static constexpr uint8_t maxResponseMins = 100;
-            OTRadValve::ModelledRadValveState rs3a;
-            uint8_t valvePCOpen = 0;
-            for(int i = maxResponseMins; --i >= 0; )
-                { rs3a.tick(valvePCOpen, is, NULL); }
-            EXPECT_NEAR((offset < 0) ? 100 : 0, valvePCOpen, 2);
-            // Where adjusted reference temperature is (well) above target, valve should be driven off.
-            OTRadValve::ModelledRadValveState rs3b;
-            valvePCOpen = 100;
-            for(int i = maxResponseMins; --i >= 0; )
-                { rs3b.tick(valvePCOpen, is, NULL); }
-            EXPECT_NEAR((offset < 0) ? 100 : 0, valvePCOpen, 2);
-            continue;
-            }
-
-        // Just outside the normal expected deadband (<= 1C)
-        // valve should (eventually) be driven fully on/off.
-        // This may take longer, or not happen, with a wide deadband.
         if(OTV0P2BASE::fnabs(offset) > 0)
             {
-            is.widenDeadband = false;
             static constexpr uint8_t maxResponseMins = 100;
             OTRadValve::ModelledRadValveState rs3a;
             uint8_t valvePCOpen = 0;
