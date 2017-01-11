@@ -385,10 +385,12 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         static constexpr uint8_t halfNormalBand = 6;
         // Basic behaviour is to double the deadband with wide or filtering.
         const int wOTC16basic = (worf ? (2*halfNormalBand) : halfNormalBand);
+        // Filtering pushes bad up much higher to allow for all-in-one TRVs,
+        // and also with wide band when setback is in operation.
         const uint8_t wOTC16highSide = (isFiltering ||
-                                        ((higherTargetC > tTC) && wide)) ?
+                                        (wide && (higherTargetC > tTC))) ?
             ((_proportionalRange << 4) - 15) : wOTC16basic;
-        // herrorC16 is same calc as errorC16 but with the higherTargetC.
+        // Same calc for herrorC16 as errorC16 but using the higherTargetC.
         const int_fast16_t herrorC16 =
             adjustedTempC16 - (int_fast16_t(higherTargetC) << 4) - centreOffsetC16;
         const bool wellAboveTarget = herrorC16 > wOTC16highSide;
@@ -408,7 +410,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         // but will not go to zero if the the non-reduced one would not have
         // to avoid widening the deadband as a side-effect.
         //
-        // wOT/!           wOT     close to target  Comment
+        // wOT/!OT         wOT     close to target  Comment
         // |err|   slewF   slew    slew
         // 0       0       0       0
         // 8/4     1       0       0                Effectively sets deadband.
