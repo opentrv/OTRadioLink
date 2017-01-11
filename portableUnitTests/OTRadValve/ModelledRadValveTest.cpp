@@ -427,8 +427,9 @@ if(verbose) { fprintf(stderr, "@ %d %d\n", offset, valvePCOpen); }
 
         // Somewhat outside the normal expected deadband (<= 1C)
         // valve should (eventually) be driven fully on/off,
-        // regardless of wide deadband setting
-        // as long as not filtering (which would push up the top end).
+        // regardless of wide deadband setting,
+        // as long as not filtering (which would push up the top end)
+        // and as long as no non-setback temperature is set (likewise).
         if(OTV0P2BASE::fnabs(offset) > 1)
             {
             is.widenDeadband = OTV0P2BASE::randRNG8NextBoolean();
