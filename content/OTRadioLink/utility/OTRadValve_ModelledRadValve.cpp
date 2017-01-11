@@ -373,17 +373,18 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
             { if(0 == valvePCOpen) { return(valvePCOpen); } }
 
         // When well off target then valve closing may be sped up.
-        // Have a significantly higher ceiling if wide deadband or filtering,
-        // eg because sensor near heater.
-        // (Note that the upper limit may be driven by
-        // a non-set-back temperature target when set.)
+        // Have a significantly higher ceiling if filtering,
+        // eg because sensor near heater;
+        // also a higher non set-back temperature is supplied too,
+        // then a wide deadband is based on it.
         // Note that this very large band applies for the wide deadband case
         // in order to let the valve rest even while setbacks are applied.
         // Else a somewhat wider band (1.5C) is allowed when requested.
         // Else a 0.75C 'way off target' default band is used,
         // to surround the 0.5C sweet-spot.
         static constexpr uint8_t halfNormalBand = 6;
-        const uint8_t wOTC16 = worf ?
+        const uint8_t wOTC16 = (isFiltering ||
+            ((higherTargetC > tTC) && (wide))) ?
              ((_proportionalRange << 4) - 15) : halfNormalBand;
         // herrorC16 is same calc as errorC16 but with the higherTargetC.
         const int_fast16_t herrorC16 =
@@ -400,24 +401,25 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         // Fast slew when responding to manual control or similar.
         const uint8_t slewF = OTV0P2BASE::fnmin(TRV_SLEW_PC_PER_MIN_FAST,
             uint8_t((errorC16 < 0) ? ((-errorC16) >> errShift) : (errorC16 >> errShift)));
+        const bool inCentralSweetSpot = (0 == slewF);
         // Slower slew for use when not responding to human input, eg in dark.
         // Reduce still further if not well off target;
         // but will not go to zero if the the non-reduced one would not have
         // to avoid widening the deadband as a side-effect.
         //
-        //         wOT     close to target
-        // slewF   slew    slew
-        // 0       0       0
-        // 1       0       0
-        // 2       1       1
-        // 3       1       1
-        // 4       2       1
-        // 5       2       1
-        // 6       3       1
-        // 7       3       1
-        // 8       4       2
-        // 9       4       2
-        // 10      5       2
+        // wOT/!           wOT     close to target  Comment
+        // |err|   slewF   slew    slew
+        // 0       0       0       0
+        // 8/4     1       0       0                Effectively sets deadband.
+        // 16/8    2       1       1
+        // 24/12   3       1       1
+        //         4       2       1
+        //         5       2       1
+        //         6       3       1
+        //         7       3       1
+        //         8       4       2
+        //         9       4       2
+        //         10      5       2
         // ...
         const bool slew = (wOT || (slewF < 4)) ? (slewF >> 1) : (slewF >> 2);
 
@@ -463,17 +465,9 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         //   * not very far away from target
         if(valvePCOpen < OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN)
             {
-            if(0 == slew) { return(valvePCOpen); }
+            if(inCentralSweetSpot) { return(valvePCOpen); }
             else
                 {
-//                // Regard a large error/slew as suggesting that
-//                // hovering is not acceptable unless the temperature
-//                // is actively moving in the right direction.
-//                // Use the gentler of the slew metrics
-//                // and regard significant slew as one that is
-//                // higher than the 'normal' rate that is responsive.
-//                const bool significantTempError = (slew > 4);
-
                 // When below sweet-spot and not falling, hold valve steady.
                 // If well below then hold steady only if temperature rising.
                 if(belowTarget)
