@@ -447,7 +447,7 @@ class CurrentSenseValveMotorDirect final : public CurrentSenseValveMotorDirectBi
     // Too high a tolerance may result in excess valve movement
     // from the valve being pulled to end stops more than necessary.
 //    static constexpr uint8_t absTolerancePC = 16; // 16 up to 20170104.
-    static constexpr uint8_t absTolerancePC = 8;
+    static constexpr uint8_t absTolerancePC = 9;
     static constexpr bool closeEnoughToTarget(const uint8_t targetPC, const uint8_t currentPC)
         {
         return((targetPC == currentPC) ||
@@ -515,8 +515,7 @@ class CurrentSenseValveMotorDirect final : public CurrentSenseValveMotorDirectBi
           // tolerances in the dead reckoning.
           // Should be high enough to allow as low as 8 or 9 pulses
           // from one end of travel to the other (in the quickest direction).
-          static constexpr uint8_t max_usuable_precision =
-              OTV0P2BASE::fnmin((uint8_t)16, absTolerancePC);
+          static constexpr uint8_t max_usuable_precision = 15;
           // Precision % used to indicate an error condition (legal but clearly no good).
           static constexpr uint8_t bad_precision = 100;
           // If true, device cannot be run in proportional mode.
