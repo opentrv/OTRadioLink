@@ -517,19 +517,18 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         if(!beGlacial && (slew > 0))
             {
             // When the temperature error is significant
-            // then adjust valve with reasonable pace proportional to error
+            // then adjust valve with pace proportional to error
             // (more slowly if wide deadband or filtering)
-            // but with some chance of fine control
-            // and of getting thermal response before entire range is traversed.
+            // slow enough to have some chance of fine control
+            // and of getting thermal response before end-stop is hit.
             // In particular this does not make assumptions about
-            // fixed magic percentages for the valve.
+            // fixed magic percentages for the valve itself.
             // This does attempt to get below the boiler call-for-heat threshold
-            // immediately on the way down to save energy,
+            // quickly on the way down to save energy,
             // and to get above it relatively fast on the way up
             // to reduce response time / latency
             // since there is relatively low (but not zero) probability
             // of being able to take advantage of an already-running boiler.
-            // The err calculations here should line up with wOT boundaries.
             if(shouldOpen)
                 {
                 return(OTV0P2BASE::fnconstrain(
@@ -540,18 +539,14 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
             // Immediately get below call-for-heat threshold on way down
             // iff wellAboveTarget (below strong threshold otherwise),
             // then move slowly enough to potentially avoid full close.
-            // Close a bit faster if well over target.
-            // Else close slowly if in the bottom half of the range
-            // to try to capture any bottom-end proportional behaviour
-            // and give chance for rad/room to start cooling.
             else if(shouldClose)
                 {
                 return(uint8_t(OTV0P2BASE::fnconstrain(
                     int(valvePCOpen) - int(slew),
                     0,
-                    (!wellAboveTarget ?
-                        int(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN-1) :
-                        int(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1)))));
+                    (wellAboveTarget ?
+                        int(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1) :
+                        int(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN-1)))));
                 }
             }
 
