@@ -1647,10 +1647,9 @@ TEST(ModelledRadValve,SampleValveResponse4)
 
     EXPECT_NEAR(342, rs0.getSmoothedRecent(), 5); // 342 ~ 21.4C.
     // Should still be big dT/dt and thus filtering should be engaged.
+    // (Longer-term delta across full filter length is even more impressive...)
     EXPECT_LT(8, OTV0P2BASE::fnabs(rs0.getRawDelta(rs0.MIN_TICKS_0p5C_DELTA)));
     EXPECT_TRUE(rs0.isFiltering);
-    // Longer-term delta across full filter length is even more impressive...
-    EXPECT_NEAR(43, OTV0P2BASE::fnabs(rs0.getRawDelta(rs0.filterLength-1)), 5);
 
     // Valve should still at/above normal call-for-heat level.
     // Already below in the original trace.
