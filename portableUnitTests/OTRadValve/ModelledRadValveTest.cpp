@@ -1655,6 +1655,26 @@ TEST(ModelledRadValve,SampleValveResponse4)
     // Already below in the original trace.
     EXPECT_LE(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, valvePCOpen);
     EXPECT_NEAR(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN, valvePCOpen, 10);
+
+    //[ "2017-01-12T14:19:19Z", "", {"@":"E091B7DC8FEDC7A9","+":7,"vac|h":0,"B|cV":254,"L":32} ]
+    is0.setReferenceTemperatures(364);
+    rs0.tick(valvePCOpen, is0, NULL);
+    //[ "2017-01-12T14:20:31Z", "", {"@":"E091B7DC8FEDC7A9","+":8,"v|%":44,"tT|C":19,"tS|C":0} ]
+    is0.setReferenceTemperatures(366);
+    rs0.tick(valvePCOpen, is0, NULL);
+    //[ "2017-01-12T14:21:25Z", "", {"@":"E091B7DC8FEDC7A9","+":9,"vC|%":368,"gE":0,"H|%":64} ]
+    is0.setReferenceTemperatures(368);
+    rs0.tick(valvePCOpen, is0, NULL);
+    //[ "2017-01-12T14:22:23Z", "", {"@":"E091B7DC8FEDC7A9","+":10,"T|C16":370,"H|%":63,"O":2} ]
+    is0.setReferenceTemperatures(370); // 370 ~ 23.1C.
+    rs0.tick(valvePCOpen, is0, NULL);
+
+    EXPECT_NEAR(353, rs0.getSmoothedRecent(), 5); // 342 ~ 22.1C.
+
+    // Valve should still at/above normal call-for-heat level.
+    // Already below in the original trace.
+    EXPECT_LE(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, valvePCOpen);
+    EXPECT_NEAR(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN, valvePCOpen, 15);
 }
 
 
