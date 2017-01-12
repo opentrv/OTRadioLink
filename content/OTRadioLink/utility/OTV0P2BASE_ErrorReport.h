@@ -76,6 +76,9 @@ class ErrorReport final : public OTV0P2BASE::Actuator<int8_t>
         // Values in the range [-99,99] will save space in JSON representations.
         enum errorCatalogue : int8_t
             {
+            // Valve running in low/reduced precision mode;
+            // may indication sticky valve or jammed mechanism.
+            WARN_VALVE_LOW_PRECISION = -15,
             // Automatically recoverable minor tracking error,
             // eg in valve drive dead reckoning,
             // likely to need an recalibration run.

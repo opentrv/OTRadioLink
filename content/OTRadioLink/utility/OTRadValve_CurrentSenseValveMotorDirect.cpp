@@ -563,6 +563,13 @@ OTV0P2BASE::serialPrintAndFlush(cp.getApproxPrecisionPC());
 OTV0P2BASE::serialPrintlnAndFlush();
 #endif
 
+#ifdef OTV0P2BASE_ErrorReport_DEFINED
+        // Report inability to run proportional mode
+        // when it should be available.
+        if(!isNonProportionalOnly() && cp.cannotRunProportional())
+          { OTV0P2BASE::ErrorReporter.set(OTV0P2BASE::ErrorReport::WARN_VALVE_LOW_PRECISION); }
+#endif
+
         // Move to normal valve running state, even if calibration calculation failed.
         needsRecalibrating = false;
         hitEndstop(true); // Valve is currently fully open.
