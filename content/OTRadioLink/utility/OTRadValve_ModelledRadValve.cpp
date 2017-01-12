@@ -131,9 +131,9 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef,
     // Switches on filtering if large delta over recent interval(s).
     // This will happen for all-in-one TRV on rad, as rad warms up, for example,
     // and forces on low-pass filter to better estimate real room temperature.
-    if((OTV0P2BASE::fnabs(getRawDelta(MIN_TICKS_0p5C_DELTA)) > 8) ||
+    if((OTV0P2BASE::fnabs(getRawDelta(MIN_TICKS_0p5C_DELTA)) > 8))
 //       (OTV0P2BASE::fnabs(getRawDelta(MIN_TICKS_1C_DELTA)) > 16) ||
-       (OTV0P2BASE::fnabs(getRawDelta(filterLength-1)) > int_fast16_t(((filterLength-1) * 16) / MIN_TICKS_1C_DELTA)))
+//       (OTV0P2BASE::fnabs(getRawDelta(filterLength-1)) > int_fast16_t(((filterLength-1) * 16) / MIN_TICKS_1C_DELTA)))
       { isFiltering = true; }
     }
   if(FILTER_DETECT_JITTER && !isFiltering)
@@ -537,7 +537,8 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
                     uint8_t(0),
                     inputState.maxPCOpen));
                 }
-            // Immediately get below call-for-heat threshold on way down,
+            // Immediately get below call-for-heat threshold on way down
+            // iff wellAboveTarget (below strong threshold otherwise),
             // then move slowly enough to potentially avoid full close.
             // Close a bit faster if well over target.
             // Else close slowly if in the bottom half of the range
@@ -548,7 +549,9 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
                 return(uint8_t(OTV0P2BASE::fnconstrain(
                     int(valvePCOpen) - int(slew),
                     0,
-                    int(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1))));
+                    (!wellAboveTarget ?
+                        int(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN-1) :
+                        int(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1)))));
                 }
             }
 

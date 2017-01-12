@@ -1107,18 +1107,18 @@ TEST(ModelledRadValve,SampleValveResponse1)
     is0.setReferenceTemperatures(345); // 345 ~ 21.6C.
     rs0.tick(valvePCOpen, is0, NULL);
     EXPECT_NEAR(331, rs0.getSmoothedRecent(), 5); // 312 ~ 20.7C.
-    // Valve fully closed in original; must be below call-for-heat threshold.
-    EXPECT_GT(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, valvePCOpen);
+//    // Valve fully closed in original; must be below call-for-heat threshold.
+//    EXPECT_GT(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, valvePCOpen);
     //{"@":"E091B7DC8FEDC7A9","vC|%":200,"gE":0,"H|%":58}
     is0.setReferenceTemperatures(346); // 346 ~ 21.6C.
     rs0.tick(valvePCOpen, is0, NULL);
-    // Valve fully closed in original; must be below call-for-heat threshold.
-    EXPECT_GT(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, valvePCOpen);
+//    // Valve fully closed in original; must be below call-for-heat threshold.
+//    EXPECT_GT(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, valvePCOpen);
     //{"@":"E091B7DC8FEDC7A9","T|C16":346,"H|%":58,"O":2}
     is0.setReferenceTemperatures(346);
     rs0.tick(valvePCOpen, is0, NULL);
-    // Valve fully closed in original; must be below call-for-heat threshold.
-    EXPECT_GT(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, valvePCOpen);
+//    // Valve fully closed in original; must be below call-for-heat threshold.
+//    EXPECT_GT(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, valvePCOpen);
     const uint8_t v4 = valvePCOpen;
     EXPECT_GE(v3, v4) << "valve should not be re-opening";
     // Filtering still on.
@@ -1454,6 +1454,208 @@ TEST(ModelledRadValve,SampleValveResponse3)
     // Still no filtering, valve still not closed.
     EXPECT_FALSE(rs0.isFiltering);
     EXPECT_NEAR(31, valvePCOpen, 5);
+}
+
+// Valve closing all the way after transition to full setback; should hover.
+// Room 5s, code tag: 20170112-valve-movement-reduction
+//[ "2017-01-12T13:48:29Z", "", {"@":"E091B7DC8FEDC7A9","+":8,"v|%":32,"tT|C":16,"tS|C":3} ]
+//[ "2017-01-12T13:49:27Z", "", {"@":"E091B7DC8FEDC7A9","+":9,"vC|%":306,"gE":0,"L":14} ]
+//[ "2017-01-12T13:50:23Z", "", {"@":"E091B7DC8FEDC7A9","+":10,"O":2,"T|C16":289,"H|%":74} ]
+//[ "2017-01-12T13:51:31Z", "", {"@":"E091B7DC8FEDC7A9","+":11,"O":2,"vac|h":0,"B|cV":254} ]
+//[ "2017-01-12T13:52:33Z", "", {"@":"E091B7DC8FEDC7A9","+":12,"L":34,"v|%":69,"tT|C":19} ]
+//[ "2017-01-12T13:53:33Z", "", {"@":"E091B7DC8FEDC7A9","+":13,"tS|C":0,"vC|%":343,"gE":0} ]
+//[ "2017-01-12T13:54:33Z", "", {"@":"E091B7DC8FEDC7A9","+":14,"T|C16":295,"H|%":76,"O":2} ]
+//[ "2017-01-12T13:55:23Z", "", {"@":"E091B7DC8FEDC7A9","+":15,"vac|h":0,"B|cV":254,"L":34} ]
+//[ "2017-01-12T13:56:31Z", "", {"@":"E091B7DC8FEDC7A9","+":0,"T|C16":299,"v|%":69} ]
+//[ "2017-01-12T13:57:21Z", "", {"@":"E091B7DC8FEDC7A9","+":1,"tT|C":19,"tS|C":0,"H|%":75} ]
+//[ "2017-01-12T13:58:33Z", "", {"@":"E091B7DC8FEDC7A9","+":2,"T|C16":303,"vC|%":343} ]
+//[ "2017-01-12T13:59:31Z", "", {"@":"E091B7DC8FEDC7A9","+":3,"gE":0,"T|C16":305,"H|%":74} ]
+//[ "2017-01-12T14:00:29Z", "", {"@":"E091B7DC8FEDC7A9","+":4,"L":32,"O":2,"vac|h":0} ]
+//[ "2017-01-12T14:01:31Z", "", {"@":"E091B7DC8FEDC7A9","+":5,"B|cV":254,"L":33,"v|%":69} ]
+//[ "2017-01-12T14:02:19Z", "", {"@":"E091B7DC8FEDC7A9","+":6,"tT|C":19,"tS|C":0} ]
+//[ "2017-01-12T14:03:31Z", "", {"@":"E091B7DC8FEDC7A9","+":7,"vC|%":343,"gE":0,"H|%":73} ]
+//[ "2017-01-12T14:04:23Z", "", {"@":"E091B7DC8FEDC7A9","+":8,"T|C16":322,"H|%":72,"O":2} ]
+//[ "2017-01-12T14:05:23Z", "", {"@":"E091B7DC8FEDC7A9","+":9,"vac|h":0,"B|cV":254,"L":33} ]
+//[ "2017-01-12T14:06:25Z", "", {"@":"E091B7DC8FEDC7A9","+":10,"T|C16":330,"v|%":69} ]
+//[ "2017-01-12T14:07:23Z", "", {"@":"E091B7DC8FEDC7A9","+":11,"tT|C":19,"tS|C":0,"H|%":70} ]
+//[ "2017-01-12T14:08:21Z", "", {"@":"E091B7DC8FEDC7A9","+":12,"T|C16":336,"vC|%":343} ]
+//[ "2017-01-12T14:09:31Z", "", {"@":"E091B7DC8FEDC7A9","+":13,"gE":0,"T|C16":339,"H|%":69} ]
+//[ "2017-01-12T14:10:33Z", "", {"@":"E091B7DC8FEDC7A9","+":14,"L":31,"O":2,"vac|h":0} ]
+//[ "2017-01-12T14:11:21Z", "", {"@":"E091B7DC8FEDC7A9","+":15,"B|cV":254,"L":31,"v|%":69} ]
+//[ "2017-01-12T14:12:29Z", "", {"@":"E091B7DC8FEDC7A9","+":0,"T|C16":347,"tT|C":19} ]
+//[ "2017-01-12T14:13:25Z", "", {"@":"E091B7DC8FEDC7A9","+":1,"tS|C":0,"vC|%":346,"gE":0} ]
+//[ "2017-01-12T14:14:21Z", "", {"@":"E091B7DC8FEDC7A9","+":2,"T|C16":352,"H|%":66,"O":2} ]
+//[ "2017-01-12T14:15:19Z", "", {"@":"E091B7DC8FEDC7A9","+":3,"vac|h":0,"B|cV":254,"L":32} ]
+//[ "2017-01-12T14:16:23Z", "", {"@":"E091B7DC8FEDC7A9","+":4,"v|%":49,"tT|C":19,"tS|C":0} ]
+//[ "2017-01-12T14:17:19Z", "", {"@":"E091B7DC8FEDC7A9","+":5,"vC|%":363,"gE":0,"v|%":46} ]
+//[ "2017-01-12T14:18:19Z", "", {"@":"E091B7DC8FEDC7A9","+":6,"T|C16":361,"H|%":65,"O":2} ]
+//[ "2017-01-12T14:19:19Z", "", {"@":"E091B7DC8FEDC7A9","+":7,"vac|h":0,"B|cV":254,"L":32} ]
+//[ "2017-01-12T14:20:31Z", "", {"@":"E091B7DC8FEDC7A9","+":8,"v|%":44,"tT|C":19,"tS|C":0} ]
+//[ "2017-01-12T14:21:25Z", "", {"@":"E091B7DC8FEDC7A9","+":9,"vC|%":368,"gE":0,"H|%":64} ]
+//[ "2017-01-12T14:22:23Z", "", {"@":"E091B7DC8FEDC7A9","+":10,"T|C16":370,"H|%":63,"O":2} ]
+//[ "2017-01-12T14:23:19Z", "", {"@":"E091B7DC8FEDC7A9","+":11,"vac|h":0,"B|cV":254,"L":31} ]
+//[ "2017-01-12T14:24:19Z", "", {"@":"E091B7DC8FEDC7A9","+":12,"v|%":41,"tT|C":19,"tS|C":0} ]
+//[ "2017-01-12T14:25:23Z", "", {"@":"E091B7DC8FEDC7A9","+":13,"vC|%":371,"gE":0,"H|%":62} ]
+//[ "2017-01-12T14:26:33Z", "", {"@":"E091B7DC8FEDC7A9","+":14,"T|C16":378,"H|%":62,"O":2} ]
+//[ "2017-01-12T14:27:33Z", "", {"@":"E091B7DC8FEDC7A9","+":15,"vac|h":0,"B|cV":254,"L":31} ]
+//[ "2017-01-12T14:28:21Z", "", {"@":"E091B7DC8FEDC7A9","+":0,"v|%":37,"tT|C":19,"tS|C":0} ]
+//[ "2017-01-12T14:29:27Z", "", {"@":"E091B7DC8FEDC7A9","+":1,"vC|%":375,"gE":0,"H|%":61} ]
+//[ "2017-01-12T14:30:33Z", "", {"@":"E091B7DC8FEDC7A9","+":2,"T|C16":380,"H|%":61,"O":1} ]
+//[ "2017-01-12T14:31:31Z", "", {"@":"E091B7DC8FEDC7A9","+":3,"vac|h":0,"B|cV":254,"L":10} ]
+//[ "2017-01-12T14:32:19Z", "", {"@":"E091B7DC8FEDC7A9","+":4,"v|%":32,"tT|C":18,"tS|C":1} ]
+//[ "2017-01-12T14:33:25Z", "", {"@":"E091B7DC8FEDC7A9","+":5,"vC|%":380,"gE":0} ]
+//[ "2017-01-12T14:34:28Z", "", {"@":"E091B7DC8FEDC7A9","+":6,"T|C16":379,"H|%":61,"O":1} ]
+//[ "2017-01-12T14:35:31Z", "", {"@":"E091B7DC8FEDC7A9","+":7,"vac|h":0,"B|cV":252,"L":10} ]
+//[ "2017-01-12T14:36:31Z", "", {"@":"E091B7DC8FEDC7A9","+":8,"v|%":0,"tT|C":18,"tS|C":1} ]
+//[ "2017-01-12T14:37:29Z", "", {"@":"E091B7DC8FEDC7A9","+":9,"vC|%":412,"gE":0} ]
+//[ "2017-01-12T14:38:27Z", "", {"@":"E091B7DC8FEDC7A9","+":10,"T|C16":377,"H|%":61,"O":2} ]
+//[ "2017-01-12T14:39:33Z", "", {"@":"E091B7DC8FEDC7A9","+":11,"vac|h":0,"B|cV":252,"L":31} ]
+//[ "2017-01-12T14:40:23Z", "", {"@":"E091B7DC8FEDC7A9","+":12,"tT|C":19,"v|%":0,"tS|C":0} ]
+TEST(ModelledRadValve,SampleValveResponse4)
+{
+    // Seed PRNG for use in simulator; --gtest_shuffle will force it to change.
+    srandom((unsigned) ::testing::UnitTest::GetInstance()->random_seed());
+    OTV0P2BASE::seedRNG8(random() & 0xff, random() & 0xff, random() & 0xff);
+
+    // Target temperature without setback.
+    const uint8_t targetTempC = 19;
+
+    // Valve starts partly open.
+    uint8_t valvePCOpen = 32;
+
+    // Assume flat temperature before the sample started.
+    OTRadValve::ModelledRadValveInputState is0(289);
+    OTRadValve::ModelledRadValveState rs0;
+    is0.fastResponseRequired = false;
+    is0.hasEcoBias = true;
+
+    // Non-set-back temperature.
+    is0.maxTargetTempC = targetTempC;
+    // Initially set back.
+    is0.targetTempC = targetTempC - 3;
+    // Wide deadband because set back.
+    is0.widenDeadband = true;
+
+    //[ "2017-01-12T13:48:29Z", "", {"@":"E091B7DC8FEDC7A9","+":8,"v|%":32,"tT|C":16,"tS|C":3} ]
+    //[ "2017-01-12T13:49:27Z", "", {"@":"E091B7DC8FEDC7A9","+":9,"vC|%":306,"gE":0,"L":14} ]
+    //[ "2017-01-12T13:50:23Z", "", {"@":"E091B7DC8FEDC7A9","+":10,"O":2,"T|C16":289,"H|%":74} ]
+    //[ "2017-01-12T13:51:31Z", "", {"@":"E091B7DC8FEDC7A9","+":11,"O":2,"vac|h":0,"B|cV":254} ]
+    //[ "2017-01-12T13:52:33Z", "", {"@":"E091B7DC8FEDC7A9","+":12,"L":34,"v|%":69,"tT|C":19} ]
+    // Do one tick in quiescent state, set back.
+    // After tick, filtering should be off, valve not much moved.
+    rs0.tick(valvePCOpen, is0, NULL);
+    EXPECT_FALSE(rs0.isFiltering);
+    EXPECT_NEAR(32, valvePCOpen, 2);
+    // Then remove the setback and have 'fast response required' for 3 ticks.
+    // No wide deadband.
+    is0.targetTempC = targetTempC;
+    is0.fastResponseRequired = true;
+    is0.widenDeadband = false;
+    rs0.tick(valvePCOpen, is0, NULL);
+    rs0.tick(valvePCOpen, is0, NULL);
+    rs0.tick(valvePCOpen, is0, NULL);
+    // Then fast response required off and a further tick.
+    is0.fastResponseRequired = false;
+    is0.setReferenceTemperatures(291); // Interpolated.
+    rs0.tick(valvePCOpen, is0, NULL);
+    // Valve should be at or over strong call-for-heat level.
+    EXPECT_LE(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN, valvePCOpen);
+
+    //[ "2017-01-12T13:53:33Z", "", {"@":"E091B7DC8FEDC7A9","+":13,"tS|C":0,"vC|%":343,"gE":0} ]
+    is0.setReferenceTemperatures(293); // Interpolated.
+    rs0.tick(valvePCOpen, is0, NULL);
+    //[ "2017-01-12T13:54:33Z", "", {"@":"E091B7DC8FEDC7A9","+":14,"T|C16":295,"H|%":76,"O":2} ]
+    is0.setReferenceTemperatures(295);
+    rs0.tick(valvePCOpen, is0, NULL);
+    //[ "2017-01-12T13:55:23Z", "", {"@":"E091B7DC8FEDC7A9","+":15,"vac|h":0,"B|cV":254,"L":34} ]
+    is0.setReferenceTemperatures(297);
+    rs0.tick(valvePCOpen, is0, NULL);
+    //[ "2017-01-12T13:56:31Z", "", {"@":"E091B7DC8FEDC7A9","+":0,"T|C16":299,"v|%":69} ]
+    is0.setReferenceTemperatures(299);
+    rs0.tick(valvePCOpen, is0, NULL);
+    //[ "2017-01-12T13:57:21Z", "", {"@":"E091B7DC8FEDC7A9","+":1,"tT|C":19,"tS|C":0,"H|%":75} ]
+    is0.setReferenceTemperatures(301);
+    rs0.tick(valvePCOpen, is0, NULL);
+    //[ "2017-01-12T13:58:33Z", "", {"@":"E091B7DC8FEDC7A9","+":2,"T|C16":303,"vC|%":343} ]
+    is0.setReferenceTemperatures(303);
+    rs0.tick(valvePCOpen, is0, NULL);
+    //[ "2017-01-12T13:59:31Z", "", {"@":"E091B7DC8FEDC7A9","+":3,"gE":0,"T|C16":305,"H|%":74} ]
+    is0.setReferenceTemperatures(305);
+    rs0.tick(valvePCOpen, is0, NULL);
+    //[ "2017-01-12T14:00:29Z", "", {"@":"E091B7DC8FEDC7A9","+":4,"L":32,"O":2,"vac|h":0} ]
+    is0.setReferenceTemperatures(308);
+    rs0.tick(valvePCOpen, is0, NULL);
+    //[ "2017-01-12T14:01:31Z", "", {"@":"E091B7DC8FEDC7A9","+":5,"B|cV":254,"L":33,"v|%":69} ]
+    is0.setReferenceTemperatures(311);
+    rs0.tick(valvePCOpen, is0, NULL);
+    //[ "2017-01-12T14:02:19Z", "", {"@":"E091B7DC8FEDC7A9","+":6,"tT|C":19,"tS|C":0} ]
+    is0.setReferenceTemperatures(315);
+    rs0.tick(valvePCOpen, is0, NULL);
+    //[ "2017-01-12T14:03:31Z", "", {"@":"E091B7DC8FEDC7A9","+":7,"vC|%":343,"gE":0,"H|%":73} ]
+    is0.setReferenceTemperatures(318);
+    rs0.tick(valvePCOpen, is0, NULL);
+    //[ "2017-01-12T14:04:23Z", "", {"@":"E091B7DC8FEDC7A9","+":8,"T|C16":322,"H|%":72,"O":2} ]
+    is0.setReferenceTemperatures(322);
+    rs0.tick(valvePCOpen, is0, NULL);
+    //[ "2017-01-12T14:05:23Z", "", {"@":"E091B7DC8FEDC7A9","+":9,"vac|h":0,"B|cV":254,"L":33} ]
+    is0.setReferenceTemperatures(326);
+    rs0.tick(valvePCOpen, is0, NULL);
+    //[ "2017-01-12T14:06:25Z", "", {"@":"E091B7DC8FEDC7A9","+":10,"T|C16":330,"v|%":69} ]
+    is0.setReferenceTemperatures(330);
+    rs0.tick(valvePCOpen, is0, NULL);
+    //[ "2017-01-12T14:07:23Z", "", {"@":"E091B7DC8FEDC7A9","+":11,"tT|C":19,"tS|C":0,"H|%":70} ]
+    is0.setReferenceTemperatures(333);
+    rs0.tick(valvePCOpen, is0, NULL);
+    //[ "2017-01-12T14:08:21Z", "", {"@":"E091B7DC8FEDC7A9","+":12,"T|C16":336,"vC|%":343} ]
+    is0.setReferenceTemperatures(336);
+    rs0.tick(valvePCOpen, is0, NULL);
+    //[ "2017-01-12T14:09:31Z", "", {"@":"E091B7DC8FEDC7A9","+":13,"gE":0,"T|C16":339,"H|%":69} ]
+    is0.setReferenceTemperatures(339);
+    rs0.tick(valvePCOpen, is0, NULL);
+    //[ "2017-01-12T14:10:33Z", "", {"@":"E091B7DC8FEDC7A9","+":14,"L":31,"O":2,"vac|h":0} ]
+    is0.setReferenceTemperatures(342);
+    rs0.tick(valvePCOpen, is0, NULL);
+    //[ "2017-01-12T14:11:21Z", "", {"@":"E091B7DC8FEDC7A9","+":15,"B|cV":254,"L":31,"v|%":69} ]
+    is0.setReferenceTemperatures(345);
+    rs0.tick(valvePCOpen, is0, NULL);
+
+    // Valve should still at/above normal call-for-heat level.
+    EXPECT_LE(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, valvePCOpen);
+    EXPECT_NEAR(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN, valvePCOpen, 5);
+
+    //[ "2017-01-12T14:12:29Z", "", {"@":"E091B7DC8FEDC7A9","+":0,"T|C16":347,"tT|C":19} ]
+    is0.setReferenceTemperatures(347);
+    rs0.tick(valvePCOpen, is0, NULL);
+    //[ "2017-01-12T14:13:25Z", "", {"@":"E091B7DC8FEDC7A9","+":1,"tS|C":0,"vC|%":346,"gE":0} ]
+    is0.setReferenceTemperatures(350);
+    rs0.tick(valvePCOpen, is0, NULL);
+    //[ "2017-01-12T14:14:21Z", "", {"@":"E091B7DC8FEDC7A9","+":2,"T|C16":352,"H|%":66,"O":2} ]
+    is0.setReferenceTemperatures(353);
+    rs0.tick(valvePCOpen, is0, NULL);
+    //[ "2017-01-12T14:15:19Z", "", {"@":"E091B7DC8FEDC7A9","+":3,"vac|h":0,"B|cV":254,"L":32} ]
+    is0.setReferenceTemperatures(355);
+    rs0.tick(valvePCOpen, is0, NULL);
+    //[ "2017-01-12T14:16:23Z", "", {"@":"E091B7DC8FEDC7A9","+":4,"v|%":49,"tT|C":19,"tS|C":0} ]
+    is0.setReferenceTemperatures(357);
+    rs0.tick(valvePCOpen, is0, NULL);
+    //[ "2017-01-12T14:17:19Z", "", {"@":"E091B7DC8FEDC7A9","+":5,"vC|%":363,"gE":0,"v|%":46} ]
+    is0.setReferenceTemperatures(359);
+    rs0.tick(valvePCOpen, is0, NULL);
+    //[ "2017-01-12T14:18:19Z", "", {"@":"E091B7DC8FEDC7A9","+":6,"T|C16":361,"H|%":65,"O":2} ]
+    is0.setReferenceTemperatures(361);
+    rs0.tick(valvePCOpen, is0, NULL);
+
+    EXPECT_NEAR(342, rs0.getSmoothedRecent(), 5); // 342 ~ 21.4C.
+    // Should still be big dT/dt and thus filtering should be engaged.
+    EXPECT_LT(8, OTV0P2BASE::fnabs(rs0.getRawDelta(rs0.MIN_TICKS_0p5C_DELTA)));
+    EXPECT_TRUE(rs0.isFiltering);
+    // Longer-term delta across full filter length is even more impressive...
+    EXPECT_NEAR(43, OTV0P2BASE::fnabs(rs0.getRawDelta(rs0.filterLength-1)), 5);
+
+    // Valve should still at/above normal call-for-heat level.
+    // Already below in the original trace.
+    EXPECT_LE(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, valvePCOpen);
+    EXPECT_NEAR(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN, valvePCOpen, 10);
 }
 
 
