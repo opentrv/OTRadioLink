@@ -437,7 +437,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
 //        //         9       4       2
 //        //         10      5       3
 //        // ...
-//        const uint8_t slew = (wOT || (slewF < 4)) ?
+//        const uint8_t slew = wOT ?
 //            (slewF >> 1) : ((slewF+2) >> 2);
 
         // Move quickly when requested, eg responding to manual control use.
