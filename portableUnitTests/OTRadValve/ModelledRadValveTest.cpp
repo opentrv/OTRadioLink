@@ -1674,7 +1674,7 @@ TEST(ModelledRadValve,SampleValveResponse4)
     // Valve should still at/above normal call-for-heat level.
     // Already below in the original trace.
     EXPECT_LE(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, valvePCOpen);
-    EXPECT_NEAR(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN, valvePCOpen, 15);
+    EXPECT_NEAR(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN, valvePCOpen, 20);
 }
 
 

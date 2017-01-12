@@ -395,7 +395,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
             adjustedTempC16 - (int_fast16_t(higherTargetC) << 4) - centreOffsetC16;
         const bool wellAboveTarget = herrorC16 > wOTC16highSide;
         const bool wellBelowTarget = errorC16 < -wOTC16basic;
-        const bool wOT = wellAboveTarget || wellBelowTarget;
+//        const bool wOT = wellAboveTarget || wellBelowTarget;
 
         // Compute proportional slew rates to fix temperature errors.
         // Note that slewF == 0 in central sweet spot.
@@ -406,25 +406,39 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
             uint8_t((errorC16 < 0) ? ((-errorC16) >> errShift) : (errorC16 >> errShift)));
         const bool inCentralSweetSpot = (0 == slewF);
         // Slower slew for use when not responding to human input, eg in dark.
-        // Reduce still further if not well off target;
-        // but will not go to zero if the the non-reduced one would not have
-        // to avoid widening the deadband as a side-effect.
         //
-        // wOT/!OT         wOT     close to target  Comment
-        // |err|   slewF   slew    slew
-        // 0       0       0       0
-        // 8/4     1       0       0                Effectively sets deadband.
-        // 16/8    2       1       1
-        // 24/12   3       1       1
-        //         4       2       1
-        //         5       2       1
-        //         6       3       1
-        //         7       3       1
-        //         8       4       2
-        //         9       4       2
-        //         10      5       2
-        // ...
-        const bool slew = (wOT || (slewF < 4)) ? (slewF >> 1) : (slewF >> 2);
+        // worf/!
+        // |err|   slewF   slew
+        // 0       0       0
+        // 8/4     1       0                        Effectively sets deadband.
+        // 16/8    2       1
+        // 24/12   3       1
+        // 32/16   4       2                        2C/1C error.
+        // 40/20   5       2
+        // 48/24   6       3                        3C/1.5C error.
+        // 56/28   7       3
+        // 64/32   8       4                        4C/2C error.
+        const uint8_t slew = (slewF >> 1);
+//        // Reduce still further if not well off target;
+//        // but will not go to zero if the the non-reduced one would not have
+//        // to avoid widening the deadband as a side-effect.
+//        //
+//        // wOT/!OT         wOT     close to target  Comment
+//        // |err|   slewF   slew    slew
+//        // 0       0       0       0
+//        // 8/4     1       0       0                Effectively sets deadband.
+//        // 16/8    2       1       1
+//        // 24/12   3       1       1
+//        // 32/16   4       2       1                2C/1C error.
+//        // 40/20   5       2       1
+//        // 48/24   6       3       2                3C/1.5C error.
+//        // 56/28   7       3       2
+//        // 64/32   8       4       2                4C/2C error.
+//        //         9       4       2
+//        //         10      5       3
+//        // ...
+//        const uint8_t slew = (wOT || (slewF < 4)) ?
+//            (slewF >> 1) : ((slewF+2) >> 2);
 
         // Move quickly when requested, eg responding to manual control use.
         // Try to get to right side of call-for-heat threshold in first tick
@@ -535,8 +549,8 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
                     inputState.maxPCOpen));
                 }
             // Immediately get below call-for-heat threshold on way down
-            // iff wellAboveTarget (below strong threshold otherwise),
-            // then move slowly enough to potentially avoid full close.
+            // iff wellAboveTarget (below strong cfh threshold otherwise),
+            // then move slowly enough to potentially avoid a full close.
             else if(shouldClose)
                 {
                 return(uint8_t(OTV0P2BASE::fnconstrain(
