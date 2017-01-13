@@ -311,12 +311,12 @@ OTV0P2BASE::serialPrintlnAndFlush();
       // Once end-stop has been hit, move to state to wait for user signal and then start calibration.
       // TODO: possibly require multiple attempts, as elsewhere, to be sure of full withdraw, and better set up for calibration.
 
-      // Run slowly when requested to minimise noise
-      // and while supply voltage is low to try to avoid browning out.
-      const bool slow = ((NULL != minimiseActivityOpt) && minimiseActivityOpt()) ||
-          ((NULL != lowBattOpt) && ((0 == lowBattOpt->read()) || lowBattOpt->isSupplyVoltageLow()));
+//      // Run slowly when requested to minimise noise
+//      // and while supply voltage is low to try to avoid browning out.
+//      const bool slow = ((NULL != minimiseActivityOpt) && minimiseActivityOpt()) ||
+//          ((NULL != lowBattOpt) && ((0 == lowBattOpt->read()) || lowBattOpt->isSupplyVoltageLow()));
 
-      if(!runTowardsEndStop(true, slow)) { perState.valvePinWithdrawing.endStopHitCount = 0; }
+      if(!runTowardsEndStop(true)) { perState.valvePinWithdrawing.endStopHitCount = 0; }
       else if(++perState.valvePinWithdrawing.endStopHitCount >= maxEndStopHitsToBeConfident)
           {
           // Note that the valve is now fully open.
@@ -390,7 +390,9 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
       // If already at correct end-stop then nothing to do.
       if(binaryTarget == currentPC) { break; }
 
-      // Refuse to close the valve while supply voltage low to try to avoid browning out or leaving valve shut.
+      // Refuse to close the valve while supply voltage low
+      // to try to avoid browning out and resetting
+      // and/or leaving the valve stuck shut.
       const bool low = ((NULL != lowBattOpt) && ((0 == lowBattOpt->read()) || lowBattOpt->isSupplyVoltageLow()));
       if(low && (targetPC < currentPC)) { break; }
 
