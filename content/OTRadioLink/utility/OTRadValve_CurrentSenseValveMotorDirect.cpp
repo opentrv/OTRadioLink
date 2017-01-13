@@ -311,12 +311,12 @@ OTV0P2BASE::serialPrintlnAndFlush();
       // Once end-stop has been hit, move to state to wait for user signal and then start calibration.
       // TODO: possibly require multiple attempts, as elsewhere, to be sure of full withdraw, and better set up for calibration.
 
-      // Run slowly when requested to minimise noise
-      // and while supply voltage is low to try to avoid browning out.
-      const bool slow = ((NULL != minimiseActivityOpt) && minimiseActivityOpt()) ||
-          ((NULL != lowBattOpt) && ((0 == lowBattOpt->read()) || lowBattOpt->isSupplyVoltageLow()));
+//      // Run slowly when requested to minimise noise
+//      // and while supply voltage is low to try to avoid browning out.
+//      const bool slow = ((NULL != minimiseActivityOpt) && minimiseActivityOpt()) ||
+//          ((NULL != lowBattOpt) && ((0 == lowBattOpt->read()) || lowBattOpt->isSupplyVoltageLow()));
 
-      if(!runTowardsEndStop(true, slow)) { perState.valvePinWithdrawing.endStopHitCount = 0; }
+      if(!runTowardsEndStop(true)) { perState.valvePinWithdrawing.endStopHitCount = 0; }
       else if(++perState.valvePinWithdrawing.endStopHitCount >= maxEndStopHitsToBeConfident)
           {
           // Note that the valve is now fully open.
@@ -367,7 +367,8 @@ OTV0P2BASE::serialPrintlnAndFlush();
 
       // If the current estimated position exactly matches the target
       // then there is nothing to do.
-      if(currentPC == targetPC) { break; }
+      if(currentPC == targetPC)
+          { perState.valveNormal.endStopHitCount = 0; break; }
 
       if(do_valveNormal_prop()) { return; }
 
@@ -388,9 +389,12 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
       const uint8_t binaryTarget = binaryOpen ? 100 : 0;
 
       // If already at correct end-stop then nothing to do.
-      if(binaryTarget == currentPC) { break; }
+      if(binaryTarget == currentPC)
+          { perState.valveNormal.endStopHitCount = 0; break; }
 
-      // Refuse to close the valve while supply voltage low to try to avoid browning out or leaving valve shut.
+      // Refuse to close the valve while supply voltage low
+      // to try to avoid browning out and resetting
+      // and/or leaving the valve stuck shut.
       const bool low = ((NULL != lowBattOpt) && ((0 == lowBattOpt->read()) || lowBattOpt->isSupplyVoltageLow()));
       if(low && (targetPC < currentPC)) { break; }
 
@@ -641,7 +645,12 @@ bool CurrentSenseValveMotorDirect::do_valveNormal_prop()
     // Carefully avoid overflow/underflow in comparison.
     if(((targetPC >= currentPC) && (targetPC <= currentPC + eps)) ||
        ((currentPC >= targetPC) && (currentPC <= targetPC + eps)))
-        { return(true); } // Leave poll().
+        {
+        // Close enough to target, so resting and can reset end stop hit count!
+        perState.valveNormal.endStopHitCount = 0;
+        // Leave poll().
+        return(true);
+        }
 
     // If the end-stop is encountered earlier than expected
     // then recalibration may be needed if far too early.

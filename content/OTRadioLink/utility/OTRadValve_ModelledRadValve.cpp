@@ -381,16 +381,15 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         // in order to let the valve rest even while setbacks are applied.
         // Else a somewhat wider band (~1.5C) is allowed when requested.
         // Else a ~0.75C 'way off target' default band is used,
-        // to surround the 0.5C sweet-spot.
+        // to surround the 0.5C normal sweet-spot.
         static constexpr uint8_t halfNormalBand = 6;
         // Basic behaviour is to double the deadband with wide or filtering.
         const int wOTC16basic = (worf ? (2*halfNormalBand) : halfNormalBand);
-        // Filtering pushes bad up much higher to allow for all-in-one TRVs,
-        // The nominal 'wide' upper extension of the deadband is not provided,
-        // enhancing energy savings slightly.
+        // Filtering pushes limit up much higher to allow for all-in-one TRVs.
+        // Does not extend general wide deadband upwards to save some energy.
         const uint8_t wOTC16highSide = isFiltering ?
             (_proportionalRange << 3) : halfNormalBand;
-        // Same calc for herrorC16 as errorC16 but using the higherTargetC.
+        // Same calc for herrorC16 as errorC16 but possibly not set back.
         // This allows the temperature to fall passively when set back.
         const int_fast16_t herrorC16 =
             adjustedTempC16 - (int_fast16_t(higherTargetC) << 4) - centreOffsetC16;
@@ -399,8 +398,8 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
 //        const bool wOT = wellAboveTarget || wellBelowTarget;
 
         // Compute proportional slew rates to fix temperature errors.
-        // Note that slewF == 0 in central sweet spot.
         // Note that non-rounded shifts effectively set the deadband also.
+        // Note that slewF == 0 in central sweet spot / deadband.
         const uint8_t errShift = worf ? 3 : 2;
         // Fast slew when responding to manual control or similar.
         const uint8_t slewF = OTV0P2BASE::fnmin(TRV_SLEW_PC_PER_MIN_FAST,
@@ -412,7 +411,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         // |err|   slewF   slew
         // 0       0       0
         // 8/4     1       0                        Effectively sets deadband.
-        // 16/8    2       1
+        // 16/8    2       1                        Sets secondary deadband.
         // 24/12   3       1
         // 32/16   4       2                        2C/1C error.
         // 40/20   5       2
