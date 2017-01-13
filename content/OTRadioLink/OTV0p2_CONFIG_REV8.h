@@ -79,6 +79,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2017
 #undef ENABLE_LOCAL_TRV
 // IF DEFINED: allow radio listen/RX.
 #define ENABLE_RADIO_RX
+// IF DEFINED: (default) forced always-on radio listen/RX, eg not requiring setup to explicitly enable.
+#define ENABLE_DEFAULT_ALWAYS_RX
 // IF DEFINED: allow JSON stats frames.
 #define ENABLE_JSON_OUTPUT
 // IF DEFINED: allow binary stats to be TXed.

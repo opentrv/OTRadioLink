@@ -9,6 +9,7 @@ or release/freeze points.
 
 
 pending:
+    DHD20170105: experimental ErrorReport(er) in use.
     DHD20161230: bug fixes (waiting too long for read) in SHT21 drivers.
     DHD20161112: introduced ByHourSimpleStatsUpdaterSampleStats.
 	DHD20161111: turned compiler strictness up to max, eg including -Wextra and pedantic and conversion.

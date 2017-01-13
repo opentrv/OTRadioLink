@@ -68,7 +68,8 @@ void CurrentSenseValveMotorDirect::signalRunSCTTick(const bool opening)
 //   * ticksFromOpenToClosed  system ticks counted when running from fully open to fully closed; should be positive
 //   * minMotorDRTicks  minimum number of motor ticks it makes sense to run motor for (eg due to inertia); strictly positive
 bool CurrentSenseValveMotorDirect::CalibrationParameters::updateAndCompute(
-    const uint16_t _ticksFromOpenToClosed, const uint16_t _ticksFromClosedToOpen, const uint8_t minMotorDRTicks)
+    const uint16_t _ticksFromOpenToClosed, const uint16_t _ticksFromClosedToOpen,
+    const uint8_t minMotorDRTicks)
   {
   // Set up state to reflect inputs and/or be sane.
   // Start with error state until shown good.
@@ -78,14 +79,20 @@ bool CurrentSenseValveMotorDirect::CalibrationParameters::updateAndCompute(
   tfotcSmall = 0;
   tfctoSmall = 0;
 
-  if(0 == minMotorDRTicks) { return(false); } // Bad argument; should not be passed.
-  const uint16_t minticks = OTV0P2BASE::fnmin(_ticksFromOpenToClosed, _ticksFromClosedToOpen);
-  if(0 == minticks) { return(false); } // Stuck actuator?  Still should not cause a crash.
+  // Bad argument; should not be passed.
+  if(0 == minMotorDRTicks) { return(false); }
+  const uint16_t minticks =
+    OTV0P2BASE::fnmin(_ticksFromOpenToClosed, _ticksFromClosedToOpen);
+  // Stuck actuator?  Still should not cause a crash.
+  if(0 == minticks) { return(false); }
 
   // If ticks counted in either direction hugely unbalanced (one > 2x the other)
   // then assume proportional mode is not likely to work.
-  // The calculations are done carefully to avoid overflow, even with large values.
-  if(((_ticksFromOpenToClosed>>1) > _ticksFromClosedToOpen) || ((_ticksFromClosedToOpen>>1) > _ticksFromOpenToClosed)) { return(false); }
+  // The calculations are done carefully to avoid overflow,
+  // even with large values.
+  if(((_ticksFromOpenToClosed>>1) > _ticksFromClosedToOpen) ||
+     ((_ticksFromClosedToOpen>>1) > _ticksFromOpenToClosed))
+    { return(false); }
 
   // Compute a small conversion ratio back and forth
   // which does not add too much error but allows single dead-reckoning steps
@@ -105,7 +112,8 @@ bool CurrentSenseValveMotorDirect::CalibrationParameters::updateAndCompute(
   // Compute approx precision in % as min ticks / DR size in range [1,100].
   // Inflate estimate slightly to allow for inertia, etc.
   // FIXME: optimise!
-  approxPrecisionPC = (uint8_t) OTV0P2BASE::fnconstrain((128UL*minMotorDRTicks) / minticks, 1UL, 100UL);
+  approxPrecisionPC = (uint8_t) OTV0P2BASE::fnconstrain(
+      (128UL*minMotorDRTicks) / minticks, 1UL, 100UL);
 
   // Fail if precision far too poor to be usable for proportional mode.
   if(approxPrecisionPC > max_usuable_precision) { return(false); }
@@ -140,18 +148,16 @@ uint8_t CurrentSenseValveMotorDirect::CalibrationParameters::computePosition(
   if(ticksFromOpen >= ticksFromOpenToClosed) { return(0); }
   // Compute percentage open for intermediate position, based on dead-reckoning.
   // FIXME: optimise!
-  return((uint8_t) (((ticksFromOpenToClosed - ticksFromOpen) * 100UL) / ticksFromOpenToClosed));
+  return((uint8_t) (((ticksFromOpenToClosed - ticksFromOpen) * 100UL) /
+      ticksFromOpenToClosed));
   }
 
 // Get estimated minimum percentage open for significant flow for this device; strictly positive in range [1,99].
 uint8_t CurrentSenseValveMotorDirect::getMinPercentOpen() const
     {
-    // If in dead-reckoning mode then use a very safe estimate,
-    // else use a somewhat tighter one.
     // TODO: optimise, ie don't compute each time if frequently called.
-    return(usingPositionalShaftEncoder() ?
-            OTV0P2BASE::fnmax((uint8_t)(10 + cp.getApproxPrecisionPC()), (uint8_t)DEFAULT_VALVE_PC_MIN_REALLY_OPEN) :
-            CurrentSenseValveMotorDirectBinaryOnly::getMinPercentOpen());
+    return(OTV0P2BASE::fnmax((uint8_t)(10 + cp.getApproxPrecisionPC()),
+        (uint8_t)DEFAULT_VALVE_PC_MIN_REALLY_OPEN));
     }
 
 // Minimally wiggle the motor to give tactile feedback and/or show to be working.
@@ -216,7 +222,8 @@ bool CurrentSenseValveMotorDirect::shouldDeferCalibration()
     // Try to force measurement of supply voltage now.
     const bool haveBattMonitor = (NULL != lowBattOpt);
     if(haveBattMonitor) { lowBattOpt->read(); }
-    // Defer calibration if doing it now would be a bad idea, eg in a bedroom at night.
+    // Defer calibration if doing it now would be a bad idea,
+    // eg in a bedroom at night.
     const bool deferRecalibration =
         (haveBattMonitor && lowBattOpt->isSupplyVoltageLow()) ||
         ((NULL != minimiseActivityOpt) && minimiseActivityOpt());
@@ -387,14 +394,15 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
       const bool low = ((NULL != lowBattOpt) && ((0 == lowBattOpt->read()) || lowBattOpt->isSupplyVoltageLow()));
       if(low && (targetPC < currentPC)) { break; }
 
-      // Run slow if battery low or minimal noise requested.
-      const bool slow = low || ((NULL != minimiseActivityOpt) && minimiseActivityOpt());
+//      // Run slow if battery low or minimal noise requested.
+//      const bool slow = low || ((NULL != minimiseActivityOpt) && minimiseActivityOpt());
 
       // If not apparently yet at end-stop
       // (ie not at correct end stop or with spurious unreconciled ticks)
       // then try again to run to end-stop.
       // If end-stop is (really) hit then reset positional values.
-      if(!runTowardsEndStop(binaryOpen, slow))
+      // Always run slow to minimise mis-calibration issues.
+      if(!runTowardsEndStop(binaryOpen))
           {
           // Definitely not at end-stop.
           perState.valveNormal.endStopHitCount = 0;
@@ -555,6 +563,13 @@ OTV0P2BASE::serialPrintAndFlush(cp.getApproxPrecisionPC());
 OTV0P2BASE::serialPrintlnAndFlush();
 #endif
 
+#ifdef OTV0P2BASE_ErrorReport_DEFINED
+        // Report inability to run proportional mode
+        // when it should be available.
+        if(!isNonProportionalOnly() && cp.cannotRunProportional())
+          { OTV0P2BASE::ErrorReporter.set(OTV0P2BASE::ErrorReport::WARN_VALVE_LOW_PRECISION); }
+#endif
+
         // Move to normal valve running state, even if calibration calculation failed.
         needsRecalibrating = false;
         hitEndstop(true); // Valve is currently fully open.
@@ -628,6 +643,14 @@ bool CurrentSenseValveMotorDirect::do_valveNormal_prop()
        ((currentPC >= targetPC) && (currentPC <= targetPC + eps)))
         { return(true); } // Leave poll().
 
+    // If the end-stop is encountered earlier than expected
+    // then recalibration may be needed if far too early.
+    // This is the maximum % early before forcing a recalibration.
+    // This value is intended to leave a decent central proportional range.
+    // Somewhere below 20--25% and above absTolerancePC is likely best.
+    static constexpr uint8_t maxEarlyEndstopHitPC =
+        OTV0P2BASE::fnmax(19, (absTolerancePC*3)/2);
+
     // Move incrementally as close as possible to the target position.
     // Not open enough.
     if(targetPC > currentPC)
@@ -638,7 +661,12 @@ bool CurrentSenseValveMotorDirect::do_valveNormal_prop()
       // Hitting the end-stop is unexpected.
       if(hitEndStop)
         {
-        if(currentPC < upperPropLimit - weps) { reportTrackingError(); }
+        // Report major tracking error.
+        if(currentPC < 100 - maxEarlyEndstopHitPC) { reportTrackingError(); }
+#ifdef OTV0P2BASE_ErrorReport_DEFINED
+        // Report minor tracking warning.
+        else { OTV0P2BASE::ErrorReporter.set(OTV0P2BASE::ErrorReport::WARN_VALVE_TRACKING_MINOR); }
+#endif
         // Silently auto-adjust when end-stop hit close to expected position.
         if(++perState.valveNormal.endStopHitCount >= maxEndStopHitsToBeConfident)
             {
@@ -663,7 +691,12 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("->");
       // Hitting the end-stop is unexpected.
       if(hitEndStop)
         {
-        if(currentPC > lowerPropLimit + weps) { reportTrackingError(); }
+        // Report major tracking error.
+        if(currentPC > maxEarlyEndstopHitPC) { reportTrackingError(); }
+#ifdef OTV0P2BASE_ErrorReport_DEFINED
+        // Report minor tracking warning.
+        else { OTV0P2BASE::ErrorReporter.set(OTV0P2BASE::ErrorReport::WARN_VALVE_TRACKING_MINOR); }
+#endif
         // Silently auto-adjust when end-stop hit close to expected position.
         if(++perState.valveNormal.endStopHitCount >= maxEndStopHitsToBeConfident)
             {

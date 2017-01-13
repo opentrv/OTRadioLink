@@ -132,6 +132,7 @@ class SensorAmbientLightOccupancyDetectorSimple final : public SensorAmbientLigh
       uint8_t meanNowOrFF = 0xff;
 	  uint8_t longTermMinimumOrFF = 0xff;
 	  uint8_t longTermMaximumOrFF = 0xff;
+
 //	  // If true, the ambient light system has been requested to be
 //	  // more sensitive to signs of occupancy.
 //	  bool sensitive = false;
@@ -163,12 +164,12 @@ class SensorAmbientLightOccupancyDetectorSimple final : public SensorAmbientLigh
       // Not thread-/ISR- safe.
       virtual void setTypMinMax(uint8_t meanNowOrFF,
                         uint8_t longTermMinimumOrFF = 0xff, uint8_t longTermMaximumOrFF = 0xff,
-                        bool /* sensitive */ = false) override
+                        bool /*sensitive*/ = false) override
           {
           this->meanNowOrFF = meanNowOrFF;
           this->longTermMinimumOrFF = longTermMinimumOrFF;
           this->longTermMaximumOrFF = longTermMaximumOrFF;
-          //this->sensitive = sensitive;
+//          this->sensitive = sensitive;
           }
 
        // NOT OFFICAL API: expose steadyTicks for unit tests.

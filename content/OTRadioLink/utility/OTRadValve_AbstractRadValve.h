@@ -141,7 +141,6 @@ class RadValveMock final : public AbstractRadValve
     virtual uint8_t read() override { return(get()); }
     // Set new target valve percent open.
     // Ignores invalid values.
-    // Some implementations may ignore/reject all attempts to directly set the values.
     // If this returns true then the new target value was accepted.
     virtual bool set(const uint8_t newValue) override
       { if(!isValid(newValue)) { return(false); } value = newValue; return(true); }
