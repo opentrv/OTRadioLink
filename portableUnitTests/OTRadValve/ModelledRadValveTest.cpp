@@ -566,8 +566,8 @@ TEST(ModelledRadValve,MRVSOpenFastFromCold593)
     // Run the algorithm one tick.
     rs0.tick(valvePCOpen, is0, NULL);
     const uint8_t newValvePos = valvePCOpen;
-    EXPECT_TRUE(newValvePos >= OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN);
-    EXPECT_TRUE(newValvePos <= 100);
+    EXPECT_GT(newValvePos, OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN);
+    EXPECT_LE(newValvePos, 100);
 //    EXPECT_TRUE(rs0.valveMoved);
     if(rs0.eventsSupported) { EXPECT_EQ(OTRadValve::ModelledRadValveState::MRVE_OPENFAST, rs0.getLastEvent()); }
 }
@@ -1674,7 +1674,7 @@ TEST(ModelledRadValve,SampleValveResponse4)
     // Valve should still at/above normal call-for-heat level.
     // Already below in the original trace.
     EXPECT_LE(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, valvePCOpen);
-    EXPECT_NEAR(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN, valvePCOpen, 20);
+    EXPECT_NEAR(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN, valvePCOpen, 15);
 }
 
 

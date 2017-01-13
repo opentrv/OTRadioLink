@@ -387,15 +387,17 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         const int wOTC16basic = (worf ? (2*halfNormalBand) : halfNormalBand);
         // Filtering pushes limit up much higher to allow for all-in-one TRVs.
         // Does not extend general wide deadband upwards to save some energy.
+        // The threshold is most of the way to the outer/limit boundary,
+        // but far enough away to react in time to avoid reaching the limit.
         const uint8_t wOTC16highSide = isFiltering ?
-            (_proportionalRange << 3) : halfNormalBand;
+            (_proportionalRange * 12) : halfNormalBand;
         // Same calc for herrorC16 as errorC16 but possibly not set back.
         // This allows the temperature to fall passively when set back.
         const int_fast16_t herrorC16 =
             adjustedTempC16 - (int_fast16_t(higherTargetC) << 4) - centreOffsetC16;
         const bool wellAboveTarget = herrorC16 > wOTC16highSide;
         const bool wellBelowTarget = errorC16 < -wOTC16basic;
-//        const bool wOT = wellAboveTarget || wellBelowTarget;
+        const bool wOT = wellAboveTarget || wellBelowTarget;
 
         // Compute proportional slew rates to fix temperature errors.
         // Note that non-rounded shifts effectively set the deadband also.
@@ -405,40 +407,40 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         const uint8_t slewF = OTV0P2BASE::fnmin(TRV_SLEW_PC_PER_MIN_FAST,
             uint8_t((errorC16 < 0) ? ((-errorC16) >> errShift) : (errorC16 >> errShift)));
         const bool inCentralSweetSpot = (0 == slewF);
-        // Slower slew for use when not responding to human input, eg in dark.
-        //
-        // worf/!
-        // |err|   slewF   slew
-        // 0       0       0
-        // 8/4     1       0                        Effectively sets deadband.
-        // 16/8    2       1                        Sets secondary deadband.
-        // 24/12   3       1
-        // 32/16   4       2                        2C/1C error.
-        // 40/20   5       2
-        // 48/24   6       3                        3C/1.5C error.
-        // 56/28   7       3
-        // 64/32   8       4                        4C/2C error.
-        const uint8_t slew = (slewF >> 1);
-//        // Reduce still further if not well off target;
-//        // but will not go to zero if the the non-reduced one would not have
-//        // to avoid widening the deadband as a side-effect.
+//        // Slower slew for use when not responding to human input, eg in dark.
 //        //
-//        // wOT/!OT         wOT     close to target  Comment
-//        // |err|   slewF   slew    slew
-//        // 0       0       0       0
-//        // 8/4     1       0       0                Effectively sets deadband.
-//        // 16/8    2       1       1
-//        // 24/12   3       1       1
-//        // 32/16   4       2       1                2C/1C error.
-//        // 40/20   5       2       1
-//        // 48/24   6       3       2                3C/1.5C error.
-//        // 56/28   7       3       2
-//        // 64/32   8       4       2                4C/2C error.
-//        //         9       4       2
-//        //         10      5       3
-//        // ...
-//        const uint8_t slew = wOT ?
-//            (slewF >> 1) : ((slewF+2) >> 2);
+//        // worf/!
+//        // |err|   slewF   slew
+//        // 0       0       0
+//        // 8/4     1       0                        Effectively sets deadband.
+//        // 16/8    2       1                        Sets secondary deadband.
+//        // 24/12   3       1
+//        // 32/16   4       2                        2C/1C error.
+//        // 40/20   5       2
+//        // 48/24   6       3                        3C/1.5C error.
+//        // 56/28   7       3
+//        // 64/32   8       4                        4C/2C error.
+//        const uint8_t slew = (slewF >> 1);
+        // Reduce still further if not well off target;
+        // not zero if the slewF is not zero
+        // to avoid widening the deadband as a side-effect.
+        //
+        // wOT/!OT         wOT     close to target  Comment
+        // |err|   slewF   slew    slew
+        // 0       0       0       0
+        // 8/4     1       1       0                Effectively sets deadband.
+        // 16/8    2       1       1
+        // 24/12   3       2       1
+        // 32/16   4       2       1                2C/1C error.
+        // 40/20   5       3       1
+        // 48/24   6       3       2                3C/1.5C error.
+        // 56/28   7       4       2
+        // 64/32   8       4       2                4C/2C error.
+        //         9       5       2
+        //         10      5       3
+        // ...
+        const uint8_t slew = wOT ?
+            ((slewF+1) >> 1) : ((slewF+2) >> 2);
 
         // Move quickly when requested, eg responding to manual control use.
         // Try to get to right side of call-for-heat threshold in first tick
