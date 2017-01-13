@@ -1059,6 +1059,7 @@ const bool verbose = false;
 
 // Gets to CHECK_PIN state and then starts spewing random characters..
 // Allows for checking getResponse can deal with invalid input, and tests the RESET state.
+// NOTE! This is a 'whitebox test' that discards all 'A's passed into the OTSIM900Link driver.
 class GarbageSimulator final : public Stream
   {
   public:
@@ -1110,7 +1111,9 @@ class GarbageSimulator final : public Stream
                     // spew out garbage...
                     reply.resize(500);
                     for(size_t i = 0; i < 500; i++) {
-                        reply[i] = char(random() & 0xff);
+                        char temp;
+                        while ('A' == temp) temp = char(random() & 0xff);
+                        reply[i] = temp;
                     }
                 }
             } else if(collectingCommand) { command += c; }
@@ -1164,11 +1167,6 @@ TEST(OTSIM900Link,GarbageTestSimulator)
 
     // Try to hang just by calling poll() repeatedly.
     for(int i = 0; i < 100; ++i) { incrementVTOneCycle(); statesChecked[l0._getState()] = true; l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
-    for (auto it = statesChecked.begin(); it != statesChecked.end(); ++it) {
-        int temp = (int)*it;
-        fprintf(stderr, "%d, ", temp);
-    }
-    fprintf(stderr, "\n");
     EXPECT_TRUE(B2::GarbageSimulator::haveSeenCommandStart) << "should see some attempt to communicate with SIM900";
     EXPECT_TRUE(statesChecked[OTSIM900Link::INIT]) << "state GET_STATE not seen.";  // Check what states have been seen.
     EXPECT_TRUE(statesChecked[OTSIM900Link::GET_STATE]) << "state RETRY_GET_STATE not seen.";  // Check what states have been seen.
