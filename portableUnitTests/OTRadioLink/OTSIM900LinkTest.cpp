@@ -1112,7 +1112,8 @@ class GarbageSimulator final : public Stream
                     reply.resize(500);
                     for(size_t i = 0; i < 500; i++) {
                         char temp;
-                        while ('A' == temp) temp = char(random() & 0xff);
+                        do {temp = char(random() & 0xff); }
+                        while ('A' == temp);
                         reply[i] = temp;
                     }
                 }
