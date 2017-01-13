@@ -1059,6 +1059,7 @@ const bool verbose = false;
 
 // Gets to CHECK_PIN state and then starts spewing random characters..
 // Allows for checking getResponse can deal with invalid input, and tests the RESET state.
+// NOTE! This is a 'whitebox test' that discards all 'A's passed into the OTSIM900Link driver.
 class GarbageSimulator final : public Stream
   {
   public:
@@ -1110,7 +1111,9 @@ class GarbageSimulator final : public Stream
                     // spew out garbage...
                     reply.resize(500);
                     for(size_t i = 0; i < 500; i++) {
-                        reply[i] = char(random() & 0xff);
+                        char temp;
+                        while ('A' == temp) temp = char(random() & 0xff);
+                        reply[i] = temp;
                     }
                 }
             } else if(collectingCommand) { command += c; }
@@ -1146,7 +1149,7 @@ TEST(OTSIM900Link,GarbageTestSimulator)
     SIM900Emu::sim900.reset();
 
     // Vector of bools containing states to check. This covers all states expected in normal use. RESET and PANIC are not covered.
-    std::vector<bool> statesChecked(OTSIM900Link::RESET, false);
+    std::vector<bool> statesChecked(OTSIM900Link::PANIC, false);
     // Message to send.
 
     const char SIM900_PIN[] = "1111";
