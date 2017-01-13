@@ -398,12 +398,13 @@ TEST(ModelledRadValve,MRVSExtremes2)
     static constexpr uint8_t maxOffset = OTV0P2BASE::fnmax(10, 2*OTRadValve::ModelledRadValveState::_proportionalRange);
     for(int offset = -maxOffset; offset <= +maxOffset; ++offset)
         {
-SCOPED_TRACE(testing::Message() << "offset " << offset);
+        const bool wide = OTV0P2BASE::randRNG8NextBoolean();
+SCOPED_TRACE(testing::Message() << "offset " << offset << ", wide " << wide);
         OTRadValve::ModelledRadValveInputState is(100<<4);
         is.targetTempC = 19;
-        is.setReferenceTemperatures(int_fast16_t((is.targetTempC + offset) << 4));
+        is.setReferenceTemperatures(int_fast16_t(is.targetTempC + offset) << 4);
         // Futz the wide deadband parameter by default.
-        is.widenDeadband = OTV0P2BASE::randRNG8NextBoolean();
+        is.widenDeadband = wide;
         // Well outside the potentially-proportional range,
         // valve should unconditionally be driven immediately off/on
         // by gross temperature error.
@@ -469,7 +470,6 @@ SCOPED_TRACE(testing::Message() << "offset " << offset);
             EXPECT_NEAR((offset < 0) ? 100 : 0, valvePCOpen, 2);
             continue;
             }
-
         }
 }
 
