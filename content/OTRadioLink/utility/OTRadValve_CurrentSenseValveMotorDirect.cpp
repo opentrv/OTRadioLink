@@ -173,28 +173,28 @@ void CurrentSenseValveMotorDirectBinaryOnly::wiggle()
   hw->motorRun(0, OTRadValve::HardwareMotorDriverInterface::motorOff, *this);
   }
 
-// Run fast towards/to end stop as far as possible in this call.
-// Terminates significantly before the end of the sub-cycle.
-// Possibly allows partial recalibration, or at least re-homing.
-// Returns true if end-stop has apparently been hit,
-// else will require one or more further calls in new sub-cycles
-// to hit the end-stop.
-// May attempt to ride through stiff mechanics.
-bool CurrentSenseValveMotorDirectBinaryOnly::runFastTowardsEndStop(const bool toOpen)
-  {
-  // Clear the end-stop detection flag ready.
-  endStopDetected = false;
-  // Run motor as far as possible on this sub-cycle.
-  hw->motorRun(uint8_t(~0), toOpen ?
-      OTRadValve::HardwareMotorDriverInterface::motorDriveOpening
-    : OTRadValve::HardwareMotorDriverInterface::motorDriveClosing, *this);
-  // Stop motor and ensure power off.
-  hw->motorRun(0, OTRadValve::HardwareMotorDriverInterface::motorOff, *this);
-  // If end-stop not hit, return false now.
-  if(!endStopDetected) { return(false); }
-  // Attempt another short pulse to finish the job if there is time.
-  return(runTowardsEndStop(toOpen));
-  }
+//// Run fast towards/to end stop as far as possible in this call.
+//// Terminates significantly before the end of the sub-cycle.
+//// Possibly allows partial recalibration, or at least re-homing.
+//// Returns true if end-stop has apparently been hit,
+//// else will require one or more further calls in new sub-cycles
+//// to hit the end-stop.
+//// May attempt to ride through stiff mechanics.
+//bool CurrentSenseValveMotorDirectBinaryOnly::runFastTowardsEndStop(const bool toOpen)
+//  {
+//  // Clear the end-stop detection flag ready.
+//  endStopDetected = false;
+//  // Run motor as far as possible on this sub-cycle.
+//  hw->motorRun(uint8_t(~0), toOpen ?
+//      OTRadValve::HardwareMotorDriverInterface::motorDriveOpening
+//    : OTRadValve::HardwareMotorDriverInterface::motorDriveClosing, *this);
+//  // Stop motor and ensure power off.
+//  hw->motorRun(0, OTRadValve::HardwareMotorDriverInterface::motorOff, *this);
+//  // If end-stop not hit, return false now.
+//  if(!endStopDetected) { return(false); }
+//  // Attempt another short pulse to finish the job if there is time.
+//  return(runTowardsEndStop(toOpen));
+//  }
 
 // Run at 'normal' speed towards/to end for a fixed time/distance.
 // Terminates significantly before the end of the sub-cycle.
@@ -316,13 +316,16 @@ OTV0P2BASE::serialPrintlnAndFlush();
 //      const bool slow = ((NULL != minimiseActivityOpt) && minimiseActivityOpt()) ||
 //          ((NULL != lowBattOpt) && ((0 == lowBattOpt->read()) || lowBattOpt->isSupplyVoltageLow()));
 
-      if(!runTowardsEndStop(true)) { perState.valvePinWithdrawing.endStopHitCount = 0; }
-      else if(++perState.valvePinWithdrawing.endStopHitCount >= maxEndStopHitsToBeConfident)
-          {
-          // Note that the valve is now fully open.
-          hitEndstop(true);
-          changeState(valvePinWithdrawn);
-          }
+      do {
+          if(!runTowardsEndStop(true)) { perState.valvePinWithdrawing.endStopHitCount = 0; }
+          else if(++perState.valvePinWithdrawing.endStopHitCount >= maxEndStopHitsToBeConfident)
+              {
+              // Note that the valve is now fully open.
+              hitEndstop(true);
+              changeState(valvePinWithdrawn);
+              break;
+              }
+          } while(getSubCycleTimeFn() <= computeSctAbsLimitDR());
 
       break;
       }
@@ -482,16 +485,20 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("+calibrating");
       case 1:
         {
         // Run fast to fully retracted (easy to fit, nominally valve fully open).
-        if(!runFastTowardsEndStop(true)) { perState.valveCalibrating.endStopHitCount = 0; }
-        else if(++perState.valveCalibrating.endStopHitCount >= maxEndStopHitsToBeConfidentWhenCalibrating)
+        do
           {
-          // Reset tick count.
-          ticksFromOpen = 0;
-          ticksReverse = 0;
-          perState.valveCalibrating.wallclock2sTicks = 0;
-          perState.valveCalibrating.endStopHitCount = 0;
-          ++perState.valveCalibrating.calibState; // Move to next micro state.
-          }
+          if(!runTowardsEndStop(true)) { perState.valveCalibrating.endStopHitCount = 0; }
+          else if(++perState.valveCalibrating.endStopHitCount >= maxEndStopHitsToBeConfidentWhenCalibrating)
+            {
+            // Reset tick count.
+            ticksFromOpen = 0;
+            ticksReverse = 0;
+            perState.valveCalibrating.wallclock2sTicks = 0;
+            perState.valveCalibrating.endStopHitCount = 0;
+            ++perState.valveCalibrating.calibState; // Move to next micro state.
+            break;
+            }
+          } while(getSubCycleTimeFn() <= computeSctAbsLimitDR());
         break;
         }
       case 2:
