@@ -141,12 +141,11 @@ struct ModelledRadValveState final
   // Gives quick feedback and warming, eg in response to manual control use.
   static constexpr uint8_t vFastResponseTicksTarget = 3;
 
-  // Proportional range wide enough to cope with all-in-one TRVs overshoot
-  // and typical setback movements (though not necessarily 'FULL').
+  // Proportional range wide enough to cope with all-in-one TRVs overshoot.
   // Primarily exposed to allow for unit testing; subject to change.
   // With 1/16C precision, a continuous drift in either direction
   // implies a delta T >= 60/16C ~ 4C per hour.
-  static constexpr uint8_t _proportionalRange = 4;
+  static constexpr uint8_t _proportionalRange = 6;
 
   // Max jump between adjacent readings before forcing filtering; strictly +ve.
   // Too small a value may cap room rate rise to this per minute.

@@ -389,8 +389,9 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         // The nominal 'wide' upper extension of the deadband is not provided,
         // enhancing energy savings slightly.
         const uint8_t wOTC16highSide = isFiltering ?
-            ((_proportionalRange << 4) - 15) : halfNormalBand;
+            (_proportionalRange << 3) : halfNormalBand;
         // Same calc for herrorC16 as errorC16 but using the higherTargetC.
+        // This allows the temperature to fall passively when set back.
         const int_fast16_t herrorC16 =
             adjustedTempC16 - (int_fast16_t(higherTargetC) << 4) - centreOffsetC16;
         const bool wellAboveTarget = herrorC16 > wOTC16highSide;
