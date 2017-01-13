@@ -412,7 +412,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         // |err|   slewF   slew
         // 0       0       0
         // 8/4     1       0                        Effectively sets deadband.
-        // 16/8    2       1
+        // 16/8    2       1                        Sets secondary deadband.
         // 24/12   3       1
         // 32/16   4       2                        2C/1C error.
         // 40/20   5       2
