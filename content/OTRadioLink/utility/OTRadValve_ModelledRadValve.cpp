@@ -39,29 +39,9 @@ template<size_t N> int_fast16_t smallIntMean(const int_fast16_t data[N])
   return((sum + (int_fast16_t)(N/2)) / (int_fast16_t)N); // Avoid accidental computation as unsigned...
   }
 
-
 // Get smoothed raw/unadjusted temperature from the most recent samples.
 int_fast16_t ModelledRadValveState::getSmoothedRecent() const
   { return(smallIntMean<filterLength>(prevRawTempC16)); }
-
-//// Compute an estimate of rate/velocity of temperature change in C/16 per minute/tick.
-//// A positive value indicates that temperature is rising.
-//// Based on comparing the most recent smoothed value with an older smoothed value.
-//int ModelledRadValveState::getVelocityC16PerTick()
-//  {
-//  const int oldSmoothed = smallIntMean<filterLength/2>(prevRawTempC16 + (filterLength/2));
-//  const int newSmoothed = getSmoothedRecent();
-//  const int velocity = (newSmoothed - oldSmoothed + (int)(filterLength/4)) / (int)(filterLength/2); // Avoid going unsigned by accident.
-////V0P2BASE_DEBUG_SERIAL_PRINT_FLASHSTRING("old&new sm, velocity: ");
-////V0P2BASE_DEBUG_SERIAL_PRINT(oldSmoothed);
-////V0P2BASE_DEBUG_SERIAL_PRINT('&');
-////V0P2BASE_DEBUG_SERIAL_PRINT(newSmoothed);
-////V0P2BASE_DEBUG_SERIAL_PRINT(',');
-////V0P2BASE_DEBUG_SERIAL_PRINT(velocity);
-////V0P2BASE_DEBUG_SERIAL_PRINTLN();
-//  return(velocity);
-//  }
-
 
 // Construct an instance, with sensible defaults, and current (room) temperature from the input state.
 // Does its initialisation with room temperature immediately.
