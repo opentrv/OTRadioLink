@@ -367,7 +367,8 @@ OTV0P2BASE::serialPrintlnAndFlush();
 
       // If the current estimated position exactly matches the target
       // then there is nothing to do.
-      if(currentPC == targetPC) { break; }
+      if(currentPC == targetPC)
+          { perState.valveNormal.endStopHitCount = 0; break; }
 
       if(do_valveNormal_prop()) { return; }
 
@@ -388,7 +389,8 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
       const uint8_t binaryTarget = binaryOpen ? 100 : 0;
 
       // If already at correct end-stop then nothing to do.
-      if(binaryTarget == currentPC) { break; }
+      if(binaryTarget == currentPC)
+          { perState.valveNormal.endStopHitCount = 0; break; }
 
       // Refuse to close the valve while supply voltage low
       // to try to avoid browning out and resetting
@@ -643,7 +645,12 @@ bool CurrentSenseValveMotorDirect::do_valveNormal_prop()
     // Carefully avoid overflow/underflow in comparison.
     if(((targetPC >= currentPC) && (targetPC <= currentPC + eps)) ||
        ((currentPC >= targetPC) && (currentPC <= targetPC + eps)))
-        { return(true); } // Leave poll().
+        {
+        // Close enough to target, so resting and can reset end stop hit count!
+        perState.valveNormal.endStopHitCount = 0;
+        // Leave poll().
+        return(true);
+        }
 
     // If the end-stop is encountered earlier than expected
     // then recalibration may be needed if far too early.
