@@ -1059,7 +1059,8 @@ const bool verbose = false;
 
 // Gets to CHECK_PIN state and then starts spewing random characters..
 // Allows for checking getResponse can deal with invalid input, and tests the RESET state.
-// NOTE! This is a 'whitebox test' that discards all 'A's passed into the OTSIM900Link driver.
+// NOTE! This is a 'whitebox test' that discards all 'R's passed into the OTSIM900Link driver.
+// The state machine reaches 'CHECK_PIN' as the minimum state where we start retrying things, where it checks for the 'R' in 'READY'.
 class GarbageSimulator final : public Stream
   {
   public:
@@ -1104,7 +1105,7 @@ class GarbageSimulator final : public Stream
                 if(verbose) { fprintf(stderr, "command received: %s\n", command.c_str()); }
                 if("AT" == command) { // Relevant states: GET_STATE, RETRY_GET_STATE, START_UP
                     if(sim900LinkState == OTSIM900Link::INIT) {
-                        reply = "vfd";  // garbage to force into RETRY_GET_STATE
+                        reply = "vfd";  // garbage to force into S
                         sim900LinkState = OTSIM900Link::GET_STATE;
                     } else reply = "AT\r\n\r\nOK\r\n";
                 } else {
@@ -1112,9 +1113,13 @@ class GarbageSimulator final : public Stream
                     reply.resize(500);
                     for(size_t i = 0; i < 500; i++) {
                         char temp;
-                        while ('A' == temp) temp = char(random() & 0xff);
+                        do {
+                            temp = char(random() & 0xff);
+                        } while ('R' == temp);
                         reply[i] = temp;
+//                        fprintf(stderr, "%x ", (uint8_t)temp);
                     }
+//                    fprintf(stderr, "\n");
                 }
             } else if(collectingCommand) { command += c; }
         }
@@ -1167,6 +1172,10 @@ TEST(OTSIM900Link,GarbageTestSimulator)
 
     // Try to hang just by calling poll() repeatedly.
     for(int i = 0; i < 100; ++i) { incrementVTOneCycle(); statesChecked[l0._getState()] = true; l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
+//    for(auto it = statesChecked.begin(); it != statesChecked.end(); ++it) {
+//        fprintf(stderr, "%d, ", (int)*it);
+//    }
+    fprintf(stderr, "\n");
     EXPECT_TRUE(B2::GarbageSimulator::haveSeenCommandStart) << "should see some attempt to communicate with SIM900";
     EXPECT_TRUE(statesChecked[OTSIM900Link::INIT]) << "state GET_STATE not seen.";  // Check what states have been seen.
     EXPECT_TRUE(statesChecked[OTSIM900Link::GET_STATE]) << "state RETRY_GET_STATE not seen.";  // Check what states have been seen.
