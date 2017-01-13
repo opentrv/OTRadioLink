@@ -30,7 +30,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 #include <OTRadValve.h>
 #include "OTV0P2BASE_SensorAmbientLightOccupancy.h"
 
-
+// Set true to give basic per-sample stats results.
+static constexpr bool sampleStats = false;
 // Set true for verbose reporting.
 static constexpr bool verbose = false;
 // Lots of extra detail, generally should not be needed.
@@ -701,11 +702,14 @@ static void checkPerformanceAcceptableAgainstData(
                 24 * flavourStats.setbackAtLeastDEFAULT.getFractionFlavoured(),
                 potentialSavingsFromSetbackDEFAULT);
             }
-        fprintf(stderr, " Potential savings from setbacks %s: %.1f%%\n",
-            (sensitive ? "(sensitive)" : ""),
-            100 * potentialSavingsFromSetbackAtLeastDEFAULT);
-        fprintf(stderr, "  Correct anticipatory reduced setbacks %.1f%%\n",
-            100 * (1 - flavourStats.occupancyAnticipationFailureNotAfterSleep.getFractionFlavoured()));
+        if(sampleStats)
+            {
+            fprintf(stderr, " Potential savings from setbacks %s: %.1f%%\n",
+                (sensitive ? "(sensitive)" : ""),
+                100 * potentialSavingsFromSetbackAtLeastDEFAULT);
+            fprintf(stderr, "  Correct anticipatory reduced setbacks %.1f%%\n",
+                100 * (1 - flavourStats.occupancyAnticipationFailureNotAfterSleep.getFractionFlavoured()));
+            }
         }
     }
 
