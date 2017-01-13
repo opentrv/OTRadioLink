@@ -1146,7 +1146,7 @@ TEST(OTSIM900Link,GarbageTestSimulator)
     SIM900Emu::sim900.reset();
 
     // Vector of bools containing states to check. This covers all states expected in normal use. RESET and PANIC are not covered.
-    std::vector<bool> statesChecked(OTSIM900Link::RESET, false);
+    std::vector<bool> statesChecked(OTSIM900Link::PANIC, false);
     // Message to send.
 
     const char SIM900_PIN[] = "1111";
@@ -1164,6 +1164,11 @@ TEST(OTSIM900Link,GarbageTestSimulator)
 
     // Try to hang just by calling poll() repeatedly.
     for(int i = 0; i < 100; ++i) { incrementVTOneCycle(); statesChecked[l0._getState()] = true; l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
+    for (auto it = statesChecked.begin(); it != statesChecked.end(); ++it) {
+        int temp = (int)*it;
+        fprintf(stderr, "%d, ", temp);
+    }
+    fprintf(stderr, "\n");
     EXPECT_TRUE(B2::GarbageSimulator::haveSeenCommandStart) << "should see some attempt to communicate with SIM900";
     EXPECT_TRUE(statesChecked[OTSIM900Link::INIT]) << "state GET_STATE not seen.";  // Check what states have been seen.
     EXPECT_TRUE(statesChecked[OTSIM900Link::GET_STATE]) << "state RETRY_GET_STATE not seen.";  // Check what states have been seen.
