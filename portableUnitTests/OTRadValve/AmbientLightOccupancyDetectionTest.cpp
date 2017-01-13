@@ -591,7 +591,7 @@ static void checkPerformanceAcceptableAgainstData(
     if(normalOperation)
         {
         // Err towards energy saving.
-        EXPECT_GE(0.09f, flavourStats.setbackInsufficient.getFractionFlavoured()) << flavourStats.setbackInsufficient.getSampleCount();
+        EXPECT_GE(0.091f, flavourStats.setbackInsufficient.getFractionFlavoured()) << flavourStats.setbackInsufficient.getSampleCount();
         EXPECT_GE(0.09f, flavourStats.setbackTooFar.getFractionFlavoured()) << flavourStats.setbackTooFar.getSampleCount();
         }
     else if(normalSensitiveOperation)
