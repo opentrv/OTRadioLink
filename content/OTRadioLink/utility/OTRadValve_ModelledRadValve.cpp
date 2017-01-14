@@ -523,7 +523,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
             // to reduce response time / latency
             // since there is relatively low (but not zero) probability
             // of being able to take advantage of an already-running boiler.
-            // Also, a valve just trickle-open on the flow end
+            // Also, a valve just trickle-open on the flow end of a radiator
             // may make itself warm but not the rest of the room,
             // so this attempts to get enough hysteresis on the way up
             // to avoid that if well below target.
