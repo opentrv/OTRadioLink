@@ -523,11 +523,20 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
             // to reduce response time / latency
             // since there is relatively low (but not zero) probability
             // of being able to take advantage of an already-running boiler.
+            // Also, a valve just trickle-open on the flow end
+            // may make itself warm but not the rest of the room,
+            // so this attempts to get enough hysteresis on the way up
+            // to avoid that when there is no wide deadband.
+            // TODO: also open fast(er) or further
+            //     if temperature has been yo-yo-ing over (say) last hour
+            //     possibly because of ineffective heating by flow-end valve.
             if(shouldOpen)
                 {
                 return(OTV0P2BASE::fnconstrain(
                     uint8_t(valvePCOpen + slew),
-                    uint8_t(0),
+                    uint8_t((wellBelowTarget && !wide) ?
+                        OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN :
+                        0),
                     inputState.maxPCOpen));
                 }
             // Immediately get below call-for-heat threshold on way down
