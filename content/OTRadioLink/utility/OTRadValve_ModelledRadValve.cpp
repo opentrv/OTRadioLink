@@ -507,7 +507,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         const bool shouldOpen = belowTarget && (rise <= 0);
         const bool shouldClose = !belowTarget && (rise >= 0);
 
-        // Avoid fast movements if being glacial or in central sweet-spot.
+        // Avoid fast movements if being glacial or in/near central sweet-spot.
         if(!beGlacial && (slew > 0))
             {
             // When the temperature error is significant
@@ -526,15 +526,15 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
             // Also, a valve just trickle-open on the flow end
             // may make itself warm but not the rest of the room,
             // so this attempts to get enough hysteresis on the way up
-            // to avoid that when there is no wide deadband.
-            // TODO: also open fast(er) or further
+            // to avoid that if well below target.
+            // TODO: also open faster or further
             //     if temperature has been yo-yo-ing over (say) last hour
             //     possibly because of ineffective heating by flow-end valve.
             if(shouldOpen)
                 {
                 return(OTV0P2BASE::fnconstrain(
                     uint8_t(valvePCOpen + slew),
-                    uint8_t((wellBelowTarget && !wide) ?
+                    uint8_t(wellBelowTarget ?
                         OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN :
                         0),
                     inputState.maxPCOpen));
