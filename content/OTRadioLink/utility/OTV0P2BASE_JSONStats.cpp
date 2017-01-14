@@ -348,12 +348,18 @@ bool SimpleStatsRotationBase::changedValue() const
 //
 //   * buf  is the byte/char buffer to write the JSON to; never NULL
 //   * bufSize is the capacity of the buffer starting at buf in bytes;
-//       should be two (2) greater than the largest JSON output to be generated
-//       to allow for a trailing null and one extra byte/char to ensure that the message is not over-large
-//   * sensitivity  CURRENTLY IGNORED threshold below which (sensitive) stats will not be included; 0 means include everything
-//   * maximise  if true attempt to maximise the number of stats squeezed into each frame,
-//       potentially at the cost of significant CPU time
-//   * suppressClearChanged  if true then 'changed' flag for included fields is not cleared by this
+//       must be 2 greater than the largest JSON output to be generated
+//       to allow for a trailing null and one extra byte/char
+//       to ensure that the message is not over-large
+//   * sensitivity  CURRENTLY IGNORED threshold below which
+//     (sensitive) stats will not be included; 0 means include everything
+//   * maximise  if true then attempt to maximise the number of stats
+//       squeezed into each generated frame,
+//       potentially at the cost of significant CPU time and bandwidth,
+//       though where frame is padded anyway, eg before encryption,
+//       overall bandwidth efficiency may be increased
+//   * suppressClearChanged  if true then 'changed' flag for included fields
+//       is not cleared by this,
 //       allowing them to continue to be treated as higher priority
 uint8_t SimpleStatsRotationBase::writeJSON(uint8_t *const buf, const uint8_t bufSize, const uint8_t /*sensitivity*/,
                                            const bool maximise, const bool suppressClearChanged)
@@ -417,12 +423,11 @@ uint8_t SimpleStatsRotationBase::writeJSON(uint8_t *const buf, const uint8_t buf
   if(nStats != 0)
     {
     // If true then try to insert one changed item first.
-    // On alternate runs AND where there is at least one changed item pending.
-    const bool doChangedFirst = (0 == (c.count & 1)) && changedValue();
+    // On 3/4 runs AND where there is at least one changed item pending.
+    const bool doChangedFirst = (0 != (c.count & 3)) && changedValue();
 
     // Deal with changed stats which are important to send quickly.
     // Only do this on a portion of runs to avoiding starving 'normal' stats.
-    // This happens on even-numbered runs (eg including the first, typically).
     // TX at most ONE high-priority item first in the buffer this way.
     // Don't reset the 'lastTXed' value for any such changed item sent
     // so as try try to let the 'normal' stats rotation proceed undisturbed.
@@ -473,8 +478,9 @@ uint8_t SimpleStatsRotationBase::writeJSON(uint8_t *const buf, const uint8_t buf
 //        if(sensitivity > s.descriptor.sensitivity) { continue; }
         // If low priority and unchanged then skip TX some of the time,
         // when this value has not changed, and doing changed values first,
-        // so reduced space is available.
-        if(s.descriptor.lowPriority && !s.flags.changed && doChangedFirst) { continue; }
+        // thus reduced space is available in the frame.
+        if(s.descriptor.lowPriority && !s.flags.changed && doChangedFirst)
+            { continue; }
         // Found suitable stat to include in output.
         // Add to JSON output.
         print(bp, s, commaPending);
