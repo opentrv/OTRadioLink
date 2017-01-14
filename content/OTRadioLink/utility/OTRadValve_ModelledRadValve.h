@@ -279,13 +279,21 @@ struct ModelledRadValveState final
   // but is coerced to range after each change.
   static constexpr uint16_t MAX_CUMULATIVE_MOVEMENT_VALUE = 0x3ff;
   //
+  // Cumulative valve movement %; rolls at 1024 in range [0,1023].
+  // Most of the time JSON value is 3 digits or fewer, conserving bandwidth.
+  // It would often be appropriate to mark this as low priority
+  // since it can be approximated from observed valve positions over time.
+  // This is computed from actual underlying valve movements if possible,
+  // rather than just the modelled valve movements.
+  //
   // The (masked) value doesn't wrap round to a negative value
   // and can safely be sent/received in JSON by hosts with 16-bit signed ints,
   // and the maximum number of decimal digits used in its representation is 4
   // but is almost always 3 (or fewer)
   // and used efficiently (~80% use of the top digit).
   //
-  // Daily allowance (in terms of battery/energy use) is assumed to be ~400% (DHD20141230),
+  // Daily allowance (in terms of battery/energy use)
+  // is assumed to be ~400% (DHD20141230),
   // so this should hold much more than that to avoid ambiguity
   // from missed/infrequent readings,
   // especially given full slew (+100%) can sometimes happen in 1 minute/tick.
@@ -1060,7 +1068,9 @@ class ModelledRadValve final : public AbstractRadValve
     // Get cumulative valve movement %; rolls at 1024 in range [0,1023].
     // Most of the time JSON value is 3 digits or fewer, conserving bandwidth.
     // It would often be appropriate to mark this as low priority
-    // since it can be computed from valve positions.
+    // since it can be approximated from observed valve positions over time.
+    // This is computed from actual underlying valve movements if possible,
+    // rather than just the modelled valve movements.
     uint16_t getCumulativeMovementPC() { return(retainedState.cumulativeMovementPC); }
 
     // DEPRECATED IN FAVOUR OF cumulativeMovementSubSensor.tag().
