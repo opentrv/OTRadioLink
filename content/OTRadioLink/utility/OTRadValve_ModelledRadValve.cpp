@@ -418,7 +418,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
                 // Verify that there is theoretically time for
                 // a response from the boiler before hitting 100% open.
                 static_assert((100-minOpen) / (1+baseSlew) >= BOILER_RESPONSE_TIME_FROM_OFF,
-                    "should be time notionally to get a response from boiler before hitting 100% open");
+                    "should be time notionally to get a response from boiler before valve reaches 100% open");
                 return(OTV0P2BASE::fnconstrain(
                     uint8_t(valvePCOpen + slewF + baseSlew),
                     uint8_t(minOpen),
@@ -509,7 +509,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
                 // Verify that there is theoretically time for
                 // a response from the boiler before hitting 100% open.
                 static_assert((maxOpen / maxSlew) > DEFAULT_MAX_RUN_ON_TIME_M,
-                    "should be time notionally for boiler to stop before hitting 0% open");
+                    "should be time notionally for boiler to stop before valve reaches 0% open");
                 // Within bounds attempt to fix faster when further off target
                 // but not so fast as to force a full close unnecessarily.
                 // Not calling for heat, so may be able to dawdle.
