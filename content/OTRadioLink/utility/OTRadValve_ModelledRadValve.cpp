@@ -430,8 +430,9 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         // this is about giving rapid confidence-building feedback to the user.
         // Note that a manual adjustment of the temperature set-point
         // is very likely to force this unit out of the sweet-spot.
-        // Ignores 'glacial'.
-        if(inputState.fastResponseRequired && (slewF > 0))
+        // Glacial mode may also be set for valves with unusually small ranges,
+        // as a guard to stop large swings here.
+        if(!beGlacial && inputState.fastResponseRequired && (slewF > 0))
             {
             if(belowTarget)
                 {
@@ -508,6 +509,8 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         const bool shouldClose = !belowTarget && (rise >= 0);
 
         // Avoid fast movements if being glacial or in/near central sweet-spot.
+        // Glacial mode may also be set for valves with unusually small ranges,
+        // as a guard to stop large swings here.
         if(!beGlacial && (slew > 0))
             {
             // When the temperature error is significant

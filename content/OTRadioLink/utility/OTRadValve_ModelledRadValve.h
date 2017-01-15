@@ -88,7 +88,8 @@ struct ModelledRadValveInputState final
   uint8_t maxTargetTempC = 0;
 
   // Min % valve at which is considered to be actually open (allow the room to heat) [1,100].
-  uint8_t minPCReallyOpen = OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN;
+  // Placeholder for now.
+  static constexpr uint8_t minPCReallyOpen = 1; // OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN;
   // Max % valve is allowed to be open [1,100].
   uint8_t maxPCOpen = 100;
 
@@ -653,18 +654,21 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
     virtual void setupInputState(ModelledRadValveInputState &inputState,
         const bool /*isFiltering*/,
         const uint8_t newTarget,
-        const uint8_t minPCOpen, const uint8_t maxPCOpen,
+        const uint8_t /*minPCOpen*/, const uint8_t maxPCOpen,
         const bool glacial) const override
         {
         // Set up state for computeRequiredTRVPercentOpen().
         inputState.targetTempC = newTarget;
         const uint8_t wt = tempControl->getWARMTargetC();
         inputState.maxTargetTempC = wt;
-        inputState.minPCReallyOpen = minPCOpen;
+//        inputState.minPCReallyOpen = minPCOpen;
         inputState.maxPCOpen = maxPCOpen;
+        // Force glacial if unusually low maxPCOpen
+        // that would interact badly with other aspects of the algorithm.
         // Note: may also wish to force glacial if room very dark
         // to minimise noise.  (TODO-1027)
-        inputState.glacial = glacial;
+        inputState.glacial = glacial ||
+            (maxPCOpen < DEFAULT_VALVE_PC_SAFER_OPEN);
         inputState.inBakeMode = valveMode->inBakeMode();
         inputState.hasEcoBias = tempControl->hasEcoBias();
         // Request a fast response from the valve
@@ -850,11 +854,11 @@ class ModelledRadValveComputeTargetTemp2016 final : public ModelledRadValveCompu
     // This should not second-guess computeTargetTemp() in terms of setbacks, etc.
     virtual void setupInputState(ModelledRadValveInputState &inputState,
         const bool isFiltering,
-        const uint8_t newTarget, const uint8_t minPCOpen, const uint8_t maxPCOpen, const bool glacial) const override
+        const uint8_t newTarget, const uint8_t /*minPCOpen*/, const uint8_t maxPCOpen, const bool glacial) const override
         {
         // Set up state for computeRequiredTRVPercentOpen().
         inputState.targetTempC = newTarget;
-        inputState.minPCReallyOpen = minPCOpen;
+//        inputState.minPCReallyOpen = minPCOpen;
         inputState.maxPCOpen = maxPCOpen;
         inputState.glacial = glacial; // Note: may also wish to force glacial if room very dark to minimise noise (TODO-1027).
         inputState.inBakeMode = valveMode->inBakeMode();
@@ -912,6 +916,7 @@ class ModelledRadValve final : public AbstractRadValve
     uint8_t setbackC = 0;
 
     // True if in glacial mode.
+    // May need to be set true if maxPCOpen unusually low.
     bool glacial;
 
     // Maximum percentage valve is allowed to be open [0,100].
