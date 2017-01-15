@@ -146,13 +146,13 @@ struct ModelledRadValveState final
   // Proportional range wide enough to cope with all-in-one TRV overshoot.
   // Note that with the sensor near the heater an apparent overshoot
   // has to be tolerated to actually deliver heat to the room.
-  // Within this range the device is always seek for a zero error;
+  // Within this range the device is always seeking for zero temperature error;
   // this is not a deadband.
   //
   // Primarily exposed to allow for unit testing; subject to change.
   // With 1/16C precision, a continuous drift in either direction
   // implies a delta T >= 60/16C ~ 4C per hour.
-  static constexpr uint8_t _proportionalRange = 7;
+  static constexpr uint8_t _proportionalRange = 8;
 
   // Max jump between adjacent readings before forcing filtering; strictly +ve.
   // Too small a value may cap room rate rise to this per minute.

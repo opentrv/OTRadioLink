@@ -287,7 +287,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         (adjustedTempC < OTV0P2BASE::fnmax(int(tTC) - int(_proportionalRange),
                                            int(OTRadValve::MIN_TARGET_C))))
         {
-        // Don't open if recently turned down, and not in BAKE mode.
+        // Don't open if recently turned down, unless in BAKE mode.
         if(dontTurnup() && !inputState.inBakeMode) { return(valvePCOpen); }
         if(!MINIMAL_BINARY_IMPL)
             {
@@ -370,7 +370,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         // The threshold is most of the way to the outer/limit boundary,
         // but far enough away to react in time to avoid reaching the limit.
         const uint8_t wOTC16highSide = isFiltering ?
-            (_proportionalRange * 12) : halfNormalBand;
+            (_proportionalRange * 10) : halfNormalBand;
         // Same calc for herrorC16 as errorC16 but possibly not set back.
         // This allows the temperature to fall passively when set back.
         const int_fast16_t herrorC16 =
@@ -505,10 +505,11 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
                 {
                 // Immediately stop calling for heat.
                 static constexpr uint8_t maxOpen = DEFAULT_VALVE_PC_SAFER_OPEN-1;
-                static constexpr uint8_t maxSlew = TRV_SLEW_PC_PER_MIN;
+                // Aiming for > 15m which should let the rad cool before valve closes.
+                static constexpr uint8_t maxSlew = 3;
                 // Verify that there is theoretically time for
                 // a response from the boiler before hitting 100% open.
-                static_assert((maxOpen / maxSlew) > DEFAULT_MAX_RUN_ON_TIME_M,
+                static_assert((maxOpen / maxSlew) > 2*DEFAULT_MAX_RUN_ON_TIME_M,
                     "should be time notionally for boiler to stop before valve reaches 0% open");
                 // Within bounds attempt to fix faster when further off target
                 // but not so fast as to force a full close unnecessarily.
