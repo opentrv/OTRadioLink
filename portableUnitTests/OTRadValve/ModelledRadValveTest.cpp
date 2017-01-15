@@ -553,7 +553,7 @@ TEST(ModelledRadValve,ModelledRadValveComputeTargetTempBasic)
 // and expects quick response from the valve and the remote boiler
 // (which may require >= DEFAULT_VALVE_PC_MODERATELY_OPEN to start).
 // This relies on no widened deadband being set.
-// It may also require filtering (from gyrating temperatures) not to have been invoked.
+// It may also require filtering (from gyrating temperatures) not to be on.
 //
 // Adapted 2016/10/16 from test_VALVEMODEL.ino testMRVSOpenFastFromCold593().
 TEST(ModelledRadValve,MRVSOpenFastFromCold593)
@@ -564,21 +564,28 @@ TEST(ModelledRadValve,MRVSOpenFastFromCold593)
     // then after one tick
     // that the valve is open to at least DEFAULT_VALVE_PC_MODERATELY_OPEN.
     // Starting temp >5C below target.
-    OTRadValve::ModelledRadValveInputState is0(10 << 4);
-    is0.targetTempC = 18; // Modest target temperature.
-    OTRadValve::ModelledRadValveState rs0;
-    is0.widenDeadband = false;
-    volatile uint8_t valvePCOpen = OTV0P2BASE::randRNG8() % OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN;
-    // Futz some input parameters that should not matter.
-    rs0.isFiltering = OTV0P2BASE::randRNG8NextBoolean();
-    is0.hasEcoBias = OTV0P2BASE::randRNG8NextBoolean();
-    // Run the algorithm one tick.
-    rs0.tick(valvePCOpen, is0, NULL);
-    const uint8_t newValvePos = valvePCOpen;
-    EXPECT_GT(newValvePos, OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN);
-    EXPECT_LE(newValvePos, 100);
-//    EXPECT_TRUE(rs0.valveMoved);
-    if(rs0.eventsSupported) { EXPECT_EQ(OTRadValve::ModelledRadValveState::MRVE_OPENFAST, rs0.getLastEvent()); }
+    // Should work with or without explicitly requesting as fast response.
+    for(int fr = 0; fr <= 1; ++fr)
+        {
+        const bool fastResponse = (0 != fr);
+SCOPED_TRACE(testing::Message() << "fastResponse " << fastResponse);
+        OTRadValve::ModelledRadValveInputState is0(10 << 4);
+        is0.targetTempC = 18; // Modest target temperature.
+        OTRadValve::ModelledRadValveState rs0;
+        is0.fastResponseRequired = fastResponse;
+        is0.widenDeadband = false;
+        volatile uint8_t valvePCOpen = OTV0P2BASE::randRNG8() % OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN;
+        // Futz some input parameters that should not matter.
+        rs0.isFiltering = OTV0P2BASE::randRNG8NextBoolean();
+        is0.hasEcoBias = OTV0P2BASE::randRNG8NextBoolean();
+        // Run the algorithm one tick.
+        rs0.tick(valvePCOpen, is0, NULL);
+        const uint8_t newValvePos = valvePCOpen;
+        EXPECT_GE(newValvePos, OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN);
+        EXPECT_LE(newValvePos, 100);
+    //    EXPECT_TRUE(rs0.valveMoved);
+        if(rs0.eventsSupported) { EXPECT_EQ(OTRadValve::ModelledRadValveState::MRVE_OPENFAST, rs0.getLastEvent()); }
+        }
 }
 
 // Test normal speed to open/close when already reasonably close to target.
