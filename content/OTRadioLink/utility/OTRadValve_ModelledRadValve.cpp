@@ -387,48 +387,6 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         const uint8_t slewF = OTV0P2BASE::fnmin(TRV_SLEW_PC_PER_MIN_FAST,
             uint8_t((errorC16 < 0) ? ((-errorC16) >> errShift) : (errorC16 >> errShift)));
         const bool inCentralSweetSpot = (0 == slewF);
-        // Slower slew for use when not responding to human input, eg in dark.
-        // Also slower when filtering to slow reaction to temperature changes.
-        //
-        // worf/!
-        // |err|   slewF   slew
-        // 0       0       0
-        // 8/4     1       0                        Effectively sets deadband.
-        // 16/8    2       1                        Sets secondary deadband.
-        // 24/12   3       1
-        // 32/16   4       2                        2C/1C error.
-        // 40/20   5       2
-        // 48/24   6       3                        3C/1.5C error.
-        // 56/28   7       3
-        // 64/32   8       4                        4C/2C error.
-        const uint8_t slew = (slewF >> 1);
-//        // Reduce still further if not well off target;
-//        // not zero if the slewF is not zero
-//        // to avoid widening the deadband as a side-effect.
-//        //
-//        // wOT/!OT         wOT     close to target  Comment
-//        // |err|   slewF   slew    slew
-//        // 0       0       0       0
-//        // 8/4     1       0       0                Effectively sets deadband.
-//        // 16/8    2       1       1                Sets secondary deadband.
-//        // 24/12   3       1       1
-//        // 32/16   4       2       1                2C/1C error.
-//        // 40/20   5       2       1
-//        // 48/24   6       3       2                3C/1.5C error.
-//        // 56/28   7       3       2
-//        // 64/32   8       4       2                4C/2C error.
-//        //         9       4       2
-//        //         10      5       3                5C/2.5C error.
-//        // ...
-//        const uint8_t slew = wOT ?
-//            (slewF >> 1) : ((slewF+2) >> 2);
-
-        // True if the current valve open %age is also a boiler call for heat.
-        const bool callingForHeat =
-            (valvePCOpen >= OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN);
-
-        // Check direction of latest raw temperature movement, if any.
-        const int_fast16_t rise = getRawDelta();
 
         // Move quickly when requested, eg responding to manual control use.
         //
@@ -481,6 +439,13 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
                 }
             }
 
+        // True if the current valve open %age is also a boiler call for heat.
+        const bool callingForHeat =
+            (valvePCOpen >= OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN);
+
+        // Check direction of latest raw temperature movement, if any.
+        const int_fast16_t rise = getRawDelta();
+
         // Avoid movement to save valve energy and noise if ALL of:
         //   * not calling for heat (which also saves boiler energy and noise)
         //   * in sweet-spot OR not moving in the wrong direction.
@@ -522,14 +487,6 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
                 }
             }
 
-        // Compute general need to open or close valve.
-        // Both cannot be true at once.
-        // Both can be false at once only when the temperature is changing,
-        // which prevents unwelcome indefinite hovering by default.  (TODO-1096)
-        // Implies delta T >= 60/16C ~ 4C per hour to avoid moving.
-        const bool shouldOpen = belowTarget && (rise <= 0);
-        const bool shouldClose = !belowTarget && (rise >= 0);
-
         // Avoid fast movements if being glacial or in/near central sweet-spot.
         //
         // Glacial mode must be set for valves with unusually small ranges,
@@ -543,18 +500,33 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
             //
             // Below this any residual error can be dealt with glacially.
             //
-            // The 'well below' case is dealt with alongside 'fast response'.
+            // The 'well below' case is dealt elsewhere.
             if(wellAboveTarget)
                 {
-                // Immediately get below call-for-heat threshold on way down
-                // iff wellAboveTarget (below strong cfh threshold otherwise),
-                // then move slowly enough to potentially avoid a full close.
+                // Immediately stop calling for heat.
+                static constexpr uint8_t maxOpen = DEFAULT_VALVE_PC_SAFER_OPEN-1;
+                static constexpr uint8_t maxSlew = TRV_SLEW_PC_PER_MIN;
+                // Verify that there is theoretically time for
+                // a response from the boiler before hitting 100% open.
+                static_assert((maxOpen / maxSlew) > DEFAULT_MAX_RUN_ON_TIME_M,
+                    "should be time notionally for boiler to stop before hitting 0% open");
+                // Within bounds attempt to fix faster when further off target
+                // but not so fast as to force a full close unnecessarily.
+                // Not calling for heat, so may be able to dawdle.
                 return(uint8_t(OTV0P2BASE::fnconstrain(
-                    int(valvePCOpen) - int(slew),
+                    int(valvePCOpen) - int(OTV0P2BASE::fnmin(slewF, maxSlew)),
                     0,
-                    int(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1))));
+                    int(maxOpen))));
                 }
             }
+
+        // Compute general need to open or close valve.
+        // Both cannot be true at once.
+        // Both can be false at once only when the temperature is changing,
+        // which prevents unwelcome indefinite hovering by default.  (TODO-1096)
+        // Implies delta T >= 60/16C ~ 4C per hour to avoid moving.
+        const bool shouldOpen = belowTarget && (rise <= 0);
+        const bool shouldClose = !belowTarget && (rise >= 0);
 
         // By default, move valve glacially all the way to full open or closed.
         // Guards above ensure that these glacial movements are safe here.
