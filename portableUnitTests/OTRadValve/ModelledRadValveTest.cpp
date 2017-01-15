@@ -456,7 +456,7 @@ SCOPED_TRACE(testing::Message() << "wide " << wide);
             // regardless of wide deadband setting,
             // as long as not filtering (which would push up the top end)
             // and as long as no non-setback temperature is set (likewise).
-            if((OTV0P2BASE::fnabs(offset) > 0) && !wide)
+            if(OTV0P2BASE::fnabs(offset) > 0)
                 {
                 static constexpr uint8_t maxResponseMins = 100;
                 OTRadValve::ModelledRadValveState rs3a;
@@ -470,7 +470,12 @@ SCOPED_TRACE(testing::Message() << "wide " << wide);
                 valvePCOpen = 100;
                 for(int i = maxResponseMins; --i >= 0; )
                     { rs3b.tick(valvePCOpen, is, NULL); }
-                EXPECT_NEAR((offset < 0) ? 100 : 0, valvePCOpen, 2);
+                // When very close from above,
+                // it is enough to get below the boiler call-for-heat threshold.
+                if(wide && (1 == offset))
+                    { EXPECT_GT(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, valvePCOpen); }
+                else
+                    { EXPECT_NEAR((offset < 0) ? 100 : 0, valvePCOpen, 2); }
                 continue;
                 }
             }
