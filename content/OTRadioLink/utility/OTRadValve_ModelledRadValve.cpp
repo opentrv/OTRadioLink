@@ -377,7 +377,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
             adjustedTempC16 - (int_fast16_t(higherTargetC) << 4) - centreOffsetC16;
         const bool wellAboveTarget = herrorC16 > wOTC16highSide;
         const bool wellBelowTarget = errorC16 < -wOTC16basic;
-        const bool wOT = wellAboveTarget || wellBelowTarget;
+//        const bool wOT = wellAboveTarget || wellBelowTarget;
 
         // Compute proportional slew rates to fix temperature errors.
         // Note that non-rounded shifts effectively set the deadband also.
@@ -387,42 +387,58 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         const uint8_t slewF = OTV0P2BASE::fnmin(TRV_SLEW_PC_PER_MIN_FAST,
             uint8_t((errorC16 < 0) ? ((-errorC16) >> errShift) : (errorC16 >> errShift)));
         const bool inCentralSweetSpot = (0 == slewF);
-//        // Slower slew for use when not responding to human input, eg in dark.
-//        //
-//        // worf/!
-//        // |err|   slewF   slew
-//        // 0       0       0
-//        // 8/4     1       0                        Effectively sets deadband.
-//        // 16/8    2       1                        Sets secondary deadband.
-//        // 24/12   3       1
-//        // 32/16   4       2                        2C/1C error.
-//        // 40/20   5       2
-//        // 48/24   6       3                        3C/1.5C error.
-//        // 56/28   7       3
-//        // 64/32   8       4                        4C/2C error.
-//        const uint8_t slew = (slewF >> 1);
-        // Reduce still further if not well off target;
-        // not zero if the slewF is not zero
-        // to avoid widening the deadband as a side-effect.
+        // Slower slew for use when not responding to human input, eg in dark.
+        // Also slower when filtering to slow reaction to temperature changes.
         //
-        // wOT/!OT         wOT     close to target  Comment
-        // |err|   slewF   slew    slew
-        // 0       0       0       0
-        // 8/4     1       1       0                Effectively sets deadband.
-        // 16/8    2       1       1
-        // 24/12   3       2       1
-        // 32/16   4       2       1                2C/1C error.
-        // 40/20   5       3       1
-        // 48/24   6       3       2                3C/1.5C error.
-        // 56/28   7       4       2
-        // 64/32   8       4       2                4C/2C error.
-        //         9       5       2
-        //         10      5       3
-        // ...
-        const uint8_t slew = wOT ?
-            ((slewF+1) >> 1) : ((slewF+2) >> 2);
+        // worf/!
+        // |err|   slewF   slew
+        // 0       0       0
+        // 8/4     1       0                        Effectively sets deadband.
+        // 16/8    2       1                        Sets secondary deadband.
+        // 24/12   3       1
+        // 32/16   4       2                        2C/1C error.
+        // 40/20   5       2
+        // 48/24   6       3                        3C/1.5C error.
+        // 56/28   7       3
+        // 64/32   8       4                        4C/2C error.
+        const uint8_t slew = (slewF >> 1);
+//        // Reduce still further if not well off target;
+//        // not zero if the slewF is not zero
+//        // to avoid widening the deadband as a side-effect.
+//        //
+//        // wOT/!OT         wOT     close to target  Comment
+//        // |err|   slewF   slew    slew
+//        // 0       0       0       0
+//        // 8/4     1       0       0                Effectively sets deadband.
+//        // 16/8    2       1       1                Sets secondary deadband.
+//        // 24/12   3       1       1
+//        // 32/16   4       2       1                2C/1C error.
+//        // 40/20   5       2       1
+//        // 48/24   6       3       2                3C/1.5C error.
+//        // 56/28   7       3       2
+//        // 64/32   8       4       2                4C/2C error.
+//        //         9       4       2
+//        //         10      5       3                5C/2.5C error.
+//        // ...
+//        const uint8_t slew = wOT ?
+//            (slewF >> 1) : ((slewF+2) >> 2);
+
+        // True if the current valve open %age is also a boiler call for heat.
+        const bool callingForHeat =
+            (valvePCOpen >= OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN);
+
+        // Check direction of latest raw temperature movement, if any.
+        const int_fast16_t rise = getRawDelta();
 
         // Move quickly when requested, eg responding to manual control use.
+        //
+        // Also used when well below target to quickly open value up
+        // and avoid getting caught with a flow too small to be useful,
+        // eg just warming the all-in-one valve but not the room!
+        // This ignores any current temperature fluctuations.
+        // This asymmetry is needed because some valves
+        // may not open significantly until near 100%.
+        //
         // Try to get to right side of call-for-heat threshold in first tick
         // if not in central sweet-spot already  (TODO-1099)
         // to have boiler respond appropriately ASAP also.
@@ -430,15 +446,24 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         // this is about giving rapid confidence-building feedback to the user.
         // Note that a manual adjustment of the temperature set-point
         // is very likely to force this unit out of the sweet-spot.
-        // Glacial mode may also be set for valves with unusually small ranges,
-        // as a guard to stop large swings here.
-        if(!beGlacial && inputState.fastResponseRequired && (slewF > 0))
+        //
+        // Glacial mode must be set for valves with unusually small ranges,
+        // as a guard to avoid large swings here.
+        if(!beGlacial &&
+           (inputState.fastResponseRequired || wellBelowTarget) &&
+           (slewF > 0))
             {
             if(belowTarget)
                 {
+                static constexpr uint8_t minOpen = DEFAULT_VALVE_PC_MODERATELY_OPEN;
+                static constexpr uint8_t baseSlew = TRV_SLEW_PC_PER_MIN;
+                // Verify that there is theoretically time for
+                // a response from the boiler before hitting 100% open.
+                static_assert((100-minOpen) / (1+baseSlew) >= BOILER_RESPONSE_TIME_FROM_OFF,
+                    "should be time notionally to get a response from boiler before hitting 100% open");
                 return(OTV0P2BASE::fnconstrain(
-                    uint8_t(valvePCOpen + slewF),
-                    OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN,
+                    uint8_t(valvePCOpen + slewF + baseSlew),
+                    uint8_t(minOpen),
                     inputState.maxPCOpen));
                 }
             else
@@ -456,14 +481,11 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
                 }
             }
 
-        // Check direction of latest raw temperature movement, if any.
-        const int_fast16_t rise = getRawDelta();
-
         // Avoid movement to save valve energy and noise if ALL of:
         //   * not calling for heat (which also saves boiler energy and noise)
         //   * in sweet-spot OR not moving in the wrong direction.
         //   * not very far away from target
-        if(valvePCOpen < OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN)
+        if(!callingForHeat)
             {
             if(inCentralSweetSpot) { return(valvePCOpen); }
             else
@@ -509,57 +531,34 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         const bool shouldClose = !belowTarget && (rise >= 0);
 
         // Avoid fast movements if being glacial or in/near central sweet-spot.
-        // Glacial mode may also be set for valves with unusually small ranges,
-        // as a guard to stop large swings here.
-        if(!beGlacial && (slew > 0))
+        //
+        // Glacial mode must be set for valves with unusually small ranges,
+        // as a guard to avoid large swings here.
+        if(!beGlacial)
             {
-            // When the temperature error is significant
-            // then adjust valve with pace proportional to error
-            // (more slowly if wide deadband or filtering)
-            // slow enough to have some chance of fine control
-            // and of getting thermal response before end-stop is hit.
-            // In particular this does not make assumptions about
-            // fixed magic percentages for the valve itself.
-            // This does attempt to get below the boiler call-for-heat threshold
-            // quickly on the way down to save energy,
-            // and to get above it relatively fast on the way up
-            // to reduce response time / latency
-            // since there is relatively low (but not zero) probability
-            // of being able to take advantage of an already-running boiler.
-            // Note that some valves are fairly open by ~10%, some > ~50%.
-            // Also, a valve just trickle-open on the flow end of a radiator
-            // may make itself warm but not the rest of the room,
-            // so this attempts to get enough hysteresis on the way up
-            // to avoid that if well below target.
-            // TODO: also open faster or further
-            //     if temperature has been yo-yo-ing over (say) last hour
-            //     possibly because of ineffective heating by flow-end valve.
-            if(shouldOpen)
+            // This handles being significantly over temperature,
+            // attempting to force a rapid return to the target.
+            // Note that wellAboveTarget indicates potentially far too high
+            // even allowing for any setback in place.
+            //
+            // Below this any residual error can be dealt with glacially.
+            //
+            // The 'well below' case is dealt with alongside 'fast response'.
+            if(wellAboveTarget)
                 {
-                return(OTV0P2BASE::fnconstrain(
-                    uint8_t(valvePCOpen + slew),
-                    uint8_t(wellBelowTarget ?
-                        OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN :
-                        0),
-                    inputState.maxPCOpen));
-                }
-            // Immediately get below call-for-heat threshold on way down
-            // iff wellAboveTarget (below strong cfh threshold otherwise),
-            // then move slowly enough to potentially avoid a full close.
-            else if(shouldClose)
-                {
+                // Immediately get below call-for-heat threshold on way down
+                // iff wellAboveTarget (below strong cfh threshold otherwise),
+                // then move slowly enough to potentially avoid a full close.
                 return(uint8_t(OTV0P2BASE::fnconstrain(
                     int(valvePCOpen) - int(slew),
                     0,
-                    (wellAboveTarget ?
-                        int(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1) :
-                        int(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN-1)))));
+                    int(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN-1))));
                 }
             }
 
         // By default, move valve glacially all the way to full open or closed.
         // Guards above ensure that these glacial movements are safe here.
-        // Aim to (efficiently) dither about the lower central target,
+        // Aim to (efficiently) dither about the target,
         // with the aim of avoiding leaving the proportional range.
         // Unless preempted the valve does not hover mid-travel.  (TODO-1096)
         // Only move if the temperature is not moving in the right direction.

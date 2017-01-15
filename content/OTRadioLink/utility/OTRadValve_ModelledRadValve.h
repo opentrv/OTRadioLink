@@ -129,12 +129,13 @@ struct ModelledRadValveState final
   // If true then support a minimal/binary valve implementation.
   static constexpr bool MINIMAL_BINARY_IMPL = false;
 
-  // If true then attempts to detect draughts from open windows and doors.
-  static constexpr bool SUPPORTS_MRVE_DRAUGHT = false;
-  // If true then do lingering close to help boilers with poor bypass.
-  static constexpr bool SUPPORTS_LINGER = false;
+  // FEATURE SUPPORT
   // If true then support proportional response in target 1C range.
   static constexpr bool SUPPORT_PROPORTIONAL = !MINIMAL_BINARY_IMPL;
+  // If true then detect draughts from open windows and doors.
+  static constexpr bool SUPPORT_MRVE_DRAUGHT = false;
+  // If true then do lingering close to help boilers with poor bypass.
+  static constexpr bool SUPPORT_LINGER = false;
 
   // Target minutes/ticks for full valve movement when fast response requested.
   static constexpr uint8_t fastResponseTicksTarget = 5;
@@ -142,11 +143,16 @@ struct ModelledRadValveState final
   // Gives quick feedback and warming, eg in response to manual control use.
   static constexpr uint8_t vFastResponseTicksTarget = 3;
 
-  // Proportional range wide enough to cope with all-in-one TRVs overshoot.
+  // Proportional range wide enough to cope with all-in-one TRV overshoot.
+  // Note that with the sensor near the heater an apparent overshoot
+  // has to be tolerated to actually deliver heat to the room.
+  // Within this range the device is always seek for a zero error;
+  // this is not a deadband.
+  //
   // Primarily exposed to allow for unit testing; subject to change.
   // With 1/16C precision, a continuous drift in either direction
   // implies a delta T >= 60/16C ~ 4C per hour.
-  static constexpr uint8_t _proportionalRange = 6;
+  static constexpr uint8_t _proportionalRange = 7;
 
   // Max jump between adjacent readings before forcing filtering; strictly +ve.
   // Too small a value may cap room rate rise to this per minute.
@@ -325,6 +331,9 @@ struct ModelledRadValveState final
 
   // Get last change in temperature (C*16, signed) from n ticks ago capped to filter length; +ve means rising.
   int_fast16_t getRawDelta(uint8_t n) const { return(prevRawTempC16[0] - prevRawTempC16[OTV0P2BASE::fnmin((size_t)n, filterLength-1)]); }
+
+  // Get previous change in temperature (C*16, signed); +ve means was rising.
+  int_fast16_t getPrevRawDelta() const { return(prevRawTempC16[1] - prevRawTempC16[2]); }
 
 //  // Compute an estimate of rate/velocity of temperature change in C/16 per minute/tick.
 //  // A positive value indicates that temperature is rising.
