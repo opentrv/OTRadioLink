@@ -240,14 +240,14 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     // Target just below call-for-heat threshold for passive frost protection.
     uint8_t targetPC = DEFAULT_VALVE_PC_SAFER_OPEN - 1;
 
-    // Run fast towards/to end stop as far as possible in this call.
-    // Terminates significantly before the end of the sub-cycle.
-    // Possibly allows partial recalibration, or at least re-homing.
-    // Returns true if end-stop has apparently been hit,
-    // else will require one or more further calls in new sub-cycles
-    // to hit the end-stop.
-    // May attempt to ride through stiff mechanics.
-    bool runFastTowardsEndStop(bool toOpen);
+//    // Run fast towards/to end stop as far as possible in this call.
+//    // Terminates significantly before the end of the sub-cycle.
+//    // Possibly allows partial recalibration, or at least re-homing.
+//    // Returns true if end-stop has apparently been hit,
+//    // else will require one or more further calls in new sub-cycles
+//    // to hit the end-stop.
+//    // May attempt to ride through stiff mechanics.
+//    bool runFastTowardsEndStop(bool toOpen);
 
     // Run at 'normal' speed towards/to end for a fixed time/distance.
     // Terminates significantly before the end of the sub-cycle.
@@ -256,13 +256,13 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     // Returns true if end-stop has apparently been hit.
     bool runTowardsEndStop(bool toOpen);
 
-    // Run at 'normal' speed, else fast, towards/to end.
-    // Terminates significantly before the end of the sub-cycle.
-    // Runs at same speed as during calibration.
-    // Does the right thing with dead-reckoning and/or position detection.
-    // Returns true if end-stop has apparently been hit.
-    bool runTowardsEndStop(bool toOpen, bool normal)
-      { return(normal ? runTowardsEndStop(toOpen) : runFastTowardsEndStop(toOpen)); }
+//    // Run at 'normal' speed, else fast, towards/to end.
+//    // Terminates significantly before the end of the sub-cycle.
+//    // Runs at same speed as during calibration.
+//    // Does the right thing with dead-reckoning and/or position detection.
+//    // Returns true if end-stop has apparently been hit.
+//    bool runTowardsEndStop(bool toOpen, bool normal)
+//      { return(normal ? runTowardsEndStop(toOpen) : runFastTowardsEndStop(toOpen)); }
 
     // Compute and apply reconciliation/adjustment of ticks and intermediate position.
     // Uses computePosition() to compute new internal position.

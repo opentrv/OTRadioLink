@@ -88,7 +88,8 @@ struct ModelledRadValveInputState final
   uint8_t maxTargetTempC = 0;
 
   // Min % valve at which is considered to be actually open (allow the room to heat) [1,100].
-  uint8_t minPCReallyOpen = OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN;
+  // Placeholder for now.
+  static constexpr uint8_t minPCReallyOpen = 1; // OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN;
   // Max % valve is allowed to be open [1,100].
   uint8_t maxPCOpen = 100;
 
@@ -128,12 +129,13 @@ struct ModelledRadValveState final
   // If true then support a minimal/binary valve implementation.
   static constexpr bool MINIMAL_BINARY_IMPL = false;
 
-  // If true then attempts to detect draughts from open windows and doors.
-  static constexpr bool SUPPORTS_MRVE_DRAUGHT = false;
-  // If true then do lingering close to help boilers with poor bypass.
-  static constexpr bool SUPPORTS_LINGER = false;
+  // FEATURE SUPPORT
   // If true then support proportional response in target 1C range.
   static constexpr bool SUPPORT_PROPORTIONAL = !MINIMAL_BINARY_IMPL;
+  // If true then detect draughts from open windows and doors.
+  static constexpr bool SUPPORT_MRVE_DRAUGHT = false;
+  // If true then do lingering close to help boilers with poor bypass.
+  static constexpr bool SUPPORT_LINGER = false;
 
   // Target minutes/ticks for full valve movement when fast response requested.
   static constexpr uint8_t fastResponseTicksTarget = 5;
@@ -141,11 +143,16 @@ struct ModelledRadValveState final
   // Gives quick feedback and warming, eg in response to manual control use.
   static constexpr uint8_t vFastResponseTicksTarget = 3;
 
-  // Proportional range wide enough to cope with all-in-one TRVs overshoot.
+  // Proportional range wide enough to cope with all-in-one TRV overshoot.
+  // Note that with the sensor near the heater an apparent overshoot
+  // has to be tolerated to actually deliver heat to the room.
+  // Within this range the device is always seeking for zero temperature error;
+  // this is not a deadband.
+  //
   // Primarily exposed to allow for unit testing; subject to change.
   // With 1/16C precision, a continuous drift in either direction
   // implies a delta T >= 60/16C ~ 4C per hour.
-  static constexpr uint8_t _proportionalRange = 6;
+  static constexpr uint8_t _proportionalRange = 8;
 
   // Max jump between adjacent readings before forcing filtering; strictly +ve.
   // Too small a value may cap room rate rise to this per minute.
@@ -279,13 +286,21 @@ struct ModelledRadValveState final
   // but is coerced to range after each change.
   static constexpr uint16_t MAX_CUMULATIVE_MOVEMENT_VALUE = 0x3ff;
   //
+  // Cumulative valve movement %; rolls at 1024 in range [0,1023].
+  // Most of the time JSON value is 3 digits or fewer, conserving bandwidth.
+  // It would often be appropriate to mark this as low priority
+  // since it can be approximated from observed valve positions over time.
+  // This is computed from actual underlying valve movements if possible,
+  // rather than just the modelled valve movements.
+  //
   // The (masked) value doesn't wrap round to a negative value
   // and can safely be sent/received in JSON by hosts with 16-bit signed ints,
   // and the maximum number of decimal digits used in its representation is 4
   // but is almost always 3 (or fewer)
   // and used efficiently (~80% use of the top digit).
   //
-  // Daily allowance (in terms of battery/energy use) is assumed to be ~400% (DHD20141230),
+  // Daily allowance (in terms of battery/energy use)
+  // is assumed to be ~400% (DHD20141230),
   // so this should hold much more than that to avoid ambiguity
   // from missed/infrequent readings,
   // especially given full slew (+100%) can sometimes happen in 1 minute/tick.
@@ -316,6 +331,9 @@ struct ModelledRadValveState final
 
   // Get last change in temperature (C*16, signed) from n ticks ago capped to filter length; +ve means rising.
   int_fast16_t getRawDelta(uint8_t n) const { return(prevRawTempC16[0] - prevRawTempC16[OTV0P2BASE::fnmin((size_t)n, filterLength-1)]); }
+
+  // Get previous change in temperature (C*16, signed); +ve means was rising.
+  int_fast16_t getPrevRawDelta() const { return(prevRawTempC16[1] - prevRawTempC16[2]); }
 
 //  // Compute an estimate of rate/velocity of temperature change in C/16 per minute/tick.
 //  // A positive value indicates that temperature is rising.
@@ -645,18 +663,21 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
     virtual void setupInputState(ModelledRadValveInputState &inputState,
         const bool /*isFiltering*/,
         const uint8_t newTarget,
-        const uint8_t minPCOpen, const uint8_t maxPCOpen,
+        const uint8_t /*minPCOpen*/, const uint8_t maxPCOpen,
         const bool glacial) const override
         {
         // Set up state for computeRequiredTRVPercentOpen().
         inputState.targetTempC = newTarget;
         const uint8_t wt = tempControl->getWARMTargetC();
         inputState.maxTargetTempC = wt;
-        inputState.minPCReallyOpen = minPCOpen;
+//        inputState.minPCReallyOpen = minPCOpen;
         inputState.maxPCOpen = maxPCOpen;
+        // Force glacial if unusually low maxPCOpen
+        // that would interact badly with other aspects of the algorithm.
         // Note: may also wish to force glacial if room very dark
         // to minimise noise.  (TODO-1027)
-        inputState.glacial = glacial;
+        inputState.glacial = glacial ||
+            (maxPCOpen < DEFAULT_VALVE_PC_SAFER_OPEN);
         inputState.inBakeMode = valveMode->inBakeMode();
         inputState.hasEcoBias = tempControl->hasEcoBias();
         // Request a fast response from the valve
@@ -842,11 +863,11 @@ class ModelledRadValveComputeTargetTemp2016 final : public ModelledRadValveCompu
     // This should not second-guess computeTargetTemp() in terms of setbacks, etc.
     virtual void setupInputState(ModelledRadValveInputState &inputState,
         const bool isFiltering,
-        const uint8_t newTarget, const uint8_t minPCOpen, const uint8_t maxPCOpen, const bool glacial) const override
+        const uint8_t newTarget, const uint8_t /*minPCOpen*/, const uint8_t maxPCOpen, const bool glacial) const override
         {
         // Set up state for computeRequiredTRVPercentOpen().
         inputState.targetTempC = newTarget;
-        inputState.minPCReallyOpen = minPCOpen;
+//        inputState.minPCReallyOpen = minPCOpen;
         inputState.maxPCOpen = maxPCOpen;
         inputState.glacial = glacial; // Note: may also wish to force glacial if room very dark to minimise noise (TODO-1027).
         inputState.inBakeMode = valveMode->inBakeMode();
@@ -904,6 +925,7 @@ class ModelledRadValve final : public AbstractRadValve
     uint8_t setbackC = 0;
 
     // True if in glacial mode.
+    // May need to be set true if maxPCOpen unusually low.
     bool glacial;
 
     // Maximum percentage valve is allowed to be open [0,100].
@@ -1060,7 +1082,9 @@ class ModelledRadValve final : public AbstractRadValve
     // Get cumulative valve movement %; rolls at 1024 in range [0,1023].
     // Most of the time JSON value is 3 digits or fewer, conserving bandwidth.
     // It would often be appropriate to mark this as low priority
-    // since it can be computed from valve positions.
+    // since it can be approximated from observed valve positions over time.
+    // This is computed from actual underlying valve movements if possible,
+    // rather than just the modelled valve movements.
     uint16_t getCumulativeMovementPC() { return(retainedState.cumulativeMovementPC); }
 
     // DEPRECATED IN FAVOUR OF cumulativeMovementSubSensor.tag().
