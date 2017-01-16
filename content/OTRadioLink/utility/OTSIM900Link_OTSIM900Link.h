@@ -360,7 +360,6 @@ typedef const char *AT_t;
                         memset(txQueue, 0, sizeof(txQueue));
                         messageCounter = 0;
                         retryTimer = -1;
-//                        retryCounter = 0;XXX
                         txMsgLen = 0;
                         txMessageQueue = 0;
                         bAvailable = false;
@@ -390,7 +389,6 @@ typedef const char *AT_t;
                         OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*START_UP")
                         if (isSIM900Replying()) {
                             state = CHECK_PIN;
-//                            retryCounter = maxRetriesDefault;XXX
                         } else {
                             state = GET_STATE;
                         }
@@ -399,7 +397,6 @@ typedef const char *AT_t;
                         OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*CHECK_PIN")
                         if (isPINRequired()) {
                             state = WAIT_FOR_REGISTRATION;
-//                            retryCounter = 30;  // more retries when waiting for registration. XXX
                         } else {
                             setRetryLock();
                         }
@@ -409,7 +406,6 @@ typedef const char *AT_t;
                         OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*WAIT_FOR_REG")
                         if (isRegistered()) {
                             state = SET_APN;
-//                            retryCounter = maxRetriesDefault;XXX
                         } else {
                             setRetryLock();
                         }
@@ -419,7 +415,6 @@ typedef const char *AT_t;
                         if (setAPN()) {
                             messageCounter = 0;
                             state = START_GPRS;
-//                            retryCounter = maxRetriesDefault;XXX
                         } else {
                             setRetryLock();
                         }
@@ -446,7 +441,6 @@ typedef const char *AT_t;
                         OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*GET IP")
                         getIP();
                         state = OPEN_UDP;
-//                        retryCounter = maxRetriesDefault;XXX
                         break;
                     case OPEN_UDP: // Open a udp socket. Takes ~200 ticks to exit.
                         OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*OPEN UDP")
@@ -458,8 +452,7 @@ typedef const char *AT_t;
                         break;
                     case IDLE:  // Waiting for outbound message.
                         if (txMessageQueue > 0) { // If message is queued, go to WAIT_FOR_UDP
-                            state = WAIT_FOR_UDP; // TODO-748
-//                            retryCounter = maxRetriesDefault;XXX
+                            state = WAIT_FOR_UDP;
                         }
                         break;
                     case WAIT_FOR_UDP: // Make sure UDP context is open. Takes up to 200 ticks to exit.
@@ -468,7 +461,6 @@ typedef const char *AT_t;
                             uint8_t udpState = checkUDPStatus();
                             if (udpState == 1) {  // UDP connected
                                 state = SENDING;
-//                                retryCounter = 0;XXX
                             }
 //                            else if (udpState == 0) state = GET_STATE; // START_GPRS; // TODO needed for optional wake GPRS to send.
                             else if (udpState == 2) {  // Dead end. SIM900 needs resetting.
@@ -489,7 +481,6 @@ typedef const char *AT_t;
                         break;
                     case RESET:
                         OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*RESET")
-//                        retryCounter = 0; // reset retry counter. XXX
                         state = GET_STATE;
                         break;
                     case PANIC:
