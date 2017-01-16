@@ -28,25 +28,44 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 #include "OTSIM900Link.h"
 
 
+namespace SIM900Emu {
+
+/**
+ * @class   Simulate time.
+ */
+class VirtualTime {
+public:
+    VirtualTime() : secondsVT(0) {};
+    /**
+     * @brief   Increment secondsVT by 1 minor cycle.
+     */
+    static constexpr uint_fast8_t minorCycleTimeSecs = 2;
+    void incrementVTOneSecond() { ++secondsVT; secondsVT = checkForOverFlow(secondsVT);}
+    void incrementVTOneCycle() { secondsVT += minorCycleTimeSecs; secondsVT = checkForOverFlow(secondsVT);}
+    unsigned int getSeconds() { return secondsVT % 60; }
+    //static void incrementVTOneSecondAndPrint() { secondsVT += 1; fprintf(stderr, "!SECONDS VT = %u\n", secondsVT); }
+private:
+    /**
+     * @brief   Make sure secondsVT wraps around at a multiple of 60.
+     */
+    static unsigned int checkForOverFlow(const unsigned int seconds)
+        { return (59 < seconds ? (seconds - 60) : seconds); }
+    unsigned int secondsVT; // variable holding the time.
+};
+
+static VirtualTime vt;
 /**
  * @brief   dummy callback function to pass a time value to OTSIM900Link
  * @retval  Number of seconds this minute in range [0,59].
  */
-static uint_fast8_t secondsVT = 0;
-uint_fast8_t getSecondsVT() { return(secondsVT % 60); }
+static uint_fast8_t getSecondsVT() { return(vt.getSeconds()); }
 // Simple short-term (<60s) elapsed-time computations for wall-clock seconds.
 // Will give unhelpful results if called more than 60s after the original sample.
 // Takes a value of 'now' as returned by getSecondsLT().
-inline constexpr uint_fast8_t getElapsedSecondsVT(const uint_fast8_t startSecondsLT, const uint_fast8_t now)
+inline constexpr uint_fast8_t getElapsedSecondsVT(const unsigned int startSecondsLT, const unsigned int now)
   { return((now >= startSecondsLT) ? (now - startSecondsLT) : (60 + now - startSecondsLT)); }
-/**
- * @brief   Increment secondsVT by 1 minor cycle.
- */
-static constexpr uint_fast8_t minorCycleTimeSecs = 2;
-static void incrementVTOneCycle() { secondsVT += minorCycleTimeSecs; }
-//static void incrementVTOneSecondAndPrint() { secondsVT += 1; fprintf(stderr, "!SECONDS VT = %u\n", secondsVT); }
 
-namespace SIM900Emu {
+
 
 struct SIM900Commands {
     static const char * AT;
@@ -116,7 +135,7 @@ const char * SIM900Replies::CIPSEND_TRUE = "AT+CIPSEND=3\r\n\r\n>" ;
  */
 class SIM900StateEmulator {
 public:
-    SIM900StateEmulator() : oldPinState(false), startTime(0) {};
+    SIM900StateEmulator() : oldPinState(false), startTime(0), startUpTime(0) {};
     /**
      * @brief   Non-exhaustive list of states we go through using OTSIM900Link.
      * @note    States with a verb are transitory and can only be exited by the SIM900.
@@ -156,7 +175,7 @@ public:
             // send some garbage.
             // wait for several seconds to pass.
             // go to REGISTERING
-            if (10 < getElapsedSecondsVT(startUpTime, getSecondsVT())) myState = REGISTERING;
+            if (10 < SIM900Emu::getElapsedSecondsVT(startUpTime, SIM900Emu::getSecondsVT())) myState = REGISTERING;
             break;
         case REGISTERING:
             // Wait for some time to pass.
@@ -406,11 +425,13 @@ public:
     void pollPowerPin(bool high)
     {
         if(high) {
-            if (!oldPinState)startTime = getSecondsVT();
-            else  if (minPowerPinToggleVT >= getElapsedSecondsVT(startTime, getSecondsVT())) {  // XXX
+            // If pin is high and state has changed, set the start time.
+            // Else if enough time has passed, update state.
+            if (!oldPinState) startTime = SIM900Emu::getSecondsVT();
+            else  if (minPowerPinToggleVT >= SIM900Emu::getElapsedSecondsVT(startTime, SIM900Emu::getSecondsVT())) {
                 if (myState == POWER_OFF) {
                     myState = POWERING_UP;
-                    startUpTime = getSecondsVT();
+                    startUpTime = SIM900Emu::getSecondsVT();
                 } else {
                     myState = POWER_OFF;
                 }
@@ -538,7 +559,6 @@ static SIM900 sim900;
 static const auto sim900WriteCallback = [] { sim900.poll(); };
 }
 
-
 // Test the getter function definitely does what it should.
 TEST(OTSIM900Link, getterFunction)
 {
@@ -573,7 +593,7 @@ TEST(OTSIM900Link,basicsDeadCard)
     const char SIM900_UDP_PORT[] = "9999";
     const OTSIM900Link::OTSIM900LinkConfig_t SIM900Config(false, SIM900_PIN, SIM900_APN, SIM900_UDP_ADDR, SIM900_UDP_PORT);
     const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
-    OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, NULLSerialStream> l0;
+    OTSIM900Link::OTSIM900Link<0, 0, 0, SIM900Emu::getSecondsVT, NULLSerialStream> l0;
     EXPECT_TRUE(l0.configure(1, &l0Config));
     EXPECT_TRUE(l0.begin());
     EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
@@ -609,7 +629,7 @@ TEST(OTSIM900Link, basicsNullConfig)
     const char SIM900_UDP_PORT[] = "9999";
     const OTSIM900Link::OTSIM900LinkConfig_t SIM900Config(false, SIM900_PIN, SIM900_APN, SIM900_UDP_ADDR, SIM900_UDP_PORT);
     const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
-    OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, NULLSerialStream> l0;
+    OTSIM900Link::OTSIM900Link<0, 0, 0, SIM900Emu::getSecondsVT, NULLSerialStream> l0;
     EXPECT_FALSE(l0.configure(1, NULL));
     // ...
     l0.end();
@@ -639,7 +659,7 @@ TEST(OTSIM900Link, basicsEmptyConfig)
     const char SIM900_UDP_PORT[] = "9999";
     const OTSIM900Link::OTSIM900LinkConfig_t SIM900Config(false, SIM900_PIN, SIM900_APN, SIM900_UDP_ADDR, SIM900_UDP_PORT);
     const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
-    OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, NULLSerialStream> l0;
+    OTSIM900Link::OTSIM900Link<0, 0, 0, SIM900Emu::getSecondsVT, NULLSerialStream> l0;
     EXPECT_FALSE(l0.configure(1, &l0Config));
     // ...
     l0.end();
@@ -657,7 +677,7 @@ TEST(OTSIM900Link, SoftSerialSimulatorTest)
     const char SIM900_UDP_PORT[] = "9999";
     const OTSIM900Link::OTSIM900LinkConfig_t SIM900Config(false, SIM900_PIN, SIM900_APN, SIM900_UDP_ADDR, SIM900_UDP_PORT);
     const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
-    OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, SIM900Emu::SoftSerialSimulator> l0;
+    OTSIM900Link::OTSIM900Link<0, 0, 0, SIM900Emu::getSecondsVT, SIM900Emu::SoftSerialSimulator> l0;
     EXPECT_TRUE(l0.configure(1, &l0Config));
     EXPECT_TRUE(l0.begin());
     EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
@@ -682,12 +702,12 @@ TEST(OTSIM900Link, SIM900EmulatorTest)
     const char SIM900_UDP_PORT[] = "9999";
     const OTSIM900Link::OTSIM900LinkConfig_t SIM900Config(false, SIM900_PIN, SIM900_APN, SIM900_UDP_ADDR, SIM900_UDP_PORT);
     const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
-    OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, SIM900Emu::SoftSerialSimulator> l0;
+    OTSIM900Link::OTSIM900Link<0, 0, 0, SIM900Emu::getSecondsVT, SIM900Emu::SoftSerialSimulator> l0;
     EXPECT_TRUE(l0.configure(1, &l0Config));
     EXPECT_TRUE(l0.begin());
     EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
     // Try to hang just by calling poll() repeatedly.
-    for(int i = 0; i < 100; ++i) { incrementVTOneCycle(); l0.poll(); }
+    for(int i = 0; i < 100; ++i) { SIM900Emu::vt.incrementVTOneCycle(); l0.poll(); }
     // ...
     l0.end();
 }
@@ -716,7 +736,7 @@ TEST(OTSIM900Link, PinTogglingTest)
         const OTSIM900Link::OTSIM900LinkConfig_t SIM900Config(false, SIM900_PIN, SIM900_APN, SIM900_UDP_ADDR, SIM900_UDP_PORT);
         const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
         // OTSIM900Link instantiation & init.
-        OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, SIM900Emu::SoftSerialSimulator> l0;
+        OTSIM900Link::OTSIM900Link<0, 0, 0, SIM900Emu::getSecondsVT, SIM900Emu::SoftSerialSimulator> l0;
         EXPECT_TRUE(l0.configure(1, &l0Config));
         EXPECT_TRUE(l0.begin());
         EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
@@ -731,19 +751,19 @@ TEST(OTSIM900Link, PinTogglingTest)
         EXPECT_EQ(OTSIM900Link::WAIT_PWR_HIGH, l0._getState());
         EXPECT_TRUE(l0._isPinHigh()); // Pin should be high for 2 seconds.
         SIM900Emu::sim900.pollPowerPin(l0._isPinHigh());
-        secondsVT++;
+        SIM900Emu::vt.incrementVTOneSecond();;
         l0.poll();
         SIM900Emu::sim900.pollPowerPin(l0._isPinHigh());
         EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWERING_UP , SIM900Emu::sim900.emu.myState); // Should take 1.5 seconds to register pin high, but our resolution isn't high enough.
         EXPECT_EQ(OTSIM900Link::WAIT_PWR_HIGH, l0._getState());
         EXPECT_TRUE(l0._isPinHigh());
-        secondsVT++;
+        SIM900Emu::vt.incrementVTOneSecond();;
         l0.poll();
         SIM900Emu::sim900.pollPowerPin(l0._isPinHigh());
         EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWERING_UP , SIM900Emu::sim900.emu.myState);
         EXPECT_EQ(OTSIM900Link::WAIT_PWR_HIGH, l0._getState());
         EXPECT_TRUE(l0._isPinHigh());
-        secondsVT++;
+        SIM900Emu::vt.incrementVTOneSecond();;
         l0.poll(); // At this point pin should be low and SIM900 should be powering up.
         SIM900Emu::sim900.pollPowerPin(l0._isPinHigh());
         EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWERING_UP , SIM900Emu::sim900.emu.myState);
@@ -771,7 +791,6 @@ TEST(OTSIM900Link, StartupFromOffTest)
         ASSERT_FALSE(SIM900Emu::sim900.emu.oldPinState);
         ASSERT_EQ(0, SIM900Emu::sim900.emu.startTime);
 //        SIM900Emu::sim900.verbose = true;
-        secondsVT = 0; // reset seconds
 
         // SIM900 Config data
         const char SIM900_PIN[] = "1111";
@@ -782,7 +801,7 @@ TEST(OTSIM900Link, StartupFromOffTest)
         const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
 
         // OTSIM900Link instantiation & init.
-        OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, SIM900Emu::SoftSerialSimulator> l0;
+        OTSIM900Link::OTSIM900Link<0, 0, 0, SIM900Emu::getSecondsVT, SIM900Emu::SoftSerialSimulator> l0;
         EXPECT_TRUE(l0.configure(1, &l0Config));
         EXPECT_TRUE(l0.begin());
         EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
@@ -798,17 +817,17 @@ TEST(OTSIM900Link, StartupFromOffTest)
         EXPECT_EQ(OTSIM900Link::WAIT_PWR_HIGH, l0._getState());
         EXPECT_TRUE(l0._isPinHigh()); // Pin should be high for 2 seconds.
         SIM900Emu::sim900.pollPowerPin(l0._isPinHigh());
-        secondsVT++;
+        SIM900Emu::vt.incrementVTOneSecond();;
         l0.poll();
         SIM900Emu::sim900.pollPowerPin(l0._isPinHigh());
         EXPECT_EQ(OTSIM900Link::WAIT_PWR_HIGH, l0._getState());
         EXPECT_TRUE(l0._isPinHigh());
-        secondsVT++;
+        SIM900Emu::vt.incrementVTOneSecond();;
         l0.poll();
         SIM900Emu::sim900.pollPowerPin(l0._isPinHigh());
         EXPECT_EQ(OTSIM900Link::WAIT_PWR_HIGH, l0._getState());
         EXPECT_TRUE(l0._isPinHigh());
-        secondsVT++;
+        SIM900Emu::vt.incrementVTOneSecond();;
         l0.poll();
         SIM900Emu::sim900.pollPowerPin(l0._isPinHigh());
         EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWERING_UP , SIM900Emu::sim900.emu.myState);
@@ -823,7 +842,7 @@ TEST(OTSIM900Link, StartupFromOffTest)
             SIM900Emu::sim900.emu.poll(temp, temp);
             EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWERING_UP , SIM900Emu::sim900.emu.myState) << "attempt " << i;
             EXPECT_EQ(OTSIM900Link::WAIT_PWR_LOW, l0._getState()) << "attempt " << i;
-            secondsVT++;
+            SIM900Emu::vt.incrementVTOneSecond();;
 //            incrementVTOneSecondAndPrint();
         }
         // One more second to wait for lockout to end
@@ -833,7 +852,7 @@ TEST(OTSIM900Link, StartupFromOffTest)
             SIM900Emu::sim900.emu.poll(temp, temp);
             EXPECT_EQ(SIM900Emu::SIM900StateEmulator::REGISTERING , SIM900Emu::sim900.emu.myState);
             EXPECT_EQ(OTSIM900Link::WAIT_PWR_LOW, l0._getState());
-            secondsVT++;
+            SIM900Emu::vt.incrementVTOneSecond();;
 //            incrementVTOneSecondAndPrint();
         }
         l0.poll();
@@ -870,8 +889,6 @@ TEST(OTSIM900Link, StartupFromOnTest)
     ASSERT_FALSE(SIM900Emu::sim900.emu.oldPinState);
     ASSERT_EQ(0, SIM900Emu::sim900.emu.startTime);
 //        SIM900Emu::sim900.verbose = true;
-    secondsVT = 0; // reset seconds
-
     // SIM900 Config data
     const char SIM900_PIN[] = "1111";
     const char SIM900_APN[] = "apn";
@@ -881,7 +898,7 @@ TEST(OTSIM900Link, StartupFromOnTest)
     const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
 
     // OTSIM900Link instantiation & init.
-    OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, SIM900Emu::SoftSerialSimulator> l0;
+    OTSIM900Link::OTSIM900Link<0, 0, 0, SIM900Emu::getSecondsVT, SIM900Emu::SoftSerialSimulator> l0;
     EXPECT_TRUE(l0.configure(1, &l0Config));
     EXPECT_TRUE(l0.begin());
     EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
@@ -897,17 +914,17 @@ TEST(OTSIM900Link, StartupFromOnTest)
     EXPECT_EQ(OTSIM900Link::WAIT_PWR_HIGH, l0._getState());
     EXPECT_TRUE(l0._isPinHigh()); // Pin should be high for 2 seconds.
     SIM900Emu::sim900.pollPowerPin(l0._isPinHigh());
-    secondsVT++;
+    SIM900Emu::vt.incrementVTOneSecond();;
     l0.poll();
     SIM900Emu::sim900.pollPowerPin(l0._isPinHigh());
     EXPECT_EQ(OTSIM900Link::WAIT_PWR_HIGH, l0._getState());
     EXPECT_TRUE(l0._isPinHigh());
-    secondsVT++;
+    SIM900Emu::vt.incrementVTOneSecond();;
     l0.poll();
     SIM900Emu::sim900.pollPowerPin(l0._isPinHigh());
     EXPECT_EQ(OTSIM900Link::WAIT_PWR_HIGH, l0._getState());
     EXPECT_TRUE(l0._isPinHigh());
-    secondsVT++;
+    SIM900Emu::vt.incrementVTOneSecond();;
     l0.poll();
     SIM900Emu::sim900.pollPowerPin(l0._isPinHigh());
     EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWER_OFF , SIM900Emu::sim900.emu.myState);
@@ -922,13 +939,13 @@ TEST(OTSIM900Link, StartupFromOnTest)
         SIM900Emu::sim900.emu.poll(temp, temp);
         EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWER_OFF , SIM900Emu::sim900.emu.myState) << "attempt " << i;
         EXPECT_EQ(OTSIM900Link::WAIT_PWR_LOW, l0._getState()) << "attempt " << i;
-        secondsVT++;
+        SIM900Emu::vt.incrementVTOneSecond();;
 //            incrementVTOneSecondAndPrint();
     }
     l0.poll();
     EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWER_OFF , SIM900Emu::sim900.emu.myState);
     EXPECT_EQ(OTSIM900Link::START_UP, l0._getState());
-    secondsVT++;
+    SIM900Emu::vt.incrementVTOneSecond();;
     l0.poll();
     EXPECT_EQ(SIM900Emu::SIM900StateEmulator::POWER_OFF , SIM900Emu::sim900.emu.myState);
     EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
@@ -1039,16 +1056,16 @@ TEST(OTSIM900Link,basicsSimpleSimulator)
     const OTSIM900Link::OTSIM900LinkConfig_t SIM900Config(false, SIM900_PIN, SIM900_APN, SIM900_UDP_ADDR, SIM900_UDP_PORT);
     const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
 
-    OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, SIM900Emu::SoftSerialSimulator> l0;
+    OTSIM900Link::OTSIM900Link<0, 0, 0, SIM900Emu::getSecondsVT, SIM900Emu::SoftSerialSimulator> l0;
     EXPECT_TRUE(l0.configure(1, &l0Config));
     EXPECT_TRUE(l0.begin());
     EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
 
     // Try to get to IDLE state.
-    for(int i = 0; i < 100; ++i) { incrementVTOneCycle(); statesChecked[l0._getState()] = true; l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
+    for(int i = 0; i < 100; ++i) { SIM900Emu::vt.incrementVTOneCycle(); statesChecked[l0._getState()] = true; l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
     // Queue a message to send.
     l0.queueToSend((const uint8_t *)message, (uint8_t)sizeof(message)-1, (int8_t) 0, OTRadioLink::OTRadioLink::TXnormal);
-    for(int i = 0; i < 100; ++i) { incrementVTOneCycle(); statesChecked[l0._getState()] = true; l0.poll(); }
+    for(int i = 0; i < 100; ++i) { SIM900Emu::vt.incrementVTOneCycle(); statesChecked[l0._getState()] = true; l0.poll(); }
     for(size_t i = 0; i < OTSIM900Link::RESET; i++) { EXPECT_TRUE(statesChecked[i]) << "state " << i << " not seen."; } // Check what states have been seen.
     // ...
     l0.end();
@@ -1165,13 +1182,13 @@ TEST(OTSIM900Link,GarbageTestSimulator)
     const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
 
     ASSERT_FALSE(B2::GarbageSimulator::haveSeenCommandStart);
-    OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, B2::GarbageSimulator> l0;
+    OTSIM900Link::OTSIM900Link<0, 0, 0, SIM900Emu::getSecondsVT, B2::GarbageSimulator> l0;
     EXPECT_TRUE(l0.configure(1, &l0Config));
     EXPECT_TRUE(l0.begin());
     EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
 
     // Try to hang just by calling poll() repeatedly.
-    for(int i = 0; i < 100; ++i) { incrementVTOneCycle(); statesChecked[l0._getState()] = true; l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
+    for(int i = 0; i < 100; ++i) { SIM900Emu::vt.incrementVTOneCycle(); statesChecked[l0._getState()] = true; l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
 //    for(auto it = statesChecked.begin(); it != statesChecked.end(); ++it) {
 //        fprintf(stderr, "%d, ", (int)*it);
 //    }
@@ -1209,13 +1226,13 @@ TEST(OTSIM900Link, MessageCountResetTest)
         const char SIM900_UDP_PORT[] = "9999";
         const OTSIM900Link::OTSIM900LinkConfig_t SIM900Config(false, SIM900_PIN, SIM900_APN, SIM900_UDP_ADDR, SIM900_UDP_PORT);
         const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
-        OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, SIM900Emu::SoftSerialSimulator> l0;
+        OTSIM900Link::OTSIM900Link<0, 0, 0, SIM900Emu::getSecondsVT, SIM900Emu::SoftSerialSimulator> l0;
         EXPECT_TRUE(l0.configure(1, &l0Config));
         EXPECT_TRUE(l0.begin());
         EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
 
         // Get to IDLE state
-        for(int i = 0; i < 100; ++i) { l0.poll(); incrementVTOneCycle(); if(l0._getState() == OTSIM900Link::IDLE) break;}
+        for(int i = 0; i < 100; ++i) { l0.poll(); SIM900Emu::vt.incrementVTOneCycle(); if(l0._getState() == OTSIM900Link::IDLE) break;}
         EXPECT_EQ(SIM900Emu::SIM900StateEmulator::UDP_CONNECT_OK,  SIM900Emu::sim900.emu.myState);
 
         // Queue a message to send. ResetSimulator should reply PDP DEACT which should trigger a reset.
@@ -1223,7 +1240,7 @@ TEST(OTSIM900Link, MessageCountResetTest)
         for( sendCounter = 0; sendCounter < 300; sendCounter++) {
             if (OTSIM900Link::IDLE > l0._getState()) break;
             l0.queueToSend((const uint8_t *)message, (uint8_t)sizeof(message)-1, (int8_t) 0, OTRadioLink::OTRadioLink::TXnormal);
-            for(int j = 0; j < 10; ++j) { incrementVTOneCycle(); if (OTSIM900Link::IDLE > l0._getState()) break; l0.poll(); }
+            for(int j = 0; j < 10; ++j) { SIM900Emu::vt.incrementVTOneCycle(); if (OTSIM900Link::IDLE > l0._getState()) break; l0.poll(); }
         }
         EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
         EXPECT_EQ(255, sendCounter);
@@ -1252,13 +1269,13 @@ TEST(OTSIM900Link, PDPDeactResetTest)
         const OTRadioLink::OTRadioChannelConfig l0Config(&SIM900Config, true);
 
 
-        OTSIM900Link::OTSIM900Link<0, 0, 0, getSecondsVT, SIM900Emu::SoftSerialSimulator> l0;
+        OTSIM900Link::OTSIM900Link<0, 0, 0, SIM900Emu::getSecondsVT, SIM900Emu::SoftSerialSimulator> l0;
         EXPECT_TRUE(l0.configure(1, &l0Config));
         EXPECT_TRUE(l0.begin());
         EXPECT_EQ(OTSIM900Link::INIT, l0._getState());
 
         // Get to IDLE state
-        for(int i = 0; i < 100; ++i) { l0.poll(); incrementVTOneCycle(); if(l0._getState() == OTSIM900Link::IDLE) break;}
+        for(int i = 0; i < 100; ++i) { l0.poll(); SIM900Emu::vt.incrementVTOneCycle(); if(l0._getState() == OTSIM900Link::IDLE) break;}
         EXPECT_EQ(SIM900Emu::SIM900StateEmulator::UDP_CONNECT_OK,  SIM900Emu::sim900.emu.myState);
 
         SIM900Emu::sim900.triggerPDPDeactFail();
@@ -1268,7 +1285,7 @@ TEST(OTSIM900Link, PDPDeactResetTest)
         for( int i = 0; i < 300; i++) {
             if (OTSIM900Link::IDLE > l0._getState()) break;
             l0.queueToSend((const uint8_t *)message, (uint8_t)sizeof(message)-1, (int8_t) 0, OTRadioLink::OTRadioLink::TXnormal);
-            for(int j = 0; j < 10; ++j) { incrementVTOneCycle(); if (OTSIM900Link::IDLE > l0._getState()) break; l0.poll(); }
+            for(int j = 0; j < 10; ++j) { SIM900Emu::vt.incrementVTOneCycle(); if (OTSIM900Link::IDLE > l0._getState()) break; l0.poll(); }
         }
         EXPECT_EQ(OTSIM900Link::GET_STATE, l0._getState());
         // ...
