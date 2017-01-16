@@ -385,7 +385,8 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         // Compute proportional slew rates to fix temperature errors.
         // Note that non-rounded shifts effectively set the deadband also.
         // Note that slewF == 0 in central sweet spot / deadband.
-        const uint8_t errShift = worf ? 3 : 2;
+        static constexpr uint8_t worfErrShift = 3;
+        const uint8_t errShift = worf ? worfErrShift : (worfErrShift-1);
         // Fast slew when responding to manual control or similar.
         const uint8_t slewF = OTV0P2BASE::fnmin(TRV_SLEW_PC_PER_MIN_FAST,
             uint8_t((errorC16 < 0) ? ((-errorC16) >> errShift) : (errorC16 >> errShift)));
@@ -421,7 +422,8 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
                 // Verify that there is theoretically time for
                 // a response from the boiler before hitting 100% open.
                 static_assert((100-minOpen) / (1+baseSlew) >= BOILER_RESPONSE_TIME_FROM_OFF,
-                    "should be time notionally to get a response from boiler before valve reaches 100% open");
+                    "should be time notionally to get a response from boiler "
+                    "before valve reaches 100% open");
                 return(OTV0P2BASE::fnconstrain(
                     uint8_t(valvePCOpen + slewF + baseSlew),
                     uint8_t(minOpen),
@@ -508,12 +510,19 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
                 {
                 // Immediately stop calling for heat.
                 static constexpr uint8_t maxOpen = DEFAULT_VALVE_PC_SAFER_OPEN-1;
-                // Aiming for > 15m which should let the rad cool before valve closes.
+                // >15m which should let the rad cool before valve closes
+                // but is not an unreasonable time for a radiator to stay on for
+                // (likely partially restricted) to get decent heat into a room.
                 static constexpr uint8_t maxSlew = 3;
                 // Verify that there is theoretically time for
-                // a response from the boiler before hitting 100% open.
+                // a response from the boiler and the rad to start cooling
+                // before the valve reaches 100% open.
                 static_assert((maxOpen / maxSlew) > 2*DEFAULT_MAX_RUN_ON_TIME_M,
-                    "should be time notionally for boiler to stop before valve reaches 0% open");
+                    "should be time notionally for boiler to stop "
+                    "before valve reaches 0% open");
+//                // Fast-ish slew based on (+ve) error above higher threshold.
+//                // This slew is then independent of any setback in place.
+//                const uint8_t slewE = 1 + (herrorC16 >> errShift);
                 // Within bounds attempt to fix faster when further off target
                 // but not so fast as to force a full close unnecessarily.
                 // Not calling for heat, so may be able to dawdle.

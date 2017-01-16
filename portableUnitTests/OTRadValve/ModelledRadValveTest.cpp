@@ -660,9 +660,12 @@ TEST(ModelledRadValve,MRVSNoHoverWithBoilerOn)
     OTV0P2BASE::seedRNG8(random() & 0xff, random() & 0xff, random() & 0xff);
 
     // Modest target temperature.
-    const uint8_t targetTempC = 18;
+    const uint8_t targetTempC = 19;
     // Temperature range / max offset in each direction in C.
-    const uint8_t tempMaxOffsetC = 5;
+    const uint8_t tempMaxOffsetC =
+        OTV0P2BASE::fnmax(10,
+        2+OTRadValve::ModelledRadValveState::_proportionalRange);
+    ASSERT_GT(targetTempC, tempMaxOffsetC) << "avoid underflow to < 0C";
     for(int16_t ambientTempC16 = (targetTempC - (int)tempMaxOffsetC) << 4;
         ambientTempC16 <= (targetTempC + (int)tempMaxOffsetC) << 4;
         ++ambientTempC16)
