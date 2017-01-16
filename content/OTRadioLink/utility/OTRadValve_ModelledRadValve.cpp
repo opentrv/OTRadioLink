@@ -522,10 +522,12 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
                     "before valve reaches 0% open");
 //                // Fast-ish slew based on (+ve) error above higher threshold.
 //                // This slew is then independent of any setback in place.
-//                const uint8_t slewE = 1 + (herrorC16 >> errShift);
+//                const uint8_t slewE = (herrorC16 >> errShift);
                 // Within bounds attempt to fix faster when further off target
                 // but not so fast as to force a full close unnecessarily.
                 // Not calling for heat, so may be able to dawdle.
+                // Note: even if slew == 0, it can not result in bad hovering,
+                // because this also cancels any call for heat.
                 return(uint8_t(OTV0P2BASE::fnconstrain(
                     int(valvePCOpen) - int(OTV0P2BASE::fnmin(slewF, maxSlew)),
                     0,
