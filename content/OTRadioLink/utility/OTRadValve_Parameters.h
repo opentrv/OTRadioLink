@@ -278,19 +278,25 @@ namespace OTRadValve
     static constexpr uint8_t DEFAULT_MAX_RUN_ON_TIME_M = 5;
 
     // Typical time for boiler to start pumping hot water to rads from off (min).
-    // This includes an allowance for TX time/interval from valves.
+    // This includes an allowance for TX time/interval from valves,
+    // and some time for hot water to reach the rads.
+    // These numbers are for a typical single-family European household,
+    // so not a huge sprawling mansion, with a reasonably specified boiler,
+    // and not quite at the coldest depths of winter etc (eg 90% level).
     static constexpr uint8_t BOILER_RESPONSE_TIME_FROM_OFF = 5;
 
     // Default delay in minutes after increasing flow before re-closing is allowed.
     // This is to avoid excessive seeking/noise
     // in the presence of strong draughts for example.
     // Too large a value may cause significant temperature overshoots
-    // and possible energy wastage.
+    // and thus energy waste.
     // Attempting to run rads less than the typical boiler minimum-on time
     // is probably nugatory.
-    // There's probably little value in running most rads less than 10 minutes.
+    // There's probably little value in running most rads less than ~10 minutes.
     static constexpr uint8_t DEFAULT_ANTISEEK_VALVE_RECLOSE_DELAY_M =
-        OTV0P2BASE::fnmax(uint8_t(10), DEFAULT_MAX_RUN_ON_TIME_M);
+        OTV0P2BASE::fnmax(uint8_t(10),
+            OTV0P2BASE::fnmax(BOILER_RESPONSE_TIME_FROM_OFF,
+                              DEFAULT_MAX_RUN_ON_TIME_M));
     // Default delay in minutes after restricting flow before re-opening is allowed.
     // This is to avoid excessive seeking/noise
     // in the presence of strong draughts for example.
@@ -301,7 +307,8 @@ namespace OTRadValve
     // Too large a value may cause significant temperature undershoots
     // and discomfort/annoyance.
     static constexpr uint8_t DEFAULT_ANTISEEK_VALVE_REOPEN_DELAY_M =
-        OTV0P2BASE::fnmax(DEFAULT_ANTISEEK_VALVE_RECLOSE_DELAY_M+1, 2*DEFAULT_MAX_RUN_ON_TIME_M);
+        OTV0P2BASE::fnmax(DEFAULT_ANTISEEK_VALVE_RECLOSE_DELAY_M+1,
+                          2*DEFAULT_MAX_RUN_ON_TIME_M);
     // Typical heat turn-down response time; in minutes, strictly positive.
     static constexpr uint8_t DEFAULT_TURN_DOWN_RESPONSE_TIME_M =
         (DEFAULT_ANTISEEK_VALVE_RECLOSE_DELAY_M + 3);

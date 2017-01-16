@@ -210,8 +210,8 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef,
 //     and new room occupancy.
 //
 // More detail:
-//   * There is a 'sweet-spot' 0.5C wide in the target 1C,
-//     wider but at the same centre with a wide deadband.
+//   * There is a 'sweet-spot' 0.5C wide in the target 1C;
+//     wider but at the same centre with a wide deadband requested.
 //   * Providing that there is no call for heat
 //     then the valve can rest indefinitely at or close to the sweet-spot
 //     ie avoid movement.
@@ -222,6 +222,9 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef,
 //   * The valve can be run in a glacial mode,
 //     where the valve will always adjust at minimum speed,
 //     to minimise flow eg where there is a charge by volume.
+//   * In order to allow for valves only open enough at/near 100%,
+//     and to reduce battery drain and valve wear/sticking,
+//     the algorithm is biased towards fully opening but not fully closing.
 //
 uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
     const uint8_t valvePCOpen,
@@ -367,10 +370,10 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         const int wOTC16basic = (worf ? (2*halfNormalBand) : halfNormalBand);
         // Filtering pushes limit up much higher to allow for all-in-one TRVs.
         // Does not extend general wide deadband upwards to save some energy.
-        // The threshold is most of the way to the outer/limit boundary,
-        // but far enough away to react in time to avoid reaching the limit.
+        // The threshold is about halfway to the outer/limit boundary;
+        // hopefully far enough away to react in time to avoid breaching it.
         const uint8_t wOTC16highSide = isFiltering ?
-            (_proportionalRange * 10) : halfNormalBand;
+            (_proportionalRange * 8) : halfNormalBand;
         // Same calc for herrorC16 as errorC16 but possibly not set back.
         // This allows the temperature to fall passively when set back.
         const int_fast16_t herrorC16 =

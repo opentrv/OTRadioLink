@@ -19039,3 +19039,13 @@ TEST(AmbientLightOccupancyDetection,weightedResults)
         ASSERT_TRUE(0.0f <= p.first);
         }
 }
+
+
+/** TODO
+
+ * Complete TEST(AmbientLightOccupancyDetection,weightedResults).
+
+ * Specific narrow non-data-driven test that
+   light *brielfy* on in middle of the night does not trigger occupancy.
+
+ */
