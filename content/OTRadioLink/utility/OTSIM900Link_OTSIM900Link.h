@@ -376,7 +376,7 @@ typedef const char *AT_t;
                         break;
                     case WAIT_PWR_HIGH:  // Toggle the pin.
                         OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*WAIT_PWR_HIGH")
-                        if (waitedLongEnough(powerTimer, 2)) {  // check more than 2 seconds have passed.
+                        if (waitedLongEnough(powerTimer, powerPinToggleDuration)) {
                             setPwrPinHigh(false);
                             state = WAIT_PWR_LOW;
                         }
@@ -498,9 +498,13 @@ typedef const char *AT_t;
 #endif // OTSIM900LINK_DEBUG
 
             /***************** AT Commands and Private Constants and variables ******************/
+            // Minimum time in seconds that the power pin should be set high for.
+            // This is based on the time required for the SIM900 to register the pin toggle (rounded up from ~1.5 s).
             static constexpr uint8_t powerPinToggleDuration = 2;
-            static constexpr uint8_t powerLockOutDuration = 10 + powerPinToggleDuration; // DE20160703:Increased duration due to startup issues.
-            static constexpr uint8_t flushTimeOut = 10;
+            // Minimum time in seconds to wait after power up/down before resuming normal operation.
+            // Power up/down takes a while, and prints stuff we want to ignore to the serial connection.
+            static constexpr uint8_t powerLockOutDuration = 10 + powerPinToggleDuration;  // DE20160703:Increased duration due to startup issues.
+            static constexpr uint8_t flushTimeOut = 10;  // Time in seconds we should block for while polling for a specific character.
             // Standard Responses
 
             // Software serial: for V0p2 boards (eg REV10) expected to be of type:
@@ -853,6 +857,7 @@ typedef const char *AT_t;
          * @brief   Blocks process until terminatingChar received.
          * @param   terminatingChar:    Character to block until.
          * @retval  True if character found, or false on 1000ms timeout
+         * @note    Blocks main loop but not interrupts.
          */
         bool flushUntil(uint8_t _terminatingChar)
             {
