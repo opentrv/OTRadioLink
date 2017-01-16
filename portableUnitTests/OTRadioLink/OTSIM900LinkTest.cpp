@@ -39,17 +39,16 @@ public:
     /**
      * @brief   Increment secondsVT by 1 minor cycle.
      */
-    static constexpr uint_fast8_t minorCycleTimeSecs = 2;
     void incrementVTOneSecond() { ++secondsVT; secondsVT = checkForOverFlow(secondsVT);}
     void incrementVTOneCycle() { secondsVT += minorCycleTimeSecs; secondsVT = checkForOverFlow(secondsVT);}
-    unsigned int getSeconds() { return secondsVT % 60; }
-    //static void incrementVTOneSecondAndPrint() { secondsVT += 1; fprintf(stderr, "!SECONDS VT = %u\n", secondsVT); }
+    unsigned int getSeconds() { return secondsVT; }
 private:
     /**
      * @brief   Make sure secondsVT wraps around at a multiple of 60.
      */
     static unsigned int checkForOverFlow(const unsigned int seconds)
-        { return (59 < seconds ? (seconds - 60) : seconds); }
+        { return (59 < seconds ? (seconds - 60) : seconds); }  // subtract 60 if 60 or above to preserve change in time.
+    static constexpr uint_fast8_t minorCycleTimeSecs = 2;  // V0p2 normally runs on a 2 second cycle.
     unsigned int secondsVT; // variable holding the time.
 };
 
@@ -1189,10 +1188,6 @@ TEST(OTSIM900Link,GarbageTestSimulator)
 
     // Try to hang just by calling poll() repeatedly.
     for(int i = 0; i < 100; ++i) { SIM900Emu::vt.incrementVTOneCycle(); statesChecked[l0._getState()] = true; l0.poll(); if(l0._getState() == OTSIM900Link::IDLE) break;}
-//    for(auto it = statesChecked.begin(); it != statesChecked.end(); ++it) {
-//        fprintf(stderr, "%d, ", (int)*it);
-//    }
-    fprintf(stderr, "\n");
     EXPECT_TRUE(B2::GarbageSimulator::haveSeenCommandStart) << "should see some attempt to communicate with SIM900";
     EXPECT_TRUE(statesChecked[OTSIM900Link::INIT]) << "state GET_STATE not seen.";  // Check what states have been seen.
     EXPECT_TRUE(statesChecked[OTSIM900Link::GET_STATE]) << "state RETRY_GET_STATE not seen.";  // Check what states have been seen.
