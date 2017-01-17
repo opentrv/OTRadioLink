@@ -378,12 +378,15 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         static constexpr uint8_t halfNormalBand = 6;
         // Basic behaviour is to double the deadband with wide or filtering.
         const int wOTC16basic = (worf ? (2*halfNormalBand) : halfNormalBand);
-        // Filtering pushes limit up much higher to allow for all-in-one TRVs.
+        // Upper 'wellAboveTarget' is always above any non-set-back target.
+        // Filtering pushes limit up well above the target for all-in-one TRVs,
+        // though if sufficiently set back the non-set-back value prevails.
         // Does not extend general wide deadband upwards to save some energy.
         // The threshold is about halfway to the outer/limit boundary;
         // hopefully far enough away to react in time to avoid breaching it.
-        const uint8_t wOTC16highSide = isFiltering ?
-            (_proportionalRange * 8) : halfNormalBand;
+        static constexpr uint8_t wATC16 = _proportionalRange * 8;
+        const uint8_t wOTC16highSide = OTV0P2BASE::fnmax(int(halfNormalBand),
+            isFiltering ? (wATC16 - int((higherTargetC - tTC) << 4)) : 0);
         // Same calc for herrorC16 as errorC16 but possibly not set back.
         // This allows the temperature to fall passively when set back.
         const int_fast16_t herrorC16 =

@@ -1238,9 +1238,9 @@ TEST(ModelledRadValve,SampleValveResponse1)
         }
 
     // If (supporting long filtering and thus) filter is still on
-    // then smoothed recent should be below the wellAboveTarget threshold
-    // and the valve should still be calling for heat.
-    EXPECT_LE(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, valvePCOpen);
+    // then smoothed recent probably no longer below wellAboveTarget threshold
+    // but the valve should not yet have closed.
+    EXPECT_LT(0, valvePCOpen);
 }
 
 // Valve fully opening unexpectedly fast on occupancy setback decrease.
