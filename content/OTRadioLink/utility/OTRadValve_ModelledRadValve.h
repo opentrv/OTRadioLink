@@ -136,6 +136,8 @@ struct ModelledRadValveState final
   static constexpr bool SUPPORT_MRVE_DRAUGHT = false;
   // If true then do lingering close to help boilers with poor bypass.
   static constexpr bool SUPPORT_LINGER = false;
+  // If true then support filter minimum on-time (as isFiltering may be >1).
+  static constexpr bool SUPPORT_LONG_FILTER = true;
 
   // Target minutes/ticks for full valve movement when fast response requested.
   static constexpr uint8_t fastResponseTicksTarget = 5;
@@ -207,8 +209,10 @@ struct ModelledRadValveState final
   // such as real temperatures to propagate into all the filters.
   bool initialised = false;
 
-  // If true then filtering is being applied since temperatures fast-changing.
-  bool isFiltering = false;
+  // If !false then filtering is being applied since temperatures fast-changing.
+  // Can be used as if a bool, though may be set > 1 to allow a timeout.
+//  bool isFiltering = false;
+  uint8_t isFiltering = 0;
 
 //  // True if the computed modelled valve position was changed by tick().
 //  // This is not an indication if any underlying valve position has changed.

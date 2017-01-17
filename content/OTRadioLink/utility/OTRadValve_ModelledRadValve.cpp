@@ -94,11 +94,21 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef,
   prevRawTempC16[0] = rawTempC16;
 
   // Disable/enable filtering.
+  static constexpr uint8_t filter_minimum_ON =
+      SUPPORT_LONG_FILTER ? (4 * filterLength) : 1;
+  static constexpr uint8_t filter_OFF = 0;
   // Exit from filtering:
   // if the raw value is close enough to the current filtered value
   // that reverting to unfiltered would not itself cause a big jump.
+  // Only test this if the filter minimum on-time has expired.
   if(isFiltering)
-    { if(OTV0P2BASE::fnabsdiff(getSmoothedRecent(), rawTempC16) <= MAX_TEMP_JUMP_C16) { isFiltering = false; } }
+    {
+    // Count down until ready to test for filter exit.
+    if(SUPPORT_LONG_FILTER && (isFiltering > 1))
+      { --isFiltering; }
+    else
+      { if(OTV0P2BASE::fnabsdiff(getSmoothedRecent(), rawTempC16) <= MAX_TEMP_JUMP_C16) { isFiltering = filter_OFF; } }
+    }
   // Force filtering (back) on if big delta(s) over recent minutes.
   // This is NOT an else clause from the above so as to avoid flapping
   // filtering on and off if the current temp happens to be close to the mean,
@@ -114,7 +124,7 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef,
     if((OTV0P2BASE::fnabs(getRawDelta(MIN_TICKS_0p5C_DELTA)) > 8))
 //       (OTV0P2BASE::fnabs(getRawDelta(MIN_TICKS_1C_DELTA)) > 16) ||
 //       (OTV0P2BASE::fnabs(getRawDelta(filterLength-1)) > int_fast16_t(((filterLength-1) * 16) / MIN_TICKS_1C_DELTA)))
-      { isFiltering = true; }
+      { isFiltering = filter_minimum_ON; }
     }
   if(FILTER_DETECT_JITTER && !isFiltering)
     {
@@ -122,7 +132,7 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef,
     // Slow/expensive test if temperature readings are jittery.
     // It is not clear how often this will be the case with good sensors.
     for(size_t i = 1; i < filterLength; ++i)
-      { if(OTV0P2BASE::fnabsdiff(prevRawTempC16[i], prevRawTempC16[i-1]) > MAX_TEMP_JUMP_C16) { isFiltering = true; break; } }
+      { if(OTV0P2BASE::fnabsdiff(prevRawTempC16[i], prevRawTempC16[i-1]) > MAX_TEMP_JUMP_C16) { isFiltering = filter_minimum_ON; break; } }
     }
 
   // Count down timers.

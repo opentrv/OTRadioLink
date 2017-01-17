@@ -889,6 +889,11 @@ if(verbose) { fprintf(stderr, "Valve %d%%.\n", valvePCOpen); }
 
 // Check expected valve response to one very small set of data points.
 // These are manually interpolated from real world data (5s, ~20161231T1230).
+//
+// DHD20170117: in particular this should verify that
+// filtering stays on long enough to carry when valve temps just below
+// 'wellAboveTarget' threshold to let room cool gradually
+// and not force the valve to close prematurely.
 /*
 {"@":"E091B7DC8FEDC7A9","gE":0,"T|C16":281,"H|%":65}
 {"@":"E091B7DC8FEDC7A9","O":1,"vac|h":0,"B|cV":254}
@@ -1195,6 +1200,9 @@ TEST(ModelledRadValve,SampleValveResponse1)
     //{"@":"E091B7DC8FEDC7A9","T|C16":339,"H|%":58,"O":1}
     is0.setReferenceTemperatures(339);
     rs0.tick(valvePCOpen, is0, NULL);
+    // Filtering should still be on if filter has a minimum on-time.
+    const bool slf = rs0.SUPPORT_LONG_FILTER;
+    EXPECT_EQ(slf, (0 != rs0.isFiltering));
 
     // For algorithms improved since that involved in this trace (20161231)
     // the valve should not yet be fully closed.  (TODO-1099)
@@ -1202,12 +1210,17 @@ TEST(ModelledRadValve,SampleValveResponse1)
     const uint8_t v5 = valvePCOpen;
     EXPECT_GE(v4, v5) << "valve should not be re-opening";
     EXPECT_NEAR(344, rs0.getSmoothedRecent(), 5); // 344 ~ 21.5C.
+    // If (supporting long filtering and thus) filter is still on
+    // then smoothed recent should be below the wellAboveTarget threshold
+    // and the valve should still be calling for heat.
+    EXPECT_LE(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, valvePCOpen);
 
     // Set back temperature significantly (a FULL setback)
     // and verify that valve is not immediately fully closed,
     // though could even close a little if the ambient stays steady.
     const uint8_t valveOpenBeforeSetback = valvePCOpen;
-    const uint8_t setbackTarget = targetTempC - OTRadValve::DEFAULT_ValveControlParameters::SETBACK_FULL;
+    const uint8_t setbackTarget = targetTempC -
+        OTRadValve::DEFAULT_ValveControlParameters::SETBACK_FULL;
     is0.targetTempC = setbackTarget;
     rs0.tick(valvePCOpen, is0, NULL);
     const uint8_t valveOpenAfterSetback = valvePCOpen;
@@ -1223,6 +1236,11 @@ TEST(ModelledRadValve,SampleValveResponse1)
         rs0.tick(valvePCOpen, is0, NULL);
         EXPECT_LE(valveOpenAfterSetback, valvePCOpen);
         }
+
+    // If (supporting long filtering and thus) filter is still on
+    // then smoothed recent should be below the wellAboveTarget threshold
+    // and the valve should still be calling for heat.
+    EXPECT_LE(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, valvePCOpen);
 }
 
 // Valve fully opening unexpectedly fast on occupancy setback decrease.
