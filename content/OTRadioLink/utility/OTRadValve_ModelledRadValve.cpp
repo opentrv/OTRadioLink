@@ -511,38 +511,44 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         // as a guard to avoid large swings here.
         if(!beGlacial)
             {
-            // This handles being significantly over temperature,
-            // attempting to force a rapid return to the target.
+            // This handles being significantly over temperature and rising,
+            // attempting to force a relatively rapid return to the target,
+            // but not so rapid as to prematurely close the valve
+            // implying excess noise and battery consumption.
+            // (If above target but not rising this will fall through
+            // to the default glacial close.)
+            //
             // Note that wellAboveTarget indicates potentially far too high
             // even allowing for any setback in place.
             //
             // Below this any residual error can be dealt with glacially.
             //
             // The 'well below' case is dealt elsewhere.
-            if(wellAboveTarget)
+            if(wellAboveTarget && (rise > 0))
                 {
                 // Immediately stop calling for heat.
                 static constexpr uint8_t maxOpen = DEFAULT_VALVE_PC_SAFER_OPEN-1;
-                // >15m which should let the rad cool before valve closes
-                // but is not an unreasonable time for a radiator to stay on for
+                // Should close slow enough let the rad cool before valve closes
+                // but not be an unreasonable time for a radiator to stay on for
                 // (likely partially restricted) to get decent heat into a room.
-                static constexpr uint8_t maxSlew = 3;
+                static constexpr uint8_t maxSlew = 4;
                 // Verify that there is theoretically time for
                 // a response from the boiler and the rad to start cooling
                 // before the valve reaches 100% open.
-                static_assert((maxOpen / maxSlew) > 2*DEFAULT_MAX_RUN_ON_TIME_M,
+                static_assert((maxOpen / maxSlew) >= 2*DEFAULT_MAX_RUN_ON_TIME_M,
                     "should be time notionally for boiler to stop "
                     "before valve reaches 0% open");
-//                // Fast-ish slew based on (+ve) error above higher threshold.
-//                // This slew is then independent of any setback in place.
-//                const uint8_t slewE = (herrorC16 >> errShift);
-                // Within bounds attempt to fix faster when further off target
+                // Fast-ish slew based on (+ve) error above wAT threshold.
+                // Always close faster than glacial when here.
+                const uint8_t slewE =
+                    2 + ((herrorC16 - wOTC16highSide) >> worfErrShift);
+                // Within bounds, attempt to fix faster when further off target
                 // but not so fast as to force a full close unnecessarily.
                 // Not calling for heat, so may be able to dawdle.
-                // Note: even if slew == 0, it can not result in bad hovering,
-                // because this also cancels any call for heat.
+                // Note: even if slew were 0, it could not cause bad hovering,
+                // because this also ensures that there is no call for heat.
                 return(uint8_t(OTV0P2BASE::fnconstrain(
-                    int(valvePCOpen) - int(OTV0P2BASE::fnmin(slewF, maxSlew)),
+                    int(valvePCOpen) - int(OTV0P2BASE::fnmin(slewE, maxSlew)),
                     0,
                     int(maxOpen))));
                 }
