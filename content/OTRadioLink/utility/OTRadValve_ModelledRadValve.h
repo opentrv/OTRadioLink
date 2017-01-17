@@ -154,7 +154,7 @@ struct ModelledRadValveState final
   // Primarily exposed to allow for unit testing; subject to change.
   // With 1/16C precision, a continuous drift in either direction
   // implies a delta T >= 60/16C ~ 4C per hour.
-  static constexpr uint8_t _proportionalRange = 8;
+  static constexpr uint8_t _proportionalRange = 7;
 
   // Max jump between adjacent readings before forcing filtering; strictly +ve.
   // Too small a value may cap room rate rise to this per minute.
