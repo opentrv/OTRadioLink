@@ -528,29 +528,36 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
                 {
                 // Immediately stop calling for heat.
                 static constexpr uint8_t maxOpen = DEFAULT_VALVE_PC_SAFER_OPEN-1;
-                // Should close slow enough let the rad start to cool
+                // Should otherwise close slow enough let the rad start to cool
                 // before the valve completely closes,
-                // ie ride out the rising temperature 'wave',
-                // but not be an unreasonable time for a radiator to stay on for
-                // (likely partially restricted) to get decent heat into a room.
-                static constexpr uint8_t maxSlew = 4;
+                // ie to be able to ride out the rising temperature 'wave',
+                // and get decent heat into a room,
+                // but not egregiously overheat it.
+                //
+                // Target time (minutes/ticks) to ride out the heat 'wave'.
+                // This chance to close may start after the turndown delay.
+                static constexpr uint8_t rideoutM = 20;
+                // Computed slew: faster than glacial since temp is rising.
+                static constexpr uint8_t maxSlew =
+                    OTV0P2BASE::fnmax(2, maxOpen / rideoutM);
                 // Verify that there is theoretically time for
                 // a response from the boiler and the rad to start cooling
                 // before the valve reaches 100% open.
-                static_assert((maxOpen / maxSlew) >= 2*DEFAULT_MAX_RUN_ON_TIME_M,
+                static_assert((maxOpen / maxSlew) > 2*DEFAULT_MAX_RUN_ON_TIME_M,
                     "should be time notionally for boiler to stop "
-                    "before valve reaches 0% open");
-                // Fast-ish slew based on (+ve) error above wAT threshold.
-                // Close faster than glacial when the temperature is rising.
-                const uint8_t slewE =
-                    2 + ((herrorC16 - wOTC16highSide) >> worfErrShift);
+                    "and rad to stop getting hotter, "
+                    "before valve reaches 0%");
+//                // Fast-ish slew based on (+ve) error above wAT threshold.
+//                // Close faster than glacial when the temperature is rising.
+//                const uint8_t slewE =
+//                    2 + ((herrorC16 - wOTC16highSide) >> worfErrShift);
                 // Within bounds, attempt to fix faster when further off target
                 // but not so fast as to force a full close unnecessarily.
                 // Not calling for heat, so may be able to dawdle.
                 // Note: even if slew were 0, it could not cause bad hovering,
                 // because this also ensures that there is no call for heat.
                 return(uint8_t(OTV0P2BASE::fnconstrain(
-                    int(valvePCOpen) - int(OTV0P2BASE::fnmin(slewE, maxSlew)),
+                    int(valvePCOpen) - int(maxSlew),
                     0,
                     int(maxOpen))));
                 }
