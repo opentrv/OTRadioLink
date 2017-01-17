@@ -414,7 +414,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         // This asymmetry is needed because some valves
         // may not open significantly until near 100%.
         //
-        // Try to get to right side of call-for-heat threshold in first tick
+        // Get to right side of call-for-heat threshold in first tick
         // if not in central sweet-spot already  (TODO-1099)
         // to have boiler respond appropriately ASAP also.
         // As well as responding quickly thermally to requested changes,
@@ -423,24 +423,27 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         // is very likely to force this unit out of the sweet-spot.
         //
         // Glacial mode must be set for valves with unusually small ranges,
-        // as a guard to avoid large swings here.
+        // as a guard to avoid large and out-of-range swings here.
         if(!beGlacial &&
            (inputState.fastResponseRequired || wellBelowTarget) &&
            (slewF > 0))
             {
             if(belowTarget)
                 {
-                static constexpr uint8_t minOpen = DEFAULT_VALVE_PC_MODERATELY_OPEN;
-                static constexpr uint8_t baseSlew = TRV_SLEW_PC_PER_MIN;
-                // Verify that there is theoretically time for
-                // a response from the boiler before hitting 100% open.
-                static_assert((100-minOpen) / (1+baseSlew) >= BOILER_RESPONSE_TIME_FROM_OFF,
-                    "should be time notionally to get a response from boiler "
-                    "before valve reaches 100% open");
-                return(OTV0P2BASE::fnconstrain(
-                    uint8_t(valvePCOpen + slewF + baseSlew),
-                    uint8_t(minOpen),
-                    inputState.maxPCOpen));
+                // Default to safe and fast full open.
+                // Aim to reduce movement by avoiding closing fast/fully.
+                return(inputState.maxPCOpen);
+//                static constexpr uint8_t minOpen = DEFAULT_VALVE_PC_MODERATELY_OPEN;
+//                static constexpr uint8_t baseSlew = TRV_SLEW_PC_PER_MIN;
+//                // Verify that there is theoretically time for
+//                // a response from the boiler before hitting 100% open.
+//                static_assert((100-minOpen) / (1+baseSlew) >= BOILER_RESPONSE_TIME_FROM_OFF,
+//                    "should be time notionally to get a response from boiler "
+//                    "before valve reaches 100% open");
+//                return(OTV0P2BASE::fnconstrain(
+//                    uint8_t(valvePCOpen + slewF + baseSlew),
+//                    uint8_t(minOpen + TRV_SLEW_PC_PER_MIN),
+//                    inputState.maxPCOpen));
                 }
             else
                 {
