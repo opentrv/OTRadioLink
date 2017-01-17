@@ -136,6 +136,8 @@ struct ModelledRadValveState final
   static constexpr bool SUPPORT_MRVE_DRAUGHT = false;
   // If true then do lingering close to help boilers with poor bypass.
   static constexpr bool SUPPORT_LINGER = false;
+  // If true then support filter minimum on-time (as isFiltering may be >1).
+  static constexpr bool SUPPORT_LONG_FILTER = true;
 
   // Target minutes/ticks for full valve movement when fast response requested.
   static constexpr uint8_t fastResponseTicksTarget = 5;
@@ -152,7 +154,7 @@ struct ModelledRadValveState final
   // Primarily exposed to allow for unit testing; subject to change.
   // With 1/16C precision, a continuous drift in either direction
   // implies a delta T >= 60/16C ~ 4C per hour.
-  static constexpr uint8_t _proportionalRange = 8;
+  static constexpr uint8_t _proportionalRange = 7;
 
   // Max jump between adjacent readings before forcing filtering; strictly +ve.
   // Too small a value may cap room rate rise to this per minute.
@@ -207,8 +209,10 @@ struct ModelledRadValveState final
   // such as real temperatures to propagate into all the filters.
   bool initialised = false;
 
-  // If true then filtering is being applied since temperatures fast-changing.
-  bool isFiltering = false;
+  // If !false then filtering is being applied since temperatures fast-changing.
+  // Can be used as if a bool, though may be set > 1 to allow a timeout.
+//  bool isFiltering = false;
+  uint8_t isFiltering = 0;
 
 //  // True if the computed modelled valve position was changed by tick().
 //  // This is not an indication if any underlying valve position has changed.
@@ -442,7 +446,9 @@ class ModelledRadValveComputeTargetTempBase
     // computeTargetTemp().
     virtual void setupInputState(ModelledRadValveInputState &inputState,
         const bool isFiltering,
-        const uint8_t newTarget, const uint8_t minPCOpen, const uint8_t maxPCOpen, const bool glacial) const = 0;
+        const uint8_t newTargetC,
+        const uint8_t minPCOpen, const uint8_t maxPCOpen,
+        const bool glacial) const = 0;
   };
 
 // Basic/simple stateless implementation of computation of target temperature.
@@ -662,12 +668,12 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
     // This should not second-guess computeTargetTemp() in terms of setbacks.
     virtual void setupInputState(ModelledRadValveInputState &inputState,
         const bool /*isFiltering*/,
-        const uint8_t newTarget,
+        const uint8_t newTargetC,
         const uint8_t /*minPCOpen*/, const uint8_t maxPCOpen,
         const bool glacial) const override
         {
         // Set up state for computeRequiredTRVPercentOpen().
-        inputState.targetTempC = newTarget;
+        inputState.targetTempC = newTargetC;
         const uint8_t wt = tempControl->getWARMTargetC();
         inputState.maxTargetTempC = wt;
 //        inputState.minPCReallyOpen = minPCOpen;
@@ -704,7 +710,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
         // after manual controls have been used.  (TODO-593)
         // DHD20170109: filtering effectively forces wide in computation now.
         inputState.widenDeadband = (!fastResponseRequired) &&
-            ((newTarget < wt)
+            ((newTargetC < wt)
                 || ambLight->isRoomDark()); // Must return false if not usable.
         // Capture adjusted reference/room temperature.
         inputState.setReferenceTemperatures(temperatureC16->get());

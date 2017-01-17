@@ -94,11 +94,21 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef,
   prevRawTempC16[0] = rawTempC16;
 
   // Disable/enable filtering.
+  static constexpr uint8_t filter_minimum_ON =
+      SUPPORT_LONG_FILTER ? (4 * filterLength) : 1;
+  static constexpr uint8_t filter_OFF = 0;
   // Exit from filtering:
   // if the raw value is close enough to the current filtered value
   // that reverting to unfiltered would not itself cause a big jump.
+  // Only test this if the filter minimum on-time has expired.
   if(isFiltering)
-    { if(OTV0P2BASE::fnabsdiff(getSmoothedRecent(), rawTempC16) <= MAX_TEMP_JUMP_C16) { isFiltering = false; } }
+    {
+    // Count down until ready to test for filter exit.
+    if(SUPPORT_LONG_FILTER && (isFiltering > 1))
+      { --isFiltering; }
+    else
+      { if(OTV0P2BASE::fnabsdiff(getSmoothedRecent(), rawTempC16) <= MAX_TEMP_JUMP_C16) { isFiltering = filter_OFF; } }
+    }
   // Force filtering (back) on if big delta(s) over recent minutes.
   // This is NOT an else clause from the above so as to avoid flapping
   // filtering on and off if the current temp happens to be close to the mean,
@@ -114,7 +124,7 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef,
     if((OTV0P2BASE::fnabs(getRawDelta(MIN_TICKS_0p5C_DELTA)) > 8))
 //       (OTV0P2BASE::fnabs(getRawDelta(MIN_TICKS_1C_DELTA)) > 16) ||
 //       (OTV0P2BASE::fnabs(getRawDelta(filterLength-1)) > int_fast16_t(((filterLength-1) * 16) / MIN_TICKS_1C_DELTA)))
-      { isFiltering = true; }
+      { isFiltering = filter_minimum_ON; }
     }
   if(FILTER_DETECT_JITTER && !isFiltering)
     {
@@ -122,7 +132,7 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef,
     // Slow/expensive test if temperature readings are jittery.
     // It is not clear how often this will be the case with good sensors.
     for(size_t i = 1; i < filterLength; ++i)
-      { if(OTV0P2BASE::fnabsdiff(prevRawTempC16[i], prevRawTempC16[i-1]) > MAX_TEMP_JUMP_C16) { isFiltering = true; break; } }
+      { if(OTV0P2BASE::fnabsdiff(prevRawTempC16[i], prevRawTempC16[i-1]) > MAX_TEMP_JUMP_C16) { isFiltering = filter_minimum_ON; break; } }
     }
 
   // Count down timers.
@@ -368,12 +378,15 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         static constexpr uint8_t halfNormalBand = 6;
         // Basic behaviour is to double the deadband with wide or filtering.
         const int wOTC16basic = (worf ? (2*halfNormalBand) : halfNormalBand);
-        // Filtering pushes limit up much higher to allow for all-in-one TRVs.
+        // Upper 'wellAboveTarget' is always above any non-set-back target.
+        // Filtering pushes limit up well above the target for all-in-one TRVs,
+        // though if sufficiently set back the non-set-back value prevails.
         // Does not extend general wide deadband upwards to save some energy.
         // The threshold is about halfway to the outer/limit boundary;
         // hopefully far enough away to react in time to avoid breaching it.
-        const uint8_t wOTC16highSide = isFiltering ?
-            (_proportionalRange * 8) : halfNormalBand;
+        static constexpr uint8_t wATC16 = _proportionalRange * 8;
+        const uint8_t wOTC16highSide = OTV0P2BASE::fnmax(int(halfNormalBand),
+            isFiltering ? (wATC16 - int((higherTargetC - tTC) << 4)) : 0);
         // Same calc for herrorC16 as errorC16 but possibly not set back.
         // This allows the temperature to fall passively when set back.
         const int_fast16_t herrorC16 =
@@ -385,7 +398,8 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         // Compute proportional slew rates to fix temperature errors.
         // Note that non-rounded shifts effectively set the deadband also.
         // Note that slewF == 0 in central sweet spot / deadband.
-        const uint8_t errShift = worf ? 3 : 2;
+        static constexpr uint8_t worfErrShift = 3;
+        const uint8_t errShift = worf ? worfErrShift : (worfErrShift-1);
         // Fast slew when responding to manual control or similar.
         const uint8_t slewF = OTV0P2BASE::fnmin(TRV_SLEW_PC_PER_MIN_FAST,
             uint8_t((errorC16 < 0) ? ((-errorC16) >> errShift) : (errorC16 >> errShift)));
@@ -421,7 +435,8 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
                 // Verify that there is theoretically time for
                 // a response from the boiler before hitting 100% open.
                 static_assert((100-minOpen) / (1+baseSlew) >= BOILER_RESPONSE_TIME_FROM_OFF,
-                    "should be time notionally to get a response from boiler before valve reaches 100% open");
+                    "should be time notionally to get a response from boiler "
+                    "before valve reaches 100% open");
                 return(OTV0P2BASE::fnconstrain(
                     uint8_t(valvePCOpen + slewF + baseSlew),
                     uint8_t(minOpen),
@@ -496,29 +511,53 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         // as a guard to avoid large swings here.
         if(!beGlacial)
             {
-            // This handles being significantly over temperature,
-            // attempting to force a rapid return to the target.
+            // This handles being significantly over temperature and rising,
+            // attempting to force a relatively rapid return to the target,
+            // but not so rapid as to prematurely close the valve
+            // implying excess noise and battery consumption.
+            // (If well above target but not rising this will fall through
+            // to the default glacial close.)
+            //
             // Note that wellAboveTarget indicates potentially far too high
             // even allowing for any setback in place.
             //
             // Below this any residual error can be dealt with glacially.
             //
             // The 'well below' case is dealt elsewhere.
-            if(wellAboveTarget)
+            if(wellAboveTarget && (rise > 0))
                 {
                 // Immediately stop calling for heat.
                 static constexpr uint8_t maxOpen = DEFAULT_VALVE_PC_SAFER_OPEN-1;
-                // Aiming for > 15m which should let the rad cool before valve closes.
-                static constexpr uint8_t maxSlew = 3;
+                // Should otherwise close slow enough let the rad start to cool
+                // before the valve completely closes,
+                // ie to be able to ride out the rising temperature 'wave',
+                // and get decent heat into a room,
+                // but not egregiously overheat it.
+                //
+                // Target time (minutes/ticks) to ride out the heat 'wave'.
+                // This chance to close may start after the turndown delay.
+                static constexpr uint8_t rideoutM = 20;
+                // Computed slew: faster than glacial since temp is rising.
+                static constexpr uint8_t maxSlew =
+                    OTV0P2BASE::fnmax(2, maxOpen / rideoutM);
                 // Verify that there is theoretically time for
-                // a response from the boiler before hitting 100% open.
+                // a response from the boiler and the rad to start cooling
+                // before the valve reaches 100% open.
                 static_assert((maxOpen / maxSlew) > 2*DEFAULT_MAX_RUN_ON_TIME_M,
-                    "should be time notionally for boiler to stop before valve reaches 0% open");
-                // Within bounds attempt to fix faster when further off target
+                    "should be time notionally for boiler to stop "
+                    "and rad to stop getting hotter, "
+                    "before valve reaches 0%");
+//                // Fast-ish slew based on (+ve) error above wAT threshold.
+//                // Close faster than glacial when the temperature is rising.
+//                const uint8_t slewE =
+//                    2 + ((herrorC16 - wOTC16highSide) >> worfErrShift);
+                // Within bounds, attempt to fix faster when further off target
                 // but not so fast as to force a full close unnecessarily.
                 // Not calling for heat, so may be able to dawdle.
+                // Note: even if slew were 0, it could not cause bad hovering,
+                // because this also ensures that there is no call for heat.
                 return(uint8_t(OTV0P2BASE::fnconstrain(
-                    int(valvePCOpen) - int(OTV0P2BASE::fnmin(slewF, maxSlew)),
+                    int(valvePCOpen) - int(maxSlew),
                     0,
                     int(maxOpen))));
                 }

@@ -660,9 +660,12 @@ TEST(ModelledRadValve,MRVSNoHoverWithBoilerOn)
     OTV0P2BASE::seedRNG8(random() & 0xff, random() & 0xff, random() & 0xff);
 
     // Modest target temperature.
-    const uint8_t targetTempC = 18;
+    const uint8_t targetTempC = 19;
     // Temperature range / max offset in each direction in C.
-    const uint8_t tempMaxOffsetC = 5;
+    const uint8_t tempMaxOffsetC =
+        OTV0P2BASE::fnmax(10,
+        2+OTRadValve::ModelledRadValveState::_proportionalRange);
+    ASSERT_GT(targetTempC, tempMaxOffsetC) << "avoid underflow to < 0C";
     for(int16_t ambientTempC16 = (targetTempC - (int)tempMaxOffsetC) << 4;
         ambientTempC16 <= (targetTempC + (int)tempMaxOffsetC) << 4;
         ++ambientTempC16)
@@ -676,7 +679,7 @@ TEST(ModelledRadValve,MRVSNoHoverWithBoilerOn)
         // Randomly try with/out wide deadband; may matter, though should not.
         is0.widenDeadband = OTV0P2BASE::randRNG8NextBoolean();
         // Randomly try with/out glacial; may matter, though should not.
-        is0.glacial =  OTV0P2BASE::randRNG8NextBoolean();
+        is0.glacial = OTV0P2BASE::randRNG8NextBoolean();
         // Shouldn't be sensitive to initial filtering state.
         rs0.isFiltering = OTV0P2BASE::randRNG8NextBoolean();
         // Start valve in a random position.
@@ -842,7 +845,8 @@ TEST(ModelledRadValve,DraughtDetectorSimple)
     // Don't run the test if the option is not supported.
     if(!OTRadValve::ModelledRadValveState::SUPPORT_MRVE_DRAUGHT) { return; }
 
-    // Run the test a few times to help ensure no dependency on state of random generator, etc.
+    // Run the test a few times to help ensure
+    // that there is no dependency on the state of the PRNG, etc.
     for(int i = 8; --i >= 0; )
         {
         // Test that:
@@ -873,7 +877,8 @@ if(verbose) { fprintf(stderr, "Valve %d%%.\n", valvePCOpen); }
         is0.widenDeadband = OTV0P2BASE::randRNG8NextBoolean();
         rs0.isFiltering = OTV0P2BASE::randRNG8NextBoolean();
         // Set a new significantly lower room temp (drop >=0.5C), as if draught.
-        const int_fast16_t droppedRoomTemp = roomTemp - 8 - (OTV0P2BASE::randRNG8() % 32);
+        const int_fast16_t droppedRoomTemp =
+            roomTemp - 8 - (OTV0P2BASE::randRNG8() % 32);
         is0.setReferenceTemperatures(droppedRoomTemp);
         // Run the algorithm one tick.
         rs0.tick(valvePCOpen, is0, NULL);
@@ -886,6 +891,11 @@ if(verbose) { fprintf(stderr, "Valve %d%%.\n", valvePCOpen); }
 
 // Check expected valve response to one very small set of data points.
 // These are manually interpolated from real world data (5s, ~20161231T1230).
+//
+// DHD20170117: in particular this should verify that
+// filtering stays on long enough to carry when valve temps just below
+// 'wellAboveTarget' threshold to let room cool gradually
+// and not force the valve to close prematurely.
 /*
 {"@":"E091B7DC8FEDC7A9","gE":0,"T|C16":281,"H|%":65}
 {"@":"E091B7DC8FEDC7A9","O":1,"vac|h":0,"B|cV":254}
@@ -1192,6 +1202,9 @@ TEST(ModelledRadValve,SampleValveResponse1)
     //{"@":"E091B7DC8FEDC7A9","T|C16":339,"H|%":58,"O":1}
     is0.setReferenceTemperatures(339);
     rs0.tick(valvePCOpen, is0, NULL);
+    // Filtering should still be on if filter has a minimum on-time.
+    const bool slf = rs0.SUPPORT_LONG_FILTER;
+    EXPECT_EQ(slf, (0 != rs0.isFiltering));
 
     // For algorithms improved since that involved in this trace (20161231)
     // the valve should not yet be fully closed.  (TODO-1099)
@@ -1199,12 +1212,17 @@ TEST(ModelledRadValve,SampleValveResponse1)
     const uint8_t v5 = valvePCOpen;
     EXPECT_GE(v4, v5) << "valve should not be re-opening";
     EXPECT_NEAR(344, rs0.getSmoothedRecent(), 5); // 344 ~ 21.5C.
+    // If (supporting long filtering and thus) filter is still on
+    // then smoothed recent should be below the wellAboveTarget threshold
+    // and the valve should still be calling for heat.
+    EXPECT_LE(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, valvePCOpen);
 
     // Set back temperature significantly (a FULL setback)
     // and verify that valve is not immediately fully closed,
     // though could even close a little if the ambient stays steady.
     const uint8_t valveOpenBeforeSetback = valvePCOpen;
-    const uint8_t setbackTarget = targetTempC - OTRadValve::DEFAULT_ValveControlParameters::SETBACK_FULL;
+    const uint8_t setbackTarget = targetTempC -
+        OTRadValve::DEFAULT_ValveControlParameters::SETBACK_FULL;
     is0.targetTempC = setbackTarget;
     rs0.tick(valvePCOpen, is0, NULL);
     const uint8_t valveOpenAfterSetback = valvePCOpen;
@@ -1220,6 +1238,11 @@ TEST(ModelledRadValve,SampleValveResponse1)
         rs0.tick(valvePCOpen, is0, NULL);
         EXPECT_LE(valveOpenAfterSetback, valvePCOpen);
         }
+
+    // If (supporting long filtering and thus) filter is still on
+    // then smoothed recent probably no longer below wellAboveTarget threshold
+    // but the valve should not yet have closed.
+    EXPECT_LT(0, valvePCOpen);
 }
 
 // Valve fully opening unexpectedly fast on occupancy setback decrease.

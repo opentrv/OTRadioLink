@@ -82,7 +82,9 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     // Max consecutive end-stop hits to trust the stop really hit; strictly +ve.
     // Spurious apparent stalls may be caused by dirt, etc.
     // The calibration step may try even more steps for increased confidence.
-    static const constexpr uint8_t maxEndStopHitsToBeConfident = 3;
+    // Even small increases in this value may increase noise immunity a lot.
+    // DHD20170116: was 3, and OK in real life; simulations suggest higher.
+    static const constexpr uint8_t maxEndStopHitsToBeConfident = 4;
 
     // Computes minimum motor dead reckoning ticks given approx ms per tick (pref rounded down).
     // Keep inline in the header to allow compile-time computation.
@@ -446,14 +448,15 @@ class CurrentSenseValveMotorDirect final : public CurrentSenseValveMotorDirectBi
     //
     // Too high a tolerance may result in excess valve movement
     // from the valve being pulled to end stops more than necessary.
-//    static constexpr uint8_t absTolerancePC = 16; // 16 up to 20170104.
-    static constexpr uint8_t absTolerancePC = 9;
+    // DHD20170104: was 16 up to 20170104 based on emprical obseravtions.
+    // DHD20170116: set to 11 based on (unit test) simulations.
+    static constexpr uint8_t absTolerancePC = 11;
     static constexpr bool closeEnoughToTarget(const uint8_t targetPC, const uint8_t currentPC)
         {
         return((targetPC == currentPC) ||
-                (OTV0P2BASE::fnabsdiff(targetPC, currentPC) <= absTolerancePC) ||
-                ((targetPC < OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN) && (currentPC <= targetPC)) ||
-                ((targetPC >= OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN) && (currentPC >= targetPC)));
+            (OTV0P2BASE::fnabsdiff(targetPC, currentPC) <= absTolerancePC) ||
+            ((targetPC < OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN) && (currentPC <= targetPC)) ||
+            ((targetPC >= OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN) && (currentPC >= targetPC)));
         }
 
     // Calibration parameters.
