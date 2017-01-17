@@ -679,7 +679,7 @@ TEST(ModelledRadValve,MRVSNoHoverWithBoilerOn)
         // Randomly try with/out wide deadband; may matter, though should not.
         is0.widenDeadband = OTV0P2BASE::randRNG8NextBoolean();
         // Randomly try with/out glacial; may matter, though should not.
-        is0.glacial =  OTV0P2BASE::randRNG8NextBoolean();
+        is0.glacial = OTV0P2BASE::randRNG8NextBoolean();
         // Shouldn't be sensitive to initial filtering state.
         rs0.isFiltering = OTV0P2BASE::randRNG8NextBoolean();
         // Start valve in a random position.
@@ -845,7 +845,8 @@ TEST(ModelledRadValve,DraughtDetectorSimple)
     // Don't run the test if the option is not supported.
     if(!OTRadValve::ModelledRadValveState::SUPPORT_MRVE_DRAUGHT) { return; }
 
-    // Run the test a few times to help ensure no dependency on state of random generator, etc.
+    // Run the test a few times to help ensure
+    // that there is no dependency on the state of the PRNG, etc.
     for(int i = 8; --i >= 0; )
         {
         // Test that:
@@ -876,7 +877,8 @@ if(verbose) { fprintf(stderr, "Valve %d%%.\n", valvePCOpen); }
         is0.widenDeadband = OTV0P2BASE::randRNG8NextBoolean();
         rs0.isFiltering = OTV0P2BASE::randRNG8NextBoolean();
         // Set a new significantly lower room temp (drop >=0.5C), as if draught.
-        const int_fast16_t droppedRoomTemp = roomTemp - 8 - (OTV0P2BASE::randRNG8() % 32);
+        const int_fast16_t droppedRoomTemp =
+            roomTemp - 8 - (OTV0P2BASE::randRNG8() % 32);
         is0.setReferenceTemperatures(droppedRoomTemp);
         // Run the algorithm one tick.
         rs0.tick(valvePCOpen, is0, NULL);
