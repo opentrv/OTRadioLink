@@ -515,7 +515,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
             // attempting to force a relatively rapid return to the target,
             // but not so rapid as to prematurely close the valve
             // implying excess noise and battery consumption.
-            // (If above target but not rising this will fall through
+            // (If well above target but not rising this will fall through
             // to the default glacial close.)
             //
             // Note that wellAboveTarget indicates potentially far too high
@@ -528,7 +528,9 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
                 {
                 // Immediately stop calling for heat.
                 static constexpr uint8_t maxOpen = DEFAULT_VALVE_PC_SAFER_OPEN-1;
-                // Should close slow enough let the rad cool before valve closes
+                // Should close slow enough let the rad start to cool
+                // before the valve completely closes,
+                // ie ride out the rising temperature 'wave',
                 // but not be an unreasonable time for a radiator to stay on for
                 // (likely partially restricted) to get decent heat into a room.
                 static constexpr uint8_t maxSlew = 4;
@@ -539,7 +541,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
                     "should be time notionally for boiler to stop "
                     "before valve reaches 0% open");
                 // Fast-ish slew based on (+ve) error above wAT threshold.
-                // Always close faster than glacial when here.
+                // Close faster than glacial when the temperature is rising.
                 const uint8_t slewE =
                     2 + ((herrorC16 - wOTC16highSide) >> worfErrShift);
                 // Within bounds, attempt to fix faster when further off target
