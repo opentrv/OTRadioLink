@@ -394,6 +394,10 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         const bool wellAboveTarget = herrorC16 > wOTC16highSide;
         const bool wellBelowTarget = errorC16 < -wOTC16basic;
 //        const bool wOT = wellAboveTarget || wellBelowTarget;
+        // If well above the highest permitted (non-set-back) temperature,
+        // allowing for filtering.
+        const bool wellAboveTargetMax =
+            herrorC16 > (isFiltering ? wATC16 : halfNormalBand);
 
         // Compute proportional slew rates to fix temperature errors.
         // Note that non-rounded shifts effectively set the deadband also.
@@ -502,7 +506,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
                 // or (say) keeping users from sleeping by being too warm.
                 else
                     {
-                    if(wellAboveTarget ? (rise < 0) : (rise <= 0))
+                    if(wellAboveTargetMax ? (rise < 0) : (rise <= 0))
                         { return(valvePCOpen); }
                     }
                 }
