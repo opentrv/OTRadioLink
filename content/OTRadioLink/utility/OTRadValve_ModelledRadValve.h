@@ -151,7 +151,7 @@ struct ModelledRadValveState final
   // Within this range the device is always seeking for zero temperature error;
   // this is not a deadband.
   //
-  // Primarily exposed to allow for unit testing; subject to change.
+  // Primarily exposed to allow for whitebox unit testing; subject to change.
   // With 1/16C precision, a continuous drift in either direction
   // implies a delta T >= 60/16C ~ 4C per hour.
   static constexpr uint8_t _proportionalRange = 7;
