@@ -383,9 +383,11 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         // This takes into account that with a sensor near the radiator
         // the measured temperature will need to seem to overshoot the target
         // by this much to allow heat to be effectively pushed into the room.
-        // This is set about halfway to the outer/limit boundary;
+        // This is set around halfway to the outer/limit boundary
+        // (though capped at an empirically-reasonable level);
         // far enough away to react in time to avoid breaching the outer limit.
-        static constexpr uint8_t wATC16 = _proportionalRange * 8;
+        static constexpr uint8_t wATC16 = OTV0P2BASE::fnmin(4 * 16,
+            _proportionalRange * 6);
         // Filtering pushes limit up well above the target for all-in-one TRVs,
         // though if sufficiently set back the non-set-back value prevails.
         // Does not extend general wide deadband upwards to save some energy.

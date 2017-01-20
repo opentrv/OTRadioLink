@@ -1706,10 +1706,15 @@ TEST(ModelledRadValve,SampleValveResponse4)
 
     EXPECT_NEAR(353, rs0.getSmoothedRecent(), 5); // 342 ~ 22.1C.
 
-    // Valve should still at/above normal call-for-heat level.
+    // Valve should still at/above normal call-for-heat level
+    // providing the room is not too far above the target temperature...
     // Already below in the original trace.
-    EXPECT_LE(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, valvePCOpen);
+    const int_fast16_t overshoot = is0.refTempC16 - (targetTempC*16);
+    if(overshoot < 4 * 16)
+        { EXPECT_LE(OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN, valvePCOpen) << overshoot; }
     EXPECT_NEAR(OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN, valvePCOpen, 25);
+    // In any case the valve should not have fully closed.
+    EXPECT_LT(0, valvePCOpen);
 }
 
 
