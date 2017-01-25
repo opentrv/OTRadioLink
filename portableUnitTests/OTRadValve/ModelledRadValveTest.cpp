@@ -2061,6 +2061,8 @@ Starred items are tested.
 /*
 FIXME: tests pending...  See also TODO-1028.
 
+TODO: retest that lights on in middle of night does not instantly trigger occupancy and heating.
+
 TODO: test fast response to manual UI use AND to probable occupancy, eg lights on, to be responsive.
 
 TODO: test DHW temperature range and restricted max-open (13%) and glacial as per Bo's setup.
