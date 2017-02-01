@@ -2075,7 +2075,7 @@ TODO: standard driver and test cases from data above!
 
 TODO: test ModelledRad valve as a whole, including its glue logic that has been buggy before (eg overwriting valve % with temperature!), integrated with sensor and valve mocks as required.
 
-TODO: look at l24 data set for failure to delivery heat in the evenings.
+TODO: look at l24 data set for failure to deliver heat in the evenings.
 
  */
 

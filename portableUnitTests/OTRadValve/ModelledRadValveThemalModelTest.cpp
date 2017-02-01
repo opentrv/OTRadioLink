@@ -70,12 +70,13 @@ Test for sticky / jammed / closed value calling for heat in stable temp room run
 
 Test for difficult cases such as:
   * DHW (esp needing glacial as per Bo).
-  * All-in-one (TRV1.x) on flow end of rad ver slow to heat up
+  * All-in-one (TRV1.x) on flow end of rad very slow to heat up
     so valve must let whole rad get warm to let room get warm
     (eg see 1g 2017/01/14 12:00 to 15:00 om tag 20170114-responsiveness).
   * All-in-one (TRV1.x) on rad with very poor air circulation.
   * Split unit (REV2+FHT8V style) with sensor close to and far from radiator.
   * All-in-one or split unit in draughty room.
   * All-in-one or split unit in room with door or window opened on cold day.
-
+  * Behaviour in well-insulated (or otherwise) house
+    with central timer only set for a few hours per day.
  */
