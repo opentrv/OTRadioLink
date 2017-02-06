@@ -36,7 +36,8 @@ template<size_t N> int_fast16_t smallIntMean(const int_fast16_t data[N])
   int_fast16_t sum = 0;
   for(int8_t i = N; --i >= 0; ) { sum += data[i]; }
   // Compute rounded-up mean.
-  return((sum + (int_fast16_t)(N/2)) / (int_fast16_t)N); // Avoid accidental computation as unsigned...
+  // Avoid accidental computation as unsigned...
+  return((sum + (int_fast16_t)(N/2)) / (int_fast16_t)N);
   }
 
 // Get smoothed raw/unadjusted temperature from the most recent samples.
@@ -378,22 +379,32 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         static constexpr uint8_t halfNormalBand = 6;
         // Basic behaviour is to double the deadband with wide or filtering.
         const int wOTC16basic = (worf ? (2*halfNormalBand) : halfNormalBand);
-        // Upper 'wellAboveTarget' is always above any non-set-back target.
+        // The expected excursion above the sweet-spot when filtering.
+        // This takes into account that with a sensor near the radiator
+        // the measured temperature will need to seem to overshoot the target
+        // by this much to allow heat to be effectively pushed into the room.
+        // This is set at up to around halfway to the outer/limit boundary
+        // (though capped at an empirically-reasonable level);
+        // far enough away to react in time to avoid breaching the outer limit.
+        static constexpr uint8_t wATC16 = OTV0P2BASE::fnmin(4 * 16,
+            _proportionalRange * 4);
         // Filtering pushes limit up well above the target for all-in-one TRVs,
         // though if sufficiently set back the non-set-back value prevails.
         // Does not extend general wide deadband upwards to save some energy.
-        // The threshold is about halfway to the outer/limit boundary;
-        // hopefully far enough away to react in time to avoid breaching it.
-        static constexpr uint8_t wATC16 = _proportionalRange * 8;
-        const uint8_t wOTC16highSide = OTV0P2BASE::fnmax(int(halfNormalBand),
-            isFiltering ? (wATC16 - int((higherTargetC - tTC) << 4)) : 0);
-        // Same calc for herrorC16 as errorC16 but possibly not set back.
-        // This allows the temperature to fall passively when set back.
-        const int_fast16_t herrorC16 =
-            adjustedTempC16 - (int_fast16_t(higherTargetC) << 4) - centreOffsetC16;
-        const bool wellAboveTarget = herrorC16 > wOTC16highSide;
+        const uint8_t wOTC16highSide = isFiltering ? wATC16 : halfNormalBand;
+        const bool wellAboveTarget = errorC16 > wOTC16highSide;
         const bool wellBelowTarget = errorC16 < -wOTC16basic;
-//        const bool wOT = wellAboveTarget || wellBelowTarget;
+        // Same calc for herrorC16 as errorC16 but possibly not set back.
+        // This allows the room temperature to fall passively during setback.
+        const int_fast16_t herrorC16 = errorC16 -
+            (int_fast16_t(higherTargetC - tTC) << 4);
+        // True if well above the highest permitted (non-set-back) temperature,
+        // allowing for filtering.
+        // This is relative to (and above) the non-set-back temperature
+        // to avoid the valve having to drift closed for no other reason
+        // when the target temperature is set back
+        // and this valve is not actually calling for heat.
+        const bool wellAboveTargetMax = herrorC16 > wOTC16highSide;
 
         // Compute proportional slew rates to fix temperature errors.
         // Note that non-rounded shifts effectively set the deadband also.
@@ -414,7 +425,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         // This asymmetry is needed because some valves
         // may not open significantly until near 100%.
         //
-        // Try to get to right side of call-for-heat threshold in first tick
+        // Get to right side of call-for-heat threshold in first tick
         // if not in central sweet-spot already  (TODO-1099)
         // to have boiler respond appropriately ASAP also.
         // As well as responding quickly thermally to requested changes,
@@ -423,24 +434,27 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         // is very likely to force this unit out of the sweet-spot.
         //
         // Glacial mode must be set for valves with unusually small ranges,
-        // as a guard to avoid large swings here.
+        // as a guard to avoid large and out-of-range swings here.
         if(!beGlacial &&
            (inputState.fastResponseRequired || wellBelowTarget) &&
            (slewF > 0))
             {
             if(belowTarget)
                 {
-                static constexpr uint8_t minOpen = DEFAULT_VALVE_PC_MODERATELY_OPEN;
-                static constexpr uint8_t baseSlew = TRV_SLEW_PC_PER_MIN;
-                // Verify that there is theoretically time for
-                // a response from the boiler before hitting 100% open.
-                static_assert((100-minOpen) / (1+baseSlew) >= BOILER_RESPONSE_TIME_FROM_OFF,
-                    "should be time notionally to get a response from boiler "
-                    "before valve reaches 100% open");
-                return(OTV0P2BASE::fnconstrain(
-                    uint8_t(valvePCOpen + slewF + baseSlew),
-                    uint8_t(minOpen),
-                    inputState.maxPCOpen));
+                // Default to safe and fast full open.
+                // Aim to reduce movement by avoiding closing fast/fully.
+                return(inputState.maxPCOpen);
+//                static constexpr uint8_t minOpen = DEFAULT_VALVE_PC_MODERATELY_OPEN;
+//                static constexpr uint8_t baseSlew = TRV_SLEW_PC_PER_MIN;
+//                // Verify that there is theoretically time for
+//                // a response from the boiler before hitting 100% open.
+//                static_assert((100-minOpen) / (1+baseSlew) >= BOILER_RESPONSE_TIME_FROM_OFF,
+//                    "should be time notionally to get a response from boiler "
+//                    "before valve reaches 100% open");
+//                return(OTV0P2BASE::fnconstrain(
+//                    uint8_t(valvePCOpen + slewF + baseSlew),
+//                    uint8_t(minOpen + TRV_SLEW_PC_PER_MIN),
+//                    inputState.maxPCOpen));
                 }
             else
                 {
@@ -480,7 +494,8 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
                     if(wellBelowTarget ? (rise > 0) : (rise >= 0))
                         { return(valvePCOpen); }
                     }
-                // When above sweet-spot and not rising, hold valve steady.
+                // When above max sweet-spot and not rising, hold valve steady.
+                // (Note that this is relative to the not-set-back deadband.)
                 // If well above then hold steady only if temperature falling.
                 // (Any rise will fall through and valve will close a little,
                 // ie this will at least act to prevent temperature rise
@@ -489,7 +504,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
                 // eg because something else is keeping the boiler running
                 // and this valve is still allowing some water through,
                 // but the alternative is to allow intermittent valve creep,
-                // eg all night, which might annoy users.  (TODO-1027)
+                // eg all night, which could annoy users.  (TODO-1027)
                 // Note that a noisy temperature sensor,
                 // or a very draughty location, may force the valve to shut.
                 // Generally temperatures will drop steadily
@@ -499,7 +514,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
                 // or (say) keeping users from sleeping by being too warm.
                 else
                     {
-                    if(wellAboveTarget ? (rise < 0) : (rise <= 0))
+                    if(wellAboveTargetMax ? (rise < 0) : (rise <= 0))
                         { return(valvePCOpen); }
                     }
                 }
@@ -518,8 +533,9 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
             // (If well above target but not rising this will fall through
             // to the default glacial close.)
             //
-            // Note that wellAboveTarget indicates potentially far too high
-            // even allowing for any setback in place.
+            // This is dealing with being well above the current target,
+            // including any setback in place, to ensure that the setback
+            // is effective.
             //
             // Below this any residual error can be dealt with glacially.
             //
@@ -532,7 +548,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
                 // before the valve completely closes,
                 // ie to be able to ride out the rising temperature 'wave',
                 // and get decent heat into a room,
-                // but not egregiously overheat it.
+                // but not egregiously overheat the room.
                 //
                 // Target time (minutes/ticks) to ride out the heat 'wave'.
                 // This chance to close may start after the turndown delay.
@@ -547,10 +563,6 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
                     "should be time notionally for boiler to stop "
                     "and rad to stop getting hotter, "
                     "before valve reaches 0%");
-//                // Fast-ish slew based on (+ve) error above wAT threshold.
-//                // Close faster than glacial when the temperature is rising.
-//                const uint8_t slewE =
-//                    2 + ((herrorC16 - wOTC16highSide) >> worfErrShift);
                 // Within bounds, attempt to fix faster when further off target
                 // but not so fast as to force a full close unnecessarily.
                 // Not calling for heat, so may be able to dawdle.
