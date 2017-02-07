@@ -50,12 +50,12 @@ class ThermalModelBase
         OTV0P2BASE::TemperatureC16Mock roomTemperatureInternal;
 
         // Constants
+        float outsideTemp;
         const float radiatorConductance;
         const float wallConductance;
         const float storageCapacitance;
         const float storageConductance;
         const float airCapacitance;
-        float outsideTemp;
         float storedHeat;
 
         // Internal methods
@@ -92,23 +92,24 @@ class ThermalModelBase
         }
 
     public:
-        ThermalModelBase(float _radiatorConductance,
+        ThermalModelBase(float startTemp,
+                         float _outsideTemp,
+                         float _radiatorConductance,
                          float _wallConductance,
                          float _storageCapacitance,
                          float _storageConductance,
                          float _airCapacitance)
-                       : radiatorConductance(_radiatorConductance),
+                       : outsideTemp(_outsideTemp),
+                         radiatorConductance(_radiatorConductance),
                          wallConductance(_wallConductance),
                          storageCapacitance(_storageCapacitance),
                          storageConductance(_storageConductance),
                          airCapacitance(_airCapacitance),
-                         outsideTemp(0.0),
                          storedHeat(0.0)
         {
-//            Missing things:
-//            - starting temp
-//                - also affects stored heat
-//            - set outside temp
+            const float temperatureC16 = (int16_t)(startTemp * 16.0);
+            storedHeat = startTemp * storageCapacitance;
+            roomTemperatureInternal.set(temperatureC16);
         };
 
         // Read-only view of simulated room temperature.
@@ -128,7 +129,7 @@ class ThermalModelBase
             sumHeats += calcHeatFlowWalls(temperature, outsideTemp);
             sumHeats += deltaHeat;
             temperature += (sumHeats * (1.0 / airCapacitance));
-            temperatureC16 = (int16_t)(temperature / 16.0);
+            temperatureC16 = (int16_t)(temperature * 16.0);
             roomTemperatureInternal.set(temperatureC16);
             return temperatureC16;
         }
