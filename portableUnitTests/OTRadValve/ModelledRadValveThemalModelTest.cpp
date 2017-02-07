@@ -50,13 +50,13 @@ class ThermalModelBase
         OTV0P2BASE::TemperatureC16Mock roomTemperatureInternal;
 
         // Constants
-        constexpr float radiatorConductance = 1.0;
-        constexpr float wallConductance = 1.0;
-        constexpr float storageCapacitance = 1.0;
-        constexpr float storageConductance = 1.0;
-        constexpr float airCapacitance = 1.0;
-        float outsideTemp = 0.0;
-        float storedHeat = 0.0;
+        const float radiatorConductance;
+        const float wallConductance;
+        const float storageCapacitance;
+        const float storageConductance;
+        const float airCapacitance;
+        float outsideTemp;
+        float storedHeat;
 
         // Internal methods
         /**
@@ -92,6 +92,25 @@ class ThermalModelBase
         }
 
     public:
+        ThermalModelBase(float _radiatorConductance,
+                         float _wallConductance,
+                         float _storageCapacitance,
+                         float _storageConductance,
+                         float _airCapacitance)
+                       : radiatorConductance(_radiatorConductance),
+                         wallConductance(_wallConductance),
+                         storageCapacitance(_storageCapacitance),
+                         storageConductance(_storageConductance),
+                         airCapacitance(_airCapacitance),
+                         outsideTemp(0.0),
+                         storedHeat(0.0)
+        {
+//            Missing things:
+//            - starting temp
+//                - also affects stored heat
+//            - set outside temp
+        };
+
         // Read-only view of simulated room temperature.
         const OTV0P2BASE::TemperatureC16Base &roomTemperature = roomTemperatureInternal;
 
