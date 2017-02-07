@@ -50,6 +50,7 @@ class ThermalModelBase
         OTV0P2BASE::TemperatureC16Mock roomTemperatureInternal;
 
         // Constants
+        float airTemperature;
         float outsideTemp;
         const float radiatorConductance;
         const float wallConductance;
@@ -92,14 +93,15 @@ class ThermalModelBase
         }
 
     public:
-        ThermalModelBase(float startTemp,
-                         float _outsideTemp,
-                         float _radiatorConductance,
-                         float _wallConductance,
-                         float _storageCapacitance,
-                         float _storageConductance,
-                         float _airCapacitance)
-                       : outsideTemp(_outsideTemp),
+        ThermalModelBase(const float startTemp,
+                         const float _outsideTemp,
+                         const float _radiatorConductance,
+                         const float _wallConductance,
+                         const float _storageCapacitance,
+                         const float _storageConductance,
+                         const float _airCapacitance)
+                       : airTemperature(startTemp),
+                         outsideTemp(_outsideTemp),
                          radiatorConductance(_radiatorConductance),
                          wallConductance(_wallConductance),
                          storageCapacitance(_storageCapacitance),
@@ -120,16 +122,14 @@ class ThermalModelBase
 
         // Calculate new temperature
         int16_t calcNewAirTemperature() {
-            int16_t temperatureC16 = roomTemperatureInternal.read();
-            float temperature = ((float)temperatureC16) / 16.0;
             float sumHeats = 0.0;
-            float deltaHeat = calcHeatStored(temperature, storedHeat);
+            float deltaHeat = calcHeatStored(airTemperature, storedHeat);
             storedHeat -= deltaHeat;  // all heat flows are positive into the air!
-            sumHeats += calcHeatFlowRad(temperature, radValveInternal.get());
-            sumHeats += calcHeatFlowWalls(temperature, outsideTemp);
+            sumHeats += calcHeatFlowRad(airTemperature, radValveInternal.get());
+            sumHeats += calcHeatFlowWalls(airTemperature, outsideTemp);
             sumHeats += deltaHeat;
-            temperature += (sumHeats * (1.0 / airCapacitance));
-            temperatureC16 = (int16_t)(temperature * 16.0);
+            airTemperature += (sumHeats * (1.0 / airCapacitance));
+            int16_t temperatureC16 = (int16_t)(airTemperature * 16.0);
             roomTemperatureInternal.set(temperatureC16);
             return temperatureC16;
         }
@@ -139,6 +139,8 @@ class ThermalModelBase
 // Basic tests against thermal model.
 TEST(ModelledRadValveThermalModel,basic)
 {
+    ThermalModelBase model(20.0, 0.0, 25.0, 1.0, 1.0, 1.0, 1.005);
+    model.calcNewAirTemperature();
 }
 
 
