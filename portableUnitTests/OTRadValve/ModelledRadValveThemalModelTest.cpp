@@ -51,7 +51,7 @@ class ThermalModelBase
         // Simulated room temperature, internal.
         OTV0P2BASE::TemperatureC16Mock roomTemperatureInternal;
 
-        // Constants
+        // Constants & variables
         float airTemperature;
         float outsideTemp;
         const float radiatorConductance;
