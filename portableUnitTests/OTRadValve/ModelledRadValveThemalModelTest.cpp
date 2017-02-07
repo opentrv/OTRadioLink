@@ -40,6 +40,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 // Holds references to a valve and temperature sensor
 // and models the how the former drives the latter
 // given the characteristics of the room, boiler, etc.
+// NOTE: All constants are the absolute values for the room.
+// Heat capacities etc. should be calculated from room size etc. before feeding into the model!
 class ThermalModelBase
     {
     protected:
@@ -72,7 +74,7 @@ class ThermalModelBase
             // convert radValveOpenPC to radiator temp (badly)
             const float radTemp = 2.0 * (float)radValveOpenPC - 80.0;
             // Calculate heat transfer, making sure rad temp cannot go below air temperature.
-            return radTemp > airTemp ? ((radTemp - airTemp) * radiatorConductance) : airTemp;
+            return radTemp > airTemp ? ((radTemp - airTemp) * radiatorConductance) : 0.0;
         }
         /**
          * @brief   Calculate heat input this interval through the walls.
@@ -93,13 +95,13 @@ class ThermalModelBase
         }
 
     public:
-        ThermalModelBase(const float startTemp,
-                         const float _outsideTemp,
-                         const float _radiatorConductance,
-                         const float _wallConductance,
-                         const float _storageCapacitance,
-                         const float _storageConductance,
-                         const float _airCapacitance)
+        ThermalModelBase(const float startTemp,             // [C]
+                         const float _outsideTemp,          // [C]
+                         const float _radiatorConductance,  // [W/K]
+                         const float _wallConductance,      // [W/K]
+                         const float _storageCapacitance,   // [J/K]
+                         const float _storageConductance,   // [W/K]
+                         const float _airCapacitance)       // [J/K]
                        : airTemperature(startTemp),
                          outsideTemp(_outsideTemp),
                          radiatorConductance(_radiatorConductance),
@@ -112,6 +114,7 @@ class ThermalModelBase
             const float temperatureC16 = (int16_t)(startTemp * 16.0);
             storedHeat = startTemp * storageCapacitance;
             roomTemperatureInternal.set(temperatureC16);
+            radValveInternal.set(0);
         };
 
         // Read-only view of simulated room temperature.
@@ -121,7 +124,7 @@ class ThermalModelBase
         const OTRadValve::AbstractRadValve &radValve = radValveInternal;
 
         // Calculate new temperature
-        int16_t calcNewAirTemperature() {
+        void calcNewAirTemperature() {
             float sumHeats = 0.0;
             float deltaHeat = calcHeatStored(airTemperature, storedHeat);
             storedHeat -= deltaHeat;  // all heat flows are positive into the air!
@@ -131,16 +134,21 @@ class ThermalModelBase
             airTemperature += (sumHeats * (1.0 / airCapacitance));
             int16_t temperatureC16 = (int16_t)(airTemperature * 16.0);
             roomTemperatureInternal.set(temperatureC16);
-            return temperatureC16;
+//            fprintf(stderr, "T = %.1f C\n", airTemperature);
         }
+        float getAirTemperature() { return airTemperature; }
     };
 
 
 // Basic tests against thermal model.
+// Hijacked as a test against my python model (DE20170207)
 TEST(ModelledRadValveThermalModel,basic)
 {
-    ThermalModelBase model(20.0, 0.0, 25.0, 1.0, 1.0, 1.0, 1.005);
-    model.calcNewAirTemperature();
+    ThermalModelBase model(20.0, 0.0, 25.0, 38.4, 1000000.0, 1.0, 41780.3625);
+    for(auto i = 0; i < 1000; ++i) {
+        model.calcNewAirTemperature();
+    }
+    EXPECT_NEAR(8.1, model.getAirTemperature(), 0.01); // Value for same inputs in my python model is: 8.096024519493666 C
 }
 
 
