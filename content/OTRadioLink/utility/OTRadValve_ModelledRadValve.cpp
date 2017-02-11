@@ -345,7 +345,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
     else if(!MINIMAL_BINARY_IMPL)
         {
         // In BAKE mode open immediately to maximum.
-        if(inputState.inBakeMode) { return(inputState.maxPCOpen); }
+        if(BRANCH_HINT_unlikely(inputState.inBakeMode)) { return(inputState.maxPCOpen); }
 
         // Raw temperature error: amount ambient is above target (1/16C).
         static constexpr int8_t centreOffsetC16 = 12;
@@ -364,7 +364,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         if(belowTarget)
             { if(valvePCOpen >= inputState.maxPCOpen) { return(valvePCOpen); } }
         else
-            { if(0 == valvePCOpen) { return(valvePCOpen); } }
+            { if(BRANCH_HINT_likely(0 == valvePCOpen)) { return(valvePCOpen); } }
 
         // When well off target then valve closing may be sped up.
         // Have a significantly higher ceiling if filtering,
