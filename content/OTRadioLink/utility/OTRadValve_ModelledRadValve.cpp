@@ -344,7 +344,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
     // may save significant energy, noise and time.
     else if(!MINIMAL_BINARY_IMPL)
         {
-        // In BAKE mode open immediately to maximum.
+        // In BAKE mode open immediately to maximum; only true rarely.
         if(BRANCH_HINT_unlikely(inputState.inBakeMode)) { return(inputState.maxPCOpen); }
 
         // Raw temperature error: amount ambient is above target (1/16C).
@@ -363,7 +363,7 @@ uint8_t ModelledRadValveState::computeRequiredTRVPercentOpen(
         // Leave valve as-is if already at limit in appropriate direction.
         if(belowTarget)
             { if(valvePCOpen >= inputState.maxPCOpen) { return(valvePCOpen); } }
-        else
+        else // Out of heating season will most likely stay at 0.
             { if(BRANCH_HINT_likely(0 == valvePCOpen)) { return(valvePCOpen); } }
 
         // When well off target then valve closing may be sped up.
