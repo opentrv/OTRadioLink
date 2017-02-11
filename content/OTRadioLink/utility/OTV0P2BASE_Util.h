@@ -87,12 +87,12 @@ inline int8_t parseHexDigit(const char hexchar)
 int parseHexByte(const char *s);
 
 
-// Like the Linux likely()/unlikely() macros.
-// Statically hints whether branch is expected likely to be taken or not.
+// Modelled on the Linux likely()/unlikely() macros.
+// Static hint whether branch is expected likely to be taken or not.
 // Works for g++ and clang.
 #if defined(__GNUG__) || defined(__clang__)
-#define BRANCH_HINT_likely(x)       __builtin_expect((x),1)
-#define BRANCH_HINT_unlikely(x)     __builtin_expect((x),0)
+#define BRANCH_HINT_likely(x)       __builtin_expect(!!(x),1)
+#define BRANCH_HINT_unlikely(x)     __builtin_expect(!!(x),0)
 #else
 #define BRANCH_HINT_likely(x)       (x)
 #define BRANCH_HINT_unlikely(x)     (x)
