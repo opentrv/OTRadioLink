@@ -87,6 +87,18 @@ inline int8_t parseHexDigit(const char hexchar)
 int parseHexByte(const char *s);
 
 
+// Modelled on the Linux likely()/unlikely() macros.
+// Static hint whether branch is expected likely to be taken or not.
+// Works for g++ and clang.
+#if defined(__GNUG__) || defined(__clang__)
+#define BRANCH_HINT_likely(x)       __builtin_expect(!!(x),1)
+#define BRANCH_HINT_unlikely(x)     __builtin_expect(!!(x),0)
+#else
+#define BRANCH_HINT_likely(x)       (x)
+#define BRANCH_HINT_unlikely(x)     (x)
+#endif
+
+
 // Class for scratch space that can be passed into callers to trim stack/auto usage.
 // Possible to create tail end for use by nested callers
 // where a routine needs to keep some state during those calls.
