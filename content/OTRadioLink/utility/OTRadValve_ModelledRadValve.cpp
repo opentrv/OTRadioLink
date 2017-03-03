@@ -173,7 +173,7 @@ void ModelledRadValveState::tick(volatile uint8_t &valvePCOpenRef,
       (cumulativeMovementPC + OTV0P2BASE::fnabsdiff(oldValvePC, newValvePC))
       & MAX_CUMULATIVE_MOVEMENT_VALUE;
   prevValvePC = newValvePC;
-//  valveMoved = modelledValveChanged;
+  valveMoved = modelledValveChanged;
   }
 
 // Computes a new valve position given supplied input state

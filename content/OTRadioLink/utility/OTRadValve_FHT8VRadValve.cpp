@@ -809,6 +809,41 @@ bool FHT8VRadValveBase::SetHouseCode::doCommand(char *const buf, const uint8_t b
     // Done: show updated status line, possibly with results of update.
     return(true);
     }
+
+// Clear and populate core stats structure with information from this node.
+// Uses the FHT8V ID if available (if ValveFHT8V != NULL).
+void populateCoreStats(OTV0P2BASE::FullStatsMessageCore_t *const content,
+                       /*const*/ OTRadValve::FHT8VRadValveBase *ValveFHT8V,
+                       const int16_t tempC16,
+                       const bool powerLow,
+                       const uint8_t ambLight,
+                       const uint8_t twoBitOccupancy)
+  {
+  clearFullStatsMessageCore(content); // Defensive programming: all fields should be set explicitly below.
+  if(NULL != ValveFHT8V)
+    {
+    // Use FHT8V house codes if available.
+    content->id0 = ValveFHT8V->nvGetHC1();
+    content->id1 = ValveFHT8V->nvGetHC2();
+    }
+  else
+    {
+    // Use OpenTRV unique ID if no other higher-priority ID.
+    content->id0 = eeprom_read_byte(0 + (uint8_t *)V0P2BASE_EE_START_ID);
+    content->id1 = eeprom_read_byte(1 + (uint8_t *)V0P2BASE_EE_START_ID);
+    }
+  content->containsID = true;
+  content->tempAndPower.tempC16 = tempC16; // TemperatureC16.get();
+  content->tempAndPower.powerLow = powerLow; // Supply_cV.isSupplyVoltageLow();
+  content->containsTempAndPower = true;
+  content->ambL = OTV0P2BASE::fnmax((uint8_t)1, OTV0P2BASE::fnmin((uint8_t)254, ambLight /*AmbLight.get()*/)); // Coerce to allowed value in range [1,254]. Bug-fix (twice! TODO-510) c/o Gary Gladman!
+  content->containsAmbL = true;
+  // OC1/OC2 = Occupancy: 00 not disclosed, 01 not occupied, 10 possibly occupied, 11 probably occupied.
+  // The encodeFullStatsMessageCore() route should omit data not appopriate for the privacy level, etc.
+  content->occ = twoBitOccupancy; // Occupancy.twoBitOccupancyValue();
+  }
+
+
 #endif // ARDUINO_ARCH_AVR
 
 #endif // FHT8VRadValveBase_DEFINED

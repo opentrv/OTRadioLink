@@ -41,7 +41,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2017
 
 
 // Generic REV7/DORM1 valve unit settings to be expanded for more specific implementations.
-#if defined(CONFIG_DORM1) || defined(CONFIG_DORM1_FS20) // Generic all-in-one (REV7).
+#if defined(CONFIG_DORM1) || defined(CONFIG_DORM1_SECURE_AND_FS20) // Generic all-in-one (REV7).
 // GENERIC
 // Revision REV7 of V0.2 board, all-in-one valve unit with local motor drive.
 // Does not ever need to act as a boiler hub nor to receive stats.

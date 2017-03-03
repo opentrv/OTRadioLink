@@ -214,9 +214,9 @@ struct ModelledRadValveState final
 //  bool isFiltering = false;
   uint8_t isFiltering = 0;
 
-//  // True if the computed modelled valve position was changed by tick().
-//  // This is not an indication if any underlying valve position has changed.
-//  bool valveMoved = false;
+  // True if the computed modelled valve position was changed by tick().
+  // This is not an indication if any underlying valve position has changed.
+  bool valveMoved = false;
 
   // Testable/reportable events.
   // Logically not part of this struct's state, so all ops are const.
@@ -1037,9 +1037,9 @@ class ModelledRadValve final : public AbstractRadValve
     // Returns true if this valve control is in glacial mode.
     bool inGlacialMode() const { return(glacial); }
 
-//    // True if the computed valve position was changed by read().
-//    // Can be used to trigger rebuild of messages, force updates to actuators, etc.
-//    bool isValveMoved() const { return(retainedState.valveMoved); }
+    // True if the computed valve position was changed by read().
+    // Can be used to trigger rebuild of messages, force updates to actuators, etc.
+    bool isValveMoved() const { return(retainedState.valveMoved); }
 
     // True if this unit is actively calling for heat.
     // This implies that the temperature is (significantly) under target,
