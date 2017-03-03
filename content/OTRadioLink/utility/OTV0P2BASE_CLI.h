@@ -84,6 +84,19 @@ namespace CLI {
     // Probably should not be inlined, to avoid creating duplicate strings in Flash.
     void InvalidIgnored();
 
+    // Reset CLI active timer to max (ie makes CLI active for a while).
+    // Thread-safe.
+    void resetCLIActiveTimer();
+    // Makes CLI inactive immediately.
+    // Thread-safe.
+    void makeCLIInactive();
+    // Count down CLI towards inactivity.
+    // Thread safe.
+    void countDownCLI();
+    // Returns true if the CLI is (or should currently be) active, at least intermittently.
+    // Thread-safe.
+    bool isCLIActive();
+
 
     // Standard/common CLI command implementations
     //--------------------------------------------
