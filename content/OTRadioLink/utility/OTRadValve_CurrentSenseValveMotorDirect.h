@@ -372,7 +372,12 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     // Minimally wiggle the motor to give tactile feedback and/or show to be working.
     // May take a significant fraction of a second.
     // Finishes with the motor turned off.
+    // Should also have enough movement/play to allow calibration of the shaft encoder.
+    // May also help set some bounds on stall current,
+    // eg if highly asymmetric at each end of travel.
     // May be ignored if not safe to do.
+    // Nominally leaves the valve in the position that it started,
+    // so logically 'const'.
     virtual void wiggle();
 
     // If true, proportional mode is never used and the valve is run to end stops instead.

@@ -164,7 +164,10 @@ uint8_t CurrentSenseValveMotorDirect::getMinPercentOpen() const
 // May take a significant fraction of a second.
 // Finishes with the motor turned off, and a bias to closing the valve.
 // Should also have enough movement/play to allow calibration of the shaft encoder.
-// May also help set some bounds on stall current, eg if highly asymmetric at each end of travel.
+// May also help set some bounds on stall current,
+// eg if highly asymmetric at each end of travel.
+// Nominally leaves the valve in the position that it started,
+// so logically 'const'.
 void CurrentSenseValveMotorDirectBinaryOnly::wiggle()
   {
   hw->motorRun(0, OTRadValve::HardwareMotorDriverInterface::motorOff, *this);
