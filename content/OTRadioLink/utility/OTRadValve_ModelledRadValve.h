@@ -477,18 +477,18 @@ template<
 class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComputeTargetTempBase
   {
   public:
-//    constexpr ModelledRadValveComputeTargetTempBasic()
-//        {
-//        // Validate (non-optional) args.  Doesn't work with g++ 4.9.2 in Arduino IDE.
-//        static_assert(NULL != valveMode, "non-optional parameter must not be NULL");
-//        static_assert(NULL != temperatureC16, "non-optional parameter must not be NULL");
-//        static_assert(NULL != tempControl, "non-optional parameter must not be NULL");
-//        static_assert(NULL != occupancy, "non-optional parameter must not be NULL");
-//        static_assert(NULL != ambLight, "non-optional parameter must not be NULL");
-//        static_assert(NULL != physicalUI, "non-optional parameter must not be NULL");
-//        static_assert(NULL != schedule, "non-optional parameter must not be NULL");
-//        static_assert(NULL != byHourStats, "non-optional parameter must not be NULL");
-//        }
+    constexpr ModelledRadValveComputeTargetTempBasic()
+        {
+        // Validate (non-optional) args.  Doesn't work with g++ 4.9.2 in Arduino IDE.
+        static_assert(valveMode, "non-optional parameter must not be NULL");
+        static_assert(temperatureC16, "non-optional parameter must not be NULL");
+        static_assert(tempControl, "non-optional parameter must not be NULL");
+        static_assert(occupancy, "non-optional parameter must not be NULL");
+        static_assert(ambLight, "non-optional parameter must not be NULL");
+        static_assert(physicalUI, "non-optional parameter must not be NULL");
+        static_assert(schedule, "non-optional parameter must not be NULL");
+        static_assert(byHourStats, "non-optional parameter must not be NULL");
+        }
     virtual uint8_t computeTargetTemp() const override
         {
         // In FROST mode.

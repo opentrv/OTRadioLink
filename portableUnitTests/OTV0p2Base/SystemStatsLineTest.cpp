@@ -60,14 +60,6 @@ TEST(SystemStatsLine,Basics)
     // Set a reasonable RH%.
     Basics::rh.set(50);
 
-//    // Should not compile with no Print channel on non-V0p2 platforms.
-//    OTV0P2BASE::SystemStatsLine<> ssl0Bad;
-
-//    // Should not compile because of NULL output channel.
-//    // Should not compile on non-V0p2 platforms because of true 'flush' param.
-//    OTV0P2BASE::SystemStatsLine<(Print *)NULL, true> sslBad;
-//    sslBad.serialStatusReport();
-
     // Create stats line instance wrapped round simple bounded buffer.
     OTV0P2BASE::SystemStatsLine<
         decltype(Basics::valveMode), &Basics::valveMode,
@@ -108,7 +100,7 @@ TEST(SystemStatsLine,Basics)
         OTV0P2BASE::SensorAmbientLightBase, (OTV0P2BASE::SensorAmbientLightBase *)NULL,
         OTV0P2BASE::PseudoSensorOccupancyTracker, (OTV0P2BASE::PseudoSensorOccupancyTracker *)NULL,
         OTV0P2BASE::SimpleValveScheduleBase, (OTV0P2BASE::SimpleValveScheduleBase *)NULL,
-        false,
+        false, // No JSON stats.
         decltype(Basics::bp), &Basics::bp> sslO;
     // Generate a stats line.
     sslO.serialStatusReport();

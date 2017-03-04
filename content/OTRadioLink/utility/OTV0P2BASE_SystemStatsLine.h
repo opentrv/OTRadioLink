@@ -125,7 +125,7 @@ template
 #if defined(ARDUINO)
     // For Arduino, default to logging to the (first) hardware Serial device,
     // and starting it up, flushing it, and shutting it down also.
-    class Print_t = decltype(Serial), Print *const printer = Serial,
+    class Print_t = decltype(Serial), Print_t *const printer = &Serial,
     const bool wakeFlushSleepSerial = true
 #else
     // Must supply non-NULL output Print device / stream.
@@ -140,11 +140,11 @@ class SystemStatsLine final
     {
     private:
         // Count of available stats to post in JSON section.
-        static constexpr uint8_t ss1Size = !enableTrailingJSONStats ? 0 :
+        static constexpr uint8_t ss1Size = (!enableTrailingJSONStats) ? 0 :
             (
-            ((NULL != humidityOpt) ? 1 : 0) +
-            ((NULL != ambLightOpt) ? 1 : 0) +
-            ((NULL != occupancyOpt) ? 1 : 0) +
+            1 + // + ((NULL != humidityOpt) ? 1 : 0) + // FIXME
+            1 + // ((NULL != ambLightOpt) ? 1 : 0) + // FIXME
+            1 + // ((NULL != occupancyOpt) ? 1 : 0) + // FIXME
             0 // ((NULL != modelledRadValveOpt) ? 1 : 0)
             );
         static constexpr bool noJS = (0 == ss1Size);
@@ -169,8 +169,8 @@ class SystemStatsLine final
     public:
         void serialStatusReport()
             {
-            static_assert(NULL != printer, "outputDevice must not be null");
-            static_assert(NULL != valveMode, "valveMode must not be null");
+            static_assert(printer, "printer must not be null");
+            static_assert(valveMode, "valveMode must not be null");
 
 #if defined(ARDUINO_ARCH_AVR)
             const bool neededWaking = wakeFlushSleepSerial &&
