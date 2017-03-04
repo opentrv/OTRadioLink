@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2016
+Author(s) / Copyright (s): Damon Hart-Davis 2016--2017
 */
 
 /*
@@ -22,6 +22,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
  * These data sets are used to test key related and derived behaviours
  * from basic ambient light level sensing though to temperature setback levels,
  * thus providing an integration test for these components, and rolling stats.
+ *
+ * The basic by-minute driver will be promoted out
+ * to where it can be shared between multiple test/modelling mechanisms.
  */
 
 #include <stdint.h>

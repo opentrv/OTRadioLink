@@ -87,6 +87,8 @@ class TemperatureC16Mock : public TemperatureC16Base
     virtual bool set(const int16_t newValue) { value = newValue; return(true); }
     // Returns the existing value: use set() to set a new one.
     int16_t read() override { return(value); }
+    // Reset to initial value; useful in unit tests.
+    void reset() { value = DEFAULT_INVALID_TEMP; }
   };
 
 }

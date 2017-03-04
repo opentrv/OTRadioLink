@@ -200,7 +200,7 @@ class ValveMotorDirectV1 : public OTRadValve::AbstractRadValve
     // Logic to manage state.
     // A simplified form of the driver is used if binaryOnly is true.
     template <bool Condition, typename TypeTrue, typename TypeFalse>
-      class typeIf;
+      struct typeIf;
     template <typename TypeTrue, typename TypeFalse>
       struct typeIf<true, TypeTrue, TypeFalse> { typedef TypeTrue t; };
     template <typename TypeTrue, typename TypeFalse>

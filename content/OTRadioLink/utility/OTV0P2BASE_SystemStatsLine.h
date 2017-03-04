@@ -56,35 +56,115 @@ namespace OTV0P2BASE
 // At most one of these instances should be created, usually statically,
 // in a typical device such as a valve.
 // Devices may omit this to save code and data space.
+
+// Sends a short 1-line CRLF-terminated status report on the serial connection
+// (at 'standard' baud).
+// Similar to original PICAXE V0.1 output to allow one parser to handle both.
+// Will turn on UART just for the duration of this call if powered off.
+// Has multiple sections, some optional, starting with a unique letter
+// and separated with ';'.
+
+//Status output may look like this...
+//=F0%@18C;T16 36 W255 0 F255 0;S5 5 17
+//=W0%@18C;T16 38 W255 0 F255 0;S5 5 17
+//=W0%@18C;T16 39 W255 0 F255 0;S5 5 17
+//=W0%@18C;T16 40 W16 39 F17 39;S5 5 17
+//=W0%@18C;T16 41 W16 39 F17 39;S5 5 17
+//=W0%@17C;T16 42 W16 39 F17 39;S5 5 17
+//=W20%@17C;T16 43 W16 39 F17 39;S5 5 17
+//=W20%@17C;T16 44 W16 39 F17 39;S5 5 17
+//=F0%@17C;T16 45 W16 39 F17 39;S5 5 17
+//
+//When driving an FHT8V wireless radiator valve it may look like this:
+//=F0%@18C;T2 30 W10 0 F12 0;S5 5 17 wf;HC255 255
+//=F0%@18C;T2 30 W10 0 F12 0;S5 5 17 wf;HC255 255
+//=W0%@18C;T2 31 W10 0 F12 0;S5 5 17 wf;HC255 255
+//=W10%@18C;T2 32 W10 0 F12 0;S5 5 17 wf;HC255 255
+//=W20%@18C;T2 33 W10 0 F12 0;S5 5 17 wfo;HC255 255
+//
+// Or on a REV8 boiler controller ~20170203 like this:
+//=F@23CA;T1 8 W255 0 F255 0 W255 0 F255 0;S 6 18 e;C5
+//
+//'=' starts the status line and CRLF ends it; sections are separated with ";".
+//The initial 'W' or 'F' is WARM or FROST mode indication.  (If BAKE mode is supported, 'B' may be shown instead of 'W' when in BAKE.)
+//The nn% is the target valve open percentage.
+//The @nnCh gives the current measured room temperature in (truncated, not rounded) degrees C, followed by hex digit for 16ths.
+//The ";" terminates this initial section.
+//Thh mm is the local current 24h time in hours and minutes.
+//Whh mm is the scheduled on/warm time in hours and minutes, or an invalid time if none.
+//Fhh mm is the scheduled off/frost time in hours and minutes, or an invalid time if none.
+//The ";" terminates this schedule section.
+//'S' introduces the current and settable-target temperatures in Celsius/centigrade, if supported.
+//eg 'S5 5 17'
+//The first number is the current target in C, the second is the FROST target, the third is the WARM target.
+//The 'e' or 'c' indicates eco or comfort bias.
+//A 'w' indicates that this hour is predicted for smart warming ('f' indicates not), and another 'w' the hour ahead.
+//A trailing 'o' indicates room occupancy.
+//The ";" terminates this 'settable' section.
+//
+//'HC' introduces the optional FHT8V house codes section, if supported and codes are set.
+//eg 'HC99 99'
+//HChc1 hc2 are the house codes 1 and 2 for an FHT8V valve.
+
 template
   <
-  class valveMode_t /*= OTRadValve::ValveMode*/, const valveMode_t *const valveMode,
+    // Mandatory values.
+    class valveMode_t /*= OTRadValve::ValveMode*/, const valveMode_t *const valveMode,
 
-//  class occupancy_t = SimpleTSUint8Sensor /*PseudoSensorOccupancyTracker*/, const occupancy_t *occupancyOpt = NULL,
-//  class ambLight_t = SimpleTSUint8Sensor /*SensorAmbientLightBase*/, const ambLight_t *ambLightOpt = NULL,
-//  class tempC16_t = Sensor<int16_t> /*TemperatureC16Base*/, const tempC16_t *tempC16Opt = NULL,
-//  class humidity_t = SimpleTSUint8Sensor /*HumiditySensorBase*/, const humidity_t *humidityOpt = NULL,
+    // Optional values (each object can be NULL).
+    class radValve_t /*= OTRadValve::AbstractRadValve*/, const radValve_t *const modelledRadValveOpt = NULL,
+    class tempC16_t = Sensor<int16_t> /*TemperatureC16Base*/, const tempC16_t *tempC16Opt = NULL,
+    class humidity_t = SimpleTSUint8Sensor /*HumiditySensorBase*/, const humidity_t *humidityOpt = NULL,
+    class ambLight_t = SimpleTSUint8Sensor /*SensorAmbientLightBase*/, const ambLight_t *ambLightOpt = NULL,
+    class occupancy_t = SimpleTSUint8Sensor /*PseudoSensorOccupancyTracker*/, const occupancy_t *occupancyOpt = NULL,
+    class schedule_t = SimpleValveScheduleBase, const schedule_t *schedule = NULL,
+
+    // True to enable trailing rotating JSON stats.
+    const bool enableTrailingJSONStats = true,
 
 #if defined(ARDUINO)
-  // For Arduino, default to logging to the (first) hardware Serial device,
-  // and starting it up, flushing it, and shutting it down also.
-  class Print_t = decltype(Serial), Print *const printer = Serial,
-  const bool wakeFlushSleepSerial = true
+    // For Arduino, default to logging to the (first) hardware Serial device,
+    // and starting it up, flushing it, and shutting it down also.
+    class Print_t = decltype(Serial), Print *const printer = Serial,
+    const bool wakeFlushSleepSerial = true
 #else
-  // Must supply non-NULL output Print device / stream.
-  class Print_t = Print, Print_t *const printer = (Print_t*)NULL,
-  // True if Serial should be woken / flushed / put to sleep.
-  // Should be false for non-AVR platforms.
-  const bool wakeFlushSleepSerial = false
+    // Must supply non-NULL output Print device / stream.
+    class Print_t = Print, Print_t *const printer = (Print_t*)NULL,
+    // True if Serial should be woken / flushed / put to sleep.
+    // Should be false for non-AVR platforms.
+    const bool wakeFlushSleepSerial = false
 #endif
 
   >
 class SystemStatsLine final
     {
     private:
+        // Count of available stats to post in JSON section.
+        static constexpr uint8_t ss1Size = !enableTrailingJSONStats ? 0 :
+            (
+            ((NULL != humidityOpt) ? 1 : 0) +
+            ((NULL != ambLightOpt) ? 1 : 0) +
+            ((NULL != occupancyOpt) ? 1 : 0) +
+            0 // ((NULL != modelledRadValveOpt) ? 1 : 0)
+            );
+        static constexpr bool noJS = (0 == ss1Size);
         // Configured for maximum different possible stats shown in rotation.
-        static constexpr uint8_t maxStatsLineValues = 5;
-        SimpleStatsRotation<maxStatsLineValues> ss1;
+        // If JSON stats not enabled then omit object and code dependency.
+        class dummySSR final
+            {
+            public:
+                bool put(MSG_JSON_SimpleStatsKey_t, int16_t, bool = false) { return(false); }
+                template <class T> bool put(const OTV0P2BASE::SensorCore<T> &, bool = false) { return(false); }
+                inline uint8_t writeJSON(...) { return(0); }
+            };
+        template <bool Condition, typename TypeTrue, typename TypeFalse>
+          struct typeIf;
+        template <typename TypeTrue, typename TypeFalse>
+          struct typeIf<true, TypeTrue, TypeFalse> { typedef TypeTrue t; };
+        template <typename TypeTrue, typename TypeFalse>
+          struct typeIf<false, TypeTrue, TypeFalse> { typedef TypeFalse t; };
+        typedef typename typeIf<noJS, dummySSR, SimpleStatsRotation<ss1Size>>::t ss1_type;
+        ss1_type ss1;
 
     public:
         void serialStatusReport()
@@ -109,30 +189,42 @@ class SystemStatsLine final
             // Valve device mode F/W/B.
             printer->print(valveMode->inWarmMode() ? (valveMode->inBakeMode() ? 'B' : 'W') : 'F');
 
+            // Valve target percent open, if available.
+            // Display as nn% where nn is in decimal, eg from "0%" to "100%".
+            if(NULL != modelledRadValveOpt)
+                {
+                printer->print(modelledRadValveOpt->get());
+                printer->print('%');
+                }
 
+            // Temperature in C, if available.
+            // Display as:
+            //   * '@'
+            //   * unrounded whole degrees C
+            //   * 'C'
+            //   * then 16ths as a single (upper-case) hex digit
+            // eg "23CA" for 23+10/16 C
+            //
+            // Note that the trailing hex digit was not present originally.
+            if(NULL != tempC16Opt)
+                {
+                const int16_t temp = tempC16Opt->get();
+                printer->print('@');
+                printer->print(int(temp >> 4));
+                printer->print('C');
+                printer->print(int(temp & 0xf), 16);
+                }
+
+            //#ifdef ENABLE_FULL_OT_CLI
+            //  // *X* section: Xmit security level shown only if some non-essential TX potentially allowed.
+            //  const OTV0P2BASE::stats_TX_level xmitLevel = OTV0P2BASE::getStatsTXLevel();
+            //  if(xmitLevel < OTV0P2BASE::stTXnever) { Serial.print(F(";X")); Serial.print(xmitLevel); }
+            //#endif
 
 
 // TODO
 
 
-//#if defined(ENABLE_NOMINAL_RAD_VALVE)
-//  Serial.print(NominalRadValve.get()); Serial.print('%'); // Target valve position.
-//#endif
-//  const int temp = TemperatureC16.get();
-//  Serial.print('@'); Serial.print(temp >> 4); Serial.print('C'); // Unrounded whole degrees C.
-//      Serial.print(temp & 0xf, HEX); // Show 16ths in hex.
-//
-////#if 0
-////  // *P* section: low power flag shown only if (battery) low.
-////  if(Supply_mV.isSupplyVoltageLow()) { Serial.print(F(";Plow")); }
-////#endif
-//
-//#ifdef ENABLE_FULL_OT_CLI
-//  // *X* section: Xmit security level shown only if some non-essential TX potentially allowed.
-//  const OTV0P2BASE::stats_TX_level xmitLevel = OTV0P2BASE::getStatsTXLevel();
-//  if(xmitLevel < OTV0P2BASE::stTXnever) { Serial.print(F(";X")); Serial.print(xmitLevel); }
-//#endif
-//
 //#ifdef ENABLE_FULL_OT_CLI
 //  // *T* section: time and schedules.
 //  const uint_least8_t hh = OTV0P2BASE::getHoursLT();
@@ -214,32 +306,28 @@ class SystemStatsLine final
 //  const uint8_t minValvePcOpen = NominalRadValve.getMinValvePcReallyOpen();
 //  if(OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN != minValvePcOpen) { Serial.print(F(";M")); Serial.print(minValvePcOpen); }
 //#endif
-//
-//#if 1 && defined(ENABLE_JSON_OUTPUT) && !defined(ENABLE_TRIMMED_MEMORY)
-//  Serial.print(';'); // Terminate previous section.
-//  char buf[40]; // Keep short enough not to cause overruns.
-//  static const uint8_t maxStatsLineValues = 5;
-//  static OTV0P2BASE::SimpleStatsRotation<maxStatsLineValues> ss1; // Configured for maximum different stats.
-////  ss1.put(TemperatureC16); // Already at start of = stats line.
-//#if defined(HUMIDITY_SENSOR_SUPPORT)
-//  ss1.put(RelHumidity);
-//#endif // defined(HUMIDITY_SENSOR_SUPPORT)
-//#if defined(ENABLE_AMBLIGHT_SENSOR)
-//  ss1.put(AmbLight);
-//#endif // ENABLE_AMBLIGHT_SENSOR
-//  ss1.put(Supply_cV);
-//#if defined(ENABLE_OCCUPANCY_SUPPORT)
-//  ss1.put(Occupancy);
-////  ss1.put(Occupancy.vacHTag(), Occupancy.getVacancyH()); // EXPERIMENTAL
-//#endif // defined(ENABLE_OCCUPANCY_SUPPORT)
-//#if defined(ENABLE_MODELLED_RAD_VALVE) && !defined(ENABLE_TRIMMED_MEMORY)
-//    ss1.put(NominalRadValve.tagCMPC(), NominalRadValve.getCumulativeMovementPC()); // EXPERIMENTAL
-//#endif // ENABLE_MODELLED_RAD_VALVE
-//  const uint8_t wrote = ss1.writeJSON((uint8_t *)buf, sizeof(buf), 0, true);
-//  if(0 != wrote) { Serial.print(buf); }
-//#endif // defined(ENABLE_JSON_OUTPUT) && !defined(ENABLE_TRIMMED_MEMORY)
 
 
+            // If allowed, print trailing JSON rotation of key values.
+            if(!noJS)
+                {
+                // Terminate previous section.
+                printer->print(';');
+
+                // Buffer for { ... } JSON output.
+                // Keep short to avoid serial overruns.
+                char buf[40];
+                ss1.put(*humidityOpt);
+                ss1.put(*ambLightOpt);
+                ss1.put(*occupancyOpt);
+                //  ss1.put(Occupancy.vacHTag(), Occupancy.getVacancyH()); // EXPERIMENTAL
+//                ss1.put(modelledRadValveOpt->tagCMPC(), modelledRadValveOpt->getCumulativeMovementPC()); // EXPERIMENTAL
+// TODO
+//ss1.put(Supply_cV);
+
+                  const uint8_t wrote = ss1.writeJSON((uint8_t *)buf, sizeof(buf), 0, true);
+                  if(0 != wrote) { printer->print(buf); }
+                  }
 
             // Terminate line.
             printer->println();

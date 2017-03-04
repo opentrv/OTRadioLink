@@ -36,12 +36,29 @@ namespace Basics
     static OTV0P2BASE::BufPrint bp(buf, sizeof(buf));
     // Inputs/controls for stats report.
     static OTRadValve::ValveMode valveMode;
+    static OTRadValve::RadValveMock modelledRadValve;
+    static OTV0P2BASE::TemperatureC16Mock tempC16;
+    static OTV0P2BASE::PseudoSensorOccupancyTracker occupancy;
+    static OTV0P2BASE::SensorAmbientLightAdaptiveMock ambLight;
+    // Dummy (non-functioning) temperature and relative humidity sensors.
+    static OTV0P2BASE::HumiditySensorMock rh;
+    static OTV0P2BASE::NULLValveSchedule schedule;
     }
 TEST(SystemStatsLine,Basics)
 {
     // Reset inputs/controls for stats report so test is idempotent.
     Basics::bp.reset();
     Basics::valveMode.reset();
+    Basics::modelledRadValve.reset();
+    Basics::tempC16.reset();
+    Basics::rh.reset();
+    Basics::ambLight.reset();
+    Basics::occupancy.reset();
+
+    // Set a reasonable room temperature.
+    Basics::tempC16.set((18 << 4) + 14);
+    // Set a reasonable RH%.
+    Basics::rh.set(50);
 
 //    // Should not compile with no Print channel on non-V0p2 platforms.
 //    OTV0P2BASE::SystemStatsLine<> ssl0Bad;
@@ -51,9 +68,16 @@ TEST(SystemStatsLine,Basics)
 //    OTV0P2BASE::SystemStatsLine<(Print *)NULL, true> sslBad;
 //    sslBad.serialStatusReport();
 
-    // Create stats line wrapped round simple bounded buffer.
+    // Create stats line instance wrapped round simple bounded buffer.
     OTV0P2BASE::SystemStatsLine<
         decltype(Basics::valveMode), &Basics::valveMode,
+        decltype(Basics::modelledRadValve), &Basics::modelledRadValve,
+        decltype(Basics::tempC16), &Basics::tempC16,
+        decltype(Basics::rh), &Basics::rh,
+        decltype(Basics::ambLight), &Basics::ambLight,
+        decltype(Basics::occupancy), &Basics::occupancy,
+        decltype(Basics::schedule), &Basics::schedule,
+        true, // Enable JSON stats.
         decltype(Basics::bp), &Basics::bp> ssl1;
 
     // Buffer should remain empty before any explicit activity.
@@ -67,9 +91,28 @@ TEST(SystemStatsLine,Basics)
     ASSERT_LE(1, Basics::bp.getSize());
     ASSERT_EQ(OTV0P2BASE::SERLINE_START_CHAR_STATS, Basics::buf[0]);
 
-    // First char after '=' should be mode, in this case 'F'.
-    ASSERT_LE(2, Basics::bp.getSize());
-    ASSERT_EQ('F', Basics::buf[1]);
+    // Check entire status line including trailing line termination.
+    EXPECT_STREQ("=F0%@18CE;{\"@\":\"\",\"H|%\":50,\"L\":0,\"occ|%\":0}\r\n", Basics::buf);
 
+
+    // Clear the buffer.
+    Basics::bp.reset();
+
+    // Create stats line instance wrapped round simple bounded buffer.
+    // In this case omit all the 'optional' values.
+    OTV0P2BASE::SystemStatsLine<
+        decltype(Basics::valveMode), &Basics::valveMode,
+        OTRadValve::AbstractRadValve, (OTRadValve::AbstractRadValve *)NULL,
+        OTV0P2BASE::TemperatureC16Base, (OTV0P2BASE::TemperatureC16Base *)NULL,
+        OTV0P2BASE::HumiditySensorBase, (OTV0P2BASE::HumiditySensorBase *)NULL,
+        OTV0P2BASE::SensorAmbientLightBase, (OTV0P2BASE::SensorAmbientLightBase *)NULL,
+        OTV0P2BASE::PseudoSensorOccupancyTracker, (OTV0P2BASE::PseudoSensorOccupancyTracker *)NULL,
+        OTV0P2BASE::SimpleValveScheduleBase, (OTV0P2BASE::SimpleValveScheduleBase *)NULL,
+        false,
+        decltype(Basics::bp), &Basics::bp> sslO;
+    // Generate a stats line.
+    sslO.serialStatusReport();
+    // Check entire status line including trailing line termination.
+    EXPECT_STREQ("=F\r\n", Basics::buf);
 }
 

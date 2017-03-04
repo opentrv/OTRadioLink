@@ -229,7 +229,7 @@ class NULLValveSchedule final : public SimpleValveScheduleBase
   };
 
 // Dummy substitute for SimpleValveScheduleBase
-// for when no Scheduler is require to simplify coding.
+// for when no Scheduler is required to simplify coding.
 // Never has schedules nor allows them to be set.
 class DummyValveSchedule final
     {
