@@ -18,7 +18,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 */
 
 /*
- Simple rolling stats management.
+ Simple rolling stats management
+ and system stats display.
  */
 
 #ifndef OTV0P2BASE_STATS_H
@@ -38,8 +39,8 @@ namespace OTV0P2BASE
 // Base for simple byte-wide non-volatile time-based (by hour) stats implementation.
 // It is possible to encode/compand wider values into single stats byte values.
 // Unset raw values are indicated by 0xff, ie map nicely to EEPROM.
-// One implementation of this may map directly to underlying MCU EEPROM on some systems.
-// This may also have wear-reducing implementations for (say) Flash.
+// One implementation of this may map directly to underlying MCU EEPROM.
+// This may also have wear-reducing and page-aware implementations for eg Flash.
 #define NVByHourByteStatsBase_DEFINED
 class NVByHourByteStatsBase
   {
@@ -226,7 +227,8 @@ static constexpr uint8_t MAX_STATS_AMBLIGHT = 254; // Maximum valid ambient ligh
 //   * ambLightOpt  optional ambient light (uint8_t) sensor; can be NULL
 //   * tempC16Opt  optional ambient temperature (int16_t) sensor; can be NULL
 //   * maxSubSamples  maximum number of samples to take per hour,
-//       1 or 2 are especially efficient and avoid overflow, 2 probably most robust;
+//       1 or 2 are especially efficient and avoid overflow,
+//       2 is probably most robust;
 //       strictly positive
 template
   <
@@ -398,11 +400,13 @@ class ByHourSimpleStatsUpdaterSampleStats final
 // Stats-, EEPROM- (and Flash-) friendly single-byte unary incrementable encoding.
 // A single byte can be used to hold a single value [0,8]
 // such that increment requires only a write of one bit (no erase)
-// and in general increasing the value up to the maximum only requires a single write.
+// and in general increasing the value up to the maximum only requires
+// a single byte write.
 // An erase is required only to decrease the value (eg back to zero).
 // An initial EEPROM (erased) value of 0xff is mapped to zero.
 // The two byte version can hold values in the range [0,16].
-// Corruption can be detected if an unexpected bit pattern is encountered on decode.
+// Corruption can be detected if an unexpected bit pattern is encountered
+// at decode time.
 // For the single byte versions, encodings are:
 //  0 -> 0xff
 //  1 -> 0xfe

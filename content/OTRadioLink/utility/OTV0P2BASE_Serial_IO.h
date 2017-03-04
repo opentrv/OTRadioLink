@@ -151,6 +151,15 @@ void serialPrintlnAndFlush();
 void serialWriteAndFlush(char const *buf, uint8_t len);
 
 
+#if defined(ARDUINO)
+// Prints a single space to Serial (which must be up and running).
+// Simple utility function helps reduce code size.
+// Arduino only.
+inline void Serial_print_space() { Serial.print(' '); }
+#endif
+
+
+
 } // OTV0P2BASE
 
 #endif // OTV0P2BASE_SERIAL_IO_H
