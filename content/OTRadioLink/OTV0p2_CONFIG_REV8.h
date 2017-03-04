@@ -65,6 +65,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2017
 // NO LIGHT SENSOR FITTED ON REV8.B BOARDS.
 // BOTH TMP112 AND SHT21 FITTED on REV8.B BOARDS.
 #define V0p2_REV 8
+// IF DEFINED: try to trim memory (primarily RAM, also code/Flash) space used.
+#define ENABLE_TRIMMED_MEMORY
 // IF DEFINED: enable use of on-board SHT21 RH and temp sensor (in lieu of TMP112).
 #define ENABLE_PRIMARY_TEMP_SENSOR_SHT21
 // Using RoHS-compliant phototransistor in place of LDR.
