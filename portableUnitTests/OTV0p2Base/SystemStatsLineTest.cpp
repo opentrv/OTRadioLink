@@ -40,6 +40,7 @@ namespace Basics
 TEST(SystemStatsLine,Basics)
 {
     // Reset inputs/controls for stats report so test is idempotent.
+    Basics::bp.reset();
     Basics::valveMode.reset();
 
 //    // Should not compile with no Print channel on non-V0p2 platforms.
