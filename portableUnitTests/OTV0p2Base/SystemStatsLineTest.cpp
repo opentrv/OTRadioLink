@@ -23,14 +23,25 @@ Author(s) / Copyright (s): Damon Hart-Davis 2017
 #include <stdint.h>
 #include <gtest/gtest.h>
 #include <OTV0p2Base.h>
-//#include <OTRadValve.h>
+#include <OTRadValve.h>
 
 #include "OTV0P2BASE_SystemStatsLine.h"
 
 
 // Test basic instance creation, etc.
+namespace Basics
+    {
+    // Working buffer for tests.
+    static char buf[80];
+    static OTV0P2BASE::BufPrint bp(buf, sizeof(buf));
+    // Inputs/controls for stats report.
+    static OTRadValve::ValveMode valveMode;
+    }
 TEST(SystemStatsLine,Basics)
 {
+    // Reset inputs/controls for stats report so test is idempotent.
+    Basics::valveMode.reset();
+
 //    // Should not compile with no Print channel on non-V0p2 platforms.
 //    OTV0P2BASE::SystemStatsLine<> ssl0Bad;
 
@@ -39,6 +50,25 @@ TEST(SystemStatsLine,Basics)
 //    OTV0P2BASE::SystemStatsLine<(Print *)NULL, true> sslBad;
 //    sslBad.serialStatusReport();
 
+    // Create stats line wrapped round simple bounded buffer.
+    OTV0P2BASE::SystemStatsLine<
+        decltype(Basics::valveMode), &Basics::valveMode,
+        decltype(Basics::bp), &Basics::bp> ssl1;
+
+    // Buffer should remain empty before any explicit activity.
+    ASSERT_EQ(0, Basics::bp.getSize());
+    ASSERT_EQ('\0', Basics::buf[0]);
+
+    // Generate a stats line.
+    ssl1.serialStatusReport();
+
+    // Buffer should contain status line starting with '='.
+    ASSERT_LE(1, Basics::bp.getSize());
+    ASSERT_EQ(OTV0P2BASE::SERLINE_START_CHAR_STATS, Basics::buf[0]);
+
+    // First char after '=' should be mode, in this case 'F'.
+    ASSERT_LE(2, Basics::bp.getSize());
+    ASSERT_EQ('F', Basics::buf[1]);
 
 }
 

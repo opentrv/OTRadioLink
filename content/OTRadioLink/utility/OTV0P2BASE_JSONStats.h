@@ -135,7 +135,7 @@ class BufPrintT final : public Printer
     // Wrap around a buffer of size bufSize-1 chars and a trailing '\0'.
     // The buffer must be of at least size 1.
     // A buffer of size n can accommodate n-1 characters.
-    BufPrintT(char *buf, uint8_t bufSize) : b(buf), capacity(bufSize-1), size(0), mark(0) { buf[0] = '\0'; }
+    BufPrintT(char *buf, uint8_t bufSize) : b(buf), capacity(bufSize-1), size(0), mark(0) { b[0] = '\0'; }
     // Print a single char to a bounded buffer; returns 1 if successful, else 0 if full.
     virtual size_t write(uint8_t c) override
         { if(size < capacity) { b[size++] = char(c); b[size] = '\0'; return(1); } else { return(0); } }
@@ -147,6 +147,8 @@ class BufPrintT final : public Printer
     void setMark() { mark = size; }
     // Rewind to previous good position, clearing newer text.
     void rewind() { size = mark; b[size] = '\0'; }
+    // Clear/empty buffer to initial state.
+    void clear() { size = 0; mark = 0; b[0] = '\0'; }
   };
 // Version of class depending on Arduino Print class.
 typedef BufPrintT<Print> BufPrint;

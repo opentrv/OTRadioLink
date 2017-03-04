@@ -37,13 +37,16 @@ namespace OTRadValve
     {
 
 
-// Abstract class for motor drive.
-// Supports abstract model plus remote (wireless) and local/direct implementations.
-// Implementations may require read() called at a fixed rate,
-// though should tolerate calls being skipped when time is tight for other operations,
-// since read() may take substantial time (hundreds of milliseconds).
-// Implementations must document when read() calls are critical,
-// and/or expose alternative API for the time-critical elements.
+// Valve device general mode, implemented as a sensor pseudo device.
+// The mode can be one of:
+//   * frost protection
+//   * warm (normal) mode
+//   * bake mode aka "make me warm now"
+// The mode is accessible as either an enum value
+// or via boolean tests and void setters;
+// read() ensures that the two views are in sync as well as timing out a 'bake'.
+//
+// Indicated methods are ISR-/thread- safe.
 class ValveMode final : public OTV0P2BASE::SimpleTSUint8Sensor
   {
   private:
@@ -54,7 +57,8 @@ class ValveMode final : public OTV0P2BASE::SimpleTSUint8Sensor
     volatile bool isWarmMode = false;
 
     // Only relevant if isWarmMode is true.
-    // Marked volatile to allow atomic access from ISR without a lock; decrements should lock out interrupts.
+    // Marked volatile to allow atomic access from ISR without a lock;
+    // decrements should lock out interrupts.
     volatile OTV0P2BASE::Atomic_UInt8T bakeCountdownM;
 
   public:
@@ -64,6 +68,10 @@ class ValveMode final : public OTV0P2BASE::SimpleTSUint8Sensor
 
     // Construct an instance.
     ValveMode() : bakeCountdownM(0) { }
+
+    // Reset to default/constructed state.
+    // Mainly to support unit tests.
+    void reset() { bakeCountdownM.store(0); }
 
     // Returns true if the mode value passed is valid, ie in range [0,2].
     virtual bool isValid(const uint8_t value) const { return(value <= VMODE_BAKE); }
@@ -100,11 +108,6 @@ class ValveMode final : public OTV0P2BASE::SimpleTSUint8Sensor
     virtual uint8_t read()
       {
       OTV0P2BASE::safeDecIfNZWeak(bakeCountdownM);
-//      ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
-//        {
-//        // Run down the BAKE mode timer if need be, one tick per minute.
-//        if(bakeCountdownM > 0) { --bakeCountdownM; }
-//        }
       // Recompute value from underlying.
       value = _get();
       return(value);
@@ -114,10 +117,13 @@ class ValveMode final : public OTV0P2BASE::SimpleTSUint8Sensor
     virtual uint8_t preferredPollInterval_s() const { return(60); }
 
     // Original V0p09/V0p2 API.
-    // If true then the unit is in 'warm' (heating) mode, else 'frost' protection mode.
+    // If true then the unit is in 'warm' (heating) mode (or bake),
+    // else 'frost' protection mode.
+    // Is thread-/ISR- safe.
     bool inWarmMode() const { return(isWarmMode); }
     // Has the effect of forcing the warm mode to the specified state immediately.
-    // Should be only be called once 'debounced' if coming from a button press for example.
+    // Should be only be called once 'debounced'
+    // if coming from a button press for example.
     // If forcing to FROST mode then any pending BAKE time is cancelled.
     void setWarmModeDebounced(const bool warm)
       {
@@ -127,11 +133,14 @@ class ValveMode final : public OTV0P2BASE::SimpleTSUint8Sensor
     // If true then the unit is in 'BAKE' mode, a subset of 'WARM' mode which boosts the temperature target temporarily.
     // ISR-safe (though may yield stale answer if warm is set false concurrently).
     bool inBakeMode() const { return(isWarmMode && (0 != bakeCountdownM.load())); }
-    // Should be only be called once 'debounced' if coming from a button press for example.
+    // Should be only be called once 'debounced'
+    // if coming from a button press for example.
     // Cancel 'bake' mode if active; does not force to FROST mode.
+    // Is thread-/ISR- safe (though may have no effect).
     void cancelBakeDebounced() { bakeCountdownM.store(0); }
     // Start/restart 'BAKE' mode and timeout.
-    // Should ideally be only be called once 'debounced' if coming from a button press for example.
+    // Should ideally be only be called once 'debounced'
+    // if coming from a button press for example.
     // Is thread-/ISR- safe (though may have no effect if warm is set false concurrently).
     void startBake() { isWarmMode = true; bakeCountdownM.store(DEFAULT_BAKE_MAX_M); }
   };
