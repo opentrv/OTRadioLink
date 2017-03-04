@@ -67,7 +67,8 @@ template
   Print const *outputDevice = Serial,
   const bool wakeFlushSleepSerial = true
 #else
-  Print const *outputDevice = (Print *)NULL,
+  // Must supply non-NULL output Print device / stream.
+  Print const *outputDevice,
   // True if Serial should be woken / flushed / put to sleep.
   // Should be false for non-AVR platforms.
   const bool wakeFlushSleepSerial = false
@@ -84,11 +85,13 @@ class SystemStatsLine final
     public:
         void serialStatusReport()
             {
+            static_assert(NULL != outputDevice, "outputDevice must not be null");
+
 #if defined(ARDUINO_ARCH_AVR)
             const bool neededWaking = wakeFlushSleepSerial &&
-                OTV0P2BASE::powerUpSerialIfDisabled<OTV0P2BASE::V0P2_UART_BAUD_DEFAULT>(); // FIXME
+                OTV0P2BASE::powerUpSerialIfDisabled<>();
 #else
-            static_assert(!wakeFlushSleepSerial, "wakeFlushSleepSerial needs hardware serial");
+            static_assert(!wakeFlushSleepSerial, "wakeFlushSleepSerial needs hardware Serial");
 #endif
 
 

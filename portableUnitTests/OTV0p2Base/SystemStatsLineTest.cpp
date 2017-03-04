@@ -25,12 +25,20 @@ Author(s) / Copyright (s): Damon Hart-Davis 2017
 #include <OTV0p2Base.h>
 //#include <OTRadValve.h>
 
+#include "OTV0P2BASE_SystemStatsLine.h"
+
 
 // Test basic instance creation, etc.
-//
-// Imported 2016/10/29 from Unit_Tests.cpp testJSONStats().
 TEST(SystemStatsLine,Basics)
 {
-    OTV0P2BASE::SystemStatsLine<> ssl0;
+//    // Should not compile with no Print channel on non-V0p2 platforms.
+//    OTV0P2BASE::SystemStatsLine<> ssl0Bad;
+
+//    // Should not compile because of NULL output channel.
+//    // Should not compile on non-V0p2 platforms because of true 'flush' param.
+//    OTV0P2BASE::SystemStatsLine<(Print *)NULL, true> sslBad;
+//    sslBad.serialStatusReport();
+
+
 }
 
