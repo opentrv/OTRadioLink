@@ -95,19 +95,34 @@ uint_least16_t SimpleValveScheduleParams::getSimpleScheduleOff(const uint8_t whi
 // May be relatively slow/expensive.
 // Can be used to suppress all 'off' activity except for the final one.
 // Can be used to suppress set-backs during on times.
+// Scheduled times near the midnight wrap-around are tricky.
 bool SimpleValveScheduleParams::isAnyScheduleOnWARMNow(const uint_least16_t mm) const
   {
   if(mm >= OTV0P2BASE::MINS_PER_DAY) { return(false); } // Invalid time.
-//  const uint_least16_t mm = OTV0P2BASE::getMinutesSinceMidnightLT();
 
   const uint8_t maxS = maxSchedules();
   for(uint8_t which = 0; which < maxS; ++which)
     {
     const uint_least16_t s = getSimpleScheduleOn(which);
-    if(mm < s) { continue; } // Also deals with case where this schedule is not set at all (s == ~0);
-    uint_least16_t e = getSimpleScheduleOff(which);
-    if(e < s) { e += OTV0P2BASE::MINS_PER_DAY; } // Cope with schedule wrap around midnight.
-    if(mm < e) { return(true); }
+    // Deal with case where this schedule is not set at all (s == ~0);
+    if(uint_least16_t(~0) == s) { continue; }
+
+    const uint_least16_t e = getSimpleScheduleOff(which);
+
+    // The test has to be aware if the end is apparently before the start,
+    // ie having wrapped around midnight.
+    if(s < e)
+      {
+      // Scheduled on period is not wrapped around midnight.
+      // |    ... s   e .... |
+      if((s <= mm) && (mm < e)) { return(true); }
+      }
+    else
+      {
+      // Scheduled on period is wrapped around midnight.
+      // | e                   ....     s  |
+      if((s <= mm) || (mm < e)) { return(true); }
+      }
     }
 
   return(false);
@@ -117,25 +132,13 @@ bool SimpleValveScheduleParams::isAnyScheduleOnWARMNow(const uint_least16_t mm) 
 // May be relatively slow/expensive.
 // Can be used to allow room to be brought up to at least a set-back temperature
 // if very cold when a WARM period is due soon
-// (to help ensure that WARM target is met on time).
+// to help ensure that WARM target is met on time.
 bool SimpleValveScheduleParams::isAnyScheduleOnWARMSoon(const uint_least16_t mm) const
   {
   if(mm >= OTV0P2BASE::MINS_PER_DAY) { return(false); } // Invalid time.
-//  const uint_least16_t mm = OTV0P2BASE::getMinutesSinceMidnightLT();
   const uint_least16_t mm0 = mm + PREPREWARM_MINS; // Look forward...
   const uint_least16_t mmadj = (mm0 >= OTV0P2BASE::MINS_PER_DAY) ? (mm0 - OTV0P2BASE::MINS_PER_DAY) : mm0;
-
-  const uint8_t maxS = maxSchedules();
-  for(uint8_t which = 0; which < maxS; ++which)
-    {
-    const uint_least16_t s = getSimpleScheduleOn(which);
-    if(mm < s) { continue; } // Also deals with case where this schedule is not set at all (s == ~0);
-    uint_least16_t e = getSimpleScheduleOff(which);
-    if(e < s) { e += OTV0P2BASE::MINS_PER_DAY; } // Cope with schedule wrap around midnight.
-    if(mmadj < e) { return(true); }
-    }
-
-  return(false);
+  return(isAnyScheduleOnWARMNow(mmadj));
   }
 
 

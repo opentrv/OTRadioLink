@@ -85,7 +85,8 @@ class SimpleValveScheduleBase
         // True iff any schedule is due 'on'/'WARM' soon even when schedules overlap.
         // May be relatively slow/expensive.
         // Can be used to allow room to be brought up to at least a set-back temperature
-        // if very cold when a WARM period is due soon (to help ensure that WARM target is met on time).
+        // if very cold when a WARM period is due soon
+        // to help ensure that WARM target is met on time.
         //   * mm  minutes from midnight (usually local time);
         //     must be less than OTV0P2BASE::MINS_PER_DAY
         virtual bool isAnyScheduleOnWARMSoon(uint_least16_t mm) const = 0;
@@ -150,6 +151,7 @@ class SimpleValveScheduleParams : public SimpleValveScheduleBase
         // Can be used to suppress set-backs during on times.
         //   * mm  minutes from midnight (usually local time);
         //     must be less than OTV0P2BASE::MINS_PER_DAY
+        // Scheduled times near the midnight wrap-around are tricky.
         virtual bool isAnyScheduleOnWARMNow(uint_least16_t mm) const override;
 
         // True iff any schedule is due 'on'/'WARM' soon even when schedules overlap.
@@ -171,7 +173,7 @@ class SimpleValveScheduleParams : public SimpleValveScheduleBase
         //     must be less than OTV0P2BASE::MINS_PER_DAY
         // Returns value in range [0,MAX_COMPRESSED_MINS_AFTER_MIDNIGHT].
         // Exposed to facilitate unit testing.
-        static inline uint8_t computeProgrammeByteFromTime(const uint_least16_t startMinutesSinceMidnightLT)
+        static uint8_t computeProgrammeByteFromTime(const uint_least16_t startMinutesSinceMidnightLT)
             {
             // Round down; will bring times forward to start of grain.
             return(startMinutesSinceMidnightLT / SIMPLE_SCHEDULE_GRANULARITY_MINS);
@@ -183,7 +185,7 @@ class SimpleValveScheduleParams : public SimpleValveScheduleBase
         //   * startMM  the programme byte;
         //     must be no more than MAX_COMPRESSED_MINS_AFTER_MIDNIGHT
         // Exposed to facilitate unit testing.
-        static inline uint_least16_t computeTimeFromPrgrammeByte(const uint8_t startMM)
+        static uint_least16_t computeTimeFromPrgrammeByte(const uint8_t startMM)
             {
             // Compute start time from stored schedule value.
             return(SIMPLE_SCHEDULE_GRANULARITY_MINS * startMM);
@@ -197,7 +199,7 @@ class SimpleValveScheduleParams : public SimpleValveScheduleBase
         static uint_least16_t computeScheduleOnTimeFromProgrammeByte(const uint8_t startMM)
             {
             uint_least16_t startTime = computeTimeFromPrgrammeByte(startMM);
-            // Wind back start time to allow room to get to temp on time.
+            // Wind back start time to allow room to reach target on time.
             const uint8_t windBackM = PREWARM_MINS;
             // Deal with wrap-around at midnight.
             if(windBackM > startTime) { startTime += OTV0P2BASE::MINS_PER_DAY; }
@@ -256,7 +258,7 @@ class SimpleValveScheduleMock final : public SimpleValveScheduleParams
         virtual void clearSimpleSchedule(const uint8_t which) override
             {
             if(which >= maxSchedules()) { return; } // Invalid schedule number.
-            // Clear the schedule back to 'unprogrammed' values, minimising wear.
+            // Clear the schedule back to 'unprogrammed' values.
             programmes[which] = 0xff;
             }
 
@@ -297,7 +299,7 @@ class SimpleValveScheduleEEPROM : public SimpleValveScheduleParams
         // Will usually include a pre-warm time before the actual time set.
         // Note that unprogrammed EEPROM value will result in invalid time, ie schedule not set.
         //   * which  schedule number, counting from 0
-        virtual /*static*/ uint_least16_t getSimpleScheduleOn(uint8_t which) const override;
+        virtual uint_least16_t getSimpleScheduleOn(uint8_t which) const override;
 
         // Set the simple simple on time.
         //   * startMinutesSinceMidnightLT  is start/on time in minutes after midnight [0,1439]
@@ -322,7 +324,7 @@ class SimpleValveScheduleEEPROM : public SimpleValveScheduleParams
 // Customised scheduler implementation for OpenTRV V0p2 circa REV2.
 class SimpleValveSchedule_PseudoSensorOccupancyTracker final { public: bool longVacant() { return(false); } };
 template<
-    uint8_t learnedOnM, uint8_t learnedOnComfortM,
+    const uint8_t learnedOnM, const uint8_t learnedOnComfortM,
     class tempControl_t, const tempControl_t *tempControl,
     class occupancy_t = SimpleValveSchedule_PseudoSensorOccupancyTracker, const occupancy_t *occupancy = NULL
     >
@@ -338,16 +340,22 @@ class SimpleValveSchedule final : public SimpleValveScheduleEEPROM
                 {
                 // Variable 'on' time depending on how 'eco' the settings are.
                 // Three-way split based on current WARM target temperature,
-                // for a relatively gentle change in behaviour along the valve dial for example.
+                // for a relatively gentle change in behaviour
+                // along the valve dial for example.
                 const uint8_t wt = tempControl->getWARMTargetC();
-                if(tempControl->isEcoTemperature(wt)) { return(learnedOnM); }
-                else if(tempControl->isComfortTemperature(wt)) { return(learnedOnComfortM); }
+                if(tempControl->isEcoTemperature(wt))
+                    { return(learnedOnM); }
+                else if(tempControl->isComfortTemperature(wt))
+                    { return(learnedOnComfortM); }
                 // If occupancy detection is enabled
-                // and the area is vacant for a long time (>1d) and not at maximum comfort end of scale
+                // and the area is vacant for a long time (>1d)
+                // and not at maximum comfort end of scale
                 // then truncate the on period to attempt to save energy.
-                else if((NULL != occupancy) && occupancy->longVacant()) { return(learnedOnM); }
+                else if((NULL != occupancy) && occupancy->longVacant())
+                    { return(learnedOnM); }
                 // Intermediate on-time for middle of the eco/comfort scale.
-                else { return((learnedOnM + learnedOnComfortM) / 2); }
+                else
+                    { return((learnedOnM + learnedOnComfortM) / 2); }
                 }
             }
     };
