@@ -418,6 +418,19 @@ struct ModelledRadValveSensorCtrlStats final
          { }
     };
 
+
+#if defined(ARDUINO_ARCH_AVR)
+/**
+ * @brief   Retrieve the current setback lockout value from the EEPROM.
+ * @retval  The number of days left of the setback lockout. Setback lockout is disabled when this reaches 0.
+ * @note    The value is stored inverted in (AVR) EEPROM (so 0xff/unprogrammed implies no lock-out).
+ * @note    This is stored as G 0 for TRV1.5 devices, but may change in future.
+ * @note    Only implemented for AVR for now.
+ */
+inline uint8_t getSetbackLockout() { return(~(eeprom_read_byte((uint8_t *)OTV0P2BASE::V0P2BASE_EE_START_SETBACK_LOCKOUT_COUNTDOWN_D_INV))); }
+#endif // defined(ARDUINO_ARCH_AVR)
+
+
 // Base class for stateless computation of target temperature.
 // Implementations will capture parameters and sensor references, etc.
 class ModelledRadValveComputeTargetTempBase
