@@ -106,5 +106,25 @@ TEST(SystemStatsLine,Basics)
     sslO.serialStatusReport();
     // Check entire status line including trailing line termination.
     EXPECT_STREQ("=F\r\n", Basics::buf);
+
+    // Clear the buffer.
+    Basics::bp.reset();
+
+    // Ensure that failing to provide a non-NULL printer does not cause a crash.
+    OTV0P2BASE::SystemStatsLine<
+        decltype(Basics::valveMode), &Basics::valveMode,
+        OTRadValve::AbstractRadValve, (OTRadValve::AbstractRadValve *)NULL,
+        OTV0P2BASE::TemperatureC16Base, (OTV0P2BASE::TemperatureC16Base *)NULL,
+        OTV0P2BASE::HumiditySensorBase, (OTV0P2BASE::HumiditySensorBase *)NULL,
+        OTV0P2BASE::SensorAmbientLightBase, (OTV0P2BASE::SensorAmbientLightBase *)NULL,
+        OTV0P2BASE::PseudoSensorOccupancyTracker, (OTV0P2BASE::PseudoSensorOccupancyTracker *)NULL,
+        OTV0P2BASE::SimpleValveScheduleBase, (OTV0P2BASE::SimpleValveScheduleBase *)NULL,
+        false, // No JSON stats.
+        Print, (Print *)NULL> sslBad;
+    // Generate a stats line.
+    sslBad.serialStatusReport();
+    // Buffer should remain empty before any explicit activity.
+    ASSERT_EQ(0, Basics::bp.getSize());
+    ASSERT_EQ('\0', Basics::buf[0]);
 }
 
