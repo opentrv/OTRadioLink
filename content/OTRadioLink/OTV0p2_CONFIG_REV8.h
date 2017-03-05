@@ -110,7 +110,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2017
 // OK IN THIS CASE BECAUSE ALL COMMS SECURE.
 #define ENABLE_ALWAYS_TX_ALL_STATS
 // IF DEFINED: this unit will act as a thermostat controlling a local TRV (and calling for heat from the boiler), else is a sensor/hub unit.
-#define ENABLE_LOCAL_TRV
+#undef ENABLE_LOCAL_TRV
 // IF DEFINED: this unit supports CLI over the USB/serial connection, eg for run-time reconfig.
 #define ENABLE_CLI
 // IF DEFINED: there is run-time help available for the CLI.
