@@ -119,6 +119,11 @@ TEST(SimpleValveSchedule,isAnyScheduleOnWARMNow0)
         EXPECT_TRUE(svsm0.isAnySimpleScheduleSet());
         // Make sure that the current minute is seen as warm.
         EXPECT_TRUE(svsm0.isAnyScheduleOnWARMNow(m)) << m;
+        // Make sure that 12h out is NOT seen as warm now or soon.
+        const uint16_t timeShift12h =
+            (m + OTV0P2BASE::MINS_PER_DAY/2) % OTV0P2BASE::MINS_PER_DAY;
+        EXPECT_FALSE(svsm0.isAnyScheduleOnWARMNow(timeShift12h)) << timeShift12h;
+        EXPECT_FALSE(svsm0.isAnyScheduleOnWARMSoon(timeShift12h)) << timeShift12h;
         }
 }
 
