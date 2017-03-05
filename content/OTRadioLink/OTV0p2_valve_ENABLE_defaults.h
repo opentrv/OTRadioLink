@@ -33,6 +33,14 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
  *
  * NOT to be included by ANY library routines,
  * though may be included by other application CONFIG heqders.
+ *
+ *
+ * A typical application will set up configuration with something like:
+ *     #include <OTV0p2_valve_ENABLE_defaults.h>
+ *     #define CONFIG_XX...
+ *     #include <OTV0p2_CONFIG_REVXX.h>
+ *     #include <OTV0p2_valve_ENABLE_fixups.h>
+ *     ... residual fixups ....
  */
 
 #ifndef ARDUINO_LIB_OTV0P2_VALVE_ENABLE_DEFAULTS_H
