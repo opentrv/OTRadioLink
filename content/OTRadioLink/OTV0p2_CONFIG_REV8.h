@@ -59,7 +59,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2017
 #undef ENABLE_LOCAL_TRV
 #endif
 
-// REV8 secure boiler controller and stats hub
+// REV8 secure boiler controller and stats hub.
 #ifdef CONFIG_REV8_SECURE_BHR
 // Revision REV8.B of V0.2 board, boiler control unit.
 // NO LIGHT SENSOR FITTED ON REV8.B BOARDS.
