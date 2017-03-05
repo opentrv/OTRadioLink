@@ -33,6 +33,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2017
 #include "OTRadValve_Parameters.h"
 #include "OTRadValve_AbstractRadValve.h"
 #include "OTRadValve_ValveMode.h"
+#include "OTRadValve_SimpleValveSchedule.h"
 #include "OTRadValve_TempControl.h"
 #include "OTRadValve_ActuatorPhysicalUI.h"
 
@@ -390,7 +391,7 @@ struct ModelledRadValveSensorCtrlStats final
     const ActuatorPhysicalUIBase *const physicalUI;
 
     // Read-only access to simple schedule; must not be NULL.
-    const OTV0P2BASE::SimpleValveScheduleBase *const schedule;
+    const OTRadValve::SimpleValveScheduleBase *const schedule;
 
     // Read-only access to by-hour stats; must not be NULL.
     const OTV0P2BASE::NVByHourByteStatsBase *const byHourStats;
@@ -404,7 +405,7 @@ struct ModelledRadValveSensorCtrlStats final
         const OTV0P2BASE::PseudoSensorOccupancyTracker *const _occupancy,
         const OTV0P2BASE::SensorAmbientLightBase *const _ambLight,
         const ActuatorPhysicalUIBase *const _physicalUI,
-        const OTV0P2BASE::SimpleValveScheduleBase *const _schedule,
+        const OTRadValve::SimpleValveScheduleBase *const _schedule,
         const OTV0P2BASE::NVByHourByteStatsBase *const _byHourStats)
        : valveMode(_valveMode),
          temperatureC16(_temperatureC16),
@@ -516,7 +517,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
           // (A very long pre-warm time may confuse or distress users,
           // eg waking them in the morning.)
           if(!occupancy->longVacant() &&
-             schedule->isAnyScheduleOnWARMSoon() &&
+             schedule->isAnyScheduleOnWARMSoon(OTV0P2BASE::getMinutesSinceMidnightLT()) &&
              !physicalUI->recentUIControlUse())
             {
             const uint8_t warmTarget = tempControl->getWARMTargetC();
@@ -557,7 +558,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
           // TODO: or dark and weakly occupied in case room only briefly occupied.
           // TODO: or set back on anticipated vacancy.
           const bool allowSetback = likelyVacantNow &&
-              (/*long*/longVacant || !schedule->isAnyScheduleOnWARMNow());
+              (/*long*/longVacant || !schedule->isAnyScheduleOnWARMNow(OTV0P2BASE::getMinutesSinceMidnightLT()));
 
           if(allowSetback)
             {
@@ -572,7 +573,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
             static constexpr uint16_t longDarkM = 7*60U; // 7h
 
             // Any imminent scheduled on may inhibit all but minimum setback.
-            const bool scheduleOnSoon = schedule->isAnyScheduleOnWARMSoon();
+            const bool scheduleOnSoon = schedule->isAnyScheduleOnWARMSoon(OTV0P2BASE::getMinutesSinceMidnightLT());
             // High likelihood of occupancy now inhibits ECO setback.
             const uint8_t hoursLessOccupiedThanThis =
                 byHourStats->countStatSamplesBelow(

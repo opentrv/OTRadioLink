@@ -304,7 +304,7 @@ namespace SSMRV
     static OTV0P2BASE::PseudoSensorOccupancyTracker occupancy;
     static OTV0P2BASE::SensorAmbientLightAdaptiveMock ambLight;
     static OTRadValve::NULLActuatorPhysicalUI physicalUI;
-    static OTV0P2BASE::NULLValveSchedule schedule;
+    static OTRadValve::NULLValveSchedule schedule;
     static OTV0P2BASE::NULLByHourByteStats byHourStats;
     }
 TEST(JSONStats,SubSensorsMRV)

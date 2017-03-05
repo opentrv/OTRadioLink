@@ -117,7 +117,7 @@ template
     class humidity_t = SimpleTSUint8Sensor /*HumiditySensorBase*/, const humidity_t *humidityOpt = NULL,
     class ambLight_t = SimpleTSUint8Sensor /*SensorAmbientLightBase*/, const ambLight_t *ambLightOpt = NULL,
     class occupancy_t = SimpleTSUint8Sensor /*PseudoSensorOccupancyTracker*/, const occupancy_t *occupancyOpt = NULL,
-    class schedule_t = SimpleValveScheduleBase, const schedule_t *schedule = NULL,
+    class schedule_t = emptyStruct /*SimpleValveScheduleBase*/, const schedule_t *schedule = NULL,
 
     // True to enable trailing rotating JSON stats.
     const bool enableTrailingJSONStats = true,

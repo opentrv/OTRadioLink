@@ -13,11 +13,11 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2015
+Author(s) / Copyright (s): Damon Hart-Davis 2015--2017
 */
 
 /*
- Simple schedule support for TRV.
+ Simple valve schedule support for TRV.
 
  V0p2/AVR only for now.
  */
@@ -27,10 +27,12 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 
 #include "OTV0P2BASE_EEPROM.h"
 #include "OTV0P2BASE_Util.h"
-#include "OTV0P2BASE_SensorOccupancy.h"
 
 
-namespace OTV0P2BASE
+#include "OTRadValve_ValveMode.h"
+
+
+namespace OTRadValve
 {
 
 
@@ -56,7 +58,7 @@ class SimpleValveScheduleBase
 
         // Get the simple schedule on time, as minutes after midnight [0,1439]; invalid (eg ~0) if none set.
         // Will usually include a pre-warm time before the actual time set.
-        // Note that unprogrammed EEPROM value will result in invalid time, ie schedule not set.
+        // Note that unprogrammed schedule value will result in invalid time, ie schedule not set.
         //   * which  schedule number, counting from 0
         virtual uint_least16_t getSimpleScheduleOn(uint8_t which) const = 0;
 
@@ -76,40 +78,45 @@ class SimpleValveScheduleBase
         // True iff any schedule is 'on'/'WARN' even when schedules overlap.
         // Can be used to suppress all 'off' activity except for the final one.
         // Can be used to suppress set-backs during on times.
-        virtual bool isAnyScheduleOnWARMNow() const = 0;
+        //   * mm  minutes from midnight (usually local time);
+        //     must be less than OTV0P2BASE::MINS_PER_DAY
+        virtual bool isAnyScheduleOnWARMNow(uint_least16_t mm) const = 0;
 
         // True iff any schedule is due 'on'/'WARM' soon even when schedules overlap.
         // May be relatively slow/expensive.
         // Can be used to allow room to be brought up to at least a set-back temperature
         // if very cold when a WARM period is due soon (to help ensure that WARM target is met on time).
-        virtual bool isAnyScheduleOnWARMSoon() const = 0;
+        //   * mm  minutes from midnight (usually local time);
+        //     must be less than OTV0P2BASE::MINS_PER_DAY
+        virtual bool isAnyScheduleOnWARMSoon(uint_least16_t mm) const = 0;
 
         // True iff any schedule is currently 'on'/'WARM' even when schedules overlap.
         // May be relatively slow/expensive.
         // Can be used to suppress all 'off' activity except for the final one.
         // Can be used to suppress set-backs during on times.
         virtual bool isAnySimpleScheduleSet() const = 0;
+
+        // Check/apply the user's schedule.
+        // This should be called (at least) once each minute
+        // to apply any current schedule to the valve state,
+        // ie moving it between frost and warm modes.
+        //
+        // This will only move to frost mode when no current warm schedule
+        // is enabled, so overlapping schedules behave as expected.
+        //
+        //   * mm  minutes since midnight local time [0,1439]
+        void applyUserSchedule(OTRadValve::ValveMode* const valveMode,
+                const uint_least16_t mm) const;
    };
 
-
-#ifdef ARDUINO_ARCH_AVR
-// Simple single-button (per programme) on-time scheduler, for individual TRVs.
-// Uses one EEPROM byte per program.
-// Has an on-time that may be varied by, for example, comfort level.
-#define SimpleValveScheduleEEPROM_DEFINED
-class SimpleValveScheduleEEPROM : public SimpleValveScheduleBase
+// Some basic properties and implementation of a simple scheduler.
+// These will hold for the EEPROM-backed AVR version for example,
+// as well as a more testable RAM-based version.
+class SimpleValveScheduleParams : public SimpleValveScheduleBase
     {
     public:
         // Granularity of simple schedule in minutes (values may be rounded/truncated to nearest); strictly positive.
         static constexpr uint8_t SIMPLE_SCHEDULE_GRANULARITY_MINS = 6;
-
-        // Number of supported schedules.
-        // Can be more than the number of buttons, but later schedules will be CLI-only.
-        // Depends on space reserved in EEPROM for programmes, one byte per programme.
-        static constexpr uint8_t MAX_SIMPLE_SCHEDULES = V0P2BASE_EE_START_MAX_SIMPLE_SCHEDULES;
-
-        // Returns maximum number of schedules supported.
-        virtual uint8_t maxSchedules() const override { return(MAX_SIMPLE_SCHEDULES); }
 
         // Target basic scheduled on time for heating in minutes (typically 1h); strictly positive.
         static constexpr uint8_t BASIC_SCHEDULED_ON_TIME_MINS = 60;
@@ -138,6 +145,154 @@ class SimpleValveScheduleEEPROM : public SimpleValveScheduleBase
         //   * which  schedule number, counting from 0
         virtual uint_least16_t getSimpleScheduleOff(uint8_t which) const override;
 
+        // True iff any schedule is 'on'/'WARN' even when schedules overlap.
+        // Can be used to suppress all 'off' activity except for the final one.
+        // Can be used to suppress set-backs during on times.
+        //   * mm  minutes from midnight (usually local time);
+        //     must be less than OTV0P2BASE::MINS_PER_DAY
+        virtual bool isAnyScheduleOnWARMNow(uint_least16_t mm) const override;
+
+        // True iff any schedule is due 'on'/'WARM' soon even when schedules overlap.
+        // May be relatively slow/expensive.
+        // Can be used to allow room to be brought up to at least a set-back temperature
+        // if very cold when a WARM period is due soon
+        // (to help ensure that WARM target is met on time).
+        //   * mm  minutes from midnight (usually local time);
+        //     must be less than OTV0P2BASE::MINS_PER_DAY
+        virtual bool isAnyScheduleOnWARMSoon(uint_least16_t mm) const override;
+
+        // Maximum mins-after-midnight compacted value in one byte.
+        // Exposed to facilitate unit testing.
+        static constexpr uint8_t MAX_COMPRESSED_MINS_AFTER_MIDNIGHT = ((OTV0P2BASE::MINS_PER_DAY / SIMPLE_SCHEDULE_GRANULARITY_MINS) - 1);
+
+        // Compute byte to store for specified on/off time.
+        // This byte is directly suitable to store in EEPROM / etc.
+        //   * startMinutesSinceMidnightLT  minutes from local midnight;
+        //     must be less than OTV0P2BASE::MINS_PER_DAY
+        // Returns value in range [0,MAX_COMPRESSED_MINS_AFTER_MIDNIGHT].
+        // Exposed to facilitate unit testing.
+        static inline uint8_t computeProgrammeByteFromTime(const uint_least16_t startMinutesSinceMidnightLT)
+            {
+            // Round down; will bring times forward to start of grain.
+            return(startMinutesSinceMidnightLT / SIMPLE_SCHEDULE_GRANULARITY_MINS);
+            }
+
+        // Computes the schedule time from the programme byte..
+        // Essentially performs the reverse of computeProgrammeByteFromTime()
+        // to the storage granularity.
+        //   * startMM  the programme byte;
+        //     must be no more than MAX_COMPRESSED_MINS_AFTER_MIDNIGHT
+        // Exposed to facilitate unit testing.
+        static inline uint_least16_t computeTimeFromPrgrammeByte(const uint8_t startMM)
+            {
+            // Compute start time from stored schedule value.
+            return(SIMPLE_SCHEDULE_GRANULARITY_MINS * startMM);
+            }
+
+        // Compute the simple/primary schedule on time, as minutes after midnight [0,1439].
+        // Will usually include a pre-warm time before the actual time set.
+        //   * startMM  the programme byte;
+        //     must be no more than MAX_COMPRESSED_MINS_AFTER_MIDNIGHT
+        // Exposed to facilitate unit testing.
+        static uint_least16_t computeScheduleOnTimeFromProgrammeByte(const uint8_t startMM)
+            {
+            uint_least16_t startTime = computeTimeFromPrgrammeByte(startMM);
+            // Wind back start time to allow room to get to temp on time.
+            const uint8_t windBackM = PREWARM_MINS;
+            // Deal with wrap-around at midnight.
+            if(windBackM > startTime) { startTime += OTV0P2BASE::MINS_PER_DAY; }
+            startTime -= windBackM;
+            return(startTime);
+            }
+    };
+
+// Mock/testable class sharing some core impl with SimpleValveScheduleEEPROM.
+template<uint8_t maxSched = 2>
+class SimpleValveScheduleMock final : public SimpleValveScheduleParams
+    {
+    private:
+        // One byte per program, using same bit patterns as EEPROM.
+        uint8_t programmes[maxSched];
+
+    public:
+        // Ensure all schedules cleared/empty on construction.
+        SimpleValveScheduleMock()
+            { for(int i = 0; i < maxSched; ++i) { clearSimpleSchedule(i); } }
+
+        // Returns maximum number of schedules supported.
+        virtual uint8_t maxSchedules() const override final { return(maxSched); }
+
+        // Get the simple schedule on time, as minutes after midnight [0,1439]; invalid (eg ~0) if none set.
+        // Will usually include a pre-warm time before the actual time set.
+        // Note that unprogrammed schedule value will result in invalid time, ie schedule not set.
+        //   * which  schedule number, counting from 0
+        virtual uint_least16_t getSimpleScheduleOn(uint8_t which) const override
+            {
+            if(which >= maxSchedules()) { return(~0); } // Invalid schedule number.
+            const uint8_t startMM = programmes[which];
+            if(startMM > MAX_COMPRESSED_MINS_AFTER_MIDNIGHT) { return(~0); } // No schedule set.
+            // Compute start time from stored schedule value.
+            return(computeScheduleOnTimeFromProgrammeByte(startMM));
+            }
+
+        // Set the simple simple on time.
+        //   * startMinutesSinceMidnightLT  is start/on time in minutes after midnight [0,1439]
+        //   * which  schedule number, counting from 0
+        // Invalid parameters will be ignored and false returned,
+        // else this will return true and isSimpleScheduleSet() will return true after this.
+        // NOTE: over-use of this routine can prematurely wear out the EEPROM.
+        virtual bool setSimpleSchedule(uint_least16_t startMinutesSinceMidnightLT, uint8_t which) override
+            {
+            if(which >= maxSchedules()) { return(false); } // Invalid schedule number.
+            if(startMinutesSinceMidnightLT >= OTV0P2BASE::MINS_PER_DAY) { return(false); } // Invalid time.
+            const uint8_t startMM = computeProgrammeByteFromTime(startMinutesSinceMidnightLT);
+            programmes[which] = startMM;
+            return(true);
+            }
+
+        // Clear a simple schedule.
+        // There will be neither on nor off events from the selected simple schedule once this is called.
+        //   * which  schedule number, counting from 0
+        virtual void clearSimpleSchedule(const uint8_t which) override
+            {
+            if(which >= maxSchedules()) { return; } // Invalid schedule number.
+            // Clear the schedule back to 'unprogrammed' values, minimising wear.
+            programmes[which] = 0xff;
+            }
+
+        // True iff any schedule is currently 'on'/'WARM' even when schedules overlap.
+        // May be relatively slow/expensive.
+        // Can be used to suppress all 'off' activity except for the final one.
+        // Can be used to suppress set-backs during on times.
+        virtual bool isAnySimpleScheduleSet() const override
+            {
+            for(uint8_t which = 0; which < maxSchedules(); ++which)
+                {
+                if(programmes[which] <= MAX_COMPRESSED_MINS_AFTER_MIDNIGHT)
+                  { return(true); }
+                }
+            return(false);
+            }
+    };
+
+
+#ifdef ARDUINO_ARCH_AVR
+// Simple single-button (per programme) on-time scheduler, for individual TRVs.
+// Uses one EEPROM byte per program.
+// Has an on-time that may be varied by, for example, comfort level.
+#define SimpleValveScheduleEEPROM_DEFINED
+class SimpleValveScheduleEEPROM : public SimpleValveScheduleParams
+    {
+    public:
+        // Number of supported schedules.
+        // Can be more than the number of buttons, but later schedules will be CLI-only.
+        // Depends on space reserved in EEPROM for programmes,
+        // one byte per programme.
+        static constexpr uint8_t MAX_SIMPLE_SCHEDULES = V0P2BASE_EE_START_MAX_SIMPLE_SCHEDULES;
+
+        // Returns maximum number of schedules supported.
+        virtual uint8_t maxSchedules() const override final { return(MAX_SIMPLE_SCHEDULES); }
+
         // Get the simple schedule on time, as minutes after midnight [0,1439]; invalid (eg ~0) if none set.
         // Will usually include a pre-warm time before the actual time set.
         // Note that unprogrammed EEPROM value will result in invalid time, ie schedule not set.
@@ -156,17 +311,6 @@ class SimpleValveScheduleEEPROM : public SimpleValveScheduleBase
         // There will be neither on nor off events from the selected simple schedule once this is called.
         //   * which  schedule number, counting from 0
         virtual void clearSimpleSchedule(uint8_t which) override;
-
-        // True iff any schedule is 'on'/'WARN' even when schedules overlap.
-        // Can be used to suppress all 'off' activity except for the final one.
-        // Can be used to suppress set-backs during on times.
-        virtual bool isAnyScheduleOnWARMNow() const override;
-
-        // True iff any schedule is due 'on'/'WARM' soon even when schedules overlap.
-        // May be relatively slow/expensive.
-        // Can be used to allow room to be brought up to at least a set-back temperature
-        // if very cold when a WARM period is due soon (to help ensure that WARM target is met on time).
-        virtual bool isAnyScheduleOnWARMSoon() const override;
 
         // True iff any schedule is currently 'on'/'WARM' even when schedules overlap.
         // May be relatively slow/expensive.
@@ -223,8 +367,8 @@ class NULLValveSchedule final : public SimpleValveScheduleBase
     virtual uint_least16_t getSimpleScheduleOn(uint8_t) const override { return(uint_least16_t(~0)); }
     virtual bool setSimpleSchedule(uint_least16_t, uint8_t) override { return(false); }
     virtual void clearSimpleSchedule(uint8_t) override { }
-    virtual bool isAnyScheduleOnWARMNow() const override { return(false); }
-    virtual bool isAnyScheduleOnWARMSoon() const override { return(false); }
+    virtual bool isAnyScheduleOnWARMNow(uint_least16_t) const override { return(false); }
+    virtual bool isAnyScheduleOnWARMSoon(uint_least16_t) const override { return(false); }
     virtual bool isAnySimpleScheduleSet() const override { return(false); }
   };
 
@@ -240,6 +384,7 @@ class DummyValveSchedule final
         static bool isAnyScheduleOnWARMSoon() { return(false); }
         static bool isAnySimpleScheduleSet() { return(false); }
     };
+
 
 }
 #endif

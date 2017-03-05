@@ -277,7 +277,7 @@ namespace SDSR
     typedef OTRadValve::DEFAULT_ValveControlParameters parameters;
     static OTRadValve::TempControlSimpleVCPMock<parameters> tempControl;
     static OTRadValve::NULLActuatorPhysicalUI physicalUI;
-    static OTV0P2BASE::NULLValveSchedule schedule;
+    static OTRadValve::NULLValveSchedule schedule;
     // Simple-as-possible instance.
     static OTRadValve::ModelledRadValveComputeTargetTempBasic<
        parameters,

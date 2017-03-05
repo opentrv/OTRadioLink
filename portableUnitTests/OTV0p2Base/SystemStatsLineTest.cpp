@@ -42,7 +42,7 @@ namespace Basics
     static OTV0P2BASE::SensorAmbientLightAdaptiveMock ambLight;
     // Dummy (non-functioning) temperature and relative humidity sensors.
     static OTV0P2BASE::HumiditySensorMock rh;
-    static OTV0P2BASE::NULLValveSchedule schedule;
+    static OTRadValve::NULLValveSchedule schedule;
     }
 TEST(SystemStatsLine,Basics)
 {
@@ -99,7 +99,7 @@ TEST(SystemStatsLine,Basics)
         OTV0P2BASE::HumiditySensorBase, (OTV0P2BASE::HumiditySensorBase *)NULL,
         OTV0P2BASE::SensorAmbientLightBase, (OTV0P2BASE::SensorAmbientLightBase *)NULL,
         OTV0P2BASE::PseudoSensorOccupancyTracker, (OTV0P2BASE::PseudoSensorOccupancyTracker *)NULL,
-        OTV0P2BASE::SimpleValveScheduleBase, (OTV0P2BASE::SimpleValveScheduleBase *)NULL,
+        OTRadValve::SimpleValveScheduleBase, (OTRadValve::SimpleValveScheduleBase *)NULL,
         false, // No JSON stats.
         decltype(Basics::bp), &Basics::bp> sslO;
     // Generate a stats line.
@@ -118,7 +118,7 @@ TEST(SystemStatsLine,Basics)
         OTV0P2BASE::HumiditySensorBase, (OTV0P2BASE::HumiditySensorBase *)NULL,
         OTV0P2BASE::SensorAmbientLightBase, (OTV0P2BASE::SensorAmbientLightBase *)NULL,
         OTV0P2BASE::PseudoSensorOccupancyTracker, (OTV0P2BASE::PseudoSensorOccupancyTracker *)NULL,
-        OTV0P2BASE::SimpleValveScheduleBase, (OTV0P2BASE::SimpleValveScheduleBase *)NULL,
+        OTRadValve::SimpleValveScheduleBase, (OTRadValve::SimpleValveScheduleBase *)NULL,
         false, // No JSON stats.
         Print, (Print *)NULL> sslBad;
     // Generate a stats line.

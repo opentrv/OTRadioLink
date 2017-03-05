@@ -166,21 +166,21 @@ bool restoreRTC()
   }
 #endif // ARDUINO_ARCH_AVR
 
-#ifdef ARDUINO_ARCH_AVR
 // Get minutes since midnight local time [0,1439].
 // Useful to fetch time atomically for scheduling purposes.
 // Preserves interrupt state.
-// Thread-safe and ISR-safe.
+// Thread-safe and ISR-safe ON AVR ONLY for now.
 #ifndef getMinutesSinceMidnightLT
 uint_least16_t getMinutesSinceMidnightLT()
   {
   uint_least16_t result;
+#ifdef ARDUINO_ARCH_AVR
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+#endif // ARDUINO_ARCH_AVR
     { result = _minutesSinceMidnightLT; }
   return(result);
   }
 #endif
-#endif // ARDUINO_ARCH_AVR
 
 #ifdef ARDUINO_ARCH_AVR
 // Get local time minutes from RTC [0,59].
