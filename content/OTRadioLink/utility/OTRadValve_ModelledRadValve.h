@@ -423,11 +423,23 @@ struct ModelledRadValveSensorCtrlStats final
 /**
  * @brief   Retrieve the current setback lockout value from the EEPROM.
  * @retval  The number of days left of the setback lockout. Setback lockout is disabled when this reaches 0.
- * @note    The value is stored inverted in (AVR) EEPROM (so 0xff/unprogrammed implies no lock-out).
+ * @note    The value is stored inverted in (AVR) EEPROM (so 0xff/erased/uset implies no lock-out).
  * @note    This is stored as G 0 for TRV1.5 devices, but may change in future.
  * @note    Only implemented for AVR for now.
  */
 inline uint8_t getSetbackLockout() { return(~(eeprom_read_byte((uint8_t *)OTV0P2BASE::V0P2BASE_EE_START_SETBACK_LOCKOUT_COUNTDOWN_D_INV))); }
+
+// Count down the setback lockout if not finished...  (TODO-786, TODO-906)
+inline void countDownSetbackLockout()
+    {
+    const uint8_t sloInv = eeprom_read_byte((uint8_t *)OTV0P2BASE::V0P2BASE_EE_START_SETBACK_LOCKOUT_COUNTDOWN_D_INV);
+    if(0xff != sloInv)
+        {
+        // Logically decrement the inverted value, invert it and store it back.
+        const uint8_t updated = ~((~sloInv)-1);
+        OTV0P2BASE::eeprom_smart_update_byte((uint8_t *)OTV0P2BASE::V0P2BASE_EE_START_SETBACK_LOCKOUT_COUNTDOWN_D_INV, updated);
+        }
+    }
 #endif // defined(ARDUINO_ARCH_AVR)
 
 
