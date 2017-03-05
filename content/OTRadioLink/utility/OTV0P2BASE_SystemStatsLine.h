@@ -169,8 +169,10 @@ class SystemStatsLine final
     public:
         void serialStatusReport()
             {
-            static_assert(printer, "printer must not be null");
-            static_assert(valveMode, "valveMode must not be null");
+//            static_assert(printer, "printer must not be null");
+//            static_assert(valveMode, "valveMode must not be null");
+            if(NULL == printer) { return; }
+            if(NULL == valveMode) { return; }
 
 #if defined(ARDUINO_ARCH_AVR)
             const bool neededWaking = wakeFlushSleepSerial &&
