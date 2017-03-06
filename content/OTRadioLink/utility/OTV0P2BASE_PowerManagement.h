@@ -171,6 +171,9 @@ void power_intermittent_peripherals_disable();
 /************** Serial IO ************************/
 
 #ifdef ARDUINO_ARCH_AVR
+    // Default speed for primary hardware serial port for V0p2 (AVR) boards.
+    static constexpr uint16_t V0P2_UART_BAUD_DEFAULT = 4800;
+
 	// Check if serial is (already) powered up.
 	static inline bool _serialIsPoweredUp() { return(!(PRR & _BV(PRUSART0))); }
 
@@ -178,7 +181,7 @@ void power_intermittent_peripherals_disable();
 	// If already powered up then do nothing other than return false.
 	// If this returns true then a matching powerDownSerial() may be advisable.
 	// Defaults to V0p2 unit baud rate
-	template <uint16_t baud>
+	template <uint16_t baud = V0P2_UART_BAUD_DEFAULT>
 	bool powerUpSerialIfDisabled()
 	  {
 	  if(_serialIsPoweredUp()) { return(false); }

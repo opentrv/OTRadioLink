@@ -46,6 +46,27 @@ namespace CLI {
 // Probably should not be inlined, to avoid creating duplicate strings in Flash.
 void InvalidIgnored() { Serial.println(F("Invalid, ignored.")); }
 
+
+// Remaining minutes to keep CLI active; zero implies inactive.
+// Starts up with zero value (CLI off) to avoid taking too many startup cycles
+// from calibration, etc.
+// Atomic_UInt8T for thread-safe lock-free non-read-modify-write access.
+static constexpr uint8_t CLI_DEFAULT_TIMEOUT_M = 2;
+static volatile Atomic_UInt8T CLITimeoutM;
+// Reset CLI active timer to max (ie makes CLI active for a while).
+// Thread-safe.
+void resetCLIActiveTimer() { CLITimeoutM.store(CLI_DEFAULT_TIMEOUT_M); }
+// Returns true if the CLI is active, at least intermittently.
+// Thread-safe.
+bool isCLIActive() { return(0 != CLITimeoutM.load()); }
+// Makes CLI inactive immediately.
+// Thread-safe.
+void makeCLIInactive() { CLITimeoutM.store(0); }
+// Count down CLI towards inactivity.
+// Thread safe.
+void countDownCLI() { safeDecIfNZWeak(CLITimeoutM); }
+
+
 // If CLI_INTERACTIVE_ECHO defined then immediately echo received characters, not at end of line.
 #define CLI_INTERACTIVE_ECHO
 // Character that should trigger any pending command from user to be sent.

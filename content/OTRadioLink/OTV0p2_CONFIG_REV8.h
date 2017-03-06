@@ -59,12 +59,14 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2017
 #undef ENABLE_LOCAL_TRV
 #endif
 
-// REV8 secure boiler controller and stats hub
+// REV8 secure boiler controller and stats hub.
 #ifdef CONFIG_REV8_SECURE_BHR
 // Revision REV8.B of V0.2 board, boiler control unit.
 // NO LIGHT SENSOR FITTED ON REV8.B BOARDS.
 // BOTH TMP112 AND SHT21 FITTED on REV8.B BOARDS.
 #define V0p2_REV 8
+// IF DEFINED: try to trim memory (primarily RAM, also code/Flash) space used.
+#define ENABLE_TRIMMED_MEMORY
 // IF DEFINED: enable use of on-board SHT21 RH and temp sensor (in lieu of TMP112).
 #define ENABLE_PRIMARY_TEMP_SENSOR_SHT21
 // Using RoHS-compliant phototransistor in place of LDR.
@@ -108,7 +110,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2017
 // OK IN THIS CASE BECAUSE ALL COMMS SECURE.
 #define ENABLE_ALWAYS_TX_ALL_STATS
 // IF DEFINED: this unit will act as a thermostat controlling a local TRV (and calling for heat from the boiler), else is a sensor/hub unit.
-#define ENABLE_LOCAL_TRV
+#undef ENABLE_LOCAL_TRV
 // IF DEFINED: this unit supports CLI over the USB/serial connection, eg for run-time reconfig.
 #define ENABLE_CLI
 // IF DEFINED: there is run-time help available for the CLI.

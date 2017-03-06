@@ -33,6 +33,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2017
 #include "OTRadValve_Parameters.h"
 #include "OTRadValve_AbstractRadValve.h"
 #include "OTRadValve_ValveMode.h"
+#include "OTRadValve_SimpleValveSchedule.h"
 #include "OTRadValve_TempControl.h"
 #include "OTRadValve_ActuatorPhysicalUI.h"
 
@@ -214,9 +215,9 @@ struct ModelledRadValveState final
 //  bool isFiltering = false;
   uint8_t isFiltering = 0;
 
-//  // True if the computed modelled valve position was changed by tick().
-//  // This is not an indication if any underlying valve position has changed.
-//  bool valveMoved = false;
+  // True if the computed modelled valve position was changed by tick().
+  // This is not an indication if any underlying valve position has changed.
+  bool valveMoved = false;
 
   // Testable/reportable events.
   // Logically not part of this struct's state, so all ops are const.
@@ -390,7 +391,7 @@ struct ModelledRadValveSensorCtrlStats final
     const ActuatorPhysicalUIBase *const physicalUI;
 
     // Read-only access to simple schedule; must not be NULL.
-    const OTV0P2BASE::SimpleValveScheduleBase *const schedule;
+    const OTRadValve::SimpleValveScheduleBase *const schedule;
 
     // Read-only access to by-hour stats; must not be NULL.
     const OTV0P2BASE::NVByHourByteStatsBase *const byHourStats;
@@ -404,7 +405,7 @@ struct ModelledRadValveSensorCtrlStats final
         const OTV0P2BASE::PseudoSensorOccupancyTracker *const _occupancy,
         const OTV0P2BASE::SensorAmbientLightBase *const _ambLight,
         const ActuatorPhysicalUIBase *const _physicalUI,
-        const OTV0P2BASE::SimpleValveScheduleBase *const _schedule,
+        const OTRadValve::SimpleValveScheduleBase *const _schedule,
         const OTV0P2BASE::NVByHourByteStatsBase *const _byHourStats)
        : valveMode(_valveMode),
          temperatureC16(_temperatureC16),
@@ -416,6 +417,31 @@ struct ModelledRadValveSensorCtrlStats final
          byHourStats(_byHourStats)
          { }
     };
+
+
+#if defined(ARDUINO_ARCH_AVR)
+/**
+ * @brief   Retrieve the current setback lockout value from the EEPROM.
+ * @retval  The number of days left of the setback lockout. Setback lockout is disabled when this reaches 0.
+ * @note    The value is stored inverted in (AVR) EEPROM (so 0xff/erased/uset implies no lock-out).
+ * @note    This is stored as G 0 for TRV1.5 devices, but may change in future.
+ * @note    Only implemented for AVR for now.
+ */
+inline uint8_t getSetbackLockout() { return(~(eeprom_read_byte((uint8_t *)OTV0P2BASE::V0P2BASE_EE_START_SETBACK_LOCKOUT_COUNTDOWN_D_INV))); }
+
+// Count down the setback lockout if not finished...  (TODO-786, TODO-906)
+inline void countDownSetbackLockout()
+    {
+    const uint8_t sloInv = eeprom_read_byte((uint8_t *)OTV0P2BASE::V0P2BASE_EE_START_SETBACK_LOCKOUT_COUNTDOWN_D_INV);
+    if(0xff != sloInv)
+        {
+        // Logically decrement the inverted value, invert it and store it back.
+        const uint8_t updated = ~((~sloInv)-1);
+        OTV0P2BASE::eeprom_smart_update_byte((uint8_t *)OTV0P2BASE::V0P2BASE_EE_START_SETBACK_LOCKOUT_COUNTDOWN_D_INV, updated);
+        }
+    }
+#endif // defined(ARDUINO_ARCH_AVR)
+
 
 // Base class for stateless computation of target temperature.
 // Implementations will capture parameters and sensor references, etc.
@@ -480,14 +506,14 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
 //    constexpr ModelledRadValveComputeTargetTempBasic()
 //        {
 //        // Validate (non-optional) args.  Doesn't work with g++ 4.9.2 in Arduino IDE.
-//        static_assert(NULL != valveMode, "non-optional parameter must not be NULL");
-//        static_assert(NULL != temperatureC16, "non-optional parameter must not be NULL");
-//        static_assert(NULL != tempControl, "non-optional parameter must not be NULL");
-//        static_assert(NULL != occupancy, "non-optional parameter must not be NULL");
-//        static_assert(NULL != ambLight, "non-optional parameter must not be NULL");
-//        static_assert(NULL != physicalUI, "non-optional parameter must not be NULL");
-//        static_assert(NULL != schedule, "non-optional parameter must not be NULL");
-//        static_assert(NULL != byHourStats, "non-optional parameter must not be NULL");
+//        static_assert(!!valveMode, "non-optional parameter must not be NULL");
+//        static_assert(!!temperatureC16, "non-optional parameter must not be NULL");
+//        static_assert(!!tempControl, "non-optional parameter must not be NULL");
+//        static_assert(!!occupancy, "non-optional parameter must not be NULL");
+//        static_assert(!!ambLight, "non-optional parameter must not be NULL");
+//        static_assert(!!physicalUI, "non-optional parameter must not be NULL");
+//        static_assert(!!schedule, "non-optional parameter must not be NULL");
+//        static_assert(!!byHourStats, "non-optional parameter must not be NULL");
 //        }
     virtual uint8_t computeTargetTemp() const override
         {
@@ -516,7 +542,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
           // (A very long pre-warm time may confuse or distress users,
           // eg waking them in the morning.)
           if(!occupancy->longVacant() &&
-             schedule->isAnyScheduleOnWARMSoon() &&
+             schedule->isAnyScheduleOnWARMSoon(OTV0P2BASE::getMinutesSinceMidnightLT()) &&
              !physicalUI->recentUIControlUse())
             {
             const uint8_t warmTarget = tempControl->getWARMTargetC();
@@ -557,7 +583,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
           // TODO: or dark and weakly occupied in case room only briefly occupied.
           // TODO: or set back on anticipated vacancy.
           const bool allowSetback = likelyVacantNow &&
-              (/*long*/longVacant || !schedule->isAnyScheduleOnWARMNow());
+              (/*long*/longVacant || !schedule->isAnyScheduleOnWARMNow(OTV0P2BASE::getMinutesSinceMidnightLT()));
 
           if(allowSetback)
             {
@@ -572,7 +598,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
             static constexpr uint16_t longDarkM = 7*60U; // 7h
 
             // Any imminent scheduled on may inhibit all but minimum setback.
-            const bool scheduleOnSoon = schedule->isAnyScheduleOnWARMSoon();
+            const bool scheduleOnSoon = schedule->isAnyScheduleOnWARMSoon(OTV0P2BASE::getMinutesSinceMidnightLT());
             // High likelihood of occupancy now inhibits ECO setback.
             const uint8_t hoursLessOccupiedThanThis =
                 byHourStats->countStatSamplesBelow(
@@ -1037,9 +1063,9 @@ class ModelledRadValve final : public AbstractRadValve
     // Returns true if this valve control is in glacial mode.
     bool inGlacialMode() const { return(glacial); }
 
-//    // True if the computed valve position was changed by read().
-//    // Can be used to trigger rebuild of messages, force updates to actuators, etc.
-//    bool isValveMoved() const { return(retainedState.valveMoved); }
+    // True if the computed valve position was changed by read().
+    // Can be used to trigger rebuild of messages, force updates to actuators, etc.
+    bool isValveMoved() const { return(retainedState.valveMoved); }
 
     // True if this unit is actively calling for heat.
     // This implies that the temperature is (significantly) under target,

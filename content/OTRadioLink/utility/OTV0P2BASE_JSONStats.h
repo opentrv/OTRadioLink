@@ -78,7 +78,8 @@ static const uint8_t MSG_JSON_LEADING_CHAR = ('{');
 
 // Key used for SimpleStatsRotation items.
 // Same as that used for Sensor tags.
-// Generally const char * but may be special type to be placed in MCU code space eg on AVR.
+// Generally const char * but may be special type
+// to be placed in MCU code space eg on AVR.
 typedef Sensor_tag_t MSG_JSON_SimpleStatsKey_t;
 
 // Returns true iff if a valid key for our subset of JSON.
@@ -102,23 +103,28 @@ struct GenericStatsDescriptor final
     { }
 
     // Null-terminated short stat/key name.
-    // Should generally be of form "x" where x is a single letter (case sensitive) for a unitless quantity,
+    // Should generally be of form "x" where x is a single letter
+    // (case sensitive) for a unitless quantity,
     // or "x|u" where x is the name followed by a vertical bar and the units,
     // eg "B|cV" for battery voltage in centi-volts.
-    // This pointer must be to static storage, eg does not need lifetime management.
+    // This pointer must be to static storage,
+    // ie does not need lifetime management.
     MSG_JSON_SimpleStatsKey_t key;
 
     // If true, this statistic has low priority/importance and should be sent infrequently.
     // This is a way of saving TX bandwidth for more important stats.
-    // Low priority items will usually be treated as normal when they change, ie sent quickly.
-    // Candidates for this flag include slowly changing stats such as battery voltage,
+    // Low priority items will usually be treated as normal when they change,
+    // ie sent quickly.
+    // Candidates for this flag include slowly changing stats
+    // such as battery voltage,
     // and nominally redundant stats that can be derived from others
     // such as cumulative valve movement (can be deduced from valve % samples)
     // and hours vacancy (can be deduced from hours since last occupancy).
     bool lowPriority;
 
 //    // Device sensitivity threshold has to be at or below this for stat to be sent.
-//    // The default is to allow the stat to be sent unless device is in default maximum privacy mode.
+//    // The default is to allow the stat to be sent
+//    // unless device is in default maximum privacy mode.
 //    uint8_t sensitivity;
   };
 
@@ -135,10 +141,14 @@ class BufPrintT final : public Printer
     // Wrap around a buffer of size bufSize-1 chars and a trailing '\0'.
     // The buffer must be of at least size 1.
     // A buffer of size n can accommodate n-1 characters.
-    BufPrintT(char *buf, uint8_t bufSize) : b(buf), capacity(bufSize-1), size(0), mark(0) { buf[0] = '\0'; }
-    // Print a single char to a bounded buffer; returns 1 if successful, else 0 if full.
+    BufPrintT(char *buf, uint8_t bufSize)
+     : b(buf), capacity(bufSize-1), size(0), mark(0) { b[0] = '\0'; }
+    // Print single char to bounded buffer; returns 1 if successful, 0 if full.
     virtual size_t write(uint8_t c) override
-        { if(size < capacity) { b[size++] = char(c); b[size] = '\0'; return(1); } else { return(0); } }
+        {
+        if(size < capacity) { b[size++] = char(c); b[size] = '\0'; return(1); }
+        return(0);
+        }
     // True if buffer is completely full.
     bool isFull() const { return(size == capacity); }
     // Get size/chars already in the buffer, not including trailing '\0'.
@@ -147,6 +157,8 @@ class BufPrintT final : public Printer
     void setMark() { mark = size; }
     // Rewind to previous good position, clearing newer text.
     void rewind() { size = mark; b[size] = '\0'; }
+    // Reset buffer to initial (empty) state.
+    void reset() { size = 0; mark = 0; b[0] = '\0'; }
   };
 // Version of class depending on Arduino Print class.
 typedef BufPrintT<Print> BufPrint;

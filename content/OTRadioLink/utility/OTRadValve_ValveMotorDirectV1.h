@@ -200,12 +200,13 @@ class ValveMotorDirectV1 : public OTRadValve::AbstractRadValve
     // Logic to manage state.
     // A simplified form of the driver is used if binaryOnly is true.
     template <bool Condition, typename TypeTrue, typename TypeFalse>
-      class typeIf;
+      struct typeIf;
     template <typename TypeTrue, typename TypeFalse>
       struct typeIf<true, TypeTrue, TypeFalse> { typedef TypeTrue t; };
     template <typename TypeTrue, typename TypeFalse>
       struct typeIf<false, TypeTrue, TypeFalse> { typedef TypeFalse t; };
-    typename typeIf<binaryOnly, CurrentSenseValveMotorDirectBinaryOnly, CurrentSenseValveMotorDirect>::t logic;
+    typedef typename typeIf<binaryOnly, CurrentSenseValveMotorDirectBinaryOnly, CurrentSenseValveMotorDirect>::t logic_type;
+    logic_type logic;
 
   public:
     ValveMotorDirectV1(bool (*const minimiseActivityOpt)() = ((bool(*)())NULL))
@@ -239,27 +240,35 @@ class ValveMotorDirectV1 : public OTRadValve::AbstractRadValve
       }
 
     // Get estimated minimum percentage open for significant flow for this device; strictly positive in range [1,99].
-    virtual uint8_t getMinPercentOpen() const override { return(logic.getMinPercentOpen()); }
+    virtual uint8_t getMinPercentOpen() const override
+      { return(logic.getMinPercentOpen()); }
 
     // Call when given user signal that valve has been fitted (ie is fully on).
-    virtual void signalValveFitted() override { logic.signalValveFitted(); }
+    virtual void signalValveFitted() override
+      { logic.signalValveFitted(); }
 
     // Waiting for indication that the valve head has been fitted to the tail.
-    virtual bool isWaitingForValveToBeFitted() const override { return(logic.isWaitingForValveToBeFitted()); }
+    virtual bool isWaitingForValveToBeFitted() const override
+      { return(logic.isWaitingForValveToBeFitted()); }
 
     // Returns true iff not in error state and not (re)calibrating/(re)initialising/(re)syncing.
-    virtual bool isInNormalRunState() const override { return(logic.isInNormalRunState()); }
+    virtual bool isInNormalRunState() const override
+      { return(logic.isInNormalRunState()); }
 
     // Returns true if in an error state,
-    virtual bool isInErrorState() const override { return(logic.isInErrorState()); }
+    virtual bool isInErrorState() const override
+      { return(logic.isInErrorState()); }
 
     // True if the controlled physical valve is thought to be at least partially open right now.
-    virtual bool isControlledValveReallyOpen() const override { return(logic.isControlledValveReallyOpen()); }
+    virtual bool isControlledValveReallyOpen() const override
+      { return(logic.isControlledValveReallyOpen()); }
 
     // Minimally wiggles the motor to give tactile feedback and/or show to be working.
     // May take a significant fraction of a second.
     // Finishes with the motor turned off, and a bias to closing the valve.
-    virtual void wiggle() const override { logic.wiggle(); }
+    // Logically const as nominally leaving the valve position unchanged.
+    virtual void wiggle() const override
+      { const_cast<logic_type*>(&logic)->wiggle(); }
   };
 
 #endif // ARDUINO_ARCH_AVR

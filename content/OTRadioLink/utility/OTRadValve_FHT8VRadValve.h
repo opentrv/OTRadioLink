@@ -459,7 +459,7 @@ class FHT8VRadValveBase : public OTRadValve::AbstractRadValve, public FHT8VRadVa
     void nvSetHC1(uint8_t hc);
     void nvSetHC2(uint8_t hc);
     // Get (non-volatile) HC1 and HC2 for single/primary FHT8V wireless valve under control (will be 0xff until set).
-    // Used FHT8V instance as a transparent cache of the values for speed.
+    // Uses FHT8V instance as a transparent cache of the values for speed.
     uint8_t nvGetHC1();
     uint8_t nvGetHC2();
     inline uint16_t nvGetHC() { return(nvGetHC2() | (((uint16_t) nvGetHC1()) << 8)); }
@@ -584,6 +584,16 @@ if(bptr - bptrInitial >= bufSize) { panic(F("FHT8V frame too big")); }
       return(true);
       }
   };
+
+// Clear and populate core stats structure with information from this node.
+// Uses the FHT8V ID if available (if ValveFHT8V != NULL).
+void populateCoreStats(OTV0P2BASE::FullStatsMessageCore_t *content,
+                       /*const*/ OTRadValve::FHT8VRadValveBase *ValveFHT8V,
+                       int16_t tempC16,
+                       bool powerLow,
+                       uint8_t ambLight,
+                       uint8_t twoBitOccupancy = 0);
+
 #endif // ARDUINO_ARCH_AVR
 
 

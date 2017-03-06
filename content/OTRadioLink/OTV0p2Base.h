@@ -94,9 +94,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 // Software Real-Time Clock (RTC) support.
 #include "utility/OTV0P2BASE_RTC.h"
 
-// Simple valve programmer/scheduler.
-#include "utility/OTV0P2BASE_SimpleValveSchedule.h"
-
 // ADC (Analogue-to-Digital Converter) support.
 #include "utility/OTV0P2BASE_ADC.h"
 
@@ -117,6 +114,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 
 // Support for JSON stats.
 #include "utility/OTV0P2BASE_JSONStats.h"
+// Simple single-line system stats display (eg to Serial).
+#include "utility/OTV0P2BASE_SystemStatsLine.h"
 // Support for older/simple compact binary stats.
 #include "utility/OTV0P2BASE_SimpleBinaryStats.h"
 

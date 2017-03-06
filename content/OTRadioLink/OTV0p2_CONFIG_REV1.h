@@ -185,6 +185,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #ifdef CONFIG_Trial2013Winter_Round1 // For trial over winter of 2013--4, first round (REV1).
 // Revision REV1 of V0.2 board.
 #define V0p2_REV 1
+// IF DEFINED: try to trim memory (primarily RAM, also code/Flash) space used.
+#define ENABLE_TRIMMED_MEMORY
 // TODO-264: Find out why IDLE seems to crash some REV1 boards.
 #undef ENABLE_USE_OF_AVR_IDLE_MODE
 #endif

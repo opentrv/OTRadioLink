@@ -59,13 +59,13 @@ namespace CLI {
 
 
     // Typical 'normal' and 'extended' CLI input buffer sizes.
-    static const uint8_t MIN_TYPICAL_CLI_BUFFER = 15;
-    static const uint8_t MAX_TYPICAL_CLI_BUFFER = 63;
+    static constexpr uint8_t MIN_TYPICAL_CLI_BUFFER = 15;
+    static constexpr uint8_t MAX_TYPICAL_CLI_BUFFER = 63;
     // Minimum number of milliseconds to be prepared to wait for input, often human-driven, not to be frustrating.
-    static const uint8_t MIN_CLI_POLL_SCT_MS = 200;
+    static constexpr uint8_t MIN_CLI_POLL_SCT_MS = 200;
 #ifdef ARDUINO_ARCH_AVR
     // Minimum number of sub-cycle ticks to be prepared to wait for input, often human-driven, not to be frustrating.
-    static const uint8_t MIN_CLI_POLL_SCT = (MIN_CLI_POLL_SCT_MS/OTV0P2BASE::SUBCYCLE_TICK_MS_RN);
+    static constexpr uint8_t MIN_CLI_POLL_SCT = (MIN_CLI_POLL_SCT_MS/OTV0P2BASE::SUBCYCLE_TICK_MS_RN);
 #endif
     // Generate CLI prompt and wait a little while (typically ~1s) for an input command line.
     // Returns number of characters read (not including terminating CR or LF); 0 in case of failure.
@@ -83,6 +83,19 @@ namespace CLI {
     // Prints warning to serial (that must be up and running) that invalid (CLI) input has been ignored.
     // Probably should not be inlined, to avoid creating duplicate strings in Flash.
     void InvalidIgnored();
+
+    // Reset CLI active timer to max (ie makes CLI active for a while).
+    // Thread-safe.
+    void resetCLIActiveTimer();
+    // Makes CLI inactive immediately.
+    // Thread-safe.
+    void makeCLIInactive();
+    // Count down CLI towards inactivity.
+    // Thread safe.
+    void countDownCLI();
+    // Returns true if the CLI is (or should currently be) active, at least intermittently.
+    // Thread-safe.
+    bool isCLIActive();
 
 
     // Standard/common CLI command implementations

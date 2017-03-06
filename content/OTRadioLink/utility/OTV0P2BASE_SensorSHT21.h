@@ -47,13 +47,16 @@ class HumiditySensorBase : public OTV0P2BASE::SimpleTSUint8Sensor
       // If RH% rises by at least this per hour, then it may indicate occupancy.
       static constexpr uint8_t HUMIDITY_OCCUPANCY_PC_MIN_RISE_PER_H = 3;
 
+      // Invalid (and initial) reading.
+      static constexpr uint8_t INVALID_RH = 255;
+
     protected:
       // True if RH% is high, with hysteresis.
       // Marked volatile for thread-safe lock-free access.
-      volatile bool highWithHyst;
+      volatile bool highWithHyst = true;
 
     public:
-      HumiditySensorBase() : SimpleTSUint8Sensor(255), highWithHyst(false) { }
+      HumiditySensorBase() : SimpleTSUint8Sensor(INVALID_RH) { }
 
       // Does nothing: value remains invalid.
       virtual uint8_t read() override { return(value); }
@@ -85,6 +88,9 @@ class HumiditySensorMock final : public HumiditySensorBase
     // Returns the existing value: use set() to set a new one.
     // Simplistically updates other flags and outputs based on current value.
     uint8_t read() override { return(get()); }
+
+    // Reset to initial state; useful in unit tests.
+    void reset() { value = INVALID_RH; highWithHyst = true; }
   };
 
 

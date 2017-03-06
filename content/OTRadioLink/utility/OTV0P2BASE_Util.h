@@ -55,6 +55,8 @@ template <class T> constexpr const T fnabsdiff(const T& a, const T& b) { return(
 // Requires < and unary - in order to work.
 template <class T> constexpr const T fnabs(const T& a) { return((a<0)?(-a):(a)); }
 
+// Empty struct type as a placeholder.
+struct emptyStruct { };
 
 // Extract ASCII hex digit in range [0-9][a-f] (ie lowercase) from bottom 4 bits of argument.
 // Eg, passing in 0xa (10) returns 'a'.

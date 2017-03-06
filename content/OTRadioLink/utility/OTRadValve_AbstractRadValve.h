@@ -144,6 +144,8 @@ class RadValveMock final : public AbstractRadValve
     // If this returns true then the new target value was accepted.
     virtual bool set(const uint8_t newValue) override
       { if(!isValid(newValue)) { return(false); } value = newValue; return(true); }
+    // Reset to initial state.
+    void reset() { set(0); }
   };
 
 

@@ -372,7 +372,12 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     // Minimally wiggle the motor to give tactile feedback and/or show to be working.
     // May take a significant fraction of a second.
     // Finishes with the motor turned off.
+    // Should also have enough movement/play to allow calibration of the shaft encoder.
+    // May also help set some bounds on stall current,
+    // eg if highly asymmetric at each end of travel.
     // May be ignored if not safe to do.
+    // Nominally leaves the valve in the position that it started,
+    // so logically 'const'.
     virtual void wiggle();
 
     // If true, proportional mode is never used and the valve is run to end stops instead.
@@ -448,7 +453,7 @@ class CurrentSenseValveMotorDirect final : public CurrentSenseValveMotorDirectBi
     //
     // Too high a tolerance may result in excess valve movement
     // from the valve being pulled to end stops more than necessary.
-    // DHD20170104: was 16 up to 20170104 based on emprical obseravtions.
+    // DHD20170104: was 16 up to 20170104 based on empirical observations.
     // DHD20170116: set to 11 based on (unit test) simulations.
     static constexpr uint8_t absTolerancePC = 11;
     static constexpr bool closeEnoughToTarget(const uint8_t targetPC, const uint8_t currentPC)
