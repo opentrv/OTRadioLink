@@ -258,15 +258,18 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
 class DummySensorOccupancyTracker final
   {
   public:
-    static void markAsOccupied() {} // Defined as NO-OP for convenience.
-    static void markAsPossiblyOccupied() {} // Defined as NO-OP for convenience.
+    static void markAsOccupied() {}
+    static void markAsPossiblyOccupied() {}
+    constexpr static bool reportedNewOccupancyRecently() { return(false); }
     constexpr static bool isLikelyRecentlyOccupied() { return(false); }
     constexpr static bool isLikelyOccupied() { return(false); }
     constexpr static bool isLikelyUnoccupied() { return(false); }
     constexpr static uint8_t twoBitOccValue() { return(0); }
     constexpr static uint16_t getVacancyH() { return(0); }
+    constexpr static bool confidentlyVacant() { return(false); }
     constexpr static bool longVacant() { return(false); }
     constexpr static bool longLongVacant() { return(false); }
+    constexpr static uint8_t twoBitOccupancyValue() { return(0); }
   };
 
 
