@@ -423,7 +423,7 @@ struct ModelledRadValveSensorCtrlStats final
 /**
  * @brief   Retrieve the current setback lockout value from the EEPROM.
  * @retval  The number of days left of the setback lockout. Setback lockout is disabled when this reaches 0.
- * @note    The value is stored inverted in (AVR) EEPROM (so 0xff/erased/uset implies no lock-out).
+ * @note    The value is stored inverted in (AVR) EEPROM (so 0xff/erased/unset implies no lock-out).
  * @note    This is stored as G 0 for TRV1.5 devices, but may change in future.
  * @note    Only implemented for AVR for now.
  */
