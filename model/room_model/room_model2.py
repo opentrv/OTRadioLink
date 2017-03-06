@@ -22,7 +22,8 @@ DHD_HLP = 2.56  # SAP Heat loss parameter. Total heat loss / total floor area. [
 # DHD_HLP = 5  # SAP Heat loss parameter. Total heat loss / total floor area. [W/(m^2 K)]
 
 # Simulation setup. SET THESE VALUES.
-N_ITERATIONS = 24 * 60 * 60  # on for a day
+# N_ITERATIONS = 24 * 60 * 60  # on for a day
+N_ITERATIONS = 1000  # on for a day
 START_TEMP = 20.0  # [C]
 OUTSIDE_TEMP = 0.0  # [C]
 RADIATOR_CONDUCTANCE = 25.0  # conductance of radiator to room [W/K]
@@ -40,7 +41,8 @@ Cp_AIR = 1005.0  # The constant pressure specific heat capacity of air at 20 C, 
 VOLUME = ROOM_SIZE[0] * ROOM_SIZE[1] * ROOM_SIZE[2]  # Volume of room. [m^3]
 C_AIR = DENSITY_AIR * VOLUME * Cp_AIR  # Heat capacity of air in the room. [J/K]
 WALL_CONDUCTANCE = ROOM_SIZE[0] * ROOM_SIZE[1] * DHD_HLP  # Thermal conductance based on DHD's SAP
-print("Thermal Conductance: {0:.0f} W/K\nHeat Capacity: {1:.0f} kJ/K".format(WALL_CONDUCTANCE, C_AIR / 1000.0))
+# print("Thermal Conductance: {0:.0f} W/K\nHeat Capacity: {1:.0f} kJ/K".format(WALL_CONDUCTANCE, C_AIR / 1000.0))
+print("Thermal Conductance: {0} W/K\nHeat Capacity: {1} J/K".format(WALL_CONDUCTANCE, C_AIR))
 
 
 def get_valve_data(file):
@@ -103,8 +105,8 @@ def calc_heat_in_radiator(room_temp, radiator_temp):
     :return: [J]
     """
     temp = 2 * radiator_temp - 80.0  # todo: Need to find a decent model for this...
-
-    return (temp - room_temp) * RADIATOR_CONDUCTANCE  # assuming 1 kW heat input with room at 20 C [1000 / (60 - 20)]
+    heat_flow = (temp - room_temp) * RADIATOR_CONDUCTANCE  # assuming 1 kW heat input with room at 20 C [1000 / (60 - 20)]
+    return heat_flow if temp > room_temp else 0.0
 
 
 def calc_heat_loss_walls(inside_temp, outside_temp):
@@ -154,7 +156,8 @@ heat_stored = np.array([START_TEMP * C_STORAGE for _ in range(N_ITERATIONS)])  #
 
 # Do calculations.
 for i in range(N_ITERATIONS):
-    heat_in[i] = calc_heat_in_radiator(air_temps[i-1], valve_open_pc[i-1])
+    # heat_in[i] = calc_heat_in_radiator(air_temps[i-1], valve_open_pc[i-1])
+    heat_in[i] = 0.0
     heat_out[i] = calc_heat_loss_walls(air_temps[i-1], OUTSIDE_TEMP)
     heat_stored[i], dheat_storage = calc_heat_storage(air_temps[i-1], heat_stored[i-1])  # todo: verify this makes sense
     air_temps[i] = calc_temp(air_temps[i-1], C_AIR,
@@ -163,9 +166,13 @@ for i in range(N_ITERATIONS):
                              -dheat_storage)
 
 # Print final temp and total energy use.
-print("Final Temp: {0:.2f} C\nEnergy Use: {1:.2f} kJ\nEnergy Loss: {2:.2f} kJ".format(air_temps[-1],
+# print("Final Temp: {0:.2f} C\nEnergy Use: {1:.2f} kJ\nEnergy Loss: {2:.2f} kJ".format(air_temps[-1],
+#                                                                                       sum(heat_in) / 1000.0,
+#                                                                                       sum(heat_out) / 1000.0))
+print("Final Temp: {0} C\nEnergy Use: {1:.2f} kJ\nEnergy Loss: {2:.2f} kJ".format(air_temps[-1],
                                                                                       sum(heat_in) / 1000.0,
                                                                                       sum(heat_out) / 1000.0))
+print("Final Heat Stored: {}".format(heat_stored[-1]))
 # # Print per iteration values.
 # for i in range(len(room_temps)):
 #     if i % 60 == 0:
@@ -189,6 +196,7 @@ plt.plot(x, heat_out / 1000.0, label="heat loss kJ")
 plt.plot(x, net_heat / 1000.0, label="net heat flow kJ")
 plt.legend()
 plt.subplot(3, 1, 3)
-plt.plot(x, valve_open_pc, label="valve opening %")
+# plt.plot(x, valve_open_pc, label="valve opening %")
+plt.plot(x, heat_stored / 1000.0, label="heat stored kJ")
 plt.legend()
 plt.show()
