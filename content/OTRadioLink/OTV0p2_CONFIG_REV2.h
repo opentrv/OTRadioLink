@@ -277,6 +277,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 // Revision REV2 (cut4+) of V0.2 board.
 // All these (developer) devices can have IDs set in situ.
 #define V0p2_REV 2
+// IF DEFINED: try to trim memory (primarily RAM, also code/Flash) space used.
+#define ENABLE_TRIMMED_MEMORY
 // IF DEFINED: allow for less light on sideways-pointing LDR on cut4 2014/03/17 REV2 boards (TODO-209).
 #define ENABLE_AMBLIGHT_EXTRA_SENSITIVE
 // IF DEFINED: allow setting of ID from CLI to replace devices in situ; not recommended by default to avoid confusion.
