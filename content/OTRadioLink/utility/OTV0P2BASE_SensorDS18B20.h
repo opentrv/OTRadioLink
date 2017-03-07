@@ -13,12 +13,12 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2014--2016
+Author(s) / Copyright (s): Damon Hart-Davis 2014--2017
                            Jeremy Poulter 2016
 */
 
 /*
- DS18B20 OneWire(TM) temperature detector.
+ DS18B20 OneWire(TM) temperature sensor.
  */
 
 #ifndef OTV0P2BASE_SENSORDS18B20_H

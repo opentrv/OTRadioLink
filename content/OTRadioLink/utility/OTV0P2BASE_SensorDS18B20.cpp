@@ -13,19 +13,20 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2014--2016
+Author(s) / Copyright (s): Damon Hart-Davis 2014--2017
                            John Harvey 2014 (initial DS18B20 code)
                            Deniz Erbilgin 2015--2016
                            Jeremy Poulter 2016
 */
 
 /*
- DS18B20 OneWire(TM) temperature detector.
+ DS18B20 OneWire(TM) temperature sensor.
  */
 
-#if defined(TemperatureC16_DS18B20_DEFINED)
-
 #include "OTV0P2BASE_SensorDS18B20.h"
+
+
+#if defined(TemperatureC16_DS18B20_DEFINED)
 
  // Model IDs
 #define DS18S20_MODEL_ID 0x10

@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
+Author(s) / Copyright (s): Damon Hart-Davis 2013--2017
 */
 
 /*
@@ -24,8 +24,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 
 #ifndef OTV0P2BASE_MINOW_H
 #define OTV0P2BASE_MINOW_H
-#ifdef ARDUINO_ARCH_AVR // Only supported on V0p2/AVR currently.
 
+
+#ifdef ARDUINO_ARCH_AVR // Only supported on V0p2/AVR currently.
 
 #include <stdint.h>
 
@@ -228,4 +229,6 @@ class MinimalOneWire final : public MinimalOneWireBase
 }
 
 #endif // ARDUINO_ARCH_AVR // Only supported on V0p2/AVR currently.
+
+
 #endif
