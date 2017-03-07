@@ -72,9 +72,9 @@ class ThermalModelBase
          */
         float calcHeatFlowRad(const float airTemp, const uint8_t radValveOpenPC) {
             // convert radValveOpenPC to radiator temp (badly)
-            const float radTemp = 2.0 * (float)radValveOpenPC - 80.0;
+            const float radTemp = (2.0 * (float)radValveOpenPC) - 80.0;
             // Calculate heat transfer, making sure rad temp cannot go below air temperature.
-            return radTemp > airTemp ? ((radTemp - airTemp) * radiatorConductance) : 0.0;
+            return (radTemp > airTemp) ? ((radTemp - airTemp) * radiatorConductance) : 0.0;
         }
         /**
          * @brief   Calculate heat input this interval through the walls.
@@ -124,9 +124,10 @@ class ThermalModelBase
         const OTRadValve::AbstractRadValve &radValve = radValveInternal;
 
         // Calculate new temperature
-        void calcNewAirTemperature() {
+        void calcNewAirTemperature(uint8_t radValveOpenPC) {
             float sumHeats = 0.0;
             float deltaHeat = calcHeatStored(airTemperature, storedHeat);
+            radValveInternal.set(radValveOpenPC);
             storedHeat -= deltaHeat;  // all heat flows are positive into the air!
             sumHeats += calcHeatFlowRad(airTemperature, radValveInternal.get());
             sumHeats += calcHeatFlowWalls(airTemperature, outsideTemp);
@@ -134,23 +135,55 @@ class ThermalModelBase
             airTemperature += (sumHeats * (1.0 / airCapacitance));
             int16_t temperatureC16 = (int16_t)(airTemperature * 16.0);
             roomTemperatureInternal.set(temperatureC16);
-//            fprintf(stderr, "T = %.1f C\n", airTemperature);
+            fprintf(stderr, "T = %.1f C\n", airTemperature);
         }
         float getAirTemperature() { return airTemperature; }
     };
 
 
-// Basic tests against thermal model.
+// Basic tests of RadValveModel room with valve fully off.
 // Hijacked as a test against my python model (DE20170207)
-TEST(ModelledRadValveThermalModel,basic)
+TEST(ModelledRadValveThermalModel, roomModelCold)
 {
     ThermalModelBase model(20.0, 0.0, 25.0, 38.4, 1000000.0, 1.0, 41780.3625);
     for(auto i = 0; i < 1000; ++i) {
-        model.calcNewAirTemperature();
+        model.calcNewAirTemperature(0);
     }
     EXPECT_NEAR(8.1, model.getAirTemperature(), 0.01); // Value for same inputs in my python model is: 8.096024519493666 C
 }
 
+// Basic tests of RadValveModel room with valve fully on.
+// Hijacked as a test against my python model (DE20170207)
+TEST(ModelledRadValveThermalModel,roomModelHot)
+{
+    ThermalModelBase model(20.0, 0.0, 25.0, 38.4, 1000000.0, 1.0, 41780.3625);
+    for(auto i = 0; i < 1000; ++i) {
+        model.calcNewAirTemperature(100);
+    }
+    EXPECT_EQ(100, model.radValve.get());
+    EXPECT_NEAR(41.14, model.getAirTemperature(), 0.01);
+}
+
+
+// Basic tests of RadValveModel room with valve fully on.
+// Starts at an unrealistically high temperature (40C).
+TEST(ModelledRadValveThermalModel, roomHotBasic)
+{
+
+    // Target temperature without setback.
+    const uint8_t targetTempC = 19;
+    // Valve starts fully shut.
+    uint8_t valvePCOpen = 0;
+    OTRadValve::ModelledRadValveInputState is0(281); // 281 ~ 17.6C.
+    OTRadValve::ModelledRadValveState rs0;
+
+    ThermalModelBase model(10.0, 0.0, 25.0, 38.4, 1000000.0, 1.0, 41780.3625);
+
+    for(auto i = 0; i < 1000; ++i) {
+
+        model.calcNewAirTemperature();
+    }
+}
 
 /* TODO
 
