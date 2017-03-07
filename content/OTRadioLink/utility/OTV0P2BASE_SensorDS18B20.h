@@ -24,7 +24,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014--2016
 #ifndef OTV0P2BASE_SENSORDS18B20_H
 #define OTV0P2BASE_SENSORDS18B20_H
 
-//#include "OTV0P2BASE_Util.h"
 #include "OTV0P2BASE_MinOW.h"
 #include "OTV0P2BASE_Sensor.h"
 #include "utility/OTV0P2BASE_SensorTemperatureC16Base.h"
@@ -58,13 +57,13 @@ class TemperatureC16_DS18B20 final : public TemperatureC16Base
     OTV0P2BASE::MinimalOneWireBase &minOW;
 
     // True once initialised.
-    bool initialised;
+    bool initialised = false;
 
     // Precision in range [9,12].
-    const uint8_t precision;
+    const uint8_t precision = DEFAULT_PRECISION;
 
     // The number of sensors found on the bus
-    uint8_t sensorCount;
+    uint8_t sensorCount = 0;
 
     // Initialise the device (if any) before first use.
     // Returns true iff successful.
@@ -74,11 +73,11 @@ class TemperatureC16_DS18B20 final : public TemperatureC16Base
 
   public:
     // Minimum supported precision, in bits, corresponding to 1/2 C resolution.
-    static const uint8_t MIN_PRECISION = 9;
+    static constexpr uint8_t MIN_PRECISION = 9;
     // Maximum supported precision, in bits, corresponding to 1/16 C resolution.
-    static const uint8_t MAX_PRECISION = 12;
+    static constexpr uint8_t MAX_PRECISION = 12;
     // Default precision; defaults to minimum for speed.
-    static const uint8_t DEFAULT_PRECISION = MIN_PRECISION;
+    static constexpr uint8_t DEFAULT_PRECISION = MIN_PRECISION;
 
     // Returns number of useful binary digits after the binary point.
     // 8 less than total precision for DS18B20.
@@ -86,14 +85,14 @@ class TemperatureC16_DS18B20 final : public TemperatureC16Base
 
     // Returns true if this sensor is definitely unavailable or behaving incorrectly.
     // This is after an attempt to initialise has not found a DS18B20 on the bus.
-    virtual bool isAvailable() const { return(initialised && (0 != sensorCount)); }
+    virtual bool isAvailable() const override { return(initialised && (0 != sensorCount)); }
 
     // Create instance with given OneWire connection, bus ordinal and precision.
     // No two instances should attempt to target the same DS18B20,
     // though different DS18B20s on the same bus or different buses is allowed.
     // Precision defaults to minimum (9 bits, 0.5C resolution) for speed.
-    TemperatureC16_DS18B20(OTV0P2BASE::MinimalOneWireBase &ow, uint8_t _precision = DEFAULT_PRECISION)
-      : minOW(ow), initialised(false), precision(constrain(_precision, MIN_PRECISION, MAX_PRECISION))
+    constexpr TemperatureC16_DS18B20(OTV0P2BASE::MinimalOneWireBase &ow, uint8_t _precision = DEFAULT_PRECISION)
+      : minOW(ow), precision(constrain(_precision, MIN_PRECISION, MAX_PRECISION))
       { }
 
     // Get current precision in bits [9,12]; 9 gives 1/2C resolution, 12 gives 1/16C resolution.
@@ -108,7 +107,7 @@ class TemperatureC16_DS18B20 final : public TemperatureC16Base
     // Not thread-safe nor usable within ISRs (Interrupt Service Routines).
     // When multiple DS18B20 are connected this will read the 'first' one, use ReadMultiple to read the 
     // values from more than the just the first
-    virtual int16_t read();
+    virtual int16_t read() override;
 
     // Force a read/poll of temperature from multiple DS18B20 sensors; returns number of values read.
     // The value sensed, in nominal units of 1/16 C,
