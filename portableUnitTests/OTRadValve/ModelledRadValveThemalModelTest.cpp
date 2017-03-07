@@ -135,7 +135,6 @@ class ThermalModelBase
             airTemperature += (sumHeats * (1.0 / airCapacitance));
             int16_t temperatureC16 = (int16_t)(airTemperature * 16.0);
             roomTemperatureInternal.set(temperatureC16);
-            fprintf(stderr, "T = %.1f C\n", airTemperature);
         }
         float getAirTemperature() { return airTemperature; }
     };
@@ -169,20 +168,29 @@ TEST(ModelledRadValveThermalModel,roomModelHot)
 // Starts at an unrealistically high temperature (40C).
 TEST(ModelledRadValveThermalModel, roomHotBasic)
 {
-
+    // Room start temp
+    const float startTempC = 10.0f;
     // Target temperature without setback.
     const uint8_t targetTempC = 19;
     // Valve starts fully shut.
     uint8_t valvePCOpen = 0;
-    OTRadValve::ModelledRadValveInputState is0(281); // 281 ~ 17.6C.
+    OTRadValve::ModelledRadValveInputState is0((uint_fast16_t)(startTempC * 16));
+    is0.targetTempC = targetTempC;
     OTRadValve::ModelledRadValveState rs0;
 
     ThermalModelBase model(10.0, 0.0, 25.0, 38.4, 1000000.0, 1.0, 41780.3625);
 
-    for(auto i = 0; i < 1000; ++i) {
-
-        model.calcNewAirTemperature();
+    for(auto i = 0; i < 10000; ++i) {
+        const float curTempC = model.getAirTemperature(); // current air temperature in C
+        //fprintf(stderr, "T = %.1f C\tValvePC = %u\n", curTempC, valvePCOpen);
+        if(0 == (i % 60)) {
+            fprintf(stderr, "T = %.1f C\tValvePC = %u\ti = %u\n", curTempC, valvePCOpen, i);
+            is0.setReferenceTemperatures((uint_fast16_t)(curTempC * 16));
+            rs0.tick(valvePCOpen, is0, NULL);
+        }
+        model.calcNewAirTemperature(valvePCOpen);
     }
+    fprintf(stderr, "T = %.1f C\tValvePC = %u\n", model.getAirTemperature(), valvePCOpen);
 }
 
 /* TODO
