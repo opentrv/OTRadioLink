@@ -52,13 +52,14 @@ class ThermalModelBase
         OTV0P2BASE::TemperatureC16Mock roomTemperatureInternal;
 
         // Constants & variables
-        float airTemperature;
-        float outsideTemp;
-        const float radiatorConductance;
         const float wallConductance;
         const float storageCapacitance;
         const float storageConductance;
         const float airCapacitance;
+        float airTemperature;
+        float outsideTemp;
+        const float radiatorConductance;
+        const float maxRadiatorTemp;
         float storedHeat;
 
         // Internal methods
@@ -72,9 +73,11 @@ class ThermalModelBase
          */
         float calcHeatFlowRad(const float airTemp, const uint8_t radValveOpenPC) {
             // convert radValveOpenPC to radiator temp (badly)
-            const float radTemp = (2.0 * (float)radValveOpenPC) - 80.0;
+            const float radTemp = (2.0 * (float)radValveOpenPC) - 80;
+            // Making sure the radiator temp does not exceed sensible values
+            const float scaledRadTemp = (radTemp < 70.0) ? radTemp : 70.0;
             // Calculate heat transfer, making sure rad temp cannot go below air temperature.
-            return (radTemp > airTemp) ? ((radTemp - airTemp) * radiatorConductance) : 0.0;
+            return (radTemp > airTemp) ? ((scaledRadTemp - airTemp) * radiatorConductance) : 0.0;
         }
         /**
          * @brief   Calculate heat input this interval through the walls.
@@ -95,20 +98,22 @@ class ThermalModelBase
         }
 
     public:
-        ThermalModelBase(const float startTemp,             // [C]
-                         const float _outsideTemp,          // [C]
-                         const float _radiatorConductance,  // [W/K]
-                         const float _wallConductance,      // [W/K]
+        ThermalModelBase(const float _wallConductance,      // [W/K]
                          const float _storageCapacitance,   // [J/K]
                          const float _storageConductance,   // [W/K]
-                         const float _airCapacitance)       // [J/K]
-                       : airTemperature(startTemp),
-                         outsideTemp(_outsideTemp),
-                         radiatorConductance(_radiatorConductance),
-                         wallConductance(_wallConductance),
+                         const float _airCapacitance,        // [J/K]
+                         const float startTemp,             // [C]
+                         const float _outsideTemp = 0.0,          // [C]
+                         const float _radiatorConductance = 25.0,  // [W/K]
+                         const float _maxRadiatorTemp = 70.0)      // [C]
+                       : wallConductance(_wallConductance),
                          storageCapacitance(_storageCapacitance),
                          storageConductance(_storageConductance),
                          airCapacitance(_airCapacitance),
+                         airTemperature(startTemp),
+                         outsideTemp(_outsideTemp),
+                         radiatorConductance(_radiatorConductance),
+                         maxRadiatorTemp(_maxRadiatorTemp),
                          storedHeat(0.0)
         {
             const float temperatureC16 = (int16_t)(startTemp * 16.0);
@@ -144,7 +149,7 @@ class ThermalModelBase
 // Hijacked as a test against my python model (DE20170207)
 TEST(ModelledRadValveThermalModel, roomModelCold)
 {
-    ThermalModelBase model(20.0, 0.0, 25.0, 38.4, 1000000.0, 1.0, 41780.3625);
+    ThermalModelBase model(38.4, 1000000.0, 1.0, 41780.3625, 20.0);
     for(auto i = 0; i < 1000; ++i) {
         model.calcNewAirTemperature(0);
     }
@@ -155,12 +160,12 @@ TEST(ModelledRadValveThermalModel, roomModelCold)
 // Hijacked as a test against my python model (DE20170207)
 TEST(ModelledRadValveThermalModel,roomModelHot)
 {
-    ThermalModelBase model(20.0, 0.0, 25.0, 38.4, 1000000.0, 1.0, 41780.3625);
+    ThermalModelBase model(38.4, 1000000.0, 1.0, 41780.3625, 20.0);
     for(auto i = 0; i < 1000; ++i) {
         model.calcNewAirTemperature(100);
     }
     EXPECT_EQ(100, model.radValve.get());
-    EXPECT_NEAR(41.14, model.getAirTemperature(), 0.01);
+    EXPECT_NEAR(25.88, model.getAirTemperature(), 0.01);
 }
 
 
@@ -178,9 +183,9 @@ TEST(ModelledRadValveThermalModel, roomHotBasic)
     is0.targetTempC = targetTempC;
     OTRadValve::ModelledRadValveState rs0;
 
-    ThermalModelBase model(10.0, 0.0, 25.0, 38.4, 1000000.0, 1.0, 41780.3625);
+    ThermalModelBase model(38.4, 1000000.0, 1.0, 41780.3625, 10.0);
 
-    for(auto i = 0; i < 10000; ++i) {
+    for(auto i = 0; i < 5000; ++i) {
         const float curTempC = model.getAirTemperature(); // current air temperature in C
         //fprintf(stderr, "T = %.1f C\tValvePC = %u\n", curTempC, valvePCOpen);
         if(0 == (i % 60)) {
