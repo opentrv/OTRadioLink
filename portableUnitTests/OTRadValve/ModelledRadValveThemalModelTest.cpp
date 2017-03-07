@@ -176,7 +176,7 @@ TEST(ModelledRadValveThermalModel, roomHotBasic)
     // Room start temp
     const float startTempC = 10.0f;
     // Target temperature without setback.
-    const uint8_t targetTempC = 19;
+    const float targetTempC = 19.0f;
     // Valve starts fully shut.
     uint8_t valvePCOpen = 0;
     OTRadValve::ModelledRadValveInputState is0((uint_fast16_t)(startTempC * 16));
@@ -185,6 +185,9 @@ TEST(ModelledRadValveThermalModel, roomHotBasic)
 
     ThermalModelBase model(38.4, 1000000.0, 1.0, 41780.3625, 10.0);
 
+    // Keep track of maximum and minimum room temps.
+    float maxRoomTempC = 0.0;
+    float minRoomTempC = 100.0;
     for(auto i = 0; i < 5000; ++i) {
         const float curTempC = model.getAirTemperature(); // current air temperature in C
         //fprintf(stderr, "T = %.1f C\tValvePC = %u\n", curTempC, valvePCOpen);
@@ -194,8 +197,10 @@ TEST(ModelledRadValveThermalModel, roomHotBasic)
             rs0.tick(valvePCOpen, is0, NULL);
         }
         model.calcNewAirTemperature(valvePCOpen);
+        maxRoomTempC = (maxRoomTempC > curTempC) ? maxRoomTempC : curTempC;
+        minRoomTempC = ((minRoomTempC < curTempC) && (1000 < i)) ? minRoomTempC : curTempC;  // avoid comparing during initial warm-up.
     }
-    fprintf(stderr, "T = %.1f C\tValvePC = %u\n", model.getAirTemperature(), valvePCOpen);
+    fprintf(stderr, "Final Result: Ttarget = %.1f C\tTmin = %.1f C\tTmax = %.1f C\n", targetTempC, minRoomTempC, maxRoomTempC);
 }
 
 /* TODO
