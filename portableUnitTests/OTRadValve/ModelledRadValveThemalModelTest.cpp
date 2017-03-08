@@ -183,16 +183,17 @@ TEST(ModelledRadValveThermalModel, roomHotBasic)
     is0.targetTempC = targetTempC;
     OTRadValve::ModelledRadValveState rs0;
 
-    ThermalModelBase model(38.4, 1000000.0, 1.0, 41780.3625, 10.0);
+    ThermalModelBase model(38.4, 10000000.0, 1.0, 41780.3625, 10.0);
 
     // Keep track of maximum and minimum room temps.
     float maxRoomTempC = 0.0;
     float minRoomTempC = 100.0;
-    for(auto i = 0; i < 5000; ++i) {
+    for(auto i = 0; i < 10000; ++i) {
         const float curTempC = model.getAirTemperature(); // current air temperature in C
         //fprintf(stderr, "T = %.1f C\tValvePC = %u\n", curTempC, valvePCOpen);
         if(0 == (i % 60)) {
-            fprintf(stderr, "T = %.1f C\tValvePC = %u\ti = %u\n", curTempC, valvePCOpen, i);
+//            fprintf(stderr, "T = %.1f C\tValvePC = %u\ti = %u\n", curTempC, valvePCOpen, i);
+            fprintf(stderr, "[ \"%u\", \"\", {\"T|C16\": %.1f, \"tT|C\": %.1f, \"v|%%\": %u} ]\n", i, curTempC, targetTempC, valvePCOpen);
             is0.setReferenceTemperatures((uint_fast16_t)(curTempC * 16));
             rs0.tick(valvePCOpen, is0, NULL);
         }
