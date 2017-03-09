@@ -282,7 +282,7 @@ TEST(ModelledRadValveThermalModel, roomHotControlled)
         const float curTempC = model.getValveTemperature(); // current air temperature in C
         if(0 == (i % 60)) {  // once per minute tasks.
             const uint_fast8_t valvePCOpen = valve.getValvePCOpen();
-            fprintf(stderr, "[ \"%u\", \"\", {\"T|C\": %.2f, \"TV|C\": %.2f, \"tT|C\": %.2f, \"v|%%\": %u} ]\n", i, model.getAirTemperature(), curTempC, targetTempC, valvePCOpen);
+//             fprintf(stderr, "[ \"%u\", \"\", {\"T|C\": %.2f, \"TV|C\": %.2f, \"tT|C\": %.2f, \"v|%%\": %u} ]\n", i, model.getAirTemperature(), curTempC, targetTempC, valvePCOpen);
 //            is0.setReferenceTemperatures((uint_fast16_t)(curTempC * 16));
 //            rs0.tick(valvePCOpen, is0, NULL);
             valve.tick(curTempC);
