@@ -67,6 +67,7 @@ class ThermalModelBase
         float outsideTemp;
         const float radiatorConductance;
         const float maxRadiatorTemp;
+        float valveTemp;
 
         // Internal methods
         /**
@@ -85,6 +86,24 @@ class ThermalModelBase
             const float scaledRadTemp = (radTemp < maxRadiatorTemp) ? radTemp : maxRadiatorTemp;
             // Calculate heat transfer, making sure rad temp cannot go below air temperature.
             return (radTemp > airTemp) ? ((scaledRadTemp - airTemp) * radiatorConductance) : 0.0;
+        }
+        /**
+         * @brief   Calculate temp seen by valve this interval.
+         * @note    Heat flow into the room is positive.
+         * @note    Assumes that radiator temperature (and therefore heat input):
+         *          - increases linearly.
+         *          - increases monotonically.
+         *          - Cannot be below air temperature (the radiator cannot sink heat).
+         * @retval  Heat transfer into room from radiator, in J
+         */
+        float calcValveTemp(const float airTemp, const float localTemp, const float heatFlowFromRad) {
+            static constexpr float thermalConductanceRad = 0.05f;  // fixme literal is starting estimate for thermal resistance
+            static constexpr float thermalConductanceRoom = 10.0f;
+            const float heatIn = heatFlowFromRad * thermalConductanceRad;
+            const float heatOut = (localTemp - airTemp) * thermalConductanceRoom;
+            const float valveHeatFlow = heatIn - heatOut;
+            const float newLocalTemp = localTemp + (valveHeatFlow / 10000);  // fixme literal is starting estimate for thermal capacitance
+            return newLocalTemp;
         }
 //        /**
 //         * @brief   Calculate heat input this interval through the walls.
@@ -127,7 +146,8 @@ class ThermalModelBase
                          t0(startTemp),
                          outsideTemp(_outsideTemp),
                          radiatorConductance(_radiatorConductance),
-                         maxRadiatorTemp(_maxRadiatorTemp)
+                         maxRadiatorTemp(_maxRadiatorTemp),
+                         valveTemp(startTemp)
 //                         storedHeat(0.0)
         {
             const float temperatureC16 = (int16_t)(startTemp * 16.0);
@@ -151,19 +171,21 @@ class ThermalModelBase
         void calcNewAirTemperature(uint8_t radValveOpenPC) {
             radValveInternal.set(radValveOpenPC);
             // Calc heat in from rad
-            float heat_in = calcHeatFlowRad(airTemperature, radValveInternal.get());
+            const float heat_in = calcHeatFlowRad(airTemperature, radValveInternal.get());
             // Calc heat flow from seg2 to seg1
-            float heat_21 = heat_in - heatTransfer(conductance_21, t2, t1);
+            const float heat_21 = heat_in - heatTransfer(conductance_21, t2, t1);
             // Calc heat flow from seg1 to seg0
-            float heat_10 = heatTransfer(conductance_21, t2, t1) - heatTransfer(conductance_10, t1, t0);
+            const float heat_10 = heatTransfer(conductance_21, t2, t1) - heatTransfer(conductance_10, t1, t0);
             // Calc heat flow from seg0 to world.
-            float heat_out = heatTransfer(conductance_10, t1, t0) - heatTransfer(conductance_0W, t0, outsideTemp);
+            const float heat_out = heatTransfer(conductance_10, t1, t0) - heatTransfer(conductance_0W, t0, outsideTemp);
             // Calc new temps.
             t2 += heat_21 / capacitance_2;
             t1 += heat_10 / capacitance_1;
             t0 += heat_out / capacitance_0;
+            valveTemp = calcValveTemp(t2, valveTemp, heat_in);
         }
         float getAirTemperature() { return t2; }
+        float getValveTemperature() {return valveTemp;}
     };
 }
 
@@ -193,36 +215,37 @@ class ThermalModelBase
 
 // Basic tests of RadValveModel room with valve fully on.
 // Starts at an unrealistically high temperature (40C).
-TEST(ModelledRadValveThermalModel, roomHotBasic)
-{
-    // Room start temp
-    const float startTempC = 16.0f;
-    // Target temperature without setback.
-    const float targetTempC = 19.0f;
-    // Valve starts fully shut.
-    uint8_t valvePCOpen = 100;
-    OTRadValve::ModelledRadValveInputState is0((uint_fast16_t)(startTempC * 16));
-    is0.targetTempC = targetTempC;
-    OTRadValve::ModelledRadValveState rs0;
-
-    TMB::ThermalModelBase model(500, 300, 50,
-                                350000, 1300000, 7000000,
-                                startTempC);
-
-    // Keep track of maximum and minimum room temps.
-    float maxRoomTempC = 0.0;
-    float minRoomTempC = 100.0;
-    for(auto i = 0; i < 20000; ++i) {
-        const float curTempC = model.getAirTemperature(); // current air temperature in C
-        if(0 == (i % 60)) {
-            if((60 * 60 * 2) == i) valvePCOpen = 0;  // run for one hour then shut.
-//            fprintf(stderr, "[ \"%u\", \"\", {\"T|C16\": %.2f, \"tT|C\": %.2f, \"v|%%\": %u} ]\n", i, curTempC, targetTempC, valvePCOpen);
-        }
-        model.calcNewAirTemperature(valvePCOpen);
-        maxRoomTempC = (maxRoomTempC > curTempC) ? maxRoomTempC : curTempC;
-        minRoomTempC = ((minRoomTempC < curTempC) && (1000 < i)) ? minRoomTempC : curTempC;  // avoid comparing during initial warm-up.
-    }
-}
+//TEST(ModelledRadValveThermalModel, roomHotBasic)
+//{
+//    // Room start temp
+//    const float startTempC = 16.0f;
+//    // Target temperature without setback.
+//    const float targetTempC = 19.0f;
+//    // Valve starts fully shut.
+//    uint8_t valvePCOpen = 100;
+//    //
+//    OTRadValve::ModelledRadValveInputState is0((uint_fast16_t)(startTempC * 16));
+//    is0.targetTempC = targetTempC;
+//    OTRadValve::ModelledRadValveState rs0;
+//
+//    TMB::ThermalModelBase model(500, 300, 50,
+//                                350000, 1300000, 7000000,
+//                                startTempC);
+//
+//    // Keep track of maximum and minimum room temps.
+//    float maxRoomTempC = 0.0;
+//    float minRoomTempC = 100.0;
+//    for(auto i = 0; i < 20000; ++i) {
+//        const float curTempC = model.getAirTemperature(); // current air temperature in C
+//        if(0 == (i % 60)) {
+//            if((60 * 60 * 2) == i) valvePCOpen = 0;  // run for one hour then shut.
+////            fprintf(stderr, "[ \"%u\", \"\", {\"T|C16\": %.2f, \"tT|C\": %.2f, \"v|%%\": %u} ]\n", i, curTempC, targetTempC, valvePCOpen);
+//        }
+//        model.calcNewAirTemperature(valvePCOpen);
+//        maxRoomTempC = (maxRoomTempC > curTempC) ? maxRoomTempC : curTempC;
+//        minRoomTempC = ((minRoomTempC < curTempC) && (1000 < i)) ? minRoomTempC : curTempC;  // avoid comparing during initial warm-up.
+//    }
+//}
 
 
 TEST(ModelledRadValveThermalModel, roomHotControlled)
@@ -245,11 +268,11 @@ TEST(ModelledRadValveThermalModel, roomHotControlled)
     float maxRoomTempC = 0.0;
     float minRoomTempC = 100.0;
     for(auto i = 0; i < 20000; ++i) {
-        const float curTempC = model.getAirTemperature(); // current air temperature in C
+        const float curTempC = model.getValveTemperature(); // current air temperature in C
         //fprintf(stderr, "T = %.1f C\tValvePC = %u\n", curTempC, valvePCOpen);
         if(0 == (i % 60)) {
 //            fprintf(stderr, "T = %.1f C\tValvePC = %u\ti = %u\n", curTempC, valvePCOpen, i);
-            fprintf(stderr, "[ \"%u\", \"\", {\"T|C16\": %.2f, \"tT|C\": %.2f, \"v|%%\": %u} ]\n", i, curTempC, targetTempC, valvePCOpen);
+            fprintf(stderr, "[ \"%u\", \"\", {\"T|C\": %.2f, \"TV|C\": %.2f, \"tT|C\": %.2f, \"v|%%\": %u} ]\n", i, model.getAirTemperature(), curTempC, targetTempC, valvePCOpen);
             is0.setReferenceTemperatures((uint_fast16_t)(curTempC * 16));
             rs0.tick(valvePCOpen, is0, NULL);
         }
