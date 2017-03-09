@@ -263,8 +263,8 @@ TEST(ModelledRadValveThermalModel, roomHotControlled)
     const float startTempC = 16.0f;
     const float targetTempC = 19.0f;
     // Keep track of maximum and minimum room temps.
-    float maxRoomTempC = 0.0;
-    float minRoomTempC = 100.0;
+    //float maxRoomTempC = 0.0;
+    //float minRoomTempC = 100.0;
     // keep track of valve positions.
     const uint_fast8_t startingValvePCOpen = 0;
     // Set up TRV.
