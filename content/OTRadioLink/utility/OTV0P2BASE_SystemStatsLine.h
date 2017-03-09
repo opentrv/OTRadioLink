@@ -154,7 +154,8 @@ class SystemStatsLine final
             {
             public:
                 bool put(MSG_JSON_SimpleStatsKey_t, int16_t, bool = false) { return(false); }
-                template <class T> bool put(const OTV0P2BASE::SensorCore<T> &, bool = false) { return(false); }
+//                template <class T> bool put(const OTV0P2BASE::SensorCore<T> &, bool = false) { return(false); }
+                template <class T> bool put(const T&) { return(false); }
                 inline uint8_t writeJSON(...) { return(0); }
             };
         template <bool Condition, typename TypeTrue, typename TypeFalse>

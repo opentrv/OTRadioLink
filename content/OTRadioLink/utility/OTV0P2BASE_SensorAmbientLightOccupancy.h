@@ -34,6 +34,16 @@ namespace OTV0P2BASE
 
 // Helper class to detect occupancy from ambient light levels.
 //
+// See research in this field such as:
+//     "An intelligent agent for determining home occupancy using power monitors and light sensors"
+//     https://www.researchgate.net/publication/225132826_An_Intelligent_Agent_for_Determining_Home_Occupancy_Using_Power_Monitors_and_Light_Sensors
+//     Determining occupancy by ambient light sensors yielded an f-score
+//     of 0.943 (precision score of 0.926, recall score of 0.962).
+//     This did work very well. A more detailed examination found
+//     there were 19 out of 219 days where the day’s precision or
+//     recall scores were below 80% due to unusual light levels and sensors
+//     not being optimally placed ...
+//
 // The basic mode of operation is to call update() regularly
 // (typically once per minute)
 // with the current ambient light level.

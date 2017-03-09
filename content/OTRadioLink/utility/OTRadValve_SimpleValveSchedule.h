@@ -321,8 +321,12 @@ class SimpleValveScheduleEEPROM : public SimpleValveScheduleParams
         virtual bool isAnySimpleScheduleSet() const override;
     };
 
-// Customised scheduler implementation for OpenTRV V0p2 circa REV2.
-class SimpleValveSchedule_PseudoSensorOccupancyTracker final { public: bool longVacant() { return(false); } };
+// Customised scheduler implementation as for OpenTRV V0p2 REV2 ~2015.
+// Adjusts the 'on' time based on:
+//   * ECO/comfort bias
+//   * if the room has been vacant for a long time (eg days)
+// The second requires a non-NULL occupancy tracker pointer to be supplied.
+class SimpleValveSchedule_PseudoSensorOccupancyTracker final { public: bool longVacant() const { return(false); } };
 template<
     const uint8_t learnedOnM, const uint8_t learnedOnComfortM,
     class tempControl_t, const tempControl_t *tempControl,
