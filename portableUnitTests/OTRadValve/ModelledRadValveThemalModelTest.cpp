@@ -238,7 +238,9 @@ class ThermalModelBase
 //    }
 //}
 
-
+/**
+ * Helper class to handle updating and storing state of TRV..
+ */
 namespace TMTRHC {
 class ThermalModelValve
 {
@@ -259,6 +261,7 @@ public:
 }
 TEST(ModelledRadValveThermalModel, roomHotControlled)
 {
+    bool verbose = false;
     TMB::splitUnit = false;
     // Room start temp
     const float startTempC = 16.0f;
@@ -279,7 +282,9 @@ TEST(ModelledRadValveThermalModel, roomHotControlled)
         const float curTempC = model.getValveTemperature(); // current air temperature in C
         if(0 == (i % 60)) {  // once per minute tasks.
             const uint_fast8_t valvePCOpen = valve.getValvePCOpen();
-            fprintf(stderr, "[ \"%u\", \"\", {\"T|C\": %.2f, \"TV|C\": %.2f, \"tT|C\": %.2f, \"v|%%\": %u} ]\n", i, model.getAirTemperature(), curTempC, targetTempC, valvePCOpen);
+            if (verbose) {
+                fprintf(stderr, "[ \"%u\", \"\", {\"T|C\": %.2f, \"TV|C\": %.2f, \"tT|C\": %.2f, \"v|%%\": %u} ]\n", i, model.getAirTemperature(), curTempC, targetTempC, valvePCOpen);
+            }
             valve.tick(curTempC);
             radDelay.erase(radDelay.begin());
             radDelay.push_back(valvePCOpen);
