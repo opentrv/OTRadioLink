@@ -298,7 +298,7 @@ TEST(ModelledRadValveThermalModel, roomHotControlled)
 
 Test for sticky / jammed / closed value calling for heat in stable temp room running boiler continually: TODO-1096
 
-Test for difficult cases such as:
+Test for sensible outcomes in difficult cases such as:
   * DHW (esp needing glacial as per Bo).
   * All-in-one (TRV1.x) on flow end of rad very slow to heat up
     so valve must let whole rad get warm to let room get warm
