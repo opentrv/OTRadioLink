@@ -614,7 +614,7 @@ class ModelledRadValve final : public AbstractRadValve
     // All input state for deciding where to set the radiator valve in normal operation.
     struct ModelledRadValveInputState inputState;
     // All retained state for deciding where to set the radiator valve in normal operation.
-    struct ModelledRadValveState retainedState;
+    struct ModelledRadValveState<> retainedState;
 
     // Read-only access to temperature control; never NULL.
     const TempControlBase *const tempControl;

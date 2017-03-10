@@ -14,6 +14,7 @@ specific language governing permissions and limitations
 under the Licence.
 
 Author(s) / Copyright (s): Damon Hart-Davis 2016--2017
+                           Deniz Erbilgin   2017
 */
 
 /*
@@ -39,7 +40,7 @@ TEST(ModelledRadValve,UpDownDelay)
         {
         const bool useBAKE = (0 != ub);
 
-        OTRadValve::ModelledRadValveState rs;
+        OTRadValve::ModelledRadValveState<> rs;
         ASSERT_FALSE(rs.isFiltering);
         EXPECT_FALSE(rs.dontTurndown());
         EXPECT_FALSE(rs.dontTurnup());
@@ -177,7 +178,7 @@ SCOPED_TRACE(testing::Message() << "no backing valve " << noBackingValve);
         // Set sensible ambient room temperature (18C), with target much higher.
         OTRadValve::ModelledRadValveInputState is(18 << 4);
         is.targetTempC = 25;
-        OTRadValve::ModelledRadValveState rs;
+        OTRadValve::ModelledRadValveState<> rs;
         // Spin on the tick for many hours' worth;
         // there is no need for the valve to move.
         for(int i = 1000; --i > 0; ) { rs.tick(valvePC, is, arv); }
@@ -306,7 +307,7 @@ TEST(ModelledRadValve,MRVSExtremes)
     if(verbose) { fprintf(stderr, "open...\n"); }
     OTRadValve::ModelledRadValveInputState is0(0);
     is0.targetTempC = OTV0P2BASE::randRNG8NextBoolean() ? 5 : 25;
-    OTRadValve::ModelledRadValveState rs0;
+    OTRadValve::ModelledRadValveState<> rs0;
     const uint8_t valvePCOpenInitial0 = OTV0P2BASE::randRNG8() % 100;
     volatile uint8_t valvePCOpen = valvePCOpenInitial0;
     // Must fully open in reasonable time.
@@ -345,7 +346,7 @@ TEST(ModelledRadValve,MRVSExtremes)
     if(verbose) { fprintf(stderr, "close...\n"); }
     OTRadValve::ModelledRadValveInputState is1(100<<4);
     is1.targetTempC = OTV0P2BASE::randRNG8NextBoolean() ? 5 : 25;
-    OTRadValve::ModelledRadValveState rs1;
+    OTRadValve::ModelledRadValveState<> rs1;
     ASSERT_TRUE(!rs1.initialised); // Initialisation not yet complete.
     const uint8_t valvePCOpenInitial1 = 1 + (OTV0P2BASE::randRNG8() % 100);
     valvePCOpen = valvePCOpenInitial1;
@@ -380,7 +381,7 @@ TEST(ModelledRadValve,MRVSExtremes)
         { EXPECT_GE(lingerMins, OTV0P2BASE::fnmin(is1.minPCReallyOpen, OTRadValve::DEFAULT_MAX_RUN_ON_TIME_M)) << ((int)is1.minPCReallyOpen); }
     // Filtering should not have been engaged
     // and velocity should be zero (temperature is flat).
-    for(int i = OTRadValve::ModelledRadValveState::filterLength; --i >= 0; )
+    for(int i = OTRadValve::ModelledRadValveState<>::filterLength; --i >= 0; )
         { ASSERT_EQ(100<<4, rs1.prevRawTempC16[i]); }
     EXPECT_EQ(100<<4, rs1.getSmoothedRecent());
     //  AssertIsEqual(0, rs1.getVelocityC16PerTick());
@@ -395,7 +396,7 @@ TEST(ModelledRadValve,MRVSExtremes)
 TEST(ModelledRadValve,MRVSExtremes2)
 {
     // Try a range of (whole-degree) offsets...
-    static constexpr uint8_t maxOffset = OTV0P2BASE::fnmax(10, 2*OTRadValve::ModelledRadValveState::_proportionalRange);
+    static constexpr uint8_t maxOffset = OTV0P2BASE::fnmax(10, 2*OTRadValve::ModelledRadValveState<>::_proportionalRange);
     for(int offset = -maxOffset; offset <= +maxOffset; ++offset)
         {
 SCOPED_TRACE(testing::Message() << "offset " << offset);
@@ -411,17 +412,17 @@ SCOPED_TRACE(testing::Message() << "wide " << wide);
             // Well outside the potentially-proportional range,
             // valve should unconditionally be driven immediately off/on
             // by gross temperature error.
-            if(OTV0P2BASE::fnabs(offset) > OTRadValve::ModelledRadValveState::_proportionalRange)
+            if(OTV0P2BASE::fnabs(offset) > OTRadValve::ModelledRadValveState<>::_proportionalRange)
                 {
                 // Where adjusted reference temperature is (well) below target,
                 // valve should be driven open.
-                OTRadValve::ModelledRadValveState rs3a;
+                OTRadValve::ModelledRadValveState<> rs3a;
                 uint8_t valvePCOpen = 0;
                 rs3a.tick(valvePCOpen, is, NULL);
                 EXPECT_NEAR((offset < 0) ? 100 : 0, valvePCOpen, 1);
                 // Where adjusted reference temperature is (well) above target,
                 // valve should be driven closed.
-                OTRadValve::ModelledRadValveState rs3b;
+                OTRadValve::ModelledRadValveState<> rs3b;
                 valvePCOpen = 100;
                 rs3b.tick(valvePCOpen, is, NULL);
                 EXPECT_NEAR((offset < 0) ? 100 : 0, valvePCOpen, 1);
@@ -436,14 +437,14 @@ SCOPED_TRACE(testing::Message() << "wide " << wide);
             if(OTV0P2BASE::fnabs(offset) > 1)
                 {
                 static constexpr uint8_t maxResponseMins = 100;
-                OTRadValve::ModelledRadValveState rs3a;
+                OTRadValve::ModelledRadValveState<> rs3a;
                 uint8_t valvePCOpen = 0;
                 for(int i = maxResponseMins; --i >= 0; )
                     { rs3a.tick(valvePCOpen, is, NULL); }
                 EXPECT_NEAR((offset < 0) ? 100 : 0, valvePCOpen, 2);
                 // Where adjusted reference temperature is (well) above target,
                 // valve should be driven closed.
-                OTRadValve::ModelledRadValveState rs3b;
+                OTRadValve::ModelledRadValveState<> rs3b;
                 valvePCOpen = 100;
                 for(int i = maxResponseMins; --i >= 0; )
                     { rs3b.tick(valvePCOpen, is, NULL); }
@@ -459,14 +460,14 @@ SCOPED_TRACE(testing::Message() << "wide " << wide);
             if(OTV0P2BASE::fnabs(offset) > 0)
                 {
                 static constexpr uint8_t maxResponseMins = 100;
-                OTRadValve::ModelledRadValveState rs3a;
+                OTRadValve::ModelledRadValveState<> rs3a;
                 uint8_t valvePCOpen = 0;
                 for(int i = maxResponseMins; --i >= 0; )
                     { rs3a.tick(valvePCOpen, is, NULL); }
                 EXPECT_NEAR((offset < 0) ? 100 : 0, valvePCOpen, 2);
                 // Where adjusted reference temperature is (well) above target,
                 // valve should be driven closed.
-                OTRadValve::ModelledRadValveState rs3b;
+                OTRadValve::ModelledRadValveState<> rs3b;
                 valvePCOpen = 100;
                 for(int i = maxResponseMins; --i >= 0; )
                     { rs3b.tick(valvePCOpen, is, NULL); }
@@ -571,7 +572,7 @@ TEST(ModelledRadValve,MRVSOpenFastFromCold593)
 SCOPED_TRACE(testing::Message() << "fastResponse " << fastResponse);
         OTRadValve::ModelledRadValveInputState is0(10 << 4);
         is0.targetTempC = 18; // Modest target temperature.
-        OTRadValve::ModelledRadValveState rs0;
+        OTRadValve::ModelledRadValveState<> rs0;
         is0.fastResponseRequired = fastResponse;
         is0.widenDeadband = false;
         volatile uint8_t valvePCOpen = OTV0P2BASE::randRNG8() % OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN;
@@ -584,7 +585,7 @@ SCOPED_TRACE(testing::Message() << "fastResponse " << fastResponse);
         EXPECT_GE(newValvePos, OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN);
         EXPECT_LE(newValvePos, 100);
     //    EXPECT_TRUE(rs0.valveMoved);
-        if(rs0.eventsSupported) { EXPECT_EQ(OTRadValve::ModelledRadValveState::MRVE_OPENFAST, rs0.getLastEvent()); }
+        if(rs0.eventsSupported) { EXPECT_EQ(OTRadValve::ModelledRadValveState<>::MRVE_OPENFAST, rs0.getLastEvent()); }
         }
 }
 
@@ -609,7 +610,7 @@ SCOPED_TRACE(testing::Message() << "fastResponseRequired " << fastResponseRequir
             const int16_t ambientTempC16 = (targetTempC << 4) +
                 (below ? -(oC16-1) : +(oC16-1));
             OTRadValve::ModelledRadValveInputState is0(ambientTempC16);
-            OTRadValve::ModelledRadValveState rs0;
+            OTRadValve::ModelledRadValveState<> rs0;
             is0.targetTempC = targetTempC;
             is0.glacial = false;
             is0.widenDeadband = false;
@@ -664,14 +665,14 @@ TEST(ModelledRadValve,MRVSNoHoverWithBoilerOn)
     // Temperature range / max offset in each direction in C.
     const uint8_t tempMaxOffsetC =
         OTV0P2BASE::fnmax(10,
-        2+OTRadValve::ModelledRadValveState::_proportionalRange);
+        2+OTRadValve::ModelledRadValveState<>::_proportionalRange);
     ASSERT_GT(targetTempC, tempMaxOffsetC) << "avoid underflow to < 0C";
     for(int16_t ambientTempC16 = (targetTempC - (int)tempMaxOffsetC) << 4;
         ambientTempC16 <= (targetTempC + (int)tempMaxOffsetC) << 4;
         ++ambientTempC16)
         {
         OTRadValve::ModelledRadValveInputState is0(ambientTempC16);
-        OTRadValve::ModelledRadValveState rs0;
+        OTRadValve::ModelledRadValveState<> rs0;
         is0.targetTempC = targetTempC;
         // Futz some input parameters that should not matter.
         is0.hasEcoBias = OTV0P2BASE::randRNG8NextBoolean();
@@ -714,7 +715,7 @@ TEST(ModelledRadValve,MRVSFilteringOnOff)
     volatile uint8_t valvePCOpen = valvePCOpenInitial;
 
     OTRadValve::ModelledRadValveInputState is0(ambientTempC16);
-    OTRadValve::ModelledRadValveState rs0;
+    OTRadValve::ModelledRadValveState<> rs0;
     ASSERT_FALSE(rs0.isFiltering) << "filtering must be off before first tick";
     is0.targetTempC = targetTempC;
     is0.glacial = false;
@@ -843,7 +844,7 @@ TEST(ModelledRadValve,DraughtDetectorSimple)
     const static bool verbose = false;
 
     // Don't run the test if the option is not supported.
-    if(!OTRadValve::ModelledRadValveState::SUPPORT_MRVE_DRAUGHT) { return; }
+    if(!OTRadValve::ModelledRadValveState<>::SUPPORT_MRVE_DRAUGHT) { return; }
 
     // Run the test a few times to help ensure
     // that there is no dependency on the state of the PRNG, etc.
@@ -865,7 +866,7 @@ TEST(ModelledRadValve,DraughtDetectorSimple)
 if(verbose) { fprintf(stderr, "Start\n"); }
         OTRadValve::ModelledRadValveInputState is0(roomTemp);
         is0.targetTempC = targetC;
-        OTRadValve::ModelledRadValveState rs0(is0);
+        OTRadValve::ModelledRadValveState<> rs0(is0);
         volatile uint8_t valvePCOpen = OTV0P2BASE::randRNG8() % 100;
 if(verbose) { fprintf(stderr, "Valve %d%%.\n", valvePCOpen); }
         // Set necessary conditions to allow draught-detector.
@@ -885,7 +886,7 @@ if(verbose) { fprintf(stderr, "Valve %d%%.\n", valvePCOpen); }
 if(verbose) { fprintf(stderr, "Valve %d%%.\n", valvePCOpen); }
         const uint8_t newValvePos = valvePCOpen;
         EXPECT_LT(newValvePos, OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN);
-        ASSERT_EQ(OTRadValve::ModelledRadValveState::MRVE_DRAUGHT, rs0.getLastEvent());
+        ASSERT_EQ(OTRadValve::ModelledRadValveState<>::MRVE_DRAUGHT, rs0.getLastEvent());
         }
 }
 
@@ -969,7 +970,7 @@ TEST(ModelledRadValve,SampleValveResponse1)
     //{"@":"E091B7DC8FEDC7A9","tS|C":1,"vC|%":0,"gE":0}
     //{"@":"E091B7DC8FEDC7A9","vac|h":0,"B|cV":254,"L":39}
     OTRadValve::ModelledRadValveInputState is0(281); // 281 ~ 17.6C.
-    OTRadValve::ModelledRadValveState rs0;
+    OTRadValve::ModelledRadValveState<> rs0;
     ASSERT_FALSE(rs0.isFiltering) << "filtering must be off before first tick";
     is0.fastResponseRequired = false;
     is0.hasEcoBias = true;
@@ -1284,7 +1285,7 @@ TEST(ModelledRadValve,SampleValveResponse2)
 
     // Assume flat temperature before the sample started.
     OTRadValve::ModelledRadValveInputState is0(295); // 295 ~ 18.4C.
-    OTRadValve::ModelledRadValveState rs0;
+    OTRadValve::ModelledRadValveState<> rs0;
     ASSERT_FALSE(rs0.isFiltering) << "filtering must be off before first tick";
     is0.fastResponseRequired = false;
     is0.hasEcoBias = true;
@@ -1396,7 +1397,7 @@ TEST(ModelledRadValve,SampleValveResponse3)
 
     // Assume flat temperature before the sample started.
     OTRadValve::ModelledRadValveInputState is0(295); // 295 ~ 18.4C.
-    OTRadValve::ModelledRadValveState rs0;
+    OTRadValve::ModelledRadValveState<> rs0;
     ASSERT_FALSE(rs0.isFiltering) << "filtering must be off before first tick";
     is0.fastResponseRequired = false;
     is0.hasEcoBias = true;
@@ -1560,7 +1561,7 @@ TEST(ModelledRadValve,SampleValveResponse4)
 
     // Assume flat temperature before the sample started.
     OTRadValve::ModelledRadValveInputState is0(289);
-    OTRadValve::ModelledRadValveState rs0;
+    OTRadValve::ModelledRadValveState<> rs0;
     is0.fastResponseRequired = false;
     is0.hasEcoBias = true;
 
@@ -1728,18 +1729,18 @@ class C16DataSample
     public:
         const uint8_t d, H, M, tC;
         const int16_t C16;
-        const OTRadValve::ModelledRadValveState::event_t expected;
+        const OTRadValve::ModelledRadValveState<>::event_t expected;
 
         // Day/hour/minute and light level and expected result.
         // An expected result of 0 means no particular event expected from this (anything is acceptable).
         C16DataSample(uint8_t dayOfMonth, uint8_t hour24, uint8_t minute,
                       uint8_t tTempC, int16_t tempC16,
-                      OTRadValve::ModelledRadValveState::event_t expectedResult = OTRadValve::ModelledRadValveState::MRVE_NONE)
+                      OTRadValve::ModelledRadValveState<>::event_t expectedResult = OTRadValve::ModelledRadValveState<>::MRVE_NONE)
             : d(dayOfMonth), H(hour24), M(minute), tC(tTempC), C16(tempC16), expected(expectedResult)
             { }
 
         // Create/mark a terminating entry; all input values invalid.
-        C16DataSample() : d(255), H(255), M(255), tC(255), C16(~0), expected(OTRadValve::ModelledRadValveState::MRVE_NONE) { }
+        C16DataSample() : d(255), H(255), M(255), tC(255), C16(~0), expected(OTRadValve::ModelledRadValveState<>::MRVE_NONE) { }
 
         // Compute current minute for this record.
         long currentMinute() const { return((((d * 24L) + H) * 60L) + M); }
@@ -1789,7 +1790,7 @@ TODO-442:
 static const C16DataSample sample7h[] =
     {
 { 0, 6, 45, 20, 319 },
-{ 0, 6, 57, 20, 302, OTRadValve::ModelledRadValveState::MRVE_DRAUGHT },
+{ 0, 6, 57, 20, 302, OTRadValve::ModelledRadValveState<>::MRVE_DRAUGHT },
 { 0, 7, 5, 20, 303 },
 { 0, 7, 9, 20, 305 },
 { 0, 7, 21, 20, 308 },
@@ -1825,10 +1826,10 @@ static const C16DataSample sample1g[] =
     {
 { 0, 6, 31, 20, 331 },
 { 0, 6, 35, 20, 330 },
-{ 0, 6, 43, 20, 327, OTRadValve::ModelledRadValveState::MRVE_DRAUGHT },
+{ 0, 6, 43, 20, 327, OTRadValve::ModelledRadValveState<>::MRVE_DRAUGHT },
 { 0, 6, 59, 20, 325 },
 { 0, 7, 7, 20, 324 },
-{ 0, 7, 19, 20, 321, OTRadValve::ModelledRadValveState::MRVE_DRAUGHT },
+{ 0, 7, 19, 20, 321, OTRadValve::ModelledRadValveState<>::MRVE_DRAUGHT },
 { 0, 7, 23, 20, 320 },
 { 0, 7, 31, 20, 319 },
 //...

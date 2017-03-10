@@ -205,7 +205,7 @@ class ThermalModelValve
 protected:
     uint_fast8_t valvePCOpen;
     OTRadValve::ModelledRadValveInputState is0;
-    OTRadValve::ModelledRadValveState rs0;
+    OTRadValve::ModelledRadValveState<> rs0;
 public:
     ThermalModelValve(const uint_fast8_t startValvePCOpen, const float targetTemp) : valvePCOpen(startValvePCOpen)
         { is0.targetTempC = targetTemp; }
