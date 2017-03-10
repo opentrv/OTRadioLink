@@ -229,8 +229,8 @@ TEST(ModelledRadValveThermalModel, roomCold)
     const float startTempC = 16.0f;
     const float targetTempC = 19.0f;
     // Keep track of maximum and minimum room temps.
-//    float maxRoomTempC = 0.0;
-//    float minRoomTempC = 100.0;
+    float maxRoomTempC = 0.0;
+    float minRoomTempC = 100.0;
     // keep track of valve positions.
     const uint_fast8_t startingValvePCOpen = 0;
     // Set up.
@@ -242,24 +242,27 @@ TEST(ModelledRadValveThermalModel, roomCold)
     std::vector<uint_fast8_t> radDelay(5, startingValvePCOpen);
     for(auto i = 0; i < 20000; ++i) {
         const float valveTempC = model.getValveTemperature(); // current air temperature in C
+        const float airTempC = model.getAirTemperature();
         if(0 == (i % TMTRHC::valveUpdateTime)) {  // once per minute tasks.
             const uint_fast8_t valvePCOpen = valve.getValvePCOpen();
             if (verbose) {
-                TMB::printFrame(i, model.getAirTemperature(), valveTempC, targetTempC, valvePCOpen);
+                TMB::printFrame(i, airTempC, valveTempC, targetTempC, valvePCOpen);
             }
             valve.tick(valveTempC);
             radDelay.erase(radDelay.begin());
             radDelay.push_back(valvePCOpen);
         }
         model.calcNewAirTemperature(radDelay.front());
-//        maxRoomTempC = (maxRoomTempC > curTempC) ? maxRoomTempC : curTempC;
-//        minRoomTempC = ((minRoomTempC < curTempC) && (1000 < i)) ? minRoomTempC : curTempC;  // avoid comparing during initial warm-up.
+        maxRoomTempC = (maxRoomTempC > airTempC) ? maxRoomTempC : airTempC;
+        minRoomTempC = ((minRoomTempC < airTempC) && ((60 * 100) < i)) ? minRoomTempC : airTempC;  // avoid comparing during the first 100 mins
     }
+    EXPECT_GT((targetTempC + 2.0f), maxRoomTempC);
+    EXPECT_LT((targetTempC - 2.0f), minRoomTempC);
 }
 
 TEST(ModelledRadValveThermalModel, roomHot)
 {
-    bool verbose = true;
+    bool verbose = false;
     TMB::splitUnit = false;
     // Room start temp
     const float startTempC = 25.0f;
