@@ -108,7 +108,7 @@ namespace OTV0P2BASE
 
 template
   <
-    // Mandatory values.
+    // Mandatory values; pointers may not be NULL.
     class valveMode_t /*= OTRadValve::ValveMode*/, const valveMode_t *const valveMode,
 
     // Optional values (each object can be NULL).
@@ -170,10 +170,11 @@ class SystemStatsLine final
     public:
         void serialStatusReport()
             {
+            // GCC/clang 4.x sillies prevent validating statically or otherwise...
 //            static_assert(printer, "printer must not be null");
 //            static_assert(valveMode, "valveMode must not be null");
-            if(NULL == printer) { return; }
-            if(NULL == valveMode) { return; }
+//            if(NULL == printer) { return; }
+//            if(NULL == valveMode) { return; }
 
 #if defined(ARDUINO_ARCH_AVR)
             const bool neededWaking = wakeFlushSleepSerial &&
