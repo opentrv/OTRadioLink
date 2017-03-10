@@ -43,7 +43,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 // NOTE: All constants are the absolute values for the room.
 // Heat capacities etc. should be calculated from room size etc. before feeding into the model!
 namespace TMB {
-static constexpr uint_fast8_t valveUpdateTime = 60;  // Length of valve update cycle.
 
 bool verbose = false;
 bool splitUnit = false;
@@ -242,6 +241,8 @@ class ThermalModelBase
  * Helper class to handle updating and storing state of TRV..
  */
 namespace TMTRHC {
+static constexpr uint_fast8_t valveUpdateTime = 60;  // Length of valve update cycle.
+
 class ThermalModelValve
 {
 protected:
@@ -280,7 +281,7 @@ TEST(ModelledRadValveThermalModel, roomHotControlled)
     std::vector<uint_fast8_t> radDelay(5, startingValvePCOpen);
     for(auto i = 0; i < 20000; ++i) {
         const float curTempC = model.getValveTemperature(); // current air temperature in C
-        if(0 == (i % 60)) {  // once per minute tasks.
+        if(0 == (i % TMTRHC::valveUpdateTime)) {  // once per minute tasks.
             const uint_fast8_t valvePCOpen = valve.getValvePCOpen();
             if (verbose) {
                 fprintf(stderr, "[ \"%u\", \"\", {\"T|C\": %.2f, \"TV|C\": %.2f, \"tT|C\": %.2f, \"v|%%\": %u} ]\n", i, model.getAirTemperature(), curTempC, targetTempC, valvePCOpen);
