@@ -178,23 +178,6 @@ class ThermalModelBase
         float getAirTemperature() { return roomTemp; }
         float getValveTemperature() {return valveTemp;}
     };
-
-class ThermalModelValveBase
-{
-protected:
-    uint_fast8_t valvePCOpen;
-    OTRadValve::ModelledRadValveInputState is0;
-    OTRadValve::ModelledRadValveState rs0;
-public:
-    ThermalModelValveBase(const uint_fast8_t startValvePCOpen, const float targetTemp) : valvePCOpen(startValvePCOpen)
-        { is0.targetTempC = targetTemp; }
-    void tick(const float curTempC) {
-        is0.setReferenceTemperatures((uint_fast16_t)(curTempC * 16));
-        rs0.tick(valvePCOpen, is0, NULL);
-    }
-    float getValvePCOpen() { return valvePCOpen; }
-    float getTargetTempC() { return is0.targetTempC; }
-};
 }
 
 //// Basic tests of RadValveModel room with valve fully off.
@@ -256,6 +239,24 @@ public:
 //}
 
 
+namespace TMTRHC {
+class ThermalModelValve
+{
+protected:
+    uint_fast8_t valvePCOpen;
+    OTRadValve::ModelledRadValveInputState is0;
+    OTRadValve::ModelledRadValveState rs0;
+public:
+    ThermalModelValve(const uint_fast8_t startValvePCOpen, const float targetTemp) : valvePCOpen(startValvePCOpen)
+        { is0.targetTempC = targetTemp; }
+    void tick(const float curTempC) {
+        is0.setReferenceTemperatures((uint_fast16_t)(curTempC * 16));
+        rs0.tick(valvePCOpen, is0, NULL);
+    }
+    float getValvePCOpen() { return valvePCOpen; }
+    float getTargetTempC() { return is0.targetTempC; }
+};
+}
 TEST(ModelledRadValveThermalModel, roomHotControlled)
 {
     TMB::splitUnit = false;
@@ -263,16 +264,12 @@ TEST(ModelledRadValveThermalModel, roomHotControlled)
     const float startTempC = 16.0f;
     const float targetTempC = 19.0f;
     // Keep track of maximum and minimum room temps.
-    //float maxRoomTempC = 0.0;
-    //float minRoomTempC = 100.0;
+//    float maxRoomTempC = 0.0;
+//    float minRoomTempC = 100.0;
     // keep track of valve positions.
     const uint_fast8_t startingValvePCOpen = 0;
-    // Set up TRV.
-//    OTRadValve::ModelledRadValveInputState is0((uint_fast16_t)(startTempC * 16));
-//    is0.targetTempC = targetTempC;
-//    OTRadValve::ModelledRadValveState rs0;
-    // Set up room model.
-    TMB::ThermalModelValveBase valve(startingValvePCOpen, targetTempC);
+    // Set up.
+    TMTRHC::ThermalModelValve valve(startingValvePCOpen, targetTempC);
     TMB::ThermalModelBase model(500, 300, 50,
                                 350000, 1300000, 7000000,
                                 startTempC);
@@ -282,9 +279,7 @@ TEST(ModelledRadValveThermalModel, roomHotControlled)
         const float curTempC = model.getValveTemperature(); // current air temperature in C
         if(0 == (i % 60)) {  // once per minute tasks.
             const uint_fast8_t valvePCOpen = valve.getValvePCOpen();
-//             fprintf(stderr, "[ \"%u\", \"\", {\"T|C\": %.2f, \"TV|C\": %.2f, \"tT|C\": %.2f, \"v|%%\": %u} ]\n", i, model.getAirTemperature(), curTempC, targetTempC, valvePCOpen);
-//            is0.setReferenceTemperatures((uint_fast16_t)(curTempC * 16));
-//            rs0.tick(valvePCOpen, is0, NULL);
+            fprintf(stderr, "[ \"%u\", \"\", {\"T|C\": %.2f, \"TV|C\": %.2f, \"tT|C\": %.2f, \"v|%%\": %u} ]\n", i, model.getAirTemperature(), curTempC, targetTempC, valvePCOpen);
             valve.tick(curTempC);
             radDelay.erase(radDelay.begin());
             radDelay.push_back(valvePCOpen);
