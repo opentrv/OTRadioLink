@@ -52,8 +52,8 @@ class DRV8850HardwareDriver final : public ValveMotorDirectV1HardwareDriverBase
     // Marked volatile and stored as uint8_t to help thread-safety, and potentially save space.
     volatile uint8_t last_dir;
     // Temporary current limits, as values for REV7 H-Bridge are hard-coded in ValveMotorBase. These are expressed as ADC values.
-    static const constexpr uint16_t maxDevCurrentReadingClosing = 300;  // FIXME delete
-    static const constexpr uint16_t maxDevCurrentReadingOpening = 300;
+    static constexpr uint16_t maxCurrentReadingClosing = 300;  // FIXME delete
+    static constexpr uint16_t maxCurrentReadingOpening = 300;
 
 public:
     DRV8850HardwareDriver() : last_dir((uint8_t)motorOff) {
@@ -73,7 +73,7 @@ public:
 //OTV0P2BASE::serialPrintlnAndFlush();
 //#endif
     const uint16_t miHigh = (OTRadValve::HardwareMotorDriverInterface::motorDriveClosing == mdir) ?
-            maxDevCurrentReadingClosing : maxDevCurrentReadingOpening;
+            maxCurrentReadingClosing : maxCurrentReadingOpening;
     const bool currentSense = (mi > miHigh); // &&
     // TODO: capture some entropy from motor current lsbs.
       // Recheck the value read in case spiky.
