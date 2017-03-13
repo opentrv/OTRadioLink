@@ -47,11 +47,17 @@ namespace OTRadValve
 template <uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin, uint8_t MOTOR_DRIVE_MC_AIN_DigitalPin, uint8_t>
 class ValveMotorDirectV1HardwareDriver final : public ValveMotorDirectV1HardwareDriverBase
   {
+  private:
     // Last recorded direction.
     // Helpful to record shaft-encoder and other behaviour correctly around direction changes.
     // Marked volatile and stored as uint8_t to help thread-safety, and potentially save space.
     volatile uint8_t last_dir;
-
+    // Maximum current reading allowed when closing the valve (against the spring).
+    static constexpr uint16_t maxCurrentReadingClosing = 600;
+    // Maximum current reading allowed when opening the valve (retracting the pin, no resisting force).
+    // Keep this as low as possible to reduce the chance of skipping the end-stop and game over...
+    // DHD20151229: at 500 Shenzhen sample unit without outer case (so with more flex) was able to drive past end-stop.
+    static constexpr uint16_t maxCurrentReadingOpening = 450; // DHD20151023: 400 seemed marginal.
   public:
     ValveMotorDirectV1HardwareDriver() : last_dir((uint8_t)motorOff) { }
 
