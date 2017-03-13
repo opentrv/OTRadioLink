@@ -40,6 +40,11 @@ namespace OTRadValve
 
 #ifdef ARDUINO_ARCH_AVR
 
+// A default value for the nSLEEP motor drive pin when used with hardware drivers that do not use it.
+// Triggers a static_assert in DRV8850HardwareDriver and also causes fastDigitalWrite to throw an error.
+// TODO probably belongs somewhere else.
+static constexpr uint8_t MOTOR_DRIVE_NSLEEP_UNUSED = 255;
+
 // Implementation for V1 (REV7/DORM1) motor.
 // Usually not instantiated except within ValveMotorDirectV1.
 // Creating multiple instances (trying to drive same motor) almost certainly a BAD IDEA.
@@ -194,7 +199,7 @@ OTV0P2BASE::serialPrintlnAndFlush();
 template
     <
     template<uint8_t, uint8_t, uint8_t, uint8_t, uint8_t> class ValveMotorDirectV1HardwareDriver_t,
-    uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin, uint8_t MOTOR_DRIVE_MC_AIN_DigitalPin, uint8_t MOTOR_DRIVE_NSLEEP_DigitalPin = 255,
+    uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin, uint8_t MOTOR_DRIVE_MC_AIN_DigitalPin, uint8_t MOTOR_DRIVE_NSLEEP_DigitalPin = MOTOR_DRIVE_NSLEEP_UNUSED,
     class LowBatt_t = OTV0P2BASE::SupplyVoltageLow, LowBatt_t *lowBattOpt = NULL,
     bool binaryOnly = false
     >
