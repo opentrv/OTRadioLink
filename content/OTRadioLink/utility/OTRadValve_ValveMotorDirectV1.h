@@ -44,7 +44,7 @@ namespace OTRadValve
 // Usually not instantiated except within ValveMotorDirectV1.
 // Creating multiple instances (trying to drive same motor) almost certainly a BAD IDEA.
 #define ValveMotorDirectV1HardwareDriver_DEFINED
-template <uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin, uint8_t MOTOR_DRIVE_MC_AIN_DigitalPin>
+template <uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin, uint8_t MOTOR_DRIVE_MC_AIN_DigitalPin, uint8_t>
 class ValveMotorDirectV1HardwareDriver final : public ValveMotorDirectV1HardwareDriverBase
   {
     // Last recorded direction.
@@ -187,7 +187,8 @@ OTV0P2BASE::serialPrintlnAndFlush();
 #define ValveMotorDirectV1_DEFINED
 template
     <
-    uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin, uint8_t MOTOR_DRIVE_MC_AIN_DigitalPin,
+    template<uint8_t, uint8_t, uint8_t, uint8_t, uint8_t> class ValveMotorDirectV1HardwareDriver_t,
+    uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin, uint8_t MOTOR_DRIVE_MC_AIN_DigitalPin, uint8_t MOTOR_DRIVE_NSLEEP_DigitalPin = 255,
     class LowBatt_t = OTV0P2BASE::SupplyVoltageLow, LowBatt_t *lowBattOpt = NULL,
     bool binaryOnly = false
     >
@@ -195,7 +196,7 @@ class ValveMotorDirectV1 : public OTRadValve::AbstractRadValve
   {
   private:
     // Driver for the V1/DORM1 hardware.
-    ValveMotorDirectV1HardwareDriver<MOTOR_DRIVE_ML_DigitalPin, MOTOR_DRIVE_MR_DigitalPin, MOTOR_DRIVE_MI_AIN_DigitalPin, MOTOR_DRIVE_MC_AIN_DigitalPin> driver;
+    ValveMotorDirectV1HardwareDriver_t<MOTOR_DRIVE_ML_DigitalPin, MOTOR_DRIVE_MR_DigitalPin, MOTOR_DRIVE_MI_AIN_DigitalPin, MOTOR_DRIVE_MC_AIN_DigitalPin, MOTOR_DRIVE_NSLEEP_DigitalPin> driver;
 
     // Logic to manage state.
     // A simplified form of the driver is used if binaryOnly is true.

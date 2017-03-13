@@ -30,10 +30,11 @@ namespace OTRadValve
 
 
 #ifdef ValveMotorDirectV1HardwareDriverBase_DEFINED
-
 /**
  * @class   DRV8850HardwareDriver
- * @brief   Implementation for the DRV8850 motor driver.
+ * @brief   Implementation for V1 (REV7/DORM1) motor.
+ *          Usually not instantiated except within ValveMotorDirectV1.
+ *          Creating multiple instances (trying to drive same motor) almost certainly a BAD IDEA.
  * @note    IN1H + IN2L and IN1L + IN2H should be tied together and connected to MOTOR_DRIVE_ML_DigitalPin and MOTOR_DRIVE_MR_DigitalPin.
  *          This is in order to allow 2 pins to control the H-bridge.
  * @param   MOTOR_DRIVE_MI_AIN_DigitalPin: Current read. This is an ADCMUX number, not a pin number!
@@ -43,19 +44,22 @@ namespace OTRadValve
  * @param   nSLEEP: Sleep
  */
 #define DRV8850HardwareDriver_DEFINED
-template <uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t nSLEEP, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin, uint8_t MOTOR_DRIVE_MC_AIN_DigitalPin>
-class DRV8850HardwareDriver : public ValveMotorDirectV1HardwareDriverBase
+template <uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin, uint8_t MOTOR_DRIVE_MC_AIN_DigitalPin,  uint8_t nSLEEP>
+class DRV8850HardwareDriver final : public ValveMotorDirectV1HardwareDriverBase
 {
     // Last recorded direction.
     // Helpful to record shaft-encoder and other behaviour correctly around direction changes.
     // Marked volatile and stored as uint8_t to help thread-safety, and potentially save space.
     volatile uint8_t last_dir;
     // Temporary current limits, as values for REV7 H-Bridge are hard-coded in ValveMotorBase. These are expressed as ADC values.
-    static const constexpr uint16_t maxDevCurrentReadingClosing = 300;  // FIXME
+    static const constexpr uint16_t maxDevCurrentReadingClosing = 300;  // FIXME delete
     static const constexpr uint16_t maxDevCurrentReadingOpening = 300;
 
 public:
-    DRV8850HardwareDriver() : last_dir((uint8_t)motorOff) { }
+    DRV8850HardwareDriver() : last_dir((uint8_t)motorOff) {
+        // Check that nSLEEP has not been passed in as a default value. FIXME
+        static_assert(255 != nSLEEP, "nSLEEP pin number is not defined.");
+    }
 
   // Detect if end-stop is reached or motor current otherwise very high.
   virtual bool isCurrentHigh(OTRadValve::HardwareMotorDriverInterface::motor_drive mdir = motorDriveOpening) const
@@ -156,7 +160,7 @@ OTV0P2BASE::serialPrintlnAndFlush();
 		fastDigitalWrite(MOTOR_DRIVE_MR_DigitalPin, LOW);
 		fastDigitalWrite(MOTOR_DRIVE_MR_DigitalPin, LOW);
 
-        // todo what is going on here?
+        // XXX what is going on here?
         // Let H-bridge respond and settle.
         // Accumulate any shaft movement & time to the previous direction if not already stopped.
         // Wait longer if not previously off to allow for inertia, if shaft encoder is in use.
