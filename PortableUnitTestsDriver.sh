@@ -42,17 +42,20 @@ INCLUDES="-I${PROJSRCROOT} -I${PROJSRCROOT}/utility"
 #echo "Using test sources: $TESTSRCS"
 #echo "Using project sources: $PROJSRCS"
 
+EXTRACPPFLAGS=
+
 # If OTAESGCM code is present, add it to the source path,
 # and set the flag to allow the extra tests based on it.
-OTAESGCMSRCDIR=OTAESGCM-master/content
+OTAESGCMSRCDIR=OTAESGCM-master/content/OTAESGCM
 if [ -d ${OTAESGCMSRCDIR} ]; then
-    echo Lib source dir ${OTAESGCMSRCDIR} is present.
-    INCLUDES="${INCLUDES) -I${OTAESGCMSRCDIR} -I${OTAESGCMSRCDIR}/utility"
+    echo "Lib source dir ${OTAESGCMSRCDIR} is present and will be used."
+    INCLUDES="${INCLUDES} -I${OTAESGCMSRCDIR} -I${OTAESGCMSRCDIR}/utility"
     PROJSRCS="${PROJSRCS} `find ${OTAESGCMSRCDIR} -name '*.cpp' -type f -print`"
+    EXTRACPPFLAGS="-DEXT_AVAILABLE_ARDUINO_LIB_OTAESGCM"
 fi
 
 rm -f ${EXENAME}
-if g++ -o ${EXENAME} -std=c++0x -O0 -Wall -Werror ${INCLUDES} ${GINCLUDES} ${PROJSRCS} ${TESTSRCS} ${GLIBDIRS} ${GLIBS} ${OTHERLIBS} ; then
+if g++ -o ${EXENAME} -std=c++0x -O0 -Wall -Werror ${EXTRACPPFLAGS} ${INCLUDES} ${GINCLUDES} ${PROJSRCS} ${TESTSRCS} ${GLIBDIRS} ${GLIBS} ${OTHERLIBS} ; then
     echo Compiled.
 else
     echo Failed to compile.
