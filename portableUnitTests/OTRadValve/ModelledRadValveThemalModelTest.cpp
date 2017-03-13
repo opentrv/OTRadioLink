@@ -287,7 +287,7 @@ TEST(ModelledRadValveThermalModel, roomCold)
 
 TEST(ModelledRadValveThermalModel, roomColdBinary)
 {
-    bool verbose = true;
+    bool verbose = false;
     TMB::splitUnit = false;
     // Room start temp
     const float startTempC = 16.0f;
