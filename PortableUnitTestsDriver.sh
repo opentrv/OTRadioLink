@@ -42,6 +42,15 @@ INCLUDES="-I${PROJSRCROOT} -I${PROJSRCROOT}/utility"
 #echo "Using test sources: $TESTSRCS"
 #echo "Using project sources: $PROJSRCS"
 
+# If OTAESGCM code is present, add it to the source path,
+# and set the flag to allow the extra tests based on it.
+OTAESGCMSRCDIR=OTAESGCM-master/content
+if [ -d ${OTAESGCMSRCDIR} ]; then
+    echo Lib source dir ${OTAESGCMSRCDIR} is present.
+    INCLUDES="${INCLUDES) -I${OTAESGCMSRCDIR} -I${OTAESGCMSRCDIR}/utility"
+    PROJSRCS="${PROJSRCS} `find ${OTAESGCMSRCDIR} -name '*.cpp' -type f -print`"
+fi
+
 rm -f ${EXENAME}
 if g++ -o ${EXENAME} -std=c++0x -O0 -Wall -Werror ${INCLUDES} ${GINCLUDES} ${PROJSRCS} ${TESTSRCS} ${GLIBDIRS} ${GLIBS} ${OTHERLIBS} ; then
     echo Compiled.
