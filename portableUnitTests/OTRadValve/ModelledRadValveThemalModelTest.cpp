@@ -220,6 +220,31 @@ public:
     float getValvePCOpen() { return valvePCOpen; }
     float getTargetTempC() { return is0.targetTempC; }
 };
+
+/**
+ * Helper class to handle updating and storing state of TRV.
+ * Runs a binary valve control algorithm.
+ */
+class ThermalModelBinaryValve
+{
+protected:
+    uint_fast8_t valvePCOpen;
+    OTRadValve::ModelledRadValveInputState is0;
+    OTRadValve::ModelledRadValveState<true> rs0;
+public:
+    ThermalModelBinaryValve(const uint_fast8_t startValvePCOpen, const float targetTemp) : valvePCOpen(startValvePCOpen)
+        { is0.targetTempC = targetTemp; }
+    /**
+     * @brief   Set current temperature at valve and calculate new valve state.
+     *          Should be called once per valve update cycle (see valveUpdateTime).
+     */
+    void tick(const float curTempC) {
+        is0.setReferenceTemperatures((uint_fast16_t)(curTempC * 16));
+        rs0.tick(valvePCOpen, is0, NULL);
+    }
+    float getValvePCOpen() { return valvePCOpen; }
+    float getTargetTempC() { return is0.targetTempC; }
+};
 }
 TEST(ModelledRadValveThermalModel, roomCold)
 {
@@ -260,6 +285,45 @@ TEST(ModelledRadValveThermalModel, roomCold)
     EXPECT_LT((targetTempC - 2.0f), minRoomTempC);
 }
 
+TEST(ModelledRadValveThermalModel, roomColdBinary)
+{
+    bool verbose = true;
+    TMB::splitUnit = false;
+    // Room start temp
+    const float startTempC = 16.0f;
+    const float targetTempC = 19.0f;
+    // Keep track of maximum and minimum room temps.
+    float maxRoomTempC = 0.0;
+    float minRoomTempC = 100.0;
+    // keep track of valve positions.
+    const uint_fast8_t startingValvePCOpen = 0;
+    // Set up.
+    TMTRHC::ThermalModelBinaryValve valve(startingValvePCOpen, targetTempC);
+    TMB::ThermalModelBase model(500, 300, 50,
+                                350000, 1300000, 7000000,
+                                startTempC);
+    // Delay in radiator responding to change in valvePCOpen. Should possibly be asymmetric. todo move into room model.
+    std::vector<uint_fast8_t> radDelay(5, startingValvePCOpen);
+    for(auto i = 0; i < 20000; ++i) {
+        const float valveTempC = model.getValveTemperature(); // current air temperature in C
+        const float airTempC = model.getAirTemperature();
+        if(0 == (i % TMTRHC::valveUpdateTime)) {  // once per minute tasks.
+            const uint_fast8_t valvePCOpen = valve.getValvePCOpen();
+            if (verbose) {
+                TMB::printFrame(i, airTempC, valveTempC, targetTempC, valvePCOpen);
+            }
+            valve.tick(valveTempC);
+            radDelay.erase(radDelay.begin());
+            radDelay.push_back(valvePCOpen);
+        }
+        model.calcNewAirTemperature(radDelay.front());
+        maxRoomTempC = (maxRoomTempC > airTempC) ? maxRoomTempC : airTempC;
+        minRoomTempC = ((minRoomTempC < airTempC) && ((60 * 100) < i)) ? minRoomTempC : airTempC;  // avoid comparing during the first 100 mins
+    }
+    EXPECT_GT((targetTempC + 2.5f), maxRoomTempC);
+    EXPECT_LT((targetTempC - 2.5f), minRoomTempC);
+}
+
 TEST(ModelledRadValveThermalModel, roomHot)
 {
     bool verbose = false;
@@ -290,6 +354,8 @@ TEST(ModelledRadValveThermalModel, roomHot)
         model.calcNewAirTemperature(radDelay.front());
     }
 }
+
+
 /* TODO
 
 Test for sticky / jammed / closed value calling for heat in stable temp room running boiler continually: TODO-1096
