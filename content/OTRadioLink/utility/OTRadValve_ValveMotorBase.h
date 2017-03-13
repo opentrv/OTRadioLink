@@ -44,14 +44,6 @@ class ValveMotorDirectV1HardwareDriverBase : public OTRadValve::HardwareMotorDri
     // Min sub-cycle ticks to run up.
     static const uint8_t minMotorRunupTicks = max(1, minMotorRunupMS / OTV0P2BASE::SUBCYCLE_TICK_MS_RD);
 
-  private:
-    // Maximum current reading allowed when closing the valve (against the spring).
-    static const uint16_t maxCurrentReadingClosing = 600;
-    // Maximum current reading allowed when opening the valve (retracting the pin, no resisting force).
-    // Keep this as low as possible to reduce the chance of skipping the end-stop and game over...
-    // DHD20151229: at 500 Shenzhen sample unit without outer case (so with more flex) was able to drive past end-stop.
-    static const uint16_t maxCurrentReadingOpening = 450; // DHD20151023: 400 seemed marginal.
-
   protected:
     // Spin for up to the specified number of SCT ticks, monitoring current and position encoding.
     //   * maxRunTicks  maximum sub-cycle ticks to attempt to run/spin for); strictly positive

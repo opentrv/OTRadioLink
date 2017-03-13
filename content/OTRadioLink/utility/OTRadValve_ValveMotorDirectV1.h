@@ -40,18 +40,29 @@ namespace OTRadValve
 
 #ifdef ARDUINO_ARCH_AVR
 
+// A default value for the nSLEEP motor drive pin when used with hardware drivers that do not use it.
+// Triggers a static_assert in DRV8850HardwareDriver and also causes fastDigitalWrite to throw an error.
+// TODO probably belongs somewhere else.
+static constexpr uint8_t MOTOR_DRIVE_NSLEEP_UNUSED = 255;
+
 // Implementation for V1 (REV7/DORM1) motor.
 // Usually not instantiated except within ValveMotorDirectV1.
 // Creating multiple instances (trying to drive same motor) almost certainly a BAD IDEA.
 #define ValveMotorDirectV1HardwareDriver_DEFINED
-template <uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin, uint8_t MOTOR_DRIVE_MC_AIN_DigitalPin>
+template <uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin, uint8_t MOTOR_DRIVE_MC_AIN_DigitalPin, uint8_t>
 class ValveMotorDirectV1HardwareDriver final : public ValveMotorDirectV1HardwareDriverBase
   {
+  private:
     // Last recorded direction.
     // Helpful to record shaft-encoder and other behaviour correctly around direction changes.
     // Marked volatile and stored as uint8_t to help thread-safety, and potentially save space.
     volatile uint8_t last_dir;
-
+    // Maximum current reading allowed when closing the valve (against the spring).
+    static constexpr uint16_t maxCurrentReadingClosing = 600;
+    // Maximum current reading allowed when opening the valve (retracting the pin, no resisting force).
+    // Keep this as low as possible to reduce the chance of skipping the end-stop and game over...
+    // DHD20151229: at 500 Shenzhen sample unit without outer case (so with more flex) was able to drive past end-stop.
+    static constexpr uint16_t maxCurrentReadingOpening = 450; // DHD20151023: 400 seemed marginal.
   public:
     ValveMotorDirectV1HardwareDriver() : last_dir((uint8_t)motorOff) { }
 
@@ -187,7 +198,8 @@ OTV0P2BASE::serialPrintlnAndFlush();
 #define ValveMotorDirectV1_DEFINED
 template
     <
-    uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin, uint8_t MOTOR_DRIVE_MC_AIN_DigitalPin,
+    template<uint8_t, uint8_t, uint8_t, uint8_t, uint8_t> class ValveMotorDirectV1HardwareDriver_t,
+    uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin, uint8_t MOTOR_DRIVE_MC_AIN_DigitalPin, uint8_t MOTOR_DRIVE_NSLEEP_DigitalPin = MOTOR_DRIVE_NSLEEP_UNUSED,
     class LowBatt_t = OTV0P2BASE::SupplyVoltageLow, LowBatt_t *lowBattOpt = NULL,
     bool binaryOnly = false
     >
@@ -195,7 +207,7 @@ class ValveMotorDirectV1 : public OTRadValve::AbstractRadValve
   {
   private:
     // Driver for the V1/DORM1 hardware.
-    ValveMotorDirectV1HardwareDriver<MOTOR_DRIVE_ML_DigitalPin, MOTOR_DRIVE_MR_DigitalPin, MOTOR_DRIVE_MI_AIN_DigitalPin, MOTOR_DRIVE_MC_AIN_DigitalPin> driver;
+    ValveMotorDirectV1HardwareDriver_t<MOTOR_DRIVE_ML_DigitalPin, MOTOR_DRIVE_MR_DigitalPin, MOTOR_DRIVE_MI_AIN_DigitalPin, MOTOR_DRIVE_MC_AIN_DigitalPin, MOTOR_DRIVE_NSLEEP_DigitalPin> driver;
 
     // Logic to manage state.
     // A simplified form of the driver is used if binaryOnly is true.
