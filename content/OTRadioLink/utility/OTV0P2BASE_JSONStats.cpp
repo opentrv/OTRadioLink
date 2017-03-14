@@ -361,6 +361,9 @@ bool SimpleStatsRotationBase::changedValue() const
 //   * suppressClearChanged  if true then 'changed' flag for included fields
 //       is not cleared by this,
 //       allowing them to continue to be treated as higher priority
+//
+// Sample output:
+//    {"@":"414a","+":2,"L":130,"vC|%":1158,"T|C16":255}
 uint8_t SimpleStatsRotationBase::writeJSON(uint8_t *const buf, const uint8_t bufSize, const uint8_t /*sensitivity*/,
                                            const bool maximise, const bool suppressClearChanged)
   {
