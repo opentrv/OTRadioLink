@@ -42,8 +42,30 @@ INCLUDES="-I${PROJSRCROOT} -I${PROJSRCROOT}/utility"
 #echo "Using test sources: $TESTSRCS"
 #echo "Using project sources: $PROJSRCS"
 
+EXTRACPPFLAGS=
+
+# If OTAESGCM code is present, add it to the source path,
+# and set the flag to allow the extra tests based on it.
+# Try via a the 'unpacked master' path first, then a relative path.
+OTAESGCMALTDIR="OTAESGCM-master"
+OTAESGCMRELDIR="../OTAESGCM"
+if [ -d ${OTAESGCMALTDIR} ]; then
+    OTAESGCMDIR="${OTAESGCMALTDIR}"
+else
+    OTAESGCMDIR="${OTAESGCMRELDIR}"
+fi
+OTAESGCMSRCDIR="${OTAESGCMDIR}/content/OTAESGCM"
+if [ -d ${OTAESGCMSRCDIR} ]; then
+    echo "Lib source dir ${OTAESGCMSRCDIR} is present and will be used."
+    INCLUDES="${INCLUDES} -I${OTAESGCMSRCDIR} -I${OTAESGCMSRCDIR}/utility"
+    PROJSRCS="${PROJSRCS} `find ${OTAESGCMSRCDIR} -name '*.cpp' -type f -print`"
+    EXTRACPPFLAGS="-DEXT_AVAILABLE_ARDUINO_LIB_OTAESGCM"
+else
+    echo "*** WARNING: no crypto tests in absence of OTAESCGM ***"
+fi
+
 rm -f ${EXENAME}
-if g++ -o ${EXENAME} -std=c++0x -O0 -Wall -Werror ${INCLUDES} ${GINCLUDES} ${PROJSRCS} ${TESTSRCS} ${GLIBDIRS} ${GLIBS} ${OTHERLIBS} ; then
+if g++ -o ${EXENAME} -std=c++0x -O0 -Wall -Werror ${EXTRACPPFLAGS} ${INCLUDES} ${GINCLUDES} ${PROJSRCS} ${TESTSRCS} ${GLIBDIRS} ${GLIBS} ${OTHERLIBS} ; then
     echo Compiled.
 else
     echo Failed to compile.
