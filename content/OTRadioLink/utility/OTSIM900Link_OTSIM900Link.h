@@ -43,7 +43,7 @@
 
 // If DEFINED: Prints debug information to serial.
 //             !!! WARNING! THIS WILL CAUSE BLOCKING OF OVER 300 MS!!!
-#undef OTSIM900LINK_DEBUG
+#define OTSIM900LINK_DEBUG
 
 // OTSIM900Link macros for printing debug information to serial.
 #ifndef OTSIM900LINK_DEBUG
@@ -560,7 +560,7 @@ typedef const char *AT_t;
                 retriesRemaining -= 1;
                 retryTimer = getCurrentSeconds();
                 OTSIM900LINK_DEBUG_SERIAL_PRINT_FLASHSTRING("--LOCKED! ")
-                OTSIM900LINK_DEBUG_SERIAL_PRINT(retryCounter)
+//                OTSIM900LINK_DEBUG_SERIAL_PRINT(retryCounter)
                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING(" tries left.")
             }
 
