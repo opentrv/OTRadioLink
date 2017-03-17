@@ -599,7 +599,7 @@ TEST(OTSIM900Link,basicsDeadCard)
     // Try to hang just by calling poll() repeatedly.
     for(int i = 0; i < 100; ++i) {
     	SIM900Emu::vt.incrementVTOneCycle();
-    	fprintf(stderr, "SecondsVT: %u\n", SIM900Emu::vt.getSeconds());
+//    	fprintf(stderr, "SecondsVT: %u\n", SIM900Emu::vt.getSeconds());
     	l0.poll();
     }
     EXPECT_GE(OTSIM900Link::START_UP, l0._getState()) << "should keep trying to start with GET_STATE, RETRY_GET_STATE";
