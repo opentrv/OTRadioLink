@@ -580,9 +580,11 @@ typedef const char *AT_t;
                 memset(data, 0, length);
                 // Loop through filling array until full or ser.read() returns -1 (time out).
                 while ((dp-data) < length) {
-                    const char c = char(ser.read());
-                    if (c == -1) break;
-                    else *dp++ = c;
+                    const int ic = ser.read();
+                    if (ic == -1) {
+                        return(uint8_t(data-dp));  // Return length of array.
+                    }
+                    *dp++ = char(ic);
                 }
                 // Should not block forever as read should timeout and return -1.
                 while (-1 != ser.read()) {}
