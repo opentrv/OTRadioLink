@@ -43,7 +43,7 @@
 
 // If DEFINED: Prints debug information to serial.
 //             !!! WARNING! THIS WILL CAUSE BLOCKING OF OVER 300 MS!!!
-#define OTSIM900LINK_DEBUG
+#undef OTSIM900LINK_DEBUG
 
 // OTSIM900Link macros for printing debug information to serial.
 #ifndef OTSIM900LINK_DEBUG
@@ -588,11 +588,7 @@ typedef const char *AT_t;
                 }
                 // Should not block forever as read should timeout and return -1.
                 while (-1 != ser.read()) {}
-#if 0
-                OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("\n--Buffer Length: ")
-                OTSIM900LINK_DEBUG_SERIAL_PRINTLN(data-dp)
-#endif
-                return(uint8_t(data-dp));  // Return length of array.
+                return(length);  // Return length of array.
                 }
             /**
              * @brief   Utility function for printing from config structure.
