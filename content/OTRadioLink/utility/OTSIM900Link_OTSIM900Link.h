@@ -13,7 +13,7 @@
  specific language governing permissions and limitations
  under the Licence.
 
- Author(s) / Copyright (s): Deniz Erbilgin 2015--2016
+ Author(s) / Copyright (s): Deniz Erbilgin 2015--2017
                             Damon Hart-Davis 2015--2016
  */
 
@@ -567,6 +567,7 @@ typedef const char *AT_t;
             // Serial functions
             /**
              * @brief   Fills a buffer with characters from ser.read(). Exits when array filled, or if ser.read() times out.
+             * @note    Safe for buffer passed in to be no greater than length.
              * @param   data:   Data buffer to write to.
              * @param   length: Length of data buffer.
              * @retval  Number of characters received before time out.
@@ -583,10 +584,8 @@ typedef const char *AT_t;
                     if (c == -1) break;
                     else *dp++ = c;
                 }
-
-#ifndef ARDUINO_ARCH_AVR
-                while (-1 != char(ser.read())) {};
-#endif // ARDUINO_ARCH_AVR
+                // Should not block forever as read should timeout and return -1.
+                while (-1 != ser.read()) {}
 #if 0
                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("\n--Buffer Length: ")
                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN(data-dp)
