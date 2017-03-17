@@ -567,28 +567,29 @@ typedef const char *AT_t;
             // Serial functions
             /**
              * @brief   Fills a buffer with characters from ser.read(). Exits when array filled, or if ser.read() times out.
-             * @note    Safe for buffer passed in to be no greater than length.
+             * @note    Safe for buffer passed in to be no larger than length.
              * @param   data:   Data buffer to write to.
              * @param   length: Length of data buffer.
              * @retval  Number of characters received before time out.
              */
             uint8_t readMany(char * const data, const uint8_t length)
                 {
-                // pointer to write data too.
+                // Pointer to write data to.
                 char *dp = data;
-                // Init array to 0.
+                // Init array to all zeros.
                 memset(data, 0, length);
-                // Loop through filling array until full or ser.read() returns -1 (time out).
+                // Loop through filling array until full,
+                // or until ser.read() returns -1 on timeout.
                 while ((dp-data) < length) {
                     const int ic = ser.read();
                     if (ic == -1) {
-                        return(uint8_t(data-dp));  // Return length of array.
+                        return(uint8_t(data-dp)); // Return length of data.
                     }
                     *dp++ = char(ic);
                 }
-                // Should not block forever as read should timeout and return -1.
+                // Should not block forever: read should timeout and return -1.
                 while (-1 != ser.read()) {}
-                return(length);  // Return length of array.
+                return(length); // Data is maximum length.
                 }
             /**
              * @brief   Utility function for printing from config structure.
