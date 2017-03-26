@@ -426,7 +426,8 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
 // Alias for convenience.
 typedef CurrentSenseValveMotorDirectBinaryOnly CurrentSenseValveMotorDirectBase;
 
-// Generic (unit-testable) motor driver using end-stop detection and simple shaft-encoder.
+// Generic motor driver using end-stop detection and simple shaft-encoder.
+// Unit-testable.
 // Designed to be embedded in a motor controller instance.
 // This uses the sub-cycle clock for timing.
 // This is sensitive to sub-cycle position,
