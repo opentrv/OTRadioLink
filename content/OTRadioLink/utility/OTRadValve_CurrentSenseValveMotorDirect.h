@@ -47,7 +47,8 @@ namespace OTRadValve
 // Note that when the battery is low attempts to close the valve may be ignored,
 // as this attempts to fail safe with the valve open (eg to prevent frost).
 
-// Generic (unit-testable) motor driver using end-stop detection only, and aims only for fully open or closed.
+// Generic motor driver with end-stop detection only, aims only for full/closed.
+// Unit testable.
 // Designed to be embedded in a motor controller instance.
 // This uses the sub-cycle clock for timing.
 // This is sensitive to sub-cycle position,
