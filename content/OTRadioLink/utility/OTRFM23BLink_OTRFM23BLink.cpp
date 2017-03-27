@@ -591,7 +591,7 @@ const uint8_t StandardRegSettingsOOK5000[][2] PROGMEM =
    { 0x07,    1 }, //  0x01   R/W - Operating &Function Control 1:       XTON
    { 0x08,    0 }, //  0x00   R/W - Operating &Function Control 2:
    { 0x09, 0x7f }, //  0x7F   R/W - Crystal Oscillator Load Capacitance:
-   { 0x0a,    6 }, //  0x06   R/W - Microcontr Output Clock:             4MHz on DIO2
+   { 0x0a,    6 }, //  0x06   R/W - Microcontroller Output Clock:        4MHz on DIO2
    { 0x0b, 0x15 }, //  0x00   R/W - GPIO0 Configuration:                 GPIO0=RX State
    { 0x0c, 0x12 }, //  0x00   R/W - GPIO1 Configuration:                 GPIO1=TX State
    { 0x0d,    0 }, //  0x00   R/W - GPIO2 Configuration:
@@ -634,7 +634,7 @@ const uint8_t StandardRegSettingsOOK5000[][2] PROGMEM =
    { 0x32, 0x0c }, //  0x0c   R/W - Header Control 1:
    { 0x33,    6 }, //  0x22   R/W - Header Control 2:                    4 bytes syn, no header
    { 0x34, 0x08 }, //  0x08   R/W - Preamble Length:                    32 bit preamble preamble
-   { 0x35, 0x10 }, //  0x2a   R/W - Preamble Detection Control:          8 bit preabmle detection
+   { 0x35, 0x10 }, //  0x2a   R/W - Preamble Detection Control:          8 bit preamble detection
    { 0x36, 0xaa }, //  0x2d   R/W - Sync Word 3:
    { 0x37, 0xcc }, //  0xd4   R/W - Sync Word 2:
    { 0x38, 0xcc }, //  0x00   R/W - Sync Word 1:
@@ -704,7 +704,7 @@ const uint8_t StandardRegSettingsGFSK57600[][2] PROGMEM =
    { 0x07,    1 }, //  0x01   R/W - Operating &Function Control 1:       XTON
    { 0x08,    0 }, //  0x00   R/W - Operating &Function Control 2:
    { 0x09, 0x7f }, //  0x7F   R/W - Crystal Oscillator Load Capacitance:
-   { 0x0a,    6 }, //  0x06   R/W - Microcontr Output Clock:             4MHz on DIO2
+   { 0x0a,    6 }, //  0x06   R/W - Microcontroller Output Clock:        4MHz on DIO2
    { 0x0b, 0x15 }, //  0x00   R/W - GPIO0 Configuration:                 GPIO0=RX State
    { 0x0c, 0x12 }, //  0x00   R/W - GPIO1 Configuration:                 GPIO1=TX State
    { 0x0d,    0 }, //  0x00   R/W - GPIO2 Configuration:
@@ -747,7 +747,7 @@ const uint8_t StandardRegSettingsGFSK57600[][2] PROGMEM =
    { 0x32, 0x00 }, //  0x0c   R/W - Header Control 1:                    No header = 0x00
    { 0x33,    2 }, //  0x22   R/W - Header Control 2:                    2 bytes syn, no header
    { 0x34, 0x0a }, //  0x08   R/W - Preamble Length:                    40 bit preamble preamble
-   { 0x35, 0x2a }, //  0x2a   R/W - Preamble Detection Control:         20 bit preabmle detection
+   { 0x35, 0x2a }, //  0x2a   R/W - Preamble Detection Control:         20 bit preamble detection
    { 0x36, 0x2d }, //  0x2d   R/W - Sync Word 3:
    { 0x37, 0xd4 }, //  0xd4   R/W - Sync Word 2:
    { 0x38,    0 }, //  0x00   R/W - Sync Word 1:
@@ -819,7 +819,7 @@ const uint8_t StandardRegSettingsJeeLabs[][2] PROGMEM =
    { 0x07,    1 }, //  0x01   R/W - Operating &Function Control 1:       XTON
    { 0x08,    0 }, //  0x00   R/W - Operating &Function Control 2:
    { 0x09, 0x7f }, //  0x7F   R/W - Crystal Oscillator Load Capacitance:
-   { 0x0a,    6 }, //  0x06   R/W - Microcontr Output Clock:             4MHz on DIO2
+   { 0x0a,    6 }, //  0x06   R/W - Microcontroller Output Clock:        4MHz on DIO2
    { 0x0b, 0x15 }, //  0x00   R/W - GPIO0 Configuration:                 GPIO0=RX State
    { 0x0c, 0x12 }, //  0x00   R/W - GPIO1 Configuration:                 GPIO1=TX State
    { 0x0d,    0 }, //  0x00   R/W - GPIO2 Configuration:
@@ -862,7 +862,7 @@ const uint8_t StandardRegSettingsJeeLabs[][2] PROGMEM =
    { 0x32, 0x00 }, //  0x0c   R/W - Header Control 1:                    No header = 0x00
    { 0x33, 8    }, //  0x22   R/W - Header Control 2:                   fix packet length, 1 byte syn, no header
    { 0x34, 0x06 }, //  0x08   R/W - Preamble Length:                    24 bit preamble preamble
-   { 0x35, 0x22 }, //  0x2a   R/W - Preamble Detection Control:         16 bit preabmle detection
+   { 0x35, 0x22 }, //  0x2a   R/W - Preamble Detection Control:         16 bit preamble detection
    { 0x36, 0x2d }, //  0x2d   R/W - Sync Word 3:
    { 0x37, 0xd4 }, //  0xd4   R/W - Sync Word 2:
    { 0x38,    0 }, //  0x00   R/W - Sync Word 1:
