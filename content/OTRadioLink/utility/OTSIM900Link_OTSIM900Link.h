@@ -199,9 +199,9 @@ typedef const char *AT_t;
             static AT_t AT_VERBOSE_ERRORS;
 
             // Single characters.
-            const char ATc_GET_MODULE = 'I';
-            const char ATc_SET = '=';
-            const char ATc_QUERY = '?';
+            static constexpr char ATc_GET_MODULE = 'I';
+            static constexpr char ATc_SET = '=';
+            static constexpr char ATc_QUERY = '?';
 
         public:
             // Max reliable baud to talk to SIM900 over OTSoftSerial2.
@@ -264,7 +264,7 @@ typedef const char *AT_t;
              * Cannot do anything with side-effects,
              * as may be called before run-time is fully initialised.
              */
-            constexpr OTSIM900Link() { /* memset(txQueue, 0, sizeof(txQueue)); */ }
+            constexpr OTSIM900Link() : oldState(INIT) { /* memset(txQueue, 0, sizeof(txQueue)); */ }
 
             /************************* Public Methods *****************************/
             /**
@@ -347,7 +347,7 @@ typedef const char *AT_t;
                 if (-1 != retryTimer) {  // not locked out when retryTimer is -1.
                     retryLockOut();
                     return;
-                } else if (messageCounter == 255) { // Force a hard restart every 255 messages.
+                } else if (255 == messageCounter) { // Force a hard restart every 255 messages.
                     messageCounter = 0;  // reset counter.
                     state = RESET;
                     return;
@@ -515,7 +515,6 @@ typedef const char *AT_t;
             bool bAvailable = false;
             int8_t powerTimer = 0;
             uint8_t messageCounter = 0; // Number of frames sent. Used to schedule a reset.
-//            uint8_t retryCounter = 0;   // Count the number of retries attempted
             uint8_t retriesRemaining = 0;   // Count the number of retries attempted
             int8_t retryTimer = -1;     // Store the retry lockout time. This takes a value in range [0,60] and is set to (-1) when no lockout is desired.
             static constexpr uint8_t maxRetriesDefault = 10;  // Default number of retries.
@@ -560,7 +559,6 @@ typedef const char *AT_t;
                 retriesRemaining -= 1;
                 retryTimer = getCurrentSeconds();
                 OTSIM900LINK_DEBUG_SERIAL_PRINT_FLASHSTRING("--LOCKED! ")
-//                OTSIM900LINK_DEBUG_SERIAL_PRINT(retryCounter)
                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING(" tries left.")
             }
 
@@ -623,7 +621,6 @@ typedef const char *AT_t;
                 char data[OTV0P2BASE::fnmin(32, MAX_SIM900_RESPONSE_CHARS)];
                 ser.print(AT_START);
                 ser.println(ATc_GET_MODULE);
-                //    ser.print(AT_END);
                 readMany(data, sizeof(data));
                 OTSIM900LINK_DEBUG_SERIAL_PRINT(data)
                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN()
@@ -643,7 +640,6 @@ typedef const char *AT_t;
                 ser.print(AT_START);
                 ser.print(AT_NETWORK);
                 ser.println(ATc_QUERY);
-                //    ser.print(AT_END);
                 readMany(data, sizeof(data));
                 return true;
                 }
@@ -660,7 +656,6 @@ typedef const char *AT_t;
                 ser.print(AT_START);
                 ser.print(AT_REGISTRATION);
                 ser.println(ATc_QUERY);
-                //    ser.print(AT_END);
                 readMany(data, sizeof(data));
                 // response stuff
                 const char *dataCut = getResponse(data, sizeof(data), ' '); // first ' ' appears right before useful part of message
@@ -699,7 +694,6 @@ typedef const char *AT_t;
                 char data[OTV0P2BASE::fnmin(16, MAX_SIM900_RESPONSE_CHARS)];
                 ser.print(AT_START);
                 ser.println(AT_START_GPRS);
-                //    ser.print(AT_END);
                 readMany(data, sizeof(data));
 
                 // response stuff
@@ -716,7 +710,6 @@ typedef const char *AT_t;
                 char data[MAX_SIM900_RESPONSE_CHARS]; // Was 96: that's a LOT of stack!
                 ser.print(AT_START);
                 ser.println(AT_SHUT_GPRS);
-                //    ser.print(AT_END);
                 readMany(data, sizeof(data));
 
                 // response stuff
@@ -736,7 +729,6 @@ typedef const char *AT_t;
                 char data[MAX_SIM900_RESPONSE_CHARS];
                 ser.print(AT_START);
                 ser.println(AT_GET_IP);
-                //  ser.print(AT_END);
                 readMany(data, sizeof(data));
                 // response stuff
                 const char *dataCut = getResponse(data, sizeof(data), 0x0A);
@@ -762,7 +754,6 @@ typedef const char *AT_t;
                 char data[MAX_SIM900_RESPONSE_CHARS];
                 ser.print(AT_START);
                 ser.println(AT_STATUS);
-                //    ser.print(AT_END);
                 readMany(data, sizeof(data));
 
                 // First ' ' appears right before useful part of message.
@@ -786,7 +777,6 @@ typedef const char *AT_t;
                 char data[OTV0P2BASE::fnmin(32, MAX_SIM900_RESPONSE_CHARS)];
                 ser.print(AT_START);
                 ser.println(AT_SIGNAL);
-                //    ser.print(AT_END);
                 readMany(data, sizeof(data));
                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN(data)
                 // response stuff
@@ -805,7 +795,6 @@ typedef const char *AT_t;
                 ser.print(AT_VERBOSE_ERRORS);
                 ser.print(ATc_SET);
                 ser.println((char) (level + '0'));
-                //    ser.print(AT_END);
                 readMany(data, sizeof(data));
             OTSIM900LINK_DEBUG_SERIAL_PRINTLN(data)
             }
@@ -841,7 +830,6 @@ typedef const char *AT_t;
             ser.print(AT_START);
             ser.print(AT_PIN);
             ser.println(ATc_QUERY);
-            //    ser.print(AT_END);
             readMany(data, sizeof(data));
 
             // response stuff
