@@ -29,17 +29,15 @@ Example function that reads multiple characters into an array (this example is a
 uint8_t readLotsOfChars(char *data, uint8_t length)
 {
     // clear buffer, get time and init i to 0
-    uint8_t counter = 0;
-    uint8_t len = length;
+    uint8_t counter = length;
     char *pdata = data;
     
     // Loop while reading characters.
-    while(len--) {
+    while(counter--) {
         char c = softSerial2.read();
-        if(c == -1) break;  // softSerial2 return -1 on timeout, so we break out of the loop.
+        if(c == -1) break;  // softSerial2 returns -1 on timeout, so we break out of the loop.
         *pdata++ = c;  // only want to write to the array or increment the counter if not timed out.
-        counter++;
     }
-  return counter;
+  return (length - counter);
 }
 ```
