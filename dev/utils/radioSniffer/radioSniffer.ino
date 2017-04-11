@@ -16,12 +16,7 @@ under the Licence.
 Author(s) / Copyright (s): Deniz Erbilgin 2017
 */
 /**
- * Minimal REV10 config for testing power consumption.
- * Aim is to:
- *     - init GPIO pins to safe mode.
- *     - init peripherals to safe low power mode.
- *     - toggle LED
- *     - loop endlessly, toggling LED, reading sensors and listening on radio.
+ * Minimal REV10 config for printing all received RFM23B packets to serial.
  */
 
 // INCLUDES & DEFINES
