@@ -58,11 +58,11 @@ class OTSoftSerial2 final : public Stream
 {
 protected:
     // All these are compile time calculations and are automatically substituted as part of program code.
-    static const constexpr uint16_t timeOut = 60000; // fed into loop...
-    static const constexpr uint8_t bitCycles = (F_CPU/4) / baud;  // Number of times _delay_x4cycles needs to loop for 1 bit.
-    static const constexpr uint8_t writeDelay = bitCycles - 3;  // Delay needed to write 1 bit.
-    static const constexpr uint8_t readDelay = bitCycles - 8;  // Delay needed to read 1 bit.
-    static const constexpr uint8_t halfDelay = bitCycles/2;  // todo
+    static constexpr uint16_t timeOut = 60000; // fed into loop...
+    static constexpr uint8_t bitCycles = (F_CPU/4) / baud;  // Number of times _delay_x4cycles needs to loop for 1 bit.
+    static constexpr uint8_t writeDelay = bitCycles - 3;  // Delay needed to write 1 bit.
+    static constexpr uint8_t readDelay = bitCycles - 8;  // Delay needed to read 1 bit.
+    static constexpr uint8_t halfDelay = bitCycles/2;  // todo
 //    static const constexpr uint8_t startDelay = bitCycles + halfDelay;
 
 public:
@@ -98,7 +98,7 @@ public:
 
             // Send start bit
             fastDigitalWrite(txPin, LOW);
-            _delay_x4cycles(writeDelay); // FIXME delete -5s
+            _delay_x4cycles(writeDelay);
 
             // send byte. Loops until mask overflows back to 0
             while(mask != 0) {
@@ -126,7 +126,7 @@ public:
         uint8_t val = 0;
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
         {
-            volatile uint16_t timer = timeOut;  // TODO find out if using an attribute will be useful.
+            volatile uint16_t timer = timeOut;
 
             // Wait for start bit, ie wait for RX to go low.
             while (fastDigitalRead(rxPin)) {
@@ -137,8 +137,9 @@ public:
             // to centre the following reads in bit times.
             _delay_x4cycles(halfDelay);
 
-            // Step through bits and assemble bits into byte.    // FIXME better way of doing this?
-            for(uint8_t i = 0; i < 8; i++) {
+            // Step through bits and assemble bits into byte.
+            // TODO change to write val then lshift?
+            for(uint8_t i = 0; i < 8; ++i) {
                 _delay_x4cycles(readDelay);
                 val |= fastDigitalRead(rxPin) << i;
             }
