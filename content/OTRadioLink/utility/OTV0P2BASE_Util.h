@@ -152,8 +152,6 @@ class MemoryChecks
     // Stores which call to recordIfMinSP minsp was recorded at.
     // Defaults to 0
     static volatile uint8_t checkLocation;
-    // Flags for checking which routines are on the stack at the particular time.
-    static volatile uint8_t highrisk[8];
 
   public:
     // Compute stack space in use on ARDUINO/AVR; non-negative.
