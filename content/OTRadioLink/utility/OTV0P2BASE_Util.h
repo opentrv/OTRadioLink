@@ -180,7 +180,7 @@ class MemoryChecks
 class MemoryChecks
   {
   public:
-    static void recordIfMinSP(uint8_t) { }
+    static void recordIfMinSP(uint8_t = 0) { }
     static void forceResetIfStackOverflow() { }
   };
 #endif // ARDUINIO_ARCH_AVR
