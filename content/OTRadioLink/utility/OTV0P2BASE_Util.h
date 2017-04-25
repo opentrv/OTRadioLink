@@ -217,6 +217,7 @@ class MemoryChecks
 
     static void recordIfMinSP(uint8_t = 0) {
         // Get the address of the frame pointer for the current function
+        // see https://gcc.gnu.org/onlinedocs/gcc/Return-Address.html
         // This is an approximation of the current stack.
         // - the x86_64 redzone should not be a problem as calling this function should kill it.
         // - Assuming this function is created directly after the caller, it will (should...might?) return the current stack pointer..
