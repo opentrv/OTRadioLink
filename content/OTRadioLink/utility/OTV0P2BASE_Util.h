@@ -179,7 +179,7 @@ class MemoryChecks
     static void forceResetIfStackOverflow() { if(getMinSPSpaceBelowStackToEnd() <= 0) { forceReset(); } }
     // Get the identifier for location of stack check with highest stack usage,
     static uint8_t getLocation() { return check_location; }
-//    static inline void setHighRisk(uint8_t func) { highrisk[func] = 1; }
+    static inline void setHighRisk(uint8_t func) { highrisk[func] = 1; }
 //    static inline void clearHighRisk(uint8_t func) { highrisk[func] = 0; }
     // Get states of high risk functions at high stack usage.
 //    static void getHighRisk(uint8_t &buf) { memcpy(buf, highrisk, sizeof(highrisk)); }
