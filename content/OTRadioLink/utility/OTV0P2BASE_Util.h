@@ -149,6 +149,10 @@ class MemoryChecks
     // Marked volatile for safe access from ISRs.
     // Initialised to be RAMEND.
     static volatile SP_type minSP;
+    // Stores which call to recordIfMinSP minsp was recorded at.
+    static volatile uint8_t check_location;
+    // Flags for checking which routines are on the stack at the particular time.
+    static volatile uint8_t highrisk[8];
 
   public:
     // Compute stack space in use on ARDUINO/AVR; non-negative.
@@ -162,12 +166,24 @@ class MemoryChecks
     // Record current SP if minimum: ISR-safe.
     // Can be buried in parts of code prone to deep recursion.
     static void recordIfMinSP() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { if(SP < minSP) { minSP = SP; } } }
+    // Record location of stack check to aid debug.
+    // Locations:
+    // 1,2,3: OTRadioLink_SecureableFrameType.cpp
+    // 4    : OTRFM23BLink_OTRFM23BLink.cpp
+    // 5    : Control.cpp
+    static void recordIfMinSP(uint8_t location) { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { if(SP < minSP) { minSP = SP; check_location = location; } } }
     // Get SP minimum: ISR-safe.
     static SP_type getMinSP() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { return(minSP); } }
     // Get minimum space below SP above _end: ISR-safe.
     static int16_t getMinSPSpaceBelowStackToEnd() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { return(minSP - (intptr_t)&_end); } }
     // Force restart if minimum space below SP has not remained strictly positive.
     static void forceResetIfStackOverflow() { if(getMinSPSpaceBelowStackToEnd() <= 0) { forceReset(); } }
+    // Get the identifier for location of stack check with highest stack usage,
+    static uint8_t getLocation() { return check_location; }
+    static inline void setHighRisk(uint8_t func) { highrisk[func] = 1; }
+    static inline void clearHighRisk(uint8_t func) { highrisk[func] = 0; }
+    // Get states of high risk functions at high stack usage.
+    static void getHighRisk(uint8_t &buf) { memcpy(buf, highrisk, sizeof(highrisk)) }
 };
 #else
 // Dummy do-nothing version to allow test bugs to be harmlessly dropped into portable code.

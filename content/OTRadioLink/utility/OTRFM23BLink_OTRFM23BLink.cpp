@@ -256,7 +256,7 @@ void OTRFM23BLinkBase::_dolisten()
     _modeStandbyAndClearState_();
 
     // Capture possible (near) peak of stack usage, eg when called from ISR,
-    OTV0P2BASE::MemoryChecks::recordIfMinSP();
+    OTV0P2BASE::MemoryChecks::recordIfMinSP(4);
 
     // Nothing further to do if RX not allowed.
     if(!allowRXOps) { return; }
