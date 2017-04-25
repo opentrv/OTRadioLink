@@ -165,13 +165,12 @@ class MemoryChecks
     static void resetMinSP() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { minSP = RAMEND; } }
     // Record current SP if minimum: ISR-safe.
     // Can be buried in parts of code prone to deep recursion.
-    static void recordIfMinSP() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { if(SP < minSP) { minSP = SP; } } }
-    // Record location of stack check to aid debug.
+    // Can record location of stack check to aid debug.
     // Locations:
     // 1,2,3: OTRadioLink_SecureableFrameType.cpp
     // 4    : OTRFM23BLink_OTRFM23BLink.cpp
     // 5    : Control.cpp
-    static void recordIfMinSP(uint8_t location) { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { if(SP < minSP) { minSP = SP; check_location = location; } } }
+    static void recordIfMinSP(uint8_t location = 0) { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { if(SP < minSP) { minSP = SP; check_location = location; } } }
     // Get SP minimum: ISR-safe.
     static SP_type getMinSP() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { return(minSP); } }
     // Get minimum space below SP above _end: ISR-safe.
@@ -190,7 +189,7 @@ class MemoryChecks
 class MemoryChecks
   {
   public:
-    static void recordIfMinSP() { }
+    static void recordIfMinSP(uint8_t) { }
     static void forceResetIfStackOverflow() { }
   };
 #endif // ARDUINIO_ARCH_AVR

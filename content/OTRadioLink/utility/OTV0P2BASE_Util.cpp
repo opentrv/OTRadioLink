@@ -49,7 +49,7 @@ int parseHexByte(const char *const s)
 
 #ifdef MemoryChecks_DEFINED
 volatile MemoryChecks::SP_type MemoryChecks::minSP = RAMEND;
-volatile uint8_t MemoryChecks::check_location = 0xff;
+volatile uint8_t MemoryChecks::check_location = 0x0;
 #endif
 
 
