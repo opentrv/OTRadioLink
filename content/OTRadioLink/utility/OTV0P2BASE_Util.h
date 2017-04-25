@@ -149,6 +149,11 @@ class MemoryChecks
     // Marked volatile for safe access from ISRs.
     // Initialised to be RAMEND.
     static volatile SP_type minSP;
+    // Stores which call to recordIfMinSP minsp was recorded at.
+    // Defaults to 0
+    static volatile uint8_t checkLocation;
+    // Flags for checking which routines are on the stack at the particular time.
+    static volatile uint8_t highrisk[8];
 
   public:
     // Compute stack space in use on ARDUINO/AVR; non-negative.
@@ -161,20 +166,23 @@ class MemoryChecks
     static void resetMinSP() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { minSP = RAMEND; } }
     // Record current SP if minimum: ISR-safe.
     // Can be buried in parts of code prone to deep recursion.
-    static void recordIfMinSP() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { if(SP < minSP) { minSP = SP; } } }
+    // Location defaults to 0 but can be assigned a value for the particular stack check to aid debug.
+    static void recordIfMinSP(uint8_t location = 0) { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { if(SP < minSP) { minSP = SP; check_location = location; } } }
     // Get SP minimum: ISR-safe.
     static SP_type getMinSP() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { return(minSP); } }
     // Get minimum space below SP above _end: ISR-safe.
     static int16_t getMinSPSpaceBelowStackToEnd() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { return(minSP - (intptr_t)&_end); } }
     // Force restart if minimum space below SP has not remained strictly positive.
     static void forceResetIfStackOverflow() { if(getMinSPSpaceBelowStackToEnd() <= 0) { forceReset(); } }
+    // Get the identifier for location of stack check with highest stack usage,
+    static uint8_t getLocation() { return check_location; }
 };
 #else
 // Dummy do-nothing version to allow test bugs to be harmlessly dropped into portable code.
 class MemoryChecks
   {
   public:
-    static void recordIfMinSP() { }
+    static void recordIfMinSP(uint8_t) { }
     static void forceResetIfStackOverflow() { }
   };
 #endif // ARDUINIO_ARCH_AVR
