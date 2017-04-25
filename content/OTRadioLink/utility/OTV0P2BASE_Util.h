@@ -180,16 +180,16 @@ class MemoryChecks
     // Get the identifier for location of stack check with highest stack usage,
     static uint8_t getLocation() { return check_location; }
     static inline void setHighRisk(uint8_t func) { highrisk[func] = 1; }
-//    static inline void clearHighRisk(uint8_t func) { highrisk[func] = 0; }
+    static inline void clearHighRisk(uint8_t func) { highrisk[func] = 0; }
     // Get states of high risk functions at high stack usage.
-//    static void getHighRisk(uint8_t &buf) { memcpy(buf, highrisk, sizeof(highrisk)); }
+    static void getHighRisk(uint8_t *buf) { memcpy(buf, highrisk, sizeof(highrisk)); }
 };
 #else
 // Dummy do-nothing version to allow test bugs to be harmlessly dropped into portable code.
 class MemoryChecks
   {
   public:
-    static void recordIfMinSP(uint8_t) { }
+    static void recordIfMinSP(uint8_t = 0) { }
     static void forceResetIfStackOverflow() { }
   };
 #endif // ARDUINIO_ARCH_AVR
