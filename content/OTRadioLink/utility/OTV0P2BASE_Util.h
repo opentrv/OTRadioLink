@@ -142,7 +142,7 @@ class ScratchSpace final
 class MemoryChecks
   {
   public:
-     typedef uint16_t SP_type;
+     typedef size_t SP_type;
 
   private:
     // Minimum value recorded for SP.
@@ -152,11 +152,13 @@ class MemoryChecks
     // Stores which call to recordIfMinSP minsp was recorded at.
     static volatile uint8_t check_location;
     // Flags for checking which routines are on the stack at the particular time.
-    static volatile uint8_t highrisk[8];
+    static constexpr uint8_t highRiskSize = 5;
+    static volatile uint8_t highRisk[highRiskSize];
+    static uint8_t highRiskRecord[highRiskSize];
 
   public:
     // Compute stack space in use on ARDUINO/AVR; non-negative.
-    static uint16_t stackSpaceInUse() { return((uint16_t)(RAMEND - SP)); }
+    static uint16_t stackSpaceInUse() { return((size_t)(RAMEND - SP)); }
     // Compute space after DATA and BSS (_end) and below STACK (ignoring HEAP) on ARDUINO/AVR; should be strictly +ve.
     // If this becomes non-positive then variables are likely being corrupted.
     static int16_t spaceBelowStackToEnd() { return((int16_t)(SP - (intptr_t)&_end)); }
@@ -170,7 +172,14 @@ class MemoryChecks
     // 1,2,3: OTRadioLink_SecureableFrameType.cpp
     // 4    : OTRFM23BLink_OTRFM23BLink.cpp
     // 5    : Control.cpp
-    static void recordIfMinSP(uint8_t location = 0) { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { if(SP < minSP) { minSP = SP; check_location = location; } } }
+    static void recordIfMinSP(uint8_t location = 0) {
+        ATOMIC_BLOCK (ATOMIC_RESTORESTATE) {
+            if(SP < minSP) {
+                minSP = SP; check_location = location;
+                memcpy(highRiskRecord, (const void *)highRisk, sizeof(highRisk));
+            }
+        }
+    }
     // Get SP minimum: ISR-safe.
     static SP_type getMinSP() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { return(minSP); } }
     // Get minimum space below SP above _end: ISR-safe.
@@ -179,10 +188,25 @@ class MemoryChecks
     static void forceResetIfStackOverflow() { if(getMinSPSpaceBelowStackToEnd() <= 0) { forceReset(); } }
     // Get the identifier for location of stack check with highest stack usage,
     static uint8_t getLocation() { return check_location; }
-    static inline void setHighRisk(uint8_t func) { highrisk[func] = 1; }
-    static inline void clearHighRisk(uint8_t func) { highrisk[func] = 0; }
+    // Toggle tracking high risk functions
+    // 0: RFM23BLink::handleInterruptSimple()
+    // 1: RFM23BLink::poll()
+    // 2: bareStatsTX()
+    // 3: decodeMessageRawRxed()
+    // 4: handleQueuedMessages()
+    // 5:
+    // 6:
+    // 7:
+    static inline void setHighRisk(uint8_t func) { ++highRisk[func]; }
+    static inline void clearHighRisk(uint8_t func) { --highRisk[func]; }
     // Get states of high risk functions at high stack usage.
-    static void getHighRisk(uint8_t *buf) { memcpy(buf, highrisk, sizeof(highrisk)); }
+    static void getHighRisk(uint8_t *buf) {
+        ATOMIC_BLOCK (ATOMIC_RESTORESTATE) {
+            memcpy(buf, (const void*)highRiskRecord, sizeof(highRiskRecord));
+            memset((void *)highRisk, 0, sizeof(highRisk));
+            memset((void *)highRiskRecord, 0, sizeof(highRiskRecord));
+        }
+    }
 };
 #else
 // Dummy do-nothing version to allow test bugs to be harmlessly dropped into portable code.

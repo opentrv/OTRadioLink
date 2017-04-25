@@ -719,7 +719,16 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // May also be used for output processing,
             // eg to run a transmit state machine.
             // May be called very frequently and should not take more than a few 100ms per call.
-            virtual void poll() override { if(!interruptLineIsEnabledAndInactive()) { ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { _poll(); } } }
+            virtual void poll() override
+            {
+                if(!interruptLineIsEnabledAndInactive()) {
+                    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+                        OTV0P2BASE::MemoryChecks::setHighRisk(1);
+                        _poll();
+                        OTV0P2BASE::MemoryChecks::clearHighRisk(1);
+                    }
+                }
+            }
 
             // Handle simple interrupt for this radio link.
             // Must be fast and ISR (Interrupt Service Routine) safe.
@@ -733,7 +742,9 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                 {
                 if(!allowRX) { return(false); }
                 if(interruptLineIsEnabledAndInactive()) { return(false); }
+                OTV0P2BASE::MemoryChecks::setHighRisk(0);
                 _poll();
+                OTV0P2BASE::MemoryChecks::clearHighRisk(0);
                 return(true);
                 }
 

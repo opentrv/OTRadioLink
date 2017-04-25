@@ -243,7 +243,6 @@ bool OTRFM23BLinkBase::sendRaw(const uint8_t *const buf, const uint8_t buflen, c
 
     // Revert to RX mode if listening, else go to standby to save energy.
     _dolisten();
-
     return(result);
     }
 
