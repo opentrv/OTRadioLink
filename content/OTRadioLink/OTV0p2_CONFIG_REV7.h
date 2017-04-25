@@ -214,6 +214,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2017
 #undef ENABLE_EXTENDED_CLI
 // IF DEFINED: enable a full OpenTRV UI with normal LEDs etc.
 #define ENABLE_FULL_OT_UI
+#define ENABLE_FREQUENT_STATS_TX
 #endif
 
 #ifdef CONFIG_REV7_AS_SENSOR // REV7 as JSON-only stats/sensor leaf.
