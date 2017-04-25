@@ -213,7 +213,17 @@ class MemoryChecks
 class MemoryChecks
   {
   public:
-    static void recordIfMinSP(uint8_t = 0) { }
+    static void* pointer;
+
+    static void recordIfMinSP(uint8_t = 0) {
+        // Get the address of the frame pointer for the current function
+        // This is an approximation of the current stack.
+        // - the x86_64 redzone should not be a problem as calling this function should kill it.
+        // - Assuming this function is created directly after the caller, it will (should...might?) return the current stack pointer..
+        // Apparently portable across GCC but buggy on Clang.
+        pointer = __builtin_frame_address(0);
+//        fprintf(stderr, "%p", __builtin_frame_address(0));
+    }
     static void forceResetIfStackOverflow() { }
   };
 #endif // ARDUINIO_ARCH_AVR
