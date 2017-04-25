@@ -156,10 +156,10 @@ class MemoryChecks
 
   public:
     // Compute stack space in use on ARDUINO/AVR; non-negative.
-    static uint16_t stackSpaceInUse() { return(RAMEND - SP); }
+    static uint16_t stackSpaceInUse() { return((uint16_t)(RAMEND - SP)); }
     // Compute space after DATA and BSS (_end) and below STACK (ignoring HEAP) on ARDUINO/AVR; should be strictly +ve.
     // If this becomes non-positive then variables are likely being corrupted.
-    static int16_t spaceBelowStackToEnd() { return(SP - (intptr_t)&_end); }
+    static int16_t spaceBelowStackToEnd() { return((int16_t)(SP - (intptr_t)&_end)); }
 
     // Reset SP minimum: ISR-safe.
     static void resetMinSP() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { minSP = RAMEND; } }
