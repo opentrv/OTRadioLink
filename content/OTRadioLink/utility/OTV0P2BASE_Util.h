@@ -141,14 +141,11 @@ class ScratchSpace final
 #define MemoryChecks_DEFINED
 class MemoryChecks
   {
-  public:
-     typedef size_t SP_type;
-
   private:
     // Minimum value recorded for SP.
     // Marked volatile for safe access from ISRs.
     // Initialised to be RAMEND.
-    static volatile SP_type minSP;
+    static volatile size_t minSP;
     // Stores which call to recordIfMinSP minsp was recorded at.
     static volatile uint8_t check_location;
     // Flags for checking which routines are on the stack at the particular time.
@@ -181,7 +178,7 @@ class MemoryChecks
         }
     }
     // Get SP minimum: ISR-safe.
-    static SP_type getMinSP() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { return(minSP); } }
+    static size_t getMinSP() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { return(minSP); } }
     // Get minimum space below SP above _end: ISR-safe.
     static int16_t getMinSPSpaceBelowStackToEnd() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { return(minSP - (intptr_t)&_end); } }
     // Force restart if minimum space below SP has not remained strictly positive.
