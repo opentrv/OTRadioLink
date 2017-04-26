@@ -140,18 +140,18 @@ class ScratchSpace final
 // Prefered AVR way reads stack pointer register
 static inline size_t getSP() { return ((size_t)SP); }
 #else
-#define ATOMIC_BLOCK(type)
-#define ATOMIC_RESTORESTATE
-static constexpr size_t RAMEND = 0; // XXX temp
-static const void* _end = nullptr;  // XXX temp
+//#define ATOMIC_BLOCK(type)
+//#define ATOMIC_RESTORESTATE
+//static constexpr size_t RAMEND = 0; // XXX temp
+//static const void* _end = nullptr;  // XXX temp
 // Get the stack pointer and return as a size_t.
 // If not on avr, create local variable and get address.
-static inline size_t getSP() { volatile void* temp; size_t position = (size_t)&temp; return (position); }
+//static inline size_t getSP() { volatile void* temp; size_t position = (size_t)&temp; return (position); }
 // Stubs
-inline void forceReset() {}
+//inline void forceReset() {}
 #endif  // ARDUINO_ARCH_AVR
 
-//#ifdef ARDUINO_ARCH_AVR
+#ifdef ARDUINO_ARCH_AVR
 // Diagnostic tools for memory problems.
 // Arduino AVR memory layout: DATA, BSS [_end, __bss_end], (HEAP,) [SP] STACK [RAMEND]
 // See: http://web-engineering.info/node/30
@@ -224,18 +224,18 @@ class MemoryChecks
         }
     }
 };
-//#else
-//// Dummy do-nothing version to allow test bugs to be harmlessly dropped into portable code.
-//class MemoryChecks
-//  {
-//  public:
-//    static void* pointer;
-//
-//    static void recordIfMinSP(uint8_t = 0) {
-//    }
-//    static void forceResetIfStackOverflow() { }
-//  };
-//#endif // ARDUINIO_ARCH_AVR
+#else
+// Dummy do-nothing version to allow test bugs to be harmlessly dropped into portable code.
+class MemoryChecks
+  {
+  public:
+    static void* pointer;
+
+    static void recordIfMinSP(uint8_t = 0) {
+    }
+    static void forceResetIfStackOverflow() { }
+  };
+#endif // ARDUINIO_ARCH_AVR
 
 
 }
