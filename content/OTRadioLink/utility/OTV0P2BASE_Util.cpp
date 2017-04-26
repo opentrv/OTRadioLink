@@ -53,8 +53,8 @@ volatile uint8_t MemoryChecks::check_location = 0x0;
 volatile uint8_t MemoryChecks::highRisk[highRiskSize] = {0, 0, 0, 0, 0,};
 uint8_t MemoryChecks::highRiskRecord[highRiskSize] = {0, 0, 0, 0, 0,};
 #endif
-#ifndef AVR_ARCH
-void* MemoryChecks::pointer = nullptr;
-#endif
+//#ifndef AVR_ARCH
+//void* MemoryChecks::pointer = nullptr;
+//#endif
 
 }
