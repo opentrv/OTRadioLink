@@ -146,11 +146,15 @@ class ScratchSpace final
 static inline size_t getSP() { return ((size_t)SP); }
 static constexpr size_t MemoryChecks_RAMEND = RAMEND;
 #else
-static const void* _end = nullptr;  // XXX temp
+static size_t MemoryChecks_RAMEND = 0; // XXX temp
+extern char _end;
 // Get the stack pointer and return as a size_t.
 // If not on avr, create local variable and get address.
-static inline size_t getSP() { volatile void* temp; size_t position = (size_t)&temp; return (position); }
-static size_t MemoryChecks_RAMEND = 0; // XXX temp
+static inline size_t getSP() {
+    volatile void* ptr;
+    size_t position = (size_t)&ptr;
+    return (position);
+}
 // Stub function for forceReset()
 inline void forceReset() {}
 #endif  // ARDUINO_ARCH_AVR
