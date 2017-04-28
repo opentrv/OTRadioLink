@@ -134,6 +134,23 @@ class ScratchSpace final
   };
 
 
+// Attempting to neuter atomic blocks when not on avr.
+#ifdef ARDUINO_ARCH_AVR
+// Get the stack pointer and return as a size_t.
+// Prefered AVR way reads stack pointer register
+static inline size_t getSP() { return ((size_t)SP); }
+#else
+//#define ATOMIC_BLOCK(type)
+//#define ATOMIC_RESTORESTATE
+//static constexpr size_t RAMEND = 0; // XXX temp
+//static const void* _end = nullptr;  // XXX temp
+// Get the stack pointer and return as a size_t.
+// If not on avr, create local variable and get address.
+//static inline size_t getSP() { volatile void* temp; size_t position = (size_t)&temp; return (position); }
+// Stubs
+//inline void forceReset() {}
+#endif  // ARDUINO_ARCH_AVR
+
 #ifdef ARDUINO_ARCH_AVR
 // Diagnostic tools for memory problems.
 // Arduino AVR memory layout: DATA, BSS [_end, __bss_end], (HEAP,) [SP] STACK [RAMEND]
@@ -141,14 +158,11 @@ class ScratchSpace final
 #define MemoryChecks_DEFINED
 class MemoryChecks
   {
-  public:
-     typedef size_t SP_type;
-
   private:
     // Minimum value recorded for SP.
     // Marked volatile for safe access from ISRs.
     // Initialised to be RAMEND.
-    static volatile SP_type minSP;
+    static volatile size_t minSP;
     // Stores which call to recordIfMinSP minsp was recorded at.
     static volatile uint8_t check_location;
     // Flags for checking which routines are on the stack at the particular time.
@@ -158,10 +172,10 @@ class MemoryChecks
 
   public:
     // Compute stack space in use on ARDUINO/AVR; non-negative.
-    static uint16_t stackSpaceInUse() { return((size_t)(RAMEND - SP)); }
+    static uint16_t stackSpaceInUse() { return((size_t)RAMEND - getSP()); }
     // Compute space after DATA and BSS (_end) and below STACK (ignoring HEAP) on ARDUINO/AVR; should be strictly +ve.
     // If this becomes non-positive then variables are likely being corrupted.
-    static int16_t spaceBelowStackToEnd() { return((int16_t)(SP - (intptr_t)&_end)); }
+    static int16_t spaceBelowStackToEnd() { return((int16_t)(getSP() - (intptr_t)&_end)); }
 
     // Reset SP minimum: ISR-safe.
     static void resetMinSP() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { minSP = RAMEND; } }
@@ -174,14 +188,16 @@ class MemoryChecks
     // 5    : Control.cpp
     static void recordIfMinSP(uint8_t location = 0) {
         ATOMIC_BLOCK (ATOMIC_RESTORESTATE) {
-            if(SP < minSP) {
-                minSP = SP; check_location = location;
+            const size_t position = getSP();
+            if(position < minSP) {
+                minSP = position;
+                check_location = location;
                 memcpy(highRiskRecord, (const void *)highRisk, sizeof(highRisk));
             }
         }
     }
     // Get SP minimum: ISR-safe.
-    static SP_type getMinSP() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { return(minSP); } }
+    static size_t getMinSP() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { return(minSP); } }
     // Get minimum space below SP above _end: ISR-safe.
     static int16_t getMinSPSpaceBelowStackToEnd() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { return(minSP - (intptr_t)&_end); } }
     // Force restart if minimum space below SP has not remained strictly positive.
