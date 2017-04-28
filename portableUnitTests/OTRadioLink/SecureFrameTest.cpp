@@ -1151,7 +1151,7 @@ TEST(OTAESGCMSecureFrame, OFrameEncoding)
 // Encode section of GCMVS1ViaFixed32BTextSize test, measuring stack usage.
 TEST(OTAESGCMSecureFrame, SecureFrameEncodeStackUsage) {
     // Set up stack usage checks
-    OTV0P2BASE::MemoryChecks_RAMEND = OTV0P2BASE::getSP();
+    OTV0P2BASE::RAMEND = OTV0P2BASE::getSP();
     OTV0P2BASE::MemoryChecks::resetMinSP();
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
     const size_t baseStack = OTV0P2BASE::MemoryChecks::getMinSP();
@@ -1196,14 +1196,14 @@ TEST(OTAESGCMSecureFrame, SecureFrameEncodeStackUsage) {
                                     OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS,
                                     NULL, zeroBlock);
 
-    EXPECT_GT(210, baseStack - OTV0P2BASE::MemoryChecks::getMinSP());
+    EXPECT_EQ(208, baseStack - OTV0P2BASE::MemoryChecks::getMinSP());
 }
 
 
 // Encode section of GCMVS1ViaFixed32BTextSize test, measuring stack usage.
 TEST(OTAESGCMSecureFrame, SecureFrameDecodeStackUsage) {
     // Set up stack usage checks
-    OTV0P2BASE::MemoryChecks_RAMEND = OTV0P2BASE::getSP();
+    OTV0P2BASE::RAMEND = OTV0P2BASE::getSP();
 
     uint8_t buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize];
     //Example 3: secure, no valve, representative minimum stats {"b":1}).
@@ -1263,7 +1263,7 @@ TEST(OTAESGCMSecureFrame, SecureFrameDecodeStackUsage) {
                                         decryptedBodyOut, sizeof(decryptedBodyOut), decodedBodyOutSize));
     // Find max stack usage
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
-    EXPECT_GT(210, baseStack - OTV0P2BASE::MemoryChecks::getMinSP());
+    EXPECT_EQ(208, baseStack - OTV0P2BASE::MemoryChecks::getMinSP());
 }
 
 #endif // ARDUINO_LIB_OTAESGCM
