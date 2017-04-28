@@ -30,13 +30,13 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014--2016
 #ifdef ARDUINO
 #include <Arduino.h>
 #include <util/atomic.h>
-extern uint8_t _end;
 #include "OTV0P2BASE_Sleep.h"
 #else
 #include <string.h>
 #include "utility/OTV0P2BASE_ArduinoCompat.h"
 #endif
 
+extern uint8_t _end;
 
 namespace OTV0P2BASE
 {
@@ -143,19 +143,23 @@ class ScratchSpace final
 #ifdef ARDUINO_ARCH_AVR
 // Get the stack pointer and return as a size_t.
 // Prefered AVR way reads stack pointer register
+// This is a hack to hide differences between AVR-GCC and CI environments.
 static inline size_t getSP() { return ((size_t)SP); }
-static constexpr size_t MemoryChecks_RAMEND = RAMEND;
 #else
-static size_t MemoryChecks_RAMEND = 0; // XXX temp
-extern char _end;
+//  Dummy variable to hold stack pointer.
+// Required for recordIfMinSP to function properly.
+// Assuming stack grows downwards, MUST be set to a higher number than the highest possible address used by the program.
+// todo replace with constexpr containing the highest available RAM address.
+static size_t RAMEND = 0;
 // Get the stack pointer and return as a size_t.
-// If not on avr, create local variable and get address.
+// If not on avr, create new local variable and get its address.
 static inline size_t getSP() {
     volatile void* ptr;
     size_t position = (size_t)&ptr;
     return (position);
 }
 // Stub function for forceReset()
+// todo Is there a better place for this?
 inline void forceReset() {}
 #endif  // ARDUINO_ARCH_AVR
 
@@ -176,13 +180,13 @@ class MemoryChecks
 
   public:
     // Compute stack space in use on ARDUINO/AVR; non-negative.
-    static size_t stackSpaceInUse() { return((size_t)MemoryChecks_RAMEND - getSP()); }
+    static size_t stackSpaceInUse() { return((size_t)RAMEND - getSP()); }
     // Compute space after DATA and BSS (_end) and below STACK (ignoring HEAP) on ARDUINO/AVR; should be strictly +ve.
     // If this becomes non-positive then variables are likely being corrupted.
     static intptr_t spaceBelowStackToEnd() { return((getSP() - (intptr_t)&_end)); }
 
     // Reset SP minimum: ISR-safe.
-    static void resetMinSP() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { minSP = MemoryChecks_RAMEND; } }
+    static void resetMinSP() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { minSP = RAMEND; } }
     // Record current SP if minimum: ISR-safe.
     // Can be buried in parts of code prone to deep recursion.
     // Can record location of stack check to aid debug.
