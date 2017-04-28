@@ -684,7 +684,7 @@ TEST(OTAESGCMSecureFrame, SecureSmallFrameEncoding)
     //aa  ID byte 3
     //aa  ID byte 4
     //20  body length 32 (after padding and encryption)
-    //    Plaintext body (length 8): 0x7f 0x11 { " b " : 1 
+    //    Plaintext body (length 8): 0x7f 0x11 { " b " : 1
     //    Padded: 7f 11 7b 22 62 22 3a 31 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 17
     //b3 45 f9 ... 58 75 75  32 bytes of encrypted body
     //00 00 2a  reset counter
@@ -1147,5 +1147,123 @@ TEST(OTAESGCMSecureFrame, OFrameEncoding)
     for(int i = 0; i < bodylenW; ++i) { ASSERT_EQ(expected[i], bufW[i]); }
 }
 
+
+// Encode section of GCMVS1ViaFixed32BTextSize test, measuring stack usage.
+TEST(OTAESGCMSecureFrame, SecureFrameEncodeStackUsage) {
+    // Set up stack usage checks
+    OTV0P2BASE::MemoryChecks_RAMEND = OTV0P2BASE::getSP();
+    OTV0P2BASE::MemoryChecks::resetMinSP();
+    OTV0P2BASE::MemoryChecks::recordIfMinSP();
+    const size_t baseStack = OTV0P2BASE::MemoryChecks::getMinSP();
+
+    uint8_t buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize];
+    //Example 3: secure, no valve, representative minimum stats {"b":1}).
+    //Note that the sequence number must match the 4 lsbs of the message count, ie from iv[11].
+    //and the ID is 0xaa 0xaa 0xaa 0xaa (transmitted) with the next ID bytes 0x55 0x55.
+    //ResetCounter = 42
+    //TxMsgCounter = 793
+    //(Thus nonce/IV: aa aa aa aa 55 55 00 00 2a 00 03 19)
+    //
+    //3e cf 94 aa aa aa aa 20 | b3 45 f9 29 69 57 0c b8 28 66 14 b4 f0 69 b0 08 71 da d8 fe 47 c1 c3 53 83 48 88 03 7d 58 75 75 | 00 00 2a 00 03 19 29 3b 31 52 c3 26 d2 6d d0 8d 70 1e 4b 68 0d cb 80
+    //
+    //3e  length of header (62) after length byte 5 + (encrypted) body 32 + trailer 32
+    //cf  'O' secure OpenTRV basic frame
+    //04  0 sequence number, ID length 4
+    //aa  ID byte 1
+    //aa  ID byte 2
+    //aa  ID byte 3
+    //aa  ID byte 4
+    //20  body length 32 (after padding and encryption)
+    //    Plaintext body (length 8): 0x7f 0x11 { " b " : 1
+    //    Padded: 7f 11 7b 22 62 22 3a 31 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 17
+    //b3 45 f9 ... 58 75 75  32 bytes of encrypted body
+    //00 00 2a  reset counter
+    //00 03 19  message counter
+    //29 3b 31 ... 68 0d cb  16 bytes of authentication tag
+    //80  enc/auth type/format indicator.
+    // Preshared ID prefix; only an initial part/prefix of this goes on the wire in the header.
+    const uint8_t id[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55 };
+    // IV/nonce starting with first 6 bytes of preshared ID, then 6 bytes of counter.
+    const uint8_t iv[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55, 0x00, 0x00, 0x2a, 0x00, 0x03, 0x19 };
+    // 'O' frame body with some JSON stats.
+    const uint8_t body[] = { 0x7f, 0x11, 0x7b, 0x22, 0x62, 0x22, 0x3a, 0x31 };
+
+    OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRaw(buf, sizeof(buf),
+                                    OTRadioLink::FTS_BasicSensorOrValve,
+                                    id, 4,
+                                    body, sizeof(body),
+                                    iv,
+                                    OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS,
+                                    NULL, zeroBlock);
+
+    EXPECT_GT(210, baseStack - OTV0P2BASE::MemoryChecks::getMinSP());
+}
+
+
+// Encode section of GCMVS1ViaFixed32BTextSize test, measuring stack usage.
+TEST(OTAESGCMSecureFrame, SecureFrameDecodeStackUsage) {
+    // Set up stack usage checks
+    OTV0P2BASE::MemoryChecks_RAMEND = OTV0P2BASE::getSP();
+
+    uint8_t buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize];
+    //Example 3: secure, no valve, representative minimum stats {"b":1}).
+    //Note that the sequence number must match the 4 lsbs of the message count, ie from iv[11].
+    //and the ID is 0xaa 0xaa 0xaa 0xaa (transmitted) with the next ID bytes 0x55 0x55.
+    //ResetCounter = 42
+    //TxMsgCounter = 793
+    //(Thus nonce/IV: aa aa aa aa 55 55 00 00 2a 00 03 19)
+    //
+    //3e cf 94 aa aa aa aa 20 | b3 45 f9 29 69 57 0c b8 28 66 14 b4 f0 69 b0 08 71 da d8 fe 47 c1 c3 53 83 48 88 03 7d 58 75 75 | 00 00 2a 00 03 19 29 3b 31 52 c3 26 d2 6d d0 8d 70 1e 4b 68 0d cb 80
+    //
+    //3e  length of header (62) after length byte 5 + (encrypted) body 32 + trailer 32
+    //cf  'O' secure OpenTRV basic frame
+    //04  0 sequence number, ID length 4
+    //aa  ID byte 1
+    //aa  ID byte 2
+    //aa  ID byte 3
+    //aa  ID byte 4
+    //20  body length 32 (after padding and encryption)
+    //    Plaintext body (length 8): 0x7f 0x11 { " b " : 1
+    //    Padded: 7f 11 7b 22 62 22 3a 31 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 17
+    //b3 45 f9 ... 58 75 75  32 bytes of encrypted body
+    //00 00 2a  reset counter
+    //00 03 19  message counter
+    //29 3b 31 ... 68 0d cb  16 bytes of authentication tag
+    //80  enc/auth type/format indicator.
+    // Preshared ID prefix; only an initial part/prefix of this goes on the wire in the header.
+    const uint8_t id[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55 };
+    // IV/nonce starting with first 6 bytes of preshared ID, then 6 bytes of counter.
+    const uint8_t iv[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55, 0x00, 0x00, 0x2a, 0x00, 0x03, 0x19 };
+    // 'O' frame body with some JSON stats.
+    const uint8_t body[] = { 0x7f, 0x11, 0x7b, 0x22, 0x62, 0x22, 0x3a, 0x31 };
+    const uint8_t encodedLength = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRaw(buf, sizeof(buf),
+                                    OTRadioLink::FTS_BasicSensorOrValve,
+                                    id, 4,
+                                    body, sizeof(body),
+                                    iv,
+                                    OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS,
+                                    NULL, zeroBlock);
+
+    // Set up stack usage checks
+    OTV0P2BASE::MemoryChecks::resetMinSP();
+    OTV0P2BASE::MemoryChecks::recordIfMinSP();
+    const size_t baseStack = OTV0P2BASE::MemoryChecks::getMinSP();
+
+    // To decode, emulating RX, structurally validate unpack the header and extract the ID.
+    OTRadioLink::SecurableFrameHeader sfhRX;
+    EXPECT_TRUE(0 != sfhRX.checkAndDecodeSmallFrameHeader(buf, encodedLength));
+    // (Nominally a longer ID and key is looked up with the ID in the header, and an iv built.)
+    uint8_t decodedBodyOutSize;
+    uint8_t decryptedBodyOut[OTRadioLink::ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE];
+    // Should decode and authenticate correctly.
+    EXPECT_TRUE(0 != OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRaw(&sfhRX,
+                                        buf, encodedLength,
+                                        OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
+                                        NULL, zeroBlock, iv,
+                                        decryptedBodyOut, sizeof(decryptedBodyOut), decodedBodyOutSize));
+    // Find max stack usage
+    OTV0P2BASE::MemoryChecks::recordIfMinSP();
+    EXPECT_GT(210, baseStack - OTV0P2BASE::MemoryChecks::getMinSP());
+}
 
 #endif // ARDUINO_LIB_OTAESGCM
