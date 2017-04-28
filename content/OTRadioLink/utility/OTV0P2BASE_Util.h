@@ -191,9 +191,10 @@ class MemoryChecks
     // Can be buried in parts of code prone to deep recursion.
     // Can record location of stack check to aid debug.
     // Locations:
-    // 1,2,3: OTRadioLink_SecureableFrameType.cpp
+    // 1-3: OTRadioLink_SecureableFrameType.cpp
     // 4    : OTRFM23BLink_OTRFM23BLink.cpp
     // 5    : Control.cpp
+    // 6-8 : OTSIM900Link_OTSIM900Link.h
     static void recordIfMinSP(uint8_t location = 0) {
         ATOMIC_BLOCK (ATOMIC_RESTORESTATE) {
             const size_t position = getSP();
@@ -216,8 +217,8 @@ class MemoryChecks
     // 0: RFM23BLink::handleInterruptSimple()
     // 1: RFM23BLink::poll()
     // 2: bareStatsTX()
-    // 3: decodeMessageRawRxed()
-    // 4: handleQueuedMessages()
+    // 3: OTSIM900Link::poll()
+    // 4: Messaging.cpp()
     // 5:
     // 6:
     // 7:
