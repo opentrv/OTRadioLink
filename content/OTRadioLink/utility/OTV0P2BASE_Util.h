@@ -32,6 +32,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014--2016
 #include <util/atomic.h>
 extern uint8_t _end;
 #include "OTV0P2BASE_Sleep.h"
+#else
+#include <string.h>
+#include "utility/OTV0P2BASE_ArduinoCompat.h"
 #endif
 
 
@@ -134,27 +137,24 @@ class ScratchSpace final
   };
 
 
-// Attempting to neuter atomic blocks when not on avr.
+// Diagnostic tools for memory problems.
+// Arduino AVR memory layout: DATA, BSS [_end, __bss_end], (HEAP,) [SP] STACK [RAMEND]
+// See: http://web-engineering.info/node/30
 #ifdef ARDUINO_ARCH_AVR
 // Get the stack pointer and return as a size_t.
 // Prefered AVR way reads stack pointer register
 static inline size_t getSP() { return ((size_t)SP); }
+static constexpr size_t MemoryChecks_RAMEND = RAMEND;
 #else
-//#define ATOMIC_BLOCK(type)
-//#define ATOMIC_RESTORESTATE
-//static constexpr size_t RAMEND = 0; // XXX temp
-//static const void* _end = nullptr;  // XXX temp
+static const void* _end = nullptr;  // XXX temp
 // Get the stack pointer and return as a size_t.
 // If not on avr, create local variable and get address.
-//static inline size_t getSP() { volatile void* temp; size_t position = (size_t)&temp; return (position); }
-// Stubs
-//inline void forceReset() {}
+static inline size_t getSP() { volatile void* temp; size_t position = (size_t)&temp; return (position); }
+static size_t MemoryChecks_RAMEND = 0; // XXX temp
+// Stub function for forceReset()
+inline void forceReset() {}
 #endif  // ARDUINO_ARCH_AVR
 
-#ifdef ARDUINO_ARCH_AVR
-// Diagnostic tools for memory problems.
-// Arduino AVR memory layout: DATA, BSS [_end, __bss_end], (HEAP,) [SP] STACK [RAMEND]
-// See: http://web-engineering.info/node/30
 #define MemoryChecks_DEFINED
 class MemoryChecks
   {
@@ -172,13 +172,13 @@ class MemoryChecks
 
   public:
     // Compute stack space in use on ARDUINO/AVR; non-negative.
-    static uint16_t stackSpaceInUse() { return((size_t)RAMEND - getSP()); }
+    static size_t stackSpaceInUse() { return((size_t)MemoryChecks_RAMEND - getSP()); }
     // Compute space after DATA and BSS (_end) and below STACK (ignoring HEAP) on ARDUINO/AVR; should be strictly +ve.
     // If this becomes non-positive then variables are likely being corrupted.
-    static int16_t spaceBelowStackToEnd() { return((int16_t)(getSP() - (intptr_t)&_end)); }
+    static intptr_t spaceBelowStackToEnd() { return((getSP() - (intptr_t)&_end)); }
 
     // Reset SP minimum: ISR-safe.
-    static void resetMinSP() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { minSP = RAMEND; } }
+    static void resetMinSP() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { minSP = MemoryChecks_RAMEND; } }
     // Record current SP if minimum: ISR-safe.
     // Can be buried in parts of code prone to deep recursion.
     // Can record location of stack check to aid debug.
@@ -199,7 +199,7 @@ class MemoryChecks
     // Get SP minimum: ISR-safe.
     static size_t getMinSP() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { return(minSP); } }
     // Get minimum space below SP above _end: ISR-safe.
-    static int16_t getMinSPSpaceBelowStackToEnd() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { return(minSP - (intptr_t)&_end); } }
+    static intptr_t getMinSPSpaceBelowStackToEnd() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { return(minSP - (intptr_t)&_end); } }
     // Force restart if minimum space below SP has not remained strictly positive.
     static void forceResetIfStackOverflow() { if(getMinSPSpaceBelowStackToEnd() <= 0) { forceReset(); } }
     // Get the identifier for location of stack check with highest stack usage,
@@ -224,26 +224,6 @@ class MemoryChecks
         }
     }
 };
-#else
-// Dummy do-nothing version to allow test bugs to be harmlessly dropped into portable code.
-class MemoryChecks
-  {
-  public:
-    static void* pointer;
-
-    static void recordIfMinSP(uint8_t = 0) {
-        // Get the address of the frame pointer for the current function
-        // see https://gcc.gnu.org/onlinedocs/gcc/Return-Address.html
-        // This is an approximation of the current stack.
-        // - the x86_64 redzone should not be a problem as calling this function should kill it.
-        // - Assuming this function is created directly after the caller, it will (should...might?) return the current stack pointer..
-        // Apparently portable across GCC but buggy on Clang.
-        void *ptr;
-        pointer = &ptr;
-    }
-    static void forceResetIfStackOverflow() { }
-  };
-#endif // ARDUINIO_ARCH_AVR
 
 
 }
