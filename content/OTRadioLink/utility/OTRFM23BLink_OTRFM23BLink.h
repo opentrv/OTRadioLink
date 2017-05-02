@@ -723,9 +723,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             {
                 if(!interruptLineIsEnabledAndInactive()) {
                     ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-                        OTV0P2BASE::MemoryChecks::setHighRisk(1);
                         _poll();
-                        OTV0P2BASE::MemoryChecks::clearHighRisk(1);
                     }
                 }
             }

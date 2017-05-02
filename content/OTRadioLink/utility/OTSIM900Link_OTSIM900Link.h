@@ -344,6 +344,7 @@ typedef const char *AT_t;
              */
             virtual void poll() override
             {
+                OTV0P2BASE::MemoryChecks::recordIfMinSP(6);
                 if (-1 != retryTimer) {  // not locked out when retryTimer is -1.
                     retryLockOut();
                     return;
@@ -751,6 +752,7 @@ typedef const char *AT_t;
              */
             uint8_t checkUDPStatus()
                 {
+                OTV0P2BASE::MemoryChecks::recordIfMinSP(7);
                 char data[MAX_SIM900_RESPONSE_CHARS];
                 ser.print(AT_START);
                 ser.println(AT_STATUS);
@@ -930,6 +932,7 @@ typedef const char *AT_t;
          */
         bool UDPSend(const char *frame, uint8_t length)
             {
+            OTV0P2BASE::MemoryChecks::recordIfMinSP(8);
             messageCounter++; // increment counter
             ser.print(AT_START);
             ser.print(AT_SEND_UDP);

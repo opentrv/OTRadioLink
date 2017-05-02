@@ -221,10 +221,10 @@ class MemoryChecks
     static uint8_t getLocation() { return checkLocation; }
     // Toggle tracking high risk functions
     // 0: RFM23BLink::handleInterruptSimple()
-    // 1: RFM23BLink::poll()
-    // 2: bareStatsTX()
+    // 1: bareStatsTX()
+    // 2: Messaging.cpp:decodeAndHandleOTSecureableFrame()
     // 3:
-    // 4: Messaging.cpp()
+    // 4:
     // 5:
     // 6:
     // 7:
