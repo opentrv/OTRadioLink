@@ -172,9 +172,6 @@ class MemoryChecks
     // Marked volatile for safe access from ISRs.
     // Initialised to be RAMEND.
     static volatile size_t minSP;
-//    static volatile size_t stackMark;
-    // Stores which call to recordIfMinSP minsp was recorded at.
-    static volatile uint8_t checkLocation;
     // Stores which call to recordIfMinSP minsp was recorded at.
     // Defaults to 0
     static volatile uint8_t checkLocation;
