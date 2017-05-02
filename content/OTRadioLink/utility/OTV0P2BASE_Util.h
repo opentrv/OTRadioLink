@@ -165,7 +165,7 @@ class MemoryChecks
     // Record current SP if minimum: ISR-safe.
     // Can be buried in parts of code prone to deep recursion.
     // Location defaults to 0 but can be assigned a value for the particular stack check to aid debug.
-    static void recordIfMinSP(uint8_t location = 0) { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { if(SP < minSP) { minSP = SP; check_location = location; } } }
+    static void recordIfMinSP(uint8_t location = 0) { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { if(SP < minSP) { minSP = SP; checkLocation = location; } } }
     // Get SP minimum: ISR-safe.
     static SP_type getMinSP() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { return(minSP); } }
     // Get minimum space below SP above _end: ISR-safe.
@@ -173,7 +173,7 @@ class MemoryChecks
     // Force restart if minimum space below SP has not remained strictly positive.
     static void forceResetIfStackOverflow() { if(getMinSPSpaceBelowStackToEnd() <= 0) { forceReset(); } }
     // Get the identifier for location of stack check with highest stack usage,
-    static uint8_t getLocation() { return check_location; }
+    static uint8_t getLocation() { return checkLocation; }
 };
 #else
 // Dummy do-nothing version to allow test bugs to be harmlessly dropped into portable code.
