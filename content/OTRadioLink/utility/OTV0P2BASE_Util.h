@@ -171,8 +171,9 @@ class MemoryChecks
     // Marked volatile for safe access from ISRs.
     // Initialised to be RAMEND.
     static volatile size_t minSP;
+//    static volatile size_t stackMark;
     // Stores which call to recordIfMinSP minsp was recorded at.
-    static volatile uint8_t check_location;
+    static volatile uint8_t checkLocation;
     // Flags for checking which routines are on the stack at the particular time.
     static constexpr uint8_t highRiskSize = 5;
     static volatile uint8_t highRisk[highRiskSize];
@@ -200,24 +201,29 @@ class MemoryChecks
             const size_t position = getSP();
             if(position < minSP) {
                 minSP = position;
-                check_location = location;
+                checkLocation = location;
+#if 1
                 memcpy(highRiskRecord, (const void *)highRisk, sizeof(highRisk));
+#endif
             }
         }
     }
+//    // record SP at this position
+//    static void recordStackMark() { stackMark = getSP(); }
     // Get SP minimum: ISR-safe.
     static size_t getMinSP() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { return(minSP); } }
     // Get minimum space below SP above _end: ISR-safe.
     static intptr_t getMinSPSpaceBelowStackToEnd() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { return(minSP - (intptr_t)&_end); } }
+//    static size_t getStackMark() { return (stackMark - (intptr_t)&_end); }
     // Force restart if minimum space below SP has not remained strictly positive.
     static void forceResetIfStackOverflow() { if(getMinSPSpaceBelowStackToEnd() <= 0) { forceReset(); } }
     // Get the identifier for location of stack check with highest stack usage,
-    static uint8_t getLocation() { return check_location; }
+    static uint8_t getLocation() { return checkLocation; }
     // Toggle tracking high risk functions
     // 0: RFM23BLink::handleInterruptSimple()
     // 1: RFM23BLink::poll()
     // 2: bareStatsTX()
-    // 3: OTSIM900Link::poll()
+    // 3:
     // 4: Messaging.cpp()
     // 5:
     // 6:

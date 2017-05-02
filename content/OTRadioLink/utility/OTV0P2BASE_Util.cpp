@@ -49,7 +49,8 @@ int parseHexByte(const char *const s)
 
 #ifdef MemoryChecks_DEFINED
 volatile size_t MemoryChecks::minSP = RAMEND;
-volatile uint8_t MemoryChecks::check_location = 0x0;
+//volatile size_t MemoryChecks::stackMark = RAMEND;
+volatile uint8_t MemoryChecks::checkLocation = 0x0;
 volatile uint8_t MemoryChecks::highRisk[highRiskSize] = {0, 0, 0, 0, 0,};
 uint8_t MemoryChecks::highRiskRecord[highRiskSize] = {0, 0, 0, 0, 0,};
 #endif
