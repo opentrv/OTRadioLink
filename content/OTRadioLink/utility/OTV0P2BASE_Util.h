@@ -164,6 +164,7 @@ inline void forceReset() {}
 #endif  // ARDUINO_ARCH_AVR
 
 #define MemoryChecks_DEFINED
+// Requires ATOMIC_BLOCK and ATOMIC_RESTORESTATE to be defined on non AVR architectures.
 class MemoryChecks
   {
   private:
@@ -174,10 +175,6 @@ class MemoryChecks
 //    static volatile size_t stackMark;
     // Stores which call to recordIfMinSP minsp was recorded at.
     static volatile uint8_t checkLocation;
-    // Flags for checking which routines are on the stack at the particular time.
-    static constexpr uint8_t highRiskSize = 5;
-    static volatile uint8_t highRisk[highRiskSize];
-    static uint8_t highRiskRecord[highRiskSize];
     // Stores which call to recordIfMinSP minsp was recorded at.
     // Defaults to 0
     static volatile uint8_t checkLocation;
@@ -194,7 +191,7 @@ class MemoryChecks
     // Record current SP if minimum: ISR-safe.
     // Can be buried in parts of code prone to deep recursion.
     // Location defaults to 0 but can be assigned a value for the particular stack check to aid debug.
-    static void recordIfMinSP(uint8_t location = 0) { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { if(SP < minSP) { minSP = SP; checkLocation = location; } } }
+    static void recordIfMinSP(uint8_t location = 0) { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { const size_t pos = getSP(); if(pos < minSP) { minSP = pos; checkLocation = location; } } }
     // Get SP minimum: ISR-safe.
     static size_t getMinSP() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { return(minSP); } }
     // Get minimum space below SP above _end: ISR-safe.
