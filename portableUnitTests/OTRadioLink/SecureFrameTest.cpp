@@ -684,7 +684,7 @@ TEST(OTAESGCMSecureFrame, SecureSmallFrameEncoding)
     //aa  ID byte 3
     //aa  ID byte 4
     //20  body length 32 (after padding and encryption)
-    //    Plaintext body (length 8): 0x7f 0x11 { " b " : 1 
+    //    Plaintext body (length 8): 0x7f 0x11 { " b " : 1
     //    Padded: 7f 11 7b 22 62 22 3a 31 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 17
     //b3 45 f9 ... 58 75 75  32 bytes of encrypted body
     //00 00 2a  reset counter
