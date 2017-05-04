@@ -45,10 +45,6 @@ class __FlashStringHelper;
 #define pgm_read_byte(p) (*reinterpret_cast<const char *>(p))
 #endif
 
-// Override AVR atomic blocks.
-#define ATOMIC_BLOCK(type)
-#define ATOMIC_RESTORESTATE
-
 // Minimal skeleton matching Print to permit at least compilation and test on non-Arduino platforms.
 // Implementation is not necessarily efficient as assumed to be for (unit) test.
 class Print
