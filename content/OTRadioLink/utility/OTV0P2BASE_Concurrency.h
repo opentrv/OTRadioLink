@@ -38,7 +38,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016--2017
 #define OTV0P2BASE_CONCURRENCY_H
 
 #include <stdint.h>
-#include "OTV0P2BASE_Util.h"
+//#include "OTV0P2BASE_Util.h"
 
 #ifdef ARDUINO
 
@@ -57,24 +57,64 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016--2017
 namespace OTV0P2BASE
 {
 
-
-// Atomic uint8_t value object.
+// Atomic values.
+// Aim is to have something portable that can be replaced with STL objects where appropriate.
 #ifdef OTV0P2BASE_PLATFORM_HAS_atomic
     // Default is to use the std::atomic where it exists, eg for hosted test cases.
-    typedef std::atomic<uint8_t> Atomic_UInt8T;
+    template<typename T>
+    using OTAtomic_t = std::atomic<T>;
 #elif defined(ARDUINO_ARCH_AVR)
-    // Expects to exist only in volatile forms, and to support common V0p2Base idioms.
-    struct Atomic_UInt8T final
+    // OpenTRV version of std::atomic<> for use on AVR 8-bit arch.
+    // Causes -Wreturn-type warnings due to ATOMIC_BLOCK macros.
+    template <typename T>
+    struct OTAtomic_t final
+    {
+                // Direct access to value.
+        // Use sparingly, eg where concurrency is not an issue on an MCU, eg with interrupts locked out.
+        // Marked volatile for ISR safely, ie to prevent cacheing of the value or re-ordering of access.
+        volatile T value;
+
+        // Create uninitialised value.
+        OTAtomic_t() = default;
+        // Create initialised value.
+        constexpr OTAtomic_t(T v) noexcept : value(v) { }
+
+        // Atomically load current value.
+        // 16 bit operation requires 2 instructions on AVR.
+        T load() const volatile noexcept
+            { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { return(value); } }
+
+        // Atomically load current value.
+        // 16 bit operation requires 2 instructions on AVR.
+        void store(T desired) volatile noexcept
+            { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { value = desired; } }
+
+        // Strong compare-and-exchange.
+        // Atomically, if value == expected then replace value with desired and return true,
+        // else load expected with value and return false.
+        bool compare_exchange_strong(T& expected, T desired) volatile noexcept
         {
+            // Lock out interrupts for a compound operation.
+            ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
+            {
+                if(value == expected) { value = desired; return(true); }
+                else { expected = value; return(false); }
+            }
+        }
+    };
+    // Specialisation for uint8_t types. Should be Identical to Atomic_UInt8T
+    template <>
+    struct OTAtomic_t<uint8_t> final
+    {
         // Direct access to value.
         // Use sparingly, eg where concurrency is not an issue on an MCU, eg with interrupts locked out.
         // Marked volatile for ISR safely, ie to prevent cacheing of the value or re-ordering of access.
         volatile uint8_t value;
 
         // Create uninitialised value.
-        Atomic_UInt8T() = default;
+        OTAtomic_t() = default;
         // Create initialised value.
-        constexpr Atomic_UInt8T(uint8_t v) noexcept : value(v) { }
+        constexpr OTAtomic_t(uint8_t v) noexcept : value(v) { }
 
         // Atomically load current value.
         // Relies on load/store of single byte being atomic on AVR.
@@ -96,8 +136,12 @@ namespace OTV0P2BASE
                 else { expected = value; return(false); }
                 }
             }
-        };
+    };
+
 #endif // OTV0P2BASE_PLATFORM_HAS_atomic ...
+    // Atomic_UInt8T is kept to avoid changing current code.
+    typedef OTAtomic_t<uint8_t> Atomic_UInt8T;
+
 
     // Helper method: safely decrements (volatile) Atomic_UInt8T arg if non-zero, ie does not wrap around.
     // Does nothing if already zero.

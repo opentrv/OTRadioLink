@@ -26,10 +26,11 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014--2016
 
 #include <stdint.h>
 #include <stddef.h>
+#include "OTV0P2BASE_Concurrency.h"
 
 #ifdef ARDUINO
 #include <Arduino.h>
-#include <util/atomic.h>
+//#include <util/atomic.h>
 #include "OTV0P2BASE_Sleep.h"
 #else
 #include <string.h>
@@ -169,10 +170,10 @@ class MemoryChecks
   private:
     // Minimum value recorded for SP.
     // Marked volatile for safe access from ISRs.
-    // Initialised to be RAMEND.
-    static volatile size_t minSP;
-//    static volatile size_t stackMark;
+    // fixme should be Initialised to be RAMEND but haven't worked out how.
+    static volatile OTV0P2BASE::OTAtomic_t<size_t> minSP;
     // Stores which call to recordIfMinSP minsp was recorded at.
+    // Defaults to 0
     static volatile uint8_t checkLocation;
     // Flags for checking which routines are on the stack at the particular time.
     static constexpr uint8_t highRiskSize = 5;
@@ -187,9 +188,17 @@ class MemoryChecks
     static intptr_t spaceBelowStackToEnd() { return((getSP() - (intptr_t)&_end)); }
 
     // Reset SP minimum: ISR-safe.
-    static void resetMinSP() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { minSP = RAMEND; } }
+    static void resetMinSP() { minSP.store(RAMEND); }
     // Record current SP if minimum: ISR-safe.
     // Can be buried in parts of code prone to deep recursion.
+    // Location defaults to 0 but can be assigned a value for the particular stack check to aid debug.
+    // NOTE:
+    // - On AVRs checkLocation may be overwritten with an incorrect value if recordIfMinSP is called in an interrupt
+    //   after the if statement but before writing checkLocation. In this case, minSP will be set by the call in the
+    //   interrupt but checkLocation will be set by the original call (i.e. outside the interrupt).
+    //   fixme Ignored for now as is a minor problem and fixing it is not worth the effort and will be too complicated (DE20170504)
+    // - In the case setting minSP fails, it is assumed that its value was changed in an interrupt and therefore is
+    //   "more correct."
     // Can record location of stack check to aid debug.
     // Locations:
     // 1-3: OTRadioLink_SecureableFrameType.cpp
@@ -211,10 +220,9 @@ class MemoryChecks
 //    // record SP at this position
 //    static void recordStackMark() { stackMark = getSP(); }
     // Get SP minimum: ISR-safe.
-    static size_t getMinSP() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { return(minSP); } }
+    static size_t getMinSP() { return(minSP.load()); }
     // Get minimum space below SP above _end: ISR-safe.
-    static intptr_t getMinSPSpaceBelowStackToEnd() { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { return(minSP - (intptr_t)&_end); } }
-//    static size_t getStackMark() { return (stackMark - (intptr_t)&_end); }
+    static intptr_t getMinSPSpaceBelowStackToEnd() { return(minSP.load() - (intptr_t)&_end); }
     // Force restart if minimum space below SP has not remained strictly positive.
     static void forceResetIfStackOverflow() { if(getMinSPSpaceBelowStackToEnd() <= 0) { forceReset(); } }
     // Get the identifier for location of stack check with highest stack usage,

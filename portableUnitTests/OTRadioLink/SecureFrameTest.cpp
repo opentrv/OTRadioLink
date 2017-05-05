@@ -40,6 +40,10 @@ static const int GCM_TAG_LENGTH = 16; // in bytes (default 16, 12 possible)
 // Can be used for other purposes.
 static const uint8_t zeroBlock[16] = { };
 
+// Max stack usage in bytes
+static constexpr int maxStackSecureFrameEncode = 328;
+static constexpr int maxStackSecureFrameDecode = 328;
+
 
 // Test quick integrity checks, for TX and RX.
 //
@@ -1196,7 +1200,7 @@ TEST(OTAESGCMSecureFrame, SecureFrameEncodeStackUsage) {
                                     OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS,
                                     NULL, zeroBlock);
 
-    EXPECT_EQ(208, baseStack - OTV0P2BASE::MemoryChecks::getMinSP());
+    EXPECT_GT(maxStackSecureFrameEncode, baseStack - OTV0P2BASE::MemoryChecks::getMinSP());
 }
 
 
@@ -1263,7 +1267,7 @@ TEST(OTAESGCMSecureFrame, SecureFrameDecodeStackUsage) {
                                         decryptedBodyOut, sizeof(decryptedBodyOut), decodedBodyOutSize));
     // Find max stack usage
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
-    EXPECT_EQ(208, baseStack - OTV0P2BASE::MemoryChecks::getMinSP());
+    EXPECT_GT(maxStackSecureFrameDecode, baseStack - OTV0P2BASE::MemoryChecks::getMinSP());
 }
 
 #endif // ARDUINO_LIB_OTAESGCM
