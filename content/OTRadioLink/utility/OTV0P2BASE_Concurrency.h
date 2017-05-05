@@ -57,6 +57,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016--2017
 namespace OTV0P2BASE
 {
 
+
 // Atomic values.
 // Aim is to have something portable that can be replaced with STL objects where appropriate.
 #ifdef OTV0P2BASE_PLATFORM_HAS_atomic
@@ -69,7 +70,7 @@ namespace OTV0P2BASE
     template <typename T>
     struct OTAtomic_t final
     {
-                // Direct access to value.
+        // Direct access to value.
         // Use sparingly, eg where concurrency is not an issue on an MCU, eg with interrupts locked out.
         // Marked volatile for ISR safely, ie to prevent cacheing of the value or re-ordering of access.
         volatile T value;
@@ -137,7 +138,6 @@ namespace OTV0P2BASE
                 }
             }
     };
-
 #endif // OTV0P2BASE_PLATFORM_HAS_atomic ...
     // Atomic_UInt8T is kept to avoid changing current code.
     typedef OTAtomic_t<uint8_t> Atomic_UInt8T;
