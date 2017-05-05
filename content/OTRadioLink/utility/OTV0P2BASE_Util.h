@@ -150,7 +150,7 @@ static inline size_t getSP() { return ((size_t)SP); }
 //  Dummy variable to hold stack pointer.
 // Required for recordIfMinSP to function properly.
 // Assuming stack grows downwards, MUST be set to a higher number than the highest possible address used by the program.
-// todo replace with constexpr containing the highest available RAM address.
+// TODO replace with constexpr containing the highest available RAM address.
 static size_t RAMEND = 0;
 // Get the stack pointer and return as a size_t.
 // If not on avr, create new local variable and get its address.
@@ -160,17 +160,17 @@ static inline size_t getSP() {
     return (position);
 }
 // Stub function for forceReset()
-// todo Is there a better place for this?
+// TODO Is there a better place for this?
 inline void forceReset() {}
 #endif  // ARDUINO_ARCH_AVR
 
 #define MemoryChecks_DEFINED
+// On non-AVR architectures, resetMinSP() should be called before doing anything else.
 class MemoryChecks
   {
   private:
     // Minimum value recorded for SP.
     // Marked volatile for safe access from ISRs.
-    // fixme should be Initialised to be RAMEND but haven't worked out how.
     static volatile OTV0P2BASE::OTAtomic_t<size_t> minSP;
     // Stores which call to recordIfMinSP minsp was recorded at.
     // Defaults to 0
@@ -188,7 +188,7 @@ class MemoryChecks
     static intptr_t spaceBelowStackToEnd() { return((getSP() - (intptr_t)&_end)); }
 
     // Reset SP minimum: ISR-safe.
-    static void resetMinSP() { minSP.store(RAMEND); }
+    static void resetMinSP() { minSP.store(RAMEND); checkLocation = 0; }
     // Record current SP if minimum: ISR-safe.
     // Can be buried in parts of code prone to deep recursion.
     // Location defaults to 0 but can be assigned a value for the particular stack check to aid debug.
@@ -196,7 +196,7 @@ class MemoryChecks
     // - On AVRs checkLocation may be overwritten with an incorrect value if recordIfMinSP is called in an interrupt
     //   after the if statement but before writing checkLocation. In this case, minSP will be set by the call in the
     //   interrupt but checkLocation will be set by the original call (i.e. outside the interrupt).
-    //   fixme Ignored for now as is a minor problem and fixing it is not worth the effort and will be too complicated (DE20170504)
+    //   FIXME Ignored for now as is a minor problem and fixing it is not worth the effort and will be too complicated (DE20170504)
     // - In the case setting minSP fails, it is assumed that its value was changed in an interrupt and therefore is
     //   "more correct."
     // Can record location of stack check to aid debug.
