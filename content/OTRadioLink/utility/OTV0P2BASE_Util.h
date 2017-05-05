@@ -165,8 +165,6 @@ inline void forceReset() {}
 #endif  // ARDUINO_ARCH_AVR
 
 #define MemoryChecks_DEFINED
-typedef OTV0P2BASE::OTAtomic_t<size_t> atomic_size_t;
-
 // Requires ATOMIC_BLOCK and ATOMIC_RESTORESTATE to be defined on non AVR architectures.
 class MemoryChecks
   {
@@ -174,7 +172,7 @@ class MemoryChecks
     // Minimum value recorded for SP.
     // Marked volatile for safe access from ISRs.
     // fixme should be Initialised to be RAMEND but haven't worked out how.
-    static volatile atomic_size_t minSP;
+    static volatile OTV0P2BASE::OTAtomic_t<size_t> minSP;
     // Stores which call to recordIfMinSP minsp was recorded at.
     // Defaults to 0
     static volatile uint8_t checkLocation;

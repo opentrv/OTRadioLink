@@ -63,45 +63,7 @@ namespace OTV0P2BASE
     // Default is to use the std::atomic where it exists, eg for hosted test cases.
     template<typename T>
     using OTAtomic_t = std::atomic<T>;
-    // Atomic_UInt8T is kept for the time being. Aliased to OTAtomic for clarity.
-    typedef OTAtomic_t<uint8_t> Atomic_UInt8T;
 #elif defined(ARDUINO_ARCH_AVR)
-    // Atomic uint8_t value object.
-    // Expects to exist only in volatile forms, and to support common V0p2Base idioms.
-    struct Atomic_UInt8T final
-        {
-        // Direct access to value.
-        // Use sparingly, eg where concurrency is not an issue on an MCU, eg with interrupts locked out.
-        // Marked volatile for ISR safely, ie to prevent cacheing of the value or re-ordering of access.
-        volatile uint8_t value;
-
-        // Create uninitialised value.
-        Atomic_UInt8T() = default;
-        // Create initialised value.
-        constexpr Atomic_UInt8T(uint8_t v) noexcept : value(v) { }
-
-        // Atomically load current value.
-        // Relies on load/store of single byte being atomic on AVR.
-        uint8_t load() const volatile noexcept { return(value); }
-
-        // Atomically load current value.
-        // Relies on load/store of single byte being atomic on AVR.
-        void store(uint8_t desired) volatile noexcept { value = desired; }
-
-        // Strong compare-and-exchange.
-        // Atomically, if value == expected then replace value with desired and return true,
-        // else load expected with value and return false.
-        bool compare_exchange_strong(uint8_t& expected, uint8_t desired) volatile noexcept
-            {
-            // Lock out interrupts for a compound operation.
-            ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
-                {
-                if(value == expected) { value = desired; return(true); }
-                else { expected = value; return(false); }
-                }
-            }
-        };
-
     // OpenTRV version of std::atomic<> for use on AVR 8-bit arch.
     // Causes -Wreturn-type warnings due to ATOMIC_BLOCK macros.
     template <typename T>
@@ -177,6 +139,9 @@ namespace OTV0P2BASE
     };
 
 #endif // OTV0P2BASE_PLATFORM_HAS_atomic ...
+    // Atomic_UInt8T is kept to avoid changing current code.
+    typedef OTAtomic_t<uint8_t> Atomic_UInt8T;
+
 
     // Helper method: safely decrements (volatile) Atomic_UInt8T arg if non-zero, ie does not wrap around.
     // Does nothing if already zero.
