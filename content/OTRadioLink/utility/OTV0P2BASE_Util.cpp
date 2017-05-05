@@ -48,7 +48,7 @@ int parseHexByte(const char *const s)
 
 
 #ifdef MemoryChecks_DEFINED
-volatile atomic_size_t MemoryChecks::minSP;
+volatile OTV0P2BASE::OTAtomic_t<size_t> MemoryChecks::minSP;
 //volatile size_t MemoryChecks::stackMark = RAMEND;
 volatile uint8_t MemoryChecks::checkLocation = 0x0;
 #endif
