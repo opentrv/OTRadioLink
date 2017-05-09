@@ -208,8 +208,9 @@ class MemoryChecks
     static void recordIfMinSP(uint8_t location = 0) {
         ATOMIC_BLOCK (ATOMIC_RESTORESTATE) {
             const size_t position = getSP();
-            if(position < minSP.value) {  // directly accessign value since enclosed in atomic blocks anyway.
-                minSP.value = position;
+            const size_t min = minSP.load();
+            if(position < min) {  // directly accessign value since enclosed in atomic blocks anyway.
+                minSP.store(position);
                 checkLocation = location;
 #if 1
                 memcpy(highRiskRecord, (const void *)highRisk, sizeof(highRisk));
