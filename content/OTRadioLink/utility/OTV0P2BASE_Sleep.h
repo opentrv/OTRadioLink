@@ -285,7 +285,7 @@ bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);
 // This suggests that a timeout of > 2s may be OK with the optiboot loader:
 //   https://tushev.org/articles/arduino/5/arduino-and-watchdog-timer
 #if defined(__GNUC__)
-inline void forceReset() __attribute__ ((noreturn));
+    inline void forceReset();// __attribute__ ((noreturn));  // FIXME commented to allow compilation of unit tests on clang compiler (DE20170510)
 #endif // defined(__GNUC__)
 #ifdef ARDUINO_ARCH_AVR
     #if defined(__AVR_ATmega328P__)
