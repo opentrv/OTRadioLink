@@ -168,6 +168,9 @@ inline void forceReset() {}
 // On non-AVR architectures, resetMinSP() should be called before doing anything else.
 class MemoryChecks
   {
+  public:
+    // Flags for checking which routines are on the stack at the particular time.
+    static constexpr uint8_t highRiskSize = 8;
   private:
     // Minimum value recorded for SP.
     // Marked volatile for safe access from ISRs.
@@ -175,8 +178,6 @@ class MemoryChecks
     // Stores which call to recordIfMinSP minsp was recorded at.
     // Defaults to 0
     static volatile uint8_t checkLocation;
-    // Flags for checking which routines are on the stack at the particular time.
-    static constexpr uint8_t highRiskSize = 5;
     static volatile uint8_t highRisk[highRiskSize];
     static uint8_t highRiskRecord[highRiskSize];
 
@@ -229,13 +230,13 @@ class MemoryChecks
     // Get the identifier for location of stack check with highest stack usage,
     static uint8_t getLocation() { return checkLocation; }
     // Toggle tracking high risk functions
-    // 0: RFM23BLink::handleInterruptSimple()
-    // 1: bareStatsTX()
-    // 2: Messaging.cpp:decodeAndHandleOTSecureableFrame()
-    // 3:
-    // 4:
-    // 5:
-    // 6:
+    // 0: RFM23BLink::handleInterruptSimple()*
+    // 1: decodeAndHandleOTSecureableFrame()*
+    // 2: sfh.checkAndDecodeSmallFrameHeader()
+    // 3: sfh.isSecure()
+    // 4: OTV0P2BASE::getPrimaryBuilding16ByteSecretKey(key)
+    // 5: OTRadioLink::SimpleSecureFrame32or0BodyRXV0p2::getInstance().decodeSecureSmallFrameSafely()*
+    // 6: SecondaryRadio.queueToSend()
     // 7:
     static inline void setHighRisk(uint8_t func) { ++highRisk[func]; }
     static inline void clearHighRisk(uint8_t func) { --highRisk[func]; }
