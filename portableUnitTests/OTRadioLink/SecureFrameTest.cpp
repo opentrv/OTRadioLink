@@ -41,8 +41,8 @@ static const int GCM_TAG_LENGTH = 16; // in bytes (default 16, 12 possible)
 static const uint8_t zeroBlock[16] = { };
 
 // Max stack usage in bytes
-static constexpr int maxStackSecureFrameEncode = 328;
-static constexpr int maxStackSecureFrameDecode = 328;
+static constexpr unsigned int maxStackSecureFrameEncode = 328;
+static constexpr unsigned int maxStackSecureFrameDecode = 328;
 
 
 // Test quick integrity checks, for TX and RX.
