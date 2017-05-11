@@ -24,6 +24,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #define OTV0P2BASE_SENSOROCCUPANCY_H
 
 #include "OTV0P2BASE_Concurrency.h"
+#include "OTV0P2BASE_Util.h"
 #include "OTV0P2BASE_Sensor.h"
 
 
