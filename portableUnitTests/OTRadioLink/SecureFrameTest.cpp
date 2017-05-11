@@ -41,9 +41,20 @@ static const int GCM_TAG_LENGTH = 16; // in bytes (default 16, 12 possible)
 static const uint8_t zeroBlock[16] = { };
 
 // Max stack usage in bytes
+// 20170511
+//           enc, dec, enc*, dec*
+// - DE:     208, 208, 208,  208
+// - DHD:    ???, ???, 358,  ???
+// - Travis: 192, 224, ???,  ???
+// * using a workspace
+#ifndef __APPLE__
 static constexpr unsigned int maxStackSecureFrameEncode = 328;
 static constexpr unsigned int maxStackSecureFrameDecode = 328;
-
+#else
+// On DHD's system, secure frame enc/decode uses 358 bytes (20170511)
+static constexpr unsigned int maxStackSecureFrameEncode = 416;
+static constexpr unsigned int maxStackSecureFrameDecode = 416;
+#endif // __APPLE__
 
 // Test quick integrity checks, for TX and RX.
 //
