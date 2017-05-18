@@ -159,13 +159,13 @@ static bool decodeAndHandleOTSecureableFrame(Print * /*p*/, const bool /*secure*
 //#endif
         break;
         }
-//#ifdef ENABLE_BOILER_HUB
-      // If acting as a boiler hub
-      // then extract the valve %age and pass to boiler controller
-      // but use only if valid.
-      // Ignore explicit call-for-heat flag for now.
-      const uint8_t percentOpen = secBodyBuf[0];
-      if(percentOpen <= 100) { remoteCallForHeatRX(0, percentOpen); } // todo call for heat valve id not passed in.
+//#ifdef ENABLE_BOILER_HUB  // FIXME
+//      // If acting as a boiler hub
+//      // then extract the valve %age and pass to boiler controller
+//      // but use only if valid.
+//      // Ignore explicit call-for-heat flag for now.
+//      const uint8_t percentOpen = secBodyBuf[0];
+//      if(percentOpen <= 100) { remoteCallForHeatRX(0, percentOpen); } // TODO call for heat valve id not passed in.
 //#endif
       // If the frame contains JSON stats
       // then forward entire secure frame as-is across the secondary radio relay link,
