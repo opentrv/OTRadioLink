@@ -36,6 +36,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 #include "OTV0P2BASE_EEPROM.h"
 
 #include "OTV0p2Base.h"
+#include "OTV0P2BASE_Util.h"
 
 namespace OTRadioLink
     {
@@ -559,11 +560,14 @@ uint8_t SimpleSecureFrame32or0BodyRXV0p2::_decodeSecureSmallFrameFromID(const Se
     memcpy(iv, adjID, 6);
     memcpy(iv + 6, buf + sfh->getTrailerOffset(), SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes);
     // Now do actual decrypt/auth.
-    return(decodeSecureSmallFrameRaw(sfh,
+    OTV0P2BASE::MemoryChecks::setHighRisk(4); //XXX
+    const uint8_t value = (decodeSecureSmallFrameRaw(sfh,
                                 buf, buflen,
                                 d,
                                 state, key, iv,
                                 decryptedBodyOut, decryptedBodyOutBuflen, decryptedBodyOutSize));
+    OTV0P2BASE::MemoryChecks::clearHighRisk(4); //XXX
+    return value;
     }
 
 // From a structurally correct secure frame, looks up the ID, checks the message counter, decodes, and updates the counter if successful.
@@ -591,6 +595,7 @@ uint8_t SimpleSecureFrame32or0BodyRXV0p2::decodeSecureSmallFrameSafely(const Sec
                                 uint8_t *const ID,
                                 bool /*firstIDMatchOnly*/)
     {
+    OTV0P2BASE::MemoryChecks::recordIfMinSP(9);
     // Rely on _decodeSecureSmallFrameFromID() for validation of items not directly needed here.
     if((NULL == sfh) || (NULL == buf)) { return(0); } // ERROR
     // Abort if header was not decoded properly.
@@ -611,12 +616,14 @@ uint8_t SimpleSecureFrame32or0BodyRXV0p2::decodeSecureSmallFrameSafely(const Sec
     if(!validateRXMessageCount(senderNodeID, messageCounter)) { return(0); } // ERROR
     // Now attempt to decrypt.
     // Assumed no need to 'adjust' ID for this form of RX.
+    OTV0P2BASE::MemoryChecks::setHighRisk(3); //XXX
     const uint8_t decodeResult =_decodeSecureSmallFrameFromID(sfh,
                                                         buf, buflen,
                                                         d,
                                                         senderNodeID, OTV0P2BASE::OpenTRV_Node_ID_Bytes,
                                                         state, key,
                                                         decryptedBodyOut, decryptedBodyOutBuflen, decryptedBodyOutSize);
+    OTV0P2BASE::MemoryChecks::clearHighRisk(3); //XXX
     if(0 == decodeResult) { return(0); } // ERROR
     // Successfully decoded: update the RX message counter to avoid duplicates/replays.
     if(!updateRXMessageCountAfterAuthentication(senderNodeID, messageCounter)) { return(0); } // ERROR

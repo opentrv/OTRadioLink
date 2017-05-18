@@ -205,7 +205,8 @@ class MemoryChecks
     // 1-3: OTRadioLink_SecureableFrameType.cpp
     // 4    : OTRFM23BLink_OTRFM23BLink.cpp
     // 5    : Control.cpp
-    // 6-8 : OTSIM900Link_OTSIM900Link.h
+    // 6-8  : OTSIM900Link_OTSIM900Link.h
+    // 9-10 : OTRadioLink_SecureableFrameType_V0p2Impl.cpp
     static void recordIfMinSP(uint8_t location = 0) {
         ATOMIC_BLOCK (ATOMIC_RESTORESTATE) {
             const size_t position = getSP();
@@ -232,11 +233,11 @@ class MemoryChecks
     // Toggle tracking high risk functions
     // 0: RFM23BLink::handleInterruptSimple()*
     // 1: decodeAndHandleOTSecureableFrame()*
-    // 2: sfh.checkAndDecodeSmallFrameHeader()
-    // 3: sfh.isSecure()
-    // 4: OTV0P2BASE::getPrimaryBuilding16ByteSecretKey(key)
-    // 5: OTRadioLink::SimpleSecureFrame32or0BodyRXV0p2::getInstance().decodeSecureSmallFrameSafely()*
-    // 6: SecondaryRadio.queueToSend()
+    // 2: OTRadioLink::SimpleSecureFrame32or0BodyRXV0p2::getInstance().decodeSecureSmallFrameSafely()*
+    // 3: SimpleSecureFrame32or0BodyRXV0p2::decodeSecureSmallFrameSafely()
+    // 4: decodeSecureSmallFrameRaw()
+    // 5:
+    // 6:
     // 7:
     static inline void setHighRisk(uint8_t func) { ++highRisk[func]; }
     static inline void clearHighRisk(uint8_t func) { --highRisk[func]; }
