@@ -29,9 +29,6 @@ static bool authAndDecodeOTSecureableFrame(const uint8_t * const msg, uint8_t * 
     // This is quick and checks for insane/dangerous values throughout.
     SecurableFrameHeader sfh;
     const uint8_t l = sfh.checkAndDecodeSmallFrameHeader(msg-1, msglen+1);
-  #if 0 && defined(DEBUG)
-  if(!isOK) { DEBUG_SERIAL_PRINTLN_FLASHSTRING("!RX bad secure header"); }
-  #endif
     // If failed this early and this badly, let someone else try parsing the message buffer...
     if(0 == l) { return(false); }
 
@@ -92,71 +89,19 @@ static bool authAndDecodeOTSecureableFrame(const uint8_t * const msg, uint8_t * 
 
 }
 
-// Returns true on successful frame type match, false if no suitable frame was found/decoded and another parser should be tried.
-bool decodeAndHandleOTSecureableFrame(Print * /*p*/, const bool /*secure*/, const uint8_t * const msg, OTRadioLink &rt)
-  {
-    const uint8_t msglen = msg[-1];
-    const uint8_t firstByte = msg[0];
-
-    // Buffer for receiving secure frame body.
-    // (Non-secure frame bodies should be read directly from the frame buffer.)
-    uint8_t secBodyBuf[ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE];
-    uint8_t decryptedBodyOutSize = 0;
-
-    if(!authAndDecodeOTSecureableFrame(msg, secBodyBuf, sizeof(secBodyBuf), decryptedBodyOutSize)) return false;
-
-  // If frame still OK to process then switch on frame type.
-#if 0 && defined(DEBUG)
-DEBUG_SERIAL_PRINT_FLASHSTRING("RX seq#");
-DEBUG_SERIAL_PRINT(sfh.getSeq());
-DEBUG_SERIAL_PRINTLN();
-#endif
-
-  switch(firstByte) // Switch on type.
-    {
-#if defined(ENABLE_SECURE_RADIO_BEACON)
-#if defined(ENABLE_OTSECUREFRAME_INSECURE_RX_PERMITTED) // Allow insecure.
-    // Beacon / Alive frame, non-secure.
-    case OTRadioLink::FTS_ALIVE:
-      {
-#if 0 && defined(DEBUG)
-DEBUG_SERIAL_PRINTLN_FLASHSTRING("Beacon nonsecure");
-#endif
-      // Ignores any body data.
-      return(true);
-      }
-#endif // defined(ENABLE_OTSECUREFRAME_INSECURE_RX_PERMITTED)
-    // Beacon / Alive frame, secure.
-    case OTRadioLink::FTS_ALIVE | 0x80:
-      {
-#if 0 && defined(DEBUG)
-DEBUG_SERIAL_PRINTLN_FLASHSTRING("Beacon");
-#endif
-      // Does not expect any body data.
-      if(decryptedBodyOutSize != 0)
-        {
-#if 0 && defined(DEBUG)
-DEBUG_SERIAL_PRINT_FLASHSTRING("!Beacon data ");
-DEBUG_SERIAL_PRINT(decryptedBodyOutSize);
-DEBUG_SERIAL_PRINTLN();
-#endif
-        break;
-        }
-      return(true);
-      }
-#endif // defined(ENABLE_SECURE_RADIO_BEACON)
-
-    case 'O' | 0x80: // Basic OpenTRV secure frame...
-      {
+static bool handleOTSecurableFrame( const uint8_t * const msg, const uint8_t msglen,
+                                    const uint8_t * const decryptedBody, const uint8_t decryptedBodyLen,
+                                    OTRadioLink &rt)
+{
 #if 0 && defined(DEBUG)
 DEBUG_SERIAL_PRINTLN_FLASHSTRING("'O'");
 #endif
-      if(decryptedBodyOutSize < 2)
+      if(decryptedBodyLen < 2)
         {
 #if 1 && defined(DEBUG)
 DEBUG_SERIAL_PRINTLN_FLASHSTRING("!RX O short"); // "O' frame too short.
 #endif
-        break;
+        return false;
         }
 //#ifdef ENABLE_BOILER_HUB  // FIXME
 //      // If acting as a boiler hub
@@ -169,7 +114,7 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("!RX O short"); // "O' frame too short.
       // If the frame contains JSON stats
       // then forward entire secure frame as-is across the secondary radio relay link,
       // else print directly to console/Serial.
-      if((0 != (secBodyBuf[1] & 0x10)) && (decryptedBodyOutSize > 3) && ('{' == secBodyBuf[2]))
+      if((0 != (decryptedBody[1] & 0x10)) && (decryptedBodyLen > 3) && ('{' == decryptedBody[2]))
         {
 //#ifdef ENABLE_RADIO_SECONDARY_MODULE_AS_RELAY
         rt.queueToSend(msg, msglen);
@@ -188,6 +133,76 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("!RX O short"); // "O' frame too short.
 //#endif // ENABLE_RADIO_SECONDARY_MODULE_AS_RELAY
         }
       return(true);
+}
+
+/**
+ * @brief   Try to decode an OT style secureable frame.
+ * @param   msg: Message to decode
+ * @param   rt:  Reference to radio to relay with.
+ * @return  true on successful frame type match, false if no suitable frame was found/decoded and another parser should be tried.
+ * @note    - Secure beacon frames commented to save complexity, as not currently used by any configs.
+ *          - Some debug features commented as no longer possible with split functions.
+ */
+bool decodeAndHandleOTSecureableFrame(Print * /*p*/, const bool /*secure*/, const uint8_t * const msg, OTRadioLink &rt)
+  {
+    const uint8_t msglen = msg[-1];
+    const uint8_t firstByte = msg[0];
+
+    // Buffer for receiving secure frame body.
+    // (Non-secure frame bodies should be read directly from the frame buffer.)
+    uint8_t secBodyBuf[ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE];
+    uint8_t decryptedBodyOutSize = 0;
+
+    if(!authAndDecodeOTSecureableFrame(msg, secBodyBuf, sizeof(secBodyBuf), decryptedBodyOutSize)) {
+        return false;
+    }
+
+//  // If frame still OK to process then switch on frame type.
+//#if 0 && defined(DEBUG)
+//DEBUG_SERIAL_PRINT_FLASHSTRING("RX seq#");
+//DEBUG_SERIAL_PRINT(sfh.getSeq());
+//DEBUG_SERIAL_PRINTLN();
+//#endif
+
+  switch(firstByte) // Switch on type.
+    {
+//#if defined(ENABLE_SECURE_RADIO_BEACON)
+//#if defined(ENABLE_OTSECUREFRAME_INSECURE_RX_PERMITTED) // Allow insecure.
+//    // Beacon / Alive frame, non-secure.
+//    case OTRadioLink::FTS_ALIVE:
+//      {
+//#if 0 && defined(DEBUG)
+//DEBUG_SERIAL_PRINTLN_FLASHSTRING("Beacon nonsecure");
+//#endif
+//      // Ignores any body data.
+//      return(true);
+//      }
+//#endif // defined(ENABLE_OTSECUREFRAME_INSECURE_RX_PERMITTED)
+//    // Beacon / Alive frame, secure.
+//    case OTRadioLink::FTS_ALIVE | 0x80:
+//      {
+//#if 0 && defined(DEBUG)
+//DEBUG_SERIAL_PRINTLN_FLASHSTRING("Beacon");
+//#endif
+//      // Does not expect any body data.
+//      if(decryptedBodyOutSize != 0)
+//        {
+//#if 0 && defined(DEBUG)
+//DEBUG_SERIAL_PRINT_FLASHSTRING("!Beacon data ");
+//DEBUG_SERIAL_PRINT(decryptedBodyOutSize);
+//DEBUG_SERIAL_PRINTLN();
+//#endif
+//        break;
+//        }
+//      return(true);
+//      }
+//#endif // defined(ENABLE_SECURE_RADIO_BEACON)
+
+    case 'O' | 0x80: // Basic OpenTRV secure frame...
+      {
+          return (handleOTSecurableFrame( msg, msglen,
+                                  secBodyBuf, sizeof(secBodyBuf),
+                                  rt));
       }
 
     // Reject unrecognised type, though fall through potentially to recognise other encodings.
