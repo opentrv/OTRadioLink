@@ -18,7 +18,9 @@ namespace OTRadioLink {
  * @param   msg: message to decrypt
  * @param   outBuf: output buffer
  * @param   decryptedBodyOutSize: Size of decrypted message
+ * @param   allowInsecureRX: Allows insecure frames to be received. Defaults to false.
  */
+template <bool allowInsecureRX = false>
 static bool authAndDecodeOTSecureableFrame(const uint8_t * const msg, uint8_t * const outBuf, const uint8_t outBufSize, uint8_t &decryptedBodyOutSize)
 {
     const uint8_t msglen = msg[-1];
@@ -35,22 +37,18 @@ static bool authAndDecodeOTSecureableFrame(const uint8_t * const msg, uint8_t * 
 
     // Validate integrity of frame (CRC for non-secure, auth for secure).
     const bool secureFrame = sfh.isSecure();
-    // Body length after any decryption, etc.
-  //  uint8_t receivedBodyLength; XXX
     // TODO: validate entire message, eg including auth, or CRC if insecure msg rcvd&allowed.
-//  #if defined(ENABLE_OTSECUREFRAME_INSECURE_RX_PERMITTED) // Allow insecure.
-//    // Only bother to check insecure form (and link code to do so) if insecure RX is allowed.
-//    if(!secureFrame)
-//      {
-//      // Reject if CRC fails.
-//      if(0 == decodeNonsecureSmallFrameRaw(&sfh, msg-1, msglen+1))
-//        { isOK = false; }
-//      else
-//        { receivedBodyLength = sfh.bl; }
-//      }
-//  #else  // ENABLE_OTSECUREFRAME_INSECURE_RX_PERMITTED
-    // Only allow secure frames by default.
-    if(!secureFrame) { return (false); }
+    if(!secureFrame) {
+        if (allowInsecureRX) {
+            // Only bother to check insecure form (and link code to do so) if insecure RX is allowed.
+            // Reject if CRC fails.
+            if(0 == decodeNonsecureSmallFrameRaw(&sfh, msg-1, msglen+1))
+                { return false; }
+        } else {
+            // Decode fails
+            return (false);
+        }
+    }
 //  #endif  // ENABLE_OTSECUREFRAME_INSECURE_RX_PERMITTED
     // Validate (authenticate) and decrypt body of secure frames.
     uint8_t key[16];
