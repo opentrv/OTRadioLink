@@ -619,7 +619,7 @@ const uint8_t StandardRegSettingsOOK5000[][2] PROGMEM =
    { 0x23, 0x74 }, //  0xae   R/W - Clock Recovery Offset 0:
    { 0x24, 0x00 }, //  0x02   R/W - Clock Recovery Timing Loop Gain 1:
    { 0x25, 0xdc }, //  0x8f   R/W - Clock Recovery Timing Loop Gain 0:
-//   0x26,  N/A         --     R  - Received Signal Strenght Indicator:
+//   0x26,  N/A         --     R  - Received Signal Strength Indicator:
    { 0x27, 0x1e }, //  0x1e   R/W - RSSI Threshold for Clear Channel Indicator:
 //   0x28,  N/A         --     R  - Antenna Diversity Register 1:
 //   0x29,  N/A         --     R  - Antenna Diversity Register 2:
@@ -634,7 +634,7 @@ const uint8_t StandardRegSettingsOOK5000[][2] PROGMEM =
    { 0x32, 0x0c }, //  0x0c   R/W - Header Control 1:
    { 0x33,    6 }, //  0x22   R/W - Header Control 2:                    4 bytes syn, no header
    { 0x34, 0x08 }, //  0x08   R/W - Preamble Length:                    32 bit preamble preamble
-   { 0x35, 0x10 }, //  0x2a   R/W - Preamble Detection Control:          8 bit preabmle detection
+   { 0x35, 0x10 }, //  0x2a   R/W - Preamble Detection Control:          8 bit preamble detection
    { 0x36, 0xaa }, //  0x2d   R/W - Sync Word 3:
    { 0x37, 0xcc }, //  0xd4   R/W - Sync Word 2:
    { 0x38, 0xcc }, //  0x00   R/W - Sync Word 1:
@@ -660,7 +660,7 @@ const uint8_t StandardRegSettingsOOK5000[][2] PROGMEM =
 //   0x4c-0x4e                      RESERVED
    { 0x4F, 0x10 }, //  0x10   R/W - ADC8 Control:
 //   0x50-0x5f                      RESERVED
-   { 0x60, 0xa0 }, //  0xa0   R/W - Channel Filter Coecfficient Address:
+   { 0x60, 0xa0 }, //  0xa0   R/W - Channel Filter Coefficient Address:
 //   0x61,  N/A                     RESERVED
    { 0x62, 0x24 }, //  0x24   R/W - Crystal Oscillator/Power-on-Reset Control
 //   0x63-0x68                      RESERVED
@@ -732,7 +732,7 @@ const uint8_t StandardRegSettingsGFSK57600[][2] PROGMEM =
    { 0x23, 0xdc }, //  0xae   R/W - Clock Recovery Offset 0:
    { 0x24, 0x07 }, //  0x02   R/W - Clock Recovery Timing Loop Gain 1:
    { 0x25, 0x6e }, //  0x8f   R/W - Clock Recovery Timing Loop Gain 0:
-//   0x26,  N/A         --     R  - Received Signal Strenght Indicator:
+//   0x26,  N/A         --     R  - Received Signal Strength Indicator:
    { 0x27, 0x1e }, //  0x1e   R/W - RSSI Threshold for Clear Channel Indicator:
 //   0x28,  N/A         --     R  - Antenna Diversity Register 1:
 //   0x29,  N/A         --     R  - Antenna Diversity Register 2:
@@ -747,7 +747,7 @@ const uint8_t StandardRegSettingsGFSK57600[][2] PROGMEM =
    { 0x32, 0x00 }, //  0x0c   R/W - Header Control 1:                    No header = 0x00
    { 0x33,    2 }, //  0x22   R/W - Header Control 2:                    2 bytes syn, no header
    { 0x34, 0x0a }, //  0x08   R/W - Preamble Length:                    40 bit preamble preamble
-   { 0x35, 0x2a }, //  0x2a   R/W - Preamble Detection Control:         20 bit preabmle detection
+   { 0x35, 0x2a }, //  0x2a   R/W - Preamble Detection Control:         20 bit preamble detection
    { 0x36, 0x2d }, //  0x2d   R/W - Sync Word 3:
    { 0x37, 0xd4 }, //  0xd4   R/W - Sync Word 2:
    { 0x38,    0 }, //  0x00   R/W - Sync Word 1:
@@ -773,7 +773,7 @@ const uint8_t StandardRegSettingsGFSK57600[][2] PROGMEM =
 //   0x4c-0x4E                      RESERVED
    { 0x4f, 0x10 }, //  0x10   R/W - ADC8 Control:
 //   0x50-0x5f                      RESERVED
-   { 0x60, 0xa0 }, //  0xa0   R/W - Channel Filter Coecfficient Address:
+   { 0x60, 0xa0 }, //  0xa0   R/W - Channel Filter Coefficient Address:
 //   0x61,  N/A                     RESERVED
    { 0x62, 0x24 }, //  0x24   R/W - Crystal Oscillator/Power-on-Reset Control
 //   0x63-0x68                      RESERVED
@@ -847,7 +847,7 @@ const uint8_t StandardRegSettingsJeeLabs[][2] PROGMEM =
    { 0x23, 0x08 }, //  0xae   R/W - Clock Recovery Offset 0:
    { 0x24, 0x01 }, //  0x02   R/W - Clock Recovery Timing Loop Gain 1:
    { 0x25, 0x28 }, //  0x8f   R/W - Clock Recovery Timing Loop Gain 0:
-//   0x26,  N/A         --     R  - Received Signal Strenght Indicator:
+//   0x26,  N/A         --     R  - Received Signal Strength Indicator:
    { 0x27, 0x1e }, //  0x1e   R/W - RSSI Threshold for Clear Channel Indicator:
 //   0x28,  N/A         --     R  - Antenna Diversity Register 1:
 //   0x29,  N/A         --     R  - Antenna Diversity Register 2:
@@ -862,7 +862,7 @@ const uint8_t StandardRegSettingsJeeLabs[][2] PROGMEM =
    { 0x32, 0x00 }, //  0x0c   R/W - Header Control 1:                    No header = 0x00
    { 0x33, 8    }, //  0x22   R/W - Header Control 2:                   fix packet length, 1 byte syn, no header
    { 0x34, 0x06 }, //  0x08   R/W - Preamble Length:                    24 bit preamble preamble
-   { 0x35, 0x22 }, //  0x2a   R/W - Preamble Detection Control:         16 bit preabmle detection
+   { 0x35, 0x22 }, //  0x2a   R/W - Preamble Detection Control:         16 bit preamble detection
    { 0x36, 0x2d }, //  0x2d   R/W - Sync Word 3:
    { 0x37, 0xd4 }, //  0xd4   R/W - Sync Word 2:
    { 0x38,    0 }, //  0x00   R/W - Sync Word 1:
@@ -888,7 +888,7 @@ const uint8_t StandardRegSettingsJeeLabs[][2] PROGMEM =
 //   0x4c-0x4E                      RESERVED
    { 0x4f, 0x10 }, //  0x10   R/W - ADC8 Control:
 //   0x50-0x5f                      RESERVED
-   { 0x60, 0xa0 }, //  0xa0   R/W - Channel Filter Coecfficient Address:
+   { 0x60, 0xa0 }, //  0xa0   R/W - Channel Filter Coefficient Address:
 //   0x61,  N/A                     RESERVED
    { 0x62, 0x24 }, //  0x24   R/W - Crystal Oscillator/Power-on-Reset Control
 //   0x63-0x68                      RESERVED
