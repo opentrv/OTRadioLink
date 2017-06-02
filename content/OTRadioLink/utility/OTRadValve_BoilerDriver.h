@@ -36,7 +36,10 @@ namespace OTRadValve
 
 /**
  * @param   outHeatCall: Pin to call for heat on.
- * @param   isRadValve: Unit is controlling a rad valve (local or remote). Not implemented as it shouldn't be necessary.
+ * @param   isRadValve: Unit is controlling a rad valve (local or remote).
+ * @note    (DE20170602) Removed support for:
+ *          - case where unit is a boilerhub controller and also a TRV.
+ *          - dealing with ID of caller for heat (was redundant in old implementation anyway).
  */
 template<uint8_t outHeatCall, bool isRadValve = false>
 class BoilerCallForHeat
@@ -44,12 +47,8 @@ class BoilerCallForHeat
 private:
     // Set true on receipt of plausible call for heat,
     // to be polled, evaluated and cleared by the main control routine.
-    // Marked volatile to allow thread-safe lock-free access.
+    // Atomic to allow thread-safe lock-free access.
     volatile OTV0P2BASE::OTAtomic_t<bool> callForHeatRX;
-    // ID of remote caller-for-heat; only valid if receivedCallForHeat is true.
-    // Marked volatile to allow access from an ISR,
-    // but note that access may only be safe with interrupts disabled as not a byte value.
-    volatile uint16_t receivedCallForHeatID;
 
     // Minutes that the boiler has been off for, allowing minimum off time to be enforced.
     // Does not roll once at its maximum value (255).
@@ -67,22 +66,14 @@ private:
     // Used in hub mode only.
     uint16_t boilerCountdownTicks;
 
-    // True if call for heat is received.
-    inline bool isCallForHeatRXed() { return callForHeatRX.load(); }
-    inline void setCallForHeatRXed(const bool callForHeat) { callForHeatRX.store(callForHeat); }
-    // ID of remote caller-for-heat; only valid if isCallForHeatRXed is true.
-    // Access may only be safe with interrupts disabled as not a byte value.
-    inline uint16_t getCallForHeatID() { return receivedCallForHeatID; }
-
     // Default minimum on/off time in minutes for the boiler relay.
     // Set to 5 as the default valve Tx cycle is 4 mins and 5 mins is a good amount for most boilers.
     // This constant is necessary as if V0P2BASE_EE_START_MIN_BOILER_ON_MINS_INV is not set, the boiler relay will never be turned on.
     static const constexpr uint8_t DEFAULT_MIN_BOILER_ON_MINS = 5;
-
 #ifdef ARDUINO_ARCH_AVR
     // Set minimum on (and off) time for pointer (minutes); zero to disable hub mode.
     // Suggested minimum of 4 minutes for gas combi; much longer for heat pumps for example.
-    void setMinBoilerOnMinutes(uint8_t mins) { OTV0P2BASE::eeprom_smart_update_byte((uint8_t *)V0P2BASE_EE_START_MIN_BOILER_ON_MINS_INV, ~(mins)); }
+    void setMinBoilerOnMinutes(uint8_t mins) { OTV0P2BASE::eeprom_smart_update_byte((uint8_t *)V0P2BASE_EE_START_MIN_BOILER_ON_MINS_INV, ~(mins)); }  // FIXME seens to be unused! (DE20170602)
     // Get minimum on (and off) time for pointer (minutes); zero if not in hub mode.
     uint8_t getMinBoilerOnMinutes() { return(~eeprom_read_byte((uint8_t *)V0P2BASE_EE_START_MIN_BOILER_ON_MINS_INV)); }
 #else // ARDUINO_ARCH_AVR
@@ -104,7 +95,7 @@ private:
     }
 
 public:
-    BoilerCallForHeat() : callForHeatRX(false), receivedCallForHeatID(0), boilerNoCallM(0), boilerCountdownTicks(0) {}
+    BoilerCallForHeat() : callForHeatRX(false), boilerNoCallM(0), boilerCountdownTicks(0) {}
 
     // True if boiler should be on.
     inline bool isBoilerOn() { return(0 != boilerCountdownTicks); }
@@ -115,8 +106,8 @@ public:
     // that is is not, or has stopped, calling for heat (eg instead of replying on a timeout).
     // This is not filtered, and can be delivered at any time from RX data, from a non-ISR thread.
     // Does not have to be thread-/ISR- safe.
-    void remoteCallForHeatRX(const uint16_t id, const uint8_t percentOpen,
-                             const uint8_t minuteCount)
+    // Note: callForHeat ID functionality disabled as unused anyway. API is preserved. (DE20170602)
+    void remoteCallForHeatRX(const uint16_t /*id*/, const uint8_t percentOpen, const uint8_t minuteCount)
     {
         // TODO: Should be filtering first by housecode
         // then by individual and tracked aggregate valve-open percentage.
@@ -164,8 +155,8 @@ public:
 
         if(percentOpen >= threshold) {
         // && FHT8VHubAcceptedHouseCode(command.hc1, command.hc2))) // Accept if house code OK.
-            callForHeatRX.store(true); // FIXME
-            receivedCallForHeatID = id;
+            callForHeatRX.store(true);
+//           callForHeatID = id;  // Disabled functionality.
         }
     }
 
