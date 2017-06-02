@@ -156,7 +156,6 @@ public:
         if(percentOpen >= threshold) {
         // && FHT8VHubAcceptedHouseCode(command.hc1, command.hc2))) // Accept if house code OK.
             callForHeatRX.store(true);
-//           callForHeatID = id;  // Disabled functionality.
         }
     }
 

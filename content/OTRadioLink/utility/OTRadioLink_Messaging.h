@@ -127,14 +127,15 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("!RX O short"); // "O' frame too short.
           if (enableRadioRelay) {
               rt.queueToSend(msg, msglen);
           } else {
-              // TODO JSON output not implemented yet.
+              // XXX Feel like this should be moved somewhere else.
+//              // TODO JSON output not implemented yet.
 //            // Write out the JSON message, inserting synthetic ID/@ and seq/+.
 //            Serial.print(F("{\"@\":\""));
 //            for(int i = 0; i < OTV0P2BASE::OpenTRV_Node_ID_Bytes; ++i) { Serial.print(senderNodeID[i], HEX); }
 //            Serial.print(F("\",\"+\":"));
 //            Serial.print(sfh.getSeq());
 //            Serial.print(',');
-//            Serial.write(secBodyBuf + 3, decryptedBodyOutSize - 3);
+//            Serial.write(decryptedBody + 3, decryptedBodyLen - 3);
 //            Serial.println('}');
 //            // OTV0P2BASE::outputJSONStats(&Serial, secure, msg, msglen);
 //            // Attempt to ensure that trailing characters are pushed out fully.
