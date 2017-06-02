@@ -34,10 +34,14 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 namespace OTRadValve
     {
 
+/**
+ * @param   outHeatCall: Pin to call for heat on.
+ * @param   isRadValve: Unit is controlling a rad valve (local or remote).
+ */
+template<uint8_t outHeatCall, bool isRadValve = false>
 class BoilerCallForHeat
 {
 private:
-    static constexpr uint8_t outHeatCall = 1; // XXX template this! should be OUT_HEATCALL
     // Set true on receipt of plausible call for heat,
     // to be polled, evaluated and cleared by the main control routine.
     // Marked volatile to allow thread-safe lock-free access.
@@ -68,6 +72,19 @@ private:
     // Get minimum on (and off) time for pointer (minutes); zero if not in hub mode.
     uint8_t getMinBoilerOnMinutes() { return(~eeprom_read_byte((uint8_t *)V0P2BASE_EE_START_MIN_BOILER_ON_MINS_INV)); }
 //    #endif
+
+
+    // Get minimum valve open value.
+    // FIXME work out how to deal with true case.
+    inline uint8_t getMinValveReallyOpen() {
+        constexpr uint8_t default_minimum = OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN;
+//        if (isRadValve) {
+//            return OTV0P2BASE::fnmax(default_minimum, rv.getMinValvePcReallyOpen());
+//        } else {
+//            return default_minimum;
+//        }
+        return default_minimum;
+    }
 
 public:
     // Minutes that the boiler has been off for, allowing minimum off time to be enforced.
@@ -111,12 +128,7 @@ public:
         // Somewhat higher than typical per-valve minimum,
         // to help provide boiler with an opportunity to dump heat before switching off.
         // May be too high to respond to valves with restricted max-open / range.
-        const uint8_t default_minimum = OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN;
-//#ifdef ENABLE_NOMINAL_RAD_VALVE  // XXX
-//        const uint8_t minvro = OTV0P2BASE::fnmax(default_minimum, rv.getMinValvePcReallyOpen());
-//#else
-        const uint8_t minvro = default_minimum;
-//#endif
+        const uint8_t minvro = getMinValveReallyOpen();
 
         // TODO-553: after over an hour of continuous boiler running
         // raise the percentage threshold to successfully call for heat (for a while).
@@ -150,7 +162,7 @@ public:
         // to allow quick start from a range of devices (TODO-593)
         // and in the face of imperfect rounding/conversion to/from percentages over the air.
         const uint8_t threshold = (!considerPause && (encourageOn || isBoilerOn())) ?
-          minvro : OTV0P2BASE::fnmax(minvro, (uint8_t) (OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN-1));
+            minvro : OTV0P2BASE::fnmax(minvro, (uint8_t) (OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN-1));
 
         if(percentOpen >= threshold) {
         // && FHT8VHubAcceptedHouseCode(command.hc1, command.hc2))) // Accept if house code OK.
@@ -235,12 +247,10 @@ public:
 
         // Set BOILER_OUT as appropriate for calls for heat.
         // Local calls for heat come via the same route (TODO-607).
-//        OTV0P2BASE::fastDigitalWrite(OUT_HEATCALL, (isBoilerOn() ? HIGH : LOW));
-        fastDigitalWrite(outHeatCall, (isBoilerOn() ? 1 : 0));
+        fastDigitalWrite(outHeatCall, (isBoilerOn() ? HIGH : LOW));
         }
         // Force boiler off when not in hub mode.
-//        else { OTV0P2BASE::fastDigitalWrite(OUT_HEATCALL, LOW); }
-        else { fastDigitalWrite(outHeatCall, 0); }
+        else { fastDigitalWrite(outHeatCall, LOW); }
     }
 };
 
