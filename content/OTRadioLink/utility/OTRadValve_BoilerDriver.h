@@ -34,6 +34,96 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 namespace OTRadValve
     {
 
+// Ticks until locally-controlled boiler should be turned off; boiler should be on while this is positive.
+// Ticks are of the main loop, ie 2s (almost always).
+// Used in hub mode only.
+static uint16_t boilerCountdownTicks;
+// True if boiler should be on.
+static bool isBoilerOn() { return(0 != boilerCountdownTicks); }
+// Minutes that the boiler has been off for, allowing minimum off time to be enforced.
+// Does not roll once at its maximum value (255).
+// DHD20160124: starting at zero forces at least for off time after power-up before firing up boiler (good after power-cut).
+static uint8_t boilerNoCallM;
+// Reducing listening if quiet for a while helps reduce self-heating temperature error
+// (~2C as of 2013/12/24 at 100% RX, ~100mW heat dissipation in V0.2 REV1 box) and saves some energy.
+// Time thresholds could be affected by eco/comfort switch.
+//#define RX_REDUCE_MIN_M 20 // Minimum minutes quiet before considering reducing RX duty cycle listening for call for heat; [1--255], 10--60 typical.
+// IF DEFINED then give backoff threshold to minimise duty cycle.
+//#define RX_REDUCE_MAX_M 240 // Minutes quiet before considering maximally reducing RX duty cycle; ]RX_REDUCE_MIN_M--255], 30--240 typical.
+
+// Set true on receipt of plausible call for heat,
+// to be polled, evaluated and cleared by the main control routine.
+// Marked volatile to allow thread-safe lock-free access.
+static volatile bool receivedCallForHeat;
+// ID of remote caller-for-heat; only valid if receivedCallForHeat is true.
+// Marked volatile to allow access from an ISR,
+// but note that access may only be safe with interrupts disabled as not a byte value.
+static volatile uint16_t receivedCallForHeatID;
+
+// Raw notification of received call for heat from remote (eg FHT8V) unit.
+// This form has a 16-bit ID (eg FHT8V housecode) and percent-open value [0,100].
+// Note that this may include 0 percent values for a remote unit explicitly confirming
+// that is is not, or has stopped, calling for heat (eg instead of replying on a timeout).
+// This is not filtered, and can be delivered at any time from RX data, from a non-ISR thread.
+// Does not have to be thread-/ISR- safe.
+void remoteCallForHeatRX(const uint16_t id, const uint8_t percentOpen)
+  {
+  // TODO: Should be filtering first by housecode
+  // then by individual and tracked aggregate valve-open percentage.
+  // Only individual valve levels used here; no state is retained.
+
+  // Normal minimum single-valve percentage open that is not ignored.
+  // Somewhat higher than typical per-valve minimum,
+  // to help provide boiler with an opportunity to dump heat before switching off.
+  // May be too high to respond to valves with restricted max-open / range.
+  const uint8_t default_minimum = OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN;
+#ifdef ENABLE_NOMINAL_RAD_VALVE
+  const uint8_t minvro = OTV0P2BASE::fnmax(default_minimum, NominalRadValve.getMinValvePcReallyOpen());
+#else
+  const uint8_t minvro = default_minimum;
+#endif
+
+  // TODO-553: after over an hour of continuous boiler running
+  // raise the percentage threshold to successfully call for heat (for a while).
+  // The aim is to allow a (combi) boiler to have reached maximum efficiency
+  // and to have potentially made a significant difference to room temperature
+  // but then turn off for a short while if demand is a little lower
+  // to allow it to run a little harder/better when turned on again.
+  // Most combis have power far higher than needed to run rads at full blast
+  // and have only limited ability to modulate down,
+  // so may end up cycling anyway while running the circulation pump if left on.
+  // Modelled on DHD habit of having many 15-minute boiler timer segments
+  // in 'off' period even during the day for many many years!
+  //
+  // Note: could also consider pause if mains frequency is low indicating grid stress.
+  const uint8_t boilerCycleWindowMask = 0x3f;
+  const uint8_t boilerCycleWindow = (minuteCount & boilerCycleWindowMask);
+  const bool considerPause = (boilerCycleWindow < (boilerCycleWindowMask >> 2));
+
+  // Equally the threshold could be lowered in the period after a possible pause (TODO-593, TODO-553)
+  // to encourage the boiler to start and run harder
+  // and to get a little closer to target temperatures.
+  const bool encourageOn = !considerPause && (boilerCycleWindow < (boilerCycleWindowMask >> 1));
+
+  // TODO-555: apply some basic hysteresis to help reduce boiler short-cycling.
+  // Try to force a higher single-valve-%age threshold to start boiler if off,
+  // at a level where at least a single valve is moderately open.
+  // Selecting "quick heat" at a valve should immediately pass this,
+  // as should normal warm in cold but newly-occupied room (TODO-593).
+  // (This will not provide hysteresis for very high minimum really-open valve values.)
+  // Be slightly tolerant with the 'moderately open' threshold
+  // to allow quick start from a range of devices (TODO-593)
+  // and in the face of imperfect rounding/conversion to/from percentages over the air.
+  const uint8_t threshold = (!considerPause && (encourageOn || isBoilerOn())) ?
+      minvro : OTV0P2BASE::fnmax(minvro, (uint8_t) (OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN-1));
+
+  if(percentOpen >= threshold)
+    // && FHT8VHubAcceptedHouseCode(command.hc1, command.hc2))) // Accept if house code OK.
+    {
+    receivedCallForHeat = true; // FIXME
+    receivedCallForHeatID = id;
+    }
+  }
 
 //// Smarter logic for simple on/off boiler output, fully testable.
 //class OnOffBoilerDriverLogic
