@@ -13,6 +13,7 @@
 #include "OTRadioLink_SecureableFrameType.h"
 #include "OTRadioLink_SecureableFrameType_V0p2Impl.h"
 
+#include "OTRadValve_BoilerDriver.h"
 #include "OTRadioLink_OTRadioLink.h"
 
 namespace OTRadioLink
@@ -93,10 +94,11 @@ static bool authAndDecodeOTSecureableFrame(const uint8_t * const msg, uint8_t * 
 
 }
 
-template<bool enableRadioRelay = false>
+template<typename bh_t, bool enableBoilerHub = false, bool enableRadioRelay = false>
 static bool handleOTSecurableFrame( const uint8_t * const msg, const uint8_t msglen,
                                     const uint8_t * const decryptedBody, const uint8_t decryptedBodyLen,
-                                    OTRadioLink &rt)
+                                    const uint8_t minuteCount,
+                                    bh_t &bh, OTRadioLink &rt)
 {
 #if 0 && defined(DEBUG)
 DEBUG_SERIAL_PRINTLN_FLASHSTRING("'O'");
@@ -108,14 +110,16 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("!RX O short"); // "O' frame too short.
 #endif
         return false;
         }
-//#ifdef ENABLE_BOILER_HUB  // FIXME
-//      // If acting as a boiler hub
-//      // then extract the valve %age and pass to boiler controller
-//      // but use only if valid.
-//      // Ignore explicit call-for-heat flag for now.
-//      const uint8_t percentOpen = secBodyBuf[0];
-//      if(percentOpen <= 100) { remoteCallForHeatRX(0, percentOpen); } // TODO call for heat valve id not passed in.
-//#endif
+
+      // If acting as a boiler hub
+      // then extract the valve %age and pass to boiler controller
+      // but use only if valid.
+      // Ignore explicit call-for-heat flag for now.
+      if (enableBoilerHub) {
+          const uint8_t percentOpen = decryptedBody[0];
+          if(percentOpen <= 100) { bh.remoteCallForHeatRX(0, percentOpen, minuteCount); } // TODO call for heat valve id not passed in.
+      }
+
       // If the frame contains JSON stats
       // then forward entire secure frame as-is across the secondary radio relay link,
       // else print directly to console/Serial.
@@ -147,8 +151,10 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("!RX O short"); // "O' frame too short.
  * @return  true on successful frame type match, false if no suitable frame was found/decoded and another parser should be tried.
  * @note    - Secure beacon frames commented to save complexity, as not currently used by any configs.
  */
-template<bool allowInsecureRX = false, bool enableRadioRelay = false>
-bool decodeAndHandleOTSecureableFrame(Print * /*p*/, const bool /*secure*/, const uint8_t * const msg, OTRadioLink &rt)
+template<typename bh_t, bool enableBoilerHub = false, bool allowInsecureRX = false, bool enableRadioRelay = false>
+bool decodeAndHandleOTSecureableFrame(Print * /*p*/, const bool /*secure*/, const uint8_t * const msg,
+                                      const uint8_t minuteCount,
+                                      bh_t &bh, OTRadioLink &rt)
   {
     const uint8_t msglen = msg[-1];
     const uint8_t firstByte = msg[0];
@@ -198,9 +204,10 @@ bool decodeAndHandleOTSecureableFrame(Print * /*p*/, const bool /*secure*/, cons
 
     case 'O' | 0x80: // Basic OpenTRV secure frame...
       {
-          return (handleOTSecurableFrame<enableRadioRelay>(msg, msglen,
-                                                           secBodyBuf, sizeof(secBodyBuf),
-                                                           rt));
+          return (handleOTSecurableFrame<bh_t, enableBoilerHub, enableRadioRelay>(msg, msglen,
+                                                                                   secBodyBuf, sizeof(secBodyBuf),
+                                                                                   minuteCount,
+                                                                                   bh, rt));
       }
 
     // Reject unrecognised type, though fall through potentially to recognise other encodings.
