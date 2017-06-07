@@ -27,13 +27,13 @@ namespace OTRadioLink
  * @param   allowInsecureRX: Allows insecure frames to be received. Defaults to false.
  */
 template <bool allowInsecureRX = false>
-static bool authAndDecodeOTSecureableFrame(const uint8_t * const msg, uint8_t * const outBuf, const uint8_t outBufSize, uint8_t &decryptedBodyOutSize)
+static bool authAndDecodeOTSecureableFrame(const uint8_t * const msg, uint8_t * const outBuf,
+                                           const uint8_t outBufSize, uint8_t &decryptedBodyOutSize)
 {
     const uint8_t msglen = msg[-1];
-
+    SecurableFrameHeader sfh;
     // Validate structure of header/frame first.
     // This is quick and checks for insane/dangerous values throughout.
-    SecurableFrameHeader sfh;
     const uint8_t l = sfh.checkAndDecodeSmallFrameHeader(msg-1, msglen+1);
     // If failed this early and this badly, let someone else try parsing the message buffer...
     if(0 == l) { return(false); }
@@ -95,11 +95,12 @@ static bool authAndDecodeOTSecureableFrame(const uint8_t * const msg, uint8_t * 
 }
 
 template<typename bh_t, bool enableBoilerHub = false, bool enableRadioRelay = false>
-static bool handleOTSecurableFrame( const uint8_t * const msg, const uint8_t msglen,
+static bool handleOTSecurableFrame( Print *p, const uint8_t * const msg,
                                     const uint8_t * const decryptedBody, const uint8_t decryptedBodyLen,
                                     const uint8_t minuteCount,
                                     bh_t &bh, OTRadioLink &rt)
 {
+    const uint8_t msglen = msg[-1];
 #if 0 && defined(DEBUG)
 DEBUG_SERIAL_PRINTLN_FLASHSTRING("'O'");
 #endif
@@ -128,18 +129,18 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("!RX O short"); // "O' frame too short.
               rt.queueToSend(msg, msglen);
           } else {
               // XXX Feel like this should be moved somewhere else.
-//              // TODO JSON output not implemented yet.
-//            // Write out the JSON message, inserting synthetic ID/@ and seq/+.
-//            Serial.print(F("{\"@\":\""));
-//            for(int i = 0; i < OTV0P2BASE::OpenTRV_Node_ID_Bytes; ++i) { Serial.print(senderNodeID[i], HEX); }
-//            Serial.print(F("\",\"+\":"));
-//            Serial.print(sfh.getSeq());
-//            Serial.print(',');
-//            Serial.write(decryptedBody + 3, decryptedBodyLen - 3);
-//            Serial.println('}');
-//            // OTV0P2BASE::outputJSONStats(&Serial, secure, msg, msglen);
-//            // Attempt to ensure that trailing characters are pushed out fully.
-//            OTV0P2BASE::flushSerialProductive();
+              // TODO JSON output not implemented yet.
+            // Write out the JSON message, inserting synthetic ID/@ and seq/+.
+//            p->print(F("{\"@\":\""));
+//            for(int i = 0; i < OTV0P2BASE::OpenTRV_Node_ID_Bytes; ++i) { p->print(senderNodeID[i], HEX); }
+//            p->print(F("\",\"+\":"));
+//            p->print(sfh.getSeq());
+//            p->print(',');
+            p->write(decryptedBody + 3, decryptedBodyLen - 3);
+            p->println('}');
+            // OTV0P2BASE::outputJSONStats(&Serial, secure, msg, msglen);
+            // Attempt to ensure that trailing characters are pushed out fully.
+            OTV0P2BASE::flushSerialProductive();
           }
       }
       return(true);
@@ -153,11 +154,10 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("!RX O short"); // "O' frame too short.
  * @note    - Secure beacon frames commented to save complexity, as not currently used by any configs.
  */
 template<typename bh_t, bool enableBoilerHub = false, bool allowInsecureRX = false, bool enableRadioRelay = false>
-bool decodeAndHandleOTSecureableFrame(Print * /*p*/, const bool /*secure*/, const uint8_t * const msg,
+bool decodeAndHandleOTSecureableFrame(Print * p, const bool /*secure*/, const uint8_t * const msg,
                                       const uint8_t minuteCount,
                                       bh_t &bh, OTRadioLink &rt)
   {
-    const uint8_t msglen = msg[-1];
     const uint8_t firstByte = msg[0];
 
     // Buffer for receiving secure frame body.
@@ -205,10 +205,10 @@ bool decodeAndHandleOTSecureableFrame(Print * /*p*/, const bool /*secure*/, cons
 
     case 'O' | 0x80: // Basic OpenTRV secure frame...
       {
-          return (handleOTSecurableFrame<bh_t, enableBoilerHub, enableRadioRelay>(msg, msglen,
-                                                                                   secBodyBuf, sizeof(secBodyBuf),
-                                                                                   minuteCount,
-                                                                                   bh, rt));
+          return (handleOTSecurableFrame<bh_t, enableBoilerHub, enableRadioRelay>(p, msg, msglen,
+                                                                                  secBodyBuf, sizeof(secBodyBuf),
+                                                                                  minuteCount,
+                                                                                  bh, rt));
       }
 
     // Reject unrecognised type, though fall through potentially to recognise other encodings.
@@ -218,6 +218,7 @@ bool decodeAndHandleOTSecureableFrame(Print * /*p*/, const bool /*secure*/, cons
   // Failed to parse; let another handler try.
   return(false);
   }
+
 
 }
 
