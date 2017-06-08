@@ -8,41 +8,19 @@
 #ifndef UTILITY_OTRADIOLINK_MESSAGINGFS20_H_
 #define UTILITY_OTRADIOLINK_MESSAGINGFS20_H_
 
+
+// FS20 stubs
+template<typename h1_t, h1_t &h1, uint8_t frameType1>
+static bool decodeAndHandleFS20Frame(const uint8_t * const /*msg*/)
+{
+    return(false);
+}
+
+
+
+
 // Copied from Messaging.cpp to preserve FS20 messaging code.
 
-
-//#if defined(ENABLE_RFM23B_FS20_RAW_PREAMBLE)
-//// Send the underlying stats binary/text 'whitened' message.
-//// This must be terminated with an 0xff (which is not sent),
-//// and no longer than STATS_MSG_MAX_LEN bytes long in total (excluding the terminating 0xff).
-//// This must not contain any 0xff and should not contain long runs of 0x00 bytes.
-//// The message to be sent must be written at an offset of STATS_MSG_START_OFFSET from the start of the buffer.
-//// This routine will alter the content of the buffer for transmission,
-//// and the buffer should not be re-used as is.
-////   * doubleTX  double TX to increase chance of successful reception
-////   * RFM23BfriendlyPremable  if true then add an extra preamble
-////     to allow RFM23B-based receiver to RX this
-//// This will use whichever transmission medium/carrier/etc is available.
-//void RFM22RawStatsTXFFTerminated(uint8_t * const buf, const bool doubleTX, bool RFM23BFramed)
-//  {
-//  if(RFM23BFramed) RFM22RXPreambleAdd(buf);     // Only needed for RFM23B. This should be made more clear when refactoring
-//  const uint8_t buflen = OTRadioLink::frameLenFFTerminated(buf);
-//#if 0 && defined(DEBUG)
-//    DEBUG_SERIAL_PRINT_FLASHSTRING("buflen=");
-//    DEBUG_SERIAL_PRINT(buflen);
-//    DEBUG_SERIAL_PRINTLN();
-//#endif // DEBUG
-//  if(!PrimaryRadio.queueToSend(buf, buflen, 0, (doubleTX ? OTRadioLink::OTRadioLink::TXmax : OTRadioLink::OTRadioLink::TXnormal)))
-//    {
-//#if 0 && defined(DEBUG)
-//    DEBUG_SERIAL_PRINTLN_FLASHSTRING("!TX failed");
-//#endif
-//    } // DEBUG
-//  //DEBUG_SERIAL_PRINTLN_FLASHSTRING("RS");
-//  }
-//#endif // defined(ENABLE_RFM23B_FS20_RAW_PREAMBLE)
-//
-//
 //#if defined(ENABLE_RADIO_RX) && defined(ENABLE_FHT8VSIMPLE_RX) // (defined(ENABLE_BOILER_HUB) || defined(ENABLE_STATS_RX)) && defined(ENABLE_FS20_NATIVE_AND_BINARY_STATS_RX) // Listen for calls for heat from remote valves...
 //// Handle FS20/FHT8V traffic including binary stats.
 //// Returns true on success, false otherwise.

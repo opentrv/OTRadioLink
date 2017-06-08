@@ -386,10 +386,13 @@ static void decodeAndHandleRawRXedMessage(const uint8_t * const msg)
                                        h2_t, h2, frameType2,
                                        allowInsecureRX>
                                        (msg)) { return; }
-  return;
+    return;
 }
 
-
+/**
+ * @brief   Abstract interface for handling message queues.
+ *          Provided as V0p2 is still spagetti (20170608).
+ */
 class OTMessageQueueHandlerBase {
 public:
     virtual bool handle(bool /*wakeSerialIfNeeded*/, OTRadioLink */*rl*/) { return false; };
@@ -524,7 +527,7 @@ public:
         return(workDone);
     }
 };
-#endif ARDUINO_ARCH_AVR
+#endif // ARDUINO_ARCH_AVR
 
 }
 #endif /* UTILITY_OTRADIOLINK_MESSAGING_H_ */
