@@ -115,7 +115,7 @@ bool handleOTSecureFrame(const uint8_t *const msg,
 }
 template <typename h1_t, h1_t &h1, uint8_t frameType1,
           typename h2_t, h2_t &h2, uint8_t frameType2>
-bool handleOTSecureFrame2(const uint8_t *const msg,
+bool handleOTSecureFrame(const uint8_t *const msg,
                           const uint8_t *const decryptedBody,
                           const uint8_t decryptedBodyLen)
 {
@@ -274,7 +274,7 @@ static bool decodeAndHandleOTSecurableFrame(const uint8_t * const msg)
 template<typename h1_t, h1_t &h1, uint8_t frameType1,
          typename h2_t, h2_t &h2, uint8_t frameType2,
          bool allowInsecureRX = false>
-static bool decodeAndHandleOTSecurableFrame2(const uint8_t * const msg)
+static bool decodeAndHandleOTSecurableFrame(const uint8_t * const msg)
 {
     const uint8_t firstByte = msg[0];
 
@@ -289,41 +289,9 @@ static bool decodeAndHandleOTSecurableFrame2(const uint8_t * const msg)
 
     switch(firstByte) // Switch on type.
     {
-        //#if defined(ENABLE_SECURE_RADIO_BEACON)
-        //#if defined(ENABLE_OTSECUREFRAME_INSECURE_RX_PERMITTED) // Allow insecure.
-        //    // Beacon / Alive frame, non-secure.
-        //    case OTRadioLink::FTS_ALIVE:
-        //      {
-        //#if 0 && defined(DEBUG)
-        //DEBUG_SERIAL_PRINTLN_FLASHSTRING("Beacon nonsecure");
-        //#endif
-        //      // Ignores any body data.
-        //      return(true);
-        //      }
-        //#endif // defined(ENABLE_OTSECUREFRAME_INSECURE_RX_PERMITTED)
-        //    // Beacon / Alive frame, secure.
-        //    case OTRadioLink::FTS_ALIVE | 0x80:
-        //      {
-        //#if 0 && defined(DEBUG)
-        //DEBUG_SERIAL_PRINTLN_FLASHSTRING("Beacon");
-        //#endif
-        //      // Does not expect any body data.
-        //      if(decryptedBodyOutSize != 0)
-        //        {
-        //#if 0 && defined(DEBUG)
-        //DEBUG_SERIAL_PRINT_FLASHSTRING("!Beacon data ");
-        //DEBUG_SERIAL_PRINT(decryptedBodyOutSize);
-        //DEBUG_SERIAL_PRINTLN();
-        //#endif
-        //        break;
-        //        }
-        //      return(true);
-        //      }
-        //#endif // defined(ENABLE_SECURE_RADIO_BEACON)
-
         case 'O' | 0x80: // Basic OpenTRV secure frame...
         {
-            return (handleOTSecureFrame2<h1_t, h1, frameType1, h2_t, h2, frameType2>(msg, secBodyBuf, decryptedBodyOutSize)); // handleOTSecurableFrame
+            return (handleOTSecureFrame<h1_t, h1, frameType1, h2_t, h2, frameType2>(msg, secBodyBuf, decryptedBodyOutSize)); // handleOTSecurableFrame
         }
 
           // Reject unrecognised type, though fall through potentially to recognise other encodings.
@@ -369,27 +337,15 @@ static void decodeAndHandleRawRXedMessage(const uint8_t * const msg)
 template<typename h1_t, h1_t &h1, uint8_t frameType1,
          typename h2_t, h2_t &h2, uint8_t frameType2,
          bool allowInsecureRX = false>
-static void decodeAndHandleRawRXedMessage2(const uint8_t * const msg)
+static void decodeAndHandleRawRXedMessage(const uint8_t * const msg)
 {
     const uint8_t msglen = msg[-1];
-
-//  // TODO: consider extracting hash of all message data (good/bad) and injecting into entropy pool.
-//#if 0 && defined(DEBUG)
-//  OTRadioLink::printRXMsg(p, msg-1, msglen+1); // Print len+frame.
-//#endif
-
     if(msglen < 2) { return; } // Too short to be useful, so ignore.
-
    // Length-first OpenTRV securable-frame format...
-    if(decodeAndHandleOTSecurableFrame2<h1_t, h1, frameType1,
+    if(decodeAndHandleOTSecurableFrame<h1_t, h1, frameType1,
                                        h2_t, h2, frameType2,
                                        allowInsecureRX>
                                        (msg)) { return; }
-
-//  // Unparseable frame: drop it; possibly log it as an error.
-//#if 0 && defined(DEBUG) && !defined(ENABLE_TRIMMED_MEMORY)
-//    p->print(F("!RX bad msg, len+prefix: ")); OTRadioLink::printRXMsg(p, msg-1, min(msglen+1, 8));
-//#endif
   return;
 }
 
@@ -503,7 +459,7 @@ public:
             if(!neededWaking && wakeSerialIfNeeded && OTV0P2BASE::powerUpSerialIfDisabled<baud>()) { neededWaking = true; } // FIXME
             // Don't currently regard anything arriving over the air as 'secure'.
             // FIXME: shouldn't have to cast away volatile to process the message content.
-            decodeAndHandleRawRXedMessage2< h1_t, h1, frameType1,
+            decodeAndHandleRawRXedMessage< h1_t, h1, frameType1,
                                            h2_t, h2, frameType2,
                                            allowInsecureRX>
                                            ((const uint8_t *)pb);
@@ -514,16 +470,6 @@ public:
 
         // Turn off serial at end, if this routine woke it.
         if(neededWaking) { OTV0P2BASE::flushSerialProductive(); OTV0P2BASE::powerDownSerial(); }
-
-        #if 0 && defined(DEBUG)
-        const uint8_t sctEnd = OTV0P2BASE::getSubCycleTime();
-        const uint8_t ticks = sctEnd - sctStart;
-        if(ticks > 1) {
-            OTV0P2BASE::serialPrintAndFlush(ticks);
-            OTV0P2BASE::serialPrintlnAndFlush();
-        }
-        #endif
-
         return(workDone);
     }
 };
