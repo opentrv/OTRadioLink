@@ -25,6 +25,12 @@ namespace OTRadioLink
 class OTFrameHandlerBase
 {
 public:
+    /*
+     * @param   msg: pointer to buffer containing encrypted message.
+     * @param   decryptedBody: pointer to buffer containing plain text.
+     * @param   decryptedBody: length of decryptedBody.
+     * @fixme   Currently not sure how to pass in sfh and sender node ID.
+     */
     virtual bool frameHandler(const uint8_t *const msg,
                               const uint8_t *const decryptedBody,
                               const uint8_t decryptedBodyLen) = 0;
@@ -32,11 +38,18 @@ public:
 
 /**
  * @class   Handler for printing to serial
+ * @param   p_t: Type of printable object (usually Print, included for consistency with other handlers).
+ * @param   p: Reference to printable object. Usually Serial on the arduino. NOTE! must be the concrete instance. AVR-GCC cannot currently
+ *          detect compile time constness of references or pointers (20170608).
  */
 template <typename p_t, p_t &p>
 class OTSerialHandler final : public OTFrameHandlerBase
 {
 public:
+    /*
+     * @brief   Construct a human/machine readable JSON frame and print to serial.
+     * @fixme   Currently not sure how to pass in sfh and sender node ID.
+     */
     virtual bool frameHandler(const uint8_t *const /*msg*/,
                               const uint8_t *const decryptedBody,
                               const uint8_t decryptedBodyLen) override
@@ -46,15 +59,17 @@ public:
             // TODO JSON output not implemented yet.
             // Write out the JSON message, inserting synthetic ID/@ and seq/+.
             p.print(F("{\"@\":\""));
-//            for(int i = 0; i < OTV0P2BASE::OpenTRV_Node_ID_Bytes; ++i) { p.print(senderNodeID[i], HEX); }
-            p.print(F("\",\"+\":"));
+//            for(int i = 0; i < OTV0P2BASE::OpenTRV_Node_ID_Bytes; ++i) { p.print(senderNodeID[i], HEX); }  // FIXME
+            p.print(F("\",\"+\":"));  // FIXME
 //            p.print(sfh.getSeq());
             p.print(',');
             p.write(decryptedBody + 3, decryptedBodyLen - 3);
             p.println('}');
             // OTV0P2BASE::outputJSONStats(&Serial, secure, msg, msglen);
             // Attempt to ensure that trailing characters are pushed out fully.
+#ifdef ARDUINO_ARCH_AVR
             OTV0P2BASE::flushSerialProductive();
+#endif // ARDUINO_ARCH_AVR
             return true;
         }
         return false;
@@ -63,18 +78,24 @@ public:
 
 /**
  * @class   Handler for relaying over radio
+ * @param   rt_t: Type of rt. Should be derived from
+ * @param   rt: Radio to relay frame over. NOTE! must be the concrete instance. AVR-GCC cannot currently
+ *          detect compile time constness of references or pointers (20170608).
  */
 template <typename rt_t, rt_t &rt>
 class OTRadioHandler final : public OTFrameHandlerBase
 {
 public:
+    /*
+     * @brief   Relay frame over rt if basic validity check of decrypted frame passed.
+     */
     virtual bool frameHandler(const uint8_t *const msg,
                               const uint8_t *const decryptedBody,
                               const uint8_t decryptedBodyLen) override
     {
         const uint8_t msglen = msg[-1];
         if((0 != (decryptedBody[1] & 0x10)) && (decryptedBodyLen > 3) && ('{' == decryptedBody[2])) {
-            return rt.queueToSend(msg, msglen, 0, (OTRadioLink::OTRadioLink::TXpower) 0 );
+            return rt.queueToSend(msg, msglen, 0, (OTRadioLink::OTRadioLink::TXpower) 0 );  // FIXME!!! this should be passed in!
         }
         return false;
     }
@@ -83,6 +104,10 @@ public:
 
 /**
  * @class   Handler for operating boiler driver.
+ * @param   bh_t: Type of bh
+ * @param   bh: Boiler Hub driver. Should implement the interface of BoilerCallForHeat. NOTE! must be the concrete instance.
+ *          AVR-GCC cannot currently detect compile time constness of references or pointers (20170608).
+ * @param   minuteCount: Reference to the minuteCount variable in Control.cpp (20170608). TODO better description of this.
  */
 template <typename bh_t, bh_t &bh, uint8_t &minuteCount>
 class OTBoilerHandler final : public OTFrameHandlerBase
@@ -93,17 +118,19 @@ public:
                               const uint8_t /*decryptedBodyLen*/) override
     {
           const uint8_t percentOpen = decryptedBody[0];
-          if(percentOpen <= 100) { bh.remoteCallForHeatRX(0, percentOpen, minuteCount); } // TODO call for heat valve id not passed in.
+          if(percentOpen <= 100) { bh.remoteCallForHeatRX(0, percentOpen, minuteCount); }
           return true;
     }
 };
 
 /**
  * @brief   Perform trivial validation of frame then loop through supplied handlers.
- * @param   hn_t:
- * @param   hn:
- * @param   frameTypen:
+ * @param   hn_t: Type of hn
+ * @param   hn: Handler object.
+ * @param   frameTypen: Frame tyoe to be supplied to n.
  * @retval  True on success of all handlers, else false.
+ * @TODO    work out what to do with frameTypen
+ * @TODO    Implement parameter packing.
  */
 template <typename h1_t, h1_t &h1, uint8_t frameType1>
 bool handleOTSecureFrame(const uint8_t *const msg,
@@ -178,6 +205,7 @@ static bool authAndDecodeOTSecureableFrame(const uint8_t * const msg, uint8_t * 
       // validate RX message counter,
       // authenticate and decrypt,
       // update RX message counter.
+#ifdef ARDUINO_ARCH_AVR
       const bool isOK = (0 != SimpleSecureFrame32or0BodyRXV0p2::getInstance().decodeSecureSmallFrameSafely(&sfh, msg-1, msglen+1,
                                               OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
                                               NULL, key,
@@ -196,6 +224,8 @@ static bool authAndDecodeOTSecureableFrame(const uint8_t * const msg, uint8_t * 
         return (false);
         }
   #endif
+#endif // ARDUINO_ARCH_AVR
+
       }
 
     return(true); // Stop if not OK.
@@ -205,8 +235,11 @@ static bool authAndDecodeOTSecureableFrame(const uint8_t * const msg, uint8_t * 
 
 /**
  * @brief   Try to decode an OT style secureable frame.
- * @param   msg: Message to decode
- * @param   rt:  Reference to radio to relay with.
+ * @param   msg: Secure frame to authenticate, decrypt and handle.
+ * @param   h1_t: Type of h1
+ * @param   h1: Handler object.
+ * @param   frameTypen: Frame tyoe to be supplied to 1.
+ * @param   allowInsecureRX: Allow RX of insecure frames. Defaults to false.
  * @return  true on successful frame type match, false if no suitable frame was found/decoded and another parser should be tried.
  * @note    - Secure beacon frames commented to save complexity, as not currently used by any configs.
  */
@@ -310,6 +343,13 @@ static bool decodeAndHandleOTSecurableFrame(const uint8_t * const msg)
 // This will write any output to the supplied Print object,
 // typically the Serial output (which must be running if so).
 // This routine is NOT allowed to alter in any way the content of the buffer passed.
+/*
+ * @param   msg: Secure frame to authenticate, decrypt and handle.
+ * @param   h1_t: Type of h1
+ * @param   h1: Handler object.
+ * @param   frameTypen: Frame tyoe to be supplied to 1.
+ * @param   allowInsecureRX: Allow RX of insecure frames. Defaults to false.
+ */
 template<typename h1_t, h1_t &h1, uint8_t frameType1,
          bool allowInsecureRX = false>
 static void decodeAndHandleRawRXedMessage(const uint8_t * const msg)
@@ -349,11 +389,22 @@ static void decodeAndHandleRawRXedMessage(const uint8_t * const msg)
   return;
 }
 
+
 class OTMessageQueueHandlerBase {
 public:
     virtual bool handle(bool /*wakeSerialIfNeeded*/, OTRadioLink */*rl*/) { return false; };
 };
 
+#ifdef ARDUINO_ARCH_AVR
+/*
+ * @param   msg: Secure frame to authenticate, decrypt and handle.
+ * @param   h1_t: Type of h1
+ * @param   h1: Handler object.
+ * @param   frameTypen: Frame tyoe to be supplied to 1.
+ * @param   pollIO: Function pollIO in V0p2. FIXME work out how to bring pollIO into library.
+ * @param   baud: Serial baud for serial output.
+ * @param   allowInsecureRX: Allow RX of insecure frames. Defaults to false.
+ */
 template<typename h1_t, h1_t &h1, uint8_t frameType1,
          bool (*pollIO) (bool), uint16_t baud,
          bool allowInsecureRX = false>
@@ -473,7 +524,7 @@ public:
         return(workDone);
     }
 };
-
+#endif ARDUINO_ARCH_AVR
 
 }
 #endif /* UTILITY_OTRADIOLINK_MESSAGING_H_ */
