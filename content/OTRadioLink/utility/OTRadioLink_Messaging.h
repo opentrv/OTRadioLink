@@ -20,6 +20,83 @@ namespace OTRadioLink
 {
 
 /**
+ * @class   Interface for frame handlers.
+ */
+class OTFrameHandlerBase
+{
+public:
+    virtual bool frameHandler(const uint8_t *const msg,
+                              const uint8_t *const decryptedBody,
+                              const uint8_t decryptedBodyLen) = 0;
+};
+
+/**
+ * @class   Handler for printing to serial
+ */
+//template <Print &p>
+//class OTSerialHandler final : public OTFrameHandlerBase
+//{
+//public:
+//    virtual bool frameHandler(const uint8_t *const msg,
+//                              const uint8_t *const decryptedBody,
+//                              const uint8_t decryptedBodyLen) override
+//    {
+//        if((0 != (decryptedBody[1] & 0x10)) && (decryptedBodyLen > 3) && ('{' == decryptedBody[2])) {
+//            // XXX Feel like this should be moved somewhere else.
+//            // TODO JSON output not implemented yet.
+//            // Write out the JSON message, inserting synthetic ID/@ and seq/+.
+//            p.print(F("{\"@\":\""));
+//            for(int i = 0; i < OTV0P2BASE::OpenTRV_Node_ID_Bytes; ++i) { p.print(senderNodeID[i], HEX); }
+//            p.print(F("\",\"+\":"));
+//            p.print(sfh.getSeq());
+//            p.print(',');
+//            p.write(decryptedBody + 3, decryptedBodyLen - 3);
+//            p.println('}');
+//            // OTV0P2BASE::outputJSONStats(&Serial, secure, msg, msglen);
+//            // Attempt to ensure that trailing characters are pushed out fully.
+//            OTV0P2BASE::flushSerialProductive();
+//        }
+//    }
+//};
+
+/**
+ * @class   Handler for relaying over radio
+ */
+template <typename rt_t, rt_t &rt>
+class OTRadioHandler final : public OTFrameHandlerBase
+{
+public:
+    virtual bool frameHandler(const uint8_t *const msg,
+                              const uint8_t *const decryptedBody,
+                              const uint8_t decryptedBodyLen) override
+    {
+        const uint8_t msglen = msg[-1];
+        if((0 != (decryptedBody[1] & 0x10)) && (decryptedBodyLen > 3) && ('{' == decryptedBody[2])) {
+            return rt.queueToSend(msg, msglen, 0, (OTRadioLink::OTRadioLink::TXpower) 0 );
+        }
+    }
+};
+
+
+/**
+ * @class   Handler for operating boiler driver.
+ */
+template <typename bh_t, bh_t &bh, uint8_t &minuteCount>
+class OTBoilerHandler final : public OTFrameHandlerBase
+{
+public:
+    virtual bool frameHandler(const uint8_t *const /*msg*/,
+                              const uint8_t *const decryptedBody,
+                              const uint8_t /*decryptedBodyLen*/) override
+    {
+          const uint8_t percentOpen = decryptedBody[0];
+          if(percentOpen <= 100) { bh.remoteCallForHeatRX(0, percentOpen, minuteCount); } // TODO call for heat valve id not passed in.
+          return true;
+    }
+};
+
+
+/**
  * @brief   Validate, authenticate and decrypt secure frames.
  * @param   msg: message to decrypt
  * @param   outBuf: output buffer
@@ -94,56 +171,33 @@ static bool authAndDecodeOTSecureableFrame(const uint8_t * const msg, uint8_t * 
 
 }
 
-template<typename bh_t, bool enableBoilerHub = false, bool enableRadioRelay = false>
-static bool handleOTSecurableFrame( Print *p, const uint8_t * const msg,
-                                    const uint8_t * const decryptedBody, const uint8_t decryptedBodyLen,
-                                    const uint8_t minuteCount,
-                                    bh_t &bh, OTRadioLink &rt)
+
+/**
+ * @brief   Perform trivial validation of frame then loop through supplied handlers.
+ * @param   hn_t:
+ * @param   hn:
+ * @param   frameTypen:
+ * @retval  True on success of all handlers, else false.
+ */
+template <typename h1_t, h1_t &h1, uint8_t frameType1>
+bool handleOTSecureFrame(const uint8_t *const msg,
+                         const uint8_t *const decryptedBody,
+                         const uint8_t decryptedBodyLen)
 {
-    const uint8_t msglen = msg[-1];
-#if 0 && defined(DEBUG)
-DEBUG_SERIAL_PRINTLN_FLASHSTRING("'O'");
-#endif
-      if(decryptedBodyLen < 2)
-        {
-#if 1 && defined(DEBUG)
-DEBUG_SERIAL_PRINTLN_FLASHSTRING("!RX O short"); // "O' frame too short.
-#endif
-        return false;
-        }
-
-      // If acting as a boiler hub
-      // then extract the valve %age and pass to boiler controller
-      // but use only if valid.
-      // Ignore explicit call-for-heat flag for now.
-      if (enableBoilerHub) {
-          const uint8_t percentOpen = decryptedBody[0];
-          if(percentOpen <= 100) { bh.remoteCallForHeatRX(0, percentOpen, minuteCount); } // TODO call for heat valve id not passed in.
-      }
-
-      // If the frame contains JSON stats
-      // then forward entire secure frame as-is across the secondary radio relay link,
-      // else print directly to console/Serial.
-      if((0 != (decryptedBody[1] & 0x10)) && (decryptedBodyLen > 3) && ('{' == decryptedBody[2])) {
-          if (enableRadioRelay) {
-              rt.queueToSend(msg, msglen);
-          } else {
-              // XXX Feel like this should be moved somewhere else.
-              // TODO JSON output not implemented yet.
-            // Write out the JSON message, inserting synthetic ID/@ and seq/+.
-//            p->print(F("{\"@\":\""));
-//            for(int i = 0; i < OTV0P2BASE::OpenTRV_Node_ID_Bytes; ++i) { p->print(senderNodeID[i], HEX); }
-//            p->print(F("\",\"+\":"));
-//            p->print(sfh.getSeq());
-//            p->print(',');
-            p->write(decryptedBody + 3, decryptedBodyLen - 3);
-            p->println('}');
-            // OTV0P2BASE::outputJSONStats(&Serial, secure, msg, msglen);
-            // Attempt to ensure that trailing characters are pushed out fully.
-            OTV0P2BASE::flushSerialProductive();
-          }
-      }
-      return(true);
+   if (decryptedBodyLen < 2) return (false);
+   return (h1.frameHandler(msg, decryptedBody, decryptedBodyLen));
+}
+template <typename h1_t, h1_t &h1, uint8_t frameType1,
+          typename h2_t, h2_t &h2, uint8_t frameType2>
+bool handleOTSecureFrame2(const uint8_t *const msg,
+                          const uint8_t *const decryptedBody,
+                          const uint8_t decryptedBodyLen)
+{
+    bool success = true;
+    if (decryptedBodyLen < 2) return (false);
+    if (!h1.frameHandler(msg, decryptedBody, decryptedBodyLen)) success = false;
+    if (!h2.frameHandler(msg, decryptedBody, decryptedBodyLen)) success = false;
+    return success;
 }
 
 /**
@@ -153,10 +207,10 @@ DEBUG_SERIAL_PRINTLN_FLASHSTRING("!RX O short"); // "O' frame too short.
  * @return  true on successful frame type match, false if no suitable frame was found/decoded and another parser should be tried.
  * @note    - Secure beacon frames commented to save complexity, as not currently used by any configs.
  */
-template<typename bh_t, bool enableBoilerHub = false, bool allowInsecureRX = false, bool enableRadioRelay = false>
-bool decodeAndHandleOTSecureableFrame(Print * p, const bool /*secure*/, const uint8_t * const msg,
-                                      const uint8_t minuteCount,
-                                      bh_t &bh, OTRadioLink &rt)
+template<typename h1_t, h1_t &h1, uint8_t frameType1,
+         typename h2_t, h2_t &h2, uint8_t frameType2,
+         bool allowInsecureRX = false>
+bool decodeAndHandleOTSecurableFrame(const uint8_t * const msg)
   {
     const uint8_t firstByte = msg[0];
 
@@ -205,10 +259,7 @@ bool decodeAndHandleOTSecureableFrame(Print * p, const bool /*secure*/, const ui
 
     case 'O' | 0x80: // Basic OpenTRV secure frame...
       {
-          return (handleOTSecurableFrame<bh_t, enableBoilerHub, enableRadioRelay>(p, msg, msglen,
-                                                                                  secBodyBuf, sizeof(secBodyBuf),
-                                                                                  minuteCount,
-                                                                                  bh, rt));
+          return (handleOTSecureFrame2<h1_t, h1, frameType1, h2_t, h2, frameType2>(msg, secBodyBuf, decryptedBodyOutSize)); // handleOTSecurableFrame
       }
 
     // Reject unrecognised type, though fall through potentially to recognise other encodings.
@@ -221,5 +272,60 @@ bool decodeAndHandleOTSecureableFrame(Print * p, const bool /*secure*/, const ui
 
 
 }
+
+
+// Old function
+//template<typename bh_t, bool enableBoilerHub = false, bool enableRadioRelay >
+//static bool handleOTSecurableFrame( Print *p, const uint8_t * const msg,
+//                                    const uint8_t * const decryptedBody, const uint8_t decryptedBodyLen,
+//                                    const uint8_t minuteCount,
+//                                    bh_t &bh, OTRadioLink &rt)
+//{
+//    const uint8_t msglen = msg[-1];
+//#if 0 && defined(DEBUG)
+//DEBUG_SERIAL_PRINTLN_FLASHSTRING("'O'");
+//#endif
+//      if(decryptedBodyLen < 2)
+//        {
+//#if 1 && defined(DEBUG)
+//DEBUG_SERIAL_PRINTLN_FLASHSTRING("!RX O short"); // "O' frame too short.
+//#endif
+//        return false;
+//        }
+//
+//      // If acting as a boiler hub
+//      // then extract the valve %age and pass to boiler controller
+//      // but use only if valid.
+//      // Ignore explicit call-for-heat flag for now.
+//      if (enableBoilerHub) {
+//          const uint8_t percentOpen = decryptedBody[0];
+//          if(percentOpen <= 100) { bh.remoteCallForHeatRX(0, percentOpen, minuteCount); } // TODO call for heat valve id not passed in.
+//      }
+//
+//      // If the frame contains JSON stats
+//      // then forward entire secure frame as-is across the secondary radio relay link,
+//      // else print directly to console/Serial.
+//      if((0 != (decryptedBody[1] & 0x10)) && (decryptedBodyLen > 3) && ('{' == decryptedBody[2])) {
+//          if (enableRadioRelay) {
+//              rt.queueToSend(msg, msglen);
+//          } else {
+//              // XXX Feel like this should be moved somewhere else.
+//              // TODO JSON output not implemented yet.
+//            // Write out the JSON message, inserting synthetic ID/@ and seq/+.
+////            p->print(F("{\"@\":\""));
+////            for(int i = 0; i < OTV0P2BASE::OpenTRV_Node_ID_Bytes; ++i) { p->print(senderNodeID[i], HEX); }
+////            p->print(F("\",\"+\":"));
+////            p->print(sfh.getSeq());
+////            p->print(',');
+//            p->write(decryptedBody + 3, decryptedBodyLen - 3);
+//            p->println('}');
+//            // OTV0P2BASE::outputJSONStats(&Serial, secure, msg, msglen);
+//            // Attempt to ensure that trailing characters are pushed out fully.
+//            OTV0P2BASE::flushSerialProductive();
+//          }
+//      }
+//      return(true);
+//}
+
 
 #endif /* UTILITY_OTRADIOLINK_MESSAGING_H_ */
