@@ -95,7 +95,7 @@ public:
     {
         const uint8_t msglen = msg[-1];
         if((0 != (decryptedBody[1] & 0x10)) && (decryptedBodyLen > 3) && ('{' == decryptedBody[2])) {
-            return rt.queueToSend(msg, msglen, 0, (OTRadioLink::OTRadioLink::TXpower) 0 );  // FIXME!!! this should be passed in!
+            return rt.queueToSend(msg, msglen, 0, (OTRadioLink::OTRadioLink::TXpower) 0 );  // FIXME!!! this should be passed in? Ignored by OTSIM900Link.
         }
         return false;
     }
