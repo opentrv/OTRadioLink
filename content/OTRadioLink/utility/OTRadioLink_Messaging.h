@@ -1,9 +1,20 @@
 /*
- * OTRadioLink_Messagin.h
- *
- *  Created on: 18 May 2017
- *      Author: denzo
- */
+The OpenTRV project licenses this file to you
+under the Apache Licence, Version 2.0 (the "Licence");
+you may not use this file except in compliance
+with the Licence. You may obtain a copy of the Licence at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the Licence is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied. See the Licence for the
+specific language governing permissions and limitations
+under the Licence.
+
+Author(s) / Copyright (s): Deniz Erbilgin 2017
+*/
 
 #ifndef UTILITY_OTRADIOLINK_MESSAGING_H_
 #define UTILITY_OTRADIOLINK_MESSAGING_H_
@@ -15,6 +26,7 @@
 
 #include "OTRadValve_BoilerDriver.h"
 #include "OTRadioLink_OTRadioLink.h"
+#include "OTRadioLink_MessagingFS20.h"
 
 namespace OTRadioLink
 {
@@ -234,6 +246,11 @@ static bool authAndDecodeOTSecureableFrame(const uint8_t * const msg, uint8_t * 
 
 
 /**
+ * @brief   decodeAndHandle that always returns false
+ */
+ // static bool decodeAndHandleNullFrame(const uint8_t * const msg) { return false;}
+
+/**
  * @brief   Try to decode an OT style secureable frame.
  * @param   msg: Secure frame to authenticate, decrypt and handle.
  * @param   h1_t: Type of h1
@@ -349,6 +366,7 @@ static bool decodeAndHandleOTSecurableFrame(const uint8_t * const msg)
  * @param   h1: Handler object.
  * @param   frameTypen: Frame tyoe to be supplied to 1.
  * @param   allowInsecureRX: Allow RX of insecure frames. Defaults to false.
+ * @note    decodeAndHandleFS20Frame is currently a stub and always returns false.
  */
 template<typename h1_t, h1_t &h1, uint8_t frameType1,
          bool allowInsecureRX = false>
@@ -367,6 +385,7 @@ static void decodeAndHandleRawRXedMessage(const uint8_t * const msg)
     if(decodeAndHandleOTSecurableFrame<h1_t, h1, frameType1,
                                        allowInsecureRX>
                                        (msg)) { return; }
+    if(decodeAndHandleFS20Frame(msg)) { return; }
 
 //  // Unparseable frame: drop it; possibly log it as an error.
 //#if 0 && defined(DEBUG) && !defined(ENABLE_TRIMMED_MEMORY)
@@ -395,7 +414,7 @@ static void decodeAndHandleRawRXedMessage(const uint8_t * const msg)
  */
 class OTMessageQueueHandlerBase {
 public:
-    virtual bool handle(bool /*wakeSerialIfNeeded*/, OTRadioLink */*rl*/) { return false; };
+    virtual bool handle(bool /*wakeSerialIfNeeded*/, OTRadioLink * /*rl*/) { return false; };
 };
 
 #ifdef ARDUINO_ARCH_AVR
@@ -411,7 +430,7 @@ public:
 template<typename h1_t, h1_t &h1, uint8_t frameType1,
          bool (*pollIO) (bool), uint16_t baud,
          bool allowInsecureRX = false>
-class OTMessageQueueHandler final: public OTMessageQueueHandlerBase {
+class OTMessageQueueHandlerSingle final: public OTMessageQueueHandlerBase {
 public:
     // Incrementally process I/O and queued messages, including from the radio link.
     // This may mean printing them to Serial (which the passed Print object usually is),
@@ -471,12 +490,12 @@ public:
         return(workDone);
     }
 };
-
+// Variant that allows passing two frame handlers in.
 template<typename h1_t, h1_t &h1, uint8_t frameType1,
          typename h2_t, h2_t &h2, uint8_t frameType2,
          bool (*pollIO) (bool), uint16_t baud,
          bool allowInsecureRX = false>
-class OTMessageQueueHandler2 final: public OTMessageQueueHandlerBase {
+class OTMessageQueueHandlerDual final: public OTMessageQueueHandlerBase {
 public:
     // Incrementally process I/O and queued messages, including from the radio link.
     // This may mean printing them to Serial (which the passed Print object usually is),
