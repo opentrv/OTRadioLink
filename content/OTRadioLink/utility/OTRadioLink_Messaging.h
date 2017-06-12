@@ -31,6 +31,25 @@ Author(s) / Copyright (s): Deniz Erbilgin 2017
 namespace OTRadioLink
 {
 
+struct OTFrameData_T
+{
+    OTFrameData_T(SecurableFrameHeader &_sfh,
+                  uint8_t *_senderNodeID,
+                  uint8_t * _msg,
+                  uint8_t * _decryptedBody, uint8_t _decryptedBodyLen)
+                : sfh(_sfh),
+                  senderNodeID(_senderNodeID),
+                  msg(_msg),
+                  decryptedBody(_decryptedBody), decryptedBodyLen(_decryptedBodyLen)
+                  {}
+    SecurableFrameHeader &sfh;
+    uint8_t * senderNodeID;
+    uint8_t * msg;
+    uint8_t * decryptedBody;
+    uint8_t decryptedBodyLen;
+};
+
+
 /**
  * @class   Interface for frame handlers.
  */
@@ -43,9 +62,7 @@ public:
      * @param   decryptedBody: length of decryptedBody.
      * @fixme   Currently not sure how to pass in sfh and sender node ID.
      */
-    virtual bool frameHandler(const uint8_t *const msg,
-                              const uint8_t *const decryptedBody,
-                              const uint8_t decryptedBodyLen) = 0;
+    virtual bool frameHandler(const OTFrameData_T &fd) = 0;
 };
 
 /**
@@ -62,20 +79,27 @@ public:
      * @brief   Construct a human/machine readable JSON frame and print to serial.
      * @fixme   Currently not sure how to pass in sfh and sender node ID.
      */
-    virtual bool frameHandler(const uint8_t *const /*msg*/,
-                              const uint8_t *const decryptedBody,
-                              const uint8_t decryptedBodyLen) override
+    virtual bool frameHandler(const OTFrameData_T &fd) override
     {
-        if((0 != (decryptedBody[1] & 0x10)) && (decryptedBodyLen > 3) && ('{' == decryptedBody[2])) {
+        const uint8_t * const db = fd.decryptedBody;
+        const uint8_t dbLen = fd.decryptedBodyLen;
+        const uint8_t * const senderNodeID = fd.senderNodeID;
+
+        // Check db exists.
+        if ((nullptr == db) || (nullptr == senderNodeID)) return false;
+
+        if((0 != (db[1] & 0x10)) && (dbLen > 3) && ('{' == db[2])) {
             // XXX Feel like this should be moved somewhere else.
             // TODO JSON output not implemented yet.
             // Write out the JSON message, inserting synthetic ID/@ and seq/+.
             p.print(F("{\"@\":\""));
-//            for(int i = 0; i < OTV0P2BASE::OpenTRV_Node_ID_Bytes; ++i) { p.print(senderNodeID[i], HEX); }  // FIXME
+#ifdef ARDUINO_ARCH_AVR
+            for(int i = 0; i < OTV0P2BASE::OpenTRV_Node_ID_Bytes; ++i) { p.print(senderNodeID[i], HEX); }  // FIXME
+#endif // ARDUINO_ARCH_AVR
             p.print(F("\",\"+\":"));  // FIXME
-//            p.print(sfh.getSeq());
+            p.print(fd.sfh.getSeq());
             p.print(',');
-            p.write(decryptedBody + 3, decryptedBodyLen - 3);
+            p.write(db + 3, dbLen - 3);
             p.println('}');
             // OTV0P2BASE::outputJSONStats(&Serial, secure, msg, msglen);
             // Attempt to ensure that trailing characters are pushed out fully.
@@ -101,12 +125,17 @@ public:
     /*
      * @brief   Relay frame over rt if basic validity check of decrypted frame passed.
      */
-    virtual bool frameHandler(const uint8_t *const msg,
-                              const uint8_t *const decryptedBody,
-                              const uint8_t decryptedBodyLen) override
+    virtual bool frameHandler(const OTFrameData_T &fd) override
     {
-        const uint8_t msglen = msg[-1];
-        if((0 != (decryptedBody[1] & 0x10)) && (decryptedBodyLen > 3) && ('{' == decryptedBody[2])) {
+        const uint8_t * const msg = fd.msg;
+        const uint8_t msglen = fd.msg[-1];
+        const uint8_t * const db = fd.decryptedBody;
+        const uint8_t dbLen = fd.decryptedBodyLen;
+
+        // Check db exists.
+        if((nullptr == msg) || (nullptr == db)) return false;
+
+        if((0 != (db[1] & 0x10)) && (dbLen > 3) && ('{' == db[2])) {
             return rt.queueToSend(msg, msglen, 0, (OTRadioLink::OTRadioLink::TXpower) 0 );  // FIXME!!! this should be passed in? Ignored by OTSIM900Link.
         }
         return false;
@@ -125,13 +154,15 @@ template <typename bh_t, bh_t &bh, uint8_t &minuteCount>
 class OTBoilerHandler final : public OTFrameHandlerBase
 {
 public:
-    virtual bool frameHandler(const uint8_t *const /*msg*/,
-                              const uint8_t *const decryptedBody,
-                              const uint8_t /*decryptedBodyLen*/) override
+    virtual bool frameHandler(const OTFrameData_T &fd) override
     {
-          const uint8_t percentOpen = decryptedBody[0];
-          if(percentOpen <= 100) { bh.remoteCallForHeatRX(0, percentOpen, minuteCount); }
-          return true;
+        const uint8_t * const db = fd.decryptedBody;
+        // Check db exists.
+        if(nullptr == db) return false;
+
+        const uint8_t percentOpen = db[0];
+        if(percentOpen <= 100) { bh.remoteCallForHeatRX(0, percentOpen, minuteCount); }
+        return true;
     }
 };
 
@@ -145,23 +176,19 @@ public:
  * @TODO    Implement parameter packing.
  */
 template <typename h1_t, h1_t &h1, uint8_t frameType1>
-bool handleOTSecureFrame(const uint8_t *const msg,
-                         const uint8_t *const decryptedBody,
-                         const uint8_t decryptedBodyLen)
+bool handleOTSecureFrame(const OTFrameData_T &fd)
 {
-   if (decryptedBodyLen < 2) return (false);
-   return (h1.frameHandler(msg, decryptedBody, decryptedBodyLen));
+   if (fd.decryptedBodyLen < 2) return (false);
+   return (h1.frameHandler(fd));
 }
 template <typename h1_t, h1_t &h1, uint8_t frameType1,
           typename h2_t, h2_t &h2, uint8_t frameType2>
-bool handleOTSecureFrame(const uint8_t *const msg,
-                          const uint8_t *const decryptedBody,
-                          const uint8_t decryptedBodyLen)
+bool handleOTSecureFrame(const OTFrameData_T &fd)
 {
     bool success = true;
-    if (decryptedBodyLen < 2) return (false);
-    if (!h1.frameHandler(msg, decryptedBody, decryptedBodyLen)) success = false;
-    if (!h2.frameHandler(msg, decryptedBody, decryptedBodyLen)) success = false;
+    if (fd.decryptedBodyLen < 2) return (false);
+    if (!h1.frameHandler(fd)) success = false;
+    if (!h2.frameHandler(fd)) success = false;
     return success;
 }
 
@@ -174,25 +201,27 @@ bool handleOTSecureFrame(const uint8_t *const msg,
  * @param   allowInsecureRX: Allows insecure frames to be received. Defaults to false.
  */
 template <bool allowInsecureRX = false>
-static bool authAndDecodeOTSecureableFrame(const uint8_t * const msg, uint8_t * const outBuf,
-                                           const uint8_t outBufSize, uint8_t &decryptedBodyOutSize)
+static bool authAndDecodeOTSecureableFrame(OTFrameData_T &fd,
+                                           const uint8_t outBufSize)
 {
+    const uint8_t *msg = fd.msg;
     const uint8_t msglen = msg[-1];
-    SecurableFrameHeader sfh;
+    uint8_t * outBuf = fd.decryptedBody;
+    uint8_t decryptedBodyOutSize = 0;
     // Validate structure of header/frame first.
     // This is quick and checks for insane/dangerous values throughout.
-    const uint8_t l = sfh.checkAndDecodeSmallFrameHeader(msg-1, msglen+1);
+    const uint8_t l = fd.sfh.checkAndDecodeSmallFrameHeader(msg-1, msglen+1);
     // If failed this early and this badly, let someone else try parsing the message buffer...
     if(0 == l) { return(false); }
 
     // Validate integrity of frame (CRC for non-secure, auth for secure).
-    const bool secureFrame = sfh.isSecure();
+    const bool secureFrame = fd.sfh.isSecure();
     // TODO: validate entire message, eg including auth, or CRC if insecure msg rcvd&allowed.
     if(!secureFrame) {
         if (allowInsecureRX) {
             // Only bother to check insecure form (and link code to do so) if insecure RX is allowed.
             // Reject if CRC fails.
-            if(0 == decodeNonsecureSmallFrameRaw(&sfh, msg-1, msglen+1))
+            if(0 == decodeNonsecureSmallFrameRaw(&fd.sfh, msg-1, msglen+1))
                 { return false; }
         } else {
             // Decode fails
@@ -210,7 +239,6 @@ static bool authAndDecodeOTSecureableFrame(const uint8_t * const msg, uint8_t * 
         return(false);
         }
       }
-    uint8_t senderNodeID[OTV0P2BASE::OpenTRV_Node_ID_Bytes];
     if(secureFrame)
       {
       // Look up full ID in associations table,
@@ -218,20 +246,21 @@ static bool authAndDecodeOTSecureableFrame(const uint8_t * const msg, uint8_t * 
       // authenticate and decrypt,
       // update RX message counter.
 #ifdef ARDUINO_ARCH_AVR
-      const bool isOK = (0 != SimpleSecureFrame32or0BodyRXV0p2::getInstance().decodeSecureSmallFrameSafely(&sfh, msg-1, msglen+1,
+      const bool isOK = (0 != SimpleSecureFrame32or0BodyRXV0p2::getInstance().decodeSecureSmallFrameSafely(&fd.sfh, msg-1, msglen+1,
                                               OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
                                               NULL, key,
                                               outBuf, outBufSize, decryptedBodyOutSize,
-                                              senderNodeID,
+                                              fd.senderNodeID,
                                               true));
+      fd.decryptedBodyLen = decryptedBodyOutSize;
   #if 1 // && defined(DEBUG)
       if(!isOK)
         {
         // Useful brief network diagnostics: a couple of bytes of the claimed ID of rejected frames.
         // Warnings rather than errors because there may legitimately be multiple disjoint networks.
         OTV0P2BASE::serialPrintAndFlush(F("?RX auth")); // Missing association or failed auth.
-        if(sfh.getIl() > 0) { OTV0P2BASE::serialPrintAndFlush(' '); OTV0P2BASE::serialPrintAndFlush(sfh.id[0], HEX); }
-        if(sfh.getIl() > 1) { OTV0P2BASE::serialPrintAndFlush(' '); OTV0P2BASE::serialPrintAndFlush(sfh.id[1], HEX); }
+        if(fd.sfh.getIl() > 0) { OTV0P2BASE::serialPrintAndFlush(' '); OTV0P2BASE::serialPrintAndFlush(fd.sfh.id[0], HEX); }
+        if(fd.sfh.getIl() > 1) { OTV0P2BASE::serialPrintAndFlush(' '); OTV0P2BASE::serialPrintAndFlush(fd.sfh.id[1], HEX); }
         OTV0P2BASE::serialPrintlnAndFlush();
         return (false);
         }
@@ -241,7 +270,6 @@ static bool authAndDecodeOTSecureableFrame(const uint8_t * const msg, uint8_t * 
       }
 
     return(true); // Stop if not OK.
-
 }
 
 
@@ -270,8 +298,11 @@ static bool decodeAndHandleOTSecurableFrame(const uint8_t * const msg)
     // (Non-secure frame bodies should be read directly from the frame buffer.)
     uint8_t secBodyBuf[ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE];
     uint8_t decryptedBodyOutSize = 0;
+    uint8_t senderNodeID[OTV0P2BASE::OpenTRV_Node_ID_Bytes];
+    SecurableFrameHeader sfh;
+    OTFrameData_T fd(sfh, senderNodeID, msg, secBodyBuf, decryptedBodyOutSize);
 
-    if(!authAndDecodeOTSecureableFrame<allowInsecureRX>(msg, secBodyBuf, sizeof(secBodyBuf), decryptedBodyOutSize)) {
+    if(!authAndDecodeOTSecureableFrame<allowInsecureRX>(fd, sizeof(secBodyBuf))) {
         return false;
     }
 
@@ -311,7 +342,7 @@ static bool decodeAndHandleOTSecurableFrame(const uint8_t * const msg)
 
         case 'O' | 0x80: // Basic OpenTRV secure frame...
         {
-            return (handleOTSecureFrame<h1_t, h1, frameType1>(msg, secBodyBuf, decryptedBodyOutSize)); // handleOTSecurableFrame
+            return (handleOTSecureFrame<h1_t, h1, frameType1>(fd)); // handleOTSecurableFrame
         }
 
           // Reject unrecognised type, though fall through potentially to recognise other encodings.
@@ -332,8 +363,11 @@ static bool decodeAndHandleOTSecurableFrame(const uint8_t * const msg)
     // (Non-secure frame bodies should be read directly from the frame buffer.)
     uint8_t secBodyBuf[ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE];
     uint8_t decryptedBodyOutSize = 0;
+    uint8_t senderNodeID[OTV0P2BASE::OpenTRV_Node_ID_Bytes];
+    SecurableFrameHeader sfh;
+    OTFrameData_T fd(sfh, senderNodeID, msg, secBodyBuf, decryptedBodyOutSize);
 
-    if(!authAndDecodeOTSecureableFrame<allowInsecureRX>(msg, secBodyBuf, sizeof(secBodyBuf), decryptedBodyOutSize)) {
+    if(!authAndDecodeOTSecureableFrame<allowInsecureRX>(fd, sizeof(secBodyBuf))) {
         return false;
     }
 
@@ -341,7 +375,7 @@ static bool decodeAndHandleOTSecurableFrame(const uint8_t * const msg)
     {
         case 'O' | 0x80: // Basic OpenTRV secure frame...
         {
-            return (handleOTSecureFrame<h1_t, h1, frameType1, h2_t, h2, frameType2>(msg, secBodyBuf, decryptedBodyOutSize)); // handleOTSecurableFrame
+            return (handleOTSecureFrame<h1_t, h1, frameType1, h2_t, h2, frameType2>(fd)); // handleOTSecurableFrame
         }
 
           // Reject unrecognised type, though fall through potentially to recognise other encodings.
