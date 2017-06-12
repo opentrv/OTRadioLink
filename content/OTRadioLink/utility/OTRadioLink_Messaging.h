@@ -42,19 +42,12 @@ namespace OTRadioLink
  */
 struct OTFrameData_T
 {
-    OTFrameData_T(SecurableFrameHeader &_sfh,
-                  uint8_t *_senderNodeID,
-                  uint8_t * _msg,
-                  uint8_t * _decryptedBody, uint8_t _decryptedBodyLen)
-                : sfh(_sfh),
-                  senderNodeID(_senderNodeID),
-                  msg(_msg),
-                  decryptedBody(_decryptedBody), decryptedBodyLen(_decryptedBodyLen)
-                  {}
-    SecurableFrameHeader &sfh;
-    uint8_t * const senderNodeID;
-    uint8_t * const msg;
-    uint8_t * const decryptedBody;
+    OTFrameData_T(const uint8_t * const _msg) : msg(_msg) {}
+    SecurableFrameHeader sfh;
+    uint8_t senderNodeID[OTV0P2BASE::OpenTRV_Node_ID_Bytes];
+    const uint8_t * const msg;
+    static constexpr uint8_t decryptedBodyBufSize = ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE;
+    uint8_t decryptedBody[decryptedBodyBufSize];
     uint8_t decryptedBodyLen;
 
 //    // Message length is stored in byte before first RXed message buffer.
@@ -209,7 +202,7 @@ bool handleOTSecureFrame(const OTFrameData_T &fd)
  * @param   allowInsecureRX: Allows insecure frames to be received. Defaults to false.
  */
 template <bool allowInsecureRX = false>
-static bool authAndDecodeOTSecureableFrame(OTFrameData_T &fd, const uint8_t outBufSize)
+static bool authAndDecodeOTSecureableFrame(OTFrameData_T &fd)
 {
     const uint8_t *msg = fd.msg;
     const uint8_t msglen = msg[-1];
@@ -256,7 +249,7 @@ static bool authAndDecodeOTSecureableFrame(OTFrameData_T &fd, const uint8_t outB
       const bool isOK = (0 != SimpleSecureFrame32or0BodyRXV0p2::getInstance().decodeSecureSmallFrameSafely(&fd.sfh, msg-1, msglen+1,
                                               OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
                                               NULL, key,
-                                              outBuf, outBufSize, decryptedBodyOutSize,
+                                              outBuf, fd.decryptedBodyBufSize, decryptedBodyOutSize,
                                               fd.senderNodeID,
                                               true));
       fd.decryptedBodyLen = decryptedBodyOutSize;
@@ -297,12 +290,9 @@ static bool decodeAndHandleOTSecurableFrame(const uint8_t * const msg)
 
     // Buffer for receiving secure frame body.
     // (Non-secure frame bodies should be read directly from the frame buffer.)
-    uint8_t secBodyBuf[ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE];
-    uint8_t senderNodeID[OTV0P2BASE::OpenTRV_Node_ID_Bytes];
-    SecurableFrameHeader sfh;
-    OTFrameData_T fd(sfh, senderNodeID, msg, secBodyBuf, 0);
+    OTFrameData_T fd(msg);
 
-    if(!authAndDecodeOTSecureableFrame<allowInsecureRX>(fd, sizeof(secBodyBuf))) {
+    if(!authAndDecodeOTSecureableFrame<allowInsecureRX>(fd)) {
         return false;
     }
 
@@ -361,12 +351,9 @@ static bool decodeAndHandleOTSecurableFrame(const uint8_t * const msg)
 
     // Buffer for receiving secure frame body.
     // (Non-secure frame bodies should be read directly from the frame buffer.)
-    uint8_t secBodyBuf[ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE];
-    uint8_t senderNodeID[OTV0P2BASE::OpenTRV_Node_ID_Bytes];
-    SecurableFrameHeader sfh;
-    OTFrameData_T fd(sfh, senderNodeID, msg, secBodyBuf, 0);
+    OTFrameData_T fd(msg);
 
-    if(!authAndDecodeOTSecureableFrame<allowInsecureRX>(fd, sizeof(secBodyBuf))) {
+    if(!authAndDecodeOTSecureableFrame<allowInsecureRX>(fd)) {
         return false;
     }
 
