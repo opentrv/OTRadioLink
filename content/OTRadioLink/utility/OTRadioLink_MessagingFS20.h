@@ -19,6 +19,8 @@ Author(s) / Copyright (s): Deniz Erbilgin 2017
 #ifndef UTILITY_OTRADIOLINK_MESSAGINGFS20_H_
 #define UTILITY_OTRADIOLINK_MESSAGINGFS20_H_
 
+namespace OTRadioLink
+{
 
 // FS20 stubs
 // template commented as stub.
@@ -238,5 +240,6 @@ static bool decodeAndHandleFS20Frame(const uint8_t * const /*msg*/)
 //  return;
 //  }
 //#endif // ENABLE_RADIO_RX
+}
 
 #endif /* UTILITY_OTRADIOLINK_MESSAGINGFS20_H_ */
