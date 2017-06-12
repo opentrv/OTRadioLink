@@ -456,7 +456,7 @@ static void decodeAndHandleRawRXedMessage(const uint8_t * const msg)
  */
 class OTMessageQueueHandlerBase {
 public:
-    virtual bool handle(bool /*wakeSerialIfNeeded*/, OTRadioLink * /*rl*/) { return false; };
+    virtual bool handle(bool /*wakeSerialIfNeeded*/, OTRadioLink & /*rl*/) { return false; };
 };
 
 #ifdef ARDUINO_ARCH_AVR
@@ -485,7 +485,7 @@ public:
     // which may mean deferring work at certain times
     // such as the end of minor cycle.
     // The Print object pointer must not be NULL.
-    virtual bool handle(bool wakeSerialIfNeeded, OTRadioLink *rl) override
+    virtual bool handle(bool wakeSerialIfNeeded, OTRadioLink &rl) override
     {
         // Avoid starting any potentially-slow processing very late in the minor cycle.
         // This is to reduce the risk of loop overruns
@@ -501,18 +501,18 @@ public:
         bool workDone = pollIO(true);
 
         // Check for activity on the radio link.
-        rl->poll();
+        rl.poll();
 
         bool neededWaking = false; // Set true once this routine wakes Serial.
         const volatile uint8_t *pb;
-        if(NULL != (pb = rl->peekRXMsg())) {
+        if(NULL != (pb = rl.peekRXMsg())) {
             if(!neededWaking && wakeSerialIfNeeded && OTV0P2BASE::powerUpSerialIfDisabled<baud>()) { neededWaking = true; } // FIXME
             // Don't currently regard anything arriving over the air as 'secure'.
             // FIXME: shouldn't have to cast away volatile to process the message content.
             decodeAndHandleRawRXedMessage< h1_t, h1, frameType1,
                                            allowInsecureRX>
                                            ((const uint8_t *)pb);
-            rl->removeRXMsg();
+            rl.removeRXMsg();
             // Note that some work has been done.
             workDone = true;
         }
@@ -550,7 +550,7 @@ public:
     // which may mean deferring work at certain times
     // such as the end of minor cycle.
     // The Print object pointer must not be NULL.
-    virtual bool handle(bool wakeSerialIfNeeded, OTRadioLink *rl) override
+    virtual bool handle(bool wakeSerialIfNeeded, OTRadioLink &rl) override
     {
         // Avoid starting any potentially-slow processing very late in the minor cycle.
         // This is to reduce the risk of loop overruns
@@ -566,11 +566,11 @@ public:
         bool workDone = pollIO(true);
 
         // Check for activity on the radio link.
-        rl->poll();
+        rl.poll();
 
         bool neededWaking = false; // Set true once this routine wakes Serial.
         const volatile uint8_t *pb;
-        if(NULL != (pb = rl->peekRXMsg())) {
+        if(NULL != (pb = rl.peekRXMsg())) {
             if(!neededWaking && wakeSerialIfNeeded && OTV0P2BASE::powerUpSerialIfDisabled<baud>()) { neededWaking = true; } // FIXME
             // Don't currently regard anything arriving over the air as 'secure'.
             // FIXME: shouldn't have to cast away volatile to process the message content.
@@ -578,7 +578,7 @@ public:
                                            h2_t, h2, frameType2,
                                            allowInsecureRX>
                                            ((const uint8_t *)pb);
-            rl->removeRXMsg();
+            rl.removeRXMsg();
             // Note that some work has been done.
             workDone = true;
         }
