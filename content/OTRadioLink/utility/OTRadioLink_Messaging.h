@@ -31,6 +31,15 @@ Author(s) / Copyright (s): Deniz Erbilgin 2017
 namespace OTRadioLink
 {
 
+
+/**
+ * @brief   Struct for passing frame data around.
+ * @param   msg: Raw RXed message.
+ * @param   decryptedBody: RXed Message after decrypting/decoding
+ * @todo    Better to store actual stuff in here?
+ *          Should msgLen be stored or is it fine to use msg[-1] to get it?
+ *          Is there a better way to order everything?
+ */
 struct OTFrameData_T
 {
     OTFrameData_T(SecurableFrameHeader &_sfh,
@@ -43,10 +52,13 @@ struct OTFrameData_T
                   decryptedBody(_decryptedBody), decryptedBodyLen(_decryptedBodyLen)
                   {}
     SecurableFrameHeader &sfh;
-    uint8_t * senderNodeID;
-    uint8_t * msg;
-    uint8_t * decryptedBody;
+    uint8_t * const senderNodeID;
+    uint8_t * const msg;
+    uint8_t * const decryptedBody;
     uint8_t decryptedBodyLen;
+
+//    // Message length is stored in byte before first RXed message buffer.
+//    inline uint8_t getMsgLen() { return msg[-1]; }
 };
 
 
@@ -57,10 +69,7 @@ class OTFrameHandlerBase
 {
 public:
     /*
-     * @param   msg: pointer to buffer containing encrypted message.
-     * @param   decryptedBody: pointer to buffer containing plain text.
-     * @param   decryptedBody: length of decryptedBody.
-     * @fixme   Currently not sure how to pass in sfh and sender node ID.
+     * @param   fd: Reference to frame data stored as OTFrameData_T.
      */
     virtual bool frameHandler(const OTFrameData_T &fd) = 0;
 };
@@ -77,7 +86,6 @@ class OTSerialHandler final : public OTFrameHandlerBase
 public:
     /*
      * @brief   Construct a human/machine readable JSON frame and print to serial.
-     * @fixme   Currently not sure how to pass in sfh and sender node ID.
      */
     virtual bool frameHandler(const OTFrameData_T &fd) override
     {
@@ -94,9 +102,9 @@ public:
             // Write out the JSON message, inserting synthetic ID/@ and seq/+.
             p.print(F("{\"@\":\""));
 #ifdef ARDUINO_ARCH_AVR
-            for(int i = 0; i < OTV0P2BASE::OpenTRV_Node_ID_Bytes; ++i) { p.print(senderNodeID[i], HEX); }  // FIXME
+            for(int i = 0; i < OTV0P2BASE::OpenTRV_Node_ID_Bytes; ++i) { p.print(senderNodeID[i], HEX); }
 #endif // ARDUINO_ARCH_AVR
-            p.print(F("\",\"+\":"));  // FIXME
+            p.print(F("\",\"+\":"));
             p.print(fd.sfh.getSeq());
             p.print(',');
             p.write(db + 3, dbLen - 3);
