@@ -35,14 +35,15 @@ namespace OTRadioLink
 /**
  * @brief   Struct for passing frame data around.
  * @param   msg: Raw RXed message.
- * @param   decryptedBody: RXed Message after decrypting/decoding
- * @todo    Better to store actual stuff in here?
- *          Should msgLen be stored or is it fine to use msg[-1] to get it?
- *          Is there a better way to order everything?
+ * @todo    Should msgLen be stored or is it fine to use msg[-1] to get it?
+ * @todo    Is there a better way to order everything?
+ * @note    Members are not initialised.
+ * @note    decryptedBody is of fixed size. Could potentially be templated.
  */
 struct OTFrameData_T
 {
     OTFrameData_T(const uint8_t * const _msg) : msg(_msg) {}
+
     SecurableFrameHeader sfh;
     uint8_t senderNodeID[OTV0P2BASE::OpenTRV_Node_ID_Bytes];
     const uint8_t * const msg;
@@ -137,7 +138,7 @@ public:
         if((nullptr == msg) || (nullptr == db)) return false;
 
         if((0 != (db[1] & 0x10)) && (dbLen > 3) && ('{' == db[2])) {
-            return rt.queueToSend(msg, msglen);  // FIXME!!! this should be passed in? Ignored by OTSIM900Link.
+            return rt.queueToSend(msg, msglen);
         }
         return false;
     }
