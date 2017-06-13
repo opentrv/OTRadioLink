@@ -21,14 +21,13 @@ Author(s) / Copyright (s): Deniz Erbilgin 2017
  * - (static) authAndDecodeOTSecureableFrame
  * - (static) decodeAndHandleOTSecurableFrame (single and dual)
  * - (static) decodeAndHandleRawRXedMessage (single and dual)
- * - OTMessageQueueHandlerSingle
- * - OTMessageQueueHandlerDual
  */
 
 #include <gtest/gtest.h>
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <OTAESGCM.h>
 #include <OTRadioLink.h>
 
 namespace OTFHT
@@ -56,6 +55,8 @@ namespace OTFHT
     // Null pollIO
     // FIXME need true version?
     bool pollIO(bool) {return (false);}
+    // return fake Key
+    bool getFakeKey(uint8_t *key) { memset(key, 0xff, /*OTV0P2BASE::VOP2BASE_EE_LEN_16BYTE_PRIMARY_BUILDING_KEY*/ 16); return (true); }
 
     // Instantiate objects for templating
     NULLSerialStream ss;
@@ -300,28 +301,47 @@ TEST(FrameHandlerTest, handleSecureFrameDual)
     EXPECT_FALSE(test5);
 }
 
-//// Should always return false
-//TEST(FrameHandlerTest, OTMessageQueueHandlerNull)
-//{
-//    OTRadioLink::OTMessageQueueHandlerNull mh;
-//    OTRadioLink::OTNullRadioLink rl;
-//    EXPECT_FALSE(mh.handle(false, rl));
-//}
-//
-//TEST(FrameHandlerTest, OTMessageQueueHandlerSingleBasic)
-//{
-//    OTRadioLink::OTMessageQueueHandlerSingle<decltype(OTFHT::fh),OTFHT::fh, 'O',
-//                                             OTFHT::pollIO, 4800> mh;
-//    OTRadioLink::OTNullRadioLink rl;
-//    EXPECT_FALSE(mh.handle(false, rl));
-//}
-//TEST(FrameHandlerTest, OTMessageQueueHandlerDualBasic)
-//{
-//    OTRadioLink::OTMessageQueueHandlerDual<decltype(OTFHT::fh),OTFHT::fh, 'O',
-//                                           decltype(OTFHT::fh),OTFHT::fh, 'O',
-//                                           OTFHT::pollIO, 4800> mh;
-//    OTRadioLink::OTNullRadioLink rl;
-//    EXPECT_FALSE(mh.handle(false, rl));
-//}
+TEST(FrameHandlerTest, authAndDecodeSecurableFrameBasic)
+{
+    // message
+    // msg buf consists of    { len | Message   }
+    const uint8_t msgBuf[] = { 5,    0,1,2,3,4 };
+    const uint8_t nodeID[OTV0P2BASE::OpenTRV_Node_ID_Bytes] = {1, 2, 3, 4, 5, 6, 7, 8};
+    const uint8_t decrypted[] = { 0 , 0x10, '{', 'b', 'c'};
+
+    OTRadioLink::OTFrameData_T fd(&msgBuf[1]);
+    memcpy(fd.senderNodeID, nodeID, sizeof(nodeID));
+    memcpy(fd.decryptedBody, decrypted, sizeof(decrypted));
+    fd.decryptedBodyLen = sizeof(decrypted);
+
+    const bool test1 = OTRadioLink::authAndDecodeOTSecurableFrame<OTFHT::getFakeKey>(fd);
+    EXPECT_FALSE(test1);
+}
+
+// Should always return false
+TEST(FrameHandlerTest, OTMessageQueueHandlerNull)
+{
+    OTRadioLink::OTMessageQueueHandlerNull mh;
+    OTRadioLink::OTNullRadioLink rl;
+    EXPECT_FALSE(mh.handle(false, rl));
+}
+
+TEST(FrameHandlerTest, OTMessageQueueHandlerSingleBasic)
+{
+    OTRadioLink::OTMessageQueueHandlerSingle<decltype(OTFHT::fh),OTFHT::fh, 'O',
+                                             OTFHT::pollIO, 4800,
+                                             OTFHT::getFakeKey> mh;
+    OTRadioLink::OTNullRadioLink rl;
+    EXPECT_FALSE(mh.handle(false, rl));
+}
+TEST(FrameHandlerTest, OTMessageQueueHandlerDualBasic)
+{
+    OTRadioLink::OTMessageQueueHandlerDual<decltype(OTFHT::fh),OTFHT::fh, 'O',
+                                           decltype(OTFHT::fh),OTFHT::fh, 'O',
+                                           OTFHT::pollIO, 4800,
+                                           OTFHT::getFakeKey> mh;
+    OTRadioLink::OTNullRadioLink rl;
+    EXPECT_FALSE(mh.handle(false, rl));
+}
 // More detailed Tests
 
