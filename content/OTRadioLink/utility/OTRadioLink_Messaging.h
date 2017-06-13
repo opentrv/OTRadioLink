@@ -87,17 +87,12 @@ public:
         const uint8_t dbLen = fd.decryptedBodyLen;
         const uint8_t * const senderNodeID = fd.senderNodeID;
 
-        // Check db exists.
-        if ((nullptr == db) || (nullptr == senderNodeID)) return false;
-
         if((0 != (db[1] & 0x10)) && (dbLen > 3) && ('{' == db[2])) {
             // XXX Feel like this should be moved somewhere else.
             // TODO JSON output not implemented yet.
             // Write out the JSON message, inserting synthetic ID/@ and seq/+.
             p.print(F("{\"@\":\""));
-#ifdef ARDUINO_ARCH_AVR
-            for(int i = 0; i < OTV0P2BASE::OpenTRV_Node_ID_Bytes; ++i) { p.print(senderNodeID[i], HEX); }
-#endif // ARDUINO_ARCH_AVR
+            for(int i = 0; i < OTV0P2BASE::OpenTRV_Node_ID_Bytes; ++i) { p.print(senderNodeID[i], 16); }  // print in hex
             p.print(F("\",\"+\":"));
             p.print(fd.sfh.getSeq());
             p.print(',');
@@ -130,12 +125,12 @@ public:
     virtual bool frameHandler(const OTFrameData_T &fd) override
     {
         const uint8_t * const msg = fd.msg;
+        // Check msg exists.
+        if(nullptr == msg) return false;
+
         const uint8_t msglen = fd.msg[-1];
         const uint8_t * const db = fd.decryptedBody;
         const uint8_t dbLen = fd.decryptedBodyLen;
-
-        // Check db exists.
-        if((nullptr == msg) || (nullptr == db)) return false;
 
         if((0 != (db[1] & 0x10)) && (dbLen > 3) && ('{' == db[2])) {
             return rt.queueToSend(msg, msglen);
@@ -159,8 +154,6 @@ public:
     virtual bool frameHandler(const OTFrameData_T &fd) override
     {
         const uint8_t * const db = fd.decryptedBody;
-        // Check db exists.
-        if(nullptr == db) return false;
 
         const uint8_t percentOpen = db[0];
         if(percentOpen <= 100) { bh.remoteCallForHeatRX(0, percentOpen, minuteCount); }
