@@ -36,6 +36,154 @@ namespace OTRadioLink
     {
 
 
+
+// V0p2 TX implementation for 0 or 32 byte encrypted body sections.
+//
+// With all of these routines it is important to check and act on error codes,
+// usually aborting immediately if an error value is returned.
+// MUDDLING ON WITHOUT CHECKING FOR ERRORS MAY SEVERELY DAMAGE SYSTEM SECURITY.
+//
+// Storage format for primary TX message counter.
+// The ephemeral 3 bytes are held in RAM.
+// The restart/reboot 3 bytes is stored in a primary and secondary copy in EEPROM,
+// along with an 8-bit CRC each, all stored inverted,
+// so that the all-1s erased state of counter and CRC is valid (counter value 0).
+class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTXBase
+    {
+    protected:
+        // Constructor is protected to force use of factory method to return singleton.
+        // Else deriving class can construct some other way.
+        constexpr SimpleSecureFrame32or0BodyTXV0p2Null() { }
+
+    public:
+        // Factory method to get singleton instance.
+        static SimpleSecureFrame32or0BodyTXV0p2Null &getInstance()
+        {
+            // Create/initialise on first use, NOT statically.
+            static SimpleSecureFrame32or0BodyTXV0p2Null instance;
+            return(instance);
+        }
+
+        // Get TX ID that will be used for transmission; returns false on failure.
+        // Argument must be buffer of (at least) OTV0P2BASE::OpenTRV_Node_ID_Bytes bytes.
+        virtual bool getTXID(uint8_t *id) const override;
+
+        // Design notes on use of message counters vs non-volatile storage life, eg for ATMega328P.
+        //
+        // Note that the message counter is designed to:
+        //  a) prevent reuse of IVs, which can fatally weaken the cipher,
+        //  b) avoid replay attacks.
+        //
+        // The implementation on both TX and RX sides should:
+        //  a) allow nominally 10 years' life from the non-volatile store and thus the unit,
+        //  b) be resistant to (for example) deliberate power-cycling during update,
+        //  c) random EEPROM byte failures.
+        //
+        // Some assumptions:
+        //  a) aiming for 10 years' continuous product life at transmitters and receivers,
+        //  b) around one TX per sensor/valve node per 4 minutes,
+        //  c) ~100k full erase/write cycles per EEPROM byte (partial writes can be cheaper), as ATmega328P.
+        //
+        // 100k updates over 10Y implies ~10k/y or about 1 per hour;
+        // that is about one full EEPROM erase/write per 15 messages at one message per 4 minutes.
+        //
+        // EEPROM-based implementation...
+        // Load the raw form of the persistent reboot/restart message counter from EEPROM into the supplied array.
+        // Deals with inversion, but does not interpret the data or check CRCs etc.
+        // Separates the EEPROM access from the data interpretation to simplify unit testing.
+        // Buffer must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
+        // Not ISR-safe.
+        static void loadRaw3BytePersistentTXRestartCounterFromEEPROM(uint8_t *loadBuf);
+        // Interpret RAM copy of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
+        // Combines results from primary and secondary as appropriate,
+        // for example to recover from message counter corruption due to a failure during write.
+        // TODO: should still do more to (for example) rewrite failed copy for resilience against multiple write failures.
+        // Deals with inversion and checksum checking.
+        // Input buffer (loadBuf) must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
+        // Output buffer (buf) must be 3 bytes long.
+        // Will report failure when count is all 0xff values.
+        static bool read3BytePersistentTXRestartCounter(const uint8_t *loadBuf, uint8_t *buf);
+        // Increment RAM copy of persistent reboot/restart message counter; returns false on failure.
+        // Will refuse to increment such that the top byte overflows, ie when already at 0xff.
+        // Updates the CRC.
+        // Input/output buffer (loadBuf) must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
+        static bool increment3BytePersistentTXRestartCounter(uint8_t *loadBuf);
+        // Reset the persistent reboot/restart message counter in EEPROM; returns false on failure.
+        // TO BE USED WITH EXTREME CAUTION: reusing the message counts and resulting IVs
+        // destroys the security of the cipher.
+        // Probably only sensible to call this when changing either the ID or the key (or both).
+        // This can reset the restart counter to all zeros (erasing the underlying EEPROM bytes),
+        // or (default) reset only the most significant bits to zero (preserving device life)
+        // but inject entropy into the least significant bits to reduce risk value/IV reuse in error.
+        // If called with false then interrupts should not be blocked to allow entropy gathering,
+        // and counter is guaranteed to be non-zero.
+        //
+        // Clears the primary building key first.
+        static bool resetRaw3BytePersistentTXRestartCounterInEEPROM(bool allZeros = false);
+
+        // Get the 3 bytes of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
+        // Combines results from primary and secondary as appropriate.
+        // Deals with inversion and checksum checking.
+        // Output buffer (buf) must be 3 bytes long.
+        virtual bool get3BytePersistentTXRestartCounter(uint8_t *buf) const override;
+        // Reset the persistent reboot/restart message counter in EEPROM; returns false on failure.
+        // TO BE USED WITH EXTREME CAUTION: reusing the message counts and resulting IVs
+        // destroys the security of the cipher.
+        // Probably only sensible to call this when changing either the ID or the key (or both).
+        // This can reset the restart counter to all zeros (erasing the underlying EEPROM bytes),
+        // or (default) reset only the most significant bits to zero (preserving device life)
+        // but inject entropy into the least significant bits to reduce risk value/IV reuse in error.
+        // If called with false then interrupts should not be blocked to allow entropy gathering,
+        // and counter is guaranteed to be non-zero.
+        virtual bool resetRaw3BytePersistentTXRestartCounter(bool allZeros = false) override
+            { return(resetRaw3BytePersistentTXRestartCounterInEEPROM(allZeros)); }
+        // Conditional and statically callable version of resetRaw3BytePersistentTXRestartCounter(); returns false on failure.
+        // Creates a new persistent/reboot counter and thus message counter, to reduce IV reuse risk.
+        // TO BE USED WITH EXTREME CAUTION: reusing the message counts and resulting IVs
+        // destroys the security of the cipher.
+        // Probably only sensible to call this when changing either the ID or the key (or both).
+        // Resets (to a randomised value) the restart counter if significant life has been used, else increments it.
+        // Uses singleton instance.
+        static bool resetRaw3BytePersistentTXRestartCounterCond()
+            {
+            SimpleSecureFrame32or0BodyTXV0p2Null &i = getInstance();
+            uint8_t buf[primaryPeristentTXMessageRestartCounterBytes];
+            if(!i.get3BytePersistentTXRestartCounter(buf)) { return(false); }
+            if(buf[0] < 0x20) { return(i.increment3BytePersistentTXRestartCounter()); }
+            return(i.resetRaw3BytePersistentTXRestartCounterInEEPROM());
+            }
+        // Increment persistent reboot/restart message counter; returns false on failure.
+        // Will refuse to increment such that the top byte overflows, ie when already at 0xff.
+        // TO BE USED WITH EXTREME CAUTION: calling this unnecessarily will shorten life before needing to change ID/key.
+        virtual bool increment3BytePersistentTXRestartCounter() override;
+        // Get primary (semi-persistent) message counter for TX from an OpenTRV leaf under its own ID.
+        // This counter increases monotonically
+        // (and so may provide a sequence number)
+        // and is designed never to repeat a value
+        // which is very important for AES-GCM in particular
+        // as reuse of an IV (that includes this counter)
+        // badly undermines security of particular key.
+        // This counter may be shared across TXes with multiple keys if need be,
+        // though would normally we only associated with one key.
+        // This counter can can be reset if associated with entirely new keys.
+        // The top 3 of the 6 bytes of the counter are persisted in non-volatile storage
+        // and incremented after a reboot/restart
+        // and if the lower 3 bytes overflow into them.
+        // Some of the lest significant bits of the lower three (ephemeral) bytes
+        // may be initialised with entropy over a restart
+        // to help make 'cracking' the key harder
+        // and to reduce the chance of reuse of IVs
+        // even in the face of hardware or software error.
+        // When this counter reaches 0xffffffffffff then no more messages can be sent
+        // until new keys are shared and the counter is reset.
+        //
+        // Fills the supplied 6-byte array with the monotonically-increasing primary TX counter.
+        // Returns true on success; false on failure for example because the counter has reached its maximum value.
+        // Highest-index bytes in the array increment fastest.
+        // Not ISR-safe.
+        virtual bool incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(uint8_t *buf) override;
+    };
+
 #if defined(ARDUINO_ARCH_AVR)
 
     // V0p2 TX implementation for 0 or 32 byte encrypted body sections.
@@ -330,6 +478,7 @@ namespace OTRadioLink
                                             uint8_t *ID,
                                             bool firstIDMatchOnly = true);
         };
+#else  // ARDUINO_ARCH_AVR
 
 #endif // ARDUINO_ARCH_AVR
 

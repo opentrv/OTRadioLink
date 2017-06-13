@@ -57,6 +57,13 @@ static constexpr unsigned int maxStackSecureFrameEncode = 416;
 static constexpr unsigned int maxStackSecureFrameDecode = 416;
 #endif // __APPLE__
 
+TEST(SimpleSecureFrame, NullCompilation)
+{
+    OTRadioLink::SimpleSecureFrame32or0BodyTXV0p2Null &sf = OTRadioLink::SimpleSecureFrame32or0BodyTXV0p2Null::getInstance();
+    EXPECT_NE(nullptr, &sf);
+}
+
+
 // Test quick integrity checks, for TX and RX.
 //
 // DHD20161107: imported from test_SECFRAME.ino testFramQIC().
