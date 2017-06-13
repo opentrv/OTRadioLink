@@ -69,6 +69,26 @@ public:
 };
 
 /**
+ * @ class  Null handler that always returns true.
+ */
+template <typename T, T &>
+class OTNullHandlerTrue final : public OTFrameHandlerBase
+{
+public:
+    virtual bool frameHandler(const OTFrameData_T & /*fd*/) override { return (true); }
+};
+
+/**
+ * @ class  Null handler that always returns false.
+ */
+template <typename T, T &>
+class OTNullHandlerFalse final : public OTFrameHandlerBase
+{
+public:
+    virtual bool frameHandler(const OTFrameData_T & /*fd*/) override { return (false); }
+};
+
+/**
  * @class   Handler for printing to serial
  * @param   p_t: Type of printable object (usually Print, included for consistency with other handlers).
  * @param   p: Reference to printable object. Usually Serial on the arduino. NOTE! must be the concrete instance. AVR-GCC cannot currently
@@ -156,7 +176,7 @@ public:
         const uint8_t * const db = fd.decryptedBody;
 
         const uint8_t percentOpen = db[0];
-        if(percentOpen <= 100) { bh.remoteCallForHeatRX(0, percentOpen, minuteCount); }
+        if(percentOpen <= 100) { bh.remoteCallForHeatRX(0, percentOpen, minuteCount); }  // FIXME should this fail if false?
         return true;
     }
 };
@@ -427,9 +447,19 @@ static void decodeAndHandleRawRXedMessage(const uint8_t * const msg)
  * @brief   Abstract interface for handling message queues.
  *          Provided as V0p2 is still spagetti (20170608).
  */
-class OTMessageQueueHandlerBase {
+class OTMessageQueueHandlerBase
+{
 public:
-    virtual bool handle(bool /*wakeSerialIfNeeded*/, OTRadioLink & /*rl*/) { return false; };
+    virtual bool handle(bool /*wakeSerialIfNeeded*/, OTRadioLink & /*rl*/) = 0;
+};
+
+/**
+ * @brief   Null version. always returns false.
+ */
+class OTMessageQueueHandlerNull final : public OTMessageQueueHandlerBase
+{
+public:
+    virtual bool handle(bool /*wakeSerialIfNeeded*/, OTRadioLink & /*rl*/) override { return false; };
 };
 
 /*
@@ -444,7 +474,8 @@ public:
 template<typename h1_t, h1_t &h1, uint8_t frameType1,
          bool (*pollIO) (bool), uint16_t baud,
          bool allowInsecureRX = false>
-class OTMessageQueueHandlerSingle final: public OTMessageQueueHandlerBase {
+class OTMessageQueueHandlerSingle final : public OTMessageQueueHandlerBase
+{
 public:
     // Incrementally process I/O and queued messages, including from the radio link.
     // This may mean printing them to Serial (which the passed Print object usually is),
@@ -510,7 +541,8 @@ template<typename h1_t, h1_t &h1, uint8_t frameType1,
          typename h2_t, h2_t &h2, uint8_t frameType2,
          bool (*pollIO) (bool), uint16_t baud,
          bool allowInsecureRX = false>
-class OTMessageQueueHandlerDual final: public OTMessageQueueHandlerBase {
+class OTMessageQueueHandlerDual final: public OTMessageQueueHandlerBase
+{
 public:
     // Incrementally process I/O and queued messages, including from the radio link.
     // This may mean printing them to Serial (which the passed Print object usually is),

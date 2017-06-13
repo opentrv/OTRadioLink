@@ -16,6 +16,15 @@ under the Licence.
 Author(s) / Copyright (s): Deniz Erbilgin 2017
 */
 
+/*
+ * UNTESTED:
+ * - (static) authAndDecodeOTSecureableFrame
+ * - (static) decodeAndHandleOTSecurableFrame (single and dual)
+ * - (static) decodeAndHandleRawRXedMessage (single and dual)
+ * - OTMessageQueueHandlerSingle
+ * - OTMessageQueueHandlerDual
+ */
+
 #include <gtest/gtest.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,8 +35,6 @@ namespace OTFHT
 {
     uint8_t minuteCount = 0;
     static constexpr uint8_t heatCallPin = 0; // unused in unit tests.
-    OTRadioLink::OTNullRadioLink rt;
-    OTRadValve::BoilerCallForHeat<heatCallPin> b0;
 
     class NULLSerialStream final : public Stream
       {
@@ -45,9 +52,17 @@ namespace OTFHT
         virtual void flush() override { }
       };
     bool NULLSerialStream::verbose = false;
-    // Instantiate objects
-    NULLSerialStream ss;
 
+    // Null pollIO
+    // FIXME need true version?
+    bool pollIO(bool) {return (false);}
+
+    // Instantiate objects for templating
+    NULLSerialStream ss;
+    OTRadioLink::OTNullRadioLink rt;
+    OTRadValve::BoilerCallForHeat<heatCallPin> b0;
+    OTRadioLink::OTNullHandlerTrue<decltype(OTFHT::ss), OTFHT::ss> th;
+    OTRadioLink::OTNullHandlerFalse<decltype(OTFHT::ss), OTFHT::ss> fh;
 }
 // Basic sanity/does it compile tests
 TEST(FrameHandlerTest, OTFrameDataTest)
@@ -69,6 +84,25 @@ TEST(FrameHandlerTest, OTFrameDataTest)
     EXPECT_EQ(sizeof(decrypted), fd.decryptedBodyLen);
 
 }
+
+TEST(FrameHandlerTest, OTNullHandlerTrue)
+{
+    // message
+    // msg buf consists of    { len | Message   }
+    const uint8_t msgBuf[] = { 5,    0,1,2,3,4 };
+    OTRadioLink::OTFrameData_T fd(&msgBuf[1]);
+
+    EXPECT_TRUE(OTFHT::th.frameHandler(fd));
+}
+TEST(FrameHandlerTest, OTNullHandlerFalse)
+{
+    // message
+    // msg buf consists of    { len | Message   }
+    const uint8_t msgBuf[] = { 5,    0,1,2,3,4 };
+    OTRadioLink::OTFrameData_T fd(&msgBuf[1]);
+
+    EXPECT_FALSE(OTFHT::fh.frameHandler(fd));
+}
 // Minimum valid Frame
 TEST(FrameHandlerTest, OTSerialHandlerTestTrue)
 {
@@ -79,7 +113,7 @@ TEST(FrameHandlerTest, OTSerialHandlerTestTrue)
     // msg buf consists of    { len | Message   }
     const uint8_t msgBuf[] = { 5,    0,1,2,3,4 };
     const uint8_t nodeID[OTV0P2BASE::OpenTRV_Node_ID_Bytes] = {1, 2, 3, 4, 5, 6, 7, 8};
-    const uint8_t decrypted[] = { 'a', 0x10, '{', 'b', 'c'};
+    const uint8_t decrypted[] = { 0, 0x10, '{', 'b', 'c'};
 
     OTRadioLink::OTFrameData_T fd(&msgBuf[1]);
     memcpy(fd.senderNodeID, nodeID, sizeof(nodeID));
@@ -103,19 +137,19 @@ TEST(FrameHandlerTest, OTSerialHandlerTestFalse)
     memcpy(fd.senderNodeID, nodeID, sizeof(nodeID));
 
     // Case (0 != (db[1] & 0x10)
-    const uint8_t decrypted0[] = { 'a', 0x1, '{', 'b', 'c', 'd'};
+    const uint8_t decrypted0[] = { 0, 0x1, '{', 'b', 'c', 'd'};
     memcpy(fd.decryptedBody, decrypted0, sizeof(decrypted0));
     fd.decryptedBodyLen = sizeof(decrypted0);
     EXPECT_FALSE(sh.frameHandler(fd));
 
     // Case (dbLen > 3)
-    const uint8_t decrypted1[] = { 'a', 0x10, '{', 'b', 'c', 'd'};
+    const uint8_t decrypted1[] = { 0, 0x10, '{', 'b', 'c', 'd'};
     memcpy(fd.decryptedBody, decrypted1, sizeof(decrypted1));
     fd.decryptedBodyLen = 3;
     EXPECT_FALSE(sh.frameHandler(fd));
 
     // Case ('{' == db[2])
-    const uint8_t decrypted2[] = { 'a', 0x10, 's', 'b', 'c', 'd'};
+    const uint8_t decrypted2[] = { 0, 0x10, 's', 'b', 'c', 'd'};
     memcpy(fd.decryptedBody, decrypted2, sizeof(decrypted2));
     fd.decryptedBodyLen = sizeof(decrypted2);
     EXPECT_FALSE(sh.frameHandler(fd));
@@ -130,7 +164,7 @@ TEST(FrameHandlerTest, OTRadioHandlerTestTrue)
     // msg buf consists of    { len | Message   }
     const uint8_t msgBuf[] = { 5,    0,1,2,3,4 };
     const uint8_t nodeID[OTV0P2BASE::OpenTRV_Node_ID_Bytes] = {1, 2, 3, 4, 5, 6, 7, 8};
-    const uint8_t decrypted[] = { 'a', 0x10, '{', 'b', 'c'};
+    const uint8_t decrypted[] = { 0, 0x10, '{', 'b', 'c'};
 
     OTRadioLink::OTFrameData_T fd(&msgBuf[1]);
     memcpy(fd.senderNodeID, nodeID, sizeof(nodeID));
@@ -152,7 +186,7 @@ TEST(FrameHandlerTest, OTRadioHandlerTestFalse)
     const uint8_t nodeID[OTV0P2BASE::OpenTRV_Node_ID_Bytes] = {1, 2, 3, 4, 5, 6, 7, 8};
 
     // Case nullptr
-    const uint8_t decryptedValid[] = { 'a', 0x10, '{', 'b', 'c'};
+    const uint8_t decryptedValid[] = { 0, 0x10, '{', 'b', 'c'};
     OTRadioLink::OTFrameData_T fd0(nullptr);
     memcpy(fd0.senderNodeID, nodeID, sizeof(nodeID));
     memcpy(fd0.decryptedBody, decryptedValid, sizeof(decryptedValid));
@@ -164,44 +198,130 @@ TEST(FrameHandlerTest, OTRadioHandlerTestFalse)
     memcpy(fd1.senderNodeID, nodeID, sizeof(nodeID));
 
     // Case (0 != (db[1] & 0x10)
-    const uint8_t decrypted0[] = { 'a', 0x1, '{', 'b', 'c', 'd'};
+    const uint8_t decrypted0[] = { 0, 0x1, '{', 'b', 'c', 'd'};
     memcpy(fd1.decryptedBody, decrypted0, sizeof(decrypted0));
     fd1.decryptedBodyLen = sizeof(decrypted0);
     EXPECT_FALSE(rh.frameHandler(fd1));
 
     // Case (dbLen > 3)
-    const uint8_t decrypted1[] = { 'a', 0x10, '{', 'b', 'c', 'd'};
+    const uint8_t decrypted1[] = { 0, 0x10, '{', 'b', 'c', 'd'};
     memcpy(fd1.decryptedBody, decrypted1, sizeof(decrypted1));
     fd1.decryptedBodyLen = 3;
     EXPECT_FALSE(rh.frameHandler(fd1));
 
     // Case ('{' == db[2])
-    const uint8_t decrypted2[] = { 'a', 0x10, 's', 'b', 'c', 'd'};
+    const uint8_t decrypted2[] = { 0, 0x10, 's', 'b', 'c', 'd'};
     memcpy(fd1.decryptedBody, decrypted2, sizeof(decrypted2));
     fd1.decryptedBodyLen = sizeof(decrypted2);
     EXPECT_FALSE(rh.frameHandler(fd1));
 }
 
-TEST(FrameHandlerTest, OTBoilerHandlerTest)
+// Minimum valid Frame
+TEST(FrameHandlerTest, OTBoilerHandlerTestTrue)
 {
     // Instantiate objects
     OTRadioLink::OTBoilerHandler<decltype(OTFHT::b0), OTFHT::b0, OTFHT::minuteCount> bh;
     // message
     // msg buf consists of    { len | Message   }
-    const uint8_t msgBuf[6] = { 5,    0,1,2,3,4 };
+    const uint8_t msgBuf[] = { 5,    0,1,2,3,4 };
     const uint8_t nodeID[OTV0P2BASE::OpenTRV_Node_ID_Bytes] = {1, 2, 3, 4, 5, 6, 7, 8};
-    const uint8_t decrypted[] = "hello";
+    const uint8_t decrypted[] = { 0 , 0x10, '{', 'b', 'c'};
 
     OTRadioLink::OTFrameData_T fd(&msgBuf[1]);
     memcpy(fd.senderNodeID, nodeID, sizeof(nodeID));
     memcpy(fd.decryptedBody, decrypted, sizeof(decrypted));
     fd.decryptedBodyLen = sizeof(decrypted);
 
-    const auto result = bh.frameHandler(fd);
-    EXPECT_TRUE(result);
+    EXPECT_TRUE(bh.frameHandler(fd));
 }
 
+TEST(FrameHandlerTest, handleSecureFrameSingle)
+{
+    // message
+    // msg buf consists of    { len | Message   }
+    const uint8_t msgBuf[] = { 5,    0,1,2,3,4 };
+    const uint8_t nodeID[OTV0P2BASE::OpenTRV_Node_ID_Bytes] = {1, 2, 3, 4, 5, 6, 7, 8};
+    const uint8_t decrypted[] = { 0 , 0x10, '{', 'b', 'c'};
 
+    OTRadioLink::OTFrameData_T fd(&msgBuf[1]);
+    memcpy(fd.senderNodeID, nodeID, sizeof(nodeID));
+    memcpy(fd.decryptedBody, decrypted, sizeof(decrypted));
 
+    // 1. Frame longer than 2, handler returns true
+    fd.decryptedBodyLen = 2;
+    const bool test1 = OTRadioLink::handleOTSecureFrame<decltype(OTFHT::th),OTFHT::th,'O'>(fd);
+    EXPECT_TRUE(test1);
+    // 2. Frame < 2, handler returns true
+    fd.decryptedBodyLen = 1;
+    const bool test2 = OTRadioLink::handleOTSecureFrame<decltype(OTFHT::th),OTFHT::th,'O'>(fd);
+    EXPECT_FALSE(test2);
+    // 3. Frame longer than 2, handler returns false
+    fd.decryptedBodyLen = sizeof(decrypted);
+    const bool test3 = OTRadioLink::handleOTSecureFrame<decltype(OTFHT::fh),OTFHT::fh,'O'>(fd);
+    EXPECT_FALSE(test3);
+}
+
+TEST(FrameHandlerTest, handleSecureFrameDual)
+{
+    // message
+    // msg buf consists of    { len | Message   }
+    const uint8_t msgBuf[] = { 5,    0,1,2,3,4 };
+    const uint8_t nodeID[OTV0P2BASE::OpenTRV_Node_ID_Bytes] = {1, 2, 3, 4, 5, 6, 7, 8};
+    const uint8_t decrypted[] = { 0 , 0x10, '{', 'b', 'c'};
+
+    OTRadioLink::OTFrameData_T fd(&msgBuf[1]);
+    memcpy(fd.senderNodeID, nodeID, sizeof(nodeID));
+    memcpy(fd.decryptedBody, decrypted, sizeof(decrypted));
+
+    // 1. Frame longer than 2, Both handler returns true
+    fd.decryptedBodyLen = 2;
+    const bool test1 = OTRadioLink::handleOTSecureFrame<decltype(OTFHT::th),OTFHT::th, 'O',
+                                                        decltype(OTFHT::th),OTFHT::th,'O'>(fd);
+    EXPECT_TRUE(test1);
+    // 2. Frame < 2, Both handler returns true
+    fd.decryptedBodyLen = 1;
+    const bool test2 = OTRadioLink::handleOTSecureFrame<decltype(OTFHT::th),OTFHT::th, 'O',
+                                                        decltype(OTFHT::th),OTFHT::th,'O'>(fd);
+    EXPECT_FALSE(test2);
+    // 3. Frame longer than 2, Both handlers returns false
+    fd.decryptedBodyLen = sizeof(decrypted);
+    const bool test3 = OTRadioLink::handleOTSecureFrame<decltype(OTFHT::fh),OTFHT::fh, 'O',
+                                                        decltype(OTFHT::fh),OTFHT::fh,'O'>(fd);
+    EXPECT_FALSE(test3);
+    // 4. Frame longer than 2, first handler returns false
+    fd.decryptedBodyLen = sizeof(decrypted);
+    const bool test4 = OTRadioLink::handleOTSecureFrame<decltype(OTFHT::th),OTFHT::th, 'O',
+                                                        decltype(OTFHT::fh),OTFHT::fh,'O'>(fd);
+    EXPECT_FALSE(test4);
+    // 5. Frame longer than 2, second handler returns false
+    fd.decryptedBodyLen = sizeof(decrypted);
+    const bool test5 = OTRadioLink::handleOTSecureFrame<decltype(OTFHT::fh),OTFHT::fh, 'O',
+                                                        decltype(OTFHT::th),OTFHT::th,'O'>(fd);
+    EXPECT_FALSE(test5);
+}
+
+//// Should always return false
+//TEST(FrameHandlerTest, OTMessageQueueHandlerNull)
+//{
+//    OTRadioLink::OTMessageQueueHandlerNull mh;
+//    OTRadioLink::OTNullRadioLink rl;
+//    EXPECT_FALSE(mh.handle(false, rl));
+//}
+//
+//TEST(FrameHandlerTest, OTMessageQueueHandlerSingleBasic)
+//{
+//    OTRadioLink::OTMessageQueueHandlerSingle<decltype(OTFHT::fh),OTFHT::fh, 'O',
+//                                             OTFHT::pollIO, 4800> mh;
+//    OTRadioLink::OTNullRadioLink rl;
+//    EXPECT_FALSE(mh.handle(false, rl));
+//}
+//TEST(FrameHandlerTest, OTMessageQueueHandlerDualBasic)
+//{
+//    OTRadioLink::OTMessageQueueHandlerDual<decltype(OTFHT::fh),OTFHT::fh, 'O',
+//                                           decltype(OTFHT::fh),OTFHT::fh, 'O',
+//                                           OTFHT::pollIO, 4800> mh;
+//    OTRadioLink::OTNullRadioLink rl;
+//    EXPECT_FALSE(mh.handle(false, rl));
+//}
 // More detailed Tests
 
