@@ -18,8 +18,6 @@ Author(s) / Copyright (s): Deniz Erbilgin 2017
 
 /*
  * UNTESTED:
- * - (static) authAndDecodeOTSecureableFrame
- * - (static) decodeAndHandleOTSecurableFrame (single and dual)
  * - (static) decodeAndHandleRawRXedMessage (single and dual)
  */
 
