@@ -215,12 +215,15 @@ bool handleOTSecureFrame(const OTFrameData_T &fd)
  * @param   decryptedBodyOutSize: Size of decrypted message
  * @param   allowInsecureRX: Allows insecure frames to be received. Defaults to false.
  */
-template <bool allowInsecureRX = false>
-static bool authAndDecodeOTSecureableFrame(OTFrameData_T &fd)
+template <OTV0P2BASE::GetPrimary16ByteSecretKey_t *getKey,
+          bool allowInsecureRX = false>
+static bool authAndDecodeOTSecurableFrame(OTFrameData_T &fd)
 {
     const uint8_t *msg = fd.msg;
     const uint8_t msglen = msg[-1];
+#ifdef ARDUINO_ARCH_AVR
     uint8_t * outBuf = fd.decryptedBody;
+#endif
     // Validate structure of header/frame first.
     // This is quick and checks for insane/dangerous values throughout.
     const uint8_t l = fd.sfh.checkAndDecodeSmallFrameHeader(msg-1, msglen+1);
@@ -246,7 +249,7 @@ static bool authAndDecodeOTSecureableFrame(OTFrameData_T &fd)
     if(secureFrame)
       {
       // Get the 'building' key.
-      if(!OTV0P2BASE::getPrimaryBuilding16ByteSecretKey(key))
+      if( /*(nullptr != getKey) &&*/ (!getKey(key)) ) // CI throwing address will never be null error.
         {
         OTV0P2BASE::serialPrintlnAndFlush(F("!RX key"));
         return(false);
@@ -258,29 +261,30 @@ static bool authAndDecodeOTSecureableFrame(OTFrameData_T &fd)
       // validate RX message counter,
       // authenticate and decrypt,
       // update RX message counter.
-#ifdef ARDUINO_ARCH_AVR
       uint8_t decryptedBodyOutSize = 0;
+#ifdef ARDUINO_ARCH_AVR
       const bool isOK = (0 != SimpleSecureFrame32or0BodyRXV0p2::getInstance().decodeSecureSmallFrameSafely(&fd.sfh, msg-1, msglen+1,
                                               OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
                                               NULL, key,
                                               outBuf, fd.decryptedBodyBufSize, decryptedBodyOutSize,
                                               fd.senderNodeID,
                                               true));
+#else
+      const bool isOK = true;
+#endif
       fd.decryptedBodyLen = decryptedBodyOutSize;
-  #if 1 // && defined(DEBUG)
       if(!isOK)
         {
+#if 1 // && defined(DEBUG)
         // Useful brief network diagnostics: a couple of bytes of the claimed ID of rejected frames.
         // Warnings rather than errors because there may legitimately be multiple disjoint networks.
         OTV0P2BASE::serialPrintAndFlush(F("?RX auth")); // Missing association or failed auth.
-        if(fd.sfh.getIl() > 0) { OTV0P2BASE::serialPrintAndFlush(' '); OTV0P2BASE::serialPrintAndFlush(fd.sfh.id[0], HEX); }
-        if(fd.sfh.getIl() > 1) { OTV0P2BASE::serialPrintAndFlush(' '); OTV0P2BASE::serialPrintAndFlush(fd.sfh.id[1], HEX); }
+        if(fd.sfh.getIl() > 0) { OTV0P2BASE::serialPrintAndFlush(' '); OTV0P2BASE::serialPrintAndFlush(fd.sfh.id[0], 16); }
+        if(fd.sfh.getIl() > 1) { OTV0P2BASE::serialPrintAndFlush(' '); OTV0P2BASE::serialPrintAndFlush(fd.sfh.id[1], 16); }
         OTV0P2BASE::serialPrintlnAndFlush();
         return (false);
+#endif
         }
-  #endif
-#endif // ARDUINO_ARCH_AVR
-
       }
 
     return(true); // Stop if not OK.
@@ -297,6 +301,7 @@ static bool authAndDecodeOTSecureableFrame(OTFrameData_T &fd)
  * @note    - Secure beacon frames commented to save complexity, as not currently used by any configs.
  */
 template<typename h1_t, h1_t &h1, uint8_t frameType1,
+         OTV0P2BASE::GetPrimary16ByteSecretKey_t *getKey,
          bool allowInsecureRX = false>
 static bool decodeAndHandleOTSecurableFrame(const uint8_t * const msg)
 {
@@ -306,7 +311,7 @@ static bool decodeAndHandleOTSecurableFrame(const uint8_t * const msg)
     // (Non-secure frame bodies should be read directly from the frame buffer.)
     OTFrameData_T fd(msg);
 
-    if(!authAndDecodeOTSecureableFrame<allowInsecureRX>(fd)) {
+    if(!authAndDecodeOTSecurableFrame<getKey, allowInsecureRX>(fd)) {
         return false;
     }
 
@@ -358,6 +363,7 @@ static bool decodeAndHandleOTSecurableFrame(const uint8_t * const msg)
 }
 template<typename h1_t, h1_t &h1, uint8_t frameType1,
          typename h2_t, h2_t &h2, uint8_t frameType2,
+         OTV0P2BASE::GetPrimary16ByteSecretKey_t *getKey,
          bool allowInsecureRX = false>
 static bool decodeAndHandleOTSecurableFrame(const uint8_t * const msg)
 {
@@ -367,7 +373,7 @@ static bool decodeAndHandleOTSecurableFrame(const uint8_t * const msg)
     // (Non-secure frame bodies should be read directly from the frame buffer.)
     OTFrameData_T fd(msg);
 
-    if(!authAndDecodeOTSecureableFrame<allowInsecureRX>(fd)) {
+    if(!authAndDecodeOTSecurableFrame<getKey, allowInsecureRX>(fd)) {
         return false;
     }
 
@@ -405,6 +411,7 @@ static bool decodeAndHandleOTSecurableFrame(const uint8_t * const msg)
  * @note    decodeAndHandleFS20Frame is currently a stub and always returns false.
  */
 template<typename h1_t, h1_t &h1, uint8_t frameType1,
+         OTV0P2BASE::GetPrimary16ByteSecretKey_t *getKey,
          bool allowInsecureRX = false>
 static void decodeAndHandleRawRXedMessage(const uint8_t * const msg)
 {
@@ -418,7 +425,7 @@ static void decodeAndHandleRawRXedMessage(const uint8_t * const msg)
     if(msglen < 2) { return; } // Too short to be useful, so ignore.
 
    // Length-first OpenTRV securable-frame format...
-    if(decodeAndHandleOTSecurableFrame<h1_t, h1, frameType1, allowInsecureRX> (msg)) { return; }
+    if(decodeAndHandleOTSecurableFrame<h1_t, h1, frameType1, getKey, allowInsecureRX> (msg)) { return; }
     if(decodeAndHandleFS20Frame(msg)) { return; }
 
 //  // Unparseable frame: drop it; possibly log it as an error.
@@ -429,6 +436,7 @@ static void decodeAndHandleRawRXedMessage(const uint8_t * const msg)
 }
 template<typename h1_t, h1_t &h1, uint8_t frameType1,
          typename h2_t, h2_t &h2, uint8_t frameType2,
+         OTV0P2BASE::GetPrimary16ByteSecretKey_t *getKey,
          bool allowInsecureRX = false>
 static void decodeAndHandleRawRXedMessage(const uint8_t * const msg)
 {
@@ -437,6 +445,7 @@ static void decodeAndHandleRawRXedMessage(const uint8_t * const msg)
    // Length-first OpenTRV securable-frame format...
     if(decodeAndHandleOTSecurableFrame<h1_t, h1, frameType1,
                                        h2_t, h2, frameType2,
+                                       getKey,
                                        allowInsecureRX>
                                        (msg)) { return; }
     if(decodeAndHandleFS20Frame(msg)) { return; }
@@ -473,6 +482,7 @@ public:
  */
 template<typename h1_t, h1_t &h1, uint8_t frameType1,
          bool (*pollIO) (bool), uint16_t baud,
+         OTV0P2BASE::GetPrimary16ByteSecretKey_t *getKey = OTV0P2BASE::getPrimaryBuilding16ByteSecretKey,
          bool allowInsecureRX = false>
 class OTMessageQueueHandlerSingle final : public OTMessageQueueHandlerBase
 {
@@ -488,7 +498,11 @@ public:
     // which may mean deferring work at certain times
     // such as the end of minor cycle.
     // The Print object pointer must not be NULL.
-    virtual bool handle(bool wakeSerialIfNeeded, OTRadioLink &rl) override
+    virtual bool handle(bool
+#ifdef ARDUINO_ARCH_AVR
+            wakeSerialIfNeeded
+#endif // ARDUINO_ARCH_AVR
+            , OTRadioLink &rl) override
     {
         // Avoid starting any potentially-slow processing very late in the minor cycle.
         // This is to reduce the risk of loop overruns
@@ -500,6 +514,7 @@ public:
 #ifdef ARDUINO_ARCH_AVR
         const uint8_t sctStart = OTV0P2BASE::getSubCycleTime();
         if(sctStart >= ((OTV0P2BASE::GSCT_MAX/4)*3)) { return(false); }
+#endif // ARDUINO_ARCH_AVR
 
         // Deal with any I/O that is queued.
         bool workDone = pollIO(true);
@@ -507,32 +522,36 @@ public:
         // Check for activity on the radio link.
         rl.poll();
 
+#ifdef ARDUINO_ARCH_AVR
         bool neededWaking = false; // Set true once this routine wakes Serial.
+#endif // ARDUINO_ARCH_AVR
+
         const volatile uint8_t *pb;
         if(NULL != (pb = rl.peekRXMsg())) {
+#ifdef ARDUINO_ARCH_AVR
             if(!neededWaking && wakeSerialIfNeeded && OTV0P2BASE::powerUpSerialIfDisabled<baud>()) { neededWaking = true; } // FIXME
+#endif // ARDUINO_ARCH_AVR
             // Don't currently regard anything arriving over the air as 'secure'.
             // FIXME: shouldn't have to cast away volatile to process the message content.
-            decodeAndHandleRawRXedMessage< h1_t, h1, frameType1, allowInsecureRX> ((const uint8_t *)pb);
+            decodeAndHandleRawRXedMessage< h1_t, h1, frameType1, getKey, allowInsecureRX> ((const uint8_t *)pb);
             rl.removeRXMsg();
             // Note that some work has been done.
             workDone = true;
         }
 
         // Turn off serial at end, if this routine woke it.
+#ifdef ARDUINO_ARCH_AVR
         if(neededWaking) { OTV0P2BASE::flushSerialProductive(); OTV0P2BASE::powerDownSerial(); }
+#endif // ARDUINO_ARCH_AVR
 
-        #if 0 && defined(DEBUG)
+#if 0 && defined(DEBUG)
         const uint8_t sctEnd = OTV0P2BASE::getSubCycleTime();
         const uint8_t ticks = sctEnd - sctStart;
         if(ticks > 1) {
             OTV0P2BASE::serialPrintAndFlush(ticks);
             OTV0P2BASE::serialPrintlnAndFlush();
         }
-        #endif
-#else
-        const bool workDone = false;
-#endif // ARDUINO_ARCH_AVR
+#endif
         return(workDone);
     }
 };
@@ -540,6 +559,7 @@ public:
 template<typename h1_t, h1_t &h1, uint8_t frameType1,
          typename h2_t, h2_t &h2, uint8_t frameType2,
          bool (*pollIO) (bool), uint16_t baud,
+         OTV0P2BASE::GetPrimary16ByteSecretKey_t *getKey = OTV0P2BASE::getPrimaryBuilding16ByteSecretKey,
          bool allowInsecureRX = false>
 class OTMessageQueueHandlerDual final: public OTMessageQueueHandlerBase
 {
@@ -555,9 +575,12 @@ public:
     // which may mean deferring work at certain times
     // such as the end of minor cycle.
     // The Print object pointer must not be NULL.
-    virtual bool handle(bool wakeSerialIfNeeded, OTRadioLink &rl) override
-    {
+    virtual bool handle(bool
 #ifdef ARDUINO_ARCH_AVR
+            wakeSerialIfNeeded
+#endif // ARDUINO_ARCH_AVR
+            , OTRadioLink &rl) override
+    {
         // Avoid starting any potentially-slow processing very late in the minor cycle.
         // This is to reduce the risk of loop overruns
         // at the risk of delaying some processing
@@ -565,8 +588,10 @@ public:
         // Decoding (and printing to serial) a secure 'O' frame takes ~60 ticks (~0.47s).
         // Allow for up to 0.5s of such processing worst-case,
         // ie don't start processing anything later that 0.5s before the minor cycle end.
+#ifdef ARDUINO_ARCH_AVR
         const uint8_t sctStart = OTV0P2BASE::getSubCycleTime();
         if(sctStart >= ((OTV0P2BASE::GSCT_MAX/4)*3)) { return(false); }
+#endif // ARDUINO_ARCH_AVR
 
         // Deal with any I/O that is queued.
         bool workDone = pollIO(true);
@@ -574,15 +599,20 @@ public:
         // Check for activity on the radio link.
         rl.poll();
 
+#ifdef ARDUINO_ARCH_AVR
         bool neededWaking = false; // Set true once this routine wakes Serial.
+#endif // ARDUINO_ARCH_AVR
+
         const volatile uint8_t *pb;
         if(NULL != (pb = rl.peekRXMsg())) {
+#ifdef ARDUINO_ARCH_AVR
             if(!neededWaking && wakeSerialIfNeeded && OTV0P2BASE::powerUpSerialIfDisabled<baud>()) { neededWaking = true; } // FIXME
+#endif // ARDUINO_ARCH_AVR
             // Don't currently regard anything arriving over the air as 'secure'.
             // FIXME: shouldn't have to cast away volatile to process the message content.
             decodeAndHandleRawRXedMessage< h1_t, h1, frameType1,
                                            h2_t, h2, frameType2,
-                                           allowInsecureRX>
+                                           getKey, allowInsecureRX>
                                            ((const uint8_t *)pb);
             rl.removeRXMsg();
             // Note that some work has been done.
@@ -590,9 +620,8 @@ public:
         }
 
         // Turn off serial at end, if this routine woke it.
+#ifdef ARDUINO_ARCH_AVR
         if(neededWaking) { OTV0P2BASE::flushSerialProductive(); OTV0P2BASE::powerDownSerial(); }
-#else
-        const bool workDone = false;
 #endif // ARDUINO_ARCH_AVR
         return(workDone);
     }

@@ -85,7 +85,8 @@ bool setPrimaryBuilding16ByteSecretKey(const uint8_t *key);
  * @param   key  pointer to a 16 byte buffer to write the key too.
  * @retval  true if key appears to be set and is retrieved
  */
-bool getPrimaryBuilding16ByteSecretKey(uint8_t *key);
+typedef bool (GetPrimary16ByteSecretKey_t)(uint8_t *key);
+GetPrimary16ByteSecretKey_t getPrimaryBuilding16ByteSecretKey;
 
 // Verify that the stored key is that passed in.
 // Avoids leaking information about the key,
