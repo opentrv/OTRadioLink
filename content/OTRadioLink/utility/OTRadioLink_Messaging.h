@@ -71,21 +71,20 @@ public:
 /**
  * @ class  Null handler that always returns true.
  */
-template <typename T, T &>
 class OTNullFrameOperationTrue final : public OTFrameOperationBase
 {
 public:
-    bool handle(const OTFrameData_T & /*fd*/) { return (true); }
+    inline bool handle(const OTFrameData_T & /*fd*/) { return (true); }
 };
 
 /**
  * @ class  Null handler that always returns false.
  */
-template <typename T, T &>
+// template <typename T, T &>
 class OTNullFrameOperationFalse final : public OTFrameOperationBase
 {
 public:
-    bool handle(const OTFrameData_T & /*fd*/) { return (false); }
+    inline bool handle(const OTFrameData_T & /*fd*/) { return (false); }
 };
 
 /**
@@ -101,7 +100,7 @@ public:
     /*
      * @brief   Construct a human/machine readable JSON frame and print to serial.
      */
-    bool handle(const OTFrameData_T &fd)
+    inline bool handle(const OTFrameData_T &fd)
     {
         const uint8_t * const db = fd.decryptedBody;
         const uint8_t dbLen = fd.decryptedBodyLen;
@@ -142,7 +141,7 @@ public:
     /*
      * @brief   Relay frame over rt if basic validity check of decrypted frame passed.
      */
-    bool handle(const OTFrameData_T &fd)
+    inline bool handle(const OTFrameData_T &fd)
     {
         const uint8_t * const msg = fd.msg;
         // Check msg exists.
@@ -171,7 +170,7 @@ template <typename bh_t, bh_t &bh, uint8_t &minuteCount>
 class OTBoilerFrameOperation final : public OTFrameOperationBase
 {
 public:
-    bool handle(const OTFrameData_T &fd)
+    inline bool handle(const OTFrameData_T &fd)
     {
         const uint8_t * const db = fd.decryptedBody;
 
@@ -251,7 +250,7 @@ typedef bool (frameDecodeHandler_fn_t) (const uint8_t *msg);
  * @note    Used as a dummy case for when multiple frame decoders are not used.
  */
 frameDecodeHandler_fn_t decodeAndHandleDummyFrame;
-inline bool decodeAndHandleDummyFrame(const uint8_t * const msg)
+inline bool decodeAndHandleDummyFrame(const uint8_t * const /*msg*/)
 {
     return false;
 }
@@ -295,8 +294,8 @@ bool decodeAndHandleOTSecureFrame(const uint8_t * const _msg)
         {
             // Perform trivial validation of frame then loop through supplied handlers.
             if (fd.decryptedBodyLen < 2) return (false);
-            if (!h1.handle(fd));
-            if (!h2.handle(fd));
+            h1.handle(fd);
+            h2.handle(fd);
         }
           // Reject unrecognised type, though fall through potentially to recognise other encodings.
         default: break;
