@@ -60,8 +60,8 @@ namespace OTFHT
     NULLSerialStream ss;
     OTRadioLink::OTNullRadioLink rt;
     OTRadValve::OnOffBoilerDriverLogic<heatCallPin> b0;
-    OTRadioLink::OTNullFrameOperationTrue<decltype(OTFHT::ss), OTFHT::ss> to;
-    OTRadioLink::OTNullFrameOperationFalse<decltype(OTFHT::ss), OTFHT::ss> fo;
+    OTRadioLink::OTNullFrameOperationTrue to;
+    OTRadioLink::OTNullFrameOperationFalse fo;
 }
 // Basic sanity/does it compile tests
 TEST(FrameHandlerTest, OTFrameDataTest)

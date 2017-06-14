@@ -71,7 +71,6 @@ public:
 /**
  * @ class  Null handler that always returns true.
  */
-template <typename T, T &>
 class OTNullFrameOperationTrue final : public OTFrameOperationBase
 {
 public:
