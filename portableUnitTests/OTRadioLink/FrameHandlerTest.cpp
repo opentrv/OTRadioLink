@@ -59,7 +59,7 @@ namespace OTFHT
     // Instantiate objects for templating
     NULLSerialStream ss;
     OTRadioLink::OTNullRadioLink rt;
-    OTRadValve::BoilerCallForHeat<heatCallPin> b0;
+    OTRadValve::OnOffBoilerDriverLogic<heatCallPin> b0;
     OTRadioLink::OTNullHandlerTrue<decltype(OTFHT::ss), OTFHT::ss> th;
     OTRadioLink::OTNullHandlerFalse<decltype(OTFHT::ss), OTFHT::ss> fh;
 }
