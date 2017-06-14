@@ -33,7 +33,7 @@ namespace OTRadioLink
 
 
 /**
- * @brief   Struct for passing frame data around.
+ * @brief   Struct for passing frame data around in the RX call chain.
  * @param   msg: Raw RXed message.
  * @todo    Should msgLen be stored or is it fine to use msg[-1] to get it?
  * @todo    Is there a better way to order everything?
@@ -454,11 +454,12 @@ static void decodeAndHandleRawRXedMessage(const uint8_t * const msg)
 
 /**
  * @brief   Abstract interface for handling message queues.
- *          Provided as V0p2 is still spagetti (20170608).
+ *          Provided as V0p2 is still spaghetti (20170608).
  */
 class OTMessageQueueHandlerBase
 {
 public:
+    /**Returns true if a handler for this basic frame structure. */
     virtual bool handle(bool /*wakeSerialIfNeeded*/, OTRadioLink & /*rl*/) = 0;
 };
 
@@ -468,6 +469,7 @@ public:
 class OTMessageQueueHandlerNull final : public OTMessageQueueHandlerBase
 {
 public:
+    /**Never finds a handler and thus always returns false. */
     virtual bool handle(bool /*wakeSerialIfNeeded*/, OTRadioLink & /*rl*/) override { return false; };
 };
 
@@ -498,11 +500,11 @@ public:
     // which may mean deferring work at certain times
     // such as the end of minor cycle.
     // The Print object pointer must not be NULL.
-    virtual bool handle(bool
+    bool handle(bool
 #ifdef ARDUINO_ARCH_AVR
             wakeSerialIfNeeded
 #endif // ARDUINO_ARCH_AVR
-            , OTRadioLink &rl) override
+            , OTRadioLink &rl) override final
     {
         // Avoid starting any potentially-slow processing very late in the minor cycle.
         // This is to reduce the risk of loop overruns
