@@ -65,7 +65,7 @@ public:
     /*
      * @param   fd: Reference to frame data stored as OTFrameData_T.
      */
-    virtual bool handle(const OTFrameData_T &fd) = 0;
+    // virtual bool handle(const OTFrameData_T &fd) = 0;
 };
 
 /**
@@ -75,7 +75,7 @@ template <typename T, T &>
 class OTNullFrameOperationTrue final : public OTFrameOperationBase
 {
 public:
-    virtual bool handle(const OTFrameData_T & /*fd*/) override { return (true); }
+    bool handle(const OTFrameData_T & /*fd*/) { return (true); }
 };
 
 /**
@@ -85,7 +85,7 @@ template <typename T, T &>
 class OTNullFrameOperationFalse final : public OTFrameOperationBase
 {
 public:
-    virtual bool handle(const OTFrameData_T & /*fd*/) override { return (false); }
+    bool handle(const OTFrameData_T & /*fd*/) { return (false); }
 };
 
 /**
@@ -101,7 +101,7 @@ public:
     /*
      * @brief   Construct a human/machine readable JSON frame and print to serial.
      */
-    virtual bool handle(const OTFrameData_T &fd) override
+    bool handle(const OTFrameData_T &fd)
     {
         const uint8_t * const db = fd.decryptedBody;
         const uint8_t dbLen = fd.decryptedBodyLen;
@@ -142,7 +142,7 @@ public:
     /*
      * @brief   Relay frame over rt if basic validity check of decrypted frame passed.
      */
-    virtual bool handle(const OTFrameData_T &fd) override
+    bool handle(const OTFrameData_T &fd)
     {
         const uint8_t * const msg = fd.msg;
         // Check msg exists.
@@ -171,7 +171,7 @@ template <typename bh_t, bh_t &bh, uint8_t &minuteCount>
 class OTBoilerFrameOperation final : public OTFrameOperationBase
 {
 public:
-    virtual bool handle(const OTFrameData_T &fd) override
+    bool handle(const OTFrameData_T &fd)
     {
         const uint8_t * const db = fd.decryptedBody;
 
@@ -187,7 +187,6 @@ public:
  * @param   msg: message to decrypt
  * @param   outBuf: output buffer
  * @param   decryptedBodyOutSize: Size of decrypted message
- * @param   allowInsecureRX: Allows insecure frames to be received. Defaults to false.
  * @TODO    Move check if secure frame into caller.
  */
 template <OTV0P2BASE::GetPrimary16ByteSecretKey_t *getKey>
@@ -206,18 +205,7 @@ static bool authAndDecodeOTSecurableFrame(OTFrameData_T &fd)
 
     // Validate integrity of frame (CRC for non-secure, auth for secure).
     const bool secureFrame = fd.sfh.isSecure();
-    // TODO: validate entire message, eg including auth, or CRC if insecure msg rcvd&allowed.
-    if(!secureFrame) {
-        if (allowInsecureRX) {
-            // Only bother to check insecure form (and link code to do so) if insecure RX is allowed.
-            // Reject if CRC fails.
-            if(0 == decodeNonsecureSmallFrameRaw(&fd.sfh, msg-1, msglen+1))
-                { return false; }
-        } else {
-            // Decode fails
-            return (false);
-        }
-    }
+
     // Validate (authenticate) and decrypt body of secure frames.
     uint8_t key[16];
     if(secureFrame)
@@ -280,7 +268,7 @@ typedef bool (frameDecodeHandler_fn_t) (const uint8_t *msg);
  * @note    Used as a dummy case for when multiple frame decoders are not used.
  */
 frameDecodeHandler_fn_t decodeAndHandleDummyFrame;
-bool decodeAndHandleDummyFrame(const uint8_t * const msg)
+inline bool decodeAndHandleDummyFrame(const uint8_t * const msg)
 {
     return false;
 }
@@ -291,7 +279,6 @@ bool decodeAndHandleDummyFrame(const uint8_t * const msg)
  * @param   h1_t: Type of h1
  * @param   h1: Handler object.
  * @param   frameTypen: Frame tyoe to be supplied to 1.
- * @param   allowInsecureRX: Allow RX of insecure frames. Defaults to false.
  * @return  true on successful frame type match, false if no suitable frame was found/decoded and another parser should be tried.
  * @note    - Secure beacon frames commented to save complexity, as not currently used by any configs.
  */
@@ -373,7 +360,6 @@ bool decodeAndHandleOTSecureFrame(const uint8_t * const msg)
  * @param   h1_t: Type of h1
  * @param   h1: Handler object.
  * @param   frameTypen: Frame tyoe to be supplied to 1.
- * @param   allowInsecureRX: Allow RX of insecure frames. Defaults to false.
  * @note    decodeAndHandleFS20Frame is currently a stub and always returns false.
  */
 template<frameDecodeHandler_fn_t &h1, frameDecodeHandler_fn_t &h2 = decodeAndHandleDummyFrame>
@@ -427,7 +413,6 @@ public:
  * @param   frameTypen: Frame tyoe to be supplied to 1.
  * @param   pollIO: Function pollIO in V0p2. FIXME work out how to bring pollIO into library.
  * @param   baud: Serial baud for serial output.
- * @param   allowInsecureRX: Allow RX of insecure frames. Defaults to false.
  */
 template<frameDecodeHandler_fn_t &h1,
          frameDecodeHandler_fn_t &h2,
