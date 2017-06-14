@@ -119,7 +119,7 @@ class FHT8VRadValveUtil
     // Approximate maximum transmission (TX) time for bare FHT8V command frame in ms; strictly positive.
     // This ignores any prefix needed for particular radios such as the RFM23B.
     // ~80ms upwards.
-    static const uint8_t FHT8V_APPROX_MAX_RAW_TX_MS = ((((MIN_FHT8V_200US_BIT_STREAM_BUF_SIZE-1)*8) + 4) / 5);
+    static constexpr uint8_t FHT8V_APPROX_MAX_RAW_TX_MS = ((((MIN_FHT8V_200US_BIT_STREAM_BUF_SIZE-1)*8) + 4) / 5);
 
     // Returns true if the supplied house code part is valid for an FHT8V valve.
     static inline bool isValidFHTV8HouseCode(const uint8_t hc) { return(hc <= 99); }

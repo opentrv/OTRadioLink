@@ -253,7 +253,7 @@ inline void LED_UI2_OFF() { fastDigitalWrite(LED_UI2_L, HIGH); }
 // ID: and some supply to pulse counter mechanism (eg LED for opto) maybe IO_POWER_UP.
 
 // Call this ASAP in setup() to configure I/O safely for the board, avoid pins floating, etc.
-static inline void IOSetup()
+inline void IOSetup()
   {
   // Initialise all digital I/O to safe state ASAP and avoid floating lines where possible.
   // In absence of a specific alternative, drive low as an output to minimise consumption (eg from floating input).
