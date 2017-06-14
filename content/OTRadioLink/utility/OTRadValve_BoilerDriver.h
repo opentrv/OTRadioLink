@@ -109,6 +109,9 @@ public:
     // Note: callForHeat ID functionality disabled as unused anyway. API is preserved. (DE20170602)
     void remoteCallForHeatRX(const uint16_t /*id*/, const uint8_t percentOpen, const uint8_t minuteCount)
     {
+        #if 1
+        OTV0P2BASE::MemoryChecks::recordIfMinSP();
+        #endif
         // TODO: Should be filtering first by housecode
         // then by individual and tracked aggregate valve-open percentage.
         // Only individual valve levels used here; no state is retained.
@@ -163,6 +166,9 @@ public:
     // Has control of OUT_HEATCALL if defined(ENABLE_BOILER_HUB).
     void processCallsForHeat(const bool second0, const bool hubMode)
     {
+        #if 1
+        OTV0P2BASE::MemoryChecks::recordIfMinSP();
+        #endif
         if(hubMode) {
             // Check if call-for-heat has been received, and clear the flag.
             // Record call for heat, both to start boiler-on cycle and possibly to defer need to listen again.
