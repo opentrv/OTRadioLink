@@ -35,14 +35,15 @@ namespace OTRadValve
     {
 
 /**Manages simple binary (on/off) boiler.
- * @param   outHeatCall: Pin to call for heat on.
+ * @param   outHeatCall: GPIO pin to call for heat on (high/1 => call for heat)
  * @param   isRadValve: Unit is controlling a rad valve (local or remote).
  * @note    (DE20170602) Removed support for:
  *          - case where unit is a boilerhub controller and also a TRV.
  *          - dealing with ID of caller for heat (was redundant in old implementation anyway).
  * @note Not ISR-/thread- safe; do not call from ISR RX.
+ * @note: DHD20170614: TODO: refactor as an Actuator.
  */
-template<uint8_t outHeatCall, bool isRadValve = false>
+template<uint8_t outHeatCallPin, bool isRadValve = false>
 class OnOffBoilerDriverLogic
 {
 private:
@@ -164,6 +165,7 @@ public:
 
     // Process calls for heat, ie turn boiler on and off as appropriate.
     // Has control of OUT_HEATCALL if defined(ENABLE_BOILER_HUB).
+    // Called every tick (typically 2s); drives timing.
     void processCallsForHeat(const bool second0, const bool hubMode)
     {
         #if 1
@@ -215,12 +217,12 @@ public:
             // Set BOILER_OUT as appropriate for calls for heat.
             // Local calls for heat come via the same route (TODO-607).
 #ifdef ARDUINO_ARCH_AVR
-            fastDigitalWrite(outHeatCall, (isBoilerOn() ? HIGH : LOW));
+            fastDigitalWrite(outHeatCallPin, (isBoilerOn() ? HIGH : LOW));
 #endif // ARDUINO_ARCH_AVR
         } else {
 #ifdef ARDUINO_ARCH_AVR
             // Force boiler off when not in hub mode.
-            fastDigitalWrite(outHeatCall, LOW);
+            fastDigitalWrite(outHeatCallPin, LOW);
 #endif // ARDUINO_ARCH_AVR
         }
     }
