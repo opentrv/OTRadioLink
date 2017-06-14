@@ -25,7 +25,7 @@ namespace OTRadioLink
 // FS20 stubs
 // template commented as stub.
 // template<typename h1_t, h1_t &h1, uint8_t frameType1>
-static bool decodeAndHandleFS20Frame(const uint8_t * const /*msg*/)
+static inline bool decodeAndHandleFS20Frame(const uint8_t * const /*msg*/)
 {
     return(false);
 }
