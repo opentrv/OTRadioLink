@@ -78,7 +78,7 @@ private:
     uint8_t getMinBoilerOnMinutes() { return(~eeprom_read_byte((uint8_t *)V0P2BASE_EE_START_MIN_BOILER_ON_MINS_INV)); }
 #else // ARDUINO_ARCH_AVR
     // Assume no EEPROM on non AVR arch.
-    void setMinBoilerOnMinutes(uint8_t mins) {};
+    void setMinBoilerOnMinutes(uint8_t /*mins*/) {};
     uint8_t getMinBoilerOnMinutes() { return DEFAULT_MIN_BOILER_ON_MINS; }
 #endif // ARDUINO_ARCH_AVR
 
