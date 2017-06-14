@@ -234,108 +234,32 @@ TEST(FrameHandlerTest, OTBoilerFrameOperationSuccess)
     EXPECT_TRUE(bo.handle(fd));
 }
 
-// TEST(FrameHandlerTest, handleSecureFrameSingle)
-// {
-//     // message
-//     // msg buf consists of    { len | Message   }
-//     const uint8_t msgBuf[] = { 5,    0,1,2,3,4 };
-//     const uint8_t nodeID[OTV0P2BASE::OpenTRV_Node_ID_Bytes] = {1, 2, 3, 4, 5, 6, 7, 8};
-//     const uint8_t decrypted[] = { 0 , 0x10, '{', 'b', 'c'};
-//
-//     OTRadioLink::OTFrameData_T fd(&msgBuf[1]);
-//     memcpy(fd.senderNodeID, nodeID, sizeof(nodeID));
-//     memcpy(fd.decryptedBody, decrypted, sizeof(decrypted));
-//
-//     // 1. Frame longer than 2, handler returns true
-//     fd.decryptedBodyLen = 2;
-//     const bool test1 = OTRadioLink::handleOTSecureFrame<decltype(OTFHT::th),OTFHT::th,'O'>(fd);
-//     EXPECT_TRUE(test1);
-//     // 2. Frame < 2, handler returns true
-//     fd.decryptedBodyLen = 1;
-//     const bool test2 = OTRadioLink::handleOTSecureFrame<decltype(OTFHT::th),OTFHT::th,'O'>(fd);
-//     EXPECT_FALSE(test2);
-//     // 3. Frame longer than 2, handler returns false
-//     fd.decryptedBodyLen = sizeof(decrypted);
-//     const bool test3 = OTRadioLink::handleOTSecureFrame<decltype(OTFHT::fh),OTFHT::fh,'O'>(fd);
-//     EXPECT_FALSE(test3);
-// }
+TEST(FrameHandlerTest, authAndDecodeSecurableFrameBasic)
+{
+    // message
+    // msg buf consists of    { len | Message   }
+    const uint8_t msgBuf[] = { 5,    0,1,2,3,4 };
 
-// TEST(FrameHandlerTest, handleSecureFrameDual)
-// {
-//     // message
-//     // msg buf consists of    { len | Message   }
-//     const uint8_t msgBuf[] = { 5,    0,1,2,3,4 };
-//     const uint8_t nodeID[OTV0P2BASE::OpenTRV_Node_ID_Bytes] = {1, 2, 3, 4, 5, 6, 7, 8};
-//     const uint8_t decrypted[] = { 0 , 0x10, '{', 'b', 'c'};
-//
-//     OTRadioLink::OTFrameData_T fd(&msgBuf[1]);
-//     memcpy(fd.senderNodeID, nodeID, sizeof(nodeID));
-//     memcpy(fd.decryptedBody, decrypted, sizeof(decrypted));
-//
-//     // 1. Frame longer than 2, Both handler returns true
-//     fd.decryptedBodyLen = 2;
-//     const bool test1 = OTRadioLink::handleOTSecureFrame<decltype(OTFHT::th),OTFHT::th, 'O',
-//                                                         decltype(OTFHT::th),OTFHT::th,'O'>(fd);
-//     EXPECT_TRUE(test1);
-//     // 2. Frame < 2, Both handler returns true
-//     fd.decryptedBodyLen = 1;
-//     const bool test2 = OTRadioLink::handleOTSecureFrame<decltype(OTFHT::th),OTFHT::th, 'O',
-//                                                         decltype(OTFHT::th),OTFHT::th,'O'>(fd);
-//     EXPECT_FALSE(test2);
-//     // 3. Frame longer than 2, Both handlers returns false
-//     fd.decryptedBodyLen = sizeof(decrypted);
-//     const bool test3 = OTRadioLink::handleOTSecureFrame<decltype(OTFHT::fh),OTFHT::fh, 'O',
-//                                                         decltype(OTFHT::fh),OTFHT::fh,'O'>(fd);
-//     EXPECT_FALSE(test3);
-//     // 4. Frame longer than 2, first handler returns false
-//     fd.decryptedBodyLen = sizeof(decrypted);
-//     const bool test4 = OTRadioLink::handleOTSecureFrame<decltype(OTFHT::th),OTFHT::th, 'O',
-//                                                         decltype(OTFHT::fh),OTFHT::fh,'O'>(fd);
-//     EXPECT_FALSE(test4);
-//     // 5. Frame longer than 2, second handler returns false
-//     fd.decryptedBodyLen = sizeof(decrypted);
-//     const bool test5 = OTRadioLink::handleOTSecureFrame<decltype(OTFHT::fh),OTFHT::fh, 'O',
-//                                                         decltype(OTFHT::th),OTFHT::th,'O'>(fd);
-//     EXPECT_FALSE(test5);
-// }
+    OTRadioLink::OTFrameData_T fd(&msgBuf[1]);
 
-// TEST(FrameHandlerTest, authAndDecodeSecurableFrameBasic)
-// {
-//     // message
-//     // msg buf consists of    { len | Message   }
-//     const uint8_t msgBuf[] = { 5,    0,1,2,3,4 };
-//
-//     OTRadioLink::OTFrameData_T fd(&msgBuf[1]);
-//
-//     const bool test1 = OTRadioLink::authAndDecodeOTSecurableFrame<OTFHT::getFakeKey>(fd);
-//     EXPECT_FALSE(test1);
-// }
+    // (20170614) auth and decode are not implemented and will return true to allow testing other bits.
+    const bool test1 = OTRadioLink::authAndDecodeOTSecurableFrame<OTFHT::getFakeKey>(fd);
+    EXPECT_TRUE(test1);
+}
 
-// TEST(FrameHandlerTest, decodeAndHandleOTSecurableFrameSingle)
-// {
-//     // message
-//     // msg buf consists of    { len | Message   }
-//     const uint8_t msgBuf[] = { 5,    'O',1,2,3,4 };
-//     const uint8_t * const msgStart = &msgBuf[1];
-//
-//     //
-//     const bool test1 = OTRadioLink::decodeAndHandleOTSecurableFrame<decltype(OTFHT::th),OTFHT::th,'O',OTFHT::getFakeKey>(msgStart);
-//     EXPECT_FALSE(test1);
-// }
+TEST(FrameHandlerTest, decodeAndHandleOTSecurableFrame)
+{
+    // message
+    // msg buf consists of    { len | Message   }
+    const uint8_t msgBuf[] = { 5,    'O',1,2,3,4 };
+    const uint8_t * const msgStart = &msgBuf[1];
 
-// TEST(FrameHandlerTest, decodeAndHandleOTSecurableFrameDual)
-// {
-//     // message
-//     // msg buf consists of    { len | Message   }
-//     const uint8_t msgBuf[] = { 5,    'O',1,2,3,4 };
-//     const uint8_t * const msgStart = &msgBuf[1];
-//
-//     // 1. Frame longer than 2, Both handler returns true
-//     const bool test1 = OTRadioLink::decodeAndHandleOTSecurableFrame<decltype(OTFHT::th),OTFHT::th, 'O',
-//                                                                     decltype(OTFHT::th),OTFHT::th,'O',
-//                                                                     OTFHT::getFakeKey>(msgStart);
-//     EXPECT_FALSE(test1);
-// }
+    //
+    const bool test1 = OTRadioLink::decodeAndHandleOTSecureFrame<decltype(OTFHT::to), OTFHT::to,
+                                                                    decltype(OTFHT::to), OTFHT::to,
+                                                                    OTFHT::getFakeKey>(msgStart);
+    EXPECT_FALSE(test1);
+}
 
 // Should always return false
 TEST(FrameHandlerTest, OTMessageQueueHandlerNull)
