@@ -319,8 +319,8 @@ typedef const char *AT_t;
              * @retval  returns true if send process inited.
              * @note    requires calling of poll() to check if message sent successfully.
              */
-            virtual bool queueToSend(const uint8_t *buf, uint8_t buflen, int8_t,
-                    TXpower) override
+            virtual bool queueToSend(const uint8_t *buf, uint8_t buflen, int8_t /*channel*/ = 0,
+                    TXpower = TXnormal) override
                 {
                 if ((buf == NULL) || (buflen > sizeof(txQueue)))
                     return false;    //
