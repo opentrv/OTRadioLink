@@ -53,7 +53,7 @@ private:
     // Minutes that the boiler has been off for, allowing minimum off time to be enforced.
     // Does not roll once at its maximum value (255).
     // DHD20160124: starting at zero forces at least for off time after power-up before firing up boiler (good after power-cut).
-    uint8_t boilerNoCallM;
+    uint8_t boilerNoCallM = 0;
     // Reducing listening if quiet for a while helps reduce self-heating temperature error
     // (~2C as of 2013/12/24 at 100% RX, ~100mW heat dissipation in V0.2 REV1 box) and saves some energy.
     // Time thresholds could be affected by eco/comfort switch.
@@ -64,7 +64,8 @@ private:
     // Ticks until locally-controlled boiler should be turned off; boiler should be on while this is positive.
     // Ticks are of the main loop, ie 2s (almost always).
     // Used in hub mode only.
-    uint16_t boilerCountdownTicks;
+    // DHD20170714: FIXME: for non-heat-pump-type system, 255 ticks (thus uint8_t) should suffice.
+    uint16_t boilerCountdownTicks = 0;
 
     // Default minimum on/off time in minutes for the boiler relay.
     // Set to 5 as the default valve Tx cycle is 4 mins and 5 mins is a good amount for most boilers.
@@ -95,7 +96,7 @@ private:
     }
 
 public:
-    BoilerCallForHeat() : callForHeatRX(false), boilerNoCallM(0), boilerCountdownTicks(0) {}
+    BoilerCallForHeat() : callForHeatRX(false) {}
 
     // True if boiler should be on.
     inline bool isBoilerOn() { return(0 != boilerCountdownTicks); }
@@ -271,7 +272,7 @@ public:
 //    // Minimum individual valve percentage to be considered open [1,100].
 //    uint8_t minIndividualPC;
 //
-//    // Minimum aggrigate valve percentage to be considered open, no lower than minIndividualPC; [1,100].
+//    // Minimum aggregate valve percentage to be considered open, no lower than minIndividualPC; [1,100].
 //    uint8_t minAggregatePC;
 //
 //    // 'Bad' (never valid as housecode or OpenTRV code) ID.
