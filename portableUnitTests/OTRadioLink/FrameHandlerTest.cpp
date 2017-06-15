@@ -53,6 +53,19 @@ namespace OTFHT
     // Null pollIO
     // FIXME need true version?
     bool pollIO(bool) {return (false);}
+    // Mock decryption function
+    // Set true to pass decryption, false to fail.
+    static bool mockDecryptSuccess = false;
+    using mockDecrypt_fn_t = decltype(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS);
+    mockDecrypt_fn_t mockDecrypt;
+    bool mockDecrypt (void *const,
+                      const uint8_t *const /*key*/, const uint8_t *const /*iv*/,
+                      const uint8_t *const /*authtext*/, const uint8_t /*authtextSize*/,
+                      const uint8_t *const /*ciphertext*/, const uint8_t *const /*tag*/,
+                      uint8_t *const /*plaintextOut*/)
+    {
+        return (mockDecryptSuccess);
+    }
     // return fake Key
     bool getFakeKey(uint8_t *key) { memset(key, 0xff, /*OTV0P2BASE::VOP2BASE_EE_LEN_16BYTE_PRIMARY_BUILDING_KEY*/ 16); return (true); }
 
@@ -243,7 +256,8 @@ TEST(FrameHandlerTest, authAndDecodeSecurableFrameBasic)
     OTRadioLink::OTFrameData_T fd(&msgBuf[1]);
 
     // (20170614) auth and decode are not implemented and will return true to allow testing other bits.
-    const bool test1 = OTRadioLink::authAndDecodeOTSecurableFrame<OTFHT::getFakeKey>(fd);
+    const bool test1 = OTRadioLink::authAndDecodeOTSecurableFrame<OTFHT::mockDecrypt,
+                                                                  OTFHT::getFakeKey>(fd);
     EXPECT_TRUE(test1);
 }
 
@@ -255,9 +269,11 @@ TEST(FrameHandlerTest, decodeAndHandleOTSecurableFrame)
     const uint8_t * const msgStart = &msgBuf[1];
 
     //
-    const bool test1 = OTRadioLink::decodeAndHandleOTSecureFrame<decltype(OTFHT::to), OTFHT::to,
-                                                                    decltype(OTFHT::to), OTFHT::to,
-                                                                    OTFHT::getFakeKey>(msgStart);
+    const bool test1 = OTRadioLink::decodeAndHandleOTSecureFrame<OTFHT::mockDecrypt,
+                                                                 OTFHT::getFakeKey,
+                                                                 decltype(OTFHT::to), OTFHT::to,
+                                                                 decltype(OTFHT::to), OTFHT::to
+                                                                 >(msgStart);
     EXPECT_FALSE(test1);
 }
 
