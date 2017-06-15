@@ -691,11 +691,17 @@ namespace OTRadioLink
             // Note that the authenticated text size is not fixed, ie is zero or more bytes.
             // Decrypts/authenticates the output of a fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t function.)
             // Returns true on success, false on failure.
-            typedef bool (*fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t)(void *state,
+            typedef bool (fixed32BTextSize12BNonce16BTagSimpleDec_fn_t)(void *state,
                     const uint8_t *key, const uint8_t *iv,
                     const uint8_t *authtext, uint8_t authtextSize,
                     const uint8_t *ciphertext, const uint8_t *tag,
                     uint8_t *plaintextOut);
+            typedef fixed32BTextSize12BNonce16BTagSimpleDec_fn_t* fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t;  // XXX
+//            typedef bool (*fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t)(void *state,
+//                    const uint8_t *key, const uint8_t *iv,
+//                    const uint8_t *authtext, uint8_t authtextSize,
+//                    const uint8_t *ciphertext, const uint8_t *tag,
+//                    uint8_t *plaintextOut);
 
             // Signature of pointer to basic fixed-size text decryption/authentication function with workspace supplied.
             // (Suitable for type 'O' valve/sensor small frame for example.)
