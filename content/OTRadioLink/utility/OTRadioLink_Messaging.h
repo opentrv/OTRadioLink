@@ -50,6 +50,7 @@ struct OTFrameData_T
     static constexpr uint8_t decryptedBodyBufSize = ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE;
     uint8_t decryptedBody[decryptedBodyBufSize];
     uint8_t decryptedBodyLen;
+    void * state = nullptr;
 
 //    // Message length is stored in byte before first RXed message buffer.
 //    inline uint8_t getMsgLen() { return msg[-1]; }
@@ -219,7 +220,7 @@ static bool authAndDecodeOTSecurableFrame(OTFrameData_T &fd)
 #ifdef ARDUINO_ARCH_AVR
     const bool isOK = (0 != SimpleSecureFrame32or0BodyRXV0p2::getInstance().decodeSecureSmallFrameSafely(&fd.sfh, msg-1, msglen+1,
                                           decrypt,  // FIXME remove this dependency
-                                          NULL, key,
+                                          fd.state, key,
                                           outBuf, fd.decryptedBodyBufSize, decryptedBodyOutSize,
                                           fd.senderNodeID,
                                           true));
