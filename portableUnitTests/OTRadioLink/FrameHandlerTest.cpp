@@ -311,7 +311,7 @@ TEST(FrameHandler, decodeAndHandleOTSecurableFrameStackCheck)
     const size_t maxStack = OTV0P2BASE::MemoryChecks::getMinSP();
     // Uncomment to print stack usage
     std::cout << baseStack << " - " << maxStack << " = " << baseStack - maxStack << "\n";
-    EXPECT_GT(200, baseStack - maxStack);
+    EXPECT_GT((size_t)200, baseStack - maxStack);
 }
 
 // Should always return false
