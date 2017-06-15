@@ -189,13 +189,7 @@ public:
  * @param   decrypt: Function to decrypt secure frame with. Not included to reduce dependency on OTAESGCM.
  * @param   getKey: Function that fills a buffer with the 16 byte secret key. Should return true on success.
  */
-// FIXME really ugly hack.
-typedef bool (decryption_fn_t) (void *const,
-                             const uint8_t *const /*key*/, const uint8_t *const /*iv*/,
-                             const uint8_t *const /*authtext*/, const uint8_t /*authtextSize*/,
-                             const uint8_t *const /*ciphertext*/, const uint8_t *const /*tag*/,
-                             uint8_t *const /*plaintextOut*/);
-template <decryption_fn_t &decrypt,
+template <SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &decrypt,
           OTV0P2BASE::GetPrimary16ByteSecretKey_t &getKey>
 static bool authAndDecodeOTSecurableFrame(OTFrameData_T &fd)
 {
@@ -277,7 +271,7 @@ inline bool decodeAndHandleDummyFrame(volatile const uint8_t * const /*msg*/)
  * @return  true on successful frame type match (secure frame), false if no suitable frame was found/decoded and another parser should be tried.
  */
 frameDecodeHandler_fn_t decodeAndHandleOTSecureFrame;
-template<decryption_fn_t &decrypt,
+template<SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &decrypt,
          OTV0P2BASE::GetPrimary16ByteSecretKey_t &getKey,
          typename o1_t, o1_t &o1,
          typename o2_t, o2_t &o2>  // TODO dummy operation by default
