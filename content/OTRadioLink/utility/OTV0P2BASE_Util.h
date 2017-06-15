@@ -159,6 +159,17 @@ inline size_t getSP() {
     size_t position = (size_t)&ptr;
     return (position);
 }
+#if 0
+// GCC specific version
+inline size_t getSP() {
+    return ((size_t)__builtin_frame_address (0));
+}
+// x86 specific version
+inline size_t getSP() {
+    register size_t sp asm ("sp");
+    return sp;
+}
+#endif
 // Stub function for forceReset()
 // TODO Is there a better place for this?
 inline void forceReset() {}
