@@ -14,13 +14,15 @@ specific language governing permissions and limitations
 under the Licence.
 
 Author(s) / Copyright (s): Deniz Erbilgin 2017
+                           Damon Hart-Davis 2017
 */
 
 #ifndef UTILITY_OTRADIOLINK_MESSAGING_H_
 #define UTILITY_OTRADIOLINK_MESSAGING_H_
 
+#include <OTAESGCM.h> // FIXME: cannot have unconditional dependency on OTAESGCM
+
 #include <OTV0p2Base.h>
-#include <OTAESGCM.h>
 #include "OTRadioLink_SecureableFrameType.h"
 #include "OTRadioLink_SecureableFrameType_V0p2Impl.h"
 
@@ -236,13 +238,13 @@ static bool authAndDecodeOTSecurableFrame(OTFrameData_T &fd)
 
 
 /**
- * @brief   High level frame handler for decoding an RXed message.
+ * @brief   High level protocol/frame handler for decoding an RXed message.
  * @param   Pointer to message buffer. Message length is contained in the byte before the buffer.
  *          May contain trailing bytes after the message.
  * @retval  True if frame is successfully handled. NOTE: This does not mean it could be decoded/decrypted, just that the
  *          handler recognised the frame type.
  */
-typedef bool (frameDecodeHandler_fn_t) (const uint8_t *msg);
+typedef bool (frameDecodeHandler_fn_t) (volatile const uint8_t *msg);
 
 /**
  * @brief   Dummy frame decoder and handler.
@@ -250,26 +252,26 @@ typedef bool (frameDecodeHandler_fn_t) (const uint8_t *msg);
  * @note    Used as a dummy case for when multiple frame decoders are not used.
  */
 frameDecodeHandler_fn_t decodeAndHandleDummyFrame;
-inline bool decodeAndHandleDummyFrame(const uint8_t * const /*msg*/)
+inline bool decodeAndHandleDummyFrame(volatile const uint8_t * const /*msg*/)
 {
     return false;
 }
 
 /**
- * @brief   Try to decode an OT style secure frame. Will return false for *secureable* small frames that aren't secure.
+ * @brief   Handle an OT style secure frame. Will return false for *secureable* small frames that aren't secure.
  * @param   msg: Secure frame to authenticate, decrypt and handle.
  * @param   h1_t: Type of h1
  * @param   h1: Handler object.
  * @param   getKey: Function that fills a buffer with the 16 byte secret key. Should return true on success.
- * @return  true on successful frame type match, false if no suitable frame was found/decoded and another parser should be tried.
+ * @return  true on successful frame type match (secure frame), false if no suitable frame was found/decoded and another parser should be tried.
  */
 frameDecodeHandler_fn_t decodeAndHandleOTSecureFrame;
 template<typename h1_t, h1_t &h1,
          typename h2_t, h2_t &h2,
          OTV0P2BASE::GetPrimary16ByteSecretKey_t *getKey>
-bool decodeAndHandleOTSecureFrame(const uint8_t * const _msg)
+bool decodeAndHandleOTSecureFrame(volatile const uint8_t * const _msg)
 {
-    const uint8_t * const msg = _msg;
+    const uint8_t * const msg = (const uint8_t *)_msg;
     const uint8_t firstByte = msg[0];
     const uint8_t msglen = msg[-1];
 
@@ -284,24 +286,34 @@ bool decodeAndHandleOTSecureFrame(const uint8_t * const _msg)
     if(0 == l) { return(false); }
 
     // Validate integrity of frame (CRC for non-secure, auth for secure).
-    if(!fd.sfh.isSecure()) { return (false); }
+    if(!fd.sfh.isSecure()) { return(false); }
 
-    if(!authAndDecodeOTSecurableFrame<getKey>(fd)) { return false; }
+    // After this point, once the frame is established as the correct protocol,
+    // this routine must return true to avoid another handler
+    // attempting to process it.
+
+    // Even if auth fails, we have now handled this frame by protocol.
+    if(!authAndDecodeOTSecurableFrame<getKey>(fd)) { return(true); }
 
     switch(firstByte) // Switch on type.
     {
         case 'O' | 0x80: // Basic OpenTRV secure frame...
         {
             // Perform trivial validation of frame then loop through supplied handlers.
-            if (fd.decryptedBodyLen < 2) return (false);
+            if (fd.decryptedBodyLen < 2) { break; }
             h1.handle(fd);
             h2.handle(fd);
+            // Handled message (of correct secure protocol).
+            break;
         }
-          // Reject unrecognised type, though fall through potentially to recognise other encodings.
+
+        // Reject unrecognised sub-type.
         default: break;
     }
-    // Failed to parse; let another handler try.
-    return(false);
+
+    // This frame has now been dealt with (by protocol)
+    // even if we happenned not to be able to process it successfully.
+    return(true);
 }
 
 
@@ -321,7 +333,7 @@ bool decodeAndHandleOTSecureFrame(const uint8_t * const _msg)
  * @note    decodeAndHandleFS20Frame is currently a stub and always returns false.
  */
 template<frameDecodeHandler_fn_t &h1, frameDecodeHandler_fn_t &h2 = decodeAndHandleDummyFrame>
-static void decodeAndHandleRawRXedMessage(const uint8_t * const msg)
+static void decodeAndHandleRawRXedMessage(volatile const uint8_t * const msg)
 {
     const uint8_t msglen = msg[-1];
 
@@ -421,7 +433,7 @@ public:
 #endif // ARDUINO_ARCH_AVR
             // Don't currently regard anything arriving over the air as 'secure'.
             // FIXME: shouldn't have to cast away volatile to process the message content.
-            decodeAndHandleRawRXedMessage<h1, h2> ((const uint8_t *)pb);
+            decodeAndHandleRawRXedMessage<h1, h2> (pb);
             rl.removeRXMsg();
             // Note that some work has been done.
             workDone = true;

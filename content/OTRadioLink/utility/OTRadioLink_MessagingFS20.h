@@ -14,18 +14,21 @@ specific language governing permissions and limitations
 under the Licence.
 
 Author(s) / Copyright (s): Deniz Erbilgin 2017
+                           Damon Hart-Davis 2017
 */
 
 #ifndef UTILITY_OTRADIOLINK_MESSAGINGFS20_H_
 #define UTILITY_OTRADIOLINK_MESSAGINGFS20_H_
 
+
 namespace OTRadioLink
 {
 
-// FS20 stubs
-// template commented as stub.
+
+// FS20 stub protocol handler.
+// Template commented as stub.
 // template<typename h1_t, h1_t &h1, uint8_t frameType1>
-inline bool decodeAndHandleFS20Frame(const uint8_t * const /*msg*/)
+inline bool decodeAndHandleFS20Frame(volatile const uint8_t * const /*msg*/)
 {
     return(false);
 }
