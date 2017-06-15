@@ -21,12 +21,24 @@ Author(s) / Copyright (s): Deniz Erbilgin 2017
  * - (static) decodeAndHandleRawRXedMessage (single and dual)
  */
 
+#include <stdint.h>
 #include <gtest/gtest.h>
-#include <stdio.h>
-#include <stdlib.h>
-
+#include <OTV0p2Base.h>
+#include "OTV0P2BASE_Util.h"
 #include <OTAESGCM.h>
 #include <OTRadioLink.h>
+
+
+TEST(FrameHandler, StackCheckerWorks)
+{
+    // Set up stack usage checks
+    OTV0P2BASE::RAMEND = OTV0P2BASE::getSP();
+    OTV0P2BASE::MemoryChecks::resetMinSP();
+    OTV0P2BASE::MemoryChecks::recordIfMinSP();
+    const size_t baseStack = OTV0P2BASE::MemoryChecks::getMinSP();
+    // Uncomment to print stack usage
+    EXPECT_NE((size_t)0, baseStack);
+}
 
 namespace OTFHT
 {
@@ -77,7 +89,7 @@ namespace OTFHT
     OTRadioLink::OTNullFrameOperationFalse fo;
 }
 // Basic sanity/does it compile tests
-TEST(FrameHandlerTest, OTFrameDataTest)
+TEST(FrameHandler, OTFrameData)
 {
     // message
     // msg buf consists of    { len | Message   }
@@ -97,7 +109,7 @@ TEST(FrameHandlerTest, OTFrameDataTest)
 
 }
 
-TEST(FrameHandlerTest, OTNullFrameOperationTrue)
+TEST(FrameHandler, OTNullFrameOperationTrue)
 {
     // message
     // msg buf consists of    { len | Message   }
@@ -106,7 +118,7 @@ TEST(FrameHandlerTest, OTNullFrameOperationTrue)
 
     EXPECT_TRUE(OTFHT::to.handle(fd));
 }
-TEST(FrameHandlerTest, OTNullFrameOperationFalse)
+TEST(FrameHandler, OTNullFrameOperationFalse)
 {
     // message
     // msg buf consists of    { len | Message   }
@@ -116,7 +128,7 @@ TEST(FrameHandlerTest, OTNullFrameOperationFalse)
     EXPECT_FALSE(OTFHT::fo.handle(fd));
 }
 // Minimum valid Frame
-TEST(FrameHandlerTest, OTSerialFrameOperationSuccess)
+TEST(FrameHandler, OTSerialFrameOperationSuccess)
 {
     OTFHT::NULLSerialStream::verbose = false;
     // Instantiate objects
@@ -168,7 +180,7 @@ TEST(FrameHandlerTest, OTSerialFrameOperationFail)
 }
 
 // Minimum valid Frame
-TEST(FrameHandlerTest, OTRelayFrameOperationSuccess)
+TEST(FrameHandler, OTRelayFrameOperationSuccess)
 {
     // Instantiate objects
     OTRadioLink::OTRelayFrameOperation<decltype(OTFHT::rt), OTFHT::rt> ro;
@@ -187,7 +199,7 @@ TEST(FrameHandlerTest, OTRelayFrameOperationSuccess)
 }
 
 // Invalid Frame
-TEST(FrameHandlerTest, OTRelayFrameOperationFail)
+TEST(FrameHandler, OTRelayFrameOperationFail)
 {
     // Instantiate objects
     OTRadioLink::OTRelayFrameOperation<decltype(OTFHT::rt), OTFHT::rt> ro;
@@ -229,7 +241,7 @@ TEST(FrameHandlerTest, OTRelayFrameOperationFail)
 }
 
 // Minimum valid Frame
-TEST(FrameHandlerTest, OTBoilerFrameOperationSuccess)
+TEST(FrameHandler, OTBoilerFrameOperationSuccess)
 {
     // Instantiate objects
     OTRadioLink::OTBoilerFrameOperation<decltype(OTFHT::b0), OTFHT::b0, OTFHT::minuteCount> bo;
@@ -247,7 +259,7 @@ TEST(FrameHandlerTest, OTBoilerFrameOperationSuccess)
     EXPECT_TRUE(bo.handle(fd));
 }
 
-TEST(FrameHandlerTest, authAndDecodeSecurableFrameBasic)
+TEST(FrameHandler, authAndDecodeSecurableFrameBasic)
 {
     // message
     // msg buf consists of    { len | Message   }
@@ -277,14 +289,39 @@ TEST(FrameHandlerTest, decodeAndHandleOTSecurableFrame)
     EXPECT_FALSE(test1);
 }
 
+TEST(FrameHandler, decodeAndHandleOTSecurableFrameStackCheck)
+{
+    // message
+    // msg buf consists of    { len | Message   }
+    const uint8_t msgBuf[] = { 5,    'O',1,2,3,4 };
+    const uint8_t * const msgStart = &msgBuf[1];
+    // Set up stack usage checks
+    OTV0P2BASE::RAMEND = OTV0P2BASE::getSP();
+    std::cout << "RAMEND: " << OTV0P2BASE::RAMEND << "\n";
+    OTV0P2BASE::MemoryChecks::resetMinSP();
+    std::cout << "BaseSP: : " << OTV0P2BASE::MemoryChecks::getMinSP() << "\n";
+    OTV0P2BASE::MemoryChecks::recordIfMinSP();
+    std::cout << "BaseStack: : " << OTV0P2BASE::MemoryChecks::getMinSP() << "\n";
+    const size_t baseStack = OTV0P2BASE::MemoryChecks::getMinSP();
+    OTRadioLink::decodeAndHandleOTSecureFrame<OTFHT::mockDecrypt,
+                                              OTFHT::getFakeKey,
+                                              decltype(OTFHT::to), OTFHT::to,
+                                              decltype(OTFHT::to), OTFHT::to
+                                              >(msgStart);
+    const size_t maxStack = OTV0P2BASE::MemoryChecks::getMinSP();
+    // Uncomment to print stack usage
+    std::cout << baseStack << " - " << maxStack << " = " << baseStack - maxStack << "\n";
+    EXPECT_GT(200, baseStack - maxStack);
+}
+
 // Should always return false
-TEST(FrameHandlerTest, OTMessageQueueHandlerNull)
+TEST(FrameHandler, OTMessageQueueHandlerNull)
 {
     OTRadioLink::OTMessageQueueHandlerNull mh;
     EXPECT_FALSE(mh.handle(false, OTFHT::rt));
 }
 
-TEST(FrameHandlerTest, OTMessageQueueHandlerBasic)
+TEST(FrameHandler, OTMessageQueueHandlerBasic)
 {
     OTRadioLink::OTMessageQueueHandler<
         OTRadioLink::decodeAndHandleDummyFrame,

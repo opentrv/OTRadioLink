@@ -21,6 +21,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2017
 #define UTILITY_OTRADIOLINK_MESSAGING_H_
 
 #include <OTV0p2Base.h>
+#include "OTV0P2BASE_Util.h"
 #include "OTRadioLink_SecureableFrameType.h"
 #include "OTRadioLink_SecureableFrameType_V0p2Impl.h"
 
@@ -50,7 +51,7 @@ struct OTFrameData_T
     static constexpr uint8_t decryptedBodyBufSize = ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE;
     uint8_t decryptedBody[decryptedBodyBufSize];
     uint8_t decryptedBodyLen;
-    void * state = nullptr;
+    static constexpr void * state = nullptr;
 
 //    // Message length is stored in byte before first RXed message buffer.
 //    inline uint8_t getMsgLen() { return msg[-1]; }
@@ -191,14 +192,14 @@ public:
  */
 template <SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &decrypt,
           OTV0P2BASE::GetPrimary16ByteSecretKey_t &getKey>
-static bool authAndDecodeOTSecurableFrame(OTFrameData_T &fd)
+inline bool authAndDecodeOTSecurableFrame(OTFrameData_T &fd)
 {
 #ifdef ARDUINO_ARCH_AVR
     const uint8_t * const msg = fd.msg;
     const uint8_t msglen = msg[-1];
     uint8_t * outBuf = fd.decryptedBody;
 #endif
-
+    OTV0P2BASE::MemoryChecks::recordIfMinSP();
     // Validate (authenticate) and decrypt body of secure frames.
     uint8_t key[16];
       // Get the 'building' key.
@@ -277,6 +278,9 @@ template<SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleD
          typename o2_t, o2_t &o2>  // TODO dummy operation by default
 bool decodeAndHandleOTSecureFrame(volatile const uint8_t * const _msg)
 {
+#if 1
+    OTV0P2BASE::MemoryChecks::recordIfMinSP();
+#endif
     const uint8_t * const msg = (const uint8_t *)_msg;
     const uint8_t firstByte = msg[0];
     const uint8_t msglen = msg[-1];
@@ -284,7 +288,6 @@ bool decodeAndHandleOTSecureFrame(volatile const uint8_t * const _msg)
     // Buffer for receiving secure frame body.
     // (Non-secure frame bodies should be read directly from the frame buffer.)
     OTFrameData_T fd(msg);
-
     // Validate structure of header/frame first.
     // This is quick and checks for insane/dangerous values throughout.
     const uint8_t l = fd.sfh.checkAndDecodeSmallFrameHeader(msg-1, msglen+1);

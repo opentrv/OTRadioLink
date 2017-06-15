@@ -29,6 +29,17 @@ namespace BoilerDriverTest
     static constexpr unsigned int maxStackRemoteCallForHeatRX = 100;
 }
 
+TEST(BoilerDriverTest, StackCheckerWorks)
+{
+    // Set up stack usage checks
+    OTV0P2BASE::RAMEND = OTV0P2BASE::getSP();
+    OTV0P2BASE::MemoryChecks::resetMinSP();
+    OTV0P2BASE::MemoryChecks::recordIfMinSP();
+    const size_t baseStack = OTV0P2BASE::MemoryChecks::getMinSP();
+    // Uncomment to print stack usage
+    EXPECT_NE((size_t)0, baseStack);
+}
+
 // Test for general sanity of BoilerCallForHeat
 TEST(BoilerDriverTest, basicBoilerHub)
 {

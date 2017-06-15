@@ -26,6 +26,17 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 
 #include "OTV0P2BASE_Util.h"
 
+TEST(CIStackUsage, StackCheckerWorks)
+{
+    // Set up stack usage checks
+    OTV0P2BASE::RAMEND = OTV0P2BASE::getSP();
+    OTV0P2BASE::MemoryChecks::resetMinSP();
+    OTV0P2BASE::MemoryChecks::recordIfMinSP();
+    const size_t baseStack = OTV0P2BASE::MemoryChecks::getMinSP();
+    // Uncomment to print stack usage
+    EXPECT_NE((size_t)0, baseStack);
+}
+
 
 // Test the stack usage of empty function calls in CI
 namespace OTCISU
@@ -47,7 +58,7 @@ TEST(CIStackUsage, emptyFn)
     OTCISU::emptyFn();
     const size_t maxStack = OTV0P2BASE::MemoryChecks::getMinSP();
     // Uncomment to print stack usage
-//    std::cout << baseStack - maxStack << "\n";
+    std::cout << baseStack << " - " << maxStack << " = " << baseStack - maxStack << "\n";
     EXPECT_GT(OTCISU::maxStackEmptyFn, baseStack - maxStack);
 }
 
@@ -63,7 +74,7 @@ TEST(CIStackUsage, callEmptyFn)
 
     const size_t maxStack = OTV0P2BASE::MemoryChecks::getMinSP();
     // Uncomment to print stack usage
-//    std::cout << baseStack - maxStack << "\n";
+    std::cout << baseStack << " - " << maxStack << " = " << baseStack - maxStack << "\n";
     EXPECT_GT(OTCISU::maxStackCallEmptyFn, baseStack - maxStack);
 }
 
