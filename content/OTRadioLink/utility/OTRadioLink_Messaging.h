@@ -20,8 +20,6 @@ Author(s) / Copyright (s): Deniz Erbilgin 2017
 #ifndef UTILITY_OTRADIOLINK_MESSAGING_H_
 #define UTILITY_OTRADIOLINK_MESSAGING_H_
 
-#include <OTAESGCM.h> // FIXME: cannot have unconditional dependency on OTAESGCM
-
 #include <OTV0p2Base.h>
 #include "OTRadioLink_SecureableFrameType.h"
 #include "OTRadioLink_SecureableFrameType_V0p2Impl.h"
@@ -185,11 +183,19 @@ public:
 
 /**
  * @brief   Authenticate and decrypt secure frames. Expects syntax checking and validation to already have been done.
- * @param   msg: message to decrypt
- * @param   outBuf: output buffer
- * @param   decryptedBodyOutSize: Size of decrypted message
+ * @param   fd: OTFrameData_T object containing message to decrypt.
+ * @param   decryption_fn_t: Type of the decryption function
+ * @param   decrypt: Function to decrypt secure frame with. Not included to reduce dependency on OTAESGCM.
+ * @param   getKey: Function that fills a buffer with the 16 byte secret key. Should return true on success.
  */
-template <OTV0P2BASE::GetPrimary16ByteSecretKey_t *getKey>
+// FIXME really ugly hack.
+typedef bool (decryption_fn_t) (void *const,
+                             const uint8_t *const /*key*/, const uint8_t *const /*iv*/,
+                             const uint8_t *const /*authtext*/, const uint8_t /*authtextSize*/,
+                             const uint8_t *const /*ciphertext*/, const uint8_t *const /*tag*/,
+                             uint8_t *const /*plaintextOut*/);
+template <decryption_fn_t &decrypt,
+          OTV0P2BASE::GetPrimary16ByteSecretKey_t &getKey>
 static bool authAndDecodeOTSecurableFrame(OTFrameData_T &fd)
 {
 #ifdef ARDUINO_ARCH_AVR
@@ -201,7 +207,7 @@ static bool authAndDecodeOTSecurableFrame(OTFrameData_T &fd)
     // Validate (authenticate) and decrypt body of secure frames.
     uint8_t key[16];
       // Get the 'building' key.
-    if( /*(nullptr != getKey) &&*/ (!getKey(key)) ) { // CI throwing address will never be null error.
+    if(!getKey(key)) { // CI throws address will never be null error.
         OTV0P2BASE::serialPrintlnAndFlush(F("!RX key"));
         return(false);
     }
@@ -212,7 +218,7 @@ static bool authAndDecodeOTSecurableFrame(OTFrameData_T &fd)
     uint8_t decryptedBodyOutSize = 0;
 #ifdef ARDUINO_ARCH_AVR
     const bool isOK = (0 != SimpleSecureFrame32or0BodyRXV0p2::getInstance().decodeSecureSmallFrameSafely(&fd.sfh, msg-1, msglen+1,
-                                          OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
+                                          decrypt,  // FIXME remove this dependency
                                           NULL, key,
                                           outBuf, fd.decryptedBodyBufSize, decryptedBodyOutSize,
                                           fd.senderNodeID,
@@ -260,15 +266,20 @@ inline bool decodeAndHandleDummyFrame(volatile const uint8_t * const /*msg*/)
 /**
  * @brief   Handle an OT style secure frame. Will return false for *secureable* small frames that aren't secure.
  * @param   msg: Secure frame to authenticate, decrypt and handle.
- * @param   h1_t: Type of h1
- * @param   h1: Handler object.
+ * @param   decryption_fn_t: Type of the decryption function
+ * @param   decrypt: Function to decrypt secure frame with. Not included to reduce dependency on OTAESGCM.
  * @param   getKey: Function that fills a buffer with the 16 byte secret key. Should return true on success.
+ * @param   o(n)_t: Type of operation.
+ * @param   o(n): Operation to perform on successful frame decode.
+ *          Operations are performed in order, with no regard to whether a previous operation is successful.
+ *          By default all operations but o1 will default to a dummy stub operation. TODO!
  * @return  true on successful frame type match (secure frame), false if no suitable frame was found/decoded and another parser should be tried.
  */
 frameDecodeHandler_fn_t decodeAndHandleOTSecureFrame;
-template<typename h1_t, h1_t &h1,
-         typename h2_t, h2_t &h2,
-         OTV0P2BASE::GetPrimary16ByteSecretKey_t *getKey>
+template<decryption_fn_t &decrypt,
+         OTV0P2BASE::GetPrimary16ByteSecretKey_t &getKey,
+         typename o1_t, o1_t &o1,
+         typename o2_t, o2_t &o2>  // TODO dummy operation by default
 bool decodeAndHandleOTSecureFrame(volatile const uint8_t * const _msg)
 {
     const uint8_t * const msg = (const uint8_t *)_msg;
@@ -293,7 +304,7 @@ bool decodeAndHandleOTSecureFrame(volatile const uint8_t * const _msg)
     // attempting to process it.
 
     // Even if auth fails, we have now handled this frame by protocol.
-    if(!authAndDecodeOTSecurableFrame<getKey>(fd)) { return(true); }
+    if(!authAndDecodeOTSecurableFrame<decrypt, getKey>(fd)) { return(true); }
 
     switch(firstByte) // Switch on type.
     {
@@ -301,8 +312,8 @@ bool decodeAndHandleOTSecureFrame(volatile const uint8_t * const _msg)
         {
             // Perform trivial validation of frame then loop through supplied handlers.
             if (fd.decryptedBodyLen < 2) { break; }
-            h1.handle(fd);
-            h2.handle(fd);
+            o1.handle(fd);
+            o2.handle(fd);
             // Handled message (of correct secure protocol).
             break;
         }
@@ -333,7 +344,7 @@ bool decodeAndHandleOTSecureFrame(volatile const uint8_t * const _msg)
  * @note    decodeAndHandleFS20Frame is currently a stub and always returns false.
  */
 template<frameDecodeHandler_fn_t &h1, frameDecodeHandler_fn_t &h2 = decodeAndHandleDummyFrame>
-static void decodeAndHandleRawRXedMessage(volatile const uint8_t * const msg)
+void decodeAndHandleRawRXedMessage(volatile const uint8_t * const msg)
 {
     const uint8_t msglen = msg[-1];
 
@@ -349,7 +360,7 @@ static void decodeAndHandleRawRXedMessage(volatile const uint8_t * const msg)
 //#if 0 && defined(DEBUG) && !defined(ENABLE_TRIMMED_MEMORY)
 //    p->print(F("!RX bad msg, len+prefix: ")); OTRadioLink::printRXMsg(p, msg-1, min(msglen+1, 8));
 //#endif
-  return;
+    return;
 }
 
 /**
