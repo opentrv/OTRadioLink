@@ -34,26 +34,28 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 namespace OTRadValve
     {
 
-/**
- * @param   outHeatCall: Pin to call for heat on.
+/**Manages simple binary (on/off) boiler.
+ * @param   outHeatCall: GPIO pin to call for heat on (high/1 => call for heat)
  * @param   isRadValve: Unit is controlling a rad valve (local or remote).
  * @note    (DE20170602) Removed support for:
  *          - case where unit is a boilerhub controller and also a TRV.
  *          - dealing with ID of caller for heat (was redundant in old implementation anyway).
+ * @note Not ISR-/thread- safe; do not call from ISR RX.
+ * @note: DHD20170614: TODO: refactor as an Actuator.
  */
-template<uint8_t outHeatCall, bool isRadValve = false>
-class BoilerCallForHeat
+template<uint8_t outHeatCallPin, bool isRadValve = false>
+class OnOffBoilerDriverLogic
 {
 private:
     // Set true on receipt of plausible call for heat,
     // to be polled, evaluated and cleared by the main control routine.
     // Atomic to allow thread-safe lock-free access.
-    volatile OTV0P2BASE::OTAtomic_t<bool> callForHeatRX;
+    bool callForHeatRX = false;
 
     // Minutes that the boiler has been off for, allowing minimum off time to be enforced.
     // Does not roll once at its maximum value (255).
     // DHD20160124: starting at zero forces at least for off time after power-up before firing up boiler (good after power-cut).
-    uint8_t boilerNoCallM;
+    uint8_t boilerNoCallM = 0;
     // Reducing listening if quiet for a while helps reduce self-heating temperature error
     // (~2C as of 2013/12/24 at 100% RX, ~100mW heat dissipation in V0.2 REV1 box) and saves some energy.
     // Time thresholds could be affected by eco/comfort switch.
@@ -64,12 +66,13 @@ private:
     // Ticks until locally-controlled boiler should be turned off; boiler should be on while this is positive.
     // Ticks are of the main loop, ie 2s (almost always).
     // Used in hub mode only.
-    uint16_t boilerCountdownTicks;
+    // DHD20170714: FIXME: for non-heat-pump-type system, 255 ticks (thus uint8_t) should suffice.
+    uint16_t boilerCountdownTicks = 0;
 
     // Default minimum on/off time in minutes for the boiler relay.
     // Set to 5 as the default valve Tx cycle is 4 mins and 5 mins is a good amount for most boilers.
     // This constant is necessary as if V0P2BASE_EE_START_MIN_BOILER_ON_MINS_INV is not set, the boiler relay will never be turned on.
-    static const constexpr uint8_t DEFAULT_MIN_BOILER_ON_MINS = 5;
+    static constexpr uint8_t DEFAULT_MIN_BOILER_ON_MINS = 5;
 #ifdef ARDUINO_ARCH_AVR
     // Set minimum on (and off) time for pointer (minutes); zero to disable hub mode.
     // Suggested minimum of 4 minutes for gas combi; much longer for heat pumps for example.
@@ -78,7 +81,7 @@ private:
     uint8_t getMinBoilerOnMinutes() { return(~eeprom_read_byte((uint8_t *)V0P2BASE_EE_START_MIN_BOILER_ON_MINS_INV)); }
 #else // ARDUINO_ARCH_AVR
     // Assume no EEPROM on non AVR arch.
-    void setMinBoilerOnMinutes(uint8_t mins) {};
+    void setMinBoilerOnMinutes(uint8_t /*mins*/) {};
     uint8_t getMinBoilerOnMinutes() { return DEFAULT_MIN_BOILER_ON_MINS; }
 #endif // ARDUINO_ARCH_AVR
 
@@ -95,8 +98,6 @@ private:
     }
 
 public:
-    BoilerCallForHeat() : callForHeatRX(false), boilerNoCallM(0), boilerCountdownTicks(0) {}
-
     // True if boiler should be on.
     inline bool isBoilerOn() { return(0 != boilerCountdownTicks); }
 
@@ -109,6 +110,9 @@ public:
     // Note: callForHeat ID functionality disabled as unused anyway. API is preserved. (DE20170602)
     void remoteCallForHeatRX(const uint16_t /*id*/, const uint8_t percentOpen, const uint8_t minuteCount)
     {
+        #if 1
+        OTV0P2BASE::MemoryChecks::recordIfMinSP();
+        #endif
         // TODO: Should be filtering first by housecode
         // then by individual and tracked aggregate valve-open percentage.
         // Only individual valve levels used here; no state is retained.
@@ -155,21 +159,25 @@ public:
 
         if(percentOpen >= threshold) {
         // && FHT8VHubAcceptedHouseCode(command.hc1, command.hc2))) // Accept if house code OK.
-            callForHeatRX.store(true);
+            callForHeatRX = true;
         }
     }
 
     // Process calls for heat, ie turn boiler on and off as appropriate.
     // Has control of OUT_HEATCALL if defined(ENABLE_BOILER_HUB).
+    // Called every tick (typically 2s); drives timing.
     void processCallsForHeat(const bool second0, const bool hubMode)
     {
+        #if 1
+        OTV0P2BASE::MemoryChecks::recordIfMinSP();
+        #endif
         if(hubMode) {
             // Check if call-for-heat has been received, and clear the flag.
             // Record call for heat, both to start boiler-on cycle and possibly to defer need to listen again.
             // Ignore new calls for heat until minimum off/quiet period has been reached.
             // Possible optimisation: may be able to stop RX if boiler is on for local demand (can measure local temp better: less self-heating) and not collecting stats.
-            if(callForHeatRX.load()) {
-                callForHeatRX.store(false);
+            if(callForHeatRX) {
+                callForHeatRX = false;
                 const uint8_t minOnMins = getMinBoilerOnMinutes();
                 bool ignoreRCfH = false;
                 if(!isBoilerOn()) {
@@ -178,7 +186,7 @@ public:
                     // forcing a time longer than the specified minimum,
                     // regardless of when second0 happens to be.
                     // (The min(254, ...) is to ensure that the boiler can come on even if minOnMins == 255.)
-                    // TODO: randomly extend the off-time a little (eg during grid stress) partly to randmonise whole cycle length.
+                    // TODO: randomly extend the off-time a little (eg during grid stress) partly to randomise whole cycle length.
                     if(boilerNoCallM <= OTV0P2BASE::fnmin((uint8_t)254, minOnMins)) { ignoreRCfH = true; }
             //        if(OTV0P2BASE::getSubCycleTime() >= nearOverrunThreshold) { } // { tooNearOverrun = true; }
             //        else
@@ -209,12 +217,12 @@ public:
             // Set BOILER_OUT as appropriate for calls for heat.
             // Local calls for heat come via the same route (TODO-607).
 #ifdef ARDUINO_ARCH_AVR
-            fastDigitalWrite(outHeatCall, (isBoilerOn() ? HIGH : LOW));
+            fastDigitalWrite(outHeatCallPin, (isBoilerOn() ? HIGH : LOW));
 #endif // ARDUINO_ARCH_AVR
         } else {
 #ifdef ARDUINO_ARCH_AVR
             // Force boiler off when not in hub mode.
-            fastDigitalWrite(outHeatCall, LOW);
+            fastDigitalWrite(outHeatCallPin, LOW);
 #endif // ARDUINO_ARCH_AVR
         }
     }
@@ -265,7 +273,7 @@ public:
 //    // Minimum individual valve percentage to be considered open [1,100].
 //    uint8_t minIndividualPC;
 //
-//    // Minimum aggrigate valve percentage to be considered open, no lower than minIndividualPC; [1,100].
+//    // Minimum aggregate valve percentage to be considered open, no lower than minIndividualPC; [1,100].
 //    uint8_t minAggregatePC;
 //
 //    // 'Bad' (never valid as housecode or OpenTRV code) ID.

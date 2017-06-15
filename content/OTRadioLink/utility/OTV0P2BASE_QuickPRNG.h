@@ -43,7 +43,7 @@ extern void _resetRNG8();
 
 // Get a boolean from RNG8.
 // Avoids suspect low-order bit(s).
-static inline bool randRNG8NextBoolean() { return(0 != (0x8 & randRNG8())); }
+inline bool randRNG8NextBoolean() { return(0 != (0x8 & randRNG8())); }
 
 }
 

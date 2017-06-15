@@ -1,17 +1,34 @@
 /*
- * OTRadioLink_MessagingFS20.h
- *
- *  Created on: 8 Jun 2017
- *      Author: denzo
- */
+The OpenTRV project licenses this file to you
+under the Apache Licence, Version 2.0 (the "Licence");
+you may not use this file except in compliance
+with the Licence. You may obtain a copy of the Licence at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the Licence is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied. See the Licence for the
+specific language governing permissions and limitations
+under the Licence.
+
+Author(s) / Copyright (s): Deniz Erbilgin 2017
+                           Damon Hart-Davis 2017
+*/
 
 #ifndef UTILITY_OTRADIOLINK_MESSAGINGFS20_H_
 #define UTILITY_OTRADIOLINK_MESSAGINGFS20_H_
 
 
-// FS20 stubs
-template<typename h1_t, h1_t &h1, uint8_t frameType1>
-static bool decodeAndHandleFS20Frame(const uint8_t * const /*msg*/)
+namespace OTRadioLink
+{
+
+
+// FS20 stub protocol handler.
+// Template commented as stub.
+// template<typename h1_t, h1_t &h1, uint8_t frameType1>
+inline bool decodeAndHandleFS20Frame(volatile const uint8_t * const /*msg*/)
 {
     return(false);
 }
@@ -226,5 +243,6 @@ static bool decodeAndHandleFS20Frame(const uint8_t * const /*msg*/)
 //  return;
 //  }
 //#endif // ENABLE_RADIO_RX
+}
 
 #endif /* UTILITY_OTRADIOLINK_MESSAGINGFS20_H_ */

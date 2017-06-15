@@ -108,7 +108,7 @@ namespace OTV0P2BASE
 
     // Delay (busy wait) the specified number of milliseconds in the range [0,255].
     // This may be extended by interrupts, etc, so must not be regarded as very precise.
-    static inline void delay_ms(uint8_t ms) { while(ms-- > 0) { OTV0P2BASE_delay_us(996); /* Allow for some loop overhead. */ } }
+    inline void delay_ms(uint8_t ms) { while(ms-- > 0) { OTV0P2BASE_delay_us(996); /* Allow for some loop overhead. */ } }
 #endif // ARDUINO_ARCH_AVR
 
 
@@ -118,7 +118,7 @@ void sleepPwrSaveWithBODDisabled();
 
 // Sleep indefinitely in as lower-power mode as possible until a specified watchdog time expires, or another interrupt.
 // May be useful to call minimsePowerWithoutSleep() first, when not needing any modules left on.
-static inline void sleepUntilInt() { sleepPwrSaveWithBODDisabled(); }
+inline void sleepUntilInt() { sleepPwrSaveWithBODDisabled(); }
 
 #ifdef ARDUINO_ARCH_AVR
     // Idle the CPU for specified time but leave everything else running (eg UART), returning on any interrupt or the watchdog timer.
@@ -178,7 +178,7 @@ bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);
     // Assumes MIN_CPU_HZ >> 4000.
     // TODO: break out to non-inlined routine where arg is not constant (__builtin_constant_p).
     // Not recommended as-is as may interact badly with interrupts if used naively (eg ISR code runs very slowly).
-    static void inline _sleepLowPowerMs(const uint16_t ms) { _sleepLowPowerLoopsMinCPUSpeed((((MIN_CPU_HZ * (ms)) + 2000) / 4000) - ((MIN_CPU_HZ>=12000)?2:((MIN_CPU_HZ>=8000)?1:0))); }
+    void inline _sleepLowPowerMs(const uint16_t ms) { _sleepLowPowerLoopsMinCPUSpeed((((MIN_CPU_HZ * (ms)) + 2000) / 4000) - ((MIN_CPU_HZ>=12000)?2:((MIN_CPU_HZ>=8000)?1:0))); }
     // Sleep/spin for (typically a little less than) strictly-positive specified number of milliseconds, in as low-power mode as possible.
     // This may be achieved in part by dynamically slowing the CPU clock if possible.
     // Macro to allow some constant folding at compile time where the sleep-time argument is constant.
@@ -188,12 +188,12 @@ bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);
     // Assumes MIN_CPU_HZ >> 4000.
     // TODO: break out to non-inlined routine where arg is not constant (__builtin_constant_p).
     // Not recommended as-is as may interact badly with interrupts if used naively (eg ISR code runs very slowly).
-    static void inline _sleepLowPowerLessThanMs(const uint16_t ms) { _sleepLowPowerLoopsMinCPUSpeed(((MIN_CPU_HZ/4000) * (ms)) - ((MIN_CPU_HZ>=12000)?2:((MIN_CPU_HZ>=8000)?1:0))); }
+    void inline _sleepLowPowerLessThanMs(const uint16_t ms) { _sleepLowPowerLoopsMinCPUSpeed(((MIN_CPU_HZ/4000) * (ms)) - ((MIN_CPU_HZ>=12000)?2:((MIN_CPU_HZ>=8000)?1:0))); }
     // Sleep/spin for approx specified strictly-positive number of milliseconds, in as low-power mode as possible.
     // Nap() may be more efficient for intervals of longer than 15ms.
     // Interrupts are blocked for about 1ms at a time.
     // Should be good for the full range of values and should take no time where 0ms is specified.
-    static void inline sleepLowPowerMs(uint16_t ms) { while(ms-- > 0) { ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { _sleepLowPowerMs(1); } } }
+    void inline sleepLowPowerMs(uint16_t ms) { while(ms-- > 0) { ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { _sleepLowPowerMs(1); } } }
     // Sleep/spin for (typically a little less than) strictly-positive specified number of milliseconds, in as low-power mode as possible.
     // Nap() may be more efficient for intervals of longer than 15ms.
     // Interrupts are blocked for about 1ms at a time.
@@ -213,18 +213,18 @@ bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);
     //#else
     //// Approximation which is allowed to be zero if true value not available.
     //#define _getSubCycleTime() (0)
-    static inline uint8_t getSubCycleTime() { return (TCNT2); }
-    static inline uint8_t _getSubCycleTime() { return (TCNT2); }
+    inline uint8_t getSubCycleTime() { return (TCNT2); }
+    inline uint8_t _getSubCycleTime() { return (TCNT2); }
     //#endif // WAKEUP_32768HZ_XTAL
     //
     //// Maximum value for OTV0P2BASE::getSubCycleTime(); full cycle length is this + 1.
     //// So ~4ms per count for a 1s cycle time, ~8ms per count for a 2s cycle time.
     //#define GSCT_MAX 255
-    static const uint8_t GSCT_MAX = 255;
+    static constexpr uint8_t GSCT_MAX = 255;
     //
     // Basic cycle length in milliseconds; strictly positive. FIXME only 2 tick cycle support
-    static const uint16_t BASIC_CYCLE_MS = 2000;
-    static const uint8_t SUB_CYCLE_TICKS_PER_S = (uint8_t)((1 + (int)GSCT_MAX)/2); // Careful of overflow.
+    static constexpr uint16_t BASIC_CYCLE_MS = 2000;
+    static constexpr uint8_t SUB_CYCLE_TICKS_PER_S = (uint8_t)((1 + (int)GSCT_MAX)/2); // Careful of overflow.
     //#if defined(V0P2BASE_TWO_S_TICK_RTC_SUPPORT)
     //#define BASIC_CYCLE_MS 2000
     //#define SUB_CYCLE_TICKS_PER_S ((GSCT_MAX+1)/2) // Sub-cycle ticks per second.
@@ -234,14 +234,14 @@ bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);
     //#endif
     //// Approx (rounded down) milliseconds per tick of OTV0P2BASE::getSubCycleTime(); strictly positive.
     //#define SUBCYCLE_TICK_MS_RD (BASIC_CYCLE_MS / (GSCT_MAX+1))
-    static const uint8_t SUBCYCLE_TICK_MS_RD = (BASIC_CYCLE_MS / (GSCT_MAX+1));
+    static constexpr uint8_t SUBCYCLE_TICK_MS_RD = (BASIC_CYCLE_MS / (GSCT_MAX+1));
     //// Approx (rounded to nearest) milliseconds per tick of OTV0P2BASE::getSubCycleTime(); strictly positive and no less than SUBCYCLE_TICK_MS_R
     //#define SUBCYCLE_TICK_MS_RN ((BASIC_CYCLE_MS + ((GSCT_MAX+1)/2)) / (GSCT_MAX+1))
-    static const uint8_t SUBCYCLE_TICK_MS_RN = ((BASIC_CYCLE_MS + ((GSCT_MAX+1)/2)) / (GSCT_MAX+1));
+    static constexpr uint8_t SUBCYCLE_TICK_MS_RN = ((BASIC_CYCLE_MS + ((GSCT_MAX+1)/2)) / (GSCT_MAX+1));
     //// Returns (rounded-down) approx milliseconds until end of current basic cycle; non-negative.
     //// Upper limit is set by length of basic cycle, thus 1000 or 2000 typically.
     //#define msRemainingThisBasicCycle() (SUBCYCLE_TICK_MS_RD * (GSCT_MAX-OTV0P2BASE::getSubCycleTime()))
-    static inline uint16_t msRemainingThisBasicCycle() { return (SUBCYCLE_TICK_MS_RD * (GSCT_MAX-getSubCycleTime() ) ); }
+    inline uint16_t msRemainingThisBasicCycle() { return (SUBCYCLE_TICK_MS_RD * (GSCT_MAX-getSubCycleTime() ) ); }
 #endif // ARDUINO_ARCH_AVR
 
 #ifdef ARDUINO_ARCH_AVR
@@ -249,9 +249,9 @@ bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);
     // Rather depends on Arduino/wiring setup for micros()/millis().
     #ifndef DONT_USE_TIMER0
     #if defined(TCNT0)
-    static inline uint8_t getCPUCycleCount() { return((uint8_t)TCNT0); }
+    inline uint8_t getCPUCycleCount() { return((uint8_t)TCNT0); }
     #elif defined(TCNT0L)
-    static inline uint8_t getCPUCycleCount() { return((uint8_t)TCNT0L); }
+    inline uint8_t getCPUCycleCount() { return((uint8_t)TCNT0L); }
     #else
     #error TIMER0 not defined
     #endif
