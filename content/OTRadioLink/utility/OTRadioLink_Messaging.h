@@ -281,7 +281,7 @@ bool decodeAndHandleOTSecureFrame(volatile const uint8_t * const _msg)
 #if 1
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
 #endif
-    const uint8_t * const msg = (const uint8_t *)_msg;
+    const uint8_t * const msg = (const uint8_t * const)_msg;
     const uint8_t firstByte = msg[0];
     const uint8_t msglen = msg[-1];
 
