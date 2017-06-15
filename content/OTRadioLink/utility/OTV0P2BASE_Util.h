@@ -151,7 +151,7 @@ inline size_t getSP() { return ((size_t)SP); }
 // Required for recordIfMinSP to function properly.
 // Assuming stack grows downwards, MUST be set to a higher number than the highest possible address used by the program.
 // TODO replace with constexpr containing the highest available RAM address.
-static size_t RAMEND = 0;
+extern size_t RAMEND;
 // Get the stack pointer and return as a size_t.
 // If not on avr, create new local variable and get its address.
 inline size_t getSP() {

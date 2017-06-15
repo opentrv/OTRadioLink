@@ -46,6 +46,9 @@ int parseHexByte(const char *const s)
     return((d0 << 4) | d1);
     }
 
+#ifndef ARDUINO_ARCH_AVR
+size_t RAMEND = 0;
+#endif
 
 #ifdef MemoryChecks_DEFINED
 volatile OTV0P2BASE::OTAtomic_t<size_t> MemoryChecks::minSP(RAMEND);

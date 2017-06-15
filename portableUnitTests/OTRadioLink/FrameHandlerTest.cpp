@@ -36,7 +36,6 @@ TEST(FrameHandler, StackCheckerWorks)
     OTV0P2BASE::MemoryChecks::resetMinSP();
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
     const size_t baseStack = OTV0P2BASE::MemoryChecks::getMinSP();
-    // Uncomment to print stack usage
     EXPECT_NE((size_t)0, baseStack);
 }
 
@@ -297,11 +296,8 @@ TEST(FrameHandler, decodeAndHandleOTSecurableFrameStackCheck)
     const uint8_t * const msgStart = &msgBuf[1];
     // Set up stack usage checks
     OTV0P2BASE::RAMEND = OTV0P2BASE::getSP();
-    std::cout << "RAMEND: " << OTV0P2BASE::RAMEND << "\n";
     OTV0P2BASE::MemoryChecks::resetMinSP();
-    std::cout << "BaseSP: : " << OTV0P2BASE::MemoryChecks::getMinSP() << "\n";
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
-    std::cout << "BaseStack: : " << OTV0P2BASE::MemoryChecks::getMinSP() << "\n";
     const size_t baseStack = OTV0P2BASE::MemoryChecks::getMinSP();
     OTRadioLink::decodeAndHandleOTSecureFrame<OTFHT::mockDecrypt,
                                               OTFHT::getFakeKey,
@@ -310,7 +306,7 @@ TEST(FrameHandler, decodeAndHandleOTSecurableFrameStackCheck)
                                               >(msgStart);
     const size_t maxStack = OTV0P2BASE::MemoryChecks::getMinSP();
     // Uncomment to print stack usage
-    std::cout << baseStack << " - " << maxStack << " = " << baseStack - maxStack << "\n";
+//    std::cout << baseStack << " - " << maxStack << " = " << baseStack - maxStack << "\n";
     EXPECT_GT((intptr_t)200, (intptr_t)(baseStack - maxStack));
 }
 
