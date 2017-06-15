@@ -9,7 +9,6 @@
 #define UTILITY_OTRADIOLINK_MESSAGING_H_
 
 #include <OTV0p2Base.h>
-#include <OTAESGCM.h>
 #include "OTRadioLink_SecureableFrameType.h"
 #include "OTRadioLink_SecureableFrameType_V0p2Impl.h"
 
