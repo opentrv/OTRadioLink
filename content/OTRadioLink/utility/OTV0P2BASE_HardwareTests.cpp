@@ -180,13 +180,13 @@ bool check32768HzOscExtended()
 bool calibrateInternalOscWithExtOsc()
 {
     // todo these should probably go somewhere else but not sure where.
-	const constexpr uint8_t maxTries = 128;  // Maximum number of values to attempt.
-	const constexpr uint8_t initOscCal = 0;  // Initial oscillator calibration value to start from.
+	constexpr uint8_t maxTries = 128;  // Maximum number of values to attempt.
+//	constexpr uint8_t initOscCal = 0;  // Initial oscillator calibration value to start from.
 	// TCNT2 overflows every 2 seconds. One tick is 2000/256 = 7.815 ms, or 7815 clock cycles at 1 MHz.
 	// Minimum number of cycles we want per count is (7815*1.1)/255 = 34, to give some play in case the clock is too fast.
-	const constexpr uint16_t cyclesPerTick = 7815;
-	const constexpr uint8_t innerLoopTime = 39;  // the number of cycles the inner loop takes to execute.
-	const constexpr uint8_t targetCount = cyclesPerTick/innerLoopTime;  // The number of counts we are aiming for.
+	constexpr uint16_t cyclesPerTick = 7815;
+	constexpr uint8_t innerLoopTime = 39;  // the number of cycles the inner loop takes to execute.
+	constexpr uint8_t targetCount = cyclesPerTick/innerLoopTime;  // The number of counts we are aiming for.
 
     // Check that the slow clock appears to be running.
     if(!check32768HzOsc()) { return(false); }
