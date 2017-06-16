@@ -356,9 +356,9 @@ public:
  * @param   pollIO: Function pollIO in V0p2. FIXME work out how to bring pollIO into library.
  * @param   baud: Serial baud for serial output.
  */
-template<frameDecodeHandler_fn_t &h1,
-         frameDecodeHandler_fn_t &h2,
-         bool (*pollIO) (bool), uint16_t baud>
+template<bool (*pollIO) (bool), uint16_t baud,
+         frameDecodeHandler_fn_t &h1,
+         frameDecodeHandler_fn_t &h2 = decodeAndHandleDummyFrame>
 class OTMessageQueueHandler final: public OTMessageQueueHandlerBase
 {
 public:
