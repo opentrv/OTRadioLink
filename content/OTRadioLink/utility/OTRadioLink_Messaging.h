@@ -251,6 +251,10 @@ bool decodeAndHandleOTSecureFrame(volatile const uint8_t * const _msg)
     const uint8_t firstByte = msg[0];
     const uint8_t msglen = msg[-1];
 
+    // Make sure frame thinks it is a secure OFrame.
+    constexpr uint8_t expectedOFrameFirstByte = 'O' | 0x80;
+    if (expectedOFrameFirstByte != firstByte) { return (false); }
+
     // Buffer for receiving secure frame body.
     // (Non-secure frame bodies should be read directly from the frame buffer.)
     OTFrameData_T fd(msg);
@@ -270,25 +274,29 @@ bool decodeAndHandleOTSecureFrame(volatile const uint8_t * const _msg)
     // Even if auth fails, we have now handled this frame by protocol.
     if(!authAndDecodeOTSecurableFrame<decrypt, getKey>(fd)) { return(true); }
 
-    switch(firstByte) // Switch on type.
-    {
-        case 'O' | 0x80: // Basic OpenTRV secure frame...
-        {
-            // Perform trivial validation of frame then loop through supplied handlers.
-            if (fd.decryptedBodyLen < 2) { break; }
-            o1(fd);
-            o2(fd);
-            // Handled message (of correct secure protocol).
-            break;
-        }
-
-        // Reject unrecognised sub-type.
-        default: break;
+    // Make sure frame is long enough to have useful information in it and call operations.
+    if(2 < fd.decryptedBodyLen) {
+        o1(fd);
+        o2(fd);
     }
-
+// Old version of above if statement. Check for Oframe is at start of function
+//    switch(firstByte) // Switch on type.
+//    {
+//        case 'O' | 0x80: // Basic OpenTRV secure frame...
+//        {
+//            // Perform trivial validation of frame then loop through supplied handlers.
+//            if (fd.decryptedBodyLen < 2) { break; }
+//            o1(fd);
+//            o2(fd);
+//            // Handled message (of correct secure protocol).
+//            break;
+//        }
+//        // Reject unrecognised sub-type.
+//        default: break;
+//    }
     // This frame has now been dealt with (by protocol)
     // even if we happenned not to be able to process it successfully.
-    return(true);
+    return(true); // XXX
 }
 
 
@@ -313,17 +321,17 @@ void decodeAndHandleRawRXedMessage(volatile const uint8_t * const msg)
     const uint8_t msglen = msg[-1];
 
 //  // TODO: consider extracting hash of all message data (good/bad) and injecting into entropy pool.
-//#if 0 && defined(DEBUG)
-//  OTRadioLink::printRXMsg(p, msg-1, msglen+1); // Print len+frame.
-//#endif
+#if 0 && defined(DEBUG)
+  OTRadioLink::printRXMsg(p, msg-1, msglen+1); // Print len+frame.
+#endif
     if(msglen < 2) { return; } // Too short to be useful, so ignore.
    // Length-first OpenTRV securable-frame format...
     if(h1(msg)) { return; }
     if(h2(msg)) { return; }
-//  // Unparseable frame: drop it; possibly log it as an error.
-//#if 0 && defined(DEBUG) && !defined(ENABLE_TRIMMED_MEMORY)
-//    p->print(F("!RX bad msg, len+prefix: ")); OTRadioLink::printRXMsg(p, msg-1, min(msglen+1, 8));
-//#endif
+  // Unparseable frame: drop it; possibly log it as an error.
+#if 0 && defined(DEBUG) && !defined(ENABLE_TRIMMED_MEMORY)
+    p->print(F("!RX bad msg, len+prefix: ")); OTRadioLink::printRXMsg(p, msg-1, min(msglen+1, 8));
+#endif
     return;
 }
 
@@ -350,11 +358,11 @@ public:
 
 /*
  * @param   msg: Secure frame to authenticate, decrypt and handle.
- * @param   h1_t: Type of h1
- * @param   h1: Handler object.
- * @param   frameTypen: Frame tyoe to be supplied to 1.
  * @param   pollIO: Function pollIO in V0p2. FIXME work out how to bring pollIO into library.
  * @param   baud: Serial baud for serial output.
+ * @param   h1: Handler for decoding/decrypting and handling a frame.
+ * @param   h2: Handler for decoding/decrypting and handling a frame.
+ *          Only tried when h1 fails. Defaults to a dummy impl.
  */
 template<bool (*pollIO) (bool), uint16_t baud,
          frameDecodeHandler_fn_t &h1,
