@@ -343,7 +343,7 @@ TEST(FrameHandler, authAndDecodeOTSecurableFrameStackCheck)
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
     const size_t baseStack = OTV0P2BASE::MemoryChecks::getMinSP();
     OTRadioLink::authAndDecodeOTSecurableFrame<OTFHT::mockDecrypt,
-                                                                  OTFHT::getKeySuccess>(fd);
+                                               OTFHT::getKeySuccess>(fd);
     const size_t maxStack = OTV0P2BASE::MemoryChecks::getMinSP();
     // Uncomment to print stack usage
 //    std::cout << baseStack - maxStack << "\n";
@@ -383,9 +383,8 @@ TEST(FrameHandler, OTMessageQueueHandlerNull)
 TEST(FrameHandler, OTMessageQueueHandlerBasic)
 {
     OTRadioLink::OTMessageQueueHandler<
-        OTRadioLink::decodeAndHandleDummyFrame,
-        OTRadioLink::decodeAndHandleDummyFrame,
-        OTFHT::pollIO, 4800> mh;
+        OTFHT::pollIO, 4800,
+        OTRadioLink::decodeAndHandleDummyFrame> mh;
     OTRadioLink::OTNullRadioLink rl;
     EXPECT_FALSE(mh.handle(false, rl));
 }
