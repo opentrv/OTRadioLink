@@ -13,8 +13,8 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Deniz Erbilgin 2016
-                           Damon Hart-Davis 2016
+Author(s) / Copyright (s): Deniz Erbilgin 2017
+                           Damon Hart-Davis 2017
 */
 
 /*
@@ -46,11 +46,11 @@ int parseHexByte(const char *const s)
     return((d0 << 4) | d1);
     }
 
+#ifdef MemoryChecks_DEFINED
 #ifndef ARDUINO_ARCH_AVR
 size_t RAMEND = 0;
 #endif
 
-#ifdef MemoryChecks_DEFINED
 volatile OTV0P2BASE::OTAtomic_t<size_t> MemoryChecks::minSP(RAMEND);
 //volatile size_t MemoryChecks::stackMark = RAMEND;
 volatile uint8_t MemoryChecks::checkLocation = 0x0;

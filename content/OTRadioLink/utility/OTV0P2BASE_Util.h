@@ -13,8 +13,8 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2014--2016
-                           Deniz Erbilgin 2016
+Author(s) / Copyright (s): Damon Hart-Davis 2014--2017
+                           Deniz Erbilgin 2017
 */
 
 /*
@@ -153,10 +153,9 @@ inline size_t getSP() { return ((size_t)SP); }
 // TODO replace with constexpr containing the highest available RAM address.
 extern size_t RAMEND;
 // Get the stack pointer and return as a size_t.
-// If not on avr, create new local variable and get its address.
+// If not on AVR, create new local variable and get its address.
 inline size_t getSP() {
-    volatile void* ptr;
-    size_t position = (size_t)&ptr;
+    size_t position = (size_t)&position;
     return (position);
 }
 #if 0
