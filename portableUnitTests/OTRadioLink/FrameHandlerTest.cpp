@@ -257,7 +257,7 @@ TEST(FrameHandler, authAndDecodeSecurableFrameBasic)
     // (20170614) auth and decode are not implemented and will return true to allow testing other bits.
     const bool test1 = OTRadioLink::authAndDecodeOTSecurableFrame<OTFHT::mockDecrypt,
                                                                   OTFHT::getKeySuccess>(fd);
-    EXPECT_TRUE(test1);
+    EXPECT_FALSE(test1);
     EXPECT_EQ(expectedDecryptedBodyLen, fd.decryptedBodyLen);
 }
 
@@ -286,10 +286,9 @@ TEST(FrameHandlerTest, decodeAndHandleOTSecurableFrameBasic)
     const uint8_t msgBuf[] = { 5,    'O',1,2,3,4 };
     const uint8_t * const msgStart = &msgBuf[1];
 
-    //
-    const bool test1 = OTRadioLink::decodeAndHandleOTSecureFrame<OTFHT::mockDecrypt,
-                                                                 OTFHT::getKeySuccess,
-                                                                 OTRadioLink::nullFrameOperation
+    const bool test1 = OTRadioLink::decodeAndHandleOTSecureOFrame<OTFHT::mockDecrypt,
+                                                                  OTFHT::getKeySuccess,
+                                                                  OTRadioLink::nullFrameOperation
                                                                  >(msgStart);
     EXPECT_FALSE(test1);
 }
@@ -352,7 +351,7 @@ TEST(FrameHandler, authAndDecodeOTSecurableFrameStackCheck)
 
 // Measure stack usage of decodeAndHandleOTSecureFrame
 // (DE20170616): 128
-TEST(FrameHandler, decodeAndHandleOTSecurableFrameStackCheck)
+TEST(FrameHandler, decodeAndHandleOTSecureOFrameStackCheck)
 {
     // message
     // msg buf consists of    { len | Message   }
@@ -363,9 +362,9 @@ TEST(FrameHandler, decodeAndHandleOTSecurableFrameStackCheck)
     OTV0P2BASE::MemoryChecks::resetMinSP();
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
     const size_t baseStack = OTV0P2BASE::MemoryChecks::getMinSP();
-    OTRadioLink::decodeAndHandleOTSecureFrame<OTFHT::mockDecrypt,
-                                              OTFHT::getKeySuccess,
-                                              OTRadioLink::nullFrameOperation
+    OTRadioLink::decodeAndHandleOTSecureOFrame<OTFHT::mockDecrypt,
+                                               OTFHT::getKeySuccess,
+                                               OTRadioLink::nullFrameOperation
                                               >(msgStart);
     const size_t maxStack = OTV0P2BASE::MemoryChecks::getMinSP();
     // Uncomment to print stack usage
