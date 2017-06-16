@@ -124,7 +124,7 @@ TEST(BoilerDriverTest, boilerHubModeIncBoilerNoCallM)
 
 #if 1  // Stack usage checks
 // Measure stack usage of remoteCallForHeatRX.
-// (20170609): 80 bytes
+// (DE20170609): 80 bytes
 TEST(BoilerDriverTest, remoteCallForHeatRXStackUsage) {
     // Instantiate boiler driver
     constexpr uint8_t heatCallPin = 0; // unused in unit tests.
@@ -142,7 +142,7 @@ TEST(BoilerDriverTest, remoteCallForHeatRXStackUsage) {
 }
 
 // Measure stack usage of remoteCallForHeatRX.
-// (20170609): 64 bytes
+// (DE20170609): 64 bytes
 TEST(BoilerDriverTest, processCallsForHeatStackUsage) {
     // Instantiate boiler driver
     constexpr uint8_t heatCallPin = 0; // unused in unit tests.

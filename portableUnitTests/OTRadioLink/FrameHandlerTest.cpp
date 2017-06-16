@@ -78,7 +78,8 @@ namespace OTFHT
         return (mockDecryptSuccess);
     }
     // return fake Key
-    bool getFakeKey(uint8_t *key) { memset(key, 0xff, /*OTV0P2BASE::VOP2BASE_EE_LEN_16BYTE_PRIMARY_BUILDING_KEY*/ 16); return (true); }
+    bool getKeySuccess(uint8_t *key) { memset(key, 0xff, /*OTV0P2BASE::VOP2BASE_EE_LEN_16BYTE_PRIMARY_BUILDING_KEY*/ 16); return (true); }
+    bool getKeyFail(uint8_t *) { return (false); }
 
     // Instantiate objects for templating
     NULLSerialStream ss;
@@ -262,17 +263,38 @@ TEST(FrameHandler, authAndDecodeSecurableFrameBasic)
 {
     // message
     // msg buf consists of    { len | Message   }
+    constexpr uint8_t expectedDecryptedBodyLen = 0;
     const uint8_t msgBuf[] = { 5,    0,1,2,3,4 };
 
     OTRadioLink::OTFrameData_T fd(&msgBuf[1]);
+    fd.decryptedBodyLen = 0xff;  // Test that this is really set.
 
     // (20170614) auth and decode are not implemented and will return true to allow testing other bits.
     const bool test1 = OTRadioLink::authAndDecodeOTSecurableFrame<OTFHT::mockDecrypt,
-                                                                  OTFHT::getFakeKey>(fd);
+                                                                  OTFHT::getKeySuccess>(fd);
     EXPECT_TRUE(test1);
+    EXPECT_EQ(expectedDecryptedBodyLen, fd.decryptedBodyLen);
 }
 
-TEST(FrameHandlerTest, decodeAndHandleOTSecurableFrame)
+TEST(FrameHandler, authAndDecodeSecurableFrameGetKeyFalse)
+{
+    // message
+    // msg buf consists of    { len | Message   }
+    constexpr uint8_t expectedDecryptedBodyLen = 0xff;
+    const uint8_t msgBuf[] = { 5,    0,1,2,3,4 };
+
+    OTRadioLink::OTFrameData_T fd(&msgBuf[1]);
+    fd.decryptedBodyLen = 0xff;  // Test that this is really set.
+
+    // (20170614) auth and decode are not implemented and will return true to allow testing other bits.
+    const bool test1 = OTRadioLink::authAndDecodeOTSecurableFrame<OTFHT::mockDecrypt,
+                                                                  OTFHT::getKeyFail>(fd);
+    EXPECT_FALSE(test1);
+    EXPECT_EQ(expectedDecryptedBodyLen, fd.decryptedBodyLen);
+}
+
+// Basic test with an invalid message.
+TEST(FrameHandlerTest, decodeAndHandleOTSecurableFrameBasic)
 {
     // message
     // msg buf consists of    { len | Message   }
@@ -281,13 +303,71 @@ TEST(FrameHandlerTest, decodeAndHandleOTSecurableFrame)
 
     //
     const bool test1 = OTRadioLink::decodeAndHandleOTSecureFrame<OTFHT::mockDecrypt,
-                                                                 OTFHT::getFakeKey,
+                                                                 OTFHT::getKeySuccess,
                                                                  decltype(OTFHT::to), OTFHT::to,
                                                                  decltype(OTFHT::to), OTFHT::to
                                                                  >(msgStart);
     EXPECT_FALSE(test1);
 }
 
+// TODO Test with a frame of the correct type (but not auth/decryptable)
+//TEST(FrameHandlerTest, decodeAndHandleOTSecurableFrameSuccess)
+//{
+//    // message
+//    // msg buf consists of    { len | Message   }
+//    const uint8_t msgBuf[] = ;
+//    const uint8_t * const msgStart = &msgBuf[1];
+//
+//    //
+//    const bool test1 = OTRadioLink::decodeAndHandleOTSecureFrame<OTFHT::mockDecrypt,
+//                                                                 OTFHT::getKeySuccess,
+//                                                                 decltype(OTFHT::to), OTFHT::to,
+//                                                                 decltype(OTFHT::to), OTFHT::to
+//                                                                 >(msgStart);
+//    EXPECT_TRUE(test1);
+//}
+
+// TODO Test with a decryptable frame. Test that it calls the handlers...
+// Probably need to make new handlers that can be checked.
+//TEST(FrameHandlerTest, decodeAndHandleOTSecurableFrameAuthed)
+//{
+//    // message
+//    // msg buf consists of    { len | Message   }
+//    const uint8_t msgBuf[] = ;
+//    const uint8_t * const msgStart = &msgBuf[1];
+//
+//    //
+//    const bool test1 = OTRadioLink::decodeAndHandleOTSecureFrame<OTFHT::mockDecrypt,
+//                                                                 OTFHT::getKeySuccess,
+//                                                                 decltype(OTFHT::to), OTFHT::to,
+//                                                                 decltype(OTFHT::to), OTFHT::to
+//                                                                 >(msgStart);
+//    EXPECT_TRUE(test1);
+//}
+
+// Measure stack usage of authAndDecodeOTSecurableFrame
+// (DE20170616): 80 (decodeSecureSmallFrameSafely code path disabled)
+TEST(FrameHandler, authAndDecodeOTSecurableFrameStackCheck)
+{
+    // message
+    // msg buf consists of    { len | Message   }
+    const uint8_t msgBuf[] = { 5,    'O',1,2,3,4 };
+    OTRadioLink::OTFrameData_T fd(&msgBuf[1]);
+    // Set up stack usage checks
+    OTV0P2BASE::RAMEND = OTV0P2BASE::getSP();
+    OTV0P2BASE::MemoryChecks::resetMinSP();
+    OTV0P2BASE::MemoryChecks::recordIfMinSP();
+    const size_t baseStack = OTV0P2BASE::MemoryChecks::getMinSP();
+    OTRadioLink::authAndDecodeOTSecurableFrame<OTFHT::mockDecrypt,
+                                                                  OTFHT::getKeySuccess>(fd);
+    const size_t maxStack = OTV0P2BASE::MemoryChecks::getMinSP();
+    // Uncomment to print stack usage
+//    std::cout << baseStack - maxStack << "\n";
+    EXPECT_GT((intptr_t)200, (intptr_t)(baseStack - maxStack));
+}
+
+// Measure stack usage of decodeAndHandleOTSecureFrame
+// (DE20170616): 128
 TEST(FrameHandler, decodeAndHandleOTSecurableFrameStackCheck)
 {
     // message
@@ -300,13 +380,13 @@ TEST(FrameHandler, decodeAndHandleOTSecurableFrameStackCheck)
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
     const size_t baseStack = OTV0P2BASE::MemoryChecks::getMinSP();
     OTRadioLink::decodeAndHandleOTSecureFrame<OTFHT::mockDecrypt,
-                                              OTFHT::getFakeKey,
+                                              OTFHT::getKeySuccess,
                                               decltype(OTFHT::to), OTFHT::to,
                                               decltype(OTFHT::to), OTFHT::to
                                               >(msgStart);
     const size_t maxStack = OTV0P2BASE::MemoryChecks::getMinSP();
     // Uncomment to print stack usage
-//    std::cout << baseStack << " - " << maxStack << " = " << baseStack - maxStack << "\n";
+//    std::cout << baseStack - maxStack << "\n";
     EXPECT_GT((intptr_t)200, (intptr_t)(baseStack - maxStack));
 }
 
@@ -327,4 +407,4 @@ TEST(FrameHandler, OTMessageQueueHandlerBasic)
     EXPECT_FALSE(mh.handle(false, rl));
 }
 
-// More detailed Tests
+
