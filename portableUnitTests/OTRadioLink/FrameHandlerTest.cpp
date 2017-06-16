@@ -85,8 +85,6 @@ namespace OTFHT
     NULLSerialStream ss;
     OTRadioLink::OTNullRadioLink rt;
     OTRadValve::OnOffBoilerDriverLogic<heatCallPin> b0;
-    OTRadioLink::OTNullFrameOperationTrue to;
-    OTRadioLink::OTNullFrameOperationFalse fo;
 }
 // Basic sanity/does it compile tests
 TEST(FrameHandler, OTFrameData)
@@ -109,30 +107,19 @@ TEST(FrameHandler, OTFrameData)
 
 }
 
-TEST(FrameHandler, OTNullFrameOperationTrue)
+TEST(FrameHandler, NullFrameOperationFalse)
 {
     // message
     // msg buf consists of    { len | Message   }
     const uint8_t msgBuf[] = { 5,    0,1,2,3,4 };
     OTRadioLink::OTFrameData_T fd(&msgBuf[1]);
 
-    EXPECT_TRUE(OTFHT::to.handle(fd));
-}
-TEST(FrameHandler, OTNullFrameOperationFalse)
-{
-    // message
-    // msg buf consists of    { len | Message   }
-    const uint8_t msgBuf[] = { 5,    0,1,2,3,4 };
-    OTRadioLink::OTFrameData_T fd(&msgBuf[1]);
-
-    EXPECT_FALSE(OTFHT::fo.handle(fd));
+    EXPECT_FALSE(OTRadioLink::nullFrameOperation(fd));
 }
 // Minimum valid Frame
-TEST(FrameHandler, OTSerialFrameOperationSuccess)
+TEST(FrameHandler, SerialFrameOperationSuccess)
 {
     OTFHT::NULLSerialStream::verbose = false;
-    // Instantiate objects
-    OTRadioLink::OTSerialFrameOperation<decltype(OTFHT::ss), OTFHT::ss> so;
     // message
     // msg buf consists of    { len | Message   }
     const uint8_t msgBuf[] = { 5,    0,1,2,3,4 };
@@ -143,15 +130,13 @@ TEST(FrameHandler, OTSerialFrameOperationSuccess)
     memcpy(fd.senderNodeID, nodeID, sizeof(nodeID));
     memcpy(fd.decryptedBody, decrypted, sizeof(decrypted));
     fd.decryptedBodyLen = sizeof(decrypted);
-
-    EXPECT_TRUE(so.handle(fd));
+    const bool serialOperationSuccess = OTRadioLink::serialFrameOperation<decltype(OTFHT::ss),OTFHT::ss>(fd);
+    EXPECT_TRUE(serialOperationSuccess);
 }
 // Invalid Frame
-TEST(FrameHandlerTest, OTSerialFrameOperationFail)
+TEST(FrameHandlerTest, SerialFrameOperationFail)
 {
     OTFHT::NULLSerialStream::verbose = false;
-    // Instantiate objects
-    OTRadioLink::OTSerialFrameOperation<decltype(OTFHT::ss), OTFHT::ss> so;
     // message
     // msg buf consists of    { len | Message   }
     const uint8_t msgBuf[6] = { 5,    0,1,3,4,5 };
@@ -164,26 +149,27 @@ TEST(FrameHandlerTest, OTSerialFrameOperationFail)
     const uint8_t decrypted0[] = { 0, 0x1, '{', 'b', 'c', 'd'};
     memcpy(fd.decryptedBody, decrypted0, sizeof(decrypted0));
     fd.decryptedBodyLen = sizeof(decrypted0);
-    EXPECT_FALSE(so.handle(fd));
+    const bool serialOperationFailHighBit = OTRadioLink::serialFrameOperation<decltype(OTFHT::ss),OTFHT::ss>(fd);
+    EXPECT_FALSE(serialOperationFailHighBit);
 
     // Case (dbLen > 3)
     const uint8_t decrypted1[] = { 0, 0x10, '{', 'b', 'c', 'd'};
     memcpy(fd.decryptedBody, decrypted1, sizeof(decrypted1));
     fd.decryptedBodyLen = 3;
-    EXPECT_FALSE(so.handle(fd));
+    const bool serialOperationFailLength= OTRadioLink::serialFrameOperation<decltype(OTFHT::ss),OTFHT::ss>(fd);
+    EXPECT_FALSE(serialOperationFailLength);
 
     // Case ('{' == db[2])
     const uint8_t decrypted2[] = { 0, 0x10, 's', 'b', 'c', 'd'};
     memcpy(fd.decryptedBody, decrypted2, sizeof(decrypted2));
     fd.decryptedBodyLen = sizeof(decrypted2);
-    EXPECT_FALSE(so.handle(fd));
+    const bool serialOperationFailBrace= OTRadioLink::serialFrameOperation<decltype(OTFHT::ss),OTFHT::ss>(fd);
+    EXPECT_FALSE(serialOperationFailBrace);
 }
 
 // Minimum valid Frame
-TEST(FrameHandler, OTRelayFrameOperationSuccess)
+TEST(FrameHandler, RelayFrameOperationSuccess)
 {
-    // Instantiate objects
-    OTRadioLink::OTRelayFrameOperation<decltype(OTFHT::rt), OTFHT::rt> ro;
     // message
     // msg buf consists of    { len | Message   }
     const uint8_t msgBuf[] = { 5,    0,1,2,3,4 };
@@ -194,16 +180,13 @@ TEST(FrameHandler, OTRelayFrameOperationSuccess)
     memcpy(fd.senderNodeID, nodeID, sizeof(nodeID));
     memcpy(fd.decryptedBody, decrypted, sizeof(decrypted));
     fd.decryptedBodyLen = sizeof(decrypted);
-
-    EXPECT_TRUE(ro.handle(fd));
+    const bool relayOperationSuccess = OTRadioLink::relayFrameOperation<decltype(OTFHT::rt), OTFHT::rt>(fd);
+    EXPECT_TRUE(relayOperationSuccess);
 }
 
 // Invalid Frame
-TEST(FrameHandler, OTRelayFrameOperationFail)
+TEST(FrameHandler, RelayFrameOperationFail)
 {
-    // Instantiate objects
-    OTRadioLink::OTRelayFrameOperation<decltype(OTFHT::rt), OTFHT::rt> ro;
-
     // message
     // msg buf consists of    { len | Message   }
     const uint8_t msgBuf[6] = { 5,    0,1,3,4,5 };
@@ -215,7 +198,8 @@ TEST(FrameHandler, OTRelayFrameOperationFail)
     memcpy(fd0.senderNodeID, nodeID, sizeof(nodeID));
     memcpy(fd0.decryptedBody, decryptedValid, sizeof(decryptedValid));
     fd0.decryptedBodyLen = sizeof(decryptedValid);
-    EXPECT_FALSE(ro.handle(fd0));
+    const bool relayOperationFailNullMsgPtr = OTRadioLink::relayFrameOperation<decltype(OTFHT::rt), OTFHT::rt>(fd0);
+    EXPECT_FALSE(relayOperationFailNullMsgPtr);
 
     // Other cases
     OTRadioLink::OTFrameData_T fd1(&msgBuf[1]);
@@ -225,26 +209,27 @@ TEST(FrameHandler, OTRelayFrameOperationFail)
     const uint8_t decrypted0[] = { 0, 0x1, '{', 'b', 'c', 'd'};
     memcpy(fd1.decryptedBody, decrypted0, sizeof(decrypted0));
     fd1.decryptedBodyLen = sizeof(decrypted0);
-    EXPECT_FALSE(ro.handle(fd1));
+    const bool relayOperationFailHighBit = OTRadioLink::relayFrameOperation<decltype(OTFHT::rt), OTFHT::rt>(fd1);
+    EXPECT_FALSE(relayOperationFailHighBit);
 
     // Case (dbLen > 3)
     const uint8_t decrypted1[] = { 0, 0x10, '{', 'b', 'c', 'd'};
     memcpy(fd1.decryptedBody, decrypted1, sizeof(decrypted1));
     fd1.decryptedBodyLen = 3;
-    EXPECT_FALSE(ro.handle(fd1));
+    const bool relayOperationFailLength = OTRadioLink::relayFrameOperation<decltype(OTFHT::rt), OTFHT::rt>(fd1);
+    EXPECT_FALSE(relayOperationFailLength);
 
     // Case ('{' == db[2])
     const uint8_t decrypted2[] = { 0, 0x10, 's', 'b', 'c', 'd'};
     memcpy(fd1.decryptedBody, decrypted2, sizeof(decrypted2));
     fd1.decryptedBodyLen = sizeof(decrypted2);
-    EXPECT_FALSE(ro.handle(fd1));
+    const bool relayOperationFailBrace = OTRadioLink::relayFrameOperation<decltype(OTFHT::rt), OTFHT::rt>(fd1);
+    EXPECT_FALSE(relayOperationFailBrace);
 }
 
 // Minimum valid Frame
-TEST(FrameHandler, OTBoilerFrameOperationSuccess)
+TEST(FrameHandler, BoilerFrameOperationSuccess)
 {
-    // Instantiate objects
-    OTRadioLink::OTBoilerFrameOperation<decltype(OTFHT::b0), OTFHT::b0, OTFHT::minuteCount> bo;
     // message
     // msg buf consists of    { len | Message   }
     const uint8_t msgBuf[] = { 5,    0,1,2,3,4 };
@@ -255,8 +240,8 @@ TEST(FrameHandler, OTBoilerFrameOperationSuccess)
     memcpy(fd.senderNodeID, nodeID, sizeof(nodeID));
     memcpy(fd.decryptedBody, decrypted, sizeof(decrypted));
     fd.decryptedBodyLen = sizeof(decrypted);
-
-    EXPECT_TRUE(bo.handle(fd));
+    const bool boilerOperationSuccess = OTRadioLink::boilerFrameOperation<decltype(OTFHT::b0), OTFHT::b0, OTFHT::minuteCount>(fd);
+    EXPECT_TRUE(boilerOperationSuccess);
 }
 
 TEST(FrameHandler, authAndDecodeSecurableFrameBasic)
@@ -304,8 +289,7 @@ TEST(FrameHandlerTest, decodeAndHandleOTSecurableFrameBasic)
     //
     const bool test1 = OTRadioLink::decodeAndHandleOTSecureFrame<OTFHT::mockDecrypt,
                                                                  OTFHT::getKeySuccess,
-                                                                 decltype(OTFHT::to), OTFHT::to,
-                                                                 decltype(OTFHT::to), OTFHT::to
+                                                                 OTRadioLink::nullFrameOperation
                                                                  >(msgStart);
     EXPECT_FALSE(test1);
 }
@@ -381,8 +365,7 @@ TEST(FrameHandler, decodeAndHandleOTSecurableFrameStackCheck)
     const size_t baseStack = OTV0P2BASE::MemoryChecks::getMinSP();
     OTRadioLink::decodeAndHandleOTSecureFrame<OTFHT::mockDecrypt,
                                               OTFHT::getKeySuccess,
-                                              decltype(OTFHT::to), OTFHT::to,
-                                              decltype(OTFHT::to), OTFHT::to
+                                              OTRadioLink::nullFrameOperation
                                               >(msgStart);
     const size_t maxStack = OTV0P2BASE::MemoryChecks::getMinSP();
     // Uncomment to print stack usage
