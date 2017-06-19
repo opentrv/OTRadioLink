@@ -34,8 +34,68 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 namespace OTRadValve
     {
 
+/**
+ * @brief   Manage hub mode and where getMinBoilerOnMinutes gets its values from.
+ * @param   enableDefaultAlwaysRX:
+ * @param   enableRadioRX:
+ * @param   useEEPROM:
+ * @todo    kill it with fire.
+ */
+template <bool enableDefaultAlwaysRX, bool enableRadioRX, bool useEEPROM = true>
+class OTHubManager
+{
+private:
+    // Default minimum on/off time in minutes for the boiler relay.
+    // Set to 5 as the default valve Tx cycle is 4 mins and 5 mins is a good amount for most boilers.
+    // This constant is necessary as if V0P2BASE_EE_START_MIN_BOILER_ON_MINS_INV is not set, the boiler relay will never be turned on.
+    static constexpr uint8_t DEFAULT_MIN_BOILER_ON_MINS = 5;
+public:
+#ifdef ARDUINO_ARCH_AVR
+    /**
+     * @brief   Set minimum on (and off) time for pointer (minutes); zero to disable hub mode.
+     * @note    Suggested minimum of 4 minutes for gas combi; much longer for heat pumps for example.
+     *          Does nothing if not using EEPROM.
+     */
+    inline void setMinBoilerOnMinutes(uint8_t mins) {
+        if(useEEPROM) { OTV0P2BASE::eeprom_smart_update_byte((uint8_t *)V0P2BASE_EE_START_MIN_BOILER_ON_MINS_INV, ~(mins)); }
+    }  // FIXME seens to be unused! (DE20170602)
+    /**
+     * @brief   Get minimum on (and off) time for pointer (minutes); zero if not in hub mode.
+     * @retval  value in EEPROM if useEEPROM true (by default) or use the DEFAULT_MIN_BOILER_ON_MINS value.
+     */
+    inline uint8_t getMinBoilerOnMinutes() {
+        if(useEEPROM) { return (~eeprom_read_byte((uint8_t *)V0P2BASE_EE_START_MIN_BOILER_ON_MINS_INV)); }
+        else { return (DEFAULT_MIN_BOILER_ON_MINS); }
+    }
+#else // ARDUINO_ARCH_AVR
+    // Assume no EEPROM on non AVR arch.
+    inline void setMinBoilerOnMinutes(uint8_t /*mins*/) {};
+    inline uint8_t getMinBoilerOnMinutes() { return DEFAULT_MIN_BOILER_ON_MINS; }
+#endif // ARDUINO_ARCH_AVR
+
+    inline bool inHubMode()
+    {
+        if (enableDefaultAlwaysRX) { return (true); }
+        else if (!enableRadioRX) {return (false); }
+        else { return (0 != getMinBoilerOnMinutes()); }
+    }
+
+    inline bool inStatsHubMode()
+    {
+        if (enableDefaultAlwaysRX) { return (true); }
+        else if (!enableRadioRX) {return (false); }
+        else { return (1 != getMinBoilerOnMinutes()); }
+    }
+};
+
+namespace BoilerLogic
+{
 /**Manages simple binary (on/off) boiler.
  * @param   outHeatCall: GPIO pin to call for heat on (high/1 => call for heat)
+ * @param   forceMinBoilerOnTime: Forces boiler to use the default minimum on time rather than the value stored in
+ *          EEPROM. If this is set to false and V0P2BASE_EE_START_MIN_BOILER_ON_MINS_INV is not set, the boiler will
+ *          never activate.
+ *          Defaults true so that the boiler driver will always work unless explicitly overridden..
  * @param   isRadValve: Unit is controlling a rad valve (local or remote).
  * @note    (DE20170602) Removed support for:
  *          - case where unit is a boilerhub controller and also a TRV.
@@ -43,7 +103,8 @@ namespace OTRadValve
  * @note Not ISR-/thread- safe; do not call from ISR RX.
  * @note: DHD20170614: TODO: refactor as an Actuator.
  */
-template<uint8_t outHeatCallPin, bool isRadValve = false>
+template<typename hm_t, hm_t &hm,
+         uint8_t outHeatCallPin, bool forceMinOnBoilerTime = true, bool isRadValve = false>
 class OnOffBoilerDriverLogic
 {
 private:
@@ -68,22 +129,6 @@ private:
     // Used in hub mode only.
     // DHD20170714: FIXME: for non-heat-pump-type system, 255 ticks (thus uint8_t) should suffice.
     uint16_t boilerCountdownTicks = 0;
-
-    // Default minimum on/off time in minutes for the boiler relay.
-    // Set to 5 as the default valve Tx cycle is 4 mins and 5 mins is a good amount for most boilers.
-    // This constant is necessary as if V0P2BASE_EE_START_MIN_BOILER_ON_MINS_INV is not set, the boiler relay will never be turned on.
-    static constexpr uint8_t DEFAULT_MIN_BOILER_ON_MINS = 5;
-#ifdef ARDUINO_ARCH_AVR
-    // Set minimum on (and off) time for pointer (minutes); zero to disable hub mode.
-    // Suggested minimum of 4 minutes for gas combi; much longer for heat pumps for example.
-    void setMinBoilerOnMinutes(uint8_t mins) { OTV0P2BASE::eeprom_smart_update_byte((uint8_t *)V0P2BASE_EE_START_MIN_BOILER_ON_MINS_INV, ~(mins)); }  // FIXME seens to be unused! (DE20170602)
-    // Get minimum on (and off) time for pointer (minutes); zero if not in hub mode.
-    uint8_t getMinBoilerOnMinutes() { return(~eeprom_read_byte((uint8_t *)V0P2BASE_EE_START_MIN_BOILER_ON_MINS_INV)); }
-#else // ARDUINO_ARCH_AVR
-    // Assume no EEPROM on non AVR arch.
-    void setMinBoilerOnMinutes(uint8_t /*mins*/) {};
-    uint8_t getMinBoilerOnMinutes() { return DEFAULT_MIN_BOILER_ON_MINS; }
-#endif // ARDUINO_ARCH_AVR
 
     // Get minimum valve open value.
     // NOTE: Case where boiler hub also controls a radvalve is not implemented.
@@ -178,7 +223,7 @@ public:
             // Possible optimisation: may be able to stop RX if boiler is on for local demand (can measure local temp better: less self-heating) and not collecting stats.
             if(callForHeatRX) {
                 callForHeatRX = false;
-                const uint8_t minOnMins = getMinBoilerOnMinutes();
+                const uint8_t minOnMins = hm.getMinBoilerOnMinutes();
                 bool ignoreRCfH = false;
                 if(!isBoilerOn()) {
                     // Boiler was off.
@@ -373,5 +418,5 @@ public:
 
 
     }
-
+    }
 #endif

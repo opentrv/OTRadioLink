@@ -84,7 +84,8 @@ namespace OTFHT
     // Instantiate objects for templating
     NULLSerialStream ss;
     OTRadioLink::OTNullRadioLink rt;
-    OTRadValve::OnOffBoilerDriverLogic<heatCallPin> b0;
+    OTRadValve::OTHubManager<false, false> hm;  // no EEPROM so parameters don't matter
+    OTRadValve::BoilerLogic::OnOffBoilerDriverLogic<decltype(hm), hm, heatCallPin> b0;
 }
 // Basic sanity/does it compile tests
 TEST(FrameHandler, OTFrameData)

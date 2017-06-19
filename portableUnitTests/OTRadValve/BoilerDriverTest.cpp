@@ -27,6 +27,8 @@ namespace BoilerDriverTest
 {
     static constexpr unsigned int maxStackProcessCallsForHeat = 100;
     static constexpr unsigned int maxStackRemoteCallForHeatRX = 100;
+
+    OTRadValve::OTHubManager<false, false> hm; // templating ignored as there is no EEPROM.
 }
 
 TEST(BoilerDriverTest, StackCheckerWorks)
@@ -44,7 +46,7 @@ TEST(BoilerDriverTest, StackCheckerWorks)
 TEST(BoilerDriverTest, basicBoilerHub)
 {
     constexpr uint8_t heatCallPin = 0; // unused in unit tests.
-    OTRadValve::OnOffBoilerDriverLogic<heatCallPin> bh;
+    OTRadValve::BoilerLogic::OnOffBoilerDriverLogic<decltype(BoilerDriverTest::hm), BoilerDriverTest::hm, heatCallPin> bh;
     EXPECT_FALSE(bh.isBoilerOn());  // Should initialise to off
 }
 
@@ -53,7 +55,7 @@ TEST(BoilerDriverTest, boilerHubModeHeatCall)
 {
     constexpr uint8_t heatCallPin = 0; // unused in unit tests.
     constexpr bool inHubMode = true;
-    OTRadValve::OnOffBoilerDriverLogic<heatCallPin> bh;
+    OTRadValve::BoilerLogic::OnOffBoilerDriverLogic<decltype(BoilerDriverTest::hm), BoilerDriverTest::hm, heatCallPin> bh;
     // Trick boiler hub into believeing 10 minutes have passed.
     for(auto i = 0; i < 10; ++i) {
         bh.processCallsForHeat(true, inHubMode);
@@ -70,7 +72,7 @@ TEST(BoilerDriverTest, boilerNotHubModeHeatCall)
 {
     constexpr uint8_t heatCallPin = 0; // unused in unit tests.
     constexpr bool inHubMode = false;
-    OTRadValve::OnOffBoilerDriverLogic<heatCallPin> bh;
+    OTRadValve::BoilerLogic::OnOffBoilerDriverLogic<decltype(BoilerDriverTest::hm), BoilerDriverTest::hm, heatCallPin> bh;
     // Trick boiler hub into believeing 10 minutes have passed.
     for(auto i = 0; i < 10; ++i) {
         bh.processCallsForHeat(true, inHubMode);
@@ -88,7 +90,7 @@ TEST(BoilerDriverTest, boilerHubModeStartup)
     constexpr uint8_t heatCallPin = 0; // unused in unit tests.
     constexpr bool inHubMode = true;
 
-    OTRadValve::OnOffBoilerDriverLogic<heatCallPin> bh;
+    OTRadValve::BoilerLogic::OnOffBoilerDriverLogic<decltype(BoilerDriverTest::hm), BoilerDriverTest::hm, heatCallPin> bh;
     EXPECT_FALSE(bh.isBoilerOn());  // Should initialise to off
     // Trick boiler hub into believeing 10 minutes have passed.
     for(auto i = 0; i < 6; ++i) {
@@ -107,7 +109,7 @@ TEST(BoilerDriverTest, boilerHubModeIncBoilerNoCallM)
     constexpr uint8_t heatCallPin = 0; // unused in unit tests.
     constexpr bool inHubMode = true;
 
-    OTRadValve::OnOffBoilerDriverLogic<heatCallPin> bh;
+    OTRadValve::BoilerLogic::OnOffBoilerDriverLogic<decltype(BoilerDriverTest::hm), BoilerDriverTest::hm, heatCallPin> bh;
     EXPECT_FALSE(bh.isBoilerOn());  // Should initialise to off
     // Check clock is not advanced when second0 is false
     for(auto i = 0; i < 1000; ++i) {
@@ -128,7 +130,7 @@ TEST(BoilerDriverTest, boilerHubModeIncBoilerNoCallM)
 TEST(BoilerDriverTest, remoteCallForHeatRXStackUsage) {
     // Instantiate boiler driver
     constexpr uint8_t heatCallPin = 0; // unused in unit tests.
-    OTRadValve::OnOffBoilerDriverLogic<heatCallPin> bh;
+    OTRadValve::BoilerLogic::OnOffBoilerDriverLogic<decltype(BoilerDriverTest::hm), BoilerDriverTest::hm, heatCallPin> bh;
 
     // Set up stack usage checks
     OTV0P2BASE::RAMEND = OTV0P2BASE::getSP();
@@ -154,7 +156,7 @@ TEST(BoilerDriverTest, processCallsForHeatStackUsage) {
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
     const size_t baseStack = OTV0P2BASE::MemoryChecks::getMinSP();
 
-    OTRadValve::OnOffBoilerDriverLogic<heatCallPin> bh;
+    OTRadValve::BoilerLogic::OnOffBoilerDriverLogic<decltype(BoilerDriverTest::hm), BoilerDriverTest::hm, heatCallPin> bh;
     bh.processCallsForHeat(false, inHubMode);
     std::cout << baseStack - OTV0P2BASE::MemoryChecks::getMinSP() << "\n";
     EXPECT_GT(BoilerDriverTest::maxStackProcessCallsForHeat, baseStack - OTV0P2BASE::MemoryChecks::getMinSP());
