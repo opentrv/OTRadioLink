@@ -402,11 +402,12 @@ namespace OTRadioLink
             // which implies likely requirement for padding of the plain text.
             // Note that the authenticated text size is not fixed, ie is zero or more bytes.
             // Returns true on success, false on failure.
-            typedef bool (*fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t)(void *state,
+            typedef bool (fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t)(void *state,
                     const uint8_t *key, const uint8_t *iv,
                     const uint8_t *authtext, uint8_t authtextSize,
                     const uint8_t *plaintext,
                     uint8_t *ciphertextOut, uint8_t *tagOut);
+            typedef fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t *fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t;
 
             // Signature of pointer to basic fixed-size text encryption/authentication function with workspace supplied.
             // (Suitable for type 'O' valve/sensor small frame for example.)
@@ -425,12 +426,13 @@ namespace OTRadioLink
             // The workspace requirement depends on the implementation used.
             static constexpr uint8_t workspaceRequred_GCM32B16BWithWorkspace_OTAESGCM_2p0 = 176;
             // Returns true on success, false on failure.
-            typedef bool (*fixed32BTextSize12BNonce16BTagSimpleEncWithWorkspace_ptr_t)(
+            typedef bool (fixed32BTextSize12BNonce16BTagSimpleEncWithWorkspace_fn_t)(
                     uint8_t *workspace, uint8_t workspaceSize,
                     const uint8_t *key, const uint8_t *iv,
                     const uint8_t *authtext, uint8_t authtextSize,
                     const uint8_t *plaintext,
                     uint8_t *ciphertextOut, uint8_t *tagOut);
+            typedef fixed32BTextSize12BNonce16BTagSimpleEncWithWorkspace_fn_t *fixed32BTextSize12BNonce16BTagSimpleEncWithWorkspace_ptr_t;
 
             // Encode entire secure small frame from header params and body and crypto support.
             // This is a raw/partial impl that requires the IV/nonce to be supplied.
@@ -696,12 +698,7 @@ namespace OTRadioLink
                     const uint8_t *authtext, uint8_t authtextSize,
                     const uint8_t *ciphertext, const uint8_t *tag,
                     uint8_t *plaintextOut);
-            typedef fixed32BTextSize12BNonce16BTagSimpleDec_fn_t* fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t;  // XXX
-//            typedef bool (*fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t)(void *state,
-//                    const uint8_t *key, const uint8_t *iv,
-//                    const uint8_t *authtext, uint8_t authtextSize,
-//                    const uint8_t *ciphertext, const uint8_t *tag,
-//                    uint8_t *plaintextOut);
+            typedef fixed32BTextSize12BNonce16BTagSimpleDec_fn_t *fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t;
 
             // Signature of pointer to basic fixed-size text decryption/authentication function with workspace supplied.
             // (Suitable for type 'O' valve/sensor small frame for example.)
@@ -721,12 +718,13 @@ namespace OTRadioLink
             // The workspace requirement depends on the implementation used.
             static constexpr uint8_t workspaceRequred_GCM32B16BWithWorkspace_OTAESGCM_2p0 = SimpleSecureFrame32or0BodyTXBase::workspaceRequred_GCM32B16BWithWorkspace_OTAESGCM_2p0;
             // Returns true on success, false on failure.
-            typedef bool (*fixed32BTextSize12BNonce16BTagSimpleDecWithWorkspace_ptr_t)(
+            typedef bool (fixed32BTextSize12BNonce16BTagSimpleDecWithWorkspace_fn_t)(
                     uint8_t *workspace, uint8_t workspaceSize,
                     const uint8_t *key, const uint8_t *iv,
                     const uint8_t *authtext, uint8_t authtextSize,
                     const uint8_t *ciphertext, const uint8_t *tag,
                     uint8_t *plaintextOut);
+            typedef fixed32BTextSize12BNonce16BTagSimpleDecWithWorkspace_fn_t *fixed32BTextSize12BNonce16BTagSimpleDecWithWorkspace_ptr_t;
 
             // Decode entire secure small frame from raw frame bytes and crypto support.
             // This is a raw/partial impl that requires the IV/nonce to be supplied.
