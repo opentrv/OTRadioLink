@@ -73,18 +73,31 @@ public:
     inline uint8_t getMinBoilerOnMinutes() { return DEFAULT_MIN_BOILER_ON_MINS; }
 #endif // ARDUINO_ARCH_AVR
 
+    /**
+     * @brief   Check if unit should be in hub mode (Boiler/relay functions enabled).
+     * @retval  Returns true if unit should be in central hub/listen mode.
+     *          - Unit should always be in hub mode if enableDefaultAlwaysRX is true
+     *          - Unit should never be in hub mode if enableRadioRX is not true.
+     *          - True if in central hub/listen mode (possibly with local radiator also). FIXME Not sure about last case..
+     */
     inline bool inHubMode()
     {
         if (enableDefaultAlwaysRX) { return (true); }
         else if (!enableRadioRX) {return (false); }
         else { return (0 != getMinBoilerOnMinutes()); }
     }
-
+    /**
+     * @brief   Check if unit should be in hub mode (Boiler/relay functions enabled).
+     * @retval  Returns true if unit should be in stats hub/listen mode.
+     *          - Unit should always be in hub mode if enableDefaultAlwaysRX is true
+     *          - Unit should never be in hub mode if enableRadioRX is not true.
+     *          - True if in stats hub/listen mode (minimum timeout). FIXME Not sure about last case..
+     */
     inline bool inStatsHubMode()
     {
         if (enableDefaultAlwaysRX) { return (true); }
         else if (!enableRadioRX) {return (false); }
-        else { return (1 != getMinBoilerOnMinutes()); }
+        else { return (1 == getMinBoilerOnMinutes()); }
     }
 };
 
