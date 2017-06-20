@@ -65,7 +65,7 @@ else
 fi
 
 rm -f ${EXENAME}
-if g++ -o ${EXENAME} -std=c++0x -O0 -Wall -Werror ${EXTRACPPFLAGS} ${INCLUDES} ${GINCLUDES} ${PROJSRCS} ${TESTSRCS} ${GLIBDIRS} ${GLIBS} ${OTHERLIBS} ; then
+if g++ -o ${EXENAME} -std=c++0x -O0 -Wall -Werror -fstack-check ${EXTRACPPFLAGS} ${INCLUDES} ${GINCLUDES} ${PROJSRCS} ${TESTSRCS} ${GLIBDIRS} ${GLIBS} ${OTHERLIBS} ; then
     echo Compiled.
 else
     echo Failed to compile.
