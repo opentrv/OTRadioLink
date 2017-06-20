@@ -205,7 +205,7 @@ static const uint8_t FullStatsMessageCore_MAX_BYTES_ON_WIRE = 8;
 static const uint8_t FullStatsMessageCore_MIN_BYTES_ON_WIRE = 3;
 
 // Clear a FullStatsMessageCore_t, also indicating no optional fields present.
-static inline void clearFullStatsMessageCore(FullStatsMessageCore_t *const p) { memset(p, 0, sizeof(FullStatsMessageCore_t)); }
+inline void clearFullStatsMessageCore(FullStatsMessageCore_t *const p) { memset(p, 0, sizeof(FullStatsMessageCore_t)); }
 
 // Send core/common 'full' stats message.
 // Note that up to 7 bytes of payload is optimal for the CRC used.

@@ -175,7 +175,7 @@ void power_intermittent_peripherals_disable();
     static constexpr uint16_t V0P2_UART_BAUD_DEFAULT = 4800;
 
 	// Check if serial is (already) powered up.
-	static inline bool _serialIsPoweredUp() { return(!(PRR & _BV(PRUSART0))); }
+	inline bool _serialIsPoweredUp() { return(!(PRR & _BV(PRUSART0))); }
 
 	// If serial (UART/USART0) was disabled, power it up, do Serial.begin(), and return true.
 	// If already powered up then do nothing other than return false.

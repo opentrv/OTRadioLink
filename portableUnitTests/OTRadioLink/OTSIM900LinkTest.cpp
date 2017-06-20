@@ -558,6 +558,17 @@ static SIM900 sim900;
 static const auto sim900WriteCallback = [] { sim900.poll(); };
 }
 
+TEST(OTSIM900Link, StackCheckerWorks)
+{
+    // Set up stack usage checks
+    OTV0P2BASE::RAMEND = OTV0P2BASE::getSP();
+    OTV0P2BASE::MemoryChecks::resetMinSP();
+    OTV0P2BASE::MemoryChecks::recordIfMinSP();
+    const size_t baseStack = OTV0P2BASE::MemoryChecks::getMinSP();
+    // Uncomment to print stack usage
+    EXPECT_NE((size_t)0, baseStack);
+}
+
 // Test the getter function definitely does what it should.
 TEST(OTSIM900Link, getterFunction)
 {

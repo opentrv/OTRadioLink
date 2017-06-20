@@ -44,6 +44,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2017
 // Revision REV8.B of V0.2 board, boiler control unit.
 // NO LIGHT SENSOR FITTED ON REV8.B BOARDS.
 // BOTH TMP112 AND SHT21 FITTED on REV8.B BOARDS.
+// Supports the FS20 protocol.
 #define V0p2_REV 8
 // IF DEFINED: enable use of on-board SHT21 RH and temp sensor (in lieu of TMP112).
 #define ENABLE_PRIMARY_TEMP_SENSOR_SHT21

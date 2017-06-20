@@ -138,6 +138,41 @@ namespace OTV0P2BASE
                 }
             }
     };
+    // Specialisation for bool
+    template <>
+    struct OTAtomic_t<bool> final
+    {
+        // Direct access to value.
+        // Use sparingly, eg where concurrency is not an issue on an MCU, eg with interrupts locked out.
+        // Marked volatile for ISR safely, ie to prevent cacheing of the value or re-ordering of access.
+        volatile bool value;
+
+        // Create uninitialised value.
+        OTAtomic_t() = default;
+        // Create initialised value.
+        constexpr OTAtomic_t(bool v) noexcept : value(v) { }
+
+        // Atomically load current value.
+        // Relies on load/store of single byte being atomic on AVR.
+        bool load() const volatile noexcept { return(value); }
+
+        // Atomically load current value.
+        // Relies on load/store of single byte being atomic on AVR.
+        void store(bool desired) volatile noexcept { value = desired; }
+
+        // Strong compare-and-exchange.
+        // Atomically, if value == expected then replace value with desired and return true,
+        // else load expected with value and return false.
+        bool compare_exchange_strong(bool& expected, bool desired) volatile noexcept
+            {
+            // Lock out interrupts for a compound operation.
+            ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
+                {
+                if(value == expected) { value = desired; return(true); }
+                else { expected = value; return(false); }
+                }
+            }
+    };
 #endif // OTV0P2BASE_PLATFORM_HAS_atomic ...
     // Atomic_UInt8T is kept to avoid changing current code.
     typedef OTAtomic_t<uint8_t> Atomic_UInt8T;

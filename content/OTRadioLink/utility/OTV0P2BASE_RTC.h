@@ -87,7 +87,7 @@ bool restoreRTC();
 // Get local time seconds from RTC [0,59].
 // Is as fast as reasonably practical.
 // Thread-safe and ISR-safe: returns a consistent atomic snapshot.
-static inline uint_fast8_t getSecondsLT() { return(_secondsLT); } // Assumed atomic.
+inline uint_fast8_t getSecondsLT() { return(_secondsLT); } // Assumed atomic.
 
 #ifdef ARDUINO_ARCH_AVR
 // Get local time minutes from RTC [0,59].

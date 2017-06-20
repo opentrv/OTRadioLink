@@ -34,6 +34,257 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 namespace OTRadValve
     {
 
+/**
+ * @brief   Manage hub mode and where getMinBoilerOnMinutes gets its values from.
+ * @param   enableDefaultAlwaysRX:
+ * @param   enableRadioRX:
+ * @param   useEEPROM:
+ * @todo    kill it with fire.
+ */
+template <bool enableDefaultAlwaysRX, bool enableRadioRX, bool useEEPROM = true>
+class OTHubManager
+{
+private:
+    // Default minimum on/off time in minutes for the boiler relay.
+    // Set to 5 as the default valve Tx cycle is 4 mins and 5 mins is a good amount for most boilers.
+    // This constant is necessary as if V0P2BASE_EE_START_MIN_BOILER_ON_MINS_INV is not set, the boiler relay will never be turned on.
+    static constexpr uint8_t DEFAULT_MIN_BOILER_ON_MINS = 5;
+public:
+#ifdef ARDUINO_ARCH_AVR
+    /**
+     * @brief   Set minimum on (and off) time for pointer (minutes); zero to disable hub mode.
+     * @note    Suggested minimum of 4 minutes for gas combi; much longer for heat pumps for example.
+     *          Does nothing if not using EEPROM.
+     */
+    inline void setMinBoilerOnMinutes(uint8_t mins) {
+        if(useEEPROM) { OTV0P2BASE::eeprom_smart_update_byte((uint8_t *)V0P2BASE_EE_START_MIN_BOILER_ON_MINS_INV, ~(mins)); }
+    }  // FIXME seens to be unused! (DE20170602)
+    /**
+     * @brief   Get minimum on (and off) time for pointer (minutes); zero if not in hub mode.
+     * @retval  value in EEPROM if useEEPROM true (by default) or use the DEFAULT_MIN_BOILER_ON_MINS value.
+     */
+    inline uint8_t getMinBoilerOnMinutes() {
+        if(useEEPROM) { return (~eeprom_read_byte((uint8_t *)V0P2BASE_EE_START_MIN_BOILER_ON_MINS_INV)); }
+        else { return (DEFAULT_MIN_BOILER_ON_MINS); }
+    }
+#else // ARDUINO_ARCH_AVR
+    // Assume no EEPROM on non AVR arch.
+    inline void setMinBoilerOnMinutes(uint8_t /*mins*/) {};
+    inline uint8_t getMinBoilerOnMinutes() { return DEFAULT_MIN_BOILER_ON_MINS; }
+#endif // ARDUINO_ARCH_AVR
+
+    /**
+     * @brief   Check if unit should be in hub mode (Boiler/relay functions enabled).
+     * @retval  Returns true if unit should be in central hub/listen mode.
+     *          - Unit should always be in hub mode if enableDefaultAlwaysRX is true
+     *          - Unit should never be in hub mode if enableRadioRX is not true.
+     *          - True if in central hub/listen mode (possibly with local radiator also). FIXME Not sure about last case..
+     */
+    inline bool inHubMode()
+    {
+        if (enableDefaultAlwaysRX) { return (true); }
+        else if (!enableRadioRX) {return (false); }
+        else { return (0 != getMinBoilerOnMinutes()); }
+    }
+    /**
+     * @brief   Check if unit should be in hub mode (Boiler/relay functions enabled).
+     * @retval  Returns true if unit should be in stats hub/listen mode.
+     *          - Unit should always be in hub mode if enableDefaultAlwaysRX is true
+     *          - Unit should never be in hub mode if enableRadioRX is not true.
+     *          - True if in stats hub/listen mode (minimum timeout). FIXME Not sure about last case..
+     */
+    inline bool inStatsHubMode()
+    {
+        if (enableDefaultAlwaysRX) { return (true); }
+        else if (!enableRadioRX) {return (false); }
+        else { return (1 == getMinBoilerOnMinutes()); }
+    }
+};
+
+namespace BoilerLogic
+{
+/**Manages simple binary (on/off) boiler.
+ * @param   outHeatCall: GPIO pin to call for heat on (high/1 => call for heat)
+ * @param   forceMinBoilerOnTime: Forces boiler to use the default minimum on time rather than the value stored in
+ *          EEPROM. If this is set to false and V0P2BASE_EE_START_MIN_BOILER_ON_MINS_INV is not set, the boiler will
+ *          never activate.
+ *          Defaults true so that the boiler driver will always work unless explicitly overridden..
+ * @param   isRadValve: Unit is controlling a rad valve (local or remote).
+ * @note    (DE20170602) Removed support for:
+ *          - case where unit is a boilerhub controller and also a TRV.
+ *          - dealing with ID of caller for heat (was redundant in old implementation anyway).
+ * @note Not ISR-/thread- safe; do not call from ISR RX.
+ * @note: DHD20170614: TODO: refactor as an Actuator.
+ */
+template<typename hm_t, hm_t &hm,
+         uint8_t outHeatCallPin, bool forceMinOnBoilerTime = true, bool isRadValve = false>
+class OnOffBoilerDriverLogic
+{
+private:
+    // Set true on receipt of plausible call for heat,
+    // to be polled, evaluated and cleared by the main control routine.
+    // Atomic to allow thread-safe lock-free access.
+    bool callForHeatRX = false;
+
+    // Minutes that the boiler has been off for, allowing minimum off time to be enforced.
+    // Does not roll once at its maximum value (255).
+    // DHD20160124: starting at zero forces at least for off time after power-up before firing up boiler (good after power-cut).
+    uint8_t boilerNoCallM = 0;
+    // Reducing listening if quiet for a while helps reduce self-heating temperature error
+    // (~2C as of 2013/12/24 at 100% RX, ~100mW heat dissipation in V0.2 REV1 box) and saves some energy.
+    // Time thresholds could be affected by eco/comfort switch.
+    //#define RX_REDUCE_MIN_M 20 // Minimum minutes quiet before considering reducing RX duty cycle listening for call for heat; [1--255], 10--60 typical.
+    // IF DEFINED then give backoff threshold to minimise duty cycle.
+    //#define RX_REDUCE_MAX_M 240 // Minutes quiet before considering maximally reducing RX duty cycle; ]RX_REDUCE_MIN_M--255], 30--240 typical.
+
+    // Ticks until locally-controlled boiler should be turned off; boiler should be on while this is positive.
+    // Ticks are of the main loop, ie 2s (almost always).
+    // Used in hub mode only.
+    // DHD20170714: FIXME: for non-heat-pump-type system, 255 ticks (thus uint8_t) should suffice.
+    uint16_t boilerCountdownTicks = 0;
+
+    // Get minimum valve open value.
+    // NOTE: Case where boiler hub also controls a radvalve is not implemented.
+    inline uint8_t getMinValveReallyOpen() {
+        constexpr uint8_t default_minimum = OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN;
+//        if (isRadValve) {
+//            return OTV0P2BASE::fnmax(default_minimum, rv.getMinValvePcReallyOpen());
+//        } else {
+//            return default_minimum;
+//        }
+        return default_minimum;
+    }
+
+public:
+    // True if boiler should be on.
+    inline bool isBoilerOn() { return(0 != boilerCountdownTicks); }
+
+    // Raw notification of received call for heat from remote (eg FHT8V) unit.
+    // This form has a 16-bit ID (eg FHT8V housecode) and percent-open value [0,100].
+    // Note that this may include 0 percent values for a remote unit explicitly confirming
+    // that is is not, or has stopped, calling for heat (eg instead of replying on a timeout).
+    // This is not filtered, and can be delivered at any time from RX data, from a non-ISR thread.
+    // Does not have to be thread-/ISR- safe.
+    // Note: callForHeat ID functionality disabled as unused anyway. API is preserved. (DE20170602)
+    void remoteCallForHeatRX(const uint16_t /*id*/, const uint8_t percentOpen, const uint8_t minuteCount)
+    {
+        #if 1
+        OTV0P2BASE::MemoryChecks::recordIfMinSP();
+        #endif
+        // TODO: Should be filtering first by housecode
+        // then by individual and tracked aggregate valve-open percentage.
+        // Only individual valve levels used here; no state is retained.
+
+        // Normal minimum single-valve percentage open that is not ignored.
+        // Somewhat higher than typical per-valve minimum,
+        // to help provide boiler with an opportunity to dump heat before switching off.
+        // May be too high to respond to valves with restricted max-open / range.
+        const uint8_t minvro = getMinValveReallyOpen();
+
+        // TODO-553: after over an hour of continuous boiler running
+        // raise the percentage threshold to successfully call for heat (for a while).
+        // The aim is to allow a (combi) boiler to have reached maximum efficiency
+        // and to have potentially made a significant difference to room temperature
+        // but then turn off for a short while if demand is a little lower
+        // to allow it to run a little harder/better when turned on again.
+        // Most combis have power far higher than needed to run rads at full blast
+        // and have only limited ability to modulate down,
+        // so may end up cycling anyway while running the circulation pump if left on.
+        // Modelled on DHD habit of having many 15-minute boiler timer segments
+        // in 'off' period even during the day for many many years!
+        //
+        // Note: could also consider pause if mains frequency is low indicating grid stress.
+        const uint8_t boilerCycleWindowMask = 0x3f;
+        const uint8_t boilerCycleWindow = (minuteCount & boilerCycleWindowMask);
+        const bool considerPause = (boilerCycleWindow < (boilerCycleWindowMask >> 2));
+
+        // Equally the threshold could be lowered in the period after a possible pause (TODO-593, TODO-553)
+        // to encourage the boiler to start and run harder
+        // and to get a little closer to target temperatures.
+        const bool encourageOn = !considerPause && (boilerCycleWindow < (boilerCycleWindowMask >> 1));
+
+        // TODO-555: apply some basic hysteresis to help reduce boiler short-cycling.
+        // Try to force a higher single-valve-%age threshold to start boiler if off,
+        // at a level where at least a single valve is moderately open.
+        // Selecting "quick heat" at a valve should immediately pass this,
+        // as should normal warm in cold but newly-occupied room (TODO-593).
+        // (This will not provide hysteresis for very high minimum really-open valve values.)
+        // Be slightly tolerant with the 'moderately open' threshold
+        // to allow quick start from a range of devices (TODO-593)
+        // and in the face of imperfect rounding/conversion to/from percentages over the air.
+        const uint8_t threshold = (!considerPause && (encourageOn || isBoilerOn())) ?
+            minvro : OTV0P2BASE::fnmax(minvro, (uint8_t) (OTRadValve::DEFAULT_VALVE_PC_MODERATELY_OPEN-1));
+
+        if(percentOpen >= threshold) {
+        // && FHT8VHubAcceptedHouseCode(command.hc1, command.hc2))) // Accept if house code OK.
+            callForHeatRX = true;
+        }
+    }
+
+    // Process calls for heat, ie turn boiler on and off as appropriate.
+    // Has control of OUT_HEATCALL if defined(ENABLE_BOILER_HUB).
+    // Called every tick (typically 2s); drives timing.
+    void processCallsForHeat(const bool second0, const bool hubMode)
+    {
+        #if 1
+        OTV0P2BASE::MemoryChecks::recordIfMinSP();
+        #endif
+        if(hubMode) {
+            // Check if call-for-heat has been received, and clear the flag.
+            // Record call for heat, both to start boiler-on cycle and possibly to defer need to listen again.
+            // Ignore new calls for heat until minimum off/quiet period has been reached.
+            // Possible optimisation: may be able to stop RX if boiler is on for local demand (can measure local temp better: less self-heating) and not collecting stats.
+            if(callForHeatRX) {
+                callForHeatRX = false;
+                const uint8_t minOnMins = hm.getMinBoilerOnMinutes();
+                bool ignoreRCfH = false;
+                if(!isBoilerOn()) {
+                    // Boiler was off.
+                    // Ignore new call for heat if boiler has not been off long enough,
+                    // forcing a time longer than the specified minimum,
+                    // regardless of when second0 happens to be.
+                    // (The min(254, ...) is to ensure that the boiler can come on even if minOnMins == 255.)
+                    // TODO: randomly extend the off-time a little (eg during grid stress) partly to randomise whole cycle length.
+                    if(boilerNoCallM <= OTV0P2BASE::fnmin((uint8_t)254, minOnMins)) { ignoreRCfH = true; }
+            //        if(OTV0P2BASE::getSubCycleTime() >= nearOverrunThreshold) { } // { tooNearOverrun = true; }
+            //        else
+                      if(ignoreRCfH) { OTV0P2BASE::serialPrintlnAndFlush(F("RCfH-")); } // Remote call for heat ignored.
+                    else { OTV0P2BASE::serialPrintlnAndFlush(F("RCfH1")); } // Remote call for heat on.
+                }
+                if(!ignoreRCfH) {
+                    const uint16_t onTimeTicks = minOnMins * (uint16_t) (60U / OTV0P2BASE::MAIN_TICK_S);
+                    // Restart count-down time (keeping boiler on) with new call for heat.
+                    boilerCountdownTicks = onTimeTicks;
+                    boilerNoCallM = 0; // No time has passed since the last call.
+                }
+            }
+
+            // If boiler is on, then count down towards boiler off.
+            if(isBoilerOn()) {
+                if(0 == --boilerCountdownTicks) {
+                    // Boiler should now be switched off.
+            //        if(OTV0P2BASE::getSubCycleTime() >= nearOverrunThreshold) { } // { tooNearOverrun = true; }
+            //        else
+                        { OTV0P2BASE::serialPrintlnAndFlush(F("RCfH0")); } // Remote call for heat off
+                }
+            }
+            // Else boiler is off so count up quiet minutes until at max...
+            else if(second0 && (boilerNoCallM < 255))
+                { ++boilerNoCallM; }
+
+            // Set BOILER_OUT as appropriate for calls for heat.
+            // Local calls for heat come via the same route (TODO-607).
+#ifdef ARDUINO_ARCH_AVR
+            fastDigitalWrite(outHeatCallPin, (isBoilerOn() ? HIGH : LOW));
+#endif // ARDUINO_ARCH_AVR
+        } else {
+#ifdef ARDUINO_ARCH_AVR
+            // Force boiler off when not in hub mode.
+            fastDigitalWrite(outHeatCallPin, LOW);
+#endif // ARDUINO_ARCH_AVR
+        }
+    }
+};
 
 //// Smarter logic for simple on/off boiler output, fully testable.
 //class OnOffBoilerDriverLogic
@@ -80,7 +331,7 @@ namespace OTRadValve
 //    // Minimum individual valve percentage to be considered open [1,100].
 //    uint8_t minIndividualPC;
 //
-//    // Minimum aggrigate valve percentage to be considered open, no lower than minIndividualPC; [1,100].
+//    // Minimum aggregate valve percentage to be considered open, no lower than minIndividualPC; [1,100].
 //    uint8_t minAggregatePC;
 //
 //    // 'Bad' (never valid as housecode or OpenTRV code) ID.
@@ -180,5 +431,5 @@ namespace OTRadValve
 
 
     }
-
+    }
 #endif

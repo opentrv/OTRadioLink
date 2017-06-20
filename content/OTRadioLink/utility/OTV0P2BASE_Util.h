@@ -13,8 +13,8 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2014--2016
-                           Deniz Erbilgin 2016
+Author(s) / Copyright (s): Damon Hart-Davis 2014--2017
+                           Deniz Erbilgin 2017
 */
 
 /*
@@ -66,7 +66,7 @@ struct emptyStruct { };
 // Eg, passing in 0xa (10) returns 'a'.
 // The top 4 bits are ignored.
 inline char hexDigit(const uint8_t value) { const uint8_t v = 0xf&value; if(v<10) { return(char('0'+v)); } return(char('a'+(v-10))); }
-//static inline char hexDigit(const uint8_t value) { const uint8_t v = *("0123456789abcdef" + (0xf&value)); }
+//inline char hexDigit(const uint8_t value) { const uint8_t v = *("0123456789abcdef" + (0xf&value)); }
 // Fill in the first two bytes of buf with the ASCII hex digits of the value passed.
 // Eg, passing in a value 0x4e sets buf[0] to '4' and buf[1] to 'e'.
 inline void hexDigits(const uint8_t value, char * const buf) { buf[0] = hexDigit(value>>4); buf[1] = hexDigit(value); }
@@ -145,20 +145,30 @@ class ScratchSpace final
 // Get the stack pointer and return as a size_t.
 // Prefered AVR way reads stack pointer register
 // This is a hack to hide differences between AVR-GCC and CI environments.
-static inline size_t getSP() { return ((size_t)SP); }
+inline size_t getSP() { return ((size_t)SP); }
 #else
 //  Dummy variable to hold stack pointer.
 // Required for recordIfMinSP to function properly.
 // Assuming stack grows downwards, MUST be set to a higher number than the highest possible address used by the program.
 // TODO replace with constexpr containing the highest available RAM address.
-static size_t RAMEND = 0;
+extern size_t RAMEND;
 // Get the stack pointer and return as a size_t.
-// If not on avr, create new local variable and get its address.
-static inline size_t getSP() {
-    volatile void* ptr;
-    size_t position = (size_t)&ptr;
+// If not on AVR, create new local variable and get its address.
+inline size_t getSP() {
+    size_t position = (size_t)&position;
     return (position);
 }
+#if 0
+// GCC specific version
+inline size_t getSP() {
+    return ((size_t)__builtin_frame_address (0));
+}
+// x86 specific version
+inline size_t getSP() {
+    register size_t sp asm ("sp");
+    return sp;
+}
+#endif
 // Stub function for forceReset()
 // TODO Is there a better place for this?
 inline void forceReset() {}
