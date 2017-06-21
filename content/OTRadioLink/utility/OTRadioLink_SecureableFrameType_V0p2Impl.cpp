@@ -41,7 +41,7 @@ namespace OTRadioLink
     {
 
 
-#ifdef SimpleSecureFrame32or0BodyTXV0p2_DEFINED
+#ifdef SimpleSecureFrame32or0BodyV0p2Impl_DEFINED
 
 // Factory method to get singleton TX instance.
 SimpleSecureFrame32or0BodyTXV0p2 &SimpleSecureFrame32or0BodyTXV0p2::getInstance()
