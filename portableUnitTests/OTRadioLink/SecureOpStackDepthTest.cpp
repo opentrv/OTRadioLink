@@ -59,7 +59,7 @@ static constexpr unsigned int maxStackSecureFrameEncode = 416;
 static constexpr unsigned int maxStackSecureFrameDecode = 416;
 #endif // __APPLE__
 
-TEST(SimpleSecureFrame, StackCheckerWorks)
+TEST(SecureOpStackDepth, StackCheckerWorks)
 {
     // Set up stack usage checks
     OTV0P2BASE::RAMEND = OTV0P2BASE::getSP();
