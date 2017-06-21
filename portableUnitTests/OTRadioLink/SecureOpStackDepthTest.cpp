@@ -66,10 +66,8 @@ TEST(SecureOpStackDepth, StackCheckerWorks)
     OTV0P2BASE::MemoryChecks::resetMinSP();
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
     const size_t baseStack = OTV0P2BASE::MemoryChecks::getMinSP();
-    // Uncomment to print stack usage
     EXPECT_NE((size_t)0, baseStack);
 }
-
 
 
 #endif // ARDUINO_LIB_OTAESGCM
