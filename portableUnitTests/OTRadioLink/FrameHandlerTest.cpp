@@ -25,7 +25,10 @@ Author(s) / Copyright (s): Deniz Erbilgin 2017
 #include <gtest/gtest.h>
 #include <OTV0p2Base.h>
 #include "OTV0P2BASE_Util.h"
+// Only enable these tests if the OTAESGCM library is marked as available.
+#if defined(EXT_AVAILABLE_ARDUINO_LIB_OTAESGCM)
 #include <OTAESGCM.h>
+#endif  // defined(EXT_AVAILABLE_ARDUINO_LIB_OTAESGCM)
 #include <OTRadioLink.h>
 
 
@@ -64,8 +67,11 @@ namespace OTFHT
     // Null pollIO
     // FIXME need true version?
     bool pollIO(bool) {return (false);}
+
     // Mock decryption function
     // Set true to pass decryption, false to fail.
+    // Only enable these if the OTAESGCM library is marked as available.
+    #if defined(EXT_AVAILABLE_ARDUINO_LIB_OTAESGCM)
     static bool mockDecryptSuccess = false;
     using mockDecrypt_fn_t = decltype(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS);
     mockDecrypt_fn_t mockDecrypt;
@@ -77,6 +83,8 @@ namespace OTFHT
     {
         return (mockDecryptSuccess);
     }
+    #endif
+
     // return fake Key
     bool getKeySuccess(uint8_t *key) { memset(key, 0xff, /*OTV0P2BASE::VOP2BASE_EE_LEN_16BYTE_PRIMARY_BUILDING_KEY*/ 16); return (true); }
     bool getKeyFail(uint8_t *) { return (false); }
@@ -245,6 +253,9 @@ TEST(FrameHandler, BoilerFrameOperationSuccess)
     EXPECT_TRUE(boilerOperationSuccess);
 }
 
+// Only enable these tests if the OTAESGCM library is marked as available.
+#if defined(EXT_AVAILABLE_ARDUINO_LIB_OTAESGCM)
+
 TEST(FrameHandler, authAndDecodeSecurableFrameBasic)
 {
     // message
@@ -373,6 +384,8 @@ TEST(FrameHandler, decodeAndHandleOTSecureOFrameStackCheck)
     EXPECT_GT((intptr_t)200, (intptr_t)(baseStack - maxStack));
 }
 
+#endif // defined(EXT_AVAILABLE_ARDUINO_LIB_OTAESGCM)
+
 // Should always return false
 TEST(FrameHandler, OTMessageQueueHandlerNull)
 {
@@ -388,5 +401,3 @@ TEST(FrameHandler, OTMessageQueueHandlerBasic)
     OTRadioLink::OTNullRadioLink rl;
     EXPECT_FALSE(mh.handle(false, rl));
 }
-
-
