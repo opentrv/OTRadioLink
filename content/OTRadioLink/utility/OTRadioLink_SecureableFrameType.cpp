@@ -936,7 +936,7 @@ return(false); // FIXME
         // Look up the full node ID of the sender in the associations table.
         // NOTE: this only tries the first match, ignoring firstIDMatchOnly.
         uint8_t senderNodeID[OTV0P2BASE::OpenTRV_Node_ID_Bytes];
-        const int8_t index = OTV0P2BASE::getNextMatchingNodeID(0, sfh->id, sfh->getIl(), senderNodeID);
+        const int8_t index = _getNextMatchingNodeID(0, sfh, senderNodeID);
         if(index < 0) { return(0); } // ERROR
         // Extract the message counter and validate it (that it is higher than previously seen)...
         uint8_t messageCounter[SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes];

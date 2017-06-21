@@ -402,6 +402,8 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
             // Constructor is private to force use of factory method to return singleton.
             constexpr SimpleSecureFrame32or0BodyRXV0p2() { }
 
+            virtual int8_t _getNextMatchingNodeID(const uint8_t index, const SecurableFrameHeader *const sfh, uint8_t *nodeID) const override;
+
         public:
             // Factory method to get singleton instance.
             static SimpleSecureFrame32or0BodyRXV0p2 &getInstance();

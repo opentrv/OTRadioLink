@@ -31,6 +31,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <OTV0p2Base.h>
 #include <OTAESGCM.h>
 #include <OTRadioLink.h>
 
@@ -69,5 +70,59 @@ TEST(SecureOpStackDepth, StackCheckerWorks)
     EXPECT_NE((size_t)0, baseStack);
 }
 
+namespace SOSDT{
+// write dummy implemtation of SimpleSecureFrame32or0BodyRXBase for non AVR and write tests.
+class SimpleSecureFrame32or0BodyRXFixedCounter final : public OTRadioLink::SimpleSecureFrame32or0BodyRXBase
+{
+private:
+    constexpr SimpleSecureFrame32or0BodyRXFixedCounter() { }
+    virtual int8_t _getNextMatchingNodeID(const uint8_t index, const OTRadioLink::SecurableFrameHeader *const /* sfh */, uint8_t *nodeID) const override
+    {
+        *nodeID = 0;
+        return (index + 1);
+    }
+public:
+    static SimpleSecureFrame32or0BodyRXFixedCounter &getInstance()
+    {
+        // Lazily create/initialise singleton on first use, NOT statically.
+        static SimpleSecureFrame32or0BodyRXFixedCounter instance;
+        return(instance);
+    }
+
+    // Read current (last-authenticated) RX message count for specified node, or return false if failed.
+    // Will fail for invalid node ID and for unrecoverable memory corruption.
+    // Both args must be non-NULL, with counter pointing to enough space to copy the message counter value to.
+    virtual bool getLastRXMessageCounter(const uint8_t * const /*ID*/, uint8_t * counter) const override
+    {
+        *counter = 0;
+        return (true);
+    }
+    // // Check message counter for given ID, ie that it is high enough to be eligible for authenticating/processing.
+    // // ID is full (8-byte) node ID; counter is full (6-byte) counter.
+    // // Returns false if this counter value is not higher than the last received authenticated value.
+    // virtual bool validateRXMessageCount(const uint8_t *ID, const uint8_t *counter) const override { return (true); }
+    // Update persistent message counter for received frame AFTER successful authentication.
+    // ID is full (8-byte) node ID; counter is full (6-byte) counter.
+    // Returns false on failure, eg if message counter is not higher than the previous value for this node.
+    // The implementation should allow several years of life typical message rates (see above).
+    // The implementation should be robust in the face of power failures / reboots, accidental or malicious,
+    // not allowing replays nor other cryptographic attacks, nor forcing node dissociation.
+    // Must only be called once the RXed message has passed authentication.
+    virtual bool updateRXMessageCountAfterAuthentication(const uint8_t * /*ID*/, const uint8_t * /*newCounterValue*/) override
+    {
+        return (true);
+    }
+};
+// SimpleSecureFrame32or0BodyRXFixedCounter sfrx;
+
+}
+
+TEST(SecureOpStackDepth, SimpleSecureFrame32or0BodyRXFixedCounterBasic)
+{
+    const uint8_t counter = 0;
+    const uint8_t id = 0;
+    SOSDT::SimpleSecureFrame32or0BodyRXFixedCounter &sfrx = SOSDT::SimpleSecureFrame32or0BodyRXFixedCounter::getInstance();
+    EXPECT_TRUE(sfrx.updateRXMessageCountAfterAuthentication(&id, &counter));
+}
 
 #endif // ARDUINO_LIB_OTAESGCM

@@ -668,6 +668,9 @@ namespace OTRadioLink
     // MUDDLING ON WITHOUT CHECKING FOR ERRORS MAY SEVERELY DAMAGE SYSTEM SECURITY.
     class SimpleSecureFrame32or0BodyRXBase : public SimpleSecureFrame32or0BodyBase
         {
+        private:
+            virtual int8_t _getNextMatchingNodeID(const uint8_t index, const SecurableFrameHeader *const sfh, uint8_t *nodeID) const = 0;
+
         public:
             // Unpads plain-text in place prior to encryption with 32-byte fixed length padded output.
             // Reverses/validates padding applied by addPaddingTo32BTrailing0sAndPadCount().

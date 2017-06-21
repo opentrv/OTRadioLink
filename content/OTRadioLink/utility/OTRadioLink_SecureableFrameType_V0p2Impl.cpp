@@ -530,6 +530,10 @@ bool SimpleSecureFrame32or0BodyTXV0p2SuppliedID::getTXID(uint8_t *const idOut) c
     return(getID(idOut));
     }
 
+int8_t SimpleSecureFrame32or0BodyRXV0p2::_getNextMatchingNodeID(const uint8_t index, const SecurableFrameHeader *const sfh, uint8_t *nodeID)
+{
+        return (OTV0P2BASE::getNextMatchingNodeID(0, sfh->id, sfh->getIl(), senderNodeID));
+}
 #endif // SimpleSecureFrame32or0BodyTXV0p2_DEFINED
 
 
