@@ -837,7 +837,7 @@ namespace OTRadioLink
                                             fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
                                             const uint8_t *adjID, uint8_t adjIDLen,
                                             void *state, const uint8_t *key,
-                                            uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize) = 0;
+                                            uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
 
             // From a structurally correct secure frame, looks up the ID, checks the message counter, decodes, and updates the counter if successful.
             // THIS IS THE PREFERRED ENTRY POINT FOR DECODING AND RECEIVING SECURE FRAMES.
@@ -863,7 +863,7 @@ namespace OTRadioLink
                                             void *state, const uint8_t *key,
                                             uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize,
                                             uint8_t *ID,
-                                            bool firstIDMatchOnly = true) = 0;
+                                            bool firstIDMatchOnly = true);
         };
 
 

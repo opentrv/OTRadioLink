@@ -418,63 +418,6 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
             // not allowing replays nor other cryptographic attacks, nor forcing node dissociation.
             // Must only be called once the RXed message has passed authentication.
             virtual bool updateRXMessageCountAfterAuthentication(const uint8_t *ID, const uint8_t *newCounterValue);
-
-            // As for decodeSecureSmallFrameRaw() but passed a candidate node/counterparty ID
-            // derived from the frame ID in the incoming header,
-            // plus possible other adjustments such has forcing bit values for reverse flows.
-            // This routine constructs an IV from this expanded ID
-            // (which must be at least length 6 for 'O' / 0x80 style enc/auth)
-            // and other information in the header
-            // and then returns the result of calling decodeSecureSmallFrameRaw().
-            //
-            // If several candidate nodes share the ID prefix in the frame header
-            // (in the extreme case with a zero-length header ID for an anonymous frame)
-            // then they may all have to be tested in turn until one succeeds.
-            //
-            // Generally a call to this should be done AFTER checking that
-            // the aggregate RXed message counter is higher than for the last successful receive
-            // (for this node and flow direction)
-            // and after a success those message counters should be updated
-            // (which may involve more than a simple increment)
-            // to the new values to prevent replay attacks.
-            //
-            //   * adjID / adjIDLen  adjusted candidate ID (never NULL)
-            //         and available length (must be >= 6)
-            //         based on the received ID in (the already structurally validated) header
-            //
-            // TO AVOID RELAY ATTACKS: verify the counter is higher than any previous authed message from this sender
-            // then update the RX message counter after a successful auth with this routine.
-            virtual uint8_t _decodeSecureSmallFrameFromID(const SecurableFrameHeader *sfh,
-                                            const uint8_t *buf, uint8_t buflen,
-                                            fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
-                                            const uint8_t *adjID, uint8_t adjIDLen,
-                                            void *state, const uint8_t *key,
-                                            uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
-
-            // From a structurally correct secure frame, looks up the ID, checks the message counter, decodes, and updates the counter if successful.
-            // THIS IS THE PREFERRED ENTRY POINT FOR DECODING AND RECEIVING SECURE FRAMES.
-            // (Pre-filtering by type and ID and message counter may already have happened.)
-            // Note that this is for frames being send from the ID in the header,
-            // not for lightweight return traffic to the specified ID.
-            // Returns the total number of bytes read for the frame
-            // (including, and with a value one higher than the first 'fl' bytes).
-            // Returns zero in case of error, eg because authentication failed or this is a duplicate message.
-            // If this returns true then the frame is authenticated,
-            // and the decrypted body is available if present and a buffer was provided.
-            // If the 'firstMatchIDOnly' is true (the default)
-            // then this only checks the first ID prefix match found if any,
-            // else all possible entries may be tried depending on the implementation
-            // and, for example, time/resource limits.
-            // This overloading accepts the decryption function, state and key explicitly.
-            //
-            //  * ID if non-NULL is filled in with the full authenticated sender ID, so must be >= 8 bytes
-            virtual uint8_t decodeSecureSmallFrameSafely(const SecurableFrameHeader *sfh,
-                                            const uint8_t *buf, uint8_t buflen,
-                                            fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
-                                            void *state, const uint8_t *key,
-                                            uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize,
-                                            uint8_t *ID,
-                                            bool firstIDMatchOnly = true);
         };
 #else  // ARDUINO_ARCH_AVR
 

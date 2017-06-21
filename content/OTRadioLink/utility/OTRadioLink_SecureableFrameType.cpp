@@ -843,4 +843,120 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX(uint8_t *
 return(false); // FIXME
     }
 
+    // As for decodeSecureSmallFrameRaw() but passed a candidate node/counterparty ID
+    // derived from the frame ID in the incoming header,
+    // plus possible other adjustments such has forcing bit values for reverse flows.
+    // This routine constructs an IV from this expanded ID
+    // (which must be at least length 6 for 'O' / 0x80 style enc/auth)
+    // and other information in the header
+    // and then returns the result of calling decodeSecureSmallFrameRaw().
+    // Returns the total number of bytes read for the frame
+    // (including, and with a value one higher than the first 'fl' bytes).
+    // Returns zero in case of error, eg because authentication failed.
+    //
+    // If several candidate nodes share the ID prefix in the frame header
+    // (in the extreme case with a zero-length header ID for an anonymous frame)
+    // then they may all have to be tested in turn until one succeeds.
+    //
+    // Generally a call to this should be done AFTER checking that
+    // the aggregate RXed message counter is higher than for the last successful receive
+    // (for this node and flow direction)
+    // and after a success those message counters should be updated
+    // (which may involve more than a simple increment)
+    // to the new values to prevent replay attacks.
+    //
+    //   * adjID / adjIDLen  adjusted candidate ID (never NULL)
+    //         and available length (must be >= 6)
+    //         based on the received ID in (the already structurally validated) header
+    //
+    // TO AVOID RELAY ATTACKS: verify the counter is higher than any previous authed message from this sender
+    // then update the RX message counter after a successful auth with this routine.
+    uint8_t SimpleSecureFrame32or0BodyRXBase::_decodeSecureSmallFrameFromID(const SecurableFrameHeader *const sfh,
+                                    const uint8_t *const buf, const uint8_t buflen,
+                                    const fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
+                                    const uint8_t *const adjID, const uint8_t adjIDLen,
+                                    void *const state, const uint8_t *const key,
+                                    uint8_t *const decryptedBodyOut, const uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize)
+        {
+        // Rely on decodeSecureSmallFrameRaw() for validation of items not directly needed here.
+        if((NULL == sfh) || (NULL == buf) || (NULL == adjID)) { return(0); } // ERROR
+        if(adjIDLen < 6) { return(0); } // ERROR
+        // Abort if header was not decoded properly.
+        if(sfh->isInvalid()) { return(0); } // ERROR
+        // Abort if expected constraints for simple fixed-size secure frame are not met.
+        if(23 != sfh->getTl()) { return(0); } // ERROR
+    //    const uint8_t fl = sfh->fl;
+    //    if(0x80 != buf[fl]) { return(0); } // ERROR
+        if(sfh->getTrailerOffset() + 6 > buflen) { return(0); } // ERROR
+        // Construct IV from supplied (possibly adjusted) ID + counters from (start of) trailer.
+        uint8_t iv[12];
+        memcpy(iv, adjID, 6);
+        memcpy(iv + 6, buf + sfh->getTrailerOffset(), SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes);
+        // Now do actual decrypt/auth.
+        return(decodeSecureSmallFrameRaw(sfh,
+                                    buf, buflen,
+                                    d,
+                                    state, key, iv,
+                                    decryptedBodyOut, decryptedBodyOutBuflen, decryptedBodyOutSize));
+        }
+
+    // From a structurally correct secure frame, looks up the ID, checks the message counter, decodes, and updates the counter if successful.
+    // THIS IS THE PREFERRED ENTRY POINT FOR DECODING AND RECEIVING SECURE FRAMES.
+    // (Pre-filtering by type and ID and message counter may already have happened.)
+    // Note that this is for frames being send from the ID in the header,
+    // not for lightweight return traffic to the specified ID.
+    // Returns the total number of bytes read for the frame
+    // (including, and with a value one higher than the first 'fl' bytes).
+    // Returns zero in case of error, eg because authentication failed or this is a duplicate message.
+    // If this returns true then the frame is authenticated,
+    // and the decrypted body is available if present and a buffer was provided.
+    // If the 'firstMatchIDOnly' is true (the default)
+    // then this only checks the first ID prefix match found if any,
+    // else all possible entries may be tried depending on the implementation
+    // and, for example, time/resource limits.
+    // This overloading accepts the decryption function, state and key explicitly.
+    //
+    //  * ID if non-NULL is filled in with the full authenticated sender ID, so must be >= 8 bytes
+    uint8_t SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameSafely(const SecurableFrameHeader *const sfh,
+                                    const uint8_t *const buf, const uint8_t buflen,
+                                    const fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
+                                    void *const state, const uint8_t *const key,
+                                    uint8_t *const decryptedBodyOut, const uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize,
+                                    uint8_t *const ID,
+                                    bool /*firstIDMatchOnly*/)
+        {
+        // Rely on _decodeSecureSmallFrameFromID() for validation of items not directly needed here.
+        if((NULL == sfh) || (NULL == buf)) { return(0); } // ERROR
+        // Abort if header was not decoded properly.
+        if(sfh->isInvalid()) { return(0); } // ERROR
+    //    // Abort if frame is not secure.
+    //    if(sfh->isSecure()) { return(0); } // ERROR
+        // Abort if trailer not large enough to extract message counter from safely (and not expected size/flavour).
+        if(23 != sfh->getTl()) { return(0); } // ERROR
+        // Look up the full node ID of the sender in the associations table.
+        // NOTE: this only tries the first match, ignoring firstIDMatchOnly.
+        uint8_t senderNodeID[OTV0P2BASE::OpenTRV_Node_ID_Bytes];
+        const int8_t index = OTV0P2BASE::getNextMatchingNodeID(0, sfh->id, sfh->getIl(), senderNodeID);
+        if(index < 0) { return(0); } // ERROR
+        // Extract the message counter and validate it (that it is higher than previously seen)...
+        uint8_t messageCounter[SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes];
+        // Assume counter positioning as for 0x80 type trailer, ie 6 bytes at start of trailer.
+        memcpy(messageCounter, buf + sfh->getTrailerOffset(), SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes);
+        if(!validateRXMessageCount(senderNodeID, messageCounter)) { return(0); } // ERROR
+        // Now attempt to decrypt.
+        // Assumed no need to 'adjust' ID for this form of RX.
+        const uint8_t decodeResult =_decodeSecureSmallFrameFromID(sfh,
+                                                            buf, buflen,
+                                                            d,
+                                                            senderNodeID, OTV0P2BASE::OpenTRV_Node_ID_Bytes,
+                                                            state, key,
+                                                            decryptedBodyOut, decryptedBodyOutBuflen, decryptedBodyOutSize);
+        if(0 == decodeResult) { return(0); } // ERROR
+        // Successfully decoded: update the RX message counter to avoid duplicates/replays.
+        if(!updateRXMessageCountAfterAuthentication(senderNodeID, messageCounter)) { return(0); } // ERROR
+        // Success: copy sender ID to output buffer (if non-NULL) as last action.
+        if(ID != NULL) { memcpy(ID, senderNodeID, OTV0P2BASE::OpenTRV_Node_ID_Bytes); }
+        return(decodeResult);
+        }
+
 }
