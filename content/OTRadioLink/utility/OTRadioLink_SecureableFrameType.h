@@ -668,6 +668,9 @@ namespace OTRadioLink
     // MUDDLING ON WITHOUT CHECKING FOR ERRORS MAY SEVERELY DAMAGE SYSTEM SECURITY.
     class SimpleSecureFrame32or0BodyRXBase : public SimpleSecureFrame32or0BodyBase
         {
+        private:
+            virtual int8_t _getNextMatchingNodeID(const uint8_t index, const SecurableFrameHeader *const sfh, uint8_t *nodeID) const = 0;
+
         public:
             // Unpads plain-text in place prior to encryption with 32-byte fixed length padded output.
             // Reverses/validates padding applied by addPaddingTo32BTrailing0sAndPadCount().
@@ -837,16 +840,17 @@ namespace OTRadioLink
                                             fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
                                             const uint8_t *adjID, uint8_t adjIDLen,
                                             void *state, const uint8_t *key,
-                                            uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize) = 0;
+                                            uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
 
             // From a structurally correct secure frame, looks up the ID, checks the message counter, decodes, and updates the counter if successful.
             // THIS IS THE PREFERRED ENTRY POINT FOR DECODING AND RECEIVING SECURE FRAMES.
             // (Pre-filtering by type and ID and message counter may already have happened.)
-            // Note that this is for frames being send from the ID in the header,
+            // Note that this is for frames being sent from the ID in the header,
             // not for lightweight return traffic to the specified ID.
             // Returns the total number of bytes read for the frame
             // (including, and with a value one higher than the first 'fl' bytes).
-            // Returns zero in case of error, eg because authentication failed or this is a duplicate message.
+            // Returns zero in case of error,
+            // eg because authentication failed or this is a duplicate message.
             // If this returns true then the frame is authenticated,
             // and the decrypted body is available if present and a buffer was provided.
             // If the 'firstMatchIDOnly' is true (the default)
@@ -862,7 +866,7 @@ namespace OTRadioLink
                                             void *state, const uint8_t *key,
                                             uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize,
                                             uint8_t *ID,
-                                            bool firstIDMatchOnly = true) = 0;
+                                            bool firstIDMatchOnly = true);
         };
 
 
