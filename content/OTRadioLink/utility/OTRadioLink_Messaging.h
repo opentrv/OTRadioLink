@@ -247,16 +247,17 @@ bool boilerFrameOperation(const OTFrameData_T &fd)
  * @param   getKey: Function that fills a buffer with the 16 byte secret key. Should return true on success.
  * @retval  True if frame successfully authenticated and decoded, else false.
  */
-template <SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &decrypt,
+template <typename sfrx_t,
+          SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &decrypt,
           OTV0P2BASE::GetPrimary16ByteSecretKey_t &getKey>
 inline bool authAndDecodeOTSecurableFrame(OTFrameData_T &fd)
 {
-#ifdef ARDUINO_ARCH_AVR
     const uint8_t * const msg = fd.msg;
     const uint8_t msglen = msg[-1];
     uint8_t * outBuf = fd.decryptedBody;
-#endif
+
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
+
     // Validate (authenticate) and decrypt body of secure frames.
     uint8_t key[16];
       // Get the 'building' key.
@@ -269,17 +270,12 @@ inline bool authAndDecodeOTSecurableFrame(OTFrameData_T &fd)
     // authenticate and decrypt,
     // update RX message counter.
     uint8_t decryptedBodyOutSize = 0;
-#ifdef ARDUINO_ARCH_AVR
-    const bool isOK = (0 != SimpleSecureFrame32or0BodyRXV0p2::getInstance().decodeSecureSmallFrameSafely(&fd.sfh, msg-1, msglen+1,
+    const bool isOK = (0 != sfrx_t::getInstance().decodeSecureSmallFrameSafely(&fd.sfh, msg-1, msglen+1,
                                           decrypt,  // FIXME remove this dependency
                                           fd.state, key,
                                           outBuf, fd.decryptedBodyBufSize, decryptedBodyOutSize,
                                           fd.senderNodeID,
                                           true));
-#else
-    // Default to false to avoid accidental scary things in the future.
-    const bool isOK = false;
-#endif
     fd.decryptedBodyLen = decryptedBodyOutSize;
     if(!isOK) {
 #if 1 // && defined(DEBUG)
@@ -316,7 +312,8 @@ inline bool decodeAndHandleDummyFrame(volatile const uint8_t * const /*msg*/)
  *          By default all operations but o1 will default to a dummy stub operation (nullFrameOperation).
  * @return  true on successful frame type match (secure frame), false if no suitable frame was found/decoded and another parser should be tried.
  */
-template<SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &decrypt,
+template<typename sfrx_t,
+         SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &decrypt,
          OTV0P2BASE::GetPrimary16ByteSecretKey_t &getKey,
          frameOperator_fn_t &o1,
          frameOperator_fn_t &o2 = nullFrameOperation>
@@ -349,7 +346,7 @@ bool decodeAndHandleOTSecureOFrame(volatile const uint8_t * const _msg)
     // attempting to process it.
 
     // Even if auth fails, we have now handled this frame by protocol.
-    if(!authAndDecodeOTSecurableFrame<decrypt, getKey>(fd)) { return(true); }
+    if(!authAndDecodeOTSecurableFrame<sfrx_t, decrypt, getKey>(fd)) { return(true); }
 
     // Make sure frame is long enough to have useful information in it and call operations.
     if(2 < fd.decryptedBodyLen) {
