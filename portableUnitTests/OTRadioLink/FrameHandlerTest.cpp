@@ -334,8 +334,6 @@ TEST(FrameHandler, BoilerFrameOperationSuccess)
     EXPECT_TRUE(boilerOperationSuccess);
 }
 
-#if 0
-
 TEST(FrameHandler, authAndDecodeSecurableFrameBasic)
 {
     // fd.decryptedBody set after getKey is called. Set to 0 by default and not changed on failing
@@ -348,7 +346,7 @@ TEST(FrameHandler, authAndDecodeSecurableFrameBasic)
     OTRadioLink::OTFrameData_T fd(&msgBuf[1]);
     fd.decryptedBodyLen = 0xff;  // Test that this is really set.
 
-    const bool test1 = OTRadioLink::authAndDecodeOTSecurableFrame<OTFHT::SimpleSecureFrame32or0BodyRXFixedCounter,
+    const bool test1 = OTRadioLink::authAndDecodeOTSecurableFrame<OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
                                                                   OTFHT::mockDecrypt,
                                                                   OTFHT::getKeySuccess>(fd);
     EXPECT_FALSE(test1);
@@ -367,7 +365,7 @@ TEST(FrameHandler, authAndDecodeSecurableFrameGetKeyFalse)
     fd.decryptedBodyLen = 0xff;  // Test that this is really set.
 
     //
-    const bool test1 = OTRadioLink::authAndDecodeOTSecurableFrame<OTFHT::SimpleSecureFrame32or0BodyRXFixedCounter,
+    const bool test1 = OTRadioLink::authAndDecodeOTSecurableFrame<OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
                                                                   OTFHT::mockDecrypt,
                                                                   OTFHT::getKeyFail>(fd);
     EXPECT_FALSE(test1);
@@ -382,7 +380,7 @@ TEST(FrameHandlerTest, decodeAndHandleOTSecurableFrameBasic)
     const uint8_t msgBuf[] = { 5,    'O',1,2,3,4 };
     const uint8_t * const msgStart = &msgBuf[1];
 
-    const bool test1 = OTRadioLink::decodeAndHandleOTSecureOFrame<OTFHT::SimpleSecureFrame32or0BodyRXFixedCounter,
+    const bool test1 = OTRadioLink::decodeAndHandleOTSecureOFrame<OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
                                                                   OTFHT::mockDecrypt,
                                                                   OTFHT::getKeySuccess,
                                                                   OTRadioLink::nullFrameOperation
@@ -398,7 +396,7 @@ TEST(FrameHandlerTest, decodeAndHandleOTSecurableFrameNoAuthSuccess)
     const uint8_t * const msgStart = &OTFHT::minimumSecureFrame::buf[1];
 
     //
-    const bool test1 = OTRadioLink::decodeAndHandleOTSecureOFrame<OTFHT::SimpleSecureFrame32or0BodyRXFixedCounter,
+    const bool test1 = OTRadioLink::decodeAndHandleOTSecureOFrame<OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
                                                                   OTFHT::mockDecrypt,
                                                                   OTFHT::getKeySuccess,
                                                                   OTRadioLink::nullFrameOperation
@@ -419,7 +417,7 @@ TEST(FrameHandler, authAndDecodeOTSecurableFrameStackCheck)
     OTV0P2BASE::MemoryChecks::resetMinSP();
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
     const size_t baseStack = OTV0P2BASE::MemoryChecks::getMinSP();
-    OTRadioLink::authAndDecodeOTSecurableFrame<OTFHT::SimpleSecureFrame32or0BodyRXFixedCounter,
+    OTRadioLink::authAndDecodeOTSecurableFrame<OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
                                                OTFHT::mockDecrypt,
                                                OTFHT::getKeySuccess>(fd);
     const size_t maxStack = OTV0P2BASE::MemoryChecks::getMinSP();
@@ -443,7 +441,7 @@ TEST(FrameHandler, decodeAndHandleOTSecureOFrameStackCheck)
     OTV0P2BASE::MemoryChecks::resetMinSP();
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
     const size_t baseStack = OTV0P2BASE::MemoryChecks::getMinSP();
-    OTRadioLink::decodeAndHandleOTSecureOFrame<OTFHT::SimpleSecureFrame32or0BodyRXFixedCounter,
+    OTRadioLink::decodeAndHandleOTSecureOFrame<OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
                                                OTFHT::mockDecrypt,
                                                OTFHT::getKeySuccess,
                                                OTRadioLink::nullFrameOperation
@@ -469,7 +467,6 @@ TEST(FrameHandler, OTMessageQueueHandlerBasic)
     OTRadioLink::OTNullRadioLink rl;
     EXPECT_FALSE(mh.handle(false, rl));
 }
-#endif
 
 //// Only enable these tests if the OTAESGCM library is marked as available.
 #if defined(EXT_AVAILABLE_ARDUINO_LIB_OTAESGCM)
