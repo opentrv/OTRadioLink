@@ -64,70 +64,6 @@ namespace OTFHT
       };
     bool NULLSerialStream::verbose = false;
 
-
-    // write dummy implemtation of SimpleSecureFrame32or0BodyRXBase for non AVR and write tests.
-    class SimpleSecureFrame32or0BodyRXFixedCounter final : public OTRadioLink::SimpleSecureFrame32or0BodyRXBase
-    {
-    private:
-        static uint8_t mockID[];
-        static uint8_t mockCounter[];
-
-        constexpr SimpleSecureFrame32or0BodyRXFixedCounter() { }
-        virtual int8_t _getNextMatchingNodeID(const uint8_t index, const OTRadioLink::SecurableFrameHeader *const /* sfh */, uint8_t *nodeID) const override
-        {
-            memcpy(nodeID, mockID, 6);
-            return (index);
-        }
-    public:
-        static SimpleSecureFrame32or0BodyRXFixedCounter &getInstance()
-        {
-            // Lazily create/initialise singleton on first use, NOT statically.
-            static SimpleSecureFrame32or0BodyRXFixedCounter instance;
-            return(instance);
-        }
-
-        // Read current (last-authenticated) RX message count for specified node, or return false if failed.
-        // Will fail for invalid node ID and for unrecoverable memory corruption.
-        // Both args must be non-NULL, with counter pointing to enough space to copy the message counter value to.
-        virtual bool getLastRXMessageCounter(const uint8_t * const /*ID*/, uint8_t * counter) const override
-        {
-            memcpy(counter, mockCounter, 6);
-            return (true);
-        }
-        // // Check message counter for given ID, ie that it is high enough to be eligible for authenticating/processing.
-        // // ID is full (8-byte) node ID; counter is full (6-byte) counter.
-        // // Returns false if this counter value is not higher than the last received authenticated value.
-        // virtual bool validateRXMessageCount(const uint8_t *ID, const uint8_t *counter) const override { return (true); }
-        // Update persistent message counter for received frame AFTER successful authentication.
-        // ID is full (8-byte) node ID; counter is full (6-byte) counter.
-        // Returns false on failure, eg if message counter is not higher than the previous value for this node.
-        // The implementation should allow several years of life typical message rates (see above).
-        // The implementation should be robust in the face of power failures / reboots, accidental or malicious,
-        // not allowing replays nor other cryptographic attacks, nor forcing node dissociation.
-        // Must only be called once the RXed message has passed authentication.
-        virtual bool updateRXMessageCountAfterAuthentication(const uint8_t * /*ID*/, const uint8_t * /*newCounterValue*/) override
-        {
-            return (true);
-        }
-
-        /**
-         * @brief   Set the value of the internal ID to allow us to decode a frame.
-         */
-        static void setMockIDValue(const uint8_t * newID)
-        {
-            memcpy(mockID, newID, 8);
-        }
-        /**
-         * @brief   Set the value of the internal counter to allow us to decode a frame.
-         */
-        static void setMockCounterValue(const uint8_t * newCounter)
-        {
-            memcpy(mockCounter, newCounter, 6);
-        }
-    };
-    uint8_t SimpleSecureFrame32or0BodyRXFixedCounter::mockID[8] = {0, 0, 0, 0, 0, 0, 0, 0 };
-    uint8_t SimpleSecureFrame32or0BodyRXFixedCounter::mockCounter[6] = {0, 0, 0, 0, 0, 0 };
-
     // Null pollIO
     // FIXME need true version?
     bool pollIO(bool) {return (false);}
@@ -558,15 +494,15 @@ TEST(FrameHandlerTest, authAndDecodeSecurableFrameFull)
     const uint8_t * msgCounter = OTFHT::minimumSecureFrame::oldCounter;
     const uint8_t * const msgStart = &OTFHT::minimumSecureFrame::buf[1];
 
-    OTFHT::SimpleSecureFrame32or0BodyRXFixedCounter::setMockIDValue(senderID);
-    OTFHT::SimpleSecureFrame32or0BodyRXFixedCounter::setMockCounterValue(msgCounter);
+    OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter::setMockIDValue(senderID);
+    OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter::setMockCounterValue(msgCounter);
 
     OTRadioLink::OTFrameData_T fd(msgStart);
     EXPECT_NE(0, fd.sfh.checkAndDecodeSmallFrameHeader(OTFHT::minimumSecureFrame::buf, OTFHT::minimumSecureFrame::encodedLength));
 
     // Set up stack usage checks
     const bool test1 = OTRadioLink::authAndDecodeOTSecurableFrame<
-                OTFHT::SimpleSecureFrame32or0BodyRXFixedCounter,
+                OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
                 OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
                 OTFHT::getKeySuccess
             >(fd);
@@ -583,9 +519,9 @@ TEST(FrameHandlerTest, decodeAndHandleOTSecurableFrameDecryptSuccess)
     const uint8_t * msgCounter = OTFHT::minimumSecureFrame::oldCounter;
     const uint8_t * const msgStart = &OTFHT::minimumSecureFrame::buf[1];
 
-    OTFHT::SimpleSecureFrame32or0BodyRXFixedCounter::setMockIDValue(senderID);
-    OTFHT::SimpleSecureFrame32or0BodyRXFixedCounter::setMockCounterValue(msgCounter);
-    const bool test1 = OTRadioLink::decodeAndHandleOTSecureOFrame<OTFHT::SimpleSecureFrame32or0BodyRXFixedCounter,
+    OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter::setMockIDValue(senderID);
+    OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter::setMockCounterValue(msgCounter);
+    const bool test1 = OTRadioLink::decodeAndHandleOTSecureOFrame<OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
                                                                   OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
                                                                   OTFHT::getKeySuccess,
                                                                   OTFHT::setFlagFrameOperation

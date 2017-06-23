@@ -919,9 +919,93 @@ namespace OTRadioLink
                                     const uint8_t *id_, uint8_t il_);
 
 
+
+    /**
+     * @brief   A fixed counter implementation of SimpleSecureFrame32or0BodyRXBase.
+     *          This is intended primarily for unit testing purposes and allows a mock ID and counter value
+     *          to be set in order to simplify using existing test frames.
+     *          - Call the setMock... methods to initialise the ID and counter values.
+     *          - Note that the counter value must be LESS than the value you expect to use or decryption will fail!
+     *          - The counter will not be incremented between calls and the methods will always act as if they have
+     *            succeeded.
+     * @note    See FrameHandlerTest.cpp for example use.
+     */
+    class SimpleSecureFrame32or0BodyRXFixedCounter final : public SimpleSecureFrame32or0BodyRXBase
+    {
+    private:
+        static uint8_t mockID[];
+        static uint8_t mockCounter[];
+
+        constexpr SimpleSecureFrame32or0BodyRXFixedCounter() { }
+
+        /**
+         * @brief   Copies mockID into the provided buffer.
+         * @param   index: The index the caller expects you to search first. Should be >= 0
+         * @param   nodeID: Buffer to copy mockID too. Must be at least 6 bytes.
+         * @retval  always true.
+         */
+        virtual int8_t _getNextMatchingNodeID(const uint8_t index, const SecurableFrameHeader *const /* sfh */, uint8_t *nodeID) const override
+        {
+            memcpy(nodeID, mockID, 6);
+            return (index);
+        }
+    public:
+        static SimpleSecureFrame32or0BodyRXFixedCounter &getInstance()
+        {
+            // Lazily create/initialise singleton on first use, NOT statically.
+            static SimpleSecureFrame32or0BodyRXFixedCounter instance;
+            return(instance);
+        }
+
+        // Read current (last-authenticated) RX message count for specified node, or return false if failed.
+        // Will fail for invalid node ID and for unrecoverable memory corruption.
+        // Both args must be non-NULL, with counter pointing to enough space to copy the message counter value to.
+        /**
+         * @brief   Copies mockCounter into the provided buffer.
+         * @param   index: The index the caller expects you to search first. Should be >= 0
+         * @param   nodeID: Buffer to copy mockID too. Must be at least 6 bytes.
+         * @retval  always true.
+         */
+        virtual bool getLastRXMessageCounter(const uint8_t * const /*ID*/, uint8_t * counter) const override
+        {
+            memcpy(counter, mockCounter, 6);
+            return (true);
+        }
+        // // Check message counter for given ID, ie that it is high enough to be eligible for authenticating/processing.
+        // // ID is full (8-byte) node ID; counter is full (6-byte) counter.
+        // // Returns false if this counter value is not higher than the last received authenticated value.
+        // virtual bool validateRXMessageCount(const uint8_t *ID, const uint8_t *counter) const override { return (true); }
+        // Update persistent message counter for received frame AFTER successful authentication.
+        // ID is full (8-byte) node ID; counter is full (6-byte) counter.
+        // Returns false on failure, eg if message counter is not higher than the previous value for this node.
+        // The implementation should allow several years of life typical message rates (see above).
+        // The implementation should be robust in the face of power failures / reboots, accidental or malicious,
+        // not allowing replays nor other cryptographic attacks, nor forcing node dissociation.
+        // Must only be called once the RXed message has passed authentication.
+        virtual bool updateRXMessageCountAfterAuthentication(const uint8_t * /*ID*/, const uint8_t * /*newCounterValue*/) override
+        {
+            return (true);
+        }
+
+        /**
+         * @brief   Set the value of the internal 8 byte ID to allow us to decode a frame.
+         */
+        static void setMockIDValue(const uint8_t * newID)
+        {
+            memcpy(mockID, newID, 8);
+        }
+        /**
+         * @brief   Set the value of the internal 6 byte counter to allow us to decode a frame.
+         * @param   newCounter: The new value to set. Should be less than the counter in the message to be decoded.
+         */
+        static void setMockCounterValue(const uint8_t * newCounter)
+        {
+            memcpy(mockCounter, newCounter, 6);
+        }
+    };
+
+
     }
-
-
 /* LIBRARY INTERDEPENDENCY POLICY FOR CRYPTO AND SECURE FRAMES
 
 DHD20160106
