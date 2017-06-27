@@ -44,21 +44,109 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 // Can be used for other purposes.
 //static const uint8_t zeroBlock[16] = { };
 
-// Max stack usage in bytes
-// 20170511
-//           enc, dec, enc*, dec*
-// - DE:     208, 208, 208,  208
-// - DHD:    ???, ???, 358,  ???
-// - Travis: 192, 224, ???,  ???
-// * using a workspace
-#ifndef __APPLE__
-//static constexpr unsigned int maxStackSecureFrameEncode = 328;
-//static constexpr unsigned int maxStackSecureFrameDecode = 328;
-#else
-// On DHD's system, secure frame enc/decode uses 358 bytes (20170511)
-//static constexpr unsigned int maxStackSecureFrameEncode = 416;
-//static constexpr unsigned int maxStackSecureFrameDecode = 416;
-#endif // __APPLE__
+namespace SOSDT {
+    // Max stack usage in bytes
+    // 20170511
+    //           enc, dec, enc*, dec*
+    // - DE:     208, 208, 208,  208
+    // - DHD:    ???, ???, 358,  ???
+    // - Travis: 192, 224, ???,  ???
+    // * using a workspace
+    #ifndef __APPLE__
+    //static constexpr unsigned int maxStackSecureFrameEncode = 328;
+    static constexpr unsigned int maxStackSecureFrameDecode = 1024;
+    #else
+    // On DHD's system, secure frame enc/decode uses 358 bytes (20170511)
+    // static constexpr unsigned int maxStackSecureFrameEncode = 1024;
+    static constexpr unsigned int maxStackSecureFrameDecode = 1024;
+    #endif // __APPLE__
+
+    bool pollIO(bool) {return (false);}
+    bool getKeySuccess(uint8_t *key) { memset(key, 0x0,  /*OTV0P2BASE::VOP2BASE_EE_LEN_16BYTE_PRIMARY_BUILDING_KEY*/ 16); return (true); }
+    // like Nullframe operation but sets a flag
+    volatile bool frameOperationCalledFlag = false;
+    OTRadioLink::frameOperator_fn_t setFlagFrameOperation;
+    bool setFlagFrameOperation(const OTRadioLink::OTFrameData_T &) { frameOperationCalledFlag = true; return (true);}
+
+    struct minimumSecureFrame
+    {
+        // Preshared ID prefix; only an initial part/prefix of this goes on the wire in the header.
+        static const uint8_t id[];
+        // IV/nonce starting with first 6 bytes of preshared ID, then 6 bytes of counter.
+        static const uint8_t iv[];
+        static const uint8_t oldCounter[];
+        // 'O' frame body with some JSON stats.
+        static const uint8_t body[];
+        // length of secure frame
+        static const uint8_t encodedLength;
+        // Buffer containing secure frame. Generated using code bellow.
+        static const uint8_t buf[];
+
+        // Stuff used to generate a working encodable frame. Taken from SecureFrameTest.cpp
+            // All-zeros const 16-byte/128-bit key.
+            // Can be used for other purposes.
+        //    static const uint8_t zeroBlock[16] = { };
+        //    uint8_t buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize];
+        //    //Example 3: secure, no valve, representative minimum stats {"b":1}).
+        //    //Note that the sequence number must match the 4 lsbs of the message count, ie from iv[11].
+        //    //and the ID is 0xaa 0xaa 0xaa 0xaa (transmitted) with the next ID bytes 0x55 0x55.
+        //    //ResetCounter = 42
+        //    //TxMsgCounter = 793
+        //    //(Thus nonce/IV: aa aa aa aa 55 55 00 00 2a 00 03 19)
+        //    //
+        //    //3e cf 94 aa aa aa aa 20 | b3 45 f9 29 69 57 0c b8 28 66 14 b4 f0 69 b0 08 71 da d8 fe 47 c1 c3 53 83 48 88 03 7d 58 75 75 | 00 00 2a 00 03 19 29 3b 31 52 c3 26 d2 6d d0 8d 70 1e 4b 68 0d cb 80
+        //    //
+        //    //3e  length of header (62) after length byte 5 + (encrypted) body 32 + trailer 32
+        //    //cf  'O' secure OpenTRV basic frame
+        //    //04  0 sequence number, ID length 4
+        //    //aa  ID byte 1
+        //    //aa  ID byte 2
+        //    //aa  ID byte 3
+        //    //aa  ID byte 4
+        //    //20  body length 32 (after padding and encryption)
+        //    //    Plaintext body (length 8): 0x7f 0x11 { " b " : 1
+        //    //    Padded: 7f 11 7b 22 62 22 3a 31 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 17
+        //    //b3 45 f9 ... 58 75 75  32 bytes of encrypted body
+        //    //00 00 2a  reset counter
+        //    //00 03 19  message counter
+        //    //29 3b 31 ... 68 0d cb  16 bytes of authentication tag
+        //    //80  enc/auth type/format indicator.
+        //    const uint8_t encodedLength = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRaw(buf, sizeof(buf),
+        //                                    OTRadioLink::FTS_BasicSensorOrValve,
+        //                                    id, 4,
+        //                                    body, sizeof(body),
+        //                                    iv,
+        //                                    OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS,
+        //                                    NULL, zeroBlock);
+        //    std::fprintf(stdout, "const uint8_t encodedLength = %u;\n", encodedLength);
+        //    std::cout << "const uint8_t buf[] = {\n\t";
+        //    for(auto i = 0; i < OTRadioLink::SecurableFrameHeader::maxSmallFrameSize; ++i) {
+        //        std::fprintf(stdout, "0x%x, ", buf[i]);
+        //        if(7 == (i % 8)) std::cout << "\n\t";
+        //    }
+        //    std::cout << " };\n";
+    };
+    // Preshared ID prefix; only an initial part/prefix of this goes on the wire in the header.
+    const uint8_t minimumSecureFrame::id[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55, 0x55, 0x55 };
+    // IV/nonce starting with first 6 bytes of preshared ID, then 6 bytes of counter.
+    const uint8_t minimumSecureFrame::iv[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55, 0x00, 0x00, 0x2a, 0x00, 0x03, 0x19 };
+    const uint8_t minimumSecureFrame::oldCounter[] = { 0x00, 0x00, 0x2a, 0x00, 0x03, 0x18 };
+    // 'O' frame body with some JSON stats.
+    const uint8_t minimumSecureFrame::body[] = { 0x7f, 0x11, 0x7b, 0x22, 0x62, 0x22, 0x3a, 0x31 };
+    // length of secure frame
+    const uint8_t minimumSecureFrame::encodedLength = 63;
+    // Buffer containing secure frame. Generated using code bellow.
+    const uint8_t minimumSecureFrame::buf[] = {
+        0x3e, 0xcf, 0x94, 0xaa, 0xaa, 0xaa, 0xaa, 0x20,
+        0xb3, 0x45, 0xf9, 0x29, 0x69, 0x57, 0x0c, 0xb8,
+        0x28, 0x66, 0x14, 0xb4, 0xf0, 0x69, 0xb0, 0x08,
+        0x71, 0xda, 0xd8, 0xfe, 0x47, 0xc1, 0xc3, 0x53,
+        0x83, 0x48, 0x88, 0x03, 0x7d, 0x58, 0x75, 0x75,
+        0x00, 0x00, 0x2a, 0x00, 0x03, 0x19, 0x29, 0x3b,
+        0x31, 0x52, 0xc3, 0x26, 0xd2, 0x6d, 0xd0, 0x8d,
+        0x70, 0x1e, 0x4b, 0x68, 0x0d, 0xcb, 0x80 };
+}
+
 
 TEST(SecureOpStackDepth, StackCheckerWorks)
 {
@@ -70,59 +158,89 @@ TEST(SecureOpStackDepth, StackCheckerWorks)
     EXPECT_NE((size_t)0, baseStack);
 }
 
-namespace SOSDT{
-// write dummy implemtation of SimpleSecureFrame32or0BodyRXBase for non AVR and write tests.
-class SimpleSecureFrame32or0BodyRXFixedCounter final : public OTRadioLink::SimpleSecureFrame32or0BodyRXBase
-{
-private:
-    constexpr SimpleSecureFrame32or0BodyRXFixedCounter() { }
-    virtual int8_t _getNextMatchingNodeID(const uint8_t index, const OTRadioLink::SecurableFrameHeader *const /* sfh */, uint8_t *nodeID) const override
-    {
-        *nodeID = 0;
-        return (index + 1);
-    }
-public:
-    static SimpleSecureFrame32or0BodyRXFixedCounter &getInstance()
-    {
-        // Lazily create/initialise singleton on first use, NOT statically.
-        static SimpleSecureFrame32or0BodyRXFixedCounter instance;
-        return(instance);
-    }
-
-    // Read current (last-authenticated) RX message count for specified node, or return false if failed.
-    // Will fail for invalid node ID and for unrecoverable memory corruption.
-    // Both args must be non-NULL, with counter pointing to enough space to copy the message counter value to.
-    virtual bool getLastRXMessageCounter(const uint8_t * const /*ID*/, uint8_t * counter) const override
-    {
-        *counter = 0;
-        return (true);
-    }
-    // // Check message counter for given ID, ie that it is high enough to be eligible for authenticating/processing.
-    // // ID is full (8-byte) node ID; counter is full (6-byte) counter.
-    // // Returns false if this counter value is not higher than the last received authenticated value.
-    // virtual bool validateRXMessageCount(const uint8_t *ID, const uint8_t *counter) const override { return (true); }
-    // Update persistent message counter for received frame AFTER successful authentication.
-    // ID is full (8-byte) node ID; counter is full (6-byte) counter.
-    // Returns false on failure, eg if message counter is not higher than the previous value for this node.
-    // The implementation should allow several years of life typical message rates (see above).
-    // The implementation should be robust in the face of power failures / reboots, accidental or malicious,
-    // not allowing replays nor other cryptographic attacks, nor forcing node dissociation.
-    // Must only be called once the RXed message has passed authentication.
-    virtual bool updateRXMessageCountAfterAuthentication(const uint8_t * /*ID*/, const uint8_t * /*newCounterValue*/) override
-    {
-        return (true);
-    }
-};
-// SimpleSecureFrame32or0BodyRXFixedCounter sfrx;
-
-}
-
 TEST(SecureOpStackDepth, SimpleSecureFrame32or0BodyRXFixedCounterBasic)
 {
     const uint8_t counter = 0;
     const uint8_t id = 0;
-    SOSDT::SimpleSecureFrame32or0BodyRXFixedCounter &sfrx = SOSDT::SimpleSecureFrame32or0BodyRXFixedCounter::getInstance();
+    OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter &sfrx = OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter::getInstance();
     EXPECT_TRUE(sfrx.updateRXMessageCountAfterAuthentication(&id, &counter));
+}
+
+TEST(SecureOpStackDepth, SimpleSecureFrame32or0BodyRXFixedCounterStack)
+{
+    // Make sure flag is false.
+    SOSDT::frameOperationCalledFlag = false;
+    // Secure Frame start
+    const uint8_t * senderID = SOSDT::minimumSecureFrame::id;
+    const uint8_t * msgCounter = SOSDT::minimumSecureFrame::oldCounter;
+    const uint8_t * const msgStart = &SOSDT::minimumSecureFrame::buf[1];
+
+
+    // Set up stack usage checks
+    OTV0P2BASE::RAMEND = OTV0P2BASE::getSP();
+    OTV0P2BASE::MemoryChecks::resetMinSP();
+    OTV0P2BASE::MemoryChecks::recordIfMinSP();
+    const size_t baseStack = OTV0P2BASE::MemoryChecks::getMinSP();
+
+
+    OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter &sfrx = OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter::getInstance();
+    sfrx.setMockIDValue(senderID);
+    sfrx.setMockCounterValue(msgCounter);
+    const bool test1 = OTRadioLink::decodeAndHandleOTSecureOFrame<OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
+                                                                  OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
+                                                                  SOSDT::getKeySuccess,
+                                                                  SOSDT::setFlagFrameOperation
+                                                                 >(msgStart);
+
+    const size_t maxStack = OTV0P2BASE::MemoryChecks::getMinSP();
+    // Uncomment to print stack usage
+    // std::cout << baseStack - maxStack << "\n";
+
+    EXPECT_TRUE(test1);
+    EXPECT_TRUE(SOSDT::frameOperationCalledFlag);
+    EXPECT_GT(SOSDT::maxStackSecureFrameDecode, baseStack - maxStack);
+}
+
+TEST(SecureOpStackDepth, OTMessageQueueHandlerStackBasic)
+{
+    // Make sure flag is false.
+    SOSDT::frameOperationCalledFlag = false;
+    // Secure Frame start
+    const uint8_t * senderID = SOSDT::minimumSecureFrame::id;
+    const uint8_t * msgCounter = SOSDT::minimumSecureFrame::oldCounter;
+    // const uint8_t * const msgStart = &SOSDT::minimumSecureFrame::buf[1];
+
+
+    // Set up stack usage checks
+    OTV0P2BASE::RAMEND = OTV0P2BASE::getSP();
+    OTV0P2BASE::MemoryChecks::resetMinSP();
+    OTV0P2BASE::MemoryChecks::recordIfMinSP();
+    const size_t baseStack = OTV0P2BASE::MemoryChecks::getMinSP();
+
+
+    OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter &sfrx = OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter::getInstance();
+    sfrx.setMockIDValue(senderID);
+    sfrx.setMockCounterValue(msgCounter);
+
+    OTRadioLink::OTMessageQueueHandler<
+        SOSDT::pollIO, 4800,
+        OTRadioLink::decodeAndHandleOTSecureOFrame<OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
+                                                                      OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
+                                                                      SOSDT::getKeySuccess,
+                                                                      SOSDT::setFlagFrameOperation
+                                                                     >
+                                                  > mh;
+    OTRadioLink::OTNullRadioLink rl;
+    EXPECT_TRUE(mh.handle(false, rl));
+
+
+    const size_t maxStack = OTV0P2BASE::MemoryChecks::getMinSP();
+    // Uncomment to print stack usage
+    // std::cout << baseStack - maxStack << "\n";
+
+    // EXPECT_TRUE(test1);
+    EXPECT_TRUE(SOSDT::frameOperationCalledFlag);
+    EXPECT_GT(SOSDT::maxStackSecureFrameDecode, baseStack - maxStack);
 }
 
 #endif // ARDUINO_LIB_OTAESGCM
