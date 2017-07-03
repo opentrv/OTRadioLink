@@ -64,4 +64,13 @@ bool OTNullRadioLink::sendRaw(const uint8_t *buf, uint8_t buflen, int8_t , TXpow
     return(true);
 }
 
+/**
+ * @brief   return the address of the starting message byte.
+ *          returns the second byte of message as the first byte is the length byte.
+ */
+const volatile uint8_t *OTRadioLinkMock::peekRXMsg() const
+{
+    return (&message[1]);
+}
+
 } // OTNullRadioLink
