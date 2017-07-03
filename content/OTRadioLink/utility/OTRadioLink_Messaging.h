@@ -378,17 +378,11 @@ void decodeAndHandleRawRXedMessage(volatile const uint8_t * const msg)
     const uint8_t msglen = msg[-1];
 
 //  // TODO: consider extracting hash of all message data (good/bad) and injecting into entropy pool.
-#if 0 && defined(DEBUG)
-  OTRadioLink::printRXMsg(p, msg-1, msglen+1); // Print len+frame.
-#endif
     if(msglen < 2) { return; } // Too short to be useful, so ignore.
     // Go through handlers. (20170616) Currently relying on compiler to optimise out anything unneeded.
     if(h1(msg)) { return; }
     if(h2(msg)) { return; }
-  // Unparseable frame: drop it; possibly log it as an error.
-#if 0 && defined(DEBUG) && !defined(ENABLE_TRIMMED_MEMORY)
-    p->print(F("!RX bad msg, len+prefix: ")); OTRadioLink::printRXMsg(p, msg-1, min(msglen+1, 8));
-#endif
+  // Unparseable frame: drop it.
     return;
 }
 
