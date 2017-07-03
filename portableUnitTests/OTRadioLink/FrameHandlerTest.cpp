@@ -505,6 +505,7 @@ TEST(FrameHandlerTest, authAndDecodeSecurableFrameFull)
                 OTFHT::getKeySuccess
             >(fd);
     EXPECT_TRUE(test1);
+    EXPECT_EQ(0, strncmp((const char *) fd.decryptedBody, (const char *) OTFHT::minimumSecureFrame::body, sizeof(OTFHT::minimumSecureFrame::body)));
 }
 
 
