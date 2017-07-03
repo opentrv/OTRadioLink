@@ -194,7 +194,7 @@ TEST(SecureOpStackDepth, SimpleSecureFrame32or0BodyRXFixedCounterStack)
 
     const size_t maxStack = OTV0P2BASE::MemoryChecks::getMinSP();
     // Uncomment to print stack usage
-     std::cout << baseStack - maxStack << "\n";
+     std::cout << "decodeAndHandleOTSecureOFrame stack: " << baseStack - maxStack << "\n";
 
     EXPECT_TRUE(test1);
     EXPECT_TRUE(SOSDT::frameOperationCalledFlag);
@@ -210,6 +210,8 @@ TEST(SecureOpStackDepth, OTMessageQueueHandlerStackBasic)
     const uint8_t * msgCounter = SOSDT::minimumSecureFrame::oldCounter;
 //     const uint8_t * const msgStart = &SOSDT::minimumSecureFrame::buf[1];
 
+    OTRadioLink::OTRadioLinkMock rl;
+    memcpy(rl.message, SOSDT::minimumSecureFrame::buf, SOSDT::minimumSecureFrame::encodedLength + 1);
 
     // Set up stack usage checks
     OTV0P2BASE::RAMEND = OTV0P2BASE::getSP();
@@ -230,19 +232,23 @@ TEST(SecureOpStackDepth, OTMessageQueueHandlerStackBasic)
                                                                       SOSDT::setFlagFrameOperation
                                                                      >
                                                   > mh;
-    OTRadioLink::OTRadioLinkMock rl;
-    memcpy(rl.message, SOSDT::minimumSecureFrame::buf, SOSDT::minimumSecureFrame::encodedLength + 1);
 
     EXPECT_TRUE(mh.handle(false, rl));
 
 
     const size_t maxStack = OTV0P2BASE::MemoryChecks::getMinSP();
     // Uncomment to print stack usage
-     std::cout << baseStack - maxStack << "\n";
+     std::cout << "OTMessageQueueHandler stack: " << baseStack - maxStack << "\n";
 
     // EXPECT_TRUE(test1);
     EXPECT_TRUE(SOSDT::frameOperationCalledFlag);
     EXPECT_GT(SOSDT::maxStackSecureFrameDecode, baseStack - maxStack);
 }
+
+/**
+ * Stack usage:
+ * Date     | SimpleSecureFrame32or0BodyRXFixedCounterStack (OTMessageQueueHandlerStackBasic) | notes
+ * 20170703 | 816 (928) | 928 probably mostly due to use of OTRadioLinkMock.
+ */
 
 #endif // ARDUINO_LIB_OTAESGCM
