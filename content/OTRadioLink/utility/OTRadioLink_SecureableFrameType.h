@@ -933,11 +933,14 @@ namespace OTRadioLink
     class SimpleSecureFrame32or0BodyRXFixedCounter final : public SimpleSecureFrame32or0BodyRXBase
     {
     private:
-        static uint8_t mockID[];
-        static uint8_t mockCounter[];
+        uint8_t mockID[8];
+        uint8_t mockCounter[6];
 
-        constexpr SimpleSecureFrame32or0BodyRXFixedCounter() { }
-
+        SimpleSecureFrame32or0BodyRXFixedCounter()
+        {
+            memset(mockID, 0, sizeof(mockID));
+            memset(mockCounter, 0, sizeof(mockCounter));
+        }
         /**
          * @brief   Copies mockID into the provided buffer.
          * @param   index: The index the caller expects you to search first. Should be >= 0
@@ -990,7 +993,7 @@ namespace OTRadioLink
         /**
          * @brief   Set the value of the internal 8 byte ID to allow us to decode a frame.
          */
-        static void setMockIDValue(const uint8_t * newID)
+        void setMockIDValue(const uint8_t * newID)
         {
             memcpy(mockID, newID, 8);
         }
@@ -998,7 +1001,7 @@ namespace OTRadioLink
          * @brief   Set the value of the internal 6 byte counter to allow us to decode a frame.
          * @param   newCounter: The new value to set. Should be less than the counter in the message to be decoded.
          */
-        static void setMockCounterValue(const uint8_t * newCounter)
+        void setMockCounterValue(const uint8_t * newCounter)
         {
             memcpy(mockCounter, newCounter, 6);
         }
