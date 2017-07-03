@@ -194,7 +194,7 @@ TEST(SecureOpStackDepth, SimpleSecureFrame32or0BodyRXFixedCounterStack)
 
     const size_t maxStack = OTV0P2BASE::MemoryChecks::getMinSP();
     // Uncomment to print stack usage
-    // std::cout << baseStack - maxStack << "\n";
+     std::cout << baseStack - maxStack << "\n";
 
     EXPECT_TRUE(test1);
     EXPECT_TRUE(SOSDT::frameOperationCalledFlag);
@@ -208,7 +208,7 @@ TEST(SecureOpStackDepth, OTMessageQueueHandlerStackBasic)
     // Secure Frame start
     const uint8_t * senderID = SOSDT::minimumSecureFrame::id;
     const uint8_t * msgCounter = SOSDT::minimumSecureFrame::oldCounter;
-    // const uint8_t * const msgStart = &SOSDT::minimumSecureFrame::buf[1];
+//     const uint8_t * const msgStart = &SOSDT::minimumSecureFrame::buf[1];
 
 
     // Set up stack usage checks
@@ -230,13 +230,15 @@ TEST(SecureOpStackDepth, OTMessageQueueHandlerStackBasic)
                                                                       SOSDT::setFlagFrameOperation
                                                                      >
                                                   > mh;
-    OTRadioLink::OTNullRadioLink rl;
+    OTRadioLink::OTRadioLinkMock rl;
+    memcpy(rl.message, SOSDT::minimumSecureFrame::buf, SOSDT::minimumSecureFrame::encodedLength + 1);
+
     EXPECT_TRUE(mh.handle(false, rl));
 
 
     const size_t maxStack = OTV0P2BASE::MemoryChecks::getMinSP();
     // Uncomment to print stack usage
-    // std::cout << baseStack - maxStack << "\n";
+     std::cout << baseStack - maxStack << "\n";
 
     // EXPECT_TRUE(test1);
     EXPECT_TRUE(SOSDT::frameOperationCalledFlag);
