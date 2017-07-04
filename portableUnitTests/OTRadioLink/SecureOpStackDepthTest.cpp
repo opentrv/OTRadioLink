@@ -63,10 +63,6 @@ namespace SOSDT {
 
     bool pollIO(bool) {return (false);}
     bool getKeySuccess(uint8_t *key) { memset(key, 0x0,  /*OTV0P2BASE::VOP2BASE_EE_LEN_16BYTE_PRIMARY_BUILDING_KEY*/ 16); return (true); }
-    // like Nullframe operation but sets a flag
-    volatile bool frameOperationCalledFlag = false;
-    OTRadioLink::frameOperator_fn_t setFlagFrameOperation;
-    bool setFlagFrameOperation(const OTRadioLink::OTFrameData_T &) { frameOperationCalledFlag = true; return (true);}
 
     struct minimumSecureFrame
     {
@@ -145,6 +141,20 @@ namespace SOSDT {
         0x00, 0x00, 0x2a, 0x00, 0x03, 0x19, 0x29, 0x3b,
         0x31, 0x52, 0xc3, 0x26, 0xd2, 0x6d, 0xd0, 0x8d,
         0x70, 0x1e, 0x4b, 0x68, 0x0d, 0xcb, 0x80 };
+
+    /**
+     * @brief   Compare the decrypted string with the original plain text.
+     *          Set frameOperationCalledFlag true if they match.
+     */
+    volatile bool frameOperationCalledFlag = false;
+    OTRadioLink::frameOperator_fn_t setFlagFrameOperation;
+    bool setFlagFrameOperation(const OTRadioLink::OTFrameData_T &fd) {
+        if(0 == strncmp((const char *) fd.decryptedBody, (const char *) minimumSecureFrame::body, sizeof(minimumSecureFrame::body))) {
+            frameOperationCalledFlag = true;
+        }
+        return (true);
+    }
+
 }
 
 
@@ -194,7 +204,7 @@ TEST(SecureOpStackDepth, SimpleSecureFrame32or0BodyRXFixedCounterStack)
 
     const size_t maxStack = OTV0P2BASE::MemoryChecks::getMinSP();
     // Uncomment to print stack usage
-     std::cout << "decodeAndHandleOTSecureOFrame stack: " << baseStack - maxStack << "\n";
+//     std::cout << "decodeAndHandleOTSecureOFrame stack: " << baseStack - maxStack << "\n";
 
     EXPECT_TRUE(test1);
     EXPECT_TRUE(SOSDT::frameOperationCalledFlag);
@@ -245,6 +255,49 @@ TEST(SecureOpStackDepth, OTMessageQueueHandlerStackBasic)
     EXPECT_GT(SOSDT::maxStackSecureFrameDecode, baseStack - maxStack);
 }
 
+TEST(SecureOpStackDepth, OTMessageQueueHandlerStackWorkspace)
+{
+    // Make sure flag is false.
+    SOSDT::frameOperationCalledFlag = false;
+    // Secure Frame start
+    const uint8_t * senderID = SOSDT::minimumSecureFrame::id;
+    const uint8_t * msgCounter = SOSDT::minimumSecureFrame::oldCounter;
+//     const uint8_t * const msgStart = &SOSDT::minimumSecureFrame::buf[1];
+
+    OTRadioLink::OTRadioLinkMock rl;
+    memcpy(rl.message, SOSDT::minimumSecureFrame::buf, SOSDT::minimumSecureFrame::encodedLength + 1);
+
+    // Set up stack usage checks
+    OTV0P2BASE::RAMEND = OTV0P2BASE::getSP();
+    OTV0P2BASE::MemoryChecks::resetMinSP();
+    OTV0P2BASE::MemoryChecks::recordIfMinSP();
+    const size_t baseStack = OTV0P2BASE::MemoryChecks::getMinSP();
+
+
+    OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter &sfrx = OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter::getInstance();
+    sfrx.setMockIDValue(senderID);
+    sfrx.setMockCounterValue(msgCounter);
+
+    OTRadioLink::OTMessageQueueHandler<
+        SOSDT::pollIO, 4800,
+        OTRadioLink::decodeAndHandleOTSecureOFrame<OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
+                                                                      OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
+                                                                      SOSDT::getKeySuccess,
+                                                                      SOSDT::setFlagFrameOperation
+                                                                     >
+                                                  > mh;
+
+    EXPECT_TRUE(mh.handle(false, rl));
+
+
+    const size_t maxStack = OTV0P2BASE::MemoryChecks::getMinSP();
+    // Uncomment to print stack usage
+     std::cout << "OTMessageQueueHandler stack: " << baseStack - maxStack << "\n";
+
+    // EXPECT_TRUE(test1);
+    EXPECT_TRUE(SOSDT::frameOperationCalledFlag);
+    EXPECT_GT(SOSDT::maxStackSecureFrameDecode, baseStack - maxStack);
+}
 /**
  * Stack usage:
  * Date     | SimpleSecureFrame32or0BodyRXFixedCounterStack (OTMessageQueueHandlerStackBasic) | notes
