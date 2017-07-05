@@ -32,6 +32,17 @@ Author(s) / Copyright (s): Deniz Erbilgin 2017
 #include <OTRadioLink.h>
 
 
+#ifndef __APPLE__
+//static constexpr unsigned int maxStackSecureFrameEncode = 328;
+static constexpr unsigned int maxAuthAndDecodeStack = 200;
+#else
+// On DHD's system, secure frame enc/decode uses 358 bytes (20170511)
+// static constexpr unsigned int maxStackSecureFrameEncode = 1024;
+static constexpr unsigned int maxAuthAndDecodeStack = 216;
+#endif // __APPLE__
+
+
+
 TEST(FrameHandler, StackCheckerWorks)
 {
     // Set up stack usage checks
@@ -423,7 +434,7 @@ TEST(FrameHandler, authAndDecodeOTSecurableFrameStackCheck)
     const size_t maxStack = OTV0P2BASE::MemoryChecks::getMinSP();
     // Uncomment to print stack usage
 //    std::cout << baseStack - maxStack << "\n";
-    EXPECT_GT((intptr_t)200, (intptr_t)(baseStack - maxStack));
+    EXPECT_GT((intptr_t)maxAuthAndDecodeStack, (intptr_t)(baseStack - maxStack));
 }
 
 

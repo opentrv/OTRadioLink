@@ -272,7 +272,7 @@ inline bool authAndDecodeOTSecurableFrame(OTFrameData_T &fd)
     uint8_t decryptedBodyOutSize = 0;
     const bool isOK = (0 != sfrx_t::getInstance().decodeSecureSmallFrameSafely(&fd.sfh, msg-1, msglen+1,
                                           decrypt,  // FIXME remove this dependency
-                                          fd.state, key,
+                                          NULL /* FIXME: fd.state */, key,
                                           outBuf, fd.decryptedBodyBufSize, decryptedBodyOutSize,
                                           fd.senderNodeID,
                                           true));
