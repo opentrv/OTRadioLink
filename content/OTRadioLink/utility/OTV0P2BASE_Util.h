@@ -125,7 +125,7 @@ class ScratchSpace final
     constexpr ScratchSpace(uint8_t *const buf_, const uint8_t bufsize_)
       : buf((0 == bufsize_) ? NULL : buf_), bufsize((NULL == buf_) ? 0 : bufsize_) { }
 
-    // Check if sub-spacw cannot be made (would not leave at least one byte available).
+    // Check if sub-space cannot be made (would not leave at least one byte available).
     static constexpr bool subSpaceCannotBeMade(uint8_t oldSize, uint8_t reserveN)
         { return((0 == reserveN) || (oldSize <= reserveN)); }
     // Create a sub-space n bytes from the start of the current space.
