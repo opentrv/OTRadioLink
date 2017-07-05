@@ -491,8 +491,9 @@ TEST(FrameHandlerTest, authAndDecodeSecurableFrameFull)
     const uint8_t * msgCounter = OTFHT::minimumSecureFrame::oldCounter;
     const uint8_t * const msgStart = &OTFHT::minimumSecureFrame::buf[1];
 
-    OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter::setMockIDValue(senderID);
-    OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter::setMockCounterValue(msgCounter);
+    OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter &sfrx = OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter::getInstance();
+    sfrx.setMockIDValue(senderID);
+    sfrx.setMockCounterValue(msgCounter);
 
     OTRadioLink::OTFrameData_T fd(msgStart);
     EXPECT_NE(0, fd.sfh.checkAndDecodeSmallFrameHeader(OTFHT::minimumSecureFrame::buf, OTFHT::minimumSecureFrame::encodedLength));
@@ -504,6 +505,7 @@ TEST(FrameHandlerTest, authAndDecodeSecurableFrameFull)
                 OTFHT::getKeySuccess
             >(fd);
     EXPECT_TRUE(test1);
+    EXPECT_EQ(0, strncmp((const char *) fd.decryptedBody, (const char *) OTFHT::minimumSecureFrame::body, sizeof(OTFHT::minimumSecureFrame::body)));
 }
 
 
@@ -516,8 +518,9 @@ TEST(FrameHandlerTest, decodeAndHandleOTSecurableFrameDecryptSuccess)
     const uint8_t * msgCounter = OTFHT::minimumSecureFrame::oldCounter;
     const uint8_t * const msgStart = &OTFHT::minimumSecureFrame::buf[1];
 
-    OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter::setMockIDValue(senderID);
-    OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter::setMockCounterValue(msgCounter);
+    OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter &sfrx = OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter::getInstance();
+    sfrx.setMockIDValue(senderID);
+    sfrx.setMockCounterValue(msgCounter);
     const bool test1 = OTRadioLink::decodeAndHandleOTSecureOFrame<OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
                                                                   OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
                                                                   OTFHT::getKeySuccess,

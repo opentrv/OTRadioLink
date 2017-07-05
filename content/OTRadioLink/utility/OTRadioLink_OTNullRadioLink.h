@@ -36,16 +36,49 @@ class OTNullRadioLink final : public OTRadioLink::OTRadioLink
 /****************** Interface *******************/
 public:
     OTNullRadioLink() { }
-    bool begin() { return(true); };
-    void getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen) const;
-    uint8_t getRXMsgsQueued() const;
-    const volatile uint8_t *peekRXMsg() const;
-    void removeRXMsg();
+    bool begin() override { return(true); };
+    void getCapacity(uint8_t &queueRXMsgsMin, uint8_t &maxRXMsgLen, uint8_t &maxTXMsgLen) const override;
+    uint8_t getRXMsgsQueued() const override;
+    const volatile uint8_t *peekRXMsg() const override;
+    void removeRXMsg() override;
     // Should always be sent null-terminated strings.
-    bool sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal, bool listenAfter = false);
+    bool sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal, bool listenAfter = false) override;
 private:
-    void _dolisten() {};
+    void _dolisten() override {};
 };
 
-}  //OTNullRadioLink
+/**
+ * @brief   A class that extends OTRadioLink for mocking unit tests.
+ */
+class OTRadioLinkMock final : public OTRadioLink::OTRadioLink
+{
+public:
+    // length byte + 63 byte secure frame.
+    // Public to allow setting a mock message.
+    // TODO Find actual constant defining this.
+    uint8_t message[64];
+
+    OTRadioLinkMock() { memset(message, 0, sizeof(message)); }
+    /**
+     * @brief   return the address of the starting message byte.
+     *          returns the second byte of message as the first byte is the length byte.
+     */
+    const volatile uint8_t *peekRXMsg() const override;
+    // Does nothing.
+    void removeRXMsg() override { };
+
+    // unused methods
+    bool begin() override { return(true); };
+    void getCapacity(uint8_t & /*queueRXMsgsMin*/, uint8_t & /*maxRXMsgLen*/, uint8_t & /*maxTXMsgLen*/) const override {};
+    uint8_t getRXMsgsQueued() const override { return (1); };
+    // Should always be sent null-terminated strings.
+    bool sendRaw(const uint8_t * /*buf*/, uint8_t /*buflen*/,
+            int8_t /*channel = 0*/, TXpower /*power = TXnormal*/, bool /*listenAfter = false*/) override
+                    { return (false); };
+private:
+    void _dolisten() override {};
+};
+
+}  //OTRadioLink
+
 #endif /* OTRADIOLINK_OTNULLRADIOLINK_H_ */

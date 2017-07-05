@@ -959,7 +959,4 @@ return(false); // FIXME
         return(decodeResult);
         }
 
-    uint8_t SimpleSecureFrame32or0BodyRXFixedCounter::mockID[8] = {0, 0, 0, 0, 0, 0, 0, 0 };
-    uint8_t SimpleSecureFrame32or0BodyRXFixedCounter::mockCounter[6] = {0, 0, 0, 0, 0, 0 };
-
 }
