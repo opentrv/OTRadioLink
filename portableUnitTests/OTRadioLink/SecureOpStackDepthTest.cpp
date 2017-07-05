@@ -58,7 +58,7 @@ namespace SOSDT {
     #else
     // On DHD's system, secure frame enc/decode uses 358 bytes (20170511)
     // static constexpr unsigned int maxStackSecureFrameEncode = 1024;
-    static constexpr unsigned int maxStackSecureFrameDecode = 1024;
+    static constexpr unsigned int maxStackSecureFrameDecode = 1300;
     #endif // __APPLE__
 
     bool pollIO(bool) {return (false);}
