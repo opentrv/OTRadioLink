@@ -774,6 +774,12 @@ namespace OTRadioLink
                                             fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
                                             void *state, const uint8_t *key, const uint8_t *iv,
                                             uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
+            // Version with workspace
+            static uint8_t decodeSecureSmallFrameRawWithWorkspace(const SecurableFrameHeader *sfh,
+                                            const uint8_t *buf, uint8_t buflen,
+                                            fixed32BTextSize12BNonce16BTagSimpleDecWithWorkspace_ptr_t d,
+                                            const OTV0P2BASE::ScratchSpace &scratch, const uint8_t *key, const uint8_t *iv,
+                                            uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
 
             // Design notes on use of message counters vs non-volatile storage life, eg for ATMega328P.
             //
@@ -841,6 +847,13 @@ namespace OTRadioLink
                                             const uint8_t *adjID, uint8_t adjIDLen,
                                             void *state, const uint8_t *key,
                                             uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
+            // Version with workspace
+            virtual uint8_t _decodeSecureSmallFrameFromIDWithWorkspace(const SecurableFrameHeader *sfh,
+                                            const uint8_t *buf, uint8_t buflen,
+                                            fixed32BTextSize12BNonce16BTagSimpleDecWithWorkspace_ptr_t d,
+                                            const uint8_t *adjID, uint8_t adjIDLen,
+                                            const OTV0P2BASE::ScratchSpace &scratch, const uint8_t *key,
+                                            uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
 
             // From a structurally correct secure frame, looks up the ID, checks the message counter, decodes, and updates the counter if successful.
             // THIS IS THE PREFERRED ENTRY POINT FOR DECODING AND RECEIVING SECURE FRAMES.
@@ -864,6 +877,33 @@ namespace OTRadioLink
                                             const uint8_t *buf, uint8_t buflen,
                                             fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
                                             void *state, const uint8_t *key,
+                                            uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize,
+                                            uint8_t *ID,
+                                            bool firstIDMatchOnly = true);
+
+            // From a structurally correct secure frame, looks up the ID, checks the message counter, decodes, and updates the counter if successful.
+            // THIS IS THE PREFERRED ENTRY POINT FOR DECODING AND RECEIVING SECURE FRAMES.
+            // (Pre-filtering by type and ID and message counter may already have happened.)
+            // Note that this is for frames being sent from the ID in the header,
+            // not for lightweight return traffic to the specified ID.
+            // Returns the total number of bytes read for the frame
+            // (including, and with a value one higher than the first 'fl' bytes).
+            // Returns zero in case of error,
+            // eg because authentication failed or this is a duplicate message.
+            // If this returns true then the frame is authenticated,
+            // and the decrypted body is available if present and a buffer was provided.
+            // If the 'firstMatchIDOnly' is true (the default)
+            // then this only checks the first ID prefix match found if any,
+            // else all possible entries may be tried depending on the implementation
+            // and, for example, time/resource limits.
+            // This overloading accepts the decryption function, state and key explicitly.
+            //
+            //  * ID if non-NULL is filled in with the full authenticated sender ID, so must be >= 8 bytes
+            // NOTE this version uses a scratch space, allowing the stack usage to be more tightly controlled.
+            virtual uint8_t decodeSecureSmallFrameSafely(const SecurableFrameHeader *sfh,
+                                            const uint8_t *buf, uint8_t buflen,
+                                            fixed32BTextSize12BNonce16BTagSimpleDecWithWorkspace_ptr_t d,
+                                            const OTV0P2BASE::ScratchSpace &scratch, const uint8_t *key,
                                             uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize,
                                             uint8_t *ID,
                                             bool firstIDMatchOnly = true);

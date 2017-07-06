@@ -204,7 +204,7 @@ TEST(SecureOpStackDepth, SimpleSecureFrame32or0BodyRXFixedCounterStack)
 
     const size_t maxStack = OTV0P2BASE::MemoryChecks::getMinSP();
     // Uncomment to print stack usage
-//     std::cout << "decodeAndHandleOTSecureOFrame stack: " << baseStack - maxStack << "\n";
+     std::cout << "decodeAndHandleOTSecureOFrame stack: " << baseStack - maxStack << "\n";
 
     EXPECT_TRUE(test1);
     EXPECT_TRUE(SOSDT::frameOperationCalledFlag);
@@ -272,23 +272,23 @@ TEST(SecureOpStackDepth, SimpleSecureFrame32or0BodyRXFixedCounterWithWorkspaceSt
     const size_t baseStack = OTV0P2BASE::MemoryChecks::getMinSP();
 
     // Do encryption via simplified interface.
-    // constexpr uint8_t workspaceSize = 0;
-    // uint8_t workspace[workspaceSize];
-    // OTV0P2BASE::ScratchSpace sW(workspace, workspaceSize);
-    OTV0P2BASE::ScratchSpace sW(nullptr, 0);
+     constexpr uint8_t workspaceSize = 180;  // FIXME! Find out required space, parametrise for different computers.
+     uint8_t workspace[workspaceSize];
+     OTV0P2BASE::ScratchSpace sW(workspace, workspaceSize);
+//    OTV0P2BASE::ScratchSpace sW(nullptr, 0);
 
     OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter &sfrx = OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter::getInstance();
     sfrx.setMockIDValue(senderID);
     sfrx.setMockCounterValue(msgCounter);
     const bool test1 = OTRadioLink::decodeAndHandleOTSecureOFrameWithWorkspace<OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
-                                                                  OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
+                                                                  OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_WORKSPACE,
                                                                   SOSDT::getKeySuccess,
                                                                   SOSDT::setFlagFrameOperation
                                                                  >(msgStart, sW);
 
     const size_t maxStack = OTV0P2BASE::MemoryChecks::getMinSP();
     // Uncomment to print stack usage
-//     std::cout << "decodeAndHandleOTSecureOFrame stack: " << baseStack - maxStack << "\n";
+     std::cout << "decodeAndHandleOTSecureOFramewW stack: " << baseStack - maxStack << "\n";
 
     EXPECT_TRUE(test1);
     EXPECT_TRUE(SOSDT::frameOperationCalledFlag);

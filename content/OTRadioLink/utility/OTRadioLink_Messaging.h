@@ -298,9 +298,9 @@ inline bool authAndDecodeOTSecurableFrame(OTFrameData_T &fd)
  * @retval  True if frame successfully authenticated and decoded, else false.
  */
 template <typename sfrx_t,
-          SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &decrypt,
+          SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDecWithWorkspace_fn_t &decrypt,
           OTV0P2BASE::GetPrimary16ByteSecretKey_t &getKey>
-inline bool authAndDecodeOTSecurableFrameWithWorkspace(OTFrameData_T &fd, OTV0P2BASE::ScratchSpace & /*sW*/)
+inline bool authAndDecodeOTSecurableFrameWithWorkspace(OTFrameData_T &fd, OTV0P2BASE::ScratchSpace &sW)
 {
     const uint8_t * const msg = fd.msg;
     const uint8_t msglen = msg[-1];
@@ -322,7 +322,7 @@ inline bool authAndDecodeOTSecurableFrameWithWorkspace(OTFrameData_T &fd, OTV0P2
     uint8_t decryptedBodyOutSize = 0;
     const bool isOK = (0 != sfrx_t::getInstance().decodeSecureSmallFrameSafely(&fd.sfh, msg-1, msglen+1,
                                           decrypt,  // FIXME remove this dependency
-                                          NULL /* FIXME: fd.state */, key,
+                                          sW, key,
                                           outBuf, fd.decryptedBodyBufSize, decryptedBodyOutSize,
                                           fd.senderNodeID,
                                           true));
@@ -412,7 +412,7 @@ bool decodeAndHandleOTSecureOFrame(volatile const uint8_t * const _msg)
  * @brief   Version of decodeAndHandleOTSecureOFrame that takes
  **/
 template<typename sfrx_t,
-         SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &decrypt,
+         SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDecWithWorkspace_fn_t &decrypt,
          OTV0P2BASE::GetPrimary16ByteSecretKey_t &getKey,
          frameOperator_fn_t &o1,
          frameOperator_fn_t &o2 = nullFrameOperation>
