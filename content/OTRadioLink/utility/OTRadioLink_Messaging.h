@@ -333,7 +333,7 @@ bool decodeAndHandleOTSecureOFrame(volatile const uint8_t * const _msg)
     // This is quick and checks for insane/dangerous values throughout.
     const uint8_t l = fd.sfh.checkAndDecodeSmallFrameHeader(msg-1, msglen+1);
     // If failed this early and this badly
-    // thenlet someone else try parsing the message buffer...
+    // then let another protocol handler else try parsing the message buffer...
     if(0 == l) { return(false); }
     // Make sure frame thinks it is a secure OFrame.
     constexpr uint8_t expectedOFrameFirstByte = 'O' | 0x80;
