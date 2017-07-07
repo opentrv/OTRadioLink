@@ -56,9 +56,10 @@ namespace SOSDT {
     //static constexpr unsigned int maxStackSecureFrameEncode = 328;
     static constexpr unsigned int maxStackSecureFrameDecode = 1600; // was 1024. clang uses more stack
     #else
-    // On DHD's system, secure frame enc/decode uses 358 bytes (20170511)
+    // For macOS / clang++ (pretending to be G++) builds.
+    // On macOS 10.12.5 system, secure frame enc/decode ~358 bytes at 20170511.
     // static constexpr unsigned int maxStackSecureFrameEncode = 1024;
-    static constexpr unsigned int maxStackSecureFrameDecode = 1300;
+    static constexpr unsigned int maxStackSecureFrameDecode = 1520;
     #endif // __APPLE__
 
     bool pollIO(bool) {return (false);}
@@ -303,12 +304,13 @@ TEST(SecureOpStackDepth, SimpleSecureFrame32or0BodyRXFixedCounterWithWorkspaceSt
     const bool test1 = SOSDT::decodeAndHandleSecureFrameWithWorkspace();
 
     const size_t maxStack = OTV0P2BASE::MemoryChecks::getMinSP();
+
     // Uncomment to print stack usage
-     std::cout << "decodeAndHandleOTSecureOFramewW stack: " << baseStack - maxStack << "\n";
+    std::cout << "decodeAndHandleOTSecureOFramewW stack: " << baseStack - maxStack << "\n";
 
     EXPECT_TRUE(test1);
     EXPECT_TRUE(SOSDT::frameOperationCalledFlag);
-    EXPECT_GT(SOSDT::maxStackSecureFrameDecode, baseStack - maxStack);
+    EXPECT_GE(SOSDT::maxStackSecureFrameDecode, baseStack - maxStack);
 }
 /**
  * Stack usage:
