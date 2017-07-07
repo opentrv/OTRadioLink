@@ -49,8 +49,8 @@ static const uint8_t zeroBlock[16] = { };
 // - Travis: 192, 224, ???,  ???
 // * using a workspace
 #ifndef __APPLE__
-static constexpr unsigned int maxStackSecureFrameEncode = 328;
-static constexpr unsigned int maxStackSecureFrameDecode = 328;
+static constexpr unsigned int maxStackSecureFrameEncode = 400;  // 328 for gcc. Clang uses more stack
+static constexpr unsigned int maxStackSecureFrameDecode = 400;  //
 #else
 // On DHD's system, secure frame enc/decode uses 358 bytes (20170511)
 static constexpr unsigned int maxStackSecureFrameEncode = 416;

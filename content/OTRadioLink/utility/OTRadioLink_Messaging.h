@@ -44,16 +44,16 @@ struct OTFrameData_T
 {
     OTFrameData_T(const uint8_t * const _msg) : msg(_msg) {}
 
-    SecurableFrameHeader sfh;
-    uint8_t senderNodeID[OTV0P2BASE::OpenTRV_Node_ID_Bytes];
-    const uint8_t * const msg;
+    SecurableFrameHeader sfh;  // how big?
+    uint8_t senderNodeID[OTV0P2BASE::OpenTRV_Node_ID_Bytes];  // 2 words
+    const uint8_t * const msg;  // 1-2 words
     // The total size of the decryptedBody buffer.
     // TODO Should this be adjustable? Currently only a single buffer size in use.
     static constexpr uint8_t decryptedBodyBufSize = ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE;
     // Buffer for holding plain text.
-    uint8_t decryptedBody[decryptedBodyBufSize];
+    uint8_t decryptedBody[decryptedBodyBufSize];    // 31 bytes: 7 3/4 words
     // Actual size of plain text held within decryptedBody. Should be set when decryptedBody is populated.
-    uint8_t decryptedBodyLen = 0;
+    uint8_t decryptedBodyLen = 0;  // 1 byte: 1/4 words
     // A pointer to the OTAESGCM state. This is currently not implemented.
     static constexpr void * state = nullptr;
 

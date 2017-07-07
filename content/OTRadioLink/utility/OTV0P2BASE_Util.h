@@ -154,15 +154,19 @@ inline size_t getSP() { return ((size_t)SP); }
 extern size_t RAMEND;
 // Get the stack pointer and return as a size_t.
 // If not on AVR, create new local variable and get its address.
+#if 1
 inline size_t getSP() {
     size_t position = (size_t)&position;
     return (position);
 }
+#endif
 #if 0
 // GCC specific version
 inline size_t getSP() {
     return ((size_t)__builtin_frame_address (0));
 }
+#endif
+#if 0
 // x86 specific version
 inline size_t getSP() {
     register size_t sp asm ("sp");
