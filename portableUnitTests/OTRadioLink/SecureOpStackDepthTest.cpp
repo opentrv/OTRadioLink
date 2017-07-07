@@ -54,7 +54,7 @@ namespace SOSDT {
     // * using a workspace
     #ifndef __APPLE__
     //static constexpr unsigned int maxStackSecureFrameEncode = 328;
-    static constexpr unsigned int maxStackSecureFrameDecode = 1300; // clang uses more stack
+    static constexpr unsigned int maxStackSecureFrameDecode = 1600; // was 1024. clang uses more stack
     #else
     // On DHD's system, secure frame enc/decode uses 358 bytes (20170511)
     // static constexpr unsigned int maxStackSecureFrameEncode = 1024;
