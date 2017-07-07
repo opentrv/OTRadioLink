@@ -34,7 +34,7 @@ Author(s) / Copyright (s): Deniz Erbilgin 2017
 
 #ifndef __APPLE__
 //static constexpr unsigned int maxStackSecureFrameEncode = 328;
-static constexpr unsigned int maxAuthAndDecodeStack = 200;
+static constexpr unsigned int maxAuthAndDecodeStack = 216; // was 200. clang uses more stack.
 #else
 // On DHD's system, secure frame enc/decode uses 358 bytes (20170511)
 // static constexpr unsigned int maxStackSecureFrameEncode = 1024;
