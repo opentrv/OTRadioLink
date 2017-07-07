@@ -592,102 +592,105 @@ TEST(Main,GCMVS1ViaFixed32BTextSizeWITHWORKSPACE)
     // Space for outputs from encryption.
     uint8_t tag[GCM_TAG_LENGTH]; // Space for tag.
     uint8_t cipherText[OTV0P2BASE::fnmax(32, (int)sizeof(input))]; // Space for encrypted text.
-    // Do encryption via simplified interface.
-    constexpr uint8_t workspaceRequired = OTAESGCM::OTAES128GCMGenericWithWorkspace<>::workspaceRequired;
+    // Create a workspace big enough for any operation.
+    constexpr size_t workspaceRequired = OTAESGCM::OTAES128GCMGenericWithWorkspace<>::workspaceRequired;
     uint8_t workspace[workspaceRequired];
-    ASSERT_TRUE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_WORKSPACE(
-            workspace, workspaceRequired,
+    memset(workspace, 0, sizeof(workspace));
+    // Do encryption via simplified interface.
+    ASSERT_TRUE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_LWORKSPACE(
+            workspace, sizeof(workspace),
             key, nonce,
             aad, sizeof(aad),
             input,
             cipherText, tag));
-    // Ensure that the workspace is completely zeroed after the call for security.
+    // Security: ensure that no part of the workspace has been left unzeroed.
     for(int i = workspaceRequired; --i >= 0; ) { ASSERT_EQ(0, workspace[i]); }
     // Check some of the cipher text and tag.
     //            "0388DACE60B6A392F328C2B971B2FE78F795AAAB494B5923F7FD89FF948B  61 47 72 C7 92 9C D0 DD 68 1B D8 A3 7A 65 6F 33" :
-    ASSERT_EQ(0xdf, cipherText[0]);
-    ASSERT_EQ(0x91, cipherText[5]);
-    ASSERT_EQ(0xdb, cipherText[sizeof(cipherText)-1]);
-    ASSERT_EQ(0x24, tag[1]);
-    ASSERT_EQ(0xd9, tag[14]);
+    EXPECT_EQ(0xdf, cipherText[0]);
+    EXPECT_EQ(0x91, cipherText[5]);
+    EXPECT_EQ(0xdb, cipherText[sizeof(cipherText)-1]);
+    EXPECT_EQ(0x24, tag[1]);
+    EXPECT_EQ(0xd9, tag[14]);
     // Decrypt via simplified interface...
     uint8_t inputDecoded[32];
-    ASSERT_TRUE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_WORKSPACE(
+    EXPECT_TRUE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE(
             workspace, workspaceRequired,
             key, nonce,
             aad, sizeof(aad),
             cipherText, tag,
             inputDecoded));
-    // Ensure that the workspace is completely zeroed after the call for security.
+    // Security: ensure that no part of the workspace has been left unzeroed.
     for(int i = workspaceRequired; --i >= 0; ) { ASSERT_EQ(0, workspace[i]); }
-    ASSERT_EQ(0, memcmp(input, inputDecoded, 32));
+    EXPECT_EQ(0, memcmp(input, inputDecoded, 32));
     // Try enc/auth with no (ie zero-length) plaintext.
-    ASSERT_TRUE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_WORKSPACE(
+    EXPECT_TRUE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_LWORKSPACE(
             workspace, workspaceRequired,
             key, nonce,
             aad, sizeof(aad),
             NULL,
             cipherText, tag));
-    // Ensure that the workspace is completely zeroed after the call for security.
+    // Security: ensure that no part of the workspace has been left unzeroed.
     for(int i = workspaceRequired; --i >= 0; ) { ASSERT_EQ(0, workspace[i]); }
     // Check some of the tag.
-    ASSERT_EQ(0x57, tag[1]);
-    ASSERT_EQ(0x25, tag[14]);
+    EXPECT_EQ(0x57, tag[1]);
+    EXPECT_EQ(0x25, tag[14]);
     // Auth/decrypt (auth should still succeed).
-    ASSERT_TRUE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_WORKSPACE(
+    EXPECT_TRUE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE(
             workspace, workspaceRequired,
             key, nonce,
             aad, sizeof(aad),
             NULL, tag,
             inputDecoded));
-    // Ensure that the workspace is completely zeroed after the call for security.
+    // Security: ensure that no part of the workspace has been left unzeroed.
     for(int i = workspaceRequired; --i >= 0; ) { ASSERT_EQ(0, workspace[i]); }
-    // Check that too-small or NULL workspaces are rejected, but oversize ones accepted.
+    // Check that too-small or NULL workspaces are rejected,
+    // and that oversize ones are accepted.
     // Encrypt...
-    ASSERT_FALSE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_WORKSPACE(
+    EXPECT_FALSE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_LWORKSPACE(
             NULL, workspaceRequired,
             key, nonce,
             aad, sizeof(aad),
             input,
-            cipherText, tag));
-    ASSERT_FALSE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_WORKSPACE(
-            workspace, workspaceRequired-1,
+            cipherText, tag)) << "Workspace NULL but nominally correct size, should fail";
+    EXPECT_FALSE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_LWORKSPACE(
+            workspace, OTAESGCM::OTAES128GCMGenericWithWorkspace<>::workspaceRequiredEnc-1,
             key, nonce,
             aad, sizeof(aad),
             input,
-            cipherText, tag));
-    ASSERT_FALSE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_WORKSPACE(
+            cipherText, tag)) << "Workspace one byte too small should fail: " << (workspaceRequired-1);
+    EXPECT_FALSE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_LWORKSPACE(
             workspace, 0,
             key, nonce,
             aad, sizeof(aad),
             input,
-            cipherText, tag));
-    ASSERT_TRUE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_WORKSPACE(
-            workspace, workspaceRequired+1,
+            cipherText, tag)) << "Workspace zero length should fail: " << (workspaceRequired-1);;
+    EXPECT_TRUE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_LWORKSPACE(
+            workspace, OTAESGCM::OTAES128GCMGenericWithWorkspace<>::workspaceRequiredEnc+1,
             key, nonce,
             aad, sizeof(aad),
             input,
             cipherText, tag));
     // Decrypt..
-    ASSERT_FALSE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_WORKSPACE(
+    EXPECT_FALSE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE(
             NULL, workspaceRequired,
             key, nonce,
             aad, sizeof(aad),
             cipherText, tag,
             inputDecoded));
-    ASSERT_FALSE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_WORKSPACE(
+    EXPECT_FALSE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE(
             workspace, workspaceRequired-1,
             key, nonce,
             aad, sizeof(aad),
             cipherText, tag,
-            inputDecoded));
-    ASSERT_FALSE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_WORKSPACE(
+            inputDecoded)) << (workspaceRequired-1);
+    EXPECT_FALSE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE(
             workspace, 0,
             key, nonce,
             aad, sizeof(aad),
             cipherText, tag,
             inputDecoded));
-    ASSERT_TRUE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_WORKSPACE(
+    EXPECT_TRUE(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE(
             workspace, workspaceRequired+1,
             key, nonce,
             aad, sizeof(aad),
@@ -1171,10 +1174,10 @@ TEST(OTAESGCMSecureFrame, OFrameEncoding)
 
     // Encrypt empty (no-JSON) O frame via the explicit workspace API.
     uint8_t bufW[encBufSize];
-    constexpr uint8_t workspaceSize = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0;
+    constexpr size_t workspaceSize = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0;
     uint8_t workspace[workspaceSize];
-    OTV0P2BASE::ScratchSpace sW(workspace, workspaceSize);
-    const OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEncWithWorkspace_ptr_t eW = OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_WORKSPACE;
+    OTV0P2BASE::ScratchSpaceL sW(workspace, workspaceSize);
+    const OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t eW = OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_LWORKSPACE;
     const uint8_t bodylenW = mockTX.generateSecureOFrameRawForTX(
         bufW, encBufSize, txIDLen, valvePC, NULL, eW, sW, key);
     EXPECT_EQ(63, bodylenW);
@@ -1343,10 +1346,10 @@ TEST(OTAESGCMSecureFrame,SecureFrameEncodeStackUsageWITHWORKSPACE)
     uint8_t body[] = { 0x7f, 0x11, 0x7b, 0x22, 0x62, 0x22, 0x3a, 0x31 };
 
     // Do encryption via simplified interface.
-    constexpr uint8_t workspaceSize = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0;
+    constexpr size_t workspaceSize = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0;
     uint8_t workspace[workspaceSize];
-    OTV0P2BASE::ScratchSpace sW(workspace, workspaceSize);
-    const OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEncWithWorkspace_ptr_t eW = OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_WORKSPACE;
+    OTV0P2BASE::ScratchSpaceL sW(workspace, workspaceSize);
+    const OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t eW = OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_LWORKSPACE;
 
     OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRawPadInPlace(buf, sizeof(buf),
                                                                              OTRadioLink::FTS_BasicSensorOrValve,

@@ -347,7 +347,7 @@ namespace OTRadioLink
         {
         public:
             // Size of full message counter for tupe-0x80 AES-GCM security frames.
-            static const uint8_t fullMessageCounterBytes = 6;
+            static constexpr uint8_t fullMessageCounterBytes = 6;
 
             // Check one (6-byte) message counter against another for magnitude.
             // Returns 0 if they are identical, +ve if the first counter is greater, -ve otherwise.
@@ -420,19 +420,23 @@ namespace OTRadioLink
             // The plain-text (and identical cipher-text) size is picked to be
             // a multiple of the cipher's block size, or zero,
             // which implies likely requirement for padding of the plain text.
-            // Note that the authenticated text size is not fixed, ie is zero or more bytes.
+            // Note that the authenticated text size is not fixed, ie is zero or
+            // more bytes.
             // A workspace is passed in (and cleared on exit);
-            // this routine will fail (safely, returning false) if the workspace is NULL or too small.
+            // this routine will fail (safely, returning false) if the workspace
+            // is NULL or too small.
             // The workspace requirement depends on the implementation used.
-            static constexpr uint8_t workspaceRequred_GCM32B16BWithWorkspace_OTAESGCM_2p0 = 176;
+            static constexpr size_t workspaceRequred_GCM32B16BWithWorkspace_OTAESGCM_2p0 =
+                176 /* AES element */ +
+                96 /* GCM element as at 20170707 */ ;
             // Returns true on success, false on failure.
-            typedef bool (fixed32BTextSize12BNonce16BTagSimpleEncWithWorkspace_fn_t)(
-                    uint8_t *workspace, uint8_t workspaceSize,
+            typedef bool (fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_fn_t)(
+                    uint8_t *workspace, size_t workspaceSize,
                     const uint8_t *key, const uint8_t *iv,
                     const uint8_t *authtext, uint8_t authtextSize,
                     const uint8_t *plaintext,
                     uint8_t *ciphertextOut, uint8_t *tagOut);
-            typedef fixed32BTextSize12BNonce16BTagSimpleEncWithWorkspace_fn_t *fixed32BTextSize12BNonce16BTagSimpleEncWithWorkspace_ptr_t;
+            typedef fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_fn_t *fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t;
 
             // Encode entire secure small frame from header params and body and crypto support.
             // This is a raw/partial impl that requires the IV/nonce to be supplied.
@@ -495,16 +499,17 @@ namespace OTRadioLink
             // (nominally a multiple of) 32 bytes large enough to contain the body
             // and have padding applied *in situ*.
             static constexpr uint8_t encodeSecureSmallFrameRawPadInPlace_scratch_usage = 0;
-            static constexpr uint8_t encodeSecureSmallFrameRawPadInPlace_total_scratch_usage_OTAESGCM_2p0 =
+            static constexpr size_t encodeSecureSmallFrameRawPadInPlace_total_scratch_usage_OTAESGCM_2p0 =
                     workspaceRequred_GCM32B16BWithWorkspace_OTAESGCM_2p0
                     + encodeSecureSmallFrameRawPadInPlace_scratch_usage;
-            static uint8_t encodeSecureSmallFrameRawPadInPlace(uint8_t *buf, uint8_t buflen,
-                                            FrameType_Secureable fType_,
-                                            const uint8_t *id_, uint8_t il_,
-                                            uint8_t *bodyToBePaddedInSitu, uint8_t bl_,
-                                            const uint8_t *iv,
-                                            fixed32BTextSize12BNonce16BTagSimpleEncWithWorkspace_ptr_t e,
-                                            const OTV0P2BASE::ScratchSpace &scratch, const uint8_t *key);
+            static uint8_t encodeSecureSmallFrameRawPadInPlace(
+                uint8_t *buf, uint8_t buflen,
+                FrameType_Secureable fType_,
+                const uint8_t *id_, uint8_t il_,
+                uint8_t *bodyToBePaddedInSitu, uint8_t bl_,
+                const uint8_t *iv,
+                fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
+                const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key);
 
             // Get the 3 bytes of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
             // Combines results from primary and secondary as appropriate.
@@ -642,15 +647,15 @@ namespace OTRadioLink
             // thus avoiding any further copy or buffer space required.
             // NOTE: THIS API IS LIABLE TO CHANGE
             static constexpr uint8_t generateSecureOFrameRawForTX_scratch_usage = 12 + 32;
-            static constexpr uint8_t generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0 =
+            static constexpr size_t generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0 =
                     encodeSecureSmallFrameRawPadInPlace_total_scratch_usage_OTAESGCM_2p0
                     + generateSecureOFrameRawForTX_scratch_usage;
             uint8_t generateSecureOFrameRawForTX(uint8_t *buf, uint8_t buflen,
                                             uint8_t il_,
                                             uint8_t valvePC,
                                             const char *statsJSON,
-                                            fixed32BTextSize12BNonce16BTagSimpleEncWithWorkspace_ptr_t e,
-                                            const OTV0P2BASE::ScratchSpace &scratch, const uint8_t *key);
+                                            fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
+                                            const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key);
         };
 
     // RX Base class for simple implementations that supports 0 or 32 byte encrypted body sections.
@@ -693,15 +698,18 @@ namespace OTRadioLink
             // The plain-text (and identical cipher-text) size is picked to be
             // a multiple of the cipher's block size, or zero,
             // which implies likely requirement for padding of the plain text.
-            // Note that the authenticated text size is not fixed, ie is zero or more bytes.
-            // Decrypts/authenticates the output of a fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t function.)
+            // Note that the authenticated text size is not fixed,
+            // ie is zero or more bytes.
+            // Decrypts/authenticates the output of a
+            // fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t function.)
             // Returns true on success, false on failure.
             typedef bool (fixed32BTextSize12BNonce16BTagSimpleDec_fn_t)(void *state,
                     const uint8_t *key, const uint8_t *iv,
                     const uint8_t *authtext, uint8_t authtextSize,
                     const uint8_t *ciphertext, const uint8_t *tag,
                     uint8_t *plaintextOut);
-            typedef fixed32BTextSize12BNonce16BTagSimpleDec_fn_t *fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t;
+            typedef fixed32BTextSize12BNonce16BTagSimpleDec_fn_t
+                *fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t;
 
             // Signature of pointer to basic fixed-size text decryption/authentication function with workspace supplied.
             // (Suitable for type 'O' valve/sensor small frame for example.)
@@ -714,20 +722,25 @@ namespace OTRadioLink
             // The plain-text (and identical cipher-text) size is picked to be
             // a multiple of the cipher's block size, or zero,
             // which implies likely requirement for padding of the plain text.
-            // Note that the authenticated text size is not fixed, ie is zero or more bytes.
-            // Decrypts/authenticates the output of a fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t function.)
+            // Note that the authenticated text size is not fixed,
+            // ie is zero or more bytes.
+            // Decrypts/authenticates the output of a
+            // fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t function.)
             // A workspace is passed in (and cleared on exit);
-            // this routine will fail (safely, returning false) if the workspace is NULL or too small.
+            // this routine will fail (safely, returning false)
+            // if the workspace is NULL or too small.
             // The workspace requirement depends on the implementation used.
-            static constexpr uint8_t workspaceRequred_GCM32B16BWithWorkspace_OTAESGCM_2p0 = SimpleSecureFrame32or0BodyTXBase::workspaceRequred_GCM32B16BWithWorkspace_OTAESGCM_2p0;
+            static constexpr size_t workspaceRequred_GCM32B16BWithWorkspace_OTAESGCM_2p0 =
+                SimpleSecureFrame32or0BodyTXBase::workspaceRequred_GCM32B16BWithWorkspace_OTAESGCM_2p0;
             // Returns true on success, false on failure.
-            typedef bool (fixed32BTextSize12BNonce16BTagSimpleDecWithWorkspace_fn_t)(
-                    uint8_t *workspace, uint8_t workspaceSize,
+            typedef bool (fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_fn_t)(
+                    uint8_t *workspace, size_t workspaceSize,
                     const uint8_t *key, const uint8_t *iv,
                     const uint8_t *authtext, uint8_t authtextSize,
                     const uint8_t *ciphertext, const uint8_t *tag,
                     uint8_t *plaintextOut);
-            typedef fixed32BTextSize12BNonce16BTagSimpleDecWithWorkspace_fn_t *fixed32BTextSize12BNonce16BTagSimpleDecWithWorkspace_ptr_t;
+            typedef fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_fn_t
+                *fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_ptr_t;
 
             // Decode entire secure small frame from raw frame bytes and crypto support.
             // This is a raw/partial impl that requires the IV/nonce to be supplied.
@@ -769,17 +782,25 @@ namespace OTRadioLink
             //  * d  decryption function; never NULL
             //  * state  pointer to state for d, if required, else NULL
             //  * key  secret key; never NULL
-            static uint8_t decodeSecureSmallFrameRaw(const SecurableFrameHeader *sfh,
-                                            const uint8_t *buf, uint8_t buflen,
-                                            fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
-                                            void *state, const uint8_t *key, const uint8_t *iv,
-                                            uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
-            // Version with workspace
-            static uint8_t decodeSecureSmallFrameRawWithWorkspace(const SecurableFrameHeader *sfh,
-                                            const uint8_t *buf, uint8_t buflen,
-                                            fixed32BTextSize12BNonce16BTagSimpleDecWithWorkspace_ptr_t d,
-                                            const OTV0P2BASE::ScratchSpace &scratch, const uint8_t *key, const uint8_t *iv,
-                                            uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
+            static uint8_t decodeSecureSmallFrameRaw(
+                const SecurableFrameHeader *sfh,
+                const uint8_t *buf, uint8_t buflen,
+                fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
+                void *state, const uint8_t *key, const uint8_t *iv,
+                uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
+            // Version with workspace.
+            // Not a public entry point (is protected).
+            static constexpr uint8_t decodeSecureSmallFrameRawWithWorkspace_scratch_usage =
+                ENC_BODY_SMALL_FIXED_CTEXT_SIZE;
+            static constexpr size_t decodeSecureSmallFrameRawWithWorkspace_total_scratch_usage_OTAESGCM_3p0 =
+                0 /* Any additional callee space would be for d(). */ +
+                decodeSecureSmallFrameRawWithWorkspace_scratch_usage;
+            static uint8_t decodeSecureSmallFrameRawWithWorkspace(
+                const SecurableFrameHeader *sfh,
+                const uint8_t *buf, uint8_t buflen,
+                fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_ptr_t d,
+                const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key, const uint8_t *iv,
+                uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
 
             // Design notes on use of message counters vs non-volatile storage life, eg for ATMega328P.
             //
@@ -813,6 +834,7 @@ namespace OTRadioLink
             // Must only be called once the RXed message has passed authentication.
             virtual bool updateRXMessageCountAfterAuthentication(const uint8_t *ID, const uint8_t *newCounterValue) = 0;
 
+        protected:
             // As for decodeSecureSmallFrameRaw() but passed a candidate node/counterparty ID
             // derived from the frame ID in the incoming header,
             // plus possible other adjustments such has forcing bit values for reverse flows.
@@ -841,20 +863,29 @@ namespace OTRadioLink
             //
             // TO AVOID RELAY ATTACKS: verify the counter is higher than any previous authed message from this sender
             // then update the RX message counter after a successful auth with this routine.
+            //
+            // Not a public entry point (is protected).
             virtual uint8_t _decodeSecureSmallFrameFromID(const SecurableFrameHeader *sfh,
                                             const uint8_t *buf, uint8_t buflen,
                                             fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
                                             const uint8_t *adjID, uint8_t adjIDLen,
                                             void *state, const uint8_t *key,
                                             uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
-            // Version with workspace
+            // Version with workspace.
+            // Not a public entry point (is protected).
+            static constexpr uint8_t _decodeSecureSmallFrameFromIDWithWorkspace_scratch_usage =
+                12; // Space for constructed IV.
+            static constexpr size_t _decodeSecureSmallFrameFromIDWithWorkspace_total_scratch_usage_OTAESGCM_3p0 =
+                decodeSecureSmallFrameRawWithWorkspace_total_scratch_usage_OTAESGCM_3p0 +
+                _decodeSecureSmallFrameFromIDWithWorkspace_scratch_usage;
             virtual uint8_t _decodeSecureSmallFrameFromIDWithWorkspace(const SecurableFrameHeader *sfh,
                                             const uint8_t *buf, uint8_t buflen,
-                                            fixed32BTextSize12BNonce16BTagSimpleDecWithWorkspace_ptr_t d,
+                                            fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_ptr_t d,
                                             const uint8_t *adjID, uint8_t adjIDLen,
-                                            const OTV0P2BASE::ScratchSpace &scratch, const uint8_t *key,
+                                            OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key,
                                             uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
 
+        public:
             // From a structurally correct secure frame, looks up the ID, checks the message counter, decodes, and updates the counter if successful.
             // THIS IS THE PREFERRED ENTRY POINT FOR DECODING AND RECEIVING SECURE FRAMES.
             // (Pre-filtering by type and ID and message counter may already have happened.)
@@ -873,13 +904,14 @@ namespace OTRadioLink
             // This overloading accepts the decryption function, state and key explicitly.
             //
             //  * ID if non-NULL is filled in with the full authenticated sender ID, so must be >= 8 bytes
-            virtual uint8_t decodeSecureSmallFrameSafely(const SecurableFrameHeader *sfh,
-                                            const uint8_t *buf, uint8_t buflen,
-                                            fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
-                                            void *state, const uint8_t *key,
-                                            uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize,
-                                            uint8_t *ID,
-                                            bool firstIDMatchOnly = true);
+            virtual uint8_t decodeSecureSmallFrameSafely(
+                const SecurableFrameHeader *sfh,
+                const uint8_t *buf, uint8_t buflen,
+                fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
+                void *state, const uint8_t *key,
+                uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize,
+                uint8_t *ID,
+                bool firstIDMatchOnly = true);
 
             // From a structurally correct secure frame, looks up the ID, checks the message counter, decodes, and updates the counter if successful.
             // THIS IS THE PREFERRED ENTRY POINT FOR DECODING AND RECEIVING SECURE FRAMES.
@@ -896,17 +928,27 @@ namespace OTRadioLink
             // then this only checks the first ID prefix match found if any,
             // else all possible entries may be tried depending on the implementation
             // and, for example, time/resource limits.
-            // This overloading accepts the decryption function, state and key explicitly.
+            // This overloading accepts the decryption function,
+            // state and key explicitly.
             //
-            //  * ID if non-NULL is filled in with the full authenticated sender ID, so must be >= 8 bytes
-            // NOTE this version uses a scratch space, allowing the stack usage to be more tightly controlled.
-            virtual uint8_t decodeSecureSmallFrameSafely(const SecurableFrameHeader *sfh,
-                                            const uint8_t *buf, uint8_t buflen,
-                                            fixed32BTextSize12BNonce16BTagSimpleDecWithWorkspace_ptr_t d,
-                                            const OTV0P2BASE::ScratchSpace &scratch, const uint8_t *key,
-                                            uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize,
-                                            uint8_t *ID,
-                                            bool firstIDMatchOnly = true);
+            //   * ID if non-NULL is filled in with the full authenticated
+            //     sender ID, so must be >= 8 bytes
+            // NOTE this version uses a scratch space, allowing the stack usage
+            // to be more tightly controlled.
+            static constexpr uint8_t decodeSecureSmallFrameSafely_scratch_usage =
+                OTV0P2BASE::OpenTRV_Node_ID_Bytes +
+                SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes;
+            static constexpr size_t decodeSecureSmallFrameSafely_total_scratch_usage_OTAESGCM_3p0 =
+                _decodeSecureSmallFrameFromIDWithWorkspace_total_scratch_usage_OTAESGCM_3p0 +
+                decodeSecureSmallFrameSafely_scratch_usage;
+            virtual uint8_t decodeSecureSmallFrameSafely(
+                const SecurableFrameHeader *sfh,
+                const uint8_t *buf, uint8_t buflen,
+                fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_ptr_t d,
+                OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key,
+                uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize,
+                uint8_t *ID,
+                bool firstIDMatchOnly = true);
         };
 
 
@@ -1049,6 +1091,8 @@ namespace OTRadioLink
 
 
     }
+
+
 /* LIBRARY INTERDEPENDENCY POLICY FOR CRYPTO AND SECURE FRAMES
 
 DHD20160106

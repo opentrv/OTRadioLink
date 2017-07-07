@@ -19,7 +19,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 #ifndef ARDUINO_LIB_OTV0P2BASE_H
 #define ARDUINO_LIB_OTV0P2BASE_H
 
-#define ARDUINO_LIB_OTV0P2BASE_VERSION_MAJOR 1
+#define ARDUINO_LIB_OTV0P2BASE_VERSION_MAJOR 2
 #define ARDUINO_LIB_OTV0P2BASE_VERSION_MINOR 0
 
 // Base hardware, power and system management for V0p2 AVR-based (ATMega328P) OpenTRV boards.
