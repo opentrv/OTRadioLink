@@ -332,7 +332,8 @@ bool decodeAndHandleOTSecureOFrame(volatile const uint8_t * const _msg)
     // Validate structure of header/frame first.
     // This is quick and checks for insane/dangerous values throughout.
     const uint8_t l = fd.sfh.checkAndDecodeSmallFrameHeader(msg-1, msglen+1);
-    // If failed this early and this badly, let someone else try parsing the message buffer...
+    // If failed this early and this badly
+    // thenlet someone else try parsing the message buffer...
     if(0 == l) { return(false); }
     // Make sure frame thinks it is a secure OFrame.
     constexpr uint8_t expectedOFrameFirstByte = 'O' | 0x80;
@@ -346,15 +347,18 @@ bool decodeAndHandleOTSecureOFrame(volatile const uint8_t * const _msg)
     // attempting to process it.
 
     // Even if auth fails, we have now handled this frame by protocol.
-    if(!authAndDecodeOTSecurableFrame<sfrx_t, decrypt, getKey>(fd)) { return(true); }
+    if(!authAndDecodeOTSecurableFrame<sfrx_t, decrypt, getKey>(fd))
+        { return(true); }
 
-    // Make sure frame is long enough to have useful information in it and call operations.
+    // Make sure frame is long enough to have useful information in it
+    // and then call operations.
     if(2 < fd.decryptedBodyLen) {
         o1(fd);
         o2(fd);
     }
+
     // This frame has now been dealt with (by protocol)
-    // even if we happenned not to be able to process it successfully.
+    // even if we happened not to be able to process it successfully.
     return(true);
 }
 
