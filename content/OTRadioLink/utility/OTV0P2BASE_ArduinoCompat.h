@@ -113,5 +113,12 @@ class Stream : public Print
 
 #endif // ARDUINO
 
+// Implementation of Print that simply throws output away.
+class NULLPrint final : public Print
+    {
+    public:
+        virtual size_t write(uint8_t) override { return(0); };
+    };
+
 
 #endif
