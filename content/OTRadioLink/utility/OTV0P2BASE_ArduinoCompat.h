@@ -24,12 +24,19 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 #define OTV0P2BASE_ARDUINOCOMPAT_H
 
 
-#ifndef ARDUINO
-
+// Import standard definitions for all environment.s
 #include <stddef.h>
 #include <stdint.h>
-#include <string.h>
 
+
+#ifdef ARDUINO
+
+#include "Print.h"
+#include "Stream.h"
+
+#else // Not ARDUINO
+
+#include <string.h>
 
 // Enable minimal elements to support cross-compilation.
 // NOT in normal OpenTRV namespace(s).
@@ -112,6 +119,16 @@ class Stream : public Print
   };
 
 #endif // ARDUINO
+
+
+// Implementation of Print that simply throws output away.
+// Usable in all environments including Arduino, eg also for unit tests.
+class PrintNULL final : public Print
+    {
+    public:
+        virtual size_t write(uint8_t) override { return(0); }
+        virtual size_t write(const uint8_t *, size_t) override { return(0); }
+    };
 
 
 #endif

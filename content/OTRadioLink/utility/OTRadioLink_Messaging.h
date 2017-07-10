@@ -290,55 +290,78 @@ inline bool authAndDecodeOTSecurableFrame(OTFrameData_T &fd)
     }
     return(true); // Stop if not OK.
 }
+
 /**
  * @brief   Authenticate and decrypt secure frames. Expects syntax checking and validation to already have been done.
  * @param   fd: OTFrameData_T object containing message to decrypt.
  * @param   decrypt: Function to decrypt secure frame with. NOTE decrypt functions with workspace are not supported (20170616).
  * @param   getKey: Function that fills a buffer with the 16 byte secret key. Should return true on success.
  * @retval  True if frame successfully authenticated and decoded, else false.
+ *
+ * Note: the scratch space (workspace) depends on
+ *     the underlying decrypt function and the receiver class.
  */
+// Local scratch: total incl template srfx_t::decodeSecureSmallFrameSafely().
+static constexpr uint8_t authAndDecodeOTSecurableFrameWithWorkspace_scratch_usage =
+    16; // Primary building key size.
 template <typename sfrx_t,
-          SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDecWithWorkspace_fn_t &decrypt,
+          SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_fn_t &decrypt,
           OTV0P2BASE::GetPrimary16ByteSecretKey_t &getKey>
-inline bool authAndDecodeOTSecurableFrameWithWorkspace(OTFrameData_T &fd, OTV0P2BASE::ScratchSpace &sW)
+inline bool authAndDecodeOTSecurableFrameWithWorkspace(
+    OTFrameData_T &fd, OTV0P2BASE::ScratchSpaceL &sW)
 {
+    const size_t scratchSpaceNeededHere = authAndDecodeOTSecurableFrameWithWorkspace_scratch_usage;
+    if(sW.bufsize < scratchSpaceNeededHere) { return(false); } // ERROR
+
     const uint8_t * const msg = fd.msg;
     const uint8_t msglen = msg[-1];
     uint8_t * outBuf = fd.decryptedBody;
 
+    // Probe the stack here, in case we don't get deeper.
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
 
     // Validate (authenticate) and decrypt body of secure frames.
-    uint8_t key[16];
-      // Get the 'building' key.
-    if(!getKey(key)) { // CI throws address will never be null error.
+//    uint8_t key[16];
+    // Use scratch space for 16-byte key.
+    uint8_t *key = sW.buf;
+    // Get the building primary key.
+    if(!getKey(key)) { // CI throws "address will never be null" error.
         OTV0P2BASE::serialPrintlnAndFlush(F("!RX key"));
         return(false);
     }
+
+    // Create sub-space for callee.
+    OTV0P2BASE::ScratchSpaceL subScratch(sW, scratchSpaceNeededHere);
+
+    // Now attempt to decrypt.
+    // Assumed no need to 'adjust' node ID for this form of RX.
+
     // Look up full ID in associations table,
-    // validate RX message counter,
+    // validate the RX message counter,
     // authenticate and decrypt,
-    // update RX message counter.
+    // then update the RX message counter.
     uint8_t decryptedBodyOutSize = 0;
-    const bool isOK = (0 != sfrx_t::getInstance().decodeSecureSmallFrameSafely(&fd.sfh, msg-1, msglen+1,
-                                          decrypt,  // FIXME remove this dependency
-                                          sW, key,
-                                          outBuf, fd.decryptedBodyBufSize, decryptedBodyOutSize,
-                                          fd.senderNodeID,
-                                          true));
+    const bool isOK = (0 != sfrx_t::getInstance().decodeSecureSmallFrameSafely(
+          &fd.sfh, msg-1, msglen+1,
+          decrypt, // FIXME remove this dependency
+          subScratch, key,
+          outBuf, fd.decryptedBodyBufSize, decryptedBodyOutSize,
+          fd.senderNodeID,
+          true));
     fd.decryptedBodyLen = decryptedBodyOutSize;
-    if(!isOK) {
+
 #if 1 // && defined(DEBUG)
-        // Useful brief network diagnostics: a couple of bytes of the claimed ID of rejected frames.
-        // Warnings rather than errors because there may legitimately be multiple disjoint networks.
-        OTV0P2BASE::serialPrintAndFlush(F("?RX auth")); // Missing association or failed auth.
-        if(fd.sfh.getIl() > 0) { OTV0P2BASE::serialPrintAndFlush(' '); OTV0P2BASE::serialPrintAndFlush(fd.sfh.id[0], 16); }
-        if(fd.sfh.getIl() > 1) { OTV0P2BASE::serialPrintAndFlush(' '); OTV0P2BASE::serialPrintAndFlush(fd.sfh.id[1], 16); }
-        OTV0P2BASE::serialPrintlnAndFlush();
-        return (false);
+if(!isOK) {
+// Useful brief network diagnostics: a couple of bytes of the claimed ID of rejected frames.
+// Warnings rather than errors because there may legitimately be multiple disjoint networks.
+OTV0P2BASE::serialPrintAndFlush(F("?RX auth")); // Missing association or failed auth.
+if(fd.sfh.getIl() > 0) { OTV0P2BASE::serialPrintAndFlush(' '); OTV0P2BASE::serialPrintAndFlush(fd.sfh.id[0], 16); }
+if(fd.sfh.getIl() > 1) { OTV0P2BASE::serialPrintAndFlush(' '); OTV0P2BASE::serialPrintAndFlush(fd.sfh.id[1], 16); }
+OTV0P2BASE::serialPrintlnAndFlush();
+}
 #endif
-    }
-    return(true); // Stop if not OK.
+
+    return(isOK); // Return if successfully decoded, authenticated, etc.
 }
 
 
@@ -416,11 +439,11 @@ bool decodeAndHandleOTSecureOFrame(volatile const uint8_t * const _msg)
  * @brief   Version of decodeAndHandleOTSecureOFrame that takes
  **/
 template<typename sfrx_t,
-         SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDecWithWorkspace_fn_t &decrypt,
+         SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_fn_t &decrypt,
          OTV0P2BASE::GetPrimary16ByteSecretKey_t &getKey,
          frameOperator_fn_t &o1,
          frameOperator_fn_t &o2 = nullFrameOperation>
-bool decodeAndHandleOTSecureOFrameWithWorkspace(volatile const uint8_t * const _msg, OTV0P2BASE::ScratchSpace & sW)
+bool decodeAndHandleOTSecureOFrameWithWorkspace(volatile const uint8_t * const _msg, OTV0P2BASE::ScratchSpaceL & sW)
 {
 #if 1
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
@@ -435,7 +458,8 @@ bool decodeAndHandleOTSecureOFrameWithWorkspace(volatile const uint8_t * const _
     // Validate structure of header/frame first.
     // This is quick and checks for insane/dangerous values throughout.
     const uint8_t l = fd.sfh.checkAndDecodeSmallFrameHeader(msg-1, msglen+1);
-    // If failed this early and this badly, let someone else try parsing the message buffer...
+    // If failed this early and this badly,
+    // then let another protocol handler try parsing the message buffer...
     if(0 == l) { return(false); }
     // Make sure frame thinks it is a secure OFrame.
     constexpr uint8_t expectedOFrameFirstByte = 'O' | 0x80;
@@ -449,15 +473,17 @@ bool decodeAndHandleOTSecureOFrameWithWorkspace(volatile const uint8_t * const _
     // attempting to process it.
 
     // Even if auth fails, we have now handled this frame by protocol.
-    if(!authAndDecodeOTSecurableFrameWithWorkspace<sfrx_t, decrypt, getKey>(fd, sW)) { return(true); }
+    if(!authAndDecodeOTSecurableFrameWithWorkspace<sfrx_t, decrypt, getKey>(fd, sW))
+        { return(true); }
 
-    // Make sure frame is long enough to have useful information in it and call operations.
+    // Make sure frame is long enough to have useful information in it
+    // and then call operations.
     if(2 < fd.decryptedBodyLen) {
         o1(fd);
         o2(fd);
     }
     // This frame has now been dealt with (by protocol)
-    // even if we happenned not to be able to process it successfully.
+    // even if we happened not to be able to process it successfully.
     return(true);
 }
 

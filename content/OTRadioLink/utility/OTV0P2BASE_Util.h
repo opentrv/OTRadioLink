@@ -105,7 +105,39 @@ int parseHexByte(const char *s);
 #endif
 
 
-// Class for scratch space that can be passed into callers to trim stack/auto usage.
+// Large scratch space that can be passed into callers to trim stack usage.
+// Possible to create tail end for use by nested callers
+// where a routine needs to keep some state during those calls.
+// Scratch size is limited to 255 bytes.
+class ScratchSpaceL final
+  {
+  public:
+    // Buffer space; non-NULL except in case of error (when bufsize will also be 0).
+    uint8_t *const buf;
+    // Buffer size; strictly positive except in case of error (when buf will also be NULL).
+    const size_t bufsize;
+
+    // Create an instance.
+    //   * buf_  start of buffer space;
+    //     must be non-NULL except to indicate that the buffer is unusable.
+    //   * bufsize_  size of usable start of buffer;
+    //     must be positive except to indicate that the buffer is unusable.
+    constexpr ScratchSpaceL(uint8_t *const buf_, const size_t bufsize_)
+      : buf((0 == bufsize_) ? NULL : buf_), bufsize((NULL == buf_) ? 0 : bufsize_) { }
+
+    // Check if sub-space cannot be made (would not leave at least one byte available).
+    static constexpr bool subSpaceCannotBeMade(size_t oldSize, size_t reserveN)
+        { return((0 == reserveN) || (oldSize <= reserveN)); }
+    // Create a sub-space n bytes from the start of the current space.
+    // If the existing buffer is smaller than n (or null), or n is null,
+    // the the result will be NULL and zero-sized.
+    constexpr ScratchSpaceL(const ScratchSpaceL &parent, const size_t reserveN)
+      : buf(subSpaceCannotBeMade(parent.bufsize, reserveN) ? NULL : parent.buf + reserveN),
+        bufsize(subSpaceCannotBeMade(parent.bufsize, reserveN) ? 0 : parent.bufsize - reserveN)
+        { }
+  };
+
+// Class for scratch space that can be passed into callers to trim stack usage.
 // Possible to create tail end for use by nested callers
 // where a routine needs to keep some state during those calls.
 // Scratch size is limited to 255 bytes.
@@ -134,6 +166,13 @@ class ScratchSpace final
     constexpr ScratchSpace(const ScratchSpace &parent, const uint8_t reserveN)
       : buf(subSpaceCannotBeMade(parent.bufsize, reserveN) ? NULL : parent.buf + reserveN),
         bufsize(subSpaceCannotBeMade(parent.bufsize, reserveN) ? 0 : parent.bufsize - reserveN)
+        { }
+
+    // Wrap a sub-space round a large space.
+    // At most 255 bytes will be available in the new sub-space.
+    constexpr ScratchSpace(const ScratchSpaceL &parent)
+      : buf(parent.buf),
+        bufsize((parent.bufsize > 255) ? 255 : uint8_t(parent.bufsize))
         { }
   };
 

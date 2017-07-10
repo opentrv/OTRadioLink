@@ -40,11 +40,11 @@ namespace SOSDT {
     // Max allowed stack usage for decodeAndHandleOTSecureFrame.
     // Very lax as Clang uses ~50% more stack than gcc on travis.
     #ifndef __APPLE__
-    static constexpr unsigned int maxStackSecureFrameDecode = 1600;
+    static constexpr unsigned int maxStackSecureFrameDecode = 1744; // 1600; // was 1024. clang uses more stack
     #else
     // For macOS / clang++ (pretending to be G++) builds.
     // On macOS 10.12.5 system, secure frame enc/decode ~358 bytes at 20170511.
-    static constexpr unsigned int maxStackSecureFrameDecode = 1520;
+    static constexpr unsigned int maxStackSecureFrameDecode = 1744; // 1536; // 1520;
     #endif // __APPLE__
 
     bool pollIO(bool) {return (false);}
@@ -61,7 +61,7 @@ namespace SOSDT {
         static const uint8_t body[];
         // length of secure frame
         static const uint8_t encodedLength;
-        // Buffer containing secure frame. Generated using code bellow.
+        // Buffer containing secure frame. Generated using code below.
         static const uint8_t buf[];
 
         // Stuff used to generate a working encodable frame. Taken from SecureFrameTest.cpp
@@ -117,7 +117,7 @@ namespace SOSDT {
     const uint8_t minimumSecureFrame::body[] = { 0x7f, 0x11, 0x7b, 0x22, 0x62, 0x22, 0x3a, 0x31 };
     // length of secure frame
     const uint8_t minimumSecureFrame::encodedLength = 63;
-    // Buffer containing secure frame. Generated using code bellow.
+    // Buffer containing secure frame. Generated using code below.
     const uint8_t minimumSecureFrame::buf[] = {
         0x3e, 0xcf, 0x94, 0xaa, 0xaa, 0xaa, 0xaa, 0x20,
         0xb3, 0x45, 0xf9, 0x29, 0x69, 0x57, 0x0c, 0xb8,
@@ -218,18 +218,29 @@ namespace SOSDT
         const uint8_t * senderID = SOSDT::minimumSecureFrame::id;
         const uint8_t * msgCounter = SOSDT::minimumSecureFrame::oldCounter;
         const uint8_t * const msgStart = &SOSDT::minimumSecureFrame::buf[1];
-        // Do encryption via simplified interface.
-        constexpr uint8_t workspaceSize = 180 + 14;  // FIXME! Find out required space, parametrise for different computers.
+
+        constexpr size_t workspaceSize =
+            (176+112) /* for OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE for AES+Dec */ +
+            OTRadioLink::authAndDecodeOTSecurableFrameWithWorkspace_scratch_usage +
+            OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameSafely_total_scratch_usage_OTAESGCM_3p0;
+
+        // Uncomment to print workspace size.
+        std::cout << "decodeAndHandleSecureFrameWithWorkspace() workspace size: " << workspaceSize << std::endl;
+
         uint8_t workspace[workspaceSize];
-        OTV0P2BASE::ScratchSpace sW(workspace, workspaceSize);
+        OTV0P2BASE::ScratchSpaceL sW(workspace, workspaceSize);
+
+        // Do encryption via simplified interface.
         OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter &sfrx = OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter::getInstance();
         sfrx.setMockIDValue(senderID);
         sfrx.setMockCounterValue(msgCounter);
-        return(OTRadioLink::decodeAndHandleOTSecureOFrameWithWorkspace<OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
-                                                                      OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_WORKSPACE,
-                                                                      SOSDT::getKeySuccess,
-                                                                      SOSDT::setFlagFrameOperation
-                                                                     >(msgStart, sW));
+        return(OTRadioLink::decodeAndHandleOTSecureOFrameWithWorkspace<
+                OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
+                OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE,
+                SOSDT::getKeySuccess,
+                SOSDT::setFlagFrameOperation
+                >
+               (msgStart, sW));
     }
 }
 TEST(SecureOpStackDepth, SimpleSecureFrame32or0BodyRXFixedCounterWithWorkspaceStack)
