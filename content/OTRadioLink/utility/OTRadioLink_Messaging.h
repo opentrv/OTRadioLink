@@ -393,7 +393,7 @@ template<typename sfrx_t,
          frameOperator_fn_t &o2 = nullFrameOperation>
 bool decodeAndHandleOTSecureOFrame(volatile const uint8_t * const _msg)
 {
-#if 1
+#if 0 // Highest level will be in authAndDecodeOTSecurableFrame or a frame operator (unlikely )anyway.
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
 #endif
     const uint8_t * const msg = (const uint8_t * const)_msg;
