@@ -165,10 +165,10 @@ namespace OTRadioLink
         // +------+--------+----+----------------+
         // | type | seqidl | bl | 1-byte-trailer |
         // +------+--------+----+----------------+
-        static const uint8_t minFrameSize = 4;
+        static constexpr uint8_t minFrameSize = 4;
 
         // Maximum (small) frame size is 63, excluding fl byte.
-        static const uint8_t maxSmallFrameSize = 63;
+        static constexpr uint8_t maxSmallFrameSize = 63;
         // Frame length excluding/after this byte [0,63]; zero indicates an invalid frame.
         // Appears first on the wire to support radio hardware packet handling.
         //     fl = hl-1 + bl + tl = 3+il + bl + tl
@@ -201,7 +201,7 @@ namespace OTRadioLink
         // be the ID of the target/recipient.
         //
         // Initial and 'small frame' implementations are limited to 8 bytes of ID
-        const static uint8_t maxIDLength = 8;
+        static constexpr uint8_t maxIDLength = 8;
         uint8_t id[maxIDLength];
 
         // Get header length including the leading frame-length byte.
@@ -209,7 +209,7 @@ namespace OTRadioLink
 
         // Maximum small frame body size is maximum frame size minus 4, excluding fl byte.
         // This maximum size is only achieved with non-secure frames with zero-length ID.
-        static const uint8_t maxSmallFrameBodySize = maxSmallFrameSize - 4;
+        static constexpr uint8_t maxSmallFrameBodySize = maxSmallFrameSize - 4;
         // Body length including any padding [0,251] but generally << 60.
         uint8_t bl;
         // Compute the offset of the body from the start of the frame starting with nominal fl byte.
