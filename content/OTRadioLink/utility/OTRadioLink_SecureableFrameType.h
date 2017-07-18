@@ -653,7 +653,7 @@ namespace OTRadioLink
             uint8_t generateSecureOFrameRawForTX(uint8_t *buf, uint8_t buflen,
                                             uint8_t il_,
                                             uint8_t valvePC,
-                                            const char *statsJSON,
+                                            uint8_t *statsJSON,
                                             fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
                                             const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key);
         };
