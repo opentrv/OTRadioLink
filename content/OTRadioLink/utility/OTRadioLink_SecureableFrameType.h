@@ -646,7 +646,7 @@ namespace OTRadioLink
             // NOTE: this leaves enough space in the scratch for the plain text to be padded in-situ
             // thus avoiding any further copy or buffer space required.
             // NOTE: THIS API IS LIABLE TO CHANGE
-            static constexpr uint8_t generateSecureOFrameRawForTX_scratch_usage = 12 + 32;
+            static constexpr uint8_t generateSecureOFrameRawForTX_scratch_usage = 12; // + 32; as bbuf moved out to level above.
             static constexpr size_t generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0 =
                     encodeSecureSmallFrameRawPadInPlace_total_scratch_usage_OTAESGCM_2p0
                     + generateSecureOFrameRawForTX_scratch_usage;
