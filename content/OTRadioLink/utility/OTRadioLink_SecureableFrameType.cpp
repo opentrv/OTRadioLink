@@ -394,7 +394,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRaw(
     if((NULL == e) || (NULL == key)) { return(0); } // ERROR
 
     // Capture possible (near) peak of stack usage, eg when called from ISR.
-    OTV0P2BASE::MemoryChecks::recordIfMinSP();
+    OTV0P2BASE::MemoryChecks::recordIfMinSP(5);  // FIXME delete number
 
     // Stop if unencrypted body is too big for this scheme.
     if(bl_ > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
@@ -477,7 +477,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRawPadInPlace(
     if((NULL == e) || (NULL == key)) { return(0); } // ERROR
 
     // Capture possible (near) peak of stack usage, eg when called from ISR.
-    OTV0P2BASE::MemoryChecks::recordIfMinSP();
+    OTV0P2BASE::MemoryChecks::recordIfMinSP(6);  // FIXME delete number
 
     // Stop if unencrypted body is too big for this scheme.
     if(bl_ > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
@@ -564,7 +564,7 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRaw(const Secura
         (NULL == key) || (NULL == iv)) { return(0); } // ERROR
 
     // Capture possible (near) peak of stack usage, eg when called from ISR.
-    OTV0P2BASE::MemoryChecks::recordIfMinSP();
+    OTV0P2BASE::MemoryChecks::recordIfMinSP(3);  // FIXME delete number
 
     // Abort if header was not decoded properly.
     if(sfh->isInvalid()) { return(0); } // ERROR
@@ -617,7 +617,7 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRawWithWorkspace
         (NULL == key) || (NULL == iv)) { return(0); } // ERROR
 
     // Capture possible (near) peak of stack usage, eg when called from ISR.
-    OTV0P2BASE::MemoryChecks::recordIfMinSP();
+    OTV0P2BASE::MemoryChecks::recordIfMinSP(4);  // FIXME delete number
 
     // Abort if header was not decoded properly.
     if(sfh->isInvalid()) { return(0); } // ERROR
@@ -868,7 +868,8 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX(uint8_t *
 //  * il_  ID length for the header; ID is local node ID from EEPROM or other pre-supplied ID
 //  * key  16-byte secret key; never NULL
 // NOTE: THIS API IS LIABLE TO CHANGE
-uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX(uint8_t *const buf, const uint8_t buflen,
+uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX(
+            uint8_t *const buf, const uint8_t buflen,
             const uint8_t il_,
             const uint8_t valvePC,
             const char *const statsJSON,
