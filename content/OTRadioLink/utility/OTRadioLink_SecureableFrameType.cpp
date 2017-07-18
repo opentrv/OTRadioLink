@@ -394,7 +394,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRaw(
     if((NULL == e) || (NULL == key)) { return(0); } // ERROR
 
     // Capture possible (near) peak of stack usage, eg when called from ISR.
-    OTV0P2BASE::MemoryChecks::recordIfMinSP(5);  // FIXME delete number
+    OTV0P2BASE::MemoryChecks::recordIfMinSP();
 
     // Stop if unencrypted body is too big for this scheme.
     if(bl_ > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
@@ -477,7 +477,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRawPadInPlace(
     if((NULL == e) || (NULL == key)) { return(0); } // ERROR
 
     // Capture possible (near) peak of stack usage, eg when called from ISR.
-    OTV0P2BASE::MemoryChecks::recordIfMinSP(6);  // FIXME delete number
+    OTV0P2BASE::MemoryChecks::recordIfMinSP();
 
     // Stop if unencrypted body is too big for this scheme.
     if(bl_ > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
@@ -564,7 +564,7 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRaw(const Secura
         (NULL == key) || (NULL == iv)) { return(0); } // ERROR
 
     // Capture possible (near) peak of stack usage, eg when called from ISR.
-    OTV0P2BASE::MemoryChecks::recordIfMinSP(3);  // FIXME delete number
+    OTV0P2BASE::MemoryChecks::recordIfMinSP();
 
     // Abort if header was not decoded properly.
     if(sfh->isInvalid()) { return(0); } // ERROR
@@ -872,7 +872,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX(
             uint8_t *const buf, const uint8_t buflen,
             const uint8_t il_,
             const uint8_t valvePC,
-            const char *const ptextBuf,
+            uint8_t *const ptextBuf,
             const fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
             const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *const key)
 {
@@ -883,19 +883,15 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX(
     // iv at start of scratch space
     uint8_t *const iv = scratch.buf; // uint8_t iv[IV_size];
     if(!compute12ByteIDAndCounterIVForTX(iv)) { return(0); }
-
-    const char *const statsJSON = &ptextBuf[2];
+    const char *const statsJSON = (const char *const)&ptextBuf[2];
     const bool hasStats = (NULL != ptextBuf) && ('{' == statsJSON[0]);
     const size_t slp1 = hasStats ? strlen(statsJSON) : 1; // Stats length including trailing '}' (not sent).
     if(slp1 > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE-1) { return(0); } // ERROR
-
     const uint8_t statslen = (uint8_t)(slp1 - 1); // Drop trailing '}' implicitly.
-
     // bbuf (buffer to encode in?) goes after iv
     uint8_t *const bbuf = (uint8_t *const)ptextBuf; // uint8_t bbuf[ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE];
     bbuf[0] = (valvePC <= 100) ? valvePC : 0x7f;
     bbuf[1] = hasStats ? 0x10 : 0; // Indicate presence of stats.
-
     // Create a new scratchspace from the old one in order to pass on.
     const OTV0P2BASE::ScratchSpaceL subscratch(scratch, generateSecureOFrameRawForTX_scratch_usage);
     const uint8_t *ID = iv; // First 6 bytes of IV is the ID.
