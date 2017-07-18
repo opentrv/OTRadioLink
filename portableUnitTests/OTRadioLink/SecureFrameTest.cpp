@@ -1174,7 +1174,7 @@ TEST(OTAESGCMSecureFrame, OFrameEncoding)
 
     // Encrypt empty (no-JSON) O frame via the explicit workspace API.
     uint8_t bufW[encBufSize];
-    char rawFrame[34];  // the length bbuf needs to be (valvepc + hasstats + msg including {} ).
+    uint8_t rawFrame[34];  // the length bbuf needs to be (valvepc + hasstats + msg including {} ).
     constexpr size_t workspaceSize = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0;
     uint8_t workspace[workspaceSize];
     OTV0P2BASE::ScratchSpaceL sW(workspace, workspaceSize);
