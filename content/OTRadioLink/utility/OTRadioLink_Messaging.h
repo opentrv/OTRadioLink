@@ -256,7 +256,9 @@ inline bool authAndDecodeOTSecurableFrame(OTFrameData_T &fd)
     const uint8_t msglen = msg[-1];
     uint8_t * outBuf = fd.decryptedBody;
 
+#if 0
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
+#endif
 
     // Validate (authenticate) and decrypt body of secure frames.
     uint8_t key[16];
@@ -317,8 +319,10 @@ inline bool authAndDecodeOTSecurableFrameWithWorkspace(
     const uint8_t msglen = msg[-1];
     uint8_t * outBuf = fd.decryptedBody;
 
+#if 0
     // Probe the stack here, in case we don't get deeper.
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
+#endif
 
     // Validate (authenticate) and decrypt body of secure frames.
 //    uint8_t key[16];
@@ -445,7 +449,7 @@ template<typename sfrx_t,
          frameOperator_fn_t &o2 = nullFrameOperation>
 bool decodeAndHandleOTSecureOFrameWithWorkspace(volatile const uint8_t * const _msg, OTV0P2BASE::ScratchSpaceL & sW)
 {
-#if 1
+#if 0
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
 #endif
     const uint8_t * const msg = (const uint8_t * const)_msg;
