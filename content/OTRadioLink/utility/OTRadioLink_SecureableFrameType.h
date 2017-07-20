@@ -640,7 +640,7 @@ namespace OTRadioLink
             //  * buf  buffer to which is written the entire frame including trailer; never NULL
             //  * buflen  available length in buf; if too small then this routine will fail (return 0)
             //  * valvePC  percentage valve is open or 0x7f if no valve to report on
-            //  * statsJSON  '\0'-terminated {} JSON stats, or NULL if none.
+            //  * ptextBuf  '\0'-terminated plain text buffer. This should contain space for the leading body bytes and for braces.
             //  * il_  ID length for the header; ID is local node ID from EEPROM or other pre-supplied ID, may be limited to a 6-byte prefix
             //  * key  16-byte secret key; never NULL
             // NOTE: this leaves enough space in the scratch for the plain text to be padded in-situ
@@ -653,7 +653,7 @@ namespace OTRadioLink
             uint8_t generateSecureOFrameRawForTX(uint8_t *buf, uint8_t buflen,
                                             uint8_t il_,
                                             uint8_t valvePC,
-                                            uint8_t *statsJSON,
+                                            uint8_t * ptextBuf,
                                             fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
                                             const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key);
         };
