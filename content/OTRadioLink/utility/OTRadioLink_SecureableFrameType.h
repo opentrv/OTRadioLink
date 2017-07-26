@@ -165,10 +165,10 @@ namespace OTRadioLink
         // +------+--------+----+----------------+
         // | type | seqidl | bl | 1-byte-trailer |
         // +------+--------+----+----------------+
-        static const uint8_t minFrameSize = 4;
+        static constexpr uint8_t minFrameSize = 4;
 
         // Maximum (small) frame size is 63, excluding fl byte.
-        static const uint8_t maxSmallFrameSize = 63;
+        static constexpr uint8_t maxSmallFrameSize = 63;
         // Frame length excluding/after this byte [0,63]; zero indicates an invalid frame.
         // Appears first on the wire to support radio hardware packet handling.
         //     fl = hl-1 + bl + tl = 3+il + bl + tl
@@ -201,7 +201,7 @@ namespace OTRadioLink
         // be the ID of the target/recipient.
         //
         // Initial and 'small frame' implementations are limited to 8 bytes of ID
-        const static uint8_t maxIDLength = 8;
+        static constexpr uint8_t maxIDLength = 8;
         uint8_t id[maxIDLength];
 
         // Get header length including the leading frame-length byte.
@@ -209,7 +209,7 @@ namespace OTRadioLink
 
         // Maximum small frame body size is maximum frame size minus 4, excluding fl byte.
         // This maximum size is only achieved with non-secure frames with zero-length ID.
-        static const uint8_t maxSmallFrameBodySize = maxSmallFrameSize - 4;
+        static constexpr uint8_t maxSmallFrameBodySize = maxSmallFrameSize - 4;
         // Body length including any padding [0,251] but generally << 60.
         uint8_t bl;
         // Compute the offset of the body from the start of the frame starting with nominal fl byte.
@@ -640,20 +640,20 @@ namespace OTRadioLink
             //  * buf  buffer to which is written the entire frame including trailer; never NULL
             //  * buflen  available length in buf; if too small then this routine will fail (return 0)
             //  * valvePC  percentage valve is open or 0x7f if no valve to report on
-            //  * statsJSON  '\0'-terminated {} JSON stats, or NULL if none.
+            //  * ptextBuf  '\0'-terminated plain text buffer. This should contain space for the leading body bytes and for braces.
             //  * il_  ID length for the header; ID is local node ID from EEPROM or other pre-supplied ID, may be limited to a 6-byte prefix
             //  * key  16-byte secret key; never NULL
             // NOTE: this leaves enough space in the scratch for the plain text to be padded in-situ
             // thus avoiding any further copy or buffer space required.
             // NOTE: THIS API IS LIABLE TO CHANGE
-            static constexpr uint8_t generateSecureOFrameRawForTX_scratch_usage = 12 + 32;
+            static constexpr uint8_t generateSecureOFrameRawForTX_scratch_usage = 12; // + 32; as bbuf moved out to level above.
             static constexpr size_t generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0 =
                     encodeSecureSmallFrameRawPadInPlace_total_scratch_usage_OTAESGCM_2p0
                     + generateSecureOFrameRawForTX_scratch_usage;
             uint8_t generateSecureOFrameRawForTX(uint8_t *buf, uint8_t buflen,
                                             uint8_t il_,
                                             uint8_t valvePC,
-                                            const char *statsJSON,
+                                            uint8_t * ptextBuf,
                                             fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
                                             const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key);
         };
@@ -865,7 +865,7 @@ namespace OTRadioLink
             // then update the RX message counter after a successful auth with this routine.
             //
             // Not a public entry point (is protected).
-            virtual uint8_t _decodeSecureSmallFrameFromID(const SecurableFrameHeader *sfh,
+            uint8_t _decodeSecureSmallFrameFromID(const SecurableFrameHeader *sfh,
                                             const uint8_t *buf, uint8_t buflen,
                                             fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
                                             const uint8_t *adjID, uint8_t adjIDLen,
@@ -878,7 +878,7 @@ namespace OTRadioLink
             static constexpr size_t _decodeSecureSmallFrameFromIDWithWorkspace_total_scratch_usage_OTAESGCM_3p0 =
                 decodeSecureSmallFrameRawWithWorkspace_total_scratch_usage_OTAESGCM_3p0 +
                 _decodeSecureSmallFrameFromIDWithWorkspace_scratch_usage;
-            virtual uint8_t _decodeSecureSmallFrameFromIDWithWorkspace(const SecurableFrameHeader *sfh,
+            uint8_t _decodeSecureSmallFrameFromIDWithWorkspace(const SecurableFrameHeader *sfh,
                                             const uint8_t *buf, uint8_t buflen,
                                             fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_ptr_t d,
                                             const uint8_t *adjID, uint8_t adjIDLen,
@@ -904,7 +904,7 @@ namespace OTRadioLink
             // This overloading accepts the decryption function, state and key explicitly.
             //
             //  * ID if non-NULL is filled in with the full authenticated sender ID, so must be >= 8 bytes
-            virtual uint8_t decodeSecureSmallFrameSafely(
+            uint8_t decodeSecureSmallFrameSafely(
                 const SecurableFrameHeader *sfh,
                 const uint8_t *buf, uint8_t buflen,
                 fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
@@ -941,7 +941,7 @@ namespace OTRadioLink
             static constexpr size_t decodeSecureSmallFrameSafely_total_scratch_usage_OTAESGCM_3p0 =
                 _decodeSecureSmallFrameFromIDWithWorkspace_total_scratch_usage_OTAESGCM_3p0 +
                 decodeSecureSmallFrameSafely_scratch_usage;
-            virtual uint8_t decodeSecureSmallFrameSafely(
+            uint8_t decodeSecureSmallFrameSafely(
                 const SecurableFrameHeader *sfh,
                 const uint8_t *buf, uint8_t buflen,
                 fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_ptr_t d,

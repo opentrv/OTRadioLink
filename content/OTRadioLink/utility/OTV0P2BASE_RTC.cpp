@@ -30,6 +30,10 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 #include <Arduino.h>
 #endif
 
+#if 0
+#include "OTV0p2Base.h"
+#endif
+
 #include "OTV0P2BASE_EEPROM.h"
 #include "OTV0P2BASE_Sleep.h"
 
@@ -314,7 +318,12 @@ ISR(TIMER2_OVF_vect)
   // Deal with watchdog, if enabled.
   if(_RTCWatchdogEnabled)
     {
-    if(_RTCWatchdogResetNotCalled) { forceReset(); }
+    if(_RTCWatchdogResetNotCalled) {
+#if 0
+        OTV0P2BASE::serialPrintlnAndFlush(F("!WD"))
+#endif
+        forceReset();
+    }
     _RTCWatchdogResetNotCalled = true;
     }
   }

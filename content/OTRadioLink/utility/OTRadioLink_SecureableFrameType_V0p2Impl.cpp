@@ -274,6 +274,7 @@ bool SimpleSecureFrame32or0BodyTXV0p2::incrementAndGetPrimarySecure6BytePersiste
     static uint8_t ephemeral[3];
 
     // Temporary area for initialising ephemeral[] where needed.
+    // Must be of equal size to ephemeral.
     uint8_t tmpE[sizeof(ephemeral)];
     if(doInitialisation)
         {
@@ -293,7 +294,8 @@ bool SimpleSecureFrame32or0BodyTXV0p2::incrementAndGetPrimarySecure6BytePersiste
         if(doInitialisation)
             {
             // Fill lsbs of ephemeral part with entropy so as not to reduce lifetime significantly.
-            memcpy(ephemeral+max(0,sizeof(ephemeral)-sizeof(tmpE)), tmpE, min(sizeof(tmpE), sizeof(ephemeral)));
+            // Assumes that ephemeral and tmpE are of equal size. Requires bounds checking if this is not the case.
+            memcpy(ephemeral, tmpE, sizeof(ephemeral));
             }
 
         // Increment the counter including the persistent part where necessary.
@@ -383,12 +385,11 @@ bool SimpleSecureFrame32or0BodyRXV0p2::getLastRXMessageCounter(const uint8_t * c
     const uint8_t incr = (!use_unary_counter) ? 0 :
         OTV0P2BASE::eeprom_unary_2byte_decode(eeprom_read_byte(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET + 7),
                                               eeprom_read_byte(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET + 7));
-    const uint8_t appliedIncr = (incr >= 0) ? incr : (OTV0P2BASE::EEPROM_UNARY_2BYTE_MAX_VALUE);
     // Try primary then secondary (both will be written to each time).
     if(!getLastRXMessageCounterFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET, counter) &&
        !getLastRXMessageCounterFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET, counter))
        { return(false); } // FAIL: both counters borked.
-    return(use_unary_counter ? SimpleSecureFrame32or0BodyBase::msgcounteradd(counter, appliedIncr) : true);
+    return(use_unary_counter ? SimpleSecureFrame32or0BodyBase::msgcounteradd(counter, incr) : true);
     }
 
 // Carefully update specified counter (primary or secondary) and CRCs as appropriate; returns false on failure.
@@ -469,15 +470,12 @@ bool SimpleSecureFrame32or0BodyRXV0p2::updateRXMessageCountAfterAuthentication(c
         const uint8_t currentIncr = (!use_unary_counter) ? 0 :
             OTV0P2BASE::eeprom_unary_2byte_decode(eeprom_read_byte(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET + 7),
                                                   eeprom_read_byte(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET + 7));
-        // If impossible to read back the existing value then use 0 for a slightly longer search below.
-        const uint8_t startIncr = (currentIncr >= 0) ? currentIncr : 0;
-//        const uint8_t startIncr = 0;
         // Try successively larger increments with the unary counter
         // until the total of the base and unary counts is the requested new counter value,
         // then set the unary counter to that value and return a success value.
         // In most cases this will take a single increment
         // as messages will arrive with successive message counter values, barring comms loss.
-        for(uint8_t newIncr = startIncr; newIncr <= OTV0P2BASE::EEPROM_UNARY_2BYTE_MAX_VALUE; ++newIncr)
+        for(uint8_t newIncr = currentIncr; newIncr <= OTV0P2BASE::EEPROM_UNARY_2BYTE_MAX_VALUE; ++newIncr)
             {
             uint8_t putativeTotal[fullMessageCounterBytes];
             memcpy(putativeTotal, baseCount, sizeof(putativeTotal));
@@ -530,7 +528,7 @@ bool SimpleSecureFrame32or0BodyTXV0p2SuppliedID::getTXID(uint8_t *const idOut) c
     return(getID(idOut));
     }
 
-int8_t SimpleSecureFrame32or0BodyRXV0p2::_getNextMatchingNodeID(const uint8_t index, const SecurableFrameHeader *const sfh, uint8_t *nodeID) const
+int8_t SimpleSecureFrame32or0BodyRXV0p2::_getNextMatchingNodeID(const uint8_t /*index*/, const SecurableFrameHeader *const sfh, uint8_t *nodeID) const
 {
         return (OTV0P2BASE::getNextMatchingNodeID(0, sfh->id, sfh->getIl(), nodeID));
 }

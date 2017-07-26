@@ -370,5 +370,65 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2017
 
 #endif
 
+
+#ifdef CONFIG_REV7_2WAY // REV9 cut2, derived from REV4.
+// Revision of V0.2 board.
+#define V0p2_REV 7
+// IF DEFINED: use (slow, low energy) 32768Hz-clock-based watchdog to recover from some software hangups.
+#define ENABLE_WATCHDOG_SLOW
+// Enable use of OneWire devices.
+#undef ENABLE_MINIMAL_ONEWIRE_SUPPORT
+// IF DEFINED: enable use of on-board SHT21 RH and temp sensor (in lieu of TMP112).
+#define ENABLE_PRIMARY_TEMP_SENSOR_SHT21
+// IF DEFINED: enable use of additional (eg external) DS18B20 temp sensor(s).
+#undef ENABLE_EXTERNAL_TEMP_SENSOR_DS18B20
+// IF DEFINED: allow use of ambient light sensor.
+#define ENABLE_AMBLIGHT_SENSOR
+// IF DEFINED: allow for less light on sideways-pointing ambient light sensor, eg on cut4 2014/03/17 REV2 boards (TODO-209).
+#undef ENABLE_AMBLIGHT_EXTRA_SENSITIVE
+// IF DEFINED: use RoHS-compliant phototransistor in place of default LDR.
+#undef ENABLE_AMBIENT_LIGHT_SENSOR_PHOTOTRANS_TEPT4400
+// IF UNDEFINED: this unit cannot act as boiler-control hub listening to remote thermostats, possibly in addition to controlling a local TRV.
+#undef ENABLE_BOILER_HUB
+// IF DEFINED: allow RX of stats frames.
+#undef ENABLE_STATS_RX
+// IF DEFINED: allow TX of stats frames.
+#define ENABLE_STATS_TX
+// IF DEFINED: (default) forced always-on radio listen/RX, eg not requiring setup to explicitly enable.
+#define ENABLE_DEFAULT_ALWAYS_RX
+// IF DEFINED: allow JSON stats frames alongside binary ones.
+#define ENABLE_JSON_OUTPUT    // XXX
+// IF DEFINED: this unit will act as a thermostat controlling a local TRV (and calling for heat from the boiler), else is a sensor/hub unit.
+#define ENABLE_LOCAL_TRV
+// IF DEFINED: this unit controls a valve, but provides slave valve control only.
+#undef ENABLE_SLAVE_TRV
+// IF DEFINED: (default) forced always-on radio listen/RX, eg not requiring setup to explicitly enable.
+#define ENABLE_DEFAULT_ALWAYS_RX
+// IF DEFINED: enable a full OpenTRV CLI.
+#undef ENABLE_FULL_OT_CLI
+// IF DEFINED: enable a full OpenTRV UI with normal LEDs etc.
+#undef ENABLE_FULL_OT_UI
+// IF DEFINED: basic FROST/WARM temperatures are settable.
+#undef ENABLE_SETTABLE_TARGET_TEMPERATURES
+// IF DEFINED: this unit supports CLI over the USB/serial connection, eg for run-time reconfig.
+#define ENABLE_CLI
+// IF DEFINED: enable and extended CLI with a longer input buffer for example.
+#define ENABLE_EXTENDED_CLI
+// IF DEFINED: support for general timed and multi-input occupancy detection / use.
+#undef ENABLE_OCCUPANCY_SUPPORT // No direct occupancy tracking at relay unit itself.
+// IF DEFINED: for REV9 boards window sensor(s).
+#define ENABLE_LEARN_BUTTON
+// IF DEFINED: use FHT8V wireless radio module/valve, eg to control FHT8V local valve.
+#define ENABLE_FHT8VSIMPLE  // XXX
+// IF DEFINED: enable support for FS20 carrier for RX or TX.
+#define ENABLE_FS20_CARRIER_SUPPORT  // XXX
+// IF DEFINED: enable support for FS20 encoding/decoding, eg to send to FHT8V.
+#define ENABLE_FS20_ENCODING_SUPPORT  // XXX
+// IF DEFINED: act as CC1 simple relay node.
+#define ALLOW_CC1_SUPPORT
+#define ALLOW_CC1_SUPPORT_RELAY
+#define ALLOW_CC1_SUPPORT_RELAY_IO // Direct addressing of LEDs, use of buttons, etc.
+#endif
+
 #endif
 

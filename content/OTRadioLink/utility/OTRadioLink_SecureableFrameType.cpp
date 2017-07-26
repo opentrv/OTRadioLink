@@ -617,7 +617,7 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRawWithWorkspace
         (NULL == key) || (NULL == iv)) { return(0); } // ERROR
 
     // Capture possible (near) peak of stack usage, eg when called from ISR.
-    OTV0P2BASE::MemoryChecks::recordIfMinSP();
+    OTV0P2BASE::MemoryChecks::recordIfMinSP(4);  // FIXME delete number
 
     // Abort if header was not decoded properly.
     if(sfh->isInvalid()) { return(0); } // ERROR
@@ -868,30 +868,30 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX(uint8_t *
 //  * il_  ID length for the header; ID is local node ID from EEPROM or other pre-supplied ID
 //  * key  16-byte secret key; never NULL
 // NOTE: THIS API IS LIABLE TO CHANGE
-uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX(uint8_t *const buf, const uint8_t buflen,
+uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX(
+            uint8_t *const buf, const uint8_t buflen,
             const uint8_t il_,
             const uint8_t valvePC,
-            const char *const statsJSON,
+            uint8_t *const ptextBuf,
             const fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
             const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *const key)
-    {
+{
     constexpr uint8_t IV_size = 12;
-    constexpr uint8_t bodyLengthPlusPaddingSpace = OTV0P2BASE::fnmax((uint8_t)32, ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE);
-    static_assert(generateSecureOFrameRawForTX_scratch_usage == IV_size + bodyLengthPlusPaddingSpace, "self-use scratch size wrong");
+    static_assert(generateSecureOFrameRawForTX_scratch_usage == IV_size, "self-use scratch size wrong");
     static_assert(generateSecureOFrameRawForTX_scratch_usage < generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0, "scratch size calc wrong");
     if(scratch.bufsize < generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0) { return(0); } // ERROR
     // iv at start of scratch space
     uint8_t *const iv = scratch.buf; // uint8_t iv[IV_size];
     if(!compute12ByteIDAndCounterIVForTX(iv)) { return(0); }
-    const bool hasStats = (NULL != statsJSON) && ('{' == statsJSON[0]);
+    const char *const statsJSON = (const char *const)&ptextBuf[2];
+    const bool hasStats = (NULL != ptextBuf) && ('{' == statsJSON[0]);
     const size_t slp1 = hasStats ? strlen(statsJSON) : 1; // Stats length including trailing '}' (not sent).
     if(slp1 > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE-1) { return(0); } // ERROR
     const uint8_t statslen = (uint8_t)(slp1 - 1); // Drop trailing '}' implicitly.
     // bbuf (buffer to encode in?) goes after iv
-    uint8_t *const bbuf = scratch.buf + IV_size; // uint8_t bbuf[ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE];
+    uint8_t *const bbuf = (uint8_t *const)ptextBuf; // uint8_t bbuf[ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE];
     bbuf[0] = (valvePC <= 100) ? valvePC : 0x7f;
     bbuf[1] = hasStats ? 0x10 : 0; // Indicate presence of stats.
-    if(hasStats) { memcpy(bbuf + 2, statsJSON, statslen); }
     // Create a new scratchspace from the old one in order to pass on.
     const OTV0P2BASE::ScratchSpaceL subscratch(scratch, generateSecureOFrameRawForTX_scratch_usage);
     const uint8_t *ID = iv; // First 6 bytes of IV is the ID.
@@ -901,7 +901,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX(uint8_t *
         ID, il_,
         bbuf, (hasStats ? 2+statslen : 2), // Note: callee will pad beyond this.
         iv, e, subscratch, key));
-    }
+}
 
     // As for decodeSecureSmallFrameRaw() but passed a candidate node/counterparty ID
     // derived from the frame ID in the incoming header,
