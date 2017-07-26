@@ -125,5 +125,47 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2017
 #endif
 
 
+#ifdef CONFIG_REV8_2WAY_COMMS // REV8 serial to OTProtocolCC gateway
+// Revision REV8.B of V0.2 board, boiler control unit.
+// NO LIGHT SENSOR FITTED ON REV8.B BOARDS.
+// BOTH TMP112 AND SHT21 FITTED on REV8.B BOARDS.
+// Supports the FS20 protocol.
+#define V0p2_REV 8
+// IF DEFINED: enable use of on-board SHT21 RH and temp sensor (in lieu of TMP112).
+#define ENABLE_PRIMARY_TEMP_SENSOR_SHT21
+// Using RoHS-compliant phototransistor in place of LDR.
+//#define ENABLE_AMBIENT_LIGHT_SENSOR_PHOTOTRANS_TEPT4400
+// IF DEFINED: use (slow, low energy) 32768Hz-clock-based watchdog to recover from some software hangups.
+#define ENABLE_WATCHDOG_SLOW
+// IF DEFINED: this unit can act as boiler-control hub listening to remote thermostats, possibly in addition to controlling a local TRV.
+#undef ENABLE_BOILER_HUB
+// IF DEFINED: allow RX of stats frames.
+#undef ENABLE_STATS_RX // Not needed for CC1 frames.
+// IF DEFINED: allow TX of stats frames.
+#undef ENABLE_STATS_TX
+// IF DEFINED: enable support for FS20 carrier for RX of raw FS20 and piggybacked binary (non-JSON) stats.
+#undef ENABLE_FS20_NATIVE_AND_BINARY_STATS_RX
+// IF DEFINED: enable support for FS20 encoding/decoding, eg to send to FHT8V.
+#undef ENABLE_FS20_ENCODING_SUPPORT
+// IF DEFINED: (default) forced always-on radio listen/RX, eg not requiring setup to explicitly enable.
+#define ENABLE_DEFAULT_ALWAYS_RX
+// IF DEFINED: this unit will act as a thermostat controlling a local TRV (and calling for heat from the boiler), else is a sensor/hub unit.
+#undef ENABLE_LOCAL_TRV // THESE HUB UNITS DO NOT manage a local TRV.
+// IF DEFINED: allow JSON stats frames alongside binary ones.
+#undef ENABLE_JSON_OUTPUT
+// IF DEFINED: enable a full OpenTRV CLI.
+#undef ENABLE_FULL_OT_CLI
+// IF DEFINED: enable a full OpenTRV UI with normal LEDs etc.
+#undef ENABLE_FULL_OT_UI
+// IF DEFINED: basic FROST/WARM temperatures are settable.
+#undef ENABLE_SETTABLE_TARGET_TEMPERATURES
+// IF DEFINED: enable and extended CLI with a longer input buffer for example.
+#define ENABLE_EXTENDED_CLI
+// IF DEFINED: support for general timed and multi-input occupancy detection / use.
+#undef ENABLE_OCCUPANCY_SUPPORT // None of that logic required at hub.
+// IF DEFINED: act as CC1 simple hub node.
+#define ALLOW_CC1_SUPPORT
+#define ALLOW_CC1_SUPPORT_HUB
 #endif
 
+#endif
