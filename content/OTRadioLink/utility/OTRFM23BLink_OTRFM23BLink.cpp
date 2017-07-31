@@ -247,65 +247,66 @@ bool OTRFM23BLinkBase::sendRaw(const uint8_t *const buf, const uint8_t buflen, c
     return(result);
     }
 
-//// Switch listening off, or on to specified channel.  // XXX
-//// listenChannel will have been set by time this is called.
-//// This always switches to standby mode first, then switches on RX as needed.
-//void OTRFM23BLinkBase::_dolistenNonVolatile()
-//    {
+#if 0  // XXX devirtualising interrupt
+// Switch listening off, or on to specified channel.
+// listenChannel will have been set by time this is called.
+// This always switches to standby mode first, then switches on RX as needed.
+void OTRFM23BLinkBase::_dolisten()
+    {
+    // Unconditionally stop listening and go into low-power standby mode.
+    _modeStandbyAndClearState_();
+
+    // Capture possible (near) peak of stack usage, eg when called from ISR,
+    OTV0P2BASE::MemoryChecks::recordIfMinSP();
+
+    // Nothing further to do if RX not allowed.
+    if(!allowRXOps) { return; }
+
+    // Nothing further to do if not listening.
+    const int8_t lc = getListenChannel();
+    if(-1 == lc) { return; }
+
+    // Ensure on right channel.
+    _setChannel(lc);
+
 //    // Unconditionally stop listening and go into low-power standby mode.
 //    _modeStandbyAndClearState_();
-//
-//    // Capture possible (near) peak of stack usage, eg when called from ISR,
-//    OTV0P2BASE::MemoryChecks::recordIfMinSP();
-//
-//    // Nothing further to do if RX not allowed.
-//    if(!allowRXOps) { return; }
-//
-//    // Nothing further to do if not listening.
-//    const int8_t lc = getListenChannel();
-//    if(-1 == lc) { return; }
-//
-//    // Ensure on right channel.
-//    _setChannel(lc);
-//
-////    // Unconditionally stop listening and go into low-power standby mode.
-////    _modeStandbyAndClearState_();
-//
-//    // Disable interrupts while enabling them at RFM23B and entering RX mode.
-//    ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
-//        {
-//        const bool neededEnable = _upSPI_();
-//
-//        // Clear RX and TX FIFOs.
-//        _writeReg8Bit_(REG_OP_CTRL2, 3); // FFCLRRX | FFCLRTX
-//        _writeReg8Bit_(REG_OP_CTRL2, 0);
-//
-//        // Set FIFO RX almost-full threshold as specified.
-//        _writeReg8Bit_(REG_RX_FIFO_CTRL, maxTypicalFrameBytes); // 55 is the default.
-//
-//        // Enable requested RX-related interrupts.
-//        // Do this regardless of hardware interrupt support on the board.
-//        // Check if packet handling in RFM23B is enabled and enable interrupts accordingly.
-//        if ( _readReg8Bit_(REG_30_DATA_ACCESS_CONTROL) & RFM23B_ENPACRX )  {
-//           _writeReg8Bit_(REG_INT_ENABLE1, RFM23B_ENPKVALID);
-//           _writeReg8Bit_(REG_INT_ENABLE2, 0);
-//           if ((_readReg8Bit_(REG_33_HEADER_CONTROL2) & RFM23B_FIXPKLEN ) == RFM23B_FIXPKLEN )
-//              _writeReg8Bit_(REG_3E_PACKET_LENGTH, maxTypicalFrameBytes);
-//        }
-//        else {
-//           _writeReg8Bit_(REG_INT_ENABLE1, 0x10); // enrxffafull: Enable RX FIFO Almost Full.
-//           _writeReg8Bit_(REG_INT_ENABLE2, WAKE_ON_SYNC_RX ? 0x80 : 0); // enswdet: Enable Sync Word Detected.
-//        }
-//
-//        // Clear any current interrupt/status.
-//        _clearInterrupts_();
-//
-//        // Start listening.
-//        _modeRX_();
-//
-//        if(neededEnable) { _downSPI_(); }
-//        }
-//    }
+
+    // Disable interrupts while enabling them at RFM23B and entering RX mode.
+    ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
+        {
+        const bool neededEnable = _upSPI_();
+
+        // Clear RX and TX FIFOs.
+        _writeReg8Bit_(REG_OP_CTRL2, 3); // FFCLRRX | FFCLRTX
+        _writeReg8Bit_(REG_OP_CTRL2, 0);
+
+        // Set FIFO RX almost-full threshold as specified.
+        _writeReg8Bit_(REG_RX_FIFO_CTRL, maxTypicalFrameBytes); // 55 is the default.
+
+        // Enable requested RX-related interrupts.
+        // Do this regardless of hardware interrupt support on the board.
+        // Check if packet handling in RFM23B is enabled and enable interrupts accordingly.
+        if ( _readReg8Bit_(REG_30_DATA_ACCESS_CONTROL) & RFM23B_ENPACRX )  {
+           _writeReg8Bit_(REG_INT_ENABLE1, RFM23B_ENPKVALID);
+           _writeReg8Bit_(REG_INT_ENABLE2, 0);
+           if ((_readReg8Bit_(REG_33_HEADER_CONTROL2) & RFM23B_FIXPKLEN ) == RFM23B_FIXPKLEN )
+              _writeReg8Bit_(REG_3E_PACKET_LENGTH, maxTypicalFrameBytes);
+        }
+        else {
+           _writeReg8Bit_(REG_INT_ENABLE1, 0x10); // enrxffafull: Enable RX FIFO Almost Full.
+           _writeReg8Bit_(REG_INT_ENABLE2, WAKE_ON_SYNC_RX ? 0x80 : 0); // enswdet: Enable Sync Word Detected.
+        }
+
+        // Clear any current interrupt/status.
+        _clearInterrupts_();
+
+        // Start listening.
+        _modeRX_();
+
+        if(neededEnable) { _downSPI_(); }
+        }
+    }
 
 // Put RFM23 into standby, attempt to read bytes from FIFO into supplied buffer.
 // Leaves RFM22 in low-power standby mode.
@@ -339,6 +340,7 @@ void OTRFM23BLinkBase::_RXFIFO(uint8_t *buf, const uint8_t bufSize)
         if(neededEnable) { _downSPI_(); }
         }
     }
+#endif // 0
 
 // Configure radio for transmission via specified channel < nChannels; non-negative.
 void OTRFM23BLinkBase::_setChannel(const uint8_t channel)

@@ -25,6 +25,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 #ifndef OTRFM23BLINK_OTRFM23BLINK_H
 #define OTRFM23BLINK_OTRFM23BLINK_H
+#define ARDUINO_ARCH_AVR
 #include <stddef.h>
 #include <stdint.h>
 
@@ -271,10 +272,12 @@ namespace OTRFM23BLink
             // Does not clear TX FIFO (so possible to re-send immediately).
             bool _TXFIFO();
 
+#if 0 // XXX devirtualising interrupts
             // Put RFM23 into standby, attempt to read bytes from FIFO into supplied buffer.
             // Leaves RFM23 in low-power standby mode.
             // Trailing bytes (more than were actually sent) undefined.
             void _RXFIFO(uint8_t *buf, const uint8_t bufSize);
+#endif // 0
 
             // Switch listening off, on to selected channel.
             // listenChannel will have been set by time this is called.
@@ -548,6 +551,34 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                 _writeReg8Bit(REG_OP_CTRL1, REG_OP_CTRL1_SWRES);
                 _modeStandby();
                 if(neededEnable) { _downSPI(); }
+                }
+
+
+            // Put RFM23 into standby, attempt to read bytes from FIFO into supplied buffer.
+            // Leaves RFM22 in low-power standby mode.
+            // Trailing bytes (more than were actually sent) undefined.
+            void _RXFIFO(uint8_t *buf, const uint8_t bufSize)
+                {
+                // Lock out interrupts.
+                ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
+                    {
+                    const bool neededEnable = _upSPI();
+                    _modeStandby();
+                    // Do burst read from RX FIFO.
+                    _SELECT();
+                    _io(REG_FIFO & 0x7F);
+                    for(int i = 0; i < bufSize; ++i) { *buf++ = _io(0); }
+                    _DESELECT();
+                    // Clear RX and TX FIFOs simultaneously.
+                    _writeReg8Bit(REG_OP_CTRL2, 3); // FFCLRRX | FFCLRTX
+                    _writeReg8Bit(REG_OP_CTRL2, 0); // Needs both writes to clear.
+                    // Disable all interrupts.
+                    _writeReg8Bit(REG_INT_ENABLE1, 0);
+                    _writeReg8Bit(REG_INT_ENABLE2, 0); // TODO: possibly combine in burst write with previous...
+                    // Clear any interrupts already/still pending...
+                    _clearInterrupts();
+                    if(neededEnable) { _downSPI(); }
+                    }
                 }
 
 
