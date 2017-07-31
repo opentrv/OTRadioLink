@@ -25,7 +25,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 #ifndef OTRFM23BLINK_OTRFM23BLINK_H
 #define OTRFM23BLINK_OTRFM23BLINK_H
-
 #include <stddef.h>
 #include <stdint.h>
 
@@ -56,7 +55,6 @@ namespace OTRFM23BLink
     // but this code's ISR that may interfere with (eg) register access.
 
     // See end for library of common configurations.
-
 #ifdef ARDUINO_ARCH_AVR
     // Base class for RFM23B radio link hardware driver.
     // Neither re-entrant nor ISR-safe except where stated.
@@ -280,7 +278,7 @@ namespace OTRFM23BLink
 
             // Switch listening off, on to selected channel.
             // listenChannel will have been set by time this is called.
-            virtual void _dolisten();
+            virtual void _dolisten() = 0;
 
             // Configure radio for transmission via specified channel < nChannels; non-negative.
             void _setChannel(uint8_t channel);
@@ -552,6 +550,53 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                 if(neededEnable) { _downSPI(); }
                 }
 
+
+            // Switch listening off, on to selected channel.
+            // listenChannel will have been set by time this is called.
+            void _dolistenNonVirtual()
+            {
+                // Unconditionally stop listening and go into low-power standby mode.
+                _modeStandbyAndClearState();
+                // Capture possible (near) peak of stack usage, eg when called from ISR,
+                OTV0P2BASE::MemoryChecks::recordIfMinSP();
+                // Nothing further to do if RX not allowed.
+                if(!allowRXOps) { return; }
+                // Nothing further to do if not listening.
+                const int8_t lc = getListenChannel();
+                if(-1 == lc) { return; }
+                // Ensure on right channel.
+                _setChannel(lc);
+                // Disable interrupts while enabling them at RFM23B and entering RX mode.
+                ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
+                    {
+                    const bool neededEnable = _upSPI_();
+                    // Clear RX and TX FIFOs.
+                    _writeReg8Bit(REG_OP_CTRL2, 3); // FFCLRRX | FFCLRTX
+                    _writeReg8Bit(REG_OP_CTRL2, 0);
+                    // Set FIFO RX almost-full threshold as specified.
+                    _writeReg8Bit(REG_RX_FIFO_CTRL, maxTypicalFrameBytes); // 55 is the default.
+                    // Enable requested RX-related interrupts.
+                    // Do this regardless of hardware interrupt support on the board.
+                    // Check if packet handling in RFM23B is enabled and enable interrupts accordingly.
+                    if ( _readReg8Bit(REG_30_DATA_ACCESS_CONTROL) & RFM23B_ENPACRX )  {
+                       _writeReg8Bit(REG_INT_ENABLE1, RFM23B_ENPKVALID);
+                       _writeReg8Bit(REG_INT_ENABLE2, 0);
+                       if ((_readReg8Bit(REG_33_HEADER_CONTROL2) & RFM23B_FIXPKLEN ) == RFM23B_FIXPKLEN )
+                          _writeReg8Bit(REG_3E_PACKET_LENGTH, maxTypicalFrameBytes);
+                    } else {
+                       _writeReg8Bit(REG_INT_ENABLE1, 0x10); // enrxffafull: Enable RX FIFO Almost Full.
+                       _writeReg8Bit(REG_INT_ENABLE2, WAKE_ON_SYNC_RX ? 0x80 : 0); // enswdet: Enable Sync Word Detected.
+                    }
+                    // Clear any current interrupt/status.
+                    _clearInterrupts();
+                    // Start listening.
+                    _modeRX();
+                    if(neededEnable) { _downSPI(); }
+                    }
+            }
+            // Version accessible to base class.
+            virtual void _dolisten() { _dolistenNonVirtual(); }
+
             // Common handling of polling and ISR code.
             // NOT RENTRANT: interrupts must be blocked when this is called.
             // Keeping everything inline helps allow better ISR code generation
@@ -572,9 +617,9 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
 
                 // We need to check if RFM23B is in packet mode and based on that 
                 // we select interrupt routine.
-                const bool neededEnable = _upSPI_();
-                const uint8_t rxMode = _readReg8Bit_(REG_30_DATA_ACCESS_CONTROL);
-                if(neededEnable) { _downSPI_(); }
+                const bool neededEnable = _upSPI();
+                const uint8_t rxMode = _readReg8Bit(REG_30_DATA_ACCESS_CONTROL);
+                if(neededEnable) { _downSPI(); }
                 if(rxMode & RFM23B_ENPACRX)
                   {
                   // Packet-handling mode...
@@ -618,7 +663,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                             lastRXErr = RXErr_DroppedFrame;
                             }
                         // Clear up and force back to listening...
-                        _dolisten();
+                        _dolistenNonVirtual();
                         //return;
                         }
 #if 0 && defined(MILENKO_DEBUG)
@@ -644,7 +689,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                         // Note the overrun error.
                         lastRXErr = RXErr_RXOverrun;
                         // Reset and force back to listening...
-                        _dolisten();
+                        _dolistenNonVirtual();
                         return;
                         }
                     else if(status & 0x1000)
@@ -678,7 +723,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                             lastRXErr = RXErr_DroppedFrame;
                             }
                         // Clear up and force back to listening...
-                        _dolisten();
+                        _dolistenNonVirtual();
                         return;
                         }
                     else if(WAKE_ON_SYNC_RX && (status & 0x80))
@@ -729,13 +774,19 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // Loosely has the effect of calling poll(),
             // but may respond to and deal with things other than inbound messages.
             // Initiating interrupt assumed blocked until this returns.
-            virtual bool handleInterruptSimple() override
-                {
+            // * _handleInterruptNonVirtual() allows interrupts to be used
+            // without the virtual call stack, potentially allowing for
+            // better optimisation.
+            // * handleInterruptSimple is kept to preserve the existing API.
+            bool _handleInterruptNonVirtual()
+            {
                 if(!allowRX) { return(false); }
                 if(interruptLineIsEnabledAndInactive()) { return(false); }
                 _poll();
                 return(true);
-                }
+            }
+            // Version accessible to bass class.
+            virtual bool handleInterruptSimple() override { return (_handleInterruptNonVirtual()); }
 
             // Get current RSSI.
             // CURRENTLY RFM23B IMPL ONLY.
