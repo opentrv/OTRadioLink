@@ -25,7 +25,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 #ifndef OTRFM23BLINK_OTRFM23BLINK_H
 #define OTRFM23BLINK_OTRFM23BLINK_H
-#define ARDUINO_ARCH_AVR
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -41,6 +41,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #include <OTRadioLink.h>
 #include "OTRadioLink_ISRRXQueue.h"
 
+//#define ARDUINO_ARCH_AVR
 
 namespace OTRFM23BLink
     {
@@ -352,6 +353,14 @@ namespace OTRFM23BLink
     //
     // Hardwire to I/O pin for RFM23B active-low SPI device select: SPI_nSS_DigitalPin.
     // Hardwire to I/O pin for RFM23B active-low interrupt RFM_nIRQ_DigitalPin (-1 if none).
+    // NOTE: If RFM_nIRQ_DigitalPin is >= 0, it is assumed that IRQs are
+    //       desired, (but need not be explicitly enabled). The driver can
+    //       internally enable/disable pin change interrupts and so:
+    //         - PCMSKx MUST be correctly configured.
+    //         - Any other interrupt lines using PCMSKx must take into account
+    //           that they may be disabled for long (> 100 ms) periods of time.
+    //         - PCMSKx interrupts may be enabled during a call to poll().
+    //       where PCMSKx is the pin change IRQ mask governing RFM_nIRQ_DigitalPin.
     // Set the targetISRRXMinQueueCapacity to at least 2, or 3 if RAM space permits, for busy RF channels.
     // With allowRX == false as much as possible of the receive side is disabled.
 #define OTRFM23BLink_DEFINED
@@ -394,9 +403,26 @@ namespace OTRFM23BLink
             virtual bool _upSPI_() const override { return(_upSPI()); }
             virtual void _downSPI_() const override { _downSPI(); }
 
+            // Internal routines for managing RFM23B interrupts.
             // True if interrupt line is inactive (or doesn't exist).
             // A poll or interrupt service routine can terminate immediately if this is true.
             inline bool interruptLineIsEnabledAndInactive() const { return(hasInterruptSupport && (LOW != fastDigitalRead(RFM_nIRQ_DigitalPin))); }
+#ifdef RFM23B_IRQ_CONTROL
+            // FIXME!!!! How do we decide what pin bank??? Currently assuming it is all on PCMSK0.
+            // FIXME: Should these be changed with IRQs enabled?
+            // Note: - Does nothing if RFM_nIRQ_DigitalPin is less than 0.
+            //       - All pin change IRQs governed by PCMSK0 are enabled/disabled by these routines.
+            // Internally keep track of whether IRQ is enabled. // FIXME when to update?
+            // Note: Assumes that IRQ settings are correctly initialised if an IRQ pin has been passed in.
+            // Routines are not ISR safe and should be called inside ATOMIC_BLOCKS? // XXX
+            bool isIRQEnabled = (RFM_nIRQ_DigitalPin >= 0);
+            // Update isIRQEnabled. Bit mask '(1 << 0)' gives just the result for PCMSK0, where the RFM_nIRQ pin is expected to be.
+            inline void _updateIsIRQEnabled() { if(0 <= RFM_nIRQ_DigitalPin) { isIRQEnabled = (PCICR & (1 << 0)); }}
+            // Disable IRQs on this pin bank.
+            inline void _disableIRQ() { if((0 <= RFM_nIRQ_DigitalPin) && isIRQEnabled) { PCICR &= ~(1 << 0); isIRQEnabled = false; } };
+            // Enable IRQs on this pin bank.
+            inline void _enableIRQ() { if((0 <= RFM_nIRQ_DigitalPin) && !isIRQEnabled) { PCICR |= (1 << 0); isIRQEnabled = true; } };
+#endif // RFM23B_IRQ_CONTROL
 
             // Write to 8-bit register on RFM23B.
             // SPI must already be configured and running.
@@ -637,6 +663,11 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // Ensures radio is in RX mode at exit if listening is enabled.
             void _poll()
                 {
+#ifdef RFM23B_IRQ_CONTROL
+                // Enable RFM_nIRQ if disabled and not re-enabled elsewhere.
+                _enableIRQ();
+#endif // RFM23B_IRQ_CONTROL
+
                 // Nothing to do if RX is not allowed.
                 if(!allowRX) { return; }
  
@@ -795,9 +826,23 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // May also be used for output processing,
             // eg to run a transmit state machine.
             // May be called very frequently and should not take more than a few 100ms per call.
-            virtual void poll() override { if(!interruptLineIsEnabledAndInactive()) { ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { _poll(); } } }
+            virtual void poll() override
+            {
+                if(!interruptLineIsEnabledAndInactive()) { ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { _poll(); } }
+            }
 
-            // Handle simple interrupt for this radio link.
+#ifdef RFM23B_IRQ_CONTROL
+            /**
+             * @brief   Temporarily suspend radio interrupts until func returns.
+             * @note    _poll MUST re-enable radio interrupts when it is called.
+             * @TODO    _poll MUST re-enable radio interrupts when it is called.
+             */
+            void suspendInterrupts() { ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { _disableIRQ(); } }
+            void enableInterrupts() { ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { _enableIRQ(); } }
+#endif // RFM23B_IRQ_CONTROL
+
+
+            // Handle simple interrupt for this radio link. // TODO
             // Must be fast and ISR (Interrupt Service Routine) safe.
             // Returns true if interrupt was successfully handled and cleared
             // else another interrupt handler in the chain may be called
