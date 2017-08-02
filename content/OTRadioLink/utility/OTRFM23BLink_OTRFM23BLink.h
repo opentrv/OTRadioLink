@@ -403,37 +403,6 @@ namespace OTRFM23BLink
             virtual bool _upSPI_() const override { return(_upSPI()); }
             virtual void _downSPI_() const override { _downSPI(); }
 
-            // Internal routines for managing RFM23B interrupts.
-            // True if interrupt line is inactive (or doesn't exist).
-            // A poll or interrupt service routine can terminate immediately if this is true.
-            inline bool interruptLineIsEnabledAndInactive() const { return(hasInterruptSupport && (LOW != fastDigitalRead(RFM_nIRQ_DigitalPin))); }
-#ifdef RFM23B_IRQ_CONTROL
-            // FIXME!!!! How do we decide what pin bank??? Currently assuming it is all on PCMSK0.
-            // FIXME: Should these be changed with IRQs enabled?
-            // Note: - Does nothing if RFM_nIRQ_DigitalPin is less than 0.
-            //       - All pin change IRQs governed by PCMSK0 are enabled/disabled by these routines.
-            // Internally keep track of whether IRQ is enabled. // FIXME when to update?
-            // Note: Assumes that IRQ settings are correctly initialised if an IRQ pin has been passed in.
-            // Routines are not ISR safe and should be called inside ATOMIC_BLOCKS? // XXX
-            bool isIRQEnabled = (RFM_nIRQ_DigitalPin >= 0);
-            // Update isIRQEnabled. Bit mask '(1 << 0)' gives just the result for PCMSK0, where the RFM_nIRQ pin is expected to be.
-            inline void _updateIsIRQEnabled() { if(0 <= RFM_nIRQ_DigitalPin) { isIRQEnabled = (PCICR & (1 << 0)); }}
-            /**
-             * @brief   Temporarily disable RFM23B IRQ line. Useful for when using routines that require a large amount
-             *          of stack, e.g. decoding secure frames. Interrupts should be renabled when _poll is called to
-             *          avoid accidentally leaving interrupts switched off.
-             * @param   disable: Disables interrupts if true, enables if false.
-             */
-            inline void _disableIRQ(bool disable)
-            {
-                if((0 <= RFM_nIRQ_DigitalPin))
-                {
-                    if (isIRQEnabled && disable) { PCICR &= ~(1 << 0); isIRQEnabled = false; }
-                    else if (!isIRQEnabled && !disable) { PCICR |= (1 << 0); isIRQEnabled = true; }
-                }
-            };
-#endif // RFM23B_IRQ_CONTROL
-
             // Write to 8-bit register on RFM23B.
             // SPI must already be configured and running.
             inline void _writeReg8Bit(const uint8_t addr, const uint8_t val)
@@ -590,6 +559,56 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                 }
 
 
+                // Internal routines for managing RFM23B interrupts.
+                // True if interrupt line is inactive (or doesn't exist).
+                // A poll or interrupt service routine can terminate immediately if this is true.
+                inline bool interruptLineIsEnabledAndInactive() const { return(hasInterruptSupport && (LOW != fastDigitalRead(RFM_nIRQ_DigitalPin))); }
+                /**
+                 * @brief   Enable RFM23B interrupts. Not reentrant or interrupt safe.
+                 * @Note    This may change in the future if TX interrupts are implemented.
+                 **/
+                void _enableIRQLine()
+                {
+                    // Enable requested RX-related interrupts.
+                    // Do this regardless of hardware interrupt support on the board.
+                    // Check if packet handling in RFM23B is enabled and enable interrupts accordingly.
+                    if ( _readReg8Bit(REG_30_DATA_ACCESS_CONTROL) & RFM23B_ENPACRX )  {
+                       _writeReg8Bit(REG_INT_ENABLE1, RFM23B_ENPKVALID);
+                       _writeReg8Bit(REG_INT_ENABLE2, 0);
+                       if ((_readReg8Bit(REG_33_HEADER_CONTROL2) & RFM23B_FIXPKLEN ) == RFM23B_FIXPKLEN )
+                          _writeReg8Bit(REG_3E_PACKET_LENGTH, maxTypicalFrameBytes);
+                    } else {
+                       _writeReg8Bit(REG_INT_ENABLE1, 0x10); // enrxffafull: Enable RX FIFO Almost Full.
+                       _writeReg8Bit(REG_INT_ENABLE2, WAKE_ON_SYNC_RX ? 0x80 : 0); // enswdet: Enable Sync Word Detected.
+                    }
+                }
+#ifdef RFM23B_IRQ_CONTROL
+                // Keep track of whether IRQs have been paused.
+                bool isIRQPaused = false;
+                /**
+                 * @brief   Temporarily disable RFM23B IRQ line. Useful for when using routines that require a large amount
+                 *          of stack, e.g. decoding secure frames. Interrupts should be renabled when _poll is called to
+                 *          avoid accidentally leaving interrupts switched off.
+                 *          Not reentrant or interrupt safe.
+                 * @param   disable: Disables interrupts if true, enables if false.
+                 */
+                inline void _disableIRQ(bool disable)
+                {
+                    if((0 <= RFM_nIRQ_DigitalPin))
+                    {
+#if 1
+                        if (!isIRQPaused && disable) { _writeReg16Bit0(REG_INT_ENABLE1); isIRQPaused = true; }
+                        else if (isIRQPaused && !disable) { _enableIRQLine(); isIRQPaused = false; }
+#else
+                        if (isIRQEnabled && disable) { PCICR &= ~(1 << 0); isIRQEnabled = false; }
+                        else if (!isIRQEnabled && !disable) { PCICR |= (1 << 0); isIRQEnabled = true; }
+#endif
+                    }
+                };
+#endif // RFM23B_IRQ_CONTROL
+
+
+
             // Put RFM23 into standby, attempt to read bytes from FIFO into supplied buffer.
             // Leaves RFM22 in low-power standby mode.
             // Trailing bytes (more than were actually sent) undefined.
@@ -642,18 +661,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                     _writeReg8Bit(REG_OP_CTRL2, 0);
                     // Set FIFO RX almost-full threshold as specified.
                     _writeReg8Bit(REG_RX_FIFO_CTRL, maxTypicalFrameBytes); // 55 is the default.
-                    // Enable requested RX-related interrupts.
-                    // Do this regardless of hardware interrupt support on the board.
-                    // Check if packet handling in RFM23B is enabled and enable interrupts accordingly.
-                    if ( _readReg8Bit(REG_30_DATA_ACCESS_CONTROL) & RFM23B_ENPACRX )  {
-                       _writeReg8Bit(REG_INT_ENABLE1, RFM23B_ENPKVALID);
-                       _writeReg8Bit(REG_INT_ENABLE2, 0);
-                       if ((_readReg8Bit(REG_33_HEADER_CONTROL2) & RFM23B_FIXPKLEN ) == RFM23B_FIXPKLEN )
-                          _writeReg8Bit(REG_3E_PACKET_LENGTH, maxTypicalFrameBytes);
-                    } else {
-                       _writeReg8Bit(REG_INT_ENABLE1, 0x10); // enrxffafull: Enable RX FIFO Almost Full.
-                       _writeReg8Bit(REG_INT_ENABLE2, WAKE_ON_SYNC_RX ? 0x80 : 0); // enswdet: Enable Sync Word Detected.
-                    }
+                    _enableIRQLine();
                     // Clear any current interrupt/status.
                     _clearInterrupts();
                     // Start listening.
