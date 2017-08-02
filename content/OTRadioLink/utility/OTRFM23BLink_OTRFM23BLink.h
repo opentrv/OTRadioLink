@@ -154,7 +154,7 @@ namespace OTRFM23BLink
             static constexpr uint8_t RFM23B_ENPACRX    =    0x80;
             static constexpr uint8_t RFM23B_ENPACTX    =    0x08;
 
-// RH_RF22_REG_33_HEADER_CONTROL2               
+// RH_RF22_REG_33_HEADER_CONTROL2
             static constexpr uint8_t RFM23B_HDLEN      =    0x70;
             static constexpr uint8_t RFM23B_HDLEN_0    =    0x00;
             static constexpr uint8_t RFM23B_HDLEN_1    =    0x10;
@@ -286,11 +286,11 @@ namespace OTRFM23BLink
 
             // Configure radio for transmission via specified channel < nChannels; non-negative.
             void _setChannel(uint8_t channel);
-   
+
 #if 1 && defined(MILENKO_DEBUG)
             // Compact register dump
             void readRegs(uint8_t from, uint8_t to, uint8_t noHeader = 0);
-            void printHex(int val); 
+            void printHex(int val);
 #endif
 
         public:
@@ -418,10 +418,20 @@ namespace OTRFM23BLink
             bool isIRQEnabled = (RFM_nIRQ_DigitalPin >= 0);
             // Update isIRQEnabled. Bit mask '(1 << 0)' gives just the result for PCMSK0, where the RFM_nIRQ pin is expected to be.
             inline void _updateIsIRQEnabled() { if(0 <= RFM_nIRQ_DigitalPin) { isIRQEnabled = (PCICR & (1 << 0)); }}
-            // Disable IRQs on this pin bank.
-            inline void _disableIRQ() { if((0 <= RFM_nIRQ_DigitalPin) && isIRQEnabled) { PCICR &= ~(1 << 0); isIRQEnabled = false; } };
-            // Enable IRQs on this pin bank.
-            inline void _enableIRQ() { if((0 <= RFM_nIRQ_DigitalPin) && !isIRQEnabled) { PCICR |= (1 << 0); isIRQEnabled = true; } };
+            /**
+             * @brief   Temporarily disable RFM23B IRQ line. Useful for when using routines that require a large amount
+             *          of stack, e.g. decoding secure frames. Interrupts should be renabled when _poll is called to
+             *          avoid accidentally leaving interrupts switched off.
+             * @param   disable: Disables interrupts if true, enables if false.
+             */
+            inline void _disableIRQ(bool disable)
+            {
+                if((0 <= RFM_nIRQ_DigitalPin))
+                {
+                    if (isIRQEnabled && disable) { PCICR &= ~(1 << 0); isIRQEnabled = false; }
+                    else if (!isIRQEnabled && !disable) { PCICR |= (1 << 0); isIRQEnabled = true; }
+                }
+            };
 #endif // RFM23B_IRQ_CONTROL
 
             // Write to 8-bit register on RFM23B.
@@ -665,19 +675,19 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                 {
 #ifdef RFM23B_IRQ_CONTROL
                 // Enable RFM_nIRQ if disabled and not re-enabled elsewhere.
-                _enableIRQ();
+                _disableIRQ(false);
 #endif // RFM23B_IRQ_CONTROL
 
                 // Nothing to do if RX is not allowed.
                 if(!allowRX) { return; }
- 
+
                 // Nothing to do if not listening at the moment.
                 if(-1 == getListenChannel()) { return; }
 
                 // See what has arrived, if anything.
                 const uint16_t status = _readStatusBoth();
 
-                // We need to check if RFM23B is in packet mode and based on that 
+                // We need to check if RFM23B is in packet mode and based on that
                 // we select interrupt routine.
                 const bool neededEnable = _upSPI();
                 const uint8_t rxMode = _readReg8Bit(REG_30_DATA_ACCESS_CONTROL);
@@ -689,9 +699,9 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                         {
                         const bool neededEnable = _upSPI();
                         // Extract packet/frame length...
-                        uint8_t lengthRX; 
+                        uint8_t lengthRX;
                         // Number of bytes to read depends whether fixed of variable packet length
-                        if ((_readReg8Bit_(REG_33_HEADER_CONTROL2) & RFM23B_FIXPKLEN ) == RFM23B_FIXPKLEN ) 
+                        if ((_readReg8Bit_(REG_33_HEADER_CONTROL2) & RFM23B_FIXPKLEN ) == RFM23B_FIXPKLEN )
                            lengthRX = _readReg8Bit(REG_3E_PACKET_LENGTH);
                         else
                            lengthRX = _readReg8Bit(REG_4B_RECEIVED_PACKET_LENGTH);
@@ -817,7 +827,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // This routine must not lock up if radio is not actually available/fitted.
             // Argument is ignored for this implementation.
             // NOT INTERRUPT SAFE and should not be called concurrently with any other RFM23B/SPI operation.
-            virtual void preinit(const void */*preconfig*/) override { _powerOnInit(); }
+            virtual void preinit(const void * /*preconfig*/) override { _powerOnInit(); }
 
             // Poll for incoming messages (eg where interrupts are not available) and other processing.
             // Can be used safely in addition to handling inbound/outbound interrupts.
@@ -833,12 +843,10 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
 
 #ifdef RFM23B_IRQ_CONTROL
             /**
-             * @brief   Temporarily suspend radio interrupts until func returns.
+             * @brief   Temporarily suspend radio interrupt line until reenabled or radio is polled.
              * @note    _poll MUST re-enable radio interrupts when it is called.
-             * @TODO    _poll MUST re-enable radio interrupts when it is called.
              */
-            void suspendInterrupts() { ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { _disableIRQ(); } }
-            void enableInterrupts() { ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { _enableIRQ(); } }
+            void pauseInterrupts(bool suspend) { ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { _disableIRQ(suspend); } }
 #endif // RFM23B_IRQ_CONTROL
 
 
