@@ -247,6 +247,7 @@ bool OTRFM23BLinkBase::sendRaw(const uint8_t *const buf, const uint8_t buflen, c
     return(result);
     }
 
+#if 0  // XXX devirtualising interrupt
 // Switch listening off, or on to specified channel.
 // listenChannel will have been set by time this is called.
 // This always switches to standby mode first, then switches on RX as needed.
@@ -288,8 +289,8 @@ void OTRFM23BLinkBase::_dolisten()
         // Check if packet handling in RFM23B is enabled and enable interrupts accordingly.
         if ( _readReg8Bit_(REG_30_DATA_ACCESS_CONTROL) & RFM23B_ENPACRX )  {
            _writeReg8Bit_(REG_INT_ENABLE1, RFM23B_ENPKVALID);
-           _writeReg8Bit_(REG_INT_ENABLE2, 0); 
-           if ((_readReg8Bit_(REG_33_HEADER_CONTROL2) & RFM23B_FIXPKLEN ) == RFM23B_FIXPKLEN ) 
+           _writeReg8Bit_(REG_INT_ENABLE2, 0);
+           if ((_readReg8Bit_(REG_33_HEADER_CONTROL2) & RFM23B_FIXPKLEN ) == RFM23B_FIXPKLEN )
               _writeReg8Bit_(REG_3E_PACKET_LENGTH, maxTypicalFrameBytes);
         }
         else {
@@ -339,6 +340,7 @@ void OTRFM23BLinkBase::_RXFIFO(uint8_t *buf, const uint8_t bufSize)
         if(neededEnable) { _downSPI_(); }
         }
     }
+#endif // 0
 
 // Configure radio for transmission via specified channel < nChannels; non-negative.
 void OTRFM23BLinkBase::_setChannel(const uint8_t channel)

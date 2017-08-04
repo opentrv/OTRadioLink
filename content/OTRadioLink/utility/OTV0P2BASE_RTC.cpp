@@ -30,7 +30,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 #include <Arduino.h>
 #endif
 
-#if 0
+#ifdef DEBUG
 #include "OTV0p2Base.h"
 #endif
 
@@ -319,8 +319,9 @@ ISR(TIMER2_OVF_vect)
   if(_RTCWatchdogEnabled)
     {
     if(_RTCWatchdogResetNotCalled) {
-#if 0
-        OTV0P2BASE::serialPrintlnAndFlush(F("!WD"))
+#ifdef DEBUG
+		// Notify that the watchdog has been triggered.
+        OTV0P2BASE::serialPrintlnAndFlush(F("!WD"));
 #endif
         forceReset();
     }
