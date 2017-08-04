@@ -41,7 +41,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #include <OTRadioLink.h>
 #include "OTRadioLink_ISRRXQueue.h"
 
-//#define ARDUINO_ARCH_AVR
 
 namespace OTRFM23BLink
     {
@@ -596,13 +595,45 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                 {
                     if((0 <= RFM_nIRQ_DigitalPin))
                     {
-#if 1
+/**
+ * DE20170704
+ * Testing difference between turning IRQs off and turning RFM23B IRQ line off.
+ *   - Goal is to stop entering ISRs due to RFM23B toggling IRQ line.
+ *   - This seems to solve our stack overflow issue on the REV10 as secure BHR.
+ *
+ * 3 options to consider:
+ *   1) Disable RFM23B IRQ generation.
+ *     + RFM23BLink only affects radio.
+ *     - Slow.
+ *     - Code bloat.
+ *     - Complicated procedure. Couldn't get it to work and unwilling to spend
+ *       more time at the moment.
+ *   2) Disable pin change interrupts on bank C of the ATMega328P.
+ *     + It works right now.
+ *     + Fast (single instruction to disable interrupts)..
+ *     + Only affects RFM23B on all current production builds.
+ *     - Disables all of interrupt bank C.
+ *     - RFM23BLink code may affect unrelated functioning
+ *       (especially if people don't read these comments).
+ *   3) Disable RX mode on RFM23B.
+ *     + RFM23BLink only affects radio.
+ *     - Unimplemented and untested.
+ *     - Slow.
+ *     - Code bloat.
+ *     - Will not even store packets in the RFM23B FIFO during (long) decode process.
+ *
+ * Options 1 and 2 are outlined below.
+ */
+#if 0
+                        // Option 1: Disable RFM23B IRQs. FIXME (DE20170704) not functioning. Need to go over
+                        // app notes.
                         if (!isIRQPaused && disable) { _writeReg16Bit0(REG_INT_ENABLE1); isIRQPaused = true; }
                         else if (isIRQPaused && !disable) { _enableIRQLine(); isIRQPaused = false; }
-#else
-                        if (isIRQEnabled && disable) { PCICR &= ~(1 << 0); isIRQEnabled = false; }
-                        else if (!isIRQEnabled && !disable) { PCICR |= (1 << 0); isIRQEnabled = true; }
-#endif
+#else // 0
+                        // Option 2: Disable pin change interrupts on GPIO bank C.
+                        if (!isIRQPaused && disable) { PCICR &= ~(1 << 0); isIRQPaused = true; }
+                        else if (isIRQPaused && !disable) { PCICR |= (1 << 0); isIRQPaused = false; }
+#endif // 0
                     }
                 };
 #endif // RFM23B_IRQ_CONTROL
