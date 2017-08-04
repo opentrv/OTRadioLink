@@ -272,13 +272,6 @@ namespace OTRFM23BLink
             // Does not clear TX FIFO (so possible to re-send immediately).
             bool _TXFIFO();
 
-#if 0 // XXX devirtualising interrupts
-            // Put RFM23 into standby, attempt to read bytes from FIFO into supplied buffer.
-            // Leaves RFM23 in low-power standby mode.
-            // Trailing bytes (more than were actually sent) undefined.
-            void _RXFIFO(uint8_t *buf, const uint8_t bufSize);
-#endif // 0
-
             // Switch listening off, on to selected channel.
             // listenChannel will have been set by time this is called.
             virtual void _dolisten() = 0;
@@ -352,14 +345,12 @@ namespace OTRFM23BLink
     //
     // Hardwire to I/O pin for RFM23B active-low SPI device select: SPI_nSS_DigitalPin.
     // Hardwire to I/O pin for RFM23B active-low interrupt RFM_nIRQ_DigitalPin (-1 if none).
-    // NOTE: If RFM_nIRQ_DigitalPin is >= 0, it is assumed that IRQs are
-    //       desired, (but need not be explicitly enabled). The driver can
-    //       internally enable/disable pin change interrupts and so:
-    //         - PCMSKx MUST be correctly configured.
-    //         - Any other interrupt lines using PCMSKx must take into account
+    // NOTE: If RFM_nIRQ_DigitalPin is >= 0, it is assumed that IRQs are desired and that
+    //           the IRQ line is on PCMSK0 (GPIO port B) as this is the default for V0p2 devices.
+    //         - PCMSK0 MUST be correctly configured.
+    //         - Any other interrupt lines using PCMSK0 must take into account
     //           that they may be disabled for long (> 100 ms) periods of time.
-    //         - PCMSKx interrupts may be enabled during a call to poll().
-    //       where PCMSKx is the pin change IRQ mask governing RFM_nIRQ_DigitalPin.
+    //         - PCMSK0 interrupts may be enabled during a call to poll().
     // Set the targetISRRXMinQueueCapacity to at least 2, or 3 if RAM space permits, for busy RF channels.
     // With allowRX == false as much as possible of the receive side is disabled.
 #define OTRFM23BLink_DEFINED
@@ -590,6 +581,8 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                  *          avoid accidentally leaving interrupts switched off.
                  *          Not reentrant or interrupt safe.
                  * @param   disable: Disables interrupts if true, enables if false.
+                 * @note    This assumes that RFM_nIRQ_DigitalPin is on GPIO port B and will affect all pin change interrupts
+                 *          on that port.
                  */
                 inline void _disableIRQ(bool disable)
                 {
@@ -608,11 +601,11 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
  *     - Code bloat.
  *     - Complicated procedure. Couldn't get it to work and unwilling to spend
  *       more time at the moment.
- *   2) Disable pin change interrupts on bank C of the ATMega328P.
+ *   2) Disable pin change interrupts on GPIO port B of the ATMega328P.
  *     + It works right now.
  *     + Fast (single instruction to disable interrupts)..
  *     + Only affects RFM23B on all current production builds.
- *     - Disables all of interrupt bank C.
+ *     - Disables all pin change interrupts on PCMSK0/GPIO port B.
  *     - RFM23BLink code may affect unrelated functioning
  *       (especially if people don't read these comments).
  *   3) Disable RX mode on RFM23B.
@@ -630,7 +623,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                         if (!isIRQPaused && disable) { _writeReg16Bit0(REG_INT_ENABLE1); isIRQPaused = true; }
                         else if (isIRQPaused && !disable) { _enableIRQLine(); isIRQPaused = false; }
 #else // 0
-                        // Option 2: Disable pin change interrupts on GPIO bank C.
+                        // Option 2: Disable pin change interrupts on GPIO port B.
                         if (!isIRQPaused && disable) { PCICR &= ~(1 << 0); isIRQPaused = true; }
                         else if (isIRQPaused && !disable) { PCICR |= (1 << 0); isIRQPaused = false; }
 #endif // 0
