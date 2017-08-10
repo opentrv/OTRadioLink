@@ -54,6 +54,8 @@ size_t RAMEND = 0;
 volatile OTV0P2BASE::OTAtomic_t<size_t> MemoryChecks::minSP(RAMEND);
 //volatile size_t MemoryChecks::stackMark = RAMEND;
 volatile uint8_t MemoryChecks::checkLocation = 0x0;
+volatile OTV0P2BASE::OTAtomic_t<size_t> MemoryChecks::tempProgramCounter(0x0);
+volatile size_t MemoryChecks::programCounter = 0x0;
 #endif
 
 

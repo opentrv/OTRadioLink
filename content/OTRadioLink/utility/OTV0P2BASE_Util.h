@@ -229,8 +229,14 @@ class MemoryChecks
     // Stores which call to recordIfMinSP minsp was recorded at.
     // Defaults to 0
     static volatile uint8_t checkLocation;
+    // Stores the program counter.
+    // This value must be multiplied by 2 to get the values in the disassembler.
+    static volatile OTV0P2BASE::OTAtomic_t<size_t> tempProgramCounter;
+    static volatile size_t programCounter;
 
   public:
+    // Store return address of the calling function (Assumes recordPC is correctly inlined)
+    static inline void recordPC() { tempProgramCounter.store((size_t)__builtin_return_address(0)); }
     // Compute stack space in use on ARDUINO/AVR; non-negative.
     static size_t stackSpaceInUse() { return((size_t)RAMEND - getSP()); }
     // Compute space after DATA and BSS (_end) and below STACK (ignoring HEAP) on ARDUINO/AVR; should be strictly +ve.
@@ -238,7 +244,7 @@ class MemoryChecks
     static intptr_t spaceBelowStackToEnd() { return((getSP() - (intptr_t)&_end)); }
 
     // Reset SP minimum: ISR-safe.
-    static void resetMinSP() { minSP.store(RAMEND); checkLocation = 0; }
+    static void resetMinSP() { minSP.store(RAMEND); checkLocation = 0; programCounter = 0;}
     // Record current SP if minimum: ISR-safe.
     // Can be buried in parts of code prone to deep recursion.
     // Location defaults to 0 but can be assigned a value for the particular stack check to aid debug.
@@ -255,6 +261,7 @@ class MemoryChecks
         if(pos < min) {
             checkLocation = location;
             minSP.compare_exchange_strong(min, pos);
+            programCounter = tempProgramCounter.load();
         }
     }
     // Get SP minimum: ISR-safe.
@@ -265,6 +272,14 @@ class MemoryChecks
     static void forceResetIfStackOverflow() { if(getMinSPSpaceBelowStackToEnd() <= 0) { forceReset(); } }
     // Get the identifier for location of stack check with highest stack usage,
     static uint8_t getLocation() { return checkLocation; }
+
+    // Return the program counter recordPC was called and when a new interrupt is called.
+    // NOTE: - program counter is not guaranteed correspond to when the max stack was seen.
+    //       - program counter may be corrupted when being written from tempProgramCounter.
+    //         The likelyhood of this occuring is low and it will have no effect on correct
+    //         functioning of V0p2 so it is ignored.
+    // stored counter is multiplied by 2 to to correspond to disassembly output.
+    static size_t getPC() {return programCounter * 2;}
 };
 
 
