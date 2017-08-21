@@ -351,7 +351,7 @@ typedef const char *AT_t;
                     messageCounter = 0;  // reset counter.
                     state = RESET;
                     return;
-                } else if (!nearStartOfMajorCycle()) {
+                } else if (!nearStartOfMajorCycle()) {  // Return if not at start of cycle to avoid triggering watchdog.
                     return;
                 } else {  // If passes all checks, run the state machine.
                     switch (state) {
@@ -1018,7 +1018,9 @@ typedef const char *AT_t;
          virtual void preinit(const void *preconfig) {}    // not really relevant?
          virtual void panicShutdown() { preinit(NULL); }    // see above
          */
-
+	
+		// Const reference to the state, for debugging in IRQs
+        const volatile uint8_t &internalState = (uint8_t &) state;
 #ifdef ARDUINO_ARCH_AVR
         bool _isPinHigh() { return fastDigitalRead(PWR_PIN); }
 #else
