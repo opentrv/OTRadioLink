@@ -50,7 +50,6 @@ namespace OTV0P2BASE
  * @param   txPin: Transmit pin for software UART.
  * @param   baud: Speed of UART in baud. Currently reliably supports up to 9600.
  * @note    This currently supports a max speed of 9600 baud with an F_CPU of 1 MHz.
- * @todo    Move everything back into source file without breaking templating.
  */
 #define OTSoftSerial2_DEFINED
 template <uint8_t rxPin, uint8_t txPin, uint32_t baud>
@@ -62,8 +61,7 @@ protected:
     static constexpr uint8_t bitCycles = (F_CPU/4) / baud;  // Number of times _delay_x4cycles needs to loop for 1 bit.
     static constexpr uint8_t writeDelay = bitCycles - 3;  // Delay needed to write 1 bit.
     static constexpr uint8_t readDelay = bitCycles - 8;  // Delay needed to read 1 bit.
-    static constexpr uint8_t halfDelay = bitCycles/2;  // todo
-//    static const constexpr uint8_t startDelay = bitCycles + halfDelay;
+    static constexpr uint8_t halfDelay = bitCycles/2;
 
 public:
     /**
@@ -119,26 +117,25 @@ public:
      * @brief   Reads a byte from the serial and removes it from the buffer.
      * @retval  Next character in input buffer; -1 on timeout or error.
      * @note    This routine blocks interrupts until it receives a byte or times out.
-     * @todo    Reorder loop to replace starting 'halfDelay and 'readDelay' with 'startDelay'
      */
     int read() {
         // Blocking read:
         uint8_t val = 0;
+        volatile uint16_t timer = timeOut;
+
+        // Wait for start bit, ie wait for RX to go low.
+        // NOTE: As this is outside of an interrupt, we may be late in
+        //       responding to a pin change.
+        while (fastDigitalRead(rxPin)) {
+            if (--timer == 0) return -1;
+        }
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
         {
-            volatile uint16_t timer = timeOut;
-
-            // Wait for start bit, ie wait for RX to go low.
-            while (fastDigitalRead(rxPin)) {
-                if (--timer == 0) return -1;
-            }
-
             // Wait for mid point of bit, ie 0.5 bit time,
             // to centre the following reads in bit times.
             _delay_x4cycles(halfDelay);
 
             // Step through bits and assemble bits into byte.
-            // TODO change to write val then lshift?
             for(uint8_t i = 0; i < 8; ++i) {
                 _delay_x4cycles(readDelay);
                 val |= fastDigitalRead(rxPin) << i;
@@ -155,7 +152,6 @@ public:
 
     /**
      * @brief   Check if serial port is ready for use.
-     * @todo    Implement the time checks using this?
      */
     operator bool() { return true; }
     using Print::write; // write(str) and write(buf, size) from Print
@@ -166,7 +162,6 @@ public:
     /**
      * @brief   Sends a break condition (tx line held low for longer than the
      *          time it takes to send a character.
-     * @todo    Make it take a value instead?
      */
     void sendBreak()
     {
