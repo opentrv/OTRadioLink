@@ -99,6 +99,7 @@ public:
             _delay_x4cycles(writeDelay);
 
             // send byte. Loops until mask overflows back to 0
+            // NOTE: This requires an 8 bit data type! Change loop type?
             while(mask != 0) {
                 if (mask & c) fastDigitalWrite(txPin, HIGH);
                 else fastDigitalWrite(txPin, LOW);
