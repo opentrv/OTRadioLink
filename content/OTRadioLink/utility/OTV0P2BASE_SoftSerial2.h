@@ -126,9 +126,9 @@ public:
         // Wait for start bit, ie wait for RX to go low.
         // NOTE: As this is outside of an interrupt, we may be late in
         //       responding to a pin change.
-        while (fastDigitalRead(rxPin)) {
-            if (--timer == 0) return -1;
-        }
+        while (fastDigitalRead(rxPin)) { if (--timer == 0) { return (-1); } }
+
+        // The bit that actually does the read.
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
         {
             // Wait for mid point of bit, ie 0.5 bit time,
@@ -140,13 +140,12 @@ public:
                 _delay_x4cycles(readDelay);
                 val |= fastDigitalRead(rxPin) << i;
             }
-
-            // Wait for stop bit, ie wait for RX to go high.
-            timer = timeOut;
-            while (!fastDigitalRead(rxPin)) {
-                if (--timer == 0) return -1;
-            }
         }
+
+        // Wait for stop bit, ie wait for RX to go high.
+        // This is no longer time sensitive so we can reenable interrupts.
+        timer = timeOut;
+        while (!fastDigitalRead(rxPin)) { if (--timer == 0) { return (-1); } }
         return val;
     }
 
