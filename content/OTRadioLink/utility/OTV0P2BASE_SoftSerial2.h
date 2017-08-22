@@ -57,7 +57,7 @@ class OTSoftSerial2 final : public Stream
 {
 protected:
     // All these are compile time calculations and are automatically substituted as part of program code.
-    static constexpr uint16_t timeOut = 60000; // fed into loop...
+    static constexpr uint16_t timeOut = 60000; // 60000/1MHz(F_CPU) = 60 ms. fed into loop...
     static constexpr uint8_t bitCycles = (F_CPU/4) / baud;  // Number of times _delay_x4cycles needs to loop for 1 bit.
     static constexpr uint8_t writeDelay = bitCycles - 3;  // Delay needed to write 1 bit.
     static constexpr uint8_t readDelay = bitCycles - 8;  // Delay needed to read 1 bit.
