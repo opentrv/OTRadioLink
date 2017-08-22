@@ -472,12 +472,13 @@ typedef const char *AT_t;
                         break;
                     case SENDING: // Attempt to send a message. Takes ~100 ticks to exit.
                         OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*SENDING")
-                        if (txMessageQueue > 0) { // Check to make sure it is near the start of the subcycle to avoid overrunning.
+                        if (0 < txMessageQueue) { // Check to make sure it is near the start of the subcycle to avoid overrunning.
                             // TODO logic to check if send attempt successful
                             sendRaw(txQueue, txMsgLen); /// @note can't use strlen with encrypted/binary packets
-                            if (!(--txMessageQueue)) state = IDLE; // Once done, decrement number of messages in queue and return to IDLE
+//                            if (!(--txMessageQueue)) state = IDLE; // Once done, decrement number of messages in queue and return to IDLE
+                            --txMessageQueue;
                         }
-                        else if (txMessageQueue == 0) state = IDLE;
+                        if (0 == txMessageQueue) state = IDLE;
                         break;
                     case RESET:
                         OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*RESET")
