@@ -21,7 +21,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 
  Implementation highly hardware specific.
  */
-//#define WDT_DEBUG  // XXX
+#define WDT_DEBUG  // XXX
 
 
 #ifdef ARDUINO_ARCH_AVR
@@ -325,20 +325,18 @@ ISR(TIMER2_OVF_vect)
 		// Notify that the watchdog has been triggered.
         OTV0P2BASE::MemoryChecks::recordPC();
         const int16_t minsp = OTV0P2BASE::MemoryChecks::getMinSPSpaceBelowStackToEnd();
-        const uint8_t location = OTV0P2BASE::MemoryChecks::getLocation();
         const uint16_t progCounter = OTV0P2BASE::MemoryChecks::getPC();  // not isr safe
         while(true) {
             OTV0P2BASE::serialPrintlnAndFlush(F("!WD"));
             OTV0P2BASE::serialPrintAndFlush(F("minsp: "));
             OTV0P2BASE::serialPrintAndFlush(minsp);
-            OTV0P2BASE::serialPrintAndFlush(F(" loc: "));
-            OTV0P2BASE::serialPrintAndFlush(location);
             OTV0P2BASE::serialPrintAndFlush(F(" prog: "));
             OTV0P2BASE::serialPrintAndFlush(progCounter, HEX);
             OTV0P2BASE::serialPrintlnAndFlush();
         }
-#endif
+#else
         forceReset();
+#endif
     }
     _RTCWatchdogResetNotCalled = true;
     }
