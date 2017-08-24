@@ -504,8 +504,11 @@ typedef const char *AT_t;
             static constexpr uint8_t powerPinToggleDuration = 2;
             // Minimum time in seconds to wait after power up/down before resuming normal operation.
             // Power up/down takes a while, and prints stuff we want to ignore to the serial connection.
-            static constexpr uint8_t powerLockOutDuration = 10 + powerPinToggleDuration;  // DE20160703:Increased duration due to startup issues.
-            static constexpr uint8_t flushTimeOut = 10;  // Time in seconds we should block for while polling for a specific character.
+            // DE20160703:Increased duration due to startup issues.
+            static constexpr uint8_t powerLockOutDuration = 10 + powerPinToggleDuration;
+            // Time in seconds we should block for while polling for a specific character.
+            // DE20170824: Reduced from 10s to avoid watchdog resets. Seems to work acceptably.
+            static constexpr uint8_t flushTimeOut = 1;
             // Standard Responses
 
             // Software serial: for V0p2 boards (eg REV10) expected to be of type:
@@ -849,7 +852,7 @@ typedef const char *AT_t;
         bool flushUntil(uint8_t _terminatingChar)
             {
             const uint8_t terminatingChar = _terminatingChar;
-            const uint8_t endTime = getCurrentSeconds() + flushTimeOut;
+            const uint8_t endTime = getCurrentSeconds() + flushTimeOut; // May exit prematurely if late in minor cycle.
             while (getCurrentSeconds() <= endTime)
                 {
                 const uint8_t c = uint8_t(ser.read());
