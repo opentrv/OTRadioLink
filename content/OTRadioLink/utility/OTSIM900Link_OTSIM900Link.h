@@ -216,7 +216,8 @@ typedef const char *AT_t;
      */
 #define OTSIM900Link_DEFINED
     template<uint8_t rxPin, uint8_t txPin, uint8_t PWR_PIN,
-    uint_fast8_t (*const getCurrentSeconds)(), // Fetches clock time in seconds; never NULL
+    uint_fast8_t (*const getCurrentSeconds)(),
+    uint_fast8_t (*const getSubCycleTime) (),// Fetches clock time in seconds; never NULL
     class ser_t
 #ifdef OTSoftSerial2_DEFINED
         = OTV0P2BASE::OTSoftSerial2<rxPin, txPin, OTSIM900LinkBase::SIM900_MAX_baud>
@@ -852,8 +853,8 @@ typedef const char *AT_t;
         bool flushUntil(uint8_t _terminatingChar)
             {
             const uint8_t terminatingChar = _terminatingChar;
-            const uint8_t endTime = getCurrentSeconds() + flushTimeOut; // May exit prematurely if late in minor cycle.
-            while (getCurrentSeconds() <= endTime)
+            const uint8_t endTime = 220;//getCurrentSeconds() + flushTimeOut; // May exit prematurely if late in minor cycle.
+            while (getSubCycleTime() <= endTime)
                 {
                 const uint8_t c = uint8_t(ser.read());
                 if (c == terminatingChar)
