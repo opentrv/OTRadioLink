@@ -853,6 +853,7 @@ typedef const char *AT_t;
         bool flushUntil(uint8_t _terminatingChar)
             {
             const uint8_t terminatingChar = _terminatingChar;
+            // Subcycle time at which to exit.
             const uint8_t endTime = 220;//getCurrentSeconds() + flushTimeOut; // May exit prematurely if late in minor cycle.
             while (getSubCycleTime() <= endTime)
                 {
