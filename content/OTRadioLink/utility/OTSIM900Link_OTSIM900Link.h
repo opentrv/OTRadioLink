@@ -44,6 +44,17 @@
 // If DEFINED: Prints debug information to serial.
 //             !!! WARNING! THIS WILL CAUSE BLOCKING OF OVER 300 MS!!!
 #undef OTSIM900LINK_DEBUG
+// IF DEFINED:  Splits the send routine into two steps, rather than polling for a prompt.
+//              Should be avoided if possible, but may be necessary e.g. with the REV10 as
+//              the blocking poll may overrun a sub-cycle, triggering a WDT reset.
+//              This behaviour depends on the fact that the V0p2 cycle takes long enough
+//              between polls for the SIM900 to be ready to receive a packet, but not
+//              long enough to time out the send routine. // XXX
+#define OTSIM900LINK_SPLIT_SEND_TEST
+// IF DEFINED:  Flush until a fixed point in the sub-cycle. Note that this requires
+//              OTV0P2BASE::getSubCycleTime or equivalent to be passed in as a template param.
+//              May perform poorer/send junk in some circumstances (untested)
+#define OTSIM900LINK_SUBCYCLE_SEND_TIMEOUT_TEST
 
 // OTSIM900Link macros for printing debug information to serial.
 #ifndef OTSIM900LINK_DEBUG
@@ -157,7 +168,8 @@ namespace OTSIM900Link
         OPEN_UDP,
         IDLE,
         WAIT_FOR_UDP,
-        SENDING,
+        INIT_SEND,
+        WRITE_PACKET,
         RESET,
         PANIC
         };
@@ -217,11 +229,14 @@ typedef const char *AT_t;
 #define OTSIM900Link_DEFINED
     template<uint8_t rxPin, uint8_t txPin, uint8_t PWR_PIN,
     uint_fast8_t (*const getCurrentSeconds)(),
-    uint_fast8_t (*const getSubCycleTime) (),// Fetches clock time in seconds; never NULL
-    class ser_t
+    uint_fast8_t (*const getSubCycleTime) ()// Fetches clock time in seconds; never NULL
+#ifdef OTSIM900LINK_SUBCYCLE_SEND_TIMEOUT_TEST
+        = nullptr
+#endif // OTSIM900LINK_SUBCYCLE_SEND_TIMEOUT_TEST
+    , class ser_t
 #ifdef OTSoftSerial2_DEFINED
         = OTV0P2BASE::OTSoftSerial2<rxPin, txPin, OTSIM900LinkBase::SIM900_MAX_baud>
-#endif
+#endif // OTSoftSerial2_DEFINED
     >
     class OTSIM900Link final : public OTSIM900LinkBase
         {
@@ -307,8 +322,18 @@ typedef const char *AT_t;
                 {
                 bool bSent = false;
                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Send Raw")
-                bSent = UDPSend((const char *) buf, buflen);
-                return bSent;
+                initUDPSend(buflen);
+                if (flushUntil('>'))
+                    {  // '>' indicates module is ready for UDP frame
+                    UDPSend((const char *) buf, buflen);
+                    OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*success")
+                    return true;
+                    }
+                else
+                    {
+                    OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*fail")
+                    return false;
+                    }
                 }
 
             /**
@@ -374,7 +399,7 @@ typedef const char *AT_t;
                         setPwrPinHigh(true);
                         powerTimer = static_cast<int8_t>(getCurrentSeconds());
                         state = WAIT_PWR_HIGH;
-                        break;
+                        break;//
                     case WAIT_PWR_HIGH:  // Toggle the pin.
                         OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*WAIT_PWR_HIGH")
                         if (waitedLongEnough(powerTimer, powerPinToggleDuration)) {
@@ -461,7 +486,7 @@ typedef const char *AT_t;
                         {
                             uint8_t udpState = checkUDPStatus();
                             if (udpState == 1) {  // UDP connected
-                                state = SENDING;
+                                state = INIT_SEND;
                             }
 //                            else if (udpState == 0) state = GET_STATE; // START_GPRS; // TODO needed for optional wake GPRS to send.
                             else if (udpState == 2) {  // Dead end. SIM900 needs resetting.
@@ -471,16 +496,36 @@ typedef const char *AT_t;
                             }
                         }
                         break;
-                    case SENDING: // Attempt to send a message. Takes ~100 ticks to exit.
+#if !defined(OTSIM900LINK_SPLIT_SEND_TEST)  // FIXME DE20170825: test this branch still works
+                    case INIT_SEND: // Attempt to send a message. Takes ~100 ticks to exit.
                         OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*SENDING")
                         if (0 < txMessageQueue) { // Check to make sure it is near the start of the subcycle to avoid overrunning.
                             // TODO logic to check if send attempt successful
                             sendRaw(txQueue, txMsgLen); /// @note can't use strlen with encrypted/binary packets
-//                            if (!(--txMessageQueue)) state = IDLE; // Once done, decrement number of messages in queue and return to IDLE
                             --txMessageQueue;
                         }
                         if (0 == txMessageQueue) state = IDLE;
                         break;
+#else // OTSIM900LINK_SPLIT_SEND_TEST
+                    case INIT_SEND: // Attempt to send a message. Takes ~100 ticks to exit.
+                        OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*SENDING")
+                        if(!isSIM900Replying()) state = RESET;
+                        if (0 < txMessageQueue) { // Check to make sure it is near the start of the subcycle to avoid overrunning.
+                            // TODO logic to check if send attempt successful
+                            initUDPSend(txMsgLen); /// @note can't use strlen with encrypted/binary packets
+                            state = WRITE_PACKET;
+//                            if (!(--txMessageQueue)) state = IDLE; // Once done, decrement number of messages in queue and return to IDLE
+//                            --txMessageQueue;
+                        }
+                        else { state = IDLE; }
+                        break;
+                    case WRITE_PACKET:
+                        UDPSend((const char *) txQueue, txMsgLen);
+                        --txMessageQueue;
+                        state = INIT_SEND;
+                        break;
+#endif // OTSIM900LINK_SPLIT_SEND_TEST
+
                     case RESET:
                         OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*RESET")
                         state = GET_STATE;
@@ -852,10 +897,16 @@ typedef const char *AT_t;
          */
         bool flushUntil(uint8_t _terminatingChar)
             {
+            if (nullptr == getSubCycleTime) {return (false);}
             const uint8_t terminatingChar = _terminatingChar;
             // Subcycle time at which to exit.
-            const uint8_t endTime = 220;//getCurrentSeconds() + flushTimeOut; // May exit prematurely if late in minor cycle.
+#if !defined(OTSIM900LINK_SUBCYCLE_SEND_TIMEOUT_TEST)
+            const uint8_t endTime = getCurrentSeconds() + flushTimeOut;
+            while (getCurrentSeconds() <= endTime)
+#else // OTSIM900LINK_SUBCYCLE_SEND_TIMEOUT_TEST
+            const uint8_t endTime = 220; // May exit prematurely if late in minor cycle.  FIXME
             while (getSubCycleTime() <= endTime)
+#endif // OTSIM900LINK_SUBCYCLE_SEND_TIMEOUT_TEST
                 {
                 const uint8_t c = uint8_t(ser.read());
                 if (c == terminatingChar)
@@ -934,26 +985,18 @@ typedef const char *AT_t;
          * @retval  True if send successful.
          * @note    On Success: b'AT+CIPSEND=62\r\n\r\n>' echos back input b'\r\nSEND OK\r\n'
          */
-        bool UDPSend(const char *frame, uint8_t length)
-            {
+        void initUDPSend(uint8_t length)
+        {
             messageCounter++; // increment counter
             ser.print(AT_START);
             ser.print(AT_SEND_UDP);
             ser.print('=');
             ser.println(length);
-            //    ser.print(AT_END);
-            if (flushUntil('>'))
-                {  // '>' indicates module is ready for UDP frame
-                (static_cast<Print *>(&ser))->write(frame, length);
-                OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*success")
-                return true;
-                }
-            else
-                {
-                OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*fail")
-                return false;
-                }
-            }
+        }
+        inline void UDPSend(const char *frame, uint8_t length)
+        {
+            (static_cast<Print *>(&ser))->write(frame, length);
+        }
 
         /**
          * @brief   Checks module for response.
