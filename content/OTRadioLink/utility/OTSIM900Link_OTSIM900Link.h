@@ -316,7 +316,6 @@ typedef const char *AT_t;
                     int8_t /*channel*/ = 0, TXpower /*power*/ = TXnormal,
                     bool /*listenAfter*/ = false) override
                 {
-                bool bSent = false;
                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Send Raw")
                 initUDPSend(buflen);
                 // Wait for the module to indicate it is ready to receive the frame.
