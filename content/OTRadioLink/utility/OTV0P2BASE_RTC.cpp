@@ -21,7 +21,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 
  Implementation highly hardware specific.
  */
-#define WDT_DEBUG  // XXX
+// IF DEFINED: WDT triggers infinite loop printing more detailed output.
+#undef WDT_DEBUG
 
 
 #ifdef ARDUINO_ARCH_AVR
