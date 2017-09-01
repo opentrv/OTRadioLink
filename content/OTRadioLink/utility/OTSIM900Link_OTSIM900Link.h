@@ -50,11 +50,11 @@
 //              This behaviour depends on the fact that the V0p2 cycle takes long enough
 //              between polls for the SIM900 to be ready to receive a packet, but not
 //              long enough to time out the send routine. // XXX
-#define OTSIM900LINK_SPLIT_SEND_TEST
+#undef OTSIM900LINK_SPLIT_SEND_TEST
 // IF DEFINED:  Flush until a fixed point in the sub-cycle. Note that this requires
 //              OTV0P2BASE::getSubCycleTime or equivalent to be passed in as a template param.
 //              May perform poorer/send junk in some circumstances (untested)
-#define OTSIM900LINK_SUBCYCLE_SEND_TIMEOUT_TEST
+#undef OTSIM900LINK_SUBCYCLE_SEND_TIMEOUT_TEST
 
 // OTSIM900Link macros for printing debug information to serial.
 #ifndef OTSIM900LINK_DEBUG
@@ -229,11 +229,7 @@ typedef const char *AT_t;
 #define OTSIM900Link_DEFINED
     template<uint8_t rxPin, uint8_t txPin, uint8_t PWR_PIN,
     uint_fast8_t (*const getCurrentSeconds)(),
-    uint_fast8_t (*const getSubCycleTime) ()// Fetches clock time in seconds; never NULL
-#ifdef OTSIM900LINK_SUBCYCLE_SEND_TIMEOUT_TEST
-        = nullptr
-#endif // OTSIM900LINK_SUBCYCLE_SEND_TIMEOUT_TEST
-    , class ser_t
+    class ser_t
 #ifdef OTSoftSerial2_DEFINED
         = OTV0P2BASE::OTSoftSerial2<rxPin, txPin, OTSIM900LinkBase::SIM900_MAX_baud>
 #endif // OTSoftSerial2_DEFINED
@@ -323,8 +319,10 @@ typedef const char *AT_t;
                 bool bSent = false;
                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Send Raw")
                 initUDPSend(buflen);
+                // Wait for the module to indicate it is ready to receive the frame.
+                // A response of '>' indicates module is ready.
                 if (flushUntil('>'))
-                    {  // '>' indicates module is ready for UDP frame
+                    {
                     UDPSend((const char *) buf, buflen);
                     OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*success")
                     return true;
@@ -897,15 +895,18 @@ typedef const char *AT_t;
          */
         bool flushUntil(uint8_t _terminatingChar)
             {
-            if (nullptr == getSubCycleTime) {return (false);}
             const uint8_t terminatingChar = _terminatingChar;
-            // Subcycle time at which to exit.
 #if !defined(OTSIM900LINK_SUBCYCLE_SEND_TIMEOUT_TEST)
+            // Quit once over a second has passed.
+            // Note, 1 second means that it may not listen for long enough.
+            // On the other hand, 2 or more seconds is more likely to trigger a watchdog reset.
             const uint8_t endTime = getCurrentSeconds() + flushTimeOut;
             while (getCurrentSeconds() <= endTime)
 #else // OTSIM900LINK_SUBCYCLE_SEND_TIMEOUT_TEST
-            const uint8_t endTime = 220; // May exit prematurely if late in minor cycle.  FIXME
-            while (getSubCycleTime() <= endTime)
+            // Quit with a reasonable amount of time left in the cycle.
+            // so that we can exit in time to service the watchdog timer.
+            constexpr uint8_t endTime = 220; // May exit prematurely if late in minor cycle.  FIXME
+            while (OTV0P2BASE::getSubCycleTime() <= endTime)
 #endif // OTSIM900LINK_SUBCYCLE_SEND_TIMEOUT_TEST
                 {
                 const uint8_t c = uint8_t(ser.read());
