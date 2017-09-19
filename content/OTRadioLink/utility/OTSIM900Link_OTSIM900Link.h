@@ -50,7 +50,7 @@
 //              This behaviour depends on the fact that the V0p2 cycle takes long enough
 //              between polls for the SIM900 to be ready to receive a packet, but not
 //              long enough to time out the send routine. // XXX
-#undef OTSIM900LINK_SPLIT_SEND_TEST
+#define OTSIM900LINK_SPLIT_SEND_TEST
 // IF DEFINED:  Flush until a fixed point in the sub-cycle. Note that this requires
 //              OTV0P2BASE::getSubCycleTime or equivalent to be passed in as a template param.
 //              May perform poorer/send junk in some circumstances (untested)
@@ -507,18 +507,15 @@ typedef const char *AT_t;
                     case INIT_SEND: // Attempt to send a message. Takes ~100 ticks to exit.
                         OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*SENDING")
                         if(!isSIM900Replying()) state = RESET;
-                        if (0 < txMessageQueue) { // Check to make sure it is near the start of the subcycle to avoid overrunning.
+                        if (0 < txMessageQueue) { // Check that we have a message queued
                             // TODO logic to check if send attempt successful
                             initUDPSend(txMsgLen); /// @note can't use strlen with encrypted/binary packets
                             state = WRITE_PACKET;
-//                            if (!(--txMessageQueue)) state = IDLE; // Once done, decrement number of messages in queue and return to IDLE
-//                            --txMessageQueue;
-                        }
-                        else { state = IDLE; }
+                        } else { state = IDLE; }
                         break;
                     case WRITE_PACKET:
-                        UDPSend((const char *) txQueue, txMsgLen);
                         --txMessageQueue;
+                        UDPSend((const char *) txQueue, txMsgLen);
                         state = INIT_SEND;
                         break;
 #endif // OTSIM900LINK_SPLIT_SEND_TEST
