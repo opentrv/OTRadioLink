@@ -58,6 +58,7 @@ static volatile uint8_t _adcNoise;
 //   * admux  is the value to set ADMUX to
 //   * samples  maximum number of samples to take (if one, nap() before); strictly positive
 // Sets sleep mode to SLEEP_MODE_ADC, and disables sleep on exit.
+#ifndef ADC_TIMEOUT_TEST
 uint16_t _analogueNoiseReducedReadM(const uint8_t admux, int8_t samples)
   {
   const bool neededEnable = powerUpADCIfDisabled();
@@ -91,6 +92,45 @@ uint16_t _analogueNoiseReducedReadM(const uint8_t admux, int8_t samples)
   if(neededEnable) { powerDownADC(); }
   return((h << 8) | l);
   }
+#else
+// Variant that exits with plenty of time left in the loop.
+// Will exit 1024 (range + 1) if no readings taken.
+// TODO check timing in inter loop as well?1.
+uint16_t _analogueNoiseReducedReadM(const uint8_t admux, int8_t samples)
+  {
+  const bool neededEnable = powerUpADCIfDisabled();
+  ACSR |= _BV(ACD); // Disable the analogue comparator.
+  ADMUX = admux;
+  if(samples < 2) { ::OTV0P2BASE::nap(WDTO_15MS); } // Allow plenty of time for things to settle if not taking multiple samples.
+  set_sleep_mode(SLEEP_MODE_ADC);
+  ADCSRB = 0; // Enable free-running mode.
+  bitWrite(ADCSRA, ADATE, (samples>1)); // Enable ADC auto-trigger iff wanting multiple samples.
+  bitSet(ADCSRA, ADIE); // Turn on ADC interrupt.
+  bitSet(ADCSRA, ADSC); // Start conversion(s).
+  uint8_t oldADCL = 0xff;
+  uint8_t oldADCH = 0xff; // Ensure that a second sample will get taken if multiple samples have been requested.
+  uint8_t l = 0x0;  // low and high values FIXME
+  uint8_t h = 0x2;  // Set value to 1024 (range + 1)
+  // Usually take several readings to improve accuracy.  Discard all but the last...
+  while(--samples >= 0)
+      {
+      if(200 < getSubCycleTime()) break; // XXX
+      ADC_complete = false;
+      while(!ADC_complete) { sleep_mode(); }
+      l = ADCL; // Capture the low byte and latch the high byte.
+      h = ADCH; // Capture the high byte.
+      if((h == oldADCH) && (l == oldADCL)) { break; } // Stop now if result seems to have settled.
+      oldADCL = l;
+      oldADCH = h;
+      _adcNoise = (_adcNoise >> 1) + (l ^ h) + (__TIME__[7] & 0xf); // Capture a little entropy.
+      }
+  bitClear(ADCSRA, ADIE); // Turn off ADC interrupt.
+  bitClear(ADCSRA, ADATE); // Turn off ADC auto-trigger.
+  //sleep_disable();
+  if(neededEnable) { powerDownADC(); }
+  return((h << 8) | l);
+  }
+#endif
 
 // Read ADC/analogue input with reduced noise if possible, in range [0,1023].
 //   * aiNumber is the analogue input number [0,7] for ATMega328P
