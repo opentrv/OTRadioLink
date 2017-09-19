@@ -420,27 +420,24 @@ typedef const char *AT_t;
                         OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*CHECK_PIN")
                         if (isPINRequired()) {
                             state = WAIT_FOR_REGISTRATION;
-                        } else {
-                            setRetryLock();
                         }
+                        setRetryLock();
                         //                if(setPIN()) state = PANIC;// TODO make sure setPin returns true or false
                         break;
                     case WAIT_FOR_REGISTRATION: // Wait for registration to GSM network. Stuck in this state until success. Takes ~150 ticks to exit.
                         OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*WAIT_FOR_REG")
                         if (isRegistered()) {
                             state = SET_APN;
-                        } else {
-                            setRetryLock();
                         }
+                        setRetryLock();
                         break;
                     case SET_APN: // Attempt to set the APN. Stuck in this state until success. Takes up to 200 ticks to exit.
                         OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*SET_APN")
                         if (setAPN()) {
                             messageCounter = 0;
                             state = START_GPRS;
-                        } else {
-                            setRetryLock();
                         }
+                        setRetryLock();
                         break;
                     case START_GPRS:  // Start GPRS context.
                         OTSIM900LINK_DEBUG_SERIAL_PRINTLN("*START_GPRS")
@@ -450,9 +447,8 @@ typedef const char *AT_t;
                                 state = GET_IP;
                             } else if(0 == udpState) {  // GPRS shut.
                                 startGPRS();
-                            } else {
-                                setRetryLock();
                             }
+                            setRetryLock();
                         }
 //                          if(!startGPRS()) state = GET_IP;  // TODO: Add retries, Option to shut GPRS here (probably needs a new state)
                         // FIXME 20160505: Need to work out how to handle this. If signal is marginal this will fail.
@@ -469,9 +465,8 @@ typedef const char *AT_t;
                         OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*OPEN UDP")
                         if (openUDPSocket()) {
                             state = IDLE;
-                        } else {
-                            setRetryLock();
                         }
+                        setRetryLock();
                         break;
                     case IDLE:  // Waiting for outbound message.
                         if (txMessageQueue > 0) { // If message is queued, go to WAIT_FOR_UDP
@@ -600,7 +595,7 @@ typedef const char *AT_t;
              */
             inline void setRetryLock()
             {
-                retriesRemaining -= 1;
+                if(0 != retriesRemaining) { --retriesRemaining; }
                 retryTimer = getCurrentSeconds();
                 OTSIM900LINK_DEBUG_SERIAL_PRINT_FLASHSTRING("--LOCKED! ")
                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING(" tries left.")
@@ -790,8 +785,22 @@ typedef const char *AT_t;
              * @retval  2 if in dead end state.
              * @retval  3 if GPRS is active but no UDP socket.
              * @note    GPRS inactive:      b'AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP START\r\n'
-             * @note    GPRS active:   b'AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP GPRSACT\r\n'
-             * @note    UDP running:       b'AT+CIPSTATUS\r\n\r\nOK\r\nSTATE: CONNECT OK\r\n'
+             * @note    GPRS active:        b'AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP GPRSACT\r\n'
+             * @note    UDP running:        b'AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: CONNECT OK\r\n'
+             *
+             *
+             * @note    FIXME 20170918: Unrecoverable loop when running subcycle timeout config:
+             *          > AT+CIPSTATUS
+             *          >
+             *          > OK
+             *          >
+             *          > STATE: IP INITIAL
+             *          > AT+CIICR
+             *          >
+             *          > ERROR
+             *
+             *
+             *
              */
             uint8_t checkUDPStatus()
                 {
