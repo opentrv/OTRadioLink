@@ -24,7 +24,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 
 // Base hardware, power and system management for V0p2 AVR-based (ATMega328P) OpenTRV boards.
 
-#define V0P2BASE_DEBUG
+#undef V0P2BASE_DEBUG
 
 /*
   V0p2 (V0.2) core.
@@ -37,6 +37,13 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
     * All unused system modules turned off.
 
   Basic AVR power consumption ticking an (empty) control loop at ~0.5Hz should be ~1uA.
+
+  DE20170822: Note on compiler defines
+      * __APPLE__           : Check for Apple hardware.
+      * ARDUINO             : Check for Arduino environment.
+      * ARDUINO_ARCH_AVR    : Check for AVR running on the Arduino environment.
+      * __arm__             : Potential check for gcc compiling for ARM arch.
+
  */
 
 // Basic compatibility support for Arduino and non-Arduino environments.

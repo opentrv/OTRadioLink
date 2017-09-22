@@ -44,6 +44,17 @@
 // If DEFINED: Prints debug information to serial.
 //             !!! WARNING! THIS WILL CAUSE BLOCKING OF OVER 300 MS!!!
 #undef OTSIM900LINK_DEBUG
+// IF DEFINED:  Splits the send routine into two steps, rather than polling for a prompt.
+//              Should be avoided if possible, but may be necessary e.g. with the REV10 as
+//              the blocking poll may overrun a sub-cycle, triggering a WDT reset.
+//              This behaviour depends on the fact that the V0p2 cycle takes long enough
+//              between polls for the SIM900 to be ready to receive a packet, but not
+//              long enough to time out the send routine. // XXX
+#define OTSIM900LINK_SPLIT_SEND_TEST
+// IF DEFINED:  Flush until a fixed point in the sub-cycle. Note that this requires
+//              OTV0P2BASE::getSubCycleTime or equivalent to be passed in as a template param.
+//              May perform poorer/send junk in some circumstances (untested)
+#undef OTSIM900LINK_SUBCYCLE_SEND_TIMEOUT_TEST
 
 // OTSIM900Link macros for printing debug information to serial.
 #ifndef OTSIM900LINK_DEBUG
@@ -157,7 +168,8 @@ namespace OTSIM900Link
         OPEN_UDP,
         IDLE,
         WAIT_FOR_UDP,
-        SENDING,
+        INIT_SEND,
+        WRITE_PACKET,
         RESET,
         PANIC
         };
@@ -216,11 +228,11 @@ typedef const char *AT_t;
      */
 #define OTSIM900Link_DEFINED
     template<uint8_t rxPin, uint8_t txPin, uint8_t PWR_PIN,
-    uint_fast8_t (*const getCurrentSeconds)(), // Fetches clock time in seconds; never NULL
+    uint_fast8_t (*const getCurrentSeconds)(),
     class ser_t
 #ifdef OTSoftSerial2_DEFINED
         = OTV0P2BASE::OTSoftSerial2<rxPin, txPin, OTSIM900LinkBase::SIM900_MAX_baud>
-#endif
+#endif // OTSoftSerial2_DEFINED
     >
     class OTSIM900Link final : public OTSIM900LinkBase
         {
@@ -304,10 +316,21 @@ typedef const char *AT_t;
                     int8_t /*channel*/ = 0, TXpower /*power*/ = TXnormal,
                     bool /*listenAfter*/ = false) override
                 {
-                bool bSent = false;
                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Send Raw")
-                bSent = UDPSend((const char *) buf, buflen);
-                return bSent;
+                initUDPSend(buflen);
+                // Wait for the module to indicate it is ready to receive the frame.
+                // A response of '>' indicates module is ready.
+                if (flushUntil('>'))
+                    {
+                    UDPSend((const char *) buf, buflen);
+                    OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*success")
+                    return true;
+                    }
+                else
+                    {
+                    OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*fail")
+                    return false;
+                    }
                 }
 
             /**
@@ -351,7 +374,7 @@ typedef const char *AT_t;
                     messageCounter = 0;  // reset counter.
                     state = RESET;
                     return;
-                } else if (!nearStartOfMajorCycle()) {
+                } else if (!nearStartOfMajorCycle()) {  // Return if not at start of cycle to avoid triggering watchdog.
                     return;
                 } else {  // If passes all checks, run the state machine.
                     switch (state) {
@@ -373,7 +396,7 @@ typedef const char *AT_t;
                         setPwrPinHigh(true);
                         powerTimer = static_cast<int8_t>(getCurrentSeconds());
                         state = WAIT_PWR_HIGH;
-                        break;
+                        break;//
                     case WAIT_PWR_HIGH:  // Toggle the pin.
                         OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*WAIT_PWR_HIGH")
                         if (waitedLongEnough(powerTimer, powerPinToggleDuration)) {
@@ -397,27 +420,24 @@ typedef const char *AT_t;
                         OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*CHECK_PIN")
                         if (isPINRequired()) {
                             state = WAIT_FOR_REGISTRATION;
-                        } else {
-                            setRetryLock();
                         }
+                        setRetryLock();
                         //                if(setPIN()) state = PANIC;// TODO make sure setPin returns true or false
                         break;
                     case WAIT_FOR_REGISTRATION: // Wait for registration to GSM network. Stuck in this state until success. Takes ~150 ticks to exit.
                         OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*WAIT_FOR_REG")
                         if (isRegistered()) {
                             state = SET_APN;
-                        } else {
-                            setRetryLock();
                         }
+                        setRetryLock();
                         break;
                     case SET_APN: // Attempt to set the APN. Stuck in this state until success. Takes up to 200 ticks to exit.
                         OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*SET_APN")
                         if (setAPN()) {
                             messageCounter = 0;
                             state = START_GPRS;
-                        } else {
-                            setRetryLock();
                         }
+                        setRetryLock();
                         break;
                     case START_GPRS:  // Start GPRS context.
                         OTSIM900LINK_DEBUG_SERIAL_PRINTLN("*START_GPRS")
@@ -427,9 +447,8 @@ typedef const char *AT_t;
                                 state = GET_IP;
                             } else if(0 == udpState) {  // GPRS shut.
                                 startGPRS();
-                            } else {
-                                setRetryLock();
                             }
+                            setRetryLock();
                         }
 //                          if(!startGPRS()) state = GET_IP;  // TODO: Add retries, Option to shut GPRS here (probably needs a new state)
                         // FIXME 20160505: Need to work out how to handle this. If signal is marginal this will fail.
@@ -446,9 +465,8 @@ typedef const char *AT_t;
                         OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*OPEN UDP")
                         if (openUDPSocket()) {
                             state = IDLE;
-                        } else {
-                            setRetryLock();
                         }
+                        setRetryLock();
                         break;
                     case IDLE:  // Waiting for outbound message.
                         if (txMessageQueue > 0) { // If message is queued, go to WAIT_FOR_UDP
@@ -460,7 +478,7 @@ typedef const char *AT_t;
                         {
                             uint8_t udpState = checkUDPStatus();
                             if (udpState == 1) {  // UDP connected
-                                state = SENDING;
+                                state = INIT_SEND;
                             }
 //                            else if (udpState == 0) state = GET_STATE; // START_GPRS; // TODO needed for optional wake GPRS to send.
                             else if (udpState == 2) {  // Dead end. SIM900 needs resetting.
@@ -470,15 +488,33 @@ typedef const char *AT_t;
                             }
                         }
                         break;
-                    case SENDING: // Attempt to send a message. Takes ~100 ticks to exit.
+#if !defined(OTSIM900LINK_SPLIT_SEND_TEST)  // FIXME DE20170825: test this branch still works
+                    case INIT_SEND: // Attempt to send a message. Takes ~100 ticks to exit.
                         OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*SENDING")
-                        if (txMessageQueue > 0) { // Check to make sure it is near the start of the subcycle to avoid overrunning.
+                        if (0 < txMessageQueue) { // Check to make sure it is near the start of the subcycle to avoid overrunning.
                             // TODO logic to check if send attempt successful
                             sendRaw(txQueue, txMsgLen); /// @note can't use strlen with encrypted/binary packets
-                            if (!(--txMessageQueue)) state = IDLE; // Once done, decrement number of messages in queue and return to IDLE
+                            --txMessageQueue;
                         }
-                        else if (txMessageQueue == 0) state = IDLE;
+                        if (0 == txMessageQueue) state = IDLE;
                         break;
+#else // OTSIM900LINK_SPLIT_SEND_TEST
+                    case INIT_SEND: // Attempt to send a message. Takes ~100 ticks to exit.
+                        OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*SENDING")
+                        if(!isSIM900Replying()) state = RESET;
+                        if (0 < txMessageQueue) { // Check that we have a message queued
+                            // TODO logic to check if send attempt successful
+                            initUDPSend(txMsgLen); /// @note can't use strlen with encrypted/binary packets
+                            state = WRITE_PACKET;
+                        } else { state = IDLE; }
+                        break;
+                    case WRITE_PACKET:
+                        --txMessageQueue;
+                        UDPSend((const char *) txQueue, txMsgLen);
+                        state = INIT_SEND;
+                        break;
+#endif // OTSIM900LINK_SPLIT_SEND_TEST
+
                     case RESET:
                         OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*RESET")
                         state = GET_STATE;
@@ -503,8 +539,11 @@ typedef const char *AT_t;
             static constexpr uint8_t powerPinToggleDuration = 2;
             // Minimum time in seconds to wait after power up/down before resuming normal operation.
             // Power up/down takes a while, and prints stuff we want to ignore to the serial connection.
-            static constexpr uint8_t powerLockOutDuration = 10 + powerPinToggleDuration;  // DE20160703:Increased duration due to startup issues.
-            static constexpr uint8_t flushTimeOut = 10;  // Time in seconds we should block for while polling for a specific character.
+            // DE20160703:Increased duration due to startup issues.
+            static constexpr uint8_t powerLockOutDuration = 10 + powerPinToggleDuration;
+            // Time in seconds we should block for while polling for a specific character.
+            // DE20170824: Reduced from 10s to avoid watchdog resets. Seems to work acceptably.
+            static constexpr uint8_t flushTimeOut = 1;
             // Standard Responses
 
             // Software serial: for V0p2 boards (eg REV10) expected to be of type:
@@ -556,7 +595,7 @@ typedef const char *AT_t;
              */
             inline void setRetryLock()
             {
-                retriesRemaining -= 1;
+                if(0 != retriesRemaining) { --retriesRemaining; }
                 retryTimer = getCurrentSeconds();
                 OTSIM900LINK_DEBUG_SERIAL_PRINT_FLASHSTRING("--LOCKED! ")
                 OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING(" tries left.")
@@ -746,8 +785,22 @@ typedef const char *AT_t;
              * @retval  2 if in dead end state.
              * @retval  3 if GPRS is active but no UDP socket.
              * @note    GPRS inactive:      b'AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP START\r\n'
-             * @note    GPRS active:   b'AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP GPRSACT\r\n'
-             * @note    UDP running:       b'AT+CIPSTATUS\r\n\r\nOK\r\nSTATE: CONNECT OK\r\n'
+             * @note    GPRS active:        b'AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: IP GPRSACT\r\n'
+             * @note    UDP running:        b'AT+CIPSTATUS\r\n\r\nOK\r\n\r\nSTATE: CONNECT OK\r\n'
+             *
+             *
+             * @note    FIXME 20170918: Unrecoverable loop when running subcycle timeout config:
+             *          > AT+CIPSTATUS
+             *          >
+             *          > OK
+             *          >
+             *          > STATE: IP INITIAL
+             *          > AT+CIICR
+             *          >
+             *          > ERROR
+             *
+             *
+             *
              */
             uint8_t checkUDPStatus()
                 {
@@ -848,8 +901,18 @@ typedef const char *AT_t;
         bool flushUntil(uint8_t _terminatingChar)
             {
             const uint8_t terminatingChar = _terminatingChar;
+#if !defined(OTSIM900LINK_SUBCYCLE_SEND_TIMEOUT_TEST)
+            // Quit once over a second has passed.
+            // Note, 1 second means that it may not listen for long enough.
+            // On the other hand, 2 or more seconds is more likely to trigger a watchdog reset.
             const uint8_t endTime = getCurrentSeconds() + flushTimeOut;
             while (getCurrentSeconds() <= endTime)
+#else // OTSIM900LINK_SUBCYCLE_SEND_TIMEOUT_TEST
+            // Quit with a reasonable amount of time left in the cycle.
+            // so that we can exit in time to service the watchdog timer.
+            constexpr uint8_t endTime = 220; // May exit prematurely if late in minor cycle.  FIXME
+            while (OTV0P2BASE::getSubCycleTime() <= endTime)
+#endif // OTSIM900LINK_SUBCYCLE_SEND_TIMEOUT_TEST
                 {
                 const uint8_t c = uint8_t(ser.read());
                 if (c == terminatingChar)
@@ -928,26 +991,18 @@ typedef const char *AT_t;
          * @retval  True if send successful.
          * @note    On Success: b'AT+CIPSEND=62\r\n\r\n>' echos back input b'\r\nSEND OK\r\n'
          */
-        bool UDPSend(const char *frame, uint8_t length)
-            {
+        void initUDPSend(uint8_t length)
+        {
             messageCounter++; // increment counter
             ser.print(AT_START);
             ser.print(AT_SEND_UDP);
             ser.print('=');
             ser.println(length);
-            //    ser.print(AT_END);
-            if (flushUntil('>'))
-                {  // '>' indicates module is ready for UDP frame
-                (static_cast<Print *>(&ser))->write(frame, length);
-                OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*success")
-                return true;
-                }
-            else
-                {
-                OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*fail")
-                return false;
-                }
-            }
+        }
+        inline void UDPSend(const char *frame, uint8_t length)
+        {
+            (static_cast<Print *>(&ser))->write(frame, length);
+        }
 
         /**
          * @brief   Checks module for response.
@@ -1018,7 +1073,9 @@ typedef const char *AT_t;
          virtual void preinit(const void *preconfig) {}    // not really relevant?
          virtual void panicShutdown() { preinit(NULL); }    // see above
          */
-
+	
+		// Const reference to the state, for debugging in IRQs
+        const volatile uint8_t &internalState = (uint8_t &) state;
 #ifdef ARDUINO_ARCH_AVR
         bool _isPinHigh() { return fastDigitalRead(PWR_PIN); }
 #else
