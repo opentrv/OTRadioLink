@@ -50,11 +50,11 @@
 //              This behaviour depends on the fact that the V0p2 cycle takes long enough
 //              between polls for the SIM900 to be ready to receive a packet, but not
 //              long enough to time out the send routine. // XXX
-#undef OTSIM900LINK_SPLIT_SEND_TEST
+#define OTSIM900LINK_SPLIT_SEND_TEST
 // IF DEFINED:  Flush until a fixed point in the sub-cycle. Note that this requires
 //              OTV0P2BASE::getSubCycleTime or equivalent to be passed in as a template param.
 //              May perform poorer/send junk in some circumstances (untested)
-#define OTSIM900LINK_SUBCYCLE_SEND_TIMEOUT_TEST
+#undef OTSIM900LINK_SUBCYCLE_SEND_TIMEOUT_TEST
 
 // OTSIM900Link macros for printing debug information to serial.
 #ifndef OTSIM900LINK_DEBUG
