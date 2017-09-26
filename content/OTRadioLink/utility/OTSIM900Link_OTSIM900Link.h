@@ -405,11 +405,11 @@ typedef const char *AT_t;
                         }
                         break;
                     case WAIT_PWR_LOW:
-                        OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*START_UP")
+                        OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*WAIT_PWR_LOW")
                         if (waitedLongEnough(powerTimer, powerLockOutDuration)) state = START_UP;
                         break;
                     case START_UP: // takes up to 150 ticks
-                        OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*START_UP")
+                        OTSIM900LINK_DEBUG_SERIAL_PRINTLN_FLASHSTRING("*WAIT_FOR_REPLY")
                         if (isSIM900Replying()) {
                             state = CHECK_PIN;
                         } else {
