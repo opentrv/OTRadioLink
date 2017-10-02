@@ -970,7 +970,7 @@ typedef const char *AT_t;
             const char *dataCut = getResponse(data, sizeof(data), 0x0A);
             if(NULL == dataCut) { return(false); }
             OTSIM900LINK_DEBUG_SERIAL_PRINTLN(dataCut)
-            return ~('E' == *dataCut);  // Returns ERROR on fail, else successfully opened UDP.
+            return !('E' == *dataCut);  // Returns ERROR on fail, else successfully opened UDP.
             }
         /**
          * @brief   Close UDP connection.
