@@ -162,7 +162,7 @@ static const uint_fast8_t MAIN_TICK_S = 1;
 // will force a reset if the resetRTCWatchDog() is not called
 // between one RTC tick interrupt and the next.
 //
-// One possible usage: as start of each major tick in main loop,
+// One possible usage: at start of each major tick in main loop,
 // call resetRTCWatchDog() immediately followed by enableRTCWatchdog(true).
 //
 // If true, then enable the RTC-based watchdog; disable otherwise.
