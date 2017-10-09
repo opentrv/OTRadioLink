@@ -41,6 +41,13 @@ static constexpr unsigned int maxAuthAndDecodeStack = 216; // was 200. clang use
 static constexpr unsigned int maxAuthAndDecodeStack = 216;
 #endif // __APPLE__
 
+// IF DEFINED: Enable non-workspace versions of AES128GCM.
+// These are disabled by default as:
+// - They make large (> 200 byte on AVR) stack allocations and are not
+//   recommended.
+// - When included they prevent -Werror and -Wstack-usage being used together
+//   for static analysis of stack allocations.
+#undef OTAESGCM_ALLOW_NON_WORKSPACE
 
 
 TEST(FrameHandler, StackCheckerWorks)
@@ -494,6 +501,71 @@ TEST(FrameHandlerTest, setFlagFrameOperation)
 
 }
 
+TEST(FrameHandlerTest, authAndDecodeSecurableFrameFull)
+{
+    // Secure Frame start
+    const uint8_t * senderID = OTFHT::minimumSecureFrame::id;
+    const uint8_t * msgCounter = OTFHT::minimumSecureFrame::oldCounter;
+    const uint8_t * const msgStart = &OTFHT::minimumSecureFrame::buf[1];
+
+    OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter &sfrx = OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter::getInstance();
+    sfrx.setMockIDValue(senderID);
+    sfrx.setMockCounterValue(msgCounter);
+
+    OTRadioLink::OTFrameData_T fd(msgStart);
+    EXPECT_NE(0, fd.sfh.checkAndDecodeSmallFrameHeader(OTFHT::minimumSecureFrame::buf, OTFHT::minimumSecureFrame::encodedLength));
+
+    // Workspace for authAndDecodeOTSecurableFrameWithWorkspace
+    constexpr size_t workspaceRequired =
+            OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameSafely_total_scratch_usage_OTAESGCM_3p0
+            + OTAESGCM::OTAES128GCMGenericWithWorkspace<>::workspaceRequiredDec
+            + OTRadioLink::authAndDecodeOTSecurableFrameWithWorkspace_scratch_usage; // + space to hold the key
+    uint8_t workspace[workspaceRequired];
+    OTV0P2BASE::ScratchSpaceL sW(workspace, sizeof(workspace));
+
+    // Set up stack usage checks
+    const bool test1 = OTRadioLink::authAndDecodeOTSecurableFrameWithWorkspace<
+                OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
+                OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE,
+                OTFHT::getKeySuccess
+            >(fd, sW);
+    EXPECT_TRUE(test1);
+    EXPECT_EQ(0, strncmp((const char *) fd.decryptedBody, (const char *) OTFHT::minimumSecureFrame::body, sizeof(OTFHT::minimumSecureFrame::body)));
+}
+
+TEST(FrameHandlerTest, decodeAndHandleOTSecurableFrameDecryptSuccess)
+{
+    // Make sure flag is false.
+    OTFHT::frameOperationCalledFlag = false;
+    // Secure Frame start
+    const uint8_t * senderID = OTFHT::minimumSecureFrame::id;
+    const uint8_t * msgCounter = OTFHT::minimumSecureFrame::oldCounter;
+    const uint8_t * const msgStart = &OTFHT::minimumSecureFrame::buf[1];
+
+    OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter &sfrx = OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter::getInstance();
+    sfrx.setMockIDValue(senderID);
+    sfrx.setMockCounterValue(msgCounter);
+
+    // Workspace for decodeAndHandleOTSecureOFrameWithWorkspace
+    constexpr size_t workspaceRequired =
+            OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameSafely_total_scratch_usage_OTAESGCM_3p0
+            + OTAESGCM::OTAES128GCMGenericWithWorkspace<>::workspaceRequiredDec
+            + OTRadioLink::authAndDecodeOTSecurableFrameWithWorkspace_scratch_usage; // + space to hold the key
+    uint8_t workspace[workspaceRequired];
+    OTV0P2BASE::ScratchSpaceL sW(workspace, sizeof(workspace));
+
+    const bool test1 = OTRadioLink::decodeAndHandleOTSecureOFrameWithWorkspace<
+            OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
+            OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE,
+            OTFHT::getKeySuccess,
+            OTFHT::setFlagFrameOperation
+            >(msgStart, sW);
+    EXPECT_TRUE(test1);
+    EXPECT_TRUE(OTFHT::frameOperationCalledFlag);
+}
+
+
+#ifdef OTAESGCM_ALLOW_NON_WORKSPACE
 //
 TEST(FrameHandlerTest, authAndDecodeSecurableFrameFull)
 {
@@ -540,6 +612,6 @@ TEST(FrameHandlerTest, decodeAndHandleOTSecurableFrameDecryptSuccess)
     EXPECT_TRUE(test1);
     EXPECT_TRUE(OTFHT::frameOperationCalledFlag);
 }
-
+#endif
 
 #endif

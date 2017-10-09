@@ -324,8 +324,6 @@ inline bool authAndDecodeOTSecurableFrameWithWorkspace(
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
 #endif
 
-    // Validate (authenticate) and decrypt body of secure frames.
-//    uint8_t key[16];
     // Use scratch space for 16-byte key.
     uint8_t *key = sW.buf;
     // Get the building primary key.
