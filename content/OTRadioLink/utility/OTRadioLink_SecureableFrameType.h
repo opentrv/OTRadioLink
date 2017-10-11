@@ -34,7 +34,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 namespace OTRadioLink
     {
 
-
+    using OTBuf_t = OTV0P2BASE::ScratchSpace;
     // Secureable (V0p2) messages.
     //
     // Based on 2015Q4 spec and successors:
@@ -262,6 +262,13 @@ namespace OTRadioLink
                                                uint8_t bl_,
                                                uint8_t tl_);
 
+        uint8_t checkAndEncodeSmallFrameHeader(OTBuf_t &buf,
+                                               bool secure_, FrameType_Secureable fType_,
+                                               uint8_t seqNum_,
+                                               const OTBuf_t &id_,  // FIXME ScratchSpace can't be const!
+                                               uint8_t bl_,
+                                               uint8_t tl_);
+
         // Decode header and check parameters/validity for inbound short secureable frame.
         // The buffer starts with the fl frame length byte.
         //
@@ -316,6 +323,12 @@ namespace OTRadioLink
                                         uint8_t seqNum_,
                                         const uint8_t *id_, uint8_t il_,
                                         const uint8_t *body, uint8_t bl_);
+
+    uint8_t encodeNonsecureSmallFrame(OTBuf_t &buf,
+                                        FrameType_Secureable fType_,
+                                        uint8_t seqNum_,
+                                        const OTBuf_t &id_,
+                                        const OTBuf_t &body);
 
     // Decode entire non-secure small frame from raw frame bytes support.
     // Returns the total number of bytes read for the frame
@@ -470,6 +483,14 @@ namespace OTRadioLink
                                             fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
                                             void *state, const uint8_t *key);
 
+            static uint8_t encodeSecureSmallFrameRaw(OTBuf_t &buf,
+                                            FrameType_Secureable fType_,
+                                            const OTBuf_t &id_,
+                                            const OTBuf_t &body,
+                                            const uint8_t *iv,
+                                            fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                                            void *state, const uint8_t *key);
+
             // Encode entire secure small frame from header params and body and crypto support.
             // Buffer for body must be large enough to allow padding to be applied IN PLACE.
             // This is a raw/partial impl that requires the IV/nonce to be supplied.
@@ -510,6 +531,15 @@ namespace OTRadioLink
                 const uint8_t *iv,
                 fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
                 const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key);
+
+            static uint8_t encodeSecureSmallFrameRawPadInPlace(
+                    OTBuf_t &buf,
+                    FrameType_Secureable fType_,
+                    const OTBuf_t &id_,
+                    OTBuf_t &body, uint8_t bodylen,
+                    const uint8_t *iv,
+                    fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
+                    const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key);
 
             // Get the 3 bytes of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
             // Combines results from primary and secondary as appropriate.
@@ -593,6 +623,14 @@ namespace OTRadioLink
                                             fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
                                             void *state, const uint8_t *key);
 
+            uint8_t generateSecureOStyleFrameForTX(OTBuf_t &buf,
+                                            FrameType_Secureable fType_,
+                                            uint8_t il_,
+                                            const OTBuf_t &body,
+                                            fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                                            void *state, const uint8_t *key);
+
+
             static const uint8_t generateSecureBeaconMaxBufSize = 27 + SecurableFrameHeader::maxIDLength;
             // Create secure Alive / beacon (FTS_ALIVE) frame with an empty body for transmission.
             // Returns number of bytes written to buffer, or 0 in case of error.
@@ -631,6 +669,13 @@ namespace OTRadioLink
                                             fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
                                             void *state, const uint8_t *key);
 
+            uint8_t generateSecureOFrameOnStack(OTBuf_t &buf,
+                                            uint8_t il_,
+                                            uint8_t valvePC,
+                                            const uint8_t * body,
+                                            fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                                            void *state, const uint8_t *key);
+
             // Create simple 'O' (FTS_BasicSensorOrValve) frame with an optional stats section for transmission.
             // Returns number of bytes written to buffer, or 0 in case of error.
             // The IV is constructed from the node ID (built-in from EEPROM or as supplied)
@@ -656,6 +701,13 @@ namespace OTRadioLink
                                             uint8_t * ptextBuf,
                                             fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
                                             const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key);
+
+            uint8_t generateSecureOFrame(OTBuf_t &buf,
+                                        uint8_t il_,
+                                        uint8_t valvePC,
+                                        OTBuf_t &body,
+                                        fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                                        const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key);
         };
 
     // RX Base class for simple implementations that supports 0 or 32 byte encrypted body sections.

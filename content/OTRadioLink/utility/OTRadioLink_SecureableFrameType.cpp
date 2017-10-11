@@ -234,6 +234,96 @@ uint8_t SecurableFrameHeader::checkAndDecodeSmallFrameHeader(const uint8_t *cons
     return(hlifl); // SUCCESS!
     }
 
+uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(
+        OTBuf_t &buf,
+        bool secure_, FrameType_Secureable fType_,
+        uint8_t seqNum_,
+        const OTBuf_t &id_,  // FIXME ScratchSpace can't be const!
+        uint8_t bl_,
+        uint8_t tl_)
+    {
+    // Buffer args locally + add constness.1
+    uint8_t *const buffer = buf.buf;
+    const uint8_t buflen = buf.bufsize;
+    const uint8_t * const idbuf = id_.buf;
+    const uint8_t idlen = id_.bufsize;
+
+    // Make frame 'invalid' until everything is finished and checks out.
+    fl = 0;
+
+    // Quick integrity checks from spec.
+    //
+    // (Because it the spec is primarily focused on checking received packets,
+    // things happen in a different order here.)
+    //
+    // Involves setting some fields as this progresses to enable others to be checked.
+    // Must be done in a manner that avoids overflow with even egregious/malicious bad values,
+    // and that is efficient since this will be on every TX code path.
+    //
+    //  1) NOT APPLICABLE FOR ENCODE: fl >= 4 (type, seq/il, bl, trailer bytes)
+    //  3) type (the first frame byte) is never 0x00, 0x80, 0x7f, 0xff.
+    // Frame type must be valid (in particular precluding all-0s and all-1s values).
+    if((FTS_NONE == fType_) || (fType_ >= FTS_INVALID_HIGH)) { return(0); } // ERROR
+    fType = secure_ ? (0x80 | (uint8_t) fType_) : (0x7f & (uint8_t) fType_);
+    //  4) il <= 8 for initial implementations (internal node ID is 8 bytes)
+    //  5) NOT APPLICABLE FOR ENCODE: il <= fl - 4 (ID length; minimum of 4 bytes of other overhead)
+    // ID must be of a legitimate size.
+    // A non-NULL pointer is a RAM source, else an EEPROM source.
+    if(idlen > maxIDLength) { return(0); } // ERROR
+    // Copy the ID length and bytes, and sequence number lsbs, to the header struct.
+    seqIl = uint8_t(idlen | (seqNum_ << 4));
+    if(idlen > 0)
+      {
+      // Copy in ID if not zero length, from RAM or EEPROM as appropriate.
+      const bool idFromEEPROM = (NULL == idbuf);
+      if(!idFromEEPROM) { memcpy(id, idbuf, idlen); }
+      else
+#ifdef ARDUINO_ARCH_AVR
+          { eeprom_read_block(id, (uint8_t *)V0P2BASE_EE_START_ID, il_); }
+#else
+          { return(0); } // ERROR
+#endif
+      }
+    // Header length including frame length byte.
+    const uint8_t hlifl = 4 + idlen;
+    // Error return if not enough space in buf for the complete encoded header.
+    if(hlifl > buflen) { return(0); } // ERROR
+    //  6) bl <= fl - 4 - il (body length; minimum of 4 bytes of other overhead)
+    //  2) fl may be further constrained by system limits, typically to <= 63
+    if(bl_ > maxSmallFrameSize - hlifl) { return(0); } // ERROR
+    bl = bl_;
+    //  8) NON_SECURE: tl == 1 for non-secure
+    if(!secure_) { if(1 != tl_) { return(0); } } // ERROR
+    // Trailer length must be at least 1 for non-secure frame.
+    else
+        {
+        // Zero-length trailer never allowed.
+        if(0 == tl_) { return(0); } // ERROR
+        //  8) OVERSIZE WHEN SECURE: tl >= 1 for secure (tl = fl - 3 - il - bl)
+        //  2) fl may be further constrained by system limits, typically to <= 63
+        if(tl_ > maxSmallFrameSize+1 - hlifl - bl_) { return(0); } // ERROR
+        }
+
+    const uint8_t fl_ = hlifl-1 + bl_ + tl_;
+    // Should not get here if true // if((fl_ > maxSmallFrameSize)) { return(0); } // ERROR
+
+    // Write encoded header to buf starting with fl if buf is non-NULL.
+    if(NULL != buffer)
+        {
+        buffer[0] = fl_;
+        buffer[1] = fType;
+        buffer[2] = seqIl;
+        memcpy(buffer + 3, id, idlen);
+        buffer[3 + idlen] = bl_;
+        }
+
+    // Set fl field to valid value as last action / side-effect.
+    fl = fl_;
+
+    // Return encoded header length including frame-length byte; body should immediately follow.
+    return(hlifl); // SUCCESS!
+    }
+
 // Compute and return CRC for non-secure frames; 0 indicates an error.
 // This is the value that should be at getTrailerOffset() / offset fl.
 // Can be called after checkAndEncodeSmallFrameHeader() or checkAndDecodeSmallFrameHeader()
@@ -302,6 +392,45 @@ uint8_t encodeNonsecureSmallFrame(uint8_t *const buf, const uint8_t buflen,
     // Compute and write in the CRC trailer...
     const uint8_t crc = sfh.computeNonSecureFrameCRC(buf, buflen);
     buf[fl] = crc;
+    // Done.
+    return(fl + 1);
+    }
+
+uint8_t encodeNonsecureSmallFrame(
+            OTBuf_t &buf,
+            FrameType_Secureable fType_,
+            uint8_t seqNum_,
+            const OTBuf_t &id_,
+            const OTBuf_t &body)
+    {
+    // buffer variables
+    uint8_t *const buffer = buf.buf;
+    const uint8_t buflen = buf.bufsize;
+    const uint8_t *const bodybuf = body.buf;
+    const uint8_t bodylen = body.bufsize;
+
+    // Let checkAndEncodeSmallFrameHeader() validate buf and id_.
+    // If necessary (bl_ > 0) body is validated below.
+    OTRadioLink::SecurableFrameHeader sfh;
+    const uint8_t hl = sfh.checkAndEncodeSmallFrameHeader(buf,
+                                               false, fType_, // Not secure.
+                                               seqNum_,
+                                               id_,
+                                               bodylen,
+                                               1); // 1-byte CRC trailer.
+    // Fail if header encoding fails.
+    if(0 == hl) { return(0); } // ERROR
+    // Fail if buffer is not large enough to accommodate full frame.
+    const uint8_t fl = sfh.fl;
+    if(fl >= buflen) { return(0); } // ERROR
+    // Copy in body, if any.
+    if(bodylen > 0)
+        {
+        memcpy(buffer + sfh.getBodyOffset(), bodybuf, bodylen);
+        }
+    // Compute and write in the CRC trailer...
+    const uint8_t crc = sfh.computeNonSecureFrameCRC(buffer, buflen);
+    buffer[fl] = crc;
     // Done.
     return(fl + 1);
     }
@@ -433,6 +562,62 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRaw(
     return(fl + 1);
     }
 
+uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRaw(
+        OTBuf_t &buf,
+        FrameType_Secureable fType_,
+        const OTBuf_t &id_,
+        const OTBuf_t &body,
+        const uint8_t *iv,
+        fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+        void *state, const uint8_t *key)
+    {
+    if((NULL == e) || (NULL == key)) { return(0); } // ERROR
+
+    // buffer local variables/consts
+    uint8_t * const buffer = buf.buf;
+    const uint8_t buflen = buf.bufsize;
+    const uint8_t *const bodybuf = body.buf;
+    const uint8_t bodylen = body.bufsize;
+
+    // Capture possible (near) peak of stack usage, eg when called from ISR.
+    OTV0P2BASE::MemoryChecks::recordIfMinSP();
+
+    // Stop if unencrypted body is too big for this scheme.
+    if(bodylen > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
+    const uint8_t encryptedBodyLength = (0 == bodylen) ? 0 : ENC_BODY_SMALL_FIXED_CTEXT_SIZE;
+    // Let checkAndEncodeSmallFrameHeader() validate buf and id_.
+    // If necessary (bl_ > 0) body is validated below.
+    const uint8_t seqNum_ = iv[11] & 0xf;
+    OTRadioLink::SecurableFrameHeader sfh;
+    const uint8_t hl = sfh.checkAndEncodeSmallFrameHeader(buf,
+                                               true, fType_,
+                                               seqNum_,
+                                               id_,
+                                               encryptedBodyLength,
+                                               23); // 23-byte authentication trailer.
+    // Fail if header encoding fails.
+    if(0 == hl) { return(0); } // ERROR
+    // Fail if buffer is not large enough to accommodate full frame.
+    const uint8_t fl = sfh.fl;
+    if(fl >= buflen) { return(0); } // ERROR
+    // Pad body, if any.
+    uint8_t paddingBuf[32];
+    if(0 != bodylen)
+        {
+        memcpy(paddingBuf, bodybuf, bodylen);
+        if(0 == addPaddingTo32BTrailing0sAndPadCount(paddingBuf, bodylen)) { return(0); } // ERROR
+        }
+    // Encrypt body (if any) from the padding buffer to the output buffer.
+    // Insert the tag directly into the buffer (before the final byte).
+    if(!e(state, key, iv, buffer, hl, (0 == bodylen) ? NULL : paddingBuf, buffer + hl, buffer + fl - 16)) { return(0); } // ERROR
+    // Copy the counters part (last 6 bytes of) the nonce/IV into the trailer...
+    memcpy(buffer + fl - 22, iv + 6, 6);
+    // Set final trailer byte to indicate encryption type and format.
+    buffer[fl] = 0x80;
+    // Done.
+    return(fl + 1);
+    }
+
 // Encode entire secure small frame from header params and body and crypto support.
 // Buffer for body must be large enough to allow padding to be applied IN PLACE.
 // This is a raw/partial impl that requires the IV/nonce to be supplied.
@@ -510,6 +695,60 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRawPadInPlace(
     memcpy(buf + fl - 22, iv + 6, 6);
     // Set final trailer byte to indicate encryption type and format.
     buf[fl] = 0x80;
+    // Done.
+    return(fl + 1);
+    }
+
+uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRawPadInPlace(
+        OTBuf_t &buf,
+        FrameType_Secureable fType_,
+        const OTBuf_t &id_,
+        OTBuf_t &body, uint8_t bodylen,
+        const uint8_t *iv,
+        fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
+        const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key)
+    {
+    if((NULL == e) || (NULL == key)) { return(0); } // ERROR
+
+
+    // buffer local variables/consts
+    uint8_t * const buffer = buf.buf;
+    const uint8_t buflen = buf.bufsize;
+    uint8_t *const bodybuf = body.buf;
+
+    // Capture possible (near) peak of stack usage, eg when called from ISR.
+    OTV0P2BASE::MemoryChecks::recordIfMinSP();
+
+    // Stop if unencrypted body is too big for this scheme.
+    if(bodylen > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
+    const uint8_t encryptedBodyLength = (0 == bodylen) ? 0 : ENC_BODY_SMALL_FIXED_CTEXT_SIZE;
+    // Let checkAndEncodeSmallFrameHeader() validate buf and id_.
+    // If necessary (bl_ > 0) body is validated below.
+    const uint8_t seqNum_ = iv[11] & 0xf;
+    OTRadioLink::SecurableFrameHeader sfh;
+    const uint8_t hl = sfh.checkAndEncodeSmallFrameHeader(buf,
+                                               true, fType_,
+                                               seqNum_,
+                                               id_,
+                                               encryptedBodyLength,
+                                               23); // 23-byte authentication trailer.
+    // Fail if header encoding fails.
+    if(0 == hl) { return(0); } // ERROR
+    // Fail if buffer is not large enough to accommodate full frame.
+    const uint8_t fl = sfh.fl;
+    if(fl >= buflen) { return(0); } // ERROR
+    // Pad body, if any, IN SITU.
+    if(0 != bodylen)
+        {
+        if(0 == addPaddingTo32BTrailing0sAndPadCount(bodybuf, bodylen)) { return(0); } // ERROR
+        }
+    // Encrypt body (if any) from its now-padded buffer to the output buffer.
+    // Insert the tag directly into the buffer (before the final byte).
+    if(!e(scratch.buf, scratch.bufsize, key, iv, buffer, hl, (0 == bodylen) ? NULL : bodybuf, buffer + hl, buffer + fl - 16)) { return(0); } // ERROR
+    // Copy the counters part (last 6 bytes of) the nonce/IV into the trailer...
+    memcpy(buffer + fl - 22, iv + 6, 6);
+    // Set final trailer byte to indicate encryption type and format.
+    buffer[fl] = 0x80;
     // Done.
     return(fl + 1);
     }
@@ -783,6 +1022,18 @@ uint8_t generateNonsecureBeacon(uint8_t *const buf, const uint8_t buflen,
                                     NULL, 0));
     }
 
+uint8_t generateNonsecureBeacon(OTBuf_t &buf, const uint8_t seqNum_, const OTBuf_t &id_)
+    {
+    SecurableFrameHeader sfh;
+    const OTBuf_t body(NULL, 0);
+    // "I'm Alive!" / beacon message.
+    return(encodeNonsecureSmallFrame(buf,
+                                    OTRadioLink::FTS_ALIVE,
+                                    seqNum_,
+                                    id_,
+                                    body));
+    }
+
 // Create simple 'O'-style secure frame with an optional encrypted body for transmission.
 // Returns number of bytes written to buffer, or 0 in case of error.
 // The IV is constructed from the node ID (local from EEPROM, or as supplied)
@@ -813,6 +1064,28 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOStyleFrameForTX(uint8_t
                                     fType_,
                                     (longID ? id : iv), il_,
                                     body, bl_,
+                                    iv, e, state, key));
+    }
+
+uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOStyleFrameForTX(OTBuf_t &buf,
+                                const FrameType_Secureable fType_,
+                                const uint8_t il_,
+                                const OTBuf_t &body,
+                                const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                                void *const state, const uint8_t *const key)
+    {
+    if((fType_ >= FTS_INVALID_HIGH) || (fType_ == FTS_NONE)) { return(0); } // FAIL
+    uint8_t iv[12];
+    if(!compute12ByteIDAndCounterIVForTX(iv)) { return(0); } // FAIL
+    // If ID is short then we can cheat by reusing start of IV, else fetch again explicitly...
+    const bool longID = (il_ > 6);
+    uint8_t id[OTV0P2BASE::OpenTRV_Node_ID_Bytes];
+    if(longID && !getTXID(id)) { return(0); } // FAIL
+    const OTBuf_t txID((longID ? id : iv), sizeof((longID ? id : iv)));
+    return(encodeSecureSmallFrameRaw(buf,
+                                    fType_,
+                                    txID,
+                                    body,
                                     iv, e, state, key));
     }
 
@@ -852,6 +1125,36 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX(uint8_t *
                                     OTRadioLink::FTS_BasicSensorOrValve,
                                     ID, il_,
                                     bbuf, (hasStats ? 2+statslen : 2),
+                                    iv, e, state, key));
+    }
+
+uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameOnStack(OTBuf_t &buf,
+                                                uint8_t il_,
+                                                uint8_t valvePC,
+                                                const uint8_t * const body,
+                                                fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                                                void *state, const uint8_t *key)
+    {
+    uint8_t iv[12];
+    if(!compute12ByteIDAndCounterIVForTX(iv)) { return(0); }
+    const bool hasStats = (NULL != body) && ('{' == body[0]);
+    const size_t slp1 = hasStats ? strlen((const char * const) body) : 1; // Stats length including trailing '}' (not sent).
+    if(slp1 > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE-1) { return(0); } // ERROR
+    const uint8_t statslen = (uint8_t)(slp1 - 1); // Drop trailing '}' implicitly.
+    uint8_t bbuf[ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE];
+    bbuf[0] = (valvePC <= 100) ? valvePC : 0x7f;
+    bbuf[1] = hasStats ? 0x10 : 0; // Indicate presence of stats.
+    if(hasStats) { memcpy(bbuf + 2, body, statslen); }
+    /* const */ uint8_t *ID = iv; // First 6 bytes of IV is the ID.  FIXME Should be const pointer
+    if(il_ > 6) { return(0); } // ERROR: cannot supply that much of ID easily.
+
+    // create OTBufs
+    const OTBuf_t id(ID, il_);
+    const OTBuf_t newBody(bbuf, (hasStats ? 2+statslen : 2));
+    return(encodeSecureSmallFrameRaw(buf,
+                                    OTRadioLink::FTS_BasicSensorOrValve,
+                                    id,
+                                    newBody,
                                     iv, e, state, key));
     }
 
@@ -902,6 +1205,45 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX(
         bbuf, (hasStats ? 2+statslen : 2), // Note: callee will pad beyond this.
         iv, e, subscratch, key));
 }
+
+//uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTBuf_t &buf,
+//                                            uint8_t il_,
+//                                            uint8_t valvePC,
+//                                            OTBuf_t &body,
+//                                            fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+//                                            const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key)
+//{
+//    constexpr uint8_t IV_size = 12;
+//    static_assert(generateSecureOFrameRawForTX_scratch_usage == IV_size, "self-use scratch size wrong");
+//    static_assert(generateSecureOFrameRawForTX_scratch_usage < generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0, "scratch size calc wrong");
+//    if(scratch.bufsize < generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0) { return(0); } // ERROR
+//    // buffer args and consts
+//    uint8_t * const bodybuf = body.buf;
+//
+//    // iv at start of scratch space
+//    uint8_t *const iv = scratch.buf; // uint8_t iv[IV_size];
+//    if(!compute12ByteIDAndCounterIVForTX(iv)) { return(0); }
+//    const char *const statsJSON = (const char *const)&bodybuf[2];
+//    const bool hasStats = (NULL != bodybuf) && ('{' == statsJSON[0]);
+//    const size_t slp1 = hasStats ? strlen(statsJSON) : 1; // Stats length including trailing '}' (not sent).
+//    if(slp1 > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE-1) { return(0); } // ERROR
+//    const uint8_t statslen = (uint8_t)(slp1 - 1); // Drop trailing '}' implicitly.
+//    // bbuf (buffer to encode in?) goes after iv
+//    uint8_t *const bbuf = (uint8_t *const)bodybuf; // uint8_t bbuf[ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE];
+//    bbuf[0] = (valvePC <= 100) ? valvePC : 0x7f;
+//    bbuf[1] = hasStats ? 0x10 : 0; // Indicate presence of stats.
+//    // Create a new scratchspace from the old one in order to pass on.
+//    const OTV0P2BASE::ScratchSpaceL subscratch(scratch, generateSecureOFrameRawForTX_scratch_usage);
+//    if(il_ > 6) { return(0); } // ERROR: cannot supply that much of ID easily.
+//    // Create id buffer
+//    const OTBuf_t id(iv, il_);
+//    return(encodeSecureSmallFrameRawPadInPlace(
+//                    buf,
+//                    OTRadioLink::FTS_BasicSensorOrValve,
+//                    id,
+//                    body, (hasStats ? 2+statslen : 2), // Note: callee will pad beyond this.
+//                    iv, e, subscratch, key));
+//}
 
     // As for decodeSecureSmallFrameRaw() but passed a candidate node/counterparty ID
     // derived from the frame ID in the incoming header,

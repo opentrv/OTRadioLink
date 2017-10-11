@@ -89,93 +89,102 @@ TEST(SimpleSecureFrame, NullCompilation)
 TEST(OTAESGCMSecureFrame, FrameQIC)
 {
     OTRadioLink::SecurableFrameHeader sfh;
-    uint8_t id[OTRadioLink::SecurableFrameHeader::maxIDLength];
-    uint8_t buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize + 1];
+    uint8_t _id[OTRadioLink::SecurableFrameHeader::maxIDLength + 1];  // Make buffer large enough for fail case.
+    OTRadioLink::OTBuf_t id(_id, OTRadioLink::SecurableFrameHeader::maxIDLength);
+    OTRadioLink::OTBuf_t minimalID(_id, 1);
+    OTRadioLink::OTBuf_t id2bytes(_id, 2);
+    OTRadioLink::OTBuf_t largeID(_id, sizeof(_id));  // Make buffer large enough for fail case.
+    uint8_t _buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize + 1];
+    OTRadioLink::OTBuf_t buf(_buf, sizeof(_buf));
+
+    OTRadioLink::OTBuf_t nullbuf(nullptr, 0);
+
     // Uninitialised SecurableFrameHeader should be 'invalid'.
     EXPECT_TRUE(sfh.isInvalid());
     // ENCODE
     // Test various bad input combos that should be caught by QIC.
     // Can futz (some of the) inputs that should not matter...
     // Should fail with bad ID length.
-    EXPECT_EQ(0, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
+    EXPECT_EQ(0, sfh.checkAndEncodeSmallFrameHeader(buf,
                                                false, OTRadioLink::FTS_BasicSensorOrValve,
                                                OTV0P2BASE::randRNG8(),
-                                               id, OTRadioLink::SecurableFrameHeader::maxIDLength + 1,
+                                               largeID,
                                                2,
                                                1));
     // Should fail with bad buffer length.
-    EXPECT_EQ(0, sfh.checkAndEncodeSmallFrameHeader(buf, 0,
+    EXPECT_EQ(0, sfh.checkAndEncodeSmallFrameHeader(nullbuf,
                                                false, OTRadioLink::FTS_BasicSensorOrValve,
                                                OTV0P2BASE::randRNG8(),
-                                               id, 2,
+                                               id2bytes,
                                                2,
                                                1));
     // Should fail with bad frame type.
-    EXPECT_EQ(0, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
+    EXPECT_EQ(0, sfh.checkAndEncodeSmallFrameHeader(buf,
                                                OTV0P2BASE::randRNG8NextBoolean(), OTRadioLink::FTS_NONE,
                                                OTV0P2BASE::randRNG8(),
-                                               id, 2,
+                                               id2bytes,
                                                2,
                                                1));
-    EXPECT_EQ(0, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
+    EXPECT_EQ(0, sfh.checkAndEncodeSmallFrameHeader(buf,
                                                OTV0P2BASE::randRNG8NextBoolean(), OTRadioLink::FTS_INVALID_HIGH,
                                                OTV0P2BASE::randRNG8(),
-                                               id, 2,
+                                               id2bytes,
                                                2,
                                                1));
     // Should fail with impossible body length.
-    EXPECT_EQ(0, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
+    EXPECT_EQ(0, sfh.checkAndEncodeSmallFrameHeader(buf,
                                                OTV0P2BASE::randRNG8NextBoolean(), OTRadioLink::FTS_ALIVE,
                                                OTV0P2BASE::randRNG8(),
-                                               id, 1,
+                                               minimalID,
                                                252,
                                                1));
     // Should fail with impossible trailer length.
-    EXPECT_EQ(0, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
+    EXPECT_EQ(0, sfh.checkAndEncodeSmallFrameHeader(buf,
                                                OTV0P2BASE::randRNG8NextBoolean(), OTRadioLink::FTS_ALIVE,
                                                OTV0P2BASE::randRNG8(),
-                                               id, 1,
+                                               minimalID,
                                                0,
                                                0));
-    EXPECT_EQ(0, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
+    EXPECT_EQ(0, sfh.checkAndEncodeSmallFrameHeader(buf,
                                                OTV0P2BASE::randRNG8NextBoolean(), OTRadioLink::FTS_ALIVE,
                                                OTV0P2BASE::randRNG8(),
-                                               id, 1,
+                                               minimalID,
                                                0,
                                                252));
     // Should fail with impossible body + trailer length (for small frame).
-    EXPECT_EQ(0, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
+    EXPECT_EQ(0, sfh.checkAndEncodeSmallFrameHeader(buf,
                                                OTV0P2BASE::randRNG8NextBoolean(), OTRadioLink::FTS_ALIVE,
                                                OTV0P2BASE::randRNG8(),
-                                               id, 1,
+                                               minimalID,
                                                32,
                                                32));
     // "I'm Alive!" message with 1-byte ID should succeed and be of full header length (5).
-    EXPECT_EQ(5, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
+    EXPECT_EQ(5, sfh.checkAndEncodeSmallFrameHeader(buf,
                                                false, OTRadioLink::FTS_ALIVE,
                                                OTV0P2BASE::randRNG8(),
-                                               id, 1, // Minimal (non-empty) ID.
+                                               minimalID, // Minimal (non-empty) ID.
                                                0, // No payload.
                                                1));
     // Large but legal body size.
-    EXPECT_EQ(5, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
+    EXPECT_EQ(5, sfh.checkAndEncodeSmallFrameHeader(buf,
                                                false, OTRadioLink::FTS_ALIVE,
                                                OTV0P2BASE::randRNG8(),
-                                               id, 1, // Minimal (non-empty) ID.
+                                               minimalID, // Minimal (non-empty) ID.
                                                32,
                                                1));
+#if 1
     // DECODE
     // Test various bad input combos that should be caught by QIC.
     // Can futz (some of the) inputs that should not matter...
     // Should fail with bad (too small) buffer.
-    buf[0] = OTV0P2BASE::randRNG8();
-    EXPECT_EQ(0, sfh.checkAndDecodeSmallFrameHeader(buf, 0));
+    buf.buf[0] = OTV0P2BASE::randRNG8();
+    EXPECT_EQ(0, sfh.checkAndDecodeSmallFrameHeader(buf.buf, 0));
     // Should fail with bad (too small) frame length.
-    buf[0] = 3 & OTV0P2BASE::randRNG8();
-    EXPECT_EQ(0, sfh.checkAndDecodeSmallFrameHeader(buf, sizeof(buf)));
+    buf.buf[0] = 3 & OTV0P2BASE::randRNG8();
+    EXPECT_EQ(0, sfh.checkAndDecodeSmallFrameHeader(buf.buf, sizeof(buf)));
     // Should fail with bad (too large) frame length for 'small' frame.
-    buf[0] = 64;
-    EXPECT_EQ(0, sfh.checkAndDecodeSmallFrameHeader(buf, sizeof(buf)));
+    buf.buf[0] = 64;
+    EXPECT_EQ(0, sfh.checkAndDecodeSmallFrameHeader(buf.buf, sizeof(buf)));
     // Should fail with bad (too large) frame header for the input buffer.
     const uint8_t buf1[] = { 0x08, 0x4f, 0x02, 0x80, 0x81 }; // , 0x02, 0x00, 0x01, 0x23 };
     EXPECT_EQ(0, sfh.checkAndDecodeSmallFrameHeader(buf1, 5));
@@ -186,6 +195,7 @@ TEST(OTAESGCMSecureFrame, FrameQIC)
     const uint8_t buf3[] = { 0x08, 0x4f, 0x02, 0x80, 0x81, 0x02, 0x00, 0x01, 0xff };
     EXPECT_EQ(0, sfh.checkAndDecodeSmallFrameHeader(buf3, sizeof(buf3)));
     // TODO
+#endif
 }
 
 // Test encoding of header for TX.
@@ -718,13 +728,13 @@ TEST(OTAESGCMSecureFrame, SecureSmallFrameEncodingWithWorkspace)
 {
     // workspaces
     constexpr size_t encWorkspaceSize = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRawPadInPlace_total_scratch_usage_OTAESGCM_2p0;
-    EXPECT_EQ(272, encWorkspaceSize);
+    EXPECT_EQ(272U, encWorkspaceSize);
     uint8_t encWorkspace[encWorkspaceSize];
     OTV0P2BASE::ScratchSpaceL sWEnc(encWorkspace, sizeof(encWorkspace));
     constexpr size_t decWorkspaceSize =
             OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRawWithWorkspace_total_scratch_usage_OTAESGCM_3p0
             + OTAESGCM::OTAES128GCMGenericWithWorkspace<>::workspaceRequiredDec;
-    EXPECT_EQ(320, decWorkspaceSize);
+    EXPECT_EQ(320U, decWorkspaceSize);
     uint8_t decWorkspace[decWorkspaceSize];
     OTV0P2BASE::ScratchSpaceL sWDec(decWorkspace, sizeof(decWorkspace));
 
