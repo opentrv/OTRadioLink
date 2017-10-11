@@ -523,6 +523,7 @@ namespace OTRadioLink
             static constexpr size_t encodeSecureSmallFrameRawPadInPlace_total_scratch_usage_OTAESGCM_2p0 =
                     workspaceRequred_GCM32B16BWithWorkspace_OTAESGCM_2p0
                     + encodeSecureSmallFrameRawPadInPlace_scratch_usage;
+#if 0
             static uint8_t encodeSecureSmallFrameRawPadInPlace(
                 uint8_t *buf, uint8_t buflen,
                 FrameType_Secureable fType_,
@@ -531,7 +532,7 @@ namespace OTRadioLink
                 const uint8_t *iv,
                 fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
                 const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key);
-
+#endif
             static uint8_t encodeSecureSmallFrameRawPadInPlace(
                     OTBuf_t &buf,
                     FrameType_Secureable fType_,
@@ -616,13 +617,14 @@ namespace OTRadioLink
             //  * body, bl_ body and body length; body non-NULL unless bl_ is zero
             //  * il_  ID length for the header; ID is local node ID from EEPROM or other pre-supplied ID
             //  * key  16-byte secret key; never NULL
+#if 0
             uint8_t generateSecureOStyleFrameForTX(uint8_t *buf, uint8_t buflen,
                                             FrameType_Secureable fType_,
                                             uint8_t il_,
                                             const uint8_t *body, uint8_t bl_,
                                             fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
                                             void *state, const uint8_t *key);
-
+#endif
             uint8_t generateSecureOStyleFrameForTX(OTBuf_t &buf,
                                             FrameType_Secureable fType_,
                                             uint8_t il_,
@@ -630,8 +632,8 @@ namespace OTRadioLink
                                             fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
                                             void *state, const uint8_t *key);
 
-
             static const uint8_t generateSecureBeaconMaxBufSize = 27 + SecurableFrameHeader::maxIDLength;
+#if 0  // TODO No workspace impl/tests yet
             // Create secure Alive / beacon (FTS_ALIVE) frame with an empty body for transmission.
             // Returns number of bytes written to buffer, or 0 in case of error.
             // The IV is constructed from the node ID and the primary TX message counter.
@@ -648,7 +650,9 @@ namespace OTRadioLink
                                             fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
                                             void *state, const uint8_t *key)
                 { return(generateSecureOStyleFrameForTX(buf, buflen, OTRadioLink::FTS_ALIVE, il_, NULL, 0, e, state, key)); }
+#endif
 
+#if 0
             // Create simple 'O' (FTS_BasicSensorOrValve) frame with an optional stats section for transmission.
             // Returns number of bytes written to buffer, or 0 in case of error.
             // The IV is constructed from the node ID (built-in from EEPROM or as supplied)
@@ -691,22 +695,22 @@ namespace OTRadioLink
             // NOTE: this leaves enough space in the scratch for the plain text to be padded in-situ
             // thus avoiding any further copy or buffer space required.
             // NOTE: THIS API IS LIABLE TO CHANGE
-            static constexpr uint8_t generateSecureOFrameRawForTX_scratch_usage = 12; // + 32; as bbuf moved out to level above.
-            static constexpr size_t generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0 =
-                    encodeSecureSmallFrameRawPadInPlace_total_scratch_usage_OTAESGCM_2p0
-                    + generateSecureOFrameRawForTX_scratch_usage;
             uint8_t generateSecureOFrameRawForTX(uint8_t *buf, uint8_t buflen,
                                             uint8_t il_,
                                             uint8_t valvePC,
                                             uint8_t * ptextBuf,
                                             fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
                                             const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key);
-
+#endif
+            static constexpr uint8_t generateSecureOFrameRawForTX_scratch_usage = 12; // + 32; as bbuf moved out to level above.
+            static constexpr size_t generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0 =
+                    encodeSecureSmallFrameRawPadInPlace_total_scratch_usage_OTAESGCM_2p0
+                    + generateSecureOFrameRawForTX_scratch_usage;
             uint8_t generateSecureOFrame(OTBuf_t &buf,
                                         uint8_t il_,
                                         uint8_t valvePC,
                                         OTBuf_t &body,
-                                        fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                                        const fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
                                         const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key);
         };
 

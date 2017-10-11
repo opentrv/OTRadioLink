@@ -156,91 +156,13 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(uint8_t *const buf,
     return(hlifl); // SUCCESS!
     }
 
-// Decode header and check parameters/validity for inbound short secureable frame.
-// The buffer starts with the fl frame length byte.
-//
-// Parameters:
-//  * buf  buffer to decode header from, of at least length buflen; never NULL
-//  * buflen  available length in buf; if too small for encoded header routine will fail (return 0)
-//
-// Performs as many as possible of the 'Quick Integrity Checks' from the spec, eg SecureBasicFrame-V0.1-201601.txt
-//  1) fl >= 4 (type, seq/il, bl, trailer bytes)
-//  2) fl may be further constrained by system limits, typically to <= 63
-//  3) type (the first frame byte) is never 0x00, 0x80, 0x7f, 0xff.
-//  4) il <= 8 for initial implementations (internal node ID is 8 bytes)
-//  5) il <= fl - 4 (ID length; minimum of 4 bytes of other overhead)
-//  6) bl <= fl - 4 - il (body length; minimum of 4 bytes of other overhead)
-//  7) the final frame byte (the final trailer byte) is never 0x00 nor 0xff (if whole frame available)
-//  8) tl == 1 for non-secure, tl >= 1 for secure (tl = fl - 3 - il - bl)
-// Note: fl = hl-1 + bl + tl = 3+il + bl + tl
-//
-// (If the header is invalid or the buffer too small, 0 is returned to indicate an error.)
-// The fl byte in the structure is set to the frame length, else 0 in case of any error.
-//
-// Returns number of bytes of decoded header
-// including nominally-leading fl length byte;
-// 0 in case of error.
-uint8_t SecurableFrameHeader::checkAndDecodeSmallFrameHeader(const uint8_t *const buf, uint8_t buflen)
-    {
-    // Make frame 'invalid' until everything is finished and checks out.
-    fl = 0;
-
-    // If buf is NULL or clearly too small to contain a valid header then return an error.
-    if(NULL == buf) { return(0); } // ERROR
-    if(buflen < 4) { return(0); } // ERROR
-
-    // Quick integrity checks from spec.
-    //  1) fl >= 4 (type, seq/il, bl, trailer bytes)
-    const uint8_t fl_ = buf[0];
-    if(fl_ < 4) { return(0); } // ERROR
-    //  2) fl may be further constrained by system limits, typically to < 64, eg for 'small' frame.
-    if(fl_ > maxSmallFrameSize) { return(0); } // ERROR
-    //  3) type (the first frame byte) is never 0x00, 0x80, 0x7f, 0xff.
-    fType = buf[1];
-    const bool secure_ = isSecure();
-    const FrameType_Secureable fType_ = (FrameType_Secureable)(fType & 0x7f);
-    if((FTS_NONE == fType_) || (fType_ >= FTS_INVALID_HIGH)) { return(0); } // ERROR
-    //  4) il <= 8 for initial implementations (internal node ID is 8 bytes)
-    seqIl = buf[2];
-    const uint8_t il_ = getIl();
-    if(il_ > maxIDLength) { return(0); } // ERROR
-    //  5) il <= fl - 4 (ID length; minimum of 4 bytes of other overhead)
-    if(il_ > fl_ - 4) { return(0); } // ERROR
-    // Header length including frame length byte.
-    const uint8_t hlifl = 4 + il_;
-    // If buffer doesn't contain enough data for the full header then return an error.
-    if(hlifl > buflen) { return(0); } // ERROR
-    // Capture the ID bytes, in the storage in the instance, if any.
-    if(il_ > 0) { memcpy(id, buf+3, il_); }
-    //  6) bl <= fl - 4 - il (body length; minimum of 4 bytes of other overhead)
-    const uint8_t bl_ = buf[hlifl - 1];
-    if(bl_ > fl_ - hlifl) { return(0); } // ERROR
-    bl = bl_;
-    //  7) ONLY CHECKED IF FULL FRAME AVAILABLE: the final frame byte (the final trailer byte) is never 0x00 nor 0xff
-    if(buflen > fl_)
-        {
-        const uint8_t lastByte = buf[fl_];
-        if((0x00 == lastByte) || (0xff == lastByte)) { return(0); } // ERROR
-        }
-    //  8) tl == 1 for non-secure, tl >= 1 for secure (tl = fl - 3 - il - bl)
-    const uint8_t tl_ = fl_ - 3 - il_ - bl; // Same calc, but getTl() can't be used as fl not yet set.
-    if(!secure_) { if(1 != tl_) { return(0); } } // ERROR
-    else if(0 == tl_) { return(0); } // ERROR
-
-    // Set fl field to valid value as last action / side-effect.
-    fl = fl_;
-
-    // Return decoded header length including frame-length byte; body should immediately follow.
-    return(hlifl); // SUCCESS!
-    }
-
 uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(
         OTBuf_t &buf,
         bool secure_, FrameType_Secureable fType_,
         uint8_t seqNum_,
         const OTBuf_t &id_,  // FIXME ScratchSpace can't be const!
-        uint8_t bl_,
-        uint8_t tl_)
+        const uint8_t bl_,
+        const uint8_t tl_)
     {
     // Buffer args locally + add constness.1
     uint8_t *const buffer = buf.buf;
@@ -323,6 +245,85 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(
     // Return encoded header length including frame-length byte; body should immediately follow.
     return(hlifl); // SUCCESS!
     }
+
+// Decode header and check parameters/validity for inbound short secureable frame.
+// The buffer starts with the fl frame length byte.
+//
+// Parameters:
+//  * buf  buffer to decode header from, of at least length buflen; never NULL
+//  * buflen  available length in buf; if too small for encoded header routine will fail (return 0)
+//
+// Performs as many as possible of the 'Quick Integrity Checks' from the spec, eg SecureBasicFrame-V0.1-201601.txt
+//  1) fl >= 4 (type, seq/il, bl, trailer bytes)
+//  2) fl may be further constrained by system limits, typically to <= 63
+//  3) type (the first frame byte) is never 0x00, 0x80, 0x7f, 0xff.
+//  4) il <= 8 for initial implementations (internal node ID is 8 bytes)
+//  5) il <= fl - 4 (ID length; minimum of 4 bytes of other overhead)
+//  6) bl <= fl - 4 - il (body length; minimum of 4 bytes of other overhead)
+//  7) the final frame byte (the final trailer byte) is never 0x00 nor 0xff (if whole frame available)
+//  8) tl == 1 for non-secure, tl >= 1 for secure (tl = fl - 3 - il - bl)
+// Note: fl = hl-1 + bl + tl = 3+il + bl + tl
+//
+// (If the header is invalid or the buffer too small, 0 is returned to indicate an error.)
+// The fl byte in the structure is set to the frame length, else 0 in case of any error.
+//
+// Returns number of bytes of decoded header
+// including nominally-leading fl length byte;
+// 0 in case of error.
+uint8_t SecurableFrameHeader::checkAndDecodeSmallFrameHeader(const uint8_t *const buf, uint8_t buflen)
+    {
+    // Make frame 'invalid' until everything is finished and checks out.
+    fl = 0;
+
+    // If buf is NULL or clearly too small to contain a valid header then return an error.
+    if(NULL == buf) { return(0); } // ERROR
+    if(buflen < 4) { return(0); } // ERROR
+
+    // Quick integrity checks from spec.
+    //  1) fl >= 4 (type, seq/il, bl, trailer bytes)
+    const uint8_t fl_ = buf[0];
+    if(fl_ < 4) { return(0); } // ERROR
+    //  2) fl may be further constrained by system limits, typically to < 64, eg for 'small' frame.
+    if(fl_ > maxSmallFrameSize) { return(0); } // ERROR
+    //  3) type (the first frame byte) is never 0x00, 0x80, 0x7f, 0xff.
+    fType = buf[1];
+    const bool secure_ = isSecure();
+    const FrameType_Secureable fType_ = (FrameType_Secureable)(fType & 0x7f);
+    if((FTS_NONE == fType_) || (fType_ >= FTS_INVALID_HIGH)) { return(0); } // ERROR
+    //  4) il <= 8 for initial implementations (internal node ID is 8 bytes)
+    seqIl = buf[2];
+    const uint8_t il_ = getIl();
+    if(il_ > maxIDLength) { return(0); } // ERROR
+    //  5) il <= fl - 4 (ID length; minimum of 4 bytes of other overhead)
+    if(il_ > fl_ - 4) { return(0); } // ERROR
+    // Header length including frame length byte.
+    const uint8_t hlifl = 4 + il_;
+    // If buffer doesn't contain enough data for the full header then return an error.
+    if(hlifl > buflen) { return(0); } // ERROR
+    // Capture the ID bytes, in the storage in the instance, if any.
+    if(il_ > 0) { memcpy(id, buf+3, il_); }
+    //  6) bl <= fl - 4 - il (body length; minimum of 4 bytes of other overhead)
+    const uint8_t bl_ = buf[hlifl - 1];
+    if(bl_ > fl_ - hlifl) { return(0); } // ERROR
+    bl = bl_;
+    //  7) ONLY CHECKED IF FULL FRAME AVAILABLE: the final frame byte (the final trailer byte) is never 0x00 nor 0xff
+    if(buflen > fl_)
+        {
+        const uint8_t lastByte = buf[fl_];
+        if((0x00 == lastByte) || (0xff == lastByte)) { return(0); } // ERROR
+        }
+    //  8) tl == 1 for non-secure, tl >= 1 for secure (tl = fl - 3 - il - bl)
+    const uint8_t tl_ = fl_ - 3 - il_ - bl; // Same calc, but getTl() can't be used as fl not yet set.
+    if(!secure_) { if(1 != tl_) { return(0); } } // ERROR
+    else if(0 == tl_) { return(0); } // ERROR
+
+    // Set fl field to valid value as last action / side-effect.
+    fl = fl_;
+
+    // Return decoded header length including frame-length byte; body should immediately follow.
+    return(hlifl); // SUCCESS!
+    }
+
 
 // Compute and return CRC for non-secure frames; 0 indicates an error.
 // This is the value that should be at getTrailerOffset() / offset fl.
@@ -650,6 +651,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRaw(
 //static constexpr uint8_t encodeSecureSmallFrameRawPadInPlace_total_scratch_usage_OTAESGCM_2p0 =
 //        workspaceRequred_GCM32B16BWithWorkspace_OTAESGCM_2p0
 //        + encodeSecureSmallFrameRawPadInPlace_scratch_usage;
+#if 0
 uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRawPadInPlace(
         uint8_t *const buf, const uint8_t buflen,
         const FrameType_Secureable fType_,
@@ -698,7 +700,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRawPadInPlace(
     // Done.
     return(fl + 1);
     }
-
+#endif
 uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRawPadInPlace(
         OTBuf_t &buf,
         FrameType_Secureable fType_,
@@ -1034,6 +1036,7 @@ uint8_t generateNonsecureBeacon(OTBuf_t &buf, const uint8_t seqNum_, const OTBuf
                                     body));
     }
 
+#if 0
 // Create simple 'O'-style secure frame with an optional encrypted body for transmission.
 // Returns number of bytes written to buffer, or 0 in case of error.
 // The IV is constructed from the node ID (local from EEPROM, or as supplied)
@@ -1066,6 +1069,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOStyleFrameForTX(uint8_t
                                     body, bl_,
                                     iv, e, state, key));
     }
+#endif
 
 uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOStyleFrameForTX(OTBuf_t &buf,
                                 const FrameType_Secureable fType_,
@@ -1089,6 +1093,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOStyleFrameForTX(OTBuf_t
                                     iv, e, state, key));
     }
 
+#if 0 // XXX
 // Create simple 'O' (FTS_BasicSensorOrValve) frame with an optional stats section for transmission.
 // Returns number of bytes written to buffer, or 0 in case of error.
 // The IV is constructed from the node ID (built-in from EEPROM or as supplied)
@@ -1205,45 +1210,43 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX(
         bbuf, (hasStats ? 2+statslen : 2), // Note: callee will pad beyond this.
         iv, e, subscratch, key));
 }
+#endif
+uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTBuf_t &buf,
+                                            uint8_t il_,
+                                            uint8_t valvePC,
+                                            OTBuf_t &body,
+                                            const fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
+                                            const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key)
+{
+    constexpr uint8_t IV_size = 12;
+    static_assert(generateSecureOFrameRawForTX_scratch_usage == IV_size, "self-use scratch size wrong");
+    static_assert(generateSecureOFrameRawForTX_scratch_usage < generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0, "scratch size calc wrong");
+    if(scratch.bufsize < generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0) { return(0); } // ERROR
+    // buffer args and consts
+    uint8_t * const bodybuf = body.buf;
 
-//uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTBuf_t &buf,
-//                                            uint8_t il_,
-//                                            uint8_t valvePC,
-//                                            OTBuf_t &body,
-//                                            fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
-//                                            const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key)
-//{
-//    constexpr uint8_t IV_size = 12;
-//    static_assert(generateSecureOFrameRawForTX_scratch_usage == IV_size, "self-use scratch size wrong");
-//    static_assert(generateSecureOFrameRawForTX_scratch_usage < generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0, "scratch size calc wrong");
-//    if(scratch.bufsize < generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0) { return(0); } // ERROR
-//    // buffer args and consts
-//    uint8_t * const bodybuf = body.buf;
-//
-//    // iv at start of scratch space
-//    uint8_t *const iv = scratch.buf; // uint8_t iv[IV_size];
-//    if(!compute12ByteIDAndCounterIVForTX(iv)) { return(0); }
-//    const char *const statsJSON = (const char *const)&bodybuf[2];
-//    const bool hasStats = (NULL != bodybuf) && ('{' == statsJSON[0]);
-//    const size_t slp1 = hasStats ? strlen(statsJSON) : 1; // Stats length including trailing '}' (not sent).
-//    if(slp1 > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE-1) { return(0); } // ERROR
-//    const uint8_t statslen = (uint8_t)(slp1 - 1); // Drop trailing '}' implicitly.
-//    // bbuf (buffer to encode in?) goes after iv
-//    uint8_t *const bbuf = (uint8_t *const)bodybuf; // uint8_t bbuf[ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE];
-//    bbuf[0] = (valvePC <= 100) ? valvePC : 0x7f;
-//    bbuf[1] = hasStats ? 0x10 : 0; // Indicate presence of stats.
-//    // Create a new scratchspace from the old one in order to pass on.
-//    const OTV0P2BASE::ScratchSpaceL subscratch(scratch, generateSecureOFrameRawForTX_scratch_usage);
-//    if(il_ > 6) { return(0); } // ERROR: cannot supply that much of ID easily.
-//    // Create id buffer
-//    const OTBuf_t id(iv, il_);
-//    return(encodeSecureSmallFrameRawPadInPlace(
-//                    buf,
-//                    OTRadioLink::FTS_BasicSensorOrValve,
-//                    id,
-//                    body, (hasStats ? 2+statslen : 2), // Note: callee will pad beyond this.
-//                    iv, e, subscratch, key));
-//}
+    // iv at start of scratch space
+    uint8_t *const iv = scratch.buf; // uint8_t iv[IV_size];
+    if(!compute12ByteIDAndCounterIVForTX(iv)) { return(0); }
+    const char *const statsJSON = (const char *const)&bodybuf[2];
+    const bool hasStats = (NULL != bodybuf) && ('{' == statsJSON[0]);
+    const size_t slp1 = hasStats ? strlen(statsJSON) : 1; // Stats length including trailing '}' (not sent).
+    if(slp1 > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE-1) { return(0); } // ERROR
+    const uint8_t statslen = (uint8_t)(slp1 - 1); // Drop trailing '}' implicitly.
+    bodybuf[0] = (valvePC <= 100) ? valvePC : 0x7f;
+    bodybuf[1] = hasStats ? 0x10 : 0; // Indicate presence of stats.
+    // Create a new scratchspace from the old one in order to pass on.
+    const OTV0P2BASE::ScratchSpaceL subscratch(scratch, generateSecureOFrameRawForTX_scratch_usage);
+    if(il_ > 6) { return(0); } // ERROR: cannot supply that much of ID easily.
+    // Create id buffer
+    const OTBuf_t id(iv, il_);
+    return(encodeSecureSmallFrameRawPadInPlace(
+                    buf,
+                    OTRadioLink::FTS_BasicSensorOrValve,
+                    id,
+                    body, (hasStats ? 2+statslen : 2), // Note: callee will pad beyond this.
+                    iv, e, subscratch, key));
+}
 
     // As for decodeSecureSmallFrameRaw() but passed a candidate node/counterparty ID
     // derived from the frame ID in the incoming header,
