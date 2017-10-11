@@ -210,7 +210,6 @@ TEST(OTAESGCMSecureFrame, FrameHeaderEncoding)
     uint8_t _buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize];
     OTRadioLink::OTBuf_t buf(_buf, sizeof(_buf));
 
-//    OTRadioLink::OTBuf_t nullbuf(nullptr, 0);
     //
     // Test vector 1 / example from the spec.
     //Example insecure frame, valve unit 0% open, no call for heat/flags/stats.
@@ -404,7 +403,13 @@ TEST(OTAESGCMSecureFrame, NonsecureFrameCRC)
 // DHD20161107: imported from test_SECFRAME.ino testNonsecureSmallFrameEncoding().
 TEST(OTAESGCMSecureFrame, NonsecureSmallFrameEncoding)
 {
-    uint8_t buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize];
+    uint8_t _id[OTRadioLink::SecurableFrameHeader::maxIDLength];  // Make buffer large enough for fail case.
+    OTRadioLink::OTBuf_t id2bytes(_id, 2);
+    uint8_t _buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize];
+    OTRadioLink::OTBuf_t buf(_buf, sizeof(_buf));
+    uint8_t _body[2] = { 0x00, 0x01 };
+    OTRadioLink::OTBuf_t body(_body, sizeof(_body));
+
     //
     // Test vector 1 / example from the spec.
     //Example insecure frame, valve unit 0% open, no call for heat/flags/stats.
@@ -421,22 +426,22 @@ TEST(OTAESGCMSecureFrame, NonsecureSmallFrameEncoding)
     //00 valve 0%, no call for heat
     //01 no flags or stats, unreported occupancy
     //23 CRC value
-    const uint8_t id[] =  { 0x80, 0x81 };
-    const uint8_t body[] = { 0x00, 0x01 };
-    EXPECT_EQ(9, OTRadioLink::encodeNonsecureSmallFrame(buf, sizeof(buf),
+    id2bytes.buf[0] = 0x80;
+    id2bytes.buf[1] = 0x81;
+    EXPECT_EQ(9, OTRadioLink::encodeNonsecureSmallFrame(buf,
                                     OTRadioLink::FTS_BasicSensorOrValve,
                                     0,
-                                    id, 2,
-                                    body, 2));
-    EXPECT_EQ(0x08, buf[0]);
-    EXPECT_EQ(0x4f, buf[1]);
-    EXPECT_EQ(0x02, buf[2]);
-    EXPECT_EQ(0x80, buf[3]);
-    EXPECT_EQ(0x81, buf[4]);
-    EXPECT_EQ(0x02, buf[5]);
-    EXPECT_EQ(0x00, buf[6]);
-    EXPECT_EQ(0x01, buf[7]);
-    EXPECT_EQ(0x23, buf[8]);
+                                    id2bytes,
+                                    body));
+    EXPECT_EQ(0x08, buf.buf[0]);
+    EXPECT_EQ(0x4f, buf.buf[1]);
+    EXPECT_EQ(0x02, buf.buf[2]);
+    EXPECT_EQ(0x80, buf.buf[3]);
+    EXPECT_EQ(0x81, buf.buf[4]);
+    EXPECT_EQ(0x02, buf.buf[5]);
+    EXPECT_EQ(0x00, buf.buf[6]);
+    EXPECT_EQ(0x01, buf.buf[7]);
+    EXPECT_EQ(0x23, buf.buf[8]);
 }
 
 // Test simple plain-text padding for encryption.
