@@ -172,30 +172,31 @@ TEST(OTAESGCMSecureFrame, FrameQIC)
                                                minimalID, // Minimal (non-empty) ID.
                                                32,
                                                1));
-#if 1
     // DECODE  // TODO SWITCH THIS!
     // Test various bad input combos that should be caught by QIC.
     // Can futz (some of the) inputs that should not matter...
     // Should fail with bad (too small) buffer.
     buf.buf[0] = OTV0P2BASE::randRNG8();
-    EXPECT_EQ(0, sfh.checkAndDecodeSmallFrameHeader(buf.buf, 0));
+    EXPECT_EQ(0, sfh.checkAndDecodeSmallFrameHeader(nullbuf));
     // Should fail with bad (too small) frame length.
     buf.buf[0] = 3 & OTV0P2BASE::randRNG8();
-    EXPECT_EQ(0, sfh.checkAndDecodeSmallFrameHeader(buf.buf, sizeof(buf)));
+    EXPECT_EQ(0, sfh.checkAndDecodeSmallFrameHeader(buf));
     // Should fail with bad (too large) frame length for 'small' frame.
     buf.buf[0] = 64;
-    EXPECT_EQ(0, sfh.checkAndDecodeSmallFrameHeader(buf.buf, sizeof(buf)));
+    EXPECT_EQ(0, sfh.checkAndDecodeSmallFrameHeader(buf));
     // Should fail with bad (too large) frame header for the input buffer.
-    const uint8_t buf1[] = { 0x08, 0x4f, 0x02, 0x80, 0x81 }; // , 0x02, 0x00, 0x01, 0x23 };
-    EXPECT_EQ(0, sfh.checkAndDecodeSmallFrameHeader(buf1, 5));
+    uint8_t _buf1[] = { 0x08, 0x4f, 0x02, 0x80, 0x81 }; // , 0x02, 0x00, 0x01, 0x23 };
+    OTRadioLink::OTBuf_t buf1(_buf1, sizeof(_buf1));
+    EXPECT_EQ(0, sfh.checkAndDecodeSmallFrameHeader(buf1));
     // Should fail with bad trailer byte (illegal 0x00 value).
-    const uint8_t buf2[] = { 0x08, 0x4f, 0x02, 0x80, 0x81, 0x02, 0x00, 0x01, 0x00 };
-    EXPECT_EQ(0, sfh.checkAndDecodeSmallFrameHeader(buf2, sizeof(buf2)));
+    uint8_t _buf2[] = { 0x08, 0x4f, 0x02, 0x80, 0x81, 0x02, 0x00, 0x01, 0x00 };
+    OTRadioLink::OTBuf_t buf2(_buf2, sizeof(_buf2));
+    EXPECT_EQ(0, sfh.checkAndDecodeSmallFrameHeader(buf2));
     // Should fail with bad trailer byte (illegal 0xff value).
-    const uint8_t buf3[] = { 0x08, 0x4f, 0x02, 0x80, 0x81, 0x02, 0x00, 0x01, 0xff };
-    EXPECT_EQ(0, sfh.checkAndDecodeSmallFrameHeader(buf3, sizeof(buf3)));
+    uint8_t _buf3[] = { 0x08, 0x4f, 0x02, 0x80, 0x81, 0x02, 0x00, 0x01, 0xff };
+    OTRadioLink::OTBuf_t buf3(_buf3, sizeof(_buf3));
+    EXPECT_EQ(0, sfh.checkAndDecodeSmallFrameHeader(buf3));
     // TODO
-#endif
 }
 
 // Test encoding of header for TX.
