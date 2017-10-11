@@ -143,7 +143,7 @@ namespace SOSDT {
     volatile bool frameOperationCalledFlag = false;
     OTRadioLink::frameOperator_fn_t setFlagFrameOperation;
     bool setFlagFrameOperation(const OTRadioLink::OTFrameData_T &fd) {
-        if(0 == strncmp((const char *) fd.decryptedBody, (const char *) minimumSecureFrame::body, sizeof(minimumSecureFrame::body))) {
+        if(0 == strncmp((const char *) fd.outbuf, (const char *) minimumSecureFrame::body, sizeof(minimumSecureFrame::body))) {
             frameOperationCalledFlag = true;
         }
         return (true);
