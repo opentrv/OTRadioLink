@@ -871,8 +871,12 @@ TEST(OTAESGCMSecureFrame, BeaconEncodingWithWorkspace)
 
     // Non-secure beacon.
     uint8_t buf[OTV0P2BASE::fnmax(OTRadioLink::generateNonsecureBeaconMaxBufSize, OTRadioLink::SimpleSecureFrame32or0BodyTXBase::generateSecureBeaconMaxBufSize)];
+    OTRadioLink::OTBuf_t otbuf(buf, sizeof(buf));
+    OTRadioLink::OTBuf_t nullbuf(nullptr, 0);
+    uint8_t zeroBufBlock[OTRadioLink::SecurableFrameHeader::maxIDLength] = {};
+    OTRadioLink::OTBuf_t zeroBuf(zeroBufBlock, sizeof(zeroBufBlock));
     // Generate zero-length-ID beacon.
-    const uint8_t b0 = OTRadioLink::generateNonsecureBeacon(buf, sizeof(buf), 0, NULL, 0);
+    const uint8_t b0 = OTRadioLink::generateNonsecureBeacon(otbuf, 0, nullbuf);
     EXPECT_EQ(5, b0);
     EXPECT_EQ(0x04, buf[0]);
     EXPECT_EQ(0x21, buf[1]);
@@ -880,7 +884,7 @@ TEST(OTAESGCMSecureFrame, BeaconEncodingWithWorkspace)
     EXPECT_EQ(0x00, buf[3]); // Body length 0.
     EXPECT_EQ(0x65, buf[4]);
     // Generate maximum-length-zero-ID beacon automatically at non-zero seq.
-    const uint8_t b1 = OTRadioLink::generateNonsecureBeacon(buf, sizeof(buf), 4, zeroBlock, OTRadioLink::SecurableFrameHeader::maxIDLength);
+    const uint8_t b1 = OTRadioLink::generateNonsecureBeacon(otbuf, 4, zeroBuf);
     EXPECT_EQ(13, b1);
     EXPECT_EQ(0x0c, buf[0]);
     EXPECT_EQ(0x21, buf[1]);
@@ -912,7 +916,6 @@ TEST(OTAESGCMSecureFrame, BeaconEncodingWithWorkspace)
     for(uint8_t idLen = 0; idLen <= 8; ++idLen)
     {
     // Secure beacon...  All zeros key; ID and IV as from spec Example 3 at 20160207.
-    OTRadioLink::OTBuf_t otbuf(buf, sizeof(buf));
     const uint8_t *const key = zeroBlock;
     // Preshared ID prefix; only an initial part/prefix of this goes on the wire in the header.
     uint8_t _id[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55 };
