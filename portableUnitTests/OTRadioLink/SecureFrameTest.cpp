@@ -173,7 +173,7 @@ TEST(OTAESGCMSecureFrame, FrameQIC)
                                                32,
                                                1));
 #if 1
-    // DECODE
+    // DECODE  // TODO SWITCH THIS!
     // Test various bad input combos that should be caught by QIC.
     // Can futz (some of the) inputs that should not matter...
     // Should fail with bad (too small) buffer.
@@ -203,9 +203,14 @@ TEST(OTAESGCMSecureFrame, FrameQIC)
 // DHD20161107: imported from test_SECFRAME.ino testFrameHeaderEncoding().
 TEST(OTAESGCMSecureFrame, FrameHeaderEncoding)
 {
+
     OTRadioLink::SecurableFrameHeader sfh;
-    uint8_t id[OTRadioLink::SecurableFrameHeader::maxIDLength];
-    uint8_t buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize];
+    uint8_t _id[OTRadioLink::SecurableFrameHeader::maxIDLength];  // Make buffer large enough for fail case.
+    OTRadioLink::OTBuf_t id2bytes(_id, 2);
+    uint8_t _buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize];
+    OTRadioLink::OTBuf_t buf(_buf, sizeof(_buf));
+
+//    OTRadioLink::OTBuf_t nullbuf(nullptr, 0);
     //
     // Test vector 1 / example from the spec.
     //Example insecure frame, valve unit 0% open, no call for heat/flags/stats.
@@ -222,20 +227,20 @@ TEST(OTAESGCMSecureFrame, FrameHeaderEncoding)
     //00 valve 0%, no call for heat
     //01 no flags or stats, unreported occupancy
     //23 CRC value
-    id[0] = 0x80;
-    id[1] = 0x81;
-    EXPECT_EQ(6, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
+    id2bytes.buf[0] = 0x80;
+    id2bytes.buf[1] = 0x81;
+    EXPECT_EQ(6, sfh.checkAndEncodeSmallFrameHeader(buf,
                                                false, OTRadioLink::FTS_BasicSensorOrValve,
                                                0,
-                                               id, 2,
+                                               id2bytes,
                                                2,
                                                1));
-    EXPECT_EQ(0x08, buf[0]);
-    EXPECT_EQ(0x4f, buf[1]);
-    EXPECT_EQ(0x02, buf[2]);
-    EXPECT_EQ(0x80, buf[3]);
-    EXPECT_EQ(0x81, buf[4]);
-    EXPECT_EQ(0x02, buf[5]);
+    EXPECT_EQ(0x08, buf.buf[0]);
+    EXPECT_EQ(0x4f, buf.buf[1]);
+    EXPECT_EQ(0x02, buf.buf[2]);
+    EXPECT_EQ(0x80, buf.buf[3]);
+    EXPECT_EQ(0x81, buf.buf[4]);
+    EXPECT_EQ(0x02, buf.buf[5]);
     // Check related parameters.
     EXPECT_EQ(8, sfh.fl);
     EXPECT_EQ(6, sfh.getBodyOffset());
@@ -257,20 +262,20 @@ TEST(OTAESGCMSecureFrame, FrameHeaderEncoding)
     //11 stats present flag only, unreported occupancy
     //7b 22 62 22 3a 31  {"b":1  Stats: note that implicit trailing '}' is not sent.
     //61 CRC value
-    id[0] = 0x80;
-    id[1] = 0x81;
-    EXPECT_EQ(6, sfh.checkAndEncodeSmallFrameHeader(buf, sizeof(buf),
+    id2bytes.buf[0] = 0x80;
+    id2bytes.buf[1] = 0x81;
+    EXPECT_EQ(6, sfh.checkAndEncodeSmallFrameHeader(buf,
                                                false, OTRadioLink::FTS_BasicSensorOrValve,
                                                0,
-                                               id, 2,
+                                               id2bytes,
                                                8,
                                                1));
-    EXPECT_EQ(0x0e, buf[0]);
-    EXPECT_EQ(0x4f, buf[1]);
-    EXPECT_EQ(0x02, buf[2]);
-    EXPECT_EQ(0x80, buf[3]);
-    EXPECT_EQ(0x81, buf[4]);
-    EXPECT_EQ(0x08, buf[5]);
+    EXPECT_EQ(0x0e, buf.buf[0]);
+    EXPECT_EQ(0x4f, buf.buf[1]);
+    EXPECT_EQ(0x02, buf.buf[2]);
+    EXPECT_EQ(0x80, buf.buf[3]);
+    EXPECT_EQ(0x81, buf.buf[4]);
+    EXPECT_EQ(0x08, buf.buf[5]);
     // Check related parameters.
     EXPECT_EQ(14, sfh.fl);
     EXPECT_EQ(6, sfh.getBodyOffset());
