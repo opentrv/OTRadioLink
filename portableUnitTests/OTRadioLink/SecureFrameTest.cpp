@@ -718,13 +718,13 @@ TEST(OTAESGCMSecureFrame, SecureSmallFrameEncodingWithWorkspace)
 {
     // workspaces
     constexpr size_t encWorkspaceSize = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRawPadInPlace_total_scratch_usage_OTAESGCM_2p0;
-    EXPECT_EQ(272, encWorkspaceSize);
+    EXPECT_EQ(272U, encWorkspaceSize);
     uint8_t encWorkspace[encWorkspaceSize];
     OTV0P2BASE::ScratchSpaceL sWEnc(encWorkspace, sizeof(encWorkspace));
     constexpr size_t decWorkspaceSize =
             OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRawWithWorkspace_total_scratch_usage_OTAESGCM_3p0
             + OTAESGCM::OTAES128GCMGenericWithWorkspace<>::workspaceRequiredDec;
-    EXPECT_EQ(320, decWorkspaceSize);
+    EXPECT_EQ(320U, decWorkspaceSize);
     uint8_t decWorkspace[decWorkspaceSize];
     OTV0P2BASE::ScratchSpaceL sWDec(decWorkspace, sizeof(decWorkspace));
 
