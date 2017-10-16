@@ -56,7 +56,12 @@ volatile OTV0P2BASE::OTAtomic_t<size_t> MemoryChecks::minSP(RAMEND);
 volatile uint8_t MemoryChecks::checkLocation = 0x0;
 volatile OTV0P2BASE::OTAtomic_t<size_t> MemoryChecks::tempProgramCounter(0x0);
 volatile size_t MemoryChecks::programCounter = 0x0;
-#endif
+#ifdef OTMEMCHECKS_PROFILING
+volatile uint8_t MemoryChecks::curCalls[MemoryChecks::callTableSize];
+volatile uint8_t MemoryChecks::maxCalls[MemoryChecks::callTableSize];
+volatile uint8_t MemoryChecks::minCalls[MemoryChecks::callTableSize];
+#endif // OTMEMCHECKS_PROFILING
+#endif  // MemoryChecks_DEFINED
 
 
 }

@@ -37,6 +37,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014--2017
 #include "utility/OTV0P2BASE_ArduinoCompat.h"
 #endif
 
+// include a coarse, watchdog based profiling routine
+#undef OTMEMCHECKS_PROFILING
+
 extern uint8_t _end;
 
 namespace OTV0P2BASE
@@ -118,7 +121,7 @@ class ScratchSpaceL final
     const size_t bufsize;
 
     // Create an instance.
-    //   * buf_  start of buffer space;
+    //   * buf_  start of buffer space;#ifdef OTWATCHDOG_PROFILING
     //     must be non-NULL except to indicate that the buffer is unusable.
     //   * bufsize_  size of usable start of buffer;
     //     must be positive except to indicate that the buffer is unusable.
@@ -280,6 +283,67 @@ class MemoryChecks
     //         functioning of V0p2 so it is ignored.
     // stored counter is multiplied by 2 to to correspond to disassembly output.
     static size_t getPC() {return programCounter * 2;}
+
+#ifdef OTMEMCHECKS_PROFILING
+  public:
+    static constexpr uint8_t callTableSize = 8;
+  private:
+    // coarse profiling
+    // Arrays to store maximum and minimum calls by various functions.
+    // Will work as long as functions are not called more than 255 times - highly unlikely in V0p2.
+    static volatile uint8_t curCalls[callTableSize];
+    static volatile uint8_t maxCalls[callTableSize];
+    static volatile uint8_t minCalls[callTableSize];
+  public:
+    // Reset call table to appropriate values (curCalls and maxCalls should grow upwards, minCalls should grow downwards)
+    // Assuming that we don't have to worry about overflowing in this instance, to avoid needing atomics.
+    static void initCallTable() { memset ((uint8_t * const)curCalls, 0, sizeof curCalls); memset((uint8_t * const)maxCalls, 0, sizeof(maxCalls)); memset((uint8_t * const)minCalls, 255, sizeof(minCalls)); };
+
+    // Update maxCalls and minCalls then clear curCalls.
+    // This should be called by the watchdog routine in OTRadioLink_RTC.h/cpp
+    static void resetCallTable()
+    {
+        uint8_t *maxp = (uint8_t *)maxCalls;
+        uint8_t *minp = (uint8_t *)minCalls;
+        for( uint8_t * ip = (uint8_t *)curCalls; ip != ( curCalls + sizeof(curCalls) );) {
+            *maxp = OTV0P2BASE::fnmax(*maxp, *ip);
+            *minp = OTV0P2BASE::fnmin(*minp, *ip);
+            *ip = 0;  // Since we're iterating through it, reset currCalls as we go.
+            // Point to next entries.
+            ++ip; ++maxp; ++minp;
+        }
+    }
+
+    /**
+     * @brief   Increments current calls table.
+     * @note    Location Table:
+     *           0: loop
+     *           1: ISR(PCINT0_vect)
+     *           2: pollIO
+     *           3: decodeAndHandleSecureFrame
+     *           4: bareStatsTX
+     * @note    Calls table will overflow at 255 calls. Not a problem on V0p2
+     *          but may require bounds checking/larger tables in other apps.
+     */
+    static void fnCalled(uint8_t loc) { ++curCalls[loc]; }
+
+    /**
+     * @brief   Copy the min and max calls into a pair of uint8_t arrays
+     *          supplied by the caller.
+     * @param   maxBuf: Array to copy maximum number number of calls into.
+     *                  Minimum length is callTableSize.
+     * @param   minBuf: Array to copy minimum number number of calls into.
+     *                  Minimum length is callTableSize.
+     */
+    static void getCallTable(uint8_t * const maxBuf, uint8_t * const minBuf)
+        {memcpy(maxBuf, (const uint8_t *)maxCalls, sizeof(maxCalls)); memcpy(minBuf, (const uint8_t *)minCalls, sizeof(minCalls));}
+#else
+    // stub versions of profiling functions
+    static void initCallTable() {}
+    static void resetCallTable() {}
+    static void fnCalled(uint8_t) {}
+    static void getCallTable(uint8_t *const, uint8_t *const) {}
+#endif // OTMEMCHECKS_PROFILING
 };
 
 
