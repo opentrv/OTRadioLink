@@ -22,7 +22,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
  Implementation highly hardware specific.
  */
 // IF DEFINED: WDT triggers infinite loop printing more detailed output.
-#undef WDT_DEBUG
+#define WDT_DEBUG
 
 
 #ifdef ARDUINO_ARCH_AVR
@@ -323,23 +323,33 @@ ISR(TIMER2_OVF_vect)
     {
     if(_RTCWatchdogResetNotCalled) {
 #if defined(WDT_DEBUG)
-		// Notify that the watchdog has been triggered.
-        OTV0P2BASE::MemoryChecks::recordPC();
-        const int16_t minsp = OTV0P2BASE::MemoryChecks::getMinSPSpaceBelowStackToEnd();
-        const uint16_t progCounter = OTV0P2BASE::MemoryChecks::getPC();  // not isr safe
+		uint8_t startTime[OTV0P2BASE::MemoryChecks::timeTableSize];
+		uint8_t duration[OTV0P2BASE::MemoryChecks::timeTableSize];
+        // Notify that the watchdog has been triggered.
+        OTV0P2BASE::MemoryChecks::getTimeTable(startTime, duration);
         while(true) {
             OTV0P2BASE::serialPrintlnAndFlush(F("!WD"));
-            OTV0P2BASE::serialPrintAndFlush(F("minsp: "));
-            OTV0P2BASE::serialPrintAndFlush(minsp);
-            OTV0P2BASE::serialPrintAndFlush(F(" prog: "));
-            OTV0P2BASE::serialPrintAndFlush(progCounter, HEX);
             OTV0P2BASE::serialPrintlnAndFlush();
+            OTV0P2BASE::serialPrintAndFlush(F("stt: "));
+            for (uint8_t *ip = startTime; ip != startTime + sizeof(startTime); ++ip) {
+                OTV0P2BASE::serialPrintAndFlush(*ip);
+                OTV0P2BASE::serialPrintAndFlush(F("\t"));
+            }
+            OTV0P2BASE::serialPrintlnAndFlush();
+            OTV0P2BASE::serialPrintAndFlush(F("dur: "));
+            for (uint8_t *ip = duration; ip != duration + sizeof(duration); ++ip) {
+                OTV0P2BASE::serialPrintAndFlush(*ip);
+                OTV0P2BASE::serialPrintAndFlush(F("\t"));
+            }
+            OTV0P2BASE::serialPrintlnAndFlush();
+            delay(1000);
         }
 #else
         forceReset();
 #endif
     }
     _RTCWatchdogResetNotCalled = true;
+    OTV0P2BASE::MemoryChecks::resetCallTable();
     }
   }
 #endif // ARDUINO_ARCH_AVR

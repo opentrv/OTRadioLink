@@ -38,7 +38,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014--2017
 #endif
 
 // include a coarse, watchdog based profiling routine
-#undef OTMEMCHECKS_PROFILING
+#undef OTMEMCHECKS_FREQ_PROFILING
+#define OTMEMCHECKS_TIME_PROFILING
 
 extern uint8_t _end;
 
@@ -284,7 +285,7 @@ class MemoryChecks
     // stored counter is multiplied by 2 to to correspond to disassembly output.
     static size_t getPC() {return programCounter * 2;}
 
-#ifdef OTMEMCHECKS_PROFILING
+#ifdef OTMEMCHECKS_FREQ_PROFILING
   public:
     static constexpr uint8_t callTableSize = 8;
   private:
@@ -337,13 +338,84 @@ class MemoryChecks
      */
     static void getCallTable(uint8_t * const maxBuf, uint8_t * const minBuf)
         {memcpy(maxBuf, (const uint8_t *)maxCalls, sizeof(maxCalls)); memcpy(minBuf, (const uint8_t *)minCalls, sizeof(minCalls));}
-#else
+#else // OTMEMCHECKS_FREQ_PROFILING
     // stub versions of profiling functions
     static void initCallTable() {}
     static void resetCallTable() {}
     static void fnCalled(uint8_t) {}
     static void getCallTable(uint8_t *const, uint8_t *const) {}
-#endif // OTMEMCHECKS_PROFILING
+#endif // OTMEMCHECKS_FREQ_PROFILING
+#ifdef OTMEMCHECKS_TIME_PROFILING
+  public:
+    static constexpr uint8_t timeTableSize = 8;
+  private:
+    // coarse profiling
+    // Arrays to store maximum and minimum calls by various functions.
+    // Will work as long as functions are not called more than 255 times - highly unlikely in V0p2.
+    static volatile uint8_t tempStartTime[timeTableSize];
+    static volatile uint8_t startTime[timeTableSize];
+    static volatile uint8_t duration[timeTableSize];
+  public:
+    // Reset call table to appropriate values (curCalls and maxCalls should grow upwards, minCalls should grow downwards)
+    // Assuming that we don't have to worry about overflowing in this instance, to avoid needing atomics.
+    static void initTimeTable() { memset((uint8_t * const)tempStartTime, 0, sizeof(tempStartTime)); memset ((uint8_t * const)startTime, 0, sizeof startTime); memset((uint8_t * const)duration, 0, sizeof(duration)); };
+
+//    // Update maxCalls and minCalls then clear curCalls.
+//    // This should be called by the watchdog routine in OTRadioLink_RTC.h/cpp
+//    static void resetTimeTable()
+//    {
+//        uint8_t *maxp = (uint8_t *)maxCalls;
+//        uint8_t *minp = (uint8_t *)minCalls;
+//        for( uint8_t * ip = (uint8_t *)curCalls; ip != ( curCalls + sizeof(curCalls) );) {
+//            *maxp = OTV0P2BASE::fnmax(*maxp, *ip);
+//            *minp = OTV0P2BASE::fnmin(*minp, *ip);
+//            *ip = 0;  // Since we're iterating through it, reset currCalls as we go.
+//            // Point to next entries.
+//            ++ip; ++maxp; ++minp;
+//        }
+//    }
+
+    /**
+     * @brief   Increments current calls table.
+     * @note    Location Table:
+     *           0: loop
+     *           1: ISR(PCINT0_vect)
+     *           2: pollIO
+     *           3: decodeAndHandleSecureFrame
+     *           4: bareStatsTX
+     * @note    Calls table will overflow at 255 calls. Not a problem on V0p2
+     *          but may require bounds checking/larger tables in other apps.
+     */
+    static void fnStart(uint8_t loc) {
+        tempStartTime[loc] = OTV0P2BASE::getSubCycleTime();
+    }
+    static void fnExit(uint8_t loc) {
+        const uint8_t curTime = OTV0P2BASE::getSubCycleTime();
+        const uint8_t temp = tempStartTime[loc];
+        volatile uint8_t &start = startTime[loc];
+        volatile uint8_t &dur = duration[loc];
+        const uint8_t curDur = curTime - temp;
+        if(255 < (uint16_t)(start + dur)) { return; }
+        if(curDur > dur) { start = temp; dur = curDur;}
+//        volatile uint8_t *const start = &startTime[loc];
+//        volatile uint8_t *const dur = &duration[loc];
+//        const uint8_t curDur = curTime - temp;
+//        if(255 < (uint16_t)(*start + *dur)) { return; }
+//        if(curDur > *dur) { *start = temp; *dur = curDur;}
+    }
+
+    /**
+     * @brief   Copy the min and max calls into a pair of uint8_t arrays
+     *          supplied by the caller.
+     * @param   maxBuf: Array to copy maximum number number of calls into.
+     *                  Minimum length is callTableSize.
+     * @param   minBuf: Array to copy minimum number number of calls into.
+     *                  Minimum length is callTableSize.
+     */
+    static void getTimeTable(uint8_t * const startTimeBuf, uint8_t * const durBuf)
+        {memcpy(startTimeBuf, (const uint8_t *)startTime, sizeof(startTime)); memcpy(durBuf, (const uint8_t *)duration, sizeof(duration));}
+//#else // OTMEMCHECKS_TIME_PROFILING
+#endif
 };
 
 
