@@ -912,7 +912,7 @@ namespace OTRadioLink
                 _decodeSecureSmallFrameFromIDWithWorkspace_scratch_usage;
             uint8_t _decodeSecureSmallFrameFromIDWithWorkspace(OTFrameData_T &fd,
                                             fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_ptr_t d,
-                                            const uint8_t *adjID, uint8_t adjIDLen,
+                                            const OTBuf_t adjID,
                                             OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key);
         public:
             // From a structurally correct secure frame, looks up the ID, checks the message counter, decodes, and updates the counter if successful.
