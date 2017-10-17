@@ -30,7 +30,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 #include <stdint.h>
 #include <OTV0p2Base.h>
 
-
 namespace OTRadioLink
     {
 
@@ -305,6 +304,43 @@ namespace OTRadioLink
         //  * buflen  available length in buf; if too small then this routine will fail (return 0)
         uint8_t computeNonSecureFrameCRC(const uint8_t *buf, uint8_t buflen) const;
         };
+
+
+    /**
+     * @brief   Struct for passing frame data around in the RX call chain.
+     * @param   _inbuf: TODO
+     * @param   _outbuf: TODO
+     * @todo    Should msgLen be stored or is it fine to use msg[-1] to get it?
+     * @todo    Is there a better way to order everything?
+     * @todo    Alias in and out buffers for more descriptive names?
+     * @note    id is not initialised.
+     */
+    struct OTFrameData_T
+    {
+        OTFrameData_T(const uint8_t * const _inbuf, uint8_t * const _outbuf) : inbuf(_inbuf), outbuf(_outbuf) {}
+
+        SecurableFrameHeader sfh;
+        uint8_t id[OTV0P2BASE::OpenTRV_Node_ID_Bytes];  // Holds upto full node ID. TODO pass this in as well?
+        // Immutable input buffer. This takes a buffer for either the plain text to
+        // be encrypted or the cipher text to be decrypted.
+        // In the case of decryption, the byte pointed at before this contain the
+        // message length. TODO find nice way of dealing with this.
+        const uint8_t * const inbuf;
+        // Output buffer. This takes a buffer for either the cipher text or plain
+        // text output.
+        // In the case of encryption, this should be at least 63 (64?) bytes.
+        // In the case of decryption, this should be decryptedBodyBufSize bytes.
+        uint8_t *const outbuf;
+
+        static constexpr uint8_t decryptedBodyBufSize = ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE;
+        // Actual size of plain text held within decryptedBody. Should be set when decryptedBody is populated.
+        uint8_t outbuflen = 0;  // 1 byte: 1/4 words
+        // A pointer to the OTAESGCM state. This is currently not implemented.
+        static constexpr void * state = nullptr;
+
+    //    // Message length is stored in byte before first RXed message buffer.
+    //    inline uint8_t getMsgLen() { return msg[-1]; }
+    };
 
     // Compose (encode) entire non-secure small frame from header params, body and CRC trailer.
     // Returns the total number of bytes written out for the frame
@@ -938,12 +974,9 @@ namespace OTRadioLink
                 _decodeSecureSmallFrameFromIDWithWorkspace_total_scratch_usage_OTAESGCM_3p0 +
                 decodeSecureSmallFrameSafely_scratch_usage;
             uint8_t decodeSecureSmallFrameSafely(
-                const SecurableFrameHeader *sfh,
-                const uint8_t *buf, uint8_t buflen,
+                OTFrameData_T &fd,
                 fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_ptr_t d,
                 OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key,
-                uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize,
-                uint8_t *ID,
                 bool firstIDMatchOnly = true);
         };
 

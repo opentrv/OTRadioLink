@@ -32,42 +32,6 @@ Author(s) / Copyright (s): Deniz Erbilgin 2017
 namespace OTRadioLink
 {
 
-/**
- * @brief   Struct for passing frame data around in the RX call chain.
- * @param   _inbuf: TODO
- * @param   _outbuf: TODO
- * @todo    Should msgLen be stored or is it fine to use msg[-1] to get it?
- * @todo    Is there a better way to order everything?
- * @todo    Alias in and out buffers for more descriptive names?
- * @note    id is not initialised.
- */
-struct OTFrameData_T
-{
-    OTFrameData_T(const uint8_t * const _inbuf, uint8_t * const _outbuf) : inbuf(_inbuf), outbuf(_outbuf) {}
-
-    SecurableFrameHeader sfh;
-    uint8_t id[OTV0P2BASE::OpenTRV_Node_ID_Bytes];  // Holds upto full node ID. TODO pass this in as well?
-    // Immutable input buffer. This takes a buffer for either the plain text to
-    // be encrypted or the cipher text to be decrypted.
-    // In the case of decryption, the byte pointed at before this contain the
-    // message length. TODO find nice way of dealing with this.
-    const uint8_t * const inbuf;
-    // Output buffer. This takes a buffer for either the cipher text or plain
-    // text output.
-    // In the case of encryption, this should be at least 63 (64?) bytes.
-    // In the case of decryption, this should be decryptedBodyBufSize bytes.
-    uint8_t *const outbuf;
-
-    static constexpr uint8_t decryptedBodyBufSize = ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE;
-    // Actual size of plain text held within decryptedBody. Should be set when decryptedBody is populated.
-    uint8_t outbuflen = 0;  // 1 byte: 1/4 words
-    // A pointer to the OTAESGCM state. This is currently not implemented.
-    static constexpr void * state = nullptr;
-
-//    // Message length is stored in byte before first RXed message buffer.
-//    inline uint8_t getMsgLen() { return msg[-1]; }
-};
-
 //////////////////  FUNCTION TYPEDEFS.
 /**
  * @brief   Function containing the desired operation for the frame handler to perform on receipt of a valid frame.
@@ -322,10 +286,6 @@ inline bool authAndDecodeOTSecurableFrameWithWorkspace(
     const size_t scratchSpaceNeededHere = authAndDecodeOTSecurableFrameWithWorkspace_scratch_usage;
     if(sW.bufsize < scratchSpaceNeededHere) { return(false); } // ERROR
 
-    const uint8_t * const msg = fd.inbuf;
-    const uint8_t msglen = msg[-1];
-    uint8_t * outBuf = fd.outbuf;
-
 #if 0
     // Probe the stack here, in case we don't get deeper.
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
@@ -349,16 +309,11 @@ inline bool authAndDecodeOTSecurableFrameWithWorkspace(
     // validate the RX message counter,
     // authenticate and decrypt,
     // then update the RX message counter.
-    uint8_t decryptedBodyOutSize = 0;
     const bool isOK = (0 != sfrx_t::getInstance().decodeSecureSmallFrameSafely(
-                                                      &fd.sfh, msg-1, msglen+1,
+                                                      fd,
                                                       decrypt,
                                                       subScratch, key,
-                                                      outBuf, fd.decryptedBodyBufSize, decryptedBodyOutSize,
-                                                      fd.id,
                                                       true));
-    fd.outbuflen = decryptedBodyOutSize;
-
 #if 1 // && defined(DEBUG)
 if(!isOK) {
 // Useful brief network diagnostics: a couple of bytes of the claimed ID of rejected frames.

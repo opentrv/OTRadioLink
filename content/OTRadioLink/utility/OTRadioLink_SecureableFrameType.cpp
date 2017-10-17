@@ -1218,12 +1218,9 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTBuf_t &buf,
     // NOTE this version uses a scratch space, allowing the stack usage
     // to be more tightly controlled.
     uint8_t SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameSafely(
-            const SecurableFrameHeader *const sfh,
-            const uint8_t *const buf, const uint8_t buflen,
+            OTFrameData_T &fd,
             const fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_ptr_t d,
             OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *const key,
-            uint8_t *const decryptedBodyOut, const uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize,
-            uint8_t *const ID,
             bool /*firstIDMatchOnly*/)
         {
         // Scratch space for this function call alone (not called fns).
@@ -1233,21 +1230,29 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTBuf_t &buf,
         // Create a new sub scratch space for callee.
         OTV0P2BASE::ScratchSpaceL subScratch(scratch, scratchSpaceNeededHere);
 
+        const SecurableFrameHeader &sfh = fd.sfh;
+        const uint8_t *const buf = &fd.inbuf[-1];
+        const uint8_t buflen = buf[0] + 1;
+        uint8_t *const decryptedBodyOut = fd.outbuf;
+        const uint8_t decryptedBodyOutBuflen = fd.decryptedBodyBufSize;
+        uint8_t &decryptedBodyOutSize = fd.outbuflen;
+        uint8_t *const ID = fd.id;
+
         // Rely on _decodeSecureSmallFrameFromID() for validation of items
         // not directly needed here.
-        if((NULL == sfh) || (NULL == buf)) { return(0); } // ERROR
+        if(NULL == buf) { return(0); } // ERROR
         // Abort if header was not decoded properly.
-        if(sfh->isInvalid()) { return(0); } // ERROR
+        if(sfh.isInvalid()) { return(0); } // ERROR
     //    // Abort if frame is not secure.
     //    if(sfh->isSecure()) { return(0); } // ERROR
         // Abort if trailer not large enough to extract message counter from
         // safely (and not expected size/flavour).
-        if(23 != sfh->getTl()) { return(0); } // ERROR
+        if(23 != sfh.getTl()) { return(0); } // ERROR
         // Look up the full node ID of the sender in the associations table.
         // NOTE: this only tries the first match, ignoring firstIDMatchOnly.
         // Use start of scratch space.
         uint8_t * const senderNodeID = scratch.buf;
-        const int8_t index = _getNextMatchingNodeID(0, sfh, senderNodeID);
+        const int8_t index = _getNextMatchingNodeID(0, &sfh, senderNodeID);
         if(index < 0) { return(0); } // ERROR
         // Extract the message counter and validate it
         // (that it is higher than previously seen)...
@@ -1257,19 +1262,27 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTBuf_t &buf,
         // ie 6 bytes at start of trailer.
         // Destination and source known large enough for copy to be safe.
         memcpy(messageCounter,
-               buf + sfh->getTrailerOffset(),
+               buf + sfh.getTrailerOffset(),
                SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes);
         if(!validateRXMessageCount(senderNodeID, messageCounter)) { return(0); } // ERROR
         // Now attempt to decrypt.
         // Assumed no need to 'adjust' ID for this form of RX.
         const uint8_t decodeResult =
             _decodeSecureSmallFrameFromIDWithWorkspace(
-                sfh,
+                &sfh,
                 buf, buflen,
                 d,
                 senderNodeID, OTV0P2BASE::OpenTRV_Node_ID_Bytes,
                 subScratch, key,
                 decryptedBodyOut, decryptedBodyOutBuflen, decryptedBodyOutSize);
+//        const uint8_t decodeResult =
+//            _decodeSecureSmallFrameFromIDWithWorkspace(
+//                &sfh,
+//                buf, buflen,
+//                d,
+//                senderNodeID, OTV0P2BASE::OpenTRV_Node_ID_Bytes,
+//                subScratch, key,
+//                decryptedBodyOut, decryptedBodyOutBuflen, decryptedBodyOutSize);
         if(0 == decodeResult) { return(0); } // ERROR
         // Successfully decoded: update the RX message counter to avoid duplicates/replays.
         if(!updateRXMessageCountAfterAuthentication(senderNodeID, messageCounter)) { return(0); } // ERROR
