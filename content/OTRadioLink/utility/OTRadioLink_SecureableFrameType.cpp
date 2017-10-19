@@ -267,14 +267,17 @@ uint8_t SecurableFrameHeader::checkAndDecodeSmallFrameHeader(const OTBuf_t &_buf
 // Returns number of bytes of decoded header
 // including nominally-leading fl length byte;
 // 0 in case of error.
-uint8_t SecurableFrameHeader::checkAndDecodeSmallFrameHeader(const uint8_t *const buf, uint8_t buflen)
+uint8_t SecurableFrameHeader::checkAndDecodeSmallFrameHeader(const uint8_t *const frame, uint8_t framebuflen)
     {
     // Make frame 'invalid' until everything is finished and checks out.
     fl = 0;
 
     // If buf is NULL or clearly too small to contain a valid header then return an error.
-    if(NULL == buf) { return(0); } // ERROR
-    if(buflen < 4) { return(0); } // ERROR
+    if(NULL == frame) { return(0); } // ERROR
+    if(framebuflen < 4) { return(0); } // ERROR
+
+    const uint8_t *const buf = frame - 1;
+    const uint8_t buflen = framebuflen + 1;
 
     // Quick integrity checks from spec.
     //  1) fl >= 4 (type, seq/il, bl, trailer bytes)
@@ -331,7 +334,7 @@ uint8_t SecurableFrameHeader::checkAndDecodeSmallFrameHeader(const uint8_t *cons
 // Note that the body must already be in place in the buffer.
 //
 // Parameters:
-//  * buf  buffer containing the entire frame except trailer/CRC; never NULL
+//  * buf     buffer containing the entire frame except trailer/CRC; never NULL XXX Frame should start with a leading length byte.
 //  * buflen  available length in buf; if too small then this routine will fail (return 0)
 uint8_t SecurableFrameHeader::computeNonSecureFrameCRC(const uint8_t *const buf, uint8_t buflen) const
     {

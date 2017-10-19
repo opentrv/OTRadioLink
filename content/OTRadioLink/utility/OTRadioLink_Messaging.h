@@ -369,7 +369,7 @@ bool decodeAndHandleOTSecureOFrameOnStack(volatile const uint8_t * const _msg)
     OTFrameData_T fd(msg, decryptedBodyOut);
     // Validate structure of header/frame first.
     // This is quick and checks for insane/dangerous values throughout.
-    const uint8_t l = fd.sfh.checkAndDecodeSmallFrameHeader(msg-1, msglen+1);
+    const uint8_t l = fd.sfh.checkAndDecodeSmallFrameHeader(msg, msglen);
     // If failed this early and this badly
     // then let another protocol handler else try parsing the message buffer...
     if(0 == l) { return(false); }
@@ -423,7 +423,7 @@ bool decodeAndHandleOTSecureOFrame(volatile const uint8_t * const _msg, OTV0P2BA
 
     // Validate structure of header/frame first.
     // This is quick and checks for insane/dangerous values throughout.
-    const uint8_t l = fd.sfh.checkAndDecodeSmallFrameHeader(msg-1, msglen+1);
+    const uint8_t l = fd.sfh.checkAndDecodeSmallFrameHeader(msg, msglen);
     // If failed this early and this badly,
     // then let another protocol handler try parsing the message buffer...
     if(0 == l) { return(false); }

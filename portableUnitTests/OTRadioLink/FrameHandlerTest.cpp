@@ -524,7 +524,7 @@ TEST(FrameHandlerTest, authAndDecodeSecurableFrameFull)
 
     uint8_t decryptedBodyOut[OTRadioLink::OTFrameData_T::decryptedBodyBufSize];
     OTRadioLink::OTFrameData_T fd(msgStart, decryptedBodyOut);
-    EXPECT_NE(0, fd.sfh.checkAndDecodeSmallFrameHeader(OTFHT::minimumSecureFrame::buf, OTFHT::minimumSecureFrame::encodedLength));
+    EXPECT_NE(0, fd.sfh.checkAndDecodeSmallFrameHeader(OTFHT::minimumSecureFrame::buf + 1, OTFHT::minimumSecureFrame::encodedLength - 1));
 
     // Workspace for authAndDecodeOTSecurableFrame
     constexpr size_t workspaceRequired =
