@@ -221,7 +221,7 @@ bool boilerFrameOperation(const OTFrameData_T &fd)
 template <typename sfrx_t,
           SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &decrypt,
           OTV0P2BASE::GetPrimary16ByteSecretKey_t &getKey>
-inline bool authAndDecodeOTSecurableFrame(OTFrameData_T &fd)
+inline bool authAndDecodeOTSecurableFrameOnStack(OTFrameData_T &fd)
 {
     const uint8_t * const msg = fd.inbuf;
     const uint8_t msglen = msg[-1];
@@ -280,8 +280,7 @@ static constexpr uint8_t authAndDecodeOTSecurableFrameWithWorkspace_scratch_usag
 template <typename sfrx_t,
           SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_fn_t &decrypt,
           OTV0P2BASE::GetPrimary16ByteSecretKey_t &getKey>
-inline bool authAndDecodeOTSecurableFrameWithWorkspace(
-    OTFrameData_T &fd, OTV0P2BASE::ScratchSpaceL &sW)
+inline bool authAndDecodeOTSecurableFrame(OTFrameData_T &fd, OTV0P2BASE::ScratchSpaceL &sW)
 {
     const size_t scratchSpaceNeededHere = authAndDecodeOTSecurableFrameWithWorkspace_scratch_usage;
     if(sW.bufsize < scratchSpaceNeededHere) { return(false); } // ERROR
@@ -355,7 +354,7 @@ template<typename sfrx_t,
          OTV0P2BASE::GetPrimary16ByteSecretKey_t &getKey,
          frameOperator_fn_t &o1,
          frameOperator_fn_t &o2 = nullFrameOperation>
-bool decodeAndHandleOTSecureOFrame(volatile const uint8_t * const _msg)
+bool decodeAndHandleOTSecureOFrameOnStack(volatile const uint8_t * const _msg)
 {
 #if 0 // Highest level will be in authAndDecodeOTSecurableFrame or a frame operator (unlikely )anyway.
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
@@ -386,7 +385,7 @@ bool decodeAndHandleOTSecureOFrame(volatile const uint8_t * const _msg)
     // attempting to process it.
 
     // Even if auth fails, we have now handled this frame by protocol.
-    if(!authAndDecodeOTSecurableFrame<sfrx_t, decrypt, getKey>(fd))
+    if(!authAndDecodeOTSecurableFrameOnStack<sfrx_t, decrypt, getKey>(fd))
         { return(true); }
 
     // Make sure frame is long enough to have useful information in it
@@ -408,7 +407,7 @@ template<typename sfrx_t,
          OTV0P2BASE::GetPrimary16ByteSecretKey_t &getKey,
          frameOperator_fn_t &o1,
          frameOperator_fn_t &o2 = nullFrameOperation>
-bool decodeAndHandleOTSecureOFrameWithWorkspace(volatile const uint8_t * const _msg, OTV0P2BASE::ScratchSpaceL & sW)
+bool decodeAndHandleOTSecureOFrame(volatile const uint8_t * const _msg, OTV0P2BASE::ScratchSpaceL & sW)
 {
 #if 0
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
@@ -440,7 +439,7 @@ bool decodeAndHandleOTSecureOFrameWithWorkspace(volatile const uint8_t * const _
     // attempting to process it.
 
     // Even if auth fails, we have now handled this frame by protocol.
-    if(!authAndDecodeOTSecurableFrameWithWorkspace<sfrx_t, decrypt, getKey>(fd, sW))
+    if(!authAndDecodeOTSecurableFrame<sfrx_t, decrypt, getKey>(fd, sW))
         { return(true); }
 
     // Make sure frame is long enough to have useful information in it

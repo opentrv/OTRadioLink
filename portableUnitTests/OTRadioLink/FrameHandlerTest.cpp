@@ -372,7 +372,7 @@ TEST(FrameHandler, authAndDecodeSecurableFrameBasic)
     OTRadioLink::OTFrameData_T fd(&msgBuf[1], decryptedBodyOut);
     fd.outbuflen = 0xff;  // Test that this is really set.
 
-    const bool test1 = OTRadioLink::authAndDecodeOTSecurableFrame<OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
+    const bool test1 = OTRadioLink::authAndDecodeOTSecurableFrameOnStack<OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
                                                                   OTFHT::mockDecrypt,
                                                                   OTFHT::getKeySuccess>(fd);
     EXPECT_FALSE(test1);
@@ -391,7 +391,7 @@ TEST(FrameHandler, authAndDecodeSecurableFrameGetKeyFalse)
     fd.outbuflen = 0xff;  // Test that this is really set.
 
     //
-    const bool test1 = OTRadioLink::authAndDecodeOTSecurableFrame<OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
+    const bool test1 = OTRadioLink::authAndDecodeOTSecurableFrameOnStack<OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
                                                                   OTFHT::mockDecrypt,
                                                                   OTFHT::getKeyFail>(fd);
     EXPECT_FALSE(test1);
@@ -406,7 +406,7 @@ TEST(FrameHandlerTest, decodeAndHandleOTSecurableFrameBasic)
     const uint8_t msgBuf[] = { 5,    'O',1,2,3,4 };
     const uint8_t * const msgStart = &msgBuf[1];
 
-    const bool test1 = OTRadioLink::decodeAndHandleOTSecureOFrame<OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
+    const bool test1 = OTRadioLink::decodeAndHandleOTSecureOFrameOnStack<OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
                                                                   OTFHT::mockDecrypt,
                                                                   OTFHT::getKeySuccess,
                                                                   OTRadioLink::nullFrameOperation
@@ -422,7 +422,7 @@ TEST(FrameHandlerTest, decodeAndHandleOTSecurableFrameNoAuthSuccess)
     const uint8_t * const msgStart = &OTFHT::minimumSecureFrame::buf[1];
 
     //
-    const bool test1 = OTRadioLink::decodeAndHandleOTSecureOFrame<OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
+    const bool test1 = OTRadioLink::decodeAndHandleOTSecureOFrameOnStack<OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
                                                                   OTFHT::mockDecrypt,
                                                                   OTFHT::getKeySuccess,
                                                                   OTRadioLink::nullFrameOperation
@@ -430,7 +430,7 @@ TEST(FrameHandlerTest, decodeAndHandleOTSecurableFrameNoAuthSuccess)
     EXPECT_TRUE(test1);
 }
 
-// Measure stack usage of authAndDecodeOTSecurableFrame
+// Measure stack usage of authAndDecodeOTSecurableFrameOnStack
 // (DE20170616): 80 (decodeSecureSmallFrameSafely code path disabled)
 TEST(FrameHandler, authAndDecodeOTSecurableFrameStackCheck)
 {
@@ -444,7 +444,7 @@ TEST(FrameHandler, authAndDecodeOTSecurableFrameStackCheck)
     OTV0P2BASE::MemoryChecks::resetMinSP();
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
     const size_t baseStack = OTV0P2BASE::MemoryChecks::getMinSP();
-    OTRadioLink::authAndDecodeOTSecurableFrame<OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
+    OTRadioLink::authAndDecodeOTSecurableFrameOnStack<OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
                                                OTFHT::mockDecrypt,
                                                OTFHT::getKeySuccess>(fd);
     const size_t maxStack = OTV0P2BASE::MemoryChecks::getMinSP();
@@ -468,7 +468,7 @@ TEST(FrameHandler, decodeAndHandleOTSecureOFrameStackCheck)
     OTV0P2BASE::MemoryChecks::resetMinSP();
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
     const size_t baseStack = OTV0P2BASE::MemoryChecks::getMinSP();
-    OTRadioLink::decodeAndHandleOTSecureOFrame<OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
+    OTRadioLink::decodeAndHandleOTSecureOFrameOnStack<OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
                                                OTFHT::mockDecrypt,
                                                OTFHT::getKeySuccess,
                                                OTRadioLink::nullFrameOperation
@@ -526,7 +526,7 @@ TEST(FrameHandlerTest, authAndDecodeSecurableFrameFull)
     OTRadioLink::OTFrameData_T fd(msgStart, decryptedBodyOut);
     EXPECT_NE(0, fd.sfh.checkAndDecodeSmallFrameHeader(OTFHT::minimumSecureFrame::buf, OTFHT::minimumSecureFrame::encodedLength));
 
-    // Workspace for authAndDecodeOTSecurableFrameWithWorkspace
+    // Workspace for authAndDecodeOTSecurableFrame
     constexpr size_t workspaceRequired =
             OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameSafely_total_scratch_usage_OTAESGCM_3p0
             + OTAESGCM::OTAES128GCMGenericWithWorkspace<>::workspaceRequiredDec
@@ -535,7 +535,7 @@ TEST(FrameHandlerTest, authAndDecodeSecurableFrameFull)
     OTV0P2BASE::ScratchSpaceL sW(workspace, sizeof(workspace));
 
     // Set up stack usage checks
-    const bool test1 = OTRadioLink::authAndDecodeOTSecurableFrameWithWorkspace<
+    const bool test1 = OTRadioLink::authAndDecodeOTSecurableFrame<
                 OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
                 OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE,
                 OTFHT::getKeySuccess
@@ -557,7 +557,7 @@ TEST(FrameHandlerTest, decodeAndHandleOTSecurableFrameDecryptSuccess)
     sfrx.setMockIDValue(senderID);
     sfrx.setMockCounterValue(msgCounter);
 
-    // Workspace for decodeAndHandleOTSecureOFrameWithWorkspace
+    // Workspace for decodeAndHandleOTSecureOFrame
     constexpr size_t workspaceRequired =
             OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameSafely_total_scratch_usage_OTAESGCM_3p0
             + OTAESGCM::OTAES128GCMGenericWithWorkspace<>::workspaceRequiredDec
@@ -565,7 +565,7 @@ TEST(FrameHandlerTest, decodeAndHandleOTSecurableFrameDecryptSuccess)
     uint8_t workspace[workspaceRequired];
     OTV0P2BASE::ScratchSpaceL sW(workspace, sizeof(workspace));
 
-    const bool test1 = OTRadioLink::decodeAndHandleOTSecureOFrameWithWorkspace<
+    const bool test1 = OTRadioLink::decodeAndHandleOTSecureOFrame<
             OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
             OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE,
             OTFHT::getKeySuccess,
@@ -593,7 +593,7 @@ TEST(FrameHandlerTest, authAndDecodeSecurableFrameFull)
     EXPECT_NE(0, fd.sfh.checkAndDecodeSmallFrameHeader(OTFHT::minimumSecureFrame::buf, OTFHT::minimumSecureFrame::encodedLength));
 
     // Set up stack usage checks
-    const bool test1 = OTRadioLink::authAndDecodeOTSecurableFrame<
+    const bool test1 = OTRadioLink::authAndDecodeOTSecurableFrameOnStack<
                 OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
                 OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
                 OTFHT::getKeySuccess
@@ -615,7 +615,7 @@ TEST(FrameHandlerTest, decodeAndHandleOTSecurableFrameDecryptSuccess)
     OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter &sfrx = OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter::getInstance();
     sfrx.setMockIDValue(senderID);
     sfrx.setMockCounterValue(msgCounter);
-    const bool test1 = OTRadioLink::decodeAndHandleOTSecureOFrame<OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
+    const bool test1 = OTRadioLink::decodeAndHandleOTSecureOFrameOnStack<OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
                                                                   OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
                                                                   OTFHT::getKeySuccess,
                                                                   OTFHT::setFlagFrameOperation

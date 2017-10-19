@@ -244,7 +244,7 @@ namespace SOSDT
         OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter &sfrx = OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter::getInstance();
         sfrx.setMockIDValue(senderID);
         sfrx.setMockCounterValue(msgCounter);
-        return(OTRadioLink::decodeAndHandleOTSecureOFrameWithWorkspace<
+        return(OTRadioLink::decodeAndHandleOTSecureOFrame<
                 OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
                 OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE,
                 SOSDT::getKeySuccess,
@@ -301,7 +301,7 @@ TEST(SecureOpStackDepth, OTMessageQueueHandlerStackBasicWithWorkspace)
 
     OTRadioLink::OTMessageQueueHandler<
         SOSDT::pollIO, 4800,
-        OTRadioLink::decodeAndHandleOTSecureOFrameWithWorkspace<
+        OTRadioLink::decodeAndHandleOTSecureOFrame<
             OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
             OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE,
             SOSDT::getKeySuccess,
