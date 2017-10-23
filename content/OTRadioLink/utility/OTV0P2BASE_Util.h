@@ -39,7 +39,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014--2017
 
 // include a coarse, watchdog based profiling routine
 #undef OTMEMCHECKS_FREQ_PROFILING
-#define OTMEMCHECKS_TIME_PROFILING
+#undef OTMEMCHECKS_TIME_PROFILING
 
 extern uint8_t _end;
 
