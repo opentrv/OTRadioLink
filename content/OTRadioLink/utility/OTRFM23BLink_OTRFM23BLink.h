@@ -13,7 +13,8 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
+Author(s) / Copyright (s): Damon Hart-Davis 2013--2017
+                           Deniz Erbilgin 2016--2017
                            Milenko Alcin 2016
 */
 
@@ -40,7 +41,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #include <OTV0p2Base.h>
 #include <OTRadioLink.h>
 #include "OTRadioLink_ISRRXQueue.h"
-
 
 namespace OTRFM23BLink
     {
@@ -219,7 +219,7 @@ namespace OTRFM23BLink
             // Read one byte, sending a 0.
             // SPI must already be configured and running.
             // At lowest SPI clock prescale (x2) this is likely to spin for ~16 CPU cycles (8 bits each taking 2 cycles).
-            inline uint8_t _rd() const __attribute__((always_inline)) { SPDR = 0U; while (!(SPSR & _BV(SPIF))) { } return(SPDR); }  // XXX
+            inline uint8_t _rd() const __attribute__((always_inline)) { SPDR = 0U; while (!(SPSR & _BV(SPIF))) { } return(SPDR); }
             // Write one byte over SPI (ignoring the value read back).
             // TODO: convert from busy-wait to sleep, at least in a standby mode, if likely longer than 10s of uS.
             // At lowest SPI clock prescale (x2) this is likely to spin for ~16 CPU cycles (8 bits each taking 2 cycles).
@@ -737,7 +737,6 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                            lengthRX = _readReg8Bit(REG_3E_PACKET_LENGTH);
                         else
                            lengthRX = _readReg8Bit(REG_4B_RECEIVED_PACKET_LENGTH);
-                        if(neededEnable) { _downSPI(); }
                         // Received frame.
                         // If there is space in the queue then read in the frame,
                         // else discard it.
@@ -772,6 +771,12 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                             }
                         // Clear up and force back to listening...
                         _dolistenNonVirtual();
+                        // XXX Moved to reduce cost of 2 _SPI() and _downSPI()
+                        // _downSPI is expensive and called conditionally and all
+                        // so should not be called anywhere else in this block.
+                        // Not altering semantics of _RXFIFO() and
+                        // _doListenNonVirtual() to avoid changing other branches.
+                        if(neededEnable) { _downSPI(); }
                         //return;
                         }
 #if 0 && defined(MILENKO_DEBUG)
