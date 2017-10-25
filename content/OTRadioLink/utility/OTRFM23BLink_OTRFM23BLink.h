@@ -659,7 +659,11 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                             // Decide while waiting if this is the final byte or not.
                             // If not, after waiting for the read, continue.
                             if(BRANCH_HINT_likely(0 != --j))
-                                { while(!(SPSR & _BV(SPIF))) {} *buf++ = SPDR; continue; }
+                                {
+                                while(!(SPSR & _BV(SPIF))) {}
+                                *buf++ = SPDR;
+                                continue;
+                                }
                             // Reading the final byte now.
                             while(!(SPSR & _BV(SPIF))) {}
                             *buf++ = SPDR;
