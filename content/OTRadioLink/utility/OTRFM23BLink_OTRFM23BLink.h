@@ -527,14 +527,9 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Rx");
             // Read status (both registers) and clear interrupts.
             // Status register 1 is returned in the top 8 bits, register 2 in the bottom 8 bits.
             // Zero indicates no pending interrupts or other status flags set.
-            // POWERS UP SPI IF NECESSARY.
-            uint16_t _readStatusBoth() const
-                {
-                const bool neededEnable = _upSPI();
-                const uint16_t result = _readReg16Bit(REG_INT_STATUS1);
-                if(neededEnable) { _downSPI(); }
-                return(result);
-                }
+            // ASSUMES SPI IS POWERED UP.
+            inline uint16_t _readStatusBoth() const
+                { return(_readReg16Bit(REG_INT_STATUS1)); }
 
             // Minimal set-up of I/O (etc) after system power-up.
             // Performs a software reset and leaves the radio deselected and in a low-power and safe state.
@@ -720,24 +715,23 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                 // Nothing to do if not listening at the moment.
                 if(-1 == getListenChannel()) { return; }
 
+                const bool neededEnable = _upSPI();
                 // See what has arrived, if anything.
                 const uint16_t status = _readStatusBoth();
-
                 // We need to check if RFM23B is in packet mode and based on that
-                // we select interrupt routine.
-                const bool neededEnable = _upSPI();
+                // we select the interrupt handling path.
                 const uint8_t rxMode = _readReg8Bit(REG_30_DATA_ACCESS_CONTROL);
                 if(neededEnable) { _downSPI(); }
                 if(rxMode & RFM23B_ENPACRX)
-                  {
-                  // Packet-handling mode...
+                    {
+                    // Packet-handling mode...
                     if(status & RFM23B_IPKVALID) // Packet received OK
                         {
                         const bool neededEnable = _upSPI();
                         // Extract packet/frame length...
                         uint8_t lengthRX;
                         // Number of bytes to read depends whether fixed of variable packet length
-                        if ((_readReg8Bit_(REG_33_HEADER_CONTROL2) & RFM23B_FIXPKLEN ) == RFM23B_FIXPKLEN )
+                        if ((_readReg8Bit(REG_33_HEADER_CONTROL2) & RFM23B_FIXPKLEN) == RFM23B_FIXPKLEN)
                            lengthRX = _readReg8Bit(REG_3E_PACKET_LENGTH);
                         else
                            lengthRX = _readReg8Bit(REG_4B_RECEIVED_PACKET_LENGTH);
