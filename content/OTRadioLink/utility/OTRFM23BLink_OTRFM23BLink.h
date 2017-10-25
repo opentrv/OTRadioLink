@@ -13,7 +13,8 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
+Author(s) / Copyright (s): Damon Hart-Davis 2013--2017
+                           Deniz Erbilgin 2016--2017
                            Milenko Alcin 2016
 */
 
@@ -40,8 +41,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #include <OTV0p2Base.h>
 #include <OTRadioLink.h>
 #include "OTRadioLink_ISRRXQueue.h"
-
-#define ARDUINO_ARCH_AVR
 
 namespace OTRFM23BLink
     {
@@ -220,7 +219,7 @@ namespace OTRFM23BLink
             // Read one byte, sending a 0.
             // SPI must already be configured and running.
             // At lowest SPI clock prescale (x2) this is likely to spin for ~16 CPU cycles (8 bits each taking 2 cycles).
-            inline uint8_t _rd() const __attribute__((always_inline)) { SPDR = 0U; while (!(SPSR & _BV(SPIF))) { } return(SPDR); }  // XXX
+            inline uint8_t _rd() const __attribute__((always_inline)) { SPDR = 0U; while (!(SPSR & _BV(SPIF))) { } return(SPDR); }
             // Write one byte over SPI (ignoring the value read back).
             // TODO: convert from busy-wait to sleep, at least in a standby mode, if likely longer than 10s of uS.
             // At lowest SPI clock prescale (x2) this is likely to spin for ~16 CPU cycles (8 bits each taking 2 cycles).
@@ -631,10 +630,12 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
 #endif // RFM23B_IRQ_CONTROL
 
 
-
-            // Put RFM23 into standby, attempt to read bytes from FIFO into supplied buffer.
-            // Leaves RFM22 in low-power standby mode.
+            // Put RFM23B into standby, attempt to read bytes from FIFO into supplied buffer.
+            // Leaves RFM23B in low-power standby mode.
             // Trailing bytes (more than were actually sent) undefined.
+            //     * buf  area to receive bufSize bytes; never NULL
+            //     * bufSize  buffer size and expected number of bytes to read;
+            //       must be non-zero.
             void _RXFIFO(uint8_t *buf, const uint8_t bufSize)
                 {
                 // Lock out interrupts.
@@ -645,7 +646,6 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                     // Do burst read from RX FIFO.
                     _SELECT();
                     _io(REG_FIFO & 0x7F);
-//                    for(int i = 0; i < bufSize; ++i) { *buf++ = _io(0); }
                     for (uint8_t j = bufSize; j-- != 0; ) { *buf++ = _rd(); }
                     _DESELECT();
                     // Clear RX and TX FIFOs simultaneously.
@@ -662,9 +662,9 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
 
 
             // Switch listening off, on to selected channel.
-            // listenChannel will have been set by time this is called.
+            // The listenChannel will have been set by time this is called.
             void _dolistenNonVirtual()
-            {
+                {
                 // Unconditionally stop listening and go into low-power standby mode.
                 _modeStandbyAndClearState();
                 // Capture possible (near) peak of stack usage, eg when called from ISR,
@@ -692,7 +692,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                     _modeRX();
                     if(neededEnable) { _downSPI(); }
                     }
-            }
+                }
             // Version accessible to base class.
             virtual void _dolisten() { _dolistenNonVirtual(); }
 
@@ -719,8 +719,8 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                 const bool neededEnable = _upSPI();
                 // See what has arrived, if anything.
                 const uint16_t status = _readStatusBoth();
-                // We need to check if RFM23B is in packet mode and based on that
-                // we select the interrupt handling path.
+                // Need to check if RFM23B is in packet mode and based on that
+                // select the interrupt handling path.
                 const uint8_t rxMode = _readReg8Bit(REG_30_DATA_ACCESS_CONTROL);
                 if(neededEnable) { _downSPI(); }
                 if(rxMode & RFM23B_ENPACRX)
@@ -731,13 +731,15 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                         const bool neededEnable = _upSPI();
                         // Extract packet/frame length...
                         uint8_t lengthRX;
-                        // Number of bytes to read depends whether fixed of variable packet length
-                        if ((_readReg8Bit(REG_33_HEADER_CONTROL2) & RFM23B_FIXPKLEN) == RFM23B_FIXPKLEN)
+                        // Number of bytes to read depends whether fixed
+                        // or variable packet length
+                        if((_readReg8Bit(REG_33_HEADER_CONTROL2) & RFM23B_FIXPKLEN) == RFM23B_FIXPKLEN)
                            lengthRX = _readReg8Bit(REG_3E_PACKET_LENGTH);
                         else
                            lengthRX = _readReg8Bit(REG_4B_RECEIVED_PACKET_LENGTH);
                         // Received frame.
-                        // If there is space in the queue then read in the frame, else discard it.
+                        // If there is space in the queue then read in the frame,
+                        // else discard it.
                         volatile uint8_t *const bufferRX = (lengthRX > MaxRXMsgLen) ? NULL :
                             queueRX._getRXBufForInbound();
                         if(NULL != bufferRX)
@@ -748,12 +750,15 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                             quickFrameFilter_t *const f = filterRXISR;
                             if((NULL != f) && !f(bufferRX, lengthRX))
                                 {
-                                ++filteredRXedMessageCountRecent; // Drop the frame: filter didn't like it.
-                                queueRX._loadedBuf(0); // Don't queue this frame...
+                                // Drop the frame: filter didn't like it.
+                                ++filteredRXedMessageCountRecent;
+                                // Don't queue frame...
+                                queueRX._loadedBuf(0);
                                 }
                             else
                                 {
-                                queueRX._loadedBuf(lengthRX); // Queue message.
+                                // Queue message.
+                                queueRX._loadedBuf(lengthRX);
                                 }
                             }
                         else
