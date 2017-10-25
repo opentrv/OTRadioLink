@@ -41,6 +41,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #include <OTRadioLink.h>
 #include "OTRadioLink_ISRRXQueue.h"
 
+#define ARDUINO_ARCH_AVR
 
 namespace OTRFM23BLink
     {
@@ -735,7 +736,6 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                            lengthRX = _readReg8Bit(REG_3E_PACKET_LENGTH);
                         else
                            lengthRX = _readReg8Bit(REG_4B_RECEIVED_PACKET_LENGTH);
-                        if(neededEnable) { _downSPI(); }
                         // Received frame.
                         // If there is space in the queue then read in the frame, else discard it.
                         volatile uint8_t *const bufferRX = (lengthRX > MaxRXMsgLen) ? NULL :
@@ -766,6 +766,12 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                             }
                         // Clear up and force back to listening...
                         _dolistenNonVirtual();
+                        // XXX Moved to reduce cost of 2 _SPI() and _downSPI()
+                        // _downSPI is expensive and called conditionally and all
+                        // so should not be called anywhere else in this block.
+                        // Not altering semantics of _RXFIFO() and
+                        // _doListenNonVirtual() to avoid changing other branches.
+                        if(neededEnable) { _downSPI(); }
                         //return;
                         }
 #if 0 && defined(MILENKO_DEBUG)
