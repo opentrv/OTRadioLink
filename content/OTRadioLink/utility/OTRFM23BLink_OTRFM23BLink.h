@@ -215,12 +215,15 @@ namespace OTRFM23BLink
             // TODO: convert from busy-wait to sleep, at least in a standby mode, if likely longer than 10s of uS.
             // At lowest SPI clock prescale (x2) this is likely to spin for ~16 CPU cycles (8 bits each taking 2 cycles).
             // Treat as if this does not alter state, though in some cases it will.
-            inline uint8_t _io(const uint8_t data) const { SPDR = data; while (!(SPSR & _BV(SPIF))) { } return(SPDR); }
-            // Write one byte over SPI (ignoring the value read back).
+            inline uint8_t _io(const uint8_t data) const __attribute__((always_inline)) { SPDR = data; while (!(SPSR & _BV(SPIF))) { } return(SPDR); }
+            // Read one byte, sending a 0.
             // SPI must already be configured and running.
+            // At lowest SPI clock prescale (x2) this is likely to spin for ~16 CPU cycles (8 bits each taking 2 cycles).
+            inline uint8_t _rd() const __attribute__((always_inline)) { SPDR = 0U; while (!(SPSR & _BV(SPIF))) { } return(SPDR); }  // XXX
+            // Write one byte over SPI (ignoring the value read back).
             // TODO: convert from busy-wait to sleep, at least in a standby mode, if likely longer than 10s of uS.
             // At lowest SPI clock prescale (x2) this is likely to spin for ~16 CPU cycles (8 bits each taking 2 cycles).
-            inline void _wr(const uint8_t data) { SPDR = data; while (!(SPSR & _BV(SPIF))) { } }
+            inline void _wr(const uint8_t data) __attribute__((always_inline)) { SPDR = data; while (!(SPSR & _BV(SPIF))) { } }
 
             // Internal routines to enable/disable RFM23B on the the SPI bus.
             // Versions accessible to the base class...
@@ -378,8 +381,8 @@ namespace OTRFM23BLink
             static constexpr bool runSPISlow = ::OTV0P2BASE::DEFAULT_RUN_SPI_SLOW;
             inline void _nSSWait() const { OTV0P2BASE_busy_spin_delay(runSPISlow?4:0); }
             // Wait from SPI select to op, and after op to deselect, and after deselect.
-            inline void _SELECT() const { fastDigitalWrite(SPI_nSS_DigitalPin, LOW); _nSSWait(); } // Select/enable RFM23B.
-            inline void _DESELECT() const { _nSSWait(); fastDigitalWrite(SPI_nSS_DigitalPin, HIGH); _nSSWait(); } // Deselect/disable RFM23B.
+            inline void _SELECT() const __attribute__((always_inline)) { fastDigitalWrite(SPI_nSS_DigitalPin, LOW); _nSSWait(); } // Select/enable RFM23B.
+            inline void _DESELECT() const __attribute__((always_inline)) { _nSSWait(); fastDigitalWrite(SPI_nSS_DigitalPin, HIGH); _nSSWait(); } // Deselect/disable RFM23B.
             // Versions accessible to the base class...
             virtual void _SELECT_() const override { _SELECT(); }
             virtual void _DESELECT_() const override { _DESELECT(); }
@@ -395,7 +398,7 @@ namespace OTRFM23BLink
 
             // Write to 8-bit register on RFM23B.
             // SPI must already be configured and running.
-            inline void _writeReg8Bit(const uint8_t addr, const uint8_t val)
+            inline void _writeReg8Bit (const uint8_t addr, const uint8_t val) __attribute__((always_inline))
                 {
                 _SELECT();
                 _wr(addr | 0x80); // Force to write.
@@ -419,11 +422,11 @@ namespace OTRFM23BLink
             // Read from 8-bit register on RFM23B.
             // SPI must already be configured and running.
             // Treat as if this does not alter state, though in some cases it will.
-            inline uint8_t _readReg8Bit(const uint8_t addr) const
+            inline uint8_t _readReg8Bit(const uint8_t addr) const __attribute__((always_inline))
                 {
                 _SELECT();
                 _io(addr & 0x7f); // Force to read.
-                const uint8_t result = _io(0); // Dummy value...
+                const uint8_t result = _rd(); // Dummy value...
                 _DESELECT();
                 return(result);
                 }
@@ -437,8 +440,8 @@ namespace OTRFM23BLink
                 {
                 _SELECT();
                 _io(addr & 0x7f); // Force to read.
-                uint16_t result = ((uint16_t)_io(0)) << 8;
-                result |= ((uint16_t)_io(0));
+                uint16_t result = ((uint16_t)_rd()) << 8;
+                result |= ((uint16_t)_rd());
                 _DESELECT();
                 return(result);
                 }
@@ -487,8 +490,8 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Rx");
                 {
                 _SELECT();
                 _io(REG_INT_STATUS1 & 0x7f); // Force to read.
-                _io(0);
-                _io(0);
+                _rd();
+                _rd();
                 _DESELECT();
                 }
             // Version accessible to the base class...
@@ -641,7 +644,8 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                     // Do burst read from RX FIFO.
                     _SELECT();
                     _io(REG_FIFO & 0x7F);
-                    for(int i = 0; i < bufSize; ++i) { *buf++ = _io(0); }
+//                    for(int i = 0; i < bufSize; ++i) { *buf++ = _io(0); }
+                    for (uint8_t j = bufSize; j-- != 0; ) { *buf++ = _rd(); }
                     _DESELECT();
                     // Clear RX and TX FIFOs simultaneously.
                     _writeReg8Bit(REG_OP_CTRL2, 3); // FFCLRRX | FFCLRTX
