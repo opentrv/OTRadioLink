@@ -646,7 +646,26 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                     // Do burst read from RX FIFO.
                     _SELECT();
                     _io(REG_FIFO & 0x7F);
-                    for (uint8_t j = bufSize; j-- != 0; ) { *buf++ = _rd(); }
+                    // This loop has the effect of:
+                    //     for(uint8_t j = bufSize; j-- != 0; ) { *buf++ = _rd(); }
+                    // but rearranged to minimise delays between bytes read
+                    // by better scheduling.
+                    if(0 != bufSize)
+                        {
+                        uint8_t j = bufSize;
+                        for( ; ; )
+                            {
+                            // Start (a write of 0 and) a read of the next byte.
+                            SPDR = 0U;
+                            // Decide while waiting if this is the final byte or not.
+                            // If not, after waiting for the read, continue.
+                            if(0 != --j) { while(!(SPSR & _BV(SPIF))); *buf++ = SPDR; continue; }
+                            // Reading the final byte now.
+                            while(!(SPSR & _BV(SPIF))) { }
+                            *buf++ = SPDR;
+                            break;
+                            }
+                        }
                     _DESELECT();
                     // Clear RX and TX FIFOs simultaneously.
                     _writeReg8Bit(REG_OP_CTRL2, 3); // FFCLRRX | FFCLRTX
