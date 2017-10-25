@@ -639,7 +639,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRawPadInPlace(
 //  * d  decryption function; never NULL
 //  * state  pointer to state for d, if required, else NULL
 //  * key  secret key; never NULL
-uint8_t SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRaw(const SecurableFrameHeader *const sfh,
+uint8_t SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRawOnStack(const SecurableFrameHeader *const sfh,
                                 const uint8_t *const buf, const uint8_t buflen,
                                 const fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
                                 void *const state, const uint8_t *const key, const uint8_t *const iv,
@@ -685,8 +685,8 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRaw(const Secura
     return(fl + 1);
     }
 // Version with workspace
-uint8_t SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRawWithWorkspace(const SecurableFrameHeader *const sfh,
-        const uint8_t *const buf, const uint8_t buflen,
+uint8_t SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRaw(
+        OTFrameData_T &fd,
         const fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_ptr_t d,
         const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *const key, const uint8_t *const iv,
         uint8_t *const decryptedBodyOut, const uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize)
@@ -698,31 +698,35 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRawWithWorkspace
     // Create a new sub scratch space for callee.
     OTV0P2BASE::ScratchSpaceL subScratch(scratch, scratchSpaceNeededHere);
 
-    if((NULL == sfh) || (NULL == buf) || (NULL == d) ||
+    const uint8_t * const buf = fd.inbuf;
+    const uint8_t buflen = fd.inbuf[-1];
+    const SecurableFrameHeader &sfh = fd.sfh;
+
+    if((NULL == buf) || (NULL == d) ||
         (NULL == key) || (NULL == iv)) { return(0); } // ERROR
 
     // Capture possible (near) peak of stack usage, eg when called from ISR.
-    OTV0P2BASE::MemoryChecks::recordIfMinSP(4);  // FIXME delete number
+//    OTV0P2BASE::MemoryChecks::recordIfMinSP(4);  // FIXME delete number
 
     // Abort if header was not decoded properly.
-    if(sfh->isInvalid()) { return(0); } // ERROR
+    if(sfh.isInvalid()) { return(0); } // ERROR
     // Abort if expected constraints for simple fixed-size secure frame are not met.
-    const uint8_t fl = sfh->fl;
+    const uint8_t fl = sfh.fl;
     if(fl >= buflen) { return(0); } // ERROR
-    if(23 != sfh->getTl()) { return(0); } // ERROR
+    if(23 != sfh.getTl()) { return(0); } // ERROR
     if(0x80 != buf[fl]) { return(0); } // ERROR
-    const uint8_t bl = sfh->bl;
+    const uint8_t bl = sfh.bl;
     if((0 != bl) && (ENC_BODY_SMALL_FIXED_CTEXT_SIZE != bl)) { return(0); } // ERROR
     // Check that header sequence number lsbs match nonce counter 4 lsbs.
-    if(sfh->getSeq() != (iv[11] & 0xf)) { return(0); } // ERROR
+    if(sfh.getSeq() != (iv[11] & 0xf)) { return(0); } // ERROR
     // Note if plaintext is actually wanted/expected.
     const bool plaintextWanted = (NULL != decryptedBodyOut);
     // Attempt to authenticate and decrypt.
     uint8_t * const decryptBuf = scratch.buf;
     //uint8_t decryptBuf[ENC_BODY_SMALL_FIXED_CTEXT_SIZE];
     if(!d(scratch.buf+scratchSpaceNeededHere, scratch.bufsize-scratchSpaceNeededHere,
-                key, iv, buf, sfh->getHl(),
-                (0 == bl) ? NULL : buf + sfh->getBodyOffset(), buf + fl - 16,
+                key, iv, buf, sfh.getHl(),
+                (0 == bl) ? NULL : buf + sfh.getBodyOffset(), buf + fl - 16,
                 decryptBuf)) { return(0); } // ERROR
     if(plaintextWanted && (0 != bl))
         {
@@ -1095,7 +1099,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTBuf_t &buf,
         memcpy(iv, adjID, 6);
         memcpy(iv + 6, buf + sfh->getTrailerOffset(), SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes);
         // Now do actual decrypt/auth.
-        return(decodeSecureSmallFrameRaw(sfh,
+        return(decodeSecureSmallFrameRawOnStack(sfh,
                                     buf, buflen,
                                     d,
                                     state, key, iv,
@@ -1142,11 +1146,11 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTBuf_t &buf,
         memcpy(iv, adjIDBuf, 6);
         memcpy(iv + 6, buf + sfh.getTrailerOffset(), SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes);
         // Now do actual decrypt/auth.
-        return(decodeSecureSmallFrameRawWithWorkspace(&sfh,
-            buf, buflen,
-            d,
-            subScratch, key, iv,
-            decryptedBodyOut, decryptedBodyOutBuflen, decryptedBodyOutSize));
+        return(decodeSecureSmallFrameRaw(
+                fd,
+                d,
+                subScratch, key, iv,
+                decryptedBodyOut, decryptedBodyOutBuflen, decryptedBodyOutSize));
         }
 
     // From a structurally correct secure frame, looks up the ID, checks the message counter, decodes, and updates the counter if successful.

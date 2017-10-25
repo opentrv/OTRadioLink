@@ -818,16 +818,16 @@ TEST(OTAESGCMSecureFrame, SecureSmallFrameEncodingWithWorkspace)
     EXPECT_EQ(0x29, buf.buf[46]); // 1st byte of tag.
     EXPECT_EQ(0xcb, buf.buf[61]); // 16th/last byte of tag.
     EXPECT_EQ(0x80, buf.buf[62]); // enc format.
-    // To decode, emulating RX, structurally validate unpack the header and extract the ID.
-    OTRadioLink::SecurableFrameHeader sfhRX;
-    EXPECT_TRUE(0 != sfhRX.checkAndDecodeSmallFrameHeader(buf.buf + 1, encodedLength - 1));
+
     // (Nominally a longer ID and key is looked up with the ID in the header, and an iv built.)
     uint8_t decodedBodyOutSize;
     uint8_t decryptedBodyOut[OTRadioLink::ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE];
+    // To decode, emulating RX, structurally validate unpack the header and extract the ID.
+    OTRadioLink::OTFrameData_T fdRX(buf.buf + 1, decryptedBodyOut);
+    EXPECT_TRUE(0 != fdRX.sfh.checkAndDecodeSmallFrameHeader(buf.buf + 1, encodedLength - 1));
     // Should decode and authenticate correctly.
-    EXPECT_TRUE(0 != OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRawWithWorkspace(
-                        &sfhRX,
-                        buf.buf, encodedLength,
+    EXPECT_TRUE(0 != OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRaw(
+                        fdRX,
                         OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE,
                         sWDec, zeroBlock, iv,
                         decryptedBodyOut, sizeof(decryptedBodyOut), decodedBodyOutSize));
@@ -845,13 +845,12 @@ TEST(OTAESGCMSecureFrame, SecureSmallFrameEncodingWithWorkspace)
     //  Serial.println(loc);
     //  Serial.println(mask);
     EXPECT_TRUE(
-            (0 == sfhRX.checkAndDecodeSmallFrameHeader(buf.buf, encodedLength)) ||
-            (0 == OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRawWithWorkspace(&sfhRX,
-                                        buf.buf, encodedLength,
+            (0 == fdRX.sfh.checkAndDecodeSmallFrameHeader(buf.buf, encodedLength)) ||
+            (0 == OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRaw(fdRX,
                                         OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE,
                                         sWDec, zeroBlock, iv,
                                         decryptedBodyOut, sizeof(decryptedBodyOut), decodedBodyOutSize)) ||
-            ((sizeof(body) == decodedBodyOutSize) && (0 == memcmp(body, decryptedBodyOut, sizeof(body))) && (0 == memcmp(id, sfhRX.id, 4)))
+            ((sizeof(body) == decodedBodyOutSize) && (0 == memcmp(body, decryptedBodyOut, sizeof(body))) && (0 == memcmp(id, fdRX.sfh.id, 4)))
     );
 }
 
@@ -938,12 +937,11 @@ TEST(OTAESGCMSecureFrame, BeaconEncodingWithWorkspace)
     // Check decoding (auth/decrypt) of beacon at various levels.
     // Validate structure of frame first.
     // This is quick and checks for insane/dangerous values throughout.
-    OTRadioLink::SecurableFrameHeader sfh;
-    const uint8_t l = sfh.checkAndDecodeSmallFrameHeader(buf + 1, sb1 - 1);
+    OTRadioLink::OTFrameData_T fd(buf, body.buf);
+    const uint8_t l = fd.sfh.checkAndDecodeSmallFrameHeader(buf + 1, sb1 - 1);
     EXPECT_EQ(4 + idLen, l);
     uint8_t decryptedBodyOutSize;
-    const uint8_t dlr = OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRawWithWorkspace(&sfh,
-                                    buf, sizeof(buf),
+    const uint8_t dlr = OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRaw(fd,
                                     OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE,
                                     sWDec, key, iv,
                                     NULL, 0, decryptedBodyOutSize);
@@ -1574,7 +1572,7 @@ TEST(OTAESGCMSecureFrame, SecureFrameDecodeStackUsage) {
     uint8_t decodedBodyOutSize;
     uint8_t decryptedBodyOut[OTRadioLink::ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE];
     // Should decode and authenticate correctly.
-    EXPECT_TRUE(0 != OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRawWithWorkspace(&sfhRX,
+    EXPECT_TRUE(0 != OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRaw(&sfhRX,
                                         buf, encodedLength,
                                         OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE,
                                         sWDec, zeroBlock, iv,

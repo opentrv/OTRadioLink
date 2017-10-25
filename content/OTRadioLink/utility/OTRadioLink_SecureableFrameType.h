@@ -814,7 +814,7 @@ namespace OTRadioLink
             //  * d  decryption function; never NULL
             //  * state  pointer to state for d, if required, else NULL
             //  * key  secret key; never NULL
-            static uint8_t decodeSecureSmallFrameRaw(
+            static uint8_t decodeSecureSmallFrameRawOnStack(
                 const SecurableFrameHeader *sfh,
                 const uint8_t *buf, uint8_t buflen,
                 fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
@@ -827,9 +827,8 @@ namespace OTRadioLink
             static constexpr size_t decodeSecureSmallFrameRawWithWorkspace_total_scratch_usage_OTAESGCM_3p0 =
                 0 /* Any additional callee space would be for d(). */ +
                 decodeSecureSmallFrameRawWithWorkspace_scratch_usage;
-            static uint8_t decodeSecureSmallFrameRawWithWorkspace(
-                const SecurableFrameHeader *sfh,
-                const uint8_t *buf, uint8_t buflen,
+            static uint8_t decodeSecureSmallFrameRaw(
+                OTFrameData_T &fd,
                 fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_ptr_t d,
                 const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key, const uint8_t *iv,
                 uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
