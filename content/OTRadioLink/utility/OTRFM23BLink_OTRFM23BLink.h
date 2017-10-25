@@ -653,18 +653,17 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                     if(0 != bufSize)
                         {
                         uint8_t j = bufSize;
-                        for( ; ; )
-                            {
+                        do  {
                             // Start (a write of 0 and) a read of the next byte.
                             SPDR = 0U;
                             // Decide while waiting if this is the final byte or not.
                             // If not, after waiting for the read, continue.
-                            if(0 != --j) { while(!(SPSR & _BV(SPIF))); *buf++ = SPDR; continue; }
+                            if(BRANCH_HINT_likely(0 != --j))
+                                { while(!(SPSR & _BV(SPIF))) {} *buf++ = SPDR; continue; }
                             // Reading the final byte now.
-                            while(!(SPSR & _BV(SPIF))) { }
+                            while(!(SPSR & _BV(SPIF))) {}
                             *buf++ = SPDR;
-                            break;
-                            }
+                            } while(false);
                         }
                     _DESELECT();
                     // Clear RX and TX FIFOs simultaneously.
