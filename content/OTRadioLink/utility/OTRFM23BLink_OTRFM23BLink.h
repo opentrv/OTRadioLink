@@ -927,6 +927,11 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // without the virtual call stack, potentially allowing for
             // better optimisation.
             // * handleInterruptSimple is kept to preserve the existing API.
+            // DE20171026: Reduced time taken to service this from ~9 ms to ~4.5 ms
+            // - Forcing inline of spi read/write calls in _RXFIFO() and
+            //   restructuring loop reduced byte read time from 32 us to 16 us.
+            // - Further restructuring to do while reduced read time to 12 us.
+            // - Reordering _up/_downSPI calls reduced total time by ~2 ms.
             bool _handleInterruptNonVirtual()
             {
                 if(!allowRX) { return(false); }
