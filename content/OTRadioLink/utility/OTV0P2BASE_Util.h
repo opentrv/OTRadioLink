@@ -418,6 +418,13 @@ class MemoryChecks
 #endif
 };
 
+/**
+ * @brief   Force restart if SPAM/heap/stack likely corrupt.
+ *          Complain and keep complaining when getting near stack overflow.
+ *          TODO: make DEBUG-only when confident all configs OK.
+ *          Optionally reports max stack usage and location, per loop.
+ */
+void stackCheck();
 
 }
 
