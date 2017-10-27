@@ -41,6 +41,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 #include <Arduino.h>
 #endif
 
+#include "OTV0P2BASE_PowerManagement.h"
+#include "OTV0P2BASE_RTC.h"
 
 namespace OTV0P2BASE
 {
@@ -298,6 +300,37 @@ bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);
     #endif // defined(__AVR_ATmega328P__)
 #endif
 
+/**
+ * @brief   - Sleep in low-power mode (waiting for interrupts) until seconds roll.
+ *          - Will call the function passed in repeatedly until it returns
+ *          false, then sleep OR exit the loop of the seconds roll.
+ * @param   Function to call in loop. Defaults to nullptr, in which case
+ *          it will go straight to sleep.
+ * @retval  current time in seconds, in range [0,59]
+ * @note    Should be placed at the top of loop to minimise timing jitter/delay
+ *          from Arduino background activity after loop() returns.
+ * @note    DHD20130425: waking up from sleep and getting to start processing
+ *          below this block may take >10ms.
+ *
+ */
+template<bool (*preSleepFn_ptr)() = nullptr>
+uint_fast8_t sleepUntilNewCycle(const uint_fast8_t oldTimeLSD)
+{
+    // Ensure that serial I/O is off while sleeping.
+    powerDownSerial();
+    // Power down most stuff (except radio for hub RX).
+    minimisePowerWithoutSleep();
+    uint_fast8_t newTLSD;
+    while(oldTimeLSD == (newTLSD = getSecondsLT())) {
+        if(nullptr != preSleepFn_ptr) {
+            if(preSleepFn_ptr()) { continue; }
+        }
+        // Normal long minimal-power sleep until wake-up interrupt.
+        // Rely on interrupt to force quick loop round to I/O poll.
+        sleepUntilInt();
+    }
+    return (newTLSD);
+}
 
 } // OTV0P2BASE
 
