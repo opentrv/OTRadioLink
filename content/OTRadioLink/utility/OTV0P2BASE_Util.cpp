@@ -72,8 +72,9 @@ volatile uint8_t MemoryChecks::duration[MemoryChecks::timeTableSize];
 /**
  * @brief   Force restart if SPAM/heap/stack likely corrupt.
  *          Complain and keep complaining when getting near stack overflow.
- *          TODO: make DEBUG-only when confident all configs OK.
  *          Optionally reports max stack usage and location, per loop.
+ * TODO: make DEBUG-only when confident all configs OK.
+ * TODO: parametrise min stack?
  */
 void stackCheck()
 {
