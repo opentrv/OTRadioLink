@@ -9,6 +9,15 @@ or release/freeze points.
 
 
 pending:
+    DE20171027:  Moved stackCheck() and common sleep loop into libs.
+    DE20171017:  Added basic time and frequency profiling to OTMemoryChecks.
+    DE20170821:  Refactored read routine of OTSoftSerial2 to play nicer with interrupts.
+    DE20170810:  Added better + portable method of getting return address of ISRs.
+    DE20170616:  Fixes to clock calibration routines.
+    DE20170613:  Created typedef for GetPrimary16ByteSecretKey() to remove dependency.
+    DE20170602:  Added template specialisation for OTAtomic_t<bool>.
+    DE20170504:  Implemented templated atomic types for AVR.
+    DE20170502:  Improved stack profiling tools.
     DHD20170105: experimental ErrorReport(er) in use.
     DHD20161230: bug fixes (waiting too long for read) in SHT21 drivers.
     DHD20161112: introduced ByHourSimpleStatsUpdaterSampleStats.
