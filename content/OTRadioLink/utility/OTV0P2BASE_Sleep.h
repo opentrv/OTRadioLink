@@ -299,8 +299,8 @@ bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);
         for( ; ; ) { }
         }
     #endif // defined(__AVR_ATmega328P__)
-#endif
-
+#endif  // ARDUINO_ARCH_AVR
+#ifdef ARDUINO_ARCH_AVR
 /**
  * @brief   - Sleep in low-power mode (waiting for interrupts) until seconds roll.
  *          - Will call the function passed in repeatedly until it returns
@@ -332,6 +332,8 @@ uint_fast8_t sleepUntilNewCycle(const uint_fast8_t oldTimeLSD)
     }
     return (newTLSD);
 }
+
+#endif  // ARDUINO_ARCH_AVR
 
 } // OTV0P2BASE
 
