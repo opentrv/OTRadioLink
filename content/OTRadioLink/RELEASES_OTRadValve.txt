@@ -9,6 +9,9 @@ or release/freeze points.
 
 
 pending:
+    DE20170602:  Created templated driver for boiler hub.
+    DE20170313:  Modified motor hardware drivers to allow passing as template parameters.
+    DE20170313:  Templated modelledRadValveState.
     DHD20170108: summary of activity up TRV1.5-rc1 to TRV1.5-rc4.
         20161107-RC-clock-tune,2016/11/07,REV7,"Seems relatively stable, decent valve control, has ID setting.",,,,,
         20161109-cumulatvePC-fix,2016/11/09,REV7,Fixes issues with BAKE and vC|% amongst others.,,,,,
