@@ -305,8 +305,10 @@ bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);
  * @brief   - Sleep in low-power mode (waiting for interrupts) until seconds roll.
  *          - Will call the function passed in repeatedly until it returns
  *          false, then sleep OR exit the loop of the seconds roll.
- * @param   Function to call in loop. Defaults to nullptr, in which case
+ * @param   preSleepFn_ptr: Function to call in loop. Defaults to nullptr, in which case
  *          it will go straight to sleep.
+ * @param   preventLongSleep:  If false, AVR sleeps until interrupt.
+ *          If true, does a series of short naps instead.
  * @retval  current time in seconds, in range [0,59]
  * @note    Should be placed at the top of loop to minimise timing jitter/delay
  *          from Arduino background activity after loop() returns.
@@ -314,8 +316,8 @@ bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);
  *          below this block may take >10ms.
  *
  */
-template<bool (*preSleepFn_ptr)() = nullptr>
-uint_fast8_t sleepUntilNewCycle(const uint_fast8_t oldTimeLSD)
+template<bool (*preSleepFn_ptr)()=nullptr>
+uint_fast8_t sleepUntilNewCycle(const uint_fast8_t oldTimeLSD, bool preventLongSleep=false)
 {
     // Ensure that serial I/O is off while sleeping.
     powerDownSerial();
@@ -326,9 +328,17 @@ uint_fast8_t sleepUntilNewCycle(const uint_fast8_t oldTimeLSD)
         if(nullptr != preSleepFn_ptr) {
             if(preSleepFn_ptr()) { continue; }
         }
-        // Normal long minimal-power sleep until wake-up interrupt.
-        // Rely on interrupt to force quick loop round to I/O poll.
-        sleepUntilInt();
+        if(!preventLongSleep) {
+            // Normal long minimal-power sleep until wake-up interrupt.
+            // Rely on interrupt to force quick loop round to I/O poll.
+            sleepUntilInt();
+        } else {
+            // If there is not hardware interrupt wakeup on receipt of a frame,
+            // then this can only sleep for a short time between explicit poll()s,
+            // though in any case allow wake on interrupt to minimise loop timing jitter
+            // when the slow RTC 'end of sleep' tick arrives.
+            OTV0P2BASE::nap(WDTO_15MS, true);
+        }
     }
     return (newTLSD);
 }
