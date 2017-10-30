@@ -13,7 +13,8 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
+Author(s) / Copyright (s): Damon Hart-Davis 2013--2017
+                           Deniz Erbilgin 2016--2017
                            Milenko Alcin 2016
 */
 
@@ -40,7 +41,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #include <OTV0p2Base.h>
 #include <OTRadioLink.h>
 #include "OTRadioLink_ISRRXQueue.h"
-
 
 namespace OTRFM23BLink
     {
@@ -215,12 +215,15 @@ namespace OTRFM23BLink
             // TODO: convert from busy-wait to sleep, at least in a standby mode, if likely longer than 10s of uS.
             // At lowest SPI clock prescale (x2) this is likely to spin for ~16 CPU cycles (8 bits each taking 2 cycles).
             // Treat as if this does not alter state, though in some cases it will.
-            inline uint8_t _io(const uint8_t data) const { SPDR = data; while (!(SPSR & _BV(SPIF))) { } return(SPDR); }
-            // Write one byte over SPI (ignoring the value read back).
+            inline uint8_t _io(const uint8_t data) const __attribute__((always_inline)) { SPDR = data; while (!(SPSR & _BV(SPIF))) { } return(SPDR); }
+            // Read one byte, sending a 0.
             // SPI must already be configured and running.
+            // At lowest SPI clock prescale (x2) this is likely to spin for ~16 CPU cycles (8 bits each taking 2 cycles).
+            inline uint8_t _rd() const __attribute__((always_inline)) { SPDR = 0U; while (!(SPSR & _BV(SPIF))) { } return(SPDR); }
+            // Write one byte over SPI (ignoring the value read back).
             // TODO: convert from busy-wait to sleep, at least in a standby mode, if likely longer than 10s of uS.
             // At lowest SPI clock prescale (x2) this is likely to spin for ~16 CPU cycles (8 bits each taking 2 cycles).
-            inline void _wr(const uint8_t data) { SPDR = data; while (!(SPSR & _BV(SPIF))) { } }
+            inline void _wr(const uint8_t data) __attribute__((always_inline)) { SPDR = data; while (!(SPSR & _BV(SPIF))) { } }
 
             // Internal routines to enable/disable RFM23B on the the SPI bus.
             // Versions accessible to the base class...
@@ -378,8 +381,8 @@ namespace OTRFM23BLink
             static constexpr bool runSPISlow = ::OTV0P2BASE::DEFAULT_RUN_SPI_SLOW;
             inline void _nSSWait() const { OTV0P2BASE_busy_spin_delay(runSPISlow?4:0); }
             // Wait from SPI select to op, and after op to deselect, and after deselect.
-            inline void _SELECT() const { fastDigitalWrite(SPI_nSS_DigitalPin, LOW); _nSSWait(); } // Select/enable RFM23B.
-            inline void _DESELECT() const { _nSSWait(); fastDigitalWrite(SPI_nSS_DigitalPin, HIGH); _nSSWait(); } // Deselect/disable RFM23B.
+            inline void _SELECT() const __attribute__((always_inline)) { fastDigitalWrite(SPI_nSS_DigitalPin, LOW); _nSSWait(); } // Select/enable RFM23B.
+            inline void _DESELECT() const __attribute__((always_inline)) { _nSSWait(); fastDigitalWrite(SPI_nSS_DigitalPin, HIGH); _nSSWait(); } // Deselect/disable RFM23B.
             // Versions accessible to the base class...
             virtual void _SELECT_() const override { _SELECT(); }
             virtual void _DESELECT_() const override { _DESELECT(); }
@@ -395,7 +398,7 @@ namespace OTRFM23BLink
 
             // Write to 8-bit register on RFM23B.
             // SPI must already be configured and running.
-            inline void _writeReg8Bit(const uint8_t addr, const uint8_t val)
+            inline void _writeReg8Bit (const uint8_t addr, const uint8_t val) __attribute__((always_inline))
                 {
                 _SELECT();
                 _wr(addr | 0x80); // Force to write.
@@ -419,11 +422,11 @@ namespace OTRFM23BLink
             // Read from 8-bit register on RFM23B.
             // SPI must already be configured and running.
             // Treat as if this does not alter state, though in some cases it will.
-            inline uint8_t _readReg8Bit(const uint8_t addr) const
+            inline uint8_t _readReg8Bit(const uint8_t addr) const __attribute__((always_inline))
                 {
                 _SELECT();
                 _io(addr & 0x7f); // Force to read.
-                const uint8_t result = _io(0); // Dummy value...
+                const uint8_t result = _rd(); // Dummy value...
                 _DESELECT();
                 return(result);
                 }
@@ -437,8 +440,8 @@ namespace OTRFM23BLink
                 {
                 _SELECT();
                 _io(addr & 0x7f); // Force to read.
-                uint16_t result = ((uint16_t)_io(0)) << 8;
-                result |= ((uint16_t)_io(0));
+                uint16_t result = ((uint16_t)_rd()) << 8;
+                result |= ((uint16_t)_rd());
                 _DESELECT();
                 return(result);
                 }
@@ -487,8 +490,8 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Rx");
                 {
                 _SELECT();
                 _io(REG_INT_STATUS1 & 0x7f); // Force to read.
-                _io(0);
-                _io(0);
+                _rd();
+                _rd();
                 _DESELECT();
                 }
             // Version accessible to the base class...
@@ -524,14 +527,9 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("Rx");
             // Read status (both registers) and clear interrupts.
             // Status register 1 is returned in the top 8 bits, register 2 in the bottom 8 bits.
             // Zero indicates no pending interrupts or other status flags set.
-            // POWERS UP SPI IF NECESSARY.
-            uint16_t _readStatusBoth() const
-                {
-                const bool neededEnable = _upSPI();
-                const uint16_t result = _readReg16Bit(REG_INT_STATUS1);
-                if(neededEnable) { _downSPI(); }
-                return(result);
-                }
+            // ASSUMES SPI IS POWERED UP.
+            inline uint16_t _readStatusBoth() const
+                { return(_readReg16Bit(REG_INT_STATUS1)); }
 
             // Minimal set-up of I/O (etc) after system power-up.
             // Performs a software reset and leaves the radio deselected and in a low-power and safe state.
@@ -632,10 +630,12 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
 #endif // RFM23B_IRQ_CONTROL
 
 
-
-            // Put RFM23 into standby, attempt to read bytes from FIFO into supplied buffer.
-            // Leaves RFM22 in low-power standby mode.
+            // Put RFM23B into standby, attempt to read bytes from FIFO into supplied buffer.
+            // Leaves RFM23B in low-power standby mode.
             // Trailing bytes (more than were actually sent) undefined.
+            //     * buf  area to receive bufSize bytes; never NULL
+            //     * bufSize  buffer size and expected number of bytes to read;
+            //       must be non-zero.
             void _RXFIFO(uint8_t *buf, const uint8_t bufSize)
                 {
                 // Lock out interrupts.
@@ -646,7 +646,31 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                     // Do burst read from RX FIFO.
                     _SELECT();
                     _io(REG_FIFO & 0x7F);
-                    for(int i = 0; i < bufSize; ++i) { *buf++ = _io(0); }
+                    // This loop has the effect of:
+                    //     for(uint8_t j = bufSize; j-- != 0; ) { *buf++ = _rd(); }
+                    // but rearranged to minimise delays between bytes read
+                    // by better scheduling.
+                    if(0 != bufSize)
+                        {
+                        uint8_t j = bufSize;
+                        do  {
+                            // Start (a write of 0 and) a read of the next byte.
+                            SPDR = 0U;
+                            // Decide while waiting if this is the final byte or not.
+                            // If not, after waiting for the read, continue.
+                            --j;
+                            if(BRANCH_HINT_likely(0 != j))
+                                {
+                                while(!(SPSR & _BV(SPIF))) {}
+                                *buf++ = SPDR;
+                                continue;
+                                }
+                            // Reading the final byte now.
+                            while(!(SPSR & _BV(SPIF))) {}
+                            *buf++ = SPDR;
+                            break;
+                            } while(true);
+                        }
                     _DESELECT();
                     // Clear RX and TX FIFOs simultaneously.
                     _writeReg8Bit(REG_OP_CTRL2, 3); // FFCLRRX | FFCLRTX
@@ -662,9 +686,9 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
 
 
             // Switch listening off, on to selected channel.
-            // listenChannel will have been set by time this is called.
+            // The listenChannel will have been set by time this is called.
             void _dolistenNonVirtual()
-            {
+                {
                 // Unconditionally stop listening and go into low-power standby mode.
                 _modeStandbyAndClearState();
                 // Capture possible (near) peak of stack usage, eg when called from ISR,
@@ -692,7 +716,7 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                     _modeRX();
                     if(neededEnable) { _downSPI(); }
                     }
-            }
+                }
             // Version accessible to base class.
             virtual void _dolisten() { _dolistenNonVirtual(); }
 
@@ -716,30 +740,30 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                 // Nothing to do if not listening at the moment.
                 if(-1 == getListenChannel()) { return; }
 
+                const bool neededEnable = _upSPI();
                 // See what has arrived, if anything.
                 const uint16_t status = _readStatusBoth();
-
-                // We need to check if RFM23B is in packet mode and based on that
-                // we select interrupt routine.
-                const bool neededEnable = _upSPI();
+                // Need to check if RFM23B is in packet mode and based on that
+                // select the interrupt handling path.
                 const uint8_t rxMode = _readReg8Bit(REG_30_DATA_ACCESS_CONTROL);
                 if(neededEnable) { _downSPI(); }
                 if(rxMode & RFM23B_ENPACRX)
-                  {
-                  // Packet-handling mode...
+                    {
+                    // Packet-handling mode...
                     if(status & RFM23B_IPKVALID) // Packet received OK
                         {
                         const bool neededEnable = _upSPI();
                         // Extract packet/frame length...
                         uint8_t lengthRX;
-                        // Number of bytes to read depends whether fixed of variable packet length
-                        if ((_readReg8Bit_(REG_33_HEADER_CONTROL2) & RFM23B_FIXPKLEN ) == RFM23B_FIXPKLEN )
+                        // Number of bytes to read depends whether fixed
+                        // or variable packet length
+                        if((_readReg8Bit(REG_33_HEADER_CONTROL2) & RFM23B_FIXPKLEN) == RFM23B_FIXPKLEN)
                            lengthRX = _readReg8Bit(REG_3E_PACKET_LENGTH);
                         else
                            lengthRX = _readReg8Bit(REG_4B_RECEIVED_PACKET_LENGTH);
-                        if(neededEnable) { _downSPI(); }
                         // Received frame.
-                        // If there is space in the queue then read in the frame, else discard it.
+                        // If there is space in the queue then read in the frame,
+                        // else discard it.
                         volatile uint8_t *const bufferRX = (lengthRX > MaxRXMsgLen) ? NULL :
                             queueRX._getRXBufForInbound();
                         if(NULL != bufferRX)
@@ -750,12 +774,15 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                             quickFrameFilter_t *const f = filterRXISR;
                             if((NULL != f) && !f(bufferRX, lengthRX))
                                 {
-                                ++filteredRXedMessageCountRecent; // Drop the frame: filter didn't like it.
-                                queueRX._loadedBuf(0); // Don't queue this frame...
+                                // Drop the frame: filter didn't like it.
+                                ++filteredRXedMessageCountRecent;
+                                // Don't queue frame...
+                                queueRX._loadedBuf(0);
                                 }
                             else
                                 {
-                                queueRX._loadedBuf(lengthRX); // Queue message.
+                                // Queue message.
+                                queueRX._loadedBuf(lengthRX);
                                 }
                             }
                         else
@@ -768,6 +795,12 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
                             }
                         // Clear up and force back to listening...
                         _dolistenNonVirtual();
+                        // XXX Moved to reduce cost of 2 _SPI() and _downSPI()
+                        // _downSPI is expensive and called conditionally and all
+                        // so should not be called anywhere else in this block.
+                        // Not altering semantics of _RXFIFO() and
+                        // _doListenNonVirtual() to avoid changing other branches.
+                        if(neededEnable) { _downSPI(); }
                         //return;
                         }
 #if 0 && defined(MILENKO_DEBUG)
@@ -894,6 +927,11 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("RFM23 reset...");
             // without the virtual call stack, potentially allowing for
             // better optimisation.
             // * handleInterruptSimple is kept to preserve the existing API.
+            // DE20171026: Reduced time taken to service this from ~9 ms to ~4.5 ms
+            // - Forcing inline of spi read/write calls in _RXFIFO() and
+            //   restructuring loop reduced byte read time from 32 us to 16 us.
+            // - Further restructuring to do while reduced read time to 12 us.
+            // - Reordering _up/_downSPI calls reduced total time by ~2 ms.
             bool _handleInterruptNonVirtual()
             {
                 if(!allowRX) { return(false); }
