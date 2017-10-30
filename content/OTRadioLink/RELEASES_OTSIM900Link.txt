@@ -9,10 +9,13 @@ or release/freeze points.
 
 
 pending:
+    DE20170825:  Split send process to prevent WDT resets.
+    DE20170824:  Shortened timeout on serial flush to prevent WDT resets.
+    DE20170612:  Fixed queueToSend argument defaults.
     DE20170112:  Switched to new internal state machine.
     DE20161107:  Whitebox tests, bug fixes and internal refactoring.
     DE20150804:  Extended waits after powering cycling REV10 to improve startup reliability.
-	DE20160805:  Added reset every 255 messages sent to improve reliability.
+    DE20160805:  Added reset every 255 messages sent to improve reliability.
 
 
 20160505:
