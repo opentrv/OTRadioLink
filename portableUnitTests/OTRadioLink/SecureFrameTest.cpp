@@ -1035,7 +1035,7 @@ TEST(OTAESGCMSecureFrame, SecureSmallFrameEncoding)
     uint8_t decodedBodyOutSize;
     uint8_t decryptedBodyOut[OTRadioLink::ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE];
     // Should decode and authenticate correctly.
-    EXPECT_TRUE(0 != OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRaw(&sfhRX,
+    EXPECT_TRUE(0 != OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRawOnStack(&sfhRX,
                                         buf, encodedLength,
                                         OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
                                         NULL, zeroBlock, iv,
@@ -1051,7 +1051,7 @@ TEST(OTAESGCMSecureFrame, SecureSmallFrameEncoding)
     //  Serial.println(loc);
     //  Serial.println(mask);
     EXPECT_TRUE((0 == sfhRX.checkAndDecodeSmallFrameHeader(buf, encodedLength)) ||
-               (0 == OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRaw(&sfhRX,
+               (0 == OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRawOnStack(&sfhRX,
                                         buf, encodedLength,
                                         OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
                                         NULL, zeroBlock, iv,
@@ -1126,7 +1126,7 @@ TEST(OTAESGCMSecureFrame, BeaconEncoding)
     const uint8_t l = sfh.checkAndDecodeSmallFrameHeader(buf, sb1);
     EXPECT_EQ(4 + idLen, l);
     uint8_t decryptedBodyOutSize;
-    const uint8_t dlr = OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRaw(&sfh,
+    const uint8_t dlr = OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRawOnStack(&sfh,
                                     buf, sizeof(buf),
                                     OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
                                     NULL, key, iv,

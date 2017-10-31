@@ -830,8 +830,7 @@ namespace OTRadioLink
             static uint8_t decodeSecureSmallFrameRaw(
                 OTFrameData_T &fd,
                 fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_ptr_t d,
-                const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key, const uint8_t *iv,
-                uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
+                const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key, const uint8_t *iv);
 
             // Design notes on use of message counters vs non-volatile storage life, eg for ATMega328P.
             //
@@ -896,7 +895,7 @@ namespace OTRadioLink
             // then update the RX message counter after a successful auth with this routine.
             //
             // Not a public entry point (is protected).
-            uint8_t _decodeSecureSmallFrameFromID(const SecurableFrameHeader *sfh,
+            uint8_t _decodeSecureSmallFrameFromIDOnStack(const SecurableFrameHeader *sfh,
                                             const uint8_t *buf, uint8_t buflen,
                                             fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
                                             const uint8_t *adjID, uint8_t adjIDLen,
@@ -909,7 +908,7 @@ namespace OTRadioLink
             static constexpr size_t _decodeSecureSmallFrameFromIDWithWorkspace_total_scratch_usage_OTAESGCM_3p0 =
                 decodeSecureSmallFrameRawWithWorkspace_total_scratch_usage_OTAESGCM_3p0 +
                 _decodeSecureSmallFrameFromIDWithWorkspace_scratch_usage;
-            uint8_t _decodeSecureSmallFrameFromIDWithWorkspace(OTFrameData_T &fd,
+            uint8_t _decodeSecureSmallFrameFromID(OTFrameData_T &fd,
                                             fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_ptr_t d,
                                             const OTBuf_t adjID,
                                             OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key);
