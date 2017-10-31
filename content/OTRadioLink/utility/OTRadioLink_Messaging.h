@@ -224,7 +224,7 @@ template <typename sfrx_t,
 inline bool authAndDecodeOTSecurableFrameOnStack(OTFrameData_T &fd)
 {
     const uint8_t * const msg = fd.inbuf;
-    const uint8_t msglen = msg[-1];
+    const uint8_t msglen = fd.inbuflen;
     uint8_t * outBuf = fd.outbuf;
 
 #if 0
@@ -366,7 +366,7 @@ bool decodeAndHandleOTSecureOFrameOnStack(volatile const uint8_t * const _msg)
 
     // Buffer for receiving secure frame body.
     // (Non-secure frame bodies should be read directly from the frame buffer.)
-    OTFrameData_T fd(msg, decryptedBodyOut);
+    OTFrameData_T fd(msg, msglen, decryptedBodyOut);
     // Validate structure of header/frame first.
     // This is quick and checks for insane/dangerous values throughout.
     const uint8_t l = fd.sfh.checkAndDecodeSmallFrameHeader(msg, msglen);
@@ -419,7 +419,7 @@ bool decodeAndHandleOTSecureOFrame(volatile const uint8_t * const _msg, OTV0P2BA
     // Buffer for receiving secure frame body.
     // (Non-secure frame bodies should be read directly from the frame buffer.)
     uint8_t decryptedBodyOut[OTFrameData_T::decryptedBodyBufSize];
-    OTFrameData_T fd(msg, decryptedBodyOut);
+    OTFrameData_T fd(msg, msglen, decryptedBodyOut);
 
     // Validate structure of header/frame first.
     // This is quick and checks for insane/dangerous values throughout.
