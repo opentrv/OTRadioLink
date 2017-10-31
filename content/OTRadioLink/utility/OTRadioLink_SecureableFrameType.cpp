@@ -696,18 +696,16 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRaw(OTFrameData_
     // Create a new sub scratch space for callee.
     OTV0P2BASE::ScratchSpaceL subScratch(scratch, scratchSpaceNeededHere);
 
-    const uint8_t * const buf = fd.inbuf;
-    const uint8_t buflen = fd.inbuf[-1];
-    const SecurableFrameHeader &sfh = fd.sfh;
-
-
-// XXX
-//    const uint8_t *const buf = &fd.inbuf[-1];
-//    const uint8_t buflen = buf[0] + 1;
+//    const uint8_t * const buf = fd.inbuf;
+//    const uint8_t buflen = fd.inbuf[-1];
 //    const SecurableFrameHeader &sfh = fd.sfh;
-//    uint8_t *const decryptedBodyOut = fd.outbuf;
-//    const uint8_t decryptedBodyOutBuflen = fd.decryptedBodyBufSize;
-//    uint8_t &decryptedBodyOutSize = fd.outbuflen;
+
+    const uint8_t *const buf = &fd.inbuf[-1];
+    const uint8_t buflen = buf[0] + 1;
+    const SecurableFrameHeader &sfh = fd.sfh;
+    uint8_t *const decryptedBodyOut = fd.outbuf;
+    const uint8_t decryptedBodyOutBuflen = fd.decryptedBodyBufSize;
+    uint8_t &decryptedBodyOutSize = fd.outbuflen;
 
 
     if((NULL == buf) || (NULL == d) ||
@@ -1130,9 +1128,6 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTBuf_t &buf,
         const uint8_t *const buf = &fd.inbuf[-1];
         const uint8_t buflen = buf[0] + 1;
         const SecurableFrameHeader &sfh = fd.sfh;
-        uint8_t *const decryptedBodyOut = fd.outbuf;
-        const uint8_t decryptedBodyOutBuflen = fd.decryptedBodyBufSize;
-        uint8_t &decryptedBodyOutSize = fd.outbuflen;
         const uint8_t *const adjIDBuf = adjID.buf;
         const uint8_t adjIDLen = adjID.bufsize;
 
