@@ -696,16 +696,15 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRaw(OTFrameData_
     // Create a new sub scratch space for callee.
     OTV0P2BASE::ScratchSpaceL subScratch(scratch, scratchSpaceNeededHere);
 
+    if((NULL == fd.inbuf) || (NULL == d) ||
+        (NULL == key) || (NULL == iv)) { return(0); } // ERROR
+
     const uint8_t *const buf = &fd.inbuf[-1];
     const uint8_t buflen = buf[0] + 1;
     const SecurableFrameHeader &sfh = fd.sfh;
     uint8_t *const decryptedBodyOut = fd.outbuf;
     const uint8_t decryptedBodyOutBuflen = fd.decryptedBodyBufSize;
     uint8_t &decryptedBodyOutSize = fd.outbuflen;
-
-
-    if((NULL == buf) || (NULL == d) ||
-        (NULL == key) || (NULL == iv)) { return(0); } // ERROR
 
     // Capture possible (near) peak of stack usage, eg when called from ISR.
 //    OTV0P2BASE::MemoryChecks::recordIfMinSP();
@@ -1095,7 +1094,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTBuf_t &buf,
         if(23 != sfh->getTl()) { return(0); } // ERROR
     //    const uint8_t fl = sfh->fl;
     //    if(0x80 != buf[fl]) { return(0); } // ERROR
-        if(sfh->getTrailerOffset() + 6 > buflen) { return(0); } // ERROR
+        if(sfh->getTrailerOffset() + 7 > buflen) { return(0); } // ERROR
         // Construct IV from supplied (possibly adjusted) ID + counters from (start of) trailer.
         uint8_t iv[12];
         memcpy(iv, adjID, 6);
@@ -1121,15 +1120,16 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTBuf_t &buf,
         // Create a new sub scratch space for callee.
         OTV0P2BASE::ScratchSpaceL subScratch(scratch, scratchSpaceNeededHere);
 
-        const uint8_t *const buf = &fd.inbuf[-1];
-        const uint8_t buflen = buf[0] + 1;
+        // Rely on decodeSecureSmallFrameRaw() for validation of items
+        // not directly needed in this routine.
+        if((NULL == fd.inbuf) || (NULL == adjID.buf)) { return(0); } // ERROR
+
+        const uint8_t *const buf = fd.inbuf;
+        const uint8_t buflen = buf[0];
         const SecurableFrameHeader &sfh = fd.sfh;
         const uint8_t *const adjIDBuf = adjID.buf;
         const uint8_t adjIDLen = adjID.bufsize;
 
-        // Rely on decodeSecureSmallFrameRaw() for validation of items
-        // not directly needed in this routine.
-        if((NULL == buf) || (NULL == adjIDBuf)) { return(0); } // ERROR
         if(adjIDLen < 6) { return(0); } // ERROR
         // Abort if header was not decoded properly.
         if(sfh.isInvalid()) { return(0); } // ERROR
@@ -1137,7 +1137,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTBuf_t &buf,
         if(23 != sfh.getTl()) { return(0); } // ERROR
     //    const uint8_t fl = sfh->fl;
     //    if(0x80 != buf[fl]) { return(0); } // ERROR
-        if(sfh.getTrailerOffset() + 6 > buflen) { return(0); } // ERROR
+        if(sfh.getTrailerOffset() + 5 > buflen) { return(0); } // ERROR
         // Construct IV from supplied (possibly adjusted) ID
         // + counters from (start of) trailer.
         uint8_t *iv = scratch.buf;
@@ -1242,13 +1242,14 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTBuf_t &buf,
         // Create a new sub scratch space for callee.
         OTV0P2BASE::ScratchSpaceL subScratch(scratch, scratchSpaceNeededHere);
 
-        const SecurableFrameHeader &sfh = fd.sfh;
-        const uint8_t *const buf = &fd.inbuf[-1];
-        uint8_t *const ID = fd.id;
-
         // Rely on _decodeSecureSmallFrameFromID() for validation of items
         // not directly needed here.
-        if(NULL == buf) { return(0); } // ERROR
+        if(NULL == fd.inbuf) { return(0); } // ERROR
+
+        const SecurableFrameHeader &sfh = fd.sfh;
+        const uint8_t *const buf = fd.inbuf;
+        uint8_t *const ID = fd.id;
+
         // Abort if header was not decoded properly.
         if(sfh.isInvalid()) { return(0); } // ERROR
     //    // Abort if frame is not secure.

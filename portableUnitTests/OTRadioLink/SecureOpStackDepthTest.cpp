@@ -216,7 +216,7 @@ TEST(SecureOpStackDepth, SimpleSecureFrame32or0BodyRXFixedCounterStack)
     EXPECT_GT(SOSDT::maxStackSecureFrameDecode, baseStack - maxStack);  // Make sure stack usage is within bounds.
 }
 #endif // OTAESGCM_ALLOW_NON_WORKSPACE
-
+#if 0 //
 namespace SOSDT
 {
 /**
@@ -275,6 +275,7 @@ TEST(SecureOpStackDepth, SimpleSecureFrame32or0BodyRXFixedCounterWithWorkspaceSt
     EXPECT_TRUE(SOSDT::frameOperationCalledFlag);  // Make sure full stack has been called and correctness verified.
     EXPECT_GE(SOSDT::maxStackSecureFrameDecode, baseStack - maxStack);  // Make sure stack usage is within bounds.
 }
+#endif
 #if 0
 TEST(SecureOpStackDepth, OTMessageQueueHandlerStackBasicWithWorkspace)
 {

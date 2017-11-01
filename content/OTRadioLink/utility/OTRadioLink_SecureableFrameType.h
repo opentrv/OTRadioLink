@@ -217,8 +217,8 @@ namespace OTRadioLink
         // Compute tl (trailer length) [1,251]; must == 1 for insecure frame.
         // Other fields must be valid for this to return a valid answer.
         uint8_t getTl() const { return(fl - 3 - getIl() - bl); }
-        // Compute the offset of the trailer from the start of the frame starting with nominal fl byte.
-        uint8_t getTrailerOffset() const { return(4 + getIl() + bl); }
+        // Compute the offset of the trailer from the start of the frame.
+        uint8_t getTrailerOffset() const { return(3 + getIl() + bl); }
 
 
         // Check parameters for, and if valid then encode into the given buffer, the header for a small secureable frame.

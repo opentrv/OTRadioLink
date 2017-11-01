@@ -244,7 +244,7 @@ TEST(OTAESGCMSecureFrame, FrameHeaderEncoding)
     // Check related parameters.
     EXPECT_EQ(8, sfh.fl);
     EXPECT_EQ(6, sfh.getBodyOffset());
-    EXPECT_EQ(8, sfh.getTrailerOffset());
+    EXPECT_EQ(7, sfh.getTrailerOffset());
     //
     // Test vector 2 / example from the spec.
     //Example insecure frame, no valve, representative minimum stats {"b":1}
@@ -279,7 +279,7 @@ TEST(OTAESGCMSecureFrame, FrameHeaderEncoding)
     // Check related parameters.
     EXPECT_EQ(14, sfh.fl);
     EXPECT_EQ(6, sfh.getBodyOffset());
-    EXPECT_EQ(14, sfh.getTrailerOffset());
+    EXPECT_EQ(13, sfh.getTrailerOffset());
 }
 
 // Test decoding of header for RX.
@@ -314,7 +314,7 @@ TEST(OTAESGCMSecureFrame, FrameHeaderDecoding)
     EXPECT_EQ(2, sfh.bl);
     EXPECT_EQ(1, sfh.getTl());
     EXPECT_EQ(6, sfh.getBodyOffset());
-    EXPECT_EQ(8, sfh.getTrailerOffset());
+    EXPECT_EQ(7, sfh.getTrailerOffset());
     //
     // Test vector 2 / example from the spec.
     //Example insecure frame, no valve, representative minimum stats {"b":1}
@@ -342,7 +342,7 @@ TEST(OTAESGCMSecureFrame, FrameHeaderDecoding)
     EXPECT_EQ(8, sfh.bl);
     EXPECT_EQ(1, sfh.getTl());
     EXPECT_EQ(6, sfh.getBodyOffset());
-    EXPECT_EQ(14, sfh.getTrailerOffset());
+    EXPECT_EQ(13, sfh.getTrailerOffset());
 }
 
 // Test CRC computation for insecure frames.
