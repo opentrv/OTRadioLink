@@ -267,17 +267,15 @@ uint8_t SecurableFrameHeader::checkAndDecodeSmallFrameHeader(const OTBuf_t &_buf
 // Returns number of bytes of decoded header
 // including nominally-leading fl length byte;
 // 0 in case of error.
-uint8_t SecurableFrameHeader::checkAndDecodeSmallFrameHeader(const uint8_t *const frame, uint8_t framebuflen)
+uint8_t SecurableFrameHeader::checkAndDecodeSmallFrameHeader(const uint8_t *const buf, uint8_t buflen)
     {
     // Make frame 'invalid' until everything is finished and checks out.
     fl = 0;
 
     // If buf is NULL or clearly too small to contain a valid header then return an error.
-    if(NULL == frame) { return(0); } // ERROR
-    if(framebuflen < 4) { return(0); } // ERROR
+    if(NULL == buf) { return(0); } // ERROR
+    if(buflen < 5) { return(0); } // ERROR
 
-    const uint8_t *const buf = frame - 1;
-    const uint8_t buflen = framebuflen + 1;
 
     // Quick integrity checks from spec.
     //  1) fl >= 4 (type, seq/il, bl, trailer bytes)

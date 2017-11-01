@@ -305,7 +305,7 @@ TEST(OTAESGCMSecureFrame, FrameHeaderDecoding)
     //01 no flags or stats, unreported occupancy
     //23 CRC value
     const uint8_t buf1[] = { 0x08, 0x4f, 0x02, 0x80, 0x81, 0x02, 0x00, 0x01, 0x23 };
-    EXPECT_EQ(6, sfh.checkAndDecodeSmallFrameHeader(buf1 + 1, sizeof(buf1) - 1));
+    EXPECT_EQ(6, sfh.checkAndDecodeSmallFrameHeader(buf1, sizeof(buf1)));
     // Check decoded parameters.
     EXPECT_EQ(8, sfh.fl);
     EXPECT_EQ(2, sfh.getIl());
@@ -333,7 +333,7 @@ TEST(OTAESGCMSecureFrame, FrameHeaderDecoding)
     //7b 22 62 22 3a 31  {"b":1  Stats: note that implicit trailing '}' is not sent.
     //61 CRC value
     static const uint8_t buf2[] = { 0x0e, 0x4f, 0x02, 0x80, 0x81, 0x08, 0x7f, 0x11, 0x7b, 0x22, 0x62, 0x22, 0x3a, 0x31, 0x61 };
-    EXPECT_EQ(6, sfh.checkAndDecodeSmallFrameHeader(buf2 + 1, sizeof(buf2) - 1));
+    EXPECT_EQ(6, sfh.checkAndDecodeSmallFrameHeader(buf2, sizeof(buf2)));
     // Check decoded parameters.
     EXPECT_EQ(14, sfh.fl);
     EXPECT_EQ(2, sfh.getIl());
@@ -368,10 +368,10 @@ TEST(OTAESGCMSecureFrame, NonsecureFrameCRC)
     //01 no flags or stats, unreported occupancy
     //23 CRC value
     const uint8_t buf1[] = { 0x08, 0x4f, 0x02, 0x80, 0x81, 0x02, 0x00, 0x01, 0x23 };
-    EXPECT_EQ(6, sfh.checkAndDecodeSmallFrameHeader(buf1 + 1, 5));
+    EXPECT_EQ(6, sfh.checkAndDecodeSmallFrameHeader(buf1, 6));
     EXPECT_EQ(0x23, sfh.computeNonSecureFrameCRC(buf1, sizeof(buf1) - 1));
     // Decode entire frame, emulating RX, structurally validating the header then checking the CRC.
-    EXPECT_TRUE(0 != sfh.checkAndDecodeSmallFrameHeader(buf1 + 1, sizeof(buf1) - 1));
+    EXPECT_TRUE(0 != sfh.checkAndDecodeSmallFrameHeader(buf1, sizeof(buf1)));
     EXPECT_TRUE(0 != decodeNonsecureSmallFrameRaw(&sfh, buf1, sizeof(buf1)));
     //
     // Test vector 2 / example from the spec.
@@ -392,10 +392,10 @@ TEST(OTAESGCMSecureFrame, NonsecureFrameCRC)
     //61 CRC value
     const uint8_t buf2[] = { 0x0e, 0x4f, 0x02, 0x80, 0x81, 0x08, 0x7f, 0x11, 0x7b, 0x22, 0x62, 0x22, 0x3a, 0x31, 0x61 };
     // Just decode and check the frame header first
-    EXPECT_EQ(6, sfh.checkAndDecodeSmallFrameHeader(buf2 + 1, 5));
+    EXPECT_EQ(6, sfh.checkAndDecodeSmallFrameHeader(buf2, 6));
     EXPECT_EQ(0x61, sfh.computeNonSecureFrameCRC(buf2, sizeof(buf2) - 1));
     // Decode entire frame, emulating RX, structurally validating the header then checking the CRC.
-    EXPECT_TRUE(0 != sfh.checkAndDecodeSmallFrameHeader(buf2 + 1, sizeof(buf2) - 1));
+    EXPECT_TRUE(0 != sfh.checkAndDecodeSmallFrameHeader(buf2, sizeof(buf2)));
     EXPECT_TRUE(0 != decodeNonsecureSmallFrameRaw(&sfh, buf2, sizeof(buf2)));
 }
 
@@ -823,7 +823,7 @@ TEST(OTAESGCMSecureFrame, SecureSmallFrameEncodingWithWorkspace)
     uint8_t decryptedBodyOut[OTRadioLink::ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE];
     // To decode, emulating RX, structurally validate unpack the header and extract the ID.
     OTRadioLink::OTFrameData_T fdRX(buf.buf + 1, buf.bufsize - 1, decryptedBodyOut);
-    EXPECT_TRUE(0 != fdRX.sfh.checkAndDecodeSmallFrameHeader(buf.buf + 1, encodedLength - 1));
+    EXPECT_TRUE(0 != fdRX.sfh.checkAndDecodeSmallFrameHeader(buf.buf, encodedLength));
     // Should decode and authenticate correctly.
     EXPECT_TRUE(0 != OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRaw(
                         fdRX,
