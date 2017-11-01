@@ -176,7 +176,7 @@ bool relayFrameOperation(const OTFrameData_T &fd)
     // Check msg exists.
     if(nullptr == msg) return false;
 
-    const uint8_t msglen = fd.inbuf[-1];
+    const uint8_t msglen = fd.inbuflen;
     const uint8_t * const db = fd.outbuf;
     const uint8_t dbLen = fd.outbuflen;
 
