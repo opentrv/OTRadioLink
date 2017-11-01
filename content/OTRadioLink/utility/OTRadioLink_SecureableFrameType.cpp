@@ -696,10 +696,6 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRaw(OTFrameData_
     // Create a new sub scratch space for callee.
     OTV0P2BASE::ScratchSpaceL subScratch(scratch, scratchSpaceNeededHere);
 
-//    const uint8_t * const buf = fd.inbuf;
-//    const uint8_t buflen = fd.inbuf[-1];
-//    const SecurableFrameHeader &sfh = fd.sfh;
-
     const uint8_t *const buf = &fd.inbuf[-1];
     const uint8_t buflen = buf[0] + 1;
     const SecurableFrameHeader &sfh = fd.sfh;
