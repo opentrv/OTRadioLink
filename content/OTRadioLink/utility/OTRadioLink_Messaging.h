@@ -412,18 +412,18 @@ bool decodeAndHandleOTSecureOFrame(volatile const uint8_t * const _msg, OTV0P2BA
 #if 0
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
 #endif
-    const uint8_t * const msg = (const uint8_t * const)_msg;
-    const uint8_t firstByte = msg[0];
-    const uint8_t msglen = msg[-1];
+    const uint8_t * const msg = (const uint8_t * const)_msg - 1;
+    const uint8_t firstByte = msg[1];
+    const uint8_t msglen = msg[0];
 
     // Buffer for receiving secure frame body.
     // (Non-secure frame bodies should be read directly from the frame buffer.)
     uint8_t decryptedBodyOut[OTFrameData_T::decryptedBodyBufSize];
-    OTFrameData_T fd(msg, msglen, decryptedBodyOut);
+    OTFrameData_T fd(msg+1, msglen, decryptedBodyOut);
 
     // Validate structure of header/frame first.
     // This is quick and checks for insane/dangerous values throughout.
-    const uint8_t l = fd.sfh.checkAndDecodeSmallFrameHeader(msg, msglen);
+    const uint8_t l = fd.sfh.checkAndDecodeSmallFrameHeader(msg+1, msglen);
     // If failed this early and this badly,
     // then let another protocol handler try parsing the message buffer...
     if(0 == l) { return(false); }
