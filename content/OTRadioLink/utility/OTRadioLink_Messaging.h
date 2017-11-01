@@ -174,15 +174,13 @@ bool relayFrameOperation(const OTFrameData_T &fd)
 {
     // Check msg exists.
     if(nullptr == fd.inbuf) return false;
-    const uint8_t * const msg = fd.inbuf + 1;
 
-    const uint8_t msglen = fd.inbuflen;
     const uint8_t * const db = fd.outbuf;
     const uint8_t dbLen = fd.outbuflen;
 
     // Perform some basic validation of the plain text (is it worth sending) and add to relay radio queue.
     if((0 != (db[1] & 0x10)) && (dbLen > 3) && ('{' == db[2])) {
-        return rt.queueToSend(msg, msglen);
+        return rt.queueToSend(fd.inbuf + 1, fd.inbuflen);
     }
     return false;
 }
