@@ -822,7 +822,7 @@ TEST(OTAESGCMSecureFrame, SecureSmallFrameEncodingWithWorkspace)
     // (Nominally a longer ID and key is looked up with the ID in the header, and an iv built.)
     uint8_t decryptedBodyOut[OTRadioLink::ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE];
     // To decode, emulating RX, structurally validate unpack the header and extract the ID.
-    OTRadioLink::OTFrameData_T fdRX(buf.buf + 1, buf.bufsize - 1, decryptedBodyOut);
+    OTRadioLink::OTFrameData_T fdRX(buf.buf, buf.bufsize - 1, decryptedBodyOut);
     EXPECT_TRUE(0 != fdRX.sfh.checkAndDecodeSmallFrameHeader(buf.buf, encodedLength));
     // Should decode and authenticate correctly.
     EXPECT_TRUE(0 != OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRaw(

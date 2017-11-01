@@ -172,9 +172,9 @@ bool serialFrameOperation(const OTFrameData_T &fd)
 template <typename rt_t, rt_t &rt>
 bool relayFrameOperation(const OTFrameData_T &fd)
 {
-    const uint8_t * const msg = fd.inbuf;
     // Check msg exists.
-    if(nullptr == msg) return false;
+    if(nullptr == fd.inbuf) return false;
+    const uint8_t * const msg = fd.inbuf + 1;
 
     const uint8_t msglen = fd.inbuflen;
     const uint8_t * const db = fd.outbuf;
@@ -223,7 +223,7 @@ template <typename sfrx_t,
           OTV0P2BASE::GetPrimary16ByteSecretKey_t &getKey>
 inline bool authAndDecodeOTSecurableFrameOnStack(OTFrameData_T &fd)
 {
-    const uint8_t * const msg = fd.inbuf;
+    const uint8_t * const msg = fd.inbuf + 1;
     const uint8_t msglen = fd.inbuflen;
     uint8_t * outBuf = fd.outbuf;
 
@@ -419,7 +419,7 @@ bool decodeAndHandleOTSecureOFrame(volatile const uint8_t * const _msg, OTV0P2BA
     // Buffer for receiving secure frame body.
     // (Non-secure frame bodies should be read directly from the frame buffer.)
     uint8_t decryptedBodyOut[OTFrameData_T::decryptedBodyBufSize];
-    OTFrameData_T fd(msg+1, msglen, decryptedBodyOut);
+    OTFrameData_T fd(msg, msglen, decryptedBodyOut);
 
     // Validate structure of header/frame first.
     // This is quick and checks for insane/dangerous values throughout.

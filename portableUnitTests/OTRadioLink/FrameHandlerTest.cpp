@@ -203,7 +203,7 @@ TEST(FrameHandler, OTFrameData)
     const uint8_t nodeID[OTV0P2BASE::OpenTRV_Node_ID_Bytes] = {1, 2, 3, 4, 5, 6, 7, 8};
     const uint8_t decrypted[] = "hello";
     uint8_t decryptedBodyOut[OTRadioLink::OTFrameData_T::decryptedBodyBufSize];
-    OTRadioLink::OTFrameData_T fd(&msgBuf[1], msgBuf[0], decryptedBodyOut);
+    OTRadioLink::OTFrameData_T fd(msgBuf, msgBuf[0], decryptedBodyOut);
 //    EXPECT_EQ(msg, fd.inbuf);
 //    EXPECT_EQ(decryptedBodyOut, fd,outbuf);
     EXPECT_EQ(sizeof(fd.id), OTV0P2BASE::OpenTRV_Node_ID_Bytes);
@@ -211,7 +211,7 @@ TEST(FrameHandler, OTFrameData)
     memcpy(fd.outbuf, decrypted, sizeof(decrypted));
     fd.outbuflen = sizeof(decrypted);
 
-    EXPECT_EQ(5, fd.inbuf[-1]);
+    EXPECT_EQ(5, fd.inbuf[0]);
     EXPECT_EQ(sizeof(decrypted), fd.outbuflen);
 
 }
@@ -516,14 +516,14 @@ TEST(FrameHandlerTest, authAndDecodeSecurableFrameFull)
     // Secure Frame start
     const uint8_t * senderID = OTFHT::minimumSecureFrame::id;
     const uint8_t * msgCounter = OTFHT::minimumSecureFrame::oldCounter;
-    const uint8_t * const msgStart = &OTFHT::minimumSecureFrame::buf[1];
+    const uint8_t * const msgStart = OTFHT::minimumSecureFrame::buf;
 
     OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter &sfrx = OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter::getInstance();
     sfrx.setMockIDValue(senderID);
     sfrx.setMockCounterValue(msgCounter);
 
     uint8_t decryptedBodyOut[OTRadioLink::OTFrameData_T::decryptedBodyBufSize];
-    OTRadioLink::OTFrameData_T fd(msgStart, msgStart[-1], decryptedBodyOut);
+    OTRadioLink::OTFrameData_T fd(msgStart, msgStart[0], decryptedBodyOut);
     EXPECT_NE(0, fd.sfh.checkAndDecodeSmallFrameHeader(OTFHT::minimumSecureFrame::buf, OTFHT::minimumSecureFrame::encodedLength));
 
     // Workspace for authAndDecodeOTSecurableFrame
