@@ -1119,7 +1119,6 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTBuf_t &buf,
         const uint8_t buflen = buf[0] + 1;
         const SecurableFrameHeader &sfh = fd.sfh;
         const uint8_t *const adjIDBuf = adjID.buf;
-        const uint8_t adjIDLen = adjID.bufsize;
 
         if(sfh.getTrailerOffset() + 6 > buflen) { return(0); } // ERROR
         // Construct IV from supplied (possibly adjusted) ID
@@ -1163,8 +1162,8 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTBuf_t &buf,
         if((NULL == sfh) || (NULL == buf)) { return(0); } // ERROR
         // Abort if header was not decoded properly.
         if(sfh->isInvalid()) { return(0); } // ERROR
-        // Abort if frame is not secure.
-//        if(sfh->isSecure()) { return(0); } // ERROR
+    //    // Abort if frame is not secure.
+    //    if(sfh->isSecure()) { return(0); } // ERROR
         // Abort if trailer not large enough to extract message counter from safely (and not expected size/flavour).
         if(23 != sfh->getTl()) { return(0); } // ERROR
         // Look up the full node ID of the sender in the associations table.
@@ -1234,8 +1233,11 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTBuf_t &buf,
         if(NULL == buf) { return(0); } // ERROR
         // Abort if header was not decoded properly.
         if(sfh.isInvalid()) { return(0); } // ERROR
+        // FIXME Why not checked?
+        #if 0
         // Abort if frame is not secure.
         if(sfh.isSecure()) { return(0); } // ERROR
+        #endif
         // Abort if trailer not large enough to extract message counter from
         // safely (and not expected size/flavour).
         if(23 != sfh.getTl()) { return(0); } // ERROR
