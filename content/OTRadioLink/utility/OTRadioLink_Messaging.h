@@ -364,7 +364,7 @@ bool decodeAndHandleOTSecureOFrameOnStack(volatile const uint8_t * const _msg)
 
     // Buffer for receiving secure frame body.
     // (Non-secure frame bodies should be read directly from the frame buffer.)
-    OTDecodeData_T fd(msg, msglen, decryptedBodyOut, sizeof(decryptedBodyOut));
+    OTDecodeData_T fd(msg, decryptedBodyOut);
     // Validate structure of header/frame first.
     // This is quick and checks for insane/dangerous values throughout.
     const uint8_t l = fd.sfh.checkAndDecodeSmallFrameHeader(msg - 1, msglen + 1);
@@ -417,7 +417,7 @@ bool decodeAndHandleOTSecureOFrame(volatile const uint8_t * const _msg, OTV0P2BA
     // Buffer for receiving secure frame body.
     // (Non-secure frame bodies should be read directly from the frame buffer.)
     uint8_t decryptedBodyOut[OTDecodeData_T::ptextLenMax];
-    OTDecodeData_T fd(msg, msglen, decryptedBodyOut, sizeof(decryptedBodyOut));
+    OTDecodeData_T fd(msg, decryptedBodyOut);
 
     // Validate structure of header/frame first.
     // This is quick and checks for insane/dangerous values throughout.

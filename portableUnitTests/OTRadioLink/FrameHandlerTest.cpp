@@ -195,7 +195,7 @@ namespace OTFHT
         0x70, 0x1e, 0x4b, 0x68, 0x0d, 0xcb, 0x80 };
 }
 // Basic sanity/does it compile tests
-TEST(FrameHandler, OTFrameData)
+TEST(FrameHandler, OTDecodeData)
 {
     // message
     // msg buf consists of    { len | Message   }
@@ -203,7 +203,7 @@ TEST(FrameHandler, OTFrameData)
     const uint8_t nodeID[OTV0P2BASE::OpenTRV_Node_ID_Bytes] = {1, 2, 3, 4, 5, 6, 7, 8};
     const uint8_t decrypted[] = "hello";
     uint8_t decryptedBodyOut[OTRadioLink::OTDecodeData_T::ptextLenMax];
-    OTRadioLink::OTDecodeData_T fd(msgBuf, msgBuf[0], decryptedBodyOut, sizeof(decryptedBodyOut));
+    OTRadioLink::OTDecodeData_T fd(msgBuf, decryptedBodyOut);
 //    EXPECT_EQ(msg, fd.ctext);
 //    EXPECT_EQ(decryptedBodyOut, fd,outbuf);
     EXPECT_EQ(sizeof(fd.id), OTV0P2BASE::OpenTRV_Node_ID_Bytes);
@@ -212,6 +212,7 @@ TEST(FrameHandler, OTFrameData)
     fd.ptextSize = sizeof(decrypted);
 
     EXPECT_EQ(5, fd.ctext[0]);
+    EXPECT_EQ(5, fd.ctextLen);
     EXPECT_EQ(sizeof(decrypted), fd.ptextSize);
 
 }
@@ -222,7 +223,7 @@ TEST(FrameHandler, NullFrameOperationFalse)
     // msg buf consists of    { len | Message   }
     const uint8_t msgBuf[] = { 5,    0,1,2,3,4 };
     uint8_t decryptedBodyOut[OTRadioLink::OTDecodeData_T::ptextLenMax];
-    OTRadioLink::OTDecodeData_T fd(&msgBuf[1], msgBuf[0], decryptedBodyOut, sizeof(decryptedBodyOut));
+    OTRadioLink::OTDecodeData_T fd(&msgBuf[1], decryptedBodyOut);
 
     EXPECT_FALSE(OTRadioLink::nullFrameOperation(fd));
 }
@@ -237,7 +238,7 @@ TEST(FrameHandler, SerialFrameOperationSuccess)
     const uint8_t decrypted[] = { 0, 0x10, '{', 'b', 'c'};
 
     uint8_t decryptedBodyOut[OTRadioLink::OTDecodeData_T::ptextLenMax];
-    OTRadioLink::OTDecodeData_T fd(&msgBuf[1], msgBuf[0], decryptedBodyOut, sizeof(decryptedBodyOut));
+    OTRadioLink::OTDecodeData_T fd(&msgBuf[1], decryptedBodyOut);
     memcpy(fd.id, nodeID, sizeof(nodeID));
     memcpy(fd.ptext, decrypted, sizeof(decrypted));
     fd.ptextSize = sizeof(decrypted);
@@ -254,7 +255,7 @@ TEST(FrameHandlerTest, SerialFrameOperationFail)
     const uint8_t nodeID[OTV0P2BASE::OpenTRV_Node_ID_Bytes] = {1, 2, 3, 4, 5, 6, 7, 8};
 
     uint8_t decryptedBodyOut[OTRadioLink::OTDecodeData_T::ptextLenMax];
-    OTRadioLink::OTDecodeData_T fd(&msgBuf[1], msgBuf[0], decryptedBodyOut, sizeof(decryptedBodyOut));
+    OTRadioLink::OTDecodeData_T fd(&msgBuf[1], decryptedBodyOut);
     memcpy(fd.id, nodeID, sizeof(nodeID));
 
     // Case (0 != (db[1] & 0x10)
@@ -289,7 +290,7 @@ TEST(FrameHandler, RelayFrameOperationSuccess)
     const uint8_t decrypted[] = { 0, 0x10, '{', 'b', 'c'};
 
     uint8_t decryptedBodyOut[OTRadioLink::OTDecodeData_T::ptextLenMax];
-    OTRadioLink::OTDecodeData_T fd(&msgBuf[1], msgBuf[0], decryptedBodyOut, sizeof(decryptedBodyOut));
+    OTRadioLink::OTDecodeData_T fd(&msgBuf[1], decryptedBodyOut);
     memcpy(fd.id, nodeID, sizeof(nodeID));
     memcpy(fd.ptext, decrypted, sizeof(decrypted));
     fd.ptextSize = sizeof(decrypted);
@@ -308,7 +309,7 @@ TEST(FrameHandler, RelayFrameOperationFail)
     // Case nullptr
     const uint8_t decryptedValid[] = { 0, 0x10, '{', 'b', 'c'};
     uint8_t decryptedBodyOut[OTRadioLink::OTDecodeData_T::ptextLenMax];
-    OTRadioLink::OTDecodeData_T fd0(nullptr, 0, decryptedBodyOut, sizeof(decryptedBodyOut));
+    OTRadioLink::OTDecodeData_T fd0(nullptr, decryptedBodyOut);
     memcpy(fd0.id, nodeID, sizeof(nodeID));
     memcpy(fd0.ptext, decryptedValid, sizeof(decryptedValid));
     fd0.ptextSize = sizeof(decryptedValid);
@@ -317,7 +318,7 @@ TEST(FrameHandler, RelayFrameOperationFail)
 
     // Other cases
     memset(decryptedBodyOut, 0, sizeof(decryptedBodyOut));
-    OTRadioLink::OTDecodeData_T fd1(&msgBuf[1], msgBuf[0], decryptedBodyOut, sizeof(decryptedBodyOut));
+    OTRadioLink::OTDecodeData_T fd1(&msgBuf[1], decryptedBodyOut);
     memcpy(fd1.id, nodeID, sizeof(nodeID));
 
     // Case (0 != (db[1] & 0x10)
@@ -352,7 +353,7 @@ TEST(FrameHandler, BoilerFrameOperationSuccess)
     const uint8_t decrypted[] = { 0 , 0x10, '{', 'b', 'c'};
 
     uint8_t decryptedBodyOut[OTRadioLink::OTDecodeData_T::ptextLenMax];
-    OTRadioLink::OTDecodeData_T fd(&msgBuf[1], msgBuf[0], decryptedBodyOut, sizeof(decryptedBodyOut));
+    OTRadioLink::OTDecodeData_T fd(&msgBuf[1], decryptedBodyOut);
     memcpy(fd.id, nodeID, sizeof(nodeID));
     memcpy(fd.ptext, decrypted, sizeof(decrypted));
     fd.ptextSize = sizeof(decrypted);
@@ -369,7 +370,7 @@ TEST(FrameHandler, authAndDecodeSecurableFrameBasic)
     // msg buf consists of    { len | Message   }
     const uint8_t msgBuf[] = { 5,    0,1,2,3,4 };
     uint8_t decryptedBodyOut[OTRadioLink::OTDecodeData_T::ptextLenMax];
-    OTRadioLink::OTDecodeData_T fd(&msgBuf[1], msgBuf[0], decryptedBodyOut, sizeof(decryptedBodyOut));
+    OTRadioLink::OTDecodeData_T fd(&msgBuf[1], decryptedBodyOut);
     fd.ptextSize = 0xff;  // Test that this is really set.
 
     const bool test1 = OTRadioLink::authAndDecodeOTSecurableFrameOnStack<OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
@@ -387,7 +388,7 @@ TEST(FrameHandler, authAndDecodeSecurableFrameGetKeyFalse)
     // msg buf consists of    { len | Message   }
     const uint8_t msgBuf[] = { 5,    0,1,2,3,4 };
     uint8_t decryptedBodyOut[OTRadioLink::OTDecodeData_T::ptextLenMax];
-    OTRadioLink::OTDecodeData_T fd(&msgBuf[1], msgBuf[0], decryptedBodyOut, sizeof(decryptedBodyOut));
+    OTRadioLink::OTDecodeData_T fd(&msgBuf[1], decryptedBodyOut);
     fd.ptextSize = 0xff;  // Test that this is really set.
 
     //
@@ -438,7 +439,7 @@ TEST(FrameHandler, authAndDecodeOTSecurableFrameStackCheck)
     // msg buf consists of    { len | Message   }
     const uint8_t msgBuf[] = { 5,    'O',1,2,3,4 };
     uint8_t decryptedBodyOut[OTRadioLink::OTDecodeData_T::ptextLenMax];
-    OTRadioLink::OTDecodeData_T fd(&msgBuf[1], msgBuf[0], decryptedBodyOut, sizeof(decryptedBodyOut));
+    OTRadioLink::OTDecodeData_T fd(&msgBuf[1], decryptedBodyOut);
     // Set up stack usage checks
     OTV0P2BASE::RAMEND = OTV0P2BASE::getSP();
     OTV0P2BASE::MemoryChecks::resetMinSP();
@@ -505,7 +506,7 @@ TEST(FrameHandlerTest, setFlagFrameOperation)
     // msg buf consists of    { len | Message   }
     const uint8_t msgBuf[] = { 5,    'O',1,2,3,4 };
     uint8_t decryptedBodyOut[OTRadioLink::OTDecodeData_T::ptextLenMax];
-    OTRadioLink::OTDecodeData_T fd(&msgBuf[1], msgBuf[0], decryptedBodyOut, sizeof(decryptedBodyOut));
+    OTRadioLink::OTDecodeData_T fd(&msgBuf[1], decryptedBodyOut);
     OTFHT::setFlagFrameOperation(fd);
     EXPECT_TRUE(OTFHT::frameOperationCalledFlag);
 
@@ -523,7 +524,7 @@ TEST(FrameHandlerTest, authAndDecodeSecurableFrameFull)
     sfrx.setMockCounterValue(msgCounter);
 
     uint8_t decryptedBodyOut[OTRadioLink::OTDecodeData_T::ptextLenMax];
-    OTRadioLink::OTDecodeData_T fd(msgStart, msgStart[0], decryptedBodyOut, sizeof(decryptedBodyOut));
+    OTRadioLink::OTDecodeData_T fd(msgStart, decryptedBodyOut);
     EXPECT_NE(0, fd.sfh.checkAndDecodeSmallFrameHeader(OTFHT::minimumSecureFrame::buf, OTFHT::minimumSecureFrame::encodedLength));
 
     // Workspace for authAndDecodeOTSecurableFrame

@@ -317,8 +317,8 @@ namespace OTRadioLink
      */
     struct OTEncodeData_T
     {
-        OTEncodeData_T(const uint8_t * const _inbuf, const uint8_t _inbuflen, uint8_t * const _outbuf, const uint8_t _outbufsize)
-            : inbuf(_inbuf), inbuflen(_inbuflen), outbuf(_outbuf), outbufsize(_outbufsize) {}
+        OTEncodeData_T(uint8_t * const _ptext, const uint8_t _ptextLen, uint8_t * const _ctext, const uint8_t _ctextLen)
+            : ptext(_ptext), ptextLen(_ptextLen), ctext(_ctext), ctextLen(_ctextLen) {}
 
         SecurableFrameHeader sfh;
         uint8_t id[OTV0P2BASE::OpenTRV_Node_ID_Bytes];  // Holds upto full node ID. TODO pass this in as well?
@@ -326,7 +326,7 @@ namespace OTRadioLink
         // be encrypted or the cipher text to be decrypted.
         // In the case of decryption, the byte pointed at before this contain the
         // message length. TODO find nice way of dealing with this.
-        const uint8_t * const inbuf;
+        const uint8_t * const ptext;
         // TODO
         // Decide what to do about inbuflen.
         // Temporarily having it store variable separately.
@@ -334,21 +334,16 @@ namespace OTRadioLink
         // - Not needed for decode stack.
         // - Not sure if 1 byte worth any additional complexity with
         //   pointers/references + dealing with encode/decode differences.
-        const uint8_t inbuflen;
+        const uint8_t ptextLen;
 
         // Output buffer. This takes a buffer for either the cipher text or plain
         // text output.
         // In the case of encryption, this should be at least 63 (64?) bytes.
         // In the case of decryption, this should be decryptedBodyBufSize bytes.
-        uint8_t *const outbuf;
-        const uint8_t outbufsize;
-        // On decode stack this is always  ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE bytes long.
-        // FIXME On encode stack???
-        // - include constexpr for 64 bytes, as this is always what it is in practice?
-        // - or const uint8_t?
-        static constexpr uint8_t decryptedBodyBufSize = ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE;
-        // Actual size of plain text held within decryptedBody. Should be set when decryptedBody is populated.
-        uint8_t outbuflen = 0;  // 1 byte: 1/4 words
+        uint8_t *const ctext;
+        const uint8_t ctextLen;
+//        // Actual size of plain text held within decryptedBody. Should be set when decryptedBody is populated.
+//        uint8_t outbuflen = 0;  // 1 byte: 1/4 words
         // A pointer to the OTAESGCM state. This is currently not implemented.
         // NOTE: Doesn't make sense to include scratchspace as subscratchs are passed between fns.
         static constexpr void * state = nullptr;
@@ -356,33 +351,25 @@ namespace OTRadioLink
 
     /**
      * @brief   Struct for passing frame data around in the RX call chain.
-     * @param   _inbuf: TODO
-     * @param   inbuflen: Length of inbuf in bytes.
-     * @param   _outbuf: TODO
+     * @param   ctext: A buffer containing the encrypted message. The first
+     *                 byte should contain the length of the message in bytes.
+     * @param   ptext: A buffer to write the decrypted message into. Should be
+     *                 at least ptextLenMax bytes in length.
      * @todo    Is there a better way to order everything?
-     * @todo    Alias in and out buffers for more descriptive names?
      * @note    id is not initialised.
      */
     struct OTDecodeData_T
     {
-        OTDecodeData_T(const uint8_t * const _ctext, const uint8_t _ctextLen, uint8_t * const _ptext, const uint8_t)
-            : ctext(_ctext), ctextLen(_ctextLen), ptext(_ptext) {}
+        OTDecodeData_T(const uint8_t * const _ctext, uint8_t * const _ptext)
+            : ctext(_ctext), ptext(_ptext) {}
 
         SecurableFrameHeader sfh;
         uint8_t id[OTV0P2BASE::OpenTRV_Node_ID_Bytes];  // Holds upto full node ID. TODO pass this in as well?
-        // Immutable input buffer. This takes a buffer for either the plain text to
-        // be encrypted or the cipher text to be decrypted.
-        // In the case of decryption, the byte pointed at before this contain the
-        // message length. TODO find nice way of dealing with this.
+        // Immutable input buffer. This takes a buffer containing the cipher text to be decrypted.
+        // The byte pointed at before this contain the
+        // message length.
         const uint8_t * const ctext;
-        // TODO
-        // Decide what to do about inbuflen.
-        // Temporarily having it store variable separately.
-        // - Needed for encode stack.
-        // - Not needed for decode stack.
-        // - Not sure if 1 byte worth any additional complexity with
-        //   pointers/references + dealing with encode/decode differences.
-        const uint8_t ctextLen;
+        const uint8_t &ctextLen = ctext[0];
 
         // Output buffer. This takes a buffer for either the cipher text or plain
         // text output.
@@ -390,12 +377,9 @@ namespace OTRadioLink
         // In the case of decryption, this should be decryptedBodyBufSize bytes.
         uint8_t *const ptext;
 //        const uint8_t ptextLen;  // FIXME what to do about this.
-        // On decode stack this is always  ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE bytes long.
-        // FIXME On encode stack???
-        // - include constexpr for 64 bytes, as this is always what it is in practice?
-        // - or const uint8_t?
+        // This is currently always  ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE bytes long.
         static constexpr uint8_t ptextLenMax = ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE;
-        // Actual size of plain text held within decryptedBody. Should be set when decryptedBody is populated.
+        // Actual size of plain text held within decryptedBody. Should be set when ptext is populated.
         uint8_t ptextSize = 0;  // 1 byte: 1/4 words
         // A pointer to the OTAESGCM state. This is currently not implemented.
         // NOTE: Doesn't make sense to include scratchspace as subscratchs are passed between fns.
