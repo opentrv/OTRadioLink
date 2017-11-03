@@ -1019,23 +1019,23 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTEncodeData_T &f
     static_assert(generateSecureOFrameRawForTX_scratch_usage < generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0, "scratch size calc wrong");
     if(scratch.bufsize < generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0) { return(0); } // ERROR
     // buffer args and consts
-    uint8_t * const bodybuf = fd.ctext;
+    uint8_t * const ctext = fd.ctext;
 
     // iv at start of scratch space
     uint8_t *const iv = scratch.buf; // uint8_t iv[IV_size];
     if(!compute12ByteIDAndCounterIVForTX(iv)) { return(0); }
-    const char *const statsJSON = (const char *const)&bodybuf[2];
-    const bool hasStats = (NULL != bodybuf) && ('{' == statsJSON[0]);
+    const char *const statsJSON = (const char *const)&ctext[2];
+    const bool hasStats = (NULL != ctext) && ('{' == statsJSON[0]);
     const size_t slp1 = hasStats ? strlen(statsJSON) : 1; // Stats length including trailing '}' (not sent).
     if(slp1 > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE-1) { return(0); } // ERROR
     const uint8_t statslen = (uint8_t)(slp1 - 1); // Drop trailing '}' implicitly.
-    bodybuf[0] = (valvePC <= 100) ? valvePC : 0x7f;
-    bodybuf[1] = hasStats ? 0x10 : 0; // Indicate presence of stats.
+    ctext[0] = (valvePC <= 100) ? valvePC : 0x7f;
+    ctext[1] = hasStats ? 0x10 : 0; // Indicate presence of stats.
     // Create a new scratchspace from the old one in order to pass on.
     const OTV0P2BASE::ScratchSpaceL subscratch(scratch, generateSecureOFrameRawForTX_scratch_usage);
     if(il_ > 6) { return(0); } // ERROR: cannot supply that much of ID easily.
     // Create id buffer
-    OTBuf_t buf((uint8_t *const)fd.ptext, fd.ptextLen);
+    OTBuf_t buf(fd.ptext, fd.ptextLen);
     OTBuf_t body(fd.ctext, fd.ctextLen);
     const OTBuf_t id(iv, il_);
     return(encodeSecureSmallFrameRawPadInPlace(

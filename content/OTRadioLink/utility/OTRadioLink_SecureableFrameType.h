@@ -326,7 +326,7 @@ namespace OTRadioLink
         // be encrypted or the cipher text to be decrypted.
         // In the case of decryption, the byte pointed at before this contain the
         // message length. TODO find nice way of dealing with this.
-        const uint8_t * const ptext;
+        uint8_t * const ptext;
         // TODO
         // Decide what to do about inbuflen.
         // Temporarily having it store variable separately.
