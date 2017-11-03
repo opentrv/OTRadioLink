@@ -317,7 +317,8 @@ namespace OTRadioLink
      */
     struct OTFrameData_T
     {
-        OTFrameData_T(const uint8_t * const _inbuf, const uint8_t _inbuflen, uint8_t * const _outbuf) : inbuf(_inbuf), inbuflen(_inbuflen), outbuf(_outbuf) {}
+        OTFrameData_T(const uint8_t * const _inbuf, const uint8_t _inbuflen, uint8_t * const _outbuf, const uint8_t _outbufsize)
+            : inbuf(_inbuf), inbuflen(_inbuflen), outbuf(_outbuf), outbufsize(_outbufsize) {}
 
         SecurableFrameHeader sfh;
         uint8_t id[OTV0P2BASE::OpenTRV_Node_ID_Bytes];  // Holds upto full node ID. TODO pass this in as well?
@@ -340,6 +341,7 @@ namespace OTRadioLink
         // In the case of encryption, this should be at least 63 (64?) bytes.
         // In the case of decryption, this should be decryptedBodyBufSize bytes.
         uint8_t *const outbuf;
+        const uint8_t outbufsize;
         // On decode stack this is always  ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE bytes long.
         // FIXME On encode stack???
         // - include constexpr for 64 bytes, as this is always what it is in practice?
@@ -692,10 +694,9 @@ namespace OTRadioLink
             static constexpr size_t generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0 =
                     encodeSecureSmallFrameRawPadInPlace_total_scratch_usage_OTAESGCM_2p0
                     + generateSecureOFrameRawForTX_scratch_usage;
-            uint8_t generateSecureOFrame(OTBuf_t &buf,
+            uint8_t generateSecureOFrame(OTFrameData_T &fd,
                                         uint8_t il_,
                                         uint8_t valvePC,
-                                        OTBuf_t &body,
                                         const fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
                                         const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key);
         };

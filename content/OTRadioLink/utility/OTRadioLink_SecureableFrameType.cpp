@@ -1008,10 +1008,9 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX(
         iv, e, subscratch, key));
 }
 #endif
-uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTBuf_t &buf,
+uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTFrameData_T &fd,
                                             uint8_t il_,
                                             uint8_t valvePC,
-                                            OTBuf_t &body,
                                             const fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
                                             const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key)
 {
@@ -1020,7 +1019,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTBuf_t &buf,
     static_assert(generateSecureOFrameRawForTX_scratch_usage < generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0, "scratch size calc wrong");
     if(scratch.bufsize < generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0) { return(0); } // ERROR
     // buffer args and consts
-    uint8_t * const bodybuf = body.buf;
+    uint8_t * const bodybuf = fd.outbuf;
 
     // iv at start of scratch space
     uint8_t *const iv = scratch.buf; // uint8_t iv[IV_size];
@@ -1036,6 +1035,8 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTBuf_t &buf,
     const OTV0P2BASE::ScratchSpaceL subscratch(scratch, generateSecureOFrameRawForTX_scratch_usage);
     if(il_ > 6) { return(0); } // ERROR: cannot supply that much of ID easily.
     // Create id buffer
+    OTBuf_t buf((uint8_t *const)fd.inbuf, fd.inbuflen);
+    OTBuf_t body(fd.outbuf, fd.outbufsize);
     const OTBuf_t id(iv, il_);
     return(encodeSecureSmallFrameRawPadInPlace(
                     buf,

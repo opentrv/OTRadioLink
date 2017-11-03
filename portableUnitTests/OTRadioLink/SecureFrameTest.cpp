@@ -822,7 +822,7 @@ TEST(OTAESGCMSecureFrame, SecureSmallFrameEncodingWithWorkspace)
     // (Nominally a longer ID and key is looked up with the ID in the header, and an iv built.)
     uint8_t decryptedBodyOut[OTRadioLink::ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE];
     // To decode, emulating RX, structurally validate unpack the header and extract the ID.
-    OTRadioLink::OTFrameData_T fdRX(buf.buf, buf.bufsize - 1, decryptedBodyOut);
+    OTRadioLink::OTFrameData_T fdRX(buf.buf, buf.bufsize - 1, decryptedBodyOut, sizeof(decryptedBodyOut));
     EXPECT_TRUE(0 != fdRX.sfh.checkAndDecodeSmallFrameHeader(buf.buf, encodedLength));
     // Should decode and authenticate correctly.
     EXPECT_TRUE(0 != OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRaw(
@@ -1434,11 +1434,12 @@ TEST(OTAESGCMSecureFrame, OFrameEncodingWithWorkspace)
     uint8_t workspace[workspaceSize];
     OTV0P2BASE::ScratchSpaceL sW(workspace, workspaceSize);
     const OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t eW = OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_LWORKSPACE;
+
+    OTRadioLink::OTFrameData_T fd(_bufW, sizeof(_bufW), _rawFrame, sizeof(_rawFrame));
     const uint8_t bodylenW = mockTX.generateSecureOFrame(
-                                        bufW,
+                                        fd,
                                         txIDLen,
                                         valvePC,
-                                        rawFrame,
                                         eW,
                                         sW, key);
     EXPECT_EQ(63, bodylenW);
