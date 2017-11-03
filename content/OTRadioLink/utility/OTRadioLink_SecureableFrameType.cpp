@@ -701,12 +701,8 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRaw(OTFrameData_
     const uint8_t decryptedBodyOutBuflen = fd.decryptedBodyBufSize;
     uint8_t &decryptedBodyOutSize = fd.outbuflen;
 
-
     if((NULL == buf) || (NULL == d) ||
         (NULL == key) || (NULL == iv)) { return(0); } // ERROR
-
-    // Capture possible (near) peak of stack usage, eg when called from ISR.
-//    OTV0P2BASE::MemoryChecks::recordIfMinSP();
 
     // Abort if header was not decoded properly.
     if(sfh.isInvalid()) { return(0); } // ERROR
@@ -1125,16 +1121,6 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTBuf_t &buf,
         const uint8_t *const adjIDBuf = adjID.buf;
         const uint8_t adjIDLen = adjID.bufsize;
 
-        // Rely on decodeSecureSmallFrameRaw() for validation of items
-        // not directly needed in this routine.
-        if((NULL == buf) || (NULL == adjIDBuf)) { return(0); } // ERROR
-        if(adjIDLen < 6) { return(0); } // ERROR
-        // Abort if header was not decoded properly.
-        if(sfh.isInvalid()) { return(0); } // ERROR
-        // Abort if expected constraints for simple fixed-size secure frame are not met.
-        if(23 != sfh.getTl()) { return(0); } // ERROR
-    //    const uint8_t fl = sfh->fl;
-    //    if(0x80 != buf[fl]) { return(0); } // ERROR
         if(sfh.getTrailerOffset() + 6 > buflen) { return(0); } // ERROR
         // Construct IV from supplied (possibly adjusted) ID
         // + counters from (start of) trailer.
@@ -1177,8 +1163,8 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTBuf_t &buf,
         if((NULL == sfh) || (NULL == buf)) { return(0); } // ERROR
         // Abort if header was not decoded properly.
         if(sfh->isInvalid()) { return(0); } // ERROR
-    //    // Abort if frame is not secure.
-    //    if(sfh->isSecure()) { return(0); } // ERROR
+        // Abort if frame is not secure.
+//        if(sfh->isSecure()) { return(0); } // ERROR
         // Abort if trailer not large enough to extract message counter from safely (and not expected size/flavour).
         if(23 != sfh->getTl()) { return(0); } // ERROR
         // Look up the full node ID of the sender in the associations table.
@@ -1242,21 +1228,21 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTBuf_t &buf,
 
         const SecurableFrameHeader &sfh = fd.sfh;
         const uint8_t *const buf = fd.inbuf;
-        uint8_t *const ID = fd.id;
 
         // Rely on _decodeSecureSmallFrameFromID() for validation of items
         // not directly needed here.
         if(NULL == buf) { return(0); } // ERROR
         // Abort if header was not decoded properly.
         if(sfh.isInvalid()) { return(0); } // ERROR
-    //    // Abort if frame is not secure.
-    //    if(sfh->isSecure()) { return(0); } // ERROR
+        // Abort if frame is not secure.
+        if(sfh.isSecure()) { return(0); } // ERROR
         // Abort if trailer not large enough to extract message counter from
         // safely (and not expected size/flavour).
         if(23 != sfh.getTl()) { return(0); } // ERROR
         // Look up the full node ID of the sender in the associations table.
         // NOTE: this only tries the first match, ignoring firstIDMatchOnly.
-        // Use start of scratch space.
+        // Use start of scratch space. This buffer should not be visible
+        // outside the decode stack (e.g. should not be part of fd).
         uint8_t * const senderNodeIDBuf = scratch.buf;
         OTBuf_t senderNodeID(senderNodeIDBuf, OTV0P2BASE::OpenTRV_Node_ID_Bytes);
         const int8_t index = _getNextMatchingNodeID(0, &sfh, senderNodeIDBuf);
@@ -1284,7 +1270,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTBuf_t &buf,
         // Successfully decoded: update the RX message counter to avoid duplicates/replays.
         if(!updateRXMessageCountAfterAuthentication(senderNodeIDBuf, messageCounter)) { return(0); } // ERROR
         // Success: copy sender ID to output buffer (if non-NULL) as last action.
-        if(ID != NULL) { memcpy(ID, senderNodeIDBuf, OTV0P2BASE::OpenTRV_Node_ID_Bytes); }
+        memcpy(fd.id, senderNodeIDBuf, OTV0P2BASE::OpenTRV_Node_ID_Bytes);
         return(decodeResult);
         }
 

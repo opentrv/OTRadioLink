@@ -918,6 +918,9 @@ namespace OTRadioLink
             static constexpr size_t _decodeSecureSmallFrameFromIDWithWorkspace_total_scratch_usage_OTAESGCM_3p0 =
                 decodeSecureSmallFrameRawWithWorkspace_total_scratch_usage_OTAESGCM_3p0 +
                 _decodeSecureSmallFrameFromIDWithWorkspace_scratch_usage;
+            // XXX
+            // Pointers held by fd and OTBuf_t should never be nullptrs!
+            // Basic validation of sfh should already have been performed (isInvalid, isSecure, getTl)
             uint8_t _decodeSecureSmallFrameFromID(OTFrameData_T &fd,
                                             fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_ptr_t d,
                                             const OTBuf_t adjID,
