@@ -683,7 +683,7 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRawOnStack(const
     return(fl + 1);
     }
 // Version with workspace
-uint8_t SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRaw(OTFrameData_T &fd,
+uint8_t SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRaw(OTDecodeData_T &fd,
         const fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_ptr_t d,
         const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *const key, const uint8_t *const iv)
     {
@@ -694,12 +694,12 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRaw(OTFrameData_
     // Create a new sub scratch space for callee.
     OTV0P2BASE::ScratchSpaceL subScratch(scratch, scratchSpaceNeededHere);
 
-    const uint8_t *const buf = fd.inbuf;
+    const uint8_t *const buf = fd.ctext;
     const uint8_t buflen = buf[0] + 1;
     const SecurableFrameHeader &sfh = fd.sfh;
-    uint8_t *const decryptedBodyOut = fd.outbuf;
-    const uint8_t decryptedBodyOutBuflen = fd.decryptedBodyBufSize;
-    uint8_t &decryptedBodyOutSize = fd.outbuflen;
+    uint8_t *const decryptedBodyOut = fd.ptext;
+    const uint8_t decryptedBodyOutBuflen = fd.ptextLenMax;
+    uint8_t &decryptedBodyOutSize = fd.ptextSize;
 
     if((NULL == buf) || (NULL == d) ||
         (NULL == key) || (NULL == iv)) { return(0); } // ERROR
@@ -1008,7 +1008,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX(
         iv, e, subscratch, key));
 }
 #endif
-uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTFrameData_T &fd,
+uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTEncodeData_T &fd,
                                             uint8_t il_,
                                             uint8_t valvePC,
                                             const fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
@@ -1104,7 +1104,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTFrameData_T &fd
         }
     // Version that takes a scratch space.
     uint8_t SimpleSecureFrame32or0BodyRXBase::_decodeSecureSmallFrameFromID(
-                                    OTFrameData_T &fd,
+                                    OTDecodeData_T &fd,
                                     const fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_ptr_t d,
                                     const OTBuf_t adjID,
                                     OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *const key)
@@ -1116,7 +1116,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTFrameData_T &fd
         // Create a new sub scratch space for callee.
         OTV0P2BASE::ScratchSpaceL subScratch(scratch, scratchSpaceNeededHere);
 
-        const uint8_t *const buf = fd.inbuf;
+        const uint8_t *const buf = fd.ctext;
         const uint8_t buflen = buf[0] + 1;
         const SecurableFrameHeader &sfh = fd.sfh;
         const uint8_t *const adjIDBuf = adjID.buf;
@@ -1214,7 +1214,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTFrameData_T &fd
     // NOTE this version uses a scratch space, allowing the stack usage
     // to be more tightly controlled.
     uint8_t SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameSafely(
-            OTFrameData_T &fd,
+            OTDecodeData_T &fd,
             const fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_ptr_t d,
             OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *const key,
             bool /*firstIDMatchOnly*/)
@@ -1227,7 +1227,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTFrameData_T &fd
         OTV0P2BASE::ScratchSpaceL subScratch(scratch, scratchSpaceNeededHere);
 
         const SecurableFrameHeader &sfh = fd.sfh;
-        const uint8_t *const buf = fd.inbuf;
+        const uint8_t *const buf = fd.ctext;
 
         // Rely on _decodeSecureSmallFrameFromID() for validation of items
         // not directly needed here.

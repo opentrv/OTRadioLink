@@ -37,7 +37,7 @@ namespace OTRadioLink
  * @brief   Function containing the desired operation for the frame handler to perform on receipt of a valid frame.
  * @retval  True if operation is performed successfully.
  */
-typedef bool (frameOperator_fn_t) (const OTFrameData_T &fd);
+typedef bool (frameOperator_fn_t) (const OTDecodeData_T &fd);
 
 /**
  * @brief   High level protocol/frame handler for decoding an RXed message.
@@ -122,7 +122,7 @@ frameDecodeHandler_fn_t decodeAndHandleOTSecureFrame;
  * @retval  Always false.
  * @note    Used as a dummy operation and should be optimised out by the compiler.
  */
-bool nullFrameOperation (const OTFrameData_T & /*fd*/) { return (false); }
+bool nullFrameOperation (const OTDecodeData_T & /*fd*/) { return (false); }
 
 
 /**
@@ -133,10 +133,10 @@ bool nullFrameOperation (const OTFrameData_T & /*fd*/) { return (false); }
  * @retval  False if decryptedBody fails basic validation, else true. NOTE will return true even if printing fails, as long as the attempt was made.
  */
 template <typename p_t, p_t &p>
-bool serialFrameOperation(const OTFrameData_T &fd)
+bool serialFrameOperation(const OTDecodeData_T &fd)
 {
-    const uint8_t * const db = fd.outbuf;
-    const uint8_t dbLen = fd.outbuflen;
+    const uint8_t * const db = fd.ptext;
+    const uint8_t dbLen = fd.ptextSize;
     const uint8_t * const senderNodeID = fd.id;
 
     // Perform some basic validation of the plain text (is it worth printing) and print.
@@ -170,17 +170,17 @@ bool serialFrameOperation(const OTFrameData_T &fd)
  * retval   True if frame successfully added to send queue on rt, else false.
  */
 template <typename rt_t, rt_t &rt>
-bool relayFrameOperation(const OTFrameData_T &fd)
+bool relayFrameOperation(const OTDecodeData_T &fd)
 {
     // Check msg exists.
-    if(nullptr == fd.inbuf) return false;
+    if(nullptr == fd.ctext) return false;
 
-    const uint8_t * const db = fd.outbuf;
-    const uint8_t dbLen = fd.outbuflen;
+    const uint8_t * const db = fd.ptext;
+    const uint8_t dbLen = fd.ptextSize;
 
     // Perform some basic validation of the plain text (is it worth sending) and add to relay radio queue.
     if((0 != (db[1] & 0x10)) && (dbLen > 3) && ('{' == db[2])) {
-        return rt.queueToSend(fd.inbuf + 1, fd.inbuflen);
+        return rt.queueToSend(fd.ctext + 1, fd.ctextLen);
     }
     return false;
 }
@@ -196,9 +196,9 @@ bool relayFrameOperation(const OTFrameData_T &fd)
  * @retval  True if call for heat handled. False if percentOpen is invalid.
  */
 template <typename bh_t, bh_t &bh, uint8_t &minuteCount>
-bool boilerFrameOperation(const OTFrameData_T &fd)
+bool boilerFrameOperation(const OTDecodeData_T &fd)
 {
-    const uint8_t * const db = fd.outbuf;
+    const uint8_t * const db = fd.ptext;
 
     const uint8_t percentOpen = db[0];
     if(percentOpen <= 100) {
@@ -219,11 +219,11 @@ bool boilerFrameOperation(const OTFrameData_T &fd)
 template <typename sfrx_t,
           SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &decrypt,
           OTV0P2BASE::GetPrimary16ByteSecretKey_t &getKey>
-inline bool authAndDecodeOTSecurableFrameOnStack(OTFrameData_T &fd)
+inline bool authAndDecodeOTSecurableFrameOnStack(OTDecodeData_T &fd)
 {
-    const uint8_t * const msg = fd.inbuf + 1;
-    const uint8_t msglen = fd.inbuflen;
-    uint8_t * outBuf = fd.outbuf;
+    const uint8_t * const msg = fd.ctext + 1;
+    const uint8_t msglen = fd.ctextLen;
+    uint8_t * outBuf = fd.ptext;
 
 #if 0
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
@@ -244,10 +244,10 @@ inline bool authAndDecodeOTSecurableFrameOnStack(OTFrameData_T &fd)
     const bool isOK = (0 != sfrx_t::getInstance().decodeSecureSmallFrameSafely(&fd.sfh, msg-1, msglen+1,
                                           decrypt,  // FIXME remove this dependency
                                           NULL /* FIXME: fd.state */, key,
-                                          outBuf, fd.decryptedBodyBufSize, decryptedBodyOutSize,
+                                          outBuf, fd.ptextLenMax, decryptedBodyOutSize,
                                           fd.id,
                                           true));
-    fd.outbuflen = decryptedBodyOutSize;
+    fd.ptextSize = decryptedBodyOutSize;
     if(!isOK) {
 #if 1 // && defined(DEBUG)
         // Useful brief network diagnostics: a couple of bytes of the claimed ID of rejected frames.
@@ -278,7 +278,7 @@ static constexpr uint8_t authAndDecodeOTSecurableFrameWithWorkspace_scratch_usag
 template <typename sfrx_t,
           SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_fn_t &decrypt,
           OTV0P2BASE::GetPrimary16ByteSecretKey_t &getKey>
-inline bool authAndDecodeOTSecurableFrame(OTFrameData_T &fd, OTV0P2BASE::ScratchSpaceL &sW)
+inline bool authAndDecodeOTSecurableFrame(OTDecodeData_T &fd, OTV0P2BASE::ScratchSpaceL &sW)
 {
     const size_t scratchSpaceNeededHere = authAndDecodeOTSecurableFrameWithWorkspace_scratch_usage;
     if(sW.bufsize < scratchSpaceNeededHere) { return(false); } // ERROR
@@ -360,11 +360,11 @@ bool decodeAndHandleOTSecureOFrameOnStack(volatile const uint8_t * const _msg)
     const uint8_t * const msg = (const uint8_t * const)_msg;
     const uint8_t firstByte = msg[0];
     const uint8_t msglen = msg[-1];
-    uint8_t decryptedBodyOut[OTFrameData_T::decryptedBodyBufSize];
+    uint8_t decryptedBodyOut[OTDecodeData_T::ptextLenMax];
 
     // Buffer for receiving secure frame body.
     // (Non-secure frame bodies should be read directly from the frame buffer.)
-    OTFrameData_T fd(msg, msglen, decryptedBodyOut, sizeof(decryptedBodyOut));
+    OTDecodeData_T fd(msg, msglen, decryptedBodyOut, sizeof(decryptedBodyOut));
     // Validate structure of header/frame first.
     // This is quick and checks for insane/dangerous values throughout.
     const uint8_t l = fd.sfh.checkAndDecodeSmallFrameHeader(msg - 1, msglen + 1);
@@ -388,7 +388,7 @@ bool decodeAndHandleOTSecureOFrameOnStack(volatile const uint8_t * const _msg)
 
     // Make sure frame is long enough to have useful information in it
     // and then call operations.
-    if(2 < fd.outbuflen) {
+    if(2 < fd.ptextSize) {
         o1(fd);
         o2(fd);
     }
@@ -416,8 +416,8 @@ bool decodeAndHandleOTSecureOFrame(volatile const uint8_t * const _msg, OTV0P2BA
 
     // Buffer for receiving secure frame body.
     // (Non-secure frame bodies should be read directly from the frame buffer.)
-    uint8_t decryptedBodyOut[OTFrameData_T::decryptedBodyBufSize];
-    OTFrameData_T fd(msg, msglen, decryptedBodyOut, sizeof(decryptedBodyOut));
+    uint8_t decryptedBodyOut[OTDecodeData_T::ptextLenMax];
+    OTDecodeData_T fd(msg, msglen, decryptedBodyOut, sizeof(decryptedBodyOut));
 
     // Validate structure of header/frame first.
     // This is quick and checks for insane/dangerous values throughout.
@@ -442,7 +442,7 @@ bool decodeAndHandleOTSecureOFrame(volatile const uint8_t * const _msg, OTV0P2BA
 
     // Make sure frame is long enough to have useful information in it
     // and then call operations.
-    if(2 < fd.outbuflen) {
+    if(2 < fd.ptextLenMax) {
         o1(fd);
         o2(fd);
     }

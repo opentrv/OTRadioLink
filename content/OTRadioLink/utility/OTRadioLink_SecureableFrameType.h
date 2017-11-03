@@ -315,9 +315,9 @@ namespace OTRadioLink
      * @todo    Alias in and out buffers for more descriptive names?
      * @note    id is not initialised.
      */
-    struct OTFrameData_T
+    struct OTEncodeData_T
     {
-        OTFrameData_T(const uint8_t * const _inbuf, const uint8_t _inbuflen, uint8_t * const _outbuf, const uint8_t _outbufsize)
+        OTEncodeData_T(const uint8_t * const _inbuf, const uint8_t _inbuflen, uint8_t * const _outbuf, const uint8_t _outbufsize)
             : inbuf(_inbuf), inbuflen(_inbuflen), outbuf(_outbuf), outbufsize(_outbufsize) {}
 
         SecurableFrameHeader sfh;
@@ -349,6 +349,54 @@ namespace OTRadioLink
         static constexpr uint8_t decryptedBodyBufSize = ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE;
         // Actual size of plain text held within decryptedBody. Should be set when decryptedBody is populated.
         uint8_t outbuflen = 0;  // 1 byte: 1/4 words
+        // A pointer to the OTAESGCM state. This is currently not implemented.
+        // NOTE: Doesn't make sense to include scratchspace as subscratchs are passed between fns.
+        static constexpr void * state = nullptr;
+    };
+
+    /**
+     * @brief   Struct for passing frame data around in the RX call chain.
+     * @param   _inbuf: TODO
+     * @param   inbuflen: Length of inbuf in bytes.
+     * @param   _outbuf: TODO
+     * @todo    Is there a better way to order everything?
+     * @todo    Alias in and out buffers for more descriptive names?
+     * @note    id is not initialised.
+     */
+    struct OTDecodeData_T
+    {
+        OTDecodeData_T(const uint8_t * const _ctext, const uint8_t _ctextLen, uint8_t * const _ptext, const uint8_t)
+            : ctext(_ctext), ctextLen(_ctextLen), ptext(_ptext) {}
+
+        SecurableFrameHeader sfh;
+        uint8_t id[OTV0P2BASE::OpenTRV_Node_ID_Bytes];  // Holds upto full node ID. TODO pass this in as well?
+        // Immutable input buffer. This takes a buffer for either the plain text to
+        // be encrypted or the cipher text to be decrypted.
+        // In the case of decryption, the byte pointed at before this contain the
+        // message length. TODO find nice way of dealing with this.
+        const uint8_t * const ctext;
+        // TODO
+        // Decide what to do about inbuflen.
+        // Temporarily having it store variable separately.
+        // - Needed for encode stack.
+        // - Not needed for decode stack.
+        // - Not sure if 1 byte worth any additional complexity with
+        //   pointers/references + dealing with encode/decode differences.
+        const uint8_t ctextLen;
+
+        // Output buffer. This takes a buffer for either the cipher text or plain
+        // text output.
+        // In the case of encryption, this should be at least 63 (64?) bytes.
+        // In the case of decryption, this should be decryptedBodyBufSize bytes.
+        uint8_t *const ptext;
+//        const uint8_t ptextLen;  // FIXME what to do about this.
+        // On decode stack this is always  ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE bytes long.
+        // FIXME On encode stack???
+        // - include constexpr for 64 bytes, as this is always what it is in practice?
+        // - or const uint8_t?
+        static constexpr uint8_t ptextLenMax = ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE;
+        // Actual size of plain text held within decryptedBody. Should be set when decryptedBody is populated.
+        uint8_t ptextSize = 0;  // 1 byte: 1/4 words
         // A pointer to the OTAESGCM state. This is currently not implemented.
         // NOTE: Doesn't make sense to include scratchspace as subscratchs are passed between fns.
         static constexpr void * state = nullptr;
@@ -694,7 +742,7 @@ namespace OTRadioLink
             static constexpr size_t generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0 =
                     encodeSecureSmallFrameRawPadInPlace_total_scratch_usage_OTAESGCM_2p0
                     + generateSecureOFrameRawForTX_scratch_usage;
-            uint8_t generateSecureOFrame(OTFrameData_T &fd,
+            uint8_t generateSecureOFrame(OTEncodeData_T &fd,
                                         uint8_t il_,
                                         uint8_t valvePC,
                                         const fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
@@ -839,7 +887,7 @@ namespace OTRadioLink
                 0 /* Any additional callee space would be for d(). */ +
                 decodeSecureSmallFrameRawWithWorkspace_scratch_usage;
             static uint8_t decodeSecureSmallFrameRaw(
-                OTFrameData_T &fd,
+                OTDecodeData_T &fd,
                 fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_ptr_t d,
                 const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key, const uint8_t *iv);
 
@@ -922,7 +970,7 @@ namespace OTRadioLink
             // XXX
             // Pointers held by fd and OTBuf_t should never be nullptrs!
             // Basic validation of sfh should already have been performed (isInvalid, isSecure, getTl)
-            uint8_t _decodeSecureSmallFrameFromID(OTFrameData_T &fd,
+            uint8_t _decodeSecureSmallFrameFromID(OTDecodeData_T &fd,
                                             fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_ptr_t d,
                                             const OTBuf_t adjID,
                                             OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key);
@@ -983,7 +1031,7 @@ namespace OTRadioLink
                 _decodeSecureSmallFrameFromIDWithWorkspace_total_scratch_usage_OTAESGCM_3p0 +
                 decodeSecureSmallFrameSafely_scratch_usage;
             uint8_t decodeSecureSmallFrameSafely(
-                OTFrameData_T &fd,
+                OTDecodeData_T &fd,
                 fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_ptr_t d,
                 OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key,
                 bool firstIDMatchOnly = true);

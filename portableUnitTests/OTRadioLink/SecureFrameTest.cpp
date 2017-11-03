@@ -822,7 +822,7 @@ TEST(OTAESGCMSecureFrame, SecureSmallFrameEncodingWithWorkspace)
     // (Nominally a longer ID and key is looked up with the ID in the header, and an iv built.)
     uint8_t decryptedBodyOut[OTRadioLink::ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE];
     // To decode, emulating RX, structurally validate unpack the header and extract the ID.
-    OTRadioLink::OTFrameData_T fdRX(buf.buf, buf.bufsize - 1, decryptedBodyOut, sizeof(decryptedBodyOut));
+    OTRadioLink::OTDecodeData_T fdRX(buf.buf, buf.bufsize - 1, decryptedBodyOut, sizeof(decryptedBodyOut));
     EXPECT_TRUE(0 != fdRX.sfh.checkAndDecodeSmallFrameHeader(buf.buf, encodedLength));
     // Should decode and authenticate correctly.
     EXPECT_TRUE(0 != OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRaw(
@@ -830,7 +830,7 @@ TEST(OTAESGCMSecureFrame, SecureSmallFrameEncodingWithWorkspace)
                         OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE,
                         sWDec, zeroBlock, iv));
     // Body content should be correctly decrypted and extracted.
-    EXPECT_EQ(sizeof(body), fdRX.outbuflen);
+    EXPECT_EQ(sizeof(body), fdRX.ptextSize);
     EXPECT_EQ(0, memcmp(body, decryptedBodyOut, sizeof(body)));
 
     // Using ASSERT to avoid cryptic crash message (Floating point exception (core dumped)) when encodedLength is 0.
@@ -847,7 +847,7 @@ TEST(OTAESGCMSecureFrame, SecureSmallFrameEncodingWithWorkspace)
             (0 == OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRaw(fdRX,
                                         OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE,
                                         sWDec, zeroBlock, iv)) ||
-            ((sizeof(body) == fdRX.outbuflen) && (0 == memcmp(body, decryptedBodyOut, sizeof(body))) && (0 == memcmp(id, fdRX.sfh.id, 4)))
+            ((sizeof(body) == fdRX.ptextSize) && (0 == memcmp(body, decryptedBodyOut, sizeof(body))) && (0 == memcmp(id, fdRX.sfh.id, 4)))
     );
 }
 
@@ -936,7 +936,7 @@ TEST(OTAESGCMSecureFrame, BeaconEncodingWithWorkspace)
         // Check decoding (auth/decrypt) of beacon at various levels.
         // Validate structure of frame first.
         // This is quick and checks for insane/dangerous values throughout.
-        OTRadioLink::OTFrameData_T fd(buf, body.buf);
+        OTRadioLink::OTDecodeData_T fd(buf, body.buf);
         const uint8_t l = fd.sfh.checkAndDecodeSmallFrameHeader(buf + 1, sb1 - 1);
         EXPECT_EQ(4 + idLen, l);
         const uint8_t dlr = OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRaw(fd,
@@ -1435,7 +1435,7 @@ TEST(OTAESGCMSecureFrame, OFrameEncodingWithWorkspace)
     OTV0P2BASE::ScratchSpaceL sW(workspace, workspaceSize);
     const OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t eW = OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_LWORKSPACE;
 
-    OTRadioLink::OTFrameData_T fd(_bufW, sizeof(_bufW), _rawFrame, sizeof(_rawFrame));
+    OTRadioLink::OTEncodeData_T fd(_bufW, sizeof(_bufW), _rawFrame, sizeof(_rawFrame));
     const uint8_t bodylenW = mockTX.generateSecureOFrame(
                                         fd,
                                         txIDLen,
