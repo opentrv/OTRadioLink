@@ -223,6 +223,7 @@ bool relayFrameOperation(const OTFrameData_T &fd)
  *          AVR-GCC cannot currently detect compile time constness of references or pointers (20170608).
  * @param   minuteCount: Reference to the minuteCount variable in Control.cpp (20170608).
  *          NOTE: minuteCount may be removed from the API in future (DE20170616)
+ *          FIXME: should be const &: should not be able mutate caller's state!
  *          TODO better description of this.
  * @retval  True if call for heat handled. False if percentOpen is invalid.
  */
