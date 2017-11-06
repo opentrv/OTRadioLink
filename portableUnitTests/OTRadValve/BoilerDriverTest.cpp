@@ -56,7 +56,7 @@ TEST(BoilerDriverTest, boilerHubModeHeatCall)
     constexpr uint8_t heatCallPin = 0; // unused in unit tests.
     constexpr bool inHubMode = true;
     OTRadValve::BoilerLogic::OnOffBoilerDriverLogic<decltype(BoilerDriverTest::hm), BoilerDriverTest::hm, heatCallPin> bh;
-    // Trick boiler hub into believeing 10 minutes have passed.
+    // Trick boiler hub into believing 10 minutes have passed.
     for(auto i = 0; i < 10; ++i) {
         bh.processCallsForHeat(true, inHubMode);
     }
@@ -73,7 +73,7 @@ TEST(BoilerDriverTest, boilerNotHubModeHeatCall)
     constexpr uint8_t heatCallPin = 0; // unused in unit tests.
     constexpr bool inHubMode = false;
     OTRadValve::BoilerLogic::OnOffBoilerDriverLogic<decltype(BoilerDriverTest::hm), BoilerDriverTest::hm, heatCallPin> bh;
-    // Trick boiler hub into believeing 10 minutes have passed.
+    // Trick boiler hub into believing 10 minutes have passed.
     for(auto i = 0; i < 10; ++i) {
         bh.processCallsForHeat(true, inHubMode);
     }
@@ -92,7 +92,7 @@ TEST(BoilerDriverTest, boilerHubModeStartup)
 
     OTRadValve::BoilerLogic::OnOffBoilerDriverLogic<decltype(BoilerDriverTest::hm), BoilerDriverTest::hm, heatCallPin> bh;
     EXPECT_FALSE(bh.isBoilerOn());  // Should initialise to off
-    // Trick boiler hub into believeing 10 minutes have passed.
+    // COMMENT FIXME: what is this doing?
     for(auto i = 0; i < 6; ++i) {
         bh.remoteCallForHeatRX(0, 100, 1);
         bh.processCallsForHeat(true, inHubMode);
@@ -111,7 +111,7 @@ TEST(BoilerDriverTest, boilerHubModeIncBoilerNoCallM)
 
     OTRadValve::BoilerLogic::OnOffBoilerDriverLogic<decltype(BoilerDriverTest::hm), BoilerDriverTest::hm, heatCallPin> bh;
     EXPECT_FALSE(bh.isBoilerOn());  // Should initialise to off
-    // Check clock is not advanced when second0 is false
+    // Check clock is not advanced when second0 is false.
     for(auto i = 0; i < 1000; ++i) {
         bh.remoteCallForHeatRX(0, 100, 1);
         bh.processCallsForHeat(false, inHubMode);
