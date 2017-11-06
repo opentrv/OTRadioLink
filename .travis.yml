@@ -20,7 +20,7 @@ matrix:
             - llvm-toolchain-trusty-5.0
           packages:
             - clang-5.0
-env: COMPILER=clang++-5.0
+      env: COMPILER=clang++-5.0
 before_install:
  - sudo apt-get -qq update
  - sudo apt-get install -y libgtest-dev
