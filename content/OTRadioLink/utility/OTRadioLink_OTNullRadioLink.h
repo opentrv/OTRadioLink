@@ -65,7 +65,7 @@ public:
      */
     const volatile uint8_t *peekRXMsg() const override;
     // Does nothing.
-    void removeRXMsg() override { };
+    void removeRXMsg() override { memset(message, 0, sizeof(message)); };
 
     // unused methods
     bool begin() override { return(true); };
