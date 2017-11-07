@@ -124,55 +124,72 @@ namespace OTFHT
         static const uint8_t iv[];
         static const uint8_t oldCounter[];
         // 'O' frame body with some JSON stats.
-        static const uint8_t body[];
+        static const uint8_t body[8];
         // length of secure frame
         static const uint8_t encodedLength;
         // Buffer containing secure frame. Generated using code bellow.
         static const uint8_t buf[];
 
-        // Stuff used to generate a working encodable frame. Taken from SecureFrameTest.cpp
-            // All-zeros const 16-byte/128-bit key.
-            // Can be used for other purposes.
-        //    static const uint8_t zeroBlock[16] = { };
-        //    uint8_t buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize];
-        //    //Example 3: secure, no valve, representative minimum stats {"b":1}).
-        //    //Note that the sequence number must match the 4 lsbs of the message count, ie from iv[11].
-        //    //and the ID is 0xaa 0xaa 0xaa 0xaa (transmitted) with the next ID bytes 0x55 0x55.
-        //    //ResetCounter = 42
-        //    //TxMsgCounter = 793
-        //    //(Thus nonce/IV: aa aa aa aa 55 55 00 00 2a 00 03 19)
-        //    //
-        //    //3e cf 94 aa aa aa aa 20 | b3 45 f9 29 69 57 0c b8 28 66 14 b4 f0 69 b0 08 71 da d8 fe 47 c1 c3 53 83 48 88 03 7d 58 75 75 | 00 00 2a 00 03 19 29 3b 31 52 c3 26 d2 6d d0 8d 70 1e 4b 68 0d cb 80
-        //    //
-        //    //3e  length of header (62) after length byte 5 + (encrypted) body 32 + trailer 32
-        //    //cf  'O' secure OpenTRV basic frame
-        //    //04  0 sequence number, ID length 4
-        //    //aa  ID byte 1
-        //    //aa  ID byte 2
-        //    //aa  ID byte 3
-        //    //aa  ID byte 4
-        //    //20  body length 32 (after padding and encryption)
-        //    //    Plaintext body (length 8): 0x7f 0x11 { " b " : 1
-        //    //    Padded: 7f 11 7b 22 62 22 3a 31 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 17
-        //    //b3 45 f9 ... 58 75 75  32 bytes of encrypted body
-        //    //00 00 2a  reset counter
-        //    //00 03 19  message counter
-        //    //29 3b 31 ... 68 0d cb  16 bytes of authentication tag
-        //    //80  enc/auth type/format indicator.
-        //    const uint8_t encodedLength = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRaw(buf, sizeof(buf),
-        //                                    OTRadioLink::FTS_BasicSensorOrValve,
-        //                                    id, 4,
-        //                                    body, sizeof(body),
-        //                                    iv,
-        //                                    OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS,
-        //                                    NULL, zeroBlock);
-        //    std::fprintf(stdout, "const uint8_t encodedLength = %u;\n", encodedLength);
-        //    std::cout << "const uint8_t buf[] = {\n\t";
-        //    for(auto i = 0; i < OTRadioLink::SecurableFrameHeader::maxSmallFrameSize; ++i) {
-        //        std::fprintf(stdout, "0x%x, ", buf[i]);
-        //        if(7 == (i % 8)) std::cout << "\n\t";
-        //    }
-        //    std::cout << " };\n";
+     // Stuff used to generate a working encodable frame. Taken from SecureFrameTest.cpp
+     //    All-zeros const 16-byte/128-bit key.
+     //    Can be used for other purposes.
+//        static const uint8_t zeroBlock[16];
+//        static uint8_t buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize];
+//        //Example 3: secure, no valve, representative minimum stats {"b":1}).
+//        //Note that the sequence number must match the 4 lsbs of the message count, ie from iv[11].
+//        //and the ID is 0xaa 0xaa 0xaa 0xaa (transmitted) with the next ID bytes 0x55 0x55.
+//        //ResetCounter = 42
+//        //TxMsgCounter = 793
+//        //(Thus nonce/IV: aa aa aa aa 55 55 00 00 2a 00 03 19)
+//        //
+//        //3e cf 94 aa aa aa aa 20 | b3 45 f9 29 69 57 0c b8 28 66 14 b4 f0 69 b0 08 71 da d8 fe 47 c1 c3 53 83 48 88 03 7d 58 75 75 | 00 00 2a 00 03 19 29 3b 31 52 c3 26 d2 6d d0 8d 70 1e 4b 68 0d cb 80
+//        //
+//        //3e  length of header (62) after length byte 5 + (encrypted) body 32 + trailer 32
+//        //cf  'O' secure OpenTRV basic frame
+//        //04  0 sequence number, ID length 4
+//        //aa  ID byte 1
+//        //aa  ID byte 2
+//        //aa  ID byte 3
+//        //aa  ID byte 4
+//        //20  body length 32 (after padding and encryption)
+//        //    Plaintext body (length 8): 0x7f 0x11 { " b " : 1
+//        //    Padded: 7f 11 7b 22 62 22 3a 31 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 17
+//        //b3 45 f9 ... 58 75 75  32 bytes of encrypted body
+//        //00 00 2a  reset counter
+//        //00 03 19  message counter
+//        //29 3b 31 ... 68 0d cb  16 bytes of authentication tag
+//        //80  enc/auth type/format indicator.
+//        static void generateMockFrame() {
+//            // def workspace
+//            uint8_t bodyBuf[32] = {};
+//            memcpy(bodyBuf, body, sizeof(body));
+//            uint8_t workspace[OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRawPadInPlace_total_scratch_usage_OTAESGCM_2p0];
+//            OTV0P2BASE::ScratchSpaceL sW(workspace, sizeof(workspace));
+//            // generate frame
+//            const uint8_t encodedLength = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRawPadInPlace(
+//                                            buf, sizeof(buf),
+//                                            OTRadioLink::FTS_BasicSensorOrValve,
+//                                            id, 4,
+//                                            bodyBuf, sizeof(body),
+//                                            iv,
+//                                            OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_LWORKSPACE,
+//                                            sW, zeroBlock);
+//            // print original message
+//            std::fprintf(stdout, "const uint8_t encodedLength = %u;\n", encodedLength);
+//            std::cout << "const uint8_t body[] = {\n\t";
+//            for(size_t i = 0; i < sizeof(body); ++i) {
+//                std::fprintf(stdout, "0x%x, ", body[i]);
+//                if(7 == (i % 8)) std::cout << "\n\t";
+//            }
+//            std::cout << " };\n";
+//            // print encrypted message
+//            std::cout << "const uint8_t buf[] = {\n\t";
+//            for(auto i = 0; i < OTRadioLink::SecurableFrameHeader::maxSmallFrameSize; ++i) {
+//                std::fprintf(stdout, "0x%x, ", buf[i]);
+//                if(7 == (i % 8)) std::cout << "\n\t";
+//            }
+//            std::cout << " };\n";
+//        }
     };
     // Preshared ID prefix; only an initial part/prefix of this goes on the wire in the header.
     const uint8_t minimumSecureFrame::id[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55, 0x55, 0x55 };
@@ -180,19 +197,31 @@ namespace OTFHT
     const uint8_t minimumSecureFrame::iv[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55, 0x00, 0x00, 0x2a, 0x00, 0x03, 0x19 };
     const uint8_t minimumSecureFrame::oldCounter[] = { 0x00, 0x00, 0x2a, 0x00, 0x03, 0x18 };
     // 'O' frame body with some JSON stats.
-    const uint8_t minimumSecureFrame::body[] = { 0x7f, 0x11, 0x7b, 0x22, 0x62, 0x22, 0x3a, 0x31 };
+    const uint8_t minimumSecureFrame::body[8] = { 0x64, 0x11, 0x7b, 0x22, 0x62, 0x22, 0x3a, 0x31 };  // first byte signals valvePC of 100%.
     // length of secure frame
     const uint8_t minimumSecureFrame::encodedLength = 63;
-    // Buffer containing secure frame. Generated using code bellow.
+    // Buffer containing secure frame. Generated using code above.
     const uint8_t minimumSecureFrame::buf[] = {
         0x3e, 0xcf, 0x94, 0xaa, 0xaa, 0xaa, 0xaa, 0x20,
-        0xb3, 0x45, 0xf9, 0x29, 0x69, 0x57, 0x0c, 0xb8,
-        0x28, 0x66, 0x14, 0xb4, 0xf0, 0x69, 0xb0, 0x08,
+        0xa8, 0x45, 0xf9, 0x29, 0x69, 0x57, 0xc, 0xb8,
+        0x28, 0x66, 0x14, 0xb4, 0xf0, 0x69, 0xb0, 0x8,
         0x71, 0xda, 0xd8, 0xfe, 0x47, 0xc1, 0xc3, 0x53,
-        0x83, 0x48, 0x88, 0x03, 0x7d, 0x58, 0x75, 0x75,
-        0x00, 0x00, 0x2a, 0x00, 0x03, 0x19, 0x29, 0x3b,
-        0x31, 0x52, 0xc3, 0x26, 0xd2, 0x6d, 0xd0, 0x8d,
-        0x70, 0x1e, 0x4b, 0x68, 0x0d, 0xcb, 0x80 };
+        0x83, 0x48, 0x88, 0x3, 0x7d, 0x58, 0x75, 0x75,
+        0x0, 0x0, 0x2a, 0x0, 0x3, 0x19, 0x51, 0x23,
+        0x7e, 0x33, 0xfe, 0x48, 0x8d, 0x1a, 0x81, 0x21,
+        0x25, 0xf8, 0x1f, 0x14, 0x6b, 0x8a, 0x80 };
+    // Old version with body[0] = 0x7f
+//////    uint8_t minimumSecureFrame::buf[] = {};
+//    const uint8_t minimumSecureFrame::buf[] = {
+//        0x3e, 0xcf, 0x94, 0xaa, 0xaa, 0xaa, 0xaa, 0x20,
+//        0xb3, 0x45, 0xf9, 0x29, 0x69, 0x57, 0x0c, 0xb8,
+//        0x28, 0x66, 0x14, 0xb4, 0xf0, 0x69, 0xb0, 0x08,
+//        0x71, 0xda, 0xd8, 0xfe, 0x47, 0xc1, 0xc3, 0x53,
+//        0x83, 0x48, 0x88, 0x03, 0x7d, 0x58, 0x75, 0x75,
+//        0x00, 0x00, 0x2a, 0x00, 0x03, 0x19, 0x29, 0x3b,
+//        0x31, 0x52, 0xc3, 0x26, 0xd2, 0x6d, 0xd0, 0x8d,
+//        0x70, 0x1e, 0x4b, 0x68, 0x0d, 0xcb, 0x80 };
+
 }
 // Basic sanity/does it compile tests
 TEST(FrameHandler, OTFrameData)
@@ -535,6 +564,8 @@ TEST(FrameHandlerTest, authAndDecodeSecurableFrameFull)
 
 TEST(FrameHandlerTest, decodeAndHandleOTSecurableFrameDecryptSuccess)
 {
+    OTFHT::NULLSerialStream::verbose = false;
+
     // Make sure flag is false.
     OTFHT::frameOperationCalledFlag = false;
     // Secure Frame start
@@ -558,12 +589,73 @@ TEST(FrameHandlerTest, decodeAndHandleOTSecurableFrameDecryptSuccess)
             OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
             OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE,
             OTFHT::getKeySuccess,
-            OTFHT::setFlagFrameOperation
+            OTFHT::setFlagFrameOperation,
+            OTRadioLink::serialFrameOperation<decltype(OTFHT::ss),OTFHT::ss>
             >(msgStart, sW);
     EXPECT_TRUE(test1);
     EXPECT_TRUE(OTFHT::frameOperationCalledFlag);
 }
 
+
+namespace FTBHT {
+constexpr uint8_t heatCallPin = 0;
+constexpr bool inHubMode = true;
+const uint8_t minuteCount = 1;
+OTRadValve::OTHubManager<false, false> hm;  // no EEPROM so parameters don't matter
+OTRadValve::BoilerLogic::OnOffBoilerDriverLogic<decltype(hm), hm, heatCallPin> b1;
+//
+bool decodeAndHandleSecureFrame(volatile const uint8_t *const msg)
+{
+    // Workspace for decodeAndHandleOTSecureOFrameWithWorkspace
+    constexpr size_t workspaceRequired =
+            OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameSafely_total_scratch_usage_OTAESGCM_3p0
+            + OTAESGCM::OTAES128GCMGenericWithWorkspace<>::workspaceRequiredDec
+            + OTRadioLink::authAndDecodeOTSecurableFrameWithWorkspace_scratch_usage; // + space to hold the key
+    uint8_t workspace[workspaceRequired];
+    OTV0P2BASE::ScratchSpaceL sW(workspace, sizeof(workspace));
+
+    return (OTRadioLink::decodeAndHandleOTSecureOFrameWithWorkspace<
+                            OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
+                            OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE,
+                            OTFHT::getKeySuccess,
+                            OTRadioLink::serialFrameOperation<decltype(OTFHT::ss),OTFHT::ss>,
+                            OTRadioLink::boilerFrameOperation<decltype(b1), b1, minuteCount>
+                            >(msg, sW));
+}
+}
+// Test message handler to boiler hub stack
+TEST(FrameHandlerTest, frameToBoilerHubTest)
+{
+    OTFHT::NULLSerialStream::verbose = false;
+
+    const uint8_t * senderID = OTFHT::minimumSecureFrame::id;
+    const uint8_t * msgCounter = OTFHT::minimumSecureFrame::oldCounter;
+
+    OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter &sfrx = OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter::getInstance();
+    sfrx.setMockIDValue(senderID);
+    sfrx.setMockCounterValue(msgCounter);
+
+    // Setup message handler and mock radio
+    OTRadioLink::OTMessageQueueHandler<
+        OTFHT::pollIO, 4800,
+        FTBHT::decodeAndHandleSecureFrame> mh;
+    OTRadioLink::OTRadioLinkMock rl;
+    // Populate radio message buffer
+    memcpy(rl.message, OTFHT::minimumSecureFrame::buf, sizeof(OTFHT::minimumSecureFrame::buf));
+
+    // Trick boiler hub into believing 10 minutes have passed.
+    for(auto i = 0; i < 100; ++i) {
+        FTBHT::b1.processCallsForHeat(true, FTBHT::inHubMode);
+    }
+    EXPECT_FALSE(FTBHT::b1.isBoilerOn());  // Should initialise to off
+
+    // "Handle" to trigger bh remote call for heat.
+    const bool test1 = mh.handle(false, rl);
+    EXPECT_TRUE(test1);
+    EXPECT_FALSE(FTBHT::b1.isBoilerOn());  // Should still be off, until heat call processed.
+    FTBHT::b1.processCallsForHeat(false, FTBHT::inHubMode);
+    EXPECT_TRUE(FTBHT::b1.isBoilerOn());
+}
 
 #ifdef OTAESGCM_ALLOW_NON_WORKSPACE
 //
