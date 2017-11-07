@@ -221,12 +221,16 @@ public:
         }
     }
 
-    // Process calls for heat, ie turn boiler on and off as appropriate.
-    // Has control of OUT_HEATCALL if defined(ENABLE_BOILER_HUB).
-    // Called every tick (typically 2s); drives timing.
+    /**
+     * @brief   Process calls for heat, ie turn boiler on and off as appropriate.
+     *          Called every tick (typically 2s); drives timing.
+     * @param   second0: If true and boiler is not on, advances the internal model of time by one minute.
+     * @param   hubMode: If true, internal state is updated and the boiler is operated.
+     *                   If false, internal state is ignored and BOILER IS FORCED OFF.
+     */
     void processCallsForHeat(const bool second0, const bool hubMode)
     {
-        #if 1
+        #if 0
         OTV0P2BASE::MemoryChecks::recordIfMinSP();
         #endif
         if(hubMode) {
