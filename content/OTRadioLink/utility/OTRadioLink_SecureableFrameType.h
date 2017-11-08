@@ -320,19 +320,10 @@ namespace OTRadioLink
         OTEncodeData_T(uint8_t * const _ptext, const uint8_t _ptextLen, uint8_t * const _ctext, const uint8_t _ctextLen)
             : ptext(_ptext), ptextLen(_ptextLen), ctext(_ctext), ctextLen(_ctextLen) {}
 
-        uint8_t id[OTV0P2BASE::OpenTRV_Node_ID_Bytes];  // Holds upto full node ID. TODO pass this in as well?
-        // Immutable input buffer. This takes a buffer for either the plain text to
-        // be encrypted or the cipher text to be decrypted.
-        // In the case of decryption, the byte pointed at before this contain the
-        // message length. TODO find nice way of dealing with this.
+        // Immutable input buffer. This takes a buffer for the plain text to
+        // be encrypted.
         uint8_t * const ptext;
-        // TODO
-        // Decide what to do about inbuflen.
-        // Temporarily having it store variable separately.
-        // - Needed for encode stack.
-        // - Not needed for decode stack.
-        // - Not sure if 1 byte worth any additional complexity with
-        //   pointers/references + dealing with encode/decode differences.
+        // Length of ptext.
         const uint8_t ptextLen;
 
         // Output buffer. This takes a buffer for either the cipher text or plain
@@ -341,8 +332,6 @@ namespace OTRadioLink
         // In the case of decryption, this should be decryptedBodyBufSize bytes.
         uint8_t *const ctext;
         const uint8_t ctextLen;
-//        // Actual size of plain text held within decryptedBody. Should be set when decryptedBody is populated.
-//        uint8_t outbuflen = 0;  // 1 byte: 1/4 words
         // A pointer to the OTAESGCM state. This is currently not implemented.
         // NOTE: Doesn't make sense to include scratchspace as subscratchs are passed between fns.
         static constexpr void * state = nullptr;
@@ -363,7 +352,7 @@ namespace OTRadioLink
             : ctext(_ctext), ptext(_ptext) {}
 
         SecurableFrameHeader sfh;
-        uint8_t id[OTV0P2BASE::OpenTRV_Node_ID_Bytes];  // Holds upto full node ID. TODO pass this in as well?
+        uint8_t id[OTV0P2BASE::OpenTRV_Node_ID_Bytes];  // Holds up to full node ID.
         // Immutable input buffer. This takes a buffer containing the cipher text to be decrypted.
         // The byte pointed at before this contain the
         // message length.
