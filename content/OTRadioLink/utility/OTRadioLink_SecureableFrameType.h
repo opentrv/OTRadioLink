@@ -326,7 +326,7 @@ namespace OTRadioLink
         uint8_t * const ptext;
         // Length of ptext.
         const uint8_t ptextLen;
-        // Length of data held in body.
+        // Length of data held in body. Potentially unknown at time of instantiation.
         uint8_t bodyLen = 0;
 
         // Output buffer. This takes a buffer for either the cipher text or plain
@@ -335,6 +335,8 @@ namespace OTRadioLink
         // In the case of decryption, this should be decryptedBodyBufSize bytes.
         uint8_t *const ctext;
         const uint8_t ctextLen;
+
+        FrameType_Secureable fType = FTS_NONE;
         // A pointer to the OTAESGCM state. This is currently not implemented.
         // NOTE: Doesn't make sense to include scratchspace as subscratchs are passed between fns.
         static constexpr void * state = nullptr;
@@ -589,7 +591,6 @@ namespace OTRadioLink
                     + encodeSecureSmallFrameRawPadInPlace_scratch_usage;
             static uint8_t encodeSecureSmallFrameRawPadInPlace(
                     OTEncodeData_T &fd,
-                    FrameType_Secureable fType_,
                     const OTBuf_t &id_,
                     const uint8_t *iv,
                     fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,

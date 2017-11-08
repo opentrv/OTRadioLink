@@ -545,7 +545,6 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRaw(
 //        + encodeSecureSmallFrameRawPadInPlace_scratch_usage;
 uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRawPadInPlace(
         OTEncodeData_T &fd,
-        FrameType_Secureable fType_,
         const OTBuf_t &id_,
         const uint8_t *iv,
         fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
@@ -574,7 +573,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRawPadInPlace(
     OTBuf_t body(fd.ptext, fd.ptextLen);
     OTBuf_t buf(fd.ctext, fd.ctextLen);
     const uint8_t hl = fd.sfh.checkAndEncodeSmallFrameHeader(buf,
-                                               true, fType_,
+                                               true, fd.fType,
                                                seqNum_,
                                                id_,
                                                encryptedBodyLength,
@@ -1040,9 +1039,9 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTEncodeData_T &f
     // Create id buffer
     const OTBuf_t id(iv, il_);
     fd.bodyLen = (hasStats ? 2+statslen : 2); // Note: callee will pad beyond this.
+    fd.fType = OTRadioLink::FTS_BasicSensorOrValve;
     return(encodeSecureSmallFrameRawPadInPlace(
                     fd,
-                    OTRadioLink::FTS_BasicSensorOrValve,
                     id,
                     iv, e, subscratch, key));
 }
