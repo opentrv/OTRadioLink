@@ -320,7 +320,6 @@ namespace OTRadioLink
         OTEncodeData_T(uint8_t * const _ptext, const uint8_t _ptextLen, uint8_t * const _ctext, const uint8_t _ctextLen)
             : ptext(_ptext), ptextLen(_ptextLen), ctext(_ctext), ctextLen(_ctextLen) {}
 
-        SecurableFrameHeader sfh;
         uint8_t id[OTV0P2BASE::OpenTRV_Node_ID_Bytes];  // Holds upto full node ID. TODO pass this in as well?
         // Immutable input buffer. This takes a buffer for either the plain text to
         // be encrypted or the cipher text to be decrypted.

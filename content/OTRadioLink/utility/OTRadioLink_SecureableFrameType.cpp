@@ -556,9 +556,9 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRawPadInPlace(
 
 
     // buffer local variables/consts
-    uint8_t * const buffer = buf.buf;
+    uint8_t * const buffer = buf.buf;  // << XXX The ptext
     const uint8_t buflen = buf.bufsize;
-    uint8_t *const bodybuf = body.buf;
+    uint8_t *const bodybuf = body.buf; // << XXX The ctext
 
     // Capture possible (near) peak of stack usage, eg when called from ISR.
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
