@@ -786,11 +786,13 @@ TEST(OTAESGCMSecureFrame, SecureSmallFrameEncodingWithWorkspace)
     uint8_t _bodyBuf[32] = {};
     OTRadioLink::OTBuf_t bodyBuf(_bodyBuf, sizeof(_bodyBuf));
     memcpy(bodyBuf.buf, body, sizeof(body));
+
+    OTRadioLink::OTEncodeData_T fdTX(_bodyBuf, sizeof(_bodyBuf), _buf, sizeof(_buf));
     const uint8_t encodedLength = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRawPadInPlace(
-                                        buf,
+                                        fdTX,
                                         OTRadioLink::FTS_BasicSensorOrValve,
                                         id4bytes,
-                                        bodyBuf, sizeof(body),
+                                        sizeof(body),
                                         iv,
                                         OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_LWORKSPACE,
                                         sWEnc, zeroBlock);

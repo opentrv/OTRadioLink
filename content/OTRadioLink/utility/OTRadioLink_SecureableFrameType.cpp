@@ -544,10 +544,10 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRaw(
 //        workspaceRequred_GCM32B16BWithWorkspace_OTAESGCM_2p0
 //        + encodeSecureSmallFrameRawPadInPlace_scratch_usage;
 uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRawPadInPlace(
-        OTBuf_t &buf,
+        OTEncodeData_T &fd,
         FrameType_Secureable fType_,
         const OTBuf_t &id_,
-        OTBuf_t &body, uint8_t bodylen,
+        uint8_t bodylen,
         const uint8_t *iv,
         fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
         const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key)
@@ -556,9 +556,9 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRawPadInPlace(
 
 
     // buffer local variables/consts
-    uint8_t * const buffer = buf.buf;  // << XXX The ctext (formerly ptext)
-    const uint8_t buflen = buf.bufsize;
-    uint8_t *const bodybuf = body.buf; // << XXX The ptext (formerly ctext)
+    uint8_t * const buffer = fd.ctext;  // << XXX The ctext
+    const uint8_t buflen = fd.ctextLen;
+    uint8_t *const bodybuf = fd.ptext; // << XXX The ptext
 
     // Capture possible (near) peak of stack usage, eg when called from ISR.
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
@@ -569,6 +569,10 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRawPadInPlace(
     // Let checkAndEncodeSmallFrameHeader() validate buf and id_.
     // If necessary (bl_ > 0) body is validated below.
     const uint8_t seqNum_ = iv[11] & 0xf;
+
+
+    OTBuf_t body(fd.ptext, fd.ptextLen);
+    OTBuf_t buf(fd.ctext, fd.ctextLen);
     OTRadioLink::SecurableFrameHeader sfh;
     const uint8_t hl = sfh.checkAndEncodeSmallFrameHeader(buf,
                                                true, fType_,
@@ -1019,7 +1023,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTEncodeData_T &f
     static_assert(generateSecureOFrameRawForTX_scratch_usage < generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0, "scratch size calc wrong");
     if(scratch.bufsize < generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0) { return(0); } // ERROR
     // buffer args and consts
-    uint8_t * const ptext = fd.ptext;  // XXX corrected from ctext
+    uint8_t * const ptext = fd.ptext;
 
     // iv at start of scratch space
     uint8_t *const iv = scratch.buf; // uint8_t iv[IV_size];
@@ -1035,14 +1039,11 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTEncodeData_T &f
     const OTV0P2BASE::ScratchSpaceL subscratch(scratch, generateSecureOFrameRawForTX_scratch_usage);
     if(il_ > 6) { return(0); } // ERROR: cannot supply that much of ID easily.
     // Create id buffer
-    OTBuf_t body(fd.ptext, fd.ptextLen);  // XXX corrected from ctext
-    OTBuf_t buf(fd.ctext, fd.ctextLen);  // XXX corrected from ptext
     const OTBuf_t id(iv, il_);
     return(encodeSecureSmallFrameRawPadInPlace(
-                    buf,
+                    fd,
                     OTRadioLink::FTS_BasicSensorOrValve,
-                    id,
-                    body, (hasStats ? 2+statslen : 2), // Note: callee will pad beyond this.
+                    id, (hasStats ? 2+statslen : 2), // Note: callee will pad beyond this.
                     iv, e, subscratch, key));
 }
 

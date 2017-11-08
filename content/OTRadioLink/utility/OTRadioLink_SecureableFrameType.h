@@ -585,10 +585,10 @@ namespace OTRadioLink
                     workspaceRequred_GCM32B16BWithWorkspace_OTAESGCM_2p0
                     + encodeSecureSmallFrameRawPadInPlace_scratch_usage;
             static uint8_t encodeSecureSmallFrameRawPadInPlace(
-                    OTBuf_t &buf,
+                    OTEncodeData_T &fd,
                     FrameType_Secureable fType_,
                     const OTBuf_t &id_,
-                    OTBuf_t &body, uint8_t bodylen,
+                    uint8_t bodylen,
                     const uint8_t *iv,
                     fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
                     const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key);
