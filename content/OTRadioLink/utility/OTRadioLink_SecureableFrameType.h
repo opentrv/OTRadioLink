@@ -320,11 +320,14 @@ namespace OTRadioLink
         OTEncodeData_T(uint8_t * const _ptext, const uint8_t _ptextLen, uint8_t * const _ctext, const uint8_t _ctextLen)
             : ptext(_ptext), ptextLen(_ptextLen), ctext(_ctext), ctextLen(_ctextLen) {}
 
+        SecurableFrameHeader sfh;
         // Immutable input buffer. This takes a buffer for the plain text to
         // be encrypted.
         uint8_t * const ptext;
         // Length of ptext.
         const uint8_t ptextLen;
+        // Length of data held in body.
+        uint8_t bodyLen = 0;
 
         // Output buffer. This takes a buffer for either the cipher text or plain
         // text output.
@@ -588,7 +591,6 @@ namespace OTRadioLink
                     OTEncodeData_T &fd,
                     FrameType_Secureable fType_,
                     const OTBuf_t &id_,
-                    uint8_t bodylen,
                     const uint8_t *iv,
                     fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
                     const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key);

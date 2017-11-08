@@ -547,7 +547,6 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRawPadInPlace(
         OTEncodeData_T &fd,
         FrameType_Secureable fType_,
         const OTBuf_t &id_,
-        uint8_t bodylen,
         const uint8_t *iv,
         fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
         const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key)
@@ -556,9 +555,10 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRawPadInPlace(
 
 
     // buffer local variables/consts
-    uint8_t * const buffer = fd.ctext;  // << XXX The ctext
+    uint8_t * const buffer = fd.ctext;
     const uint8_t buflen = fd.ctextLen;
-    uint8_t *const bodybuf = fd.ptext; // << XXX The ptext
+    uint8_t *const bodybuf = fd.ptext;
+    const uint8_t bodylen = fd.bodyLen;
 
     // Capture possible (near) peak of stack usage, eg when called from ISR.
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
@@ -573,8 +573,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRawPadInPlace(
 
     OTBuf_t body(fd.ptext, fd.ptextLen);
     OTBuf_t buf(fd.ctext, fd.ctextLen);
-    OTRadioLink::SecurableFrameHeader sfh;
-    const uint8_t hl = sfh.checkAndEncodeSmallFrameHeader(buf,
+    const uint8_t hl = fd.sfh.checkAndEncodeSmallFrameHeader(buf,
                                                true, fType_,
                                                seqNum_,
                                                id_,
@@ -583,7 +582,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRawPadInPlace(
     // Fail if header encoding fails.
     if(0 == hl) { return(0); } // ERROR
     // Fail if buffer is not large enough to accommodate full frame.
-    const uint8_t fl = sfh.fl;
+    const uint8_t fl = fd.sfh.fl;
     if(fl >= buflen) { return(0); } // ERROR
     // Pad body, if any, IN SITU.
     if(0 != bodylen)
@@ -1040,10 +1039,11 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTEncodeData_T &f
     if(il_ > 6) { return(0); } // ERROR: cannot supply that much of ID easily.
     // Create id buffer
     const OTBuf_t id(iv, il_);
+    fd.bodyLen = (hasStats ? 2+statslen : 2); // Note: callee will pad beyond this.
     return(encodeSecureSmallFrameRawPadInPlace(
                     fd,
                     OTRadioLink::FTS_BasicSensorOrValve,
-                    id, (hasStats ? 2+statslen : 2), // Note: callee will pad beyond this.
+                    id,
                     iv, e, subscratch, key));
 }
 
