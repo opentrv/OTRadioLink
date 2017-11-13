@@ -254,12 +254,13 @@ namespace OTRadioLink
         // (If the parameters are invalid or the buffer too small, 0 is returned to indicate an error.)
         // The fl byte in the structure is set to the frame length, else 0 in case of any error.
         // Returns number of bytes of encoded header excluding nominally-leading fl length byte; 0 in case of error.
-        uint8_t encodeHeader(OTBuf_t &buf,
-                                               bool secure_, FrameType_Secureable fType_,
-                                               uint8_t seqNum_,
-                                               const OTBuf_t &id_,  // FIXME ScratchSpace can't be const!
-                                               uint8_t bl_,
-                                               uint8_t tl_);
+        uint8_t encodeHeader(
+                    OTBuf_t &buf,
+                    bool secure_, FrameType_Secureable fType_,
+                    uint8_t seqNum_,
+                    const OTBuf_t &id_,  // FIXME ScratchSpace can't be const!
+                    uint8_t bl_,
+                    uint8_t tl_);
 
         // Decode header and check parameters/validity for inbound short secureable frame.
         // The buffer starts with the fl frame length byte.
@@ -283,7 +284,9 @@ namespace OTRadioLink
         // The fl byte in the structure is set to the frame length, else 0 in case of any error.
         // Returns number of bytes of decoded header including nominally-leading fl length byte; 0 in case of error.
         uint8_t decodeHeader(const uint8_t *buf, uint8_t buflen);
-        uint8_t decodeHeader(const OTBuf_t &buf);
+        // Wrapper convenience function for allowing OTBuf_t to be passed into checkAndDecodeSmallFrameHeader
+        uint8_t decodeHeader(const OTBuf_t &buf)
+            { return(decodeHeader(buf.buf, buf.bufsize)); }
 
         // Compute and return CRC for non-secure frames; 0 indicates an error.
         // This is the value that should be at getTrailerOffset() / offset fl.
@@ -362,7 +365,6 @@ namespace OTRadioLink
         // In the case of encryption, this should be at least 63 (64?) bytes.
         // In the case of decryption, this should be decryptedBodyBufSize bytes.
         uint8_t *const ptext;
-//        const uint8_t ptextLen;  // FIXME what to do about this.
         // This is currently always  ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE bytes long.
         static constexpr uint8_t ptextLenMax = ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE;
         // Actual size of plain text held within decryptedBody. Should be set when ptext is populated.
@@ -713,6 +715,14 @@ namespace OTRadioLink
                         fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t &e,
                         const OTV0P2BASE::ScratchSpaceL &scratch,
                         const uint8_t *key);
+
+            uint8_t encodeOnStack(
+                        OTEncodeData_T &fd,
+                        const uint8_t il_,
+                        const uint8_t valvePC,
+                        const fixed32BTextSize12BNonce16BTagSimpleEncOnStack_fn_t &e,
+                        void *const state,
+                        const uint8_t *const key);
         };
 
     // RX Base class for simple implementations that supports 0 or 32 byte encrypted body sections.

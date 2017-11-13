@@ -242,14 +242,6 @@ uint8_t SecurableFrameHeader::decodeHeader(const uint8_t *const buf, uint8_t buf
     return(hlifl); // SUCCESS!
     }
 
-// Wrapper convenience function for allowing OTBuf_t to be passed into checkAndDecodeSmallFrameHeader
-uint8_t SecurableFrameHeader::decodeHeader(const OTBuf_t &buf)
-    {
-    // Return decoded header length including frame-length byte; body should immediately follow.
-    return(decodeHeader(buf.buf, buf.bufsize)); // SUCCESS!
-    }
-
-
 // Compute and return CRC for non-secure frames; 0 indicates an error.
 // This is the value that should be at getTrailerOffset() / offset fl.
 // Can be called after checkAndEncodeSmallFrameHeader() or checkAndDecodeSmallFrameHeader()
@@ -410,7 +402,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeRaw(
             const uint8_t *iv,
             fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t &e,
             const OTV0P2BASE::ScratchSpaceL &scratch,
-            const uint8_t *key)
+            const uint8_t *const key)
     {
     if(NULL == key) { return(0); } // ERROR
 
@@ -465,7 +457,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeRawUnpaddedOnStack(
             const uint8_t *iv,
             fixed32BTextSize12BNonce16BTagSimpleEncOnStack_fn_t  &e,
             void *state,
-            const uint8_t *key)
+            const uint8_t *const key)
     {
     if(NULL == key) { return(0); } // ERROR
 
@@ -795,7 +787,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOStyleFrameForTX(
             uint8_t il_,
             fixed32BTextSize12BNonce16BTagSimpleEncOnStack_fn_t  &e,
             void *state,
-            const uint8_t *key)
+            const uint8_t *const key)
     {
     if((fd.fType >= FTS_INVALID_HIGH) || (fd.fType == FTS_NONE)) { return(0); } // FAIL
     uint8_t iv[12];
@@ -808,7 +800,6 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOStyleFrameForTX(
     return(encodeRawUnpaddedOnStack(fd, txID, iv, e, state, key));
     }
 
-#if 0 // XXX
 // Create simple 'O' (FTS_BasicSensorOrValve) frame with an optional stats section for transmission.
 // Returns number of bytes written to buffer, or 0 in case of error.
 // The IV is constructed from the node ID (built-in from EEPROM or as supplied)
@@ -822,117 +813,13 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOStyleFrameForTX(
 //  * il_  ID length for the header; ID is local node ID from EEPROM or other pre-supplied ID, may be limited to a 6-byte prefix
 //  * key  16-byte secret key; never NULL
 // NOTE: THIS API IS LIABLE TO CHANGE
-uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX(uint8_t *const buf, const uint8_t buflen,
-                                const uint8_t il_,
-                                const uint8_t valvePC,
-                                const char *const statsJSON,
-                                const fixed32BTextSize12BNonce16BTagSimpleEncOnStack_fn_t  &e,
-                                void *const state, const uint8_t *const key)
-    {
-    uint8_t iv[12];
-    if(!compute12ByteIDAndCounterIVForTX(iv)) { return(0); }
-    const bool hasStats = (NULL != statsJSON) && ('{' == statsJSON[0]);
-    const size_t slp1 = hasStats ? strlen(statsJSON) : 1; // Stats length including trailing '}' (not sent).
-    if(slp1 > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE-1) { return(0); } // ERROR
-    const uint8_t statslen = (uint8_t)(slp1 - 1); // Drop trailing '}' implicitly.
-    uint8_t bbuf[ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE];
-    bbuf[0] = (valvePC <= 100) ? valvePC : 0x7f;
-    bbuf[1] = hasStats ? 0x10 : 0; // Indicate presence of stats.
-    if(hasStats) { memcpy(bbuf + 2, statsJSON, statslen); }
-    const uint8_t *ID = iv; // First 6 bytes of IV is the ID.
-    if(il_ > 6) { return(0); } // ERROR: cannot supply that much of ID easily.
-    return(encodeRawUnpaddedOnStack(buf, buflen,
-                                    OTRadioLink::FTS_BasicSensorOrValve,
-                                    ID, il_,
-                                    bbuf, (hasStats ? 2+statslen : 2),
-                                    iv, e, state, key));
-    }
-
-uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameOnStack(OTBuf_t &buf,
-                                                uint8_t il_,
-                                                uint8_t valvePC,
-                                                const uint8_t * const body,
-                                                fixed32BTextSize12BNonce16BTagSimpleEncOnStack_fn_t  &e,
-                                                void *state, const uint8_t *key)
-    {
-    uint8_t iv[12];
-    if(!compute12ByteIDAndCounterIVForTX(iv)) { return(0); }
-    const bool hasStats = (NULL != body) && ('{' == body[0]);
-    const size_t slp1 = hasStats ? strlen((const char * const) body) : 1; // Stats length including trailing '}' (not sent).
-    if(slp1 > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE-1) { return(0); } // ERROR
-    const uint8_t statslen = (uint8_t)(slp1 - 1); // Drop trailing '}' implicitly.
-    uint8_t bbuf[ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE];
-    bbuf[0] = (valvePC <= 100) ? valvePC : 0x7f;
-    bbuf[1] = hasStats ? 0x10 : 0; // Indicate presence of stats.
-    if(hasStats) { memcpy(bbuf + 2, body, statslen); }
-    /* const */ uint8_t *ID = iv; // First 6 bytes of IV is the ID.  FIXME Should be const pointer
-    if(il_ > 6) { return(0); } // ERROR: cannot supply that much of ID easily.
-
-    // create OTBufs
-    const OTBuf_t id(ID, il_);
-    const OTBuf_t newBody(bbuf, (hasStats ? 2+statslen : 2));
-    return(encodeRawUnpaddedOnStack(buf,
-                                    OTRadioLink::FTS_BasicSensorOrValve,
-                                    id,
-                                    newBody,
-                                    iv, e, state, key));
-    }
-
-// Create simple 'O' (FTS_BasicSensorOrValve) frame with an optional stats section for transmission.
-// Returns number of bytes written to buffer, or 0 in case of error.
-// The IV is constructed from the node ID (built-in from EEPROM or as supplied)
-// and the primary TX message counter (which is incremented).
-// Note that the frame will be 27 + ID-length (up to maxIDLength) + body-length bytes,
-// so the buffer must be large enough to accommodate that.
-//  * buf  buffer to which is written the entire frame including trailer; never NULL
-//  * buflen  available length in buf; if too small then this routine will fail (return 0)
-//  * valvePC  percentage valve is open or 0x7f if no valve to report on
-//  * statsJSON  '\0'-terminated {} JSON stats, or NULL if none.
-//  * il_  ID length for the header; ID is local node ID from EEPROM or other pre-supplied ID
-//  * key  16-byte secret key; never NULL
-// NOTE: THIS API IS LIABLE TO CHANGE
-uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX(
-            uint8_t *const buf, const uint8_t buflen,
-            const uint8_t il_,
-            const uint8_t valvePC,
-            uint8_t *const ptextBuf,
-            fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t &e,
-            const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *const key)
-{
-    constexpr uint8_t IV_size = 12;
-    static_assert(encode_scratch_usage == IV_size, "self-use scratch size wrong");
-    static_assert(encode_scratch_usage < encode_total_scratch_usage_OTAESGCM_2p0, "scratch size calc wrong");
-    if(scratch.bufsize < encode_total_scratch_usage_OTAESGCM_2p0) { return(0); } // ERROR
-    // iv at start of scratch space
-    uint8_t *const iv = scratch.buf; // uint8_t iv[IV_size];
-    if(!compute12ByteIDAndCounterIVForTX(iv)) { return(0); }
-    const char *const statsJSON = (const char *const)&ptextBuf[2];
-    const bool hasStats = (NULL != ptextBuf) && ('{' == statsJSON[0]);
-    const size_t slp1 = hasStats ? strlen(statsJSON) : 1; // Stats length including trailing '}' (not sent).
-    if(slp1 > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE-1) { return(0); } // ERROR
-    const uint8_t statslen = (uint8_t)(slp1 - 1); // Drop trailing '}' implicitly.
-    // bbuf (buffer to encode in?) goes after iv
-    uint8_t *const bbuf = (uint8_t *const)ptextBuf; // uint8_t bbuf[ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE];
-    bbuf[0] = (valvePC <= 100) ? valvePC : 0x7f;
-    bbuf[1] = hasStats ? 0x10 : 0; // Indicate presence of stats.
-    // Create a new scratchspace from the old one in order to pass on.
-    const OTV0P2BASE::ScratchSpaceL subscratch(scratch, encode_scratch_usage);
-    const uint8_t *ID = iv; // First 6 bytes of IV is the ID.
-    if(il_ > 6) { return(0); } // ERROR: cannot supply that much of ID easily.
-    return(encodeRaw(buf, buflen,
-        OTRadioLink::FTS_BasicSensorOrValve,
-        ID, il_,
-        bbuf, (hasStats ? 2+statslen : 2), // Note: callee will pad beyond this.
-        iv, e, subscratch, key));
-}
-#endif
 uint8_t SimpleSecureFrame32or0BodyTXBase::encode(
                                             OTEncodeData_T &fd,
                                             uint8_t il_,
                                             uint8_t valvePC,
                                             fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t &e,
                                             const OTV0P2BASE::ScratchSpaceL &scratch,
-                                            const uint8_t *key)
+                                            const uint8_t *const key)
 {
     constexpr uint8_t IV_size = 12;
     static_assert(encode_scratch_usage == IV_size, "self-use scratch size wrong");
@@ -964,6 +851,44 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encode(
     fd.fType = OTRadioLink::FTS_BasicSensorOrValve;
     return(encodeRaw(fd, id, iv, e, subscratch, key));
 }
+
+
+#if 1 // XXX
+uint8_t SimpleSecureFrame32or0BodyTXBase::encodeOnStack(
+                                                OTEncodeData_T &fd,
+                                                const uint8_t il_,
+                                                const uint8_t valvePC,
+                                                const fixed32BTextSize12BNonce16BTagSimpleEncOnStack_fn_t &e,
+                                                void *const state,
+                                                const uint8_t *const key)
+    {
+    // buffer args and consts
+    uint8_t * const ptext = fd.ptext;
+
+    uint8_t iv[12];
+    if(!compute12ByteIDAndCounterIVForTX(iv)) { return(0); }
+
+    const char *const statsJSON = (const char *const)&ptext[2];
+
+    const bool hasStats = (NULL != ptext) && ('{' == statsJSON[0]);
+    const size_t slp1 = hasStats ? strlen(statsJSON) : 1; // Stats length including trailing '}' (not sent).
+    if(slp1 > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE-1) { return(0); } // ERROR
+    const uint8_t statslen = (uint8_t)(slp1 - 1); // Drop trailing '}' implicitly.
+    uint8_t bbuf[ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE];
+    bbuf[0] = (valvePC <= 100) ? valvePC : 0x7f;
+    bbuf[1] = hasStats ? 0x10 : 0; // Indicate presence of stats.
+    if(hasStats) { memcpy(bbuf + 2, statsJSON, statslen); }
+    if(il_ > 6) { return(0); } // ERROR: cannot supply that much of ID easily.
+
+    // Create id buffer
+    const OTBuf_t id(iv, il_);
+    fd.bodyLen = (hasStats ? 2+statslen : 2); // Note: callee will pad beyond this.
+    fd.fType = OTRadioLink::FTS_BasicSensorOrValve;
+
+
+    return(encodeRawUnpaddedOnStack(fd, id, iv, e, state, key));
+    }
+#endif
 
     // As for decodeSecureSmallFrameRaw() but passed a candidate node/counterparty ID
     // derived from the frame ID in the incoming header,
@@ -1025,7 +950,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encode(
                 fixed32BTextSize12BNonce16BTagSimpleDecOnStack_fn_t &d,
                 const OTBuf_t adjID,
                 void *const state,
-                const uint8_t *key)
+                const uint8_t *const key)
         {
         // Rely on decodeSecureSmallFrameRaw() for validation of items not directly needed here.
         if(adjID.bufsize < 6) { return(0); } // ERROR
