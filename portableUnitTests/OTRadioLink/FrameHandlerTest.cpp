@@ -525,7 +525,7 @@ TEST(FrameHandlerTest, authAndDecodeSecurableFrameFull)
 
     uint8_t decryptedBodyOut[OTRadioLink::OTDecodeData_T::ptextLenMax];
     OTRadioLink::OTDecodeData_T fd(msgStart, decryptedBodyOut);
-    EXPECT_NE(0, fd.sfh.checkAndDecodeSmallFrameHeader(OTFHT::minimumSecureFrame::buf, OTFHT::minimumSecureFrame::encodedLength));
+    EXPECT_NE(0, fd.sfh.decodeHeader(OTFHT::minimumSecureFrame::buf, OTFHT::minimumSecureFrame::encodedLength));
 
     // Workspace for authAndDecodeOTSecurableFrame
     constexpr size_t workspaceRequired =
@@ -591,7 +591,7 @@ TEST(FrameHandlerTest, authAndDecodeSecurableFrameFull)
     sfrx.setMockCounterValue(msgCounter);
 
     OTRadioLink::OTDecodeData_T fd(msgStart);
-    EXPECT_NE(0, fd.sfh.checkAndDecodeSmallFrameHeader(OTFHT::minimumSecureFrame::buf, OTFHT::minimumSecureFrame::encodedLength));
+    EXPECT_NE(0, fd.sfh.decodeHeader(OTFHT::minimumSecureFrame::buf, OTFHT::minimumSecureFrame::encodedLength));
 
     // Set up stack usage checks
     const bool test1 = OTRadioLink::authAndDecodeOTSecurableFrameOnStack<

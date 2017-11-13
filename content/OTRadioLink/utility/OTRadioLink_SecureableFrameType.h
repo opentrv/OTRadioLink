@@ -254,7 +254,7 @@ namespace OTRadioLink
         // (If the parameters are invalid or the buffer too small, 0 is returned to indicate an error.)
         // The fl byte in the structure is set to the frame length, else 0 in case of any error.
         // Returns number of bytes of encoded header excluding nominally-leading fl length byte; 0 in case of error.
-        uint8_t checkAndEncodeSmallFrameHeader(OTBuf_t &buf,
+        uint8_t encodeHeader(OTBuf_t &buf,
                                                bool secure_, FrameType_Secureable fType_,
                                                uint8_t seqNum_,
                                                const OTBuf_t &id_,  // FIXME ScratchSpace can't be const!
@@ -282,8 +282,8 @@ namespace OTRadioLink
         // (If the header is invalid or the buffer too small, 0 is returned to indicate an error.)
         // The fl byte in the structure is set to the frame length, else 0 in case of any error.
         // Returns number of bytes of decoded header including nominally-leading fl length byte; 0 in case of error.
-        uint8_t checkAndDecodeSmallFrameHeader(const uint8_t *buf, uint8_t buflen);
-        uint8_t checkAndDecodeSmallFrameHeader(const OTBuf_t &buf);
+        uint8_t decodeHeader(const uint8_t *buf, uint8_t buflen);
+        uint8_t decodeHeader(const OTBuf_t &buf);
 
         // Compute and return CRC for non-secure frames; 0 indicates an error.
         // This is the value that should be at getTrailerOffset() / offset fl.

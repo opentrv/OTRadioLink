@@ -72,7 +72,7 @@ namespace OTRadioLink
 // (If the parameters are invalid or the buffer too small, 0 is returned to indicate an error.)
 // The fl byte in the structure is set to the frame length, else 0 in case of any error.
 // Returns number of bytes of encoded header excluding nominally-leading fl length byte; 0 in case of error.
-uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(
+uint8_t SecurableFrameHeader::encodeHeader(
         OTBuf_t &buf,
         bool secure_, FrameType_Secureable fType_,
         uint8_t seqNum_,
@@ -187,7 +187,7 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(
 // Returns number of bytes of decoded header
 // including nominally-leading fl length byte;
 // 0 in case of error.
-uint8_t SecurableFrameHeader::checkAndDecodeSmallFrameHeader(const uint8_t *const buf, uint8_t buflen)
+uint8_t SecurableFrameHeader::decodeHeader(const uint8_t *const buf, uint8_t buflen)
     {
     // Make frame 'invalid' until everything is finished and checks out.
     fl = 0;
@@ -243,10 +243,10 @@ uint8_t SecurableFrameHeader::checkAndDecodeSmallFrameHeader(const uint8_t *cons
     }
 
 // Wrapper convenience function for allowing OTBuf_t to be passed into checkAndDecodeSmallFrameHeader
-uint8_t SecurableFrameHeader::checkAndDecodeSmallFrameHeader(const OTBuf_t &buf)
+uint8_t SecurableFrameHeader::decodeHeader(const OTBuf_t &buf)
     {
     // Return decoded header length including frame-length byte; body should immediately follow.
-    return(checkAndDecodeSmallFrameHeader(buf.buf, buf.bufsize)); // SUCCESS!
+    return(decodeHeader(buf.buf, buf.bufsize)); // SUCCESS!
     }
 
 
@@ -297,7 +297,7 @@ uint8_t encodeNonsecureOnStack(
     // Let checkAndEncodeSmallFrameHeader() validate buf and id_.
     // If necessary (bl_ > 0) body is validated below.
     OTBuf_t buf(fd.ctext, fd.ctextLen);  // XXX
-    const uint8_t hl = fd.sfh.checkAndEncodeSmallFrameHeader(buf,
+    const uint8_t hl = fd.sfh.encodeHeader(buf,
                                                false, fd.fType, // Not secure.
                                                seqNum_,
                                                id_,
@@ -430,7 +430,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeRaw(
 
     OTBuf_t body(fd.ptext, fd.ptextLen);
     OTBuf_t buf(fd.ctext, fd.ctextLen);
-    const uint8_t hl = fd.sfh.checkAndEncodeSmallFrameHeader(
+    const uint8_t hl = fd.sfh.encodeHeader(
                                     buf,
                                     true, fd.fType,
                                     seqNum_,
@@ -484,7 +484,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeRawUnpaddedOnStack(
     const uint8_t seqNum_ = iv[11] & 0xf;
 
     OTBuf_t buf(fd.ctext, fd.ctextLen);
-    const uint8_t hl = fd.sfh.checkAndEncodeSmallFrameHeader(
+    const uint8_t hl = fd.sfh.encodeHeader(
                                     buf,
                                     true,
                                     fd.fType,
