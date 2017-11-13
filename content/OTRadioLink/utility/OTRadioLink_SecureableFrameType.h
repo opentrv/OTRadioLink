@@ -525,37 +525,6 @@ namespace OTRadioLink
                     uint8_t *ciphertextOut, uint8_t *tagOut);
             typedef fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_fn_t *fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t;
 
-            // Encode entire secure small frame from header params and body and crypto support.
-            // This is a raw/partial impl that requires the IV/nonce to be supplied.
-            // This uses fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t style encryption/authentication.
-            // The matching decryption function should be used for decoding/verifying.
-            // The crypto method may need to vary based on frame type,
-            // and on negotiations between the participants in the communications.
-            // Returns the total number of bytes written out for the frame
-            // (including, and with a value one higher than the first 'fl' bytes).
-            // Returns zero in case of error.
-            // The supplied buffer may have to be up to 64 bytes long.
-            //
-            // Note that the sequence number is taken from the 4 least significant bits
-            // of the message counter (at byte 6 in the nonce).
-            //
-            // Parameters:
-            //  * buf  buffer to which is written the entire frame including trailer; never NULL
-            //  * buflen  available length in buf; if too small then this routine will fail (return 0)
-            //  * fType_  frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
-            //  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
-            //  * body / bl_  body data (and length), before padding/encryption, no larger than ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE
-            //  * iv  12-byte initialisation vector / nonce; never NULL
-            //  * e  encryption function; never NULL
-            //  * state  pointer to state for e, if required, else NULL
-            //  * key  secret key; never NULL
-            static uint8_t encodeSecureSmallFrameRaw(
-                                OTEncodeData_T &fd,
-                                const OTBuf_t &id_,
-                                const uint8_t *iv,
-                                fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
-                                void *state,
-                                const uint8_t *key);
 
             // Encode entire secure small frame from header params and body and crypto support.
             // Buffer for body must be large enough to allow padding to be applied IN PLACE.
@@ -589,12 +558,44 @@ namespace OTRadioLink
             static constexpr size_t encodeSecureSmallFrameRawPadInPlace_total_scratch_usage_OTAESGCM_2p0 =
                     workspaceRequred_GCM32B16BWithWorkspace_OTAESGCM_2p0
                     + encodeSecureSmallFrameRawPadInPlace_scratch_usage;
-            static uint8_t encodeSecureSmallFrameRawPadInPlace(
+            static uint8_t encodeRaw(
                                 OTEncodeData_T &fd,
                                 const OTBuf_t &id_,
                                 const uint8_t *iv,
                                 fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
                                 const OTV0P2BASE::ScratchSpaceL &scratch,
+                                const uint8_t *key);
+
+            // Encode entire secure small frame from header params and body and crypto support.
+            // This is a raw/partial impl that requires the IV/nonce to be supplied.
+            // This uses fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t style encryption/authentication.
+            // The matching decryption function should be used for decoding/verifying.
+            // The crypto method may need to vary based on frame type,
+            // and on negotiations between the participants in the communications.
+            // Returns the total number of bytes written out for the frame
+            // (including, and with a value one higher than the first 'fl' bytes).
+            // Returns zero in case of error.
+            // The supplied buffer may have to be up to 64 bytes long.
+            //
+            // Note that the sequence number is taken from the 4 least significant bits
+            // of the message counter (at byte 6 in the nonce).
+            //
+            // Parameters:
+            //  * buf  buffer to which is written the entire frame including trailer; never NULL
+            //  * buflen  available length in buf; if too small then this routine will fail (return 0)
+            //  * fType_  frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
+            //  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
+            //  * body / bl_  body data (and length), before padding/encryption, no larger than ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE
+            //  * iv  12-byte initialisation vector / nonce; never NULL
+            //  * e  encryption function; never NULL
+            //  * state  pointer to state for e, if required, else NULL
+            //  * key  secret key; never NULL
+            static uint8_t encodeRawUnpaddedOnStack(
+                                OTEncodeData_T &fd,
+                                const OTBuf_t &id_,
+                                const uint8_t *iv,
+                                fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                                void *state,
                                 const uint8_t *key);
 
             // Get the 3 bytes of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.

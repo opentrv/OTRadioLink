@@ -790,7 +790,7 @@ TEST(OTAESGCMSecureFrame, SecureSmallFrameEncodingWithWorkspace)
     OTRadioLink::OTEncodeData_T fdTX(_bodyBuf, sizeof(_bodyBuf), _buf, sizeof(_buf));
     fdTX.bodyLen = sizeof(body);
     fdTX.fType = OTRadioLink::FTS_BasicSensorOrValve;
-    const uint8_t encodedLength = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRawPadInPlace(
+    const uint8_t encodedLength = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeRaw(
                                         fdTX,
                                         id4bytes,
                                         iv,
@@ -925,7 +925,7 @@ TEST(OTAESGCMSecureFrame, BeaconEncodingWithWorkspace)
         // IV/nonce starting with first 6 bytes of preshared ID, then 6 bytes of counter.
         const uint8_t iv[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55, 0x00, 0x00, 0x2a, 0x00, 0x03, 0x19 };
         //    const uint8_t sb1 = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::generateSecureBeaconRaw(buf, sizeof(buf), id, idLen, iv, OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS, NULL, key);
-        const uint8_t sb1 = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRawPadInPlace(
+        const uint8_t sb1 = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeRaw(
                                         otbuf,
                                         OTRadioLink::FTS_ALIVE,
                                         id,
@@ -1494,7 +1494,7 @@ TEST(OTAESGCMSecureFrame, SecureFrameEncodeStackUsageWithWorkspace) {
     // 'O' frame body with some JSON stats.
     uint8_t body[] = { 0x7f, 0x11, 0x7b, 0x22, 0x62, 0x22, 0x3a, 0x31 };
 
-    OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRawPadInPlace(buf, sizeof(buf),
+    OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeRaw(buf, sizeof(buf),
                                     OTRadioLink::FTS_BasicSensorOrValve,
                                     id, 4,
                                     body, sizeof(body),
@@ -1553,7 +1553,7 @@ TEST(OTAESGCMSecureFrame, SecureFrameDecodeStackUsage) {
     const uint8_t body[] = { 0x7f, 0x11, 0x7b, 0x22, 0x62, 0x22, 0x3a, 0x31 };
     uint8_t bodyBuf[32] = {};
     memcpy(bodyBuf, body, sizeof(body));
-    const uint8_t encodedLength = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRawPadInPlace(buf, sizeof(buf),
+    const uint8_t encodedLength = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeRaw(buf, sizeof(buf),
                                     OTRadioLink::FTS_BasicSensorOrValve,
                                     id, 4,
                                     bodyBuf, sizeof(body),
@@ -1631,7 +1631,7 @@ TEST(OTAESGCMSecureFrame,SecureFrameEncodeStackUsageWITHWORKSPACE)
     OTV0P2BASE::ScratchSpaceL sW(workspace, workspaceSize);
     const OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t eW = OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_LWORKSPACE;
 
-    OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRawPadInPlace(buf, sizeof(buf),
+    OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeRaw(buf, sizeof(buf),
                                                                              OTRadioLink::FTS_BasicSensorOrValve,
                                                                              id, 4,
                                                                              body, sizeof(body),
