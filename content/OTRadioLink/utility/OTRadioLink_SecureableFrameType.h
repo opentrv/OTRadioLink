@@ -774,8 +774,6 @@ namespace OTRadioLink
                     const uint8_t *authtext, uint8_t authtextSize,
                     const uint8_t *ciphertext, const uint8_t *tag,
                     uint8_t *plaintextOut);
-            typedef fixed32BTextSize12BNonce16BTagSimpleDecOnStack_fn_t
-                *fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t;
 
             // Signature of pointer to basic fixed-size text decryption/authentication function with workspace supplied.
             // (Suitable for type 'O' valve/sensor small frame for example.)

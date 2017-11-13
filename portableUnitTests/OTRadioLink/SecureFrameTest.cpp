@@ -475,7 +475,7 @@ TEST(OTAESGCMSecureFrame, SimplePadding)
 TEST(OTAESGCMSecureFrame, SimpleNULLEncDec)
 {
     const OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e = OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL;
-    const OTRadioLink::SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d = OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL;
+    OTRadioLink::SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDecOnStack_fn_t &d = OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL;
     // Check that calling the NULL enc routine with bad args fails.
     EXPECT_TRUE(!e(NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL));
     static const uint8_t plaintext1[32] = { 'a', 'b', 'c', 'd', 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4 };
@@ -499,7 +499,7 @@ TEST(OTAESGCMSecureFrame, SimpleNULLEncDec)
 // Test a simple fixed-size enc/dec function pair.
 // Aborts with Assert...() in case of failure.
 static void runSimpleEncDec(const OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
-                            const OTRadioLink::SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d)
+                            OTRadioLink::SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDecOnStack_fn_t &d)
 {
     // Check that calling the NULL enc routine with bad args fails.
     EXPECT_TRUE(!e(NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL));
