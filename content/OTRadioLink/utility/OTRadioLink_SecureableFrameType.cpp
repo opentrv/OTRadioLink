@@ -162,86 +162,6 @@ uint8_t SecurableFrameHeader::checkAndEncodeSmallFrameHeader(
     return(hlifl); // SUCCESS!
     }
 
-// Decode header and check parameters/validity for inbound short secureable frame.
-// The buffer starts with the fl frame length byte.
-//
-// Parameters:
-//  * buf  buffer to decode header from, of at least length buflen; never NULL
-//  * buflen  available length in buf; if too small for encoded header routine will fail (return 0)
-//
-// Performs as many as possible of the 'Quick Integrity Checks' from the spec, eg SecureBasicFrame-V0.1-201601.txt
-//  1) fl >= 4 (type, seq/il, bl, trailer bytes)
-//  2) fl may be further constrained by system limits, typically to <= 63
-//  3) type (the first frame byte) is never 0x00, 0x80, 0x7f, 0xff.
-//  4) il <= 8 for initial implementations (internal node ID is 8 bytes)
-//  5) il <= fl - 4 (ID length; minimum of 4 bytes of other overhead)
-//  6) bl <= fl - 4 - il (body length; minimum of 4 bytes of other overhead)
-//  7) the final frame byte (the final trailer byte) is never 0x00 nor 0xff (if whole frame available)
-//  8) tl == 1 for non-secure, tl >= 1 for secure (tl = fl - 3 - il - bl)
-// Note: fl = hl-1 + bl + tl = 3+il + bl + tl
-//
-// (If the header is invalid or the buffer too small, 0 is returned to indicate an error.)
-// The fl byte in the structure is set to the frame length, else 0 in case of any error.
-//
-// Returns number of bytes of decoded header
-// including nominally-leading fl length byte;
-// 0 in case of error.
-uint8_t SecurableFrameHeader::checkAndDecodeSmallFrameHeader(const OTBuf_t &_buf)
-    {
-    // buffer args
-    const uint8_t *const buf = _buf.buf;
-    const uint8_t buflen = _buf.bufsize;
-    // Make frame 'invalid' until everything is finished and checks out.
-    fl = 0;
-
-    // If buf is NULL or clearly too small to contain a valid header then return an error.
-//    if(NULL == buf) { return(0); } // ERROR  // buf.bufsize will be 0 anyway.
-    if(buflen < 4) { return(0); } // ERROR
-
-    // Quick integrity checks from spec.
-    //  1) fl >= 4 (type, seq/il, bl, trailer bytes)
-    const uint8_t fl_ = buf[0];
-    if(fl_ < 4) { return(0); } // ERROR
-    //  2) fl may be further constrained by system limits, typically to < 64, eg for 'small' frame.
-    if(fl_ > maxSmallFrameSize) { return(0); } // ERROR
-    //  3) type (the first frame byte) is never 0x00, 0x80, 0x7f, 0xff.
-    fType = buf[1];
-    const bool secure_ = isSecure();
-    const FrameType_Secureable fType_ = (FrameType_Secureable)(fType & 0x7f);
-    if((FTS_NONE == fType_) || (fType_ >= FTS_INVALID_HIGH)) { return(0); } // ERROR
-    //  4) il <= 8 for initial implementations (internal node ID is 8 bytes)
-    seqIl = buf[2];
-    const uint8_t il_ = getIl();
-    if(il_ > maxIDLength) { return(0); } // ERROR
-    //  5) il <= fl - 4 (ID length; minimum of 4 bytes of other overhead)
-    if(il_ > fl_ - 4) { return(0); } // ERROR
-    // Header length including frame length byte.
-    const uint8_t hlifl = 4 + il_;
-    // If buffer doesn't contain enough data for the full header then return an error.
-    if(hlifl > buflen) { return(0); } // ERROR
-    // Capture the ID bytes, in the storage in the instance, if any.
-    if(il_ > 0) { memcpy(id, buf+3, il_); }
-    //  6) bl <= fl - 4 - il (body length; minimum of 4 bytes of other overhead)
-    const uint8_t bl_ = buf[hlifl - 1];
-    if(bl_ > fl_ - hlifl) { return(0); } // ERROR
-    bl = bl_;
-    //  7) ONLY CHECKED IF FULL FRAME AVAILABLE: the final frame byte (the final trailer byte) is never 0x00 nor 0xff
-    if(buflen > fl_)
-        {
-        const uint8_t lastByte = buf[fl_];
-        if((0x00 == lastByte) || (0xff == lastByte)) { return(0); } // ERROR
-        }
-    //  8) tl == 1 for non-secure, tl >= 1 for secure (tl = fl - 3 - il - bl)
-    const uint8_t tl_ = fl_ - 3 - il_ - bl; // Same calc, but getTl() can't be used as fl not yet set.
-    if(!secure_) { if(1 != tl_) { return(0); } } // ERROR
-    else if(0 == tl_) { return(0); } // ERROR
-
-    // Set fl field to valid value as last action / side-effect.
-    fl = fl_;
-
-    // Return decoded header length including frame-length byte; body should immediately follow.
-    return(hlifl); // SUCCESS!
-    }
 
 // Decode header and check parameters/validity for inbound short secureable frame.
 // The buffer starts with the fl frame length byte.
@@ -322,6 +242,12 @@ uint8_t SecurableFrameHeader::checkAndDecodeSmallFrameHeader(const uint8_t *cons
     return(hlifl); // SUCCESS!
     }
 
+// Wrapper convenience function for allowing OTBuf_t to be passed into checkAndDecodeSmallFrameHeader
+uint8_t SecurableFrameHeader::checkAndDecodeSmallFrameHeader(const OTBuf_t &buf)
+    {
+    // Return decoded header length including frame-length byte; body should immediately follow.
+    return(checkAndDecodeSmallFrameHeader(buf.buf, buf.bufsize)); // SUCCESS!
+    }
 
 
 // Compute and return CRC for non-secure frames; 0 indicates an error.
