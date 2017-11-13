@@ -416,8 +416,6 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeRaw(
 
     // buffer local variables/consts
     uint8_t * const buffer = fd.ctext;
-    const uint8_t buflen = fd.ctextLen;
-    uint8_t *const bodybuf = fd.ptext;
     const uint8_t bodylen = fd.bodyLen;
 
     // Capture possible (near) peak of stack usage, eg when called from ISR.
@@ -432,25 +430,26 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeRaw(
 
     OTBuf_t body(fd.ptext, fd.ptextLen);
     OTBuf_t buf(fd.ctext, fd.ctextLen);
-    const uint8_t hl = fd.sfh.checkAndEncodeSmallFrameHeader(buf,
-                                               true, fd.fType,
-                                               seqNum_,
-                                               id_,
-                                               encryptedBodyLength,
-                                               23); // 23-byte authentication trailer.
+    const uint8_t hl = fd.sfh.checkAndEncodeSmallFrameHeader(
+                                    buf,
+                                    true, fd.fType,
+                                    seqNum_,
+                                    id_,
+                                    encryptedBodyLength,
+                                    23); // 23-byte authentication trailer.
     // Fail if header encoding fails.
     if(0 == hl) { return(0); } // ERROR
     // Fail if buffer is not large enough to accommodate full frame.
     const uint8_t fl = fd.sfh.fl;
-    if(fl >= buflen) { return(0); } // ERROR
+    if(fl >= fd.ctextLen) { return(0); } // ERROR
     // Pad body, if any, IN SITU.
     if(0 != bodylen)
         {
-        if(0 == addPaddingTo32BTrailing0sAndPadCount(bodybuf, bodylen)) { return(0); } // ERROR
+        if(0 == addPaddingTo32BTrailing0sAndPadCount(fd.ptext, bodylen)) { return(0); } // ERROR
         }
     // Encrypt body (if any) from its now-padded buffer to the output buffer.
     // Insert the tag directly into the buffer (before the final byte).
-    if(!e(scratch.buf, scratch.bufsize, key, iv, buffer, hl, (0 == bodylen) ? NULL : bodybuf, buffer + hl, buffer + fl - 16)) { return(0); } // ERROR
+    if(!e(scratch.buf, scratch.bufsize, key, iv, buffer, hl, (0 == bodylen) ? NULL : fd.ptext, buffer + hl, buffer + fl - 16)) { return(0); } // ERROR
     // Copy the counters part (last 6 bytes of) the nonce/IV into the trailer...
     memcpy(buffer + fl - 22, iv + 6, 6);
     // Set final trailer byte to indicate encryption type and format.
@@ -486,13 +485,13 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeRawUnpaddedOnStack(
 
     OTBuf_t buf(fd.ctext, fd.ctextLen);
     const uint8_t hl = fd.sfh.checkAndEncodeSmallFrameHeader(
-                                               buf,
-                                               true,
-                                               fd.fType,
-                                               seqNum_,
-                                               id_,
-                                               encryptedBodyLength,
-                                               23); // 23-byte authentication trailer.
+                                    buf,
+                                    true,
+                                    fd.fType,
+                                    seqNum_,
+                                    id_,
+                                    encryptedBodyLength,
+                                    23); // 23-byte authentication trailer.
     // Fail if header encoding fails.
     if(0 == hl) { return(0); } // ERROR
     // Fail if buffer is not large enough to accommodate full frame.
@@ -516,6 +515,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeRawUnpaddedOnStack(
     return(fl + 1);
     }
 #endif
+
 
 // Decode entire secure small frame from raw frame bytes and crypto support.
 // This is a raw/partial impl that requires the IV/nonce to be supplied.
@@ -572,11 +572,11 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::decodeRaw(
     // Create a new sub scratch space for callee.
     OTV0P2BASE::ScratchSpaceL subScratch(scratch, scratchSpaceNeededHere);
 
+    if((NULL == fd.ctext) || (NULL == key) || (NULL == iv)) { return(0); } // ERROR
+
     const uint8_t *const buf = fd.ctext;
     const uint8_t buflen = buf[0] + 1;
     const SecurableFrameHeader &sfh = fd.sfh;
-
-    if((NULL == buf) || (NULL == key) || (NULL == iv)) { return(0); } // ERROR
 
     // Abort if header was not decoded properly.
     if(sfh.isInvalid()) { return(0); } // ERROR
@@ -621,16 +621,13 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::decodeRawOnStack(
             const uint8_t *const key,
             const uint8_t *const iv)
     {
+    if((NULL == fd.ctext) || (NULL == key) || (NULL == iv)) { return(0); } // ERROR
+    // Capture possible (near) peak of stack usage, eg when called from ISR.
+    OTV0P2BASE::MemoryChecks::recordIfMinSP();
+
     const uint8_t *const buf = fd.ctext;
     const uint8_t buflen = buf[0] + 1;
     const SecurableFrameHeader &sfh = fd.sfh;
-    uint8_t *const decryptedBodyOut = fd.ptext;
-    const uint8_t decryptedBodyOutBuflen = fd.ptextLenMax;
-    uint8_t &decryptedBodyOutSize = fd.ptextSize;
-
-    if((NULL == buf) || (NULL == key) || (NULL == iv)) { return(0); } // ERROR
-    // Capture possible (near) peak of stack usage, eg when called from ISR.
-    OTV0P2BASE::MemoryChecks::recordIfMinSP();
 
     // Abort if header was not decoded properly.
     if(sfh.isInvalid()) { return(0); } // ERROR
@@ -644,7 +641,7 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::decodeRawOnStack(
     // Check that header sequence number lsbs match nonce counter 4 lsbs.
     if(sfh.getSeq() != (iv[11] & 0xf)) { return(0); } // ERROR
     // Note if plaintext is actually wanted/expected.
-    const bool plaintextWanted = (NULL != decryptedBodyOut);
+    const bool plaintextWanted = (NULL != fd.ptext);
     // Attempt to authenticate and decrypt.
     uint8_t decryptBuf[ENC_BODY_SMALL_FIXED_CTEXT_SIZE];
     if(!d(state, key, iv, buf, sfh.getHl(),
@@ -655,13 +652,13 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::decodeRawOnStack(
         // Unpad the decrypted text in place.
         const uint8_t upbl = removePaddingTo32BTrailing0sAndPadCount(decryptBuf);
         if(upbl > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
-        if(upbl > decryptedBodyOutBuflen) { return(0); } // ERROR
-        memcpy(decryptedBodyOut, decryptBuf, upbl);
-        decryptedBodyOutSize = upbl;
+        if(upbl > fd.ptextLenMax) { return(0); } // ERROR
+        memcpy(fd.ptext, decryptBuf, upbl);
+        fd.ptextSize = upbl;
         // TODO: optimise later if plaintext not required but ciphertext present.
         }
     // Ensure that decryptedBodyOutSize is not left initialised even if no frame body RXed/wanted.
-    else { decryptedBodyOutSize = 0; }
+    else { fd.ptextSize = 0; }
     // Done.
     return(fl + 1);
     }
