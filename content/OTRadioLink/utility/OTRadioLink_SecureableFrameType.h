@@ -541,10 +541,10 @@ namespace OTRadioLink
             // Note: the body is passed non-const and must be
             // (nominally a multiple of) 32 bytes large enough to contain the body
             // and have padding applied *in situ*.
-            static constexpr uint8_t encodeSecureSmallFrameRawPadInPlace_scratch_usage = 0;
-            static constexpr size_t encodeSecureSmallFrameRawPadInPlace_total_scratch_usage_OTAESGCM_2p0 =
+            static constexpr uint8_t encodeRaw_scratch_usage = 0;
+            static constexpr size_t encodeRaw_total_scratch_usage_OTAESGCM_2p0 =
                     workspaceRequred_GCM32B16BWithWorkspace_OTAESGCM_2p0
-                    + encodeSecureSmallFrameRawPadInPlace_scratch_usage;
+                    + encodeRaw_scratch_usage;
             static uint8_t encodeRaw(
                                 OTEncodeData_T &fd,
                                 const OTBuf_t &id_,
@@ -704,7 +704,7 @@ namespace OTRadioLink
             // NOTE: THIS API IS LIABLE TO CHANGE
             static constexpr uint8_t generateSecureOFrameRawForTX_scratch_usage = 12; // + 32; as bbuf moved out to level above.
             static constexpr size_t generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0 =
-                    encodeSecureSmallFrameRawPadInPlace_total_scratch_usage_OTAESGCM_2p0
+                    encodeRaw_total_scratch_usage_OTAESGCM_2p0
                     + generateSecureOFrameRawForTX_scratch_usage;
             uint8_t encode(
                         OTEncodeData_T &fd,
