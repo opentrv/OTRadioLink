@@ -717,11 +717,13 @@ namespace OTRadioLink
             static constexpr size_t generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0 =
                     encodeSecureSmallFrameRawPadInPlace_total_scratch_usage_OTAESGCM_2p0
                     + generateSecureOFrameRawForTX_scratch_usage;
-            uint8_t generateSecureOFrame(OTEncodeData_T &fd,
-                                        uint8_t il_,
-                                        uint8_t valvePC,
-                                        const fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
-                                        const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key);
+            uint8_t encode(
+                        OTEncodeData_T &fd,
+                        uint8_t il_,
+                        uint8_t valvePC,
+                        const fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
+                        const OTV0P2BASE::ScratchSpaceL &scratch,
+                        const uint8_t *key);
         };
 
     // RX Base class for simple implementations that supports 0 or 32 byte encrypted body sections.
@@ -753,27 +755,6 @@ namespace OTRadioLink
             // NOTE: mqy not check that all padding bytes are actually zero.
             static uint8_t removePaddingTo32BTrailing0sAndPadCount(const uint8_t *buf);
 
-            // Signature of pointer to basic fixed-size text decryption/authentication function.
-            // (Suitable for type 'O' valve/sensor small frame for example.)
-            // Can be fulfilled by AES-128-GCM for example
-            // where:
-            //   * textSize is 32 (or zero if ciphertext is NULL)
-            //   * keySize is 16
-            //   * nonceSize is 12
-            //   * tagSize is 16
-            // The plain-text (and identical cipher-text) size is picked to be
-            // a multiple of the cipher's block size, or zero,
-            // which implies likely requirement for padding of the plain text.
-            // Note that the authenticated text size is not fixed,
-            // ie is zero or more bytes.
-            // Decrypts/authenticates the output of a
-            // fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t function.)
-            // Returns true on success, false on failure.
-            typedef bool (fixed32BTextSize12BNonce16BTagSimpleDecOnStack_fn_t)(void *state,
-                    const uint8_t *key, const uint8_t *iv,
-                    const uint8_t *authtext, uint8_t authtextSize,
-                    const uint8_t *ciphertext, const uint8_t *tag,
-                    uint8_t *plaintextOut);
 
             // Signature of pointer to basic fixed-size text decryption/authentication function with workspace supplied.
             // (Suitable for type 'O' valve/sensor small frame for example.)
@@ -799,6 +780,28 @@ namespace OTRadioLink
             // Returns true on success, false on failure.
             typedef bool (fixed32BTextSize12BNonce16BTagSimpleDec_fn_t)(
                     uint8_t *workspace, size_t workspaceSize,
+                    const uint8_t *key, const uint8_t *iv,
+                    const uint8_t *authtext, uint8_t authtextSize,
+                    const uint8_t *ciphertext, const uint8_t *tag,
+                    uint8_t *plaintextOut);
+
+            // Signature of pointer to basic fixed-size text decryption/authentication function.
+            // (Suitable for type 'O' valve/sensor small frame for example.)
+            // Can be fulfilled by AES-128-GCM for example
+            // where:
+            //   * textSize is 32 (or zero if ciphertext is NULL)
+            //   * keySize is 16
+            //   * nonceSize is 12
+            //   * tagSize is 16
+            // The plain-text (and identical cipher-text) size is picked to be
+            // a multiple of the cipher's block size, or zero,
+            // which implies likely requirement for padding of the plain text.
+            // Note that the authenticated text size is not fixed,
+            // ie is zero or more bytes.
+            // Decrypts/authenticates the output of a
+            // fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t function.)
+            // Returns true on success, false on failure.
+            typedef bool (fixed32BTextSize12BNonce16BTagSimpleDecOnStack_fn_t)(void *state,
                     const uint8_t *key, const uint8_t *iv,
                     const uint8_t *authtext, uint8_t authtextSize,
                     const uint8_t *ciphertext, const uint8_t *tag,
@@ -844,14 +847,7 @@ namespace OTRadioLink
             //  * d  decryption function; never NULL
             //  * state  pointer to state for d, if required, else NULL
             //  * key  secret key; never NULL
-            static uint8_t decodeRawOnStack(
-                                OTDecodeData_T &fd,
-                                fixed32BTextSize12BNonce16BTagSimpleDecOnStack_fn_t &d,
-                                void *const state,
-                                const uint8_t *key,
-                                const uint8_t *iv);
             // Version with workspace.
-            // Not a public entry point (is protected).
             static constexpr uint8_t decodeSecureSmallFrameRawWithWorkspace_scratch_usage =
                 ENC_BODY_SMALL_FIXED_CTEXT_SIZE;
             static constexpr size_t decodeSecureSmallFrameRawWithWorkspace_total_scratch_usage_OTAESGCM_3p0 =
@@ -861,6 +857,13 @@ namespace OTRadioLink
                                 OTDecodeData_T &fd,
                                 fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &d,
                                 const OTV0P2BASE::ScratchSpaceL &scratch,
+                                const uint8_t *key,
+                                const uint8_t *iv);
+
+            static uint8_t decodeRawOnStack(
+                                OTDecodeData_T &fd,
+                                fixed32BTextSize12BNonce16BTagSimpleDecOnStack_fn_t &d,
+                                void *const state,
                                 const uint8_t *key,
                                 const uint8_t *iv);
 
@@ -927,19 +930,6 @@ namespace OTRadioLink
             // then update the RX message counter after a successful auth with this routine.
             //
             // Not a public entry point (is protected).
-            uint8_t _decodeFromIDOnStack(
-                        OTDecodeData_T &fd,
-                        fixed32BTextSize12BNonce16BTagSimpleDecOnStack_fn_t &d,
-                        const OTBuf_t adjID,
-                        void *const state,
-                        const uint8_t *key);
-            // Version with workspace.
-            // Not a public entry point (is protected).
-            static constexpr uint8_t _decodeSecureSmallFrameFromIDWithWorkspace_scratch_usage =
-                12; // Space for constructed IV.
-            static constexpr size_t _decodeSecureSmallFrameFromIDWithWorkspace_total_scratch_usage_OTAESGCM_3p0 =
-                decodeSecureSmallFrameRawWithWorkspace_total_scratch_usage_OTAESGCM_3p0 +
-                _decodeSecureSmallFrameFromIDWithWorkspace_scratch_usage;
             // XXX
             // Pointers held by fd and OTBuf_t should never be nullptrs!
             // Basic validation of sfh should already have been performed (isInvalid, isSecure, getTl)
@@ -949,31 +939,20 @@ namespace OTRadioLink
                         const OTBuf_t adjID,
                         OTV0P2BASE::ScratchSpaceL &scratch,
                         const uint8_t *key);
-        public:
-            // From a structurally correct secure frame, looks up the ID, checks the message counter, decodes, and updates the counter if successful.
-            // THIS IS THE PREFERRED ENTRY POINT FOR DECODING AND RECEIVING SECURE FRAMES.
-            // (Pre-filtering by type and ID and message counter may already have happened.)
-            // Note that this is for frames being sent from the ID in the header,
-            // not for lightweight return traffic to the specified ID.
-            // Returns the total number of bytes read for the frame
-            // (including, and with a value one higher than the first 'fl' bytes).
-            // Returns zero in case of error,
-            // eg because authentication failed or this is a duplicate message.
-            // If this returns true then the frame is authenticated,
-            // and the decrypted body is available if present and a buffer was provided.
-            // If the 'firstMatchIDOnly' is true (the default)
-            // then this only checks the first ID prefix match found if any,
-            // else all possible entries may be tried depending on the implementation
-            // and, for example, time/resource limits.
-            // This overloading accepts the decryption function, state and key explicitly.
-            //
-            //  * ID if non-NULL is filled in with the full authenticated sender ID, so must be >= 8 bytes
-            uint8_t decodeOnStack(
+
+            uint8_t _decodeFromIDOnStack(
                         OTDecodeData_T &fd,
                         fixed32BTextSize12BNonce16BTagSimpleDecOnStack_fn_t &d,
-                        void *const state, const uint8_t *key,
-                        bool firstIDMatchOnly = true);
-
+                        const OTBuf_t adjID,
+                        void *const state,
+                        const uint8_t *key);
+            // Not a public entry point (is protected).
+            static constexpr uint8_t _decodeSecureSmallFrameFromIDWithWorkspace_scratch_usage =
+                12; // Space for constructed IV.
+            static constexpr size_t _decodeSecureSmallFrameFromIDWithWorkspace_total_scratch_usage_OTAESGCM_3p0 =
+                decodeSecureSmallFrameRawWithWorkspace_total_scratch_usage_OTAESGCM_3p0 +
+                _decodeSecureSmallFrameFromIDWithWorkspace_scratch_usage;
+        public:
             // From a structurally correct secure frame, looks up the ID, checks the message counter, decodes, and updates the counter if successful.
             // THIS IS THE PREFERRED ENTRY POINT FOR DECODING AND RECEIVING SECURE FRAMES.
             // (Pre-filtering by type and ID and message counter may already have happened.)
@@ -1003,10 +982,36 @@ namespace OTRadioLink
                 _decodeSecureSmallFrameFromIDWithWorkspace_total_scratch_usage_OTAESGCM_3p0 +
                 decodeSecureSmallFrameSafely_scratch_usage;
             uint8_t decode(
-                OTDecodeData_T &fd,
-                fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &d,
-                OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key,
-                bool firstIDMatchOnly = true);
+                        OTDecodeData_T &fd,
+                        fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &d,
+                        OTV0P2BASE::ScratchSpaceL &scratch,
+                        const uint8_t *key,
+                        bool firstIDMatchOnly = true);
+
+            // From a structurally correct secure frame, looks up the ID, checks the message counter, decodes, and updates the counter if successful.
+            // THIS IS THE PREFERRED ENTRY POINT FOR DECODING AND RECEIVING SECURE FRAMES.
+            // (Pre-filtering by type and ID and message counter may already have happened.)
+            // Note that this is for frames being sent from the ID in the header,
+            // not for lightweight return traffic to the specified ID.
+            // Returns the total number of bytes read for the frame
+            // (including, and with a value one higher than the first 'fl' bytes).
+            // Returns zero in case of error,
+            // eg because authentication failed or this is a duplicate message.
+            // If this returns true then the frame is authenticated,
+            // and the decrypted body is available if present and a buffer was provided.
+            // If the 'firstMatchIDOnly' is true (the default)
+            // then this only checks the first ID prefix match found if any,
+            // else all possible entries may be tried depending on the implementation
+            // and, for example, time/resource limits.
+            // This overloading accepts the decryption function, state and key explicitly.
+            //
+            //  * ID if non-NULL is filled in with the full authenticated sender ID, so must be >= 8 bytes
+            uint8_t decodeOnStack(
+                        OTDecodeData_T &fd,
+                        fixed32BTextSize12BNonce16BTagSimpleDecOnStack_fn_t &d,
+                        void *const state,
+                        const uint8_t *key,
+                        bool firstIDMatchOnly = true);
         };
 
 

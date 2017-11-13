@@ -639,6 +639,63 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRawPadInPlace(
 //  * d  decryption function; never NULL
 //  * state  pointer to state for d, if required, else NULL
 //  * key  secret key; never NULL
+// Version with workspace
+uint8_t SimpleSecureFrame32or0BodyRXBase::decodeRaw(
+            OTDecodeData_T &fd,
+            fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &d,
+            const OTV0P2BASE::ScratchSpaceL &scratch,
+            const uint8_t *const key,
+            const uint8_t *const iv)
+    {
+    // Scratch space for this function call alone (not called fns).
+    constexpr uint8_t scratchSpaceNeededHere =
+        decodeSecureSmallFrameRawWithWorkspace_scratch_usage;
+    if(scratchSpaceNeededHere > scratch.bufsize) { return(0); }
+    // Create a new sub scratch space for callee.
+    OTV0P2BASE::ScratchSpaceL subScratch(scratch, scratchSpaceNeededHere);
+
+    const uint8_t *const buf = fd.ctext;
+    const uint8_t buflen = buf[0] + 1;
+    const SecurableFrameHeader &sfh = fd.sfh;
+
+    if((NULL == buf) || (NULL == key) || (NULL == iv)) { return(0); } // ERROR
+
+    // Abort if header was not decoded properly.
+    if(sfh.isInvalid()) { return(0); } // ERROR
+    // Abort if expected constraints for simple fixed-size secure frame are not met.
+    const uint8_t fl = sfh.fl;
+    if(fl >= buflen) { return(0); } // ERROR
+    if(23 != sfh.getTl()) { return(0); } // ERROR
+    if(0x80 != buf[fl]) { return(0); } // ERROR
+    const uint8_t bl = sfh.bl;
+    if((0 != bl) && (ENC_BODY_SMALL_FIXED_CTEXT_SIZE != bl)) { return(0); } // ERROR
+    // Check that header sequence number lsbs match nonce counter 4 lsbs.
+    if(sfh.getSeq() != (iv[11] & 0xf)) { return(0); } // ERROR
+    // Note if plaintext is actually wanted/expected.
+    const bool plaintextWanted = (NULL != fd.ptext);
+    // Attempt to authenticate and decrypt.
+    uint8_t * const decryptBuf = scratch.buf;
+    //uint8_t decryptBuf[ENC_BODY_SMALL_FIXED_CTEXT_SIZE];
+    if(!d(scratch.buf+scratchSpaceNeededHere, scratch.bufsize-scratchSpaceNeededHere,
+                key, iv, buf, sfh.getHl(),
+                (0 == bl) ? NULL : buf + sfh.getBodyOffset(), buf + fl - 16,
+                decryptBuf)) { return(0); } // ERROR
+    if(plaintextWanted && (0 != bl))
+        {
+        // Unpad the decrypted text in place.
+        const uint8_t upbl = removePaddingTo32BTrailing0sAndPadCount(decryptBuf);
+        if(upbl > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
+        if(upbl > fd.ptextLenMax) { return(0); } // ERROR
+        memcpy(fd.ptext, decryptBuf, upbl);
+        fd.ptextSize = upbl;
+        // TODO: optimise later if plaintext not required but ciphertext present.
+        }
+    // Ensure that decryptedBodyOutSize is not left initialised even if no frame body RXed/wanted.
+    else { fd.ptextSize = 0; }
+    // Done.
+    return(fl + 1);
+    }
+
 uint8_t SimpleSecureFrame32or0BodyRXBase::decodeRawOnStack(
             OTDecodeData_T &fd,
             fixed32BTextSize12BNonce16BTagSimpleDecOnStack_fn_t &d,
@@ -673,65 +730,6 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::decodeRawOnStack(
     // Attempt to authenticate and decrypt.
     uint8_t decryptBuf[ENC_BODY_SMALL_FIXED_CTEXT_SIZE];
     if(!d(state, key, iv, buf, sfh.getHl(),
-                (0 == bl) ? NULL : buf + sfh.getBodyOffset(), buf + fl - 16,
-                decryptBuf)) { return(0); } // ERROR
-    if(plaintextWanted && (0 != bl))
-        {
-        // Unpad the decrypted text in place.
-        const uint8_t upbl = removePaddingTo32BTrailing0sAndPadCount(decryptBuf);
-        if(upbl > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
-        if(upbl > decryptedBodyOutBuflen) { return(0); } // ERROR
-        memcpy(decryptedBodyOut, decryptBuf, upbl);
-        decryptedBodyOutSize = upbl;
-        // TODO: optimise later if plaintext not required but ciphertext present.
-        }
-    // Ensure that decryptedBodyOutSize is not left initialised even if no frame body RXed/wanted.
-    else { decryptedBodyOutSize = 0; }
-    // Done.
-    return(fl + 1);
-    }
-// Version with workspace
-uint8_t SimpleSecureFrame32or0BodyRXBase::decodeRaw(
-            OTDecodeData_T &fd,
-            fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &d,
-            const OTV0P2BASE::ScratchSpaceL &scratch,
-            const uint8_t *const key,
-            const uint8_t *const iv)
-    {
-    // Scratch space for this function call alone (not called fns).
-    constexpr uint8_t scratchSpaceNeededHere =
-        decodeSecureSmallFrameRawWithWorkspace_scratch_usage;
-    if(scratchSpaceNeededHere > scratch.bufsize) { return(0); }
-    // Create a new sub scratch space for callee.
-    OTV0P2BASE::ScratchSpaceL subScratch(scratch, scratchSpaceNeededHere);
-
-    const uint8_t *const buf = fd.ctext;
-    const uint8_t buflen = buf[0] + 1;
-    const SecurableFrameHeader &sfh = fd.sfh;
-    uint8_t *const decryptedBodyOut = fd.ptext;
-    const uint8_t decryptedBodyOutBuflen = fd.ptextLenMax;
-    uint8_t &decryptedBodyOutSize = fd.ptextSize;
-
-    if((NULL == buf) || (NULL == key) || (NULL == iv)) { return(0); } // ERROR
-
-    // Abort if header was not decoded properly.
-    if(sfh.isInvalid()) { return(0); } // ERROR
-    // Abort if expected constraints for simple fixed-size secure frame are not met.
-    const uint8_t fl = sfh.fl;
-    if(fl >= buflen) { return(0); } // ERROR
-    if(23 != sfh.getTl()) { return(0); } // ERROR
-    if(0x80 != buf[fl]) { return(0); } // ERROR
-    const uint8_t bl = sfh.bl;
-    if((0 != bl) && (ENC_BODY_SMALL_FIXED_CTEXT_SIZE != bl)) { return(0); } // ERROR
-    // Check that header sequence number lsbs match nonce counter 4 lsbs.
-    if(sfh.getSeq() != (iv[11] & 0xf)) { return(0); } // ERROR
-    // Note if plaintext is actually wanted/expected.
-    const bool plaintextWanted = (NULL != decryptedBodyOut);
-    // Attempt to authenticate and decrypt.
-    uint8_t * const decryptBuf = scratch.buf;
-    //uint8_t decryptBuf[ENC_BODY_SMALL_FIXED_CTEXT_SIZE];
-    if(!d(scratch.buf+scratchSpaceNeededHere, scratch.bufsize-scratchSpaceNeededHere,
-                key, iv, buf, sfh.getHl(),
                 (0 == bl) ? NULL : buf + sfh.getBodyOffset(), buf + fl - 16,
                 decryptBuf)) { return(0); } // ERROR
     if(plaintextWanted && (0 != bl))
@@ -1014,22 +1012,26 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX(
         iv, e, subscratch, key));
 }
 #endif
-uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTEncodeData_T &fd,
+uint8_t SimpleSecureFrame32or0BodyTXBase::encode(
+                                            OTEncodeData_T &fd,
                                             uint8_t il_,
                                             uint8_t valvePC,
                                             const fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
-                                            const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key)
+                                            const OTV0P2BASE::ScratchSpaceL &scratch,
+                                            const uint8_t *key)
 {
     constexpr uint8_t IV_size = 12;
     static_assert(generateSecureOFrameRawForTX_scratch_usage == IV_size, "self-use scratch size wrong");
     static_assert(generateSecureOFrameRawForTX_scratch_usage < generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0, "scratch size calc wrong");
     if(scratch.bufsize < generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0) { return(0); } // ERROR
+
     // buffer args and consts
     uint8_t * const ptext = fd.ptext;
 
     // iv at start of scratch space
     uint8_t *const iv = scratch.buf; // uint8_t iv[IV_size];
     if(!compute12ByteIDAndCounterIVForTX(iv)) { return(0); }
+
     const char *const statsJSON = (const char *const)&ptext[2];
     const bool hasStats = (NULL != ptext) && ('{' == statsJSON[0]);
     const size_t slp1 = hasStats ? strlen(statsJSON) : 1; // Stats length including trailing '}' (not sent).
@@ -1037,9 +1039,11 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTEncodeData_T &f
     const uint8_t statslen = (uint8_t)(slp1 - 1); // Drop trailing '}' implicitly.
     ptext[0] = (valvePC <= 100) ? valvePC : 0x7f;
     ptext[1] = hasStats ? 0x10 : 0; // Indicate presence of stats.
+
     // Create a new scratchspace from the old one in order to pass on.
     const OTV0P2BASE::ScratchSpaceL subscratch(scratch, generateSecureOFrameRawForTX_scratch_usage);
     if(il_ > 6) { return(0); } // ERROR: cannot supply that much of ID easily.
+
     // Create id buffer
     const OTBuf_t id(iv, il_);
     fd.bodyLen = (hasStats ? 2+statslen : 2); // Note: callee will pad beyond this.
@@ -1075,28 +1079,6 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTEncodeData_T &f
     //
     // TO AVOID RELAY ATTACKS: verify the counter is higher than any previous authed message from this sender
     // then update the RX message counter after a successful auth with this routine.
-    uint8_t SimpleSecureFrame32or0BodyRXBase::_decodeFromIDOnStack(
-                OTDecodeData_T &fd,
-                fixed32BTextSize12BNonce16BTagSimpleDecOnStack_fn_t &d,
-                const OTBuf_t adjID,
-                void *const state,
-                const uint8_t *key)
-        {
-        // Rely on decodeSecureSmallFrameRaw() for validation of items not directly needed here.
-        const uint8_t *const buf = fd.ctext;
-        const uint8_t buflen = buf[0] + 1;
-        const SecurableFrameHeader &sfh = fd.sfh;
-
-        if(adjID.bufsize < 6) { return(0); } // ERROR
-        if(sfh.getTrailerOffset() + 6 > buflen) { return(0); } // ERROR
-        // Construct IV from supplied (possibly adjusted) ID + counters from (start of) trailer.
-        uint8_t iv[12];
-        memcpy(iv, adjID.buf, 6);
-        memcpy(iv + 6, buf + sfh.getTrailerOffset(), SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes);
-        // Now do actual decrypt/auth.
-        return(decodeRawOnStack(fd, d, state, key, iv));
-        }
-    // Version that takes a scratch space.
     uint8_t SimpleSecureFrame32or0BodyRXBase::_decodeFromID(
                                     OTDecodeData_T &fd,
                                     fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &d,
@@ -1110,20 +1092,39 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTEncodeData_T &f
         // Create a new sub scratch space for callee.
         OTV0P2BASE::ScratchSpaceL subScratch(scratch, scratchSpaceNeededHere);
 
-        const uint8_t *const buf = fd.ctext;
-        const uint8_t buflen = buf[0] + 1;
-        const SecurableFrameHeader &sfh = fd.sfh;
-
         if(adjID.bufsize < 6) { return(0); } // ERROR
-        if(sfh.getTrailerOffset() + 6 > buflen) { return(0); } // ERROR
+
+        const uint8_t buflen = fd.ctext[0] + 1;
+        if(fd.sfh.getTrailerOffset() + 6 > buflen) { return(0); } // ERROR
+
         // Construct IV from supplied (possibly adjusted) ID
         // + counters from (start of) trailer.
         uint8_t *iv = scratch.buf;
-        //uint8_t iv[12];
         memcpy(iv, adjID.buf, 6);
-        memcpy(iv + 6, buf + sfh.getTrailerOffset(), SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes);
+        memcpy(iv + 6, fd.ctext + fd.sfh.getTrailerOffset(), SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes);
         // Now do actual decrypt/auth.
         return(decodeRaw(fd, d, subScratch, key, iv));
+        }
+    // Version with stack
+    uint8_t SimpleSecureFrame32or0BodyRXBase::_decodeFromIDOnStack(
+                OTDecodeData_T &fd,
+                fixed32BTextSize12BNonce16BTagSimpleDecOnStack_fn_t &d,
+                const OTBuf_t adjID,
+                void *const state,
+                const uint8_t *key)
+        {
+        // Rely on decodeSecureSmallFrameRaw() for validation of items not directly needed here.
+        if(adjID.bufsize < 6) { return(0); } // ERROR
+
+        const uint8_t buflen = fd.ctext[0] + 1;
+        if(fd.sfh.getTrailerOffset() + 6 > buflen) { return(0); } // ERROR
+
+        // Construct IV from supplied (possibly adjusted) ID + counters from (start of) trailer.
+        uint8_t iv[12];
+        memcpy(iv, adjID.buf, 6);
+        memcpy(iv + 6, fd.ctext + fd.sfh.getTrailerOffset(), SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes);
+        // Now do actual decrypt/auth.
+        return(decodeRawOnStack(fd, d, state, key, iv));
         }
 
     // From a structurally correct secure frame, looks up the ID, checks the message counter, decodes, and updates the counter if successful.
@@ -1159,14 +1160,11 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTEncodeData_T &f
         // Create a new sub scratch space for callee.
         OTV0P2BASE::ScratchSpaceL subScratch(scratch, scratchSpaceNeededHere);
 
-        const SecurableFrameHeader &sfh = fd.sfh;
-        const uint8_t *const buf = fd.ctext;
-
         // Rely on _decodeSecureSmallFrameFromID() for validation of items
         // not directly needed here.
-        if(nullptr == buf) { return(0); } // ERROR
+        if(nullptr == fd.ctext) { return(0); } // ERROR
         // Abort if header was not decoded properly.
-        if(sfh.isInvalid()) { return(0); } // ERROR
+        if(fd.sfh.isInvalid()) { return(0); } // ERROR
         // FIXME Why not checked?
         #if 0
         // Abort if frame is not secure.
@@ -1174,14 +1172,13 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTEncodeData_T &f
         #endif
         // Abort if trailer not large enough to extract message counter from
         // safely (and not expected size/flavour).
-        if(23 != sfh.getTl()) { return(0); } // ERROR
+        if(23 != fd.sfh.getTl()) { return(0); } // ERROR
         // Look up the full node ID of the sender in the associations table.
         // NOTE: this only tries the first match, ignoring firstIDMatchOnly.
         // Use start of scratch space. This buffer should not be visible
         // outside the decode stack (e.g. should not be part of fd).
-        uint8_t * const senderNodeIDBuf = scratch.buf;
-        OTBuf_t senderNodeID(senderNodeIDBuf, OTV0P2BASE::OpenTRV_Node_ID_Bytes);
-        const int8_t index = _getNextMatchingNodeID(0, &sfh, senderNodeIDBuf);
+        OTBuf_t senderNodeID(scratch.buf, OTV0P2BASE::OpenTRV_Node_ID_Bytes);
+        const int8_t index = _getNextMatchingNodeID(0, &fd.sfh, senderNodeID.buf);
         if(index < 0) { return(0); } // ERROR
         // Extract the message counter and validate it
         // (that it is higher than previously seen)...
@@ -1191,18 +1188,18 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTEncodeData_T &f
         // ie 6 bytes at start of trailer.
         // Destination and source known large enough for copy to be safe.
         memcpy(messageCounter,
-               buf + sfh.getTrailerOffset(),
+               fd.ctext + fd.sfh.getTrailerOffset(),
                SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes);
-        if(!validateRXMessageCount(senderNodeIDBuf, messageCounter)) { return(0); } // ERROR
+        if(!validateRXMessageCount(senderNodeID.buf, messageCounter)) { return(0); } // ERROR
 
         // Now attempt to decrypt.
         // Assumed no need to 'adjust' ID for this form of RX.
         const uint8_t decodeResult = _decodeFromID( fd, d, senderNodeID, subScratch, key);
         if(0 == decodeResult) { return(0); } // ERROR
         // Successfully decoded: update the RX message counter to avoid duplicates/replays.
-        if(!updateRXMessageCountAfterAuthentication(senderNodeIDBuf, messageCounter)) { return(0); } // ERROR
+        if(!updateRXMessageCountAfterAuthentication(senderNodeID.buf, messageCounter)) { return(0); } // ERROR
         // Success: copy sender ID to output buffer (if non-NULL) as last action.
-        memcpy(fd.id, senderNodeIDBuf, OTV0P2BASE::OpenTRV_Node_ID_Bytes);
+        memcpy(fd.id, senderNodeID.buf, OTV0P2BASE::OpenTRV_Node_ID_Bytes);
         return(decodeResult);
         }
 
@@ -1229,24 +1226,21 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTEncodeData_T &f
                         void *const state, const uint8_t *const key,
                         bool /*firstIDMatchOnly*/)
         {
-        const SecurableFrameHeader &sfh = fd.sfh;
-        const uint8_t *const buf = fd.ctext;
-
         // Rely on _decodeSecureSmallFrameFromID() for validation of items not directly needed here.
-        if(nullptr == buf) { return(0); } // ERROR
+        if(nullptr == fd.ctext) { return(0); } // ERROR
         // Abort if header was not decoded properly.
-        if(sfh.isInvalid()) { return(0); } // ERROR
+        if(fd.sfh.isInvalid()) { return(0); } // ERROR
         // Look up the full node ID of the sender in the associations table.
         // NOTE: this only tries the first match, ignoring firstIDMatchOnly.
         uint8_t senderNodeIDBuf[OTV0P2BASE::OpenTRV_Node_ID_Bytes];
         OTBuf_t senderNodeID(senderNodeIDBuf, OTV0P2BASE::OpenTRV_Node_ID_Bytes);
 
-        const int8_t index = _getNextMatchingNodeID(0, &sfh, senderNodeIDBuf);
+        const int8_t index = _getNextMatchingNodeID(0, &fd.sfh, senderNodeIDBuf);
         if(index < 0) { return(0); } // ERROR
         // Extract the message counter and validate it (that it is higher than previously seen)...
         uint8_t messageCounter[SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes];
         // Assume counter positioning as for 0x80 type trailer, ie 6 bytes at start of trailer.
-        memcpy(messageCounter, buf + sfh.getTrailerOffset(), SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes);
+        memcpy(messageCounter, fd.ctext + fd.sfh.getTrailerOffset(), SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes);
         if(!validateRXMessageCount(senderNodeIDBuf, messageCounter)) { return(0); } // ERROR
 
         // Now attempt to decrypt.
