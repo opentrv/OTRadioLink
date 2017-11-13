@@ -682,7 +682,7 @@ namespace OTRadioLink
             //  * key  16-byte secret key; never NULL
             // Simple example implementation for complete O-style secure frame TX workflow.
             // NOTE: THIS API IS LIABLE TO CHANGE
-            uint8_t generateSecureBeaconRawForTX(
+            uint8_t generateSecureBeaconOnStack(
                         OTBuf_t &buf,
                         uint8_t il_,
                         fixed32BTextSize12BNonce16BTagSimpleEncOnStack_fn_t  &e,
