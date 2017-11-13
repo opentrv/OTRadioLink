@@ -456,21 +456,18 @@ bool SimpleSecureFrame32or0BodyBase::msgcounteradd(uint8_t *const counter, const
 
 #if 1 // XXX needed for secureOstyleframe
 uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRaw(
-        OTBuf_t &buf,
-        FrameType_Secureable fType_,
-        const OTBuf_t &id_,
-        const OTBuf_t &body,
-        const uint8_t *iv,
-        fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
-        void *state, const uint8_t *key)
+            OTEncodeData_T &fd,
+            const OTBuf_t &id_,
+            const uint8_t *iv,
+            fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+            void *state,
+            const uint8_t *key)
     {
     if((NULL == e) || (NULL == key)) { return(0); } // ERROR
 
     // buffer local variables/consts
-    uint8_t * const buffer = buf.buf;
-    const uint8_t buflen = buf.bufsize;
-    const uint8_t *const bodybuf = body.buf;
-    const uint8_t bodylen = body.bufsize;
+    uint8_t * const buffer = fd.ctext;
+    const uint8_t bodylen = fd.ptextLen;
 
     // Capture possible (near) peak of stack usage, eg when called from ISR.
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
@@ -481,9 +478,12 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRaw(
     // Let checkAndEncodeSmallFrameHeader() validate buf and id_.
     // If necessary (bl_ > 0) body is validated below.
     const uint8_t seqNum_ = iv[11] & 0xf;
-    OTRadioLink::SecurableFrameHeader sfh;
-    const uint8_t hl = sfh.checkAndEncodeSmallFrameHeader(buf,
-                                               true, fType_,
+
+    OTBuf_t buf(fd.ctext, fd.ctextLen);
+    const uint8_t hl = fd.sfh.checkAndEncodeSmallFrameHeader(
+                                               buf,
+                                               true,
+                                               fd.fType,
                                                seqNum_,
                                                id_,
                                                encryptedBodyLength,
@@ -491,13 +491,13 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRaw(
     // Fail if header encoding fails.
     if(0 == hl) { return(0); } // ERROR
     // Fail if buffer is not large enough to accommodate full frame.
-    const uint8_t fl = sfh.fl;
-    if(fl >= buflen) { return(0); } // ERROR
+    const uint8_t fl = fd.sfh.fl;
+    if(fl >= fd.ctextLen) { return(0); } // ERROR
     // Pad body, if any.
     uint8_t paddingBuf[32];
     if(0 != bodylen)
         {
-        memcpy(paddingBuf, bodybuf, bodylen);
+        memcpy(paddingBuf, fd.ptext, bodylen);
         if(0 == addPaddingTo32BTrailing0sAndPadCount(paddingBuf, bodylen)) { return(0); } // ERROR
         }
     // Encrypt body (if any) from the padding buffer to the output buffer.
@@ -876,14 +876,14 @@ uint8_t generateNonsecureBeacon(OTBuf_t &buf, const uint8_t seqNum_, const OTBuf
     }
 
 
-uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOStyleFrameForTX(OTBuf_t &buf,
-                                const FrameType_Secureable fType_,
-                                const uint8_t il_,
-                                const OTBuf_t &body,
-                                const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
-                                void *const state, const uint8_t *const key)
+uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOStyleFrameForTX(
+            OTEncodeData_T &fd,
+            uint8_t il_,
+            fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+            void *state,
+            const uint8_t *key)
     {
-    if((fType_ >= FTS_INVALID_HIGH) || (fType_ == FTS_NONE)) { return(0); } // FAIL
+    if((fd.fType >= FTS_INVALID_HIGH) || (fd.fType == FTS_NONE)) { return(0); } // FAIL
     uint8_t iv[12];
     if(!compute12ByteIDAndCounterIVForTX(iv)) { return(0); } // FAIL
     // If ID is short then we can cheat by reusing start of IV, else fetch again explicitly...
@@ -891,7 +891,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOStyleFrameForTX(OTBuf_t
     uint8_t id[OTV0P2BASE::OpenTRV_Node_ID_Bytes];
     if(longID && !getTXID(id)) { return(0); } // FAIL
     const OTBuf_t txID((longID ? id : iv), sizeof((longID ? id : iv)));
-    return(encodeSecureSmallFrameRaw(buf, fType_, txID, body, iv, e, state, key));
+    return(encodeSecureSmallFrameRaw(fd, txID, iv, e, state, key));
     }
 
 #if 0 // XXX

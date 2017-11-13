@@ -549,13 +549,13 @@ namespace OTRadioLink
             //  * e  encryption function; never NULL
             //  * state  pointer to state for e, if required, else NULL
             //  * key  secret key; never NULL
-            static uint8_t encodeSecureSmallFrameRaw(OTBuf_t &buf,
-                                            FrameType_Secureable fType_,
-                                            const OTBuf_t &id_,
-                                            const OTBuf_t &body,
-                                            const uint8_t *iv,
-                                            fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
-                                            void *state, const uint8_t *key);
+            static uint8_t encodeSecureSmallFrameRaw(
+                                OTEncodeData_T &fd,
+                                const OTBuf_t &id_,
+                                const uint8_t *iv,
+                                fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                                void *state,
+                                const uint8_t *key);
 
             // Encode entire secure small frame from header params and body and crypto support.
             // Buffer for body must be large enough to allow padding to be applied IN PLACE.
@@ -590,11 +590,12 @@ namespace OTRadioLink
                     workspaceRequred_GCM32B16BWithWorkspace_OTAESGCM_2p0
                     + encodeSecureSmallFrameRawPadInPlace_scratch_usage;
             static uint8_t encodeSecureSmallFrameRawPadInPlace(
-                    OTEncodeData_T &fd,
-                    const OTBuf_t &id_,
-                    const uint8_t *iv,
-                    fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
-                    const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key);
+                                OTEncodeData_T &fd,
+                                const OTBuf_t &id_,
+                                const uint8_t *iv,
+                                fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
+                                const OTV0P2BASE::ScratchSpaceL &scratch,
+                                const uint8_t *key);
 
             // Get the 3 bytes of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
             // Combines results from primary and secondary as appropriate.
@@ -671,12 +672,12 @@ namespace OTRadioLink
             //  * body, bl_ body and body length; body non-NULL unless bl_ is zero
             //  * il_  ID length for the header; ID is local node ID from EEPROM or other pre-supplied ID
             //  * key  16-byte secret key; never NULL
-            uint8_t generateSecureOStyleFrameForTX(OTBuf_t &buf,
-                                            FrameType_Secureable fType_,
-                                            uint8_t il_,
-                                            const OTBuf_t &body,
-                                            fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
-                                            void *state, const uint8_t *key);
+            uint8_t generateSecureOStyleFrameForTX(
+                        OTEncodeData_T &fd,
+                        uint8_t il_,
+                        fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                        void *state,
+                        const uint8_t *key);
 
             static const uint8_t generateSecureBeaconMaxBufSize = 27 + SecurableFrameHeader::maxIDLength;
 #if 0  // TODO No workspace impl/tests yet
