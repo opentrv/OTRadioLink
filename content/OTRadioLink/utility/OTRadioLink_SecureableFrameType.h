@@ -849,11 +849,11 @@ namespace OTRadioLink
             //  * state  pointer to state for d, if required, else NULL
             //  * key  secret key; never NULL
             static uint8_t decodeSecureSmallFrameRawOnStack(
-                const SecurableFrameHeader *sfh,
-                const uint8_t *buf, uint8_t buflen,
-                fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
-                void *state, const uint8_t *key, const uint8_t *iv,
-                uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
+                                OTDecodeData_T &fd,
+                                fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
+                                void *const state,
+                                const uint8_t *key,
+                                const uint8_t *iv);
             // Version with workspace.
             // Not a public entry point (is protected).
             static constexpr uint8_t decodeSecureSmallFrameRawWithWorkspace_scratch_usage =
@@ -862,9 +862,11 @@ namespace OTRadioLink
                 0 /* Any additional callee space would be for d(). */ +
                 decodeSecureSmallFrameRawWithWorkspace_scratch_usage;
             static uint8_t decodeSecureSmallFrameRaw(
-                OTDecodeData_T &fd,
-                fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_ptr_t d,
-                const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key, const uint8_t *iv);
+                                OTDecodeData_T &fd,
+                                fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_ptr_t d,
+                                const OTV0P2BASE::ScratchSpaceL &scratch,
+                                const uint8_t *key,
+                                const uint8_t *iv);
 
             // Design notes on use of message counters vs non-volatile storage life, eg for ATMega328P.
             //
@@ -929,12 +931,12 @@ namespace OTRadioLink
             // then update the RX message counter after a successful auth with this routine.
             //
             // Not a public entry point (is protected).
-            uint8_t _decodeSecureSmallFrameFromIDOnStack(const SecurableFrameHeader *sfh,
-                                            const uint8_t *buf, uint8_t buflen,
-                                            fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
-                                            const uint8_t *adjID, uint8_t adjIDLen,
-                                            void *state, const uint8_t *key,
-                                            uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize);
+            uint8_t _decodeSecureSmallFrameFromIDOnStack(
+                        OTDecodeData_T &fd,
+                        fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
+                        const OTBuf_t adjID,
+                        void *const state,
+                        const uint8_t *key);
             // Version with workspace.
             // Not a public entry point (is protected).
             static constexpr uint8_t _decodeSecureSmallFrameFromIDWithWorkspace_scratch_usage =
@@ -945,10 +947,12 @@ namespace OTRadioLink
             // XXX
             // Pointers held by fd and OTBuf_t should never be nullptrs!
             // Basic validation of sfh should already have been performed (isInvalid, isSecure, getTl)
-            uint8_t _decodeSecureSmallFrameFromID(OTDecodeData_T &fd,
-                                            fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_ptr_t d,
-                                            const OTBuf_t adjID,
-                                            OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key);
+            uint8_t _decodeSecureSmallFrameFromID(
+                        OTDecodeData_T &fd,
+                        fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_ptr_t d,
+                        const OTBuf_t adjID,
+                        OTV0P2BASE::ScratchSpaceL &scratch,
+                        const uint8_t *key);
         public:
             // From a structurally correct secure frame, looks up the ID, checks the message counter, decodes, and updates the counter if successful.
             // THIS IS THE PREFERRED ENTRY POINT FOR DECODING AND RECEIVING SECURE FRAMES.
@@ -968,14 +972,11 @@ namespace OTRadioLink
             // This overloading accepts the decryption function, state and key explicitly.
             //
             //  * ID if non-NULL is filled in with the full authenticated sender ID, so must be >= 8 bytes
-            uint8_t decodeSecureSmallFrameSafely(
-                const SecurableFrameHeader *sfh,
-                const uint8_t *buf, uint8_t buflen,
-                fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
-                void *state, const uint8_t *key,
-                uint8_t *decryptedBodyOut, uint8_t decryptedBodyOutBuflen, uint8_t &decryptedBodyOutSize,
-                uint8_t *ID,
-                bool firstIDMatchOnly = true);
+            uint8_t decodeOnStack(
+                        OTDecodeData_T &fd,
+                        fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
+                        void *const state, const uint8_t *key,
+                        bool firstIDMatchOnly = true);
 
             // From a structurally correct secure frame, looks up the ID, checks the message counter, decodes, and updates the counter if successful.
             // THIS IS THE PREFERRED ENTRY POINT FOR DECODING AND RECEIVING SECURE FRAMES.
@@ -1005,7 +1006,7 @@ namespace OTRadioLink
             static constexpr size_t decodeSecureSmallFrameSafely_total_scratch_usage_OTAESGCM_3p0 =
                 _decodeSecureSmallFrameFromIDWithWorkspace_total_scratch_usage_OTAESGCM_3p0 +
                 decodeSecureSmallFrameSafely_scratch_usage;
-            uint8_t decodeSecureSmallFrameSafely(
+            uint8_t decode(
                 OTDecodeData_T &fd,
                 fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_ptr_t d,
                 OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *key,

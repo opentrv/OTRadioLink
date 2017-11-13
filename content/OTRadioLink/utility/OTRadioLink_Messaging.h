@@ -221,10 +221,6 @@ template <typename sfrx_t,
           OTV0P2BASE::GetPrimary16ByteSecretKey_t &getKey>
 inline bool authAndDecodeOTSecurableFrameOnStack(OTDecodeData_T &fd)
 {
-    const uint8_t * const msg = fd.ctext + 1;
-    const uint8_t msglen = fd.ctextLen;
-    uint8_t * outBuf = fd.ptext;
-
 #if 0
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
 #endif
@@ -241,11 +237,11 @@ inline bool authAndDecodeOTSecurableFrameOnStack(OTDecodeData_T &fd)
     // authenticate and decrypt,
     // update RX message counter.
     uint8_t decryptedBodyOutSize = 0;
-    const bool isOK = (0 != sfrx_t::getInstance().decodeSecureSmallFrameSafely(&fd.sfh, msg-1, msglen+1,
+    const bool isOK = (0 != sfrx_t::getInstance().decodeOnStack(
+                                          fd,
                                           decrypt,  // FIXME remove this dependency
-                                          NULL /* FIXME: fd.state */, key,
-                                          outBuf, fd.ptextLenMax, decryptedBodyOutSize,
-                                          fd.id,
+                                          fd.state,
+                                          key,
                                           true));
     fd.ptextSize = decryptedBodyOutSize;
     if(!isOK) {
@@ -306,7 +302,7 @@ inline bool authAndDecodeOTSecurableFrame(OTDecodeData_T &fd, OTV0P2BASE::Scratc
     // validate the RX message counter,
     // authenticate and decrypt,
     // then update the RX message counter.
-    const bool isOK = (0 != sfrx_t::getInstance().decodeSecureSmallFrameSafely(
+    const bool isOK = (0 != sfrx_t::getInstance().decode(
                                                       fd,
                                                       decrypt,
                                                       subScratch, key,
