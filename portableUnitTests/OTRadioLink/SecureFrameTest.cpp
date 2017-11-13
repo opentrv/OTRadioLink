@@ -369,7 +369,7 @@ TEST(OTAESGCMSecureFrame, NonsecureFrameCRC)
     //23 CRC value
     const uint8_t buf1[] = { 0x08, 0x4f, 0x02, 0x80, 0x81, 0x02, 0x00, 0x01, 0x23 };
     EXPECT_EQ(6, sfh.decodeHeader(buf1, 6));
-    EXPECT_EQ(0x23, sfh.computeNonSecureFrameCRC(buf1, sizeof(buf1) - 1));
+    EXPECT_EQ(0x23, sfh.computeNonSecureCRC(buf1, sizeof(buf1) - 1));
     // Decode entire frame, emulating RX, structurally validating the header then checking the CRC.
     EXPECT_TRUE(0 != sfh.decodeHeader(buf1, sizeof(buf1)));
     EXPECT_TRUE(0 != decodeNonsecureRawOnStack(&sfh, buf1, sizeof(buf1)));
@@ -393,7 +393,7 @@ TEST(OTAESGCMSecureFrame, NonsecureFrameCRC)
     const uint8_t buf2[] = { 0x0e, 0x4f, 0x02, 0x80, 0x81, 0x08, 0x7f, 0x11, 0x7b, 0x22, 0x62, 0x22, 0x3a, 0x31, 0x61 };
     // Just decode and check the frame header first
     EXPECT_EQ(6, sfh.decodeHeader(buf2, 6));
-    EXPECT_EQ(0x61, sfh.computeNonSecureFrameCRC(buf2, sizeof(buf2) - 1));
+    EXPECT_EQ(0x61, sfh.computeNonSecureCRC(buf2, sizeof(buf2) - 1));
     // Decode entire frame, emulating RX, structurally validating the header then checking the CRC.
     EXPECT_TRUE(0 != sfh.decodeHeader(buf2, sizeof(buf2)));
     EXPECT_TRUE(0 != decodeNonsecureRawOnStack(&sfh, buf2, sizeof(buf2)));

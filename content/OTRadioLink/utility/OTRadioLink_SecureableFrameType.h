@@ -295,7 +295,7 @@ namespace OTRadioLink
         // Parameters:
         //  * buf  buffer containing the entire frame except trailer/CRC; never NULL
         //  * buflen  available length in buf; if too small then this routine will fail (return 0)
-        uint8_t computeNonSecureFrameCRC(const uint8_t *buf, uint8_t buflen) const;
+        uint8_t computeNonSecureCRC(const uint8_t *buf, uint8_t buflen) const;
         };
 
 

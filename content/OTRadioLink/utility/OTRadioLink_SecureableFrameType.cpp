@@ -260,7 +260,7 @@ uint8_t SecurableFrameHeader::decodeHeader(const OTBuf_t &buf)
 // Parameters:
 //  * buf     buffer containing the entire frame except trailer/CRC; never NULL XXX Frame should start with a leading length byte.
 //  * buflen  available length in buf; if too small then this routine will fail (return 0)
-uint8_t SecurableFrameHeader::computeNonSecureFrameCRC(const uint8_t *const buf, uint8_t buflen) const
+uint8_t SecurableFrameHeader::computeNonSecureCRC(const uint8_t *const buf, uint8_t buflen) const
     {
     // Check that struct has been computed.
     if(isInvalid()) { return(0); } // ERROR
@@ -314,7 +314,7 @@ uint8_t encodeNonsecureOnStack(
         memcpy(fd.ctext + fd.sfh.getBodyOffset(), fd.ptext, fd.ptextLen);
         }
     // Compute and write in the CRC trailer...
-    const uint8_t crc = fd.sfh.computeNonSecureFrameCRC(fd.ctext, fd.ctextLen);
+    const uint8_t crc = fd.sfh.computeNonSecureCRC(fd.ctext, fd.ctextLen);
     fd.ctext[fl] = crc;
     // Done.
     return(fl + 1);
@@ -343,7 +343,7 @@ uint8_t decodeNonsecureRawOnStack(const SecurableFrameHeader *sfh,
     const uint8_t fl = sfh->fl;
     if(1 != sfh->getTl()) { return(0); } // ERROR
     // Compute the expected CRC trailer...
-    const uint8_t crc = sfh->computeNonSecureFrameCRC(buf, buflen);
+    const uint8_t crc = sfh->computeNonSecureCRC(buf, buflen);
     if(0 == crc) { return(0); } // ERROR
     if(buf[fl] != crc) { return(0); } // ERROR
     // Done
