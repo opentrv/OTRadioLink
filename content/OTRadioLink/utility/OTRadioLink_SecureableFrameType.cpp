@@ -445,7 +445,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeRaw(
     // Pad body, if any, IN SITU.
     if(0 != bodylen)
         {
-        if(0 == padTXBuffer32B(fd.ptext, bodylen)) { return(0); } // ERROR
+        if(0 == pad32BBuffer(fd.ptext, bodylen)) { return(0); } // ERROR
         }
     // Encrypt body (if any) from its now-padded buffer to the output buffer.
     // Insert the tag directly into the buffer (before the final byte).
@@ -502,7 +502,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeRawUnpaddedOnStack(
     if(0 != bodylen)
         {
         memcpy(paddingBuf, fd.ptext, bodylen);
-        if(0 == padTXBuffer32B(paddingBuf, bodylen)) { return(0); } // ERROR
+        if(0 == pad32BBuffer(paddingBuf, bodylen)) { return(0); } // ERROR
         }
     // Encrypt body (if any) from the padding buffer to the output buffer.
     // Insert the tag directly into the buffer (before the final byte).
@@ -673,7 +673,7 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::decodeRawOnStack(
 // Parameters:
 //  * buf  buffer containing the plain-text; must be >= 32 bytes, never NULL
 //  * datalen  unpadded data size at start of buf; if too large (>31) then this routine will fail (return 0)
-uint8_t SimpleSecureFrame32or0BodyTXBase::padTXBuffer32B(uint8_t *const buf, const uint8_t datalen)
+uint8_t SimpleSecureFrame32or0BodyTXBase::pad32BBuffer(uint8_t *const buf, const uint8_t datalen)
     {
     if(NULL == buf) { return(0); } // ERROR
     if(datalen > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
