@@ -900,9 +900,9 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX(
             const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *const key)
 {
     constexpr uint8_t IV_size = 12;
-    static_assert(generateSecureOFrameRawForTX_scratch_usage == IV_size, "self-use scratch size wrong");
-    static_assert(generateSecureOFrameRawForTX_scratch_usage < generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0, "scratch size calc wrong");
-    if(scratch.bufsize < generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0) { return(0); } // ERROR
+    static_assert(encode_scratch_usage == IV_size, "self-use scratch size wrong");
+    static_assert(encode_scratch_usage < encode_total_scratch_usage_OTAESGCM_2p0, "scratch size calc wrong");
+    if(scratch.bufsize < encode_total_scratch_usage_OTAESGCM_2p0) { return(0); } // ERROR
     // iv at start of scratch space
     uint8_t *const iv = scratch.buf; // uint8_t iv[IV_size];
     if(!compute12ByteIDAndCounterIVForTX(iv)) { return(0); }
@@ -916,7 +916,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX(
     bbuf[0] = (valvePC <= 100) ? valvePC : 0x7f;
     bbuf[1] = hasStats ? 0x10 : 0; // Indicate presence of stats.
     // Create a new scratchspace from the old one in order to pass on.
-    const OTV0P2BASE::ScratchSpaceL subscratch(scratch, generateSecureOFrameRawForTX_scratch_usage);
+    const OTV0P2BASE::ScratchSpaceL subscratch(scratch, encode_scratch_usage);
     const uint8_t *ID = iv; // First 6 bytes of IV is the ID.
     if(il_ > 6) { return(0); } // ERROR: cannot supply that much of ID easily.
     return(encodeRaw(buf, buflen,
@@ -935,9 +935,9 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encode(
                                             const uint8_t *key)
 {
     constexpr uint8_t IV_size = 12;
-    static_assert(generateSecureOFrameRawForTX_scratch_usage == IV_size, "self-use scratch size wrong");
-    static_assert(generateSecureOFrameRawForTX_scratch_usage < generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0, "scratch size calc wrong");
-    if(scratch.bufsize < generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0) { return(0); } // ERROR
+    static_assert(encode_scratch_usage == IV_size, "self-use scratch size wrong");
+    static_assert(encode_scratch_usage < encode_total_scratch_usage_OTAESGCM_2p0, "scratch size calc wrong");
+    if(scratch.bufsize < encode_total_scratch_usage_OTAESGCM_2p0) { return(0); } // ERROR
 
     // buffer args and consts
     uint8_t * const ptext = fd.ptext;
@@ -955,7 +955,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encode(
     ptext[1] = hasStats ? 0x10 : 0; // Indicate presence of stats.
 
     // Create a new scratchspace from the old one in order to pass on.
-    const OTV0P2BASE::ScratchSpaceL subscratch(scratch, generateSecureOFrameRawForTX_scratch_usage);
+    const OTV0P2BASE::ScratchSpaceL subscratch(scratch, encode_scratch_usage);
     if(il_ > 6) { return(0); } // ERROR: cannot supply that much of ID easily.
 
     // Create id buffer
