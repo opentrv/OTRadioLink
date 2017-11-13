@@ -529,7 +529,7 @@ TEST(FrameHandlerTest, authAndDecodeSecurableFrameFull)
 
     // Workspace for authAndDecodeOTSecurableFrame
     constexpr size_t workspaceRequired =
-            OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameSafely_total_scratch_usage_OTAESGCM_3p0
+            OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decode_total_scratch_usage_OTAESGCM_3p0
             + OTAESGCM::OTAES128GCMGenericWithWorkspace<>::workspaceRequiredDec
             + OTRadioLink::authAndDecodeOTSecurableFrameWithWorkspace_scratch_usage; // + space to hold the key
     uint8_t workspace[workspaceRequired];
@@ -560,7 +560,7 @@ TEST(FrameHandlerTest, decodeAndHandleOTSecurableFrameDecryptSuccess)
 
     // Workspace for decodeAndHandleOTSecureOFrame
     constexpr size_t workspaceRequired =
-            OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameSafely_total_scratch_usage_OTAESGCM_3p0
+            OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decode_total_scratch_usage_OTAESGCM_3p0
             + OTAESGCM::OTAES128GCMGenericWithWorkspace<>::workspaceRequiredDec
             + OTRadioLink::authAndDecodeOTSecurableFrameWithWorkspace_scratch_usage; // + space to hold the key
     uint8_t workspace[workspaceRequired];

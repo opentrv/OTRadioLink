@@ -922,6 +922,12 @@ namespace OTRadioLink
             // XXX
             // Pointers held by fd and OTBuf_t should never be nullptrs!
             // Basic validation of sfh should already have been performed (isInvalid, isSecure, getTl)
+            // Not a public entry point (is protected).
+            static constexpr uint8_t _decodeFromID_scratch_usage =
+                12; // Space for constructed IV.
+            static constexpr size_t _decodeFromID_total_scratch_usage_OTAESGCM_3p0 =
+                decodeRaw_total_scratch_usage_OTAESGCM_3p0 +
+                _decodeFromID_scratch_usage;
             uint8_t _decodeFromID(
                         OTDecodeData_T &fd,
                         fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &d,
@@ -935,12 +941,6 @@ namespace OTRadioLink
                         const OTBuf_t adjID,
                         void *const state,
                         const uint8_t *key);
-            // Not a public entry point (is protected).
-            static constexpr uint8_t _decodeSecureSmallFrameFromIDWithWorkspace_scratch_usage =
-                12; // Space for constructed IV.
-            static constexpr size_t _decodeSecureSmallFrameFromIDWithWorkspace_total_scratch_usage_OTAESGCM_3p0 =
-                decodeRaw_total_scratch_usage_OTAESGCM_3p0 +
-                _decodeSecureSmallFrameFromIDWithWorkspace_scratch_usage;
         public:
             // From a structurally correct secure frame, looks up the ID, checks the message counter, decodes, and updates the counter if successful.
             // THIS IS THE PREFERRED ENTRY POINT FOR DECODING AND RECEIVING SECURE FRAMES.
@@ -964,12 +964,12 @@ namespace OTRadioLink
             //     sender ID, so must be >= 8 bytes
             // NOTE this version uses a scratch space, allowing the stack usage
             // to be more tightly controlled.
-            static constexpr uint8_t decodeSecureSmallFrameSafely_scratch_usage =
+            static constexpr uint8_t decode_scratch_usage =
                 OTV0P2BASE::OpenTRV_Node_ID_Bytes +
                 SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes;
-            static constexpr size_t decodeSecureSmallFrameSafely_total_scratch_usage_OTAESGCM_3p0 =
-                _decodeSecureSmallFrameFromIDWithWorkspace_total_scratch_usage_OTAESGCM_3p0 +
-                decodeSecureSmallFrameSafely_scratch_usage;
+            static constexpr size_t decode_total_scratch_usage_OTAESGCM_3p0 =
+                _decodeFromID_total_scratch_usage_OTAESGCM_3p0 +
+                decode_scratch_usage;
             uint8_t decode(
                         OTDecodeData_T &fd,
                         fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &d,

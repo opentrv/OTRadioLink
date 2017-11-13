@@ -1001,7 +1001,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encode(
         {
         // Scratch space for this function call alone (not called fns).
         constexpr uint8_t scratchSpaceNeededHere =
-            _decodeSecureSmallFrameFromIDWithWorkspace_scratch_usage;
+            _decodeFromID_scratch_usage;
         if(scratchSpaceNeededHere > scratch.bufsize) { return(0); }
         // Create a new sub scratch space for callee.
         OTV0P2BASE::ScratchSpaceL subScratch(scratch, scratchSpaceNeededHere);
@@ -1070,7 +1070,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encode(
         {
         // Scratch space for this function call alone (not called fns).
         constexpr uint8_t scratchSpaceNeededHere =
-            decodeSecureSmallFrameSafely_scratch_usage;
+            decode_scratch_usage;
         if(scratchSpaceNeededHere > scratch.bufsize) { return(0); }
         // Create a new sub scratch space for callee.
         OTV0P2BASE::ScratchSpaceL subScratch(scratch, scratchSpaceNeededHere);

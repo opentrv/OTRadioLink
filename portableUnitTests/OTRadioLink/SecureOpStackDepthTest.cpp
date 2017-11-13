@@ -232,7 +232,7 @@ namespace SOSDT
         constexpr size_t workspaceSize =
             (176+112) /* for OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE for AES+Dec */ +
             OTRadioLink::authAndDecodeOTSecurableFrameWithWorkspace_scratch_usage +
-            OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameSafely_total_scratch_usage_OTAESGCM_3p0;
+            OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decode_total_scratch_usage_OTAESGCM_3p0;
 
         // Uncomment to print workspace size.
         std::cout << "decodeAndHandleSecureFrameWithWorkspace() workspace size: " << workspaceSize << std::endl;
