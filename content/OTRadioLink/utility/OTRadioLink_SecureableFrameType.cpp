@@ -289,12 +289,14 @@ uint8_t encodeNonsecureOnStack(
     // Let checkAndEncodeSmallFrameHeader() validate buf and id_.
     // If necessary (bl_ > 0) body is validated below.
     OTBuf_t buf(fd.ctext, fd.ctextLen);  // XXX
-    const uint8_t hl = fd.sfh.encodeHeader(buf,
-                                               false, fd.fType, // Not secure.
-                                               seqNum_,
-                                               id_,
-                                               fd.ptextLen,
-                                               1); // 1-byte CRC trailer.
+    const uint8_t hl = fd.sfh.encodeHeader(
+                                buf,
+                                false,
+                                fd.fType, // Not secure.
+                                seqNum_,
+                                id_,
+                                fd.ptextLen,
+                                1); // 1-byte CRC trailer.
     // Fail if header encoding fails.
     if(0 == hl) { return(0); } // ERROR
     // Fail if buffer is not large enough to accommodate full frame.
