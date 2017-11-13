@@ -849,11 +849,14 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encode(
     const OTBuf_t id(iv, il_);
     fd.bodyLen = (hasStats ? 2+statslen : 2); // Note: callee will pad beyond this.
     fd.fType = OTRadioLink::FTS_BasicSensorOrValve;
+
+    // note: id and iv are both passed in here despite pointing at the same
+    //       place. They may not necessarily be the same when encodeRaw is
+    //       called elsewhere.
     return(encodeRaw(fd, id, iv, e, subscratch, key));
 }
 
 
-#if 1 // XXX
 uint8_t SimpleSecureFrame32or0BodyTXBase::encodeOnStack(
                                                 OTEncodeData_T &fd,
                                                 const uint8_t il_,
@@ -888,7 +891,6 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeOnStack(
 
     return(encodeRawUnpaddedOnStack(fd, id, iv, e, state, key));
     }
-#endif
 
     // As for decodeSecureSmallFrameRaw() but passed a candidate node/counterparty ID
     // derived from the frame ID in the incoming header,

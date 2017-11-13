@@ -670,7 +670,7 @@ namespace OTRadioLink
                         const uint8_t *key);
 
             static const uint8_t generateSecureBeaconMaxBufSize = 27 + SecurableFrameHeader::maxIDLength;
-#if 0  // TODO No workspace impl/tests yet
+#if 1  // TODO No workspace impl/tests yet
             // Create secure Alive / beacon (FTS_ALIVE) frame with an empty body for transmission.
             // Returns number of bytes written to buffer, or 0 in case of error.
             // The IV is constructed from the node ID and the primary TX message counter.
@@ -682,11 +682,17 @@ namespace OTRadioLink
             //  * key  16-byte secret key; never NULL
             // Simple example implementation for complete O-style secure frame TX workflow.
             // NOTE: THIS API IS LIABLE TO CHANGE
-            uint8_t generateSecureBeaconRawForTX(uint8_t *buf, uint8_t buflen,
-                                            uint8_t il_,
-                                            fixed32BTextSize12BNonce16BTagSimpleEncOnStack_fn_t  &e,
-                                            void *state, const uint8_t *key)
-                { return(generateSecureOStyleFrameForTX(buf, buflen, OTRadioLink::FTS_ALIVE, il_, NULL, 0, e, state, key)); }
+            uint8_t generateSecureBeaconRawForTX(
+                        OTBuf_t &buf,
+                        uint8_t il_,
+                        fixed32BTextSize12BNonce16BTagSimpleEncOnStack_fn_t  &e,
+                        void *state,
+                        const uint8_t *key)
+            {
+                OTEncodeData_T fd(buf.buf, buf.bufsize, NULL, 0);
+                fd.fType = OTRadioLink::FTS_ALIVE;
+                return(generateSecureOStyleFrameForTX(fd, il_, e, state, key));
+            }
 #endif
 
             // Create simple 'O' (FTS_BasicSensorOrValve) frame with an optional stats section for transmission.
