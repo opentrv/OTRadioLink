@@ -601,7 +601,7 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::decodeRaw(
     if(plaintextWanted && (0 != bl))
         {
         // Unpad the decrypted text in place.
-        const uint8_t upbl = removePaddingTo32BTrailing0sAndPadCount(decryptBuf);
+        const uint8_t upbl = unpad32BBuffer(decryptBuf);
         if(upbl > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
         if(upbl > fd.ptextLenMax) { return(0); } // ERROR
         memcpy(fd.ptext, decryptBuf, upbl);
@@ -650,7 +650,7 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::decodeRawOnStack(
     if(plaintextWanted && (0 != bl))
         {
         // Unpad the decrypted text in place.
-        const uint8_t upbl = removePaddingTo32BTrailing0sAndPadCount(decryptBuf);
+        const uint8_t upbl = unpad32BBuffer(decryptBuf);
         if(upbl > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
         if(upbl > fd.ptextLenMax) { return(0); } // ERROR
         memcpy(fd.ptext, decryptBuf, upbl);
@@ -691,7 +691,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::pad32BBuffer(uint8_t *const buf, const
 //  * buf  buffer containing the plain-text; must be >= 32 bytes, never NULL
 //
 // NOTE: does not check that all padding bytes are actually zero.
-uint8_t SimpleSecureFrame32or0BodyRXBase::removePaddingTo32BTrailing0sAndPadCount(const uint8_t *const buf)
+uint8_t SimpleSecureFrame32or0BodyRXBase::unpad32BBuffer(const uint8_t *const buf)
     {
     const uint8_t paddingZeros = buf[ENC_BODY_SMALL_FIXED_CTEXT_SIZE - 1];
     if(paddingZeros > 31) { return(0); } // ERROR

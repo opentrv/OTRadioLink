@@ -735,14 +735,14 @@ namespace OTRadioLink
 
         public:
             // Unpads plain-text in place prior to encryption with 32-byte fixed length padded output.
-            // Reverses/validates padding applied by addPaddingTo32BTrailing0sAndPadCount().
+            // Reverses/validates padding applied by pad32BBuffer().
             // Returns unpadded data length (at start of buffer) or 0xff in case of error.
             //
             // Parameters:
             //  * buf  buffer containing the plain-text; must be >= 32 bytes, never NULL
             //
-            // NOTE: mqy not check that all padding bytes are actually zero.
-            static uint8_t removePaddingTo32BTrailing0sAndPadCount(const uint8_t *buf);
+            // NOTE: may not check that all padding bytes are actually zero.
+            static uint8_t unpad32BBuffer(const uint8_t *buf);
 
 
             // Signature of pointer to basic fixed-size text decryption/authentication function with workspace supplied.

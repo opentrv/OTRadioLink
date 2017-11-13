@@ -465,7 +465,7 @@ TEST(OTAESGCMSecureFrame, SimplePadding)
     for(int i = 30; --i > 0; ) { EXPECT_EQ(0, buf[i]); }
     EXPECT_EQ(30, buf[31]);
     // Ensure that unpadding works.
-    EXPECT_EQ(1, OTRadioLink::SimpleSecureFrame32or0BodyRXBase::removePaddingTo32BTrailing0sAndPadCount(buf));
+    EXPECT_EQ(1, OTRadioLink::SimpleSecureFrame32or0BodyRXBase::unpad32BBuffer(buf));
     EXPECT_EQ(db0, buf[0]);
 }
 
