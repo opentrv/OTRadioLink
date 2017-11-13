@@ -464,7 +464,7 @@ namespace OTRadioLink
             // Parameters:
             //  * buf  buffer containing the plain-text; must be >= 32 bytes, never NULL
             //  * datalen  unpadded data size at start of buf; if too large (>31) then this routine will fail (return 0)
-            static uint8_t addPaddingTo32BTrailing0sAndPadCount(uint8_t *buf, uint8_t datalen);
+            static uint8_t padTXBuffer32B(uint8_t *buf, uint8_t datalen);
 
             // Signature of pointer to basic fixed-size text encryption/authentication function.
             // (Suitable for type 'O' valve/sensor small frame for example.)

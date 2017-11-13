@@ -452,15 +452,15 @@ TEST(OTAESGCMSecureFrame, SimplePadding)
 {
     uint8_t buf[OTRadioLink::ENC_BODY_SMALL_FIXED_CTEXT_SIZE];
     // Provoke failure with NULL buffer.
-    EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyTXBase::addPaddingTo32BTrailing0sAndPadCount(NULL, 0x1f & OTV0P2BASE::randRNG8()));
+    EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyTXBase::padTXBuffer32B(NULL, 0x1f & OTV0P2BASE::randRNG8()));
     // Provoke failure with over-long unpadded plain-text.
-    EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyTXBase::addPaddingTo32BTrailing0sAndPadCount(buf, 1 + OTRadioLink::ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE));
+    EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyTXBase::padTXBuffer32B(buf, 1 + OTRadioLink::ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE));
     // Check padding in case with single random data byte (and the rest of the buffer set differently).
     // Check the entire padded result for correctness.
     const uint8_t db0 = OTV0P2BASE::randRNG8();
     buf[0] = db0;
     memset(buf+1, ~db0, sizeof(buf)-1);
-    EXPECT_EQ(32, OTRadioLink::SimpleSecureFrame32or0BodyTXBase::addPaddingTo32BTrailing0sAndPadCount(buf, 1));
+    EXPECT_EQ(32, OTRadioLink::SimpleSecureFrame32or0BodyTXBase::padTXBuffer32B(buf, 1));
     EXPECT_EQ(db0, buf[0]);
     for(int i = 30; --i > 0; ) { EXPECT_EQ(0, buf[i]); }
     EXPECT_EQ(30, buf[31]);
