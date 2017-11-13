@@ -743,7 +743,7 @@ TEST(OTAESGCMSecureFrame, SecureSmallFrameEncodingWithWorkspace)
     uint8_t encWorkspace[encWorkspaceSize];
     OTV0P2BASE::ScratchSpaceL sWEnc(encWorkspace, sizeof(encWorkspace));
     constexpr size_t decWorkspaceSize =
-            OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRawWithWorkspace_total_scratch_usage_OTAESGCM_3p0
+            OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeRaw_total_scratch_usage_OTAESGCM_3p0
             + OTAESGCM::OTAES128GCMGenericWithWorkspace<>::workspaceRequiredDec;
     EXPECT_EQ(320U, decWorkspaceSize);
     uint8_t decWorkspace[decWorkspaceSize];
@@ -865,7 +865,7 @@ TEST(OTAESGCMSecureFrame, BeaconEncodingWithWorkspace)
     uint8_t encWorkspace[encWorkspaceSize];
     OTV0P2BASE::ScratchSpaceL sWEnc(encWorkspace, sizeof(encWorkspace));
     constexpr size_t decWorkspaceSize =
-            OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRawWithWorkspace_total_scratch_usage_OTAESGCM_3p0
+            OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeRaw_total_scratch_usage_OTAESGCM_3p0
             + + OTAESGCM::OTAES128GCMGenericWithWorkspace<>::workspaceRequiredDec;;
     uint8_t decWorkspace[decWorkspaceSize];
     OTV0P2BASE::ScratchSpaceL sWDec(decWorkspace, sizeof(decWorkspace));
@@ -1515,7 +1515,7 @@ TEST(OTAESGCMSecureFrame, SecureFrameDecodeStackUsage) {
     uint8_t encWorkspace[encWorkspaceSize];
     OTV0P2BASE::ScratchSpaceL sWEnc(encWorkspace, sizeof(encWorkspace));
     constexpr size_t decWorkspaceSize =
-            OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRawWithWorkspace_total_scratch_usage_OTAESGCM_3p0
+            OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeRaw_total_scratch_usage_OTAESGCM_3p0
             + + OTAESGCM::OTAES128GCMGenericWithWorkspace<>::workspaceRequiredDec;;
     uint8_t decWorkspace[decWorkspaceSize];
     OTV0P2BASE::ScratchSpaceL sWDec(decWorkspace, sizeof(decWorkspace));

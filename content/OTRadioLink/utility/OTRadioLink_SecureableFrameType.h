@@ -502,7 +502,7 @@ namespace OTRadioLink
             // this routine will fail (safely, returning false) if the workspace
             // is NULL or too small.
             // The workspace requirement depends on the implementation used.
-            static constexpr size_t workspaceRequred_GCM32B16BWithWorkspace_OTAESGCM_2p0 =
+            static constexpr size_t workspaceRequred_GCM32B16B_OTAESGCM_2p0 =
                 176 /* AES element */ +
                 96 /* GCM element as at 20170707 */ ;
             // Returns true on success, false on failure.
@@ -543,7 +543,7 @@ namespace OTRadioLink
             // and have padding applied *in situ*.
             static constexpr uint8_t encodeRaw_scratch_usage = 0;
             static constexpr size_t encodeRaw_total_scratch_usage_OTAESGCM_2p0 =
-                    workspaceRequred_GCM32B16BWithWorkspace_OTAESGCM_2p0
+                    workspaceRequred_GCM32B16B_OTAESGCM_2p0
                     + encodeRaw_scratch_usage;
             static uint8_t encodeRaw(
                                 OTEncodeData_T &fd,
@@ -764,8 +764,8 @@ namespace OTRadioLink
             // this routine will fail (safely, returning false)
             // if the workspace is NULL or too small.
             // The workspace requirement depends on the implementation used.
-            static constexpr size_t workspaceRequred_GCM32B16BWithWorkspace_OTAESGCM_2p0 =
-                SimpleSecureFrame32or0BodyTXBase::workspaceRequred_GCM32B16BWithWorkspace_OTAESGCM_2p0;
+            static constexpr size_t workspaceRequred_GCM32B16B_OTAESGCM_2p0 =
+                SimpleSecureFrame32or0BodyTXBase::workspaceRequred_GCM32B16B_OTAESGCM_2p0;
             // Returns true on success, false on failure.
             typedef bool (fixed32BTextSize12BNonce16BTagSimpleDec_fn_t)(
                     uint8_t *workspace, size_t workspaceSize,
@@ -837,11 +837,11 @@ namespace OTRadioLink
             //  * state  pointer to state for d, if required, else NULL
             //  * key  secret key; never NULL
             // Version with workspace.
-            static constexpr uint8_t decodeSecureSmallFrameRawWithWorkspace_scratch_usage =
+            static constexpr uint8_t decodeRaw_scratch_usage =
                 ENC_BODY_SMALL_FIXED_CTEXT_SIZE;
-            static constexpr size_t decodeSecureSmallFrameRawWithWorkspace_total_scratch_usage_OTAESGCM_3p0 =
+            static constexpr size_t decodeRaw_total_scratch_usage_OTAESGCM_3p0 =
                 0 /* Any additional callee space would be for d(). */ +
-                decodeSecureSmallFrameRawWithWorkspace_scratch_usage;
+                decodeRaw_scratch_usage;
             static uint8_t decodeRaw(
                                 OTDecodeData_T &fd,
                                 fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &d,
@@ -939,7 +939,7 @@ namespace OTRadioLink
             static constexpr uint8_t _decodeSecureSmallFrameFromIDWithWorkspace_scratch_usage =
                 12; // Space for constructed IV.
             static constexpr size_t _decodeSecureSmallFrameFromIDWithWorkspace_total_scratch_usage_OTAESGCM_3p0 =
-                decodeSecureSmallFrameRawWithWorkspace_total_scratch_usage_OTAESGCM_3p0 +
+                decodeRaw_total_scratch_usage_OTAESGCM_3p0 +
                 _decodeSecureSmallFrameFromIDWithWorkspace_scratch_usage;
         public:
             // From a structurally correct secure frame, looks up the ID, checks the message counter, decodes, and updates the counter if successful.
