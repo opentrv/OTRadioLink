@@ -242,7 +242,7 @@ uint8_t SecurableFrameHeader::checkAndDecodeSmallFrameHeader(const OTBuf_t &_buf
     // Return decoded header length including frame-length byte; body should immediately follow.
     return(hlifl); // SUCCESS!
     }
-#if 1  // XXX
+
 // Decode header and check parameters/validity for inbound short secureable frame.
 // The buffer starts with the fl frame length byte.
 //
@@ -321,7 +321,7 @@ uint8_t SecurableFrameHeader::checkAndDecodeSmallFrameHeader(const uint8_t *cons
     // Return decoded header length including frame-length byte; body should immediately follow.
     return(hlifl); // SUCCESS!
     }
-#endif
+
 
 
 // Compute and return CRC for non-secure frames; 0 indicates an error.
@@ -363,7 +363,7 @@ uint8_t SecurableFrameHeader::computeNonSecureFrameCRC(const uint8_t *const buf,
 //  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
 //  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
 //  * body / bl_  body data (and length)
-uint8_t encodeNonsecureSmallFrame(
+uint8_t encodeNonsecureOnStack(
             OTEncodeData_T &fd,
             uint8_t seqNum_,
             const OTBuf_t &id_)
@@ -407,7 +407,7 @@ uint8_t encodeNonsecureSmallFrame(
 //  * buf  buffer containing the entire frame including header and trailer; never NULL
 //  * buflen  available length in buf; if too small then this routine will fail (return 0)
 //  * sfh  decoded frame header; never NULL
-uint8_t decodeNonsecureSmallFrameRaw(const SecurableFrameHeader *sfh,
+uint8_t decodeNonsecureRawOnStack(const SecurableFrameHeader *sfh,
                                      const uint8_t *buf, uint8_t buflen)
     {
     if((NULL == sfh) || (NULL == buf)) { return(0); } // ERROR
@@ -488,7 +488,6 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeRaw(
     {
     if(NULL == key) { return(0); } // ERROR
 
-
     // buffer local variables/consts
     uint8_t * const buffer = fd.ctext;
     const uint8_t buflen = fd.ctextLen;
@@ -504,7 +503,6 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeRaw(
     // Let checkAndEncodeSmallFrameHeader() validate buf and id_.
     // If necessary (bl_ > 0) body is validated below.
     const uint8_t seqNum_ = iv[11] & 0xf;
-
 
     OTBuf_t body(fd.ptext, fd.ptextLen);
     OTBuf_t buf(fd.ctext, fd.ctextLen);
@@ -863,7 +861,7 @@ uint8_t generateNonsecureBeacon(OTBuf_t &buf, const uint8_t seqNum_, const OTBuf
     fd.fType = OTRadioLink::FTS_ALIVE;
 
     // "I'm Alive!" / beacon message.
-    return(encodeNonsecureSmallFrame(fd,
+    return(encodeNonsecureOnStack(fd,
                                     seqNum_,
                                     id_));
     }
@@ -1141,10 +1139,11 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encode(
     // NOTE this version uses a scratch space, allowing the stack usage
     // to be more tightly controlled.
     uint8_t SimpleSecureFrame32or0BodyRXBase::decode(
-            OTDecodeData_T &fd,
-            fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &d,
-            OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *const key,
-            bool /*firstIDMatchOnly*/)
+                OTDecodeData_T &fd,
+                fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &d,
+                OTV0P2BASE::ScratchSpaceL &scratch,
+                const uint8_t *const key,
+                bool /*firstIDMatchOnly*/)
         {
         // Scratch space for this function call alone (not called fns).
         constexpr uint8_t scratchSpaceNeededHere =
@@ -1214,10 +1213,11 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encode(
     //
     //  * ID if non-NULL is filled in with the full authenticated sender ID, so must be >= 8 bytes
     uint8_t SimpleSecureFrame32or0BodyRXBase::decodeOnStack(
-                        OTDecodeData_T &fd,
-                        fixed32BTextSize12BNonce16BTagSimpleDecOnStack_fn_t &d,
-                        void *const state, const uint8_t *const key,
-                        bool /*firstIDMatchOnly*/)
+                OTDecodeData_T &fd,
+                fixed32BTextSize12BNonce16BTagSimpleDecOnStack_fn_t &d,
+                void *const state,
+                const uint8_t *const key,
+                bool /*firstIDMatchOnly*/)
         {
         // Rely on _decodeSecureSmallFrameFromID() for validation of items not directly needed here.
         if(nullptr == fd.ctext) { return(0); } // ERROR
@@ -1240,6 +1240,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encode(
         // Assumed no need to 'adjust' ID for this form of RX.
         const uint8_t decodeResult =_decodeFromIDOnStack(fd, d, senderNodeID, state, key);
         if(0 == decodeResult) { return(0); } // ERROR
+
         // Successfully decoded: update the RX message counter to avoid duplicates/replays.
         if(!updateRXMessageCountAfterAuthentication(senderNodeIDBuf, messageCounter)) { return(0); } // ERROR
         // Success: copy sender ID to output buffer (if non-NULL) as last action.

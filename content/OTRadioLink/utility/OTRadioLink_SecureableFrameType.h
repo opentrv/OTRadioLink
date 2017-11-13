@@ -398,7 +398,7 @@ namespace OTRadioLink
 //                                        const uint8_t *id_, uint8_t il_,
 //                                        const uint8_t *body, uint8_t bl_);
 
-    uint8_t encodeNonsecureSmallFrame(OTEncodeData_T &fd, uint8_t seqNum_, const OTBuf_t &id_);
+    uint8_t encodeNonsecureOnStack(OTEncodeData_T &fd, uint8_t seqNum_, const OTBuf_t &id_);
 
     // Decode entire non-secure small frame from raw frame bytes support.
     // Returns the total number of bytes read for the frame
@@ -413,7 +413,8 @@ namespace OTRadioLink
     //  * buf  buffer containing the entire frame including header and trailer; never NULL
     //  * buflen  available length in buf; if too small then this routine will fail (return 0)
     //  * sfh  decoded frame header; never NULL
-    uint8_t decodeNonsecureSmallFrameRaw(const SecurableFrameHeader *sfh,
+    // XXX What to do about this?
+    uint8_t decodeNonsecureRawOnStack(const SecurableFrameHeader *sfh,
                                          const uint8_t *buf, uint8_t buflen);
 
 //        // Round up to next 16 multiple, eg for encryption that works in fixed-size blocks for input [0,240].
