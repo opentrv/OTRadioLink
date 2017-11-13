@@ -639,7 +639,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRawPadInPlace(
 //  * d  decryption function; never NULL
 //  * state  pointer to state for d, if required, else NULL
 //  * key  secret key; never NULL
-uint8_t SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRawOnStack(
+uint8_t SimpleSecureFrame32or0BodyRXBase::decodeRawOnStack(
             OTDecodeData_T &fd,
             const fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
             void *const state,
@@ -692,7 +692,7 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRawOnStack(
     return(fl + 1);
     }
 // Version with workspace
-uint8_t SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRaw(
+uint8_t SimpleSecureFrame32or0BodyRXBase::decodeRaw(
             OTDecodeData_T &fd,
             const fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_ptr_t d,
             const OTV0P2BASE::ScratchSpaceL &scratch,
@@ -1077,7 +1077,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTEncodeData_T &f
     //
     // TO AVOID RELAY ATTACKS: verify the counter is higher than any previous authed message from this sender
     // then update the RX message counter after a successful auth with this routine.
-    uint8_t SimpleSecureFrame32or0BodyRXBase::_decodeSecureSmallFrameFromIDOnStack(
+    uint8_t SimpleSecureFrame32or0BodyRXBase::_decodeFromIDOnStack(
                 OTDecodeData_T &fd,
                 fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
                 const OTBuf_t adjID,
@@ -1096,10 +1096,10 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTEncodeData_T &f
         memcpy(iv, adjID.buf, 6);
         memcpy(iv + 6, buf + sfh.getTrailerOffset(), SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes);
         // Now do actual decrypt/auth.
-        return(decodeSecureSmallFrameRawOnStack(fd, d, state, key, iv));
+        return(decodeRawOnStack(fd, d, state, key, iv));
         }
     // Version that takes a scratch space.
-    uint8_t SimpleSecureFrame32or0BodyRXBase::_decodeSecureSmallFrameFromID(
+    uint8_t SimpleSecureFrame32or0BodyRXBase::_decodeFromID(
                                     OTDecodeData_T &fd,
                                     const fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_ptr_t d,
                                     const OTBuf_t adjID,
@@ -1125,7 +1125,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTEncodeData_T &f
         memcpy(iv, adjID.buf, 6);
         memcpy(iv + 6, buf + sfh.getTrailerOffset(), SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes);
         // Now do actual decrypt/auth.
-        return(decodeSecureSmallFrameRaw(fd, d, subScratch, key, iv));
+        return(decodeRaw(fd, d, subScratch, key, iv));
         }
 
     // From a structurally correct secure frame, looks up the ID, checks the message counter, decodes, and updates the counter if successful.
@@ -1172,11 +1172,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTEncodeData_T &f
         if(!validateRXMessageCount(senderNodeIDBuf, messageCounter)) { return(0); } // ERROR
         // Now attempt to decrypt.
         // Assumed no need to 'adjust' ID for this form of RX.
-        const uint8_t decodeResult =_decodeSecureSmallFrameFromIDOnStack(
-                                        fd,
-                                        d,
-                                        senderNodeID,
-                                        state, key);
+        const uint8_t decodeResult =_decodeFromIDOnStack(fd, d, senderNodeID, state, key);
         if(0 == decodeResult) { return(0); } // ERROR
         // Successfully decoded: update the RX message counter to avoid duplicates/replays.
         if(!updateRXMessageCountAfterAuthentication(senderNodeIDBuf, messageCounter)) { return(0); } // ERROR
@@ -1255,11 +1251,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrame(OTEncodeData_T &f
         if(!validateRXMessageCount(senderNodeIDBuf, messageCounter)) { return(0); } // ERROR
         // Now attempt to decrypt.
         // Assumed no need to 'adjust' ID for this form of RX.
-        const uint8_t decodeResult = _decodeSecureSmallFrameFromID(
-                fd,
-                d,
-                senderNodeID,
-                subScratch, key);
+        const uint8_t decodeResult = _decodeFromID( fd, d, senderNodeID, subScratch, key);
         if(0 == decodeResult) { return(0); } // ERROR
         // Successfully decoded: update the RX message counter to avoid duplicates/replays.
         if(!updateRXMessageCountAfterAuthentication(senderNodeIDBuf, messageCounter)) { return(0); } // ERROR

@@ -848,7 +848,7 @@ namespace OTRadioLink
             //  * d  decryption function; never NULL
             //  * state  pointer to state for d, if required, else NULL
             //  * key  secret key; never NULL
-            static uint8_t decodeSecureSmallFrameRawOnStack(
+            static uint8_t decodeRawOnStack(
                                 OTDecodeData_T &fd,
                                 fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
                                 void *const state,
@@ -861,7 +861,7 @@ namespace OTRadioLink
             static constexpr size_t decodeSecureSmallFrameRawWithWorkspace_total_scratch_usage_OTAESGCM_3p0 =
                 0 /* Any additional callee space would be for d(). */ +
                 decodeSecureSmallFrameRawWithWorkspace_scratch_usage;
-            static uint8_t decodeSecureSmallFrameRaw(
+            static uint8_t decodeRaw(
                                 OTDecodeData_T &fd,
                                 fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_ptr_t d,
                                 const OTV0P2BASE::ScratchSpaceL &scratch,
@@ -931,7 +931,7 @@ namespace OTRadioLink
             // then update the RX message counter after a successful auth with this routine.
             //
             // Not a public entry point (is protected).
-            uint8_t _decodeSecureSmallFrameFromIDOnStack(
+            uint8_t _decodeFromIDOnStack(
                         OTDecodeData_T &fd,
                         fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t d,
                         const OTBuf_t adjID,
@@ -947,7 +947,7 @@ namespace OTRadioLink
             // XXX
             // Pointers held by fd and OTBuf_t should never be nullptrs!
             // Basic validation of sfh should already have been performed (isInvalid, isSecure, getTl)
-            uint8_t _decodeSecureSmallFrameFromID(
+            uint8_t _decodeFromID(
                         OTDecodeData_T &fd,
                         fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_ptr_t d,
                         const OTBuf_t adjID,
