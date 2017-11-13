@@ -364,40 +364,32 @@ uint8_t SecurableFrameHeader::computeNonSecureFrameCRC(const uint8_t *const buf,
 //  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
 //  * body / bl_  body data (and length)
 uint8_t encodeNonsecureSmallFrame(
-            OTBuf_t &buf,
-            FrameType_Secureable fType_,
+            OTEncodeData_T &fd,
             uint8_t seqNum_,
-            const OTBuf_t &id_,
-            const OTBuf_t &body)
+            const OTBuf_t &id_)
     {
-    // buffer variables
-    uint8_t *const buffer = buf.buf;
-    const uint8_t buflen = buf.bufsize;
-    const uint8_t *const bodybuf = body.buf;
-    const uint8_t bodylen = body.bufsize;
-
     // Let checkAndEncodeSmallFrameHeader() validate buf and id_.
     // If necessary (bl_ > 0) body is validated below.
-    OTRadioLink::SecurableFrameHeader sfh;
-    const uint8_t hl = sfh.checkAndEncodeSmallFrameHeader(buf,
-                                               false, fType_, // Not secure.
+    OTBuf_t buf(fd.ctext, fd.ctextLen);  // XXX
+    const uint8_t hl = fd.sfh.checkAndEncodeSmallFrameHeader(buf,
+                                               false, fd.fType, // Not secure.
                                                seqNum_,
                                                id_,
-                                               bodylen,
+                                               fd.ptextLen,
                                                1); // 1-byte CRC trailer.
     // Fail if header encoding fails.
     if(0 == hl) { return(0); } // ERROR
     // Fail if buffer is not large enough to accommodate full frame.
-    const uint8_t fl = sfh.fl;
-    if(fl >= buflen) { return(0); } // ERROR
+    const uint8_t fl = fd.sfh.fl;
+    if(fl >= fd.ctextLen) { return(0); } // ERROR
     // Copy in body, if any.
-    if(bodylen > 0)
+    if(fd.ptextLen > 0)
         {
-        memcpy(buffer + sfh.getBodyOffset(), bodybuf, bodylen);
+        memcpy(fd.ctext + fd.sfh.getBodyOffset(), fd.ptext, fd.ptextLen);
         }
     // Compute and write in the CRC trailer...
-    const uint8_t crc = sfh.computeNonSecureFrameCRC(buffer, buflen);
-    buffer[fl] = crc;
+    const uint8_t crc = fd.sfh.computeNonSecureFrameCRC(fd.ctext, fd.ctextLen);
+    fd.ctext[fl] = crc;
     // Done.
     return(fl + 1);
     }
@@ -490,11 +482,11 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeRaw(
             OTEncodeData_T &fd,
             const OTBuf_t &id_,
             const uint8_t *iv,
-            fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
+            fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t &e,
             const OTV0P2BASE::ScratchSpaceL &scratch,
             const uint8_t *key)
     {
-    if((NULL == e) || (NULL == key)) { return(0); } // ERROR
+    if(NULL == key) { return(0); } // ERROR
 
 
     // buffer local variables/consts
@@ -548,11 +540,11 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeRawUnpaddedOnStack(
             OTEncodeData_T &fd,
             const OTBuf_t &id_,
             const uint8_t *iv,
-            fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+            fixed32BTextSize12BNonce16BTagSimpleEncOnStack_fn_t  &e,
             void *state,
             const uint8_t *key)
     {
-    if((NULL == e) || (NULL == key)) { return(0); } // ERROR
+    if(NULL == key) { return(0); } // ERROR
 
     // buffer local variables/consts
     uint8_t * const buffer = fd.ctext;
@@ -867,21 +859,20 @@ bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(void *const /*state*/,
 //  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
 uint8_t generateNonsecureBeacon(OTBuf_t &buf, const uint8_t seqNum_, const OTBuf_t &id_)
     {
-    SecurableFrameHeader sfh;
-    const OTBuf_t body(NULL, 0);
+    OTEncodeData_T fd(nullptr, 0, buf.buf, buf.bufsize);
+    fd.fType = OTRadioLink::FTS_ALIVE;
+
     // "I'm Alive!" / beacon message.
-    return(encodeNonsecureSmallFrame(buf,
-                                    OTRadioLink::FTS_ALIVE,
+    return(encodeNonsecureSmallFrame(fd,
                                     seqNum_,
-                                    id_,
-                                    body));
+                                    id_));
     }
 
 
 uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOStyleFrameForTX(
             OTEncodeData_T &fd,
             uint8_t il_,
-            fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+            fixed32BTextSize12BNonce16BTagSimpleEncOnStack_fn_t  &e,
             void *state,
             const uint8_t *key)
     {
@@ -914,7 +905,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX(uint8_t *
                                 const uint8_t il_,
                                 const uint8_t valvePC,
                                 const char *const statsJSON,
-                                const fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                                const fixed32BTextSize12BNonce16BTagSimpleEncOnStack_fn_t  &e,
                                 void *const state, const uint8_t *const key)
     {
     uint8_t iv[12];
@@ -940,7 +931,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameOnStack(OTBuf_t &b
                                                 uint8_t il_,
                                                 uint8_t valvePC,
                                                 const uint8_t * const body,
-                                                fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                                                fixed32BTextSize12BNonce16BTagSimpleEncOnStack_fn_t  &e,
                                                 void *state, const uint8_t *key)
     {
     uint8_t iv[12];
@@ -984,7 +975,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX(
             const uint8_t il_,
             const uint8_t valvePC,
             uint8_t *const ptextBuf,
-            const fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
+            fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t &e,
             const OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *const key)
 {
     constexpr uint8_t IV_size = 12;
@@ -1018,7 +1009,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encode(
                                             OTEncodeData_T &fd,
                                             uint8_t il_,
                                             uint8_t valvePC,
-                                            const fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
+                                            fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t &e,
                                             const OTV0P2BASE::ScratchSpaceL &scratch,
                                             const uint8_t *key)
 {

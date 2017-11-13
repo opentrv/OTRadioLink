@@ -392,17 +392,13 @@ namespace OTRadioLink
     //  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
     //  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
     //  * body / bl_  body data (and length)
-    uint8_t encodeNonsecureSmallFrame(uint8_t *buf, uint8_t buflen,
-                                        FrameType_Secureable fType_,
-                                        uint8_t seqNum_,
-                                        const uint8_t *id_, uint8_t il_,
-                                        const uint8_t *body, uint8_t bl_);
+//    uint8_t encodeNonsecureSmallFrame(uint8_t *buf, uint8_t buflen,  // TODO DELETE!
+//                                        FrameType_Secureable fType_,
+//                                        uint8_t seqNum_,
+//                                        const uint8_t *id_, uint8_t il_,
+//                                        const uint8_t *body, uint8_t bl_);
 
-    uint8_t encodeNonsecureSmallFrame(OTBuf_t &buf,
-                                        FrameType_Secureable fType_,
-                                        uint8_t seqNum_,
-                                        const OTBuf_t &id_,
-                                        const OTBuf_t &body);
+    uint8_t encodeNonsecureSmallFrame(OTEncodeData_T &fd, uint8_t seqNum_, const OTBuf_t &id_);
 
     // Decode entire non-secure small frame from raw frame bytes support.
     // Returns the total number of bytes read for the frame
@@ -489,12 +485,11 @@ namespace OTRadioLink
             // which implies likely requirement for padding of the plain text.
             // Note that the authenticated text size is not fixed, ie is zero or more bytes.
             // Returns true on success, false on failure.
-            typedef bool (fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t)(void *state,
+            typedef bool (fixed32BTextSize12BNonce16BTagSimpleEncOnStack_fn_t)(void *state,
                     const uint8_t *key, const uint8_t *iv,
                     const uint8_t *authtext, uint8_t authtextSize,
                     const uint8_t *plaintext,
                     uint8_t *ciphertextOut, uint8_t *tagOut);
-            typedef fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t *fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t;
 
             // Signature of pointer to basic fixed-size text encryption/authentication function with workspace supplied.
             // (Suitable for type 'O' valve/sensor small frame for example.)
@@ -517,14 +512,12 @@ namespace OTRadioLink
                 176 /* AES element */ +
                 96 /* GCM element as at 20170707 */ ;
             // Returns true on success, false on failure.
-            typedef bool (fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_fn_t)(
+            typedef bool (fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t)(
                     uint8_t *workspace, size_t workspaceSize,
                     const uint8_t *key, const uint8_t *iv,
                     const uint8_t *authtext, uint8_t authtextSize,
                     const uint8_t *plaintext,
                     uint8_t *ciphertextOut, uint8_t *tagOut);
-            typedef fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_fn_t *fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t;
-
 
             // Encode entire secure small frame from header params and body and crypto support.
             // Buffer for body must be large enough to allow padding to be applied IN PLACE.
@@ -562,7 +555,7 @@ namespace OTRadioLink
                                 OTEncodeData_T &fd,
                                 const OTBuf_t &id_,
                                 const uint8_t *iv,
-                                fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
+                                fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t &e,
                                 const OTV0P2BASE::ScratchSpaceL &scratch,
                                 const uint8_t *key);
 
@@ -594,7 +587,7 @@ namespace OTRadioLink
                                 OTEncodeData_T &fd,
                                 const OTBuf_t &id_,
                                 const uint8_t *iv,
-                                fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                                fixed32BTextSize12BNonce16BTagSimpleEncOnStack_fn_t &e,
                                 void *state,
                                 const uint8_t *key);
 
@@ -676,7 +669,7 @@ namespace OTRadioLink
             uint8_t generateSecureOStyleFrameForTX(
                         OTEncodeData_T &fd,
                         uint8_t il_,
-                        fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                        fixed32BTextSize12BNonce16BTagSimpleEncOnStack_fn_t  &e,
                         void *state,
                         const uint8_t *key);
 
@@ -695,7 +688,7 @@ namespace OTRadioLink
             // NOTE: THIS API IS LIABLE TO CHANGE
             uint8_t generateSecureBeaconRawForTX(uint8_t *buf, uint8_t buflen,
                                             uint8_t il_,
-                                            fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+                                            fixed32BTextSize12BNonce16BTagSimpleEncOnStack_fn_t  &e,
                                             void *state, const uint8_t *key)
                 { return(generateSecureOStyleFrameForTX(buf, buflen, OTRadioLink::FTS_ALIVE, il_, NULL, 0, e, state, key)); }
 #endif
@@ -723,7 +716,7 @@ namespace OTRadioLink
                         OTEncodeData_T &fd,
                         uint8_t il_,
                         uint8_t valvePC,
-                        const fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t e,
+                        fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t &e,
                         const OTV0P2BASE::ScratchSpaceL &scratch,
                         const uint8_t *key);
         };

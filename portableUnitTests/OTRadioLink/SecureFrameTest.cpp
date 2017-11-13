@@ -406,10 +406,11 @@ TEST(OTAESGCMSecureFrame, NonsecureSmallFrameEncoding)
 {
     uint8_t _id[OTRadioLink::SecurableFrameHeader::maxIDLength];  // Make buffer large enough for fail case.
     OTRadioLink::OTBuf_t id2bytes(_id, 2);
-    uint8_t _buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize];
-    OTRadioLink::OTBuf_t buf(_buf, sizeof(_buf));
-    uint8_t _body[2] = { 0x00, 0x01 };
-    OTRadioLink::OTBuf_t body(_body, sizeof(_body));
+    uint8_t buf[OTRadioLink::SecurableFrameHeader::maxSmallFrameSize];
+    uint8_t body[2] = { 0x00, 0x01 };
+
+    OTRadioLink::OTEncodeData_T fd(body, sizeof(body), buf, sizeof(buf));
+    fd.fType = OTRadioLink::FTS_BasicSensorOrValve;
 
     //
     // Test vector 1 / example from the spec.
@@ -429,20 +430,19 @@ TEST(OTAESGCMSecureFrame, NonsecureSmallFrameEncoding)
     //23 CRC value
     id2bytes.buf[0] = 0x80;
     id2bytes.buf[1] = 0x81;
-    EXPECT_EQ(9, OTRadioLink::encodeNonsecureSmallFrame(buf,
-                                    OTRadioLink::FTS_BasicSensorOrValve,
+    EXPECT_EQ(9, OTRadioLink::encodeNonsecureSmallFrame(
+                                    fd,
                                     0,
-                                    id2bytes,
-                                    body));
-    EXPECT_EQ(0x08, buf.buf[0]);
-    EXPECT_EQ(0x4f, buf.buf[1]);
-    EXPECT_EQ(0x02, buf.buf[2]);
-    EXPECT_EQ(0x80, buf.buf[3]);
-    EXPECT_EQ(0x81, buf.buf[4]);
-    EXPECT_EQ(0x02, buf.buf[5]);
-    EXPECT_EQ(0x00, buf.buf[6]);
-    EXPECT_EQ(0x01, buf.buf[7]);
-    EXPECT_EQ(0x23, buf.buf[8]);
+                                    id2bytes));
+    EXPECT_EQ(0x08, buf[0]);
+    EXPECT_EQ(0x4f, buf[1]);
+    EXPECT_EQ(0x02, buf[2]);
+    EXPECT_EQ(0x80, buf[3]);
+    EXPECT_EQ(0x81, buf[4]);
+    EXPECT_EQ(0x02, buf[5]);
+    EXPECT_EQ(0x00, buf[6]);
+    EXPECT_EQ(0x01, buf[7]);
+    EXPECT_EQ(0x23, buf[8]);
 }
 
 // Test simple plain-text padding for encryption.
@@ -474,7 +474,7 @@ TEST(OTAESGCMSecureFrame, SimplePadding)
 // DHD20161107: imported from test_SECFRAME.ino testSimpleNULLEncDec().
 TEST(OTAESGCMSecureFrame, SimpleNULLEncDec)
 {
-    const OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e = OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL;
+    const OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEncOnStack_fn_t &e = OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL;
     OTRadioLink::SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDecOnStack_fn_t &d = OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL;
     // Check that calling the NULL enc routine with bad args fails.
     EXPECT_TRUE(!e(NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL));
@@ -498,7 +498,7 @@ TEST(OTAESGCMSecureFrame, SimpleNULLEncDec)
 
 // Test a simple fixed-size enc/dec function pair.
 // Aborts with Assert...() in case of failure.
-static void runSimpleEncDec(const OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t e,
+static void runSimpleEncDec(const OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEncOnStack_fn_t &e,
                             OTRadioLink::SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDecOnStack_fn_t &d)
 {
     // Check that calling the NULL enc routine with bad args fails.
@@ -1435,7 +1435,7 @@ TEST(OTAESGCMSecureFrame, OFrameEncodingWithWorkspace)
     constexpr size_t workspaceSize = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::generateSecureOFrameRawForTX_total_scratch_usage_OTAESGCM_2p0;
     uint8_t workspace[workspaceSize];
     OTV0P2BASE::ScratchSpaceL sW(workspace, workspaceSize);
-    const OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t eW = OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_LWORKSPACE;
+    OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t &eW = OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_LWORKSPACE;
 
     OTRadioLink::OTEncodeData_T fd(_rawFrame, sizeof(_rawFrame), _bufW, sizeof(_bufW));
     const uint8_t bodylenW = mockTX.encode(
