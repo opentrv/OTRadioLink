@@ -217,7 +217,7 @@ bool boilerFrameOperation(const OTDecodeData_T &fd)
  * @retval  True if frame successfully authenticated and decoded, else false.
  */
 template <typename sfrx_t,
-          SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &decrypt,
+          SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDecOnStack_fn_t &decrypt,
           OTV0P2BASE::GetPrimary16ByteSecretKey_t &getKey>
 inline bool authAndDecodeOTSecurableFrameOnStack(OTDecodeData_T &fd)
 {
@@ -272,7 +272,7 @@ inline bool authAndDecodeOTSecurableFrameOnStack(OTDecodeData_T &fd)
 static constexpr uint8_t authAndDecodeOTSecurableFrameWithWorkspace_scratch_usage =
     16; // Primary building key size.
 template <typename sfrx_t,
-          SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_fn_t &decrypt,
+          SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &decrypt,
           OTV0P2BASE::GetPrimary16ByteSecretKey_t &getKey>
 inline bool authAndDecodeOTSecurableFrame(OTDecodeData_T &fd, OTV0P2BASE::ScratchSpaceL &sW)
 {
@@ -344,7 +344,7 @@ inline bool decodeAndHandleDummyFrame(volatile const uint8_t * const /*msg*/)
  * @return  true on successful frame type match (secure frame), false if no suitable frame was found/decoded and another parser should be tried.
  */
 template<typename sfrx_t,
-         SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &decrypt,
+         SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDecOnStack_fn_t &decrypt,
          OTV0P2BASE::GetPrimary16ByteSecretKey_t &getKey,
          frameOperator_fn_t &o1,
          frameOperator_fn_t &o2 = nullFrameOperation>
@@ -397,7 +397,7 @@ bool decodeAndHandleOTSecureOFrameOnStack(volatile const uint8_t * const _msg)
  * @brief   Version of decodeAndHandleOTSecureOFrame that takes
  **/
 template<typename sfrx_t,
-         SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDecWithLWorkspace_fn_t &decrypt,
+         SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &decrypt,
          OTV0P2BASE::GetPrimary16ByteSecretKey_t &getKey,
          frameOperator_fn_t &o1,
          frameOperator_fn_t &o2 = nullFrameOperation>

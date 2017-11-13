@@ -90,7 +90,7 @@ namespace OTFHT
     // Set true to pass decryption, false to fail.
     // Only enable these if the OTAESGCM library is marked as available.
     static bool mockDecryptSuccess = false;
-    using mockDecrypt_fn_t = OTRadioLink::SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDec_fn_t;
+    using mockDecrypt_fn_t = OTRadioLink::SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDecOnStack_fn_t;
     mockDecrypt_fn_t mockDecrypt;
     bool mockDecrypt (void *const,
                       const uint8_t *const /*key*/, const uint8_t *const /*iv*/,
