@@ -793,7 +793,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOStyleFrameForTX(
     {
     if((fd.fType >= FTS_INVALID_HIGH) || (fd.fType == FTS_NONE)) { return(0); } // FAIL
     uint8_t iv[12];
-    if(!compute12ByteIDAndCounterIVForTX(iv)) { return(0); } // FAIL
+    if(!computeIVForTX(iv)) { return(0); } // FAIL
     // If ID is short then we can cheat by reusing start of IV, else fetch again explicitly...
     const bool longID = (il_ > 6);
     uint8_t id[OTV0P2BASE::OpenTRV_Node_ID_Bytes];
@@ -833,7 +833,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encode(
 
     // iv at start of scratch space
     uint8_t *const iv = scratch.buf; // uint8_t iv[IV_size];
-    if(!compute12ByteIDAndCounterIVForTX(iv)) { return(0); }
+    if(!computeIVForTX(iv)) { return(0); }
 
     const char *const statsJSON = (const char *const)&ptext[2];
     const bool hasStats = (NULL != ptext) && ('{' == statsJSON[0]);
@@ -871,7 +871,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeOnStack(
     uint8_t * const ptext = fd.ptext;
 
     uint8_t iv[12];
-    if(!compute12ByteIDAndCounterIVForTX(iv)) { return(0); }
+    if(!computeIVForTX(iv)) { return(0); }
 
     const char *const statsJSON = (const char *const)&ptext[2];
 
