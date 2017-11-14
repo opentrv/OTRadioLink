@@ -130,7 +130,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
         // but inject entropy into the least significant bits to reduce risk value/IV reuse in error.
         // If called with false then interrupts should not be blocked to allow entropy gathering,
         // and counter is guaranteed to be non-zero.
-        virtual bool resetRaw3BytePersistentTXRestartCounter(bool allZeros = false) override
+        virtual bool resetTXRestartCounter(bool allZeros = false) override
             { return(resetRaw3BytePersistentTXRestartCounterInEEPROM(allZeros)); }
         // Conditional and statically callable version of resetRaw3BytePersistentTXRestartCounter(); returns false on failure.
         // Creates a new persistent/reboot counter and thus message counter, to reduce IV reuse risk.
@@ -278,7 +278,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
             // but inject entropy into the least significant bits to reduce risk value/IV reuse in error.
             // If called with false then interrupts should not be blocked to allow entropy gathering,
             // and counter is guaranteed to be non-zero.
-            virtual bool resetRaw3BytePersistentTXRestartCounter(bool allZeros = false) override
+            virtual bool resetTXRestartCounter(bool allZeros = false) override
                 { return(resetRaw3BytePersistentTXRestartCounterInEEPROM(allZeros)); }
             // Conditional and statically callable version of resetRaw3BytePersistentTXRestartCounter(); returns false on failure.
             // Creates a new persistent/reboot counter and thus message counter, to reduce IV reuse risk.

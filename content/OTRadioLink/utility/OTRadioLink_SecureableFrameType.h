@@ -625,7 +625,7 @@ namespace OTRadioLink
             // but inject entropy into the least significant bits to reduce risk value/IV reuse in error.
             // If called with false then interrupts should not be blocked to allow entropy gathering,
             // and counter is guaranteed to be non-zero.
-            virtual bool resetRaw3BytePersistentTXRestartCounter(bool allZeros = false) = 0;
+            virtual bool resetTXRestartCounter(bool allZeros = false) = 0;
             // Increment persistent reboot/restart message counter; returns false on failure.
             // Will refuse to increment such that the top byte overflows, ie when already at 0xff.
             // TO BE USED WITH EXTREME CAUTION: calling this unnecessarily will shorten life before needing to change ID/key.
