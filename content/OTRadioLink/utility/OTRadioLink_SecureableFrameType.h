@@ -891,11 +891,11 @@ namespace OTRadioLink
             // Read current (last-authenticated) RX message count for specified node, or return false if failed.
             // Will fail for invalid node ID and for unrecoverable memory corruption.
             // Both args must be non-NULL, with counter pointing to enough space to copy the message counter value to.
-            virtual bool getLastRXMessageCounter(const uint8_t * const ID, uint8_t *counter) const = 0;
+            virtual bool getLastRXMsgCtr(const uint8_t * const ID, uint8_t *counter) const = 0;
             // Check message counter for given ID, ie that it is high enough to be eligible for authenticating/processing.
             // ID is full (8-byte) node ID; counter is full (6-byte) counter.
             // Returns false if this counter value is not higher than the last received authenticated value.
-            bool validateRXMessageCount(const uint8_t *ID, const uint8_t *counter) const;
+            bool validateRXMsgCtr(const uint8_t *ID, const uint8_t *counter) const;
             // Update persistent message counter for received frame AFTER successful authentication.
             // ID is full (8-byte) node ID; counter is full (6-byte) counter.
             // Returns false on failure, eg if message counter is not higher than the previous value for this node.
@@ -1117,7 +1117,7 @@ namespace OTRadioLink
          * @param   nodeID: Buffer to copy mockID too. Must be at least 6 bytes.
          * @retval  always true.
          */
-        virtual bool getLastRXMessageCounter(const uint8_t * const /*ID*/, uint8_t * counter) const override
+        virtual bool getLastRXMsgCtr(const uint8_t * const /*ID*/, uint8_t * counter) const override
         {
             memcpy(counter, mockCounter, 6);
             return (true);

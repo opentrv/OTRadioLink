@@ -696,13 +696,13 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::unpad32BBuffer(const uint8_t *const bu
 // Check message counter for given ID, ie that it is high enough to be eligible for authenticating/processing.
 // ID is full (8-byte) node ID; counter is full (6-byte) counter.
 // Returns false if this counter value is not higher than the last received authenticated value.
-bool SimpleSecureFrame32or0BodyRXBase::validateRXMessageCount(const uint8_t *ID, const uint8_t *counter) const
+bool SimpleSecureFrame32or0BodyRXBase::validateRXMsgCtr(const uint8_t *ID, const uint8_t *counter) const
     {
     // Validate args (rely on getLastRXMessageCounter() to validate ID).
     if(NULL == counter) { return(false); } // FAIL
     // Fetch the current counter; instant fail if not possible.
     uint8_t currentCounter[fullMsgCtrBytes];
-    if(!getLastRXMessageCounter(ID, currentCounter)) { return(false); } // FAIL
+    if(!getLastRXMsgCtr(ID, currentCounter)) { return(false); } // FAIL
     // New counter must be larger to be acceptable.
     return(msgcountercmp(counter, currentCounter) > 0);
     }
@@ -1034,7 +1034,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeOnStack(
         memcpy(messageCounter,
                fd.ctext + fd.sfh.getTrailerOffset(),
                SimpleSecureFrame32or0BodyBase::fullMsgCtrBytes);
-        if(!validateRXMessageCount(senderNodeID.buf, messageCounter)) { return(0); } // ERROR
+        if(!validateRXMsgCtr(senderNodeID.buf, messageCounter)) { return(0); } // ERROR
 
         // Now attempt to decrypt.
         // Assumed no need to 'adjust' ID for this form of RX.
@@ -1086,7 +1086,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeOnStack(
         uint8_t messageCounter[SimpleSecureFrame32or0BodyBase::fullMsgCtrBytes];
         // Assume counter positioning as for 0x80 type trailer, ie 6 bytes at start of trailer.
         memcpy(messageCounter, fd.ctext + fd.sfh.getTrailerOffset(), SimpleSecureFrame32or0BodyBase::fullMsgCtrBytes);
-        if(!validateRXMessageCount(senderNodeIDBuf, messageCounter)) { return(0); } // ERROR
+        if(!validateRXMsgCtr(senderNodeIDBuf, messageCounter)) { return(0); } // ERROR
 
         // Now attempt to decrypt.
         // Assumed no need to 'adjust' ID for this form of RX.
