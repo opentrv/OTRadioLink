@@ -1284,7 +1284,7 @@ TEST(OTAESGCMSecureFrame, PermMsgCountRunOnce)
   // that getting the message counter gives non-zero reboot and ephemeral parts.
   EXPECT_TRUE(instance.resetRaw3BytePersistentTXRestartCounterInEEPROM(true));
   uint8_t mcbuf[OTRadioLink::SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes];
-  EXPECT_TRUE(instance.incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(mcbuf));
+  EXPECT_TRUE(instance.getNextTXMessageCounter(mcbuf));
 #if 0
   for(int i = 0; i < sizeof(mcbuf); ++i) { Serial.print(' '); Serial.print(mcbuf[i], HEX); }
   Serial.println();
@@ -1407,7 +1407,7 @@ class TXBaseMock final : public OTRadioLink::SimpleSecureFrame32or0BodyTXBase
     // Increment persistent reboot/restart message counter; returns false on failure.
     virtual bool increment3BytePersistentTXRestartCounter() override { return(false); }
     // Fills the supplied 6-byte array with the incremented monotonically-increasing primary TX counter.
-    virtual bool incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(uint8_t *buf) override { memset(buf, 0, 6); return(true); }
+    virtual bool getNextTXMessageCounter(uint8_t *buf) override { memset(buf, 0, 6); return(true); }
   };
 
 // Test encoding of O frames through to final byte pattern.

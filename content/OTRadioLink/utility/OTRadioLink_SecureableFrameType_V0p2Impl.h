@@ -176,7 +176,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
         // Returns true on success; false on failure for example because the counter has reached its maximum value.
         // Highest-index bytes in the array increment fastest.
         // Not ISR-safe.
-        virtual bool incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(uint8_t * /*buf*/) override { return false; };
+        virtual bool getNextTXMessageCounter(uint8_t * /*buf*/) override { return false; };
     };
 
 #if defined(ARDUINO_ARCH_AVR)
@@ -324,7 +324,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
             // Returns true on success; false on failure for example because the counter has reached its maximum value.
             // Highest-index bytes in the array increment fastest.
             // Not ISR-safe.
-            virtual bool incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(uint8_t *buf) override;
+            virtual bool getNextTXMessageCounter(uint8_t *buf) override;
         };
 
 

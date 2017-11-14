@@ -635,7 +635,7 @@ namespace OTRadioLink
             // Highest-index bytes in the array increment fastest.
             // This should never return an all-zero count.
             // Not ISR-safe.
-            virtual bool incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(uint8_t *buf) = 0;
+            virtual bool getNextTXMessageCounter(uint8_t *buf) = 0;
 
             // Fill in 12-byte IV for 'O'-style (0x80) AESGCM security for a frame to TX; returns false on failure.
             // This uses the local node ID as-is for the first 6 bytes by default,
@@ -648,7 +648,7 @@ namespace OTRadioLink
                 // Fetch entire ID directly to ivBuf for simplicity; lsbytes will be overwritten with message counter.
                 if(!getTXID(ivBuf)) { return(false); } // ID fetch failed.
                 // Generate and fill in new message count at end of IV.
-                return(incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(ivBuf + (12-SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes)));
+                return(getNextTXMessageCounter(ivBuf + (12-SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes)));
                 }
 
             // Create simple 'O'-style secure frame with an optional encrypted body for transmission.
