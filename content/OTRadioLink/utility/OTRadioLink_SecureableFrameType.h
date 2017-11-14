@@ -427,13 +427,13 @@ namespace OTRadioLink
         {
         public:
             // Size of full message counter for tupe-0x80 AES-GCM security frames.
-            static constexpr uint8_t fullMessageCounterBytes = 6;
+            static constexpr uint8_t fullMsgCtrBytes = 6;
 
             // Check one (6-byte) message counter against another for magnitude.
             // Returns 0 if they are identical, +ve if the first counter is greater, -ve otherwise.
             // Logically like getting the sign of counter1 - counter2.
             static int16_t msgcountercmp(const uint8_t *counter1, const uint8_t *counter2)
-                { return(int16_t(memcmp(counter1, counter2, fullMessageCounterBytes))); }
+                { return(int16_t(memcmp(counter1, counter2, fullMsgCtrBytes))); }
 
             // Add specified small unsigned value to supplied counter value in place; false if failed.
             // This will fail (returning false) if the counter would overflow, leaving it unchanged.
@@ -648,7 +648,7 @@ namespace OTRadioLink
                 // Fetch entire ID directly to ivBuf for simplicity; lsbytes will be overwritten with message counter.
                 if(!getTXID(ivBuf)) { return(false); } // ID fetch failed.
                 // Generate and fill in new message count at end of IV.
-                return(getNextTXMessageCounter(ivBuf + (12-SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes)));
+                return(getNextTXMessageCounter(ivBuf + (12-SimpleSecureFrame32or0BodyBase::fullMsgCtrBytes)));
                 }
 
             // Create simple 'O'-style secure frame with an optional encrypted body for transmission.
@@ -983,7 +983,7 @@ namespace OTRadioLink
             // to be more tightly controlled.
             static constexpr uint8_t decode_scratch_usage =
                 OTV0P2BASE::OpenTRV_Node_ID_Bytes +
-                SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes;
+                SimpleSecureFrame32or0BodyBase::fullMsgCtrBytes;
             static constexpr size_t decode_total_scratch_usage_OTAESGCM_3p0 =
                 _decodeFromID_total_scratch_usage_OTAESGCM_3p0 +
                 decode_scratch_usage;

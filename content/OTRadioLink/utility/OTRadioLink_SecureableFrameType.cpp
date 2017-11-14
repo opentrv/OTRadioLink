@@ -351,17 +351,17 @@ bool SimpleSecureFrame32or0BodyBase::msgcounteradd(uint8_t *const counter, const
     if(0 == delta) { return(true); } // Optimisation: nothing to do.
     // Add to last byte, if it overflows ripple up the increment as needed,
     // but refuse if the counter would roll over.
-    const uint8_t lsbyte = counter[fullMessageCounterBytes-1];
+    const uint8_t lsbyte = counter[fullMsgCtrBytes-1];
     const uint8_t bumped = lsbyte + delta;
     // If lsbyte does not wrap, as it won't much of the time, update it and return immediately.
-    if(bumped > lsbyte) { counter[fullMessageCounterBytes-1] = bumped; return(true); }
+    if(bumped > lsbyte) { counter[fullMsgCtrBytes-1] = bumped; return(true); }
     // Carry will need to ripple up, so check that that wouldn't cause an overflow.
     bool allFF = true;
-    for(uint8_t i = 0; i < fullMessageCounterBytes-1; ++i) { if(0xff != counter[i]) { allFF = false; break; } }
+    for(uint8_t i = 0; i < fullMsgCtrBytes-1; ++i) { if(0xff != counter[i]) { allFF = false; break; } }
     if(allFF) { return(false); }
     // Safe from overflow, set lsbyte and ripple up the carry as necessary.
-    counter[fullMessageCounterBytes-1] = bumped;
-    for(int8_t i = fullMessageCounterBytes-1; --i > 0; ) { if(0 != ++counter[i]) { break; } }
+    counter[fullMsgCtrBytes-1] = bumped;
+    for(int8_t i = fullMsgCtrBytes-1; --i > 0; ) { if(0 != ++counter[i]) { break; } }
     // Success!
     return(true);
     }
@@ -701,7 +701,7 @@ bool SimpleSecureFrame32or0BodyRXBase::validateRXMessageCount(const uint8_t *ID,
     // Validate args (rely on getLastRXMessageCounter() to validate ID).
     if(NULL == counter) { return(false); } // FAIL
     // Fetch the current counter; instant fail if not possible.
-    uint8_t currentCounter[fullMessageCounterBytes];
+    uint8_t currentCounter[fullMsgCtrBytes];
     if(!getLastRXMessageCounter(ID, currentCounter)) { return(false); } // FAIL
     // New counter must be larger to be acceptable.
     return(msgcountercmp(counter, currentCounter) > 0);
@@ -944,7 +944,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeOnStack(
         // + counters from (start of) trailer.
         uint8_t *iv = scratch.buf;
         memcpy(iv, adjID.buf, 6);
-        memcpy(iv + 6, fd.ctext + fd.sfh.getTrailerOffset(), SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes);
+        memcpy(iv + 6, fd.ctext + fd.sfh.getTrailerOffset(), SimpleSecureFrame32or0BodyBase::fullMsgCtrBytes);
         // Now do actual decrypt/auth.
         return(decodeRaw(fd, d, subScratch, key, iv));
         }
@@ -965,7 +965,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeOnStack(
         // Construct IV from supplied (possibly adjusted) ID + counters from (start of) trailer.
         uint8_t iv[12];
         memcpy(iv, adjID.buf, 6);
-        memcpy(iv + 6, fd.ctext + fd.sfh.getTrailerOffset(), SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes);
+        memcpy(iv + 6, fd.ctext + fd.sfh.getTrailerOffset(), SimpleSecureFrame32or0BodyBase::fullMsgCtrBytes);
         // Now do actual decrypt/auth.
         return(decodeRawOnStack(fd, d, state, key, iv));
         }
@@ -1033,7 +1033,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeOnStack(
         // Destination and source known large enough for copy to be safe.
         memcpy(messageCounter,
                fd.ctext + fd.sfh.getTrailerOffset(),
-               SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes);
+               SimpleSecureFrame32or0BodyBase::fullMsgCtrBytes);
         if(!validateRXMessageCount(senderNodeID.buf, messageCounter)) { return(0); } // ERROR
 
         // Now attempt to decrypt.
@@ -1083,9 +1083,9 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeOnStack(
         const int8_t index = _getNextMatchingNodeID(0, &fd.sfh, senderNodeIDBuf);
         if(index < 0) { return(0); } // ERROR
         // Extract the message counter and validate it (that it is higher than previously seen)...
-        uint8_t messageCounter[SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes];
+        uint8_t messageCounter[SimpleSecureFrame32or0BodyBase::fullMsgCtrBytes];
         // Assume counter positioning as for 0x80 type trailer, ie 6 bytes at start of trailer.
-        memcpy(messageCounter, fd.ctext + fd.sfh.getTrailerOffset(), SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes);
+        memcpy(messageCounter, fd.ctext + fd.sfh.getTrailerOffset(), SimpleSecureFrame32or0BodyBase::fullMsgCtrBytes);
         if(!validateRXMessageCount(senderNodeIDBuf, messageCounter)) { return(0); } // ERROR
 
         // Now attempt to decrypt.
