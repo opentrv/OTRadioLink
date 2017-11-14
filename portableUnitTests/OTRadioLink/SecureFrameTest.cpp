@@ -1216,7 +1216,7 @@ TEST(OTAESGCMSecureFrame, PermMsgCount)
   EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyTXV0p2::read3BytePersistentTXRestartCounter(loadBuf, buf));
   EXPECT_EQ(0, memcmp(buf, zeroBlock, OTRadioLink::SimpleSecureFrame32or0BodyTXBase::primaryPeristentTXMessageRestartCounterBytes));
   // Ensure that it can be incremented and gives the correct next (0x000001) value.
-  EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyTXV0p2::incrementTXRestartCounter(loadBuf));
+  EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyTXV0p2::incrementTXRestartCtr(loadBuf));
   EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyTXV0p2::read3BytePersistentTXRestartCounter(loadBuf, buf));
   EXPECT_EQ(0, memcmp(buf, zeroBlock, OTRadioLink::SimpleSecureFrame32or0BodyTXBase::primaryPeristentTXMessageRestartCounterBytes - 1));
   EXPECT_EQ(1, buf[2]);
@@ -1224,7 +1224,7 @@ TEST(OTAESGCMSecureFrame, PermMsgCount)
   memset(loadBuf, 0xff, sizeof(loadBuf)); loadBuf[3] = 0xf; loadBuf[7] = 0xf;
   EXPECT_TRUE(!OTRadioLink::SimpleSecureFrame32or0BodyTXV0p2::read3BytePersistentTXRestartCounter(loadBuf, buf));
   // Ensure that it CANNOT be incremented.
-  EXPECT_TRUE(!OTRadioLink::SimpleSecureFrame32or0BodyTXV0p2::incrementTXRestartCounter(loadBuf));
+  EXPECT_TRUE(!OTRadioLink::SimpleSecureFrame32or0BodyTXV0p2::incrementTXRestartCtr(loadBuf));
   // Test recovery from broken primary counter a few times.
   memset(loadBuf, 0, sizeof(loadBuf));
   for(uint8_t i = 0; i < 3; ++i)
@@ -1235,7 +1235,7 @@ TEST(OTAESGCMSecureFrame, PermMsgCount)
     EXPECT_EQ(0, buf[1]);
     EXPECT_EQ(0, buf[1]);
     EXPECT_EQ(i, buf[2]);
-    EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyTXV0p2::getInstance().incrementTXRestartCounter(loadBuf));
+    EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyTXV0p2::getInstance().incrementTXRestartCtr(loadBuf));
     }
   // Also verify in passing that all zero message counter will never be acceptable for an RX message,
   // regardless of the node ID, since the new count as to be higher than any previous for the ID.
@@ -1273,7 +1273,7 @@ TEST(OTAESGCMSecureFrame, PermMsgCountRunOnce)
   EXPECT_TRUE(instance.getTXRestartCtr(buf));
   EXPECT_TRUE(0 == memcmp(buf, zeroBlock, OTRadioLink::SimpleSecureFrame32or0BodyTXBase::primaryPeristentTXMessageRestartCounterBytes));
   // Increment the persistent TX counter and ensure that we see it as non-zero.
-  EXPECT_TRUE(instance.incrementTXRestartCounter());
+  EXPECT_TRUE(instance.incrementTXRestartCtr());
   EXPECT_TRUE(instance.getTXRestartCtr(buf));
   EXPECT_TRUE(0 != memcmp(buf, zeroBlock, OTRadioLink::SimpleSecureFrame32or0BodyTXBase::primaryPeristentTXMessageRestartCounterBytes));
   // So reset to non-all-zeros (should be default) and make sure that we see it as not-all-zeros.
@@ -1284,7 +1284,7 @@ TEST(OTAESGCMSecureFrame, PermMsgCountRunOnce)
   // that getting the message counter gives non-zero reboot and ephemeral parts.
   EXPECT_TRUE(instance.resetRaw3BytePersistentTXRestartCounterInEEPROM(true));
   uint8_t mcbuf[OTRadioLink::SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes];
-  EXPECT_TRUE(instance.getNextTXMessageCounter(mcbuf));
+  EXPECT_TRUE(instance.getNextTXMsgCtr(mcbuf));
 #if 0
   for(int i = 0; i < sizeof(mcbuf); ++i) { Serial.print(' '); Serial.print(mcbuf[i], HEX); }
   Serial.println();
@@ -1405,9 +1405,9 @@ class TXBaseMock final : public OTRadioLink::SimpleSecureFrame32or0BodyTXBase
     // Reset the persistent reboot/restart message counter; returns false on failure.
     virtual bool resetTXRestartCtr(bool /*allZeros*/ = false) override { return(false); }
     // Increment persistent reboot/restart message counter; returns false on failure.
-    virtual bool incrementTXRestartCounter() override { return(false); }
+    virtual bool incrementTXRestartCtr() override { return(false); }
     // Fills the supplied 6-byte array with the incremented monotonically-increasing primary TX counter.
-    virtual bool getNextTXMessageCounter(uint8_t *buf) override { memset(buf, 0, 6); return(true); }
+    virtual bool getNextTXMsgCtr(uint8_t *buf) override { memset(buf, 0, 6); return(true); }
   };
 
 // Test encoding of O frames through to final byte pattern.

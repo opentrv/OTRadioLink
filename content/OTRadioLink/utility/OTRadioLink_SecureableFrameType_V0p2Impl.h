@@ -144,13 +144,13 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
             SimpleSecureFrame32or0BodyTXV0p2Null &i = getInstance();
             uint8_t buf[txRestartCtrBytes];
             if(!i.getTXRestartCtr(buf)) { return(false); }
-            if(buf[0] < 0x20) { return(i.incrementTXRestartCounter()); }
+            if(buf[0] < 0x20) { return(i.incrementTXRestartCtr()); }
             return(i.resetRaw3BytePersistentTXRestartCounterInEEPROM());
             }
         // Increment persistent reboot/restart message counter; returns false on failure.
         // Will refuse to increment such that the top byte overflows, ie when already at 0xff.
         // TO BE USED WITH EXTREME CAUTION: calling this unnecessarily will shorten life before needing to change ID/key.
-        virtual bool incrementTXRestartCounter() override { return false; };
+        virtual bool incrementTXRestartCtr() override { return false; };
         // Get primary (semi-persistent) message counter for TX from an OpenTRV leaf under its own ID.
         // This counter increases monotonically
         // (and so may provide a sequence number)
@@ -176,7 +176,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
         // Returns true on success; false on failure for example because the counter has reached its maximum value.
         // Highest-index bytes in the array increment fastest.
         // Not ISR-safe.
-        virtual bool getNextTXMessageCounter(uint8_t * /*buf*/) override { return false; };
+        virtual bool getNextTXMsgCtr(uint8_t * /*buf*/) override { return false; };
     };
 
 #if defined(ARDUINO_ARCH_AVR)
@@ -250,7 +250,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
             // Will refuse to increment such that the top byte overflows, ie when already at 0xff.
             // Updates the CRC.
             // Input/output buffer (loadBuf) must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
-            static bool incrementTXRestartCounter(uint8_t *loadBuf);
+            static bool incrementTXRestartCtr(uint8_t *loadBuf);
             // Reset the persistent reboot/restart message counter in EEPROM; returns false on failure.
             // TO BE USED WITH EXTREME CAUTION: reusing the message counts and resulting IVs
             // destroys the security of the cipher.
@@ -292,13 +292,13 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
                 SimpleSecureFrame32or0BodyTXV0p2 &i = getInstance();
                 uint8_t buf[txRestartCtrBytes];
                 if(!i.getTXRestartCtr(buf)) { return(false); }
-                if(buf[0] < 0x20) { return(i.incrementTXRestartCounter()); }
+                if(buf[0] < 0x20) { return(i.incrementTXRestartCtr()); }
                 return(i.resetRaw3BytePersistentTXRestartCounterInEEPROM());
                 }
             // Increment persistent reboot/restart message counter; returns false on failure.
             // Will refuse to increment such that the top byte overflows, ie when already at 0xff.
             // TO BE USED WITH EXTREME CAUTION: calling this unnecessarily will shorten life before needing to change ID/key.
-            virtual bool incrementTXRestartCounter() override;
+            virtual bool incrementTXRestartCtr() override;
             // Get primary (semi-persistent) message counter for TX from an OpenTRV leaf under its own ID.
             // This counter increases monotonically
             // (and so may provide a sequence number)
@@ -324,7 +324,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
             // Returns true on success; false on failure for example because the counter has reached its maximum value.
             // Highest-index bytes in the array increment fastest.
             // Not ISR-safe.
-            virtual bool getNextTXMessageCounter(uint8_t *buf) override;
+            virtual bool getNextTXMsgCtr(uint8_t *buf) override;
         };
 
 
