@@ -452,64 +452,6 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeRaw(
     return(fl + 1);
     }
 
-#if 1 // XXX needed for secureOstyleframe
-uint8_t SimpleSecureFrame32or0BodyTXBase::encodeRawUnpaddedOnStack(
-            OTEncodeData_T &fd,
-            const OTBuf_t &id_,
-            const uint8_t *iv,
-            fixed32BTextSize12BNonce16BTagSimpleEncOnStack_fn_t  &e,
-            void *state,
-            const uint8_t *const key)
-    {
-    if(NULL == key) { return(0); } // ERROR
-
-    // buffer local variables/consts
-    uint8_t * const buffer = fd.ctext;
-    const uint8_t bodylen = fd.ptextLen;
-
-    // Capture possible (near) peak of stack usage, eg when called from ISR.
-    OTV0P2BASE::MemoryChecks::recordIfMinSP();
-
-    // Stop if unencrypted body is too big for this scheme.
-    if(bodylen > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
-    const uint8_t encryptedBodyLength = (0 == bodylen) ? 0 : ENC_BODY_SMALL_FIXED_CTEXT_SIZE;
-    // Let checkAndEncodeSmallFrameHeader() validate buf and id_.
-    // If necessary (bl_ > 0) body is validated below.
-    const uint8_t seqNum_ = iv[11] & 0xf;
-
-    OTBuf_t buf(fd.ctext, fd.ctextLen);
-    const uint8_t hl = fd.sfh.encodeHeader(
-                                    buf,
-                                    true,
-                                    fd.fType,
-                                    seqNum_,
-                                    id_,
-                                    encryptedBodyLength,
-                                    23); // 23-byte authentication trailer.
-    // Fail if header encoding fails.
-    if(0 == hl) { return(0); } // ERROR
-    // Fail if buffer is not large enough to accommodate full frame.
-    const uint8_t fl = fd.sfh.fl;
-    if(fl >= fd.ctextLen) { return(0); } // ERROR
-    // Pad body, if any.
-    uint8_t paddingBuf[32];
-    if(0 != bodylen)
-        {
-        memcpy(paddingBuf, fd.ptext, bodylen);
-        if(0 == pad32BBuffer(paddingBuf, bodylen)) { return(0); } // ERROR
-        }
-    // Encrypt body (if any) from the padding buffer to the output buffer.
-    // Insert the tag directly into the buffer (before the final byte).
-    if(!e(state, key, iv, buffer, hl, (0 == bodylen) ? NULL : paddingBuf, buffer + hl, buffer + fl - 16)) { return(0); } // ERROR
-    // Copy the counters part (last 6 bytes of) the nonce/IV into the trailer...
-    memcpy(buffer + fl - 22, iv + 6, 6);
-    // Set final trailer byte to indicate encryption type and format.
-    buffer[fl] = 0x80;
-    // Done.
-    return(fl + 1);
-    }
-#endif
-
 
 // Decode entire secure small frame from raw frame bytes and crypto support.
 // This is a raw/partial impl that requires the IV/nonce to be supplied.
@@ -608,55 +550,6 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::decodeRaw(
     return(fl + 1);
     }
 
-uint8_t SimpleSecureFrame32or0BodyRXBase::decodeRawOnStack(
-            OTDecodeData_T &fd,
-            fixed32BTextSize12BNonce16BTagSimpleDecOnStack_fn_t &d,
-            void *const state,
-            const uint8_t *const key,
-            const uint8_t *const iv)
-    {
-    if((NULL == fd.ctext) || (NULL == key) || (NULL == iv)) { return(0); } // ERROR
-    // Capture possible (near) peak of stack usage, eg when called from ISR.
-    OTV0P2BASE::MemoryChecks::recordIfMinSP();
-
-    const uint8_t *const buf = fd.ctext;
-    const uint8_t buflen = buf[0] + 1;
-    const SecurableFrameHeader &sfh = fd.sfh;
-
-    // Abort if header was not decoded properly.
-    if(sfh.isInvalid()) { return(0); } // ERROR
-    // Abort if expected constraints for simple fixed-size secure frame are not met.
-    const uint8_t fl = sfh.fl;
-    if(fl >= buflen) { return(0); } // ERROR
-    if(23 != sfh.getTl()) { return(0); } // ERROR
-    if(0x80 != buf[fl]) { return(0); } // ERROR
-    const uint8_t bl = sfh.bl;
-    if((0 != bl) && (ENC_BODY_SMALL_FIXED_CTEXT_SIZE != bl)) { return(0); } // ERROR
-    // Check that header sequence number lsbs match nonce counter 4 lsbs.
-    if(sfh.getSeq() != (iv[11] & 0xf)) { return(0); } // ERROR
-    // Note if plaintext is actually wanted/expected.
-    const bool plaintextWanted = (NULL != fd.ptext);
-    // Attempt to authenticate and decrypt.
-    uint8_t decryptBuf[ENC_BODY_SMALL_FIXED_CTEXT_SIZE];
-    if(!d(state, key, iv, buf, sfh.getHl(),
-                (0 == bl) ? NULL : buf + sfh.getBodyOffset(), buf + fl - 16,
-                decryptBuf)) { return(0); } // ERROR
-    if(plaintextWanted && (0 != bl))
-        {
-        // Unpad the decrypted text in place.
-        const uint8_t upbl = unpad32BBuffer(decryptBuf);
-        if(upbl > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
-        if(upbl > fd.ptextLenMax) { return(0); } // ERROR
-        memcpy(fd.ptext, decryptBuf, upbl);
-        fd.ptextSize = upbl;
-        // TODO: optimise later if plaintext not required but ciphertext present.
-        }
-    // Ensure that decryptedBodyOutSize is not left initialised even if no frame body RXed/wanted.
-    else { fd.ptextSize = 0; }
-    // Done.
-    return(fl + 1);
-    }
-
 // Pads plain-text in place prior to encryption with 32-byte fixed length padded output.
 // Simple method that allows unpadding at receiver, does padding in place.
 // Padded size is (ENC_BODY_SMALL_FIXED_CTEXT_SIZE) 32, maximum unpadded size is 31.
@@ -717,17 +610,18 @@ bool SimpleSecureFrame32or0BodyRXBase::validateRXMsgCtr(const uint8_t *ID, const
 // Copies the plaintext to the ciphertext, unless plaintext is NULL.
 // Copies the nonce/IV to the tag and pads with trailing zeros.
 // The key is ignored (though one must be supplied).
-bool fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL(void * const /*state*/,
+bool fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL(
+        uint8_t *const workspace, const size_t /*workspaceSize*/,
         const uint8_t *const key, const uint8_t *const iv,
         const uint8_t *const authtext, const uint8_t /*authtextSize*/,
         const uint8_t *const plaintext,
         uint8_t *const ciphertextOut, uint8_t *const tagOut)
     {
     // Does not use state, but checks that all other pointers are non-NULL.
-    if((NULL == key) || (NULL == iv) || (NULL == authtext) ||
-       (NULL == ciphertextOut) || (NULL == tagOut)) { return(false); } // ERROR
+    if((nullptr == workspace) || (nullptr == key) || (nullptr == iv) ||
+       (nullptr == authtext) || (nullptr == ciphertextOut) || (nullptr == tagOut)) { return(false); } // ERROR
     // Copy the plaintext to the ciphertext, and the nonce to the tag padded with trailing zeros.
-    if(NULL != plaintext) { memcpy(ciphertextOut, plaintext, 32); }
+    if(nullptr != plaintext) { memcpy(ciphertextOut, plaintext, 32); }
     memcpy(tagOut, iv, 12);
     memset(tagOut+12, 0, 4);
     // Done.
@@ -744,19 +638,20 @@ bool fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL(void * const /*state*/,
 // Undoes/checks fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL().
 // Copies the ciphertext to the plaintext, unless ciphertext is NULL.
 // Verifies that the tag seems to have been constructed appropriately.
-bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(void *const /*state*/,
+bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(
+        uint8_t *const workspace, const size_t /* workspaceSize */,
         const uint8_t *const key, const uint8_t *const iv,
         const uint8_t *const authtext, const uint8_t /*authtextSize*/,
         const uint8_t *const ciphertext, const uint8_t *const tag,
         uint8_t *const plaintextOut)
     {
     // Does not use state, but checks that all other pointers are non-NULL.
-    if((NULL == key) || (NULL == iv) || (NULL == authtext) || (NULL == tag) ||
-       (NULL == plaintextOut)) { return(false); } // ERROR
+    if((nullptr == workspace) || (nullptr == key) || (nullptr == iv) ||
+       (nullptr == authtext) || (nullptr == tag) || (nullptr == plaintextOut)) { return(false); } // ERROR
     // Verify that the first and last bytes of the tag look correct.
     if((tag[0] != iv[0]) || (0 != tag[15])) { return(false); } // ERROR
     // Copy the ciphertext to the plaintext.
-    if(NULL != ciphertext) { memcpy(plaintextOut, ciphertext, 32); }
+    if(nullptr != ciphertext) { memcpy(plaintextOut, ciphertext, 32); }
     // Done.
     return(true);
     }
@@ -783,7 +678,7 @@ uint8_t generateNonsecureBeacon(OTBuf_t &buf, const uint8_t seqNum_, const OTBuf
                                     id_));
     }
 
-
+#if 0  // XXX not stackless
 uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOStyleFrameForTX(
             OTEncodeData_T &fd,
             uint8_t il_,
@@ -801,6 +696,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOStyleFrameForTX(
     const OTBuf_t txID((longID ? id : iv), sizeof((longID ? id : iv)));
     return(encodeRawUnpaddedOnStack(fd, txID, iv, e, state, key));
     }
+#endif
 
 // Create simple 'O' (FTS_BasicSensorOrValve) frame with an optional stats section for transmission.
 // Returns number of bytes written to buffer, or 0 in case of error.
@@ -858,42 +754,6 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encode(
     return(encodeRaw(fd, id, iv, e, subscratch, key));
 }
 
-
-uint8_t SimpleSecureFrame32or0BodyTXBase::encodeOnStack(
-                                                OTEncodeData_T &fd,
-                                                const uint8_t il_,
-                                                const uint8_t valvePC,
-                                                const fixed32BTextSize12BNonce16BTagSimpleEncOnStack_fn_t &e,
-                                                void *const state,
-                                                const uint8_t *const key)
-    {
-    // buffer args and consts
-    uint8_t * const ptext = fd.ptext;
-
-    uint8_t iv[12];
-    if(!computeIVForTX(iv)) { return(0); }
-
-    const char *const statsJSON = (const char *const)&ptext[2];
-
-    const bool hasStats = (NULL != ptext) && ('{' == statsJSON[0]);
-    const size_t slp1 = hasStats ? strlen(statsJSON) : 1; // Stats length including trailing '}' (not sent).
-    if(slp1 > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE-1) { return(0); } // ERROR
-    const uint8_t statslen = (uint8_t)(slp1 - 1); // Drop trailing '}' implicitly.
-    uint8_t bbuf[ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE];
-    bbuf[0] = (valvePC <= 100) ? valvePC : 0x7f;
-    bbuf[1] = hasStats ? 0x10 : 0; // Indicate presence of stats.
-    if(hasStats) { memcpy(bbuf + 2, statsJSON, statslen); }
-    if(il_ > 6) { return(0); } // ERROR: cannot supply that much of ID easily.
-
-    // Create id buffer
-    const OTBuf_t id(iv, il_);
-    fd.bodyLen = (hasStats ? 2+statslen : 2); // Note: callee will pad beyond this.
-    fd.fType = OTRadioLink::FTS_BasicSensorOrValve;
-
-
-    return(encodeRawUnpaddedOnStack(fd, id, iv, e, state, key));
-    }
-
     // As for decodeSecureSmallFrameRaw() but passed a candidate node/counterparty ID
     // derived from the frame ID in the incoming header,
     // plus possible other adjustments such has forcing bit values for reverse flows.
@@ -947,27 +807,6 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeOnStack(
         memcpy(iv + 6, fd.ctext + fd.sfh.getTrailerOffset(), SimpleSecureFrame32or0BodyBase::fullMsgCtrBytes);
         // Now do actual decrypt/auth.
         return(decodeRaw(fd, d, subScratch, key, iv));
-        }
-    // Version with stack
-    uint8_t SimpleSecureFrame32or0BodyRXBase::_decodeFromIDOnStack(
-                OTDecodeData_T &fd,
-                fixed32BTextSize12BNonce16BTagSimpleDecOnStack_fn_t &d,
-                const OTBuf_t adjID,
-                void *const state,
-                const uint8_t *const key)
-        {
-        // Rely on decodeSecureSmallFrameRaw() for validation of items not directly needed here.
-        if(adjID.bufsize < 6) { return(0); } // ERROR
-
-        const uint8_t buflen = fd.ctext[0] + 1;
-        if(fd.sfh.getTrailerOffset() + 6 > buflen) { return(0); } // ERROR
-
-        // Construct IV from supplied (possibly adjusted) ID + counters from (start of) trailer.
-        uint8_t iv[12];
-        memcpy(iv, adjID.buf, 6);
-        memcpy(iv + 6, fd.ctext + fd.sfh.getTrailerOffset(), SimpleSecureFrame32or0BodyBase::fullMsgCtrBytes);
-        // Now do actual decrypt/auth.
-        return(decodeRawOnStack(fd, d, state, key, iv));
         }
 
     // From a structurally correct secure frame, looks up the ID, checks the message counter, decodes, and updates the counter if successful.
@@ -1044,59 +883,6 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeOnStack(
         if(!authAndUpdateRXMsgCtr(senderNodeID.buf, messageCounter)) { return(0); } // ERROR
         // Success: copy sender ID to output buffer (if non-NULL) as last action.
         memcpy(fd.id, senderNodeID.buf, OTV0P2BASE::OpenTRV_Node_ID_Bytes);
-        return(decodeResult);
-        }
-
-    // From a structurally correct secure frame, looks up the ID, checks the message counter, decodes, and updates the counter if successful.
-    // THIS IS THE PREFERRED ENTRY POINT FOR DECODING AND RECEIVING SECURE FRAMES.
-    // (Pre-filtering by type and ID and message counter may already have happened.)
-    // Note that this is for frames being send from the ID in the header,
-    // not for lightweight return traffic to the specified ID.
-    // Returns the total number of bytes read for the frame
-    // (including, and with a value one higher than the first 'fl' bytes).
-    // Returns zero in case of error, eg because authentication failed or this is a duplicate message.
-    // If this returns true then the frame is authenticated,
-    // and the decrypted body is available if present and a buffer was provided.
-    // If the 'firstMatchIDOnly' is true (the default)
-    // then this only checks the first ID prefix match found if any,
-    // else all possible entries may be tried depending on the implementation
-    // and, for example, time/resource limits.
-    // This overloading accepts the decryption function, state and key explicitly.
-    //
-    //  * ID if non-NULL is filled in with the full authenticated sender ID, so must be >= 8 bytes
-    uint8_t SimpleSecureFrame32or0BodyRXBase::decodeOnStack(
-                OTDecodeData_T &fd,
-                fixed32BTextSize12BNonce16BTagSimpleDecOnStack_fn_t &d,
-                void *const state,
-                const uint8_t *const key,
-                bool /*firstIDMatchOnly*/)
-        {
-        // Rely on _decodeSecureSmallFrameFromID() for validation of items not directly needed here.
-        if(nullptr == fd.ctext) { return(0); } // ERROR
-        // Abort if header was not decoded properly.
-        if(fd.sfh.isInvalid()) { return(0); } // ERROR
-        // Look up the full node ID of the sender in the associations table.
-        // NOTE: this only tries the first match, ignoring firstIDMatchOnly.
-        uint8_t senderNodeIDBuf[OTV0P2BASE::OpenTRV_Node_ID_Bytes];
-        OTBuf_t senderNodeID(senderNodeIDBuf, OTV0P2BASE::OpenTRV_Node_ID_Bytes);
-
-        const int8_t index = _getNextMatchingNodeID(0, &fd.sfh, senderNodeIDBuf);
-        if(index < 0) { return(0); } // ERROR
-        // Extract the message counter and validate it (that it is higher than previously seen)...
-        uint8_t messageCounter[SimpleSecureFrame32or0BodyBase::fullMsgCtrBytes];
-        // Assume counter positioning as for 0x80 type trailer, ie 6 bytes at start of trailer.
-        memcpy(messageCounter, fd.ctext + fd.sfh.getTrailerOffset(), SimpleSecureFrame32or0BodyBase::fullMsgCtrBytes);
-        if(!validateRXMsgCtr(senderNodeIDBuf, messageCounter)) { return(0); } // ERROR
-
-        // Now attempt to decrypt.
-        // Assumed no need to 'adjust' ID for this form of RX.
-        const uint8_t decodeResult =_decodeFromIDOnStack(fd, d, senderNodeID, state, key);
-        if(0 == decodeResult) { return(0); } // ERROR
-
-        // Successfully decoded: update the RX message counter to avoid duplicates/replays.
-        if(!authAndUpdateRXMsgCtr(senderNodeIDBuf, messageCounter)) { return(0); } // ERROR
-        // Success: copy sender ID to output buffer (if non-NULL) as last action.
-        memcpy(fd.id, senderNodeIDBuf, OTV0P2BASE::OpenTRV_Node_ID_Bytes);
         return(decodeResult);
         }
 

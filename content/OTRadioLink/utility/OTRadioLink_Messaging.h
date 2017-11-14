@@ -215,55 +215,6 @@ bool boilerFrameOperation(const OTDecodeData_T &fd)
  * @param   decrypt: Function to decrypt secure frame with. NOTE decrypt functions with workspace are not supported (20170616).
  * @param   getKey: Function that fills a buffer with the 16 byte secret key. Should return true on success.
  * @retval  True if frame successfully authenticated and decoded, else false.
- */
-template <typename sfrx_t,
-          SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDecOnStack_fn_t &decrypt,
-          OTV0P2BASE::GetPrimary16ByteSecretKey_t &getKey>
-inline bool authAndDecodeOTSecurableFrameOnStack(OTDecodeData_T &fd)
-{
-#if 0
-    OTV0P2BASE::MemoryChecks::recordIfMinSP();
-#endif
-
-    // Validate (authenticate) and decrypt body of secure frames.
-    uint8_t key[16];
-      // Get the 'building' key.
-    if(!getKey(key)) { // CI throws address will never be null error.
-        OTV0P2BASE::serialPrintlnAndFlush(F("!RX key"));
-        return(false);
-    }
-    // Look up full ID in associations table,
-    // validate RX message counter,
-    // authenticate and decrypt,
-    // update RX message counter.
-    uint8_t decryptedBodyOutSize = 0;
-    const bool isOK = (0 != sfrx_t::getInstance().decodeOnStack(
-                                          fd,
-                                          decrypt,  // FIXME remove this dependency
-                                          fd.state,
-                                          key,
-                                          true));
-    fd.ptextSize = decryptedBodyOutSize;
-    if(!isOK) {
-#if 1 // && defined(DEBUG)
-        // Useful brief network diagnostics: a couple of bytes of the claimed ID of rejected frames.
-        // Warnings rather than errors because there may legitimately be multiple disjoint networks.
-        OTV0P2BASE::serialPrintAndFlush(F("?RX auth")); // Missing association or failed auth.
-        if(fd.sfh.getIl() > 0) { OTV0P2BASE::serialPrintAndFlush(' '); OTV0P2BASE::serialPrintAndFlush(fd.sfh.id[0], 16); }
-        if(fd.sfh.getIl() > 1) { OTV0P2BASE::serialPrintAndFlush(' '); OTV0P2BASE::serialPrintAndFlush(fd.sfh.id[1], 16); }
-        OTV0P2BASE::serialPrintlnAndFlush();
-        return (false);
-#endif
-    }
-    return(true); // Stop if not OK.
-}
-
-/**
- * @brief   Authenticate and decrypt secure frames. Expects syntax checking and validation to already have been done.
- * @param   fd: OTFrameData_T object containing message to decrypt.
- * @param   decrypt: Function to decrypt secure frame with. NOTE decrypt functions with workspace are not supported (20170616).
- * @param   getKey: Function that fills a buffer with the 16 byte secret key. Should return true on success.
- * @retval  True if frame successfully authenticated and decoded, else false.
  *
  * Note: the scratch space (workspace) depends on
  *     the underlying decrypt function and the receiver class.
@@ -332,67 +283,6 @@ inline bool decodeAndHandleDummyFrame(volatile const uint8_t * const /*msg*/)
     return false;
 }
 
-/**
- * @brief   Handle an OT style secure frame. Will return false for *secureable* small frames that aren't secure.
- * @param   msg: Raw RXed message. msgLen should be stored in the byte before and can be accessed with msg[-1].
- * @param   decrypt: Function to decrypt secure frame with. NOTE decrypt functions with workspace are not supported (20170616).
- * @param   getKey: Function that fills a buffer with the 16 byte secret key. Should return true on success.
- * @param   o1: First operation to perform on successful frame decode.
- * @param   o2: Second operation to perform on successful frame decode.
- *          Operations are performed in order, with no regard to whether a previous operation is successful.
- *          By default all operations but o1 will default to a dummy stub operation (nullFrameOperation).
- * @return  true on successful frame type match (secure frame), false if no suitable frame was found/decoded and another parser should be tried.
- */
-template<typename sfrx_t,
-         SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDecOnStack_fn_t &decrypt,
-         OTV0P2BASE::GetPrimary16ByteSecretKey_t &getKey,
-         frameOperator_fn_t &o1,
-         frameOperator_fn_t &o2 = nullFrameOperation>
-bool decodeAndHandleOTSecureOFrameOnStack(volatile const uint8_t * const _msg)
-{
-#if 0 // Highest level will be in authAndDecodeOTSecurableFrame or a frame operator (unlikely )anyway.
-    OTV0P2BASE::MemoryChecks::recordIfMinSP();
-#endif
-    const uint8_t * const msg = (const uint8_t * const)_msg;
-    const uint8_t firstByte = msg[0];
-    const uint8_t msglen = msg[-1];
-    uint8_t decryptedBodyOut[OTDecodeData_T::ptextLenMax];
-
-    // Buffer for receiving secure frame body.
-    // (Non-secure frame bodies should be read directly from the frame buffer.)
-    OTDecodeData_T fd(msg, decryptedBodyOut);
-    // Validate structure of header/frame first.
-    // This is quick and checks for insane/dangerous values throughout.
-    const uint8_t l = fd.sfh.decodeHeader(msg - 1, msglen + 1);
-    // If failed this early and this badly
-    // then let another protocol handler else try parsing the message buffer...
-    if(0 == l) { return(false); }
-    // Make sure frame thinks it is a secure OFrame.
-    constexpr uint8_t expectedOFrameFirstByte = 'O' | 0x80;
-    if(expectedOFrameFirstByte != firstByte) { return (false); }
-
-    // Validate integrity of frame (CRC for non-secure, auth for secure).
-    if(!fd.sfh.isSecure()) { return(false); }
-
-    // After this point, once the frame is established as the correct protocol,
-    // this routine must return true to avoid another handler
-    // attempting to process it.
-
-    // Even if auth fails, we have now handled this frame by protocol.
-    if(!authAndDecodeOTSecurableFrameOnStack<sfrx_t, decrypt, getKey>(fd))
-        { return(true); }
-
-    // Make sure frame is long enough to have useful information in it
-    // and then call operations.
-    if(2 < fd.ptextSize) {
-        o1(fd);
-        o2(fd);
-    }
-
-    // This frame has now been dealt with (by protocol)
-    // even if we happened not to be able to process it successfully.
-    return(true);
-}
 /**
  * @brief   Version of decodeAndHandleOTSecureOFrame that takes
  **/

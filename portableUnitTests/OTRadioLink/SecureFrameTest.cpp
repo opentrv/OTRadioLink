@@ -475,51 +475,53 @@ TEST(OTAESGCMSecureFrame, SimplePadding)
 // DHD20161107: imported from test_SECFRAME.ino testSimpleNULLEncDec().
 TEST(OTAESGCMSecureFrame, SimpleNULLEncDec)
 {
-    const OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEncOnStack_fn_t &e = OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL;
-    OTRadioLink::SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDecOnStack_fn_t &d = OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL;
+    const OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t &e = OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL;
+    OTRadioLink::SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &d = OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL;
     // Check that calling the NULL enc routine with bad args fails.
-    EXPECT_TRUE(!e(NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL));
+    EXPECT_TRUE(!e(NULL, 0, NULL, NULL, NULL, 0, NULL, NULL, NULL));
     static const uint8_t plaintext1[32] = { 'a', 'b', 'c', 'd', 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4 };
     static const uint8_t nonce1[12] = { 'q', 'u', 'i', 'c', 'k', ' ', 6, 5, 4, 3, 2, 1 };
     static const uint8_t authtext1[2] = { 'H', 'i' };
     // Output ciphertext and tag buffers.
+    uint8_t workspace[1];
     uint8_t co1[32], to1[16];
-    EXPECT_TRUE(e(NULL, zeroBlock, nonce1, authtext1, sizeof(authtext1), plaintext1, co1, to1));
+    EXPECT_TRUE(e(workspace, sizeof(workspace), zeroBlock, nonce1, authtext1, sizeof(authtext1), plaintext1, co1, to1));
     EXPECT_EQ(0, memcmp(plaintext1, co1, 32));
     EXPECT_EQ(0, memcmp(nonce1, to1, 12));
     EXPECT_EQ(0, to1[12]);
     EXPECT_EQ(0, to1[15]);
     // Check that calling the NULL decc routine with bad args fails.
-    EXPECT_TRUE(!d(NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL));
+    EXPECT_TRUE(!d(NULL, 0, NULL, NULL, NULL, 0, NULL, NULL, NULL));
     // Decode the ciphertext and tag from above and ensure that it 'works'.
     uint8_t plaintext1Decoded[32];
-    EXPECT_TRUE(d(NULL, zeroBlock, nonce1, authtext1, sizeof(authtext1), co1, to1, plaintext1Decoded));
+    EXPECT_TRUE(d(workspace, sizeof(workspace), zeroBlock, nonce1, authtext1, sizeof(authtext1), co1, to1, plaintext1Decoded));
     EXPECT_EQ(0, memcmp(plaintext1, plaintext1Decoded, 32));
 }
 
 // Test a simple fixed-size enc/dec function pair.
 // Aborts with Assert...() in case of failure.
-static void runSimpleEncDec(const OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEncOnStack_fn_t &e,
-                            OTRadioLink::SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDecOnStack_fn_t &d)
+static void runSimpleEncDec(const OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t &e,
+                            OTRadioLink::SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &d)
 {
     // Check that calling the NULL enc routine with bad args fails.
-    EXPECT_TRUE(!e(NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL));
+    EXPECT_TRUE(!e(NULL, 0, NULL, NULL, NULL, 0, NULL, NULL, NULL));
     // Try with plaintext and authext...
     static const uint8_t plaintext1[32] = { 'a', 'b', 'c', 'd', 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4 };
     static const uint8_t nonce1[12] = { 'q', 'u', 'i', 'c', 'k', ' ', 6, 5, 4, 3, 2, 1 };
     static const uint8_t authtext1[2] = { 'H', 'i' };
     // Output ciphertext and tag buffers.
+    uint8_t workspace[1];
     uint8_t co1[32], to1[16];
-    EXPECT_TRUE(e(NULL, zeroBlock, nonce1, authtext1, sizeof(authtext1), plaintext1, co1, to1));
+    EXPECT_TRUE(e(workspace, sizeof(workspace), zeroBlock, nonce1, authtext1, sizeof(authtext1), plaintext1, co1, to1));
     // Check that calling the NULL dec routine with bad args fails.
-    EXPECT_TRUE(!d(NULL, NULL, NULL, NULL, 0, NULL, NULL, NULL));
+    EXPECT_TRUE(!d(NULL, 0, NULL, NULL, NULL, 0, NULL, NULL, NULL));
     // Decode the ciphertext and tag from above and ensure that it 'works'.
     uint8_t plaintext1Decoded[32];
-    EXPECT_TRUE(d(NULL, zeroBlock, nonce1, authtext1, sizeof(authtext1), co1, to1, plaintext1Decoded));
+    EXPECT_TRUE(d(workspace, sizeof(workspace), zeroBlock, nonce1, authtext1, sizeof(authtext1), co1, to1, plaintext1Decoded));
     EXPECT_EQ(0, memcmp(plaintext1, plaintext1Decoded, 32));
     // Try with authtext and no plaintext.
-    EXPECT_TRUE(e(NULL, zeroBlock, nonce1, authtext1, sizeof(authtext1), NULL, co1, to1));
-    EXPECT_TRUE(d(NULL, zeroBlock, nonce1, authtext1, sizeof(authtext1), NULL, to1, plaintext1Decoded));
+    EXPECT_TRUE(e(workspace, sizeof(workspace), zeroBlock, nonce1, authtext1, sizeof(authtext1), NULL, co1, to1));
+    EXPECT_TRUE(d(workspace, sizeof(workspace), zeroBlock, nonce1, authtext1, sizeof(authtext1), NULL, to1, plaintext1Decoded));
 }
 
 // Test basic access to crypto features.
