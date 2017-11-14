@@ -327,7 +327,7 @@ uint8_t encodeNonsecureOnStack(
 //  * buf  buffer containing the entire frame including header and trailer; never NULL
 //  * buflen  available length in buf; if too small then this routine will fail (return 0)
 //  * sfh  decoded frame header; never NULL
-uint8_t decodeNonsecureRawOnStack(OTDecodeData_T &fd)
+uint8_t decodeNonsecureOnStack(OTDecodeData_T &fd)
     {
     if(NULL == fd.ctext) { return(0); } // ERROR
     // Abort if header was not decoded properly.
@@ -346,7 +346,7 @@ uint8_t decodeNonsecureRawOnStack(OTDecodeData_T &fd)
 
 // Add specified small unsigned value to supplied counter value in place; false if failed.
 // This will fail (returning false) if the counter would overflow, leaving it unchanged.
-bool SimpleSecureFrame32or0BodyBase::msgcounteradd(uint8_t *const counter, const uint8_t delta)
+bool SimpleSecureFrame32or0BodyRXBase::msgcounteradd(uint8_t *const counter, const uint8_t delta)
     {
     if(0 == delta) { return(true); } // Optimisation: nothing to do.
     // Add to last byte, if it overflows ripple up the increment as needed,

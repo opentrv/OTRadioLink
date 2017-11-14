@@ -389,7 +389,7 @@ bool SimpleSecureFrame32or0BodyRXV0p2::getLastRXMessageCounter(const uint8_t * c
     if(!getLastRXMessageCounterFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET, counter) &&
        !getLastRXMessageCounterFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET, counter))
        { return(false); } // FAIL: both counters borked.
-    return(use_unary_counter ? SimpleSecureFrame32or0BodyBase::msgcounteradd(counter, incr) : true);
+    return(use_unary_counter ? SimpleSecureFrame32or0BodyRXBase::msgcounteradd(counter, incr) : true);
     }
 
 // Carefully update specified counter (primary or secondary) and CRCs as appropriate; returns false on failure.
@@ -460,10 +460,10 @@ bool SimpleSecureFrame32or0BodyRXV0p2::updateRXMessageCountAfterAuthentication(c
     // Compute the maximum value that the base value could be extended to with the unary part.
     uint8_t maxWithUnary[fullMessageCounterBytes];
     memcpy(maxWithUnary, baseCount, sizeof(maxWithUnary));
-    if(!SimpleSecureFrame32or0BodyBase::msgcounteradd(maxWithUnary, OTV0P2BASE::EEPROM_UNARY_2BYTE_MAX_VALUE)) { return(false); } // FAIL: counter too near maximum; might roll.
+    if(!SimpleSecureFrame32or0BodyRXBase::msgcounteradd(maxWithUnary, OTV0P2BASE::EEPROM_UNARY_2BYTE_MAX_VALUE)) { return(false); } // FAIL: counter too near maximum; might roll.
     // If that is at least as large as the requested new counter value
     // (AND there was not a problem reading the unary part)
-    if(SimpleSecureFrame32or0BodyBase::msgcountercmp(maxWithUnary, newCounterValue) >= 0)
+    if(SimpleSecureFrame32or0BodyRXBase::msgcountercmp(maxWithUnary, newCounterValue) >= 0)
     // then just update the unary value as needed ...
         {
         // Get the current unary counter part...
@@ -479,8 +479,8 @@ bool SimpleSecureFrame32or0BodyRXV0p2::updateRXMessageCountAfterAuthentication(c
             {
             uint8_t putativeTotal[fullMessageCounterBytes];
             memcpy(putativeTotal, baseCount, sizeof(putativeTotal));
-            if(!SimpleSecureFrame32or0BodyBase::msgcounteradd(putativeTotal, newIncr)) { return(false); } // FAIL: counter too near maximum; might roll.
-            if(SimpleSecureFrame32or0BodyBase::msgcountercmp(putativeTotal, newCounterValue) == 0)
+            if(!SimpleSecureFrame32or0BodyRXBase::msgcounteradd(putativeTotal, newIncr)) { return(false); } // FAIL: counter too near maximum; might roll.
+            if(SimpleSecureFrame32or0BodyRXBase::msgcountercmp(putativeTotal, newCounterValue) == 0)
                 {
                 // Got it!
                 const uint16_t newU16 = OTV0P2BASE::eeprom_unary_2byte_encode(newIncr);

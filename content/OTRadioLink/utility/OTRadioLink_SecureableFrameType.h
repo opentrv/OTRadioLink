@@ -411,7 +411,7 @@ namespace OTRadioLink
     // - uint8_t id[8]
     // - uint8_t* const ptext
     // - uint8_t ptextSize
-    uint8_t decodeNonsecureRawOnStack(OTDecodeData_T &fd);
+    uint8_t decodeNonsecureOnStack(OTDecodeData_T &fd);
 
 //        // Round up to next 16 multiple, eg for encryption that works in fixed-size blocks for input [0,240].
 //        // Eg 0 -> 0, 1 -> 16, ... 16 -> 16, 17 -> 32 ...
@@ -428,16 +428,6 @@ namespace OTRadioLink
         public:
             // Size of full message counter for tupe-0x80 AES-GCM security frames.
             static constexpr uint8_t fullMsgCtrBytes = 6;
-
-            // Check one (6-byte) message counter against another for magnitude.
-            // Returns 0 if they are identical, +ve if the first counter is greater, -ve otherwise.
-            // Logically like getting the sign of counter1 - counter2.
-            static int16_t msgcountercmp(const uint8_t *counter1, const uint8_t *counter2)
-                { return(int16_t(memcmp(counter1, counter2, fullMsgCtrBytes))); }
-
-            // Add specified small unsigned value to supplied counter value in place; false if failed.
-            // This will fail (returning false) if the counter would overflow, leaving it unchanged.
-            static bool msgcounteradd(uint8_t *counter, uint8_t delta);
         };
 
     // TX Base class for simple implementations that supports 0 or 32 byte encrypted body sections.
@@ -751,6 +741,17 @@ namespace OTRadioLink
             virtual int8_t _getNextMatchingNodeID(const uint8_t index, const SecurableFrameHeader *const sfh, uint8_t *nodeID) const = 0;
 
         public:
+            // Check one (6-byte) message counter against another for magnitude.
+            // Returns 0 if they are identical, +ve if the first counter is greater, -ve otherwise.
+            // Logically like getting the sign of counter1 - counter2.
+            static int16_t msgcountercmp(const uint8_t *counter1, const uint8_t *counter2)
+                { return(int16_t(memcmp(counter1, counter2, fullMsgCtrBytes))); }
+
+            // Add specified small unsigned value to supplied counter value in place; false if failed.
+            // This will fail (returning false) if the counter would overflow, leaving it unchanged.
+            static bool msgcounteradd(uint8_t *counter, uint8_t delta);
+
+
             // Unpads plain-text in place prior to encryption with 32-byte fixed length padded output.
             // Reverses/validates padding applied by pad32BBuffer().
             // Returns unpadded data length (at start of buffer) or 0xff in case of error.

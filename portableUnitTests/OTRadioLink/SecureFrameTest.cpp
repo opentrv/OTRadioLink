@@ -372,7 +372,7 @@ TEST(OTAESGCMSecureFrame, NonsecureFrameCRC)
     EXPECT_EQ(0x23, fd1.sfh.computeNonSecureCRC(buf1, sizeof(buf1) - 1));
     // Decode entire frame, emulating RX, structurally validating the header then checking the CRC.
     EXPECT_TRUE(0 != fd1.sfh.decodeHeader(buf1, sizeof(buf1)));
-    EXPECT_TRUE(0 != decodeNonsecureRawOnStack(fd1));
+    EXPECT_TRUE(0 != decodeNonsecureOnStack(fd1));
     //
     // Test vector 2 / example from the spec.
     //Example insecure frame, no valve, representative minimum stats {"b":1}
@@ -397,7 +397,7 @@ TEST(OTAESGCMSecureFrame, NonsecureFrameCRC)
     EXPECT_EQ(0x61, fd2.sfh.computeNonSecureCRC(buf2, sizeof(buf2) - 1));
     // Decode entire frame, emulating RX, structurally validating the header then checking the CRC.
     EXPECT_TRUE(0 != fd2.sfh.decodeHeader(buf2, sizeof(buf2)));
-    EXPECT_TRUE(0 != decodeNonsecureRawOnStack(fd2));
+    EXPECT_TRUE(0 != decodeNonsecureOnStack(fd2));
 }
 
 // Test encoding of entire non-secure frame for TX.
@@ -1177,29 +1177,29 @@ TEST(OTAESGCMSecureFrame, MsgCount)
     const uint8_t count2[] = { 0, 0, 0x82, 0x88, 1, 1 };
     const uint8_t countmax[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
     // Check that identical values compare as identical.
-    EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(zeroBlock, zeroBlock));
-    EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count1, count1));
-    EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count2, count2));
-    EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count1, count2) > 0);
-    EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count2, count1) < 0);
+    EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyRXBase::msgcountercmp(zeroBlock, zeroBlock));
+    EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyRXBase::msgcountercmp(count1, count1));
+    EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyRXBase::msgcountercmp(count2, count2));
+    EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyRXBase::msgcountercmp(count1, count2) > 0);
+    EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyRXBase::msgcountercmp(count2, count1) < 0);
     // Test simple addition to counts.
     uint8_t count1copy[sizeof(count1)];
     memcpy(count1copy, count1, sizeof(count1copy));
-    EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcounteradd(count1copy, 0));
-    EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count1copy, count1));
-    EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcounteradd(count1copy, 1));
-    EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count1copy, count1plus1));
-    EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcounteradd(count1copy, 255));
-    EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(count1copy, count1plus256));
+    EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyRXBase::msgcounteradd(count1copy, 0));
+    EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyRXBase::msgcountercmp(count1copy, count1));
+    EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyRXBase::msgcounteradd(count1copy, 1));
+    EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyRXBase::msgcountercmp(count1copy, count1plus1));
+    EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyRXBase::msgcounteradd(count1copy, 255));
+    EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyRXBase::msgcountercmp(count1copy, count1plus256));
     // Test simple addition to counts.
     uint8_t countmaxcopy[sizeof(countmax)];
     memcpy(countmaxcopy, countmax, sizeof(countmaxcopy));
-    EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcounteradd(countmaxcopy, 0));
-    EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(countmaxcopy, countmax));
-    EXPECT_TRUE(!OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcounteradd(countmaxcopy, 1));
-    EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(countmaxcopy, countmax));
-    EXPECT_TRUE(!OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcounteradd(countmaxcopy, 42));
-    EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyBase::msgcountercmp(countmaxcopy, countmax));
+    EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyRXBase::msgcounteradd(countmaxcopy, 0));
+    EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyRXBase::msgcountercmp(countmaxcopy, countmax));
+    EXPECT_TRUE(!OTRadioLink::SimpleSecureFrame32or0BodyRXBase::msgcounteradd(countmaxcopy, 1));
+    EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyRXBase::msgcountercmp(countmaxcopy, countmax));
+    EXPECT_TRUE(!OTRadioLink::SimpleSecureFrame32or0BodyRXBase::msgcounteradd(countmaxcopy, 42));
+    EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyRXBase::msgcountercmp(countmaxcopy, countmax));
 }
 
 #if 0
