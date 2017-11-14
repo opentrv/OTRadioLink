@@ -510,7 +510,8 @@ static void runSimpleEncDec(const OTRadioLink::SimpleSecureFrame32or0BodyTXBase:
     static const uint8_t nonce1[12] = { 'q', 'u', 'i', 'c', 'k', ' ', 6, 5, 4, 3, 2, 1 };
     static const uint8_t authtext1[2] = { 'H', 'i' };
     // Output ciphertext and tag buffers.
-    uint8_t workspace[1];
+    // Create a workspace big enough for any operation.
+    uint8_t workspace[OTAESGCM::OTAES128GCMGenericWithWorkspace<>::workspaceRequired];
     uint8_t co1[32], to1[16];
     EXPECT_TRUE(e(workspace, sizeof(workspace), zeroBlock, nonce1, authtext1, sizeof(authtext1), plaintext1, co1, to1));
     // Check that calling the NULL dec routine with bad args fails.
@@ -534,10 +535,8 @@ TEST(OTAESGCMSecureFrame, CryptoAccess)
     runSimpleEncDec(OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL,
                   OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL);
     // AES-GCM 128-bit key enc/dec.
-#ifdef OTAESGCM_ALLOW_NON_WORKSPACE  // FIXME
-    runSimpleEncDec(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS,
-                  OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS);
-#endif // OTAESGCM_ALLOW_NON_WORKSPACE
+    runSimpleEncDec(OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_LWORKSPACE,
+                  OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE);
 }
 
 #ifdef OTAESGCM_ALLOW_NON_WORKSPACE
