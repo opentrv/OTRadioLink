@@ -96,6 +96,9 @@ class ErrorReport final : public OTV0P2BASE::Actuator<int8_t>
 
             // Unspecified error.
             ERR_UNSPECIFIED = 1,
+
+            // Supply voltage is low (as defined by SupplyVoltageCentiVolts::BATTERY_LOW_cV).
+            ERR_BATTERY_LOW = 10,
             };
 
     private:
