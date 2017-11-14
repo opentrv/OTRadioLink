@@ -120,7 +120,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
         // Combines results from primary and secondary as appropriate.
         // Deals with inversion and checksum checking.
         // Output buffer (buf) must be 3 bytes long.
-        virtual bool getTXRestartCounter(uint8_t * /*buf*/) const override { return false; };
+        virtual bool getTXRestartCtr(uint8_t * /*buf*/) const override { return false; };
         // Reset the persistent reboot/restart message counter in EEPROM; returns false on failure.
         // TO BE USED WITH EXTREME CAUTION: reusing the message counts and resulting IVs
         // destroys the security of the cipher.
@@ -130,7 +130,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
         // but inject entropy into the least significant bits to reduce risk value/IV reuse in error.
         // If called with false then interrupts should not be blocked to allow entropy gathering,
         // and counter is guaranteed to be non-zero.
-        virtual bool resetTXRestartCounter(bool allZeros = false) override
+        virtual bool resetTXRestartCtr(bool allZeros = false) override
             { return(resetRaw3BytePersistentTXRestartCounterInEEPROM(allZeros)); }
         // Conditional and statically callable version of resetRaw3BytePersistentTXRestartCounter(); returns false on failure.
         // Creates a new persistent/reboot counter and thus message counter, to reduce IV reuse risk.
@@ -142,8 +142,8 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
         static bool resetRaw3BytePersistentTXRestartCounterCond()
             {
             SimpleSecureFrame32or0BodyTXV0p2Null &i = getInstance();
-            uint8_t buf[primaryTXRestartCounterBytes];
-            if(!i.getTXRestartCounter(buf)) { return(false); }
+            uint8_t buf[txRestartCtrBytes];
+            if(!i.getTXRestartCtr(buf)) { return(false); }
             if(buf[0] < 0x20) { return(i.incrementTXRestartCounter()); }
             return(i.resetRaw3BytePersistentTXRestartCounterInEEPROM());
             }
@@ -268,7 +268,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
             // Combines results from primary and secondary as appropriate.
             // Deals with inversion and checksum checking.
             // Output buffer (buf) must be 3 bytes long.
-            virtual bool getTXRestartCounter(uint8_t *buf) const override;
+            virtual bool getTXRestartCtr(uint8_t *buf) const override;
             // Reset the persistent reboot/restart message counter in EEPROM; returns false on failure.
             // TO BE USED WITH EXTREME CAUTION: reusing the message counts and resulting IVs
             // destroys the security of the cipher.
@@ -278,7 +278,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
             // but inject entropy into the least significant bits to reduce risk value/IV reuse in error.
             // If called with false then interrupts should not be blocked to allow entropy gathering,
             // and counter is guaranteed to be non-zero.
-            virtual bool resetTXRestartCounter(bool allZeros = false) override
+            virtual bool resetTXRestartCtr(bool allZeros = false) override
                 { return(resetRaw3BytePersistentTXRestartCounterInEEPROM(allZeros)); }
             // Conditional and statically callable version of resetRaw3BytePersistentTXRestartCounter(); returns false on failure.
             // Creates a new persistent/reboot counter and thus message counter, to reduce IV reuse risk.
@@ -290,8 +290,8 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
             static bool resetRaw3BytePersistentTXRestartCounterCond()
                 {
                 SimpleSecureFrame32or0BodyTXV0p2 &i = getInstance();
-                uint8_t buf[primaryTXRestartCounterBytes];
-                if(!i.getTXRestartCounter(buf)) { return(false); }
+                uint8_t buf[txRestartCtrBytes];
+                if(!i.getTXRestartCtr(buf)) { return(false); }
                 if(buf[0] < 0x20) { return(i.incrementTXRestartCounter()); }
                 return(i.resetRaw3BytePersistentTXRestartCounterInEEPROM());
                 }

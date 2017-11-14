@@ -593,7 +593,7 @@ namespace OTRadioLink
             // Deals with inversion and checksum checking.
             // Output buffer (buf) must be 3 bytes long.
             // Does not increment/alter the counter.
-            static const uint8_t primaryTXRestartCounterBytes = 3;
+            static const uint8_t txRestartCtrBytes = 3;
             // Get primary (semi-persistent) message counter for TX from an OpenTRV leaf under its own ID.
             // This counter increases monotonically
             // (and so may provide a sequence number)
@@ -615,7 +615,7 @@ namespace OTRadioLink
             // When this counter reaches 0xffffffffffff then no more messages can be sent
             // until new keys are shared and the counter is reset.
             // Get the 3 bytes of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
-            virtual bool getTXRestartCounter(uint8_t *buf) const = 0;
+            virtual bool getTXRestartCtr(uint8_t *buf) const = 0;
             // Reset the persistent reboot/restart message counter; returns false on failure.
             // TO BE USED WITH EXTREME CAUTION: reusing the message counts and resulting IVs
             // destroys the security of the cipher.
@@ -625,7 +625,7 @@ namespace OTRadioLink
             // but inject entropy into the least significant bits to reduce risk value/IV reuse in error.
             // If called with false then interrupts should not be blocked to allow entropy gathering,
             // and counter is guaranteed to be non-zero.
-            virtual bool resetTXRestartCounter(bool allZeros = false) = 0;
+            virtual bool resetTXRestartCtr(bool allZeros = false) = 0;
             // Increment persistent reboot/restart message counter; returns false on failure.
             // Will refuse to increment such that the top byte overflows, ie when already at 0xff.
             // TO BE USED WITH EXTREME CAUTION: calling this unnecessarily will shorten life before needing to change ID/key.
