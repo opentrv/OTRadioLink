@@ -167,7 +167,7 @@ TEST(SecureOpStackDepth, SimpleSecureFrame32or0BodyRXFixedCounterBasic)
     const uint8_t counter = 0;
     const uint8_t id = 0;
     OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter &sfrx = OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter::getInstance();
-    EXPECT_TRUE(sfrx.updateRXMessageCountAfterAuthentication(&id, &counter));
+    EXPECT_TRUE(sfrx.authAndUpdateRXMsgCtr(&id, &counter));
 }
 
 #ifdef OTAESGCM_ALLOW_NON_WORKSPACE

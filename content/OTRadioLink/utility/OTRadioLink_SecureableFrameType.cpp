@@ -1041,7 +1041,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeOnStack(
         const uint8_t decodeResult = _decodeFromID( fd, d, senderNodeID, subScratch, key);
         if(0 == decodeResult) { return(0); } // ERROR
         // Successfully decoded: update the RX message counter to avoid duplicates/replays.
-        if(!updateRXMessageCountAfterAuthentication(senderNodeID.buf, messageCounter)) { return(0); } // ERROR
+        if(!authAndUpdateRXMsgCtr(senderNodeID.buf, messageCounter)) { return(0); } // ERROR
         // Success: copy sender ID to output buffer (if non-NULL) as last action.
         memcpy(fd.id, senderNodeID.buf, OTV0P2BASE::OpenTRV_Node_ID_Bytes);
         return(decodeResult);
@@ -1094,7 +1094,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeOnStack(
         if(0 == decodeResult) { return(0); } // ERROR
 
         // Successfully decoded: update the RX message counter to avoid duplicates/replays.
-        if(!updateRXMessageCountAfterAuthentication(senderNodeIDBuf, messageCounter)) { return(0); } // ERROR
+        if(!authAndUpdateRXMsgCtr(senderNodeIDBuf, messageCounter)) { return(0); } // ERROR
         // Success: copy sender ID to output buffer (if non-NULL) as last action.
         memcpy(fd.id, senderNodeIDBuf, OTV0P2BASE::OpenTRV_Node_ID_Bytes);
         return(decodeResult);

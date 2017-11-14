@@ -903,7 +903,7 @@ namespace OTRadioLink
             // The implementation should be robust in the face of power failures / reboots, accidental or malicious,
             // not allowing replays nor other cryptographic attacks, nor forcing node dissociation.
             // Must only be called once the RXed message has passed authentication.
-            virtual bool updateRXMessageCountAfterAuthentication(const uint8_t *ID, const uint8_t *newCounterValue) = 0;
+            virtual bool authAndUpdateRXMsgCtr(const uint8_t *ID, const uint8_t *newCounterValue) = 0;
 
         protected:
             // As for decodeSecureSmallFrameRaw() but passed a candidate node/counterparty ID
@@ -1133,7 +1133,7 @@ namespace OTRadioLink
         // The implementation should be robust in the face of power failures / reboots, accidental or malicious,
         // not allowing replays nor other cryptographic attacks, nor forcing node dissociation.
         // Must only be called once the RXed message has passed authentication.
-        virtual bool updateRXMessageCountAfterAuthentication(const uint8_t * /*ID*/, const uint8_t * /*newCounterValue*/) override
+        virtual bool authAndUpdateRXMsgCtr(const uint8_t * /*ID*/, const uint8_t * /*newCounterValue*/) override
         {
             return (true);
         }
