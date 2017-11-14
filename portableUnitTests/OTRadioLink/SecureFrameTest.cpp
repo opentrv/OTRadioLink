@@ -350,7 +350,6 @@ TEST(OTAESGCMSecureFrame, FrameHeaderDecoding)
 // DHD20161107: imported from test_SECFRAME.ino testNonsecureFrameCRC().
 TEST(OTAESGCMSecureFrame, NonsecureFrameCRC)
 {
-    OTRadioLink::SecurableFrameHeader sfh;
     //
     // Test vector 1 / example from the spec.
     //Example insecure frame, valve unit 0% open, no call for heat/flags/stats.
@@ -368,11 +367,12 @@ TEST(OTAESGCMSecureFrame, NonsecureFrameCRC)
     //01 no flags or stats, unreported occupancy
     //23 CRC value
     const uint8_t buf1[] = { 0x08, 0x4f, 0x02, 0x80, 0x81, 0x02, 0x00, 0x01, 0x23 };
-    EXPECT_EQ(6, sfh.decodeHeader(buf1, 6));
-    EXPECT_EQ(0x23, sfh.computeNonSecureCRC(buf1, sizeof(buf1) - 1));
+    OTRadioLink::OTDecodeData_T fd1(buf1, nullptr);
+    EXPECT_EQ(6, fd1.sfh.decodeHeader(buf1, 6));
+    EXPECT_EQ(0x23, fd1.sfh.computeNonSecureCRC(buf1, sizeof(buf1) - 1));
     // Decode entire frame, emulating RX, structurally validating the header then checking the CRC.
-    EXPECT_TRUE(0 != sfh.decodeHeader(buf1, sizeof(buf1)));
-    EXPECT_TRUE(0 != decodeNonsecureRawOnStack(&sfh, buf1, sizeof(buf1)));
+    EXPECT_TRUE(0 != fd1.sfh.decodeHeader(buf1, sizeof(buf1)));
+    EXPECT_TRUE(0 != decodeNonsecureRawOnStack(fd1));
     //
     // Test vector 2 / example from the spec.
     //Example insecure frame, no valve, representative minimum stats {"b":1}
@@ -391,12 +391,13 @@ TEST(OTAESGCMSecureFrame, NonsecureFrameCRC)
     //7b 22 62 22 3a 31  {"b":1  Stats: note that implicit trailing '}' is not sent.
     //61 CRC value
     const uint8_t buf2[] = { 0x0e, 0x4f, 0x02, 0x80, 0x81, 0x08, 0x7f, 0x11, 0x7b, 0x22, 0x62, 0x22, 0x3a, 0x31, 0x61 };
+    OTRadioLink::OTDecodeData_T fd2(buf2, nullptr);
     // Just decode and check the frame header first
-    EXPECT_EQ(6, sfh.decodeHeader(buf2, 6));
-    EXPECT_EQ(0x61, sfh.computeNonSecureCRC(buf2, sizeof(buf2) - 1));
+    EXPECT_EQ(6, fd2.sfh.decodeHeader(buf2, 6));
+    EXPECT_EQ(0x61, fd2.sfh.computeNonSecureCRC(buf2, sizeof(buf2) - 1));
     // Decode entire frame, emulating RX, structurally validating the header then checking the CRC.
-    EXPECT_TRUE(0 != sfh.decodeHeader(buf2, sizeof(buf2)));
-    EXPECT_TRUE(0 != decodeNonsecureRawOnStack(&sfh, buf2, sizeof(buf2)));
+    EXPECT_TRUE(0 != fd2.sfh.decodeHeader(buf2, sizeof(buf2)));
+    EXPECT_TRUE(0 != decodeNonsecureRawOnStack(fd2));
 }
 
 // Test encoding of entire non-secure frame for TX.

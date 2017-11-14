@@ -327,22 +327,22 @@ uint8_t encodeNonsecureOnStack(
 //  * buf  buffer containing the entire frame including header and trailer; never NULL
 //  * buflen  available length in buf; if too small then this routine will fail (return 0)
 //  * sfh  decoded frame header; never NULL
-uint8_t decodeNonsecureRawOnStack(const SecurableFrameHeader *sfh,
-                                     const uint8_t *buf, uint8_t buflen)
+uint8_t decodeNonsecureRawOnStack(OTDecodeData_T &fd)
     {
-    if((NULL == sfh) || (NULL == buf)) { return(0); } // ERROR
+    if(NULL == fd.ctext) { return(0); } // ERROR
     // Abort if header was not decoded properly.
-    if(sfh->isInvalid()) { return(0); } // ERROR
+    if(fd.sfh.isInvalid()) { return(0); } // ERROR
     // Abort if expected constraints for simple fixed-size secure frame are not met.
-    const uint8_t fl = sfh->fl;
-    if(1 != sfh->getTl()) { return(0); } // ERROR
+    const uint8_t fl = fd.sfh.fl;
+    if(1 != fd.sfh.getTl()) { return(0); } // ERROR
     // Compute the expected CRC trailer...
-    const uint8_t crc = sfh->computeNonSecureCRC(buf, buflen);
+    const uint8_t crc = fd.sfh.computeNonSecureCRC(fd.ctext, fd.ctextLen);
     if(0 == crc) { return(0); } // ERROR
-    if(buf[fl] != crc) { return(0); } // ERROR
+    if(fd.ctext[fl] != crc) { return(0); } // ERROR
     // Done
     return(fl + 1);
     }
+
 
 // Add specified small unsigned value to supplied counter value in place; false if failed.
 // This will fail (returning false) if the counter would overflow, leaving it unchanged.

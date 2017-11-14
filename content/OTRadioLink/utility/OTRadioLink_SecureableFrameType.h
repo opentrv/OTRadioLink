@@ -145,14 +145,13 @@ namespace OTRadioLink
     // With all of these routines it is important to check and act on error codes,
     // usually aborting immediately if an error value is returned.
     // MUDDLING ON WITHOUT CHECKING FOR ERRORS MAY SEVERELY DAMAGE SYSTEM SECURITY.
+    //
+    // Create an instance as an invalid frame header ready to start with seqNum==0.
+    // Make the frame length 0 (which is invalid).
+    // Make the sequence number 0xf so that (pre-)incrementing will make it 0.
+    // Make the ID length 0.
     struct SecurableFrameHeader final
         {
-        // Create an instance as an invalid frame header ready to start with seqNum==0.
-        // Make the frame length 0 (which is invalid).
-        // Make the sequence number 0xf so that (pre-)incrementing will make it 0.
-        // Make the ID length 0.
-        SecurableFrameHeader() : fl(0), seqIl(0xf0) { }
-
         // Returns true if the frame header in this struct instance is invalid.
         // This is only reliable if all manipulation of struct content
         // is by the member functions.
@@ -173,11 +172,11 @@ namespace OTRadioLink
         //     fl = hl-1 + bl + tl = 3+il + bl + tl
         // where hl header length, bl body length, tl trailer length
         // Should usually be set last to leave header clearly invalid until complete.
-        uint8_t fl;
+        uint8_t fl = 0;
 
         // Frame type nominally from FrameType_Secureable (bits 0-6, [1,126]).
         // Top bit indicates secure frame if 1/true.
-        uint8_t fType;
+        uint8_t fType = FTS_NONE;
         bool isSecure() const { return(0 != (0x80 & fType)); }
 
         // Frame sequence number mod 16 [0,15] (bits 4 to 7) and ID length [0,15] (bits 0-3).
@@ -186,7 +185,7 @@ namespace OTRadioLink
         // increment is skipped for repeat TXes used for noise immunity.
         // If a counter is used as part of (eg) security IV/nonce
         // then these 4 bits may be its least significant bits.
-        uint8_t seqIl;
+        uint8_t seqIl = 0xf0;
         // Get frame sequence number mod 16 [0,15].
         uint8_t getSeq() const { return((seqIl >> 4) & 0xf); }
         // Get il (ID length) [0,15].
@@ -408,9 +407,11 @@ namespace OTRadioLink
     //  * buf  buffer containing the entire frame including header and trailer; never NULL
     //  * buflen  available length in buf; if too small then this routine will fail (return 0)
     //  * sfh  decoded frame header; never NULL
-    // XXX What to do about this?
-    uint8_t decodeNonsecureRawOnStack(const SecurableFrameHeader *sfh,
-                                         const uint8_t *buf, uint8_t buflen);
+    // Note, following unused in OTDecodeData_T:
+    // - uint8_t id[8]
+    // - uint8_t* const ptext
+    // - uint8_t ptextSize
+    uint8_t decodeNonsecureRawOnStack(OTDecodeData_T &fd);
 
 //        // Round up to next 16 multiple, eg for encryption that works in fixed-size blocks for input [0,240].
 //        // Eg 0 -> 0, 1 -> 16, ... 16 -> 16, 17 -> 32 ...
