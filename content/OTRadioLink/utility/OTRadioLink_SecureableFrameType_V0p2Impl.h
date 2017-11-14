@@ -120,7 +120,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
         // Combines results from primary and secondary as appropriate.
         // Deals with inversion and checksum checking.
         // Output buffer (buf) must be 3 bytes long.
-        virtual bool get3BytePersistentTXRestartCounter(uint8_t * /*buf*/) const override { return false; };
+        virtual bool getTXRestartCounter(uint8_t * /*buf*/) const override { return false; };
         // Reset the persistent reboot/restart message counter in EEPROM; returns false on failure.
         // TO BE USED WITH EXTREME CAUTION: reusing the message counts and resulting IVs
         // destroys the security of the cipher.
@@ -142,8 +142,8 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
         static bool resetRaw3BytePersistentTXRestartCounterCond()
             {
             SimpleSecureFrame32or0BodyTXV0p2Null &i = getInstance();
-            uint8_t buf[primaryPeristentTXMessageRestartCounterBytes];
-            if(!i.get3BytePersistentTXRestartCounter(buf)) { return(false); }
+            uint8_t buf[primaryTXRestartCounterBytes];
+            if(!i.getTXRestartCounter(buf)) { return(false); }
             if(buf[0] < 0x20) { return(i.increment3BytePersistentTXRestartCounter()); }
             return(i.resetRaw3BytePersistentTXRestartCounterInEEPROM());
             }
@@ -268,7 +268,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
             // Combines results from primary and secondary as appropriate.
             // Deals with inversion and checksum checking.
             // Output buffer (buf) must be 3 bytes long.
-            virtual bool get3BytePersistentTXRestartCounter(uint8_t *buf) const override;
+            virtual bool getTXRestartCounter(uint8_t *buf) const override;
             // Reset the persistent reboot/restart message counter in EEPROM; returns false on failure.
             // TO BE USED WITH EXTREME CAUTION: reusing the message counts and resulting IVs
             // destroys the security of the cipher.
@@ -290,8 +290,8 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
             static bool resetRaw3BytePersistentTXRestartCounterCond()
                 {
                 SimpleSecureFrame32or0BodyTXV0p2 &i = getInstance();
-                uint8_t buf[primaryPeristentTXMessageRestartCounterBytes];
-                if(!i.get3BytePersistentTXRestartCounter(buf)) { return(false); }
+                uint8_t buf[primaryTXRestartCounterBytes];
+                if(!i.getTXRestartCounter(buf)) { return(false); }
                 if(buf[0] < 0x20) { return(i.increment3BytePersistentTXRestartCounter()); }
                 return(i.resetRaw3BytePersistentTXRestartCounterInEEPROM());
                 }

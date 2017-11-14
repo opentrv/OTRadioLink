@@ -593,7 +593,7 @@ namespace OTRadioLink
             // Deals with inversion and checksum checking.
             // Output buffer (buf) must be 3 bytes long.
             // Does not increment/alter the counter.
-            static const uint8_t primaryPeristentTXMessageRestartCounterBytes = 3;
+            static const uint8_t primaryTXRestartCounterBytes = 3;
             // Get primary (semi-persistent) message counter for TX from an OpenTRV leaf under its own ID.
             // This counter increases monotonically
             // (and so may provide a sequence number)
@@ -615,7 +615,7 @@ namespace OTRadioLink
             // When this counter reaches 0xffffffffffff then no more messages can be sent
             // until new keys are shared and the counter is reset.
             // Get the 3 bytes of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
-            virtual bool get3BytePersistentTXRestartCounter(uint8_t *buf) const = 0;
+            virtual bool getTXRestartCounter(uint8_t *buf) const = 0;
             // Reset the persistent reboot/restart message counter; returns false on failure.
             // TO BE USED WITH EXTREME CAUTION: reusing the message counts and resulting IVs
             // destroys the security of the cipher.
