@@ -317,8 +317,11 @@ uint16_t SupplyVoltageCentiVolts::read()
   static_assert(BATTERY_LOW_cV > BATTERY_VERY_LOW_cV, "thresholds should be such that 'not low' entails 'not very low'");
   static_assert(MAINS_MIN_cV > BATTERY_LOW_cV, "thresholds should be such that 'on mains' entails 'not low'");
 
-  // Set an error if battery is low.
-  ErrorReporter.set(ErrorReport::ERR_BATTERY_LOW);
+  // TODO work out nice way of rate limiting to avoid masking other warnings.
+  // Set an error if battery is very low.
+  // Set a warning if low, to avoid masking any other errors.
+  if(isVeryLow) { ErrorReporter.set(ErrorReport::ERR_BATTERY_VERY_LOW); }
+  else if (isLow) { ErrorReporter.set(ErrorReport::WARN_BATTERY_LOW); }
 
 #if 0 && defined(DEBUG)
   DEBUG_SERIAL_PRINT_FLASHSTRING("Battery cV: ");
