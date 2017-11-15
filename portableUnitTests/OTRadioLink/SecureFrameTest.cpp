@@ -798,7 +798,7 @@ TEST(OTAESGCMSecureFrame, SecureSmallFrameEncodingWithWorkspace)
 }
 
 
-#if 0 // FIXME
+#if 1 // FIXME
 // Test encoding of beacon frames.
 //
 // DHD20161107: imported from test_SECFRAME.ino testBeaconEncoding().
@@ -868,12 +868,13 @@ TEST(OTAESGCMSecureFrame, BeaconEncodingWithWorkspace)
         OTRadioLink::OTBuf_t body(nullptr, 0);
         // IV/nonce starting with first 6 bytes of preshared ID, then 6 bytes of counter.
         const uint8_t iv[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55, 0x00, 0x00, 0x2a, 0x00, 0x03, 0x19 };
+
+        OTRadioLink::OTEncodeData_T fdEnc(body.buf, body.bufsize, otbuf.buf, otbuf.bufsize);
+        fdEnc.fType = OTRadioLink::FTS_ALIVE;
         //    const uint8_t sb1 = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::generateSecureBeaconRaw(buf, sizeof(buf), id, idLen, iv, OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS, NULL, key);
         const uint8_t sb1 = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeRaw(
-                                        otbuf,
-                                        OTRadioLink::FTS_ALIVE,
+                                        fdEnc,
                                         id,
-                                        body, 0,
                                         iv,
                                         OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_LWORKSPACE,
                                         sWEnc, key);
