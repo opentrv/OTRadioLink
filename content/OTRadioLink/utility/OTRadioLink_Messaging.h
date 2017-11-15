@@ -313,7 +313,7 @@ bool decodeAndHandleOTSecureOFrame(volatile const uint8_t * const _msg, OTV0P2BA
     if(0 == l) { return(false); }
     // Make sure frame thinks it is a secure OFrame.
     constexpr uint8_t expectedOFrameFirstByte = 'O' | 0x80;
-    if(expectedOFrameFirstByte != firstByte) { return (false); }
+    if(expectedOFrameFirstByte != firstByte) { return (false); }  // FIXME seems superfluous
 
     // Validate integrity of frame (CRC for non-secure, auth for secure).
     if(!fd.sfh.isSecure()) { return(false); }
