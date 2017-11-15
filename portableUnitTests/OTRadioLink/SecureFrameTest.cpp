@@ -995,7 +995,7 @@ TEST(OTAESGCMSecureFrame, BeaconEncoding)
 }
 #endif // OTAESGCM_ALLOW_NON_WORKSPACE
 
-#if 0
+#if 0 // DISABLED AS DEPENDS ON AVR ARCH
 // Test some basic parameters of node associations.
 // Does not wear non-volatile memory (eg EEPROM).
 //
@@ -1048,7 +1048,7 @@ TEST(OTAESGCMSecureFrame, MsgCount)
     EXPECT_EQ(0, OTRadioLink::SimpleSecureFrame32or0BodyRXBase::msgcountercmp(countmaxcopy, countmax));
 }
 
-#if 0
+#if 0 // DISABLED AS DEPENDS ON AVR ARCH
 // Test handling of persistent/reboot/restart part of primary message counter.
 // Does not wear non-volatile memory (eg EEPROM).
 //
@@ -1089,7 +1089,7 @@ TEST(OTAESGCMSecureFrame, PermMsgCount)
   }
 #endif
 
-#if 0
+#if 0 // DISABLED AS DEPENDS ON AVR ARCH
 // Test handling of persistent/reboot/restart part of primary TX message counter.
 // Tests to only be run once per restart because they cause device wear (EEPROM).
 // NOTE: best not to run on a live device as this will mess with its associations, etc.
@@ -1141,7 +1141,7 @@ TEST(OTAESGCMSecureFrame, PermMsgCountRunOnce)
   }
 #endif
 
-#if 0
+#if 0 // DISABLED AS DEPENDS ON AVR ARCH
 // Test some basic parameters of node associations.
 // Also tests intimate interaction with management of RX message counters.
 // Tests to only be run once per restart because they cause device wear (EEPROM).
