@@ -678,23 +678,33 @@ uint8_t generateNonsecureBeacon(OTBuf_t &buf, const uint8_t seqNum_, const OTBuf
                                     id_));
     }
 
-#if 0  // XXX not stackless
+#if 1  // XXX not stackless
+// XXX This is a generic frame!
 uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOStyleFrameForTX(
             OTEncodeData_T &fd,
             uint8_t il_,
-            fixed32BTextSize12BNonce16BTagSimpleEncOnStack_fn_t  &e,
-            void *state,
+            fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t  &e,
+            OTV0P2BASE::ScratchSpaceL &scratch,
             const uint8_t *const key)
     {
+    constexpr uint8_t IV_size = 12;
+    static_assert(generateSecureOStyleFrameForTX_scratch_usage == IV_size + OTV0P2BASE::OpenTRV_Node_ID_Bytes, "self-use scratch size wrong");
+    static_assert(generateSecureOStyleFrameForTX_scratch_usage < generateSecureOStyleFrameForTX_total_scratch_usage_OTAESGCM_2p0, "scratch size calc wrong");
+    if(scratch.bufsize < generateSecureOStyleFrameForTX_total_scratch_usage_OTAESGCM_2p0) { return(0); } // ERROR
+
     if((fd.fType >= FTS_INVALID_HIGH) || (fd.fType == FTS_NONE)) { return(0); } // FAIL
-    uint8_t iv[12];
-    if(!computeIVForTX(iv)) { return(0); } // FAIL
+    // iv at start of scratch space
+    uint8_t *const iv = scratch.buf; // uint8_t iv[IV_size];
+    if(!computeIVForTX(iv)) { return(0); }
+
+    // XXX This is the special case! Will potentially need an extra 8 bytes to store the id.
     // If ID is short then we can cheat by reusing start of IV, else fetch again explicitly...
     const bool longID = (il_ > 6);
-    uint8_t id[OTV0P2BASE::OpenTRV_Node_ID_Bytes];
+    uint8_t *const id = iv + IV_size;  // FIXME
     if(longID && !getTXID(id)) { return(0); } // FAIL
+
     const OTBuf_t txID((longID ? id : iv), sizeof((longID ? id : iv)));
-    return(encodeRawUnpaddedOnStack(fd, txID, iv, e, state, key));
+    return(encodeRaw(fd, txID, iv, e, scratch, key));
     }
 #endif
 
@@ -711,6 +721,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOStyleFrameForTX(
 //  * il_  ID length for the header; ID is local node ID from EEPROM or other pre-supplied ID, may be limited to a 6-byte prefix
 //  * key  16-byte secret key; never NULL
 // NOTE: THIS API IS LIABLE TO CHANGE
+// XXX This is the O Frame
 uint8_t SimpleSecureFrame32or0BodyTXBase::encode(
                                             OTEncodeData_T &fd,
                                             uint8_t il_,

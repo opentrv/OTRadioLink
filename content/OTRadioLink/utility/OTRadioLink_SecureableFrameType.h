@@ -590,7 +590,7 @@ namespace OTRadioLink
                 return(getNextTXMsgCtr(ivBuf + (12-SimpleSecureFrame32or0BodyBase::fullMsgCtrBytes)));
                 }
 
-#if 0  // Convert to version on stack?
+#if 1  // Convert to version on stack?
             // Create simple 'O'-style secure frame with an optional encrypted body for transmission.
             // Returns number of bytes written to buffer, or 0 in case of error.
             // The IV is constructed from the node ID (local from EEPROM, or as supplied)
@@ -603,11 +603,15 @@ namespace OTRadioLink
             //  * body, bl_ body and body length; body non-NULL unless bl_ is zero
             //  * il_  ID length for the header; ID is local node ID from EEPROM or other pre-supplied ID
             //  * key  16-byte secret key; never NULL
+            static constexpr uint8_t generateSecureOStyleFrameForTX_scratch_usage = 12; // + 32; as bbuf moved out to level above.
+             static constexpr size_t generateSecureOStyleFrameForTX_total_scratch_usage_OTAESGCM_2p0 =
+                     encodeRaw_total_scratch_usage_OTAESGCM_2p0
+                     + generateSecureOStyleFrameForTX_scratch_usage;
             uint8_t generateSecureOStyleFrameForTX(
                         OTEncodeData_T &fd,
                         uint8_t il_,
-                        fixed32BTextSize12BNonce16BTagSimpleEncOnStack_fn_t  &e,
-                        void *state,
+                        fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t  &e,
+                        OTV0P2BASE::ScratchSpaceL &scratch,
                         const uint8_t *key);
 
             static const uint8_t generateSecureBeaconMaxBufSize = 27 + SecurableFrameHeader::maxIDLength;
@@ -625,13 +629,13 @@ namespace OTRadioLink
             uint8_t generateSecureBeaconOnStack(
                         OTBuf_t &buf,
                         uint8_t il_,
-                        fixed32BTextSize12BNonce16BTagSimpleEncOnStack_fn_t  &e,
-                        void *state,
+                        fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t  &e,
+                        OTV0P2BASE::ScratchSpaceL &scratch,
                         const uint8_t *key)
             {
                 OTEncodeData_T fd(buf.buf, buf.bufsize, NULL, 0);
                 fd.fType = OTRadioLink::FTS_ALIVE;
-                return(generateSecureOStyleFrameForTX(fd, il_, e, state, key));
+                return(generateSecureOStyleFrameForTX(fd, il_, e, scratch, key));
             }
 #endif
 
