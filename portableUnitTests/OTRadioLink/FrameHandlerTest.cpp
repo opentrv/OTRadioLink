@@ -361,7 +361,6 @@ TEST(FrameHandler, BoilerFrameOperationSuccess)
     EXPECT_TRUE(boilerOperationSuccess);
 }
 
-
 #if 0  // Broken tests.
 TEST(FrameHandler, authAndDecodeSecurableFrameBasic)
 {
@@ -388,8 +387,11 @@ TEST(FrameHandler, authAndDecodeSecurableFrameBasic)
     // msg buf consists of    { len | Message   }
     const uint8_t msgBuf[] = { 5,    0,1,2,3,4 };
     uint8_t decryptedBodyOut[OTRadioLink::OTDecodeData_T::ptextLenMax];
-    OTRadioLink::OTDecodeData_T fd(&msgBuf[1], decryptedBodyOut);
+    OTRadioLink::OTDecodeData_T fd(msgBuf, decryptedBodyOut);
+    EXPECT_EQ(0, fd.sfh.decodeHeader(msgBuf, sizeof(msgBuf)+1));
+
     fd.ptextSize = 0xff;  // Test that this is really set.
+
 
     const bool test1 = OTRadioLink::authAndDecodeOTSecurableFrame<OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
                                                                   OTFHT::mockDecrypt,
@@ -398,7 +400,8 @@ TEST(FrameHandler, authAndDecodeSecurableFrameBasic)
     EXPECT_NE(0xff, fd.ptextSize) << "fd.ptextSize not altered.";
     EXPECT_EQ(expectedDecryptedBodyLen, fd.ptextSize);
 }
-
+#endif
+// FIXME is this actually testing anything?
 TEST(FrameHandler, authAndDecodeSecurableFrameGetKeyFalse)
 {
     // Workspace for authAndDecodeOTSecurableFrame
@@ -535,7 +538,6 @@ TEST(FrameHandler, decodeAndHandleOTSecureOFrameStackCheck)
 //    std::cout << baseStack - maxStack << "\n";
     EXPECT_GT((intptr_t)200, (intptr_t)(baseStack - maxStack));
 }
-#endif
 
 // Should always return false
 TEST(FrameHandler, OTMessageQueueHandlerNull)
