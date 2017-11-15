@@ -603,7 +603,7 @@ namespace OTRadioLink
             //  * body, bl_ body and body length; body non-NULL unless bl_ is zero
             //  * il_  ID length for the header; ID is local node ID from EEPROM or other pre-supplied ID
             //  * key  16-byte secret key; never NULL
-            static constexpr uint8_t generateSecureOStyleFrameForTX_scratch_usage = 12; // + 32; as bbuf moved out to level above.
+            static constexpr uint8_t generateSecureOStyleFrameForTX_scratch_usage = 12 + 8;
              static constexpr size_t generateSecureOStyleFrameForTX_total_scratch_usage_OTAESGCM_2p0 =
                      encodeRaw_total_scratch_usage_OTAESGCM_2p0
                      + generateSecureOStyleFrameForTX_scratch_usage;
