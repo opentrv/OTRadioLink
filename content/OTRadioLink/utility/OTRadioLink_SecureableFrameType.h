@@ -302,41 +302,41 @@ namespace OTRadioLink
 
 
     /**
-     * @brief   Struct for passing frame data around in the encryption stack.
+     * @brief   Struct for passing common frame data around in the encryption stack.
+     *
      * @param   _ptext: Input buffer. This points to an array holding the message body in plain text.
                         May be a nullptr, to signal that there is no body to be encrypted.
      * @param   _ptextBufSize: Length of inbuf in bytes.
-     *                         0 if _ptext is a nullptr or no longer than 32.
-     * @param   _outbuf: TODO
-     * @todo    Is there a better way to order everything?
-     * @todo    Alias in and out buffers for more descriptive names?
-     * @note    id is not initialised.
+     *                         Should be 0 if _ptext is a nullptr, or at least 32.
+     * @param   _outbuf: Output buffer to hold a frame. Should be at least 64 bytes.
+     * @param   _outbufSize
+     *
+     * @note    ptextLen and fType may need to be set separately before calling
+     *          some encode functions.
+     * @note    The scratch space is not held in this as functions will pass
+     *          the unused portions of their scratch spaces on.
      */
     struct OTEncodeData_T
     {
-        OTEncodeData_T(uint8_t * const _ptext, const uint8_t _ptextBufSize, uint8_t * const _ctext, const uint8_t _ctextLen)
-            : ptext(_ptext), ptextBufSize(_ptextBufSize), ctext(_ctext), ctextLen(_ctextLen) {}
+        OTEncodeData_T(uint8_t * const _ptext, const uint8_t _ptextBufsize, uint8_t * const _outbuf, const uint8_t _outbufSize)
+            : ptext(_ptext), ptextbufSize(_ptextBufsize), outbuf(_outbuf), outbufSize(_outbufSize) {}
 
         SecurableFrameHeader sfh;
+
         // Input buffer. This points to an array holding the message body in plain text.
         // May be a nullptr, in which case there is no body.
         uint8_t * const ptext;
-        // Length of the ptext buffer.
-        const uint8_t ptextBufSize;
-        // Length of data held in body. Potentially unknown at time of instantiation.
-        uint8_t bodyLen = 0;
+        // Size of the ptext buffer.
+        const uint8_t ptextbufSize;
+        // Length of data to be encrypted. Potentially unknown at time of instantiation.
+        uint8_t ptextLen = 0;
 
-        // Output buffer. This takes a buffer for either the cipher text or plain
-        // text output.
-        // In the case of encryption, this should be at least 63 (64?) bytes.
-        // In the case of decryption, this should be decryptedBodyBufSize bytes.
-        uint8_t *const ctext;
-        const uint8_t ctextLen;
+        // The output buffer, into which the encoded frame is written. Must never be null.
+        uint8_t *const outbuf;
+        // The size of the output buffer. Must be 
+        const uint8_t outbufSize;
 
         FrameType_Secureable fType = FTS_NONE;
-        // A pointer to the OTAESGCM state. This is currently not implemented.
-        // NOTE: Doesn't make sense to include scratchspace as subscratchs are passed between fns.
-        static constexpr void * state = nullptr;
     };
 
     /**

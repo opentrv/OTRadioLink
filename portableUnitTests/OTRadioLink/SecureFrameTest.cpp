@@ -732,7 +732,7 @@ TEST(OTAESGCMSecureFrame, SecureSmallFrameEncodingWithWorkspace)
     memcpy(bodyBuf.buf, body, sizeof(body));
 
     OTRadioLink::OTEncodeData_T fdTX(_bodyBuf, sizeof(_bodyBuf), _buf, sizeof(_buf));
-    fdTX.bodyLen = sizeof(body);
+    fdTX.ptextLen = sizeof(body);
     fdTX.fType = OTRadioLink::FTS_BasicSensorOrValve;
     const uint8_t encodedLength = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeRaw(
                                         fdTX,

@@ -288,28 +288,28 @@ uint8_t encodeNonsecureOnStack(
     {
     // Let checkAndEncodeSmallFrameHeader() validate buf and id_.
     // If necessary (bl_ > 0) body is validated below.
-    OTBuf_t buf(fd.ctext, fd.ctextLen);  // XXX
+    OTBuf_t buf(fd.outbuf, fd.outbufSize);  // XXX
     const uint8_t hl = fd.sfh.encodeHeader(
                                 buf,
                                 false,
                                 fd.fType, // Not secure.
                                 seqNum_,
                                 id_,
-                                fd.ptextBufSize,
+                                fd.ptextbufSize,
                                 1); // 1-byte CRC trailer.
     // Fail if header encoding fails.
     if(0 == hl) { return(0); } // ERROR
     // Fail if buffer is not large enough to accommodate full frame.
     const uint8_t fl = fd.sfh.fl;
-    if(fl >= fd.ctextLen) { return(0); } // ERROR
+    if(fl >= fd.outbufSize) { return(0); } // ERROR
     // Copy in body, if any.
-    if(fd.ptextBufSize > 0)
+    if(fd.ptextbufSize > 0)
         {
-        memcpy(fd.ctext + fd.sfh.getBodyOffset(), fd.ptext, fd.ptextBufSize);
+        memcpy(fd.outbuf + fd.sfh.getBodyOffset(), fd.ptext, fd.ptextbufSize);
         }
     // Compute and write in the CRC trailer...
-    const uint8_t crc = fd.sfh.computeNonSecureCRC(fd.ctext, fd.ctextLen);
-    fd.ctext[fl] = crc;
+    const uint8_t crc = fd.sfh.computeNonSecureCRC(fd.outbuf, fd.outbufSize);
+    fd.outbuf[fl] = crc;
     // Done.
     return(fl + 1);
     }
@@ -409,8 +409,8 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeRaw(
     if(NULL == key) { return(0); } // ERROR
 
     // buffer local variables/consts
-    uint8_t * const buffer = fd.ctext;
-    const uint8_t bodylen = fd.bodyLen;
+    uint8_t * const buffer = fd.outbuf;
+    const uint8_t bodylen = fd.ptextLen;
 
     // Capture possible (near) peak of stack usage, eg when called from ISR.
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
@@ -422,8 +422,8 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeRaw(
     // If necessary (bl_ > 0) body is validated below.
     const uint8_t seqNum_ = iv[11] & 0xf;
 
-    OTBuf_t body(fd.ptext, fd.ptextBufSize);
-    OTBuf_t buf(fd.ctext, fd.ctextLen);
+    OTBuf_t body(fd.ptext, fd.ptextbufSize);
+    OTBuf_t buf(fd.outbuf, fd.outbufSize);
     const uint8_t hl = fd.sfh.encodeHeader(
                                     buf,
                                     true, fd.fType,
@@ -435,7 +435,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeRaw(
     if(0 == hl) { return(0); } // ERROR
     // Fail if buffer is not large enough to accommodate full frame.
     const uint8_t fl = fd.sfh.fl;
-    if(fl >= fd.ctextLen) { return(0); } // ERROR
+    if(fl >= fd.outbufSize) { return(0); } // ERROR
     // Pad body, if any, IN SITU.
     if(0 != bodylen)
         {
@@ -773,7 +773,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeValveFrame(
 
     // Create id buffer
     const OTBuf_t id(iv, il_);
-    fd.bodyLen = (hasStats ? 2+statslen : 2); // Note: callee will pad beyond this.
+    fd.ptextLen = (hasStats ? 2+statslen : 2); // Note: callee will pad beyond this.
     fd.fType = OTRadioLink::FTS_BasicSensorOrValve;
 
     // note: id and iv are both passed in here despite pointing at the same
