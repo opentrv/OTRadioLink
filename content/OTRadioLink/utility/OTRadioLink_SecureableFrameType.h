@@ -324,6 +324,7 @@ namespace OTRadioLink
         SecurableFrameHeader sfh;
 
         // Input buffer. This points to an array holding the message body in plain text.
+        // This is NOT immutable, to allow in-place padding of the message buffer.
         // May be a nullptr, in which case there is no body.
         uint8_t * const ptext;
         // Size of the ptext buffer.
@@ -340,39 +341,45 @@ namespace OTRadioLink
     };
 
     /**
-     * @brief   Struct for passing frame data around in the RX call chain.
-     * @param   ctext: A buffer containing the encrypted message. The first
-     *                 byte should contain the length of the message in bytes.
-     * @param   ptext: A buffer to write the decrypted message into. Should be
-     *                 at least ptextLenMax bytes in length.
-     * @todo    Is there a better way to order everything?
-     * @note    id is not initialised.
+     * @brief   Struct for passing common frame data around in the decryption stack.
+     *
+     * @param   _inbuf: Input buffer. This points to an array holding the frame
+     *                  length byte, followed by the encrypted frame.
+     *                  i.e. |     _inbuf[0]     |   _inbuf[1:]      |
+     *                       | frame length byte | Encrypted Message |
+     *                  Never NULL.
+     * @param   _ptext: Output buffer. This points to an array holding the
+     *                  message body in plain text. Should be at least
+     *                  ptextLenMax bytes in size. Never NULL.
+     *
+     * @note    The scratch space is not held in this as functions will pass
+     *          the unused portions of their scratch spaces on.
+     * @note    Although the frame length byte is technically not part of the
+     *          frame, it is pointed too as the first byte for clarity and
+     *          consistency within the decryption stack.
      */
     struct OTDecodeData_T
     {
-        OTDecodeData_T(const uint8_t * const _ctext, uint8_t * const _ptext)
-            : ctext(_ctext), ptext(_ptext) {}
+        OTDecodeData_T(const uint8_t * const _inbuf, uint8_t * const _ptext)
+            : ctext(_inbuf), ptext(_ptext) {}
 
         SecurableFrameHeader sfh;
         uint8_t id[OTV0P2BASE::OpenTRV_Node_ID_Bytes];  // Holds up to full node ID.
-        // Immutable input buffer. This takes a buffer containing the cipher text to be decrypted.
-        // The byte pointed at before this contain the
-        // message length.
+        // Immutable input buffer. This takes a buffer holding the frame length
+        // byte, followed by the encrypted frame.
         const uint8_t * const ctext;
+        // The first byte of the input buffer is the total frame length in
+        // bytes, EXCLUDING the frame length byte.
+        // i.e. the total buffer length is inbufLen + 1.
         const uint8_t &ctextLen = ctext[0];
 
-        // Output buffer. This takes a buffer for either the cipher text or plain
-        // text output.
-        // In the case of encryption, this should be at least 63 (64?) bytes.
-        // In the case of decryption, this should be decryptedBodyBufSize bytes.
+        // Output buffer. The decrypted frame is written to this.
+        // Should be at least ptextLenMax bytes in length.
         uint8_t *const ptext;
         // This is currently always  ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE bytes long.
         static constexpr uint8_t ptextLenMax = ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE;
-        // Actual size of plain text held within decryptedBody. Should be set when ptext is populated.
+        // Actual size of plain text held within decryptedBody. Set when ptext is populated.
         uint8_t ptextSize = 0;  // 1 byte: 1/4 words
-        // A pointer to the OTAESGCM state. This is currently not implemented.
-        // NOTE: Doesn't make sense to include scratchspace as subscratchs are passed between fns.
-        static constexpr void * state = nullptr;
     };
 
     // Compose (encode) entire non-secure small frame from header params, body and CRC trailer.
