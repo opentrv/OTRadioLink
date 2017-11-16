@@ -541,11 +541,11 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::decodeRaw(
         if(upbl > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE) { return(0); } // ERROR
         if(upbl > fd.ptextLenMax) { return(0); } // ERROR
         memcpy(fd.ptext, decryptBuf, upbl);
-        fd.ptextSize = upbl;
+        fd.ptextLen = upbl;
         // TODO: optimise later if plaintext not required but ciphertext present.
         }
     // Ensure that decryptedBodyOutSize is not left initialised even if no frame body RXed/wanted.
-    else { fd.ptextSize = 0; }
+    else { fd.ptextLen = 0; }
     // Done.
     return(fl + 1);
     }

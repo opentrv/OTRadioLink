@@ -379,7 +379,7 @@ namespace OTRadioLink
         // This is currently always  ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE bytes long.
         static constexpr uint8_t ptextLenMax = ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE;
         // Actual size of plain text held within decryptedBody. Set when ptext is populated.
-        uint8_t ptextSize = 0;  // 1 byte: 1/4 words
+        uint8_t ptextLen = 0;  // 1 byte: 1/4 words
     };
 
     // Compose (encode) entire non-secure small frame from header params, body and CRC trailer.

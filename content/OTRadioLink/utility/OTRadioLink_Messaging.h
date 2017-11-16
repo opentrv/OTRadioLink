@@ -136,7 +136,7 @@ template <typename p_t, p_t &p>
 bool serialFrameOperation(const OTDecodeData_T &fd)
 {
     const uint8_t * const db = fd.ptext;
-    const uint8_t dbLen = fd.ptextSize;
+    const uint8_t dbLen = fd.ptextLen;
     const uint8_t * const senderNodeID = fd.id;
 
     // Perform some basic validation of the plain text (is it worth printing) and print.
@@ -176,7 +176,7 @@ bool relayFrameOperation(const OTDecodeData_T &fd)
     if(nullptr == fd.ctext) return false;
 
     const uint8_t * const db = fd.ptext;
-    const uint8_t dbLen = fd.ptextSize;
+    const uint8_t dbLen = fd.ptextLen;
 
     // Perform some basic validation of the plain text (is it worth sending) and add to relay radio queue.
     if((0 != (db[1] & 0x10)) && (dbLen > 3) && ('{' == db[2])) {

@@ -776,7 +776,7 @@ TEST(OTAESGCMSecureFrame, SecureSmallFrameEncodingWithWorkspace)
                         OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE,
                         sWDec, zeroBlock, iv));
     // Body content should be correctly decrypted and extracted.
-    EXPECT_EQ(sizeof(body), fdRX.ptextSize);
+    EXPECT_EQ(sizeof(body), fdRX.ptextLen);
     EXPECT_EQ(0, memcmp(body, decryptedBodyOut, sizeof(body)));
 
     // Using ASSERT to avoid cryptic crash message (Floating point exception (core dumped)) when encodedLength is 0.
@@ -793,7 +793,7 @@ TEST(OTAESGCMSecureFrame, SecureSmallFrameEncodingWithWorkspace)
             (0 == OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeRaw(fdRX,
                                         OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE,
                                         sWDec, zeroBlock, iv)) ||
-            ((sizeof(body) == fdRX.ptextSize) && (0 == memcmp(body, decryptedBodyOut, sizeof(body))) && (0 == memcmp(id, fdRX.sfh.id, 4)))
+            ((sizeof(body) == fdRX.ptextLen) && (0 == memcmp(body, decryptedBodyOut, sizeof(body))) && (0 == memcmp(id, fdRX.sfh.id, 4)))
     );
 }
 
