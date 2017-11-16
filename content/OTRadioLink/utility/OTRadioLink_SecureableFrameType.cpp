@@ -687,7 +687,7 @@ uint8_t generateNonsecureBeacon(OTBuf_t &buf, const uint8_t seqNum_, const OTBuf
  * Note that the frame will be 27 + ID-length (up to maxIDLength) + body-length bytes,
  * so the buffer must be large enough to accommodate that.
  *
- * @param   fd: OTEncodeData object.
+ * @param   fd: Common data required for encryption.
  *              - ptext may be null for frames containing no encrypted body.
  *              - ctext must never be null.  // XXX
  *              - ftype must be set with a valid frame type before calling this function.
@@ -838,26 +838,40 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeValveFrame(
         return(decodeRaw(fd, d, subScratch, key, iv));
         }
 
-    // From a structurally correct secure frame, looks up the ID, checks the message counter, decodes, and updates the counter if successful.
-    // THIS IS THE PREFERRED ENTRY POINT FOR DECODING AND RECEIVING SECURE FRAMES.
-    // (Pre-filtering by type and ID and message counter may already have happened.)
-    // Note that this is for frames being send from the ID in the header,
-    // not for lightweight return traffic to the specified ID.
-    // Returns the total number of bytes read for the frame
-    // (including, and with a value one higher than the first 'fl' bytes).
-    // Returns zero in case of error, eg because authentication failed or this is a duplicate message.
-    // If this returns true then the frame is authenticated,
-    // and the decrypted body is available if present and a buffer was provided.
-    // If the 'firstMatchIDOnly' is true (the default)
-    // then this only checks the first ID prefix match found if any,
-    // else all possible entries may be tried depending on the implementation
-    // and, for example, time/resource limits.
-    // state and key explicitly.
-    //
-    //   * ID if non-NULL is filled in with the full authenticated
-    //     sender ID, so must be >= 8 bytes
-    // NOTE this version uses a scratch space, allowing the stack usage
-    // to be more tightly controlled.
+
+    /**
+     * @brief   Decode a structurally correct secure small frame.
+     *          THIS IS THE PREFERRED ENTRY POINT FOR DECODING AND RECEIVING
+     *          SECURE FRAMES.
+     *
+     * From a structurally correct secure frame, looks up the ID, checks the
+     * message counter, decodes, and updates the counter if successful.
+     * (Pre-filtering by type and ID and message counter may already have
+     * happened.)
+     * Note that this is for frames being send from the ID in the header,
+     * not for lightweight return traffic to the specified ID.
+     *
+     * @param   fd: Common data required for decryption. inbuf and ptext must
+     *              never be null.
+     * @param   d: Decryption function.
+     * @param   scratch: Scratch space. Size must be larger than
+     *                   generateSecureOStyleFrameForTX_total_scratch_usage_OTAESGCM_2p0 bytes.
+     * @param   key: key  16-byte secret key; never NULL
+     * @param   firstIDMatchOnly: IGNORED! If the 'firstMatchIDOnly' is true
+     *              (the default) then this only checks the first ID prefix
+     *              match found if any, else all possible entries may be tried
+     *              depending on the implementation  and, for example,
+     *              time/resource limits.
+     * @retval  The total number of bytes read for the frame, including, and
+     *          with a value one higher than the first 'fl' bytes. XXX what does the last bit mean?
+     *          - Returns zero in case of error, eg because authentication failed
+     *            or this is a duplicate message.
+     *          - If this returns >=1 then the frame is authenticated, and the
+     *            decrypted body is available if present and a buffer was
+     *            provided.  XXX What happens when buffer not provided?
+     *
+     * @note    Uses a scratch space, allowing the stack usage to be more tightly controlled.
+     */
     uint8_t SimpleSecureFrame32or0BodyRXBase::decode(
                 OTDecodeData_T &fd,
                 fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &d,
@@ -877,8 +891,8 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeValveFrame(
         if(nullptr == fd.ctext) { return(0); } // ERROR
         // Abort if header was not decoded properly.
         if(fd.sfh.isInvalid()) { return(0); } // ERROR
-        // FIXME Why not checked?
         #if 0
+        // FIXME Why not checked?
         // Abort if frame is not secure.
         if(sfh.isSecure()) { return(0); } // ERROR
         #endif
