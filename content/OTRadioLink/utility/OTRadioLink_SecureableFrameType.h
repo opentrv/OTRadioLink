@@ -306,10 +306,10 @@ namespace OTRadioLink
      *
      * @param   _ptext: Input buffer. This points to an array holding the message body in plain text.
                         May be a nullptr, to signal that there is no body to be encrypted.
-     * @param   _ptextBufSize: Length of inbuf in bytes.
+     * @param   _ptextbufSize: Size of _ptext in bytes.
      *                         Should be 0 if _ptext is a nullptr, or at least 32.
-     * @param   _outbuf: Output buffer to hold a frame. Should be at least 64 bytes.
-     * @param   _outbufSize
+     * @param   _outbuf: Output buffer to hold a frame.
+     * @param   _outbufSize: Size of _outbuf in bytes. Should be at least 64.
      *
      * @note    ptextLen and fType may need to be set separately before calling
      *          some encode functions.
@@ -318,8 +318,8 @@ namespace OTRadioLink
      */
     struct OTEncodeData_T
     {
-        OTEncodeData_T(uint8_t * const _ptext, const uint8_t _ptextBufsize, uint8_t * const _outbuf, const uint8_t _outbufSize)
-            : ptext(_ptext), ptextbufSize(_ptextBufsize), outbuf(_outbuf), outbufSize(_outbufSize) {}
+        OTEncodeData_T(uint8_t * const _ptext, const uint8_t _ptextbufSize, uint8_t * const _outbuf, const uint8_t _outbufSize)
+            : ptext(_ptext), ptextbufSize(_ptextbufSize), outbuf(_outbuf), outbufSize(_outbufSize) {}
 
         SecurableFrameHeader sfh;
 
@@ -331,9 +331,9 @@ namespace OTRadioLink
         // Length of data to be encrypted. Potentially unknown at time of instantiation.
         uint8_t ptextLen = 0;
 
-        // The output buffer, into which the encoded frame is written. Must never be null.
+        // The output buffer, into which the encoded frame is written. Must never be NULL.
         uint8_t *const outbuf;
-        // The size of the output buffer. Must be 
+        // The size of the output buffer in bytes. Must be at least 64.
         const uint8_t outbufSize;
 
         FrameType_Secureable fType = FTS_NONE;
