@@ -680,6 +680,7 @@ uint8_t generateNonsecureBeacon(OTBuf_t &buf, const uint8_t seqNum_, const OTBuf
 
 #if 1  // XXX not stackless
 // XXX This is a generic frame!
+// FIXME UNTESTED!
 uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOStyleFrameForTX(
             OTEncodeData_T &fd,
             uint8_t il_,

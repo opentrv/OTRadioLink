@@ -797,10 +797,8 @@ TEST(OTAESGCMSecureFrame, SecureSmallFrameEncodingWithWorkspace)
     );
 }
 
-
-#if 1 // FIXME
 // Test encoding of beacon frames.
-//
+// FIXME No direct secure beacon function yet.
 // DHD20161107: imported from test_SECFRAME.ino testBeaconEncoding().
 TEST(OTAESGCMSecureFrame, BeaconEncodingWithWorkspace)
 {
@@ -855,9 +853,7 @@ TEST(OTAESGCMSecureFrame, BeaconEncodingWithWorkspace)
     { EXPECT_EQ(eeprom_read_byte((uint8_t *)(V0P2BASE_EE_START_ID + i)), buf[3 + i]); }
     EXPECT_EQ(0x00, buf[11]); // Body length 0.
     #endif
-    //EXPECT_EQ(0xXX, buf[12]); // CRC will vary with ID.
-    //
-    //const unsigned long before = millis();
+
     for(uint8_t idLen = 0; idLen <= 8; ++idLen)
     {
         // Secure beacon...  All zeros key; ID and IV as from spec Example 3 at 20160207.
@@ -878,13 +874,14 @@ TEST(OTAESGCMSecureFrame, BeaconEncodingWithWorkspace)
                                         iv,
                                         OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_LWORKSPACE,
                                         sWEnc, key);
+
         EXPECT_EQ(27 + idLen, sb1);
         //
         // Check decoding (auth/decrypt) of beacon at various levels.
         // Validate structure of frame first.
         // This is quick and checks for insane/dangerous values throughout.
         OTRadioLink::OTDecodeData_T fd(buf, body.buf);
-        const uint8_t l = fd.sfh.decodeHeader(buf + 1, sb1 - 1);
+        const uint8_t l = fd.sfh.decodeHeader(buf, sb1 + 1);
         EXPECT_EQ(4 + idLen, l);
         const uint8_t dlr = OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeRaw(fd,
                                         OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE,
@@ -904,97 +901,6 @@ TEST(OTAESGCMSecureFrame, BeaconEncodingWithWorkspace)
     //  const unsigned long after = millis();
     //  Serial.println(after - before); // DHD20160207: 1442 for 8 rounds, or ~180ms per encryption.
 }
-#endif // FIXME
-
-#ifdef OTAESGCM_ALLOW_NON_WORKSPACE
-// Test encoding of beacon frames.
-//
-// DHD20161107: imported from test_SECFRAME.ino testBeaconEncoding().
-TEST(OTAESGCMSecureFrame, BeaconEncoding)
-{
-    // Non-secure beacon.
-    uint8_t buf[OTV0P2BASE::fnmax(OTRadioLink::generateNonsecureBeaconMaxBufSize, OTRadioLink::SimpleSecureFrame32or0BodyTXBase::generateSecureBeaconMaxBufSize)];
-    // Generate zero-length-ID beacon.
-    const uint8_t b0 = OTRadioLink::generateNonsecureBeacon(buf, sizeof(buf), 0, NULL, 0);
-    EXPECT_EQ(5, b0);
-    EXPECT_EQ(0x04, buf[0]);
-    EXPECT_EQ(0x21, buf[1]);
-    EXPECT_EQ(0x00, buf[2]);
-    EXPECT_EQ(0x00, buf[3]); // Body length 0.
-    EXPECT_EQ(0x65, buf[4]);
-    // Generate maximum-length-zero-ID beacon automatically at non-zero seq.
-    const uint8_t b1 = OTRadioLink::generateNonsecureBeacon(buf, sizeof(buf), 4, zeroBlock, OTRadioLink::SecurableFrameHeader::maxIDLength);
-    EXPECT_EQ(13, b1);
-    EXPECT_EQ(0x0c, buf[0]);
-    EXPECT_EQ(0x21, buf[1]);
-    EXPECT_EQ(0x48, buf[2]);
-    EXPECT_EQ(0x00, buf[3]);
-    EXPECT_EQ(0x00, buf[4]);
-    EXPECT_EQ(0x00, buf[5]);
-    EXPECT_EQ(0x00, buf[6]);
-    EXPECT_EQ(0x00, buf[7]);
-    EXPECT_EQ(0x00, buf[8]);
-    EXPECT_EQ(0x00, buf[9]);
-    EXPECT_EQ(0x00, buf[10]);
-    EXPECT_EQ(0x00, buf[11]); // Body length 0.
-    EXPECT_EQ(0x29, buf[12]);
-    #if 0
-    // Generate maximum-length-from-EEPROM-ID beacon automatically at non-zero seq.
-    const uint8_t b2 = OTRadioLink::generateNonsecureBeacon(buf, sizeof(buf), 5, NULL, OTRadioLink::SecurableFrameHeader::maxIDLength);
-    EXPECT_EQ(13, b2);
-    EXPECT_EQ(0x0c, buf[0]);
-    EXPECT_EQ(0x21, buf[1]);
-    EXPECT_EQ(0x58, buf[2]);
-    for(uint8_t i = 0; i < OTRadioLink::SecurableFrameHeader::maxIDLength; ++i)
-    { EXPECT_EQ(eeprom_read_byte((uint8_t *)(V0P2BASE_EE_START_ID + i)), buf[3 + i]); }
-    EXPECT_EQ(0x00, buf[11]); // Body length 0.
-    #endif
-    //EXPECT_EQ(0xXX, buf[12]); // CRC will vary with ID.
-    //
-    //const unsigned long before = millis();
-    for(uint8_t idLen = 0; idLen <= 8; ++idLen)
-    {
-    // Secure beacon...  All zeros key; ID and IV as from spec Example 3 at 20160207.
-    const uint8_t *const key = zeroBlock;
-    // Preshared ID prefix; only an initial part/prefix of this goes on the wire in the header.
-    const uint8_t id[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55 };
-    // IV/nonce starting with first 6 bytes of preshared ID, then 6 bytes of counter.
-    const uint8_t iv[] = { 0xaa, 0xaa, 0xaa, 0xaa, 0x55, 0x55, 0x00, 0x00, 0x2a, 0x00, 0x03, 0x19 };
-    //    const uint8_t sb1 = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::generateSecureBeaconRaw(buf, sizeof(buf), id, idLen, iv, OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS, NULL, key);
-    const uint8_t sb1 = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeSecureSmallFrameRaw(buf, sizeof(buf),
-                                    OTRadioLink::FTS_ALIVE, id, idLen,
-                                    NULL, 0,
-                                    iv, OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS, NULL, key);
-    EXPECT_EQ(27 + idLen, sb1);
-    //
-    // Check decoding (auth/decrypt) of beacon at various levels.
-    // Validate structure of frame first.
-    // This is quick and checks for insane/dangerous values throughout.
-    OTRadioLink::SecurableFrameHeader sfh;
-    const uint8_t l = sfh.decodeHeader(buf, sb1);
-    EXPECT_EQ(4 + idLen, l);
-    uint8_t decryptedBodyOutSize;
-    const uint8_t dlr = OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameRawOnStack(&sfh,
-                                    buf, sizeof(buf),
-                                    OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
-                                    NULL, key, iv,
-                                    NULL, 0, decryptedBodyOutSize);
-    // Should be able to decode, ie pass authentication.
-    EXPECT_EQ(27 + idLen, dlr);
-    //    // Construct IV from ID and trailer.
-    //    const uint8_t dlfi = OTRadioLink::SimpleSecureFrame32or0BodyRXV0p2::getInstance()._decodeSecureSmallFrameFromID(&sfh,
-    //                                    buf, sizeof(buf),
-    //                                    OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
-    //                                    id, sizeof(id),
-    //                                    NULL, key,
-    //                                    NULL, 0, decryptedBodyOutSize);
-    //    // Should be able to decode, ie pass authentication.
-    //    EXPECT_EQ(27 + idLen, dlfi);
-    }
-    //  const unsigned long after = millis();
-    //  Serial.println(after - before); // DHD20160207: 1442 for 8 rounds, or ~180ms per encryption.
-}
-#endif // OTAESGCM_ALLOW_NON_WORKSPACE
 
 #if 0 // DISABLED AS DEPENDS ON AVR ARCH
 // Test some basic parameters of node associations.
