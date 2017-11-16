@@ -1192,7 +1192,7 @@ TEST(OTAESGCMSecureFrame, OFrameEncodingWithWorkspace)
     OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t &eW = OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_LWORKSPACE;
 
     OTRadioLink::OTEncodeData_T fd(_rawFrame, sizeof(_rawFrame), _bufW, sizeof(_bufW));
-    const uint8_t bodylenW = mockTX.encode(
+    const uint8_t bodylenW = mockTX.encodeValveFrame(
                                         fd,
                                         txIDLen,
                                         valvePC,

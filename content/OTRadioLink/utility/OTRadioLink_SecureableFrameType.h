@@ -590,27 +590,15 @@ namespace OTRadioLink
                 return(getNextTXMsgCtr(ivBuf + (12-SimpleSecureFrame32or0BodyBase::fullMsgCtrBytes)));
                 }
 
-#if 1  // Convert to version on stack?
-            // Create simple 'O'-style secure frame with an optional encrypted body for transmission.
-            // Returns number of bytes written to buffer, or 0 in case of error.
-            // The IV is constructed from the node ID (local from EEPROM, or as supplied)
-            // and the primary TX message counter (which is incremented).
-            // Note that the frame will be 27 + ID-length (up to maxIDLength) + body-length bytes,
-            // so the buffer must be large enough to accommodate that.
-            //  * buf  buffer to which is written the entire frame including trailer; never NULL
-            //  * buflen  available length in buf; if too small then this routine will fail (return 0)
-            //  * frameType  valid frame type [1,126]
-            //  * body, bl_ body and body length; body non-NULL unless bl_ is zero
-            //  * il_  ID length for the header; ID is local node ID from EEPROM or other pre-supplied ID
-            //  * key  16-byte secret key; never NULL
+            // TODO docs
             static constexpr uint8_t generateSecureOStyleFrameForTX_scratch_usage = 12 + 8;
              static constexpr size_t generateSecureOStyleFrameForTX_total_scratch_usage_OTAESGCM_2p0 =
                      encodeRaw_total_scratch_usage_OTAESGCM_2p0
                      + generateSecureOStyleFrameForTX_scratch_usage;
-            uint8_t generateSecureOStyleFrameForTX(
+            uint8_t encode(
                         OTEncodeData_T &fd,
                         uint8_t il_,
-                        fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t  &e,
+                        fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t &e,
                         OTV0P2BASE::ScratchSpaceL &scratch,
                         const uint8_t *key);
 
@@ -635,9 +623,8 @@ namespace OTRadioLink
             {
                 OTEncodeData_T fd(buf.buf, buf.bufsize, NULL, 0);
                 fd.fType = OTRadioLink::FTS_ALIVE;
-                return(generateSecureOStyleFrameForTX(fd, il_, e, scratch, key));
+                return(encode(fd, il_, e, scratch, key));
             }
-#endif
 
             // Create simple 'O' (FTS_BasicSensorOrValve) frame with an optional stats section for transmission.
             // Returns number of bytes written to buffer, or 0 in case of error.
@@ -658,7 +645,7 @@ namespace OTRadioLink
             static constexpr size_t encode_total_scratch_usage_OTAESGCM_2p0 =
                     encodeRaw_total_scratch_usage_OTAESGCM_2p0
                     + encode_scratch_usage;
-            uint8_t encode(
+            uint8_t encodeValveFrame(
                         OTEncodeData_T &fd,
                         uint8_t il_,
                         uint8_t valvePC,

@@ -678,10 +678,28 @@ uint8_t generateNonsecureBeacon(OTBuf_t &buf, const uint8_t seqNum_, const OTBuf
                                     id_));
     }
 
-#if 1  // XXX not stackless
-// XXX This is a generic frame!
+/**
+ * @brief   Create a generic secure small frame with an optional encrypted body for transmission.
+ *
+ * The IV is constructed from the node ID (local from EEPROM, or as supplied)
+ * and the primary TX message counter (which is incremented).
+ * Note that the frame will be 27 + ID-length (up to maxIDLength) + body-length bytes,
+ * so the buffer must be large enough to accommodate that.
+ *
+ * @param   fd: OTEncodeData object.
+ *              - ptext may be null for frames containing no encrypted body.
+ *              - ctext must never be null.  // XXX
+ *              - ftype must be set with a valid frame type before calling this function.
+ * @param   il_: ID length for the header; ID is local node ID from EEPROM or other pre-supplied ID
+ * @param   e: Encryption function.
+ * @param   scratch: Scratch space. Size must be larger than
+ *                   generateSecureOStyleFrameForTX_total_scratch_usage_OTAESGCM_2p0 bytes.
+ * @param   key: key  16-byte secret key; never NULL
+ * @retval  Number of bytes written to buffer, or 0 in case of error.
+ * *note    Uses a scratch space, allowing the stack usage to be more tightly controlled.
+ */
 // FIXME UNTESTED!
-uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOStyleFrameForTX(
+uint8_t SimpleSecureFrame32or0BodyTXBase::encode(
             OTEncodeData_T &fd,
             uint8_t il_,
             fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t  &e,
@@ -707,7 +725,6 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOStyleFrameForTX(
     const OTBuf_t txID((longID ? id : iv), sizeof((longID ? id : iv)));
     return(encodeRaw(fd, txID, iv, e, scratch, key));
     }
-#endif
 
 // Create simple 'O' (FTS_BasicSensorOrValve) frame with an optional stats section for transmission.
 // Returns number of bytes written to buffer, or 0 in case of error.
@@ -722,8 +739,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::generateSecureOStyleFrameForTX(
 //  * il_  ID length for the header; ID is local node ID from EEPROM or other pre-supplied ID, may be limited to a 6-byte prefix
 //  * key  16-byte secret key; never NULL
 // NOTE: THIS API IS LIABLE TO CHANGE
-// XXX This is the O Frame
-uint8_t SimpleSecureFrame32or0BodyTXBase::encode(
+uint8_t SimpleSecureFrame32or0BodyTXBase::encodeValveFrame(
                                             OTEncodeData_T &fd,
                                             uint8_t il_,
                                             uint8_t valvePC,
