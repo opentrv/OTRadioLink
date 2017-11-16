@@ -705,8 +705,8 @@ uint8_t generateNonsecureBeacon(OTBuf_t &buf, const uint8_t seqNum_, const OTBuf
  * @param   il_: ID length for the header; ID is local node ID from EEPROM or other pre-supplied ID
  * @param   e: Encryption function.
  * @param   scratch: Scratch space. Size must be larger than
- *                   generateSecureOStyleFrameForTX_total_scratch_usage_OTAESGCM_2p0 bytes.
- * @param   key: key  16-byte secret key; never NULL
+ *                   encode_total_scratch_usage_OTAESGCM_2p0 bytes.
+ * @param   key: 16-byte secret key; never NULL
  * @retval  Number of bytes written to buffer, or 0 in case of error.
  * *note    Uses a scratch space, allowing the stack usage to be more tightly controlled.
  */
@@ -795,7 +795,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeValveFrame(
 }
 
 /**
- * @brief
+ * @brief XXX
  *
  * Passed a candidate node/counterparty ID derived from:
  * - The frame ID in the incoming header.
