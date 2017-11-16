@@ -315,6 +315,7 @@ namespace OTRadioLink
      *          some encode functions.
      * @note    The scratch space is not held in this as functions will pass
      *          the unused portions of their scratch spaces on.
+     * @note    Fields may be reordered.
      */
     struct OTEncodeData_T
     {
@@ -357,6 +358,7 @@ namespace OTRadioLink
      * @note    Although the frame length byte is technically not part of the
      *          frame, it is pointed too as the first byte for clarity and
      *          consistency within the decryption stack.
+     * @note    Fields may be reordered.
      */
     struct OTDecodeData_T
     {
@@ -395,12 +397,6 @@ namespace OTRadioLink
     //  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
     //  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
     //  * body / bl_  body data (and length)
-//    uint8_t encodeNonsecureSmallFrame(uint8_t *buf, uint8_t buflen,  // TODO DELETE!
-//                                        FrameType_Secureable fType_,
-//                                        uint8_t seqNum_,
-//                                        const uint8_t *id_, uint8_t il_,
-//                                        const uint8_t *body, uint8_t bl_);
-
     uint8_t encodeNonsecureOnStack(OTEncodeData_T &fd, uint8_t seqNum_, const OTBuf_t &id_);
 
     // Decode entire non-secure small frame from raw frame bytes support.
@@ -914,11 +910,6 @@ namespace OTRadioLink
     // Copies the plaintext to the ciphertext, unless plaintext is NULL.
     // Copies the nonce/IV to the tag and pads with trailing zeros.
     // The key is ignored (though one must be supplied).
-//    bool fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL(void *state,
-//            const uint8_t *key, const uint8_t *iv,
-//            const uint8_t *authtext, uint8_t authtextSize,
-//            const uint8_t *plaintext,
-//            uint8_t *ciphertextOut, uint8_t *tagOut);
     SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL;
 
     // NULL basic fixed-size text 'decryption' function FOR TEST ONLY.
@@ -931,11 +922,6 @@ namespace OTRadioLink
     // Undoes/checks fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL().
     // Copies the ciphertext to the plaintext, unless ciphertext is NULL.
     // Verifies that the tag seems to have been constructed appropriately.
-//    bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(void *state,
-//            const uint8_t *key, const uint8_t *iv,
-//            const uint8_t *authtext, uint8_t authtextSize,
-//            const uint8_t *ciphertext, const uint8_t *tag,
-//            uint8_t *plaintextOut);
     SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDec_fn_t fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL;
 
 
@@ -955,12 +941,14 @@ namespace OTRadioLink
 
     /**
      * @brief   A fixed counter implementation of SimpleSecureFrame32or0BodyRXBase.
-     *          This is intended primarily for unit testing purposes and allows a mock ID and counter value
-     *          to be set in order to simplify using existing test frames.
-     *          - Call the setMock... methods to initialise the ID and counter values.
-     *          - Note that the counter value must be LESS than the value you expect to use or decryption will fail!
-     *          - The counter will not be incremented between calls and the methods will always act as if they have
-     *            succeeded.
+     *
+     * This is intended primarily for unit testing purposes and allows a mock ID and counter value
+     * to be set in order to simplify using existing test frames.
+     * - Call the setMock... methods to initialise the ID and counter values.
+     * - Note that the counter value must be LESS than the value you expect to use or decryption will fail!
+     * - The counter will not be incremented between calls and the methods will always act as if they have
+     *   succeeded.
+     *
      * @note    See FrameHandlerTest.cpp for example use.
      */
     class SimpleSecureFrame32or0BodyRXFixedCounter final : public SimpleSecureFrame32or0BodyRXBase
