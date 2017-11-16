@@ -302,9 +302,11 @@ namespace OTRadioLink
 
 
     /**
-     * @brief   Struct for passing frame data around in the RX call chain.
-     * @param   _inbuf: TODO
-     * @param   inbuflen: Length of inbuf in bytes.
+     * @brief   Struct for passing frame data around in the encryption stack.
+     * @param   _ptext: Input buffer. This points to an array holding the message body in plain text.
+                        May be a nullptr, to signal that there is no body to be encrypted.
+     * @param   _ptextBufSize: Length of inbuf in bytes.
+     *                         0 if _ptext is a nullptr or no longer than 32.
      * @param   _outbuf: TODO
      * @todo    Is there a better way to order everything?
      * @todo    Alias in and out buffers for more descriptive names?
@@ -312,15 +314,15 @@ namespace OTRadioLink
      */
     struct OTEncodeData_T
     {
-        OTEncodeData_T(uint8_t * const _ptext, const uint8_t _ptextLen, uint8_t * const _ctext, const uint8_t _ctextLen)
-            : ptext(_ptext), ptextLen(_ptextLen), ctext(_ctext), ctextLen(_ctextLen) {}
+        OTEncodeData_T(uint8_t * const _ptext, const uint8_t _ptextBufSize, uint8_t * const _ctext, const uint8_t _ctextLen)
+            : ptext(_ptext), ptextBufSize(_ptextBufSize), ctext(_ctext), ctextLen(_ctextLen) {}
 
         SecurableFrameHeader sfh;
-        // Immutable input buffer. This takes a buffer for the plain text to
-        // be encrypted.
+        // Input buffer. This points to an array holding the message body in plain text.
+        // May be a nullptr, in which case there is no body.
         uint8_t * const ptext;
-        // Length of ptext.
-        const uint8_t ptextLen;
+        // Length of the ptext buffer.
+        const uint8_t ptextBufSize;
         // Length of data held in body. Potentially unknown at time of instantiation.
         uint8_t bodyLen = 0;
 
@@ -592,7 +594,7 @@ namespace OTRadioLink
 
             // TODO docs
             static constexpr uint8_t generateSecureOStyleFrameForTX_scratch_usage = 12 + 8;
-             static constexpr size_t generateSecureOStyleFrameForTX_total_scratch_usage_OTAESGCM_2p0 =
+            static constexpr size_t generateSecureOStyleFrameForTX_total_scratch_usage_OTAESGCM_2p0 =
                      encodeRaw_total_scratch_usage_OTAESGCM_2p0
                      + generateSecureOStyleFrameForTX_scratch_usage;
             uint8_t encode(

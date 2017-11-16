@@ -295,7 +295,7 @@ uint8_t encodeNonsecureOnStack(
                                 fd.fType, // Not secure.
                                 seqNum_,
                                 id_,
-                                fd.ptextLen,
+                                fd.ptextBufSize,
                                 1); // 1-byte CRC trailer.
     // Fail if header encoding fails.
     if(0 == hl) { return(0); } // ERROR
@@ -303,9 +303,9 @@ uint8_t encodeNonsecureOnStack(
     const uint8_t fl = fd.sfh.fl;
     if(fl >= fd.ctextLen) { return(0); } // ERROR
     // Copy in body, if any.
-    if(fd.ptextLen > 0)
+    if(fd.ptextBufSize > 0)
         {
-        memcpy(fd.ctext + fd.sfh.getBodyOffset(), fd.ptext, fd.ptextLen);
+        memcpy(fd.ctext + fd.sfh.getBodyOffset(), fd.ptext, fd.ptextBufSize);
         }
     // Compute and write in the CRC trailer...
     const uint8_t crc = fd.sfh.computeNonSecureCRC(fd.ctext, fd.ctextLen);
@@ -422,7 +422,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeRaw(
     // If necessary (bl_ > 0) body is validated below.
     const uint8_t seqNum_ = iv[11] & 0xf;
 
-    OTBuf_t body(fd.ptext, fd.ptextLen);
+    OTBuf_t body(fd.ptext, fd.ptextBufSize);
     OTBuf_t buf(fd.ctext, fd.ctextLen);
     const uint8_t hl = fd.sfh.encodeHeader(
                                     buf,
