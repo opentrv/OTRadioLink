@@ -23,6 +23,11 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
  * Based on 2015Q4 spec and successors:
  *     http://www.earth.org.uk/OpenTRV/stds/network/20151203-DRAFT-SecureBasicFrame.txt
  *     https://raw.githubusercontent.com/DamonHD/OpenTRV/master/standards/protocol/IoTCommsFrameFormat/SecureBasicFrame-*.txt
+ *
+ * DE2017116: Outstanding issues
+ * - FIXME: Currently aliasing ScratchSpace for passing buffer/length pairs.
+ *   This does not allow for passing around immutable buffers. Where this is
+ *   relevant, function arguments are indicated as `const OTBuf_t`.
  */
 
 #ifndef ARDUINO_LIB_OTRADIOLINK_SECUREABLEFRAMETYPE_H
@@ -34,6 +39,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 namespace OTRadioLink
     {
 
+    // Alias ScratchSpace for passing around arrays of known length.
     using OTBuf_t = OTV0P2BASE::ScratchSpace;
     // Secureable (V0p2) messages.
     //
