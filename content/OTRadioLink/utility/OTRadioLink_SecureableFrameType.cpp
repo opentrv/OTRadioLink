@@ -760,9 +760,9 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeValveFrame(
                                             const uint8_t *const key)
 {
     constexpr uint8_t IV_size = 12;
-    static_assert(encode_scratch_usage == IV_size, "self-use scratch size wrong");
-    static_assert(encode_scratch_usage < encode_total_scratch_usage_OTAESGCM_2p0, "scratch size calc wrong");
-    if(scratch.bufsize < encode_total_scratch_usage_OTAESGCM_2p0) { return(0); } // ERROR
+    static_assert(encodeValveFrame_scratch_usage == IV_size, "self-use scratch size wrong");
+    static_assert(encodeValveFrame_scratch_usage < encodeValveFrame_total_scratch_usage_OTAESGCM_2p0, "scratch size calc wrong");
+    if(scratch.bufsize < encodeValveFrame_total_scratch_usage_OTAESGCM_2p0) { return(0); } // ERROR
 
     // buffer args and consts
     uint8_t * const ptext = fd.ptext;
@@ -780,7 +780,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeValveFrame(
     ptext[1] = hasStats ? 0x10 : 0; // Indicate presence of stats.
 
     // Create a new scratchspace from the old one in order to pass on.
-    const OTV0P2BASE::ScratchSpaceL subscratch(scratch, encode_scratch_usage);
+    const OTV0P2BASE::ScratchSpaceL subscratch(scratch, encodeValveFrame_scratch_usage);
     if(il_ > 6) { return(0); } // ERROR: cannot supply that much of ID easily.
 
     // Create id buffer

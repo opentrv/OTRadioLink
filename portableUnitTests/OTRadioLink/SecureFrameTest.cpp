@@ -1186,7 +1186,7 @@ TEST(OTAESGCMSecureFrame, OFrameEncodingWithWorkspace)
 
     uint8_t _rawFrame[34];  // the length bbuf needs to be (valvepc + hasstats + msg including {} ).
     OTRadioLink::OTBuf_t rawFrame(_rawFrame, sizeof(_rawFrame));
-    constexpr size_t workspaceSize = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encode_total_scratch_usage_OTAESGCM_2p0;
+    constexpr size_t workspaceSize = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeValveFrame_total_scratch_usage_OTAESGCM_2p0;
     uint8_t workspace[workspaceSize];
     OTV0P2BASE::ScratchSpaceL sW(workspace, workspaceSize);
     OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t &eW = OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_LWORKSPACE;
@@ -1212,7 +1212,7 @@ TEST(OTAESGCMSecureFrame, SecureFrameEncodeStackUsageWithWorkspace) {
     const size_t baseStack = OTV0P2BASE::MemoryChecks::getMinSP();
 
     // workspaces
-    constexpr size_t encWorkspaceSize = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encode_total_scratch_usage_OTAESGCM_2p0;
+    constexpr size_t encWorkspaceSize = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeValveFrame_total_scratch_usage_OTAESGCM_2p0;
     uint8_t encWorkspace[encWorkspaceSize];
     OTV0P2BASE::ScratchSpaceL sWEnc(encWorkspace, sizeof(encWorkspace));
 
@@ -1380,7 +1380,7 @@ TEST(OTAESGCMSecureFrame,SecureFrameEncodeStackUsageWITHWORKSPACE)
     uint8_t body[] = { 0x7f, 0x11, 0x7b, 0x22, 0x62, 0x22, 0x3a, 0x31 };
 
     // Do encryption via simplified interface.
-    constexpr size_t workspaceSize = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encode_total_scratch_usage_OTAESGCM_2p0;
+    constexpr size_t workspaceSize = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeValveFrame_total_scratch_usage_OTAESGCM_2p0;
     uint8_t workspace[workspaceSize];
     OTV0P2BASE::ScratchSpaceL sW(workspace, workspaceSize);
     const OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEncWithLWorkspace_ptr_t eW = OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_LWORKSPACE;

@@ -653,10 +653,10 @@ namespace OTRadioLink
             // NOTE: this leaves enough space in the scratch for the plain text to be padded in-situ
             // thus avoiding any further copy or buffer space required.
             // NOTE: THIS API IS LIABLE TO CHANGE
-            static constexpr uint8_t encode_scratch_usage = 12; // + 32; as bbuf moved out to level above.
-            static constexpr size_t encode_total_scratch_usage_OTAESGCM_2p0 =
+            static constexpr uint8_t encodeValveFrame_scratch_usage = 12; // + 32; as bbuf moved out to level above.
+            static constexpr size_t encodeValveFrame_total_scratch_usage_OTAESGCM_2p0 =
                     encodeRaw_total_scratch_usage_OTAESGCM_2p0
-                    + encode_scratch_usage;
+                    + encodeValveFrame_scratch_usage;
             uint8_t encodeValveFrame(
                         OTEncodeData_T &fd,
                         uint8_t il_,
