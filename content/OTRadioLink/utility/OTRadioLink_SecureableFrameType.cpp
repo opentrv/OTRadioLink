@@ -719,9 +719,9 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encode(
             const uint8_t *const key)
     {
     constexpr uint8_t IV_size = 12;
-    static_assert(generateSecureOStyleFrameForTX_scratch_usage == IV_size + OTV0P2BASE::OpenTRV_Node_ID_Bytes, "self-use scratch size wrong");
-    static_assert(generateSecureOStyleFrameForTX_scratch_usage < generateSecureOStyleFrameForTX_total_scratch_usage_OTAESGCM_2p0, "scratch size calc wrong");
-    if(scratch.bufsize < generateSecureOStyleFrameForTX_total_scratch_usage_OTAESGCM_2p0) { return(0); } // ERROR
+    static_assert(encode_scratch_usage == IV_size + OTV0P2BASE::OpenTRV_Node_ID_Bytes, "self-use scratch size wrong");
+    static_assert(encode_scratch_usage < encode_total_scratch_usage_OTAESGCM_2p0, "scratch size calc wrong");
+    if(scratch.bufsize < encode_total_scratch_usage_OTAESGCM_2p0) { return(0); } // ERROR
 
     if((fd.fType >= FTS_INVALID_HIGH) || (fd.fType == FTS_NONE)) { return(0); } // FAIL
     // iv at start of scratch space

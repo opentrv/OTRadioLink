@@ -603,10 +603,10 @@ namespace OTRadioLink
                 }
 
             // TODO docs
-            static constexpr uint8_t generateSecureOStyleFrameForTX_scratch_usage = 12 + 8;
-            static constexpr size_t generateSecureOStyleFrameForTX_total_scratch_usage_OTAESGCM_2p0 =
+            static constexpr uint8_t encode_scratch_usage = 12 + 8;
+            static constexpr size_t encode_total_scratch_usage_OTAESGCM_2p0 =
                      encodeRaw_total_scratch_usage_OTAESGCM_2p0
-                     + generateSecureOStyleFrameForTX_scratch_usage;
+                     + encode_scratch_usage;
             uint8_t encode(
                         OTEncodeData_T &fd,
                         uint8_t il_,
@@ -614,7 +614,7 @@ namespace OTRadioLink
                         OTV0P2BASE::ScratchSpaceL &scratch,
                         const uint8_t *key);
 
-            static const uint8_t generateSecureBeaconMaxBufSize = 27 + SecurableFrameHeader::maxIDLength;
+            static const uint8_t generateSecureBeaconMaxBufSize = 27 + SecurableFrameHeader::maxIDLength; // FIXME Still needed?
             // Create secure Alive / beacon (FTS_ALIVE) frame with an empty body for transmission.
             // Returns number of bytes written to buffer, or 0 in case of error.
             // The IV is constructed from the node ID and the primary TX message counter.
