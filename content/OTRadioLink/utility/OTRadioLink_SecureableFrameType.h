@@ -334,16 +334,16 @@ namespace OTRadioLink
         // Input buffer. This points to an array holding the message body in plain text.
         // This is NOT immutable, to allow in-place padding of the message buffer.
         // May be a nullptr, in which case there is no body.
-        uint8_t * const ptext;
+        uint8_t * const ptext = nullptr;
         // Size of the ptext buffer.
-        const uint8_t ptextbufSize;
+        const uint8_t ptextbufSize = 0;
         // Length of data to be encrypted. Potentially unknown at time of instantiation.
         uint8_t ptextLen = 0;
 
         // The output buffer, into which the encoded frame is written. Must never be NULL.
-        uint8_t *const outbuf;
+        uint8_t *const outbuf = nullptr;
         // The size of the output buffer in bytes. Must be at least 64.
-        const uint8_t outbufSize;
+        const uint8_t outbufSize = 0;
 
         FrameType_Secureable fType = FTS_NONE;
     };
@@ -373,10 +373,10 @@ namespace OTRadioLink
             : ctext(_inbuf), ptext(_ptext) {}
 
         SecurableFrameHeader sfh;
-        uint8_t id[OTV0P2BASE::OpenTRV_Node_ID_Bytes];  // Holds up to full node ID.
+        uint8_t id[OTV0P2BASE::OpenTRV_Node_ID_Bytes] = {};  // Holds up to full node ID.
         // Immutable input buffer. This takes a buffer holding the frame length
         // byte, followed by the encrypted frame.
-        const uint8_t * const ctext;
+        const uint8_t * const ctext = nullptr;
         // The first byte of the input buffer is the total frame length in
         // bytes, EXCLUDING the frame length byte.
         // i.e. the total buffer length is inbufLen + 1.
@@ -384,7 +384,7 @@ namespace OTRadioLink
 
         // Output buffer. The decrypted frame is written to this.
         // Should be at least ptextLenMax bytes in length.
-        uint8_t *const ptext;
+        uint8_t *const ptext = nullptr;
         // This is currently always  ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE bytes long.
         static constexpr uint8_t ptextLenMax = ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE;
         // Actual size of plain text held within decryptedBody. Set when ptext is populated.
@@ -438,7 +438,7 @@ namespace OTRadioLink
     class SimpleSecureFrame32or0BodyBase
         {
         public:
-            // Size of full message counter for tupe-0x80 AES-GCM security frames.
+            // Size of full message counter for type-0x80 AES-GCM security frames.
             static constexpr uint8_t fullMsgCtrBytes = 6;
         };
 
