@@ -120,7 +120,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
         // Combines results from primary and secondary as appropriate.
         // Deals with inversion and checksum checking.
         // Output buffer (buf) must be 3 bytes long.
-        virtual bool getNVCtrPrefixForTX(uint8_t * /*buf*/) const override { return false; };
+        virtual bool getTXNVCtrPrefix(uint8_t * /*buf*/) const override { return false; };
         // Reset the persistent reboot/restart message counter in EEPROM; returns false on failure.
         // TO BE USED WITH EXTREME CAUTION: reusing the message counts and resulting IVs
         // destroys the security of the cipher.
@@ -130,7 +130,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
         // but inject entropy into the least significant bits to reduce risk value/IV reuse in error.
         // If called with false then interrupts should not be blocked to allow entropy gathering,
         // and counter is guaranteed to be non-zero.
-        virtual bool resetTXRestartCtr(bool allZeros = false) override
+        virtual bool resetTXNVCtrPrefix(bool allZeros = false) override
             { return(resetRaw3BytePersistentTXRestartCounterInEEPROM(allZeros)); }
         // Conditional and statically callable version of resetRaw3BytePersistentTXRestartCounter(); returns false on failure.
         // Creates a new persistent/reboot counter and thus message counter, to reduce IV reuse risk.
@@ -143,14 +143,14 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
             {
             SimpleSecureFrame32or0BodyTXV0p2Null &i = getInstance();
             uint8_t buf[txNVCtrPrefixBytes];
-            if(!i.getNVCtrPrefixForTX(buf)) { return(false); }
-            if(buf[0] < 0x20) { return(i.incrementTXRestartCtr()); }
+            if(!i.getTXNVCtrPrefix(buf)) { return(false); }
+            if(buf[0] < 0x20) { return(i.incrementTXNVCtrPrefix()); }
             return(i.resetRaw3BytePersistentTXRestartCounterInEEPROM());
             }
         // Increment persistent reboot/restart message counter; returns false on failure.
         // Will refuse to increment such that the top byte overflows, ie when already at 0xff.
         // TO BE USED WITH EXTREME CAUTION: calling this unnecessarily will shorten life before needing to change ID/key.
-        virtual bool incrementTXRestartCtr() override { return false; };
+        virtual bool incrementTXNVCtrPrefix() override { return false; };
         // Get primary (semi-persistent) message counter for TX from an OpenTRV leaf under its own ID.
         // This counter increases monotonically
         // (and so may provide a sequence number)
@@ -250,7 +250,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
             // Will refuse to increment such that the top byte overflows, ie when already at 0xff.
             // Updates the CRC.
             // Input/output buffer (loadBuf) must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
-            static bool incrementTXRestartCtr(uint8_t *loadBuf);
+            static bool incrementTXNVCtrPrefix(uint8_t *loadBuf);
             // Reset the persistent reboot/restart message counter in EEPROM; returns false on failure.
             // TO BE USED WITH EXTREME CAUTION: reusing the message counts and resulting IVs
             // destroys the security of the cipher.
@@ -268,7 +268,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
             // Combines results from primary and secondary as appropriate.
             // Deals with inversion and checksum checking.
             // Output buffer (buf) must be 3 bytes long.
-            virtual bool getNVCtrPrefixForTX(uint8_t *buf) const override;
+            virtual bool getTXNVCtrPrefix(uint8_t *buf) const override;
             // Reset the persistent reboot/restart message counter in EEPROM; returns false on failure.
             // TO BE USED WITH EXTREME CAUTION: reusing the message counts and resulting IVs
             // destroys the security of the cipher.
@@ -278,7 +278,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
             // but inject entropy into the least significant bits to reduce risk value/IV reuse in error.
             // If called with false then interrupts should not be blocked to allow entropy gathering,
             // and counter is guaranteed to be non-zero.
-            virtual bool resetTXRestartCtr(bool allZeros = false) override
+            virtual bool resetTXNVCtrPrefix(bool allZeros = false) override
                 { return(resetRaw3BytePersistentTXRestartCounterInEEPROM(allZeros)); }
             // Conditional and statically callable version of resetRaw3BytePersistentTXRestartCounter(); returns false on failure.
             // Creates a new persistent/reboot counter and thus message counter, to reduce IV reuse risk.
@@ -291,14 +291,14 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
                 {
                 SimpleSecureFrame32or0BodyTXV0p2 &i = getInstance();
                 uint8_t buf[txNVCtrPrefixBytes];
-                if(!i.getNVCtrPrefixForTX(buf)) { return(false); }
-                if(buf[0] < 0x20) { return(i.incrementTXRestartCtr()); }
+                if(!i.getTXNVCtrPrefix(buf)) { return(false); }
+                if(buf[0] < 0x20) { return(i.incrementTXNVCtrPrefix()); }
                 return(i.resetRaw3BytePersistentTXRestartCounterInEEPROM());
                 }
             // Increment persistent reboot/restart message counter; returns false on failure.
             // Will refuse to increment such that the top byte overflows, ie when already at 0xff.
             // TO BE USED WITH EXTREME CAUTION: calling this unnecessarily will shorten life before needing to change ID/key.
-            virtual bool incrementTXRestartCtr() override;
+            virtual bool incrementTXNVCtrPrefix() override;
             // Get primary (semi-persistent) message counter for TX from an OpenTRV leaf under its own ID.
             // This counter increases monotonically
             // (and so may provide a sequence number)

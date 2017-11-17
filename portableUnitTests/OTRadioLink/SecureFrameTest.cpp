@@ -969,7 +969,7 @@ TEST(OTAESGCMSecureFrame, PermMsgCount)
   EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyTXV0p2::read3BytePersistentTXRestartCounter(loadBuf, buf));
   EXPECT_EQ(0, memcmp(buf, zeroBlock, OTRadioLink::SimpleSecureFrame32or0BodyTXBase::primaryPeristentTXMessageRestartCounterBytes));
   // Ensure that it can be incremented and gives the correct next (0x000001) value.
-  EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyTXV0p2::incrementTXRestartCtr(loadBuf));
+  EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyTXV0p2::incrementTXNVCtrPrefix(loadBuf));
   EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyTXV0p2::read3BytePersistentTXRestartCounter(loadBuf, buf));
   EXPECT_EQ(0, memcmp(buf, zeroBlock, OTRadioLink::SimpleSecureFrame32or0BodyTXBase::primaryPeristentTXMessageRestartCounterBytes - 1));
   EXPECT_EQ(1, buf[2]);
@@ -977,7 +977,7 @@ TEST(OTAESGCMSecureFrame, PermMsgCount)
   memset(loadBuf, 0xff, sizeof(loadBuf)); loadBuf[3] = 0xf; loadBuf[7] = 0xf;
   EXPECT_TRUE(!OTRadioLink::SimpleSecureFrame32or0BodyTXV0p2::read3BytePersistentTXRestartCounter(loadBuf, buf));
   // Ensure that it CANNOT be incremented.
-  EXPECT_TRUE(!OTRadioLink::SimpleSecureFrame32or0BodyTXV0p2::incrementTXRestartCtr(loadBuf));
+  EXPECT_TRUE(!OTRadioLink::SimpleSecureFrame32or0BodyTXV0p2::incrementTXNVCtrPrefix(loadBuf));
   // Test recovery from broken primary counter a few times.
   memset(loadBuf, 0, sizeof(loadBuf));
   for(uint8_t i = 0; i < 3; ++i)
@@ -988,7 +988,7 @@ TEST(OTAESGCMSecureFrame, PermMsgCount)
     EXPECT_EQ(0, buf[1]);
     EXPECT_EQ(0, buf[1]);
     EXPECT_EQ(i, buf[2]);
-    EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyTXV0p2::getInstance().incrementTXRestartCtr(loadBuf));
+    EXPECT_TRUE(OTRadioLink::SimpleSecureFrame32or0BodyTXV0p2::getInstance().incrementTXNVCtrPrefix(loadBuf));
     }
   // Also verify in passing that all zero message counter will never be acceptable for an RX message,
   // regardless of the node ID, since the new count as to be higher than any previous for the ID.
@@ -1023,15 +1023,15 @@ TEST(OTAESGCMSecureFrame, PermMsgCountRunOnce)
   EXPECT_TRUE(0 == memcmp(loadBuf, zeroBlock, sizeof(loadBuf)));
   EXPECT_TRUE(instance.read3BytePersistentTXRestartCounter(loadBuf, buf));
   EXPECT_EQ(0, memcmp(buf, zeroBlock, OTRadioLink::SimpleSecureFrame32or0BodyTXBase::primaryPeristentTXMessageRestartCounterBytes));
-  EXPECT_TRUE(instance.getNVCtrPrefixForTX(buf));
+  EXPECT_TRUE(instance.getTXNVCtrPrefix(buf));
   EXPECT_TRUE(0 == memcmp(buf, zeroBlock, OTRadioLink::SimpleSecureFrame32or0BodyTXBase::primaryPeristentTXMessageRestartCounterBytes));
   // Increment the persistent TX counter and ensure that we see it as non-zero.
-  EXPECT_TRUE(instance.incrementTXRestartCtr());
-  EXPECT_TRUE(instance.getNVCtrPrefixForTX(buf));
+  EXPECT_TRUE(instance.incrementTXNVCtrPrefix());
+  EXPECT_TRUE(instance.getTXNVCtrPrefix(buf));
   EXPECT_TRUE(0 != memcmp(buf, zeroBlock, OTRadioLink::SimpleSecureFrame32or0BodyTXBase::primaryPeristentTXMessageRestartCounterBytes));
   // So reset to non-all-zeros (should be default) and make sure that we see it as not-all-zeros.
   EXPECT_TRUE(instance.resetRaw3BytePersistentTXRestartCounterInEEPROM());
-  EXPECT_TRUE(instance.getNVCtrPrefixForTX(buf));
+  EXPECT_TRUE(instance.getTXNVCtrPrefix(buf));
   EXPECT_TRUE(0 != memcmp(buf, zeroBlock, OTRadioLink::SimpleSecureFrame32or0BodyTXBase::primaryPeristentTXMessageRestartCounterBytes));
   // Initial test that from blank EEPROM (or reset to all zeros)
   // that getting the message counter gives non-zero reboot and ephemeral parts.
@@ -1154,11 +1154,11 @@ class TXBaseMock final : public OTRadioLink::SimpleSecureFrame32or0BodyTXBase
     // Argument must be buffer of (at least) OTV0P2BASE::OpenTRV_Node_ID_Bytes bytes.
     virtual bool getTXID(uint8_t *id) const override { memset(id, 0x80, OTV0P2BASE::OpenTRV_Node_ID_Bytes); return(true); }
     // Get the 3 bytes of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
-    virtual bool getNVCtrPrefixForTX(uint8_t *buf) const override { memset(buf, 0, 3); return(true); }
+    virtual bool getTXNVCtrPrefix(uint8_t *buf) const override { memset(buf, 0, 3); return(true); }
     // Reset the persistent reboot/restart message counter; returns false on failure.
-    virtual bool resetTXRestartCtr(bool /*allZeros*/ = false) override { return(false); }
+    virtual bool resetTXNVCtrPrefix(bool /*allZeros*/ = false) override { return(false); }
     // Increment persistent reboot/restart message counter; returns false on failure.
-    virtual bool incrementTXRestartCtr() override { return(false); }
+    virtual bool incrementTXNVCtrPrefix() override { return(false); }
     // Fills the supplied 6-byte array with the incremented monotonically-increasing primary TX counter.
     virtual bool getNextTXMsgCtr(uint8_t *buf) override { memset(buf, 0, 6); return(true); }
   };
