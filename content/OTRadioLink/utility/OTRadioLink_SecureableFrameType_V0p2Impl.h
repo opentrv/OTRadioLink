@@ -120,7 +120,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
         // Combines results from primary and secondary as appropriate.
         // Deals with inversion and checksum checking.
         // Output buffer (buf) must be 3 bytes long.
-        virtual bool getTXRestartCtr(uint8_t * /*buf*/) const override { return false; };
+        virtual bool getNVCtrPrefixForTX(uint8_t * /*buf*/) const override { return false; };
         // Reset the persistent reboot/restart message counter in EEPROM; returns false on failure.
         // TO BE USED WITH EXTREME CAUTION: reusing the message counts and resulting IVs
         // destroys the security of the cipher.
@@ -143,7 +143,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
             {
             SimpleSecureFrame32or0BodyTXV0p2Null &i = getInstance();
             uint8_t buf[txNVCtrPrefixBytes];
-            if(!i.getTXRestartCtr(buf)) { return(false); }
+            if(!i.getNVCtrPrefixForTX(buf)) { return(false); }
             if(buf[0] < 0x20) { return(i.incrementTXRestartCtr()); }
             return(i.resetRaw3BytePersistentTXRestartCounterInEEPROM());
             }
@@ -268,7 +268,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
             // Combines results from primary and secondary as appropriate.
             // Deals with inversion and checksum checking.
             // Output buffer (buf) must be 3 bytes long.
-            virtual bool getTXRestartCtr(uint8_t *buf) const override;
+            virtual bool getNVCtrPrefixForTX(uint8_t *buf) const override;
             // Reset the persistent reboot/restart message counter in EEPROM; returns false on failure.
             // TO BE USED WITH EXTREME CAUTION: reusing the message counts and resulting IVs
             // destroys the security of the cipher.
@@ -291,7 +291,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
                 {
                 SimpleSecureFrame32or0BodyTXV0p2 &i = getInstance();
                 uint8_t buf[txNVCtrPrefixBytes];
-                if(!i.getTXRestartCtr(buf)) { return(false); }
+                if(!i.getNVCtrPrefixForTX(buf)) { return(false); }
                 if(buf[0] < 0x20) { return(i.incrementTXRestartCtr()); }
                 return(i.resetRaw3BytePersistentTXRestartCounterInEEPROM());
                 }

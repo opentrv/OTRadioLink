@@ -566,7 +566,7 @@ namespace OTRadioLink
             // When this counter reaches 0xffffffffffff then no more messages can be sent
             // until new keys are shared and the counter is reset.
             // Get the 3 bytes of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
-            virtual bool getTXRestartCtr(uint8_t *buf) const = 0;
+            virtual bool getNVCtrPrefixForTX(uint8_t *buf) const = 0;
             // Reset the persistent reboot/restart message counter; returns false on failure.
             // TO BE USED WITH EXTREME CAUTION: reusing the message counts and resulting IVs
             // destroys the security of the cipher.
