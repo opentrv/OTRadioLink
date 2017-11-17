@@ -142,7 +142,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
         static bool resetRaw3BytePersistentTXRestartCounterCond()
             {
             SimpleSecureFrame32or0BodyTXV0p2Null &i = getInstance();
-            uint8_t buf[txRestartCtrBytes];
+            uint8_t buf[txNVCtrPrefixBytes];
             if(!i.getTXRestartCtr(buf)) { return(false); }
             if(buf[0] < 0x20) { return(i.incrementTXRestartCtr()); }
             return(i.resetRaw3BytePersistentTXRestartCounterInEEPROM());
@@ -290,7 +290,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
             static bool resetRaw3BytePersistentTXRestartCounterCond()
                 {
                 SimpleSecureFrame32or0BodyTXV0p2 &i = getInstance();
-                uint8_t buf[txRestartCtrBytes];
+                uint8_t buf[txNVCtrPrefixBytes];
                 if(!i.getTXRestartCtr(buf)) { return(false); }
                 if(buf[0] < 0x20) { return(i.incrementTXRestartCtr()); }
                 return(i.resetRaw3BytePersistentTXRestartCounterInEEPROM());

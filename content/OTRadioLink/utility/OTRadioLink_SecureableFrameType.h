@@ -544,7 +544,7 @@ namespace OTRadioLink
             // Deals with inversion and checksum checking.
             // Output buffer (buf) must be 3 bytes long.
             // Does not increment/alter the counter.
-            static const uint8_t txRestartCtrBytes = 3;
+            static const uint8_t txNVCtrPrefixBytes = 3;
             // Get primary (semi-persistent) message counter for TX from an OpenTRV leaf under its own ID.
             // This counter increases monotonically
             // (and so may provide a sequence number)

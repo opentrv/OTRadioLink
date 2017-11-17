@@ -883,7 +883,7 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::_decodeFromID(
 /**
  * @brief   Decode a structurally correct secure small frame.
  *          THIS IS THE PREFERRED ENTRY POINT FOR DECODING AND RECEIVING
- *          SECURE FRAMES.
+ *          SECURE FRAMES AND PERFORMS EXCRUCIATINGLY CAREFUL CHECKING.
  *
  * From a structurally correct secure frame, looks up the ID, checks the
  * message counter, decodes, and updates the counter if successful.
