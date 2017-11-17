@@ -367,38 +367,57 @@ bool SimpleSecureFrame32or0BodyRXBase::msgcounteradd(uint8_t *const counter, con
     return(true);
     }
 
-// Encode entire secure small frame from header params and body and crypto support.
-// Buffer for body must be large enough to allow padding to be applied IN PLACE.
-// This is a raw/partial impl that requires the IV/nonce to be supplied.
-// This uses fixed32BTextSize12BNonce16BTagSimpleEnc_ptr_t style encryption/authentication.
-// The matching decryption function should be used for decoding/verifying.
-// The crypto method may need to vary based on frame type,
-// and on negotiations between the participants in the communications.
-// Returns the total number of bytes written out for the frame
-// (including, and with a value one higher than the first 'fl' bytes).
-// Returns zero in case of error.
-// The supplied buffer may have to be up to 64 bytes long.
-//
-// Note that the sequence number is taken from the 4 least significant bits
-// of the message counter (at byte 6 in the nonce).
-//
-// Parameters:
-//  * buf  buffer to which is written the entire frame including trailer; never NULL
-//  * buflen  available length in buf; if too small then this routine will fail (return 0)
-//  * fType_  frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
-//  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
-//  * body / bl_  body data (and length), before padding/encryption, no larger than ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE
-//  * iv  12-byte initialisation vector / nonce; never NULL
-//  * e  encryption function; never NULL
-//  * state  pointer to state for e, if required, else NULL
-//  * key  secret key; never NULL
-// Note: the body is passed non-const and must be
-// (nominally a multiple of) 32 bytes large enough to contain the body
-// and have padding applied *in situ*.
-//static constexpr uint8_t encodeSecureSmallFrameRawPadInPlace_scratch_usage = 1;
-//static constexpr uint8_t encodeSecureSmallFrameRawPadInPlace_total_scratch_usage_OTAESGCM_2p0 =
-//        workspaceRequred_GCM32B16BWithWorkspace_OTAESGCM_2p0
-//        + encodeSecureSmallFrameRawPadInPlace_scratch_usage;
+
+/**
+ * @brief   Encode entire secure small frame from header params and body and
+ *          crypto support.
+ *
+ * This is a raw/partial impl that requires the IV/nonce to be supplied.
+ *
+ * This uses fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t style encryption.
+ * The matching decryption function should be used for decoding/verifying. The
+ * crypto method may need to vary based on frame type, and on negotiations
+ * between the participants in the communications.
+ *
+ * The message counter must be strictly greater than the last message from this
+ * ID, to prevent replay attacks.
+ *
+ * The sequence number is taken from the 4 least significant bits of the
+ * message counter (at byte 6 in the nonce).
+ *
+ * Typical workflow:
+ * - XXX
+ *
+ * @param   fd: Common data required for encryption.
+ *              - sfh: Frame header. XXX
+ *              - ptext: Mutable buffer containing any ptext to be encrypted.
+ *                       Note that the ptext will be padded in situ with 0s.
+ *                       Should be ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE (32)
+ *                       bytes in length, or NULL if no ciphertext is
+ *                       expected/wanted.
+ *              - ptextbufSize: The size of the ptext buffer in bytes,
+ *              - ptextLen: The actual length of the ptext held in ptext,
+ *                          before padding. Always less than
+ *                          ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE bytes.
+ *              - outbuf: Buffer to hold the entire secure frame, including the
+ *                        trailer. At least 64 bytes and never NULL.
+ *              - outbufSize: Size of outbuf in bytes.
+ *              - fType: frame type (without secure bit). Note that values of
+ *                       FTS_NONE and FTS_INVALID_HIGH will cause encryption to
+ *                       fail.
+ * @param   e: encryption function.
+ * @param   scratch: Scratch space. Size must be large enough to contain
+ *                   decodeRaw_total_scratch_usage_OTAESGCM_3p0 bytes AND the
+ *                   scratch space required by the decryption function `d`.
+ * @param   key: 16-byte secret key. Never NULL.
+ * @param   iv: 12-byte initialisation vector/nonce. Never NULL.
+ * @param   id: ID bytes (and length) to go in the header; NULL means
+ *              take ID from EEPROM
+ * @retval  Returns the total number of bytes written out for (the frame + the
+ *          leading frame length byte + 1). Returns zero in case of error.
+ *
+ * @note    Uses a scratch space, allowing the stack usage to be more tightly controlled.
+ */
 uint8_t SimpleSecureFrame32or0BodyTXBase::encodeRaw(
             OTEncodeData_T &fd,
             const OTBuf_t &id_,
@@ -493,13 +512,13 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeRaw(
  *              - ptext: body, if any, will be decoded into this. Should be
  *                       ptextLenMax bytes in length.  XXX is this approprate?
  *                       NULL if no plaintext is expected/wanted.
- *              - ptextLen: Set to the size of the decoded body in ptext.
+ *              - ptextLen: The size of the decoded body in ptext.
  * @param   d: Decryption function.
  * @param   scratch: Scratch space. Size must be large enough to contain
  *                   decodeRaw_total_scratch_usage_OTAESGCM_3p0 bytes AND the
  *                   scratch space required by the decryption function `d`.
  * @param   key: 16-byte secret key. Never NULL.
- *          iv: 12-byte initialisation vector/nonce. Never NULL.
+ * @param   iv: 12-byte initialisation vector/nonce. Never NULL.
  * @retval  Returns the total number of bytes read for the frame including, and
  *          with a value one higher than the first 'fl' bytes).
  *          Returns zero in case of error, eg because authentication failed.
