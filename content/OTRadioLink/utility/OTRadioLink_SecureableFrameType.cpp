@@ -745,7 +745,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encode(
     if((fd.fType >= FTS_INVALID_HIGH) || (fd.fType == FTS_NONE)) { return(0); } // FAIL
     // iv at start of scratch space
     uint8_t *const iv = scratch.buf; // uint8_t iv[IV_size];
-    if(!computeIVForTX(iv)) { return(0); }
+    if(!computeIVForTX12B(iv)) { return(0); }
 
     // XXX This is the special case! Will potentially need an extra 8 bytes to store the id.
     // If ID is short then we can cheat by reusing start of IV, else fetch again explicitly...
@@ -788,7 +788,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeValveFrame(
 
     // iv at start of scratch space
     uint8_t *const iv = scratch.buf; // uint8_t iv[IV_size];
-    if(!computeIVForTX(iv)) { return(0); }
+    if(!computeIVForTX12B(iv)) { return(0); }
 
     const char *const statsJSON = (const char *const)&ptext[2];
     const bool hasStats = (NULL != ptext) && ('{' == statsJSON[0]);

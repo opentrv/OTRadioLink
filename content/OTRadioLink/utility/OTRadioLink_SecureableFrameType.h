@@ -593,7 +593,7 @@ namespace OTRadioLink
             // but sub-classes may allow other IDs to be supplied.
             // This uses and increments the primary message counter for the last 6 bytes.
             // Returns true on success, false on failure eg due to message counter generation failure.
-            virtual bool computeIVForTX(uint8_t *ivBuf)
+            virtual bool computeIVForTX12B(uint8_t *ivBuf)
                 {
                 if(NULL == ivBuf) { return(false); }
                 // Fetch entire ID directly to ivBuf for simplicity; lsbytes will be overwritten with message counter.
