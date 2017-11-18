@@ -408,7 +408,7 @@ public:
     // and used efficiently (~80% use of the top digit).
     //
     // Daily allowance (in terms of battery/energy use)
-    // is assumed to be ~400% (DHD20141230),
+    // is assumed to be ~600% (DHD20171118), was ~400% (DHD20141230),
     // so this should hold much more than that to avoid ambiguity
     // from missed/infrequent readings,
     // especially given full slew (+100%) can sometimes happen in 1 minute/tick.

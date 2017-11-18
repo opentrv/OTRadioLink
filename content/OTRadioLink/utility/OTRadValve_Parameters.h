@@ -315,7 +315,8 @@ namespace OTRadValve
 
     // Assumed daily budget in cumulative (%) valve movement for battery-powered devices.
     // A run from one end-stop to the other is 100%; a full round-trip 200%.
-    static constexpr uint16_t DEFAULT_MAX_CUMULATIVE_PC_DAILY_VALVE_MOVEMENT = 400;
+    // DHD20171118 observed 600% more realistic target; was ~400% (DHD20141230).
+    static constexpr uint16_t DEFAULT_MAX_CUMULATIVE_PC_DAILY_VALVE_MOVEMENT = 600;
 
 
     }
