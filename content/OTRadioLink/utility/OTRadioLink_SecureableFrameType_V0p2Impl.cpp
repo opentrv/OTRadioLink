@@ -332,7 +332,7 @@ bool SimpleSecureFrame32or0BodyTXV0p2::getNextTXMsgCtr(uint8_t *const buf)
 //  * eepromLOC  pointer into Flash for this counter instance; never NULL
 //  * counter  buffer to load counter to; never NULL
 // Pays no attention to the unary counter.
-static bool getLastRXMsgCtr(const uint8_t * const eepromLoc, uint8_t * const counter)
+static bool getLastRXMsgCtrFromTable(const uint8_t * const eepromLoc, uint8_t * const counter)
     {
 //    if((NULL == eepromLoc) || (NULL == counter)) { return(false); } // FAIL
     // First get the 6 bytes (inverted) from the start of the given region.
@@ -386,8 +386,8 @@ bool SimpleSecureFrame32or0BodyRXV0p2::getLastRXMsgCtr(const uint8_t * const ID,
         OTV0P2BASE::eeprom_unary_2byte_decode(eeprom_read_byte(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET + 7),
                                               eeprom_read_byte(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET + 7));
     // Try primary then secondary (both will be written to each time).
-    if(!getLastRXMsgCtr(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET, counter) &&
-       !getLastRXMsgCtr(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET, counter))
+    if(!getLastRXMsgCtrFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET, counter) &&
+       !getLastRXMsgCtrFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET, counter))
        { return(false); } // FAIL: both counters borked.
     return(use_unary_counter ? SimpleSecureFrame32or0BodyRXBase::msgcounteradd(counter, incr) : true);
     }
@@ -454,8 +454,8 @@ bool SimpleSecureFrame32or0BodyRXV0p2::authAndUpdateRXMsgCtr(const uint8_t *ID, 
     // Fall back to the secondary value if there is something wrong with the primary,
     // and fail entirely if the secondary is also broken.
     uint8_t baseCount[fullMsgCtrBytes];
-    if(!getLastRXMsgCtr(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET, baseCount) &&
-       !getLastRXMsgCtr(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET, baseCount))
+    if(!getLastRXMsgCtrFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET, baseCount) &&
+       !getLastRXMsgCtrFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET, baseCount))
         { return(false); } // FAIL: both copies borked.
     // Compute the maximum value that the base value could be extended to with the unary part.
     uint8_t maxWithUnary[fullMsgCtrBytes];
