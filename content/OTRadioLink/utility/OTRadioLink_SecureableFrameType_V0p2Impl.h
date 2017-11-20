@@ -411,7 +411,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
             // Read current (last-authenticated) RX message count for specified node, or return false if failed.
             // Will fail for invalid node ID or for unrecoverable memory corruption.
             // Both args must be non-NULL, with counter pointing to enough space to copy the message counter value to.
-            virtual bool getLastRXMessageCounter(const uint8_t * const ID, uint8_t *counter) const;
+            virtual bool getLastRXMsgCtr(const uint8_t * const ID, uint8_t *counter) const;
             // Update persistent message counter for received frame AFTER successful authentication.
             // ID is full (8-byte) node ID; counter is full (6-byte) counter.
             // Returns false on failure, eg if message counter is not higher than the previous value for this node.
@@ -419,7 +419,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
             // The implementation should be robust in the face of power failures / reboots, accidental or malicious,
             // not allowing replays nor other cryptographic attacks, nor forcing node dissociation.
             // Must only be called once the RXed message has passed authentication.
-            virtual bool updateRXMessageCountAfterAuthentication(const uint8_t *ID, const uint8_t *newCounterValue);
+            virtual bool authAndUpdateRXMsgCtr(const uint8_t *ID, const uint8_t *newCounterValue);
         };
 #else  // ARDUINO_ARCH_AVR
 

@@ -118,7 +118,7 @@ uint8_t SecurableFrameHeader::encodeHeader(
       if(!idFromEEPROM) { memcpy(id, idbuf, idlen); }
       else
 #ifdef ARDUINO_ARCH_AVR
-          { eeprom_read_block(id, (uint8_t *)V0P2BASE_EE_START_ID, il_); }
+          { eeprom_read_block(id, (uint8_t *)V0P2BASE_EE_START_ID, idlen); }  // XXX
 #else
           { return(0); } // ERROR
 #endif

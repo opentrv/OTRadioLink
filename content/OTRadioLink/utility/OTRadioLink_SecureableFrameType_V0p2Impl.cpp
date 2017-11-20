@@ -132,14 +132,14 @@ bool SimpleSecureFrame32or0BodyTXV0p2::resetRaw3BytePersistentTXRestartCounterIn
         // Buffer for noise bytes; msbits will be kept as zero.  Tack CRC on the end.
         // Then duplicate to second half for backup copy.
         uint8_t noise[OTV0P2BASE::VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR];
-        for(uint8_t i = 0; i < primaryPeristentTXMessageRestartCounterBytes; ) { noise[i++] = OTV0P2BASE::getSecureRandomByte(); }
+        for(uint8_t i = 0; i < txNVCtrPrefixBytes; ) { noise[i++] = OTV0P2BASE::getSecureRandomByte(); }
         noise[0] = 0xf & (noise[0] ^ (noise[0] >> 4)); // Keep top 4 bits clear to preserve > 90% of possible life.
         // Ensure that entire sequence is non-zero by forcing lsb to 1 (if enough of) noise seems to be 0.
-        if(/*(0 == noise[primaryPeristentTXMessageRestartCounterBytes-1]) && */ (0 == noise[1]) && (0 == noise[0])) { noise[primaryPeristentTXMessageRestartCounterBytes-1] |= 1; }
+        if(/*(0 == noise[txNVCtrPrefixBytes-1]) && */ (0 == noise[1]) && (0 == noise[0])) { noise[txNVCtrPrefixBytes-1] |= 1; }
         // Compute CRC for new value.
         uint8_t crc = 0;
-        for(int i = 0; i < primaryPeristentTXMessageRestartCounterBytes; ++i) { crc = _crc8_ccitt_update(crc, noise[i]); }
-        noise[primaryPeristentTXMessageRestartCounterBytes] = crc;
+        for(int i = 0; i < txNVCtrPrefixBytes; ++i) { crc = _crc8_ccitt_update(crc, noise[i]); }
+        noise[txNVCtrPrefixBytes] = crc;
 #if 0
 OTV0P2BASE::serialPrintAndFlush(F("CRC computed "));
 OTV0P2BASE::serialPrintAndFlush(crc, HEX);
@@ -157,19 +157,19 @@ static bool readOne3BytePersistentTXRestartCounter(const uint8_t *const base, ui
     // FIXME: for now use the primary copy only if OK: should be able to salvage from secondary, else take higher+1.
     // Fail if the CRC is not valid.
     uint8_t crc = 0;
-    for(int i = 0; i < SimpleSecureFrame32or0BodyTXBase::primaryPeristentTXMessageRestartCounterBytes; ++i) { crc = _crc8_ccitt_update(crc, base[i]); }
+    for(int i = 0; i < SimpleSecureFrame32or0BodyTXBase::txNVCtrPrefixBytes; ++i) { crc = _crc8_ccitt_update(crc, base[i]); }
 #if 0
 OTV0P2BASE::serialPrintAndFlush(F("CRC expected vs actual "));
 OTV0P2BASE::serialPrintAndFlush(crc, HEX);
 OTV0P2BASE::serialPrintAndFlush(' ');
-OTV0P2BASE::serialPrintAndFlush(base[SimpleSecureFrame32or0BodyBase::primaryPeristentTXMessageRestartCounterBytes], HEX);
+OTV0P2BASE::serialPrintAndFlush(base[SimpleSecureFrame32or0BodyBase::txNVCtrPrefixBytes], HEX);
 OTV0P2BASE::serialPrintlnAndFlush();
 #endif
-    if(crc != base[SimpleSecureFrame32or0BodyTXBase::primaryPeristentTXMessageRestartCounterBytes]) { /* OTV0P2BASE::serialPrintlnAndFlush(F("CRC failed")); */ return(false); } // CRC failed.
+    if(crc != base[SimpleSecureFrame32or0BodyTXBase::txNVCtrPrefixBytes]) { /* OTV0P2BASE::serialPrintlnAndFlush(F("CRC failed")); */ return(false); } // CRC failed.
     // Check for all 0xff (maximum) value and fail if found.
     if((0xff == base[0]) && (0xff == base[1]) && (0xff == base[2])) { /* OTV0P2BASE::serialPrintlnAndFlush(F("counter at max")); */ return(false); } // Counter at max.
     // Copy (primary) counter to output.
-    for(int i = 0; i < SimpleSecureFrame32or0BodyTXBase::primaryPeristentTXMessageRestartCounterBytes; ++i) { buf[i] = base[i]; }
+    for(int i = 0; i < SimpleSecureFrame32or0BodyTXBase::txNVCtrPrefixBytes; ++i) { buf[i] = base[i]; }
     return(true);
     }
 
@@ -193,7 +193,7 @@ bool SimpleSecureFrame32or0BodyTXV0p2::read3BytePersistentTXRestartCounter(const
 // Combines results from primary and secondary as appropriate.
 // Deals with inversion and checksum checking.
 // Output buffer (buf) must be 3 bytes long.
-bool SimpleSecureFrame32or0BodyTXV0p2::get3BytePersistentTXRestartCounter(uint8_t *const buf) const
+bool SimpleSecureFrame32or0BodyTXV0p2::getTXNVCtrPrefix(uint8_t *const buf) const
     {
     uint8_t loadBuf[OTV0P2BASE::VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR];
     loadRaw3BytePersistentTXRestartCounterFromEEPROM(loadBuf);
@@ -204,24 +204,24 @@ bool SimpleSecureFrame32or0BodyTXV0p2::get3BytePersistentTXRestartCounter(uint8_
 // Will refuse to increment such that the top byte overflows, ie when already at 0xff.
 // Updates the CRC.
 // Input/output buffer (loadBuf) must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
-bool SimpleSecureFrame32or0BodyTXV0p2::increment3BytePersistentTXRestartCounter(uint8_t *const loadBuf)
+bool SimpleSecureFrame32or0BodyTXV0p2::incrementTXNVCtrPrefix(uint8_t *const loadBuf)
     {
-    uint8_t buf[primaryPeristentTXMessageRestartCounterBytes];
+    uint8_t buf[txNVCtrPrefixBytes];
     if(!read3BytePersistentTXRestartCounter(loadBuf, buf)) { return(false); }
-    for(uint8_t i = primaryPeristentTXMessageRestartCounterBytes; i-- > 0; )
+    for(uint8_t i = txNVCtrPrefixBytes; i-- > 0; )
         {
         if(0 != ++buf[i]) { break; }
         if(0 == i) { return(false); } // Overflow from top byte not permitted.
         }
     // Compute the CRC.
     uint8_t crc = 0;
-    for(int i = 0; i < primaryPeristentTXMessageRestartCounterBytes; ++i) { crc = _crc8_ccitt_update(crc, buf[i]); }
+    for(int i = 0; i < txNVCtrPrefixBytes; ++i) { crc = _crc8_ccitt_update(crc, buf[i]); }
     // Write both copies, primary and alternate.
     // FIXME: alternate in future to halve write cost on LSB/CRC bytes, eg always write even to primary, odd to alt.
     for(uint8_t *base = loadBuf; base <= loadBuf + 4; base += 4)
         {
-        for(int i = 0; i < primaryPeristentTXMessageRestartCounterBytes; ++i) { base[i] = buf[i]; }
-        base[primaryPeristentTXMessageRestartCounterBytes] = crc;
+        for(int i = 0; i < txNVCtrPrefixBytes; ++i) { base[i] = buf[i]; }
+        base[txNVCtrPrefixBytes] = crc;
         }
     return(true);
     }
@@ -229,12 +229,12 @@ bool SimpleSecureFrame32or0BodyTXV0p2::increment3BytePersistentTXRestartCounter(
 // Increment EEPROM copy of persistent reboot/restart message counter; returns false on failure.
 // Will refuse to increment such that the top byte overflows, ie when already at 0xff.
 // USE WITH CARE: calling this unnecessarily will shorten life before needing to change ID/key.
-bool SimpleSecureFrame32or0BodyTXV0p2::increment3BytePersistentTXRestartCounter()
+bool SimpleSecureFrame32or0BodyTXV0p2::incrementTXNVCtrPrefix()
     {
     // Increment the persistent part; fail entirely if not usable/incrementable (eg all 0xff).
     uint8_t loadBuf[OTV0P2BASE::VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR];
     loadRaw3BytePersistentTXRestartCounterFromEEPROM(loadBuf);
-    if(!increment3BytePersistentTXRestartCounter(loadBuf)) { return(false); }
+    if(!incrementTXNVCtrPrefix(loadBuf)) { return(false); }
     if(!saveRaw3BytePersistentTXRestartCounterToEEPROM(loadBuf)) { return(false); }
     return(true);
     }
@@ -244,7 +244,7 @@ bool SimpleSecureFrame32or0BodyTXV0p2::increment3BytePersistentTXRestartCounter(
 // Highest-index bytes in the array increment fastest.
 // This should never return an all-zero count.
 // Not ISR-safe.
-bool SimpleSecureFrame32or0BodyTXV0p2::incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(uint8_t *const buf)
+bool SimpleSecureFrame32or0BodyTXV0p2::getNextTXMsgCtr(uint8_t *const buf)
     {
     if(NULL == buf) { return(false); }
 
@@ -263,7 +263,7 @@ bool SimpleSecureFrame32or0BodyTXV0p2::incrementAndGetPrimarySecure6BytePersiste
     // NOTE: AS A MINIMUM the restart counter must be incremented here on initialisation.
     if(doInitialisation)
         {
-        if(!get3BytePersistentTXRestartCounter(buf)) { return(false); }
+        if(!getTXNVCtrPrefix(buf)) { return(false); }
         if((0 == buf[0]) && (0 == buf[1]) && (0 == buf[2]))
             { if(!resetRaw3BytePersistentTXRestartCounterInEEPROM(false)) { return(false); } }
         else
@@ -318,11 +318,11 @@ bool SimpleSecureFrame32or0BodyTXV0p2::incrementAndGetPrimarySecure6BytePersiste
     if(incrementPersistent)
         {
         // Increment the persistent part; fail entirely if not usable/incrementable (eg at max value).
-        if(!increment3BytePersistentTXRestartCounter()) { return(false); }
+        if(!incrementTXNVCtrPrefix()) { return(false); }
         }
 
     // Copy in the persistent part; fail entirely if it is not usable.
-    if(!get3BytePersistentTXRestartCounter(buf)) { return(false); }
+    if(!getTXNVCtrPrefix(buf)) { return(false); }
 
     return(true);
     }
@@ -332,7 +332,7 @@ bool SimpleSecureFrame32or0BodyTXV0p2::incrementAndGetPrimarySecure6BytePersiste
 //  * eepromLOC  pointer into Flash for this counter instance; never NULL
 //  * counter  buffer to load counter to; never NULL
 // Pays no attention to the unary counter.
-static bool getLastRXMessageCounterFromTable(const uint8_t * const eepromLoc, uint8_t * const counter)
+static bool getLastRXMsgCtr(const uint8_t * const eepromLoc, uint8_t * const counter)
     {
 //    if((NULL == eepromLoc) || (NULL == counter)) { return(false); } // FAIL
     // First get the 6 bytes (inverted) from the start of the given region.
@@ -341,16 +341,16 @@ static bool getLastRXMessageCounterFromTable(const uint8_t * const eepromLoc, ui
     //   * to reduce wear on normal increment
     //     (lsbit goes from 1 to 0 and and nothing else changes
     //     allowing a write without erase on half the increments)
-    eeprom_read_block(counter, eepromLoc, SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes);
-    for(uint8_t i = 0; i < SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes; ++i) { counter[i] ^= 0xff; }
+    eeprom_read_block(counter, eepromLoc, SimpleSecureFrame32or0BodyBase::fullMsgCtrBytes);
+    for(uint8_t i = 0; i < SimpleSecureFrame32or0BodyBase::fullMsgCtrBytes; ++i) { counter[i] ^= 0xff; }
     // Now check the CRC byte (immediately following the counter):
     //  1) Fail if the top bit was clear indicating an update in progress...
     //  2) Fail if the CRC itself does not match.
     // The two operations can be performed at once since the CRC msb should be 0, ie 1 when inverted.
-    const uint8_t crcRAW = eeprom_read_byte(eepromLoc + SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes);
+    const uint8_t crcRAW = eeprom_read_byte(eepromLoc + SimpleSecureFrame32or0BodyBase::fullMsgCtrBytes);
     // Compute/validate the 7-bit CRC.
     uint8_t crc = 0;
-    for(int i = 0; i < SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes; ++i) { crc = OTV0P2BASE::crc7_5B_update(crc, counter[i]); }
+    for(int i = 0; i < SimpleSecureFrame32or0BodyBase::fullMsgCtrBytes; ++i) { crc = OTV0P2BASE::crc7_5B_update(crc, counter[i]); }
     if(crc != (uint8_t)~crcRAW) { /* OTV0P2BASE::serialPrintlnAndFlush(F("!RXmc")); */ return(false); } // FAIL
     return(true); // Done!
     }
@@ -366,7 +366,7 @@ static const bool use_unary_counter = true;
 // Will fail for invalid node ID and for unrecoverable memory corruption.
 // Uses unary count across 2 bytes (primary and secondary) to give up to 17 RXes before needing to update main counters.
 // Both args must be non-NULL, with counter pointing to enough space to copy the message counter value to.
-bool SimpleSecureFrame32or0BodyRXV0p2::getLastRXMessageCounter(const uint8_t * const ID, uint8_t * const counter) const
+bool SimpleSecureFrame32or0BodyRXV0p2::getLastRXMsgCtr(const uint8_t * const ID, uint8_t * const counter) const
     {
     // Rely on getNextMatchingNodeID() to reject a NULL ID with a non-zero length.
     if(NULL == counter) { return(false); } // FAIL
@@ -386,8 +386,8 @@ bool SimpleSecureFrame32or0BodyRXV0p2::getLastRXMessageCounter(const uint8_t * c
         OTV0P2BASE::eeprom_unary_2byte_decode(eeprom_read_byte(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET + 7),
                                               eeprom_read_byte(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET + 7));
     // Try primary then secondary (both will be written to each time).
-    if(!getLastRXMessageCounterFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET, counter) &&
-       !getLastRXMessageCounterFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET, counter))
+    if(!getLastRXMsgCtr(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET, counter) &&
+       !getLastRXMsgCtr(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET, counter))
        { return(false); } // FAIL: both counters borked.
     return(use_unary_counter ? SimpleSecureFrame32or0BodyRXBase::msgcounteradd(counter, incr) : true);
     }
@@ -399,15 +399,15 @@ bool SimpleSecureFrame32or0BodyRXV0p2::getLastRXMessageCounter(const uint8_t * c
 static bool updateRXMessageCount(uint8_t * const eepromLoc, const uint8_t * const newCounterValue)
     {
     // First set the write-in-progress flag (clear to 0), msbit of the CRC byte...
-    uint8_t * const CRCptr = eepromLoc + SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes;
+    uint8_t * const CRCptr = eepromLoc + SimpleSecureFrame32or0BodyBase::fullMsgCtrBytes;
     OTV0P2BASE::eeprom_smart_clear_bits(CRCptr, 0x7f);
     // Compute 7-bit CRC to use at the end, with the write-in-progress flag off (1).
     uint8_t crc = 0;
-    for(int i = 0; i < SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes; ++i) { crc = OTV0P2BASE::crc7_5B_update(crc, newCounterValue[i]); }
+    for(int i = 0; i < SimpleSecureFrame32or0BodyBase::fullMsgCtrBytes; ++i) { crc = OTV0P2BASE::crc7_5B_update(crc, newCounterValue[i]); }
     const uint8_t rawCRC = ~crc; // The CRC's high-bit should be 0, so 1 when inverted.
     // Byte-by-byte careful minimal update of EEPROM, checking after each byte, ie for gross immediate failure.
     uint8_t *p = eepromLoc;
-    for(int i = 0; i < SimpleSecureFrame32or0BodyBase::fullMessageCounterBytes; ++i, ++p)
+    for(int i = 0; i < SimpleSecureFrame32or0BodyBase::fullMsgCtrBytes; ++i, ++p)
         {
         const uint8_t asWritten = ~newCounterValue[i];
         OTV0P2BASE::eeprom_smart_update_byte(p, asWritten);
@@ -428,10 +428,10 @@ static bool updateRXMessageCount(uint8_t * const eepromLoc, const uint8_t * cons
 // not allowing replays nor other cryptographic attacks, nor forcing node dissociation.
 // Must only be called once the RXed message has passed authentication.
 // Use a unary count as proxy for LSBs to reduce wear; clear unary value after main count increment so as to never have too low a total value.
-bool SimpleSecureFrame32or0BodyRXV0p2::updateRXMessageCountAfterAuthentication(const uint8_t *ID, const uint8_t *newCounterValue)
+bool SimpleSecureFrame32or0BodyRXV0p2::authAndUpdateRXMsgCtr(const uint8_t *ID, const uint8_t *newCounterValue)
     {
     // Validate node ID and new count.
-    if(!validateRXMessageCount(ID, newCounterValue)) { return(false); } // Putative new counter value not valid; reject.
+    if(!validateRXMsgCtr(ID, newCounterValue)) { return(false); } // Putative new counter value not valid; reject.
     // Look up the node association; fail if not present.
     const int8_t index = OTV0P2BASE::getNextMatchingNodeID(0, ID, OTV0P2BASE::OpenTRV_Node_ID_Bytes, NULL);
     if(index < 0) { return(false); } // FAIL (shouldn't be possible after previous validation).
@@ -453,12 +453,12 @@ bool SimpleSecureFrame32or0BodyRXV0p2::updateRXMessageCountAfterAuthentication(c
     // Get the raw counter value ignoring the unary part.
     // Fall back to the secondary value if there is something wrong with the primary,
     // and fail entirely if the secondary is also broken.
-    uint8_t baseCount[fullMessageCounterBytes];
-    if(!getLastRXMessageCounterFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET, baseCount) &&
-       !getLastRXMessageCounterFromTable(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET, baseCount))
+    uint8_t baseCount[fullMsgCtrBytes];
+    if(!getLastRXMsgCtr(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET, baseCount) &&
+       !getLastRXMsgCtr(rawPtr + OTV0P2BASE::V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET, baseCount))
         { return(false); } // FAIL: both copies borked.
     // Compute the maximum value that the base value could be extended to with the unary part.
-    uint8_t maxWithUnary[fullMessageCounterBytes];
+    uint8_t maxWithUnary[fullMsgCtrBytes];
     memcpy(maxWithUnary, baseCount, sizeof(maxWithUnary));
     if(!SimpleSecureFrame32or0BodyRXBase::msgcounteradd(maxWithUnary, OTV0P2BASE::EEPROM_UNARY_2BYTE_MAX_VALUE)) { return(false); } // FAIL: counter too near maximum; might roll.
     // If that is at least as large as the requested new counter value
@@ -477,7 +477,7 @@ bool SimpleSecureFrame32or0BodyRXV0p2::updateRXMessageCountAfterAuthentication(c
         // as messages will arrive with successive message counter values, barring comms loss.
         for(uint8_t newIncr = currentIncr; newIncr <= OTV0P2BASE::EEPROM_UNARY_2BYTE_MAX_VALUE; ++newIncr)
             {
-            uint8_t putativeTotal[fullMessageCounterBytes];
+            uint8_t putativeTotal[fullMsgCtrBytes];
             memcpy(putativeTotal, baseCount, sizeof(putativeTotal));
             if(!SimpleSecureFrame32or0BodyRXBase::msgcounteradd(putativeTotal, newIncr)) { return(false); } // FAIL: counter too near maximum; might roll.
             if(SimpleSecureFrame32or0BodyRXBase::msgcountercmp(putativeTotal, newCounterValue) == 0)
