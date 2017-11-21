@@ -269,23 +269,31 @@ uint8_t SecurableFrameHeader::computeNonSecureCRC(const uint8_t *const buf, uint
     return(crc);
     }
 
-// Compose (encode) entire non-secure small frame from header params, body and CRC trailer.
-// Returns the total number of bytes written out for the frame
-// (including, and with a value one higher than the first 'fl' bytes).
-// Returns zero in case of error.
-// The supplied buffer may have to be up to 64 bytes long.
-//
-// Parameters:
-//  * buf  buffer to which is written the entire frame including trailer/CRC; never NULL
-//  * buflen  available length in buf; if too small then this routine will fail (return 0)
-//  * fType_  frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
-//  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
-//  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
-//  * body / bl_  body data (and length)
+/**
+ * @brief   Compose (encode) entire non-secure small frame from header params,
+ *          body and CRC trailer.
+ *
+ * @param   fd: Common data required for encryption.
+ *              - ptext: body data.
+ *              - ptextbufSize: Size of the body. FIXME Should this be ptextLen instead?
+ *              - outbuf: buffer to which is written the entire frame including
+ *                trailer/CRC. The supplied buffer may have to be up to 64
+ *                bytes long. Never NULL.
+ *              - outbufSize: Available length in buf. May need to be up to 64
+ *                bytes. If too small then this routine will fail (return 0)
+ *              - fType: frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive XXX
+ * @param   seqNum: least-significant 4 bits are 4 lsbs of frame sequence number.
+ * @param   id: ID bytes (and length) to go in the header. NULL means take ID from EEPROM.
+ * @retval  Returns the total number of bytes read for the frame (including,
+ *          and with a value one higher than the first 'fl' bytes). Returns
+ *          zero in case of error, eg because the CRC check failed. XXX
+ *
+ * @note    Uses a scratch space, allowing the stack usage to be more tightly controlled.
+ */
 uint8_t encodeNonsecureOnStack(
             OTEncodeData_T &fd,
-            uint8_t seqNum_,
-            const OTBuf_t &id_)
+            uint8_t seqNum,
+            const OTBuf_t &id)
     {
     // Let checkAndEncodeSmallFrameHeader() validate buf and id_.
     // If necessary (bl_ > 0) body is validated below.
@@ -294,8 +302,8 @@ uint8_t encodeNonsecureOnStack(
                                 buf,
                                 false,
                                 fd.fType, // Not secure.
-                                seqNum_,
-                                id_,
+                                seqNum,
+                                id,
                                 fd.ptextbufSize,
                                 1); // 1-byte CRC trailer.
     // Fail if header encoding fails.
