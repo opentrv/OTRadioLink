@@ -747,29 +747,53 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encode(
     uint8_t *const iv = scratch.buf; // uint8_t iv[IV_size];
     if(!computeIVForTX12B(iv)) { return(0); }
 
-    // XXX This is the special case! Will potentially need an extra 8 bytes to store the id.
+    // This is the special case! Will potentially need an extra 8 bytes to store the id.
     // If ID is short then we can cheat by reusing start of IV, else fetch again explicitly...
     const bool longID = (il_ > 6);
-    uint8_t *const id = iv + IV_size;  // FIXME
+    uint8_t *const id = iv + IV_size;
     if(longID && !getTXID(id)) { return(0); } // FAIL
 
     const OTBuf_t txID((longID ? id : iv), sizeof((longID ? id : iv)));
     return(encodeRaw(fd, txID, iv, e, scratch, key));
     }
 
-// Create simple 'O' (FTS_BasicSensorOrValve) frame with an optional stats section for transmission.
-// Returns number of bytes written to buffer, or 0 in case of error.
-// The IV is constructed from the node ID (built-in from EEPROM or as supplied)
-// and the primary TX message counter (which is incremented).
-// Note that the frame will be 27 + ID-length (up to maxIDLength) + body-length bytes,
-// so the buffer must be large enough to accommodate that.
-//  * buf  buffer to which is written the entire frame including trailer; never NULL
-//  * buflen  available length in buf; if too small then this routine will fail (return 0)
-//  * valvePC  percentage valve is open or 0x7f if no valve to report on
-//  * statsJSON  '\0'-terminated {} JSON stats, or NULL if none.
-//  * il_  ID length for the header; ID is local node ID from EEPROM or other pre-supplied ID, may be limited to a 6-byte prefix
-//  * key  16-byte secret key; never NULL
-// NOTE: THIS API IS LIABLE TO CHANGE
+/**
+ * @brief   Create simple 'O' (FTS_BasicSensorOrValve) frame with an optional
+ *          stats section for transmission.
+ *
+ * The IV is constructed from the node ID (built-in from EEPROM or as supplied)
+ * and the primary TX message counter (which is incremented).
+ * 
+ * Note that the frame will be 27 + ID-length (up to maxIDLength) + body-length
+ * bytes, so the buffer must be large enough to accommodate that.
+ *
+ * @param   fd: Common data required for encryption:
+ *              - ptext: Plaintext to encrypt. '\0'-terminated {} JSON stats.
+ *                       May be nullptr if not required.
+ *              - ptextbufSize: Size of plaintext buffer. 0 if ptext is a 
+ *                nullptr.
+ *              - outbuf: Buffer to hold entire encrypted frame, incl trailer.
+ *                        Never NULL.
+ *              - outbufSize: available length in buf. If it is too small then
+ *                            this routine will fail.
+ * @param   il_: ID length for the header. ID is local node ID from EEPROM or
+ *               other pre-supplied ID, may be limited to a 6-byte prefix
+ * @param   valvePC: Percentage valve is open or 0x7f if no valve to report on.
+ * @param   e: Encryption function.
+ * @param   scratch: Scratch space. Size must be large enough to contain
+ *                   encodeValveFrame_total_scratch_usage_OTAESGCM_2p0 
+ *                   bytes AND the scratch space required by the decryption
+ *                   function `e`.
+ * @param   key: 16-byte secret key. Never NULL.
+ * @param   firstIDMatchOnly: IGNORED! If the 'firstMatchIDOnly' is true
+ *              (the default) then this only checks the first ID prefix
+ *              match found if any, else all possible entries may be tried
+ *              depending on the implementation  and, for example,
+ *              time/resource limits.
+ * @retval  Returns number of bytes written to fd.outbuf, or 0 in case of error.
+ *
+ * @note    Uses a scratch space, allowing the stack usage to be more tightly controlled.
+ */
 uint8_t SimpleSecureFrame32or0BodyTXBase::encodeValveFrame(
                                             OTEncodeData_T &fd,
                                             uint8_t il_,
