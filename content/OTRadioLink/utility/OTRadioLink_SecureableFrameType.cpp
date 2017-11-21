@@ -260,7 +260,8 @@ uint8_t SecurableFrameHeader::decodeHeader(const uint8_t *const buf, uint8_t buf
 // Note that the body must already be in place in the buffer.
 //
 // Parameters:
-//  * buf     buffer containing the entire frame except trailer/CRC; never NULL XXX Frame should start with a leading length byte.
+//  * buf     buffer containing the entire frame except trailer/CRC including
+//            leading length byte. Never NULL.
 //  * buflen  available length in buf; if too small then this routine will fail (return 0)
 uint8_t SecurableFrameHeader::computeNonSecureCRC(const uint8_t *const buf, uint8_t buflen) const
     {
@@ -293,9 +294,8 @@ uint8_t SecurableFrameHeader::computeNonSecureCRC(const uint8_t *const buf, uint
  *              - fType: frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive XXX
  * @param   seqNum: least-significant 4 bits are 4 lsbs of frame sequence number.
  * @param   id: ID bytes (and length) to go in the header. NULL means take ID from EEPROM.
- * @retval  Returns the total number of bytes read for the frame (including,
- *          and with a value one higher than the first 'fl' bytes). Returns
- *          zero in case of error, eg because the CRC check failed. XXX
+ * @retval  Total frame length in bytes + fl byte + 1, or 0 if there is an error eg
+ *          because the CRC check failed.
  *
  * @note    Uses a scratch space, allowing the stack usage to be more tightly controlled.
  */
@@ -306,7 +306,7 @@ uint8_t encodeNonsecureOnStack(
     {
     // Let checkAndEncodeSmallFrameHeader() validate buf and id_.
     // If necessary (bl_ > 0) body is validated below.
-    OTBuf_t buf(fd.outbuf, fd.outbufSize);  // XXX
+    OTBuf_t buf(fd.outbuf, fd.outbufSize);
     const uint8_t hl = fd.sfh.encodeHeader(
                                 buf,
                                 false,
@@ -346,9 +346,8 @@ uint8_t encodeNonsecureOnStack(
  *                failed to decode, this routine will fail (return 0).
  *              - ctext: buffer containing the entire frame including header
  *                and trailer. Never NULL
- * @retval  Returns the total number of bytes read for the frame (including,
- *          and with a value one higher than the first 'fl' bytes). Returns
- *          zero in case of error, eg because the CRC check failed. XXX
+ * @retval  Total frame length in bytes + fl byte + 1, or 0 if there is an error eg
+ *          because the CRC check failed.
  *
  * @note    Uses a scratch space, allowing the stack usage to be more tightly controlled.
  */
@@ -413,7 +412,6 @@ bool SimpleSecureFrame32or0BodyRXBase::msgcounteradd(uint8_t *const counter, con
  * - XXX
  *
  * @param   fd: Common data required for encryption.
- *              - sfh: Frame header. XXX
  *              - ptext: Mutable buffer containing any ptext to be encrypted.
  *                       Note that the ptext will be padded in situ with 0s.
  *                       Should be ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE (32)
@@ -639,7 +637,7 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::unpad32BBuffer(const uint8_t *const bu
     const uint8_t paddingZeros = buf[ENC_BODY_SMALL_FIXED_CTEXT_SIZE - 1];
     if(paddingZeros > 31) { return(0); } // ERROR
     const uint8_t datalen = ENC_BODY_SMALL_FIXED_CTEXT_SIZE - 1 - paddingZeros;
-    return(datalen); // FAIL FIXME
+    return(datalen); // FAIL FIXME why fixme?
     }
 
 // Check message counter for given ID, ie that it is high enough to be eligible for authenticating/processing.
@@ -764,9 +762,11 @@ uint8_t generateNonsecureBeacon(OTBuf_t &buf, const uint8_t seqNum, const OTBuf_
  * bytes, so the buffer must be large enough to accommodate that.
  *
  * @param   fd: Common data required for encryption:
- *              - ptext: Plaintext to encrypt. '\0'-terminated {} JSON stats. May be nullptr if not required. XXX what format?
+ *              - ptext: Plaintext to encrypt. May be nullptr if not required.
  *              - ptextbufSize: Size of plaintext buffer. 0 if ptext is a 
  *                nullptr.
+ *              - ptextLen: The length of plaintext held by ptext. Must be less
+ *                than ptextbufSize.
  *              - outbuf: Buffer to hold entire encrypted frame, incl trailer.
  *                Never NULL.
  *              - outbufSize: available length in buf. If it is too small then
@@ -986,14 +986,12 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::_decodeFromID(
  *              match found if any, else all possible entries may be tried
  *              depending on the implementation  and, for example,
  *              time/resource limits.
- * @retval  The total number of bytes read for the frame, including, and
- *          with a value one higher than the first 'fl' bytes. FIXME what does the last bit mean?
- *          - Returns zero in case of error, eg because authentication failed
- *            or this is a duplicate message.
- *          - If this returns >=1 then the frame is authenticated, and the
+ * @retval  Total frame length + fl byte + 1, or 0 if there is an error, eg.
+ *          because authentication failed, or this is a duplicate message.
+ *          - If this returns 1, the frame was authenticated but had no body.
+ *          - If this returns >1 then the frame is authenticated, and the
  *            decrypted body is available if present and a buffer was
- *            provided.  XXX What happens when
- *          - Returns 1 if outbuf was not provided but auth passed.
+ *            provided.
  *
  * @note    Uses a scratch space, allowing the stack usage to be more tightly controlled.
  */
