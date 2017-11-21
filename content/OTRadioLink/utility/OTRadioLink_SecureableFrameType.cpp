@@ -519,9 +519,10 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeRaw(
  *                   scratch space required by the decryption function `d`.
  * @param   key: 16-byte secret key. Never NULL.
  * @param   iv: 12-byte initialisation vector/nonce. Never NULL.
- * @retval  Returns the total number of bytes read for the frame including, and
- *          with a value one higher than the first 'fl' bytes).
- *          Returns zero in case of error, eg because authentication failed.
+ * @retval  - Returns the total number of bytes read for the frame including,
+ *          and with a value one higher than the first 'fl' bytes).
+ *          - Returns zero in case of error, eg because authentication failed.
+ *          - Returns 1 and sets ptextLen to 0 if ptext is NULL but auth passes.
  *
  * @note    Uses a scratch space, allowing the stack usage to be more tightly controlled.
  */
@@ -916,8 +917,10 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::_decodeFromID(
  * Note that this is for frames being send from the ID in the header,
  * not for lightweight return traffic to the specified ID.
  *
- * @param   fd: Common data required for decryption. inbuf and ptext must
- *              never be null.
+ * @param   fd: Common data required for decryption.
+ *              - inbuf: Never NULL.
+ *              - outbuf: If null, only authentication will be performed.
+ *                No plaintext will be provided.
  * @param   d: Decryption function.
  * @param   scratch: Scratch space. Size must be large enough to contain
  *                   decode_total_scratch_usage_OTAESGCM_3p0 bytes AND the
@@ -929,12 +932,13 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::_decodeFromID(
  *              depending on the implementation  and, for example,
  *              time/resource limits.
  * @retval  The total number of bytes read for the frame, including, and
- *          with a value one higher than the first 'fl' bytes. XXX what does the last bit mean?
+ *          with a value one higher than the first 'fl' bytes. FIXME what does the last bit mean?
  *          - Returns zero in case of error, eg because authentication failed
  *            or this is a duplicate message.
  *          - If this returns >=1 then the frame is authenticated, and the
  *            decrypted body is available if present and a buffer was
- *            provided.  XXX What happens when buffer not provided?
+ *            provided.  XXX What happens when
+ *          - Returns 1 if outbuf was not provided but auth passed.
  *
  * @note    Uses a scratch space, allowing the stack usage to be more tightly controlled.
  */

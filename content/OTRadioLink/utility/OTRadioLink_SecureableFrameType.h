@@ -160,7 +160,7 @@ namespace OTRadioLink
     struct SecurableFrameHeader final
         {
         // Returns true if the frame header in this struct instance is invalid.
-        // This is only reliable if all manipulation of struct content
+    // This is only reliable if all manipulation of struct content
         // is by the member functions.
         bool isInvalid() const { return(0 == fl); }
 
