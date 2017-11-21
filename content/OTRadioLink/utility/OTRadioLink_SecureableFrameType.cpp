@@ -919,7 +919,7 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::_decodeFromID(
  *
  * @param   fd: Common data required for decryption.
  *              - inbuf: Never NULL.
- *              - outbuf: If null, only authentication will be performed.
+ *              - ptext: If null, only authentication will be performed.
  *                No plaintext will be provided.
  * @param   d: Decryption function.
  * @param   scratch: Scratch space. Size must be large enough to contain
