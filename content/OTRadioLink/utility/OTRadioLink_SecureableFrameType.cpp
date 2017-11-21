@@ -38,41 +38,46 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 
 
 namespace OTRadioLink
-    {
+    { 
 
-// Check parameters for, and if valid then encode into the given buffer, the header for a small secureable frame.
-// The buffer starts with the fl frame length byte.
-//
-// Parameters:
-//  * buf  buffer to encode header to, of at least length buflen; if NULL the encoded form is not written
-//  * buflen  available length in buf; if too small for encoded header routine will fail (return 0)
-//  * secure_ true if this is to be a secure frame
-//  * fType_  frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
-//  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
-//  * il_  ID length in bytes at most 8 (could be 15 for non-small frames)
-//  * id_  source of ID bytes, at least il_ long; NULL means pre-filled but must not start with 0xff.
-//  * bl_  body length in bytes [0,251] at most
-//  * tl_  trailer length [1,251[ at most, always == 1 for non-secure frame
-//
-// This does not permit encoding of frames with more than 64 bytes (ie 'small' frames only).
-// This does not deal with encoding the body or the trailer.
-// Having validated the parameters they are copied into the structure
-// and then into the supplied buffer, returning the number of bytes written.
-//
-// Performs as many as possible of the 'Quick Integrity Checks' from the spec, eg SecureBasicFrame-V0.1-201601.txt
-//  1) fl >= 4 (type, seq/il, bl, trailer bytes)
-//  2) fl may be further constrained by system limits, typically to <= 63
-//  3) type (the first frame byte) is never 0x00, 0x80, 0x7f, 0xff.
-//  4) il <= 8 for initial implementations (internal node ID is 8 bytes)
-//  5) il <= fl - 4 (ID length; minimum of 4 bytes of other overhead)
-//  6) bl <= fl - 4 - il (body length; minimum of 4 bytes of other overhead)
-//  7) NOT DONE: the final frame byte (the final trailer byte) is never 0x00 nor 0xff
-//  8) tl == 1 for non-secure, tl >= 1 for secure (tl = fl - 3 - il - bl)
-// Note: fl = hl-1 + bl + tl = 3+il + bl + tl
-//
-// (If the parameters are invalid or the buffer too small, 0 is returned to indicate an error.)
-// The fl byte in the structure is set to the frame length, else 0 in case of any error.
-// Returns number of bytes of encoded header excluding nominally-leading fl length byte; 0 in case of error.
+/**
+ * @brief   Validate parameters and encode a header into a buffer.
+ * 
+ * This does not permit encoding of frames with more than 64 bytes (ie 'small'
+ * frames only). This does not deal with encoding the body or the trailer.
+ * Having validated the parameters they are copied into the structure and then
+ * into the supplied buffer, returning the number of bytes written.
+ * The fl byte in the structure is set to the frame length, else 0 in case of
+ * any error.
+ * 
+ * Performs as many as possible of the 'Quick Integrity Checks' from the spec,
+ * eg SecureBasicFrame-V0.1-201601.txt:
+ * 1) fl >= 4 (type, seq/il, bl, trailer bytes)
+ * 2) fl may be further constrained by system limits, typically to <= 63
+ * 3) type (the first frame byte) is never 0x00, 0x80, 0x7f, 0xff.
+ * 4) il <= 8 for initial implementations (internal node ID is 8 bytes)
+ * 5) il <= fl - 4 (ID length; minimum of 4 bytes of other overhead)
+ * 6) bl <= fl - 4 - il (body length; minimum of 4 bytes of other overhead)
+ * 7) NOT DONE: the final frame byte (the final trailer byte) is never 0x00 nor
+ *              0xff
+ * 8) tl == 1 for non-secure, tl >= 1 for secure (tl = fl - 3 - il - bl)
+ * Note: fl = hl-1 + bl + tl = 3+il + bl + tl
+ * 
+ * @param   buf: buffer to encode header into. If NULL, the encoded form is not
+ *               written. The buffer starts with fl, the frame length byte. If
+ *               the buffer is too small for encoded header, the routine will
+ *               fail (return 0)
+ * @param   secure_: true if this is to be a secure frame.
+ * @param   fType_: frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive XXX
+ * @param   seqNum_: least-significant 4 bits are 4 lsbs of frame sequence number
+ * @param   id_: Source of ID bytes. Length in bytes must be <=8 (could be 15
+ *               for non-small frames). NULL means pre-filled but must not
+ *               start with 0xff.
+ * @param   bl_: body length in bytes [0,251] at most.
+ * @param   tl_: trailer length [1,251[ at most, always == 1 for non-secure frame.  XXX
+ * @retval  Returns number of bytes of encoded header excluding the leading fl
+ *          length byte, or 0 in case of error.
+ */
 uint8_t SecurableFrameHeader::encodeHeader(
         OTBuf_t &buf,
         bool secure_, FrameType_Secureable fType_,
@@ -118,7 +123,7 @@ uint8_t SecurableFrameHeader::encodeHeader(
       if(!idFromEEPROM) { memcpy(id, idbuf, idlen); }
       else
 #ifdef ARDUINO_ARCH_AVR
-          { eeprom_read_block(id, (uint8_t *)V0P2BASE_EE_START_ID, idlen); }  // XXX
+          { eeprom_read_block(id, (uint8_t *)V0P2BASE_EE_START_ID, idlen); }
 #else
           { return(0); } // ERROR
 #endif
@@ -163,31 +168,35 @@ uint8_t SecurableFrameHeader::encodeHeader(
     return(hlifl); // SUCCESS!
     }
 
-
-// Decode header and check parameters/validity for inbound short secureable frame.
-// The buffer starts with the fl frame length byte.
-//
-// Parameters:
-//  * buf  buffer to decode header from, of at least length buflen; never NULL
-//  * buflen  available length in buf; if too small for encoded header routine will fail (return 0)
-//
-// Performs as many as possible of the 'Quick Integrity Checks' from the spec, eg SecureBasicFrame-V0.1-201601.txt
-//  1) fl >= 4 (type, seq/il, bl, trailer bytes)
-//  2) fl may be further constrained by system limits, typically to <= 63
-//  3) type (the first frame byte) is never 0x00, 0x80, 0x7f, 0xff.
-//  4) il <= 8 for initial implementations (internal node ID is 8 bytes)
-//  5) il <= fl - 4 (ID length; minimum of 4 bytes of other overhead)
-//  6) bl <= fl - 4 - il (body length; minimum of 4 bytes of other overhead)
-//  7) the final frame byte (the final trailer byte) is never 0x00 nor 0xff (if whole frame available)
-//  8) tl == 1 for non-secure, tl >= 1 for secure (tl = fl - 3 - il - bl)
-// Note: fl = hl-1 + bl + tl = 3+il + bl + tl
-//
-// (If the header is invalid or the buffer too small, 0 is returned to indicate an error.)
-// The fl byte in the structure is set to the frame length, else 0 in case of any error.
-//
-// Returns number of bytes of decoded header
-// including nominally-leading fl length byte;
-// 0 in case of error.
+/**
+ * @brief   Decode header and check parameters/validity for inbound short
+ *          secureable frame.
+ * 
+ * Performs as many as possible of the 'Quick Integrity Checks' from the spec,
+ * eg SecureBasicFrame-V0.1-201601.txt:
+ * 1) fl >= 4 (type, seq/il, bl, trailer bytes)
+ * 2) fl may be further constrained by system limits, typically to <= 63
+ * 3) type (the first frame byte) is never 0x00, 0x80, 0x7f, 0xff.
+ * 4) il <= 8 for initial implementations (internal node ID is 8 bytes)
+ * 5) il <= fl - 4 (ID length; minimum of 4 bytes of other overhead)
+ * 6) bl <= fl - 4 - il (body length; minimum of 4 bytes of other overhead)
+ * 7) the final frame byte (the final trailer byte) is never 0x00 nor 0xff (if
+ *    whole frame available)
+ * 8) tl == 1 for non-secure, tl >= 1 for secure (tl = fl - 3 - il - bl)
+ * Note: fl = hl-1 + bl + tl = 3+il + bl + tl
+ * 
+ * If the header is invalid or the buffer too small, 0 is returned to indicate
+ * an error.
+ * The fl byte in the structure is set to the frame length, else 0 in case of
+ * any error.
+ * 
+ * @param   buf: buffer to decode header from, of at least length buflen. The
+ *               buffer must start with the frame length byte (fl). Never NULL.
+ * @param   buflen: available length in buf; if too small for encoded header
+ *                  routine will fail (return 0)
+ * @retval  Returns number of bytes of decoded header including
+ *          nominally-leading fl length byte, or 0 in case of error.
+ */
 uint8_t SecurableFrameHeader::decodeHeader(const uint8_t *const buf, uint8_t buflen)
     {
     // Make frame 'invalid' until everything is finished and checks out.
