@@ -943,7 +943,7 @@ namespace OTRadioLink
     //  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
     //  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
     static const uint8_t generateNonsecureBeaconMaxBufSize = 5 + SecurableFrameHeader::maxIDLength;
-    uint8_t generateNonsecureBeacon(OTBuf_t &buf, const uint8_t seqNum_, const OTBuf_t &id_);
+    uint8_t generateNonsecureBeacon(OTBuf_t &buf, const uint8_t seqNum, const OTBuf_t &id);
 
 
     /**

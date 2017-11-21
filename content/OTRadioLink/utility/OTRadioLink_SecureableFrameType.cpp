@@ -691,44 +691,59 @@ bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(
 
 // CONVENIENCE/BOILERPLATE METHODS
 
-// Create non-secure Alive / beacon (FTS_ALIVE) frame with an empty body.
-// Returns number of bytes written to buffer, or 0 in case of error.
-// Note that the frame will be at least 4 + ID-length (up to maxIDLength) bytes,
-// so the buffer must be large enough to accommodate that.
-//  * buf  buffer to which is written the entire frame including trailer; never NULL
-//  * buflen  available length in buf; if too small then this routine will fail (return 0)
-//  * seqNum_  least-significant 4 bits are 4 lsbs of frame sequence number
-//  * id_ / il_  ID bytes (and length) to go in the header; NULL means take ID from EEPROM
-uint8_t generateNonsecureBeacon(OTBuf_t &buf, const uint8_t seqNum_, const OTBuf_t &id_)
+/**
+ * @brief   Create non-secure Alive / beacon (FTS_ALIVE) frame with an empty
+ *          body.
+ *
+ * @param   buf: buffer to which is written the entire frame including trailer.
+ *               Never NULL. Note that the frame will be at least 4 + ID-length
+ *               (up to maxIDLength) bytes, so the buffer must be large enough
+ *               to accommodate that. If too small the routine will fail.
+ * @param   seqNum: least-significant 4 bits are 4 lsbs of frame sequence
+ *                  number
+ * @param   id: ID bytes (and length) to go in the header; NULL means take ID
+ *              from EEPROM
+ * @retval  Returns number of bytes written to fd.outbuf, or 0 in case of error.
+ */
+uint8_t generateNonsecureBeacon(OTBuf_t &buf, const uint8_t seqNum, const OTBuf_t &id)
     {
     OTEncodeData_T fd(nullptr, 0, buf.buf, buf.bufsize);
     fd.fType = OTRadioLink::FTS_ALIVE;
 
-    // "I'm Alive!" / beacon message.
-    return(encodeNonsecureOnStack(fd,
-                                    seqNum_,
-                                    id_));
+    return(encodeNonsecureOnStack(fd, seqNum, id));
     }
 
 /**
- * @brief   Create a generic secure small frame with an optional encrypted body for transmission.
+ * @brief   Create a generic secure small frame with an optional encrypted body
+ *          for transmission.
  *
- * The IV is constructed from the node ID (local from EEPROM, or as supplied)
+ * The IV is constructed from the node ID (built-in from EEPROM or as supplied)
  * and the primary TX message counter (which is incremented).
- * Note that the frame will be 27 + ID-length (up to maxIDLength) + body-length bytes,
- * so the buffer must be large enough to accommodate that.
+ * 
+ * Note that the frame will be 27 + ID-length (up to maxIDLength) + body-length
+ * bytes, so the buffer must be large enough to accommodate that.
  *
- * @param   fd: Common data required for encryption.
- *              - ptext may be null for frames containing no encrypted body.
- *              - ctext must never be null.  // XXX
- *              - ftype must be set with a valid frame type before calling this function.
- * @param   il_: ID length for the header; ID is local node ID from EEPROM or other pre-supplied ID
+ * @param   fd: Common data required for encryption:
+ *              - ptext: Plaintext to encrypt. '\0'-terminated {} JSON stats. May be nullptr if not required. XXX what format?
+ *              - ptextbufSize: Size of plaintext buffer. 0 if ptext is a 
+ *                nullptr.
+ *              - outbuf: Buffer to hold entire encrypted frame, incl trailer.
+ *                Never NULL.
+ *              - outbufSize: available length in buf. If it is too small then
+ *                this routine will fail.
+ *              - ftype: Must be set with a valid frame type before calling this
+ *                function.
+ * @param   il_: ID length for the header. ID is local node ID from EEPROM or
+ *               other pre-supplied ID, may be limited to a 6-byte prefix
  * @param   e: Encryption function.
- * @param   scratch: Scratch space. Size must be larger than
- *                   encode_total_scratch_usage_OTAESGCM_2p0 bytes.
- * @param   key: 16-byte secret key; never NULL
- * @retval  Number of bytes written to buffer, or 0 in case of error.
- * *note    Uses a scratch space, allowing the stack usage to be more tightly controlled.
+ * @param   scratch: Scratch space. Size must be large enough to contain
+ *                   encode_total_scratch_usage_OTAESGCM_2p0 bytes AND the
+ *                   scratch space required by the decryption function `e`.
+ * @param   key: 16-byte secret key. Never NULL.
+ * @retval  Returns number of bytes written to fd.outbuf, or 0 in case of error.
+ *
+ * @note    Uses a scratch space, allowing the stack usage to be more tightly
+ *          controlled.
  */
 // FIXME UNTESTED!
 uint8_t SimpleSecureFrame32or0BodyTXBase::encode(
@@ -856,7 +871,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeValveFrame(
  * then they may all have to be tested in turn until one succeeds.
  *
  * Generally, this should be called AFTER checking that the aggregate RXed
- * message counter is higher than for the last successful receive for this
+ * message counter is higher than for the last soutbufuccessful receive for this
  * node and flow direction. On success, those message counters should be
  * updated to the new values to prevent replay attacks.
  *
