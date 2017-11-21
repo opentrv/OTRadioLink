@@ -315,19 +315,26 @@ uint8_t encodeNonsecureOnStack(
     return(fl + 1);
     }
 
-// Decode entire non-secure small frame from raw frame bytes support.
-// Returns the total number of bytes read for the frame
-// (including, and with a value one higher than the first 'fl' bytes).
-// Returns zero in case of error, eg because the CRC check failed.
-//
-// Typical workflow:
-//   * decode the header alone to extract the ID and frame type
-//   * use the frame header's bl and getBodyOffset() to get the body and body length
-//
-// Parameters:
-//  * buf  buffer containing the entire frame including header and trailer; never NULL
-//  * buflen  available length in buf; if too small then this routine will fail (return 0)
-//  * sfh  decoded frame header; never NULL
+/**
+ * @brief   Decode entire non-secure small frame from raw frame bytes support.
+ *
+ * Typical workflow:
+ * - Before calling this function, decode the header alone to extract the ID
+ *   and frame type.
+ * - Use the frame header's bl and getBodyOffset() to get the body and body
+ *   length.
+ *
+ * @param   fd: Common data required for encryption.
+ *              - sfh: Pre-decoded frame header. If this has not been decoded
+ *                failed to decode, this routine will fail (return 0).
+ *              - ctext: buffer containing the entire frame including header
+ *                and trailer. Never NULL
+ * @retval  Returns the total number of bytes read for the frame (including,
+ *          and with a value one higher than the first 'fl' bytes). Returns
+ *          zero in case of error, eg because the CRC check failed. XXX
+ *
+ * @note    Uses a scratch space, allowing the stack usage to be more tightly controlled.
+ */
 uint8_t decodeNonsecureOnStack(OTDecodeData_T &fd)
     {
     if(NULL == fd.ctext) { return(0); } // ERROR
@@ -632,16 +639,24 @@ bool SimpleSecureFrame32or0BodyRXBase::validateRXMsgCtr(const uint8_t *ID, const
     return(msgcountercmp(counter, currentCounter) > 0);
     }
 
-// NULL basic fixed-size text 'encryption' function.
-// DOES NOT ENCRYPT OR AUTHENTICATE SO DO NOT USE IN PRODUCTION SYSTEMS.
-// Emulates some aspects of the process to test real implementations against,
-// and that some possible gross errors in the use of the crypto are absent.
-// Returns true on success, false on failure.
-//
-// Does not use state so that pointer may be NULL but all others must be non-NULL except plaintext.
-// Copies the plaintext to the ciphertext, unless plaintext is NULL.
-// Copies the nonce/IV to the tag and pads with trailing zeros.
-// The key is ignored (though one must be supplied).
+/**
+ * @brief   NULL basic fixed-size text 'encryption' function. DOES NOT ENCRYPT
+ *          OR AUTHENTICATE SO DO NOT USE IN PRODUCTION SYSTEMS.
+ * 
+ * Emulates some aspects of the process to test real implementations against,
+ * and that some possible gross errors in the use of the crypto are absent.
+ * 
+ * - Copies the plaintext to the ciphertext, unless plaintext is NULL.
+ * - Copies the nonce/IV to the tag and pads with trailing zeros.
+ * - The key is ignored (though one must be supplied).
+ *
+ * XXX param
+ * @param   key: 16-byte secret key. Never NULL.
+ * @retval  Returns true on success, false on failure.
+ *
+ * @note    Uses a scratch space, allowing the stack usage to be more tightly
+ *          controlled.
+ */
 bool fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL(
         uint8_t *const workspace, const size_t /*workspaceSize*/,
         const uint8_t *const key, const uint8_t *const iv,
@@ -660,16 +675,24 @@ bool fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL(
     return(true);
     }
 
-// NULL basic fixed-size text 'decryption' function.
-// DOES NOT DECRYPT OR AUTHENTICATE SO DO NOT USE IN PRODUCTION SYSTEMS.
-// Emulates some aspects of the process to test real implementations against,
-// and that some possible gross errors in the use of the crypto are absent.
-// Returns true on success, false on failure.
-//
-// Does not use state so that pointer may be NULL but all others must be non-NULL except ciphertext.
-// Undoes/checks fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL().
-// Copies the ciphertext to the plaintext, unless ciphertext is NULL.
-// Verifies that the tag seems to have been constructed appropriately.
+/**
+ * @brief   NULL basic fixed-size text 'decryption' function. DOES NOT DECRYPT
+ *          OR AUTHENTICATE SO DO NOT USE IN PRODUCTION SYSTEMS.
+ * 
+ * Emulates some aspects of the process to test real implementations against,
+ * and that some possible gross errors in the use of the crypto are absent.
+ * 
+ * - Undoes/checks fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL(). 
+ * - Copies the ciphertext to the plaintext, unless ciphertext is NULL.
+ * - Verifies that the tag seems to have been constructed appropriately.
+ *
+ * XXX param
+ * @param   key: 16-byte secret key. Never NULL.
+ * @retval  Returns true on success, false on failure.
+ *
+ * @note    Uses a scratch space, allowing the stack usage to be more tightly
+ *          controlled.
+ */
 bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(
         uint8_t *const workspace, const size_t /* workspaceSize */,
         const uint8_t *const key, const uint8_t *const iv,
