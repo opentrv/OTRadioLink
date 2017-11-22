@@ -52,7 +52,7 @@ extern "C" {
 extern char _end;
 }
 // Function that returns the address of _end to ease support with OSX.
-size_t get_end() { return ((size_t)&_end); }
+static size_t get_end() { return ((size_t)&_end); }
 #endif
 
 namespace OTV0P2BASE
