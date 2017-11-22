@@ -597,32 +597,32 @@ TEST(FrameHandlerTest, decodeAndHandleOTSecurableFrameDecryptSuccess)
 }
 
 
-// namespace FTBHT {
-// constexpr uint8_t heatCallPin = 0;
-// constexpr bool inHubMode = true;
-// const uint8_t minuteCount = 1;
-// OTRadValve::OTHubManager<false, false> hm;  // no EEPROM so parameters don't matter
-// OTRadValve::BoilerLogic::OnOffBoilerDriverLogic<decltype(hm), hm, heatCallPin> b1;
-// //
-// bool decodeAndHandleSecureFrame(volatile const uint8_t *const msg)
-// {
-//     // Workspace for decodeAndHandleOTSecureOFrameWithWorkspace
-//     constexpr size_t workspaceRequired =
-//             OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameSafely_total_scratch_usage_OTAESGCM_3p0
-//             + OTAESGCM::OTAES128GCMGenericWithWorkspace<>::workspaceRequiredDec
-//             + OTRadioLink::authAndDecodeOTSecurableFrameWithWorkspace_scratch_usage; // + space to hold the key
-//     uint8_t workspace[workspaceRequired];
-//     OTV0P2BASE::ScratchSpaceL sW(workspace, sizeof(workspace));
+namespace FTBHT {
+constexpr uint8_t heatCallPin = 0;
+constexpr bool inHubMode = true;
+const uint8_t minuteCount = 1;
+OTRadValve::OTHubManager<false, false> hm;  // no EEPROM so parameters don't matter
+OTRadValve::BoilerLogic::OnOffBoilerDriverLogic<decltype(hm), hm, heatCallPin> b1;
+//
+bool decodeAndHandleSecureFrame(volatile const uint8_t *const msg)
+{
+    // Workspace for decodeAndHandleOTSecureOFrameWithWorkspace
+    constexpr size_t workspaceRequired =
+            OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameSafely_total_scratch_usage_OTAESGCM_3p0
+            + OTAESGCM::OTAES128GCMGenericWithWorkspace<>::workspaceRequiredDec
+            + OTRadioLink::authAndDecodeOTSecurableFrameWithWorkspace_scratch_usage; // + space to hold the key
+    uint8_t workspace[workspaceRequired];
+    OTV0P2BASE::ScratchSpaceL sW(workspace, sizeof(workspace));
 
-//     return (OTRadioLink::decodeAndHandleOTSecureOFrameWithWorkspace<
-//                             OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
-//                             OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE,
-//                             OTFHT::getKeySuccess,
-//                             OTRadioLink::serialFrameOperation<decltype(OTFHT::ss),OTFHT::ss>,
-//                             OTRadioLink::boilerFrameOperation<decltype(b1), b1, minuteCount>
-//                             >(msg, sW));
-// }
-// }
+    return (OTRadioLink::decodeAndHandleOTSecureOFrameWithWorkspace<
+                            OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
+                            OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE,
+                            OTFHT::getKeySuccess,
+                            OTRadioLink::serialFrameOperation<decltype(OTFHT::ss),OTFHT::ss>,
+                            OTRadioLink::boilerFrameOperation<decltype(b1), b1, minuteCount>
+                            >(msg, sW));
+}
+}
 // // Test message handler to boiler hub stack
 // TEST(FrameHandlerTest, frameToBoilerHubTest)
 // {
