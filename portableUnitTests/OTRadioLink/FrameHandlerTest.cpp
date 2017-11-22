@@ -600,7 +600,7 @@ TEST(FrameHandlerTest, decodeAndHandleOTSecurableFrameDecryptSuccess)
 namespace FTBHT {
 constexpr uint8_t heatCallPin = 0;
 constexpr bool inHubMode = true;
-const uint8_t minuteCount = 1;
+// const uint8_t minuteCount = 1;
 OTRadValve::OTHubManager<false, false> hm;  // no EEPROM so parameters don't matter
 OTRadValve::BoilerLogic::OnOffBoilerDriverLogic<decltype(hm), hm, heatCallPin> b1;
 //
