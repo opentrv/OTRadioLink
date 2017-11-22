@@ -618,8 +618,8 @@ bool decodeAndHandleSecureFrame(volatile const uint8_t *const msg)
                             OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
                             OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE,
                             OTFHT::getKeySuccess,
-                            OTRadioLink::serialFrameOperation<decltype(OTFHT::ss),OTFHT::ss>,
-                            OTRadioLink::boilerFrameOperation<decltype(b1), b1, minuteCount>
+                            OTRadioLink::serialFrameOperation<decltype(OTFHT::ss),OTFHT::ss>
+                            // OTRadioLink::boilerFrameOperation<decltype(b1), b1, minuteCount>
                             >(msg, sW));
 }
 }
