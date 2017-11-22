@@ -628,6 +628,9 @@ TEST(FrameHandlerTest, frameToBoilerHubTest)
 {
     OTFHT::NULLSerialStream::verbose = false;
 
+    // Reset boiler driver state
+    FTBHT::b1.reset();
+
     const uint8_t * senderID = OTFHT::minimumSecureFrame::id;
     const uint8_t * msgCounter = OTFHT::minimumSecureFrame::oldCounter;
 

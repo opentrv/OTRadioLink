@@ -168,6 +168,10 @@ private:
     }
 
 public:
+    // Clears reset internal boiler state to initial values.
+    // Primarily for testing.
+    void reset() { updateCalled = false; callForHeatRX = false; boilerNoCallM = 0; boilerCountdownTicks = 0; }
+
     // True if boiler should be on.
     inline bool isBoilerOn() { return(0 != boilerCountdownTicks); }
 
