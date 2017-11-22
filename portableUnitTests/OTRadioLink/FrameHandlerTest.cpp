@@ -604,7 +604,7 @@ const uint8_t minuteCount = 1;
 OTRadValve::OTHubManager<false, false> hm;  // no EEPROM so parameters don't matter
 OTRadValve::BoilerLogic::OnOffBoilerDriverLogic<decltype(hm), hm, heatCallPin> b1;
 //
-bool decodeAndHandleSecureFrame(volatile const uint8_t *msg)
+bool decodeAndHandleSecureFrame(volatile const uint8_t *const msg)
 {
     // Workspace for decodeAndHandleOTSecureOFrameWithWorkspace
     constexpr size_t workspaceRequired =
