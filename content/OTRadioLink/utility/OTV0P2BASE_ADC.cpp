@@ -39,6 +39,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 #include "OTV0P2BASE_PowerManagement.h"
 #include "OTV0P2BASE_Sleep.h"
 
+// IF DEFINED: ADC can time out if approaching the end of a minor cycle, even
+// if it has not settled yet.
+#define ADC_TIMEOUT_TEST
 
 namespace OTV0P2BASE
 {

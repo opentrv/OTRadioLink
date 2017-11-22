@@ -127,7 +127,8 @@ TEST(BoilerDriverTest, boilerHubModeIncBoilerNoCallM)
 #if 1  // Stack usage checks
 // Measure stack usage of remoteCallForHeatRX.
 // (DE20170609): 80 bytes
-TEST(BoilerDriverTest, remoteCallForHeatRXStackUsage) {
+TEST(BoilerDriverTest, remoteCallForHeatRXStackUsage)
+{
     // Instantiate boiler driver
     constexpr uint8_t heatCallPin = 0; // unused in unit tests.
     OTRadValve::BoilerLogic::OnOffBoilerDriverLogic<decltype(BoilerDriverTest::hm), BoilerDriverTest::hm, heatCallPin> bh;
@@ -145,7 +146,8 @@ TEST(BoilerDriverTest, remoteCallForHeatRXStackUsage) {
 
 // Measure stack usage of remoteCallForHeatRX.
 // (DE20170609): 64 bytes
-TEST(BoilerDriverTest, processCallsForHeatStackUsage) {
+TEST(BoilerDriverTest, processCallsForHeatStackUsage)
+{
     // Instantiate boiler driver
     constexpr uint8_t heatCallPin = 0; // unused in unit tests.
     constexpr bool inHubMode = true;

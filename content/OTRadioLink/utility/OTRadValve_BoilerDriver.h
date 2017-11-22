@@ -29,6 +29,10 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 #include <OTV0p2Base.h>
 #include "OTRadValve_AbstractRadValve.h"
 
+// IF DEFINED: Print warning that update is not being called in loop.
+// Should probably be disabled in production version.
+#define BOILERDRIVER_UPDATE_WARNING
+
 
 // Use namespaces to help avoid collisions.
 namespace OTRadValve
@@ -121,6 +125,14 @@ template<typename hm_t, hm_t &hm,
 class OnOffBoilerDriverLogic
 {
 private:
+
+#ifdef BOILERDRIVER_UPDATE_WARNING
+    // Make sure that processCallsForHeat is called in hub mode.
+    // This is to make sure a unit with a boiler driver has the update function
+    // called in hubmode.
+    volatile bool updateCalled = false;
+#endif // BOILERDRIVER_UPDATE_WARNING
+
     // Set true on receipt of plausible call for heat,
     // to be polled, evaluated and cleared by the main control routine.
     // Atomic to allow thread-safe lock-free access.
@@ -156,6 +168,10 @@ private:
     }
 
 public:
+    // Clears reset internal boiler state to initial values.
+    // Primarily for testing.
+    void reset() { updateCalled = false; callForHeatRX = false; boilerNoCallM = 0; boilerCountdownTicks = 0; }
+
     // True if boiler should be on.
     inline bool isBoilerOn() { return(0 != boilerCountdownTicks); }
 
@@ -174,6 +190,11 @@ public:
         // TODO: Should be filtering first by housecode
         // then by individual and tracked aggregate valve-open percentage.
         // Only individual valve levels used here; no state is retained.
+
+
+#ifdef BOILERDRIVER_UPDATE_WARNING
+        if(!updateCalled) { OTV0P2BASE::serialPrintlnAndFlush(F("?BD")); }
+#endif // BOILERDRIVER_UPDATE_WARNING
 
         // Normal minimum single-valve percentage open that is not ignored.
         // Somewhat higher than typical per-valve minimum,
@@ -221,15 +242,25 @@ public:
         }
     }
 
-    // Process calls for heat, ie turn boiler on and off as appropriate.
-    // Has control of OUT_HEATCALL if defined(ENABLE_BOILER_HUB).
-    // Called every tick (typically 2s); drives timing.
+    /**
+     * @brief   Process calls for heat, ie turn boiler on and off as appropriate.
+     *          Should be called every tick (typically 2s); drives timing.
+     * @param   second0: If true and boiler is not on, advances the internal model of time by one minute.
+     * @param   hubMode: If true, internal state is updated and the boiler is operated.
+     *                   If false, internal state is ignored and BOILER IS FORCED OFF.
+     */
     void processCallsForHeat(const bool second0, const bool hubMode)
     {
-        #if 1
+        #if 0
         OTV0P2BASE::MemoryChecks::recordIfMinSP();
         #endif
+
         if(hubMode) {
+#ifdef BOILERDRIVER_UPDATE_WARNING
+            // Only set if in hub mode.
+            updateCalled = true;
+#endif // BOILERDRIVER_UPDATE_WARNING
+
             // Check if call-for-heat has been received, and clear the flag.
             // Record call for heat, both to start boiler-on cycle and possibly to defer need to listen again.
             // Ignore new calls for heat until minimum off/quiet period has been reached.
