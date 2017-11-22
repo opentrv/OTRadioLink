@@ -41,7 +41,19 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014--2017
 #undef OTMEMCHECKS_FREQ_PROFILING
 #undef OTMEMCHECKS_TIME_PROFILING
 
-extern uint8_t _end;
+
+#ifdef __APPLE__
+// OSX does not provide _etext, _edata or _end as variables, but instead
+// provides get_etext(), get_edata() and get_end() functions to return their
+// addresses.
+#include "mach-o/getsect.h"
+#else
+extern "C" {
+extern char _end;
+}
+// Function that returns the address of _end to ease support with OSX.
+size_t get_end() { return ((size_t)&_end); }
+#endif
 
 namespace OTV0P2BASE
 {
@@ -245,7 +257,7 @@ class MemoryChecks
     static size_t stackSpaceInUse() { return((size_t)RAMEND - getSP()); }
     // Compute space after DATA and BSS (_end) and below STACK (ignoring HEAP) on ARDUINO/AVR; should be strictly +ve.
     // If this becomes non-positive then variables are likely being corrupted.
-    static intptr_t spaceBelowStackToEnd() { return((getSP() - (intptr_t)&_end)); }
+    static intptr_t spaceBelowStackToEnd() { return((getSP() - (intptr_t)get_end())); }
 
     // Reset SP minimum: ISR-safe.
     static void resetMinSP() { minSP.store(RAMEND); checkLocation = 0; programCounter = 0;}
@@ -271,7 +283,7 @@ class MemoryChecks
     // Get SP minimum: ISR-safe.
     static size_t getMinSP() { return(minSP.load()); }
     // Get minimum space below SP above _end: ISR-safe.
-    static intptr_t getMinSPSpaceBelowStackToEnd() { return(minSP.load() - (intptr_t)&_end); }
+    static intptr_t getMinSPSpaceBelowStackToEnd() { return(minSP.load() - (intptr_t)get_end()); }
     // Force restart if minimum space below SP has not remained strictly positive.
     static void forceResetIfStackOverflow() { if(getMinSPSpaceBelowStackToEnd() <= 0) { forceReset(); } }
     // Get the identifier for location of stack check with highest stack usage,

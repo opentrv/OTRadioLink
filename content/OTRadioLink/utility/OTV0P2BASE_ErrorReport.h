@@ -76,6 +76,9 @@ class ErrorReport final : public OTV0P2BASE::Actuator<int8_t>
         // Values in the range [-99,99] will save space in JSON representations.
         enum errorCatalogue : int8_t
             {
+            // Supply voltage is low (as defined by SupplyVoltageCentiVolts::BATTERY_LOW_cV).
+            WARN_BATTERY_LOW = -21,
+
             // Valve running in low/reduced precision mode;
             // may indication sticky valve or jammed mechanism.
             WARN_VALVE_LOW_PRECISION = -15,
@@ -96,6 +99,9 @@ class ErrorReport final : public OTV0P2BASE::Actuator<int8_t>
 
             // Unspecified error.
             ERR_UNSPECIFIED = 1,
+
+            // Supply voltage is very low (as defined by SupplyVoltageCentiVolts::BATTERY_VERY_LOW_cV).
+            ERR_BATTERY_VERY_LOW = 20,
             };
 
     private:

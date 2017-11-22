@@ -38,6 +38,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #include "OTV0P2BASE_ADC.h"
 #include "OTV0P2BASE_Entropy.h"
 #include "OTV0P2BASE_Sleep.h"
+#include "OTV0P2BASE_ErrorReport.h"
 
 namespace OTV0P2BASE
 {
@@ -315,6 +316,13 @@ uint16_t SupplyVoltageCentiVolts::read()
   isLow = isVeryLow || (result <= BATTERY_LOW_cV);
   static_assert(BATTERY_LOW_cV > BATTERY_VERY_LOW_cV, "thresholds should be such that 'not low' entails 'not very low'");
   static_assert(MAINS_MIN_cV > BATTERY_LOW_cV, "thresholds should be such that 'on mains' entails 'not low'");
+
+  // TODO work out nice way of rate limiting to avoid masking other warnings.
+  // Set an error if battery is very low.
+  // Set a warning if low, to avoid masking any other errors.
+  if(isVeryLow) { ErrorReporter.set(ErrorReport::ERR_BATTERY_VERY_LOW); }
+  else if (isLow) { ErrorReporter.set(ErrorReport::WARN_BATTERY_LOW); }
+
 #if 0 && defined(DEBUG)
   DEBUG_SERIAL_PRINT_FLASHSTRING("Battery cV: ");
   DEBUG_SERIAL_PRINT(result);

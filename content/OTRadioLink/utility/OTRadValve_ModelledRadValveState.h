@@ -119,16 +119,16 @@ struct ModelledRadValveInputState final
 // This uses int_fast16_t for C16 temperatures (ie Celsius * 16)
 // to be able to efficiently process signed values with sufficient range
 // for room temperatures.
+//
+// Template parameters:
+//     MINIMAL_BINARY_IMPL  ff true then support a minimal/binary valve impl
 template <bool MINIMAL_BINARY_IMPL = false>
 struct ModelledRadValveState final
 {
-    // If true then support a minimal/binary valve implementation.
-//    static constexpr bool MINIMAL_BINARY_IMPL = false;
-
     // FEATURE SUPPORT
     // If true then support proportional response in target 1C range.
     static constexpr bool SUPPORT_PROPORTIONAL = !MINIMAL_BINARY_IMPL;
-    // If true then detect draughts from open windows and doors.
+    // If true then detect drafts from open windows and doors.
     static constexpr bool SUPPORT_MRVE_DRAUGHT = false;
     // If true then do lingering close to help boilers with poor bypass.
     static constexpr bool SUPPORT_LINGER = false;
@@ -408,7 +408,7 @@ public:
     // and used efficiently (~80% use of the top digit).
     //
     // Daily allowance (in terms of battery/energy use)
-    // is assumed to be ~400% (DHD20141230),
+    // is assumed to be ~600% (DHD20171118), was ~400% (DHD20141230),
     // so this should hold much more than that to avoid ambiguity
     // from missed/infrequent readings,
     // especially given full slew (+100%) can sometimes happen in 1 minute/tick.
@@ -468,10 +468,11 @@ public:
     //   * The target 1C band is offset so that at a nominal XC.
     //     temperature should be held somewhere between X.0C and X.5C.
     //   * There is an outer band which when left has the valve immediately
-    //     completely opens or shuts as in binary mode, as an end stop on behaviour.
+    //     completely opens or shuts as in binary mode, as an end stop on
+    //     behaviour.
     //   * The outer band is wide, even without a wide deadband,
-    //     to allow the valve not necessarily to be immediately pushed to end stops
-    //     even when switching between setback levels,
+    //     to allow the valve not necessarily to be immediately pushed
+    //     to end stops even when switching between setback levels,
     //     and to allow temporary overshoot when the temperature sensor
     //     is close to the heater for all-in-one TRVs for example.
     //   * When dark or unoccupied or otherwise needing to be quiet
@@ -639,7 +640,7 @@ public:
 
             // When well off target then valve closing may be sped up.
             // Have a significantly higher ceiling if filtering,
-            // eg because sensor near heater;
+            // eg because the sensor is near the heater;
             // also when a higher non set-back temperature is supplied
             // then any wide deadband is pushed up based on it.
             // Note that this very large band also applies for the wide deadband
@@ -656,12 +657,13 @@ public:
             // by this much to allow heat to be effectively pushed into the room.
             // This is set at up to around halfway to the outer/limit boundary
             // (though capped at an empirically-reasonable level);
-            // far enough away to react in time to avoid breaching the outer limit.
+            // far enough away to react in time to avoid breaching the outer
+            // limit.
             static constexpr uint8_t wATC16 = OTV0P2BASE::fnmin(4 * 16,
                 _proportionalRange * 4);
-            // Filtering pushes limit up well above the target for all-in-one TRVs,
+            // Filtering pushes limit up well above the target for all-in-1 TRVs,
             // though if sufficiently set back the non-set-back value prevails.
-            // Does not extend general wide deadband upwards to save some energy.
+            // Keeps general wide deadband downwards-only to save some energy.
             const uint8_t wOTC16highSide = isFiltering ? wATC16 : halfNormalBand;
             const bool wellAboveTarget = errorC16 > wOTC16highSide;
             const bool wellBelowTarget = errorC16 < -wOTC16basic;
@@ -669,8 +671,8 @@ public:
             // This allows the room temperature to fall passively during setback.
             const int_fast16_t herrorC16 = errorC16 -
                 (int_fast16_t(higherTargetC - tTC) << 4);
-            // True if well above the highest permitted (non-set-back) temperature,
-            // allowing for filtering.
+            // True if well above the highest permitted (non-set-back)
+            // temperature, allowing for filtering.
             // This is relative to (and above) the non-set-back temperature
             // to avoid the valve having to drift closed for no other reason
             // when the target temperature is set back
@@ -684,7 +686,8 @@ public:
             const uint8_t errShift = worf ? worfErrShift : (worfErrShift-1);
             // Fast slew when responding to manual control or similar.
             const uint8_t slewF = OTV0P2BASE::fnmin(TRV_SLEW_PC_PER_MIN_FAST,
-                uint8_t((errorC16 < 0) ? ((-errorC16) >> errShift) : (errorC16 >> errShift)));
+                uint8_t((errorC16 < 0) ?
+                    ((-errorC16) >> errShift) : (errorC16 >> errShift)));
             const bool inCentralSweetSpot = (0 == slewF);
 
             // Move quickly when requested, eg responding to manual control use.
@@ -700,7 +703,8 @@ public:
             // if not in central sweet-spot already  (TODO-1099)
             // to have boiler respond appropriately ASAP also.
             // As well as responding quickly thermally to requested changes,
-            // this is about giving rapid confidence-building feedback to the user.
+            // this is about giving rapid confidence-building feedback to the
+            // user.
             // Note that a manual adjustment of the temperature set-point
             // is very likely to force this unit out of the sweet-spot.
             //
