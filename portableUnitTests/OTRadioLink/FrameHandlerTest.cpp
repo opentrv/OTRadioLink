@@ -623,42 +623,42 @@ bool decodeAndHandleSecureFrame(volatile const uint8_t *const msg)
                             >(msg, sW));
 }
 }
-// // Test message handler to boiler hub stack
-// TEST(FrameHandlerTest, frameToBoilerHubTest)
-// {
-//     OTFHT::NULLSerialStream::verbose = false;
+// Test message handler to boiler hub stack
+TEST(FrameHandlerTest, frameToBoilerHubTest)
+{
+    OTFHT::NULLSerialStream::verbose = false;
 
-//     // Reset boiler driver state
-//     FTBHT::b1.reset();
+    // Reset boiler driver state
+    FTBHT::b1.reset();
 
-//     const uint8_t * senderID = OTFHT::minimumSecureFrame::id;
-//     const uint8_t * msgCounter = OTFHT::minimumSecureFrame::oldCounter;
+    const uint8_t * senderID = OTFHT::minimumSecureFrame::id;
+    const uint8_t * msgCounter = OTFHT::minimumSecureFrame::oldCounter;
 
-//     OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter &sfrx = OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter::getInstance();
-//     sfrx.setMockIDValue(senderID);
-//     sfrx.setMockCounterValue(msgCounter);
+    OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter &sfrx = OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter::getInstance();
+    sfrx.setMockIDValue(senderID);
+    sfrx.setMockCounterValue(msgCounter);
 
-//     // Setup message handler and mock radio
-//     OTRadioLink::OTMessageQueueHandler<
-//         OTFHT::pollIO, 4800,
-//         FTBHT::decodeAndHandleSecureFrame> mh;
-//     OTRadioLink::OTRadioLinkMock rl;
-//     // Populate radio message buffer
-//     memcpy(rl.message, OTFHT::minimumSecureFrame::buf, sizeof(OTFHT::minimumSecureFrame::buf));
+    // Setup message handler and mock radio
+    OTRadioLink::OTMessageQueueHandler<
+        OTFHT::pollIO, 4800,
+        FTBHT::decodeAndHandleSecureFrame> mh;
+    OTRadioLink::OTRadioLinkMock rl;
+    // Populate radio message buffer
+    memcpy(rl.message, OTFHT::minimumSecureFrame::buf, sizeof(OTFHT::minimumSecureFrame::buf));
 
-//     // Trick boiler hub into believing 10 minutes have passed.
-//     for(auto i = 0; i < 100; ++i) {
-//         FTBHT::b1.processCallsForHeat(true, FTBHT::inHubMode);
-//     }
-//     EXPECT_FALSE(FTBHT::b1.isBoilerOn());  // Should initialise to off
+    // Trick boiler hub into believing 10 minutes have passed.
+    for(auto i = 0; i < 100; ++i) {
+        FTBHT::b1.processCallsForHeat(true, FTBHT::inHubMode);
+    }
+    EXPECT_FALSE(FTBHT::b1.isBoilerOn());  // Should initialise to off
 
-//     // "Handle" to trigger bh remote call for heat.
-//     const bool test1 = mh.handle(false, rl);
-//     EXPECT_TRUE(test1);
-//     EXPECT_FALSE(FTBHT::b1.isBoilerOn());  // Should still be off, until heat call processed.
-//     FTBHT::b1.processCallsForHeat(false, FTBHT::inHubMode);
-//     EXPECT_TRUE(FTBHT::b1.isBoilerOn());
-// }
+    // "Handle" to trigger bh remote call for heat.
+    const bool test1 = mh.handle(false, rl);
+    EXPECT_TRUE(test1);
+    EXPECT_FALSE(FTBHT::b1.isBoilerOn());  // Should still be off, until heat call processed.
+    FTBHT::b1.processCallsForHeat(false, FTBHT::inHubMode);
+    EXPECT_TRUE(FTBHT::b1.isBoilerOn());
+}
 
 #ifdef OTAESGCM_ALLOW_NON_WORKSPACE
 //
