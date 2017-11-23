@@ -600,7 +600,9 @@ TEST(FrameHandlerTest, decodeAndHandleOTSecurableFrameDecryptSuccess)
 namespace FTBHT {
 constexpr uint8_t heatCallPin = 0;
 constexpr bool inHubMode = true;
-const uint8_t minuteCount = 1;
+// This value is a const, but marking as such causes template instantiation to
+// fail on Travis CI when compiling with gcc (Ubuntu 4.8.4-2ubuntu1~14.04.3) 4.8.4 
+/*const*/ uint8_t minuteCount = 1;
 OTRadValve::OTHubManager<false, false> hm;  // no EEPROM so parameters don't matter
 OTRadValve::BoilerLogic::OnOffBoilerDriverLogic<decltype(hm), hm, heatCallPin> b1;
 //
