@@ -600,7 +600,7 @@ TEST(FrameHandlerTest, decodeAndHandleOTSecurableFrameDecryptSuccess)
 namespace FTBHT {
 constexpr uint8_t heatCallPin = 0;
 constexpr bool inHubMode = true;
-// const uint8_t minuteCount = 1;
+uint8_t minuteCount = 1;
 OTRadValve::OTHubManager<false, false> hm;  // no EEPROM so parameters don't matter
 OTRadValve::BoilerLogic::OnOffBoilerDriverLogic<decltype(hm), hm, heatCallPin> b1;
 //
@@ -618,8 +618,8 @@ bool decodeAndHandleSecureFrame(volatile const uint8_t *const msg)
                             OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
                             OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE,
                             OTFHT::getKeySuccess,
-                            OTRadioLink::serialFrameOperation<decltype(OTFHT::ss),OTFHT::ss>
-                            // OTRadioLink::boilerFrameOperation<decltype(b1), b1, minuteCount>
+                            OTRadioLink::serialFrameOperation<decltype(OTFHT::ss),OTFHT::ss>,
+                            OTRadioLink::boilerFrameOperation<decltype(b1), b1, minuteCount>
                             >(msg, sW));
 }
 }
