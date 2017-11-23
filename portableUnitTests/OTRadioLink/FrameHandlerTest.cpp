@@ -597,68 +597,70 @@ TEST(FrameHandlerTest, decodeAndHandleOTSecurableFrameDecryptSuccess)
 }
 
 
-// namespace FTBHT {
-// constexpr uint8_t heatCallPin = 0;
-// constexpr bool inHubMode = true;
-// const uint8_t minuteCount = 1;
-// OTRadValve::OTHubManager<false, false> hm;  // no EEPROM so parameters don't matter
-// OTRadValve::BoilerLogic::OnOffBoilerDriverLogic<decltype(hm), hm, heatCallPin> b1;
-// //
-// bool decodeAndHandleSecureFrame(volatile const uint8_t *const msg)
-// {
-//     // Workspace for decodeAndHandleOTSecureOFrameWithWorkspace
-//     constexpr size_t workspaceRequired =
-//             OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameSafely_total_scratch_usage_OTAESGCM_3p0
-//             + OTAESGCM::OTAES128GCMGenericWithWorkspace<>::workspaceRequiredDec
-//             + OTRadioLink::authAndDecodeOTSecurableFrameWithWorkspace_scratch_usage; // + space to hold the key
-//     uint8_t workspace[workspaceRequired];
-//     OTV0P2BASE::ScratchSpaceL sW(workspace, sizeof(workspace));
+namespace FTBHT {
+constexpr uint8_t heatCallPin = 0;
+constexpr bool inHubMode = true;
+// This value is a const, but marking as such causes template instantiation to
+// fail on Travis CI when compiling with gcc (Ubuntu 4.8.4-2ubuntu1~14.04.3) 4.8.4 
+/*const*/ uint8_t minuteCount = 1;
+OTRadValve::OTHubManager<false, false> hm;  // no EEPROM so parameters don't matter
+OTRadValve::BoilerLogic::OnOffBoilerDriverLogic<decltype(hm), hm, heatCallPin> b1;
+//
+bool decodeAndHandleSecureFrame(volatile const uint8_t *const msg)
+{
+    // Workspace for decodeAndHandleOTSecureOFrameWithWorkspace
+    constexpr size_t workspaceRequired =
+            OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decodeSecureSmallFrameSafely_total_scratch_usage_OTAESGCM_3p0
+            + OTAESGCM::OTAES128GCMGenericWithWorkspace<>::workspaceRequiredDec
+            + OTRadioLink::authAndDecodeOTSecurableFrameWithWorkspace_scratch_usage; // + space to hold the key
+    uint8_t workspace[workspaceRequired];
+    OTV0P2BASE::ScratchSpaceL sW(workspace, sizeof(workspace));
 
-//     return (OTRadioLink::decodeAndHandleOTSecureOFrameWithWorkspace<
-//                             OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
-//                             OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE,
-//                             OTFHT::getKeySuccess,
-//                             OTRadioLink::serialFrameOperation<decltype(OTFHT::ss),OTFHT::ss>,
-//                             OTRadioLink::boilerFrameOperation<decltype(b1), b1, minuteCount>
-//                             >(msg, sW));
-// }
-// }
-// // Test message handler to boiler hub stack
-// TEST(FrameHandlerTest, frameToBoilerHubTest)
-// {
-//     OTFHT::NULLSerialStream::verbose = false;
+    return (OTRadioLink::decodeAndHandleOTSecureOFrameWithWorkspace<
+                            OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
+                            OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE,
+                            OTFHT::getKeySuccess,
+                            OTRadioLink::serialFrameOperation<decltype(OTFHT::ss),OTFHT::ss>,
+                            OTRadioLink::boilerFrameOperation<decltype(b1), b1, minuteCount>
+                            >(msg, sW));
+}
+}
+// Test message handler to boiler hub stack
+TEST(FrameHandlerTest, frameToBoilerHubTest)
+{
+    OTFHT::NULLSerialStream::verbose = false;
 
-//     // Reset boiler driver state
-//     FTBHT::b1.reset();
+    // Reset boiler driver state
+    FTBHT::b1.reset();
 
-//     const uint8_t * senderID = OTFHT::minimumSecureFrame::id;
-//     const uint8_t * msgCounter = OTFHT::minimumSecureFrame::oldCounter;
+    const uint8_t * senderID = OTFHT::minimumSecureFrame::id;
+    const uint8_t * msgCounter = OTFHT::minimumSecureFrame::oldCounter;
 
-//     OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter &sfrx = OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter::getInstance();
-//     sfrx.setMockIDValue(senderID);
-//     sfrx.setMockCounterValue(msgCounter);
+    OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter &sfrx = OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter::getInstance();
+    sfrx.setMockIDValue(senderID);
+    sfrx.setMockCounterValue(msgCounter);
 
-//     // Setup message handler and mock radio
-//     OTRadioLink::OTMessageQueueHandler<
-//         OTFHT::pollIO, 4800,
-//         FTBHT::decodeAndHandleSecureFrame> mh;
-//     OTRadioLink::OTRadioLinkMock rl;
-//     // Populate radio message buffer
-//     memcpy(rl.message, OTFHT::minimumSecureFrame::buf, sizeof(OTFHT::minimumSecureFrame::buf));
+    // Setup message handler and mock radio
+    OTRadioLink::OTMessageQueueHandler<
+        OTFHT::pollIO, 4800,
+        FTBHT::decodeAndHandleSecureFrame> mh;
+    OTRadioLink::OTRadioLinkMock rl;
+    // Populate radio message buffer
+    memcpy(rl.message, OTFHT::minimumSecureFrame::buf, sizeof(OTFHT::minimumSecureFrame::buf));
 
-//     // Trick boiler hub into believing 10 minutes have passed.
-//     for(auto i = 0; i < 100; ++i) {
-//         FTBHT::b1.processCallsForHeat(true, FTBHT::inHubMode);
-//     }
-//     EXPECT_FALSE(FTBHT::b1.isBoilerOn());  // Should initialise to off
+    // Trick boiler hub into believing 10 minutes have passed.
+    for(auto i = 0; i < 100; ++i) {
+        FTBHT::b1.processCallsForHeat(true, FTBHT::inHubMode);
+    }
+    EXPECT_FALSE(FTBHT::b1.isBoilerOn());  // Should initialise to off
 
-//     // "Handle" to trigger bh remote call for heat.
-//     const bool test1 = mh.handle(false, rl);
-//     EXPECT_TRUE(test1);
-//     EXPECT_FALSE(FTBHT::b1.isBoilerOn());  // Should still be off, until heat call processed.
-//     FTBHT::b1.processCallsForHeat(false, FTBHT::inHubMode);
-//     EXPECT_TRUE(FTBHT::b1.isBoilerOn());
-// }
+    // "Handle" to trigger bh remote call for heat.
+    const bool test1 = mh.handle(false, rl);
+    EXPECT_TRUE(test1);
+    EXPECT_FALSE(FTBHT::b1.isBoilerOn());  // Should still be off, until heat call processed.
+    FTBHT::b1.processCallsForHeat(false, FTBHT::inHubMode);
+    EXPECT_TRUE(FTBHT::b1.isBoilerOn());
+}
 
 #ifdef OTAESGCM_ALLOW_NON_WORKSPACE
 //

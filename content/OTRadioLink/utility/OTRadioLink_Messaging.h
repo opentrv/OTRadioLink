@@ -226,7 +226,7 @@ bool relayFrameOperation(const OTFrameData_T &fd)
  *          TODO better description of this.
  * @retval  True if call for heat handled. False if percentOpen is invalid.
  */
-template <typename bh_t, bh_t &bh, uint8_t const &minuteCount>
+template <typename bh_t, bh_t &bh, const uint8_t &minuteCount>
 bool boilerFrameOperation(const OTFrameData_T &fd)
 {
     const uint8_t * const db = fd.decryptedBody;
