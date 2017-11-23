@@ -348,8 +348,8 @@ uint8_t encodeNonsecureOnStack(
  *                and trailer. Never NULL
  * @retval  Total frame length in bytes + fl byte + 1, or 0 if there is an error eg
  *          because the CRC check failed.
- *
- * @note    Uses a scratch space, allowing the stack usage to be more tightly controlled.
+ * 
+ * FIXME    Rename - makes no segnificant stack allocations.
  */
 uint8_t decodeNonsecureOnStack(OTDecodeData_T &fd)
     {
@@ -822,6 +822,8 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encode(
  * 
  * Note that the frame will be 27 + ID-length (up to maxIDLength) + body-length
  * bytes, so the buffer must be large enough to accommodate that.
+ * 
+ * Uses a scratch space to allow tightly controlling stack usage.
  *
  * @param   fd: Common data required for encryption:
  *              - ptext: Plaintext to encrypt. '\0'-terminated {} JSON stats.
@@ -847,8 +849,6 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encode(
  *              depending on the implementation  and, for example,
  *              time/resource limits.
  * @retval  Returns number of bytes written to fd.outbuf, or 0 in case of error.
- *
- * @note    Uses a scratch space, allowing the stack usage to be more tightly controlled.
  */
 uint8_t SimpleSecureFrame32or0BodyTXBase::encodeValveFrame(
                                             OTEncodeData_T &fd,
@@ -969,8 +969,11 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::_decodeFromID(
  * message counter, decodes, and updates the counter if successful.
  * (Pre-filtering by type and ID and message counter may already have
  * happened.)
+ * 
  * Note that this is for frames being send from the ID in the header,
  * not for lightweight return traffic to the specified ID.
+ * 
+ * Uses a scratch space to allow tightly controlling stack usage.
  *
  * @param   fd: Common data required for decryption.
  *              - inbuf: Never NULL.
@@ -992,8 +995,6 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::_decodeFromID(
  *          - If this returns >1 then the frame is authenticated, and the
  *            decrypted body is available if present and a buffer was
  *            provided.
- *
- * @note    Uses a scratch space, allowing the stack usage to be more tightly controlled.
  */
 uint8_t SimpleSecureFrame32or0BodyRXBase::decode(
             OTDecodeData_T &fd,
