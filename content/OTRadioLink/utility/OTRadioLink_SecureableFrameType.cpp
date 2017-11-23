@@ -68,13 +68,13 @@ namespace OTRadioLink
  *               the buffer is too small for encoded header, the routine will
  *               fail (return 0)
  * @param   secure_: true if this is to be a secure frame.
- * @param   fType_: frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive XXX
+ * @param   fType_: frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
  * @param   seqNum_: least-significant 4 bits are 4 lsbs of frame sequence number
  * @param   id_: Source of ID bytes. Length in bytes must be <=8 (could be 15
  *               for non-small frames). NULL means pre-filled but must not
  *               start with 0xff.
  * @param   bl_: body length in bytes [0,251] at most.
- * @param   tl_: trailer length [1,251[ at most, always == 1 for non-secure frame.  XXX
+ * @param   tl_: trailer length [1,251[ at most, always == 1 for non-secure frame.
  * @retval  Returns number of bytes of encoded header excluding the leading fl
  *          length byte, or 0 in case of error.
  */
@@ -82,7 +82,7 @@ uint8_t SecurableFrameHeader::encodeHeader(
         OTBuf_t &buf,
         bool secure_, FrameType_Secureable fType_,
         uint8_t seqNum_,
-        const OTBuf_t &id_,  // FIXME ScratchSpace can't be const!
+        const OTBuf_t &id_,
         const uint8_t bl_,
         const uint8_t tl_)
     {
@@ -632,12 +632,15 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::pad32BBuffer(uint8_t *const buf, const
 //  * buf  buffer containing the plain-text; must be >= 32 bytes, never NULL
 //
 // NOTE: does not check that all padding bytes are actually zero.
+// 
+// FIXME    Actually returns unpadded data length, or 0 on fail.
+// TODO     figure out what it should do.
 uint8_t SimpleSecureFrame32or0BodyRXBase::unpad32BBuffer(const uint8_t *const buf)
     {
     const uint8_t paddingZeros = buf[ENC_BODY_SMALL_FIXED_CTEXT_SIZE - 1];
     if(paddingZeros > 31) { return(0); } // ERROR
     const uint8_t datalen = ENC_BODY_SMALL_FIXED_CTEXT_SIZE - 1 - paddingZeros;
-    return(datalen); // FAIL FIXME why fixme?
+    return(datalen);
     }
 
 // Check message counter for given ID, ie that it is high enough to be eligible for authenticating/processing.
@@ -894,25 +897,25 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeValveFrame(
 }
 
 /**
- * @brief XXX
+ * @brief   Decode a frame from a given ID. NOT A PUBLIC ENTRY POINT!
+ * 
+ * The frame should already have some checks carried out, e.g. by decode.
  *
  * Passed a candidate node/counterparty ID derived from:
  * - The frame ID in the incoming header.
- * - Possible other adjustments, such as forcing bit values for reverse
- *   flows.
+ * - Possible other adjustments, such as forcing bit values for reverse flows.
  * The expanded ID must be at least length 6 for 'O' / 0x80 style enc/auth.
  *
- * This routine constructs an IV from this expanded ID and other
- * information in the header and then returns the result of calling
- * decodeRaw().
+ * This routine constructs an IV from this expanded ID and other information
+ * in the header and then returns the result of calling decodeRaw().
  *
  * If several candidate nodes share the ID prefix in the frame header (in
  * the extreme case with a zero-length header ID for an anonymous frame)
  * then they may all have to be tested in turn until one succeeds.
  *
  * Generally, this should be called AFTER checking that the aggregate RXed
- * message counter is higher than for the last soutbufuccessful receive for this
- * node and flow direction. On success, those message counters should be
+ * message counter is higher than for the last soutbufuccessful receive for 
+ * this node and flow direction. On success, those message counters should be
  * updated to the new values to prevent replay attacks.
  *
  * TO AVOID REPLAY ATTACKS:
@@ -923,9 +926,13 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeValveFrame(
  *
  * @param   fd: Must contain a validated header, in addition to the
  *              conditions outlined in decode().
+ * @param   d: Decryption function.
  * @param   adjID: Adjusted candidate ID based on the received ID in the
  *                 header. Must be able to hold >= 6 bytes. Never NULL.
- * XXX Other params
+ * @param   scratch: Scratch space. Size must be large enough to contain
+ *                   _decodeFromID_total_scratch_usage_OTAESGCM_3p0 bytes AND
+ *                   the scratch space required by the decryption function `d`.
+ * @param   key: 16-byte secret key. Never NULL.
  * @retval  Total number of bytes read for the frame (including, and with a
  *          value one higher than the first 'fl' bytes).
  *          Returns zero in case of error, eg because authentication failed.

@@ -41,6 +41,7 @@ namespace OTRadioLink
 
     // Alias ScratchSpace for passing around arrays of known length.
     using OTBuf_t = OTV0P2BASE::ScratchSpace;
+
     // Secureable (V0p2) messages.
     //
     // Based on 2015Q4 spec and successors:
@@ -255,13 +256,13 @@ namespace OTRadioLink
          *               the buffer is too small for encoded header, the routine will
          *               fail (return 0)
          * @param   secure_: true if this is to be a secure frame.
-         * @param   fType_: frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive XXX
+         * @param   fType_: frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
          * @param   seqNum_: least-significant 4 bits are 4 lsbs of frame sequence number
          * @param   id_: Source of ID bytes. Length in bytes must be <=8 (could be 15
          *               for non-small frames). NULL means pre-filled but must not
          *               start with 0xff.
          * @param   bl_: body length in bytes [0,251] at most.
-         * @param   tl_: trailer length [1,251[ at most, always == 1 for non-secure frame.  XXX
+         * @param   tl_: trailer length [1,251[ at most, always == 1 for non-secure frame.
          * @retval  Returns number of bytes of encoded header excluding the leading fl
          *          length byte, or 0 in case of error.
          */
@@ -892,40 +893,49 @@ namespace OTRadioLink
             virtual bool authAndUpdateRXMsgCtr(const uint8_t *ID, const uint8_t *newCounterValue) = 0;
 
         protected:
-            // As for decodeSecureSmallFrameRaw() but passed a candidate node/counterparty ID
-            // derived from the frame ID in the incoming header,
-            // plus possible other adjustments such has forcing bit values for reverse flows.
-            // This routine constructs an IV from this expanded ID
-            // (which must be at least length 6 for 'O' / 0x80 style enc/auth)
-            // and other information in the header
-            // and then returns the result of calling decodeSecureSmallFrameRaw().
-            // Returns the total number of bytes read for the frame
-            // (including, and with a value one higher than the first 'fl' bytes).
-            // Returns zero in case of error, eg because authentication failed.
-            //
-            // If several candidate nodes share the ID prefix in the frame header
-            // (in the extreme case with a zero-length header ID for an anonymous frame)
-            // then they may all have to be tested in turn until one succeeds.
-            //
-            // Generally a call to this should be done AFTER checking that
-            // the aggregate RXed message counter is higher than for the last successful receive
-            // (for this node and flow direction)
-            // and after a success those message counters should be updated
-            // (which may involve more than a simple increment)
-            // to the new values to prevent replay attacks.
-            //
-            //   * adjID / adjIDLen  adjusted candidate ID (never NULL)
-            //         and available length (must be >= 6)
-            //         based on the received ID in (the already structurally validated) header
-            //
-            // TO AVOID RELAY ATTACKS: verify the counter is higher than any previous authed message from this sender
-            // then update the RX message counter after a successful auth with this routine.
-            //
-            // Not a public entry point (is protected).
-            // XXX
-            // Pointers held by fd and OTBuf_t should never be nullptrs!
-            // Basic validation of sfh should already have been performed (isInvalid, isSecure, getTl)
-            // Not a public entry point (is protected).
+            /**
+             * @brief   Decode a frame from a given ID. NOT A PUBLIC ENTRY POINT!
+             * 
+             * The frame should already have some checks carried out, e.g. by decode.
+             *
+             * Passed a candidate node/counterparty ID derived from:
+             * - The frame ID in the incoming header.
+             * - Possible other adjustments, such as forcing bit values for reverse flows.
+             * The expanded ID must be at least length 6 for 'O' / 0x80 style enc/auth.
+             *
+             * This routine constructs an IV from this expanded ID and other information
+             * in the header and then returns the result of calling decodeRaw().
+             *
+             * If several candidate nodes share the ID prefix in the frame header (in
+             * the extreme case with a zero-length header ID for an anonymous frame)
+             * then they may all have to be tested in turn until one succeeds.
+             *
+             * Generally, this should be called AFTER checking that the aggregate RXed
+             * message counter is higher than for the last soutbufuccessful receive for 
+             * this node and flow direction. On success, those message counters should be
+             * updated to the new values to prevent replay attacks.
+             *
+             * TO AVOID REPLAY ATTACKS:
+             * - Verify the counter is higher than any previous authed message from
+             *   this sender
+             * - Update the RX message counter after a successful auth with this
+             *   routine.
+             *
+             * @param   fd: Must contain a validated header, in addition to the
+             *              conditions outlined in decode().
+             * @param   d: Decryption function.
+             * @param   adjID: Adjusted candidate ID based on the received ID in the
+             *                 header. Must be able to hold >= 6 bytes. Never NULL.
+             * @param   scratch: Scratch space. Size must be large enough to contain
+             *                   _decodeFromID_total_scratch_usage_OTAESGCM_3p0 bytes AND
+             *                   the scratch space required by the decryption function `d`.
+             * @param   key: 16-byte secret key. Never NULL.
+             * @retval  Total number of bytes read for the frame (including, and with a
+             *          value one higher than the first 'fl' bytes).
+             *          Returns zero in case of error, eg because authentication failed.
+             *
+             * @note    Uses a scratch space, allowing the stack usage to be more tightly controlled.
+             */
             static constexpr uint8_t _decodeFromID_scratch_usage =
                 12; // Space for constructed IV.
             static constexpr size_t _decodeFromID_total_scratch_usage_OTAESGCM_3p0 =
