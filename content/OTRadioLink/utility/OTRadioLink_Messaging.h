@@ -130,6 +130,7 @@ bool nullFrameOperation (const OTDecodeData_T & /*fd*/) { return (false); }
  * @param   p_t: Type of printable object (usually Print, included for consistency with other handlers).
  * @param   p: Reference to printable object. Usually the "Serial" object on the arduino. NOTE! must be the concrete instance. AVR-GCC cannot currently
  *          detect compile time constness of references or pointers (20170608).
+ * @param   fd: Decoded frame data.
  * @retval  False if decryptedBody fails basic validation, else true. NOTE will return true even if printing fails, as long as the attempt was made.
  */
 template <typename p_t, p_t &p>
@@ -167,6 +168,7 @@ bool serialFrameOperation(const OTDecodeData_T &fd)
  * @param   rt_t: Type of rt. Should be an implementation of OTRadioLink.
  * @param   rt: Radio to relay frame over. NOTE! must be the concrete instance (e.g. SIM900 rather than SecondaryRadio). AVR-GCC cannot currently
  *          detect compile time constness of references or pointers (20170608).
+ * @param   fd: Decoded frame data.
  * retval   True if frame successfully added to send queue on rt, else false.
  */
 template <typename rt_t, rt_t &rt>
@@ -192,7 +194,7 @@ bool relayFrameOperation(const OTDecodeData_T &fd)
  *          AVR-GCC cannot currently detect compile time constness of references or pointers (20170608).
  * @param   minuteCount: Reference to the minuteCount variable in Control.cpp (20170608).
  *          NOTE: minuteCount may be removed from the API in future (DE20170616)
- *          TODO better description of this.
+ * @param   fd: Decoded frame data.
  * @retval  True if call for heat handled. False if percentOpen is invalid.
  */
 template <typename bh_t, bh_t &bh, uint8_t &minuteCount>
