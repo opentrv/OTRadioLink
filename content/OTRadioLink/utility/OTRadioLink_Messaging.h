@@ -34,85 +34,45 @@ namespace OTRadioLink
 
 //////////////////  FUNCTION TYPEDEFS.
 /**
- * @brief   Function containing the desired operation for the frame handler to perform on receipt of a valid frame.
+ * @brief   Function containing the desired operation for the frame handler to
+ *          perform on receipt of a valid frame.
  * @retval  True if operation is performed successfully.
+ * FIXME    Return values are always unused.
  */
 typedef bool (frameOperator_fn_t) (const OTDecodeData_T &fd);
 
 /**
  * @brief   High level protocol/frame handler for decoding an RXed message.
- * @param   Pointer to message buffer. Message length is contained in the byte before the buffer.
+ * @param   Pointer to message buffer. Message length is contained in the byte
+ *          before the buffer.
  *          May contain trailing bytes after the message.
- * @retval  True if frame is successfully handled. NOTE: This does not mean it could be decoded/decrypted, just that the
- *          handler recognised the frame type.
+ * @retval  True if frame is successfully handled. NOTE: This does not mean it 
+ *          could be decoded/decrypted, just that the handler recognised the
+ *          frame type.
  */
 typedef bool (frameDecodeHandler_fn_t) (volatile const uint8_t *msg);
 
 
 
 //////////////////  FUNCTION DECLARATIONS.
-/**
- * @brief   Stub version of a frameOperator_fn_t type function.
- * @retval  Always false.
- * @note    Used as a dummy operation and should be optimised out by the compiler.
- */
+// Stub version of a frameOperator_fn_t type function.
 inline frameOperator_fn_t nullFrameOperation;
 
-/**
- * @brief   Operation for printing to serial
- * @param   p_t: Type of printable object (usually Print, included for consistency with other handlers).
- * @param   p: Reference to printable object. Usually the "Serial" object on the arduino. NOTE! must be the concrete instance. AVR-GCC cannot currently
- *          detect compile time constness of references or pointers (20170608).
- * @retval  False if decryptedBody fails basic validation, else true. NOTE will return true even if printing fails, as long as the attempt was made.
- */
-// template <typename p_t, p_t &p>
+// Print a JSON frame to serial
 frameOperator_fn_t serialFrameOperation;
 
-/**
- * @brief   Attempt to add raw RXed frame to rt send queue, if basic validity check of decrypted frame passed.
- * @param   rt_t: Type of rt. Should be an implementation of OTRadioLink.
- * @param   rt: Radio to relay frame over. NOTE! must be the concrete instance (e.g. SIM900 rather than SecondaryRadio). AVR-GCC cannot currently
- *          detect compile time constness of references or pointers (20170608).
- * retval   True if frame successfully added to send queue on rt, else false.
- */
-// template <typename rt_t, rt_t &rt>
+// Attempt to add raw RXed frame to rt send queue, if basic validity check of
+// decrypted frame passed.
 frameOperator_fn_t relayFrameOperation;
 
-/**
- * @brief   Operator for triggering a boiler call for heat.
- * @param   bh_t: Type of bh
- * @param   bh: Boiler Hub driver. Should implement the interface of OnOffBoilerDriverLogic. NOTE! must be the concrete instance.
- *          AVR-GCC cannot currently detect compile time constness of references or pointers (20170608).
- * @param   minuteCount: Reference to the minuteCount variable in Control.cpp (20170608).
- *          NOTE: minuteCount may be removed from the API in future (DE20170616)
- *          TODO better description of this.
- * @retval  True if call for heat handled. False if percentOpen is invalid.
- */
-//template <typename bh_t, bh_t &bh, uint8_t &minuteCount>
+// Trigger a boiler call for heat.
 frameOperator_fn_t boilerFrameOperation;
 
-/**
- * @brief   Dummy frame decoder and handler.
- * @retval  Always returns false as it does not handle a frame.
- * @note    Used as a dummy case for when multiple frame decoders are not used.
- */
+// Dummy frame decoder and handler.
 frameDecodeHandler_fn_t decodeAndHandleDummyFrame;
 
-/**
- * @brief   Handle an OT style secure frame. Will return false for *secureable* small frames that aren't secure.
- * @param   msg: Raw RXed message. msgLen should be stored in the byte before and can be accessed with msg[-1].
- * @param   decrypt: Function to decrypt secure frame with. NOTE decrypt functions with workspace are not supported (20170616).
- * @param   getKey: Function that fills a buffer with the 16 byte secret key. Should return true on success.
- * @param   o1: First operation to perform on successful frame decode.
- * @param   o2: Second operation to perform on successful frame decode.
- *          Operations are performed in order, with no regard to whether a previous operation is successful.
- *          By default all operations but o1 will default to a dummy stub operation (nullFrameOperation).
- * @retval  true on successful frame type match (secure frame), false if no suitable frame was found/decoded and another parser should be tried.
- */
-//template<SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &decrypt,
-//         OTV0P2BASE::GetPrimary16ByteSecretKey_t &getKey,
-//         frameOperator_fn_t &o1,
-//         frameOperator_fn_t &o2 = nullFrameOperation>
+// Handle an OT style secure frame. Will return false for *secureable* small
+// frames that aren't secure.
 frameDecodeHandler_fn_t decodeAndHandleOTSecureFrame;
 
 
@@ -120,18 +80,21 @@ frameDecodeHandler_fn_t decodeAndHandleOTSecureFrame;
 /**
  * @brief   Stub version of a frameOperator_fn_t type function.
  * @retval  Always false.
- * @note    Used as a dummy operation and should be optimised out by the compiler.
+ * @note    Used as a dummy operation. Should be optimised out by the compiler.
  */
 bool nullFrameOperation (const OTDecodeData_T & /*fd*/) { return (false); }
 
 
 /**
  * @brief   Operation for printing to serial
- * @param   p_t: Type of printable object (usually Print, included for consistency with other handlers).
- * @param   p: Reference to printable object. Usually the "Serial" object on the arduino. NOTE! must be the concrete instance. AVR-GCC cannot currently
- *          detect compile time constness of references or pointers (20170608).
+ * @param   p_t: Type of printable object (usually Print, included for
+ *          consistency with other handlers).
+ * @param   p: Reference to printable object. Usually the "Serial" object on 
+ *          the arduino. NOTE! must be the concrete instance. AVR-GCC cannot 
+ *          currently detect compile time constness of references or pointers (20170608).
  * @param   fd: Decoded frame data.
- * @retval  False if decryptedBody fails basic validation, else true. NOTE will return true even if printing fails, as long as the attempt was made.
+ * @retval  False if decryptedBody fails basic validation, else true. NOTE will
+ *           return true even if printing fails, as long as it was attempted.
  */
 template <typename p_t, p_t &p>
 bool serialFrameOperation(const OTDecodeData_T &fd)
@@ -164,9 +127,11 @@ bool serialFrameOperation(const OTDecodeData_T &fd)
 }
 
 /**
- * @brief   Attempt to add raw RXed frame to rt send queue, if basic validity check of decrypted frame passed.
+ * @brief   Attempt to add raw RXed frame to rt send queue, if basic validity 
+ *          check of decrypted frame passed.
  * @param   rt_t: Type of rt. Should be an implementation of OTRadioLink.
- * @param   rt: Radio to relay frame over. NOTE! must be the concrete instance (e.g. SIM900 rather than SecondaryRadio). AVR-GCC cannot currently
+ * @param   rt: Radio to relay frame over. NOTE! must be the concrete instance 
+ *          (e.g. SIM900 rather than SecondaryRadio). AVR-GCC cannot currently
  *          detect compile time constness of references or pointers (20170608).
  * @param   fd: Decoded frame data.
  * retval   True if frame successfully added to send queue on rt, else false.
@@ -190,8 +155,10 @@ bool relayFrameOperation(const OTDecodeData_T &fd)
 /**
  * @brief   Operator for triggering a boiler call for heat.
  * @param   bh_t: Type of bh
- * @param   bh: Boiler Hub driver. Should implement the interface of OnOffBoilerDriverLogic. NOTE! must be the concrete instance.
- *          AVR-GCC cannot currently detect compile time constness of references or pointers (20170608).
+ * @param   bh: Boiler Hub driver. Should implement the interface of
+ *          OnOffBoilerDriverLogic. NOTE! must be the concrete instance.
+ *          AVR-GCC cannot currently detect compile time constness of
+ *          references or pointers (20170608).
  * @param   minuteCount: Reference to the minuteCount variable in Control.cpp (20170608).
  *          NOTE: minuteCount may be removed from the API in future (DE20170616)
  * @param   fd: Decoded frame data.
@@ -212,10 +179,12 @@ bool boilerFrameOperation(const OTDecodeData_T &fd)
 
 
 /**
- * @brief   Authenticate and decrypt secure frames. Expects syntax checking and validation to already have been done.
+ * @brief   Authenticate and decrypt secure frames. Expects syntax checking and
+ *          validation to already have been done.
  * @param   fd: OTFrameData_T object containing message to decrypt.
  * @param   decrypt: Function to decrypt secure frame with.
- * @param   getKey: Function that fills a buffer with the 16 byte secret key. Should return true on success.
+ * @param   getKey: Function that fills a buffer with the 16 byte secret key. 
+ *          Should return true on success.
  * @retval  True if frame successfully authenticated and decoded, else false.
  *
  * Note: the scratch space (workspace) depends on the underlying decrypt
