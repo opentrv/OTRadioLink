@@ -214,12 +214,12 @@ bool boilerFrameOperation(const OTDecodeData_T &fd)
 /**
  * @brief   Authenticate and decrypt secure frames. Expects syntax checking and validation to already have been done.
  * @param   fd: OTFrameData_T object containing message to decrypt.
- * @param   decrypt: Function to decrypt secure frame with. NOTE decrypt functions with workspace are not supported (20170616).
+ * @param   decrypt: Function to decrypt secure frame with.
  * @param   getKey: Function that fills a buffer with the 16 byte secret key. Should return true on success.
  * @retval  True if frame successfully authenticated and decoded, else false.
  *
- * Note: the scratch space (workspace) depends on
- *     the underlying decrypt function and the receiver class.
+ * Note: the scratch space (workspace) depends on the underlying decrypt
+ * function and the receiver class.
  */
 // Local scratch: total incl template srfx_t::decodeSecureSmallFrameSafely().
 static constexpr uint8_t authAndDecodeOTSecurableFrameWithWorkspace_scratch_usage =
@@ -286,8 +286,43 @@ inline bool decodeAndHandleDummyFrame(volatile const uint8_t * const /*msg*/)
 }
 
 /**
- * @brief   Version of decodeAndHandleOTSecureOFrame that takes
- **/
+ * @brief   Attempt to decode a message as if it is a standard OT secure "O"
+ *          type frame. May perform up to two "operations" if the decode
+ *          succeeds.
+ * 
+ * First confirms that the frame "looks like" a secure O frame and that it can
+ * attempt to decode, i.e.
+ * - The message has a valid header.
+ * - The first byte matches an O frame with the secure bit set.
+ * - The message is a secure frame.
+ * 
+ * Any actions to be taken on a succesful decode must be passed in as callbacks,
+ * or the message will be decoded then lost. In this library, they are labelled
+ * `operators` to avoid confusion with the message/frame handlers.
+ * The operators are called in ascending order and will always all be called
+ * if the message is successfully decoded. They should not alter the decoded
+ * frame data (fd) in any way.
+ * Note that operators can only take the frame data as function parameters and
+ * anything else must be passed in as template parameters.
+ * 
+ * @param   sfrx_t: TODO
+ * @param   decrypt: A function to decrypt secure frame with.
+ * @param   getKey: A function that fills a buffer with the 16 byte secret key.
+ *          Should return true on success.
+ * @param   o1: First operator to be called.
+ * @param   o2: Second operator to be called. Defaults to a dummy impl.
+ * @param   _msg: Raw RXed message. msgLen should be stored in the byte before
+ *          and can be accessed with msg[-1]. This routine is NOT allowed to
+ *          alter content of the buffer passed.
+ * @param   sW: Scratch space to perform decode routine in. Should be large
+ *          enough for both the frame RX type and the underlying decryption
+ *          routine. FIXME redo wording.
+ * @retval  False if the frame header could not be decoded, does not match a
+ *          secure "O" frame, or the frame is otherwise malformed in any way.
+ *          True if the frame is a valid secure frame.
+ *          NOTE! A frame that "looks like" a secure "O" frame but can not be
+ *          authed or decoded, it will return true.
+ */
 template<typename sfrx_t,
          SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &decrypt,
          OTV0P2BASE::GetPrimary16ByteSecretKey_t &getKey,
@@ -295,9 +330,6 @@ template<typename sfrx_t,
          frameOperator_fn_t &o2 = nullFrameOperation>
 bool decodeAndHandleOTSecureOFrame(volatile const uint8_t * const _msg, OTV0P2BASE::ScratchSpaceL & sW)
 {
-#if 0
-    OTV0P2BASE::MemoryChecks::recordIfMinSP();
-#endif
     const uint8_t * const msg = (const uint8_t * const)_msg - 1;
     const uint8_t firstByte = msg[1];
     const uint8_t msglen = msg[0];
@@ -314,8 +346,8 @@ bool decodeAndHandleOTSecureOFrame(volatile const uint8_t * const _msg, OTV0P2BA
     // then let another protocol handler try parsing the message buffer...
     if(0 == l) { return(false); }
     // Make sure frame thinks it is a secure OFrame.
-    constexpr uint8_t expectedOFrameFirstByte = 'O' | 0x80;
-    if(expectedOFrameFirstByte != firstByte) { return (false); }  // FIXME seems superfluous
+    constexpr uint8_t expectedOFrameFirstByte = 'O' | 0x80;  // XXX is this different to fd.sfh.isSecure()?
+    if(expectedOFrameFirstByte != firstByte) { return (false); }
 
     // Validate integrity of frame (CRC for non-secure, auth for secure).
     if(!fd.sfh.isSecure()) { return(false); }
@@ -341,14 +373,22 @@ bool decodeAndHandleOTSecureOFrame(volatile const uint8_t * const _msg, OTV0P2BA
 
 
 /*
- * @brief   Decode and handle inbound raw message (msg[-1] contains the count of bytes received).
- *          A message may contain trailing garbage at the end; the decoder/router should cope.
- *          The message is passed on to a set of handlers that are passed in as template parameters.
- *          Handlers should be passed in the order they should be executed as the function will return on the first
- *          successful handler, skipping all subsequent ones.
- *          The buffer may be reused when this returns, so a copy should be taken of anything that needs to be retained.
- * @param   msg: Raw RXed message. msgLen should be stored in the byte before and can be accessed with msg[-1].
- *          This routine is NOT allowed to alter in any way the content of the buffer passed.
+ * @brief   Attempt to decode an inbound message using all available decoders.
+ * 
+ * The decoder/router should cope with message that contain trailing garbage at
+ * the end. The message is passed on to a set of handlers that are passed in as
+ * template parameters.
+ * 
+ * Handlers should be passed in the order they should be executed as the
+ * function will return on the first successful handler, skipping all
+ * subsequent ones.
+ * 
+ * `msg` may be reused when this returns, so a copy should be taken of anything
+ * that needs to be retained.
+ * 
+ * @param   msg: Raw RXed message. msgLen should be stored in the byte before
+ *          and can be accessed with msg[-1]. This routine is NOT allowed to
+ *          alter content of the buffer passed.
  * @param   h1: First frame handler to attempt.
  * @param   h2: Second frame handler to attempt. Defaults to a dummy handler.
  *          Handlers are called in order, until the first successful handler.
@@ -359,12 +399,12 @@ void decodeAndHandleRawRXedMessage(volatile const uint8_t * const msg)
 {
     const uint8_t msglen = msg[-1];
 
-//  // TODO: consider extracting hash of all message data (good/bad) and injecting into entropy pool.
+    // TODO: consider extracting hash of all message data (good/bad) and injecting into entropy pool.
     if(msglen < 2) { return; } // Too short to be useful, so ignore.
     // Go through handlers. (20170616) Currently relying on compiler to optimise out anything unneeded.
     if(h1(msg)) { return; }
     if(h2(msg)) { return; }
-  // Unparseable frame: drop it.
+    // Unparseable frame: drop it.
     return;
 }
 
@@ -376,9 +416,10 @@ class OTMessageQueueHandlerBase
 {
 public:
     /**
-     * @brief   Check the supplied radio if a frame has been received and pass on to any relevant handlers.
-     * @param   wakeSerialIfNeeded: If true, makes sure the serial port is enabled on entry and returns it to how it
-     *          found it on exit.
+     * @brief   Check the supplied radio if a frame has been received and pass
+     *          on to any relevant handlers.
+     * @param   wakeSerialIfNeeded: If true, makes sure the serial port is
+     *          enabled on entry and returns it to how it found it on exit.
      * @param   rl: Radio to check for new RXed frames.
      * @retval  Returns true if anything was done..
      */
@@ -386,7 +427,7 @@ public:
 };
 
 /**
- * @brief   Null version. always returns false.
+ * @brief   Null implementation. Always returns false.
  */
 class OTMessageQueueHandlerNull final : public OTMessageQueueHandlerBase
 {
@@ -394,19 +435,16 @@ public:
     /**
      * @retval  Always false as it never never tries to do anything.
      */
-    virtual bool handle(bool /*wakeSerialIfNeeded*/, OTRadioLink & /*rl*/) override { return false; };
+    virtual bool handle(bool /*wakeSerialIfNeeded*/, OTRadioLink & /*rl*/) override
+        { return false; };
 };
 
 /*
- * @param   msg: Secure frame to authenticate, decrypt and handle.
- * @param   pollIO: Function pollIO in V0p2. This is intended to poll all IO lines, excluding sensors and serial ports
- *          and return true if any was processed.
- *          FIXME work out if we want to bring pollIO into library.
+ * @param   pollIO: Function to call before handling inbound messages. TODO Rename this.
  * @param   baud: Serial baud for serial output.
  * @param   h1: First frame handler to attempt.
  * @param   h2: Second frame handler to attempt. Defaults to a dummy handler.
- *          Handlers are called in order, until the first successful handler.
- *          By default all operations but h1 will default to a dummy stub operation (decodeAndHandleDummyFrame).
+ *          See `handle` for details on how handlers are called.
  */
 template<bool (*pollIO) (bool), uint16_t baud,
          frameDecodeHandler_fn_t &h1,
@@ -415,17 +453,39 @@ class OTMessageQueueHandler final: public OTMessageQueueHandlerBase
 {
 public:
     /**
-     * @brief   Incrementally process I/O and queued messages, including from the radio link.
-     *          This may mean printing them to Serial (which the passed Print object usually is),
-     *          or adjusting system parameters, or relaying them elsewhere, for example.
-     *          This will attempt to process messages in such a way
-     *          as to avoid internal overflows or other resource exhaustion,
-     *          which may mean deferring work at certain times
-     *          such as the end of minor cycle.
-     * @param   wakeSerialIfNeeded: If true, makes sure the serial port is enabled on entry and returns it to how it
-     *          found it on exit.
+     * @brief   Poll radio and incrementally process any queued messages.
+     * 
+     * This will attempt to decode an inbound frame using up to two frame
+     * handlers. The handlers will be tried in the order they are passed in to
+     * the message queue handler and this function will:
+     * - exit on the first handler to return a success (bool true)
+     * - after all handlers have failed, in which case the frame is dropped.
+     * Handlers are expected to be perform or trigger any action required by
+     * the frame.
+     * 
+     * Typical workflow:
+     * - Setup a radio (derived from OTRadioLink::OTRadioLink).
+     * - Define a pollIO function, e.g. poll all IO lines, excluding sensors
+     *   and serial ports and return true if any was processed.
+     * - Define up to two frame handlers (See docs for `frameDecodeHandler_fn_t`
+     *   in this file).
+     * - Create an OTMessageQueueHandler object.
+     * - Call handle(...) periodically to handle incoming messages.
+     * See OpenTRV-Arduino-V0p2/Arduino/hardware/REV10/REV10SecureBHR/REV10SecureBHR.ino
+     * for an example that relays a frame over another radio and notifies the
+     * boiler hub driver of the states of any associated valves.
+     * 
+     * This will attempt to process messages in such a way
+     * as to avoid internal overflows or other resource exhaustion,
+     * which may mean deferring work at certain times
+     * such as the end of minor cycle.
+     * 
+     * @param   wakeSerialIfNeeded: If true, makes sure the serial port is 
+     *          enabled on entry and returns it to how it found it on exit.
      * @param   rl: Radio to check for new RXed frames.
-     * @retval  Returns true if a message was RXed and processed, or if pollIO returns true.
+     * @retval  Returns true if a message was RXed and processed, or if pollIO
+     *          returns true. NOTE that this is independant of whether the
+     *          message was successfully handled.
      */
     virtual bool handle(bool
 #ifdef ARDUINO_ARCH_AVR
