@@ -9,12 +9,17 @@ or release/freeze points.
 
 
 pending:
+    *** V3.0
+    DE20171127:  Reworked secure frame API.
+
+
+
+
     *** V2.0
     DHD20170707: improving stack usage management
     DHD20170707: allowing > 255 byte workspace for encode/decode; needs OTAESGCM 3.0.
     DHD20161108: ScratchSpace and new secure frame methods that use it, with support from OTAESGCM V2.0.
     DE20160701:  Fixed key loss issue and updated documentation.
-    DE20171127:  Switching to new Secure Frame API.
 
 
 
