@@ -299,7 +299,7 @@ uint8_t SecurableFrameHeader::computeNonSecureCRC(const uint8_t *const buf, uint
  *
  * @note    Uses a scratch space, allowing the stack usage to be more tightly controlled.
  */
-uint8_t encodeNonsecureOnStack(
+uint8_t encodeNonsecure(
             OTEncodeData_T &fd,
             uint8_t seqNum,
             const OTBuf_t &id)
@@ -348,10 +348,8 @@ uint8_t encodeNonsecureOnStack(
  *                and trailer. Never NULL
  * @retval  Total frame length in bytes + fl byte + 1, or 0 if there is an error eg
  *          because the CRC check failed.
- * 
- * FIXME    Rename - makes no segnificant stack allocations.
  */
-uint8_t decodeNonsecureOnStack(OTDecodeData_T &fd)
+uint8_t decodeNonsecure(OTDecodeData_T &fd)
     {
     if(NULL == fd.ctext) { return(0); } // ERROR
     // Abort if header was not decoded properly.
@@ -751,7 +749,7 @@ uint8_t generateNonsecureBeacon(OTBuf_t &buf, const uint8_t seqNum, const OTBuf_
     OTEncodeData_T fd(nullptr, 0, buf.buf, buf.bufsize);
     fd.fType = OTRadioLink::FTS_ALIVE;
 
-    return(encodeNonsecureOnStack(fd, seqNum, id));
+    return(encodeNonsecure(fd, seqNum, id));
     }
 
 /**
@@ -787,8 +785,9 @@ uint8_t generateNonsecureBeacon(OTBuf_t &buf, const uint8_t seqNum, const OTBuf_
  *
  * @note    Uses a scratch space, allowing the stack usage to be more tightly
  *          controlled.
+ * 
+ * @FIXME   UNTESTED BY CI!
  */
-// FIXME UNTESTED!
 uint8_t SimpleSecureFrame32or0BodyTXBase::encode(
             OTEncodeData_T &fd,
             uint8_t il_,

@@ -372,7 +372,7 @@ TEST(OTAESGCMSecureFrame, NonsecureFrameCRC)
     EXPECT_EQ(0x23, fd1.sfh.computeNonSecureCRC(buf1, sizeof(buf1) - 1));
     // Decode entire frame, emulating RX, structurally validating the header then checking the CRC.
     EXPECT_TRUE(0 != fd1.sfh.decodeHeader(buf1, sizeof(buf1)));
-    EXPECT_TRUE(0 != decodeNonsecureOnStack(fd1));
+    EXPECT_TRUE(0 != decodeNonsecure(fd1));
     //
     // Test vector 2 / example from the spec.
     //Example insecure frame, no valve, representative minimum stats {"b":1}
@@ -397,7 +397,7 @@ TEST(OTAESGCMSecureFrame, NonsecureFrameCRC)
     EXPECT_EQ(0x61, fd2.sfh.computeNonSecureCRC(buf2, sizeof(buf2) - 1));
     // Decode entire frame, emulating RX, structurally validating the header then checking the CRC.
     EXPECT_TRUE(0 != fd2.sfh.decodeHeader(buf2, sizeof(buf2)));
-    EXPECT_TRUE(0 != decodeNonsecureOnStack(fd2));
+    EXPECT_TRUE(0 != decodeNonsecure(fd2));
 }
 
 // Test encoding of entire non-secure frame for TX.
@@ -431,7 +431,7 @@ TEST(OTAESGCMSecureFrame, NonsecureSmallFrameEncoding)
     //23 CRC value
     id2bytes.buf[0] = 0x80;
     id2bytes.buf[1] = 0x81;
-    EXPECT_EQ(9, OTRadioLink::encodeNonsecureOnStack(
+    EXPECT_EQ(9, OTRadioLink::encodeNonsecure(
                                     fd,
                                     0,
                                     id2bytes));
