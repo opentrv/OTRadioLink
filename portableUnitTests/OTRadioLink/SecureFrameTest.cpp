@@ -679,7 +679,7 @@ TEST(Main,GCMVS1ViaFixed32BTextSizeWITHWORKSPACE)
 // Test encoding/encryption then decoding/decryption of entire secure frame.
 //
 // DHD20161107: imported from test_SECFRAME.ino testSecureSmallFrameEncoding().
-TEST(OTAESGCMSecureFrame, SecureSmallFrameEncodingWithWorkspace)
+TEST(OTAESGCMSecureFrame, SecureSmallFrameEncoding)
 {
     // workspaces
     constexpr size_t encWorkspaceSize = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeRaw_total_scratch_usage_OTAESGCM_2p0;
@@ -1164,7 +1164,7 @@ class TXBaseMock final : public OTRadioLink::SimpleSecureFrame32or0BodyTXBase
   };
 
 // Test encoding of O frames through to final byte pattern.
-TEST(OTAESGCMSecureFrame, OFrameEncodingWithWorkspace)
+TEST(OTAESGCMSecureFrame, OFrameEncoding)
 {
     TXBaseMock mockTX;
 
@@ -1201,6 +1201,44 @@ TEST(OTAESGCMSecureFrame, OFrameEncodingWithWorkspace)
     EXPECT_EQ(63, bodylenW);
     for(int i = 0; i < bodylenW; ++i) { ASSERT_EQ(expected[i], bufW.buf[i]); }
 }
+// // Test encoding of generic frames through to final byte pattern.XXX
+// TEST(OTAESGCMSecureFrame, GenericFrameEncoding)
+// {
+//     TXBaseMock mockTX;
+
+//     // All zeroes key.
+//     const uint8_t *const key = zeroBlock;
+//     // Size of buffer to receive encrypted frame.
+//     constexpr uint8_t encBufSize = 64;
+//     // Length of ID prefix for frame.
+//     const uint8_t txIDLen =4;
+//     // Distinguished 'invalid' valve position; never mistaken for a real valve.
+//     constexpr uint8_t valvePC = 0x7f;
+
+//     // Expected result.
+//     const uint8_t expected[63] = {62,207,4,128,128,128,128,32,102,58,109,143,127,209,106,16,122,170,41,17,135,168,193,220,188,110,36,204,190,21,125,138,196,172,122,155,149,87,43,4,0,0,0,0,0,0,162,222,15,42,215,77,210,0,127,19,255,121,139,199,19,12,128};
+
+//     // Encrypt empty (no-JSON) O frame via the explicit workspace API.
+//     uint8_t _bufW[encBufSize];
+//     OTRadioLink::OTBuf_t bufW(_bufW, sizeof(_bufW));
+
+//     uint8_t _rawFrame[34];  // the length bbuf needs to be (valvepc + hasstats + msg including {} ).
+//     OTRadioLink::OTBuf_t rawFrame(_rawFrame, sizeof(_rawFrame));
+//     constexpr size_t workspaceSize = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeValveFrame_total_scratch_usage_OTAESGCM_2p0;
+//     uint8_t workspace[workspaceSize];
+//     OTV0P2BASE::ScratchSpaceL sW(workspace, workspaceSize);
+//     OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t &eW = OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_LWORKSPACE;
+
+//     OTRadioLink::OTEncodeData_T fd(_rawFrame, sizeof(_rawFrame), _bufW, sizeof(_bufW));
+//     const uint8_t bodylenW = mockTX.encodeValveFrame(
+//                                         fd,
+//                                         txIDLen,
+//                                         valvePC,
+//                                         eW,
+//                                         sW, key);
+//     EXPECT_EQ(63, bodylenW);
+//     for(int i = 0; i < bodylenW; ++i) { ASSERT_EQ(expected[i], bufW.buf[i]); }
+// }
 
 #if 0  //  TODO fix these once interface changed.
 // Encode section of GCMVS1ViaFixed32BTextSize test, measuring stack usage.

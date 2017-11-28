@@ -790,7 +790,7 @@ uint8_t generateNonsecureBeacon(OTBuf_t &buf, const uint8_t seqNum, const OTBuf_
  */
 uint8_t SimpleSecureFrame32or0BodyTXBase::encode(
             OTEncodeData_T &fd,
-            uint8_t il_,
+            const uint8_t il_,
             fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t  &e,
             OTV0P2BASE::ScratchSpaceL &scratch,
             const uint8_t *const key)
@@ -811,7 +811,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encode(
     uint8_t *const id = iv + IV_size;
     if(longID && !getTXID(id)) { return(0); } // FAIL
 
-    const OTBuf_t txID((longID ? id : iv), sizeof((longID ? id : iv)));
+    const OTBuf_t txID((longID ? id : iv), sizeof((longID ? id : iv)));  // FIXME sizeof(id) is not length of buffer!
     return(encodeRaw(fd, txID, iv, e, scratch, key));
     }
 
