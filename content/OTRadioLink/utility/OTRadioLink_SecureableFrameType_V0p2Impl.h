@@ -120,7 +120,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
         // Combines results from primary and secondary as appropriate.
         // Deals with inversion and checksum checking.
         // Output buffer (buf) must be 3 bytes long.
-        virtual bool get3BytePersistentTXRestartCounter(uint8_t * /*buf*/) const override { return false; };
+        virtual bool getTXNVCtrPrefix(uint8_t * /*buf*/) const override { return false; };
         // Reset the persistent reboot/restart message counter in EEPROM; returns false on failure.
         // TO BE USED WITH EXTREME CAUTION: reusing the message counts and resulting IVs
         // destroys the security of the cipher.
@@ -130,7 +130,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
         // but inject entropy into the least significant bits to reduce risk value/IV reuse in error.
         // If called with false then interrupts should not be blocked to allow entropy gathering,
         // and counter is guaranteed to be non-zero.
-        virtual bool resetRaw3BytePersistentTXRestartCounter(bool allZeros = false) override
+        virtual bool resetTXNVCtrPrefix(bool allZeros = false) override
             { return(resetRaw3BytePersistentTXRestartCounterInEEPROM(allZeros)); }
         // Conditional and statically callable version of resetRaw3BytePersistentTXRestartCounter(); returns false on failure.
         // Creates a new persistent/reboot counter and thus message counter, to reduce IV reuse risk.
@@ -142,15 +142,15 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
         static bool resetRaw3BytePersistentTXRestartCounterCond()
             {
             SimpleSecureFrame32or0BodyTXV0p2Null &i = getInstance();
-            uint8_t buf[primaryPeristentTXMessageRestartCounterBytes];
-            if(!i.get3BytePersistentTXRestartCounter(buf)) { return(false); }
-            if(buf[0] < 0x20) { return(i.increment3BytePersistentTXRestartCounter()); }
+            uint8_t buf[txNVCtrPrefixBytes];
+            if(!i.getTXNVCtrPrefix(buf)) { return(false); }
+            if(buf[0] < 0x20) { return(i.incrementTXNVCtrPrefix()); }
             return(i.resetRaw3BytePersistentTXRestartCounterInEEPROM());
             }
         // Increment persistent reboot/restart message counter; returns false on failure.
         // Will refuse to increment such that the top byte overflows, ie when already at 0xff.
         // TO BE USED WITH EXTREME CAUTION: calling this unnecessarily will shorten life before needing to change ID/key.
-        virtual bool increment3BytePersistentTXRestartCounter() override { return false; };
+        virtual bool incrementTXNVCtrPrefix() override { return false; };
         // Get primary (semi-persistent) message counter for TX from an OpenTRV leaf under its own ID.
         // This counter increases monotonically
         // (and so may provide a sequence number)
@@ -176,7 +176,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
         // Returns true on success; false on failure for example because the counter has reached its maximum value.
         // Highest-index bytes in the array increment fastest.
         // Not ISR-safe.
-        virtual bool incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(uint8_t * /*buf*/) override { return false; };
+        virtual bool getNextTXMsgCtr(uint8_t * /*buf*/) override { return false; };
     };
 
 #if defined(ARDUINO_ARCH_AVR)
@@ -250,7 +250,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
             // Will refuse to increment such that the top byte overflows, ie when already at 0xff.
             // Updates the CRC.
             // Input/output buffer (loadBuf) must be VOP2BASE_EE_LEN_PERSISTENT_MSG_RESTART_CTR bytes long.
-            static bool increment3BytePersistentTXRestartCounter(uint8_t *loadBuf);
+            static bool incrementTXNVCtrPrefix(uint8_t *loadBuf);
             // Reset the persistent reboot/restart message counter in EEPROM; returns false on failure.
             // TO BE USED WITH EXTREME CAUTION: reusing the message counts and resulting IVs
             // destroys the security of the cipher.
@@ -268,7 +268,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
             // Combines results from primary and secondary as appropriate.
             // Deals with inversion and checksum checking.
             // Output buffer (buf) must be 3 bytes long.
-            virtual bool get3BytePersistentTXRestartCounter(uint8_t *buf) const override;
+            virtual bool getTXNVCtrPrefix(uint8_t *buf) const override;
             // Reset the persistent reboot/restart message counter in EEPROM; returns false on failure.
             // TO BE USED WITH EXTREME CAUTION: reusing the message counts and resulting IVs
             // destroys the security of the cipher.
@@ -278,7 +278,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
             // but inject entropy into the least significant bits to reduce risk value/IV reuse in error.
             // If called with false then interrupts should not be blocked to allow entropy gathering,
             // and counter is guaranteed to be non-zero.
-            virtual bool resetRaw3BytePersistentTXRestartCounter(bool allZeros = false) override
+            virtual bool resetTXNVCtrPrefix(bool allZeros = false) override
                 { return(resetRaw3BytePersistentTXRestartCounterInEEPROM(allZeros)); }
             // Conditional and statically callable version of resetRaw3BytePersistentTXRestartCounter(); returns false on failure.
             // Creates a new persistent/reboot counter and thus message counter, to reduce IV reuse risk.
@@ -290,15 +290,15 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
             static bool resetRaw3BytePersistentTXRestartCounterCond()
                 {
                 SimpleSecureFrame32or0BodyTXV0p2 &i = getInstance();
-                uint8_t buf[primaryPeristentTXMessageRestartCounterBytes];
-                if(!i.get3BytePersistentTXRestartCounter(buf)) { return(false); }
-                if(buf[0] < 0x20) { return(i.increment3BytePersistentTXRestartCounter()); }
+                uint8_t buf[txNVCtrPrefixBytes];
+                if(!i.getTXNVCtrPrefix(buf)) { return(false); }
+                if(buf[0] < 0x20) { return(i.incrementTXNVCtrPrefix()); }
                 return(i.resetRaw3BytePersistentTXRestartCounterInEEPROM());
                 }
             // Increment persistent reboot/restart message counter; returns false on failure.
             // Will refuse to increment such that the top byte overflows, ie when already at 0xff.
             // TO BE USED WITH EXTREME CAUTION: calling this unnecessarily will shorten life before needing to change ID/key.
-            virtual bool increment3BytePersistentTXRestartCounter() override;
+            virtual bool incrementTXNVCtrPrefix() override;
             // Get primary (semi-persistent) message counter for TX from an OpenTRV leaf under its own ID.
             // This counter increases monotonically
             // (and so may provide a sequence number)
@@ -324,7 +324,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
             // Returns true on success; false on failure for example because the counter has reached its maximum value.
             // Highest-index bytes in the array increment fastest.
             // Not ISR-safe.
-            virtual bool incrementAndGetPrimarySecure6BytePersistentTXMessageCounter(uint8_t *buf) override;
+            virtual bool getNextTXMsgCtr(uint8_t *buf) override;
         };
 
 
@@ -411,7 +411,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
             // Read current (last-authenticated) RX message count for specified node, or return false if failed.
             // Will fail for invalid node ID or for unrecoverable memory corruption.
             // Both args must be non-NULL, with counter pointing to enough space to copy the message counter value to.
-            virtual bool getLastRXMessageCounter(const uint8_t * const ID, uint8_t *counter) const;
+            virtual bool getLastRXMsgCtr(const uint8_t * const ID, uint8_t *counter) const;
             // Update persistent message counter for received frame AFTER successful authentication.
             // ID is full (8-byte) node ID; counter is full (6-byte) counter.
             // Returns false on failure, eg if message counter is not higher than the previous value for this node.
@@ -419,7 +419,7 @@ class SimpleSecureFrame32or0BodyTXV0p2Null : public SimpleSecureFrame32or0BodyTX
             // The implementation should be robust in the face of power failures / reboots, accidental or malicious,
             // not allowing replays nor other cryptographic attacks, nor forcing node dissociation.
             // Must only be called once the RXed message has passed authentication.
-            virtual bool updateRXMessageCountAfterAuthentication(const uint8_t *ID, const uint8_t *newCounterValue);
+            virtual bool authAndUpdateRXMsgCtr(const uint8_t *ID, const uint8_t *newCounterValue);
         };
 #else  // ARDUINO_ARCH_AVR
 

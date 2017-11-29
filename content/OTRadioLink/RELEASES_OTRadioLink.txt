@@ -9,6 +9,12 @@ or release/freeze points.
 
 
 pending:
+    *** V3.0
+    DE20171127:  Reworked secure frame API.
+
+
+
+
     *** V2.0
     DE20170720:  De-virtualised securableFrameType methods to reduce flash and stack usage.
     DE20170718:  Refactored workspace messaging functions to reduce stack usage by removing buffer copies.
