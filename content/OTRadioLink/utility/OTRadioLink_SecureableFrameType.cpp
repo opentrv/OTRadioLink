@@ -1039,11 +1039,6 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::decode(
     if(nullptr == fd.ctext) { return(0); } // ERROR
     // Abort if header was not decoded properly.
     if(fd.sfh.isInvalid()) { return(0); } // ERROR
-    #if 0
-    // FIXME Why not checked?
-    // Abort if frame is not secure.
-    if(sfh.isSecure()) { return(0); } // ERROR
-    #endif
     // Abort if trailer not large enough to extract message counter from
     // safely (and not expected size/flavour).
     if(23 != fd.sfh.getTl()) { return(0); } // ERROR

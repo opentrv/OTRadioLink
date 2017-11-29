@@ -1304,8 +1304,6 @@ TEST(OTAESGCMSecureFrame, GenericFrameEncodingValidity)
     EXPECT_EQ(34, mockTX.encode(fd, 7, eW, sW, key));
     EXPECT_EQ(35, mockTX.encode(fd, 8, eW, sW, key));
     EXPECT_EQ(0, mockTX.encode(fd, 9, eW, sW, key));
-
-
 }
 
 // Test encoding of generic frames through to final byte pattern.
