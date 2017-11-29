@@ -499,7 +499,7 @@ TEST(OTAESGCMSecureFrame, SimplePadding)
 // DHD20161107: imported from test_SECFRAME.ino testSimpleNULLEncDec().
 TEST(OTAESGCMSecureFrame, SimpleNULLEncDec)
 {
-    const OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t &e = OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL;
+    OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t &e = OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL;
     OTRadioLink::SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &d = OTRadioLink::fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL;
     // Check that calling the NULL enc routine with bad args fails.
     EXPECT_TRUE(!e(NULL, 0, NULL, NULL, NULL, 0, NULL, NULL, NULL));
@@ -524,7 +524,7 @@ TEST(OTAESGCMSecureFrame, SimpleNULLEncDec)
 
 // Test a simple fixed-size enc/dec function pair.
 // Aborts with Assert...() in case of failure.
-static void runSimpleEncDec(const OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t &e,
+static void runSimpleEncDec(OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t &e,
                             OTRadioLink::SimpleSecureFrame32or0BodyRXBase::fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &d)
 {
     // Check that calling the NULL enc routine with bad args fails.
