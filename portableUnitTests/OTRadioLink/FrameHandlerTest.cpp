@@ -41,14 +41,6 @@ static constexpr unsigned int maxAuthAndDecodeStack = 216; // was 200. clang use
 static constexpr unsigned int maxAuthAndDecodeStack = 216;
 #endif // __APPLE__
 
-// IF DEFINED: Enable non-workspace versions of AES128GCM.
-// These are disabled by default as:
-// - They make large (> 200 byte on AVR) stack allocations and are not
-//   recommended.
-// - When included they prevent -Werror and -Wstack-usage being used together
-//   for static analysis of stack allocations.
-#undef OTAESGCM_ALLOW_NON_WORKSPACE
-
 
 TEST(FrameHandler, StackCheckerWorks)
 {

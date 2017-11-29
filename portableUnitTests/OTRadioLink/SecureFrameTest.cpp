@@ -33,14 +33,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 #include <OTRadioLink.h>
 
 
-// IF DEFINED: Enable non-workspace versions of AES128GCM.
-// These are disabled by default as:
-// - They make large (> 200 byte on AVR) stack allocations and are not
-//   recommended.
-// - When included they prevent -Werror and -Wstack-usage being used together
-//   for static analysis of stack allocations.
-#undef OTAESGCM_ALLOW_NON_WORKSPACE
-
 static const int AES_KEY_SIZE = 128; // in bits
 static const int GCM_NONCE_LENGTH = 12; // in bytes
 static const int GCM_TAG_LENGTH = 16; // in bytes (default 16, 12 possible)
@@ -867,7 +859,7 @@ TEST(OTAESGCMSecureFrame, BeaconEncodingWithWorkspace)
     EXPECT_EQ(0x00, buf[10]);
     EXPECT_EQ(0x00, buf[11]); // Body length 0.
     EXPECT_EQ(0x29, buf[12]);
-    #if 0
+    #if 0 // DISABLED AS DEPENDS ON AVR ARCH
     // Generate maximum-length-from-EEPROM-ID beacon automatically at non-zero seq.
     const uint8_t b2 = OTRadioLink::generateNonsecureBeacon(buf, sizeof(buf), 5, NULL, OTRadioLink::SecurableFrameHeader::maxIDLength);
     EXPECT_EQ(13, b2);
@@ -1352,7 +1344,6 @@ TEST(OTAESGCMSecureFrame, GenericFrameEncoding)
     for(int i = 0; i < bodylenW; ++i) { ASSERT_EQ(expected[i], bufW.buf[i]); }
 }
 
-#if 1  //  TODO fix these once interface changed.
 // Encode section of GCMVS1ViaFixed32BTextSize test, measuring stack usage.
 TEST(OTAESGCMSecureFrame, SecureFrameEncodeStackUsageWithWorkspace) {
     // Set up stack usage checks
@@ -1468,6 +1459,5 @@ TEST(OTAESGCMSecureFrame, SecureFrameDecodeStackUsage) {
     );
     EXPECT_GT(maxStackSecureFrameDecode, baseStack - OTV0P2BASE::MemoryChecks::getMinSP());
 }
-#endif
 
 #endif // ARDUINO_LIB_OTAESGCM

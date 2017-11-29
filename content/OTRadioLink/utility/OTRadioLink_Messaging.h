@@ -297,7 +297,7 @@ template<typename sfrx_t,
          OTV0P2BASE::GetPrimary16ByteSecretKey_t &getKey,
          frameOperator_fn_t &o1,
          frameOperator_fn_t &o2 = nullFrameOperation>
-bool decodeAndHandleOTSecureOFrame(volatile const uint8_t * const _msg, OTV0P2BASE::ScratchSpaceL & sW)
+bool decodeAndHandleOTSecureOFrame(volatile const uint8_t * const _msg, OTV0P2BASE::ScratchSpaceL &sW)
 {
     const uint8_t * const msg = (const uint8_t * const)_msg - 1;
     const uint8_t firstByte = msg[1];

@@ -170,53 +170,6 @@ TEST(SecureOpStackDepth, SimpleSecureFrame32or0BodyRXFixedCounterBasic)
     EXPECT_TRUE(sfrx.authAndUpdateRXMsgCtr(&id, &counter));
 }
 
-#ifdef OTAESGCM_ALLOW_NON_WORKSPACE
-namespace SOSDT
-{
-    /**
-     * @brief wrapper around decode function so that we can include top level stack allocations in test.
-     */
-    bool decodeAndHandleSecureFrameNoWorkspace()
-    {
-        // Secure Frame start
-        const uint8_t * senderID = SOSDT::minimumSecureFrame::id;
-        const uint8_t * msgCounter = SOSDT::minimumSecureFrame::oldCounter;
-        const uint8_t * const msgStart = &SOSDT::minimumSecureFrame::buf[1];
-
-        OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter &sfrx = OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter::getInstance();
-        sfrx.setMockIDValue(senderID);
-        sfrx.setMockCounterValue(msgCounter);
-        return(OTRadioLink::decodeAndHandleOTSecureOFrame<OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
-                                                                      OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
-                                                                      SOSDT::getKeySuccess,
-                                                                      SOSDT::setFlagFrameOperation
-                                                                     >(msgStart));
-    }
-}
-TEST(SecureOpStackDepth, SimpleSecureFrame32or0BodyRXFixedCounterStack)
-{
-    // Make sure flag is false.
-    SOSDT::frameOperationCalledFlag = false;
-
-
-    // Set up stack usage checks
-    OTV0P2BASE::RAMEND = OTV0P2BASE::getSP();
-    OTV0P2BASE::MemoryChecks::resetMinSP();
-    OTV0P2BASE::MemoryChecks::recordIfMinSP();
-    const size_t baseStack = OTV0P2BASE::MemoryChecks::getMinSP();
-
-    const bool test1 = SOSDT::decodeAndHandleSecureFrameNoWorkspace();
-
-    const size_t maxStack = OTV0P2BASE::MemoryChecks::getMinSP();
-    // Uncomment to print stack usage
-     std::cout << "decodeAndHandleOTSecureOFrame stack: " << baseStack - maxStack << "\n";
-
-    EXPECT_TRUE(test1);
-    EXPECT_TRUE(SOSDT::frameOperationCalledFlag);  // Make sure full stack has been called and correctness verified.
-    EXPECT_GT(SOSDT::maxStackSecureFrameDecode, baseStack - maxStack);  // Make sure stack usage is within bounds.
-}
-#endif // OTAESGCM_ALLOW_NON_WORKSPACE
-
 namespace SOSDT
 {
 /**
@@ -275,7 +228,23 @@ TEST(SecureOpStackDepth, SimpleSecureFrame32or0BodyRXFixedCounterWithWorkspaceSt
     EXPECT_TRUE(SOSDT::frameOperationCalledFlag);  // Make sure full stack has been called and correctness verified.
     EXPECT_GE(SOSDT::maxStackSecureFrameDecode, baseStack - maxStack);  // Make sure stack usage is within bounds.
 }
-#if 0
+
+namespace OTMQHSB{
+    bool decodeAndHandleSecFrame(volatile const uint8_t *const msg){
+        constexpr size_t workspaceRequired =
+            OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decode_total_scratch_usage_OTAESGCM_3p0
+            + OTAESGCM::OTAES128GCMGenericWithWorkspace<>::workspaceRequiredDec
+            + OTRadioLink::authAndDecodeOTSecurableFrameWithWorkspace_scratch_usage; // + space to hold the key
+        uint8_t workspace[workspaceRequired];
+    OTV0P2BASE::ScratchSpaceL sW(workspace, sizeof(workspace));
+        return (OTRadioLink::decodeAndHandleOTSecureOFrame<
+            OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
+            OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE,
+            SOSDT::getKeySuccess,
+            SOSDT::setFlagFrameOperation>(msg, sW));
+    }
+
+}
 TEST(SecureOpStackDepth, OTMessageQueueHandlerStackBasicWithWorkspace)
 {
     // Make sure flag is false.
@@ -294,20 +263,13 @@ TEST(SecureOpStackDepth, OTMessageQueueHandlerStackBasicWithWorkspace)
     OTV0P2BASE::MemoryChecks::recordIfMinSP();
     const size_t baseStack = OTV0P2BASE::MemoryChecks::getMinSP();
 
-
     OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter &sfrx = OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter::getInstance();
     sfrx.setMockIDValue(senderID);
     sfrx.setMockCounterValue(msgCounter);
 
     OTRadioLink::OTMessageQueueHandler<
         SOSDT::pollIO, 4800,
-        OTRadioLink::decodeAndHandleOTSecureOFrame<
-            OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
-            OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE,
-            SOSDT::getKeySuccess,
-            SOSDT::setFlagFrameOperation
-        >
-    > mh;
+        OTMQHSB::decodeAndHandleSecFrame> mh;
 
     EXPECT_TRUE(mh.handle(false, rl));
 
@@ -320,52 +282,6 @@ TEST(SecureOpStackDepth, OTMessageQueueHandlerStackBasicWithWorkspace)
     EXPECT_TRUE(SOSDT::frameOperationCalledFlag);  // Make sure full stack has been called and correctness verified.
     EXPECT_GT(SOSDT::maxStackSecureFrameDecode, baseStack - maxStack);  // Make sure stack usage is within bounds.
 }
-#endif
-#ifdef OTAESGCM_ALLOW_NON_WORKSPACE
-TEST(SecureOpStackDepth, OTMessageQueueHandlerStackBasic)
-{
-    // Make sure flag is false.
-    SOSDT::frameOperationCalledFlag = false;
-    // Secure Frame start
-    const uint8_t * senderID = SOSDT::minimumSecureFrame::id;
-    const uint8_t * msgCounter = SOSDT::minimumSecureFrame::oldCounter;
-//     const uint8_t * const msgStart = &SOSDT::minimumSecureFrame::buf[1];
-
-    OTRadioLink::OTRadioLinkMock rl;
-    memcpy(rl.message, SOSDT::minimumSecureFrame::buf, SOSDT::minimumSecureFrame::encodedLength + 1);
-
-    // Set up stack usage checks
-    OTV0P2BASE::RAMEND = OTV0P2BASE::getSP();
-    OTV0P2BASE::MemoryChecks::resetMinSP();
-    OTV0P2BASE::MemoryChecks::recordIfMinSP();
-    const size_t baseStack = OTV0P2BASE::MemoryChecks::getMinSP();
-
-
-    OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter &sfrx = OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter::getInstance();
-    sfrx.setMockIDValue(senderID);
-    sfrx.setMockCounterValue(msgCounter);
-
-    OTRadioLink::OTMessageQueueHandler<
-        SOSDT::pollIO, 4800,
-        OTRadioLink::decodeAndHandleOTSecureOFrame<OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
-                                                                      OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_STATELESS,
-                                                                      SOSDT::getKeySuccess,
-                                                                      SOSDT::setFlagFrameOperation
-                                                                     >
-                                                  > mh;
-
-    EXPECT_TRUE(mh.handle(false, rl));
-
-
-    const size_t maxStack = OTV0P2BASE::MemoryChecks::getMinSP();
-    // Uncomment to print stack usage
-    //  std::cout << "OTMessageQueueHandler stack: " << baseStack - maxStack << "\n";
-
-    // EXPECT_TRUE(test1);
-    EXPECT_TRUE(SOSDT::frameOperationCalledFlag);  // Make sure full stack has been called and correctness verified.
-    EXPECT_GT(SOSDT::maxStackSecureFrameDecode, baseStack - maxStack);  // Make sure stack usage is within bounds.
-}
-#endif // OTAESGCM_ALLOW_NON_WORKSPACE
 
 /**
  * Stack usage:
