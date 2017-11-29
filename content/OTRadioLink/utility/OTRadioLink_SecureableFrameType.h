@@ -206,7 +206,7 @@ namespace OTRadioLink
         // but may under some circumstances (depending on message type)
         // be the ID of the target/recipient.
         //
-        // Initial and 'small frame' implementations are limited to 8 bytes of ID
+        // Initial an`d 'small frame' implementations are limited to 8 bytes of ID
         static constexpr uint8_t maxIDLength = 8;
         uint8_t id[maxIDLength];
 
@@ -270,7 +270,8 @@ namespace OTRadioLink
                     OTBuf_t &buf,
                     bool secure_, FrameType_Secureable fType_,
                     uint8_t seqNum_,
-                    const OTBuf_t &id_,  // FIXME ScratchSpace can't be const!
+                    const uint8_t *id_,
+                    uint8_t il_,
                     uint8_t bl_,
                     uint8_t tl_);
 
@@ -425,7 +426,7 @@ namespace OTRadioLink
      *
      * @note    Uses a scratch space, allowing the stack usage to be more tightly controlled.
      */
-    uint8_t encodeNonsecure(OTEncodeData_T &fd, uint8_t seqNum_, const OTBuf_t &id_);
+    uint8_t encodeNonsecure(OTEncodeData_T &fd, uint8_t seqNum, const uint8_t *id, uint8_t il);
 
     /**
      * @brief   Decode entire non-secure small frame from raw frame bytes support.
@@ -575,7 +576,9 @@ namespace OTRadioLink
                     + encodeRaw_scratch_usage;
             static uint8_t encodeRaw(
                                 OTEncodeData_T &fd,
-                                const OTBuf_t &id_,
+                                // const OTBuf_t &id_,
+                                const uint8_t *id,
+                                const uint8_t il,
                                 const uint8_t *iv,
                                 fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t &e,
                                 const OTV0P2BASE::ScratchSpaceL &scratch,
@@ -775,7 +778,7 @@ namespace OTRadioLink
     // Implementations may keep a cache of node associations and RX message counters
     // eg to allow ISR-/thread- safe filtering of inbound frames in interrupt RX routines.
     //
-    // With all of these routines it is important to check and act on error codes,
+    // Wit>portant to check and act on error codes,
     // usually aborting immediately if an error value is returned.
     // MUDDLING ON WITHOUT CHECKING FOR ERRORS MAY SEVERELY DAMAGE SYSTEM SECURITY.
     class SimpleSecureFrame32or0BodyRXBase : public SimpleSecureFrame32or0BodyBase
@@ -1102,7 +1105,7 @@ namespace OTRadioLink
      * @retval  Returns number of bytes written to fd.outbuf, or 0 in case of error.
      */
     static const uint8_t generateNonsecureBeaconMaxBufSize = 5 + SecurableFrameHeader::maxIDLength;
-    uint8_t generateNonsecureBeacon(OTBuf_t &buf, const uint8_t seqNum, const OTBuf_t &id);
+    uint8_t generateNonsecureBeacon(OTBuf_t &buf, uint8_t seqNum, const uint8_t *id, uint8_t il);
 
 
     /**

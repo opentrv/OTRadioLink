@@ -105,73 +105,93 @@ TEST(OTAESGCMSecureFrame, FrameQIC)
     // Test various bad input combos that should be caught by QIC.
     // Can futz (some of the) inputs that should not matter...
     // Should fail with bad ID length.
-    EXPECT_EQ(0, sfh.encodeHeader(buf,
-                                               false, OTRadioLink::FTS_BasicSensorOrValve,
-                                               OTV0P2BASE::randRNG8(),
-                                               largeID,
-                                               2,
-                                               1));
+    EXPECT_EQ(0, sfh.encodeHeader(
+                        buf,
+                        false, OTRadioLink::FTS_BasicSensorOrValve,
+                        OTV0P2BASE::randRNG8(),
+                        largeID.buf,
+                        largeID.bufsize,
+                        2,
+                        1));
     // Should fail with bad buffer length.
-    EXPECT_EQ(0, sfh.encodeHeader(nullbuf,
-                                               false, OTRadioLink::FTS_BasicSensorOrValve,
-                                               OTV0P2BASE::randRNG8(),
-                                               id2bytes,
-                                               2,
-                                               1));
+    EXPECT_EQ(0, sfh.encodeHeader(
+                        nullbuf,
+                        false, OTRadioLink::FTS_BasicSensorOrValve,
+                        OTV0P2BASE::randRNG8(),
+                        id2bytes.buf,
+                        id2bytes.bufsize,
+                        2,
+                        1));
     // Should fail with bad frame type.
-    EXPECT_EQ(0, sfh.encodeHeader(buf,
-                                               OTV0P2BASE::randRNG8NextBoolean(), OTRadioLink::FTS_NONE,
-                                               OTV0P2BASE::randRNG8(),
-                                               id2bytes,
-                                               2,
-                                               1));
-    EXPECT_EQ(0, sfh.encodeHeader(buf,
-                                               OTV0P2BASE::randRNG8NextBoolean(), OTRadioLink::FTS_INVALID_HIGH,
-                                               OTV0P2BASE::randRNG8(),
-                                               id2bytes,
-                                               2,
-                                               1));
+    EXPECT_EQ(0, sfh.encodeHeader(
+                        buf,
+                        OTV0P2BASE::randRNG8NextBoolean(), OTRadioLink::FTS_NONE,
+                        OTV0P2BASE::randRNG8(),
+                        id2bytes.buf,
+                        id2bytes.bufsize,
+                        2,
+                        1));
+    EXPECT_EQ(0, sfh.encodeHeader(
+                        buf,
+                        OTV0P2BASE::randRNG8NextBoolean(), OTRadioLink::FTS_INVALID_HIGH,
+                        OTV0P2BASE::randRNG8(),
+                        id2bytes.buf,
+                        id2bytes.bufsize,
+                        2,
+                        1));
     // Should fail with impossible body length.
-    EXPECT_EQ(0, sfh.encodeHeader(buf,
-                                               OTV0P2BASE::randRNG8NextBoolean(), OTRadioLink::FTS_ALIVE,
-                                               OTV0P2BASE::randRNG8(),
-                                               minimalID,
-                                               252,
-                                               1));
+    EXPECT_EQ(0, sfh.encodeHeader(
+                        buf,
+                        OTV0P2BASE::randRNG8NextBoolean(), OTRadioLink::FTS_ALIVE,
+                        OTV0P2BASE::randRNG8(),
+                        minimalID.buf,
+                        minimalID.bufsize,
+                        252,
+                        1));
     // Should fail with impossible trailer length.
-    EXPECT_EQ(0, sfh.encodeHeader(buf,
-                                               OTV0P2BASE::randRNG8NextBoolean(), OTRadioLink::FTS_ALIVE,
-                                               OTV0P2BASE::randRNG8(),
-                                               minimalID,
-                                               0,
-                                               0));
-    EXPECT_EQ(0, sfh.encodeHeader(buf,
-                                               OTV0P2BASE::randRNG8NextBoolean(), OTRadioLink::FTS_ALIVE,
-                                               OTV0P2BASE::randRNG8(),
-                                               minimalID,
-                                               0,
-                                               252));
+    EXPECT_EQ(0, sfh.encodeHeader(
+                        buf,
+                        OTV0P2BASE::randRNG8NextBoolean(), OTRadioLink::FTS_ALIVE,
+                        OTV0P2BASE::randRNG8(),
+                        minimalID.buf,
+                        minimalID.bufsize,
+                        0,
+                        0));
+    EXPECT_EQ(0, sfh.encodeHeader(
+                        buf,
+                        OTV0P2BASE::randRNG8NextBoolean(), OTRadioLink::FTS_ALIVE,
+                        OTV0P2BASE::randRNG8(),
+                        minimalID.buf,
+                        minimalID.bufsize,
+                        0,
+                        252));
     // Should fail with impossible body + trailer length (for small frame).
-    EXPECT_EQ(0, sfh.encodeHeader(buf,
-                                               OTV0P2BASE::randRNG8NextBoolean(), OTRadioLink::FTS_ALIVE,
-                                               OTV0P2BASE::randRNG8(),
-                                               minimalID,
-                                               32,
-                                               32));
+    EXPECT_EQ(0, sfh.encodeHeader(
+                        buf,
+                        OTV0P2BASE::randRNG8NextBoolean(), OTRadioLink::FTS_ALIVE,
+                        OTV0P2BASE::randRNG8(),
+                        minimalID.buf,
+                        minimalID.bufsize,
+                        32,
+                        32));
     // "I'm Alive!" message with 1-byte ID should succeed and be of full header length (5).
-    EXPECT_EQ(5, sfh.encodeHeader(buf,
-                                               false, OTRadioLink::FTS_ALIVE,
-                                               OTV0P2BASE::randRNG8(),
-                                               minimalID, // Minimal (non-empty) ID.
-                                               0, // No payload.
-                                               1));
+    EXPECT_EQ(5, sfh.encodeHeader(
+                        buf,
+                        false, OTRadioLink::FTS_ALIVE,
+                        OTV0P2BASE::randRNG8(),
+                        minimalID.buf,  // Minimal (non-empty) ID.
+                        minimalID.bufsize,
+                        0, // No payload.
+                        1));
     // Large but legal body size.
-    EXPECT_EQ(5, sfh.encodeHeader(buf,
-                                               false, OTRadioLink::FTS_ALIVE,
-                                               OTV0P2BASE::randRNG8(),
-                                               minimalID, // Minimal (non-empty) ID.
-                                               32,
-                                               1));
+    EXPECT_EQ(5, sfh.encodeHeader(
+                        buf,
+                        false, OTRadioLink::FTS_ALIVE,
+                        OTV0P2BASE::randRNG8(),
+                        minimalID.buf,  // Minimal (non-empty) ID.
+                        minimalID.bufsize,
+                        32,
+                        1));
     // DECODE  // TODO SWITCH THIS!
     // Test various bad input combos that should be caught by QIC.
     // Can futz (some of the) inputs that should not matter...
@@ -229,12 +249,14 @@ TEST(OTAESGCMSecureFrame, FrameHeaderEncoding)
     //23 CRC value
     id2bytes.buf[0] = 0x80;
     id2bytes.buf[1] = 0x81;
-    EXPECT_EQ(6, sfh.encodeHeader(buf,
-                                               false, OTRadioLink::FTS_BasicSensorOrValve,
-                                               0,
-                                               id2bytes,
-                                               2,
-                                               1));
+    EXPECT_EQ(6, sfh.encodeHeader(
+                        buf,
+                        false, OTRadioLink::FTS_BasicSensorOrValve,
+                        0,
+                        id2bytes.buf,
+                        id2bytes.bufsize,
+                        2,
+                        1));
     EXPECT_EQ(0x08, buf.buf[0]);
     EXPECT_EQ(0x4f, buf.buf[1]);
     EXPECT_EQ(0x02, buf.buf[2]);
@@ -265,11 +287,12 @@ TEST(OTAESGCMSecureFrame, FrameHeaderEncoding)
     id2bytes.buf[0] = 0x80;
     id2bytes.buf[1] = 0x81;
     EXPECT_EQ(6, sfh.encodeHeader(buf,
-                                               false, OTRadioLink::FTS_BasicSensorOrValve,
-                                               0,
-                                               id2bytes,
-                                               8,
-                                               1));
+                        false, OTRadioLink::FTS_BasicSensorOrValve,
+                        0,
+                        id2bytes.buf,
+                        id2bytes.bufsize,
+                        8,
+                        1));
     EXPECT_EQ(0x0e, buf.buf[0]);
     EXPECT_EQ(0x4f, buf.buf[1]);
     EXPECT_EQ(0x02, buf.buf[2]);
@@ -434,7 +457,8 @@ TEST(OTAESGCMSecureFrame, NonsecureSmallFrameEncoding)
     EXPECT_EQ(9, OTRadioLink::encodeNonsecure(
                                     fd,
                                     0,
-                                    id2bytes));
+                                    id2bytes.buf,
+                                    id2bytes.bufsize));
     EXPECT_EQ(0x08, buf[0]);
     EXPECT_EQ(0x4f, buf[1]);
     EXPECT_EQ(0x02, buf[2]);
@@ -736,7 +760,8 @@ TEST(OTAESGCMSecureFrame, SecureSmallFrameEncoding)
     fdTX.fType = OTRadioLink::FTS_BasicSensorOrValve;
     const uint8_t encodedLength = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeRaw(
                                         fdTX,
-                                        id4bytes,
+                                        id4bytes.buf,
+                                        id4bytes.bufsize,
                                         iv,
                                         OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_LWORKSPACE,
                                         sWEnc, zeroBlock);
@@ -819,7 +844,7 @@ TEST(OTAESGCMSecureFrame, BeaconEncodingWithWorkspace)
     uint8_t zeroBufBlock[OTRadioLink::SecurableFrameHeader::maxIDLength] = {};
     OTRadioLink::OTBuf_t zeroBuf(zeroBufBlock, sizeof(zeroBufBlock));
     // Generate zero-length-ID beacon.
-    const uint8_t b0 = OTRadioLink::generateNonsecureBeacon(otbuf, 0, nullbuf);
+    const uint8_t b0 = OTRadioLink::generateNonsecureBeacon(otbuf, 0, nullbuf.buf, nullbuf.bufsize);
     EXPECT_EQ(5, b0);
     EXPECT_EQ(0x04, buf[0]);
     EXPECT_EQ(0x21, buf[1]);
@@ -827,7 +852,7 @@ TEST(OTAESGCMSecureFrame, BeaconEncodingWithWorkspace)
     EXPECT_EQ(0x00, buf[3]); // Body length 0.
     EXPECT_EQ(0x65, buf[4]);
     // Generate maximum-length-zero-ID beacon automatically at non-zero seq.
-    const uint8_t b1 = OTRadioLink::generateNonsecureBeacon(otbuf, 4, zeroBuf);
+    const uint8_t b1 = OTRadioLink::generateNonsecureBeacon(otbuf, 4, zeroBuf.buf, zeroBuf.bufsize);
     EXPECT_EQ(13, b1);
     EXPECT_EQ(0x0c, buf[0]);
     EXPECT_EQ(0x21, buf[1]);
@@ -870,7 +895,8 @@ TEST(OTAESGCMSecureFrame, BeaconEncodingWithWorkspace)
         //    const uint8_t sb1 = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::generateSecureBeaconRaw(buf, sizeof(buf), id, idLen, iv, OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_STATELESS, NULL, key);
         const uint8_t sb1 = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeRaw(
                                         fdEnc,
-                                        id,
+                                        id.buf,
+                                        id.bufsize,
                                         iv,
                                         OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_LWORKSPACE,
                                         sWEnc, key);
@@ -1184,7 +1210,7 @@ TEST(OTAESGCMSecureFrame, OFrameEncoding)
     uint8_t _bufW[encBufSize];
     OTRadioLink::OTBuf_t bufW(_bufW, sizeof(_bufW));
 
-    uint8_t _rawFrame[34];  // the length bbuf needs to be (valvepc + hasstats + msg including {} ).
+    uint8_t _rawFrame[34] = {};  // the length bbuf needs to be (valvepc + hasstats + msg including {} ).
     OTRadioLink::OTBuf_t rawFrame(_rawFrame, sizeof(_rawFrame));
     constexpr size_t workspaceSize = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeValveFrame_total_scratch_usage_OTAESGCM_2p0;
     uint8_t workspace[workspaceSize];
@@ -1198,47 +1224,124 @@ TEST(OTAESGCMSecureFrame, OFrameEncoding)
                                         valvePC,
                                         eW,
                                         sW, key);
+    
     EXPECT_EQ(63, bodylenW);
     for(int i = 0; i < bodylenW; ++i) { ASSERT_EQ(expected[i], bufW.buf[i]); }
 }
-// // Test encoding of generic frames through to final byte pattern.XXX
-// TEST(OTAESGCMSecureFrame, GenericFrameEncoding)
-// {
-//     TXBaseMock mockTX;
 
-//     // All zeroes key.
-//     const uint8_t *const key = zeroBlock;
-//     // Size of buffer to receive encrypted frame.
-//     constexpr uint8_t encBufSize = 64;
-//     // Length of ID prefix for frame.
-//     const uint8_t txIDLen =4;
-//     // Distinguished 'invalid' valve position; never mistaken for a real valve.
-//     constexpr uint8_t valvePC = 0x7f;
+// Test encoding of generic frames through to final byte pattern.
+TEST(OTAESGCMSecureFrame, GenericFrameEncodingValidity)
+{
+    TXBaseMock mockTX;
 
-//     // Expected result.
-//     const uint8_t expected[63] = {62,207,4,128,128,128,128,32,102,58,109,143,127,209,106,16,122,170,41,17,135,168,193,220,188,110,36,204,190,21,125,138,196,172,122,155,149,87,43,4,0,0,0,0,0,0,162,222,15,42,215,77,210,0,127,19,255,121,139,199,19,12,128};
+    // All zeroes key.
+    const uint8_t *const key = zeroBlock;
+    // Size of buffer to receive encrypted frame.
+    constexpr uint8_t encBufSize = 64;
+    // Length of ID prefix for frame.
+    const uint8_t txIDLen = 4;
+    // // Distinguished 'invalid' valve position; never mistaken for a real valve.
+    constexpr uint8_t valvePC = 0x7f;
 
-//     // Encrypt empty (no-JSON) O frame via the explicit workspace API.
-//     uint8_t _bufW[encBufSize];
-//     OTRadioLink::OTBuf_t bufW(_bufW, sizeof(_bufW));
+    // Encrypt empty (no-JSON) O frame via the explicit workspace API.
+    uint8_t _bufW[encBufSize] = {};
+    OTRadioLink::OTBuf_t bufW(_bufW, sizeof(_bufW));
 
-//     uint8_t _rawFrame[34];  // the length bbuf needs to be (valvepc + hasstats + msg including {} ).
-//     OTRadioLink::OTBuf_t rawFrame(_rawFrame, sizeof(_rawFrame));
-//     constexpr size_t workspaceSize = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encodeValveFrame_total_scratch_usage_OTAESGCM_2p0;
-//     uint8_t workspace[workspaceSize];
-//     OTV0P2BASE::ScratchSpaceL sW(workspace, workspaceSize);
-//     OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t &eW = OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_LWORKSPACE;
+    uint8_t _rawFrame[34] = {};  // the length bbuf needs to be (valvepc + hasstats + msg including {} ).
+    OTRadioLink::OTBuf_t rawFrame(_rawFrame, sizeof(_rawFrame));
+    constexpr size_t workspaceSize = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encode_total_scratch_usage_OTAESGCM_2p0;
+    uint8_t workspace[workspaceSize];
+    OTV0P2BASE::ScratchSpaceL sW(workspace, workspaceSize);
+    OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t &eW = OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_LWORKSPACE;
 
-//     OTRadioLink::OTEncodeData_T fd(_rawFrame, sizeof(_rawFrame), _bufW, sizeof(_bufW));
-//     const uint8_t bodylenW = mockTX.encodeValveFrame(
-//                                         fd,
-//                                         txIDLen,
-//                                         valvePC,
-//                                         eW,
-//                                         sW, key);
-//     EXPECT_EQ(63, bodylenW);
-//     for(int i = 0; i < bodylenW; ++i) { ASSERT_EQ(expected[i], bufW.buf[i]); }
-// }
+    // Setup frame data.
+    OTRadioLink::OTEncodeData_T fd(_rawFrame, sizeof(_rawFrame), _bufW, sizeof(_bufW));
+    { // This block is lifted and simplified from encodeValveFrame to build an identical frame.
+        fd.ptext[0] = valvePC;
+        fd.ptext[1] = 0; // Indicate presence of stats.
+        fd.ptextLen = 2; // Note: callee will pad beyond this.
+    }
+
+    // // Test a too small scratchspace
+    fd.fType = OTRadioLink::FTS_BasicSensorOrValve;
+    OTV0P2BASE::ScratchSpaceL nullSW(workspace, 0);
+    EXPECT_EQ(0, mockTX.encode(fd, txIDLen, eW, nullSW, key));
+    for(size_t i = 0; i < sizeof(_bufW); ++i) { ASSERT_EQ(0, bufW.buf[i]); }
+    OTV0P2BASE::ScratchSpaceL smallSW(workspace, workspaceSize - 1);
+    EXPECT_EQ(0, mockTX.encode(fd, txIDLen, eW, smallSW, key));
+    for(size_t i = 0; i < sizeof(_bufW); ++i) { ASSERT_EQ(0, bufW.buf[i]); }
+
+    // // Test a few invalid fType values
+    fd.fType = OTRadioLink::FTS_NONE;
+    EXPECT_EQ(0, mockTX.encode(fd, txIDLen, eW, sW, key));
+    for(size_t i = 0; i < sizeof(_bufW); ++i) { ASSERT_EQ(0, bufW.buf[i]); }
+    fd.fType = OTRadioLink::FTS_INVALID_HIGH;
+    EXPECT_EQ(0, mockTX.encode(fd, txIDLen, eW, sW, key));
+    for(size_t i = 0; i < sizeof(_bufW); ++i) { ASSERT_EQ(0, bufW.buf[i]); }
+    fd.fType = OTRadioLink::FTS_INVALID_HIGH;
+    EXPECT_EQ(0, mockTX.encode(fd, txIDLen, eW, sW, key));
+    for(size_t i = 0; i < sizeof(_bufW); ++i) { ASSERT_EQ(0, bufW.buf[i]); }
+    fd.fType = (OTRadioLink::FrameType_Secureable)255;
+    EXPECT_EQ(0, mockTX.encode(fd, txIDLen, eW, sW, key));
+    for(size_t i = 0; i < sizeof(_bufW); ++i) { ASSERT_EQ(0, bufW.buf[i]); }
+
+    // Test invalid il lengths.
+    fd.fType = OTRadioLink::FTS_BasicSensorOrValve;
+    EXPECT_EQ(0, mockTX.encode(fd, 9, eW, sW, key));
+    for(size_t i = 0; i < sizeof(_bufW); ++i) { ASSERT_EQ(0, bufW.buf[i]); }
+    EXPECT_EQ(0, mockTX.encode(fd, 255, eW, sW, key));
+    for(size_t i = 0; i < sizeof(_bufW); ++i) { ASSERT_EQ(0, bufW.buf[i]); }
+    // Test valid il lengths
+    EXPECT_EQ(65, mockTX.encode(fd, 6, eW, sW, key));
+    EXPECT_EQ(59, mockTX.encode(fd, 0, eW, sW, key));
+
+}
+
+// Test encoding of generic frames through to final byte pattern.
+TEST(OTAESGCMSecureFrame, GenericFrameEncoding)
+{
+    TXBaseMock mockTX;
+
+    // All zeroes key.
+    const uint8_t *const key = zeroBlock;
+    // Size of buffer to receive encrypted frame.
+    constexpr uint8_t encBufSize = 64;
+    // Length of ID prefix for frame.
+    const uint8_t txIDLen =4;
+    // // Distinguished 'invalid' valve position; never mistaken for a real valve.
+    constexpr uint8_t valvePC = 0x7f;
+
+    // Expected result.
+    const uint8_t expected[63] = {62,207,4,128,128,128,128,32,102,58,109,143,127,209,106,16,122,170,41,17,135,168,193,220,188,110,36,204,190,21,125,138,196,172,122,155,149,87,43,4,0,0,0,0,0,0,162,222,15,42,215,77,210,0,127,19,255,121,139,199,19,12,128};
+
+    // Encrypt empty (no-JSON) O frame via the explicit workspace API.
+    uint8_t _bufW[encBufSize];
+    OTRadioLink::OTBuf_t bufW(_bufW, sizeof(_bufW));
+
+    uint8_t _rawFrame[34] = {};  // the length bbuf needs to be (valvepc + hasstats + msg including {} ).
+    OTRadioLink::OTBuf_t rawFrame(_rawFrame, sizeof(_rawFrame));
+    constexpr size_t workspaceSize = OTRadioLink::SimpleSecureFrame32or0BodyTXBase::encode_total_scratch_usage_OTAESGCM_2p0;
+    uint8_t workspace[workspaceSize];
+    OTV0P2BASE::ScratchSpaceL sW(workspace, workspaceSize);
+    OTRadioLink::SimpleSecureFrame32or0BodyTXBase::fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t &eW = OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleEnc_DEFAULT_WITH_LWORKSPACE;
+
+    // Setup frame data.
+    OTRadioLink::OTEncodeData_T fd(_rawFrame, sizeof(_rawFrame), _bufW, sizeof(_bufW));
+    { // This block is lifted and simplified from encodeValveFrame to build an identical frame.
+        const char *const statsJSON = (const char *const)&fd.ptext[2];
+        const bool hasStats = (NULL != fd.ptext) && ('{' == statsJSON[0]);
+        const size_t slp1 = hasStats ? strlen(statsJSON) : 1; // Stats length including trailing '}' (not sent).
+        const uint8_t statslen = (uint8_t)(slp1 - 1); // Drop trailing '}' implicitly.
+        fd.ptext[0] = valvePC;
+        fd.ptext[1] = hasStats ? 0x10 : 0; // Indicate presence of stats.
+        fd.ptextLen = (hasStats ? 2+statslen : 2); // Note: callee will pad beyond this.
+    }
+    fd.fType = OTRadioLink::FTS_BasicSensorOrValve;
+
+    const uint8_t bodylenW = mockTX.encode(fd, txIDLen, eW, sW, key);
+    EXPECT_EQ(63, bodylenW);
+    for(int i = 0; i < bodylenW; ++i) { ASSERT_EQ(expected[i], bufW.buf[i]); }
+}
 
 #if 0  //  TODO fix these once interface changed.
 // Encode section of GCMVS1ViaFixed32BTextSize test, measuring stack usage.
