@@ -1287,13 +1287,24 @@ TEST(OTAESGCMSecureFrame, GenericFrameEncodingValidity)
 
     // Test invalid il lengths.
     fd.fType = OTRadioLink::FTS_BasicSensorOrValve;
-    EXPECT_EQ(0, mockTX.encode(fd, 9, eW, sW, key));
-    for(size_t i = 0; i < sizeof(_bufW); ++i) { ASSERT_EQ(0, bufW.buf[i]); }
     EXPECT_EQ(0, mockTX.encode(fd, 255, eW, sW, key));
     for(size_t i = 0; i < sizeof(_bufW); ++i) { ASSERT_EQ(0, bufW.buf[i]); }
+    EXPECT_EQ(0, mockTX.encode(fd, 6, eW, sW, key));
+    for(size_t i = 0; i < sizeof(_bufW); ++i) { ASSERT_EQ(0, bufW.buf[i]); }
+
     // Test valid il lengths
-    EXPECT_EQ(65, mockTX.encode(fd, 6, eW, sW, key));
     EXPECT_EQ(59, mockTX.encode(fd, 0, eW, sW, key));
+    EXPECT_EQ(64, mockTX.encode(fd, 5, eW, sW, key));
+    
+    // Test il_ > 5
+    // Frame length must be 0 for IDs longer than 5 bytes or it won't fit in frame.
+    fd.ptextLen = 0;
+    EXPECT_EQ(32, mockTX.encode(fd, 5, eW, sW, key));
+    EXPECT_EQ(33, mockTX.encode(fd, 6, eW, sW, key));
+    EXPECT_EQ(34, mockTX.encode(fd, 7, eW, sW, key));
+    EXPECT_EQ(35, mockTX.encode(fd, 8, eW, sW, key));
+    EXPECT_EQ(0, mockTX.encode(fd, 9, eW, sW, key));
+
 
 }
 

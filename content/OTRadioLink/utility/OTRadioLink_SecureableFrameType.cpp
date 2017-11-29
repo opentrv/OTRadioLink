@@ -408,6 +408,11 @@ bool SimpleSecureFrame32or0BodyRXBase::msgcounteradd(uint8_t *const counter, con
  *
  * The sequence number is taken from the 4 least significant bits of the
  * message counter (at byte 6 in the nonce).
+ * 
+ * NOTE: A minimal message with no body or id will be 27 bytes long. As the
+ * body must be 0 or 32 bytes long and the frame length is constrained to 63
+ * bytes, ID lengths of over 5 bytes are not supported on frames containing a
+ * body.
  *
  * Typical workflow:
  * - XXX
@@ -435,8 +440,10 @@ bool SimpleSecureFrame32or0BodyRXBase::msgcounteradd(uint8_t *const counter, con
  * @param   key: 16-byte secret key. Never NULL.
  * @param   iv: 12-byte initialisation vector/nonce. Never NULL.
  * @param   id_: ID bytes to go in the header; NULL means take ID
- *              from EEPROM
- * @param   il_: Length of the desired ID. Must be less than the length if id.
+ *              from EEPROM.
+ * @param   il_: Length of the desired ID.
+ *               - For messages containing a body, must be between [0,5].
+ *               - For messages with no body, may be in range [0,8]
  * @retval  Returns the total number of bytes written out for (the frame + the
  *          leading frame length byte + 1). Returns zero in case of error.
  *
@@ -783,7 +790,9 @@ uint8_t generateNonsecureBeacon(OTBuf_t &buf, const uint8_t seqNum, const uint8_
  *              - ftype: Must be set with a valid frame type before calling this
  *                function.
  * @param   il_: ID length for the header. ID is local node ID from EEPROM or
- *               other pre-supplied ID, must be in the range [0,8],
+ *               other pre-supplied ID.
+ *               - For messages containing a body, must be between [0,5].
+ *               - For messages with no body, may be in range [0,8]
  * @param   e: Encryption function.
  * @param   scratch: Scratch space. Size must be large enough to contain
  *                   encode_total_scratch_usage_OTAESGCM_2p0 bytes AND the
@@ -793,8 +802,6 @@ uint8_t generateNonsecureBeacon(OTBuf_t &buf, const uint8_t seqNum, const uint8_
  *
  * @note    Uses a scratch space, allowing the stack usage to be more tightly
  *          controlled.
- * 
- * @FIXME   UNTESTED BY CI!
  */
 uint8_t SimpleSecureFrame32or0BodyTXBase::encode(
             OTEncodeData_T &fd,
