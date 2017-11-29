@@ -361,7 +361,6 @@ TEST(FrameHandler, BoilerFrameOperationSuccess)
     EXPECT_TRUE(boilerOperationSuccess);
 }
 
-#if 0  // Broken tests.
 TEST(FrameHandler, authAndDecodeSecurableFrameBasic)
 {
     // Secure Frame start
@@ -385,25 +384,34 @@ TEST(FrameHandler, authAndDecodeSecurableFrameBasic)
     constexpr uint8_t expectedDecryptedBodyLen = 0;
     // message
     // msg buf consists of    { len | Message   }
-    const uint8_t msgBuf[] = { 5,    0,1,2,3,4 };
+    const uint8_t msgBuf[] = { 5,    'O',1,2,3,4 };
+    // const uint8_t *const msgBuf = OTFHT::minimumSecureFrame::buf;
     uint8_t decryptedBodyOut[OTRadioLink::OTDecodeData_T::ptextLenMax];
     OTRadioLink::OTDecodeData_T fd(msgBuf, decryptedBodyOut);
     EXPECT_EQ(0, fd.sfh.decodeHeader(msgBuf, sizeof(msgBuf)+1));
-
-    fd.ptextLen = 0xff;  // Test that this is really set.
-
 
     const bool test1 = OTRadioLink::authAndDecodeOTSecurableFrame<OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
                                                                   OTFHT::mockDecrypt,
                                                                   OTFHT::getKeySuccess>(fd, sW);
     EXPECT_FALSE(test1);
-    EXPECT_NE(0xff, fd.ptextLen) << "fd.ptextSize not altered.";
     EXPECT_EQ(expectedDecryptedBodyLen, fd.ptextLen);
 }
-#endif
-// FIXME is this actually testing anything?
+// Check that not getting a key will fail.
 TEST(FrameHandler, authAndDecodeSecurableFrameGetKeyFalse)
 {
+    // Secure Frame start
+    const uint8_t * senderID = OTFHT::minimumSecureFrame::id;
+    const uint8_t * msgCounter = OTFHT::minimumSecureFrame::oldCounter;
+    const uint8_t * const msgStart = OTFHT::minimumSecureFrame::buf;
+
+    OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter &sfrx = OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter::getInstance();
+    sfrx.setMockIDValue(senderID);
+    sfrx.setMockCounterValue(msgCounter);
+
+    uint8_t decryptedBodyOut[OTRadioLink::OTDecodeData_T::ptextLenMax];
+    OTRadioLink::OTDecodeData_T fd(msgStart, decryptedBodyOut);
+    EXPECT_NE(0, fd.sfh.decodeHeader(OTFHT::minimumSecureFrame::buf, OTFHT::minimumSecureFrame::encodedLength));
+
     // Workspace for authAndDecodeOTSecurableFrame
     constexpr size_t workspaceRequired =
             OTRadioLink::SimpleSecureFrame32or0BodyRXBase::decode_total_scratch_usage_OTAESGCM_3p0
@@ -412,21 +420,13 @@ TEST(FrameHandler, authAndDecodeSecurableFrameGetKeyFalse)
     uint8_t workspace[workspaceRequired];
     OTV0P2BASE::ScratchSpaceL sW(workspace, sizeof(workspace));
 
-    // fd.decryptedBody only set after getKey succeeds. Therefore, on key fail, should be unchanged.
-    constexpr uint8_t expectedDecryptedBodyLen = 0xff;
-    // message
-    // msg buf consists of    { len | Message   }
-    const uint8_t msgBuf[] = { 5,    0,1,2,3,4 };
-    uint8_t decryptedBodyOut[OTRadioLink::OTDecodeData_T::ptextLenMax];
-    OTRadioLink::OTDecodeData_T fd(&msgBuf[1], decryptedBodyOut);
-    fd.ptextLen = 0xff;  // Test that this is really set.
-
-    //
-    const bool test1 = OTRadioLink::authAndDecodeOTSecurableFrame<OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
-                                                                  OTFHT::mockDecrypt,
-                                                                  OTFHT::getKeyFail>(fd, sW);
+    // Set up stack usage checks
+    const bool test1 = OTRadioLink::authAndDecodeOTSecurableFrame<
+                OTRadioLink::SimpleSecureFrame32or0BodyRXFixedCounter,
+                OTAESGCM::fixed32BTextSize12BNonce16BTagSimpleDec_DEFAULT_WITH_LWORKSPACE,
+                OTFHT::getKeyFail
+            >(fd, sW);
     EXPECT_FALSE(test1);
-    EXPECT_EQ(expectedDecryptedBodyLen, fd.ptextLen);
 }
 
 // Basic test with an invalid message.
@@ -475,7 +475,7 @@ TEST(FrameHandlerTest, decodeAndHandleOTSecurableFrameNoAuthSuccess)
     EXPECT_TRUE(test1);
 }
 
-// Measure stack usage of authAndDecodeOTSecurableFrameOnStack
+// Measure stack usage of authAndDecodeOTSecurableFrame
 // (DE20170616): 80 (decodeSecureSmallFrameSafely code path disabled)
 TEST(FrameHandler, authAndDecodeOTSecurableFrameStackCheck)
 {
