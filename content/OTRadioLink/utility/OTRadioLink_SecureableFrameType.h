@@ -648,7 +648,7 @@ namespace OTRadioLink
                 }
 
             /**
-             *@brief   Create a generic secure small frame with an optional encrypted body
+             * @brief   Create a generic secure small frame with an optional encrypted body
              *          for transmission.
              *
              * The IV is constructed from the node ID (built-in from EEPROM or as supplied)
@@ -670,7 +670,9 @@ namespace OTRadioLink
              *              - ftype: Must be set with a valid frame type before calling this
              *                function.
              * @param   il_: ID length for the header. ID is local node ID from EEPROM or
-             *               other pre-supplied ID, may be limited to a 6-byte prefix
+             *               other pre-supplied ID.
+             *               - For messages containing a body, must be between [0,5].
+             *               - For messages with no body, may be in range [0,8]
              * @param   e: Encryption function.
              * @param   scratch: Scratch space. Size must be large enough to contain
              *                   encode_total_scratch_usage_OTAESGCM_2p0 bytes AND the
@@ -680,8 +682,6 @@ namespace OTRadioLink
              *
              * @note    Uses a scratch space, allowing the stack usage to be more tightly
              *          controlled.
-             * 
-             * @FIXME   UNTESTED BY CI!
              */
             static constexpr uint8_t encode_scratch_usage = 12 + 8;
             static constexpr size_t encode_total_scratch_usage_OTAESGCM_2p0 =
