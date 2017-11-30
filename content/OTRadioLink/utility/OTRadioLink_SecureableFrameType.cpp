@@ -456,7 +456,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeRaw(
             const uint8_t il_,
             const uint8_t *iv,
             fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t &e,
-            const OTV0P2BASE::ScratchSpaceL &scratch,
+            OTV0P2BASE::ScratchSpaceL &scratch,
             const uint8_t *const key)
     {
     if(NULL == key) { return(0); } // ERROR
@@ -563,7 +563,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeRaw(
 uint8_t SimpleSecureFrame32or0BodyRXBase::decodeRaw(
             OTDecodeData_T &fd,
             fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &d,
-            const OTV0P2BASE::ScratchSpaceL &scratch,
+            OTV0P2BASE::ScratchSpaceL &scratch,
             const uint8_t *const key,
             const uint8_t *const iv)
     {
@@ -827,7 +827,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encode(
     if(longID && !getTXID(id)) { return(255); } // FAIL
 
     // // Create a new scratchspace from the old one in order to pass on.
-    const OTV0P2BASE::ScratchSpaceL subscratch(scratch, encode_scratch_usage);
+    OTV0P2BASE::ScratchSpaceL subscratch(scratch, encode_scratch_usage);
 
     const uint8_t *actualID = (longID ? id : iv);
 
@@ -876,7 +876,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeValveFrame(
                                             uint8_t il_,
                                             uint8_t valvePC,
                                             fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t &e,
-                                            const OTV0P2BASE::ScratchSpaceL &scratch,
+                                            OTV0P2BASE::ScratchSpaceL &scratch,
                                             const uint8_t *const key)
 {
     constexpr uint8_t IV_size = 12;
@@ -900,7 +900,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeValveFrame(
     ptext[1] = hasStats ? 0x10 : 0; // Indicate presence of stats.
 
     // Create a new scratchspace from the old one in order to pass on.
-    const OTV0P2BASE::ScratchSpaceL subscratch(scratch, encodeValveFrame_scratch_usage);
+    OTV0P2BASE::ScratchSpaceL subscratch(scratch, encodeValveFrame_scratch_usage);
     if(il_ > 6) { return(0); } // ERROR: cannot supply that much of ID easily.
 
     // Create id buffer
@@ -959,7 +959,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeValveFrame(
 uint8_t SimpleSecureFrame32or0BodyRXBase::_decodeFromID(
                                 OTDecodeData_T &fd,
                                 fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &d,
-                                const OTBuf_t adjID,
+                                const OTBuf_t &adjID,
                                 OTV0P2BASE::ScratchSpaceL &scratch, const uint8_t *const key)
     {
     // Scratch space for this function call alone (not called fns).
@@ -977,7 +977,7 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::_decodeFromID(
     // Construct IV from supplied (possibly adjusted) ID
     // + counters from (start of) trailer.
     uint8_t *iv = scratch.buf;
-    memcpy(iv, adjID.buf, 6);
+    memcpy(iv, adjID.getBuf(), 6);
     memcpy(iv + 6, fd.ctext + fd.sfh.getTrailerOffset(), SimpleSecureFrame32or0BodyBase::fullMsgCtrBytes);
     // Now do actual decrypt/auth.
     return(decodeRaw(fd, d, subScratch, key, iv));
@@ -1046,8 +1046,9 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::decode(
     // NOTE: this only tries the first match, ignoring firstIDMatchOnly.
     // Use start of scratch space. This buffer should not be visible
     // outside the decode stack (e.g. should not be part of fd).
-    OTBuf_t senderNodeID(scratch.buf, OTV0P2BASE::OpenTRV_Node_ID_Bytes);
-    const int8_t index = _getNextMatchingNodeID(0, &fd.sfh, senderNodeID.buf);
+    uint8_t *const nodeID = scratch.buf;
+    const OTBuf_t senderNodeID(nodeID, OTV0P2BASE::OpenTRV_Node_ID_Bytes);
+    const int8_t index = _getNextMatchingNodeID(0, &fd.sfh, nodeID);
     if(index < 0) { return(0); } // ERROR
     // Extract the message counter and validate it
     // (that it is higher than previously seen)...
@@ -1059,16 +1060,16 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::decode(
     memcpy(messageCounter,
            fd.ctext + fd.sfh.getTrailerOffset(),
            SimpleSecureFrame32or0BodyBase::fullMsgCtrBytes);
-    if(!validateRXMsgCtr(senderNodeID.buf, messageCounter)) { return(0); } // ERROR
+    if(!validateRXMsgCtr(senderNodeID.getBuf(), messageCounter)) { return(0); } // ERROR
 
     // Now attempt to decrypt.
     // Assumed no need to 'adjust' ID for this form of RX.
     const uint8_t decodeResult = _decodeFromID( fd, d, senderNodeID, subScratch, key);
     if(0 == decodeResult) { return(0); } // ERROR
     // Successfully decoded: update the RX message counter to avoid duplicates/replays.
-    if(!authAndUpdateRXMsgCtr(senderNodeID.buf, messageCounter)) { return(0); } // ERROR
+    if(!authAndUpdateRXMsgCtr(senderNodeID.getBuf(), messageCounter)) { return(0); } // ERROR
     // Success: copy sender ID to output buffer (if non-NULL) as last action.
-    memcpy(fd.id, senderNodeID.buf, OTV0P2BASE::OpenTRV_Node_ID_Bytes);
+    memcpy(fd.id, senderNodeID.getBuf(), OTV0P2BASE::OpenTRV_Node_ID_Bytes);
     return(decodeResult);
     }
 

@@ -133,6 +133,12 @@ class ScratchSpaceL final
     // Buffer size; strictly positive except in case of error (when buf will also be NULL).
     const size_t bufsize;
 
+    // R/W access to buf.
+    uint8_t *getBuf() { return buf; }
+    // RO accessor for when ScratchSpace is const
+    // NOTE not currently safe.
+    const uint8_t *getBuf() const { return buf; }
+
     // Create an instance.
     //   * buf_  start of buffer space;#ifdef OTWATCHDOG_PROFILING
     //     must be non-NULL except to indicate that the buffer is unusable.
@@ -161,9 +167,16 @@ class ScratchSpace final
   {
   public:
     // Buffer space; non-NULL except in case of error (when bufsize will also be 0).
+    // DEPRECATED!!!!
     uint8_t *const buf;
     // Buffer size; strictly positive except in case of error (when buf will also be NULL).
     const uint8_t bufsize;
+
+    // R/W access to buf.
+    uint8_t *getBuf() { return buf; }
+    // RO accessor for when ScratchSpace is const
+    // NOTE not currently safe.
+    const uint8_t *getBuf() const { return buf; }
 
     // Create an instance.
     //   * buf_  start of buffer space;

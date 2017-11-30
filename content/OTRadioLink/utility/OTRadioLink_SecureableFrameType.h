@@ -307,7 +307,7 @@ namespace OTRadioLink
         uint8_t decodeHeader(const uint8_t *buf, uint8_t buflen);
         // Wrapper convenience function for allowing OTBuf_t to be passed into checkAndDecodeSmallFrameHeader
         uint8_t decodeHeader(const OTBuf_t &buf)
-            { return(decodeHeader(buf.buf, buf.bufsize)); }
+            { return(decodeHeader(buf.getBuf(), buf.bufsize)); }
 
         // Compute and return CRC for non-secure frames; 0 indicates an error.
         // This is the value that should be at getTrailerOffset() / offset fl.
@@ -581,7 +581,7 @@ namespace OTRadioLink
                                 const uint8_t il,
                                 const uint8_t *iv,
                                 fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t &e,
-                                const OTV0P2BASE::ScratchSpaceL &scratch,
+                                OTV0P2BASE::ScratchSpaceL &scratch,
                                 const uint8_t *key);
 
             // Get the 3 bytes of persistent reboot/restart message counter, ie 3 MSBs of message counter; returns false on failure.
@@ -764,7 +764,7 @@ namespace OTRadioLink
                         uint8_t il_,
                         uint8_t valvePC,
                         fixed32BTextSize12BNonce16BTagSimpleEnc_fn_t &e,
-                        const OTV0P2BASE::ScratchSpaceL &scratch,
+                        OTV0P2BASE::ScratchSpaceL &scratch,
                         const uint8_t *key);
         };
 
@@ -902,7 +902,7 @@ namespace OTRadioLink
             static uint8_t decodeRaw(
                                 OTDecodeData_T &fd,
                                 fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &d,
-                                const OTV0P2BASE::ScratchSpaceL &scratch,
+                                OTV0P2BASE::ScratchSpaceL &scratch,
                                 const uint8_t *key,
                                 const uint8_t *iv);
 
@@ -990,7 +990,7 @@ namespace OTRadioLink
             uint8_t _decodeFromID(
                         OTDecodeData_T &fd,
                         fixed32BTextSize12BNonce16BTagSimpleDec_fn_t &d,
-                        const OTBuf_t adjID,
+                        const OTBuf_t &adjID,
                         OTV0P2BASE::ScratchSpaceL &scratch,
                         const uint8_t *key);
 
