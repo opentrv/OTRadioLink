@@ -34,7 +34,8 @@ namespace OTRadValve
     {
 
 
-    // Minimum and maximum bounds target temperatures; degrees C/Celsius/centigrade, strictly positive.
+    // Minimum and maximum bounds target temperatures;
+    // degrees C/Celsius/centigrade, strictly positive.
     // Minimum is some way above 0C to avoid freezing pipework
     // allowing for small measurement errors and non-uniform temperatures.
     // Maximum is set a little below boiling/100C for DHW for safety.
@@ -46,20 +47,23 @@ namespace OTRadValve
     // Maximum temperature setting allowed (eg for DHW).
     static constexpr uint8_t MAX_TARGET_C = 95;
 
-    // 18C is a safe room temperature even for the slightly infirm according to NHS England 2014:
+    // 18C is a safe room temperature even for the slightly infirm according to
+    // NHS England 2014:
     //    http://www.nhs.uk/Livewell/winterhealth/Pages/KeepWarmKeepWell.aspx
-    // Small babies have relatively poor thermoregulation so a device with setbacks may not be suitable for them, else ~18C is good:
+    // Small babies have relatively poor thermoregulation so a device with
+    // setbacks may not be suitable for them, else ~18C is good:
     //    http://www.nhs.uk/conditions/pregnancy-and-baby/pages/reducing-risk-cot-death.aspx
     // so could possibly be marked explicitly on the control.
     // 21C is recommended living temperature in retirement housing:
     //     http://ipc.brookes.ac.uk/publications/pdf/Identifying_the_health_gain_from_retirement_housing.pdf
     static constexpr uint8_t SAFE_ROOM_TEMPERATURE = 18; // Safe for most purposes.
 
-    // Templated set of constant parameters derived together from common arguments.
+    // Templated set of constant parameters derived from common arguments.
     // Can be tweaked to parameterise different products,
     // or to make a bigger shift such as to DHW control.
     //   * ecoMin  basic target frost-protection temperature (C).
-    //   * comMin  minimum temperature in comfort mode at any time, even for frost protection (C).
+    //   * comMin  minimum temperature in comfort mode at any time,
+    //     even for frost protection (C).
     //   * ecoWarm  'warm' in ECO mode.
     //   * comWarm  'warm' in comfort mode.
     //   * bakeLiftC  defaults to 10C (TODO-980) to ensure that very rarely
@@ -102,7 +106,7 @@ namespace OTRadValve
             // Top of range for adjustable-base-temperature systems.
             static constexpr uint8_t TEMP_SCALE_MAX = (WARM_COM+1);
 
-            // Raise target by this many degrees in 'BAKE' mode (strictly positive).
+            // Raise target by this many degrees in 'BAKE' mode (strictly +ve).
             // DHD20160927 (TODO-980) default lift raised from 5C to 10C
             // so as to ensure reliable trigger even in in shoulder seasons.
             static constexpr uint8_t BAKE_UPLIFT = bakeLiftC;
@@ -114,7 +118,7 @@ namespace OTRadValve
             static constexpr uint8_t SETBACK_DEFAULT = 1;
             // Enhanced setback, eg in eco mode, for extra energy savings.
             // This may be the most-used setback and thus
-            // the key determinant of ptential savings.
+            // the key determinant of potential savings.
             // More than SETBACK_DEFAULT, less than SETBACK_FULL.
             static constexpr uint8_t SETBACK_ECO =
                 OTV0P2BASE::fnmax(setbackECO, uint8_t(SETBACK_DEFAULT+1));
