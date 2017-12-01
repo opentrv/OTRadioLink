@@ -98,4 +98,33 @@ void stackCheck()
 #endif
 }
 
+/**
+ * @brief   Force restart if SPAM/heap/stack likely corrupt.
+ *          Complain and keep complaining when getting near stack overflow.
+ *          Optionally reports max stack usage and location, per loop.
+ * TODO: make DEBUG-only when confident all configs OK.
+ * TODO: parametrise min stack?
+ */
+void stackCheck()
+{
+    const int16_t minsp = MemoryChecks::getMinSPSpaceBelowStackToEnd();
+#if 0 && defined(DEBUG)
+//    const uint8_t location = OTV0P2BASE::MemoryChecks::getLocation();
+//    const uint16_t progCounter = OTV0P2BASE::MemoryChecks::getPC();  // not isr safe
+//    OTV0P2BASE::serialPrintAndFlush(F("minsp: "));
+//    OTV0P2BASE::serialPrintAndFlush(minsp);
+//    OTV0P2BASE::serialPrintAndFlush(F(" loc: "));
+//    OTV0P2BASE::serialPrintAndFlush(location);
+//    OTV0P2BASE::serialPrintAndFlush(F(" prog: "));
+//    OTV0P2BASE::serialPrintAndFlush(progCounter, HEX);
+//    OTV0P2BASE::serialPrintlnAndFlush();
+    if (64 > minsp) panic(F("SH"));
+//    OTV0P2BASE::MemoryChecks::forceResetIfStackOverflow();  // XXX
+    OTV0P2BASE::MemoryChecks::resetMinSP();
+#else
+    if(64 > minsp) { serialPrintlnAndFlush(F("!SP")); }
+    MemoryChecks::forceResetIfStackOverflow();
+#endif
+}
+
 }
