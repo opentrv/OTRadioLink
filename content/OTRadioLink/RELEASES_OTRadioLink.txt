@@ -9,7 +9,17 @@ or release/freeze points.
 
 
 pending:
-    *** V2.0
+    *** V3.0
+    DE20171127:  Reworked secure frame API.
+
+
+
+20171201:
+    freezepoint name: V2.0
+    branch name: HEAD
+    Deployed where: Production
+    Changes since last freezepoint (developer/mgr initials and brief description):
+    Previous significant freezepoint: V1.1
     DE20170720:  De-virtualised securableFrameType methods to reduce flash and stack usage.
     DE20170718:  Refactored workspace messaging functions to reduce stack usage by removing buffer copies.
     DHD20170707: improving stack usage management.
@@ -21,10 +31,6 @@ pending:
     DE20170612:  Implemented new message decode, relay and handling stack.
     DHD20161108: ScratchSpace and new secure frame methods that use it, with support from OTAESGCM V2.0.
     DE20160701:  Fixed key loss issue and updated documentation.
-
-
-
-
 
 20160505:
     freezepoint name: V1.1
