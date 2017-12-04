@@ -9,10 +9,17 @@ or release/freeze points.
 
 
 pending:
-    *** V3.0
+    
+
+
+    
+20171204
+    freezepoint name: V3.0
+    branch name: HEAD
+    Deployed where: Production
+    Changes since last freezepoint (developer/mgr initials and brief description):
+    Previous significant freezepoint: V2.0
     DE20171127:  Reworked secure frame API.
-
-
 
 20171201:
     freezepoint name: V2.0
@@ -20,17 +27,17 @@ pending:
     Deployed where: Production
     Changes since last freezepoint (developer/mgr initials and brief description):
     Previous significant freezepoint: V1.1
-    DE20170720:  De-virtualised securableFrameType methods to reduce flash and stack usage.
-    DE20170718:  Refactored workspace messaging functions to reduce stack usage by removing buffer copies.
-    DHD20170707: improving stack usage management.
-    DHD20170707: allowing > 255 byte workspace for encode/decode; needs OTAESGCM 3.0.
-    DE20170705:  Created stackless versions of messaging functions.
-    DE20170703:  Modified OTNullRadioLink to additionally act as mock in unit testing.
-    DE20170621:  Refactored SimpleSecureFrame32or0BodyRXBase to expose more functions to unit testing.
-    DE20170613:  Created null implementation of SimpleSecureFrame32or0BodyTXV0p2().
-    DE20170612:  Implemented new message decode, relay and handling stack.
-    DHD20161108: ScratchSpace and new secure frame methods that use it, with support from OTAESGCM V2.0.
     DE20160701:  Fixed key loss issue and updated documentation.
+    DHD20161108: ScratchSpace and new secure frame methods that use it, with support from OTAESGCM V2.0.
+    DE20170612:  Implemented new message decode, relay and handling stack.
+    DE20170613:  Created null implementation of SimpleSecureFrame32or0BodyTXV0p2().
+    DE20170621:  Refactored SimpleSecureFrame32or0BodyRXBase to expose more functions to unit testing.
+    DE20170703:  Modified OTNullRadioLink to additionally act as mock in unit testing.
+    DE20170705:  Created stackless versions of messaging functions.
+    DHD20170707: allowing > 255 byte workspace for encode/decode; needs OTAESGCM 3.0.
+    DHD20170707: improving stack usage management.
+    DE20170718:  Refactored workspace messaging functions to reduce stack usage by removing buffer copies.
+    DE20170720:  De-virtualised securableFrameType methods to reduce flash and stack usage.
 
 20160505:
     freezepoint name: V1.1
