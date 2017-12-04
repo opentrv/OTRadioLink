@@ -39,8 +39,8 @@ namespace OTRadValve
     // Minimum is some way above 0C to avoid freezing pipework
     // allowing for small measurement errors and non-uniform temperatures.
     // Maximum is set a little below boiling/100C for DHW for safety.
-    // Setbacks and uplifts cannot move temperature targets outside this range
-    // for safety.
+    // Setbacks and uplifts cannot move temperature targets outside this
+    // range for safety.
     //
     // Minimum temperature setting allowed (to avoid freezing, allowing for offsets at temperature sensor, etc).
     static constexpr uint8_t MIN_TARGET_C = 5;
@@ -50,8 +50,8 @@ namespace OTRadValve
     // 18C is a safe room temperature even for the slightly infirm according to
     // NHS England 2014:
     //    http://www.nhs.uk/Livewell/winterhealth/Pages/KeepWarmKeepWell.aspx
-    // Small babies have relatively poor thermoregulation so a device with
-    // setbacks may not be suitable for them, else ~18C is good:
+    // Small babies have relatively poor thermoregulation so a device
+    // with setbacks may not be suitable for them, else ~18C is good:
     //    http://www.nhs.uk/conditions/pregnancy-and-baby/pages/reducing-risk-cot-death.aspx
     // so could possibly be marked explicitly on the control.
     // 21C is recommended living temperature in retirement housing:
@@ -66,12 +66,13 @@ namespace OTRadValve
     //     even for frost protection (C).
     //   * ecoWarm  'warm' in ECO mode.
     //   * comWarm  'warm' in comfort mode.
-    //   * bakeLiftC  defaults to 10C (TODO-980) to ensure that very rarely
-    //     BAKE will fail to trigger even in in shoulder seasons.
+    //   * bakeLiftC  defaults to 10C (TODO-980) to ensure that very
+    //     rarely BAKE will fail to trigger even in in shoulder seasons.
     //   * setbackECO  usual 'ECO' temperature setback defaults to 3C
     //     for ~30% potential savings eg in UK winter.
     //   * setbackFULL  'FULL' temperature setback defaults to 6C
-    //     to minimise night-time triggering of heating where no central clock.
+    //     to minimise night-time triggering of heating where no central
+    //     clock.
     template<uint8_t ecoMinC, uint8_t comMinC, uint8_t ecoWarmC, uint8_t comWarmC,
              uint8_t bakeLiftC = 10, uint8_t setbackECO = 3, uint8_t setbackFULL = 6>
     class ValveControlParameters
