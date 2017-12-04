@@ -39,12 +39,13 @@ namespace OTRadioLink
     { 
 
 /**
- * @brief   Validate parameters and encode a header into a buffer.
+ * @brief   Validate parameters and encode a header for a small frame.
  * 
- * This does not permit encoding of frames with more than 64 bytes (ie 'small'
- * frames only). This does not deal with encoding the body or the trailer.
- * Having validated the parameters they are copied into the structure and then
- * into the supplied buffer, returning the number of bytes written.
+ * Encodes a header for frames of up to 64 bytes in length. This routine does
+ * not encode the body or the trailer, but they are included in the size limit.
+ * Parameters are validated, then copied into the SecureableFrameHeader
+ * structure and finally written to the supplied buffer.
+ * 
  * The fl byte in the structure is set to the frame length, else 0 in case of
  * any error.
  * 
@@ -61,26 +62,28 @@ namespace OTRadioLink
  * 8) tl == 1 for non-secure, tl >= 1 for secure (tl = fl - 3 - il - bl)
  * Note: fl = hl-1 + bl + tl = 3+il + bl + tl
  * 
- * @param   buf: buffer to encode header into. If NULL, the encoded form is not
- *               written. The buffer starts with fl, the frame length byte. If
- *               the buffer is too small for encoded header, the routine will
- *               fail (return 0)
+ * @param   buf, OUTPUT: buffer to encode header into. If NULL, the encoded
+ *              form is not written. The buffer starts with fl, the frame
+ *              length byte. If the buffer is too small for encoded header, the
+ *              routine will fail (return 0).
  * @param   secure_: true if this is to be a secure frame.
- * @param   fType_: frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive
+ * @param   fType_, INPUT: frame type (without secure bit). Note that values of 
+ *              FTS_NONE and >= FTS_INVALID_HIGH will cause encryption to fail.
  * @param   seqNum_: least-significant 4 bits are 4 lsbs of frame sequence number
- * @param   id_: Source of ID bytes. Length in bytes must be <=8 (could be 15
- *               for non-small frames). NULL means pre-filled but must not
- *               start with 0xff.
+ * @param   id_, INPUT: Source of ID bytes. Length in bytes must be <=8 (could 
+ *              be 15 for non-small frames). NULL means pre-filled but must not
+ *              start with 0xff.
  * @param   il_: Length of the desired ID. Must be less than the length if id_,
- *               unless id_ is NULL.
+ *              unless id_ is NULL.
  * @param   bl_: body length in bytes [0,251] at most.
  * @param   tl_: trailer length [1,251[ at most, always == 1 for non-secure frame.
- * @retval  Returns number of bytes of encoded header excluding the leading fl
- *          length byte, or 0 in case of error.
+ * @retval  Number of bytes of encoded header written to buf, excluding the
+ *          leading fl length byte, or 0 in case of error.
  */
 uint8_t SecurableFrameHeader::encodeHeader(
         OTBuf_t &buf,
-        bool secure_, FrameType_Secureable fType_,
+        bool secure_,
+        FrameType_Secureable fType_,
         uint8_t seqNum_,
         const uint8_t *const id_,
         const uint8_t il_,
@@ -171,7 +174,7 @@ uint8_t SecurableFrameHeader::encodeHeader(
  * @brief   Decode header and check parameters/validity for inbound short
  *          secureable frame.
  * 
- * Performs as many as possible of the 'Quick Integrity Checks' from the spec,
+ * Performs as many of the 'Quick Integrity Checks' from the spec as possible,
  * eg SecureBasicFrame-V0.1-201601.txt:
  * 1) fl >= 4 (type, seq/il, bl, trailer bytes)
  * 2) fl may be further constrained by system limits, typically to <= 63
@@ -189,12 +192,12 @@ uint8_t SecurableFrameHeader::encodeHeader(
  * The fl byte in the structure is set to the frame length, else 0 in case of
  * any error.
  * 
- * @param   buf: buffer to decode header from, of at least length buflen. The
- *               buffer must start with the frame length byte (fl). Never NULL.
- * @param   buflen: available length in buf; if too small for encoded header
- *                  routine will fail (return 0)
- * @retval  Returns number of bytes of decoded header including
- *          nominally-leading fl length byte, or 0 in case of error.
+ * @param   buf, INPUT: Buffer containing the header to decode. It must start
+ *              with the frame length byte (fl). Never NULL.
+ * @param   buflen: Length of buf in bytes. If it is too small for the encoded
+ *              header, the routine will fail (return 0).
+ * @retval  Returns number of bytes of decoded header including the leading
+ *          length byte (fl), or 0 in case of error.
  */
 uint8_t SecurableFrameHeader::decodeHeader(const uint8_t *const buf, uint8_t buflen)
     {
@@ -283,17 +286,20 @@ uint8_t SecurableFrameHeader::computeNonSecureCRC(const uint8_t *const buf, uint
  *          body and CRC trailer.
  *
  * @param   fd: Common data required for encryption.
- *              - ptext: body data.
- *              - ptextbufSize: Size of the body. FIXME Should this be ptextLen instead?
- *              - outbuf: buffer to which is written the entire frame including
- *                trailer/CRC. The supplied buffer may have to be up to 64
+ *              - ptext, INPUT: body data.
+ *              - ptextbufSize, INPUT: Size of the body.
+ *              - outbuf, OUTPUT: buffer to which is written the entire frame
+ *                including trailer/CRC. The supplied buffer must be long
+ *                to contain the completed frame, which may be up to to 64
  *                bytes long. Never NULL.
- *              - outbufSize: Available length in buf. May need to be up to 64
- *                bytes. If too small then this routine will fail (return 0)
- *              - fType: frame type (without secure bit) in range ]FTS_NONE,FTS_INVALID_HIGH[ ie exclusive XXX
+ *              - outbufSize, OUTPUT: Available length in buf. If too small
+ *                then this routine will fail (return 0).
+ *              - fType, INPUT: frame type (without secure bit). Note that
+ *                values of FTS_NONE and >= FTS_INVALID_HIGH will cause
+ *                encryption to fail.
  * @param   seqNum: least-significant 4 bits are 4 lsbs of frame sequence number.
- * @param   id: ID bytes to go in the header; NULL means take ID
- *              from EEPROM
+ * @param   id, INPUT: ID bytes to go in the header; NULL means take ID from 
+ *              EEPROM
  * @param   il: Length of the desired ID. Must be less than the length if id.
  * @retval  Total frame length in bytes + fl byte + 1, or 0 if there is an error eg
  *          because the CRC check failed.
@@ -336,21 +342,26 @@ uint8_t encodeNonsecure(
     }
 
 /**
- * @brief   Decode entire non-secure small frame from raw frame bytes support.
+ * @brief   Decode a non-secure small frame from raw frame bytes.
  *
+ * This function checks the validity of an inbound frame and returns its
+ * length in bytes. The buffer containing the original frame (fd.inbuf) is left
+ * unchanged.
+ * 
  * Typical workflow:
  * - Before calling this function, decode the header alone to extract the ID
  *   and frame type.
  * - Use the frame header's bl and getBodyOffset() to get the body and body
  *   length.
+ * - The "decoded frame" can be read from fd.inbuf.
  *
  * @param   fd: Common data required for encryption.
- *              - sfh: Pre-decoded frame header. If this has not been decoded
- *                failed to decode, this routine will fail (return 0).
- *              - ctext: buffer containing the entire frame including header
- *                and trailer. Never NULL
- * @retval  Total frame length in bytes + fl byte + 1, or 0 if there is an error eg
- *          because the CRC check failed.
+ *              - sfh, INPUT: Pre-decoded frame header. If this has not been
+ *                decoded failed to decode, this routine will fail.
+ *              - inbuf, INPUT: buffer containing the entire frame including
+ *                header and trailer. Never NULL
+ * @retval  The total frame length in bytes + fl byte + 1, or 0 if there is an
+ *          error eg because the CRC check failed.
  */
 uint8_t decodeNonsecure(OTDecodeData_T &fd)
     {
@@ -399,12 +410,12 @@ bool SimpleSecureFrame32or0BodyRXBase::msgcounteradd(uint8_t *const counter, con
  * This is a raw/partial impl that requires the IV/nonce to be supplied.
  *
  * This uses fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t style encryption.
- * The matching decryption function should be used for decoding/verifying. The
- * crypto method may need to vary based on frame type, and on negotiations
- * between the participants in the communications.
+ * The matching decryption function must be used for decoding. The crypto
+ * method may need to vary based on frame type, and on negotiations between the
+ * participants in the communications.
  *
- * The message counter must be strictly greater than the last message from this
- * ID, to prevent replay attacks.
+ * The message counter must be greater than the last message from this ID, to
+ * prevent replay attacks.
  *
  * The sequence number is taken from the 4 least significant bits of the
  * message counter (at byte 6 in the nonce).
@@ -415,39 +426,40 @@ bool SimpleSecureFrame32or0BodyRXBase::msgcounteradd(uint8_t *const counter, con
  * body.
  *
  * Typical workflow:
- * - XXX
+ * - TODO
  *
+ * Uses a scratch space, allowing the stack usage to be more tightly
+ * controlled.
+ * 
  * @param   fd: Common data required for encryption.
- *              - ptext: Mutable buffer containing any ptext to be encrypted.
- *                       Note that the ptext will be padded in situ with 0s.
- *                       Should be ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE (32)
- *                       bytes in length, or NULL if no ciphertext is
- *                       expected/wanted.
- *              - ptextbufSize: The size of the ptext buffer in bytes,
- *              - ptextLen: The actual length of the ptext held in ptext,
- *                          before padding. Always less than
- *                          ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE bytes.
- *              - outbuf: Buffer to hold the entire secure frame, including the
- *                        trailer. At least 64 bytes and never NULL.
- *              - outbufSize: Size of outbuf in bytes.
- *              - fType: frame type (without secure bit). Note that values of
- *                       FTS_NONE and FTS_INVALID_HIGH will cause encryption to
- *                       fail.
+ *              - ptext, MUTABLE INPUT: Buffer containing any plain text to be
+ *                encrypted. Note that the buffer will be padded in situ with 
+ *                0s. Should be ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE (32) bytes
+ *                in length, or NULL if no ciphertext is expected/wanted.
+ *                DO NOT RELY ON THIS BEING UNCHANGED!
+ *              - ptextbufSize, INPUT: The size of the ptext buffer in bytes,
+ *              - ptextLen, INPUT: The actual length of the plain text held in
+ *                ptext, before padding. Always less than
+ *                ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE bytes.
+ *              - outbuf, OUTPUT: Buffer to hold the entire secure frame,
+ *                including the trailer. At least 64 bytes and never NULL.
+ *              - outbufSize, INPUT: Size of outbuf in bytes.
+ *              - fType, INPUT: frame type (without secure bit). Note that
+ *                values of FTS_NONE and >= FTS_INVALID_HIGH will cause
+ *                encryption to fail.
  * @param   e: encryption function.
  * @param   scratch: Scratch space. Size must be large enough to contain
- *                   decodeRaw_total_scratch_usage_OTAESGCM_3p0 bytes AND the
- *                   scratch space required by the decryption function `d`.
- * @param   key: 16-byte secret key. Never NULL.
- * @param   iv: 12-byte initialisation vector/nonce. Never NULL.
+ *              decodeRaw_total_scratch_usage_OTAESGCM_3p0 bytes AND the
+ *              scratch space required by the decryption function `d`.
+ * @param   key, INPUT: 16-byte secret key. Never NULL.
+ * @param   iv, INPUT: 12-byte initialisation vector/nonce. Never NULL.
  * @param   id_: ID bytes to go in the header; NULL means take ID
  *              from EEPROM.
  * @param   il_: Length of the desired ID.
- *               - For messages containing a body, must be between [0,5].
- *               - For messages with no body, may be in range [0,8]
+ *              - For messages containing a body, must be between [0,5].
+ *              - For messages with no body, may be in range [0,8]
  * @retval  Returns the total number of bytes written out for (the frame + the
  *          leading frame length byte + 1). Returns zero in case of error.
- *
- * @note    Uses a scratch space, allowing the stack usage to be more tightly controlled.
  */
 uint8_t SimpleSecureFrame32or0BodyTXBase::encodeRaw(
             OTEncodeData_T &fd,
@@ -513,23 +525,20 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeRaw(
  * This is a raw/partial impl that requires the IV/nonce to be supplied.
  *
  * This uses fixed32BTextSize12BNonce16BTagSimpleDec_ptr_t style
- * encryption/authentication. The matching encryption function should have been
- * used for encoding this frame. The crypto method may need to vary based on
- * frame type, and on negotiations between the participants in the
- * communications.
+ * encryption/authentication. The matching encryption function must be used for
+ * encoding this frame. The crypto method may need to vary based on frame type,
+ * and on negotiations between the participants in the communications.
  *
  * Also checks that the lsbs of the header sequence number match those of the
  * last 4 lsbs of byte 11 of the IV message counter.
- * - This check is nominally dependent on frame type and/or trailing tag
- *   byte/type.
+ * - This check is dependent on frame type and/or trailing tag byte/type.
  * - Note that this implies that the sequence number is not arbitrary but is
- *   derived (redundantly) from the IV.
- * - MAY NEED FIXING eg message counter moved to last IV byte or dependent and
- *   above.
- * The incoming message counter must be:
- * - strictly greater than the last authenticated message from this
- *   ID, to prevent replay attacks.
- * - quick and can also be done early to save processing energy.  XXX what is this supposed to mean?
+ *   derived (redundantly) from the IV. eg message counter moved to last IV
+ *   byte or dependent and above.
+ * The incoming message counter must be greater than the last authenticated
+ * message from this ID, to prevent replay attacks.
+ * 
+ * Checks are quick and are done early to save processing/energy on bad frames.
  *
  * Typical workflow:
  * - decode the header to extract the ID and frame type
@@ -539,22 +548,23 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeRaw(
  *   to authenticate and decrypt the frame.
  *
  * @param   fd: Common data required for decryption.
- *              - sfh: Frame header. Must already be decoded with decodeHeader.
- *              - inbuf: buffer containing the entire frame including header
- *                       and trailer. Must be large enough to hold the
- *                       encrypted frame. Never NULL.
- *              - ptext: body, if any, will be decoded into this. Should be
- *                       ptextLenMax bytes in length.  XXX is this approprate?
- *                       NULL if no plaintext is expected/wanted.
- *              - ptextLen: The size of the decoded body in ptext.
+ *              - sfh, INPUT: Frame header. Must already be decoded with
+ *                decodeHeader.
+ *              - inbuf, INPUT: buffer containing the entire frame including
+ *                header and trailer. Must be large enough to hold the
+ *                encrypted frame. Never NULL.
+ *              - ptext, I/O: body, if any, will be decoded into this. NULL if
+ *                no plaintext is expected/wanted.
+ *              - ptextLenMax, INPUT: Length of buffer ptext in bytes.
+ *              - ptextLen, OUTPUT: The size of the decoded body in ptext.
  * @param   d: Decryption function.
  * @param   scratch: Scratch space. Size must be large enough to contain
- *                   decodeRaw_total_scratch_usage_OTAESGCM_3p0 bytes AND the
- *                   scratch space required by the decryption function `d`.
- * @param   key: 16-byte secret key. Never NULL.
- * @param   iv: 12-byte initialisation vector/nonce. Never NULL.
- * @retval  - Returns the total number of bytes read for the frame including,
- *          and with a value one higher than the first 'fl' bytes).
+ *              decodeRaw_total_scratch_usage_OTAESGCM_3p0 bytes AND the
+ *              scratch space required by the decryption function `d`.
+ * @param   key, INPUT: 16-byte secret key. Never NULL.
+ * @param   iv, INPUT: 12-byte initialisation vector/nonce. Never NULL.
+ * @retval  Returns the total number of bytes written out for (the frame + the
+ *          leading frame length byte + 1).
  *          - Returns zero in case of error, eg because authentication failed.
  *          - Returns 1 and sets ptextLen to 0 if ptext is NULL but auth passes.
  *
@@ -680,7 +690,7 @@ bool SimpleSecureFrame32or0BodyRXBase::validateRXMsgCtr(const uint8_t *ID, const
  * - Copies the nonce/IV to the tag and pads with trailing zeros.
  * - The key is ignored (though one must be supplied).
  *
- * XXX param
+ * TODO param
  * @param   key: 16-byte secret key. Never NULL.
  * @retval  Returns true on success, false on failure.
  *
@@ -716,7 +726,7 @@ bool fixed32BTextSize12BNonce16BTagSimpleEnc_NULL_IMPL(
  * - Copies the ciphertext to the plaintext, unless ciphertext is NULL.
  * - Verifies that the tag seems to have been constructed appropriately.
  *
- * XXX param
+ * TODO param
  * @param   key: 16-byte secret key. Never NULL.
  * @retval  Returns true on success, false on failure.
  *
@@ -748,14 +758,15 @@ bool fixed32BTextSize12BNonce16BTagSimpleDec_NULL_IMPL(
  * @brief   Create non-secure Alive / beacon (FTS_ALIVE) frame with an empty
  *          body.
  *
- * @param   buf: buffer to which is written the entire frame including trailer.
- *               Never NULL. Note that the frame will be at least 4 + ID-length
- *               (up to maxIDLength) bytes, so the buffer must be large enough
- *               to accommodate that. If too small the routine will fail.
+ * @param   buf, OUTPUT: buffer to which is written the entire frame including
+ *              trailer. Never NULL. Note that the frame will be at least 4 +
+ *              ID-length (up to maxIDLength) bytes, so the buffer must be
+ *              large enough to accommodate that. If too small the routine will
+ *              fail.
  * @param   seqNum: least-significant 4 bits are 4 lsbs of frame sequence
- *                  number
- * @param   id: ID bytes to go in the header; NULL means take ID
- *              from EEPROM
+ *              number.
+ * @param   id, INPUT: ID bytes to go in the header; NULL means take ID from
+ *              EEPROM
  * @param   il: Length of the desired ID. Must be less than the length if id.
  * @retval  Returns number of bytes written to fd.outbuf, or 0 in case of error.
  */
@@ -778,26 +789,28 @@ uint8_t generateNonsecureBeacon(OTBuf_t &buf, const uint8_t seqNum, const uint8_
  * bytes, so the buffer must be large enough to accommodate that.
  *
  * @param   fd: Common data required for encryption:
- *              - ptext: Plaintext to encrypt. May be nullptr if not required.
- *              - ptextbufSize: Size of plaintext buffer. 0 if ptext is a 
- *                nullptr.
- *              - ptextLen: The length of plaintext held by ptext. Must be less
- *                than ptextbufSize.
- *              - outbuf: Buffer to hold entire encrypted frame, incl trailer.
- *                Never NULL.
- *              - outbufSize: available length in buf. If it is too small then
- *                this routine will fail.
- *              - ftype: Must be set with a valid frame type before calling this
- *                function.
+ *              - ptext, INPUT: Plaintext to encrypt. May be nullptr if not
+ *                required.
+ *              - ptextbufSize, INPUT: Size of plaintext buffer. 0 if ptext is
+ *                a nullptr.
+ *              - ptextLen, INPUT: The length of plaintext held by ptext. Must
+ *                be less than ptextbufSize.
+ *              - outbuf, OUTPUT: Buffer to hold entire encrypted frame, incl
+ *                trailer. Never NULL.
+ *              - outbufSize, INPUT: available length in buf. If it is too
+ *                small then this routine will fail.
+ *              - fType, INPUT: frame type (without secure bit). Note that
+ *                values of FTS_NONE and >= FTS_INVALID_HIGH will cause
+ *                encryption to fail.
  * @param   il_: ID length for the header. ID is local node ID from EEPROM or
- *               other pre-supplied ID.
- *               - For messages containing a body, must be between [0,5].
- *               - For messages with no body, may be in range [0,8]
+ *              other pre-supplied ID.
+ *              - For messages containing a body, must be between [0,5].
+ *              - For messages with no body, may be in range [0,8]
  * @param   e: Encryption function.
  * @param   scratch: Scratch space. Size must be large enough to contain
- *                   encode_total_scratch_usage_OTAESGCM_2p0 bytes AND the
- *                   scratch space required by the decryption function `e`.
- * @param   key: 16-byte secret key. Never NULL.
+ *              encode_total_scratch_usage_OTAESGCM_2p0 bytes AND the scratch
+ *              space required by the decryption function `e`.
+ * @param   key, INPUT: 16-byte secret key. Never NULL.
  * @retval  Returns number of bytes written to fd.outbuf, or 0 in case of error.
  *
  * @note    Uses a scratch space, allowing the stack usage to be more tightly
@@ -847,23 +860,22 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encode(
  * Uses a scratch space to allow tightly controlling stack usage.
  *
  * @param   fd: Common data required for encryption:
- *              - ptext: Plaintext to encrypt. '\0'-terminated {} JSON stats.
- *                       May be nullptr if not required.
- *              - ptextbufSize: Size of plaintext buffer. 0 if ptext is a 
- *                nullptr.
- *              - outbuf: Buffer to hold entire encrypted frame, incl trailer.
- *                        Never NULL.
- *              - outbufSize: available length in buf. If it is too small then
- *                            this routine will fail.
+ *              - ptext, INPUT: Plaintext to encrypt. '\0'-terminated {} JSON
+ *                stats. May be a nullptr if not required.
+ *              - ptextbufSize, INPUT: Size of plaintext buffer. 0 if ptext is
+ *                a nullptr.
+ *              - outbuf, OUTPUT: Buffer to hold entire encrypted frame, incl
+ *                trailer. Never NULL.
+ *              - outbufSize, INPUT: available length in buf. If it is too
+ *                small thenthis routine will fail.
  * @param   il_: ID length for the header. ID is local node ID from EEPROM or
- *               other pre-supplied ID, may be limited to a 6-byte prefix
+ *              other pre-supplied ID, may be limited to a 6-byte prefix
  * @param   valvePC: Percentage valve is open or 0x7f if no valve to report on.
  * @param   e: Encryption function.
  * @param   scratch: Scratch space. Size must be large enough to contain
- *                   encodeValveFrame_total_scratch_usage_OTAESGCM_2p0 
- *                   bytes AND the scratch space required by the decryption
- *                   function `e`.
- * @param   key: 16-byte secret key. Never NULL.
+ *              encodeValveFrame_total_scratch_usage_OTAESGCM_2p0 bytes AND the
+ *              scratch space required by the decryption function `e`.
+ * @param   key, INPUT: 16-byte secret key. Never NULL.
  * @param   firstIDMatchOnly: IGNORED! If the 'firstMatchIDOnly' is true
  *              (the default) then this only checks the first ID prefix
  *              match found if any, else all possible entries may be tried
@@ -928,7 +940,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeValveFrame(
  *
  * If several candidate nodes share the ID prefix in the frame header (in
  * the extreme case with a zero-length header ID for an anonymous frame)
- * then they may all have to be tested in turn until one succeeds.
+ * then they may be tested in turn until one succeeds.
  *
  * Generally, this should be called AFTER checking that the aggregate RXed
  * message counter is higher than for the last soutbufuccessful receive for 
@@ -940,21 +952,21 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeValveFrame(
  *   this sender
  * - Update the RX message counter after a successful auth with this
  *   routine.
+ * 
+ * Uses a scratch space, allowing the stack usage to be more tightly controlled.
  *
- * @param   fd: Must contain a validated header, in addition to the
- *              conditions outlined in decode().
+ * @param   fd: Must contain a validated header, in addition to the conditions
+ *              outlined in decode().
  * @param   d: Decryption function.
- * @param   adjID: Adjusted candidate ID based on the received ID in the
- *                 header. Must be able to hold >= 6 bytes. Never NULL.
+ * @param   adjID, INPUT: Adjusted candidate ID based on the received ID in the
+ *              header. Must be able to hold >= 6 bytes. Never NULL.
  * @param   scratch: Scratch space. Size must be large enough to contain
- *                   _decodeFromID_total_scratch_usage_OTAESGCM_3p0 bytes AND
- *                   the scratch space required by the decryption function `d`.
- * @param   key: 16-byte secret key. Never NULL.
+ *              _decodeFromID_total_scratch_usage_OTAESGCM_3p0 bytes AND the
+ *              scratch space required by the decryption function `d`.
+ * @param   key, INPUT: 16-byte secret key. Never NULL.
  * @retval  Total number of bytes read for the frame (including, and with a
- *          value one higher than the first 'fl' bytes).
- *          Returns zero in case of error, eg because authentication failed.
- *
- * @note    Uses a scratch space, allowing the stack usage to be more tightly controlled.
+ *          value one higher than the first 'fl' bytes). Returns zero in case
+ *          of error, eg because authentication failed.
  */
 uint8_t SimpleSecureFrame32or0BodyRXBase::_decodeFromID(
                                 OTDecodeData_T &fd,
@@ -1000,14 +1012,15 @@ uint8_t SimpleSecureFrame32or0BodyRXBase::_decodeFromID(
  * Uses a scratch space to allow tightly controlling stack usage.
  *
  * @param   fd: Common data required for decryption.
- *              - inbuf: Never NULL.
- *              - ptext: If null, only authentication will be performed.
- *                No plaintext will be provided.
+ *              - inbuf, INPUT: Never NULL.
+ *              - ptext, I/O: Buffer to hold decrypted frame. If null, only
+ *                authentication will be performed. No plaintext will be
+ *                provided.
  * @param   d: Decryption function.
  * @param   scratch: Scratch space. Size must be large enough to contain
- *                   decode_total_scratch_usage_OTAESGCM_3p0 bytes AND the
- *                   scratch space required by the decryption function `d`.
- * @param   key: 16-byte secret key. Never NULL.
+ *              decode_total_scratch_usage_OTAESGCM_3p0 bytes AND the scratch
+ *              space required by the decryption function `d`.
+ * @param   key, INPUT: 16-byte secret key. Never NULL.
  * @param   firstIDMatchOnly: IGNORED! If the 'firstMatchIDOnly' is true
  *              (the default) then this only checks the first ID prefix
  *              match found if any, else all possible entries may be tried
