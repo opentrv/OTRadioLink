@@ -285,7 +285,7 @@ inline bool decodeAndHandleDummyFrame(volatile const uint8_t * const /*msg*/)
  *          alter content of the buffer passed.
  * @param   sW: Scratch space to perform decode routine in. Should be large
  *          enough for both the frame RX type and the underlying decryption
- *          routine. FIXME redo wording.
+ *          routine.
  * @retval  False if the frame header could not be decoded, does not match a
  *          secure "O" frame, or the frame is otherwise malformed in any way.
  *          True if the frame is a valid secure frame.
@@ -315,7 +315,7 @@ bool decodeAndHandleOTSecureOFrame(volatile const uint8_t * const _msg, OTV0P2BA
     // then let another protocol handler try parsing the message buffer...
     if(0 == l) { return(false); }
     // Make sure frame thinks it is a secure OFrame.
-    constexpr uint8_t expectedOFrameFirstByte = 'O' | 0x80;  // XXX is this different to fd.sfh.isSecure()?
+    constexpr uint8_t expectedOFrameFirstByte = 'O' | 0x80;
     if(expectedOFrameFirstByte != firstByte) { return (false); }
 
     // Validate integrity of frame (CRC for non-secure, auth for secure).
