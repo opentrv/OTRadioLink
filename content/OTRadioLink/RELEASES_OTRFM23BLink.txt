@@ -9,14 +9,19 @@ or release/freeze points.
 
 
 pending:
+
+
+20171204
+    freezepoint name: V2.0 (as part of OTRadioLink)
+    branch name: HEAD
+    Deployed where: Production
+    Changes since last freezepoint (developer/mgr initials and brief description):
+    Previous significant freezepoint: V1.1
+    DHD20161016: Fixed some compiler warnings due to unused argument in _poll.
+    DHD20161030: TODO-1033: Made "final" to save on code size.
+    DE20170731:  Devirtualised functions in interrupt pathway to allow inlining.
     DE20171025:  Optimised _io() and _RXFIFO() routines to reduce interrupt time from ~9 ms to ~4.5 ms.
     DE20170801:  Extended API to allow disabling RFM23B interrupts.
-    DE20170731:  Devirtualised functions in interrupt pathway to allow inlining.
-    DHD20161030: TODO-1033: Made "final" to save on code size.
-    DHD20161016: Fixed some compiler warnings due to unused argument in _poll.
-
-
-
 
 20160505:
     freezepoint name: V1.1 (as part of OTRadioLink)

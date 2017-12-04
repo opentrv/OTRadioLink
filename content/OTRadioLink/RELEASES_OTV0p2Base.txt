@@ -9,32 +9,38 @@ or release/freeze points.
 
 
 pending:
-    DE20171027:  Moved stackCheck() and common sleep loop into libs.
-    DE20171017:  Added basic time and frequency profiling to OTMemoryChecks.
-    DE20170821:  Refactored read routine of OTSoftSerial2 to play nicer with interrupts.
-    DE20170810:  Added better + portable method of getting return address of ISRs.
-    DE20170616:  Fixes to clock calibration routines.
-    DE20170613:  Created typedef for GetPrimary16ByteSecretKey() to remove dependency.
-    DE20170602:  Added template specialisation for OTAtomic_t<bool>.
-    DE20170504:  Implemented templated atomic types for AVR.
-    DE20170502:  Improved stack profiling tools.
-    DHD20170105: experimental ErrorReport(er) in use.
-    DHD20161230: bug fixes (waiting too long for read) in SHT21 drivers.
-    DHD20161112: introduced ByHourSimpleStatsUpdaterSampleStats.
-	DHD20161111: turned compiler strictness up to max, eg including -Wextra and pedantic and conversion.
-    DE20161026:  created function for calibrating internal oscillator using watch crystal.
-    DHD20161023: created Atomic_UInt8T.
-    DHD20161011: created w/ unit tests SensorAmbientLightOccupancyDetectorSimple.
-    DHD20160911: REV1 config CONFIG_Trial2013Winter_Round1_SECURE_SENSOR 
-    DHD20160911: REV1 config CONFIG_Trial2013Winter_Round2_SECURE_STATSHUB 
+
+
+
+
+
+20160505:
+    freezepoint name: V2.0 (as part of OTRadioLink)
+    branch name: HEAD
+    Deployed where: Production
+    Changes since last freezepoint (developer/mgr initials and brief description):
+    Previous significant freezepoint: V1.1
     DE20160510:  OTSoftSerial now runs at 9600 baud.
     DE20160812:  fixed boiler hub relay code.
     DE20160812:  fixed clashes with Arduino AVR Boards v1.6.12
-
-
-
-
-
+    DHD20160911: REV1 config CONFIG_Trial2013Winter_Round1_SECURE_SENSOR 
+    DHD20160911: REV1 config CONFIG_Trial2013Winter_Round2_SECURE_STATSHUB 
+    DHD20161011: created w/ unit tests SensorAmbientLightOccupancyDetectorSimple.
+    DHD20161023: created Atomic_UInt8T.
+    DE20161026:  created function for calibrating internal oscillator using watch crystal.
+	DHD20161111: turned compiler strictness up to max, eg including -Wextra and pedantic and conversion.
+    DHD20161112: introduced ByHourSimpleStatsUpdaterSampleStats.
+    DHD20161230: bug fixes (waiting too long for read) in SHT21 drivers.
+    DHD20170105: experimental ErrorReport(er) in use.
+    DE20170502:  Improved stack profiling tools.
+    DE20170504:  Implemented templated atomic types for AVR.
+    DE20170602:  Added template specialisation for OTAtomic_t<bool>.
+    DE20170613:  Created typedef for GetPrimary16ByteSecretKey() to remove dependency.
+    DE20170616:  Fixes to clock calibration routines.
+    DE20170810:  Added better + portable method of getting return address of ISRs.
+    DE20170821:  Refactored read routine of OTSoftSerial2 to play nicer with interrupts.
+    DE20171027:  Moved stackCheck() and common sleep loop into libs.
+    DE20171017:  Added basic time and frequency profiling to OTMemoryChecks.
 
 20160505:
     freezepoint name: V1.1 (as part of OTRadioLink)

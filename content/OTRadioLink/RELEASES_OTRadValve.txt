@@ -9,6 +9,15 @@ or release/freeze points.
 
 
 pending:
+    
+
+
+20171204:
+    freezepoint name: V2.0 (as part of OTRadioLink)
+    branch name: HEAD
+    Deployed where: Production
+    Changes since last freezepoint (developer/mgr initials and brief description):
+    Previous significant freezepoint: V1.1
     DE20170602:  Created templated driver for boiler hub.
     DE20170313:  Modified motor hardware drivers to allow passing as template parameters.
     DE20170313:  Templated modelledRadValveState.
@@ -73,7 +82,6 @@ pending:
     DHD20161020: TODO-1026: Pushed out thresholds for movement out when using wide deadband
     DHD20161015: TODO-970: Created OTRadValve_Parameters.h.
     DHD20161002: TODO-621: tuning 'door opened' algorithm to fit some observed data.
-
 
 20160505:
     freezepoint name: V1.1 (as part of OTRadioLink)
