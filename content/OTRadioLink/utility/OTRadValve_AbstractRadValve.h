@@ -149,6 +149,49 @@ class RadValveMock final : public AbstractRadValve
   };
 
 
+namespace BinaryRelayHelper {
+    // Returns true when value is above or equal to DEFAULT_VALVE_PC_SAFER_OPEN
+    // Intended for unit testing BinaryRelayDirect.
+    static inline bool calcRelayState(uint8_t value) {
+         return(DEFAULT_VALVE_PC_SAFER_OPEN <= value);
+    }
+}
+#ifdef ARDUINO_ARCH_AVR
+/**
+ * @brief Actuator/driver for direct local control of electric heating, using
+ *        an SSR or a relay.
+ * 
+ * @param RELAY_DigitalPin: The output pin to drive the relay with.
+ * @param activeHigh: Set true if driving RELAY_DigitalPin high will turn the
+ *                    relay on. Defaults to false, i.e. the relay circuit is
+ *                    active low.
+ */
+template<uint8_t RELAY_DigitalPin, bool activeHigh = false>
+class BinaryRelayDirect : public OTRadValve::AbstractRadValve
+  {
+  public:
+    // Regular poll/update.
+    // This and get() return the actual estimated valve position.
+    virtual uint8_t read() override { return(value); }
+
+    // Set new target %-open value (if in range) sets the output pin.
+    // Returns true if the specified value is accepted.
+    virtual bool set(const uint8_t newValue) override
+      {
+      if(newValue > 100) { return(false); }
+      value = newValue;
+      const bool isActive = BinaryRelayHelper::calcRelayState(newValue);
+      fastDigitalWrite(RELAY_DigitalPin, (activeHigh ? isActive : !isActive));
+      return(true);
+      }
+
+    // Get estimated minimum percentage open for significant flow for this
+    // device; strictly positive in range [1,99].
+    virtual uint8_t getMinPercentOpen() const override
+      { return(DEFAULT_VALVE_PC_SAFER_OPEN); }
+
+  };
+#endif // ARDUINO_ARCH_AVR
 // Generic callback handler for hardware valve motor driver.
 class HardwareMotorDriverInterfaceCallbackHandler
   {
