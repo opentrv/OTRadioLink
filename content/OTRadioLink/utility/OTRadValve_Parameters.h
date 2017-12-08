@@ -250,7 +250,7 @@ namespace OTRadValve
     // without calling for heat when shutting
     // may allow comfortable boiler pump overrun in older systems
     // with no/poor bypass to avoid overheating.
-    static const uint8_t DEFAULT_VALVE_PC_MIN_REALLY_OPEN = 15;
+    static constexpr uint8_t DEFAULT_VALVE_PC_MIN_REALLY_OPEN = 15;
 
     // Safer value for valves to very likely be significantly open, in range [DEFAULT_VALVE_PC_MIN_REALLY_OPEN+1,DEFAULT_VALVE_PC_MODERATELY_OPEN-1].
     // NOTE: below this value is will let a boiler switch off,

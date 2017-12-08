@@ -189,7 +189,6 @@ OTV0P2BASE::serialPrintlnAndFlush();
       }
   };
 
-#define ValveMotorDirectV1_DEFINED
 // Actuator/driver for direct local (radiator) valve motor control.
 //   * lowBattOpt  allows monitoring of supply voltage to avoid some activities with low batteries; can be NULL
 //   * minimiseActivityOpt  callback returns true if unnecessary activity should be suppressed
@@ -282,6 +281,7 @@ class ValveMotorDirectV1 : public OTRadValve::AbstractRadValve
     virtual void wiggle() const override
       { const_cast<logic_type*>(&logic)->wiggle(); }
   };
+
 
 #endif // ARDUINO_ARCH_AVR
 
