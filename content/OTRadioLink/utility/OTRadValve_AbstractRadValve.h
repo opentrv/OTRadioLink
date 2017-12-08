@@ -170,8 +170,15 @@ template<uint8_t RELAY_DigitalPin, bool activeHigh = false>
 class BinaryRelayDirect : public OTRadValve::AbstractRadValve
   {
   public:
+
+    // Setup the relay pin.
+    void setup() {
+        // off position
+        fastDigitalWrite(RELAY_DigitalPin, !activeHigh);
+        pinMode(RELAY_DigitalPin, OUTPUT);
+    }
+
     // Regular poll/update.
-    // This and get() return the actual estimated valve position.
     virtual uint8_t read() override { return(value); }
 
     // Set new target %-open value (if in range) sets the output pin.
