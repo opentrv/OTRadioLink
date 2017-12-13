@@ -38,12 +38,21 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 #include <util/delay_basic.h>
 #endif // ARDUINO_ARCH_AVR
 
+#if defined(EFR32FG1P133F256GM48)
+extern "C" {
+#include "em_cmu.h"
+}
+#endif  // defined(EFR32FG1P133GM48)
+
 #ifdef ARDUINO
 #include <Arduino.h>
 #endif
 
 #include "OTV0P2BASE_PowerManagement.h"
 #include "OTV0P2BASE_RTC.h"
+
+// IF DEFINED: Emulate a 2 second subcycle with the onboard SysTick timer on ARM chips.
+#define V0P2BASE_SYSTICK_EMULATED_SUBCYCLE
 
 namespace OTV0P2BASE
 {
@@ -220,6 +229,48 @@ bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);
     inline uint8_t _getSubCycleTime() { return (TCNT2); }
     //#endif // WAKEUP_32768HZ_XTAL
     //
+#elif defined(EFR32FG1P133F256GM48)
+    static volatile uint_fast8_t subCycleTime = 0U;
+    /**
+     * @brief	Calculate the number of ticks between interrupts clock should run for.
+     * @param	Time in ms between interrupts
+     * @retval	number of ticks.
+     */
+    static uint32_t calcSysTickTicks(uint32_t period) {
+        const auto clockFreq = CMU_ClockFreqGet(cmuClock_CORE);
+        // ticks = freq * period in s
+        return (clockFreq * period) / 1000;
+    }
+
+    /**
+     * @brief   Sets up the systick timer to fire every 2/256 seconds.
+     * @retval  False on success, else true.
+     */
+    bool setupEmulated2sSubCycle()
+    {
+    return SysTick_Config(calcSysTickTicks(2000U/256U));
+    }
+
+    /**
+     * @brief   Increment SubCycle time when SysTick handler called.
+     * 
+     * Should be placed in SysTick_Handler()
+     */
+    extern "C" {
+    void tickSubCycle(void)
+    {
+        subCycleTime += 1;
+        subCycleTime = (256U == subCycleTime) ? 0 : subCycleTime;
+    }
+    }
+
+    //// Get fraction of the way through the basic cycle in range [0,255].
+    //// This can be used for precision timing during the cycle,
+    //// or to avoid overrunning a cycle with tasks of variable timing.
+    inline uint8_t getSubCycleTime() { return (subCycleTime); }
+    inline uint8_t _getSubCycleTime() { return (subCycleTime); }
+#endif  // ARDUINO_ARCH_AVR
+#if defined(ARDUINO_ARCH_AVR) || defined(EFR32FG1P133F256GM48)
     //// Maximum value for OTV0P2BASE::getSubCycleTime(); full cycle length is this + 1.
     //// So ~4ms per count for a 1s cycle time, ~8ms per count for a 2s cycle time.
     //#define GSCT_MAX 255
@@ -245,7 +296,7 @@ bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);
     //// Upper limit is set by length of basic cycle, thus 1000 or 2000 typically.
     //#define msRemainingThisBasicCycle() (SUBCYCLE_TICK_MS_RD * (GSCT_MAX-OTV0P2BASE::getSubCycleTime()))
     inline uint16_t msRemainingThisBasicCycle() { return (SUBCYCLE_TICK_MS_RD * (GSCT_MAX-getSubCycleTime() ) ); }
-#endif // ARDUINO_ARCH_AVR
+#endif // defined(ARDUINO_ARCH_AVR) || defined(EFR32FG1P133GM48)
 
 #ifdef ARDUINO_ARCH_AVR
     // Return some approximate/fast measure of CPU cycles elapsed.  Will not count when (eg) CPU/TIMER0 not running.
