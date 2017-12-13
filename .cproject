@@ -364,7 +364,9 @@
 							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.ELF" id="ilg.gnuarmeclipse.managedbuild.cross.targetPlatform.1800116415" isAbstract="false" osList="all" superClass="ilg.gnuarmeclipse.managedbuild.cross.targetPlatform"/>
 							<builder buildPath="${workspace_loc:/OTRadioLink}/Debug ARM" id="ilg.gnuarmeclipse.managedbuild.cross.builder.1092362077" keepEnvironmentInBuildfile="false" name="Gnu Make Builder" parallelBuildOn="true" parallelizationNumber="optimal" superClass="ilg.gnuarmeclipse.managedbuild.cross.builder"/>
 							<tool id="ilg.gnuarmeclipse.managedbuild.cross.tool.assembler.1007864068" name="GNU ARM Cross Assembler" superClass="ilg.gnuarmeclipse.managedbuild.cross.tool.assembler">
-								<option id="ilg.gnuarmeclipse.managedbuild.cross.option.assembler.include.paths.1218827220" name="Include paths (-I)" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.assembler.include.paths" useByScannerDiscovery="true" valueType="includePath"/>
+								<option id="ilg.gnuarmeclipse.managedbuild.cross.option.assembler.include.paths.1218827220" name="Include paths (-I)" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.assembler.include.paths" useByScannerDiscovery="true" valueType="includePath">
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/silabs_drivers/CMSIS/EFR32FG1P}&quot;"/>
+								</option>
 								<option id="ilg.gnuarmeclipse.managedbuild.cross.option.assembler.usepreprocessor.1340353258" name="Use preprocessor" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.assembler.usepreprocessor" useByScannerDiscovery="false" value="true" valueType="boolean"/>
 								<option id="ilg.gnuarmeclipse.managedbuild.cross.option.assembler.defs.460384253" name="Defined symbols (-D)" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.assembler.defs" useByScannerDiscovery="true" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="HAL_CONFIG=1"/>
@@ -374,15 +376,17 @@
 							</tool>
 							<tool id="ilg.gnuarmeclipse.managedbuild.cross.tool.c.compiler.1669303690" name="GNU ARM Cross C Compiler" superClass="ilg.gnuarmeclipse.managedbuild.cross.tool.c.compiler">
 								<option id="ilg.gnuarmeclipse.managedbuild.cross.option.c.compiler.include.paths.2110369081" name="Include paths (-I)" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.c.compiler.include.paths" useByScannerDiscovery="true" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;${eclipse_home:/gecko_sdk_v2/platform/CMSIS/Include}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${eclipse_home:/gecko_sdk_v2/hardware/kit/common/bsp}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${eclipse_home:/gecko_sdk_v2/platform/emlib/inc}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${eclipse_home:/gecko_sdk_v2/hardware/kit/common/drivers}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${eclipse_home:/gecko_sdk_v2/platform/Device/SiliconLabs/EFR32FG1P/Include}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/OTAESGCM}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/OTAESGCM/content/OTAESGCM/utility}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/content/${ProjName}}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/content/${ProjName}/utility}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/silabs_drivers/CMSIS/EFR32FG1P}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/silabs_drivers/emlib}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${eclipse_home}/gecko_sdk_v2/hardware/kit/common/bsp&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${eclipse_home}/gecko_sdk_v2/platform/CMSIS/Include&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${eclipse_home}/gecko_sdk_v2/hardware/kit/common/drivers&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${eclipse_home}/gecko_sdk_v2/platform/Device/SiliconLabs/EFR32FG1P/Include&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${eclipse_home}/gecko_sdk_v2/platform/emlib/inc&quot;"/>
 								</option>
 								<option id="ilg.gnuarmeclipse.managedbuild.cross.option.c.compiler.defs.1459317015" name="Defined symbols (-D)" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.c.compiler.defs" useByScannerDiscovery="true" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="EXT_AVAILABLE_ARDUINO_LIB_OTAESGCM"/>
@@ -395,15 +399,17 @@
 							</tool>
 							<tool id="ilg.gnuarmeclipse.managedbuild.cross.tool.cpp.compiler.418377719" name="GNU ARM Cross C++ Compiler" superClass="ilg.gnuarmeclipse.managedbuild.cross.tool.cpp.compiler">
 								<option id="ilg.gnuarmeclipse.managedbuild.cross.option.cpp.compiler.include.paths.1489070050" name="Include paths (-I)" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.cpp.compiler.include.paths" useByScannerDiscovery="true" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;${eclipse_home:/gecko_sdk_v2/platform/CMSIS/Include}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${eclipse_home:/gecko_sdk_v2/hardware/kit/common/bsp}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${eclipse_home:/gecko_sdk_v2/platform/emlib/inc}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${eclipse_home:/gecko_sdk_v2/hardware/kit/common/drivers}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${eclipse_home:/gecko_sdk_v2/platform/Device/SiliconLabs/EFR32FG1P/Include}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/content/OTRadioLink}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/content/OTRadioLink}/utility&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/OTAESGCM/content/OTAESGCM}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/OTAESGCM/content/OTAESGCM/utility}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/silabs_drivers/CMSIS/EFR32FG1P}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/silabs_drivers/emlib}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${eclipse_home}/gecko_sdk_v2/platform/Device/SiliconLabs/EFR32FG1P/Include&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${eclipse_home}/gecko_sdk_v2/hardware/kit/common/drivers&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${eclipse_home}/gecko_sdk_v2/platform/emlib/inc&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${eclipse_home}/gecko_sdk_v2/platform/CMSIS/Include&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${eclipse_home}/gecko_sdk_v2/hardware/kit/common/bsp&quot;"/>
 								</option>
 								<option id="ilg.gnuarmeclipse.managedbuild.cross.option.cpp.compiler.defs.1026820882" name="Defined symbols (-D)" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.cpp.compiler.defs" useByScannerDiscovery="true" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="EXT_AVAILABLE_ARDUINO_LIB_OTAESGCM"/>
@@ -451,6 +457,7 @@
 					</folderInfo>
 					<sourceEntries>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="content/OTRadioLink"/>
+						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="silabs_drivers"/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
