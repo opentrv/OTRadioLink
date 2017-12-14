@@ -54,25 +54,24 @@
                 "/home/denzo/eclipse/toolchain/gcc-arm-none-eabi-4_9-2015q3/arm-none-eabi/include",
                 "/home/denzo/eclipse/toolchain/gcc-arm-none-eabi-4_9-2015q3/arm-none-eabi/include/machine",
                 "/home/denzo/eclipse/toolchain/gcc-arm-none-eabi-4_9-2015q3/arm-none-eabi/include/newlib-nano",
-                "/home/denzo/eclipse/toolchain/gcc-arm-none-eabi-4_9-2015q3/arm-none-eabi/include/sys",
-                "/home/denzo/eclipse/gecko_sdk_v2/platform/Device/SiliconLabs/EFR32FG1P/Include",                
+                "/home/denzo/eclipse/toolchain/gcc-arm-none-eabi-4_9-2015q3/arm-none-eabi/include/sys",              
                 "/home/denzo/eclipse/gecko_sdk_v2/hardware/kit/common/drivers",
                 "/home/denzo/eclipse/gecko_sdk_v2/hardware/kit/common/bsp",
                 "/home/denzo/eclipse/gecko_sdk_v2/platform/CMSIS/Include",
                 "/home/denzo/eclipse/gecko_sdk_v2/platform/emlib/inc",
+                "/home/denzo/eclipse/gecko_sdk_v2/platform/Device/SiliconLabs/EFR32FG1P/Include",  
                 "/home/denzo/eclipse/gecko_sdk_v2/platform/halconfig/inc/hal-config",
+                "${workspaceRoot}/silabs_drivers/CMSIS",
+                "${workspaceRoot}/silabs_drivers/emlib",
+                "${workspaceRoot}/silabs_drivers/hal-config",
                 "${workspaceRoot}/content/OTRadioLink",
-                "${workspaceRoot}/content/OTRadioLink/utility",
-                "${workspaceRoot}/EFR32/portingOTLibs/CMSIS",
-                "${workspaceRoot}/EFR32/portingOTLibs/emlib",
-                "${workspaceRoot}/EFR32/portingOTLibs/hal-config",
-                "${workspaceRoot}/EFR32/portingOTLibs/src"
+                "${workspaceRoot}/content/OTRadioLink/utility"
             ],
             "defines": [
+                "__GNUC__",
                 "HAL_CONFIG=1",
                 "EFR32FG1P133F256GM48=1",
-                "V0P2BASE_SYSTICK_EMULATED_SUBCYCLE",
-                "__GNUC__"
+                "V0P2BASE_SYSTICK_EMULATED_SUBCYCLE"
             ],
             "intelliSenseMode": "clang-x64",
             "browse": {
@@ -85,8 +84,7 @@
                     "/home/denzo/eclipse/gecko_sdk_v2/platform/emlib",
                     "/home/denzo/eclipse/gecko_sdk_v2/platform/halconfig",
                     "/home/denzo/eclipse/gecko_sdk_v2/platform/CMSIS",
-                    "${workspaceRoot}",
-                    "${workspaceRoot}/.."
+                    "${workspaceRoot}"
                 ],
                 "limitSymbolsToIncludedHeaders": true,
                 "databaseFilename": ""
