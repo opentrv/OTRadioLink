@@ -1,29 +1,6 @@
 {
     "configurations": [
         {
-            "name": "Mac",
-            "includePath": [
-                "/usr/include",
-                "/usr/local/include",
-                "${workspaceRoot}"
-            ],
-            "defines": [],
-            "intelliSenseMode": "clang-x64",
-            "browse": {
-                "path": [
-                    "/usr/include",
-                    "/usr/local/include",
-                    "${workspaceRoot}"
-                ],
-                "limitSymbolsToIncludedHeaders": true,
-                "databaseFilename": ""
-            },
-            "macFrameworkPath": [
-                "/System/Library/Frameworks",
-                "/Library/Frameworks"
-            ]
-        },
-        {
             "name": "Linux",
             "includePath": [
                 "/usr/lib/gcc/x86_64-redhat-linux/7/../../../../include/c++/7",
@@ -32,16 +9,21 @@
                 "/usr/lib/gcc/x86_64-redhat-linux/7/include",
                 "/usr/local/include",
                 "/usr/include",
-                "${workspaceRoot}",
                 "${workspaceRoot}/content/OTRadioLink",
                 "${workspaceRoot}/content/OTRadioLink/utility",
                 "/opt/arduino/hardware/arduino/avr/cores/arduino",
                 "/opt/arduino/hardware/arduino/avr/libraries",
                 "/opt/arduino/hardware/arduino/avr/libraries/Wire/src",
                 "/opt/arduino/hardware/arduino/avr/variants/standard",
-                "/opt/arduino/hardware/tools/avr/avr/include"
+                "/opt/arduino/hardware/tools/avr/avr/include",
+                "${workspaceRoot}/EFR32/portingOTLibs/CMSIS",
+                "${workspaceRoot}/EFR32/portingOTLibs/emlib",
+                "${workspaceRoot}/EFR32/portingOTLibs/hal-config",
+                "${workspaceRoot}/EFR32/portingOTLibs/src"
             ],
-            "defines": [],
+            "defines": [
+                "__GNUC__"
+            ],
             "intelliSenseMode": "clang-x64",
             "browse": {
                 "path": [
@@ -63,20 +45,48 @@
             }
         },
         {
-            "name": "Win32",
+            "name": "EFR32",
             "includePath": [
-                "C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/include",
-                "${workspaceRoot}"
+                "/home/denzo/eclipse/toolchain/gcc-arm-none-eabi-4_9-2015q3/arm-none-eabi/include/c++/4.9.3",
+                "/home/denzo/eclipse/toolchain/gcc-arm-none-eabi-4_9-2015q3/arm-none-eabi/include/c++/4.9.3/arm-none-eabi",
+                "/home/denzo/eclipse/toolchain/gcc-arm-none-eabi-4_9-2015q3/lib/gcc/arm-none-eabi/4.9.3/include",
+                "/home/denzo/eclipse/toolchain/gcc-arm-none-eabi-4_9-2015q3/lib/gcc/arm-none-eabi/4.9.3/include-fixed",
+                "/home/denzo/eclipse/toolchain/gcc-arm-none-eabi-4_9-2015q3/arm-none-eabi/include",
+                "/home/denzo/eclipse/toolchain/gcc-arm-none-eabi-4_9-2015q3/arm-none-eabi/include/machine",
+                "/home/denzo/eclipse/toolchain/gcc-arm-none-eabi-4_9-2015q3/arm-none-eabi/include/newlib-nano",
+                "/home/denzo/eclipse/toolchain/gcc-arm-none-eabi-4_9-2015q3/arm-none-eabi/include/sys",
+                "/home/denzo/eclipse/gecko_sdk_v2/platform/Device/SiliconLabs/EFR32FG1P/Include",                
+                "/home/denzo/eclipse/gecko_sdk_v2/hardware/kit/common/drivers",
+                "/home/denzo/eclipse/gecko_sdk_v2/hardware/kit/common/bsp",
+                "/home/denzo/eclipse/gecko_sdk_v2/platform/CMSIS/Include",
+                "/home/denzo/eclipse/gecko_sdk_v2/platform/emlib/inc",
+                "/home/denzo/eclipse/gecko_sdk_v2/platform/halconfig/inc/hal-config",
+                "${workspaceRoot}/content/OTRadioLink",
+                "${workspaceRoot}/content/OTRadioLink/utility",
+                "${workspaceRoot}/EFR32/portingOTLibs/CMSIS",
+                "${workspaceRoot}/EFR32/portingOTLibs/emlib",
+                "${workspaceRoot}/EFR32/portingOTLibs/hal-config",
+                "${workspaceRoot}/EFR32/portingOTLibs/src"
             ],
             "defines": [
-                "_DEBUG",
-                "UNICODE"
+                "HAL_CONFIG=1",
+                "EFR32FG1P133F256GM48=1",
+                "V0P2BASE_SYSTICK_EMULATED_SUBCYCLE",
+                "__GNUC__"
             ],
-            "intelliSenseMode": "msvc-x64",
+            "intelliSenseMode": "clang-x64",
             "browse": {
                 "path": [
-                    "C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/include/*",
-                    "${workspaceRoot}"
+                    "/home/denzo/eclipse/toolchain/gcc-arm-none-eabi-4_9-2015q3/lib/gcc/arm-none-eabi/4.9.3/include",
+                    "/home/denzo/eclipse/toolchain/gcc-arm-none-eabi-4_9-2015q3/lib/gcc/arm-none-eabi/4.9.3/include-fixed",
+                    "/home/denzo/eclipse/toolchain/gcc-arm-none-eabi-4_9-2015q3/arm-none-eabi/include",
+                    "/home/denzo/eclipse/gecko_sdk_v2/hardware/kit/common",
+                    "/home/denzo/eclipse/gecko_sdk_v2/platform/Device/SiliconLabs/EFR32FG1P",
+                    "/home/denzo/eclipse/gecko_sdk_v2/platform/emlib",
+                    "/home/denzo/eclipse/gecko_sdk_v2/platform/halconfig",
+                    "/home/denzo/eclipse/gecko_sdk_v2/platform/CMSIS",
+                    "${workspaceRoot}",
+                    "${workspaceRoot}/.."
                 ],
                 "limitSymbolsToIncludedHeaders": true,
                 "databaseFilename": ""

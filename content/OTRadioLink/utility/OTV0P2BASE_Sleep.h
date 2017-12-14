@@ -51,7 +51,7 @@ extern "C" {
 #include "OTV0P2BASE_PowerManagement.h"
 #include "OTV0P2BASE_RTC.h"
 
-// IF DEFINED: Emulate a 2 second subcycle with the onboard SysTick timer on ARM chips.
+// IF DEFINED: Enable emulated subcycle
 #define V0P2BASE_SYSTICK_EMULATED_SUBCYCLE
 
 namespace OTV0P2BASE
@@ -227,19 +227,21 @@ bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);
     //#define _getSubCycleTime() (0)
     inline uint8_t getSubCycleTime() { return (TCNT2); }
     inline uint8_t _getSubCycleTime() { return (TCNT2); }
-    //#endif // WAKEUP_32768HZ_XTAL
-    //
-#elif defined(EFR32FG1P133F256GM48)
-    static volatile uint_fast8_t subCycleTime = 0U;
-    /**
-     * @brief	Calculate the number of ticks between interrupts clock should run for.
-     * @param	Time in ms between interrupts
-     * @retval	number of ticks.
-     */
-    static uint32_t calcSysTickTicks(uint32_t period) {
-        const auto clockFreq = CMU_ClockFreqGet(cmuClock_CORE);
-        // ticks = freq * period in s
-        return (clockFreq * period) / 1000;
+#endif
+#if defined(EFR32FG1P133F256GM48) && defined(V0P2BASE_SYSTICK_EMULATED_SUBCYCLE)
+    // Stuff that isn't intended to be accessible outside this file (equivalent of static)
+    namespace {
+        volatile uint_fast8_t subCycleTime = 0U;
+        /**
+         * @brief	Calculate the number of ticks between interrupts clock should run for.
+         * @param	Time in ms between interrupts
+         * @retval	number of ticks.
+         */
+        uint32_t calcSysTickTicks(uint32_t period) {
+            const auto clockFreq = CMU_ClockFreqGet(cmuClock_CORE);
+            // ticks = freq * period in s
+            return (clockFreq * period) / 1000;
+        }
     }
 
     /**
