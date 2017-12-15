@@ -38,6 +38,12 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 #include <util/delay_basic.h>
 #endif // ARDUINO_ARCH_AVR
 
+#if defined(EFR32FG1P133F256GM48)
+extern "C" {
+#include "em_cmu.h"
+}
+#endif  // defined(EFR32FG1P133GM48)
+
 #ifdef ARDUINO
 #include <Arduino.h>
 #endif
@@ -45,9 +51,12 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 #include "OTV0P2BASE_PowerManagement.h"
 #include "OTV0P2BASE_RTC.h"
 
+// IF DEFINED: Enable emulated subcycle
+#define V0P2BASE_SYSTICK_EMULATED_SUBCYCLE
+
 namespace OTV0P2BASE
 {
-
+constexpr uint32_t F_CPU = 38000000;  // XXX Where should this go?
 
 // Normal V0p2 (ATMega328P board) power drain ignoring I/O (typ 0.3mA @ 1MHz CPU, 2V)
 // ...delay..() routines burn CPU cycles at full power for accurate small microsecond delays.
@@ -112,12 +121,61 @@ namespace OTV0P2BASE
     // Delay (busy wait) the specified number of milliseconds in the range [0,255].
     // This may be extended by interrupts, etc, so must not be regarded as very precise.
     inline void delay_ms(uint8_t ms) { while(ms-- > 0) { OTV0P2BASE_delay_us(996); /* Allow for some loop overhead. */ } }
+#elif defined(EFR32FG1P133F256GM48)
+
+    // Cortex M4 instruction set manual states that NOP is not necessarily
+    // time consuming and may be removed before the execution stage.
+    // Tests suggest that NOP is usually single instruction and where it isn't,
+    // other instructions are unpredictable as well.
+    // https://www.pabigot.com/arm-cortex-m/the-effect-of-the-arm-cortex-m-nop-instruction/
+    static __inline__ void _delay_NOP(void) { __NOP(); }
+    // TODO test this is correct.
+    static __inline__ void _delay_x4cyclesLong(uint32_t n) // Takes 4n CPU cycles to run, 0 runs for 2^32 cycles.
+    {
+        __asm__ volatile
+        (
+            "1: SUBS %0, #1;"   "\n\t"  // 1 cycle
+            "   NOP;"           "\n\t"  // 1 cycle
+            "   BNE 1b;"        "\n\t"  // 2 cycles
+            :"=r"   (n)
+            :"0"    (n)
+        );
+    }
+    // For compat with existing AVR version.
+    static __inline__ void _delay_x4cycles(uint_fast8_t n) { _delay_x4cyclesLong(n); }
+
+    // OTV0P2BASE_busy_spin_delay is a guaranteed CPU-busy-spin delay with no dependency on interrupts,
+    // microseconds [4,1023] (<4 will work if a constant).
+    // Delay (busy wait) the specified number of microseconds in the range [4,1023] (<4 will work if a constant).
+    // Nominally equivalent to delayMicroseconds() except that 1.0.x version of that is broken for slow CPU clocks.
+    // Granularity is 1us if parameter is a compile-time constant, else 4us.
+    constexpr uint32_t delayLoopTimeInNS = (uint32_t)1e9 / (F_CPU / 4U);
+    static __inline__ void OTV0P2BASE_busy_spin_delayLong(uint32_t us)
+    {
+        do {
+            if(__builtin_constant_p((us)) && ((us) == 0)) { /* Nothing to do. */ }
+            else {
+                // Actually need 9.5 loops per us. Overall error is about -5%.
+                constexpr uint32_t delayLoopsPerUS = 1000U / delayLoopTimeInNS;
+                _delay_x4cyclesLong(us * delayLoopsPerUS);
+            }
+        } while(false);
+    }
+    static __inline__ void OTV0P2BASE_busy_spin_delay(uint_fast8_t us) { OTV0P2BASE_busy_spin_delayLong(us); }
+    static __inline__ void OTV0P2BASE_delay_us(uint_fast8_t us) { OTV0P2BASE_busy_spin_delayLong(us); }
+
+    // TODO Replace with low power timer?
+    // Delay (busy wait) the specified number of milliseconds in the range [0,255].
+    // This may be extended by interrupts, etc, so must not be regarded as very precise.
+    inline void delay_ms(uint_fast8_t ms) { while(ms-- > 0) { OTV0P2BASE_busy_spin_delayLong((uint32_t)1e6 / (delayLoopTimeInNS * 9)); /* busy spin takes ~945 us, loop overhead insignificant. */ } }
+
+
 #endif // ARDUINO_ARCH_AVR
 
 
 // Sleep with BOD disabled in power-save mode; will wake on any interrupt.
 // This particular API is not guaranteed to be maintained: please use sleepUntilInt() instead.
-void sleepPwrSaveWithBODDisabled();
+void sleepPwrSaveWithBODDisabled();  // TODO
 
 // Sleep indefinitely in as lower-power mode as possible until a specified watchdog time expires, or another interrupt.
 // May be useful to call minimsePowerWithoutSleep() first, when not needing any modules left on.
@@ -132,14 +190,14 @@ inline void sleepUntilInt() { sleepPwrSaveWithBODDisabled(); }
     // Only use this if not disallowed for board type, eg with ENABLE_USE_OF_AVR_IDLE_MODE.
     // DHD20150920: POSSIBLY NOT RECOMMENDED AS STILL SEEMS TO CAUSE SOME BOARDS TO CRASH.
     #define OTV0P2BASE_IDLE_NOT_RECOMMENDED // IF DEFINED, avoid IDLE mode.
-    bool _idleCPU(int_fast8_t watchdogSleep, bool allowPrematureWakeup = false);
+    bool _idleCPU(int_fast8_t watchdogSleep, bool allowPrematureWakeup = false);    // TODO
 #endif // ARDUINO_ARCH_AVR
 
 // Sleep briefly in as lower-power mode as possible until the specified (watchdog) time expires.
 //   * watchdogSleep is one of the WDTO_XX values from <avr/wdt.h>
 // May be useful to call minimsePowerWithoutSleep() first, when not needing any modules left on.
 // NOTE: will stop clocks for UART, etc.
-void nap(int_fast8_t watchdogSleep);
+void nap(int_fast8_t watchdogSleep);    // TODO
 
 // Sleep briefly in as lower-power mode as possible until the specified (watchdog) time expires, or another interrupt.
 //   * watchdogSleep is one of the WDTO_XX values from <avr/wdt.h>
@@ -147,10 +205,10 @@ void nap(int_fast8_t watchdogSleep);
 // Returns false if the watchdog timer did not go off, true if it did.
 // May be useful to call minimsePowerWithoutSleep() first, when not needing any modules left on.
 // NOTE: will stop clocks for UART, etc.
-bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);
+bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);    // TODO
 
 
-#ifdef ARDUINO_ARCH_AVR
+#ifdef ARDUINO_ARCH_AVR    // TODO
     // If CPU clock is 1MHz then *assume* that it is the 8MHz internal RC clock prescaled by 8 unless DEFAULT_CPU_PRESCALE is defined.
     #if F_CPU == 1000000L
     static const uint8_t DEFAULT_CPU_PRESCALE = 3;
@@ -167,7 +225,7 @@ bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);
     #endif // F_CPU > 16000000L
 #endif // ARDUINO_ARCH_AVR
 
-#ifdef ARDUINO_ARCH_AVR
+#ifdef ARDUINO_ARCH_AVR    // TODO
     // Sleep for specified number of _delay_loop2() loops at minimum available CPU speed.
     // Each loop takes 4 cycles at that minimum speed, but entry and exit overheads may take the equivalent of a loop or two.
     // Note: inlining is prevented so as to avoid migrating anything into the section where the CPU is running slowly.
@@ -204,7 +262,7 @@ bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);
     static void inline sleepLowPowerLessThanMs(uint16_t ms) { while(ms-- > 0) { ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { _sleepLowPowerLessThanMs(1); } } }
 #endif // ARDUINO_ARCH_AVR
 
-#ifdef ARDUINO_ARCH_AVR
+#ifdef ARDUINO_ARCH_AVR  // TODO Non emulated version.
     //#if defined(WAKEUP_32768HZ_XTAL) || 1 // FIXME: avoid getSubCycleTime() where slow clock NOT available.
     //// Get fraction of the way through the basic cycle in range [0,255].
     //// This can be used for precision timing during the cycle,
@@ -218,8 +276,52 @@ bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);
     //#define _getSubCycleTime() (0)
     inline uint8_t getSubCycleTime() { return (TCNT2); }
     inline uint8_t _getSubCycleTime() { return (TCNT2); }
-    //#endif // WAKEUP_32768HZ_XTAL
-    //
+// #endif
+#elif defined(EFR32FG1P133F256GM48) && defined(V0P2BASE_SYSTICK_EMULATED_SUBCYCLE)
+    // Stuff that isn't intended to be accessible outside this file (equivalent of static)
+    namespace {
+        volatile uint_fast8_t subCycleTime = 0U;
+        /**
+         * @brief	Calculate the number of ticks between interrupts clock should run for.
+         * @param	Time in ms between interrupts
+         * @retval	number of ticks.
+         */
+        uint32_t calcSysTickTicks(uint32_t period) {
+            const auto clockFreq = CMU_ClockFreqGet(cmuClock_CORE);  // TODO reference F_CPU instead?
+            // ticks = freq * period in s
+            return (clockFreq * period) / 1000;
+        }
+    }
+
+    /**
+     * @brief   Sets up the systick timer to fire every 2/256 seconds.
+     * @retval  False on success, else true.
+     */
+    bool setupEmulated2sSubCycle()
+    {
+    return SysTick_Config(calcSysTickTicks(2000U/256U));
+    }
+
+    /**
+     * @brief   Increment SubCycle time when SysTick handler called.
+     * 
+     * Should be placed in SysTick_Handler()
+     */
+    extern "C" {
+    void tickSubCycle(void)
+    {
+        subCycleTime += 1;
+        subCycleTime = (256U == subCycleTime) ? 0 : subCycleTime;
+    }
+    }
+
+    //// Get fraction of the way through the basic cycle in range [0,255].
+    //// This can be used for precision timing during the cycle,
+    //// or to avoid overrunning a cycle with tasks of variable timing.
+    inline uint_fast8_t getSubCycleTime() { return (subCycleTime); }
+    inline uint_fast8_t _getSubCycleTime() { return (subCycleTime); }
+#endif  // ARDUINO_ARCH_AVR
+#if defined(ARDUINO_ARCH_AVR) || defined(EFR32FG1P133F256GM48)
     //// Maximum value for OTV0P2BASE::getSubCycleTime(); full cycle length is this + 1.
     //// So ~4ms per count for a 1s cycle time, ~8ms per count for a 2s cycle time.
     //#define GSCT_MAX 255
@@ -245,9 +347,9 @@ bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);
     //// Upper limit is set by length of basic cycle, thus 1000 or 2000 typically.
     //#define msRemainingThisBasicCycle() (SUBCYCLE_TICK_MS_RD * (GSCT_MAX-OTV0P2BASE::getSubCycleTime()))
     inline uint16_t msRemainingThisBasicCycle() { return (SUBCYCLE_TICK_MS_RD * (GSCT_MAX-getSubCycleTime() ) ); }
-#endif // ARDUINO_ARCH_AVR
+#endif // defined(ARDUINO_ARCH_AVR) || defined(EFR32FG1P133GM48)
 
-#ifdef ARDUINO_ARCH_AVR
+#ifdef ARDUINO_ARCH_AVR   // TODO
     // Return some approximate/fast measure of CPU cycles elapsed.  Will not count when (eg) CPU/TIMER0 not running.
     // Rather depends on Arduino/wiring setup for micros()/millis().
     #ifndef DONT_USE_TIMER0
@@ -264,7 +366,7 @@ bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);
 #endif // ARDUINO_ARCH_AVR
 
 
-#ifdef ARDUINO_ARCH_AVR
+#ifdef ARDUINO_ARCH_AVR   // TODO
     // Sleep in reasonably low-power mode until specified target subcycle time.
     // Returns true if OK, false if specified time already passed or significantly missed (eg by more than one tick).
     // May use a combination of techniques to hit the required time.
@@ -287,7 +389,7 @@ bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);
 //   http://playground.arduino.cc/Main/ArduinoReset
 // This suggests that a timeout of > 2s may be OK with the optiboot loader:
 //   https://tushev.org/articles/arduino/5/arduino-and-watchdog-timer
-#if defined(__GNUC__)
+#if defined(__GNUC__)    // TODO
     inline void forceReset();// __attribute__ ((noreturn));  // FIXME commented to allow compilation of unit tests on clang compiler (DE20170510)
 #endif // defined(__GNUC__)
 #ifdef ARDUINO_ARCH_AVR
