@@ -32,6 +32,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014--2017
 #include <Arduino.h>
 //#include <util/atomic.h>
 #include "OTV0P2BASE_Sleep.h"
+#elif defined(EFR32FG1P133F256GM48)
+#include "OTV0P2BASE_Sleep.h"  // TODO
 #else
 #include <string.h>
 #include "utility/OTV0P2BASE_ArduinoCompat.h"
@@ -241,9 +243,11 @@ inline size_t getSP() {
     return sp;
 }
 #endif
+#if !defined(EFR32FG1P133F256GM48)
 // Stub function for forceReset()
 // TODO Is there a better place for this?
 inline void forceReset() {}
+#endif  // EFR32FG1P133F256GM48
 #endif  // ARDUINO_ARCH_AVR
 
 #define MemoryChecks_DEFINED

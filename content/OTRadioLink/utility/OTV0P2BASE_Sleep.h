@@ -40,6 +40,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 
 #if defined(EFR32FG1P133F256GM48)
 extern "C" {
+#include "em_device.h"
 #include "em_cmu.h"
 }
 #endif  // defined(EFR32FG1P133GM48)
@@ -141,8 +142,8 @@ constexpr uint32_t F_CPU = 38000000;  // XXX Where should this go?
             :"0"    (n)
         );
     }
-    // For compat with existing AVR version.
-    static __inline__ void _delay_x4cycles(uint_fast8_t n) { _delay_x4cyclesLong(n); }
+    // For compat with existing AVR version. XXX Portability stuff
+    static __inline__ void _delay_x4cycles(uint_fast8_t n) { n = (0U == n) ? 256 : 0; _delay_x4cyclesLong(n); }
 
     // OTV0P2BASE_busy_spin_delay is a guaranteed CPU-busy-spin delay with no dependency on interrupts,
     // microseconds [4,1023] (<4 will work if a constant).
@@ -389,9 +390,6 @@ bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);    // TODO
 //   http://playground.arduino.cc/Main/ArduinoReset
 // This suggests that a timeout of > 2s may be OK with the optiboot loader:
 //   https://tushev.org/articles/arduino/5/arduino-and-watchdog-timer
-#if defined(__GNUC__)    // TODO
-    inline void forceReset();// __attribute__ ((noreturn));  // FIXME commented to allow compilation of unit tests on clang compiler (DE20170510)
-#endif // defined(__GNUC__)
 #ifdef ARDUINO_ARCH_AVR
     #if defined(__AVR_ATmega328P__)
     inline void forceReset()
@@ -401,6 +399,10 @@ bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);    // TODO
         for( ; ; ) { }
         }
     #endif // defined(__AVR_ATmega328P__)
+#elif defined(EFR32FG1P133F256GM48)  // ARDUINO_ARCH_AVR
+    inline void forceReset() { NVIC_SystemReset(); }
+#elif defined(__GNUC__)    // TODO
+    inline void forceReset();// __attribute__ ((noreturn));  // FIXME commented to allow compilation of unit tests on clang compiler (DE20170510)
 #endif  // ARDUINO_ARCH_AVR
 #ifdef ARDUINO_ARCH_AVR
 /**

@@ -514,9 +514,6 @@
 		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.cross.exe.debug.1956793571;cdt.managedbuild.config.gnu.cross.exe.debug.1956793571.;cdt.managedbuild.tool.gnu.cross.c.compiler.1951168710;cdt.managedbuild.tool.gnu.c.compiler.input.23766912">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.debug.1991014182.2080489009;cdt.managedbuild.config.gnu.exe.debug.1991014182.2080489009.;ilg.gnuarmeclipse.managedbuild.cross.tool.c.compiler.1669303690;ilg.gnuarmeclipse.managedbuild.cross.tool.c.compiler.input.1087271104">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.cross.exe.release.232466149;cdt.managedbuild.config.gnu.cross.exe.release.232466149.;cdt.managedbuild.tool.gnu.cross.cpp.compiler.493607210;cdt.managedbuild.tool.gnu.cpp.compiler.input.1818051603">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
@@ -527,9 +524,6 @@
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.debug.1991014182;cdt.managedbuild.config.gnu.exe.debug.1991014182.;cdt.managedbuild.tool.gnu.c.compiler.exe.debug.919037388;cdt.managedbuild.tool.gnu.c.compiler.input.783866445">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.debug.1991014182.2080489009;cdt.managedbuild.config.gnu.exe.debug.1991014182.2080489009.;ilg.gnuarmeclipse.managedbuild.cross.tool.cpp.compiler.418377719;ilg.gnuarmeclipse.managedbuild.cross.tool.cpp.compiler.input.1509226020">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.release.976694206;cdt.managedbuild.config.gnu.exe.release.976694206.;cdt.managedbuild.tool.gnu.cpp.compiler.exe.release.288425438;cdt.managedbuild.tool.gnu.cpp.compiler.input.1985260105">
