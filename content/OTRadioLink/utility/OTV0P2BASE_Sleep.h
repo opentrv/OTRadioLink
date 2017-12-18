@@ -401,7 +401,7 @@ bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);    // TODO
     #endif // defined(__AVR_ATmega328P__)
 #elif defined(EFR32FG1P133F256GM48)  // ARDUINO_ARCH_AVR
     inline void forceReset() { NVIC_SystemReset(); }
-#elif defined(__GNUC__)    // TODO
+#elif defined(__GNUC__)
     inline void forceReset();// __attribute__ ((noreturn));  // FIXME commented to allow compilation of unit tests on clang compiler (DE20170510)
 #endif  // ARDUINO_ARCH_AVR
 #ifdef ARDUINO_ARCH_AVR
