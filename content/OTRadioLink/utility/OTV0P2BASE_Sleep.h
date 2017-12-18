@@ -121,7 +121,7 @@ constexpr uint32_t F_CPU = 38000000;  // XXX Where should this go?
     // Delay (busy wait) the specified number of milliseconds in the range [0,255].
     // This may be extended by interrupts, etc, so must not be regarded as very precise.
     inline void delay_ms(uint8_t ms) { while(ms-- > 0) { OTV0P2BASE_delay_us(996); /* Allow for some loop overhead. */ } }
-#elif defined(EFR32FG1P133F256GM48)
+#elif defined(__arm__)
 
     // Cortex M4 instruction set manual states that NOP is not necessarily
     // time consuming and may be removed before the execution stage.
@@ -321,7 +321,7 @@ bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);    // TODO
     inline uint_fast8_t getSubCycleTime() { return (subCycleTime); }
     inline uint_fast8_t _getSubCycleTime() { return (subCycleTime); }
 #endif  // ARDUINO_ARCH_AVR
-#if defined(ARDUINO_ARCH_AVR) || defined(EFR32FG1P133F256GM48)
+#if defined(ARDUINO_ARCH_AVR) || defined(__arm__)
     //// Maximum value for OTV0P2BASE::getSubCycleTime(); full cycle length is this + 1.
     //// So ~4ms per count for a 1s cycle time, ~8ms per count for a 2s cycle time.
     //#define GSCT_MAX 255

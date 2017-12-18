@@ -47,7 +47,7 @@ namespace OTV0P2BASE
 
 
 // Number of minutes per day.
-static const uint16_t MINS_PER_DAY = 1440;
+static constexpr uint16_t MINS_PER_DAY = 1440;
 
 // Seconds for local time (and assumed UTC) in range [0,59].
 // Volatile to allow for async update.
@@ -89,14 +89,14 @@ bool restoreRTC();
 // Thread-safe and ISR-safe: returns a consistent atomic snapshot.
 inline uint_fast8_t getSecondsLT() { return(_secondsLT); } // Assumed atomic.
 
-#ifdef ARDUINO_ARCH_AVR
+#if defined(ARDUINO_ARCH_AVR) || defined(__arm__)
 // Get local time minutes from RTC [0,59].
 // Relatively slow.
 // Thread-safe and ISR-safe.
 uint_least8_t getMinutesLT();
 #endif
 
-#ifdef ARDUINO_ARCH_AVR
+#if defined(ARDUINO_ARCH_AVR) || defined(__arm__)
 // Get local time hours from RTC [0,23].
 // Relatively slow.
 // Thread-safe and ISR-safe.
@@ -113,7 +113,7 @@ uint_least16_t getMinutesSinceMidnightLT();
 // Thread-safe and ISR-safe.
 uint_least16_t getDaysSince1999LT();
 
-#ifdef ARDUINO_ARCH_AVR
+#if defined(ARDUINO_ARCH_AVR) || defined(__arm__)
 // Get previous hour in current local time, wrapping round from 0 to 23.
 uint_least8_t getPrevHourLT();
 // Get next hour in current local time, wrapping round from 23 back to 0.

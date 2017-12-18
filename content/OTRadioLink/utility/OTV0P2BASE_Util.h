@@ -241,10 +241,13 @@ inline size_t getSP() {
     return sp;
 }
 #endif
-// Stub function for forceReset()
+#endif  // ARDUINO_ARCH_AVR
+
+#if !defined(ARDUINO_ARCH_AVR) && !defined(__arm__)
+// Stub function for forceReset() when not on embedded processor
 // TODO Is there a better place for this?
 inline void forceReset() {}
-#endif  // ARDUINO_ARCH_AVR
+#endif  // !defined(ARDUINO_ARCH_AVR) && !defined(EFR32FG1P133F256GM48)
 
 #define MemoryChecks_DEFINED
 // Requires ATOMIC_BLOCK and ATOMIC_RESTORESTATE to be defined on non AVR architectures.
