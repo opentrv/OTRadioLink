@@ -281,26 +281,19 @@ bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);    // TODO
     inline uint8_t _getSubCycleTime() { return (TCNT2); }
 // #endif
 #elif defined(EFR32FG1P133F256GM48) && defined(V0P2BASE_SYSTICK_EMULATED_SUBCYCLE)
-    // Stuff that isn't intended to be accessible outside this file (equivalent of static)
     namespace {
         volatile uint_fast8_t subCycleTime = 0U;
-        /**
-         * @brief	Calculate the number of ticks between interrupts clock should run for.
-         * @param	Time in ms between interrupts
-         * @retval	number of ticks.
-         */
         uint32_t calcSysTickTicks(uint32_t period) {
             const auto clockFreq = CMU_ClockFreqGet(cmuClock_CORE);  // TODO reference F_CPU instead?
             // ticks = freq * period in s
             return (clockFreq * period) / 1000;
         }
     }
-
     /**
      * @brief   Sets up the systick timer to fire every 2/256 seconds.
      * @retval  False on success, else true.
      */
-    bool setupEmulated2sSubCycle()
+    inline bool setupEmulated2sSubCycle()
     {
         return SysTick_Config(calcSysTickTicks(2000U/256U));
     }
@@ -310,12 +303,10 @@ bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);    // TODO
      * 
      * Should be placed in SysTick_Handler()
      */
-    extern "C" {
-    void tickSubCycle(void)
+    inline void tickSubCycle(void)
     {
         subCycleTime += 1;
         subCycleTime = (256U == subCycleTime) ? 0 : subCycleTime;
-    }
     }
 
     //// Get fraction of the way through the basic cycle in range [0,255].
