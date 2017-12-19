@@ -203,7 +203,7 @@ uint_least8_t getMinutesLT() { return(getMinutesSinceMidnightLT() % 60); }
 uint_least8_t getHoursLT() { return(getMinutesSinceMidnightLT() / 60); }
 #endif
 
-#if defined(ARDUINO_ARCH_AVR) || defined(__arm__) // XXX
+#if defined(ARDUINO_ARCH_AVR)
 // Get whole days since the start of 2000/01/01 (ie the midnight between 1999 and 2000), local time.
 // This will roll in about 2179, by which time I will not care.
 // Thread-safe and ISR-safe.
@@ -214,6 +214,15 @@ uint_least16_t getDaysSince1999LT()
     { result = _daysSince1999LT; }
   return(result);
   }
+#elif defined(__arm__) // XXX
+// Get whole days since the start of 2000/01/01 (ie the midnight between 1999 and 2000), local time.
+// This will roll in about 2179, by which time I will not care.
+// This is a single cycle access on ARM.
+// Thread-safe and ISR-safe.
+uint_least16_t getDaysSince1999LT()
+{
+    return(_daysSince1999LT);
+}
 #endif // ARDUINO_ARCH_AVR
 
 #if defined(ARDUINO_ARCH_AVR) || defined(__arm__) // XXX
@@ -234,7 +243,7 @@ uint_least8_t getNextHourLT()
 #endif
 
 
-#if defined(ARDUINO_ARCH_AVR) || defined(__arm__) // XXX
+#if defined(ARDUINO_ARCH_AVR)
 // Set time as hours [0,23] and minutes [0,59].
 // Will ignore attempts to set bad values and return false in that case.
 // Returns true if all OK and the time has been set.
@@ -251,11 +260,29 @@ bool setHoursMinutesLT(const uint8_t hours, const uint8_t minutes)
       {
       // If time has changed then store it locally and persist it if need be.
       _minutesSinceMidnightLT = computedMinutesSinceMidnightLT;
-      persistRTC();  // FIXME won't work on ARM
+      persistRTC();
       }
     }
   return(true); // Assume set and persisted OK.
   }
+#elif defined(__arm__) // XXX
+// Set time as hours [0,23] and minutes [0,59].
+// Will ignore attempts to set bad values and return false in that case.
+// Returns true if all OK and the time has been set.
+// Does not attempt to set seconds.
+// Thread/interrupt safe, but do not call this from an ISR.
+// Will persist time to survive reset / power-cycle as necessary.
+bool setHoursMinutesLT(const uint8_t hours, const uint8_t minutes)
+{
+    if((hours > 23) || (minutes > 59)) { return(false); } // Invalid time.
+    const uint_least16_t computedMinutesSinceMidnightLT = (uint_least16_t) ((60 * (uint_least16_t)hours) + minutes);
+    if(computedMinutesSinceMidnightLT != _minutesSinceMidnightLT) {
+        // If time has changed then store it locally and persist it if need be.
+        _minutesSinceMidnightLT = computedMinutesSinceMidnightLT;
+        // persistRTC();  // FIXME won't work on ARM
+    }
+  return(true); // Assume set and persisted OK.
+}
 #endif // ARDUINO_ARCH_AVR
 
 
