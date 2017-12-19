@@ -300,7 +300,7 @@ bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);    // TODO
      */
     bool setupEmulated2sSubCycle()
     {
-    return SysTick_Config(calcSysTickTicks(2000U/256U));
+        return SysTick_Config(calcSysTickTicks(2000U/256U));
     }
 
     /**
