@@ -54,18 +54,19 @@
                 "/home/denzo/eclipse/toolchain/gcc-arm-none-eabi-4_9-2015q3/arm-none-eabi/include",
                 "/home/denzo/eclipse/toolchain/gcc-arm-none-eabi-4_9-2015q3/arm-none-eabi/include/machine",
                 "/home/denzo/eclipse/toolchain/gcc-arm-none-eabi-4_9-2015q3/arm-none-eabi/include/newlib-nano",
-                "/home/denzo/eclipse/toolchain/gcc-arm-none-eabi-4_9-2015q3/arm-none-eabi/include/sys",              
+                "/home/denzo/eclipse/toolchain/gcc-arm-none-eabi-4_9-2015q3/arm-none-eabi/include/sys",
                 "/home/denzo/eclipse/gecko_sdk_v2/hardware/kit/common/drivers",
                 "/home/denzo/eclipse/gecko_sdk_v2/hardware/kit/common/bsp",
                 "/home/denzo/eclipse/gecko_sdk_v2/platform/CMSIS/Include",
                 "/home/denzo/eclipse/gecko_sdk_v2/platform/emlib/inc",
-                "/home/denzo/eclipse/gecko_sdk_v2/platform/Device/SiliconLabs/EFR32FG1P/Include",  
+                "/home/denzo/eclipse/gecko_sdk_v2/platform/Device/SiliconLabs/EFR32FG1P/Include",
                 "/home/denzo/eclipse/gecko_sdk_v2/platform/halconfig/inc/hal-config",
                 "${workspaceRoot}/silabs_drivers/CMSIS",
                 "${workspaceRoot}/silabs_drivers/emlib",
                 "${workspaceRoot}/silabs_drivers/hal-config",
                 "${workspaceRoot}/content/OTRadioLink",
-                "${workspaceRoot}/content/OTRadioLink/utility"
+                "${workspaceRoot}/content/OTRadioLink/utility",
+                "${workspaceRoot}/silabs_drivers/cppDrivers"
             ],
             "defines": [
                 "__GNUC__",

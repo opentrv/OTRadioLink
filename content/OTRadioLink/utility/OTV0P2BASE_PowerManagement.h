@@ -226,7 +226,7 @@ void power_intermittent_peripherals_disable();
 #endif // ARDUINO_ARCH_AVR
 
 
-#ifdef ARDUINO_ARCH_AVR
+#if defined(ARDUINO_ARCH_AVR)  || defined(EFR32FG1P133F256GM48)
     // If TWI (I2C) was disabled, power it up, do Wire.begin(), and return true.
     // If already powered up then do nothing other than return false.
     // If this returns true then a matching powerDownTWI() may be advisable.
