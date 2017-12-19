@@ -34,10 +34,13 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #include "OTV0P2BASE_PowerManagement.h"
 #include "OTV0P2BASE_Sleep.h"
 
+#ifdef EFR32FG1P133F256GM48
+#include "i2c_driver.h"
+#endif // EFR32FG1P133F256GM48
+
 
 namespace OTV0P2BASE
 {
-
 
 #if defined(RoomTemperatureC16_SHT21_DEFINED) || defined(HumiditySensorSHT21_DEFINED)
 
@@ -209,7 +212,7 @@ int16_t RoomTemperatureC16_SHT21::read()  // XXX
   // Claim one bit of noise in the raw value if the full value has changed,
   // though it is possible that this might be manipulatable by Eve,
   // and nearly all of the raw info is visible in the result.
-  if(c16 != value) { addEntropyToPool((uint8_t)rawTemp, 1); }
+//   if(c16 != value) { addEntropyToPool((uint8_t)rawTemp, 1); }  // XXX
 
   value = c16;
   return(c16);
@@ -301,14 +304,15 @@ uint8_t HumiditySensorSHT21::read()  // XXX
   // Initialise/config if necessary.
   if(!SHT21_initialised) { SHT21_init(); }
 
-  const uint_fast16_t rawRH = readRH();
+  const uint_fast16_t rawRH = readRH(neededPowerUp);
+
   // FIXME: should the shift/division be rounded to nearest?
   // FIXME: break out calculation and unit test against example in datasheet.
-  const uint8_t result = uint8_t(-6 + ((125 * uint_fast32_t(raw)) >> 16));
+  const uint8_t result = uint8_t(-6 + ((125 * uint_fast32_t(rawRH)) >> 16));
 
   // Capture entropy from raw status bits iff (transformed) reading has changed.
   // Claim no entropy since only a fraction of a bit is not in the result.
-  if(value != result) { OTV0P2BASE::addEntropyToPool(rawRL ^ rawRH, 0); }
+//   if(value != result) { OTV0P2BASE::addEntropyToPool(rawRL ^ rawRH, 0); } // XXX
 
   value = result;
   if(result > (HUMIDTY_HIGH_RHPC + HUMIDITY_EPSILON_RHPC)) { highWithHyst = true; }
