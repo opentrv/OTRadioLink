@@ -57,7 +57,9 @@ extern "C" {
 
 namespace OTV0P2BASE
 {
-constexpr uint32_t F_CPU = 38000000;  // XXX Where should this go?
+#ifdef EFR32FG1P133F256GM48
+constexpr uint32_t F_CPU = 19000000;  // XXX Where should this go?
+#endif
 
 // Normal V0p2 (ATMega328P board) power drain ignoring I/O (typ 0.3mA @ 1MHz CPU, 2V)
 // ...delay..() routines burn CPU cycles at full power for accurate small microsecond delays.
