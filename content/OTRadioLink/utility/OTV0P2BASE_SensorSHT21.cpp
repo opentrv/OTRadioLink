@@ -119,7 +119,7 @@ static void SHT21_init()
 // Abstracting read function I2C transactions
 namespace {
 #ifdef ARDUINO_ARCH_AVR
-inline uint16_t i2cTempRead(bool neededPowerUp)
+inline uint16_t readTemp(bool neededPowerUp)
 {
     // Max RH measurement time:
     //   * 14-bit: 85ms
