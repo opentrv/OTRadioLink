@@ -42,7 +42,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 #include "OTV0P2BASE_Serial_LineType_InitChar.h"
 
-
 namespace OTV0P2BASE
 {
 
@@ -94,6 +93,32 @@ namespace OTV0P2BASE
 //#define V0P2BASE_DEBUG_SERIAL_TIMESTAMP() _debug_serial_timestamp()
 
 #endif // V0P2BASE_DEBUG
+
+#ifdef EFR32FG1P133F256GM48
+// Implementation for EFR32
+// Implementation of Print that simply throws output away.
+// Usable in all environments including Arduino, eg also for unit tests.
+class PrintEFR32 final : public Print
+{
+private:
+    // Flag to prevent UART_Tx locking up when USART not set up first..
+    bool isSetup = false;
+
+    // The usart device we are using.
+    // NOTE: This will not work with other ports.
+    USART_TypeDef *dev = USART0;
+
+    // What pins to multiplex the USART to.
+    static constexpr uint32_t outputNo = 0;
+public:
+    // Start up serial dev
+    void setup(const uint32_t baud);
+
+    virtual size_t write(uint8_t c) override;
+    virtual size_t write(const uint8_t *buf, size_t len) override;
+};
+extern PrintEFR32 Serial;
+#endif
 
 
 // Write a single (Flash-resident) string to serial followed by line-end and wait for transmission to complete.
