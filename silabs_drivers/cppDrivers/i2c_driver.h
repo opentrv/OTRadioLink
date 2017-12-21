@@ -103,7 +103,7 @@ class I2CSPM
 private:
     static constexpr uint32_t I2CSPM_TRANSFER_TIMEOUT = 300000;
     // Variable to store the i2c config.
-    I2CSPM_Init_TypeDef config;
+    I2CSPM_Init_TypeDef config = I2CSPM_INIT_DEFAULT;
     /***************************************************************************//**
      * @brief
      *   Perform I2C transfer
@@ -130,7 +130,7 @@ public:
      * @param[in] init
      *   reference to I2C initialization structure
      ******************************************************************************/
-    void init(I2CSPM_Init_TypeDef &init);
+    void init();
     /**
      * @brief   Read from an I2C device.
      *          This driver works by writing and then reading. Haven't worked out how to get a write then read to work yet (DE20170815)

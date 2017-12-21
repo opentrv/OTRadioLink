@@ -68,13 +68,10 @@ void I2C0_enter_DefaultMode_from_RESET() {
  * @param[in] init
  *   reference to I2C initialization structure
  ******************************************************************************/
-void I2CSPM::init(I2CSPM_Init_TypeDef &init)
+void I2CSPM::init()
 {
     // Reset the peripheral.
     I2C0_enter_DefaultMode_from_RESET();
-
-    // Store config
-    config = init;
 
     int i;
     CMU_Clock_TypeDef i2cClock;
