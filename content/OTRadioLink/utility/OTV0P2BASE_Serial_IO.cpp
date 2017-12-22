@@ -29,6 +29,12 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
 
 #include "OTV0P2BASE_Serial_IO.h"
 
+#ifdef EFR32FG1P133F256GM48
+#include "em_cmu.h"
+#include "em_gpio.h"
+#include "em_usart.h"
+#endif  // EFR32FG1P133F256GM48
+
 namespace OTV0P2BASE
 {
 #ifdef ARDUINO
@@ -42,6 +48,52 @@ static const uint16_t V0p2_DEFAULT_UART_BAUD = 4800;
 #else
 #define _flush() fflush(stdout)
 #endif
+
+
+#ifdef EFR32FG1P133F256GM48
+// Start up serial dev
+void PrintEFR32::setup(const uint32_t baud)
+{
+    CMU_ClockEnable(cmuClock_GPIO, true);
+    // /* USART is a HFPERCLK peripheral. Enable HFPERCLK domain and USART0.
+    // * We also need to enable the clock for GPIO to configure pins. */
+    CMU_ClockEnable(cmuClock_HFPER, true);
+    CMU_ClockEnable(cmuClock_USART0, true);
+
+    // /* Initialize with default settings and then update fields according to application requirements. */
+    USART_InitAsync_TypeDef initAsync = USART_INITASYNC_DEFAULT;
+    initAsync.baudrate = baud;
+    USART_InitAsync(dev, &initAsync);
+
+    // /* Enable I/O and set location */
+    dev->ROUTEPEN |= USART_ROUTEPEN_RXPEN | USART_ROUTEPEN_TXPEN;
+    dev->ROUTELOC0 = (dev->ROUTELOC0
+                        & ~(_USART_ROUTELOC0_TXLOC_MASK
+                            | _USART_ROUTELOC0_RXLOC_MASK))
+                        | (outputNo << _USART_ROUTELOC0_TXLOC_SHIFT)
+                        | (outputNo << _USART_ROUTELOC0_RXLOC_SHIFT);
+    /* To avoid false start, configure TX pin as initial high */
+    GPIO_PinModeSet((GPIO_Port_TypeDef)AF_USART0_TX_PORT(outputNo), AF_USART0_TX_PIN(outputNo), gpioModePushPull, 1);
+    GPIO_PinModeSet((GPIO_Port_TypeDef)AF_USART0_RX_PORT(outputNo), AF_USART0_RX_PIN(outputNo), gpioModeInput, 0);
+    isSetup = true;
+}
+size_t PrintEFR32::write(uint8_t c)
+{
+    // Prevent blocking if UART has not been set up.
+    if (!isSetup) return true;
+    USART_Tx(dev, c);
+    return false;
+}
+size_t PrintEFR32::write(const uint8_t *buf, size_t len)
+{
+    if ((nullptr == buf) || (!isSetup)) return -1;
+    for (auto *ip = buf; ip != buf+len; ++ip) USART_Tx(dev, *ip);
+    return len;
+}
+PrintEFR32 Serial;
+#endif // #ifdef EFR32FG1P133F256GM48
+
+
 
 // Write a single (Flash-resident) string to serial followed by line-end and wait for transmission to complete.
 // This enables the serial if required and shuts it down afterwards if it wasn't enabled.

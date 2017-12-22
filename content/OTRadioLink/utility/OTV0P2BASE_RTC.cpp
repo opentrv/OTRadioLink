@@ -95,7 +95,7 @@ volatile uint_least16_t _daysSince1999LT;
 // though it will simply return relatively quickly from redundant calls.
 // The RTC data is stored so as not to wear out AVR EEPROM for at least several years.
 // IMPLEMENTATION OF THIS AND THE eeprom_smart_xxx_byte() ROUTINES IS CRITICAL TO PERFORMANCE AND LONGEVITY.
-void persistRTC()
+void persistRTC()  // TODO Work out emulated EEPROM on EFR32
   {
   ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
     {
@@ -136,7 +136,7 @@ void persistRTC()
 // To void on average using 15/2 minutes at each reset/restart,
 // this starts the internal time a little over half way into the restored 15-minute slot.
 // This restores the minutes and above but leaves seconds unset.
-bool restoreRTC()
+bool restoreRTC()    // TODO Work out emulated EEPROM on EFR32
   {
   uint8_t persistedValue;
   ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
@@ -178,7 +178,7 @@ bool restoreRTC()
 // Preserves interrupt state.
 // Thread-safe and ISR-safe ON AVR ONLY for now.
 #ifndef getMinutesSinceMidnightLT
-uint_least16_t getMinutesSinceMidnightLT()
+uint_least16_t getMinutesSinceMidnightLT()  // XXX
   {
   uint_least16_t result;
 #ifdef ARDUINO_ARCH_AVR
@@ -189,21 +189,21 @@ uint_least16_t getMinutesSinceMidnightLT()
   }
 #endif
 
-#ifdef ARDUINO_ARCH_AVR
+#if defined(ARDUINO_ARCH_AVR) || defined(__arm__)
 // Get local time minutes from RTC [0,59].
 // Relatively slow.
 // Thread-safe and ISR-safe.
 uint_least8_t getMinutesLT() { return(getMinutesSinceMidnightLT() % 60); }
 #endif
 
-#ifdef ARDUINO_ARCH_AVR
+#if defined(ARDUINO_ARCH_AVR) || defined(__arm__)
 // Get local time hours from RTC [0,23].
 // Relatively slow.
 // Thread-safe and ISR-safe.
 uint_least8_t getHoursLT() { return(getMinutesSinceMidnightLT() / 60); }
 #endif
 
-#ifdef ARDUINO_ARCH_AVR
+#if defined(ARDUINO_ARCH_AVR)
 // Get whole days since the start of 2000/01/01 (ie the midnight between 1999 and 2000), local time.
 // This will roll in about 2179, by which time I will not care.
 // Thread-safe and ISR-safe.
@@ -214,9 +214,18 @@ uint_least16_t getDaysSince1999LT()
     { result = _daysSince1999LT; }
   return(result);
   }
+#elif defined(__arm__) // XXX
+// Get whole days since the start of 2000/01/01 (ie the midnight between 1999 and 2000), local time.
+// This will roll in about 2179, by which time I will not care.
+// This is a single cycle access on ARM.
+// Thread-safe and ISR-safe.
+uint_least16_t getDaysSince1999LT()
+{
+    return(_daysSince1999LT);
+}
 #endif // ARDUINO_ARCH_AVR
 
-#ifdef ARDUINO_ARCH_AVR
+#if defined(ARDUINO_ARCH_AVR) || defined(__arm__) // XXX
 // Get previous hour in current local time, wrapping round from 0 to 23.
 uint_least8_t getPrevHourLT()
   {
@@ -234,7 +243,7 @@ uint_least8_t getNextHourLT()
 #endif
 
 
-#ifdef ARDUINO_ARCH_AVR
+#if defined(ARDUINO_ARCH_AVR)
 // Set time as hours [0,23] and minutes [0,59].
 // Will ignore attempts to set bad values and return false in that case.
 // Returns true if all OK and the time has been set.
@@ -256,6 +265,24 @@ bool setHoursMinutesLT(const uint8_t hours, const uint8_t minutes)
     }
   return(true); // Assume set and persisted OK.
   }
+#elif defined(__arm__) // XXX
+// Set time as hours [0,23] and minutes [0,59].
+// Will ignore attempts to set bad values and return false in that case.
+// Returns true if all OK and the time has been set.
+// Does not attempt to set seconds.
+// Thread/interrupt safe, but do not call this from an ISR.
+// Will persist time to survive reset / power-cycle as necessary.
+bool setHoursMinutesLT(const uint8_t hours, const uint8_t minutes)
+{
+    if((hours > 23) || (minutes > 59)) { return(false); } // Invalid time.
+    const uint_least16_t computedMinutesSinceMidnightLT = (uint_least16_t) ((60 * (uint_least16_t)hours) + minutes);
+    if(computedMinutesSinceMidnightLT != _minutesSinceMidnightLT) {
+        // If time has changed then store it locally and persist it if need be.
+        _minutesSinceMidnightLT = computedMinutesSinceMidnightLT;
+        // persistRTC();  // FIXME won't work on ARM
+    }
+  return(true); // Assume set and persisted OK.
+}
 #endif // ARDUINO_ARCH_AVR
 
 

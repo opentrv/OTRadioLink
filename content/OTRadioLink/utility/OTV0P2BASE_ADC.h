@@ -74,6 +74,46 @@ int readInternalTemperatureC16();
 
 #endif // ARDUINO_ARCH_AVR
 
+#ifdef EFR32FG1P133F256GM48  // TODO make these noise reduced.
+void setupADC();  // XXX Copied from an example, not entirely sure what the settings are.
+
+// Read ADC/analogue input with reduced noise if possible, in range [0,1023].
+//   * admux  is the value to set ADMUX to
+//   * samples  maximum number of samples to take (if one, nap() before); strictly positive
+// Sets sleep mode to SLEEP_MODE_ADC, and disables sleep on exit.
+uint16_t _analogueNoiseReducedReadM(const uint8_t admux, int8_t samples = 3);  // admux not implemented!
+
+// Read ADC/analogue input with reduced noise if possible, in range [0,1023].
+//   * aiNumber is the analogue input number [0,7] for ATMega328P
+//   * mode  is the analogue reference, eg DEFAULT (Vcc).
+// May set sleep mode to SLEEP_MODE_ADC, and disable sleep on exit.
+// Nominally equivalent to analogReference(mode); return(analogRead(pinNumber));
+// DE201512: takes 500-600 microseconds to execute @ 1MHZ CPU (tested with an oscilloscope by strobing pin).
+uint16_t analogueNoiseReducedRead(uint8_t aiNumber, uint8_t mode);
+
+// Read from the specified analogue input vs the band-gap reference; true means AI > Vref.
+//   * aiNumber is the analogue input number [0,7] for ATMega328P
+//   * napToSettle  if true then take a minimal sleep/nap to allow voltage to settle
+//       if input source relatively high impedance (>>10k)
+// Assumes that the band-gap reference is already running,
+// eg from being used for BOD; if not, it must be given time to start up.
+// For input settle time explanation please see for example:
+//   * http://electronics.stackexchange.com/questions/67171/input-impedance-of-arduino-uno-analog-pins
+// DE201512: takes 50-60 microseconds to execute @ 1MHZ CPU when napToSettle is false (tested with an oscilloscope by strobing pin).
+bool analogueVsBandgapRead(uint8_t aiNumber, bool napToSettle = false);  // XXX Stub
+
+// Attempt to capture maybe one bit of noise/entropy with an ADC read, possibly more likely in the lsbits if at all.
+// If requested (and needed) powers up extra I/O during the reads.
+//   powerUpIO if true then power up I/O (and power down after if so)
+// DE201512: takes ~2300 microseconds to execute @ 1MHZ CPU (tested with an oscilloscope by strobing pin).
+uint8_t noisyADCRead(bool powerUpIO = true);  // XXX Stub
+
+
+// Get approximate internal temperature in nominal C/16.
+// Only accurate to +/- 10C uncalibrated.
+// May set sleep mode to SLEEP_MODE_ADC, and disables sleep on exit.
+int readInternalTemperatureC16();
+#endif  // EFR32FG1P133F256GM48
 
 }
 #endif

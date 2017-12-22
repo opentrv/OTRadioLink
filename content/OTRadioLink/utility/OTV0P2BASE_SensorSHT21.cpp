@@ -34,10 +34,13 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 #include "OTV0P2BASE_PowerManagement.h"
 #include "OTV0P2BASE_Sleep.h"
 
+#ifdef EFR32FG1P133F256GM48
+#include "i2c_driver.h"
+#endif // EFR32FG1P133F256GM48
+
 
 namespace OTV0P2BASE
 {
-
 
 #if defined(RoomTemperatureC16_SHT21_DEFINED) || defined(HumiditySensorSHT21_DEFINED)
 
@@ -55,6 +58,8 @@ static constexpr bool SHT21_USE_REDUCED_PRECISION = true;
 // Set true once SHT21 has been initialised.
 static volatile bool SHT21_initialised;
 
+
+#if defined(ARDUINO_ARCH_AVR)
 // Initialise/configure SHT21, usually once only.
 // TWI must already be powered up.
 static void SHT21_init()
@@ -86,10 +91,33 @@ static void SHT21_init()
     }
   SHT21_initialised = true;
   }
+#elif defined(EFR32FG1P133F256GM48)
+// Initialise/configure SHT21, usually once only.
+// TWI must already be powered up.
+static void SHT21_init()
+{
+    if(SHT21_USE_REDUCED_PRECISION) {
+        // Soft reset in order to sample at reduced precision.
+        uint8_t cmd[1] = { SHT21_I2C_CMD_USERREG };
+        uint8_t rxMsg[1] = { 0 };
+        i2c0.read(SHT21_I2C_ADDR, cmd, sizeof(cmd), rxMsg, sizeof(rxMsg));
+        const uint8_t curUR = rxMsg[0];
+
+        // Preserve reserved bits (3, 4, 5) and sample 8-bit RH (for for 1%) and 12-bit temp (for 1/16C).
+        const uint8_t newUR = (curUR & 0x38) | 3;
+        uint8_t configMsg[2] = { (SHT21_I2C_CMD_USERREG & 0xfe) , newUR};
+        i2c0.write(SHT21_I2C_ADDR, configMsg, sizeof(configMsg)); // setupMsg
+    }
+    SHT21_initialised = true;
+}
+#endif
 #endif // defined(RoomTemperatureC16_SHT21_DEFINED) || defined(HumiditySensorSHT21_DEFINED)
 
 
 #ifdef RoomTemperatureC16_SHT21_DEFINED
+
+// Abstracting read function I2C transactions
+#ifdef ARDUINO_ARCH_AVR
 // Measure and return the current ambient temperature in units of 1/16th C.
 // This may contain up to 4 bits of information to RHS of the fixed binary point.
 // This may consume significant power and time.
@@ -97,114 +125,229 @@ static void SHT21_init()
 // The first read will initialise the device as necessary
 // and leave it in a low-power mode afterwards.
 int16_t RoomTemperatureC16_SHT21::read()
-  {
-  const bool neededPowerUp = OTV0P2BASE::powerUpTWIIfDisabled();
+{
+    const bool neededPowerUp = OTV0P2BASE::powerUpTWIIfDisabled();
 
-  // Initialise/config if necessary.
-  if(!SHT21_initialised) { SHT21_init(); }
+    // Initialise/config if necessary.
+    if(!SHT21_initialised) { SHT21_init(); }
 
-  // Max RH measurement time:
-  //   * 14-bit: 85ms
-  //   * 12-bit: 22ms
-  //   * 11-bit: 11ms
-  // Use blocking data fetch for now.
-  Wire.beginTransmission(SHT21_I2C_ADDR);
-  Wire.write((byte) SHT21_I2C_CMD_TEMP_HOLD); // Select control register.
-  if(SHT21_USE_REDUCED_PRECISION)
+    // Max RH measurement time:
+    //   * 14-bit: 85ms
+    //   * 12-bit: 22ms
+    //   * 11-bit: 11ms
+    // Use blocking data fetch for now.
+    Wire.beginTransmission(SHT21_I2C_ADDR);
+    Wire.write((byte) SHT21_I2C_CMD_TEMP_HOLD); // Select control register.
+    if(SHT21_USE_REDUCED_PRECISION) {
+        // Should cover 12-bit conversion (22ms).
+        OTV0P2BASE::nap(WDTO_30MS);
+    } else {
+        // Should be plenty for slowest (14-bit) conversion (85ms).
+        OTV0P2BASE::sleepLowPowerMs(90);
+    }
+    Wire.endTransmission();
+    Wire.requestFrom(SHT21_I2C_ADDR, 3U);
+    while(Wire.available() < 3) {
+        // Wait for data, but avoid rolling over the end of a minor cycle...
+        if(OTV0P2BASE::getSubCycleTime() >= OTV0P2BASE::GSCT_MAX - 2) {
+            return(DEFAULT_INVALID_TEMP);  // Failure value: may be able to to better.
+        }
+    }
+    uint16_t rawTemp = (Wire.read() << 8);
+    rawTemp |= (Wire.read() & 0xfc); // Clear status ls bits.
+
+    // Power down TWI ASAP.
+    if(neededPowerUp) { OTV0P2BASE::powerDownTWI(); }
+
+    // Nominal formula: C = -46.85 + ((175.72*raw) / (1L << 16));
+    // FIXME: find a good but faster approximation...
+    // FIXME: should the shift/division be rounded to nearest?
+    // FIXME: break out calculation and unit test against example in datasheet.
+    const int_fast16_t c16 = -750 + int_fast16_t((5623 * int_fast32_t(rawTemp)) >> 17);
+
+    // Capture entropy if (transformed) value has changed.
+    // Claim one bit of noise in the raw value if the full value has changed,
+    // though it is possible that this might be manipulatable by Eve,
+    // and nearly all of the raw info is visible in the result.
+    if(c16 != value) { addEntropyToPool((uint8_t)rawTemp, 1); }
+
+    value = c16;
+    return(c16);
+}
+#elif defined(EFR32FG1P133F256GM48)
+// TODO
+// Measure and return the current ambient temperature in units of 1/16th C.
+// This may contain up to 4 bits of information to RHS of the fixed binary point.
+// This may consume significant power and time.
+// Probably no need to do this more than (say) once per minute.
+// The first read will initialise the device as necessary
+// and leave it in a low-power mode afterwards.
+int16_t RoomTemperatureC16_SHT21::read()
+{
+    const bool neededPowerUp = OTV0P2BASE::powerUpTWIIfDisabled();
+
+    // Initialise/config if necessary.
+    if(!SHT21_initialised) { SHT21_init(); }
+
+    // Max RH measurement time:
+    //   * 14-bit: 85ms
+    //   * 12-bit: 22ms
+    //   * 11-bit: 11ms
+    // Use blocking data fetch for now.
+    uint8_t cmd_temp_hold[1] = { SHT21_I2C_CMD_TEMP_HOLD };
+    uint8_t rxMsg[2] = {0, 0};
+    i2c0.read(SHT21_I2C_ADDR, cmd_temp_hold, sizeof(cmd_temp_hold), rxMsg, sizeof(rxMsg));
+    #if 0  // This was in between the split write/read model on the arduino.
+    if(SHT21_USE_REDUCED_PRECISION)
     // Should cover 12-bit conversion (22ms).
     { OTV0P2BASE::nap(WDTO_30MS); }
-  else
+    else
     // Should be plenty for slowest (14-bit) conversion (85ms).
     { OTV0P2BASE::sleepLowPowerMs(90); }
-  Wire.endTransmission();
-  Wire.requestFrom(SHT21_I2C_ADDR, 3U);
-  while(Wire.available() < 3)
+    #endif
+
+    #if 0  // This was the polling bit on the arduino.
+    while(Wire.available() < 3)
     {
-    // Wait for data, but avoid rolling over the end of a minor cycle...
+      // Wait for data, but avoid rolling over the end of a minor cycle...
     if(OTV0P2BASE::getSubCycleTime() >= OTV0P2BASE::GSCT_MAX - 2)
       { return(DEFAULT_INVALID_TEMP); } // Failure value: may be able to to better.
     }
-  uint16_t rawTemp = (Wire.read() << 8);
-  rawTemp |= (Wire.read() & 0xfc); // Clear status ls bits.
+    #endif
+    uint_fast16_t rawTemp = (rxMsg[0] << 8) | (rxMsg[1] & 0xfc);
 
-  // Power down TWI ASAP.
-  if(neededPowerUp) { OTV0P2BASE::powerDownTWI(); }
+    // Nominal formula: C = -46.85 + ((175.72*raw) / (1L << 16));
+    // FIXME: find a good but faster approximation...
+    // FIXME: should the shift/division be rounded to nearest?
+    // FIXME: break out calculation and unit test against example in datasheet.
+    const int_fast16_t c16 = -750 + int_fast16_t((5623 * int_fast32_t(rawTemp)) >> 17);
 
-  // Nominal formula: C = -46.85 + ((175.72*raw) / (1L << 16));
-  // FIXME: find a good but faster approximation...
-  // FIXME: should the shift/division be rounded to nearest?
-  // FIXME: break out calculation and unit test against example in datasheet.
-  const int16_t c16 = -750 + int16_t((5623 * int_fast32_t(rawTemp)) >> 17);
+    // Capture entropy if (transformed) value has changed.
+    // Claim one bit of noise in the raw value if the full value has changed,
+    // though it is possible that this might be manipulatable by Eve,
+    // and nearly all of the raw info is visible in the result.
+    //   if(c16 != value) { addEntropyToPool((uint8_t)rawTemp, 1); }  // XXX
 
-  // Capture entropy if (transformed) value has changed.
-  // Claim one bit of noise in the raw value if the full value has changed,
-  // though it is possible that this might be manipulatable by Eve,
-  // and nearly all of the raw info is visible in the result.
-  if(c16 != value) { addEntropyToPool((uint8_t)rawTemp, 1); }
-
-  value = c16;
-  return(c16);
-  }
+    value = c16;
+    return(c16);
+}
+#endif
 #endif // RoomTemperatureC16_SHT21_DEFINED
 
 #ifdef HumiditySensorSHT21_DEFINED
+
+// Abstract for different i2c drivers.
+#ifdef ARDUINO_ARCH_AVR
 // Measure and return the current relative humidity in %; range [0,100] and 255 for error.
 // This may consume significant power and time.
 // Probably no need to do this more than (say) once per minute.
 // The first read will initialise the device as necessary and leave it in a low-power mode afterwards.
 // Returns 255 (~0) in case of error.
 uint8_t HumiditySensorSHT21::read()
-  {
-  const bool neededPowerUp = OTV0P2BASE::powerUpTWIIfDisabled();
+{
+    const bool neededPowerUp = OTV0P2BASE::powerUpTWIIfDisabled();
 
-  // Initialise/config if necessary.
-  if(!SHT21_initialised) { SHT21_init(); }
+    // Initialise/config if necessary.
+    if(!SHT21_initialised) { SHT21_init(); }
 
-  // Get RH%...
-  // Max RH measurement time:
-  //   * 12-bit: 29ms
-  //   *  8-bit:  4ms
-  // Use blocking data fetch for now.
-  Wire.beginTransmission(SHT21_I2C_ADDR);
-  Wire.write((byte) SHT21_I2C_CMD_RH_HOLD); // Select control register.
-  if(SHT21_USE_REDUCED_PRECISION)
+    // Get RH%...
+    // Max RH measurement time:
+    //   * 12-bit: 29ms
+    //   *  8-bit:  4ms
+    // Use blocking data fetch for now.
+    Wire.beginTransmission(SHT21_I2C_ADDR);
+    Wire.write((byte) SHT21_I2C_CMD_RH_HOLD); // Select control register.
+    if(SHT21_USE_REDUCED_PRECISION) {
     // Should cover 8-bit conversion (4ms).
-    { OTV0P2BASE::sleepLowPowerMs(5); }
-  else
+        OTV0P2BASE::sleepLowPowerMs(5);
+    } else {
     // Should cover even 12-bit conversion (29ms).
-    { OTV0P2BASE::nap(WDTO_30MS); }
-  Wire.endTransmission();
-  Wire.requestFrom(SHT21_I2C_ADDR, 3U);
-  while(Wire.available() < 3)
-    {
-    // Wait for data, but avoid rolling over the end of a minor cycle...
-    if(OTV0P2BASE::getSubCycleTime() >= OTV0P2BASE::GSCT_MAX - 2)
-      {
-      //      DEBUG_SERIAL_PRINTLN_FLASHSTRING("giving up");
-      return(~0);
-      }
+        OTV0P2BASE::nap(WDTO_30MS);
     }
-  const uint8_t rawRH = Wire.read();
-  const uint8_t rawRL = Wire.read();
+    Wire.endTransmission();
+    Wire.requestFrom(SHT21_I2C_ADDR, 3U);
+    while(Wire.available() < 3) {
+        // Wait for data, but avoid rolling over the end of a minor cycle...
+        if(OTV0P2BASE::getSubCycleTime() >= OTV0P2BASE::GSCT_MAX - 2) {
+            // DEBUG_SERIAL_PRINTLN_FLASHSTRING("giving up");
+            return(~0);
+        }
+    }
+    const uint8_t rawRH = Wire.read();
+    const uint8_t rawRL = Wire.read();
 
-  // Power down TWI ASAP.
-  if(neededPowerUp) { OTV0P2BASE::powerDownTWI(); }
+    // Power down TWI ASAP.
+    if(neededPowerUp) { OTV0P2BASE::powerDownTWI(); }
 
-  // Assemble raw value, clearing status ls bits.
-  const uint16_t raw = (((uint16_t)rawRH) << 8) | (rawRL & 0xfc);
-  // FIXME: should the shift/division be rounded to nearest?
-  // FIXME: break out calculation and unit test against example in datasheet.
-  const uint8_t result = uint8_t(-6 + ((125 * uint_fast32_t(raw)) >> 16));
+    // Assemble raw value, clearing status ls bits.
+    const uint16_t raw = (((uint16_t)rawRH) << 8) | (rawRL & 0xfc);
+    // FIXME: should the shift/division be rounded to nearest?
+    // FIXME: break out calculation and unit test against example in datasheet.
+    const uint8_t result = uint8_t(-6 + ((125 * uint_fast32_t(raw)) >> 16));
 
-  // Capture entropy from raw status bits iff (transformed) reading has changed.
-  // Claim no entropy since only a fraction of a bit is not in the result.
-  if(value != result) { OTV0P2BASE::addEntropyToPool(rawRL ^ rawRH, 0); }
+    // Capture entropy from raw status bits iff (transformed) reading has changed.
+    // Claim no entropy since only a fraction of a bit is not in the result.
+    if(value != result) { OTV0P2BASE::addEntropyToPool(rawRL ^ rawRH, 0); }
 
-  value = result;
-  if(result > (HUMIDTY_HIGH_RHPC + HUMIDITY_EPSILON_RHPC)) { highWithHyst = true; }
-  else if(result < (HUMIDTY_HIGH_RHPC - HUMIDITY_EPSILON_RHPC)) { highWithHyst = false; }
-  return(result);
-  }
+    value = result;
+    if(result > (HUMIDTY_HIGH_RHPC + HUMIDITY_EPSILON_RHPC)) { highWithHyst = true; }
+    else if(result < (HUMIDTY_HIGH_RHPC - HUMIDITY_EPSILON_RHPC)) { highWithHyst = false; }
+    return(result);
+}
+#elif defined(EFR32FG1P133F256GM48)
+// Measure and return the current relative humidity in %; range [0,100] and 255 for error.
+// This may consume significant power and time.
+// Probably no need to do this more than (say) once per minute.
+// The first read will initialise the device as necessary and leave it in a low-power mode afterwards.
+// Returns 255 (~0) in case of error.
+uint8_t HumiditySensorSHT21::read()
+{
+      const bool neededPowerUp = OTV0P2BASE::powerUpTWIIfDisabled();
+
+    // Initialise/config if necessary.
+    if(!SHT21_initialised) { SHT21_init(); }
+
+    // Max RH measurement time:
+    //   * 14-bit: 85ms
+    //   * 12-bit: 22ms
+    //   * 11-bit: 11ms
+    // Use blocking data fetch for now.
+    uint8_t cmd_temp_hold[1] = { SHT21_I2C_CMD_RH_HOLD };
+    uint8_t rxMsg[2] = {0, 0};
+    i2c0.read(SHT21_I2C_ADDR, cmd_temp_hold, sizeof(cmd_temp_hold), rxMsg, sizeof(rxMsg));
+    #if 0  // This was in between the split write/read model on the arduino.
+    if(SHT21_USE_REDUCED_PRECISION)
+    // Should cover 12-bit conversion (22ms).
+    { OTV0P2BASE::nap(WDTO_30MS); }
+    else
+    // Should be plenty for slowest (14-bit) conversion (85ms).
+    { OTV0P2BASE::sleepLowPowerMs(90); }
+    #endif
+
+    #if 0  // This was the polling bit on the arduino.
+    while(Wire.available() < 3)
+    {
+      // Wait for data, but avoid rolling over the end of a minor cycle...
+    if(OTV0P2BASE::getSubCycleTime() >= OTV0P2BASE::GSCT_MAX - 2)
+      { return(DEFAULT_INVALID_TEMP); } // Failure value: may be able to to better.
+    }
+    #endif
+    const uint_fast16_t raw = (rxMsg[0] << 8) | (rxMsg[1] & 0xfc);
+
+    // FIXME: should the shift/division be rounded to nearest?
+    // FIXME: break out calculation and unit test against example in datasheet.
+    const uint8_t result = uint8_t(-6 + ((125 * uint_fast32_t(raw)) >> 16));
+
+    // Capture entropy from raw status bits iff (transformed) reading has changed.
+    // Claim no entropy since only a fraction of a bit is not in the result.
+    // if(value != result) { OTV0P2BASE::addEntropyToPool(rawRL ^ rawRH, 0); } // XXX
+
+    value = result;
+    if(result > (HUMIDTY_HIGH_RHPC + HUMIDITY_EPSILON_RHPC)) { highWithHyst = true; }
+    else if(result < (HUMIDTY_HIGH_RHPC - HUMIDITY_EPSILON_RHPC)) { highWithHyst = false; }
+    return(result);
+}
+#endif
 #endif // RoomTemperatureC16_SHT21_DEFINED
 
 

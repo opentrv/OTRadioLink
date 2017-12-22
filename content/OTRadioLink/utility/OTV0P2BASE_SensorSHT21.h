@@ -94,7 +94,7 @@ class HumiditySensorMock final : public HumiditySensorBase
   };
 
 
-#ifdef ARDUINO_ARCH_AVR
+#if defined(ARDUINO_ARCH_AVR) || defined(__arm__)
 
 // Sensor for relative humidity percentage; 0 is dry, 100 is condensing humid, 255 for error.
 // TODO: detect low supply voltage with user reg, and make isAvailable() return false if too low to be reliable.
@@ -108,7 +108,7 @@ class HumiditySensorSHT21 final : public HumiditySensorBase
 class RoomTemperatureC16_SHT21 final : public OTV0P2BASE::TemperatureC16Base
   { public: virtual int16_t read(); };
 
-#endif // ARDUINO_ARCH_AVR
+#endif // ARDUINO_ARCH_AVR || __arm__
 
 
 // Placeholder with dummy static status methods to reduce conditional-compilation complexity.
