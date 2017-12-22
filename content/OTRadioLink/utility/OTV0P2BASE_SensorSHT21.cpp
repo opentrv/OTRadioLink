@@ -117,10 +117,20 @@ static void SHT21_init()
 #ifdef RoomTemperatureC16_SHT21_DEFINED
 
 // Abstracting read function I2C transactions
-namespace {
 #ifdef ARDUINO_ARCH_AVR
-inline uint16_t readTemp(bool neededPowerUp)
+// Measure and return the current ambient temperature in units of 1/16th C.
+// This may contain up to 4 bits of information to RHS of the fixed binary point.
+// This may consume significant power and time.
+// Probably no need to do this more than (say) once per minute.
+// The first read will initialise the device as necessary
+// and leave it in a low-power mode afterwards.
+int16_t RoomTemperatureC16_SHT21::read()
 {
+    const bool neededPowerUp = OTV0P2BASE::powerUpTWIIfDisabled();
+
+    // Initialise/config if necessary.
+    if(!SHT21_initialised) { SHT21_init(); }
+
     // Max RH measurement time:
     //   * 14-bit: 85ms
     //   * 12-bit: 22ms
@@ -149,12 +159,36 @@ inline uint16_t readTemp(bool neededPowerUp)
     // Power down TWI ASAP.
     if(neededPowerUp) { OTV0P2BASE::powerDownTWI(); }
 
-    return (rawTemp);
+    // Nominal formula: C = -46.85 + ((175.72*raw) / (1L << 16));
+    // FIXME: find a good but faster approximation...
+    // FIXME: should the shift/division be rounded to nearest?
+    // FIXME: break out calculation and unit test against example in datasheet.
+    const int_fast16_t c16 = -750 + int_fast16_t((5623 * int_fast32_t(rawTemp)) >> 17);
+
+    // Capture entropy if (transformed) value has changed.
+    // Claim one bit of noise in the raw value if the full value has changed,
+    // though it is possible that this might be manipulatable by Eve,
+    // and nearly all of the raw info is visible in the result.
+    if(c16 != value) { addEntropyToPool((uint8_t)rawTemp, 1); }
+
+    value = c16;
+    return(c16);
 }
 #elif defined(EFR32FG1P133F256GM48)
-// TODO Do stuff while reading, check for reaching the end of a sub cycle.
-inline uint16_t readTemp(bool neededPowerUp)
+// TODO
+// Measure and return the current ambient temperature in units of 1/16th C.
+// This may contain up to 4 bits of information to RHS of the fixed binary point.
+// This may consume significant power and time.
+// Probably no need to do this more than (say) once per minute.
+// The first read will initialise the device as necessary
+// and leave it in a low-power mode afterwards.
+int16_t RoomTemperatureC16_SHT21::read()
 {
+    const bool neededPowerUp = OTV0P2BASE::powerUpTWIIfDisabled();
+
+    // Initialise/config if necessary.
+    if(!SHT21_initialised) { SHT21_init(); }
+
     // Max RH measurement time:
     //   * 14-bit: 85ms
     //   * 12-bit: 22ms
@@ -182,49 +216,40 @@ inline uint16_t readTemp(bool neededPowerUp)
     #endif
     uint_fast16_t rawTemp = (rxMsg[0] << 8) | (rxMsg[1] & 0xfc);
 
-    return (rawTemp);
+    // Nominal formula: C = -46.85 + ((175.72*raw) / (1L << 16));
+    // FIXME: find a good but faster approximation...
+    // FIXME: should the shift/division be rounded to nearest?
+    // FIXME: break out calculation and unit test against example in datasheet.
+    const int_fast16_t c16 = -750 + int_fast16_t((5623 * int_fast32_t(rawTemp)) >> 17);
+
+    // Capture entropy if (transformed) value has changed.
+    // Claim one bit of noise in the raw value if the full value has changed,
+    // though it is possible that this might be manipulatable by Eve,
+    // and nearly all of the raw info is visible in the result.
+    //   if(c16 != value) { addEntropyToPool((uint8_t)rawTemp, 1); }  // XXX
+
+    value = c16;
+    return(c16);
 }
 #endif
-}
-
-// Measure and return the current ambient temperature in units of 1/16th C.
-// This may contain up to 4 bits of information to RHS of the fixed binary point.
-// This may consume significant power and time.
-// Probably no need to do this more than (say) once per minute.
-// The first read will initialise the device as necessary
-// and leave it in a low-power mode afterwards.
-int16_t RoomTemperatureC16_SHT21::read()  // XXX
-  {
-  const bool neededPowerUp = OTV0P2BASE::powerUpTWIIfDisabled();
-
-  // Initialise/config if necessary.
-  if(!SHT21_initialised) { SHT21_init(); }
-
-  const uint_fast16_t rawTemp = readTemp(neededPowerUp);
-
-  // Nominal formula: C = -46.85 + ((175.72*raw) / (1L << 16));
-  // FIXME: find a good but faster approximation...
-  // FIXME: should the shift/division be rounded to nearest?
-  // FIXME: break out calculation and unit test against example in datasheet.
-  const int_fast16_t c16 = -750 + int_fast16_t((5623 * int_fast32_t(rawTemp)) >> 17);
-
-  // Capture entropy if (transformed) value has changed.
-  // Claim one bit of noise in the raw value if the full value has changed,
-  // though it is possible that this might be manipulatable by Eve,
-  // and nearly all of the raw info is visible in the result.
-//   if(c16 != value) { addEntropyToPool((uint8_t)rawTemp, 1); }  // XXX
-
-  value = c16;
-  return(c16);
-  }
 #endif // RoomTemperatureC16_SHT21_DEFINED
 
 #ifdef HumiditySensorSHT21_DEFINED
 
-namespace {
 // Abstract for different i2c drivers.
 #ifdef ARDUINO_ARCH_AVR
-inline uint16_t readRH(const bool neededPowerUp) {
+// Measure and return the current relative humidity in %; range [0,100] and 255 for error.
+// This may consume significant power and time.
+// Probably no need to do this more than (say) once per minute.
+// The first read will initialise the device as necessary and leave it in a low-power mode afterwards.
+// Returns 255 (~0) in case of error.
+uint8_t HumiditySensorSHT21::read()
+{
+    const bool neededPowerUp = OTV0P2BASE::powerUpTWIIfDisabled();
+
+    // Initialise/config if necessary.
+    if(!SHT21_initialised) { SHT21_init(); }
+
     // Get RH%...
     // Max RH measurement time:
     //   * 12-bit: 29ms
@@ -256,10 +281,32 @@ inline uint16_t readRH(const bool neededPowerUp) {
 
     // Assemble raw value, clearing status ls bits.
     const uint16_t raw = (((uint16_t)rawRH) << 8) | (rawRL & 0xfc);
-    return (rawRH);
+    // FIXME: should the shift/division be rounded to nearest?
+    // FIXME: break out calculation and unit test against example in datasheet.
+    const uint8_t result = uint8_t(-6 + ((125 * uint_fast32_t(raw)) >> 16));
+
+    // Capture entropy from raw status bits iff (transformed) reading has changed.
+    // Claim no entropy since only a fraction of a bit is not in the result.
+    if(value != result) { OTV0P2BASE::addEntropyToPool(rawRL ^ rawRH, 0); }
+
+    value = result;
+    if(result > (HUMIDTY_HIGH_RHPC + HUMIDITY_EPSILON_RHPC)) { highWithHyst = true; }
+    else if(result < (HUMIDTY_HIGH_RHPC - HUMIDITY_EPSILON_RHPC)) { highWithHyst = false; }
+    return(result);
 }
 #elif defined(EFR32FG1P133F256GM48)
-inline uint16_t readRH(const bool neededPowerUp) {
+// Measure and return the current relative humidity in %; range [0,100] and 255 for error.
+// This may consume significant power and time.
+// Probably no need to do this more than (say) once per minute.
+// The first read will initialise the device as necessary and leave it in a low-power mode afterwards.
+// Returns 255 (~0) in case of error.
+uint8_t HumiditySensorSHT21::read()
+{
+      const bool neededPowerUp = OTV0P2BASE::powerUpTWIIfDisabled();
+
+    // Initialise/config if necessary.
+    if(!SHT21_initialised) { SHT21_init(); }
+
     // Max RH measurement time:
     //   * 14-bit: 85ms
     //   * 12-bit: 22ms
@@ -285,40 +332,22 @@ inline uint16_t readRH(const bool neededPowerUp) {
       { return(DEFAULT_INVALID_TEMP); } // Failure value: may be able to to better.
     }
     #endif
-    const uint_fast16_t rawRH = (rxMsg[0] << 8) | (rxMsg[1] & 0xfc);
+    const uint_fast16_t raw = (rxMsg[0] << 8) | (rxMsg[1] & 0xfc);
 
-    return (rawRH);
+    // FIXME: should the shift/division be rounded to nearest?
+    // FIXME: break out calculation and unit test against example in datasheet.
+    const uint8_t result = uint8_t(-6 + ((125 * uint_fast32_t(raw)) >> 16));
+
+    // Capture entropy from raw status bits iff (transformed) reading has changed.
+    // Claim no entropy since only a fraction of a bit is not in the result.
+    // if(value != result) { OTV0P2BASE::addEntropyToPool(rawRL ^ rawRH, 0); } // XXX
+
+    value = result;
+    if(result > (HUMIDTY_HIGH_RHPC + HUMIDITY_EPSILON_RHPC)) { highWithHyst = true; }
+    else if(result < (HUMIDTY_HIGH_RHPC - HUMIDITY_EPSILON_RHPC)) { highWithHyst = false; }
+    return(result);
 }
 #endif
-}
-
-// Measure and return the current relative humidity in %; range [0,100] and 255 for error.
-// This may consume significant power and time.
-// Probably no need to do this more than (say) once per minute.
-// The first read will initialise the device as necessary and leave it in a low-power mode afterwards.
-// Returns 255 (~0) in case of error.
-uint8_t HumiditySensorSHT21::read()  // XXX
-  {
-  const bool neededPowerUp = OTV0P2BASE::powerUpTWIIfDisabled();
-
-  // Initialise/config if necessary.
-  if(!SHT21_initialised) { SHT21_init(); }
-
-  const uint_fast16_t rawRH = readRH(neededPowerUp);
-
-  // FIXME: should the shift/division be rounded to nearest?
-  // FIXME: break out calculation and unit test against example in datasheet.
-  const uint8_t result = uint8_t(-6 + ((125 * uint_fast32_t(rawRH)) >> 16));
-
-  // Capture entropy from raw status bits iff (transformed) reading has changed.
-  // Claim no entropy since only a fraction of a bit is not in the result.
-//   if(value != result) { OTV0P2BASE::addEntropyToPool(rawRL ^ rawRH, 0); } // XXX
-
-  value = result;
-  if(result > (HUMIDTY_HIGH_RHPC + HUMIDITY_EPSILON_RHPC)) { highWithHyst = true; }
-  else if(result < (HUMIDTY_HIGH_RHPC - HUMIDITY_EPSILON_RHPC)) { highWithHyst = false; }
-  return(result);
-  }
 #endif // RoomTemperatureC16_SHT21_DEFINED
 
 
