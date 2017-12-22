@@ -316,6 +316,17 @@ uint_fast8_t clockJitterEntropyByte()
 
 #endif // ARDUINO_ARCH_AVR
 
-
+#if defined(EFR32FG1P133F256GM48) && defined(V0P2BASE_SYSTICK_EMULATED_SUBCYCLE)
+    // /**
+    //  * @brief	Calculate the number of ticks between interrupts clock should run for.
+    //  * @param	Time in ms between interrupts
+    //  * @retval	number of ticks.
+    //  */
+    // uint32_t calcSysTickTicks(uint32_t period) {
+    //     const auto clockFreq = CMU_ClockFreqGet(cmuClock_CORE);  // TODO reference F_CPU instead?
+    //     // ticks = freq * period in s
+    //     return (clockFreq * period) / 1000;
+    // }
+#endif
 
 }

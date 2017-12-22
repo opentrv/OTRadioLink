@@ -177,6 +177,12 @@ void powerDownSerial()
       //pinMode(SDA, INPUT);
       //pinMode(SCL, INPUT);
       }
+#elif defined(__arm__)
+// XXX placeholder
+bool powerUpTWIIfDisabled() {
+  return (false);
+}
+void powerDownTWI() {}
 #endif // ARDUINO_ARCH_AVR
 
 

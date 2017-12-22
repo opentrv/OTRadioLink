@@ -87,6 +87,18 @@ void power_intermittent_peripherals_disable();
       ADCSRA &= ~_BV(ADEN); // Do before power_[adc|all]_disable() to avoid freezing the ADC in an active state!
       PRR |= _BV(PRADC); // Disable the ADC.
       }
+#elif defined(EFR32FG1P133F256GM48)
+    // If ADC was disabled, power it up, and return true.
+    // If already powered up then do nothing other than return false.
+    // This does not power up the analogue comparator; this needs to be manually enabled if required.
+    // If this returns true then a matching powerDownADC() may be advisable.
+    bool powerUpADCIfDisabled();
+    // Power ADC down.
+    // Likely shorter inline than just the call/return!
+    inline void powerDownADC()
+      {
+      // TODO
+      }
 #endif // ARDUINO_ARCH_AVR
 
 
@@ -214,7 +226,7 @@ void power_intermittent_peripherals_disable();
 #endif // ARDUINO_ARCH_AVR
 
 
-#ifdef ARDUINO_ARCH_AVR
+#if defined(ARDUINO_ARCH_AVR)  || defined(EFR32FG1P133F256GM48)
     // If TWI (I2C) was disabled, power it up, do Wire.begin(), and return true.
     // If already powered up then do nothing other than return false.
     // If this returns true then a matching powerDownTWI() may be advisable.
