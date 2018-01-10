@@ -32,6 +32,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014--2017
 #include <Arduino.h>
 //#include <util/atomic.h>
 #include "OTV0P2BASE_Sleep.h"
+#elif defined(EFR32FG1P133F256GM48)
+#include "OTV0P2BASE_Sleep.h"  // TODO
 #else
 #include <string.h>
 #include "utility/OTV0P2BASE_ArduinoCompat.h"
@@ -241,10 +243,13 @@ inline size_t getSP() {
     return sp;
 }
 #endif
-// Stub function for forceReset()
+#endif  // ARDUINO_ARCH_AVR
+
+#if !defined(ARDUINO_ARCH_AVR) && !defined(__arm__)
+// Stub function for forceReset() when not on embedded processor
 // TODO Is there a better place for this?
 inline void forceReset() {}
-#endif  // ARDUINO_ARCH_AVR
+#endif  // !defined(ARDUINO_ARCH_AVR) && !defined(__arm__)
 
 #define MemoryChecks_DEFINED
 // Requires ATOMIC_BLOCK and ATOMIC_RESTORESTATE to be defined on non AVR architectures.
