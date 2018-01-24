@@ -40,10 +40,15 @@ namespace OTRadValve
 // Abstract class for motor drive.
 // Supports abstract model plus remote (wireless) and local/direct implementations.
 // Implementations may require read() called at a fixed rate,
-// though should tolerate calls being skipped when time is tight for other operations,
+// though should tolerate calls being skipped when time is tight
+// for other operations,
 // since read() may take substantial time (hundreds of milliseconds).
 // Implementations must document when read() calls are critical,
 // and/or expose alternative API for the time-critical elements.
+//
+// Note that the 'value' of this actuator is the target position,
+// and the get() which returns the estimated actual position
+// may never exactly match it.
 class AbstractRadValve : public OTV0P2BASE::SimpleTSUint8Actuator
   {
   protected:
