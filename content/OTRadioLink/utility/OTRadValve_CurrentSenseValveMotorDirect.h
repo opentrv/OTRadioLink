@@ -117,7 +117,8 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     // Power-up sequence will often require something like:
     //   * withdrawing the pin completely (to make valve easy to fit)
     //   * waiting for some user activation step
-    //     such as pressing a button to indicate that the valve has been fitted
+    //     such as pressing a button to indicate that the valve has been
+    //     fitted
     //   * running an initial calibration for the valve
     //   * entering the normal state tracking the target %-open
     //     and periodically recalibrating/decalcinating.
