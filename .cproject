@@ -68,9 +68,7 @@
 								</option>
 								<option id="gnu.c.compiler.option.warnings.wconversion.942459227" name="Implicit conversion warnings (-Wconversion)" superClass="gnu.c.compiler.option.warnings.wconversion" useByScannerDiscovery="false" value="true" valueType="boolean"/>
 								<option id="gnu.c.compiler.option.warnings.extrawarn.1058799383" name="Extra warnings (-Wextra)" superClass="gnu.c.compiler.option.warnings.extrawarn" useByScannerDiscovery="false" value="true" valueType="boolean"/>
-								<option id="gnu.c.compiler.option.misc.other.1565804747" name="Other flags" superClass="gnu.c.compiler.option.misc.other" useByScannerDiscovery="false" value="-c -fmessage-length=0 -fstack-check -Wstack-usage=100" valueType="string"/>
-								<option id="gnu.c.compiler.option.warnings.pedantic.684498799" name="Pedantic (-pedantic)" superClass="gnu.c.compiler.option.warnings.pedantic" useByScannerDiscovery="false" value="true" valueType="boolean"/>
-								<option id="gnu.c.compiler.option.warnings.pedantic.error.1418267047" name="Pedantic warnings as errors (-pedantic-errors)" superClass="gnu.c.compiler.option.warnings.pedantic.error" useByScannerDiscovery="false" value="true" valueType="boolean"/>
+								<option id="gnu.c.compiler.option.misc.other.1565804747" name="Other flags" superClass="gnu.c.compiler.option.misc.other" useByScannerDiscovery="false" value="-c -fmessage-length=0 -fstack-check" valueType="string"/>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.783866445" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.c.linker.exe.debug.1155613997" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.exe.debug"/>
@@ -437,9 +435,6 @@
 		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.cross.exe.release.232466149;cdt.managedbuild.config.gnu.cross.exe.release.232466149.;cdt.managedbuild.tool.gnu.cross.c.compiler.1964411378;cdt.managedbuild.tool.gnu.c.compiler.input.1140997116">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.debug.1991014182.2084424050;cdt.managedbuild.config.gnu.exe.debug.1991014182.2084424050.;cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.942132302;cdt.managedbuild.tool.gnu.cpp.compiler.input.1034678040">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.macosx.lib.debug.456123580;cdt.managedbuild.config.macosx.lib.debug.456123580.;cdt.managedbuild.tool.gnu.cpp.compiler.macosx.lib.debug.221090181;cdt.managedbuild.tool.gnu.cpp.compiler.input.46865693">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
@@ -459,9 +454,6 @@
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.cross.exe.debug.1956793571;cdt.managedbuild.config.gnu.cross.exe.debug.1956793571.;cdt.managedbuild.tool.gnu.cross.cpp.compiler.968340235;cdt.managedbuild.tool.gnu.cpp.compiler.input.732190203">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.debug.1991014182.2084424050;cdt.managedbuild.config.gnu.exe.debug.1991014182.2084424050.;cdt.managedbuild.tool.gnu.c.compiler.exe.debug.1807730318;cdt.managedbuild.tool.gnu.c.compiler.input.1743601145">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.release.976694206;cdt.managedbuild.config.gnu.exe.release.976694206.;cdt.managedbuild.tool.gnu.c.compiler.exe.release.783610395;cdt.managedbuild.tool.gnu.c.compiler.input.1444224565">
