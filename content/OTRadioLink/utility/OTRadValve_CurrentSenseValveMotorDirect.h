@@ -170,7 +170,7 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     bool (*const minimiseActivityOpt)() = ((bool(*)())NULL);
     // Allows monitoring of supply voltage to avoid some activities with low batteries; can be NULL.
     // Non-const to allow call to read() to force re-measurement of supply.
-    OTV0P2BASE::SupplyVoltageLow *lowBattOpt = NULL;
+    OTV0P2BASE::SupplyVoltageLow *const lowBattOpt = NULL;
 
     // Major state of driver.
     // On power-up (or full reset) should be 0/init.
