@@ -407,7 +407,7 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     virtual void signalValveFitted()
         { if(isWaitingForValveToBeFitted()) { perState.valvePinWithdrawn.valveFitted = true; } }
 
-    // Waiting for indication that the valvehead  has been fitted to the tail.
+    // Waiting for indication that the valve head has been fitted to the base.
     bool isWaitingForValveToBeFitted() const
         { return(state == valvePinWithdrawn); }
 
