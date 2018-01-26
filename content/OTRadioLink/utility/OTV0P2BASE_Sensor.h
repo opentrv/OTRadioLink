@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2014--2017
+Author(s) / Copyright (s): Damon Hart-Davis 2014--2018
 */
 
 /*
@@ -43,7 +43,8 @@ namespace OTV0P2BASE
 
 
 // Type used for Sensor tags items.
-// Generally const char * but may be special type to be placed in MCU code space eg on AVR.
+// Generally "const char *" but may be special type
+// to be placed in MCU code space eg on AVR.
 #if defined(ARDUINO)
 #define V0p2_SENSOR_TAG_NOT_SIMPLECHARPTR
 #define V0p2_SENSOR_TAG_IS_FlashStringHelper
