@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2015--2017
+Author(s) / Copyright (s): Damon Hart-Davis 2015--2018
                            Deniz Erbilgin   2017
 */
 
@@ -193,13 +193,15 @@ struct ModelledRadValveState final
     // The input state must be complete including target/reference temperatures
     // before calling this including the first time
     // whereupon some further lazy initialisation is done.
-    //   * valvePCOpenRef  current valve position UPDATED BY THIS ROUTINE;
+    //   * valvePCOpenRef  current valve position UPDATED BY THIS CALL;
     //         in range [0,100]
     //   * inputState  immutable input state reference
-    //   * physicalDeviceOpt  physical device to set with new target if non-NULL
-    // If the physical device is provided then its target will be updated
+    //   * physicalDeviceOpt  physical device to set() target open %
+    //         with new target, if non-NULL
+    // If the physical device is provided then its target will be set()
     // and its actual value will be monitored for cumulative movement,
-    // else if not provided the movement in valvePCOpenRef will be monitored.
+    // else if not provided the movement in valvePCOpenRef
+    // will be monitored/tracked instead.
     void tick(volatile uint8_t &valvePCOpenRef,
             const ModelledRadValveInputState &inputState,
             AbstractRadValve *const physicalDeviceOpt)
