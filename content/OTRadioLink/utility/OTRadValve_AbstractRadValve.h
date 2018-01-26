@@ -54,11 +54,16 @@ namespace OTRadValve
 // Note that the 'value' of this actuator when set() is a target,
 // and the get() which returns an adjusted target or actual position
 // may never exactly match the value set().
+// The default starting target value is 0 (fully closed).
+// An alternative useful initial value is to start
+// just below the call-for-heat threshold for passive frost protection.
 class AbstractRadValve : public OTV0P2BASE::SimpleTSUint8Actuator
   {
   protected:
     // Prevent direct creation of naked instance of this base/abstract class.
     constexpr AbstractRadValve() { }
+    constexpr AbstractRadValve(uint8_t initTarget)
+      : OTV0P2BASE::SimpleTSUint8Actuator(initTarget) { }
 
   public:
     // Returns (JSON) tag/field/key name including units (%); never NULL.
