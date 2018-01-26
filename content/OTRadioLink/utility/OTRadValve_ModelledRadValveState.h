@@ -272,12 +272,14 @@ struct ModelledRadValveState final
         if(valveTurndownCountdownM > 0) { --valveTurndownCountdownM; }
         if(valveTurnupCountdownM > 0) { --valveTurnupCountdownM; }
 
-        // Update the modelled state including the valve position passed by reference.
+        // Update the modelled state including the valve position
+        // passed by reference.
         const uint8_t oldValvePC = prevValvePC;
         const uint8_t oldModelledValvePC = valvePCOpenRef;
         const uint8_t newModelledValvePC =
           computeRequiredTRVPercentOpen(valvePCOpenRef, inputState);
-        const bool modelledValveChanged = (newModelledValvePC != oldModelledValvePC);
+        const bool modelledValveChanged =
+            (newModelledValvePC != oldModelledValvePC);
         if(modelledValveChanged) {
             // Defer re-closing valve to avoid excessive hunting.
             if(newModelledValvePC > oldModelledValvePC) { valveTurnup(); }
@@ -286,17 +288,21 @@ struct ModelledRadValveState final
             valvePCOpenRef = newModelledValvePC;
         }
         // For cumulative movement tracking
-        // use the modelled value by default if no physical device available.
+        // use the modelled value by default
+        // if no physical device available.
         uint8_t newValvePC = newModelledValvePC;
         if(NULL != physicalDeviceOpt) {
             // Set the target for the physical device unconditionally
-            // to ensure that the driver/device sees eg the first such request
+            // to ensure that the driver/device sees
+            // (eg) the first such request
             // even if the modelled value does not change.
             physicalDeviceOpt->set(newModelledValvePC);
-            // Look for a change in the physical device position immediately,
+            // Look for change in the reported physical
+            // device position immediately,
             // though visible change will usually require some time
             // eg for asynchronous motor activity,
-            // so this is typically capturing movements up to just before the set().
+            // so this is typically capturing movements
+            // up to just before the set().
             newValvePC = physicalDeviceOpt->get();
         }
         cumulativeMovementPC =
