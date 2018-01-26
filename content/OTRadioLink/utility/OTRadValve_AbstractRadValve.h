@@ -48,7 +48,7 @@ namespace OTRadValve
 //
 // Note that the 'value' of this actuator when set() is a target,
 // and the get() which returns an adjusted target or actual position
-// may never exactly match it.
+// may never exactly match the value set().
 class AbstractRadValve : public OTV0P2BASE::SimpleTSUint8Actuator
   {
   protected:
