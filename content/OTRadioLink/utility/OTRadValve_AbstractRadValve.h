@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
+Author(s) / Copyright (s): Damon Hart-Davis 2015--2018
 */
 
 /*
@@ -53,7 +53,7 @@ class AbstractRadValve : public OTV0P2BASE::SimpleTSUint8Actuator
   {
   protected:
     // Prevent direct creation of naked instance of this base/abstract class.
-    AbstractRadValve() { }
+    constexpr AbstractRadValve() { }
 
   public:
     // Returns (JSON) tag/field/key name including units (%); never NULL.

@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2015--2017
+Author(s) / Copyright (s): Damon Hart-Davis 2015--2018
                            Deniz Erbilgin 2016
 */
 
@@ -374,7 +374,8 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     // Minimally wiggle the motor to give tactile feedback and/or show to be working.
     // May take a significant fraction of a second.
     // Finishes with the motor turned off.
-    // Should also have enough movement/play to allow calibration of the shaft encoder.
+    // Should also have enough movement/play to allow calibration
+    // of the shaft encoder.
     // May also help set some bounds on stall current,
     // eg if highly asymmetric at each end of travel.
     // May be ignored if not safe to do.
