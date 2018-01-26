@@ -46,8 +46,8 @@ namespace OTRadValve
 // Implementations must document when read() calls are critical,
 // and/or expose alternative API for the time-critical elements.
 //
-// Note that the 'value' of this actuator is the target position,
-// and the get() which returns the estimated actual position
+// Note that the 'value' of this actuator when set() is a target,
+// and the get() which returns an adjusted target or actual position
 // may never exactly match it.
 class AbstractRadValve : public OTV0P2BASE::SimpleTSUint8Actuator
   {
