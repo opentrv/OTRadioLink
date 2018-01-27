@@ -95,8 +95,8 @@ bool CurrentSenseValveMotorDirect::CalibrationParameters::updateAndCompute(
     { return(false); }
 
   // Compute a small conversion ratio back and forth
-  // which does not add too much error but allows single dead-reckoning steps
-  // to be converted back and forth.
+  // which does not add too much error but allows
+  // single dead-reckoning steps to be converted back and forth.
   uint16_t tfotc = _ticksFromOpenToClosed;
   uint16_t tfcto = _ticksFromClosedToOpen;
   while(OTV0P2BASE::fnmax(tfotc, tfcto) > minMotorDRTicks)
@@ -147,7 +147,7 @@ uint8_t CurrentSenseValveMotorDirect::CalibrationParameters::computePosition(
   if(0 == ticksFromOpen) { return(100); }
   if(ticksFromOpen >= ticksFromOpenToClosed) { return(0); }
   // Compute percentage open for intermediate position, based on dead-reckoning.
-  // FIXME: optimise!
+  // TODO: optimise
   return((uint8_t) (((ticksFromOpenToClosed - ticksFromOpen) * 100UL) /
       ticksFromOpenToClosed));
   }
@@ -163,7 +163,8 @@ uint8_t CurrentSenseValveMotorDirect::getMinPercentOpen() const
 // Minimally wiggle the motor to give tactile feedback and/or show to be working.
 // May take a significant fraction of a second.
 // Finishes with the motor turned off, and a bias to closing the valve.
-// Should also have enough movement/play to allow calibration of the shaft encoder.
+// Should also have enough movement/play to allow calibration
+// of the shaft encoder.
 // May also help set some bounds on stall current,
 // eg if highly asymmetric at each end of travel.
 // Nominally leaves the valve in the position that it started,
@@ -276,23 +277,26 @@ OTV0P2BASE::serialPrintlnAndFlush();
       }
 
     // Wait to start withdrawing pin.
-    // A strategic wait here helps make other start-up easier, including CLI-based provisioning.
+    // A strategic wait here helps make other start-up easier,
+    // including CLI-based provisioning.
     case initWaiting:
       {
 //V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("  initWaiting");
 
       // Postpone pin withdraw after power-up.
       // Assume 2s between calls to poll().
-      if(perState.initWaiting.ticksWaited < initialRetractDelay_s/2) { ++perState.initWaiting.ticksWaited; break; }
+      if(perState.initWaiting.ticksWaited < initialRetractDelay_s/2)
+          { ++perState.initWaiting.ticksWaited; break; }
 
       // Tactile feedback and ensure that the motor is left stopped.
-      // Should also allow calibration of the shaft-encoder outputs, ie [min.max].
+      // Should also allow calibration of the shaft-encoder outputs,
+      // ie [min,max].
       // May also help free 'stuck' mechanics.
       wiggle();
 
       // Now start on fully withdrawing pin.
       changeState(valvePinWithdrawing);
-      // TODO: record time withdrawal starts (to allow time out).
+      // TODO: record time withdrawal starts (to allow timeout).
       break;
       }
 
@@ -303,7 +307,7 @@ OTV0P2BASE::serialPrintlnAndFlush();
 
       // If taking stupidly long to withdraw the pin fully
       // then assume a problem with the motor/mechanics and give up.
-      // Don't panic() so that the unit can still (for example) transmit stats.
+      // Don't panic() so that the unit can still (eg) transmit stats.
       if(++perState.valvePinWithdrawing.wallclock2sTicks > MAX_TRAVEL_WALLCLOCK_2s_TICKS)
           {
           OTV0P2BASE::serialPrintlnAndFlush(F("!valve pin withdraw fail"));
@@ -311,8 +315,10 @@ OTV0P2BASE::serialPrintlnAndFlush();
           break;
           }
 
-      // Once end-stop has been hit, move to state to wait for user signal and then start calibration.
-      // TODO: possibly require multiple attempts, as elsewhere, to be sure of full withdraw, and better set up for calibration.
+      // Once end-stop has been hit, move to state to wait for
+      // user signal and then start calibration.
+      // TODO: possibly require multiple attempts, as elsewhere,
+      // to be sure of full withdraw, and better set up for calibration.
 
 //      // Run slowly when requested to minimise noise
 //      // and while supply voltage is low to try to avoid browning out.
@@ -444,13 +450,15 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
 
 // Do valveCalibrating for proportional drive; returns true to return from poll() immediately.
 // Calls changeState() directly if it needs to change state.
-// If this returns false, processing falls through to that for the non-proportional case.
+// If this returns false, processing falls through
+// to that for the non-proportional case.
 bool CurrentSenseValveMotorDirect::do_valveCalibrating_prop()
     {
     // Note that (re)calibration is needed / in progress.
     needsRecalibrating = true;
 
-    // Defer calibration if doing it now would be a bad idea, eg in a bedroom at night.
+    // Defer calibration if doing it now would be a bad idea,
+    // eg in a bedroom at night.
     if(shouldDeferCalibration())
       {
       changeState(valveNormal);
@@ -459,7 +467,7 @@ bool CurrentSenseValveMotorDirect::do_valveCalibrating_prop()
 
     // If taking stupidly long to calibrate (in any micro-state)
     // then assume a problem with the motor/mechanics and give up.
-    // Don't panic() so that the unit can still (for example) transmit stats.
+    // Don't panic() so that the unit can still (eg) transmit stats.
     if(++perState.valveCalibrating.wallclock2sTicks > MAX_TRAVEL_WALLCLOCK_2s_TICKS)
       {
       OTV0P2BASE::serialPrintlnAndFlush(F("!valve calibration fail"));
@@ -467,9 +475,11 @@ bool CurrentSenseValveMotorDirect::do_valveCalibrating_prop()
       return(true);
       }
 
-    // Maximum number of consecutive end-stop hits to trust that the stop has really been hit; strictly positive.
+    // Maximum number of consecutive end-stop hits to be confident
+    // that the stop has really been hit; strictly positive.
     // Spurious apparent stalls may be caused by dirt, etc.
-    // This can be a higher figure/confidence than required during normal running.
+    // This can be a higher figure/confidence than required
+    // during normal running.
     static constexpr uint8_t maxEndStopHitsToBeConfidentWhenCalibrating = maxEndStopHitsToBeConfident + 1;
 
     // Select activity based on micro-state.
@@ -507,10 +517,12 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("+calibrating");
       case 2:
         {
         // Run pin to fully extended (valve closed).
-        // Be prepared to run the (usually small) dead-reckoning pulse while lots of sub-cycle still available.
+        // Be prepared to run the (usually small) dead-reckoning pulse
+        // while lots of sub-cycle still available.
         do
           {
-          // Once end-stop has been hit, capture run length and prepare to run in opposite direction.
+          // Once end-stop has been hit, capture run length and prepare
+          // to run in opposite direction.
           // Try to be robust in face of transient current spikes.
           if(!runTowardsEndStop(false)) { perState.valveCalibrating.endStopHitCount = 0; }
           else if(++perState.valveCalibrating.endStopHitCount >= maxEndStopHitsToBeConfidentWhenCalibrating)
@@ -531,7 +543,8 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN_FLASHSTRING("+calibrating");
         // Be prepared to run the (usually small) pulse while lots of sub-cycle still available.
         do
           {
-          // Once end-stop has been hit, capture run length and prepare to run in opposite direction.
+          // Once end-stop has been hit, capture run length and prepare
+          // to run in opposite direction.
           // Try to be robust in face of transient current spikes.
           if(!runTowardsEndStop(true)) { perState.valveCalibrating.endStopHitCount = 0; }
           else if(++perState.valveCalibrating.endStopHitCount >= maxEndStopHitsToBeConfidentWhenCalibrating)
