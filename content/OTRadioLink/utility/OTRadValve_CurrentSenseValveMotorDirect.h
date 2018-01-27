@@ -306,10 +306,11 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
   public:
     // Create an instance, passing in a reference to the non-NULL hardware driver.
     // The hardware driver instance lifetime must be longer than this instance.
-    //   * _getSubCycleTimeFn  pointer to function to get current sub-cycle time;
-    //      never NULL
+    //   * _getSubCycleTimeFn  pointer to function to get
+    //     current sub-cycle time;
+    //     never NULL
     //   * _minMotorDRTicks  minimum sub-cycle ticks for dead reckoning;
-    //      strictly positive
+    //     strictly positive
     //   * _sctAbsLimit  absolute limit in sub-cycle beyond which
     //      motor should not be started
     //   * lowBattOpt  allows monitoring of supply voltage
@@ -319,7 +320,8 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     //     to avoid disturbing occupants,
     //     eg when room dark and occupants may be sleeping;
     //     can be NULL
-    // Keep all the potentially slow calculations in-line here to allow them to be done at compile-time .
+    // Keep all the potentially slow calculations in-line here
+    // to allow them to be done at compile-time .
     CurrentSenseValveMotorDirectBinaryOnly(
         OTRadValve::HardwareMotorDriverInterface * const hwDriver,
         uint8_t (*_getSubCycleTimeFn)(),
