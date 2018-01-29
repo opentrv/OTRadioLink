@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2014--2015
+Author(s) / Copyright (s): Damon Hart-Davis 2014--2018
 */
 
 /*
@@ -53,9 +53,9 @@ class SimpleTSUint8Actuator : public Actuator<uint8_t>
     volatile uint8_t value;
 
     // By default initialise the value to zero.
-    SimpleTSUint8Actuator() : value(0) { }
+    constexpr SimpleTSUint8Actuator() : value(0) { }
     // Can initialise to a chosen value.
-    SimpleTSUint8Actuator(const uint8_t v) : value(v) { }
+    constexpr SimpleTSUint8Actuator(const uint8_t v) : value(v) { }
 
 //    // Set new value.
 //    // This assumes that isValid() applies to actuator values for set() also.

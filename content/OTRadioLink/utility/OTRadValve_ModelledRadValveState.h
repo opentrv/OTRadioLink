@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2015--2017
+Author(s) / Copyright (s): Damon Hart-Davis 2015--2018
                            Deniz Erbilgin   2017
 */
 
@@ -193,13 +193,15 @@ struct ModelledRadValveState final
     // The input state must be complete including target/reference temperatures
     // before calling this including the first time
     // whereupon some further lazy initialisation is done.
-    //   * valvePCOpenRef  current valve position UPDATED BY THIS ROUTINE;
+    //   * valvePCOpenRef  current valve position UPDATED BY THIS CALL;
     //         in range [0,100]
     //   * inputState  immutable input state reference
-    //   * physicalDeviceOpt  physical device to set with new target if non-NULL
-    // If the physical device is provided then its target will be updated
+    //   * physicalDeviceOpt  physical device to set() target open %
+    //         with new target, if non-NULL
+    // If the physical device is provided then its target will be set()
     // and its actual value will be monitored for cumulative movement,
-    // else if not provided the movement in valvePCOpenRef will be monitored.
+    // else if not provided the movement in valvePCOpenRef
+    // will be monitored/tracked instead.
     void tick(volatile uint8_t &valvePCOpenRef,
             const ModelledRadValveInputState &inputState,
             AbstractRadValve *const physicalDeviceOpt)
@@ -270,12 +272,14 @@ struct ModelledRadValveState final
         if(valveTurndownCountdownM > 0) { --valveTurndownCountdownM; }
         if(valveTurnupCountdownM > 0) { --valveTurnupCountdownM; }
 
-        // Update the modelled state including the valve position passed by reference.
+        // Update the modelled state including the valve position
+        // passed by reference.
         const uint8_t oldValvePC = prevValvePC;
         const uint8_t oldModelledValvePC = valvePCOpenRef;
         const uint8_t newModelledValvePC =
           computeRequiredTRVPercentOpen(valvePCOpenRef, inputState);
-        const bool modelledValveChanged = (newModelledValvePC != oldModelledValvePC);
+        const bool modelledValveChanged =
+            (newModelledValvePC != oldModelledValvePC);
         if(modelledValveChanged) {
             // Defer re-closing valve to avoid excessive hunting.
             if(newModelledValvePC > oldModelledValvePC) { valveTurnup(); }
@@ -284,17 +288,21 @@ struct ModelledRadValveState final
             valvePCOpenRef = newModelledValvePC;
         }
         // For cumulative movement tracking
-        // use the modelled value by default if no physical device available.
+        // use the modelled value by default
+        // if no physical device available.
         uint8_t newValvePC = newModelledValvePC;
         if(NULL != physicalDeviceOpt) {
             // Set the target for the physical device unconditionally
-            // to ensure that the driver/device sees eg the first such request
+            // to ensure that the driver/device sees
+            // (eg) the first such request
             // even if the modelled value does not change.
             physicalDeviceOpt->set(newModelledValvePC);
-            // Look for a change in the physical device position immediately,
+            // Look for change in the reported physical
+            // device position immediately,
             // though visible change will usually require some time
             // eg for asynchronous motor activity,
-            // so this is typically capturing movements up to just before the set().
+            // so this is typically capturing movements
+            // up to just before the set().
             newValvePC = physicalDeviceOpt->get();
         }
         cumulativeMovementPC =

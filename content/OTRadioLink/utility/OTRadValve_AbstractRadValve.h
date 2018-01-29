@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
+Author(s) / Copyright (s): Damon Hart-Davis 2015--2018
 */
 
 /*
@@ -38,32 +38,54 @@ namespace OTRadValve
 
 
 // Abstract class for motor drive.
-// Supports abstract model plus remote (wireless) and local/direct implementations.
+// Supports abstract model plus remote (wireless) and local/direct
+// implementations.
+//
 // Implementations may require read() called at a fixed rate,
-// though should tolerate calls being skipped when time is tight for other operations,
+// though should tolerate calls being skipped when time is tight
+// for other operations,
 // since read() may take substantial time (hundreds of milliseconds).
 // Implementations must document when read() calls are critical,
 // and/or expose alternative API for the time-critical elements.
+//
+// Some implementations may consume significant time in set()
+// as well as or instead of read().
+//
+// Note that the 'value' of this actuator when set() is a target,
+// and the get() which returns an adjusted target or actual position
+// may never exactly match the value set().
+// The default starting target value is 0 (fully closed).
+// An alternative useful initial value is to start
+// just below the call-for-heat threshold for passive frost protection.
 class AbstractRadValve : public OTV0P2BASE::SimpleTSUint8Actuator
   {
   protected:
     // Prevent direct creation of naked instance of this base/abstract class.
-    AbstractRadValve() { }
+    constexpr AbstractRadValve() { }
+    constexpr AbstractRadValve(uint8_t initTarget)
+      : OTV0P2BASE::SimpleTSUint8Actuator(initTarget) { }
 
   public:
     // Returns (JSON) tag/field/key name including units (%); never NULL.
     // Overriding this is not permitted, to save confusion later.
-    virtual OTV0P2BASE::Sensor_tag_t tag() const override final { return(V0p2_SENSOR_TAG_F("v|%")); }
+    virtual OTV0P2BASE::Sensor_tag_t tag() const override final
+        { return(V0p2_SENSOR_TAG_F("v|%")); }
 
     // Returns true if this target valve open % value passed is valid, ie in range [0,100].
-    virtual bool isValid(const uint8_t value) const override { return(value <= 100); }
+    virtual bool isValid(const uint8_t value) const override
+        { return(value <= 100); }
 
     // Set new target valve percent open.
     // Ignores invalid values.
-    // Some implementations may reject attempts to directly set the value.
+    // Implementations may reject attempts to directly set the value.
     // If this returns true then the new target value was accepted.
+    //
     // Even if accepted this remains a target,
     // and the value returned by get() may never (exactly) match it.
+    // Note that for simple synchronous implementations
+    //
+    // this may block for hundreds of milliseconds
+    // to perform some or all of the actuation.
     virtual bool set(const uint8_t /*newValue*/) { return(false); }
 
     // Call when given user signal that valve has been fitted (ie is fully on).
@@ -83,12 +105,14 @@ class AbstractRadValve : public OTV0P2BASE::SimpleTSUint8Actuator
     virtual bool isInErrorState() const { return(false); }
 
     // True if the controlled physical valve is thought to be at least partially open right now.
-    // If multiple valves are controlled then is this true only if all are at least partially open.
+    // If multiple valves are controlled then
+    // this is true only if all are at least partially open.
     // Used to help avoid running boiler pump against closed valves.
     // Must not be true while (re)calibrating.
     // The default is to use the check the current computed position
     // against the minimum open percentage.
-    virtual bool isControlledValveReallyOpen() const { return(isInNormalRunState() && (value >= getMinPercentOpen())); }
+    virtual bool isControlledValveReallyOpen() const
+        { return(isInNormalRunState() && (value >= getMinPercentOpen())); }
 
     // True if this unit is actively calling for heat.
     // This implies that the temperature is (significantly) under target,
@@ -96,25 +120,31 @@ class AbstractRadValve : public OTV0P2BASE::SimpleTSUint8Actuator
     // and this needs more heat than can be passively drawn from an already-running boiler.
     // The default is to return true when valve is safely open.
     // Thread-safe and ISR safe.
-    virtual bool isCallingForHeat() const { return(isControlledValveReallyOpen() && (value >= DEFAULT_VALVE_PC_SAFER_OPEN)); }
+    virtual bool isCallingForHeat() const
+        { return(isControlledValveReallyOpen() && (value >= DEFAULT_VALVE_PC_SAFER_OPEN)); }
 
     // True if the room/ambient temperature is below target, enough to likely call for heat.
     // This implies that the temperature is (significantly) under target,
     // the valve is really open,
-    // and this needs more heat than can be passively drawn from an already-running boiler.
+    // and this needs more heat than can be passively drawn
+    // from an already-running boiler.
     // The default is to return same as isCallingForHeat().
     // Thread-safe and ISR safe.
-    virtual bool isUnderTarget() const { return(isCallingForHeat()); }
+    virtual bool isUnderTarget() const
+        { return(isCallingForHeat()); }
 
     // Get estimated minimum percentage open for significant flow for this device; strictly positive in range [1,99].
     // Defaults to 1 which is minimum possible legitimate value.
     virtual uint8_t getMinPercentOpen() const { return(1); }
 
-    // Minimally wiggles the motor to give tactile feedback and/or show to be working.
+    // Minimally wiggles the motor to give tactile/audible feedback.
     // May take a significant fraction of a second.
-    // Finishes with the motor turned off (if that doesn't break something).
-    // May also be used to (re)calibrate any shaft/position encoder and end-stop detection.
-    // Logically const since nominally does not change the final state of the valve.
+    // Finishes with the motor turned off
+    // (if that doesn't break something).
+    // May also be used to (re)calibrate any shaft/position encoder
+    // and end-stop detection.
+    // Logically const since nominally does not change
+    // the final state of the valve.
     // By default does nothing.
     virtual void wiggle() const { }
   };

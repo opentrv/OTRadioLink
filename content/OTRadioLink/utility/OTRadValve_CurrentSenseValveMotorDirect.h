@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2015--2017
+Author(s) / Copyright (s): Damon Hart-Davis 2015--2018
                            Deniz Erbilgin 2016
 */
 
@@ -117,7 +117,8 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     // Power-up sequence will often require something like:
     //   * withdrawing the pin completely (to make valve easy to fit)
     //   * waiting for some user activation step
-    //     such as pressing a button to indicate that the valve has been fitted
+    //     such as pressing a button to indicate that the valve has been
+    //     fitted
     //   * running an initial calibration for the valve
     //   * entering the normal state tracking the target %-open
     //     and periodically recalibrating/decalcinating.
@@ -170,7 +171,7 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     bool (*const minimiseActivityOpt)() = ((bool(*)())NULL);
     // Allows monitoring of supply voltage to avoid some activities with low batteries; can be NULL.
     // Non-const to allow call to read() to force re-measurement of supply.
-    OTV0P2BASE::SupplyVoltageLow *lowBattOpt = NULL;
+    OTV0P2BASE::SupplyVoltageLow *const lowBattOpt = NULL;
 
     // Major state of driver.
     // On power-up (or full reset) should be 0/init.
@@ -305,10 +306,11 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
   public:
     // Create an instance, passing in a reference to the non-NULL hardware driver.
     // The hardware driver instance lifetime must be longer than this instance.
-    //   * _getSubCycleTimeFn  pointer to function to get current sub-cycle time;
-    //      never NULL
+    //   * _getSubCycleTimeFn  pointer to function to get
+    //     current sub-cycle time;
+    //     never NULL
     //   * _minMotorDRTicks  minimum sub-cycle ticks for dead reckoning;
-    //      strictly positive
+    //     strictly positive
     //   * _sctAbsLimit  absolute limit in sub-cycle beyond which
     //      motor should not be started
     //   * lowBattOpt  allows monitoring of supply voltage
@@ -318,7 +320,8 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     //     to avoid disturbing occupants,
     //     eg when room dark and occupants may be sleeping;
     //     can be NULL
-    // Keep all the potentially slow calculations in-line here to allow them to be done at compile-time .
+    // Keep all the potentially slow calculations in-line here
+    // to allow them to be done at compile-time .
     CurrentSenseValveMotorDirectBinaryOnly(
         OTRadValve::HardwareMotorDriverInterface * const hwDriver,
         uint8_t (*_getSubCycleTimeFn)(),
@@ -373,7 +376,8 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     // Minimally wiggle the motor to give tactile feedback and/or show to be working.
     // May take a significant fraction of a second.
     // Finishes with the motor turned off.
-    // Should also have enough movement/play to allow calibration of the shaft encoder.
+    // Should also have enough movement/play to allow calibration
+    // of the shaft encoder.
     // May also help set some bounds on stall current,
     // eg if highly asymmetric at each end of travel.
     // May be ignored if not safe to do.
@@ -406,7 +410,7 @@ class CurrentSenseValveMotorDirectBinaryOnly : public OTRadValve::HardwareMotorD
     virtual void signalValveFitted()
         { if(isWaitingForValveToBeFitted()) { perState.valvePinWithdrawn.valveFitted = true; } }
 
-    // Waiting for indication that the valvehead  has been fitted to the tail.
+    // Waiting for indication that the valve head has been fitted to the base.
     bool isWaitingForValveToBeFitted() const
         { return(state == valvePinWithdrawn); }
 
