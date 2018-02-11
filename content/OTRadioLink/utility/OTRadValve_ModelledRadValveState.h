@@ -873,7 +873,7 @@ uint8_t computeRequiredTRVPercentOpen(uint8_t valvePCOpen, const ModelledRadValv
         // Guards above ensure that these glacial movements are safe.
         // Aim to (efficiently) dither about the target,
         // with the aim of avoiding leaving the proportional range.
-        // The valve does not hover mid-travel.  (TODO-1096)
+        // The valve does not generally hover mid-travel.  (TODO-1096)
         if(shouldClose) { return(valvePCOpen - 1); }
         else if(shouldOpen) { return(valvePCOpen + 1); }
 
