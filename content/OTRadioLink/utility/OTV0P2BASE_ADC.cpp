@@ -102,8 +102,8 @@ uint16_t _analogueNoiseReducedReadM(const uint8_t admux, int8_t samples)
   }
 #else
 // Variant that exits with plenty of time left in the loop.
-// Will exit 1024 (range + 1) if no readings taken.
-// TODO check timing in inner loop as well?.
+// Will exit with 1024 (range + 1) if no readings taken due to timeout
+// (too close to end of minor cycle).
 uint16_t _analogueNoiseReducedReadM(const uint8_t admux, int8_t samples)
   {
   const bool neededEnable = powerUpADCIfDisabled();
@@ -117,12 +117,15 @@ uint16_t _analogueNoiseReducedReadM(const uint8_t admux, int8_t samples)
   bitSet(ADCSRA, ADSC); // Start conversion(s).
   uint8_t oldADCL = 0xff;
   uint8_t oldADCH = 0xff; // Ensure that a second sample will get taken if multiple samples have been requested.
-  uint8_t l = 0x0;  // low and high values FIXME
-  uint8_t h = 0x2;  // Set value to 1024 (range + 1)
+  // Default value (on timeout) is 1024 (range + 1).
+  uint8_t l = 0;
+  uint8_t h = 4;
   // Usually take several readings to improve accuracy.  Discard all but the last...
   while(--samples >= 0)
       {
-      if(200 < getSubCycleTime()) break; // XXX
+      // An ADC conversion should never take more than 1 tick (~8ms).
+      // This might not be true with a VERY slow CPU clock.
+      if(getSubCycleTime() > 254) { break; }
       ADC_complete = false;
       while(!ADC_complete) { sleep_mode(); }
       l = ADCL; // Capture the low byte and latch the high byte.

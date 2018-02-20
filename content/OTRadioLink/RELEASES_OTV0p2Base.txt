@@ -9,6 +9,8 @@ or release/freeze points.
 
 
 pending:
+    DHD20180220: bugfix in _analogueNoiseReducedReadM() returning 512 on timeout.
+    DHD20180220: bugfix in _analogueNoiseReducedReadM() timeout too early in minor cycle.
 
 
 

@@ -38,6 +38,8 @@ namespace OTV0P2BASE
 //   * admux  is the value to set ADMUX to
 //   * samples  maximum number of samples to take (if one, nap() before); strictly positive
 // Sets sleep mode to SLEEP_MODE_ADC, and disables sleep on exit.
+// Will exit with 1024 (range + 1) if no readings taken due to timeout
+// (too close to end of minor cycle).
 uint16_t _analogueNoiseReducedReadM(const uint8_t admux, int8_t samples = 3);
 
 // Read ADC/analogue input with reduced noise if possible, in range [0,1023].
