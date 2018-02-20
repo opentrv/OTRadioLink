@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
+Author(s) / Copyright (s): Damon Hart-Davis 2013--2018
 */
 
 /*
@@ -81,7 +81,7 @@ void setupADC();  // XXX Copied from an example, not entirely sure what the sett
 //   * admux  is the value to set ADMUX to
 //   * samples  maximum number of samples to take (if one, nap() before); strictly positive
 // Sets sleep mode to SLEEP_MODE_ADC, and disables sleep on exit.
-uint16_t _analogueNoiseReducedReadM(const uint8_t admux, int8_t samples = 3);  // admux not implemented!
+uint16_t _analogueNoiseReducedReadM(const uint8_t admux, int8_t samples = 3);
 
 // Read ADC/analogue input with reduced noise if possible, in range [0,1023].
 //   * aiNumber is the analogue input number [0,7] for ATMega328P

@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2013--2015
+Author(s) / Copyright (s): Damon Hart-Davis 2013--2018
 */
 
 /*
@@ -103,7 +103,7 @@ uint16_t _analogueNoiseReducedReadM(const uint8_t admux, int8_t samples)
 #else
 // Variant that exits with plenty of time left in the loop.
 // Will exit 1024 (range + 1) if no readings taken.
-// TODO check timing in inter loop as well?1.
+// TODO check timing in inner loop as well?.
 uint16_t _analogueNoiseReducedReadM(const uint8_t admux, int8_t samples)
   {
   const bool neededEnable = powerUpADCIfDisabled();

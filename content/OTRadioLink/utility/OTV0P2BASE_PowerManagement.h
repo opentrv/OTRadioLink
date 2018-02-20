@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
+Author(s) / Copyright (s): Damon Hart-Davis 2013--2018
                            Deniz Erbilgin 2015
 */
 
@@ -131,16 +131,16 @@ void power_intermittent_peripherals_disable();
             // CPOL = 0, CPHA = 0
             // Enable SPI, set master mode, set speed.
             const uint8_t ENABLE_MASTER = _BV(SPE) | _BV(MSTR);
-    #if F_CPU <= 2000000 // Needs minimum prescale (x2) with slow (<=2MHz) CPU clock.
+#if F_CPU <= 2000000 // Needs minimum prescale (x2) with slow (<=2MHz) CPU clock.
             SPCR = ENABLE_MASTER; // 2x clock prescale for <=1MHz SPI clock from <=2MHz CPU clock (500kHz SPI @ 1MHz CPU).
             if(!slowSPI) { SPSR = _BV(SPI2X); } // Slow will give 4x prescale for 250kHz bus at 1MHz CPU.
-    #elif F_CPU <= 8000000
+#elif F_CPU <= 8000000
             SPCR = ENABLE_MASTER; // 4x clock prescale for <=2MHz SPI clock from nominal <=8MHz CPU clock.
             SPSR = 0;
-    #else // Needs setting for fast (~16MHz) CPU clock.
+#else // Needs setting for fast (~16MHz) CPU clock.
             SPCR = _BV(SPR0) | ENABLE_MASTER; // 8x clock prescale for ~2MHz SPI clock from nominal ~16MHz CPU clock.
             SPSR = _BV(SPI2X);
-    #endif
+#endif
             }
         return(true);
         }
