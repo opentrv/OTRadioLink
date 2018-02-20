@@ -77,8 +77,9 @@ void power_intermittent_peripherals_disable();
 #ifdef ARDUINO_ARCH_AVR
     // If ADC was disabled, power it up, and return true.
     // If already powered up then do nothing other than return false.
-    // This does not power up the analogue comparator; this needs to be manually enabled if required.
-    // If this returns true then a matching powerDownADC() may be advisable.
+    // This does not power up the analogue comparator;
+    // this needs to be manually enabled if required.
+    // If this returns true then a matching powerDownADC() may be done.
     bool powerUpADCIfDisabled();
     // Power ADC down.
     // Likely shorter inline than just the call/return!
@@ -236,11 +237,13 @@ void power_intermittent_peripherals_disable();
 #endif
 
 
-// Just the 'low battery' warning API for the battery/supply voltage sensor.
-// Note: read() can be called whenever battery voltage needs to be re-measured,
-// and derived classes should not rely on only regular calls to / polling of read(),
+// The 'low battery' warning API for the battery/supply voltage sensor.
+// Note: read() can be called whenever battery voltage needs to be
+// re-sampled, and derived classes should not rely on only
+// regular calls to / polling of read(),
 // but measuring voltage is not free in terms of either time or energy.
-// When battery is not low, read()/get() must return a non-zero value in any concrete implementation.
+// When the battery is not low, read()/get() must return
+// a non-zero value in any concrete implementation.
 class SupplyVoltageLow : public OTV0P2BASE::Sensor<uint16_t>
   {
   protected:
@@ -253,14 +256,18 @@ class SupplyVoltageLow : public OTV0P2BASE::Sensor<uint16_t>
 
   public:
     // Returns true if the supply voltage is low/marginal.
-    // The threshold depends on the AVR and other hardware components (eg sensors) in use.
-    // Below this level actuators may not reliably operate or may cause brown-outs and restarts.
-    // Should always return true when isSupplyVoltageVeryLow() returns true.
+    // The threshold depends on the AVR and possibly on
+    // other hardware components (eg sensors) in use.
+    // Below this level actuators may not reliably operate
+    // or may cause brown-outs and restarts.
+    // Should always return true when isSupplyVoltageVeryLow() does.
     bool isSupplyVoltageLow() const { return(isLow); }
     // Returns true if the supply voltage is very low.
+    // The threshold depends on the AVR and possibly on
+    // other hardware components (eg sensors) in use.
     // Below this level sensors may not reliably operate.
-    // Below this level actuators may not reliably operate or may cause brown-outs and restarts.
-    // The threshold depends on the AVR and other hardware components (eg sensors) in use.
+    // Below this level actuators may not reliably operate
+    // or may cause brown-outs and restarts.
     bool isSupplyVoltageVeryLow() const { return(isVeryLow); }
   };
 
@@ -287,16 +294,18 @@ class SupplyVoltageCentiVolts final : public SupplyVoltageLow
     static constexpr uint16_t INITIAL_RAWINV = uint16_t(~0U);
 
   private:
-    // Internal bandgap (1.1V nominal, 1.0--1.2V) as fraction of Vcc [0,1023] for V0p2/AVR boards.
+    // Internal bandgap as fraction of Vcc [0,1023] for V0p2/AVR boards.
+    // (Bandgap ref is (1.1V nominal, 1.0--1.2V) for V0p2/AVR boards.)
     // Initialise to cautious (impossibly low supply) value.
     uint16_t rawInv = INITIAL_RAWINV;
-    // Last measured supply voltage (cV) (nominally 0V--3.6V abs max) [0,360] for V0p2 boards.
+    // Last measured supply voltage (cV)
+    // (nominally 0V--3.6V abs max) [0,360] for V0p2 boards.
     // Initialise to cautious (impossibly low supply) value.
-    // Never expected to be updated or used in an ISR, so not marked volatile.
+    // Never expected to be updated or used in an ISR, so not volatile.
     uint16_t value = 0;
 
   public:
-    // Force a read/poll of the supply voltage and return the value sensed.
+    // Force a read/poll of supply voltage and return the value sensed.
     // Expensive/slow.
     // NOT thread-safe or usable within ISRs (Interrupt Service Routines).
     virtual uint16_t read() override;
