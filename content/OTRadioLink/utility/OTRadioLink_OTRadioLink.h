@@ -240,6 +240,10 @@ namespace OTRadioLink
             // Returns true if this radio link is currently available.
             // True by default unless implementation overrides.
             // Only valid between begin() and end() calls on an instance.
+            // Undefined before init(), and if implemented should be false
+            // before begin() and after end().
+            // NOTE: This means that begin() must be called before attempting
+            // run-time detection of a radio!
             virtual bool isAvailable() const { return(true); }
 
             // Fetches the current inbound RX minimum queue capacity and maximum RX (and TX) raw message size.
