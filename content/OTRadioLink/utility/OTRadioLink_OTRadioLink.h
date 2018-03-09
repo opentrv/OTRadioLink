@@ -331,6 +331,9 @@ namespace OTRadioLink
             // that particular receivers may require.
             // Revert afterwards to listen()ing if enabled,
             // else usually power down the radio if not listening.
+            //   * channel  Index to the OTRadioLinkChannelConfig to use for
+            //     this transmission. Not to be confused with the hardware's
+            //     concept of a channel.
             //   * power  hint to indicate transmission importance
             //     and thus possibly power or other efforts to get it heard;
             //     this hint may be ignored.
