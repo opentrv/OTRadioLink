@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
+Author(s) / Copyright (s): Damon Hart-Davis 2013--2018
 */
 
 /*
@@ -34,13 +34,18 @@ namespace OTV0P2BASE
 {
 
 
-// Sense (usually non-linearly) over full likely internal ambient lighting range of a (UK) home,
-// down to levels too dark to be active in (and at which heating could be set back for example).
-// This suggests a full scale of at least 50--100 lux, maybe as high as 300 lux, eg see:
+// Sense ambient indoor home lighting levels.
+// Sense (usually non-linearly) over full likely internal
+// ambient lighting range of a (UK) home,
+// down to levels too dark to be active in
+// (and at which heating could be set back for example).
+// This suggests a full scale of at least 50--100 lux,
+// maybe as high as 300 lux, eg see:
 // http://home.wlv.ac.uk/~in6840/Lightinglevels.htm
 // http://www.engineeringtoolbox.com/light-level-rooms-d_708.html
 // http://www.pocklington-trust.org.uk/Resources/Thomas%20Pocklington/Documents/PDF/Research%20Publications/GPG5.pdf
 // http://www.vishay.com/docs/84154/appnotesensors.pdf
+// https://academic.oup.com/aje/article-abstract/187/3/427/4056592
 
 #define SensorAmbientLightBase_DEFINED
 // Base class for ambient light sensors, including mocks.
@@ -53,13 +58,14 @@ class SensorAmbientLightBase : public SimpleTSUint8Sensor
 
     // Set true if ambient light sensor range may be too small to use.
     // This will be where (for example) there are historic values
-    // but in a very narrow range which implies a broken sensor or shadowed location.
+    // but in a very narrow range which implies a broken sensor or
+    // shadowed location.
     // This does not mark the entire sensor/device as unavailable,
     // eg so that stats can go on being collected in case things improve,
     // but it does disable all the assertions about dark/light/ticks.
     bool rangeTooNarrow = false;
 
-    // Number of minutes (read() calls) that the room has been continuously dark for.
+    // read() calls / mins that the room has been continuously dark for.
     // Does not roll over from maximum value.
     // Reset to zero in light.
     // Stays at zero if the sensor decides that its range is too narrow.
@@ -83,7 +89,8 @@ class SensorAmbientLightBase : public SimpleTSUint8Sensor
     static const uint8_t DEFAULT_PITCH_DARK_THRESHOLD = 4;
 
     // Returns a suggested (JSON) tag/field/key name including units of get(); NULL means no recommended tag.
-    // The lifetime of the pointed-to text must be at least that of the Sensor instance.
+    // The lifetime of the pointed-to text must be at least that
+    // of the Sensor instance.
     virtual Sensor_tag_t tag() const override { return(V0p2_SENSOR_TAG_F("L")); }
 
     // Returns true if room is probably lit enough for someone to be active, with some hysteresis.
@@ -93,7 +100,8 @@ class SensorAmbientLightBase : public SimpleTSUint8Sensor
 
     // Returns true if room is probably too dark for someone to be active, with some hysteresis.
     // False if unknown or sensor range appears too narrow.
-    // thus it is possible for both isRoomLit() and isRoomDark() to be false.
+    // thus it is possible for both isRoomLit() and isRoomDark()
+    // to be false.
     // Thread-safe and usable within ISRs (Interrupt Service Routines).
     bool isRoomDark() const { return(!isRoomLitFlag && !rangeTooNarrow); }
 
@@ -142,13 +150,17 @@ class SensorAmbientLightAdaptive : public SensorAmbientLightBase
     SensorAmbientLightOccupancyDetectorSimple occupancyDetector;
 
     // 'Possible occupancy' callback function (for moderate confidence of human presence).
-    // If not NULL, is called when this sensor detects indications of occupancy.
-    // A true argument indicates probable occupancy, false weak occupancy.
+    // If not NULL, is called when this sensor detects indications
+    // of occupancy.
+    // A true argument indicates probable occupancy,
+    // false weak occupancy.
     void (*occCallbackOpt)(bool) = NULL;
 
     // Recomputes thresholds and 'rangeTooNarrow' based on current state.
-    //   * meanNowOrFF  typical/mean light level around this time each 24h; 0xff if not known.
-    //   * sensitive  if true be more sensitive to possible occupancy changes, else less so.
+    //   * meanNowOrFF  typical/mean light level around this time
+    //     each 24h; 0xff if not known.
+    //   * sensitive  if true be more sensitive to possible
+    //     occupancy changes, else less so.
     void recomputeThresholds(uint8_t meanNowOrFF, bool sensitive);
 
   public:
@@ -236,8 +248,10 @@ class SensorAmbientLight final : public SensorAmbientLightAdaptive
 
 
 // Dummy placeholder AmbientLight sensor class with always-false dummy static status methods.
-// These methods should be fully optimised away by the compiler in many/most cases.
-// Can be to reduce code complexity, by eliminating some need for pre-processing.
+// These methods should be fully optimised away by the compiler
+// in many/most cases.
+// Can be to reduce code complexity,
+// by eliminating some need for pre-processing.
 class DummySensorAmbientLight
   {
   public:
