@@ -178,6 +178,21 @@ void power_intermittent_peripherals_disable();
     inline bool powerUpSPIIfDisabled() { return(t_powerUpSPIIfDisabled<V0p2_PIN_SPI_nSS, DEFAULT_RUN_SPI_SLOW>()); }
     // Power down SPI.
     inline void powerDownSPI() { t_powerDownSPI<V0p2_PIN_SPI_nSS, V0p2_PIN_SPI_SCK, V0p2_PIN_SPI_MOSI, V0p2_PIN_SPI_MISO, DEFAULT_RUN_SPI_SLOW>(); }
+
+    // RAII-style SOPI power-up- and then power-down- if-necessary.
+    template <uint8_t SPI_nSS, uint8_t SPI_SCK, uint8_t SPI_MOSI, uint8_t SPI_MISO, bool slowSPI>
+    class RAII_SPIPowerUpSPIIfDisabled final
+        {
+        public:
+            const bool neededEnable;
+            RAII_SPIPowerUpSPIIfDisabled()
+              : neededEnable(t_powerUpSPIIfDisabled<SPI_nSS, slowSPI>()) { }
+            ~RAII_SPIPowerUpSPIIfDisabled()
+                {
+                if(neededEnable) { t_powerDownSPI<SPI_nSS, SPI_SCK, SPI_MOSI, SPI_MISO, slowSPI>(); }
+                }
+        };
+
 #endif // ARDUINO_ARCH_AVR
 
 
