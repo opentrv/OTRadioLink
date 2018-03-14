@@ -179,7 +179,8 @@ void power_intermittent_peripherals_disable();
     // Power down SPI.
     inline void powerDownSPI() { t_powerDownSPI<V0p2_PIN_SPI_nSS, V0p2_PIN_SPI_SCK, V0p2_PIN_SPI_MOSI, V0p2_PIN_SPI_MISO, DEFAULT_RUN_SPI_SLOW>(); }
 
-    // RAII-style SOPI power-up- and then power-down- if-necessary.
+    // RAII-style SPI if-necessary power up/down.
+    // NOT TESTED YET: DO NOT USE!
     template <uint8_t SPI_nSS, uint8_t SPI_SCK, uint8_t SPI_MOSI, uint8_t SPI_MISO, bool slowSPI>
     class RAII_SPIPowerUpSPIIfDisabled final
         {
