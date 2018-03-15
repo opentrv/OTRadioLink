@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
+Author(s) / Copyright (s): Damon Hart-Davis 2013--2018
                            Deniz Erbilgin 2015
 */
 
@@ -47,8 +47,9 @@ namespace OTV0P2BASE
 #ifdef ARDUINO_ARCH_AVR
     // If ADC was disabled, power it up and return true.
     // If already powered up then do nothing other than return false.
-    // This does not power up the analogue comparator; this needs to be manually enabled if required.
-    // If this returns true then a matching powerDownADC() may be advisable.
+    // This does not power up the analogue comparator;
+    // this needs to be manually enabled if required.
+    // If this returns true then a matching powerDownADC() may be done.
     bool powerUpADCIfDisabled()
       {
       if(!(PRR & _BV(PRADC))) { return(false); }
@@ -280,14 +281,16 @@ uint16_t SupplyVoltageCentiVolts::read()
 
   // Capture entropy from changed least-significant bit(s).
   // Only capture on change to save CPU time.
-  // Capture even when the published battery voltage (and rawInv) not changed
+  // Capture even when published battery voltage (and rawInv) not changed
   // to be able to better gather entropy unobserved by, eg, stats TXes.
   // Claim a single bit of entropy.
   if(raw != rawInv) { addEntropyToPool(uint8_t(raw), 1); }
 
-  // At around the 2.6V mark, it takes a change of ~3ulp in rawInv to make 1ulp (1cV) result change; strictly +ve.
+  // At around the 2.6V mark, it takes a change of ~3ulp in rawInv
+  // to make 1ulp (1cV) result change; strictly +ve.
   // Note: 430 raw maps to 261, 431--433 to 259, 434--436 to 257, 436 to 256.
-  // This epsilon is as much about ADC measurement stability as the conversion function.
+  // This epsilon is as much about ADC measurement stability
+  // as the conversion function.
   static constexpr uint8_t rawEpsilon = 6;
 
   // Optimisation: if raw value is unchanged or very close
@@ -305,7 +308,7 @@ uint16_t SupplyVoltageCentiVolts::read()
   // effectively-adjacent levels;
   // this should prevent dithering back and forth across a boundary,
   // sticking at the lower level.
-  // Note that rawInv in real life can never get to either end of the range.
+  // In real life rawInv can never reach either end of the range.
   // An initial impossibly-high rawInv value will ensure that the value
   // is computed on the first call.
   static_assert((0 == INITIAL_RAWINV) || (~0U == INITIAL_RAWINV), "initial rawInv should be one that ADC result never gets close to");
@@ -452,11 +455,6 @@ void powerSetup()
 //#endif
   }
 #endif // ARDUINO_ARCH_AVR
-
-
-
-
-
 
 
 } // OTV0P2BASE

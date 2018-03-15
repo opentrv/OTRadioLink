@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
+Author(s) / Copyright (s): Damon Hart-Davis 2015--2018
                            Deniz Erbilgin 2017
 */
 
@@ -172,16 +172,17 @@ constexpr uint32_t F_CPU = 19000000;  // XXX Where should this go?
     // This may be extended by interrupts, etc, so must not be regarded as very precise.
     inline void delay_ms(uint_fast8_t ms) { while(ms-- > 0) { OTV0P2BASE_busy_spin_delayLong((uint32_t)1e6 / (delayLoopTimeInNS * 9)); /* busy spin takes ~945 us, loop overhead insignificant. */ } }
 
-
 #endif // ARDUINO_ARCH_AVR
 
 
 // Sleep with BOD disabled in power-save mode; will wake on any interrupt.
-// This particular API is not guaranteed to be maintained: please use sleepUntilInt() instead.
-void sleepPwrSaveWithBODDisabled();  // TODO
+// This particular API is not guaranteed to be maintained:
+// please use sleepUntilInt() instead.
+void sleepPwrSaveWithBODDisabled();
 
 // Sleep indefinitely in as lower-power mode as possible until a specified watchdog time expires, or another interrupt.
-// May be useful to call minimsePowerWithoutSleep() first, when not needing any modules left on.
+// May be useful to call minimsePowerWithoutSleep() first,
+// when not needing any modules left on.
 inline void sleepUntilInt() { sleepPwrSaveWithBODDisabled(); }
 
 #ifdef ARDUINO_ARCH_AVR
@@ -200,7 +201,7 @@ inline void sleepUntilInt() { sleepPwrSaveWithBODDisabled(); }
 //   * watchdogSleep is one of the WDTO_XX values from <avr/wdt.h>
 // May be useful to call minimsePowerWithoutSleep() first, when not needing any modules left on.
 // NOTE: will stop clocks for UART, etc.
-void nap(int_fast8_t watchdogSleep);    // TODO
+void nap(int_fast8_t watchdogSleep);
 
 // Sleep briefly in as lower-power mode as possible until the specified (watchdog) time expires, or another interrupt.
 //   * watchdogSleep is one of the WDTO_XX values from <avr/wdt.h>
@@ -208,10 +209,10 @@ void nap(int_fast8_t watchdogSleep);    // TODO
 // Returns false if the watchdog timer did not go off, true if it did.
 // May be useful to call minimsePowerWithoutSleep() first, when not needing any modules left on.
 // NOTE: will stop clocks for UART, etc.
-bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);    // TODO
+bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);
 
 
-#ifdef ARDUINO_ARCH_AVR    // TODO
+#ifdef ARDUINO_ARCH_AVR
     // If CPU clock is 1MHz then *assume* that it is the 8MHz internal RC clock prescaled by 8 unless DEFAULT_CPU_PRESCALE is defined.
     #if F_CPU == 1000000L
     static const uint8_t DEFAULT_CPU_PRESCALE = 3;
@@ -228,7 +229,7 @@ bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);    // TODO
     #endif // F_CPU > 16000000L
 #endif // ARDUINO_ARCH_AVR
 
-#ifdef ARDUINO_ARCH_AVR    // TODO
+#ifdef ARDUINO_ARCH_AVR
     // Sleep for specified number of _delay_loop2() loops at minimum available CPU speed.
     // Each loop takes 4 cycles at that minimum speed, but entry and exit overheads may take the equivalent of a loop or two.
     // Note: inlining is prevented so as to avoid migrating anything into the section where the CPU is running slowly.

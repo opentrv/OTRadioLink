@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2016--2017
+Author(s) / Copyright (s): Damon Hart-Davis 2016--2018
 */
 
 /*
@@ -325,5 +325,19 @@ namespace OTRadValve
 
 
     }
+
+
+// Further notes on 'safe' heating and fuel poverty, eg:
+//     http://newrytimes.com/2018/02/23/fuel-poverty-awareness-day-reduce-energy-costs-and-get-help/
+//     "Fuel Poverty Awareness Day – reduce energy costs and get help"
+//     Top tips for keeping warm at home:
+//    Wear multiple layers of clothing and a hat and gloves, even indoors if it is cold;
+//    Heat your main living room to around 18-21C (64-70F) and the rest of the house to at least 16C (61F);
+//    Heat all the rooms you use in the day;
+//    If you can’t heat all your rooms, make sure that you keep your living room warm throughout the day;
+//    It is important to make sure your heating is safe and that your house is properly ventilated, to reduce the risk of carbon monoxide poisoning.
+//    If you have electric controls for your heating, set the timer on your heating to come on before you get up and switch off when you go to bed;
+//    In very cold weather set the heating to come on earlier, rather than turn the thermostat up, so you won’t be cold while you wait for your home to heat up.
+
 
 #endif
