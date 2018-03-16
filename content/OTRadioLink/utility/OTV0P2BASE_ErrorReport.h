@@ -101,16 +101,21 @@ class ErrorReport final : public OTV0P2BASE::Actuator<int8_t>
             ERR_UNSPECIFIED = 1,
 
             // Internal error and/or design fault.
+            // Can be used to report a 'should not happen'
+            // internal logic error, especially if not recoverable.
             ERR_INTERNAL = 3,
 
             // Timing overrun error, eg on minor cycle.
-            // May be raised when having to take evasive action
-            // to avoid causing such an overrun and restart.
-            // Genuine overruns may be difficult to capture and report
-            // if a restart is reported.
+            // May be raised when having to take undesirable
+            // evasive action to avoid causing such an overrun/restart
+            // Note that genuine overruns may be difficult to capture
+            // and to report if a restart/reset actually happens,
+            // ie state may be lost.
             ERR_OVERRUN = 5,
 
-            // Supply voltage is very low (as defined by SupplyVoltageCentiVolts::BATTERY_VERY_LOW_cV).
+            // Supply voltage is very low.
+            // As defined by:
+            //     SupplyVoltageCentiVolts::BATTERY_VERY_LOW_cV
             ERR_BATTERY_VERY_LOW = 20,
             };
 
