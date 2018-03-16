@@ -234,6 +234,9 @@ namespace OTRadioLink
             // with significant power only being drawn if the radio is put in RX/listen mode,
             // or a TX is being done or about to be done,
             // or the radio is being powered up to allow RX or TX to be done.
+            // Note that this may only be safe to use in setup(), before the watchdog is
+            // started. Documentation for the particular implementation should be consulted if
+            // using while the watchdog is running.
             // Defaults to do nothing (and return false).
             virtual bool begin() { return(false); }
 
@@ -377,6 +380,9 @@ namespace OTRadioLink
             virtual bool handleInterruptSimple() { return(false); }
 
             // End access to this radio link if applicable and not already ended.
+            // Note that this may only be safe to use in setup(), before the watchdog is
+            // started. Documentation for the particular implementation should be consulted if
+            // using while the watchdog is running.
             // Returns true if it needed to be ended.
             // Defaults to do nothing (and return false).
             virtual bool end() { return(false); }
