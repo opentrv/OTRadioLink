@@ -91,6 +91,14 @@ class ErrorReport final : public OTV0P2BASE::Actuator<int8_t>
             // likely to need an recalibration run.
             WARN_VALVE_TRACKING = -10,
 
+            // Potential timing overrun issue, eg on minor cycle.
+            // If not recoverable should be ERR_OVERRUN.
+            WARN_OVERRUN = -5,
+
+            // Potential internal error and/or design fault.
+            // If not recoverable should be ERR_INTERNAL.
+            WARN_INTERNAL = -3,
+
             // Unspecified warning.
             WARN_UNSPECIFIED = -1,
 
