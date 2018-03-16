@@ -107,7 +107,8 @@ class ErrorReport final : public OTV0P2BASE::Actuator<int8_t>
 
             // Timing overrun error, eg on minor cycle.
             // May be raised when having to take undesirable
-            // evasive action to avoid causing such an overrun/restart
+            // evasive action to avoid causing such an overrun/restart,
+            // ie that indicate a serious logic/design error.
             // Note that genuine overruns may be difficult to capture
             // and to report if a restart/reset actually happens,
             // ie state may be lost.
