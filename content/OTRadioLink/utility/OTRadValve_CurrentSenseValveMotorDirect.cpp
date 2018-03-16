@@ -436,11 +436,15 @@ V0P2BASE_DEBUG_SERIAL_PRINTLN();
       break;
       }
 
-    // Unexpected: go to error state, stop motor and report error on serial.
+    // Unexpected: go to error state, stop motor
+    // and report error on serial and via data feed.
     default:
       {
       hw->motorRun(0, OTRadValve::HardwareMotorDriverInterface::motorOff, *this);
-      OTV0P2BASE::serialPrintlnAndFlush(F("!valve error"));
+#ifdef OTV0P2BASE_ErrorReport_DEFINED
+      OTV0P2BASE::ErrorReporter.set(OTV0P2BASE::ErrorReport::ERR_INTERNAL);
+#endif
+      OTV0P2BASE::serialPrintlnAndFlush(F("!valve"));
       changeState(valveError);
       //panic(); // FIXME // Not expected to return.
       return;

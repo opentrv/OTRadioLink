@@ -100,6 +100,16 @@ class ErrorReport final : public OTV0P2BASE::Actuator<int8_t>
             // Unspecified error.
             ERR_UNSPECIFIED = 1,
 
+            // Internal error and/or design fault.
+            ERR_INTERNAL = 3,
+
+            // Timing overrun error, eg on minor cycle.
+            // May be raised when having to take evasive action
+            // to avoid causing such an overrun and restart.
+            // Genuine overruns may be difficult to capture and report
+            // if a restart is reported.
+            ERR_OVERRUN = 5,
+
             // Supply voltage is very low (as defined by SupplyVoltageCentiVolts::BATTERY_VERY_LOW_cV).
             ERR_BATTERY_VERY_LOW = 20,
             };
