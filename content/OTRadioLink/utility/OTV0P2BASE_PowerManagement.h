@@ -113,6 +113,9 @@ void power_intermittent_peripherals_disable();
     // If already powered up then do nothing other than return false.
     // If this returns true then a matching powerDownSPI() may be advisable.
     // The optional slowSPI flag, if true, attempts to run the bus slow, eg for when long or loaded with LED on SCK.
+    //
+    // NOTE: If a matching powerDownSPI() has not already been called before
+    // this routine, the SPI peripheral will hang on initiating a transfer.
     template <uint8_t SPI_nSS, bool slowSPI>
     bool t_powerUpSPIIfDisabled()
         {
