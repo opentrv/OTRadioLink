@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2016
+Author(s) / Copyright (s): Damon Hart-Davis 2016--2018
 */
 
 /*
@@ -61,10 +61,14 @@ class ActuatorPhysicalUIBase : public OTV0P2BASE::SimpleTSUint8Actuator
 
     // Call this nominally on even numbered seconds to allow the UI to operate.
     // In practice call early once per 2s major cycle.
-    // Should never be skipped, so as to allow the UI to remain responsive.
-    // Runs in 350ms or less; usually takes only a few milliseconds or microseconds.
-    // Returns a non-zero value iff the user interacted with the system, and maybe caused a status change.
-    // NOTE: since this is on the minimum idle-loop code path, minimise CPU cycles, esp in frost mode.
+    // Should never be skipped, so as to allow the UI
+    // to remain responsive.
+    // Runs in 350ms or less; usually takes only
+    // a few milliseconds or microseconds.
+    // Returns a non-zero value iff the user interacted with the system,
+    // and maybe caused a status change.
+    // NOTE: since this is on the minimum idle-loop code path,
+    // minimise CPU cycles, esp in frost mode.
     // Replaces: bool tickUI(uint_fast8_t sec).
     virtual uint8_t read() = 0;
 
@@ -72,13 +76,16 @@ class ActuatorPhysicalUIBase : public OTV0P2BASE::SimpleTSUint8Actuator
     virtual uint8_t preferredPollInterval_s() const { return(2); }
 
     // True if a manual UI control has been very recently (minutes ago) operated.
-    // The user may still be interacting with the control and the UI etc should probably be extra responsive.
+    // The user may still be interacting with the control and the UI etc
+    // should probably be extra responsive.
     // Thread-safe.
     virtual bool veryRecentUIControlUse() const = 0;
 
     // True if a manual UI control has been recently (tens of minutes ago) operated.
-    // If true then local manual settings should 'win' in any conflict with programmed or remote ones.
-    // For example, remote requests to override settings may be ignored while this is true.
+    // If true then local manual settings should 'win'
+    // in any conflict with programmed or remote ones.
+    // For example, remote requests to override settings may be ignored
+    // while this is true.
     // Thread-safe.
     virtual bool recentUIControlUse() const = 0;
   };
@@ -149,7 +156,8 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // Minutes that freshly-touched controls are regarded as 'very recently' used.
     static const uint8_t UI_DEFAULT_VERY_RECENT_USE_TIMEOUT_M = 2;
     // If non-zero then UI controls have been recently manually/locally operated; counts down to zero.
-    // Marked volatile for thread-safe lock-free non-read-modify-write access to byte-wide value.
+    // Marked volatile for thread-safe lock-free non-read-modify-write
+    // access to byte-wide value.
     // Compound operations on this value must block interrupts.
     volatile OTV0P2BASE::Atomic_UInt8T uiTimeoutM;
 
@@ -159,10 +167,12 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     volatile bool significantUIOp = false;
 
     // UI feedback.
-    // Provide low-key visual / audio / tactile feedback on a significant user action.
+    // Provide low-key visual / audio / tactile feedback on a
+    // significant user action.
     // May take hundreds of milliseconds and noticeable energy.
     // By default includes visual feedback,
-    // but that can be prevented if other visual feedback already in progress.
+    // but that can be prevented if other visual feedback
+    // already in progress.
     // Marks the UI as used.
     // Not thread-/ISR- safe.
     void userOpFeedback(const bool includeVisual = true)
@@ -214,23 +224,28 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
     // Poll the MODE button to support cycling through modes with the button held down; true if button active.
     // If this returns true then avoid other LED UI output.
     // This was the older style of interface (eg for REV1/REV2).
-    // The newer interface only uses the MODE button to trigger bake, interrupt-driven.
+    // The newer interface only uses the MODE button to trigger bake,
+    // interrupt-driven.
     // This is called after polling the temp pot if present,
-    // and after providing feedback for any significant accrued UI interactions.
+    // and after providing feedback for any significant accrued
+    // UI interactions.
     // By default does nothing and returns false.
     virtual bool pollMODEButton() { return(false); }
 
     // Called after handling main controls to handle other buttons and user controls.
-    // Designed to be overridden by derived classes, eg to handle LEARN buttons.
+    // Designed to be overridden by derived classes,
+    // eg to handle LEARN buttons.
     // Is passed 'true' if any status change has happened so far
-    // to enforce any changes that may have been driven by other UI components (ie other than MODE button).
+    // to enforce any changes that may have been driven by other
+    // UI components (ie other than MODE button).
     // Eg adjustment of temp pot / eco bias changing scheduled state.
     // By default does nothing.
     virtual void handleOtherUserControls(bool /*statusChangeSoFar*/) { }
 
     // Called after handling main controls to handle other buttons and user controls.
     // This is also a suitable place to handle any simple schedules.
-    // Designed to be overridden by derived classes, eg to handle LEARN buttons.
+    // Designed to be overridden by derived classes,
+    // eg to handle LEARN buttons.
     // The UI LED is (possibly JUST) off by the time this is called.
     // By default does nothing.
     virtual void handleOtherUserControls() { }
@@ -277,27 +292,35 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
 
     // Record significant local manual operation of a physical UI control, eg not remote or via CLI.
     // Marks room as occupied amongst other things.
-    // As markUIControlUsed() but likely to generate some feedback to the user, ASAP.
+    // As markUIControlUsed() but likely to generate some feedback
+    // to the user, ASAP.
     // Thread-safe.
     void markUIControlUsedSignificant();
 
     // True if a manual UI control has been very recently (minutes ago) operated.
-    // The user may still be interacting with the control and the UI etc should probably be extra responsive.
+    // The user may still be interacting with the control
+    // and the UI etc should probably be extra responsive.
     // Thread-safe.
     virtual bool veryRecentUIControlUse() const override { return(uiTimeoutM.load() >= (UI_DEFAULT_RECENT_USE_TIMEOUT_M - UI_DEFAULT_VERY_RECENT_USE_TIMEOUT_M)); }
 
     // True if a manual UI control has been recently (tens of minutes ago) operated.
-    // If true then local manual settings should 'win' in any conflict with programmed or remote ones.
-    // For example, remote requests to override settings may be ignored while this is true.
+    // If true then local manual settings should 'win'
+    // in any conflict with programmed or remote ones.
+    // For example, remote requests to override settings
+    // may be ignored while this is true.
     // Thread-safe.
     virtual bool recentUIControlUse() const override { return(0 != uiTimeoutM.load()); }
 
     // Call this nominally on even numbered seconds to allow the UI to operate.
     // In practice call early once per 2s major cycle.
-    // Should never be skipped, so as to allow the UI to remain responsive.
-    // Runs in 350ms or less; usually takes only a few milliseconds or microseconds.
-    // Returns a non-zero value iff the user interacted with the system, and maybe caused a status change.
-    // NOTE: since this is on the minimum idle-loop code path, minimise CPU cycles, esp in frost mode.
+    // Should never be skipped, so as to allow the UI
+    // to remain responsive.
+    // Runs in 350ms or less; usually takes only a few milliseconds
+    // or microseconds.
+    // Returns a non-zero value iff the user interacted with the system,
+    // and maybe caused a status change.
+    // NOTE: since this is on the minimum idle-loop code path,
+    // minimise CPU cycles, esp in frost mode.
     // Replaces: bool tickUI(uint_fast8_t sec).
     virtual uint8_t read() override;
 
@@ -321,9 +344,12 @@ class ModeButtonAndPotActuatorPhysicalUI : public ActuatorPhysicalUIBase
 
     // Handle simple interrupt for from MODE button, edge triggered on button push.
     // Starts BAKE from manual UI interrupt; marks UI as used also.
-    // Vetoes switch to BAKE mode if a temp pot/dial is present and at the low end stop, ie in the FROST position.
-    // Marked inline to try encourage the compiler to produce the best possible code.
-    // Calling this from the ISR entry-point is likely much faster than calling handleInterruptSimple().
+    // Vetoes switch to BAKE mode if a temp pot/dial is present
+    // and at the low end stop, ie in the FROST position.
+    // Marked inline to try encourage the compiler to produce
+    // the best possible code.
+    // Calling this from the ISR entry-point is likely much faster
+    // than calling handleInterruptSimple().
     // ISR-safe.
     inline void startBakeFromInt()
       {
@@ -390,13 +416,16 @@ class CycleModeAndLearnButtonsAndPotActuatorPhysicalUI final : public ModeButton
     // Poll the MODE button to support cycling through modes with the button held down; true if button active.
     // If this returns true then avoid other LED UI output.
     // This was the older style of interface (eg for REV1/REV2).
-    // The newer interface only uses the MODE button to trigger bake, interrupt-driven.
+    // The newer interface only uses the MODE button to trigger bake,
+    // interrupt-driven.
     // This is called after polling the temp pot if present,
-    // and after providing feedback for any significant accrued UI interactions.
+    // and after providing feedback for any significant
+    // accrued UI interactions.
     virtual bool pollMODEButton() override
       {
       // Full MODE button behaviour:
-      //   * cycle through FROST/WARM/BAKE while held down showing 1/2/3 flashes as appropriate
+      //   * cycle through FROST/WARM/BAKE while held down,
+      //     showing 1/2/3 flashes as appropriate
       //   * switch to selected mode on button release
 #ifdef ARDUINO
       const bool modeButtonIsPressed = (LOW == fastDigitalRead(BUTTON_MODE_L_pin));
