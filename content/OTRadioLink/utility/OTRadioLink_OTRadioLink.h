@@ -234,12 +234,19 @@ namespace OTRadioLink
             // with significant power only being drawn if the radio is put in RX/listen mode,
             // or a TX is being done or about to be done,
             // or the radio is being powered up to allow RX or TX to be done.
+            // Note that this may only be safe to use in setup(), before the watchdog is
+            // started. Documentation for the particular implementation should be consulted if
+            // using while the watchdog is running.
             // Defaults to do nothing (and return false).
             virtual bool begin() { return(false); }
 
             // Returns true if this radio link is currently available.
             // True by default unless implementation overrides.
             // Only valid between begin() and end() calls on an instance.
+            // Undefined before init(), and if implemented should be false
+            // before begin() and after end().
+            // NOTE: This means that begin() must be called before attempting
+            // run-time detection of a radio!
             virtual bool isAvailable() const { return(true); }
 
             // Fetches the current inbound RX minimum queue capacity and maximum RX (and TX) raw message size.
@@ -377,6 +384,9 @@ namespace OTRadioLink
             virtual bool handleInterruptSimple() { return(false); }
 
             // End access to this radio link if applicable and not already ended.
+            // Note that this may only be safe to use in setup(), before the watchdog is
+            // started. Documentation for the particular implementation should be consulted if
+            // using while the watchdog is running.
             // Returns true if it needed to be ended.
             // Defaults to do nothing (and return false).
             virtual bool end() { return(false); }

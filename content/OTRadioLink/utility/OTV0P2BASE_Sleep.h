@@ -171,7 +171,10 @@ constexpr uint32_t F_CPU = 19000000;  // XXX Where should this go?
     // Delay (busy wait) the specified number of milliseconds in the range [0,255].
     // This may be extended by interrupts, etc, so must not be regarded as very precise.
     inline void delay_ms(uint_fast8_t ms) { while(ms-- > 0) { OTV0P2BASE_busy_spin_delayLong((uint32_t)1e6 / (delayLoopTimeInNS * 9)); /* busy spin takes ~945 us, loop overhead insignificant. */ } }
-
+#else // ARDUINO_ARCH_AVR
+    // Stub impl for unit testing.
+    // NOTE THAT THIS WILL NOT BEHAVE CORRECTLY UNLESS UNIT TESTING!
+    static __inline__ void _delay_x4cycles(uint_fast8_t ) {  }
 #endif // ARDUINO_ARCH_AVR
 
 
