@@ -45,6 +45,48 @@
             }
         },
         {
+            "name": "Arduino_AVR",
+            "includePath": [
+                "/usr/lib/gcc/x86_64-redhat-linux/7/../../../../include/c++/7",
+                "/usr/lib/gcc/x86_64-redhat-linux/7/../../../../include/c++/7/x86_64-redhat-linux",
+                "/usr/lib/gcc/x86_64-redhat-linux/7/../../../../include/c++/7/backward",
+                "/usr/lib/gcc/x86_64-redhat-linux/7/include",
+                "/usr/local/include",
+                "/usr/include",
+                "${workspaceRoot}/content/OTRadioLink",
+                "${workspaceRoot}/content/OTRadioLink/utility",
+                "/opt/arduino/hardware/arduino/avr/cores/arduino",
+                "/opt/arduino/hardware/arduino/avr/libraries",
+                "/opt/arduino/hardware/arduino/avr/libraries/Wire/src",
+                "/opt/arduino/hardware/arduino/avr/variants/standard",
+                "/opt/arduino/hardware/tools/avr/avr/include"
+            ],
+            "defines": [
+                "__GNUC__",
+                "ARDUINO_ARCH_AVR",
+                "ARDUINO"
+            ],
+            "intelliSenseMode": "clang-x64",
+            "browse": {
+                "path": [
+                    "/usr/lib/gcc/x86_64-redhat-linux/7/../../../../include/c++/7",
+                    "/usr/lib/gcc/x86_64-redhat-linux/7/../../../../include/c++/7/x86_64-redhat-linux",
+                    "/usr/lib/gcc/x86_64-redhat-linux/7/../../../../include/c++/7/backward",
+                    "/usr/lib/gcc/x86_64-redhat-linux/7/include",
+                    "/usr/local/include",
+                    "/usr/include",
+                    "${workspaceRoot}",
+                    "${workspaceRoot}/..",
+                    "/opt/arduino/hardware/arduino/avr/cores/arduino",
+                    "/opt/arduino/hardware/arduino/avr/libraries",
+                    "/opt/arduino/hardware/arduino/avr/variants/standard",
+                    "/opt/arduino/hardware/tools/avr/avr/include"
+                ],
+                "limitSymbolsToIncludedHeaders": true,
+                "databaseFilename": ""
+            }
+        },
+        {
             "name": "EFR32",
             "includePath": [
                 "/home/denzo/eclipse/toolchain/gcc-arm-none-eabi-4_9-2015q3/arm-none-eabi/include/c++/4.9.3",
