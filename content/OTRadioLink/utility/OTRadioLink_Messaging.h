@@ -198,7 +198,7 @@ template <typename sfrx_t,
           OTV0P2BASE::GetPrimary16ByteSecretKey_t &getKey>
 inline bool authAndDecodeOTSecurableFrame(OTDecodeData_T &fd, OTV0P2BASE::ScratchSpaceL &sW)
 {
-    const size_t scratchSpaceNeededHere = authAndDecodeOTSecurableFrameWithWorkspace_scratch_usage;
+    constexpr size_t scratchSpaceNeededHere = authAndDecodeOTSecurableFrameWithWorkspace_scratch_usage;
     if(sW.bufsize < scratchSpaceNeededHere) { return(false); } // ERROR
 
 #if 0
