@@ -131,6 +131,16 @@ int16_t RoomTemperatureC16_TMP112::read()
   return(t16);
   }
 
+/**
+ * @brief   Report whether or not the TMP112 is available.
+ */
+bool RoomTemperatureC16_TMP112::isAvailable() const
+{
+    // Check if we have had an invalid value. Can be checked with
+    // isErrorValue(), but seems wasteful to make a virtual fn call for this.
+    return(DEFAULT_INVALID_TEMP == value);
+}
+
 #endif // RoomTemperatureC16_TMP112_DEFINED
 
 }
