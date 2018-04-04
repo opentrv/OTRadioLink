@@ -133,6 +133,9 @@ int16_t RoomTemperatureC16_TMP112::read()
 
 /**
  * @brief   Report whether or not the TMP112 is available.
+ * 
+ * NOTE: This value is only valid after read() has been called.
+ * @retval: Returns true if the TMP112 is available for use.
  */
 bool RoomTemperatureC16_TMP112::isAvailable() const
 {
