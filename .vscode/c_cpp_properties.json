@@ -16,6 +16,8 @@
                 "/opt/arduino/hardware/arduino/avr/libraries/Wire/src",
                 "/opt/arduino/hardware/arduino/avr/variants/standard",
                 "/opt/arduino/hardware/tools/avr/avr/include",
+                "/opt/arduino/hardware/tools/avr/avr/include/avr",
+                "/opt/arduino/hardware/tools/avr/avr/include/util",
                 "${workspaceRoot}/EFR32/portingOTLibs/CMSIS",
                 "${workspaceRoot}/EFR32/portingOTLibs/emlib",
                 "${workspaceRoot}/EFR32/portingOTLibs/hal-config",
@@ -59,7 +61,9 @@
                 "/opt/arduino/hardware/arduino/avr/libraries",
                 "/opt/arduino/hardware/arduino/avr/libraries/Wire/src",
                 "/opt/arduino/hardware/arduino/avr/variants/standard",
-                "/opt/arduino/hardware/tools/avr/avr/include"
+                "/opt/arduino/hardware/tools/avr/avr/include",
+                "/opt/arduino/hardware/tools/avr/avr/include/avr",
+                "/opt/arduino/hardware/tools/avr/avr/include/util"
             ],
             "defines": [
                 "__GNUC__",
@@ -84,7 +88,10 @@
                 ],
                 "limitSymbolsToIncludedHeaders": true,
                 "databaseFilename": ""
-            }
+            },
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++17"
         },
         {
             "name": "EFR32",
