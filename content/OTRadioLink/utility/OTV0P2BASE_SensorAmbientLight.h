@@ -28,6 +28,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2018
 #include "OTV0P2BASE_Util.h"
 #include "OTV0P2BASE_Sensor.h"
 #include "OTV0P2BASE_SensorAmbientLightOccupancy.h"
+#include "OTV0P2BASE_ADC.h"
+#include "OTV0P2BASE_Entropy.h"
 
 
 namespace OTV0P2BASE
@@ -215,6 +217,90 @@ class SensorAmbientLightAdaptiveMock : public SensorAmbientLightAdaptive
 
 
 #ifdef ARDUINO_ARCH_AVR
+template <uint8_t lightSensorADCChannel>
+class SensorAmbientLightConfigurable final : public SensorAmbientLightAdaptive
+{
+private:
+public:
+    constexpr SensorAmbientLightConfigurable() { }
+
+    // Normal raw scale internally is 10 bits [0,1023].
+    static constexpr uint16_t rawScale = 1024;
+    // Normal 2 bit shift between raw and externally-presented values.
+    static constexpr uint8_t shiftRawScaleTo8Bit = 2;
+
+    ////// If defined, then allow adaptive compression of top part of range when would otherwise max out.
+    ////// This may be somewhat supply-voltage dependent, eg capped by the supply voltage.
+    ////// Supply voltage is expected to be 2--3 times the bandgap reference, typically.
+    //////#define ADAPTIVE_THRESHOLD 896U // (1024-128) Top ~10%, companding by 8x.
+    //////#define ADAPTIVE_THRESHOLD 683U // (1024-683) Top ~33%, companding by 4x.
+    //////static const uint16_t scaleFactor = (extendedScale - ADAPTIVE_THRESHOLD) / (normalScale - ADAPTIVE_THRESHOLD);
+    ////// Assuming typical V supply of 2--3 times Vbandgap,
+    ////// compress above threshold to extend top of range by a factor of two.
+    ////// Ensure that scale stays monotonic in face of calculation lumpiness, etc...
+    ////// Scale all remaining space above threshold to new top value into remaining space.
+    ////// Ensure scaleFactor is a power of two for speed.
+
+    // Measure/store/return the current room ambient light levels in range [0,255].
+    // This may consume significant power and time.
+    // Probably no need to do this more than (say) once per minute,
+    // but at a regular rate to catch such events as lights being switched on.
+    // This implementation expects LDR (1M dark resistance) from IO_POWER_UP to LDR_SENSOR_AIN and 100k to ground,
+    // or a phototransistor TEPT4400 in place of the LDR.
+    // (Not intended to be called from ISR.)
+    // If possible turn off all local light sources (eg UI LEDs) before calling.
+    // If possible turn off all heavy current drains on supply before calling.
+    uint8_t read()
+    {
+        // Power on to top of LDR/phototransistor, directly connected to IO_POWER_UP.
+        OTV0P2BASE::power_intermittent_peripherals_enable(false);
+        // Give supply a moment to settle, eg from heavy current draw elsewhere.
+        OTV0P2BASE::nap(WDTO_30MS);
+        // Photosensor vs Vsupply [0,1023].  // May allow against Vbandgap again for some variants.
+        const uint16_t al0 = OTV0P2BASE::analogueNoiseReducedRead(lightSensorADCChannel, DEFAULT);
+        const uint16_t al = al0; // Use raw value as-is.
+        // Power off to top of LDR/phototransistor.
+        OTV0P2BASE::power_intermittent_peripherals_disable();
+
+        // Compute the new normalised value.
+        const uint8_t newValue = (uint8_t)(al >> shiftRawScaleTo8Bit);
+
+        // Capture entropy from changed ls bits.
+        // Claim zero entropy as value may be partly directly forced by Eve.
+        if(newValue != value) { addEntropyToPool((uint8_t)al, 0); }
+
+        // Store new value.
+        value = newValue;
+
+        // Have base class update other/derived values.
+        SensorAmbientLightAdaptive::read();
+
+#if 0 && defined(DEBUG)
+        DEBUG_SERIAL_PRINT_FLASHSTRING("Ambient light (/1023): ");
+        DEBUG_SERIAL_PRINT(al);
+        DEBUG_SERIAL_PRINTLN();
+#endif
+
+#if 0 && defined(DEBUG)
+        DEBUG_SERIAL_PRINT_FLASHSTRING("Ambient light val/dt/lt: ");
+        DEBUG_SERIAL_PRINT(value);
+        DEBUG_SERIAL_PRINT(' ');
+        DEBUG_SERIAL_PRINT(darkThreshold);
+        DEBUG_SERIAL_PRINT(' ');
+        DEBUG_SERIAL_PRINT(lightThreshold);
+        DEBUG_SERIAL_PRINTLN();
+#endif
+
+#if 0 && defined(DEBUG)
+        DEBUG_SERIAL_PRINT_FLASHSTRING("isRoomLit: ");
+        DEBUG_SERIAL_PRINT(isRoomLitFlag);
+        DEBUG_SERIAL_PRINTLN();
+#endif
+
+        return(value);
+    }
+};
+
 // Sensor for ambient light level; 0 is dark, 255 is bright.
 //
 // The REV7 implementation expects a phototransistor TEPT4400 (50nA dark current, nominal 200uA@100lx@Vce=50V) from IO_POWER_UP to LDR_SENSOR_AIN and 220k to ground.
@@ -231,19 +317,7 @@ class SensorAmbientLightAdaptiveMock : public SensorAmbientLightAdaptive
 // Measurement should be taken wrt to supply voltage, since light indication is a fraction of that.
 // Values below from PICAXE V0.09 impl approx multiplied by 4+ to allow for scale change.
 #define SensorAmbientLight_DEFINED
-class SensorAmbientLight final : public SensorAmbientLightAdaptive
-  {
-  private:
-  public:
-    constexpr SensorAmbientLight() { }
-
-    // Force a read/poll of the ambient light level and return the value sensed [0,255] (dark to light).
-    // Potentially expensive/slow.
-    // Not thread-safe nor usable within ISRs (Interrupt Service Routines).
-    // If possible turn off all local light sources (eg UI LEDs) before calling.
-    // If possible turn off all heavy current drains on supply before calling.
-    virtual uint8_t read();
-  };
+using SensorAmbientLight = SensorAmbientLightConfigurable<V0p2_PIN_LDR_SENSOR_AIN>;
 #endif // ARDUINO_ARCH_AVR
 
 
