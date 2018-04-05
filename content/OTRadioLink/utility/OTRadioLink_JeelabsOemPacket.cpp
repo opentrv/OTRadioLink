@@ -152,13 +152,17 @@ bool JeelabsOemPacket::filter( const volatile uint8_t *buf, volatile uint8_t &bu
 
 /*
  * Configure our own group and node ID.
+ * 
+ * FIXME DE20180404 Commented out because no one is using it and it is currently broken:
+ * - Return type does not match the code (I think it should be a bool).
+ * - Function does not always return a value (I think it should return true at he end).
  */
-uint8_t JeelabsOemPacket::setNodeAndGroupID(const uint8_t nodeID, const uint8_t groupID) 
-    {
-       if (nodeID > 31 ) return false;
-       _nodeID = nodeID;
-       _groupID = groupID;
-    }
+// uint8_t JeelabsOemPacket::setNodeAndGroupID(const uint8_t nodeID, const uint8_t groupID) 
+//     {
+//        if (nodeID > 31 ) return false;
+//        _nodeID = nodeID;
+//        _groupID = groupID;
+//     }
 
 
 /**Calculate CRC.

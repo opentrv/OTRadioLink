@@ -66,7 +66,14 @@ namespace OTRadioLink
         public:
         // Default node ID chosen arbitrarily, group ID is JeeLabs default.
         JeelabsOemPacket() { _nodeID = 5; _groupID = 100; }; 
-        uint8_t setNodeAndGroupID(const uint8_t nodeID, const uint8_t groupID);
+        /*
+         * Configure our own group and node ID.
+         * 
+         * FIXME DE20180404 Commented out because no one is using it and it is currently broken:
+         * - Return type does not match the code (I think it should be a bool).
+         * - Function does not always return a value (I think it should return true at he end).
+         */
+        // uint8_t setNodeAndGroupID(const uint8_t nodeID, const uint8_t groupID);
         uint8_t getNodeID() { return _nodeID; };
         uint8_t getGroupID() { return _groupID; };
         uint8_t encode( uint8_t * const buf,  const uint8_t buflen,  const uint8_t nodeID = 0,  const bool dest = false,  const bool ackReq = false,  const bool ackConf = false);

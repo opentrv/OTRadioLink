@@ -27,7 +27,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 
 #include "OTV0P2BASE_SensorTemperatureC16Base.h"
 
-
 namespace OTV0P2BASE
 {
 
@@ -35,7 +34,11 @@ namespace OTV0P2BASE
 // TMP112 sensor for ambient/room temperature in 1/16th of one degree Celsius.
 #define RoomTemperatureC16_TMP112_DEFINED
 class RoomTemperatureC16_TMP112 final : public OTV0P2BASE::TemperatureC16Base
-  { public: virtual int16_t read(); };
+{
+public: 
+    virtual int16_t read();
+    virtual bool isAvailable() const override;
+};
 #endif // ARDUINO_ARCH_AVR
 
 
