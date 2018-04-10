@@ -65,6 +65,17 @@ namespace OTV0P2BASE
     template<typename T>
     using OTAtomic_t = std::atomic<T>;
 #elif defined(ARDUINO_ARCH_AVR)
+
+    // RAII style ATOMIC_BLOCK(RESTORE_STATE) on AVR.
+    // WARNING! EXPERIMENTAL!
+    class AtomicBlock final
+    {
+    public:
+        const uint8_t savedSREG;
+        AtomicBlock() : savedSREG(SREG) { cli(); }
+        ~AtomicBlock() { SREG = savedSREG; }
+    };
+
     // OpenTRV version of std::atomic<> for use on AVR 8-bit arch.
     // Causes -Wreturn-type warnings due to ATOMIC_BLOCK macros.
     template <typename T>

@@ -243,6 +243,20 @@ void power_intermittent_peripherals_disable();
 	#define flushSerialProductive() Serial.flush()
 	#define flushSerialSCTSensitive() Serial.flush()
 	#endif
+
+  // RAII style wrapper around functiond that power/disable UART peripheral.
+  // WARNING! EXPERIMENTAL!
+  template <uint16_t baud = V0P2_UART_BAUD_DEFAULT>
+  class EnableUART final
+  {
+  public:
+      const bool neededEnable;
+      constexpr EnableUART() : neededEnable(powerUpSerialIfDisabled<baud>()) {}
+      ~EnableUART()
+      {
+          if (neededEnable) { flushSerialProductive(); powerDownSerial(); }
+      }
+  };
 #endif // ARDUINO_ARCH_AVR
 
 
