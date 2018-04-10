@@ -197,8 +197,16 @@ void power_intermittent_peripherals_disable();
                 }
         };
 
-#endif // ARDUINO_ARCH_AVR
-
+#else
+    // Stubs for unit testing.
+    template <uint8_t , uint8_t , uint8_t , uint8_t , bool >
+    class RAII_SPIPowerUpSPIIfDisabled final
+    {
+    public:
+        RAII_SPIPowerUpSPIIfDisabled() { }
+        ~RAII_SPIPowerUpSPIIfDisabled() { }
+    };
+#endif
 
 /************** Serial IO ************************/
 

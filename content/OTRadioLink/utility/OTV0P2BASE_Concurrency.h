@@ -61,6 +61,15 @@ namespace OTV0P2BASE
 // Atomic values.
 // Aim is to have something portable that can be replaced with STL objects where appropriate.
 #ifdef OTV0P2BASE_PLATFORM_HAS_atomic
+    // Stub implementation for unit testing.
+    class AtomicBlock final
+    {
+        public:
+        AtomicBlock() {}
+        ~AtomicBlock() {}
+    };
+
+
     // Default is to use the std::atomic where it exists, eg for hosted test cases.
     template<typename T>
     using OTAtomic_t = std::atomic<T>;
@@ -72,7 +81,9 @@ namespace OTV0P2BASE
     {
     public:
         const uint8_t savedSREG;
+        // Saves the register containing the IRQ state and disables global interrupts.
         AtomicBlock() : savedSREG(SREG) { cli(); }
+        // Restores IRQ state to what was saved in the constructor.
         ~AtomicBlock() { SREG = savedSREG; }
     };
 
