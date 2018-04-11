@@ -66,11 +66,11 @@ namespace OTV0P2BASE
     // Create instance where interrupts should be locked out,
     // interrupts will be restored to previous state at end of scope.
     // Stub implementation for unit testing.
-    class AtomicBlock final
+    class RAII_AtomicBlock final
     {
     public:
-        AtomicBlock() {}
-        ~AtomicBlock() {}
+        RAII_AtomicBlock() {}
+        ~RAII_AtomicBlock() {}
     };
 
 
@@ -83,14 +83,14 @@ namespace OTV0P2BASE
     // WARNING! EXPERIMENTAL!
     // Create instance where interrupts should be locked out,
     // interrupts will be restored to previous state at end of scope.
-    class AtomicBlock final
+    class RAII_AtomicBlock final
     {
     public:
         const uint8_t savedSREG;
         // Saves the register containing the IRQ state and disables global interrupts.
-        AtomicBlock() : savedSREG(SREG) { cli(); }
+        RAII_AtomicBlock() : savedSREG(SREG) { cli(); }
         // Restores IRQ state to what was saved in the constructor.
-        ~AtomicBlock() { SREG = savedSREG; }
+        ~RAII_AtomicBlock() { SREG = savedSREG; }
     };
 
     // OpenTRV version of std::atomic<> for use on AVR 8-bit arch.

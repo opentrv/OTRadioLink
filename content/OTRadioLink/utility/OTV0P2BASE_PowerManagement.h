@@ -255,17 +255,28 @@ void power_intermittent_peripherals_disable();
 // RAII style wrapper around functions that power/disable UART peripheral.
 // WARNING! EXPERIMENTAL!
     template <uint16_t baud = V0P2_UART_BAUD_DEFAULT>
-    class EnableUART final
+    class RAII_EnableSerial final
         {
         public:
             const bool neededEnable;
-        constexpr EnableUART()
+        constexpr RAII_EnableSerial()
             : neededEnable(powerUpSerialIfDisabled<baud>()) { }
-        ~EnableUART()
+        ~RAII_EnableSerial()
             {
             if(neededEnable)
                 { flushSerialProductive(); powerDownSerial(); }
             }
+        };
+#else
+// Stub for unit testing
+// RAII style wrapper around functions that power/disable UART peripheral.
+// WARNING! EXPERIMENTAL!
+    template <uint16_t>
+    class RAII_EnableSerial final
+        {
+        public:
+        constexpr RAII_EnableSerial() { }
+        ~RAII_EnableSerial() { }
         };
 #endif // ARDUINO_ARCH_AVR
 
