@@ -267,6 +267,17 @@ void power_intermittent_peripherals_disable();
                 { flushSerialProductive(); powerDownSerial(); }
             }
         };
+#else
+// Stub for unit testing
+// RAII style wrapper around functions that power/disable UART peripheral.
+// WARNING! EXPERIMENTAL!
+    template <uint16_t>
+    class RAII_EnableSerial final
+        {
+        public:
+        constexpr RAII_EnableSerial() { }
+        ~RAII_EnableSerial() { }
+        };
 #endif // ARDUINO_ARCH_AVR
 
 
