@@ -192,20 +192,20 @@ void power_intermittent_peripherals_disable();
             RAII_SPIPowerUpSPIIfDisabled()
               : neededEnable(t_powerUpSPIIfDisabled<SPI_nSS, slowSPI>()) { }
             ~RAII_SPIPowerUpSPIIfDisabled()
-                {
-                if(neededEnable) { t_powerDownSPI<SPI_nSS, SPI_SCK, SPI_MOSI, SPI_MISO, slowSPI>(); }
-                }
+                { if(neededEnable) { t_powerDownSPI<SPI_nSS, SPI_SCK, SPI_MOSI, SPI_MISO, slowSPI>(); } }
         };
 
 #else
+    // RAII-style SPI if-necessary power up/down.
+    // NOT TESTED YET: DO NOT USE!
     // Stubs for unit testing.
     template <uint8_t , uint8_t , uint8_t , uint8_t , bool >
     class RAII_SPIPowerUpSPIIfDisabled final
-    {
-    public:
-        RAII_SPIPowerUpSPIIfDisabled() { }
-        ~RAII_SPIPowerUpSPIIfDisabled() { }
-    };
+        {
+        public:
+            RAII_SPIPowerUpSPIIfDisabled() { }
+            ~RAII_SPIPowerUpSPIIfDisabled() { }
+        };
 #endif
 
 /************** Serial IO ************************/
@@ -252,19 +252,21 @@ void power_intermittent_peripherals_disable();
 	#define flushSerialSCTSensitive() Serial.flush()
 	#endif
 
-  // RAII style wrapper around functiond that power/disable UART peripheral.
-  // WARNING! EXPERIMENTAL!
-  template <uint16_t baud = V0P2_UART_BAUD_DEFAULT>
-  class EnableUART final
-  {
-  public:
-      const bool neededEnable;
-      constexpr EnableUART() : neededEnable(powerUpSerialIfDisabled<baud>()) {}
-      ~EnableUART()
-      {
-          if (neededEnable) { flushSerialProductive(); powerDownSerial(); }
-      }
-  };
+// RAII style wrapper around functions that power/disable UART peripheral.
+// WARNING! EXPERIMENTAL!
+    template <uint16_t baud = V0P2_UART_BAUD_DEFAULT>
+    class EnableUART final
+        {
+        public:
+            const bool neededEnable;
+        constexpr EnableUART()
+            : neededEnable(powerUpSerialIfDisabled<baud>()) { }
+        ~EnableUART()
+            {
+            if(neededEnable)
+                { flushSerialProductive(); powerDownSerial(); }
+            }
+        };
 #endif // ARDUINO_ARCH_AVR
 
 
