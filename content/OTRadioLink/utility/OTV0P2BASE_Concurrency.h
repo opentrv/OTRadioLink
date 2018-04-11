@@ -61,10 +61,14 @@ namespace OTV0P2BASE
 // Atomic values.
 // Aim is to have something portable that can be replaced with STL objects where appropriate.
 #ifdef OTV0P2BASE_PLATFORM_HAS_atomic
+    // RAII style ATOMIC_BLOCK(RESTORE_STATE) on AVR.
+    // WARNING! EXPERIMENTAL!
+    // Create instance where interrupts should be locked out,
+    // interrupts will be restored to previous state at end of scope.
     // Stub implementation for unit testing.
     class AtomicBlock final
     {
-        public:
+    public:
         AtomicBlock() {}
         ~AtomicBlock() {}
     };
@@ -77,6 +81,8 @@ namespace OTV0P2BASE
 
     // RAII style ATOMIC_BLOCK(RESTORE_STATE) on AVR.
     // WARNING! EXPERIMENTAL!
+    // Create instance where interrupts should be locked out,
+    // interrupts will be restored to previous state at end of scope.
     class AtomicBlock final
     {
     public:
