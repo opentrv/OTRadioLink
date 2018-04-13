@@ -568,7 +568,8 @@ namespace OTRadioLink
              *                ptext, before padding. Always less than
              *                ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE bytes.
              *              - outbuf, OUTPUT: Buffer to hold the entire secure frame,
-             *                including the trailer. At least 64 bytes and never NULL.
+             *                including the leading length byte and trailer. At least 64
+             *                bytes and never NULL.
              *              - outbufSize, INPUT: Size of outbuf in bytes.
              *              - fType, INPUT: frame type (without secure bit). Note that
              *                values of FTS_NONE and >= FTS_INVALID_HIGH will cause
@@ -682,7 +683,7 @@ namespace OTRadioLink
              *              - ptextLen, INPUT: The length of plaintext held by ptext. Must
              *                be less than ptextbufSize.
              *              - outbuf, OUTPUT: Buffer to hold entire encrypted frame, incl
-             *                trailer. Never NULL.
+             *                leading length byte and trailer. Never NULL.
              *              - outbufSize, INPUT: available length in buf. If it is too
              *                small then this routine will fail.
              *              - fType, INPUT: frame type (without secure bit). Note that
@@ -755,7 +756,7 @@ namespace OTRadioLink
              *              - ptextbufSize, INPUT: Size of plaintext buffer. 0 if ptext is
              *                a nullptr.
              *              - outbuf, OUTPUT: Buffer to hold entire encrypted frame, incl
-             *                trailer. Never NULL.
+             *                leading length byte and trailer. Never NULL.
              *              - outbufSize, INPUT: available length in buf. If it is too
              *                small thenthis routine will fail.
              * @param   il_: ID length for the header. ID is local node ID from EEPROM or

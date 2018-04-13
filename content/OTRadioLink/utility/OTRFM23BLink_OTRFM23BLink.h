@@ -305,25 +305,34 @@ namespace OTRFM23BLink
             // Higher-numbered error states may be more severe or more specific.
             virtual uint8_t getRXErr() override { ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { const uint8_t r = (uint8_t)lastRXErr; lastRXErr = 0; return(r); } return 0;} // FIXME Added return 0 to fix warning
 
-            // Send/TX a raw frame on the specified (default first/0) channel.
-            // This does not add any pre- or post- amble (etc)
-            // that particular receivers may require.
-            // Revert afterwards to listen()ing if enabled,
-            // else usually power down the radio if not listening.
-            //   * channel  Index to the OTRadioLinkChannelConfig to use for
-            //     this transmission. Not to be confused with the hardware's
-            //     concept of a channel.
-            //   * power  hint to indicate transmission importance
-            //     and thus possibly power or other efforts to get it heard;
-            //     this hint may be ignored.
-            //   * listenAfter  if true then try to listen after transmit
-            //     for enough time to allow a remote turn-around and TX;
-            //     may be ignored if radio will revert to receive mode anyway.
-            // Returns true if the transmission was made, else false.
-            // May block to transmit (eg to avoid copying the buffer).
-            //
-            // Implementation specifics:
-            //   * at TXmax will do double TX with 15ms sleep/IDLE mode between.
+            /**
+             * @brief   Send/TX a raw frame on the specified (default first/0) channel.
+             * 
+             * This does not add any pre- or post- amble (etc) that particular receivers
+             * may require.
+             * 
+             * May block to transmit (eg to avoid copying the buffer).
+             * 
+             * Implementation specifics:
+             * - If using packet handling (e.g. with StandardRegSettingsGFSK57600), the first
+             *   byte of the buffer MUST be the leading length byte, else the RX packet
+             *   handler will not be able to deduce the correct packet length.
+             * - At, TXmax will do double TX with 15ms sleep/IDLE mode between.
+             * 
+             * @param   buf: Buffer to hold the packet to send. The first byte MUST be the
+             *          leading length byte.
+             * @param   buflen: Length of buf, including the leading length byte.
+             * @param   channel: The index of the radio config channel array. This does NOT
+             *          correspond to the hardware's notion of a channel!
+             * @param   power: Hint to indicate importance. Radio may increase TX power or
+             *          make other efforts to insure important frames are heard.
+             *          Hints may be ignored.
+             * @param   listenAfter: If true, listen after transmit for enough time to
+             *          allow a remote turn-around and TX. If false, powers down the radio.
+             *          May be ignored if RX is not enabled, or the radio will revert to 
+             *          receive mode anyway.
+             * @retval  True if the TX was made.
+             */
             virtual bool sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal, bool listenAfter = false) override;
 
             // End access to this radio link if applicable and not already ended.

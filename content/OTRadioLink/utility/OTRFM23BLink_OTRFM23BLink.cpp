@@ -182,19 +182,34 @@ bool OTRFM23BLinkBase::_TXFIFO()
     return(result);
     }
 
-// Send/TX a raw frame on the specified (default first/0) channel.
-// This does not add any pre- or post- amble (etc)
-// that particular receivers may require.
-// Revert afterwards to listen()ing if enabled,
-// else usually power down the radio if not listening.
-//   * power  hint to indicate transmission importance
-///    and thus possibly power or other efforts to get it heard;
-//     this hint may be ignored.
-//   * listenAfter  if true then try to listen after transmit
-//     for enough time to allow a remote turn-around and TX;
-//     may be ignored if radio will revert to receive mode anyway.
-// Returns true if the transmission was made, else false.
-// May block to transmit (eg to avoid copying the buffer).
+/**
+ * @brief   Send/TX a raw frame on the specified (default first/0) channel.
+ * 
+ * This does not add any pre- or post- amble (etc) that particular receivers
+ * may require.
+ * 
+ * May block to transmit (eg to avoid copying the buffer).
+ * 
+ * Implementation specifics:
+ * - If using packet handling (e.g. with StandardRegSettingsGFSK57600), the 
+ *   first byte of the buffer MUST be the leading length byte, else the RX 
+ *   packet handler will not be able to deduce the correct packet length.
+ * - At, TXmax will do double TX with 15ms sleep/IDLE mode between.
+ * 
+ * @param   buf: Buffer to hold the packet to send. The first byte MUST be the
+ *          leading length byte.
+ * @param   buflen: Length of buf, including the leading length byte.
+ * @param   channel: The index of the radio config channel array. This does NOT
+ *          correspond to the hardware's notion of a channel!
+ * @param   power: Hint to indicate importance. Radio may increase TX power or
+ *          make other efforts to insure important frames are heard.
+ *          Hints may be ignored.
+ * @param   listenAfter: If true, listen after transmit for enough time to
+ *          allow a remote turn-around and TX. If false, powers down the radio.
+ *          May be ignored if RX is not enabled, or the radio will revert to 
+ *          receive mode anyway.
+ * @retval  True if the TX was made.
+ */
 bool OTRFM23BLinkBase::sendRaw(const uint8_t *const buf, const uint8_t buflen, const int8_t channel, const TXpower power, const bool /*listenAfter*/)
     {
     // FIXME: currently ignores all hints.

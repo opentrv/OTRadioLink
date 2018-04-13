@@ -333,23 +333,27 @@ namespace OTRadioLink
             //   * TXmin may for example be used to minimise the chance of being overheard during pairing.
             enum TXpower : uint8_t { TXmin, TXquiet, TXnormal, TXloud, TXmax };
 
-            // Send/TX a raw frame on the specified (default first/0) channel; returns true in case of apparent success.
-            // This does not add any pre- or post- amble (etc)
-            // that particular receivers may require.
-            // Revert afterwards to listen()ing if enabled,
-            // else usually power down the radio if not listening.
-            //   * channel  Index to the OTRadioLinkChannelConfig to use for
-            //     this transmission. Not to be confused with the hardware's
-            //     concept of a channel.
-            //   * power  hint to indicate transmission importance
-            //     and thus possibly power or other efforts to get it heard;
-            //     this hint may be ignored.
-            //   * listenAfter  if true then try to listen after transmit
-            //     for enough time to allow a remote turn-around and TX;
-            //     may be ignored if radio will revert to receive mode anyway.
-            // Returns true if the transmission was made, else false.
-            // May block to transmit (eg to avoid copying the buffer),
-            // for as much as hundreds of milliseconds depending on the data, carrier, etc.
+            /**
+             * @brief   Send/TX a raw frame on the specified (default first/0) channel.
+             * 
+             * This does not add any pre- or post- amble (etc) that particular receivers
+             * may require.
+             * 
+             * May block to transmit (eg to avoid copying the buffer).
+             *
+             * @param   buf: Buffer to hold the packet to send.
+             * @param   buflen: Length of buf.
+             * @param   channel: The index of the radio config channel array. This does NOT
+             *          correspond to the hardware's notion of a channel!
+             * @param   power: Hint to indicate importance. Radio may increase TX power or
+             *          make other efforts to insure important frames are heard.
+             *          Hints may be ignored.
+             * @param   listenAfter: If true, listen after transmit for enough time to
+             *          allow a remote turn-around and TX. If false, powers down the radio.
+             *          May be ignored if RX is not enabled, or the radio will revert to 
+             *          receive mode anyway.
+             * @retval  True if the TX was made.
+             */
             virtual bool sendRaw(const uint8_t *buf, uint8_t buflen, int8_t channel = 0, TXpower power = TXnormal, bool listenAfter = false) = 0;
 
             // Add raw frame to send queue, to be sent when radio is ready; returns true in case of apparent success.
