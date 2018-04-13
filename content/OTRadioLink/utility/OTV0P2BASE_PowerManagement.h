@@ -189,7 +189,7 @@ void power_intermittent_peripherals_disable();
         {
         public:
             const bool neededEnable;
-            RAII_SPIPowerUpSPIIfDisabled()
+            constexpr RAII_SPIPowerUpSPIIfDisabled()
               : neededEnable(t_powerUpSPIIfDisabled<SPI_nSS, slowSPI>()) { }
             ~RAII_SPIPowerUpSPIIfDisabled()
                 { if(neededEnable) { t_powerDownSPI<SPI_nSS, SPI_SCK, SPI_MOSI, SPI_MISO, slowSPI>(); } }

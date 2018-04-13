@@ -68,7 +68,8 @@
             "defines": [
                 "__GNUC__",
                 "ARDUINO_ARCH_AVR",
-                "ARDUINO"
+                "ARDUINO",
+                "__AVR_ATmega328P__"
             ],
             "intelliSenseMode": "clang-x64",
             "browse": {
