@@ -137,7 +137,7 @@ if(veryVerbose && logCallback) { fprintf(stderr, " *Callback: %d\n", p); }
 // Score actual setback against expected setback.
 // This is arguably the key metric, ie closest to the desired outcone,
 // of energy savings and comfort being achieved.
-// Sets 'failed' to true if at least one matric was a fail for this point.
+// Sets 'failed' to true if at least one metric was a fail for this point.
 template<class Valve_parameters>
 static void scoreSetback(
     const uint8_t setback, const ALDataSample::expectedSb_t expectedSb,
