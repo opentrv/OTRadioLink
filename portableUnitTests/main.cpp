@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2016
+Author(s) / Copyright (s): Damon Hart-Davis 2018
                            Deniz Erbilgin 2016
 */
 
@@ -24,6 +24,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 #include <stdint.h>
 #include <gtest/gtest.h>
 #include <utility/OTV0P2BASE_Util.h>
+
+// See same externally-available routines as downstream users.
+#include <OTRadioLink_PUT.h>
 
 
 // Sanity test.
