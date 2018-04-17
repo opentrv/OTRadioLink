@@ -21,4 +21,4 @@ Author(s) / Copyright (s): Damon Hart-Davis 2018
  */
 
 
-/* ... crickets ... ß*/
+/* ... crickets ... */
