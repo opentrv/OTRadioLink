@@ -34,6 +34,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016--2017
 #include "OTV0P2BASE_SensorAmbientLightOccupancy.h"
 
 #include "AmbientLightOccupancyDetectionTest.h"
+using namespace OTRadioLink::PortableUnitTest;
+
 
 // Set true to give basic per-sample stats results.
 static constexpr bool sampleStats = false;

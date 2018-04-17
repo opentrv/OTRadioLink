@@ -20,6 +20,10 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016--2018
  * Exported state for OTV0P2BASE_SensorAmbientLightOccupancy tests.
  */
 
+
+#ifndef PUT_OTRADIOLINK_AMBIENTLIGHTOCCUPANCYDETECTIONTEST_H
+#define PUT_OTRADIOLINK_AMBIENTLIGHTOCCUPANCYDETECTIONTEST_H
+
 #include <stdint.h>
 #include <gtest/gtest.h>
 #include <OTV0p2Base.h>
@@ -27,8 +31,12 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016--2018
 #include "OTV0P2BASE_SensorAmbientLightOccupancy.h"
 
 
+namespace OTRadioLink {
+namespace PortableUnitTest {
+
+
 // Import occType enum values.
-typedef OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType occType;
+typedef ::OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType occType;
 
 // Ambient light data samples, along with optional expected result of occupancy detector.
 // Can be directly created from OpenTRV log files into day hour minute value columns,
@@ -220,3 +228,7 @@ static const ALDataSample trivialSample3[] =
 { }
     };
 
+
+} }
+
+#endif
