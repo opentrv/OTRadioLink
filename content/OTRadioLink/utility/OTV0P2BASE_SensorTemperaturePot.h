@@ -127,7 +127,8 @@ template
     <
     class occ_t /* = OTV0P2BASE::PseudoSensorOccupancyTracker */, occ_t *const occupancyOpt = NULL,
     const uint16_t minExpected = 0, const uint16_t maxExpected = 1023 /* TEMP_POT_RAW_MAX */,
-    bool needsPeriphEnable = true
+    bool needsPeriphEnable = true,
+    uint8_t ADC_input = V0p2_PIN_TEMP_POT_AIN
     >
 class SensorTemperaturePot final : public SensorTemperaturePotBase
   {
@@ -190,7 +191,7 @@ class SensorTemperaturePot final : public SensorTemperaturePotBase
       // No need to wait for voltage to stabilise as pot top end
       // directly driven by IO_POWER_UP (or to Vcc, due to REV7 error!).
       if(needsPeriphEnable) { OTV0P2BASE::power_intermittent_peripherals_enable(false); }
-      const uint16_t tpRaw = OTV0P2BASE::analogueNoiseReducedRead(V0p2_PIN_TEMP_POT_AIN, DEFAULT); // Vcc reference.
+      const uint16_t tpRaw = OTV0P2BASE::analogueNoiseReducedRead(ADC_input, DEFAULT); // Vcc reference.
       if(needsPeriphEnable) { OTV0P2BASE::power_intermittent_peripherals_disable(); }
 
       const bool reverse = isReversed();
