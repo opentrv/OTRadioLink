@@ -26,7 +26,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2018
 #include <utility/OTV0P2BASE_Util.h>
 
 // See same externally-available routines as downstream users.
-#include <OTRadioLink_PUT.h>
+#include "OTRadioLink_PUT.h"
 
 
 // Sanity test.
