@@ -44,7 +44,7 @@ static bool splitUnit = false;
  * 
  * TODO
  */
-struct ThermalModelRoomParams
+struct ThermalModelRoomParams_t
 {
     // Conductance of the air to the wall in W/K.
     float conductance_21;
@@ -59,14 +59,14 @@ struct ThermalModelRoomParams
     // Capacitance of the TODO in J/K.
     float capacitance_0;
 };
-static const ThermalModelRoomParams roomParams_Default {
+static const ThermalModelRoomParams_t roomParams_Default {
     500, 300, 50, 350000, 1300000, 7000000,
 };
 
 /**
  * @brief   Physical constants modelling the radiator.
  */
-struct ThermalModelRadParams
+struct ThermalModelRadParams_t
 {
     // Conductance from the radiator to the room in W/K.
     float conductance;
@@ -77,7 +77,7 @@ struct ThermalModelRadParams
 /**
  * @brief   Current state of the room.
  */ 
-struct ThermalModelState
+struct ThermalModelState_t
 {
     // Inside air temperature in C
     float airTemperature {0.0};
@@ -91,13 +91,13 @@ struct ThermalModelState
     float valveTemp {0.0};
 
     // Everything but the outside temp is assumed to start at room temperature.
-    constexpr ThermalModelState(float startTemp) :
+    constexpr ThermalModelState_t(float startTemp) :
         airTemperature(startTemp),
         roomTemp(startTemp),
         t1(startTemp),
         t0(startTemp),
         valveTemp(startTemp) {}
-    constexpr ThermalModelState(float startTemp, float _outsideTemp) : 
+    constexpr ThermalModelState_t(float startTemp, float _outsideTemp) : 
         airTemperature(startTemp),
         roomTemp(startTemp),
         t1(startTemp),
@@ -117,9 +117,9 @@ class ThermalModelBase
         OTV0P2BASE::TemperatureC16Mock roomTemperatureInternal;
 
         // Constants & variables
-        ThermalModelState roomVars;
-        const ThermalModelRoomParams roomParams;
-        const ThermalModelRadParams radParams;
+        ThermalModelState_t roomVars;
+        const ThermalModelRoomParams_t roomParams;
+        const ThermalModelRadParams_t radParams;
 
         // Internal methods
         /**
@@ -170,8 +170,8 @@ class ThermalModelBase
     public:
         ThermalModelBase(
             const float startTemp,
-            const ThermalModelRoomParams _roomParams,
-            const ThermalModelRadParams _radParams = {25.0, 70.0}) : 
+            const ThermalModelRoomParams_t _roomParams,
+            const ThermalModelRadParams_t _radParams = {25.0, 70.0}) : 
             roomVars(startTemp),
             roomParams(_roomParams), 
             radParams(_radParams)
