@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2015--2017
+Author(s) / Copyright (s): Damon Hart-Davis 2015--2018
                            Deniz Erbilgin   2017
 */
 
@@ -39,9 +39,10 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2017
 #include "OTRadValve_ActuatorPhysicalUI.h"
 #include "OTRadValve_ModelledRadValveState.h"
 
-// Use namespaces to help avoid collisions.
+
 namespace OTRadValve
     {
+
 
 // Sensor, control and stats inputs for computations.
 // Read access to all necessary underlying devices.
@@ -130,8 +131,8 @@ class ModelledRadValveComputeTargetTempBase
     // Will be called by computeTargetTemperature().
     // A prime aim is to allow reasonable energy savings (10--30%+)
     // even if the device is left untouched and in WARM mode all the time,
-    // using occupancy/light/etc to determine when temperature can be set back
-    // without annoying users.
+    // using occupancy/light/etc to determine when temperature can be
+    // set back without annoying users.
     //
     // Attempts in WARM mode to make the deepest reasonable cuts
     // to maximise savings when the room is vacant
@@ -139,7 +140,8 @@ class ModelledRadValveComputeTargetTempBase
     // ie this looks ahead to give the room time
     // to get to or close to target before occupancy.
     //
-    // Stateless directly-testable version behind computeTargetTemperature().
+    // Stateless directly-testable version behind
+    // computeTargetTemperature().
     virtual uint8_t computeTargetTemp() const = 0;
 
     // Set all fields of inputState from the target temperature and other args, and the sensor/control inputs.
@@ -266,13 +268,15 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
             // This default should not be annoying, but saves little energy.
             uint8_t setback = valveControlParameters::SETBACK_DEFAULT;
 
-            // Note when it has been dark for many hours, overnight in winter.
+            // Note when it has been dark for many hours,
+            // overnight in winter.
             // This should be long enough to almost never be true
-            // in the afternoon or early evening even in long winter days.
+            // in the afternoon or early evening,
+            // even on long winter days.
             const uint16_t dm = ambLight->getDarkMinutes();
             static constexpr uint16_t longDarkM = 7*60U; // 7h
 
-            // Any imminent scheduled on may inhibit all but minimum setback.
+            // Any imminent scheduled on may inhibit all but min setback.
             const bool scheduleOnSoon = schedule->isAnyScheduleOnWARMSoon(OTV0P2BASE::getMinutesSinceMidnightLT());
             // High likelihood of occupancy now inhibits ECO setback.
             const uint8_t hoursLessOccupiedThanThis =
@@ -299,7 +303,7 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
 
             // ECO setback is possible: bulk of energy saving opportunities.
             // Go for ECO if dark or likely vacant now,
-            // and not usually relatively occupied now or in the next hour.
+            // and not usually relatively occupied now or in next hour.
             if(!inhibitECOSetback &&
                (confidentlyVacant ||
                 (likelyVacantNow && (hoursLessOccupiedThanThis <= 1)) ||
@@ -365,8 +369,11 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
         }
 
     // Set all fields of inputState from the target temperature etc.
-    // Usually target temp will just have been computed by computeTargetTemp().
-    // This should not second-guess computeTargetTemp() in terms of setbacks.
+    // Usually target temp will just have been computed by
+    // computeTargetTemp().
+    //
+    // This should not second-guess computeTargetTemp()
+    // in terms of setbacks.
     virtual void setupInputState(ModelledRadValveInputState &inputState,
         const bool /*isFiltering*/,
         const uint8_t newTargetC,
@@ -640,7 +647,7 @@ class ModelledRadValve final : public AbstractRadValve
     const uint8_t maxPCOpen = 100;
 
     // Compute target temperature and set heat demand for TRV and boiler; update state.
-    // CALL REGULARLY APPROXIMATELY ONCE PER MINUTE TO ALLOW SIMPLE TIME-BASED CONTROLS.
+    // CALL REGULARLY APPROX EACH MINUTE FOR SIMPLE TIME-BASED CONTROL.
     // Inputs are inWarmMode(), isRoomLit().
     // This routine may take significant CPU time; no I/O is done,
     // only internal state is updated.
