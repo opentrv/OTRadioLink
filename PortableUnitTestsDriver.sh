@@ -40,7 +40,7 @@ GLIBDIRS="-L/usr/local/lib"
 # Glib includes (paths).
 GINCLUDES="-I/usr/local/include"
 # Source includes (paths).
-INCLUDES="-I${PROJSRCROOT} -I${PROJSRCROOT}/utility -I${PROJSRCROOT}/IportableUnitTests"
+INCLUDES="-I${PROJSRCROOT} -I${PROJSRCROOT}/utility -IportableUnitTests"
 
 #echo "Using test sources: $TESTSRCS"
 #echo "Using project sources: $PROJSRCS"
