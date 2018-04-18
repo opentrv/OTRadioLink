@@ -31,7 +31,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016--2018
 #include "OTV0P2BASE_SensorAmbientLightOccupancy.h"
 
 
-namespace OTRadioLink {
+namespace OTV0P2BASE {
 namespace PortableUnitTest {
 
 
