@@ -40,7 +40,7 @@ GLIBDIRS="-L/usr/local/lib"
 # Glib includes (paths).
 GINCLUDES="-I/usr/local/include"
 # Source includes (paths).
-INCLUDES="-I${PROJSRCROOT} -I${PROJSRCROOT}/utility"
+INCLUDES="-I${PROJSRCROOT} -I${PROJSRCROOT}/utility -I${PROJSRCROOT}/IportableUnitTests"
 
 #echo "Using test sources: $TESTSRCS"
 #echo "Using project sources: $PROJSRCS"
@@ -60,7 +60,7 @@ fi
 OTAESGCMSRCDIR="${OTAESGCMDIR}/content/OTAESGCM"
 if [ -d ${OTAESGCMSRCDIR} ]; then
     echo "Lib source dir ${OTAESGCMSRCDIR} is present and will be used."
-    INCLUDES="${INCLUDES} -I${OTAESGCMSRCDIR} -I${OTAESGCMSRCDIR}/utility"
+    INCLUDES="${INCLUDES} -I${OTAESGCMSRCDIR} -I${OTAESGCMSRCDIR}/utility -I${OTAESGCMDIR}/portableUnitTests"
     PROJSRCS="${PROJSRCS} `find ${OTAESGCMSRCDIR} -name '*.cpp' -type f -print`"
     EXTRACPPFLAGS="-DEXT_AVAILABLE_ARDUINO_LIB_OTAESGCM"
 else
