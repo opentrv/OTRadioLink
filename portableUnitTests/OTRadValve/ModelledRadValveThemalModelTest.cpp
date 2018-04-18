@@ -294,7 +294,9 @@ public:
     float getValvePCOpen() { return valvePCOpen; }
     float getTargetTempC() { return is0.targetTempC; }
 };
+
 }
+
 TEST(ModelledRadValveThermalModel, roomCold)
 {
     bool verbose = false;
