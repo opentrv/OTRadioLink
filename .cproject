@@ -31,10 +31,12 @@
 								<option id="gnu.cpp.compiler.option.dialect.std.1696316000" name="Language standard" superClass="gnu.cpp.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.cpp.compiler.dialect.c++11" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.option.include.paths.2097143130" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
 									<listOptionValue builtIn="false" value="/usr/local/include"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/content/OTRadioLink}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/content/OTRadioLink}/utility&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/OTAESGCM/content/OTAESGCM}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/OTAESGCM/content/OTAESGCM/utility}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/OTAESGCM/portableUnitTests}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/content/OTRadioLink}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/content/OTRadioLink}/utility&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/portableUnitTests}&quot;"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.warnings.toerrors.522468824" name="Warnings as errors (-Werror)" superClass="gnu.cpp.compiler.option.warnings.toerrors" useByScannerDiscovery="false" value="true" valueType="boolean"/>
 								<option id="gnu.cpp.compiler.option.debugging.codecov.2007594292" name="Generate gcov information (-ftest-coverage -fprofile-arcs)" superClass="gnu.cpp.compiler.option.debugging.codecov" useByScannerDiscovery="false" value="false" valueType="boolean"/>
