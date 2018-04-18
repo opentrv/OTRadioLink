@@ -47,52 +47,66 @@ namespace TMB {
 bool verbose = false;
 bool splitUnit = false;
 
-
-// (const float _conductance_21,      // [W/K]
-// const float _conductance_10,   // [J/K]
-// const float _conductance_0W,   // [W/K]
-// const float _capacitance_2,   // [J/K]
-// const float _capacitance_1,   // [J/K]
-// const float _capacitance_0,   // [J/K]
-// const float startTemp,             // [C]
-// const float _outsideTemp = 0.0,          // [C]
-// const float _radiatorConductance = 25.0,  // [W/K]
-// const float _maxRadiatorTemp = 70.0)      // [C]
+/**
+ * @brief   Physical constants modelling heat transfer from the room to the  
+ *          rest of the world.
+ * 
+ * TODO
+ */
 struct ThermalModelRoomParams
 {
+    // Conductance of the inside layer of the wall.
     float conductance_21;
+    // Conductance of the middle layer of the wall.
     float conductance_10;
+    // Conductance of the outside layer of the wall.
     float conductance_0W;
+    // Capacitance of the inside layer of the wall.
     float capacitance_2;
+    // Capacitance of the middle layer of the wall.
     float capacitance_1;
+    // Capacitance of the outside layer of the wall.
     float capacitance_0;
 };
 static const ThermalModelRoomParams roomParams_Default {
     500, 300, 50, 350000, 1300000, 7000000,
 };
 
+/**
+ * @brief   Physical constants modelling the radiator.
+ */
 struct ThermalModelRadParams
 {
+    // Conductance from the radiator to the room.
     float conductance;
+    // Maximum temperature the radiator can reach.
     float maxTemp;
 };
 
-struct ThermalModelVariables
+/**
+ * @brief   Current state of the room.
+ */ 
+struct ThermalModelState
 {
+    // Inside air temperature
     float airTemperature {0.0};
+    // ??
     float roomTemp {0.0};
     float t1 {0.0};
     float t0 {0.0};
+    // Temperature of the outside world.
     float outsideTemp {0.0};
+    // Temperature at the rad valve.
     float valveTemp {0.0};
 
-    constexpr ThermalModelVariables(float startTemp) :
+    // Everything but the outside temp is assumed to start at room temperature.
+    constexpr ThermalModelState(float startTemp) :
         airTemperature(startTemp),
         roomTemp(startTemp),
         t1(startTemp),
         t0(startTemp),
         valveTemp(startTemp) {}
-    constexpr ThermalModelVariables(float startTemp, float _outsideTemp) : 
+    constexpr ThermalModelState(float startTemp, float _outsideTemp) : 
         airTemperature(startTemp),
         roomTemp(startTemp),
         t1(startTemp),
@@ -112,7 +126,7 @@ class ThermalModelBase
         OTV0P2BASE::TemperatureC16Mock roomTemperatureInternal;
 
         // Constants & variables
-        ThermalModelVariables roomVars;
+        ThermalModelState roomVars;
         const ThermalModelRoomParams roomParams;
         const ThermalModelRadParams radParams;
 
@@ -135,9 +149,9 @@ class ThermalModelBase
          */
         float calcHeatFlowRad(const float airTemp, const uint8_t radValveOpenPC) {
             // convert radValveOpenPC to radiator temp (badly)
-            const float radTemp = (2.0 * (float)radValveOpenPC) - 80;
+            const float radTemp {(2.0 * (float)radValveOpenPC) - 80.0};
             // Making sure the radiator temp does not exceed sensible values
-            const float scaledRadTemp = (radTemp < radParams.maxTemp) ? radTemp : radParams.maxTemp;
+            const float scaledRadTemp {(radTemp < radParams.maxTemp) ? radTemp : radParams.maxTemp};
             // Calculate heat transfer, making sure rad temp cannot go below air temperature.
             return (radTemp > airTemp) ? (heatTransfer(radParams.conductance, scaledRadTemp, airTemp)) : 0.0;
         }
@@ -169,9 +183,9 @@ class ThermalModelBase
             roomParams(_roomParams), 
             radParams(_radParams)
         {
-            // const float temperatureC16 = (int16_t)(startTemp * 16.0);
-//            storedHeat = startTemp * storageCapacitance;
+            // Init internal temp of the mock temp sensor
             roomTemperatureInternal.set((int16_t)(startTemp * 16.0));
+            // Init valve position of the mock rad valve.
             radValveInternal.set(0);
         };
 
