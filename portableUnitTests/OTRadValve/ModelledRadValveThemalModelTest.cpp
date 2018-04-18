@@ -55,17 +55,17 @@ bool splitUnit = false;
  */
 struct ThermalModelRoomParams
 {
-    // Conductance of the inside layer of the wall.
+    // Conductance of the air to the wall in W/K.
     float conductance_21;
-    // Conductance of the middle layer of the wall.
+    // Conductance through the wall in W/K.
     float conductance_10;
-    // Conductance of the outside layer of the wall.
+    // Conductance of the wall to the outside world in W/K.
     float conductance_0W;
-    // Capacitance of the inside layer of the wall.
+    // Capacitance of the TODO in J/K.
     float capacitance_2;
-    // Capacitance of the middle layer of the wall.
+    // Capacitance of the TODO in J/K.
     float capacitance_1;
-    // Capacitance of the outside layer of the wall.
+    // Capacitance of the TODO in J/K.
     float capacitance_0;
 };
 static const ThermalModelRoomParams roomParams_Default {
@@ -77,9 +77,9 @@ static const ThermalModelRoomParams roomParams_Default {
  */
 struct ThermalModelRadParams
 {
-    // Conductance from the radiator to the room.
+    // Conductance from the radiator to the room in W/K.
     float conductance;
-    // Maximum temperature the radiator can reach.
+    // Maximum temperature the radiator can reach in C.
     float maxTemp;
 };
 
@@ -88,15 +88,15 @@ struct ThermalModelRadParams
  */ 
 struct ThermalModelState
 {
-    // Inside air temperature
+    // Inside air temperature in C
     float airTemperature {0.0};
     // ??
     float roomTemp {0.0};
     float t1 {0.0};
     float t0 {0.0};
-    // Temperature of the outside world.
+    // Temperature of the outside world in C.
     float outsideTemp {0.0};
-    // Temperature at the rad valve.
+    // Temperature at the rad valve in C.
     float valveTemp {0.0};
 
     // Everything but the outside temp is assumed to start at room temperature.
@@ -226,6 +226,9 @@ class ThermalModelBase
         float getAirTemperature() { return (roomVars.roomTemp); }
         float getValveTemperature() {return (roomVars.valveTemp);}
     };
+
+    
+
 
 /**
  * @brief   Helper function that prints a JSON frame in the style of an OpenTRV frame.
