@@ -28,6 +28,62 @@ namespace OTRadValve
 namespace PortableUnitTest
 {
 
+/**
+ * @brief   Test an all in one unit.
+ */
+namespace TMTRHC {
+static constexpr uint_fast8_t valveUpdateTime = 60;  // Length of valve update cycle in seconds.
+/**
+ * Helper class to handle updating and storing state of TRV.
+ */
+class ThermalModelValve
+{
+protected:
+    uint_fast8_t valvePCOpen;
+    OTRadValve::ModelledRadValveInputState is0;
+    OTRadValve::ModelledRadValveState<> rs0;
+public:
+    ThermalModelValve(const uint_fast8_t startValvePCOpen, const float targetTemp) : valvePCOpen(startValvePCOpen)
+        { is0.targetTempC = targetTemp; }
+    /**
+     * @brief   Set current temperature at valve and calculate new valve state.
+     *          Should be called once per valve update cycle (see valveUpdateTime).
+     */
+    void tick(const float curTempC) {
+        is0.setReferenceTemperatures((uint_fast16_t)(curTempC * 16));
+        rs0.tick(valvePCOpen, is0, NULL);
+    }
+    float getValvePCOpen() { return valvePCOpen; }
+    float getTargetTempC() { return is0.targetTempC; }
+};
+
+/**
+ * Helper class to handle updating and storing state of TRV.
+ * Runs a binary valve control algorithm.
+ */
+class ThermalModelBinaryValve
+{
+protected:
+    uint_fast8_t valvePCOpen;
+    OTRadValve::ModelledRadValveInputState is0;
+    OTRadValve::ModelledRadValveState<true> rs0;
+public:
+    ThermalModelBinaryValve(const uint_fast8_t startValvePCOpen, const float targetTemp) : valvePCOpen(startValvePCOpen)
+        { is0.targetTempC = targetTemp; }
+    /**
+     * @brief   Set current temperature at valve and calculate new valve state.
+     *          Should be called once per valve update cycle (see valveUpdateTime).
+     */
+    void tick(const float curTempC) {
+        is0.setReferenceTemperatures((uint_fast16_t)(curTempC * 16));
+        rs0.tick(valvePCOpen, is0, NULL);
+    }
+    float getValvePCOpen() { return valvePCOpen; }
+    float getTargetTempC() { return is0.targetTempC; }
+};
+
+}
+
 // Holds references to a valve and temperature sensor
 // and models the how the former drives the latter
 // given the characteristics of the room, boiler, etc.
@@ -218,9 +274,6 @@ class ThermalModelBase
         float getValveTemperature() {return (roomVars.valveTemp);}
     };
 
-
-
-
 /**
  * @brief   Helper function that prints a JSON frame in the style of an OpenTRV frame.
  * @param   i: current model iteration
@@ -233,6 +286,75 @@ static void printFrame(const unsigned int i, const float airTempC, const float v
     fprintf(stderr, "[ \"%u\", \"\", {\"T|C\": %.2f, \"TV|C\": %.2f, \"tT|C\": %.2f, \"v|%%\": %u} ]\n",
             i, airTempC, valveTempC, targetTempC, valvePCOpen);
 }
+
+/**
+ * @brief   Whole room model
+ * 
+ * Inputs:
+ * - Room model
+ * - Radiator model
+ * - Radvalve model
+ * 
+ * Outputs:
+ * - Heat energy used (J)
+ * - Time spent outside a settable bound from the target temp, when occupied (m)
+ * - Energy spent running the actuator
+ * - Max temp fluctuation when room is occupied
+ * - ~~condensation/mould risk~~
+ */
+class RoomModel
+{
+
+    //////  Constants
+    struct InitConditions_t {
+        // Room start temp
+        const float roomTempC = 16.0f;
+        const float targetTempC = 19.0f;
+        // keep track of valve positions.
+        const uint_fast8_t valvePCOpen = 0;
+    } initCond;
+
+    ///// Variables
+    // Keep track of maximum and minimum room temps.
+    struct TempBoundsC_t {
+        float max = 0.0;
+        float min = 100.0;
+    } tempBounds;
+
+    // Delay in radiator responding to change in valvePCOpen. Should possibly be asymmetric. todo move into room model.
+    std::vector<uint_fast8_t> radDelay;
+
+    // Models
+    TMTRHC::ThermalModelValve valve;
+    ThermalModelBase model;
+
+public:
+    RoomModel() :
+        radDelay(5, initCond.valvePCOpen),
+        valve(initCond.valvePCOpen, initCond.targetTempC),
+        model(initCond.roomTempC, roomParams_Default) {  }
+
+    // Advances the model by 1 second
+    void tick(const uint8_t seconds)
+    {
+        const float valveTempC = model.getValveTemperature(); // current air temperature in C
+        const float airTempC = model.getAirTemperature();
+
+        if(0 == (seconds % TMTRHC::valveUpdateTime)) {  // once per minute tasks.
+            const uint_fast8_t valvePCOpen = valve.getValvePCOpen();
+            if (verbose) {
+                printFrame(seconds, airTempC, valveTempC, initCond.targetTempC, valvePCOpen);
+            }
+            valve.tick(valveTempC);
+            radDelay.erase(radDelay.begin());
+            radDelay.push_back(valvePCOpen);
+        }
+        model.calcNewAirTemperature(radDelay.front());
+        tempBounds.max = (tempBounds.max > airTempC) ? tempBounds.max : airTempC;
+        tempBounds.min = ((tempBounds.min < airTempC) && ((60 * 100) < seconds)) ? tempBounds.min : airTempC;  // avoid comparing during the first 100 mins
+    }
+};
+
 }
 
 }

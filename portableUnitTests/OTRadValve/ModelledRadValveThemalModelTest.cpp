@@ -40,62 +40,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 #include "ThermalPhysicsModels.h"
 using namespace OTRadValve::PortableUnitTest;
 
-/**
- * @brief   Test an all in one unit.
- */
-namespace TMTRHC {
-static constexpr uint_fast8_t valveUpdateTime = 60;  // Length of valve update cycle in seconds.
-/**
- * Helper class to handle updating and storing state of TRV.
- */
-class ThermalModelValve
-{
-protected:
-    uint_fast8_t valvePCOpen;
-    OTRadValve::ModelledRadValveInputState is0;
-    OTRadValve::ModelledRadValveState<> rs0;
-public:
-    ThermalModelValve(const uint_fast8_t startValvePCOpen, const float targetTemp) : valvePCOpen(startValvePCOpen)
-        { is0.targetTempC = targetTemp; }
-    /**
-     * @brief   Set current temperature at valve and calculate new valve state.
-     *          Should be called once per valve update cycle (see valveUpdateTime).
-     */
-    void tick(const float curTempC) {
-        is0.setReferenceTemperatures((uint_fast16_t)(curTempC * 16));
-        rs0.tick(valvePCOpen, is0, NULL);
-    }
-    float getValvePCOpen() { return valvePCOpen; }
-    float getTargetTempC() { return is0.targetTempC; }
-};
-
-/**
- * Helper class to handle updating and storing state of TRV.
- * Runs a binary valve control algorithm.
- */
-class ThermalModelBinaryValve
-{
-protected:
-    uint_fast8_t valvePCOpen;
-    OTRadValve::ModelledRadValveInputState is0;
-    OTRadValve::ModelledRadValveState<true> rs0;
-public:
-    ThermalModelBinaryValve(const uint_fast8_t startValvePCOpen, const float targetTemp) : valvePCOpen(startValvePCOpen)
-        { is0.targetTempC = targetTemp; }
-    /**
-     * @brief   Set current temperature at valve and calculate new valve state.
-     *          Should be called once per valve update cycle (see valveUpdateTime).
-     */
-    void tick(const float curTempC) {
-        is0.setReferenceTemperatures((uint_fast16_t)(curTempC * 16));
-        rs0.tick(valvePCOpen, is0, NULL);
-    }
-    float getValvePCOpen() { return valvePCOpen; }
-    float getTargetTempC() { return is0.targetTempC; }
-};
-
-}
-
 TEST(ModelledRadValveThermalModel, roomCold)
 {
     bool verbose = false;
