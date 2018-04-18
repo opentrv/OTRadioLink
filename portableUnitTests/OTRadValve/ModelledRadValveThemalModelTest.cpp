@@ -147,11 +147,12 @@ class ThermalModelBase
          *          - Cannot be below air temperature (the radiator cannot sink heat).
          * @retval  Heat transfer into room from radiator, in J
          */
-        float calcHeatFlowRad(const float airTemp, const uint8_t radValveOpenPC) {
+        float calcHeatFlowRad(const float airTemp, const uint8_t radValveOpenPC) const 
+        {
             // convert radValveOpenPC to radiator temp (badly)
-            const float radTemp {(2.0 * (float)radValveOpenPC) - 80.0};
+            const float radTemp = (2.0 * (float)radValveOpenPC) - 80.0;
             // Making sure the radiator temp does not exceed sensible values
-            const float scaledRadTemp {(radTemp < radParams.maxTemp) ? radTemp : radParams.maxTemp};
+            const float scaledRadTemp = (radTemp < radParams.maxTemp) ? radTemp : radParams.maxTemp;
             // Calculate heat transfer, making sure rad temp cannot go below air temperature.
             return (radTemp > airTemp) ? (heatTransfer(radParams.conductance, scaledRadTemp, airTemp)) : 0.0;
         }
@@ -164,9 +165,10 @@ class ThermalModelBase
          *          - Cannot be below air temperature (the radiator cannot sink heat).
          * @retval  Heat transfer into room from radiator, in J
          */
-        float calcValveTemp(const float airTemp, const float localTemp, const float heatFlowFromRad) {
-            static constexpr float thermalConductanceRad = 0.05f;  // fixme literal is starting estimate for thermal resistance
-            static constexpr float thermalConductanceRoom = 10.0f;
+        float calcValveTemp(const float airTemp, const float localTemp, const float heatFlowFromRad) const
+        {
+            static constexpr float thermalConductanceRad {0.05f};  // fixme literal is starting estimate for thermal resistance
+            static constexpr float thermalConductanceRoom {10.0f};
             const float heatIn = heatFlowFromRad * thermalConductanceRad;
             const float heatOut = heatTransfer(thermalConductanceRoom, localTemp, airTemp);
             const float valveHeatFlow = heatIn - heatOut;
@@ -200,20 +202,22 @@ class ThermalModelBase
             radValveInternal.set(radValveOpenPC);
             // Calc heat in from rad
             const float heat_in = calcHeatFlowRad(roomVars.airTemperature, radValveInternal.get());
-            // Calc heat flow from seg2 to seg1
-            const float heat_21 = heat_in - heatTransfer(roomParams.conductance_21, roomVars.roomTemp, roomVars.t1);
-            // Calc heat flow from seg1 to seg0
-            const float heat_10 = heatTransfer(
-                roomParams.conductance_21, roomVars.roomTemp, roomVars.t1) 
-                - heatTransfer(roomParams.conductance_10, roomVars.t1, roomVars.t0);
-            // Calc heat flow from seg0 to world.
-            const float heat_out = 
-                heatTransfer(roomParams.conductance_10, roomVars.t1, roomVars.t0) 
-                - heatTransfer(roomParams.conductance_0W, roomVars.t0, roomVars.outsideTemp);
+
+            // Calculate change in heat of each segment.
+            const float heatDelta_21 = heatTransfer(roomParams.conductance_21, roomVars.roomTemp, roomVars.t1);
+            const float heatDelta_10 = heatTransfer(roomParams.conductance_10, roomVars.t1, roomVars.t0);
+            const float heatDelta_0w = heatTransfer(roomParams.conductance_0W, roomVars.t0, roomVars.outsideTemp);
+
+            // Calc new heat of each segment.
+            const float heat_21 = heat_in - heatDelta_21;
+            const float heat_10 = heatDelta_21 - heatDelta_10;
+            const float heat_out = heatDelta_10 - heatDelta_0w;
+
             // Calc new temps.
             roomVars.roomTemp += heat_21 / roomParams.capacitance_2;
             roomVars.t1 += heat_10 / roomParams.capacitance_1;
             roomVars.t0 += heat_out / roomParams.capacitance_0;
+
             // Calc temp of thermostat. This is the same as the room temp in a splot unit.
             if(!splitUnit) { roomVars.valveTemp = calcValveTemp(roomVars.roomTemp, roomVars.valveTemp, heat_in); }
             else { roomVars.valveTemp = roomVars.roomTemp; }
