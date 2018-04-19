@@ -295,6 +295,7 @@ struct InitConditions_t {
     const uint_fast8_t valvePCOpen;
 };
 struct TempBoundsC_t {
+    const uint32_t startDelayM = 100;
     float max = 0.0;
     float min = 100.0;
 };
@@ -341,8 +342,12 @@ public:
             radDelay.push_back(valvePCOpen);
         }
         model.calcNewAirTemperature(radDelay.front());
-        tempBounds.max = (tempBounds.max > airTempC) ? tempBounds.max : airTempC;
-        tempBounds.min = ((tempBounds.min < airTempC) && ((60 * 100) < seconds)) ? tempBounds.min : airTempC;  // avoid comparing during the first 100 mins
+
+        // Ignore initially bringing the room to temperature.
+        if (seconds > (60 * tempBounds.startDelayM)) {
+            tempBounds.max = (tempBounds.max > airTempC) ? tempBounds.max : airTempC;
+            tempBounds.min = (tempBounds.min < airTempC) ? tempBounds.min : airTempC;  
+        }
     }
 
     TempBoundsC_t getTempBounds() { return (tempBounds); }
