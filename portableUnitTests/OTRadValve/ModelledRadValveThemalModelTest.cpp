@@ -51,10 +51,10 @@ TEST(ModelledRadValveThermalModel, roomCold)
         0,     // Valve position in %
     };
 
-    TMB::ThermalModelValve<> vm(initCond);
-
     // Set up.
-    TMB::RoomModelBasic rm(initCond, vm);
+    TMB::ValveModel<> vm(initCond);
+    TMB::ThermalModelBasic tm(initCond.targetTempC);
+    TMB::RoomModelBasic rm(initCond, vm, tm);
 
     // Delay in radiator responding to change in valvePCOpen. Should possibly be asymmetric. todo move into room model.
     for(auto i = 0; i < 20000; ++i) { rm.tick(i); }
@@ -75,10 +75,10 @@ TEST(ModelledRadValveThermalModel, roomColdBinary)
         0,     // Valve position in %
     };
 
-    TMB::ThermalModelValve<true> vm(initCond);
-
     // Set up.
-    TMB::RoomModelBasic rm(initCond, vm);
+    TMB::ValveModel<true> vm(initCond);
+    TMB::ThermalModelBasic tm(initCond.targetTempC);
+    TMB::RoomModelBasic rm(initCond, vm, tm);
 
     // Delay in radiator responding to change in valvePCOpen. Should possibly be asymmetric. todo move into room model.
     for(auto i = 0; i < 20000; ++i) { rm.tick(i); }
@@ -99,10 +99,10 @@ TEST(ModelledRadValveThermalModel, roomHot)
         0,     // Valve position in %
     };
 
-    TMB::ThermalModelValve<> vm(initCond);
-
     // Set up.
-    TMB::RoomModelBasic rm(initCond, vm);
+    TMB::ValveModel<> vm(initCond);
+    TMB::ThermalModelBasic tm(initCond.targetTempC);
+    TMB::RoomModelBasic rm(initCond, vm, tm);
 
     // Delay in radiator responding to change in valvePCOpen. Should possibly be asymmetric. todo move into room model.
     for(auto i = 0; i < 20000; ++i) { rm.tick(i); }

@@ -52,7 +52,7 @@ struct InitConditions_t {
 /**
  * Helper class to handle updating and storing state of TRV.
  */
-class ThermalModelValveBase
+class ValveModelBase
 {
 public:
     /**
@@ -69,14 +69,14 @@ public:
  * Runs a binary valve control algorithm.
  */
 template<bool isBinary = false>
-class ThermalModelValve : public ThermalModelValveBase
+class ValveModel : public ValveModelBase
 {
 protected:
     uint_fast8_t valvePCOpen;
     OTRadValve::ModelledRadValveInputState is0;
     OTRadValve::ModelledRadValveState<isBinary> rs0;
 public:
-    ThermalModelValve(const InitConditions_t init) : valvePCOpen(init.valvePCOpen)
+    ValveModel(const InitConditions_t init) : valvePCOpen(init.valvePCOpen)
         { is0.targetTempC = init.targetTempC; }
     /**
      * @brief   Set current temperature at valve and calculate new valve state.
@@ -97,7 +97,7 @@ public:
  * 
  * TODO
  */
-struct ThermalModelRoomParams_t
+struct RoomParams_t
 {
     // Conductance of the air to the wall in W/K.
     const float conductance_21;
@@ -112,21 +112,21 @@ struct ThermalModelRoomParams_t
     // Capacitance of the TODO in J/K.
     const float capacitance_0;
 };
-static const ThermalModelRoomParams_t roomParams_Default {
+static const RoomParams_t roomParams_Default {
     500, 300, 50, 350000, 1300000, 7000000,
 };
 
 /**
  * @brief   Physical constants modelling the radiator.
  */
-struct ThermalModelRadParams_t
+struct RadParams_t
 {
     // Conductance from the radiator to the room in W/K.
     const float conductance;
     // Maximum temperature the radiator can reach in C.
     const float maxTemp;
 };
-static const ThermalModelRadParams_t radParams_Default {
+static const RadParams_t radParams_Default {
     25.0, 70.0
 };
 
@@ -174,14 +174,14 @@ class ThermalModelBasic
 
         // Constants & variables
         ThermalModelState_t roomVars;
-        const ThermalModelRoomParams_t roomParams;
-        const ThermalModelRadParams_t radParams;
+        const RoomParams_t roomParams;
+        const RadParams_t radParams;
 
         // Internal methods
         /**
          * @brief   Calculate heat transfer through a thermal resistance. Flow from temp1 to temp2 is positive.
          */
-        static float heatTransfer(const float conductance, const float temp1, const float temp2) const
+        static float heatTransfer(const float conductance, const float temp1, const float temp2)
         {
             return conductance * (temp1 - temp2);
         }
@@ -226,8 +226,8 @@ class ThermalModelBasic
     public:
         ThermalModelBasic(
             const float startTemp,
-            const ThermalModelRoomParams_t _roomParams,
-            const ThermalModelRadParams_t _radParams) : 
+            const RoomParams_t _roomParams = roomParams_Default,
+            const RadParams_t _radParams = radParams_Default) : 
             roomVars(startTemp),
             roomParams(_roomParams), 
             radParams(_radParams)
@@ -309,19 +309,18 @@ class RoomModelBasic
     std::vector<uint_fast8_t> radDelay;
 
     // Models
-    ThermalModelValveBase &valve;
-    ThermalModelBasic model;
+    ValveModelBase& valve;
+    ThermalModelBasic& model;
 
 public:
     RoomModelBasic(
         const InitConditions_t init,
-        ThermalModelValveBase &_valve,
-        const ThermalModelRoomParams_t roomParams = roomParams_Default,
-        const ThermalModelRadParams_t radParams = radParams_Default) :
+        ValveModelBase& _valve,
+        ThermalModelBasic& _model) :
         initCond(init),
         radDelay(5, initCond.valvePCOpen),
         valve(_valve),
-        model(init.roomTempC, roomParams, radParams) {  }
+        model(_model) {  }
 
     // Advances the model by 1 second
     void tick(const uint32_t seconds)
