@@ -87,7 +87,7 @@ private:
 
 public:
     // Initialise the model with the room conditions..
-    virtual void init(const InitConditions_t init) {
+    void init(const InitConditions_t init) override {
         valvePCOpen = init.valvePCOpen;
         is0.targetTempC = init.targetTempC;
     }
