@@ -287,39 +287,29 @@ static void printFrame(const unsigned int i, const float airTempC, const float v
             i, airTempC, valveTempC, targetTempC, valvePCOpen);
 }
 
+struct InitConditions_t {
+    // Room start temp
+    const float roomTempC;
+    const float targetTempC;
+    // keep track of valve positions.
+    const uint_fast8_t valvePCOpen;
+};
+struct TempBoundsC_t {
+    float max = 0.0;
+    float min = 100.0;
+};
+
 /**
  * @brief   Whole room model
- * 
- * Inputs:
- * - Room model
- * - Radiator model
- * - Radvalve model
- * 
- * Outputs:
- * - Heat energy used (J)
- * - Time spent outside a settable bound from the target temp, when occupied (m)
- * - Energy spent running the actuator
- * - Max temp fluctuation when room is occupied
- * - ~~condensation/mould risk~~
  */
 class RoomModel
 {
-
     //////  Constants
-    struct InitConditions_t {
-        // Room start temp
-        const float roomTempC = 16.0f;
-        const float targetTempC = 19.0f;
-        // keep track of valve positions.
-        const uint_fast8_t valvePCOpen = 0;
-    } initCond;
+    const InitConditions_t initCond;
 
     ///// Variables
     // Keep track of maximum and minimum room temps.
-    struct TempBoundsC_t {
-        float max = 0.0;
-        float min = 100.0;
-    } tempBounds;
+    TempBoundsC_t tempBounds;
 
     // Delay in radiator responding to change in valvePCOpen. Should possibly be asymmetric. todo move into room model.
     std::vector<uint_fast8_t> radDelay;
@@ -329,7 +319,8 @@ class RoomModel
     ThermalModelBase model;
 
 public:
-    RoomModel() :
+    RoomModel(InitConditions_t init) :
+        initCond(init),
         radDelay(5, initCond.valvePCOpen),
         valve(initCond.valvePCOpen, initCond.targetTempC),
         model(initCond.roomTempC, roomParams_Default) {  }
@@ -353,6 +344,8 @@ public:
         tempBounds.max = (tempBounds.max > airTempC) ? tempBounds.max : airTempC;
         tempBounds.min = ((tempBounds.min < airTempC) && ((60 * 100) < seconds)) ? tempBounds.min : airTempC;  // avoid comparing during the first 100 mins
     }
+
+    TempBoundsC_t getTempBounds() { return (tempBounds); }
 };
 
 }
