@@ -28,62 +28,6 @@ namespace OTRadValve
 namespace PortableUnitTest
 {
 
-/**
- * @brief   Test an all in one unit.
- */
-namespace TMTRHC {
-static constexpr uint_fast8_t valveUpdateTime = 60;  // Length of valve update cycle in seconds.
-/**
- * Helper class to handle updating and storing state of TRV.
- */
-class ThermalModelValve
-{
-protected:
-    uint_fast8_t valvePCOpen;
-    OTRadValve::ModelledRadValveInputState is0;
-    OTRadValve::ModelledRadValveState<> rs0;
-public:
-    ThermalModelValve(const uint_fast8_t startValvePCOpen, const float targetTemp) : valvePCOpen(startValvePCOpen)
-        { is0.targetTempC = targetTemp; }
-    /**
-     * @brief   Set current temperature at valve and calculate new valve state.
-     *          Should be called once per valve update cycle (see valveUpdateTime).
-     */
-    void tick(const float curTempC) {
-        is0.setReferenceTemperatures((uint_fast16_t)(curTempC * 16));
-        rs0.tick(valvePCOpen, is0, NULL);
-    }
-    float getValvePCOpen() { return valvePCOpen; }
-    float getTargetTempC() { return is0.targetTempC; }
-};
-
-/**
- * Helper class to handle updating and storing state of TRV.
- * Runs a binary valve control algorithm.
- */
-class ThermalModelBinaryValve
-{
-protected:
-    uint_fast8_t valvePCOpen;
-    OTRadValve::ModelledRadValveInputState is0;
-    OTRadValve::ModelledRadValveState<true> rs0;
-public:
-    ThermalModelBinaryValve(const uint_fast8_t startValvePCOpen, const float targetTemp) : valvePCOpen(startValvePCOpen)
-        { is0.targetTempC = targetTemp; }
-    /**
-     * @brief   Set current temperature at valve and calculate new valve state.
-     *          Should be called once per valve update cycle (see valveUpdateTime).
-     */
-    void tick(const float curTempC) {
-        is0.setReferenceTemperatures((uint_fast16_t)(curTempC * 16));
-        rs0.tick(valvePCOpen, is0, NULL);
-    }
-    float getValvePCOpen() { return valvePCOpen; }
-    float getTargetTempC() { return is0.targetTempC; }
-};
-
-}
-
 // Holds references to a valve and temperature sensor
 // and models the how the former drives the latter
 // given the characteristics of the room, boiler, etc.
@@ -93,6 +37,59 @@ namespace TMB {
 
 static bool verbose = false;
 static bool splitUnit = false;
+
+
+static constexpr uint_fast8_t valveUpdateTime = 60;  // Length of valve update cycle in seconds.
+
+struct InitConditions_t {
+    // Room start temp
+    const float roomTempC;
+    const float targetTempC;
+    // keep track of valve positions.
+    const uint_fast8_t valvePCOpen;
+};
+
+/**
+ * Helper class to handle updating and storing state of TRV.
+ */
+class ThermalModelValveBase
+{
+public:
+    /**
+     * @brief   Set current temperature at valve and calculate new valve state.
+     *          Should be called once per valve update cycle (see valveUpdateTime).
+     */
+    virtual void tick(const float curTempC) = 0;
+    virtual float getValvePCOpen() const = 0;
+    virtual float getTargetTempC() const = 0;
+};
+
+/**
+ * Helper class to handle updating and storing state of TRV.
+ * Runs a binary valve control algorithm.
+ */
+template<bool isBinary = false>
+class ThermalModelValve : public ThermalModelValveBase
+{
+protected:
+    uint_fast8_t valvePCOpen;
+    OTRadValve::ModelledRadValveInputState is0;
+    OTRadValve::ModelledRadValveState<isBinary> rs0;
+public:
+    ThermalModelValve(const InitConditions_t init) : valvePCOpen(init.valvePCOpen)
+        { is0.targetTempC = init.targetTempC; }
+    /**
+     * @brief   Set current temperature at valve and calculate new valve state.
+     *          Should be called once per valve update cycle (see valveUpdateTime).
+     */
+    void tick(const float curTempC) override {
+        is0.setReferenceTemperatures((uint_fast16_t)(curTempC * 16));
+        rs0.tick(valvePCOpen, is0, NULL);
+    }
+    float getValvePCOpen() const override { return (valvePCOpen); }
+    float getTargetTempC() const override { return (is0.targetTempC); }
+};
+
 
 /**
  * @brief   Physical constants modelling heat transfer from the room to the  
@@ -287,13 +284,6 @@ static void printFrame(const unsigned int i, const float airTempC, const float v
             i, airTempC, valveTempC, targetTempC, valvePCOpen);
 }
 
-struct InitConditions_t {
-    // Room start temp
-    const float roomTempC;
-    const float targetTempC;
-    // keep track of valve positions.
-    const uint_fast8_t valvePCOpen;
-};
 struct TempBoundsC_t {
     const uint32_t startDelayM = 100;
     float max = 0.0;
@@ -316,14 +306,14 @@ class RoomModelBasic
     std::vector<uint_fast8_t> radDelay;
 
     // Models
-    TMTRHC::ThermalModelValve valve;
+    ThermalModelValveBase &valve;
     ThermalModelBase model;
 
 public:
-    RoomModelBasic(InitConditions_t init) :
+    RoomModelBasic(const InitConditions_t init, ThermalModelValveBase &_valve) :
         initCond(init),
         radDelay(5, initCond.valvePCOpen),
-        valve(initCond.valvePCOpen, initCond.targetTempC),
+        valve(_valve),
         model(initCond.roomTempC, roomParams_Default) {  }
 
     // Advances the model by 1 second
@@ -332,7 +322,7 @@ public:
         const float valveTempC = model.getValveTemperature(); // current air temperature in C
         const float airTempC = model.getAirTemperature();
 
-        if(0 == (seconds % TMTRHC::valveUpdateTime)) {  // once per minute tasks.
+        if(0 == (seconds % valveUpdateTime)) {  // once per minute tasks.
             const uint_fast8_t valvePCOpen = valve.getValvePCOpen();
             if (verbose) {
                 printFrame(seconds, airTempC, valveTempC, initCond.targetTempC, valvePCOpen);
