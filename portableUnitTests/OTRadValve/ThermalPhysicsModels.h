@@ -323,8 +323,6 @@ struct TempBoundsC_t {
     float min = 100.0;
 };
 
-
-
 static void internalModelTick(
     const uint32_t seconds, 
     ValveModelBase& v, 
@@ -353,8 +351,6 @@ static void updateTempBounds(TempBoundsC_t& bounds, const ThermalModelState_t& s
  */
 class RoomModelBasic
 {
-    //////  Constants
-    const InitConditions_t initCond;
 
     ///// Variables
     // Keep track of maximum and minimum room temps.
@@ -384,7 +380,7 @@ public:
         }
     }
 
-    TempBoundsC_t getTempBounds() { return (tempBounds); }
+    TempBoundsC_t getTempBounds() const { return (tempBounds); }
 };
 
 }
