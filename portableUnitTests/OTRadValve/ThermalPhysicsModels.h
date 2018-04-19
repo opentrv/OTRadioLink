@@ -70,6 +70,8 @@ public:
     virtual float getValvePCOpen() const = 0;
     // get target temperature in C.
     virtual float getTargetTempC() const = 0;
+    // Get the effective valve percentage open the model should use.
+    virtual float getEffectiveValvePCOpen() const = 0;    
 };
 
 /**
@@ -85,11 +87,17 @@ private:
     OTRadValve::ModelledRadValveInputState is0;
     OTRadValve::ModelledRadValveState<isBinary> rs0;
 
+    // Delay in radiator responding to change in valvePCOpen. Should possibly be asymmetric.
+    std::vector<uint_fast8_t> responseDelay = {0, 0, 0, 0, 0};
+
+
 public:
     // Initialise the model with the room conditions..
     void init(const InitConditions_t init) override {
         valvePCOpen = init.valvePCOpen;
         is0.targetTempC = init.targetTempC;
+        // Init
+        responseDelay.assign(5, init.valvePCOpen);
     }
     /**
      * @brief   Set current temperature at valve and calculate new valve state.
@@ -101,10 +109,16 @@ public:
     void tick(const float curTempC) override {
         is0.setReferenceTemperatures((uint_fast16_t)(curTempC * 16));
         rs0.tick(valvePCOpen, is0, NULL);
+
+        // May make more sense in the thermal model, but only needs to be run
+        // once every time this function is called.
+        responseDelay.erase(responseDelay.begin());
+        responseDelay.push_back(valvePCOpen);
     }
     // 
     float getValvePCOpen() const override { return (valvePCOpen); }
     float getTargetTempC() const override { return (is0.targetTempC); }
+    float getEffectiveValvePCOpen() const override { return (responseDelay.front()); }
 };
 
 
@@ -252,6 +266,7 @@ class ThermalModelBasic
         void init(const InitConditions_t init) {
             // Init the thermal model
             initThermalModelState(roomState, init);
+
             // Init internal temp of the mock temp sensor
             roomTemperatureInternal.set((int16_t)(init.roomTempC * 16.0));
             // Init valve position of the mock rad valve.
@@ -309,6 +324,30 @@ struct TempBoundsC_t {
 };
 
 
+
+static void internalModelTick(
+    const uint32_t seconds, 
+    ValveModelBase& v, 
+    ThermalModelBasic& m)
+{
+    if(0 == (seconds % valveUpdateTime)) {  // once per minute tasks.
+        const ThermalModelState_t state = m.getState();
+        // if (verbose) {
+        //     const float airTempC = state.roomTemp;
+        //     printFrame(seconds, airTempC, valveTempC, initCond.targetTempC, valvePCOpen);
+        // }
+        v.tick(state.valveTemp);
+    }
+    m.calcNewAirTemperature(v.getEffectiveValvePCOpen());
+}
+
+static void updateTempBounds(TempBoundsC_t& bounds, const ThermalModelState_t& state)
+{
+    bounds.max = (bounds.max > state.roomTemp) ? bounds.max : state.roomTemp;
+    bounds.min = (bounds.min < state.roomTemp) ? bounds.min : state.roomTemp;  
+}
+
+
 /**
  * @brief   Whole room model
  */
@@ -321,55 +360,22 @@ class RoomModelBasic
     // Keep track of maximum and minimum room temps.
     TempBoundsC_t tempBounds;
 
-    // Delay in radiator responding to change in valvePCOpen. Should possibly be asymmetric. todo move into room model.
-    std::vector<uint_fast8_t> radDelay;
-
     // Models
     ValveModelBase& valve;
     ThermalModelBasic& model;
 
-    static void internalTick(
-        const uint32_t seconds, 
-        ValveModelBase& v, 
-        ThermalModelBasic& m,
-        std::vector<uint_fast8_t>& rd)
-    {
-        if(0 == (seconds % valveUpdateTime)) {  // once per minute tasks.
-            const ThermalModelState_t state = m.getState();
-            // if (verbose) {
-            //     const float airTempC = state.roomTemp;
-            //     printFrame(seconds, airTempC, valveTempC, initCond.targetTempC, valvePCOpen);
-            // }
-            v.tick(state.valveTemp);
-            rd.erase(rd.begin());
-            rd.push_back(v.getValvePCOpen());
-        }
-        m.calcNewAirTemperature(rd.front());
-    }
-
-    static void updateTempBounds(TempBoundsC_t& bounds, const ThermalModelState_t& state)
-    {
-        bounds.max = (bounds.max > state.roomTemp) ? bounds.max : state.roomTemp;
-        bounds.min = (bounds.min < state.roomTemp) ? bounds.min : state.roomTemp;  
-    }
-
 public:
-    RoomModelBasic(
-        const InitConditions_t init,
-        ValveModelBase& _valve,
-        ThermalModelBasic& _model) :
-        initCond(init),
-        radDelay(5, initCond.valvePCOpen),
-        valve(_valve),
-        model(_model) { 
-            valve.init(init);
-            model.init(init);
-         }
+    RoomModelBasic(const InitConditions_t init, ValveModelBase& _valve, ThermalModelBasic& _model) :
+        initCond(init), valve(_valve), model(_model)
+    { 
+        valve.init(init);
+        model.init(init);
+    }
 
     // Advances the model by 1 second
     void tick(const uint32_t seconds)
     {
-        internalTick(seconds, valve, model, radDelay);
+        internalModelTick(seconds, valve, model);
 
         // Ignore initially bringing the room to temperature.
         if (seconds > (60 * tempBounds.startDelayM)) {
