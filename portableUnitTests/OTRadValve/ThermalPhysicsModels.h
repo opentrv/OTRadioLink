@@ -187,7 +187,15 @@ static void initThermalModelState(ThermalModelState_t& state, const InitConditio
     state.valveTemp = init.roomTempC;
 }
 
-
+/**
+ * @brief   Basic 3 segment lumped thermal model of a room.
+ * 
+ * Heat flows from a simulated radiator into the room and then through a wall
+ * to the outside world. No air flow effects are simulated.
+ * 
+ * Additionally, heat flow to the radvalve is modelled to allow simulating its
+ * position.
+ */
 class ThermalModelBasic
     {
     protected:
@@ -304,18 +312,20 @@ class ThermalModelBasic
         float getHeatInput() const { return (radHeatFlow); }
     };
 
-// /**
-//  * @brief   Helper function that prints a JSON frame in the style of an OpenTRV frame.
-//  * @param   i: current model iteration
-//  * @param   airTempC: average air temperature of the room (key 'T|C').
-//  * @param   valveTempC: temperature as measured by the TRV (key 'TV|C). This should be the same as airTempC in a split unit TRV.
-//  * @param   targetTempC: target room temperature (key 'tT|C').
-//  * @param   valvePCOpen: current valve position in % (key 'v|%').
-//  */
-// static void printFrame(const unsigned int i, const float airTempC, const float valveTempC, const float targetTempC, const uint_fast8_t valvePCOpen) {
-//     fprintf(stderr, "[ \"%u\", \"\", {\"T|C\": %.2f, \"TV|C\": %.2f, \"tT|C\": %.2f, \"v|%%\": %u} ]\n",
-//             i, airTempC, valveTempC, targetTempC, valvePCOpen);
-// }
+/**
+ * @brief   Helper function that prints a JSON frame in the style of an OpenTRV frame.
+ * @param   i: current model iteration
+ * @param   airTempC: average air temperature of the room (key 'T|C').
+ * @param   valveTempC: temperature as measured by the TRV (key 'TV|C). This should be the same as airTempC in a split unit TRV.
+ * @param   targetTempC: target room temperature (key 'tT|C').
+ * @param   valvePCOpen: current valve position in % (key 'v|%').
+ */
+static void printFrame(const unsigned int i, const ThermalModelState_t& state, const uint_fast8_t valvePCOpen) {
+    // fprintf(stderr, "[ \"%u\", \"\", {\"T|C\": %.2f, \"TV|C\": %.2f, \"tT|C\": %.2f, \"v|%%\": %u} ]\n",
+    //         i, state.airTemperature, state.valveTemp, state.targetTemp, valvePCOpen);
+    fprintf(stderr, "[ \"%u\", \"\", {\"T|C\": %.2f, \"TV|C\": %.2f, \"tT|C\":, \"v|%%\": %u} ]\n",
+        i, state.roomTemp, state.valveTemp, valvePCOpen);
+}
 
 // Struct for storing the max and min temperatures seen this test.
 struct TempBoundsC_t {
@@ -326,7 +336,13 @@ struct TempBoundsC_t {
     // Minumum temperature observed in C
     float min = 100.0;
 };
-// Helper function for updating the bounds.
+
+/**
+ * @brief    Helper function for updating the bounds.
+ * 
+ * @param   bounds: Previous min and max temps.
+ * @param   roomTemp: Current room temp
+ */
 static void updateTempBounds(TempBoundsC_t& bounds, const float roomTemp)
 {
     bounds.max = (bounds.max > roomTemp) ? bounds.max : roomTemp;
@@ -345,16 +361,16 @@ static void internalModelTick(
     ValveModelBase& v, 
     ThermalModelBasic& m)
 {
+    const uint_fast8_t valvePCOpen = v.getEffectiveValvePCOpen();
     // once per minute tasks.
     if(0 == (seconds % valveUpdateTime)) {
         const ThermalModelState_t state = m.getState();
-        // if (verbose) {
-        //     const float airTempC = state.roomTemp;
-        //     printFrame(seconds, airTempC, valveTempC, initCond.targetTempC, valvePCOpen);
-        // }
+        if (verbose) {
+            printFrame(seconds, state, valvePCOpen);
+        }
         v.tick(state.valveTemp);
     }
-    m.calcNewAirTemperature(v.getEffectiveValvePCOpen());
+    m.calcNewAirTemperature(valvePCOpen);
 }
 
 
