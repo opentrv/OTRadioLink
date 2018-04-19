@@ -317,18 +317,36 @@ class ThermalModelBasic
 //             i, airTempC, valveTempC, targetTempC, valvePCOpen);
 // }
 
+// Struct for storing the max and min temperatures seen this test.
 struct TempBoundsC_t {
+    // Delay in minutes to wait before starting to record values.
     const uint32_t startDelayM = 100;
+    // Maximum temperature observed in C
     float max = 0.0;
+    // Minumum temperature observed in C
     float min = 100.0;
 };
+// Helper function for updating the bounds.
+static void updateTempBounds(TempBoundsC_t& bounds, const float roomTemp)
+{
+    bounds.max = (bounds.max > roomTemp) ? bounds.max : roomTemp;
+    bounds.min = (bounds.min < roomTemp) ? bounds.min : roomTemp;  
+}
 
+/**
+ * @brief   Helper function that handles ticking the model by 1 second.
+ * 
+ * @param   seconds: The current time elapsed.
+ * @param   v: The valve model.
+ * @param   m: The room model.
+ */
 static void internalModelTick(
     const uint32_t seconds, 
     ValveModelBase& v, 
     ThermalModelBasic& m)
 {
-    if(0 == (seconds % valveUpdateTime)) {  // once per minute tasks.
+    // once per minute tasks.
+    if(0 == (seconds % valveUpdateTime)) {
         const ThermalModelState_t state = m.getState();
         // if (verbose) {
         //     const float airTempC = state.roomTemp;
@@ -337,12 +355,6 @@ static void internalModelTick(
         v.tick(state.valveTemp);
     }
     m.calcNewAirTemperature(v.getEffectiveValvePCOpen());
-}
-
-static void updateTempBounds(TempBoundsC_t& bounds, const ThermalModelState_t& state)
-{
-    bounds.max = (bounds.max > state.roomTemp) ? bounds.max : state.roomTemp;
-    bounds.min = (bounds.min < state.roomTemp) ? bounds.min : state.roomTemp;  
 }
 
 
@@ -376,7 +388,7 @@ public:
         // Ignore initially bringing the room to temperature.
         if (seconds > (60 * tempBounds.startDelayM)) {
             const ThermalModelState_t state = model.getState();
-            updateTempBounds(tempBounds, state);
+            updateTempBounds(tempBounds, state.roomTemp);
         }
     }
 
