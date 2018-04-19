@@ -285,23 +285,22 @@ class ThermalModelBasic
             else { roomState.valveTemp = roomState.roomTemp; }
             if(verbose) { }  // todo put print out in here
         }
-        float getAirTemperature() const { return  (roomState.roomTemp); }
-        float getValveTemperature() const {return  (roomState.valveTemp);}
+        ThermalModelState_t getState() const { return  (roomState); }
         float getHeatInput() const { return (radHeatFlow); }
     };
 
-/**
- * @brief   Helper function that prints a JSON frame in the style of an OpenTRV frame.
- * @param   i: current model iteration
- * @param   airTempC: average air temperature of the room (key 'T|C').
- * @param   valveTempC: temperature as measured by the TRV (key 'TV|C). This should be the same as airTempC in a split unit TRV.
- * @param   targetTempC: target room temperature (key 'tT|C').
- * @param   valvePCOpen: current valve position in % (key 'v|%').
- */
-static void printFrame(const unsigned int i, const float airTempC, const float valveTempC, const float targetTempC, const uint_fast8_t valvePCOpen) {
-    fprintf(stderr, "[ \"%u\", \"\", {\"T|C\": %.2f, \"TV|C\": %.2f, \"tT|C\": %.2f, \"v|%%\": %u} ]\n",
-            i, airTempC, valveTempC, targetTempC, valvePCOpen);
-}
+// /**
+//  * @brief   Helper function that prints a JSON frame in the style of an OpenTRV frame.
+//  * @param   i: current model iteration
+//  * @param   airTempC: average air temperature of the room (key 'T|C').
+//  * @param   valveTempC: temperature as measured by the TRV (key 'TV|C). This should be the same as airTempC in a split unit TRV.
+//  * @param   targetTempC: target room temperature (key 'tT|C').
+//  * @param   valvePCOpen: current valve position in % (key 'v|%').
+//  */
+// static void printFrame(const unsigned int i, const float airTempC, const float valveTempC, const float targetTempC, const uint_fast8_t valvePCOpen) {
+//     fprintf(stderr, "[ \"%u\", \"\", {\"T|C\": %.2f, \"TV|C\": %.2f, \"tT|C\": %.2f, \"v|%%\": %u} ]\n",
+//             i, airTempC, valveTempC, targetTempC, valvePCOpen);
+// }
 
 struct TempBoundsC_t {
     const uint32_t startDelayM = 100;
@@ -329,6 +328,31 @@ class RoomModelBasic
     ValveModelBase& valve;
     ThermalModelBasic& model;
 
+    static void internalTick(
+        const uint32_t seconds, 
+        ValveModelBase& v, 
+        ThermalModelBasic& m,
+        std::vector<uint_fast8_t>& rd)
+    {
+        if(0 == (seconds % valveUpdateTime)) {  // once per minute tasks.
+            const ThermalModelState_t state = m.getState();
+            // if (verbose) {
+            //     const float airTempC = state.roomTemp;
+            //     printFrame(seconds, airTempC, valveTempC, initCond.targetTempC, valvePCOpen);
+            // }
+            v.tick(state.valveTemp);
+            rd.erase(rd.begin());
+            rd.push_back(v.getValvePCOpen());
+        }
+        m.calcNewAirTemperature(rd.front());
+    }
+
+    static void updateTempBounds(TempBoundsC_t& bounds, const ThermalModelState_t& state)
+    {
+        bounds.max = (bounds.max > state.roomTemp) ? bounds.max : state.roomTemp;
+        bounds.min = (bounds.min < state.roomTemp) ? bounds.min : state.roomTemp;  
+    }
+
 public:
     RoomModelBasic(
         const InitConditions_t init,
@@ -345,24 +369,12 @@ public:
     // Advances the model by 1 second
     void tick(const uint32_t seconds)
     {
-        const float valveTempC = model.getValveTemperature(); // current air temperature in C
-        const float airTempC = model.getAirTemperature();
-
-        if(0 == (seconds % valveUpdateTime)) {  // once per minute tasks.
-            const uint_fast8_t valvePCOpen = valve.getValvePCOpen();
-            if (verbose) {
-                printFrame(seconds, airTempC, valveTempC, initCond.targetTempC, valvePCOpen);
-            }
-            valve.tick(valveTempC);
-            radDelay.erase(radDelay.begin());
-            radDelay.push_back(valvePCOpen);
-        }
-        model.calcNewAirTemperature(radDelay.front());
+        internalTick(seconds, valve, model, radDelay);
 
         // Ignore initially bringing the room to temperature.
         if (seconds > (60 * tempBounds.startDelayM)) {
-            tempBounds.max = (tempBounds.max > airTempC) ? tempBounds.max : airTempC;
-            tempBounds.min = (tempBounds.min < airTempC) ? tempBounds.min : airTempC;  
+            const ThermalModelState_t state = model.getState();
+            updateTempBounds(tempBounds, state);
         }
     }
 
