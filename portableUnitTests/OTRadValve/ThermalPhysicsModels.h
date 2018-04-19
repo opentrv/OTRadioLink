@@ -362,7 +362,7 @@ class RoomModelBasic
 
 public:
     RoomModelBasic(const InitConditions_t init, ValveModelBase& _valve, ThermalModelBasic& _model) :
-        initCond(init), valve(_valve), model(_model)
+        valve(_valve), model(_model)
     { 
         valve.init(init);
         model.init(init);
