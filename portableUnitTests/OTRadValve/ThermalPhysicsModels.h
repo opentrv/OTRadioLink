@@ -100,17 +100,17 @@ public:
 struct ThermalModelRoomParams_t
 {
     // Conductance of the air to the wall in W/K.
-    float conductance_21;
+    const float conductance_21;
     // Conductance through the wall in W/K.
-    float conductance_10;
+    const float conductance_10;
     // Conductance of the wall to the outside world in W/K.
-    float conductance_0W;
+    const float conductance_0W;
     // Capacitance of the TODO in J/K.
-    float capacitance_2;
+    const float capacitance_2;
     // Capacitance of the TODO in J/K.
-    float capacitance_1;
+    const float capacitance_1;
     // Capacitance of the TODO in J/K.
-    float capacitance_0;
+    const float capacitance_0;
 };
 static const ThermalModelRoomParams_t roomParams_Default {
     500, 300, 50, 350000, 1300000, 7000000,
@@ -122,9 +122,12 @@ static const ThermalModelRoomParams_t roomParams_Default {
 struct ThermalModelRadParams_t
 {
     // Conductance from the radiator to the room in W/K.
-    float conductance;
+    const float conductance;
     // Maximum temperature the radiator can reach in C.
-    float maxTemp;
+    const float maxTemp;
+};
+static const ThermalModelRadParams_t radParams_Default {
+    25.0, 70.0
 };
 
 /**
@@ -160,7 +163,7 @@ struct ThermalModelState_t
 };
 
 
-class ThermalModelBase
+class ThermalModelBasic
     {
     protected:
         // Simulated valve, internal.
@@ -221,10 +224,10 @@ class ThermalModelBase
         }
 
     public:
-        ThermalModelBase(
+        ThermalModelBasic(
             const float startTemp,
             const ThermalModelRoomParams_t _roomParams,
-            const ThermalModelRadParams_t _radParams = {25.0, 70.0}) : 
+            const ThermalModelRadParams_t _radParams) : 
             roomVars(startTemp),
             roomParams(_roomParams), 
             radParams(_radParams)
@@ -307,14 +310,18 @@ class RoomModelBasic
 
     // Models
     ThermalModelValveBase &valve;
-    ThermalModelBase model;
+    ThermalModelBasic model;
 
 public:
-    RoomModelBasic(const InitConditions_t init, ThermalModelValveBase &_valve) :
+    RoomModelBasic(
+        const InitConditions_t init,
+        ThermalModelValveBase &_valve,
+        const ThermalModelRoomParams_t roomParams = roomParams_Default,
+        const ThermalModelRadParams_t radParams = radParams_Default) :
         initCond(init),
         radDelay(5, initCond.valvePCOpen),
         valve(_valve),
-        model(initCond.roomTempC, roomParams_Default) {  }
+        model(init.roomTempC, roomParams, radParams) {  }
 
     // Advances the model by 1 second
     void tick(const uint32_t seconds)
