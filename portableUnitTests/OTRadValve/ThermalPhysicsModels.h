@@ -181,7 +181,7 @@ class ThermalModelBasic
         /**
          * @brief   Calculate heat transfer through a thermal resistance. Flow from temp1 to temp2 is positive.
          */
-        static float heatTransfer(const float conductance, const float temp1, const float temp2)
+        static float heatTransfer(const float conductance, const float temp1, const float temp2) const
         {
             return conductance * (temp1 - temp2);
         }
