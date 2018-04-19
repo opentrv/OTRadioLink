@@ -188,6 +188,8 @@ class ThermalModelBasic
         const RoomParams_t roomParams;
         const RadParams_t radParams;
 
+        float radHeatFlow {0.0f};
+
         // Internal methods
         /**
          * @brief   Calculate heat transfer through a thermal resistance. Flow from temp1 to temp2 is positive.
@@ -261,6 +263,7 @@ class ThermalModelBasic
             radValveInternal.set(radValveOpenPC);
             // Calc heat in from rad
             const float heat_in = calcHeatFlowRad(roomState.airTemperature, radValveInternal.get());
+            radHeatFlow = heat_in;
 
             // Calculate change in heat of each segment.
             const float heatDelta_21 = heatTransfer(roomParams.conductance_21, roomState.roomTemp, roomState.t1);
@@ -282,8 +285,9 @@ class ThermalModelBasic
             else { roomState.valveTemp = roomState.roomTemp; }
             if(verbose) { }  // todo put print out in here
         }
-        float getAirTemperature() { return  (roomState.roomTemp); }
-        float getValveTemperature() {return  (roomState.valveTemp);}
+        float getAirTemperature() const { return  (roomState.roomTemp); }
+        float getValveTemperature() const {return  (roomState.valveTemp);}
+        float getHeatInput() const { return (radHeatFlow); }
     };
 
 /**
@@ -304,6 +308,7 @@ struct TempBoundsC_t {
     float max = 0.0;
     float min = 100.0;
 };
+
 
 /**
  * @brief   Whole room model
