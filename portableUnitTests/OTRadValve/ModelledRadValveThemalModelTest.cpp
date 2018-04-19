@@ -52,7 +52,7 @@ TEST(ModelledRadValveThermalModel, roomCold)
     };
 
     // Set up.
-    TMB::RoomModel rm(initCond);
+    TMB::RoomModelBasic rm(initCond);
 
     // Delay in radiator responding to change in valvePCOpen. Should possibly be asymmetric. todo move into room model.
     for(auto i = 0; i < 20000; ++i) { rm.tick(i); }

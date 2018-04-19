@@ -302,7 +302,7 @@ struct TempBoundsC_t {
 /**
  * @brief   Whole room model
  */
-class RoomModel
+class RoomModelBasic
 {
     //////  Constants
     const InitConditions_t initCond;
@@ -319,7 +319,7 @@ class RoomModel
     ThermalModelBase model;
 
 public:
-    RoomModel(InitConditions_t init) :
+    RoomModelBasic(InitConditions_t init) :
         initCond(init),
         radDelay(5, initCond.valvePCOpen),
         valve(initCond.valvePCOpen, initCond.targetTempC),
