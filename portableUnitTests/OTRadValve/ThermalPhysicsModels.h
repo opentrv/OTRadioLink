@@ -335,7 +335,7 @@ public:
         model(initCond.roomTempC, roomParams_Default) {  }
 
     // Advances the model by 1 second
-    void tick(const uint8_t seconds)
+    void tick(const uint32_t seconds)
     {
         const float valveTempC = model.getValveTemperature(); // current air temperature in C
         const float airTempC = model.getAirTemperature();
