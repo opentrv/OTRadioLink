@@ -66,6 +66,7 @@ public:
      * @param   curTempC: Current temperature in C.
      */
     virtual void tick(const float curTempC) = 0;
+    virtual void tick(const float curTempC, const uint32_t /*seconds*/) { tick(curTempC); }
     // Get valve percentage open.
     virtual uint_fast8_t getValvePCOpen() const = 0;
     // get target temperature in C.
@@ -195,6 +196,8 @@ static void initThermalModelState(ThermalModelState_t& state, const InitConditio
  * 
  * Additionally, heat flow to the radvalve is modelled to allow simulating its
  * position.
+ * 
+ * Modelled on DHD's office (Valve 5s, EPC Band B house).
  */
 class ThermalModelBasic
     {
@@ -307,16 +310,16 @@ class ThermalModelBasic
 /**
  * @brief   Helper function that prints a JSON frame in the style of an OpenTRV frame.
  * @param   i: current model iteration
- * @param   airTempC: average air temperature of the room (key 'T|C').
- * @param   valveTempC: temperature as measured by the TRV (key 'TV|C). This should be the same as airTempC in a split unit TRV.
+ * @param   roomTempC: average air temperature of the room (key 'T|C').
+ * @param   valveTempC: temperature as measured by the TRV (key 'TV|C). This should be the same as roomTempC in a split unit TRV.
  * @param   targetTempC: target room temperature (key 'tT|C').
  * @param   valvePCOpen: current valve position in % (key 'v|%').
  */
-static void printFrame(const unsigned int i, const ThermalModelState_t& state, const uint_fast8_t valvePCOpen) {
+static void printFrame(const unsigned int i, const ThermalModelState_t& state, const float targetTempC, const uint_fast8_t valvePCOpen) {
     // fprintf(stderr, "[ \"%u\", \"\", {\"T|C\": %.2f, \"TV|C\": %.2f, \"tT|C\": %.2f, \"v|%%\": %u} ]\n",
     //         i, state.airTemperature, state.valveTemp, state.targetTemp, valvePCOpen);
-    fprintf(stderr, "[ \"%u\", \"\", {\"T|C\": %.2f, \"TV|C\": %.2f, \"tT|C\":, \"v|%%\": %u} ]\n",
-        i, state.roomTemp, state.valveTemp, valvePCOpen);
+    fprintf(stderr, "[ \"%u\", \"\", {\"T|C\": %.2f, \"TV|C\": %.2f, \"tT|C\": %.2f, \"v|%%\": %u} ]\n",
+        i, state.roomTemp, state.valveTemp, targetTempC, valvePCOpen);
 }
 
 // Struct for storing the max and min temperatures seen this test.
@@ -358,9 +361,9 @@ static void internalModelTick(
     if(0 == (seconds % valveUpdateTime)) {
         const ThermalModelState_t state = m.getState();
         if (verbose) {
-            printFrame(seconds, state, valvePCOpen);
+            printFrame(seconds, state, v.getTargetTempC(), valvePCOpen);
         }
-        v.tick(state.valveTemp);
+        v.tick(state.valveTemp, seconds);
     }
     m.calcNewAirTemperature(valvePCOpen);
 }
