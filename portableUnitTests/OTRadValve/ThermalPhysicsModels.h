@@ -67,7 +67,7 @@ public:
      */
     virtual void tick(const float curTempC) = 0;
     // Get valve percentage open.
-    virtual float getValvePCOpen() const = 0;
+    virtual uint_fast8_t getValvePCOpen() const = 0;
     // get target temperature in C.
     virtual float getTargetTempC() const = 0;
     // Get the effective valve percentage open the model should use.
@@ -116,7 +116,7 @@ public:
         responseDelay.push_back(valvePCOpen);
     }
     // 
-    float getValvePCOpen() const override { return (valvePCOpen); }
+    uint_fast8_t getValvePCOpen() const override { return (valvePCOpen); }
     float getTargetTempC() const override { return (is0.targetTempC); }
     float getEffectiveValvePCOpen() const override { return (responseDelay.front()); }
 };
@@ -201,9 +201,6 @@ class ThermalModelBasic
     protected:
         // Simulated valve, internal.
         OTRadValve::RadValveMock radValveInternal;
-        
-        // Simulated room temperature, internal.
-        OTV0P2BASE::TemperatureC16Mock roomTemperatureInternal;
 
         // Constants & variables
         ThermalModelState_t roomState;
@@ -265,9 +262,6 @@ class ThermalModelBasic
             roomParams(_roomParams), 
             radParams(_radParams) {  }
 
-        // Read-only view of simulated room temperature.
-        const OTV0P2BASE::TemperatureC16Base &roomTemperature = roomTemperatureInternal;
-
         // Read-only view of simulated radiator valve.
         const OTRadValve::AbstractRadValve &radValve = radValveInternal;
 
@@ -275,8 +269,6 @@ class ThermalModelBasic
             // Init the thermal model
             initThermalModelState(roomState, init);
 
-            // Init internal temp of the mock temp sensor
-            roomTemperatureInternal.set((int16_t)(init.roomTempC * 16.0));
             // Init valve position of the mock rad valve.
             radValveInternal.set(init.valvePCOpen);
         }
