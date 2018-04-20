@@ -195,6 +195,8 @@ static void initThermalModelState(ThermalModelState_t& state, const InitConditio
  * 
  * Additionally, heat flow to the radvalve is modelled to allow simulating its
  * position.
+ * 
+ * Modelled on DHD's office (Valve 5s, EPC Band B house).
  */
 class ThermalModelBasic
     {
