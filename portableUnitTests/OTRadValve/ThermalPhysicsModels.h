@@ -66,6 +66,7 @@ public:
      * @param   curTempC: Current temperature in C.
      */
     virtual void tick(const float curTempC) = 0;
+    virtual void tick(const float curTempC, const uint32_t /*seconds*/) { tick(curTempC); }
     // Get valve percentage open.
     virtual uint_fast8_t getValvePCOpen() const = 0;
     // get target temperature in C.
@@ -362,7 +363,7 @@ static void internalModelTick(
         if (verbose) {
             printFrame(seconds, state, v.getTargetTempC(), valvePCOpen);
         }
-        v.tick(state.valveTemp);
+        v.tick(state.valveTemp, seconds);
     }
     m.calcNewAirTemperature(valvePCOpen);
 }
