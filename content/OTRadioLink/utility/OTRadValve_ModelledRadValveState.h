@@ -24,7 +24,8 @@ namespace OTRadValve
 {
 
 // Simple mean filter.
-// Find mean of group of ints where sum can be computed in an int without loss.
+// Find mean of group of ints where sum can be computed in an int
+// without loss.
 // TODO: needs a unit test or three.
 template<size_t N> int_fast16_t smallIntMean(const int_fast16_t data[N])
   {
@@ -762,7 +763,7 @@ uint8_t computeRequiredTRVPercentOpen(uint8_t valvePCOpen, const ModelledRadValv
         const int_fast16_t rise = getRawDelta();
 
         // Avoid movement to save valve energy and noise if ALL of:
-        //   * not calling for heat (which also saves boiler energy and noise)
+        //   * not calling for heat (also saves boiler energy/noise)
         //   * in sweet-spot OR not moving in the wrong direction.
         //   * not very far away from target
         if(!callingForHeat)
@@ -884,9 +885,11 @@ uint8_t computeRequiredTRVPercentOpen(uint8_t valvePCOpen, const ModelledRadValv
     return(valvePCOpen);
     }
 
-    // Fill the filter memory with the current room temperature in its internal form, as during initialisation.
+    // Fill the filter memory with the current room temperature.
+    // Store temp in its internal form, as during initialisation.
     // Not intended for general use.
-    // Can be used when testing to avoid filtering being triggered with rapid simulated temperature swings.
+    // Can be used when testing to avoid filtering being triggered
+    // with rapid simulated temperature swings.
     inline void _backfillTemperatures(const int_fast16_t rawTempC16)
         { for(int_fast8_t i = filterLength; --i >= 0; ) { prevRawTempC16[i] = rawTempC16; } }
 

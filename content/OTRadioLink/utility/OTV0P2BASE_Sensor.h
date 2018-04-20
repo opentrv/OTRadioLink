@@ -189,15 +189,21 @@ class SubSensorSimpleRef final : public SubSensor<T, lowPri>
     virtual Sensor_tag_t tag() const override { return(t); }
   };
 
-// Sub-sensor / facade wrapping calls for the key methods in the specified parent class.
+// Sub-sensor / facade wrapping for key methods in the parent class.
 //   * T  sensor data type
 //   * P  parent Sensor object type
 // Constructor parameters:
-//   * tagFn  pointer to member function of P to get the tag value; never NULL
-//   * getFn  pointer to member function of P to get the sensor value; never NULL
-//   * isAvailableFnOpt  pointer to member function of P to get the isAvailable() value; if NULL then isAvailable() always returns true
+//   * tagFn  pointer to member function of P to get the tag value;
+//         never NULL
+//   * getFn  pointer to member function of P to get the sensor value;
+//         never NULL
+//   * isAvailableFnOpt  pointer to member function of P to get
+//         the isAvailable() value;
+//         if NULL then isAvailable() always returns true
 //
-// NOTE: DO NOT USE: g++ 4.9.x seems to generate hideously inefficient code; >100 bytes for a single call via member function pointer.
+// NOTE: DO NOT USE:
+//     g++ 4.9.x seems to generate hideously inefficient code;
+//     >100 bytes for a single call via member function pointer.
 template <class P, class T, bool lowPri = true>
 class SubSensorByCallback final : public SubSensor<T, lowPri>
   {
@@ -217,10 +223,12 @@ class SubSensorByCallback final : public SubSensor<T, lowPri>
       : p(parent), t(tagFn), g(getFn), a(isAvailableFnOpt) { }
     virtual T get() const override { return((p->*g)()); }
     virtual Sensor_tag_t tag() const override { return((p->*t)()); }
-    virtual bool isAvailable() const override { if(NULL == a) { return(true); } return((p->*a)()); }
+    virtual bool isAvailable() const override
+        { if(NULL == a) { return(true); } return((p->*a)()); }
   };
 
 
 }
+
 
 #endif
