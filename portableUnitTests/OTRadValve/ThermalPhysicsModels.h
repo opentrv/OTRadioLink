@@ -182,6 +182,8 @@ struct ThermalModelState_t
     double outsideTemp {0.0};
     // Temperature at the rad valve in C.
     double valveTemp {0.0};
+    // Heat flow from the radiator this round.
+    double radHeatFlow {0.0};
 };
 
 static void initThermalModelState(ThermalModelState_t& state, const InitConditions_t& init) {
@@ -255,8 +257,6 @@ class ThermalModelBasic final : public ThermalModelBase
         const RoomParams_t roomParams;
         const RadParams_t radParams;
 
-        double radHeatFlow {0.0};
-
         /**
          * @brief   Calculate heat input this interval by radiator.
          * @note    Heat flow into the room is positive.
@@ -299,7 +299,7 @@ class ThermalModelBasic final : public ThermalModelBase
             radValveInternal.set(radValveOpenPC);
             // Calc heat in from rad
             const double heat_in = calcHeatFlowRad(roomState.airTemperature, radValveInternal.get());
-            radHeatFlow = heat_in;
+            roomState.radHeatFlow = heat_in;
 
             // Calculate change in heat of each segment.
             const double heatDelta_21 = TMHelper::heatTransfer(roomParams.conductance_21, roomState.roomTemp, roomState.t1);
@@ -322,8 +322,8 @@ class ThermalModelBasic final : public ThermalModelBase
             if(verbose) { }  // todo put print out in here
         }
 
-        ThermalModelState_t getState() const override { return  (roomState); }
-        double getHeatInput() const override { return (radHeatFlow); }
+        ThermalModelState_t getState() const override { return (roomState); }
+        double getHeatInput() const override { return (roomState.radHeatFlow); }
     };
 
 /**
