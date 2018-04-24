@@ -193,6 +193,48 @@ static void initThermalModelState(ThermalModelState_t& state, const InitConditio
     state.valveTemp = init.roomTempC;
 }
 
+
+namespace TMHelper
+{
+
+    /**
+ * @brief   Calculate heat transfer through a thermal resistance. Flow from temp1 to temp2 is positive.
+ */
+double heatTransfer(const double conductance, const double temp1, const double temp2)
+{
+    return conductance * (temp1 - temp2);
+}
+/**
+ * @brief   Calculate temp seen by valve this interval.
+ * @note    Heat flow into the room is positive.
+ * @note    Assumes that radiator temperature (and therefore heat input):
+ *          - increases linearly.
+ *          - increases monotonically.
+ *          - Cannot be below air temperature (the radiator cannot sink heat).
+ * @retval  Heat transfer into room from radiator, in J
+ */
+double calcValveTemp(const double airTemp, const double localTemp, const double heatFlowFromRad)
+{
+    static constexpr double thermalConductanceRad {0.05};  // fixme literal is starting estimate for thermal resistance
+    static constexpr double thermalConductanceRoom {10.0};
+    const double heatIn = heatFlowFromRad * thermalConductanceRad;
+    const double heatOut = heatTransfer(thermalConductanceRoom, localTemp, airTemp);
+    const double valveHeatFlow = heatIn - heatOut;
+    const double newLocalTemp = localTemp + (valveHeatFlow / 5000);  // fixme literal is starting estimate for thermal capacitance
+    return newLocalTemp;
+}
+}
+
+class ThermalModelBase
+{
+public:
+    virtual void init(const InitConditions_t init) = 0;
+    // Calculate new temperature
+    virtual void calcNewAirTemperature(uint8_t radValveOpenPC) = 0;
+    virtual ThermalModelState_t getState() const = 0;
+    virtual double getHeatInput() const = 0;
+};
+
 /**
  * @brief   Basic 3 segment lumped thermal model of a room.
  * 
@@ -202,7 +244,7 @@ static void initThermalModelState(ThermalModelState_t& state, const InitConditio
  * Additionally, heat flow to the radvalve is modelled to allow simulating its
  * position.
  */
-class ThermalModelBasic
+class ThermalModelBasic final : public ThermalModelBase
     {
     protected:
         // Simulated valve, internal.
@@ -215,14 +257,6 @@ class ThermalModelBasic
 
         double radHeatFlow {0.0};
 
-        // Internal methods
-        /**
-         * @brief   Calculate heat transfer through a thermal resistance. Flow from temp1 to temp2 is positive.
-         */
-        static double heatTransfer(const double conductance, const double temp1, const double temp2)
-        {
-            return conductance * (temp1 - temp2);
-        }
         /**
          * @brief   Calculate heat input this interval by radiator.
          * @note    Heat flow into the room is positive.
@@ -239,26 +273,7 @@ class ThermalModelBasic
             // Making sure the radiator temp does not exceed sensible values
             const double scaledRadTemp = (radTemp < radParams.maxTemp) ? radTemp : radParams.maxTemp;
             // Calculate heat transfer, making sure rad temp cannot go below air temperature.
-            return (radTemp > airTemp) ? (heatTransfer(radParams.conductance, scaledRadTemp, airTemp)) : 0.0;
-        }
-        /**
-         * @brief   Calculate temp seen by valve this interval.
-         * @note    Heat flow into the room is positive.
-         * @note    Assumes that radiator temperature (and therefore heat input):
-         *          - increases linearly.
-         *          - increases monotonically.
-         *          - Cannot be below air temperature (the radiator cannot sink heat).
-         * @retval  Heat transfer into room from radiator, in J
-         */
-        double calcValveTemp(const double airTemp, const double localTemp, const double heatFlowFromRad) const
-        {
-            static constexpr double thermalConductanceRad {0.05};  // fixme literal is starting estimate for thermal resistance
-            static constexpr double thermalConductanceRoom {10.0};
-            const double heatIn = heatFlowFromRad * thermalConductanceRad;
-            const double heatOut = heatTransfer(thermalConductanceRoom, localTemp, airTemp);
-            const double valveHeatFlow = heatIn - heatOut;
-            const double newLocalTemp = localTemp + (valveHeatFlow / 5000);  // fixme literal is starting estimate for thermal capacitance
-            return newLocalTemp;
+            return (radTemp > airTemp) ? (TMHelper::heatTransfer(radParams.conductance, scaledRadTemp, airTemp)) : 0.0;
         }
 
     public:
@@ -271,7 +286,7 @@ class ThermalModelBasic
         // Read-only view of simulated radiator valve.
         const OTRadValve::AbstractRadValve &radValve = radValveInternal;
 
-        void init(const InitConditions_t init) {
+        void init(const InitConditions_t init) override {
             // Init the thermal model
             initThermalModelState(roomState, init);
 
@@ -280,16 +295,16 @@ class ThermalModelBasic
         }
 
         // Calculate new temperature
-        void calcNewAirTemperature(uint8_t radValveOpenPC) {
+        void calcNewAirTemperature(uint8_t radValveOpenPC) override {
             radValveInternal.set(radValveOpenPC);
             // Calc heat in from rad
             const double heat_in = calcHeatFlowRad(roomState.airTemperature, radValveInternal.get());
             radHeatFlow = heat_in;
 
             // Calculate change in heat of each segment.
-            const double heatDelta_21 = heatTransfer(roomParams.conductance_21, roomState.roomTemp, roomState.t1);
-            const double heatDelta_10 = heatTransfer(roomParams.conductance_10, roomState.t1, roomState.t0);
-            const double heatDelta_0w = heatTransfer(roomParams.conductance_0W, roomState.t0, roomState.outsideTemp);
+            const double heatDelta_21 = TMHelper::heatTransfer(roomParams.conductance_21, roomState.roomTemp, roomState.t1);
+            const double heatDelta_10 = TMHelper::heatTransfer(roomParams.conductance_10, roomState.t1, roomState.t0);
+            const double heatDelta_0w = TMHelper::heatTransfer(roomParams.conductance_0W, roomState.t0, roomState.outsideTemp);
 
             // Calc new heat of each segment.
             const double heat_21 = heat_in - heatDelta_21;
@@ -301,13 +316,14 @@ class ThermalModelBasic
             roomState.t1 += heat_10 / roomParams.capacitance_1;
             roomState.t0 += heat_out / roomParams.capacitance_0;
 
-            // Calc temp of thermostat. This is the same as the room temp in a splot unit.
-            if(!splitUnit) { roomState.valveTemp = calcValveTemp(roomState.roomTemp, roomState.valveTemp, heat_in); }
+            // Calc temp of thermostat. This is the same as the room temp in a split unit.
+            if(!splitUnit) { roomState.valveTemp = TMHelper::calcValveTemp(roomState.roomTemp, roomState.valveTemp, heat_in); }
             else { roomState.valveTemp = roomState.roomTemp; }
             if(verbose) { }  // todo put print out in here
         }
-        ThermalModelState_t getState() const { return  (roomState); }
-        double getHeatInput() const { return (radHeatFlow); }
+
+        ThermalModelState_t getState() const override { return  (roomState); }
+        double getHeatInput() const override { return (radHeatFlow); }
     };
 
 /**
