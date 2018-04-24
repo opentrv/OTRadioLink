@@ -100,6 +100,16 @@ double calcValveTemp(const double airTemp, const double localTemp, const double 
 }
 
 
+struct ValveModelState_t
+{
+    // Temperature at the rad valve in C.
+    double valveTemp {0.0};
+    // Heat flow from the radiator this round.
+    double radHeatFlow {0.0};
+
+    uint_fast8_t valvePCOpen {0};
+};
+
 /**
  * Helper class to handle updating and storing state of TRV.
  */
@@ -135,14 +145,11 @@ class ValveModel : public ValveModelBase
 {
 private:
     const RadParams_t radParams;
+    ValveModelState_t state;
 
     // Components required for the valve model.
-    uint_fast8_t valvePCOpen {0};
     OTRadValve::ModelledRadValveInputState is0;
     OTRadValve::ModelledRadValveState<isBinary> rs0;
-
-    // Simulated valve, internal.
-    OTRadValve::RadValveMock radValveInternal;
 
     // Delay in radiator responding to change in valvePCOpen. Should possibly be asymmetric.
     std::vector<uint_fast8_t> responseDelay = {0, 0, 0, 0, 0};
@@ -150,15 +157,14 @@ private:
 public:
     ValveModel(const RadParams_t _radParams = radParams_Default) : radParams(_radParams) {}
 
-    // Read-only view of simulated radiator valve.
-    const OTRadValve::AbstractRadValve &radValve = radValveInternal;
-
     // Initialise the model with the room conditions..
     void init(const InitConditions_t init) override {
         // Init valve position of the mock rad valve.
         radValveInternal.set(init.valvePCOpen);
 
-        valvePCOpen = init.valvePCOpen;
+        state.valveTemp = init.roomTempC;
+        state.valvePCOpen = init.valvePCOpen;
+
         is0.targetTempC = init.targetTempC;
         // Init
         responseDelay.assign(5, init.valvePCOpen);
@@ -172,15 +178,15 @@ public:
      */
     void tick(const double curTempC) override {
         is0.setReferenceTemperatures((uint_fast16_t)(curTempC * 16));
-        rs0.tick(valvePCOpen, is0, NULL);
+        rs0.tick(state.valvePCOpen, is0, NULL);
 
         // May make more sense in the thermal model, but only needs to be run
         // once every time this function is called.
         responseDelay.erase(responseDelay.begin());
-        responseDelay.push_back(valvePCOpen);
+        responseDelay.push_back(state.valvePCOpen);
     }
 
-    // calcHeatFlowRad(roomState.airTemperature, radValveInternal.get());
+    // calcHeatFlowRad(state.airTemperature, radValveInternal.get());
     double calcHeatFlowRad(const double airTempC) const override
     {
         // convert radValveOpenPC to radiator temp (badly)
@@ -188,7 +194,10 @@ public:
         // Making sure the radiator temp does not exceed sensible values
         const double scaledRadTemp = (radTemp < radParams.maxTemp) ? radTemp : radParams.maxTemp;
         // Calculate heat transfer, making sure rad temp cannot go below air temperature.
-        return (radTemp > airTempC) ? (TMHelper::heatTransfer(radParams.conductance, scaledRadTemp, airTempC)) : 0.0;
+        const double heatFlow = (radTemp > airTempC) ? 
+            (TMHelper::heatTransfer(radParams.conductance, scaledRadTemp, airTempC)) : 0.0;
+        state.radHeatFlow = heatFlow;
+        return (heatFlow);
     }
 
     // 
@@ -238,10 +247,6 @@ struct ThermalModelState_t
     double t0 {0.0};
     // Temperature of the outside world in C.
     double outsideTemp {0.0};
-    // Temperature at the rad valve in C.
-    double valveTemp {0.0};
-    // Heat flow from the radiator this round.
-    double radHeatFlow {0.0};
 };
 
 static void initThermalModelState(ThermalModelState_t& state, const InitConditions_t& init) {
@@ -250,7 +255,6 @@ static void initThermalModelState(ThermalModelState_t& state, const InitConditio
     state.t0 = init.roomTempC;
     state.t1 = init.roomTempC;
     // state.outsideTemp = init.outsideTemp;
-    state.valveTemp = init.roomTempC;
 }
 
 class ThermalModelBase
@@ -260,7 +264,7 @@ public:
     // Calculate new temperature
     virtual void calcNewAirTemperature(const double heat_in) = 0;
     virtual const ThermalModelState_t& getState() const = 0;
-    virtual double getHeatInput() const = 0;
+    // virtual double getHeatInput() const = 0;
 };
 
 /**
@@ -276,7 +280,7 @@ class ThermalModelBasic final : public ThermalModelBase
     {
     protected:
         // Constants & variables
-        ThermalModelState_t roomState;
+        ThermalModelState_t state;
         const RoomParams_t roomParams;
 
     public:
@@ -285,18 +289,15 @@ class ThermalModelBasic final : public ThermalModelBase
 
         void init(const InitConditions_t init) override {
             // Init the thermal model
-            initThermalModelState(roomState, init);
+            initThermalModelState(state, init);
         }
 
         // Calculate new temperature
         void calcNewAirTemperature(const double heat_in) override {
-            // Calc heat in from rad
-            roomState.radHeatFlow = heat_in;
-
             // Calculate change in heat of each segment.
-            const double heatDelta_21 = TMHelper::heatTransfer(roomParams.conductance_21, roomState.roomTemp, roomState.t1);
-            const double heatDelta_10 = TMHelper::heatTransfer(roomParams.conductance_10, roomState.t1, roomState.t0);
-            const double heatDelta_0w = TMHelper::heatTransfer(roomParams.conductance_0W, roomState.t0, roomState.outsideTemp);
+            const double heatDelta_21 = TMHelper::heatTransfer(roomParams.conductance_21, state.roomTemp, state.t1);
+            const double heatDelta_10 = TMHelper::heatTransfer(roomParams.conductance_10, state.t1, state.t0);
+            const double heatDelta_0w = TMHelper::heatTransfer(roomParams.conductance_0W, state.t0, state.outsideTemp);
 
             // Calc new heat of each segment.
             const double heat_21 = heat_in - heatDelta_21;
@@ -304,18 +305,17 @@ class ThermalModelBasic final : public ThermalModelBase
             const double heat_out = heatDelta_10 - heatDelta_0w;
 
             // Calc new temps.
-            roomState.roomTemp += heat_21 / roomParams.capacitance_2;
-            roomState.t1 += heat_10 / roomParams.capacitance_1;
-            roomState.t0 += heat_out / roomParams.capacitance_0;
+            state.roomTemp += heat_21 / roomParams.capacitance_2;
+            state.t1 += heat_10 / roomParams.capacitance_1;
+            state.t0 += heat_out / roomParams.capacitance_0;
 
             // Calc temp of thermostat. This is the same as the room temp in a split unit.
-            if(!splitUnit) { roomState.valveTemp = TMHelper::calcValveTemp(roomState.roomTemp, roomState.valveTemp, heat_in); }
-            else { roomState.valveTemp = roomState.roomTemp; }
-            if(verbose) { }  // todo put print out in here
+            if(!splitUnit) { state.valveTemp = TMHelper::calcValveTemp(state.roomTemp, state.valveTemp, heat_in); }
+            else { state.valveTemp = state.roomTemp; }
         }
 
-        const ThermalModelState_t& getState() const override { return (roomState); }
-        double getHeatInput() const override { return (roomState.radHeatFlow); }
+        const ThermalModelState_t& getState() const override { return (state); }
+        // double getHeatInput() const override { return (state.radHeatFlow); }
     };
 
 /**
@@ -326,12 +326,12 @@ class ThermalModelBasic final : public ThermalModelBase
  * @param   targetTempC: target room temperature (key 'tT|C').
  * @param   valvePCOpen: current valve position in % (key 'v|%').
  */
-static void printFrame(const unsigned int i, const ThermalModelState_t& state, const double targetTempC, const uint_fast8_t valvePCOpen) {
+// static void printFrame(const unsigned int i, const ThermalModelState_t& state, const double targetTempC, const uint_fast8_t valvePCOpen) {
     // fprintf(stderr, "[ \"%u\", \"\", {\"T|C\": %.2f, \"TV|C\": %.2f, \"tT|C\": %.2f, \"v|%%\": %u} ]\n",
     //         i, state.airTemperature, state.valveTemp, state.targetTemp, valvePCOpen);
-    fprintf(stderr, "[ \"%u\", \"\", {\"T|C\": %.2f, \"TV|C\": %.2f, \"tT|C\": %.2f, \"v|%%\": %u} ]\n",
-        i, state.roomTemp, state.valveTemp, targetTempC, valvePCOpen);
-}
+    // fprintf(stderr, "[ \"%u\", \"\", {\"T|C\": %.2f, \"TV|C\": %.2f, \"tT|C\": %.2f, \"v|%%\": %u} ]\n",
+    //     i, state.roomTemp, state.valveTemp, targetTempC, valvePCOpen);
+// }
 
 // Struct for storing the max and min temperatures seen this test.
 struct TempBoundsC_t {
@@ -371,8 +371,8 @@ static void internalModelTick(
     // once per minute tasks.
     if(0 == (seconds % valveUpdateTime)) {
         if (verbose) {
-            const uint_fast8_t valvePCOpen = v.getEffectiveValvePCOpen();
-            printFrame(seconds, state, v.getTargetTempC(), valvePCOpen);
+            // const uint_fast8_t valvePCOpen = v.getEffectiveValvePCOpen();
+            // printFrame(seconds, state, v.getTargetTempC(), valvePCOpen);
         }
         v.tick(state.valveTemp, seconds);
     }
