@@ -54,6 +54,53 @@ struct InitConditions_t {
 };
 
 /**
+ * @brief   Physical constants modelling the radiator.
+ */
+struct RadParams_t
+{
+    // Conductance from the radiator to the room in W/K.
+    const double conductance;
+    // Maximum temperature the radiator can reach in C.
+    const double maxTemp;
+};
+static const RadParams_t radParams_Default {
+    25.0, 70.0
+};
+
+
+namespace TMHelper
+{
+
+    /**
+ * @brief   Calculate heat transfer through a thermal resistance. Flow from temp1 to temp2 is positive.
+ */
+double heatTransfer(const double conductance, const double temp1, const double temp2)
+{
+    return conductance * (temp1 - temp2);
+}
+/**
+ * @brief   Calculate temp seen by valve this interval.
+ * @note    Heat flow into the room is positive.
+ * @note    Assumes that radiator temperature (and therefore heat input):
+ *          - increases linearly.
+ *          - increases monotonically.
+ *          - Cannot be below air temperature (the radiator cannot sink heat).
+ * @retval  Heat transfer into room from radiator, in J
+ */
+double calcValveTemp(const double airTemp, const double localTemp, const double heatFlowFromRad)
+{
+    static constexpr double thermalConductanceRad {0.05};  // fixme literal is starting estimate for thermal resistance
+    static constexpr double thermalConductanceRoom {10.0};
+    const double heatIn = heatFlowFromRad * thermalConductanceRad;
+    const double heatOut = heatTransfer(thermalConductanceRoom, localTemp, airTemp);
+    const double valveHeatFlow = heatIn - heatOut;
+    const double newLocalTemp = localTemp + (valveHeatFlow / 5000);  // fixme literal is starting estimate for thermal capacitance
+    return newLocalTemp;
+}
+}
+
+
+/**
  * Helper class to handle updating and storing state of TRV.
  */
 class ValveModelBase
@@ -70,12 +117,13 @@ public:
      */
     virtual void tick(const double curTempC) = 0;
     virtual void tick(const double curTempC, const uint32_t /*seconds*/) { tick(curTempC); }
+    virtual double calcHeatFlowRad(const double airTempC) const = 0;
     // Get valve percentage open.
     virtual uint_fast8_t getValvePCOpen() const = 0;
     // get target temperature in C.
     virtual double getTargetTempC() const = 0;
     // Get the effective valve percentage open the model should use.
-    virtual double getEffectiveValvePCOpen() const = 0;    
+    virtual double getEffectiveValvePCOpen() const = 0;
 };
 
 /**
@@ -86,18 +134,30 @@ template<bool isBinary = false>
 class ValveModel : public ValveModelBase
 {
 private:
+    const RadParams_t radParams;
+
     // Components required for the valve model.
     uint_fast8_t valvePCOpen {0};
     OTRadValve::ModelledRadValveInputState is0;
     OTRadValve::ModelledRadValveState<isBinary> rs0;
 
+    // Simulated valve, internal.
+    OTRadValve::RadValveMock radValveInternal;
+
     // Delay in radiator responding to change in valvePCOpen. Should possibly be asymmetric.
     std::vector<uint_fast8_t> responseDelay = {0, 0, 0, 0, 0};
 
-
 public:
+    ValveModel(const RadParams_t _radParams = radParams_Default) : radParams(_radParams) {}
+
+    // Read-only view of simulated radiator valve.
+    const OTRadValve::AbstractRadValve &radValve = radValveInternal;
+
     // Initialise the model with the room conditions..
     void init(const InitConditions_t init) override {
+        // Init valve position of the mock rad valve.
+        radValveInternal.set(init.valvePCOpen);
+
         valvePCOpen = init.valvePCOpen;
         is0.targetTempC = init.targetTempC;
         // Init
@@ -119,6 +179,18 @@ public:
         responseDelay.erase(responseDelay.begin());
         responseDelay.push_back(valvePCOpen);
     }
+
+    // calcHeatFlowRad(roomState.airTemperature, radValveInternal.get());
+    double calcHeatFlowRad(const double airTempC) const override
+    {
+        // convert radValveOpenPC to radiator temp (badly)
+        const double radTemp = (2.0 * (double)valvePCOpen) - 80.0;
+        // Making sure the radiator temp does not exceed sensible values
+        const double scaledRadTemp = (radTemp < radParams.maxTemp) ? radTemp : radParams.maxTemp;
+        // Calculate heat transfer, making sure rad temp cannot go below air temperature.
+        return (radTemp > airTempC) ? (TMHelper::heatTransfer(radParams.conductance, scaledRadTemp, airTempC)) : 0.0;
+    }
+
     // 
     uint_fast8_t getValvePCOpen() const override { return (valvePCOpen); }
     double getTargetTempC() const override { return (is0.targetTempC); }
@@ -154,20 +226,6 @@ static const RoomParams_t roomParams_Default {
 };
 
 /**
- * @brief   Physical constants modelling the radiator.
- */
-struct RadParams_t
-{
-    // Conductance from the radiator to the room in W/K.
-    const double conductance;
-    // Maximum temperature the radiator can reach in C.
-    const double maxTemp;
-};
-static const RadParams_t radParams_Default {
-    25.0, 70.0
-};
-
-/**
  * @brief   Current state of the room.
  */ 
 struct ThermalModelState_t
@@ -195,45 +253,13 @@ static void initThermalModelState(ThermalModelState_t& state, const InitConditio
     state.valveTemp = init.roomTempC;
 }
 
-
-namespace TMHelper
-{
-
-    /**
- * @brief   Calculate heat transfer through a thermal resistance. Flow from temp1 to temp2 is positive.
- */
-double heatTransfer(const double conductance, const double temp1, const double temp2)
-{
-    return conductance * (temp1 - temp2);
-}
-/**
- * @brief   Calculate temp seen by valve this interval.
- * @note    Heat flow into the room is positive.
- * @note    Assumes that radiator temperature (and therefore heat input):
- *          - increases linearly.
- *          - increases monotonically.
- *          - Cannot be below air temperature (the radiator cannot sink heat).
- * @retval  Heat transfer into room from radiator, in J
- */
-double calcValveTemp(const double airTemp, const double localTemp, const double heatFlowFromRad)
-{
-    static constexpr double thermalConductanceRad {0.05};  // fixme literal is starting estimate for thermal resistance
-    static constexpr double thermalConductanceRoom {10.0};
-    const double heatIn = heatFlowFromRad * thermalConductanceRad;
-    const double heatOut = heatTransfer(thermalConductanceRoom, localTemp, airTemp);
-    const double valveHeatFlow = heatIn - heatOut;
-    const double newLocalTemp = localTemp + (valveHeatFlow / 5000);  // fixme literal is starting estimate for thermal capacitance
-    return newLocalTemp;
-}
-}
-
 class ThermalModelBase
 {
 public:
     virtual void init(const InitConditions_t init) = 0;
     // Calculate new temperature
-    virtual void calcNewAirTemperature(uint8_t radValveOpenPC) = 0;
-    virtual ThermalModelState_t getState() const = 0;
+    virtual void calcNewAirTemperature(const double heat_in) = 0;
+    virtual const ThermalModelState_t& getState() const = 0;
     virtual double getHeatInput() const = 0;
 };
 
@@ -249,56 +275,22 @@ public:
 class ThermalModelBasic final : public ThermalModelBase
     {
     protected:
-        // Simulated valve, internal.
-        OTRadValve::RadValveMock radValveInternal;
-
         // Constants & variables
         ThermalModelState_t roomState;
         const RoomParams_t roomParams;
-        const RadParams_t radParams;
-
-        /**
-         * @brief   Calculate heat input this interval by radiator.
-         * @note    Heat flow into the room is positive.
-         * @note    Assumes that radiator temperature (and therefore heat input):
-         *          - increases linearly.
-         *          - increases monotonically.
-         *          - Cannot be below air temperature (the radiator cannot sink heat).
-         * @retval  Heat transfer into room from radiator, in J
-         */
-        double calcHeatFlowRad(const double airTemp, const uint8_t radValveOpenPC) const 
-        {
-            // convert radValveOpenPC to radiator temp (badly)
-            const double radTemp = (2.0 * (double)radValveOpenPC) - 80.0;
-            // Making sure the radiator temp does not exceed sensible values
-            const double scaledRadTemp = (radTemp < radParams.maxTemp) ? radTemp : radParams.maxTemp;
-            // Calculate heat transfer, making sure rad temp cannot go below air temperature.
-            return (radTemp > airTemp) ? (TMHelper::heatTransfer(radParams.conductance, scaledRadTemp, airTemp)) : 0.0;
-        }
 
     public:
-        ThermalModelBasic(
-            const RoomParams_t _roomParams = roomParams_Default,
-            const RadParams_t _radParams = radParams_Default) : 
-            roomParams(_roomParams), 
-            radParams(_radParams) {  }
-
-        // Read-only view of simulated radiator valve.
-        const OTRadValve::AbstractRadValve &radValve = radValveInternal;
+        ThermalModelBasic(const RoomParams_t _roomParams = roomParams_Default) : 
+            roomParams(_roomParams) {  }
 
         void init(const InitConditions_t init) override {
             // Init the thermal model
             initThermalModelState(roomState, init);
-
-            // Init valve position of the mock rad valve.
-            radValveInternal.set(init.valvePCOpen);
         }
 
         // Calculate new temperature
-        void calcNewAirTemperature(uint8_t radValveOpenPC) override {
-            radValveInternal.set(radValveOpenPC);
+        void calcNewAirTemperature(const double heat_in) override {
             // Calc heat in from rad
-            const double heat_in = calcHeatFlowRad(roomState.airTemperature, radValveInternal.get());
             roomState.radHeatFlow = heat_in;
 
             // Calculate change in heat of each segment.
@@ -322,7 +314,7 @@ class ThermalModelBasic final : public ThermalModelBase
             if(verbose) { }  // todo put print out in here
         }
 
-        ThermalModelState_t getState() const override { return (roomState); }
+        const ThermalModelState_t& getState() const override { return (roomState); }
         double getHeatInput() const override { return (roomState.radHeatFlow); }
     };
 
@@ -375,16 +367,17 @@ static void internalModelTick(
     ValveModelBase& v, 
     ThermalModelBasic& m)
 {
-    const uint_fast8_t valvePCOpen = v.getEffectiveValvePCOpen();
+    const ThermalModelState_t state = m.getState();
     // once per minute tasks.
     if(0 == (seconds % valveUpdateTime)) {
-        const ThermalModelState_t state = m.getState();
         if (verbose) {
+            const uint_fast8_t valvePCOpen = v.getEffectiveValvePCOpen();
             printFrame(seconds, state, v.getTargetTempC(), valvePCOpen);
         }
         v.tick(state.valveTemp, seconds);
     }
-    m.calcNewAirTemperature(valvePCOpen);
+    const double heatIn = v.calcHeatFlowRad(state.roomTemp);
+    m.calcNewAirTemperature(heatIn);
 }
 
 
