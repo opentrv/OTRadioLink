@@ -17,6 +17,9 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
                            Deniz Erbilgin 2016-2018
 */
 
+#ifndef OTRADVALVE_THERMALPHYSICSMODEL_H
+#define  OTRADVALVE_THERMALPHYSICSMODEL_H
+
 #include <cstdint>
 #include <cstdio>
 
@@ -410,3 +413,5 @@ public:
 
 }
 }
+
+#endif // OTRADVALVE_THERMALPHYSICSMODEL_H
