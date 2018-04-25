@@ -74,7 +74,7 @@ namespace TMHelper
     /**
  * @brief   Calculate heat transfer through a thermal resistance. Flow from temp1 to temp2 is positive.
  */
-double heatTransfer(const double conductance, const double temp1, const double temp2)
+inline double heatTransfer(const double conductance, const double temp1, const double temp2)
 {
     return conductance * (temp1 - temp2);
 }
@@ -87,7 +87,7 @@ double heatTransfer(const double conductance, const double temp1, const double t
  *          - Cannot be below air temperature (the radiator cannot sink heat).
  * @retval  Heat transfer into room from radiator, in J
  */
-double calcValveTemp(const double airTemp, const double localTemp, const double heatFlowFromRad)
+inline double calcValveTemp(const double airTemp, const double localTemp, const double heatFlowFromRad)
 {
     static constexpr double thermalConductanceRad {0.05};  // fixme literal is starting estimate for thermal resistance
     static constexpr double thermalConductanceRoom {10.0};
