@@ -185,7 +185,6 @@ public:
         responseDelay.push_back(state.valvePCOpen);
     }
 
-    // calcHeatFlowRad(state.airTemperature, radValveInternal.get());
     double calcHeatFlowRad(const double airTempC) override
     {
         // convert radValveOpenPC to radiator temp (badly)
