@@ -130,10 +130,10 @@ public:
     virtual double calcHeatFlowRad(const double airTempC) = 0;
     // Get valve percentage open.
     virtual uint_fast8_t getValvePCOpen() const = 0;
+    virtual uint_fast8_t getEffectiveValvePCOpen() const = 0;
     // get target temperature in C.
     virtual double getTargetTempC() const = 0;
     // Get the effective valve percentage open the model should use.
-    virtual double getEffectiveValvePCOpen() const = 0;
     virtual void setValveTemp(double tempC) = 0;
     virtual double getValveTemp() const = 0;
     virtual double getHeatInput() const = 0;
@@ -202,8 +202,8 @@ public:
 
     // 
     uint_fast8_t getValvePCOpen() const override { return (state.valvePCOpen); }
+    uint_fast8_t getEffectiveValvePCOpen() const override { return (responseDelay.front()); }
     double getTargetTempC() const override { return (is0.targetTempC); }
-    double getEffectiveValvePCOpen() const override { return (responseDelay.front()); }
     void setValveTemp(double tempC) override { state.valveTemp = tempC; }
     double getValveTemp() const override { return (state.valveTemp); }
     double getHeatInput() const override { return (state.radHeatFlow); }
