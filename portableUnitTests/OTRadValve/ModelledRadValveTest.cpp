@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2016--2017
+Author(s) / Copyright (s): Damon Hart-Davis 2016--2018
                            Deniz Erbilgin   2017
 */
 
@@ -175,7 +175,8 @@ SCOPED_TRACE(testing::Message() << "no backing valve " << noBackingValve);
         uint8_t valvePC = initialValvePC;
         if(NULL != arv) { arv->set(initialValvePC); }
 
-        // Set sensible ambient room temperature (18C), with target much higher.
+        // Set sensible ambient room temperature (18C),
+        // with target much higher.
         OTRadValve::ModelledRadValveInputState is(18 << 4);
         is.targetTempC = 25;
         OTRadValve::ModelledRadValveState<> rs;
@@ -186,7 +187,8 @@ SCOPED_TRACE(testing::Message() << "no backing valve " << noBackingValve);
         EXPECT_EQ(0, rs.cumulativeMovementPC);
         if(NULL != arv) { EXPECT_NEAR(valvePC, arv->get(), 1) << "backing valve should be close"; }
         // Now set the target well below ambient, and spin for a while.
-        // The valve should be closed, with exactly 100% of cumulative travel.
+        // The valve should be closed,
+        // with exactly 100% of cumulative travel.
         is.targetTempC = 10;
         for(int i = 1000; --i > 0; ) { rs.tick(valvePC, is, arv); }
         EXPECT_EQ(0, valvePC);
@@ -650,10 +652,13 @@ SCOPED_TRACE(testing::Message() << "fastResponseRequired " << fastResponseRequir
 // with the valve at a steady temperature (close to target),
 // possibly not actually letting water through or getting any heat.
 // This tests the valve at a range of temperatures around the target
-// to ensure that with steady temperatures the call for heat eventually stops,
-// or that the call for heat continues but with valve fully open.  (TODO-1096)
+// to ensure that with steady temperatures
+// the call for heat eventually stops,
+// or that the call for heat continues
+// but with valve fully open.  (TODO-1096)
 // Tested with and without wide deadband.
-// The legacy algorithm pre 2016/12/30 fails this test and can hover badly.
+// The legacy algorithm pre 2016/12/30 fails this test
+// and can hover badly potentially fail to heat anything but the valve.
 TEST(ModelledRadValve,MRVSNoHoverWithBoilerOn)
 {
     // Seed PRNG for use in simulator; --gtest_shuffle will force it to change.
@@ -697,6 +702,7 @@ TEST(ModelledRadValve,MRVSNoHoverWithBoilerOn)
             { EXPECT_FALSE(callForHeat) << int(p); }
         }
 }
+
 
 // Check for correct engage/disengage of the filtering.
 // In particular check that there is no flapping on/off eg when current ~ mean.
