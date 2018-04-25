@@ -55,14 +55,16 @@ struct ModelledRadValveInputState final
     // All initial values set by the constructor are sane, for some uses.
     explicit ModelledRadValveInputState(const int_fast16_t realTempC16 = 0) { setReferenceTemperatures(realTempC16); }
 
-    // Calculate and store reference temperature(s) from real temperature supplied.
+    // Calculate and store reference temperature(s) from real supplied.
     // Proportional temperature regulation is in a 1C band.
     // By default, for a given target XC the rad is off at (X+1)C
     // so that the controlled temperature oscillates around that point.
-    // This routine shifts the reference point at which the rad is off to (X+0.5C)
+    // This routine shifts the reference point at which
+    // the rad is off to (X+0.5C)
     // ie to the middle of the specified degree, which is more intuitive,
     // and which may save a little energy if users focus on temperatures.
-    // Suggestion c/o GG ~2014/10 code, and generally less misleading anyway!
+    // Suggestion c/o GG ~2014/10 code,
+    // and generally less misleading anyway!
     void setReferenceTemperatures(const int_fast16_t currentTempC16)
     {
         // Push targeted temperature down so that
@@ -92,8 +94,8 @@ struct ModelledRadValveInputState final
     // If true then allow a wider deadband (more temperature drift)
     // to save energy and valve noise.
     // This is a strong hint that the system can work less strenuously
-    // to reach or stay on, target,
-    // and/or that the user has not manually requested an adjustment recently
+    // to reach or stay on target,
+    // and/or that the user has not manually requested a change recently,
     // so this need not be ultra responsive.
     bool widenDeadband = false;
     // True if in glacial mode.
@@ -125,7 +127,7 @@ struct ModelledRadValveInputState final
 // Template parameters:
 //     MINIMAL_BINARY_IMPL  if true, then minimal/binary valve impl
 //     AGGRESSIVE_ON  if true, then very aggressive open always to full
-template <bool MINIMAL_BINARY_IMPL = false, bool AGGRESSIVE_ON = true>
+template <bool MINIMAL_BINARY_IMPL = false, bool AGGRESSIVE_ON = false>
 struct ModelledRadValveState final
 {
     // FEATURE SUPPORT
@@ -474,20 +476,24 @@ public:
 
 // Computes a new valve position given supplied input state
 // including the current valve position; [0,100].
-// Uses no state other than that passed as arguments (thus is unit testable).
+// Uses no state other than that passed as arguments
+// (thus is unit testable).
+//
 // Does not alter any of the input state.
 // Uses hysteresis and a proportional control and some other cleverness.
 // Should be called at a regular rate, once per minute.
 // All inputState values should be set to sensible values before starting.
 // Usually called by tick() which does required state updates afterwards.
 //
-// In a basic binary "bang-bang" mode the valve is operated fully on or off.
-// This may make sense where, for example, the radiator is instant electric.
+// In a basic binary "bang-bang" mode the valve is operated fully on/off.
+// This may make sense where, for example, the radiator
+// is instant electric.
 // The top of the central range is as for proportional,
 // and the bottom of the central range is 1C or 2C below.
 //
 // Basic strategy for proportional control:
-//   * The aim is to stay within and at the top end of the 'target' 1C band.
+//   * The aim is to stay within and at the top end of
+//     the 'target' 1C band.
 //   * The target 1C band is offset so that at a nominal XC.
 //     temperature should be held somewhere between X.0C and X.5C.
 //   * There is an outer band which when left has the valve immediately
@@ -523,10 +529,11 @@ public:
 //   * Providing that there is no call for heat
 //     then the valve can rest indefinitely at or close to the sweet-spot
 //     ie avoid movement.
-//   * Outside the sweet-spot the valve will always try to seek back to it,
-//     either passively if the temperature is moving in the right direction,
+//   * Outside the sweet-spot the valve will try to seek back to it,
+//     either passively if the temperature moves in the right direction,
 //     or actively by adjusting the valve.
-//   * Valve movement may be faster the further from the target/sweet-spot.
+//   * Valve movement may be faster the further from the
+//     target/sweet-spot.
 //   * The valve can be run in a glacial mode,
 //     where the valve will always adjust at minimum speed,
 //     to minimise flow eg where there is a charge by volume.
@@ -578,7 +585,8 @@ uint8_t computeRequiredTRVPercentOpen(uint8_t valvePCOpen, const ModelledRadValv
     // New non-binary implementation as of 2017Q1.
     // Does not make any particular assumptions about
     // at what percentage open significant/any water flow will happen,
-    // but does take account of the main call-for-heat level for the boiler.
+    // but does take account of the main call-for-heat level
+    // for the boiler.
     //
     // Tries to avoid calling for heat longer than necessary,
     // ie with a valve open at/above OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN,
@@ -608,9 +616,9 @@ uint8_t computeRequiredTRVPercentOpen(uint8_t valvePCOpen, const ModelledRadValv
         return(inputState.maxPCOpen);
         }
     // (Well) over temperature target: close valve down.
-    // Allow more temporary headroom at the top than below with wide deadband
-    // in proportional mode to try to allow graceful handling of overshoot
-    // (eg where TRV on rad sees larger temperature swings vs eg split unit),
+    // Allow more temporary headroom at top than below w/wide deadband
+    // in proportional mode to try to allow graceful overshoot handling
+    // (eg TRV on rad sees larger temperature swings vs split unit),
     // though central temperature target remains the same.
     //
     // When not in binary mode the temperature will be pushed down gently
@@ -726,8 +734,9 @@ uint8_t computeRequiredTRVPercentOpen(uint8_t valvePCOpen, const ModelledRadValv
         // if not in central sweet-spot already  (TODO-1099)
         // to have boiler respond appropriately ASAP also.
         // As well as responding quickly thermally to requested changes,
-        // this is about giving rapid confidence-building feedback to the
-        // user.
+        // this is about giving rapid confidence-building
+        // feedback to the user.
+        //
         // Note that a manual adjustment of the temperature set-point
         // is very likely to force this unit out of the sweet-spot.
         //
@@ -865,8 +874,8 @@ uint8_t computeRequiredTRVPercentOpen(uint8_t valvePCOpen, const ModelledRadValv
                 // Within bounds, attempt to fix faster when further off target
                 // but not so fast as to force a full close unnecessarily.
                 // Not calling for heat, so may be able to dawdle.
-                // Note: even if slew were 0, it could not cause bad hovering,
-                // because this also ensures that there is no call for heat.
+                // Note: even if slew==0, it could not cause bad hovering,
+                // since this also ensures that there is no call for heat.
                 return(uint8_t(OTV0P2BASE::fnconstrain(
                     int(valvePCOpen) - int(maxSlew),
                     0,
