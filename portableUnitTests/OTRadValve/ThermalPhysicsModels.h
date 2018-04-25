@@ -127,13 +127,15 @@ public:
      */
     virtual void tick(const double curTempC) = 0;
     virtual void tick(const double curTempC, const uint32_t /*seconds*/) { tick(curTempC); }
-    virtual double calcHeatFlowRad(const double airTempC) const = 0;
+    virtual double calcHeatFlowRad(const double airTempC) = 0;
     // Get valve percentage open.
     virtual uint_fast8_t getValvePCOpen() const = 0;
     // get target temperature in C.
     virtual double getTargetTempC() const = 0;
     // Get the effective valve percentage open the model should use.
     virtual double getEffectiveValvePCOpen() const = 0;
+    virtual void setValveTemp(double tempC) = 0;
+    virtual double getValveTemp() const = 0;
 };
 
 /**
@@ -159,9 +161,6 @@ public:
 
     // Initialise the model with the room conditions..
     void init(const InitConditions_t init) override {
-        // Init valve position of the mock rad valve.
-        radValveInternal.set(init.valvePCOpen);
-
         state.valveTemp = init.roomTempC;
         state.valvePCOpen = init.valvePCOpen;
 
@@ -187,10 +186,10 @@ public:
     }
 
     // calcHeatFlowRad(state.airTemperature, radValveInternal.get());
-    double calcHeatFlowRad(const double airTempC) const override
+    double calcHeatFlowRad(const double airTempC) override
     {
         // convert radValveOpenPC to radiator temp (badly)
-        const double radTemp = (2.0 * (double)valvePCOpen) - 80.0;
+        const double radTemp = (2.0 * (double)state.valvePCOpen) - 80.0;
         // Making sure the radiator temp does not exceed sensible values
         const double scaledRadTemp = (radTemp < radParams.maxTemp) ? radTemp : radParams.maxTemp;
         // Calculate heat transfer, making sure rad temp cannot go below air temperature.
@@ -201,9 +200,11 @@ public:
     }
 
     // 
-    uint_fast8_t getValvePCOpen() const override { return (valvePCOpen); }
+    uint_fast8_t getValvePCOpen() const override { return (state.valvePCOpen); }
     double getTargetTempC() const override { return (is0.targetTempC); }
     double getEffectiveValvePCOpen() const override { return (responseDelay.front()); }
+    void setValveTemp(double tempC) override { state.valveTemp = tempC; }
+    double getValveTemp() const override { return (state.valveTemp); }
 };
 
 
@@ -308,10 +309,6 @@ class ThermalModelBasic final : public ThermalModelBase
             state.roomTemp += heat_21 / roomParams.capacitance_2;
             state.t1 += heat_10 / roomParams.capacitance_1;
             state.t0 += heat_out / roomParams.capacitance_0;
-
-            // Calc temp of thermostat. This is the same as the room temp in a split unit.
-            if(!splitUnit) { state.valveTemp = TMHelper::calcValveTemp(state.roomTemp, state.valveTemp, heat_in); }
-            else { state.valveTemp = state.roomTemp; }
         }
 
         const ThermalModelState_t& getState() const override { return (state); }
@@ -374,10 +371,12 @@ static void internalModelTick(
             // const uint_fast8_t valvePCOpen = v.getEffectiveValvePCOpen();
             // printFrame(seconds, state, v.getTargetTempC(), valvePCOpen);
         }
-        v.tick(state.valveTemp, seconds);
+        v.tick(seconds);
     }
     const double heatIn = v.calcHeatFlowRad(state.roomTemp);
     m.calcNewAirTemperature(heatIn);
+    // Calc temp of thermostat. This is the same as the room temp in a split unit.
+    v.setValveTemp(TMHelper::calcValveTemp(state.roomTemp, v.getValveTemp(), heatIn));
 }
 
 
