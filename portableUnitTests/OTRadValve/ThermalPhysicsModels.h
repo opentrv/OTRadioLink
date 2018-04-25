@@ -39,7 +39,7 @@ namespace PortableUnitTest
 namespace TMB {
 
 static bool verbose = false;
-static bool splitUnit = false;
+// static bool splitUnit = false;
 
 // Length of valve model update cycle in seconds.
 static constexpr uint_fast8_t valveUpdateTime = 60;
@@ -136,6 +136,8 @@ public:
     virtual double getEffectiveValvePCOpen() const = 0;
     virtual void setValveTemp(double tempC) = 0;
     virtual double getValveTemp() const = 0;
+    virtual double getHeatInput() const = 0;
+
 };
 
 /**
@@ -204,6 +206,7 @@ public:
     double getEffectiveValvePCOpen() const override { return (responseDelay.front()); }
     void setValveTemp(double tempC) override { state.valveTemp = tempC; }
     double getValveTemp() const override { return (state.valveTemp); }
+    double getHeatInput() const override { return (state.radHeatFlow); }
 };
 
 
@@ -322,12 +325,12 @@ class ThermalModelBasic final : public ThermalModelBase
  * @param   targetTempC: target room temperature (key 'tT|C').
  * @param   valvePCOpen: current valve position in % (key 'v|%').
  */
-// static void printFrame(const unsigned int i, const ThermalModelState_t& state, const double targetTempC, const uint_fast8_t valvePCOpen) {
+static void printFrame(const unsigned int i, const ThermalModelState_t& state, const double targetTempC, const uint_fast8_t valvePCOpen) {
     // fprintf(stderr, "[ \"%u\", \"\", {\"T|C\": %.2f, \"TV|C\": %.2f, \"tT|C\": %.2f, \"v|%%\": %u} ]\n",
     //         i, state.airTemperature, state.valveTemp, state.targetTemp, valvePCOpen);
-    // fprintf(stderr, "[ \"%u\", \"\", {\"T|C\": %.2f, \"TV|C\": %.2f, \"tT|C\": %.2f, \"v|%%\": %u} ]\n",
-    //     i, state.roomTemp, state.valveTemp, targetTempC, valvePCOpen);
-// }
+    fprintf(stderr, "[ \"%u\", \"\", {\"T|C\": %.2f, \"tT|C\": %.2f, \"v|%%\": %u} ]\n",
+        i, state.roomTemp, targetTempC, valvePCOpen);
+}
 
 // Struct for storing the max and min temperatures seen this test.
 struct TempBoundsC_t {
@@ -368,9 +371,9 @@ static void internalModelTick(
     if(0 == (seconds % valveUpdateTime)) {
         if (verbose) {
             // const uint_fast8_t valvePCOpen = v.getEffectiveValvePCOpen();
-            // printFrame(seconds, state, v.getTargetTempC(), valvePCOpen);
+            printFrame(seconds, state, v.getTargetTempC(), 0);
         }
-        v.tick(seconds);
+        v.tick(v.getValveTemp());
     }
     const double heatIn = v.calcHeatFlowRad(state.roomTemp);
     m.calcNewAirTemperature(heatIn);

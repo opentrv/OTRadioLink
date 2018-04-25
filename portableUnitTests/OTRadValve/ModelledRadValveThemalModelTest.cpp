@@ -43,7 +43,7 @@ using namespace OTRadValve::PortableUnitTest;
 TEST(ModelledRadValveThermalModel, roomCold)
 {
     TMB::verbose = false;
-    TMB::splitUnit = false;
+    // TMB::splitUnit = false;
     // Room start temp
     TMB::InitConditions_t  initCond {
         16.0f, // room temp in C
@@ -67,7 +67,7 @@ TEST(ModelledRadValveThermalModel, roomCold)
 TEST(ModelledRadValveThermalModel, roomColdBinary)
 {
     TMB::verbose = false;
-    TMB::splitUnit = false;
+    // TMB::splitUnit = false;
     // Room start temp
     TMB::InitConditions_t  initCond {
         16.0f, // room temp in C
@@ -91,7 +91,7 @@ TEST(ModelledRadValveThermalModel, roomColdBinary)
 TEST(ModelledRadValveThermalModel, roomHot)
 {
     TMB::verbose = false;
-    TMB::splitUnit = false;
+    // TMB::splitUnit = false;
     // Room start temp
     TMB::InitConditions_t  initCond {
         24.0f, // room temp in C
