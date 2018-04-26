@@ -55,14 +55,16 @@ struct ModelledRadValveInputState final
     // All initial values set by the constructor are sane, for some uses.
     explicit ModelledRadValveInputState(const int_fast16_t realTempC16 = 0) { setReferenceTemperatures(realTempC16); }
 
-    // Calculate and store reference temperature(s) from real temperature supplied.
+    // Calculate and store reference temperature(s) from real supplied.
     // Proportional temperature regulation is in a 1C band.
     // By default, for a given target XC the rad is off at (X+1)C
     // so that the controlled temperature oscillates around that point.
-    // This routine shifts the reference point at which the rad is off to (X+0.5C)
+    // This routine shifts the reference point at which
+    // the rad is off to (X+0.5C)
     // ie to the middle of the specified degree, which is more intuitive,
     // and which may save a little energy if users focus on temperatures.
-    // Suggestion c/o GG ~2014/10 code, and generally less misleading anyway!
+    // Suggestion c/o GG ~2014/10 code,
+    // and generally less misleading anyway!
     void setReferenceTemperatures(const int_fast16_t currentTempC16)
     {
         // Push targeted temperature down so that
@@ -92,8 +94,8 @@ struct ModelledRadValveInputState final
     // If true then allow a wider deadband (more temperature drift)
     // to save energy and valve noise.
     // This is a strong hint that the system can work less strenuously
-    // to reach or stay on, target,
-    // and/or that the user has not manually requested an adjustment recently
+    // to reach or stay on target,
+    // and/or that the user has not manually requested a change recently,
     // so this need not be ultra responsive.
     bool widenDeadband = false;
     // True if in glacial mode.
@@ -107,7 +109,8 @@ struct ModelledRadValveInputState final
     bool fastResponseRequired = false;
 
     // Reference (room) temperature in C/16; must be set before each valve position recalc.
-    // Proportional control is in the region where (refTempC16>>4) == targetTempC.
+    // Proportional control is in the region where
+    // (refTempC16>>4) == targetTempC.
     // This is signed and at least 16 bits.
     int_fast16_t refTempC16;
 };
@@ -122,8 +125,9 @@ struct ModelledRadValveInputState final
 // for room temperatures.
 //
 // Template parameters:
-//     MINIMAL_BINARY_IMPL  ff true then support a minimal/binary valve impl
-template <bool MINIMAL_BINARY_IMPL = false>
+//     MINIMAL_BINARY_IMPL  if true, then minimal/binary valve impl
+//     AGGRESSIVE_ON  if true, then very aggressive open always to full
+template <bool MINIMAL_BINARY_IMPL = false, bool AGGRESSIVE_ON = false>
 struct ModelledRadValveState final
 {
     // FEATURE SUPPORT
@@ -246,25 +250,30 @@ struct ModelledRadValveState final
               { if(OTV0P2BASE::fnabsdiff(getSmoothedRecent(), rawTempC16) <= MAX_TEMP_JUMP_C16) { isFiltering = filter_OFF; } }
         }
         // Force filtering (back) on if big delta(s) over recent minutes.
-        // This is NOT an else clause from the above so as to avoid flapping
-        // filtering on and off if the current temp happens to be close to the mean,
-        // which would produce more valve movement and noise than necessary.  (TODO-1027)
+        // This is NOT an else clause from the above
+        // so as to avoid flapping filtering on and off
+        // if the current temperature happens to be close to the mean,
+        // which would produce more valve movement and noise
+        // than necessary.  (TODO-1027)
         if(!isFiltering) {
             static_assert(MIN_TICKS_0p5C_DELTA < filterLength, "filter must be long enough to detect delta over specified window");
             static_assert(MIN_TICKS_1C_DELTA < filterLength, "filter must be long enough to detect delta over specified window");
             // Quick test for needing filtering turned on.
             // Switches on filtering if large delta over recent interval(s).
-            // This will happen for all-in-one TRV on rad, as rad warms up, for example,
-            // and forces on low-pass filter to better estimate real room temperature.
+            // This will happen for all-in-one TRV on rad,
+            // as rad warms up, for example,
+            // and forces on low-pass filter
+            // to better estimate real room temperature.
             if((OTV0P2BASE::fnabs(getRawDelta(MIN_TICKS_0p5C_DELTA)) > 8))
             //       (OTV0P2BASE::fnabs(getRawDelta(MIN_TICKS_1C_DELTA)) > 16) ||
             //       (OTV0P2BASE::fnabs(getRawDelta(filterLength-1)) > int_fast16_t(((filterLength-1) * 16) / MIN_TICKS_1C_DELTA)))
               { isFiltering = filter_minimum_ON; }
         }
         if(FILTER_DETECT_JITTER && !isFiltering) {
-            // Force filtering (back) on if adjacent readings are wildly different.
+            // Force filtering (back) on if adj readings wildly differ.
             // Slow/expensive test if temperature readings are jittery.
-            // It is not clear how often this will be the case with good sensors.
+            // It is not clear how often this will be the case
+            // with good sensors.
             for(size_t i = 1; i < filterLength; ++i)
               { if(OTV0P2BASE::fnabsdiff(prevRawTempC16[i], prevRawTempC16[i-1]) > MAX_TEMP_JUMP_C16) { isFiltering = filter_minimum_ON; break; } }
         }
@@ -380,8 +389,9 @@ public:
     bool dontTurnup() const { return(0 != valveTurndownCountdownM); }
 
     // Set non-zero when valve flow is increased, and then counts down to zero.
-    // Some or all attempts to close the valve are deferred while this is non-zero
-    // to reduce valve hunting if there is string turbulence from the radiator
+    // Some or all attempts to close the valve are deferred
+    // while this is non-zero to reduce valve hunting
+    // if there is string turbulence from the radiator
     // or maybe draughts from open windows/doors
     // causing measured temperatures to veer up and down.
     // This attempts to reduce excessive valve noise and energy use
@@ -404,15 +414,18 @@ public:
     static constexpr uint16_t MAX_CUMULATIVE_MOVEMENT_VALUE = 0x3ff;
     //
     // Cumulative valve movement %; rolls at 1024 in range [0,1023].
-    // Most of the time JSON value is 3 digits or fewer, conserving bandwidth.
+    // Most of the time JSON value is 3 digits or fewer,
+    // conserving bandwidth.
     // It would often be appropriate to mark this as low priority
     // since it can be approximated from observed valve positions over time.
-    // This is computed from actual underlying valve movements if possible,
+    // This is computed from actual underlying valve movements if poss,
     // rather than just the modelled valve movements.
     //
     // The (masked) value doesn't wrap round to a negative value
-    // and can safely be sent/received in JSON by hosts with 16-bit signed ints,
-    // and the maximum number of decimal digits used in its representation is 4
+    // and can safely be sent/received in JSON by hosts
+    // with 16-bit signed ints,
+    // and the maximum number of decimal digits
+    // used in its representation is 4
     // but is almost always 3 (or fewer)
     // and used efficiently (~80% use of the top digit).
     //
@@ -420,7 +433,8 @@ public:
     // is assumed to be ~600% (DHD20171118), was ~400% (DHD20141230),
     // so this should hold much more than that to avoid ambiguity
     // from missed/infrequent readings,
-    // especially given full slew (+100%) can sometimes happen in 1 minute/tick.
+    // especially given that full slew (+100%)
+    // can sometimes happen in 1 minute/tick.
     uint16_t cumulativeMovementPC = 0;
 
     // Previous valve position (%), used to compute cumulativeMovementPC.
@@ -432,8 +446,10 @@ public:
 
     // Previous unadjusted temperatures, 0 being the newest, and following ones successively older.
     // These values have any target bias removed.
-    // Half the filter size times the tick() interval gives an approximate time constant.
-    // Note that full response time of a typical mechanical wax-based TRV is ~20mins.
+    // Half the filter size times the tick() interval
+    // gives an approximate time constant.
+    // Note that full response time of a typical mechanical wax-based
+    // TRV is ~20mins.
     int_fast16_t prevRawTempC16[filterLength];
 
     // If true, detect jitter between adjacent samples to turn filter on.
@@ -460,20 +476,24 @@ public:
 
 // Computes a new valve position given supplied input state
 // including the current valve position; [0,100].
-// Uses no state other than that passed as arguments (thus is unit testable).
+// Uses no state other than that passed as arguments
+// (thus is unit testable).
+//
 // Does not alter any of the input state.
 // Uses hysteresis and a proportional control and some other cleverness.
 // Should be called at a regular rate, once per minute.
 // All inputState values should be set to sensible values before starting.
 // Usually called by tick() which does required state updates afterwards.
 //
-// In a basic binary "bang-bang" mode the valve is operated fully on or off.
-// This may make sense where, for example, the radiator is instant electric.
+// In a basic binary "bang-bang" mode the valve is operated fully on/off.
+// This may make sense where, for example, the radiator
+// is instant electric.
 // The top of the central range is as for proportional,
 // and the bottom of the central range is 1C or 2C below.
 //
 // Basic strategy for proportional control:
-//   * The aim is to stay within and at the top end of the 'target' 1C band.
+//   * The aim is to stay within and at the top end of
+//     the 'target' 1C band.
 //   * The target 1C band is offset so that at a nominal XC.
 //     temperature should be held somewhere between X.0C and X.5C.
 //   * There is an outer band which when left has the valve immediately
@@ -509,10 +529,11 @@ public:
 //   * Providing that there is no call for heat
 //     then the valve can rest indefinitely at or close to the sweet-spot
 //     ie avoid movement.
-//   * Outside the sweet-spot the valve will always try to seek back to it,
-//     either passively if the temperature is moving in the right direction,
+//   * Outside the sweet-spot the valve will try to seek back to it,
+//     either passively if the temperature moves in the right direction,
 //     or actively by adjusting the valve.
-//   * Valve movement may be faster the further from the target/sweet-spot.
+//   * Valve movement may be faster the further from the
+//     target/sweet-spot.
 //   * The valve can be run in a glacial mode,
 //     where the valve will always adjust at minimum speed,
 //     to minimise flow eg where there is a charge by volume.
@@ -564,7 +585,8 @@ uint8_t computeRequiredTRVPercentOpen(uint8_t valvePCOpen, const ModelledRadValv
     // New non-binary implementation as of 2017Q1.
     // Does not make any particular assumptions about
     // at what percentage open significant/any water flow will happen,
-    // but does take account of the main call-for-heat level for the boiler.
+    // but does take account of the main call-for-heat level
+    // for the boiler.
     //
     // Tries to avoid calling for heat longer than necessary,
     // ie with a valve open at/above OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN,
@@ -594,9 +616,9 @@ uint8_t computeRequiredTRVPercentOpen(uint8_t valvePCOpen, const ModelledRadValv
         return(inputState.maxPCOpen);
         }
     // (Well) over temperature target: close valve down.
-    // Allow more temporary headroom at the top than below with wide deadband
-    // in proportional mode to try to allow graceful handling of overshoot
-    // (eg where TRV on rad sees larger temperature swings vs eg split unit),
+    // Allow more temporary headroom at top than below w/wide deadband
+    // in proportional mode to try to allow graceful overshoot handling
+    // (eg TRV on rad sees larger temperature swings vs split unit),
     // though central temperature target remains the same.
     //
     // When not in binary mode the temperature will be pushed down gently
@@ -712,12 +734,14 @@ uint8_t computeRequiredTRVPercentOpen(uint8_t valvePCOpen, const ModelledRadValv
         // if not in central sweet-spot already  (TODO-1099)
         // to have boiler respond appropriately ASAP also.
         // As well as responding quickly thermally to requested changes,
-        // this is about giving rapid confidence-building feedback to the
-        // user.
+        // this is about giving rapid confidence-building
+        // feedback to the user.
+        //
         // Note that a manual adjustment of the temperature set-point
         // is very likely to force this unit out of the sweet-spot.
         //
-        // Glacial mode must be set for valves with unusually small ranges,
+        // Glacial mode must be set for valves with small ranges,
+        // or where volume of water is also charged for eg DH,
         // as a guard to avoid large and out-of-range swings here.
         if(!beGlacial &&
            (inputState.fastResponseRequired || wellBelowTarget) &&
@@ -850,8 +874,8 @@ uint8_t computeRequiredTRVPercentOpen(uint8_t valvePCOpen, const ModelledRadValv
                 // Within bounds, attempt to fix faster when further off target
                 // but not so fast as to force a full close unnecessarily.
                 // Not calling for heat, so may be able to dawdle.
-                // Note: even if slew were 0, it could not cause bad hovering,
-                // because this also ensures that there is no call for heat.
+                // Note: even if slew==0, it could not cause bad hovering,
+                // since this also ensures that there is no call for heat.
                 return(uint8_t(OTV0P2BASE::fnconstrain(
                     int(valvePCOpen) - int(maxSlew),
                     0,
@@ -875,8 +899,17 @@ uint8_t computeRequiredTRVPercentOpen(uint8_t valvePCOpen, const ModelledRadValv
         // Aim to (efficiently) dither about the target,
         // with the aim of avoiding leaving the proportional range.
         // The valve does not generally hover mid-travel.  (TODO-1096)
+        //
+        // Alternatively aggressively open the valve to full
+        // in these cases to fully neuter accidental trickle heating
+        // just the valve itself and not the room.  (TODO-1096)
+        // Avoid this if glacial is still demanded at runtime, eg DH.
         if(shouldClose) { return(valvePCOpen - 1); }
-        else if(shouldOpen) { return(valvePCOpen + 1); }
+        else if(shouldOpen)
+            {
+            return((AGGRESSIVE_ON && !beGlacial) ?
+                inputState.maxPCOpen : valvePCOpen + 1);
+            }
 
         // Fall through to return valve position unchanged.
         }
