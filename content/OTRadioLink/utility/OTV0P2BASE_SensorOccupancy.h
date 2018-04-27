@@ -177,6 +177,11 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     // Not ISR-/thread- safe.
     void markAsJustPossiblyOccupied();
 
+    // Put vacant mode, eg for user explicitly vacating a room.
+    // Does not reset any existing accumulated vacancy time.
+    // May also be useful for testing.
+    void markAsVacant() { value = 0; newOccupancyCountdownM.store(0); occupationCountdownM.store(0); }
+
     // Two-bit occupancy: 0 not known/disclosed, 1 not occupied, 2 possibly occupied, 3 probably occupied.
     // 0 is not returned by this implementation.
     // Thread-safe.
