@@ -287,7 +287,7 @@ class ByHourSimpleStatsUpdaterSampleStats final
       }
 
     // Select the type of the accumulator for percentage-value stats [0,100].
-    // Where there are no ore than two samples being accumulated
+    // Where there are no more than two samples being accumulated
     // the sum can be held in a uint8_t without possibility of overflow.
     template <bool Condition, typename TypeTrue, typename TypeFalse>
       struct typeIf;
