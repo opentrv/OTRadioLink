@@ -267,6 +267,7 @@ public:
     // Calculate new temperature
     virtual void calcNewAirTemperature(const double heat_in) = 0;
     virtual const ThermalModelState_t& getState() const = 0;
+    virtual void setOutsideTemp(const double tempC) = 0;
     // virtual double getHeatInput() const = 0;
 };
 
@@ -314,6 +315,7 @@ class ThermalModelBasic final : public ThermalModelBase
         }
 
         const ThermalModelState_t& getState() const override { return (state); }
+        void setOutsideTemp(const double tempC) override { state.outsideTemp = tempC; }
         // double getHeatInput() const override { return (state.radHeatFlow); }
     };
 
