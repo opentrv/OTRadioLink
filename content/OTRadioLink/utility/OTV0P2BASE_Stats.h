@@ -222,6 +222,14 @@ static constexpr uint8_t MAX_STATS_TEMP = COMPRESSION_C16_CEIL_VAL_AFTER; // Max
 static constexpr uint8_t MAX_STATS_AMBLIGHT = 254; // Maximum valid ambient light value in stats (very top of range is compressed).
 
 
+class ByHourSimpleStatsUpdaterBase
+{
+public:
+    virtual void reset() = 0;
+    virtual uint8_t getMaxSamplesPerHour() = 0;
+    virtual void sampleStats(const bool fullSample, const uint8_t hh) = 0;
+};
+
 // Class to handle updating stats periodically, ie 1 or more times per hour.
 //   * stats  stats container; never NULL
 //   * ambLightOpt  optional ambient light (uint8_t) sensor; can be NULL
@@ -239,7 +247,7 @@ template
   class humidity_t = SimpleTSUint8Sensor /*HumiditySensorBase*/, const humidity_t *humidityOpt = NULL,
   uint8_t maxSubSamples = 2
   >
-class ByHourSimpleStatsUpdaterSampleStats final
+class ByHourSimpleStatsUpdaterSampleStats final : public ByHourSimpleStatsUpdaterBase
   {
   public:
     // Maximum number of (sub-) samples to take per hour; strictly positive.
@@ -297,10 +305,19 @@ class ByHourSimpleStatsUpdaterSampleStats final
       struct typeIf<false, TypeTrue, TypeFalse> { typedef TypeFalse t; };
     typedef typename typeIf<maxSubSamples <= 2, uint8_t, uint16_t>::t percentageStatsAccumulator_t;
 
+    int16_t tempC16Total {};
+    uint16_t ambLightTotal {};
+    percentageStatsAccumulator_t occpcTotal {}; // TODO: as range is [0,100], up to 2 samples could fit a uint8_t instead.
+    percentageStatsAccumulator_t rhpcTotal {}; // TODO: as range is [0,100], up to 2 samples could fit a uint8_t instead.
+    uint8_t sampleCount {};
+
   public:
     // Clear any partial internal state; primarily for unit tests.
     // Does no write to the backing stats store.
-    static void reset() { sampleStats(false, 0xff); }
+    void reset() override { sampleStats(false, 0xff); }
+
+    // Virtual getter method for maxSamplesPerHour.
+    uint8_t getMaxSamplesPerHour() override { return(maxSamplesPerHour); }
 
     // Sample statistics fully once per hour as background to simple monitoring and adaptive behaviour.
     // Call this once per hour with fullSample==true, as near the end of the hour as possible;
@@ -317,14 +334,14 @@ class ByHourSimpleStatsUpdaterSampleStats final
     // and is used to determine where (in which slot) to file the stats.
     //
     // Call with out-of-range hh to effectively discard any partial samples.
-    static void sampleStats(const bool fullSample, const uint8_t hh)
+    void sampleStats(const bool fullSample, const uint8_t hh) override
       {
       // (Sub-)sample processing.
       // In general, keep running total of sub-samples in a way that should not overflow
       // and use the mean to update the non-volatile EEPROM values on the fullSample call.
       // General sub-sample count; initially zero after boot,
       // and zeroed after each full sample or when explicitly reset.
-      static uint8_t sampleCount;
+      // static uint8_t sampleCount;
       if(hh > 23) { sampleCount = 0; return; }
 
       // Reject excess early sub-samples before full/final one.
@@ -344,7 +361,7 @@ class ByHourSimpleStatsUpdaterSampleStats final
         {
         // Ambient light.
         const uint16_t ambLightV = OTV0P2BASE::fnmin(ambLightOpt->get(), (uint8_t)254); // Constrain value at top end to avoid 'not set' value.
-        static uint16_t ambLightTotal;
+        // static uint16_t ambLightTotal;
         ambLightTotal = firstSample ? ambLightV : (ambLightTotal + ambLightV);
         if(fullSample)
             { simpleUpdateStatsPair(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_AMBLIGHT_BY_HOUR, hh, smartDivToU8(ambLightTotal, sc)); }
@@ -354,7 +371,7 @@ class ByHourSimpleStatsUpdaterSampleStats final
         {
         // Ambient (eg room) temperature in C*16 units.
         const int16_t tempC16 = tempC16Opt->get();
-        static int16_t tempC16Total;
+        // static int16_t tempC16Total;
         tempC16Total = firstSample ? tempC16 : (tempC16Total + tempC16);
         if(fullSample)
             {
@@ -373,7 +390,7 @@ class ByHourSimpleStatsUpdaterSampleStats final
         {
         // Occupancy percentage.
         const uint8_t occpc = occupancyOpt->get();
-        static percentageStatsAccumulator_t occpcTotal; // TODO: as range is [0,100], up to 2 samples could fit a uint8_t instead.
+        // static percentageStatsAccumulator_t occpcTotal; // TODO: as range is [0,100], up to 2 samples could fit a uint8_t instead.
         occpcTotal = firstSample ? occpc : (occpcTotal + occpc);
         if(fullSample)
           { simpleUpdateStatsPair(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR, hh, smartDivToU8(occpcTotal, sc)); }
@@ -383,7 +400,6 @@ class ByHourSimpleStatsUpdaterSampleStats final
         {
         // Relative humidity (RH%).
         const uint8_t rhpc = humidityOpt->get();
-        static percentageStatsAccumulator_t rhpcTotal; // TODO: as range is [0,100], up to 2 samples could fit a uint8_t instead.
         rhpcTotal = firstSample ? rhpc : (rhpcTotal + rhpc);
         if(fullSample)
           { simpleUpdateStatsPair(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_RHPC_BY_HOUR, hh, smartDivToU8(rhpcTotal, sc)); }
