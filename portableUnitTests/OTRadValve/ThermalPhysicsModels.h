@@ -232,7 +232,21 @@ struct RoomParams_t
     const double capacitance_0;
 };
 
-//Modelled on DHD's office (Valve 5s, EPC Band B house).
+/**
+ * Parameters based on DHD's house (EPC Band B house).
+ * Adjustmemts made to better fit behaviour of DHD's office (Valve 5s).
+ * 
+ * Original simulation parameters:
+ * - Room Dimensions = 3.0 m * 5.0 m * 2.3 m
+ * - Heat capacity of air in room = ~42e3 J/K
+ *   - Room volume = ~35 m^3
+ *   - Air density (@ 1 atm.) = 1.205 Kg/m^3
+ *   - Specific heat cap of air (@20 C, 1 atm) = 1005 J/Kg/K
+ * - Other heat capacity of room (est.) = 1e6 J/K
+ * - Thermal properties of wall = 38.4 W/K
+ *   - Floor area = 38.4 m^3
+ *   - SAP heat loss parameter = 2.56 W/K/m^2
+ */
 static const RoomParams_t roomParams_Default {
     500, 300, 50, 350000, 1300000, 7000000,
 };
@@ -277,8 +291,6 @@ public:
  * Heat flows from a simulated radiator into the room and then through a wall
  * to the outside world. No air flow effects are simulated.
  * 
- * Additionally, heat flow to the radvalve is modelled to allow simulating its
- * position.
  */
 class ThermalModelBasic final : public ThermalModelBase
     {
