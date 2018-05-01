@@ -418,7 +418,8 @@ bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);
  *
  */
 template<bool (*preSleepFn_ptr)()=nullptr>
-uint_fast8_t sleepUntilNewCycle(const uint_fast8_t oldTimeLSD, bool preventLongSleep=false)
+uint_fast8_t sleepUntilNewCycle(const uint_fast8_t oldTimeLSD,
+                                const bool preventLongSleep = false)
 {
     // Ensure that serial I/O is off while sleeping.
     powerDownSerial();
@@ -434,9 +435,13 @@ uint_fast8_t sleepUntilNewCycle(const uint_fast8_t oldTimeLSD, bool preventLongS
             // Rely on interrupt to force quick loop round to I/O poll.
             sleepUntilInt();
         } else {
-            // If there is not hardware interrupt wakeup on receipt of a frame,
-            // then this can only sleep for a short time between explicit poll()s,
-            // though in any case allow wake on interrupt to minimise loop timing jitter
+            // If there is no hardware interrupt wakeup support
+            // on receipt/RX of a frame by the radio (etc),
+            // then this can only sleep for a short time between
+            // explicit poll()s.
+            //
+            // Allow wake on interrupt while nap()ping
+            // to minimise loop timing jitter
             // when the slow RTC 'end of sleep' tick arrives.
             OTV0P2BASE::nap(WDTO_15MS, true);
         }
