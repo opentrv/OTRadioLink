@@ -9743,7 +9743,7 @@ TEST(AmbientLightOccupancyDetection,sample7h)
     simpleDataSampleRun(sample7h);
 }
 
-// Some more real Autumn UK data samples.
+// Some more real Autumn UK (north London) data samples.
 static const ALDataSample samplea0[] =
     {
 {14,11,6,182},
