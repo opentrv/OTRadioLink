@@ -915,6 +915,42 @@ if(verbose && !warmup && ((bool)expectedRoomDark != predictedRoomDark)) { fprint
         }
     }
 
+
+// Some trivial data samples.
+
+// Trivial sample, testing initial occupancy detector reaction to start transient.
+static const ALDataSample trivialSample1[] =
+    {
+{ 0, 0, 0, 254, occType::OCC_NONE, false, false }, // Should NOT predict occupancy on first tick.
+{ 0, 0, 1, 0, occType::OCC_NONE, true }, // Should NOT predict occupancy on falling level.
+{ 0, 0, 5, 0, ALDataSample::NO_OCC_EXPECTATION, true }, // Should NOT predict occupancy on steady (dark) level, but have no expectation.
+{ 0, 0, 6, 0, occType::OCC_NONE, true }, // Should NOT predict occupancy on steady (dark) level.
+{ 0, 0, 9, 254, occType::OCC_PROBABLE }, // Should predict occupancy on level rising to (near) max.
+{ }
+    };
+
+// Trivial sample, testing level response alongside some occupancy detection.
+static const ALDataSample trivialSample2[] =
+    {
+{ 0, 0, 0, 254, ALDataSample::NO_OCC_EXPECTATION, false, false }, // Light.
+{ 0, 0, 1, 0, occType::OCC_NONE, true }, // Dark.
+{ 0, 0, 5, 0, ALDataSample::NO_OCC_EXPECTATION, true }, // Dark.
+{ 0, 0, 6, 0, occType::OCC_NONE, true }, // Dark.
+{ 0, 0, 9, 254, occType::OCC_PROBABLE }, // Light but no prediction made.
+{ }
+    };
+
+// Trivial sample, testing level only.
+static const ALDataSample trivialSample3[] =
+    {
+{ 0, 0, 0, 254, ALDataSample::NO_OCC_EXPECTATION, false, false }, // Light.
+{ 0, 0, 1, 0, ALDataSample::NO_OCC_EXPECTATION, true }, // Dark.
+{ 0, 0, 5, 0, ALDataSample::NO_OCC_EXPECTATION, true }, // Dark.
+{ 0, 0, 6, 0, ALDataSample::NO_OCC_EXPECTATION, true }, // Dark.
+{ 0, 0, 9, 254, ALDataSample::NO_OCC_EXPECTATION }, // Light but no prediction made.
+{ }
+    };
+
 // Basic test of update() behaviour.
 TEST(AmbientLightOccupancyDetection,simpleDataSampleRun)
 {
