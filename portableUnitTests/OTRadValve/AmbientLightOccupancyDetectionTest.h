@@ -42,6 +42,11 @@ typedef ::OTV0P2BASE::SensorAmbientLightOccupancyDetectorInterface::occType occT
 // Can be directly created from OpenTRV log files into day hour minute value columns,
 // eg from log lines of such as "2016-11-24T22:07:39Z 96F0CED3B4E690E8 47" with:
 //    awk '{ print "{"(0+substr($1,9,2))","(0+substr($1, 12, 2))","(0+substr($1, 15, 2))","$3"},"; }'
+//
+// Note: values for light should be carried forward as is (fill in)
+// for any missing minutes' stats.
+// Values in later columns are point annotations for only their sample
+// and do NOT roll into subsequent samples.
 class ALDataSample final
     {
     public:
