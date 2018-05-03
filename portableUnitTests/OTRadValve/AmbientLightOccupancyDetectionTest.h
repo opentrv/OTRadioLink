@@ -166,7 +166,7 @@ class SimpleFlavourStatCollection final
         // Counting failures to meet specific room dark/light expectations.
         SimpleFlavourStats roomDarkPredictionErrors;
 
-        // Count of ambient light occupancy callbaks.
+        // Count of ambient light occupancy callbacks.
         // Checking for gross over- reporting.
         SimpleFlavourStats ambLightOccupancyCallbacks;
 
