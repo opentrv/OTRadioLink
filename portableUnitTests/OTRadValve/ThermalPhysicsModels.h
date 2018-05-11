@@ -87,15 +87,18 @@ inline double heatTransfer(const double conductance, const double temp1, const d
  *          - Cannot be below air temperature (the radiator cannot sink heat).
  * @retval  Heat transfer into room from radiator, in J
  */
-inline double calcValveTemp(const double airTemp, const double localTemp, const double heatFlowFromRad)
+inline double calcValveTemp(const double airTemp, const double valveTemp, const double heatFlowFromRad)
 {
     static constexpr double thermalConductanceRad {0.05};  // fixme literal is starting estimate for thermal resistance
     static constexpr double thermalConductanceRoom {10.0};
+    static constexpr double thermalCapacitanceValve {5000.0}; // fixme literal is starting estimate for thermal capacitance
+
     const double heatIn = heatFlowFromRad * thermalConductanceRad;
-    const double heatOut = heatTransfer(thermalConductanceRoom, localTemp, airTemp);
+    const double heatOut = heatTransfer(thermalConductanceRoom, valveTemp, airTemp);
     const double valveHeatFlow = heatIn - heatOut;
-    const double newLocalTemp = localTemp + (valveHeatFlow / 5000);  // fixme literal is starting estimate for thermal capacitance
-    return newLocalTemp;
+    const double newValveTemp = valveTemp + (valveHeatFlow / thermalCapacitanceValve);
+
+    return (newValveTemp);
 }
 }
 
