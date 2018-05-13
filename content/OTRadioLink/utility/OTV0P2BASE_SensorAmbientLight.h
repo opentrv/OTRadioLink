@@ -75,6 +75,9 @@ class SensorAmbientLightBase : public SimpleTSUint8Sensor
     uint16_t darkTicks = 0;
 
   public:
+    // This is constexpr!
+    constexpr SensorAmbientLightBase() { }
+
     // Reset to starting state; primarily for unit tests.
     void reset() { value = 0; isRoomLitFlag = false; rangeTooNarrow = false; darkTicks = 0; }
 
@@ -136,6 +139,19 @@ class SensorAmbientLightAdaptiveTBase : public SensorAmbientLightBase
     static constexpr uint8_t epsilon = 4;
 
   protected:
+    // Embedded occupancy detection object.
+    // Instance of SensorAmbientLightOccupancyDetectorInterface.
+    occupancyDetector_t occupancyDetector;
+
+    // 'Possible occupancy' callback function.
+    // For indicating moderate confidence of human presence.
+    // If not NULL, is called when this sensor detects indications
+    // of occupancy.
+    //
+    // A true argument on callback indicates probable occupancy,
+    // false indicates weak occupancy.
+    void (*occCallbackOpt)(bool) = NULL;
+
     // Minimum eg from rolling stats, to allow auto adjustment to dark;
     //     ~0/0xff means no min available.
     uint8_t rollingMin = 0xff;
@@ -152,19 +168,6 @@ class SensorAmbientLightAdaptiveTBase : public SensorAmbientLightBase
         SensorAmbientLightBase::DEFAULT_LIGHT_THRESHOLD >> 2);
     uint8_t darkThreshold =
         SensorAmbientLightBase::DEFAULT_LIGHT_THRESHOLD-DEFAULT_upDelta;
-
-    // Embedded occupancy detection object.
-    // Instance of SensorAmbientLightOccupancyDetectorInterface.
-    occupancyDetector_t occupancyDetector;
-
-    // 'Possible occupancy' callback function.
-    // For indicating moderate confidence of human presence.
-    // If not NULL, is called when this sensor detects indications
-    // of occupancy.
-    //
-    // A true argument on callback indicates probable occupancy,
-    // false indicates weak occupancy.
-    void (*occCallbackOpt)(bool) = NULL;
 
     // Recomputes thresholds and 'rangeTooNarrow' based on current state.
     //   * meanNowOrFF  typical/mean light level around this time
