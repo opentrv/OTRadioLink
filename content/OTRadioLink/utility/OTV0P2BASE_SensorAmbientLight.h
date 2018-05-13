@@ -136,26 +136,34 @@ class SensorAmbientLightAdaptiveTBase : public SensorAmbientLightBase
     static constexpr uint8_t epsilon = 4;
 
   protected:
-    // Minimum eg from rolling stats, to allow auto adjustment to dark; ~0/0xff means no min available.
+    // Minimum eg from rolling stats, to allow auto adjustment to dark;
+    //     ~0/0xff means no min available.
     uint8_t rollingMin = 0xff;
-    // Maximum eg from rolling stats, to allow auto adjustment to dark; ~0/0xff means no max available.
+    // Maximum eg from rolling stats, to allow auto adjustment to dark;
+    //     ~0/0xff means no max available.
     uint8_t rollingMax = 0xff;
 
     // Dark/light thresholds (on [0,254] scale) incorporating hysteresis.
     // So lightThreshold is strictly greater than darkThreshold.
-    uint8_t lightThreshold = SensorAmbientLightBase::DEFAULT_LIGHT_THRESHOLD;
-    static constexpr uint8_t DEFAULT_upDelta = OTV0P2BASE::fnmax(1, SensorAmbientLightBase::DEFAULT_LIGHT_THRESHOLD >> 2); // Delta ~25% of light threshold.
-    uint8_t darkThreshold = SensorAmbientLightBase::DEFAULT_LIGHT_THRESHOLD - DEFAULT_upDelta;
+    uint8_t lightThreshold =
+        SensorAmbientLightBase::DEFAULT_LIGHT_THRESHOLD;
+    // Delta ~25% of light threshold.
+    static constexpr uint8_t DEFAULT_upDelta = OTV0P2BASE::fnmax(1,
+        SensorAmbientLightBase::DEFAULT_LIGHT_THRESHOLD >> 2);
+    uint8_t darkThreshold =
+        SensorAmbientLightBase::DEFAULT_LIGHT_THRESHOLD-DEFAULT_upDelta;
 
     // Embedded occupancy detection object.
     // Instance of SensorAmbientLightOccupancyDetectorInterface.
     occupancyDetector_t occupancyDetector;
 
-    // 'Possible occupancy' callback function (for moderate confidence of human presence).
+    // 'Possible occupancy' callback function.
+    // For indicating moderate confidence of human presence.
     // If not NULL, is called when this sensor detects indications
     // of occupancy.
-    // A true argument indicates probable occupancy,
-    // false weak occupancy.
+    //
+    // A true argument on callback indicates probable occupancy,
+    // false indicates weak occupancy.
     void (*occCallbackOpt)(bool) = NULL;
 
     // Recomputes thresholds and 'rangeTooNarrow' based on current state.
@@ -173,7 +181,8 @@ class SensorAmbientLightAdaptiveTBase : public SensorAmbientLightBase
       // Use default threshold(s).
       if((0xff == rollingMin) || (0xff == rollingMax))
         {
-        // Use the supplied default light threshold and derive the rest from it.
+        // Use the supplied default light threshold
+        // and derive the rest from it.
         lightThreshold = DEFAULT_LIGHT_THRESHOLD;
         darkThreshold = DEFAULT_LIGHT_THRESHOLD - DEFAULT_upDelta;
         // Assume OK for now.
@@ -181,13 +190,16 @@ class SensorAmbientLightAdaptiveTBase : public SensorAmbientLightBase
         return;
         }
 
-      // If the range between recent max and min too narrow then maybe unusable
-      // but that may prevent the stats mechanism collecting further values.
+      // If the range between recent max and min too narrow
+      // then maybe this detector is unusable
+      // but that may prevent the stats mechanism
+      // from collecting further values.
       if((rollingMin >= MAX_AMBLIGHT_VALUE_UINT8 - epsilon) ||
          (rollingMax <= rollingMin) ||
          (rollingMax - rollingMin <= epsilon))
         {
-        // Use the supplied default light threshold and derive the rest from it.
+        // Use the supplied default light threshold
+        // and derive the rest from it.
         lightThreshold = DEFAULT_LIGHT_THRESHOLD;
         darkThreshold = DEFAULT_LIGHT_THRESHOLD - DEFAULT_upDelta;
         // Assume unusable.
@@ -198,31 +210,40 @@ class SensorAmbientLightAdaptiveTBase : public SensorAmbientLightBase
 
       // Compute thresholds to fit within the observed sensed value range.
       //
-      // TODO: a more sophisticated notion of distribution of values may be needed, esp for non-linear scale.
-      // TODO: possibly allow a small adjustment on top of this to allow at least one trigger-free hour each day.
-      // Some areas may have background flicker eg from trees moving or cars passing, so units there may need desensitising.
-      // Could (say) increment an additional margin (up to ~25%) on each non-zero-trigger last hour, else decrement.
+      // TODO: a more sophisticated notion of distribution of values
+      //     may be needed, esp for non-linear scale.
+      // TODO: possibly allow a small adjustment on top of this
+      //     to allow at least one trigger-free hour each day.
+      // Some areas may have background flicker eg from trees moving
+      //     or cars passing, so units there may need desensitising.
+      // Could (say) increment an additional margin (up to ~25%)
+      //     on each non-zero-trigger last hour, else decrement.
       //
-      // Default upwards delta indicative of lights on, and hysteresis, is ~12.5% of FSD if default,
-      // else half that if sensitive.
+      // Default upwards delta indicative of lights on, and hysteresis,
+      // is ~12.5% of FSD if default, else half that if sensitive.
 
-      // If current mean is low compared to max then become extra sensitive
+      // If current mean is low compared to max then be extra sensitive
       // to try to be able to detect (eg) artificial illumination.
       const bool isLow = meanNowOrFF < (rollingMax>>1);
 
       // Compute hysteresis.
       const uint8_t e = epsilon;
-      const uint8_t upDelta = OTV0P2BASE::fnmax((uint8_t)((rollingMax - rollingMin) >> ((sensitive||isLow) ? 4 : 3)), e);
+      const uint8_t upDelta = OTV0P2BASE::fnmax((uint8_t)(
+          (rollingMax - rollingMin) >> ((sensitive||isLow) ? 4 : 3)), e);
       // Provide some noise elbow-room above the observed minimum.
-      darkThreshold = (uint8_t) OTV0P2BASE::fnmin(254, rollingMin + OTV0P2BASE::fnmax(1, (upDelta>>1)));
-      lightThreshold = (uint8_t) OTV0P2BASE::fnmin(rollingMax-1, darkThreshold + upDelta);
+      darkThreshold = (uint8_t) OTV0P2BASE::fnmin(254,
+          rollingMin + OTV0P2BASE::fnmax(1, (upDelta>>1)));
+      lightThreshold = (uint8_t) OTV0P2BASE::fnmin(rollingMax-1,
+          darkThreshold + upDelta);
 
       // All seems OK.
       rangeTooNarrow = false;
       }
 
-
   public:
+    // This is constexpr!
+    constexpr SensorAmbientLightAdaptiveTBase() { }
+
     // Reset to starting state; primarily for unit tests.
     void resetAdaptive() { reset(); occCallbackOpt = NULL; setTypMinMax(0xff, 0xff, 0xff, false); occupancyDetector.reset(); }
 
@@ -239,13 +260,15 @@ class SensorAmbientLightAdaptiveTBase : public SensorAmbientLightBase
     void setOccCallbackOpt(void (*occCallbackOpt_)(bool)) { occCallbackOpt = occCallbackOpt_; }
 
     // Set recent min and max ambient light levels from stats, to allow auto adjustment to dark; ~0/0xff means no min/max available.
-    // Longer term typically over the last week or so (eg rolling exponential decay).
+    // Longer term typically over the last week or so
+    // (eg rolling exponential decay).
+    //
     // Call typically hourly with updated stats,
     // to set other internal time-dependent adaptation.
-    //   * meanNowOrFF  typical/mean light level around this time each 24h;
+    //   * meanNowOrFF  typical/mean light level around this time ea 24h;
     //         0xff if not known.
-    //   * sensitive  if true be more sensitive to possible occupancy changes,
-    //         which may mean more false positives and less energy saving
+    //   * sensitive  if true be more sensitive to occupancy changes,
+    //         which may mean more false +ves and less energy saving
     void setTypMinMax(const uint8_t meanNowOrFF,
             const uint8_t longerTermMinimumOrFF, const uint8_t longerTermMaximumOrFF,
             const bool sensitive)
@@ -257,8 +280,8 @@ class SensorAmbientLightAdaptiveTBase : public SensorAmbientLightBase
 
       // Pass on appropriate properties to the occupancy detector.
       occupancyDetector.setTypMinMax(meanNowOrFF,
-              longerTermMinimumOrFF, longerTermMaximumOrFF,
-              sensitive);
+          longerTermMinimumOrFF, longerTermMaximumOrFF,
+          sensitive);
       }
 
     // Updates other values based on what is in value.
@@ -323,8 +346,8 @@ class SensorAmbientLightAdaptiveMock : public SensorAmbientLightAdaptive
 
 
 #ifdef ARDUINO_ARCH_AVR
-template <uint8_t lightSensorADCChannel>
-class SensorAmbientLightConfigurable final : public SensorAmbientLightAdaptive
+template <uint8_t lightSensorADCChannel, class occupancyDetector_t = SensorAmbientLightOccupancyDetectorSimple>
+class SensorAmbientLightConfigurable final : public SensorAmbientLightAdaptiveTBase<occupancyDetector_t>
 {
 private:
 public:
@@ -335,17 +358,17 @@ public:
     // Normal 2 bit shift between raw and externally-presented values.
     static constexpr uint8_t shiftRawScaleTo8Bit = 2;
 
-    ////// If defined, then allow adaptive compression of top part of range when would otherwise max out.
-    ////// This may be somewhat supply-voltage dependent, eg capped by the supply voltage.
-    ////// Supply voltage is expected to be 2--3 times the bandgap reference, typically.
-    //////#define ADAPTIVE_THRESHOLD 896U // (1024-128) Top ~10%, companding by 8x.
-    //////#define ADAPTIVE_THRESHOLD 683U // (1024-683) Top ~33%, companding by 4x.
-    //////static const uint16_t scaleFactor = (extendedScale - ADAPTIVE_THRESHOLD) / (normalScale - ADAPTIVE_THRESHOLD);
-    ////// Assuming typical V supply of 2--3 times Vbandgap,
-    ////// compress above threshold to extend top of range by a factor of two.
-    ////// Ensure that scale stays monotonic in face of calculation lumpiness, etc...
-    ////// Scale all remaining space above threshold to new top value into remaining space.
-    ////// Ensure scaleFactor is a power of two for speed.
+    // If defined, then allow adaptive compression of top part of range when would otherwise max out.
+    // This may be somewhat supply-voltage dependent, eg capped by the supply voltage.
+    // Supply voltage is expected to be 2--3 times the bandgap reference, typically.
+    //#define ADAPTIVE_THRESHOLD 896U // (1024-128) Top ~10%, companding by 8x.
+    //#define ADAPTIVE_THRESHOLD 683U // (1024-683) Top ~33%, companding by 4x.
+    //static const uint16_t scaleFactor = (extendedScale - ADAPTIVE_THRESHOLD) / (normalScale - ADAPTIVE_THRESHOLD);
+    // Assuming typical V supply of 2--3 times Vbandgap,
+    // compress above threshold to extend top of range by a factor of two.
+    // Ensure that scale stays monotonic in face of calculation lumpiness, etc...
+    // Scale all remaining space above threshold to new top value into remaining space.
+    // Ensure scaleFactor is a power of two for speed.
 
     // Measure/store/return the current room ambient light levels in range [0,255].
     // This may consume significant power and time.
@@ -357,7 +380,7 @@ public:
     // If possible turn off all local light sources (eg UI LEDs) before calling.
     // If possible turn off all heavy current drains on supply before calling.
     uint8_t read()
-    {
+        {
         // Power on to top of LDR/phototransistor, directly connected to IO_POWER_UP.
         OTV0P2BASE::power_intermittent_peripherals_enable(false);
         // Give supply a moment to settle, eg from heavy current draw elsewhere.
@@ -373,13 +396,13 @@ public:
 
         // Capture entropy from changed ls bits.
         // Claim zero entropy as value may be partly directly forced by Eve.
-        if(newValue != value) { addEntropyToPool((uint8_t)al, 0); }
+        if(newValue != this->value) { addEntropyToPool((uint8_t)al, 0); }
 
         // Store new value.
-        value = newValue;
+        this->value = newValue;
 
         // Have base class update other/derived values.
-        SensorAmbientLightAdaptive::read();
+        SensorAmbientLightAdaptiveTBase<occupancyDetector_t>::read();
 
 #if 0 && defined(DEBUG)
         DEBUG_SERIAL_PRINT_FLASHSTRING("Ambient light (/1023): ");
@@ -389,7 +412,7 @@ public:
 
 #if 0 && defined(DEBUG)
         DEBUG_SERIAL_PRINT_FLASHSTRING("Ambient light val/dt/lt: ");
-        DEBUG_SERIAL_PRINT(value);
+        DEBUG_SERIAL_PRINT(this->value);
         DEBUG_SERIAL_PRINT(' ');
         DEBUG_SERIAL_PRINT(darkThreshold);
         DEBUG_SERIAL_PRINT(' ');
@@ -403,8 +426,8 @@ public:
         DEBUG_SERIAL_PRINTLN();
 #endif
 
-        return(value);
-    }
+        return(this->value);
+        }
 };
 
 // Sensor for ambient light level; 0 is dark, 255 is bright.
