@@ -17,7 +17,7 @@
 # Generic plot of ambient light sensor output.
 
 # Title is supplied as:
-#     gnuplot -e "title='Multisensor Battery Plot (V)'"
+#     gnuplot -e "title='My Plot'"
 if (!exists("title")) title="AmbLight"
 # Input filename supplied as:
 #     gnuplot -e "filename='foo.dat'"
@@ -52,7 +52,7 @@ xmaxst = strftime("%H:%MZ", xmax)
 set auto fix
 set offsets graph 0, graph 0.01, graph 0.02, graph 0.02
 
-# Start to draw (PNG) output.
+# Start to draw (SVG) output.
 set format x "%d|%H"
 set xdata time
 set terminal svg size 1280,480

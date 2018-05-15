@@ -13,8 +13,8 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2016
-                           Deniz Erbilgin 2016-2018
+Author(s) / Copyright (s): Damon Hart-Davis 2016--2018
+                           Deniz Erbilgin 2016--2018
 */
 
 #ifndef OTRADVALVE_THERMALPHYSICSMODEL_H
@@ -355,7 +355,7 @@ struct TempBoundsC_t {
     const uint32_t startDelayM = 100;
     // Maximum temperature observed in C
     double max = 0.0;
-    // Minumum temperature observed in C
+    // Minimum temperature observed in C
     double min = 100.0;
 };
 
