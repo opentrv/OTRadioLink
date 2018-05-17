@@ -31,18 +31,6 @@ namespace OTV0P2BASE
 {
 
 
-// Shift from minutes remaining to confidence.
-// Will not work correctly with timeout > 100.
-static constexpr int8_t OCCCP_SHIFT =
-  ((PseudoSensorOccupancyTracker::OCCUPATION_TIMEOUT_M <= 3) ? 5 :
-  ((PseudoSensorOccupancyTracker::OCCUPATION_TIMEOUT_M <= 6) ? 4 :
-  ((PseudoSensorOccupancyTracker::OCCUPATION_TIMEOUT_M <= 12) ? 3 :
-  ((PseudoSensorOccupancyTracker::OCCUPATION_TIMEOUT_M <= 25) ? 2 :
-  ((PseudoSensorOccupancyTracker::OCCUPATION_TIMEOUT_M <= 50) ? 1 :
-  ((PseudoSensorOccupancyTracker::OCCUPATION_TIMEOUT_M <= 100) ? 0 :
-  ((PseudoSensorOccupancyTracker::OCCUPATION_TIMEOUT_M <= 200) ? -1 :
-      -2)))))));
-
 // Force a read/poll of the occupancy and return the % likely occupied [0,100].
 // Full consistency of all views/actuators, especially short-term ones,
 // may only be enforced directly after read().
@@ -126,7 +114,7 @@ void PseudoSensorOccupancyTracker::markAsPossiblyOccupied()
 // is not enough to cancel holiday mode.
 // Doesn't force the room to appear recently occupied.
 // Doesn't activate the new-occupation status.
-// Not ISR-/thread- safe.
+// Not thread-safe nor ISR-safe.
 void PseudoSensorOccupancyTracker::markAsJustPossiblyOccupied()
   {
   // ISR may theoretically see a stale value for vacancyH;
