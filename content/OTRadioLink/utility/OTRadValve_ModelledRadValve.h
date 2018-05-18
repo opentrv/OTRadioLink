@@ -900,7 +900,7 @@ class ModelledRadValvePlugglableState final : public AbstractRadValve
         OTV0P2BASE::eeprom_smart_update_byte((uint8_t *)V0P2BASE_EE_START_MIN_VALVE_PC_REALLY_OPEN, percent);
     }
     #else
-    setMinValvePcReallyOpen(const uint8_t /*percent*/) { }
+    void setMinValvePcReallyOpen(const uint8_t /*percent*/) { }
     #endif // ARDUINO_ARCH_AVR
 
     // Pass through a wiggle request to the underlying device if specified.
