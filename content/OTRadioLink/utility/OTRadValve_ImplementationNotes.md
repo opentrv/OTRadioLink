@@ -79,4 +79,3 @@ if(!showStatus && (OTV0P2BASE::getSubCycleTime() < ((OTV0P2BASE::GSCT_MAX/4)*3))
     ValveDirect.read();
 }
 ```
-
