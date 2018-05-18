@@ -612,7 +612,8 @@ class ModelledRadValveComputeTargetTemp2016 final : public ModelledRadValveCompu
 
 // Internal model of radiator valve position, embodying control logic.
 #define ModelledRadValve_DEFINED
-class ModelledRadValve final : public AbstractRadValve
+template<class ModelledRadValveState_t>
+class ModelledRadValvePlugglableState final : public AbstractRadValve
   {
   private:
     // Target temperature computation.
@@ -621,7 +622,7 @@ class ModelledRadValve final : public AbstractRadValve
     // All input state for deciding where to set the radiator valve in normal operation.
     struct ModelledRadValveInputState inputState;
     // All retained state for deciding where to set the radiator valve in normal operation.
-    struct ModelledRadValveState<> retainedState;
+    ModelledRadValveState_t retainedState;
 
     // Read-only access to temperature control; never NULL.
     const TempControlBase *const tempControl;
@@ -646,15 +647,70 @@ class ModelledRadValve final : public AbstractRadValve
     // Usually 100, but special circumstances may require otherwise.
     const uint8_t maxPCOpen = 100;
 
-    // Compute target temperature and set heat demand for TRV and boiler; update state.
-    // CALL REGULARLY APPROX EACH MINUTE FOR SIMPLE TIME-BASED CONTROL.
-    // Inputs are inWarmMode(), isRoomLit().
-    // This routine may take significant CPU time; no I/O is done,
-    // only internal state is updated.
+    // Compute/update target temperature immediately.
+    // Can be called as often as required though may be slowish/expensive.
+    // Can be called after any UI/CLI/etc operation
+    // that may cause the target temperature to change.
+    // (Will also be called by computeCallForHeat().)
+    // One aim is to allow reasonable energy savings (10--30%)
+    // even if the device is left in WARM mode all the time,
+    // using occupancy/light/etc to determine when temperature can be set back
+    // without annoying users.
     //
     // Will clear any BAKE mode if the newly-computed target temperature
     // is already exceeded.
-    void computeCallForHeat();
+    void computeTargetTemperature()
+    {
+        // Compute basic target temperature statelessly.
+        const uint8_t newTargetTemp = ctt->computeTargetTemp();
+
+        // Set up state for computeRequiredTRVPercentOpen().
+        ctt->setupInputState(inputState,
+            retainedState.isFiltering,
+            newTargetTemp, getMinPercentOpen(), getMaxPercentageOpenAllowed(), glacial);
+
+        // Explicitly compute the actual setback when in WARM mode for monitoring purposes.
+        // TODO: also consider showing full setback to FROST when a schedule is set but not on.
+        // By default, the setback is regarded as zero/off.
+        setbackC = 0;
+        if(valveModeRW->inWarmMode())
+            {
+            const uint8_t wt = tempControl->getWARMTargetC();
+            if(newTargetTemp < wt) { setbackC = wt - newTargetTemp; }
+            }
+
+        // True if the target temperature has been reached or exceeded.
+        const bool targetReached = (newTargetTemp <= (inputState.refTempC16 >> 4));
+        underTarget = !targetReached;
+        // If the target temperature is already reached then cancel any BAKE mode in progress (TODO-648).
+        if(targetReached) { valveModeRW->cancelBakeDebounced(); }
+        // Only report as calling for heat when actively doing so.
+        // (Eg opening the valve a little in case the boiler is already running does not count.)
+        callingForHeat = !targetReached &&
+            (value >= OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN) &&
+            isControlledValveReallyOpen();
+    }
+
+    // Compute target temperature and set heat demand for TRV and boiler; update state.
+    // CALL REGULARLY APPROXIMATELY ONCE PER MINUTE TO ALLOW SIMPLE TIME-BASED CONTROLS.
+    //
+    // This routine may take significant CPU time.
+    //
+    // Internal state is updated, and the target updated on any attached physical valve.
+    //
+    // Will clear any BAKE mode if the newly-computed target temperature is already exceeded.
+    void computeCallForHeat()
+    {
+        valveModeRW->read();
+        // Compute target temperature,
+        // ensure that input state is set for computeRequiredTRVPercentOpen().
+        computeTargetTemperature();
+        // Invoke computeRequiredTRVPercentOpen()
+        // and convey new target to the backing valve if any,
+        // while tracking any cumulative movement.
+        retainedState.tick(value, inputState, physicalDeviceOpt);
+    }
+
 
     // Read/write (non-const) access to valveMode instance; never NULL.
     ValveMode *const valveModeRW;
@@ -664,7 +720,7 @@ class ModelledRadValve final : public AbstractRadValve
 
   public:
     // Create an instance.
-    ModelledRadValve(
+    ModelledRadValvePlugglableState(
         const ModelledRadValveComputeTargetTempBase *const _ctt,
         ValveMode *const _valveMode,
         const TempControlBase *const _tempControl,
@@ -716,7 +772,7 @@ class ModelledRadValve final : public AbstractRadValve
     // Used to help avoid running boiler pump against closed valves.
     // The default is to use the check the current computed position
     // against the minimum open percentage.
-    // True iff the valve(s) (if any) controlled by this unit are really open.
+    // True if the valve(s) (if any) controlled by this unit are really open.
     //
     // When driving a remote wireless valve such as the FHT8V,
     // this should wait until at least the command has been sent.
@@ -724,7 +780,12 @@ class ModelledRadValve final : public AbstractRadValve
     // Must be exactly one definition/implementation supplied at link time.
     // If more than one valve is being controlled by this unit,
     // then this should return true if all of the valves are (significantly) open.
-    virtual bool isControlledValveReallyOpen() const override;
+    bool isControlledValveReallyOpen() const override
+    {
+        //  if(isRecalibrating()) { return(false); }
+        if(NULL != physicalDeviceOpt) { if(!physicalDeviceOpt->isControlledValveReallyOpen()) { return(false); } }
+        return(value >= getMinPercentOpen());
+    }
 
     // Get estimated minimum percentage open for significant flow [1,99] for this device.
     // Return global node value.
@@ -810,34 +871,44 @@ class ModelledRadValve final : public AbstractRadValve
     const OTV0P2BASE::SubSensorSimpleRef<uint16_t> cumulativeMovementSubSensor;
 
     // Return minimum valve percentage open to be considered actually/significantly open; [1,100].
-    // This is a value that has to mean all controlled valves are at least partially open if more than one valve.
     // At the boiler hub this is also the threshold percentage-open on eavesdropped requests that will call for heat.
     // If no override is set then OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN is used.
-    uint8_t getMinValvePcReallyOpen() const;
+    #ifdef ARDUINO_ARCH_AVR
+    uint8_t getMinValvePcReallyOpen() const
+    {
+        const uint8_t stored = eeprom_read_byte((uint8_t *)V0P2BASE_EE_START_MIN_VALVE_PC_REALLY_OPEN);
+        const uint8_t result = ((stored > 0) && (stored <= 100)) ? stored : OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN;
+        return(result);
+    }
+    #else
+    uint8_t getMinValvePcReallyOpen() const { return(OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN); }
+    #endif // ARDUINO_ARCH_AVR
 
     // Set and cache minimum valve percentage open to be considered really open.
     // Applies to local valve and, at hub, to calls for remote calls for heat.
     // Any out-of-range value (eg >100) clears the override and OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN will be used.
-    void setMinValvePcReallyOpen(uint8_t percent);
-
-    // Compute/update target temperature immediately.
-    // Can be called as often as required though may be slowish/expensive.
-    // Can be called after any UI/CLI/etc operation
-    // that may cause the target temperature to change.
-    // (Will also be called by computeCallForHeat().)
-    // One aim is to allow reasonable energy savings (10--30%)
-    // even if the device is left in WARM mode all the time,
-    // using occupancy/light/etc to determine when temperature can be set back
-    // without annoying users.
-    //
-    // Will clear any BAKE mode if the newly-computed target temperature
-    // is already exceeded.
-    void computeTargetTemperature();
+    #ifdef ARDUINO_ARCH_AVR
+    void setMinValvePcReallyOpen(const uint8_t percent)
+    {
+        if((percent > 100) || (percent == 0) || (percent == OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN))
+            {
+            // Bad / out-of-range / default value so erase stored value if not already erased.
+            OTV0P2BASE::eeprom_smart_erase_byte((uint8_t *)V0P2BASE_EE_START_MIN_VALVE_PC_REALLY_OPEN);
+            return;
+            }
+        // Store specified value with as low wear as possible.
+        OTV0P2BASE::eeprom_smart_update_byte((uint8_t *)V0P2BASE_EE_START_MIN_VALVE_PC_REALLY_OPEN, percent);
+    }
+    #else
+    void setMinValvePcReallyOpen(const uint8_t /*percent*/) { }
+    #endif // ARDUINO_ARCH_AVR
 
     // Pass through a wiggle request to the underlying device if specified.
     virtual void wiggle() const override { if(NULL != physicalDeviceOpt) { physicalDeviceOpt->wiggle(); } }
   };
 
+// Default version for backwards compatibility.
+using ModelledRadValve = ModelledRadValvePlugglableState<struct ModelledRadValveState<>>;
 
     }
 

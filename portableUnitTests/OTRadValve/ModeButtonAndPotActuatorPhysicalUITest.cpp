@@ -84,7 +84,7 @@ TEST(ModeButtonAndPotActuatorPhysicalUI,startState)
         startState::tp.set(pp);
         OTRadValve::ValveMode vm;
         ASSERT_FALSE(vm.inWarmMode());
-        OTRadValve::NULLTempControl tc;
+        // OTRadValve::NULLTempControl tc;  // DE20180518: Clang++ says this is unused.
         OTRadValve::NULLRadValve rv;
         OTV0P2BASE::PseudoSensorOccupancyTracker occupancy;
         occupancy.read();

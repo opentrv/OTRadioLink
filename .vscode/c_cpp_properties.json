@@ -24,7 +24,8 @@
                 "${workspaceRoot}/EFR32/portingOTLibs/src"
             ],
             "defines": [
-                "__GNUC__"
+                "__GNUC__",
+                "EXT_AVAILABLE_ARDUINO_LIB_OTAESGCM"
             ],
             "intelliSenseMode": "clang-x64",
             "browse": {
@@ -142,5 +143,5 @@
             }
         }
     ],
-    "version": 3
+    "version": 4
 }

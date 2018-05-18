@@ -255,7 +255,7 @@ TEST(SecureOpStackDepth, OTMessageQueueHandlerStackBasicWithWorkspace)
 //     const uint8_t * const msgStart = &SOSDT::minimumSecureFrame::buf[1];
 
     OTRadioLink::OTRadioLinkMock rl;
-    memcpy(rl.message, SOSDT::minimumSecureFrame::buf, SOSDT::minimumSecureFrame::encodedLength + 1);
+    memcpy(rl.message, SOSDT::minimumSecureFrame::buf, SOSDT::minimumSecureFrame::encodedLength);
 
     // Set up stack usage checks
     OTV0P2BASE::RAMEND = OTV0P2BASE::getSP();
