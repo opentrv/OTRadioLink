@@ -647,6 +647,50 @@ class ModelledRadValvePlugglableState final : public AbstractRadValve
     // Usually 100, but special circumstances may require otherwise.
     const uint8_t maxPCOpen = 100;
 
+    // Compute/update target temperature immediately.
+    // Can be called as often as required though may be slowish/expensive.
+    // Can be called after any UI/CLI/etc operation
+    // that may cause the target temperature to change.
+    // (Will also be called by computeCallForHeat().)
+    // One aim is to allow reasonable energy savings (10--30%)
+    // even if the device is left in WARM mode all the time,
+    // using occupancy/light/etc to determine when temperature can be set back
+    // without annoying users.
+    //
+    // Will clear any BAKE mode if the newly-computed target temperature
+    // is already exceeded.
+    void computeTargetTemperature()
+    {
+        // Compute basic target temperature statelessly.
+        const uint8_t newTargetTemp = ctt->computeTargetTemp();
+
+        // Set up state for computeRequiredTRVPercentOpen().
+        ctt->setupInputState(inputState,
+            retainedState.isFiltering,
+            newTargetTemp, getMinPercentOpen(), getMaxPercentageOpenAllowed(), glacial);
+
+        // Explicitly compute the actual setback when in WARM mode for monitoring purposes.
+        // TODO: also consider showing full setback to FROST when a schedule is set but not on.
+        // By default, the setback is regarded as zero/off.
+        setbackC = 0;
+        if(valveModeRW->inWarmMode())
+            {
+            const uint8_t wt = tempControl->getWARMTargetC();
+            if(newTargetTemp < wt) { setbackC = wt - newTargetTemp; }
+            }
+
+        // True if the target temperature has been reached or exceeded.
+        const bool targetReached = (newTargetTemp <= (inputState.refTempC16 >> 4));
+        underTarget = !targetReached;
+        // If the target temperature is already reached then cancel any BAKE mode in progress (TODO-648).
+        if(targetReached) { valveModeRW->cancelBakeDebounced(); }
+        // Only report as calling for heat when actively doing so.
+        // (Eg opening the valve a little in case the boiler is already running does not count.)
+        callingForHeat = !targetReached &&
+            (value >= OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN) &&
+            isControlledValveReallyOpen();
+    }
+
     // Compute target temperature and set heat demand for TRV and boiler; update state.
     // CALL REGULARLY APPROXIMATELY ONCE PER MINUTE TO ALLOW SIMPLE TIME-BASED CONTROLS.
     //
@@ -837,7 +881,7 @@ class ModelledRadValvePlugglableState final : public AbstractRadValve
         return(result);
     }
     #else
-    uint8_t ModelledRadValve::getMinValvePcReallyOpen() const { return(OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN); }
+    uint8_t getMinValvePcReallyOpen() const { return(OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN); }
     #endif // ARDUINO_ARCH_AVR
 
     // Set and cache minimum valve percentage open to be considered really open.
@@ -856,52 +900,8 @@ class ModelledRadValvePlugglableState final : public AbstractRadValve
         OTV0P2BASE::eeprom_smart_update_byte((uint8_t *)V0P2BASE_EE_START_MIN_VALVE_PC_REALLY_OPEN, percent);
     }
     #else
-    void ModelledRadValve::setMinValvePcReallyOpen(const uint8_t /*percent*/) { }
+    setMinValvePcReallyOpen(const uint8_t /*percent*/) { }
     #endif // ARDUINO_ARCH_AVR
-
-    // Compute/update target temperature immediately.
-    // Can be called as often as required though may be slowish/expensive.
-    // Can be called after any UI/CLI/etc operation
-    // that may cause the target temperature to change.
-    // (Will also be called by computeCallForHeat().)
-    // One aim is to allow reasonable energy savings (10--30%)
-    // even if the device is left in WARM mode all the time,
-    // using occupancy/light/etc to determine when temperature can be set back
-    // without annoying users.
-    //
-    // Will clear any BAKE mode if the newly-computed target temperature
-    // is already exceeded.
-    void computeTargetTemperature()
-    {
-        // Compute basic target temperature statelessly.
-        const uint8_t newTargetTemp = ctt->computeTargetTemp();
-
-        // Set up state for computeRequiredTRVPercentOpen().
-        ctt->setupInputState(inputState,
-            retainedState.isFiltering,
-            newTargetTemp, getMinPercentOpen(), getMaxPercentageOpenAllowed(), glacial);
-
-        // Explicitly compute the actual setback when in WARM mode for monitoring purposes.
-        // TODO: also consider showing full setback to FROST when a schedule is set but not on.
-        // By default, the setback is regarded as zero/off.
-        setbackC = 0;
-        if(valveModeRW->inWarmMode())
-            {
-            const uint8_t wt = tempControl->getWARMTargetC();
-            if(newTargetTemp < wt) { setbackC = wt - newTargetTemp; }
-            }
-
-        // True if the target temperature has been reached or exceeded.
-        const bool targetReached = (newTargetTemp <= (inputState.refTempC16 >> 4));
-        underTarget = !targetReached;
-        // If the target temperature is already reached then cancel any BAKE mode in progress (TODO-648).
-        if(targetReached) { valveModeRW->cancelBakeDebounced(); }
-        // Only report as calling for heat when actively doing so.
-        // (Eg opening the valve a little in case the boiler is already running does not count.)
-        callingForHeat = !targetReached &&
-            (value >= OTRadValve::DEFAULT_VALVE_PC_SAFER_OPEN) &&
-            isControlledValveReallyOpen();
-    }
 
     // Pass through a wiggle request to the underlying device if specified.
     virtual void wiggle() const override { if(NULL != physicalDeviceOpt) { physicalDeviceOpt->wiggle(); } }
