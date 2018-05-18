@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
+Author(s) / Copyright (s): Damon Hart-Davis 2013--2018
 */
 
 /*
@@ -35,8 +35,8 @@ namespace OTV0P2BASE
 // Pseudo-sensor collating inputs from other primary sensors to estimate active room occupancy by humans.
 // This measure of occupancy is not intended to include people asleep
 // (or pets, for example).
-// 'Sensor' value is % confidence that the room/area controlled by this unit
-// has active human occupants.
+// 'Sensor' value is % confidence that the room/area
+// controlled by this unit has active human occupants.
 // Occupancy is also available as more simple
 // 3 (likely), 2 (possibly), 1 (not), 0 (unknown) scale.
 // The model is relatively simple based on time since
@@ -48,10 +48,28 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     // No activity for ~30 minutes usually enough to declare room empty;
     // an hour or more would be conservative.
     // Should probably be at least as long as the BAKE timeout.
-    // Should probably be significantly shorter than normal 'LEARN' on time
+    // Should probably be significantly shorter than 'LEARN' on time
     // to allow savings from that in empty rooms.
     // Values of 25, 50, 100 work well for the internal arithmetic.
     static constexpr uint8_t OCCUPATION_TIMEOUT_M = 50;
+
+  private:
+    // Shift from minutes remaining to confidence.
+    // Will not work correctly with timeout > 100.
+    static constexpr int8_t OCCCP_SHIFT =
+      ((PseudoSensorOccupancyTracker::OCCUPATION_TIMEOUT_M <= 3) ? 5 :
+      ((PseudoSensorOccupancyTracker::OCCUPATION_TIMEOUT_M <= 6) ? 4 :
+      ((PseudoSensorOccupancyTracker::OCCUPATION_TIMEOUT_M <= 12) ? 3 :
+      ((PseudoSensorOccupancyTracker::OCCUPATION_TIMEOUT_M <= 25) ? 2 :
+      ((PseudoSensorOccupancyTracker::OCCUPATION_TIMEOUT_M <= 50) ? 1 :
+      ((PseudoSensorOccupancyTracker::OCCUPATION_TIMEOUT_M <= 100) ? 0 :
+      ((PseudoSensorOccupancyTracker::OCCUPATION_TIMEOUT_M <= 200) ? -1 :
+          -2)))))));
+
+    // Timeout from new occupancy (was vacant) in minutes; strictly positive.
+    // Because of the way the countdown is done, has to be >= 2
+    // to guarantee to be visible at least one whole tick.
+    static constexpr uint8_t NEW_OCCUPANCY_TIMEOUT_M = 3;
 
   private:
     // Threshold from 'likely' to 'probably'; strictly positive.  Not part of the official API.
@@ -59,33 +77,37 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     // Threshold from 'probably' to 'maybe'/'weak'; strictly positive and less than OCCUPATION_TIMEOUT_LIKELY_M.  Not part of the official API.
     static constexpr uint8_t OCCUPATION_TIMEOUT_MAYBE_M = fnmax(OCCUPATION_TIMEOUT_LIKELY_M/2, 2);
 
-    // Timeout from new occupancy (was vacant) in minutes; strictly positive.
-    // Because of the way the countdown is done, has to be >= 2
-    // to guarantee to be visible at least one whole tick.
-    static constexpr uint8_t NEW_OCCUPANCY_TIMEOUT_M = 3;
+  public:
+    // Occupancy percentage likelihood for 'probable' signal.
+    static constexpr uint8_t OCCUPATION_LIKELY_PC =
+            OCCUPATION_TIMEOUT_LIKELY_M << OCCCP_SHIFT;
+    // Occupancy percentage likelihood for weak / 'just possible' signal.
+    static constexpr uint8_t OCCUPATION_MAYBE_PC =
+            OCCUPATION_TIMEOUT_MAYBE_M << OCCCP_SHIFT;
 
+  private:
     // Time until room regarded as unoccupied, in minutes; initially zero (ie treated as unoccupied at power-up).
-    // Marked volatile for thread-safe lock-free non-read-modify-write access
-    // to byte-wide value.
+    // Marked volatile for thread-safe lock-free non-read-modify-write
+    // access to byte-wide value.
     // Compound operations must be thread-/interrupt- safe.
     volatile OTV0P2BASE::Atomic_UInt8T occupationCountdownM;
 
     // Non-zero if occupancy system recently notified of activity.
-    // Marked volatile for thread-safe lock-free non-read-modify-write access
-    // to byte-wide value.
+    // Marked volatile for thread-safe lock-free non-read-modify-write
+    // access to byte-wide value.
     // Compound operations must be thread-/interrupt- safe.
     volatile OTV0P2BASE::Atomic_UInt8T newOccupancyCountdownM;
 
     // Hours and minutes since room became vacant
-    // (doesn't roll back to zero from max hours); zero when room occupied.
+    // (doesn't roll back to zero from max hours);
+    // zero when room occupied.
     uint8_t vacancyH = 0;
     uint8_t vacancyM = 0;
 
   public:
     PseudoSensorOccupancyTracker()
       : occupationCountdownM(0), newOccupancyCountdownM(0),
-//        twoBitSubSensor(this, &PseudoSensorOccupancyTracker::twoBitTag, &PseudoSensorOccupancyTracker::twoBitOccupancyValue),
-      vacHSubSensor(vacancyH, V0p2_SENSOR_TAG_F("vac|h"))
+        vacHSubSensor(vacancyH, V0p2_SENSOR_TAG_F("vac|h"))
       {
       static_assert(OCCUPATION_TIMEOUT_M > OCCUPATION_TIMEOUT_LIKELY_M, "thresholds should be correct ordered");
       static_assert(OCCUPATION_TIMEOUT_LIKELY_M > OCCUPATION_TIMEOUT_MAYBE_M, "thresholds should be correct ordered");
@@ -97,10 +119,10 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     void reset() { value = 0; occupationCountdownM.store(0); newOccupancyCountdownM.store(0); vacancyH = 0; vacancyM = 0; }
 
     // Force a read/poll of the occupancy and return the % likely occupied [0,100].
-    // Full consistency of all views/actuators, especially short-term ones,
+    // Full consistency of all views/actuators, especially short-term,
     // may only be enforced directly after read().
     // Potentially expensive/slow.
-    // Not thread-safe nor usable within ISRs (Interrupt Service Routines).
+    // Not thread-safe nor callable from Interrupt Service Routines.
     // Poll at a fixed rate.
     virtual uint8_t read() override;
 
@@ -115,15 +137,18 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     virtual Sensor_tag_t tag() const override { return(V0p2_SENSOR_TAG_F("occ|%")); }
 
     // True if new occupancy recently reported (within last few minutes).
-    // This becomes true only for new occupancy, ie when previously vacant.
+    // This becomes true only for new occupancy,
+    // ie when previously vacant.
     // Activity that triggers this includes certain/probable reports
     // (eg from manual controls or lights on),
-    // but not very weak reports such as from eg humidity or CO2 based measures.
+    // but not very weak reports such as from
+    // eg humidity or CO2 based measures.
     // ISR-/thread- safe.
     bool reportedNewOccupancyRecently() const { return(0 != newOccupancyCountdownM.load()); }
 
     // Returns true if the room appears to be likely actively occupied now.
-    // Operates on a timeout; calling markAsOccupied() restarts the timer.
+    // Operates on a timeout;
+    // calling markAsOccupied() restarts the timer.
     // Defaults to false (and API still exists)
     // when ENABLE_OCCUPANCY_SUPPORT not defined.
     // ISR-/thread- safe.
@@ -142,7 +167,8 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     // Returns true if room likely currently unoccupied (no active occupants).
     // Defaults to false (and API still exists)
     // when ENABLE_OCCUPANCY_SUPPORT not defined.
-    // This may require a substantial time after activity stops to become true.
+    // This may require a substantial time after activity stops
+    // to become true.
     // This and isLikelyOccupied() cannot be true together;
     // it is possible for neither to be true.
     // Thread-safe.
@@ -150,7 +176,8 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
 
     // Call when very strong evidence of active room occupation has occurred.
     // Do not call based on internal/synthetic events.
-    // Such evidence may include operation of buttons (etc) on the unit or PIR.
+    // Such evidence may include operation of buttons (etc) on the unit
+    // or PIR.
     // Do not call from (for example) 'on' schedule change.
     // Makes occupation immediately visible.
     // Thread-safe and ISR-safe.
@@ -159,8 +186,8 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     // Call when decent but not very strong evidence of active room occupation, such as a light being turned on, or voice heard.
     // Do not call based on internal/synthetic events.
     // Doesn't force the room to appear recently occupied.
-    // If the hardware allows this may immediately turn on the main GUI LED
-    // until normal GUI reverts it,
+    // If the hardware allows then this may be used to immediately
+    // turn on the main GUI LED until normal GUI activity reverts it,
     // at least periodically.
     // Preferably do not call for manual control operation
     // to avoid interfering with UI operation.
@@ -190,12 +217,8 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     // Recommended JSON tag for two-bit occupancy value; not NULL.
     OTV0P2BASE::Sensor_tag_t twoBitTag() const { return(V0p2_SENSOR_TAG_F("O")); }
 
-//    // Provide facade for access to two-bit occupancy value and tag.
-//    // Marked as NOT low priority as this value may be the primary stable occupancy measure.
-//    const SubSensorByCallback<PseudoSensorOccupancyTracker, uint8_t, false> twoBitSubSensor;
-
     // Returns true if it is worth expending extra effort to check for occupancy.
-    // This will happen when confidence in occupancy is not yet zero but is approaching,
+    // This will happen when confidence in occupancy is approaching zero,
     // so checking more thoroughly now can help maintain non-zero value
     // if someone is present and active.
     // At other times more relaxed checking (eg lower power) can be used.
@@ -216,9 +239,9 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
 
     // Threshold hours ABOVE which there is strong confidence in vacancy.
     // Threshold hours ABOVE which weak occupancy signals are ignored.
-    // Since these signals may arise infrequently this should not be too low,
-    // but too high a value allows false positives to prevent energy savings.
-    // No more than (say) 6 hours to allow night to kill weak signal input.
+    // Since these signals be infrequent this should not be too low,
+    // but too high a value allows false +ves to prevent energy savings.
+    // No more than (say) 6h to allow night to kill weak signal input.
     static constexpr uint8_t weakVacantHThrH = 2;
     // Threshold hours ABOVE which room is considered long vacant.
     // At least 24h in order to allow once-daily room programmes
@@ -250,7 +273,8 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
     bool longLongVacant() const { return(getVacancyH() > longLongVacantHThrH); }
 
     // Put directly into energy-conserving 'holiday mode' by making room appear to be 'long long vacant'.
-    // Be careful of retriggering presence immediately if this is set locally.
+    // Be careful of retriggering presence immediately
+    // if this is set locally.
     // Set apparent vacancy to maximum to make setting obvious and
     // to hide further vacancy from snooping.
     // Code elsewhere may wish to put the system in FROST mode also.
@@ -259,8 +283,8 @@ class PseudoSensorOccupancyTracker final : public OTV0P2BASE::SimpleTSUint8Senso
 
 
 // Dummy placeholder occupancy 'sensor' class with always-false/inactive dummy static status methods.
-// These methods should be fully optimised away by the compiler in many/most cases.
-// Can be to reduce code complexity, by eliminating some need for preprocessing.
+// These methods should be fully optimised away by the compiler.
+// Can be used to reduce code complexity, eliminating preprocessing need.
 class DummySensorOccupancyTracker final
   {
   public:

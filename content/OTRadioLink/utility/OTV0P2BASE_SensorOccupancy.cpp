@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
+Author(s) / Copyright (s): Damon Hart-Davis 2013--2018
 */
 
 /*
@@ -31,29 +31,8 @@ namespace OTV0P2BASE
 {
 
 
-//#if (OCCUPATION_TIMEOUT_M < 25) || (OCCUPATION_TIMEOUT_M > 100)
-//#error needs support for different occupancy timeout
-//#elif OCCUPATION_TIMEOUT_M <= 25
-//#define OCCCP_SHIFT 2
-//#elif OCCUPATION_TIMEOUT_M <= 50
-//#define OCCCP_SHIFT 1
-//#elif OCCUPATION_TIMEOUT_M <= 100
-//#define OCCCP_SHIFT 0
-//#endif
-
-// Shift from minutes remaining to confidence.
-// Will not work correctly with timeout > 100.
-static constexpr int8_t OCCCP_SHIFT =
-  ((PseudoSensorOccupancyTracker::OCCUPATION_TIMEOUT_M <= 3) ? 5 :
-  ((PseudoSensorOccupancyTracker::OCCUPATION_TIMEOUT_M <= 6) ? 4 :
-  ((PseudoSensorOccupancyTracker::OCCUPATION_TIMEOUT_M <= 12) ? 3 :
-  ((PseudoSensorOccupancyTracker::OCCUPATION_TIMEOUT_M <= 25) ? 2 :
-  ((PseudoSensorOccupancyTracker::OCCUPATION_TIMEOUT_M <= 50) ? 1 :
-  ((PseudoSensorOccupancyTracker::OCCUPATION_TIMEOUT_M <= 100) ? 0 :
-  ((PseudoSensorOccupancyTracker::OCCUPATION_TIMEOUT_M <= 200) ? -1 : -2)))))));
-
 // Force a read/poll of the occupancy and return the % likely occupied [0,100].
-// Full consistency of all views/actuators, especially shprt-term ones,
+// Full consistency of all views/actuators, especially short-term ones,
 // may only be enforced directly after read().
 // Potentially expensive/slow.
 // Not thread-safe nor usable within ISRs (Interrupt Service Routines).
@@ -69,26 +48,28 @@ uint8_t PseudoSensorOccupancyTracker::read()
     // can leave non-zero vacancy and non-zero occupationCountdownM
     // (ie some inconsistency) until next read() call repairs it.
     //
-    // Safely run down occupation timer (or run up vacancy time) if need be.
+    // Safely run down occupation timer (or up vacancy time) if need be.
     // Note that vacancyM and vacancyH should never be directly touched
     // by ISR/thread calls.
     safeDecIfNZWeak(occupationCountdownM);
-    // Safely run down the 'noew occupancy' timer.
+    // Safely run down the 'new occupancy' timer.
     safeDecIfNZWeak(newOccupancyCountdownM);
     // Compute as percentage.
-    // Use snapshot of occupationCountdownM for consistency in calculation.
+    // Use snapshot of occupationCountdownM for calculation consistency.
     const uint8_t ocM = occupationCountdownM.load();
     if(ocM > 0) { vacancyM = 0; vacancyH = 0; }
-    else if(vacancyH < 0xffU) { if(++vacancyM >= 60) { vacancyM = 0; ++vacancyH; } }
-    const uint8_t newValue = (0 == ocM) ? 0 :
-        OTV0P2BASE::fnmin((uint8_t)((uint8_t)100 - (uint8_t)((((uint8_t)OCCUPATION_TIMEOUT_M) - ocM) << OCCCP_SHIFT)), (uint8_t)100);
+    else if(vacancyH < 0xffU)
+        { if(++vacancyM >= 60) { vacancyM = 0; ++vacancyH; } }
+    const uint8_t newValue = (0 == ocM) ? 0 : OTV0P2BASE::fnmin(100U,
+        100U - uint8_t((OCCUPATION_TIMEOUT_M - ocM) << OCCCP_SHIFT));
     value = newValue;
     return(newValue);
   }
 
 // Call when very strong evidence of active room occupation has occurred.
 // Do not call based on internal/synthetic events.
-// Such evidence may include operation of buttons (etc) on the unit or PIR.
+// Such evidence may include operation of buttons (etc) on the unit
+// or PIR.
 // Do not call from (for example) 'on' schedule change.
 // Makes occupation immediately visible.
 // Thread-safe and ISR-safe.
@@ -110,7 +91,7 @@ void PseudoSensorOccupancyTracker::markAsOccupied()
 // at least periodically.
 // Preferably do not call for manual control operation
 // to avoid interfering with UI operation.
-// ISR-/thread- safe.
+// Thread-safe and ISR-safe.
 void PseudoSensorOccupancyTracker::markAsPossiblyOccupied()
   {
   // Update primary occupation metric in thread-safe way
@@ -119,9 +100,10 @@ void PseudoSensorOccupancyTracker::markAsPossiblyOccupied()
   // Mark new occupancy if was vacant.
   if(0 == ocM)
      { newOccupancyCountdownM.store(NEW_OCCUPANCY_TIMEOUT_M); }
-  // Mark with maximum occupancy confidence.
-  const uint8_t oNew = OTV0P2BASE::fnmax(ocM, (uint8_t)(OCCUPATION_TIMEOUT_LIKELY_M));
-  // Update may silently fail if other activity on occupationCountdownM while executing.
+  // Mark with 'likely' occupancy confidence.
+  const uint8_t oNew =
+      OTV0P2BASE::fnmax(ocM, (uint8_t)(OCCUPATION_TIMEOUT_LIKELY_M));
+  // May silently fail if concurrent activity on occupationCountdownM.
   occupationCountdownM.compare_exchange_strong(ocM, oNew);
   }
 
@@ -132,13 +114,19 @@ void PseudoSensorOccupancyTracker::markAsPossiblyOccupied()
 // is not enough to cancel holiday mode.
 // Doesn't force the room to appear recently occupied.
 // Doesn't activate the new-occupation status.
-// Not ISR-/thread- safe.
+// Not thread-safe nor ISR-safe.
 void PseudoSensorOccupancyTracker::markAsJustPossiblyOccupied()
   {
-  if(vacancyH > weakVacantHThrH) { return; } // ISR may theoretically see a stale value for vacancyH; optimised for non-ISR use.
-  // Update primary occupation metric in thread-safe way (needs lock, since read-modify-write).
+  // ISR may theoretically see a stale value for vacancyH;
+  // optimised for non-ISR use.
+  if(vacancyH > weakVacantHThrH) { return; }
+  // Update primary occupation metric in thread-safe way
+  // (needs specific concurrency management, since read-modify-write).
   uint8_t ocM = occupationCountdownM.load();
-  const uint8_t oNew = OTV0P2BASE::fnmax(ocM, (uint8_t)(OCCUPATION_TIMEOUT_MAYBE_M));
-  occupationCountdownM.compare_exchange_strong(ocM, oNew); // May silently fail if other activity on occupationCountdownM while executing.
+  // Mark with 'weak' occupancy confidence.
+  const uint8_t oNew =
+      OTV0P2BASE::fnmax(ocM, uint8_t(OCCUPATION_TIMEOUT_MAYBE_M));
+  // May silently fail if concurrent activity on occupationCountdownM.
+  occupationCountdownM.compare_exchange_strong(ocM, oNew);
   }
 }
