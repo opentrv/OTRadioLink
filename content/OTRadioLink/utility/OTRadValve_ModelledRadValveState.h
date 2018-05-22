@@ -26,7 +26,7 @@ namespace OTRadValve
 // Simple mean filter.
 // Find mean of group of ints where sum can be computed in an int
 // without loss.
-// TODO: needs a unit test or three.
+// TODO: still needs a unit test or three.
 template<size_t N> int_fast16_t smallIntMean(const int_fast16_t data[N])
   {
   // Extract mean.
@@ -68,8 +68,10 @@ struct ModelledRadValveInputState final
     void setReferenceTemperatures(const int_fast16_t currentTempC16)
     {
         // Push targeted temperature down so that
-        // the target is the middle of nominal set-point degree.  (TODO-386)
-        const int_fast16_t referenceTempC16 = currentTempC16 + refTempOffsetC16;
+        // the target is the middle of
+        // the nominal set-point degree.  (TODO-386)
+        const int_fast16_t referenceTempC16 =
+            currentTempC16 + refTempOffsetC16;
         refTempC16 = referenceTempC16;
     }
 
@@ -87,7 +89,8 @@ struct ModelledRadValveInputState final
 
     // Min % valve at which is considered to be actually open (allow the room to heat) [1,100].
     // Placeholder for now.
-    static constexpr uint8_t minPCReallyOpen = 1; // OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN;
+    // (Was OTRadValve::DEFAULT_VALVE_PC_MIN_REALLY_OPEN.)
+    static constexpr uint8_t minPCReallyOpen = 1;
     // Max % valve is allowed to be open [1,100].
     uint8_t maxPCOpen = 100;
 
@@ -108,13 +111,16 @@ struct ModelledRadValveInputState final
     // (Should not be true at same time as widenDeadband.)
     bool fastResponseRequired = false;
 
-    // Reference (room) temperature in C/16; must be set before each valve position recalc.
+    // Reference (room) temperature in C/16.
+    // M ust be set before each valve position recalc.
     // Proportional control is in the region where
     // (refTempC16>>4) == targetTempC.
     // This is signed and at least 16 bits.
     int_fast16_t refTempC16;
 };
 
+// Nominal base for ModelledRadValveState.
+struct ModelledRadValveStateBase { };
 
 // All retained state for computing valve movement, eg time-based state.
 // Exposed to allow easier unit testing.
@@ -128,7 +134,7 @@ struct ModelledRadValveInputState final
 //     MINIMAL_BINARY_IMPL  if true, then minimal/binary valve impl
 //     AGGRESSIVE_ON  if true, then very aggressive open always to full
 template <bool MINIMAL_BINARY_IMPL = false, bool AGGRESSIVE_ON = false>
-struct ModelledRadValveState final
+struct ModelledRadValveState final : public ModelledRadValveStateBase
 {
     // FEATURE SUPPORT
     // If true then support proportional response in target 1C range.
@@ -143,24 +149,26 @@ struct ModelledRadValveState final
     // Target minutes/ticks for full valve movement when fast response requested.
     static constexpr uint8_t fastResponseTicksTarget = 5;
     // Target minutes/ticks for full valve movement for very fast response.
-    // Gives quick feedback and warming, eg in response to manual control use.
+    // Gives quick feedback and warming,
+    // eg in response to manual control use.
     static constexpr uint8_t vFastResponseTicksTarget = 3;
 
     // Proportional range wide enough to cope with all-in-one TRV overshoot.
     // Note that with the sensor near the heater an apparent overshoot
     // has to be tolerated to actually deliver heat to the room.
-    // Within this range the device is always seeking for zero temperature error;
-    // this is not a deadband.
+    // Within this range the device is always seeking for
+    // zero temperature error; this is not a deadband.
     //
-    // Primarily exposed to allow for whitebox unit testing; subject to change.
+    // Primarily exposed to allow for whitebox unit testing;
+    // subject to change.
     // With 1/16C precision, a continuous drift in either direction
     // implies a delta T >= 60/16C ~ 4C per hour.
     static constexpr uint8_t _proportionalRange = 7;
 
     // Max jump between adjacent readings before forcing filtering; strictly +ve.
     // Too small a value may cap room rate rise to this per minute.
-    // Too large a value may fail to sufficiently damp oscillations/overshoot.
-    // Has to be at least as large as the minimum temperature sensor precision
+    // Too large a value may fail to damp oscillations/overshoot.
+    // Has to be at least as large as min temperature sensor precision
     // to avoid false triggering of the filter.
     // Typical values range from 2
     // (for better-than 1/8C-precision temperature sensor) up to 4.
@@ -404,7 +412,7 @@ public:
     bool dontTurndown() const { return(0 != valveTurnupCountdownM); }
 
     // Cumulative valve movement count, as unsigned cumulative percent with rollover [0,8191].
-    // This is a useful as a measure of battery consumption (slewing the valve)
+    // This is a useful as a measure of battery consumption
     // and noise generated (and thus disturbance to humans)
     // and of appropriate control damping.
     //
@@ -417,9 +425,12 @@ public:
     // Most of the time JSON value is 3 digits or fewer,
     // conserving bandwidth.
     // It would often be appropriate to mark this as low priority
-    // since it can be approximated from observed valve positions over time.
+    // since it can be approximated from observed valve positions
+    // over time.
     // This is computed from actual underlying valve movements if poss,
-    // rather than just the modelled valve movements.
+    // rather than just the modelled valve movements,
+    // though those may still not be linear
+    // or linearly related to energy/noise.
     //
     // The (masked) value doesn't wrap round to a negative value
     // and can safely be sent/received in JSON by hosts
@@ -444,7 +455,8 @@ public:
     // Must be at least 4, and may be more efficient at a power of 2.
     static constexpr size_t filterLength = 16;
 
-    // Previous unadjusted temperatures, 0 being the newest, and following ones successively older.
+    // Previous unadjusted temperatures, 0 being the newest.
+    // Later (higher-index) entries successively older.
     // These values have any target bias removed.
     // Half the filter size times the tick() interval
     // gives an approximate time constant.
@@ -539,9 +551,11 @@ public:
 //     to minimise flow eg where there is a charge by volume.
 //   * In order to allow for valves only open enough at/near 100%,
 //     and to reduce battery drain and valve wear/sticking,
-//     the algorithm is biased towards fully opening but not fully closing.
+//     the algorithm is biased towards fully opening
+//     but not fully closing.
 //
-uint8_t computeRequiredTRVPercentOpen(uint8_t valvePCOpen, const ModelledRadValveInputState &inputState) const
+uint8_t computeRequiredTRVPercentOpen(uint8_t valvePCOpen,
+        const ModelledRadValveInputState &inputState) const
 {
   // Possibly-adjusted and/or smoothed temperature to use for targeting.
   const int_fast16_t adjustedTempC16 = isFiltering ?
