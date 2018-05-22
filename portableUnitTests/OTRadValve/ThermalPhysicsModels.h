@@ -131,8 +131,9 @@ public:
     virtual void tick(const double curTempC) = 0;
     virtual void tick(const double curTempC, const uint32_t /*seconds*/) { tick(curTempC); }
     virtual double calcHeatFlowRad(const double airTempC) = 0;
-    // Get valve percentage open.
+    // Get current valve percentage open.
     virtual uint_fast8_t getValvePCOpen() const = 0;
+    // Get valve PC open after room delay (If in doubt, prefer getValvePCOpen).
     virtual uint_fast8_t getEffectiveValvePCOpen() const = 0;
     // get target temperature in C.
     virtual double getTargetTempC() const = 0;
