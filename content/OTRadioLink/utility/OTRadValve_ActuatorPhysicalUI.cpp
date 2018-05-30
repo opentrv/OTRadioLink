@@ -79,6 +79,7 @@ void ModeButtonAndPotActuatorPhysicalUI::markUIControlUsedSignificant()
 // Should never be skipped, so as to allow the UI to remain responsive.
 // Runs in 350ms or less; usually takes only a few milliseconds or microseconds.
 // Returns a non-zero value if the user interacted with the system, and maybe caused a status change.
+// Note that the return value represents a bool!
 // NOTE: since this is on the minimum idle-loop code path, minimise CPU cycles, esp in frost mode.
 // Replaces: bool tickUI(uint_fast8_t sec).
 uint8_t ModeButtonAndPotActuatorPhysicalUI::read()
