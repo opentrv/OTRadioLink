@@ -117,9 +117,9 @@ class SensorTemperaturePotMock final : public SensorTemperaturePotBase
 //        The output is not rebased based on these values, though is reversed if necessary;
 //        whatever uses the pot output should map to the desired values.
 //
-//        DORM1 / REV7 initial unit range ~[45,293] DHD20160211 (seen <45 to >325).
+ //        DORM1 / REV7 initial unit range ~[45,293] DHD20160211 (seen <45 to >325).
 //        Thus could be ~30 points per item on scale: * 16 17 18 >19< 20 21 22 BOOST
-//        Actual precision/reproducability of pot is circa +/- 4.
+//        Actual precision/reproducibility of pot is circa +/- 4.
         //static const uint16_t REV7_pot_low = 48;
         //static const uint16_t REV7_pot_high = 296;
 #define SensorTemperaturePot_DEFINED
