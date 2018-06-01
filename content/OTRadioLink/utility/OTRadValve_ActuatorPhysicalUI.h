@@ -52,7 +52,7 @@ class ActuatorPhysicalUIBase : public OTV0P2BASE::SimpleTSUint8Actuator
   {
   protected:
     // Prevent direct creation of naked instance of this base/abstract class.
-    ActuatorPhysicalUIBase() { }
+    constexpr ActuatorPhysicalUIBase() { }
 
   public:
     // Set a new target output indication, eg mode.
