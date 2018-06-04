@@ -77,6 +77,14 @@ class ErrorReport final : public OTV0P2BASE::Actuator<int8_t>
         // (eg JSON) representations.
         enum errorCatalogue : int8_t
             {
+            // Reserved values for dev/testing.
+            // These are intended for allowing events to be reported over a
+            // radio connection when developing/testing and should not be used
+            // in production code.
+            WARN_DEV0 = -99,
+            WARN_DEV1 = -98,
+            WARN_DEV2 = -97,
+
             // Supply voltage is low.
             // As defined by:
             //     SupplyVoltageCentiVolts::BATTERY_LOW_cV)
