@@ -76,7 +76,7 @@ TEST(ModelledRadValveThermalModel, roomColdBinary)
     };
 
     // Set up.
-    TMB::ValveModel<true> vm;
+    TMB::ValveModel<OTRadValve::ModelledRadValveState<true>> vm;
     TMB::ThermalModelBasic tm;
     TMB::RoomModelBasic rm(initCond, vm, tm);
 
