@@ -146,9 +146,9 @@ public:
 
 /**
  * Helper class to handle updating and storing state of TRV.
- * Runs a binary valve control algorithm.
+ * Runs the supplied valve position-control algorithm.
  */
-template<bool isBinary = false>
+template<class MRVS_t = OTRadValve::ModelledRadValveState<> >
 class ValveModel : public ValveModelBase
 {
 private:
@@ -157,7 +157,7 @@ private:
 
     // Components required for the valve model.
     OTRadValve::ModelledRadValveInputState is0;
-    OTRadValve::ModelledRadValveState<isBinary> rs0;
+    MRVS_t rs0;
 
     // Delay in radiator responding to change in valvePCOpen. Should possibly be asymmetric.
     std::vector<uint_fast8_t> responseDelay = {0, 0, 0, 0, 0};
