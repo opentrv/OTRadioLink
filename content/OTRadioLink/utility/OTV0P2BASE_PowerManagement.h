@@ -271,7 +271,8 @@ void power_intermittent_peripherals_disable();
 // Stub for unit testing
 // RAII style wrapper around functions that power/disable UART peripheral.
 // WARNING! EXPERIMENTAL!
-    template <uint16_t>
+// Added dummy value to allow compilation.
+    template <uint16_t = 0>
     class RAII_EnableSerial final
         {
         public:
