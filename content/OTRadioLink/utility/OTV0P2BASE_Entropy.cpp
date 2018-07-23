@@ -235,7 +235,12 @@ void seedPRNGs()
   DEBUG_SERIAL_PRINTLN();
 #endif
   }
-
+#else
+// Stub for integration tests
+uint8_t getSecureRandomByte(const bool)
+{
+    return (0);
+}
 #endif // ARDUINO_ARCH_AVR
 
 

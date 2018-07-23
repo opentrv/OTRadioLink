@@ -119,6 +119,7 @@ class DummyHumiditySensor final
     constexpr static bool isRHHigh() { return(false); } // Unknown, so always false.
     constexpr static bool isRHHighWithHyst() { return(false); } // Unknown, so always false.
     constexpr static uint8_t get() { return(0); }
+    constexpr static uint8_t read() { return(0); }
   };
 // Previous name as used in V0p2_Main.
 typedef DummyHumiditySensor DummyHumiditySensorSHT21;
