@@ -276,7 +276,10 @@ int8_t getNextMatchingNodeID(const uint8_t _index, const uint8_t *prefix, const 
     // No match has been found.
     return(-1);
 }
-
+#else
+// Stub for integration tests
+bool ensureIDCreated() { return (true); }
+bool ensureIDCreated(const bool) { return (true); }
 #endif // ARDUINO_ARCH_AVR
 
 

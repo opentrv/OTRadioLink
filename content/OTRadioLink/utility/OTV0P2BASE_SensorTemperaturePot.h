@@ -94,6 +94,14 @@ class SensorTemperaturePotMock final : public SensorTemperaturePotBase
     // Returns the existing value: use set() to set a new one.
     // Simplistically updates other flags and outputs based on current value.
     uint8_t read() override { return(get()); }
+
+    // Set WARM/FROST and BAKE start/cancel callbacks.
+    // If not NULL, are called when the pot is adjusted appropriately.
+    // Typically at most one of these callbacks would be made on any appropriate pot adjustment.
+    // void setWFBCallbacks(void (*warmModeCallback_)(bool), void (*bakeStartCallback_)(bool))
+    // { warmModeCallback = warmModeCallback_; bakeStartCallback = bakeStartCallback_; }
+    void setWFBCallbacks(void (*)(bool), void (*)(bool)) {}
+
   };
 
 #ifdef ARDUINO_ARCH_AVR

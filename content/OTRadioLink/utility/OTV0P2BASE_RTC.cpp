@@ -128,6 +128,9 @@ void persistRTC()  // TODO Work out emulated EEPROM on EFR32
       }
     }
   }
+#else
+// Stub for integration tests
+void persistRTC() {}
 #endif // ARDUINO_ARCH_AVR
 
 #ifdef ARDUINO_ARCH_AVR
@@ -171,6 +174,9 @@ bool restoreRTC()    // TODO Work out emulated EEPROM on EFR32
 
   return(true);
   }
+#else
+// Stub for integration tests
+bool restoreRTC() { return(false); }
 #endif // ARDUINO_ARCH_AVR
 
 // Get minutes since midnight local time [0,1439].

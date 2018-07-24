@@ -313,7 +313,10 @@ uint_fast8_t clockJitterEntropyByte()
   wdt_disable(); // Ensure no spurious WDT wakeup pending.
   return(result);
   }
-
+#else
+// Stubs for integration tests
+void nap(const int_fast8_t) {}
+bool nap(const int_fast8_t, bool) { return(false); }
 #endif // ARDUINO_ARCH_AVR
 
 #if defined(EFR32FG1P133F256GM48) && defined(V0P2BASE_SYSTICK_EMULATED_SUBCYCLE)
