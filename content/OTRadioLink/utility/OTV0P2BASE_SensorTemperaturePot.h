@@ -13,7 +13,7 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
+Author(s) / Copyright (s): Damon Hart-Davis 2013--2018
 */
 
 /*
@@ -97,7 +97,8 @@ class SensorTemperaturePotMock final : public SensorTemperaturePotBase
 
     // Set WARM/FROST and BAKE start/cancel callbacks.
     // If not NULL, are called when the pot is adjusted appropriately.
-    // Typically at most one of these callbacks would be made on any appropriate pot adjustment.
+    // Typically at most one of these callbacks would be made
+    // on any appropriate pot adjustment.
     // void setWFBCallbacks(void (*warmModeCallback_)(bool), void (*bakeStartCallback_)(bool))
     // { warmModeCallback = warmModeCallback_; bakeStartCallback = bakeStartCallback_; }
     void setWFBCallbacks(void (*)(bool), void (*)(bool)) {}
@@ -151,7 +152,8 @@ class SensorTemperaturePot final : public SensorTemperaturePotBase
 
     // WARM/FROST and BAKE start/cancel callbacks.
     // If not NULL, are called when the pot is adjusted appropriately.
-    // Typically at most one of these callbacks would be made on any appropriate pot adjustment.
+    // Typically at most one of these callbacks would be made
+    // on any appropriate pot adjustment.
     void (*warmModeCallback)(bool) = NULL;
     void (*bakeStartCallback)(bool) = NULL;
 
@@ -187,10 +189,6 @@ class SensorTemperaturePot final : public SensorTemperaturePotBase
     // Potentially expensive/slow.
     // This value has some hysteresis applied to reduce noise.
     // Not thread-safe nor usable within ISRs (Interrupt Service Routines).
-    // Force a read/poll of the temperature pot and return the value sensed [0,255] (cold to hot).
-    // Potentially expensive/slow.
-    // This value has some hysteresis applied to reduce noise.
-    // Not thread-safe nor usable within ISRs (Interrupt Service Routines).
     virtual uint8_t read() override
       {
       // Capture the old raw value early.
@@ -199,6 +197,7 @@ class SensorTemperaturePot final : public SensorTemperaturePotBase
       // No need to wait for voltage to stabilise as pot top end
       // directly driven by IO_POWER_UP (or to Vcc, due to REV7 error!).
       if(needsPeriphEnable) { OTV0P2BASE::power_intermittent_peripherals_enable(false); }
+      OTV0P2BASE::nap(WDTO_15MS); // Wait to allow pot to settle.
       const uint16_t tpRaw = OTV0P2BASE::analogueNoiseReducedRead(ADC_input, DEFAULT); // Vcc reference.
       if(needsPeriphEnable) { OTV0P2BASE::power_intermittent_peripherals_disable(); }
 
@@ -210,7 +209,8 @@ class SensorTemperaturePot final : public SensorTemperaturePotBase
       if((uint8_t)newRaw != (uint8_t)oldRaw) { addEntropyToPool((uint8_t)newRaw, 1); }
 
       // Capture reduced-noise value with a little hysteresis.
-      // Only update the value if changed significantly so as to reduce noise.
+      // Only update the value if changed significantly.
+      // so as to reduce noise.
       // Too much hysteresis may make the dial difficult to use,
       // especially if the rotation is physically constrained.
       const uint8_t oldValue = this->value;
@@ -224,10 +224,12 @@ class SensorTemperaturePot final : public SensorTemperaturePotBase
         this->value = rn;
 
         // Smart responses to adjustment/movement of temperature pot.
-        // Possible to get reasonable functionality without using MODE button.
+        // Possible to get reasonable functionality without using
+        // MODE button.
         //
-        // Ignore first reading which might otherwise cause spurious mode change, etc.
-        if((uint16_t)~0U != (uint16_t)raw) // Ignore if raw not yet set for the first time.
+        // Ignore first reading which might otherwise cause
+        // spurious mode change, etc.
+        if((uint16_t)~0U != (uint16_t)raw)
           {
           // Force FROST mode when dial turned right down to bottom.
           if(rn < this->loEndStop) { if(NULL != warmModeCallback) { warmModeCallback(false); } }
@@ -238,8 +240,9 @@ class SensorTemperaturePot final : public SensorTemperaturePotBase
           // Force WARM mode when dial/temperature turned up.
           else if(rn > oldValue) { if(NULL != warmModeCallback) { warmModeCallback(true); } }
 
-          // Report that the user operated the pot, ie part of the manual UI.
-          // Do this regardless of whether a specific mode change was invoked.
+          // Report that user operated the pot, ie part of the manual UI.
+          // Do this regardless of whether a specific mode change
+          // was invoked.
           if(NULL != occupancyOpt) { occupancyOpt->markAsOccupied(); }
           }
         }
@@ -260,11 +263,12 @@ class SensorTemperaturePot final : public SensorTemperaturePotBase
 
     // Set WARM/FROST and BAKE start/cancel callbacks.
     // If not NULL, are called when the pot is adjusted appropriately.
-    // Typically at most one of these callbacks would be made on any appropriate pot adjustment.
+    // Typically at most one of these callbacks would be made on any
+    // appropriate pot adjustment.
     void setWFBCallbacks(void (*warmModeCallback_)(bool), void (*bakeStartCallback_)(bool))
       { warmModeCallback = warmModeCallback_; bakeStartCallback = bakeStartCallback_; }
 
-    // Return last value fetched by read(); undefined before first read()).
+    // Return last value fetched by read(); undefined before first read().
     // Fast.
     // Not thread-safe nor usable within ISRs (Interrupt Service Routines).
     uint16_t getRaw() const { return(raw); }

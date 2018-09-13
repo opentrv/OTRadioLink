@@ -13,8 +13,8 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
-                            Deniz Erbilgin 2016
+Author(s) / Copyright (s): Damon Hart-Davis 2015--2018
+                           Deniz Erbilgin 2016
 */
 
 /*
@@ -40,27 +40,33 @@ namespace OTRadValve
 
 #ifdef ARDUINO_ARCH_AVR
 
-// A default value for the nSLEEP motor drive pin when used with hardware drivers that do not use it.
-// Triggers a static_assert in DRV8850HardwareDriver and also causes fastDigitalWrite to throw an error.
+// Default for nSLEEP motor drive pin for h/w drivers that don't use it.
+// Triggers a static_assert in DRV8850HardwareDriver
+// and also causes fastDigitalWrite to throw an error.
 // TODO probably belongs somewhere else.
 static constexpr uint8_t MOTOR_DRIVE_NSLEEP_UNUSED = 255;
 
 // Implementation for V1 (REV7/DORM1) motor.
 // Usually not instantiated except within ValveMotorDirectV1.
-// Creating multiple instances (trying to drive same motor) almost certainly a BAD IDEA.
+// Creating multiple instances (trying to drive same motor)
+// almost certainly a BAD IDEA.
 #define ValveMotorDirectV1HardwareDriver_DEFINED
 template <uint8_t MOTOR_DRIVE_ML_DigitalPin, uint8_t MOTOR_DRIVE_MR_DigitalPin, uint8_t MOTOR_DRIVE_MI_AIN_DigitalPin, uint8_t MOTOR_DRIVE_MC_AIN_DigitalPin, uint8_t>
 class ValveMotorDirectV1HardwareDriver final : public ValveMotorDirectV1HardwareDriverBase
   {
   private:
     // Last recorded direction.
-    // Helpful to record shaft-encoder and other behaviour correctly around direction changes.
-    // Marked volatile and stored as uint8_t to help thread-safety, and potentially save space.
+    // Helpful to record shaft-encoder and other behaviour correctly
+    // around direction changes.
+    // Marked volatile and stored as uint8_t to help thread-safety,
+    // and potentially save space.
     volatile uint8_t last_dir;
     // Maximum current reading allowed when closing the valve (against the spring).
     static constexpr uint16_t maxCurrentReadingClosing = 600;
-    // Maximum current reading allowed when opening the valve (retracting the pin, no resisting force).
-    // Keep this as low as possible to reduce the chance of skipping the end-stop and game over...
+    // Maximum current reading allowed when opening the valve
+    // (retracting the pin, no resisting force).
+    // Keep this as low as possible to reduce the chance of
+    // skipping the end-stop and game over...
     // DHD20151229: at 500 Shenzhen sample unit without outer case (so with more flex) was able to drive past end-stop.
     static constexpr uint16_t maxCurrentReadingOpening = 450; // DHD20151023: 400 seemed marginal.
   public:
@@ -121,7 +127,8 @@ OTV0P2BASE::serialPrintlnAndFlush();
       const uint8_t prev_dir = last_dir;
 
       // *** MUST NEVER HAVE L AND R LOW AT THE SAME TIME else board may be destroyed at worst. ***
-      // Operates as quickly as reasonably possible, eg to move to stall detection quickly...
+      // Operates as quickly as reasonably possible,
+      // eg to move to stall detection quickly...
       // TODO: consider making atomic to block some interrupt-related accidents...
       // TODO: note that the mapping between L/R and open/close not yet defined.
       // DHD20150205: 1st cut REV7 all-in-in-valve, seen looking down from valve into base, cw => close (ML=HIGH), ccw = open (MR=HIGH).
@@ -190,10 +197,15 @@ OTV0P2BASE::serialPrintlnAndFlush();
   };
 
 // Actuator/driver for direct local (radiator) valve motor control.
-//   * lowBattOpt  allows monitoring of supply voltage to avoid some activities with low batteries; can be NULL
-//   * minimiseActivityOpt  callback returns true if unnecessary activity should be suppressed
-//     to avoid disturbing occupants, eg when room dark and occupants may be sleeping; can be NULL
-//   * binaryOnly  if true, use simplified valve control logic that only aims for fully open or closed
+//   * lowBattOpt  allows monitoring of supply voltage to avoid
+//      some activities with low batteries; can be NULL
+//   * minimiseActivityOpt  callback returns true if
+//     unnecessary activity should be suppressed
+//     to avoid disturbing occupants,
+//     eg when room dark and occupants may be sleeping;
+//     can be NULL
+//   * binaryOnly  if true, use simplified valve control logic
+//     that only aims for fully open or closed
 #define ValveMotorDirectV1_DEFINED
 template
     <
@@ -276,7 +288,8 @@ class ValveMotorDirectV1 : public OTRadValve::AbstractRadValve
 
     // Minimally wiggles the motor to give tactile feedback and/or show to be working.
     // May take a significant fraction of a second.
-    // Finishes with the motor turned off, and a bias to closing the valve.
+    // Finishes with the motor turned off,
+    // and a bias to closing the valve.
     // Logically const as nominally leaving the valve position unchanged.
     virtual void wiggle() const override
       { const_cast<logic_type*>(&logic)->wiggle(); }
