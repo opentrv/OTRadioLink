@@ -73,14 +73,17 @@ extern volatile uint_least16_t _daysSince1999LT;
 
 // Persist software RTC information to non-volatile (EEPROM) store.
 // This does not attempt to store full precision of time down to seconds,
-// but enough to help avoid the clock slipping too much during (say) a battery change.
+// but enough to help avoid the clock slipping too much during
+// (say) a battery change.
 // There is no point calling this more than (say) once per minute,
 // though it will simply return relatively quickly from redundant calls.
-// The RTC data is stored so as not to wear out AVR EEPROM for at least several years.
+// The RTC data is stored so as not to wear out AVR EEPROM
+// for at least several years.
 void persistRTC();
 
 // Restore software RTC information from non-volatile (EEPROM) store, if possible.
-// Returns true if the persisted data seemed valid and was restored, in full or part.
+// Returns true if the persisted data seemed valid and was restored,
+// in full or part.
 bool restoreRTC();
 
 
