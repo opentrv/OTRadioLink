@@ -38,7 +38,7 @@ namespace OTV0P2BASE
 {
 
 
-// Base class for sensor for temperature potentiometer/dial; 0 is coldest, 255 is hottest.
+// Base class for temperature potentiometer/dial; 0 coldest, 255 hottest.
 // Note that if the callbacks are enabled, the following are implemented:
 //   * Any operation of the pot calls the occupancy/"UI used" callback.
 //   * Force FROST mode when dial turned right down to bottom.
