@@ -14,7 +14,7 @@ specific language governing permissions and limitations
 under the Licence.
 
 Author(s) / Copyright (s): Deniz Erbilgin 2017
-                           Damon Hart-Davis 2017
+                           Damon Hart-Davis 2018
 */
 
 #ifndef UTILITY_OTRADIOLINK_MESSAGING_H_
@@ -105,7 +105,7 @@ bool serialFrameOperation(const OTDecodeData_T &fd)
 
     // Perform some basic validation of the plain text (is it worth printing) and print.
     if((0 != (db[1] & 0x10)) && (dbLen > 3) && ('{' == db[2])) {
-        // XXX Feel like this should be moved somewhere else.
+        // FIXME Feel like this should be moved somewhere else.
         // TODO JSON output not implemented yet.
         // Write out the JSON message, inserting synthetic ID/@ and seq/+.
         p.print(F("{\"@\":\""));
@@ -117,7 +117,7 @@ bool serialFrameOperation(const OTDecodeData_T &fd)
         p.println('}');
         // OTV0P2BASE::outputJSONStats(&Serial, secure, msg, msglen);
         // Attempt to ensure that trailing characters are pushed out fully.
-        // XXX DHD is dubious about this setup.
+        // FIXME DHD is dubious about this setup.
 #ifdef ARDUINO_ARCH_AVR
         OTV0P2BASE::flushSerialProductive();
 #endif // ARDUINO_ARCH_AVR
@@ -231,9 +231,13 @@ inline bool authAndDecodeOTSecurableFrame(OTDecodeData_T &fd, OTV0P2BASE::Scratc
                                                       true));
 #if 1 // && defined(DEBUG)
 if(!isOK) {
-// Useful brief network diagnostics: a couple of bytes of the claimed ID of rejected frames.
-// Warnings rather than errors because there may legitimately be multiple disjoint networks.
-OTV0P2BASE::serialPrintAndFlush(F("?RX auth")); // Missing association or failed auth.
+// Useful brief network diagnostics.
+// A couple of bytes of the claimed ID of rejected frames.
+// Warnings rather than errors
+// because there may legitimately be multiple disjoint networks.
+//
+// Missing association or failed auth.
+OTV0P2BASE::serialPrintAndFlush(F("?RX auth"));
 if(fd.sfh.getIl() > 0) { OTV0P2BASE::serialPrintAndFlush(' '); OTV0P2BASE::serialPrintAndFlush(fd.sfh.id[0], 16); }
 if(fd.sfh.getIl() > 1) { OTV0P2BASE::serialPrintAndFlush(' '); OTV0P2BASE::serialPrintAndFlush(fd.sfh.id[1], 16); }
 OTV0P2BASE::serialPrintlnAndFlush();
@@ -466,9 +470,13 @@ public:
         // This is to reduce the risk of loop overruns
         // at the risk of delaying some processing
         // or even dropping some incoming messages if queues fill up.
-        // Decoding (and printing to serial) a secure 'O' frame takes ~60 ticks (~0.47s).
+        //
+        // DHD20180919 note: timings for AVR (ATMega328P) ~REV7 h/w...
+        // Decoding (and printing to serial) a secure 'O' frame
+        // takes ~60 ticks (~0.47s).
         // Allow for up to 0.5s of such processing worst-case,
-        // ie don't start processing anything later that 0.5s before the minor cycle end.
+        // ie don't start processing anything later than
+        // 0.5s before the minor cycle end.
 #ifdef ARDUINO_ARCH_AVR
         const uint8_t sctStart = OTV0P2BASE::getSubCycleTime();
         if(sctStart >= ((OTV0P2BASE::GSCT_MAX/4)*3)) { return(false); }
