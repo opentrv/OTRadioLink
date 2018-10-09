@@ -95,18 +95,21 @@ class SensorAmbientLightOccupancyDetectorInterface
     virtual occType update(uint8_t newLightLevel) = 0;
 
     // Set mean, min and max ambient light levels from recent stats.
-    // To allow auto adjustment to room; ~0/0xff means not known.
+    // This allows auto adjustment to room usage patterns.
     // Mean value is for the current time of day.
-    // Short term stats are typically over the last day,
-    // longer term typically over the last week or so
+    // The (long term) stats are typically over the last week or so
     // (eg rolling exponential decays).
-    // Call typically hourly with updated stats,
-    // to set other internal time-dependent adaptation.
+    // Call this regularly, roughly hourly, to drive
+    // other internal time-dependent adaptation.
     //   * meanNowOrFF  typical/mean light level around this time
-    //         each 24h; 0xff if not known.
-    //   * sensitive  if true be more sensitive to possible
-    //         occupancy changes,
-    //         may mean more false positives and less energy saving
+    //     each 24h; 0xff (ie ~0) if not known.
+    //   * longTermMinimumOrFF  "smoothed" minimum daily light level;
+    //     0xff (ie ~0) if not known.
+    //   * longTermMaximumOrFF  "smoothed" maximum daily light level;
+    //     0xff (ie ~0) if not known.
+    //   * sensitive  if true then be more sensitive to possible
+    //     occupancy changes, eg to improve comfort.
+    //     NOT USED IN THIS IMPLEMENTATION.
     // Not thread-/ISR- safe.
     virtual void setTypMinMax(uint8_t /*meanNowOrFF*/,
                               uint8_t /*longTermMinimumOrFF = 0xff*/,
