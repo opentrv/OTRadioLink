@@ -236,6 +236,15 @@ if(!isOK) {
 OTV0P2BASE::serialPrintAndFlush(F("?RX auth")); // Missing association or failed auth.
 if(fd.sfh.getIl() > 0) { OTV0P2BASE::serialPrintAndFlush(' '); OTV0P2BASE::serialPrintAndFlush(fd.sfh.id[0], 16); }
 if(fd.sfh.getIl() > 1) { OTV0P2BASE::serialPrintAndFlush(' '); OTV0P2BASE::serialPrintAndFlush(fd.sfh.id[1], 16); }
+// More detailed ID of rejected frames
+#if 0
+if(fd.sfh.getIl() > 2) { OTV0P2BASE::serialPrintAndFlush(' '); OTV0P2BASE::serialPrintAndFlush(fd.sfh.id[2], 16); }
+if(fd.sfh.getIl() > 3) { OTV0P2BASE::serialPrintAndFlush(' '); OTV0P2BASE::serialPrintAndFlush(fd.sfh.id[3], 16); }
+if(fd.sfh.getIl() > 4) { OTV0P2BASE::serialPrintAndFlush(' '); OTV0P2BASE::serialPrintAndFlush(fd.sfh.id[4], 16); }
+if(fd.sfh.getIl() > 5) { OTV0P2BASE::serialPrintAndFlush(' '); OTV0P2BASE::serialPrintAndFlush(fd.sfh.id[5], 16); }
+if(fd.sfh.getIl() > 6) { OTV0P2BASE::serialPrintAndFlush(' '); OTV0P2BASE::serialPrintAndFlush(fd.sfh.id[6], 16); }
+if(fd.sfh.getIl() > 7) { OTV0P2BASE::serialPrintAndFlush(' '); OTV0P2BASE::serialPrintAndFlush(fd.sfh.id[7], 16); }
+#endif
 OTV0P2BASE::serialPrintlnAndFlush();
 }
 #endif
