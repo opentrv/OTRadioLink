@@ -1,15 +1,15 @@
-# Assumes ninja test is in the same directory.
-# Lines that are commented out facilitate usage as a subproject.
-# This is the "better" way of doing things, but is a pain with our current
-# mishmash of build systems.
+# Assumes OTAESGCM is in subprojects. Symlinked on DE's machine for
+# convenience.
+# Alternatively, commented lines assume OTAESGCM is in the same root folder as
+# OTRadiolink.
 
-project('OTRadioLinkTests', 'cpp',
+project('OTRadioLink', 'cpp',
     default_options : [
         'c_std=c11', 'cpp_std=c++11']
 )
 
-# libOTAESGCM_proj = subproject('OTAESGCM')
-# libOTAESGCM_dep = libOTAESGCM_proj.get_variable('libOTAESGCM_dep')
+libOTAESGCM_proj = subproject('OTAESGCM')
+libOTAESGCM_dep = libOTAESGCM_proj.get_variable('libOTAESGCM_dep')
 
 gtest_dep = dependency('gtest_main')
 
@@ -20,8 +20,8 @@ inc = include_directories(
     'portableUnitTests/OTRadioLink',
     'portableUnitTests/OTRadValve',
     'portableUnitTests/OTV0p2Base',
-    '../OTAESGCM/content/OTAESGCM',
-    '../OTAESGCM/content/OTAESGCM/utility'
+    # '../OTAESGCM/content/OTAESGCM',
+    # '../OTAESGCM/content/OTAESGCM/utility'
 )
 
 src = [
@@ -70,8 +70,8 @@ src = [
     'content/OTRadioLink/utility/OTRadioLink_OTRadioLink.cpp',
     'content/OTRadioLink/utility/OTV0P2BASE_SensorQM1.cpp',
     'content/OTRadioLink/utility/OTV0P2BASE_Stats.cpp',
-    '../OTAESGCM/content/OTAESGCM/utility/OTAESGCM_OTAES128AVR.cpp',
-    '../OTAESGCM/content/OTAESGCM/utility/OTAESGCM_OTAESGCM.cpp',
+    # '../OTAESGCM/content/OTAESGCM/utility/OTAESGCM_OTAES128AVR.cpp',
+    # '../OTAESGCM/content/OTAESGCM/utility/OTAESGCM_OTAESGCM.cpp',
     'portableUnitTests/main.cpp',
     'portableUnitTests/OTV0p2Base/ConcurrencyTest.cpp',
     'portableUnitTests/OTV0p2Base/JSONStatsTest.cpp',
@@ -101,10 +101,28 @@ src = [
     'portableUnitTests/OTRadioLink/FrameHandlerTest.cpp',
 ]
 
+libOTRadioLink = static_library('OTRadioLink', src,
+    include_directories : inc,
+    dependencies : libOTAESGCM_dep,
+    cpp_args : [
+        '-O0',
+        '-Wall', '-Werror',
+        '-Wno-non-virtual-dtor',
+        '-fstack-check', '-fstack-protector-strong',
+        '-DEXT_AVAILABLE_ARDUINO_LIB_OTAESGCM'
+    ],
+    install : true
+)
+
+libOTRadioLink_dep = declare_dependency(
+    include_directories : inc, 
+    link_with : libOTRadioLink
+)
+
 test_app = executable('OTRadioLinkTests', src,
     include_directories : inc,
-    dependencies : gtest_dep,
-    # dependencies : [gtest_dep, libOTAESGCM_dep],
+    # dependencies : gtest_dep,
+    dependencies : [gtest_dep, libOTAESGCM_dep],
     cpp_args : [
         '-O0',
         '-Wall', '-Werror',
