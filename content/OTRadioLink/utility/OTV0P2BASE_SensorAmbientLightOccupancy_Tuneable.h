@@ -25,7 +25,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016--2018
 // Minimum delta (rise) for probable occupancy to be detected.
 // A simple noise floor.
 #ifndef SENSORAMBIENTLIGHTOCCUPANCY_EPSILON
-    #error "define SENSORAMBIENTLIGHTOCCUPANCY_EPSILON"
 #define SENSORAMBIENTLIGHTOCCUPANCY_EPSILON 4
 #endif // SENSORAMBIENTLIGHTOCCUPANCY_EPSILON
 
