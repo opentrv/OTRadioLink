@@ -14,6 +14,7 @@ specific language governing permissions and limitations
 under the Licence.
 
 Author(s) / Copyright (s): Damon Hart-Davis 2016--2018
+                           Deniz Erbilgin 2019
 */
 
 /*
@@ -26,7 +27,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016--2018
 #define OTV0P2BASE_SENSORAMBLIGHTOCCUPANCYDETECTION_H
 
 #include "OTV0P2BASE_Util.h"
-
+#include "OTV0P2BASE_SensorAmbientLightOccupancy_Tuneable.h"
 
 namespace OTV0P2BASE
 {
@@ -122,7 +123,7 @@ class SensorAmbientLightOccupancyDetectorSimple final : public SensorAmbientLigh
   public:
       // Minimum delta (rise) for probable occupancy to be detected.
       // A simple noise floor.
-      static constexpr uint8_t epsilon = 4;
+      static constexpr uint8_t epsilon = SENSORAMBIENTLIGHTOCCUPANCY_EPSILON;
 
       // Min steady/grace time after lights on to confirm occupancy.
       // Intended to prevent a brief flash of light,
