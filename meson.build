@@ -8,6 +8,22 @@ project('OTRadioLink', 'cpp',
         'c_std=c11', 'cpp_std=c++11']
 )
 
+if not meson.is_subproject()
+    # Meson does not allow global args in subprojects.
+    # if not meson.is_subproject()
+    # Hack to only try and use radbot_temp_params.txt if it already exists, as meson does
+    # not support checking if a file exists.
+    # Note that this is bash specific.
+    radbot_temp_params = 'radbot_temp_params.txt'
+    if run_command('[', '-e',  radbot_temp_params, ']').returncode() == 0
+        message('Using radbot_temp_params.txt')
+        tuning_args = run_command(
+            'cat', files(tuning_params),
+        ).stdout().strip().split('\n')
+        add_global_arguments(tuning_args, language : 'cpp')
+    endif
+endif
+
 # Setup and compile gtest.
 # Tries to find gtest via normal dependency manager (e.g. pkgconf) and falls 
 # back to downloading and compiling using a wrap file.
@@ -97,7 +113,7 @@ libOTRadioLink = static_library('OTRadioLink', src,
         '-Wall', '-Werror',
         '-Wno-non-virtual-dtor',
         '-fstack-check', '-fstack-protector-strong',
-        '-DEXT_AVAILABLE_ARDUINO_LIB_OTAESGCM'
+        '-DEXT_AVAILABLE_ARDUINO_LIB_OTAESGCM',
     ],
     install : true
 )
@@ -106,7 +122,6 @@ libOTRadioLink_dep = declare_dependency(
     include_directories : inc, 
     link_with : libOTRadioLink
 )
-
 
 test_src = [
     'portableUnitTests/main.cpp',
@@ -146,9 +161,11 @@ test_app = executable('OTRadioLinkTests', [src, test_src],
         '-Wall', '-Werror',
         '-Wno-non-virtual-dtor',
         '-fstack-check', '-fstack-protector-strong',
-        '-DEXT_AVAILABLE_ARDUINO_LIB_OTAESGCM'
+        '-DEXT_AVAILABLE_ARDUINO_LIB_OTAESGCM',
     ],
     install : false
 )
 
 test('unit_tests', test_app)
+
+test('special_test', test_app, args : ['--gtest_filter=AmbientLightOccupancyDetection.weightedResultsPrint'])
