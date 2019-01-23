@@ -8,21 +8,8 @@ project('OTRadioLink', 'cpp',
         'c_std=c11', 'cpp_std=c++11']
 )
 
-if not meson.is_subproject()
-    # Meson does not allow global args in subprojects.
-    # if not meson.is_subproject()
-    # Hack to only try and use radbot_temp_params.txt if it already exists, as meson does
-    # not support checking if a file exists.
-    # Note that this is bash specific.
-    radbot_temp_params = 'radbot_temp_params.txt'
-    if run_command('[', '-e',  radbot_temp_params, ']').returncode() == 0
-        message('Using radbot_temp_params.txt')
-        tuning_args = run_command(
-            'cat', files(tuning_params),
-        ).stdout().strip().split('\n')
-        add_global_arguments(tuning_args, language : 'cpp')
-    endif
-endif
+# Switch build configs
+opt_build = get_option('opt_build')
 
 # Setup and compile gtest.
 # Tries to find gtest via normal dependency manager (e.g. pkgconf) and falls 
@@ -105,67 +92,96 @@ src = [
     'content/OTRadioLink/utility/OTV0P2BASE_Stats.cpp',
 ]
 
-libOTRadioLink = static_library('OTRadioLink', src,
-    include_directories : inc,
-    dependencies : libOTAESGCM_dep,
-    cpp_args : [
-        '-O0',
-        '-Wall', '-Werror',
-        '-Wno-non-virtual-dtor',
-        '-fstack-check', '-fstack-protector-strong',
-        '-DEXT_AVAILABLE_ARDUINO_LIB_OTAESGCM',
-    ],
-    install : true
-)
+if opt_build
+    # Hack to only try and use radbot_temp_params.txt if it already exists, as meson does
+    # not support checking if a file exists.
+    # Note that this is bash specific.
+    tuningparams = 'radbot_tuningparams.txt'
+    if run_command('[', '-e',  tuningparams, ']').returncode() == 0
+        message('Using radbot_tuningparams.txt')
+        tuning_args = run_command(
+            'cat', files(tuningparams),
+        ).stdout().strip().split('\n')
+    endif
+
+    libOTRadioLink = static_library('OTRadioLink', src,
+        include_directories : inc,
+        dependencies : libOTAESGCM_dep,
+        cpp_args : [
+            '-O0',
+            '-Wall', '-Werror',
+            '-Wno-non-virtual-dtor',
+            '-DEXT_AVAILABLE_ARDUINO_LIB_OTAESGCM',
+            tuning_args
+        ],
+        install : true
+    )
+else
+    # This is a normal build of the static library.
+    libOTRadioLink = static_library('OTRadioLink', src,
+        include_directories : inc,
+        dependencies : libOTAESGCM_dep,
+        cpp_args : [
+            '-O0',
+            '-Wall', '-Werror',
+            '-Wno-non-virtual-dtor',
+            '-fstack-check', '-fstack-protector-strong',
+            '-DEXT_AVAILABLE_ARDUINO_LIB_OTAESGCM',
+        ],
+        install : true
+    )
+endif
 
 libOTRadioLink_dep = declare_dependency(
     include_directories : inc, 
     link_with : libOTRadioLink
 )
 
-test_src = [
-    'portableUnitTests/main.cpp',
-    'portableUnitTests/OTV0p2Base/ConcurrencyTest.cpp',
-    'portableUnitTests/OTV0p2Base/JSONStatsTest.cpp',
-    'portableUnitTests/OTV0p2Base/PseudoSensorOccupancyTrackerTest.cpp',
-    'portableUnitTests/OTV0p2Base/AmbientLightTest.cpp',
-    'portableUnitTests/OTV0p2Base/EEPROMTest.cpp',
-    'portableUnitTests/OTV0p2Base/RTCTest.cpp',
-    'portableUnitTests/OTV0p2Base/OTV0p2BaseTest.cpp',
-    'portableUnitTests/OTV0p2Base/UtilTest.cpp',
-    'portableUnitTests/OTV0p2Base/ByHourByteStatsTest.cpp',
-    'portableUnitTests/OTV0p2Base/SystemStatsLineTest.cpp',
-    'portableUnitTests/OTRadValve/CurrentSenseValveMotorDirectTest.cpp',
-    'portableUnitTests/OTRadValve/ModelledRadValveTest.cpp',
-    'portableUnitTests/OTRadValve/ModelledRadValveThemalModelTest.cpp',
-    'portableUnitTests/OTRadValve/RadValveParamsTest.cpp',
-    'portableUnitTests/OTRadValve/AmbientLightOccupancyDetectionTest.cpp',
-    'portableUnitTests/OTRadValve/ValveScheduleTest.cpp',
-    'portableUnitTests/OTRadValve/ModeButtonAndPotActuatorPhysicalUITest.cpp',
-    'portableUnitTests/OTRadValve/FHT8VRadValveTest.cpp',
-    'portableUnitTests/OTRadValve/BoilerDriverTest.cpp',
-    'portableUnitTests/OTRadValve/TempControlTest.cpp',
-    'portableUnitTests/OTRadValve/ValveModeTest.cpp',
-    'portableUnitTests/OTRadValve/RadValveActuatorTest.cpp',
-    'portableUnitTests/OTRadioLink/SecureOpStackDepthTest.cpp',
-    'portableUnitTests/OTRadioLink/OTSIM900LinkTest.cpp',
-    'portableUnitTests/OTRadioLink/SecureFrameTest.cpp',
-    'portableUnitTests/OTRadioLink/FrameHandlerTest.cpp',
-]
+if not meson.is_subproject()
+    # This is the unit test build. Avoid doing this to save time when built as
+    # a subproject.
+    test_src = [
+        'portableUnitTests/main.cpp',
+        'portableUnitTests/OTV0p2Base/ConcurrencyTest.cpp',
+        'portableUnitTests/OTV0p2Base/JSONStatsTest.cpp',
+        'portableUnitTests/OTV0p2Base/PseudoSensorOccupancyTrackerTest.cpp',
+        'portableUnitTests/OTV0p2Base/AmbientLightTest.cpp',
+        'portableUnitTests/OTV0p2Base/EEPROMTest.cpp',
+        'portableUnitTests/OTV0p2Base/RTCTest.cpp',
+        'portableUnitTests/OTV0p2Base/OTV0p2BaseTest.cpp',
+        'portableUnitTests/OTV0p2Base/UtilTest.cpp',
+        'portableUnitTests/OTV0p2Base/ByHourByteStatsTest.cpp',
+        'portableUnitTests/OTV0p2Base/SystemStatsLineTest.cpp',
+        'portableUnitTests/OTRadValve/CurrentSenseValveMotorDirectTest.cpp',
+        'portableUnitTests/OTRadValve/ModelledRadValveTest.cpp',
+        'portableUnitTests/OTRadValve/ModelledRadValveThemalModelTest.cpp',
+        'portableUnitTests/OTRadValve/RadValveParamsTest.cpp',
+        'portableUnitTests/OTRadValve/AmbientLightOccupancyDetectionTest.cpp',
+        'portableUnitTests/OTRadValve/ValveScheduleTest.cpp',
+        'portableUnitTests/OTRadValve/ModeButtonAndPotActuatorPhysicalUITest.cpp',
+        'portableUnitTests/OTRadValve/FHT8VRadValveTest.cpp',
+        'portableUnitTests/OTRadValve/BoilerDriverTest.cpp',
+        'portableUnitTests/OTRadValve/TempControlTest.cpp',
+        'portableUnitTests/OTRadValve/ValveModeTest.cpp',
+        'portableUnitTests/OTRadValve/RadValveActuatorTest.cpp',
+        'portableUnitTests/OTRadioLink/SecureOpStackDepthTest.cpp',
+        'portableUnitTests/OTRadioLink/OTSIM900LinkTest.cpp',
+        'portableUnitTests/OTRadioLink/SecureFrameTest.cpp',
+        'portableUnitTests/OTRadioLink/FrameHandlerTest.cpp',
+    ]
 
-test_app = executable('OTRadioLinkTests', [src, test_src],
-    include_directories : inc,
-    dependencies : [gtest_dep, libOTAESGCM_dep],
-    cpp_args : [
-        '-O0',
-        '-Wall', '-Werror',
-        '-Wno-non-virtual-dtor',
-        '-fstack-check', '-fstack-protector-strong',
-        '-DEXT_AVAILABLE_ARDUINO_LIB_OTAESGCM',
-    ],
-    install : false
-)
+    test_app = executable('OTRadioLinkTests', [src, test_src],
+        include_directories : inc,
+        dependencies : [gtest_dep, libOTAESGCM_dep],
+        cpp_args : [
+            '-O0',
+            '-Wall', '-Werror',
+            '-Wno-non-virtual-dtor',
+            '-fstack-check', '-fstack-protector-strong',
+            '-DEXT_AVAILABLE_ARDUINO_LIB_OTAESGCM',
+        ],
+        install : false
+    )
 
-test('unit_tests', test_app)
-
-test('special_test', test_app, args : ['--gtest_filter=AmbientLightOccupancyDetection.weightedResultsPrint'])
+    test('unit_tests', test_app)
+endif
