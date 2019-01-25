@@ -138,7 +138,7 @@ class SensorAmbientLightOccupancyDetectorSimple final : public SensorAmbientLigh
       // This threshold may be useful elsewhere
       // to suppress over-hasty response
       // to a very brief lights-on, eg in the middle of the night.
-      static constexpr uint8_t steadyTicksMinWithLightOn = 3;
+      static constexpr uint8_t steadyTicksMinWithLightOn = SENSORAMBIENTLIGHTOCCUPANCY_steadyTicksMinWithLightOn;
 
   private:
       // Previous ambient light level [0,254]; 0 means dark.
