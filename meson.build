@@ -97,25 +97,28 @@ if opt_build
     # not support checking if a file exists.
     # Note that this is bash specific.
     tuningparams = 'radbot_tuningparams.txt'
-    if run_command('[', '-e',  tuningparams, ']').returncode() == 0
-        message('Using radbot_tuningparams.txt')
+    if run_command('[', '-e',  tuningparams, ']').returncode() != 0
+        # message('Using radbot_tuningparams.txt')
+        warning('Tuning params not found')
+        tuning_args = []
+    else
         tuning_args = run_command(
             'cat', files(tuningparams),
         ).stdout().strip().split('\n')
     endif
 
     libOTRadioLink = static_library('OTRadioLink', src,
-        include_directories : inc,
-        dependencies : libOTAESGCM_dep,
-        cpp_args : [
-            '-O0',
-            '-Wall', '-Werror',
-            '-Wno-non-virtual-dtor',
-            '-DEXT_AVAILABLE_ARDUINO_LIB_OTAESGCM',
-            tuning_args
-        ],
-        install : true
-    )
+    include_directories : inc,
+    dependencies : libOTAESGCM_dep,
+    cpp_args : [
+        '-O0',
+        '-Wall', '-Werror',
+        '-Wno-non-virtual-dtor',
+        '-DEXT_AVAILABLE_ARDUINO_LIB_OTAESGCM',
+        tuning_args
+    ],
+    install : true
+)
 else
     # This is a normal build of the static library.
     libOTRadioLink = static_library('OTRadioLink', src,
