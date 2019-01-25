@@ -11,6 +11,24 @@ project('OTRadioLink', 'cpp',
 # Switch build configs
 opt_build = get_option('opt_build')
 
+
+cpp_args = [
+        '-O0',
+        '-Wall', '-Werror',
+        '-Wno-non-virtual-dtor',
+        '-DEXT_AVAILABLE_ARDUINO_LIB_OTAESGCM'
+]
+cpp_args_clang_compat = ['-fstack-check', '-fstack-protector-strong']
+
+
+compiler = meson.get_compiler('cpp')
+if (compiler.get_id() == 'gcc') # and (compiler.version().version_compare('<8'))
+    cpp_args += cpp_args_clang_compat
+else
+    warning('Skipping -fstack-check and -fstack-protector-strong due to old compiler version.')
+endif
+
+
 # Setup and compile gtest.
 # Tries to find gtest via normal dependency manager (e.g. pkgconf) and falls 
 # back to downloading and compiling using a wrap file.
@@ -111,10 +129,7 @@ if opt_build
     include_directories : inc,
     dependencies : libOTAESGCM_dep,
     cpp_args : [
-        '-O0',
-        '-Wall', '-Werror',
-        '-Wno-non-virtual-dtor',
-        '-DEXT_AVAILABLE_ARDUINO_LIB_OTAESGCM',
+        cpp_args,
         tuning_args
     ],
     install : true
@@ -124,13 +139,7 @@ else
     libOTRadioLink = static_library('OTRadioLink', src,
         include_directories : inc,
         dependencies : libOTAESGCM_dep,
-        cpp_args : [
-            '-O0',
-            '-Wall', '-Werror',
-            '-Wno-non-virtual-dtor',
-            '-fstack-check', '-fstack-protector-strong',
-            '-DEXT_AVAILABLE_ARDUINO_LIB_OTAESGCM',
-        ],
+        cpp_args : cpp_args,
         install : true
     )
 endif
@@ -176,13 +185,7 @@ if not meson.is_subproject()
     test_app = executable('OTRadioLinkTests', [src, test_src],
         include_directories : inc,
         dependencies : [gtest_dep, libOTAESGCM_dep],
-        cpp_args : [
-            '-O0',
-            '-Wall', '-Werror',
-            '-Wno-non-virtual-dtor',
-            '-fstack-check', '-fstack-protector-strong',
-            '-DEXT_AVAILABLE_ARDUINO_LIB_OTAESGCM',
-        ],
+        cpp_args : cpp_args,
         install : false
     )
 
