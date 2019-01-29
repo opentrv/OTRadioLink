@@ -50,13 +50,13 @@ namespace OTV0P2BASE
 SensorAmbientLightOccupancyDetectorInterface::occType SensorAmbientLightOccupancyDetectorSimple::update(const uint8_t newLightLevel)
     {
     // Minimum steady time for detecting artificial light (ticks/minutes).
-    static constexpr uint8_t steadyTicksMinForArtificialLight = 30;
+    static constexpr uint8_t steadyTicksMinForArtificialLight = SENSORAMBIENTLIGHTOCCUPANCY_steadyTicksMinForArtificialLight;
     // Minimum steady time for detecting light on (ticks/minutes).
     // Should be short enough to notice someone going to make a cuppa.
     // Note that an interval <= TX interval may make it harder to validate
     // algorithms from routinely collected data,
     // eg <= 4 minutes with typical secure frame rate of 1 per ~4 minutes.
-    static constexpr uint8_t steadyTicksMinBeforeLightOn = 3;
+    static constexpr uint8_t steadyTicksMinBeforeLightOn = SENSORAMBIENTLIGHTOCCUPANCY_steadyTicksMinBeforeLightOn;
 //
 //    // True if detection of PROBABLE events is responds to 'sensitive'.
 //    static constexpr bool sensitiveProbable = false;

@@ -123,7 +123,9 @@ class SensorAmbientLightOccupancyDetectorSimple final : public SensorAmbientLigh
   public:
       // Minimum delta (rise) for probable occupancy to be detected.
       // A simple noise floor.
+      // This value cannot be greater than 127.
       static constexpr uint8_t epsilon = SENSORAMBIENTLIGHTOCCUPANCY_EPSILON;
+      static_assert(epsilon <= 127, "epsilon must be less than or equal to 127.");
 
       // Min steady/grace time after lights on to confirm occupancy.
       // Intended to prevent a brief flash of light,
@@ -136,7 +138,7 @@ class SensorAmbientLightOccupancyDetectorSimple final : public SensorAmbientLigh
       // This threshold may be useful elsewhere
       // to suppress over-hasty response
       // to a very brief lights-on, eg in the middle of the night.
-      static constexpr uint8_t steadyTicksMinWithLightOn = 3;
+      static constexpr uint8_t steadyTicksMinWithLightOn = SENSORAMBIENTLIGHTOCCUPANCY_steadyTicksMinWithLightOn;
 
   private:
       // Previous ambient light level [0,254]; 0 means dark.
