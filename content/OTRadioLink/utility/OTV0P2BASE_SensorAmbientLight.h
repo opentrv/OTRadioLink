@@ -464,6 +464,9 @@ class DummySensorAmbientLight
     // Not available, so always a 'dark' value.
     constexpr static uint8_t get() { return(0); }
 
+    // Not available, so always a 'dark' value.
+    constexpr static uint8_t read() { return(0); }
+
     // Not available, so always returns false.
     constexpr static bool isAvailable() { return(false); }
 
@@ -477,6 +480,11 @@ class DummySensorAmbientLight
 
     // No sensor, so always zero.
     constexpr static uint16_t getDarkMinutes() { return(0); }
+
+    // Set 'possible'/weak occupancy callback function; NULL for no callback.
+    void setOccCallbackOpt(void (*)(bool)) {}
+
+    void setTypMinMax(const uint8_t, const uint8_t, const uint8_t, const bool) {}
   };
 
 
