@@ -90,3 +90,58 @@ TEST(MockNodeID, ModifyAndReturnAssociations)
         EXPECT_EQ(buf[7], 0);
     }
 }
+
+namespace GNMNID
+{
+OTV0P2BASE::NodeAssociationTableMock nodes;
+int8_t getNextMatchingNodeID(uint8_t _index, const uint8_t *prefix, uint8_t prefixLen, uint8_t *nodeID) {
+    return (OTV0P2BASE::getNextMatchingNodeID<decltype(GNMNID::nodes), GNMNID::nodes>(_index, prefix, prefixLen, nodeID));
+}
+}
+
+// Test that MockNodeID fails when:
+// - passed nullptrs
+// - the index out of range.
+// - The prefix length is out of range.
+TEST(getNextMatchingNodeID, FailIfInvalidInputs)
+{
+    uint8_t prefix[GNMNID::nodes.idLength] = {};
+    uint8_t buf[GNMNID::nodes.idLength] = {};
+
+    // Test invalid index
+    const auto r0 = GNMNID::getNextMatchingNodeID(8, prefix, sizeof(prefix), buf);
+    EXPECT_EQ(-1, r0);
+    const auto r1 = GNMNID::getNextMatchingNodeID(255, prefix, sizeof(prefix), buf);
+    EXPECT_EQ(-1, r1);
+
+    // Test invalid prefixes
+    // This can only be null if lenPrefix == 0.
+    const auto r2 = GNMNID::getNextMatchingNodeID(0, nullptr, sizeof(prefix), buf);
+    EXPECT_EQ(-1, r2);
+    const auto r3 = GNMNID::getNextMatchingNodeID(0, nullptr, 1, buf);
+    EXPECT_EQ(-1, r3);
+    const auto r4 = GNMNID::getNextMatchingNodeID(0, nullptr, 255, buf);
+    EXPECT_EQ(-1, r4);
+}
+
+TEST(getNextMatchingNodeID, FailIfNoMatch)
+{
+    uint8_t prefix[GNMNID::nodes.idLength] = {};
+    uint8_t buf[GNMNID::nodes.idLength] = {};
+
+    // Test invalid index
+    const auto r0 = GNMNID::getNextMatchingNodeID(8, prefix, sizeof(prefix), buf);
+    EXPECT_EQ(-1, r0);
+    const auto r1 = GNMNID::getNextMatchingNodeID(255, prefix, sizeof(prefix), buf);
+    EXPECT_EQ(-1, r1);
+
+    // Test invalid prefixes
+    // This can only be null if lenPrefix == 0.
+    const auto r2 = GNMNID::getNextMatchingNodeID(0, nullptr, sizeof(prefix), buf);
+    EXPECT_EQ(-1, r2);
+    const auto r3 = GNMNID::getNextMatchingNodeID(0, nullptr, 1, buf);
+    EXPECT_EQ(-1, r3);
+    const auto r4 = GNMNID::getNextMatchingNodeID(0, nullptr, 255, buf);
+    EXPECT_EQ(-1, r4);
+}
+
