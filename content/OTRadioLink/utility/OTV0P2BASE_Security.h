@@ -99,6 +99,41 @@ bool checkPrimaryBuilding16ByteSecretKey(const uint8_t *key);
 static const uint8_t MAX_NODE_ASSOCIATIONS = V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS;
 #endif
 
+
+
+class NodeAssociationTableBase {
+public:
+    virtual bool set(uint8_t index, const uint8_t* src) = 0;
+    virtual void get(uint8_t index, uint8_t* dest) const = 0;
+};
+
+class NodeAssociationTableMock : public NodeAssociationTableBase {
+public:
+    static constexpr uint8_t maxSets {V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS};
+    static constexpr uint8_t idLength {V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH};
+
+    NodeAssociationTableMock();
+
+    bool set(uint8_t index, const uint8_t* src) override;
+    void get(uint8_t index, uint8_t* dest) const override;
+
+private:
+    static constexpr uint8_t setSize {V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH};
+    uint8_t buf[maxSets * setSize];
+};
+
+// class NodeAssociationTableV0p2 : public NodeAssociationTableBase {
+// private:
+//     static constexpr uint8_t maxSets {V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS};
+//     static constexpr uint8_t setSize {V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE};
+//     static constexpr uint8_t idLength {V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH};
+//     static constexpr intptr_t startAddr {V0P2BASE_EE_START_NODE_ASSOCIATIONS};
+
+// public:
+    // void get(uint8_t index, uint8_t* dest) const override;
+// };
+
+
 /**
  * @brief   Clears all existing node ID associations.
  */

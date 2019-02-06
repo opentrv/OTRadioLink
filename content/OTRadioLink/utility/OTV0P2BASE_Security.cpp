@@ -38,7 +38,6 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 namespace OTV0P2BASE
 {
 
-
 // Get the current basic stats transmission level (for data outbound from this node).
 // May not exactly match enumerated levels; use inequalities.
 // Not thread-/ISR- safe.
@@ -227,6 +226,37 @@ int8_t addNodeAssociation(const uint8_t *nodeID)
     return(-1); // No space.
 }
 
+#else
+// Stub for integration tests
+bool ensureIDCreated() { return (true); }
+bool ensureIDCreated(const bool) { return (true); }
+#endif // ARDUINO_ARCH_AVR
+
+
+NodeAssociationTableMock::NodeAssociationTableMock()
+{
+    for(auto& x: buf) { x = 255; }
+}
+
+bool NodeAssociationTableMock::set(const uint8_t index, const uint8_t* const src)
+{
+    if ((index >= maxSets) || (src == nullptr)) { return (false); }
+
+    uint8_t* const start = &buf[0] + (index * setSize);
+
+    memcpy(start, src, idLength);
+
+    return (true);
+}
+
+void NodeAssociationTableMock::get(const uint8_t index, uint8_t* dest) const
+{
+    if ((index >= maxSets) || (dest == nullptr)) { return; }
+    
+    const uint8_t* const start = buf + (index * setSize);
+    memcpy(dest, start, idLength);
+}
+
 /**
  * @brief   Returns first matching node ID after the index provided. If no
  *          matching ID found, it will return -1.
@@ -236,51 +266,45 @@ int8_t addNodeAssociation(const uint8_t *nodeID)
  *          nodeID  Buffer to write nodeID to; can be NULL if only the index return value is required. THIS IS NOT PRESERVED WHEN FUNCTION RETURNS -1!
  * @retval  returns index or -1 if no matching node ID found
  */
+template<class NodeAssocTable_T, const NodeAssocTable_T& nodes>
 int8_t getNextMatchingNodeID(const uint8_t _index, const uint8_t *prefix, const uint8_t prefixLen, uint8_t *nodeID)
 {
-    // Validate inputs.
-    if(_index >= V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS) { return(-1); }
-    if(prefixLen > V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH) { return(-1); }
-    if((NULL == prefix) && (0 != prefixLen)) { return(-1); }
+    // // Validate inputs.
+    // if(_index >= V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS) { return(-1); }
+    // if(prefixLen > V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH) { return(-1); }
+    // if((NULL == prefix) && (0 != prefixLen)) { return(-1); }
 
-    // Loop through node IDs until match or last entry tested.
-    //   - if a match is found, return index and fill nodeID
-    //   - if no match, exit loop.
-    uint8_t *eepromPtr = (uint8_t *)V0P2BASE_EE_START_NODE_ASSOCIATIONS + (_index *  (int)V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE);
-    for(uint8_t index = _index; index < V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS; index++) {
-        uint8_t temp = eeprom_read_byte(eepromPtr); // temp variable for byte read
-        if(temp == 0xff) { return(-1); } // last entry reached. exit w/ error.
-        else if((0 == prefixLen) || (temp == *prefix)) { // this is the case where it matches
-            // loop through first prefixLen bytes of nodeID, comparing output
-            uint8_t i; // persistent loop counter
-            uint8_t *tempPtr = eepromPtr;    // temp pointer so that eepromPtr is preserved if not a match
-            if(NULL != nodeID) { nodeID[0] = temp; }
-            for(i = 1; i < prefixLen; i++) {
-                // if bytes match, copy and check next byte?
-                temp = eeprom_read_byte(tempPtr++);
-                if(prefix[i] == temp) {
-                    if(NULL != nodeID) { nodeID[i] = temp; }
-                } else break; // exit inner loop.
-            }
-            if(NULL != nodeID) {
-                // Since prefix matches, copy rest of node ID.
-                for (; i < (V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH); i++) {
-                    nodeID[i] = eeprom_read_byte(tempPtr++);
-                }
-            }
-            return index;
-        }
-        eepromPtr += V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE; // Increment ptr to next node ID field.
-    }
+    // // Loop through node IDs until match or last entry tested.
+    // //   - if a match is found, return index and fill nodeID
+    // //   - if no match, exit loop.
+    // uint8_t *eepromPtr = (uint8_t *)V0P2BASE_EE_START_NODE_ASSOCIATIONS + (_index *  (int)V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE);
+    // for(uint8_t index = _index; index < V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS; index++) {
+    //     uint8_t temp = eeprom_read_byte(eepromPtr); // temp variable for byte read
+    //     if(temp == 0xff) { return(-1); } // last entry reached. exit w/ error.
+    //     else if((0 == prefixLen) || (temp == *prefix)) { // this is the case where it matches
+    //         // loop through first prefixLen bytes of nodeID, comparing output
+    //         uint8_t i; // persistent loop counter
+    //         uint8_t *tempPtr = eepromPtr;    // temp pointer so that eepromPtr is preserved if not a match
+    //         if(NULL != nodeID) { nodeID[0] = temp; }
+    //         for(i = 1; i < prefixLen; i++) {
+    //             // if bytes match, copy and check next byte?
+    //             temp = eeprom_read_byte(tempPtr++);
+    //             if(prefix[i] == temp) {
+    //                 if(NULL != nodeID) { nodeID[i] = temp; }
+    //             } else break; // exit inner loop.
+    //         }
+    //         if(NULL != nodeID) {
+    //             // Since prefix matches, copy rest of node ID.
+    //             for (; i < (V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH); i++) {
+    //                 nodeID[i] = eeprom_read_byte(tempPtr++);
+    //             }
+    //         }
+    //         return index;
+    //     }
+    //     eepromPtr += V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE; // Increment ptr to next node ID field.
+    // }
 
-    // No match has been found.
+    // // No match has been found.
     return(-1);
 }
-#else
-// Stub for integration tests
-bool ensureIDCreated() { return (true); }
-bool ensureIDCreated(const bool) { return (true); }
-#endif // ARDUINO_ARCH_AVR
-
-
 }
