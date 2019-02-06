@@ -24,6 +24,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 // Only enable these tests if the OTAESGCM library is marked as available.
 
 #include <gtest/gtest.h>
+#include <gmock/gmock.h>
 // #include <stdio.h>
 #include <stdlib.h>
 
@@ -150,4 +151,105 @@ TEST(getNextMatchingNodeID, FailIfNoMatch)
     }
     const auto r2 = GNMNID::getNextMatchingNodeID(8, prefix, sizeof(prefix), outbuf);
     EXPECT_EQ(-1, r2);
+}
+
+TEST(getNextMatchingNodeID, ReturnCorrectIDWithUniqueFirstByte)
+{
+    GNMNID::nodes._reset();
+    std::array<uint8_t, GNMNID::nodes.idLength> id0 = { 0, 0, 0, 0, 0, 0, 0, 0 };
+    std::array<uint8_t, GNMNID::nodes.idLength> id1 = { 1, 0, 0, 0, 0, 0, 0, 0 };
+    std::array<uint8_t, GNMNID::nodes.idLength> id2 = { 2, 0, 0, 0, 0, 0, 0, 0 };
+    std::array<uint8_t, GNMNID::nodes.idLength> id3 = { 3, 0, 0, 0, 0, 0, 0, 0 };
+    std::array<uint8_t, GNMNID::nodes.idLength> id4 = { 4, 0, 0, 0, 0, 0, 0, 0 };
+    std::array<uint8_t, GNMNID::nodes.idLength> id5 = { 5, 0, 0, 0, 0, 0, 0, 0 };
+    std::array<uint8_t, GNMNID::nodes.idLength> id6 = { 6, 0, 0, 0, 0, 0, 0, 0 };
+    std::array<uint8_t, GNMNID::nodes.idLength> id7 = { 7, 0, 0, 0, 0, 0, 0, 0 };
+    std::array<uint8_t, GNMNID::nodes.idLength> outbuf = {};
+
+    // Set IDs
+    for (auto i = 0U; i != GNMNID::nodes.maxSets; ++i) {
+        uint8_t buf[GNMNID::nodes.idLength] = {};
+        buf[0] = i;
+        const auto isSet = GNMNID::nodes.set(i, buf);
+        EXPECT_TRUE(isSet);
+    }
+
+    // Check IDs copied correctly
+    const auto i0 = GNMNID::getNextMatchingNodeID(8, id0.begin(), GNMNID::nodes.idLength, outbuf.begin());
+    EXPECT_EQ(0, i0);
+    EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id0));
+    const auto i1 = GNMNID::getNextMatchingNodeID(8, id1.begin(), GNMNID::nodes.idLength, outbuf.begin());
+    EXPECT_EQ(1, i1);
+    EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id1));
+    const auto i2 = GNMNID::getNextMatchingNodeID(8, id2.begin(), GNMNID::nodes.idLength, outbuf.begin());
+    EXPECT_EQ(2, i2);
+    EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id2));
+    const auto i3 = GNMNID::getNextMatchingNodeID(8, id3.begin(), GNMNID::nodes.idLength, outbuf.begin());
+    EXPECT_EQ(3, i3);
+    EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id3));
+    const auto i4 = GNMNID::getNextMatchingNodeID(8, id4.begin(), GNMNID::nodes.idLength, outbuf.begin());
+    EXPECT_EQ(4, i4);
+    EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id4));
+    const auto i5 = GNMNID::getNextMatchingNodeID(8, id5.begin(), GNMNID::nodes.idLength, outbuf.begin());
+    EXPECT_EQ(5, i5);
+    EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id5));
+    const auto i6 = GNMNID::getNextMatchingNodeID(8, id6.begin(), GNMNID::nodes.idLength, outbuf.begin());
+    EXPECT_EQ(6, i6);
+    EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id6));
+    const auto i7 = GNMNID::getNextMatchingNodeID(8, id7.begin(), GNMNID::nodes.idLength, outbuf.begin());
+    EXPECT_EQ(7, i7);
+    EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id7));
+}
+
+TEST(getNextMatchingNodeID, ReturnCorrectIDWithSameFirstByte)
+{
+    GNMNID::nodes._reset();
+    std::array<uint8_t, GNMNID::nodes.idLength> id0 = { 0, 0, 0, 0, 0, 0, 0, 0 };
+    std::array<uint8_t, GNMNID::nodes.idLength> id1 = { 0, 1, 0, 0, 0, 0, 0, 0 };
+    std::array<uint8_t, GNMNID::nodes.idLength> id2 = { 0, 2, 0, 0, 0, 0, 0, 0 };
+    std::array<uint8_t, GNMNID::nodes.idLength> id3 = { 0, 3, 0, 0, 0, 0, 0, 0 };
+    std::array<uint8_t, GNMNID::nodes.idLength> id4 = { 0, 4, 0, 0, 0, 0, 0, 0 };
+    std::array<uint8_t, GNMNID::nodes.idLength> id5 = { 0, 5, 0, 0, 0, 0, 0, 0 };
+    std::array<uint8_t, GNMNID::nodes.idLength> id6 = { 0, 6, 0, 0, 0, 0, 0, 0 };
+    std::array<uint8_t, GNMNID::nodes.idLength> id7 = { 0, 7, 0, 0, 0, 0, 0, 0 };
+    std::array<uint8_t, GNMNID::nodes.idLength> outbuf = {};
+
+    // Set IDs
+    for (auto i = 0U; i != GNMNID::nodes.maxSets; ++i) {
+        uint8_t buf[GNMNID::nodes.idLength] = {};
+        buf[0] = i;
+        const auto isSet = GNMNID::nodes.set(i, buf);
+        EXPECT_TRUE(isSet);
+    }
+
+    // Check IDs copied correctly
+    const auto i0 = GNMNID::getNextMatchingNodeID(8, id0.begin(), GNMNID::nodes.idLength, outbuf.begin());
+    EXPECT_EQ(0, i0);
+    EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id0));
+    const auto i1 = GNMNID::getNextMatchingNodeID(8, id1.begin(), GNMNID::nodes.idLength, outbuf.begin());
+    EXPECT_EQ(1, i1);
+    EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id1));
+    const auto i2 = GNMNID::getNextMatchingNodeID(8, id2.begin(), GNMNID::nodes.idLength, outbuf.begin());
+    EXPECT_EQ(2, i2);
+    EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id2));
+    const auto i3 = GNMNID::getNextMatchingNodeID(8, id3.begin(), GNMNID::nodes.idLength, outbuf.begin());
+    EXPECT_EQ(3, i3);
+    EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id3));
+    const auto i4 = GNMNID::getNextMatchingNodeID(8, id4.begin(), GNMNID::nodes.idLength, outbuf.begin());
+    EXPECT_EQ(4, i4);
+    EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id4));
+    const auto i5 = GNMNID::getNextMatchingNodeID(8, id5.begin(), GNMNID::nodes.idLength, outbuf.begin());
+    EXPECT_EQ(5, i5);
+    EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id5));
+    const auto i6 = GNMNID::getNextMatchingNodeID(8, id6.begin(), GNMNID::nodes.idLength, outbuf.begin());
+    EXPECT_EQ(6, i6);
+    EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id6));
+    const auto i7 = GNMNID::getNextMatchingNodeID(8, id7.begin(), GNMNID::nodes.idLength, outbuf.begin());
+    EXPECT_EQ(7, i7);
+    EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id7));
+}
+
+TEST(getNextMatchingNodeID, FailOnFirstInvalidID)
+{
+    EXPECT_TRUE(false);
 }
