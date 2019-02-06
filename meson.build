@@ -180,6 +180,7 @@ if not meson.is_subproject()
         'portableUnitTests/OTRadioLink/OTSIM900LinkTest.cpp',
         'portableUnitTests/OTRadioLink/SecureFrameTest.cpp',
         'portableUnitTests/OTRadioLink/FrameHandlerTest.cpp',
+        'portableUnitTests/OTV0p2Base/SecurityTest.cpp',
     ]
 
     test_app = executable('OTRadioLinkTests', [src, test_src],
