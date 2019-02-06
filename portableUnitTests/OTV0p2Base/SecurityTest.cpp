@@ -105,6 +105,7 @@ int8_t getNextMatchingNodeID(uint8_t _index, const uint8_t *prefix, uint8_t pref
 // - The prefix length is out of range.
 TEST(getNextMatchingNodeID, FailIfInvalidInputs)
 {
+    GNMNID::nodes._reset();
     uint8_t prefix[GNMNID::nodes.idLength] = {};
     uint8_t buf[GNMNID::nodes.idLength] = {};
 
@@ -126,22 +127,27 @@ TEST(getNextMatchingNodeID, FailIfInvalidInputs)
 
 TEST(getNextMatchingNodeID, FailIfNoMatch)
 {
-    uint8_t prefix[GNMNID::nodes.idLength] = {};
-    uint8_t buf[GNMNID::nodes.idLength] = {};
+    GNMNID::nodes._reset();
+    uint8_t inbuf[GNMNID::nodes.idLength] = {};
+    uint8_t prefix[GNMNID::nodes.idLength] = { 1, 1, 1, 1, 1, 1, 1, 1};
+    uint8_t outbuf[GNMNID::nodes.idLength] = {};
 
-    // Test invalid index
-    const auto r0 = GNMNID::getNextMatchingNodeID(8, prefix, sizeof(prefix), buf);
+    // Test with no entries in table.
+    const auto r0 = GNMNID::getNextMatchingNodeID(8, prefix, sizeof(prefix), outbuf);
     EXPECT_EQ(-1, r0);
-    const auto r1 = GNMNID::getNextMatchingNodeID(255, prefix, sizeof(prefix), buf);
+
+    // Set IDs and test again.
+    inbuf[0] = 1;
+    GNMNID::nodes.set(0, inbuf);
+    const auto r1 = GNMNID::getNextMatchingNodeID(8, prefix, sizeof(prefix), outbuf);
     EXPECT_EQ(-1, r1);
 
-    // Test invalid prefixes
-    // This can only be null if lenPrefix == 0.
-    const auto r2 = GNMNID::getNextMatchingNodeID(0, nullptr, sizeof(prefix), buf);
+    for (auto i = 0U; i != GNMNID::nodes.maxSets; ++i) {
+        uint8_t buf[GNMNID::nodes.idLength] = {};
+        buf[0] = i;
+        const auto isSet1 = GNMNID::nodes.set(i, buf);
+        EXPECT_TRUE(isSet1);
+    }
+    const auto r2 = GNMNID::getNextMatchingNodeID(8, prefix, sizeof(prefix), outbuf);
     EXPECT_EQ(-1, r2);
-    const auto r3 = GNMNID::getNextMatchingNodeID(0, nullptr, 1, buf);
-    EXPECT_EQ(-1, r3);
-    const auto r4 = GNMNID::getNextMatchingNodeID(0, nullptr, 255, buf);
-    EXPECT_EQ(-1, r4);
 }
-
