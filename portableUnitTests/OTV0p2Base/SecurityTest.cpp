@@ -213,19 +213,19 @@ TEST(getNextMatchingNodeID, ReturnCorrectIDWithSameFirstByte)
 {
     GNMNID::nodes._reset();
     const std::array<uint8_t, GNMNID::nodes.idLength> id0 = { 0, 0, 0, 0, 0, 0, 0, 0 };
-    const std::array<uint8_t, GNMNID::nodes.idLength> id1 = { 0, 1, 0, 0, 0, 0, 0, 0 };
-    const std::array<uint8_t, GNMNID::nodes.idLength> id2 = { 0, 2, 0, 0, 0, 0, 0, 0 };
-    const std::array<uint8_t, GNMNID::nodes.idLength> id3 = { 0, 3, 0, 0, 0, 0, 0, 0 };
-    const std::array<uint8_t, GNMNID::nodes.idLength> id4 = { 0, 4, 0, 0, 0, 0, 0, 0 };
-    const std::array<uint8_t, GNMNID::nodes.idLength> id5 = { 0, 5, 0, 0, 0, 0, 0, 0 };
-    const std::array<uint8_t, GNMNID::nodes.idLength> id6 = { 0, 6, 0, 0, 0, 0, 0, 0 };
-    const std::array<uint8_t, GNMNID::nodes.idLength> id7 = { 0, 7, 0, 0, 0, 0, 0, 0 };
+    const std::array<uint8_t, GNMNID::nodes.idLength> id1 = { 0, 0, 0, 0, 0, 0, 0, 1 };
+    const std::array<uint8_t, GNMNID::nodes.idLength> id2 = { 0, 0, 0, 0, 0, 0, 0, 2 };
+    const std::array<uint8_t, GNMNID::nodes.idLength> id3 = { 0, 0, 0, 0, 0, 0, 0, 3 };
+    const std::array<uint8_t, GNMNID::nodes.idLength> id4 = { 0, 0, 0, 0, 0, 0, 0, 4 };
+    const std::array<uint8_t, GNMNID::nodes.idLength> id5 = { 0, 0, 0, 0, 0, 0, 0, 5 };
+    const std::array<uint8_t, GNMNID::nodes.idLength> id6 = { 0, 0, 0, 0, 0, 0, 0, 6 };
+    const std::array<uint8_t, GNMNID::nodes.idLength> id7 = { 0, 0, 0, 0, 0, 0, 0, 7 };
     std::array<uint8_t, GNMNID::nodes.idLength> outbuf = {};
 
     // Set IDs
     for (auto i = 0U; i != GNMNID::nodes.maxSets; ++i) {
         uint8_t buf[GNMNID::nodes.idLength] = {};
-        buf[1] = i;
+        buf[7] = i;
         const auto isSet = GNMNID::nodes.set(i, buf);
         EXPECT_TRUE(isSet);
     }
@@ -392,4 +392,60 @@ TEST(getNextMatchingNodeID, AlwaysMatchIfNoPrefix)
     EXPECT_EQ(6, i6);
     const auto i7 = GNMNID::getNextMatchingNodeID(7, nullptr, 0, nullptr);
     EXPECT_EQ(7, i7);
+}
+
+TEST(getNextMatchingNodeID, ReturnCorrectIDWithPartialPrefix)
+{
+    GNMNID::nodes._reset();
+    const std::array<uint8_t, GNMNID::nodes.idLength> id0 = { 0, 0, 0, 0, 0, 0, 0, 0 };
+    const std::array<uint8_t, GNMNID::nodes.idLength> id1 = { 0, 0, 0, 1, 0, 0, 0, 0 };
+    const std::array<uint8_t, GNMNID::nodes.idLength> id2 = { 0, 0, 0, 2, 0, 0, 0, 0 };
+    const std::array<uint8_t, GNMNID::nodes.idLength> id3 = { 0, 0, 0, 3, 0, 0, 0, 0 };
+    const std::array<uint8_t, GNMNID::nodes.idLength> id4 = { 0, 0, 0, 4, 0, 0, 0, 0 };
+    const std::array<uint8_t, GNMNID::nodes.idLength> id5 = { 0, 0, 0, 5, 0, 0, 0, 0 };
+    const std::array<uint8_t, GNMNID::nodes.idLength> id6 = { 0, 0, 0, 6, 0, 0, 0, 0 };
+    const std::array<uint8_t, GNMNID::nodes.idLength> id7 = { 0, 0, 0, 7, 0, 0, 0, 0 };
+    std::array<uint8_t, GNMNID::nodes.idLength> outbuf = {};
+
+    // Set IDs
+    for (auto i = 0U; i != GNMNID::nodes.maxSets; ++i) {
+        uint8_t buf[GNMNID::nodes.idLength] = {};
+        buf[3] = i;
+        const auto isSet = GNMNID::nodes.set(i, buf);
+        ASSERT_TRUE(isSet);
+    }
+
+    // Check IDs copied correctly
+    for (auto& x: outbuf) { x = 0xff; }
+    const auto i0 = GNMNID::getNextMatchingNodeID(0, id0.begin(), 4, outbuf.begin());
+    EXPECT_EQ(0, i0);
+    EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id0));
+    for (auto& x: outbuf) { x = 0xff; }
+    const auto i1 = GNMNID::getNextMatchingNodeID(0, id1.begin(), 4, outbuf.begin());
+    EXPECT_EQ(1, i1);
+    EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id1));
+    for (auto& x: outbuf) { x = 0xff; }
+    const auto i2 = GNMNID::getNextMatchingNodeID(0, id2.begin(), 4, outbuf.begin());
+    EXPECT_EQ(2, i2);
+    EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id2));
+    for (auto& x: outbuf) { x = 0xff; }
+    const auto i3 = GNMNID::getNextMatchingNodeID(0, id3.begin(), 4, outbuf.begin());
+    EXPECT_EQ(3, i3);
+    EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id3));
+    for (auto& x: outbuf) { x = 0xff; }
+    const auto i4 = GNMNID::getNextMatchingNodeID(0, id4.begin(), 4, outbuf.begin());
+    EXPECT_EQ(4, i4);
+    EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id4));
+    for (auto& x: outbuf) { x = 0xff; }
+    const auto i5 = GNMNID::getNextMatchingNodeID(0, id5.begin(), 4, outbuf.begin());
+    EXPECT_EQ(5, i5);
+    EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id5));
+    for (auto& x: outbuf) { x = 0xff; }
+    const auto i6 = GNMNID::getNextMatchingNodeID(0, id6.begin(), 4, outbuf.begin());
+    EXPECT_EQ(6, i6);
+    EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id6));
+    for (auto& x: outbuf) { x = 0xff; }
+    const auto i7 = GNMNID::getNextMatchingNodeID(0, id7.begin(), 4, outbuf.begin());
+    EXPECT_EQ(7, i7);
+    EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id7));
 }
