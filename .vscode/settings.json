@@ -8,5 +8,12 @@
         "utility": "cpp"
     },
     "python.jediEnabled": false,
-    "python.linting.pylintEnabled": true
+    "python.linting.pylintEnabled": true,
+    "catch2TestExplorer.executables": [
+        {
+            "name": "${filename}",
+            "pattern": "builddir/OTRadioLinkTests",
+            // "cwd": "${absDirpath}",
+        },
+    ],
 }
