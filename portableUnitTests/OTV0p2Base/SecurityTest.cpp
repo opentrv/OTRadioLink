@@ -31,11 +31,13 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 // #include <OTAESGCM.h>
 #include <OTV0p2Base.h>
 
+
 // Test that MockNodeID compiles.
 TEST(MockNodeID, basicCompilation)
 {
     OTV0P2BASE::NodeAssociationTableMock nodes;
 }
+
 
 // Test that MockNodeID fails when passed nullptrs or the index is out of range.
 TEST(MockNodeID, FailIfInvalidInputs)
@@ -65,6 +67,7 @@ TEST(MockNodeID, FailIfInvalidInputs)
     EXPECT_EQ(0, buf[0]);
 }
 
+
 // Test that MockNodeID correctly sets nodeIDs.
 TEST(MockNodeID, ModifyAndReturnAssociations)
 {
@@ -92,13 +95,16 @@ TEST(MockNodeID, ModifyAndReturnAssociations)
     }
 }
 
+
 namespace GNMNID
 {
 OTV0P2BASE::NodeAssociationTableMock nodes;
-int8_t getNextMatchingNodeID(uint8_t _index, const uint8_t *prefix, uint8_t prefixLen, uint8_t *nodeID) {
-    return (OTV0P2BASE::getNextMatchingNodeID<decltype(GNMNID::nodes), GNMNID::nodes>(_index, prefix, prefixLen, nodeID));
+int8_t getNextMatchingNodeID(uint8_t _index, const uint8_t *prefix, uint8_t prefixLen, uint8_t *nodeID)
+{
+    return (OTV0P2BASE::getNextMatchingNodeIDGeneric<decltype(GNMNID::nodes), GNMNID::nodes>(_index, prefix, prefixLen, nodeID));
 }
 }
+
 
 // Test that MockNodeID fails when:
 // - passed nullptrs
@@ -126,6 +132,8 @@ TEST(getNextMatchingNodeID, FailIfInvalidInputs)
     EXPECT_EQ(-1, r4);
 }
 
+
+// Test that getNextMatchingNodeID fails if no IDs match.
 TEST(getNextMatchingNodeID, FailIfNoMatch)
 {
     GNMNID::nodes._reset();
@@ -153,6 +161,8 @@ TEST(getNextMatchingNodeID, FailIfNoMatch)
     EXPECT_EQ(-1, r2);
 }
 
+
+// Test that getNextMatchingNodeID returns the correct ID when passed a full prefix.
 TEST(getNextMatchingNodeID, ReturnCorrectIDWithUniqueFirstByte)
 {
     GNMNID::nodes._reset();
@@ -209,6 +219,8 @@ TEST(getNextMatchingNodeID, ReturnCorrectIDWithUniqueFirstByte)
     EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id7));
 }
 
+
+// Test that getNextMatchingNodeID returns the correct ID when passed a full prefix.
 TEST(getNextMatchingNodeID, ReturnCorrectIDWithSameFirstByte)
 {
     GNMNID::nodes._reset();
@@ -265,6 +277,8 @@ TEST(getNextMatchingNodeID, ReturnCorrectIDWithSameFirstByte)
     EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id7));
 }
 
+
+// Test that getNextMatchingNodeID exits with an error if the first byte of an id is 0xff.
 TEST(getNextMatchingNodeID, FailOnFirstInvalidID)
 {
     GNMNID::nodes._reset();
@@ -324,6 +338,11 @@ TEST(getNextMatchingNodeID, FailOnFirstInvalidID)
     EXPECT_THAT(outbuf, ::testing::Each(0xff));
 }
 
+
+// Test that getNextMatchingNodeID returns the correct index, but does not
+// attempt to copy the ID if the nodeID pointer is a nullptr.
+// FIXME: This test effectively depends on the program quitting with a SIGSEGV
+// on failure. Is there a better way of dealing this?
 TEST(getNextMatchingNodeID, DontCopyIDToNullIDBuffer)
 {
     GNMNID::nodes._reset();
@@ -363,35 +382,62 @@ TEST(getNextMatchingNodeID, DontCopyIDToNullIDBuffer)
     EXPECT_EQ(7, i7);
 }
 
+
+// Test that getNextMatchingNodeID returns the .
 TEST(getNextMatchingNodeID, AlwaysMatchIfNoPrefix)
 {
     GNMNID::nodes._reset();
+    const std::array<uint8_t, GNMNID::nodes.idLength> id0 = { 0, 0, 0, 0, 0, 0, 0, 0 };
+    const std::array<uint8_t, GNMNID::nodes.idLength> id1 = { 0, 0, 0, 0, 0, 0, 0, 1 };
+    const std::array<uint8_t, GNMNID::nodes.idLength> id2 = { 0, 0, 0, 0, 0, 0, 0, 2 };
+    const std::array<uint8_t, GNMNID::nodes.idLength> id3 = { 0, 0, 0, 0, 0, 0, 0, 3 };
+    const std::array<uint8_t, GNMNID::nodes.idLength> id4 = { 0, 0, 0, 0, 0, 0, 0, 4 };
+    const std::array<uint8_t, GNMNID::nodes.idLength> id5 = { 0, 0, 0, 0, 0, 0, 0, 5 };
+    const std::array<uint8_t, GNMNID::nodes.idLength> id6 = { 0, 0, 0, 0, 0, 0, 0, 6 };
+    const std::array<uint8_t, GNMNID::nodes.idLength> id7 = { 0, 0, 0, 0, 0, 0, 0, 7 };
+    std::array<uint8_t, GNMNID::nodes.idLength> outbuf = {};
 
     // Set IDs
     for (auto i = 0U; i != GNMNID::nodes.maxSets; ++i) {
         uint8_t buf[GNMNID::nodes.idLength] = {};
-        buf[0] = i;
+        buf[7] = i;
         const auto isSet = GNMNID::nodes.set(i, buf);
-        ASSERT_TRUE(isSet);
+        EXPECT_TRUE(isSet);
     }
 
     // Check IDs copied correctly
-    const auto i0 = GNMNID::getNextMatchingNodeID(0, nullptr, 0, nullptr);
+    for (auto& x: outbuf) { x = 0xff; }
+    const auto i0 = GNMNID::getNextMatchingNodeID(0, nullptr, 0, outbuf.begin());
     EXPECT_EQ(0, i0);
-    const auto i1 = GNMNID::getNextMatchingNodeID(1, nullptr, 0, nullptr);
+    EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id0));
+    for (auto& x: outbuf) { x = 0xff; }
+    const auto i1 = GNMNID::getNextMatchingNodeID(1, nullptr, 0, outbuf.begin());
     EXPECT_EQ(1, i1);
-    const auto i2 = GNMNID::getNextMatchingNodeID(2, nullptr, 0, nullptr);
+    EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id1));
+    for (auto& x: outbuf) { x = 0xff; }
+    const auto i2 = GNMNID::getNextMatchingNodeID(2, nullptr, 0, outbuf.begin());
     EXPECT_EQ(2, i2);
-    const auto i3 = GNMNID::getNextMatchingNodeID(3, nullptr, 0, nullptr);
+    EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id2));
+    for (auto& x: outbuf) { x = 0xff; }
+    const auto i3 = GNMNID::getNextMatchingNodeID(3, nullptr, 0, outbuf.begin());
     EXPECT_EQ(3, i3);
-    const auto i4 = GNMNID::getNextMatchingNodeID(4, nullptr, 0, nullptr);
+    EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id3));
+    for (auto& x: outbuf) { x = 0xff; }
+    const auto i4 = GNMNID::getNextMatchingNodeID(4, nullptr, 0, outbuf.begin());
     EXPECT_EQ(4, i4);
-    const auto i5 = GNMNID::getNextMatchingNodeID(5, nullptr, 0, nullptr);
+    EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id4));
+    for (auto& x: outbuf) { x = 0xff; }
+    const auto i5 = GNMNID::getNextMatchingNodeID(5, nullptr, 0, outbuf.begin());
     EXPECT_EQ(5, i5);
-    const auto i6 = GNMNID::getNextMatchingNodeID(6, nullptr, 0, nullptr);
+    EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id5));
+    for (auto& x: outbuf) { x = 0xff; }
+    const auto i6 = GNMNID::getNextMatchingNodeID(6, nullptr, 0, outbuf.begin());
     EXPECT_EQ(6, i6);
-    const auto i7 = GNMNID::getNextMatchingNodeID(7, nullptr, 0, nullptr);
+    EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id6));
+    for (auto& x: outbuf) { x = 0xff; }
+    const auto i7 = GNMNID::getNextMatchingNodeID(7, nullptr, 0, outbuf.begin());
     EXPECT_EQ(7, i7);
+    EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id7));
 }
 
 TEST(getNextMatchingNodeID, ReturnCorrectIDWithPartialPrefix)
