@@ -257,16 +257,24 @@ void NodeAssociationTableMock::get(const uint8_t index, uint8_t* dest) const
     memcpy(dest, start, idLength);
 }
 
-// /**
-//  * @brief   Returns first matching node ID after the index provided. If no
-//  *          matching ID found, it will return -1.
-//  * @param   index   Index to start searching from.
-//  *          prefix  Prefix to match; can be NULL iff prefixLen == 0.
-//  *          prefixLen  Length of prefix, [0,8] bytes.
-//  *          nodeID  Buffer to write nodeID to; can be NULL if only the index return value is required. THIS IS NOT PRESERVED WHEN FUNCTION RETURNS -1!
-//  * @retval  returns index or -1 if no matching node ID found
-//  */
-// template<class NodeAssocTable_T, const NodeAssocTable_T& nodes>
-// int8_t getNextMatchingNodeID(const uint8_t _index, const uint8_t *prefix, const uint8_t prefixLen, uint8_t *nodeID)
+#ifdef OTV0P2BASE_NODE_ASSOCIATION_TABLE_V0P2
+bool NodeAssociationTableMock::set(const uint8_t index, const uint8_t* const src)
+{
+    if ((index >= maxSets) || (src == nullptr)) { return (false); }
 
+    uint8_t* const start = &buf[0] + (index * setSize);
+
+    eeprom_update_block(src, start, idLength);
+
+    return (true);
+}
+
+void NodeAssociationTableMock::get(const uint8_t index, uint8_t* dest) const
+{
+    if ((index >= maxSets) || (dest == nullptr)) { return; }
+    
+    const uint8_t* const start = buf + (index * setSize);
+    eeprom_read_block(dest, start, idLength);
+}
+#endif //OTV0P2BASE_NODE_ASSOCIATION_TABLE_V0P2
 }

@@ -125,17 +125,22 @@ private:
     uint8_t buf[maxSets * setSize];
 };
 
-// class NodeAssociationTableV0p2 : public NodeAssociationTableBase {
-// private:
-//     static constexpr uint8_t maxSets {V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS};
-//     static constexpr uint8_t setSize {V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE};
-//     static constexpr uint8_t idLength {V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH};
-//     static constexpr intptr_t startAddr {V0P2BASE_EE_START_NODE_ASSOCIATIONS};
 
-// public:
-    // void get(uint8_t index, uint8_t* dest) const override;
-// };
+#ifdef ARDUINO_ARCH_AVR
+#define OTV0P2BASE_NODE_ASSOCIATION_TABLE_V0P2
+class NodeAssociationTableV0p2 : public NodeAssociationTableBase {
+private:
+    static constexpr uint8_t setSize {V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE};
+    static constexpr intptr_t startAddr {V0P2BASE_EE_START_NODE_ASSOCIATIONS};
 
+public:
+    static constexpr uint8_t maxSets {V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS};
+    static constexpr uint8_t idLength {V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH};
+
+    bool set(uint8_t index, const uint8_t* src) override;
+    void get(uint8_t index, uint8_t* dest) const override;
+};
+#endif // ARDUINO_ARCH_AVR
 
 /**
  * @brief   Clears all existing node ID associations.
@@ -165,9 +170,9 @@ int8_t addNodeAssociation(const uint8_t *nodeID);
  * @brief   Returns first matching node ID after the index provided. If no
  *          matching ID found, it will return -1.
  * @param   index   Index to start searching from.
- *          prefix  Prefix to match; can be NULL iff prefixLen == 0.
+ *          prefix  Prefix to match; can be NULL if prefixLen == 0.  TODO: Make this an OTBuf_t?
  *          prefixLen  Length of prefix, [0,8] bytes.
- *          nodeID  Buffer to write nodeID to; can be NULL if only the index return value is required. THIS IS NOT PRESERVED WHEN FUNCTION RETURNS -1!
+ *          nodeID  Buffer to write nodeID to; can be NULL if only the index return value is required. Not currently true >> THIS IS NOT PRESERVED WHEN FUNCTION RETURNS -1!
  * @retval  returns index or -1 if no matching node ID found
  */
 template<class NodeAssocTable_T, const NodeAssocTable_T& nodes>
@@ -181,57 +186,22 @@ int8_t getNextMatchingNodeID(uint8_t _index, const uint8_t *prefix, uint8_t pref
     // Loop through node IDs until match or last entry tested.
     //   - if a match is found, return index and fill nodeID
     //   - if no match, exit loop.
-    for (uint8_t index = 0; index != nodes.maxSets; ++index) {
+    for (uint8_t index = _index; index != nodes.maxSets; ++index) {
         uint8_t temp[nodes.idLength] = {};
         nodes.get(index, temp);
 
         if (0xff == temp[0]) { return (-1); } 
 
-        // This is ok as we are dealing with uint8_ts.
-        const bool isMatch = (memcmp(temp, prefix, prefixLen) == 0);
-
-        std::cerr << "i: " << int(index) << "\ntemp: ";
-        for (auto& x: temp) { std::cerr << " " << int(x); }
-        std::cerr << "\n";
+        // If no prefix is passed in, we match automatically and let the caller
+        // deal with scanning values.
+        const bool isMatch = (prefixLen == 0) || (memcmp(temp, prefix, prefixLen) == 0);
 
         if (isMatch) {
-            memcpy(nodeID, temp, nodes.idLength);
-            std::cerr << "nodeID: ";
-            for (auto* ip = nodeID; ip != nodeID + nodes.idLength; ++ip) {
-                std::cerr << " " << int(*ip);
-            }
-            std::cerr << "\n";
+            if (nullptr != nodeID) { memcpy(nodeID, temp, nodes.idLength); }
+
             return (index);
         }
     }
-
-    // // uint8_t *eepromPtr = (uint8_t *)V0P2BASE_EE_START_NODE_ASSOCIATIONS + (_index *  (int)V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE);
-    // // for(uint8_t index = _index; index < V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS; index++) {
-    // //     uint8_t temp = eeprom_read_byte(eepromPtr); // temp variable for byte read
-    // //     if(temp == 0xff) { return(-1); } // last entry reached. exit w/ error.
-
-    //     // FIXME: I think 1st byte of ID is never checked if prefixLen is 0.
-    //     else if((0 == prefixLen) || (temp == *prefix)) { // this is the case where it matches
-    //         // loop through first prefixLen bytes of nodeID, comparing output
-    //         uint8_t i; // persistent loop counter
-    //         uint8_t *tempPtr = eepromPtr;    // temp pointer so that eepromPtr is preserved if not a match
-    //         if(NULL != nodeID) { nodeID[0] = temp; }
-    //         for(i = 1; i < prefixLen; i++) {
-    //             // if bytes match, copy and check next byte?
-    //             temp = eeprom_read_byte(tempPtr++);
-    //             if(prefix[i] == temp) {
-    //                 if(NULL != nodeID) { nodeID[i] = temp; }
-    //             } else break; // exit inner loop.
-    //         }
-    //         if(NULL != nodeID) {
-    //             // Since prefix matches, copy rest of node ID.
-    //             for (; i < (V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH); i++) {
-    //                 nodeID[i] = eeprom_read_byte(tempPtr++);
-    //             }
-    //         }
-    //         return index;
-    //     }
-    //     eepromPtr += V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE; // Increment ptr to next node ID field.
 
     // No match has been found.
     return(-1);
