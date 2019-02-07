@@ -101,13 +101,18 @@ static const uint8_t MAX_NODE_ASSOCIATIONS = V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_S
 #endif
 
 
-
+/**
+ * @brief   Base class for node association tables.
+ */
 class NodeAssociationTableBase {
 public:
     virtual bool set(uint8_t index, const uint8_t* src) = 0;
     virtual void get(uint8_t index, uint8_t* dest) const = 0;
 };
 
+/**
+ * @brief   Extends NodeAssociationTableBase for unit testing.
+ */
 class NodeAssociationTableMock : public NodeAssociationTableBase {
 public:
     static constexpr uint8_t maxSets {V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS};
@@ -115,13 +120,18 @@ public:
 
     NodeAssociationTableMock();
 
+    // Set an ID
     bool set(uint8_t index, const uint8_t* src) override;
+    // Get an ID
     void get(uint8_t index, uint8_t* dest) const override;
     // Exposed for unit testing. Clears all values to default.
     void _reset() { for(auto& x: buf) { x = 255; } }
 
 private:
+    // This is the size of a node association entry. Usually
+    // V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE bytes in length.
     static constexpr uint8_t setSize {V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH};
+    // This buffer pretends to be the EEPROM.
     uint8_t buf[maxSets * setSize];
 };
 
@@ -192,6 +202,9 @@ int8_t getNextMatchingNodeIDGeneric(uint8_t _index, const uint8_t *prefix, uint8
 
 #ifdef ARDUINO_ARCH_AVR
 #define OTV0P2BASE_NODE_ASSOCIATION_TABLE_V0P2
+/**
+ * @brief   Implementation of NodeAssociationTableBase for Arduino with EEPROM.
+ */
 class NodeAssociationTableV0p2 : public NodeAssociationTableBase {
 private:
     static constexpr uint8_t setSize {V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE};
@@ -201,9 +214,21 @@ public:
     static constexpr uint8_t maxSets {V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS};
     static constexpr uint8_t idLength {V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH};
 
+    /**
+     * @brief   Sets an 8-byte ID in EEPROM.
+     * @param   index: Index the ID is located at. must be in range [0, maxSets[
+     * @param   src: Pointer to a buffer to copy the ID from.
+     */
     bool set(uint8_t index, const uint8_t* src) override;
+    /**
+     * @brief   Gets an 8-byte ID from EEPROM.
+     * @param   index: Index the ID is located at. must be in range [0, maxSets[
+     * @param   dest: Pointer to a buffer to copy the ID to.
+     */
     void get(uint8_t index, uint8_t* dest) const override;
 };
+
+// Static instance of V0p2_Nodes for backwards compatibility.
 static NodeAssociationTableV0p2 V0p2_Nodes;
 
 uint8_t getNextMatchingNodeID(
