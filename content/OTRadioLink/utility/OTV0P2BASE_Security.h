@@ -25,6 +25,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 #define OTV0P2BASE_SECURITY_H
 
 #include <stdint.h>
+#include <iostream>
 
 #include "OTV0P2BASE_EEPROM.h"
 
@@ -177,13 +178,39 @@ int8_t getNextMatchingNodeID(uint8_t _index, const uint8_t *prefix, uint8_t pref
     if(prefixLen > V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH) { return(-1); }
     if((NULL == prefix) && (0 != prefixLen)) { return(-1); }
 
-    // // Loop through node IDs until match or last entry tested.
-    // //   - if a match is found, return index and fill nodeID
-    // //   - if no match, exit loop.
-    // uint8_t *eepromPtr = (uint8_t *)V0P2BASE_EE_START_NODE_ASSOCIATIONS + (_index *  (int)V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE);
-    // for(uint8_t index = _index; index < V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS; index++) {
-    //     uint8_t temp = eeprom_read_byte(eepromPtr); // temp variable for byte read
-    //     if(temp == 0xff) { return(-1); } // last entry reached. exit w/ error.
+    // Loop through node IDs until match or last entry tested.
+    //   - if a match is found, return index and fill nodeID
+    //   - if no match, exit loop.
+    for (uint8_t index = 0; index != nodes.maxSets; ++index) {
+        uint8_t temp[nodes.idLength] = {};
+        nodes.get(index, temp);
+
+        // if (0xff == temp[0]) { return (-1); } 
+
+        // This is ok as we are dealing with uint8_ts.
+        const bool isMatch = (memcmp(temp, prefix, prefixLen) == 0);
+
+        std::cerr << "i: " << int(index) << "\ntemp: ";
+        for (auto& x: temp) { std::cerr << " " << int(x); }
+        std::cerr << "\n";
+
+        if (isMatch) {
+            memcpy(nodeID, temp, nodes.idLength);
+            std::cerr << "nodeID: ";
+            for (auto* ip = nodeID; ip != nodeID + nodes.idLength; ++ip) {
+                std::cerr << " " << int(*ip);
+            }
+            std::cerr << "\n";
+            return (index);
+        }
+    }
+
+    // // uint8_t *eepromPtr = (uint8_t *)V0P2BASE_EE_START_NODE_ASSOCIATIONS + (_index *  (int)V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE);
+    // // for(uint8_t index = _index; index < V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS; index++) {
+    // //     uint8_t temp = eeprom_read_byte(eepromPtr); // temp variable for byte read
+    // //     if(temp == 0xff) { return(-1); } // last entry reached. exit w/ error.
+
+    //     // FIXME: I think 1st byte of ID is never checked if prefixLen is 0.
     //     else if((0 == prefixLen) || (temp == *prefix)) { // this is the case where it matches
     //         // loop through first prefixLen bytes of nodeID, comparing output
     //         uint8_t i; // persistent loop counter
@@ -205,7 +232,6 @@ int8_t getNextMatchingNodeID(uint8_t _index, const uint8_t *prefix, uint8_t pref
     //         return index;
     //     }
     //     eepromPtr += V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE; // Increment ptr to next node ID field.
-    // }
 
     // No match has been found.
     return(-1);
