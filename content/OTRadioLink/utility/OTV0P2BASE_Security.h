@@ -125,23 +125,6 @@ private:
     uint8_t buf[maxSets * setSize];
 };
 
-
-#ifdef ARDUINO_ARCH_AVR
-#define OTV0P2BASE_NODE_ASSOCIATION_TABLE_V0P2
-class NodeAssociationTableV0p2 : public NodeAssociationTableBase {
-private:
-    static constexpr uint8_t setSize {V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE};
-    static constexpr intptr_t startAddr {V0P2BASE_EE_START_NODE_ASSOCIATIONS};
-
-public:
-    static constexpr uint8_t maxSets {V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS};
-    static constexpr uint8_t idLength {V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH};
-
-    bool set(uint8_t index, const uint8_t* src) override;
-    void get(uint8_t index, uint8_t* dest) const override;
-};
-#endif // ARDUINO_ARCH_AVR
-
 /**
  * @brief   Clears all existing node ID associations.
  */
@@ -176,7 +159,7 @@ int8_t addNodeAssociation(const uint8_t *nodeID);
  * @retval  returns index or -1 if no matching node ID found
  */
 template<class NodeAssocTable_T, const NodeAssocTable_T& nodes>
-int8_t getNextMatchingNodeID(uint8_t _index, const uint8_t *prefix, uint8_t prefixLen, uint8_t *nodeID)
+int8_t getNextMatchingNodeIDGeneric(uint8_t _index, const uint8_t *prefix, uint8_t prefixLen, uint8_t *nodeID)
 {
     // // Validate inputs.
     if(_index >= V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS) { return(-1); }
@@ -207,6 +190,31 @@ int8_t getNextMatchingNodeID(uint8_t _index, const uint8_t *prefix, uint8_t pref
     return(-1);
 }
 
+#ifdef ARDUINO_ARCH_AVR
+#define OTV0P2BASE_NODE_ASSOCIATION_TABLE_V0P2
+class NodeAssociationTableV0p2 : public NodeAssociationTableBase {
+private:
+    static constexpr uint8_t setSize {V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE};
+    static constexpr intptr_t startAddr {V0P2BASE_EE_START_NODE_ASSOCIATIONS};
+
+public:
+    static constexpr uint8_t maxSets {V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS};
+    static constexpr uint8_t idLength {V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH};
+
+    bool set(uint8_t index, const uint8_t* src) override;
+    void get(uint8_t index, uint8_t* dest) const override;
+};
+static NodeAssociationTableV0p2 V0p2_Nodes;
+
+uint8_t getNextMatchingNodeID(
+    uint8_t index, 
+    const uint8_t *prefix, 
+    uint8_t prefixLen, 
+    uint8_t *nodeID)
+{
+    return (getNextMatchingNodeIDGeneric<decltype(V0p2_Nodes), V0p2_Nodes>(index, prefix, prefixLen, nodeID));
+}
+#endif // ARDUINO_ARCH_AVR
 
 //#if 0 // Pairing API outline.
 //struct pairInfo { bool successfullyPaired; };
