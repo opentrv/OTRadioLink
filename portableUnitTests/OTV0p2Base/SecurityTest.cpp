@@ -383,7 +383,8 @@ TEST(getNextMatchingNodeID, DontCopyIDToNullIDBuffer)
 }
 
 
-// Test that getNextMatchingNodeID returns the .
+// Test that getNextMatchingNodeID returns the ID at the index passed to it if 
+// no prefix is passed in.
 TEST(getNextMatchingNodeID, AlwaysMatchIfNoPrefix)
 {
     GNMNID::nodes._reset();
@@ -440,6 +441,9 @@ TEST(getNextMatchingNodeID, AlwaysMatchIfNoPrefix)
     EXPECT_THAT(outbuf, ::testing::ElementsAreArray(id7));
 }
 
+
+// Test that getNextMatchingNodeID returns the correct ID if only a partial
+// prefix is passed in.
 TEST(getNextMatchingNodeID, ReturnCorrectIDWithPartialPrefix)
 {
     GNMNID::nodes._reset();
