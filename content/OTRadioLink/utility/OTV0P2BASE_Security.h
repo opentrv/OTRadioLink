@@ -185,7 +185,7 @@ int8_t getNextMatchingNodeID(uint8_t _index, const uint8_t *prefix, uint8_t pref
         uint8_t temp[nodes.idLength] = {};
         nodes.get(index, temp);
 
-        // if (0xff == temp[0]) { return (-1); } 
+        if (0xff == temp[0]) { return (-1); } 
 
         // This is ok as we are dealing with uint8_ts.
         const bool isMatch = (memcmp(temp, prefix, prefixLen) == 0);
