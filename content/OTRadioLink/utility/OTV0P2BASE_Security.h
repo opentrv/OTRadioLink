@@ -25,7 +25,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 #define OTV0P2BASE_SECURITY_H
 
 #include <stdint.h>
-#include <iostream>
+// #include <iostream>
 
 #include "OTV0P2BASE_EEPROM.h"
 
@@ -229,15 +229,42 @@ public:
 };
 
 // Static instance of V0p2_Nodes for backwards compatibility.
-static NodeAssociationTableV0p2 V0p2_Nodes;
+static constexpr NodeAssociationTableV0p2 V0p2_Nodes;
 
-uint8_t getNextMatchingNodeID(
-    uint8_t index, 
+int8_t getNextMatchingNodeID(
+    uint8_t _index, 
     const uint8_t *prefix, 
     uint8_t prefixLen, 
     uint8_t *nodeID)
 {
-    return (getNextMatchingNodeIDGeneric<decltype(V0p2_Nodes), V0p2_Nodes>(index, prefix, prefixLen, nodeID));
+    // return (getNextMatchingNodeIDGeneric<decltype(V0p2_Nodes), V0p2_Nodes>(index, prefix, prefixLen, nodeID));
+        // // Validate inputs.
+    if(_index >= V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS) { return(-1); }
+    if(prefixLen > V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH) { return(-1); }
+    if((NULL == prefix) && (0 != prefixLen)) { return(-1); }
+
+    // Loop through node IDs until match or last entry tested.
+    //   - if a match is found, return index and fill nodeID
+    //   - if no match, exit loop.
+    for (uint8_t index = _index; index != V0p2_Nodes.maxSets; ++index) {
+        uint8_t temp[V0p2_Nodes.idLength] = {};
+        V0p2_Nodes.get(index, temp);
+
+        if (0xff == temp[0]) { return (-1); } 
+
+        // If no prefix is passed in, we match automatically and let the caller
+        // deal with scanning values.
+        const bool isMatch = (prefixLen == 0) || (memcmp(temp, prefix, prefixLen) == 0);
+
+        if (isMatch) {
+            if (nullptr != nodeID) { memcpy(nodeID, temp, V0p2_Nodes.idLength); }
+
+            return (index);
+        }
+    }
+
+    // No match has been found.
+    return(-1);
 }
 #endif // ARDUINO_ARCH_AVR
 
