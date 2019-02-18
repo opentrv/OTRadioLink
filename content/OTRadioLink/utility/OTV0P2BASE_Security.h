@@ -231,7 +231,7 @@ public:
 // Static instance of V0p2_Nodes for backwards compatibility.
 static constexpr NodeAssociationTableV0p2 V0p2_Nodes;
 
-int8_t getNextMatchingNodeID(
+inline int8_t getNextMatchingNodeID(
     uint8_t _index, 
     const uint8_t *prefix, 
     uint8_t prefixLen, 
