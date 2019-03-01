@@ -32,7 +32,7 @@ before_install:
  - cd ..
  - sudo cp -a include/gtest /usr/include
  - cd ../googlemock/make/
- - make
+ - make gmock_main.a gmock.a
  - sudo cp -a gmock_main.a /usr/lib/libgmock_main.a
  - sudo cp -a gmock.a /usr/lib/libgmock.a
  - cd ..
