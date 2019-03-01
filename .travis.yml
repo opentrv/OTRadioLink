@@ -25,7 +25,9 @@ before_install:
  - wget https://github.com/google/googletest/archive/release-1.8.1.tar.gz
  - tar xf release-1.8.1.tar.gz
  - cd googletest-release-1.8.1
- - cd googlemock/make/
+ - cd googletest
+ - sudo cp -a include/gtest /usr/include
+ - cd ../googlemock/make/
  - make gmock_main.a
  - sudo cp -a gmock_main.a /usr/lib/libgmock_main.a
  - cd ..
