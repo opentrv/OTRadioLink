@@ -31,7 +31,7 @@ before_install:
  - sudo cp -a gtest.a /usr/lib/libgtest.a
  - cd ..
  - sudo cp -a include/gtest /usr/include
- - cd ../../googlemock/make/
+ - cd ../googlemock/make/
  - make
  - sudo cp -a gmock_main.a /usr/lib/libgmock_main.a
  - sudo cp -a gmock.a /usr/lib/libgmock.a
