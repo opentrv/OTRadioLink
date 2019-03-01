@@ -25,6 +25,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015--2016
 #define OTV0P2BASE_SECURITY_H
 
 #include <stdint.h>
+// #include <iostream>
 
 #include "OTV0P2BASE_EEPROM.h"
 
@@ -99,6 +100,41 @@ bool checkPrimaryBuilding16ByteSecretKey(const uint8_t *key);
 static const uint8_t MAX_NODE_ASSOCIATIONS = V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS;
 #endif
 
+
+/**
+ * @brief   Base class for node association tables.
+ */
+class NodeAssociationTableBase {
+public:
+    virtual bool set(uint8_t index, const uint8_t* src) = 0;
+    virtual void get(uint8_t index, uint8_t* dest) const = 0;
+};
+
+/**
+ * @brief   Extends NodeAssociationTableBase for unit testing.
+ */
+class NodeAssociationTableMock : public NodeAssociationTableBase {
+public:
+    static constexpr uint8_t maxSets {V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS};
+    static constexpr uint8_t idLength {V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH};
+
+    NodeAssociationTableMock();
+
+    // Set an ID
+    bool set(uint8_t index, const uint8_t* src) override;
+    // Get an ID
+    void get(uint8_t index, uint8_t* dest) const override;
+    // Exposed for unit testing. Clears all values to default.
+    void _reset() { for(auto& x: buf) { x = 255; } }
+
+private:
+    // This is the size of a node association entry. Usually
+    // V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE bytes in length.
+    static constexpr uint8_t setSize {V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH};
+    // This buffer pretends to be the EEPROM.
+    uint8_t buf[maxSets * setSize];
+};
+
 /**
  * @brief   Clears all existing node ID associations.
  */
@@ -127,12 +163,110 @@ int8_t addNodeAssociation(const uint8_t *nodeID);
  * @brief   Returns first matching node ID after the index provided. If no
  *          matching ID found, it will return -1.
  * @param   index   Index to start searching from.
- *          prefix  Prefix to match; can be NULL iff prefixLen == 0.
+ *          prefix  Prefix to match; can be NULL if prefixLen == 0.  TODO: Make this an OTBuf_t?
  *          prefixLen  Length of prefix, [0,8] bytes.
- *          nodeID  Buffer to write nodeID to; can be NULL if only the index return value is required. THIS IS NOT PRESERVED WHEN FUNCTION RETURNS -1!
+ *          nodeID  Buffer to write nodeID to; can be NULL if only the index return value is required. Not currently true >> THIS IS NOT PRESERVED WHEN FUNCTION RETURNS -1!
  * @retval  returns index or -1 if no matching node ID found
  */
-int8_t getNextMatchingNodeID(uint8_t _index, const uint8_t *prefix, uint8_t prefixLen, uint8_t *nodeID);
+template<class NodeAssocTable_T, const NodeAssocTable_T& nodes>
+int8_t getNextMatchingNodeIDGeneric(uint8_t _index, const uint8_t *prefix, uint8_t prefixLen, uint8_t *nodeID)
+{
+    // // Validate inputs.
+    if(_index >= V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS) { return(-1); }
+    if(prefixLen > V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH) { return(-1); }
+    if((NULL == prefix) && (0 != prefixLen)) { return(-1); }
+
+    // Loop through node IDs until match or last entry tested.
+    //   - if a match is found, return index and fill nodeID
+    //   - if no match, exit loop.
+    for (uint8_t index = _index; index != nodes.maxSets; ++index) {
+        uint8_t temp[nodes.idLength] = {};
+        nodes.get(index, temp);
+
+        if (0xff == temp[0]) { return (-1); } 
+
+        // If no prefix is passed in, we match automatically and let the caller
+        // deal with scanning values.
+        const bool isMatch = (prefixLen == 0) || (memcmp(temp, prefix, prefixLen) == 0);
+
+        if (isMatch) {
+            if (nullptr != nodeID) { memcpy(nodeID, temp, nodes.idLength); }
+
+            return (index);
+        }
+    }
+
+    // No match has been found.
+    return(-1);
+}
+
+#ifdef ARDUINO_ARCH_AVR
+#define OTV0P2BASE_NODE_ASSOCIATION_TABLE_V0P2
+/**
+ * @brief   Implementation of NodeAssociationTableBase for Arduino with EEPROM.
+ */
+class NodeAssociationTableV0p2 : public NodeAssociationTableBase {
+private:
+    static constexpr uint8_t setSize {V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE};
+    static constexpr intptr_t startAddr {V0P2BASE_EE_START_NODE_ASSOCIATIONS};
+
+public:
+    static constexpr uint8_t maxSets {V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS};
+    static constexpr uint8_t idLength {V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH};
+
+    /**
+     * @brief   Sets an 8-byte ID in EEPROM.
+     * @param   index: Index the ID is located at. must be in range [0, maxSets[
+     * @param   src: Pointer to a buffer to copy the ID from.
+     */
+    bool set(uint8_t index, const uint8_t* src) override;
+    /**
+     * @brief   Gets an 8-byte ID from EEPROM.
+     * @param   index: Index the ID is located at. must be in range [0, maxSets[
+     * @param   dest: Pointer to a buffer to copy the ID to.
+     */
+    void get(uint8_t index, uint8_t* dest) const override;
+};
+
+// Static instance of V0p2_Nodes for backwards compatibility.
+static constexpr NodeAssociationTableV0p2 V0p2_Nodes;
+
+inline int8_t getNextMatchingNodeID(
+    uint8_t _index, 
+    const uint8_t *prefix, 
+    uint8_t prefixLen, 
+    uint8_t *nodeID)
+{
+    // return (getNextMatchingNodeIDGeneric<decltype(V0p2_Nodes), V0p2_Nodes>(index, prefix, prefixLen, nodeID));
+        // // Validate inputs.
+    if(_index >= V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS) { return(-1); }
+    if(prefixLen > V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH) { return(-1); }
+    if((NULL == prefix) && (0 != prefixLen)) { return(-1); }
+
+    // Loop through node IDs until match or last entry tested.
+    //   - if a match is found, return index and fill nodeID
+    //   - if no match, exit loop.
+    for (uint8_t index = _index; index != V0p2_Nodes.maxSets; ++index) {
+        uint8_t temp[V0p2_Nodes.idLength] = {};
+        V0p2_Nodes.get(index, temp);
+
+        if (0xff == temp[0]) { return (-1); } 
+
+        // If no prefix is passed in, we match automatically and let the caller
+        // deal with scanning values.
+        const bool isMatch = (prefixLen == 0) || (memcmp(temp, prefix, prefixLen) == 0);
+
+        if (isMatch) {
+            if (nullptr != nodeID) { memcpy(nodeID, temp, V0p2_Nodes.idLength); }
+
+            return (index);
+        }
+    }
+
+    // No match has been found.
+    return(-1);
+}
+#endif // ARDUINO_ARCH_AVR
 
 //#if 0 // Pairing API outline.
 //struct pairInfo { bool successfullyPaired; };

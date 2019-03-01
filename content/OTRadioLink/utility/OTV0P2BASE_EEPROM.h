@@ -200,41 +200,44 @@ static const intptr_t V0P2BASE_EE_END_RADIO = 255;
 //#endif
 
 
+#endif // ARDUINO_ARCH_AVR
+
 // Node security association storage.
 // (ID plus permanent message counter for RX.)
 // Can fit 8 nodes within 256 bytes of EEPROM with 24 bytes of related data.  (TODO-793)
 //
 // Working area ahead for updating node associations.
-static const intptr_t V0P2BASE_EE_START_NODE_ASSOCIATIONS_WORK_START = 704;
-static const uint8_t V0P2BASE_EE_START_NODE_ASSOCIATIONS_WORK_LEN = 64;
+static constexpr intptr_t V0P2BASE_EE_START_NODE_ASSOCIATIONS_WORK_START = 704;
+static constexpr uint8_t V0P2BASE_EE_START_NODE_ASSOCIATIONS_WORK_LEN = 64;
 //
 // Note that all valid entries/associations are contiguous at the start of the area.
 // The first (invalid) node ID starting with 0xff indicates that it and all subsequent entries are empty.
 // On writing a new entry all bytes after the ID must be erased to 0xff.
-static const intptr_t V0P2BASE_EE_START_NODE_ASSOCIATIONS = 768;  // Inclusive start of node associations.
-static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE = 32; // Size in bytes of one Node association entry.
+static constexpr intptr_t V0P2BASE_EE_START_NODE_ASSOCIATIONS = 768;  // Inclusive start of node associations.
+static constexpr uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE = 32; // Size in bytes of one Node association entry.
 //
 // Node association fields, 0 upwards, contiguous.
 // Offset of full-byte ID in table row.
-static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_OFFSET = 0; // 8 Byte node ID.
-static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH = 8; // 8 Byte node ID.
+static constexpr uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_OFFSET = 0; // 8 Byte node ID.
+static constexpr uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_8B_ID_LENGTH = 8; // 8 Byte node ID.
 // Primary RX message counter (6 bytes + other support) offset.
-static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET = 8;
+static constexpr uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_0_OFFSET = 8;
 // Secondary RX message counter (6 bytes + other support) offset.
-static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET = 16;
+static constexpr uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_MSG_CNT_1_OFFSET = 16;
 // Reserved starting offset in table row.
-static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_RESERVED_OFFSET = 24;
+static constexpr uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_RESERVED_OFFSET = 24;
 //
 // Maximum possible node associations, ie nodes that can be securely received from.
 // Where more than this are needed then this device can be in pass-through mode
 // for more powerful back-end server to filter/auth/decrypt wanted traffic.
-static const uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS = 8;
+static constexpr uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS = 8;
 //
 // Compute start of node association set (in range [0,V0P2BASE_EE_NODE_ASSOCIATIONS_SETS-1]) in EEPROM.
-// static const uint16_t V0P2BASE_EE_NODE_ASSOCIATIONS_START_ADDR
+// static constexpr uint16_t V0P2BASE_EE_NODE_ASSOCIATIONS_START_ADDR
 // INCLUSIVE END OF NODE ASSOCIATIONS AREA: must point to last byte used.
-static const intptr_t V0P2BASE_EE_END_NODE_ASSOCIATIONS = ((V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS * V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE)-1);
+static constexpr intptr_t V0P2BASE_EE_END_NODE_ASSOCIATIONS = ((V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS * V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE)-1);
 
+#ifdef ARDUINO_ARCH_AVR
 
 // Wrapper for simple byte-wide non-volatile time-based (by hour) stats implementation in EEPROM.
 // Multiple instances can access the same EEPROM backing store.

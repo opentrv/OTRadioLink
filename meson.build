@@ -36,10 +36,15 @@ gtest_dep = dependency('gtest_main', required : false)
 if not gtest_dep.found()
     thread_dep = dependency('threads')
     gtest_proj = subproject('gtest')
-    gtest_inc = gtest_proj.get_variable('gtest_incdir')
+    gtest_inc = [
+        gtest_proj.get_variable('gtest_incdir'),
+        gtest_proj.get_variable('gmock_incdir')
+    ]
     gtest_src = [
         gtest_proj.get_variable('gtest_libsources'), 
-        gtest_proj.get_variable('gtest_mainsources')
+        gtest_proj.get_variable('gtest_mainsources'),
+        gtest_proj.get_variable('gmock_libsources'), 
+        gtest_proj.get_variable('gmock_mainsources')
     ]
     gtest_lib = static_library('gtest', gtest_src,
         include_directories : gtest_inc,
@@ -180,6 +185,7 @@ if not meson.is_subproject()
         'portableUnitTests/OTRadioLink/OTSIM900LinkTest.cpp',
         'portableUnitTests/OTRadioLink/SecureFrameTest.cpp',
         'portableUnitTests/OTRadioLink/FrameHandlerTest.cpp',
+        'portableUnitTests/OTV0p2Base/SecurityTest.cpp',
     ]
 
     test_app = executable('OTRadioLinkTests', [src, test_src],
