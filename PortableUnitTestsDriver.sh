@@ -30,7 +30,7 @@ TESTSRCDIR=portableUnitTests
 TESTSRCS="`find ${TESTSRCDIR} -name '*.cpp' -type f -print`"
 
 # GTest libs (including main()).
-GLIBS="-lgtest -lgtest_main -lpthread"
+GLIBS="-lgtest -lgtest_main -lgmock -lpthread"
 # Other libs.
 OTHERLIBS=
 
