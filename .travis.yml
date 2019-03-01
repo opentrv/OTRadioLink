@@ -5,22 +5,22 @@ language: cpp
 matrix:
   include:
     - compiler: gcc
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-4.9
-      env: COMPILER=g++-4.9
+      # addons:
+      #   apt:
+      #     sources:
+      #       - ubuntu-toolchain-r-test
+      #     packages:
+      #       - g++-4.9
+      # env: COMPILER=g++-4.9
     - compiler: clang
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-            - llvm-toolchain-trusty-5.0
-          packages:
-            - clang-5.0
-      env: COMPILER=clang++-5.0
+      # addons:
+      #   apt:
+      #     sources:
+      #       - ubuntu-toolchain-r-test
+      #       - llvm-toolchain-trusty-5.0
+      #     packages:
+      #       - clang-5.0
+      # env: COMPILER=clang++-5.0
 before_install:
  - wget https://github.com/google/googletest/archive/release-1.8.1.tar.gz
  - tar xf release-1.8.1.tar.gz
