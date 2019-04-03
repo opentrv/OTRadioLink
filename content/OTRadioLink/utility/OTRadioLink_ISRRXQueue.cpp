@@ -35,6 +35,15 @@ namespace OTRadioLink
 // ISR-/thread- safe.
 uint8_t ISRRXQueueVarLenMsgBase::isFull() const
     { ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { return(_isFull()); } }
+#else
+// True if the queue is full.
+// True iff _getRXBufForInbound() would return NULL.
+// Not ISR/threadsafe
+uint8_t ISRRXQueueVarLenMsgBase::isFull() const
+{ 
+    // ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { return(_isFull()); } 
+    return(_isFull());
+}
 #endif // ARDUINO_ARCH_AVR
 
 #ifdef ARDUINO_ARCH_AVR
@@ -57,6 +66,28 @@ void ISRRXQueueVarLenMsgBase::removeRXMsg()
         --queuedRXedMessageCount;
         }
     }
+#else
+// Remove the first (oldest) queued RX message.
+// Typically used after peekRXMessage().
+// Does nothing if the queue is empty.
+// Not intended to be called from an ISR.
+// Not threadsafe in this implementation
+void ISRRXQueueVarLenMsgBase::removeRXMsg()
+{
+    // Nothing to do if empty.
+    if(isEmpty()) { return; }
+    // FIXME: Can this be implemented with atomics?
+    // // May have to inspect and adjust all state, so block interrupts.
+    // ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+        // Advance 'oldest' index to discard oldest length+frame, wrapping if necessary.
+        // A wrap will be needed if advancing 'oldest' would take it too close to the buffer end
+        // for a valid max-size incoming frame to have been stored there.
+        const uint8_t o = oldest; // Cache volatile value.
+        oldest = newIndex(o, b[o]);
+        --queuedRXedMessageCount;
+    }
+}
 #endif // ARDUINO_ARCH_AVR
 
 
