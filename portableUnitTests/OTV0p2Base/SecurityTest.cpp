@@ -27,6 +27,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 #include <gmock/gmock.h>
 // #include <stdio.h>
 #include <stdlib.h>
+#include <array>
 
 // #include <OTAESGCM.h>
 #include <OTV0p2Base.h>
