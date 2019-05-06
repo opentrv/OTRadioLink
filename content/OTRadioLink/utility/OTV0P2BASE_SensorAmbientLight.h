@@ -79,7 +79,7 @@ class SensorAmbientLightBase : public SimpleTSUint8Sensor
     constexpr SensorAmbientLightBase() { }
 
     // Reset to starting state; primarily for unit tests.
-    void reset() { value = 0; isRoomLitFlag = false; rangeTooNarrow = false; darkTicks = 0; }
+    virtual void reset() { value = 0; isRoomLitFlag = false; rangeTooNarrow = false; darkTicks = 0; }
 
     // Default value for lightThreshold; a dimly light room at night may be brighter.
     // For REV2 LDR and REV7 phototransistor.
@@ -248,7 +248,11 @@ class SensorAmbientLightAdaptiveTBase : public SensorAmbientLightBase
     constexpr SensorAmbientLightAdaptiveTBase() { }
 
     // Reset to starting state; primarily for unit tests.
-    void resetAdaptive() { reset(); occCallbackOpt = NULL; setTypMinMax(0xff, 0xff, 0xff, false); occupancyDetector.reset(); }
+    // DHD20190506: resetAdaptive() should always have been reset()
+    //     else insufficiently cleared (the plug-in occupancy detector)
+    //     but will be left for benefit of explicit callers.
+    void resetAdaptive() { SensorAmbientLightBase::reset(); occCallbackOpt = NULL; setTypMinMax(0xff, 0xff, 0xff, false); occupancyDetector.reset(); }
+    virtual void reset() override { resetAdaptive(); }
 
     // Get light threshold, above which the room is considered light enough for activity [1,254].
     uint8_t getLightThreshold() const { return(lightThreshold); }
