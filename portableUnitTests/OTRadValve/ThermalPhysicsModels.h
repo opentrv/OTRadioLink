@@ -238,7 +238,7 @@ struct RoomParams_t
 
 /**
  * Parameters based on DHD's house (EPC Band B house).
- * Adjustmemts made to better fit behaviour of DHD's office (Valve 5s).
+ * Adjustments made to better fit behaviour of DHD's office (Valve 5s).
  * 
  * Original simulation parameters:
  * - Room Dimensions = 3.0 m * 5.0 m * 2.3 m
