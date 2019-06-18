@@ -303,7 +303,7 @@ TEST(ModelledRadValve,MRVSExtremes)
     // the valve will open monotonically,
     // and also test that the fully-open state is reached
     // in a bounded number of ticks ie in bounded (and reasonable) time.
-    // 'Reasonable' being about the defaulr same minimum on time.
+    // 'Reasonable' being about the default same minimum on time.
     static constexpr uint8_t maxNormalFullResponseMins =
         OTRadValve::DEFAULT_ANTISEEK_VALVE_REOPEN_DELAY_M;
     if(verbose) { fprintf(stderr, "open...\n"); }
