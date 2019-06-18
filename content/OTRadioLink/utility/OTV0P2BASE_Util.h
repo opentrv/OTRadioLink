@@ -165,27 +165,28 @@ class ScratchSpaceL final
 // Possible to create tail end for use by nested callers
 // where a routine needs to keep some state during those calls.
 // Scratch size is limited to 255 bytes.
-class ScratchSpace final
+template<typename buf_T>
+class ScratchSpaceTemplate final
   {
   public:
     // Buffer space; non-NULL except in case of error (when bufsize will also be 0).
     // DEPRECATED!!!!
-    uint8_t *const buf;
+    buf_T *const buf;
     // Buffer size; strictly positive except in case of error (when buf will also be NULL).
     const uint8_t bufsize;
 
     // R/W access to buf.
-    uint8_t *getBuf() { return buf; }
+    buf_T *getBuf() { return buf; }
     // RO accessor for when ScratchSpace is const
     // NOTE not currently safe.
-    const uint8_t *getBuf() const { return buf; }
+    const buf_T *getBuf() const { return buf; }
 
     // Create an instance.
     //   * buf_  start of buffer space;
     //     must be non-NULL except to indicate that the buffer is unusable.
     //   * bufsize_  size of usable start of buffer;
     //     must be positive except to indicate that the buffer is unusable.
-    constexpr ScratchSpace(uint8_t *const buf_, const uint8_t bufsize_)
+    constexpr ScratchSpaceTemplate(buf_T *const buf_, const uint8_t bufsize_)
       : buf((0 == bufsize_) ? NULL : buf_), bufsize((NULL == buf_) ? 0 : bufsize_) { }
 
     // Check if sub-space cannot be made (would not leave at least one byte available).
@@ -194,19 +195,20 @@ class ScratchSpace final
     // Create a sub-space n bytes from the start of the current space.
     // If the existing buffer is smaller than n (or null), or n is null,
     // the the result will be NULL and zero-sized.
-    constexpr ScratchSpace(const ScratchSpace &parent, const uint8_t reserveN)
+    constexpr ScratchSpaceTemplate(const ScratchSpaceTemplate<buf_T> &parent, const uint8_t reserveN)
       : buf(subSpaceCannotBeMade(parent.bufsize, reserveN) ? NULL : parent.buf + reserveN),
         bufsize(subSpaceCannotBeMade(parent.bufsize, reserveN) ? 0 : parent.bufsize - reserveN)
         { }
 
     // Wrap a sub-space round a large space.
     // At most 255 bytes will be available in the new sub-space.
-    constexpr ScratchSpace(const ScratchSpaceL &parent)
+    constexpr ScratchSpaceTemplate(const ScratchSpaceL &parent)
       : buf(parent.buf),
         bufsize((parent.bufsize > 255) ? 255 : uint8_t(parent.bufsize))
         { }
   };
 
+using ScratchSpace = ScratchSpaceTemplate<uint8_t>;
 
 // Diagnostic tools for memory problems.
 // Arduino AVR memory layout: DATA, BSS [_end, __bss_end], (HEAP,) [SP] STACK [RAMEND]

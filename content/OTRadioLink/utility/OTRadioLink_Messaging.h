@@ -318,6 +318,9 @@ bool decodeAndHandleOTSecureOFrame(volatile const uint8_t * const _msg, OTV0P2BA
 
     // Buffer for receiving secure frame body.
     // (Non-secure frame bodies should be read directly from the frame buffer.)
+    // FIXME: Should this be passed in by scratch space?
+    // TODO: Consider moving this out by one layer and passing it in, to avoid
+    // needing to re-decode header in second handler.
     uint8_t decryptedBodyOut[OTDecodeData_T::ptextLenMax];
     OTDecodeData_T fd(msg, decryptedBodyOut);
 

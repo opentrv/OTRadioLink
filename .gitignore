@@ -9,5 +9,6 @@
 /hs_err_pid*
 /Debug-lib/
 /Debug ARM/
-builddir
-subprojects
+/builddir
+/subprojects
+/.vscode/ipch
