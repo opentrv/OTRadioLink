@@ -228,17 +228,17 @@ struct RoomParams_t
     const double conductance_10;
     // Conductance of the wall to the outside world in W/K.
     const double conductance_0W;
-    // Capacitance of the TODO in J/K.
+    // Capacitance of the air in the room in J/K.
     const double capacitance_2;
-    // Capacitance of the TODO in J/K.
+    // Capacitance of the inner layer of the wall in J/K.
     const double capacitance_1;
-    // Capacitance of the TODO in J/K.
+    // Capacitance of the outer layer of the wall in J/K.
     const double capacitance_0;
 };
 
 /**
  * Parameters based on DHD's house (EPC Band B house).
- * Adjustments made to better fit behaviour of DHD's office (Valve 5s).
+ * Adjustments made to better fit behaviour of DHD's office (Valve 5s).+
  * 
  * Original simulation parameters:
  * - Room Dimensions = 3.0 m * 5.0 m * 2.3 m
@@ -260,11 +260,14 @@ static const RoomParams_t roomParams_Default {
  */ 
 struct ThermalModelState_t
 {
-    // Inside air temperature in C
+    // Inside air temperature in C.
+    // FIXME: Is this unused?
     double airTemperature {0.0};
-    // ??
+    // Temperature of the room.
     double roomTemp {0.0};
+    // Temperature of inner layer of the wall.
     double t1 {0.0};
+    // Temperature of outer layer of the wall.
     double t0 {0.0};
     // Temperature of the outside world in C.
     double outsideTemp {0.0};
