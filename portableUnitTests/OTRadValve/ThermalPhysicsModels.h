@@ -78,6 +78,17 @@ inline double heatTransfer(const double conductance, const double temp1, const d
 {
     return conductance * (temp1 - temp2);
 }
+
+
+struct ValveTempParameters
+{
+    const double conductanceRad;
+    const double conductanceRoom;
+    const double capacitanceValve;
+};
+
+static constexpr ValveTempParameters valveTempParameters_DEFAULT { 0.05, 10.0, 5000.0 };
+
 /**
  * @brief   Calculate temp seen by valve this interval.
  * @note    Heat flow into the room is positive.
@@ -87,16 +98,16 @@ inline double heatTransfer(const double conductance, const double temp1, const d
  *          - Cannot be below air temperature (the radiator cannot sink heat).
  * @retval  Heat transfer into room from radiator, in J
  */
-inline double calcValveTemp(const double airTemp, const double valveTemp, const double heatFlowFromRad)
+inline double calcValveTemp(const double airTemp, const double valveTemp, const double heatFlowFromRad, ValveTempParameters params = valveTempParameters_DEFAULT)
 {
-    static constexpr double thermalConductanceRad {0.05};  // fixme literal is starting estimate for thermal resistance
-    static constexpr double thermalConductanceRoom {10.0};
-    static constexpr double thermalCapacitanceValve {5000.0}; // fixme literal is starting estimate for thermal capacitance
+    // static constexpr double thermalConductanceRad     {0.05};  // fixme literal is starting estimate for thermal resistance
+    // static constexpr double thermalConductanceRoom    {10.0};
+    // static constexpr double thermalCapacitanceValve {5000.0}; // fixme literal is starting estimate for thermal capacitance
 
-    const double heatIn = heatFlowFromRad * thermalConductanceRad;
-    const double heatOut = heatTransfer(thermalConductanceRoom, valveTemp, airTemp);
+    const double heatIn = heatFlowFromRad * params.conductanceRad;
+    const double heatOut = heatTransfer(params.conductanceRoom, valveTemp, airTemp);
     const double valveHeatFlow = heatIn - heatOut;
-    const double newValveTemp = valveTemp + (valveHeatFlow / thermalCapacitanceValve);
+    const double newValveTemp = valveTemp + (valveHeatFlow / params.capacitanceValve);
 
     return (newValveTemp);
 }
@@ -228,17 +239,17 @@ struct RoomParams_t
     const double conductance_10;
     // Conductance of the wall to the outside world in W/K.
     const double conductance_0W;
-    // Capacitance of the TODO in J/K.
+    // Capacitance of the air in the room in J/K.
     const double capacitance_2;
-    // Capacitance of the TODO in J/K.
+    // Capacitance of the inner layer of the wall in J/K.
     const double capacitance_1;
-    // Capacitance of the TODO in J/K.
+    // Capacitance of the outer layer of the wall in J/K.
     const double capacitance_0;
 };
 
 /**
  * Parameters based on DHD's house (EPC Band B house).
- * Adjustments made to better fit behaviour of DHD's office (Valve 5s).
+ * Adjustments made to better fit behaviour of DHD's office (Valve 5s).+
  * 
  * Original simulation parameters:
  * - Room Dimensions = 3.0 m * 5.0 m * 2.3 m
@@ -260,11 +271,14 @@ static const RoomParams_t roomParams_Default {
  */ 
 struct ThermalModelState_t
 {
-    // Inside air temperature in C
+    // Inside air temperature in C.
+    // FIXME: Is this unused?
     double airTemperature {0.0};
-    // ??
+    // Temperature of the room.
     double roomTemp {0.0};
+    // Temperature of inner layer of the wall.
     double t1 {0.0};
+    // Temperature of outer layer of the wall.
     double t0 {0.0};
     // Temperature of the outside world in C.
     double outsideTemp {0.0};
