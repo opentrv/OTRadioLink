@@ -82,12 +82,15 @@ inline double heatTransfer(const double conductance, const double temp1, const d
 
 struct ValveTempParameters
 {
-    const double conductanceRad;
+    // This must be less than 0.05.
+    // It represents a fraction of the total energy output from the radiator
+    // that heats the TRV.
+    const double radToAirFraction;
     const double conductanceRoom;
     const double capacitanceValve;
 };
 
-static constexpr ValveTempParameters valveTempParameters_DEFAULT { 0.05, 10.0, 5000.0 };
+static constexpr ValveTempParameters valveTempParameters_DEFAULT {0.05, 10.0, 5000.0 };
 
 /**
  * @brief   Calculate temp seen by valve this interval.
@@ -100,14 +103,15 @@ static constexpr ValveTempParameters valveTempParameters_DEFAULT { 0.05, 10.0, 5
  */
 inline double calcValveTemp(const double airTemp, const double valveTemp, const double heatFlowFromRad, ValveTempParameters params = valveTempParameters_DEFAULT)
 {
-    // static constexpr double thermalConductanceRad     {0.05};  // fixme literal is starting estimate for thermal resistance
-    // static constexpr double thermalConductanceRoom    {10.0};
-    // static constexpr double thermalCapacitanceValve {5000.0}; // fixme literal is starting estimate for thermal capacitance
-
-    const double heatIn = heatFlowFromRad * params.conductanceRad;
+    // if this is not small, the rad valve will get too hot compared to the rest of the room.
+    assert(params.radToAirFraction < 0.05);   
+    // FIXME: Switch to using temperatures to calculate heatflows like a normal person
+    const double heatIn = heatFlowFromRad * params.radToAirFraction;
     const double heatOut = heatTransfer(params.conductanceRoom, valveTemp, airTemp);
     const double valveHeatFlow = heatIn - heatOut;
     const double newValveTemp = valveTemp + (valveHeatFlow / params.capacitanceValve);
+    
+    // std::cerr << "X" << heatIn << " - " << heatOut << " = " << valveHeatFlow << "\n";
 
     return (newValveTemp);
 }
