@@ -104,7 +104,7 @@ static constexpr ValveTempParameters valveTempParameters_DEFAULT {0.05, 10.0, 50
 inline double calcValveTemp(const double airTemp, const double valveTemp, const double heatFlowFromRad, ValveTempParameters params = valveTempParameters_DEFAULT)
 {
     // if this is not small, the rad valve will get too hot compared to the rest of the room.
-    assert(params.radToAirFraction < 0.05);   
+    assert(params.radToAirFraction <= 0.05);
     // FIXME: Switch to using temperatures to calculate heatflows like a normal person
     const double heatIn = heatFlowFromRad * params.radToAirFraction;
     const double heatOut = heatTransfer(params.conductanceRoom, valveTemp, airTemp);
