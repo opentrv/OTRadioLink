@@ -694,6 +694,11 @@ class ModelledRadValvePlugglableState final : public AbstractRadValve
         cumulativeMovementSubSensor(retainedState.cumulativeMovementPC, V0p2_SENSOR_TAG_F("vC|%"))
       { }
 
+    // Read-only access to retained state for testing purposes only.
+    // NOT PART OF OFFICIAL API and so may go away without notice.
+    // All retained state for deciding where to set the radiator valve in normal operation.
+    ModelledRadValveState_t const &_retainedState {retainedState};
+
     // Read-only access to physical device if any, else this; never NULL.
     // Used to make available get() for underlying if required, eg for stats.
     // This should NOT be used to get() valve position to send to the boiler,
