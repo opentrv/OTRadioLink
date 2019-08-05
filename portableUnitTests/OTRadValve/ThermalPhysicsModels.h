@@ -270,6 +270,49 @@ static const RoomParams_t roomParams_Default {
     500, 300, 50, 350000, 1300000, 7000000,
 };
 
+//            // Salford Energy House derived parameters (EPC Band ~D).
+//            // Putative roomParams_Default.
+//            static const TMB::RoomParams_t roomParams {
+//                575, 724, 2.52,
+//                361733, 1300000, 7000000};
+//            static constexpr TMB::TMHelper::ValveTempParameters valveParams {
+//                0.028,     // conductanceRad
+//                6.1,     // conductanceRoom
+//                5000.0    // capacitanceValve
+//            };
+
+//            //16WW 5s parameters.
+//            static const TMB::RoomParams_t roomParams {
+//            3000, 2000, 1,
+//            423858.75, 1300949, 7029234};
+//            static constexpr TMB::TMHelper::ValveTempParameters valveParams {
+//            0.012,     // conductanceRad
+//            1.09,     // conductanceRoom
+//            5000.0    // capacitanceValve
+//            };
+//            //16WW 6k parameters.
+//            static const TMB::RoomParams_t roomParams {
+//            3000, 395, 1.23,
+//            423858, 1299988, 7000145};
+//            static constexpr TMB::TMHelper::ValveTempParameters valveParams {
+//            0.013,     // conductanceRad
+//            1.21,     // conductanceRoom
+//            5000.0    // capacitanceValve
+//            };
+
+//            // 16WW (EPV Band ~B) mean 5s/6k parameters.
+//            // Putative roomParams_Good.
+//            static const TMB::RoomParams_t roomParams {
+//                3000, 1198, 1.11,
+//                423858, 1300000, 7014690};
+//            static constexpr TMB::TMHelper::ValveTempParameters valveParams {
+//                0.013,     // conductanceRad
+//                1.15,     // conductanceRoom
+//                5000.0    // capacitanceValve
+//            };
+
+
+
 /**
  * @brief   Current state of the room.
  */ 
