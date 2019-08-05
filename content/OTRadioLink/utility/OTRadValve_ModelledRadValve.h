@@ -697,7 +697,7 @@ class ModelledRadValvePlugglableState final : public AbstractRadValve
     // Read-only access to retained state for testing purposes only.
     // NOT PART OF OFFICIAL API and so may go away without notice.
     // All retained state for deciding where to set the radiator valve in normal operation.
-    ModelledRadValveState_t const &_retainedState {retainedState};
+    const ModelledRadValveState_t &_getRetainedState() const { return(retainedState); };
 
     // Read-only access to physical device if any, else this; never NULL.
     // Used to make available get() for underlying if required, eg for stats.
