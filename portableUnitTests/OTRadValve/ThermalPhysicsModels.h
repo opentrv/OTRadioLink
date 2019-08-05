@@ -22,6 +22,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016--2018
 
 #include <cstdint>
 #include <cstdio>
+#include <vector>
+#include <assert.h>
 
 #include "OTRadValve_AbstractRadValve.h"
 #include "OTRadValve_ModelledRadValve.h"
