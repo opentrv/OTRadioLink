@@ -13,8 +13,8 @@ KIND, either express or implied. See the Licence for the
 specific language governing permissions and limitations
 under the Licence.
 
-Author(s) / Copyright (s): Damon Hart-Davis 2016--2018
-                           Deniz Erbilgin 2016--2018
+Author(s) / Copyright (s): Damon Hart-Davis 2016--2019
+                           Deniz Erbilgin 2016--2019
 */
 
 #ifndef OTRADVALVE_THERMALPHYSICSMODEL_H
@@ -28,11 +28,11 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016--2018
 #include "OTRadValve_AbstractRadValve.h"
 #include "OTRadValve_ModelledRadValve.h"
 
+
 namespace OTRadValve
 {
 namespace PortableUnitTest
 {
-
 // Holds references to a valve and temperature sensor
 // and models the how the former drives the latter
 // given the characteristics of the room, boiler, etc.
@@ -501,7 +501,6 @@ public:
 };
 
 }
-
 }
 }
 
