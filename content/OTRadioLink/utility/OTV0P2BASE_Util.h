@@ -27,6 +27,7 @@ Author(s) / Copyright (s): Damon Hart-Davis 2014--2017
 #include <stdint.h>
 #include <stddef.h>
 #include "OTV0P2BASE_Concurrency.h"
+#include "OTV0P2BASE_ErrorReport.h"
 
 #ifdef ARDUINO
 #include <Arduino.h>
@@ -271,6 +272,9 @@ class MemoryChecks
     static volatile size_t programCounter;
 
   public:
+    // Minimum stack space remaining before a warning is issued.
+    static constexpr uint8_t MIN_ALLOWABLE_STACK_SPACE {64};
+
     // Store return address of the calling function (Assumes recordPC is correctly inlined)
     static inline void recordPC() { tempProgramCounter.store((size_t)__builtin_return_address(0)); }
     // Compute stack space in use on ARDUINO/AVR; non-negative.
@@ -298,6 +302,10 @@ class MemoryChecks
             checkLocation = location;
             minSP.compare_exchange_strong(min, pos);
             programCounter = tempProgramCounter.load();
+            // Set a warning if necessary
+            // FIXME: Should only be triggered if the high watermark has increased. Are these semantics correct?
+            const auto remainingStack = min - (intptr_t)get_end();
+            if(MIN_ALLOWABLE_STACK_SPACE > remainingStack) { ErrorReporter.set(ErrorReport::WARN_STACK_SPACE_LOW); }
         }
     }
     // Get SP minimum: ISR-safe.

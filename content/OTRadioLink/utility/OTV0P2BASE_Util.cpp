@@ -89,11 +89,11 @@ void stackCheck()
 //    OTV0P2BASE::serialPrintAndFlush(F(" prog: "));
 //    OTV0P2BASE::serialPrintAndFlush(progCounter, HEX);
 //    OTV0P2BASE::serialPrintlnAndFlush();
-    if (64 > minsp) panic(F("SH"));
+    if (MemoryChecks::MIN_ALLOWABLE_STACK_SPACE > minsp) panic(F("SH"));
 //    OTV0P2BASE::MemoryChecks::forceResetIfStackOverflow();  // XXX
     OTV0P2BASE::MemoryChecks::resetMinSP();
 #else
-    if(64 > minsp) { serialPrintlnAndFlush(F("!SP")); }
+    if(MemoryChecks::MIN_ALLOWABLE_STACK_SPACE > minsp) { serialPrintlnAndFlush(F("!SP")); }
     MemoryChecks::forceResetIfStackOverflow();
 #endif
 }

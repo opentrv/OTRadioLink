@@ -85,9 +85,14 @@ class ErrorReport final : public OTV0P2BASE::Actuator<int8_t>
             WARN_DEV1 = -98,
             WARN_DEV2 = -97,
 
+            // Stack has passed a dangerously low point.
+            // As defined by:
+            //      MemoryChecks::MIN_ALLOWABLE_STACK_SPACE
+            WARN_STACK_SPACE_LOW = -31,
+
             // Supply voltage is low.
             // As defined by:
-            //     SupplyVoltageCentiVolts::BATTERY_LOW_cV)
+            //     SupplyVoltageCentiVolts::BATTERY_LOW_cV
             WARN_BATTERY_LOW = -21,
 
             // Valve running in low/reduced precision mode;
