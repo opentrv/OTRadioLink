@@ -177,6 +177,8 @@ class SubSensor : public SensorCore<T>
 // This should be efficient and simple but is not always usable based on parent sensor implementation.
 // This holds the tag directly.
 // This version does not override isAvailable() and so it returns true.
+//
+// Example: use a sub sensor to ease stats printing for a secondary value.
 template <class T, bool lowPri = true>
 class SubSensorSimpleRef final : public SubSensor<T, lowPri>
   {
