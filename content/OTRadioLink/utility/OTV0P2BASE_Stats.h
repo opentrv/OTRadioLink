@@ -55,6 +55,7 @@ class NVByHourByteStatsBase
     // Special values indicating the current hour and the next hour, for stats.
     static constexpr uint8_t SPECIAL_HOUR_CURRENT_HOUR = 0xff;
     static constexpr uint8_t SPECIAL_HOUR_NEXT_HOUR = 0xfe;
+    static constexpr uint8_t SPECIAL_HOUR_PREV_HOUR = 0xfd;
 
     // Standard stats sets (and count).
     // Implementations are not necessarily obliged to provide this exact set.
@@ -105,14 +106,17 @@ STATS_SET_USER2_BY_HOUR_SMOOTHED    = 13, // Smoothed hourly user-defined stats 
     virtual void setByHourStatSimple(const uint8_t statsSet, const uint8_t hh, const uint8_t v = UNSET_BYTE) = 0;
 
     // Get raw stats value for specified hour [0,23]/current/next from stats set N from non-volatile (EEPROM) store.
-    // A value of STATS_UNSET_BYTE (0xff (255)) means unset (or out of range); other values depend on which stats set is being used.
-    //   * hour  hour of day to use, or ~0/0xff for current hour (default), or >23 for next hour.
+    // A value of STATS_UNSET_BYTE (0xff (255)) means unset (or out of range, or invalid); other values depend on which stats set is being used.
+    //   * hour  hour of day to use, or ~0/0xff for current hour (default), 0xfe for next hour, or 0xfd for the previous hour.
+    //           If the hour is invalid, an UNSET_BYTE will be returned.
     // Note the two special values that implicitly make use of the RTC to select the hour to read.
-    // The implementation will have to have a way of fetching hour of day.
-    virtual uint8_t getByHourStatRTC(uint8_t statsSet, uint8_t hour = SPECIAL_HOUR_CURRENT_HOUR) const = 0;
+    uint8_t getByHourStatRTC(uint8_t statsSet, uint8_t hour = SPECIAL_HOUR_CURRENT_HOUR) const;
+
+    // Returns the internal view of the current hour in range [0,23].
+    // This should be defined by the implementer for ease of unit testing.
+    virtual uint8_t getHour() const = 0;
 
     ////// Utility values and routines.
-
     // Returns true iff there is a near-full set of stats (none unset) and 3/4s of the values are higher than the supplied sample.
     // Always returns false if all samples are the same or unset (or the stats set is invalid).
     //   * statsSet  stats set number to use.
@@ -159,7 +163,9 @@ class NULLByHourByteStats final : public NVByHourByteStatsBase
     virtual bool zapStats(uint16_t = 0) override { return(true); } // No stats to erase, so all done.
     virtual uint8_t getByHourStatSimple(uint8_t, uint8_t) const override { return(UNSET_BYTE); }
     virtual void setByHourStatSimple(uint8_t, uint8_t, uint8_t = UNSET_BYTE) override { }
-    virtual uint8_t getByHourStatRTC(uint8_t, uint8_t = SPECIAL_HOUR_CURRENT_HOUR) const override { return(UNSET_BYTE); }
+    // TODO: Not sure exactly how this should behave, but it will work given
+    // the behaviour of the rest of the methods.
+    virtual uint8_t getHour() const override { return(0xff); }
   };
 
 // Simple mock read-write stats container with a full internal ephemeral backing store for tests.
@@ -194,9 +200,9 @@ class NVByHourByteStatsMock : public NVByHourByteStatsBase
       virtual void setByHourStatSimple(const uint8_t statsSet, const uint8_t hh, uint8_t value = UNSET_BYTE) override
           { if(!((statsSet >= STATS_SETS_COUNT) || (hh > setSlots))) { statsMemory[statsSet][hh] = value; } }
 
-      // Hour-of-day (as set by _setHour()) based access for hh > 23.
-      virtual uint8_t getByHourStatRTC(const uint8_t statsSet, const uint8_t hh = SPECIAL_HOUR_CURRENT_HOUR) const override
-          { return(getByHourStatSimple(statsSet, (SPECIAL_HOUR_CURRENT_HOUR == hh) ? currentHour : ((hh > 23) ? ((currentHour+1)%24) : hh))); }
+      // Current Hour-of-day (as set by _setHour()).
+      virtual uint8_t getHour() const override
+        { return (currentHour); }
   };
 
 
