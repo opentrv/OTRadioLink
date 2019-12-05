@@ -187,36 +187,36 @@ public:
 class NVByHourByteStatsMock : public NVByHourByteStatsBase
 {
 private:
-	// Slots/bytes in a stats set.
-	static constexpr uint8_t setSlots = 24;
+    // Slots/bytes in a stats set.
+    static constexpr uint8_t setSlots = 24;
 
-	// Backing store for the stats.
-	uint8_t statsMemory[STATS_SETS_COUNT][setSlots];
+    // Backing store for the stats.
+    uint8_t statsMemory[STATS_SETS_COUNT][setSlots];
 
-	// Current hour of day, for getByHourRTC().
-	uint8_t currentHour = 0;
+    // Current hour of day, for getByHourRTC().
+    uint8_t currentHour = 0;
 
 public:
-	// Create instance will all stats 'erased' to UNSET_BYTE values.
-	NVByHourByteStatsMock() { zapStats(); }
+    // Create instance will all stats 'erased' to UNSET_BYTE values.
+    NVByHourByteStatsMock() { zapStats(); }
 
-	// Set current hour of day for getByHourRTC(); invalid value is ignored.
-	void _setHour(const uint8_t hourNow) { if(hourNow < 24) { currentHour = hourNow; } }
+    // Set current hour of day for getByHourRTC(); invalid value is ignored.
+    void _setHour(const uint8_t hourNow) { if(hourNow < 24) { currentHour = hourNow; } }
 
-	// Always succeeds in one pass in this implementation.
-	virtual bool zapStats(uint16_t = 0) override { memset(statsMemory, UNSET_BYTE, sizeof(statsMemory)); return(true); }
+    // Always succeeds in one pass in this implementation.
+    virtual bool zapStats(uint16_t = 0) override { memset(statsMemory, UNSET_BYTE, sizeof(statsMemory)); return(true); }
 
-	// Bounds-checked read access from backing store.
-	virtual uint8_t getByHourStatSimple(uint8_t statsSet, uint8_t hh) const override
-		{ return(((statsSet >= STATS_SETS_COUNT) || (hh > setSlots)) ? UNSET_BYTE : statsMemory[statsSet][hh]); }
+    // Bounds-checked read access from backing store.
+    virtual uint8_t getByHourStatSimple(uint8_t statsSet, uint8_t hh) const override
+        { return(((statsSet >= STATS_SETS_COUNT) || (hh > setSlots)) ? UNSET_BYTE : statsMemory[statsSet][hh]); }
 
-	// Bounds-checked write access to backing store.
-	virtual void setByHourStatSimple(const uint8_t statsSet, const uint8_t hh, uint8_t value = UNSET_BYTE) override
-		{ if(!((statsSet >= STATS_SETS_COUNT) || (hh > setSlots))) { statsMemory[statsSet][hh] = value; } }
+    // Bounds-checked write access to backing store.
+    virtual void setByHourStatSimple(const uint8_t statsSet, const uint8_t hh, uint8_t value = UNSET_BYTE) override
+        { if(!((statsSet >= STATS_SETS_COUNT) || (hh > setSlots))) { statsMemory[statsSet][hh] = value; } }
 
-	// Current Hour-of-day (as set by _setHour()).
-	virtual uint8_t getHour() const override
-	{ return (currentHour); }
+    // Current Hour-of-day (as set by _setHour()).
+    virtual uint8_t getHour() const override
+    { return (currentHour); }
 };
 
 
@@ -259,14 +259,14 @@ public:
 //       2 is probably most robust;
 //       strictly positive
 template
-	<
-	class stats_t /* = NVByHourByteStatsBase */, stats_t *stats,
-	class occupancy_t = SimpleTSUint8Sensor /*PseudoSensorOccupancyTracker*/, const occupancy_t *occupancyOpt = NULL,
-	class ambLight_t = SimpleTSUint8Sensor /*SensorAmbientLightBase*/, const ambLight_t *ambLightOpt = NULL,
-	class tempC16_t = Sensor<int16_t> /*TemperatureC16Base*/, const tempC16_t *tempC16Opt = NULL,
-	class humidity_t = SimpleTSUint8Sensor /*HumiditySensorBase*/, const humidity_t *humidityOpt = NULL,
-	uint8_t maxSubSamples = 2
-	>
+    <
+    class stats_t /* = NVByHourByteStatsBase */, stats_t *stats,
+    class occupancy_t = SimpleTSUint8Sensor /*PseudoSensorOccupancyTracker*/, const occupancy_t *occupancyOpt = NULL,
+    class ambLight_t = SimpleTSUint8Sensor /*SensorAmbientLightBase*/, const ambLight_t *ambLightOpt = NULL,
+    class tempC16_t = Sensor<int16_t> /*TemperatureC16Base*/, const tempC16_t *tempC16Opt = NULL,
+    class humidity_t = SimpleTSUint8Sensor /*HumiditySensorBase*/, const humidity_t *humidityOpt = NULL,
+    uint8_t maxSubSamples = 2
+    >
 class ByHourSimpleStatsUpdaterSampleStats final : public ByHourSimpleStatsUpdaterBase
 {
 public:
@@ -279,23 +279,23 @@ protected:
     //  * sampleCount small (<128) strictly positive number, no larger than maxSamplesPerHour
     template <class T = uint16_t>
     static uint8_t smartDivToU8(const T total, const uint8_t sampleCount)
-	{
-      	static_assert(maxSubSamples > 0, "maxSamplesPerHour must be strictly positive");
+    {
+          static_assert(maxSubSamples > 0, "maxSamplesPerHour must be strictly positive");
 #if 0 && defined(DEBUG) // Extra arg validation during dev.
-		if(0 == sampleCount) { panic(); }
-		if(maxSubSamples < sampleCount) { panic(); }
+        if(0 == sampleCount) { panic(); }
+        if(maxSubSamples < sampleCount) { panic(); }
 #endif
-		if((1 == maxSubSamples) || (1 == sampleCount)) { return(total); } // No division required.
+        if((1 == maxSubSamples) || (1 == sampleCount)) { return(total); } // No division required.
 
-		// Handle arbitrary number of samples,
-		// but likely inflates code size and run-time and overflow risk.
-		// Code should not be generated if maxSubSamples <= 2.
-		if((maxSubSamples > 2) && (sampleCount > 2))
-			{ return((uint8_t) ((total + (sampleCount>>1)) / sampleCount)); }
+        // Handle arbitrary number of samples,
+        // but likely inflates code size and run-time and overflow risk.
+        // Code should not be generated if maxSubSamples <= 2.
+        if((maxSubSamples > 2) && (sampleCount > 2))
+            { return((uint8_t) ((total + (sampleCount>>1)) / sampleCount)); }
 
-		// Exactly 2 samples.
-		return((uint8_t) ((total+1) >> 1)); // Fast shift for 2 samples instead of slow divide.
-	}
+        // Exactly 2 samples.
+        return((uint8_t) ((total+1) >> 1)); // Fast shift for 2 samples instead of slow divide.
+    }
 
     // Do simple update of last and smoothed stats numeric values.
     // This assumes that the 'last' set is followed by the smoothed set.
@@ -304,15 +304,15 @@ protected:
     //   * hh  hour of data; [0,23]
     //   * value  new stats value in range [0,254]
     static void simpleUpdateStatsPair(const uint8_t statsSet, const uint8_t hh, const uint8_t value)
-	{
-		// Update the last-sample slot using the mean samples value.
-		stats->setByHourStatSimple(statsSet, hh, value);
-		// If existing smoothed value unset or invalid, use new one as is, else fold in.
-		const uint8_t smoothedStatsSet = statsSet + 1;
-		const uint8_t smoothed = stats->getByHourStatSimple(smoothedStatsSet, hh);
-		if(OTV0P2BASE::NVByHourByteStatsBase::UNSET_BYTE == smoothed) { stats->setByHourStatSimple(smoothedStatsSet, hh, value); }
-		else { stats->setByHourStatSimple(smoothedStatsSet, hh, OTV0P2BASE::NVByHourByteStatsBase::smoothStatsValue(smoothed, value)); }
-	}
+    {
+        // Update the last-sample slot using the mean samples value.
+        stats->setByHourStatSimple(statsSet, hh, value);
+        // If existing smoothed value unset or invalid, use new one as is, else fold in.
+        const uint8_t smoothedStatsSet = statsSet + 1;
+        const uint8_t smoothed = stats->getByHourStatSimple(smoothedStatsSet, hh);
+        if(OTV0P2BASE::NVByHourByteStatsBase::UNSET_BYTE == smoothed) { stats->setByHourStatSimple(smoothedStatsSet, hh, value); }
+        else { stats->setByHourStatSimple(smoothedStatsSet, hh, OTV0P2BASE::NVByHourByteStatsBase::smoothStatsValue(smoothed, value)); }
+    }
 
     // Select the type of the accumulator for percentage-value stats [0,100].
     // Where there are no more than two samples being accumulated
@@ -355,89 +355,89 @@ public:
     //
     // Call with out-of-range hh to effectively discard any partial samples.
     void sampleStats(const bool fullSample, const uint8_t hh) override
-	{
-		// (Sub-)sample processing.
-		// In general, keep running total of sub-samples in a way that should not overflow
-		// and use the mean to update the non-volatile EEPROM values on the fullSample call.
-		// General sub-sample count; initially zero after boot,
-		// and zeroed after each full sample or when explicitly reset.
-		// static uint8_t sampleCount;
-		if(hh > 23) { sampleCount = 0; return; }
+    {
+        // (Sub-)sample processing.
+        // In general, keep running total of sub-samples in a way that should not overflow
+        // and use the mean to update the non-volatile EEPROM values on the fullSample call.
+        // General sub-sample count; initially zero after boot,
+        // and zeroed after each full sample or when explicitly reset.
+        // static uint8_t sampleCount;
+        if(hh > 23) { sampleCount = 0; return; }
 
-		// Reject excess early sub-samples before full/final one.
-		static_assert(maxSubSamples > 0, "must allow at least one (ie final) sample!");
-		if(!fullSample && (sampleCount >= maxSubSamples-1)) { return; }
+        // Reject excess early sub-samples before full/final one.
+        static_assert(maxSubSamples > 0, "must allow at least one (ie final) sample!");
+        if(!fullSample && (sampleCount >= maxSubSamples-1)) { return; }
 
-		const bool firstSample = (0 == sampleCount++);
-		// Capture sample count to use below.
-		const uint8_t sc = sampleCount;
+        const bool firstSample = (0 == sampleCount++);
+        // Capture sample count to use below.
+        const uint8_t sc = sampleCount;
 
-		// Update all the different stats in turn
-		// if the relevant sensor objects are non NULL.
-		// Since these are known at compile time,
-		// unused/dead code should simply not be generated.
+        // Update all the different stats in turn
+        // if the relevant sensor objects are non NULL.
+        // Since these are known at compile time,
+        // unused/dead code should simply not be generated.
 
-		if((NULL != ambLightOpt) && ambLightOpt->isAvailable()) {
-			// Ambient light.
-			const uint16_t ambLightV = OTV0P2BASE::fnmin(ambLightOpt->get(), (uint8_t)254); // Constrain value at top end to avoid 'not set' value.
-			// static uint16_t ambLightTotal;
-			ambLightTotal = firstSample ? ambLightV : (ambLightTotal + ambLightV);
-			if(fullSample) { 
-				simpleUpdateStatsPair(
-					OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_AMBLIGHT_BY_HOUR, 
-					hh, 
-					smartDivToU8(ambLightTotal, sc));
-			}
-		}
+        if((NULL != ambLightOpt) && ambLightOpt->isAvailable()) {
+            // Ambient light.
+            const uint16_t ambLightV = OTV0P2BASE::fnmin(ambLightOpt->get(), (uint8_t)254); // Constrain value at top end to avoid 'not set' value.
+            // static uint16_t ambLightTotal;
+            ambLightTotal = firstSample ? ambLightV : (ambLightTotal + ambLightV);
+            if(fullSample) { 
+                simpleUpdateStatsPair(
+                    OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_AMBLIGHT_BY_HOUR, 
+                    hh, 
+                    smartDivToU8(ambLightTotal, sc));
+            }
+        }
 
-		if((NULL != tempC16Opt) && tempC16Opt->isAvailable()) {
-			// Ambient (eg room) temperature in C*16 units.
-			const int16_t tempC16 = tempC16Opt->get();
-			// static int16_t tempC16Total;
-			tempC16Total = firstSample ? tempC16 : (tempC16Total + tempC16);
-			if(fullSample) {
-				// Scale and constrain last-read temperature to valid range for stats.
-				const int16_t tempCTotal = (maxSamplesPerHour <= 2)
-				? ((1==sc)?tempC16Total:((tempC16Total+1)>>1))
-				: ((1==sc)?tempC16Total:
-						((2==sc)?((tempC16Total+1)>>1):
-								((tempC16Total + (sc>>1)) / sc)));
-				const uint8_t temp = OTV0P2BASE::compressTempC16(tempCTotal);
-				simpleUpdateStatsPair(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_TEMP_BY_HOUR, hh, temp);
-			}
-		}
+        if((NULL != tempC16Opt) && tempC16Opt->isAvailable()) {
+            // Ambient (eg room) temperature in C*16 units.
+            const int16_t tempC16 = tempC16Opt->get();
+            // static int16_t tempC16Total;
+            tempC16Total = firstSample ? tempC16 : (tempC16Total + tempC16);
+            if(fullSample) {
+                // Scale and constrain last-read temperature to valid range for stats.
+                const int16_t tempCTotal = (maxSamplesPerHour <= 2)
+                ? ((1==sc)?tempC16Total:((tempC16Total+1)>>1))
+                : ((1==sc)?tempC16Total:
+                        ((2==sc)?((tempC16Total+1)>>1):
+                                ((tempC16Total + (sc>>1)) / sc)));
+                const uint8_t temp = OTV0P2BASE::compressTempC16(tempCTotal);
+                simpleUpdateStatsPair(OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_TEMP_BY_HOUR, hh, temp);
+            }
+        }
 
-		if((NULL != occupancyOpt) && occupancyOpt->isAvailable()) {
-			// Occupancy percentage.
-			const uint8_t occpc = occupancyOpt->get();
-			// static percentageStatsAccumulator_t occpcTotal; // TODO: as range is [0,100], up to 2 samples could fit a uint8_t instead.
-			occpcTotal = firstSample ? occpc : (occpcTotal + occpc);
-			if(fullSample) { 
-				simpleUpdateStatsPair(
-					OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR, 
-					hh, 
-					smartDivToU8(occpcTotal, sc));
-			}
-		}
+        if((NULL != occupancyOpt) && occupancyOpt->isAvailable()) {
+            // Occupancy percentage.
+            const uint8_t occpc = occupancyOpt->get();
+            // static percentageStatsAccumulator_t occpcTotal; // TODO: as range is [0,100], up to 2 samples could fit a uint8_t instead.
+            occpcTotal = firstSample ? occpc : (occpcTotal + occpc);
+            if(fullSample) { 
+                simpleUpdateStatsPair(
+                    OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR, 
+                    hh, 
+                    smartDivToU8(occpcTotal, sc));
+            }
+        }
 
-		if((NULL != humidityOpt) && (humidityOpt->isAvailable())) {
-			// Relative humidity (RH%).
-			const uint8_t rhpc = humidityOpt->get();
-			rhpcTotal = firstSample ? rhpc : (rhpcTotal + rhpc);
-			if(fullSample) { 
-				simpleUpdateStatsPair(
-					OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_RHPC_BY_HOUR, 
-					hh, 
-					smartDivToU8(rhpcTotal, sc));
-			}
-		}
+        if((NULL != humidityOpt) && (humidityOpt->isAvailable())) {
+            // Relative humidity (RH%).
+            const uint8_t rhpc = humidityOpt->get();
+            rhpcTotal = firstSample ? rhpc : (rhpcTotal + rhpc);
+            if(fullSample) { 
+                simpleUpdateStatsPair(
+                    OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_RHPC_BY_HOUR, 
+                    hh, 
+                    smartDivToU8(rhpcTotal, sc));
+            }
+        }
 
-		// TODO: other stats measures...
+        // TODO: other stats measures...
 
-		if(!fullSample) { return; } // Only accumulate values cached until a full sample.
-		// Reset generic sub-sample count to initial state after full sample.
-		sampleCount = 0;
-	}
+        if(!fullSample) { return; } // Only accumulate values cached until a full sample.
+        // Reset generic sub-sample count to initial state after full sample.
+        sampleCount = 0;
+    }
   };
 
 // Stats-, EEPROM- (and Flash-) friendly single-byte unary incrementable encoding.
