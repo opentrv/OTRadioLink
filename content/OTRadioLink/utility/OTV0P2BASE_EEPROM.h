@@ -299,7 +299,7 @@ public:
     }
 
     // Get the current hour, for use in getByHourStatRTC.
-    virtual uint8_t getHour() const override { return(OTV0P2BASE::getHourLT()); }
+    virtual uint8_t getHour() const override { return(OTV0P2BASE::getHoursLT()); }
 };
 
 #endif // ARDUINO_ARCH_AVR
