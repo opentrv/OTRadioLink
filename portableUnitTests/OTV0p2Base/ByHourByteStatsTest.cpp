@@ -186,6 +186,7 @@ TEST(Stats, getByHourStatRTC)
         }
     
     // Read with invalid values.
+    // TODO: compare this against min(specialvalues)
     for (auto hh = 24; hh < ms.SPECIAL_HOUR_PREV_HOUR; ++hh) {
         EXPECT_EQ(unset, ms.getByHourStatRTC(statsSet, hh));
     }

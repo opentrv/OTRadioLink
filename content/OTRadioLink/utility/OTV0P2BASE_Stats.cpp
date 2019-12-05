@@ -28,34 +28,36 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 namespace OTV0P2BASE
 {
 
+// Helper functions
+namespace {
+// Check if we hare dealing with a special hour, and resolve it to the correct hour.
+// Note this does not deal with invalid values of hour/currentHour
+uint8_t getSpecialHour(uint8_t hour, uint8_t currentHour) {
+    switch (hour) {
+        case (NVByHourByteStatsBase::SPECIAL_HOUR_CURRENT_HOUR): {
+            return currentHour;
+        }
+        case (NVByHourByteStatsBase::SPECIAL_HOUR_NEXT_HOUR): {
+            // Taken from logic in OTV0P2BASE::getNextHourLT()
+            return (currentHour >= 23) ? 0 : (currentHour + 1);
+        }
+        case (NVByHourByteStatsBase::SPECIAL_HOUR_PREV_HOUR): {
+            // Taken from logic in OTV0P2BASE::getPrevHourLT()
+            return (0 == currentHour) ? 23 : (currentHour - 1);
+        }
+    }
+    return (hour);
+}
+}
+// Get raw stats value for specified hour [0,23]/current/next from stats set N from non-volatile (EEPROM) store.
+// A value of STATS_UNSET_BYTE (0xff (255)) means unset (or out of range, or invalid); other values depend on which stats set is being used.
+//   * hour  hour of day to use, or ~0/0xff for current hour (default), 0xfe for next hour, or 0xfd for the previous hour.
+//           If the hour is invalid, an UNSET_BYTE will be returned.
+// Note the three special values that implicitly make use of the RTC to select the hour to read.
 uint8_t NVByHourByteStatsBase::getByHourStatRTC(uint8_t statsSet, uint8_t hour) const
 {
-    const uint8_t currentHour {getHour()};
-    uint8_t hh {};
-    if (hour >= 24) {
-        switch (hour) {
-            case (SPECIAL_HOUR_CURRENT_HOUR): {
-                hh = currentHour;
-                break;
-            }
-            case (SPECIAL_HOUR_NEXT_HOUR): {
-                // Taken from logic in OTV0P2BASE::getNextHourLT()
-                hh = (currentHour >= 23) ? 0 : (currentHour + 1);
-                break;
-            }
-            case (SPECIAL_HOUR_PREV_HOUR): {
-                // Taken from logic in OTV0P2BASE::getPrevHourLT()
-                hh = (0 == currentHour) ? 23 : (currentHour - 1);
-                break;
-            }
-            default: {
-                // FIXME: Not convinced.
-                return (UNSET_BYTE);
-            }
-        }
-    } else {
-        hh = hour;
-    }
+    const uint8_t hh {getSpecialHour(hour, getHour())};
+    // The invalid cases for statsSet and hh are checked in getByHourStatSimple.
     return(getByHourStatSimple(statsSet, hh));
 }
 
