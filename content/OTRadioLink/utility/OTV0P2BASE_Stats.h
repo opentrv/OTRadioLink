@@ -179,7 +179,7 @@ public:
     virtual void setByHourStatSimple(uint8_t, const uint8_t, uint8_t = UNSET_BYTE) override { }
     // TODO: Not sure exactly how this should behave, but it will work given
     // the behaviour of the rest of the methods.
-    virtual uint8_t getHour() const override { return(0xff); 
+    virtual uint8_t getHour() const override { return(0xff); }
 };
 
 // Simple mock read-write stats container with a full internal ephemeral backing store for tests.
