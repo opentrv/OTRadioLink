@@ -251,7 +251,10 @@ public:
     // Requires 1.8ms per byte for each byte that actually needs erasing.
     //   * maxBytesToErase limit the number of bytes erased to this; strictly positive, else 0 to allow 65536
     // Returns true if finished with all bytes erased.
-    virtual bool zapStats(uint16_t maxBytesToErase = 0) override { return(_zapStats(maxBytesToErase)); }
+    virtual bool zapStats(uint16_t maxBytesToErase = 0) override
+    { 
+        return(_zapStats(maxBytesToErase));
+    }
     // Clear all collected statistics fronted by this.
     // Statically-accessible version of zapStats();
     // Returns true if finished with all bytes erased.
@@ -266,12 +269,18 @@ public:
     // A return value of 0xff (255) means unset (or out of range); other values depend on which stats set is being used.
     // The stats set is determined by the order in memory.
     //   * hour  hour of day to use
-    virtual uint8_t getByHourStatSimple(const uint8_t statsSet, const uint8_t hh) const override { return(_getByHourStatSimple(statsSet, hh)); }
+    virtual uint8_t getByHourStatSimple(const uint8_t statsSet, const uint8_t hh) const override
+    { 
+        return(_getByHourStatSimple(statsSet, hh));
+    }
     // Set raw stats value for specified hour [0,23] from stats set N in non-volatile (EEPROM) store.
     // Not passing the value byte is equivalent to erasing the value, eg typically 0xff for EEPROM or similar backing store.
     // The stats set is determined by the order in memory.
     //   * hour  hour of day to use
-    virtual void setByHourStatSimple(const uint8_t statsSet, const uint8_t hh, const uint8_t v = UNSET_BYTE) { _setByHourStatSimple(statsSet, hh, v); }
+    virtual void setByHourStatSimple(const uint8_t statsSet, const uint8_t hh, const uint8_t v = UNSET_BYTE)
+    {
+        _setByHourStatSimple(statsSet, hh, v); 
+    }
     // Get raw stats value for specified hour [0,23]/current/next from stats set N from non-volatile (EEPROM) store.
     // Statically-accessible version of getByHourStatSimple();
     static uint8_t _getByHourStatSimple(const uint8_t statsSet, const uint8_t hh)
