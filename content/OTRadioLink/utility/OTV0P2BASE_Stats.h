@@ -170,6 +170,7 @@ public:
 
 // Trivial read-only implementation that returns hour value in each slot with getByHourStatSimple().
 // Enough to test some stats against.
+// Intended for unit testing.
 class HByHourByteStats final : public OTV0P2BASE::NVByHourByteStatsBase
 {
 public:
