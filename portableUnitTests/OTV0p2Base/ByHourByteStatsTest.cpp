@@ -153,6 +153,8 @@ TEST(Stats, getByHourStatRTC)
     // Seed random() for use in simulator; --gtest_shuffle will force it to change.
     srandom((unsigned) ::testing::UnitTest::GetInstance()->random_seed());
 
+    const uint8_t unset = OTV0P2BASE::NVByHourByteStatsBase::UNSET_BYTE;
+
     // New empty container.
     OTV0P2BASE::NVByHourByteStatsMock ms;
 
@@ -182,6 +184,11 @@ TEST(Stats, getByHourStatRTC)
         const uint8_t wrapped_prev_value = ((hh + 23) % 24) + offset;
         EXPECT_EQ(wrapped_prev_value, ms.getByHourStatRTC(statsSet, ms.SPECIAL_HOUR_PREV_HOUR));
         }
+    
+    // Read with invalid values.
+    for (auto hh = 24; hh < ms.SPECIAL_HOUR_PREV_HOUR; ++hh) {
+        EXPECT_EQ(unset, ms.getByHourStatRTC(statsSet, hh));
+    }
 }
 
 // Test some basic behaviour of the support/calc routines on simple data sets
