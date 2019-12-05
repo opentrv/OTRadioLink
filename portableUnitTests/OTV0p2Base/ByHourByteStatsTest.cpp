@@ -177,17 +177,6 @@ TEST(Stats, getByHourStatRTC)
         }
 }
 
-// Trivial read-only implementation that returns hour value in each slot with getByHourStatSimple().
-// Enough to test some stats against.
-class HByHourByteStats final : public OTV0P2BASE::NVByHourByteStatsBase
-  {
-  public:
-    virtual bool zapStats(uint16_t = 0) override { return(true); } // No stats to erase, so all done.
-    virtual uint8_t getByHourStatSimple(uint8_t, uint8_t h) const override { return(h); }
-    virtual void setByHourStatSimple(uint8_t, const uint8_t, uint8_t = UNSET_BYTE) override { }
-    virtual uint8_t getByHourStatRTC(uint8_t, uint8_t = 0xff) const override { return(UNSET_BYTE); }
-  };
-
 // Test some basic behaviour of the support/calc routines on simple data sets
 TEST(Stats, moreCalcs)
 {
@@ -195,7 +184,7 @@ TEST(Stats, moreCalcs)
     srandom((unsigned) ::testing::UnitTest::GetInstance()->random_seed());
 
     // On a dummy (no-stats) impl, all support functions should give 'not-set' / error results.
-    HByHourByteStats hs;
+    OTV0P2BASE::HByHourByteStats hs;
     const uint8_t statsSet = 0; // Should be arbitrary.
     const uint8_t unset = OTV0P2BASE::NVByHourByteStatsBase::UNSET_BYTE;
     EXPECT_TRUE(hs.inBottomQuartile(statsSet, 0));
@@ -226,7 +215,7 @@ TEST(Stats, moreCalcs)
 // Test that stats updater can be constructed and defaults as expected.
 namespace BHSSUBasics
     {
-    HByHourByteStats hs;
+    OTV0P2BASE::HByHourByteStats hs;
     OTV0P2BASE::PseudoSensorOccupancyTracker occupancy;
     OTV0P2BASE::SensorAmbientLightAdaptiveMock ambLight;
     OTV0P2BASE::TemperatureC16Mock tempC16;
