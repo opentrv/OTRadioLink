@@ -41,6 +41,11 @@ namespace OTV0P2BASE
 // Unset raw values are indicated by 0xff, ie map nicely to EEPROM.
 // One implementation of this may map directly to underlying MCU EEPROM.
 // This may also have wear-reducing and page-aware implementations for eg Flash.
+//
+// TODO: Investigate moving member implementations and state into namespaced 
+// utility functions. See:
+// - https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md#i25-prefer-abstract-classes-as-interfaces-to-class-hierarchies
+// - https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md#c4-make-a-function-a-member-only-if-it-needs-direct-access-to-the-representation-of-a-class
 #define NVByHourByteStatsBase_DEFINED
 class NVByHourByteStatsBase
 {
@@ -109,7 +114,7 @@ STATS_SET_USER2_BY_HOUR_SMOOTHED    = 13, // Smoothed hourly user-defined stats 
     // A value of STATS_UNSET_BYTE (0xff (255)) means unset (or out of range, or invalid); other values depend on which stats set is being used.
     //   * hour  hour of day to use, or ~0/0xff for current hour (default), 0xfe for next hour, or 0xfd for the previous hour.
     //           If the hour is invalid, an UNSET_BYTE will be returned.
-    // Note the two special values that implicitly make use of the RTC to select the hour to read.
+    // Note the three special values that implicitly make use of the RTC to select the hour to read.
     uint8_t getByHourStatRTC(uint8_t statsSet, uint8_t hour = SPECIAL_HOUR_CURRENT_HOUR) const;
 
     // Returns the internal view of the current hour in range [0,23].
@@ -216,7 +221,7 @@ public:
 
     // Current Hour-of-day (as set by _setHour()).
     virtual uint8_t getHour() const override
-    { return (currentHour); }
+        { return (currentHour); }
 };
 
 
