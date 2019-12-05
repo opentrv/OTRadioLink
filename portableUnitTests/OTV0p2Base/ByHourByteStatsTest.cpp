@@ -30,21 +30,21 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 // 20161016 moved from OpenTRV-Arduino-V0p2 Unit_Tests.cpp testTempCompand().
 TEST(Stats,TempCompand)
 {
-  // Ensure that all (whole) temperatures from 0C to 100C are correctly compressed and expanded.
-  for(int16_t i = 0; i <= 100; ++i)
-    {
-    //DEBUG_SERIAL_PRINT(i<<4); DEBUG_SERIAL_PRINT(" => "); DEBUG_SERIAL_PRINT(compressTempC16(i<<4)); DEBUG_SERIAL_PRINT(" => "); DEBUG_SERIAL_PRINT(expandTempC16(compressTempC16(i<<4))); DEBUG_SERIAL_PRINTLN();
-    ASSERT_EQ(i<<4, OTV0P2BASE::expandTempC16(OTV0P2BASE::compressTempC16(int16_t(i<<4))));
-    }
-  // Ensure that out-of-range inputs are coerced to the limits.
-  ASSERT_EQ(0, OTV0P2BASE::expandTempC16(OTV0P2BASE::compressTempC16(-1)));
-  ASSERT_EQ((100<<4), OTV0P2BASE::expandTempC16(OTV0P2BASE::compressTempC16(101<<4)));
-  ASSERT_EQ(OTV0P2BASE::COMPRESSION_C16_CEIL_VAL_AFTER, OTV0P2BASE::compressTempC16(102<<4)); // Verify ceiling.
-  ASSERT_LT(OTV0P2BASE::COMPRESSION_C16_CEIL_VAL_AFTER, 0xff);
-  // Ensure that 'unset' compressed value expands to 'unset' uncompressed value.
-  const int16_t ui = OTV0P2BASE::NVByHourByteStatsBase::UNSET_INT;
-  const uint8_t ub = OTV0P2BASE::NVByHourByteStatsBase::UNSET_BYTE;
-  ASSERT_EQ(ui, OTV0P2BASE::expandTempC16(ub));
+    // Ensure that all (whole) temperatures from 0C to 100C are correctly compressed and expanded.
+    for(int16_t i = 0; i <= 100; ++i)
+        {
+        //DEBUG_SERIAL_PRINT(i<<4); DEBUG_SERIAL_PRINT(" => "); DEBUG_SERIAL_PRINT(compressTempC16(i<<4)); DEBUG_SERIAL_PRINT(" => "); DEBUG_SERIAL_PRINT(expandTempC16(compressTempC16(i<<4))); DEBUG_SERIAL_PRINTLN();
+        ASSERT_EQ(i<<4, OTV0P2BASE::expandTempC16(OTV0P2BASE::compressTempC16(int16_t(i<<4))));
+        }
+    // Ensure that out-of-range inputs are coerced to the limits.
+    ASSERT_EQ(0, OTV0P2BASE::expandTempC16(OTV0P2BASE::compressTempC16(-1)));
+    ASSERT_EQ((100<<4), OTV0P2BASE::expandTempC16(OTV0P2BASE::compressTempC16(101<<4)));
+    ASSERT_EQ(OTV0P2BASE::COMPRESSION_C16_CEIL_VAL_AFTER, OTV0P2BASE::compressTempC16(102<<4)); // Verify ceiling.
+    ASSERT_LT(OTV0P2BASE::COMPRESSION_C16_CEIL_VAL_AFTER, 0xff);
+    // Ensure that 'unset' compressed value expands to 'unset' uncompressed value.
+    const int16_t ui = OTV0P2BASE::NVByHourByteStatsBase::UNSET_INT;
+    const uint8_t ub = OTV0P2BASE::NVByHourByteStatsBase::UNSET_BYTE;
+    ASSERT_EQ(ui, OTV0P2BASE::expandTempC16(ub));
 }
 
 // Test handling of ByHourByteStats stats.
@@ -221,21 +221,21 @@ namespace BHSSUBasics
     OTV0P2BASE::TemperatureC16Mock tempC16;
     OTV0P2BASE::HumiditySensorMock rh;
     OTV0P2BASE::ByHourSimpleStatsUpdaterSampleStats <
-      decltype(hs), &hs,
-      decltype(occupancy), &occupancy,
-      decltype(ambLight), &ambLight,
-      decltype(tempC16), &tempC16,
-      decltype(rh), &rh,
-      1
-      > su;
+        decltype(hs), &hs,
+        decltype(occupancy), &occupancy,
+        decltype(ambLight), &ambLight,
+        decltype(tempC16), &tempC16,
+        decltype(rh), &rh,
+        1
+        > su;
     }
 TEST(Stats, ByHourSimpleStatsUpdaterBasics)
 {
-      static_assert(1 == BHSSUBasics::su.maxSamplesPerHour, "constant must propagate correctly");
-      const uint8_t msph = BHSSUBasics::su.maxSamplesPerHour;
-      ASSERT_EQ(1, msph);
-      BHSSUBasics::su.sampleStats(false, 0);
-      BHSSUBasics::su.sampleStats(true, 0);
+    static_assert(1 == BHSSUBasics::su.maxSamplesPerHour, "constant must propagate correctly");
+    const uint8_t msph = BHSSUBasics::su.maxSamplesPerHour;
+    ASSERT_EQ(1, msph);
+    BHSSUBasics::su.sampleStats(false, 0);
+    BHSSUBasics::su.sampleStats(true, 0);
 }
 
 // Test that stats updater can be constructed and can be updated.
@@ -247,13 +247,13 @@ namespace BHSSU
     OTV0P2BASE::TemperatureC16Mock tempC16;
     OTV0P2BASE::HumiditySensorMock rh;
     OTV0P2BASE::ByHourSimpleStatsUpdaterSampleStats <
-      decltype(ms), &ms,
-      decltype(occupancy), &occupancy,
-      decltype(ambLight), &ambLight,
-      decltype(tempC16), &tempC16,
-      decltype(rh), &rh,
-      2
-      > su;
+        decltype(ms), &ms,
+        decltype(occupancy), &occupancy,
+        decltype(ambLight), &ambLight,
+        decltype(tempC16), &tempC16,
+        decltype(rh), &rh,
+        2
+        > su;
     }
 TEST(Stats, ByHourSimpleStatsUpdater)
 {
