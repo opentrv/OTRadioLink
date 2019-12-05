@@ -166,6 +166,7 @@ TEST(Stats, getByHourStatRTC)
     // Read with normal and special hours and 'default' args.
     for(uint8_t hh = 0; hh < 24; ++hh)
         {
+        SCOPED_TRACE(hh);
         const uint8_t expectedValue = hh + offset;
         EXPECT_EQ(expectedValue, ms.getByHourStatSimple(statsSet, hh));
         EXPECT_EQ(expectedValue, ms.getByHourStatRTC(statsSet, hh));
@@ -173,7 +174,13 @@ TEST(Stats, getByHourStatRTC)
         ms._setHour(hh);
         EXPECT_EQ(expectedValue, ms.getByHourStatRTC(statsSet));
         EXPECT_EQ(expectedValue, ms.getByHourStatRTC(statsSet, ms.SPECIAL_HOUR_CURRENT_HOUR));
-        EXPECT_EQ((hh != 23) ? (1 + expectedValue) : offset, ms.getByHourStatRTC(statsSet, ms.SPECIAL_HOUR_NEXT_HOUR));
+
+        // The expected value for the next hour.
+        const uint8_t wrapped_next_value = ((hh + 1) % 24) + offset;
+        EXPECT_EQ(wrapped_next_value, ms.getByHourStatRTC(statsSet, ms.SPECIAL_HOUR_NEXT_HOUR));
+        // The expected value for the previous hour.
+        const uint8_t wrapped_prev_value = ((hh + 23) % 24) + offset;
+        EXPECT_EQ(wrapped_prev_value, ms.getByHourStatRTC(statsSet, ms.SPECIAL_HOUR_PREV_HOUR));
         }
 }
 

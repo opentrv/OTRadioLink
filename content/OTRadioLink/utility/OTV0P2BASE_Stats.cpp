@@ -40,12 +40,12 @@ uint8_t NVByHourByteStatsBase::getByHourStatRTC(uint8_t statsSet, uint8_t hour) 
             }
             case (SPECIAL_HOUR_NEXT_HOUR): {
                 // Taken from logic in OTV0P2BASE::getNextHourLT()
-                hh = (hour >= 23) ? 0 : (hour + 1);
+                hh = (currentHour >= 23) ? 0 : (currentHour + 1);
                 break;
             }
             case (SPECIAL_HOUR_PREV_HOUR): {
                 // Taken from logic in OTV0P2BASE::getPrevHourLT()
-                hh = (0 == hour) ? 23 : (hour - 1);
+                hh = (0 == currentHour) ? 23 : (currentHour - 1);
                 break;
             }
             default: {
