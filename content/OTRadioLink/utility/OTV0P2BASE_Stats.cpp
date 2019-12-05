@@ -28,6 +28,37 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2016
 namespace OTV0P2BASE
 {
 
+uint8_t NVByHourByteStatsBase::getByHourStatRTC(uint8_t statsSet, uint8_t hour) const
+{
+    const uint8_t currentHour {getHour()};
+    uint8_t hh {};
+    if (hour >= 24) {
+        switch (hour) {
+            case (SPECIAL_HOUR_CURRENT_HOUR): {
+                hh = currentHour;
+                break;
+            }
+            case (SPECIAL_HOUR_NEXT_HOUR): {
+                // Taken from logic in OTV0P2BASE::getNextHourLT()
+                hh = (currentHour >= 23) ? 0 : (currentHour + 1);
+                break;
+            }
+            case (SPECIAL_HOUR_PREV_HOUR): {
+                // Taken from logic in OTV0P2BASE::getPrevHourLT()
+                hh = (0 == currentHour) ? 23 : (currentHour - 1);
+                break;
+            }
+            default: {
+                // FIXME: Not convinced.
+                return (UNSET_BYTE);
+            }
+        }
+    } else {
+        hh = hour;
+    }
+    return(getByHourStatSimple(statsSet, hh));
+}
+
 
 // Compute new linearly-smoothed value given old smoothed value and new value.
 // Guaranteed not to produce a value higher than the max of the old smoothed value and the new value.

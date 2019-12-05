@@ -30,21 +30,21 @@ Author(s) / Copyright (s): Damon Hart-Davis 2016
 // 20161016 moved from OpenTRV-Arduino-V0p2 Unit_Tests.cpp testTempCompand().
 TEST(Stats,TempCompand)
 {
-  // Ensure that all (whole) temperatures from 0C to 100C are correctly compressed and expanded.
-  for(int16_t i = 0; i <= 100; ++i)
-    {
-    //DEBUG_SERIAL_PRINT(i<<4); DEBUG_SERIAL_PRINT(" => "); DEBUG_SERIAL_PRINT(compressTempC16(i<<4)); DEBUG_SERIAL_PRINT(" => "); DEBUG_SERIAL_PRINT(expandTempC16(compressTempC16(i<<4))); DEBUG_SERIAL_PRINTLN();
-    ASSERT_EQ(i<<4, OTV0P2BASE::expandTempC16(OTV0P2BASE::compressTempC16(int16_t(i<<4))));
-    }
-  // Ensure that out-of-range inputs are coerced to the limits.
-  ASSERT_EQ(0, OTV0P2BASE::expandTempC16(OTV0P2BASE::compressTempC16(-1)));
-  ASSERT_EQ((100<<4), OTV0P2BASE::expandTempC16(OTV0P2BASE::compressTempC16(101<<4)));
-  ASSERT_EQ(OTV0P2BASE::COMPRESSION_C16_CEIL_VAL_AFTER, OTV0P2BASE::compressTempC16(102<<4)); // Verify ceiling.
-  ASSERT_LT(OTV0P2BASE::COMPRESSION_C16_CEIL_VAL_AFTER, 0xff);
-  // Ensure that 'unset' compressed value expands to 'unset' uncompressed value.
-  const int16_t ui = OTV0P2BASE::NVByHourByteStatsBase::UNSET_INT;
-  const uint8_t ub = OTV0P2BASE::NVByHourByteStatsBase::UNSET_BYTE;
-  ASSERT_EQ(ui, OTV0P2BASE::expandTempC16(ub));
+    // Ensure that all (whole) temperatures from 0C to 100C are correctly compressed and expanded.
+    for(int16_t i = 0; i <= 100; ++i)
+        {
+        //DEBUG_SERIAL_PRINT(i<<4); DEBUG_SERIAL_PRINT(" => "); DEBUG_SERIAL_PRINT(compressTempC16(i<<4)); DEBUG_SERIAL_PRINT(" => "); DEBUG_SERIAL_PRINT(expandTempC16(compressTempC16(i<<4))); DEBUG_SERIAL_PRINTLN();
+        ASSERT_EQ(i<<4, OTV0P2BASE::expandTempC16(OTV0P2BASE::compressTempC16(int16_t(i<<4))));
+        }
+    // Ensure that out-of-range inputs are coerced to the limits.
+    ASSERT_EQ(0, OTV0P2BASE::expandTempC16(OTV0P2BASE::compressTempC16(-1)));
+    ASSERT_EQ((100<<4), OTV0P2BASE::expandTempC16(OTV0P2BASE::compressTempC16(101<<4)));
+    ASSERT_EQ(OTV0P2BASE::COMPRESSION_C16_CEIL_VAL_AFTER, OTV0P2BASE::compressTempC16(102<<4)); // Verify ceiling.
+    ASSERT_LT(OTV0P2BASE::COMPRESSION_C16_CEIL_VAL_AFTER, 0xff);
+    // Ensure that 'unset' compressed value expands to 'unset' uncompressed value.
+    const int16_t ui = OTV0P2BASE::NVByHourByteStatsBase::UNSET_INT;
+    const uint8_t ub = OTV0P2BASE::NVByHourByteStatsBase::UNSET_BYTE;
+    ASSERT_EQ(ui, OTV0P2BASE::expandTempC16(ub));
 }
 
 // Test handling of ByHourByteStats stats.
@@ -153,6 +153,8 @@ TEST(Stats, getByHourStatRTC)
     // Seed random() for use in simulator; --gtest_shuffle will force it to change.
     srandom((unsigned) ::testing::UnitTest::GetInstance()->random_seed());
 
+    const uint8_t unset = OTV0P2BASE::NVByHourByteStatsBase::UNSET_BYTE;
+
     // New empty container.
     OTV0P2BASE::NVByHourByteStatsMock ms;
 
@@ -166,6 +168,7 @@ TEST(Stats, getByHourStatRTC)
     // Read with normal and special hours and 'default' args.
     for(uint8_t hh = 0; hh < 24; ++hh)
         {
+        SCOPED_TRACE(hh);
         const uint8_t expectedValue = hh + offset;
         EXPECT_EQ(expectedValue, ms.getByHourStatSimple(statsSet, hh));
         EXPECT_EQ(expectedValue, ms.getByHourStatRTC(statsSet, hh));
@@ -173,20 +176,20 @@ TEST(Stats, getByHourStatRTC)
         ms._setHour(hh);
         EXPECT_EQ(expectedValue, ms.getByHourStatRTC(statsSet));
         EXPECT_EQ(expectedValue, ms.getByHourStatRTC(statsSet, ms.SPECIAL_HOUR_CURRENT_HOUR));
-        EXPECT_EQ((hh != 23) ? (1 + expectedValue) : offset, ms.getByHourStatRTC(statsSet, ms.SPECIAL_HOUR_NEXT_HOUR));
-        }
-}
 
-// Trivial read-only implementation that returns hour value in each slot with getByHourStatSimple().
-// Enough to test some stats against.
-class HByHourByteStats final : public OTV0P2BASE::NVByHourByteStatsBase
-  {
-  public:
-    virtual bool zapStats(uint16_t = 0) override { return(true); } // No stats to erase, so all done.
-    virtual uint8_t getByHourStatSimple(uint8_t, uint8_t h) const override { return(h); }
-    virtual void setByHourStatSimple(uint8_t, const uint8_t, uint8_t = UNSET_BYTE) override { }
-    virtual uint8_t getByHourStatRTC(uint8_t, uint8_t = 0xff) const override { return(UNSET_BYTE); }
-  };
+        // The expected value for the next hour.
+        const uint8_t wrapped_next_value = ((hh + 1) % 24) + offset;
+        EXPECT_EQ(wrapped_next_value, ms.getByHourStatRTC(statsSet, ms.SPECIAL_HOUR_NEXT_HOUR));
+        // The expected value for the previous hour.
+        const uint8_t wrapped_prev_value = ((hh + 23) % 24) + offset;
+        EXPECT_EQ(wrapped_prev_value, ms.getByHourStatRTC(statsSet, ms.SPECIAL_HOUR_PREV_HOUR));
+        }
+    
+    // Read with invalid values.
+    for (auto hh = 24; hh < ms.SPECIAL_HOUR_PREV_HOUR; ++hh) {
+        EXPECT_EQ(unset, ms.getByHourStatRTC(statsSet, hh));
+    }
+}
 
 // Test some basic behaviour of the support/calc routines on simple data sets
 TEST(Stats, moreCalcs)
@@ -195,7 +198,7 @@ TEST(Stats, moreCalcs)
     srandom((unsigned) ::testing::UnitTest::GetInstance()->random_seed());
 
     // On a dummy (no-stats) impl, all support functions should give 'not-set' / error results.
-    HByHourByteStats hs;
+    OTV0P2BASE::HByHourByteStats hs;
     const uint8_t statsSet = 0; // Should be arbitrary.
     const uint8_t unset = OTV0P2BASE::NVByHourByteStatsBase::UNSET_BYTE;
     EXPECT_TRUE(hs.inBottomQuartile(statsSet, 0));
@@ -226,27 +229,27 @@ TEST(Stats, moreCalcs)
 // Test that stats updater can be constructed and defaults as expected.
 namespace BHSSUBasics
     {
-    HByHourByteStats hs;
+    OTV0P2BASE::HByHourByteStats hs;
     OTV0P2BASE::PseudoSensorOccupancyTracker occupancy;
     OTV0P2BASE::SensorAmbientLightAdaptiveMock ambLight;
     OTV0P2BASE::TemperatureC16Mock tempC16;
     OTV0P2BASE::HumiditySensorMock rh;
     OTV0P2BASE::ByHourSimpleStatsUpdaterSampleStats <
-      decltype(hs), &hs,
-      decltype(occupancy), &occupancy,
-      decltype(ambLight), &ambLight,
-      decltype(tempC16), &tempC16,
-      decltype(rh), &rh,
-      1
-      > su;
+        decltype(hs), &hs,
+        decltype(occupancy), &occupancy,
+        decltype(ambLight), &ambLight,
+        decltype(tempC16), &tempC16,
+        decltype(rh), &rh,
+        1
+        > su;
     }
 TEST(Stats, ByHourSimpleStatsUpdaterBasics)
 {
-      static_assert(1 == BHSSUBasics::su.maxSamplesPerHour, "constant must propagate correctly");
-      const uint8_t msph = BHSSUBasics::su.maxSamplesPerHour;
-      ASSERT_EQ(1, msph);
-      BHSSUBasics::su.sampleStats(false, 0);
-      BHSSUBasics::su.sampleStats(true, 0);
+    static_assert(1 == BHSSUBasics::su.maxSamplesPerHour, "constant must propagate correctly");
+    const uint8_t msph = BHSSUBasics::su.maxSamplesPerHour;
+    ASSERT_EQ(1, msph);
+    BHSSUBasics::su.sampleStats(false, 0);
+    BHSSUBasics::su.sampleStats(true, 0);
 }
 
 // Test that stats updater can be constructed and can be updated.
@@ -258,13 +261,13 @@ namespace BHSSU
     OTV0P2BASE::TemperatureC16Mock tempC16;
     OTV0P2BASE::HumiditySensorMock rh;
     OTV0P2BASE::ByHourSimpleStatsUpdaterSampleStats <
-      decltype(ms), &ms,
-      decltype(occupancy), &occupancy,
-      decltype(ambLight), &ambLight,
-      decltype(tempC16), &tempC16,
-      decltype(rh), &rh,
-      2
-      > su;
+        decltype(ms), &ms,
+        decltype(occupancy), &occupancy,
+        decltype(ambLight), &ambLight,
+        decltype(tempC16), &tempC16,
+        decltype(rh), &rh,
+        2
+        > su;
     }
 TEST(Stats, ByHourSimpleStatsUpdater)
 {

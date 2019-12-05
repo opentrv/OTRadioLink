@@ -244,14 +244,17 @@ static constexpr intptr_t V0P2BASE_EE_END_NODE_ASSOCIATIONS = ((V0P2BASE_EE_NODE
 // Implements the 'standard' stats sets.
 // Not thread-/ISR- safe.
 class EEPROMByHourByteStats final : public NVByHourByteStatsBase
-  {
-  public:
+{
+public:
     // Clear all collected statistics fronted by this.
     // Use (eg) when moving device to a new room or at a major time change.
     // Requires 1.8ms per byte for each byte that actually needs erasing.
     //   * maxBytesToErase limit the number of bytes erased to this; strictly positive, else 0 to allow 65536
     // Returns true if finished with all bytes erased.
-    virtual bool zapStats(uint16_t maxBytesToErase = 0) override { return(_zapStats(maxBytesToErase)); }
+    virtual bool zapStats(uint16_t maxBytesToErase = 0) override
+    { 
+        return(_zapStats(maxBytesToErase));
+    }
     // Clear all collected statistics fronted by this.
     // Statically-accessible version of zapStats();
     // Returns true if finished with all bytes erased.
@@ -266,39 +269,38 @@ class EEPROMByHourByteStats final : public NVByHourByteStatsBase
     // A return value of 0xff (255) means unset (or out of range); other values depend on which stats set is being used.
     // The stats set is determined by the order in memory.
     //   * hour  hour of day to use
-    virtual uint8_t getByHourStatSimple(const uint8_t statsSet, const uint8_t hh) const override { return(_getByHourStatSimple(statsSet, hh)); }
+    virtual uint8_t getByHourStatSimple(const uint8_t statsSet, const uint8_t hh) const override
+    { 
+        return(_getByHourStatSimple(statsSet, hh));
+    }
     // Set raw stats value for specified hour [0,23] from stats set N in non-volatile (EEPROM) store.
     // Not passing the value byte is equivalent to erasing the value, eg typically 0xff for EEPROM or similar backing store.
     // The stats set is determined by the order in memory.
     //   * hour  hour of day to use
-    virtual void setByHourStatSimple(const uint8_t statsSet, const uint8_t hh, const uint8_t v = UNSET_BYTE) { _setByHourStatSimple(statsSet, hh, v); }
+    virtual void setByHourStatSimple(const uint8_t statsSet, const uint8_t hh, const uint8_t v = UNSET_BYTE)
+    {
+        _setByHourStatSimple(statsSet, hh, v); 
+    }
     // Get raw stats value for specified hour [0,23]/current/next from stats set N from non-volatile (EEPROM) store.
     // Statically-accessible version of getByHourStatSimple();
     static uint8_t _getByHourStatSimple(const uint8_t statsSet, const uint8_t hh)
-      {
-      if(statsSet >= V0P2BASE_EE_STATS_SETS) { return(UNSET_BYTE); } // Invalid set.
-      if(hh > 23) { return(UNSET_BYTE); } // Invalid hour.
-      return(eeprom_read_byte((uint8_t *)(V0P2BASE_EE_START_STATS + (statsSet * (int)V0P2BASE_EE_STATS_SET_SIZE) + (int)hh)));
-      }
+    {
+        if(statsSet >= V0P2BASE_EE_STATS_SETS) { return(UNSET_BYTE); } // Invalid set.
+        if(hh > 23) { return(UNSET_BYTE); } // Invalid hour.
+        return(eeprom_read_byte((uint8_t *)(V0P2BASE_EE_START_STATS + (statsSet * (int)V0P2BASE_EE_STATS_SET_SIZE) + (int)hh)));
+    }
     // Set raw stats value for specified hour [0,23] from stats set N in non-volatile (EEPROM) store.
     // Statically-accessible version of getByHourStatSimple();
     static void _setByHourStatSimple(const uint8_t statsSet, const uint8_t hh, const uint8_t v = UNSET_BYTE)
-      {
-      if(statsSet >= V0P2BASE_EE_STATS_SETS) { return; } // Invalid set.
-      if(hh > 23) { return; } // Invalid hour.
-      eeprom_smart_update_byte((uint8_t *)(V0P2BASE_EE_START_STATS + (statsSet * (int)V0P2BASE_EE_STATS_SET_SIZE) + (int)hh), v);
-      }
+    {
+        if(statsSet >= V0P2BASE_EE_STATS_SETS) { return; } // Invalid set.
+        if(hh > 23) { return; } // Invalid hour.
+        eeprom_smart_update_byte((uint8_t *)(V0P2BASE_EE_START_STATS + (statsSet * (int)V0P2BASE_EE_STATS_SET_SIZE) + (int)hh), v);
+    }
 
-    // Get raw stats value for specified hour [0,23]/current/next from stats set N from non-volatile (EEPROM) store.
-    // A value of STATS_UNSET_BYTE (0xff (255)) means unset (or out of range); other values depend on which stats set is being used.
-    //   * hour  hour of day to use, or ~0/0xff for current hour (default), or >23 for next hour.
-    virtual uint8_t getByHourStatRTC(const uint8_t statsSet, const uint8_t hour = SPECIAL_HOUR_CURRENT_HOUR) const override
-      {
-      const uint8_t hh = (SPECIAL_HOUR_CURRENT_HOUR == hour) ? OTV0P2BASE::getHoursLT() :
-        ((hour > 23) ? OTV0P2BASE::getNextHourLT() : hour);
-      return(getByHourStatSimple(statsSet, hh));
-      }
-  };
+    // Get the current hour, for use in getByHourStatRTC.
+    virtual uint8_t getHour() const override { return(OTV0P2BASE::getHoursLT()); }
+};
 
 #endif // ARDUINO_ARCH_AVR
 
