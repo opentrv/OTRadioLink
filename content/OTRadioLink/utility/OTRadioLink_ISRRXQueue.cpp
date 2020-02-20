@@ -16,9 +16,7 @@ under the Licence.
 Author(s) / Copyright (s): Damon Hart-Davis 2015
 */
 
-#ifdef ARDUINO_ARCH_AVR
-#include <util/atomic.h>
-#endif
+#include "OTV0P2BASE_Concurrency.h"
 
 #include "OTRadioLink_ISRRXQueue.h"
 
@@ -29,22 +27,11 @@ Author(s) / Copyright (s): Damon Hart-Davis 2015
 namespace OTRadioLink
     {
 
-#ifdef ARDUINO_ARCH_AVR
 // True if the queue is full.
 // True iff _getRXBufForInbound() would return NULL.
-// ISR-/thread- safe.
+// ISR-/thread- safe on ARDUINO_ARCH_AVR.
 uint8_t ISRRXQueueVarLenMsgBase::isFull() const
-    { ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { return(_isFull()); } }
-#else
-// True if the queue is full.
-// True iff _getRXBufForInbound() would return NULL.
-// Not ISR/threadsafe
-uint8_t ISRRXQueueVarLenMsgBase::isFull() const
-{ 
-    // ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { return(_isFull()); } 
-    return(_isFull());
-}
-#endif // ARDUINO_ARCH_AVR
+    { OTV0P2BASE::RAII_AtomicBlock lock; return(_isFull()); }
 
 #ifdef ARDUINO_ARCH_AVR
 // Remove the first (oldest) queued RX message.

@@ -111,12 +111,12 @@ namespace OTV0P2BASE
         // Atomically load current value.
         // 16 bit operation requires 2 instructions on AVR.
         T load() const volatile noexcept
-            { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { return(value); } }
+            { RAII_AtomicBlock lock; return(value); }
 
         // Atomically load current value.
         // 16 bit operation requires 2 instructions on AVR.
         void store(T desired) volatile noexcept
-            { ATOMIC_BLOCK (ATOMIC_RESTORESTATE) { value = desired; } }
+            { RAII_AtomicBlock lock;  value = desired; }
 
         // Strong compare-and-exchange.
         // Atomically, if value == expected then replace value with desired and return true,
@@ -124,11 +124,9 @@ namespace OTV0P2BASE
         bool compare_exchange_strong(T& expected, T desired) volatile noexcept
         {
             // Lock out interrupts for a compound operation.
-            ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
-            {
-                if(value == expected) { value = desired; return(true); }
-                else { expected = value; return(false); }
-            }
+            RAII_AtomicBlock lock;
+            if(value == expected) { value = desired; return(true); }
+            else { expected = value; return(false); }
         }
     };
     // Specialisation for uint8_t types. Should be Identical to Atomic_UInt8T
@@ -159,11 +157,9 @@ namespace OTV0P2BASE
         bool compare_exchange_strong(uint8_t& expected, uint8_t desired) volatile noexcept
             {
             // Lock out interrupts for a compound operation.
-            ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
-                {
-                if(value == expected) { value = desired; return(true); }
-                else { expected = value; return(false); }
-                }
+            RAII_AtomicBlock lock;
+            if(value == expected) { value = desired; return(true); }
+            else { expected = value; return(false); }
             }
     };
     // Specialisation for bool
@@ -194,11 +190,9 @@ namespace OTV0P2BASE
         bool compare_exchange_strong(bool& expected, bool desired) volatile noexcept
             {
             // Lock out interrupts for a compound operation.
-            ATOMIC_BLOCK (ATOMIC_RESTORESTATE)
-                {
-                if(value == expected) { value = desired; return(true); }
-                else { expected = value; return(false); }
-                }
+            RAII_AtomicBlock lock;
+            if(value == expected) { value = desired; return(true); }
+            else { expected = value; return(false); }
             }
     };
 #endif // OTV0P2BASE_PLATFORM_HAS_atomic ...

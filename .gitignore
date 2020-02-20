@@ -9,6 +9,9 @@
 /hs_err_pid*
 /Debug-lib/
 /Debug ARM/
+/.vscode/ipch
+
+# Meson build dirs
+/buildclang
 /builddir
 /subprojects
-/.vscode/ipch
