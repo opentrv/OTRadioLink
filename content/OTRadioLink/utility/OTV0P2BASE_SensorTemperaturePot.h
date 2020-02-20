@@ -243,7 +243,9 @@ class SensorTemperaturePot final : public SensorTemperaturePotBase
           // Report that user operated the pot, ie part of the manual UI.
           // Do this regardless of whether a specific mode change
           // was invoked.
-          if(NULL != occupancyOpt) { occupancyOpt->markAsOccupied(); }
+          // Hack for removing "never null" warning in GCC
+          // if (occupancyOpt) {
+          if(uintptr_t(nullptr) != uintptr_t(occupancyOpt)) { occupancyOpt->markAsOccupied(); }
           }
         }
 
