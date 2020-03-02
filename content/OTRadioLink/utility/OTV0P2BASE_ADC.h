@@ -31,8 +31,8 @@ Author(s) / Copyright (s): Damon Hart-Davis 2013--2018
 namespace OTV0P2BASE
 {
 
-
 #ifdef ARDUINO_ARCH_AVR
+static volatile bool ADC_complete;
 
 // Read ADC/analogue input with reduced noise if possible, in range [0,1023].
 //   * admux  is the value to set ADMUX to

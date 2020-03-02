@@ -53,9 +53,7 @@ namespace OTV0P2BASE
 
 
 #ifdef ARDUINO_ARCH_AVR
-
 // Allow wake from (lower-power) sleep while ADC is running.
-static volatile bool ADC_complete;
 ISR(ADC_vect) { ADC_complete = true; }
 
 // Nominally accumulate mainly the bottom bits from normal ADC conversions for entropy,
