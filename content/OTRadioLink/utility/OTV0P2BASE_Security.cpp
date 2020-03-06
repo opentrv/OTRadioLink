@@ -262,7 +262,7 @@ bool NodeAssociationTableV0p2::set(const uint8_t index, const uint8_t* const src
 {
     if ((index >= maxSets) || (src == nullptr)) { return (false); }
 
-    uint8_t* const start = startAddr + (index * setSize);
+    uint8_t* const start = reinterpret_cast<uint8_t* const>(startAddr + (index * setSize));
 
     eeprom_update_block(src, start, idLength);
 
@@ -273,7 +273,7 @@ void NodeAssociationTableV0p2::get(const uint8_t index, uint8_t* dest) const
 {
     if ((index >= maxSets) || (dest == nullptr)) { return; }
     
-    const uint8_t* const start = startAddr + (index * setSize);
+    const uint8_t* const start = reinterpret_cast<uint8_t* const>(startAddr + (index * setSize));
     eeprom_read_block(dest, start, idLength);
 }
 #endif //OTV0P2BASE_NODE_ASSOCIATION_TABLE_V0P2
