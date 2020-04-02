@@ -257,6 +257,27 @@ public:
 
 namespace StatsUpdaterLogic
 {
+
+template<uint8_t maxSubSamples>
+struct StatsUpdaterState {
+    // Select the type of the accumulator for percentage-value stats [0,100].
+    // Where there are no more than two samples being accumulated
+    // the sum can be held in a uint8_t without possibility of overflow.
+    template <bool Condition, typename TypeTrue, typename TypeFalse>
+      struct typeIf;
+    template <typename TypeTrue, typename TypeFalse>
+      struct typeIf<true, TypeTrue, TypeFalse> { typedef TypeTrue t; };
+    template <typename TypeTrue, typename TypeFalse>
+      struct typeIf<false, TypeTrue, TypeFalse> { typedef TypeFalse t; };
+    typedef typename typeIf<maxSubSamples <= 2, uint8_t, uint16_t>::t percentageStatsAccumulator_t;
+
+    int16_t tempC16Total {};
+    uint16_t ambLightTotal {};
+    percentageStatsAccumulator_t occpcTotal {}; // TODO: as range is [0,100], up to 2 samples could fit a uint8_t instead.
+    percentageStatsAccumulator_t rhpcTotal {}; // TODO: as range is [0,100], up to 2 samples could fit a uint8_t instead.
+    uint8_t sampleCount {};
+};
+
 // Efficient division of an uint16_t or uint8_t total by a small positive count to give a uint8_t mean.
 //  * total running total, no higher than 255*sampleCount
 //  * sampleCount small (<128) strictly positive number, no larger than maxSamplesPerHour
@@ -465,6 +486,7 @@ public:
     static constexpr uint8_t maxSamplesPerHour = maxSubSamples;
 
 protected:
+    // FIXME: I think these methods are no longer necessary.
     // Efficient division of an uint16_t or uint8_t total by a small positive count to give a uint8_t mean.
     //  * total running total, no higher than 255*sampleCount
     //  * sampleCount small (<128) strictly positive number, no larger than maxSamplesPerHour
@@ -474,6 +496,7 @@ protected:
         return (StatsUpdaterLogic::divide_to_u8(total, sampleCount, maxSubSamples));
     }
 
+    // FIXME: I think these methods are no longer necessary.
     // Do simple update of last and smoothed stats numeric values.
     // This assumes that the 'last' set is followed by the smoothed set.
     // This autodetects unset values in the smoothed set and replaces them completely.
@@ -485,24 +508,10 @@ protected:
         StatsUpdaterLogic::update_stats_pair(statsSet, hh, value, *stats);
     }
 
-    // Select the type of the accumulator for percentage-value stats [0,100].
-    // Where there are no more than two samples being accumulated
-    // the sum can be held in a uint8_t without possibility of overflow.
-    template <bool Condition, typename TypeTrue, typename TypeFalse>
-      struct typeIf;
-    template <typename TypeTrue, typename TypeFalse>
-      struct typeIf<true, TypeTrue, TypeFalse> { typedef TypeTrue t; };
-    template <typename TypeTrue, typename TypeFalse>
-      struct typeIf<false, TypeTrue, TypeFalse> { typedef TypeFalse t; };
-    typedef typename typeIf<maxSubSamples <= 2, uint8_t, uint16_t>::t percentageStatsAccumulator_t;
-
-    int16_t tempC16Total {};
-    uint16_t ambLightTotal {};
-    percentageStatsAccumulator_t occpcTotal {}; // TODO: as range is [0,100], up to 2 samples could fit a uint8_t instead.
-    percentageStatsAccumulator_t rhpcTotal {}; // TODO: as range is [0,100], up to 2 samples could fit a uint8_t instead.
-    uint8_t sampleCount {};
+    StatsUpdaterLogic::StatsUpdaterState<maxSamplesPerHour> internal_state {};
 
 public:
+    // FIXME: Push to base class?
     // Clear any partial internal state; primarily for unit tests.
     // Does no write to the backing stats store.
     void reset() override { sampleStats(false, 0xff); }
@@ -530,11 +539,11 @@ public:
         StatsUpdaterLogic::update_stats_store(
             fullSample,
             hh,
-            tempC16Total,
-            ambLightTotal,
-            occpcTotal,
-            rhpcTotal,
-            sampleCount,
+            internal_state.tempC16Total,
+            internal_state.ambLightTotal,
+            internal_state.occpcTotal,
+            internal_state.rhpcTotal,
+            internal_state.sampleCount,
             stats,
             occupancyOpt,
             ambLightOpt,
