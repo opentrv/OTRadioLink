@@ -341,26 +341,22 @@ void update_stats_pair(
 //
 // TODO: Consider tidying up arguments with a struct or two.
 template<
-    typename PercentageStatsAccumulator,
     class Stats,
     class Occupancy,
     class AmbLight,
     class TempC16,
-    class humidity
+    class humidity,
+    uint8_t maxSubSamples = 2
 >
 void update_stats_store(
     const bool fullSample, const uint8_t hh,
-    int16_t& tempC16Total,
-    uint16_t& ambLightTotal,
-    PercentageStatsAccumulator& occpcTotal,
-    PercentageStatsAccumulator& rhpcTotal,
-    uint8_t& sampleCount,
+    StatsUpdaterState<maxSubSamples>& internal_state,
     Stats *stats,
     const Occupancy *occupancyOpt = nullptr,
     const AmbLight *ambLightOpt = nullptr,
     const TempC16 *tempC16Opt = nullptr,
-    const humidity *humidityOpt = nullptr,
-    const uint8_t maxSubSamples = 2)
+    const humidity *humidityOpt = nullptr
+    )
 {
     // (Sub-)sample processing.
     // In general, keep running total of sub-samples in a way that should not overflow
@@ -368,15 +364,15 @@ void update_stats_store(
     // General sub-sample count; initially zero after boot,
     // and zeroed after each full sample or when explicitly reset.
     // static uint8_t sampleCount;
-    if(hh > 23) { sampleCount = 0; return; }
+    if(hh > 23) { internal_state.sampleCount = 0; return; }
 
     // Reject excess early sub-samples before full/final one.
     // static_assert(maxSubSamples > 0, "must allow at least one (ie final) sample!"); // FIXME: Work out best way to reenable this check.
-    if(!fullSample && (sampleCount >= maxSubSamples-1)) { return; }
+    if(!fullSample && (internal_state.sampleCount >= maxSubSamples-1)) { return; }
 
-    const bool firstSample = (0 == sampleCount++);
+    const bool firstSample = (0 == internal_state.sampleCount++);
     // Capture sample count to use below.
-    const uint8_t sc = sampleCount;
+    const uint8_t sc = internal_state.sampleCount;
 
     // Update all the different stats in turn
     // if the relevant sensor objects are non NULL.
@@ -388,13 +384,13 @@ void update_stats_store(
         // Constrain value at top end to avoid 'not set' value.
         const uint16_t ambLightV = OTV0P2BASE::fnmin(ambLightOpt->get(), (uint8_t)254);
         // static uint16_t ambLightTotal;
-        ambLightTotal = firstSample ? ambLightV : (ambLightTotal + ambLightV);
+        internal_state.ambLightTotal = firstSample ? ambLightV : (internal_state.ambLightTotal + ambLightV);
 
         if(fullSample) { 
             update_stats_pair(
                 OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_AMBLIGHT_BY_HOUR, 
                 hh, 
-                divide_to_u8(ambLightTotal, sc, maxSubSamples),
+                divide_to_u8(internal_state.ambLightTotal, sc, maxSubSamples),
                 *stats);
         }
     }
@@ -403,15 +399,15 @@ void update_stats_store(
         // Ambient (eg room) temperature in C*16 units.
         const int16_t tempC16 = tempC16Opt->get();
         // static int16_t tempC16Total;
-        tempC16Total = firstSample ? tempC16 : (tempC16Total + tempC16);
+        internal_state.tempC16Total = firstSample ? tempC16 : (internal_state.tempC16Total + tempC16);
 
         if(fullSample) {
             // Scale and constrain last-read temperature to valid range for stats.
             const int16_t tempCTotal = (maxSubSamples <= 2)
-            ? ((1==sc)?tempC16Total:((tempC16Total+1)>>1))
-            : ((1==sc)?tempC16Total:
-                    ((2==sc)?((tempC16Total+1)>>1):
-                            ((tempC16Total + (sc>>1)) / sc)));
+            ? ((1==sc)?internal_state.tempC16Total:((internal_state.tempC16Total+1)>>1))
+            : ((1==sc)?internal_state.tempC16Total:
+                    ((2==sc)?((internal_state.tempC16Total+1)>>1):
+                            ((internal_state.tempC16Total + (sc>>1)) / sc)));
             const uint8_t temp = OTV0P2BASE::compressTempC16(tempCTotal);
             update_stats_pair(
                 OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_TEMP_BY_HOUR, hh,
@@ -424,12 +420,12 @@ void update_stats_store(
         // Occupancy percentage.
         const uint8_t occpc = occupancyOpt->get();
         // static percentageStatsAccumulator_t occpcTotal; // TODO: as range is [0,100], up to 2 samples could fit a uint8_t instead.
-        occpcTotal = firstSample ? occpc : (occpcTotal + occpc);
+        internal_state.occpcTotal = firstSample ? occpc : (internal_state.occpcTotal + occpc);
         if(fullSample) { 
             update_stats_pair(
                 OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR, 
                 hh, 
-                divide_to_u8(occpcTotal, sc, maxSubSamples),
+                divide_to_u8(internal_state.occpcTotal, sc, maxSubSamples),
                 *stats);
         }
     }
@@ -437,12 +433,12 @@ void update_stats_store(
     if((nullptr != humidityOpt) && (humidityOpt->isAvailable())) {
         // Relative humidity (RH%).
         const uint8_t rhpc = humidityOpt->get();
-        rhpcTotal = firstSample ? rhpc : (rhpcTotal + rhpc);
+        internal_state.rhpcTotal = firstSample ? rhpc : (internal_state.rhpcTotal + rhpc);
         if(fullSample) { 
             update_stats_pair(
                 OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_RHPC_BY_HOUR, 
                 hh, 
-                divide_to_u8(rhpcTotal, sc, maxSubSamples),
+                divide_to_u8(internal_state.rhpcTotal, sc, maxSubSamples),
                 *stats);
         }
     }
@@ -451,7 +447,7 @@ void update_stats_store(
 
     if(!fullSample) { return; } // Only accumulate values cached until a full sample.
     // Reset generic sub-sample count to initial state after full sample.
-    sampleCount = 0;
+    internal_state.sampleCount = 0;
 }
 } // namespace StatsUpdaterLogic
 
@@ -469,7 +465,7 @@ void update_stats_store(
  * Change                            | binary size | static ram use
  * Start condition                   |       30260 |           1824
  * Moved stuff out                   |       30254 |           1824
- * 
+ * Moved state out into struct       |       30254 |           1824
  */
 template <
     class stats_t /* = NVByHourByteStatsBase */, stats_t *stats,
@@ -539,17 +535,12 @@ public:
         StatsUpdaterLogic::update_stats_store(
             fullSample,
             hh,
-            internal_state.tempC16Total,
-            internal_state.ambLightTotal,
-            internal_state.occpcTotal,
-            internal_state.rhpcTotal,
-            internal_state.sampleCount,
+            internal_state,
             stats,
             occupancyOpt,
             ambLightOpt,
             tempC16Opt,
-            humidityOpt,
-            maxSamplesPerHour);
+            humidityOpt);
     }
     
   };
