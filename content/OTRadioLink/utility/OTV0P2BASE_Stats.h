@@ -319,8 +319,14 @@ void update_stats_pair(
     // If existing smoothed value unset or invalid, use new one as is, else fold in.
     const uint8_t smoothedStatsSet = statsSet + 1;
     const uint8_t smoothed = stats.getByHourStatSimple(smoothedStatsSet, hh);
-    if(OTV0P2BASE::NVByHourByteStatsBase::UNSET_BYTE == smoothed) { stats.setByHourStatSimple(smoothedStatsSet, hh, value); }
-    else { stats.setByHourStatSimple(smoothedStatsSet, hh, OTV0P2BASE::NVByHourByteStatsBase::smoothStatsValue(smoothed, value)); }
+    if(OTV0P2BASE::NVByHourByteStatsBase::UNSET_BYTE == smoothed) {
+        stats.setByHourStatSimple(smoothedStatsSet, hh, value);
+    } else {
+        stats.setByHourStatSimple(
+            smoothedStatsSet, 
+            hh, 
+            OTV0P2BASE::NVByHourByteStatsBase::smoothStatsValue(smoothed, value));
+    }
 }
 
 // Sample statistics fully once per hour as background to simple monitoring and adaptive behaviour.
@@ -345,17 +351,17 @@ template<
     class Occupancy,
     class AmbLight,
     class TempC16,
-    class humidity,
+    class Humidity,
     uint8_t maxSubSamples = 2
 >
 void update_stats_store(
     const bool fullSample, const uint8_t hh,
     StatsUpdaterState<maxSubSamples>& internal_state,
-    Stats *stats,
-    const Occupancy *occupancyOpt = nullptr,
-    const AmbLight *ambLightOpt = nullptr,
-    const TempC16 *tempC16Opt = nullptr,
-    const humidity *humidityOpt = nullptr
+    Stats& stats,
+    const Occupancy* occupancyOpt = nullptr,
+    const AmbLight* ambLightOpt = nullptr,
+    const TempC16* tempC16Opt = nullptr,
+    const Humidity* humidityOpt = nullptr
     )
 {
     // (Sub-)sample processing.
@@ -391,7 +397,7 @@ void update_stats_store(
                 OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_AMBLIGHT_BY_HOUR, 
                 hh, 
                 divide_to_u8(internal_state.ambLightTotal, sc, maxSubSamples),
-                *stats);
+                stats);
         }
     }
 
@@ -412,7 +418,7 @@ void update_stats_store(
             update_stats_pair(
                 OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_TEMP_BY_HOUR, hh,
                 temp,
-                *stats);
+                stats);
         }
     }
 
@@ -426,7 +432,7 @@ void update_stats_store(
                 OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR, 
                 hh, 
                 divide_to_u8(internal_state.occpcTotal, sc, maxSubSamples),
-                *stats);
+                stats);
         }
     }
 
@@ -439,7 +445,7 @@ void update_stats_store(
                 OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_RHPC_BY_HOUR, 
                 hh, 
                 divide_to_u8(internal_state.rhpcTotal, sc, maxSubSamples),
-                *stats);
+                stats);
         }
     }
 
@@ -481,6 +487,7 @@ public:
     // Maximum number of (sub-) samples to take per hour; strictly positive.
     static constexpr uint8_t maxSamplesPerHour = maxSubSamples;
 
+// FIXME: This class is marked final, so there's no point in this protected.
 protected:
     // FIXME: I think these methods are no longer necessary.
     // Efficient division of an uint16_t or uint8_t total by a small positive count to give a uint8_t mean.
@@ -536,7 +543,7 @@ public:
             fullSample,
             hh,
             internal_state,
-            stats,
+            *stats,
             occupancyOpt,
             ambLightOpt,
             tempC16Opt,
