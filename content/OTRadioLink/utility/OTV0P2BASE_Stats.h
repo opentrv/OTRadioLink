@@ -466,13 +466,6 @@ void update_stats_store(
 //       1 or 2 are especially efficient and avoid overflow,
 //       2 is probably most robust;
 //       strictly positive
-/**
- * Arduino Compilation size log (Arduino v1.8.8):
- * Change                            | binary size | static ram use
- * Start condition                   |       30260 |           1824
- * Moved stuff out                   |       30254 |           1824
- * Moved state out into struct       |       30254 |           1824
- */
 template <
     class stats_t /* = NVByHourByteStatsBase */, stats_t *stats,
     class occupancy_t = SimpleTSUint8Sensor /*PseudoSensorOccupancyTracker*/, const occupancy_t *occupancyOpt = nullptr,
