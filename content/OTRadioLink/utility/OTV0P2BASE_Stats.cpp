@@ -45,6 +45,7 @@ uint8_t getSpecialHour(uint8_t hour, uint8_t currentHour) {
             // Taken from logic in OTV0P2BASE::getPrevHourLT()
             return (0 == currentHour) ? 23 : (currentHour - 1);
         }
+        default: break;
     }
     return (hour);
 }

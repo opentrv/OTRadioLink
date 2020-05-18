@@ -213,11 +213,11 @@ public:
 
     // Bounds-checked read access from backing store.
     virtual uint8_t getByHourStatSimple(uint8_t statsSet, uint8_t hh) const override
-        { return(((statsSet >= STATS_SETS_COUNT) || (hh > setSlots)) ? UNSET_BYTE : statsMemory[statsSet][hh]); }
+        { return(((statsSet >= STATS_SETS_COUNT) || (hh >= setSlots)) ? UNSET_BYTE : statsMemory[statsSet][hh]); }
 
     // Bounds-checked write access to backing store.
     virtual void setByHourStatSimple(const uint8_t statsSet, const uint8_t hh, uint8_t value = UNSET_BYTE) override
-        { if(!((statsSet >= STATS_SETS_COUNT) || (hh > setSlots))) { statsMemory[statsSet][hh] = value; } }
+        { if(!((statsSet >= STATS_SETS_COUNT) || (hh >= setSlots))) { statsMemory[statsSet][hh] = value; } }
 
     // Current Hour-of-day (as set by _setHour()).
     virtual uint8_t getHour() const override
