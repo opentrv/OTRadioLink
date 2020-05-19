@@ -45,7 +45,8 @@
                 ],
                 "limitSymbolsToIncludedHeaders": true,
                 "databaseFilename": ""
-            }
+            },
+            "compileCommands": "${workspaceFolder}/buildclang/compile_commands.json"
         },
         {
             "name": "Arduino_AVR",
