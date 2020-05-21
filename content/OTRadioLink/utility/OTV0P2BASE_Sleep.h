@@ -77,7 +77,7 @@ constexpr uint32_t F_CPU = 19000000;  // XXX Where should this go?
 // This does not attempt to adjust clock speeds or sleep.
 // Interrupts should probably be disabled around the code that uses this to avoid extra unexpected delays.
 #ifdef ARDUINO_ARCH_AVR
-    #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328PB__)
+    #if defined(__AVR_ATmega328P__)
     static void _delay_NOP(void) __attribute__((always_inline)); // Takes 4n CPU cycles to run, 0 runs for 256 cycles.
     static inline void _delay_NOP(void) { __asm__ volatile ( "nop" "\n\t" ); } // Assumed to take 1us with 1MHz CPU clock.
 
@@ -390,7 +390,7 @@ bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);
 // This suggests that a timeout of > 2s may be OK with the optiboot loader:
 //   https://tushev.org/articles/arduino/5/arduino-and-watchdog-timer
 #ifdef ARDUINO_ARCH_AVR
-    #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328PB__)
+    #if defined(__AVR_ATmega328P__)
     inline void forceReset()
         {
         cli();
