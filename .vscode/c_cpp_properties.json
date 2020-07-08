@@ -3,145 +3,16 @@
         {
             "name": "Linux",
             "includePath": [
-                "/usr/lib/gcc/x86_64-redhat-linux/7/../../../../include/c++/7",
-                "/usr/lib/gcc/x86_64-redhat-linux/7/../../../../include/c++/7/x86_64-redhat-linux",
-                "/usr/lib/gcc/x86_64-redhat-linux/7/../../../../include/c++/7/backward",
-                "/usr/lib/gcc/x86_64-redhat-linux/7/include",
-                "/usr/local/include",
-                "/usr/include",
-                "${workspaceRoot}/content/OTRadioLink",
-                "${workspaceRoot}/content/OTRadioLink/utility",
-                "/opt/arduino/hardware/arduino/avr/cores/arduino",
-                "/opt/arduino/hardware/arduino/avr/libraries",
-                "/opt/arduino/hardware/arduino/avr/libraries/Wire/src",
-                "/opt/arduino/hardware/arduino/avr/variants/standard",
-                "/opt/arduino/hardware/tools/avr/avr/include",
-                "/opt/arduino/hardware/tools/avr/avr/include/avr",
-                "/opt/arduino/hardware/tools/avr/avr/include/util",
-                "${workspaceRoot}/EFR32/portingOTLibs/CMSIS",
-                "${workspaceRoot}/EFR32/portingOTLibs/emlib",
-                "${workspaceRoot}/EFR32/portingOTLibs/hal-config",
-                "${workspaceRoot}/EFR32/portingOTLibs/src"
+                "/home/denzo/.arduino15/packages/opentrv/hardware/avr/0.0.5/**",
+                "${workspaceFolder}/**"
             ],
-            "defines": [
-                "__GNUC__",
-                "EXT_AVAILABLE_ARDUINO_LIB_OTAESGCM"
-            ],
-            "intelliSenseMode": "clang-x64",
-            "browse": {
-                "path": [
-                    "/usr/lib/gcc/x86_64-redhat-linux/7/../../../../include/c++/7",
-                    "/usr/lib/gcc/x86_64-redhat-linux/7/../../../../include/c++/7/x86_64-redhat-linux",
-                    "/usr/lib/gcc/x86_64-redhat-linux/7/../../../../include/c++/7/backward",
-                    "/usr/lib/gcc/x86_64-redhat-linux/7/include",
-                    "/usr/local/include",
-                    "/usr/include",
-                    "${workspaceRoot}",
-                    "${workspaceRoot}/..",
-                    "/opt/arduino/hardware/arduino/avr/cores/arduino",
-                    "/opt/arduino/hardware/arduino/avr/libraries",
-                    "/opt/arduino/hardware/arduino/avr/variants/standard",
-                    "/opt/arduino/hardware/tools/avr/avr/include"
-                ],
-                "limitSymbolsToIncludedHeaders": true,
-                "databaseFilename": ""
-            },
-            "compileCommands": "${workspaceFolder}/buildclang/compile_commands.json"
-        },
-        {
-            "name": "Arduino_AVR",
-            "includePath": [
-                "/usr/lib/gcc/x86_64-redhat-linux/7/../../../../include/c++/7",
-                "/usr/lib/gcc/x86_64-redhat-linux/7/../../../../include/c++/7/x86_64-redhat-linux",
-                "/usr/lib/gcc/x86_64-redhat-linux/7/../../../../include/c++/7/backward",
-                "/usr/lib/gcc/x86_64-redhat-linux/7/include",
-                "/usr/local/include",
-                "/usr/include",
-                "${workspaceRoot}/content/OTRadioLink",
-                "${workspaceRoot}/content/OTRadioLink/utility",
-                "/opt/arduino/hardware/arduino/avr/cores/arduino",
-                "/opt/arduino/hardware/arduino/avr/libraries",
-                "/opt/arduino/hardware/arduino/avr/libraries/Wire/src",
-                "/opt/arduino/hardware/arduino/avr/variants/standard",
-                "/opt/arduino/hardware/tools/avr/avr/include",
-                "/opt/arduino/hardware/tools/avr/avr/include/avr",
-                "/opt/arduino/hardware/tools/avr/avr/include/util"
-            ],
-            "defines": [
-                "__GNUC__",
-                "ARDUINO_ARCH_AVR",
-                "ARDUINO",
-                "__AVR_ATmega328P__"
-            ],
-            "intelliSenseMode": "clang-x64",
-            "browse": {
-                "path": [
-                    "/usr/lib/gcc/x86_64-redhat-linux/7/../../../../include/c++/7",
-                    "/usr/lib/gcc/x86_64-redhat-linux/7/../../../../include/c++/7/x86_64-redhat-linux",
-                    "/usr/lib/gcc/x86_64-redhat-linux/7/../../../../include/c++/7/backward",
-                    "/usr/lib/gcc/x86_64-redhat-linux/7/include",
-                    "/usr/local/include",
-                    "/usr/include",
-                    "${workspaceRoot}",
-                    "${workspaceRoot}/..",
-                    "/opt/arduino/hardware/arduino/avr/cores/arduino",
-                    "/opt/arduino/hardware/arduino/avr/libraries",
-                    "/opt/arduino/hardware/arduino/avr/variants/standard",
-                    "/opt/arduino/hardware/tools/avr/avr/include"
-                ],
-                "limitSymbolsToIncludedHeaders": true,
-                "databaseFilename": ""
-            },
-            "compilerPath": "/usr/bin/gcc",
+            "defines": [],
+            "compilerPath": "/usr/bin/clang",
             "cStandard": "c11",
-            "cppStandard": "c++17"
-        },
-        {
-            "name": "EFR32",
-            "includePath": [
-                "/home/denzo/eclipse/toolchain/gcc-arm-none-eabi-4_9-2015q3/arm-none-eabi/include/c++/4.9.3",
-                "/home/denzo/eclipse/toolchain/gcc-arm-none-eabi-4_9-2015q3/arm-none-eabi/include/c++/4.9.3/arm-none-eabi",
-                "/home/denzo/eclipse/toolchain/gcc-arm-none-eabi-4_9-2015q3/lib/gcc/arm-none-eabi/4.9.3/include",
-                "/home/denzo/eclipse/toolchain/gcc-arm-none-eabi-4_9-2015q3/lib/gcc/arm-none-eabi/4.9.3/include-fixed",
-                "/home/denzo/eclipse/toolchain/gcc-arm-none-eabi-4_9-2015q3/arm-none-eabi/include",
-                "/home/denzo/eclipse/toolchain/gcc-arm-none-eabi-4_9-2015q3/arm-none-eabi/include/machine",
-                "/home/denzo/eclipse/toolchain/gcc-arm-none-eabi-4_9-2015q3/arm-none-eabi/include/newlib-nano",
-                "/home/denzo/eclipse/toolchain/gcc-arm-none-eabi-4_9-2015q3/arm-none-eabi/include/sys",
-                "/home/denzo/eclipse/gecko_sdk_v2/hardware/kit/common/drivers",
-                "/home/denzo/eclipse/gecko_sdk_v2/hardware/kit/common/bsp",
-                "/home/denzo/eclipse/gecko_sdk_v2/platform/CMSIS/Include",
-                "/home/denzo/eclipse/gecko_sdk_v2/platform/emlib/inc",
-                "/home/denzo/eclipse/gecko_sdk_v2/platform/Device/SiliconLabs/EFR32FG1P/Include",
-                "/home/denzo/eclipse/gecko_sdk_v2/platform/halconfig/inc/hal-config",
-                "${workspaceRoot}/silabs_drivers/CMSIS",
-                "${workspaceRoot}/silabs_drivers/emlib",
-                "${workspaceRoot}/silabs_drivers/hal-config",
-                "${workspaceRoot}/content/OTRadioLink",
-                "${workspaceRoot}/content/OTRadioLink/utility",
-                "${workspaceRoot}/silabs_drivers/cppDrivers"
-            ],
-            "defines": [
-                "__GNUC__",
-                "HAL_CONFIG=1",
-                "EFR32FG1P133F256GM48=1",
-                "V0P2BASE_SYSTICK_EMULATED_SUBCYCLE"
-            ],
+            "cppStandard": "c++14",
             "intelliSenseMode": "clang-x64",
-            "browse": {
-                "path": [
-                    "/home/denzo/eclipse/toolchain/gcc-arm-none-eabi-4_9-2015q3/lib/gcc/arm-none-eabi/4.9.3/include",
-                    "/home/denzo/eclipse/toolchain/gcc-arm-none-eabi-4_9-2015q3/lib/gcc/arm-none-eabi/4.9.3/include-fixed",
-                    "/home/denzo/eclipse/toolchain/gcc-arm-none-eabi-4_9-2015q3/arm-none-eabi/include",
-                    "/home/denzo/eclipse/gecko_sdk_v2/hardware/kit/common",
-                    "/home/denzo/eclipse/gecko_sdk_v2/platform/Device/SiliconLabs/EFR32FG1P",
-                    "/home/denzo/eclipse/gecko_sdk_v2/platform/emlib",
-                    "/home/denzo/eclipse/gecko_sdk_v2/platform/halconfig",
-                    "/home/denzo/eclipse/gecko_sdk_v2/platform/CMSIS",
-                    "${workspaceRoot}"
-                ],
-                "limitSymbolsToIncludedHeaders": true,
-                "databaseFilename": ""
-            }
+            "compileCommands": "/home/denzo/git/OTAESGCM/build/compile_commands.json",
+            "forcedInclude": []
         }
     ],
     "version": 4

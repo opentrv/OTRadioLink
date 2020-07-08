@@ -1,0 +1,6 @@
+{
+    "board": "opentrv:avr:opentrv_v0p2",
+    "programmer": "USBtinyISP",
+    "port": "/dev/ttyUSB0",
+    "sketch": "../opentrv-trv2/TRV2/TRV2.ino"
+}
