@@ -9,11 +9,10 @@
     },
     "python.jediEnabled": false,
     "python.linting.pylintEnabled": true,
-    "catch2TestExplorer.executables": [
+    "testMate.cpp.test.advancedExecutables": [
         {
             "name": "${filename}",
-            "pattern": "builddir/OTRadioLinkTests",
-            // "cwd": "${absDirpath}",
-        },
+            "pattern": "builddir/OTRadioLinkTests"
+        }
     ],
 }
