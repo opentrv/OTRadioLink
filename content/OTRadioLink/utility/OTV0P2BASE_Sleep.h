@@ -78,8 +78,11 @@ constexpr uint32_t F_CPU = 19000000;  // XXX Where should this go?
 // Interrupts should probably be disabled around the code that uses this to avoid extra unexpected delays.
 #ifdef ARDUINO_ARCH_AVR
     #if defined(__AVR_ATmega328P__)
-    static __inline__ void _delay_NOP(void) { __asm__ volatile ( "nop" "\n\t" ); } // Assumed to take 1us with 1MHz CPU clock.
-    static __inline__ void _delay_x4cycles(uint8_t n) // Takes 4n CPU cycles to run, 0 runs for 256 cycles.
+    static void _delay_NOP(void) __attribute__((always_inline)); // Takes 4n CPU cycles to run, 0 runs for 256 cycles.
+    static inline void _delay_NOP(void) { __asm__ volatile ( "nop" "\n\t" ); } // Assumed to take 1us with 1MHz CPU clock.
+
+    static void _delay_x4cycles(uint8_t n) __attribute__((always_inline)); // Takes 4n CPU cycles to run, 0 runs for 256 cycles.
+    static inline void _delay_x4cycles(uint8_t n) // Takes 4n CPU cycles to run, 0 runs for 256 cycles.
       {
       __asm__ volatile // Similar to _delay_loop_1() from util/delay_basic.h but multiples of 4 cycles are easier.
          (
@@ -213,7 +216,6 @@ void nap(int_fast8_t watchdogSleep);
 // May be useful to call minimsePowerWithoutSleep() first, when not needing any modules left on.
 // NOTE: will stop clocks for UART, etc.
 bool nap(int_fast8_t watchdogSleep, bool allowPrematureWakeup);
-
 
 #ifdef ARDUINO_ARCH_AVR
     // If CPU clock is 1MHz then *assume* that it is the 8MHz internal RC clock prescaled by 8 unless DEFAULT_CPU_PRESCALE is defined.

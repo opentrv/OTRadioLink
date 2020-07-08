@@ -210,7 +210,7 @@ private:
     static constexpr uint8_t setSize {V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE};
     // TRV2-186: Fix compiler warnings.
     // Note that normal cast is used as static_cast fails typecheck.
-    static constexpr uint8_t* startAddr {(uint8_t*)(V0P2BASE_EE_START_NODE_ASSOCIATIONS)};
+    static constexpr uintptr_t startAddr {V0P2BASE_EE_START_NODE_ASSOCIATIONS};
 
 public:
     static constexpr uint8_t maxSets {V0P2BASE_EE_NODE_ASSOCIATIONS_MAX_SETS};

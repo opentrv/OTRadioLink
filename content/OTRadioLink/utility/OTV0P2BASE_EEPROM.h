@@ -213,7 +213,7 @@ static constexpr uint8_t V0P2BASE_EE_START_NODE_ASSOCIATIONS_WORK_LEN = 64;
 // Note that all valid entries/associations are contiguous at the start of the area.
 // The first (invalid) node ID starting with 0xff indicates that it and all subsequent entries are empty.
 // On writing a new entry all bytes after the ID must be erased to 0xff.
-static constexpr intptr_t V0P2BASE_EE_START_NODE_ASSOCIATIONS = 768;  // Inclusive start of node associations.
+static constexpr uintptr_t V0P2BASE_EE_START_NODE_ASSOCIATIONS = 768;  // Inclusive start of node associations.
 static constexpr uint8_t V0P2BASE_EE_NODE_ASSOCIATIONS_SET_SIZE = 32; // Size in bytes of one Node association entry.
 //
 // Node association fields, 0 upwards, contiguous.
