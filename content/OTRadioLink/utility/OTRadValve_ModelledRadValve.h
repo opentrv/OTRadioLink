@@ -479,7 +479,7 @@ public:
         const uint8_t /*minPCOpen*/, const uint8_t maxPCOpen,
         const bool glacial) const override
     {
-        return (CTTBasicLogic::setupInputState<valveControlParameters>(
+        CTTBasicLogic::setupInputState<valveControlParameters>(
             inputState,
             newTargetC,
             maxPCOpen,
@@ -491,7 +491,7 @@ public:
             *ambLight,
             *physicalUI,
             setbackLockout
-        ));
+        );
     }
 };
 
