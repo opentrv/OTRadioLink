@@ -9,11 +9,17 @@
     },
     "python.jediEnabled": false,
     "python.linting.pylintEnabled": true,
-    "catch2TestExplorer.executables": [
+    "testMate.cpp.test.advancedExecutables": [
         {
-            "name": "${filename}",
-            "pattern": "builddir/OTRadioLinkTests",
-            // "cwd": "${absDirpath}",
+            "name": "Clang-${filename}",
+            "pattern": "build/OTRadioLinkTests",
+            "runTask": {
+                "before": ["Meson: Build OTRadioLinkTests"],
+            }
         },
+        {
+            "name": "GCC-${filename}",
+            "pattern": "builddir/OTRadioLinkTests"
+        }
     ],
 }

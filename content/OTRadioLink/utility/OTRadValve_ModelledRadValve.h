@@ -154,6 +154,267 @@ class ModelledRadValveComputeTargetTempBase
         const bool glacial) const = 0;
   };
 
+namespace CTTBasicLogic {
+template<
+    class valveControlParameters,
+    class TempControlBase,
+    class PseudoSensorOccupancyTracker,
+    class SensorAmbientLightBase,
+    class ActuatorPhysicalUIBase,
+    class SimpleValveScheduleBase,
+    class NVByHourByteStatsBase
+>
+uint8_t computeTargetTemp(
+    const OTRadValve::ValveMode&  valveMode,
+    const TempControlBase&  tempControl,
+    const PseudoSensorOccupancyTracker&  occupancy,
+    const SensorAmbientLightBase&  ambLight,
+    const ActuatorPhysicalUIBase& physicalUI,
+    const SimpleValveScheduleBase& schedule,
+    const NVByHourByteStatsBase&  byHourStats,
+    bool (*const setbackLockout)() = ((bool(*)())nullptr))
+{
+    // In FROST mode.
+    if(!valveMode.inWarmMode()) {
+        const uint8_t frostC = tempControl.getFROSTTargetC();
+
+        // If a scheduled WARM is due soon then ensure
+        // that room is at least at a smallish setback temperature
+        // to give room a chance to hit the WARM target,
+        // and for furniture and surfaces to be warm, etc, on time.
+        // Don't do this if the room has been vacant for a long time
+        // (eg so as to avoid pre-warm ever being higher than WARM).
+        // Don't do this if there has been recent manual intervention,
+        // eg to allow manual 'cancellation' of pre-heat.  (TODO-464)
+        // Only do this if the target WARM temperature is
+        // NOT an 'ECO' temperature (ie very near the bottom of the scale).
+        // If well into the 'ECO' zone go for a larger-than-usual setback,
+        // else set minimal/default setback.
+        // Note: when pre-warm and warm time for schedule is ~1.5h,
+        // and the default setback is 1C,
+        // this is assuming that the room temperature can be raised by ~1C/h.
+        // See the effect of going from 2C to 1C setback:
+        //     http://www.earth.org.uk/img/20160110-vat-b.png
+        // (A very long pre-warm time may confuse or distress users,
+        // eg waking them in the morning.)
+        if(!occupancy.longVacant()
+                && schedule.isAnyScheduleOnWARMSoon(OTV0P2BASE::getMinutesSinceMidnightLT())
+                && !physicalUI.recentUIControlUse()) {
+            const uint8_t warmTarget = tempControl.getWARMTargetC();
+            // Compute putative pre-warm temperature, usually just below WARM.
+            const uint8_t preWarmTempC = OTV0P2BASE::fnmax(frostC,
+            uint8_t(warmTarget -
+            (tempControl.isEcoTemperature(warmTarget) ?
+            valveControlParameters::SETBACK_ECO :
+            valveControlParameters::SETBACK_DEFAULT)));
+            return(preWarmTempC);
+        }
+
+        // Apply FROST safety target temperature by default in FROST mode.
+        return(frostC);
+    } else if(valveMode.inBakeMode()) {
+        // If in BAKE mode then use elevated target, with no setbacks.
+        return(OTV0P2BASE::fnmin(
+            (uint8_t)(tempControl.getWARMTargetC() + valveControlParameters::BAKE_UPLIFT),
+            OTRadValve::MAX_TARGET_C));
+    } else {
+        // In 'WARM' mode with possible setback.
+        const uint8_t wt = tempControl.getWARMTargetC();
+
+        // If smart setbacks are locked out then return WARM temperature as-is.  (TODO-786, TODO-906)
+        if((NULL != setbackLockout) && (setbackLockout)())
+            { return(wt); }
+
+        //          const bool longLongVacant = occupancy.longLongVacant();
+        const bool longVacant = /*longLongVacant || */ occupancy.longVacant();
+        const bool confidentlyVacant = longVacant || occupancy.confidentlyVacant();
+        const bool likelyVacantNow = confidentlyVacant || occupancy.isLikelyUnoccupied();
+
+        // No setback unless apparently vacant and no scheduled WARM.
+        // TODO: or dark and weakly occupied in case room only briefly occupied.
+        // TODO: or set back on anticipated vacancy.
+        const bool allowSetback =
+            likelyVacantNow
+            && (/*long*/longVacant 
+                || !schedule.isAnyScheduleOnWARMNow(OTV0P2BASE::getMinutesSinceMidnightLT()));
+
+        if(allowSetback) {
+            // Use DEFAULT setback unless confident that more is OK.
+            // This default should not be annoying, but saves little energy.
+            uint8_t setback = valveControlParameters::SETBACK_DEFAULT;
+
+            // Note when it has been dark for many hours,
+            // overnight in winter.
+            // This should be long enough to almost never be true
+            // in the afternoon or early evening,
+            // even on long winter days.
+            const uint16_t dm = ambLight.getDarkMinutes();
+            static constexpr uint16_t longDarkM = 7*60U; // 7h
+
+            // Any imminent scheduled on may inhibit all but min setback.
+            const bool scheduleOnSoon = schedule.isAnyScheduleOnWARMSoon(OTV0P2BASE::getMinutesSinceMidnightLT());
+            // High likelihood of occupancy now inhibits ECO setback.
+            const uint8_t hoursLessOccupiedThanThis =
+                byHourStats.countStatSamplesBelow(
+                        OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED,
+                        byHourStats.getByHourStatRTC(
+                            OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED,
+                            OTV0P2BASE::NVByHourByteStatsBase::SPECIAL_HOUR_CURRENT_HOUR));
+
+            static constexpr uint8_t maxThr = 17;
+            static constexpr uint8_t minThr = 14;
+            static_assert(maxThr >= minThr, "sensitivity must not decrease with temp");
+            const uint8_t thisHourNLOThreshold =
+                tempControl.hasEcoBias() ? maxThr : minThr;
+            const bool relativelyActive =
+                (hoursLessOccupiedThanThis > thisHourNLOThreshold);
+            // Inhibit ECO (or more) setback
+            // for scheduled-on (unless long vacant, eg a day or more)
+            // or where this hour is typically relatively busy
+            // (unless 'vacant' for the equivalent of a decent night's sleep).
+            // Avoid inhibiting warm-up before return from work/school.
+            const bool inhibitECOSetback = !longVacant
+                && (scheduleOnSoon || ((dm < longDarkM) && (relativelyActive)));
+
+            // ECO setback is possible: bulk of energy saving opportunities.
+            // Go for ECO if dark or likely vacant now,
+            // and not usually relatively occupied now or in next hour.
+            if(!inhibitECOSetback
+                    && (confidentlyVacant
+                        || (likelyVacantNow && (hoursLessOccupiedThanThis <= 1))
+                        || (0 != dm))) {
+                setback = valveControlParameters::SETBACK_ECO;
+
+                // High likelihood of occupancy soon inhibits FULL setback,
+                // (unless dark for hours so as to avoid waking users early)
+                // to allow getting warm ready for return from work/school.
+                // TODO: other signals such as manual control use and
+                // typical temperature at this time could inhibit FULL setback.
+                const uint8_t hoursLessOccupiedThanNext =
+                    byHourStats.countStatSamplesBelow(
+                        OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED,
+                        byHourStats.getByHourStatRTC(
+                            OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED,
+                            OTV0P2BASE::NVByHourByteStatsBase::SPECIAL_HOUR_NEXT_HOUR));
+                const bool relativelyActiveSoon =
+                    (hoursLessOccupiedThanNext > 2 + thisHourNLOThreshold);
+
+                // Set a lower occupancy threshold to prevent FULL setback.
+                // Much lower if not dark for too long.
+                static constexpr uint8_t linReduction = 4;
+                static_assert(linReduction < minThr, "ensure new threshold is sane/+ve");
+                // Note: ignoring nominal overflow of dm>>5 in uint8_t since other factors should make it irrelevant.
+                const uint8_t thisHourNLOThresholdF = OTV0P2BASE::fnmin(
+                        thisHourNLOThreshold - linReduction,
+                        (thisHourNLOThreshold >> 2) + uint8_t(dm>>5));
+                const bool notInactive =
+                    (hoursLessOccupiedThanThis > thisHourNLOThresholdF);
+
+                // Inhibit FULL setback if at top end of comfort range.
+                const bool comfortTemperature = tempControl.isComfortTemperature(wt);
+                const bool inhibitFULLSetback = comfortTemperature
+                    || ((dm < longDarkM) 
+                        && (notInactive || relativelyActiveSoon));
+
+                // FULL setback possible; saving energy/noise for night/holiday.
+                // If long vacant (no sign of activity for around a day)
+                // OR dark for a while AND return not strongly anticipated
+                // then allow a maximum night setback and minimise noise (TODO-792, TODO-1027)
+                // Drop through quicker in darkness when current/next hours
+                // are rarely occupied (ie anticipatory turn down);
+                // also help avoid revving up heating for brief lights-on
+                // in the middle of the night.  (TODO-1092)
+                const bool veryQuiet = (hoursLessOccupiedThanThis <= 1)
+                    || (hoursLessOccupiedThanNext <= 1);
+                if(!inhibitFULLSetback
+                        && (longVacant 
+                            || (dm >= (veryQuiet ? 2 : 10)))) {
+                    setback = valveControlParameters::SETBACK_FULL;
+                }
+            }
+
+            // Target must never be set low enough to create a frost/freeze hazard.
+            const uint8_t newTarget = OTV0P2BASE::fnmax((uint8_t)(wt - setback), tempControl.getFROSTTargetC());
+
+            return(newTarget);
+        }
+
+        // Else use WARM target as-is.
+        return(wt);
+    }
+}
+
+// Set all fields of inputState from the target temperature etc.
+// Usually target temp will just have been computed by
+// computeTargetTemp().
+//
+// This should not second-guess computeTargetTemp()
+// in terms of setbacks.
+template<
+    class valveControlParameters,
+    class TemperatureC16Base,
+    class TempControlBase,
+    class PseudoSensorOccupancyTracker,
+    class SensorAmbientLightBase,
+    class ActuatorPhysicalUIBase
+>
+void setupInputState(
+    OTRadValve::ModelledRadValveInputState &inputState,
+    const uint8_t newTargetC,
+    const uint8_t maxPCOpen,
+    const bool glacial,
+    const OTRadValve::ValveMode& valveMode,
+    const TemperatureC16Base& temperatureC16,
+    const TempControlBase& tempControl,
+    const PseudoSensorOccupancyTracker& occupancy,
+    const SensorAmbientLightBase& ambLight,
+    const ActuatorPhysicalUIBase& physicalUI,
+    bool (*const setbackLockout)() = ((bool(*)())nullptr))
+{
+    // Set up state for computeRequiredTRVPercentOpen().
+    inputState.targetTempC = newTargetC;
+    const uint8_t wt = tempControl.getWARMTargetC();
+    inputState.maxTargetTempC = wt;
+    //        inputState.minPCReallyOpen = minPCOpen;
+    inputState.maxPCOpen = maxPCOpen;
+    // Force glacial if unusually low maxPCOpen
+    // that would interact badly with other aspects of the algorithm.
+    // Note: may also wish to force glacial if room very dark
+    // to minimise noise.  (TODO-1027)
+    inputState.glacial = glacial || (maxPCOpen < DEFAULT_VALVE_PC_SAFER_OPEN);
+    inputState.inBakeMode = valveMode.inBakeMode();
+    inputState.hasEcoBias = tempControl.hasEcoBias();
+    // Request a fast response from the valve
+    // if the user is currently manually adjusting the controls (TODO-593)
+    // or there is a very recent (and reasonably strong) occupancy signal
+    // such as lights on.  (TODO-1069)
+    // This may provide enough feedback to have the user resist adjusting
+    // controls prematurely!
+    const bool fastResponseRequired =
+        physicalUI.veryRecentUIControlUse()
+        || (occupancy.reportedNewOccupancyRecently());
+    inputState.fastResponseRequired = fastResponseRequired;
+    // Widen the allowed deadband significantly in a dark room
+    // to save (heating/battery) energy and noise (TODO-383, TODO-1037)
+    // (OR if temperature is jittery eg changing fast and filtering is on,
+    // OR if any setback is in place or in FROST ie anything below WARM)
+    // to attempt to reduce the total number and size of adjustments and
+    // thus reduce noise/disturbance (and battery drain).
+    // The wider deadband (less good temperature regulation) may be
+    // noticeable/annoying to sensitive occupants.
+    // A wider deadband may also simply suppress any movement/noise on
+    // some/most minutes while close to target temperature.
+    // For responsiveness, don't widen the deadband immediately
+    // after manual controls have been used.  (TODO-593)
+    // DHD20170109: filtering effectively forces wide in computation now.
+    inputState.widenDeadband = (!fastResponseRequired)
+        && ((newTargetC < wt) || ambLight.isRoomDark()); // Must return false if not usable.
+    // Capture adjusted reference/room temperature.
+    inputState.setReferenceTemperatures(temperatureC16.get());
+}
+
+}
+
 // Basic/simple stateless implementation of computation of target temperature.
 // Templated with all input instances for maximum speed and minimum code size.
 //
@@ -178,8 +439,8 @@ template<
   bool (*const setbackLockout)() = ((bool(*)())NULL)
   >
 class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComputeTargetTempBase
-  {
-  public:
+{
+public:
 //    constexpr ModelledRadValveComputeTargetTempBasic()
 //        {
 //        // Validate (non-optional) args.  Doesn't work with g++ 4.9.2 in Arduino IDE.
@@ -193,181 +454,19 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
 //        static_assert(!!byHourStats, "non-optional parameter must not be NULL");
 //        }
     virtual uint8_t computeTargetTemp() const override
-        {
-        // In FROST mode.
-        if(!valveMode->inWarmMode())
-          {
-          const uint8_t frostC = tempControl->getFROSTTargetC();
-
-          // If a scheduled WARM is due soon then ensure
-          // that room is at least at a smallish setback temperature
-          // to give room a chance to hit the WARM target,
-          // and for furniture and surfaces to be warm, etc, on time.
-          // Don't do this if the room has been vacant for a long time
-          // (eg so as to avoid pre-warm ever being higher than WARM).
-          // Don't do this if there has been recent manual intervention,
-          // eg to allow manual 'cancellation' of pre-heat.  (TODO-464)
-          // Only do this if the target WARM temperature is
-          // NOT an 'ECO' temperature (ie very near the bottom of the scale).
-          // If well into the 'ECO' zone go for a larger-than-usual setback,
-          // else set minimal/default setback.
-          // Note: when pre-warm and warm time for schedule is ~1.5h,
-          // and the default setback is 1C,
-          // this is assuming that the room temperature can be raised by ~1C/h.
-          // See the effect of going from 2C to 1C setback:
-          //     http://www.earth.org.uk/img/20160110-vat-b.png
-          // (A very long pre-warm time may confuse or distress users,
-          // eg waking them in the morning.)
-          if(!occupancy->longVacant() &&
-             schedule->isAnyScheduleOnWARMSoon(OTV0P2BASE::getMinutesSinceMidnightLT()) &&
-             !physicalUI->recentUIControlUse())
-            {
-            const uint8_t warmTarget = tempControl->getWARMTargetC();
-            // Compute putative pre-warm temperature, usually just below WARM.
-            const uint8_t preWarmTempC = OTV0P2BASE::fnmax(frostC,
-                uint8_t(warmTarget -
-                    (tempControl->isEcoTemperature(warmTarget) ?
-                        valveControlParameters::SETBACK_ECO :
-                        valveControlParameters::SETBACK_DEFAULT)));
-            return(preWarmTempC);
-            }
-
-          // Apply FROST safety target temperature by default in FROST mode.
-          return(frostC);
-          }
-
-        // If in BAKE mode then use elevated target, with no setbacks.
-        else if(valveMode->inBakeMode())
-          {
-          return(OTV0P2BASE::fnmin((uint8_t)(tempControl->getWARMTargetC() +
-              valveControlParameters::BAKE_UPLIFT), OTRadValve::MAX_TARGET_C));
-          }
-
-        else // In 'WARM' mode with possible setback.
-          {
-          const uint8_t wt = tempControl->getWARMTargetC();
-
-          // If smart setbacks are locked out then return WARM temperature as-is.  (TODO-786, TODO-906)
-          if((NULL != setbackLockout) && (setbackLockout)())
-            { return(wt); }
-
-//          const bool longLongVacant = occupancy->longLongVacant();
-          const bool longVacant = /*longLongVacant || */ occupancy->longVacant();
-          const bool confidentlyVacant = longVacant || occupancy->confidentlyVacant();
-          const bool likelyVacantNow = confidentlyVacant || occupancy->isLikelyUnoccupied();
-
-          // No setback unless apparently vacant and no scheduled WARM.
-          // TODO: or dark and weakly occupied in case room only briefly occupied.
-          // TODO: or set back on anticipated vacancy.
-          const bool allowSetback = likelyVacantNow &&
-              (/*long*/longVacant || !schedule->isAnyScheduleOnWARMNow(OTV0P2BASE::getMinutesSinceMidnightLT()));
-
-          if(allowSetback)
-            {
-            // Use DEFAULT setback unless confident that more is OK.
-            // This default should not be annoying, but saves little energy.
-            uint8_t setback = valveControlParameters::SETBACK_DEFAULT;
-
-            // Note when it has been dark for many hours,
-            // overnight in winter.
-            // This should be long enough to almost never be true
-            // in the afternoon or early evening,
-            // even on long winter days.
-            const uint16_t dm = ambLight->getDarkMinutes();
-            static constexpr uint16_t longDarkM = 7*60U; // 7h
-
-            // Any imminent scheduled on may inhibit all but min setback.
-            const bool scheduleOnSoon = schedule->isAnyScheduleOnWARMSoon(OTV0P2BASE::getMinutesSinceMidnightLT());
-            // High likelihood of occupancy now inhibits ECO setback.
-            const uint8_t hoursLessOccupiedThanThis =
-                byHourStats->countStatSamplesBelow(
-                    OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED,
-                    byHourStats->getByHourStatRTC(
-                        OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED,
-                        OTV0P2BASE::NVByHourByteStatsBase::SPECIAL_HOUR_CURRENT_HOUR));
-            static constexpr uint8_t maxThr = 17;
-            static constexpr uint8_t minThr = 14;
-            static_assert(maxThr >= minThr, "sensitivity must not decrease with temp");
-            const uint8_t thisHourNLOThreshold =
-                tempControl->hasEcoBias() ? maxThr : minThr;
-            const bool relativelyActive =
-                (hoursLessOccupiedThanThis > thisHourNLOThreshold);
-            // Inhibit ECO (or more) setback
-            // for scheduled-on (unless long vacant, eg a day or more)
-            // or where this hour is typically relatively busy
-            // (unless 'vacant' for the equivalent of a decent night's sleep).
-            // Avoid inhibiting warm-up before return from work/school.
-            const bool inhibitECOSetback = !longVacant &&
-                (scheduleOnSoon ||
-                ((dm < longDarkM) && (relativelyActive)));
-
-            // ECO setback is possible: bulk of energy saving opportunities.
-            // Go for ECO if dark or likely vacant now,
-            // and not usually relatively occupied now or in next hour.
-            if(!inhibitECOSetback &&
-               (confidentlyVacant ||
-                (likelyVacantNow && (hoursLessOccupiedThanThis <= 1)) ||
-                (0 != dm)))
-                {
-                setback = valveControlParameters::SETBACK_ECO;
-
-                // High likelihood of occupancy soon inhibits FULL setback,
-                // (unless dark for hours so as to avoid waking users early)
-                // to allow getting warm ready for return from work/school.
-                // TODO: other signals such as manual control use and
-                // typical temperature at this time could inhibit FULL setback.
-                const uint8_t hoursLessOccupiedThanNext =
-                    byHourStats->countStatSamplesBelow(
-                        OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED,
-                        byHourStats->getByHourStatRTC(
-                            OTV0P2BASE::NVByHourByteStatsBase::STATS_SET_OCCPC_BY_HOUR_SMOOTHED,
-                            OTV0P2BASE::NVByHourByteStatsBase::SPECIAL_HOUR_NEXT_HOUR));
-                const bool relativelyActiveSoon =
-                    (hoursLessOccupiedThanNext > 2 + thisHourNLOThreshold);
-
-                // Set a lower occupancy threshold to prevent FULL setback.
-                // Much lower if not dark for too long.
-                static constexpr uint8_t linReduction = 4;
-                static_assert(linReduction < minThr, "ensure new threshold is sane/+ve");
-                // Note: ignoring nominal overflow of dm>>5 in uint8_t since other factors should make it irrelevant.
-                const uint8_t thisHourNLOThresholdF =
-                    OTV0P2BASE::fnmin(thisHourNLOThreshold - linReduction,
-                                      (thisHourNLOThreshold >> 2) + uint8_t(dm>>5));
-                const bool notInactive =
-                    (hoursLessOccupiedThanThis > thisHourNLOThresholdF);
-
-                // Inhibit FULL setback if at top end of comfort range.
-                const bool comfortTemperature = tempControl->isComfortTemperature(wt);
-                const bool inhibitFULLSetback = comfortTemperature ||
-                    ((dm < longDarkM) && (notInactive || relativelyActiveSoon));
-
-                // FULL setback possible; saving energy/noise for night/holiday.
-                // If long vacant (no sign of activity for around a day)
-                // OR dark for a while AND return not strongly anticipated
-                // then allow a maximum night setback and minimise noise (TODO-792, TODO-1027)
-                // Drop through quicker in darkness when current/next hours
-                // are rarely occupied (ie anticipatory turn down);
-                // also help avoid revving up heating for brief lights-on
-                // in the middle of the night.  (TODO-1092)
-                const bool veryQuiet =
-                    (hoursLessOccupiedThanThis <= 1) ||
-                    (hoursLessOccupiedThanNext <= 1);
-                if(!inhibitFULLSetback &&
-                   (longVacant || (dm >= (veryQuiet ? 2 : 10))))
-                    { setback = valveControlParameters::SETBACK_FULL; }
-                }
-
-            // Target must never be set low enough to create a frost/freeze hazard.
-            const uint8_t newTarget = OTV0P2BASE::fnmax((uint8_t)(wt - setback), tempControl->getFROSTTargetC());
-
-            return(newTarget);
-            }
-
-          // Else use WARM target as-is.
-          return(wt);
-          }
-        }
-
+    {
+        return (CTTBasicLogic::computeTargetTemp<valveControlParameters>(
+            *valveMode,
+            *tempControl,
+            *occupancy,
+            *ambLight,
+            *physicalUI,
+            *schedule,
+            *byHourStats,
+            setbackLockout
+        ));
+    }
+    
     // Set all fields of inputState from the target temperature etc.
     // Usually target temp will just have been computed by
     // computeTargetTemp().
@@ -379,51 +478,22 @@ class ModelledRadValveComputeTargetTempBasic final : public ModelledRadValveComp
         const uint8_t newTargetC,
         const uint8_t /*minPCOpen*/, const uint8_t maxPCOpen,
         const bool glacial) const override
-        {
-        // Set up state for computeRequiredTRVPercentOpen().
-        inputState.targetTempC = newTargetC;
-        const uint8_t wt = tempControl->getWARMTargetC();
-        inputState.maxTargetTempC = wt;
-//        inputState.minPCReallyOpen = minPCOpen;
-        inputState.maxPCOpen = maxPCOpen;
-        // Force glacial if unusually low maxPCOpen
-        // that would interact badly with other aspects of the algorithm.
-        // Note: may also wish to force glacial if room very dark
-        // to minimise noise.  (TODO-1027)
-        inputState.glacial = glacial ||
-            (maxPCOpen < DEFAULT_VALVE_PC_SAFER_OPEN);
-        inputState.inBakeMode = valveMode->inBakeMode();
-        inputState.hasEcoBias = tempControl->hasEcoBias();
-        // Request a fast response from the valve
-        // if the user is currently manually adjusting the controls (TODO-593)
-        // or there is a very recent (and reasonably strong) occupancy signal
-        // such as lights on.  (TODO-1069)
-        // This may provide enough feedback to have the user resist adjusting
-        // controls prematurely!
-        const bool fastResponseRequired =
-            physicalUI->veryRecentUIControlUse() ||
-            (occupancy->reportedNewOccupancyRecently());
-        inputState.fastResponseRequired = fastResponseRequired;
-        // Widen the allowed deadband significantly in a dark room
-        // to save (heating/battery) energy and noise (TODO-383, TODO-1037)
-        // (OR if temperature is jittery eg changing fast and filtering is on,
-        // OR if any setback is in place or in FROST ie anything below WARM)
-        // to attempt to reduce the total number and size of adjustments and
-        // thus reduce noise/disturbance (and battery drain).
-        // The wider deadband (less good temperature regulation) may be
-        // noticeable/annoying to sensitive occupants.
-        // A wider deadband may also simply suppress any movement/noise on
-        // some/most minutes while close to target temperature.
-        // For responsiveness, don't widen the deadband immediately
-        // after manual controls have been used.  (TODO-593)
-        // DHD20170109: filtering effectively forces wide in computation now.
-        inputState.widenDeadband = (!fastResponseRequired) &&
-            ((newTargetC < wt)
-                || ambLight->isRoomDark()); // Must return false if not usable.
-        // Capture adjusted reference/room temperature.
-        inputState.setReferenceTemperatures(temperatureC16->get());
-        }
-  };
+    {
+        CTTBasicLogic::setupInputState<valveControlParameters>(
+            inputState,
+            newTargetC,
+            maxPCOpen,
+            glacial,
+            *valveMode,
+            *temperatureC16,
+            *tempControl,
+            *occupancy,
+            *ambLight,
+            *physicalUI,
+            setbackLockout
+        );
+    }
+};
 
 // Pre-2017 stateless implementation of computation of target temperature.
 // Templated with all the input instances for maximum speed and minimum code size.
