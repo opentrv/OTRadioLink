@@ -369,7 +369,7 @@ void setupInputState(
     const PseudoSensorOccupancyTracker& occupancy,
     const SensorAmbientLightBase& ambLight,
     const ActuatorPhysicalUIBase& physicalUI,
-    bool (*const foo)() = ((bool(*)())nullptr))
+    bool (*const)() = ((bool(*)())nullptr))
 {
     // Set up state for computeRequiredTRVPercentOpen().
     inputState.targetTempC = newTargetC;
