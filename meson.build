@@ -14,7 +14,7 @@ opt_build = get_option('opt_build')
 
 cpp_args = [
         '-O0',
-        '-Wall', '-Werror',
+        '-Wall', '-Wextra', '-Werror',
         '-Wno-non-virtual-dtor',
         '-DEXT_AVAILABLE_ARDUINO_LIB_OTAESGCM'
 ]

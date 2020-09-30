@@ -22,4 +22,5 @@
             "pattern": "builddir/OTRadioLinkTests"
         }
     ],
+    "python.languageServer": "Microsoft",
 }
