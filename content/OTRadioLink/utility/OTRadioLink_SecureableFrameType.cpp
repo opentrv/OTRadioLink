@@ -904,7 +904,7 @@ uint8_t SimpleSecureFrame32or0BodyTXBase::encodeValveFrame(
     uint8_t *const iv = scratch.buf; // uint8_t iv[IV_size];
     if(!computeIVForTX12B(iv)) { return(0); }
 
-    const char *const statsJSON = (const char *const)&ptext[2];
+    const char *const statsJSON = (const char *)&ptext[2];
     const bool hasStats = (NULL != ptext) && ('{' == statsJSON[0]);
     const size_t slp1 = hasStats ? strlen(statsJSON) : 1; // Stats length including trailing '}' (not sent).
     if(slp1 > ENC_BODY_SMALL_FIXED_PTEXT_MAX_SIZE-1) { return(0); } // ERROR

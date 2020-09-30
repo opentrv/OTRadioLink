@@ -1329,7 +1329,7 @@ TEST(OTAESGCMSecureFrame, GenericFrameEncoding)
     // Setup frame data.
     OTRadioLink::OTEncodeData_T fd(_rawFrame, sizeof(_rawFrame), _bufW, sizeof(_bufW));
     { // This block is lifted and simplified from encodeValveFrame to build an identical frame.
-        const char *const statsJSON = (const char *const)&fd.ptext[2];
+        const char *const statsJSON = (const char *)&fd.ptext[2];
         const bool hasStats = (NULL != fd.ptext) && ('{' == statsJSON[0]);
         const size_t slp1 = hasStats ? strlen(statsJSON) : 1; // Stats length including trailing '}' (not sent).
         const uint8_t statslen = (uint8_t)(slp1 - 1); // Drop trailing '}' implicitly.
