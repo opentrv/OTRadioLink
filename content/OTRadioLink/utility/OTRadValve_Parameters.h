@@ -235,8 +235,6 @@ namespace OTRadValve
 
     // Default 'BAKE' minutes, ie time to crank heating up to BAKE setting (minutes, strictly positive, <255).
     static constexpr uint8_t DEFAULT_BAKE_MAX_M = 31;
-    // FIXME: This works because we collect twice an hour, but is not parametric.
-    static_assert(DEFAULT_BAKE_MAX_M > 30, "Bake period must last at least one stats collection cycle");
 
     // Default typical minimum valve percentage open to be considered actually/significantly open; [1,99].
     // Anything like this will usually be shut or very minimal flows.
